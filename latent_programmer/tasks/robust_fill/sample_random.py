@@ -19,6 +19,7 @@ Changed to support entire RobustFill DSL instead of just SubStr and ConstStr.
 """
 
 
+import collections
 import random
 import string
 from typing import Dict, List, Optional, Tuple
@@ -27,7 +28,7 @@ from latent_programmer.tasks.robust_fill import dsl
 
 
 # Maximum number of characters in a sampled substring token.
-MAX_TOKEN_LENGTH = 5
+MAX_TOKEN_LENGTH = 4
 
 
 def sample_type_str(t):
@@ -83,7 +84,7 @@ def get_alphanumeric():
 
 
 def get_proper_case():
-  l = random.randint(1, MAX_TOKEN_LENGTH)
+  l = random.randint(1, MAX_TOKEN_LENGTH - 1)
   constant = random.choice(dsl.DELIMITER)
   capital = random.choice(string.ascii_uppercase)
   return constant + capital + ''.join(random.choice(string.ascii_lowercase)
@@ -109,8 +110,8 @@ def sample_inputs(num_examples,
     regexTokDict: Dictionary mapping regex indices to occurrence counts.
   """
   while True:
-    delimiter_dict = {}
-    type_dict = {}
+    delimiter_dict = collections.defaultdict(int)
+    type_dict = collections.defaultdict(int)
 
     n_toks = random.randint(3, max_input_tokens)
 
@@ -118,47 +119,42 @@ def sample_inputs(num_examples,
     for _ in range(num_examples):
       input_lists.append([])
 
-    n_tok = 0
-    input_length = 0
-    while n_tok < n_toks:
-      n_tok += 1
+    for i in range(n_toks):
       is_delimiter = random.randint(1, 3)
       if is_delimiter == 1:
         delimiter = random.choice(dsl.DELIMITER)
         k = random.randint(1, max_k)
-        delimiter_dict[delimiter] = delimiter_dict.get(delimiter, 0) + k
+        delimiter_dict[delimiter] += k
         for _ in range(k):
           for j in range(num_examples):
             input_lists[j].append(delimiter)
-          input_length += 1
       else:
         type_ = random.choice(list(dsl.Type))
         k = random.randint(1, max_k)
-        type_dict[type_] = type_dict.get(type_, 0) + k
+        type_dict[type_] += k
         for _ in range(k):
-          max_len = 0
           for j in range(num_examples):
             s = sample_type_str(type_)
             input_lists[j].append(s)
-            delimiter_dict[s[0]] = delimiter_dict.get(s[0], 0) + 1
-            max_len = max(max_len, len(s))
-          input_length += max_len
+            delimiter_dict[s[0]] += 1
 
-      # Early stopping if the sampled input strings are close to maximum length.
-      if input_length >= max_input_length - MAX_TOKEN_LENGTH * max_k // 2:
+      input_length = max(sum(len(s) for s in inner_list)
+                         for inner_list in input_lists)
+      if input_length >= max_input_length:
         break
 
     inputs = []
     for i in range(num_examples):
       random.shuffle(input_lists[i])
-      inputs.append(''.join(input_lists[i]))
+      inputs.append(''.join(input_lists[i])[:max_input_length])
 
     # Everything is a character.
     type_dict[dsl.Type.CHAR] = max(len(input_value) for input_value in inputs)
 
-    # Rejection step on input lengths.
-    if max(len(input_value) for input_value in inputs) > max_input_length:
-      continue
+    # Inputs should have appropriate lengths.
+    if not all(0 < len(input_str) <= max_input_length for input_str in inputs):
+      raise ValueError('Some input has a bad length')
+
     return inputs, delimiter_dict, type_dict
 
 

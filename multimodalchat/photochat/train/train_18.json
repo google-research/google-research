@@ -2200,11 +2200,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "that's a good picture of her",
         "share_photo": false,
         "user_id": 1
@@ -32657,11 +32652,6 @@
         "message": "Yes",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",

@@ -179,7 +179,6 @@ class RelativeMultiHeadDotProductAttention(module.Module):
       # Expand batch dimensions.
       bias = jnp.broadcast_to(
           bias, (1,) * len(inputs_q.shape[:-2]) + bias.shape)
-
     else:
       relative_position = custom_relative_position
       relative_position_bucket = make_relative_position_bucket(

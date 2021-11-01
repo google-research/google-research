@@ -234,9 +234,8 @@ def add_eos_token(indices, eos_token):
 
   indices = jnp.pad(
       indices, pad_width=[(0, 0), (0, 1)], mode='constant')
-  indices = jax.ops.index_update(   # Add EOS token.
-      indices,
-      jax.ops.index[jnp.arange(batch_size), lengths], eos_token)
+  # Add EOS token.
+  indices = indices.at[jnp.arange(batch_size), lengths].set(eos_token)
   return indices.astype(jnp.int32)
 
 
@@ -264,9 +263,8 @@ def train_step(state,
   weights = jnp.where(programs > 0, 1, 0).astype(jnp.float32)
 
   # Embedding mask for autoencoding.
-  emb_mask = jax.ops.index_update(
-      jnp.ones((1, FLAGS.latent_vocab_size), jnp.float32),
-      jax.ops.index[:, [0, bos_token, eos_token]], 0)
+  emb_mask = jnp.ones((1, FLAGS.latent_vocab_size),
+                      jnp.float32).at[:, [0, bos_token, eos_token]].set(0)
 
   def ae_loss_fn(params):
     """Loss function used for training autoencoder."""
@@ -384,9 +382,8 @@ def eval_step(state,
 
   weights = jnp.where(programs > 0, 1, 0).astype(jnp.float32)
   # Embedding mask for autoencoding.
-  emb_mask = jax.ops.index_update(
-      jnp.ones((1, FLAGS.latent_vocab_size), jnp.float32),
-      jax.ops.index[:, [0, bos_token, eos_token]], 0)
+  emb_mask = jnp.ones((1, FLAGS.latent_vocab_size),
+                      jnp.float32).at[:, [0, bos_token, eos_token]].set(0)
 
   ae_logits, vq = models.LatentProgramTransformer(config).apply(
       {'params': params, 'vqvae': state.model_state},

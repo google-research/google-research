@@ -15,7 +15,7 @@
 
 # Lint as: python3
 """ResNet architectures."""
-from flax import nn
+from flax.deprecated import nn
 
 import jax.nn
 from jax.nn import initializers

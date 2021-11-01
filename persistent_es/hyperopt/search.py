@@ -611,11 +611,11 @@ def main(argv):
         val_loss, (val_logits, _) = loss_fn(params, rand_val_xs, rand_val_ys, model_state, True)
         val_acc = (jnp.argmax(val_logits, axis=1) == rand_val_ys).sum() / rand_val_ys.shape[0]
 
-      state['loss_container'] = jax.ops.index_update(state['loss_container'], state['t'], loss)
+      state['loss_container'] = state['loss_container'].at[state['t']].set(loss)
       # state['loss_container'] = jax.ops.index_update(state['loss_container'], state['t'], train_loss)
-      state['acc_container'] = jax.ops.index_update(state['acc_container'], state['t'], train_acc)
-      state['val_loss_container'] = jax.ops.index_update(state['val_loss_container'], state['t'], val_loss)
-      state['val_acc_container'] = jax.ops.index_update(state['val_acc_container'], state['t'], val_acc)
+      state['acc_container'] = state['acc_container'].at[state['t']].set(train_acc)
+      state['val_loss_container'] = state['val_loss_container'].at[state['t']].set(val_loss)
+      state['val_acc_container'] = state['val_acc_container'].at[state['t']].set(val_acc)
 
       state['t'] += 1
       state['key'] = key

@@ -21,7 +21,7 @@ and GGNN ablation versions of the model, see ipagnn_interpolants.py.
 """
 
 from absl import logging  # pylint: disable=unused-import
-from flax import nn
+from flax.deprecated import nn
 import jax
 from jax import lax
 import jax.numpy as jnp
@@ -128,11 +128,10 @@ class IPAGNN(nn.Module):
           rng, cells, (batch_size, num_nodes,), hidden_size)
 
     def _create_instruction_pointer():
-      return jax.ops.index_add(
-          jnp.zeros((batch_size, num_nodes,)),
-          jax.ops.index[:, 0],  # TODO(dbieber): Use "start_index" instead of 0.
-          1
-      )
+      return jnp.zeros((
+          batch_size,
+          num_nodes,
+      )).at[:, 0].add(1)  # TODO(dbieber): Use "start_index" instead of 0.
 
     hidden_states = _create_hidden_states()
     # leaves(hidden_states).shape: batch_size, num_nodes, hidden_size

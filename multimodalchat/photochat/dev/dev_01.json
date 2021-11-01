@@ -157,6 +157,11 @@
         "message": "Even we are just going for rides and doing some family activities",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 501,
@@ -7923,6 +7928,11 @@
         "message": "Nice",
         "share_photo": false,
         "user_id": 1
+      },
+      {
+        "message": "",
+        "share_photo": true,
+        "user_id": 0
       }
     ],
     "dialogue_id": 604,
@@ -14894,11 +14904,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "You see it?",
         "share_photo": false,
         "user_id": 0
@@ -14984,11 +14989,6 @@
         "message": "That is a great photo!",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "",
@@ -25096,11 +25096,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 833,
@@ -26067,11 +26062,6 @@
         "message": "Which one?",
         "share_photo": false,
         "user_id": 1
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       },
       {
         "message": "Oh sweet! That must have been fun!",
@@ -29718,11 +29708,6 @@
       {
         "message": "I hope so! Thanks for your optimism. I'll send that picture over. Who knows, maybe more of those things to come for Ember?",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

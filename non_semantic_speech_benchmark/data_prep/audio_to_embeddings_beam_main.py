@@ -24,7 +24,7 @@ This file has two modes:
 """
 # pylint:enable=line-too-long
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from absl import app
 from absl import flags
@@ -45,7 +45,6 @@ flags.DEFINE_string(
     'An optional directory for the locally downloaded TFDS data. Should only '
     'be non-None when `tfds_dataset` is used. This is essential for data that '
     'needs to be manually downloaded.')
-
 flags.DEFINE_string('output_filename', None, 'Output filename.')
 flags.DEFINE_list(
     'embedding_names', None,
@@ -59,6 +58,17 @@ flags.DEFINE_list(
     'module_output_keys', None,
     'List of module output key. Must be the same length as '
     '`embedding_modules`.')
+flags.DEFINE_enum('data_prep_behavior', 'many_models', [
+    'many_models', 'many_embeddings_single_model', 'chunked_audio'],
+                  'Which metric to compute and report.')
+# Extra data prep flags, needed for `many_embeddings_single_model` and
+# `chunked_audio`.
+flags.DEFINE_integer('chunk_len', None, 'Optional chunk len')
+# Extra data prep flags, needed just for `many_embeddings_single_model`.
+flags.DEFINE_integer(
+    'embedding_length', None,
+    'Expected length of the embedding. If present, must be this length.')
+
 flags.DEFINE_string(
     'comma_escape_char', '?',
     'Sometimes we want commas to appear in `embedding_modules`, '
@@ -105,62 +115,13 @@ flags.DEFINE_integer(
     'length logic, unless the model is in TFLite format. Do not use if '
     '`use_frontend_fn` is `True`.')
 
+
 FLAGS = flags.FLAGS
-
-
-def _maybe_add_commas(list_obj, comma_escape_char):
-  return [x.replace(comma_escape_char, ',') for x in list_obj]
-
-
-def get_beam_params_from_flags():
-  """Parses flags and returns arguments for beam job."""
-  # Get input data location from flags. If we're reading a TFDS dataset, get
-  # train, validation, and test.
-  input_filenames_list, output_filenames, sample_rate = utils.read_input_glob_and_sample_rate_from_flags(
-      FLAGS.input_glob, FLAGS.sample_rate, FLAGS.tfds_dataset,
-      FLAGS.output_filename, FLAGS.tfds_data_dir)
-
-  # Sometimes we want commas to appear in `embedding_modules`,
-  # `embedding_names`, or `module_output_key`. However, commas get split out in
-  # Google's Python `DEFINE_list`. We compromise by introducing a special
-  # character, which we replace with commas here.
-  embedding_modules = _maybe_add_commas(FLAGS.embedding_modules,
-                                        FLAGS.comma_escape_char)
-  embedding_names = _maybe_add_commas(FLAGS.embedding_names,
-                                      FLAGS.comma_escape_char)
-  module_output_keys = _maybe_add_commas(FLAGS.module_output_keys,
-                                         FLAGS.comma_escape_char)
-
-  input_format = 'tfrecord'
-  output_format = 'tfrecord'
-
-  beam_params = dict(
-      sample_rate=sample_rate,
-      debug=FLAGS.debug,
-      embedding_names=embedding_names,
-      embedding_modules=embedding_modules,
-      module_output_keys=module_output_keys,
-      audio_key=FLAGS.audio_key,
-      sample_rate_key=FLAGS.sample_rate_key,
-      label_key=FLAGS.label_key,
-      speaker_id_key=FLAGS.speaker_id_key,
-      average_over_time=FLAGS.average_over_time,
-      delete_audio_from_output=FLAGS.delete_audio_from_output,
-      split_embeddings_into_separate_tables=FLAGS
-      .split_embeddings_into_separate_tables,
-      use_frontend_fn=FLAGS.use_frontend_fn,
-      normalize_to_pm_one=FLAGS.normalize_to_pm_one,
-      model_input_min_length=FLAGS.model_input_min_length,
-      input_format=input_format,
-      output_format=output_format,
-  )
-
-  return input_filenames_list, output_filenames, beam_params
 
 
 def main(_):
 
-  input_filenames_list, output_filenames, beam_params = get_beam_params_from_flags(
+  input_filenames_list, output_filenames, beam_params = utils.get_beam_params_from_flags(
   )
   # Check that inputs and flags are formatted correctly.
   utils.validate_inputs(
@@ -177,12 +138,13 @@ def main(_):
   with beam.Pipeline(beam_options) as root:
     for i, (input_filenames_or_glob, output_filename) in enumerate(
         zip(input_filenames_list, output_filenames)):
-      utils.make_beam_pipeline(
-          root,
-          input_filenames=input_filenames_or_glob,
+      utils.data_prep_pipeline(
+          root=root,
+          input_filenames_or_glob=input_filenames_or_glob,
           output_filename=output_filename,
-          suffix=str(i),
-          **beam_params)
+          data_prep_behavior=FLAGS.data_prep_behavior,
+          beam_params=beam_params,
+          suffix=str(i))
 
 
 @flags.multi_flags_validator(

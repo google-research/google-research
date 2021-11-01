@@ -20,8 +20,8 @@ import functools
 
 from absl import logging
 import flax
+import flax.deprecated.nn as nn
 import flax.jax_utils as flax_utils
-import flax.nn as nn
 import jax
 import jax.numpy as jnp
 import numpy as np

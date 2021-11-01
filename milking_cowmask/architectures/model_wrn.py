@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Wide Resnet Model for small image classification."""
-from flax import nn
+from flax.deprecated import nn
 import jax
 
 

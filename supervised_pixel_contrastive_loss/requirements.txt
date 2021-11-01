@@ -1,0 +1,3 @@
+numpy>=1.19.2
+tensorflow>=2.1
+tf-slim==1.1.0

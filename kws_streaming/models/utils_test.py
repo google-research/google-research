@@ -216,6 +216,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
       'gru',
       'lstm',
       'svdf',
+      'bc_resnet'
   )
   def test_external_streaming_shapes(self, model_name):
     model = utils.get_model_with_default_params(

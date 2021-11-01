@@ -141,12 +141,12 @@ class AdversarialDriver(object):
       if self.flexible_protagonist:
         # In flexible protagonist case, we find the best-performing agent
         # and compute regret = max(best) - mean(other).
-        protagonist_better = tf.cast(
+        protag_better = tf.cast(
             tf.math.greater(agent_r_max, adv_agent_r_max), tf.float32)
-        env_reward = protagonist_better * (agent_r_max - adv_agent_r_avg) + \
-            (1 - protagonist_better) * (adv_agent_r_max - agent_r_avg)
-        adv_agent_r_max = protagonist_better * agent_r_max + \
-            (1 - protagonist_better) * adv_agent_r_max
+        env_reward = (protag_better * (agent_r_max - adv_agent_r_avg) +
+                      (1 - protag_better) * (adv_agent_r_max - agent_r_avg))
+        adv_agent_r_max = (protag_better * agent_r_max +
+                           (1 - protag_better) * adv_agent_r_max)
       elif self.adversary_env[env_idx].non_negative_regret:
         # Clip regret signal so that it can't go below zero.
         env_reward = tf.math.maximum(adv_agent_r_max - agent_r_avg, 0)
@@ -405,8 +405,8 @@ class AdversarialDriver(object):
 
     # Number of blocks gives a negative penalty if the antagonist didn't score,
     # else becomes a positive reward.
-    block_budget_reward = antag_didnt_score * -weighted_budget + \
-        (1 - antag_didnt_score) * weighted_budget
+    block_budget_reward = (antag_didnt_score * -weighted_budget +
+                           (1 - antag_didnt_score) * weighted_budget)
 
     logging.info('Environment block budget reward: %f',
                  tf.reduce_mean(block_budget_reward).numpy())

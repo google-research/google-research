@@ -16,7 +16,7 @@
 """PyramidNet with Shake-Drop."""
 from . import shake
 
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 

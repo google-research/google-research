@@ -1942,11 +1942,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Very nice picture!",
         "share_photo": false,
         "user_id": 1
@@ -8716,11 +8711,6 @@
       {
         "message": "it sure is!",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {
@@ -21743,11 +21733,6 @@
         "user_id": 0
       },
       {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
-      },
-      {
         "message": "Thats funny.",
         "share_photo": false,
         "user_id": 1
@@ -34052,11 +34037,6 @@
         "message": "",
         "share_photo": true,
         "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
-        "user_id": 0
       }
     ],
     "dialogue_id": 4441,
@@ -37106,11 +37086,6 @@
       {
         "message": "thanks a lot",
         "share_photo": false,
-        "user_id": 0
-      },
-      {
-        "message": "",
-        "share_photo": true,
         "user_id": 0
       },
       {

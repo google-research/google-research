@@ -16,7 +16,7 @@
 """Keras-based positional embedding layer.
 
 From:
-  https://github.com/keras-team/keras-nlp/blob/master/keras_nlp/layers/position_embedding.py
+  https://github.com/keras-team/keras-nlp/blob/master/modeling/layers/position_embedding.py
 """
 
 import tensorflow as tf  # tf

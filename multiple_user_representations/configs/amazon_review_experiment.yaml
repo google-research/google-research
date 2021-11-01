@@ -1,0 +1,41 @@
+# The default configuration used for amazon experiments.
+# The following parameters can be overrided through the training script, when flags are passed:
+# `results_dir`, `dataset_path`, `num_representations`, `epochs`.
+
+
+root_dir: 'specify_root_dir'
+results_dir: 'results/train-test-split/'
+
+# Dataset params
+dataset_name: amazon_review_category
+dataset_path: 'AmazonDataset/category_data/Grocery_and_Gourmet_Food'
+# dataset_path: 'AmazonDataset/category_data/test_amazon_category_data'
+
+# Training params
+train_batch_size: 256
+test_batch_size: 256
+epochs: 10
+learning_rate: 0.001
+softmax_temperature: 1.0
+
+# model
+model_config:
+  input_embedding_dimension: 8
+  output_dimension: 8
+  use_disagreement_loss: False
+  use_shared_input_embedding: False
+
+  # For item tower, only MLP supported.
+  item_model: mlp
+  item_model_config:
+    num_layers: 1
+    dropout: 0.2
+
+  user_model: parametric_attention_encoder
+  user_model_config:
+    num_mha_layers: 2
+    num_mha_heads: 4
+    mha_dropout: 0.2
+    num_representations: 3
+    use_positional_encoding: False
+    use_projection_layer: False

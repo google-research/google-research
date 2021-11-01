@@ -18,6 +18,7 @@
 
 from typing import Callable, Dict, Optional, List
 
+import numpy as np
 import tensorflow as tf
 
 SAMPLES_ = 'samples_'
@@ -40,7 +41,8 @@ def get_data(file_pattern,
              target_key = None,
              label_key = None,
              speaker_id_key = None,
-             shuffle_buffer_size = 10000):
+             shuffle_buffer_size = 10000,
+             normalize_to_pm_one = False):
   """Gets data for TRILL distillation from a teacher or precomputed values.
 
   Args:
@@ -64,6 +66,7 @@ def get_data(file_pattern,
     label_key: Optional name of label key in tf.Examples.
     speaker_id_key: Location of speaker ID.
     shuffle_buffer_size: Size of shuffle buffer.
+    normalize_to_pm_one: Whether to normalize to plus/minus 1.
   Returns:
     A tf.data.Dataset of (audio samples, regression targets).
   """
@@ -139,6 +142,20 @@ def get_data(file_pattern,
         return ret
       ds = ds.map(_sqz_lbls, num_parallel_calls=AUTO_)
 
+  # Possibly normalize samples.
+  def _normalize(kv):
+    assert SAMPLES_ in kv
+    unnormalized_samples = kv[SAMPLES_]
+
+    # Normalize.
+    normalized_samples = unnormalized_samples / np.iinfo(np.int16).max
+    kv[SAMPLES_] = normalized_samples
+
+    return kv
+
+  if normalize_to_pm_one:
+    ds = ds.map(_normalize)
+
   # Convert results to tuple.
   def _to_tup(kv):
     if speaker_id_key:
@@ -149,7 +166,7 @@ def get_data(file_pattern,
     else:
       return (kv[SAMPLES_], kv[TARGETS_])
 
-  ds = (ds.map(_to_tup, num_parallel_calls=AUTO_).prefetch(2))
+  ds = ds.map(_to_tup, num_parallel_calls=AUTO_).prefetch(2)
   if speaker_id_key:
     expected_len = 4
   elif label_key:

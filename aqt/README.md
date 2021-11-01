@@ -3,6 +3,9 @@
 This directory contains libraries for running and analyzing
 neural network quantization experiments in JAX and flax.
 
+Summary about this work is presented at paper [Pareto-Optimal Quantized ResNet Is Mostly 4-bit](https://arxiv.org/abs/2105.03536).
+Please cite the paper in your publications if you find the source code useful for your research.
+
 Contributors: Shivani Agrawal, Lisa Wang, Jonathan Malmaud, Lukasz Lew,
 Pouya Dormiani, Phoenix Meadowlark, Oleg Rybakov.
 

@@ -37,7 +37,7 @@ from clu import parameter_overview
 from flax import jax_utils
 from flax import optim
 from flax import serialization
-import flax.nn
+import flax.deprecated.nn
 from flax.training import common_utils
 import jax
 from jax import random
@@ -58,8 +58,8 @@ from cold_posterior_flax.cifar10.sample import sym_euler_sgmcmc
 @functools.partial(jax.jit, static_argnums=(1, 2, 3))
 def create_model(prng_key, batch_size, image_size, model_def):
   input_shape = (batch_size, image_size, image_size, 3)
-  with flax.nn.stateful() as init_state:
-    with flax.nn.stochastic(jax.random.PRNGKey(0)):
+  with flax.deprecated.nn.stateful() as init_state:
+    with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
       _, model = model_def.create_by_shape(prng_key,
                                            [(input_shape, jnp.float32)])
   return model, init_state
@@ -109,8 +109,8 @@ def make_training_steps(config, learning_rate_fn, l2_reg, train_size,
 
   def loss_fn(model, state, batch, prng_key):
     """Loss function used for training."""
-    with flax.nn.stateful(state) as new_state:
-      with flax.nn.stochastic(prng_key):
+    with flax.deprecated.nn.stateful(state) as new_state:
+      with flax.deprecated.nn.stochastic(prng_key):
         logits, model_penalty, summaries = model(batch['image'])
     ce_loss = train_functions.cross_entropy_loss(logits, batch['label'])
 
@@ -229,7 +229,7 @@ def make_training_steps(config, learning_rate_fn, l2_reg, train_size,
 
     grad = jax.experimental.optimizers.clip_grads(grad,
                                                   config.gradient_clipping)
-    with flax.nn.stochastic(opt_rng):
+    with flax.deprecated.nn.stochastic(opt_rng):
       new_optimizer = optimizer.apply_gradient(grad, **opt_kwargs)
 
     metrics['cum_loss'] = loss
@@ -258,7 +258,7 @@ def eval_step(model, state, batch, config):
   """Evaluation step."""
   state = train_functions.pmean(state, config)
 
-  with flax.nn.stateful(state, mutable=False):
+  with flax.deprecated.nn.stateful(state, mutable=False):
     logits, penalty, summaries = model(batch['image'], train=False)
   penalty = train_functions.pmean(penalty, config, 'batch')
   metrics = {'model_penalty': penalty}
@@ -270,7 +270,7 @@ def eval_step(model, state, batch, config):
 
 def predict_step(model, state, batch, config):
   state = train_functions.pmean(state, config)
-  with flax.nn.stateful(state, mutable=False):
+  with flax.deprecated.nn.stateful(state, mutable=False):
     logits, _ = model(batch['image'], train=False)
 
   return logits, batch['label']
@@ -309,7 +309,7 @@ def train(config, model_def, device_batch_size, eval_ds, num_steps,
 
   train_size = data_source.TRAIN_IMAGES
 
-  with flax.nn.stochastic(init_key):
+  with flax.deprecated.nn.stochastic(init_key):
     optimizer = create_optimizer(config, model, base_learning_rate, train_size,
                                  sampler_rng)
   del model  # Don't keep a copy of the initial model.

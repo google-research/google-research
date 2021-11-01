@@ -64,6 +64,7 @@ flags.DEFINE_integer('timeout', 7200, 'Wait-for-checkpoint timeout.')
 flags.DEFINE_boolean('calculate_equal_error_rate', False,
                      'Whether to calculate the Equal Error Rate. Only '
                      'applicable for binary classification problems.')
+flags.DEFINE_boolean('preaverage', False, 'Whether to preaverage.')
 
 
 def eval_and_report():
@@ -100,7 +101,8 @@ def eval_and_report():
         bucket_boundaries=FLAGS.bucket_boundaries,
         bucket_batch_sizes=[FLAGS.batch_size] * (len(FLAGS.bucket_boundaries) + 1),  # pylint:disable=line-too-long
         loop_forever=False,
-        shuffle=False)
+        shuffle=False,
+        preaverage=FLAGS.preaverage)
     logging.info('Got dataset for eval step: %s.', step)
     if FLAGS.take_fixed_data:
       ds = ds.take(FLAGS.take_fixed_data)

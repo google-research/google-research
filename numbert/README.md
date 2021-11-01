@@ -2,7 +2,8 @@
 # NumBERT
 
 
-This repository contains the code for creating the NUMBert Language model described in:
+This repository contains the code for creating the NUMBert Language model 
+described in: 
 [Do Language Embeddings Capture Scales?](https://arxiv.org/abs/2010.05345).
 
 We also share the model itself.
@@ -30,10 +31,19 @@ python create_pretraining_data.py \
   --dupe_factor=5
 ```
 
-See the [BERT repository](https://github.com/google-research/bert) for more information. Note that the vocab file has been
-modified to introduce the "scinotexp" token and has been included in this
-release.
+See the [BERT repository](https://github.com/google-research/bert) for more 
+information. Note that the vocab file has been modified to introduce the 
+"scinotexp" token and has been included in this release.
 
 ## Model
 We also release a NumBERT model trained using the standard BERT pre-training
-pipeline with the modifications described above.
+pipeline with the modifications described above. The files are 
+[here](https://console.cloud.google.com/storage/browser/gresearch/numbert/).
+
+## Data
+
+The data for the probing experiments are taken from the 
+[Distributions over Quantities](https://github.com/google-research-datasets/distribution-over-quantities) 
+resource. In addition, evaluations were performed on 2 datasets:
+[VerbPhysics](https://uwnlp.github.io/verbphysics/) and the 
+[2018 version of the Amazon Review Dataset](https://nijianmo.github.io/amazon/index.html).

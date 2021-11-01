@@ -16,7 +16,7 @@
 """Implementation of RAFT."""
 
 import tensorflow as tf
-from tensorflow_addons import image as tfa_image
+from smurf import smurf_utils
 
 
 def compute_corr(input_tensor):
@@ -80,7 +80,7 @@ def corr_block(corr_pyramid_inst, coords, radius):
         centroid_lvl, dtype=tf.float32) + tf.cast(
             delta_lvl, dtype=tf.float32)
 
-    corr = tfa_image.resampler(corr, coords_lvl)
+    corr = smurf_utils.resampler(corr, coords_lvl)
 
     channel_dim = (2 * r + 1) * (2 * r + 1)
     corr = tf.reshape(corr, (b, h1, w1, channel_dim))

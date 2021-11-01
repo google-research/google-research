@@ -14,8 +14,8 @@
 # limitations under the License.
 
 """Experimental Activation Functions."""
-from flax import nn
-from flax.nn import initializers
+from flax.deprecated import nn
+from flax.deprecated.nn import initializers
 import jax
 import jax.numpy as jnp
 import numpy as onp

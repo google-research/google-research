@@ -30,11 +30,14 @@ import tqdm
 import time
 
 from rl_repr.batch_rl import behavioral_cloning
+from rl_repr.batch_rl import latent_behavioral_cloning
 from rl_repr.batch_rl import brac
 from rl_repr.batch_rl import d4rl_utils
 from rl_repr.batch_rl import evaluation
 from rl_repr.batch_rl import sac
 from rl_repr.batch_rl import embed
+from rl_repr.batch_rl import action_embed
+
 
 FLAGS = flags.FLAGS
 
@@ -58,10 +61,8 @@ flags.DEFINE_enum(
         'state-embed-ctx'
     ],
     'Input form for training downstream task. Only used when learn_ctx is true')
-flags.DEFINE_enum('algo_name', 'brac', [
-    'bc', 'bc_mix', 'ddpg', 'sac', 'awr', 'crr', 'bcq', 'cql', 'brac', 'fbrac',
-    'asac'
-], 'Algorithm.')
+flags.DEFINE_enum('algo_name', 'brac', ['bc', 'sac', 'brac', 'latent_bc'],
+                  'Algorithm.')
 flags.DEFINE_boolean('learn_ctx', False, 'Whether to learn context embeddings.')
 flags.DEFINE_enum('network', 'default', [
     'default', 'small', 'none'
@@ -91,9 +92,6 @@ flags.DEFINE_integer('embed_training_window', 2,
 flags.DEFINE_integer('embed_pretraining_steps', -1,
                      'Number of training steps to train embedding prior to offline RL. '
                      'Set at -1 for training in tandem with offline RL.')
-flags.DEFINE_integer(
-    'bc_pretraining_steps', 200_000,
-    'Number of training steps for the behavior cloning agent. ')
 flags.DEFINE_integer('num_random_actions', 10_000,
                      'Fill replay buffer with N random actions when doing online training.')
 flags.DEFINE_integer(
@@ -134,6 +132,19 @@ flags.DEFINE_enum('direction', 'backward',
                   ['forward', 'backward', 'bidirectional'],
                   'Direction of prediction in pretraining.')
 
+# TRAIL configs
+flags.DEFINE_boolean('finetune_primitive', True,
+                     'Whether to finetune primitive policy.')
+flags.DEFINE_integer('state_action_embed_dim', None,
+                     'Optional state-action embedding.')
+flags.DEFINE_integer('state_action_fourier_dim', None,
+                     'Optional state-action embedding.')
+flags.DEFINE_float('latent_bc_lr', 1e-4, 'Learning rate for latent bc.')
+flags.DEFINE_float('latent_bc_lr_decay', None,
+                   'Decay learning rate for latent bc.')
+flags.DEFINE_string('kl_regularizer', 'uniform',
+                    'KL regularization for downstream learning')
+
 
 def get_ctx_length():
   if not FLAGS.state_embed_dim or not FLAGS.learn_ctx:
@@ -158,7 +169,31 @@ def get_ctx_length():
 
 
 def get_embed_model(env):
-  if FLAGS.embed_learner == 'cpc':
+  if FLAGS.embed_learner == 'action_fourier':
+    embed_model = action_embed.ActionFourierLearner(
+        env.observation_spec().shape[0],
+        env.action_spec(),
+        embedding_dim=FLAGS.state_action_embed_dim,
+        fourier_dim=FLAGS.state_action_fourier_dim,
+        sequence_length=FLAGS.embed_training_window,
+        learning_rate=FLAGS.state_embed_lr,
+        kl_regularizer=FLAGS.kl_regularizer)
+  elif FLAGS.embed_learner in ['action_opal', 'action_skild']:
+    embed_model = action_embed.ActionOpalLearner(
+        env.observation_spec().shape[0],
+        env.action_spec(),
+        latent_dim=FLAGS.state_action_embed_dim,
+        sequence_length=FLAGS.embed_training_window,
+        learning_rate=FLAGS.state_embed_lr)
+  elif FLAGS.embed_learner == 'action_spirl':
+    embed_model = action_embed.ActionOpalLearner(
+        env.observation_spec().shape[0],
+        env.action_spec(),
+        latent_dim=FLAGS.state_action_embed_dim,
+        sequence_length=FLAGS.embed_training_window,
+        action_only=True,
+        learning_rate=FLAGS.state_embed_lr)
+  elif FLAGS.embed_learner == 'cpc':
     embed_model = embed.CpcLearner(
         env.observation_spec().shape[0],
         env.action_spec().shape[0],
@@ -347,7 +382,7 @@ def main(_):
   def state_mask_fn(states):
     if FLAGS.state_mask_dims == 0:
       return states
-    assert (FLAGS.state_mask_dims <= states.shape[1])
+    assert FLAGS.state_mask_dims <= states.shape[1]
     state_mask_dims = (
         states.shape[1]
         if FLAGS.state_mask_dims == -1 else FLAGS.state_mask_dims)
@@ -376,8 +411,10 @@ def main(_):
       sliding_window=FLAGS.embed_training_window,
       state_mask_fn=state_mask_fn)
 
-  if (FLAGS.downstream_task_name is not None or FLAGS.downstream_data_name is not None
-      or FLAGS.downstream_data_size is not None):
+  downstream_embed_dataset = None
+  if (FLAGS.downstream_task_name is not None or
+      FLAGS.downstream_data_name is not None or
+      FLAGS.downstream_data_size is not None):
     downstream_data_name = FLAGS.downstream_data_name
     assert downstream_data_name is None
     gym_env, dataset, downstream_embed_dataset = d4rl_utils.create_d4rl_env_and_dataset(
@@ -401,6 +438,10 @@ def main(_):
         return tuple(new_elems)
 
       embed_dataset = zipped_dataset.map(combine)
+
+  if FLAGS.embed_learner and 'action' in FLAGS.embed_learner:
+    assert FLAGS.embed_training_window >= 2
+    dataset = downstream_embed_dataset or embed_dataset
 
   if FLAGS.downstream_mode == 'online':
 
@@ -459,7 +500,8 @@ def main(_):
   result_writer = tf.summary.create_file_writer(
       os.path.join(FLAGS.save_dir, 'results'))
 
-  if FLAGS.state_embed_dim and FLAGS.embed_learner:
+  if (FLAGS.state_embed_dim or FLAGS.state_action_embed_dim
+     ) and FLAGS.embed_learner and FLAGS.embed_pretraining_steps != 0:
     embed_model = get_embed_model(env)
     if FLAGS.finetune:
       other_embed_model = get_embed_model(env)
@@ -475,6 +517,8 @@ def main(_):
   config_str = f'{FLAGS.task_name}_{FLAGS.embed_learner}_{FLAGS.state_embed_dim}_{FLAGS.state_embed_dists}_{FLAGS.embed_training_window}_{FLAGS.downstream_input_mode}_{FLAGS.finetune}_{FLAGS.network}_{FLAGS.seed}'
   if FLAGS.embed_learner == 'acl':
     config_str += f'_{FLAGS.predict_actions}_{FLAGS.policy_decoder_on_embeddings}_{FLAGS.reward_decoder_on_embeddings}_{FLAGS.predict_rewards}_{FLAGS.embed_on_input}_{FLAGS.extra_embedder}_{FLAGS.positional_encoding_type}_{FLAGS.direction}'
+  elif FLAGS.embed_learner and 'action' in FLAGS.embed_learner:
+    config_str += f'_{FLAGS.state_action_embed_dim}_{FLAGS.state_action_fourier_dim}'
   save_dir = os.path.join(FLAGS.save_dir, config_str)
 
   # Embed pretraining
@@ -516,6 +560,19 @@ def main(_):
         hidden_dims=hidden_dims,
         embed_model=embed_model,
         finetune=FLAGS.finetune)
+  elif FLAGS.algo_name == 'latent_bc':
+    hidden_dims = ([] if FLAGS.network == 'none' else
+                   (256,) if FLAGS.network == 'small' else (256, 256))
+    model = latent_behavioral_cloning.LatentBehavioralCloning(
+        env.observation_spec().shape[0],
+        env.action_spec(),
+        hidden_dims=hidden_dims,
+        embed_model=embed_model,
+        finetune=FLAGS.finetune,
+        finetune_primitive=FLAGS.finetune_primitive,
+        learning_rate=FLAGS.latent_bc_lr,
+        latent_bc_lr_decay=FLAGS.latent_bc_lr_decay,
+        kl_regularizer=FLAGS.kl_regularizer)
   elif 'sac' in FLAGS.algo_name:
     model = sac.SAC(
         env.observation_spec().shape[0],
@@ -538,7 +595,8 @@ def main(_):
 
     # Agent pretraining.
     if not tf.io.gfile.isdir(os.path.join(save_dir, 'model')):
-      for i in tqdm.tqdm(range(FLAGS.bc_pretraining_steps)):
+      bc_pretraining_steps = 200_000
+      for i in tqdm.tqdm(range(bc_pretraining_steps)):
         if get_ctx_length():
           info_dict = model.bc.update_step(embed_dataset_iter)
         else:
@@ -548,7 +606,7 @@ def main(_):
           with summary_writer.as_default():
             for k, v in info_dict.items():
               tf.summary.scalar(
-                  f'training/{k}', v, step=i - FLAGS.bc_pretraining_steps)
+                  f'training/{k}', v, step=i - bc_pretraining_steps)
             print('bc pretraining')
       model.bc.policy.save_weights(os.path.join(save_dir, 'model'))
     else:
@@ -633,7 +691,12 @@ def main(_):
           env,
           model,
           ctx_length=get_ctx_length(),
+          embed_training_window=(FLAGS.embed_training_window
+                                 if FLAGS.embed_learner and
+                                 'action' in FLAGS.embed_learner else None),
           state_mask_fn=state_mask_fn if FLAGS.state_mask_eval else None)
+
+      average_returns = gym_env.get_normalized_score(average_returns) * 100.0
 
       with result_writer.as_default():
         tf.summary.scalar('evaluation/returns', average_returns, step=i+1)

@@ -43,7 +43,7 @@ def tfexamples_to_nps(
     speaker_name: Python string or None. If present, the tf.Example field with
       the speaker ID.
     key_field: Optional field to return. This should be a unique per-example
-      identifier.
+      identifier. For practical applications, can use the `audio_key`.
 
   Returns:
     (numpy array of embeddings, numpy array of labels, Optional array of keys)
@@ -91,7 +91,13 @@ def tfexamples_to_nps(
       if key_field not in feats:
         raise ValueError(
             f'`key_field` not in feats: {key_field} vs {feats.keys()}')
-      cur_key = feats[key_field].bytes_list.value[0]
+      cur_key = None
+      for key_type in ['bytes_list', 'int64_list', 'float_list']:
+        cur_key = getattr(feats[key_field], key_type).value
+        if bool(cur_key):
+          if len(cur_key) == 1:
+            cur_key = cur_key[0]
+          break
       if not bool(cur_key):
         raise ValueError('`key_field` is empty.')
       keys.append(cur_key)
@@ -102,8 +108,7 @@ def tfexamples_to_nps(
   try:
     embeddings = np.array(embeddings, np.float32)
     labels = np.array(labels, np.int16)
-    keys = np.array(keys, np.str)
-    # TODO(joelshor): Consider adding a uniqueness check.
+    # TODO(joelshor): Consider adding a uniqueness check for keys.
   except ValueError:
     logging.warning(
         '`tfexamples_to_nps` failed with the following inputs: %s, %s, %s, %s %s',

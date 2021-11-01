@@ -17,7 +17,9 @@
 
 import os
 
+from absl import flags
 from absl.testing import absltest
+from absl.testing import flagsaver
 from absl.testing import parameterized
 
 import tensorflow as tf
@@ -69,10 +71,19 @@ class ModelsTest(parameterized.TestCase):
       {'model_type': 'mobilenet_small_1.0_False'},
       {'model_type': 'mobilenet_debug_1.0_False'},
       {'model_type': 'efficientnetb0'},
+      {'model_type': 'efficientnetb1'},
+      {'model_type': 'efficientnetb2'},
+      {'model_type': 'efficientnetb3'},
   )
+  @flagsaver.flagsaver
   def test_valid_model_type(self, model_type):
-    input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
-    m = models.get_keras_model(model_type, 3, 5)
+    # Frontend flags.
+    flags.FLAGS.frame_hop = 5
+    flags.FLAGS.num_mel_bins = 80
+    flags.FLAGS.frame_width = 5
+
+    input_tensor = tf.zeros([2, 16000], dtype=tf.float32)
+    m = models.get_keras_model(model_type, 3, 5, frontend=True)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
@@ -117,6 +128,5 @@ class ModelsTest(parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   absltest.main()

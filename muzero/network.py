@@ -76,16 +76,18 @@ class AbstractEncoderandLSTM(tf.Module):
     elif rnn_cell_type in ('lstm', 'lstm_norm'):
       self.hidden_state_size = sum(rnn_sizes) * 2
 
-    self._to_hidden = tf.keras.Sequential([
-        # flattening the representation
-        tf.keras.layers.Flatten(),
-        # mapping it to the size and domain of the hidden state
-        tf.keras.layers.Dense(
-            self.hidden_state_size,
-            activation=(recurrent_activation
-                        if nonlinear_to_hidden else None),
-            name='final')
-    ], name='to_hidden')
+    self._to_hidden = tf.keras.Sequential(
+        [
+            # flattening the representation
+            tf.keras.layers.Flatten(),
+            # mapping it to the size and domain of the hidden state
+            tf.keras.layers.Dense(
+                self.hidden_state_size,
+                activation=(recurrent_activation
+                            if nonlinear_to_hidden else None),
+                name='final')
+        ],
+        name='to_hidden')
 
     self._embed_actions = embed_actions
     if self._embed_actions:
@@ -121,12 +123,16 @@ class AbstractEncoderandLSTM(tf.Module):
     # Note that value and reward are logits, because their values are binned.
     # See utils.ValueEncoder for details.
     self._value_head = tf.keras.Sequential(
-        self._head_hidden_layers() +
-        [tf.keras.layers.Dense(self.value_encoder.num_steps, name='output')],
+        self._head_hidden_layers() + [
+            tf.keras.layers.Dense(self.value_encoder.num_steps, name='output'),
+            tf.keras.layers.Softmax()
+        ],
         name='value_logits')
     self._reward_head = tf.keras.Sequential(
-        self._head_hidden_layers() +
-        [tf.keras.layers.Dense(self.reward_encoder.num_steps, name='output')],
+        self._head_hidden_layers() + [
+            tf.keras.layers.Dense(self.reward_encoder.num_steps, name='output'),
+            tf.keras.layers.Softmax()
+        ],
         name='reward_logits')
 
   # Each head can have its own hidden layers.

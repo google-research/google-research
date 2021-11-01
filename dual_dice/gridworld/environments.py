@@ -108,7 +108,7 @@ class GridWalk(object):
 
   @property
   def num_states(self):
-    return self._n_state
+    return self._n_state  # pytype: disable=bad-return-type  # bind-properties
 
   @property
   def num_actions(self):

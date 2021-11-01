@@ -49,7 +49,7 @@ The signed distance values and the spatial semantics returned from imGHUM suppor
 
 ## Model Download
 
-[imGHUM request form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform).
+[imGHUM request form](https://docs.google.com/forms/d/e/1FAIpQLSduGNoQUQxaIwna944hdgsX7m9bSM4aqh2YDXD02V2VfNnP9g/viewform)
 
 ## Citations
 If you use this model or code for your publication, please cite the following papers [1](https://arxiv.org/abs/2108.10842)
@@ -59,7 +59,7 @@ If you use this model or code for your publication, please cite the following pa
   title={imGHUM: Implicit Generative Models of 3D Human Shape and Articulated Pose},
   author={Alldieck, Thiemo and Xu, Hongyi and Sminchisescu, Cristian},
   booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
-  pages={},
+  pages={5461-5470},
   year={2021},
 }
 ```

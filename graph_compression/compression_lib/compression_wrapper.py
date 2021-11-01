@@ -23,13 +23,13 @@ compression_option values can be passed in to specifiy the operator type.
 
 compression_option:
   0 - No Compression
-  1 - LowRankDecompMatrixCompressor
-  2 - SimhashMatrixCompressor
-  3 - DLMatrixCompressor
-  4 - KmeansMatrixCompressor
-  8 - KmeansAndPruningMatrixCompressor
-  9 - InputOutputCompressor
-  10 - BlockCompressor
+  1 - LowRankDecompMatrixCompression
+  2 - SimhashMatrixCompression
+  3 - DLMatrixCompression
+  4 - KmeansMatrixCompression
+  8 - KmeansAndPruningMatrixCompression
+  9 - InputOutputCompression
+  10 - BlockCompression
 """
 
 from __future__ import absolute_import
@@ -63,6 +63,8 @@ COMP_OP_MAP = {
         comp_op.InputOutputCompressionOp,
     CompressionOptions.BLOCK_COMPRESSION:
         comp_op.BlockCompressionOp,
+    CompressionOptions.MIXED_BLOCK_COMPRESSION:
+        comp_op.MixedBlockCompressionOp,
 }
 
 
@@ -76,7 +78,7 @@ def get_apply_compression(compression_op_spec, global_step):
   logging.info('Compressor spec %s', compressor_spec.to_json())
   logging.info('Compression operator spec %s', compression_op_spec.to_json())
 
-  if compression_op_spec.compression_option not in CompressionOptions:
+  if compression_op_spec.compression_option not in list(CompressionOptions):
     # if unknown compression_option is given, default to low rank compression.
     logging.info(
         'Compression_option %s not in expected options: %s. '
@@ -128,6 +130,14 @@ def get_apply_compression(compression_op_spec, global_step):
         compressor=compressor,
         global_step=global_step)
   elif compression_op_spec.compression_option == CompressionOptions.BLOCK_COMPRESSION:
+    compressor_spec.set_hparam('is_c_matrix_trainable', True)
+    compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)
+    apply_compression = ApplyCompression(
+        scope='default_scope',
+        compression_spec=compression_op_spec,
+        compressor=compressor,
+        global_step=global_step)
+  elif compression_op_spec.compression_option == CompressionOptions.MIXED_BLOCK_COMPRESSION:
     compressor_spec.set_hparam('is_c_matrix_trainable', True)
     compressor = comp_op.LowRankDecompMatrixCompressor(spec=compressor_spec)
     apply_compression = ApplyCompression(
@@ -213,7 +223,10 @@ class ApplyCompression(object):
     self._compression_ops.append(c)
     [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
         a_matrix_tfvar, matrix_compressor, scope=scope)
-    self._update_ops.append(a_matrix_update_op)
+    if compression_op_spec.update_option in [
+        UpdateOptions.TF_UPDATE, UpdateOptions.TF_AND_PYTHON_UPDATE
+    ]:
+      self._update_ops.append(a_matrix_update_op)
 
     self.uncompressed_size += c.uncompressed_size
     self.compressed_size += c.compressed_size
@@ -252,7 +265,6 @@ class ApplyCompression(object):
     else:
       c = None
 
-    self._compression_ops.append(c)
     self._compression_ops.append(c)
     [a_matrix_compressed,
      a_matrix_update_op] = c.get_customized_apply_compression_op(

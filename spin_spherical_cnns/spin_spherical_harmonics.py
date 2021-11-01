@@ -116,7 +116,7 @@ class SpinSphericalFourierTransformer:
 
   def validate(self, resolution, spin):
     """Returns True iff constants are valid for given resolution and spin."""
-    if spin not in self.swsft_forward_constants.keys():
+    if int(spin) not in self.swsft_forward_constants.keys():
       return False
     if resolution not in self.quadrature_weights.keys():
       return False
@@ -134,7 +134,7 @@ class SpinSphericalFourierTransformer:
 
   def _slice_forward_constants(self, ell_max, spin):
     """Returns sliced swsft_forward_constants as if max degree were ell_max."""
-    forward_constants = self.swsft_forward_constants[spin]
+    forward_constants = self.swsft_forward_constants[int(spin)]
     middle = forward_constants.shape[0] - 1
     return forward_constants[:ell_max + 1, (middle-ell_max):(middle+ell_max+1)]
 
@@ -205,9 +205,7 @@ class SpinSphericalFourierTransformer:
     # Jnm only contains positive n.
     Jnm = Inm[:ell_max + 1]  # pylint: disable=invalid-name
     # Make n = -n rowwise.
-    return jax.ops.index_add(Jnm,
-                             jax.ops.index[1:],
-                             signs * Inm[-ell_max:][::-1])
+    return Jnm.at[1:].add(signs * Inm[-ell_max:][::-1])
 
   def swsft_forward(self, sphere, spin):
     """Spin-weighted spherical harmonics transform (fast JAX version).

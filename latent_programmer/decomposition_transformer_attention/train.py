@@ -49,6 +49,7 @@ from latent_programmer.decomposition_transformer_attention import input_pipeline
 from latent_programmer.tasks.robust_fill import dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 
+sys.path.append('../../')
 gfile = tf.io.gfile
 
 FLAGS = flags.FLAGS
@@ -94,6 +95,15 @@ flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
 flags.DEFINE_integer('num_relative_position_buckets', 32,
                      'Number of buckets when computing relative positions.')
+flags.DEFINE_bool('bos_special_attention', False,
+                  'Whether to use special relative attention computation for '
+                  'BOS tokens.')
+
+
+_internal = False
+if not _internal:
+  flags.DEFINE_string('xm_parameters', None,
+                      'String specifying hyperparamter search.')
 
 
 def create_learning_rate_scheduler(
@@ -224,12 +234,12 @@ def train_step(optimizer,
                programs,
                learning_rate_fn,
                config,
-               train_rng=None):
+               dropout_rng=None):
   """Train on batch of program tasks."""
   # We handle PRNG splitting inside the top pmap, rather
   # than handling it outside in the training loop - doing the
   # latter can add some stalls to the devices.
-  train_rng, new_train_rng = jax.random.split(train_rng)
+  dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
 
   weights = jnp.where(programs > 0, 1, 0).astype(jnp.float32)
 
@@ -240,7 +250,7 @@ def train_step(optimizer,
         inputs,
         outputs,
         programs,
-        rngs={'dropout': train_rng})
+        rngs={'dropout': dropout_rng})
     loss, weight_sum = compute_weighted_cross_entropy(logits, programs, weights)
     mean_loss = loss / weight_sum
     return mean_loss, logits
@@ -255,19 +265,25 @@ def train_step(optimizer,
   # Get metrics.
   metrics = compute_metrics(logits, programs, weights)
   metrics['learning_rate'] = lr
-  return new_optimizer, metrics, new_train_rng
+  return new_optimizer, metrics, new_dropout_rng
 
 
-def eval_step(params, inputs, outputs, programs, eos_token, config):
+def eval_step(params, inputs, outputs, programs, eos_token, config,
+              dropout_rng=None):
+  """Collect metrics for evaluation during training."""
+  # This code is necessary to experiment with using dropout during evaluation,
+  # but we don't normally use dropout here.
+  dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
   weights = jnp.where(
       jnp.logical_and(programs > 0,
                       jnp.logical_and(programs != config.base_config.bos_token,
                                       programs != eos_token)),
       1, 0).astype(jnp.float32)
   logits = models.DecomposeAttentionTransformer(config).apply(
-      {'params': params}, inputs, outputs, programs)
+      {'params': params}, inputs, outputs, programs,
+      rngs={'dropout': dropout_rng})
 
-  return compute_metrics(logits, programs, weights)
+  return compute_metrics(logits, programs, weights), new_dropout_rng
 
 
 def initialize_cache(inputs, outputs, programs, max_decode_len, config):
@@ -290,8 +306,13 @@ def predict_step(params,
                  eos_token,
                  max_decode_len,
                  config,
+                 dropout_rng=None,
                  slow_decode=True):
   """Predict translation with fast decoding beam search on a batch."""
+  # This code is necessary to experiment with using dropout during prediction,
+  # but we don't normally use dropout here.
+  dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
+
   # Prepare transformer fast-decoder call for beam search: for beam search, we
   # need to set up our decoder model to handle a batch size equal to
   # batch_size * beam_size, where each batch item's data is expanded in-place
@@ -301,7 +322,8 @@ def predict_step(params,
           {'params': params},
           inputs,
           outputs,
-          method=models.DecomposeAttentionTransformer.encode),
+          method=models.DecomposeAttentionTransformer.encode,
+          rngs={'dropout': dropout_rng}),
       beam_size)
 
   encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
@@ -317,7 +339,8 @@ def predict_step(params,
           flat_ids,
           flat_encoded,
           flat_encoded_padding_mask,
-          method=models.DecomposeAttentionTransformer.decode)
+          method=models.DecomposeAttentionTransformer.decode,
+          rngs={'dropout': dropout_rng})
       return flat_logits
   else:
     def tokens_ids_to_logits(flat_ids, flat_cache):
@@ -330,7 +353,8 @@ def predict_step(params,
               flat_encoded,
               flat_encoded_padding_mask,
               mutable=['cache'],
-              method=models.DecomposeAttentionTransformer.decode)
+              method=models.DecomposeAttentionTransformer.decode,
+              rngs={'dropout': dropout_rng})
       new_flat_cache = new_vars['cache']
       # Remove singleton sequence-length dimension:
       # [batch * beam, 1, vocab] --> [batch * beam, vocab]
@@ -352,7 +376,7 @@ def predict_step(params,
 
   # Beam search returns [n_batch, n_beam, n_length] with beam dimension
   # sorted in increasing order of log-probability.
-  return beam_seqs
+  return beam_seqs, new_dropout_rng
 
 
 # Util functions for prediction
@@ -392,7 +416,7 @@ def eval_predicted(predicted, inputs, outputs, parse_beam_fn):
   best_p, best_score = None, -1
 
   # predicted shape [beam_size, length]
-  for beam in predicted:
+  for beam in predicted[::-1]:
     try:
       p = parse_beam_fn(beam)
       p_outs = [p(inp) for inp in inputs]
@@ -417,6 +441,15 @@ def main(_):
   tf.random.set_seed(FLAGS.seed)
   np.random.seed(FLAGS.seed)
   random.seed(FLAGS.seed)
+
+  # BOS special attention only makes sense if we are using relative attention
+  # and it's not the baseline.
+  if FLAGS.bos_special_attention and (not FLAGS.use_relative_attention or
+                                      FLAGS.attention_mask_type == 'baseline'):
+    raise ValueError(
+        "bos_special_attention doesn't work when use_relative_attention={} and "
+        'attention_mask_type={}'.format(FLAGS.use_relative_attention,
+                                        FLAGS.attention_mask_type))
 
   if not gfile.isdir(FLAGS.save_dir):
     gfile.mkdir(FLAGS.save_dir)
@@ -504,6 +537,7 @@ def main(_):
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
+  use_dropout = False
   base_config = base_models.TransformerConfig(
       vocab_size=io_vocab_size,
       output_vocab_size=program_vocab_size,
@@ -516,19 +550,23 @@ def main(_):
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
       use_relative_attention=FLAGS.use_relative_attention,
       num_relative_position_buckets=FLAGS.num_relative_position_buckets,
-      deterministic=False,
+      deterministic=not use_dropout,
       decode=False,
       bos_token=bos_token)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
-      attention_mask_type=FLAGS.attention_mask_type)
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
   eval_config = models.DecomposeAttentionTransformerConfig(
-      base_config=base_config.replace(deterministic=True),
-      attention_mask_type=FLAGS.attention_mask_type)
+      base_config=base_config.replace(deterministic=not use_dropout),
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
   predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
-          shift=False, deterministic=True, decode=not FLAGS.slow_decode),
-      attention_mask_type=FLAGS.attention_mask_type)
+          shift=False, deterministic=not use_dropout,
+          decode=not FLAGS.slow_decode),
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
@@ -536,7 +574,7 @@ def main(_):
 
   m = models.DecomposeAttentionTransformer(eval_config)
   initial_variables = jax.jit(m.init)(
-      init_rng,
+      {'params': init_rng, 'dropout': init_rng},
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(program_shape, jnp.float32))
@@ -596,7 +634,7 @@ def main(_):
 
   # Main Train Loop
   # ---------------------------------------------------------------------------
-  train_rngs = jax.random.split(rng, jax.local_device_count())
+  dropout_rng = jax.random.split(rng, jax.local_device_count())
   del rng
 
   metrics_all = []
@@ -604,8 +642,8 @@ def main(_):
   for step in range(start_step, FLAGS.num_train_steps):
     inputs, outputs, programs = common_utils.shard(next(train_iter))
 
-    optimizer, metrics, train_rngs = p_train_step(
-        optimizer, inputs, outputs, programs, train_rng=train_rngs)
+    optimizer, metrics, dropout_rng = p_train_step(
+        optimizer, inputs, outputs, programs, dropout_rng=dropout_rng)
     metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
@@ -654,7 +692,8 @@ def main(_):
     for batches in eval_ds.as_numpy_iterator():
       inputs, outputs, programs = common_utils.shard(batches)
 
-      metrics = p_eval_step(optimizer.target, inputs, outputs, programs)
+      metrics, dropout_rng = p_eval_step(
+          optimizer.target, inputs, outputs, programs, dropout_rng=dropout_rng)
       eval_metrics.append(metrics)
 
     eval_metrics = common_utils.get_metrics(eval_metrics)
@@ -678,7 +717,7 @@ def main(_):
       pred_acc = 0
       pred_denominator = 0
 
-      ios, targets, predictions = [], [], []
+      ios, targets, predictions, top_of_beams = [], [], [], []
       for batches in predict_ds.as_numpy_iterator():
         pred_batch = batches
         # Handle final odd-sized batch by padding instead of dropping it.
@@ -693,11 +732,9 @@ def main(_):
 
         cache = (p_init_cache(inputs, outputs, programs)
                  if not FLAGS.slow_decode else None)
-        predicted = p_pred_step(optimizer.target,
-                                inputs,
-                                outputs,
-                                cache,
-                                beam_size)
+        predicted, dropout_rng = p_pred_step(
+            optimizer.target, inputs, outputs, cache, beam_size,
+            dropout_rng=dropout_rng)
         predicted = tohost(predicted)
         inputs, outputs, programs = map(tohost, (inputs, outputs, programs))
 
@@ -713,7 +750,7 @@ def main(_):
           try:
             predictions.append(p.to_string())
           except:  # pylint: disable=bare-except
-            predictions.append('')
+            predictions.append('Did not compile')
           logging.info('ios: %s', ios[-1])
           logging.info('target: %s', targets[-1])
           beams_log = []
@@ -721,8 +758,18 @@ def main(_):
             try:
               beams_log.append(decode_program(beam).to_string())
             except:  # pylint: disable=bare-except
-              beams_log.append('None')
+              beams_log.append('Did not compile')
           logging.info('predicted beam: %s', '\n'.join(beams_log))
+
+          top_of_beam = []
+          for index, beam in enumerate(beams[:-5:-1]):
+            try:
+              decoded_program = decode_program(beam).to_string()
+            except:  # pylint: disable=bare-except
+              decoded_program = 'Did not compile'
+            top_of_beam.append('index: {}, decoded: {}, tokens: {}'.format(
+                index, decoded_program, beam))
+          top_of_beams.append('\n\n'.join(top_of_beam))
 
       all_pred_acc, all_pred_denominator = per_host_sum_pmap(
           jax.tree_map(np.array, (pred_acc, pred_denominator)))
@@ -731,7 +778,8 @@ def main(_):
       message = []
       for n in np.random.choice(np.arange(len(predictions)), 8):
         text = (f'ios: {ios[n]}\n\ntarget: {targets[n]}\n\n'
-                f'predicted: {predictions[n]}\n\n')
+                f'predicted: {predictions[n]}\n\n'
+                f'top of beam:\n\n{top_of_beams[n]}\n\n')
         message.append(text)
 
       # Write to tensorboard.

@@ -498,7 +498,7 @@ class KohnShamIterationTest(parameterized.TestCase):
                 initial_state=initial_state,
                 target_density=target_density),
             epsilon=1e-9),
-        params_grad, atol=2e-4)
+        params_grad, atol=1e-3)
 
 
 class KohnShamTest(parameterized.TestCase):
