@@ -83,6 +83,18 @@ def model_parameters(parser_nn):
       default=5,
       help='Number of groups for SubSpectralNormalization.',
   )
+  parser_nn.add_argument(
+      '--pools',
+      type=str,
+      default='1, 1, 1, 1',
+      help='Pooling in time after every BC-ResBlock.'
+  )
+  parser_nn.add_argument(
+      '--max_pool',
+      type=int,
+      default=0,
+      help='Pooling type: 0 - average pooling; 1 - max pooling',
+  )
 
 
 class TransitionBlock(tf.keras.layers.Layer):
@@ -159,6 +171,9 @@ class TransitionBlock(tf.keras.layers.Layer):
         strides=1,
         padding='valid',
         use_bias=False)
+    self.spatial_drop = tf.keras.layers.SpatialDropout2D(rate=self.dropout)
+    self.spectral_norm = sub_spectral_normalization.SubSpectralNormalization(
+        self.sub_groups)
 
   def call(self, inputs):
 
@@ -171,8 +186,7 @@ class TransitionBlock(tf.keras.layers.Layer):
     net = self.batch_norm1(net)
     net = tf.keras.activations.relu(net)
     net = self.frequency_dw_conv(net)
-    net = sub_spectral_normalization.SubSpectralNormalization(self.sub_groups)(
-        net)
+    net = self.spectral_norm(net)
 
     residual = net
     net = tf.keras.backend.mean(net, axis=2, keepdims=True)
@@ -180,7 +194,7 @@ class TransitionBlock(tf.keras.layers.Layer):
     net = self.batch_norm2(net)
     net = tf.keras.activations.swish(net)
     net = self.conv1x1_2(net)
-    net = tf.keras.layers.SpatialDropout2D(rate=self.dropout)(net)
+    net = self.spatial_drop(net)
 
     net = net + residual
     net = tf.keras.activations.relu(net)
@@ -274,6 +288,9 @@ class NormalBlock(tf.keras.layers.Layer):
         strides=1,
         padding=self.padding,
         use_bias=False)
+    self.spatial_drop = tf.keras.layers.SpatialDropout2D(rate=self.dropout)
+    self.spectral_norm = sub_spectral_normalization.SubSpectralNormalization(
+        self.sub_groups)
 
   def call(self, inputs):
 
@@ -284,8 +301,7 @@ class NormalBlock(tf.keras.layers.Layer):
     identity = inputs
     net = inputs
     net = self.frequency_dw_conv(net)
-    net = sub_spectral_normalization.SubSpectralNormalization(self.sub_groups)(
-        net)
+    net = self.spectral_norm(net)
 
     residual = net
     net = tf.keras.backend.mean(net, axis=2, keepdims=True)
@@ -293,7 +309,7 @@ class NormalBlock(tf.keras.layers.Layer):
     net = self.batch_norm(net)
     net = tf.keras.activations.swish(net)
     net = self.conv1x1(net)
-    net = tf.keras.layers.SpatialDropout2D(rate=self.dropout)(net)
+    net = self.spatial_drop(net)
 
     net = net + identity + residual
     net = tf.keras.activations.relu(net)
@@ -342,8 +358,9 @@ def model(flags):
   blocks_n = utils.parse(flags.blocks_n)
   strides = utils.parse(flags.strides)
   dilations = utils.parse(flags.dilations)
+  pools = utils.parse(flags.pools)
 
-  for l in (dropouts, filters, strides, dilations):
+  for l in (dropouts, filters, strides, dilations, pools):
     if len(blocks_n) != len(l):
       raise ValueError('all input lists have to be the same length '
                        'but get %s and %s ' % (blocks_n, l))
@@ -380,9 +397,8 @@ def model(flags):
         pad_freq_dim='same')(
             net)
 
-  for n, n_filters, dilation, stride, dropout in zip(blocks_n, filters,
-                                                     dilations, strides,
-                                                     dropouts):
+  for n, n_filters, dilation, stride, dropout, pool in zip(
+      blocks_n, filters, dilations, strides, dropouts, pools):
     net = TransitionBlock(
         n_filters,
         dilation,
@@ -391,6 +407,7 @@ def model(flags):
         dropout,
         sub_groups=flags.sub_groups)(
             net)
+
     for _ in range(n):
       net = NormalBlock(
           n_filters,
@@ -400,6 +417,18 @@ def model(flags):
           dropout,
           sub_groups=flags.sub_groups)(
               net)
+
+    if pool > 1:
+      if flags.max_pool:
+        net = tf.keras.layers.MaxPooling2D(
+            pool_size=(pool, 1),
+            strides=(pool, 1)
+            )(net)
+      else:
+        net = tf.keras.layers.AveragePooling2D(
+            pool_size=(pool, 1),
+            strides=(pool, 1)
+            )(net)
 
   if flags.paddings == 'same':
     net = tf.keras.layers.DepthwiseConv2D(

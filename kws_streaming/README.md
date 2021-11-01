@@ -2,7 +2,7 @@
 ======================================================================================
 
 Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720).
-Please cite the paper in your publications if you find the source code useful for your research.
+Please cite the paper in your publications if you find the source code useful for your research and feel free to contribute and add your SOTA model.
 
 Streaming aware neural network models are important for real time response,
 high accuracy and good user experience. In this work we designed keras streaming
@@ -104,13 +104,14 @@ All experiments are listed in folder "experiments". It contains:
 * [kws_experiments_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels. It is a good example of training models on custom data.
 * [kws_experiments_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels (latest experiments with different hyperparameters).
 
-The latest experiments on speech commands V2 with 12 labels are show in below table:
+The latest experiments on speech commands V2 with 12 labels are shown in below table:
 |  Model name      | accuracy [%]  | # parameters |
 | ---------------- | --------------------- | --------------------- |
+|[bc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [bc_resnet](https://arxiv.org/pdf/2106.04140.pdf) topology | 95.8 (need more HPO,  in paper it is 96.9)      | ~10K      |
 |[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology | 98.0      | 75K      |
 |[att_mh_rnn ](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md)| 98.4  |   750K     |
 
-The latest experiments on speech commands V2 with 35 labels are show in below table:
+The latest experiments on speech commands V2 with 35 labels are shown in below table:
 |  Model name      | accuracy [%]  | # parameters |
 | ---------------- | --------------------- | --------------------- |
 |[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) with <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology | 96.9      | 75K      |

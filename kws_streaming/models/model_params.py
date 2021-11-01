@@ -433,6 +433,8 @@ def bc_resnet_params():
   params.first_filters = 2
   params.last_filters = 2
   params.sub_groups = 1
+  params.max_pool = 0
+  params.pools = '1, 1'
   return params
 
 

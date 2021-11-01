@@ -29,6 +29,8 @@ class SubSpectralNormalization(tf.keras.layers.Layer):
     super(SubSpectralNormalization, self).__init__(**kwargs)
     self.sub_groups = sub_groups
 
+    self.batch_norm = tf.keras.layers.BatchNormalization()
+
   def call(self, inputs):
     # expected input: [N, Time, Frequency, Channels]
     if inputs.shape.rank != 4:
@@ -42,14 +44,14 @@ class SubSpectralNormalization(tf.keras.layers.Layer):
 
     net = inputs
     if self.sub_groups == 1:
-      net = tf.keras.layers.BatchNormalization()(net)
+      net = self.batch_norm(net)
     else:
       target_shape = [
           input_shape[1], input_shape[2] // self.sub_groups,
           input_shape[3] * self.sub_groups
       ]
       net = tf.keras.layers.Reshape(target_shape)(net)
-      net = tf.keras.layers.BatchNormalization()(net)
+      net = self.batch_norm(net)
       net = tf.keras.layers.Reshape(input_shape[1:])(net)
     return net
 
