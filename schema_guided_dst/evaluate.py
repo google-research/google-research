@@ -24,7 +24,7 @@ import collections
 import json
 import os
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from schema_guided_dst import metrics
 
@@ -127,8 +127,6 @@ def get_metrics(dataset_ref, dataset_hyp, service_schemas, in_domain_services):
 
   # Ensure the dialogs in dataset_hyp also occur in dataset_ref.
   assert set(dataset_hyp.keys()).issubset(set(dataset_ref.keys()))
-  tf.logging.info("len(dataset_hyp)=%d, len(dataset_ref)=%d", len(dataset_hyp),
-                  len(dataset_ref))
 
   # Store metrics for every frame for debugging.
   per_frame_metric = {}
@@ -260,6 +258,10 @@ def main(_):
       os.path.join(FLAGS.dstc8_data_dir, FLAGS.eval_set, "dialogues_*.json"))
   dataset_hyp = get_dataset_as_dict(
       os.path.join(FLAGS.prediction_dir, "*.json"))
+  tf.logging.info("len(dataset_hyp)=%d, len(dataset_ref)=%d", len(dataset_hyp),
+                  len(dataset_ref))
+  if not dataset_hyp or not dataset_ref:
+    raise ValueError("Hypothesis and/or reference dataset are empty!")
 
   all_metric_aggregate, _ = get_metrics(dataset_ref, dataset_hyp, eval_services,
                                         in_domain_services)
