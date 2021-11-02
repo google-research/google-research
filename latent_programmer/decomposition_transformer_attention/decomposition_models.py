@@ -1,36 +1,3 @@
-Skip to content
-Search or jump to…
-Pull requests
-Issues
-Marketplace
-Explore
- 
-@jxihong 
-google-research
-/
-google-research
-Public
-685
-20.1k
-4.6k
-Code
-Issues
-414
-Pull requests
-95
-Actions
-Security
-Insights
-google-research/latent_programmer/decomposition_transformer_attention/decomposition_models.py /
-@kensens
-kensens Implement attention to the last partial programs.
-…
-Latest commit fe4d2df 12 days ago
- History
- 2 contributors
-@kensens@jxihong
-226 lines (192 sloc)  9.08 KB
-   
 # coding=utf-8
 # Copyright 2021 The Google Research Authors.
 #
