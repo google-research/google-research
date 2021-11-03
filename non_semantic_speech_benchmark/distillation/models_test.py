@@ -67,6 +67,23 @@ class ModelsTest(parameterized.TestCase):
     if not isinstance(exception_context.exception, KeyError):
       self.fail()
 
+  def test_truncation(self):
+    m = models.get_keras_model(
+        'efficientnetb0',
+        frontend=False,
+        bottleneck_dimension=0,
+        output_dimension=5,
+        truncate_output=True)
+
+    input_tensor = tf.zeros([3, 96, 64, 1], dtype=tf.float32)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+
+    # `embedding` is the original size, but `embedding_to_target` should be the
+    # right size.
+    self.assertEqual(emb.shape[1], 1280)
+    self.assertEqual(o.shape[1], 5)
+
   @parameterized.parameters(
       {'model_type': 'mobilenet_small_1.0_False'},
       {'model_type': 'mobilenet_debug_1.0_False'},

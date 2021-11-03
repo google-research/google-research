@@ -51,6 +51,7 @@ def _debug_net(pooling, *args, **kwargs):
 def get_keras_model(model_type,
                     bottleneck_dimension,
                     output_dimension,
+                    truncate_output = False,
                     frontend = True,
                     compressor = None,
                     quantize_aware_training = False,
@@ -59,6 +60,7 @@ def get_keras_model(model_type,
   # For debugging, log hyperparameter values.
   logging.info('model name: %s', model_type)
   logging.info('bottleneck_dimension: %i', bottleneck_dimension)
+  logging.info('truncate_output: %s', truncate_output)
   logging.info('output_dimension: %i', output_dimension)
   logging.info('frontend: %s', frontend)
   logging.info('compressor: %s', compressor)
@@ -157,8 +159,20 @@ def get_keras_model(model_type,
   # Construct optional final layer, and create output dictionary.
   output_dict['embedding'] = embeddings
   if output_dimension:
-    output = tf.keras.layers.Dense(
-        output_dimension, name='embedding_to_target')(embeddings)
+    # The last fully-connected layer can sometimes be the single largest
+    # layer in the entire network. It's also not always very valuable. We try
+    # two methods of getting the right output dimension:
+    # 1) A FC layer
+    # 2) Taking the first `output_dimension` elements.
+    if truncate_output:
+      if embeddings.shape[1] < output_dimension:
+        raise ValueError(
+            'Cannot truncate if model output is smaller than required: '
+            f'{embeddings.shape[1]} vs {output_dimension}')
+      output = embeddings[:, :output_dimension]
+    else:
+      output = tf.keras.layers.Dense(
+          output_dimension, name='embedding_to_target')(embeddings)
     output_dict['embedding_to_target'] = output
   output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
   # Optional modifications to the model for TFLite.
