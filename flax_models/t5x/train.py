@@ -632,8 +632,11 @@ def main(argv):
           epoch)
       optimizer = train_lib.unbroadcast(optimizer)
 
+    #Train model until target_step will be reached.
+    target_step = host_step + CFG.num_epochs * steps_per_epoch
+    
     # Epoch loop.
-    while int(host_step // steps_per_epoch) == epoch:
+    while host_step <= target_step:
       batch = next(train_iter)
       batch = jax.tree_map(
           lambda x: x.reshape(
