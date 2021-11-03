@@ -86,11 +86,21 @@ class ModelsTest(parameterized.TestCase):
 
   @parameterized.parameters(
       {'model_type': 'mobilenet_small_1.0_False'},
-      {'model_type': 'mobilenet_debug_1.0_False'},
       {'model_type': 'efficientnetb0'},
       {'model_type': 'efficientnetb1'},
       {'model_type': 'efficientnetb2'},
       {'model_type': 'efficientnetb3'},
+      {'model_type': 'efficientnetb4'},
+      {'model_type': 'efficientnetb5'},
+      {'model_type': 'efficientnetb6'},
+      {'model_type': 'efficientnetb7'},
+      {'model_type': 'efficientnetv2b0'},
+      {'model_type': 'efficientnetv2b1'},
+      {'model_type': 'efficientnetv2b2'},
+      {'model_type': 'efficientnetv2b3'},
+      {'model_type': 'efficientnetv2bL'},
+      {'model_type': 'efficientnetv2bM'},
+      {'model_type': 'efficientnetv2bS'},
   )
   @flagsaver.flagsaver
   def test_valid_model_type(self, model_type):
@@ -100,12 +110,11 @@ class ModelsTest(parameterized.TestCase):
     flags.FLAGS.frame_width = 5
 
     input_tensor = tf.zeros([2, 16000], dtype=tf.float32)
-    m = models.get_keras_model(model_type, 3, 5, frontend=True)
+    m = models.get_keras_model(
+        model_type, 0, 5, frontend=True, truncate_output=True)
     o_dict = m(input_tensor)
-    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+    o = o_dict['embedding_to_target']
 
-    emb.shape.assert_has_rank(2)
-    self.assertEqual(emb.shape[1], 3)
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 

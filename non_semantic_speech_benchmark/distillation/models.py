@@ -117,12 +117,26 @@ def get_keras_model(model_type,
         dropout_rate=0.0)
     expected_output_shape = [None, None] if avg_pool else [None, 1, 1, None]
   elif model_type.startswith('efficientnet'):
+    # pylint:disable=line-too-long
     model_fn, final_dim = {
         'efficientnetb0': (tf.keras.applications.EfficientNetB0, 1280),
         'efficientnetb1': (tf.keras.applications.EfficientNetB1, 1280),
         'efficientnetb2': (tf.keras.applications.EfficientNetB2, 1408),
         'efficientnetb3': (tf.keras.applications.EfficientNetB3, 1536),
+        'efficientnetb4': (tf.keras.applications.EfficientNetB4, 1792),
+        'efficientnetb5': (tf.keras.applications.EfficientNetB5, 2048),
+        'efficientnetb6': (tf.keras.applications.EfficientNetB6, 2304),
+        'efficientnetb7': (tf.keras.applications.EfficientNetB7, 2560),
+        # V2
+        'efficientnetv2b0': (tf.keras.applications.efficientnet_v2.EfficientNetV2B0, 1280),
+        'efficientnetv2b1': (tf.keras.applications.efficientnet_v2.EfficientNetV2B1, 1280),
+        'efficientnetv2b2': (tf.keras.applications.efficientnet_v2.EfficientNetV2B2, 1408),
+        'efficientnetv2b3': (tf.keras.applications.efficientnet_v2.EfficientNetV2B3, 1536),
+        'efficientnetv2bL': (tf.keras.applications.efficientnet_v2.EfficientNetV2L, 1280),
+        'efficientnetv2bM': (tf.keras.applications.efficientnet_v2.EfficientNetV2M, 1280),
+        'efficientnetv2bS': (tf.keras.applications.efficientnet_v2.EfficientNetV2S, 1280),
     }[model_type]
+    # pylint:enable=line-too-long
     model = model_fn(
         include_top=False,
         weights=None,  # could be pretrained from imagenet.
