@@ -42,8 +42,6 @@ Download the pre-trained BERT model from
 
 ## Data
 
-We include our data in the `data` folder. \
-
 Our raw dataset can be retrieved by running:
 
 ```
@@ -52,6 +50,9 @@ wget -P data/full_dataset/ https://storage.googleapis.com/gresearch/goemotions/d
 wget -P data/full_dataset/ https://storage.googleapis.com/gresearch/goemotions/data/full_dataset/goemotions_3.csv
 ```
 
+See the `data` folder for more detailed data information.
+
+### Data Format
 Our raw dataset, split into three csv files, includes all annotations as well as metadata on the comments. Each row represents a single rater's annotation for a single example. This file includes the following columns:
 
 * `text`: The text of the comment (with masked tokens, as described in the paper).
