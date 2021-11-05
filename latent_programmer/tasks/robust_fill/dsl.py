@@ -82,8 +82,7 @@ def regex_for_type(t):
   elif t == Type.DIGIT:
     return '[0-9]'
   elif t == Type.CHAR:
-    return '[A-Za-z0-9' + \
-        ''.join([re.escape(x) for x in DELIMITER]) + ']'
+    return '[A-Za-z0-9' + ''.join([re.escape(x) for x in DELIMITER]) + ']'
   else:
     raise ValueError('Unsupported type: {}'.format(t))
 
@@ -141,8 +140,8 @@ class Concat(Program):
   def encode(self, token_id_table):
     sub_token_ids = [e.encode(token_id_table) for e in self.expressions]
 
-    return functools.reduce(lambda a, b: a + b, sub_token_ids) + \
-        [token_id_table[EOS]]
+    return (functools.reduce(lambda a, b: a + b, sub_token_ids)
+            + [token_id_table[EOS]])
 
 
 class Expression(Base):
@@ -153,28 +152,29 @@ class Substring(Expression):
   pass
 
 
-class Nesting(Expression):
+class Modification(Expression):
   pass
 
 
 class Compose(Expression):
-  """Composition of two nestings or nesting and substring."""
+  """Composition of two modifications or modification and substring."""
 
-  def __init__(self, nesting, nesting_or_substring):
-    self.nesting = nesting
-    self.nesting_or_substring = nesting_or_substring
+  def __init__(self, modification,
+               modification_or_substring):
+    self.modification = modification
+    self.modification_or_substring = modification_or_substring
 
   def __call__(self, value):
-    return self.nesting(self.nesting_or_substring(value))
+    return self.modification(self.modification_or_substring(value))
 
   def to_string(self):
-    return self.nesting.to_string() + '(' + \
-        self.nesting_or_substring.to_string() + ')'
+    return (self.modification.to_string() + '('
+            + self.modification_or_substring.to_string() + ')')
 
   def encode(self, token_id_table):
-    return [token_id_table[self.__class__]] + \
-        self.nesting.encode(token_id_table) + \
-        self.nesting_or_substring.encode(token_id_table)
+    return ([token_id_table[self.__class__]]
+            + self.modification.encode(token_id_table)
+            + self.modification_or_substring.encode(token_id_table))
 
 
 class ConstStr(Expression):
@@ -261,14 +261,14 @@ class GetSpan(Substring):
     return value[p1:p2]
 
   def to_string(self):
-    return 'GetSpan(' + \
-        ', '.join(map(str, [self.regex1,
-                            self.index1,
-                            self.bound1,
-                            self.regex2,
-                            self.index2,
-                            self.bound2])) + \
-        ')'
+    return ('GetSpan('
+            + ', '.join(map(str, [self.regex1,
+                                  self.index1,
+                                  self.bound1,
+                                  self.regex2,
+                                  self.index2,
+                                  self.bound2]))
+            + ')')
 
   def encode(self, token_id_table):
     return list(map(lambda x: token_id_table[x],
@@ -281,7 +281,7 @@ class GetSpan(Substring):
                      self.bound2]))
 
 
-class GetToken(Nesting):
+class GetToken(Substring):
   """Get regex match."""
 
   def __init__(self, regex_type, index):
@@ -310,7 +310,7 @@ class GetToken(Nesting):
     ]
 
 
-class ToCase(Nesting):
+class ToCase(Modification):
   """Convert to case."""
 
   def __init__(self, case):
@@ -333,7 +333,7 @@ class ToCase(Nesting):
     return [token_id_table[self.__class__], token_id_table[self.case]]
 
 
-class Replace(Nesting):
+class Replace(Modification):
   """Replace delimitors."""
 
   def __init__(self, delim1, delim2):
@@ -354,7 +354,7 @@ class Replace(Nesting):
     ]
 
 
-class Trim(Nesting):
+class Trim(Modification):
   """Trim whitspace."""
 
   def __init__(self):
@@ -370,7 +370,7 @@ class Trim(Nesting):
     return [token_id_table[self.__class__]]
 
 
-class GetUpto(Nesting):
+class GetUpto(Substring):
   """Get substring up to regex match."""
 
   def __init__(self, regex):
@@ -391,7 +391,7 @@ class GetUpto(Nesting):
     return [token_id_table[self.__class__], token_id_table[self.regex]]
 
 
-class GetFrom(Nesting):
+class GetFrom(Substring):
   """Get substring from regex match."""
 
   def __init__(self, regex):
@@ -412,7 +412,7 @@ class GetFrom(Nesting):
     return [token_id_table[self.__class__], token_id_table[self.regex]]
 
 
-class GetFirst(Nesting):
+class GetFirst(Modification):
   """Get first occurrences of regex match."""
 
   def __init__(self, regex_type, index):
@@ -438,7 +438,7 @@ class GetFirst(Nesting):
     ]
 
 
-class GetAll(Nesting):
+class GetAll(Modification):
   """Get all occurrences of regex match."""
 
   def __init__(self, regex_type):
@@ -452,6 +452,119 @@ class GetAll(Nesting):
 
   def encode(self, token_id_table):
     return [token_id_table[self.__class__], token_id_table[self.regex_type]]
+
+
+# New Functions
+# ---------------------------------------------------------------------------
+
+
+class Substitute(Modification):
+  """Replace i-th occurence of regex match with constant."""
+
+  def __init__(self, regex_type, index, char):
+    self.regex_type = regex_type
+    self.index = index
+    self.char = char
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    # Positive indices start at 1.
+    index = self.index - 1 if self.index > 0 else len(matches) + self.index
+    if not matches:
+      return value
+    if index >= len(matches) or index < 0:  # Handle edge cases.
+      return value
+    return value.replace(matches[index], self.char, 1)
+
+  def to_string(self):
+    return ('Substitute_' + str(self.regex_type) + '_' + str(self.index) + '_'
+            + self.char)
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+        token_id_table[self.index],
+        token_id_table[self.char],
+    ]
+
+
+class SubstituteAll(Modification):
+  """Replace all occurences of regex match with constant."""
+
+  def __init__(self, regex_type, char):
+    self.regex_type = regex_type
+    self.char = char
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    for match in matches:
+      value = value.replace(match, self.char, 1)
+    return value
+
+  def to_string(self):
+    return 'SubstituteAll_' + str(self.regex_type) + '_' + self.char
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+        token_id_table[self.char],
+    ]
+
+
+class Remove(Modification):
+  """Remove i-th occurence of regex match."""
+
+  def __init__(self, regex_type, index):
+    self.regex_type = regex_type
+    self.index = index
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    # Positive indices start at 1.
+    index = self.index - 1 if self.index > 0 else len(matches) + self.index
+    if not matches:
+      return value
+    if index >= len(matches) or index < 0:  # Handle edge cases.
+      return value
+    return value.replace(matches[index], '', 1)
+
+  def to_string(self):
+    return 'Remove_' + str(self.regex_type) + '_' + str(self.index)
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+        token_id_table[self.index],
+    ]
+
+
+class RemoveAll(Modification):
+  """Remove all occurences of regex match."""
+
+  def __init__(self, regex_type):
+    self.regex_type = regex_type
+
+  def __call__(self, value):
+    matches = match_regex_substr(self.regex_type, value)
+
+    for match in matches:
+      value = value.replace(match, '', 1)
+    return value
+
+  def to_string(self):
+    return 'RemoveAll_' + str(self.regex_type)
+
+  def encode(self, token_id_table):
+    return [
+        token_id_table[self.__class__],
+        token_id_table[self.regex_type],
+    ]
 
 
 def decode_expression(encoding,
@@ -471,18 +584,17 @@ def decode_program(encoding,
     elem = id_token_table[encoding[idx]]
     if elem == Compose:  # Handle Compose separately.
       idx += 1
-      nesting_elem = id_token_table[encoding[idx]]
-      n_args = len(inspect.signature(nesting_elem.__init__).parameters)
-      nesting = decode_expression(encoding[idx:idx+n_args], id_token_table)
+      modification_elem = id_token_table[encoding[idx]]
+      n_args = len(inspect.signature(modification_elem.__init__).parameters)
+      modification = decode_expression(encoding[idx:idx+n_args], id_token_table)
       idx += n_args
-      nesting_or_substring_elem = id_token_table[encoding[idx]]
+      modification_or_substring_elem = id_token_table[encoding[idx]]
       n_args = len(
-          inspect.signature(nesting_or_substring_elem.__init__).parameters
-      )
-      nesting_or_substring = decode_expression(encoding[idx:idx+n_args],
-                                               id_token_table)
+          inspect.signature(modification_or_substring_elem.__init__).parameters)
+      modification_or_substring = decode_expression(encoding[idx:idx+n_args],
+                                                    id_token_table)
       idx += n_args
-      next_e = Compose(nesting, nesting_or_substring)
+      next_e = Compose(modification, modification_or_substring)
     else:
       n_args = len(inspect.signature(elem.__init__).parameters)
       next_e = decode_expression(encoding[idx:idx+n_args], id_token_table)

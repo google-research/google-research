@@ -24,6 +24,8 @@ import random
 import string
 from typing import Dict, List, Optional, Tuple
 
+from absl import logging
+
 from latent_programmer.tasks.robust_fill import dsl
 
 
@@ -162,11 +164,12 @@ def random_task(max_expressions,
                 max_k,
                 max_input_tokens,
                 max_input_length,
-                max_output_length,
                 num_examples,
                 min_expressions = 1,
                 n_expressions = None,
-               ):
+                sampler_pool=None,
+                valid_num_expressions_fn=None,
+                keep_fn=None):
   """Returns a sampled program and IO examples satisfying the given constraints.
 
   Args:
@@ -175,13 +178,19 @@ def random_task(max_expressions,
     max_input_tokens: Maximum number of unique tokens in the inputs. A token is
         either a constant string, or a sample from a regular expression.
     max_input_length: Maximum length of inputs to generate.
-    max_output_length: Maximum length of outputs to generate.
     num_examples: Number of input-output examples to generate.
     min_expressions: Minimum number of concatenated expressions in the program.
     n_expressions: Fixed number of concatenated expressions (if provided)
+    sampler_pool: Pool of expression to sampled from (if None, all expressions
+        are allowed).
+    valid_num_expressions_fn: A function that returns True if the number of
+        expressions is ok, or False if it should be rejected and re-sampled.
+    keep_fn: A function that returns True if the Concat should be kept, or False
+        if it should be rejected and re-sampled.
   Returns:
     Input strings, output strings, and a program expression.
   """
+  max_output_length = max_input_length * max_expressions
 
   # Sample inputs.
   inputs, delimiter_dict, type_dict = sample_inputs(
@@ -189,68 +198,135 @@ def random_task(max_expressions,
 
   # Sample program.
   if not n_expressions:
-    n_expressions = random.randint(min_expressions, max_expressions)
+    while True:
+      n_expressions = random.randint(min_expressions, max_expressions)
+      if (valid_num_expressions_fn is None
+          or valid_num_expressions_fn(n_expressions)):
+        break
+
   while True:
     program = dsl.Concat(
-        *[random_expression(inputs, delimiter_dict, type_dict)
+        *[random_expression(inputs, delimiter_dict, type_dict,
+                            sampler_pool=sampler_pool)
           for _ in range(n_expressions)])
 
     outputs = [program(inp) for inp in inputs]
-    # Rejection step on output lengths.
-    if ((max(len(out) for out in outputs) <= max_output_length) and
-        (min(len(out) for out in outputs) > 0)):
-      return dsl.ProgramTask(program, inputs, outputs)
+    # Assert output lengths are ok.
+    if not all(0 < len(out) <= max_output_length for out in outputs):
+      logging.error('Output length not ok')
+      logging.error('program: %s', program)
+      logging.error('inputs: %s', inputs)
+      logging.error('outputs: %s', outputs)
+      raise ValueError('Output lengths not ok')
 
-
-def random_expression(inputs, delimiter_dict, type_dict):
-  sampler = random.choice([
-      random_substring,
-      random_nesting,
-      random_compose,
-      random_const_str,
-  ])
-  return sampler(inputs, delimiter_dict, type_dict)
-
-
-def random_substring(inputs, delimiter_dict, type_dict):
-  sampler = random.choice([
-      random_sub_str,
-      random_get_span,
-  ])
-  return sampler(inputs, delimiter_dict, type_dict)
-
-
-def random_nesting(inputs, delimiter_dict, type_dict):
-  """Samples random Nesting."""
-  sampler = random.choice([
-      random_get_token,
-      random_to_case,
-      random_replace,
-      random_trim,
-      random_get_upto,
-      random_get_from,
-      random_get_first,
-      random_get_all,
-  ])
-  return sampler(inputs, delimiter_dict, type_dict)
-
-
-def random_compose(inputs, delimiter_dict, type_dict):
-  """Samples random Compose expression."""
-  nesting_or_substring = random.choice([
-      random_nesting,
-      random_substring,
-  ])
-  while True:
-    expr = dsl.Compose(random_nesting(inputs, delimiter_dict, type_dict),
-                       nesting_or_substring(inputs, delimiter_dict, type_dict))
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
+    # Rejection step.
+    if keep_fn is not None and not keep_fn(program):
       continue
-    return expr
+
+    return dsl.ProgramTask(program, inputs, outputs)
+
+
+def random_task_switch_concept_order(
+    max_expressions,
+    max_k,
+    max_input_tokens,
+    max_input_length,
+    num_examples,
+    is_train,
+    min_expressions = 1):
+  """Returns a sampled program and IO examples satisfying the given constraints.
+
+  Args:
+    max_expressions: Maximum number of concatenated expressions in the program.
+    max_k: Maximum number of times a generated token can be repeated.
+    max_input_tokens: Maximum number of unique tokens in the inputs. A token is
+        either a constant string, or a sample from a regular expression.
+    max_input_length: Maximum length of inputs to generate.
+    num_examples: Number of input-output examples to generate.
+    is_train: Whether to generate a task for train or test / finetune.
+    min_expressions: Minimum number of concatenated expressions in the program.
+  Returns:
+    Input strings, output strings, and a program expression.
+  """
+  max_output_length = max_input_length * max_expressions
+
+  # Sample inputs.
+  inputs, delimiter_dict, type_dict = sample_inputs(
+      num_examples, max_input_tokens, max_k, max_input_length)
+
+  # Sample program.
+  assert min_expressions >= 2
+  n_expressions = random.randint(min_expressions, max_expressions)
+  n_first_half_expressions = n_expressions // 2
+  n_second_half_expressions = n_expressions - n_first_half_expressions
+  first_half_sampler_pool = (
+      ALL_SUBSTRING if is_train else SAMPLER_POOL_MODIFY_OR_CONST)
+  second_half_sampler_pool = (
+      SAMPLER_POOL_MODIFY_OR_CONST if is_train else ALL_SUBSTRING)
+
+  expression_list = [
+      random_expression(inputs, delimiter_dict, type_dict,
+                        sampler_pool=first_half_sampler_pool)
+      for _ in range(n_first_half_expressions)
+  ] + [
+      random_expression(inputs, delimiter_dict, type_dict,
+                        sampler_pool=second_half_sampler_pool)
+      for _ in range(n_second_half_expressions)
+  ]
+  program = dsl.Concat(*expression_list)
+
+  outputs = [program(inp) for inp in inputs]
+  # Assert output lengths are ok.
+  assert all(0 < len(out) <= max_output_length for out in outputs)
+
+  return dsl.ProgramTask(program, inputs, outputs)
+
+
+def random_expression(inputs, delimiter_dict, type_dict, sampler_pool=None):
+  """Samples random expression."""
+  if sampler_pool is None:
+    sampler_pool = SAMPLER_POOL_ALL
+  while True:
+    # Sampler pool lists may contain other lists.
+    sampler = sampler_pool
+    while isinstance(sampler, list):
+      sampler = random.choice(sampler)
+    expr = sampler(inputs, delimiter_dict, type_dict)
+    # Some samplers may return None if it's impossible to create a valid
+    # expression, e.g., one that doesn't produce empty outputs.
+    if expr is not None:
+      return expr
+
+
+def _is_output_empty(expr, inputs):
+  try:
+    return min(len(expr(input_value)) for input_value in inputs) == 0
+  except:  # pylint: disable=[bare-except]
+    return True
+
+
+def random_compose_modification(inputs, delimiter_dict, type_dict):
+  """Samples random Compose expression using only modify ops."""
+  while True:
+    expr = dsl.Compose(
+        random_expression(inputs, delimiter_dict, type_dict,
+                          sampler_pool=ALL_MODIFICATION),
+        random_expression(inputs, delimiter_dict, type_dict,
+                          sampler_pool=ALL_MODIFICATION))
+    if not _is_output_empty(expr, inputs):
+      return expr
+
+
+def random_compose_substring(inputs, delimiter_dict, type_dict):
+  """Samples random Compose expression."""
+  while True:
+    expr = dsl.Compose(
+        random_expression(inputs, delimiter_dict, type_dict,
+                          sampler_pool=ALL_MODIFICATION),
+        random_expression(inputs, delimiter_dict, type_dict,
+                          sampler_pool=ALL_SUBSTRING))
+    if not _is_output_empty(expr, inputs):
+      return expr
 
 
 def random_const_str(inputs, delimiter_dict, type_dict):
@@ -273,13 +349,8 @@ def random_sub_str(inputs, delimiter_dict, type_dict):
       pos2 = random.randint(*[pos1, 0])
 
     expr = dsl.SubStr(pos1, pos2)
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
-      continue
-    return expr
+    if not _is_output_empty(expr, inputs):
+      return expr
 
 
 def random_type(type_dict):
@@ -317,13 +388,8 @@ def random_get_span(inputs, delimiter_dict, type_dict):
 
     expr = dsl.GetSpan(
         r1, i1, random_boundary(), r2, i2, random_boundary())
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
-      continue
-    return expr
+    if not _is_output_empty(expr, inputs):
+      return expr
 
 
 def random_get_token(inputs, delimiter_dict, type_dict):
@@ -335,13 +401,8 @@ def random_get_token(inputs, delimiter_dict, type_dict):
     i = random.choice(indices)
 
     expr = dsl.GetToken(t, i)
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
-      continue
-    return expr
+    if not _is_output_empty(expr, inputs):
+      return expr
 
 
 def random_to_case(inputs, delimiter_dict, type_dict):
@@ -357,8 +418,11 @@ def random_replace(inputs, delimiter_dict, type_dict):
 
 
 def random_trim(inputs, delimiter_dict, type_dict):
-  del inputs, delimiter_dict, type_dict
-  return dsl.Trim()
+  del delimiter_dict, type_dict
+  expr = dsl.Trim()
+  if not _is_output_empty(expr, inputs):
+    return expr
+  return None
 
 
 def random_get_upto(inputs, delimiter_dict, type_dict):
@@ -371,13 +435,8 @@ def random_get_upto(inputs, delimiter_dict, type_dict):
       r = random_type(type_dict)
 
     expr = dsl.GetUpto(r)
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
-      continue
-    return expr
+    if not _is_output_empty(expr, inputs):
+      return expr
 
 
 def random_get_from(inputs, delimiter_dict, type_dict):
@@ -390,13 +449,8 @@ def random_get_from(inputs, delimiter_dict, type_dict):
       r = random_type(type_dict)
 
     expr = dsl.GetFrom(r)
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
-      continue
-    return expr
+    if not _is_output_empty(expr, inputs):
+      return expr
 
 
 def random_get_first(inputs, delimiter_dict, type_dict):
@@ -408,13 +462,8 @@ def random_get_first(inputs, delimiter_dict, type_dict):
     i = random.choice(indices)
 
     expr = dsl.GetFirst(t, i)
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
-      continue
-    return expr
+    if not _is_output_empty(expr, inputs):
+      return expr
 
 
 def random_get_all(inputs, delimiter_dict, type_dict):
@@ -424,10 +473,98 @@ def random_get_all(inputs, delimiter_dict, type_dict):
     t = random_type(type_dict)
 
     expr = dsl.GetAll(t)
-    # Make sure outputs are non-empty.
-    try:
-      if min(len(expr(input_value)) for input_value in inputs) == 0:
-        continue
-    except:  # pylint: disable=[bare-except]
-      continue
-    return expr
+    if not _is_output_empty(expr, inputs):
+      return expr
+
+
+def random_substitute(inputs, delimiter_dict, type_dict):
+  """Samples random Substitute expression."""
+  del inputs, delimiter_dict
+  t = random_type(type_dict)
+  indices = [i for i in dsl.INDEX if abs(i) <= type_dict[t]]
+  i = random.choice(indices)
+  char = random.choice(dsl.CHARACTER)
+  return dsl.Substitute(t, i, char)
+
+
+def random_substitute_all(inputs, delimiter_dict, type_dict):
+  """Samples random SubstituteAll expression."""
+  del inputs, delimiter_dict
+  t = random_type(type_dict)
+  char = random.choice(dsl.CHARACTER)
+  return dsl.SubstituteAll(t, char)
+
+
+def random_remove(inputs, delimiter_dict, type_dict):
+  """Samples random Remove expression."""
+  del delimiter_dict
+  types = list(type_dict.keys())
+  random.shuffle(types)
+  for t in types:  # Try all types in a random order.
+    indices = [i for i in dsl.INDEX if abs(i) <= type_dict[t]]
+    i = random.choice(indices)
+    expr = dsl.Remove(t, i)
+    if not _is_output_empty(expr, inputs):
+      return expr
+
+  return None  # No type worked.
+
+
+def random_remove_all(inputs, delimiter_dict, type_dict):
+  """Samples random RemoveAll expression."""
+  del delimiter_dict
+  types = list(type_dict.keys())
+  random.shuffle(types)
+  for t in types:  # Try all types in a random order.
+    expr = dsl.RemoveAll(t)
+    if not _is_output_empty(expr, inputs):
+      return expr
+
+  return None  # No type worked.
+
+
+ALL_SUBSTRING = [
+    random_sub_str,
+    random_get_span,
+    random_get_token,
+    random_get_upto,
+    random_get_from,
+]
+
+ALL_MODIFICATION = [
+    random_to_case,
+    random_replace,
+    random_trim,
+    random_get_first,
+    random_get_all,
+    random_substitute,
+    random_substitute_all,
+    random_remove,
+    random_remove_all,
+]
+
+
+SAMPLER_POOL_ALL = [
+    ALL_SUBSTRING,
+    ALL_MODIFICATION,
+    [random_compose_modification, random_compose_substring],
+    random_const_str,
+]
+
+SAMPLER_POOL_NO_COMPOSE = [
+    ALL_SUBSTRING,
+    ALL_MODIFICATION,
+    random_const_str,
+]
+
+SAMPLER_POOL_NO_COMPOSE_SUBSTRING = [
+    ALL_SUBSTRING,
+    ALL_MODIFICATION,
+    random_compose_modification,
+    random_const_str,
+]
+
+SAMPLER_POOL_ONLY_COMPOSE = [random_compose_modification,
+                             random_compose_substring]
+
+SAMPLER_POOL_MODIFY_OR_CONST = ALL_MODIFICATION + [random_const_str]
