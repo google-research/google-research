@@ -95,6 +95,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
   def _read_sample_rate_from_tfexample(self, ex):
     """Reads the sample rate from a tf.Example."""
     if self._sample_rate_key:
+      logging.info('read_sample_rate_from_tfexample: has `_sample_rate_key`.')
       if self._sample_rate_key not in ex.features.feature:
         raise ValueError(f'Sample rate key not found: {self._sample_rate_key}')
       sr_feat = ex.features.feature[self._sample_rate_key]
@@ -108,11 +109,13 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       else:
         sample_rate = sr_feat.int64_list.value[0]
     else:
+      logging.info('read_sample_rate_from_tfexample: Default sample rate.')
       if not self._sample_rate:
         raise ValueError('If `sample_rate_key` not provided, must provide '
                          '`sample_rate`.')
       sample_rate = self._sample_rate
 
+    logging.info('read_sample_rate_from_tfexample: sr: %s', sample_rate)
     return sample_rate
 
   def resample(self, audio, sample_rate,
