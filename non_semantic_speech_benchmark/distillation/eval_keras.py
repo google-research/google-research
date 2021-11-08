@@ -52,8 +52,6 @@ flags.DEFINE_boolean('normalize_to_pm_one', False, 'Normalize input.')
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
 flags.DEFINE_string('output_key', None, 'Teacher model output_key.')
 flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
-flags.DEFINE_integer('bd', None, 'Dimension of bottleneck.')
-flags.DEFINE_alias('bottleneck_dimension', 'bd')
 flags.DEFINE_string(
     'model_type', 'mobilenet_debug_1.0_False',
     'Specification for student model. For mobilenet, includes')
@@ -91,7 +89,7 @@ def eval_and_report():
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   model = models.get_keras_model(
       model_type=FLAGS.model_type,
-      bottleneck_dimension=FLAGS.bottleneck_dimension,
+      bottleneck_dimension=None,
       output_dimension=FLAGS.output_dimension,
       frontend=True)
   checkpoint = tf.train.Checkpoint(model=model)
@@ -160,7 +158,6 @@ def eval_and_report():
 def main(unused_argv):
   assert FLAGS.file_pattern
   assert FLAGS.output_dimension
-  assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.logdir
   assert FLAGS.samples_key
 

@@ -109,7 +109,7 @@ def convert_and_write_model(m, include_frontend,
     model_export_utils.sanity_check(
         include_frontend=include_frontend,
         model_path=m.output_filename,
-        embedding_dim=m.params['bd'],
+        embedding_dim=1024,
         tflite=m.conversion_type == TFLITE_,
         n_required=_p_or_flag('n_required'),
         frame_width=_p_or_flag('frame_width'),

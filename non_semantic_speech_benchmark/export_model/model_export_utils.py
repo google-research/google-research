@@ -56,7 +56,7 @@ def get_params(experiment_dir_str):
 
   Args:
     experiment_dir_str: The folder-name for the set of hyperparams. Eg:
-      '1-al=1.0,ap=False,bd=2048,cop=False,lr=0.0001,ms=small,qat=False,tbs=512'
+      '1-al=1.0,ap=False,lr=0.0001,ms=small,qat=False,tbs=512'
 
   Returns:
     A dict mapping param key (str) to eval'ed value (float/eval/string).
@@ -89,9 +89,6 @@ def get_model(checkpoint_folder_path,
               checkpoint_number = None,
               include_frontend = False):
   """Given folder & training params, exports SavedModel without frontend."""
-  compressor = None
-  if params['cop']:
-    compressor = get_default_compressor()
   # Optionally override frontend flags from
   # `non_semantic_speech_benchmark/export_model/tf_frontend.py`
   override_flag_names = ['frame_hop', 'n_required', 'num_mel_bins',
@@ -102,10 +99,11 @@ def get_model(checkpoint_folder_path,
 
   static_model = models.get_keras_model(
       params['mt'],
-      bottleneck_dimension=params['bd'],
-      output_dimension=0,  # Don't include the unnecessary final layer.
+      bottleneck_dimension=None,
+      output_dimension=1024,
+      truncate_output=params['tr'] if 'tr' in params else False,
       frontend=include_frontend,
-      compressor=compressor,
+      compressor=None,
       quantize_aware_training=params['qat'],
       tflite=tflite_friendly)
   checkpoint = tf.train.Checkpoint(model=static_model)

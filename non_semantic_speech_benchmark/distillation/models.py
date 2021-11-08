@@ -23,9 +23,7 @@ from typing import Optional
 from absl import logging
 import tensorflow as tf
 import tensorflow_hub as hub
-import tensorflow_model_optimization as tfmot
 from non_semantic_speech_benchmark.distillation import frontend_lib
-from non_semantic_speech_benchmark.distillation.layers import CompressedDense
 
 
 
@@ -57,14 +55,12 @@ def get_keras_model(model_type,
                     quantize_aware_training = False,
                     tflite = False):
   """Make a Keras student model."""
+  del bottleneck_dimension, compressor, quantize_aware_training  # Not used.
   # For debugging, log hyperparameter values.
   logging.info('model name: %s', model_type)
-  logging.info('bottleneck_dimension: %i', bottleneck_dimension)
   logging.info('truncate_output: %s', truncate_output)
   logging.info('output_dimension: %i', output_dimension)
   logging.info('frontend: %s', frontend)
-  logging.info('compressor: %s', compressor)
-  logging.info('quantize_aware_training: %s', quantize_aware_training)
   logging.info('tflite: %s', tflite)
 
   output_dict = {}  # Dictionary of model outputs.
@@ -152,23 +148,7 @@ def get_keras_model(model_type,
   # `model`.
   model_out = model(feats)
   model_out.shape.assert_is_compatible_with(expected_output_shape)
-
-  if bottleneck_dimension:
-    if compressor is not None:
-      bottleneck = CompressedDense(
-          bottleneck_dimension,
-          compression_obj=compressor,
-          name='distilled_output')
-    else:
-      bottleneck = tf.keras.layers.Dense(
-          bottleneck_dimension, name='distilled_output')
-      if quantize_aware_training:
-        bottleneck = tfmot.quantization.keras.quantize_annotate_layer(
-            bottleneck)
-    embeddings = tf.keras.layers.Flatten()(model_out)
-    embeddings = bottleneck(embeddings)
-  else:
-    embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
+  embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
 
   # Construct optional final layer, and create output dictionary.
   output_dict['embedding'] = embeddings
@@ -189,13 +169,5 @@ def get_keras_model(model_type,
           output_dimension, name='embedding_to_target')(embeddings)
     output_dict['embedding_to_target'] = output
   output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
-  # Optional modifications to the model for TFLite.
-  if tflite:
-    if compressor is not None:
-      # If model employs compression, this ensures that the TFLite model
-      # just uses the smaller matrices for inference.
-      output_model.get_layer('distilled_output').kernel = None
-      output_model.get_layer(
-          'distilled_output').compression_op.a_matrix_tfvar = None
 
   return output_model

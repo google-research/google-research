@@ -28,9 +28,6 @@ import tensorflow_hub as hub  # pylint:disable=g-bad-import-order
 from non_semantic_speech_benchmark.distillation import get_data
 from non_semantic_speech_benchmark.distillation import models
 
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
-
 FLAGS = flags.FLAGS
 
 # Data config flags.
@@ -54,12 +51,8 @@ flags.DEFINE_integer('min_length', 16000, 'Minimum audio sample length.')
 flags.DEFINE_alias('ml', 'min_length')
 
 # Student network config flags.
-flags.DEFINE_integer(
-    'bottleneck_dimension', None, 'Dimension of bottleneck. '
-    'If 0, bottleneck layer is excluded.')
-flags.DEFINE_alias('bd', 'bottleneck_dimension')
 flags.DEFINE_string(
-    'model_type', 'mobilenet_debug_1.0_False',
+    'model_type', None,
     'Specification for student model.')
 flags.DEFINE_alias('mt', 'model_type')
 
@@ -88,23 +81,6 @@ flags.DEFINE_boolean(
     'quantize_aware_training', False, 'Dynamically '
     'quantize final layer weights during training.')
 flags.DEFINE_alias('qat', 'quantize_aware_training')
-
-# Compression
-flags.DEFINE_boolean(
-    'compression_op', False, 'Compress pre-bottleneck '
-    'layer dynamically during training using SVD.')
-flags.DEFINE_alias('cop', 'compression_op')
-flags.DEFINE_integer('comp_rank', 100, 'Inner dimension of '
-                     'compressed matrices.')
-flags.DEFINE_integer('comp_freq', 10, 'Compressed matrix update frequency')
-flags.DEFINE_integer('comp_begin_step', 0,
-                     'Training step to begin compression.')
-flags.DEFINE_integer(
-    'comp_end_step', -1, 'Training step to end compression. '
-    '-1 means compression never ends.')
-flags.DEFINE_float(
-    'alpha_step_size', 0.01, 'Amount to decrement alpha each time '
-    'a compression op takes place.')
 
 
 def train_and_report(debug=False):
@@ -147,26 +123,11 @@ def train_and_report(debug=False):
       learning_rate=FLAGS.lr, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
   global_step = opt.iterations
   # Create model, loss, and other objects.
-  compressor = None
-  if FLAGS.compression_op:
-    custom_params = ','.join([
-        'compression_frequency=%d',
-        'rank=%d',
-        'begin_compression_step=%d',
-        'end_compression_step=%d',
-        'alpha_decrement_value=%d',
-    ]) % (FLAGS.comp_freq, FLAGS.comp_rank, FLAGS.comp_begin_step,
-          FLAGS.comp_end_step, FLAGS.alpha_step_size)
-    compression_params = compression.CompressionOp.get_default_hparams().parse(
-        custom_params)
-    compressor = compression_wrapper.get_apply_compression(
-        compression_params, global_step=global_step)
   model = models.get_keras_model(
       model_type=FLAGS.model_type,
-      bottleneck_dimension=FLAGS.bottleneck_dimension,
+      bottleneck_dimension=None,
       output_dimension=output_dimension,
       frontend=True,
-      compressor=compressor,
       quantize_aware_training=FLAGS.quantize_aware_training)
   model.summary()
   # Add additional metrics to track.
@@ -229,7 +190,6 @@ def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
 def main(unused_argv):
   assert FLAGS.file_pattern
   assert FLAGS.output_dimension
-  assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.shuffle_buffer_size
   assert FLAGS.logdir
   assert FLAGS.samples_key
@@ -242,9 +202,6 @@ def main(unused_argv):
     assert FLAGS.teacher_model_hub
     assert FLAGS.output_key
     assert FLAGS.target_key is None
-
-  # Incompatible tools.
-  assert not (FLAGS.quantize_aware_training and FLAGS.compression_op)
 
   tf.enable_v2_behavior()
   assert tf.executing_eagerly()

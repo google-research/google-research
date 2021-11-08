@@ -25,21 +25,18 @@ from absl.testing import parameterized
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.distillation import models
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
 
 
 class ModelsTest(parameterized.TestCase):
 
 
   @parameterized.parameters(
-      {'frontend': True, 'bottleneck': 3, 'tflite': True},
-      {'frontend': False, 'bottleneck': 3, 'tflite': True},
-      {'frontend': True, 'bottleneck': 3, 'tflite': False},
-      {'frontend': False, 'bottleneck': 3, 'tflite': False},
-      {'frontend': True, 'bottleneck': 0, 'tflite': False},
+      {'frontend': True, 'tflite': True},
+      {'frontend': False, 'tflite': True},
+      {'frontend': True, 'tflite': False},
+      {'frontend': False, 'tflite': False},
   )
-  def test_model_frontend(self, frontend, bottleneck, tflite):
+  def test_model_frontend(self, frontend, tflite):
     if frontend:
       input_tensor_shape = [1 if tflite else 2, 32000]  # audio signal.
     else:
@@ -48,14 +45,12 @@ class ModelsTest(parameterized.TestCase):
     output_dimension = 5
 
     m = models.get_keras_model(
-        'mobilenet_debug_1.0_False', bottleneck, output_dimension,
+        'mobilenet_debug_1.0_False', None, output_dimension,
         frontend=frontend, tflite=tflite)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
     emb.shape.assert_has_rank(2)
-    if bottleneck:
-      self.assertEqual(emb.shape[1], bottleneck)
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 
@@ -118,39 +113,23 @@ class ModelsTest(parameterized.TestCase):
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 
-  @parameterized.parameters({'add_compression': True},
-                            {'add_compression': False})
-  def test_tflite_model(self, add_compression):
-    compressor = None
-    bottleneck_dimension = 3
-    if add_compression:
-      compression_params = compression.CompressionOp.get_default_hparams(
-          ).parse('')
-      compressor = compression_wrapper.get_apply_compression(
-          compression_params, global_step=0)
+  def test_tflite_model(self):
     m = models.get_keras_model(
         'mobilenet_debug_1.0_False',
-        bottleneck_dimension,
+        None,
         5,
         frontend=False,
-        compressor=compressor,
         tflite=True)
 
-    input_tensor = tf.zeros([1, 96, 64, 1], dtype=tf.float32)
+    input_tensor = tf.zeros([2, 96, 64, 1], dtype=tf.float32)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
     emb.shape.assert_has_rank(2)
-    self.assertEqual(emb.shape[0], 1)
-    self.assertEqual(emb.shape[1], bottleneck_dimension)
+    self.assertEqual(emb.shape[0], 2)
     o.shape.assert_has_rank(2)
-    self.assertEqual(o.shape[0], 1)
+    self.assertEqual(o.shape[0], 2)
     self.assertEqual(o.shape[1], 5)
-
-    if add_compression:
-      self.assertIsNone(m.get_layer('distilled_output').kernel)
-      self.assertIsNone(
-          m.get_layer('distilled_output').compression_op.a_matrix_tfvar)
 
 
 if __name__ == '__main__':
