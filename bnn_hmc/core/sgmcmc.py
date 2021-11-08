@@ -29,7 +29,7 @@
 """Optax implementations of SGMCMC optimizers."""
 
 import jax
-from optax import OptState, Params
+from optax import Params
 from jax import numpy as jnp
 from optax import GradientTransformation
 from typing import Any, NamedTuple
@@ -41,7 +41,7 @@ GradMomentEstimates = Params  # Same type as parameters
 PreconditionerState = NamedTuple  # State of a preconditioner
 
 
-class OptaxSGLDState(OptState):
+class OptaxSGLDState(NamedTuple):
   """Optax state for the SGLD optimizer"""
   count: jnp.ndarray
   rng_key: jnp.ndarray
