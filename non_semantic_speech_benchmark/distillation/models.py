@@ -18,7 +18,7 @@
 
 """
 import os
-from typing import Optional
+from typing import Optional, Tuple
 
 from absl import logging
 import tensorflow as tf
@@ -65,6 +65,49 @@ def get_keras_model(model_type,
 
   output_dict = {}  # Dictionary of model outputs.
 
+  # Construct model input and frontend.
+  model_in, feats = _frontend_keras(frontend, tflite)
+  inputs = [model_in]
+  logging.info('Features shape: %s', feats.shape)
+
+  # Build network.
+  model_out = _build_main_net(model_type, feats)
+  embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
+
+  # The last fully-connected layer can sometimes be the single largest
+  # layer in the entire network. It's also not always very valuable. We try
+  # two methods of getting the right output dimension:
+  # 1) A FC layer
+  # 2) Taking the first `output_dimension` elements.
+  need_final_layer = (output_dimension and
+                      embeddings.shape[1] != output_dimension)
+
+  # If we need to truncate, do it before we save the embedding. Otherwise,
+  # the embedding will contain some garbage dimensions.
+  if need_final_layer and truncate_output:
+    if embeddings.shape[1] < output_dimension:
+      raise ValueError(
+          'Cannot truncate if model output is smaller than required: '
+          f'{embeddings.shape[1]} vs {output_dimension}')
+    embeddings = embeddings[:, :output_dimension]
+
+  # Construct optional final layer, and create output dictionary.
+  output_dict['embedding'] = embeddings
+
+  target = embeddings
+  if need_final_layer and not truncate_output:
+    target = tf.keras.layers.Dense(
+        output_dimension, name='embedding_to_target')(target)
+  output_dict['embedding_to_target'] = target
+  output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
+
+  return output_model
+
+
+def _frontend_keras(
+    frontend,
+    tflite):
+  """Returns model input and features."""
   # TFLite use-cases usually use non-batched inference, and this also enables
   # hardware acceleration.
   num_batches = 1 if tflite else None
@@ -90,10 +133,15 @@ def get_keras_model(model_type,
         batch_size=num_batches,
         name='log_mel_spectrogram')
     feats = model_in
-  inputs = [model_in]
-  logging.info('Features shape: %s', feats.shape)
 
-  # Build network.
+  return (model_in, feats)
+
+
+def _build_main_net(
+    model_type,
+    feats,
+    ):
+  """Constructs main network."""
   if model_type.startswith('mobilenet_'):
     # Format is "mobilenet_{size}_{alpha}_{avg_pool}"
     _, mobilenet_size, alpha, avg_pool = model_type.split('_')
@@ -103,8 +151,7 @@ def get_keras_model(model_type,
     logging.info('alpha: %f', alpha)
     logging.info('avg_pool: %s', avg_pool)
     model = _map_mobilenet_func(mobilenet_size)(
-        input_shape=(feats_inner_dim * frontend_args['frame_width'],
-                     frontend_args['num_mel_bins'], 1),
+        input_shape=feats.shape[1:],
         alpha=alpha,
         minimalistic=False,
         include_top=False,
@@ -136,8 +183,7 @@ def get_keras_model(model_type,
     model = model_fn(
         include_top=False,
         weights=None,  # could be pretrained from imagenet.
-        input_shape=(feats_inner_dim * frontend_args['frame_width'],
-                     frontend_args['num_mel_bins'], 1),
+        input_shape=feats.shape[1:],
         pooling='avg',
     )
     expected_output_shape = [None, final_dim]
@@ -148,26 +194,5 @@ def get_keras_model(model_type,
   # `model`.
   model_out = model(feats)
   model_out.shape.assert_is_compatible_with(expected_output_shape)
-  embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
 
-  # Construct optional final layer, and create output dictionary.
-  output_dict['embedding'] = embeddings
-  if output_dimension:
-    # The last fully-connected layer can sometimes be the single largest
-    # layer in the entire network. It's also not always very valuable. We try
-    # two methods of getting the right output dimension:
-    # 1) A FC layer
-    # 2) Taking the first `output_dimension` elements.
-    if truncate_output:
-      if embeddings.shape[1] < output_dimension:
-        raise ValueError(
-            'Cannot truncate if model output is smaller than required: '
-            f'{embeddings.shape[1]} vs {output_dimension}')
-      output = embeddings[:, :output_dimension]
-    else:
-      output = tf.keras.layers.Dense(
-          output_dimension, name='embedding_to_target')(embeddings)
-    output_dict['embedding_to_target'] = output
-  output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
-
-  return output_model
+  return model_out

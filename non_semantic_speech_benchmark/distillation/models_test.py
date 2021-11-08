@@ -76,7 +76,7 @@ class ModelsTest(parameterized.TestCase):
 
     # `embedding` is the original size, but `embedding_to_target` should be the
     # right size.
-    self.assertEqual(emb.shape[1], 1280)
+    self.assertEqual(emb.shape[1], 5)
     self.assertEqual(o.shape[1], 5)
 
   @parameterized.parameters(
