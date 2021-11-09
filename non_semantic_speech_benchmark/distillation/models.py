@@ -86,10 +86,10 @@ def get_keras_model(model_type,
   # the embedding will contain some garbage dimensions.
   if need_final_layer and truncate_output:
     if embeddings.shape[1] < output_dimension:
-      raise ValueError(
-          'Cannot truncate if model output is smaller than required: '
-          f'{embeddings.shape[1]} vs {output_dimension}')
-    embeddings = embeddings[:, :output_dimension]
+      embeddings = tf.pad(
+          embeddings, [[0, 0], [0, output_dimension - embeddings.shape[1]]])
+    else:
+      embeddings = embeddings[:, :output_dimension]
 
   # Construct optional final layer, and create output dictionary.
   output_dict['embedding'] = embeddings
