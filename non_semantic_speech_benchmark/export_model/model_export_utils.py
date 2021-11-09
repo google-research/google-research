@@ -56,7 +56,7 @@ def get_params(experiment_dir_str):
 
   Args:
     experiment_dir_str: The folder-name for the set of hyperparams. Eg:
-      '1-al=1.0,ap=False,lr=0.0001,ms=small,qat=False,tbs=512'
+      '1-al=1.0,ap=False,lr=0.0001,ms=small,tbs=512'
 
   Returns:
     A dict mapping param key (str) to eval'ed value (float/eval/string).
@@ -104,7 +104,6 @@ def get_model(checkpoint_folder_path,
       truncate_output=params['tr'] if 'tr' in params else False,
       frontend=include_frontend,
       compressor=None,
-      quantize_aware_training=params['qat'],
       tflite=tflite_friendly)
   checkpoint = tf.train.Checkpoint(model=static_model)
   if checkpoint_number:

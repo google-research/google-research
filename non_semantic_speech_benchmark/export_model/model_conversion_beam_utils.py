@@ -95,7 +95,9 @@ def convert_and_write_model(m, include_frontend,
         f'Existing dir didn\'t exist: {os.path.dirname(m.output_filename)}')
   if tflite_friendly:
     model_export_utils.convert_tflite_model(
-        model, quantize=m.params['qat'], model_path=m.output_filename)
+        model,
+        quantize=False,
+        model_path=m.output_filename)
   else:
     assert m.conversion_type == SAVEDMODEL_
     tf.keras.models.save_model(model, m.output_filename)

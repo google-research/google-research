@@ -29,9 +29,9 @@ class ModelConversionBeamUtilsTest(absltest.TestCase):
     super(ModelConversionBeamUtilsTest, self).setUp()
     self.xids = ['12321', '23123', '32123']
     self.folders = [
-        '1-al=8.0,ap=False,bd=1024,cop=False,lr=0.0001,ms=large,n_required=80000,qat=False,tbs=8',
-        '2-al=8.0,ap=False,bd=1024,cop=False,lr=0.0001,ms=large,n_required=80000,qat=False,tbs=16',
-        '3-al=8.0,ap=False,bd=1024,cop=False,lr=0.0001,ms=large,n_required=80000,qat=False,tbs=32',
+        '1-al=8.0,ap=False,lr=0.0001,ms=large,n_required=80000,tbs=8',
+        '2-al=8.0,ap=False,lr=0.0001,ms=large,n_required=80000,tbs=16',
+        '3-al=8.0,ap=False,lr=0.0001,ms=large,n_required=80000,tbs=32',
     ]
     self.base_experiment_dir = os.path.join(
         absltest.get_default_test_tmpdir(), 'base_dir')
