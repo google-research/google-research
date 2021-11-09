@@ -52,9 +52,10 @@ flags.DEFINE_boolean('normalize_to_pm_one', False, 'Normalize input.')
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
 flags.DEFINE_string('output_key', None, 'Teacher model output_key.')
 flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
-flags.DEFINE_string(
-    'model_type', 'mobilenet_debug_1.0_False',
-    'Specification for student model. For mobilenet, includes')
+flags.DEFINE_boolean('truncate_output', None, 'Whether to truncate output.')
+flags.DEFINE_alias('tr', 'truncate_output')
+flags.DEFINE_string('model_type', None,
+                    'Specification for student model. For mobilenet, includes')
 flags.DEFINE_alias('mt', 'model_type')
 
 flags.DEFINE_integer('batch_size', None, 'The number of images in each batch.')
@@ -91,6 +92,7 @@ def eval_and_report():
       model_type=FLAGS.model_type,
       bottleneck_dimension=None,
       output_dimension=FLAGS.output_dimension,
+      truncate_output=FLAGS.truncate_output,
       frontend=True)
   checkpoint = tf.train.Checkpoint(model=model)
 

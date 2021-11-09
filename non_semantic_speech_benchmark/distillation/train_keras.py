@@ -51,9 +51,9 @@ flags.DEFINE_integer('min_length', 16000, 'Minimum audio sample length.')
 flags.DEFINE_alias('ml', 'min_length')
 
 # Student network config flags.
-flags.DEFINE_string(
-    'model_type', None,
-    'Specification for student model.')
+flags.DEFINE_boolean('truncate_output', None, 'Whether to truncate output.')
+flags.DEFINE_alias('tr', 'truncate_output')
+flags.DEFINE_string('model_type', None, 'Specification for student model.')
 flags.DEFINE_alias('mt', 'model_type')
 
 # Training config flags.
@@ -127,6 +127,7 @@ def train_and_report(debug=False):
       model_type=FLAGS.model_type,
       bottleneck_dimension=None,
       output_dimension=output_dimension,
+      truncate_output=FLAGS.truncate_output,
       frontend=True,
       quantize_aware_training=FLAGS.quantize_aware_training)
   model.summary()
