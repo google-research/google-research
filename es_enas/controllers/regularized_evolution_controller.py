@@ -30,8 +30,8 @@ class RegularizedEvolutionController(base_controller.BaseController):
     population_size = self._batch_size
     tournament_size = int(np.sqrt(population_size))
 
-    self._controller = pg.generators.RegularizedEvolution(
+    self._controller = pg.evolution.regularized_evolution(
         population_size=population_size,
         tournament_size=tournament_size,
-        mutator=pg.generators.evolution_mutators.Uniform())  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        mutator=pg.evolution.mutators.Uniform())    # pytype: disable=wrong-arg-types  # gen-stub-imports
     self._controller.setup(self._dna_spec)
