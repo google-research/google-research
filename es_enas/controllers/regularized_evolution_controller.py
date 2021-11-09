@@ -33,5 +33,5 @@ class RegularizedEvolutionController(base_controller.BaseController):
     self._controller = pg.generators.RegularizedEvolution(
         population_size=population_size,
         tournament_size=tournament_size,
-        mutator=pg.generators.evolution_mutators.Uniform())
+        mutator=pg.generators.evolution_mutators.Uniform())  # pytype: disable=wrong-arg-types  # gen-stub-imports
     self._controller.setup(self._dna_spec)
