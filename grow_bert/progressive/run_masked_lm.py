@@ -31,10 +31,10 @@ import gin
 from grow_bert.progressive import masked_lm
 from grow_bert.progressive import utils
 from official.common import flags as tfm_flags
+from official.core import config_definitions as cfg
 from official.modeling import optimization
 from official.modeling.fast_training.progressive import train_lib
 from official.modeling.fast_training.progressive import trainer as prog_trainer_lib
-from official.modeling.hyperparams import config_definitions as cfg
 from official.nlp.data import pretrain_dataloader
 from official.utils.misc import distribution_utils
 
