@@ -38,19 +38,19 @@ source env3/bin/activate
 DATA_DIR='./caltrain/data' # This is the default value if omitted below
 PLOT_DIR='./caltrain/plots' # This is the default value if omitted below
 
-# Figure 1a left panel
+# Figure 1 left panel
 python -m caltrain.plot_intro_reliability_diagram --plot_dir=${PLOT_DIR}
-# Figure 1a right panel
+# Figure 1 right panel
 python -m caltrain.plot_intro_ece_distribution --plot_dir=${PLOT_DIR}
-# Figure 1b (both panels)
+# Figure 3 "Curves controlling true calibration error."
 python -m caltrain.plot_tce_assumptions --plot_dir=${PLOT_DIR}
-# Figure 2, Figure 7, Figure 8
+# Figure 4 "ECE_bin may underestimate or overestimate TCE."
 python -m caltrain.plot_bias_heat_map --data_dir=${DATA_DIR} --plot_dir=${PLOT_DIR}
-# Figure 3
+# Figure 5. "Maximum likehood fits to empirical datasets..."
 python -m caltrain.plot_glm_beta_eece_sece --data_dir=${DATA_DIR} --plot_dir=${PLOT_DIR}
-# Figure 4
+# Figure 6. "EMsweep is less biased than alternative calibration metrics."
 python -m caltrain.plot_calibration_errors --data_dir=${DATA_DIR} --plot_dir=${PLOT_DIR}
-# Figure 5
+# Figure 7. "Bias in calibration estimation increases as TCE decreases."
 python -m caltrain.plot_ece_vs_tce --data_dir=${DATA_DIR} --plot_dir=${PLOT_DIR}
 ```
 
