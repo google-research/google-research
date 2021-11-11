@@ -93,7 +93,6 @@ def TopologyFromGeometryMain(unused_argv):
   protos = ReadConFormer(bond_lengths, FLAGS.input, FLAGS.output)
   print(protos)
 
-
 if __name__ == "__main__":
   flags.mark_flag_as_required("input")
   flags.mark_flag_as_required("bonds")

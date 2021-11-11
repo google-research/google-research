@@ -119,6 +119,8 @@ def bond_topologies_from_geom(
   result.conformer_id =  conformer_id
 
   natoms = len(bond_topology.atoms)
+  print(f"Molecule #{conformer_id} contains {natoms} atoms")
+  print(bond_topology)
   if natoms == 1:
     return result  # empty.
 
@@ -127,11 +129,14 @@ def bond_topologies_from_geom(
   utilities.canonical_bond_topology(bond_topology)
   distances = utilities.distances(geometry)
 
+# geometry = utilities.geom_to_angstroms(geometry)
+
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a starting BondTopology from which all others can grow
   starting_bond_topology = hydrogen_to_nearest_atom(bond_topology, distances)
   if starting_bond_topology is None:
     return result
+  print("Have a starting topology")
 
   heavy_atom_indices = [
       i for i, t in enumerate(bond_topology.atoms)
@@ -145,6 +150,7 @@ def bond_topologies_from_geom(
   bonds_to_scores: Dict[Tuple[int, int], np.array] = {}
   for (i, j) in itertools.combinations(heavy_atom_indices, 2):  # All pairs.
     dist = distances[i, j]
+    print(f"Atoms {i} and {j} dist {dist}")
     if dist > THRESHOLD:
       continue
     btypes = np.zeros(4, np.float32)
@@ -157,27 +163,36 @@ def bond_topologies_from_geom(
 
     if np.count_nonzero(btypes) > 0:
       bonds_to_scores[(i, j)] = btypes
+      print(f"Possible bonds btw {i} and {j} -> {btypes}")
 
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
   # Guard against BondTopology's that differ only in the atom ordering.
   starting_smiles = smu_utils_lib.compute_smiles_for_bond_topology(bond_topology, True)
+  print("Begin search")
 
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
 
   search_space = mol.generate_search_state()
+  print(starting_bond_topology)
+  print(smu_utils_lib.compute_smiles_for_bond_topology(bond_topology, include_hs=True, labeled_atoms=True))
+  print(search_space)
   for s in itertools.product(*search_space):
+    print(f"tring to place state {s}")
     bt = mol.place_bonds(list(s))
+    print(f"Placed bonds {bt}")
     if not bt:
       continue
+    print("Examining config")
     # Check for different atom order only.
     utilities.canonical_bond_topology(bt)
     if utilities.same_bond_topology(bond_topology, bt):
       bt.is_starting_topology = True
     elif smu_utils_lib.compute_smiles_for_bond_topology(bt, True) == starting_smiles:
-      continue
+      bt.is_starting_topology = True
+#     continue
     bt.smiles = smu_utils_lib.compute_smiles_for_bond_topology(
       bt, include_hs=matching_parameters.smiles_with_h,
        labeled_atoms=matching_parameters.smiles_with_labels)
@@ -187,6 +202,7 @@ def bond_topologies_from_geom(
   if len(result.bond_topology) > 1:
     result.bond_topology.sort(key=lambda bt: bt.score, reverse=True)
 
+  print("Result going back")
   return result
 
 

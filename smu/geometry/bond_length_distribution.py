@@ -37,6 +37,23 @@ from tensorflow.io import gfile
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
 
+
+def interpolate_zeros(values: np.array) -> np.array:
+  """For each zero value in `values` replace with an interpolated value. 
+ 
+   Args: 
+     values: an array that may contain zeros.
+   Returns: 
+     An array that contains no zeros.
+  """
+  xvals = np.nonzero(values)[0]
+  yvals = values[xvals]
+
+  # Simplest to get values for all points, even those already non zero. 
+  indices = np.arange(0, len(values))
+
+  return np.interp(indices, xvals, yvals)
+
 class LengthDistribution(abc.ABC):
   """Abstract class for representing a distribution over bond lengths."""
 
@@ -151,6 +168,8 @@ class EmpiricalLengthDistribution(LengthDistribution):
     # The maximum value covered by the emprical values.
     self._maximum = self._df['length'].iloc[-1] + self.bucket_size
 
+    self._df['count'] = interpolate_zeros(np.array(self._df['count']))
+
     self._df['pdf'] = (
         self._df['count'] / np.sum(self._df['count']) / self.bucket_size)
 
@@ -231,6 +250,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
           set(df_input['length_str']).difference(df_lengths['length_str'])))
 
     df['count'].fillna(0, inplace=True)
+    df['count'] = interpolate_zeros(np.array(df['count']))
 
     return EmpiricalLengthDistribution(df, right_tail_mass=right_tail_mass)
 
@@ -264,6 +284,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
       pdf value
     """
     idx = self._df['length'].searchsorted(length)
+    print(f"PDF idx {idx}, max {self._maximum}")
     if idx == 0:
       return 0.0
     if length > self._maximum:
@@ -469,6 +490,7 @@ class AllAtomPairLengthDistributions:
     """p(length | atom_a, atom_b, bond_type)."""
     atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
     atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
+    print(f"btw satomic numbers {atom_a} and {atom_b} type {bond_type}")
 #   Tests expect an exception to be raised
 #   if (atom_a, atom_b) not in self._atom_pair_dict.keys():
 #     return 0.0
