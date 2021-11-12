@@ -10,11 +10,14 @@ If you are using this code, please cite the respective paper:
 @article{sproat:gutkin:cl:2021,
   title = {The Taxonomy of Writing Systems: How to Measure how Logographic a System is},
   author = {Richard Sproat and Alexander Gutkin},
-  journal = {Computational Linguistics}
+  journal = {Computational Linguistics},
+  volume = {47},
+  number = {3},
+  pages = {477–-528},
   year = {2021},
+  month = sep,
   doi = {https://doi.org/10.1162/coli_a_00409},
   publisher = {MIT Press},
-  note = {To appear},
 }
 ```
 
