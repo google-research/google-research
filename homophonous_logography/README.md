@@ -4,7 +4,8 @@ article that proposes a novel measure of the degree of logography that uses an
 attention based sequence-to-sequence model trained to predict the spelling of a
 token from its pronunciation in context.
 
-If you are using this code, please cite the respective paper:
+If you are using this code, please cite the respective
+[article](https://doi.org/10.1162/coli_a_00409):
 
 ```bibtex
 @article{sproat:gutkin:cl:2021,
