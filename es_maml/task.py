@@ -16,7 +16,6 @@
 # pylint: disable=g-doc-return-or-yield,unused-argument,missing-docstring,g-doc-args,line-too-long,invalid-name,pointless-string-statement
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import abc

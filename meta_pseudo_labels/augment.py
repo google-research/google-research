@@ -42,7 +42,6 @@ RandAugment Reference: https://arxiv.org/abs/1909.13719
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import math
