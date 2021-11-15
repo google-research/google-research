@@ -52,7 +52,10 @@ class TransformerConfig:
   dropout_rate: float = 0.1
   attention_dropout_rate: float = 0.0
   use_relative_attention: bool = False
-  num_relative_position_buckets: int = 32
+  num_relative_position_buckets: int = 32  # For relative attention
+  max_distance: int = 128
+  num_output_relative_position_buckets: int = 32  # For relative attention on outputs
+  max_output_distance: int = 128
   deterministic: bool = False
   decode: bool = False
   bos_token: int = 1
@@ -210,7 +213,6 @@ class EncoderBlock(nn.Module):
   """Transformer encoder block."""
 
   config: TransformerConfig
-  self_attention_fn: Callable[[Array, Array, Array], Array] = nn.SelfAttention
 
   @nn.compact
   def __call__(self,
@@ -244,6 +246,7 @@ class EncoderBlock(nn.Module):
         dropout_rate=cfg.attention_dropout_rate,
         deterministic=cfg.deterministic,
         num_relative_position_buckets=cfg.num_relative_position_buckets,
+        max_distance=cfg.max_distance,
         causal=False)(x, encoder_mask, encoder_relative_position)
     else:
       x = nn.SelfAttention(
@@ -272,9 +275,6 @@ class EncoderDecoderBlock(nn.Module):
   """Transformer encoder-decoder block."""
 
   config: TransformerConfig
-  dot_product_attention_fn: Callable[[Array, Array, Array], Array] = (
-      nn.MultiHeadDotProductAttention)
-  self_attention_fn: Callable[[Array, Array], Array] = nn.SelfAttention
 
   @nn.compact
   def __call__(self,
@@ -314,7 +314,8 @@ class EncoderDecoderBlock(nn.Module):
         broadcast_dropout=False,
         dropout_rate=cfg.attention_dropout_rate,
         deterministic=cfg.deterministic,
-        num_relative_position_buckets=cfg.num_relative_position_buckets,
+        num_relative_position_buckets=cfg.num_output_relative_position_buckets,
+        max_distance=cfg.max_output_distance,
         causal=False)(x, decoder_mask, decoder_relative_position)
     else:
       x = nn.SelfAttention(
@@ -347,6 +348,7 @@ class EncoderDecoderBlock(nn.Module):
         dropout_rate=cfg.attention_dropout_rate,
         deterministic=cfg.deterministic,
         num_relative_position_buckets=cfg.num_relative_position_buckets,
+        max_distance=cfg.max_distance,
         causal=False)(
           y, encoded, encoder_decoder_mask, encoder_decoder_relative_position)
     else:

@@ -37,6 +37,8 @@ class DecomposeAttentionTransformerConfig:
   attention_mask_type: str
   # Whether to use special relative attention computation for BOS tokens
   bos_special_attention: bool
+  # Whether to clip the relative positions
+  clip_relative_attention: bool  
 
 
 def shift_left(x):
@@ -99,11 +101,37 @@ class DecomposeAttentionTransformer(nn.Module):
   def setup(self):
     base_config = self.config.base_config
 
-    self.encoder = base_models.TransformerIOEncoder(config=base_config,
-                                                    name='encoder')
-    # Shifting is done before call to decoder in order to compute masks.
+    is_initialized = (self.has_variable('relative_attention', 'max_io_distance') and
+                      self.has_variable('relative_attention', 'max_program_distance')
+                      )
+    if is_initialized and cfg.clip_relative_attention:
+      max_io_distance = self.max_io_distance.item()
+      max_program_distance = self.max_program_distance.item()
+
+      base_encoder_config = base_config.replace(
+          max_distance=max_io_distance,
+          num_relative_position_buckets=2 * max_io_distance,
+          max_output_distance=max_io_distance,
+          num_output_relative_position_buckets=2 * max_io_distance)
+      base_decoder_config=base_config.replace(
+          max_distance=max_io_distance,
+          num_relative_position_buckets=2 * max_io_distance,
+          max_output_distance=max_program_distance,
+          num_output_relative_position_buckets=2 * max_program_distance,
+          shift=False),  # Shifting is done separately in decoder.
+    else:
+      base_encoder_config = base_config
+      base_decoder_config = base_config.replace(shift=False)
+
+    self.encoder = base_models.TransformerIOEncoder(
+        config=base_encoder_config, name='encoder')
     self.decoder = base_models.TransformerDecoder(
-        config=base_config.replace(shift=False), name='decoder')
+        config=base_decoder_config, name='decoder')
+
+    self.max_io_distance = self.variable(
+        'relative_attention', 'max_program_distance', jnp.zeros, [])
+    self.max_program_distance = self.variable(
+        'relative_attention', 'max_io_distance', jnp.zeros, [])
 
   def encode(self,
              inputs,
@@ -133,7 +161,6 @@ class DecomposeAttentionTransformer(nn.Module):
     flat_encoded_padding_mask = base_models.flatten_num_io_dim(
         encoded_padding_mask)
 
-    preshift_programs = programs  # Save pre-shifted programs for padding mask.
     if cfg.shift:
       programs = base_models.shift_right(programs, cfg.bos_token)
 
@@ -201,7 +228,7 @@ class DecomposeAttentionTransformer(nn.Module):
             nn.make_causal_mask(programs, dtype=cfg.dtype))
         decoder_mask = nn.combine_masks(
             nn.make_attention_mask(
-                preshift_programs > 0, preshift_programs > 0, dtype=cfg.dtype),
+                programs > 0, programs > 0, dtype=cfg.dtype),
             jnp.logical_or(decoder_bos_mask, decoder_partial_mask))
 
         if self.config.bos_special_attention:
@@ -231,5 +258,13 @@ class DecomposeAttentionTransformer(nn.Module):
     """Applies Transformer model on the inputs."""
     encoded = self.encode(inputs, outputs)
     encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
+
+    if self.has_variable('relative_attention', 'max_io_distance'):
+      max_io_distance = jnp.max(
+          jnp.count_nonzero(jnp.concatenate((inputs, outputs), axis=0), axis=0))
+      self.max_io_distance = max(self.max_io_distnace, max_io_distance)
+    if self.has_variable('relative_attention', 'max_program_distance'):
+      max_program_distance = jnp.max(jnp.count_nonzero(programs, axis=0))
+      self.max_program_distance = max(self.max_program_distance, max_program_distance)
 
     return self.decode(programs, encoded, encoded_padding_mask)

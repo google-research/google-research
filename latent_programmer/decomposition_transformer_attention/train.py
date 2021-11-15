@@ -27,6 +27,7 @@ import random
 import sys
 sys.path.append('../../')
 import time
+import typing
 
 from absl import app
 from absl import flags
@@ -104,6 +105,19 @@ _internal = False
 if not _internal:
   flags.DEFINE_string('xm_parameters', None,
                       'String specifying hyperparamter search.')
+
+
+# pytype has hardcoded special-case support for dataclasses.dataclass
+flax_dataclass = (
+    flax.struct.dataclass
+    if not typing.TYPE_CHECKING else dataclasses.dataclass)
+
+
+@flax_dataclass
+class TrainState:
+  step: int
+  optimizer: optim.Optimizer
+  ra_stats: typing.Any
 
 
 def create_learning_rate_scheduler(
@@ -245,12 +259,13 @@ def train_step(optimizer,
 
   def loss_fn(params):
     """Loss function used for training."""
-    logits = models.DecomposeAttentionTransformer(config).apply(
-        {'params': params},
+    logits, ra_stats = models.DecomposeAttentionTransformer(config).apply(
+        {'params': params, 'relative_attention': ra_stats},
         inputs,
         outputs,
         programs,
-        rngs={'dropout': dropout_rng})
+        rngs={'dropout': dropout_rng},
+        mutable=['relative_attention'])
     loss, weight_sum = compute_weighted_cross_entropy(logits, programs, weights)
     mean_loss = loss / weight_sum
     return mean_loss, logits
@@ -318,8 +333,8 @@ def predict_step(params,
   # batch_size * beam_size, where each batch item's data is expanded in-place
   # rather than tiled.
   flat_encoded = decode.flat_batch_beam_expand(
-      models.DecomposeAttentionTransformer(config).apply(
-          {'params': params},
+      models.DecomposeAttentionTransformer(config=config).apply(
+          {'params': params, 'relative_attention': ra_stats},
           inputs,
           outputs,
           method=models.DecomposeAttentionTransformer.encode,
@@ -335,7 +350,7 @@ def predict_step(params,
       """Token slice to logits from decoder model."""
       # --> [batch * beam, 1, vocab]
       flat_logits = models.DecomposeAttentionTransformer(config=config).apply(
-          {'params': params},
+          {'params': params, 'relative_attention': ra_stats},
           flat_ids,
           flat_encoded,
           flat_encoded_padding_mask,
@@ -348,7 +363,8 @@ def predict_step(params,
       # --> [batch * beam, 1, vocab]
       flat_logits, new_vars = models.DecomposeAttentionTransformer(
           config=config).apply(
-              {'params': params, 'cache': flat_cache},
+              {'params': params, 'relative_attention': ra_stats,
+               'cache': flat_cache},
               flat_ids,
               flat_encoded,
               flat_encoded_padding_mask,
