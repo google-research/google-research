@@ -88,6 +88,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
     causal: whether to only attend to past tokens.
     num_relative_position_buckets: number of buckets for relative positions
       for attention.
+    max_distance: maximum value of relative position.
   """
   num_heads: int
   dtype: Dtype = jnp.float32
@@ -103,6 +104,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
   use_bias: bool = True
   decode: bool = False
   num_relative_position_buckets: int = 32
+  max_distance: int = 128
   causal: bool = False
 
   @module.compact
@@ -173,7 +175,8 @@ class RelativeMultiHeadDotProductAttention(module.Module):
       relative_position_bucket = make_relative_position_bucket(
           relative_position,
           causal=self.causal,
-          num_buckets=self.num_relative_position_buckets)
+          num_buckets=self.num_relative_position_buckets,
+          max_distance=self.max_distance)
 
       bias = relative_attention_embed(relative_position_bucket)
       bias = bias.transpose((2, 0, 1))
@@ -186,7 +189,8 @@ class RelativeMultiHeadDotProductAttention(module.Module):
       relative_position_bucket = make_relative_position_bucket(
           relative_position,
           causal=self.causal,
-          num_buckets=self.num_relative_position_buckets)
+          num_buckets=self.num_relative_position_buckets,
+          max_distance=self.max_distance)
 
       bias = relative_attention_embed(relative_position_bucket)
       permute = tuple(map(lambda i: len(inputs_q.shape) + 1 + i, (-1, -3, -2)))
