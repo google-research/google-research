@@ -23,7 +23,6 @@ to batch normalization - more in https://arxiv.org/abs/1904.04998.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 

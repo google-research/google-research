@@ -15,7 +15,6 @@
 
 # Lint as: python3
 """Functions for computing scores."""
-
 import collections
 
 from typing import Dict, List
