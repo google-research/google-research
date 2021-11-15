@@ -101,18 +101,22 @@ class DecomposeAttentionTransformer(nn.Module):
   def setup(self):
     base_config = self.config.base_config
 
-    is_initialized = (self.has_variable('relative_attention', 'max_io_distance') and
+    is_initialized = (self.has_variable('relative_attention', 'max_input_distance') and
+                      self.has_variable('relative_attention', 'max_output_distance') and
+                      self.has_variable('relative_attention', 'max_io_distance') and
                       self.has_variable('relative_attention', 'max_program_distance')
                       )
     if is_initialized and cfg.clip_relative_attention:
+      max_input_distance = self.max_input_distance.item()
+      max_output_distance = self.max_output_distance.item()
       max_io_distance = self.max_io_distance.item()
       max_program_distance = self.max_program_distance.item()
 
       base_encoder_config = base_config.replace(
-          max_distance=max_io_distance,
-          num_relative_position_buckets=2 * max_io_distance,
-          max_output_distance=max_io_distance,
-          num_output_relative_position_buckets=2 * max_io_distance)
+          max_distance=max_input_distance,
+          num_relative_position_buckets=2 * max_input_distance,
+          max_output_distance=max_output_distance,
+          num_output_relative_position_buckets=2 * max_output_distance)
       base_decoder_config=base_config.replace(
           max_distance=max_io_distance,
           num_relative_position_buckets=2 * max_io_distance,
@@ -128,6 +132,10 @@ class DecomposeAttentionTransformer(nn.Module):
     self.decoder = base_models.TransformerDecoder(
         config=base_decoder_config, name='decoder')
 
+    self.max_input_distance = self.variable(
+        'relative_attention', 'max_input_distance', jnp.zeros, [])
+    self.max_output_distance = self.variable(
+        'relative_attention', 'max_output_distance', jnp.zeros, [])
     self.max_io_distance = self.variable(
         'relative_attention', 'max_program_distance', jnp.zeros, [])
     self.max_program_distance = self.variable(
@@ -259,6 +267,12 @@ class DecomposeAttentionTransformer(nn.Module):
     encoded = self.encode(inputs, outputs)
     encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
 
+    if self.has_variable('relative_attention', 'max_input_distance'):
+      max_input_distance = jnp.max(jnp.count_nonzero(inputs, axis=0))
+      self.max_input_distance = max(self.max_input_distance, max_input_distance)
+    if self.has_variable('relative_attention', 'max_input_distance'):
+      max_output_distance = jnp.max(jnp.count_nonzero(outputs, axis=0))
+      self.max_output_distance = max(self.max_output_distance, max_output_distance)
     if self.has_variable('relative_attention', 'max_io_distance'):
       max_io_distance = jnp.max(
           jnp.count_nonzero(jnp.concatenate((inputs, outputs), axis=0), axis=0))

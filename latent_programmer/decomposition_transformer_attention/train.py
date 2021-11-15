@@ -99,6 +99,8 @@ flags.DEFINE_integer('num_relative_position_buckets', 32,
 flags.DEFINE_bool('bos_special_attention', False,
                   'Whether to use special relative attention computation for '
                   'BOS tokens.')
+flags.DEFINE_bool('clip_relative_attention', False,
+                  'Whether to clip relative positions during evaluation.')
 
 
 _internal = False
@@ -242,7 +244,7 @@ def compute_metrics(logits, targets, weights):
 # -----------------------------------------------------------------------------
 
 
-def train_step(optimizer,
+def train_step(state,
                inputs,
                outputs,
                programs,
@@ -260,7 +262,7 @@ def train_step(optimizer,
   def loss_fn(params):
     """Loss function used for training."""
     logits, ra_stats = models.DecomposeAttentionTransformer(config).apply(
-        {'params': params, 'relative_attention': ra_stats},
+        {'params': params, 'relative_attention': state.ra_stats},
         inputs,
         outputs,
         programs,
@@ -268,26 +270,33 @@ def train_step(optimizer,
         mutable=['relative_attention'])
     loss, weight_sum = compute_weighted_cross_entropy(logits, programs, weights)
     mean_loss = loss / weight_sum
-    return mean_loss, logits
+    return mean_loss, (logits, ra_stats)
 
-  step = optimizer.state.step
+  step = state.step
+  optimizer = state.optimizer
   lr = learning_rate_fn(step)
   grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-  (_, logits), grad = grad_fn(optimizer.target)
+  (_, (logits, ra_stats)), grad = grad_fn(optimizer.target)
   grad = jax.lax.pmean(grad, 'batch')
   new_optimizer = optimizer.apply_gradient(grad, learning_rate=lr)
 
   # Get metrics.
   metrics = compute_metrics(logits, programs, weights)
   metrics['learning_rate'] = lr
-  return new_optimizer, metrics, new_dropout_rng
+  new_state = state.replace(
+    step=step + 1,
+    optimizer=new_optimizer,
+    ra_stats=jax.lax.pmean(new_ra_stats, 'batch'))
+  return new_state, metrics, new_dropout_rng
 
 
-def eval_step(params, inputs, outputs, programs, eos_token, config,
+def eval_step(state, inputs, outputs, programs, eos_token, config,
               dropout_rng=None):
   """Collect metrics for evaluation during training."""
   # This code is necessary to experiment with using dropout during evaluation,
   # but we don't normally use dropout here.
+  params = state.optimizer.target
+
   dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
   weights = jnp.where(
       jnp.logical_and(programs > 0,
@@ -295,8 +304,12 @@ def eval_step(params, inputs, outputs, programs, eos_token, config,
                                       programs != eos_token)),
       1, 0).astype(jnp.float32)
   logits = models.DecomposeAttentionTransformer(config).apply(
-      {'params': params}, inputs, outputs, programs,
-      rngs={'dropout': dropout_rng})
+      {'params': params, 'relative_attention': state.ra_stats},
+      inputs,
+      outputs,
+      programs,
+      rngs={'dropout': dropout_rng},
+      mutable=False)
 
   return compute_metrics(logits, programs, weights), new_dropout_rng
 
@@ -313,7 +326,7 @@ def initialize_cache(inputs, outputs, programs, max_decode_len, config):
   return initial_variables['cache']
 
 
-def predict_step(params,
+def predict_step(state,
                  inputs,
                  outputs,
                  cache,
@@ -324,6 +337,8 @@ def predict_step(params,
                  dropout_rng=None,
                  slow_decode=True):
   """Predict translation with fast decoding beam search on a batch."""
+  params = state.optimizer.target
+
   # This code is necessary to experiment with using dropout during prediction,
   # but we don't normally use dropout here.
   dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
@@ -334,11 +349,12 @@ def predict_step(params,
   # rather than tiled.
   flat_encoded = decode.flat_batch_beam_expand(
       models.DecomposeAttentionTransformer(config=config).apply(
-          {'params': params, 'relative_attention': ra_stats},
+          {'params': params, 'relative_attention': state.ra_stats},
           inputs,
           outputs,
           method=models.DecomposeAttentionTransformer.encode,
-          rngs={'dropout': dropout_rng}),
+          rngs={'dropout': dropout_rng},
+          mutable=False),
       beam_size)
 
   encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
@@ -350,12 +366,13 @@ def predict_step(params,
       """Token slice to logits from decoder model."""
       # --> [batch * beam, 1, vocab]
       flat_logits = models.DecomposeAttentionTransformer(config=config).apply(
-          {'params': params, 'relative_attention': ra_stats},
+          {'params': params, 'relative_attention': state.ra_stats},
           flat_ids,
           flat_encoded,
           flat_encoded_padding_mask,
           method=models.DecomposeAttentionTransformer.decode,
-          rngs={'dropout': dropout_rng})
+          rngs={'dropout': dropout_rng},
+          mutable=False)
       return flat_logits
   else:
     def tokens_ids_to_logits(flat_ids, flat_cache):
@@ -363,7 +380,7 @@ def predict_step(params,
       # --> [batch * beam, 1, vocab]
       flat_logits, new_vars = models.DecomposeAttentionTransformer(
           config=config).apply(
-              {'params': params, 'relative_attention': ra_stats,
+              {'params': params, 'relative_attention': state.ra_stats,
                'cache': flat_cache},
               flat_ids,
               flat_encoded,
@@ -572,17 +589,20 @@ def main(_):
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       attention_mask_type=FLAGS.attention_mask_type,
-      bos_special_attention=FLAGS.bos_special_attention)
+      bos_special_attention=FLAGS.bos_special_attention,
+      clip_relative_attention=False)
   eval_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(deterministic=not use_dropout),
       attention_mask_type=FLAGS.attention_mask_type,
-      bos_special_attention=FLAGS.bos_special_attention)
+      bos_special_attention=FLAGS.bos_special_attention,
+      clip_relative_attention=FLAGS.clip_relative_attention)
   predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
           shift=False, deterministic=not use_dropout,
           decode=not FLAGS.slow_decode),
       attention_mask_type=FLAGS.attention_mask_type,
-      bos_special_attention=FLAGS.bos_special_attention)
+      bos_special_attention=FLAGS.bos_special_attention,
+      clip_relative_attention=FLAGS.clip_relative_attention)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
@@ -603,19 +623,22 @@ def main(_):
       weight_decay=FLAGS.weight_decay)
   optimizer = optimizer_def.create(initial_variables['params'])
 
+  state = TrainState(step=0,
+                     optimizer=optimizer,
+                     ra_stats=initial_variables['relative_attention'])
   del initial_variables  # Don't keep a copy of the initial model.
 
   start_step = 0
   if FLAGS.restore_checkpoints:
     # Restore unreplicated optimizer + model state from last checkpoint.
-    optimizer = checkpoints.restore_checkpoint(
-        os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str), optimizer)
+    state = checkpoints.restore_checkpoint(
+        os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str), state)
     # Grab last step.
-    start_step = int(optimizer.state.step)
+    start_step = int(state.step)
     logging.info('Found model checkpointed at step %d.', start_step)
 
   # Replicate optimizer.
-  optimizer = jax_utils.replicate(optimizer)
+  state = jax_utils.replicate(state)
 
   # TODO(jxihong): Implement fast decoding.
   assert FLAGS.slow_decode, 'Fast decoding is not implemented yet.'
@@ -658,8 +681,8 @@ def main(_):
   for step in range(start_step, FLAGS.num_train_steps):
     inputs, outputs, programs = common_utils.shard(next(train_iter))
 
-    optimizer, metrics, dropout_rng = p_train_step(
-        optimizer, inputs, outputs, programs, dropout_rng=dropout_rng)
+    state, metrics, dropout_rng = p_train_step(
+        state, inputs, outputs, programs, dropout_rng=dropout_rng)
     metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
@@ -669,7 +692,7 @@ def main(_):
         # Save unreplicated optimizer + model state.
         checkpoints.save_checkpoint(
             os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
-            jax_utils.unreplicate(optimizer),
+            jax_utils.unreplicate(state),
             step)
 
     # Periodic metric handling.
@@ -709,7 +732,7 @@ def main(_):
       inputs, outputs, programs = common_utils.shard(batches)
 
       metrics, dropout_rng = p_eval_step(
-          optimizer.target, inputs, outputs, programs, dropout_rng=dropout_rng)
+          state, inputs, outputs, programs, dropout_rng=dropout_rng)
       eval_metrics.append(metrics)
 
     eval_metrics = common_utils.get_metrics(eval_metrics)
@@ -749,7 +772,7 @@ def main(_):
         cache = (p_init_cache(inputs, outputs, programs)
                  if not FLAGS.slow_decode else None)
         predicted, dropout_rng = p_pred_step(
-            optimizer.target, inputs, outputs, cache, beam_size,
+            state, inputs, outputs, cache, beam_size,
             dropout_rng=dropout_rng)
         predicted = tohost(predicted)
         inputs, outputs, programs = map(tohost, (inputs, outputs, programs))
