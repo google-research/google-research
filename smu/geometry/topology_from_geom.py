@@ -105,10 +105,10 @@ def bond_topologies_from_geom(
     Note that `bond_topology` will be put in a canonical form.
 
   Args:
-    bond_lengths:
+    bond_lengths: matrix of interatomic distances
     conformer_id:
     bond_topology:
-    geometry:
+    geometry: coordinates for the bond_topology
     matching_parameters:
 
   Returns:
@@ -181,7 +181,7 @@ def bond_topologies_from_geom(
   print(search_space)
   for s in itertools.product(*search_space):
     print(f"tring to place state {s}")
-    bt = mol.place_bonds(list(s))
+    bt = mol.place_bonds(list(s), matching_parameters)
     print(f"Placed bonds {bt}")
     if not bt:
       continue
@@ -202,7 +202,7 @@ def bond_topologies_from_geom(
   if len(result.bond_topology) > 1:
     result.bond_topology.sort(key=lambda bt: bt.score, reverse=True)
 
-  print("Result going back")
+  print(f"Result going back {len(result.bond_topology)}")
   return result
 
 

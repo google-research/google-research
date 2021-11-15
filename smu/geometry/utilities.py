@@ -17,8 +17,7 @@
 
 import math
 
-from typing import Any
-from typing import List
+from typing import Any, List, Optional
 
 import numpy as np
 
@@ -69,6 +68,37 @@ def bonded(bond_topology):
     a2 = bond.atom_b
     connected[a1, a2] = connected[a2, a1] = bond.bond_type
   return connected
+
+def btype_to_nbonds(btype: dataset_pb2.BondTopology.BondType) -> int:
+  """Convert `btype` to a number of bonds.
+
+  Turns out that the enum is already set up so that simple
+  integer conversion works.
+
+  Args:
+    btype:
+  Returns:
+    number of bonds
+  """
+  return int(btype)
+
+def number_bonds(bt: dataset_pb2.BondTopology) -> np.array:
+  """For each atom in `bt` return the number of bonds.
+  single bonds count 1, double 2, triple 3.
+  Args:
+    bt: BondTopology
+  Returns:
+    Numpy array contains len(bt.atoms) numbers.
+  """
+  result = np.zeros(len(bt.atoms))
+  for bond in bt.bonds:
+    a1 = bond.atom_a
+    a2 = bond.atom_b
+    nb = btype_to_nbonds(bond.bond_type);
+    result[a1] += nb
+    result[a2] += nb
+    
+  return result
 
 
 def distances(geometry):
@@ -310,3 +340,66 @@ def geom_to_angstroms(geometry:dataset_pb2.Geometry) -> dataset_pb2.Geometry:
     result.atom_positions.append(new_atom)
 
   return result
+
+def max_bonds_any_form(atype: dataset_pb2.BondTopology.AtomType) -> int:
+  """Return the max number of bonds for any form of `atype`.
+
+    Args:
+      atype: a dataset_pb2 atom type
+    Returns:
+      max number of bonds
+  """
+  if atype in [dataset_pb2.BondTopology.ATOM_C,
+               dataset_pb2.BondTopology.ATOM_NPOS,
+               dataset_pb2.BondTopology.ATOM_O,
+               dataset_pb2.BondTopology.ATOM_F,
+               dataset_pb2.BondTopology.ATOM_H]:
+    return smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[atype]
+
+  if atype == dataset_pb2.BondTopology.ATOM_N:
+    return 4
+
+  if atype == dataset_pb2.BondTopology.ATOM_ONEG:
+    return 2
+
+def convert_to_neutral(bt: dataset_pb2.BondTopology) -> bool:
+  """If possible, convert `bt` a neutral form.
+
+  During matching, N+ and O- may have been converted to their neutral forms.
+  During this post-processing, try to convert
+    all 4 connected N atoms to N+
+    all 1 connected O atoms to O-
+  and see if the resulting molecule is neutral.
+
+    Args:
+      bt: BondTopology
+    Returns:
+      True if successful. `bt` may have been changed.
+      Note that if we fail, `bt` will be in a changed, invalid state
+  """
+
+
+  charges = np.zeros(len(bt.atoms), dtype=np.int32)
+  nbonds = number_bonds(bt)
+  for i, atom in enumerate(bt.atoms):
+    if atom in [dataset_pb2.BondTopology.ATOM_H,
+                dataset_pb2.BondTopology.ATOM_C,
+                dataset_pb2.BondTopology.ATOM_F]:
+      continue
+
+    if atom == dataset_pb2.BondTopology.ATOM_O:
+      if nbonds[i] == 1:
+        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_ONEG
+        charges[i] = -1
+    elif atom == dataset_pb2.BondTopology.ATOM_ONEG:
+      if nbonds[i] == 2:
+        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_O
+    elif atom == dataset_pb2.BondTopology.ATOM_N:
+      if nbonds[i] == 4:
+        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_NPOS
+        charges[i] = 1
+    elif atom == dataset_pb2.BondTopology.ATOM_NPOS:
+      if nbonds[i] == 3:
+        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_N
+
+  return positive_placed == negative_placed

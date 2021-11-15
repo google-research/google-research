@@ -26,6 +26,7 @@ import numpy as np
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
+from smu.geometry import utilities
 
 
 class MatchingParameters:
@@ -35,6 +36,10 @@ class MatchingParameters:
     self._must_match_all_bonds: bool = True
     self._smiles_with_h: bool = False
     self._smiles_with_labels: bool = True
+    # A variant on matching is to consider all N and O as neutral forms during
+    # matching, and then as a post processing step, see whether a valid, 
+    # neutral, molecule can be formed.
+    self._neutral_forms_during_bond_matching: bool=False
 
   @property
   def must_match_all_bonds(self):
@@ -59,6 +64,14 @@ class MatchingParameters:
   @smiles_with_labels.setter
   def smiles_with_labels(self, value):
     self._smiles_with_labels = value
+
+  @property
+  def neutral_forms_during_bond_matching(self):
+    return self._neutral_forms_during_bond_matching
+
+  @neutral_forms_during_bond_matching.setter
+  def neutral_forms_during_bond_matching(self, value):
+    self._neutral_forms_during_bond_matching = value
 
 def add_bond(a1, a2, btype,
              destination):
@@ -97,11 +110,21 @@ class SmuMolecule:
     self._starting_bond_topology = hydrogens_attached
     natoms = len(hydrogens_attached.atoms)
 
+    self._contains_both_oxygen_and_nitrogen = False
+    # If the molecule contains both N and O atoms, then we can
+    # do more extensive atom type matching if requested.
+    if matching_parameters.neutral_forms_during_bond_matching:
+      self.set_contains_both_oxygen_and_nitrogen(hydrogens_attached)
+
     # For each atom, the maximum number of bonds that can be attached.
     self._max_bonds = np.zeros(natoms, dtype=np.int32)
-    for i in range(0, natoms):
-      self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[
-          hydrogens_attached.atoms[i]]
+    if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
+      for i in range(0, natoms):
+        self._max_bonds[i] = utilities.max_bonds_any_form(hydrogens_attached.atoms[i])
+    else:
+      for i in range(0, natoms):
+        self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[
+            hydrogens_attached.atoms[i]]
 
     # With the Hydrogens attached, the number of bonds to each atom.
     self._bonds_with_hydrogens_attached = np.zeros((natoms), dtype=np.int32)
@@ -124,6 +147,29 @@ class SmuMolecule:
     # For example this allows matching C-C and C=C without the need
     # to add explicit hydrogens
     self._must_match_all_bonds = matching_parameters.must_match_all_bonds
+
+
+  def set_contains_both_oxygen_and_nitrogen(self, bt:dataset_pb2.BondTopology):
+    """Examine `bt` and set self._contains_both_oxygen_and_nitrogen.
+    Args:
+      bt: BondTopology
+    """
+    self._contains_both_oxygen_and_nitrogen = False
+    oxygen_count = 0
+    nitrogen_count = 0
+    for atom in bt.atoms:
+      if atom in [dataset_pb2.BondTopology.ATOM_C,
+                  dataset_pb2.BondTopology.ATOM_F,
+                  dataset_pb2.BondTopology.ATOM_H]:
+        continue
+      if atom in [dataset_pb2.BondTopology.ATOM_O,
+                  dataset_pb2.BondTopology.ATOM_ONEG]:
+        oxygen_count += 1
+      else:
+        nitrogen_count += 1
+
+    if oxygen_count > 0 and nitrogen_count > 0:
+      self._contains_both_oxygen_and_nitrogen = True
 
   def set_initial_score_and_incrementer(self, initial_score,
                                         op):
@@ -180,14 +226,17 @@ class SmuMolecule:
 
     return result
 
-  def place_bonds(self, state):
+  def place_bonds_inner(self, state) -> Optional[dataset_pb2.BondTopology]:
     """Place bonds corresponding to `state`.
+
+    No validity checking is done, the calling function is responsible
+    for that.
 
     Args:
       state: for each pair of atoms, the kind of bond to be placed.
 
     Returns:
-      If successful, the score.
+      If successful, a BondTopology.
     """
     self._current_bonds_attached = np.copy(self._bonds_with_hydrogens_attached)
 
@@ -207,13 +256,80 @@ class SmuMolecule:
       if btype:
         add_bond(a1, a2, btype, result)
 
+    return result
+
+  def place_bonds(self, state, matching_parameters: MatchingParameters) -> Optional[dataset_pb2.BondTopology]:
+    """Place bonds corresponding to `state`.
+
+    Args:
+      state: bonding pattern to be placed.
+      matching_parameters: optional settings
+    Returns:
+      If successful, a BondTopology
+    """
+    bt = self.place_bonds_inner(state)
+    if not bt:
+      return None
+
+    if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
+      if not self.assign_charged_atoms(bt):
+        return None
+      # all bonds matched has already been checked.
+      return bt
+
     # Optionally check whether all bonds have been matched
     print("Bonds placed")
     if not self._must_match_all_bonds:
-      return result
+      return bt
 
     print(*zip(self._current_bonds_attached, self._max_bonds))
     if not np.array_equal(self._current_bonds_attached, self._max_bonds):
       return None
 
-    return result
+    return bt
+
+  def assign_charged_atoms(self, bt:dataset_pb2.BondTopology) -> bool:
+    """Assign (N, N+) and (O, O-) possibilities in `bt`.
+
+    bt must contain both N and O atoms.
+    Note that we assume _must_match_all_bonds, and return None if that cannot
+    be achieved.
+
+    Args:
+      bt: BondTopology, bt.atoms are updated in place
+    Returns: True if successful, False otherwise
+    """
+
+    carbon = dataset_pb2.BondTopology.ATOM_C
+    hydrogen = dataset_pb2.BondTopology.ATOM_H
+    fluorine = dataset_pb2.BondTopology.ATOM_F
+    nitrogen = dataset_pb2.BondTopology.ATOM_N
+    npos = dataset_pb2.BondTopology.ATOM_NPOS
+    oxygen = dataset_pb2.BondTopology.ATOM_O
+    oneg = dataset_pb2.BondTopology.ATOM_ONEG
+    net_charge = 0
+    for i, atom in enumerate(bt.atoms):
+      if atom in [carbon, hydrogen, fluorine]:
+        if self._max_bonds[i] != self._current_bonds_attached[i]:
+          return False
+      elif atom in [nitrogen, npos]:
+        if self._current_bonds_attached[i] == 4:
+          bt.atoms[i] = npos
+          net_charge += 1
+        elif self._current_bonds_attached[i] == 3:
+          bt.atoms[i] = nitrogen
+        else:
+          return False
+      elif atom in [oxygen, oneg]:
+        if self._current_bonds_attached[i] == 2:
+          bt.atoms[i] = oxygen
+        elif self._current_bonds_attached[i] == 1:
+          bt.atoms[i] = oneg
+          net_charge -= 1
+        else:    # Should never happen
+          return False
+        
+    if net_charge != 0:
+      return False
+
+    return True
