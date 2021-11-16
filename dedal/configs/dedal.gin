@@ -1,0 +1,59 @@
+# Configs Dedal sequence alignment data / network / training / eval.
+
+include 'third_party/google_research/google_research/dedal/configs/base.gin'
+
+import dedal.configs.external_configurables
+import dedal.models.activations
+import dedal.models.aligners
+import dedal.models.dedal
+import dedal.models.encoders
+import dedal.models.homology
+import dedal.models.initializers
+import dedal.models.nlp
+import dedal.multi_task
+import dedal.smith_waterman
+import dedal.train.learning_rate_schedules
+import dedal.train.training_loop
+
+TrainingLoop.num_steps = 1000000
+
+Dedal:
+  encoder_cls = @TransformerEncoder
+  aligner_cls = @aligners.SoftAligner
+
+TransformerEncoder:
+  emb_dim = 768
+  num_layers = 6
+  num_heads = 12
+  mlp_dim = 3072
+  output_dropout = 0.1
+  attention_dropout = 0.1
+  mlp_dropout = 0.1
+  norm_input = False
+  aaemb_init = @aaemb_init/RandomNormal()
+  kernel_init = @GlorotUniform()
+  max_len = %SEQUENCE_LENGTH
+aaemb_init/RandomNormal.stddev = 1.0
+
+SoftAligner:
+  similarity_cls = @PairwiseBilinearDense
+  gap_pen_cls = @ContextualGapPenalties
+
+PairwiseBilinearDense.kernel_init = @SymmetricKernelInitializer()
+# Default config for ContextualGapPenalties.
+ContextualGapPenalties.gap_open_cls = @gap_open/PairwiseBilinearDense
+ContextualGapPenalties.gap_extend_cls = @gap_extend/PairwiseBilinearDense
+gap_open/PairwiseBilinearDense:
+  bias_init = @gap_open/Constant()
+  activation = @softplus
+  mask_penalty = 1e9
+gap_open/Constant.value = 11.0
+gap_extend/PairwiseBilinearDense:
+  bias_init = @gap_extend/Constant()
+  activation = @softplus
+  mask_penalty = 1e9
+gap_extend/Constant.value = 0.0
+
+InverseSquareRootDecayWithWarmup:
+  lr_max = 1e-4
+  warmup_steps = 8000

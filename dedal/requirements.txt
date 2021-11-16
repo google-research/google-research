@@ -1,0 +1,7 @@
+absl-py>=0.7.0
+gin-config>=0.4.0
+numpy>=1.18.4
+tensorflow>=2.3.0
+tensorflow_datasets>=3.0.0
+tensorflow_probability>=0.1.0
+tf-models-official>=2.6.0
