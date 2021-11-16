@@ -207,7 +207,7 @@ def bohr_to_angstroms(length):
   Returns:
     float
   """
-  return length / BOHR_TO_ANGSTROMS
+  return length * BOHR_TO_ANGSTROMS
 
 
 def get_composition(topology):

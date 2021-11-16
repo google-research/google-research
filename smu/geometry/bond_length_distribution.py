@@ -284,7 +284,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
       pdf value
     """
     idx = self._df['length'].searchsorted(length)
-    print(f"PDF idx {idx}, max {self._maximum}")
+#   print(f"PDF idx {idx}, max {self._maximum}")
     if idx == 0:
       return 0.0
     if length > self._maximum:
@@ -490,7 +490,7 @@ class AllAtomPairLengthDistributions:
     """p(length | atom_a, atom_b, bond_type)."""
     atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
     atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
-    print(f"btw satomic numbers {atom_a} and {atom_b} type {bond_type}")
+#   print(f"btw satomic numbers {atom_a} and {atom_b} type {bond_type}")
 #   Tests expect an exception to be raised
 #   if (atom_a, atom_b) not in self._atom_pair_dict.keys():
 #     return 0.0

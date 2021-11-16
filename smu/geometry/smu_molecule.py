@@ -194,7 +194,7 @@ class SmuMolecule:
     Returns:
       Bool.
     """
-    print(f"_place_bond, currently", self._current_bonds_attached[a1], " max ", self._max_bonds[a1])
+#   print(f"_place_bond, currently", self._current_bonds_attached[a1], " max ", self._max_bonds[a1])
     if self._current_bonds_attached[a1] + btype > self._max_bonds[a1]:
       return False
     if self._current_bonds_attached[a2] + btype > self._max_bonds[a2]:
@@ -247,7 +247,7 @@ class SmuMolecule:
     for i, btype in enumerate(state):
       a1 = self._bonds[i][0]
       a2 = self._bonds[i][1]
-      print(f"Trying to place bond btw {a1} and {a2} btype {btype}")
+#     print(f"Trying to place bond btw {a1} and {a2} btype {btype}")
       if not self._place_bond(a1, a2, btype):
         return None
 
@@ -278,11 +278,11 @@ class SmuMolecule:
       return bt
 
     # Optionally check whether all bonds have been matched
-    print("Bonds placed")
+#   print("Bonds placed")
     if not self._must_match_all_bonds:
       return bt
 
-    print(*zip(self._current_bonds_attached, self._max_bonds))
+#   print(*zip(self._current_bonds_attached, self._max_bonds))
     if not np.array_equal(self._current_bonds_attached, self._max_bonds):
       return None
 
