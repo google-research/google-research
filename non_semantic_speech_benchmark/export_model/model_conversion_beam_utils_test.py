@@ -48,7 +48,7 @@ class ModelConversionBeamUtilsTest(absltest.TestCase):
     # Get metadata.
     metadata = model_conversion_beam_utils.get_pipeline_metadata(
         self.base_experiment_dir, self.xids, self.output_dir,
-        self.conversion_types)
+        self.conversion_types, 'suffix')
 
     # Check correctness.
     self.assertLen(

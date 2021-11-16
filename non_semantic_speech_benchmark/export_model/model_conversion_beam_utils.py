@@ -17,7 +17,7 @@
 
 import collections
 import os
-from typing import List
+from typing import List, Optional
 
 from absl import flags
 from absl import logging
@@ -39,9 +39,12 @@ TFLITE_ = 'tflite'
 SAVEDMODEL_ = 'savedmodel'
 
 
-def get_pipeline_metadata(base_experiment_dir, xids,
-                          output_dir,
-                          conversion_types):
+def get_pipeline_metadata(
+    base_experiment_dir,
+    xids,
+    output_dir,
+    conversion_types,
+    output_suffix = None):
   """Get metadata for entire pipeline."""
   for conversion_type in conversion_types:
     if conversion_type not in [TFLITE_, SAVEDMODEL_]:
@@ -53,7 +56,11 @@ def get_pipeline_metadata(base_experiment_dir, xids,
     # Get experiment dirs names, params, and output location.
     exp_names = model_export_utils.get_experiment_dirs(cur_experiment_dir)
     for i, exp_name in enumerate(exp_names):
-      output_filename = os.path.join(output_dir, f'frillsson_{xid}', exp_name)
+      if output_suffix:
+        output_filename = os.path.join(
+            output_dir, f'frillsson_{xid}', output_suffix, exp_name)
+      else:
+        output_filename = os.path.join(output_dir, f'frillsson_{xid}', exp_name)
       for conversion_type in conversion_types:
         suffix = '.tflite' if conversion_type == TFLITE_ else '_savedmodel'
         cur_metadata = Metadata(
