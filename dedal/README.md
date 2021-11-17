@@ -29,7 +29,7 @@ To play with the dedal configuration, for example changing a parameter, the
 encoder or even add an extra head, one should get inspiration from the `base.gin`, `dedal.gin` and `substitution_matrix.gin` config files. The first one contains the configuration of the training loop, the data, metrics, losses, while the two others only contains what in the network is specific to dedal or to the substitution matrix based sequence alignment methods.
 
 ## Data
-This repo does not contain data, but does contain tools to build the datasets to be fed to Dedal for training or eval.
+This repo does not contain data, but does contain tools to build the datasets to be fed to Dedal for training or eval. Sequence identifiers to reproduce all Pfam-A seed splits can be downloaded [here](https://drive.google.com/file/d/11S2OdnduXM3id7F3k6kUxi8_qXJC8bav/view?usp=sharing).
 
 ## License
 Licensed under the Apache 2.0 License.
