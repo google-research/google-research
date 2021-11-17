@@ -20,17 +20,20 @@
 # pytype: disable=attribute-error
 
 import collections
+import dataclasses
 import functools
 import json
 import os
 import random
 import sys
+sys.path.append('../../')
 import time
 import typing
 
 from absl import app
 from absl import flags
 from absl import logging
+import flax
 from flax import jax_utils
 from flax import linen as nn
 from flax import optim
@@ -49,7 +52,6 @@ from latent_programmer.decomposition_transformer_attention import input_pipeline
 from latent_programmer.tasks.robust_fill import dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 
-sys.path.append('../../')
 gfile = tf.io.gfile
 
 FLAGS = flags.FLAGS
@@ -95,7 +97,7 @@ flags.DEFINE_integer('num_relative_position_buckets', 32,
 flags.DEFINE_bool('bos_special_attention', False,
                   'Whether to use special relative attention computation for '
                   'BOS tokens.')
-flags.DEFINE_bool('clip_relative_attention', False,
+flags.DEFINE_bool('clip_relative_attention', True,
                   'Whether to clip relative positions during evaluation.')
 
 
@@ -282,7 +284,7 @@ def train_step(state,
   new_state = state.replace(
     step=step + 1,
     optimizer=new_optimizer,
-    ra_stats=jax.lax.pmean(new_ra_stats, 'batch'))
+    ra_stats=jax.lax.pmean(ra_stats, 'batch'))
   return new_state, metrics, new_dropout_rng
 
 

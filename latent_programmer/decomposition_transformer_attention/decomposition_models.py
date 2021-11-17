@@ -97,7 +97,7 @@ class DecomposeAttentionTransformer(nn.Module):
                       self.has_variable('relative_attention', 'max_io_distance') and
                       self.has_variable('relative_attention', 'max_program_distance')
                       )
-    if is_initialized and cfg.clip_relative_attention:
+    if is_initialized and self.config.clip_relative_attention:
       max_input_distance = self.max_input_distance.item()
       max_output_distance = self.max_output_distance.item()
       max_io_distance = self.max_io_distance.item()
@@ -124,13 +124,13 @@ class DecomposeAttentionTransformer(nn.Module):
         config=base_decoder_config, name='decoder')
 
     self.max_input_distance = self.variable(
-        'relative_attention', 'max_input_distance', jnp.zeros, [])
+        'relative_attention', 'max_input_distance', lambda: jnp.zeros((), jnp.int32))
     self.max_output_distance = self.variable(
-        'relative_attention', 'max_output_distance', jnp.zeros, [])
+        'relative_attention', 'max_output_distance', lambda: jnp.zeros((), jnp.int32))
     self.max_io_distance = self.variable(
-        'relative_attention', 'max_program_distance', jnp.zeros, [])
+        'relative_attention', 'max_io_distance', lambda: jnp.zeros((), jnp.int32))
     self.max_program_distance = self.variable(
-        'relative_attention', 'max_io_distance', jnp.zeros, [])
+        'relative_attention', 'max_program_distance', lambda: jnp.zeros((), jnp.int32))
 
   def encode(self,
              inputs,
@@ -259,17 +259,21 @@ class DecomposeAttentionTransformer(nn.Module):
     encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
 
     if self.has_variable('relative_attention', 'max_input_distance'):
-      max_input_distance = jnp.max(jnp.count_nonzero(inputs, axis=0))
-      self.max_input_distance = max(self.max_input_distance, max_input_distance)
+      max_input_distance = jnp.max(jnp.count_nonzero(inputs == 0, axis=0))
+      self.max_input_distance.value = jnp.maximum(
+        self.max_input_distance.value, max_input_distance)
     if self.has_variable('relative_attention', 'max_input_distance'):
-      max_output_distance = jnp.max(jnp.count_nonzero(outputs, axis=0))
-      self.max_output_distance = max(self.max_output_distance, max_output_distance)
+      max_output_distance = jnp.max(jnp.count_nonzero(outputs == 0, axis=0))
+      self.max_output_distance.value = jnp.maximum(
+        self.max_output_distance.value, max_output_distance)
     if self.has_variable('relative_attention', 'max_io_distance'):
       max_io_distance = jnp.max(
-          jnp.count_nonzero(jnp.concatenate((inputs, outputs), axis=0), axis=0))
-      self.max_io_distance = max(self.max_io_distnace, max_io_distance)
+          jnp.count_nonzero(jnp.concatenate((inputs, outputs), axis=0) == 0, axis=0))
+      self.max_io_distance.value = jnp.maximum(
+        self.max_io_distance.value, max_io_distance)
     if self.has_variable('relative_attention', 'max_program_distance'):
-      max_program_distance = jnp.max(jnp.count_nonzero(programs, axis=0))
-      self.max_program_distance = max(self.max_program_distance, max_program_distance)
+      max_program_distance = jnp.max(jnp.count_nonzero(programs == 0, axis=0))
+      self.max_program_distance.value = jnp.maximum(
+        self.max_program_distance.value, max_program_distance)
 
     return self.decode(programs, encoded, encoded_padding_mask)
