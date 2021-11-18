@@ -25,7 +25,7 @@ import tensorflow.compat.v1 as tf
 import tensorflow_addons as tfa
 
 from supcon import enums
-from official.vision.image_classification import augment
+from official.legacy.image_classification import augment
 
 # Defaults for ImageNet.
 IMAGE_SIZE = 224
