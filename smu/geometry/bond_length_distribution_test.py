@@ -163,7 +163,7 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
   def test_atom_ordering(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(
-        7, 8,
+        dataset_pb2.BondTOpology.ATOM_N, dataset_pb2.BondTOpology.ATOM_O,
         dataset_pb2.BondTopology.BOND_SINGLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
     self.assertEqual(
@@ -190,7 +190,7 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
 
     # Make sure subsequent additions work as well
     all_dists.add(
-        7, 8,
+        dataset_pb2.BondTOpology.ATOM_N, dataset_pb2.BondTOpology.ATOM_O,
         dataset_pb2.BondTopology.BOND_DOUBLE,
         bond_length_distribution.FixedWindowLengthDistribution(2, 3, None))
     self.assertEqual(
@@ -207,11 +207,11 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
   def test_probability_bond_types(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(
-        7, 8,
+        dataset_pb2.BondTOpology.ATOM_N, dataset_pb2.BondTOpology.ATOM_O,
         dataset_pb2.BondTopology.BOND_SINGLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 4, None))
     all_dists.add(
-        7, 8,
+        dataset_pb2.BondTOpology.ATOM_N, dataset_pb2.BondTOpology.ATOM_O,
         dataset_pb2.BondTopology.BOND_DOUBLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
     got = all_dists.probability_of_bond_types(dataset_pb2.BondTopology.ATOM_N,
@@ -224,7 +224,7 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
   def test_missing_types(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(
-        7, 8,
+        dataset_pb2.BondTOpology.ATOM_N, dataset_pb2.BondTOpology.ATOM_O,
         dataset_pb2.BondTopology.BOND_SINGLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
 

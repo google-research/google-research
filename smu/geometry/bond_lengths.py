@@ -34,8 +34,6 @@ class GetBondLengthDistribution(beam.DoFn):
     bonded = utilities.bonded(bt)
 
     natoms = len(bt.atoms)
-    if len(geom.atom_positions) != natoms:
-      return
 
     if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
       return

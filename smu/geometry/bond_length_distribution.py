@@ -382,6 +382,8 @@ class AllAtomPairLengthDistributions:
           bond_type,
           dist):
     """Adds a distribution of the atom pair and bond type."""
+    atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+    atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
     if (atom_a, atom_b) not in self._atom_pair_dict:
       self._atom_pair_dict[(atom_a, atom_b)] = AtomPairLengthDistributions()
       # Just set the other order of atom_a, atom_b to the same object
