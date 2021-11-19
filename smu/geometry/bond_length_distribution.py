@@ -249,7 +249,6 @@ class EmpiricalLengthDistribution(LengthDistribution):
       raise ValueError('Unexpected length_str values in input: {}'.format(
           set(df_input['length_str']).difference(df_lengths['length_str'])))
 
-    df['count'].fillna(0, inplace=True)
     df['count'] = interpolate_zeros(np.array(df['count']))
 
     return EmpiricalLengthDistribution(df, right_tail_mass=right_tail_mass)

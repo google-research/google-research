@@ -326,7 +326,7 @@ class SmuMolecule:
         elif self._current_bonds_attached[i] == 1:
           bt.atoms[i] = oneg
           net_charge -= 1
-        else:    # Should never happen
+        else:    # not attached.
           return False
         
     if net_charge != 0:

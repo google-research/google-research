@@ -95,6 +95,7 @@ def indices_of_heavy_atoms(
 def bond_topologies_from_geom(
     bond_lengths,
     conformer_id,
+    fate,
     bond_topology, geometry,
     matching_parameters
 ):
@@ -108,6 +109,7 @@ def bond_topologies_from_geom(
   Args:
     bond_lengths: matrix of interatomic distances
     conformer_id:
+    fate: outcome of calculations
     bond_topology:
     geometry: coordinates for the bond_topology
     matching_parameters:
@@ -118,6 +120,7 @@ def bond_topologies_from_geom(
   result = dataset_pb2.TopologyMatches()  # To be returned.
   result.starting_smiles = bond_topology.smiles
   result.conformer_id =  conformer_id
+  result.fate = fate
 
   natoms = len(bond_topology.atoms)
 # print(f"Molecule #{conformer_id} contains {natoms} atoms")
@@ -203,7 +206,8 @@ def bond_topologies_from_geom(
 #     continue
     bt.smiles = smu_utils_lib.compute_smiles_for_bond_topology(
       bt, include_hs=matching_parameters.smiles_with_h,
-       labeled_atoms=matching_parameters.smiles_with_labels)
+       labeled_atoms=False)
+#      labeled_atoms=matching_parameters.smiles_with_labels)
     bt.bond_topology_id = bond_topology.bond_topology_id
     result.bond_topology.append(bt)
 
@@ -233,11 +237,13 @@ class TopologyFromGeom(beam.DoFn):
     Yields:
       dataset_pb2.TopologyMatches
     """
+#   if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+#     return
     matching_parameters = smu_molecule.MatchingParameters()
-    if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
-      return
+    matching_parameters.neutral_forms_during_bond_matching = True
     yield bond_topologies_from_geom(self._bond_lengths,
                                     conformer.conformer_id,
+                                    conformer.fate,
                                     conformer.bond_topologies[0],
                                     conformer.optimized_geometry,
                                     matching_parameters)

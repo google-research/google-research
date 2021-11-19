@@ -31,27 +31,28 @@ flags.DEFINE_string("bonds", None,
                     "File name stem for bond length distributions")
 flags.DEFINE_string("output", None, "Output file")
 flags.DEFINE_boolean("xnonbond", False, "Exclude non bonded interactions")
+flags.DEFINE_boolean("neutral", False, "Do the topology search against neutral forms")
 
 
 class SummaryData(beam.DoFn):
   """Given BondTopologies as input, yield summary data."""
 
   def process(self, topology_matches):
+    # Some variables written with each record.
+    starting_smiles = topology_matches.starting_smiles
+    conformer_id = topology_matches.conformer_id
+    nbt = len(topology_matches.bond_topology)
+    fate = topology_matches.fate
+
     if len(topology_matches.bond_topology) == 0:
-      return ""
-    result = f"{topology_matches.conformer_id},{len(topology_matches.bond_topology)}" \
-             f",{topology_matches.starting_smiles}"
+      yield f".,{starting_smiles},{conformer_id},{fate},0,."
+      return
 
+    result = ""
     for bt in topology_matches.bond_topology:
-      result += f",{bt.score:.3f},{bt.smiles}"
-      if bt.is_starting_topology:
-        result += ",T"
-      else:
-        result += ",F"
-      if len(topology_matches.bond_topology) == 1:
-        break
+      result += f"{bt.smiles},{starting_smiles},{conformer_id},{fate},{nbt},{bt.is_starting_topology}\n"
 
-    yield result
+    yield result.rstrip('\n')
 
 
 def ReadConFormer(

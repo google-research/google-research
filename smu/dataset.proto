@@ -121,6 +121,9 @@ message TopologyMatches {
 
   // And the conformer_id
   int32 conformer_id = 3;
+
+  // To avoid having to join results later, store the fate.
+  Conformer.FateCategory fate = 4;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left
