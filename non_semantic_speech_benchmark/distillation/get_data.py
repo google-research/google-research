@@ -16,7 +16,7 @@
 # Lint as: python3
 """Get data."""
 
-from typing import Callable, Dict, Optional, List
+from typing import Callable, Dict, Optional, List, Union
 
 import numpy as np
 import tensorflow as tf
@@ -29,7 +29,7 @@ SPEAKER_IDS_ = 'speaker_ids_'
 AUTO_ = tf.data.experimental.AUTOTUNE
 
 
-def get_data(file_pattern,
+def get_data(file_patterns,
              output_dimension,
              reader,
              samples_key,
@@ -46,7 +46,7 @@ def get_data(file_pattern,
   """Gets data for TRILL distillation from a teacher or precomputed values.
 
   Args:
-    file_pattern: Glob for input data.
+    file_patterns: Single or list of globs for input data.
     output_dimension: Feature dimension of teacher output.
     reader: Class used to parse data on disk.
     samples_key: Name of audio samples in tf.Examples.
@@ -70,8 +70,14 @@ def get_data(file_pattern,
   Returns:
     A tf.data.Dataset of (audio samples, regression targets).
   """
-  if not tf.io.gfile.glob(file_pattern):
-    raise ValueError(f'Files not found: {file_pattern}')
+  if isinstance(file_patterns, str):
+    file_patterns = [file_patterns]
+  files_list = []
+  for file_pattern in file_patterns:
+    file_list = tf.io.gfile.glob(file_pattern)
+    if not file_list:
+      raise ValueError(f'Files not found: {file_pattern}')
+    files_list.extend(file_list)
 
   if teacher_fn is None:
     assert target_key
@@ -109,7 +115,7 @@ def get_data(file_pattern,
   # Load data into a dataset of batch size 1, then preprocess if necessary.
   ds = (
       tf.data.experimental.make_batched_features_dataset(
-          file_pattern=file_pattern,
+          file_pattern=files_list,
           batch_size=cur_batch_size,
           num_epochs=None if loop_forever else 1,
           reader_num_threads=AUTO_,

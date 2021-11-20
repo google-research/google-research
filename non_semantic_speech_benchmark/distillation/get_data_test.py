@@ -82,7 +82,7 @@ class GetDataTest(parameterized.TestCase):
       target_key = None
     bs = 2
     ds = get_data.get_data(
-        file_pattern=file_pattern,
+        file_patterns=file_pattern,
         output_dimension=self.output_dim,
         reader=tf.data.TFRecordDataset,
         samples_key=self.samples_key,

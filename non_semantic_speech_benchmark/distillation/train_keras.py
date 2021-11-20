@@ -31,13 +31,13 @@ from non_semantic_speech_benchmark.distillation import models
 FLAGS = flags.FLAGS
 
 # Data config flags.
-flags.DEFINE_string('file_pattern', None, 'Dataset location.')
+flags.DEFINE_list('file_patterns', None, 'Dataset location.')
 flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
 
 flags.DEFINE_boolean(
     'precomputed_targets', False,
     'Flag to enable training with precomputed targets. '
-    'If True, `file_pattern` must point to precomputed targets, and '
+    'If True, `file_patterns` must point to precomputed targets, and '
     '`target_key` must be supplied.')
 flags.DEFINE_string(
     'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
@@ -99,7 +99,7 @@ def train_and_report(debug=False):
         hub.load(FLAGS.teacher_model_hub), FLAGS.output_key)
     assert target_key is None
   ds = get_data.get_data(
-      file_pattern=FLAGS.file_pattern,
+      file_patterns=FLAGS.file_patterns,
       output_dimension=FLAGS.output_dimension,
       reader=reader,
       samples_key=FLAGS.samples_key,
@@ -189,7 +189,7 @@ def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
 
 
 def main(unused_argv):
-  assert FLAGS.file_pattern
+  assert FLAGS.file_patterns
   assert FLAGS.output_dimension
   assert FLAGS.shuffle_buffer_size
   assert FLAGS.logdir

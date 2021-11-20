@@ -30,7 +30,7 @@ from non_semantic_speech_benchmark.distillation import models
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('file_pattern', None, 'Dataset location.')
+flags.DEFINE_list('file_patterns', None, 'Dataset location.')
 flags.DEFINE_string('sk', None, 'Samples name.')
 flags.DEFINE_alias('samples_key', 'sk')
 flags.DEFINE_integer('ml', 16000, 'Minimum length.')
@@ -82,7 +82,7 @@ flags.DEFINE_integer('timeout', 7200, 'Wait-for-checkpoint timeout.')
 
 
 def eval_and_report():
-  """Eval on voxceleb."""
+  """Eval."""
   tf.logging.info('samples_key: %s', FLAGS.samples_key)
   logging.info('Logdir: %s', FLAGS.logdir)
   logging.info('Batch size: %s', FLAGS.batch_size)
@@ -116,7 +116,7 @@ def eval_and_report():
           hub.load(FLAGS.teacher_model_hub), FLAGS.output_key)
       assert target_key is None
     ds = get_data.get_data(
-        file_pattern=FLAGS.file_pattern,
+        file_patterns=FLAGS.file_patterns,
         output_dimension=FLAGS.output_dimension,
         reader=reader,
         samples_key=FLAGS.samples_key,
@@ -158,7 +158,7 @@ def eval_and_report():
 
 
 def main(unused_argv):
-  assert FLAGS.file_pattern
+  assert FLAGS.file_patterns
   assert FLAGS.output_dimension
   assert FLAGS.logdir
   assert FLAGS.samples_key

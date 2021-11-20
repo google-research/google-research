@@ -73,7 +73,7 @@ class TrainKerasTest(parameterized.TestCase):
   def test_full_flow(self, mock_load):
     del mock_load
     flags.FLAGS.model_type = 'mobilenet_debug_1.0_False'
-    flags.FLAGS.file_pattern = 'dummy'
+    flags.FLAGS.file_patterns = 'dummy'
     flags.FLAGS.teacher_model_hub = 'dummy'
     flags.FLAGS.output_key = 'dummmy'
     flags.FLAGS.output_dimension = 10
