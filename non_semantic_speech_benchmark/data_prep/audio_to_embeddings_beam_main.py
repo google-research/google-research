@@ -130,6 +130,9 @@ def main(_):
       embedding_modules=beam_params['embedding_modules'],
       embedding_names=beam_params['embedding_names'],
       module_output_keys=beam_params['module_output_keys'])
+  logging.info('main: input_filenames_list: %s', input_filenames_list)
+  logging.info('main: output_filenames: %s', output_filenames)
+  logging.info('main: beam_params: %s', beam_params)
 
   # If you have custom beam options, add them here.
   beam_options = None
