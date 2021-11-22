@@ -443,6 +443,9 @@ class UpdateConformerFn(beam.DoFn):
     matching_parameters.must_match_all_bonds = False
     matching_parameters.smiles_with_h = False
     matching_parameters.smiles_with_labels = False
+    matching_parameters.neutral_forms_during_bond_matching = True
+    matching_parameters.consider_not_bonded = True
+    matching_parameters.ring_atom_count_cannot_decrease = False
 
     matches = topology_from_geom.bond_topologies_from_geom(
       bond_lengths=self._cached_bond_lengths,
