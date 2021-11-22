@@ -427,15 +427,6 @@ class UpdateConformerFn(beam.DoFn):
       conformer.bond_topologies[0].smiles = smiles_without_h
 
   def _add_alternative_bond_topologies(self, conformer, smiles_id_dict):
-    # Conformers with this high of a status code did not successfully
-    # start stage2 and the geometries coudl be pretty much anything so
-    # we don't bother putting these through.
-    if conformer.properties.errors.status > 512:
-      beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
-                                   'skipped_topology_matches').inc()
-      return
-
-
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                  'attempted_topology_matches').inc()
 
@@ -506,6 +497,9 @@ class UpdateConformerFn(beam.DoFn):
       # with this high an error is pretty messed so, do we won't bother trying
       # to match the topolgy.
       self._add_alternative_bond_topologies(conformer, smiles_id_dict)
+    else:
+      beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                   'skipped_topology_matches').inc()
 
     yield conformer
 
