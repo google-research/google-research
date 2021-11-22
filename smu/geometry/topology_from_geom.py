@@ -189,8 +189,11 @@ def bond_topologies_from_geom(
 
     all_found_smiles.add(found_smiles)
 
-    if matching_parameters.ring_atom_count_cannot_decrease and utilities.ring_atom_count_mol(rdkit_mol) < initial_ring_atom_count:
-      continue
+    if matching_parameters.ring_atom_count_cannot_decrease:
+      ring_atoms = utilities.ring_atom_count_mol(rdkit_mol)
+      if ring_atoms < initial_ring_atom_count:
+        continue
+      bt.ring_atom_count = ring_atoms
 
     bt.bond_topology_id = bond_topology.bond_topology_id
     utilities.canonical_bond_topology(bt)

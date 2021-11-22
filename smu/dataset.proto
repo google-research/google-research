@@ -109,6 +109,9 @@ message BondTopology {
   // If this has been discerned from geometry, is it the same as the
   // starting BondTopology.
   bool is_starting_topology = 6;
+
+  // Number of atoms that are in a ring.
+  int32 ring_atom_count = 7;
 }
 
 // When doing topology from geometry matching, the results are returned
