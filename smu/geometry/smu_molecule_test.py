@@ -29,6 +29,7 @@ from smu.geometry import smu_molecule
 class TestSMuMolecule(parameterized.TestCase):
   """Test the SmuMolecule class."""
 
+  @absltest.skip("This test is duplciative of test_ethane_all")
   def test_ethane(self):
     """The simplest molecule, CC."""
 #     bond_topology = text_format.Parse(
@@ -77,17 +78,17 @@ class TestSMuMolecule(parameterized.TestCase):
     mol = smu_molecule.SmuMolecule(cc, bonds_to_scores, matching_parameters)
     state = mol.generate_search_state()
     for s in itertools.product(*state):
-      res = mol.place_bonds(s)
-      self.assertIsNotNone(res)
+      res = mol.place_bonds(s, matching_parameters)
       if btype == 0:
-        self.assertEqual(len(res.bonds), 0)
+        self.assertIsNone(res)
       else:
+        self.assertIsNotNone(res)
         self.assertEqual(len(res.bonds), 1)
         self.assertEqual(res.bonds[0].bond_type, expected_bond)
 
   @parameterized.parameters([
-    [0, 0, 0, 2.0], [0, 1, 1, 2.0], [0, 2, 1, 2.0],
-    [0, 3, 1, 2.0], [1, 1, 2, 2.0], [1, 2, 2, 2.0],
+    [0, 0, 0, None], [0, 1, 1, None], [0, 2, 1, None],
+    [0, 3, 1, None], [1, 1, 2, 2.0], [1, 2, 2, 2.0],
     [1, 3, 2, 2.0], [2, 2, 2, 2.0], [2, 3, 0, None],
     [3, 3, 0, None],
   ])
@@ -110,7 +111,7 @@ class TestSMuMolecule(parameterized.TestCase):
     mol = smu_molecule.SmuMolecule(cc, bonds_to_scores, matching_parameters)
     state = mol.generate_search_state()
     for s in itertools.product(*state):
-      res = mol.place_bonds(s)
+      res = mol.place_bonds(s, matching_parameters)
       if expected_score is not None:
         self.assertIsNotNone(res)
         self.assertEqual(len(res.bonds), expected_bonds)
@@ -145,7 +146,7 @@ class TestSMuMolecule(parameterized.TestCase):
     mol.set_initial_score_and_incrementer(1.0, operator.mul)
     state = mol.generate_search_state()
     for s in itertools.product(*state):
-      res = mol.place_bonds(s)
+      res = mol.place_bonds(s, matching_parameters)
       self.assertAlmostEqual(res.score, np.product(scores))
 
 

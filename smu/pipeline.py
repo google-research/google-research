@@ -445,11 +445,12 @@ class UpdateConformerFn(beam.DoFn):
     matching_parameters.smiles_with_labels = False
 
     matches = topology_from_geom.bond_topologies_from_geom(
-      self._cached_bond_lengths,
-      conformer.conformer_id,
-      conformer.bond_topologies[0],
-      conformer.optimized_geometry,
-      matching_parameters)
+      bond_lengths=self._cached_bond_lengths,
+      conformer_id=conformer.conformer_id,
+      fate=conformer.fate,
+      bond_topology=conformer.bond_topologies[0],
+      geometry=conformer.optimized_geometry,
+      matching_parameters=matching_parameters)
 
     if not matches.bond_topology:
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
