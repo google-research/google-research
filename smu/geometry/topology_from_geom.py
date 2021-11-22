@@ -174,6 +174,7 @@ def bond_topologies_from_geom(
 
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
+  initial_ring_atom_count = utilities.ring_atom_count_bt(bond_topology)
 
   search_space = mol.generate_search_state()
   for s in itertools.product(*search_space):
@@ -190,6 +191,9 @@ def bond_topologies_from_geom(
       continue
 
     all_found_smiles.add(found_smiles)
+
+    if matching_parameters.ring_atom_count_cannot_decrease and utilities.ring_atom_count_mol(rdkit_mol) < initial_ring_atom_count:
+      continue
 
     bt.bond_topology_id = bond_topology.bond_topology_id
     utilities.canonical_bond_topology(bt)
@@ -234,6 +238,7 @@ class TopologyFromGeom(beam.DoFn):
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.neutral_forms_during_bond_matching = True
     matching_parameters.consider_not_bonded = True
+    matching_parameters.ring_atom_count_cannot_decrease = True
     yield bond_topologies_from_geom(self._bond_lengths,
                                     conformer.conformer_id,
                                     conformer.fate,

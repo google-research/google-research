@@ -403,3 +403,36 @@ def convert_to_neutral(bt: dataset_pb2.BondTopology) -> bool:
         bt.atoms[i] = dataset_pb2.BondTopology.ATOM_N
 
   return positive_placed == negative_placed
+
+def ring_atom_count_bt(bt: dataset_pb2.BondTopology) -> int:
+  """Return the number of ring atoms in `bt`.
+
+  Args:
+    bt: dataset_pb2.BondTopology
+  Return:
+    Integer
+  """
+  mol = smu_utils_lib.bond_topology_to_molecule(bt)
+
+  return ring_atom_count_mol(mol)
+
+def ring_atom_count_mol(mol: Chem.RWMol) -> int:
+  """Return the number of ring atoms in `mol`.
+
+  Args:
+    mol: rdkit molecule.
+  Returns:
+    Integer
+  """
+  mol.UpdatePropertyCache()
+  Chem.GetSymmSSSR(mol)
+  ringinfo = mol.GetRingInfo()
+  if ringinfo.NumRings() == 0:
+    return 0
+  natoms = mol.GetNumAtoms()
+  result = 0
+  for i in range(natoms):
+    if ringinfo.NumAtomRings(i) > 0:
+      result += 1
+
+  return result

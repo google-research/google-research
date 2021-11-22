@@ -42,7 +42,12 @@ class MatchingParameters:
     # neutral, molecule can be formed.
     self._neutral_forms_during_bond_matching: bool=False
 
+    # If not a bond is being considered during matching.
     self._consider_not_bonded = False
+
+    # Avoid destroying rings if not bonded is enabled.
+    # Note that only the ring atom count is considered.
+    self._ring_atom_count_cannot_decrease = True
 
   @property
   def must_match_all_bonds(self):
@@ -83,6 +88,14 @@ class MatchingParameters:
   @consider_not_bonded.setter
   def consider_not_bonded(self, value):
     self._consider_not_bonded = value
+
+  @property
+  def ring_atom_count_cannot_decrease(self):
+    return self._ring_atom_count_cannot_decrease
+
+  @ring_atom_count_cannot_decrease.setter
+  def ring_atom_count_cannot_decrease(self, value):
+    self._ring_atom_count_cannot_decrease = value
 
 def add_bond(a1, a2, btype,
              destination):
