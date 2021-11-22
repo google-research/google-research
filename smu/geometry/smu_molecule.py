@@ -42,6 +42,8 @@ class MatchingParameters:
     # neutral, molecule can be formed.
     self._neutral_forms_during_bond_matching: bool=False
 
+    self._consider_not_bonded = False
+
   @property
   def must_match_all_bonds(self):
     return self._must_match_all_bonds
@@ -73,6 +75,14 @@ class MatchingParameters:
   @neutral_forms_during_bond_matching.setter
   def neutral_forms_during_bond_matching(self, value):
     self._neutral_forms_during_bond_matching = value
+
+  @property
+  def consider_not_bonded(self):
+    return self._consider_not_bonded
+
+  @consider_not_bonded.setter
+  def consider_not_bonded(self, value):
+    self._consider_not_bonded = value
 
 def add_bond(a1, a2, btype,
              destination):

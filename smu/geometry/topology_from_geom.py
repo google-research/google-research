@@ -16,7 +16,7 @@
 """Functions related to discerning the BondTopology from the geometry."""
 import itertools
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import apache_beam as beam
 import numpy as np
@@ -167,8 +167,10 @@ def bond_topologies_from_geom(
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
-  # Guard against BondTopology's that differ only in the atom ordering.
+  # Need to know when the starting smiles has been recovered.
   starting_smiles = smu_utils_lib.compute_smiles_for_bond_topology(bond_topology, True)
+  # Avoid finding duplicates.
+  all_found_smiles: Set[string] = set()
 
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
@@ -179,15 +181,19 @@ def bond_topologies_from_geom(
     if not bt:
       continue
 
-    bt.bond_topology_id = bond_topology.bond_topology_id
-
     rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bt)
     if matching_parameters.consider_not_bonded and len(Chem.GetMolFrags(rdkit_mol)) > 1:
       continue
 
+    found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
+    if found_smiles in all_found_smiles:
+      continue
+
+    all_found_smiles.add(found_smiles)
+
+    bt.bond_topology_id = bond_topology.bond_topology_id
     utilities.canonical_bond_topology(bt)
 
-    found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
     if found_smiles == starting_smiles:   # Modulo that bug PFR found...
       bt.is_starting_topology = True
       
