@@ -62,10 +62,8 @@ def reconcile_dupes(unused_argv):
   for filepath in gfile.glob(FLAGS.input):
     logging.info(f"Opening {filepath}")
     with gfile.GFile(filepath, 'r') as f:
-      df_list.append(pd.read_csv(f, names=["Smiles", "StartSmi", "id", "NBts", "IsStart"]))
-      print("Can we find {CNN1OOC1C}")
-      x = df_list[-1]
-      print(x[x['StartSmi'] == 'CNN1OOC1C'])
+      df_list.append(pd.read_csv(f, names=["Smiles", "StartSmi", "id", "Fate", "NBts", "IsStart"]))
+#     df_list.append(pd.read_csv(f))
 
   data = pd.concat(df_list)
   del df_list
@@ -74,12 +72,6 @@ def reconcile_dupes(unused_argv):
   # Convert conformer_ids to bond_topology_id by dividing by 1000
   # Expect many dupes to be overwritten here.
   smiles_to_id = {k:v for k,v in zip(data['StartSmi'], data['id'] // 1000)}
-
-  for k, v in smiles_to_id.items():
-    print(f"smi2id {k} {v}")
-
-  print("Can we find {CNN1OOC1C}")
-  print(data[data['StartSmi'] == 'CNN1OOC1C'])
 
   # We only care about the cases where there is a BondTopology mismatch.
   interesting = data.loc[data['IsStart'] == False]

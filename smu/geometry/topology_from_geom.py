@@ -128,10 +128,7 @@ def bond_topologies_from_geom(
 
   if len(geometry.atom_positions) != natoms:
     return result  # empty
-  utilities.canonical_bond_topology(bond_topology)
   distances = utilities.distances(geometry)
-
-# geometry = utilities.geom_to_angstroms(geometry)
 
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a starting BondTopology from which all others can grow

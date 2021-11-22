@@ -135,7 +135,6 @@ class SmuMolecule:
     self._natoms = len(hydrogens_attached.atoms)
     self._heavy_atoms = sum(1 for atom in hydrogens_attached.atoms if atom != dataset_pb2.BondTopology.ATOM_H)
 
-
     self._contains_both_oxygen_and_nitrogen = False
     # If the molecule contains both N and O atoms, then we can
     # do more extensive atom type matching if requested.
@@ -184,15 +183,12 @@ class SmuMolecule:
     oxygen_count = 0
     nitrogen_count = 0
     for atom in bt.atoms:
-      if atom in [dataset_pb2.BondTopology.ATOM_C,
-                  dataset_pb2.BondTopology.ATOM_F,
-                  dataset_pb2.BondTopology.ATOM_H]:
-        continue
-      if atom in [dataset_pb2.BondTopology.ATOM_O,
-                  dataset_pb2.BondTopology.ATOM_ONEG]:
-        oxygen_count += 1
-      else:
+      if atom in [dataset_pb2.BondTopology.ATOM_N,
+                  dataset_pb2.BondTopology.ATOM_NPOS]:
         nitrogen_count += 1
+      elif atom in [dataset_pb2.BondTopology.ATOM_O,
+                       dataset_pb2.BondTopology.ATOM_ONEG]:
+        oxygen_count += 1
 
     if oxygen_count > 0 and nitrogen_count > 0:
       self._contains_both_oxygen_and_nitrogen = True
@@ -204,7 +200,7 @@ class SmuMolecule:
     self._accumulate_score = op
 
   def _initialize(self):
-    """Make the molecule reading for adding bonds between heavy atoms."""
+    """Make the molecule ready for adding bonds between heavy atoms."""
     self._current_bonds_attached = np.copy(self._bonds_with_hydrogens_attached)
 
   def _place_bond(self, a1, a2, btype):
