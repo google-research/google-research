@@ -36,6 +36,7 @@ class MatchingParameters:
     self._must_match_all_bonds: bool = True
     self._smiles_with_h: bool = False
     self._smiles_with_labels: bool = True
+
     # A variant on matching is to consider all N and O as neutral forms during
     # matching, and then as a post processing step, see whether a valid, 
     # neutral, molecule can be formed.
@@ -108,7 +109,9 @@ class SmuMolecule:
     Returns:
     """
     self._starting_bond_topology = hydrogens_attached
-    natoms = len(hydrogens_attached.atoms)
+    self._natoms = len(hydrogens_attached.atoms)
+    self._heavy_atoms = sum(1 for atom in hydrogens_attached.atoms if atom != dataset_pb2.BondTopology.ATOM_H)
+
 
     self._contains_both_oxygen_and_nitrogen = False
     # If the molecule contains both N and O atoms, then we can
@@ -117,22 +120,22 @@ class SmuMolecule:
       self.set_contains_both_oxygen_and_nitrogen(hydrogens_attached)
 
     # For each atom, the maximum number of bonds that can be attached.
-    self._max_bonds = np.zeros(natoms, dtype=np.int32)
+    self._max_bonds = np.zeros(self._natoms, dtype=np.int32)
     if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
-      for i in range(0, natoms):
+      for i in range(0, self._natoms):
         self._max_bonds[i] = utilities.max_bonds_any_form(hydrogens_attached.atoms[i])
     else:
-      for i in range(0, natoms):
+      for i in range(0, self._natoms):
         self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[
             hydrogens_attached.atoms[i]]
 
     # With the Hydrogens attached, the number of bonds to each atom.
-    self._bonds_with_hydrogens_attached = np.zeros((natoms), dtype=np.int32)
+    self._bonds_with_hydrogens_attached = np.zeros((self._natoms), dtype=np.int32)
     for bond in hydrogens_attached.bonds:
       self._bonds_with_hydrogens_attached[bond.atom_a] += 1
       self._bonds_with_hydrogens_attached[bond.atom_b] += 1
 
-    self._current_bonds_attached = np.zeros((natoms), dtype=np.int32)
+    self._current_bonds_attached = np.zeros((self._natoms), dtype=np.int32)
 
     # We turn bonds_to_scores into two arrays. So they can be iterated
     # via itertools.
@@ -194,7 +197,6 @@ class SmuMolecule:
     Returns:
       Bool.
     """
-#   print(f"_place_bond, currently", self._current_bonds_attached[a1], " max ", self._max_bonds[a1])
     if self._current_bonds_attached[a1] + btype > self._max_bonds[a1]:
       return False
     if self._current_bonds_attached[a2] + btype > self._max_bonds[a2]:
@@ -244,17 +246,23 @@ class SmuMolecule:
     result.CopyFrom(self._starting_bond_topology)  # only Hydrogens attached.
     result.score = self._initial_score
 
+    # Make sure each atoms gets at least one bond
+    atom_got_bond = np.zeros(self._heavy_atoms)
+
     for i, btype in enumerate(state):
-      a1 = self._bonds[i][0]
-      a2 = self._bonds[i][1]
-#     print(f"Trying to place bond btw {a1} and {a2} btype {btype}")
-      if not self._place_bond(a1, a2, btype):
-        return None
+      if btype != dataset_pb2.BondTopology.BOND_UNDEFINED:
+        a1 = self._bonds[i][0]
+        a2 = self._bonds[i][1]
+        if not self._place_bond(a1, a2, btype):
+          return None
+        add_bond(a1, a2, btype, result)
+        atom_got_bond[a1] = 1
+        atom_got_bond[a2] = 1
 
       result.score = self._accumulate_score(result.score,
                                             self._scores[i][btype])
-      if btype:
-        add_bond(a1, a2, btype, result)
+    if not np.all(atom_got_bond):
+      return None
 
     return result
 
@@ -278,11 +286,9 @@ class SmuMolecule:
       return bt
 
     # Optionally check whether all bonds have been matched
-#   print("Bonds placed")
     if not self._must_match_all_bonds:
       return bt
 
-#   print(*zip(self._current_bonds_attached, self._max_bonds))
     if not np.array_equal(self._current_bonds_attached, self._max_bonds):
       return None
 

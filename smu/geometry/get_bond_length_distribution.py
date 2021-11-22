@@ -57,8 +57,8 @@ def get_bond_length_distribution_inner(input_fname, output_fname):
       post-processing to generate bond length distribution files.
   """
   print("Reading from {input_fname} output to {output_fname}")
-# options = PipelineOptions(direct_num_workers=6, direct_running_mode='multi_processing')
-  options = PipelineOptions()
+  options = PipelineOptions(direct_num_workers=6, direct_running_mode='multi_processing')
+# options = PipelineOptions()
   with beam.Pipeline(options=options) as p:
     protos = (
         p
