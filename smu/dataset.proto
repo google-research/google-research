@@ -115,6 +115,15 @@ message BondTopology {
 // as a set of individual BondTopology's.
 message TopologyMatches {
   repeated BondTopology bond_topology = 1;
+
+  // It is convenient to have the starting smiles.
+  string starting_smiles = 2;
+
+  // And the conformer_id
+  int32 conformer_id = 3;
+
+  // To avoid having to join results later, store the fate.
+  Conformer.FateCategory fate = 4;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left

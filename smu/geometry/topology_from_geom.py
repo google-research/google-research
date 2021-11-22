@@ -16,10 +16,11 @@
 """Functions related to discerning the BondTopology from the geometry."""
 import itertools
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import apache_beam as beam
 import numpy as np
+from rdkit import Chem
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
@@ -39,7 +40,7 @@ def hydrogen_to_nearest_atom(
       heavy atom.
   Args:
     bond_topology:
-    distances:
+    distances: matrix of interatomic distances.
 
   Returns:
   """
@@ -93,6 +94,8 @@ def indices_of_heavy_atoms(
 
 def bond_topologies_from_geom(
     bond_lengths,
+    conformer_id,
+    fate,
     bond_topology, geometry,
     matching_parameters
 ):
@@ -104,22 +107,27 @@ def bond_topologies_from_geom(
     Note that `bond_topology` will be put in a canonical form.
 
   Args:
-    bond_lengths:
+    bond_lengths: matrix of interatomic distances
+    conformer_id:
+    fate: outcome of calculations
     bond_topology:
-    geometry:
+    geometry: coordinates for the bond_topology
     matching_parameters:
 
   Returns:
     TopologyMatches
   """
   result = dataset_pb2.TopologyMatches()  # To be returned.
-  if len(bond_topology.atoms) == 1:
+  result.starting_smiles = bond_topology.smiles
+  result.conformer_id =  conformer_id
+  result.fate = fate
+
+  natoms = len(bond_topology.atoms)
+  if natoms == 1:
     return result  # empty.
 
-  # Will be used when comparing perceived BondTopology's.
-  # serialized_starting_form = bond_topology.SerializeToString()
-
-  utilities.canonical_bond_topology(bond_topology)
+  if len(geometry.atom_positions) != natoms:
+    return result  # empty
   distances = utilities.distances(geometry)
 
   # First join each Hydrogen to its nearest heavy atom, thereby
@@ -138,9 +146,7 @@ def bond_topologies_from_geom(
   # with the score for each bond type.
 
   bonds_to_scores: Dict[Tuple[int, int], np.array] = {}
-  for c in itertools.combinations(heavy_atom_indices, 2):  # All pairs.
-    i = c[0]
-    j = c[1]
+  for (i, j) in itertools.combinations(heavy_atom_indices, 2):  # All pairs.
     dist = distances[i, j]
     if dist > THRESHOLD:
       continue
@@ -158,22 +164,45 @@ def bond_topologies_from_geom(
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
+  # Need to know when the starting smiles has been recovered.
+  starting_smiles = smu_utils_lib.compute_smiles_for_bond_topology(bond_topology, True)
+  # Avoid finding duplicates.
+  all_found_smiles: Set[string] = set()
 
-# print(f"Mol with {len(bond_topology.atoms)} has {bonds_to_scores}")
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
+  initial_ring_atom_count = utilities.ring_atom_count_bt(bond_topology)
 
   search_space = mol.generate_search_state()
   for s in itertools.product(*search_space):
-    bt = mol.place_bonds(list(s))
+    bt = mol.place_bonds(list(s), matching_parameters)
     if not bt:
       continue
+
+    rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bt)
+    if matching_parameters.consider_not_bonded and len(Chem.GetMolFrags(rdkit_mol)) > 1:
+      continue
+
+    found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
+    if found_smiles in all_found_smiles:
+      continue
+
+    all_found_smiles.add(found_smiles)
+
+    if matching_parameters.ring_atom_count_cannot_decrease and utilities.ring_atom_count_mol(rdkit_mol) < initial_ring_atom_count:
+      continue
+
+    bt.bond_topology_id = bond_topology.bond_topology_id
     utilities.canonical_bond_topology(bt)
-    if utilities.same_bond_topology(bond_topology, bt):
+
+    if found_smiles == starting_smiles:   # Modulo that bug PFR found...
       bt.is_starting_topology = True
-    bt.smiles = smu_utils_lib.compute_smiles_for_bond_topology(
-      bt, include_hs=matching_parameters.smiles_with_h,
-       labeled_atoms=matching_parameters.smiles_with_labels)
+      
+    if not matching_parameters.smiles_with_h:
+      rdkit_mol = Chem.RemoveHs(rdkit_mol, sanitize=False)
+      found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
+
+    bt.smiles = found_smiles
     result.bond_topology.append(bt)
 
   if len(result.bond_topology) > 1:
@@ -201,8 +230,15 @@ class TopologyFromGeom(beam.DoFn):
     Yields:
       dataset_pb2.TopologyMatches
     """
+    if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+      return
     matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters.neutral_forms_during_bond_matching = True
+    matching_parameters.consider_not_bonded = True
+    matching_parameters.ring_atom_count_cannot_decrease = True
     yield bond_topologies_from_geom(self._bond_lengths,
+                                    conformer.conformer_id,
+                                    conformer.fate,
                                     conformer.bond_topologies[0],
                                     conformer.optimized_geometry,
                                     matching_parameters)

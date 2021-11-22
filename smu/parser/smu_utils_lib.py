@@ -74,6 +74,14 @@ ATOM_CHAR_TO_TYPE = {
     'f': dataset_pb2.BondTopology.AtomType.ATOM_F,
     'h': dataset_pb2.BondTopology.AtomType.ATOM_H,
 }
+ATOM_CHAR_TO_ATOMIC_NUMBER = {
+    'c': 6,
+    'n': 7,
+    'o': 8,
+    'f': 9,
+    'h': 1,
+}
+
 ATOM_TYPE_TO_ATOMIC_NUMBER = {
     dataset_pb2.BondTopology.AtomType.ATOM_C: 6,
     dataset_pb2.BondTopology.AtomType.ATOM_N: 7,
@@ -623,7 +631,7 @@ def conformer_to_molecules(conformer,
       mol = bond_topology_to_molecule(bt)
       mol.SetProp(
           '_Name',
-          f'SMU {conformer.conformer_id} bt={bt_label} geom={geom_label}')
+          f'SMU {conformer.conformer_id} bt={bt_label} geom={geom_label} fate={conformer.fate}')
 
       # Add in the coordinates
       conf = Chem.Conformer(len(bt.atoms))

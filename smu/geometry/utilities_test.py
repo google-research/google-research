@@ -318,5 +318,18 @@ class TestUtilities(parameterized.TestCase):
     bt_h = utilities.molecule_to_bond_topology(mol_h)
     self.assertEqual(utilities.is_single_fragment(bt_h), expected)
 
+  @parameterized.parameters([
+      ["C", 0],
+      ["CC", 0],
+      ["CCC", 0],
+      ["C1CC1", 3],
+      ["CCCCC", 0],
+      ["C1CCC1", 4],
+      ["C1C(C)CC1", 4]
+  ])
+  def test_ring_atom_count(self, smiles, expected):
+    mol = Chem.MolFromSmiles(smiles, sanitize=True)
+    self.assertEqual(utilities.ring_atom_count_mol(mol), expected)
+
 if __name__ == "__main__":
   absltest.main()

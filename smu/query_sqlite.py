@@ -31,6 +31,7 @@ from absl import logging
 from rdkit import Chem
 
 from tensorflow.io import gfile
+import tensorflow as tf
 from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
@@ -43,6 +44,7 @@ class OutputFormat(enum.Enum):
   sdf_init = 3
   sdf_init_opt = 4
   atomic_input = 5
+  tfdata = 6
 
 
 flags.DEFINE_string(
@@ -87,6 +89,26 @@ class PBTextOutputter:
   def close(self):
     self.outfile.close()
 
+class TfDataOutputter:
+  """Writes output to TFDataRecord form"""
+
+  def __init__(self, output_path: str):
+    """Creates TfDataOutputter with output to `output_path`.
+
+    Args:
+      output_path:
+    """
+    self.output = tf.io.TFRecordWriter(path=output_path)
+
+  def write(self, conformer):
+    """Writes serialized `conformer`.
+
+    Args:
+    """
+    self.output.write(conformer.SerializeToString())
+
+  def close(self):
+    self.output.close()
 
 class SDFOutputter:
   """Simple internal class to write entries as multi molecule SDF files."""
@@ -175,6 +197,8 @@ def main(argv):
         FLAGS.output_path, init_geometry=True, opt_geometry=True)
   elif FLAGS.output_format == OutputFormat.atomic_input:
     outputter = AtomicInputOutputter(FLAGS.output_path)
+  elif FLAGS.output_format == OutputFormat.tfdata:
+    outputter = TfDataOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 

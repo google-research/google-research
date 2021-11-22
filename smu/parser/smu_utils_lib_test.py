@@ -27,6 +27,7 @@ from rdkit import Chem
 
 from google.protobuf import text_format
 from smu import dataset_pb2
+from smu.geometry import utilities
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 
@@ -1198,6 +1199,122 @@ class LabeledSmilesTester(absltest.TestCase):
     for atom in mol.GetAtoms():
       self.assertEqual(atom.GetAtomMapNum(), 0)
     self.assertEqual(Chem.MolToSmiles(mol), smiles_before)
+
+class AtomSwapVariantTester(absltest.TestCase):
+  def test_atom_swap_variant(self):
+    """Test inspired by the pair
+      C([C:3]1=[C:1]2[C:2]1=[NH+:5]2)=[N:4][O-:6]
+      C([C:3]1=[C:2]2[C:1]1=[NH+:5]2)=[N:4][O-:6]
+    """
+    topo1 = """
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_N
+atoms: ATOM_N
+atoms: ATOM_O
+bonds {
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_b: 4
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 2
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 3
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 5
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 5
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 4
+  atom_b: 6
+  bond_type: BOND_SINGLE
+}
+"""
+    bt1 = str_to_bond_topology(topo1);
+
+    topo2 = """
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_N
+atoms: ATOM_N
+atoms: ATOM_O
+bonds {
+  atom_a: 0
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 0
+  atom_b: 4
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 2
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 5
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 3
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 5
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 4
+  atom_b: 6
+  bond_type: BOND_SINGLE
+}
+"""
+    bt2 = str_to_bond_topology(topo2)
+
+    self.assertEqual(len(bt1.atoms), len(bt2.atoms))
+    self.assertEqual(len(bt1.bonds), len(bt2.bonds))
+    s1 = smu_utils_lib.compute_smiles_for_bond_topology(bt1, True)
+    s2 = smu_utils_lib.compute_smiles_for_bond_topology(bt2, True)
+    self.assertEqual(s1, s2)
+
+    utilities.canonical_bond_topology(bt1)
+    utilities.canonical_bond_topology(bt2)
+    self.assertFalse(utilities.same_bond_topology(bt1, bt2))
 
 
 if __name__ == '__main__':
