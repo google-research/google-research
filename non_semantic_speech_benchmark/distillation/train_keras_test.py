@@ -50,8 +50,7 @@ class TrainKerasTest(parameterized.TestCase):
 
     model = train_keras.models.get_keras_model(
         f'mobilenet_debug_{alpha}_False',
-        output_dimension=output_dimension,
-        bottleneck_dimension=None)
+        output_dimension=output_dimension)
 
     loss_obj = tf.keras.losses.MeanSquaredError()
     opt = tf.keras.optimizers.Adam()

@@ -99,11 +99,9 @@ def get_model(checkpoint_folder_path,
 
   static_model = models.get_keras_model(
       params['mt'],
-      bottleneck_dimension=None,
       output_dimension=1024,
       truncate_output=params['tr'] if 'tr' in params else False,
       frontend=include_frontend,
-      compressor=None,
       tflite=tflite_friendly)
   checkpoint = tf.train.Checkpoint(model=static_model)
   if checkpoint_number:

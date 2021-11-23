@@ -76,12 +76,6 @@ flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
 flags.DEFINE_alias('e', 'num_epochs')
 
 
-# Quantization
-flags.DEFINE_boolean(
-    'quantize_aware_training', False, 'Dynamically '
-    'quantize final layer weights during training.')
-flags.DEFINE_alias('qat', 'quantize_aware_training')
-
 
 def train_and_report(debug=False):
   """Trains the classifier."""
@@ -125,11 +119,9 @@ def train_and_report(debug=False):
   # Create model, loss, and other objects.
   model = models.get_keras_model(
       model_type=FLAGS.model_type,
-      bottleneck_dimension=None,
       output_dimension=output_dimension,
       truncate_output=FLAGS.truncate_output,
-      frontend=True,
-      quantize_aware_training=FLAGS.quantize_aware_training)
+      frontend=True)
   model.summary()
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')

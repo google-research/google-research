@@ -18,7 +18,7 @@
 
 """
 import os
-from typing import Optional, Tuple
+from typing import Tuple
 
 from absl import logging
 import tensorflow as tf
@@ -47,15 +47,11 @@ def _debug_net(pooling, *args, **kwargs):
 
 
 def get_keras_model(model_type,
-                    bottleneck_dimension,
                     output_dimension,
                     truncate_output = False,
                     frontend = True,
-                    compressor = None,
-                    quantize_aware_training = False,
                     tflite = False):
   """Make a Keras student model."""
-  del bottleneck_dimension, compressor, quantize_aware_training  # Not used.
   # For debugging, log hyperparameter values.
   logging.info('model name: %s', model_type)
   logging.info('truncate_output: %s', truncate_output)

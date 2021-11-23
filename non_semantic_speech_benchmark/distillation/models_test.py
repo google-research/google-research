@@ -45,7 +45,7 @@ class ModelsTest(parameterized.TestCase):
     output_dimension = 5
 
     m = models.get_keras_model(
-        'mobilenet_debug_1.0_False', None, output_dimension,
+        'mobilenet_debug_1.0_False', output_dimension,
         frontend=frontend, tflite=tflite)
     o_dict = m(input_tensor)
     emb, o = o_dict['embedding'], o_dict['embedding_to_target']
@@ -58,7 +58,7 @@ class ModelsTest(parameterized.TestCase):
     invalid_mobilenet_size = 'huuuge'
     with self.assertRaises(KeyError) as exception_context:
       models.get_keras_model(
-          f'mobilenet_{invalid_mobilenet_size}_1.0_False', 3, 5)
+          f'mobilenet_{invalid_mobilenet_size}_1.0_False', 5)
     if not isinstance(exception_context.exception, KeyError):
       self.fail()
 
@@ -66,7 +66,6 @@ class ModelsTest(parameterized.TestCase):
     m = models.get_keras_model(
         'efficientnetb0',
         frontend=False,
-        bottleneck_dimension=0,
         output_dimension=5,
         truncate_output=True)
 
@@ -106,7 +105,7 @@ class ModelsTest(parameterized.TestCase):
 
     input_tensor = tf.zeros([2, 16000], dtype=tf.float32)
     m = models.get_keras_model(
-        model_type, 0, 5, frontend=True, truncate_output=True)
+        model_type, 5, frontend=True, truncate_output=True)
     o_dict = m(input_tensor)
     o = o_dict['embedding_to_target']
 
@@ -116,7 +115,6 @@ class ModelsTest(parameterized.TestCase):
   def test_tflite_model(self):
     m = models.get_keras_model(
         'mobilenet_debug_1.0_False',
-        None,
         5,
         frontend=False,
         tflite=True)

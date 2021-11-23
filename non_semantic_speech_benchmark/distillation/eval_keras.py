@@ -90,7 +90,6 @@ def eval_and_report():
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   model = models.get_keras_model(
       model_type=FLAGS.model_type,
-      bottleneck_dimension=None,
       output_dimension=FLAGS.output_dimension,
       truncate_output=FLAGS.truncate_output,
       frontend=True)
