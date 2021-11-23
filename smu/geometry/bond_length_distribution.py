@@ -48,17 +48,17 @@ ATOMIC_NUMBER_TO_ATYPE = {
     }
 
 def interpolate_zeros(values: np.array) -> np.array:
-  """For each zero value in `values` replace with an interpolated value. 
- 
-   Args: 
+  """For each zero value in `values` replace with an interpolated value.
+
+   Args:
      values: an array that may contain zeros.
-   Returns: 
+   Returns:
      An array that contains no zeros.
   """
   xvals = np.nonzero(values)[0]
   yvals = values[xvals]
 
-  # Simplest to get values for all points, even those already non zero. 
+  # Simplest to get values for all points, even those already non zero.
   indices = np.arange(0, len(values))
 
   return np.interp(indices, xvals, yvals)
@@ -257,8 +257,6 @@ class EmpiricalLengthDistribution(LengthDistribution):
     if len(df) != len(df_lengths):
       raise ValueError('Unexpected length_str values in input: {}'.format(
           set(df_input['length_str']).difference(df_lengths['length_str'])))
-
-    df['count'] = interpolate_zeros(np.array(df['count']))
 
     return EmpiricalLengthDistribution(df, right_tail_mass=right_tail_mass)
 

@@ -431,7 +431,7 @@ class UpdateConformerFn(beam.DoFn):
                                  'attempted_topology_matches').inc()
 
     matching_parameters = smu_molecule.MatchingParameters()
-    matching_parameters.must_match_all_bonds = False
+    matching_parameters.must_match_all_bonds = True
     matching_parameters.smiles_with_h = False
     matching_parameters.smiles_with_labels = False
     matching_parameters.neutral_forms_during_bond_matching = True
