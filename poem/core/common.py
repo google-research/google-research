@@ -68,6 +68,24 @@ SUPPORTED_INFERENCE_MODEL_INPUT_KEYPOINT_TYPES = [
     MODEL_INPUT_KEYPOINT_TYPE_2D_INPUT,
 ]
 
+# Model input keypoint mask types.
+# No use.
+MODEL_INPUT_KEYPOINT_MASK_TYPE_NO_USE = 'NO_USE'
+# Masks 2D keypoint coordinates (to 0).
+MODEL_INPUT_KEYPOINT_MASK_TYPE_MASK_KEYPOINTS = 'MASK_KEYPOINTS'
+# Concatenates with 2D keypoint coordinates as input.
+MODEL_INPUT_KEYPOINT_MASK_TYPE_AS_INPUT = 'AS_INPUT'
+# Masks and concatenates with 2D keypoint coordinates as input.
+MODEL_INPUT_KEYPOINT_MASK_TYPE_MASK_KEYPOINTS_AND_AS_INPUT = (
+    'MASK_KEYPOINTS_AND_AS_INPUT')
+# Supported model input keypoint mask types.
+SUPPORTED_MODEL_INPUT_KEYPOINT_MASK_TYPES = [
+    MODEL_INPUT_KEYPOINT_MASK_TYPE_NO_USE,
+    MODEL_INPUT_KEYPOINT_MASK_TYPE_MASK_KEYPOINTS,
+    MODEL_INPUT_KEYPOINT_MASK_TYPE_AS_INPUT,
+    MODEL_INPUT_KEYPOINT_MASK_TYPE_MASK_KEYPOINTS_AND_AS_INPUT,
+]
+
 # Base model types.
 # Simple Baseline architecutre: Martinez, et al. A simple yet effective baseline
 # for 3d human pose estimation. ICCV 2017.

@@ -15,6 +15,7 @@
 
 """Pose embedding model training base code."""
 
+import functools
 import math
 
 from absl import flags
@@ -22,6 +23,7 @@ import tensorflow.compat.v1 as tf
 import tf_slim
 
 from poem.core import data_utils
+from poem.core import input_generator
 from poem.core import keypoint_utils
 from poem.core import loss_utils
 from poem.core import pipeline_utils
@@ -49,9 +51,52 @@ flags.DEFINE_string('model_input_keypoint_type', '2D_INPUT_AND_3D_PROJECTION',
                     'Type of model input keypoints.')
 
 flags.DEFINE_float(
+    'uniform_keypoint_jittering_max_offset_2d', 0.0,
+    'Maximum 2D keypoint jittering offset. Random jittering offset within '
+    '[-uniform_keypoint_jittering_max_offset_2d, '
+    'uniform_keypoint_jittering_max_offset_2d] is to be added to each keypoint '
+    '2D. Note that the jittering happens after the 2D normalization. Ignored if'
+    ' non-positive.')
+
+flags.DEFINE_float(
+    'gaussian_keypoint_jittering_offset_stddev_2d', 0.0,
+    'Standard deviation of Gaussian 2D keypoint jittering offset. Random '
+    'jittering offset sampled from N(0, '
+    'gaussian_keypoint_jittering_offset_stddev_2d) is to be added to each '
+    'keypoints. Note that the jittering happens after the 2D normalization. '
+    'Ignored if non-positive.')
+
+flags.DEFINE_string('model_input_keypoint_mask_type', 'NO_USE',
+                    'Usage type of model input keypoint masks.')
+
+flags.DEFINE_float(
     'min_input_keypoint_score_2d', -1.0,
     'Minimum threshold for input keypoint score binarization. Use negative '
     'value to ignore. Only used if 2D keypoint masks are used.')
+
+flags.DEFINE_list(
+    'keypoint_dropout_probs', ['0.0', '0.0'],
+    'CSV of 2-tuple probability (probability_to_apply, probability_to_drop) for'
+    ' performing stratified keypoint dropout.')
+
+flags.DEFINE_bool('set_on_mask_for_non_anchors', False,
+                  'Whether to always use on (1) masks for non-anchor samples.')
+
+flags.DEFINE_bool(
+    'mix_mask_sub_batches', False,
+    'Whether to apply sub-batch mixing to processed masks and all-one masks.')
+
+flags.DEFINE_list(
+    'forced_mask_on_part_names', None,
+    'CSV of standard names of parts of which the masks are forced on (setting '
+    'value to 1.0) during training. See '
+    '`KeypointProfile.get_standard_part_index` for standard part names.')
+
+flags.DEFINE_list(
+    'forced_mask_off_part_names', None,
+    'CSV of standard names of parts of which the masks are forced off (setting '
+    'value to 0.0) during training. See '
+    '`KeypointProfile.get_standard_part_index` for standard part names.')
 
 # See `common_module.SUPPORTED_EMBEDDING_TYPES`.
 flags.DEFINE_string('embedding_type', 'GAUSSIAN', 'Type of embeddings.')
@@ -302,7 +347,8 @@ flags.DEFINE_integer('task', 0, 'Task replica identifier for training.')
 
 
 def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
-                        keypoint_distance_config_override, embedder_fn_kwargs):
+                        keypoint_distance_config_override,
+                        create_model_input_fn_kwargs, embedder_fn_kwargs):
   """Validates and sets up training configurations."""
   # Set default values for unspecified flags.
   if FLAGS.use_normalized_embeddings_for_triplet_mining is None:
@@ -326,6 +372,8 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
   validate_flag = common_module.validate
   validate_flag(FLAGS.model_input_keypoint_type,
                 common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES)
+  validate_flag(FLAGS.model_input_keypoint_mask_type,
+                common_module.SUPPORTED_MODEL_INPUT_KEYPOINT_MASK_TYPES)
   validate_flag(FLAGS.embedding_type, common_module.SUPPORTED_EMBEDDING_TYPES)
   validate_flag(FLAGS.base_model_type, common_module.SUPPORTED_BASE_MODEL_TYPES)
   validate_flag(FLAGS.keypoint_distance_type,
@@ -399,6 +447,23 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               FLAGS.input_keypoint_profile_name_3d),
       'keypoint_profile_2d':
           keypoint_profile_2d,
+      'create_model_input_fn':
+          functools.partial(
+              input_generator.create_model_input,
+              model_input_keypoint_mask_type=(
+                  FLAGS.model_input_keypoint_mask_type),
+              uniform_keypoint_jittering_max_offset_2d=(
+                  FLAGS.uniform_keypoint_jittering_max_offset_2d),
+              gaussian_keypoint_jittering_offset_stddev_2d=(
+                  FLAGS.gaussian_keypoint_jittering_offset_stddev_2d),
+              keypoint_dropout_probs=[
+                  float(x) for x in FLAGS.keypoint_dropout_probs
+              ],
+              set_on_mask_for_non_anchors=FLAGS.set_on_mask_for_non_anchors,
+              mix_mask_sub_batches=FLAGS.mix_mask_sub_batches,
+              forced_mask_on_part_names=FLAGS.forced_mask_on_part_names,
+              forced_mask_off_part_names=FLAGS.forced_mask_off_part_names,
+              **create_model_input_fn_kwargs),
       'embedder_fn':
           models_module.get_embedder(
               base_model_type=FLAGS.base_model_type,
@@ -523,7 +588,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
 def run(master, input_dataset_class, common_module, keypoint_profiles_module,
         models_module, input_example_parser_creator, keypoint_preprocessor_3d,
-        create_model_input_fn, keypoint_distance_config_override,
+        keypoint_distance_config_override, create_model_input_fn_kwargs,
         embedder_fn_kwargs):
   """Runs training pipeline.
 
@@ -537,9 +602,10 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
       function. If None, uses the default parser creator.
     keypoint_preprocessor_3d: A function handle for preprocessing raw 3D
       keypoints.
-    create_model_input_fn: A function handle for creating model inputs.
     keypoint_distance_config_override: A dictionary for keypoint distance
       configuration to override the defaults. Ignored if empty.
+    create_model_input_fn_kwargs: A dictionary of addition kwargs for create the
+      model input creator function.
     embedder_fn_kwargs: A dictionary of additional kwargs for creating the
       embedder function.
   """
@@ -551,6 +617,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
           keypoint_profiles_module=keypoint_profiles_module,
           models_module=models_module,
           keypoint_distance_config_override=keypoint_distance_config_override,
+          create_model_input_fn_kwargs=create_model_input_fn_kwargs,
           embedder_fn_kwargs=embedder_fn_kwargs)
 
       def create_inputs():
@@ -576,7 +643,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
              normalize_keypoints_3d=True)
         inputs.update(keypoint_preprocessor_side_outputs_3d)
 
-        inputs['model_inputs'], side_inputs = create_model_input_fn(
+        inputs['model_inputs'], side_inputs = configs['create_model_input_fn'](
             inputs[common_module.KEY_KEYPOINTS_2D],
             inputs[common_module.KEY_KEYPOINT_MASKS_2D],
             inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_3D],
