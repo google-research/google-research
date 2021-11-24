@@ -177,7 +177,10 @@ class SDFOutputter:
     self.init_geometry = init_geometry
     self.opt_geometry = opt_geometry
     if output_path:
-      self.writer = Chem.SDWriter(gfile.GFile(output_path, 'w'))
+      # I couldn't get gfile.GFile to be happen with Chem.SDWriter, so I'm just
+      # falling back to a plain old open.
+      #self.writer = Chem.SDWriter(gfile.GFile(output_path, 'w'))
+      self.writer = Chem.SDWriter(output_path)
     else:
       self.writer = Chem.SDWriter(sys.stdout)
 
