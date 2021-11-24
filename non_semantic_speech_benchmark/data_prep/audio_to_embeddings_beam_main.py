@@ -68,6 +68,10 @@ flags.DEFINE_integer('chunk_len', None, 'Optional chunk len')
 flags.DEFINE_integer(
     'embedding_length', None,
     'Expected length of the embedding. If present, must be this length.')
+# Extra data prep flags, needed just for `chunked_audio`.
+flags.DEFINE_bool(
+    'compute_embeddings_on_chunked_audio', True,
+    'Whether to compute targets on chunked audio or entire clip.')
 
 flags.DEFINE_string(
     'comma_escape_char', '?',

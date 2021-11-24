@@ -281,17 +281,20 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
 class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
   """Computes an embedding (key, tf.Example) from audio (key, tf.Example)."""
 
-  def __init__(self,
-               *args,
-               label_key=None,
-               speaker_id_key=None,
-               # Change the default `module_call_fn`.
-               module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
-               **kwargs):
+  def __init__(
+      self,
+      *args,
+      label_key=None,
+      speaker_id_key=None,
+      # Change the default `module_call_fn`.
+      module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
+      compute_embeddings_on_chunked_audio = True,
+      **kwargs):
     super(ChunkAudioAndComputeEmbeddings, self).__init__(*args, **kwargs)
     self._label_key = label_key
     self._speaker_id_key = speaker_id_key
     self._module_call_fn = module_call_fn
+    self._compute_embeddings_on_chunked_audio = compute_embeddings_on_chunked_audio
     logging.info('chunk_len: %s', self._chunk_len)
     logging.info('label_key: %s', self._label_key)
     logging.info('speaker_id_key: %s', self._speaker_id_key)
@@ -301,12 +304,16 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
     k, ex = k_v
 
     # Get dictionary of chunked audio.
-    model_input, _ = self.tfex_to_chunked_audio(k, ex)
+    chnkd_audio, _ = self.tfex_to_chunked_audio(k, ex)
+    if chnkd_audio.ndim == 1:
+      chnkd_audio = np.expand_dims(chnkd_audio, axis=0)
 
     # Calculate the 3D embeddings.
-    if model_input.ndim == 1:
-      model_input = np.expand_dims(model_input, axis=0)
-    tf_out = self._module_call_fn(model_input, self.post_setup_module)
+    if self._compute_embeddings_on_chunked_audio:
+      model_input = chnkd_audio
+    else:
+      model_input, _ = self.read_and_preprocess_audio(k, ex)
+    tf_out = self._module_call_fn(chnkd_audio, self.post_setup_module)
 
     cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
     for emb in cur_embs:
@@ -321,7 +328,7 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
       assert isinstance(x, np.ndarray)
       assert x.ndim == 3
       assert x.dtype == np.float32
-      assert x.shape[0] == model_input.shape[0], (x.shape, model_input.shape)
+      assert x.shape[0] == chnkd_audio.shape[0], (x.shape, chnkd_audio.shape)
       if self._embedding_len:
         assert x.shape[2] == self._embedding_len, x.shape
       if self._average_over_time:
@@ -341,9 +348,9 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
     if speaker_id:
       assert isinstance(speaker_id, bytes)
 
-    for i in range(model_input.shape[0]):
+    for i in range(chnkd_audio.shape[0]):
       cur_k = f'{k}_{i}'
-      cur_audio = np.array(model_input[i])
+      cur_audio = np.array(chnkd_audio[i])
       out_dict = {
           name: x[i] for name, x in zip(self._embedding_names, embedding_3ds)}
       yield (cur_k, cur_audio, label, speaker_id, out_dict)

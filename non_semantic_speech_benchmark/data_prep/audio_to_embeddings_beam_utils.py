@@ -74,6 +74,7 @@ def data_prep_pipeline(
         # Specific args.
         chunk_len=FLAGS.chunk_len,
         embedding_length=FLAGS.embedding_length,
+        compute_embeddings_on_chunked_audio=FLAGS.compute_embeddings_on_chunked_audio,  # pylint:disable=line-too-long
         **beam_params)
   else:
     raise ValueError(
@@ -332,6 +333,7 @@ def precompute_chunked_audio_pipeline(
     split_embeddings_into_separate_tables = False,
     use_frontend_fn = False,
     normalize_to_pm_one = True,
+    compute_embeddings_on_chunked_audio = True,
     model_input_min_length = None,
     embedding_length = 1024,
     chunk_len = None,
@@ -362,6 +364,7 @@ def precompute_chunked_audio_pipeline(
     split_embeddings_into_separate_tables: stuff
     use_frontend_fn: stuff
     normalize_to_pm_one: stuff
+    compute_embeddings_on_chunked_audio: stuff
     model_input_min_length: stuff
     embedding_length: Length of embedding.
     chunk_len: stuff
@@ -408,6 +411,7 @@ def precompute_chunked_audio_pipeline(
               model_input_min_length=model_input_min_length,
               chunk_len=chunk_len,
               module_call_fn=module_call_fn,
+              compute_embeddings_on_chunked_audio=compute_embeddings_on_chunked_audio,
               setup_fn=setup_fn))
       | f'Reshuffle2-{s}' >> beam.Reshuffle()
       | f'ToTFExample-{s}' >> beam.Map(

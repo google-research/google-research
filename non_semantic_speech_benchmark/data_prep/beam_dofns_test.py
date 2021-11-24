@@ -191,13 +191,49 @@ class BeamDofnsTest(parameterized.TestCase):
     expected_shape = (1, BASE_SHAPE_[1]) if average_over_time else BASE_SHAPE_
     self.assertEqual(new_v.shape, expected_shape)
 
-  @parameterized.parameters(
-      [{'chunk_len': 0, 'average_over_time': True},
-       {'chunk_len': 8000, 'average_over_time': True},
-       {'chunk_len': 0, 'average_over_time': False},
-       {'chunk_len': 8000, 'average_over_time': False},
-      ])
-  def test_chunk_audio(self, chunk_len, average_over_time):
+  @parameterized.parameters([
+      {
+          'chunk_len': 0,
+          'average_over_time': True,
+          'emb_on_chnks': True
+      },
+      {
+          'chunk_len': 8000,
+          'average_over_time': True,
+          'emb_on_chnks': True
+      },
+      {
+          'chunk_len': 0,
+          'average_over_time': False,
+          'emb_on_chnks': True
+      },
+      {
+          'chunk_len': 8000,
+          'average_over_time': False,
+          'emb_on_chnks': True
+      },
+      {
+          'chunk_len': 0,
+          'average_over_time': True,
+          'emb_on_chnks': False
+      },
+      {
+          'chunk_len': 8000,
+          'average_over_time': True,
+          'emb_on_chnks': False
+      },
+      {
+          'chunk_len': 0,
+          'average_over_time': False,
+          'emb_on_chnks': False
+      },
+      {
+          'chunk_len': 8000,
+          'average_over_time': False,
+          'emb_on_chnks': False
+      },
+  ])
+  def test_chunk_audio(self, chunk_len, average_over_time, emb_on_chnks):
     dofn = beam_dofns.ChunkAudioAndComputeEmbeddings(
         name='all',
         module='dummy_name',
@@ -210,6 +246,7 @@ class BeamDofnsTest(parameterized.TestCase):
         sample_rate=16000,
         average_over_time=average_over_time,
         chunk_len=chunk_len,
+        compute_embeddings_on_chunked_audio=emb_on_chnks,
         setup_fn=lambda _: MockModule(['okey1', 'okey2']))
     dofn.setup()
     for l in [8000, 16000, 32000]:
