@@ -16,6 +16,7 @@
 """Abstraction for quantizing neural networks implemented in jax."""
 
 import contextlib
+import dataclasses
 import enum
 import functools
 import logging
@@ -23,7 +24,6 @@ import typing
 from typing import Iterable, Optional, Tuple, Union
 
 from absl import flags
-import dataclasses
 from flax import linen as nn
 import jax
 from jax import lax
@@ -934,7 +934,6 @@ def quantized_dot_general(
 class QuantizedDot(nn.Module):
   """Flax module that calculates a quantized 'dot' operation."""
 
-  act_hparams: Optional[QuantOps.ActHParams]
   quant_type: QuantType
   weight_params: QuantOps.WeightParams
   act_hparams: Optional[QuantOps.ActHParams]
