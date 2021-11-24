@@ -250,3 +250,26 @@ class Dedal(tf.keras.Model):
       outputs_i = self.switch.filter(outputs_i, i)
       outputs_list.append(outputs_i)
     return self.switch.merge(outputs_list)
+
+
+@gin.configurable
+class DedalLight(tf.keras.Model):
+  """A light-weight model to be easily exported with tf.saved_model."""
+
+  def __init__(self, encoder, aligner, **kwargs):
+    super().__init__(**kwargs)
+    self.encoder = encoder
+    self.aligner = aligner
+
+  @tf.function
+  def call(self, inputs, training = False, embeddings_only = False):
+    embeddings = self.encoder(inputs, training=training)
+    if embeddings_only:
+      return embeddings
+    masks = self.encoder.compute_mask(inputs)
+    indices = pairs_lib.consecutive_indices(inputs)
+    embedding_pairs, mask_pairs = pairs_lib.build(indices, embeddings, masks)
+    alignments = self.aligner(
+        embedding_pairs, mask=mask_pairs, training=training)
+    return alignments
+

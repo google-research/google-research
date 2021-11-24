@@ -373,11 +373,18 @@ def weights_from_sim_mat(
       transitions (match, gap_in_y) and (gap_in_x, gap_in_y) and, finally,
       (gap_in_y, gap_in_y), respectively.
   """
-  b, l1, l2 = tf.shape(sim_mat)[0], sim_mat.shape[1], sim_mat.shape[2]
+  l1, l2 = sim_mat.shape[1:3]
 
-  sim_mat = _broadcast_to_shape(sim_mat, [b, l1, l2, 4])
-  gap_open = _broadcast_to_shape(gap_open, [b, l1, l2, 1])
-  gap_extend = _broadcast_to_shape(gap_extend, [b, l1, l2, 1])
+  sim_mat = sim_mat[Ellipsis, None]
+  sim_mat = tf.tile(sim_mat, [1, 1, 1, 4])
+  if gap_open.shape.rank == 3:
+    gap_open = gap_open[Ellipsis, None]
+    gap_extend = gap_extend[Ellipsis, None]
+  else:
+    gap_open = gap_open[Ellipsis, None, None, None]
+    gap_open = tf.tile(gap_open, [1, l1, l2, 1])
+    gap_extend = gap_extend[Ellipsis, None, None, None]
+    gap_extend = tf.tile(gap_extend, [1, l1, l2, 1])
 
   weights_m = sim_mat
   weights_x = tf.concat([-gap_open, -gap_extend], axis=-1)

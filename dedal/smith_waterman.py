@@ -85,7 +85,7 @@ def hard_sw_affine(
       edges for each i,j.
   """
   # Gathers shape and type variables.
-  b, l1, l2 = tf.shape(weights)[0], tf.shape(weights)[1], tf.shape(weights)[2]
+  b, l1, l2 = tf.shape(weights)[0], weights.shape[1], weights.shape[2]
   padded_len = l1 + l2 - 1
   dtype = weights.dtype
   inf = alignment.large_compatible_positive(dtype)
@@ -129,7 +129,7 @@ def hard_sw_affine(
   d_all = tf.TensorArray(tf.int32, size=padded_len, clear_after_read=True)
 
   # Runs forward Smith-Waterman recursion.
-  for k in tf.range(padded_len):
+  for k in range(padded_len):
     # NOTE(fllinares): shape information along the batch dimension seems to get
     # lost in the edge-case b=1
     tf.autograph.experimental.set_loop_options(
@@ -176,7 +176,7 @@ def hard_sw_affine(
   paths_sp = tf.TensorArray(tf.int32, size=padded_len, clear_after_read=True)
 
   # Runs Smith-Waterman backtracking.
-  for k in tf.range(padded_len - 1, -1, -1):
+  for k in range(padded_len - 1, -1, -1):
     # NOTE(fllinares): shape information along the batch dimension seems to get
     # lost in the edge-case b=1
     tf.autograph.experimental.set_loop_options(
