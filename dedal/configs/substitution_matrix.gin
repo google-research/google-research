@@ -35,6 +35,10 @@ model/multi_task.Backbone.alignments = [
     @dedal.Selector,
     @homology.LogCorrectedLogits,
 ]
+ConstantGapPenalties.gap_open_init = @gap_open/Constant()
+ConstantGapPenalties.gap_extend_init = @gap_extend/Constant()
+gap_open/Constant.value = 11.0
+gap_extend/Constant.value = 1.0
 
 # Optimizer.
 InverseSquareRootDecayWithWarmup:
