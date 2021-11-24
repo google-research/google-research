@@ -83,7 +83,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       raise ValueError(f'Audio key `{self._audio_key}` not found: '
                        f'{list(ex.features.feature.keys())}')
     audio = utils.tfexample_audio_to_npfloat32(ex, self._audio_key,
-                                               normalize_to_pm_one)
+                                               normalize_to_pm_one, k)
     assert audio.ndim == 1, audio.ndim
     if audio.size == 0:
       raise ValueError(f'No audio found: {self._audio_key}, {audio.size} {k}')

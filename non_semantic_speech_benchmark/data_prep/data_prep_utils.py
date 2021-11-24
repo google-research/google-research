@@ -171,7 +171,8 @@ def build_tflite_interpreter(tflite_model_path):
 
 
 def tfexample_audio_to_npfloat32(ex, audio_key,
-                                 normalize_to_pm_one):
+                                 normalize_to_pm_one,
+                                 key_field = None):
   """Extract audio from tf.Example and convert it to np.float32."""
   audio_feats = ex.features.feature[audio_key]
   iinfo = np.iinfo(np.int16)
@@ -184,11 +185,20 @@ def tfexample_audio_to_npfloat32(ex, audio_key,
     audio = audio.astype(np.float32)
     if normalize_to_pm_one:
       audio /= iinfo.max
-  else:
-    assert audio_feats.float_list.value
+  elif audio_feats.float_list.value:
     audio = np.array(audio_feats.float_list.value, dtype=np.float32)
     if not normalize_to_pm_one:
       audio *= iinfo.max
+  else:
+    if key_field:
+      if key_field not in ex.features.feature:
+        raise ValueError('Tried to raise error with ident, but had no key '
+                         f'field: {key_field} {ex}')
+      ident = ex.features.feature[key_field].bytes_list.value[0]
+      assert ident, (key_field, ex)
+      raise ValueError(f'Did not find any audio: {ident} {ex}')
+    else:
+      raise ValueError(f'Did not find any audio: {ex}')
   return audio
 
 
@@ -212,7 +222,7 @@ def add_key_to_audio(ex,
   # Note: Computing the key from the audio means keys won't be preserved when
   # chunking audio.
   samples = tfexample_audio_to_npfloat32(
-      ex, audio_key, normalize_to_pm_one=True)
+      ex, audio_key, normalize_to_pm_one=True, key_field=key_field)
   samples = samples[:16000]
   key = round(np.mean(samples), 5)  # Round so it's stable.
   key = str(key).encode('utf-8')
