@@ -20,7 +20,12 @@ import functools
 import re
 from typing import Dict, Iterable, List, Optional, Tuple
 from absl import flags
+from jax._src.lax import convolution as lax_convolution
 from jax._src.lax import lax
+from jax.interpreters import ad
+from jax.interpreters import batching
+from jax.interpreters import masking
+from jax.interpreters import xla
 import numpy as onp
 
 from aqt.jax import hlo_utils
@@ -65,11 +70,10 @@ class DotMetadataMonkeyPatch(contextlib.ContextDecorator):
         dtype_rule=lax._dot_general_dtype_rule,
         name=self._op_name,
         translation_rule=lax._dot_general_translation_rule)
-    lax.ad.defbilinear(lax.dot_general_p, lax._dot_general_transpose_lhs,
-                       lax._dot_general_transpose_rhs)
-    lax.batching.primitive_batchers[
-        lax.dot_general_p] = lax._dot_general_batch_rule
-    lax.masking.masking_rules[lax.dot_general_p] = lax._dot_general_masking_rule
+    ad.defbilinear(lax.dot_general_p, lax._dot_general_transpose_lhs,
+                   lax._dot_general_transpose_rhs)
+    batching.primitive_batchers[lax.dot_general_p] = lax._dot_general_batch_rule
+    masking.masking_rules[lax.dot_general_p] = lax._dot_general_masking_rule
     # pylint: enable=protected-access
 
   def __exit__(self, *exc):
@@ -89,41 +93,43 @@ class ConvMetadataMonkeyPatch(contextlib.ContextDecorator):
 
   def __enter__(self):
     # pylint: disable=protected-access
-    self._conv_general_dilated_p_original = lax.conv_general_dilated_p
+    self._conv_general_dilated_p_original = (
+        lax_convolution.conv_general_dilated_p)
     # The following primitive accepts a name argument which is passed into
     # the HLO metadata field. Here, it is the only argument changed from
     # the original lax implementation.
-    lax.conv_general_dilated_p = lax.standard_primitive(
-        shape_rule=lax._conv_general_dilated_shape_rule,
-        dtype_rule=lax._conv_general_dilated_dtype_rule,
+    lax_convolution.conv_general_dilated_p = lax.standard_primitive(
+        shape_rule=lax_convolution._conv_general_dilated_shape_rule,
+        dtype_rule=lax_convolution._conv_general_dilated_dtype_rule,
         name=self._op_name,
         translation_rule=functools.partial(
-            lax._conv_general_dilated_translation_rule,
+            lax_convolution._conv_general_dilated_translation_rule,
             expand_complex_convolutions=False))
-    lax.xla.register_translation(
-        lax.conv_general_dilated_p,
+    xla.register_translation(
+        lax_convolution.conv_general_dilated_p,
         functools.partial(
-            lax._conv_general_dilated_translation_rule,
+            lax_convolution._conv_general_dilated_translation_rule,
             expand_complex_convolutions=True),
         platform='cpu')
-    lax.xla.register_translation(
-        lax.conv_general_dilated_p,
+    xla.register_translation(
+        lax_convolution.conv_general_dilated_p,
         functools.partial(
-            lax._conv_general_dilated_translation_rule,
+            lax_convolution._conv_general_dilated_translation_rule,
             expand_complex_convolutions=True),
         platform='gpu')
-    lax.ad.defbilinear(lax.conv_general_dilated_p,
-                       lax._conv_general_dilated_transpose_lhs,
-                       lax._conv_general_dilated_transpose_rhs)
-    lax.batching.primitive_batchers[
-        lax.conv_general_dilated_p] = lax._conv_general_dilated_batch_rule
-    lax.masking.masking_rules[
-        lax.conv_general_dilated_p] = lax._conv_general_dilated_masking_rule
+    ad.defbilinear(lax_convolution.conv_general_dilated_p,
+                   lax_convolution._conv_general_dilated_transpose_lhs,
+                   lax_convolution._conv_general_dilated_transpose_rhs)
+    batching.primitive_batchers[lax_convolution.conv_general_dilated_p] = (
+        lax_convolution._conv_general_dilated_batch_rule)
+    masking.masking_rules[lax_convolution.conv_general_dilated_p] = (
+        lax_convolution._conv_general_dilated_masking_rule)
     # pylint: enable=protected-access
 
   def __exit__(self, *exc):
     # Restore original primitive
-    lax.conv_general_dilated_p = self._conv_general_dilated_p_original
+    lax_convolution.conv_general_dilated_p = (
+        self._conv_general_dilated_p_original)
 
 
 # TODO(abdolrashidi): Add support for QuantOps.FloatQuant for cost estimation.
