@@ -18,6 +18,7 @@
 # ./run_demo.sh
 
 bazel run -c opt \
+  --verbose_failures \
   --copt=-DMAX_SCALAR_ADDRESSES=4 \
   --copt=-DMAX_VECTOR_ADDRESSES=3 \
   --copt=-DMAX_MATRIX_ADDRESSES=1 \
