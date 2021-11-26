@@ -63,6 +63,7 @@ def get_keras_model(model_type,
 
   # Construct model input and frontend.
   model_in, feats = _frontend_keras(frontend, tflite)
+  feats.shape.assert_is_compatible_with([None, None, None, 1])
   inputs = [model_in]
   logging.info('Features shape: %s', feats.shape)
 
@@ -129,6 +130,12 @@ def _frontend_keras(
         batch_size=num_batches,
         name='log_mel_spectrogram')
     feats = model_in
+
+  # `model_in` can be wavs or spectral features, but `feats` must be a 4D
+  # spectrogram.
+  feats.shape.assert_is_compatible_with(
+      [None, feats_inner_dim * frontend_args['frame_width'],
+       frontend_args['num_mel_bins'], 1])
 
   return (model_in, feats)
 
