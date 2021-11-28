@@ -68,7 +68,7 @@ def tfexamples_to_nps(
     # Read labels.
     if label_name not in feats:
       raise ValueError(
-          f'`label_name` not in feats: {label_name} vs {feats.keys()}')
+          f'`label_name` not in feats: {label_name} vs {list(feats.keys())}')
     cur_lbl = feats[label_name].bytes_list.value[0]
     assert isinstance(cur_lbl, bytes)
     if cur_lbl.decode('utf-8') not in label_list:
