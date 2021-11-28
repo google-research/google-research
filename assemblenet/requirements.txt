@@ -1,3 +1,0 @@
-absl-py>=0.5.0
-numpy>=1.13.3
-tensorflow==1.15

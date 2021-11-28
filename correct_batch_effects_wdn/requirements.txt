@@ -1,6 +1,0 @@
-absl-py
-numpy>=1.13.3
-pandas>=0.22.0
-scipy>=1.0.0
-sklearn>=0.20.0
-tensorflow>=1.12.0

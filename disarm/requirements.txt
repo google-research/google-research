@@ -1,5 +1,0 @@
-absl-py
-scipy>=1.4.1
-tensorflow>=2.2.0
-tensorflow_datasets>=3.1.0
-tensorflow_probability>=0.10.0

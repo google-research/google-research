@@ -1,8 +1,0 @@
-train_mnist.dim_input = 20
-train_mnist.num_classes = 10
-train_mnist.model_dir = 'models/mnist/model/full_network'
-train_mnist.data_path_mnist = 'data/mnist/mnist.npz'
-train_mnist.features_mnist_test = 'models/mnist/model/features_ll_test.npy'
-train_mnist.features_mnist_train = 'models/mnist/model/features_ll_train.npy'
-train_mnist.features_notmnist_test = 'models/mnist/model/features_ll_test_notmnist.npy'
-train_mnist.labels_notmnist_test = 'data/notmnist/labels_test_notmnist.npy'

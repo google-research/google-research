@@ -1,6 +1,0 @@
-tensorflow
-tensorflow_hub
-tensorflow_probability
-gin-config
-tensorflow_datasets
-absl-py

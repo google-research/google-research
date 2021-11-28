@@ -1,8 +1,0 @@
-tensorflow>=2.2
-numpy>=1.19.5
-tensorflow_datasets>=4.0
-absl-py
-skimage>=0.17
-sklearn>=0.24
-tf-models-official>=2.6.0
-scipy>=1.2.1

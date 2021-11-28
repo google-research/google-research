@@ -1,5 +1,0 @@
-absl-py
-tensorflow>=1.11.0
-numpy>=1.16.2
-Pillow
-

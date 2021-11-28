@@ -1,4 +1,0 @@
-<resources>
-    <!-- The name of the app. [CHAR_LIMIT=10] -->
-    <string name="app_name">PdCapture</string>
-</resources>

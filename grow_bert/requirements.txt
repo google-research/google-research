@@ -1,4 +1,0 @@
-absl-py
-numpy>=1.19.2
-tensorflow>=2.4
-tf-models-official>=2.4

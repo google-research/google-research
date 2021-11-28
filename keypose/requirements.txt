@@ -1,6 +1,0 @@
-numpy>=1.17.4
-tensorflow>=2.2.0
-opencv-python>=4.3.0
-matplotlib>=3.2.0
-scikit-image>=0.17.0
-pyyaml>=5.3.0

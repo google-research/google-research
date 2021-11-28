@@ -1,8 +1,0 @@
-# These package versions reproduce the published experiments.
-# Other versions may also work.
-tensorflow==2.5.0
-tensorflow-datasets==4.2.0
-tfp-nightly==0.13.0.dev20210126
-inference-gym==0.0.4
-matplotlib
-pandas

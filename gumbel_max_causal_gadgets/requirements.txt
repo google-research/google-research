@@ -1,6 +1,0 @@
-absl-py
-flax
-jax
-matplotlib
-numpy
-optax

@@ -1,8 +1,0 @@
-tensorflow>=2.3.1
-absl-py>=0.10.0
-apache-beam>=2.24.0
-attrs>=20.2.0
-natural-questions>=1.0.6  # Only needed for Natural Questions
-nltk>=3.5  # Only needed for WikiHop
-sentencepiece>=0.1.91
-six>=1.15.0

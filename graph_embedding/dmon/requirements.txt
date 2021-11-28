@@ -1,3 +1,0 @@
-numpy>=1.14.0
-scipy>=1.0.0
-tensorflow>=2.0.0

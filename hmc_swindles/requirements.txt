@@ -1,9 +1,0 @@
-tf-nightly
-tfp-nightly
-jax
-jaxlib
-absl-py
-gin-config
-simplejson
-rpy2
-PyYAML>=3.13

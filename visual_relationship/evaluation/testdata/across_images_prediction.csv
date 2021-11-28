@@ -1,5 +1,0 @@
-image_id_1,entity_1,xmin_1,xmax_1,ymin_1,ymax_1,image_id_2,entity_2,xmin_2,xmax_2,ymin_2,ymax_2,occlusion,distance
-image01,/m/018xm,0.0,0.5,0.4,0.8,image02,/m/04rky,0.0,0.5,0.0,0.5,0,0
-image01,/m/018xm,0.0,0.5,0.4,0.8,image02,/m/06mf6,0.0,0.5,0.1,0.6,1,2
-image03,/m/04yx4,0.0,0.5,0.0,0.5,image04,/m/01g31,0.0,0.5,0.0,0.5,2,3
-image03,/m/04yx4,0.0,0.4,0.0,0.5,image04,/m/01g31,0.0,0.5,0.0,0.5,2,3

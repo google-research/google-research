@@ -1,9 +1,0 @@
-absl-py>=0.5.0
-numpy>=1.13.3
-tensorflow>=2.0
-tqdm>=4.50.1
-lxml>=4.3.4
-bert-tensorflow
-tensor2tensor>=1.11.0
-networkx>=2.5
-

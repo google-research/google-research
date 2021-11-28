@@ -1,9 +1,0 @@
-# Only use explorer, don't learn edges
-max_episodes = 100  # only enough episodes to do all exploration
-log_freq = 10
-
-policy {
-  abstract_graph {
-    min_visit_count = 100
-  }
-}

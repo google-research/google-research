@@ -1,8 +1,0 @@
-cvxpy
-numpy
-jax
-jaxlib
-scipy
-joblib
-matplotlib
-ml_collections

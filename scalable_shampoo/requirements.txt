@@ -1,5 +1,0 @@
-absl-py
-flax>=0.2.2
-jax>=0.2.0
-jaxlib>=0.1.55
-scipy>=0.19.1

@@ -1,5 +1,0 @@
-absl-py >= 0.1.6
-matplotlib >= 3.0.3
-pandas >= 1.1.5
-numpy >= 1.16.4
-scipy >= 1.2.1

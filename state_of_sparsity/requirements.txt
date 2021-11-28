@@ -1,5 +1,0 @@
-absl-py>=0.6.0
-numpy>=1.15.4
-six>=1.12.0
-tensorflow>=1.12.0  # change to 'tensorflow-gpu' for gpu support
-tensor2tensor

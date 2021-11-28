@@ -1,5 +1,0 @@
-tensorflow~=1.11.0
-numpy>=1.15.1
-matplotlib>=2.2.3
-absl-py>=0.6.1
-scipy>=1.1.0

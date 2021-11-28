@@ -1,2 +1,0 @@
-tensorflow-gpu==v1.14.0
-scikit-image

@@ -1,4 +1,0 @@
-numpy>=1.18.1
-tensorflow>=2.2.0
-sksurv>=0.12.0
-lifelines>=0.24.9

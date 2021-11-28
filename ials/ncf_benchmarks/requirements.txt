@@ -1,3 +1,0 @@
-futures
-numpy
-scipy

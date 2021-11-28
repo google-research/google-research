@@ -1,2 +1,0 @@
-ml-collections==0.1.0
-tensorflow-gan==2.0.0

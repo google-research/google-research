@@ -1,5 +1,0 @@
-# -*-Python-*-
-
-num_layers = 8
-d_ff = 4608
-num_heads = 18

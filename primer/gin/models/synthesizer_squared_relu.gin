@@ -1,3 +1,0 @@
-include 'models/synthesizer.gin'
-
-DenseReluDense.activation = ["squared_relu"]

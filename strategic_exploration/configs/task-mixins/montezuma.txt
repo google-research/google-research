@@ -1,5 +1,0 @@
-permanent_checkpoint = 400000000  # 400M
-
-env {
-  domain = "MontezumaRevengeNoFrameskip"
-}

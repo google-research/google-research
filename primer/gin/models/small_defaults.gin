@@ -1,5 +1,0 @@
-# Based off of the T5 "small" model: bi_v1_small.gin.
-d_model = 512
-num_layers = 6
-d_ff = 2048
-num_heads = 8

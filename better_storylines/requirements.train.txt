@@ -1,8 +1,0 @@
-absl-py==0.9.0
-apache-beam>=2.20.0
-gin-config==0.3.0
-numpy>=1.18
-scipy==1.4.1
-tensorflow>=2.1.0
-tensorflow-datasets>=3.0
-tensorflow-hub==0.8.0
