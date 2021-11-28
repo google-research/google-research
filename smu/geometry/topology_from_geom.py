@@ -197,8 +197,6 @@ def bond_topologies_from_geom(
       bt.ring_atom_count = ring_atoms
 
     bt.bond_topology_id = bond_topology.bond_topology_id
-    bt.topology_score = bt.score
-    bt.ClearField("score")
     utilities.canonical_bond_topology(bt)
 
     if found_smiles == starting_smiles:   # Modulo that bug PFR found...
@@ -213,7 +211,12 @@ def bond_topologies_from_geom(
     result.bond_topology.append(bt)
 
   if len(result.bond_topology) > 1:
-    result.bond_topology.sort(key=lambda bt: bt.topology_score, reverse=True)
+    result.bond_topology.sort(key=lambda bt: bt.score, reverse=True)
+
+  score_sum = np.sum([bt.score for bt in result.bond_topology])
+  for bt in result.bond_topology:
+    bt.topology_score = np.log(bt.score / score_sum)
+    bt.ClearField("score")
 
   return result
 
@@ -247,7 +250,8 @@ def geometry_score(bt: dataset_pb2.BondTopology,
         bond.bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED):
       continue
     dist = distances[a1][a2]
-    result += bond_lengths.pdf_length_given_type(atype1, atype2, bond.bond_type, dist)
+    result += np.log(bond_lengths.pdf_length_given_type(
+      atype1, atype2, bond.bond_type, dist))
 
   return result
 

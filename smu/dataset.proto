@@ -103,6 +103,8 @@ message BondTopology {
   // A unique 1 indexed dense id for this topology.
   int32 bond_topology_id = 4;
 
+  // INTERNAL ONLY: This will not be available in the external database.
+  //
   // If this has been discerned from geometry, the associated score.
   // Now, prefer topology_score and geometry_score to reflect the different
   // kinds of scores available.
@@ -117,9 +119,26 @@ message BondTopology {
   // Number of atoms that are in a ring.
   int32 ring_atom_count = 7;
 
-  // The score derived from P(topology|geometry)
+  // An estimate of log(P(topology|geometry))
+  //
+  // This is a discrete distribution among all matching topologies
+  // from this geometry. Since we are in log space, a value of 0 means
+  // a probability of 1.0 and smaller negative values are smaller
+  // probabilities. Across the matching topologies,
+  // exp(topology_score) will sum to 1.
   float topology_score = 8;
-  // The score derived from P(geometry|topology)
+
+  // An estimate of log(p(geometry|topology)).
+  //
+  // This reflects how suprising this particular geometry is given the
+  // topology. Note that this is a probability *density* not a
+  // probability, so the scale can cover positive and negative numbers
+  // with smaller numbers representing less likely geometries. This
+  // score should *not* be used to compare across different
+  // topologies. It is only interesting for a given topology to
+  // compare different geometries.
+  //
+  // Note that only bonds between heavy atoms are used in computing this.
   float geometry_score = 9;
 }
 

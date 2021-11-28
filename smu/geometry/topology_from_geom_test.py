@@ -65,7 +65,6 @@ def triangular_distribution(min_dist, dist_max_value,
   return distances, population
 
 
-@absltest.skip("This test was not updated when all Hs have to be explicit")
 class TestTopoFromGeom(absltest.TestCase):
 
   def test_scores(self):
@@ -124,10 +123,16 @@ atom_positions {
     self.assertEqual(len(result.bond_topology), 2)
     self.assertEqual(len(result.bond_topology[0].bonds), 1)
     self.assertEqual(len(result.bond_topology[1].bonds), 1)
-    self.assertGreater(result.bond_topology[0].topology_score,
-                       result.bond_topology[1].topology_score)
     self.assertEqual(result.bond_topology[0].bonds[0].bond_type, single_bond)
     self.assertEqual(result.bond_topology[1].bonds[0].bond_type, double_bond)
+    self.assertGreater(result.bond_topology[0].topology_score,
+                       result.bond_topology[1].topology_score)
+    self.assertAlmostEqual(np.sum(np.exp(
+      [bt.topology_score for bt in result.bond_topology])), 1.0)
+    self.assertAlmostEqual(result.bond_topology[0].geometry_score,
+                           np.log(bldc1c.pdf(1.4)))
+    self.assertAlmostEqual(result.bond_topology[1].geometry_score,
+                           np.log(bldc2c.pdf(1.4)))
 
 
 if __name__ == "__main__":
