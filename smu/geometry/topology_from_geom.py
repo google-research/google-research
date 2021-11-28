@@ -165,7 +165,8 @@ def bond_topologies_from_geom(
 
   # Need to know when the starting smiles has been recovered.
   rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bond_topology)
-  starting_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
+  starting_smiles = smu_utils_lib.compute_smiles_for_molecule(
+    rdkit_mol, include_hs=True)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
   # Avoid finding duplicates.
@@ -184,7 +185,8 @@ def bond_topologies_from_geom(
     if matching_parameters.consider_not_bonded and len(Chem.GetMolFrags(rdkit_mol)) > 1:
       continue
 
-    found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
+    found_smiles = smu_utils_lib.compute_smiles_for_molecule(
+      rdkit_mol, include_hs=True)
     if found_smiles in all_found_smiles:
       continue
 
@@ -203,8 +205,8 @@ def bond_topologies_from_geom(
       bt.is_starting_topology = True
 
     if not matching_parameters.smiles_with_h:
-      rdkit_mol = Chem.RemoveHs(rdkit_mol, sanitize=False)
-      found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
+      found_smiles = smu_utils_lib.compute_smiles_for_molecule(
+        rdkit_mol, include_hs=False)
 
     bt.geometry_score = geometry_score(bt, distances, bond_lengths)
     bt.smiles = found_smiles
