@@ -45,12 +45,14 @@ class SummaryData(beam.DoFn):
     fate = topology_matches.fate
 
     if len(topology_matches.bond_topology) == 0:
-      yield f".,{starting_smiles},{conformer_id},{fate},0,."
+      yield f".,{starting_smiles},{conformer_id},{fate},0,.,.,."
       return
 
     result = ""
     for bt in topology_matches.bond_topology:
-      result += f"{bt.smiles},{starting_smiles},{conformer_id},{fate},{nbt},{bt.is_starting_topology}\n"
+      gscore = round(bt.geometry_score, 1)
+      tscore = round(bt.topology_score, 4)
+      result += f"{bt.smiles},{starting_smiles},{conformer_id},{fate},{nbt},{bt.ring_atom_count},{bt.is_starting_topology},{tscore},{gscore}\n"
 
     yield result.rstrip('\n')
 

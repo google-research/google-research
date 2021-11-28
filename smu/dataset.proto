@@ -104,11 +104,23 @@ message BondTopology {
   int32 bond_topology_id = 4;
 
   // If this has been discerned from geometry, the associated score.
+  // Now, prefer topology_score and geometry_score to reflect the different
+  // kinds of scores available.
+  // This is still used in smu_molecule as a generic score value accumulator -
+  // smu_molecule does not know what kind of score it is accumulating.
   float score = 5;
 
   // If this has been discerned from geometry, is it the same as the
   // starting BondTopology.
   bool is_starting_topology = 6;
+
+  // Number of atoms that are in a ring.
+  int32 ring_atom_count = 7;
+
+  // The score derived from P(topology|geometry)
+  float topology_score = 8;
+  // The score derived from P(geometry|topology)
+  float geometry_score = 9;
 }
 
 // When doing topology from geometry matching, the results are returned

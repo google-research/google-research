@@ -69,7 +69,7 @@ def triangular_distribution(min_dist, dist_max_value,
 class TestTopoFromGeom(absltest.TestCase):
 
   def test_scores(self):
-    carbon = 6
+    carbon = dataset_pb2.BondTopology.ATOM_C
     single_bond = dataset_pb2.BondTopology.BondType.BOND_SINGLE
     double_bond = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
 
@@ -116,16 +116,16 @@ atom_positions {
 
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
+    fate = dataset_pb2.Conformer.FATE_SUCCESS
     conformer_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
-        all_distributions, conformer_id, dataset_pb2.Conformer.FATE_SUCCESS,
-      bond_topology, geometry, matching_parameters)
+        all_distributions, conformer_id, fate, bond_topology, geometry, matching_parameters)
     self.assertIsNotNone(result)
     self.assertEqual(len(result.bond_topology), 2)
     self.assertEqual(len(result.bond_topology[0].bonds), 1)
     self.assertEqual(len(result.bond_topology[1].bonds), 1)
-    self.assertGreater(result.bond_topology[0].score,
-                       result.bond_topology[1].score)
+    self.assertGreater(result.bond_topology[0].topology_score,
+                       result.bond_topology[1].topology_score)
     self.assertEqual(result.bond_topology[0].bonds[0].bond_type, single_bond)
     self.assertEqual(result.bond_topology[1].bonds[0].bond_type, double_bond)
 

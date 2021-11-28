@@ -165,8 +165,9 @@ class SmuMolecule:
     self._bonds = list(bonds_to_scores.keys())
     self._scores = list(bonds_to_scores.values())
 
-    self._initial_score = 0.0
-    self._accumulate_score = operator.add
+    # Initialize for probability type accumulation
+    self._initial_score = 1.0
+    self._accumulate_score = operator.mul
 
     # For testing, it can be convenient to allow for partial matches
     # For example this allows matching C-C and C=C without the need
