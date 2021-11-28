@@ -1,10 +1,14 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+
 http_archive(
     name = "com_github_gflags_gflags",
     strip_prefix = "gflags-master",
     urls = ["https://github.com/gflags/gflags/archive/master.zip"],
 )
+
+
+
 
 bind(
     name   = "gflags",
@@ -19,15 +23,17 @@ http_archive(
 
 http_archive(
     name = "com_google_googletest",
-    strip_prefix = "googletest-master",
-    urls = ["https://github.com/google/googletest/archive/master.zip"],
+    strip_prefix = "googletest-main",
+    urls = ["https://github.com/google/googletest/archive/main.zip"],
 )
 
 http_archive(
     name = "rules_cc",
-    strip_prefix = "rules_cc-master",
-    urls = ["https://github.com/bazelbuild/rules_cc/archive/master.zip"],
+    strip_prefix = "rules_cc-main",
+    urls = ["https://github.com/bazelbuild/rules_cc/archive/main.zip"],
 )
+
+
 
 http_archive(
     name = "rules_proto",
@@ -58,10 +64,10 @@ http_archive(
 
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "1e622ce4b84b88b6d2cdf1db38d1a634fe2392d74f0b7b74ff98f3a51838ee53",
-    strip_prefix = "protobuf-3.8.0",
+    sha256 = "9b4ee22c250fe31b16f1a24d61467e40780a3fbb9b91c3b65be2a376ed913a1a",
+    strip_prefix = "protobuf-3.13.0",
     urls = [
-        "https://github.com/protocolbuffers/protobuf/archive/v3.8.0.zip",  # 2019-05-24
+        "https://github.com/protocolbuffers/protobuf/archive/v3.13.0.tar.gz",  # 2019-05-24
     ],
 )
 
@@ -81,3 +87,10 @@ http_archive(
     strip_prefix = "glog-master",
     urls = ["https://github.com/google/glog/archive/master.zip"],
 )
+
+http_archive(
+    name = "rules_python",
+    url = "https://github.com/bazelbuild/rules_python/releases/download/0.5.0/rules_python-0.5.0.tar.gz",
+    sha256 = "cd6730ed53a002c56ce4e2f396ba3b3be262fd7cb68339f0377a45e8227fe332",
+)
+
