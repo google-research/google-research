@@ -62,7 +62,7 @@ def reconcile_dupes(unused_argv):
   for filepath in gfile.glob(FLAGS.input):
     logging.info(f"Opening {filepath}")
     with gfile.GFile(filepath, 'r') as f:
-      df_list.append(pd.read_csv(f, names=["Smiles", "StartSmi", "id", "Fate", "NBts", "IsStart"]))
+      df_list.append(pd.read_csv(f, names=["Smiles", "StartSmi", "id", "Fate", "NBts", "RingAtoms", "IsStart"]))
 #     df_list.append(pd.read_csv(f))
 
   data = pd.concat(df_list)

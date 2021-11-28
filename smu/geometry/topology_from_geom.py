@@ -150,28 +150,29 @@ def bond_topologies_from_geom(
     dist = distances[i, j]
     if dist > THRESHOLD:
       continue
+    possible_bonds = bond_lengths.probability_of_bond_types(bond_topology.atoms[i],
+                                    bond_topology.atoms[j], dist)
+    if not possible_bonds:
+      continue
+    # Note that this relies on the fact that BOND_SINGLE==1 etc..
     btypes = np.zeros(4, np.float32)
-    for btype in range(0, 4):
-      try:
-        btypes[btype] = bond_lengths.pdf_length_given_type(
-          bond_topology.atoms[i], bond_topology.atoms[j], btype, dist)
-      except KeyError:
-        btypes[btype] = 0.0
-
-    if np.count_nonzero(btypes) > 0:
-      bonds_to_scores[(i, j)] = btypes
+    for key, value in possible_bonds.items():
+      btypes[key] = value
+    bonds_to_scores[(i, j)] = btypes
 
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
   # Need to know when the starting smiles has been recovered.
-  starting_smiles = smu_utils_lib.compute_smiles_for_bond_topology(bond_topology, True)
+  rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bond_topology)
+  starting_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
+  initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
+
   # Avoid finding duplicates.
   all_found_smiles: Set[string] = set()
 
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
-  initial_ring_atom_count = utilities.ring_atom_count_bt(bond_topology)
 
   search_space = mol.generate_search_state()
   for s in itertools.product(*search_space):
@@ -189,10 +190,15 @@ def bond_topologies_from_geom(
 
     all_found_smiles.add(found_smiles)
 
-    if matching_parameters.ring_atom_count_cannot_decrease and utilities.ring_atom_count_mol(rdkit_mol) < initial_ring_atom_count:
-      continue
+    if matching_parameters.ring_atom_count_cannot_decrease:
+      ring_atoms = utilities.ring_atom_count_mol(rdkit_mol)
+      if ring_atoms < initial_ring_atom_count:
+        continue
+      bt.ring_atom_count = ring_atoms
 
     bt.bond_topology_id = bond_topology.bond_topology_id
+    bt.topology_score = bt.score
+    bt.ClearField("score")
     utilities.canonical_bond_topology(bt)
 
     if found_smiles == starting_smiles:   # Modulo that bug PFR found...
@@ -202,14 +208,44 @@ def bond_topologies_from_geom(
       rdkit_mol = Chem.RemoveHs(rdkit_mol, sanitize=False)
       found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
 
+    bt.geometry_score = geometry_score(bt, distances, bond_lengths)
     bt.smiles = found_smiles
     result.bond_topology.append(bt)
 
   if len(result.bond_topology) > 1:
-    result.bond_topology.sort(key=lambda bt: bt.score, reverse=True)
+    result.bond_topology.sort(key=lambda bt: bt.topology_score, reverse=True)
 
   return result
 
+def geometry_score(bt: dataset_pb2.BondTopology,
+                   distances: np.array,
+                   bond_lengths: bond_length_distribution.AllAtomPairLengthDistributions) -> float:
+  """Return summed P(geometry|topology)  for `bt` given `distances`.
+
+  For each bond in `bt` compute the score associated with that kind of
+  bond at the distance in `distances`, given the distribution in
+  bond_lengths.
+  Sum these for an overall score, which the caller will most likely
+  place in bt.geometry_score.
+
+  Args:
+    bt: BondTopology
+    distances: numpy array natoms*natoms
+    bond_length_distribution
+  Returns:
+    floating point score.
+  """
+
+  result = 0.0
+  for bond in bt.bonds:
+    a1 = bond.atom_a
+    a2 = bond.atom_b
+    atype1 = bt.atoms[a1]
+    atype2 = bt.atoms[a2]
+    dist = distances[a1][a2]
+    result += bond_lengths.pdf_length_given_type(atype1, atype2, bond.bond_type, dist)
+
+  return result
 
 class TopologyFromGeom(beam.DoFn):
   """Beam class for extracting BondTopology from Conformer protos."""
@@ -230,12 +266,14 @@ class TopologyFromGeom(beam.DoFn):
     Yields:
       dataset_pb2.TopologyMatches
     """
-    if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
-      return
+# Adjust as needed...
+#   if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+#     return
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.neutral_forms_during_bond_matching = True
+    matching_parameters.must_match_all_bonds = True
     matching_parameters.consider_not_bonded = True
-    matching_parameters.ring_atom_count_cannot_decrease = True
+    matching_parameters.ring_atom_count_cannot_decrease = False
     yield bond_topologies_from_geom(self._bond_lengths,
                                     conformer.conformer_id,
                                     conformer.fate,
