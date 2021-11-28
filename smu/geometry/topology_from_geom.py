@@ -203,7 +203,7 @@ def bond_topologies_from_geom(
 
     if found_smiles == starting_smiles:   # Modulo that bug PFR found...
       bt.is_starting_topology = True
-      
+
     if not matching_parameters.smiles_with_h:
       rdkit_mol = Chem.RemoveHs(rdkit_mol, sanitize=False)
       found_smiles = Chem.MolToSmiles(rdkit_mol, kekuleSmiles=True, isomericSmiles=False)
@@ -242,6 +242,10 @@ def geometry_score(bt: dataset_pb2.BondTopology,
     a2 = bond.atom_b
     atype1 = bt.atoms[a1]
     atype2 = bt.atoms[a2]
+    if (atype1 == dataset_pb2.BondTopology.ATOM_H or
+        atype2 == dataset_pb2.BondTopology.ATOM_H or
+        bond.bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED):
+      continue
     dist = distances[a1][a2]
     result += bond_lengths.pdf_length_given_type(atype1, atype2, bond.bond_type, dist)
 

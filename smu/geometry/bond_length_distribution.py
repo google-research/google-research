@@ -390,7 +390,14 @@ class AllAtomPairLengthDistributions:
           atom_b,
           bond_type,
           dist):
-    """Adds a distribution of the atom pair and bond type."""
+    """Adds a distribution of the atom pair and bond type.
+
+    Args:
+      atom_a: dataset_pb2.AtomType
+      atom_b: dataset_pb2.AtomType
+      bond_type: dataset_pb2.BondType
+      dist: float
+    """
     atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
     atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
     if (atom_a, atom_b) not in self._atom_pair_dict:

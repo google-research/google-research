@@ -26,7 +26,7 @@ from smu import dataset_pb2
 from smu.geometry import smu_molecule
 
 
-class TestSMuMolecule(parameterized.TestCase):
+class TestSmuMolecule(parameterized.TestCase):
   """Test the SmuMolecule class."""
 
   @absltest.skip("This test is duplciative of test_ethane_all")
@@ -88,8 +88,8 @@ class TestSMuMolecule(parameterized.TestCase):
 
   @parameterized.parameters([
     [0, 0, 0, None], [0, 1, 1, None], [0, 2, 1, None],
-    [0, 3, 1, None], [1, 1, 2, 2.0], [1, 2, 2, 2.0],
-    [1, 3, 2, 2.0], [2, 2, 2, 2.0], [2, 3, 0, None],
+    [0, 3, 1, None], [1, 1, 2, 1.0], [1, 2, 2, 1.0],
+    [1, 3, 2, 1.0], [2, 2, 2, 1.0], [2, 3, 0, None],
     [3, 3, 0, None],
   ])
   def test_propane_all(self, btype1, btype2, expected_bonds, expected_score):
