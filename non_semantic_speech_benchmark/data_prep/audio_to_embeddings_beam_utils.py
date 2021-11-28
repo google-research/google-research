@@ -418,6 +418,7 @@ def precompute_chunked_audio_pipeline(
           utils.chunked_audio_to_tfex,
           delete_audio_from_output=delete_audio_from_output,
           chunk_len=chunk_len,
+          label_key=label_key,
           speaker_id_key=speaker_id_key,
           embedding_length=embedding_length)
       | f'Reshuffle3-{s}' >> beam.Reshuffle())
