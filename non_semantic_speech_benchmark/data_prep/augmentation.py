@@ -16,79 +16,34 @@
 """Augmentation library for spec augment for keras transform.
 """
 
-import abc
-import enum
-
 from lingvo.core import spectrum_augmenter
-import tensorflow as tf  # We want TF2.
+import tensorflow as tf
 
 
-class AugmentationMode(enum.Enum):
-  """The supported alignment modes."""
-  DISABLED = 'disabled'
-  TRAIN_ONLY = 'train_only'
-  TEST_ONLY = 'test_only'
-  TRAIN_AND_TEST = 'train_and_test'
+class SpecAugment(tf.keras.layers.Layer):
+  """A wrapper around lingo.core.spectrum_augmenter.SpectrumAugmenter .
 
-
-class Augmentation(tf.keras.Model, abc.ABC):
-  """Abstract base class for augmentation."""
-
-  def __init__(self,
-               augment_mode = AugmentationMode.TRAIN_ONLY):
-    """Builds Augmentation.
-
-    Args:
-      augment_mode: the augmentation mode.
-    """
-    super().__init__()
-    self.augment_mode = augment_mode
-
-  def _should_augment(self, training = False):
-    return (training and self.augment_mode in [
-        AugmentationMode.TRAIN_ONLY, AugmentationMode.TRAIN_AND_TEST
-    ]) or (not training and self.augment_mode in [
-        AugmentationMode.TEST_ONLY, AugmentationMode.TRAIN_AND_TEST
-    ])
-
-  def call(self, inputs, training = False):
-    if self._should_augment(training):
-      return self.apply_augmentation(inputs)
-    else:
-      return inputs
-
-  @abc.abstractmethod
-  def apply_augmentation(self, inputs):
-    pass
-
-
-class SpecAugment(Augmentation):
-  """A wrapper around lingo.core.spectrum_augmenter.SpectrumAugmenter.
-
-   SpecAugment is a data augmentation that combines three transformations:
-   - a time warping of up to max(time_warp_max_frames,
-   time_warp_max_ratio*input_length) frames.
-   - a masking of sampled frequencies with zeros along the entire time axis
-   (freq_mask)
-   - a masking of sampled timesteps with zeros along the entire frequency axis
-   (time_mask)
-   For the frequency mask, freq_mask_max_bins is the maximum number of
-   consecutive frequency bins to be masked, freq_mask_count is the number of
-   masks to apply to a signal. Same for time_mask.
-
-   Note: SpecAugment takes mel spectrograms as input.
+     SpecAugment is a data augmentation that combines three transformations:
+     - a time warping of up to max(time_warp_max_frames,
+     time_warp_max_ratio*input_length) frames.
+     - a masking of sampled frequencies with zeros along the entire time axis
+     (freq_mask)
+     - a masking of sampled timesteps with zeros along the entire frequency axis
+     (time_mask)
+     For the frequency mask, freq_mask_max_bins is the maximum number of
+     consecutive frequency bins to be masked, freq_mask_count is the number of
+     masks to apply to a signal. Same for time_mask.
   """
 
   def __init__(self,
-               freq_mask_max_bins,
-               freq_mask_count,
-               time_mask_max_frames,
-               time_mask_count,
-               time_mask_max_ratio,
-               time_warp_max_frames,
-               time_warp_max_ratio,
-               use_input_dependent_random_seed = True,
-               augment_mode = AugmentationMode.TRAIN_ONLY):
+               freq_mask_max_bins = 10,
+               freq_mask_count = 2,
+               time_mask_max_frames = 10,
+               time_mask_count = 2,
+               time_mask_max_ratio = 1.0,
+               time_warp_max_frames = 8,
+               time_warp_max_ratio = 1.0,
+               use_input_dependent_random_seed = False):
     """Builds SpecAugment.
 
     Args:
@@ -100,10 +55,9 @@ class SpecAugment(Augmentation):
       time_warp_max_frames: max numer of time frames to warp.
       time_warp_max_ratio: max ratio of the time warp.
       use_input_dependent_random_seed: If true, uses stateless random TensorFlow
-        ops, with seeds determined by the input features.
-      augment_mode: the augmentation mode.
+        ops, with seeds determined by the input features (and timestamp).
     """
-    super().__init__(augment_mode)
+    super().__init__(name='SpecAugment')
     spec_augment_params = spectrum_augmenter.SpectrumAugmenter.Params()
     spec_augment_params.freq_mask_max_bins = freq_mask_max_bins
     spec_augment_params.freq_mask_count = freq_mask_count
@@ -115,31 +69,32 @@ class SpecAugment(Augmentation):
     spec_augment_params.use_input_dependent_random_seed = (
         use_input_dependent_random_seed)
     spec_augment_params.name = 'SpecAugmentLayer'
-    self._spec_augment_layer = spec_augment_params.Instantiate()
+    self.spec_augment_layer = spec_augment_params.Instantiate()
 
-  def apply_augmentation(self, inputs):
+  def call(self, inputs, training=None):
     """Performs SpecAugment on the inputs.
 
     Args:
-      inputs: input mel spectrogram of shape (num_time_bins, num_freq_bins) or
-        (batch_size, num_time_bins, num_freq_bins).
+      inputs: input mel spectrogram of shape (batch_size, num_time_bins,
+       num_freq_bins, channels).
+      training: boolean training state.
 
     Returns:
-      Augmented mel spectrogram of shape (num_time_bins, num_freq_bins) or
-        (batch_size, num_time_bins, num_freq_bins).
+      Augmented mel spectrogram of shape (batch_size, num_time_bins,
+       num_freq_bins, channels).
     """
-    if inputs.shape.ndims == 2:
-      inputs = inputs[None, :, :, None]
-      squeeze_axis = [0, 3]
-    elif inputs.shape.ndims == 3:
-      inputs = inputs[:, :, :, None]
-      squeeze_axis = 3
-    else:
-      raise ValueError('Input shape must have 2 or 3 dimensions')
+    if training is None:
+      training = tf.keras.backend.learning_phase()
+    if not training:
+      return inputs
 
-    outputs, _ = self._spec_augment_layer.FPropDefaultTheta(
-        inputs=inputs,
-        paddings=tf.zeros(tf.shape(inputs)[:2])
-        )
-    return tf.squeeze(outputs, axis=squeeze_axis)
+    batch_size = tf.shape(inputs)[0]
+    num_time_bins = tf.shape(inputs)[1]
+    paddings = tf.zeros((batch_size, num_time_bins))
+    outputs = inputs
+    outputs = self.spec_augment_layer._AugmentationNetwork(  # pylint: disable=protected-access
+        inputs=outputs,
+        paddings=paddings,
+        global_seed=42)
+    return outputs
 
