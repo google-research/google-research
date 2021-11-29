@@ -54,6 +54,32 @@ class ModelsTest(parameterized.TestCase):
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 
+  @parameterized.parameters(
+      {'frontend': True, 'tflite': True, 'spec_augment': False},
+      {'frontend': True, 'tflite': True, 'spec_augment': True},
+      {'frontend': False, 'tflite': True, 'spec_augment': True},
+      {'frontend': True, 'tflite': False, 'spec_augment': True},
+      {'frontend': False, 'tflite': False, 'spec_augment': True},
+  )
+  def test_model_spec_augment(self, frontend, tflite, spec_augment):
+    if frontend:
+      input_tensor_shape = [1 if tflite else 2, 32000]  # audio signal.
+    else:
+      input_tensor_shape = [3, 96, 64, 1]  # log Mel spectrogram.
+    input_tensor = tf.zeros(input_tensor_shape, dtype=tf.float32)
+    output_dimension = 5
+
+    m = models.get_keras_model(
+        'mobilenet_debug_1.0_False', output_dimension,
+        frontend=frontend, tflite=tflite,
+        spec_augment=spec_augment)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+
+    emb.shape.assert_has_rank(2)
+    o.shape.assert_has_rank(2)
+    self.assertEqual(o.shape[1], 5)
+
   def test_invalid_model(self):
     invalid_mobilenet_size = 'huuuge'
     with self.assertRaises(KeyError) as exception_context:

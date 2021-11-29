@@ -23,6 +23,7 @@ from typing import Tuple
 from absl import logging
 import tensorflow as tf
 import tensorflow_hub as hub
+from non_semantic_speech_benchmark.data_prep import augmentation
 from non_semantic_speech_benchmark.distillation import frontend_lib
 
 
@@ -50,7 +51,8 @@ def get_keras_model(model_type,
                     output_dimension,
                     truncate_output = False,
                     frontend = True,
-                    tflite = False):
+                    tflite = False,
+                    spec_augment = False):
   """Make a Keras student model."""
   # For debugging, log hyperparameter values.
   logging.info('model name: %s', model_type)
@@ -58,12 +60,16 @@ def get_keras_model(model_type,
   logging.info('output_dimension: %i', output_dimension)
   logging.info('frontend: %s', frontend)
   logging.info('tflite: %s', tflite)
+  logging.info('spec_augment: %s', spec_augment)
 
   output_dict = {}  # Dictionary of model outputs.
 
   # Construct model input and frontend.
   model_in, feats = _frontend_keras(frontend, tflite)
   feats.shape.assert_is_compatible_with([None, None, None, 1])
+  spec_augment_fn = augmentation.SpecAugment() if spec_augment else tf.identity
+  feats = spec_augment_fn(feats)
+
   inputs = [model_in]
   logging.info('Features shape: %s', feats.shape)
 
