@@ -322,7 +322,7 @@ def mask_from_similarities(sim_mat,
   return tf.cast(mask, dtype)
 
 
-def _broadcast_to_rank(t, rank, axis = -1):
+def broadcast_to_rank(t, rank, axis = -1):
   """Appends dimensions to tf.Tensor `t` at axis `axis` to match rank `rank`."""
   rank_t = t.shape.rank  # Assumes ranks are known at compile time (static).
   for _ in range(rank - rank_t):
@@ -330,13 +330,13 @@ def _broadcast_to_rank(t, rank, axis = -1):
   return t
 
 
-def _broadcast_to_shape(
+def broadcast_to_shape(
     t,
     shape
     ):
   """Appends dimensions to and tiles tf.Tensor t to match desired shape."""
   rank = len(shape)
-  t = _broadcast_to_rank(t, rank, axis=-1)
+  t = broadcast_to_rank(t, rank, axis=-1)
   return tf.tile(t, shape // tf.shape(t))
 
 
@@ -480,3 +480,9 @@ def endpoints(alignments_or_paths, start = True):
     endpoint_x = start_x + 1 if start else len_x - start_x
     endpoint_y = start_y + 1 if start else len_y - start_y
     return tf.stack([endpoint_x, endpoint_y])
+
+
+def path_label_squeeze(paths):
+  """Returns a weights sum of paths solutions, for visualization."""
+  v_range = tf.range(1, tf.shape(paths)[-1] + 1, dtype=paths.dtype)
+  return tf.einsum('ijkn,n->ijk', paths, v_range)
