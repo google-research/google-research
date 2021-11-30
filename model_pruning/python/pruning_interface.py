@@ -519,7 +519,12 @@ class PruningOp(object):
         outputs = cls.GetEinSumResult(inputs, proj_obj)
     else:
       if p.pruning_hparams_dict[
-          'compression_option'] == 9 and p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.MIXED_BLOCK_COMPRESSION:
+        # can directly call GetEinSumResult as it doesn't use einsum operator
+        # for this compression option.
+        outputs = cls.GetEinSumResult(inputs, proj_obj)
+      elif p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.INPUTOUTPUT_COMPRESSION and p.pruning_hparams_dict[
               'compress_input']:
         blocked_inputs = tf.reshape(
             inputs,
@@ -535,7 +540,8 @@ class PruningOp(object):
         compressed_inputs = tf.reshape(inputs,
                                        py_utils.ToStaticShape([-1, input_dim]))
 
-      if p.pruning_hparams_dict['compression_option'] == 10:
+      if p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.BLOCK_COMPRESSION:
         if p.pruning_hparams_dict['block_method'] == 'mask':
           intermediate_result = py_utils.Matmul(
               compressed_inputs,
@@ -553,7 +559,7 @@ class PruningOp(object):
                                               theta.c_matrix_tfvar)
 
       if p.pruning_hparams_dict[
-          'compression_option'] == 9 and p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.INPUTOUTPUT_COMPRESSION and p.pruning_hparams_dict[
               'compress_output']:
         blocked_intermediate_result = tf.reshape(
             intermediate_result,

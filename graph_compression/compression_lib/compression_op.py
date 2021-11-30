@@ -2231,18 +2231,14 @@ class MixedBlockCompressionOp(CompressionOp):
     num_blocks = self._spec.compression_factor
     num_bases = self._spec.num_bases
 
-    # block the inputs tensor into num_blocks
-    blocked_input = tf.reshape(inputs, [
-        tf.shape(inputs)[0],
-        num_blocks,
-        tf.shape(inputs)[1] // num_blocks,
-    ])
+    # split the inputs tensor into num_blocks along its last axis
+    input_splitted = tf.split(inputs, num_blocks, axis=-1)
 
     # compute the matmul of each block with corresponding block_matrix
     intermediate_splitted = []
-    for i in range(num_blocks):
+    for i, input_i in enumerate(input_splitted):
       intermediate_splitted.append(
-          tf.matmul(blocked_input[:, i, :], theta.block_matrices[:, :, i]))
+          tf.matmul(input_i, theta.block_matrices[:, :, i]))
 
     # compute the linear combinations of the above intermediate outputs
     output_splitted = []
