@@ -97,7 +97,7 @@ def number_bonds(bt: dataset_pb2.BondTopology) -> np.array:
     nb = btype_to_nbonds(bond.bond_type);
     result[a1] += nb
     result[a2] += nb
-    
+
   return result
 
 
@@ -348,6 +348,8 @@ def max_bonds_any_form(atype: dataset_pb2.BondTopology.AtomType) -> int:
       atype: a dataset_pb2 atom type
     Returns:
       max number of bonds
+    Raises:
+      ValueError: on unsupported atype
   """
   if atype in [dataset_pb2.BondTopology.ATOM_C,
                dataset_pb2.BondTopology.ATOM_NPOS,
@@ -362,47 +364,8 @@ def max_bonds_any_form(atype: dataset_pb2.BondTopology.AtomType) -> int:
   if atype == dataset_pb2.BondTopology.ATOM_ONEG:
     return 2
 
-def convert_to_neutral(bt: dataset_pb2.BondTopology) -> bool:
-  """If possible, convert `bt` a neutral form.
+  raise ValueError(f'Unsupported AtomType {atype}')
 
-  During matching, N+ and O- may have been converted to their neutral forms.
-  During this post-processing, try to convert
-    all 4 connected N atoms to N+
-    all 1 connected O atoms to O-
-  and see if the resulting molecule is neutral.
-
-    Args:
-      bt: BondTopology
-    Returns:
-      True if successful. `bt` may have been changed.
-      Note that if we fail, `bt` will be in a changed, invalid state
-  """
-
-
-  charges = np.zeros(len(bt.atoms), dtype=np.int32)
-  nbonds = number_bonds(bt)
-  for i, atom in enumerate(bt.atoms):
-    if atom in [dataset_pb2.BondTopology.ATOM_H,
-                dataset_pb2.BondTopology.ATOM_C,
-                dataset_pb2.BondTopology.ATOM_F]:
-      continue
-
-    if atom == dataset_pb2.BondTopology.ATOM_O:
-      if nbonds[i] == 1:
-        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_ONEG
-        charges[i] = -1
-    elif atom == dataset_pb2.BondTopology.ATOM_ONEG:
-      if nbonds[i] == 2:
-        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_O
-    elif atom == dataset_pb2.BondTopology.ATOM_N:
-      if nbonds[i] == 4:
-        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_NPOS
-        charges[i] = 1
-    elif atom == dataset_pb2.BondTopology.ATOM_NPOS:
-      if nbonds[i] == 3:
-        bt.atoms[i] = dataset_pb2.BondTopology.ATOM_N
-
-  return positive_placed == negative_placed
 
 def ring_atom_count_bt(bt: dataset_pb2.BondTopology) -> int:
   """Return the number of ring atoms in `bt`.

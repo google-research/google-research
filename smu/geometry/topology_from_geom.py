@@ -145,7 +145,7 @@ def bond_topologies_from_geom(
   # Key is a tuple of the two atom numbers, value is an np.array
   # with the score for each bond type.
 
-  bonds_to_scores: Dict[Tuple[int, int], np.array] = {}
+  bonds_to_scores: Dict[Tuple[int, int], np.ndarray] = {}
   for (i, j) in itertools.combinations(heavy_atom_indices, 2):  # All pairs.
     dist = distances[i, j]
     if dist > THRESHOLD:
@@ -170,7 +170,7 @@ def bond_topologies_from_geom(
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
   # Avoid finding duplicates.
-  all_found_smiles: Set[string] = set()
+  all_found_smiles: Set[str] = set()
 
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
@@ -201,7 +201,7 @@ def bond_topologies_from_geom(
     bt.bond_topology_id = bond_topology.bond_topology_id
     utilities.canonical_bond_topology(bt)
 
-    if found_smiles == starting_smiles:   # Modulo that bug PFR found...
+    if found_smiles == starting_smiles:
       bt.is_starting_topology = True
 
     if not matching_parameters.smiles_with_h:
@@ -223,7 +223,7 @@ def bond_topologies_from_geom(
   return result
 
 def geometry_score(bt: dataset_pb2.BondTopology,
-                   distances: np.array,
+                   distances: np.ndarray,
                    bond_lengths: bond_length_distribution.AllAtomPairLengthDistributions) -> float:
   """Return summed P(geometry|topology)  for `bt` given `distances`.
 
