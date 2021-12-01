@@ -31,7 +31,8 @@ TESTDIR = 'non_semantic_speech_benchmark/export_model/testdata/12321'
 class TfliteConversionTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      {'include_frontend': True},
+      # TODO(joelshor): Disable this test until the testdata is fixed.
+      # {'include_frontend': True},
       {'include_frontend': False},
   )
   @flagsaver.flagsaver
