@@ -387,6 +387,15 @@ def smiles_to_id(bond_topology_filename):
       yield smiles, int(bt_id)
 
 
+def clean_up_conformer(conformer):
+    conformer = copy.deepcopy(conformer)
+
+    smu_utils_lib.clean_up_error_codes(conformer)
+    smu_utils_lib.clean_up_sentinel_values(conformer)
+
+    return conformer
+
+
 class UpdateConformerFn(beam.DoFn):
   """DoFn that performs several updates to fields in Conformer.
 
@@ -483,9 +492,6 @@ class UpdateConformerFn(beam.DoFn):
           _BOND_LENGTHS_SIG_DIGITS)
 
     conformer = copy.deepcopy(conformer)
-
-    smu_utils_lib.clean_up_error_codes(conformer)
-    smu_utils_lib.clean_up_sentinel_values(conformer)
 
     conformer.fate = smu_utils_lib.determine_fate(conformer)
 
@@ -839,9 +845,13 @@ def pipeline(root):
           num_shards=1,
           file_name_suffix='.csv'))
 
+  cleaned_conformers = (
+    merged_conformers
+    | 'CleanUpConformers' >> beam.Map(clean_up_conformer))
+
   # Get the bond length distributions
   bond_length_dists_pcoll = (
-      merged_conformers
+      cleaned_conformers
       | 'ExtractBondLengths' >> beam.FlatMap(
           extract_bond_lengths,
         dist_sig_digits=_BOND_LENGTHS_SIG_DIGITS,
@@ -863,7 +873,7 @@ def pipeline(root):
 
   # Various per conformer processing
   update_results = (
-      merged_conformers
+      cleaned_conformers
       | 'UpdateConformers'
       >> beam.ParDo(UpdateConformerFn(),
                     beam.pvalue.AsSingleton(bond_length_dists_pcoll),
