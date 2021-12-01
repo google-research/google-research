@@ -26,7 +26,17 @@ from streetview_contrails_dataset.persistence import streetview_dataset_pb2
 class ReadProtosTest(absltest.TestCase):
 
   def test_write_and_read_proto(self):
-    formation_info = streetview_dataset_pb2.FormationInfo(flight_id=1234)
+    formation_info = streetview_dataset_pb2.FormationInfo(
+        flight_id=1234,
+        nearby_flight_waypoints=streetview_dataset_pb2.Waypoints(points=[
+            streetview_dataset_pb2.Location(
+                timestamp=1582676608,
+                latitude=37.2612,
+                longitude=-121.5602,
+                altitude_meters=10000,
+                era5_data=streetview_dataset_pb2.EcmwfData(
+                    u=100., v=100., w=-0.5))
+        ]))
     persistence_labels = [
         streetview_dataset_pb2.PersistenceLabel(
             timestamp=1582676608,

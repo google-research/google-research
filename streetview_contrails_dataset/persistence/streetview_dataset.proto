@@ -46,6 +46,39 @@ message FlightMatchScore {
   string version = 2;
 }
 
+message EcmwfData {
+  // Fraction of cloud cover (0, 1)).
+  double cc = 1;
+  // Cloud ice water content (kg/kg).
+  double ciwc = 2;
+  // Cloud liquid water content (kg/kg).
+  double clwc = 3;
+  // Cloud rain water content (kg/kg).
+  double crwc = 4;
+  // Cloud snow water content (kg/kg).
+  double cswc = 5;
+  // Windfield divergence.
+  double d = 6;
+  // Eta coordinate vertical velocity.
+  double etadot = 7;
+  // Specific humidity (kg/kg)
+  double q = 8;
+  // Temperature (K)
+  double t = 9;
+  // U (eastward) component of wind (m/s)
+  double u = 10;
+  // V (northward) component of wind (m/s)
+  double v = 11;
+  // Relative vorticity (does NOT include coriolis effect).
+  double vo = 12;
+  // Vertical velocity (Pa/s).
+  double w = 13;
+  // Geopotential (m^2/s^2)
+  double z = 14;
+  // Relative humidity (%)
+  double r = 15;
+}
+
 message Location {
   uint64 timestamp = 1;
   float latitude = 2;
@@ -64,13 +97,21 @@ message Location {
   // with the formula "altitude_meters = geo_potential / (9.80665 * 0.98)".
   // [https://glossary.ametsoc.org/wiki/Geopotential_height]
   float altitude_meters = 4;
+
+  EcmwfData era5_data = 5;
+}
+
+message Waypoints {
+  repeated Location points = 1;
 }
 
 message FormationInfo {
   int64 flight_id = 1;
-  repeated Location nearby_flight_waypoints = 2;
+  Waypoints nearby_flight_waypoints = 5;
   LinearContrail streetview_contrail = 3;
   FlightMatchScore match_score = 4;
+
+  reserved 2;
 }
 
 enum DetectionOutcome {
@@ -90,12 +131,15 @@ message PersistenceLabel {
   // Details of the method, e.g. which model and thresholds.
   string detected_by = 3;
 
-  // Only present if `detected` == DetectionOutcome.DETECTED_SINGLETON.
+  // Only present if `detected` == DetectionOutcome.DETECTED_SINGLETON
+  // or `detected` == DetectionOutcome.DETECTED_MULTIPLE_CANDIDATES.
   optional LinearContrail satellite_contrail = 4;
 
   // Flight waypoints from FormationInfo advected forward
   // in time to the `timestamp` above,
-  repeated Location advected_flight_waypoints = 5;
+  Waypoints advected_flight_waypoints = 6;
+
+  reserved 5;
 }
 
 message DatasetEntry {
