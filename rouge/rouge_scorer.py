@@ -38,6 +38,7 @@ from __future__ import print_function
 import collections
 import re
 
+import nltk
 from nltk.stem import porter
 import six
 from six.moves import map
@@ -55,7 +56,7 @@ class RougeScorer(scoring.BaseScorer):
                           'The quick brown dog jumps on the log.')
   """
 
-  def __init__(self, rouge_types, use_stemmer=False):
+  def __init__(self, rouge_types, use_stemmer=False, split_summaries=False):
     """Initializes a new RougeScorer.
 
     Valid rouge types that can be computed are:
@@ -66,12 +67,14 @@ class RougeScorer(scoring.BaseScorer):
       rouge_types: A list of rouge types to calculate.
       use_stemmer: Bool indicating whether Porter stemmer should be used to
         strip word suffixes to improve matching.
+      split_summaries: whether to add newlines between sentences for rougeLsum
     Returns:
       A dict mapping rouge types to Score tuples.
     """
 
     self.rouge_types = rouge_types
     self._stemmer = porter.PorterStemmer() if use_stemmer else None
+    self._split_summaries = split_summaries
 
   def score(self, target, prediction):
     """Calculates rouge scores between the target and prediction.
@@ -102,8 +105,11 @@ class RougeScorer(scoring.BaseScorer):
       elif rouge_type == "rougeLsum":
         # Note: Does not support multi-line text.
         def get_sents(text):
-          # Assume sentences are separated by newline.
-          sents = six.ensure_str(text).split("\n")
+          if self._split_summaries:
+            sents = nltk.sent_tokenize(text)
+          else:
+            # Assume sentences are separated by newline.
+            sents = six.ensure_str(text).split("\n")
           sents = [x for x in sents if len(x)]
           return sents
 
