@@ -76,7 +76,7 @@ flags.DEFINE_boolean('split_program', False,
 flags.DEFINE_boolean('split_outputs', False,
                      'Whether to split outputs by partial program.')
 
-flags.DEFINE_enum('split', None, ['train', 'test', 'finetune'],
+flags.DEFINE_enum('split', None, ['train', 'valid', 'test', 'finetune'],
                   'Which split of the dataset to generate.')
 flags.DEFINE_enum('experiment', 'NONE', [e.name for e in Experiment],
                   'Kind of experiment (see document for descriptions).')
@@ -233,7 +233,7 @@ def main(_):
   _, token_id_table = dsl_tokens.build_token_tables()
 
   if not gfile.isdir(FLAGS.save_dir):
-    gfile.mkdir(FLAGS.save_dir)
+    gfile.makedirs(FLAGS.save_dir)
 
   worker_fname = os.path.join(
       FLAGS.save_dir,
@@ -251,7 +251,7 @@ def main(_):
             max_input_length=FLAGS.max_input_length,
             num_examples=FLAGS.num_strings_per_task)
       else:
-        if FLAGS.split == 'train':
+        if FLAGS.split in ['train', 'valid']:
           is_train = True
         elif FLAGS.split == 'test':
           is_train = False
