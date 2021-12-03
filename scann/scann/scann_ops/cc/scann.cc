@@ -18,6 +18,7 @@
 #include <fstream>
 
 #include "absl/base/internal/sysinfo.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/centers.pb.h"
@@ -142,7 +143,7 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
                                   config_, dataset, std::move(opts)));
 
   const std::string& distance = config_.distance_measure().distance_measure();
-  const absl::node_hash_set<std::string> negated_distances{
+  const absl::flat_hash_set<std::string> negated_distances{
       "DotProductDistance", "BinaryDotProductDistance", "AbsDotProductDistance",
       "LimitedInnerProductDistance"};
   result_multiplier_ =
@@ -279,15 +280,9 @@ Status ScannInterface::Serialize(std::string path) {
       SCANN_RETURN_IF_ERROR(VectorToNumpy(path + "/dp_norms.npy", *norms));
     }
   }
-  if (scann_->needs_dataset()) {
-    if (scann_->dataset() == nullptr)
-      return InternalError(
-          "Searcher needs original dataset but none is present.");
-    auto dataset = dynamic_cast<const DenseDataset<float>*>(scann_->dataset());
-    if (dataset == nullptr)
-      return InternalError("Failed to cast dataset to DenseDataset<float>.");
+  TF_ASSIGN_OR_RETURN(auto dataset, Float32DatasetIfNeeded());
+  if (dataset != nullptr)
     SCANN_RETURN_IF_ERROR(DatasetToNumpy(path + "/dataset.npy", *dataset));
-  }
   return OkStatus();
 }
 

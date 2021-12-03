@@ -262,10 +262,23 @@ SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions() {
 
   opts.crowding_attributes = std::const_pointer_cast<vector<int64_t>>(
       datapoint_index_to_crowding_attribute_);
-  opts.creation_timestamp = creation_timestamp_;
   if (reordering_helper_)
     reordering_helper_->AppendDataToSingleMachineFactoryOptions(&opts);
   return opts;
+}
+
+template <typename T>
+StatusOr<shared_ptr<const DenseDataset<float>>>
+SingleMachineSearcherBase<T>::SharedFloatDatasetIfNeeded() {
+  if (!needs_dataset()) return shared_ptr<const DenseDataset<float>>(nullptr);
+  if (dataset() == nullptr)
+    return InternalError(
+        "Searcher needs original dataset but none is present.");
+  auto dataset =
+      std::dynamic_pointer_cast<const DenseDataset<float>>(shared_dataset());
+  if (dataset == nullptr)
+    return InternalError("Failed to cast to DenseDataset<float>.");
+  return dataset;
 }
 
 bool UntypedSingleMachineSearcherBase::needs_hashed_dataset() const {

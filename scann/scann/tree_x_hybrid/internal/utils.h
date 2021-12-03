@@ -31,72 +31,71 @@ inline void TranslateGlobalToLeafLocalWhitelist(
     ConstSpan<DatapointIndex> leaf_local_to_global,
     SearchParameters* leaf_params) {}
 
+template <typename T, typename GetDatasetFunctor>
+StatusOr<vector<T>> CombineLeafDatasets(
+    size_t expected_size, const string_view name,
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+    GetDatasetFunctor F) {
+  ssize_t count = 0, total_size = 0, dimensionality = -1;
+  for (int leaf : Seq(datapoints_by_token.size())) {
+    const DenseDataset<T>* dataset_ptr = F(leaf);
+    if (dataset_ptr == nullptr) continue;
+    count++;
+    total_size += dataset_ptr->size();
+    if (!dataset_ptr->empty()) {
+      if (dimensionality == -1)
+        dimensionality = dataset_ptr->dimensionality();
+      else if (dimensionality != dataset_ptr->dimensionality())
+        return FailedPreconditionError(
+            "Dimensionality mismatch among leaf %s datasets: %d vs %d", name,
+            dimensionality, dataset_ptr->dimensionality());
+    }
+  }
+
+  if (count == 0) return vector<T>();
+  if (count != datapoints_by_token.size())
+    return FailedPreconditionError("Leaf %s dataset count mismatch: %d vs %d",
+                                   name, count, datapoints_by_token.size());
+  if (expected_size != total_size)
+    return FailedPreconditionError("Leaf %s dataset size mismatch: %d vs %d",
+                                   name, expected_size, total_size);
+
+  vector<T> combined(dimensionality * expected_size);
+  for (int leaf : Seq(datapoints_by_token.size())) {
+    const DenseDataset<T>* dataset_ptr = F(leaf);
+    for (const auto [inner_idx, global_idx] :
+         Enumerate(datapoints_by_token[leaf])) {
+      std::copy(dataset_ptr->data(inner_idx).begin(),
+                dataset_ptr->data(inner_idx).end(),
+                combined.begin() + dimensionality * global_idx);
+    }
+  }
+  return combined;
+}
+
 template <template <class> class V, typename T>
 StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
     const vector<unique_ptr<V<T>>>& leaf_searchers,
     ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
     const int expected_size) {
   const int n_leaves = leaf_searchers.size();
-  auto leaf_opts = std::vector<SingleMachineFactoryOptions>(n_leaves);
-
-  ssize_t hash_ct = 0, codebook_ct = 0, total_hashed = 0, hash_dim = -1;
-
-  ssize_t int8_ct = 0, total_int8 = 0, int8_dim = -1;
-  bool int8_has_norms = false;
+  DCHECK_EQ(datapoints_by_token.size(), n_leaves);
+  std::vector<SingleMachineFactoryOptions> leaf_opts(n_leaves);
   for (int i = 0; i < n_leaves; i++) {
     TF_ASSIGN_OR_RETURN(
         leaf_opts[i], leaf_searchers[i]->ExtractSingleMachineFactoryOptions());
-    if (leaf_opts[i].hashed_dataset != nullptr) {
-      hash_ct++;
-      size_t cur_size = leaf_opts[i].hashed_dataset->size();
-      total_hashed += cur_size;
-      const int cur_dims = leaf_opts[i].hashed_dataset->dimensionality();
-
-      if (cur_size > 0) {
-        if (hash_dim == -1)
-          hash_dim = cur_dims;
-        else if (hash_dim != cur_dims)
-          return FailedPreconditionError(absl::StrFormat(
-              "Dimensionality mismatch among hashed leaf datasets: %d vs %d",
-              hash_dim, cur_dims));
-      }
-    }
-    if (leaf_opts[i].ah_codebook != nullptr) codebook_ct++;
-    auto int8 = leaf_opts[i].pre_quantized_fixed_point;
-    if (int8 != nullptr) {
-      auto dataset = int8->fixed_point_dataset;
-      if (dataset) {
-        int8_ct++;
-        total_int8 += dataset->size();
-        int8_dim = dataset->dimensionality();
-      }
-      auto l2_norms = int8->squared_l2_norm_by_datapoint;
-      if (l2_norms && !l2_norms->empty()) {
-        if (!dataset || dataset->size() != l2_norms->size())
-          return FailedPreconditionError(
-              "Int8-quantized dataset: number of squared L2 norms inconsistent "
-              "with dataset size: %d vs %d",
-              dataset->size(), l2_norms->size());
-        int8_has_norms = true;
-      }
-    }
   }
-
   SingleMachineFactoryOptions opts;
-  if (hash_ct != 0 || codebook_ct != 0 || total_hashed != 0) {
-    if (hash_ct != n_leaves)
-      return FailedPreconditionError(
-          absl::StrFormat("Detected tree-AH hybrid but not all (%d/%d) leaf "
-                          "searchers have hashed datasets",
-                          hash_ct, n_leaves));
-    if (codebook_ct != n_leaves)
-      return FailedPreconditionError(
-          "Detected tree-AH hybrid but not all leaf searchers have AH "
-          "codebooks");
-    if (total_hashed != expected_size)
-      return FailedPreconditionError(
-          "Detected tree-AH hybrid but sum of leaf searcher hashed datasets "
-          "doesn't equal expected dataset size");
+
+  const auto get_ah = [&](int leaf_idx) {
+    return leaf_opts[leaf_idx].hashed_dataset.get();
+  };
+  TF_ASSIGN_OR_RETURN(vector<uint8_t> ah_dataset,
+                      (CombineLeafDatasets<uint8_t>(
+                          expected_size, "AH", datapoints_by_token, get_ah)));
+  if (!ah_dataset.empty()) {
+    opts.hashed_dataset =
+        make_shared<DenseDataset<uint8_t>>(ah_dataset, expected_size);
 
     opts.ah_codebook = leaf_opts[0].ah_codebook;
     std::string codebook_proto_str;
@@ -108,51 +107,41 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
       if (codebook_proto_str != codebook_to_compare)
         return FailedPreconditionError("Inconsistent codebooks among leaves");
     }
-
-    vector<uint8_t> storage(hash_dim * expected_size);
-    for (int i = 0; i < n_leaves; i++) {
-      int inner_idx = 0;
-      for (const auto dptr : *leaf_opts[i].hashed_dataset) {
-        const uint64_t res_idx = datapoints_by_token[i][inner_idx++];
-        std::copy(dptr.values(), dptr.values() + hash_dim,
-                  storage.begin() + res_idx * hash_dim);
-      }
-    }
-    opts.hashed_dataset =
-        make_shared<DenseDataset<uint8_t>>(storage, expected_size);
   }
-  if (int8_ct != 0) {
-    if (int8_ct != n_leaves)
-      return FailedPreconditionError(absl::StrFormat(
-          "Detected tree-scalar quantization hybrid but not all (%d/%d) leaf "
-          "searchers have int8-quantized datasets",
-          hash_ct, n_leaves));
-    if (total_int8 != expected_size)
-      return FailedPreconditionError(
-          "Detected tree-scalar quantization hybrid but sum of leaf searcher "
-          "datasets doesn't equal expected dataset size");
-    opts.pre_quantized_fixed_point = make_shared<PreQuantizedFixedPoint>();
 
-    vector<int8_t> storage(int8_dim * expected_size);
-    if (int8_has_norms)
-      opts.pre_quantized_fixed_point->squared_l2_norm_by_datapoint =
-          make_shared<vector<float>>(expected_size);
+  const auto get_int8 = [&](int leaf_idx) -> DenseDataset<int8_t>* {
+    auto fp = leaf_opts[leaf_idx].pre_quantized_fixed_point;
+    if (fp == nullptr) return nullptr;
+    return fp->fixed_point_dataset.get();
+  };
+  TF_ASSIGN_OR_RETURN(
+      vector<int8_t> int8_dataset,
+      (CombineLeafDatasets<int8_t>(expected_size, "INT8", datapoints_by_token,
+                                   get_int8)));
+  if (!int8_dataset.empty()) {
+    opts.pre_quantized_fixed_point = make_shared<PreQuantizedFixedPoint>();
+    opts.pre_quantized_fixed_point->fixed_point_dataset =
+        make_shared<DenseDataset<int8_t>>(int8_dataset, expected_size);
+
+    bool int8_has_norms = false;
     for (int i = 0; i < n_leaves; i++) {
       auto int8 = leaf_opts[i].pre_quantized_fixed_point;
-      for (size_t inner_idx : Seq(int8->fixed_point_dataset->size())) {
-        const uint64_t global_idx = datapoints_by_token[i][inner_idx];
-
-        auto dptr = (*int8->fixed_point_dataset)[inner_idx];
-        std::copy(dptr.values(), dptr.values() + int8_dim,
-                  storage.begin() + global_idx * int8_dim);
-
-        if (int8_has_norms)
+      if (int8 && int8->squared_l2_norm_by_datapoint &&
+          !int8->squared_l2_norm_by_datapoint->empty())
+        int8_has_norms = true;
+    }
+    if (int8_has_norms) {
+      opts.pre_quantized_fixed_point->squared_l2_norm_by_datapoint =
+          make_shared<vector<float>>(expected_size);
+      for (int i = 0; i < n_leaves; i++) {
+        auto int8 = leaf_opts[i].pre_quantized_fixed_point;
+        for (const auto [inner_idx, global_idx] :
+             Enumerate(datapoints_by_token[i])) {
           opts.pre_quantized_fixed_point->squared_l2_norm_by_datapoint->at(
               global_idx) = int8->squared_l2_norm_by_datapoint->at(inner_idx);
+        }
       }
     }
-    opts.pre_quantized_fixed_point->fixed_point_dataset =
-        make_shared<DenseDataset<int8_t>>(storage, expected_size);
   }
   return opts;
 }

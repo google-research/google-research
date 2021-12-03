@@ -72,8 +72,9 @@ class ScannInterface {
   void ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res, T_idx* indices,
                               float* distances, int neighbors_per_query);
 
-  bool needs_dataset() const { return scann_->needs_dataset(); }
-  const Dataset* dataset() const { return scann_->dataset(); }
+  StatusOr<shared_ptr<const DenseDataset<float>>> Float32DatasetIfNeeded() {
+    return scann_->SharedFloatDatasetIfNeeded();
+  }
 
   size_t n_points() const { return n_points_; }
   DimensionIndex dimensionality() const { return dimensionality_; }

@@ -244,6 +244,9 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
     return OkStatus();
   }
 
+  virtual StatusOr<shared_ptr<const DenseDataset<float>>>
+  SharedFloatDatasetIfNeeded();
+
   Status GetNeighborProto(const pair<DatapointIndex, float> neighbor,
                           const DatapointPtr<T>& query,
                           NearestNeighbors::Neighbor* result) const;

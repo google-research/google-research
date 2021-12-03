@@ -21,6 +21,10 @@
 
 namespace research_scann {
 
+SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(CosineDistance,
+                                              kEarlyStoppingNotSupported);
+SCANN_REGISTER_DISTANCE_MEASURE(CosineDistance);
+
 double BinaryCosineDistance::GetDistanceDense(
     const DatapointPtr<uint8_t>& a, const DatapointPtr<uint8_t>& b) const {
   DCHECK_EQ(a.nonzero_entries(), b.nonzero_entries());

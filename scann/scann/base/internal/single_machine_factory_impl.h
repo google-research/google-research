@@ -118,7 +118,6 @@ StatusOrSearcherUntyped SingleMachineFactoryUntypedImpl(
         searcher->EnableCrowding(std::move(opts.crowding_attributes)));
   }
 
-  searcher->set_creation_timestamp(opts.creation_timestamp);
   return {std::move(searcher)};
 }
 

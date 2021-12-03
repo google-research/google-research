@@ -122,6 +122,9 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
 
+  StatusOr<shared_ptr<const DenseDataset<float>>> SharedFloatDatasetIfNeeded()
+      override;
+
  protected:
   bool impl_needs_dataset() const final { return leaf_searchers_.empty(); }
 

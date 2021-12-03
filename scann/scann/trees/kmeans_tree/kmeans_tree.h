@@ -223,9 +223,12 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
     if (is_all_leaf_range) {
       if (children.front().LeafId() > token ||
           children.back().LeafId() < token) {
-        std::make_pair(false, fallback_value);
+        return std::make_pair(false, fallback_value);
       }
       const int32_t idx = token - children.front().LeafId();
+      DCHECK_LT(idx, children.size())
+          << token << " " << children.front().LeafId() << " "
+          << children.back().LeafId();
       DCHECK_EQ(children[idx].LeafId(), token);
 
       return success_callback(*node, idx);

@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/base/optimization.h"
 #include "absl/numeric/bits.h"
 #include "absl/numeric/int128.h"
 #include "scann/oss_wrappers/scann_bits.h"
@@ -89,6 +90,7 @@ class FastTopNeighbors {
     epsilon_.store(MaxOrInfinity<DistT>(), std::memory_order_relaxed);
     capacity_ = max_capacity_ = capacity;
     AllocateArrays(capacity_);
+    FillDistancesForASan();
   }
 
   SCANN_INLINE DistT epsilon() const {
@@ -100,7 +102,22 @@ class FastTopNeighbors {
   size_t capacity() const { return capacity_; }
 
   void PushBlock(ConstSpan<DistT> distances, DatapointIndexT base_dp_idx) {
-    PushBlockToFastTopNeighbors(distances, base_dp_idx, this);
+    PushBlockToFastTopNeighbors(
+        distances,
+        [base_dp_idx](DatapointIndex offset) { return base_dp_idx + offset; },
+        this);
+  }
+
+  template <typename LocalDistT>
+  void PushBlock(ConstSpan<DistT> distances,
+                 ConstSpan<LocalDistT> local_dp_indices,
+                 DatapointIndexT base_dp_idx) {
+    PushBlockToFastTopNeighbors(
+        distances,
+        [&](DatapointIndex offset) {
+          return base_dp_idx + local_dp_indices[offset];
+        },
+        this);
   }
 
   class Mutator;
@@ -224,9 +241,6 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
     return pushes_remaining_negated_ == 0;
   }
 
-  SCANN_OUTLINE void PushBlock(ConstSpan<DistT> distances,
-                               DatapointIndexT base_dp_idx);
-
   SCANN_INLINE DistT epsilon() const {
     return parent_->epsilon_.load(std::memory_order_relaxed);
   }
@@ -276,9 +290,9 @@ void FastTopNeighbors<DistT, DatapointIndexT>::AcquireMutator(
   return mutator->Init(this);
 }
 
-template <typename DistT, typename DatapointIndexT, typename TopN>
-void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
-                                 DatapointIndexT base_dp_idx, TopN* top_n) {
+template <typename DistT, typename DocidFn, typename TopN>
+void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances, DocidFn docid_fn,
+                                 TopN* top_n) {
   typename TopN::Mutator mutator;
   top_n->AcquireMutator(&mutator);
   DatapointIndex dist_idx = 0;
@@ -286,7 +300,8 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
 #ifdef __SSE4_1__
   if constexpr (std::is_same_v<DistT, float>) {
     Sse4<float> sse_epsilon = mutator.epsilon();
-    constexpr size_t kNumFloatsPerSimdRegister = 4;
+    constexpr size_t kNumFloatsPerSimdRegister =
+        Sse4<float>::kElementsPerRegister;
     const size_t num_sse4_registers =
         distances.size() / kNumFloatsPerSimdRegister;
     for (uint32_t simd_idx : Seq(num_sse4_registers)) {
@@ -296,8 +311,8 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
       while (ABSL_PREDICT_FALSE(push_mask)) {
         const int offset = bits::FindLSBSetNonZero(push_mask);
         push_mask &= (push_mask - 1);
-        const DatapointIndexT dp_idx = base_dp_idx + i0 + offset;
-        if (ABSL_PREDICT_FALSE(mutator.Push(dp_idx, (*simd_dists)[offset]))) {
+        if (ABSL_PREDICT_FALSE(
+                mutator.Push(docid_fn(i0 + offset), (*simd_dists)[offset]))) {
           mutator.GarbageCollect();
           sse_epsilon = mutator.epsilon();
 
@@ -313,7 +328,7 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
   for (; dist_idx < distances.size(); ++dist_idx) {
     const DistT dist = distances[dist_idx];
     if (dist < eps) {
-      if (mutator.Push(dist_idx + base_dp_idx, dist)) {
+      if (ABSL_PREDICT_FALSE(mutator.Push(docid_fn(dist_idx), dist))) {
         mutator.GarbageCollect();
         eps = mutator.epsilon();
       }

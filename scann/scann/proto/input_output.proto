@@ -87,23 +87,8 @@ message InputOutputConfig {
 
   optional FeatureNorm norm_type = 5 [default = NONE];
 
-  message TeamsterConfig {
-    optional bool enabled = 1 [default = false];
-
-    optional int32 num_shards = 2 [default = 1];
-
-    optional int32 shard_num = 3 [default = -1];
-
-    optional string teamster_loader_bns = 4;
-
-    optional string data_family_name = 5;
-
-    optional string data_stream_name = 6;
-
-    optional string db_prefix_override = 7 [default = "database"];
-  }
-
-  optional TeamsterConfig teamster = 20;
+  reserved 20;
+  reserved 25;
 
   optional bool non_negative = 6 [default = false];
 
