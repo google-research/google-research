@@ -77,6 +77,8 @@ message EcmwfData {
   double z = 14;
   // Relative humidity (%)
   double r = 15;
+  // Potential vorticity (K*m^2/kg/s)
+  double pv = 16;
 }
 
 message Location {
