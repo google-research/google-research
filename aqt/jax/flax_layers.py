@@ -19,11 +19,11 @@ Extends flax layers flax.nn.Dense.
 """
 
 import contextlib
+import dataclasses
 import typing
 from typing import Any, Callable, Iterable, Optional, Sequence, Tuple, Type, Union
 
 from absl import flags
-import dataclasses
 import flax
 from flax import linen as nn
 import jax
@@ -324,7 +324,8 @@ class ConvAqt(nn.Module):
               half_shift=hparams.weight_half_shift,
               axis=kernel_reduction_axis,
               expected_scale_shape=expected_scale_shape),
-          quantized_type=quantized_type)
+          quantized_type=quantized_type,
+          quantize_weights=self.quant_context.quantize_weights)
 
     # Convolution
     dimension_numbers = flax.nn.linear._conv_dimension_numbers(inputs.shape)  # pylint: disable=protected-access

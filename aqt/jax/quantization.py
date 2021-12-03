@@ -421,6 +421,7 @@ class QuantOps:
       weight_params,
       quantized_type = SCALE_DTYPE,
       fake_dependency = None,
+      quantize_weights = True,
   ):
     """Quantize weights with fake quant approach.
 
@@ -434,11 +435,13 @@ class QuantOps:
         prevent constant folding of rescale op with quantized weights. Defaults
         to None, in this case  quantized weights would not have a fake
         dependency.
+      quantize_weights: whether weights should be quantized or not
 
     Returns:
       Quantized and rescaled inputs using fake quant approach.
     """
-    if weight_params.prec is None:
+    # TODO(yichi): if weight_params.prec is None or weight_binarize flag True:
+    if weight_params.prec is None or not quantize_weights:
       return w
     ops = cls.create_weights_ops(w, weight_params=weight_params)
     return ops.fake_quant(

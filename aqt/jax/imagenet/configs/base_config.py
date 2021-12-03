@@ -117,6 +117,9 @@ def get_base_config(imagenet_type, quant_target):
           "cooldown_epochs": 50,
           "scheduler": "cosine",
           "num_epochs": 250,
+          "endlr": 0.0,
+          "knee_lr": 1e-5,
+          "knee_epochs": 125,
       },
       "optimizer": "sgd",
       "adam": {
@@ -124,6 +127,10 @@ def get_base_config(imagenet_type, quant_target):
           "beta2": 0.999
       },
       "early_stop_steps": -1,  # -1 means no early stop
+      "weight_quant_start_step": 0,  # 0 means turned on by default
+      "teacher_model": "labels",
+      "is_teacher": True,  # by default train the vanilla resnet
+      "seed": 0,
   })
 
   proj_layers = [sum(resnet_layers[:x]) for x in range(len(resnet_layers))]
@@ -134,6 +141,8 @@ def get_base_config(imagenet_type, quant_target):
           idx].conv_1.quant_act.input_distribution = "positive"
 
   config.model_hparams.filter_multiplier = 1.
+  config.model_hparams.se_ratio = 0.5
+  config.model_hparams.init_group = 32
   config.half_shift = False
 
   return config

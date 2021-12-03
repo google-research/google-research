@@ -151,6 +151,7 @@ class BaseConfigTest(parameterized.TestCase):
     }
 
     residual_block_schema = {
+        'conv_se': conv_schema,
         'conv_proj': conv_schema,
         'conv_1': conv_schema,
         'conv_2': conv_schema,
@@ -171,6 +172,7 @@ class BaseConfigTest(parameterized.TestCase):
         'weight_decay': None,
         'activation_bound_update_freq': None,
         'activation_bound_start_step': None,
+        'weight_quant_start_step': None,
         'prec': None,
         'half_shift': None,
         'weight_prec': None,
@@ -183,11 +185,17 @@ class BaseConfigTest(parameterized.TestCase):
         'shortcut_ch_shrink_method': None,
         'shortcut_ch_expand_method': None,
         'shortcut_spatial_method': None,
+        'teacher_model': None,
+        'is_teacher': None,
+        'seed': None,
         'lr_scheduler': {
             'warmup_epochs': None,
             'cooldown_epochs': None,
             'scheduler': None,
             'num_epochs': None,
+            'endlr': None,
+            'knee_lr': None,
+            'knee_epochs': None,
         },
         'optimizer': None,
         'adam': {
@@ -203,6 +211,8 @@ class BaseConfigTest(parameterized.TestCase):
             'residual_blocks': [residual_block_schema] * num_blocks,
             'filter_multiplier': None,
             'act_function': None,
+            'se_ratio': None,
+            'init_group': None,
         },
     }
 

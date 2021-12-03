@@ -45,6 +45,9 @@ def get_base_config(use_auto_acts):
           "cooldown_epochs": int_ph(),
           "scheduler": str_ph(),  # "cosine", "linear", or "step" lr decay
           "num_epochs": int_ph(),
+          "endlr": float_ph(),
+          "knee_lr": float_ph(),
+          "knee_epochs": int_ph(),
       },
       "optimizer": str_ph(),
       "adam": {
@@ -52,6 +55,10 @@ def get_base_config(use_auto_acts):
           "beta2": float_ph()
       },
       "early_stop_steps": int_ph(),
+      "weight_quant_start_step": int_ph(),
+      "teacher_model": str_ph(),
+      "is_teacher": bool_ph(),  # whether to train vanilla resnet or PokeBNN
+      "seed": int_ph(),
   })
   if use_auto_acts:
     # config_schema_utils is shared by wmt. To not make other code libraries
@@ -90,7 +97,7 @@ def get_residual_config(
   config = ml_collections.ConfigDict()
   config_schema_utils.set_default_reference(
       config,
-      parent_config, ["conv_proj", "conv_1", "conv_2", "conv_3"],
+      parent_config, ["conv_se", "conv_proj", "conv_1", "conv_2", "conv_3"],
       parent_field="conv")
   # TODO(b/179063860): The input distribution is an intrinsic model
   # property and shouldn't be part of the model configuration. Update
@@ -154,6 +161,8 @@ def get_config(num_blocks,
       # of conv filters in each layer by this number.
       "filter_multiplier": float_ph(),
       "act_function": str_ph(),
+      "se_ratio": float_ph(),
+      "init_group": int_ph(),  # feature group in the second group conv layer
   })
   config_schema_utils.set_default_reference(
       model_hparams, base_config, "act_function", parent_field="act_function")
