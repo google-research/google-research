@@ -392,6 +392,55 @@ class KeypointUtilsTest(tf.test.TestCase):
         [16.0, 16.0, 16.0],
     ])
 
+  def test_compute_temporal_procrustes_aligned_mpjpes(self):
+    target_points_t1 = tf.constant([[2.0, 2.0, 2.0],
+                                    [-1.5, -1.0, 0.0],
+                                    [2.5, 1.3, 1.4]])
+    target_points_t2 = tf.constant([[2.0, 2.0, 2.0],
+                                    [-1.5, -1.0, 0.0],
+                                    [2.5, 1.3, 1.4]])
+    target_points = tf.stack([target_points_t1, target_points_t2], axis=-3)
+    source_points_t1 = tf.constant([[1.0, 1.0, 1.0],
+                                    [0.0, 0.0, 0.0],
+                                    [1.0, 1.0, 1.0]])
+    source_points_t2 = tf.constant([[1.0, 1.0, 1.0],
+                                    [0.0, 0.0, 0.0],
+                                    [1.0, 1.0, 1.0]])
+    source_points = tf.stack([source_points_t1, source_points_t2], axis=-3)
+    mpjpes = keypoint_utils.compute_temporal_procrustes_aligned_mpjpes(
+        target_points, source_points, temporal_reduction_fn=tf.math.reduce_sum)
+    self.assertAlmostEqual(self.evaluate(mpjpes), 0.3496029 * 2, places=5)
+
+  def test_compute_temporal_procrustes_aligned_mpjpes_with_masks(self):
+    target_points_t1 = tf.constant([[2.0, 2.0, 2.0],
+                                    [-1.5, -1.0, 0.0],
+                                    [100.0, 200.0, 300.0],
+                                    [2.5, 1.3, 1.4],
+                                    [400.0, 500.0, 600.0]])
+    target_points_t2 = tf.constant([[2.0, 2.0, 2.0],
+                                    [-1.5, -1.0, 0.0],
+                                    [100.0, 200.0, 300.0],
+                                    [2.5, 1.3, 1.4],
+                                    [400.0, 500.0, 600.0]])
+    target_points = tf.stack([target_points_t1, target_points_t2], axis=-3)
+    source_points_t1 = tf.constant([[1.0, 1.0, 1.0],
+                                    [0.0, 0.0, 0.0],
+                                    [700.0, 800.0, 900.0],
+                                    [1.0, 1.0, 1.0],
+                                    [800.0, 700.0, 600.0]])
+    source_points_t2 = tf.constant([[1.0, 1.0, 1.0],
+                                    [0.0, 0.0, 0.0],
+                                    [700.0, 800.0, 900.0],
+                                    [1.0, 1.0, 1.0],
+                                    [800.0, 700.0, 600.0]])
+    source_points = tf.stack([source_points_t1, source_points_t2], axis=-3)
+
+    # Shape = [2, 5].
+    point_masks = tf.constant([[1.0, 1.0, 0.0, 1.0, 0.0],
+                               [1.0, 1.0, 0.0, 1.0, 0.0]])
+    mpjpes = keypoint_utils.compute_temporal_procrustes_aligned_mpjpes(
+        target_points, source_points, point_masks=point_masks)
+    self.assertAlmostEqual(self.evaluate(mpjpes), 0.3496029, places=5)
 
   def test_create_rotation_matrices_3d(self):
     # Shape = [3, 2].

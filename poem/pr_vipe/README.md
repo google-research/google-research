@@ -13,7 +13,8 @@ embedding space for 3D human poses from their 2D projections. Please refer to ou
 - [Liangzhe Yuan](https://github.com/yuanliangzhe)
 
 ## Updates
-- `11/23/2021`: Added individual random keypoint dropout support.
+- `12/03/2021`: Added [**`Temporal Pr-VIPE`**](https://github.com/google-research/google-research/tree/master/poem/pr_vipe/temporal) training support. Please refer to our [IJCV'21 paper](https://arxiv.org/abs/2010.13321) for details.
+- `11/23/2021`: Added individual random keypoint dropout support. Please refer to our [IJCV'21 paper](https://arxiv.org/abs/2010.13321) for details.
 - `03/25/2021`: Moved the Pr-VIPE project code into the [`pr_vipe`](https://github.com/google-research/google-research/tree/master/poem/pr_vipe) folder.
 - `03/17/2021`: Fixed an [issue](https://github.com/google-research/google-research/issues/636) in camera augmentation.
 - `03/04/2021`: Added a program for running model inference.

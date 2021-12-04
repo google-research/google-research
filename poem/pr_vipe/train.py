@@ -29,7 +29,6 @@ tf.disable_v2_behavior()
 
 FLAGS = flags.FLAGS
 
-flags.adopt_module_key_flags(common)
 flags.adopt_module_key_flags(train_base)
 
 flags.DEFINE_string('master', '', 'BNS name of the TensorFlow master to use.')

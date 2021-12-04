@@ -27,6 +27,16 @@ TFE_KEY_FEATURE = 'feature/data'
 TFE_KEY_CLASS_LABEL_ID = 'image/class/label'
 TFE_KEY_CLASS_LABEL_CONFIDENCE = 'image/class/confidence'
 
+# Input tf.SequenceExample context feature field keys.
+TFSE_KEY_IMAGE_HEIGHT = 'image/height'
+TFSE_KEY_IMAGE_WIDTH = 'image/width'
+TFSE_KEY_SUFFIX_KEYPOINT_2D = ['/region/point/y', '/region/point/x']
+TFSE_KEY_SUFFIX_KEYPOINT_2D_SCORE = '/region/point/score'
+TFSE_KEY_SUFFIX_KEYPOINT_3D = [
+    '/region/3d_point/y', '/region/3d_point/x', '/region/3d_point/z'
+]
+TFSE_KEY_SUFFIX_KEYPOINT_3D_SCORE = '/region/3d_point/score'
+
 # Input keys.
 KEY_IMAGE_SIZES = 'image_sizes'
 KEY_KEYPOINTS_2D = 'keypoints_2d'
@@ -90,8 +100,16 @@ SUPPORTED_MODEL_INPUT_KEYPOINT_MASK_TYPES = [
 # Simple Baseline architecutre: Martinez, et al. A simple yet effective baseline
 # for 3d human pose estimation. ICCV 2017.
 BASE_MODEL_TYPE_SIMPLE = 'SIMPLE'
+# Temporal Simple Baseline.
+BASE_MODEL_TYPE_TEMPORAL_SIMPLE = 'TEMPORAL_SIMPLE'
+# Temporal Simple Baseline late fusion.
+BASE_MODEL_TYPE_TEMPORAL_SIMPLE_LATE_FUSE = 'TEMPORAL_SIMPLE_LATE_FUSE'
 # Supported base model types.
-SUPPORTED_BASE_MODEL_TYPES = [BASE_MODEL_TYPE_SIMPLE]
+SUPPORTED_BASE_MODEL_TYPES = [
+    BASE_MODEL_TYPE_SIMPLE,
+    BASE_MODEL_TYPE_TEMPORAL_SIMPLE,
+    BASE_MODEL_TYPE_TEMPORAL_SIMPLE_LATE_FUSE,
+]
 
 # Embedding types.
 # Point embedding.

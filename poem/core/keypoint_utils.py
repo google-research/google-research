@@ -366,6 +366,33 @@ def compute_procrustes_aligned_mpjpes(target_points,
       aligned_source_points, target_points, point_masks=point_masks)
 
 
+def compute_temporal_procrustes_aligned_mpjpes(
+    target_points,
+    source_points,
+    temporal_reduction_fn=tf.math.reduce_max,
+    point_masks=None):
+  """Computes MPJPEs after procrustes alignment between input seqeunces.
+
+  This function is the same as `compute_procrustes_aligned_mpjpes` except here
+  expects inputs of shape [..., num_frames, num_keypoints, num_dims].
+  The final output will be the reduced distance along temporal axis.
+
+  Args:
+    target_points: A tensor for target points. Shape = [..., num_frames,
+      num_points, point_dim].
+    source_points: A tensor for source points. Shape = [..., num_frames,
+      num_points, point_dim].
+    temporal_reduction_fn: A reduce function handle to be applied on temporal
+      MPJPEs.
+    point_masks: A tensor for the masks. Shape = [..., sequence_length,
+      num_points]. Ignored if None.
+
+  Returns:
+    A tensor for MPJPEs. Shape = [...].
+  """
+  mpjpes = compute_procrustes_aligned_mpjpes(
+      target_points, source_points, point_masks)
+  return temporal_reduction_fn(mpjpes, axis=-1)
 
 
 def normalize_points_by_image_size(points, image_sizes):

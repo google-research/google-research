@@ -53,6 +53,27 @@ assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.data-00000-of-00001
 assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.meta"
 assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.index"
 
+# Check if Temporal Pr-VIPE training runs.
+TEMPORL_PR_VIPE_TRAIN_DIR="/tmp/e3d/temporal_pr_vipe/train"
+
+mkdir -p "${TEMPORAL_PR_VIPE_TRAIN_DIR}"
+python3 -m poem.pr_vipe.temporal.train \
+  --alsologtostderr \
+  --input_table="poem/testdata/tfse-2.tfrecords" \
+  --train_log_dir="${TEMPORAL_PR_VIPE_TRAIN_DIR}" \
+  --batch_size=4 \
+  --num_steps=5 \
+  --input_shuffle_buffer_size=10 \
+  --summarize_percentiles=false \
+  --input_sequence_length=5 \
+  || exit 1
+
+assert_file_exists "${TEMPORAL_PR_VIPE_TRAIN_DIR}/all_flags.train.json"
+assert_file_exists "${TEMPORAL_PR_VIPE_TRAIN_DIR}/graph.pbtxt"
+assert_file_exists "${TEMPORAL_PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.data-00000-of-00001"
+assert_file_exists "${TEMPORAL_PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.meta"
+assert_file_exists "${TEMPORAL_PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.index"
+
 # Check if CV-MIM encoder training runs.
 CV_MIM_ENCODER_TRAIN_DIR="/tmp/e3d/cv_mim/encoder_train"
 
