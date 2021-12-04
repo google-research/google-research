@@ -314,6 +314,14 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
         bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
       continue
 
+    # Hello huge hack. F-F creates problems for us because there is
+    # exactly one conformer that has an F-F bond. We can't create an
+    # empirical distribution out of 1 value. So we'll just drop that
+    # one and let the FF conformer have no detected geometries.
+    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_F and
+        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
+      continue
+
     bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
     for bond in bt.bonds:
       if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
