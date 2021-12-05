@@ -256,7 +256,7 @@ class ReDetectTopologiesOutputter:
       matching_parameters=self._matching_parameters)
 
     if not matches.bond_topology:
-      logging.error(f'Np bond topology matched for {conformer.conformer_id}')
+      logging.error(f'No bond topology matched for {conformer.conformer_id}')
     else:
       del conformer.bond_topologies[:]
       conformer.bond_topologies.extend(matches.bond_topology)

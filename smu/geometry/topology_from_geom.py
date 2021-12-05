@@ -150,8 +150,11 @@ def bond_topologies_from_geom(
     dist = distances[i, j]
     if dist > THRESHOLD:
       continue
-    possible_bonds = bond_lengths.probability_of_bond_types(bond_topology.atoms[i],
-                                    bond_topology.atoms[j], dist)
+    try:
+      possible_bonds = bond_lengths.probability_of_bond_types(bond_topology.atoms[i],
+                                                              bond_topology.atoms[j], dist)
+    except KeyError:  # Happens when this bond type has no data
+      continue
     if not possible_bonds:
       continue
     # Note that this relies on the fact that BOND_SINGLE==1 etc..
