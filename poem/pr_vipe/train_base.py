@@ -27,6 +27,7 @@ from poem.core import input_generator
 from poem.core import keypoint_utils
 from poem.core import loss_utils
 from poem.core import pipeline_utils
+from poem.core import visualization_utils
 
 FLAGS = flags.FLAGS
 
@@ -330,6 +331,9 @@ flags.DEFINE_integer('log_every_n_steps', 100,
 
 flags.DEFINE_bool('summarize_gradients', False,
                   'Whether to summarize gradients.')
+
+flags.DEFINE_bool('summarize_inputs', False,
+                  'Whether to visualize input 2D poses.')
 
 flags.DEFINE_bool(
     'summarize_percentiles', True,
@@ -813,7 +817,19 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
           pad_step_number=True)
       summaries['train/learning_rate'] = learning_rate
 
-      pipeline_utils.add_summary(scalars_to_summarize=summaries)
+      image_summary = {}
+      if FLAGS.summarize_inputs:
+        image_summary.update({
+            'poses_2d/AnchorPositivePair':
+                visualization_utils.tf_draw_poses_2d(
+                    data_utils.flatten_first_dims(
+                        inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_2D],
+                        num_last_dims_to_keep=2),
+                    keypoint_profile_2d=configs['keypoint_profile_2d'],
+                    num_cols=2),
+        })
+      pipeline_utils.add_summary(
+          scalars_to_summarize=summaries, images_to_summarize=image_summary)
 
       if FLAGS.profile_only:
         pipeline_utils.profile()
