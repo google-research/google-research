@@ -317,6 +317,7 @@ class BeamDofnsTest(parameterized.TestCase):
       {'process_fn': 'ComputeMultipleEmbeddings', 'chunk_len': 200},
       {'process_fn': 'ChunkAudioAndComputeEmbeddings', 'chunk_len': 0},
       {'process_fn': 'ChunkAudioAndComputeEmbeddings', 'chunk_len': 200},
+      {'process_fn': 'ComputeBatchedChunkedSingleEmbeddings', 'chunk_len': 0},
   ])
   def test_pipeline_padding(self, process_fn, chunk_len):
     """Check that the model input is of sufficient length."""
@@ -336,16 +337,23 @@ class BeamDofnsTest(parameterized.TestCase):
     elif process_fn == 'ComputeMultipleEmbeddings':
       beam_dofn = beam_dofns.ComputeMultipleEmbeddingsFromSingleModel(
           embedding_names=['em1'], chunk_len=chunk_len, **common_args)
-    else:
-      assert process_fn == 'ChunkAudioAndComputeEmbeddings'
+    elif process_fn == 'ChunkAudioAndComputeEmbeddings':
       beam_dofn = beam_dofns.ChunkAudioAndComputeEmbeddings(
           embedding_names=['em1'], chunk_len=chunk_len, **common_args)
+    else:
+      assert process_fn == 'ComputeBatchedChunkedSingleEmbeddings'
+      beam_dofn = beam_dofns.ComputeBatchedChunkedSingleEmbeddings(
+          **common_args)
 
     # Run preprocessing step.
     beam_dofn.setup()
     if process_fn == 'ComputeEmbeddingMapFn':
       model_input, sample_rate = beam_dofn.read_and_preprocess_audio(k, ex)
       expected_output_shape = (400,)
+    elif process_fn == 'ComputeBatchedChunkedSingleEmbeddings':
+      model_input, _, sample_rate = beam_dofn.read_and_preprocess_batched_audio(
+          [k, k], [ex, ex])
+      expected_output_shape = (2, 400)
     else:
       model_input, sample_rate = beam_dofn.tfex_to_chunked_audio(k, ex)
       expected_output_shape = (2, chunk_len) if chunk_len else (400,)
@@ -384,6 +392,34 @@ class BeamDofnsTest(parameterized.TestCase):
               audio_key='audio',
               label_key='label',
               speaker_id_key='speaker_id'))
+
+  def test_mini_beam_pipeline_batched(self):
+    def test_call_fn(batched_model_input, sr, mod, key, name):
+      del sr, mod, key, name
+      return np.zeros([batched_model_input.shape[0], 5, 1024], np.float32)
+    with beam.Pipeline() as root:
+      _ = (
+          root
+          | beam.Create([('k1', make_tfexample(5)), ('k2', make_tfexample(5))])
+          | 'Batch' >> beam.BatchElements(min_batch_size=2, max_batch_size=2)
+          | beam.ParDo(
+              beam_dofns.ComputeBatchedChunkedSingleEmbeddings(
+                  name='all',
+                  module='dummy_mod_loc',
+                  output_key=['k1'],
+                  audio_key='audio',
+                  sample_rate_key='sample_rate',
+                  sample_rate=None,
+                  chunk_len=2,
+                  average_over_time=True,
+                  feature_fn=None,
+                  setup_fn=lambda _: MockModule(['k1']),
+                  module_call_fn=test_call_fn))
+          | beam.Map(
+              data_prep_utils.single_audio_emb_to_tfex,
+              embedding_name='ename',
+              audio_key='audio',
+              embedding_length=1024))
 
 
 if __name__ == '__main__':

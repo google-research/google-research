@@ -124,8 +124,8 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     return librosa.core.resample(
         audio, orig_sr=sample_rate, target_sr=target_sr, res_type='kaiser_best')
 
-  def read_and_preprocess_audio(self, k,
-                                ex):
+  def _read_audio_and_resample(self, k,
+                               ex):
     # Read the input example audio and assert input format sanity.
     audio = self._read_audio_from_tfexample(
         ex, k, normalize_to_pm_one=self._normalize_to_pm_one)
@@ -138,6 +138,12 @@ class ComputeEmbeddingMapFn(beam.DoFn):
       audio = self.resample(
           audio, sample_rate, target_sr=self._target_sample_rate)
       sample_rate = self._target_sample_rate
+    return audio
+
+  def read_and_preprocess_audio(self, k,
+                                ex):
+    audio = self._read_audio_and_resample(k, ex)
+    sample_rate = self._target_sample_rate
 
     # Convert audio to features, if required.
     model_input = self._audio_to_features(audio, sample_rate)
@@ -150,6 +156,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
   def _audio_to_features(self, audio,
                          sample_rate):
     """Convert audio to features, if required."""
+    logging.info('`audio` shape is: %s', audio.shape)
     if self._feature_fn:
       model_input = self._feature_fn(audio, sample_rate)
       if not isinstance(model_input, np.ndarray):
@@ -214,12 +221,11 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
                module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
                **kwargs):
     super(ComputeMultipleEmbeddingsFromSingleModel, self).__init__(
-        *args, **kwargs)
+        *args, module_call_fn=module_call_fn, **kwargs)
     self._chunk_len = chunk_len
     self._output_keys = self._output_key
     self._embedding_names = embedding_names
     self._embedding_len = embedding_length
-    self._module_call_fn = module_call_fn
     assert isinstance(self._output_keys, (tuple, list))
 
   def tfex_to_chunked_audio(self, k,
@@ -290,10 +296,10 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
       module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
       compute_embeddings_on_chunked_audio = True,
       **kwargs):
-    super(ChunkAudioAndComputeEmbeddings, self).__init__(*args, **kwargs)
+    super(ChunkAudioAndComputeEmbeddings, self).__init__(
+        *args, module_call_fn=module_call_fn, **kwargs)
     self._label_key = label_key
     self._speaker_id_key = speaker_id_key
-    self._module_call_fn = module_call_fn
     self._compute_embeddings_on_chunked_audio = compute_embeddings_on_chunked_audio
     logging.info('chunk_len: %s', self._chunk_len)
     logging.info('label_key: %s', self._label_key)
@@ -354,6 +360,105 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
       out_dict = {
           name: x[i] for name, x in zip(self._embedding_names, embedding_3ds)}
       yield (cur_k, cur_audio, label, speaker_id, out_dict)
+
+
+@beam.typehints.with_input_types(List[Tuple[str, tf.train.Example]])
+@beam.typehints.with_output_types(Tuple[str, np.ndarray, np.ndarray])
+class ComputeBatchedChunkedSingleEmbeddings(ComputeEmbeddingMapFn):
+  """Computes embeddings in minibatches."""
+
+  def __init__(
+      self,
+      *args,
+      output_key,
+      embedding_length = None,
+      chunk_len = None,
+      # Change the default `module_call_fn`.
+      module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
+      **kwargs):
+    if len(output_key) != 1:
+      raise ValueError(f'output_key must be len 1: {output_key}')
+    super(ComputeBatchedChunkedSingleEmbeddings, self).__init__(
+        *args, output_key=output_key, module_call_fn=module_call_fn, **kwargs)
+    self._chunk_len = chunk_len
+    self._embedding_len = embedding_length
+
+  def read_and_preprocess_batched_audio(
+      self, ks,
+      exs):
+    """Returns batched model input, audio, and sr."""
+    audios = []
+    for k, ex in zip(ks, exs):
+      audio = self._read_audio_and_resample(k, ex)
+      if audio.ndim > 1:
+        raise ValueError(f'Audio was too many dims: {audio.ndim}')
+      audios.append(audio)
+    sr = self._target_sample_rate
+
+    # Do some chunking.
+    if self._chunk_len:
+      logging.info('Chunk len: %s', self._chunk_len)
+      chunked_audios = []
+      for audio in audios:
+        if audio.shape[0] >= self._chunk_len:
+          chunk = utils.get_chunked_audio_fn(audio, self._chunk_len)
+        else:
+          chunk = np.expand_dims(audio, -1)
+        chunked_audios.append(chunk)
+      audios = np.concatenate(chunked_audios, axis=0)
+      audios = [audios[i] for i in range(audios.shape[0])]
+
+    # Convert audio to features, if required.
+    model_inputs = [self._audio_to_features(a, sr) for a in audios]
+    for model_input in model_inputs:
+      if model_input.shape != model_inputs[0].shape:
+        raise ValueError(f'Model input shapes not the same: {model_inputs}')
+      logging.info('model_input shape: %s', model_input.shape)
+    batched_model_input = np.stack(model_inputs, axis=0)
+
+    return batched_model_input, audios, sr
+
+  def process(
+      self, k_v
+  ):
+    """Computes (k, audio, embedding) in batches."""
+    ks, exs = zip(*k_v)
+    batched_model_input, audio_samples, sr = self.read_and_preprocess_batched_audio(
+        ks, exs)
+
+    # Calculate the 3D embeddings.
+    assert len(self._output_key) == 1, self._output_key
+    logging.info('batched_model_input: %s', batched_model_input)
+    embedding_3d = self._module_call_fn(batched_model_input, sr,
+                                        self.post_setup_module,
+                                        self._output_key[0], self._name)
+    if not isinstance(embedding_3d, np.ndarray):
+      raise ValueError(f'`embedding_3d` wrong type: {type(embedding_3d)}')
+    if embedding_3d.ndim != 3:
+      raise ValueError(f'`embedding_3d` wrong dims: {embedding_3d.ndim}')
+    if embedding_3d.dtype != np.float32:
+      raise ValueError(f'`embedding_3d` wrong type: {embedding_3d.dtype}')
+    if embedding_3d.shape[0] != len(audio_samples):
+      raise ValueError(
+          f'Batch dim wrong: {embedding_3d.shape[0]} vs {len(audio_samples)}')
+    if self._embedding_len and embedding_3d.shape[2] != self._embedding_len:
+      raise ValueError(
+          f'Wrong dim len: {embedding_3d.shape[2]} vs {self._embedding_len}')
+    logging.info('[%s] `embedding_3d` shape: %s', self._name,
+                 embedding_3d.shape)
+    beam.metrics.Metrics.counter('computed-embedding', self._name).inc()
+    beam.metrics.Metrics.distribution(f'computed-embedding-{self._name}',
+                                      'length').update(embedding_3d.shape[0])
+
+    # Average over time, if required.
+    if self._average_over_time:
+      embedding = np.mean(embedding_3d, axis=1, keepdims=False)
+    else:
+      raise ValueError('Must average over time.')
+
+    for i in range(len(ks)):
+      k, a, e = ks[i], audio_samples[i], embedding[i, Ellipsis]
+      yield (k, a, e)
 
 
 def _get_label(label_key, ex):

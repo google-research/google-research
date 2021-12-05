@@ -59,8 +59,9 @@ flags.DEFINE_list(
     'List of module output key. Must be the same length as '
     '`embedding_modules`.')
 flags.DEFINE_enum('data_prep_behavior', 'many_models', [
-    'many_models', 'many_embeddings_single_model', 'chunked_audio'],
-                  'Which metric to compute and report.')
+    'many_models', 'many_embeddings_single_model', 'chunked_audio',
+    'batched_single_model'
+], 'Which metric to compute and report.')
 # Extra data prep flags, needed for `many_embeddings_single_model` and
 # `chunked_audio`.
 flags.DEFINE_integer('chunk_len', None, 'Optional chunk len')
@@ -72,6 +73,9 @@ flags.DEFINE_integer(
 flags.DEFINE_bool(
     'compute_embeddings_on_chunked_audio', True,
     'Whether to compute targets on chunked audio or entire clip.')
+# Extra data prep flags, needed just for ``.
+flags.DEFINE_integer('batch_size', 1,
+                     'Number of audio samples to compute embeddings at once.')
 
 flags.DEFINE_string(
     'comma_escape_char', '?',

@@ -115,5 +115,18 @@ class DataPrepUtilsTest(parameterized.TestCase):
     self.assertTrue(data_prep_utils.tfds_filenames(
         dataset_name, 'test'))
 
+  def test_single_audio_emb_to_tfex(self):
+    k = 'k'
+    audio = np.zeros([16000], np.float32)
+    embedding = np.ones([1024], np.float32)
+    out_k, ex = data_prep_utils.single_audio_emb_to_tfex(
+        k_v=('k', audio, embedding),
+        embedding_name='ename',
+        audio_key='audio_key',
+        embedding_length=1024)
+    self.assertEqual(out_k, k)
+    self.assertIn('audio_key', ex.features.feature)
+    self.assertIn('embedding/ename', ex.features.feature)
+
 if __name__ == '__main__':
   absltest.main()

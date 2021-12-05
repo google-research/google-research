@@ -394,6 +394,33 @@ def chunked_audio_to_tfex(
   return k, ex
 
 
+def single_audio_emb_to_tfex(
+    k_v,
+    embedding_name,
+    audio_key = 'audio',
+    embedding_length = 1024):
+  """Make simple (audio, embedding) pair into a tf.Example."""
+  k, audio, emb = k_v
+
+  # Sanity checks.
+  if emb.ndim != 1:
+    raise ValueError(f'Embedding dims wrong: {emb.ndim}')
+  if embedding_length and emb.shape[0] != embedding_length:
+    raise ValueError(
+        f'Feature dim wrong: {emb.shape[0]} vs {embedding_length}')
+  if audio.ndim != 1:
+    raise ValueError(f'Audio wrong shape: {audio.shape}')
+
+  ex = tf.train.Example()
+  ex.features.feature[audio_key].float_list.value.extend(audio.reshape([-1]))
+  ex = add_embedding_to_tfexample(ex, emb, f'embedding/{embedding_name}')
+
+  # Add the hash of the audio as a key.
+  ex = add_key_to_audio(ex, audio_key)
+
+  return k, ex
+
+
 def _read_from_tfrecord(root, input_filenames,
                         suffix):
   """Reads from a Python list of TFRecord files."""
