@@ -1018,12 +1018,14 @@ message BondTopologySummary {
   // optimization. The sum of
   // count_missing_calculation
   // count_calculation_with_error
+  // count_calculation_with_warning
   // count_calculation_success
   // should be equal to count_kept_geometry.
   // Missing calculations are ones for which we should have results, but are
   // missing them. count_missing_calculation should be 0 in the final dataset.
   int32 count_missing_calculation = 7;
   int32 count_calculation_with_error = 8;
+  int32 count_calculation_with_warning = 12;
   int32 count_calculation_success = 9;
 
   // After all calculations were done, we detected all bond topologies which are
@@ -1031,5 +1033,6 @@ message BondTopologySummary {
   // these "detected" geometries. Note that the geometries counted in the
   // "duplicate" fields above will probably be counted here.
   int32 count_detected_match_with_error = 10;
+  int32 count_detected_match_with_warning = 13;
   int32 count_detected_match_success = 11;
 }

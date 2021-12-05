@@ -1159,6 +1159,38 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[1].count_detected_match_with_error, 0)
 
   @parameterized.parameters(False, True)
+  def test_calculation_with_warning(self, swap_order):
+    self.conformer.fate = (
+        dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS)
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies[-1].bond_topology_id = 123
+    self.conformer.bond_topologies[0].is_starting_topology = True
+    if swap_order:
+      self._swap_bond_topologies()
+
+    got = list(
+        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+
+    self.assertLen(got, 2)
+    # We don't actually care about the order, but this is what comes out right
+    # now.
+    self.assertEqual(got[0].bond_topology.bond_topology_id, 123)
+    self.assertEqual(got[0].count_attempted_conformers, 0)
+    self.assertEqual(got[0].count_kept_geometry, 0)
+    self.assertEqual(got[0].count_calculation_with_error, 0)
+    self.assertEqual(got[0].count_calculation_with_warning, 0)
+    self.assertEqual(got[0].count_detected_match_with_error, 0)
+    self.assertEqual(got[0].count_detected_match_with_warning, 1)
+
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[1].count_attempted_conformers, 1)
+    self.assertEqual(got[1].count_kept_geometry, 1)
+    self.assertEqual(got[1].count_calculation_with_error, 0)
+    self.assertEqual(got[1].count_calculation_with_warning, 1)
+    self.assertEqual(got[1].count_detected_match_with_error, 0)
+    self.assertEqual(got[1].count_detected_match_with_warning, 0)
+
+  @parameterized.parameters(False, True)
   def test_calculation_success(self, swap_order):
     self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
     self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])

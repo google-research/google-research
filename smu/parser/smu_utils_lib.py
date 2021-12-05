@@ -1410,6 +1410,10 @@ def conformer_to_bond_topology_summaries(conformer):
   summary = dataset_pb2.BondTopologySummary()
   starting_idx = get_starting_bond_topology_index(conformer)
 
+  def other_topologies():
+    yield from itertools.chain(conformer.bond_topologies[:starting_idx],
+                               conformer.bond_topologies[(starting_idx+1):])
+
   summary.bond_topology.CopyFrom(conformer.bond_topologies[starting_idx])
   summary.count_attempted_conformers = 1
 
@@ -1432,22 +1436,28 @@ def conformer_to_bond_topology_summaries(conformer):
   elif (
       fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
       fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR or
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS or
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
-    for bt in itertools.chain(conformer.bond_topologies[:starting_idx],
-                              conformer.bond_topologies[(starting_idx+1):]):
+    for bt in other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_with_error = 1
       yield other_summary
+  elif (
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS or
+      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
+    summary.count_kept_geometry = 1
+    summary.count_calculation_with_warning = 1
+    for bt in other_topologies():
+      other_summary = dataset_pb2.BondTopologySummary()
+      other_summary.bond_topology.CopyFrom(bt)
+      other_summary.count_detected_match_with_warning = 1
+      yield other_summary
   elif fate == dataset_pb2.Conformer.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
-    for bt in itertools.chain(conformer.bond_topologies[:starting_idx],
-                              conformer.bond_topologies[(starting_idx+1):]):
+    for bt in other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_success = 1
