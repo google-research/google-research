@@ -36,6 +36,10 @@
 
 namespace research_scann {
 
+class UntypedSingleMachineSearcherBase;
+using StatusOrSearcherUntyped =
+    StatusOr<unique_ptr<UntypedSingleMachineSearcherBase>>;
+
 template <typename T>
 class SingleMachineSearcherBase;
 
