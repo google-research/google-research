@@ -49,7 +49,7 @@ def _s2e(audio_samples, sample_rate, module_location, output_key, name):
 
 def make_tfexample(l):
   ex = tf.train.Example()
-  ex.features.feature['audio'].float_list.value.extend([0.0] * l)
+  ex.features.feature['audio'].float_list.value.extend(list(range(l)))
   ex.features.feature['label'].bytes_list.value.append(b'dummy_lbl')
   ex.features.feature['speaker_id'].bytes_list.value.append(b'dummy_spkr')
   ex.features.feature['sample_rate'].int64_list.value.append(32000)
@@ -66,7 +66,7 @@ class MockModule(object):
     del paddings
     bs = waveform.shape[0]
     assert isinstance(bs, int)
-    return {k: tf.zeros([bs, 5, 10]) for k in self.output_keys}
+    return {k: tf.ones([bs, 5, 10]) for k in self.output_keys}
 
 
 class BeamDofnsTest(parameterized.TestCase):
@@ -192,46 +192,10 @@ class BeamDofnsTest(parameterized.TestCase):
     self.assertEqual(new_v.shape, expected_shape)
 
   @parameterized.parameters([
-      {
-          'chunk_len': 0,
-          'average_over_time': True,
-          'emb_on_chnks': True
-      },
-      {
-          'chunk_len': 8000,
-          'average_over_time': True,
-          'emb_on_chnks': True
-      },
-      {
-          'chunk_len': 0,
-          'average_over_time': False,
-          'emb_on_chnks': True
-      },
-      {
-          'chunk_len': 8000,
-          'average_over_time': False,
-          'emb_on_chnks': True
-      },
-      {
-          'chunk_len': 0,
-          'average_over_time': True,
-          'emb_on_chnks': False
-      },
-      {
-          'chunk_len': 8000,
-          'average_over_time': True,
-          'emb_on_chnks': False
-      },
-      {
-          'chunk_len': 0,
-          'average_over_time': False,
-          'emb_on_chnks': False
-      },
-      {
-          'chunk_len': 8000,
-          'average_over_time': False,
-          'emb_on_chnks': False
-      },
+      {'chunk_len': 0, 'average_over_time': True, 'emb_on_chnks': True},
+      {'chunk_len': 8000, 'average_over_time': True, 'emb_on_chnks': True},
+      {'chunk_len': 0, 'average_over_time': True, 'emb_on_chnks': False},
+      {'chunk_len': 8000, 'average_over_time': True, 'emb_on_chnks': False},
   ])
   def test_chunk_audio(self, chunk_len, average_over_time, emb_on_chnks):
     dofn = beam_dofns.ChunkAudioAndComputeEmbeddings(
@@ -271,6 +235,68 @@ class BeamDofnsTest(parameterized.TestCase):
                                               delete_audio_from_output=True,
                                               chunk_len=chunk_len,
                                               embedding_length=10)
+
+  @parameterized.parameters([
+      {'emb_on_chnks': True},
+      {'emb_on_chnks': False},
+  ])
+  def test_chunked_correctness(self, emb_on_chnks):
+    class MockModuleConstant(object):
+
+      def __init__(self, output_keys):
+        self.signatures = {'waveform': self._fn}
+        self.output_keys = output_keys
+
+      def _fn(self, waveform, paddings):
+        del paddings
+        print(f'waveform.shape: {waveform.shape}')
+        bs, l = waveform.shape
+        tdim = l / 1000
+        assert tdim == int(tdim)
+        ones = tf.ones([1, int(tdim), 10], tf.float32)
+        assert waveform[0, 0].numpy().size == 1, waveform[0, 0]
+        e = tf.concat([ones * float(waveform.numpy()[i, 0]) for i in range(bs)],
+                      axis=0)
+        return {k: e for k in self.output_keys}
+    dofn = beam_dofns.ChunkAudioAndComputeEmbeddings(
+        name='all',
+        module='dummy_name',
+        output_key=['okey'],
+        embedding_names=['em'],
+        audio_key='audio',
+        label_key='label',
+        speaker_id_key='speaker_id',
+        sample_rate_key=None,
+        sample_rate=16000,
+        average_over_time=True,
+        chunk_len=8000,
+        compute_embeddings_on_chunked_audio=emb_on_chnks,
+        setup_fn=lambda _: MockModuleConstant(['okey']))
+    dofn.setup()
+
+    k = 'key_8000'
+    ex = make_tfexample(16000)
+    os = list(dofn.process((k, ex)))
+
+    self.assertLen(os, 2)
+
+    # First chunk.
+    (kn, aud, _, _, embs_d) = os[0]
+    self.assertEqual(f'{k}_0', kn)
+    self.assertLen(aud, 8000)
+    self.assertLen(embs_d, 1)
+    emb = embs_d['em']
+    self.assertEqual(emb.shape, (1, 10))
+    np.testing.assert_equal(emb, 0.0)
+
+    # Second chunk.
+    (kn, aud, _, _, embs_d) = os[1]
+    self.assertEqual(f'{k}_1', kn)
+    self.assertLen(aud, 8000)
+    self.assertLen(embs_d, 1)
+    emb = embs_d['em']
+    self.assertEqual(emb.shape, (1, 10))
+    np.testing.assert_equal(emb, 8000 if emb_on_chnks else 0)
 
   @parameterized.parameters(
       [{'chunk_len': 0, 'average_over_time': True},

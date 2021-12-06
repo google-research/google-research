@@ -301,6 +301,8 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
     self._label_key = label_key
     self._speaker_id_key = speaker_id_key
     self._compute_embeddings_on_chunked_audio = compute_embeddings_on_chunked_audio
+    if self._feature_fn:
+      raise ValueError('Chunking does not support _feature_fn.')
     logging.info('chunk_len: %s', self._chunk_len)
     logging.info('label_key: %s', self._label_key)
     logging.info('speaker_id_key: %s', self._speaker_id_key)
@@ -317,11 +319,19 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
     # Calculate the 3D embeddings.
     if self._compute_embeddings_on_chunked_audio:
       model_input = chnkd_audio
+      tf_out = self._module_call_fn(model_input, self.post_setup_module)
+      cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
     else:
       model_input, _ = self.read_and_preprocess_audio(k, ex)
-    tf_out = self._module_call_fn(chnkd_audio, self.post_setup_module)
+      assert model_input.ndim == 1
+      model_input = np.expand_dims(model_input, axis=0)
+      tf_out = self._module_call_fn(model_input, self.post_setup_module)
+      for e in tf_out.values():
+        assert e.ndim == 3, e.shape
+      bs = chnkd_audio.shape[0]
+      cur_embs = [np.tile(tf_out[okey], (bs, 1, 1))
+                  for okey in self._output_key]
 
-    cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
     for emb in cur_embs:
       if emb.ndim != 3:  # (chunk, time, emb dim)
         raise ValueError(f'Wrong output dims: {emb.shape}')
