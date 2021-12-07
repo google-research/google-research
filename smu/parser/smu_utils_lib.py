@@ -1408,14 +1408,21 @@ def conformer_to_bond_topology_summaries(conformer):
     dataset_pb2.BondTopologySummary
   """
   summary = dataset_pb2.BondTopologySummary()
-  starting_idx = get_starting_bond_topology_index(conformer)
+  try:
+    starting_idx = get_starting_bond_topology_index(conformer)
+    summary.bond_topology.CopyFrom(conformer.bond_topologies[starting_idx])
+    summary.count_attempted_conformers = 1
+  except ValueError:
+    starting_idx = None
+    # In this case, we won't yield the summary at all so we don't set anything
+    # about it.
 
   def other_topologies():
-    yield from itertools.chain(conformer.bond_topologies[:starting_idx],
-                               conformer.bond_topologies[(starting_idx+1):])
-
-  summary.bond_topology.CopyFrom(conformer.bond_topologies[starting_idx])
-  summary.count_attempted_conformers = 1
+    if starting_idx is None:
+      yield from conformer.bond_topologies
+    else:
+      yield from itertools.chain(conformer.bond_topologies[:starting_idx],
+                                 conformer.bond_topologies[(starting_idx+1):])
 
   fate = conformer.fate
 
@@ -1465,4 +1472,5 @@ def conformer_to_bond_topology_summaries(conformer):
   else:
     raise ValueError(f'Did not understand {fate}')
 
-  yield summary
+  if starting_idx is not None:
+    yield summary

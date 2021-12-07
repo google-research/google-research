@@ -1217,6 +1217,23 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[1].count_calculation_success, 1)
     self.assertEqual(got[1].count_detected_match_success, 0)
 
+  def test_no_starting_topology(self):
+    self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies[-1].bond_topology_id = 123
+
+    got = list(
+        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+
+    self.assertLen(got, 2)
+    # We don't actually care about the order, but this is what comes out right
+    # now.
+    self.assertEqual(got[0].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[0].count_detected_match_success, 1)
+
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 123)
+    self.assertEqual(got[1].count_detected_match_success, 1)
+
 
 class LabeledSmilesTester(absltest.TestCase):
 
