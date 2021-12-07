@@ -6,7 +6,9 @@ This code implements Combiner. The following demonstration shows the core implem
 
 # Install
 
-Navigate to the root of project, and perform:
+Please follow the [JAX installation guide](https://github.com/google/jax#installation) and [Tensorflow installation guide](https://www.tensorflow.org/install) to properly install JAX and Tensorflow that match your own CUDA environment.
+
+Then Navigate to the root of project, and perform:
 
     pip install -r requirements.txt
     pip install -e .

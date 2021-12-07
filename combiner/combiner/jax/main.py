@@ -24,7 +24,7 @@ import numpy as np
 from jax import lax
 from flax.training.common_utils import onehot
 from combiner.jax.model.util import shift_right
-from htrans.model.layer import AxialMixtureSelfAttLayer, SelfAttAxialRowmajorLayer, SelfAttLognLayer, SelfAttSqrtnLayer
+from combiner.jax.model.layer import AxialMixtureSelfAttLayer, SelfAttAxialRowmajorLayer, SelfAttLognLayer, SelfAttSqrtnLayer
 from combiner.jax.model.net import AutoregTransformer
 from combiner.jax.model.transformer_base import TransformerConfig
 from functools import partial

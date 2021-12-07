@@ -1,4 +1,5 @@
-jax==0.2.12
-flax==0.3.3
+jax
+tensorflow
+flax
 tqdm
 numpy
