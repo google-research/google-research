@@ -137,7 +137,7 @@ class Stream(tf.keras.layers.Layer):
     self.dilation_freq = 1
     self.kernel_size_freq = 1
 
-    wrappped_cell = self.get_core_layer()
+    wrapped_cell = self.get_core_layer()
     # pylint: disable=pointless-string-statement
     # pylint: disable=g-inconsistent-quotes
     padding_error = "Cell padding must be 'valid'. Additional context: "
@@ -151,7 +151,7 @@ class Stream(tf.keras.layers.Layer):
     # pylint: enable=pointless-string-statement
 
     if not use_one_step and isinstance(
-        wrappped_cell,
+        wrapped_cell,
         (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
          tf.keras.layers.GlobalAveragePooling2D)):
       raise ValueError('Flatten, GlobalMaxPooling2D, GlobalAveragePooling2D '
@@ -166,10 +166,11 @@ class Stream(tf.keras.layers.Layer):
       # outside of the layer in this case we just build a ring buffer
       # and do not check what is the type of the cell
       pass
-    elif isinstance(wrappped_cell, tf.keras.layers.Conv2DTranspose):
-      padding = wrappped_cell.get_config()['padding']
-      strides = wrappped_cell.get_config()['strides']
-      kernel_size = wrappped_cell.get_config()['kernel_size']
+    elif isinstance(wrapped_cell, tf.keras.layers.Conv2DTranspose):
+      padding = wrapped_cell.get_config()['padding']
+      strides = wrapped_cell.get_config()['strides']
+      self.stride = strides[0]
+      kernel_size = wrapped_cell.get_config()['kernel_size']
 
       if padding != 'valid':
         raise ValueError(padding_error)
@@ -177,13 +178,13 @@ class Stream(tf.keras.layers.Layer):
       # overlap in time domain defines ring buffer size
       self.ring_buffer_size_in_time_dim = max(kernel_size[0] - strides[0], 0)
     elif isinstance(
-        wrappped_cell,
+        wrapped_cell,
         (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
          tf.keras.layers.DepthwiseConv1D, tf.keras.layers.DepthwiseConv2D,
          tf.keras.layers.SeparableConv1D, tf.keras.layers.SeparableConv2D,
          average_pooling2d.AveragePooling2D)):
-      padding = wrappped_cell.get_config()['padding']
-      strides = wrappped_cell.get_config()['strides']
+      padding = wrapped_cell.get_config()['padding']
+      strides = wrapped_cell.get_config()['strides']
       self.stride = strides[0]
 
       if self.mode not in (modes.Modes.TRAINING,
@@ -199,8 +200,8 @@ class Stream(tf.keras.layers.Layer):
                              'in streaming mode with use_one_step=True '
                              'is not supported, set use_one_step=False')
 
-      dilation_rate = wrappped_cell.get_config()['dilation_rate']
-      kernel_size = wrappped_cell.get_config()['kernel_size']
+      dilation_rate = wrapped_cell.get_config()['dilation_rate']
+      kernel_size = wrapped_cell.get_config()['kernel_size']
 
       # set parameters in frequency domain
       self.stride_freq = strides[1] if len(strides) > 1 else strides
@@ -230,9 +231,9 @@ class Stream(tf.keras.layers.Layer):
         self.ring_buffer_size_in_time_dim = max(
             0, dilation_rate[0] * (kernel_size[0] - 1) - (strides[0] - 1))
 
-    elif isinstance(wrappped_cell, tf.keras.layers.AveragePooling2D):
-      strides = wrappped_cell.get_config()['strides']
-      pool_size = wrappped_cell.get_config()['pool_size']
+    elif isinstance(wrapped_cell, tf.keras.layers.AveragePooling2D):
+      strides = wrapped_cell.get_config()['strides']
+      pool_size = wrapped_cell.get_config()['pool_size']
       self.stride = strides[0]
       if self.mode not in (
           modes.Modes.TRAINING,
@@ -243,7 +244,7 @@ class Stream(tf.keras.layers.Layer):
       self.ring_buffer_size_in_time_dim = pool_size[0]
 
     elif isinstance(
-        wrappped_cell,
+        wrapped_cell,
         (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
          tf.keras.layers.GlobalAveragePooling2D)):
       # effective kernel size in time dimension
@@ -251,7 +252,7 @@ class Stream(tf.keras.layers.Layer):
         self.ring_buffer_size_in_time_dim = self.state_shape[1]
 
     else:
-      raise ValueError('Cell is not supported ', wrappped_cell)
+      raise ValueError('Cell is not supported ', wrapped_cell)
 
     if self.ring_buffer_size_in_time_dim == 1:
       logging.warning('There is no need to use Stream on time dim with size 1')
@@ -272,26 +273,31 @@ class Stream(tf.keras.layers.Layer):
   def build(self, input_shape):
     super(Stream, self).build(input_shape)
 
-    wrappped_cell = self.get_core_layer()
+    wrapped_cell = self.get_core_layer()
+    if isinstance(wrapped_cell, tf.keras.layers.Conv2DTranspose):
+      strides = wrapped_cell.get_config()['strides']
+      kernel_size = wrapped_cell.get_config()['kernel_size']
+      filters = wrapped_cell.get_config()['filters']
 
-    if isinstance(wrappped_cell, tf.keras.layers.Conv2DTranspose):
-      strides = wrappped_cell.get_config()['strides']
-      kernel_size = wrappped_cell.get_config()['kernel_size']
-      filters = wrappped_cell.get_config()['filters']
-      self.output_time_dim = input_shape.as_list()[1] * strides[0]
+      # Only in streaming modes are these shapes and dimensions accessible.
+      if self.mode in [
+          modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
+          modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE
+      ]:
+        self.output_time_dim = input_shape.as_list()[1] * strides[0]
 
-      # here we do not take into account padding, because it is always valid
-      # only pad_time_dim can be applied and it does not impact feature dim
-      output_feature_size = (input_shape[2] -
-                             1) * strides[1] + kernel_size[1]
+        # here we do not take into account padding, because it is always valid
+        # only pad_time_dim can be applied and it does not impact feature dim
+        output_feature_size = (input_shape[2] - 1) * strides[1] + kernel_size[1]
 
-      # [batch, time dim(streaming dim), output_feature_size, channels/filters]
-      self.state_shape = [
-          self.inference_batch_size, self.ring_buffer_size_in_time_dim,
-          output_feature_size, filters
-      ]
+        # [batch, time dim(streaming dim), output_feature_size,
+        # channels/filters]
+        self.state_shape = [
+            self.inference_batch_size, self.ring_buffer_size_in_time_dim,
+            output_feature_size, filters
+        ]
     elif isinstance(
-        wrappped_cell,
+        wrapped_cell,
         (tf.keras.layers.Conv1D, tf.keras.layers.Conv2D,
          tf.keras.layers.DepthwiseConv1D, tf.keras.layers.DepthwiseConv2D,
          tf.keras.layers.SeparableConv1D, tf.keras.layers.SeparableConv2D,
@@ -301,7 +307,7 @@ class Stream(tf.keras.layers.Layer):
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
       ] + input_shape.as_list()[2:]
     elif isinstance(
-        wrappped_cell,
+        wrapped_cell,
         (tf.keras.layers.Flatten, tf.keras.layers.GlobalMaxPooling2D,
          tf.keras.layers.GlobalAveragePooling2D)) and not self.state_shape:
       if self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
@@ -536,8 +542,9 @@ class Stream(tf.keras.layers.Layer):
     # transposed conv is a special case
     if isinstance(self.get_core_layer(), tf.keras.layers.Conv2DTranspose):
       outputs = self.cell(inputs)
+
       # during training or non streaming inference, input shape can be dynamic
-      # output_time_dim = tf.shape(inputs)[1] * self.strides[0]
+      self.output_time_dim = tf.shape(inputs)[1] * self.stride
       if self.transposed_conv_crop_output:
         if self.pad_time_dim == 'same':
           crop_left = self.ring_buffer_size_in_time_dim // 2
