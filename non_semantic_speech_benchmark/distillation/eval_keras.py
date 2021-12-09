@@ -70,6 +70,8 @@ flags.DEFINE_float('lr', None, 'not used')
 # Not used.
 flags.DEFINE_float('qat', None, 'not used')
 flags.DEFINE_float('cop', None, 'not used')
+flags.DEFINE_boolean('spec_augment', False, 'Student spec augment.')
+flags.DEFINE_alias('sa', 'spec_augment')
 
 flags.DEFINE_string('logdir', None,
                     'Directory where the model was written to.')

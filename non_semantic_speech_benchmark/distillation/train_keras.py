@@ -55,6 +55,8 @@ flags.DEFINE_boolean('truncate_output', None, 'Whether to truncate output.')
 flags.DEFINE_alias('tr', 'truncate_output')
 flags.DEFINE_string('model_type', None, 'Specification for student model.')
 flags.DEFINE_alias('mt', 'model_type')
+flags.DEFINE_boolean('spec_augment', False, 'Student spec augment.')
+flags.DEFINE_alias('sa', 'spec_augment')
 
 # Training config flags.
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
@@ -121,7 +123,8 @@ def train_and_report(debug=False):
       model_type=FLAGS.model_type,
       output_dimension=output_dimension,
       truncate_output=FLAGS.truncate_output,
-      frontend=True)
+      frontend=True,
+      spec_augment=FLAGS.spec_augment)
   model.summary()
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')
