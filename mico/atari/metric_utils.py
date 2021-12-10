@@ -43,7 +43,7 @@ def _sqrt_jvp(tol, primals, tangents):
 
 
 def l2(x, y):
-  return jnp.linalg.norm(x - y)
+  return _sqrt(jnp.sum(jnp.square(x - y)))
 
 
 def cosine_distance(x, y):
@@ -71,16 +71,16 @@ def representation_distances(first_representations, second_representations,
   This will compute the distances between two representations.
 
   Args:
-    first_representations: first est of representations to use.
+    first_representations: first set of representations to use.
     second_representations: second set of representations to use.
-    distance_fn: function to use for computing representatiion distances.
+    distance_fn: function to use for computing representation distances.
     beta: float, weight given to cosine distance between representations.
     return_distance_components: bool, whether to return the components used for
       computing the distance.
 
   Returns:
     The distances between representations, combining the average of the norm of
-    the representations and the angular distances.
+    the representations and the distance given by distance_fn.
   """
   batch_size = first_representations.shape[0]
   representation_dim = first_representations.shape[-1]
@@ -107,7 +107,7 @@ def absolute_reward_diff(r1, r2):
 @gin.configurable
 def target_distances(representations, rewards, distance_fn, cumulative_gamma):
   """Target distance using the metric operator."""
-  next_state_distances = representation_distances(
+  next_state_similarities = representation_distances(
       representations, representations, distance_fn)
   squared_rews = squarify(rewards)
   squared_rews_transp = jnp.transpose(squared_rews)
@@ -117,4 +117,4 @@ def target_distances(representations, rewards, distance_fn, cumulative_gamma):
   reward_diffs = absolute_reward_diff(squared_rews, squared_rews_transp)
   return (
       jax.lax.stop_gradient(
-          reward_diffs + cumulative_gamma * next_state_distances))
+          reward_diffs + cumulative_gamma * next_state_similarities))
