@@ -42,6 +42,8 @@ flags.DEFINE_list(
 flags.DEFINE_list(
     'sr_keys', ['audio_sample_rate'],
     'Possible sample rate keys in tf.Examples.')
+flags.DEFINE_integer(
+    'batch_size', None, 'Number of examples to process at once.')
 
 FLAGS = flags.FLAGS
 
@@ -79,13 +81,24 @@ def duration_from_tfex(k_v):
   return len(audio_vals) / float(sr)
 
 
+def durations_from_tfexs(k_vs):
+  for k_v in k_vs:
+    yield duration_from_tfex(k_v)
+
+
 def durations(root, ds_file, ds_name,
               reader_type, suffix):
   """Beam pipeline for durations from a particular file or glob."""
   logging.info('Reading from %s: (%s, %s)', reader_type, ds_name, ds_file)
   input_examples = utils.reader_functions[reader_type](
       root, ds_file, f'Read-{suffix}')
-  return input_examples | f'Lens-{suffix}' >> beam.Map(duration_from_tfex)
+  if FLAGS.batch_size:
+    input_examples = input_examples | f'Batch-{suffix}' >> beam.BatchElements(
+        min_batch_size=FLAGS.batch_size, max_batch_size=FLAGS.batch_size)
+    return input_examples | f'Lens-{suffix}' >> beam.FlatMap(
+        durations_from_tfexs)
+  else:
+    return input_examples | f'Lens-{suffix}' >> beam.Map(duration_from_tfex)
 
 
 def duration_and_num_examples(
