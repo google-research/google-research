@@ -785,7 +785,7 @@ MERGE_CONFLICT_FIELDS = [
     'error_nstat1',
     'error_nstatc',
     'error_nstatv',
-    'error_nstatt'
+    'error_nstatt',
     'initial_geometry_energy_1',
     'initial_geometry_gradient_norm_1',
     'optimized_geometry_energy_1',
