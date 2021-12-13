@@ -1,6 +1,6 @@
 # Configs Dedal sequence alignment data / network / training / eval.
 
-include 'third_party/google_research/google_research/dedal/configs/base.gin'
+include 'dedal/configs/base.gin'
 
 import dedal.configs.external_configurables
 import dedal.models.activations

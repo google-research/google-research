@@ -24,8 +24,12 @@ import tensorflow as tf
 from dedal import vocabulary
 from dedal.models import activations
 from dedal.models import initializers
-# TODO(oliviert): how to deal with this one?
-from tensorflow_models.official.nlp.modeling import layers as nlp_layers
+try:
+  # pytype: disable=import-error
+  from official.nlp.modeling import layers as nlp_layers  # pylint: disable=g-import-not-at-top
+  # pytype: enable=import-error
+except Exception:  # pylint: disable=broad-except
+  pass
 
 
 @gin.configurable

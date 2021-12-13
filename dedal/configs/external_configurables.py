@@ -16,17 +16,10 @@
 """Things to be gin configurables."""
 
 import gin
-import sonnet.v2 as snt
 import tensorflow  as tf
 
 
 configurables = {
-    'snt.optimizers': [
-        snt.optimizers.Adam,
-        snt.optimizers.Momentum,
-        snt.optimizers.SGD,
-        snt.optimizers.RMSProp,
-    ],
     'tf.keras.activations': [
         tf.keras.activations.elu,
         tf.keras.activations.exponential,
