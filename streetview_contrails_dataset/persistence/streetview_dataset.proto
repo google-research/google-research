@@ -109,6 +109,7 @@ message Waypoints {
 
 message FormationInfo {
   int64 flight_id = 1;
+  string aircraft_type = 6;
   Waypoints nearby_flight_waypoints = 5;
   LinearContrail streetview_contrail = 3;
   FlightMatchScore match_score = 4;
