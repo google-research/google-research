@@ -24,10 +24,10 @@ Research's public dataset repository under the
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license. Among them:
 
 -   2,001 are from lab captures (1,001 captures + interpolation between frames).
-    These images are placed under the "captured" subdirectory.
+    These images are placed under the `captured` subdirectory.
 
 -   3,000 are simulated computationally. These images are placed under the
-    "simulated" subdirectory.
+    `simulated` subdirectory.
 
 To obtain this data:
 
@@ -62,10 +62,10 @@ script to reproduce our results.
 
 By default, it writes to the following directories:
 
--   `matlab/apertures`: Simulated defective apertures with dots (resembling
+-   **`matlab/apertures`**: Simulated defective apertures with dots (resembling
     dust) and polylines (resembling scratches).
 
--   `matlab/streaks`: Flare patterns resulting from the simulated defective
+-   **`matlab/streaks`**: Flare patterns resulting from the simulated defective
     apertures above. Multiple flare patterns are generated for each aperture,
     accounting for varying light source locations, defocus, and distortion.
     These images are used to further synthesize flare-corrupted photographs.
@@ -112,7 +112,7 @@ A few notes on the arguments:
 
 -   **`--scene_dir`**: Parent directory of all flare-free images. You may use
     any natural image dataset, as long as all images are RGB and have the same
-    size. See [above]](#flare-free-scene-images) for an example. Note that the
+    size. See [above](#flare-free-scene-images) for an example. Note that the
     scene images used for `evaluate.py` should be different from those for
     `train.py`.
 
