@@ -1513,7 +1513,7 @@ class BlockCompressionOp(CompressionOpInterface):
     super(BlockCompressionOp, self).__init__(scope, spec, global_step)
     # Compression specification
     self._spec = spec if spec else self.get_default_hparams()
-    logging.info('Compression spec in init CompressionOp is: ')
+    logging.info('Compression spec in init BlockCompressionOp is: ')
     self.print_hparams()
     self._global_step = self._setup_global_step(global_step)
 
@@ -1855,6 +1855,33 @@ class MixedBlockCompressionOp(CompressionOp):
     outputs.
   """
 
+  def __init__(self, scope='default_scope', spec=None, global_step=None):
+    """Initializer.
+
+    Args:
+      scope: TF scope used for creating new TF variables.
+      spec: compression hyper parameters default value given by
+        self.get_default_hparams().
+      global_step: tf variable that has the global step.
+    """
+    super(MixedBlockCompressionOp, self).__init__(scope, spec, global_step)
+    # Compression specification
+    self._spec = spec if spec else self.get_default_hparams()
+    logging.info('Compression spec in init MixedBlockCompressionOp is: ')
+    self.print_hparams()
+    self._global_step = self._setup_global_step(global_step)
+
+    # public member variables to track the compressor, the variables and
+    # other tf nodes corresponding to this OP.
+    self.matrix_compressor = None
+    self.a_matrix_tfvar = None
+    self.block_matrices = None
+    self.linear_mixer = None
+    self.final_op = None
+
+    self.uncompressed_size = 0
+    self.compressed_size = 0
+
   @staticmethod
   def get_default_hparams():
     """Get a tf.HParams object with the default values for the hyperparameters.
@@ -1869,10 +1896,7 @@ class MixedBlockCompressionOp(CompressionOp):
       rank: integer
         indicates what type of factorization (if any) is used.
       update_option: integer
-        indicates how the update logic is being run. More specifically:
-        0 - run the update logic in TF; needed when using GPU/TPU.
-        1 - run the update logic in regular python as opposed to TF.
-        2 - run the update logic in TF and in regular python.
+        indicates how the update logic is being run.
       TODO(wanxin): add doc strings for pruning hparams.
 
     Returns:
@@ -2053,26 +2077,24 @@ class MixedBlockCompressionOp(CompressionOp):
     # block the left_operand tensor into num_blocks
     blocked_input = tf.reshape(left_operand, [
         tf.shape(left_operand)[0],
-        num_blocks,
         tf.shape(left_operand)[1] // num_blocks,
+        num_blocks,
     ])
 
     # compute the matmul of each block with corresponding block_matrix
-    intermediate_splitted = []
-    for i in range(num_blocks):
-      intermediate_splitted.append(
-          tf.matmul(blocked_input[:, i, :], self.block_matrices[:, :, i]))
+    intermediate_splitted = tf.einsum('abc,bdc->adc', blocked_input,
+                                      self.block_matrices)
 
     # compute the linear combinations of the above intermediate outputs
     output_splitted = []
     for k in range(num_bases):
       output_splitted.append([])
       for i in range(num_blocks):
-        output_splitted[-1].append(intermediate_splitted[0] *
+        output_splitted[-1].append(intermediate_splitted[:, :, 0] *
                                    self.linear_mixer[i, 0, k])
         for j in range(1, num_blocks):
-          output_splitted[-1][-1] = output_splitted[
-              -1][-1] + intermediate_splitted[j] * self.linear_mixer[i, j, k]
+          output_splitted[-1][-1] = output_splitted[-1][
+              -1] + intermediate_splitted[:, :, j] * self.linear_mixer[i, j, k]
 
     reduced_output_splitted = []
     for i in range(num_blocks):
@@ -2109,26 +2131,24 @@ class MixedBlockCompressionOp(CompressionOp):
     # block the concat tensor into num_blocks
     blocked_input = tf.reshape(concat, [
         tf.shape(concat)[0],
-        num_blocks,
         tf.shape(concat)[1] // num_blocks,
+        num_blocks,
     ])
 
     # compute the matmul of each block with corresponding block_matrix
-    intermediate_splitted = []
-    for i in range(num_blocks):
-      intermediate_splitted.append(
-          tf.matmul(blocked_input[:, i, :], theta.block_matrices[:, :, i]))
+    intermediate_splitted = tf.einsum('abc,bdc->adc', blocked_input,
+                                      theta.block_matrices)
 
     # compute the linear combinations of the above intermediate outputs
     output_splitted = []
     for k in range(num_bases):
       output_splitted.append([])
       for i in range(num_blocks):
-        output_splitted[-1].append(intermediate_splitted[0] *
+        output_splitted[-1].append(intermediate_splitted[:, :, 0] *
                                    theta.linear_mixer[i, 0, k])
         for j in range(1, num_blocks):
-          output_splitted[-1][-1] = output_splitted[
-              -1][-1] + intermediate_splitted[j] * theta.linear_mixer[i, j, k]
+          output_splitted[-1][-1] = output_splitted[-1][
+              -1] + intermediate_splitted[:, :, j] * theta.linear_mixer[i, j, k]
 
     reduced_output_splitted = []
     for i in range(num_blocks):
@@ -2177,26 +2197,24 @@ class MixedBlockCompressionOp(CompressionOp):
     # block the inputs tensor into num_blocks
     blocked_input = tf.reshape(inputs, [
         tf.shape(inputs)[0],
-        num_blocks,
         tf.shape(inputs)[1] // num_blocks,
+        num_blocks,
     ])
 
     # compute the matmul of each block with corresponding block_matrix
-    intermediate_splitted = []
-    for i in range(num_blocks):
-      intermediate_splitted.append(
-          tf.matmul(blocked_input[:, i, :], theta.block_matrices[:, :, i]))
+    intermediate_splitted = tf.einsum('abc,bdc->adc', blocked_input,
+                                      theta.block_matrices)
 
     # compute the linear combinations of the above intermediate outputs
     output_splitted = []
     for k in range(num_bases):
       output_splitted.append([])
       for i in range(num_blocks):
-        output_splitted[-1].append(intermediate_splitted[0] *
+        output_splitted[-1].append(intermediate_splitted[:, :, 0] *
                                    theta.linear_mixer[i, 0, k])
         for j in range(1, num_blocks):
-          output_splitted[-1][-1] = output_splitted[
-              -1][-1] + intermediate_splitted[j] * theta.linear_mixer[i, j, k]
+          output_splitted[-1][-1] = output_splitted[-1][
+              -1] + intermediate_splitted[:, :, j] * theta.linear_mixer[i, j, k]
 
     reduced_output_splitted = []
     for i in range(num_blocks):
