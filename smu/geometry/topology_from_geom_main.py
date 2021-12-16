@@ -18,10 +18,10 @@ from absl import app
 from absl import flags
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
+import topology_from_geom
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import topology_from_geom
 
 FLAGS = flags.FLAGS
 
@@ -31,7 +31,8 @@ flags.DEFINE_string("bonds", None,
                     "File name stem for bond length distributions")
 flags.DEFINE_string("output", None, "Output file")
 flags.DEFINE_boolean("xnonbond", False, "Exclude non bonded interactions")
-flags.DEFINE_boolean("neutral", False, "Do the topology search against neutral forms")
+flags.DEFINE_boolean("neutral", False,
+                     "Do the topology search against neutral forms")
 
 
 class SummaryData(beam.DoFn):
@@ -44,7 +45,7 @@ class SummaryData(beam.DoFn):
     nbt = len(topology_matches.bond_topology)
     fate = topology_matches.fate
 
-    if len(topology_matches.bond_topology) == 0:
+    if not topology_matches.bond_topology:
       yield f".,{starting_smiles},{conformer_id},{fate},0,.,.,."
       return
 
@@ -54,12 +55,10 @@ class SummaryData(beam.DoFn):
       tscore = round(bt.topology_score, 4)
       result += f"{bt.smiles},{starting_smiles},{conformer_id},{fate},{nbt},{bt.ring_atom_count},{bt.is_starting_topology},{tscore},{gscore}\n"
 
-    yield result.rstrip('\n')
+    yield result.rstrip("\n")
 
 
-def ReadConFormer(
-    bond_lengths,
-    input_string, output):
+def ReadConFormer(bond_lengths, input_string, output):
   """Reads conformer.
 
   Args:
@@ -75,8 +74,9 @@ def ReadConFormer(
   #     def process(self, item):
   #       yield item.optimized_geometry.atom_positions[0].x
 
-  options = PipelineOptions(direct_num_workers=6, direct_running_mode='multi_processing')
-# options = PipelineOptions()
+  options = PipelineOptions(
+      direct_num_workers=6, direct_running_mode="multi_processing")
+  # options = PipelineOptions()
   with beam.Pipeline(options=options) as p:
     protos = (
         p | beam.io.tfrecordio.ReadFromTFRecord(
@@ -95,6 +95,7 @@ def TopologyFromGeometryMain(unused_argv):
   bond_lengths.add_from_files(FLAGS.bonds, 0.0, FLAGS.xnonbond)
   protos = ReadConFormer(bond_lengths, FLAGS.input, FLAGS.output)
   print(protos)
+
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("input")

@@ -43,8 +43,7 @@ class SmuSqliteTest(absltest.TestCase):
   def add_bond_topology_to_conformer(self, conformer, btid):
     # We'll use a simple rule for making smiles. The SMILES is just btid
     # number of Cs
-    conformer.bond_topologies.add(bond_topology_id=btid,
-                                  smiles='C' * btid)
+    conformer.bond_topologies.add(bond_topology_id=btid, smiles='C' * btid)
 
   def make_fake_conformer(self, cid):
     conformer = dataset_pb2.Conformer()
@@ -57,9 +56,10 @@ class SmuSqliteTest(absltest.TestCase):
 
   def create_db(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
-    db.bulk_insert(self.encode_conformers([
-        self.make_fake_conformer(cid) for cid in range(2001, 10001, 2000)
-    ]))
+    db.bulk_insert(
+        self.encode_conformers([
+            self.make_fake_conformer(cid) for cid in range(2001, 10001, 2000)
+        ]))
     return db
 
   def create_db_with_multiple_bond_topology(self):
@@ -100,8 +100,10 @@ class SmuSqliteTest(absltest.TestCase):
     # The create_db makes conformer ids ending in 001. We'll add conformer ids
     # ending in 005 as the extra written ones to make it clear that they are
     # different.
-    db.bulk_insert(self.encode_conformers(
-        [self.make_fake_conformer(cid) for cid in range(50005, 60005, 2000)]))
+    db.bulk_insert(
+        self.encode_conformers([
+            self.make_fake_conformer(cid) for cid in range(50005, 60005, 2000)
+        ]))
     # Check an id that was already there
     self.assertEqual(db.find_by_conformer_id(4001).conformer_id, 4001)
     # Check an id that we added
@@ -130,16 +132,19 @@ class SmuSqliteTest(absltest.TestCase):
     db = self.create_db_with_multiple_bond_topology()
 
     # Test the cases with 1, 2, and 3 results
-    got_cids = [conformer.conformer_id
-                for conformer in db.find_by_bond_topology_id(3)]
+    got_cids = [
+        conformer.conformer_id for conformer in db.find_by_bond_topology_id(3)
+    ]
     self.assertCountEqual(got_cids, [3000])
 
-    got_cids = [conformer.conformer_id
-                for conformer in db.find_by_bond_topology_id(2)]
+    got_cids = [
+        conformer.conformer_id for conformer in db.find_by_bond_topology_id(2)
+    ]
     self.assertCountEqual(got_cids, [2000, 3000])
 
-    got_cids = [conformer.conformer_id
-                for conformer in db.find_by_bond_topology_id(1)]
+    got_cids = [
+        conformer.conformer_id for conformer in db.find_by_bond_topology_id(1)
+    ]
     self.assertCountEqual(got_cids, [1000, 2000, 3000])
 
     # and test a non existent id
@@ -149,16 +154,15 @@ class SmuSqliteTest(absltest.TestCase):
     db = self.create_db_with_multiple_bond_topology()
 
     # Test the cases with 1, 2, and 3 results
-    got_cids = [conformer.conformer_id
-                for conformer in db.find_by_smiles('CCC')]
+    got_cids = [
+        conformer.conformer_id for conformer in db.find_by_smiles('CCC')
+    ]
     self.assertCountEqual(got_cids, [3000])
 
-    got_cids = [conformer.conformer_id
-                for conformer in db.find_by_smiles('CC')]
+    got_cids = [conformer.conformer_id for conformer in db.find_by_smiles('CC')]
     self.assertCountEqual(got_cids, [2000, 3000])
 
-    got_cids = [conformer.conformer_id
-                for conformer in db.find_by_smiles('C')]
+    got_cids = [conformer.conformer_id for conformer in db.find_by_smiles('C')]
     self.assertCountEqual(got_cids, [1000, 2000, 3000])
 
     # and test a non existent id

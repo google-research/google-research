@@ -23,7 +23,6 @@ smiles string pulled out as fields.
 """
 import datetime
 import os
-import snappy
 
 from absl import logging
 from rdkit import Chem
@@ -31,6 +30,7 @@ import sqlite3
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
+import snappy
 
 _CONFORMER_TABLE_NAME = 'conformer'
 _BTID_TABLE_NAME = 'btid'
@@ -123,9 +123,12 @@ class SMUSQLite:
 
     Raises:
       ReadOnlyError: if mode is 'r'
+      ValueError: If encoded_conformers is empty.
     """
     if self._read_only:
       raise ReadOnlyError()
+    if not encoded_conformers:
+      raise ValueError()
 
     insert_conformer = f'INSERT INTO {_CONFORMER_TABLE_NAME} VALUES (?, ?)'
     insert_btid = f'INSERT INTO {_BTID_TABLE_NAME} VALUES (?, ?)'
@@ -149,23 +152,23 @@ class SMUSQLite:
       pending_smiles_args.clear()
       self._conn.commit()
 
+    idx = None
     for idx, encoded_conformer in enumerate(encoded_conformers, 1):
       conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
       pending_conformer_args.append(
-        (conformer.conformer_id, snappy.compress(encoded_conformer)))
+          (conformer.conformer_id, snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
         pending_btid_args.append(
-          (bond_topology.bond_topology_id, conformer.conformer_id))
+            (bond_topology.bond_topology_id, conformer.conformer_id))
         pending_smiles_args.append(
-                    (bond_topology.smiles, bond_topology.bond_topology_id))
+            (bond_topology.smiles, bond_topology.bond_topology_id))
       if batch_size and idx % batch_size == 0:
         commit_pending()
         elapsed = datetime.datetime.now() - start_time
         logging.info(
-          'bulk_insert: committed at index %d, %f s total, %.6f s/record',
-          idx,
-          elapsed.total_seconds(),
-          elapsed.total_seconds() / idx)
+            'bulk_insert: committed at index %d, %f s total, %.6f s/record',
+            idx, elapsed.total_seconds(),
+            elapsed.total_seconds() / idx)
 
       if limit and idx >= limit:
         break
@@ -173,11 +176,9 @@ class SMUSQLite:
     # Commit a final time
     commit_pending()
     elapsed = datetime.datetime.now() - start_time
-    logging.info(
-      'bulk_insert: Total records %d, %f s, %.6f s/record',
-      idx,
-      elapsed.total_seconds(),
-      elapsed.total_seconds() / idx)
+    logging.info('bulk_insert: Total records %d, %f s, %.6f s/record', idx,
+                 elapsed.total_seconds(),
+                 elapsed.total_seconds() / idx)
 
   def find_by_conformer_id(self, cid):
     """Finds the conformer associated with a conformer id.
@@ -233,7 +234,7 @@ class SMUSQLite:
       iterable for dataset_pb2.Conformer
     """
     canon_smiles = smu_utils_lib.compute_smiles_for_molecule(
-      Chem.MolFromSmiles(smiles, sanitize=False), include_hs=False)
+        Chem.MolFromSmiles(smiles, sanitize=False), include_hs=False)
     cur = self._conn.cursor()
     select = f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles = ?'
     cur.execute(select, (canon_smiles,))

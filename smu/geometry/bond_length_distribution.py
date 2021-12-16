@@ -38,22 +38,23 @@ from tensorflow.io import gfile
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
 
-
 ATOMIC_NUMBER_TO_ATYPE = {
-      1: dataset_pb2.BondTopology.ATOM_H,
-      6: dataset_pb2.BondTopology.ATOM_C,
-      7: dataset_pb2.BondTopology.ATOM_N,
-      8: dataset_pb2.BondTopology.ATOM_O,
-      9: dataset_pb2.BondTopology.ATOM_F
-    }
+    1: dataset_pb2.BondTopology.ATOM_H,
+    6: dataset_pb2.BondTopology.ATOM_C,
+    7: dataset_pb2.BondTopology.ATOM_N,
+    8: dataset_pb2.BondTopology.ATOM_O,
+    9: dataset_pb2.BondTopology.ATOM_F
+}
 
-def interpolate_zeros(values: np.array) -> np.array:
+
+def interpolate_zeros(values):
   """For each zero value in `values` replace with an interpolated value.
 
-   Args:
-     values: an array that may contain zeros.
-   Returns:
-     An array that contains no zeros.
+  Args:
+   values: an array that may contain zeros.
+
+  Returns:
+   An array that contains no zeros.
   """
   xvals = np.nonzero(values)[0]
   yvals = values[xvals]
@@ -62,6 +63,7 @@ def interpolate_zeros(values: np.array) -> np.array:
   indices = np.arange(0, len(values))
 
   return np.interp(indices, xvals, yvals)
+
 
 class LengthDistribution(abc.ABC):
   """Abstract class for representing a distribution over bond lengths."""

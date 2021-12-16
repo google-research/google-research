@@ -653,9 +653,8 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001, 1, 1, 1, 1,
-        -406.51179, 0.052254, -406.522079, 2.5e-05, True, True,
-        -1.23, 0.052254, -406.522079, 2.5e-05, True, True
+        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -668,9 +667,8 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
-        618451001, 1, 1, 1, 1,
-        -406.51179, 0.052254, -406.522079, 2.5e-05, True, True,
-        -406.51179, 0.052254, -406.522079, 2.5e-05, True, False
+        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, -406.51179, 0.052254, -406.522079, 2.5e-05, True, False
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -698,9 +696,9 @@ class MergeConformersTest(absltest.TestCase):
     # Set a value so that we make sure we use the stage1 data
     self.stage2_conformer.properties.initial_geometry_energy.value += 12345
     expected_init_energy = (
-      self.stage1_conformer.properties.initial_geometry_energy.value)
-    got_conf, _ = smu_utils_lib.merge_conformer(
-        self.stage2_conformer, self.stage1_conformer)
+        self.stage1_conformer.properties.initial_geometry_energy.value)
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
     self.assertEqual(got_conf.properties.errors.status, 580)
     self.assertEqual(got_conf.properties.initial_geometry_energy.value,
                      expected_init_energy)
@@ -711,9 +709,9 @@ class MergeConformersTest(absltest.TestCase):
     # Set a value so that we make sure we use the stage1 data
     self.stage2_conformer.properties.initial_geometry_energy.value += 12345
     expected_init_energy = (
-      self.stage1_conformer.properties.initial_geometry_energy.value)
-    got_conf, _ = smu_utils_lib.merge_conformer(
-        self.stage2_conformer, self.stage1_conformer)
+        self.stage1_conformer.properties.initial_geometry_energy.value)
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
     self.assertEqual(got_conf.properties.errors.status, 570)
     self.assertEqual(got_conf.properties.initial_geometry_energy.value,
                      expected_init_energy)
@@ -724,22 +722,22 @@ class MergeConformersTest(absltest.TestCase):
     # We set two values because 1 is any neative and 2 is for a large negative
     self.stage1_conformer.properties.harmonic_frequencies.value[3] = -123
     self.stage1_conformer.properties.harmonic_frequencies.value[4] = -1
-    got_conf, _ = smu_utils_lib.merge_conformer(
-        self.stage2_conformer, self.stage1_conformer)
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
     self.assertEqual(got_conf.properties.errors.status, 580)
     self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 2)
 
   def test_status_800_warn_vib_1(self):
     self.stage2_conformer.properties.errors.status = 800
     self.stage1_conformer.properties.harmonic_frequencies.value[4] = -1
-    got_conf, _ = smu_utils_lib.merge_conformer(
-        self.stage2_conformer, self.stage1_conformer)
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
     self.assertEqual(got_conf.properties.errors.status, 580)
     self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 1)
 
   def test_error_frequencies_101(self):
     self.stage1_conformer.properties.errors.error_frequencies = 101
-    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+    unused_got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage1_conformer, self.stage2_conformer)
     self.assertIsNotNone(got_conflict)
 
@@ -747,7 +745,7 @@ class MergeConformersTest(absltest.TestCase):
     self.stage1_conformer.conformer_id = 795795001
     self.stage2_conformer.conformer_id = 795795001
     self.stage1_conformer.properties.errors.error_frequencies = 101
-    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+    unused_got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage1_conformer, self.stage2_conformer)
     self.assertIsNone(got_conflict)
 
@@ -756,7 +754,7 @@ class MergeConformersTest(absltest.TestCase):
     self.stage1_conformer.properties.errors.error_nstat1 = 3
     self.stage1_conformer.properties.errors.error_nstatc = 3
     self.stage1_conformer.properties.errors.error_frequencies = 3
-    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+    unused_got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage1_conformer, self.stage2_conformer)
     self.assertIsNotNone(got_conflict)
 
@@ -921,6 +919,7 @@ class ConformerToStandardTest(absltest.TestCase):
 
 
 class CleanUpErrorCodesTest(parameterized.TestCase):
+
   def test_stage2(self):
     conformer = get_stage2_conformer()
     conformer.properties.errors.error_nstat1 = 123
@@ -953,12 +952,9 @@ class CleanUpErrorCodesTest(parameterized.TestCase):
     smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(conformer.properties.errors.status, 600)
     self.assertEqual(conformer.properties.errors.error_nstat1, 0)
-    self.assertFalse(conformer.properties.HasField(
-      'initial_geometry_energy'))
-    self.assertFalse(conformer.properties.HasField(
-      'optimized_geometry_energy'))
+    self.assertFalse(conformer.properties.HasField('initial_geometry_energy'))
+    self.assertFalse(conformer.properties.HasField('optimized_geometry_energy'))
     self.assertFalse(conformer.HasField('optimized_geometry'))
-
 
 
 class CleanUpSentinelValuestest(parameterized.TestCase):
@@ -967,17 +963,18 @@ class CleanUpSentinelValuestest(parameterized.TestCase):
     conformer = get_stage2_conformer()
     smu_utils_lib.clean_up_sentinel_values(conformer)
     self.assertTrue(conformer.properties.HasField('initial_geometry_energy'))
-    self.assertTrue(conformer.properties.HasField('initial_geometry_gradient_norm'))
+    self.assertTrue(
+        conformer.properties.HasField('initial_geometry_gradient_norm'))
     self.assertTrue(conformer.properties.HasField('optimized_geometry_energy'))
-    self.assertTrue(conformer.properties.HasField('optimized_geometry_gradient_norm'))
-
+    self.assertTrue(
+        conformer.properties.HasField('optimized_geometry_gradient_norm'))
 
   @parameterized.parameters(
-    'initial_geometry_energy',
-    'initial_geometry_gradient_norm',
-    'optimized_geometry_energy',
-    'optimized_geometry_gradient_norm',
-    )
+      'initial_geometry_energy',
+      'initial_geometry_gradient_norm',
+      'optimized_geometry_energy',
+      'optimized_geometry_gradient_norm',
+  )
   def test_one_field(self, field):
     conformer = get_stage2_conformer()
     getattr(conformer.properties, field).value = -1.0
@@ -1009,6 +1006,7 @@ class FindZeroValuesTest(parameterized.TestCase):
     conformer.properties.partial_charges_esp_fit_hf_6_31gd.values[3] = 0.0
     got = list(smu_utils_lib.find_zero_values(conformer))
     self.assertEqual(got, ['partial_charges_esp_fit_hf_6_31gd'])
+
 
 class DetermineFateTest(parameterized.TestCase):
 
@@ -1249,9 +1247,12 @@ class LabeledSmilesTester(absltest.TestCase):
       self.assertEqual(atom.GetAtomMapNum(), 0)
     self.assertEqual(Chem.MolToSmiles(mol), smiles_before)
 
+
 class AtomSwapVariantTester(absltest.TestCase):
+
   def test_atom_swap_variant(self):
-    """Test inspired by the pair
+    """Test inspired by the following pair.
+
       C([C:3]1=[C:1]2[C:2]1=[NH+:5]2)=[N:4][O-:6]
       C([C:3]1=[C:2]2[C:1]1=[NH+:5]2)=[N:4][O-:6]
     """
@@ -1302,7 +1303,7 @@ bonds {
   bond_type: BOND_SINGLE
 }
 """
-    bt1 = str_to_bond_topology(topo1);
+    bt1 = str_to_bond_topology(topo1)
 
     topo2 = """
 atoms: ATOM_C

@@ -23,7 +23,6 @@ from absl.testing import flagsaver
 import apache_beam as beam
 import tensorflow as tf
 from tensorflow.io import gfile
-import tensorflow as tf
 
 from smu import dataset_pb2
 from smu import pipeline
@@ -138,10 +137,8 @@ class FunctionalTest(absltest.TestCase):
   def _create_dummy_conformer(self):
     conf = dataset_pb2.Conformer(conformer_id=123000)
     bt = conf.bond_topologies.add()
-    bt.atoms.extend([
-      dataset_pb2.BondTopology.ATOM_C,
-      dataset_pb2.BondTopology.ATOM_C
-    ])
+    bt.atoms.extend(
+        [dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C])
     bt.bonds.add(
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
     conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
@@ -192,8 +189,9 @@ class IntegrationTest(absltest.TestCase):
         pipeline.pipeline(root)
 
     metrics = root.result.metrics().query()
-    counters_dict = {m.key.metric.name: m.committed
-                     for m in metrics['counters']}
+    counters_dict = {
+        m.key.metric.name: m.committed for m in metrics['counters']
+    }
 
     self.assertEqual(counters_dict['attempted_topology_matches'], 3)
     # Conformer 620517 will not match because bond lengths are not extracted
@@ -310,20 +308,19 @@ class IntegrationTest(absltest.TestCase):
     # Check that fields are filtered the way we expect
     # The DirectRunner randomizes the order of output so we need to make sure
     # that we get a full record.
-    complete_entry = [c for c in complete_output
-                      if c.conformer_id == 618451001][0]
-    self.assertFalse(
-        complete_entry.properties.HasField('compute_cluster_info'))
-    self.assertTrue(
-        complete_entry.properties.HasField('homo_pbe0_aug_pc_1'))
-    self.assertTrue(
-        complete_entry.properties.HasField('rotational_constants'))
+    complete_entry = [
+        c for c in complete_output if c.conformer_id == 618451001
+    ][0]
+    self.assertFalse(complete_entry.properties.HasField('compute_cluster_info'))
+    self.assertTrue(complete_entry.properties.HasField('homo_pbe0_aug_pc_1'))
+    self.assertTrue(complete_entry.properties.HasField('rotational_constants'))
 
-    complete_entry_for_smiles = [c for c in complete_output
-                                 if c.conformer_id == 620517002][0]
-    self.assertEqual(
-        complete_entry_for_smiles.properties.smiles_openbabel,
-      'NotAValidSmilesString')
+    complete_entry_for_smiles = [
+        c for c in complete_output if c.conformer_id == 620517002
+    ][0]
+    self.assertEqual(complete_entry_for_smiles.properties.smiles_openbabel,
+                     'NotAValidSmilesString')
+
 
 
 if __name__ == '__main__':

@@ -16,13 +16,12 @@
 # Tester for SMU utilities functions.
 
 from absl.testing import absltest
-from absl.testing import parameterized
+from parameterized import parameterized
+from rdkit import Chem
 
 from google.protobuf import text_format
-from rdkit import Chem
-import utilities
-
 from smu import dataset_pb2
+from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 
 
@@ -44,7 +43,7 @@ def zero2():
 """, dataset_pb2.Geometry())
 
 
-class TestUtilities(parameterized.TestCase):
+class TestUtilities(absltest.TestCase):
 
   def test_zero_distance(self):
     coords = zero2()
@@ -293,7 +292,7 @@ class TestUtilities(parameterized.TestCase):
 """, dataset_pb2.BondTopology())
     self.assertTrue(utilities.is_single_fragment(bt))
 
-  @parameterized.parameters([
+  @parameterized.expand([
       ["CC", True],
       ["C=C", True],
       ["C#C", True],
@@ -318,15 +317,8 @@ class TestUtilities(parameterized.TestCase):
     bt_h = utilities.molecule_to_bond_topology(mol_h)
     self.assertEqual(utilities.is_single_fragment(bt_h), expected)
 
-  @parameterized.parameters([
-      ["C", 0],
-      ["CC", 0],
-      ["CCC", 0],
-      ["C1CC1", 3],
-      ["CCCCC", 0],
-      ["C1CCC1", 4],
-      ["C1C(C)CC1", 4]
-  ])
+  @parameterized.expand([["C", 0], ["CC", 0], ["CCC", 0], ["C1CC1", 3],
+                         ["CCCCC", 0], ["C1CCC1", 4], ["C1C(C)CC1", 4]])
   def test_ring_atom_count(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=True)
     self.assertEqual(utilities.ring_atom_count_mol(mol), expected)

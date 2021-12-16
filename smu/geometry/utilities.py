@@ -17,7 +17,7 @@
 
 import math
 
-from typing import Any, List, Optional
+from typing import Any, List
 
 import numpy as np
 
@@ -31,8 +31,7 @@ BOHR2ANSTROM = 0.529177
 DISTANCE_BINS = 10000
 
 
-def distance_between_atoms(geom, a1,
-                           a2):
+def distance_between_atoms(geom, a1, a2):
   """Return the distance between atoms `a1` and `a2` in `geom`.
 
   Args:
@@ -69,7 +68,8 @@ def bonded(bond_topology):
     connected[a1, a2] = connected[a2, a1] = bond.bond_type
   return connected
 
-def btype_to_nbonds(btype: dataset_pb2.BondTopology.BondType) -> int:
+
+def btype_to_nbonds(btype):
   """Convert `btype` to a number of bonds.
 
   Turns out that the enum is already set up so that simple
@@ -77,16 +77,20 @@ def btype_to_nbonds(btype: dataset_pb2.BondTopology.BondType) -> int:
 
   Args:
     btype:
+
   Returns:
     number of bonds
   """
   return int(btype)
 
-def number_bonds(bt: dataset_pb2.BondTopology) -> np.array:
+
+def number_bonds(bt):
   """For each atom in `bt` return the number of bonds.
+
   single bonds count 1, double 2, triple 3.
   Args:
     bt: BondTopology
+
   Returns:
     Numpy array contains len(bt.atoms) numbers.
   """
@@ -94,7 +98,7 @@ def number_bonds(bt: dataset_pb2.BondTopology) -> np.array:
   for bond in bt.bonds:
     a1 = bond.atom_a
     a2 = bond.atom_b
-    nb = btype_to_nbonds(bond.bond_type);
+    nb = btype_to_nbonds(bond.bond_type)
     result[a1] += nb
     result[a2] += nb
 
@@ -118,8 +122,7 @@ def distances(geometry):
   return result
 
 
-def rdkit_atom_to_atom_type(
-    atom):
+def rdkit_atom_to_atom_type(atom):
   """Atom to atom type.
 
   Args:
@@ -148,8 +151,7 @@ def rdkit_atom_to_atom_type(
   raise ValueError(f"Unrecognized atom type {atom.GetAtomicNum()}")
 
 
-def rdkit_bond_type_to_btype(
-    bond_type):
+def rdkit_bond_type_to_btype(bond_type):
   """Converts bond type.
 
   Args:
@@ -210,8 +212,7 @@ def canonical_bond_topology(bond_topology):
   bond_topology.bonds.sort(key=lambda b: (b.atom_a, b.atom_b))
 
 
-def same_bond_topology(bt1,
-                       bt2):
+def same_bond_topology(bt1, bt2):
   """Return True if bt1 == bt2.
 
   Note that there is no attempt to canonialise the protos.
@@ -324,12 +325,14 @@ def is_single_fragment(bond_topology):
       attached, a_multiply_connected_atom, visited)
   return number_visited == natoms
 
-def geom_to_angstroms(geometry:dataset_pb2.Geometry) -> dataset_pb2.Geometry:
-  """Convert all the coordinates in `geometry` to Angstroms
+
+def geom_to_angstroms(geometry):
+  """Convert all the coordinates in `geometry` to Angstroms.
+
   Args:
-    geometry: starting Geometry
-  Returns
-    New Geometry with adjusted coordinates.
+    geometry: starting Geometry Returns New Geometry with adjusted coordinates.
+  Returns:
+    Coordinates in Angstroms.
   """
   result = dataset_pb2.Geometry()
   for atom in geometry.atom_positions:
@@ -341,21 +344,23 @@ def geom_to_angstroms(geometry:dataset_pb2.Geometry) -> dataset_pb2.Geometry:
 
   return result
 
-def max_bonds_any_form(atype: dataset_pb2.BondTopology.AtomType) -> int:
+
+def max_bonds_any_form(atype):
   """Return the max number of bonds for any form of `atype`.
 
-    Args:
-      atype: a dataset_pb2 atom type
-    Returns:
-      max number of bonds
-    Raises:
-      ValueError: on unsupported atype
+  Args:
+    atype: a dataset_pb2 atom type
+
+  Returns:
+    Max number of bonds
+  Raises:
+    ValueError: on unsupported atype
   """
-  if atype in [dataset_pb2.BondTopology.ATOM_C,
-               dataset_pb2.BondTopology.ATOM_NPOS,
-               dataset_pb2.BondTopology.ATOM_O,
-               dataset_pb2.BondTopology.ATOM_F,
-               dataset_pb2.BondTopology.ATOM_H]:
+  if atype in [
+      dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_NPOS,
+      dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F,
+      dataset_pb2.BondTopology.ATOM_H
+  ]:
     return smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[atype]
 
   if atype == dataset_pb2.BondTopology.ATOM_N:
@@ -364,26 +369,28 @@ def max_bonds_any_form(atype: dataset_pb2.BondTopology.AtomType) -> int:
   if atype == dataset_pb2.BondTopology.ATOM_ONEG:
     return 2
 
-  raise ValueError(f'Unsupported AtomType {atype}')
+  raise ValueError(f"Unsupported AtomType {atype}")
 
 
-def ring_atom_count_bt(bt: dataset_pb2.BondTopology) -> int:
+def ring_atom_count_bt(bt):
   """Return the number of ring atoms in `bt`.
 
   Args:
     bt: dataset_pb2.BondTopology
-  Return:
+  Returns:
     Integer
   """
   mol = smu_utils_lib.bond_topology_to_molecule(bt)
 
   return ring_atom_count_mol(mol)
 
-def ring_atom_count_mol(mol: Chem.RWMol) -> int:
+
+def ring_atom_count_mol(mol):
   """Return the number of ring atoms in `mol`.
 
   Args:
     mol: rdkit molecule.
+
   Returns:
     Integer
   """

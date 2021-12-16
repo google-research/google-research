@@ -631,7 +631,8 @@ def conformer_to_molecules(conformer,
       mol = bond_topology_to_molecule(bt)
       mol.SetProp(
           '_Name',
-          f'SMU {conformer.conformer_id} bt={bt_label} geom={geom_label} fate={conformer.fate}')
+          f'SMU {conformer.conformer_id} bt={bt_label} geom={geom_label} fate={conformer.fate}'
+      )
 
       # Add in the coordinates
       conf = Chem.Conformer(len(bt.atoms))
@@ -671,7 +672,7 @@ def compute_smiles_for_bond_topology(bond_topology,
       labeled_atoms=labeled_atoms)
 
 
-def compute_smiles_for_molecule(mol, include_hs, labeled_atoms = False):
+def compute_smiles_for_molecule(mol, include_hs, labeled_atoms=False):
   """Calculate a canonical smiles for the given RDKit Molecule.
 
   Note that you probably should NOT have sanitized your RDKit molecule. The
@@ -936,23 +937,20 @@ def merge_conformer(conf1, conf2):
                    conf1.properties.errors.error_frequencies,
                    conf1.properties.errors.error_nstatt)
     if conf1.properties.errors.error_frequencies == 101:
-        # This happens for exactly one molecule. If anything else shows up
-        # here we will mark it as a conflict so it comes out in that output
-        if conf2.conformer_id != 795795001:
-          has_conflict = True
-    elif error_codes not in [(1, 1, 1, 1),
-                             (3, 1, 1, 1),
-                             (2, 3, 2, 1),
-                             (5, 1, 3, 1),
-                             (1, 1, 101, 1)]:
+      # This happens for exactly one molecule. If anything else shows up
+      # here we will mark it as a conflict so it comes out in that output
+      if conf2.conformer_id != 795795001:
+        has_conflict = True
+    elif error_codes not in [(1, 1, 1, 1), (3, 1, 1, 1), (2, 3, 2, 1),
+                             (5, 1, 3, 1), (1, 1, 101, 1)]:
       has_conflict = True
 
     # After all of that, we always take the stage1 initial energy,
     # gradient norm, and positions.
     conf2.properties.initial_geometry_energy.value = (
-      conf1.properties.initial_geometry_energy.value)
+        conf1.properties.initial_geometry_energy.value)
     conf2.properties.initial_geometry_gradient_norm.value = (
-      conf1.properties.initial_geometry_gradient_norm.value)
+        conf1.properties.initial_geometry_gradient_norm.value)
     conf2.initial_geometries[0].CopyFrom(conf1.initial_geometries[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
@@ -962,8 +960,8 @@ def merge_conformer(conf1, conf2):
       conf1, conf2 = conf2, conf1
       source1, source2 = source2, source1
 
-      conf2.properties.errors.status = (
-        500 + conf1.properties.errors.status // 10)
+      conf2.properties.errors.status = (500 +
+                                        conf1.properties.errors.status // 10)
       conf2.which_database = dataset_pb2.COMPLETE
       if np.any(np.asarray(conf2.properties.harmonic_frequencies.value) < -30):
         conf2.properties.errors.warn_vib_imaginary = 2
@@ -1147,17 +1145,17 @@ def clean_up_error_codes(conformer):
     pass
   else:
     raise ValueError(
-      f'Clean up can only handle Stage1 or 2 conformers, got {conformer}')
+        f'Clean up can only handle Stage1 or 2 conformers, got {conformer}')
 
   for field in STAGE1_ERROR_FIELDS:
     conformer.properties.errors.ClearField(field)
 
 
 _SENTINEL_VALUE_FIELDS = [
-  'initial_geometry_energy',
-  'initial_geometry_gradient_norm',
-  'optimized_geometry_energy',
-  'optimized_geometry_gradient_norm',
+    'initial_geometry_energy',
+    'initial_geometry_gradient_norm',
+    'optimized_geometry_energy',
+    'optimized_geometry_gradient_norm',
 ]
 
 
@@ -1175,118 +1173,115 @@ def clean_up_sentinel_values(conformer):
 
 
 _ZERO_FIELD_CHECK_SCALAR = [
-  'single_point_energy_atomic_b5',
-  'single_point_energy_atomic_b6',
-  'single_point_energy_b3lyp_6_31ppgdp',
-  'single_point_energy_b3lyp_aug_pcs_1',
-  'single_point_energy_cc2_tzvp',
-  'single_point_energy_ccsd_2sd',
-  'single_point_energy_ccsd_2sp',
-  'single_point_energy_ccsd_3psd',
-  'single_point_energy_ccsd_t_2sd',
-  'single_point_energy_ccsd_t_2sp',
-  'single_point_energy_eccsd',
-  'single_point_energy_hf_2sd',
-  'single_point_energy_hf_2sp',
-  'single_point_energy_hf_3',
-  'single_point_energy_hf_34',
-  'single_point_energy_hf_3psd',
-  'single_point_energy_hf_4',
-  'single_point_energy_hf_6_31gd',
-  'single_point_energy_hf_cvtz',
-  'single_point_energy_hf_tzvp',
-  'single_point_energy_mp2_2sd',
-  'single_point_energy_mp2_2sp',
-  'single_point_energy_mp2_3',
-  'single_point_energy_mp2_34',
-  'single_point_energy_mp2_3psd',
-  'single_point_energy_mp2_4',
-  'single_point_energy_mp2_tzvp',
-  'single_point_energy_mp2ful_cvtz',
-  'single_point_energy_pbe0_6_311gd',
-  'single_point_energy_pbe0_6_311gd_cat',
-  'single_point_energy_pbe0_6_311gd_cat_mrcc',
-  'single_point_energy_pbe0_6_311gd_cat_orca',
-  'single_point_energy_pbe0_6_311gd_mrcc',
-  'single_point_energy_pbe0_6_311gd_orca',
-  'single_point_energy_pbe0_6_31ppgdp',
-  'single_point_energy_pbe0_aug_pc_1',
-  'single_point_energy_pbe0_aug_pcs_1',
-  'single_point_energy_pbe0d3_6_311gd',
-
-  'homo_b3lyp_6_31ppgdp',
-  'homo_b3lyp_aug_pcs_1',
-  'homo_hf_3',
-  'homo_hf_4',
-  'homo_hf_6_31gd',
-  'homo_hf_cvtz',
-  'homo_hf_tzvp',
-  'homo_pbe0_6_311gd',
-  'homo_pbe0_6_31ppgdp',
-  'homo_pbe0_aug_pc_1',
-  'homo_pbe0_aug_pcs_1',
-
-  'lumo_b3lyp_6_31ppgdp',
-  'lumo_b3lyp_aug_pcs_1',
-  'lumo_hf_3',
-  'lumo_hf_4',
-  'lumo_hf_6_31gd',
-  'lumo_hf_cvtz',
-  'lumo_hf_tzvp',
-  'lumo_pbe0_6_311gd',
-  'lumo_pbe0_6_31ppgdp',
-  'lumo_pbe0_aug_pc_1',
-  'lumo_pbe0_aug_pcs_1',
-
-  'atomization_energy_excluding_zpe_atomic_b5',
-  'atomization_energy_excluding_zpe_atomic_b5_um',
-  'atomization_energy_excluding_zpe_atomic_b6',
-  'atomization_energy_excluding_zpe_atomic_b6_um',
-  'atomization_energy_excluding_zpe_eccsd',
-  'atomization_energy_excluding_zpe_eccsd_um',
-  'atomization_energy_including_zpe_atomic_b5',
-  'atomization_energy_including_zpe_atomic_b5_um',
-  'atomization_energy_including_zpe_atomic_b6',
-  'atomization_energy_including_zpe_atomic_b6_um',
-  'atomization_energy_including_zpe_eccsd',
-  'atomization_energy_including_zpe_eccsd_um',
-
-  'enthalpy_of_formation_0k_atomic_b5',
-  'enthalpy_of_formation_0k_atomic_b5_um',
-  'enthalpy_of_formation_0k_atomic_b6',
-  'enthalpy_of_formation_0k_atomic_b6_um',
-  'enthalpy_of_formation_0k_eccsd',
-  'enthalpy_of_formation_0k_eccsd_um',
-  'enthalpy_of_formation_298k_atomic_b5',
-  'enthalpy_of_formation_298k_atomic_b5_um',
-  'enthalpy_of_formation_298k_atomic_b6',
-  'enthalpy_of_formation_298k_atomic_b6_um',
-  'enthalpy_of_formation_298k_eccsd',
-  'enthalpy_of_formation_298k_eccsd_um',
+    'single_point_energy_atomic_b5',
+    'single_point_energy_atomic_b6',
+    'single_point_energy_b3lyp_6_31ppgdp',
+    'single_point_energy_b3lyp_aug_pcs_1',
+    'single_point_energy_cc2_tzvp',
+    'single_point_energy_ccsd_2sd',
+    'single_point_energy_ccsd_2sp',
+    'single_point_energy_ccsd_3psd',
+    'single_point_energy_ccsd_t_2sd',
+    'single_point_energy_ccsd_t_2sp',
+    'single_point_energy_eccsd',
+    'single_point_energy_hf_2sd',
+    'single_point_energy_hf_2sp',
+    'single_point_energy_hf_3',
+    'single_point_energy_hf_34',
+    'single_point_energy_hf_3psd',
+    'single_point_energy_hf_4',
+    'single_point_energy_hf_6_31gd',
+    'single_point_energy_hf_cvtz',
+    'single_point_energy_hf_tzvp',
+    'single_point_energy_mp2_2sd',
+    'single_point_energy_mp2_2sp',
+    'single_point_energy_mp2_3',
+    'single_point_energy_mp2_34',
+    'single_point_energy_mp2_3psd',
+    'single_point_energy_mp2_4',
+    'single_point_energy_mp2_tzvp',
+    'single_point_energy_mp2ful_cvtz',
+    'single_point_energy_pbe0_6_311gd',
+    'single_point_energy_pbe0_6_311gd_cat',
+    'single_point_energy_pbe0_6_311gd_cat_mrcc',
+    'single_point_energy_pbe0_6_311gd_cat_orca',
+    'single_point_energy_pbe0_6_311gd_mrcc',
+    'single_point_energy_pbe0_6_311gd_orca',
+    'single_point_energy_pbe0_6_31ppgdp',
+    'single_point_energy_pbe0_aug_pc_1',
+    'single_point_energy_pbe0_aug_pcs_1',
+    'single_point_energy_pbe0d3_6_311gd',
+    'homo_b3lyp_6_31ppgdp',
+    'homo_b3lyp_aug_pcs_1',
+    'homo_hf_3',
+    'homo_hf_4',
+    'homo_hf_6_31gd',
+    'homo_hf_cvtz',
+    'homo_hf_tzvp',
+    'homo_pbe0_6_311gd',
+    'homo_pbe0_6_31ppgdp',
+    'homo_pbe0_aug_pc_1',
+    'homo_pbe0_aug_pcs_1',
+    'lumo_b3lyp_6_31ppgdp',
+    'lumo_b3lyp_aug_pcs_1',
+    'lumo_hf_3',
+    'lumo_hf_4',
+    'lumo_hf_6_31gd',
+    'lumo_hf_cvtz',
+    'lumo_hf_tzvp',
+    'lumo_pbe0_6_311gd',
+    'lumo_pbe0_6_31ppgdp',
+    'lumo_pbe0_aug_pc_1',
+    'lumo_pbe0_aug_pcs_1',
+    'atomization_energy_excluding_zpe_atomic_b5',
+    'atomization_energy_excluding_zpe_atomic_b5_um',
+    'atomization_energy_excluding_zpe_atomic_b6',
+    'atomization_energy_excluding_zpe_atomic_b6_um',
+    'atomization_energy_excluding_zpe_eccsd',
+    'atomization_energy_excluding_zpe_eccsd_um',
+    'atomization_energy_including_zpe_atomic_b5',
+    'atomization_energy_including_zpe_atomic_b5_um',
+    'atomization_energy_including_zpe_atomic_b6',
+    'atomization_energy_including_zpe_atomic_b6_um',
+    'atomization_energy_including_zpe_eccsd',
+    'atomization_energy_including_zpe_eccsd_um',
+    'enthalpy_of_formation_0k_atomic_b5',
+    'enthalpy_of_formation_0k_atomic_b5_um',
+    'enthalpy_of_formation_0k_atomic_b6',
+    'enthalpy_of_formation_0k_atomic_b6_um',
+    'enthalpy_of_formation_0k_eccsd',
+    'enthalpy_of_formation_0k_eccsd_um',
+    'enthalpy_of_formation_298k_atomic_b5',
+    'enthalpy_of_formation_298k_atomic_b5_um',
+    'enthalpy_of_formation_298k_atomic_b6',
+    'enthalpy_of_formation_298k_atomic_b6_um',
+    'enthalpy_of_formation_298k_eccsd',
+    'enthalpy_of_formation_298k_eccsd_um',
 ]
 
 _ZERO_FIELD_CHECK_ATOMIC = [
-  'nmr_isotropic_shielding_b3lyp_6_31ppgdp',
-  'nmr_isotropic_shielding_b3lyp_aug_pcs_1',
-  'nmr_isotropic_shielding_pbe0_6_31ppgdp',
-  'nmr_isotropic_shielding_pbe0_aug_pcs_1',
-
-  'partial_charges_esp_fit_hf_6_31gd',
-  'partial_charges_esp_fit_pbe0_aug_pc_1',
-  'partial_charges_loewdin_hf_6_31gd',
-  'partial_charges_loewdin_pbe0_aug_pc_1',
-  'partial_charges_mulliken_hf_6_31gd',
-  'partial_charges_mulliken_pbe0_aug_pc_1',
-  'partial_charges_natural_nbo_hf_6_31gd',
-  'partial_charges_natural_nbo_pbe0_aug_pc_1',
-  'partial_charges_paboon_hf_6_31gd',
-  'partial_charges_paboon_pbe0_aug_pc_1',
+    'nmr_isotropic_shielding_b3lyp_6_31ppgdp',
+    'nmr_isotropic_shielding_b3lyp_aug_pcs_1',
+    'nmr_isotropic_shielding_pbe0_6_31ppgdp',
+    'nmr_isotropic_shielding_pbe0_aug_pcs_1',
+    'partial_charges_esp_fit_hf_6_31gd',
+    'partial_charges_esp_fit_pbe0_aug_pc_1',
+    'partial_charges_loewdin_hf_6_31gd',
+    'partial_charges_loewdin_pbe0_aug_pc_1',
+    'partial_charges_mulliken_hf_6_31gd',
+    'partial_charges_mulliken_pbe0_aug_pc_1',
+    'partial_charges_natural_nbo_hf_6_31gd',
+    'partial_charges_natural_nbo_pbe0_aug_pc_1',
+    'partial_charges_paboon_hf_6_31gd',
+    'partial_charges_paboon_pbe0_aug_pc_1',
 ]
+
 
 def find_zero_values(conformer):
   """Finds fields whose values are exactly 0.
 
-  Fields that are exactly zero are likely to be problematic in some way so we look for
+  Fields that are exactly zero are likely to be problematic in some way so we
+  look for
   a handful of these.
 
   Args:
@@ -1393,7 +1388,8 @@ def get_starting_bond_topology_index(conformer):
       return i
 
   raise ValueError(
-    f'For conformer {conformer.conformer_id}, no starting topology')
+      f'For conformer {conformer.conformer_id}, no starting topology')
+
 
 def conformer_to_bond_topology_summaries(conformer):
   """Produces BondTopologySummary protos from Conformer.

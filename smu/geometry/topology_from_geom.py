@@ -16,7 +16,7 @@
 """Functions related to discerning the BondTopology from the geometry."""
 import itertools
 
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Set, Tuple
 
 import apache_beam as beam
 import numpy as np
@@ -32,9 +32,7 @@ from smu.parser import smu_utils_lib
 THRESHOLD = 2.0
 
 
-def hydrogen_to_nearest_atom(
-    bond_topology,
-    distances):
+def hydrogen_to_nearest_atom(bond_topology, distances):
   """Generate a BondTopology that joins each Hydrogen atom to its nearest.
 
       heavy atom.
@@ -76,8 +74,7 @@ def hydrogen_to_nearest_atom(
   return result
 
 
-def indices_of_heavy_atoms(
-    bond_topology):
+def indices_of_heavy_atoms(bond_topology):
   """Return the indices of the heavy atoms in `bond_topology`.
 
   Args:
@@ -92,13 +89,8 @@ def indices_of_heavy_atoms(
   ]
 
 
-def bond_topologies_from_geom(
-    bond_lengths,
-    conformer_id,
-    fate,
-    bond_topology, geometry,
-    matching_parameters
-):
+def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
+                              geometry, matching_parameters):
   """Return all BondTopology's that are plausible.
 
     Given a molecule described by `bond_topology` and `geometry`, return all
@@ -119,7 +111,7 @@ def bond_topologies_from_geom(
   """
   result = dataset_pb2.TopologyMatches()  # To be returned.
   result.starting_smiles = bond_topology.smiles
-  result.conformer_id =  conformer_id
+  result.conformer_id = conformer_id
   result.fate = fate
 
   natoms = len(bond_topology.atoms)
@@ -151,8 +143,8 @@ def bond_topologies_from_geom(
     if dist > THRESHOLD:
       continue
     try:
-      possible_bonds = bond_lengths.probability_of_bond_types(bond_topology.atoms[i],
-                                                              bond_topology.atoms[j], dist)
+      possible_bonds = bond_lengths.probability_of_bond_types(
+          bond_topology.atoms[i], bond_topology.atoms[j], dist)
     except KeyError:  # Happens when this bond type has no data
       continue
     if not possible_bonds:
@@ -169,7 +161,7 @@ def bond_topologies_from_geom(
   # Need to know when the starting smiles has been recovered.
   rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bond_topology)
   starting_smiles = smu_utils_lib.compute_smiles_for_molecule(
-    rdkit_mol, include_hs=True)
+      rdkit_mol, include_hs=True)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
   # Avoid finding duplicates.
@@ -185,11 +177,12 @@ def bond_topologies_from_geom(
       continue
 
     rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bt)
-    if matching_parameters.consider_not_bonded and len(Chem.GetMolFrags(rdkit_mol)) > 1:
+    if matching_parameters.consider_not_bonded and len(
+        Chem.GetMolFrags(rdkit_mol)) > 1:
       continue
 
     found_smiles = smu_utils_lib.compute_smiles_for_molecule(
-      rdkit_mol, include_hs=True)
+        rdkit_mol, include_hs=True)
     if found_smiles in all_found_smiles:
       continue
 
@@ -209,7 +202,7 @@ def bond_topologies_from_geom(
 
     if not matching_parameters.smiles_with_h:
       found_smiles = smu_utils_lib.compute_smiles_for_molecule(
-        rdkit_mol, include_hs=False)
+          rdkit_mol, include_hs=False)
 
     bt.geometry_score = geometry_score(bt, distances, bond_lengths)
     bt.smiles = found_smiles
@@ -225,9 +218,11 @@ def bond_topologies_from_geom(
 
   return result
 
-def geometry_score(bt: dataset_pb2.BondTopology,
-                   distances: np.ndarray,
-                   bond_lengths: bond_length_distribution.AllAtomPairLengthDistributions) -> float:
+
+def geometry_score(
+    bt, distances,
+    bond_lengths
+):
   """Return summed P(geometry|topology)  for `bt` given `distances`.
 
   For each bond in `bt` compute the score associated with that kind of
@@ -238,8 +233,9 @@ def geometry_score(bt: dataset_pb2.BondTopology,
 
   Args:
     bt: BondTopology
-    distances: numpy array natoms*natoms
-    bond_length_distribution
+    distances: numpy array natoms*natoms bond_length_distribution
+    bond_lengths: Pairwise bond lengths.
+
   Returns:
     floating point score.
   """
@@ -255,17 +251,17 @@ def geometry_score(bt: dataset_pb2.BondTopology,
         bond.bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED):
       continue
     dist = distances[a1][a2]
-    result += np.log(bond_lengths.pdf_length_given_type(
-      atype1, atype2, bond.bond_type, dist))
+    result += np.log(
+        bond_lengths.pdf_length_given_type(atype1, atype2, bond.bond_type,
+                                           dist))
 
   return result
+
 
 class TopologyFromGeom(beam.DoFn):
   """Beam class for extracting BondTopology from Conformer protos."""
 
-  def __init__(
-      self,
-      bond_lengths):
+  def __init__(self, bond_lengths):
     super().__init__()
     self._bond_lengths = bond_lengths
 
@@ -279,16 +275,15 @@ class TopologyFromGeom(beam.DoFn):
     Yields:
       dataset_pb2.TopologyMatches
     """
-# Adjust as needed...
-#   if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
-#     return
+    # Adjust as needed...
+    #   if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+    #     return
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.neutral_forms_during_bond_matching = True
     matching_parameters.must_match_all_bonds = True
     matching_parameters.consider_not_bonded = True
     matching_parameters.ring_atom_count_cannot_decrease = False
-    yield bond_topologies_from_geom(self._bond_lengths,
-                                    conformer.conformer_id,
+    yield bond_topologies_from_geom(self._bond_lengths, conformer.conformer_id,
                                     conformer.fate,
                                     conformer.bond_topologies[0],
                                     conformer.optimized_geometry,

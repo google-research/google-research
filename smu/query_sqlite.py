@@ -22,18 +22,17 @@ import contextlib
 import csv
 import enum
 import os
-import pandas as pd
 import random
 import sys
-from typing import Sequence
 
 from absl import app
 from absl import flags
 from absl import logging
+import pandas as pd
 from rdkit import Chem
-
-from tensorflow.io import gfile
 import tensorflow as tf
+from tensorflow.io import gfile
+
 from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
@@ -65,25 +64,28 @@ flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
                         'Format for the found SMU entries')
-flags.DEFINE_boolean('redetect_geometry', False,
-                     'Whether to rerun the geometry detection on the conformers')
-flags.DEFINE_string('bond_lengths_csv', None,
-                    'File usually name <data>_bond_lengths.csv that contains the '
-                    'observed distribution of bond lengths. '
-                    'Only needed if --redetect_geometry')
-flags.DEFINE_string('bond_topology_csv', None,
-                    'File which contains the desription of all bond topologies '
-                    'considered in SMU. Only needed if --redetect_geometry')
+flags.DEFINE_boolean(
+    'redetect_geometry', False,
+    'Whether to rerun the geometry detection on the conformers')
+flags.DEFINE_string(
+    'bond_lengths_csv', None,
+    'File usually name <data>_bond_lengths.csv that contains the '
+    'observed distribution of bond lengths. '
+    'Only needed if --redetect_geometry')
+flags.DEFINE_string(
+    'bond_topology_csv', None,
+    'File which contains the desription of all bond topologies '
+    'considered in SMU. Only needed if --redetect_geometry')
 
 FLAGS = flags.FLAGS
 
 
 class GeometryData:
+  """Class GeometryData."""
   _singleton = None
   # These are copied from pipeline.py. Shoudl they be shared somehere?
   _BOND_LENGTHS_SIG_DIGITS = 3
   _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
-
 
   def __init__(self):
     if FLAGS.bond_lengths_csv is None:
@@ -91,9 +93,11 @@ class GeometryData:
     logging.info('Loading bond_lengths')
     with gfile.GFile(FLAGS.bond_lengths_csv, 'r') as infile:
       df = pd.read_csv(infile, dtype={'length_str': str})
-    self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
+    self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions(
+    )
     self.bond_lengths.add_from_sparse_dataframe(
-      df, self._BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS, self._BOND_LENGTHS_SIG_DIGITS)
+        df, self._BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS,
+        self._BOND_LENGTHS_SIG_DIGITS)
     logging.info('Done loading bond_lengths')
 
     if FLAGS.bond_topology_csv is None:
@@ -140,10 +144,11 @@ class PBTextOutputter:
   def close(self):
     self.outfile.close()
 
-class TfDataOutputter:
-  """Writes output to TFDataRecord form"""
 
-  def __init__(self, output_path: str):
+class TfDataOutputter:
+  """Writes output to TFDataRecord form."""
+
+  def __init__(self, output_path):
     """Creates TfDataOutputter with output to `output_path`.
 
     Args:
@@ -155,11 +160,13 @@ class TfDataOutputter:
     """Writes serialized `conformer`.
 
     Args:
+      conformer: dataset_pb2.Conformer
     """
     self.output.write(conformer.SerializeToString())
 
   def close(self):
     self.output.close()
+
 
 class SDFOutputter:
   """Simple internal class to write entries as multi molecule SDF files."""
@@ -179,7 +186,7 @@ class SDFOutputter:
     if output_path:
       # I couldn't get gfile.GFile to be happen with Chem.SDWriter, so I'm just
       # falling back to a plain old open.
-      #self.writer = Chem.SDWriter(gfile.GFile(output_path, 'w'))
+      # self.writer = Chem.SDWriter(gfile.GFile(output_path, 'w'))
       self.writer = Chem.SDWriter(output_path)
     else:
       self.writer = Chem.SDWriter(sys.stdout)
@@ -247,16 +254,21 @@ class ReDetectTopologiesOutputter:
     self._matching_parameters.ring_atom_count_cannot_decrease = False
 
   def output(self, conformer):
+    """Writes a Conformer.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+    """
     matches = topology_from_geom.bond_topologies_from_geom(
-      bond_lengths=self._geometry_data.bond_lengths,
-      conformer_id=conformer.conformer_id,
-      fate=conformer.fate,
-      bond_topology=conformer.bond_topologies[0],
-      geometry=conformer.optimized_geometry,
-      matching_parameters=self._matching_parameters)
+        bond_lengths=self._geometry_data.bond_lengths,
+        conformer_id=conformer.conformer_id,
+        fate=conformer.fate,
+        bond_topology=conformer.bond_topologies[0],
+        geometry=conformer.optimized_geometry,
+        matching_parameters=self._matching_parameters)
 
     if not matches.bond_topology:
-      logging.error(f'No bond topology matched for {conformer.conformer_id}')
+      logging.error('No bond topology matched for %s', conformer.conformer_id)
     else:
       del conformer.bond_topologies[:]
       conformer.bond_topologies.extend(matches.bond_topology)
@@ -264,7 +276,8 @@ class ReDetectTopologiesOutputter:
         try:
           bt.bond_topology_id = self._geometry_data.smiles_id_dict[bt.smiles]
         except KeyError:
-          logging.error(f'Did not find bond topology id for smiles {bt.smiles}')
+          logging.error('Did not find bond topology id for smiles %s',
+                        bt.smiles)
 
     self._wrapped_outputter.output(conformer)
 

@@ -15,7 +15,6 @@
 
 """Tests for the BondLengthDistribution(s) classes."""
 
-import numpy as np
 import os
 from absl.testing import absltest
 import numpy as np
@@ -378,36 +377,39 @@ class SparseDataframFromRecordsTest(absltest.TestCase):
                                   ['1.234', '2.345', '3.456'])
     np.testing.assert_array_equal(got['count'], [10, 20, 30])
 
+
 class TestInterpolateOutZeros(absltest.TestCase):
+
   def test_no_action(self):
-    input = np.array([1, 1])
-    got = bond_length_distribution.interpolate_zeros(input)
+    inputs = np.array([1, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
     np.testing.assert_array_equal([1, 1], got)
 
   def test_insert_one(self):
-    input = np.array([1, 0, 1])
-    got = bond_length_distribution.interpolate_zeros(input)
+    inputs = np.array([1, 0, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
     np.testing.assert_array_equal([1, 1, 1], got)
 
   def test_insert_many(self):
-    input = np.array([1, 0, 0, 0, 0, 0, 1])
-    got = bond_length_distribution.interpolate_zeros(input)
-    np.testing.assert_array_equal(np.ones(len(input), dtype=np.int32), got)
+    inputs = np.array([1, 0, 0, 0, 0, 0, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_array_equal(np.ones(len(inputs), dtype=np.int32), got)
 
   def test_insert_multiple_regions(self):
-    input = np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1])
-    got = bond_length_distribution.interpolate_zeros(input)
-    np.testing.assert_array_equal(np.ones(len(input), dtype=np.int32), got)
+    inputs = np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_array_equal(np.ones(len(inputs), dtype=np.int32), got)
 
   def test_do_actual_interpolation_one(self):
-    input = np.array([1, 0, 2])
-    got = bond_length_distribution.interpolate_zeros(input)
+    inputs = np.array([1, 0, 2])
+    got = bond_length_distribution.interpolate_zeros(inputs)
     np.testing.assert_almost_equal([1.0, 1.5, 2.0], got)
 
   def test_do_actual_interpolation_many(self):
-    input = np.array([1, 0, 0, 0, 0, 6])
-    got = bond_length_distribution.interpolate_zeros(input)
+    inputs = np.array([1, 0, 0, 0, 0, 6])
+    got = bond_length_distribution.interpolate_zeros(inputs)
     np.testing.assert_almost_equal([1, 2, 3, 4, 5, 6], got)
+
 
 if __name__ == '__main__':
   absltest.main()

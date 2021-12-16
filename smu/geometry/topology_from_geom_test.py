@@ -15,14 +15,12 @@
 
 # Tester for topology_from_geometry
 
-from typing import Tuple
-
 from absl.testing import absltest
 
-from google.protobuf import text_format
 import numpy as np
 import pandas as pd
 
+from google.protobuf import text_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
 from smu.geometry import smu_molecule
@@ -36,8 +34,7 @@ from smu.parser import smu_utils_lib
 RESOLUTION = 1000
 
 
-def triangular_distribution(min_dist, dist_max_value,
-                            max_dist):
+def triangular_distribution(min_dist, dist_max_value, max_dist):
   """Generate a triangular distribution.
 
   Args:
@@ -118,17 +115,18 @@ atom_positions {
     fate = dataset_pb2.Conformer.FATE_SUCCESS
     conformer_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
-        all_distributions, conformer_id, fate, bond_topology, geometry, matching_parameters)
+        all_distributions, conformer_id, fate, bond_topology, geometry,
+        matching_parameters)
     self.assertIsNotNone(result)
-    self.assertEqual(len(result.bond_topology), 2)
-    self.assertEqual(len(result.bond_topology[0].bonds), 1)
-    self.assertEqual(len(result.bond_topology[1].bonds), 1)
+    self.assertLen(result.bond_topology, 2)
+    self.assertLen(result.bond_topology[0].bonds, 1)
+    self.assertLen(result.bond_topology[1].bonds, 1)
     self.assertEqual(result.bond_topology[0].bonds[0].bond_type, single_bond)
     self.assertEqual(result.bond_topology[1].bonds[0].bond_type, double_bond)
     self.assertGreater(result.bond_topology[0].topology_score,
                        result.bond_topology[1].topology_score)
-    self.assertAlmostEqual(np.sum(np.exp(
-      [bt.topology_score for bt in result.bond_topology])), 1.0)
+    self.assertAlmostEqual(
+        np.sum(np.exp([bt.topology_score for bt in result.bond_topology])), 1.0)
     self.assertAlmostEqual(result.bond_topology[0].geometry_score,
                            np.log(bldc1c.pdf(1.4)))
     self.assertAlmostEqual(result.bond_topology[1].geometry_score,

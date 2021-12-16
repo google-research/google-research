@@ -19,14 +19,13 @@
 """
 
 import operator
-
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 
 from smu import dataset_pb2
-from smu.parser import smu_utils_lib
 from smu.geometry import utilities
+from smu.parser import smu_utils_lib
 
 
 class MatchingParameters:
@@ -38,9 +37,9 @@ class MatchingParameters:
     self._smiles_with_labels: bool = True
 
     # A variant on matching is to consider all N and O as neutral forms during
-    # matching, and then as a post processing step, see whether a valid, 
+    # matching, and then as a post processing step, see whether a valid,
     # neutral, molecule can be formed.
-    self._neutral_forms_during_bond_matching: bool=False
+    self._neutral_forms_during_bond_matching: bool = False
 
     # If not a bond is being considered during matching.
     self._consider_not_bonded = False
@@ -97,8 +96,8 @@ class MatchingParameters:
   def ring_atom_count_cannot_decrease(self, value):
     self._ring_atom_count_cannot_decrease = value
 
-def add_bond(a1, a2, btype,
-             destination):
+
+def add_bond(a1, a2, btype, destination):
   """Add a new Bond to `destination`.
 
   Args:
@@ -117,9 +116,7 @@ def add_bond(a1, a2, btype,
 class SmuMolecule:
   """Holds information about partially built molecules."""
 
-  def __init__(self, hydrogens_attached,
-               bonds_to_scores,
-               matching_parameters):
+  def __init__(self, hydrogens_attached, bonds_to_scores, matching_parameters):
     """Class to perform bonding assessments.
 
     Args:
@@ -133,7 +130,8 @@ class SmuMolecule:
     """
     self._starting_bond_topology = hydrogens_attached
     self._natoms = len(hydrogens_attached.atoms)
-    self._heavy_atoms = sum(1 for atom in hydrogens_attached.atoms if atom != dataset_pb2.BondTopology.ATOM_H)
+    self._heavy_atoms = sum(1 for atom in hydrogens_attached.atoms
+                            if atom != dataset_pb2.BondTopology.ATOM_H)
 
     self._contains_both_oxygen_and_nitrogen = False
     # If the molecule contains both N and O atoms, then we can
@@ -145,14 +143,16 @@ class SmuMolecule:
     self._max_bonds = np.zeros(self._natoms, dtype=np.int32)
     if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
       for i in range(0, self._natoms):
-        self._max_bonds[i] = utilities.max_bonds_any_form(hydrogens_attached.atoms[i])
+        self._max_bonds[i] = utilities.max_bonds_any_form(
+            hydrogens_attached.atoms[i])
     else:
       for i in range(0, self._natoms):
         self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[
             hydrogens_attached.atoms[i]]
 
     # With the Hydrogens attached, the number of bonds to each atom.
-    self._bonds_with_hydrogens_attached = np.zeros((self._natoms), dtype=np.int32)
+    self._bonds_with_hydrogens_attached = np.zeros((self._natoms),
+                                                   dtype=np.int32)
     for bond in hydrogens_attached.bonds:
       self._bonds_with_hydrogens_attached[bond.atom_a] += 1
       self._bonds_with_hydrogens_attached[bond.atom_b] += 1
@@ -174,9 +174,9 @@ class SmuMolecule:
     # to add explicit hydrogens
     self._must_match_all_bonds = matching_parameters.must_match_all_bonds
 
-
-  def set_contains_both_oxygen_and_nitrogen(self, bt:dataset_pb2.BondTopology):
+  def set_contains_both_oxygen_and_nitrogen(self, bt):
     """Examine `bt` and set self._contains_both_oxygen_and_nitrogen.
+
     Args:
       bt: BondTopology
     """
@@ -184,18 +184,19 @@ class SmuMolecule:
     oxygen_count = 0
     nitrogen_count = 0
     for atom in bt.atoms:
-      if atom in [dataset_pb2.BondTopology.ATOM_N,
-                  dataset_pb2.BondTopology.ATOM_NPOS]:
+      if atom in [
+          dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_NPOS
+      ]:
         nitrogen_count += 1
-      elif atom in [dataset_pb2.BondTopology.ATOM_O,
-                       dataset_pb2.BondTopology.ATOM_ONEG]:
+      elif atom in [
+          dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_ONEG
+      ]:
         oxygen_count += 1
 
     if oxygen_count > 0 and nitrogen_count > 0:
       self._contains_both_oxygen_and_nitrogen = True
 
-  def set_initial_score_and_incrementer(self, initial_score,
-                                        op):
+  def set_initial_score_and_incrementer(self, initial_score, op):
     """Update values used for computing scores."""
     self._initial_score = initial_score
     self._accumulate_score = op
@@ -248,7 +249,7 @@ class SmuMolecule:
 
     return result
 
-  def place_bonds_inner(self, state) -> Optional[dataset_pb2.BondTopology]:
+  def place_bonds_inner(self, state):
     """Place bonds corresponding to `state`.
 
     No validity checking is done, the calling function is responsible
@@ -286,12 +287,15 @@ class SmuMolecule:
 
     return result
 
-  def place_bonds(self, state, matching_parameters: MatchingParameters) -> Optional[dataset_pb2.BondTopology]:
+  def place_bonds(
+      self, state, matching_parameters
+  ):
     """Place bonds corresponding to `state`.
 
     Args:
       state: bonding pattern to be placed.
       matching_parameters: optional settings
+
     Returns:
       If successful, a BondTopology
     """
@@ -314,7 +318,7 @@ class SmuMolecule:
 
     return bt
 
-  def assign_charged_atoms(self, bt:dataset_pb2.BondTopology) -> bool:
+  def assign_charged_atoms(self, bt):
     """Assign (N, N+) and (O, O-) possibilities in `bt`.
 
     bt must contain both N and O atoms.
@@ -323,7 +327,9 @@ class SmuMolecule:
 
     Args:
       bt: BondTopology, bt.atoms are updated in place
-    Returns: True if successful, False otherwise
+
+    Returns:
+      True if successful, False otherwise
     """
 
     carbon = dataset_pb2.BondTopology.ATOM_C
@@ -352,9 +358,9 @@ class SmuMolecule:
         elif self._current_bonds_attached[i] == 1:
           bt.atoms[i] = oneg
           net_charge -= 1
-        else:    # not attached.
+        else:  # not attached.
           return False
-        
+
     if net_charge != 0:
       return False
 

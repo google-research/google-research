@@ -17,8 +17,9 @@
 
 import apache_beam as beam
 
+import utilities
+
 from smu import dataset_pb2
-from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 
 MAX_DIST = 2.0
