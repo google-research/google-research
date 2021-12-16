@@ -6,7 +6,7 @@ python -m run_ak_experiment --dataset=mnist \
                             --plus_class=8 \
                             --minus_class=3 \
                             --num_translations=1000 \
-                            --num_epochs=10
+                            --max_num_epochs=10
 ```
 
 ## Command-line flags
