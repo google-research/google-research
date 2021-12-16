@@ -23,6 +23,7 @@ from absl.testing import flagsaver
 import apache_beam as beam
 import tensorflow as tf
 from tensorflow.io import gfile
+import tensorflow as tf
 
 from smu import dataset_pb2
 from smu import pipeline
@@ -70,6 +71,7 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths(self):
     # This conformer does not obey valence rules, but it's fine for this test.
     conf = dataset_pb2.Conformer(conformer_id=123000)
+    conf.properties.errors.status = 4
     bt = conf.bond_topologies.add()
     bt.atoms.extend([
         dataset_pb2.BondTopology.ATOM_ONEG, dataset_pb2.BondTopology.ATOM_NPOS,
@@ -104,6 +106,7 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths_max_unbonded(self):
     # This conformer does not obery valence rules, but it's fine for this test.
     conf = dataset_pb2.Conformer(conformer_id=123000)
+    conf.properties.errors.status = 4
     bt = conf.bond_topologies.add()
     bt.atoms.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
@@ -132,6 +135,36 @@ class FunctionalTest(absltest.TestCase):
         ])
     # Note that the N-O distance is not reported while the C-O is.
 
+  def _create_dummy_conformer(self):
+    conf = dataset_pb2.Conformer(conformer_id=123000)
+    bt = conf.bond_topologies.add()
+    bt.atoms.extend([
+      dataset_pb2.BondTopology.ATOM_C,
+      dataset_pb2.BondTopology.ATOM_C
+    ])
+    bt.bonds.add(
+        atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
+    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    return conf
+
+  def test_extract_bond_lengths_has_errors(self):
+    conf = self._create_dummy_conformer()
+    conf.properties.errors.status = 8
+    got = list(
+        pipeline.extract_bond_lengths(
+            conf, dist_sig_digits=2, unbonded_max=2.0))
+    self.assertEqual([], got)
+
+  def test_extract_bond_lengths_is_dup(self):
+    conf = self._create_dummy_conformer()
+    conf.properties.errors.status = 0
+    conf.duplicated_by = 456000
+    got = list(
+        pipeline.extract_bond_lengths(
+            conf, dist_sig_digits=2, unbonded_max=2.0))
+    self.assertEqual([], got)
+
 
 class IntegrationTest(absltest.TestCase):
 
@@ -158,6 +191,16 @@ class IntegrationTest(absltest.TestCase):
       with beam.Pipeline(beam_options) as root:
         pipeline.pipeline(root)
 
+    metrics = root.result.metrics().query()
+    counters_dict = {m.key.metric.name: m.committed
+                     for m in metrics['counters']}
+
+    self.assertEqual(counters_dict['attempted_topology_matches'], 3)
+    # Conformer 620517 will not match because bond lengths are not extracted
+    # from conformers with serious errors like this.
+    self.assertEqual(counters_dict['no_topology_matches'], 1)
+    self.assertNotIn('topology_match_smiles_failure', counters_dict)
+
     logging.info('Files in output: %s',
                  '\n'.join(gfile.glob(os.path.join(test_subdirectory, '*'))))
     for stage in ['stage1', 'stage2']:
@@ -179,19 +222,21 @@ class IntegrationTest(absltest.TestCase):
       conflicts_lines = f.readlines()
       self.assertIn('conformer_id,', conflicts_lines[0])
       self.assertEqual(
-          conflicts_lines[1], '618451001,'
-          '1,1,1,1,-406.51179,9.999999,-406.522079,9.999999,True,True,'
-          '1,1,1,1,-406.51179,0.052254,-406.522079,2.5e-05,True,True\n')
+          conflicts_lines[1], '618451001,1,1,1,1,'
+          '-406.51179,9.999999,-406.522079,9.999999,True,True,'
+          '-406.51179,0.052254,-406.522079,2.5e-05,True,True\n')
 
     # Check a couple of the stats.
     with gfile.GFile(output_stem + '_stats-00000-of-00001.csv') as f:
       stats_lines = f.readlines()
-      self.assertIn('errors.status,0,3\n', stats_lines)
+      self.assertIn('errors.status,0,2\n', stats_lines)
       self.assertIn('errors.warn_t1,0,4\n', stats_lines)
       self.assertIn('fate,FATE_SUCCESS,2\n', stats_lines)
       self.assertIn('fate,FATE_DUPLICATE_DIFFERENT_TOPOLOGY,1\n', stats_lines)
       self.assertIn('num_initial_geometries,1,4\n', stats_lines)
       self.assertIn('num_duplicates,1,1\n', stats_lines)
+      self.assertIn('zero_field,single_point_energy_pbe0d3_6_311gd,1\n',
+                    stats_lines)
 
     # Check the smiles comparison output
     with gfile.GFile(output_stem + '_smiles_compare-00000-of-00001.csv') as f:
@@ -210,11 +255,11 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('bt_id', bt_summary_lines[0])
       self.assertIn('count_attempted_conformers', bt_summary_lines[0])
       # This is the bond topology that has no conformer
-      self.assertIn('10,0,0,0,0,0,0,0,0,0,0\n', bt_summary_lines)
+      self.assertIn('10,0,0,0,0,0,0,0,0,0,0,0,0\n', bt_summary_lines)
       # This is a bond topology with 1 conformer
-      self.assertIn('620517,1,0,0,0,1,0,1,0,0,0\n', bt_summary_lines)
+      self.assertIn('620517,1,0,0,0,1,0,1,0,0,0,0,0\n', bt_summary_lines)
       # This is a bond topology with 2 conformers
-      self.assertIn('618451,2,0,0,0,2,0,0,2,0,0\n', bt_summary_lines)
+      self.assertIn('618451,2,0,0,0,2,0,0,0,2,0,0,0\n', bt_summary_lines)
 
     # Check the bond lengths file
     with gfile.GFile(output_stem + '_bond_lengths.csv') as f:
@@ -274,6 +319,11 @@ class IntegrationTest(absltest.TestCase):
     self.assertTrue(
         complete_entry.properties.HasField('rotational_constants'))
 
+    complete_entry_for_smiles = [c for c in complete_output
+                                 if c.conformer_id == 620517002][0]
+    self.assertEqual(
+        complete_entry_for_smiles.properties.smiles_openbabel,
+      'NotAValidSmilesString')
 
 
 if __name__ == '__main__':

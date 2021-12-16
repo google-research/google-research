@@ -16,7 +16,8 @@
 # Tester for topology_from_geometry
 
 from typing import Tuple
-import unittest
+
+from absl.testing import absltest
 
 from google.protobuf import text_format
 import numpy as np
@@ -64,10 +65,10 @@ def triangular_distribution(min_dist, dist_max_value,
   return distances, population
 
 
-class TestTopoFromGeom(unittest.TestCase):
+class TestTopoFromGeom(absltest.TestCase):
 
   def test_scores(self):
-    carbon = dataset_pb2.BondTopology.AtomType.ATOM_C
+    carbon = dataset_pb2.BondTopology.ATOM_C
     single_bond = dataset_pb2.BondTopology.BondType.BOND_SINGLE
     double_bond = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
 
@@ -114,17 +115,25 @@ atom_positions {
 
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
+    fate = dataset_pb2.Conformer.FATE_SUCCESS
+    conformer_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
-        all_distributions, bond_topology, geometry, matching_parameters)
+        all_distributions, conformer_id, fate, bond_topology, geometry, matching_parameters)
     self.assertIsNotNone(result)
     self.assertEqual(len(result.bond_topology), 2)
     self.assertEqual(len(result.bond_topology[0].bonds), 1)
     self.assertEqual(len(result.bond_topology[1].bonds), 1)
-    self.assertGreater(result.bond_topology[0].score,
-                       result.bond_topology[1].score)
     self.assertEqual(result.bond_topology[0].bonds[0].bond_type, single_bond)
     self.assertEqual(result.bond_topology[1].bonds[0].bond_type, double_bond)
+    self.assertGreater(result.bond_topology[0].topology_score,
+                       result.bond_topology[1].topology_score)
+    self.assertAlmostEqual(np.sum(np.exp(
+      [bt.topology_score for bt in result.bond_topology])), 1.0)
+    self.assertAlmostEqual(result.bond_topology[0].geometry_score,
+                           np.log(bldc1c.pdf(1.4)))
+    self.assertAlmostEqual(result.bond_topology[1].geometry_score,
+                           np.log(bldc2c.pdf(1.4)))
 
 
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()
