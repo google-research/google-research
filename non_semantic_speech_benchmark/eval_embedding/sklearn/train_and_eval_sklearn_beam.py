@@ -42,10 +42,10 @@ flags.DEFINE_string(
     'save_predictions_dir', None, 'If not `None`, write numpy '
     'array of predictions on train, eval, and test into this '
     'directory.')
-flags.DEFINE_enum('eval_metric', 'accuracy',
-                  ['accuracy', 'balanced_accuracy', 'equal_error_rate',
-                   'unweighted_average_recall', 'auc'],
-                  'Which metric to compute and report.')
+flags.DEFINE_enum('eval_metric', 'accuracy', [
+    'accuracy', 'balanced_accuracy', 'equal_error_rate',
+    'unweighted_average_recall', 'auc', 'dprime'
+], 'Which metric to compute and report.')
 flags.DEFINE_string(
     'comma_escape_char', '?',
     'Sometimes we want commas to appear in `embedding_modules`, '

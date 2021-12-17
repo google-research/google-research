@@ -107,8 +107,8 @@ def train_and_get_score(embedding_name,
   logging.info('Trained model: %s, %s: %.2f min', model_name, embedding_name,
                _cur_m(s))
 
-  eval_score, test_score = _calc_eval_scores(eval_metric, d, npx_eval, npy_eval,
-                                             npx_test, npy_test)
+  eval_score, test_score = _calc_scores(eval_metric, d, npx_eval, npy_eval,
+                                        npx_test, npy_test, label_list)
   logging.info('Finished eval: %s: %.3f', model_name, eval_score)
   logging.info('Finished test: %s: %.3f', model_name, test_score)
 
@@ -144,9 +144,13 @@ def train_and_get_score(embedding_name,
   return (eval_score, test_score)
 
 
-def _calc_eval_scores(eval_metric, d, npx_eval,
-                      npy_eval, npx_test,
-                      npy_test):
+def _calc_scores(eval_metric,
+                 d,
+                 npx_eval,
+                 npy_eval,
+                 npx_test,
+                 npy_test,
+                 label_list):
   """Compute desired metric on eval and test."""
   if eval_metric == 'equal_error_rate':
     # Eval.
@@ -179,14 +183,27 @@ def _calc_eval_scores(eval_metric, d, npx_eval,
     eval_score = np.mean(_class_scores(npx_eval, npy_eval))
     test_score = np.mean(_class_scores(npx_test, npy_test))
   elif eval_metric == 'auc':
-    # Eval.
-    regression_output = d.predict_proba(npx_eval)[:, 1]  # Prob of class 1.
+    binary_classification = (len(label_list) == 2)
     eval_score = metrics.calculate_auc(
-        labels=npy_eval, predictions=regression_output)
-    # Test.
-    regression_output = d.predict_proba(npx_test)[:, 1]  # Prob of class 1.
+        labels=npy_eval,
+        predictions=regression_output,
+        binary_classification=binary_classification)
     test_score = metrics.calculate_auc(
-        labels=npy_test, predictions=regression_output)
+        labels=npy_test,
+        predictions=regression_output,
+        binary_classification=binary_classification)
+  elif eval_metric == 'dprime':
+    binary_classification = (len(label_list) == 2)
+    eval_auc = metrics.calculate_auc(
+        labels=npy_eval,
+        predictions=regression_output,
+        binary_classification=binary_classification)
+    test_auc = metrics.calculate_auc(
+        labels=npy_test,
+        predictions=regression_output,
+        binary_classification=binary_classification)
+    eval_score = metrics.dprime_from_auc(eval_auc)
+    test_score = metrics.dprime_from_auc(test_auc)
   else:
     raise ValueError(f'`eval_metric` not recognized: {eval_metric}')
   return eval_score, test_score
