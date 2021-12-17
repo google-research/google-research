@@ -1,0 +1,11 @@
+clu
+git+https://github.com/deepmind/einshape
+jax>=0.2.26
+jaxlib>=0.1.75
+flax>=0.3.6 
+ml_collections 
+numpy>=1.21.4 
+opencv-python>=4.4.0
+optax
+scikit-image==0.17.2
+tensorboard>=2.4.0
