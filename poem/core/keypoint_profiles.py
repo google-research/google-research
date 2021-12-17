@@ -157,22 +157,26 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
           ([self._keypoint_names.index(name) for name in start_names],
            [self._keypoint_names.index(name) for name in end_names]))
 
-    self._head_keypoint_name = head_keypoint_name
-    self._neck_keypoint_name = neck_keypoint_name
-    self._left_shoulder_keypoint_name = left_shoulder_keypoint_name
-    self._right_shoulder_keypoint_name = right_shoulder_keypoint_name
-    self._left_elbow_keypoint_name = left_elbow_keypoint_name
-    self._right_elbow_keypoint_name = right_elbow_keypoint_name
-    self._left_wrist_keypoint_name = left_wrist_keypoint_name
-    self._right_wrist_keypoint_name = right_wrist_keypoint_name
-    self._spine_keypoint_name = spine_keypoint_name
-    self._pelvis_keypoint_name = pelvis_keypoint_name
-    self._left_hip_keypoint_name = left_hip_keypoint_name
-    self._right_hip_keypoint_name = right_hip_keypoint_name
-    self._left_knee_keypoint_name = left_knee_keypoint_name
-    self._right_knee_keypoint_name = right_knee_keypoint_name
-    self._left_ankle_keypoint_name = left_ankle_keypoint_name
-    self._right_ankle_keypoint_name = right_ankle_keypoint_name
+    def to_list(x):
+      """Converts to list."""
+      return list(x) if x else []
+
+    self._head_keypoint_name = to_list(head_keypoint_name)
+    self._neck_keypoint_name = to_list(neck_keypoint_name)
+    self._left_shoulder_keypoint_name = to_list(left_shoulder_keypoint_name)
+    self._right_shoulder_keypoint_name = to_list(right_shoulder_keypoint_name)
+    self._left_elbow_keypoint_name = to_list(left_elbow_keypoint_name)
+    self._right_elbow_keypoint_name = to_list(right_elbow_keypoint_name)
+    self._left_wrist_keypoint_name = to_list(left_wrist_keypoint_name)
+    self._right_wrist_keypoint_name = to_list(right_wrist_keypoint_name)
+    self._spine_keypoint_name = to_list(spine_keypoint_name)
+    self._pelvis_keypoint_name = to_list(pelvis_keypoint_name)
+    self._left_hip_keypoint_name = to_list(left_hip_keypoint_name)
+    self._right_hip_keypoint_name = to_list(right_hip_keypoint_name)
+    self._left_knee_keypoint_name = to_list(left_knee_keypoint_name)
+    self._right_knee_keypoint_name = to_list(right_knee_keypoint_name)
+    self._left_ankle_keypoint_name = to_list(left_ankle_keypoint_name)
+    self._right_ankle_keypoint_name = to_list(right_ankle_keypoint_name)
 
   @property
   def name(self):
@@ -305,8 +309,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def head_keypoint_index(self):
     """Gets head keypoint index."""
-    if not self._head_keypoint_name:
-      raise ValueError('Head keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._head_keypoint_name
@@ -315,8 +317,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def neck_keypoint_index(self):
     """Gets neck keypoint index."""
-    if not self._neck_keypoint_name:
-      raise ValueError('Neck keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._neck_keypoint_name
@@ -325,8 +325,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def left_shoulder_keypoint_index(self):
     """Gets left shoulder keypoint index."""
-    if not self._left_shoulder_keypoint_name:
-      raise ValueError('Left shoulder keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._left_shoulder_keypoint_name
@@ -335,8 +333,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def right_shoulder_keypoint_index(self):
     """Gets right shoulder keypoint index."""
-    if not self._right_shoulder_keypoint_name:
-      raise ValueError('Right shoulder keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._right_shoulder_keypoint_name
@@ -345,8 +341,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def left_elbow_keypoint_index(self):
     """Gets left elbow keypoint index."""
-    if not self._left_elbow_keypoint_name:
-      raise ValueError('Left elbow keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._left_elbow_keypoint_name
@@ -355,8 +349,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def right_elbow_keypoint_index(self):
     """Gets right elbow keypoint index."""
-    if not self._right_elbow_keypoint_name:
-      raise ValueError('Right elbow keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._right_elbow_keypoint_name
@@ -365,8 +357,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def left_wrist_keypoint_index(self):
     """Gets left wrist keypoint index."""
-    if not self._left_wrist_keypoint_name:
-      raise ValueError('Left wrist keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._left_wrist_keypoint_name
@@ -375,8 +365,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def right_wrist_keypoint_index(self):
     """Gets right wrist keypoint index."""
-    if not self._right_wrist_keypoint_name:
-      raise ValueError('Right wrist keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._right_wrist_keypoint_name
@@ -385,8 +373,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def spine_keypoint_index(self):
     """Gets spine keypoint index."""
-    if not self._spine_keypoint_name:
-      raise ValueError('Spine keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._spine_keypoint_name
@@ -395,8 +381,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def pelvis_keypoint_index(self):
     """Gets pelvis keypoint index."""
-    if not self._pelvis_keypoint_name:
-      raise ValueError('Pelvis keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._pelvis_keypoint_name
@@ -405,8 +389,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def left_hip_keypoint_index(self):
     """Gets left hip keypoint index."""
-    if not self._left_hip_keypoint_name:
-      raise ValueError('Left hip keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._left_hip_keypoint_name
@@ -415,8 +397,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def right_hip_keypoint_index(self):
     """Gets right hip keypoint index."""
-    if not self._right_hip_keypoint_name:
-      raise ValueError('Right hip keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._right_hip_keypoint_name
@@ -425,8 +405,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def left_knee_keypoint_index(self):
     """Gets left knee keypoint index."""
-    if not self._left_knee_keypoint_name:
-      raise ValueError('Left knee keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._left_knee_keypoint_name
@@ -435,8 +413,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def right_knee_keypoint_index(self):
     """Gets right knee keypoint index."""
-    if not self._right_knee_keypoint_name:
-      raise ValueError('Right knee keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._right_knee_keypoint_name
@@ -445,8 +421,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def left_ankle_keypoint_index(self):
     """Gets left ankle keypoint index."""
-    if not self._left_ankle_keypoint_name:
-      raise ValueError('Left ankle keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._left_ankle_keypoint_name
@@ -455,8 +429,6 @@ class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
   @property
   def right_ankle_keypoint_index(self):
     """Gets right ankle keypoint index."""
-    if not self._right_ankle_keypoint_name:
-      raise ValueError('Right ankle keypoint is not specified.')
     return [
         self.keypoint_index(name, raise_error_if_not_found=True)
         for name in self._right_ankle_keypoint_name

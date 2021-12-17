@@ -25,7 +25,7 @@ import tensorflow as tf
 from poem.core import keypoint_profiles
 
 
-def get_points(points, indices, keepdims=True):
+def get_points(points, indices, keepdims=True, raise_error_if_empty=True):
   """Gets points as the centers of points at specified indices.
 
   Args:
@@ -33,6 +33,8 @@ def get_points(points, indices, keepdims=True):
     indices: A list of integers for point indices.
     keepdims: A boolean for whether to keep the reduced `num_points` dimension
       (of length 1) in the result distance tensor.
+    raise_error_if_empty: A boolean for whether to raise ValueError if `indices`
+      is empty. If false, returns None instead.
 
   Returns:
     A tensor for (center) points. Shape = [..., 1, point_dim].
@@ -41,6 +43,8 @@ def get_points(points, indices, keepdims=True):
     ValueError: If `indices` is empty.
   """
   if not indices:
+    if not raise_error_if_empty:
+      return None
     raise ValueError('`Indices` must be non-empty.')
   points = np.take(points, indices=indices, axis=-2)
   return np.mean(points, axis=-2, keepdims=keepdims)
@@ -97,7 +101,11 @@ def draw_pose_2d(ax,
   left_ankle_index = keypoint_profile_2d.left_ankle_keypoint_index
   right_ankle_index = keypoint_profile_2d.right_ankle_keypoint_index
 
-  f = functools.partial(get_points, points=keypoints_2d, keepdims=False)
+  f = functools.partial(
+      get_points,
+      points=keypoints_2d,
+      keepdims=False,
+      raise_error_if_empty=False)
   head = f(indices=head_index)
   left_shoulder = f(indices=left_shoulder_index)
   right_shoulder = f(indices=right_shoulder_index)
@@ -111,76 +119,90 @@ def draw_pose_2d(ax,
   right_knee = f(indices=right_knee_index)
   left_ankle = f(indices=left_ankle_index)
   right_ankle = f(indices=right_ankle_index)
-  draw_line_segment(
-      head,
-      left_shoulder,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          head_index, left_shoulder_index))
-  draw_line_segment(
-      head,
-      right_shoulder,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          head_index, right_shoulder_index))
-  draw_line_segment(
-      left_shoulder,
-      right_shoulder,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          left_shoulder_index, right_shoulder_index))
-  draw_line_segment(
-      left_shoulder,
-      left_elbow,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          left_shoulder_index, left_elbow_index))
-  draw_line_segment(
-      right_shoulder,
-      right_elbow,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          right_shoulder_index, right_elbow_index))
-  draw_line_segment(
-      left_elbow,
-      left_wrist,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          left_elbow_index, left_wrist_index))
-  draw_line_segment(
-      right_elbow,
-      right_wrist,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          right_elbow_index, right_wrist_index))
-  draw_line_segment(
-      left_shoulder,
-      left_hip,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          left_shoulder_index, left_hip_index))
-  draw_line_segment(
-      right_shoulder,
-      right_hip,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          right_shoulder_index, right_hip_index))
-  draw_line_segment(
-      left_hip,
-      right_hip,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          left_hip_index, right_hip_index))
-  draw_line_segment(
-      left_hip,
-      left_knee,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          left_hip_index, left_knee_index))
-  draw_line_segment(
-      right_hip,
-      right_knee,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          right_hip_index, right_knee_index))
-  draw_line_segment(
-      left_knee,
-      left_ankle,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          left_knee_index, left_ankle_index))
-  draw_line_segment(
-      right_knee,
-      right_ankle,
-      left_right_type=keypoint_profile_2d.segment_left_right_type(
-          right_knee_index, right_ankle_index))
+  if head is not None and left_shoulder is not None:
+    draw_line_segment(
+        head,
+        left_shoulder,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            head_index, left_shoulder_index))
+  if head is not None and right_shoulder is not None:
+    draw_line_segment(
+        head,
+        right_shoulder,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            head_index, right_shoulder_index))
+  if left_shoulder is not None and right_shoulder is not None:
+    draw_line_segment(
+        left_shoulder,
+        right_shoulder,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            left_shoulder_index, right_shoulder_index))
+  if left_shoulder is not None and left_elbow is not None:
+    draw_line_segment(
+        left_shoulder,
+        left_elbow,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            left_shoulder_index, left_elbow_index))
+  if right_shoulder is not None and right_elbow is not None:
+    draw_line_segment(
+        right_shoulder,
+        right_elbow,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            right_shoulder_index, right_elbow_index))
+  if left_elbow is not None and left_wrist is not None:
+    draw_line_segment(
+        left_elbow,
+        left_wrist,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            left_elbow_index, left_wrist_index))
+  if right_elbow is not None and right_wrist is not None:
+    draw_line_segment(
+        right_elbow,
+        right_wrist,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            right_elbow_index, right_wrist_index))
+  if left_shoulder is not None and left_hip is not None:
+    draw_line_segment(
+        left_shoulder,
+        left_hip,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            left_shoulder_index, left_hip_index))
+  if right_shoulder is not None and right_hip is not None:
+    draw_line_segment(
+        right_shoulder,
+        right_hip,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            right_shoulder_index, right_hip_index))
+  if left_hip is not None and right_hip is not None:
+    draw_line_segment(
+        left_hip,
+        right_hip,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            left_hip_index, right_hip_index))
+  if left_hip is not None and left_knee is not None:
+    draw_line_segment(
+        left_hip,
+        left_knee,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            left_hip_index, left_knee_index))
+  if right_hip is not None and right_knee is not None:
+    draw_line_segment(
+        right_hip,
+        right_knee,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            right_hip_index, right_knee_index))
+  if left_knee is not None and left_ankle is not None:
+    draw_line_segment(
+        left_knee,
+        left_ankle,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            left_knee_index, left_ankle_index))
+  if right_knee is not None and right_ankle is not None:
+    draw_line_segment(
+        right_knee,
+        right_ankle,
+        left_right_type=keypoint_profile_2d.segment_left_right_type(
+            right_knee_index, right_ankle_index))
 
   ax.set_xticks([])
   ax.set_yticks([])
