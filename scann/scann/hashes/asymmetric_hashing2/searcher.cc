@@ -292,6 +292,7 @@ Status Searcher<T>::FindNeighborsBatchedInternal(
       if (queries_left <= max_low_level_batch_size_) return queries_left;
 
       if (queries_left >= 2 * max_low_level_batch_size_) {
+        if (queries_left < optimal_low_level_batch_size_) return queries_left;
         return optimal_low_level_batch_size_;
       }
 
