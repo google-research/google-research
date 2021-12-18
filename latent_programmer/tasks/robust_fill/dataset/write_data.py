@@ -21,7 +21,6 @@ from __future__ import division
 
 from __future__ import print_function
 
-import enum
 import functools
 import os
 import random
@@ -35,23 +34,11 @@ import tensorflow.compat.v2 as tf
 from latent_programmer.tasks.robust_fill import dsl
 from latent_programmer.tasks.robust_fill import sample_random
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
+from latent_programmer.tasks.robust_fill.dataset import experiment as exp_module
 
 
 sys.path.append('../../../../')
 gfile = tf.io.gfile
-
-
-@enum.unique
-class Experiment(enum.Enum):
-  NONE = 0
-  LENGTH_1_6_TO_7_10 = 1
-  LENGTH_6_TO_1_10 = 2
-  LENGTH_1_TO_2_6 = 3
-  COMPOSE_DIFFERENT_CONCEPTS = 4
-  SWITCH_CONCEPT_ORDER = 5
-  COMPOSE_NEW_OP = 6
-  EXTEND_OP_FUNCTIONALITY = 7
-
 
 FLAGS = flags.FLAGS
 
@@ -78,7 +65,7 @@ flags.DEFINE_boolean('split_outputs', False,
 
 flags.DEFINE_enum('split', None, ['train', 'valid', 'test', 'finetune'],
                   'Which split of the dataset to generate.')
-flags.DEFINE_enum('experiment', 'NONE', [e.name for e in Experiment],
+flags.DEFINE_enum('experiment', 'NONE', [e.name for e in exp_module.Experiment],
                   'Kind of experiment (see document for descriptions).')
 
 
@@ -126,7 +113,7 @@ def serialize_example(task, token_id_table):
 
 def generate_task_for_experiment(experiment, is_train):
   """Generates a random task for a given experiment and dataset split."""
-  if experiment == Experiment.SWITCH_CONCEPT_ORDER.name:
+  if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER.name:
     # Handle this case separately because it's the most different from the rest.
     return sample_random.random_task_switch_concept_order(
         max_k=3,
@@ -149,24 +136,24 @@ def generate_task_for_experiment(experiment, is_train):
   valid_num_expressions_fn = None
   keep_fn = None
 
-  if experiment == Experiment.LENGTH_1_6_TO_7_10.name:
+  if experiment == exp_module.Experiment.LENGTH_1_6_TO_7_10.name:
     min_expressions = 1 if is_train else 7
     max_expressions = 6 if is_train else 10
     sampler_pool = sample_random.SAMPLER_POOL_ALL
 
-  elif experiment == Experiment.LENGTH_6_TO_1_10.name:
+  elif experiment == exp_module.Experiment.LENGTH_6_TO_1_10.name:
     min_expressions = 6 if is_train else 1
     max_expressions = 6 if is_train else 10
     sampler_pool = sample_random.SAMPLER_POOL_ALL
     if not is_train:
       valid_num_expressions_fn = lambda n: n != 6
 
-  elif experiment == Experiment.LENGTH_1_TO_2_6.name:
+  elif experiment == exp_module.Experiment.LENGTH_1_TO_2_6.name:
     min_expressions = 1 if is_train else 2
     max_expressions = 1 if is_train else 6
     sampler_pool = sample_random.SAMPLER_POOL_ALL
 
-  elif experiment == Experiment.COMPOSE_DIFFERENT_CONCEPTS.name:
+  elif experiment == exp_module.Experiment.COMPOSE_DIFFERENT_CONCEPTS.name:
     min_expressions = 2
     max_expressions = 6
     if is_train:
@@ -180,7 +167,7 @@ def generate_task_for_experiment(experiment, is_train):
           any(isinstance(e, (dsl.Modification, dsl.ConstStr))
               for e in c.expressions))
 
-  elif experiment == Experiment.COMPOSE_NEW_OP.name:
+  elif experiment == exp_module.Experiment.COMPOSE_NEW_OP.name:
     if is_train:
       if random.random() < 0.25:
         min_expressions = 1
@@ -196,7 +183,7 @@ def generate_task_for_experiment(experiment, is_train):
       sampler_pool = sample_random.SAMPLER_POOL_ALL
       keep_fn = lambda c: any(isinstance(e, dsl.Compose) for e in c.expressions)
 
-  elif experiment == Experiment.EXTEND_OP_FUNCTIONALITY.name:
+  elif experiment == exp_module.Experiment.EXTEND_OP_FUNCTIONALITY.name:
     min_expressions = 1
     max_expressions = 6
     sampler_pool = (sample_random.SAMPLER_POOL_NO_COMPOSE_SUBSTRING if is_train
@@ -242,7 +229,7 @@ def main(_):
   # Write the `tf.Example` observations to the file.
   with tf.io.TFRecordWriter(worker_fname) as writer:
     for i in range(FLAGS.num_tasks):
-      if FLAGS.experiment == Experiment.NONE:
+      if FLAGS.experiment == exp_module.Experiment.NONE:
         task = sample_random.random_task(
             max_expressions=FLAGS.max_expressions,
             min_expressions=FLAGS.min_expressions,
