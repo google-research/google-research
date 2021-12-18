@@ -83,8 +83,6 @@ flags.DEFINE_bool('restore_checkpoints', True,
 
 flags.DEFINE_bool('use_relative_attention', False,
                   'Whether to use relative positonal embeddings.')
-flags.DEFINE_integer('num_relative_position_buckets', 32,
-                     'Number of buckets when computing relative positions.')
 
 flags.DEFINE_string('xm_parameters', None,
                     'String specifying hyperparamter search.')
@@ -194,7 +192,6 @@ def main(_):
       mlp_dim=FLAGS.hidden_dim,
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
       use_relative_attention=FLAGS.use_relative_attention,
-      num_relative_position_buckets=FLAGS.num_relative_position_buckets,
       deterministic=False,
       decode=False,
       bos_token=bos_token)

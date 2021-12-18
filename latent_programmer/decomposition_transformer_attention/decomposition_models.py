@@ -92,7 +92,7 @@ class DecomposeAttentionTransformer(nn.Module):
 
     self.encoder = base_models.TransformerIOEncoder(config=base_config,
                                                     name='encoder')
-    # Shifting is done before call to decoder in order to compute masks.
+    # Shifting is done separately in decoder.
     self.decoder = base_models.TransformerDecoder(
         config=base_config.replace(shift=False), name='decoder')
 
@@ -124,7 +124,6 @@ class DecomposeAttentionTransformer(nn.Module):
     flat_encoded_padding_mask = base_models.flatten_num_io_dim(
         encoded_padding_mask)
 
-    preshift_programs = programs  # Save pre-shifted programs for padding mask.
     if cfg.shift:
       programs = base_models.shift_right(programs, cfg.bos_token)
 
@@ -192,7 +191,7 @@ class DecomposeAttentionTransformer(nn.Module):
             nn.make_causal_mask(programs, dtype=cfg.dtype))
         decoder_mask = nn.combine_masks(
             nn.make_attention_mask(
-                preshift_programs > 0, preshift_programs > 0, dtype=cfg.dtype),
+                programs > 0, programs > 0, dtype=cfg.dtype),
             jnp.logical_or(decoder_bos_mask, decoder_partial_mask))
 
         if self.config.bos_special_attention:

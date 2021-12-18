@@ -36,13 +36,28 @@ Dtype = Any
 Array = Any
 
 
-def make_relative_position_bucket(relative_position, causal=False,
+def make_relative_position_bucket(relative_position, bidirectional=False,
                                   num_buckets=32, max_distance=128):
   """Translate relative position to a bucket number for relative attention."""
   # Adapted from Mesh Tensorflow:
   # https://github.com/tensorflow/mesh/blob/0cb87fe07da627bf0b7e60475d59f95ed6b5be3d/mesh_tensorflow/transformer/transformer_layers.py
+  min_relative_position = -max_distance
+  max_relative_position = max_distance if bidirectional else 0
+  num_possible_positions = max_relative_position - min_relative_position + 1
+  if num_buckets >= num_possible_positions:
+    # Use one bucket for each position.
+    relative_position = jnp.clip(relative_position,
+                                 a_min=min_relative_position,
+                                 a_max=max_relative_position)
+    if bidirectional:
+      bucket = ((relative_position > 0) * max_distance
+                + jnp.abs(relative_position))
+    else:
+      bucket = -relative_position
+    return bucket.astype(jnp.int32)
+
   relative_buckets = 0
-  if causal:
+  if bidirectional:
     num_buckets //= 2
     relative_buckets += (relative_position > 0) * num_buckets
     relative_position = jnp.abs(relative_position)
@@ -85,9 +100,11 @@ class RelativeMultiHeadDotProductAttention(module.Module):
     bias_init: initializer for the bias of the Dense layers.
     use_bias: bool: whether pointwise QKVO dense transforms use bias.
     decode: whether to prepare and use an autoregressive cache.
-    causal: whether to only attend to past tokens.
+    bidirectional: whether to attend forward and backward (True) or only to past
+      tokens (False).
     num_relative_position_buckets: number of buckets for relative positions
       for attention.
+    max_distance: maximum value of relative position.
   """
   num_heads: int
   dtype: Dtype = jnp.float32
@@ -102,8 +119,9 @@ class RelativeMultiHeadDotProductAttention(module.Module):
   bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = initializers.zeros
   use_bias: bool = True
   decode: bool = False
+  bidirectional: bool = False
   num_relative_position_buckets: int = 32
-  causal: bool = False
+  max_distance: int = 128
 
   @module.compact
   def __call__(self,
@@ -172,8 +190,9 @@ class RelativeMultiHeadDotProductAttention(module.Module):
       relative_position = memory_position - context_position
       relative_position_bucket = make_relative_position_bucket(
           relative_position,
-          causal=self.causal,
-          num_buckets=self.num_relative_position_buckets)
+          bidirectional=self.bidirectional,
+          num_buckets=self.num_relative_position_buckets,
+          max_distance=self.max_distance)
 
       bias = relative_attention_embed(relative_position_bucket)
       bias = bias.transpose((2, 0, 1))
@@ -185,8 +204,9 @@ class RelativeMultiHeadDotProductAttention(module.Module):
       relative_position = custom_relative_position
       relative_position_bucket = make_relative_position_bucket(
           relative_position,
-          causal=self.causal,
-          num_buckets=self.num_relative_position_buckets)
+          bidirectional=self.bidirectional,
+          num_buckets=self.num_relative_position_buckets,
+          max_distance=self.max_distance)
 
       bias = relative_attention_embed(relative_position_bucket)
       permute = tuple(map(lambda i: len(inputs_q.shape) + 1 + i, (-1, -3, -2)))
