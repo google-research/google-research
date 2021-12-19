@@ -191,23 +191,27 @@ def _calc_scores(eval_metric, d, npx_eval,
     test_score = np.mean(_class_scores(npx_test, npy_test))
   elif eval_metric == 'auc':
     binary_classification = (len(label_list) == 2)
+    regression_eval = d.predict_proba(npx_eval)
     eval_score = metrics.calculate_auc(
         labels=npy_eval,
-        predictions=regression_output,
+        predictions=regression_eval,
         binary_classification=binary_classification)
+    regression_test = d.predict_proba(npx_test)
     test_score = metrics.calculate_auc(
         labels=npy_test,
-        predictions=regression_output,
+        predictions=regression_test,
         binary_classification=binary_classification)
   elif eval_metric == 'dprime':
     binary_classification = (len(label_list) == 2)
+    regression_eval = d.predict_proba(npx_eval)
     eval_auc = metrics.calculate_auc(
         labels=npy_eval,
-        predictions=regression_output,
+        predictions=regression_eval,
         binary_classification=binary_classification)
+    regression_test = d.predict_proba(npx_test)
     test_auc = metrics.calculate_auc(
         labels=npy_test,
-        predictions=regression_output,
+        predictions=regression_test,
         binary_classification=binary_classification)
     eval_score = metrics.dprime_from_auc(eval_auc)
     test_score = metrics.dprime_from_auc(test_auc)
