@@ -236,11 +236,12 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
     model_input, sample_rate = self.read_and_preprocess_audio(k, ex)
 
     # Do some chunking.
-    if self._chunk_len:
+    if self._chunk_len and model_input.shape[0] >= self._chunk_len:
       logging.info('Chunk len: %s', self._chunk_len)
-      if model_input.shape[0] >= self._chunk_len:
-        model_input = utils.get_chunked_audio_fn(model_input, self._chunk_len)
-      logging.info('model_input after chunking: ')
+      model_input = utils.get_chunked_audio_fn(model_input, self._chunk_len)
+    else:
+      model_input = np.expand_dims(model_input, axis=0)
+    logging.info('model_input after chunking: %s', model_input.shape)
 
     return model_input, sample_rate
 

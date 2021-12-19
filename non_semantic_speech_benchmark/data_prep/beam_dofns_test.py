@@ -382,7 +382,7 @@ class BeamDofnsTest(parameterized.TestCase):
       expected_output_shape = (2, 400)
     else:
       model_input, sample_rate = beam_dofn.tfex_to_chunked_audio(k, ex)
-      expected_output_shape = (2, chunk_len) if chunk_len else (400,)
+      expected_output_shape = (2, chunk_len) if chunk_len else (1, 400)
 
     # Original audio is too short, so it should be padded to
     # `model_input_min_length`.
