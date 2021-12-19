@@ -52,10 +52,8 @@ flags.DEFINE_string('save_predictions_dir', None,
                     'If not `None`, write numpy array of predictions on '
                     'train, eval, and test into this directory.')
 flags.DEFINE_list('label_list', None, 'Python list of possible label values.')
-flags.DEFINE_enum('eval_metric', 'accuracy', [
-    'accuracy', 'balanced_accuracy', 'equal_error_rate',
-    'unweighted_average_recall', 'auc'
-], 'Which metric to compute and report.')
+flags.DEFINE_list('eval_metrics', 'accuracy',
+                  'Which metric to compute and report.')
 
 FLAGS = flags.FLAGS
 
@@ -132,7 +130,7 @@ def main(unused_argv):
       label_list=FLAGS.label_list,
       save_model_dir=FLAGS.save_model_dir,
       save_predictions_dir=FLAGS.save_predictions_dir,
-      eval_metric=FLAGS.eval_metric,
+      eval_metrics=FLAGS.eval_metrics,
   )
   logging.info('exp_params: %s', exp_params)
 

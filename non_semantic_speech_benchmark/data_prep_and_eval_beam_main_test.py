@@ -48,7 +48,7 @@ def _none(*args, **kwargs):
 
 def _train_and_get_score(*args, **kwargs):
   del args, kwargs
-  return (0.0, 0.0)
+  return {'metric_name': (0.0, 0.0)}
 
 
 class DataPrepAndEvalBeamMainTest(parameterized.TestCase):
