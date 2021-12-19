@@ -45,12 +45,12 @@ def get_dataset_config():
   """Configs for the dataset"""
   dataset_config = ml_collections.ConfigDict()
 
-  dataset_config.name = "forward_facing"
+  dataset_config.name = "ff_epipolar"
   dataset_config.data_dir = ""
   dataset_config.base_dir = ""
   dataset_config.scene = ""
   dataset_config.batch_size = 16384
-  dataset_config.batching = "all_images"
+  dataset_config.batching = "single_image"
   # The downsampling factor of images, 0 for no downsample
   dataset_config.factor = 4
   # Render generated images if set to True
@@ -151,7 +151,7 @@ def get_lf_config():
   lf_config.encoding_name = "positional_encoding"
   # Min and max degree for positional encoding for points
   lf_config.min_deg_point = 0
-  lf_config.max_deg_point = 10
+  lf_config.max_deg_point = 4
   return lf_config
 
 

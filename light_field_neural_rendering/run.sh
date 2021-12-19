@@ -21,6 +21,7 @@ python3 -m venv lfnr
 source ./lfnr/bin/activate
 
 pip install -r light_field_neural_rendering/requirements.txt
+pip install "jax[cuda110]==0.2.19" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
 # Run train
 python -m light_field_neural_rendering.main --ml_config=light_field_neural_rendering/configs/dev_run.py --workdir=/tmp/test_lfnr --is_train=True
