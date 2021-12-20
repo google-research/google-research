@@ -25,9 +25,9 @@ from non_semantic_speech_benchmark.distillation import eval_keras
 class EvalKerasTest(absltest.TestCase):
 
   def test_full_flow(self):
+    flags.FLAGS.model_type = 'mobilenet_debug_1.0_False'
     flags.FLAGS.logdir = absltest.get_default_test_tmpdir()
     flags.FLAGS.eval_dir = absltest.get_default_test_tmpdir()
-    flags.FLAGS.bottleneck_dimension = 2
     flags.FLAGS.output_dimension = 5
     flags.FLAGS.ai = 2.0
     flags.FLAGS.timeout = 5

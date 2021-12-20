@@ -63,8 +63,6 @@ struct SingleMachineFactoryOptions {
   shared_ptr<vector<int64_t>> crowding_attributes;
 
   shared_ptr<ThreadPool> parallelization_pool;
-
-  int64_t creation_timestamp = numeric_limits<int64_t>::max();
 };
 
 }  // namespace research_scann

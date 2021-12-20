@@ -30,7 +30,7 @@ from non_semantic_speech_benchmark.distillation import models
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('file_pattern', None, 'Dataset location.')
+flags.DEFINE_list('file_patterns', None, 'Dataset location.')
 flags.DEFINE_string('sk', None, 'Samples name.')
 flags.DEFINE_alias('samples_key', 'sk')
 flags.DEFINE_integer('ml', 16000, 'Minimum length.')
@@ -45,16 +45,17 @@ flags.DEFINE_string(
     'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
     'This flag is ignored if `precomputed_targets` is False.')
 
+flags.DEFINE_boolean('normalize_to_pm_one', False, 'Normalize input.')
+
 
 # Teacher / student network flags.
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
 flags.DEFINE_string('output_key', None, 'Teacher model output_key.')
 flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
-flags.DEFINE_integer('bd', None, 'Dimension of bottleneck.')
-flags.DEFINE_alias('bottleneck_dimension', 'bd')
-flags.DEFINE_string(
-    'model_type', 'mobilenet_debug_1.0_False',
-    'Specification for student model. For mobilenet, includes')
+flags.DEFINE_boolean('truncate_output', None, 'Whether to truncate output.')
+flags.DEFINE_alias('tr', 'truncate_output')
+flags.DEFINE_string('model_type', None,
+                    'Specification for student model. For mobilenet, includes')
 flags.DEFINE_alias('mt', 'model_type')
 
 flags.DEFINE_integer('batch_size', None, 'The number of images in each batch.')
@@ -69,6 +70,8 @@ flags.DEFINE_float('lr', None, 'not used')
 # Not used.
 flags.DEFINE_float('qat', None, 'not used')
 flags.DEFINE_float('cop', None, 'not used')
+flags.DEFINE_boolean('spec_augment', False, 'Student spec augment.')
+flags.DEFINE_alias('sa', 'spec_augment')
 
 flags.DEFINE_string('logdir', None,
                     'Directory where the model was written to.')
@@ -81,7 +84,7 @@ flags.DEFINE_integer('timeout', 7200, 'Wait-for-checkpoint timeout.')
 
 
 def eval_and_report():
-  """Eval on voxceleb."""
+  """Eval."""
   tf.logging.info('samples_key: %s', FLAGS.samples_key)
   logging.info('Logdir: %s', FLAGS.logdir)
   logging.info('Batch size: %s', FLAGS.batch_size)
@@ -89,8 +92,8 @@ def eval_and_report():
   writer = tf.summary.create_file_writer(FLAGS.eval_dir)
   model = models.get_keras_model(
       model_type=FLAGS.model_type,
-      bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=FLAGS.output_dimension,
+      truncate_output=FLAGS.truncate_output,
       frontend=True)
   checkpoint = tf.train.Checkpoint(model=model)
 
@@ -114,7 +117,7 @@ def eval_and_report():
           hub.load(FLAGS.teacher_model_hub), FLAGS.output_key)
       assert target_key is None
     ds = get_data.get_data(
-        file_pattern=FLAGS.file_pattern,
+        file_patterns=FLAGS.file_patterns,
         output_dimension=FLAGS.output_dimension,
         reader=reader,
         samples_key=FLAGS.samples_key,
@@ -123,7 +126,8 @@ def eval_and_report():
         loop_forever=False,
         shuffle=False,
         teacher_fn=teacher_fn,
-        target_key=target_key)
+        target_key=target_key,
+        normalize_to_pm_one=FLAGS.normalize_to_pm_one)
     logging.info('Got dataset for eval step: %s.', step)
     if FLAGS.take_fixed_data:
       ds = ds.take(FLAGS.take_fixed_data)
@@ -155,9 +159,8 @@ def eval_and_report():
 
 
 def main(unused_argv):
-  assert FLAGS.file_pattern
+  assert FLAGS.file_patterns
   assert FLAGS.output_dimension
-  assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.logdir
   assert FLAGS.samples_key
 

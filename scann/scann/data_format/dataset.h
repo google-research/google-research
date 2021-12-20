@@ -348,6 +348,10 @@ class DenseDatasetView : VirtualDestructor {
 
   virtual size_t size() const = 0;
 
+  virtual research_scann::TypeTag TypeTag() const { return TagForType<T>(); }
+
+  virtual bool IsConsecutiveStorage() const { return false; }
+
   virtual std::unique_ptr<DenseDatasetView<T>> subview(size_t offset,
                                                        size_t size) const {
     return absl::make_unique<DenseDatasetSubView<T>>(this, offset, size);
@@ -389,6 +393,8 @@ class DefaultDenseDatasetView : public DenseDatasetView<T> {
         new DefaultDenseDatasetView<T>(ptr_ + offset * dims_, dims_, size));
   }
 
+  bool IsConsecutiveStorage() const override { return true; }
+
  private:
   DefaultDenseDatasetView(const T* ptr, size_t dim, size_t size)
       : ptr_(ptr), dims_(dim), size_(size) {}
@@ -419,6 +425,10 @@ class DenseDatasetSubView : public DenseDatasetView<T> {
                                                size_t size) const final {
     return absl::make_unique<DenseDatasetSubView<T>>(parent_view_,
                                                      offset + offset_, size);
+  }
+
+  bool IsConsecutiveStorage() const override {
+    return parent_view_->IsConsecutiveStorage();
   }
 
  private:

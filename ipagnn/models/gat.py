@@ -16,7 +16,7 @@
 """Graph Attention Network."""
 
 from absl import logging  # pylint: disable=unused-import
-from flax import nn
+from flax.deprecated import nn
 import jax
 from jax import lax
 import jax.numpy as jnp

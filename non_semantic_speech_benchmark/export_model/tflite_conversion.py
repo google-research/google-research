@@ -38,7 +38,7 @@ from non_semantic_speech_benchmark.export_model import model_export_utils
 flags.DEFINE_string(
     'experiment_dir', None,
     '(CNS) Directory containing directories with parametrized names like '
-    '"1-al=1.0,ap=False,bd=2048,cop=False,lr=0.0001,ms=small,qat=False,tbs=512". '
+    '"1-al=1.0,ap=False,cop=False,lr=0.0001,ms=small,qat=False,tbs=512". '
     'Note that only the mentioned hyper-params are supported right now.')
 flags.DEFINE_string('output_dir', None, 'Place to write models to.')
 flags.DEFINE_string('checkpoint_number', None, 'Optional checkpoint number to '
@@ -97,7 +97,7 @@ def main(_):
       model_export_utils.sanity_check(
           FLAGS.include_frontend,
           m.output_filename,
-          embedding_dim=m.params['bd'],
+          embedding_dim=1024,
           tflite=True)
 
   logging.info('Total TFLite models generated: %i', len(metadata))

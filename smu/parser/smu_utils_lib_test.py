@@ -27,6 +27,7 @@ from rdkit import Chem
 
 from google.protobuf import text_format
 from smu import dataset_pb2
+from smu.geometry import utilities
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 
@@ -411,12 +412,12 @@ class ConformerToMoleculeTest(absltest.TestCase):
     mols = list(smu_utils_lib.conformer_to_molecules(self.conformer))
     self.assertLen(mols, 6)  # 2 bond topologies * (1 opt geom + 2 init_geom)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(0/2) geom=init(0/2)',
-        'SMU 618451001 bt=618451(0/2) geom=init(1/2)',
-        'SMU 618451001 bt=618451(0/2) geom=opt',
-        'SMU 618451001 bt=99999(1/2) geom=init(0/2)',
-        'SMU 618451001 bt=99999(1/2) geom=init(1/2)',
-        'SMU 618451001 bt=99999(1/2) geom=opt'
+        'SMU 618451001 bt=618451(0/2) geom=init(0/2) fate=0',
+        'SMU 618451001 bt=618451(0/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=618451(0/2) geom=opt fate=0',
+        'SMU 618451001 bt=99999(1/2) geom=init(0/2) fate=0',
+        'SMU 618451001 bt=99999(1/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=99999(1/2) geom=opt fate=0'
     ])
     self.assertEqual(
         '[H]C(F)=C(OC([H])([H])[H])OC([H])([H])[H]',
@@ -434,8 +435,8 @@ class ConformerToMoleculeTest(absltest.TestCase):
             include_all_bond_topologies=False))
     self.assertLen(mols, 2)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(0/2) geom=init(0/2)',
-        'SMU 618451001 bt=618451(0/2) geom=init(1/2)',
+        'SMU 618451001 bt=618451(0/2) geom=init(0/2) fate=0',
+        'SMU 618451001 bt=618451(0/2) geom=init(1/2) fate=0',
     ])
     # This is just one random atom I picked from the .dat file and converted to
     # angstroms instead of bohr.
@@ -459,7 +460,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
     self.assertLen(mols, 1)
     self.assertEqual(
         mols[0].GetProp('_Name'),
-        'SMU 618451001 bt=618451(0/2) geom=opt',
+        'SMU 618451001 bt=618451(0/2) geom=opt fate=0',
     )
     self.assertEqual(
         '[H]C(F)=C(OC([H])([H])[H])OC([H])([H])[H]',
@@ -653,12 +654,13 @@ class MergeConformersTest(absltest.TestCase):
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
         618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 1, 1, 1, 1, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
+        True, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
-    # This stage2 values should be returned
-    self.assertEqual(got_conf.properties.initial_geometry_energy.value, -1.23)
+    # This stage1 value should be returned
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     -406.51179)
 
   def test_stage2_stage1_conflict_missing_geometry(self):
     self.stage2_conformer.ClearField('optimized_geometry')
@@ -666,8 +668,7 @@ class MergeConformersTest(absltest.TestCase):
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
         618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        True, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
-        False
+        True, -406.51179, 0.052254, -406.522079, 2.5e-05, True, False
     ])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
@@ -678,7 +679,9 @@ class MergeConformersTest(absltest.TestCase):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_conf.properties.initial_geometry_energy.value, -1.0)
+    # This stage1 value should be returned
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     -406.51179)
 
   def test_stage2_stage1_no_conflict_approx_equal(self):
     self.stage2_conformer.properties.initial_geometry_energy.value += 1e-7
@@ -687,6 +690,73 @@ class MergeConformersTest(absltest.TestCase):
     self.assertIsNone(got_conflict)
     # Just check a random field from stage2
     self.assertNotEmpty(got_conf.properties.normal_modes)
+
+  def test_status_800(self):
+    self.stage2_conformer.properties.errors.status = 800
+    # Set a value so that we make sure we use the stage1 data
+    self.stage2_conformer.properties.initial_geometry_energy.value += 12345
+    expected_init_energy = (
+        self.stage1_conformer.properties.initial_geometry_energy.value)
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 580)
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     expected_init_energy)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
+
+  def test_status_700(self):
+    self.stage2_conformer.properties.errors.status = 700
+    # Set a value so that we make sure we use the stage1 data
+    self.stage2_conformer.properties.initial_geometry_energy.value += 12345
+    expected_init_energy = (
+        self.stage1_conformer.properties.initial_geometry_energy.value)
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 570)
+    self.assertEqual(got_conf.properties.initial_geometry_energy.value,
+                     expected_init_energy)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
+
+  def test_status_800_warn_vib_2(self):
+    self.stage2_conformer.properties.errors.status = 800
+    # We set two values because 1 is any neative and 2 is for a large negative
+    self.stage1_conformer.properties.harmonic_frequencies.value[3] = -123
+    self.stage1_conformer.properties.harmonic_frequencies.value[4] = -1
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 580)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 2)
+
+  def test_status_800_warn_vib_1(self):
+    self.stage2_conformer.properties.errors.status = 800
+    self.stage1_conformer.properties.harmonic_frequencies.value[4] = -1
+    got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
+                                                self.stage1_conformer)
+    self.assertEqual(got_conf.properties.errors.status, 580)
+    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 1)
+
+  def test_error_frequencies_101(self):
+    self.stage1_conformer.properties.errors.error_frequencies = 101
+    unused_got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage1_conformer, self.stage2_conformer)
+    self.assertIsNotNone(got_conflict)
+
+  def test_error_frequencies_101_for_allowed_mol(self):
+    self.stage1_conformer.conformer_id = 795795001
+    self.stage2_conformer.conformer_id = 795795001
+    self.stage1_conformer.properties.errors.error_frequencies = 101
+    unused_got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage1_conformer, self.stage2_conformer)
+    self.assertIsNone(got_conflict)
+
+  def test_disallowed_error_flags(self):
+    # each of these is allowed separately, but not together
+    self.stage1_conformer.properties.errors.error_nstat1 = 3
+    self.stage1_conformer.properties.errors.error_nstatc = 3
+    self.stage1_conformer.properties.errors.error_frequencies = 3
+    unused_got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage1_conformer, self.stage2_conformer)
+    self.assertIsNotNone(got_conflict)
 
   def test_stage2_duplicate(self):
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
@@ -771,7 +841,7 @@ class ConformerErrorTest(absltest.TestCase):
 
   def test_stage2_error_level_2(self):
     conformer = get_stage2_conformer()
-    conformer.properties.errors.warn_t1_excess = 3
+    conformer.properties.errors.warn_t1_excess = 2
     self.assertEqual(2,
                      smu_utils_lib.conformer_calculation_error_level(conformer))
 
@@ -831,14 +901,111 @@ class ConformerToStandardTest(absltest.TestCase):
     self.assertFalse(got.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_conformer(self):
+    self.conformer.which_database = dataset_pb2.UNSPECIFIED
     self.conformer.properties.errors.status = 256
 
     self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
 
   def test_remove_duplicate(self):
+    self.conformer.which_database = dataset_pb2.UNSPECIFIED
     self.conformer.duplicated_by = 123
 
     self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
+
+  def test_remove_complete(self):
+    self.conformer.which_database = dataset_pb2.COMPLETE
+
+    self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
+
+
+class CleanUpErrorCodesTest(parameterized.TestCase):
+
+  def test_stage2(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.errors.error_nstat1 = 123
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_dup(self):
+    conformer = get_stage1_conformer()
+    conformer.duplicated_by = 123
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, -1)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_dup_with_no_record(self):
+    conformer = get_stage1_conformer()
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, 0)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_590(self):
+    conformer = get_stage1_conformer()
+    conformer.properties.errors.error_nstat1 = 5
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, 590)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+
+  def test_stage1_600(self):
+    conformer = get_stage1_conformer()
+    conformer.properties.errors.error_nstat1 = 2
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(conformer.properties.errors.status, 600)
+    self.assertEqual(conformer.properties.errors.error_nstat1, 0)
+    self.assertFalse(conformer.properties.HasField('initial_geometry_energy'))
+    self.assertFalse(conformer.properties.HasField('optimized_geometry_energy'))
+    self.assertFalse(conformer.HasField('optimized_geometry'))
+
+
+class CleanUpSentinelValuestest(parameterized.TestCase):
+
+  def test_no_change(self):
+    conformer = get_stage2_conformer()
+    smu_utils_lib.clean_up_sentinel_values(conformer)
+    self.assertTrue(conformer.properties.HasField('initial_geometry_energy'))
+    self.assertTrue(
+        conformer.properties.HasField('initial_geometry_gradient_norm'))
+    self.assertTrue(conformer.properties.HasField('optimized_geometry_energy'))
+    self.assertTrue(
+        conformer.properties.HasField('optimized_geometry_gradient_norm'))
+
+  @parameterized.parameters(
+      'initial_geometry_energy',
+      'initial_geometry_gradient_norm',
+      'optimized_geometry_energy',
+      'optimized_geometry_gradient_norm',
+  )
+  def test_one_field(self, field):
+    conformer = get_stage2_conformer()
+    getattr(conformer.properties, field).value = -1.0
+    smu_utils_lib.clean_up_sentinel_values(conformer)
+    self.assertFalse(conformer.properties.HasField(field))
+
+
+class FindZeroValuesTest(parameterized.TestCase):
+
+  def test_no_zeroes(self):
+    conformer = get_stage2_conformer()
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, [])
+
+  def test_scalar(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.lumo_b3lyp_6_31ppgdp.value = 0.0
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, ['lumo_b3lyp_6_31ppgdp'])
+
+  def test_excitation(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.excitation_energies_cc2.value[2] = 0.0
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, ['excitation_energies_cc2'])
+
+  def test_atomic(self):
+    conformer = get_stage2_conformer()
+    conformer.properties.partial_charges_esp_fit_hf_6_31gd.values[3] = 0.0
+    got = list(smu_utils_lib.find_zero_values(conformer))
+    self.assertEqual(got, ['partial_charges_esp_fit_hf_6_31gd'])
 
 
 class DetermineFateTest(parameterized.TestCase):
@@ -847,6 +1014,7 @@ class DetermineFateTest(parameterized.TestCase):
     conformer = get_stage1_conformer()
     # bond topology is conformer_id // 1000
     conformer.duplicated_by = conformer.conformer_id + 1
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY,
                      smu_utils_lib.determine_fate(conformer))
 
@@ -854,22 +1022,32 @@ class DetermineFateTest(parameterized.TestCase):
     conformer = get_stage1_conformer()
     # bond topology is conformer_id // 1000
     conformer.duplicated_by = conformer.conformer_id + 1000
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(dataset_pb2.Conformer.FATE_DUPLICATE_DIFFERENT_TOPOLOGY,
                      smu_utils_lib.determine_fate(conformer))
 
   @parameterized.parameters(
       (2, dataset_pb2.Conformer.FATE_GEOMETRY_OPTIMIZATION_PROBLEM),
       (5, dataset_pb2.Conformer.FATE_DISASSOCIATED),
-      (4, dataset_pb2.Conformer.FATE_FORCE_CONSTANT_FAILURE),
-      (6, dataset_pb2.Conformer.FATE_DISCARDED_OTHER))
+      (6, dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS))
   def test_geometry_failures(self, nstat1, expected_fate):
     conformer = get_stage1_conformer()
     conformer.properties.errors.error_nstat1 = nstat1
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(expected_fate, smu_utils_lib.determine_fate(conformer))
 
   def test_no_result(self):
     conformer = get_stage1_conformer()
+    smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS,
+                     smu_utils_lib.determine_fate(conformer))
+
+  @parameterized.parameters(570, 580)
+  def test_discarded_other(self, status):
+    conformer = get_stage1_conformer()
+    conformer.properties.errors.status = status
+    smu_utils_lib.clean_up_error_codes(conformer)
+    self.assertEqual(dataset_pb2.Conformer.FATE_DISCARDED_OTHER,
                      smu_utils_lib.determine_fate(conformer))
 
   @parameterized.parameters(
@@ -901,7 +1079,7 @@ class DetermineFateTest(parameterized.TestCase):
                      smu_utils_lib.determine_fate(conformer))
 
 
-class ToBondTopologySummaryTest(absltest.TestCase):
+class ToBondTopologySummaryTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -943,13 +1121,26 @@ class ToBondTopologySummaryTest(absltest.TestCase):
     self.assertEqual(got[0].count_kept_geometry, 1)
     self.assertEqual(got[0].count_missing_calculation, 1)
 
-  def test_calculation_with_error(self):
+  def _swap_bond_topologies(self):
+    """Swaps the order of the first two topologies."""
+    bt0 = self.conformer.bond_topologies[0]
+    bt1 = self.conformer.bond_topologies[1]
+    del self.conformer.bond_topologies[:]
+    self.conformer.bond_topologies.extend([bt1, bt0])
+
+  @parameterized.parameters(False, True)
+  def test_calculation_with_error(self, swap_order):
     self.conformer.fate = (
         dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR)
     self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
     self.conformer.bond_topologies[-1].bond_topology_id = 123
+    self.conformer.bond_topologies[0].is_starting_topology = True
+    if swap_order:
+      self._swap_bond_topologies()
+
     got = list(
         smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+
     self.assertLen(got, 2)
     # We don't actually care about the order, but this is what comes out right
     # now.
@@ -959,19 +1150,56 @@ class ToBondTopologySummaryTest(absltest.TestCase):
     self.assertEqual(got[0].count_calculation_with_error, 0)
     self.assertEqual(got[0].count_detected_match_with_error, 1)
 
-    self.assertEqual(got[1].bond_topology.bond_topology_id,
-                     self.conformer.bond_topologies[0].bond_topology_id)
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
     self.assertEqual(got[1].count_attempted_conformers, 1)
     self.assertEqual(got[1].count_kept_geometry, 1)
     self.assertEqual(got[1].count_calculation_with_error, 1)
     self.assertEqual(got[1].count_detected_match_with_error, 0)
 
-  def test_calculation_success(self):
+  @parameterized.parameters(False, True)
+  def test_calculation_with_warning(self, swap_order):
+    self.conformer.fate = (
+        dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS)
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies[-1].bond_topology_id = 123
+    self.conformer.bond_topologies[0].is_starting_topology = True
+    if swap_order:
+      self._swap_bond_topologies()
+
+    got = list(
+        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+
+    self.assertLen(got, 2)
+    # We don't actually care about the order, but this is what comes out right
+    # now.
+    self.assertEqual(got[0].bond_topology.bond_topology_id, 123)
+    self.assertEqual(got[0].count_attempted_conformers, 0)
+    self.assertEqual(got[0].count_kept_geometry, 0)
+    self.assertEqual(got[0].count_calculation_with_error, 0)
+    self.assertEqual(got[0].count_calculation_with_warning, 0)
+    self.assertEqual(got[0].count_detected_match_with_error, 0)
+    self.assertEqual(got[0].count_detected_match_with_warning, 1)
+
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[1].count_attempted_conformers, 1)
+    self.assertEqual(got[1].count_kept_geometry, 1)
+    self.assertEqual(got[1].count_calculation_with_error, 0)
+    self.assertEqual(got[1].count_calculation_with_warning, 1)
+    self.assertEqual(got[1].count_detected_match_with_error, 0)
+    self.assertEqual(got[1].count_detected_match_with_warning, 0)
+
+  @parameterized.parameters(False, True)
+  def test_calculation_success(self, swap_order):
     self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
     self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
     self.conformer.bond_topologies[-1].bond_topology_id = 123
+    self.conformer.bond_topologies[0].is_starting_topology = True
+    if swap_order:
+      self._swap_bond_topologies()
+
     got = list(
         smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+
     self.assertLen(got, 2)
     # We don't actually care about the order, but this is what comes out right
     # now.
@@ -981,12 +1209,28 @@ class ToBondTopologySummaryTest(absltest.TestCase):
     self.assertEqual(got[0].count_calculation_success, 0)
     self.assertEqual(got[0].count_detected_match_success, 1)
 
-    self.assertEqual(got[1].bond_topology.bond_topology_id,
-                     self.conformer.bond_topologies[0].bond_topology_id)
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
     self.assertEqual(got[1].count_attempted_conformers, 1)
     self.assertEqual(got[1].count_kept_geometry, 1)
     self.assertEqual(got[1].count_calculation_success, 1)
     self.assertEqual(got[1].count_detected_match_success, 0)
+
+  def test_no_starting_topology(self):
+    self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies[-1].bond_topology_id = 123
+
+    got = list(
+        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+
+    self.assertLen(got, 2)
+    # We don't actually care about the order, but this is what comes out right
+    # now.
+    self.assertEqual(got[0].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[0].count_detected_match_success, 1)
+
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 123)
+    self.assertEqual(got[1].count_detected_match_success, 1)
 
 
 class LabeledSmilesTester(absltest.TestCase):
@@ -1002,6 +1246,125 @@ class LabeledSmilesTester(absltest.TestCase):
     for atom in mol.GetAtoms():
       self.assertEqual(atom.GetAtomMapNum(), 0)
     self.assertEqual(Chem.MolToSmiles(mol), smiles_before)
+
+
+class AtomSwapVariantTester(absltest.TestCase):
+
+  def test_atom_swap_variant(self):
+    """Test inspired by the following pair.
+
+      C([C:3]1=[C:1]2[C:2]1=[NH+:5]2)=[N:4][O-:6]
+      C([C:3]1=[C:2]2[C:1]1=[NH+:5]2)=[N:4][O-:6]
+    """
+    topo1 = """
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_N
+atoms: ATOM_N
+atoms: ATOM_O
+bonds {
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_b: 4
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 2
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 3
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 5
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 5
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 4
+  atom_b: 6
+  bond_type: BOND_SINGLE
+}
+"""
+    bt1 = str_to_bond_topology(topo1)
+
+    topo2 = """
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_C
+atoms: ATOM_N
+atoms: ATOM_N
+atoms: ATOM_O
+bonds {
+  atom_a: 0
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 0
+  atom_b: 4
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 2
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 3
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 1
+  atom_b: 5
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 3
+  bond_type: BOND_DOUBLE
+}
+bonds {
+  atom_a: 2
+  atom_b: 5
+  bond_type: BOND_SINGLE
+}
+bonds {
+  atom_a: 4
+  atom_b: 6
+  bond_type: BOND_SINGLE
+}
+"""
+    bt2 = str_to_bond_topology(topo2)
+
+    self.assertEqual(len(bt1.atoms), len(bt2.atoms))
+    self.assertEqual(len(bt1.bonds), len(bt2.bonds))
+    s1 = smu_utils_lib.compute_smiles_for_bond_topology(bt1, True)
+    s2 = smu_utils_lib.compute_smiles_for_bond_topology(bt2, True)
+    self.assertEqual(s1, s2)
+
+    utilities.canonical_bond_topology(bt1)
+    utilities.canonical_bond_topology(bt2)
+    self.assertFalse(utilities.same_bond_topology(bt1, bt2))
 
 
 if __name__ == '__main__':

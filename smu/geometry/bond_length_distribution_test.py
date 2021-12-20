@@ -221,7 +221,6 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_SINGLE], 0.25)
     self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_DOUBLE], 0.75)
 
-  @absltest.skip('API was changed, but need to go back and decide right way')
   def test_missing_types(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(
@@ -378,6 +377,39 @@ class SparseDataframFromRecordsTest(absltest.TestCase):
     np.testing.assert_array_equal(got['length_str'],
                                   ['1.234', '2.345', '3.456'])
     np.testing.assert_array_equal(got['count'], [10, 20, 30])
+
+
+class TestInterpolateOutZeros(absltest.TestCase):
+
+  def test_no_action(self):
+    inputs = np.array([1, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_array_equal([1, 1], got)
+
+  def test_insert_one(self):
+    inputs = np.array([1, 0, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_array_equal([1, 1, 1], got)
+
+  def test_insert_many(self):
+    inputs = np.array([1, 0, 0, 0, 0, 0, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_array_equal(np.ones(len(inputs), dtype=np.int32), got)
+
+  def test_insert_multiple_regions(self):
+    inputs = np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_array_equal(np.ones(len(inputs), dtype=np.int32), got)
+
+  def test_do_actual_interpolation_one(self):
+    inputs = np.array([1, 0, 2])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_almost_equal([1.0, 1.5, 2.0], got)
+
+  def test_do_actual_interpolation_many(self):
+    inputs = np.array([1, 0, 0, 0, 0, 6])
+    got = bond_length_distribution.interpolate_zeros(inputs)
+    np.testing.assert_almost_equal([1, 2, 3, 4, 5, 6], got)
 
 
 if __name__ == '__main__':

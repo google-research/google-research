@@ -21,7 +21,7 @@ r"""Counts average audio length.
 # pylint:enable=line-too-long
 
 import os
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, Optional, List, Tuple
 
 from absl import app
 from absl import flags
@@ -31,16 +31,19 @@ import apache_beam as beam
 import numpy as np
 import tensorflow as tf
 
-from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
+from non_semantic_speech_benchmark.data_prep import data_prep_utils as utils
 
 flags.DEFINE_string('output_file', None, 'Output file.')
-flags.DEFINE_boolean('debug', False, 'Whether to debug.')
+flags.DEFINE_string('debug', None, 'If present, only count this dataset.')
 flags.DEFINE_list(
     'audio_keys', ['audio', 'processed/audio_samples', 'audio_waveform',
                    'WAVEFORM/feature/floats'],
     'Possible audio keys in tf.Examples.')
 flags.DEFINE_list(
-    'sr_keys', [], 'Possible sample rate keys in tf.Examples.')
+    'sr_keys', ['audio_sample_rate'],
+    'Possible sample rate keys in tf.Examples.')
+flags.DEFINE_integer(
+    'batch_size', None, 'Number of examples to process at once.')
 
 FLAGS = flags.FLAGS
 
@@ -78,13 +81,24 @@ def duration_from_tfex(k_v):
   return len(audio_vals) / float(sr)
 
 
+def durations_from_tfexs(k_vs):
+  for k_v in k_vs:
+    yield duration_from_tfex(k_v)
+
+
 def durations(root, ds_file, ds_name,
               reader_type, suffix):
   """Beam pipeline for durations from a particular file or glob."""
   logging.info('Reading from %s: (%s, %s)', reader_type, ds_name, ds_file)
-  input_examples = audio_to_embeddings_beam_utils.reader_functions[reader_type](
+  input_examples = utils.reader_functions[reader_type](
       root, ds_file, f'Read-{suffix}')
-  return input_examples | f'Lens-{suffix}' >> beam.Map(duration_from_tfex)
+  if FLAGS.batch_size:
+    input_examples = input_examples | f'Batch-{suffix}' >> beam.BatchElements(
+        min_batch_size=FLAGS.batch_size, max_batch_size=FLAGS.batch_size)
+    return input_examples | f'Lens-{suffix}' >> beam.FlatMap(
+        durations_from_tfexs)
+  else:
+    return input_examples | f'Lens-{suffix}' >> beam.Map(duration_from_tfex)
 
 
 def duration_and_num_examples(
@@ -104,25 +118,29 @@ def duration_and_num_examples(
           | f'Stats-{ds_name}' >> beam.Map(_mean_and_count))
 
 
-def get_dataset_info_dict(debug):
+def get_dataset_info_dict(
+    debug):
   """Get dictionary of dataset info."""
   def _tfds_fns(ds_name):
     fns = [
         x  # pylint:disable=g-complex-comprehension
         for s in ('train', 'validation', 'test')
-        for x in audio_to_embeddings_beam_utils._tfds_filenames(ds_name, s)]  # pylint:disable=protected-access
+        for x in utils.tfds_filenames(ds_name, s)]  # pylint:disable=protected-access
     fns = [fns]  # TFRecords require a list.
     return (fns, 'tfrecord')
 
+  dss = {
+      'crema_d':
+          _tfds_fns('crema_d'),
+      'savee':
+          _tfds_fns('savee'),
+      'speech_commands':
+          _tfds_fns('speech_commands'),
+      'voxceleb':
+          _tfds_fns('voxceleb'),
+  }
   if debug:
-    dss = {'savee': _tfds_fns('savee')}
-  else:
-    dss = {
-        'crema_d': _tfds_fns('crema_d'),
-        'savee': _tfds_fns('savee'),
-        'speech_commands': _tfds_fns('speech_commands'),
-        'voxceleb': _tfds_fns('voxceleb'),
-    }
+    dss = {debug: dss[debug]}
 
   return dss
 

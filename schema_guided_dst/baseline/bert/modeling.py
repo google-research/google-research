@@ -26,7 +26,8 @@ import math
 import re
 import numpy as np
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tf_slim.layers import layers
 
 
 class BertConfig(object):
@@ -81,19 +82,23 @@ class BertConfig(object):
     self.initializer_range = initializer_range
 
   @classmethod
-  def from_dict(cls, json_object):
+  def from_dict(cls, json_object, strict=False):
     """Constructs a `BertConfig` from a Python dictionary of parameters."""
-    config = BertConfig(vocab_size=None)
+    config = cls(vocab_size=None)
     for (key, value) in six.iteritems(json_object):
+      if strict and key not in config.__dict__:
+        raise ValueError("BertConfig has no field '{}'".format(key))
       config.__dict__[key] = value
+    if strict and config.vocab_size is None:
+      raise ValueError("BertConfig field 'vocab_size' is unset")
     return config
 
   @classmethod
-  def from_json_file(cls, json_file):
+  def from_json_file(cls, json_file, strict=False):
     """Constructs a `BertConfig` from a json file of parameters."""
     with tf.io.gfile.GFile(json_file, "r") as reader:
       text = reader.read()
-    return cls.from_dict(json.loads(text))
+    return cls.from_dict(json.loads(text), strict=strict)
 
   def to_dict(self):
     """Serializes this instance to a Python dictionary."""
@@ -374,7 +379,7 @@ def dropout(input_tensor, dropout_prob):
 
 def layer_norm(input_tensor, name=None):
   """Run layer normalization on the last dimension of the tensor."""
-  return tf.contrib.layers.layer_norm(
+  return layers.layer_norm(
       inputs=input_tensor, begin_norm_axis=-1, begin_params_axis=-1, scope=name)
 
 
@@ -500,12 +505,15 @@ def embedding_postprocessor(input_tensor,
     output += token_type_embeddings
 
   if use_position_embeddings:
+    # Create the variable outside the assertion to avoid TF2 compatibility
+    # issues.
+    full_position_embeddings = tf.get_variable(
+        name=position_embedding_name,
+        shape=[max_position_embeddings, width],
+        initializer=create_initializer(initializer_range))
+
     assert_op = tf.assert_less_equal(seq_length, max_position_embeddings)
     with tf.control_dependencies([assert_op]):
-      full_position_embeddings = tf.get_variable(
-          name=position_embedding_name,
-          shape=[max_position_embeddings, width],
-          initializer=create_initializer(initializer_range))
       # Since the position embedding table is a learned variable, we create it
       # using a (long) sequence length `max_position_embeddings`. The actual
       # sequence length might be shorter than this, for faster training of
@@ -954,7 +962,11 @@ def get_shape_list(tensor, expected_rank=None, name=None):
     as tf.Tensor scalars.
   """
   if name is None:
-    name = tensor.name
+    # Tensor.name is not supported in Eager mode.
+    if tf.executing_eagerly():
+      name = "get_shape_list"
+    else:
+      name = tensor.name
 
   if expected_rank is not None:
     assert_rank(tensor, expected_rank, name)

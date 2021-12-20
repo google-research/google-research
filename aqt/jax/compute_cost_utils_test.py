@@ -22,6 +22,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from flax import linen as nn
 from jax import random
+from jax._src.lax import convolution as lax_convolution
 from jax._src.lax import lax
 from jax.nn import initializers
 import jax.numpy as jnp
@@ -443,12 +444,15 @@ class ComputeCostUtilsTest(parameterized.TestCase):
     original_op_name = 'conv_general_dilated'
     # The 'name' in primitive should change in the context in 'flax_layers'
     # if the context is enabled
-    self.assertEqual(original_op_name, lax.conv_general_dilated_p.name)
+    self.assertEqual(original_op_name,
+                     lax_convolution.conv_general_dilated_p.name)
 
     with compute_cost_utils.ConvMetadataMonkeyPatch(
         weight_prec=weight_prec, act_prec=None):
-      self.assertNotEqual(original_op_name, lax.conv_general_dilated_p.name)
-    self.assertEqual(original_op_name, lax.conv_general_dilated_p.name)
+      self.assertNotEqual(original_op_name,
+                          lax_convolution.conv_general_dilated_p.name)
+    self.assertEqual(original_op_name,
+                     lax_convolution.conv_general_dilated_p.name)
 
   @parameterized.named_parameters(
       dict(testcase_name='quant_8bit', weight_prec=8, acts_prec=8),

@@ -21,8 +21,8 @@
   Networks Really? http://arxiv.org/abs/2002.02405.
 """
 
-from flax import nn
 from flax import struct
+from flax.deprecated import nn
 from flax.optim import OptimizerDef
 import jax
 import jax.numpy as jnp

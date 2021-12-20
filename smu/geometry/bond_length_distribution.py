@@ -26,6 +26,7 @@ Data for all atom pairs is collected in AllAtomPairLengthDistributions
 
 import abc
 import itertools
+import math
 from typing import Dict, Optional
 from absl import logging
 import numpy as np
@@ -36,6 +37,32 @@ from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
+
+ATOMIC_NUMBER_TO_ATYPE = {
+    1: dataset_pb2.BondTopology.ATOM_H,
+    6: dataset_pb2.BondTopology.ATOM_C,
+    7: dataset_pb2.BondTopology.ATOM_N,
+    8: dataset_pb2.BondTopology.ATOM_O,
+    9: dataset_pb2.BondTopology.ATOM_F
+}
+
+
+def interpolate_zeros(values):
+  """For each zero value in `values` replace with an interpolated value.
+
+  Args:
+   values: an array that may contain zeros.
+
+  Returns:
+   An array that contains no zeros.
+  """
+  xvals = np.nonzero(values)[0]
+  yvals = values[xvals]
+
+  # Simplest to get values for all points, even those already non zero.
+  indices = np.arange(0, len(values))
+
+  return np.interp(indices, xvals, yvals)
 
 
 class LengthDistribution(abc.ABC):
@@ -152,6 +179,8 @@ class EmpiricalLengthDistribution(LengthDistribution):
     # The maximum value covered by the emprical values.
     self._maximum = self._df['length'].iloc[-1] + self.bucket_size
 
+    self._df['count'] = interpolate_zeros(np.array(self._df['count']))
+
     self._df['pdf'] = (
         self._df['count'] / np.sum(self._df['count']) / self.bucket_size)
 
@@ -231,8 +260,6 @@ class EmpiricalLengthDistribution(LengthDistribution):
       raise ValueError('Unexpected length_str values in input: {}'.format(
           set(df_input['length_str']).difference(df_lengths['length_str'])))
 
-    df['count'].fillna(0, inplace=True)
-
     return EmpiricalLengthDistribution(df, right_tail_mass=right_tail_mass)
 
   @classmethod
@@ -273,7 +300,10 @@ class EmpiricalLengthDistribution(LengthDistribution):
       else:
         return 0.0
 
-    return self._df.iloc[idx - 1, self._df.columns.get_loc('pdf')]
+    result = self._df.iloc[idx - 1, self._df.columns.get_loc('pdf')]
+    if math.isnan(result):
+      return 0.0
+    return result
 
 
 class AtomPairLengthDistributions:
@@ -362,7 +392,16 @@ class AllAtomPairLengthDistributions:
           atom_b,
           bond_type,
           dist):
-    """Adds a distribution of the atom pair and bond type."""
+    """Adds a distribution of the atom pair and bond type.
+
+    Args:
+      atom_a: dataset_pb2.AtomType
+      atom_b: dataset_pb2.AtomType
+      bond_type: dataset_pb2.BondType
+      dist: float
+    """
+    atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+    atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
     if (atom_a, atom_b) not in self._atom_pair_dict:
       self._atom_pair_dict[(atom_a, atom_b)] = AtomPairLengthDistributions()
       # Just set the other order of atom_a, atom_b to the same object
@@ -391,13 +430,7 @@ class AllAtomPairLengthDistributions:
         EmpiricalLengthDistribution) for the unbonded cases.
       include_nonbonded: whether or not to include non-bonded data.
     """
-    atom_types = [
-        dataset_pb2.BondTopology.ATOM_H,
-        dataset_pb2.BondTopology.ATOM_C,
-        dataset_pb2.BondTopology.ATOM_N,
-        dataset_pb2.BondTopology.ATOM_O,
-        dataset_pb2.BondTopology.ATOM_F,
-    ]
+    atomic_numbers = [1, 6, 7, 8, 9]
 
     if include_nonbonded:
       bond_types = [
@@ -414,10 +447,8 @@ class AllAtomPairLengthDistributions:
       ]
 
     for (atom_a, atom_b), bond_type in itertools.product(
-        itertools.combinations_with_replacement(atom_types, 2), bond_types):
-      fname = '{}.{}.{}.{}'.format(
-          filestem, smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a],
-          int(bond_type), smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b])
+        itertools.combinations_with_replacement(atomic_numbers, 2), bond_types):
+      fname = '{}.{}.{}.{}'.format(filestem, atom_a, int(bond_type), atom_b)
 
       if not gfile.exists(fname):
         logging.info('Skipping non existent file %s', fname)
@@ -427,6 +458,8 @@ class AllAtomPairLengthDistributions:
       if bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED:
         right_tail_mass = unbonded_right_tail_mass
 
+      atom_a = ATOMIC_NUMBER_TO_ATYPE[atom_a]
+      atom_b = ATOMIC_NUMBER_TO_ATYPE[atom_b]
       self.add(atom_a, atom_b, bond_type,
                EmpiricalLengthDistribution.from_file(fname, right_tail_mass))
 
@@ -448,8 +481,8 @@ class AllAtomPairLengthDistributions:
             lambda r: (r['atom_char_0'], r['atom_char_1'], r['bond_type']),
             axis=1))
     for atom_char_0, atom_char_1, bond_type in avail_pairs:
-      atom_0 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_0]
-      atom_1 = smu_utils_lib.ATOM_CHAR_TO_TYPE[atom_char_1]
+      atom_0 = smu_utils_lib.ATOM_CHAR_TO_ATOMIC_NUMBER[atom_char_0]
+      atom_1 = smu_utils_lib.ATOM_CHAR_TO_ATOMIC_NUMBER[atom_char_1]
       df = df_input[(df_input['atom_char_0'] == atom_char_0)
                     & (df_input['atom_char_1'] == atom_char_1) &
                     (df_input['bond_type'] == bond_type)]
@@ -458,6 +491,8 @@ class AllAtomPairLengthDistributions:
       if bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED:
         right_tail_mass = unbonded_right_tail_mass
 
+      atom_0 = ATOMIC_NUMBER_TO_ATYPE[atom_0]
+      atom_1 = ATOMIC_NUMBER_TO_ATYPE[atom_1]
       self.add(
           atom_0, atom_1, bond_type,
           EmpiricalLengthDistribution.from_sparse_dataframe(
@@ -468,11 +503,8 @@ class AllAtomPairLengthDistributions:
                             bond_type,
                             length):
     """p(length | atom_a, atom_b, bond_type)."""
-    if (atom_a, atom_b) not in self._atom_pair_dict.keys():
-      return 0.0
-
-    if not self._atom_pair_dict[(atom_a, atom_b)].has_key(bond_type):
-      return 0.0
+    atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+    atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
 
     return self._atom_pair_dict[(atom_a, atom_b)][bond_type].pdf(length)
 
@@ -492,6 +524,8 @@ class AllAtomPairLengthDistributions:
     Returns:
       dictionary of bond type to probability
     """
+    atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+    atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
     return self._atom_pair_dict[(atom_a,
                                  atom_b)].probability_of_bond_types(length)
 

@@ -69,8 +69,7 @@ class DSLTest(absltest.TestCase):
           max_expressions=10,
           max_k=5,
           max_input_tokens=10,
-          max_input_length=100,
-          max_output_length=100,
+          max_input_length=20,
           num_examples=4)
       self.assertGreater(min(len(out) for out in example.outputs), 0)
 

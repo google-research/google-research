@@ -18,7 +18,7 @@
 
 from absl import app
 
-from flax import nn
+from flax.deprecated import nn
 import jax
 from jax import random
 import jax.numpy as jnp

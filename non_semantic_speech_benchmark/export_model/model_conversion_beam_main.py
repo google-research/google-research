@@ -33,6 +33,8 @@ from non_semantic_speech_benchmark.export_model import model_conversion_beam_uti
 flags.DEFINE_list('xids', None, 'List of job IDs to run.')
 flags.DEFINE_string('base_experiment_dir', None, 'Base experiment dir.')
 flags.DEFINE_string('output_dir', None, 'Base output dir.')
+flags.DEFINE_string('output_suffix', None,
+                    'Output dir is {output_dir}/{xid}/{output_suffix}.')
 flags.DEFINE_bool('include_frontend', False, 'Whether to export with frontend.')
 flags.DEFINE_list('conversion_types', ['tflite', 'savedmodel'],
                   'Type of conversions.')
@@ -47,7 +49,8 @@ def main(unused_argv):
   # Get metadata for conversion.
   metadata = utils.get_pipeline_metadata(FLAGS.base_experiment_dir, FLAGS.xids,
                                          FLAGS.output_dir,
-                                         FLAGS.conversion_types)
+                                         FLAGS.conversion_types,
+                                         FLAGS.output_suffix)
   if not metadata:
     raise ValueError(
         f'No data found: {FLAGS.base_experiment_dir}, {FLAGS.xids}')

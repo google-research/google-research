@@ -16,7 +16,6 @@
 """Utils for encoding a UI screen."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 from tensor2tensor.layers import common_attention

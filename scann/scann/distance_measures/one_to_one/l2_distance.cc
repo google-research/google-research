@@ -20,6 +20,9 @@ SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(SquaredL2Distance,
                                               kEarlyStoppingNotSupported);
 SCANN_REGISTER_DISTANCE_MEASURE(SquaredL2Distance);
 
+SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(L2Distance, 32);
+SCANN_REGISTER_DISTANCE_MEASURE(L2Distance);
+
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(NegatedSquaredL2Distance,
                                               kEarlyStoppingNotSupported);
 SCANN_REGISTER_DISTANCE_MEASURE(NegatedSquaredL2Distance);

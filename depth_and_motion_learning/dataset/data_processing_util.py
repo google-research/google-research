@@ -15,8 +15,6 @@
 
 """Utility functions for data processing in struct2depth readers."""
 
-
-
 from typing import Text
 
 import tensorflow.compat.v1 as tf

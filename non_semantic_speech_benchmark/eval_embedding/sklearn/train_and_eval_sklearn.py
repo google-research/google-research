@@ -20,7 +20,7 @@ import itertools
 import os
 import pickle
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Iterable
 from absl import logging
 
 import numpy as np
@@ -31,18 +31,20 @@ from non_semantic_speech_benchmark.eval_embedding.sklearn import models
 from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils
 
 
-def train_and_get_score(embedding_name,
-                        label_name,
-                        label_list,
-                        train_glob,
-                        eval_glob,
-                        test_glob,
-                        model_name,
-                        l2_normalization,
-                        speaker_id_name = None,
-                        save_model_dir = None,
-                        save_predictions_dir = None,
-                        eval_metric = 'accuracy'):
+def train_and_get_score(
+    embedding_name,
+    label_name,
+    label_list,
+    train_glob,
+    eval_glob,
+    test_glob,
+    model_name,
+    l2_normalization,
+    speaker_id_name = None,
+    save_model_dir = None,
+    save_predictions_dir = None,
+    eval_metrics = ('accuracy',)
+):
   """Train and eval sklearn models on data.
 
   Args:
@@ -58,10 +60,10 @@ def train_and_get_score(embedding_name,
     save_model_dir: If not `None`, write sklearn models to this directory.
     save_predictions_dir: If not `None`, write numpy array of predictions on
       train, eval, and test into this directory.
-    eval_metric: String name of the desired evaluation metric.
+    eval_metrics: Iterable of string names of the desired evaluation metrics.
 
   Returns:
-    A tuple of Python floats, (eval metric, test metric).
+    A dict: {metric name: (eval metric, test metric)}
   """
   def _cur_s(s):
     return time.time() - s
@@ -98,32 +100,40 @@ def train_and_get_score(embedding_name,
   assert npy_test.size > 0
   assert np.unique(npy_test).size > 1
 
-  # Train models.
-  d = models.get_sklearn_models()[model_name]()
-  logging.info('Made model: %s.', model_name)
-
-  s = time.time()
-  d.fit(npx_train, npy_train)
-  logging.info('Trained model: %s, %s: %.2f min', model_name, embedding_name,
-               _cur_m(s))
-
-  eval_score, test_score = _calc_eval_scores(eval_metric, d, npx_eval, npy_eval,
-                                             npx_test, npy_test)
-  logging.info('Finished eval: %s: %.3f', model_name, eval_score)
-  logging.info('Finished test: %s: %.3f', model_name, test_score)
-
-  # If `save_model_dir` is present, write model to this directory.
-  # To load the model after saving, use:
-  # ```python
-  # with tf.io.gfile.GFile(model_filename, 'rb') as f:
-  #   m = pickle.load(f)
-  # ```
+  # If `save_model_dir` is present and the model exists, load the model instead
+  # of training.
   if save_model_dir:
     cur_models_dir = os.path.join(save_model_dir, embedding_name)
     tf.io.gfile.makedirs(cur_models_dir)
     model_filename = os.path.join(cur_models_dir, f'{model_name}.pickle')
-    with tf.io.gfile.GFile(model_filename, 'wb') as f:
-      pickle.dump(d, f)
+    train_model = not tf.io.gfile.exists(model_filename)
+  else:
+    train_model = True
+
+  # Train models.
+  if train_model:
+    d = models.get_sklearn_models()[model_name]()
+    logging.info('Made model: %s.', model_name)
+    s = time.time()
+    d.fit(npx_train, npy_train)
+    logging.info('Trained model: %s, %s: %.2f min', model_name, embedding_name,
+                 _cur_m(s))
+    # If `save_model_dir` is present and the model exists, write model to this
+    # directory.
+    if save_model_dir:
+      with tf.io.gfile.GFile(model_filename, 'wb') as f:
+        pickle.dump(d, f)
+  else:  # Load model.
+    with tf.io.gfile.GFile(model_filename, 'rb') as f:
+      d = pickle.load(f)
+
+  scores = {}
+  for eval_metric in eval_metrics:
+    eval_score, test_score = _calc_scores(eval_metric, d, npx_eval, npy_eval,
+                                          npx_test, npy_test, label_list)
+    logging.info('Finished eval: %s: %.3f', model_name, eval_score)
+    logging.info('Finished test: %s: %.3f', model_name, test_score)
+    scores[eval_metric] = (eval_score, test_score)
 
   if save_predictions_dir:
     cur_preds_dir = os.path.join(save_predictions_dir, embedding_name)
@@ -141,12 +151,13 @@ def train_and_get_score(embedding_name,
       with tf.io.gfile.GFile(y_filename, 'wb') as f:
         np.save(f, dat_y)
 
-  return (eval_score, test_score)
+  return scores
 
 
-def _calc_eval_scores(eval_metric, d, npx_eval,
-                      npy_eval, npx_test,
-                      npy_test):
+def _calc_scores(eval_metric, d, npx_eval,
+                 npy_eval, npx_test,
+                 npy_test,
+                 label_list):
   """Compute desired metric on eval and test."""
   if eval_metric == 'equal_error_rate':
     # Eval.
@@ -179,14 +190,31 @@ def _calc_eval_scores(eval_metric, d, npx_eval,
     eval_score = np.mean(_class_scores(npx_eval, npy_eval))
     test_score = np.mean(_class_scores(npx_test, npy_test))
   elif eval_metric == 'auc':
-    # Eval.
-    regression_output = d.predict_proba(npx_eval)[:, 1]  # Prob of class 1.
+    binary_classification = (len(label_list) == 2)
+    regression_eval = d.predict_proba(npx_eval)
     eval_score = metrics.calculate_auc(
-        labels=npy_eval, predictions=regression_output)
-    # Test.
-    regression_output = d.predict_proba(npx_test)[:, 1]  # Prob of class 1.
+        labels=npy_eval,
+        predictions=regression_eval,
+        binary_classification=binary_classification)
+    regression_test = d.predict_proba(npx_test)
     test_score = metrics.calculate_auc(
-        labels=npy_test, predictions=regression_output)
+        labels=npy_test,
+        predictions=regression_test,
+        binary_classification=binary_classification)
+  elif eval_metric == 'dprime':
+    binary_classification = (len(label_list) == 2)
+    regression_eval = d.predict_proba(npx_eval)
+    eval_auc = metrics.calculate_auc(
+        labels=npy_eval,
+        predictions=regression_eval,
+        binary_classification=binary_classification)
+    regression_test = d.predict_proba(npx_test)
+    test_auc = metrics.calculate_auc(
+        labels=npy_test,
+        predictions=regression_test,
+        binary_classification=binary_classification)
+    eval_score = metrics.dprime_from_auc(eval_auc)
+    test_score = metrics.dprime_from_auc(test_auc)
   else:
     raise ValueError(f'`eval_metric` not recognized: {eval_metric}')
   return eval_score, test_score
@@ -202,7 +230,7 @@ def experiment_params(
     test_glob,
     save_model_dir,
     save_predictions_dir,
-    eval_metric,
+    eval_metrics,
     comma_escape_char = '?',
 ):
   """Get experiment params."""
@@ -232,7 +260,7 @@ def experiment_params(
           'speaker_id_name': speaker_id_name,
           'save_model_dir': save_model_dir,
           'save_predictions_dir': save_predictions_dir,
-          'eval_metric': eval_metric,
+          'eval_metrics': eval_metrics,
       }
 
     exp_params.append(_params_dict(l2_normalization=True))
@@ -248,13 +276,21 @@ def experiment_params(
 
 def format_text_line(k_v):
   """Convert params and score to human-readable format."""
-  p, (eval_score, test_score) = k_v
-  cur_elem = ', '.join([
-      f'Eval score: {eval_score}', f'Test score: {test_score}',
-      f'Embed: {p["embedding_name"]}', f'Label: {p["label_name"]}',
-      f'Model: {p["model_name"]}', f'L2 normalization: {p["l2_normalization"]}',
-      f'Speaker normalization: {p["speaker_id_name"] is not None}', '\n'
-  ])
+  # p, (eval_score, test_score) = k_v
+  p, scores = k_v
+  line_list = [
+      f'Embed: {p["embedding_name"]}',
+      f'Label: {p["label_name"]}',
+      f'Model: {p["model_name"]}',
+      f'L2 normalization: {p["l2_normalization"]}',
+      f'Speaker normalization: {p["speaker_id_name"] is not None}',
+  ]
+  logging.info('Scores: %s', scores)
+  for metric_name, (eval_score, test_score) in scores.items():
+    line_list.append(f'Eval score {metric_name}: {eval_score}')
+    line_list.append(f'Test score {metric_name}: {test_score}')
+  line_list.append('\n')
+  cur_elem = ', '.join(line_list)
   logging.info('Finished formatting: %s', cur_elem)
   return cur_elem
 

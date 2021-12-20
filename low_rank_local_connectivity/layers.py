@@ -23,7 +23,6 @@ and are linearly combined to produce filters of size of input.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import numpy as np

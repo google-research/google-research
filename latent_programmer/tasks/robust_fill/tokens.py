@@ -35,6 +35,11 @@ def build_token_tables():
       dsl.GetFrom,
       dsl.GetFirst,
       dsl.GetAll,
+      # New functions
+      dsl.Substitute,
+      dsl.SubstituteAll,
+      dsl.Remove,
+      dsl.RemoveAll,
   ]
 
   # Primitive types

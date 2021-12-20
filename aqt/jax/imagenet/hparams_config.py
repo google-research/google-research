@@ -31,6 +31,9 @@ class LrScheduler:
   cooldown_epochs: int
   scheduler: str
   num_epochs: int
+  endlr: float
+  knee_lr: float
+  knee_epochs: int
 
 
 @dataclass
@@ -54,6 +57,9 @@ class TrainingHParams:
   optimizer: str
   adam: Adam  # only used when optimizer=='adam'
   early_stop_steps: int
+  teacher_model: str
+  is_teacher: bool
+  seed: int
 
   # Auto-clip activation quantization hparams. See
   # train_utils.should_update_bounds for more details. We use -1 instead of None
@@ -64,6 +70,7 @@ class TrainingHParams:
   # incomplete configuration.
   activation_bound_update_freq: int
   activation_bound_start_step: int
+  weight_quant_start_step: int
 
   # Model hparams
   model_hparams: Any

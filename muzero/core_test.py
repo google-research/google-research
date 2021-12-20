@@ -70,6 +70,30 @@ class CoreTest(tf.test.TestCase):
             visits=tuple(policy_distributions[2:] +
                          [policy_distributions[0]] * 2)), target)
 
+  def test_encode_decode(self):
+    encoder = core.ValueEncoder(
+        min_value=-2,
+        max_value=2,
+        num_steps=5,
+        use_contractive_mapping=False)
+    encoded = encoder.encode(tf.constant([-0.5, 0.9, 5.0]))
+    self.assertAllClose([[0, 0.5, 0.5, 0, 0],
+                         [0, 0, 0.1, 0.9, 0],
+                         [0, 0, 0, 0, 1]], encoded)
+    self.assertAllClose([-0.5, 0.9, 2.0], encoder.decode(encoded))
+
+    encoder = core.ValueEncoder(
+        min_value=-2,
+        max_value=2,
+        num_steps=5,
+        use_contractive_mapping=True)
+    encoded = encoder.encode(tf.constant([-0.5, 0.9, 5.0]))
+    # Scaling transformation with contractive mapping
+    self.assertAllClose([[0, 0.61, 0.39, 0, 0],
+                         [0, 0, 0, 0.97, 0.03],
+                         [0, 0, 0, 0, 1]], encoded, atol=0.01)
+    self.assertAllClose([-0.5, 0.9, 2.0], encoder.decode(encoded), atol=0.001)
+
 
 if __name__ == '__main__':
   tf.test.main()

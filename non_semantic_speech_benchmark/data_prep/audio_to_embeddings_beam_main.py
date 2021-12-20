@@ -45,7 +45,6 @@ flags.DEFINE_string(
     'An optional directory for the locally downloaded TFDS data. Should only '
     'be non-None when `tfds_dataset` is used. This is essential for data that '
     'needs to be manually downloaded.')
-
 flags.DEFINE_string('output_filename', None, 'Output filename.')
 flags.DEFINE_list(
     'embedding_names', None,
@@ -59,6 +58,25 @@ flags.DEFINE_list(
     'module_output_keys', None,
     'List of module output key. Must be the same length as '
     '`embedding_modules`.')
+flags.DEFINE_enum('data_prep_behavior', 'many_models', [
+    'many_models', 'many_embeddings_single_model', 'chunked_audio',
+    'batched_single_model'
+], 'Which metric to compute and report.')
+# Extra data prep flags, needed for `many_embeddings_single_model` and
+# `chunked_audio`.
+flags.DEFINE_integer('chunk_len', None, 'Optional chunk len')
+# Extra data prep flags, needed just for `many_embeddings_single_model`.
+flags.DEFINE_integer(
+    'embedding_length', None,
+    'Expected length of the embedding. If present, must be this length.')
+# Extra data prep flags, needed just for `chunked_audio`.
+flags.DEFINE_bool(
+    'compute_embeddings_on_chunked_audio', True,
+    'Whether to compute targets on chunked audio or entire clip.')
+# Extra data prep flags, needed just for ``.
+flags.DEFINE_integer('batch_size', 1,
+                     'Number of audio samples to compute embeddings at once.')
+
 flags.DEFINE_string(
     'comma_escape_char', '?',
     'Sometimes we want commas to appear in `embedding_modules`, '
@@ -106,6 +124,9 @@ flags.DEFINE_integer(
     '`use_frontend_fn` is `True`.')
 
 
+FLAGS = flags.FLAGS
+
+
 def main(_):
 
   input_filenames_list, output_filenames, beam_params = utils.get_beam_params_from_flags(
@@ -117,6 +138,9 @@ def main(_):
       embedding_modules=beam_params['embedding_modules'],
       embedding_names=beam_params['embedding_names'],
       module_output_keys=beam_params['module_output_keys'])
+  logging.info('main: input_filenames_list: %s', input_filenames_list)
+  logging.info('main: output_filenames: %s', output_filenames)
+  logging.info('main: beam_params: %s', beam_params)
 
   # If you have custom beam options, add them here.
   beam_options = None
@@ -125,12 +149,13 @@ def main(_):
   with beam.Pipeline(beam_options) as root:
     for i, (input_filenames_or_glob, output_filename) in enumerate(
         zip(input_filenames_list, output_filenames)):
-      utils.make_beam_pipeline(
-          root,
-          input_filenames=input_filenames_or_glob,
+      utils.data_prep_pipeline(
+          root=root,
+          input_filenames_or_glob=input_filenames_or_glob,
           output_filename=output_filename,
-          suffix=str(i),
-          **beam_params)
+          data_prep_behavior=FLAGS.data_prep_behavior,
+          beam_params=beam_params,
+          suffix=str(i))
 
 
 @flags.multi_flags_validator(

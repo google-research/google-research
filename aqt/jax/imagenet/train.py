@@ -49,6 +49,7 @@ from aqt.jax.imagenet import hparams_config
 from aqt.jax.imagenet import input_pipeline
 from aqt.jax.imagenet import models
 from aqt.jax.imagenet import train_utils as imagenet_train_utils
+from aqt.jax.imagenet.configs.paper.resnet50_w8_a8_auto import get_config as w8a8auto_paper_config
 from aqt.utils import hparams_utils as os_hparams_utils
 from aqt.utils import report_utils
 from aqt.utils import summary_utils
@@ -104,7 +105,7 @@ flags.DEFINE_integer(
 
 flags.DEFINE_bool(
     'visualize_acts_bound',
-    default=True,
+    default=False,
     help=(
         'Whether to visualize activations bounds for auto-clip in Tensorboard.'
         ' The bounds appear as scalar and will be named as "GetBounds_0/bounds"'
@@ -114,6 +115,11 @@ flags.DEFINE_bool(
     'estimate_compute_and_memory_cost',
     default=False,
     help='Whether to estimate compute and memory cost.')
+
+flags.DEFINE_bool(
+    'write_summary',
+    default=False,
+    help='Whether to write the summary_dict to tensorboard.')
 
 
 def cosine_decay(base_learning_rate, step, decay_steps, alpha=0.001):
@@ -130,7 +136,8 @@ def step_decay(lr, step, interval):
   return lr
 
 
-def create_learning_rate_fn(base_learning_rate, steps_per_epoch, lr_scheduler):
+def create_learning_rate_fn(base_learning_rate, steps_per_epoch, lr_scheduler,
+                            batch_size):
   """Create learning rate scheduler function."""
   num_epochs = lr_scheduler.num_epochs
   warmup_steps = lr_scheduler.warmup_epochs * steps_per_epoch
@@ -141,6 +148,16 @@ def create_learning_rate_fn(base_learning_rate, steps_per_epoch, lr_scheduler):
     if lr_scheduler.scheduler == 'linear':
       epochs_left = num_epochs - step / steps_per_epoch
       lr = epochs_left / num_epochs * base_learning_rate
+    elif lr_scheduler.scheduler == 'piecewise':
+      knee_steps = lr_scheduler.knee_epochs * steps_per_epoch
+      knee_lr = lr_scheduler.knee_lr * batch_size / 256.
+      endlr = lr_scheduler.endlr * batch_size / 256.
+      # compute phase2 lr
+      k1 = step / knee_steps
+      lr1 = k1 * knee_lr + (1 - k1) * base_learning_rate
+      k2 = (step - knee_steps) / (total_steps - knee_steps)
+      lr2 = k2 * endlr + (1 - k2) * knee_lr
+      lr = jnp.where(step >= knee_steps, lr2, lr1)
     elif lr_scheduler.scheduler == 'cosine':
       lr = cosine_decay(base_learning_rate, step - warmup_steps,
                         total_steps - warmup_steps - cooldown_steps)
@@ -221,8 +238,6 @@ def main(argv):
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(FLAGS.model_dir)
 
-  rng = random.PRNGKey(0)
-
   image_size = 224
 
   batch_size = FLAGS.batch_size
@@ -291,13 +306,53 @@ def main(argv):
         image_size=image_size, model_dir=FLAGS.model_dir, hparams=hparams)
     logging.info('Writing training HLO and estimating compute/memory costs.')
 
+  rng = random.PRNGKey(hparams.seed)
   model, variables = imagenet_train_utils.create_model(
       rng,
       device_batch_size,
       image_size,
       model_dtype,
       hparams=hparams.model_hparams,
-      train=True)
+      train=True,
+      is_teacher=hparams.is_teacher)
+
+  # pylint: disable=g-long-lambda
+  if hparams.teacher_model == 'resnet50-8bit':
+    teacher_config = w8a8auto_paper_config()
+    teacher_hparams = os_hparams_utils.load_hparams_from_config_dict(
+        hparams_config.TrainingHParams, models.ResNet.HParams, teacher_config)
+    teacher_model, _ = imagenet_train_utils.create_model(
+        rng,
+        device_batch_size,
+        image_size,
+        model_dtype,
+        hparams=teacher_hparams.model_hparams,
+        train=False,
+        is_teacher=True)  # teacher model does not need to be trainable
+    # Directory where checkpoints are saved
+    ckpt_model_dir = FLAGS.resnet508b_ckpt_path
+    # will restore to best checkpoint
+    state_load = checkpoints.restore_checkpoint(ckpt_model_dir, None)
+    teacher_variables = {'params': state_load['optimizer']['target']}
+    teacher_variables.update(state_load['model_state'])
+    # create a dictionary for better argument passing
+    teacher = {
+        'model':
+            lambda var, img, labels: jax.nn.softmax(
+                teacher_model.apply(var, img)),
+        'variables':
+            teacher_variables,
+    }
+  elif hparams.teacher_model == 'labels':
+    teacher = {
+        'model':
+            lambda var, img, labels: common_utils.onehot(
+                labels, num_classes=1000),
+        'variables': {},  # no need of variables in this case
+    }
+  else:
+    raise ValueError('The specified teacher model is not supported.')
+
   model_state, params = variables.pop('params')
   if hparams.optimizer == 'sgd':
     optimizer = optim.Momentum(
@@ -321,43 +376,65 @@ def main(argv):
   base_learning_rate = hparams.base_learning_rate * batch_size / 256.
   learning_rate_fn = create_learning_rate_fn(base_learning_rate,
                                              steps_per_epoch,
-                                             hparams.lr_scheduler)
+                                             hparams.lr_scheduler,
+                                             batch_size)
 
   p_train_step = jax.pmap(
       functools.partial(
           imagenet_train_utils.train_step,
           model,
-          learning_rate_fn=learning_rate_fn),
+          learning_rate_fn=learning_rate_fn,
+          teacher=teacher),
       axis_name='batch',
-      static_broadcasted_argnums=(2, 3))
+      static_broadcasted_argnums=(2, 3, 4))
   p_eval_step = jax.pmap(
       functools.partial(imagenet_train_utils.eval_step, model),
-      axis_name='batch')
+      axis_name='batch',
+      static_broadcasted_argnums=(2,))
 
   epoch_metrics = []
   state_dict_summary_all = []
   state_dict_keys = _get_state_dict_keys_from_flags()
   t_loop_start = time.time()
+  last_log_step = 0
   for step, batch in zip(range(step_offset, num_steps), train_iter):
-    if hparams.early_stop_steps >= 0 and step > hparams.early_stop_steps:
+    if hparams.early_stop_steps >= 0 and step > hparams.early_stop_steps * steps_per_epoch:
       break
     update_bounds = train_utils.should_update_bounds(
         hparams.activation_bound_update_freq,
         hparams.activation_bound_start_step, step)
-    state, metrics = p_train_step(state, batch, hparams, update_bounds)
+    # and pass the result bool value to p_train_step
+    # The function should take hparams.weight_quant_start_step as inputs
+    quantize_weights = train_utils.should_quantize_weights(
+        hparams.weight_quant_start_step, step // steps_per_epoch)
+    state, metrics = p_train_step(state, batch, hparams, update_bounds,
+                                  quantize_weights)
 
     state_dict_summary = summary_utils.get_state_dict_summary(
         state.model_state, state_dict_keys)
     state_dict_summary_all.append(state_dict_summary)
 
     epoch_metrics.append(metrics)
-    if (step + 1) % steps_per_epoch == 0:
+    def should_log(step):
+      epoch_no = step // steps_per_epoch
+      step_in_epoch = step - epoch_no * steps_per_epoch
+      do_log = False
+      do_log = do_log or (step + 1 == num_steps)  # log at the end
+      end_of_train = step / num_steps > 0.9
+      do_log = do_log or ((step_in_epoch %
+                           (steps_per_epoch // 4) == 0) and not end_of_train)
+      do_log = do_log or ((step_in_epoch %
+                           (steps_per_epoch // 16) == 0) and end_of_train)
+      return do_log
+
+    if should_log(step):
       epoch = step // steps_per_epoch
       epoch_metrics = common_utils.get_metrics(epoch_metrics)
       summary = jax.tree_map(lambda x: x.mean(), epoch_metrics)
       logging.info('train epoch: %d, loss: %.4f, accuracy: %.2f', epoch,
                    summary['loss'], summary['accuracy'] * 100)
-      steps_per_sec = steps_per_epoch / (time.time() - t_loop_start)
+      steps_per_sec = (step - last_log_step) / (time.time() - t_loop_start)
+      last_log_step = step
       t_loop_start = time.time()
 
       # Write to TensorBoard
@@ -369,9 +446,10 @@ def main(argv):
             summary_writer.scalar(tag, val, step - len(vals) + i + 1)
         summary_writer.scalar('steps per second', steps_per_sec, step)
 
-        summary_utils.write_state_dict_summaries_to_tb(
-            state_dict_summary_all, summary_writer,
-            FLAGS.state_dict_summary_freq, step)
+        if FLAGS.write_summary:
+          summary_utils.write_state_dict_summaries_to_tb(
+              state_dict_summary_all, summary_writer,
+              FLAGS.state_dict_summary_freq, step)
 
       state_dict_summary_all = []
       epoch_metrics = []
@@ -381,7 +459,7 @@ def main(argv):
       state = imagenet_train_utils.sync_batch_stats(state)
       for _ in range(steps_per_eval):
         eval_batch = next(eval_iter)
-        metrics = p_eval_step(state, eval_batch)
+        metrics = p_eval_step(state, eval_batch, quantize_weights)
         eval_metrics.append(metrics)
       eval_metrics = common_utils.get_metrics(eval_metrics)
       summary = jax.tree_map(lambda x: x.mean(), eval_metrics)

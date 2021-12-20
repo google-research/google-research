@@ -25,7 +25,7 @@ from absl import logging
 import numpy as np
 import tensorflow as tf
 
-from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils
+from non_semantic_speech_benchmark.data_prep import data_prep_utils
 from non_semantic_speech_benchmark.distillation import frontend_lib
 from non_semantic_speech_benchmark.distillation import models
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
@@ -56,7 +56,7 @@ def get_params(experiment_dir_str):
 
   Args:
     experiment_dir_str: The folder-name for the set of hyperparams. Eg:
-      '1-al=1.0,ap=False,bd=2048,cop=False,lr=0.0001,ms=small,qat=False,tbs=512'
+      '1-al=1.0,ap=False,lr=0.0001,ms=small,tbs=512'
 
   Returns:
     A dict mapping param key (str) to eval'ed value (float/eval/string).
@@ -89,9 +89,6 @@ def get_model(checkpoint_folder_path,
               checkpoint_number = None,
               include_frontend = False):
   """Given folder & training params, exports SavedModel without frontend."""
-  compressor = None
-  if params['cop']:
-    compressor = get_default_compressor()
   # Optionally override frontend flags from
   # `non_semantic_speech_benchmark/export_model/tf_frontend.py`
   override_flag_names = ['frame_hop', 'n_required', 'num_mel_bins',
@@ -102,11 +99,9 @@ def get_model(checkpoint_folder_path,
 
   static_model = models.get_keras_model(
       params['mt'],
-      bottleneck_dimension=params['bd'],
-      output_dimension=0,  # Don't include the unnecessary final layer.
+      output_dimension=1024,
+      truncate_output=params['tr'] if 'tr' in params else False,
       frontend=include_frontend,
-      compressor=compressor,
-      quantize_aware_training=params['qat'],
       tflite=tflite_friendly)
   checkpoint = tf.train.Checkpoint(model=static_model)
   if checkpoint_number:
@@ -177,10 +172,10 @@ def sanity_check(
 
   if tflite:
     logging.info('Building tflite interpreter...')
-    interpreter = audio_to_embeddings_beam_utils.build_tflite_interpreter(
+    interpreter = data_prep_utils.build_tflite_interpreter(
         model_path)
     logging.info('Running inference...')
-    output = audio_to_embeddings_beam_utils.samples_to_embedding_tflite(
+    output = data_prep_utils.samples_to_embedding_tflite(
         model_input, sample_rate=16000, interpreter=interpreter, output_key='0',
         name='sanity_check')
   else:

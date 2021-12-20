@@ -619,7 +619,7 @@ class ValueEncoder:
       raise ValueError(
           'Expected logits to be 2D Tensor [batch_size, steps], but got {}.'
           .format(logits.shape))
-    num_steps = tf.reduce_sum(tf.nn.softmax(logits) * self.step_range_float, -1)
+    num_steps = tf.reduce_sum(logits * self.step_range_float, -1)
     above_min = num_steps * self.step_size
     value = above_min + self.min_value
     if self.use_contractive_mapping:

@@ -90,6 +90,7 @@ from __future__ import print_function
 import re
 import tensorflow.compat.v1 as tf
 
+from graph_compression.compression_lib import compression_op_utils as comp_op_utils
 from model_pruning.python import hparam
 from model_pruning.python import pruning_utils
 from tensorflow.python.ops import variables  # pylint: disable=g-direct-tensorflow-import
@@ -500,13 +501,13 @@ def get_pruning_hparams():
       begin_compression_step=0,
       end_compression_step=-1,
       compression_frequency=10,
-      compression_option=0,
+      compression_option=comp_op_utils.CompressionOptions.NO_MATRIX_COMPRESSION,
       rank=7,
       block_size=1,
-      update_option=0,
+      update_option=comp_op_utils.UpdateOptions.NO_UPDATE,
       run_update_interval_check=1,
       pruning_fraction=0.4,
-      use_collection=True,
+      use_collection=False,
       do_transpose=False,
       compress_input=True,
       input_compression_factor=1,
@@ -952,8 +953,9 @@ class Pruning(object):
     sparsity = self._get_sparsity(weights.op.name)
 
     with tf.name_scope(weights.op.name + '_pruning_ops'):
-      tf.logging.info('Applying block sparsity pruning, block size (1, %d)',
-                      block_size)
+      tf.logging.info(
+          'Applying block sparsity pruning for %s, block size (1, %d), shape %s',
+          weights.op.name, block_size, weights.shape)
 
       # Rearrange weights tensor so that m by n sparsity structure applied in
       # last channel.
@@ -966,8 +968,15 @@ class Pruning(object):
       #   TF data format is [channel_in, channel_out],
       #   TFLite data format is [width, channel_in]
       #   Rearranged Dense weights format: [width, channel_in]
+      # In case of Multi-head Attention weights:
+      #   Outermost dimension is the reduction dimension, intra block sparsity
+      #   is applied to the reduction dimension. Therefore transpose the
+      #   weight's outermost to innermost and reshape it to 2D.
       if weights.shape.rank == 2:
         prepared_weights = tf.transpose(weights)
+      elif weights.shape.rank == 3:
+        prepared_weights = tf.transpose(
+            tf.reshape(weights, [weights.shape[0], -1]))
       elif weights.shape.rank == 4:
         perm_weights = tf.transpose(weights, perm=[3, 0, 1, 2])
         prepared_weights = tf.reshape(
@@ -991,26 +1000,25 @@ class Pruning(object):
       reshaped_weights_into_blocks = tf.reshape(abs_weights_pad,
                                                 [num_blocks, block_size])
 
-      # Generate the indices ordered by the abs values of the weight
-      _, top_k_indices = tf.math.top_k(
-          reshaped_weights_into_blocks, k=block_size)
-      ind_i, _ = tf.meshgrid(
-          tf.range(num_blocks), tf.range(block_size), indexing='ij')
-      ind_ij = tf.stack([ind_i, top_k_indices], axis=-1)
-
-      # Generate a mask array that has size equals to num_blocks * block_size
-      # The first num_blocks * num_non_zeros of elements of this mask array is
-      # set to 1, the rest is set to 0.
-      mask_staging = tf.range(num_blocks * block_size)
-      mask_staging = tf.cast(
-          tf.less(mask_staging, num_blocks * num_non_zeros), tf.float32)
-
-      # Reshape the mask array to num_blocks * block_size. The first
-      # num_non_zeros elements of each row in the mask matrix is 1.0 while the
-      # rest is 0.
-      mask_staging = tf.transpose(tf.reshape(mask_staging, [-1, num_blocks]))
-      sparsity_mask_pad = tf.scatter_nd(ind_ij, mask_staging,
-                                        [num_blocks, block_size])
+      # Sort the weights based on magnitude.
+      row_sorted_weights = tf.sort(
+          reshaped_weights_into_blocks, axis=1, direction='DESCENDING')
+      # Calculate cut-off value (thresholds) of the weights.
+      # num_non_zeros is in [1, block_size], therefore pad row_sorted_weights
+      # tensor with one more column of -1.0 to cover the case that sparsity is
+      # 0.0. In case two weights have exactly the same value, they are either
+      # both pruned or both not pruned. Therefore we use tf.greater() rather
+      # than tf.greater_equal(). This guarantees that the number of non-zeros
+      # after pruning is always less than floor(block_size * (1 - sparsity)).
+      thresholds = tf.slice(
+          tf.pad(row_sorted_weights, [[0, 0], [0, 1]], constant_values=-1.0),
+          begin=[0, num_non_zeros],
+          size=[row_sorted_weights.shape[0], 1])
+      expanded_thresholds = tf.repeat(
+          thresholds, repeats=row_sorted_weights.shape[1], axis=1)
+      sparsity_mask_pad = tf.dtypes.cast(
+          tf.math.greater(reshaped_weights_into_blocks, expanded_thresholds),
+          weights.dtype)
       reshaped_sparsity_mask_pad = tf.reshape(sparsity_mask_pad,
                                               tf.shape(abs_weights_pad))
 
@@ -1032,6 +1040,8 @@ class Pruning(object):
 
       if weights.shape.rank == 2:
         prepared_mask = tf.transpose(sparsity_mask)
+      elif weights.shape.rank == 3:
+        prepared_mask = tf.reshape(tf.transpose(sparsity_mask), weights.shape)
       elif weights.shape.rank == 4:
         weights_shape = tf.shape(weights)
         reshaped_mask = tf.reshape(
@@ -1086,8 +1096,9 @@ class Pruning(object):
 
     # Intra block sparsity is only enabled when:
     # 1. `intra_block_sparsity` is set to True.
-    # 2. weights is either 2D or 4D.
-    if self._spec.intra_block_sparsity and weights.get_shape().ndims in [2, 4]:
+    # 2. weights is 2D, 3D or 4D.
+    if (self._spec.intra_block_sparsity and
+        weights.get_shape().ndims in [2, 3, 4]):
       return self._update_mask_sparsity_m_by_n(weights, block_dims[1])
 
     squeezed_weights = tf.squeeze(weights)

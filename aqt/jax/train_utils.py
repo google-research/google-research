@@ -19,6 +19,10 @@
 from aqt.jax import quant_config
 
 
+def should_quantize_weights(weight_quant_start_step, step):
+  return step >= weight_quant_start_step
+
+
 def should_update_bounds(activation_bound_update_freq,
                          activation_bound_start_step, step):
   """Returns whether activation bounds should be updated.

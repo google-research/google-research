@@ -69,7 +69,8 @@
     ],
     "dialogue_id": 8500,
     "photo_description": "Objects in the photo: Coffee cup, Drink, Mug",
-    "photo_url": "https://c5.staticflickr.com/8/7487/15852162426_f860689c8b_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/8/7487/15852162426_f860689c8b_o.jpg",
+    "photo_id": "train/c83f4bc1bd8908fc"
   },
   {
     "dialogue": [
@@ -141,7 +142,8 @@
     ],
     "dialogue_id": 8501,
     "photo_description": "Objects in the photo: Woman, Man, Girl, Clothing, Face, Tableware, Drink",
-    "photo_url": "https://farm8.staticflickr.com/3346/3420629679_31c1e1edd2_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/3346/3420629679_31c1e1edd2_o.jpg",
+    "photo_id": "train/631fd00557504db7"
   },
   {
     "dialogue": [
@@ -218,7 +220,8 @@
     ],
     "dialogue_id": 8502,
     "photo_description": "Objects in the photo: Woman, Face, Clothing, Beer",
-    "photo_url": "https://farm4.staticflickr.com/1433/585402921_9a9519317a_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/1433/585402921_9a9519317a_o.jpg",
+    "photo_id": "train/6c6d92e19e4fffb3"
   },
   {
     "dialogue": [
@@ -285,7 +288,8 @@
     ],
     "dialogue_id": 8503,
     "photo_description": "Objects in the photo: Necklace",
-    "photo_url": "https://c7.staticflickr.com/8/7164/6799043553_1e1943de9b_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7164/6799043553_1e1943de9b_o.jpg",
+    "photo_id": "test/51f4655bf4149ace"
   },
   {
     "dialogue": [
@@ -392,7 +396,8 @@
     ],
     "dialogue_id": 8504,
     "photo_description": "The photo has your girlfriend Barbara. Objects in the photo: Woman, Home appliance",
-    "photo_url": "https://farm8.staticflickr.com/109/312384561_debccd9dbd_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/109/312384561_debccd9dbd_o.jpg",
+    "photo_id": "train/4bcb140c198b8797"
   },
   {
     "dialogue": [
@@ -514,7 +519,8 @@
     ],
     "dialogue_id": 8505,
     "photo_description": "Objects in the photo: Clothing, Drink, Laptop, Face, Wine glass",
-    "photo_url": "https://c6.staticflickr.com/3/2544/4017465142_50dd144ab0_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/3/2544/4017465142_50dd144ab0_o.jpg",
+    "photo_id": "train/43df893f6b77b46d"
   },
   {
     "dialogue": [
@@ -591,7 +597,8 @@
     ],
     "dialogue_id": 8506,
     "photo_description": "The photo has your grandson Ignacio. Objects in the photo: Boy, Jacket",
-    "photo_url": "https://farm4.staticflickr.com/7314/9334011125_b6ac511249_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7314/9334011125_b6ac511249_o.jpg",
+    "photo_id": "train/411cfa90562836d3"
   },
   {
     "dialogue": [
@@ -653,7 +660,8 @@
     ],
     "dialogue_id": 8507,
     "photo_description": "Objects in the photo: Fast food, Laptop, Clothing, Building, Desk",
-    "photo_url": "https://c1.staticflickr.com/2/1074/5101764315_182f1ae54f_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/2/1074/5101764315_182f1ae54f_o.jpg",
+    "photo_id": "train/e5ebddbb953f5b58"
   },
   {
     "dialogue": [
@@ -750,7 +758,8 @@
     ],
     "dialogue_id": 8508,
     "photo_description": "The photo has your boyfriend Layne. Objects in the photo: Man, Footwear",
-    "photo_url": "https://c6.staticflickr.com/3/2927/14449123443_0580ce35fd_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/3/2927/14449123443_0580ce35fd_o.jpg",
+    "photo_id": "train/33bda4cec69e545d"
   },
   {
     "dialogue": [
@@ -827,7 +836,8 @@
     ],
     "dialogue_id": 8509,
     "photo_description": "Objects in the photo: Wine glass, Bottle, Wine",
-    "photo_url": "https://c7.staticflickr.com/4/3609/3464997221_635bb08ff4_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/4/3609/3464997221_635bb08ff4_o.jpg",
+    "photo_id": "train/a4627c23e30295fe"
   },
   {
     "dialogue": [
@@ -914,7 +924,8 @@
     ],
     "dialogue_id": 8510,
     "photo_description": "The photo has your student Chad. Objects in the photo: Face, Man",
-    "photo_url": "https://farm4.staticflickr.com/7290/9549790308_cf7908d7cf_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7290/9549790308_cf7908d7cf_o.jpg",
+    "photo_id": "train/6aa3b39482b92d33"
   },
   {
     "dialogue": [
@@ -981,7 +992,8 @@
     ],
     "dialogue_id": 8511,
     "photo_description": "The photo has your girlfriend Sandra. Objects in the photo: Woman",
-    "photo_url": "https://farm8.staticflickr.com/7234/7269957094_cab01a71b3_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/7234/7269957094_cab01a71b3_o.jpg",
+    "photo_id": "train/66a88a7131dfaa17"
   },
   {
     "dialogue": [
@@ -1063,7 +1075,8 @@
     ],
     "dialogue_id": 8512,
     "photo_description": "Objects in the photo: Dessert, Fast food, Pizza",
-    "photo_url": "https://farm7.staticflickr.com/8378/8437950173_b6ec923f50_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/8378/8437950173_b6ec923f50_o.jpg",
+    "photo_id": "validation/67124135d482c846"
   },
   {
     "dialogue": [
@@ -1155,7 +1168,8 @@
     ],
     "dialogue_id": 8513,
     "photo_description": "Objects in the photo: Drink, Human body, Wine glass",
-    "photo_url": "https://farm7.staticflickr.com/3293/3147669168_3e7893783a_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3293/3147669168_3e7893783a_o.jpg",
+    "photo_id": "train/47fe12398ad168e6"
   },
   {
     "dialogue": [
@@ -1227,7 +1241,8 @@
     ],
     "dialogue_id": 8514,
     "photo_description": "The photo has your boyfriend Royce. Objects in the photo: Man, Face",
-    "photo_url": "https://farm3.staticflickr.com/6087/6076123423_de0d5bd657_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/6087/6076123423_de0d5bd657_o.jpg",
+    "photo_id": "train/d213472ed303cee2"
   },
   {
     "dialogue": [
@@ -1309,7 +1324,8 @@
     ],
     "dialogue_id": 8515,
     "photo_description": "Objects in the photo: Aidi, Livestock guardian dog, Lake, Ancient dog breeds, Cloud, Guard dog, Sculpture, Hunting dog, Fog, Dog, Anatolian shepherd dog, Animal, Labrador retriever, Carnivore",
-    "photo_url": "https://farm6.staticflickr.com/8713/16768241948_1966df65ae_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/8713/16768241948_1966df65ae_o.jpg",
+    "photo_id": "train/033d3f1a49f9c1d5"
   },
   {
     "dialogue": [
@@ -1366,7 +1382,8 @@
     ],
     "dialogue_id": 8516,
     "photo_description": "Objects in the photo: Couch, Table, Drink, Clothing",
-    "photo_url": "https://farm8.staticflickr.com/128/343324426_b9a41bf514_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/128/343324426_b9a41bf514_o.jpg",
+    "photo_id": "train/dd91e74933d18ad7"
   },
   {
     "dialogue": [
@@ -1423,7 +1440,8 @@
     ],
     "dialogue_id": 8517,
     "photo_description": "The photo has your daughter Estelle. Objects in the photo: Suit, Man, Fashion accessory, Woman, Girl",
-    "photo_url": "https://c2.staticflickr.com/1/220/507081923_6bbb13457a_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/220/507081923_6bbb13457a_o.jpg",
+    "photo_id": "train/8c491eaf45cf1f39"
   },
   {
     "dialogue": [
@@ -1505,7 +1523,8 @@
     ],
     "dialogue_id": 8518,
     "photo_description": "Objects in the photo: Snout, Mammal, Iris, Cat, Small cats, Pet, Comfort, capturas de pantalla, Whiskers, Animal, Carnivores, Felidae, Tail, Black, Small to medium-sized cats, Terrestrial animal",
-    "photo_url": "https://farm6.staticflickr.com/7598/16641851918_c283c9eb70_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/7598/16641851918_c283c9eb70_o.jpg",
+    "photo_id": "train/00ab5a0aecd2a5a5"
   },
   {
     "dialogue": [
@@ -1562,7 +1581,8 @@
     ],
     "dialogue_id": 8519,
     "photo_description": "The photo has your boyfriend James. Objects in the photo: Man",
-    "photo_url": "https://c4.staticflickr.com/8/7072/7171323538_e89d61583b_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/8/7072/7171323538_e89d61583b_o.jpg",
+    "photo_id": "train/b9486fb3ae7723cb"
   },
   {
     "dialogue": [
@@ -1654,7 +1674,8 @@
     ],
     "dialogue_id": 8520,
     "photo_description": "Objects in the photo: Scarlet, Wing, \u00e1rvore, Art, Pollinator, Moths and butterflies, Invertebrate, Red blue, butterflies, Butterfly, Russet, Insect, Macro photography, Animal, Slope, Pest, Arctiidae, Arthropod",
-    "photo_url": "https://c4.staticflickr.com/4/3179/2746156791_831f24f693_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/4/3179/2746156791_831f24f693_o.jpg",
+    "photo_id": "train/01394109a55e9f3b"
   },
   {
     "dialogue": [
@@ -1741,7 +1762,8 @@
     ],
     "dialogue_id": 8521,
     "photo_description": "Objects in the photo: Pillow",
-    "photo_url": "https://farm8.staticflickr.com/3745/11823244646_4376240fb4_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/3745/11823244646_4376240fb4_o.jpg",
+    "photo_id": "test/f0450fc980d3a507"
   },
   {
     "dialogue": [
@@ -1788,7 +1810,8 @@
     ],
     "dialogue_id": 8522,
     "photo_description": "Objects in the photo: Plant, Tree, Animal",
-    "photo_url": "https://farm4.staticflickr.com/2316/2098561962_53e229eebd_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/2316/2098561962_53e229eebd_o.jpg",
+    "photo_id": "train/b066c54ad94ca413"
   },
   {
     "dialogue": [
@@ -1855,7 +1878,8 @@
     ],
     "dialogue_id": 8523,
     "photo_description": "Objects in the photo: Pillow",
-    "photo_url": "https://c4.staticflickr.com/8/7120/7110006575_09289284e6_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/8/7120/7110006575_09289284e6_o.jpg",
+    "photo_id": "test/8eeafc103a8ea08b"
   },
   {
     "dialogue": [
@@ -1937,7 +1961,8 @@
     ],
     "dialogue_id": 8524,
     "photo_description": "The photo has your friend's son Judson. Objects in the photo: Clothing, Face, Boy",
-    "photo_url": "https://farm7.staticflickr.com/8525/8637678260_0709ca18f5_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/8525/8637678260_0709ca18f5_o.jpg",
+    "photo_id": "train/b2be8dd25660c716"
   },
   {
     "dialogue": [
@@ -2029,7 +2054,8 @@
     ],
     "dialogue_id": 8525,
     "photo_description": "Objects in the photo: Clothing, Face, Drink",
-    "photo_url": "https://farm2.staticflickr.com/8060/8230449993_b36489c632_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/8060/8230449993_b36489c632_o.jpg",
+    "photo_id": "train/9889d1bc1f565651"
   },
   {
     "dialogue": [
@@ -2131,7 +2157,8 @@
     ],
     "dialogue_id": 8526,
     "photo_description": "Objects in the photo: Snack, Person, Drink",
-    "photo_url": "https://c1.staticflickr.com/8/7013/6785403357_e7e2148c2a_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/8/7013/6785403357_e7e2148c2a_o.jpg",
+    "photo_id": "train/1a02fe476c7d2a28"
   },
   {
     "dialogue": [
@@ -2213,7 +2240,8 @@
     ],
     "dialogue_id": 8527,
     "photo_description": "Objects in the photo: Marine mammal, c\u00e9u, Animal, Sculpture, Building, Statue",
-    "photo_url": "https://c3.staticflickr.com/3/2870/12236608726_908feb135d_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/3/2870/12236608726_908feb135d_o.jpg",
+    "photo_id": "train/53216b216e54c0aa"
   },
   {
     "dialogue": [
@@ -2320,7 +2348,8 @@
     ],
     "dialogue_id": 8528,
     "photo_description": "The photo has your brother Duncan. Objects in the photo: Man",
-    "photo_url": "https://farm2.staticflickr.com/3335/3311475552_864a16e304_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/3335/3311475552_864a16e304_o.jpg",
+    "photo_id": "train/ef5e57b199643d51"
   },
   {
     "dialogue": [
@@ -2387,7 +2416,8 @@
     ],
     "dialogue_id": 8529,
     "photo_description": "The photo has your son Lawrence. Objects in the photo: Face, Nose, Eye, Boy, Mouth, Ear, Head",
-    "photo_url": "https://c7.staticflickr.com/6/5576/14647867518_b138b715b4_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/6/5576/14647867518_b138b715b4_o.jpg",
+    "photo_id": "train/39cff2c7acf04d9e"
   },
   {
     "dialogue": [
@@ -2474,7 +2504,8 @@
     ],
     "dialogue_id": 8530,
     "photo_description": "Objects in the photo: Fruit, Dairy, Baked goods, Dessert",
-    "photo_url": "https://farm5.staticflickr.com/2742/4504137528_dbbb223e04_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/2742/4504137528_dbbb223e04_o.jpg",
+    "photo_id": "train/fec655695afe1054"
   },
   {
     "dialogue": [
@@ -2531,7 +2562,8 @@
     ],
     "dialogue_id": 8531,
     "photo_description": "Objects in the photo: Canada goose, Bird, Goose, Duck, Animal",
-    "photo_url": "https://farm1.staticflickr.com/5186/5673859997_92ddcec251_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/5186/5673859997_92ddcec251_o.jpg",
+    "photo_id": "train/31aac4517f7bdac0"
   },
   {
     "dialogue": [
@@ -2608,7 +2640,8 @@
     ],
     "dialogue_id": 8532,
     "photo_description": "The photo has your uncle Vincenzo. Objects in the photo: Face, Man, Suit",
-    "photo_url": "https://c3.staticflickr.com/6/5288/5332931189_4bac3a59d6_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/6/5288/5332931189_4bac3a59d6_o.jpg",
+    "photo_id": "train/46d89e69787e61ea"
   },
   {
     "dialogue": [
@@ -2690,7 +2723,8 @@
     ],
     "dialogue_id": 8533,
     "photo_description": "Objects in the photo: Man, Drink, Face",
-    "photo_url": "https://farm5.staticflickr.com/8462/8004009057_9e9cec6c84_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/8462/8004009057_9e9cec6c84_o.jpg",
+    "photo_id": "train/5f34e58a1f3ccd94"
   },
   {
     "dialogue": [
@@ -2737,7 +2771,8 @@
     ],
     "dialogue_id": 8534,
     "photo_description": "The photo has your brother Roy. Objects in the photo: Jacket, Sun hat, Man",
-    "photo_url": "https://farm5.staticflickr.com/7199/6933875893_7978bbce7f_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/7199/6933875893_7978bbce7f_o.jpg",
+    "photo_id": "train/3e807460c6ad7664"
   },
   {
     "dialogue": [
@@ -2804,7 +2839,8 @@
     ],
     "dialogue_id": 8535,
     "photo_description": "The photo has your dad Cassius. Objects in the photo: Man, Jeans",
-    "photo_url": "https://c7.staticflickr.com/3/2783/4424229952_1e35a887da_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/3/2783/4424229952_1e35a887da_o.jpg",
+    "photo_id": "train/dd620f3557a503ce"
   },
   {
     "dialogue": [
@@ -2906,7 +2942,8 @@
     ],
     "dialogue_id": 8536,
     "photo_description": "The photo has your dad Melvin. Objects in the photo: Man, Face, Woman",
-    "photo_url": "https://c5.staticflickr.com/2/1307/4711641788_dff43dddaa_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/2/1307/4711641788_dff43dddaa_o.jpg",
+    "photo_id": "train/d2f402048597cd9c"
   },
   {
     "dialogue": [
@@ -2968,7 +3005,8 @@
     ],
     "dialogue_id": 8537,
     "photo_description": "Objects in the photo: Man, Drink, Face",
-    "photo_url": "https://c4.staticflickr.com/5/4039/4181951348_718a396cc8_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/5/4039/4181951348_718a396cc8_o.jpg",
+    "photo_id": "train/4e46dc89511cf45b"
   },
   {
     "dialogue": [
@@ -3025,7 +3063,8 @@
     ],
     "dialogue_id": 8538,
     "photo_description": "The photo has your daughter Bexley. Objects in the photo: Woman, Girl",
-    "photo_url": "https://c8.staticflickr.com/1/21/35616538_679e1c1156_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/1/21/35616538_679e1c1156_o.jpg",
+    "photo_id": "train/bdc0af65ec0b35ff"
   },
   {
     "dialogue": [
@@ -3137,7 +3176,8 @@
     ],
     "dialogue_id": 8539,
     "photo_description": "Objects in the photo: Head, Human body, Drink, Hair, Face",
-    "photo_url": "https://farm4.staticflickr.com/7003/6518405167_2985959fa5_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7003/6518405167_2985959fa5_o.jpg",
+    "photo_id": "train/ec2f731c2e2eb9c3"
   },
   {
     "dialogue": [
@@ -3204,7 +3244,8 @@
     ],
     "dialogue_id": 8540,
     "photo_description": "The photo has your aunt Lilian. Objects in the photo: Woman, Hair, Mammal, Arm, Face, Hand",
-    "photo_url": "https://farm7.staticflickr.com/2932/14498983115_b750d947fa_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/2932/14498983115_b750d947fa_o.jpg",
+    "photo_id": "train/851ae6efd66e91e6"
   },
   {
     "dialogue": [
@@ -3316,7 +3357,8 @@
     ],
     "dialogue_id": 8541,
     "photo_description": "Objects in the photo: Clock, Wall clock",
-    "photo_url": "https://c6.staticflickr.com/3/2523/3682306155_32d7c00ebd_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/3/2523/3682306155_32d7c00ebd_o.jpg",
+    "photo_id": "test/5a9a9f8ec8fa737d"
   },
   {
     "dialogue": [
@@ -3383,7 +3425,8 @@
     ],
     "dialogue_id": 8542,
     "photo_description": "Objects in the photo: Drink, Bottle, Hair, Clothing, Face, Head",
-    "photo_url": "https://farm5.staticflickr.com/4067/4254222440_66ebe773c5_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/4067/4254222440_66ebe773c5_o.jpg",
+    "photo_id": "train/cc9ecbc849298494"
   },
   {
     "dialogue": [
@@ -3445,7 +3488,8 @@
     ],
     "dialogue_id": 8543,
     "photo_description": "The photo has your girlfriend Jennifer. Objects in the photo: Woman, Clothing",
-    "photo_url": "https://c1.staticflickr.com/9/8309/8026141280_a4032b8a3b_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/9/8309/8026141280_a4032b8a3b_o.jpg",
+    "photo_id": "train/e7478fa23b80a268"
   },
   {
     "dialogue": [
@@ -3492,7 +3536,8 @@
     ],
     "dialogue_id": 8544,
     "photo_description": "Objects in the photo: Drink, Face, Window, Clothing",
-    "photo_url": "https://c8.staticflickr.com/8/7335/8757642968_ccdd18d903_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/8/7335/8757642968_ccdd18d903_o.jpg",
+    "photo_id": "train/525f419f663bf21f"
   },
   {
     "dialogue": [
@@ -3544,7 +3589,8 @@
     ],
     "dialogue_id": 8545,
     "photo_description": "Objects in the photo: Person, Girl, Shirt, Footwear, Pants, Jeans, Man, Clothing, Animal, Top, T-shirt",
-    "photo_url": "https://c4.staticflickr.com/3/2755/4448699551_4a9aec9e26_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/3/2755/4448699551_4a9aec9e26_o.jpg",
+    "photo_id": "train/a856b61be544193b"
   },
   {
     "dialogue": [
@@ -3626,7 +3672,8 @@
     ],
     "dialogue_id": 8546,
     "photo_description": "Objects in the photo: Juice, Cocktail, Strawberry",
-    "photo_url": "https://farm6.staticflickr.com/2832/9163342512_6a34c14725_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/2832/9163342512_6a34c14725_o.jpg",
+    "photo_id": "test/1033080806866895"
   },
   {
     "dialogue": [
@@ -3693,7 +3740,8 @@
     ],
     "dialogue_id": 8547,
     "photo_description": "The photo has your student Leslie. Objects in the photo: Boy, Fashion accessory, Face, Hair, Human body, Head, Girl",
-    "photo_url": "https://c3.staticflickr.com/6/5304/5663134569_7ff56d5c61_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/6/5304/5663134569_7ff56d5c61_o.jpg",
+    "photo_id": "train/295e48958071fc3a"
   },
   {
     "dialogue": [
@@ -3825,7 +3873,8 @@
     ],
     "dialogue_id": 8548,
     "photo_description": "The photo has your friend Egypt. Objects in the photo: Man, Woman, Hair, Nose, Head, Clothing, Eye, Mouth, Mammal",
-    "photo_url": "https://farm7.staticflickr.com/5551/14421966986_80a84bb8fa_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/5551/14421966986_80a84bb8fa_o.jpg",
+    "photo_id": "train/7e2934dd7078a216"
   },
   {
     "dialogue": [
@@ -3882,7 +3931,8 @@
     ],
     "dialogue_id": 8549,
     "photo_description": "Objects in the photo: ad\u00c3\u00a9lie penguin, capturas de tela, birds, Penguin, Clothing, Animal, Flightless bird, taniec, Gentoo penguin, Penguins, Footwear",
-    "photo_url": "https://farm3.staticflickr.com/6006/5918424992_c3ceff80c5_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/6006/5918424992_c3ceff80c5_o.jpg",
+    "photo_id": "train/0e7767c1d4f509e2"
   },
   {
     "dialogue": [
@@ -3924,7 +3974,8 @@
     ],
     "dialogue_id": 8550,
     "photo_description": "Objects in the photo: Teddy bear",
-    "photo_url": "https://c7.staticflickr.com/3/2320/2217466850_eaa6c265a3_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/3/2320/2217466850_eaa6c265a3_o.jpg",
+    "photo_id": "test/a25a74a471183cee"
   },
   {
     "dialogue": [
@@ -3991,7 +4042,8 @@
     ],
     "dialogue_id": 8551,
     "photo_description": "The photo has your daughter Anna. Objects in the photo: Girl, Tree, Hair, Human body, Woman",
-    "photo_url": "https://c1.staticflickr.com/5/4001/4166640430_07fbfbec11_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/5/4001/4166640430_07fbfbec11_o.jpg",
+    "photo_id": "train/77fd3d54eb8bd058"
   },
   {
     "dialogue": [
@@ -4073,7 +4125,8 @@
     ],
     "dialogue_id": 8552,
     "photo_description": "Objects in the photo: Oven, Baked goods, Snack",
-    "photo_url": "https://farm1.staticflickr.com/5260/5533414350_03bf8507aa_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/5260/5533414350_03bf8507aa_o.jpg",
+    "photo_id": "train/e452653c4661bb60"
   },
   {
     "dialogue": [
@@ -4145,7 +4198,8 @@
     ],
     "dialogue_id": 8553,
     "photo_description": "The photo has your husband Ellis. Objects in the photo: Man, Clothing",
-    "photo_url": "https://farm7.staticflickr.com/2456/3902907847_7b4742056c_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/2456/3902907847_7b4742056c_o.jpg",
+    "photo_id": "train/a03b43dd4211d0b6"
   },
   {
     "dialogue": [
@@ -4197,7 +4251,8 @@
     ],
     "dialogue_id": 8554,
     "photo_description": "The photo has your friend's daughter Vera. Objects in the photo: Footwear, Girl",
-    "photo_url": "https://farm6.staticflickr.com/4112/5130559668_66ac273c77_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/4112/5130559668_66ac273c77_o.jpg",
+    "photo_id": "train/3786638e2c2e9de5"
   },
   {
     "dialogue": [
@@ -4264,7 +4319,8 @@
     ],
     "dialogue_id": 8555,
     "photo_description": "Objects in the photo: Snack, Knife, Kitchen knife",
-    "photo_url": "https://c6.staticflickr.com/3/2059/1607130037_6253e4f64f_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/3/2059/1607130037_6253e4f64f_o.jpg",
+    "photo_id": "train/6c9802aec7cf747d"
   },
   {
     "dialogue": [
@@ -4396,7 +4452,8 @@
     ],
     "dialogue_id": 8556,
     "photo_description": "Objects in the photo: Bernese mountain dog, Man, Person, Carnivore, Human, Animal, Face, Fireplace, border collie, Hearth, House, Welsh sheepdog, Mcnab, \u5fae\u7b11\u307f, cachorros, Fire screen",
-    "photo_url": "https://farm2.staticflickr.com/130/357962893_07287f0b05_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/130/357962893_07287f0b05_o.jpg",
+    "photo_id": "train/04405a1201b92de1"
   },
   {
     "dialogue": [
@@ -4463,7 +4520,8 @@
     ],
     "dialogue_id": 8557,
     "photo_description": "The photo has your boyfriend Casey. Objects in the photo: Man, Face",
-    "photo_url": "https://c6.staticflickr.com/6/5541/9137868267_91f1d9b3d2_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/6/5541/9137868267_91f1d9b3d2_o.jpg",
+    "photo_id": "train/1aaa239c90a882bd"
   },
   {
     "dialogue": [
@@ -4525,7 +4583,8 @@
     ],
     "dialogue_id": 8558,
     "photo_description": "Objects in the photo: Leg, Drink, Clothing, Hair, Human body",
-    "photo_url": "https://farm3.staticflickr.com/8235/8358321904_47e0d34040_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/8235/8358321904_47e0d34040_o.jpg",
+    "photo_id": "train/79bb309a6b9603a2"
   },
   {
     "dialogue": [
@@ -4572,7 +4631,8 @@
     ],
     "dialogue_id": 8559,
     "photo_description": "The photo has your daughter Amy. Objects in the photo: Girl, Face",
-    "photo_url": "https://farm1.staticflickr.com/3225/3147520582_cce1fc3f29_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/3225/3147520582_cce1fc3f29_o.jpg",
+    "photo_id": "train/8631ffdcbf036100"
   },
   {
     "dialogue": [
@@ -4659,7 +4719,8 @@
     ],
     "dialogue_id": 8560,
     "photo_description": "Objects in the photo: Person, Trail riding, horses, Halter, Human, Animal, Sorrel, Hiking, Pack animal, Bridle, Tree, Saddle, Horse tack",
-    "photo_url": "https://c1.staticflickr.com/4/3946/15576927056_d126370662_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/4/3946/15576927056_d126370662_o.jpg",
+    "photo_id": "train/01d38481356dbd88"
   },
   {
     "dialogue": [
@@ -4721,7 +4782,8 @@
     ],
     "dialogue_id": 8561,
     "photo_description": "Objects in the photo: Suit, Drink, Face",
-    "photo_url": "https://farm7.staticflickr.com/7715/17313651881_03bdb4414a_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/7715/17313651881_03bdb4414a_o.jpg",
+    "photo_id": "train/4268826ff1c92846"
   },
   {
     "dialogue": [
@@ -4783,7 +4845,8 @@
     ],
     "dialogue_id": 8562,
     "photo_description": "The photo has your student Sydney. Objects in the photo: Girl, Clothing",
-    "photo_url": "https://farm5.staticflickr.com/3868/15092831677_f3c9de2ddf_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3868/15092831677_f3c9de2ddf_o.jpg",
+    "photo_id": "train/4030fdff1dd4c7a4"
   },
   {
     "dialogue": [
@@ -4890,7 +4953,8 @@
     ],
     "dialogue_id": 8563,
     "photo_description": "Objects in the photo: Dessert, Fast food, Baked goods",
-    "photo_url": "https://farm3.staticflickr.com/95/219937239_f61b33be60_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/95/219937239_f61b33be60_o.jpg",
+    "photo_id": "train/f0171ff2382e2f42"
   },
   {
     "dialogue": [
@@ -4972,7 +5036,8 @@
     ],
     "dialogue_id": 8564,
     "photo_description": "Objects in the photo: Face, Clothing, Juice",
-    "photo_url": "https://farm4.staticflickr.com/3435/3996906131_4a421a98c0_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/3435/3996906131_4a421a98c0_o.jpg",
+    "photo_id": "train/5140c44359823873"
   },
   {
     "dialogue": [
@@ -5044,7 +5109,8 @@
     ],
     "dialogue_id": 8565,
     "photo_description": "The photo has your niece Simone. Objects in the photo: Girl, Coat, Jacket",
-    "photo_url": "https://farm2.staticflickr.com/2265/2015566793_0ab431da51_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/2265/2015566793_0ab431da51_o.jpg",
+    "photo_id": "train/6332f9744de06931"
   },
   {
     "dialogue": [
@@ -5121,7 +5187,8 @@
     ],
     "dialogue_id": 8566,
     "photo_description": "Objects in the photo: Food, Face, Drink, Clothing",
-    "photo_url": "https://c6.staticflickr.com/9/8205/8217990024_128c119084_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/9/8205/8217990024_128c119084_o.jpg",
+    "photo_id": "train/44f4785fa91eb41d"
   },
   {
     "dialogue": [
@@ -5168,7 +5235,8 @@
     ],
     "dialogue_id": 8567,
     "photo_description": "Objects in the photo: Beer, Wine glass, Cocktail",
-    "photo_url": "https://farm6.staticflickr.com/6172/6183064318_672107163e_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/6172/6183064318_672107163e_o.jpg",
+    "photo_id": "train/11cbe537be818f95"
   },
   {
     "dialogue": [
@@ -5225,7 +5293,8 @@
     ],
     "dialogue_id": 8568,
     "photo_description": "Objects in the photo: European robin, p\u00e1ssaros, robin, Animal",
-    "photo_url": "https://c1.staticflickr.com/6/5085/5273641389_756a37a12e_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/6/5085/5273641389_756a37a12e_o.jpg",
+    "photo_id": "train/fbe1c87b006dbf08"
   },
   {
     "dialogue": [
@@ -5302,7 +5371,8 @@
     ],
     "dialogue_id": 8569,
     "photo_description": "The photo has your aunt Mylah. Objects in the photo: Woman",
-    "photo_url": "https://farm7.staticflickr.com/3454/3701175037_f12818d0e6_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3454/3701175037_f12818d0e6_o.jpg",
+    "photo_id": "train/4faf9632716fcb16"
   },
   {
     "dialogue": [
@@ -5354,7 +5424,8 @@
     ],
     "dialogue_id": 8570,
     "photo_description": "The photo has your girlfriend Raven. Objects in the photo: Clothing, Woman",
-    "photo_url": "https://c1.staticflickr.com/7/6194/6049834515_e6d77d2747_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/7/6194/6049834515_e6d77d2747_o.jpg",
+    "photo_id": "train/2885ee3cc319ee48"
   },
   {
     "dialogue": [
@@ -5411,7 +5482,8 @@
     ],
     "dialogue_id": 8571,
     "photo_description": "The photo has your niece Rayna. Objects in the photo: Clothing, Girl, Face",
-    "photo_url": "https://c2.staticflickr.com/4/3943/15013199063_be83acdd55_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/4/3943/15013199063_be83acdd55_o.jpg",
+    "photo_id": "train/7ba2f57755755c79"
   },
   {
     "dialogue": [
@@ -5488,7 +5560,8 @@
     ],
     "dialogue_id": 8572,
     "photo_description": "The photo has your uncle Drake. Objects in the photo: Man, Face",
-    "photo_url": "https://c1.staticflickr.com/8/7496/15951832902_fc10da78ed_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/8/7496/15951832902_fc10da78ed_o.jpg",
+    "photo_id": "train/e5836af46d552bb8"
   },
   {
     "dialogue": [
@@ -5645,7 +5718,8 @@
     ],
     "dialogue_id": 8573,
     "photo_description": "Objects in the photo: Dessert, Dairy, Baked goods, Pizza, Fast food",
-    "photo_url": "https://c2.staticflickr.com/1/53/108988647_86af1bfdd0_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/53/108988647_86af1bfdd0_o.jpg",
+    "photo_id": "train/d94eae8b5bc77d49"
   },
   {
     "dialogue": [
@@ -5727,7 +5801,8 @@
     ],
     "dialogue_id": 8574,
     "photo_description": "The photo has your student Bailee. Objects in the photo: Woman, Clothing, Face",
-    "photo_url": "https://c6.staticflickr.com/4/3312/3417212894_a0cfe7aacc_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/4/3312/3417212894_a0cfe7aacc_o.jpg",
+    "photo_id": "train/523cb372b9d7c14d"
   },
   {
     "dialogue": [
@@ -5799,7 +5874,8 @@
     ],
     "dialogue_id": 8575,
     "photo_description": "Objects in the photo: Mug, Coffee, Table, Coffee cup",
-    "photo_url": "https://farm1.staticflickr.com/3006/2798604222_71588feeae_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/3006/2798604222_71588feeae_o.jpg",
+    "photo_id": "train/02332556f3f14aa0"
   },
   {
     "dialogue": [
@@ -5881,7 +5957,8 @@
     ],
     "dialogue_id": 8576,
     "photo_description": "The photo has your daughter Phoenix. Objects in the photo: Woman, Girl",
-    "photo_url": "https://farm2.staticflickr.com/8567/15439315474_886b5fe68f_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/8567/15439315474_886b5fe68f_o.jpg",
+    "photo_id": "train/86b0ad9057343391"
   },
   {
     "dialogue": [
@@ -5923,7 +6000,8 @@
     ],
     "dialogue_id": 8577,
     "photo_description": "The photo has your husband Giovanni. Objects in the photo: Man",
-    "photo_url": "https://farm7.staticflickr.com/2890/10855737176_f8bb9dd330_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/2890/10855737176_f8bb9dd330_o.jpg",
+    "photo_id": "train/67166a26e9304ff6"
   },
   {
     "dialogue": [
@@ -5995,7 +6073,8 @@
     ],
     "dialogue_id": 8578,
     "photo_description": "The photo has your son Yosef. Objects in the photo: Clothing, Boy",
-    "photo_url": "https://c5.staticflickr.com/3/2576/3878153574_483276732e_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/3/2576/3878153574_483276732e_o.jpg",
+    "photo_id": "train/f1a3634b80f9b2ec"
   },
   {
     "dialogue": [
@@ -6052,7 +6131,8 @@
     ],
     "dialogue_id": 8579,
     "photo_description": "Objects in the photo: Plant, Parrot, birds, Animal",
-    "photo_url": "https://c5.staticflickr.com/6/5061/5670095142_5ede78a91a_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/6/5061/5670095142_5ede78a91a_o.jpg",
+    "photo_id": "train/c1a4da4ee0b600cc"
   },
   {
     "dialogue": [
@@ -6124,7 +6204,8 @@
     ],
     "dialogue_id": 8580,
     "photo_description": "Objects in the photo: Snack, Fruit, Hair, Clothing, Hand, Woman",
-    "photo_url": "https://farm3.staticflickr.com/7426/11737500853_8d32937f24_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/7426/11737500853_8d32937f24_o.jpg",
+    "photo_id": "test/a9275fbefee903f2"
   },
   {
     "dialogue": [
@@ -6191,7 +6272,8 @@
     ],
     "dialogue_id": 8581,
     "photo_description": "Objects in the photo: Fast food, Snack, Drink",
-    "photo_url": "https://farm2.staticflickr.com/5107/5682890318_3f941006c8_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/5107/5682890318_3f941006c8_o.jpg",
+    "photo_id": "train/d554c5abc5e909b1"
   },
   {
     "dialogue": [
@@ -6243,7 +6325,8 @@
     ],
     "dialogue_id": 8582,
     "photo_description": "Objects in the photo: Bird, p\u00e1jaros, robin, Animal, Songbirds, Old world flycatchers, European robin",
-    "photo_url": "https://farm1.staticflickr.com/8503/8406936642_672fda86b9_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/8503/8406936642_672fda86b9_o.jpg",
+    "photo_id": "train/6d104cfdc9c489e0"
   },
   {
     "dialogue": [
@@ -6455,7 +6538,8 @@
     ],
     "dialogue_id": 8583,
     "photo_description": "Objects in the photo: Food, Salad, Cheese, Common fig",
-    "photo_url": "https://farm1.staticflickr.com/5463/9492584621_bc6e5b4087_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/5463/9492584621_bc6e5b4087_o.jpg",
+    "photo_id": "test/1b34527861c3b510"
   },
   {
     "dialogue": [
@@ -6507,7 +6591,8 @@
     ],
     "dialogue_id": 8584,
     "photo_description": "Objects in the photo: Animal, lakes, Water",
-    "photo_url": "https://c1.staticflickr.com/4/3057/2626057143_6d9f3935f5_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/4/3057/2626057143_6d9f3935f5_o.jpg",
+    "photo_id": "train/3294b5c4ad3abd08"
   },
   {
     "dialogue": [
@@ -6599,7 +6684,8 @@
     ],
     "dialogue_id": 8585,
     "photo_description": "Objects in the photo: Clothing, Face, Fast food",
-    "photo_url": "https://c5.staticflickr.com/3/2156/2074918861_27aeeeaf97_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/3/2156/2074918861_27aeeeaf97_o.jpg",
+    "photo_id": "train/d1a1cd0b76ea692c"
   },
   {
     "dialogue": [
@@ -6671,7 +6757,8 @@
     ],
     "dialogue_id": 8586,
     "photo_description": "The photo has your daughter Ember. Objects in the photo: Girl, Footwear, Boy",
-    "photo_url": "https://c8.staticflickr.com/4/3310/5826396000_05616ea875_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/4/3310/5826396000_05616ea875_o.jpg",
+    "photo_id": "train/a668c267d93b2d0f"
   },
   {
     "dialogue": [
@@ -6743,7 +6830,8 @@
     ],
     "dialogue_id": 8587,
     "photo_description": "Objects in the photo: Dessert, Pastry, Table, Snack",
-    "photo_url": "https://farm7.staticflickr.com/7241/7159808267_ec36eb2a7f_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/7241/7159808267_ec36eb2a7f_o.jpg",
+    "photo_id": "train/b415fce0685c64d6"
   },
   {
     "dialogue": [
@@ -6835,7 +6923,8 @@
     ],
     "dialogue_id": 8588,
     "photo_description": "The photo has your student Orion. Objects in the photo: Man",
-    "photo_url": "https://farm2.staticflickr.com/3278/2972077401_0cde6aeebc_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/3278/2972077401_0cde6aeebc_o.jpg",
+    "photo_id": "train/37489a63b71d6cd1"
   },
   {
     "dialogue": [
@@ -6892,7 +6981,8 @@
     ],
     "dialogue_id": 8589,
     "photo_description": "Objects in the photo: Drink, Head, Clothing, Face",
-    "photo_url": "https://c3.staticflickr.com/6/5311/5869343627_b554febb98_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/6/5311/5869343627_b554febb98_o.jpg",
+    "photo_id": "train/52d0a8e0f3530d1a"
   },
   {
     "dialogue": [
@@ -6969,7 +7059,8 @@
     ],
     "dialogue_id": 8590,
     "photo_description": "Objects in the photo: Ice cream, Cocktail, Wine glass, Dairy",
-    "photo_url": "https://c4.staticflickr.com/1/231/518992134_4b676acfe5_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/1/231/518992134_4b676acfe5_o.jpg",
+    "photo_id": "train/adf8c6555b8096bb"
   },
   {
     "dialogue": [
@@ -7036,7 +7127,8 @@
     ],
     "dialogue_id": 8591,
     "photo_description": "Objects in the photo: Water, Smile, playas, Person, Human, Animal, nube, lagos",
-    "photo_url": "https://farm2.staticflickr.com/7637/17120964156_4d55e2755e_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/7637/17120964156_4d55e2755e_o.jpg",
+    "photo_id": "train/0980bb533a6e9311"
   },
   {
     "dialogue": [
@@ -7098,7 +7190,8 @@
     ],
     "dialogue_id": 8592,
     "photo_description": "Objects in the photo: Mug, Coffee cup, Fast food",
-    "photo_url": "https://c7.staticflickr.com/8/7239/7274757840_564a931f36_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7239/7274757840_564a931f36_o.jpg",
+    "photo_id": "train/a563b1d428241d1e"
   },
   {
     "dialogue": [
@@ -7185,7 +7278,8 @@
     ],
     "dialogue_id": 8593,
     "photo_description": "The photo has your dad Emerson. Objects in the photo: Man, Clothing",
-    "photo_url": "https://c3.staticflickr.com/5/4094/4789457265_56186afa16_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/5/4094/4789457265_56186afa16_o.jpg",
+    "photo_id": "train/56833fcc656e0f9a"
   },
   {
     "dialogue": [
@@ -7262,7 +7356,8 @@
     ],
     "dialogue_id": 8594,
     "photo_description": "The photo has your friend Yara. Objects in the photo: Woman",
-    "photo_url": "https://c7.staticflickr.com/4/3450/3912119977_499ebbe4a6_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/4/3450/3912119977_499ebbe4a6_o.jpg",
+    "photo_id": "train/5a3e01d3b6f3053e"
   },
   {
     "dialogue": [
@@ -7359,7 +7454,8 @@
     ],
     "dialogue_id": 8595,
     "photo_description": "The photo has your friend Jensen. Objects in the photo: Shorts, Footwear, Man",
-    "photo_url": "https://farm6.staticflickr.com/7271/7874959786_1299d5e34a_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/7271/7874959786_1299d5e34a_o.jpg",
+    "photo_id": "train/784b207fc0df4935"
   },
   {
     "dialogue": [
@@ -7426,7 +7522,8 @@
     ],
     "dialogue_id": 8596,
     "photo_description": "Objects in the photo: Dessert, Doughnut, Bagel",
-    "photo_url": "https://c4.staticflickr.com/3/2156/2168835421_93edd85389_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/3/2156/2168835421_93edd85389_o.jpg",
+    "photo_id": "train/1d65d88864056aab"
   },
   {
     "dialogue": [
@@ -7488,7 +7585,8 @@
     ],
     "dialogue_id": 8597,
     "photo_description": "The photo has your grandson Watson. Objects in the photo: Boy, Face",
-    "photo_url": "https://farm7.staticflickr.com/4077/4737703130_42a4ec4cbb_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/4077/4737703130_42a4ec4cbb_o.jpg",
+    "photo_id": "train/b7d50791b1da1446"
   },
   {
     "dialogue": [
@@ -7595,7 +7693,8 @@
     ],
     "dialogue_id": 8598,
     "photo_description": "Objects in the photo: Fast food, Baked goods, Sandwich",
-    "photo_url": "https://farm7.staticflickr.com/5615/15006001123_ac214dd77f_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/5615/15006001123_ac214dd77f_o.jpg",
+    "photo_id": "test/4b308047609e14a6"
   },
   {
     "dialogue": [
@@ -7702,7 +7801,8 @@
     ],
     "dialogue_id": 8599,
     "photo_description": "Objects in the photo: Head, Bottle, Ear, Eye, Man, Nose, Mouth, Drink, Face",
-    "photo_url": "https://farm5.staticflickr.com/85/250518511_fbeea9a1f3_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/85/250518511_fbeea9a1f3_o.jpg",
+    "photo_id": "train/beba7ceb67b535b4"
   },
   {
     "dialogue": [
@@ -7784,7 +7884,8 @@
     ],
     "dialogue_id": 8600,
     "photo_description": "Objects in the photo: Table, Drink, Face, Food",
-    "photo_url": "https://c3.staticflickr.com/4/3622/3497512243_6ae0e42a19_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3622/3497512243_6ae0e42a19_o.jpg",
+    "photo_id": "train/c8374af3401a011a"
   },
   {
     "dialogue": [
@@ -7921,7 +8022,8 @@
     ],
     "dialogue_id": 8601,
     "photo_description": "Objects in the photo: Snack, Food, French fries",
-    "photo_url": "https://c8.staticflickr.com/9/8168/7511580880_3c20d6e918_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/9/8168/7511580880_3c20d6e918_o.jpg",
+    "photo_id": "validation/29588530cd4959af"
   },
   {
     "dialogue": [
@@ -8018,7 +8120,8 @@
     ],
     "dialogue_id": 8602,
     "photo_description": "Objects in the photo: Table, Drink, Food, Skyscraper",
-    "photo_url": "https://farm7.staticflickr.com/4073/4734804399_638b44581d_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/4073/4734804399_638b44581d_o.jpg",
+    "photo_id": "train/6e3fd97c768a03d6"
   },
   {
     "dialogue": [
@@ -8100,7 +8203,8 @@
     ],
     "dialogue_id": 8603,
     "photo_description": "The photo has your niece Gracelynn. Objects in the photo: Girl, Flower, Nose, Mammal, Hair, Face, Clothing, Head",
-    "photo_url": "https://farm5.staticflickr.com/7441/9069886728_70c8470fb8_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/7441/9069886728_70c8470fb8_o.jpg",
+    "photo_id": "train/28d6ffa54fc76f74"
   },
   {
     "dialogue": [
@@ -8167,7 +8271,8 @@
     ],
     "dialogue_id": 8604,
     "photo_description": "The photo has your girlfriend Braelynn. Objects in the photo: Woman, Clothing, Car",
-    "photo_url": "https://c4.staticflickr.com/3/2323/2088202873_5fecd39ec5_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/3/2323/2088202873_5fecd39ec5_o.jpg",
+    "photo_id": "train/afab84541635c69b"
   },
   {
     "dialogue": [
@@ -8229,7 +8334,8 @@
     ],
     "dialogue_id": 8605,
     "photo_description": "The photo has your boyfriend Miguel. Objects in the photo: Shirt, Man, Face",
-    "photo_url": "https://c3.staticflickr.com/4/3236/2485346146_8259c6b968_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3236/2485346146_8259c6b968_o.jpg",
+    "photo_id": "train/f7ac6f1da323cafa"
   },
   {
     "dialogue": [
@@ -8296,7 +8402,8 @@
     ],
     "dialogue_id": 8606,
     "photo_description": "Objects in the photo: Painting, Animal, ku\u015flar",
-    "photo_url": "https://farm8.staticflickr.com/5523/14280719778_4ee4837ea0_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/5523/14280719778_4ee4837ea0_o.jpg",
+    "photo_id": "train/ef9cb3b44bb9add7"
   },
   {
     "dialogue": [
@@ -8378,7 +8485,8 @@
     ],
     "dialogue_id": 8607,
     "photo_description": "Objects in the photo: Necklace, Rose",
-    "photo_url": "https://farm4.staticflickr.com/7461/16083220401_9fce56da97_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7461/16083220401_9fce56da97_o.jpg",
+    "photo_id": "validation/92f2eba2ef2fccf3"
   },
   {
     "dialogue": [
@@ -8435,7 +8543,8 @@
     ],
     "dialogue_id": 8608,
     "photo_description": "Objects in the photo: Fast food, Boy, Face",
-    "photo_url": "https://c3.staticflickr.com/1/125/334429388_732895cc31_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/1/125/334429388_732895cc31_o.jpg",
+    "photo_id": "train/e3603e6d5e985dea"
   },
   {
     "dialogue": [
@@ -8542,7 +8651,8 @@
     ],
     "dialogue_id": 8609,
     "photo_description": "Objects in the photo: Girl, Face, Clothing, Wine glass, Wine, Woman, Hair",
-    "photo_url": "https://farm7.staticflickr.com/3902/14876585957_f9b90407d1_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3902/14876585957_f9b90407d1_o.jpg",
+    "photo_id": "validation/ba2ce56c4a558b46"
   },
   {
     "dialogue": [
@@ -8604,7 +8714,8 @@
     ],
     "dialogue_id": 8610,
     "photo_description": "Objects in the photo: Flightless bird, natation, Gentoo penguin, Human, ad\u00c3\u00a9lie penguin, madarak, Penguin, Water, Animal, Person, Bird, arrecifes",
-    "photo_url": "https://farm1.staticflickr.com/2317/4512811646_7b191244e8_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/2317/4512811646_7b191244e8_o.jpg",
+    "photo_id": "train/08368f2e63f3e9c0"
   },
   {
     "dialogue": [
@@ -8696,7 +8807,8 @@
     ],
     "dialogue_id": 8611,
     "photo_description": "Objects in the photo: Face, Drink, Glasses",
-    "photo_url": "https://c4.staticflickr.com/4/3077/2749493951_484f355fd6_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/4/3077/2749493951_484f355fd6_o.jpg",
+    "photo_id": "train/c9b2f4238fb82acb"
   },
   {
     "dialogue": [
@@ -8788,7 +8900,8 @@
     ],
     "dialogue_id": 8612,
     "photo_description": "The photo has your sister Kathleen. Objects in the photo: Woman",
-    "photo_url": "https://c2.staticflickr.com/8/7682/16514381703_f5beb570c1_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/8/7682/16514381703_f5beb570c1_o.jpg",
+    "photo_id": "train/6a7d3a76d6106ac9"
   },
   {
     "dialogue": [
@@ -8855,7 +8968,8 @@
     ],
     "dialogue_id": 8613,
     "photo_description": "Objects in the photo: Sky, statues, spielpl\u00e4tze, Cloud, Animal, Bull rider",
-    "photo_url": "https://farm7.staticflickr.com/3870/14721654748_40570a1516_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3870/14721654748_40570a1516_o.jpg",
+    "photo_id": "train/5dcbc3bb87c25666"
   },
   {
     "dialogue": [
@@ -8892,7 +9006,8 @@
     ],
     "dialogue_id": 8614,
     "photo_description": "The photo has your friend Holland. Objects in the photo: Kitchen & dining room table, Footwear, Woman, Coat",
-    "photo_url": "https://farm6.staticflickr.com/3953/15301177860_c8d88c6339_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/3953/15301177860_c8d88c6339_o.jpg",
+    "photo_id": "train/6d7a41e3ac6f3745"
   },
   {
     "dialogue": [
@@ -8969,7 +9084,8 @@
     ],
     "dialogue_id": 8615,
     "photo_description": "Objects in the photo: Australian silky terrier, Carnivore, Animal, Clothing, Biewer terrier",
-    "photo_url": "https://c8.staticflickr.com/6/5159/5884916342_0601d233fb_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/6/5159/5884916342_0601d233fb_o.jpg",
+    "photo_id": "train/bab4b1dcc5b3010f"
   },
   {
     "dialogue": [
@@ -9041,7 +9157,8 @@
     ],
     "dialogue_id": 8616,
     "photo_description": "Objects in the photo: Food, Face, Drink, Clothing",
-    "photo_url": "https://c6.staticflickr.com/9/8205/8217990024_128c119084_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/9/8205/8217990024_128c119084_o.jpg",
+    "photo_id": "train/44f4785fa91eb41d"
   },
   {
     "dialogue": [
@@ -9108,7 +9225,8 @@
     ],
     "dialogue_id": 8617,
     "photo_description": "The photo has your husband Gregory. Objects in the photo: Man",
-    "photo_url": "https://c5.staticflickr.com/3/2452/3791109861_127d667795_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/3/2452/3791109861_127d667795_o.jpg",
+    "photo_id": "train/0876ab3811f5ca9c"
   },
   {
     "dialogue": [
@@ -9190,7 +9308,8 @@
     ],
     "dialogue_id": 8618,
     "photo_description": "Objects in the photo: Hair, Hat, Face, Glasses, Bottle, Drink",
-    "photo_url": "https://farm3.staticflickr.com/8239/8480480463_b82524c3f0_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/8239/8480480463_b82524c3f0_o.jpg",
+    "photo_id": "train/117c4a2c6d0c9a62"
   },
   {
     "dialogue": [
@@ -9287,7 +9406,8 @@
     ],
     "dialogue_id": 8619,
     "photo_description": "Objects in the photo: Cake, Baked goods, Mobile phone",
-    "photo_url": "https://farm1.staticflickr.com/8171/8063491205_8d3c7d2e43_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/8171/8063491205_8d3c7d2e43_o.jpg",
+    "photo_id": "test/068b6cd2ceef28c0"
   },
   {
     "dialogue": [
@@ -9369,7 +9489,8 @@
     ],
     "dialogue_id": 8620,
     "photo_description": "The photo has your uncle Hector. Objects in the photo: Footwear, Book, Shelf, Man",
-    "photo_url": "https://farm4.staticflickr.com/6141/5994220067_2b9facd4f4_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/6141/5994220067_2b9facd4f4_o.jpg",
+    "photo_id": "train/e2dea21e6ddb2c83"
   },
   {
     "dialogue": [
@@ -9426,7 +9547,8 @@
     ],
     "dialogue_id": 8621,
     "photo_description": "Objects in the photo: Fruit, Vegetable, Dessert",
-    "photo_url": "https://c2.staticflickr.com/3/2821/9584388641_f132019888_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/3/2821/9584388641_f132019888_o.jpg",
+    "photo_id": "train/9cb07fbc7eba3d49"
   },
   {
     "dialogue": [
@@ -9493,7 +9615,8 @@
     ],
     "dialogue_id": 8622,
     "photo_description": "The photo has your student Novah. Objects in the photo: Man, Woman",
-    "photo_url": "https://farm3.staticflickr.com/3955/15641274316_ded3e43422_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/3955/15641274316_ded3e43422_o.jpg",
+    "photo_id": "train/44840d47fee62152"
   },
   {
     "dialogue": [
@@ -9550,7 +9673,8 @@
     ],
     "dialogue_id": 8623,
     "photo_description": "The photo has your student Emmaline. Objects in the photo: Houseplant, Hair, Girl, Clothing, Arm, Sunflower",
-    "photo_url": "https://c7.staticflickr.com/6/5591/15273964305_e6f48786e5_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/6/5591/15273964305_e6f48786e5_o.jpg",
+    "photo_id": "train/556f436e96a9b14e"
   },
   {
     "dialogue": [
@@ -9622,7 +9746,8 @@
     ],
     "dialogue_id": 8624,
     "photo_description": "The photo has your son Brycen. Objects in the photo: Clothing, Boy",
-    "photo_url": "https://farm3.staticflickr.com/7384/9404071601_9dbc1d1db6_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/7384/9404071601_9dbc1d1db6_o.jpg",
+    "photo_id": "train/b6b8786e01c24a02"
   },
   {
     "dialogue": [
@@ -9684,7 +9809,8 @@
     ],
     "dialogue_id": 8625,
     "photo_description": "The photo has your mom Renata. Objects in the photo: Jacket, Woman",
-    "photo_url": "https://farm6.staticflickr.com/3930/15226898449_fbd19466a2_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/3930/15226898449_fbd19466a2_o.jpg",
+    "photo_id": "train/5d9809eaa3e51a25"
   },
   {
     "dialogue": [
@@ -9781,7 +9907,8 @@
     ],
     "dialogue_id": 8626,
     "photo_description": "Objects in the photo: Business, Building, Holstein Friesian cattle, Dairy, Animal, Cattle, Dairy cow, Fence, Animal stall",
-    "photo_url": "https://farm7.staticflickr.com/3711/12616929285_5f3c242511_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3711/12616929285_5f3c242511_o.jpg",
+    "photo_id": "train/0a1247ad6d41d166"
   },
   {
     "dialogue": [
@@ -9838,7 +9965,8 @@
     ],
     "dialogue_id": 8627,
     "photo_description": "The photo has your friend's daughter Ximena. Objects in the photo: Face, Girl",
-    "photo_url": "https://c5.staticflickr.com/8/7463/15186427513_fdcd5994a7_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/8/7463/15186427513_fdcd5994a7_o.jpg",
+    "photo_id": "train/4a66a3bd82ada5ac"
   },
   {
     "dialogue": [
@@ -9885,7 +10013,8 @@
     ],
     "dialogue_id": 8628,
     "photo_description": "The photo has your friend Reece. Objects in the photo: Jacket, Man",
-    "photo_url": "https://c6.staticflickr.com/9/8538/15207652053_23b1f32315_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/9/8538/15207652053_23b1f32315_o.jpg",
+    "photo_id": "train/d46339475630fccd"
   },
   {
     "dialogue": [
@@ -9952,7 +10081,8 @@
     ],
     "dialogue_id": 8629,
     "photo_description": "Objects in the photo: Dessert, Teapot, Pastry, Snack",
-    "photo_url": "https://farm8.staticflickr.com/247/1508850813_6b3b66fef9_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/247/1508850813_6b3b66fef9_o.jpg",
+    "photo_id": "train/76005037c3e150f7"
   },
   {
     "dialogue": [
@@ -10039,7 +10169,8 @@
     ],
     "dialogue_id": 8630,
     "photo_description": "Objects in the photo: Illustration, Coloring book, Child art, Animal, Painting, Cartoon, Sketch, Drawing",
-    "photo_url": "https://farm1.staticflickr.com/3724/11377390496_9f6b77a3e0_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/3724/11377390496_9f6b77a3e0_o.jpg",
+    "photo_id": "train/0ade93c4119748f0"
   },
   {
     "dialogue": [
@@ -10116,7 +10247,8 @@
     ],
     "dialogue_id": 8631,
     "photo_description": "Objects in the photo: Juice, Cocktail, Wine glass",
-    "photo_url": "https://c1.staticflickr.com/8/7386/13049949504_a1eced9baa_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/8/7386/13049949504_a1eced9baa_o.jpg",
+    "photo_id": "train/3bf84732f31a4088"
   },
   {
     "dialogue": [
@@ -10218,7 +10350,8 @@
     ],
     "dialogue_id": 8632,
     "photo_description": "The photo has your aunt Leanna. Objects in the photo: Woman",
-    "photo_url": "https://farm8.staticflickr.com/7432/10578321684_6271e02dcc_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/7432/10578321684_6271e02dcc_o.jpg",
+    "photo_id": "train/ffa97c549a3cbc17"
   },
   {
     "dialogue": [
@@ -10290,7 +10423,8 @@
     ],
     "dialogue_id": 8633,
     "photo_description": "The photo has your wife Jessica. Objects in the photo: Face, Eye, Woman, Head, Human body, Mammal",
-    "photo_url": "https://c1.staticflickr.com/4/3393/3497046728_9cdac16f61_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/4/3393/3497046728_9cdac16f61_o.jpg",
+    "photo_id": "train/c6277758a71e9408"
   },
   {
     "dialogue": [
@@ -10382,7 +10516,8 @@
     ],
     "dialogue_id": 8634,
     "photo_description": "The photo has your son Carl. Objects in the photo: Clothing, Face, Boy",
-    "photo_url": "https://farm7.staticflickr.com/7022/6842531877_656de47413_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/7022/6842531877_656de47413_o.jpg",
+    "photo_id": "train/280f85dfa236a126"
   },
   {
     "dialogue": [
@@ -10449,7 +10584,8 @@
     ],
     "dialogue_id": 8635,
     "photo_description": "The photo has your student Marcel. Objects in the photo: Man, Footwear, Baseball glove, Sports uniform",
-    "photo_url": "https://farm5.staticflickr.com/7040/13772759514_c071bb7978_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/7040/13772759514_c071bb7978_o.jpg",
+    "photo_id": "train/f8e969264fc43aa4"
   },
   {
     "dialogue": [
@@ -10621,7 +10757,8 @@
     ],
     "dialogue_id": 8636,
     "photo_description": "Objects in the photo: Drink, Tree, Billboard",
-    "photo_url": "https://c3.staticflickr.com/7/6093/6370850491_8458c800f0_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/7/6093/6370850491_8458c800f0_o.jpg",
+    "photo_id": "train/15b9fc26736f275a"
   },
   {
     "dialogue": [
@@ -10758,7 +10895,8 @@
     ],
     "dialogue_id": 8637,
     "photo_description": "The photo has your nephew Bruce. Objects in the photo: Boy",
-    "photo_url": "https://farm5.staticflickr.com/8022/7616183758_f8e695f0f0_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/8022/7616183758_f8e695f0f0_o.jpg",
+    "photo_id": "train/69a48c075a7d9ac4"
   },
   {
     "dialogue": [
@@ -10820,7 +10958,8 @@
     ],
     "dialogue_id": 8638,
     "photo_description": "The photo has your husband Paul. Objects in the photo: Jacket, Man, Face",
-    "photo_url": "https://farm3.staticflickr.com/3360/3487654315_a1dfc7298b_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/3360/3487654315_a1dfc7298b_o.jpg",
+    "photo_id": "train/b58688fa4b316c62"
   },
   {
     "dialogue": [
@@ -10897,7 +11036,8 @@
     ],
     "dialogue_id": 8639,
     "photo_description": "The photo has your nephew Alfred. Objects in the photo: Boy",
-    "photo_url": "https://c5.staticflickr.com/3/2538/4011667346_f6ef9857c7_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/3/2538/4011667346_f6ef9857c7_o.jpg",
+    "photo_id": "train/1435e63f6a669dfc"
   },
   {
     "dialogue": [
@@ -10974,7 +11114,8 @@
     ],
     "dialogue_id": 8640,
     "photo_description": "Objects in the photo: Drink, Bottle, Face",
-    "photo_url": "https://farm5.staticflickr.com/3944/14934594693_6772d68e22_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3944/14934594693_6772d68e22_o.jpg",
+    "photo_id": "train/80e77d5c37ed7134"
   },
   {
     "dialogue": [
@@ -11051,7 +11192,8 @@
     ],
     "dialogue_id": 8641,
     "photo_description": "Objects in the photo: Dog, Cat, Carnivore, Animal",
-    "photo_url": "https://c3.staticflickr.com/1/22/31566296_5d0ce5aa0e_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/1/22/31566296_5d0ce5aa0e_o.jpg",
+    "photo_id": "train/e99ac02de8fb217a"
   },
   {
     "dialogue": [
@@ -11148,7 +11290,8 @@
     ],
     "dialogue_id": 8642,
     "photo_description": "Objects in the photo: Fast food, Drink, Tableware",
-    "photo_url": "https://c7.staticflickr.com/3/2943/15340437315_e6d478795d_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/3/2943/15340437315_e6d478795d_o.jpg",
+    "photo_id": "train/701047b43a77753e"
   },
   {
     "dialogue": [
@@ -11195,7 +11338,8 @@
     ],
     "dialogue_id": 8643,
     "photo_description": "Objects in the photo: Animal, Illustration, Human, \u0641\u0646, Pride parade, Statue, Sculpture, Sky, Person",
-    "photo_url": "https://farm4.staticflickr.com/7697/16548466763_ae82c26d99_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7697/16548466763_ae82c26d99_o.jpg",
+    "photo_id": "train/015ed4afcac17833"
   },
   {
     "dialogue": [
@@ -11257,7 +11401,8 @@
     ],
     "dialogue_id": 8644,
     "photo_description": "Objects in the photo: Beer, Table, Face",
-    "photo_url": "https://farm5.staticflickr.com/146/388861299_ad11cbfbac_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/146/388861299_ad11cbfbac_o.jpg",
+    "photo_id": "train/690f5ffc0c758e94"
   },
   {
     "dialogue": [
@@ -11314,7 +11459,8 @@
     ],
     "dialogue_id": 8645,
     "photo_description": "The photo has your grandson Issac. Objects in the photo: Human body, Mammal, Hand, Arm, Boy",
-    "photo_url": "https://farm7.staticflickr.com/6077/6066566793_c59182cdcd_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/6077/6066566793_c59182cdcd_o.jpg",
+    "photo_id": "train/19089c3587044c96"
   },
   {
     "dialogue": [
@@ -11391,7 +11537,8 @@
     ],
     "dialogue_id": 8646,
     "photo_description": "Objects in the photo: Bread, Lemon, Spoon",
-    "photo_url": "https://farm2.staticflickr.com/7194/6991702733_2e2d9df860_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/7194/6991702733_2e2d9df860_o.jpg",
+    "photo_id": "train/9e20d4ea2ae32441"
   },
   {
     "dialogue": [
@@ -11473,7 +11620,8 @@
     ],
     "dialogue_id": 8647,
     "photo_description": "The photo has your husband Roland. Objects in the photo: Man, Clothing",
-    "photo_url": "https://farm2.staticflickr.com/3185/2888886636_f4db210d32_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/3185/2888886636_f4db210d32_o.jpg",
+    "photo_id": "train/aabea858a17a7961"
   },
   {
     "dialogue": [
@@ -11575,7 +11723,8 @@
     ],
     "dialogue_id": 8648,
     "photo_description": "Objects in the photo: Bird, Tree, Ostrich, Animal",
-    "photo_url": "https://farm2.staticflickr.com/15/21507219_42e87da3d1_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/15/21507219_42e87da3d1_o.jpg",
+    "photo_id": "train/e4b77e4f1ab36cd1"
   },
   {
     "dialogue": [
@@ -11687,7 +11836,8 @@
     ],
     "dialogue_id": 8649,
     "photo_description": "The photo has your daughter Yaretzi. Objects in the photo: Girl, Face, Clothing",
-    "photo_url": "https://c2.staticflickr.com/9/8064/8183340081_5108ff75fc_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/9/8064/8183340081_5108ff75fc_o.jpg",
+    "photo_id": "train/c999eb639c6a8649"
   },
   {
     "dialogue": [
@@ -11764,7 +11914,8 @@
     ],
     "dialogue_id": 8650,
     "photo_description": "Objects in the photo: Person, Cocktail, Clothing",
-    "photo_url": "https://c7.staticflickr.com/8/7690/17230608398_03a7da2472_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7690/17230608398_03a7da2472_o.jpg",
+    "photo_id": "train/273eac1a82c94d1e"
   },
   {
     "dialogue": [
@@ -11836,7 +11987,8 @@
     ],
     "dialogue_id": 8651,
     "photo_description": "Objects in the photo: Face, Drink, Clothing",
-    "photo_url": "https://farm6.staticflickr.com/52/184840099_7714f71ee6_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/52/184840099_7714f71ee6_o.jpg",
+    "photo_id": "train/bb9d6789f4539785"
   },
   {
     "dialogue": [
@@ -11908,7 +12060,8 @@
     ],
     "dialogue_id": 8652,
     "photo_description": "Objects in the photo: Cocktail, Face, Fast food",
-    "photo_url": "https://farm4.staticflickr.com/5231/6922514630_18612518f4_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/5231/6922514630_18612518f4_o.jpg",
+    "photo_id": "train/b0c0b737261ef393"
   },
   {
     "dialogue": [
@@ -11965,7 +12118,8 @@
     ],
     "dialogue_id": 8653,
     "photo_description": "The photo has your aunt Carly. Objects in the photo: Woman, Face",
-    "photo_url": "https://farm4.staticflickr.com/5500/12296670433_66a45c27d3_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/5500/12296670433_66a45c27d3_o.jpg",
+    "photo_id": "train/8337b540f8432cb3"
   },
   {
     "dialogue": [
@@ -12042,7 +12196,8 @@
     ],
     "dialogue_id": 8654,
     "photo_description": "The photo has your dad Conor. Objects in the photo: Clothing, Face, Man",
-    "photo_url": "https://farm4.staticflickr.com/7034/6684841753_bb7a251cbd_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7034/6684841753_bb7a251cbd_o.jpg",
+    "photo_id": "train/c32b66a113d1ed53"
   },
   {
     "dialogue": [
@@ -12099,7 +12254,8 @@
     ],
     "dialogue_id": 8655,
     "photo_description": "The photo has your husband Trey. Objects in the photo: Clothing, Man, Table",
-    "photo_url": "https://c3.staticflickr.com/9/8325/8135053728_8e1be2479b_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/9/8325/8135053728_8e1be2479b_o.jpg",
+    "photo_id": "train/0b13b4c45d54276a"
   },
   {
     "dialogue": [
@@ -12161,7 +12317,8 @@
     ],
     "dialogue_id": 8656,
     "photo_description": "The photo has your student Rosa. Objects in the photo: Girl",
-    "photo_url": "https://farm2.staticflickr.com/2435/3556000122_a9b34692b2_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/2435/3556000122_a9b34692b2_o.jpg",
+    "photo_id": "train/0c52b60fe0d34761"
   },
   {
     "dialogue": [
@@ -12223,7 +12380,8 @@
     ],
     "dialogue_id": 8657,
     "photo_description": "The photo has your boyfriend Brysen. Objects in the photo: Face, Man",
-    "photo_url": "https://farm8.staticflickr.com/8606/16193492201_f2c2b4a190_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/8606/16193492201_f2c2b4a190_o.jpg",
+    "photo_id": "train/ff37ced94c1df307"
   },
   {
     "dialogue": [
@@ -12305,7 +12463,8 @@
     ],
     "dialogue_id": 8658,
     "photo_description": "The photo has your girlfriend Kenia. Objects in the photo: Hat, Woman",
-    "photo_url": "https://c7.staticflickr.com/9/8337/8206142556_5de6aac9d7_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/9/8337/8206142556_5de6aac9d7_o.jpg",
+    "photo_id": "train/1c3f044147a8c97e"
   },
   {
     "dialogue": [
@@ -12382,7 +12541,8 @@
     ],
     "dialogue_id": 8659,
     "photo_description": "The photo has your dad Elian. Objects in the photo: Clothing, Man",
-    "photo_url": "https://farm8.staticflickr.com/7125/7715887980_2f25d7acb2_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/7125/7715887980_2f25d7acb2_o.jpg",
+    "photo_id": "train/123fe9fe15fb8a47"
   },
   {
     "dialogue": [
@@ -12464,7 +12624,8 @@
     ],
     "dialogue_id": 8660,
     "photo_description": "The photo has your niece Kendall. Objects in the photo: Girl, Footwear, Woman",
-    "photo_url": "https://c6.staticflickr.com/9/8033/8064128159_23e19c556b_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/9/8033/8064128159_23e19c556b_o.jpg",
+    "photo_id": "train/742f9eafd4cc869d"
   },
   {
     "dialogue": [
@@ -12531,7 +12692,8 @@
     ],
     "dialogue_id": 8661,
     "photo_description": "The photo has your grandson Steven. Objects in the photo: Human body, Arm, Eye, Face, Hand, Boy, Head",
-    "photo_url": "https://farm3.staticflickr.com/4005/4587716700_a217018a54_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/4005/4587716700_a217018a54_o.jpg",
+    "photo_id": "train/dc4c6fb638ae4752"
   },
   {
     "dialogue": [
@@ -12618,7 +12780,8 @@
     ],
     "dialogue_id": 8662,
     "photo_description": "The photo has your dad Dante. Objects in the photo: Man, Clothing",
-    "photo_url": "https://c1.staticflickr.com/3/2039/2270550635_cc3c4dac4e_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/3/2039/2270550635_cc3c4dac4e_o.jpg",
+    "photo_id": "train/c903b631b36f4ce8"
   },
   {
     "dialogue": [
@@ -12700,7 +12863,8 @@
     ],
     "dialogue_id": 8663,
     "photo_description": "The photo has your boyfriend Atticus. Objects in the photo: Man",
-    "photo_url": "https://farm6.staticflickr.com/113/296560780_0157d7a217_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/113/296560780_0157d7a217_o.jpg",
+    "photo_id": "train/ef1bbfb1a9bba1f5"
   },
   {
     "dialogue": [
@@ -12777,7 +12941,8 @@
     ],
     "dialogue_id": 8664,
     "photo_description": "The photo has your wife Jenna. Objects in the photo: Girl, Face, Woman",
-    "photo_url": "https://c5.staticflickr.com/9/8805/17420100640_db0aa75eb1_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8805/17420100640_db0aa75eb1_o.jpg",
+    "photo_id": "train/a6cb8b09eaec10dc"
   },
   {
     "dialogue": [
@@ -12854,7 +13019,8 @@
     ],
     "dialogue_id": 8665,
     "photo_description": "Objects in the photo: Snack, Platter, Fast food",
-    "photo_url": "https://c1.staticflickr.com/3/2757/4271559850_42866dd55c_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/3/2757/4271559850_42866dd55c_o.jpg",
+    "photo_id": "train/363baac6d47ccca8"
   },
   {
     "dialogue": [
@@ -12906,7 +13072,8 @@
     ],
     "dialogue_id": 8666,
     "photo_description": "The photo has your aunt Braelynn. Objects in the photo: Woman, Clothing, Face",
-    "photo_url": "https://farm4.staticflickr.com/5594/14717192333_1dcfb176cf_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/5594/14717192333_1dcfb176cf_o.jpg",
+    "photo_id": "train/3d9e093c37272323"
   },
   {
     "dialogue": [
@@ -13008,7 +13175,8 @@
     ],
     "dialogue_id": 8667,
     "photo_description": "The photo has your girlfriend Raelynn. Objects in the photo: Woman",
-    "photo_url": "https://farm8.staticflickr.com/4064/4719826295_0ce8247092_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/4064/4719826295_0ce8247092_o.jpg",
+    "photo_id": "train/4c69bf0b50863c87"
   },
   {
     "dialogue": [
@@ -13050,7 +13218,8 @@
     ],
     "dialogue_id": 8668,
     "photo_description": "The photo has your friend's daughter Harlee. Objects in the photo: Girl, Clothing, Face",
-    "photo_url": "https://farm2.staticflickr.com/7236/7292188714_3e1bda0a47_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/7236/7292188714_3e1bda0a47_o.jpg",
+    "photo_id": "train/ae8bbd626ce015b1"
   },
   {
     "dialogue": [
@@ -13127,7 +13296,8 @@
     ],
     "dialogue_id": 8669,
     "photo_description": "Objects in the photo: Cocktail, Lizard, Juice",
-    "photo_url": "https://farm1.staticflickr.com/4055/4469294702_4072e8b050_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/4055/4469294702_4072e8b050_o.jpg",
+    "photo_id": "train/d6f67807e284a810"
   },
   {
     "dialogue": [
@@ -13194,7 +13364,8 @@
     ],
     "dialogue_id": 8670,
     "photo_description": "The photo has your friend Imran. Objects in the photo: Man",
-    "photo_url": "https://farm7.staticflickr.com/5294/5462772273_ca1717c7ee_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/5294/5462772273_ca1717c7ee_o.jpg",
+    "photo_id": "train/e5245955912efe46"
   },
   {
     "dialogue": [
@@ -13261,7 +13432,8 @@
     ],
     "dialogue_id": 8671,
     "photo_description": "Objects in the photo: Plate, Drink, Wine glass",
-    "photo_url": "https://farm4.staticflickr.com/106/301930544_c0adc6ac20_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/106/301930544_c0adc6ac20_o.jpg",
+    "photo_id": "train/db1e1286c762db93"
   },
   {
     "dialogue": [
@@ -13423,7 +13595,8 @@
     ],
     "dialogue_id": 8672,
     "photo_description": "Objects in the photo: Wine glass, Table, Drink",
-    "photo_url": "https://farm4.staticflickr.com/8012/6996502716_25eb58b53a_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/8012/6996502716_25eb58b53a_o.jpg",
+    "photo_id": "train/91cf8263a5849e53"
   },
   {
     "dialogue": [
@@ -13480,7 +13653,8 @@
     ],
     "dialogue_id": 8673,
     "photo_description": "Objects in the photo: Drink, Houseplant, Vase",
-    "photo_url": "https://c7.staticflickr.com/8/7086/7189731095_4ea95136f4_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7086/7189731095_4ea95136f4_o.jpg",
+    "photo_id": "train/11024b45eeb8f1fe"
   },
   {
     "dialogue": [
@@ -13562,7 +13736,8 @@
     ],
     "dialogue_id": 8674,
     "photo_description": "The photo has your student Fabian. Objects in the photo: Woman, Man, Clothing",
-    "photo_url": "https://c7.staticflickr.com/8/7456/8719065629_55d1ef188a_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7456/8719065629_55d1ef188a_o.jpg",
+    "photo_id": "train/c4b24aa6dd47defe"
   },
   {
     "dialogue": [
@@ -13654,7 +13829,8 @@
     ],
     "dialogue_id": 8675,
     "photo_description": "Objects in the photo: Snack, Fast food, Clothing",
-    "photo_url": "https://farm8.staticflickr.com/6127/5946095103_75cca196c6_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/6127/5946095103_75cca196c6_o.jpg",
+    "photo_id": "train/88eea9c6861bee67"
   },
   {
     "dialogue": [
@@ -13736,7 +13912,8 @@
     ],
     "dialogue_id": 8676,
     "photo_description": "Objects in the photo: House, Cake, Baked goods",
-    "photo_url": "https://farm8.staticflickr.com/8627/15847171707_a6fde31938_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/8627/15847171707_a6fde31938_o.jpg",
+    "photo_id": "test/d6c953e2bf932177"
   },
   {
     "dialogue": [
@@ -13793,7 +13970,8 @@
     ],
     "dialogue_id": 8677,
     "photo_description": "The photo has your niece Elliana. Objects in the photo: Footwear, Girl, Face, Boy",
-    "photo_url": "https://c2.staticflickr.com/9/8060/8251972877_82061fddca_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/9/8060/8251972877_82061fddca_o.jpg",
+    "photo_id": "train/6d2b03a1f3d0bf99"
   },
   {
     "dialogue": [
@@ -13870,7 +14048,8 @@
     ],
     "dialogue_id": 8678,
     "photo_description": "Objects in the photo: Beard, Drink, Face",
-    "photo_url": "https://farm7.staticflickr.com/395/19623646782_abfa2df5cb_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/395/19623646782_abfa2df5cb_o.jpg",
+    "photo_id": "train/37a33205ff3690e6"
   },
   {
     "dialogue": [
@@ -13947,7 +14126,8 @@
     ],
     "dialogue_id": 8679,
     "photo_description": "Objects in the photo: Bed, Pillow",
-    "photo_url": "https://farm8.staticflickr.com/5620/20623294158_a3a877d52b_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/5620/20623294158_a3a877d52b_o.jpg",
+    "photo_id": "test/7414ac2536d7d367"
   },
   {
     "dialogue": [
@@ -14014,7 +14194,8 @@
     ],
     "dialogue_id": 8680,
     "photo_description": "Objects in the photo: Tree, Companion dog, Smile, Person, Vehicle, sanat, Human, Tongue, psi, Youth, Carnivore, Snapshot, Hunting dog, Adult, Dog breed, Pet, Male person, Building, Hug, House, Vulnerable Native Breeds, Miscellaneous Class, Mammal, Car, Man, Animal, Black hair, Sporting Group, Working dog, Humans",
-    "photo_url": "https://c8.staticflickr.com/1/37/78127279_71bea08270_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/1/37/78127279_71bea08270_o.jpg",
+    "photo_id": "train/00324a4620060e7f"
   },
   {
     "dialogue": [
@@ -14091,7 +14272,8 @@
     ],
     "dialogue_id": 8681,
     "photo_description": "Objects in the photo: Face, Drink, Clothing, Table",
-    "photo_url": "https://farm8.staticflickr.com/3796/19479670519_6d77426774_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/3796/19479670519_6d77426774_o.jpg",
+    "photo_id": "train/da39a24fa9ec1af7"
   },
   {
     "dialogue": [
@@ -14173,7 +14355,8 @@
     ],
     "dialogue_id": 8682,
     "photo_description": "Objects in the photo: Dessert, Doughnut, Mouth",
-    "photo_url": "https://farm3.staticflickr.com/3772/13206086485_3e90ce5834_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/3772/13206086485_3e90ce5834_o.jpg",
+    "photo_id": "train/713ffc55154291a2"
   },
   {
     "dialogue": [
@@ -14245,7 +14428,8 @@
     ],
     "dialogue_id": 8683,
     "photo_description": "Objects in the photo: Vegetable, Snack, Baked goods, Fruit",
-    "photo_url": "https://farm5.staticflickr.com/5063/5684102770_629c374d1c_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/5063/5684102770_629c374d1c_o.jpg",
+    "photo_id": "train/15c56075e2441a94"
   },
   {
     "dialogue": [
@@ -14302,7 +14486,8 @@
     ],
     "dialogue_id": 8684,
     "photo_description": "The photo has your son Ralph. Objects in the photo: Boy, Shirt, Face",
-    "photo_url": "https://farm2.staticflickr.com/2134/1647125050_cbfab8e6fe_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/2134/1647125050_cbfab8e6fe_o.jpg",
+    "photo_id": "train/be448aad07fbbf91"
   },
   {
     "dialogue": [
@@ -14359,7 +14544,8 @@
     ],
     "dialogue_id": 8685,
     "photo_description": "Objects in the photo: Jungle green, Jaw, Ecosystem, Natural environment, Liver, Creative arts, Teal, Emerald green, Graphics, Cyan, Ear, Line, Plant community, White, Calligraphy, Terrestrial animal, Landscape, Snout, Even-toed ungulate, Vintage advertisement, Water, Laurasiatheria, Shape, Brown, Yellow, Mammal, Wildlife, Working animal, Natural material, Tail, Forest Green, Suidae, Organism, Buff, Font, Ivory, Photograph, Pasture, Painting, Grass, Art, Colorfulness, Natural landscape, Geology, Chartreuse, Landform, Nose, Chocolate, Pig, Carnivore, Text, Spring green, Pecari, Animal, Cartoon, Mouth, Vertebrate, Ecoregion, Leaf, Grassland, Fawn, Collared peccary, Nature, Pale yellow, Green, Coquelicot, Dark Brown, Livestock, Boar, Peccary, Grazing, Iris, Flesh, Non-fiction, Drawing, Event, Tetrapods, Paper, Reef, Tan, Fur",
-    "photo_url": "https://farm8.staticflickr.com/7098/7257728300_839b2a47e1_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/7098/7257728300_839b2a47e1_o.jpg",
+    "photo_id": "train/000a6c3a2c4d97e7"
   },
   {
     "dialogue": [
@@ -14456,7 +14642,8 @@
     ],
     "dialogue_id": 8686,
     "photo_description": "The photo has your friend Jack. Objects in the photo: Face, Dog, Clothing, Man",
-    "photo_url": "https://c5.staticflickr.com/1/26/44627383_5bec2a7367_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/1/26/44627383_5bec2a7367_o.jpg",
+    "photo_id": "train/f7b9b11bb969de6c"
   },
   {
     "dialogue": [
@@ -14513,7 +14700,8 @@
     ],
     "dialogue_id": 8687,
     "photo_description": "Objects in the photo: Dairy cattle, Lake, \u00e1rbol, Cloud, Animal, Water, Sky, Pocosin, hiking",
-    "photo_url": "https://c5.staticflickr.com/3/2827/11567302005_fb5c1f60f0_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/3/2827/11567302005_fb5c1f60f0_o.jpg",
+    "photo_id": "train/037c03b0ad38f22c"
   },
   {
     "dialogue": [
@@ -14580,7 +14768,8 @@
     ],
     "dialogue_id": 8688,
     "photo_description": "Objects in the photo: House, Clothing, Head, Hair, Drink, Bottle, Human body, Man",
-    "photo_url": "https://farm7.staticflickr.com/3186/2310456960_83d6a953a7_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3186/2310456960_83d6a953a7_o.jpg",
+    "photo_id": "train/6b9eac46489483c6"
   },
   {
     "dialogue": [
@@ -14632,7 +14821,8 @@
     ],
     "dialogue_id": 8689,
     "photo_description": "The photo has your dad Alden. Objects in the photo: Man",
-    "photo_url": "https://c6.staticflickr.com/6/5205/5376113377_ae97b36074_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/6/5205/5376113377_ae97b36074_o.jpg",
+    "photo_id": "train/91592cce9e2b2bed"
   },
   {
     "dialogue": [
@@ -14694,7 +14884,8 @@
     ],
     "dialogue_id": 8690,
     "photo_description": "The photo has your husband Andrew. Objects in the photo: Clothing, Face, Man",
-    "photo_url": "https://farm6.staticflickr.com/1424/1434282640_eb98e2c66f_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/1424/1434282640_eb98e2c66f_o.jpg",
+    "photo_id": "train/31233ae6d7acbe45"
   },
   {
     "dialogue": [
@@ -14771,7 +14962,8 @@
     ],
     "dialogue_id": 8691,
     "photo_description": "The photo has your brother Antonio. Objects in the photo: Clothing, Man, Face",
-    "photo_url": "https://farm7.staticflickr.com/3749/9482349154_8cce8f2404_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3749/9482349154_8cce8f2404_o.jpg",
+    "photo_id": "train/d8a20581124aed76"
   },
   {
     "dialogue": [
@@ -14848,7 +15040,8 @@
     ],
     "dialogue_id": 8692,
     "photo_description": "The photo has your friend's daughter Karsyn. Objects in the photo: Girl, Face",
-    "photo_url": "https://c5.staticflickr.com/1/158/415907598_6233490da5_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/1/158/415907598_6233490da5_o.jpg",
+    "photo_id": "train/f3ffed808c77e16c"
   },
   {
     "dialogue": [
@@ -14905,7 +15098,8 @@
     ],
     "dialogue_id": 8693,
     "photo_description": "The photo has your uncle Clayton. Objects in the photo: Man, Face",
-    "photo_url": "https://farm3.staticflickr.com/82/271492780_1e2e00a904_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/82/271492780_1e2e00a904_o.jpg",
+    "photo_id": "train/916f78466dbf6862"
   },
   {
     "dialogue": [
@@ -14977,7 +15171,8 @@
     ],
     "dialogue_id": 8694,
     "photo_description": "Objects in the photo: Person, Sculpture, Animal, Car, Ford transcontinental, \u043b\u043e\u0448\u0430\u0434\u0438, Horse harness, Vehicle, Dance, Sky",
-    "photo_url": "https://farm6.staticflickr.com/5554/14905758925_94ae896f3f_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/5554/14905758925_94ae896f3f_o.jpg",
+    "photo_id": "train/05cd2047a62eada5"
   },
   {
     "dialogue": [
@@ -15034,7 +15229,8 @@
     ],
     "dialogue_id": 8695,
     "photo_description": "The photo has your daughter Blakely. Objects in the photo: Woman, Face, Girl",
-    "photo_url": "https://farm2.staticflickr.com/5165/5369835641_370beeb62b_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/5165/5369835641_370beeb62b_o.jpg",
+    "photo_id": "train/5ae1c884740d3421"
   },
   {
     "dialogue": [
@@ -15136,7 +15332,8 @@
     ],
     "dialogue_id": 8696,
     "photo_description": "Objects in the photo: Baked goods, Dessert, Snack",
-    "photo_url": "https://farm7.staticflickr.com/5185/5744892837_9906794bb3_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/5185/5744892837_9906794bb3_o.jpg",
+    "photo_id": "test/911cce3112b90266"
   },
   {
     "dialogue": [
@@ -15248,7 +15445,8 @@
     ],
     "dialogue_id": 8697,
     "photo_description": "The photo has your daughter Emerie. Objects in the photo: Leg, Girl, Jeans, Mammal",
-    "photo_url": "https://farm3.staticflickr.com/2064/1862466602_12a98c0fe9_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/2064/1862466602_12a98c0fe9_o.jpg",
+    "photo_id": "train/265f73391f73b262"
   },
   {
     "dialogue": [
@@ -15310,7 +15508,8 @@
     ],
     "dialogue_id": 8698,
     "photo_description": "Objects in the photo: Dessert, Dairy, Baked goods",
-    "photo_url": "https://c1.staticflickr.com/8/7583/16163896582_703aca3ee7_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/8/7583/16163896582_703aca3ee7_o.jpg",
+    "photo_id": "train/129ec0e1ad1d3708"
   },
   {
     "dialogue": [
@@ -15392,7 +15591,8 @@
     ],
     "dialogue_id": 8699,
     "photo_description": "Objects in the photo: Head, Hand, Arm, Beer, Mouth, Hair, Clothing, Eye, Face",
-    "photo_url": "https://farm1.staticflickr.com/84/262923777_2c26fa2392_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/84/262923777_2c26fa2392_o.jpg",
+    "photo_id": "train/9a9fe875f31c9ff0"
   },
   {
     "dialogue": [
@@ -15449,7 +15649,8 @@
     ],
     "dialogue_id": 8700,
     "photo_description": "Objects in the photo: Baked goods, Snack, Cake",
-    "photo_url": "https://c8.staticflickr.com/4/3451/3279581249_19b241979d_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/4/3451/3279581249_19b241979d_o.jpg",
+    "photo_id": "train/1f2fbea40b52dbcf"
   },
   {
     "dialogue": [
@@ -15526,7 +15727,8 @@
     ],
     "dialogue_id": 8701,
     "photo_description": "The photo has your granddaughter Karsyn. Objects in the photo: Girl, Clothing, Face",
-    "photo_url": "https://c3.staticflickr.com/4/3895/14465337295_f77a7942e1_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3895/14465337295_f77a7942e1_o.jpg",
+    "photo_id": "train/231c1f755a74868a"
   },
   {
     "dialogue": [
@@ -15568,7 +15770,8 @@
     ],
     "dialogue_id": 8702,
     "photo_description": "The photo has your friend Josephine. Objects in the photo: Woman, Human body, Hair, Head, Face, Nose, Mouth, Clothing",
-    "photo_url": "https://farm1.staticflickr.com/6173/6201436781_0f0ff5db7c_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/6173/6201436781_0f0ff5db7c_o.jpg",
+    "photo_id": "train/67f57e539e433de0"
   },
   {
     "dialogue": [
@@ -15640,7 +15843,8 @@
     ],
     "dialogue_id": 8703,
     "photo_description": "The photo has your uncle Javier. Objects in the photo: Man, Footwear, Table",
-    "photo_url": "https://c3.staticflickr.com/5/4145/5092259325_7913b261fb_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/5/4145/5092259325_7913b261fb_o.jpg",
+    "photo_id": "train/840e3fe89feb9c5a"
   },
   {
     "dialogue": [
@@ -15722,7 +15926,8 @@
     ],
     "dialogue_id": 8704,
     "photo_description": "Objects in the photo: Clothing, Face, Drink",
-    "photo_url": "https://c1.staticflickr.com/3/2268/1813023617_07fe91ab1c_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/3/2268/1813023617_07fe91ab1c_o.jpg",
+    "photo_id": "train/2282ca09dd68ea68"
   },
   {
     "dialogue": [
@@ -15754,7 +15959,8 @@
     ],
     "dialogue_id": 8705,
     "photo_description": "The photo has your dad Wayne. Objects in the photo: Clothing, Man",
-    "photo_url": "https://c4.staticflickr.com/5/4060/4591362466_6bc1f8c8cd_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/5/4060/4591362466_6bc1f8c8cd_o.jpg",
+    "photo_id": "train/32342980ef2134db"
   },
   {
     "dialogue": [
@@ -15846,7 +16052,8 @@
     ],
     "dialogue_id": 8706,
     "photo_description": "The photo has your daughter Karlee. Objects in the photo: Girl",
-    "photo_url": "https://farm8.staticflickr.com/3858/14603965870_b0908a4c0b_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/3858/14603965870_b0908a4c0b_o.jpg",
+    "photo_id": "train/e16137c65a6988d7"
   },
   {
     "dialogue": [
@@ -15883,7 +16090,8 @@
     ],
     "dialogue_id": 8707,
     "photo_description": "Objects in the photo: Watch, Wall clock",
-    "photo_url": "https://c8.staticflickr.com/8/7196/6870192327_7d089c2a56_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/8/7196/6870192327_7d089c2a56_o.jpg",
+    "photo_id": "test/16526db8d035698f"
   },
   {
     "dialogue": [
@@ -15955,7 +16163,8 @@
     ],
     "dialogue_id": 8708,
     "photo_description": "The photo has your student Dakota. Objects in the photo: Man, Clothing",
-    "photo_url": "https://farm2.staticflickr.com/1331/703879937_b78f35cca1_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/1331/703879937_b78f35cca1_o.jpg",
+    "photo_id": "train/d1ec459d697e8271"
   },
   {
     "dialogue": [
@@ -16047,7 +16256,8 @@
     ],
     "dialogue_id": 8709,
     "photo_description": "Objects in the photo: Person, Drink, Hair",
-    "photo_url": "https://farm3.staticflickr.com/7614/16888252031_bfe2d2be08_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/7614/16888252031_bfe2d2be08_o.jpg",
+    "photo_id": "validation/99f061be8c78fdd2"
   },
   {
     "dialogue": [
@@ -16119,7 +16329,8 @@
     ],
     "dialogue_id": 8710,
     "photo_description": "The photo has your student Riley. Objects in the photo: Girl, Footwear, Swimwear, Face",
-    "photo_url": "https://farm7.staticflickr.com/4114/4825402062_c51a0c85dd_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/4114/4825402062_c51a0c85dd_o.jpg",
+    "photo_id": "train/f7cf636dbd029636"
   },
   {
     "dialogue": [
@@ -16206,7 +16417,8 @@
     ],
     "dialogue_id": 8711,
     "photo_description": "The photo has your mom Mariam. Objects in the photo: Woman, Face",
-    "photo_url": "https://farm1.staticflickr.com/3325/3519988913_ca9d8806d0_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/3325/3519988913_ca9d8806d0_o.jpg",
+    "photo_id": "train/d3713ca8cd746da0"
   },
   {
     "dialogue": [
@@ -16303,7 +16515,8 @@
     ],
     "dialogue_id": 8712,
     "photo_description": "The photo has your mom Jessie. Objects in the photo: Woman",
-    "photo_url": "https://farm8.staticflickr.com/3807/11581850505_661a72dd22_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/3807/11581850505_661a72dd22_o.jpg",
+    "photo_id": "train/e1759079c0abbc77"
   },
   {
     "dialogue": [
@@ -16385,7 +16598,8 @@
     ],
     "dialogue_id": 8713,
     "photo_description": "The photo has your brother Preston. Objects in the photo: Hat, Man",
-    "photo_url": "https://farm7.staticflickr.com/3609/5788542858_e6dae08995_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3609/5788542858_e6dae08995_o.jpg",
+    "photo_id": "train/79f91623e9e41f96"
   },
   {
     "dialogue": [
@@ -16452,7 +16666,8 @@
     ],
     "dialogue_id": 8714,
     "photo_description": "The photo has your daughter Chloe. Objects in the photo: Mammal, Face, Hair, Nose, Fashion accessory, Head, Girl, Ear",
-    "photo_url": "https://farm6.staticflickr.com/7180/7052238131_54e2697ab5_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/7180/7052238131_54e2697ab5_o.jpg",
+    "photo_id": "train/50e4e073397c8ea5"
   },
   {
     "dialogue": [
@@ -16514,7 +16729,8 @@
     ],
     "dialogue_id": 8715,
     "photo_description": "The photo has your friend Noe. Objects in the photo: Face, Glasses, Man",
-    "photo_url": "https://farm6.staticflickr.com/1417/5130524182_d0c79d4132_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/1417/5130524182_d0c79d4132_o.jpg",
+    "photo_id": "train/75a505bf192a73a5"
   },
   {
     "dialogue": [
@@ -16556,7 +16772,8 @@
     ],
     "dialogue_id": 8716,
     "photo_description": "Objects in the photo: Curtain",
-    "photo_url": "https://farm3.staticflickr.com/8464/8134307781_c49c32504e_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/8464/8134307781_c49c32504e_o.jpg",
+    "photo_id": "validation/e8acbec9d5ea2d32"
   },
   {
     "dialogue": [
@@ -16673,7 +16890,8 @@
     ],
     "dialogue_id": 8717,
     "photo_description": "Objects in the photo: Mouth, Hair, Nose, Eye, Head, Cake, Face",
-    "photo_url": "https://farm1.staticflickr.com/2712/4181115999_ef10256c14_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/2712/4181115999_ef10256c14_o.jpg",
+    "photo_id": "validation/b5e808fd6164cd50"
   },
   {
     "dialogue": [
@@ -16735,7 +16953,8 @@
     ],
     "dialogue_id": 8718,
     "photo_description": "The photo has your boyfriend Blaine. Objects in the photo: Man, Hair, Leg, Human body",
-    "photo_url": "https://c3.staticflickr.com/8/7111/7498850290_9e39bfac99_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/8/7111/7498850290_9e39bfac99_o.jpg",
+    "photo_id": "train/223d5f38189c05ba"
   },
   {
     "dialogue": [
@@ -16797,7 +17016,8 @@
     ],
     "dialogue_id": 8719,
     "photo_description": "The photo has your student Creed. Objects in the photo: Eye, Man, Nose",
-    "photo_url": "https://c1.staticflickr.com/3/2698/4303412046_f99a6d0e07_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/3/2698/4303412046_f99a6d0e07_o.jpg",
+    "photo_id": "train/c0ddf887bb43ee18"
   },
   {
     "dialogue": [
@@ -16879,7 +17099,8 @@
     ],
     "dialogue_id": 8720,
     "photo_description": "Objects in the photo: Baked goods, Rose, Dessert",
-    "photo_url": "https://c6.staticflickr.com/6/5098/5428873529_57d7465755_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/6/5098/5428873529_57d7465755_o.jpg",
+    "photo_id": "test/85d1308e1dbd1cad"
   },
   {
     "dialogue": [
@@ -16961,7 +17182,8 @@
     ],
     "dialogue_id": 8721,
     "photo_description": "The photo has your nephew Zane. Objects in the photo: Boy",
-    "photo_url": "https://c8.staticflickr.com/5/4101/4894939135_92c362c9df_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/5/4101/4894939135_92c362c9df_o.jpg",
+    "photo_id": "train/db8391d904def1cf"
   },
   {
     "dialogue": [
@@ -17048,7 +17270,8 @@
     ],
     "dialogue_id": 8722,
     "photo_description": "The photo has your student Jameson. Objects in the photo: Girl, Face, Boy",
-    "photo_url": "https://c1.staticflickr.com/2/1350/538994822_2440a7a69c_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/2/1350/538994822_2440a7a69c_o.jpg",
+    "photo_id": "train/ca7e81eec90ffd88"
   },
   {
     "dialogue": [
@@ -17090,7 +17313,8 @@
     ],
     "dialogue_id": 8723,
     "photo_description": "Objects in the photo: Car, Toddler, Drawing, Painting, Dogo guatemalteco, Animal, Smile, Person, Pit bull, Dog, Human",
-    "photo_url": "https://farm7.staticflickr.com/27/60070907_ce9326d8db_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/27/60070907_ce9326d8db_o.jpg",
+    "photo_id": "train/0359876ec3ae0a46"
   },
   {
     "dialogue": [
@@ -17152,7 +17376,8 @@
     ],
     "dialogue_id": 8724,
     "photo_description": "Objects in the photo: Juice, Cocktail, Clothing",
-    "photo_url": "https://farm2.staticflickr.com/7093/7242421684_f51b4d49f7_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/7093/7242421684_f51b4d49f7_o.jpg",
+    "photo_id": "train/fd27a5018d1d0c51"
   },
   {
     "dialogue": [
@@ -17229,7 +17454,8 @@
     ],
     "dialogue_id": 8725,
     "photo_description": "The photo has your friend Xiomara. Objects in the photo: Face, Woman, Clothing",
-    "photo_url": "https://farm1.staticflickr.com/3458/3233724116_e33d7a0e3c_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/3458/3233724116_e33d7a0e3c_o.jpg",
+    "photo_id": "train/216e688ddceeb990"
   },
   {
     "dialogue": [
@@ -17276,7 +17502,8 @@
     ],
     "dialogue_id": 8726,
     "photo_description": "Objects in the photo: Couch, Pillow",
-    "photo_url": "https://farm5.staticflickr.com/3159/2870297717_c86cb1f1c2_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3159/2870297717_c86cb1f1c2_o.jpg",
+    "photo_id": "test/0a12bdc73183b4e4"
   },
   {
     "dialogue": [
@@ -17368,7 +17595,8 @@
     ],
     "dialogue_id": 8727,
     "photo_description": "Objects in the photo: Drink, Human body, Hand",
-    "photo_url": "https://c1.staticflickr.com/9/8286/7716082952_ae36cdc236_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/9/8286/7716082952_ae36cdc236_o.jpg",
+    "photo_id": "train/62523007526c8608"
   },
   {
     "dialogue": [
@@ -17425,7 +17653,8 @@
     ],
     "dialogue_id": 8728,
     "photo_description": "The photo has your husband Xander. Objects in the photo: Clothing, Man",
-    "photo_url": "https://farm7.staticflickr.com/6168/6198300745_436df79739_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/6168/6198300745_436df79739_o.jpg",
+    "photo_id": "train/c692dbe91f9b59f6"
   },
   {
     "dialogue": [
@@ -17542,7 +17771,8 @@
     ],
     "dialogue_id": 8729,
     "photo_description": "Objects in the photo: Fast food, Snack, Bread",
-    "photo_url": "https://farm2.staticflickr.com/4136/4863752325_df7b09dc2a_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/4136/4863752325_df7b09dc2a_o.jpg",
+    "photo_id": "train/fdc074fd8f4b1011"
   },
   {
     "dialogue": [
@@ -17619,7 +17849,8 @@
     ],
     "dialogue_id": 8730,
     "photo_description": "The photo has your student Kobe. Objects in the photo: Chair, Man, Face",
-    "photo_url": "https://c6.staticflickr.com/1/53/146778453_46da384fba_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/1/53/146778453_46da384fba_o.jpg",
+    "photo_id": "train/101a57c7ff86e47d"
   },
   {
     "dialogue": [
@@ -17711,7 +17942,8 @@
     ],
     "dialogue_id": 8731,
     "photo_description": "Objects in the photo: Drink, Couch, Table",
-    "photo_url": "https://farm6.staticflickr.com/8357/8290471927_140ea46dfa_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/8357/8290471927_140ea46dfa_o.jpg",
+    "photo_id": "train/9bf60fe1d4020a75"
   },
   {
     "dialogue": [
@@ -17768,7 +18000,8 @@
     ],
     "dialogue_id": 8732,
     "photo_description": "Objects in the photo: Wine glass, Girl, Drink, Face",
-    "photo_url": "https://c2.staticflickr.com/7/6217/6350911046_78bb4e1e0e_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/7/6217/6350911046_78bb4e1e0e_o.jpg",
+    "photo_id": "train/3106cdbc860312c9"
   },
   {
     "dialogue": [
@@ -17860,7 +18093,8 @@
     ],
     "dialogue_id": 8733,
     "photo_description": "The photo has your brother Ari. Objects in the photo: Man, Clothing",
-    "photo_url": "https://farm7.staticflickr.com/8078/8289951115_6783e03b1a_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/8078/8289951115_6783e03b1a_o.jpg",
+    "photo_id": "train/b79a1522f6a14a06"
   },
   {
     "dialogue": [
@@ -17937,7 +18171,8 @@
     ],
     "dialogue_id": 8734,
     "photo_description": "The photo has your dad Lawrence. Objects in the photo: Man, Face, Nose, Eye, Mammal, Head, Human body",
-    "photo_url": "https://c7.staticflickr.com/5/4129/4963311918_91b1af5eea_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/5/4129/4963311918_91b1af5eea_o.jpg",
+    "photo_id": "train/c066a332f10a249e"
   },
   {
     "dialogue": [
@@ -18059,7 +18294,8 @@
     ],
     "dialogue_id": 8735,
     "photo_description": "Objects in the photo: Carnivore, \u043a\u043e\u0448\u043a\u0438, Animal, Cat toy, Cat",
-    "photo_url": "https://farm6.staticflickr.com/7588/16828101501_202d358d41_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/7588/16828101501_202d358d41_o.jpg",
+    "photo_id": "train/3ef1bec502fe1d05"
   },
   {
     "dialogue": [
@@ -18136,7 +18372,8 @@
     ],
     "dialogue_id": 8736,
     "photo_description": "The photo has your uncle Mohamed. Objects in the photo: Clothing, Man",
-    "photo_url": "https://farm6.staticflickr.com/2828/10153246494_8ddd7c8e9d_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/2828/10153246494_8ddd7c8e9d_o.jpg",
+    "photo_id": "train/15ce8034935e3845"
   },
   {
     "dialogue": [
@@ -18228,7 +18465,8 @@
     ],
     "dialogue_id": 8737,
     "photo_description": "The photo has your student Jaziel. Objects in the photo: Man, Face",
-    "photo_url": "https://farm2.staticflickr.com/3449/3360328383_f212bc7d56_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/3449/3360328383_f212bc7d56_o.jpg",
+    "photo_id": "train/72b20d385f62ac31"
   },
   {
     "dialogue": [
@@ -18285,7 +18523,8 @@
     ],
     "dialogue_id": 8738,
     "photo_description": "The photo has your student Bianca. Objects in the photo: Girl, Clothing",
-    "photo_url": "https://c5.staticflickr.com/8/7144/6413489511_ce6e8fbacc_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/8/7144/6413489511_ce6e8fbacc_o.jpg",
+    "photo_id": "train/a2df827acbdeb71c"
   },
   {
     "dialogue": [
@@ -18362,7 +18601,8 @@
     ],
     "dialogue_id": 8739,
     "photo_description": "The photo has your daughter Judith. Objects in the photo: Girl",
-    "photo_url": "https://c8.staticflickr.com/9/8355/8372785596_12f849cac1_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/9/8355/8372785596_12f849cac1_o.jpg",
+    "photo_id": "train/6ca55485a0e6905f"
   },
   {
     "dialogue": [
@@ -18404,7 +18644,8 @@
     ],
     "dialogue_id": 8740,
     "photo_description": "Objects in the photo: Face, Clothing, Drink, Man",
-    "photo_url": "https://c4.staticflickr.com/8/7044/6992444247_dd9e28e662_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/8/7044/6992444247_dd9e28e662_o.jpg",
+    "photo_id": "train/0cb6f7732c4a775b"
   },
   {
     "dialogue": [
@@ -18511,7 +18752,8 @@
     ],
     "dialogue_id": 8741,
     "photo_description": "Objects in the photo: Bread, Dairy, Dessert",
-    "photo_url": "https://farm5.staticflickr.com/3872/15219580222_0c27b85e1a_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3872/15219580222_0c27b85e1a_o.jpg",
+    "photo_id": "train/69345d41d7ed5e94"
   },
   {
     "dialogue": [
@@ -18588,7 +18830,8 @@
     ],
     "dialogue_id": 8742,
     "photo_description": "The photo has your mom Samara. Objects in the photo: Face, Woman, Clothing",
-    "photo_url": "https://c3.staticflickr.com/5/4041/4406086938_ca21913490_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/5/4041/4406086938_ca21913490_o.jpg",
+    "photo_id": "train/522716722526ddaa"
   },
   {
     "dialogue": [
@@ -18635,7 +18878,8 @@
     ],
     "dialogue_id": 8743,
     "photo_description": "The photo has your friend Maddison. Objects in the photo: Woman, Man, Clothing",
-    "photo_url": "https://farm6.staticflickr.com/7073/7047019557_73c8acf6a6_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/7073/7047019557_73c8acf6a6_o.jpg",
+    "photo_id": "train/e0fe98e7d580c995"
   },
   {
     "dialogue": [
@@ -18702,7 +18946,8 @@
     ],
     "dialogue_id": 8744,
     "photo_description": "The photo has your friend's daughter Amy. Objects in the photo: Head, Nose, Girl, Mouth, Eye, Woman, Hair",
-    "photo_url": "https://c1.staticflickr.com/1/82/253582430_7a82113191_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/1/82/253582430_7a82113191_o.jpg",
+    "photo_id": "train/25fab415dbc28238"
   },
   {
     "dialogue": [
@@ -18779,7 +19024,8 @@
     ],
     "dialogue_id": 8745,
     "photo_description": "The photo has your student Claire. Objects in the photo: Footwear, Face, Woman",
-    "photo_url": "https://c7.staticflickr.com/1/74/194500852_dac94e18ab_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/1/74/194500852_dac94e18ab_o.jpg",
+    "photo_id": "train/eac3a3903cad50ce"
   },
   {
     "dialogue": [
@@ -18846,7 +19092,8 @@
     ],
     "dialogue_id": 8746,
     "photo_description": "Objects in the photo: Snack, Dairy, Dessert, Baked goods",
-    "photo_url": "https://farm8.staticflickr.com/6152/6168260594_32facba00d_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/6152/6168260594_32facba00d_o.jpg",
+    "photo_id": "train/f1b6de70b71b26a7"
   },
   {
     "dialogue": [
@@ -18933,7 +19180,8 @@
     ],
     "dialogue_id": 8747,
     "photo_description": "Objects in the photo: Drink, Woman, Face",
-    "photo_url": "https://farm7.staticflickr.com/5036/7440985700_73f934ee0b_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/5036/7440985700_73f934ee0b_o.jpg",
+    "photo_id": "train/e6b16343431f80a6"
   },
   {
     "dialogue": [
@@ -18985,7 +19233,8 @@
     ],
     "dialogue_id": 8748,
     "photo_description": "Objects in the photo: Plant, Deer, Animal",
-    "photo_url": "https://c2.staticflickr.com/1/322/19846144504_ab03bf2c5b_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/322/19846144504_ab03bf2c5b_o.jpg",
+    "photo_id": "train/f4758f28f6ca11b9"
   },
   {
     "dialogue": [
@@ -19072,7 +19321,8 @@
     ],
     "dialogue_id": 8749,
     "photo_description": "Objects in the photo: Snack, Baked goods, Cake",
-    "photo_url": "https://c5.staticflickr.com/4/3168/3083058817_8cd9f0a678_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/4/3168/3083058817_8cd9f0a678_o.jpg",
+    "photo_id": "train/c4f20166ad097d2c"
   },
   {
     "dialogue": [
@@ -19114,7 +19364,8 @@
     ],
     "dialogue_id": 8750,
     "photo_description": "Objects in the photo: Face, Eye, Drink, Mouth, Head",
-    "photo_url": "https://farm7.staticflickr.com/1105/1367911393_56f8abc45d_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/1105/1367911393_56f8abc45d_o.jpg",
+    "photo_id": "train/78e2b30d0d641686"
   },
   {
     "dialogue": [
@@ -19186,7 +19437,8 @@
     ],
     "dialogue_id": 8751,
     "photo_description": "Objects in the photo: Necklace",
-    "photo_url": "https://c6.staticflickr.com/3/2714/4471604233_55d3f8afc3_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/3/2714/4471604233_55d3f8afc3_o.jpg",
+    "photo_id": "test/84010b32b977a74d"
   },
   {
     "dialogue": [
@@ -19243,7 +19495,8 @@
     ],
     "dialogue_id": 8752,
     "photo_description": "Objects in the photo: Carnivore, golden retriever, Dog, Animal",
-    "photo_url": "https://farm7.staticflickr.com/5300/5522765144_a9672c3183_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/5300/5522765144_a9672c3183_o.jpg",
+    "photo_id": "train/2bf2e2c2b43c35e6"
   },
   {
     "dialogue": [
@@ -19360,7 +19613,8 @@
     ],
     "dialogue_id": 8753,
     "photo_description": "Objects in the photo: Cake, Baked goods, Snack, Dairy",
-    "photo_url": "https://c7.staticflickr.com/2/1126/1189685036_6d1a692297_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/2/1126/1189685036_6d1a692297_o.jpg",
+    "photo_id": "train/766be7af11a0dc0e"
   },
   {
     "dialogue": [
@@ -19412,7 +19666,8 @@
     ],
     "dialogue_id": 8754,
     "photo_description": "Objects in the photo: p\u00e1ssaros, Animal",
-    "photo_url": "https://c1.staticflickr.com/5/4056/4475097481_66f714810d_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/5/4056/4475097481_66f714810d_o.jpg",
+    "photo_id": "train/d21adb8652dc6df8"
   },
   {
     "dialogue": [
@@ -19464,7 +19719,8 @@
     ],
     "dialogue_id": 8755,
     "photo_description": "The photo has your brother Jett. Objects in the photo: Man, Face",
-    "photo_url": "https://farm5.staticflickr.com/3343/3283433816_6e7c00570a_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3343/3283433816_6e7c00570a_o.jpg",
+    "photo_id": "train/5df0dd3af7dcd6d4"
   },
   {
     "dialogue": [
@@ -19541,7 +19797,8 @@
     ],
     "dialogue_id": 8756,
     "photo_description": "Objects in the photo: Snack, Fast food, Pastry",
-    "photo_url": "https://c4.staticflickr.com/9/8632/16012352233_edf6fb38f0_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/9/8632/16012352233_edf6fb38f0_o.jpg",
+    "photo_id": "train/7dbb75c9d241a85b"
   },
   {
     "dialogue": [
@@ -19618,7 +19875,8 @@
     ],
     "dialogue_id": 8757,
     "photo_description": "Objects in the photo: Reef, Water, Fish, Animal, Beach, Aquarium, Plant",
-    "photo_url": "https://farm5.staticflickr.com/7371/10068600396_7ef5bec73a_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/7371/10068600396_7ef5bec73a_o.jpg",
+    "photo_id": "train/77665c4a75213234"
   },
   {
     "dialogue": [
@@ -19735,7 +19993,8 @@
     ],
     "dialogue_id": 8758,
     "photo_description": "Objects in the photo: Hamburger, Bread, Fast food",
-    "photo_url": "https://c1.staticflickr.com/1/424/19247860750_9f43e17271_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/1/424/19247860750_9f43e17271_o.jpg",
+    "photo_id": "train/b7ad9a091988f7b8"
   },
   {
     "dialogue": [
@@ -19812,7 +20071,8 @@
     ],
     "dialogue_id": 8759,
     "photo_description": "Objects in the photo: Beer, Person, Bottle",
-    "photo_url": "https://c4.staticflickr.com/1/21/31521218_0f26f584c0_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/1/21/31521218_0f26f584c0_o.jpg",
+    "photo_id": "train/ad3c7c438bf0089b"
   },
   {
     "dialogue": [
@@ -19879,7 +20139,8 @@
     ],
     "dialogue_id": 8760,
     "photo_description": "Objects in the photo: Dairy, Plate, Cake",
-    "photo_url": "https://farm3.staticflickr.com/7438/11227439023_7ebd04b9eb_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/7438/11227439023_7ebd04b9eb_o.jpg",
+    "photo_id": "train/39cdc0349be4cec2"
   },
   {
     "dialogue": [
@@ -19946,7 +20207,8 @@
     ],
     "dialogue_id": 8761,
     "photo_description": "The photo has your wife Presley. Objects in the photo: Suit, Face, Woman",
-    "photo_url": "https://farm3.staticflickr.com/1177/4598484027_2db201fe0a_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/1177/4598484027_2db201fe0a_o.jpg",
+    "photo_id": "train/837f5ccd43e62462"
   },
   {
     "dialogue": [
@@ -20038,7 +20300,8 @@
     ],
     "dialogue_id": 8762,
     "photo_description": "The photo has your nephew Saul. Objects in the photo: Boy",
-    "photo_url": "https://c5.staticflickr.com/1/134/379706048_7af0ee78da_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/1/134/379706048_7af0ee78da_o.jpg",
+    "photo_id": "train/03846191f051b3cc"
   },
   {
     "dialogue": [
@@ -20115,7 +20378,8 @@
     ],
     "dialogue_id": 8763,
     "photo_description": "Objects in the photo: Salad, Tomato, Dairy",
-    "photo_url": "https://c3.staticflickr.com/1/58/193218956_2da26a8254_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/1/58/193218956_2da26a8254_o.jpg",
+    "photo_id": "test/e9429f341ea14daa"
   },
   {
     "dialogue": [
@@ -20167,7 +20431,8 @@
     ],
     "dialogue_id": 8764,
     "photo_description": "The photo has your brother Nicolas. Objects in the photo: Man",
-    "photo_url": "https://farm6.staticflickr.com/448/17837290414_a465302efd_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/448/17837290414_a465302efd_o.jpg",
+    "photo_id": "train/84f33d8392ad3ef5"
   },
   {
     "dialogue": [
@@ -20244,7 +20509,8 @@
     ],
     "dialogue_id": 8765,
     "photo_description": "The photo has your mom Hanna. Objects in the photo: Woman",
-    "photo_url": "https://farm1.staticflickr.com/3102/3404349009_884ba21e6f_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/3102/3404349009_884ba21e6f_o.jpg",
+    "photo_id": "train/01d601bbd986dc00"
   },
   {
     "dialogue": [
@@ -20296,7 +20562,8 @@
     ],
     "dialogue_id": 8766,
     "photo_description": "Objects in the photo: Tableware, Table, Clothing, Drink, Face",
-    "photo_url": "https://farm7.staticflickr.com/27/96518507_2a84aa4788_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/27/96518507_2a84aa4788_o.jpg",
+    "photo_id": "train/57292f905de20666"
   },
   {
     "dialogue": [
@@ -20358,7 +20625,8 @@
     ],
     "dialogue_id": 8767,
     "photo_description": "Objects in the photo: Hair, Head, Nose, Drink, Face",
-    "photo_url": "https://c5.staticflickr.com/4/3080/2284120513_267ac9059f_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/4/3080/2284120513_267ac9059f_o.jpg",
+    "photo_id": "train/8741623cbb96875c"
   },
   {
     "dialogue": [
@@ -20470,7 +20738,8 @@
     ],
     "dialogue_id": 8768,
     "photo_description": "Objects in the photo: Monkey, Primate, Animal, Plant",
-    "photo_url": "https://c1.staticflickr.com/4/3587/3635659704_2900f64867_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/4/3587/3635659704_2900f64867_o.jpg",
+    "photo_id": "train/8e71de73997f5218"
   },
   {
     "dialogue": [
@@ -20572,7 +20841,8 @@
     ],
     "dialogue_id": 8769,
     "photo_description": "Objects in the photo: Drink, Man, Face",
-    "photo_url": "https://farm7.staticflickr.com/2080/2925555198_6d8644716b_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/2080/2925555198_6d8644716b_o.jpg",
+    "photo_id": "train/7d5c29a0719b5c56"
   },
   {
     "dialogue": [
@@ -20644,7 +20914,8 @@
     ],
     "dialogue_id": 8770,
     "photo_description": "Objects in the photo: Rabbit, Rabbits and Hares, Drawing, Animal, Painting, Flower, ilustraci\u00f3n, Domestic rabbit, Easter bunny",
-    "photo_url": "https://c8.staticflickr.com/9/8046/8125089665_337190fbe7_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/9/8046/8125089665_337190fbe7_o.jpg",
+    "photo_id": "train/073745223208a16f"
   },
   {
     "dialogue": [
@@ -20721,7 +20992,8 @@
     ],
     "dialogue_id": 8771,
     "photo_description": "Objects in the photo: Woman, Fashion accessory, Table, Drink",
-    "photo_url": "https://c2.staticflickr.com/1/17/21490833_071ebdbb53_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/17/21490833_071ebdbb53_o.jpg",
+    "photo_id": "train/36259e4b8c784839"
   },
   {
     "dialogue": [
@@ -20803,7 +21075,8 @@
     ],
     "dialogue_id": 8772,
     "photo_description": "Objects in the photo: Baked goods, Snack, Dessert",
-    "photo_url": "https://c3.staticflickr.com/3/2149/2431752523_0a46d2e30f_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/3/2149/2431752523_0a46d2e30f_o.jpg",
+    "photo_id": "train/86e58f224f97ba6a"
   },
   {
     "dialogue": [
@@ -20875,7 +21148,8 @@
     ],
     "dialogue_id": 8773,
     "photo_description": "Objects in the photo: Goat, Goats, Mammal, monta\u00f1as, Animal, Liver",
-    "photo_url": "https://c7.staticflickr.com/6/5502/14253679518_bf5d8c8b6b_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/6/5502/14253679518_bf5d8c8b6b_o.jpg",
+    "photo_id": "train/155a50a390721eee"
   },
   {
     "dialogue": [
@@ -20927,7 +21201,8 @@
     ],
     "dialogue_id": 8774,
     "photo_description": "Objects in the photo: Hair, Clothing, Snack",
-    "photo_url": "https://c3.staticflickr.com/4/3064/2573709458_710fa7451e_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3064/2573709458_710fa7451e_o.jpg",
+    "photo_id": "train/5644c67a21923f1a"
   },
   {
     "dialogue": [
@@ -21004,7 +21279,8 @@
     ],
     "dialogue_id": 8775,
     "photo_description": "The photo has your brother Mateo. Objects in the photo: Man, Clothing",
-    "photo_url": "https://c1.staticflickr.com/1/130/346519934_997a3ab65c_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/1/130/346519934_997a3ab65c_o.jpg",
+    "photo_id": "train/5a00cbbe965a7838"
   },
   {
     "dialogue": [
@@ -21061,7 +21337,8 @@
     ],
     "dialogue_id": 8776,
     "photo_description": "Objects in the photo: Snack, Pastry, Cake",
-    "photo_url": "https://farm3.staticflickr.com/74/195210419_bed1818612_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/74/195210419_bed1818612_o.jpg",
+    "photo_id": "train/a59f41c6d92e09c2"
   },
   {
     "dialogue": [
@@ -21158,7 +21435,8 @@
     ],
     "dialogue_id": 8777,
     "photo_description": "The photo has your friend Hadley. Objects in the photo: Ear, Nose, Mammal, Hair, Arm, Woman, Eye, Hand, Mouth, Face, Head",
-    "photo_url": "https://c5.staticflickr.com/9/8057/8183247764_872a0e1805_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8057/8183247764_872a0e1805_o.jpg",
+    "photo_id": "train/2627ea9ae8031a9c"
   },
   {
     "dialogue": [
@@ -21235,7 +21513,8 @@
     ],
     "dialogue_id": 8778,
     "photo_description": "Objects in the photo: Drink, Food, Man",
-    "photo_url": "https://farm3.staticflickr.com/2013/1939405216_491adc4d87_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/2013/1939405216_491adc4d87_o.jpg",
+    "photo_id": "train/f75559e4d6c260b2"
   },
   {
     "dialogue": [
@@ -21332,7 +21611,8 @@
     ],
     "dialogue_id": 8779,
     "photo_description": "Objects in the photo: Computer keyboard, Laptop",
-    "photo_url": "https://c3.staticflickr.com/4/3862/15195632275_d900d32a1d_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3862/15195632275_d900d32a1d_o.jpg",
+    "photo_id": "test/6c2544526e61a41a"
   },
   {
     "dialogue": [
@@ -21439,7 +21719,8 @@
     ],
     "dialogue_id": 8780,
     "photo_description": "Objects in the photo: Flower, Baked goods, Leg",
-    "photo_url": "https://farm8.staticflickr.com/3631/3352443788_8b14a4ef8d_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/3631/3352443788_8b14a4ef8d_o.jpg",
+    "photo_id": "test/5d285b82c986c187"
   },
   {
     "dialogue": [
@@ -21521,7 +21802,8 @@
     ],
     "dialogue_id": 8781,
     "photo_description": "Objects in the photo: Fast food, Baked goods, Vegetable",
-    "photo_url": "https://farm4.staticflickr.com/3813/11740986944_5a1fb509eb_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/3813/11740986944_5a1fb509eb_o.jpg",
+    "photo_id": "validation/8779d5f6c34ccd43"
   },
   {
     "dialogue": [
@@ -21583,7 +21865,8 @@
     ],
     "dialogue_id": 8782,
     "photo_description": "The photo has your sister Aya. Objects in the photo: Clothing, Woman",
-    "photo_url": "https://farm7.staticflickr.com/3090/2855940935_5359954890_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3090/2855940935_5359954890_o.jpg",
+    "photo_id": "train/4da29ad4e6a920c6"
   },
   {
     "dialogue": [
@@ -21675,7 +21958,8 @@
     ],
     "dialogue_id": 8783,
     "photo_description": "Objects in the photo: Drink, Woman, Face",
-    "photo_url": "https://c1.staticflickr.com/8/7492/15675264350_08e99b7fb1_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/8/7492/15675264350_08e99b7fb1_o.jpg",
+    "photo_id": "train/146cb1e4acddf6d8"
   },
   {
     "dialogue": [
@@ -21747,7 +22031,8 @@
     ],
     "dialogue_id": 8784,
     "photo_description": "The photo has your grandson Ari. Objects in the photo: Boy, Hat, Face, Tree",
-    "photo_url": "https://farm7.staticflickr.com/3260/2566066819_0c48c4172b_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3260/2566066819_0c48c4172b_o.jpg",
+    "photo_id": "train/10f9d08b611e6166"
   },
   {
     "dialogue": [
@@ -21809,7 +22094,8 @@
     ],
     "dialogue_id": 8785,
     "photo_description": "Objects in the photo: Mouth, Candy, Hair, Snack",
-    "photo_url": "https://farm7.staticflickr.com/8087/8382073506_db9e5ea66f_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/8087/8382073506_db9e5ea66f_o.jpg",
+    "photo_id": "train/40ab528ffde32356"
   },
   {
     "dialogue": [
@@ -21861,7 +22147,8 @@
     ],
     "dialogue_id": 8786,
     "photo_description": "Objects in the photo: Clothing, Curtain",
-    "photo_url": "https://c4.staticflickr.com/9/8262/15584141709_300379c82a_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/9/8262/15584141709_300379c82a_o.jpg",
+    "photo_id": "validation/242da0bc08931f8b"
   },
   {
     "dialogue": [
@@ -21938,7 +22225,8 @@
     ],
     "dialogue_id": 8787,
     "photo_description": "Objects in the photo: Raven, Animal, birds",
-    "photo_url": "https://farm3.staticflickr.com/5176/5455936178_33262f7865_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/5176/5455936178_33262f7865_o.jpg",
+    "photo_id": "train/799e4461dfecc042"
   },
   {
     "dialogue": [
@@ -22035,7 +22323,8 @@
     ],
     "dialogue_id": 8788,
     "photo_description": "Objects in the photo: Fast food, Person, Laptop",
-    "photo_url": "https://c1.staticflickr.com/9/8015/7108286489_aa7c64d1fe_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/9/8015/7108286489_aa7c64d1fe_o.jpg",
+    "photo_id": "train/4703627d741f9f18"
   },
   {
     "dialogue": [
@@ -22107,7 +22396,8 @@
     ],
     "dialogue_id": 8789,
     "photo_description": "Objects in the photo: Human body, Drink, Face, Nose, Arm",
-    "photo_url": "https://c1.staticflickr.com/4/3122/3146569307_4a8144a3d7_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/4/3122/3146569307_4a8144a3d7_o.jpg",
+    "photo_id": "train/90a79d01ede02b18"
   },
   {
     "dialogue": [
@@ -22159,7 +22449,8 @@
     ],
     "dialogue_id": 8790,
     "photo_description": "The photo has your friend Emilee. Objects in the photo: Table, Clothing, Woman",
-    "photo_url": "https://c5.staticflickr.com/4/3078/2786908861_4162433056_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/4/3078/2786908861_4162433056_o.jpg",
+    "photo_id": "train/a000c89ae82f28ac"
   },
   {
     "dialogue": [
@@ -22221,7 +22512,8 @@
     ],
     "dialogue_id": 8791,
     "photo_description": "Objects in the photo: Streptopelia, Painting, Plant, Animal, Typical pigeons, Pigeons and doves, p\u00e1jaros, Smile",
-    "photo_url": "https://c7.staticflickr.com/4/3312/3509325586_e12c22033f_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/4/3312/3509325586_e12c22033f_o.jpg",
+    "photo_id": "train/022233f88741d27e"
   },
   {
     "dialogue": [
@@ -22313,7 +22605,8 @@
     ],
     "dialogue_id": 8792,
     "photo_description": "The photo has your friend's daughter Reina. Objects in the photo: Woman, Face, Girl",
-    "photo_url": "https://c2.staticflickr.com/3/2218/2258346923_c5346cdab8_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/3/2218/2258346923_c5346cdab8_o.jpg",
+    "photo_id": "train/91c623c1bdd174b9"
   },
   {
     "dialogue": [
@@ -22380,7 +22673,8 @@
     ],
     "dialogue_id": 8793,
     "photo_description": "The photo has your student Mina. Objects in the photo: Woman, Clothing",
-    "photo_url": "https://farm4.staticflickr.com/7378/16397033665_cd38b43ede_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7378/16397033665_cd38b43ede_o.jpg",
+    "photo_id": "train/3151b11bf92cfcc3"
   },
   {
     "dialogue": [
@@ -22447,7 +22741,8 @@
     ],
     "dialogue_id": 8794,
     "photo_description": "Objects in the photo: Cat, Drink, Table, Bottle",
-    "photo_url": "https://c8.staticflickr.com/1/99/363465045_86f708ca81_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/1/99/363465045_86f708ca81_o.jpg",
+    "photo_id": "train/c95e222ea9735a2f"
   },
   {
     "dialogue": [
@@ -22509,7 +22804,8 @@
     ],
     "dialogue_id": 8795,
     "photo_description": "The photo has your mom Sariyah. Objects in the photo: Woman, Microphone",
-    "photo_url": "https://farm8.staticflickr.com/8378/8587879137_879ecb19f4_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/8378/8587879137_879ecb19f4_o.jpg",
+    "photo_id": "train/4ea6444c98f409c7"
   },
   {
     "dialogue": [
@@ -22586,7 +22882,8 @@
     ],
     "dialogue_id": 8796,
     "photo_description": "The photo has your sister Gwendolyn. Objects in the photo: Woman, Man",
-    "photo_url": "https://farm4.staticflickr.com/5063/5660027045_a38ba30dd0_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/5063/5660027045_a38ba30dd0_o.jpg",
+    "photo_id": "train/d8b789b7b68ea863"
   },
   {
     "dialogue": [
@@ -22678,7 +22975,8 @@
     ],
     "dialogue_id": 8797,
     "photo_description": "Objects in the photo: Dairy, Fast food, Baked goods, Pizza",
-    "photo_url": "https://farm2.staticflickr.com/4099/4932031555_2875dc0e9a_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/4099/4932031555_2875dc0e9a_o.jpg",
+    "photo_id": "train/51ae110fe816c301"
   },
   {
     "dialogue": [
@@ -22745,7 +23043,8 @@
     ],
     "dialogue_id": 8798,
     "photo_description": "The photo has your friend Sydney. Objects in the photo: Face, Woman",
-    "photo_url": "https://farm4.staticflickr.com/3862/14672962507_2102445d72_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/3862/14672962507_2102445d72_o.jpg",
+    "photo_id": "train/cf21b65d67ef5753"
   },
   {
     "dialogue": [
@@ -22817,7 +23116,8 @@
     ],
     "dialogue_id": 8799,
     "photo_description": "Objects in the photo: Plant, Elephant, Animal, Mammal, Tree",
-    "photo_url": "https://farm3.staticflickr.com/8396/8644243409_018003105e_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/8396/8644243409_018003105e_o.jpg",
+    "photo_id": "train/469cb0ed8df41222"
   },
   {
     "dialogue": [
@@ -22874,7 +23174,8 @@
     ],
     "dialogue_id": 8800,
     "photo_description": "Objects in the photo: Ice cream, Fast food, Dairy",
-    "photo_url": "https://c4.staticflickr.com/5/4020/4518553892_f5fc522926_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/5/4020/4518553892_f5fc522926_o.jpg",
+    "photo_id": "train/653491fd9eb877ab"
   },
   {
     "dialogue": [
@@ -22936,7 +23237,8 @@
     ],
     "dialogue_id": 8801,
     "photo_description": "Objects in the photo: Table, Snack, Tableware",
-    "photo_url": "https://c3.staticflickr.com/5/4107/5190735316_e5bb701e83_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/5/4107/5190735316_e5bb701e83_o.jpg",
+    "photo_id": "train/3371334b390b1cba"
   },
   {
     "dialogue": [
@@ -22983,7 +23285,8 @@
     ],
     "dialogue_id": 8802,
     "photo_description": "The photo has your uncle Rhett. Objects in the photo: Man",
-    "photo_url": "https://farm3.staticflickr.com/3644/3347866766_51c510185f_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/3644/3347866766_51c510185f_o.jpg",
+    "photo_id": "train/48cb57735ee095f2"
   },
   {
     "dialogue": [
@@ -23130,7 +23433,8 @@
     ],
     "dialogue_id": 8803,
     "photo_description": "Objects in the photo: Table, Face, Drink",
-    "photo_url": "https://c5.staticflickr.com/6/5494/10265652804_6b587dbe74_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/6/5494/10265652804_6b587dbe74_o.jpg",
+    "photo_id": "train/837cff46bba671ac"
   },
   {
     "dialogue": [
@@ -23197,7 +23501,8 @@
     ],
     "dialogue_id": 8804,
     "photo_description": "Objects in the photo: Face, Clothing, Bread",
-    "photo_url": "https://c7.staticflickr.com/4/3026/3026984979_3650012fa0_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/4/3026/3026984979_3650012fa0_o.jpg",
+    "photo_id": "train/0a507ea05bfb5fbe"
   },
   {
     "dialogue": [
@@ -23274,7 +23579,8 @@
     ],
     "dialogue_id": 8805,
     "photo_description": "Objects in the photo: Fast food, Person, Hair, Head, Face",
-    "photo_url": "https://farm3.staticflickr.com/118/280633033_f728e43734_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/118/280633033_f728e43734_o.jpg",
+    "photo_id": "train/18e148bac7c630d2"
   },
   {
     "dialogue": [
@@ -23341,7 +23647,8 @@
     ],
     "dialogue_id": 8806,
     "photo_description": "Objects in the photo: Snack, Person, Clothing",
-    "photo_url": "https://c4.staticflickr.com/1/175/427442387_c9e693293d_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/1/175/427442387_c9e693293d_o.jpg",
+    "photo_id": "train/611dca75144401eb"
   },
   {
     "dialogue": [
@@ -23388,7 +23695,8 @@
     ],
     "dialogue_id": 8807,
     "photo_description": "The photo has your student Wesson. Objects in the photo: Man, Face",
-    "photo_url": "https://farm7.staticflickr.com/2/2044320_7c974d9cab_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/2/2044320_7c974d9cab_o.jpg",
+    "photo_id": "train/c91c4125a5ba9786"
   },
   {
     "dialogue": [
@@ -23510,7 +23818,8 @@
     ],
     "dialogue_id": 8808,
     "photo_description": "Objects in the photo: Tableware, Fast food, Face",
-    "photo_url": "https://farm7.staticflickr.com/7014/6818177801_511ee2b2f3_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/7014/6818177801_511ee2b2f3_o.jpg",
+    "photo_id": "train/960cfe99157df576"
   },
   {
     "dialogue": [
@@ -23587,7 +23896,8 @@
     ],
     "dialogue_id": 8809,
     "photo_description": "The photo has your friend Avalynn. Objects in the photo: Woman",
-    "photo_url": "https://c6.staticflickr.com/7/6080/6153089556_51c9cb5145_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/7/6080/6153089556_51c9cb5145_o.jpg",
+    "photo_id": "train/a0c46e845dcd70ed"
   },
   {
     "dialogue": [
@@ -23654,7 +23964,8 @@
     ],
     "dialogue_id": 8810,
     "photo_description": "The photo has your brother Payton. Objects in the photo: Man, Face",
-    "photo_url": "https://c6.staticflickr.com/6/5615/15775766115_abaf7419d9_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/6/5615/15775766115_abaf7419d9_o.jpg",
+    "photo_id": "train/8bdb6b8a3b7c6fcd"
   },
   {
     "dialogue": [
@@ -23706,7 +24017,8 @@
     ],
     "dialogue_id": 8811,
     "photo_description": "Objects in the photo: Cake, Baked goods, Dairy",
-    "photo_url": "https://farm7.staticflickr.com/3563/3412197743_f34cd6c70a_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3563/3412197743_f34cd6c70a_o.jpg",
+    "photo_id": "train/7a385694691f1026"
   },
   {
     "dialogue": [
@@ -23783,7 +24095,8 @@
     ],
     "dialogue_id": 8812,
     "photo_description": "The photo has your uncle Lucian. Objects in the photo: Man, Face",
-    "photo_url": "https://c2.staticflickr.com/1/51/139461808_ed54943cf7_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/51/139461808_ed54943cf7_o.jpg",
+    "photo_id": "train/9327f9751494ad59"
   },
   {
     "dialogue": [
@@ -23885,7 +24198,8 @@
     ],
     "dialogue_id": 8813,
     "photo_description": "Objects in the photo: Face, Clothing, Cake",
-    "photo_url": "https://farm7.staticflickr.com/1146/1439863017_8ecf0cd461_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/1146/1439863017_8ecf0cd461_o.jpg",
+    "photo_id": "train/1ba7a50457e93996"
   },
   {
     "dialogue": [
@@ -23947,7 +24261,8 @@
     ],
     "dialogue_id": 8814,
     "photo_description": "The photo has your friend Trace. Objects in the photo: Man",
-    "photo_url": "https://farm4.staticflickr.com/5531/9467192250_d01724efb0_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/5531/9467192250_d01724efb0_o.jpg",
+    "photo_id": "train/be877989808d6e23"
   },
   {
     "dialogue": [
@@ -24019,7 +24334,8 @@
     ],
     "dialogue_id": 8815,
     "photo_description": "Objects in the photo: Tableware, Drink, Face, Clothing",
-    "photo_url": "https://c6.staticflickr.com/9/8306/7750603332_b44d7e1ccc_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/9/8306/7750603332_b44d7e1ccc_o.jpg",
+    "photo_id": "train/a535437bb1d2386d"
   },
   {
     "dialogue": [
@@ -24106,7 +24422,8 @@
     ],
     "dialogue_id": 8816,
     "photo_description": "Objects in the photo: Fast food, Baked goods, Sandwich",
-    "photo_url": "https://farm2.staticflickr.com/2337/2238112568_a8006dd180_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/2337/2238112568_a8006dd180_o.jpg",
+    "photo_id": "train/e0f5c8bc123fd091"
   },
   {
     "dialogue": [
@@ -24153,7 +24470,8 @@
     ],
     "dialogue_id": 8817,
     "photo_description": "The photo has your uncle Oscar. Objects in the photo: Man",
-    "photo_url": "https://c7.staticflickr.com/8/7448/9119158537_d8e3e8d9bd_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7448/9119158537_d8e3e8d9bd_o.jpg",
+    "photo_id": "train/0cee6df48e81c50e"
   },
   {
     "dialogue": [
@@ -24200,7 +24518,8 @@
     ],
     "dialogue_id": 8818,
     "photo_description": "The photo has your husband Kylo. Objects in the photo: Man, Glasses",
-    "photo_url": "https://c2.staticflickr.com/8/7327/15954814444_8152bd7b88_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/8/7327/15954814444_8152bd7b88_o.jpg",
+    "photo_id": "train/695a870201448b89"
   },
   {
     "dialogue": [
@@ -24327,7 +24646,8 @@
     ],
     "dialogue_id": 8819,
     "photo_description": "Objects in the photo: Home appliance, Drink, Blender, Dairy",
-    "photo_url": "https://c7.staticflickr.com/2/1176/1394227164_365aec597e_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/2/1176/1394227164_365aec597e_o.jpg",
+    "photo_id": "validation/f1afdb66db749d5e"
   },
   {
     "dialogue": [
@@ -24394,7 +24714,8 @@
     ],
     "dialogue_id": 8820,
     "photo_description": "Objects in the photo: Wine, Beer, Bottle, Wine glass",
-    "photo_url": "https://c5.staticflickr.com/9/8287/7836773234_d6b0230979_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8287/7836773234_d6b0230979_o.jpg",
+    "photo_id": "train/1a4886c6dadea4dc"
   },
   {
     "dialogue": [
@@ -24446,7 +24767,8 @@
     ],
     "dialogue_id": 8821,
     "photo_description": "Objects in the photo: Sea lion, Water, Marine mammal, Animal, Earless seal, Harbor seal, lakes, playas",
-    "photo_url": "https://c4.staticflickr.com/1/735/20592317219_10df00abeb_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/1/735/20592317219_10df00abeb_o.jpg",
+    "photo_id": "train/335234262884f2ab"
   },
   {
     "dialogue": [
@@ -24503,7 +24825,8 @@
     ],
     "dialogue_id": 8822,
     "photo_description": "Objects in the photo: Crocodile, Reptile, Animal",
-    "photo_url": "https://farm2.staticflickr.com/7658/17745368698_03fd3f2eb2_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/7658/17745368698_03fd3f2eb2_o.jpg",
+    "photo_id": "train/d57af6dde2c39771"
   },
   {
     "dialogue": [
@@ -24580,7 +24903,8 @@
     ],
     "dialogue_id": 8823,
     "photo_description": "Objects in the photo: Suit, Drink, Woman",
-    "photo_url": "https://farm1.staticflickr.com/5479/11238554886_7eb17c482d_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/5479/11238554886_7eb17c482d_o.jpg",
+    "photo_id": "train/ed34037655c8cab0"
   },
   {
     "dialogue": [
@@ -24682,7 +25006,8 @@
     ],
     "dialogue_id": 8824,
     "photo_description": "The photo has your student Fletcher. Objects in the photo: Woman, Man, Suit",
-    "photo_url": "https://farm3.staticflickr.com/2888/13745784483_ab762f12a3_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/2888/13745784483_ab762f12a3_o.jpg",
+    "photo_id": "train/ed2244802aae3002"
   },
   {
     "dialogue": [
@@ -24789,7 +25114,8 @@
     ],
     "dialogue_id": 8825,
     "photo_description": "Objects in the photo: Face, Clothing, Cake, Boy, Tableware",
-    "photo_url": "https://c7.staticflickr.com/1/9/75768267_23283e1eb7_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/1/9/75768267_23283e1eb7_o.jpg",
+    "photo_id": "train/b731e64c68db778e"
   },
   {
     "dialogue": [
@@ -24871,7 +25197,8 @@
     ],
     "dialogue_id": 8826,
     "photo_description": "The photo has your girlfriend Eva. Objects in the photo: Face, Woman",
-    "photo_url": "https://farm7.staticflickr.com/3122/2613617357_7ea1ace25a_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3122/2613617357_7ea1ace25a_o.jpg",
+    "photo_id": "train/43020a766a3a4316"
   },
   {
     "dialogue": [
@@ -24948,7 +25275,8 @@
     ],
     "dialogue_id": 8827,
     "photo_description": "The photo has your nephew Ayaan. Objects in the photo: Clothing, Face, Boy",
-    "photo_url": "https://farm8.staticflickr.com/1166/5109713891_7db52bea82_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/1166/5109713891_7db52bea82_o.jpg",
+    "photo_id": "train/2e747b1dabd06337"
   },
   {
     "dialogue": [
@@ -25035,7 +25363,8 @@
     ],
     "dialogue_id": 8828,
     "photo_description": "Objects in the photo: Fast food, Snack, Drink",
-    "photo_url": "https://farm2.staticflickr.com/5107/5682890318_3f941006c8_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/5107/5682890318_3f941006c8_o.jpg",
+    "photo_id": "train/d554c5abc5e909b1"
   },
   {
     "dialogue": [
@@ -25112,7 +25441,8 @@
     ],
     "dialogue_id": 8829,
     "photo_description": "The photo has your friend Chandler. Objects in the photo: Man, Clothing",
-    "photo_url": "https://c1.staticflickr.com/9/8513/8401565935_28bdab34d8_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/9/8513/8401565935_28bdab34d8_o.jpg",
+    "photo_id": "train/9133653d78372af8"
   },
   {
     "dialogue": [
@@ -25194,7 +25524,8 @@
     ],
     "dialogue_id": 8830,
     "photo_description": "Objects in the photo: Man, Bottle, Wine, Face",
-    "photo_url": "https://c3.staticflickr.com/3/2708/4448956887_abc427514b_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/3/2708/4448956887_abc427514b_o.jpg",
+    "photo_id": "train/d04eace8bb1daaea"
   },
   {
     "dialogue": [
@@ -25291,7 +25622,8 @@
     ],
     "dialogue_id": 8831,
     "photo_description": "Objects in the photo: Coffee cup, Tableware, Tea, Coffee, Jug, Pitcher, Saucer",
-    "photo_url": "https://farm1.staticflickr.com/7003/6593045885_7b4ce93ff6_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/7003/6593045885_7b4ce93ff6_o.jpg",
+    "photo_id": "test/7fd782ae0784d2d0"
   },
   {
     "dialogue": [
@@ -25373,7 +25705,8 @@
     ],
     "dialogue_id": 8832,
     "photo_description": "Objects in the photo: Dessert, Dairy, Snack",
-    "photo_url": "https://c6.staticflickr.com/1/357/19493972440_335897e66f_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/1/357/19493972440_335897e66f_o.jpg",
+    "photo_id": "test/8789020d01b74bed"
   },
   {
     "dialogue": [
@@ -25460,7 +25793,8 @@
     ],
     "dialogue_id": 8833,
     "photo_description": "The photo has your mom Angela. Objects in the photo: Face, Woman",
-    "photo_url": "https://farm8.staticflickr.com/5027/5599095792_c27be5c0a8_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/5027/5599095792_c27be5c0a8_o.jpg",
+    "photo_id": "train/baa7ad7cffb4f1e7"
   },
   {
     "dialogue": [
@@ -25537,7 +25871,8 @@
     ],
     "dialogue_id": 8834,
     "photo_description": "Objects in the photo: Dog, Carnivore, Animal",
-    "photo_url": "https://c6.staticflickr.com/9/8607/15869567812_90a86eb4f2_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/9/8607/15869567812_90a86eb4f2_o.jpg",
+    "photo_id": "train/e30de21d45589c6d"
   },
   {
     "dialogue": [
@@ -25609,7 +25944,8 @@
     ],
     "dialogue_id": 8835,
     "photo_description": "Objects in the photo: Fish, Glove, Seafood",
-    "photo_url": "https://farm5.staticflickr.com/60/197887856_4e0708f50a_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/60/197887856_4e0708f50a_o.jpg",
+    "photo_id": "train/ed3cbd620fd2b384"
   },
   {
     "dialogue": [
@@ -25671,7 +26007,8 @@
     ],
     "dialogue_id": 8836,
     "photo_description": "The photo has your son Remington. Objects in the photo: Clothing, Boy",
-    "photo_url": "https://farm5.staticflickr.com/3471/3939418550_aafe002f61_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3471/3939418550_aafe002f61_o.jpg",
+    "photo_id": "train/26a5d6fed7b09454"
   },
   {
     "dialogue": [
@@ -25748,7 +26085,8 @@
     ],
     "dialogue_id": 8837,
     "photo_description": "Objects in the photo: Fast food, Snack, Dessert",
-    "photo_url": "https://c1.staticflickr.com/4/3550/3685950323_0966c84c1e_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/4/3550/3685950323_0966c84c1e_o.jpg",
+    "photo_id": "train/4c74ef068ee95fc8"
   },
   {
     "dialogue": [
@@ -25790,7 +26128,8 @@
     ],
     "dialogue_id": 8838,
     "photo_description": "Objects in the photo: Mouse, Motorcycle, Rat, Wheel, Hamster, Tire, Vehicle, Animal, Land vehicle",
-    "photo_url": "https://c3.staticflickr.com/1/12/18304966_67c2033663_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/1/12/18304966_67c2033663_o.jpg",
+    "photo_id": "train/c8ab742b96811aaa"
   },
   {
     "dialogue": [
@@ -25842,7 +26181,8 @@
     ],
     "dialogue_id": 8839,
     "photo_description": "Objects in the photo: Doughnut, Fast food, Dessert",
-    "photo_url": "https://farm4.staticflickr.com/3303/3480318810_632e077bf8_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/3303/3480318810_632e077bf8_o.jpg",
+    "photo_id": "train/27ded01c752f8933"
   },
   {
     "dialogue": [
@@ -25914,7 +26254,8 @@
     ],
     "dialogue_id": 8840,
     "photo_description": "Objects in the photo: Snack, Dessert, Pastry",
-    "photo_url": "https://c5.staticflickr.com/3/2212/2114119759_cde65aa7b5_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/3/2212/2114119759_cde65aa7b5_o.jpg",
+    "photo_id": "train/c3d9e7c4e2ba2c7c"
   },
   {
     "dialogue": [
@@ -26006,7 +26347,8 @@
     ],
     "dialogue_id": 8841,
     "photo_description": "Objects in the photo: horse flies, \u062a\u0635\u0648\u064a\u0631, Fog, Fly, Pest, house fly, Animal, Macro photography, Illustration, Botfly",
-    "photo_url": "https://farm8.staticflickr.com/582/21690055086_4337f40a0a_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/582/21690055086_4337f40a0a_o.jpg",
+    "photo_id": "train/02dd43348ac80327"
   },
   {
     "dialogue": [
@@ -26078,7 +26420,8 @@
     ],
     "dialogue_id": 8842,
     "photo_description": "Objects in the photo: Drink, Fast food, Man, Clothing, Face",
-    "photo_url": "https://c3.staticflickr.com/8/7417/9175385107_292f9b6b30_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/8/7417/9175385107_292f9b6b30_o.jpg",
+    "photo_id": "train/a2814575789780da"
   },
   {
     "dialogue": [
@@ -26160,7 +26503,8 @@
     ],
     "dialogue_id": 8843,
     "photo_description": "Objects in the photo: Person, Drink, Fast food",
-    "photo_url": "https://farm7.staticflickr.com/21/33569732_1fa96ad15c_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/21/33569732_1fa96ad15c_o.jpg",
+    "photo_id": "train/6ea142b6cef99b96"
   },
   {
     "dialogue": [
@@ -26267,7 +26611,8 @@
     ],
     "dialogue_id": 8844,
     "photo_description": "The photo has your dad Karson. Objects in the photo: Man, Clothing",
-    "photo_url": "https://farm3.staticflickr.com/7504/15799700586_f67f54ee7d_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/7504/15799700586_f67f54ee7d_o.jpg",
+    "photo_id": "train/60e1d606c455dd32"
   },
   {
     "dialogue": [
@@ -26364,7 +26709,8 @@
     ],
     "dialogue_id": 8845,
     "photo_description": "Objects in the photo: Drink, Fashion accessory, Face",
-    "photo_url": "https://c4.staticflickr.com/5/4152/5001829498_02d3136c08_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/5/4152/5001829498_02d3136c08_o.jpg",
+    "photo_id": "train/7ab38e116576a93b"
   },
   {
     "dialogue": [
@@ -26441,7 +26787,8 @@
     ],
     "dialogue_id": 8846,
     "photo_description": "Objects in the photo: Mammal, Snack, Face, Hand, Boy, Clothing, Human body, Tableware",
-    "photo_url": "https://farm7.staticflickr.com/66/221135761_5c0f39311c_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/66/221135761_5c0f39311c_o.jpg",
+    "photo_id": "train/7d19a8cc6bb81656"
   },
   {
     "dialogue": [
@@ -26538,7 +26885,8 @@
     ],
     "dialogue_id": 8847,
     "photo_description": "Objects in the photo: Face, Boy, Baked goods, Cake",
-    "photo_url": "https://farm8.staticflickr.com/1436/5111668431_f1598ee627_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/1436/5111668431_f1598ee627_o.jpg",
+    "photo_id": "train/af6df24ad275a027"
   },
   {
     "dialogue": [
@@ -26635,7 +26983,8 @@
     ],
     "dialogue_id": 8848,
     "photo_description": "Objects in the photo: Pants, Man, Duck, Person, Clothing, Animal, Lake, Woman, Tree",
-    "photo_url": "https://c8.staticflickr.com/8/7529/15695743124_b0d31c0b75_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/8/7529/15695743124_b0d31c0b75_o.jpg",
+    "photo_id": "train/e1d542a6b535500f"
   },
   {
     "dialogue": [
@@ -26702,7 +27051,8 @@
     ],
     "dialogue_id": 8849,
     "photo_description": "The photo has your dad Brian. Objects in the photo: Clothing, Man",
-    "photo_url": "https://c7.staticflickr.com/6/5552/15034925676_6c4bac6547_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/6/5552/15034925676_6c4bac6547_o.jpg",
+    "photo_id": "train/6beb45d9d9d05f4e"
   },
   {
     "dialogue": [
@@ -26754,7 +27104,8 @@
     ],
     "dialogue_id": 8850,
     "photo_description": "The photo has your wife Florence. Objects in the photo: Woman, Flower, Face",
-    "photo_url": "https://c5.staticflickr.com/8/7431/10676791626_0bdffd82eb_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/8/7431/10676791626_0bdffd82eb_o.jpg",
+    "photo_id": "train/bd5457174cc1b64c"
   },
   {
     "dialogue": [
@@ -26801,7 +27152,8 @@
     ],
     "dialogue_id": 8851,
     "photo_description": "The photo has your grandson Cruz. Objects in the photo: Boy, Tree",
-    "photo_url": "https://farm8.staticflickr.com/23/28788195_d736f0bde2_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/23/28788195_d736f0bde2_o.jpg",
+    "photo_id": "train/b816a6130e041777"
   },
   {
     "dialogue": [
@@ -26918,7 +27270,8 @@
     ],
     "dialogue_id": 8852,
     "photo_description": "Objects in the photo: Sunglasses, Boy, Drink, Hand",
-    "photo_url": "https://c7.staticflickr.com/7/6028/5934886970_18d68452b4_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/7/6028/5934886970_18d68452b4_o.jpg",
+    "photo_id": "train/77705a9dfec4c1ce"
   },
   {
     "dialogue": [
@@ -26985,7 +27338,8 @@
     ],
     "dialogue_id": 8853,
     "photo_description": "Objects in the photo: Snack, Cake, Pastry",
-    "photo_url": "https://c5.staticflickr.com/9/8741/16962698456_a64c0880d0_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8741/16962698456_a64c0880d0_o.jpg",
+    "photo_id": "train/921d3c690ce84b0c"
   },
   {
     "dialogue": [
@@ -27077,7 +27431,8 @@
     ],
     "dialogue_id": 8854,
     "photo_description": "Objects in the photo: Dessert, Baked goods, Pizza",
-    "photo_url": "https://farm4.staticflickr.com/8466/8368536030_263c205f0e_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/8466/8368536030_263c205f0e_o.jpg",
+    "photo_id": "train/35801568540fd3b3"
   },
   {
     "dialogue": [
@@ -27129,7 +27484,8 @@
     ],
     "dialogue_id": 8855,
     "photo_description": "Objects in the photo: Plant, Frog, Animal",
-    "photo_url": "https://c2.staticflickr.com/6/5174/5794436308_7fee190af5_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/6/5174/5794436308_7fee190af5_o.jpg",
+    "photo_id": "train/efb1924d9dba0df9"
   },
   {
     "dialogue": [
@@ -27231,7 +27587,8 @@
     ],
     "dialogue_id": 8856,
     "photo_description": "The photo has your mom Oaklyn. Objects in the photo: Woman, Fashion accessory, Face",
-    "photo_url": "https://farm7.staticflickr.com/2259/2115125833_1406852f8e_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/2259/2115125833_1406852f8e_o.jpg",
+    "photo_id": "train/13747b12cd63f596"
   },
   {
     "dialogue": [
@@ -27308,7 +27665,8 @@
     ],
     "dialogue_id": 8857,
     "photo_description": "The photo has your dad Salvador. Objects in the photo: Drink, Man",
-    "photo_url": "https://c2.staticflickr.com/1/115/317053564_aaaf966a25_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/115/317053564_aaaf966a25_o.jpg",
+    "photo_id": "train/807963c8ad159dd9"
   },
   {
     "dialogue": [
@@ -27420,7 +27778,8 @@
     ],
     "dialogue_id": 8858,
     "photo_description": "Objects in the photo: Drink, Table, Person",
-    "photo_url": "https://c8.staticflickr.com/8/7430/16592659582_262c4eeb63_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/8/7430/16592659582_262c4eeb63_o.jpg",
+    "photo_id": "train/e7f603fa70bf09df"
   },
   {
     "dialogue": [
@@ -27502,7 +27861,8 @@
     ],
     "dialogue_id": 8859,
     "photo_description": "The photo has your dad Dawson. Objects in the photo: Man, Clothing, Face",
-    "photo_url": "https://farm3.staticflickr.com/2571/4013166887_ef9133ef90_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/2571/4013166887_ef9133ef90_o.jpg",
+    "photo_id": "train/163e41bc7362e322"
   },
   {
     "dialogue": [
@@ -27554,7 +27914,8 @@
     ],
     "dialogue_id": 8860,
     "photo_description": "The photo has your girlfriend Celeste. Objects in the photo: Woman, Girl",
-    "photo_url": "https://farm3.staticflickr.com/622/22170639080_12865d945e_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/622/22170639080_12865d945e_o.jpg",
+    "photo_id": "train/469cec0ac923b1c2"
   },
   {
     "dialogue": [
@@ -27626,7 +27987,8 @@
     ],
     "dialogue_id": 8861,
     "photo_description": "Objects in the photo: Fast food, Baked goods, Hamburger",
-    "photo_url": "https://c3.staticflickr.com/9/8106/8658272702_eecbb3d852_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/9/8106/8658272702_eecbb3d852_o.jpg",
+    "photo_id": "train/50b5385d59889b3a"
   },
   {
     "dialogue": [
@@ -27698,7 +28060,8 @@
     ],
     "dialogue_id": 8862,
     "photo_description": "The photo has your wife Shiloh. Objects in the photo: Woman, Tree",
-    "photo_url": "https://c2.staticflickr.com/9/8450/7895416792_e7fc20763e_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/9/8450/7895416792_e7fc20763e_o.jpg",
+    "photo_id": "train/e5b25819904bd089"
   },
   {
     "dialogue": [
@@ -27830,7 +28193,8 @@
     ],
     "dialogue_id": 8863,
     "photo_description": "The photo has your brother Seth. Objects in the photo: Man",
-    "photo_url": "https://c4.staticflickr.com/4/3321/3426544839_bc759c47d0_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/4/3321/3426544839_bc759c47d0_o.jpg",
+    "photo_id": "train/37adee7fa4e415db"
   },
   {
     "dialogue": [
@@ -27907,7 +28271,8 @@
     ],
     "dialogue_id": 8864,
     "photo_description": "Objects in the photo: Drink, Woman, Face, Tableware",
-    "photo_url": "https://farm4.staticflickr.com/7110/7429958802_653d648782_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7110/7429958802_653d648782_o.jpg",
+    "photo_id": "train/eea3d3c631549a93"
   },
   {
     "dialogue": [
@@ -28009,7 +28374,8 @@
     ],
     "dialogue_id": 8865,
     "photo_description": "The photo has your uncle Niko. Objects in the photo: Man",
-    "photo_url": "https://c8.staticflickr.com/2/1306/956227387_c72c9cd8e1_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/2/1306/956227387_c72c9cd8e1_o.jpg",
+    "photo_id": "train/957144ce79ae46af"
   },
   {
     "dialogue": [
@@ -28106,7 +28472,8 @@
     ],
     "dialogue_id": 8866,
     "photo_description": "The photo has your mom Hope. Objects in the photo: Fashion accessory, Man, Woman",
-    "photo_url": "https://farm4.staticflickr.com/4150/5447932581_27c6c8b0ed_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/4150/5447932581_27c6c8b0ed_o.jpg",
+    "photo_id": "train/6369770c20d387d3"
   },
   {
     "dialogue": [
@@ -28208,7 +28575,8 @@
     ],
     "dialogue_id": 8867,
     "photo_description": "Objects in the photo: Person, Big cats, Art, Building, Mammal, Collection, Sculpture, Tourist attraction, Bronze sculpture, History, Artifact, Column, Animal, Man, Human, Ancient history, Hall, Stairs, Youth, Adult, Bronze, Tile Flooring, Conservation-restoration of cultural heritage, Painting, Monument, Felidae, Memorial, Carnivore, Bust, Male person, Stone carving, Statue, Classical architecture, Carving, Floor, Woman, Lobby, Marble",
-    "photo_url": "https://farm5.staticflickr.com/2114/2412213656_45edbe55a4_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/2114/2412213656_45edbe55a4_o.jpg",
+    "photo_id": "train/001d6a6157641524"
   },
   {
     "dialogue": [
@@ -28300,7 +28668,8 @@
     ],
     "dialogue_id": 8868,
     "photo_description": "The photo has your dad Keagan. Objects in the photo: Man, Sports uniform",
-    "photo_url": "https://c1.staticflickr.com/3/2500/5796850019_d44920a2c1_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/3/2500/5796850019_d44920a2c1_o.jpg",
+    "photo_id": "train/502c180902cbbac8"
   },
   {
     "dialogue": [
@@ -28372,7 +28741,8 @@
     ],
     "dialogue_id": 8869,
     "photo_description": "Objects in the photo: Fashion accessory, Mobile phone",
-    "photo_url": "https://c1.staticflickr.com/1/337/19284064012_7266845cf3_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/1/337/19284064012_7266845cf3_o.jpg",
+    "photo_id": "test/a760c12a0bf16288"
   },
   {
     "dialogue": [
@@ -28434,7 +28804,8 @@
     ],
     "dialogue_id": 8870,
     "photo_description": "The photo has your husband Gordon. Objects in the photo: Man",
-    "photo_url": "https://farm4.staticflickr.com/5455/8833880104_3e64e92fec_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/5455/8833880104_3e64e92fec_o.jpg",
+    "photo_id": "train/18b054c88c7ed123"
   },
   {
     "dialogue": [
@@ -28521,7 +28892,8 @@
     ],
     "dialogue_id": 8871,
     "photo_description": "The photo has your niece Jimena. Objects in the photo: Clothing, Nose, Beard, Head, Mouth, Woman, Human body, Arm, Face, Hair, Girl, Eye, Drink",
-    "photo_url": "https://farm1.staticflickr.com/4070/4277142354_c944a843b1_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/4070/4277142354_c944a843b1_o.jpg",
+    "photo_id": "train/ceadfdae8e991a50"
   },
   {
     "dialogue": [
@@ -28628,7 +29000,8 @@
     ],
     "dialogue_id": 8872,
     "photo_description": "The photo has your friend Ronin. Objects in the photo: Man, Face",
-    "photo_url": "https://c7.staticflickr.com/8/7098/7279592496_af4e949104_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7098/7279592496_af4e949104_o.jpg",
+    "photo_id": "train/c105a9f783fb94ae"
   },
   {
     "dialogue": [
@@ -28690,7 +29063,8 @@
     ],
     "dialogue_id": 8873,
     "photo_description": "Objects in the photo: Snack, Dessert, Doughnut",
-    "photo_url": "https://farm1.staticflickr.com/440/18710068501_9e08130a9f_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/440/18710068501_9e08130a9f_o.jpg",
+    "photo_id": "train/044e97f77ee94870"
   },
   {
     "dialogue": [
@@ -28762,7 +29136,8 @@
     ],
     "dialogue_id": 8874,
     "photo_description": "Objects in the photo: Fruit, Dessert, Wine glass, Cocktail",
-    "photo_url": "https://c1.staticflickr.com/3/2897/14099283519_51871e9d52_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/3/2897/14099283519_51871e9d52_o.jpg",
+    "photo_id": "train/731e7024f8452ca8"
   },
   {
     "dialogue": [
@@ -28824,7 +29199,8 @@
     ],
     "dialogue_id": 8875,
     "photo_description": "The photo has your friend Kate. Objects in the photo: Woman, Mammal",
-    "photo_url": "https://farm6.staticflickr.com/3709/11111852524_618e5b069f_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/3709/11111852524_618e5b069f_o.jpg",
+    "photo_id": "train/d43c94e6fecdcf95"
   },
   {
     "dialogue": [
@@ -29076,7 +29452,8 @@
     ],
     "dialogue_id": 8876,
     "photo_description": "Objects in the photo: Food, Hand, Person, Dessert",
-    "photo_url": "https://c2.staticflickr.com/1/421/19810802680_c5e7459f94_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/421/19810802680_c5e7459f94_o.jpg",
+    "photo_id": "test/336e28180abf3959"
   },
   {
     "dialogue": [
@@ -29138,7 +29515,8 @@
     ],
     "dialogue_id": 8877,
     "photo_description": "The photo has your friend's son Cain. Objects in the photo: Boy, Face",
-    "photo_url": "https://farm3.staticflickr.com/4093/4802963357_15d6742900_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/4093/4802963357_15d6742900_o.jpg",
+    "photo_id": "train/3bd87bb3106c0f82"
   },
   {
     "dialogue": [
@@ -29255,7 +29633,8 @@
     ],
     "dialogue_id": 8878,
     "photo_description": "Objects in the photo: cachorros, Sky, Man, english cocker spaniel, Tree, Plant, Clothing, Carnivore, Person, Animal, Playground",
-    "photo_url": "https://c7.staticflickr.com/3/2579/5834847574_bb51aca8c0_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/3/2579/5834847574_bb51aca8c0_o.jpg",
+    "photo_id": "train/6605654a3c64589e"
   },
   {
     "dialogue": [
@@ -29332,7 +29711,8 @@
     ],
     "dialogue_id": 8879,
     "photo_description": "The photo has your son Emerson. Objects in the photo: Boy",
-    "photo_url": "https://c4.staticflickr.com/5/4144/5070777302_41295fe581_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/5/4144/5070777302_41295fe581_o.jpg",
+    "photo_id": "train/1123ab5e8d902bcb"
   },
   {
     "dialogue": [
@@ -29394,7 +29774,8 @@
     ],
     "dialogue_id": 8880,
     "photo_description": "The photo has your boyfriend Jasper. Objects in the photo: Man",
-    "photo_url": "https://c6.staticflickr.com/4/3867/14688522266_3fe11e8331_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/4/3867/14688522266_3fe11e8331_o.jpg",
+    "photo_id": "train/209c8ae5e113bfdd"
   },
   {
     "dialogue": [
@@ -29446,7 +29827,8 @@
     ],
     "dialogue_id": 8881,
     "photo_description": "The photo has your student Hunter. Objects in the photo: Helmet, Man",
-    "photo_url": "https://farm6.staticflickr.com/2703/4428975792_70c5f3976c_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/2703/4428975792_70c5f3976c_o.jpg",
+    "photo_id": "train/1fd70718f9ac8835"
   },
   {
     "dialogue": [
@@ -29548,7 +29930,8 @@
     ],
     "dialogue_id": 8882,
     "photo_description": "Objects in the photo: Clothing, Face, Drink, Table",
-    "photo_url": "https://c6.staticflickr.com/1/1/440879_363c7cd081_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/1/1/440879_363c7cd081_o.jpg",
+    "photo_id": "train/9244913a9736ce0d"
   },
   {
     "dialogue": [
@@ -29630,7 +30013,8 @@
     ],
     "dialogue_id": 8883,
     "photo_description": "The photo has your uncle Zayden. Objects in the photo: Human body, Hair, Man, Mammal, Head, Sports uniform, Hand",
-    "photo_url": "https://farm5.staticflickr.com/5471/10520881115_d90d567570_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/5471/10520881115_d90d567570_o.jpg",
+    "photo_id": "train/9ad64c5c9f67e1a4"
   },
   {
     "dialogue": [
@@ -29717,7 +30101,8 @@
     ],
     "dialogue_id": 8884,
     "photo_description": "The photo has your daughter Kelsey. Objects in the photo: Girl, Face",
-    "photo_url": "https://farm5.staticflickr.com/4134/4897821625_84beafcbe2_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/4134/4897821625_84beafcbe2_o.jpg",
+    "photo_id": "train/d007b1f488731b34"
   },
   {
     "dialogue": [
@@ -29789,7 +30174,8 @@
     ],
     "dialogue_id": 8885,
     "photo_description": "The photo has your friend Vicente. Objects in the photo: Suit, Man, Face",
-    "photo_url": "https://farm7.staticflickr.com/3809/8956528125_85abd10072_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3809/8956528125_85abd10072_o.jpg",
+    "photo_id": "train/50f6507dc8da5ad6"
   },
   {
     "dialogue": [
@@ -29856,7 +30242,8 @@
     ],
     "dialogue_id": 8886,
     "photo_description": "Objects in the photo: Tetrapods, Animal, Elephas, Zoo, Straw, Bathroom, Animal shelter, Cage, Animal feed, Elephant hyde, Wrinkle, Asian elephant, Working animal, Elephants and Mammoths, tusker, Fawn, African bush elephant, Fence, Indian elephant, Tusk, African elephant, Elephant, Hay, Terrestrial animal, Manger, Ivory, Fodder",
-    "photo_url": "https://farm3.staticflickr.com/33/92791314_4ffe4993e9_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/33/92791314_4ffe4993e9_o.jpg",
+    "photo_id": "train/00e6d310f33c2e42"
   },
   {
     "dialogue": [
@@ -29933,7 +30320,8 @@
     ],
     "dialogue_id": 8887,
     "photo_description": "Objects in the photo: Strawberry, Dairy, Cake, Pastry",
-    "photo_url": "https://c6.staticflickr.com/4/3411/3601826811_49f7a139e9_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/4/3411/3601826811_49f7a139e9_o.jpg",
+    "photo_id": "train/0685fabc78ee919d"
   },
   {
     "dialogue": [
@@ -29985,7 +30373,8 @@
     ],
     "dialogue_id": 8888,
     "photo_description": "Objects in the photo: Baked goods, Pancake, Dessert",
-    "photo_url": "https://farm6.staticflickr.com/4067/4528114197_97a1488c3b_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/4067/4528114197_97a1488c3b_o.jpg",
+    "photo_id": "train/d062cc29c0ddf835"
   },
   {
     "dialogue": [
@@ -30137,7 +30526,8 @@
     ],
     "dialogue_id": 8889,
     "photo_description": "The photo has your student Amy. Objects in the photo: Woman, Table, Face",
-    "photo_url": "https://c8.staticflickr.com/6/5233/13987790427_74da0c2d00_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/6/5233/13987790427_74da0c2d00_o.jpg",
+    "photo_id": "train/fd0c6f3a04e6cdff"
   },
   {
     "dialogue": [
@@ -30204,7 +30594,8 @@
     ],
     "dialogue_id": 8890,
     "photo_description": "Objects in the photo: Animal, Mammal, Squirrel",
-    "photo_url": "https://c3.staticflickr.com/5/4097/4740007421_d5fecbef5d_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/5/4097/4740007421_d5fecbef5d_o.jpg",
+    "photo_id": "train/fbe4f7db335577ca"
   },
   {
     "dialogue": [
@@ -30281,7 +30672,8 @@
     ],
     "dialogue_id": 8891,
     "photo_description": "Objects in the photo: Tableware, Drink, Face",
-    "photo_url": "https://c8.staticflickr.com/1/144/326981063_c34abcf22c_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/1/144/326981063_c34abcf22c_o.jpg",
+    "photo_id": "train/46e5a4ad502bfe5f"
   },
   {
     "dialogue": [
@@ -30353,7 +30745,8 @@
     ],
     "dialogue_id": 8892,
     "photo_description": "Objects in the photo: Wine, Bottle, Beer",
-    "photo_url": "https://farm8.staticflickr.com/7664/16895106607_d597126a80_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/7664/16895106607_d597126a80_o.jpg",
+    "photo_id": "train/1c529da652c5a187"
   },
   {
     "dialogue": [
@@ -30435,7 +30828,8 @@
     ],
     "dialogue_id": 8893,
     "photo_description": "Objects in the photo: Duck, birds, Animal, Goose",
-    "photo_url": "https://c5.staticflickr.com/9/8035/8071459557_f0a55da9ae_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8035/8071459557_f0a55da9ae_o.jpg",
+    "photo_id": "train/fabc321d25d6ecdc"
   },
   {
     "dialogue": [
@@ -30517,7 +30911,8 @@
     ],
     "dialogue_id": 8894,
     "photo_description": "Objects in the photo: Harbor seal, Marine mammal, Sea lion, Animal, Cave",
-    "photo_url": "https://farm3.staticflickr.com/1275/4598334189_13ba921f66_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/1275/4598334189_13ba921f66_o.jpg",
+    "photo_id": "train/c19c0861ac8c90f2"
   },
   {
     "dialogue": [
@@ -30579,7 +30974,8 @@
     ],
     "dialogue_id": 8895,
     "photo_description": "The photo has your uncle Dario. Objects in the photo: Woman, Man, Face",
-    "photo_url": "https://c1.staticflickr.com/5/4061/4530578404_b81c14b4ce_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/5/4061/4530578404_b81c14b4ce_o.jpg",
+    "photo_id": "train/75db0d862cef4378"
   },
   {
     "dialogue": [
@@ -30641,7 +31037,8 @@
     ],
     "dialogue_id": 8896,
     "photo_description": "Objects in the photo: Face, Drink, Microphone",
-    "photo_url": "https://farm8.staticflickr.com/8312/7899601690_82c3b6698f_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/8312/7899601690_82c3b6698f_o.jpg",
+    "photo_id": "train/2127d036650ee8e7"
   },
   {
     "dialogue": [
@@ -30678,7 +31075,8 @@
     ],
     "dialogue_id": 8897,
     "photo_description": "Objects in the photo: Fast food, Person, Face, Clothing",
-    "photo_url": "https://farm1.staticflickr.com/5156/7237728840_e540ea7317_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/5156/7237728840_e540ea7317_o.jpg",
+    "photo_id": "train/2e484a893e725710"
   },
   {
     "dialogue": [
@@ -30760,7 +31158,8 @@
     ],
     "dialogue_id": 8898,
     "photo_description": "Objects in the photo: Croissant, Dessert, Bread",
-    "photo_url": "https://farm7.staticflickr.com/1364/5111122650_ec3f61f60a_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/1364/5111122650_ec3f61f60a_o.jpg",
+    "photo_id": "train/b7010cb7942136c6"
   },
   {
     "dialogue": [
@@ -30857,7 +31256,8 @@
     ],
     "dialogue_id": 8899,
     "photo_description": "Objects in the photo: Table, Drink, Clothing, Face",
-    "photo_url": "https://farm3.staticflickr.com/97/276528456_3dc8ade6ee_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/97/276528456_3dc8ade6ee_o.jpg",
+    "photo_id": "train/7d33a02fe569d9c2"
   },
   {
     "dialogue": [
@@ -30914,7 +31314,8 @@
     ],
     "dialogue_id": 8900,
     "photo_description": "The photo has your friend Sky. Objects in the photo: Woman",
-    "photo_url": "https://c2.staticflickr.com/1/772/20976202833_e344fd372b_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/1/772/20976202833_e344fd372b_o.jpg",
+    "photo_id": "train/71260ba440542679"
   },
   {
     "dialogue": [
@@ -30981,7 +31382,8 @@
     ],
     "dialogue_id": 8901,
     "photo_description": "The photo has your sister Mallory. Objects in the photo: Woman",
-    "photo_url": "https://farm1.staticflickr.com/3069/2982192267_26447fd1ca_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/3069/2982192267_26447fd1ca_o.jpg",
+    "photo_id": "train/f25491e189371850"
   },
   {
     "dialogue": [
@@ -31058,7 +31460,8 @@
     ],
     "dialogue_id": 8902,
     "photo_description": "Objects in the photo: Head, Drink, Face, Human body, Arm",
-    "photo_url": "https://farm6.staticflickr.com/2891/12056643306_e91d3fff57_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/2891/12056643306_e91d3fff57_o.jpg",
+    "photo_id": "train/e2092eb460c6d115"
   },
   {
     "dialogue": [
@@ -31130,7 +31533,8 @@
     ],
     "dialogue_id": 8903,
     "photo_description": "Objects in the photo: Seafood, Fish, Leg",
-    "photo_url": "https://farm2.staticflickr.com/7194/7116734349_908eb85c4a_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/7194/7116734349_908eb85c4a_o.jpg",
+    "photo_id": "validation/5f9e26167af8fc71"
   },
   {
     "dialogue": [
@@ -31197,7 +31601,8 @@
     ],
     "dialogue_id": 8904,
     "photo_description": "The photo has your uncle Zaid. Objects in the photo: Clothing, Face, Man",
-    "photo_url": "https://farm1.staticflickr.com/2747/4149267514_a0eb1671c7_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/2747/4149267514_a0eb1671c7_o.jpg",
+    "photo_id": "train/475f7082602e10a0"
   },
   {
     "dialogue": [
@@ -31264,7 +31669,8 @@
     ],
     "dialogue_id": 8905,
     "photo_description": "The photo has your friend Keenan. Objects in the photo: Man, Face",
-    "photo_url": "https://c5.staticflickr.com/3/2470/3572576753_d2a864c7a2_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/3/2470/3572576753_d2a864c7a2_o.jpg",
+    "photo_id": "train/1ff5967e07b0625c"
   },
   {
     "dialogue": [
@@ -31326,7 +31732,8 @@
     ],
     "dialogue_id": 8906,
     "photo_description": "Objects in the photo: Dessert, Watercraft, Snack",
-    "photo_url": "https://c1.staticflickr.com/6/5466/9402763413_746f53854c_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/6/5466/9402763413_746f53854c_o.jpg",
+    "photo_id": "train/a1415f4a247df768"
   },
   {
     "dialogue": [
@@ -31398,7 +31805,8 @@
     ],
     "dialogue_id": 8907,
     "photo_description": "The photo has your uncle Anthony. Objects in the photo: Man, Shirt",
-    "photo_url": "https://farm6.staticflickr.com/2646/3918971763_aca4cdaa39_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/2646/3918971763_aca4cdaa39_o.jpg",
+    "photo_id": "train/5998a80856c13e15"
   },
   {
     "dialogue": [
@@ -31500,7 +31908,8 @@
     ],
     "dialogue_id": 8908,
     "photo_description": "The photo has your student Perla. Objects in the photo: Girl, Face, Human body, Hair, Eye, Woman, Head",
-    "photo_url": "https://farm4.staticflickr.com/5296/5442011634_46a0600936_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/5296/5442011634_46a0600936_o.jpg",
+    "photo_id": "train/8b41da5b98230d23"
   },
   {
     "dialogue": [
@@ -31572,7 +31981,8 @@
     ],
     "dialogue_id": 8909,
     "photo_description": "Objects in the photo: Beer, Cocktail, Snack",
-    "photo_url": "https://farm7.staticflickr.com/4019/4530813404_9c78ed360f_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/4019/4530813404_9c78ed360f_o.jpg",
+    "photo_id": "train/2f66def12f4bf6d6"
   },
   {
     "dialogue": [
@@ -31649,7 +32059,8 @@
     ],
     "dialogue_id": 8910,
     "photo_description": "The photo has your uncle Yousef. Objects in the photo: Man, Face",
-    "photo_url": "https://c3.staticflickr.com/3/2379/2086063871_89e63af47e_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/3/2379/2086063871_89e63af47e_o.jpg",
+    "photo_id": "train/67d16b2564ed818a"
   },
   {
     "dialogue": [
@@ -31751,7 +32162,8 @@
     ],
     "dialogue_id": 8911,
     "photo_description": "Objects in the photo: Mammal, Blond, Animal, Small cats, Whiskers, Small to medium-sized cats, Cat, Fawn, Russet, Fluffy, Carnivore, Pet, Felidae, Flash photography, Cream, Iris",
-    "photo_url": "https://c3.staticflickr.com/4/3802/9691192498_81f5cec4d6_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3802/9691192498_81f5cec4d6_o.jpg",
+    "photo_id": "train/00ad496f316c7b5a"
   },
   {
     "dialogue": [
@@ -31843,7 +32255,8 @@
     ],
     "dialogue_id": 8912,
     "photo_description": "The photo has your dad Khari. Objects in the photo: Man, Mouth, Eye, Beard, Nose, Hair, Head, Face",
-    "photo_url": "https://farm3.staticflickr.com/4015/4258227005_983d981895_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/4015/4258227005_983d981895_o.jpg",
+    "photo_id": "train/384154660c6394e2"
   },
   {
     "dialogue": [
@@ -31920,7 +32333,8 @@
     ],
     "dialogue_id": 8913,
     "photo_description": "Objects in the photo: Dessert, Snack, Baked goods",
-    "photo_url": "https://c3.staticflickr.com/9/8388/8497080263_32efc7c080_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/9/8388/8497080263_32efc7c080_o.jpg",
+    "photo_id": "train/ba81590c82da73aa"
   },
   {
     "dialogue": [
@@ -31947,7 +32361,8 @@
     ],
     "dialogue_id": 8914,
     "photo_description": "Objects in the photo: Science, Cartoon, Biology, Undersea, anemone fish, Underwater, Marine biology, Water, Aquarium, Brain coral, Undersea shoal, Invertebrate, Citrine, Undersea mound, Undersea reef, Undersea gully, Undersea terrace, Fish, Animal, Natural environment, Aquarium fish, Fin, Stony coral, schwimmen, Undersea plain, Coral, Marine invertebrates, Sea anemone, Reef, Organism, Labroidei, Sponge, Undersea saddle, Coral reef",
-    "photo_url": "https://farm4.staticflickr.com/31/49665075_ae4d752555_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/31/49665075_ae4d752555_o.jpg",
+    "photo_id": "train/0189a0e429c11ce3"
   },
   {
     "dialogue": [
@@ -32009,7 +32424,8 @@
     ],
     "dialogue_id": 8915,
     "photo_description": "Objects in the photo: Clothing, Face, Drink",
-    "photo_url": "https://farm5.staticflickr.com/3245/3004137592_d935c9f3e2_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3245/3004137592_d935c9f3e2_o.jpg",
+    "photo_id": "train/8ab194420473bed4"
   },
   {
     "dialogue": [
@@ -32096,7 +32512,8 @@
     ],
     "dialogue_id": 8916,
     "photo_description": "Objects in the photo: Beer, Hair, Head, Mouth, Hand",
-    "photo_url": "https://farm5.staticflickr.com/8397/8686580252_f1fc3e56b1_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/8397/8686580252_f1fc3e56b1_o.jpg",
+    "photo_id": "train/3bc0dac81aaa0ad4"
   },
   {
     "dialogue": [
@@ -32158,7 +32575,8 @@
     ],
     "dialogue_id": 8917,
     "photo_description": "The photo has your daughter Carolyn. Objects in the photo: Face, Woman, Girl",
-    "photo_url": "https://c8.staticflickr.com/3/2939/14112819294_7ceb76344b_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/3/2939/14112819294_7ceb76344b_o.jpg",
+    "photo_id": "train/b581df11af622d4f"
   },
   {
     "dialogue": [
@@ -32225,7 +32643,8 @@
     ],
     "dialogue_id": 8918,
     "photo_description": "Objects in the photo: Snack, Baked goods, Cake",
-    "photo_url": "https://c5.staticflickr.com/9/8214/8296913236_2683dc3c61_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8214/8296913236_2683dc3c61_o.jpg",
+    "photo_id": "test/50ebb1d76290ac7c"
   },
   {
     "dialogue": [
@@ -32297,7 +32716,8 @@
     ],
     "dialogue_id": 8919,
     "photo_description": "Objects in the photo: Woman, Bottle, Man, Drink",
-    "photo_url": "https://c7.staticflickr.com/6/5316/14250745656_37de034ca7_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/6/5316/14250745656_37de034ca7_o.jpg",
+    "photo_id": "train/052608e70e9b55be"
   },
   {
     "dialogue": [
@@ -32374,7 +32794,8 @@
     ],
     "dialogue_id": 8920,
     "photo_description": "The photo has your student Jericho. Objects in the photo: Man",
-    "photo_url": "https://c1.staticflickr.com/5/4127/5194751336_c7a32e732b_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/5/4127/5194751336_c7a32e732b_o.jpg",
+    "photo_id": "train/05f06b25ff7657b8"
   },
   {
     "dialogue": [
@@ -32441,7 +32862,8 @@
     ],
     "dialogue_id": 8921,
     "photo_description": "The photo has your friend's daughter Margo. Objects in the photo: Girl",
-    "photo_url": "https://farm4.staticflickr.com/2598/3969833838_783cd7f2c0_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/2598/3969833838_783cd7f2c0_o.jpg",
+    "photo_id": "train/c6f761ffd95aa693"
   },
   {
     "dialogue": [
@@ -32518,7 +32940,8 @@
     ],
     "dialogue_id": 8922,
     "photo_description": "The photo has your dad Alfred. Objects in the photo: Baked goods, Man",
-    "photo_url": "https://farm6.staticflickr.com/4077/4754484289_d1b4c07e01_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/4077/4754484289_d1b4c07e01_o.jpg",
+    "photo_id": "train/4e85bad5d93bff35"
   },
   {
     "dialogue": [
@@ -32645,7 +33068,8 @@
     ],
     "dialogue_id": 8923,
     "photo_description": "The photo has your friend Sebastian. Objects in the photo: Man, Face",
-    "photo_url": "https://c6.staticflickr.com/8/7057/6796757804_729b0011fa_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/8/7057/6796757804_729b0011fa_o.jpg",
+    "photo_id": "train/068d9e7778a2d74d"
   },
   {
     "dialogue": [
@@ -32712,7 +33136,8 @@
     ],
     "dialogue_id": 8924,
     "photo_description": "The photo has your granddaughter Haisley. Objects in the photo: Face, Girl, Clothing",
-    "photo_url": "https://c6.staticflickr.com/9/8325/8137936641_2d670fc2d5_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/9/8325/8137936641_2d670fc2d5_o.jpg",
+    "photo_id": "train/73197ee1f9d2650d"
   },
   {
     "dialogue": [
@@ -32764,7 +33189,8 @@
     ],
     "dialogue_id": 8925,
     "photo_description": "The photo has your dad Layton. Objects in the photo: Man",
-    "photo_url": "https://farm2.staticflickr.com/8027/7107632615_97e80def9d_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/8027/7107632615_97e80def9d_o.jpg",
+    "photo_id": "train/2d4ab062e4171ea1"
   },
   {
     "dialogue": [
@@ -32861,7 +33287,8 @@
     ],
     "dialogue_id": 8926,
     "photo_description": "The photo has your boyfriend Joel. Objects in the photo: Man, Clothing, Poster",
-    "photo_url": "https://c1.staticflickr.com/5/4042/4321131814_ce05eae2a1_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/5/4042/4321131814_ce05eae2a1_o.jpg",
+    "photo_id": "train/67825eba9e35ace8"
   },
   {
     "dialogue": [
@@ -32918,7 +33345,8 @@
     ],
     "dialogue_id": 8927,
     "photo_description": "The photo has your daughter Kaylani. Objects in the photo: Girl, Footwear, Face",
-    "photo_url": "https://farm4.staticflickr.com/8147/7650371420_4b1e9d2756_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/8147/7650371420_4b1e9d2756_o.jpg",
+    "photo_id": "train/f89afd71e0b270e3"
   },
   {
     "dialogue": [
@@ -32985,7 +33413,8 @@
     ],
     "dialogue_id": 8928,
     "photo_description": "Objects in the photo: Leg, Footwear, Person, Mammal, Snack, Fast food, Hair",
-    "photo_url": "https://c3.staticflickr.com/4/3259/2816923327_c3858f3484_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3259/2816923327_c3858f3484_o.jpg",
+    "photo_id": "train/0421ae76495ebf0a"
   },
   {
     "dialogue": [
@@ -33057,7 +33486,8 @@
     ],
     "dialogue_id": 8929,
     "photo_description": "The photo has your student Myra. Objects in the photo: Footwear, Woman",
-    "photo_url": "https://c6.staticflickr.com/6/5232/5841055619_904cb17480_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/6/5232/5841055619_904cb17480_o.jpg",
+    "photo_id": "train/df586485027bad9d"
   },
   {
     "dialogue": [
@@ -33149,7 +33579,8 @@
     ],
     "dialogue_id": 8930,
     "photo_description": "Objects in the photo: Food, Baked goods, Fast food",
-    "photo_url": "https://c1.staticflickr.com/1/50/197196044_1d00031c00_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/1/50/197196044_1d00031c00_o.jpg",
+    "photo_id": "validation/c111c7bdcacc3388"
   },
   {
     "dialogue": [
@@ -33216,7 +33647,8 @@
     ],
     "dialogue_id": 8931,
     "photo_description": "Objects in the photo: Animal, Marine invertebrates",
-    "photo_url": "https://farm1.staticflickr.com/528/19156780454_a086a7bd94_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/528/19156780454_a086a7bd94_o.jpg",
+    "photo_id": "train/d86f5d09eef95ba0"
   },
   {
     "dialogue": [
@@ -33283,7 +33715,8 @@
     ],
     "dialogue_id": 8932,
     "photo_description": "Objects in the photo: Drink, Beer, Tea",
-    "photo_url": "https://farm2.staticflickr.com/81/243796222_af9e832af2_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/81/243796222_af9e832af2_o.jpg",
+    "photo_id": "test/aa5dd25099eed931"
   },
   {
     "dialogue": [
@@ -33360,7 +33793,8 @@
     ],
     "dialogue_id": 8933,
     "photo_description": "Objects in the photo: Drink, Bottle, Wine glass, Clothing",
-    "photo_url": "https://farm3.staticflickr.com/7153/6831093273_c20be94f3b_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/7153/6831093273_c20be94f3b_o.jpg",
+    "photo_id": "train/4416e0729b162c22"
   },
   {
     "dialogue": [
@@ -33482,7 +33916,8 @@
     ],
     "dialogue_id": 8934,
     "photo_description": "Objects in the photo: Hair, Head, Fast food",
-    "photo_url": "https://farm5.staticflickr.com/5031/5794191669_a1c00cf060_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/5031/5794191669_a1c00cf060_o.jpg",
+    "photo_id": "train/6bd003a94702ee74"
   },
   {
     "dialogue": [
@@ -33584,7 +34019,8 @@
     ],
     "dialogue_id": 8935,
     "photo_description": "Objects in the photo: Drink, Face, Person",
-    "photo_url": "https://farm4.staticflickr.com/8524/8575433513_b84cfbf95d_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/8524/8575433513_b84cfbf95d_o.jpg",
+    "photo_id": "train/fb3908aacfb14a23"
   },
   {
     "dialogue": [
@@ -33671,7 +34107,8 @@
     ],
     "dialogue_id": 8936,
     "photo_description": "Objects in the photo: Drink, Dessert, Tableware",
-    "photo_url": "https://c6.staticflickr.com/4/3359/3614653056_d316d134e7_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/4/3359/3614653056_d316d134e7_o.jpg",
+    "photo_id": "train/61f84ac3caedc3fd"
   },
   {
     "dialogue": [
@@ -33718,7 +34155,8 @@
     ],
     "dialogue_id": 8937,
     "photo_description": "Objects in the photo: Man, Face, Drink",
-    "photo_url": "https://farm6.staticflickr.com/2459/3979033748_f86d44f980_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/2459/3979033748_f86d44f980_o.jpg",
+    "photo_id": "train/61952456648f0295"
   },
   {
     "dialogue": [
@@ -33785,7 +34223,8 @@
     ],
     "dialogue_id": 8938,
     "photo_description": "The photo has your granddaughter Faye. Objects in the photo: Girl, Face, Fashion accessory",
-    "photo_url": "https://farm2.staticflickr.com/8146/7302019534_8b7e890474_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/8146/7302019534_8b7e890474_o.jpg",
+    "photo_id": "train/946d9abfe9d9c181"
   },
   {
     "dialogue": [
@@ -33832,7 +34271,8 @@
     ],
     "dialogue_id": 8939,
     "photo_description": "The photo has your student Avianna. Objects in the photo: Woman, Face",
-    "photo_url": "https://c3.staticflickr.com/6/5670/21060870454_1fa71d6e1f_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/6/5670/21060870454_1fa71d6e1f_o.jpg",
+    "photo_id": "train/1cf46b0402ef2caa"
   },
   {
     "dialogue": [
@@ -33919,7 +34359,8 @@
     ],
     "dialogue_id": 8940,
     "photo_description": "Objects in the photo: Face, Clothing, Drink",
-    "photo_url": "https://farm2.staticflickr.com/3070/2578222807_8a87628d5d_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/3070/2578222807_8a87628d5d_o.jpg",
+    "photo_id": "train/ae91178ccc03b7e1"
   },
   {
     "dialogue": [
@@ -34006,7 +34447,8 @@
     ],
     "dialogue_id": 8941,
     "photo_description": "The photo has your niece Lucille. Objects in the photo: Girl",
-    "photo_url": "https://c6.staticflickr.com/4/3738/13741358784_cb76efa36f_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/4/3738/13741358784_cb76efa36f_o.jpg",
+    "photo_id": "train/5d7e12dde3ebe27d"
   },
   {
     "dialogue": [
@@ -34053,7 +34495,8 @@
     ],
     "dialogue_id": 8942,
     "photo_description": "The photo has your student Adelyn. Objects in the photo: Girl",
-    "photo_url": "https://farm8.staticflickr.com/309/20069174502_2b44d5afec_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/309/20069174502_2b44d5afec_o.jpg",
+    "photo_id": "train/2d547a15ebbe9447"
   },
   {
     "dialogue": [
@@ -34120,7 +34563,8 @@
     ],
     "dialogue_id": 8943,
     "photo_description": "Objects in the photo: Animal, Reptile, Crocodile",
-    "photo_url": "https://c6.staticflickr.com/1/490/18709132942_e571e0ea72_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/1/490/18709132942_e571e0ea72_o.jpg",
+    "photo_id": "train/ed9985c8383262fd"
   },
   {
     "dialogue": [
@@ -34177,7 +34621,8 @@
     ],
     "dialogue_id": 8944,
     "photo_description": "Objects in the photo: Dessert, Fast food, Snack",
-    "photo_url": "https://farm2.staticflickr.com/3148/2290428001_d9dc19d7f0_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/3148/2290428001_d9dc19d7f0_o.jpg",
+    "photo_id": "train/2a2905cad8d444f1"
   },
   {
     "dialogue": [
@@ -34254,7 +34699,8 @@
     ],
     "dialogue_id": 8945,
     "photo_description": "Objects in the photo: Baked goods, Diaper, Cake",
-    "photo_url": "https://farm7.staticflickr.com/3488/3769011447_38263ace76_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3488/3769011447_38263ace76_o.jpg",
+    "photo_id": "train/06f21d8f4ee435d6"
   },
   {
     "dialogue": [
@@ -34356,7 +34802,8 @@
     ],
     "dialogue_id": 8946,
     "photo_description": "Objects in the photo: Dessert, Coffee cup, Baked goods",
-    "photo_url": "https://farm7.staticflickr.com/227/477720923_b9d87dc58c_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/227/477720923_b9d87dc58c_o.jpg",
+    "photo_id": "train/6b549d27d8503b96"
   },
   {
     "dialogue": [
@@ -34448,7 +34895,8 @@
     ],
     "dialogue_id": 8947,
     "photo_description": "The photo has your friend Anson. Objects in the photo: Man, Face",
-    "photo_url": "https://c5.staticflickr.com/9/8717/16341037443_6d95e522f0_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8717/16341037443_6d95e522f0_o.jpg",
+    "photo_id": "train/dd1bf7eb8280fa7c"
   },
   {
     "dialogue": [
@@ -34495,7 +34943,8 @@
     ],
     "dialogue_id": 8948,
     "photo_description": "Objects in the photo: Tree frogs, Wallace's flying frog, Animal, Frog, Reptile",
-    "photo_url": "https://c3.staticflickr.com/9/8793/16902012908_fa1d0c8663_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/9/8793/16902012908_fa1d0c8663_o.jpg",
+    "photo_id": "train/2b6b17c52771fc6a"
   },
   {
     "dialogue": [
@@ -34562,7 +35011,8 @@
     ],
     "dialogue_id": 8949,
     "photo_description": "The photo has your student Leandro. Objects in the photo: Man",
-    "photo_url": "https://farm3.staticflickr.com/8715/16697972949_ffa4bb934b_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/8715/16697972949_ffa4bb934b_o.jpg",
+    "photo_id": "train/1cffd5c84b90c622"
   },
   {
     "dialogue": [
@@ -34664,7 +35114,8 @@
     ],
     "dialogue_id": 8950,
     "photo_description": "Objects in the photo: Tableware, Baked goods, Cake",
-    "photo_url": "https://farm4.staticflickr.com/7619/16831652770_21ff75beab_o.jpg"
+    "photo_url": "https://farm4.staticflickr.com/7619/16831652770_21ff75beab_o.jpg",
+    "photo_id": "train/58bd83c3f9c4d973"
   },
   {
     "dialogue": [
@@ -34756,7 +35207,8 @@
     ],
     "dialogue_id": 8951,
     "photo_description": "Objects in the photo: Woman, Human body, Drink",
-    "photo_url": "https://farm1.staticflickr.com/1211/1439806269_900c17acc8_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/1211/1439806269_900c17acc8_o.jpg",
+    "photo_id": "train/7eed32bd1d885230"
   },
   {
     "dialogue": [
@@ -34838,7 +35290,8 @@
     ],
     "dialogue_id": 8952,
     "photo_description": "The photo has your student Ricardo. Objects in the photo: Man, Boy",
-    "photo_url": "https://c3.staticflickr.com/1/133/330521219_b54990d074_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/1/133/330521219_b54990d074_o.jpg",
+    "photo_id": "train/4016e6489a0fc99a"
   },
   {
     "dialogue": [
@@ -34930,7 +35383,8 @@
     ],
     "dialogue_id": 8953,
     "photo_description": "The photo has your brother Casen. Objects in the photo: Man, Clothing, Human body",
-    "photo_url": "https://farm3.staticflickr.com/4083/4973462292_74683ec932_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/4083/4973462292_74683ec932_o.jpg",
+    "photo_id": "train/0a8eecd8f802a7e2"
   },
   {
     "dialogue": [
@@ -35022,7 +35476,8 @@
     ],
     "dialogue_id": 8954,
     "photo_description": "Objects in the photo: Pastry, Snack, Fast food, Platter, Muffin",
-    "photo_url": "https://farm8.staticflickr.com/7287/16714337828_9ca8d9e119_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/7287/16714337828_9ca8d9e119_o.jpg",
+    "photo_id": "train/0178ecf46064e4a7"
   },
   {
     "dialogue": [
@@ -35129,7 +35584,8 @@
     ],
     "dialogue_id": 8955,
     "photo_description": "Objects in the photo: Hair, Head, Drink, Face, Mouth, Arm, Hand",
-    "photo_url": "https://farm6.staticflickr.com/3557/5762561934_fed27f0e30_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/3557/5762561934_fed27f0e30_o.jpg",
+    "photo_id": "train/47875e1406f068a5"
   },
   {
     "dialogue": [
@@ -35186,7 +35642,8 @@
     ],
     "dialogue_id": 8956,
     "photo_description": "Objects in the photo: Baked goods, Cake, House",
-    "photo_url": "https://c3.staticflickr.com/4/3292/3136647441_2ed5030d7f_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3292/3136647441_2ed5030d7f_o.jpg",
+    "photo_id": "train/d542c416b281ddfa"
   },
   {
     "dialogue": [
@@ -35308,7 +35765,8 @@
     ],
     "dialogue_id": 8957,
     "photo_description": "Objects in the photo: Fast food, Clothing, Man",
-    "photo_url": "https://farm8.staticflickr.com/2842/10711537435_a900a8c166_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/2842/10711537435_a900a8c166_o.jpg",
+    "photo_id": "train/ea18a3697c4adfc7"
   },
   {
     "dialogue": [
@@ -35390,7 +35848,8 @@
     ],
     "dialogue_id": 8958,
     "photo_description": "Objects in the photo: Baked goods, Dairy, Cake",
-    "photo_url": "https://farm5.staticflickr.com/7621/16214274584_f6911065c2_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/7621/16214274584_f6911065c2_o.jpg",
+    "photo_id": "validation/becfabe00e5bb1f4"
   },
   {
     "dialogue": [
@@ -35477,7 +35936,8 @@
     ],
     "dialogue_id": 8959,
     "photo_description": "Objects in the photo: Guitar",
-    "photo_url": "https://farm8.staticflickr.com/4029/4327958655_466e6a5766_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/4029/4327958655_466e6a5766_o.jpg",
+    "photo_id": "test/3037fe7b526d0c27"
   },
   {
     "dialogue": [
@@ -35559,7 +36019,8 @@
     ],
     "dialogue_id": 8960,
     "photo_description": "The photo has your brother Thatcher. Objects in the photo: Man",
-    "photo_url": "https://farm8.staticflickr.com/8085/8551856391_ca034a07b0_o.jpg"
+    "photo_url": "https://farm8.staticflickr.com/8085/8551856391_ca034a07b0_o.jpg",
+    "photo_id": "train/430d9d810e4e6977"
   },
   {
     "dialogue": [
@@ -35656,7 +36117,8 @@
     ],
     "dialogue_id": 8961,
     "photo_description": "Objects in the photo: Mouth, Drink, Hand, Tin can",
-    "photo_url": "https://c3.staticflickr.com/3/2422/4020896855_14c1c4d0c2_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/3/2422/4020896855_14c1c4d0c2_o.jpg",
+    "photo_id": "train/76319d51caf217aa"
   },
   {
     "dialogue": [
@@ -35718,7 +36180,8 @@
     ],
     "dialogue_id": 8962,
     "photo_description": "Objects in the photo: Wine glass, Bottle, Cocktail",
-    "photo_url": "https://c1.staticflickr.com/5/4077/4878299401_61facd97e5_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/5/4077/4878299401_61facd97e5_o.jpg",
+    "photo_id": "train/dc460da02046d6a8"
   },
   {
     "dialogue": [
@@ -35790,7 +36253,8 @@
     ],
     "dialogue_id": 8963,
     "photo_description": "Objects in the photo: Snack, Tableware, Fast food, Baked goods",
-    "photo_url": "https://c7.staticflickr.com/7/6081/6110377628_9776df99c6_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/7/6081/6110377628_9776df99c6_o.jpg",
+    "photo_id": "train/dce7ca1d956652ce"
   },
   {
     "dialogue": [
@@ -35842,7 +36306,8 @@
     ],
     "dialogue_id": 8964,
     "photo_description": "The photo has your son Rodney. Objects in the photo: Boy",
-    "photo_url": "https://c7.staticflickr.com/8/7415/16344727360_19aaf138bd_o.jpg"
+    "photo_url": "https://c7.staticflickr.com/8/7415/16344727360_19aaf138bd_o.jpg",
+    "photo_id": "train/44c7c793f33f04fe"
   },
   {
     "dialogue": [
@@ -35939,7 +36404,8 @@
     ],
     "dialogue_id": 8965,
     "photo_description": "The photo has your son Noah. Objects in the photo: Boy",
-    "photo_url": "https://c1.staticflickr.com/6/5480/11027846265_349aa599bb_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/6/5480/11027846265_349aa599bb_o.jpg",
+    "photo_id": "train/542f7166624d3198"
   },
   {
     "dialogue": [
@@ -35986,7 +36452,8 @@
     ],
     "dialogue_id": 8966,
     "photo_description": "The photo has your nephew Reign. Objects in the photo: Girl, Boy, Face",
-    "photo_url": "https://farm6.staticflickr.com/7509/16023857282_c82070cfe0_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/7509/16023857282_c82070cfe0_o.jpg",
+    "photo_id": "train/8855153dc73b4b25"
   },
   {
     "dialogue": [
@@ -36063,7 +36530,8 @@
     ],
     "dialogue_id": 8967,
     "photo_description": "The photo has your uncle Sergio. Objects in the photo: Fashion accessory, Man, Face",
-    "photo_url": "https://farm2.staticflickr.com/3795/11285195625_2f51f37507_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/3795/11285195625_2f51f37507_o.jpg",
+    "photo_id": "train/7452fb2ac7b56cc1"
   },
   {
     "dialogue": [
@@ -36125,7 +36593,8 @@
     ],
     "dialogue_id": 8968,
     "photo_description": "Objects in the photo: Table, Drink, Suit, Tableware, Face",
-    "photo_url": "https://c4.staticflickr.com/4/3437/3374033441_999d38a00f_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/4/3437/3374033441_999d38a00f_o.jpg",
+    "photo_id": "train/e9604ddeac858cdb"
   },
   {
     "dialogue": [
@@ -36207,7 +36676,8 @@
     ],
     "dialogue_id": 8969,
     "photo_description": "The photo has your friend Hayden. Objects in the photo: Man",
-    "photo_url": "https://c6.staticflickr.com/4/3229/2955821911_62beae9191_o.jpg"
+    "photo_url": "https://c6.staticflickr.com/4/3229/2955821911_62beae9191_o.jpg",
+    "photo_id": "train/2c503c2000048d6d"
   },
   {
     "dialogue": [
@@ -36284,7 +36754,8 @@
     ],
     "dialogue_id": 8970,
     "photo_description": "Objects in the photo: Baked goods, Cake, Dairy",
-    "photo_url": "https://c3.staticflickr.com/3/2223/2455386980_277b1dbc3b_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/3/2223/2455386980_277b1dbc3b_o.jpg",
+    "photo_id": "train/b02d953ed3dca2ca"
   },
   {
     "dialogue": [
@@ -36381,7 +36852,8 @@
     ],
     "dialogue_id": 8971,
     "photo_description": "Objects in the photo: Fast food, Snack, Drink",
-    "photo_url": "https://c5.staticflickr.com/5/4119/4941731350_e62144d2fa_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/5/4119/4941731350_e62144d2fa_o.jpg",
+    "photo_id": "train/079054bef436950c"
   },
   {
     "dialogue": [
@@ -36443,7 +36915,8 @@
     ],
     "dialogue_id": 8972,
     "photo_description": "The photo has your friend Crystal. Objects in the photo: Face, Woman",
-    "photo_url": "https://farm2.staticflickr.com/7445/10764734463_3ec73cb372_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/7445/10764734463_3ec73cb372_o.jpg",
+    "photo_id": "train/cd5f1ce1386d6291"
   },
   {
     "dialogue": [
@@ -36495,7 +36968,8 @@
     ],
     "dialogue_id": 8973,
     "photo_description": "Objects in the photo: Curtain, Window",
-    "photo_url": "https://farm5.staticflickr.com/3619/3486951583_544f4545f0_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3619/3486951583_544f4545f0_o.jpg",
+    "photo_id": "validation/1f74ce3e07a2ffd4"
   },
   {
     "dialogue": [
@@ -36572,7 +37046,8 @@
     ],
     "dialogue_id": 8974,
     "photo_description": "Objects in the photo: Sunglasses, Drink, Face",
-    "photo_url": "https://farm3.staticflickr.com/8285/7742960658_f1817fe082_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/8285/7742960658_f1817fe082_o.jpg",
+    "photo_id": "train/fb41642db8817232"
   },
   {
     "dialogue": [
@@ -36649,7 +37124,8 @@
     ],
     "dialogue_id": 8975,
     "photo_description": "Objects in the photo: Snack, Dessert, Pastry",
-    "photo_url": "https://farm6.staticflickr.com/8233/8400560553_839105b92e_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/8233/8400560553_839105b92e_o.jpg",
+    "photo_id": "train/99c62ab4fec005e5"
   },
   {
     "dialogue": [
@@ -36741,7 +37217,8 @@
     ],
     "dialogue_id": 8976,
     "photo_description": "Objects in the photo: Drink, Clothing, Food",
-    "photo_url": "https://c1.staticflickr.com/5/4029/4294166182_5c90a0195e_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/5/4029/4294166182_5c90a0195e_o.jpg",
+    "photo_id": "train/1d3232cc2b34a4d8"
   },
   {
     "dialogue": [
@@ -36843,7 +37320,8 @@
     ],
     "dialogue_id": 8977,
     "photo_description": "Objects in the photo: Drink, Clothing, Face, Table",
-    "photo_url": "https://c4.staticflickr.com/7/6131/5987422550_5071d575ae_o.jpg"
+    "photo_url": "https://c4.staticflickr.com/7/6131/5987422550_5071d575ae_o.jpg",
+    "photo_id": "train/82ebc423848ce71b"
   },
   {
     "dialogue": [
@@ -36930,7 +37408,8 @@
     ],
     "dialogue_id": 8978,
     "photo_description": "The photo has your boyfriend Jerry. Objects in the photo: Man",
-    "photo_url": "https://farm2.staticflickr.com/4123/4950212556_0bba43e82c_o.jpg"
+    "photo_url": "https://farm2.staticflickr.com/4123/4950212556_0bba43e82c_o.jpg",
+    "photo_id": "train/8eda9c5d5b878231"
   },
   {
     "dialogue": [
@@ -37042,7 +37521,8 @@
     ],
     "dialogue_id": 8979,
     "photo_description": "The photo has your student Adrianna. Objects in the photo: Eye, Nose, Girl",
-    "photo_url": "https://c5.staticflickr.com/4/3004/2292360979_9d3a267dbf_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/4/3004/2292360979_9d3a267dbf_o.jpg",
+    "photo_id": "train/d88def3ee3271f5c"
   },
   {
     "dialogue": [
@@ -37144,7 +37624,8 @@
     ],
     "dialogue_id": 8980,
     "photo_description": "The photo has your friend Allen. Objects in the photo: Suit, Man",
-    "photo_url": "https://c3.staticflickr.com/4/3895/15192367755_f205f0be1b_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/4/3895/15192367755_f205f0be1b_o.jpg",
+    "photo_id": "train/f00f98a4cba9524a"
   },
   {
     "dialogue": [
@@ -37231,7 +37712,8 @@
     ],
     "dialogue_id": 8981,
     "photo_description": "Objects in the photo: Drink, Clothing, Face",
-    "photo_url": "https://farm1.staticflickr.com/43/76015296_ea999047db_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/43/76015296_ea999047db_o.jpg",
+    "photo_id": "train/4a3196f27e7e29c0"
   },
   {
     "dialogue": [
@@ -37308,7 +37790,8 @@
     ],
     "dialogue_id": 8982,
     "photo_description": "The photo has your uncle Nehemiah. Objects in the photo: Leg, Man, Footwear",
-    "photo_url": "https://farm5.staticflickr.com/8460/7982042623_112b34f0dc_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/8460/7982042623_112b34f0dc_o.jpg",
+    "photo_id": "train/492dde6f27aca064"
   },
   {
     "dialogue": [
@@ -37400,7 +37883,8 @@
     ],
     "dialogue_id": 8983,
     "photo_description": "Objects in the photo: Fast food, Baked goods, Hamburger",
-    "photo_url": "https://c5.staticflickr.com/9/8318/8072382308_34872fae55_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/9/8318/8072382308_34872fae55_o.jpg",
+    "photo_id": "validation/43f3d79caf46169c"
   },
   {
     "dialogue": [
@@ -37462,7 +37946,8 @@
     ],
     "dialogue_id": 8984,
     "photo_description": "Objects in the photo: Bed",
-    "photo_url": "https://farm7.staticflickr.com/5587/14847328066_a68c606b96_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/5587/14847328066_a68c606b96_o.jpg",
+    "photo_id": "test/961088f3eeacb4d6"
   },
   {
     "dialogue": [
@@ -37519,7 +38004,8 @@
     ],
     "dialogue_id": 8985,
     "photo_description": "The photo has your student Owen. Objects in the photo: Man, Woman",
-    "photo_url": "https://c1.staticflickr.com/3/2922/13889549882_1d0b1423cc_o.jpg"
+    "photo_url": "https://c1.staticflickr.com/3/2922/13889549882_1d0b1423cc_o.jpg",
+    "photo_id": "train/67bc71901073d618"
   },
   {
     "dialogue": [
@@ -37611,7 +38097,8 @@
     ],
     "dialogue_id": 8986,
     "photo_description": "Objects in the photo: Table, Hair, Leg, Drink, Bottle",
-    "photo_url": "https://farm6.staticflickr.com/441/18752866154_5ca6e114e4_o.jpg"
+    "photo_url": "https://farm6.staticflickr.com/441/18752866154_5ca6e114e4_o.jpg",
+    "photo_id": "train/a54ea6be4952ea75"
   },
   {
     "dialogue": [
@@ -37688,7 +38175,8 @@
     ],
     "dialogue_id": 8987,
     "photo_description": "Objects in the photo: Pretzel, Dessert, Bread",
-    "photo_url": "https://c5.staticflickr.com/8/7364/12442246453_cae965625d_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/8/7364/12442246453_cae965625d_o.jpg",
+    "photo_id": "train/d94c0a1ea4139f6c"
   },
   {
     "dialogue": [
@@ -37770,7 +38258,8 @@
     ],
     "dialogue_id": 8988,
     "photo_description": "Objects in the photo: shield bugs, Insect, Animal, Isopod",
-    "photo_url": "https://farm5.staticflickr.com/3311/3492021612_7b3a6c1556_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/3311/3492021612_7b3a6c1556_o.jpg",
+    "photo_id": "train/059f0c02d9236014"
   },
   {
     "dialogue": [
@@ -37832,7 +38321,8 @@
     ],
     "dialogue_id": 8989,
     "photo_description": "Objects in the photo: Beer, Food, Clothing, Face",
-    "photo_url": "https://farm1.staticflickr.com/5831/20915329836_cdf879f391_o.jpg"
+    "photo_url": "https://farm1.staticflickr.com/5831/20915329836_cdf879f391_o.jpg",
+    "photo_id": "train/c4a7759dafa24230"
   },
   {
     "dialogue": [
@@ -37904,7 +38394,8 @@
     ],
     "dialogue_id": 8990,
     "photo_description": "Objects in the photo: Dessert, Baked goods, Snack",
-    "photo_url": "https://farm7.staticflickr.com/3196/2873208597_75d5e8a09f_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/3196/2873208597_75d5e8a09f_o.jpg",
+    "photo_id": "test/23caf49eea404c46"
   },
   {
     "dialogue": [
@@ -37961,7 +38452,8 @@
     ],
     "dialogue_id": 8991,
     "photo_description": "Objects in the photo: Bottle, Wine, Wine glass",
-    "photo_url": "https://c3.staticflickr.com/1/8/9530297_129c860eeb_o.jpg"
+    "photo_url": "https://c3.staticflickr.com/1/8/9530297_129c860eeb_o.jpg",
+    "photo_id": "train/822d7a90da9fae8a"
   },
   {
     "dialogue": [
@@ -38043,7 +38535,8 @@
     ],
     "dialogue_id": 8992,
     "photo_description": "The photo has your student Khalid. Objects in the photo: Man, Face",
-    "photo_url": "https://farm5.staticflickr.com/8833/17372853795_18e5f96bcf_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/8833/17372853795_18e5f96bcf_o.jpg",
+    "photo_id": "train/6582085818f1b3e4"
   },
   {
     "dialogue": [
@@ -38105,7 +38598,8 @@
     ],
     "dialogue_id": 8993,
     "photo_description": "The photo has your student Mayson. Objects in the photo: Man, Clothing",
-    "photo_url": "https://c5.staticflickr.com/7/6229/6366183601_55028a7491_o.jpg"
+    "photo_url": "https://c5.staticflickr.com/7/6229/6366183601_55028a7491_o.jpg",
+    "photo_id": "train/0b5ff0eb5a06f15c"
   },
   {
     "dialogue": [
@@ -38187,7 +38681,8 @@
     ],
     "dialogue_id": 8994,
     "photo_description": "The photo has your daughter Legacy. Objects in the photo: Face, Girl",
-    "photo_url": "https://farm3.staticflickr.com/26/46617059_6d7fb0ae78_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/26/46617059_6d7fb0ae78_o.jpg",
+    "photo_id": "train/e9eec5e43ddace62"
   },
   {
     "dialogue": [
@@ -38264,7 +38759,8 @@
     ],
     "dialogue_id": 8995,
     "photo_description": "The photo has your student Erica. Objects in the photo: Woman, Face",
-    "photo_url": "https://farm5.staticflickr.com/7322/12077143294_6ce689a90d_o.jpg"
+    "photo_url": "https://farm5.staticflickr.com/7322/12077143294_6ce689a90d_o.jpg",
+    "photo_id": "train/ad897546385937e4"
   },
   {
     "dialogue": [
@@ -38331,7 +38827,8 @@
     ],
     "dialogue_id": 8996,
     "photo_description": "The photo has your uncle Nathaniel. Objects in the photo: Hair, Face, Clothing, Nose, Head, Human body, Mammal, Man",
-    "photo_url": "https://farm3.staticflickr.com/7221/7021919991_f37503ee6f_o.jpg"
+    "photo_url": "https://farm3.staticflickr.com/7221/7021919991_f37503ee6f_o.jpg",
+    "photo_id": "train/82897476040088e2"
   },
   {
     "dialogue": [
@@ -38413,7 +38910,8 @@
     ],
     "dialogue_id": 8997,
     "photo_description": "The photo has your dad Samir. Objects in the photo: Man, Clothing, Face",
-    "photo_url": "https://c8.staticflickr.com/1/579/21651614492_a9446ae524_o.jpg"
+    "photo_url": "https://c8.staticflickr.com/1/579/21651614492_a9446ae524_o.jpg",
+    "photo_id": "train/82d9697388537a1f"
   },
   {
     "dialogue": [
@@ -38485,7 +38983,8 @@
     ],
     "dialogue_id": 8998,
     "photo_description": "Objects in the photo: Fast food, Pizza, Clothing, Face, Woman",
-    "photo_url": "https://farm7.staticflickr.com/4019/4572296533_42cda02448_o.jpg"
+    "photo_url": "https://farm7.staticflickr.com/4019/4572296533_42cda02448_o.jpg",
+    "photo_id": "train/de6ec2c5ef805b66"
   },
   {
     "dialogue": [
@@ -38542,6 +39041,7 @@
     ],
     "dialogue_id": 8999,
     "photo_description": "Objects in the photo: Coffee cup, Coffee, Baked goods, Dessert",
-    "photo_url": "https://c2.staticflickr.com/4/3953/15739054936_626bd1af7a_o.jpg"
+    "photo_url": "https://c2.staticflickr.com/4/3953/15739054936_626bd1af7a_o.jpg",
+    "photo_id": "train/c2d6eeacdd455059"
   }
 ]

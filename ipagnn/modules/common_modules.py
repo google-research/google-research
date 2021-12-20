@@ -16,7 +16,7 @@
 """Common modules used by Learned Interpreter models."""
 
 from absl import logging  # pylint: disable=unused-import
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 

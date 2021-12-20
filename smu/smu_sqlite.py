@@ -21,12 +21,16 @@ SQLite database.
 The majority of the data is stored as a blob, with just the bond topology id and
 smiles string pulled out as fields.
 """
+import datetime
 import os
 
 from absl import logging
+from rdkit import Chem
 import sqlite3
 
 from smu import dataset_pb2
+from smu.parser import smu_utils_lib
+import snappy
 
 _CONFORMER_TABLE_NAME = 'conformer'
 _BTID_TABLE_NAME = 'btid'
@@ -103,22 +107,28 @@ class SMUSQLite:
                        '(smiles TEXT, btid INTEGER)')
     self._conn.execute(f'CREATE UNIQUE INDEX IF NOT EXISTS '
                        f'idx_smiles ON {_SMILES_TABLE_NAME} (smiles)')
+    self._conn.execute('PRAGMA synchronous = OFF')
+    self._conn.execute('PRAGMA journal_mode = MEMORY')
     self._conn.commit()
 
-  def bulk_insert(self, conformers, batch_size=10000):
+  def bulk_insert(self, encoded_conformers, batch_size=10000, limit=None):
     """Inserts conformers into the database.
 
     Args:
-      conformers: iterable for dataset_pb2.Conformer
+      encoded_conformers: iterable for encoded dataset_pb2.Conformer
       batch_size: insert performance is greatly improved by putting multiple
         insert into one transaction. 10k was a reasonable default from some
         early exploration.
+      limit: maximum number of records to insert
 
     Raises:
       ReadOnlyError: if mode is 'r'
+      ValueError: If encoded_conformers is empty.
     """
     if self._read_only:
       raise ReadOnlyError()
+    if not encoded_conformers:
+      raise ValueError()
 
     insert_conformer = f'INSERT INTO {_CONFORMER_TABLE_NAME} VALUES (?, ?)'
     insert_btid = f'INSERT INTO {_BTID_TABLE_NAME} VALUES (?, ?)'
@@ -127,19 +137,48 @@ class SMUSQLite:
 
     cur = self._conn.cursor()
 
-    for idx, conformer in enumerate(conformers, 1):
-      cur.execute(insert_conformer,
-                  (conformer.conformer_id, conformer.SerializeToString()))
+    start_time = datetime.datetime.now()
+
+    pending_conformer_args = []
+    pending_btid_args = []
+    pending_smiles_args = []
+
+    def commit_pending():
+      cur.executemany(insert_conformer, pending_conformer_args)
+      cur.executemany(insert_btid, pending_btid_args)
+      cur.executemany(insert_smiles, pending_smiles_args)
+      pending_conformer_args.clear()
+      pending_btid_args.clear()
+      pending_smiles_args.clear()
+      self._conn.commit()
+
+    idx = None
+    for idx, encoded_conformer in enumerate(encoded_conformers, 1):
+      conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
+      pending_conformer_args.append(
+          (conformer.conformer_id, snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
-        cur.execute(insert_btid, (bond_topology.bond_topology_id,
-                                  conformer.conformer_id))
-        cur.execute(insert_smiles,
-                    (bond_topology.smiles,
-                     bond_topology.bond_topology_id))
+        pending_btid_args.append(
+            (bond_topology.bond_topology_id, conformer.conformer_id))
+        pending_smiles_args.append(
+            (bond_topology.smiles, bond_topology.bond_topology_id))
       if batch_size and idx % batch_size == 0:
-        logging.info('bulk_insert: committing at index %d', idx)
-        self._conn.commit()
-    self._conn.commit()
+        commit_pending()
+        elapsed = datetime.datetime.now() - start_time
+        logging.info(
+            'bulk_insert: committed at index %d, %f s total, %.6f s/record',
+            idx, elapsed.total_seconds(),
+            elapsed.total_seconds() / idx)
+
+      if limit and idx >= limit:
+        break
+
+    # Commit a final time
+    commit_pending()
+    elapsed = datetime.datetime.now() - start_time
+    logging.info('bulk_insert: Total records %d, %f s, %.6f s/record', idx,
+                 elapsed.total_seconds(),
+                 elapsed.total_seconds() / idx)
 
   def find_by_conformer_id(self, cid):
     """Finds the conformer associated with a conformer id.
@@ -165,7 +204,7 @@ class SMUSQLite:
     # tuple with one value.
     assert len(result) == 1
     assert len(result[0]) == 1
-    return dataset_pb2.Conformer().FromString(result[0][0])
+    return dataset_pb2.Conformer().FromString(snappy.uncompress(result[0][0]))
 
   def find_by_bond_topology_id(self, btid):
     """Finds all the conformer associated with a bond topology id.
@@ -182,7 +221,8 @@ class SMUSQLite:
               f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
               f'WHERE {_BTID_TABLE_NAME}.btid = ?')
     cur.execute(select, (btid,))
-    return (dataset_pb2.Conformer().FromString(result[1]) for result in cur)
+    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[1]))
+            for result in cur)
 
   def find_by_smiles(self, smiles):
     """Finds all conformer associated with a given smiles string.
@@ -193,10 +233,11 @@ class SMUSQLite:
     Returns:
       iterable for dataset_pb2.Conformer
     """
-    # TODO(pfr): add canonicalization here
+    canon_smiles = smu_utils_lib.compute_smiles_for_molecule(
+        Chem.MolFromSmiles(smiles, sanitize=False), include_hs=False)
     cur = self._conn.cursor()
     select = f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles = ?'
-    cur.execute(select, (smiles,))
+    cur.execute(select, (canon_smiles,))
     result = cur.fetchall()
 
     if not result:
@@ -213,4 +254,5 @@ class SMUSQLite:
     select = f'SELECT conformer FROM {_CONFORMER_TABLE_NAME} ORDER BY rowid'
     cur = self._conn.cursor()
     cur.execute(select)
-    return (dataset_pb2.Conformer().FromString(result[0]) for result in cur)
+    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
+            for result in cur)

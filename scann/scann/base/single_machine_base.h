@@ -36,6 +36,10 @@
 
 namespace research_scann {
 
+class UntypedSingleMachineSearcherBase;
+using StatusOrSearcherUntyped =
+    StatusOr<unique_ptr<UntypedSingleMachineSearcherBase>>;
+
 template <typename T>
 class SingleMachineSearcherBase;
 
@@ -243,6 +247,9 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
     search_params.set_unlocked_query_preprocessing_results(nullptr);
     return OkStatus();
   }
+
+  virtual StatusOr<shared_ptr<const DenseDataset<float>>>
+  SharedFloatDatasetIfNeeded();
 
   Status GetNeighborProto(const pair<DatapointIndex, float> neighbor,
                           const DatapointPtr<T>& query,

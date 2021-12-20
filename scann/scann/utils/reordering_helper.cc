@@ -40,52 +40,14 @@
 namespace research_scann {
 namespace one_to_many_low_level {
 
-#ifdef __x86_64__
-
-namespace avx1 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx1
-
-namespace avx2 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx2Fma;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx2
-
-#endif
-
 template <typename ResultElemT, typename CallbackFunctor>
 SCANN_INLINE void DenseDotProductDistanceOneToManyInt8FloatDispatch(
     const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
     MutableSpan<ResultElemT> result, CallbackFunctor* __restrict__ callback) {
-  size_t j = 0;
-
-#ifdef __x86_64__
-  constexpr size_t kUnrollFactor = 3;
-  using DatasetView = DefaultDenseDatasetView<int8_t>;
-  auto view = DatasetView(database);
-  if (RuntimeSupportsAvx2()) {
-    avx2::DenseDotProductDistanceOneToManyInt8Float<DatasetView, false,
-                                                    DatapointIndex>(
-        query.values(), &view, nullptr, result, callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  } else if (RuntimeSupportsAvx1()) {
-    avx1::DenseDotProductDistanceOneToManyInt8Float<DatasetView, false,
-                                                    DatapointIndex>(
-        query.values(), &view, nullptr, result, callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  }
-#endif
-
-  for (; j < result.size(); ++j) {
-    const size_t idx = GetDatapointIndex(result, j);
-    const float dist = -DenseDotProduct(query, database[idx]);
-    callback->invoke(j, dist);
-  }
+  auto view = DefaultDenseDatasetView<int8_t>(database);
+  DenseDotProductDistanceOneToManyInt8FloatLowLevel<
+      DefaultDenseDatasetView<int8_t>, false, DatapointIndex, ResultElemT,
+      CallbackFunctor>(query.values(), &view, nullptr, result, callback);
 }
 
 using NeighborResult = std::pair<DatapointIndex, float>;

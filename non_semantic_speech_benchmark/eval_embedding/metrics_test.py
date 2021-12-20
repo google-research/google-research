@@ -18,6 +18,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+import numpy as np
 
 from non_semantic_speech_benchmark.eval_embedding import metrics
 
@@ -48,13 +49,31 @@ class MetricsTest(parameterized.TestCase):
     self.assertEqual(fnr, expected_fnr)
 
   def testAUCSanity(self):
-    metrics.calculate_auc([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9])
-    metrics.calculate_auc([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1])
+    metrics.calculate_auc([0, 0, 1, 1],
+                          np.array([[0.1, 0.2, 0.8, 0.9],
+                                    [0.9, 0.8, 0.2, 0.1]]).transpose())
+    metrics.calculate_auc([0, 0, 1, 1],
+                          np.array([[0.9, 0.8, 0.2, 0.1],
+                                    [0.1, 0.2, 0.8, 0.9]]).transpose())
+    metrics.calculate_auc([0, 1, 1, 2],
+                          np.array([[0.1, 0.2, 0.7, 0.8],
+                                    [0.5, 0.6, 0.1, 0.1],
+                                    [0.4, 0.2, 0.2, 0.1]]).transpose(),
+                          binary_classification=False)
+    metrics.calculate_auc([0, 1, 1, 2],
+                          np.array([[0.8, 0.7, 0.2, 0.1],
+                                    [0.1, 0.1, 0.6, 0.5],
+                                    [0.1, 0.2, 0.2, 0.4]]).transpose(),
+                          binary_classification=False)
 
   def testDPrimeSanity(self):
-    auc = metrics.calculate_auc([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9])
+    auc = metrics.calculate_auc([0, 0, 1, 1],
+                                np.array([[0.1, 0.2, 0.8, 0.9],
+                                          [0.9, 0.8, 0.2, 0.1]]).transpose())
     metrics.dprime_from_auc(auc)
-    auc = metrics.calculate_auc([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1])
+    auc = metrics.calculate_auc([0, 0, 1, 1],
+                                np.array([[0.9, 0.8, 0.2, 0.1],
+                                          [0.1, 0.2, 0.8, 0.9]]).transpose())
     metrics.dprime_from_auc(auc)
 
   def testBalancedAccuracySanity(self):

@@ -429,9 +429,13 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
                             partitioner->TokenizeDatabase(
                                 *dataset, opts->parallelization_pool.get()));
       }
-      return PretrainedTreeSQFactoryFromAssets(
-          config, params, datapoints_by_token, std::move(partitioner),
-          fp_assets);
+      TF_ASSIGN_OR_RETURN(auto result, PretrainedTreeSQFactoryFromAssets(
+                                           config, params, datapoints_by_token,
+                                           std::move(partitioner), fp_assets));
+
+      result->ReleaseDatasetAndDocids();
+      SCANN_RETURN_IF_ERROR(result->set_docids(dense->docids()));
+      return result;
     }
   }
 
@@ -528,7 +532,6 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
       config.hash().has_parameters_filename()) {
     return InvalidArgumentError("Serialized hashers are not supported.");
   }
-
   if (result->hashed_dataset()) {
     if (opts->hashed_dataset) opts->hashed_dataset.reset();
     result->ReleaseHashedDataset();

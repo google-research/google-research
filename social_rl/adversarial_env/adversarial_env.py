@@ -123,9 +123,11 @@ class AdversarialGymWrapper(gym_wrapper.GymWrapper):
                match_obs_space_dtype=True,
                auto_reset=False,
                simplify_box_bounds=True):
-
+    # Do not allow parent class to handle auto_reset because it will call the
+    # wrong reset function
+    self._adversarial_auto_reset = auto_reset
     super(AdversarialGymWrapper, self).__init__(
-        gym_env, discount, spec_dtype_map, match_obs_space_dtype, auto_reset,
+        gym_env, discount, spec_dtype_map, match_obs_space_dtype, False,
         simplify_box_bounds)
 
     self.adversary_observation_spec = gym_wrapper.spec_from_gym_space(
@@ -182,7 +184,7 @@ class AdversarialGymWrapper(gym_wrapper.GymWrapper):
 
   def _step(self, action):
     # Automatically reset the environments on step if they need to be reset.
-    if self._handle_auto_reset and self._done:
+    if self._adversarial_auto_reset and self._done:
       return self.reset_agent()
 
     action = action.item() if self._action_is_discrete else action

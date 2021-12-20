@@ -22,8 +22,8 @@ import dataclasses
 from flax import linen as nn
 from flax.linen import initializers
 # TODO(malmaud): Remove reliance on these 'legacy' nn.attention methods
-from flax.nn.attention import _make_causal_mask
-from flax.nn.attention import make_padding_mask
+from flax.deprecated.nn.attention import _make_causal_mask
+from flax.deprecated.nn.attention import make_padding_mask
 import jax
 from jax import lax
 from jax import random

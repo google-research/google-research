@@ -31,7 +31,7 @@ from absl import logging
 import chex
 from clu import platform
 import einops
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 import ml_collections

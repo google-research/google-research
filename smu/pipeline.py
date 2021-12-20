@@ -21,6 +21,7 @@ checking to produce the final outputs.
 """
 
 import copy
+import csv
 import functools
 import itertools
 import logging as stdlogging
@@ -36,6 +37,8 @@ from tensorflow.io import gfile
 from google.protobuf import json_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
+from smu.geometry import smu_molecule
+from smu.geometry import topology_from_geom
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
@@ -57,6 +60,9 @@ flags.DEFINE_integer('output_shards', 10,
 FLAGS = flags.FLAGS
 
 _METRICS_NAMESPACE = 'SMU'
+_BOND_LENGTHS_SIG_DIGITS = 3
+_BOND_LENGTHS_UNBONDED_MAX = 2.0
+_BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
 
 def parse_equivalent_file(filename):
@@ -181,27 +187,24 @@ def conformer_to_stat_values(conformer):
     primary_key, secondary_key
   """
   # Yield the values for all the relevant error fields.
-  for field in ['status',
-                'warn_t1',
-                'warn_t1_excess',
-                'warn_bse_b5_b6',
-                'warn_bse_cccsd_b5',
-                'warn_exc_lowest_excitation',
-                'warn_exc_smallest_oscillator',
-                'warn_exc_largest_oscillator',
-                'warn_vib_linearity',
-                'warn_vib_imaginary',
-                'warn_num_neg',
-                'error_nstat1',
-                'error_nstatc',
-                'error_nstatt',
-                'error_frequencies']:
+  for field in [
+      'status', 'warn_t1', 'warn_t1_excess', 'warn_bse_b5_b6',
+      'warn_bse_cccsd_b5', 'warn_exc_lowest_excitation',
+      'warn_exc_smallest_oscillator', 'warn_exc_largest_oscillator',
+      'warn_vib_linearity', 'warn_vib_imaginary', 'warn_num_neg',
+      'error_nstat1', 'error_nstatc', 'error_nstatt', 'error_frequencies'
+  ]:
     yield 'errors.' + field, getattr(conformer.properties.errors, field)
 
   yield 'fate', dataset_pb2.Conformer.FateCategory.Name(conformer.fate)
 
   yield 'num_initial_geometries', len(conformer.initial_geometries)
   yield 'num_duplicates', len(conformer.duplicate_of)
+  if not conformer.duplicated_by:
+    yield 'num_topologies', len(conformer.bond_topologies)
+
+  for field in smu_utils_lib.find_zero_values(conformer):
+    yield 'zero_field', field
 
 
 def bond_topology_summaries_from_csv(filename):
@@ -290,6 +293,10 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
   Yields:
     (atom type 1, atom type 2, bond type, quantized dist)
   """
+  # These are considered "major" or worse errors
+  if (conformer.properties.errors.status >= 8 or conformer.duplicated_by > 0):
+    return
+
   bt = conformer.bond_topologies[0]
   format_str = '{:.%df}' % dist_sig_digits
 
@@ -297,6 +304,14 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
 
     if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
         bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
+      continue
+
+    # Hello huge hack. F-F creates problems for us because there is
+    # exactly one conformer that has an F-F bond. We can't create an
+    # empirical distribution out of 1 value. So we'll just drop that
+    # one and let the FF conformer have no detected geometries.
+    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_F and
+        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
       continue
 
     bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
@@ -351,12 +366,43 @@ def write_bond_lengths(records, filename):
     df.to_csv(f, index=False)
 
 
+def smiles_to_id(bond_topology_filename):
+  """DoFn for creating the smiles to id mapping.
+
+  Reads the same merged_bond_topology file as bond_topology_summaries_from_csv
+  and output. We could of course produce them both at the same time, but this
+  is simpler.
+
+  Args:
+    bond_topology_filename: see FLAGS.input_bond_topology_csv
+
+  Yields:
+    smiles, bond_topology_id
+  """
+  with gfile.GFile(bond_topology_filename, 'r') as infile:
+    reader = csv.reader(iter(infile))
+    next(reader)  # skip the header line
+    for row in reader:
+      bt_id, _, _, _, _, smiles = row
+      yield smiles, int(bt_id)
+
+
+def clean_up_conformer(conformer):
+  conformer = copy.deepcopy(conformer)
+
+  smu_utils_lib.clean_up_error_codes(conformer)
+  smu_utils_lib.clean_up_sentinel_values(conformer)
+
+  return conformer
+
+
 class UpdateConformerFn(beam.DoFn):
   """DoFn that performs several updates to fields in Conformer.
 
   * Updates the smiles string (with a tagged output to record the mismatches.
   * Adds Fate field
-  * TODO(ianwatson, pfr): add in the geometry sensing part here
+  * Adds additional bond topologies that match the geometry
+  * various cleanup steps
 
   main output is dataset_pb2.Conformer
   smiles output is a tuple of
@@ -367,6 +413,9 @@ class UpdateConformerFn(beam.DoFn):
     smiles_without_h
   """
   OUTPUT_TAG_SMILES_MISMATCH = 'tag_smiles'
+
+  def setup(self):
+    self._cached_bond_lengths = None
 
   def _compare_smiles(self, conformer):
     if len(conformer.bond_topologies) != 1:
@@ -382,14 +431,90 @@ class UpdateConformerFn(beam.DoFn):
           UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH,
           (conformer.conformer_id, result, conformer.bond_topologies[0].smiles,
            smiles_with_h, smiles_without_h))
+      conformer.properties.smiles_openbabel = (
+          conformer.bond_topologies[0].smiles)
       conformer.bond_topologies[0].smiles = smiles_without_h
 
-  def process(self, conformer):
+  def _add_alternative_bond_topologies(self, conformer, smiles_id_dict):
+    beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                 'attempted_topology_matches').inc()
+
+    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters.must_match_all_bonds = True
+    matching_parameters.smiles_with_h = False
+    matching_parameters.smiles_with_labels = False
+    matching_parameters.neutral_forms_during_bond_matching = True
+    matching_parameters.consider_not_bonded = True
+    matching_parameters.ring_atom_count_cannot_decrease = False
+
+    matches = topology_from_geom.bond_topologies_from_geom(
+        bond_lengths=self._cached_bond_lengths,
+        conformer_id=conformer.conformer_id,
+        fate=conformer.fate,
+        bond_topology=conformer.bond_topologies[0],
+        geometry=conformer.optimized_geometry,
+        matching_parameters=matching_parameters)
+
+    if not matches.bond_topology:
+      beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                   'no_topology_matches').inc()
+      return
+
+    del conformer.bond_topologies[:]
+    conformer.bond_topologies.extend(matches.bond_topology)
+    for bt in conformer.bond_topologies:
+      try:
+        bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      except KeyError:
+        beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                     'topology_match_smiles_failure').inc()
+
+  def process(self, conformer, bond_length_records, smiles_id_dict):
+    """Per conformer updates.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+      bond_length_records: tuples to go to
+        bond_length_distribution.AllAtomPairLengthDistributions
+      smiles_id_dict: dict from SMILES to bond topology id
+
+    Yields:
+      Conformer.
+    """
+    # There is probably a better way to do this.
+    # We get the side input with each call to process. We'll assume that it's
+    # always the same input, so we set our cache value and never update it.
+    # We only do this with bond_length_records because there is a reasonable
+    # amount of processing in creating AllAtomPairLengthDistributions.
+    # The smiles_id_dict is used directly.
+    if not self._cached_bond_lengths:
+      self._cached_bond_lengths = (
+          bond_length_distribution.AllAtomPairLengthDistributions())
+      try:
+        self._cached_bond_lengths.add_from_sparse_dataframe(
+            bond_length_distribution.sparse_dataframe_from_records(
+                bond_length_records), _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS,
+            _BOND_LENGTHS_SIG_DIGITS)
+      except ValueError as err:
+        raise ValueError(
+            'Invalid sparse dataframe for conformer {0} org. ValueError: {1}'
+            .format(str(conformer.conformer_id), err))
+
     conformer = copy.deepcopy(conformer)
 
     conformer.fate = smu_utils_lib.determine_fate(conformer)
 
     yield from self._compare_smiles(conformer)
+
+    if (conformer.duplicated_by == 0 and
+        conformer.properties.errors.status < 512):
+      # The duplicate records do not need topology extraction and anything
+      # with this high an error is pretty messed so, do we won't bother trying
+      # to match the topolgy.
+      self._add_alternative_bond_topologies(conformer, smiles_id_dict)
+    else:
+      beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
+                                   'skipped_topology_matches').inc()
 
     yield conformer
 
@@ -729,23 +854,38 @@ def pipeline(root):
           num_shards=1,
           file_name_suffix='.csv'))
 
-  # Get the bond length distributions
-  unused_bond_length_dists_pcoll = (
+  cleaned_conformers = (
       merged_conformers
-      | 'FilterForBondLengths' >> beam.Filter(
-          smu_utils_lib.should_include_in_standard)
+      | 'CleanUpConformers' >> beam.Map(clean_up_conformer))
+
+  # Get the bond length distributions
+  bond_length_dists_pcoll = (
+      cleaned_conformers
       | 'ExtractBondLengths' >> beam.FlatMap(
-          extract_bond_lengths, dist_sig_digits=3, unbonded_max=2.0)
+          extract_bond_lengths,
+          dist_sig_digits=_BOND_LENGTHS_SIG_DIGITS,
+          unbonded_max=_BOND_LENGTHS_UNBONDED_MAX)
       | 'CountBondLengths' >> beam.combiners.Count.PerElement()
-      | 'ToListBondLengths' >> beam.combiners.ToList()
+      | 'ToListBondLengths' >> beam.combiners.ToList())
+  _ = (
+      bond_length_dists_pcoll
       | 'WriteBondLengths' >> beam.ParDo(
           write_bond_lengths, filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
 
+  # Get the SMILES to id mapping needed for UpdateConformerFn
+  smiles_id_pcoll = (
+      root
+      | 'BTInputForSmiles' >> beam.Create([FLAGS.input_bond_topology_csv])
+      | 'GenerateSmilesToID' >> beam.FlatMap(smiles_to_id))
+  smiles_id_dict = beam.pvalue.AsDict(smiles_id_pcoll)
+
   # Various per conformer processing
   update_results = (
-      merged_conformers
-      | 'UpdateConformers' >> beam.ParDo(UpdateConformerFn()).with_outputs(
-          UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH, main='conformers'))
+      cleaned_conformers
+      | 'UpdateConformers' >> beam.ParDo(
+          UpdateConformerFn(), beam.pvalue.AsSingleton(bond_length_dists_pcoll),
+          smiles_id_dict).with_outputs(
+              UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH, main='conformers'))
   updated_conformers = update_results['conformers']
 
   # Output SMILES mismatches

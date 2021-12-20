@@ -17,13 +17,14 @@
 
 #include <unordered_map>
 
+#include "absl/container/flat_hash_map.h"
 #include "sparse/ops/cc/common.h"
 
 namespace sgk {
 
 namespace {
 
-using HandleMap = std::unordered_map<cudaStream_t, cusparseHandle_t>;
+using HandleMap = absl::flat_hash_map<cudaStream_t, cusparseHandle_t>;
 
 // Get singleton map of cuda streams to cusparse handles.
 HandleMap* GetHandleMap() {

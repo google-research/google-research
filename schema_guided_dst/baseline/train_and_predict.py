@@ -21,14 +21,14 @@ https://github.com/google-research/bert/blob/master/run_classifier.py
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import collections
 import os
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+
 
 from schema_guided_dst import schema
 from schema_guided_dst.baseline import config
@@ -677,7 +677,7 @@ def _model_fn_builder(bert_config, init_checkpoint, learning_rate,
           "global_step": global_step,
           "total_loss": total_loss,
       }
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
@@ -687,12 +687,12 @@ def _model_fn_builder(bert_config, init_checkpoint, learning_rate,
           ])
 
     elif mode == tf.estimator.ModeKeys.EVAL:
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
           mode=mode, loss=total_loss, scaffold_fn=scaffold_fn)
 
     else:  # mode == tf.estimator.ModeKeys.PREDICT
       predictions = schema_guided_dst.define_predictions(features, outputs)
-      output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+      output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
           mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
 
     return output_spec
@@ -715,10 +715,10 @@ def _create_schema_embeddings(bert_config, schema_embedding_file,
   """Create schema embeddings and save it into file."""
   if not tf.io.gfile.exists(FLAGS.schema_embedding_dir):
     tf.io.gfile.makedirs(FLAGS.schema_embedding_dir)
-  is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  schema_emb_run_config = tf.contrib.tpu.RunConfig(
+  is_per_host = tf.compat.v1.estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  schema_emb_run_config = tf.compat.v1.estimator.tpu.RunConfig(
       master=FLAGS.master,
-      tpu_config=tf.contrib.tpu.TPUConfig(
+      tpu_config=tf.compat.v1.estimator.tpu.TPUConfig(
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=is_per_host))
 
@@ -735,7 +735,7 @@ def _create_schema_embeddings(bert_config, schema_embedding_file,
       use_one_hot_embeddings=FLAGS.use_one_hot_embeddings)
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  schema_emb_estimator = tf.contrib.tpu.TPUEstimator(
+  schema_emb_estimator = tf.compat.v1.estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=schema_emb_model_fn,
       config=schema_emb_run_config,
@@ -795,21 +795,22 @@ def main(_):
     tf.compat.v1.logging.info("Finish generating the schema embeddings.")
 
   # Create estimator for training or inference.
-  tf.io.gfile.makedirs(FLAGS.output_dir)
+  if not tf.io.gfile.exists(FLAGS.output_dir):
+    tf.io.gfile.makedirs(FLAGS.output_dir)
 
   tpu_cluster_resolver = None
   if FLAGS.use_tpu and FLAGS.tpu_name:
-    tpu_cluster_resolver = tf.contrib.cluster_resolver.TPUClusterResolver(
+    tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  is_per_host = tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.contrib.tpu.RunConfig(
+  is_per_host = tf.compat.v1.estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  run_config = tf.compat.v1.estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
       keep_checkpoint_max=None,
-      tpu_config=tf.contrib.tpu.TPUConfig(
+      tpu_config=tf.compat.v1.estimator.tpu.TPUConfig(
           # Recommended value is number of global steps for next checkpoint.
           iterations_per_loop=FLAGS.save_checkpoints_steps,
           num_shards=FLAGS.num_tpu_cores,
@@ -835,7 +836,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.contrib.tpu.TPUEstimator(
+  estimator = tf.compat.v1.estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,

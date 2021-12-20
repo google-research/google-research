@@ -20,7 +20,7 @@ from functools import partial
 from . import util
 
 import flax
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 import jax.random

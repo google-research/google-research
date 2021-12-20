@@ -27,8 +27,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Variants of Conv Modules."""
-from flax import nn
-from flax.nn import initializers
+from flax.deprecated import nn
+from flax.deprecated.nn import initializers
 from jax import lax
 import jax.numpy as jnp
 

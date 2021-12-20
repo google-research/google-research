@@ -24,6 +24,7 @@ import functools
 import json
 import os
 import random
+import sys
 import time
 
 from absl import app
@@ -47,6 +48,7 @@ from latent_programmer.decomposition_transformer_attention import input_pipeline
 from latent_programmer.tasks.robust_fill import dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 
+sys.path.append('../../')
 gfile = tf.io.gfile
 
 FLAGS = flags.FLAGS
@@ -55,7 +57,7 @@ flags.DEFINE_integer('seed', 0, 'Fixed random seed for training.')
 flags.DEFINE_float('lr', 1e-3, 'Learning rate.')
 flags.DEFINE_float('weight_decay', 1e-1,
                    'Decay factor for AdamW-style weight decay.')
-flags.DEFINE_integer('embedding_dim', 128, 'Embedding dimension.')
+flags.DEFINE_integer('embedding_dim', 256, 'Embedding dimension.')
 flags.DEFINE_integer('hidden_dim', 512, 'Hidden dimension.')
 flags.DEFINE_integer('num_heads', 4, 'Number of layers.')
 flags.DEFINE_integer('num_layers', 3, 'Number of Transformer heads.')
@@ -67,17 +69,23 @@ flags.DEFINE_integer('per_device_batch_size', 16,
                      'Number of program tasks in a batch.')
 flags.DEFINE_integer('num_strings_per_task', 4,
                      'Number of input/output strings per task.')
-flags.DEFINE_integer('max_program_length', 50,
+flags.DEFINE_integer('max_program_length', 100,
                      'Maximum number of tokens in program.')
-flags.DEFINE_integer('max_characters', 100,
+flags.DEFINE_integer('max_characters', 120,
                      'Maximum number of characters in input/output strings.')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
-flags.DEFINE_integer('num_train_steps', 1500000, 'Number of training steps.')
+flags.DEFINE_integer('num_train_steps', 2000000, 'Number of training steps.')
 flags.DEFINE_integer('num_eval_steps', 10, 'Number of evaluation steps.')
-flags.DEFINE_integer('log_freq', 10000, 'Number of steps between logs.')
-flags.DEFINE_integer('checkpoint_freq', 1000,
+flags.DEFINE_integer('log_freq', 1000, 'Number of steps between training logs.')
+flags.DEFINE_integer('eval_freq', 2000, 'Number of steps between eval.')
+flags.DEFINE_integer('predict_freq', 50000,
+                     'Number of steps between prediction (beam search).')
+flags.DEFINE_integer('checkpoint_freq', 50000,
                      'Number of steps between checkpoint saves.')
+flags.DEFINE_integer('finetune_start_step', -1,
+                     'Step the initial checkpoint should start at for '
+                     'finetuning, or -1 if not finetuning.')
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
@@ -87,8 +95,15 @@ flags.DEFINE_string('attention_mask_type', 'bos_full_attention',
 
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
-flags.DEFINE_integer('num_relative_position_buckets', 32,
-                     'Number of buckets when computing relative positions.')
+flags.DEFINE_bool('bos_special_attention', False,
+                  'Whether to use special relative attention computation for '
+                  'BOS tokens.')
+
+
+_internal = False
+if not _internal:
+  flags.DEFINE_string('xm_parameters', None,
+                      'String specifying hyperparamter search.')
 
 
 def create_learning_rate_scheduler(
@@ -219,12 +234,12 @@ def train_step(optimizer,
                programs,
                learning_rate_fn,
                config,
-               train_rng=None):
+               dropout_rng):
   """Train on batch of program tasks."""
   # We handle PRNG splitting inside the top pmap, rather
   # than handling it outside in the training loop - doing the
   # latter can add some stalls to the devices.
-  train_rng, new_train_rng = jax.random.split(train_rng)
+  dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
 
   weights = jnp.where(programs > 0, 1, 0).astype(jnp.float32)
 
@@ -235,7 +250,7 @@ def train_step(optimizer,
         inputs,
         outputs,
         programs,
-        rngs={'dropout': train_rng})
+        rngs={'dropout': dropout_rng})
     loss, weight_sum = compute_weighted_cross_entropy(logits, programs, weights)
     mean_loss = loss / weight_sum
     return mean_loss, logits
@@ -250,10 +265,11 @@ def train_step(optimizer,
   # Get metrics.
   metrics = compute_metrics(logits, programs, weights)
   metrics['learning_rate'] = lr
-  return new_optimizer, metrics, new_train_rng
+  return new_optimizer, metrics, new_dropout_rng
 
 
 def eval_step(params, inputs, outputs, programs, eos_token, config):
+  """Collect metrics for evaluation during training."""
   weights = jnp.where(
       jnp.logical_and(programs > 0,
                       jnp.logical_and(programs != config.base_config.bos_token,
@@ -387,7 +403,7 @@ def eval_predicted(predicted, inputs, outputs, parse_beam_fn):
   best_p, best_score = None, -1
 
   # predicted shape [beam_size, length]
-  for beam in predicted:
+  for beam in predicted[::-1]:
     try:
       p = parse_beam_fn(beam)
       p_outs = [p(inp) for inp in inputs]
@@ -413,8 +429,17 @@ def main(_):
   np.random.seed(FLAGS.seed)
   random.seed(FLAGS.seed)
 
+  # BOS special attention only makes sense if we are using relative attention
+  # and it's not the baseline.
+  if FLAGS.bos_special_attention and (not FLAGS.use_relative_attention or
+                                      FLAGS.attention_mask_type == 'baseline'):
+    raise ValueError(
+        "bos_special_attention doesn't work when use_relative_attention={} and "
+        'attention_mask_type={}'.format(FLAGS.use_relative_attention,
+                                        FLAGS.attention_mask_type))
+
   if not gfile.isdir(FLAGS.save_dir):
-    gfile.mkdir(FLAGS.save_dir)
+    gfile.makedirs(FLAGS.save_dir)
 
   hparam_str_dict = dict(seed=FLAGS.seed, lr=FLAGS.lr)
   # Get hyperparmaters
@@ -471,7 +496,7 @@ def main(_):
     program = program[program != bos_token]
 
     try:
-      return dsl.decode_program(program, id_token_table)
+      return dsl.decode_program(program.tolist(), id_token_table)
     except:  # pylint: disable=bare-except
       return None  # Program does not compile.
 
@@ -482,23 +507,27 @@ def main(_):
     raise ValueError('Must specify filepattern to dataset.')
 
   # Training dataset.
+  logging.info('Loading dataset from %s', FLAGS.dataset_filepattern)
+  padded_shapes = (io_shape[1:], io_shape[1:], program_shape[1:])
+  logging.info('padded_shapes: %s', padded_shapes)
   dataset = input_pipeline.create_dataset_from_tf_record(
       FLAGS.dataset_filepattern, token_id_table, char_id_table)
   dataset = dataset.padded_batch(
       batch_size,
-      padded_shapes=(io_shape[1:], io_shape[1:], program_shape[1:]),
+      padded_shapes=padded_shapes,
       drop_remainder=True)
   # Split evaluation and training.
   eval_ds = dataset.take(FLAGS.num_eval_steps)
   # Decrease batch of predict dataset to handle beam search.
   predict_ds = eval_ds.unbatch().padded_batch(
       int(np.ceil(batch_size / 10)),
-      padded_shapes=(io_shape[1:], io_shape[1:], program_shape[1:]))
+      padded_shapes=padded_shapes)
   train_ds = dataset.skip(FLAGS.num_eval_steps).repeat()
   train_iter = train_ds.as_numpy_iterator()
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
+  use_dropout = False
   base_config = base_models.TransformerConfig(
       vocab_size=io_vocab_size,
       output_vocab_size=program_vocab_size,
@@ -510,20 +539,23 @@ def main(_):
       mlp_dim=FLAGS.hidden_dim,
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
       use_relative_attention=FLAGS.use_relative_attention,
-      num_relative_position_buckets=FLAGS.num_relative_position_buckets,
-      deterministic=False,
+      deterministic=not use_dropout,
       decode=False,
       bos_token=bos_token)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
-      attention_mask_type=FLAGS.attention_mask_type)
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
   eval_config = models.DecomposeAttentionTransformerConfig(
-      base_config=base_config.replace(deterministic=True),
-      attention_mask_type=FLAGS.attention_mask_type)
+      base_config=base_config.replace(deterministic=not use_dropout),
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
   predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
-          shift=False, deterministic=True, decode=not FLAGS.slow_decode),
-      attention_mask_type=FLAGS.attention_mask_type)
+          shift=False, deterministic=not use_dropout,
+          decode=not FLAGS.slow_decode),
+      attention_mask_type=FLAGS.attention_mask_type,
+      bos_special_attention=FLAGS.bos_special_attention)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
@@ -531,7 +563,7 @@ def main(_):
 
   m = models.DecomposeAttentionTransformer(eval_config)
   initial_variables = jax.jit(m.init)(
-      init_rng,
+      {'params': init_rng, 'dropout': init_rng},
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(program_shape, jnp.float32))
@@ -554,6 +586,10 @@ def main(_):
     # Grab last step.
     start_step = int(optimizer.state.step)
     logging.info('Found model checkpointed at step %d.', start_step)
+    if FLAGS.finetune_start_step > 0:
+      logging.info('Checking that start_step (%s) == finetune_start_step (%s)',
+                   start_step, FLAGS.finetune_start_step)
+      assert start_step == FLAGS.finetune_start_step
 
   # Replicate optimizer.
   optimizer = jax_utils.replicate(optimizer)
@@ -561,7 +597,14 @@ def main(_):
   # TODO(jxihong): Implement fast decoding.
   assert FLAGS.slow_decode, 'Fast decoding is not implemented yet.'
 
-  learning_rate_fn = create_learning_rate_scheduler(base_learning_rate=FLAGS.lr)
+  if FLAGS.finetune_start_step <= 0:
+    learning_rate_fn = create_learning_rate_scheduler(
+        base_learning_rate=FLAGS.lr)
+  else:
+    # Constant LR for finetuning.
+    learning_rate_fn = create_learning_rate_scheduler(
+        base_learning_rate=FLAGS.lr,
+        factors='constant')
   p_train_step = jax.pmap(
       functools.partial(
           train_step,
@@ -591,7 +634,7 @@ def main(_):
 
   # Main Train Loop
   # ---------------------------------------------------------------------------
-  train_rngs = jax.random.split(rng, jax.local_device_count())
+  dropout_rng = jax.random.split(rng, jax.local_device_count())
   del rng
 
   metrics_all = []
@@ -599,8 +642,8 @@ def main(_):
   for step in range(start_step, FLAGS.num_train_steps):
     inputs, outputs, programs = common_utils.shard(next(train_iter))
 
-    optimizer, metrics, train_rngs = p_train_step(
-        optimizer, inputs, outputs, programs, train_rng=train_rngs)
+    optimizer, metrics, dropout_rng = p_train_step(
+        optimizer, inputs, outputs, programs, dropout_rng=dropout_rng)
     metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
@@ -614,134 +657,143 @@ def main(_):
             step)
 
     # Periodic metric handling.
-    if not step or (step % FLAGS.log_freq != 0 and not is_last_step):
-      continue
 
-    logging.info('Gathering training metrics.')
     # Training Metrics
-    metrics_all = common_utils.get_metrics(metrics_all)
-    lr = metrics_all.pop('learning_rate').mean()
-    metrics_sums = jax.tree_map(jnp.sum, metrics_all)
-    denominator = metrics_sums.pop('denominator')
-    summary = jax.tree_map(
-        lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
-        metrics_sums)
-    summary['learning_rate'] = lr
-    # Calculate (clipped) perplexity after averaging log-perplexities:
-    summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
+    if (step and step % FLAGS.log_freq == 0) or is_last_step:
+      logging.info('Gathering training metrics.')
+      metrics_all = common_utils.get_metrics(metrics_all)
+      lr = metrics_all.pop('learning_rate').mean()
+      metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+      denominator = metrics_sums.pop('denominator')
+      summary = jax.tree_map(
+          lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
+          metrics_sums)
+      summary['learning_rate'] = lr
+      # Calculate (clipped) perplexity after averaging log-perplexities:
+      summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
 
-    if jax.host_id() == 0:
-      logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
-      tock = time.time()
-      steps_per_sec = FLAGS.log_freq / (tock - tick)
-      tick = tock
-      summary_writer.scalar('train/steps per second', steps_per_sec, step)
-      for key, val in summary.items():
-        summary_writer.scalar('train/' + key, val, step)
-      summary_writer.flush()
-    # Reset metric accumulation for next evaluation cycle.
-    metrics_all = []
+      if jax.host_id() == 0:
+        logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
+        tock = time.time()
+        steps_per_sec = FLAGS.log_freq / (tock - tick)
+        tick = tock
+        summary_writer.scalar('train/steps per second', steps_per_sec, step)
+        for key, val in summary.items():
+          summary_writer.scalar('train/' + key, val, step)
+        summary_writer.flush()
+      # Reset metric accumulation for next evaluation cycle.
+      metrics_all = []
 
     # Evaluation Metrics
-    logging.info('Gathering evaluation metrics.')
-    t_evaluation_start = time.time()
-    eval_metrics = []
-    for batches in eval_ds.as_numpy_iterator():
-      inputs, outputs, programs = common_utils.shard(batches)
+    if (step and step % FLAGS.eval_freq == 0) or is_last_step:
+      logging.info('Gathering evaluation metrics.')
+      t_evaluation_start = time.time()
+      eval_metrics = []
+      for batches in eval_ds.as_numpy_iterator():
+        inputs, outputs, programs = common_utils.shard(batches)
 
-      metrics = p_eval_step(optimizer.target, inputs, outputs, programs)
-      eval_metrics.append(metrics)
+        metrics = p_eval_step(optimizer.target, inputs, outputs, programs)
+        eval_metrics.append(metrics)
 
-    eval_metrics = common_utils.get_metrics(eval_metrics)
-    eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
-    eval_denominator = eval_metrics_sums.pop('denominator')
-    eval_summary = jax.tree_map(
-        lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
-        eval_metrics_sums)
+      eval_metrics = common_utils.get_metrics(eval_metrics)
+      eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+      eval_denominator = eval_metrics_sums.pop('denominator')
+      eval_summary = jax.tree_map(
+          lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
+          eval_metrics_sums)
 
-    if jax.host_id() == 0:
-      logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
-                   time.time()-t_evaluation_start, step, eval_summary['loss'])
-      for key, val in eval_summary.items():
-        summary_writer.scalar('eval/' + key, val, step)
-      summary_writer.flush()
+      if jax.host_id() == 0:
+        logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
+                     time.time()-t_evaluation_start, step, eval_summary['loss'])
+        for key, val in eval_summary.items():
+          summary_writer.scalar('eval/' + key, val, step)
+        summary_writer.flush()
 
     # Beam search metrics.
-    logging.info('Gathering beam search metrics.')
-    for beam_size in [1, 10, 12, 24, 48, 96]:
-      t_inference_start = time.time()
-      pred_acc = 0
-      pred_denominator = 0
+    if (step and step % FLAGS.predict_freq == 0) or is_last_step:
+      logging.info('Gathering beam search metrics.')
+      for beam_size in [1, 5, 10, 20, 50]:
+        t_inference_start = time.time()
+        pred_acc = 0
+        pred_denominator = 0
 
-      ios, targets, predictions = [], [], []
-      for batches in predict_ds.as_numpy_iterator():
-        pred_batch = batches
-        # Handle final odd-sized batch by padding instead of dropping it.
-        cur_pred_batch_size = pred_batch[0].shape[0]
-        if cur_pred_batch_size % n_devices:
-          padded_size = int(
-              np.ceil(cur_pred_batch_size / n_devices) * n_devices)
-          # pylint: disable=cell-var-from-loop
-          pred_batch = jax.tree_map(
-              lambda x: pad_examples(x, padded_size), pred_batch)
-        inputs, outputs, programs = common_utils.shard(pred_batch)
+        ios, targets, predictions, top_of_beams = [], [], [], []
+        for batches in predict_ds.as_numpy_iterator():
+          pred_batch = batches
+          # Handle final odd-sized batch by padding instead of dropping it.
+          cur_pred_batch_size = pred_batch[0].shape[0]
+          if cur_pred_batch_size % n_devices:
+            padded_size = int(
+                np.ceil(cur_pred_batch_size / n_devices) * n_devices)
+            # pylint: disable=cell-var-from-loop
+            pred_batch = jax.tree_map(
+                lambda x: pad_examples(x, padded_size), pred_batch)
+          inputs, outputs, programs = common_utils.shard(pred_batch)
 
-        cache = (p_init_cache(inputs, outputs, programs)
-                 if not FLAGS.slow_decode else None)
-        predicted = p_pred_step(optimizer.target,
-                                inputs,
-                                outputs,
-                                cache,
-                                beam_size)
-        predicted = tohost(predicted)
-        inputs, outputs, programs = map(tohost, (inputs, outputs, programs))
+          cache = (p_init_cache(inputs, outputs, programs)
+                   if not FLAGS.slow_decode else None)
+          predicted = p_pred_step(optimizer.target, inputs, outputs, cache,
+                                  beam_size)
+          predicted = tohost(predicted)
+          inputs, outputs, programs = map(tohost, (inputs, outputs, programs))
 
-        pred_denominator += programs.shape[0]
-        for i, beams in enumerate(predicted):
-          inps, outs = decode_io(inputs[i], outputs[i])
-          p, p_score = eval_predicted(
-              beams, inps, outs, parse_beam_fn=decode_program)
-          if p_score >= len(inps):
-            pred_acc += 1
-          ios.append(' ; '.join(map(str, zip(inps, outs))))
-          targets.append(decode_program(programs[i]).to_string())
-          try:
-            predictions.append(p.to_string())
-          except:  # pylint: disable=bare-except
-            predictions.append('')
-          logging.info('ios: %s', ios[-1])
-          logging.info('target: %s', targets[-1])
-          beams_log = []
-          for beam in beams:
+          pred_denominator += programs.shape[0]
+          for i, beams in enumerate(predicted):
+            inps, outs = decode_io(inputs[i], outputs[i])
+            p, p_score = eval_predicted(
+                beams, inps, outs, parse_beam_fn=decode_program)
+            if p_score >= len(inps):
+              pred_acc += 1
+            ios.append(' ; '.join(map(str, zip(inps, outs))))
+            targets.append(decode_program(programs[i]).to_string())
             try:
-              beams_log.append(decode_program(beam).to_string())
+              predictions.append(p.to_string())
             except:  # pylint: disable=bare-except
-              beams_log.append('None')
-          logging.info('predicted beam: %s', '\n'.join(beams_log))
+              predictions.append('Did not compile')
+            logging.info('ios: %s', ios[-1])
+            logging.info('target: %s', targets[-1])
+            beams_log = []
+            for beam in beams:
+              try:
+                beams_log.append(decode_program(beam).to_string())
+              except:  # pylint: disable=bare-except
+                beams_log.append('Did not compile')
+            logging.info('predicted beam: %s', '\n'.join(beams_log))
 
-      all_pred_acc, all_pred_denominator = per_host_sum_pmap(
-          jax.tree_map(np.array, (pred_acc, pred_denominator)))
+            top_of_beam = []
+            for index, beam in enumerate(beams[:-5:-1]):
+              try:
+                decoded_program = decode_program(beam).to_string()
+              except:  # pylint: disable=bare-except
+                decoded_program = 'Did not compile'
+              top_of_beam.append('index: {}, decoded: {}, tokens: {}'.format(
+                  index, decoded_program, beam))
+            top_of_beams.append('\n\n'.join(top_of_beam))
 
-      # Record beam search results as text summaries.
-      message = []
-      for n in np.random.choice(np.arange(len(predictions)), 8):
-        text = (f'ios: {ios[n]}\n\ntarget: {targets[n]}\n\n'
-                f'predicted: {predictions[n]}\n\n')
-        message.append(text)
+        all_pred_acc, all_pred_denominator = per_host_sum_pmap(
+            jax.tree_map(np.array, (pred_acc, pred_denominator)))
 
-      # Write to tensorboard.
-      if jax.host_id() == 0:
-        slow_or_fast = 'slow' if FLAGS.slow_decode else 'fast'
-        logging.info(
-            'Prediction time, %s (beam %d): %.4f s, step %d, score %.4f',
-            slow_or_fast, beam_size, time.time() - t_inference_start, step,
-            all_pred_acc / all_pred_denominator)
-        summary_writer.scalar(
-            'predict-{}/score-{}'.format(slow_or_fast, beam_size),
-            all_pred_acc / all_pred_denominator, step)
-        summary_writer.text('samples-{}'.format(beam_size),
-                            '\n------\n'.join(message), step)
-        summary_writer.flush()
+        # Record beam search results as text summaries.
+        message = []
+        for n in np.random.choice(np.arange(len(predictions)), 8):
+          text = (f'ios: {ios[n]}\n\ntarget: {targets[n]}\n\n'
+                  f'predicted: {predictions[n]}\n\n'
+                  f'top of beam:\n\n{top_of_beams[n]}\n\n')
+          message.append(text)
+
+        # Write to tensorboard.
+        if jax.host_id() == 0:
+          slow_or_fast = 'slow' if FLAGS.slow_decode else 'fast'
+          logging.info(
+              'Prediction time, %s (beam %d): %.4f s, step %d, score %.4f',
+              slow_or_fast, beam_size, time.time() - t_inference_start, step,
+              all_pred_acc / all_pred_denominator)
+          summary_writer.scalar(
+              'predict-{}/score-{}'.format(slow_or_fast, beam_size),
+              all_pred_acc / all_pred_denominator, step)
+          summary_writer.text('samples-{}'.format(beam_size),
+                              '\n------\n'.join(message), step)
+          summary_writer.flush()
 
 
 if __name__ == '__main__':

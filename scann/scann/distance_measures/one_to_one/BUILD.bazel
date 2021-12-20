@@ -34,7 +34,6 @@ cc_library(
     deps = [
         ":binary_distance_measure_base",
         ":common",
-        ":cosine_distance_novec",
         ":dot_product",
         "//scann/distance_measures:distance_measure_base",
         "//scann/oss_wrappers:scann_bits",
@@ -45,53 +44,10 @@ cc_library(
 )
 
 cc_library(
-    name = "cosine_distance_novec",
-    srcs = ["cosine_distance_novec.cc"],
-    hdrs = ["cosine_distance.h"],
-    copts = ["-fno-tree-vectorize"],
-    tags = [
-        "avoid_dep",
-        "local",
-    ],
-    deps = [
-        ":binary_distance_measure_base",
-        ":common",
-        ":dot_product",
-        "//scann/distance_measures:distance_measure_base",
-        "//scann/utils:types",
-    ],
-    alwayslink = 1,
-)
-
-cc_library(
     name = "dot_product",
     srcs = ["dot_product.cc"],
     hdrs = ["dot_product.h"],
     tags = ["local"],
-    deps = [
-        ":binary_distance_measure_base",
-        ":common",
-        ":dot_product_avx1",
-        ":dot_product_avx2",
-        ":dot_product_novec",
-        ":dot_product_sse4",
-        "//scann/distance_measures:distance_measure_base",
-        "//scann/utils:reduction",
-        "//scann/utils:types",
-        "//scann/utils/intrinsics:flags",
-    ],
-    alwayslink = 1,
-)
-
-cc_library(
-    name = "dot_product_novec",
-    srcs = ["dot_product_novec.cc"],
-    hdrs = ["dot_product.h"],
-    copts = ["-fno-tree-vectorize"],
-    tags = [
-        "avoid_dep",
-        "local",
-    ],
     deps = [
         ":binary_distance_measure_base",
         ":common",
@@ -225,7 +181,6 @@ cc_library(
     deps = [
         ":common",
         ":l2_distance_avx1",
-        ":l2_distance_novec",
         ":l2_distance_sse4",
         "//scann/distance_measures:distance_measure_base",
         "//scann/utils:reduction",
@@ -257,27 +212,6 @@ cc_library(
         "//scann/data_format:datapoint",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:sse4",
-    ],
-    alwayslink = 1,
-)
-
-cc_library(
-    name = "l2_distance_novec",
-    srcs = ["l2_distance_novec.cc"],
-    hdrs = ["l2_distance.h"],
-    copts = ["-fno-tree-vectorize"],
-    tags = [
-        "avoid_dep",
-        "local",
-    ],
-    deps = [
-        ":common",
-        ":l2_distance_avx1",
-        ":l2_distance_sse4",
-        "//scann/distance_measures:distance_measure_base",
-        "//scann/utils:reduction",
-        "//scann/utils:types",
-        "//scann/utils/intrinsics:flags",
     ],
     alwayslink = 1,
 )

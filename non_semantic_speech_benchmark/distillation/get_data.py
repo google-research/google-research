@@ -16,8 +16,9 @@
 # Lint as: python3
 """Get data."""
 
-from typing import Callable, Dict, Optional, List
+from typing import Callable, Dict, Optional, List, Union
 
+import numpy as np
 import tensorflow as tf
 
 SAMPLES_ = 'samples_'
@@ -28,7 +29,7 @@ SPEAKER_IDS_ = 'speaker_ids_'
 AUTO_ = tf.data.experimental.AUTOTUNE
 
 
-def get_data(file_pattern,
+def get_data(file_patterns,
              output_dimension,
              reader,
              samples_key,
@@ -40,11 +41,12 @@ def get_data(file_pattern,
              target_key = None,
              label_key = None,
              speaker_id_key = None,
-             shuffle_buffer_size = 10000):
+             shuffle_buffer_size = 10000,
+             normalize_to_pm_one = False):
   """Gets data for TRILL distillation from a teacher or precomputed values.
 
   Args:
-    file_pattern: Glob for input data.
+    file_patterns: Single or list of globs for input data.
     output_dimension: Feature dimension of teacher output.
     reader: Class used to parse data on disk.
     samples_key: Name of audio samples in tf.Examples.
@@ -64,11 +66,18 @@ def get_data(file_pattern,
     label_key: Optional name of label key in tf.Examples.
     speaker_id_key: Location of speaker ID.
     shuffle_buffer_size: Size of shuffle buffer.
+    normalize_to_pm_one: Whether to normalize to plus/minus 1.
   Returns:
     A tf.data.Dataset of (audio samples, regression targets).
   """
-  if not tf.io.gfile.glob(file_pattern):
-    raise ValueError(f'Files not found: {file_pattern}')
+  if isinstance(file_patterns, str):
+    file_patterns = [file_patterns]
+  files_list = []
+  for file_pattern in file_patterns:
+    file_list = tf.io.gfile.glob(file_pattern)
+    if not file_list:
+      raise ValueError(f'Files not found: {file_pattern}')
+    files_list.extend(file_list)
 
   if teacher_fn is None:
     assert target_key
@@ -106,7 +115,7 @@ def get_data(file_pattern,
   # Load data into a dataset of batch size 1, then preprocess if necessary.
   ds = (
       tf.data.experimental.make_batched_features_dataset(
-          file_pattern=file_pattern,
+          file_pattern=files_list,
           batch_size=cur_batch_size,
           num_epochs=None if loop_forever else 1,
           reader_num_threads=AUTO_,
@@ -139,6 +148,20 @@ def get_data(file_pattern,
         return ret
       ds = ds.map(_sqz_lbls, num_parallel_calls=AUTO_)
 
+  # Possibly normalize samples.
+  def _normalize(kv):
+    assert SAMPLES_ in kv
+    unnormalized_samples = kv[SAMPLES_]
+
+    # Normalize.
+    normalized_samples = unnormalized_samples / np.iinfo(np.int16).max
+    kv[SAMPLES_] = normalized_samples
+
+    return kv
+
+  if normalize_to_pm_one:
+    ds = ds.map(_normalize)
+
   # Convert results to tuple.
   def _to_tup(kv):
     if speaker_id_key:
@@ -149,7 +172,7 @@ def get_data(file_pattern,
     else:
       return (kv[SAMPLES_], kv[TARGETS_])
 
-  ds = (ds.map(_to_tup, num_parallel_calls=AUTO_).prefetch(2))
+  ds = ds.map(_to_tup, num_parallel_calls=AUTO_).prefetch(2)
   if speaker_id_key:
     expected_len = 4
   elif label_key:

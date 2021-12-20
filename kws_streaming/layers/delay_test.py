@@ -141,6 +141,77 @@ def residual_model(flags,
   return tf.keras.Model(input_audio, net), sum_delay
 
 
+def conv_model(flags,
+               cnn_filters,
+               cnn_kernel_size,
+               cnn_act,
+               cnn_use_bias,
+               cnn_padding,
+               dilation=1):
+  """Toy convolutional model with sequence of convs with different paddings.
+
+  It can be used for speech enhancement.
+
+  Args:
+      flags: model and data settings
+      cnn_filters: list of filters in conv layer
+      cnn_kernel_size: list of kernel_size in conv layer
+      cnn_act: list of activation functions in conv layer
+      cnn_use_bias: list of use_bias in conv layer
+      cnn_padding: list of padding in conv layer
+      dilation: dilation applied on all conv layers
+
+  Returns:
+    Keras model and sum delay
+
+  Raises:
+    ValueError: if any of input list has different length from any other
+                or padding in not [same, causal]
+  """
+
+  if not all(
+      len(cnn_filters) == len(l) for l in [
+          cnn_filters, cnn_kernel_size, cnn_act, cnn_use_bias, cnn_padding]):
+    raise ValueError('all input lists have to be the same length')
+
+  # it is an example of deep conv model for speech enhancement
+  # which can be trained in non streaming mode and converted to streaming mode
+  input_audio = tf.keras.layers.Input(
+      shape=(flags.desired_samples,), batch_size=flags.batch_size)
+  net = input_audio
+
+  sum_delay = 0
+  sum_shift = 0
+  net = tf.keras.backend.expand_dims(net)
+  for filters, kernel_size, activation, use_bias, padding in zip(
+      cnn_filters, cnn_kernel_size,
+      cnn_act, cnn_use_bias, cnn_padding):
+    time_buffer_size = dilation * (kernel_size - 1)
+
+    if padding == 'same':
+      # need a delay with 'same' padding in streaming mode
+      delay_val = time_buffer_size // 2
+      net = delay.Delay(delay=delay_val)(net)
+      sum_delay += delay_val * 2
+    elif padding == 'causal':
+      sum_shift += kernel_size
+    else:
+      raise ValueError('wrong padding mode ', padding)
+
+    # it is a ring buffer in streaming mode and lambda x during training
+    net = stream.Stream(
+        cell=tf.keras.layers.Conv1D(
+            filters=filters,
+            kernel_size=kernel_size,
+            activation=activation,
+            use_bias=use_bias,
+            padding='valid'),
+        use_one_step=False,
+        pad_time_dim=padding)(net)
+
+  return tf.keras.Model(input_audio, net), sum_delay, sum_shift
+
+
 class DelayStreamTest(tf.test.TestCase, parameterized.TestCase):
   """Test delay layer."""
 
@@ -227,6 +298,42 @@ class DelayStreamTest(tf.test.TestCase, parameterized.TestCase):
     for i in range(time_delay):
       output = model_stream.predict([0])
       self.assertAllEqual(output[0, 0, 0], i + 1)
+
+  def test_conv(self):
+    """Test conv model with 'same' padding."""
+
+    # model and data parameters
+    cnn_filters = [1, 1, 1]
+    cnn_kernel_size = [5, 3, 5]
+    cnn_act = ['elu', 'elu', 'elu']
+    cnn_use_bias = [False, False, False]
+    cnn_padding = ['same', 'causal', 'same']
+    params = test_utils.Params([1], clip_duration_ms=2)
+
+    # prepare input data
+    x = np.arange(params.desired_samples)
+    inp_audio = x
+    inp_audio = np.expand_dims(inp_audio, 0)
+
+    # prepare non stream model
+    model, sum_delay, sum_shift = conv_model(params, cnn_filters,
+                                             cnn_kernel_size, cnn_act,
+                                             cnn_use_bias, cnn_padding)
+    model.summary()
+    non_stream_out = model.predict(inp_audio)
+
+    # prepare streaming model
+    model_stream = utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
+    model_stream.summary()
+    stream_out = inference.run_stream_inference(params, model_stream, inp_audio)
+
+    shift = sum_shift + 1
+    # normalize output data and compare them
+    non_stream_out = non_stream_out[0, shift:-(sum_delay),]
+    stream_out = stream_out[0, sum_delay+shift:,]
+
+    self.assertAllClose(stream_out, non_stream_out)
 
 
 if __name__ == '__main__':

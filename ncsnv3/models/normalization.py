@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Normalization layers."""
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax.nn.initializers as init
 import jax.numpy as jnp
 

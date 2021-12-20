@@ -712,5 +712,5 @@ def s(wrapped, *attrs_args,
   wrapped.__setattr__ = setattr_impl
   wrapped.serialize = serialize
   wrapped.parse = parse
-  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)
+  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)  # pytype: disable=wrong-arg-types  # attr-stubs
   return wrapped

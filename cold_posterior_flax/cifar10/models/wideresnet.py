@@ -48,8 +48,8 @@ that is widely used as a benchmark.
 from typing import List
 from typing import Tuple
 from typing import Type
-from flax import nn
-from flax.nn import initializers
+from flax.deprecated import nn
+from flax.deprecated.nn import initializers
 import jax.numpy as jnp
 import jax.scipy.stats
 from cold_posterior_flax.cifar10.models import activations

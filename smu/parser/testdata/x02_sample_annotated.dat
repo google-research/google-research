@@ -200,7 +200,7 @@ AT2_BSE_B5              -0.01       -0.01        0.00
 # From bond_separation_energy_atomic_b6{,_um,_um_ci}
 AT2_BSE_B6              -0.01       -0.01        0.00
 # From bond_separation_energy_eccsd{,_um,_um_ci}
-AT2_BSE_ECCSD            0.00        0.00        0.00
+AT2_BSE_ECCSD           -0.00       -0.00        0.00
 # From atomization_energy_excluding_zpe_atomic_b5{,_um,_um_ci}
 AT2_AEe_B5             404.95      405.03        0.17
 # From atomization_energy_excluding_zpe_atomic_b6{,_um,_um_ci}
@@ -348,7 +348,7 @@ Polarizability (au):    PBE0/aug-pc-1
     yz       0.00000
 Dipole moment (au):     PBE0/aug-pc-1
 # From dipole_moment_pbe0_aug_pc_1
-     x       0.00000
+     x      -0.00000
      y       0.00000
      z       0.00000
 Quadrupole moment (au): PBE0/aug-pc-1
@@ -373,9 +373,9 @@ Octopole moment (au):   PBE0/aug-pc-1
    xyz      -0.00000
 Dipole moment (au):     HF/6-31Gd
 # From dipole_moment_hf
-     x       0.00000
-     y       0.00000
-     z       0.00000
+     x      -0.00000
+     y      -0.00000
+     z      -0.00000
 Quadrupole moment (au): HF/6-31Gd
 # From quadrupole_moment_hf_6_31gd
     xx      -9.97016

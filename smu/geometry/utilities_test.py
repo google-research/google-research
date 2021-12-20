@@ -15,14 +15,13 @@
 
 # Tester for SMU utilities functions.
 
-import unittest
-
-from google.protobuf import text_format
+from absl.testing import absltest
 from parameterized import parameterized
 from rdkit import Chem
-import utilities
 
+from google.protobuf import text_format
 from smu import dataset_pb2
+from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 
 
@@ -44,7 +43,7 @@ def zero2():
 """, dataset_pb2.Geometry())
 
 
-class TestUtilities(unittest.TestCase):
+class TestUtilities(absltest.TestCase):
 
   def test_zero_distance(self):
     coords = zero2()
@@ -302,21 +301,27 @@ class TestUtilities(unittest.TestCase):
       ["C1CCC1", True],
       ["CCC.C", False],
       ["CCC.CCC", False],
-      ["c1ccccc1.CCC", False],
-      ["C.c1ccccc1", False],
+      ["C1CCCCC1.CCC", False],
+      ["C.C1CCCCC1", False],
       ["C.C.C.C.F.N.O", False],
       ["C=N.O", False],
       ["CC1CC1.C", False],
       ["C12CC2C1.C", False],
   ])
-  @unittest.skip("Broken for unknown reasons. Will debug")
   def test_with_smiles(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
     bt = utilities.molecule_to_bond_topology(mol)
     self.assertEqual(utilities.is_single_fragment(bt), expected)
+    Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
     mol_h = Chem.AddHs(mol)
     bt_h = utilities.molecule_to_bond_topology(mol_h)
     self.assertEqual(utilities.is_single_fragment(bt_h), expected)
 
+  @parameterized.expand([["C", 0], ["CC", 0], ["CCC", 0], ["C1CC1", 3],
+                         ["CCCCC", 0], ["C1CCC1", 4], ["C1C(C)CC1", 4]])
+  def test_ring_atom_count(self, smiles, expected):
+    mol = Chem.MolFromSmiles(smiles, sanitize=True)
+    self.assertEqual(utilities.ring_atom_count_mol(mol), expected)
+
 if __name__ == "__main__":
-  unittest.main()
+  absltest.main()

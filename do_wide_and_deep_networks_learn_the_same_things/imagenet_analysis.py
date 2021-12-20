@@ -35,7 +35,7 @@ import tensorflow_datasets as tfds
 from do_wide_and_deep_networks_learn_the_same_things.efficient_CKA import *
 from do_wide_and_deep_networks_learn_the_same_things.large_scale_training import alt_resnet
 from do_wide_and_deep_networks_learn_the_same_things.large_scale_training.pc_imagenet_train import load_test_data
-from tensorflow_models.official.vision.image_classification import preprocessing
+from tensorflow_models.official.legacy.image_classification import preprocessing
 
 tf.enable_v2_behavior()
 

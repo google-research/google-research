@@ -103,18 +103,58 @@ message BondTopology {
   // A unique 1 indexed dense id for this topology.
   int32 bond_topology_id = 4;
 
+  // INTERNAL ONLY: This will not be available in the external database.
+  //
   // If this has been discerned from geometry, the associated score.
+  // Now, prefer topology_score and geometry_score to reflect the different
+  // kinds of scores available.
+  // This is still used in smu_molecule as a generic score value accumulator -
+  // smu_molecule does not know what kind of score it is accumulating.
   float score = 5;
 
   // If this has been discerned from geometry, is it the same as the
   // starting BondTopology.
   bool is_starting_topology = 6;
+
+  // Number of atoms that are in a ring.
+  int32 ring_atom_count = 7;
+
+  // An estimate of log(P(topology|geometry))
+  //
+  // This is a discrete distribution among all matching topologies
+  // from this geometry. Since we are in log space, a value of 0 means
+  // a probability of 1.0 and smaller negative values are smaller
+  // probabilities. Across the matching topologies,
+  // exp(topology_score) will sum to 1.
+  float topology_score = 8;
+
+  // An estimate of log(p(geometry|topology)).
+  //
+  // This reflects how suprising this particular geometry is given the
+  // topology. Note that this is a probability *density* not a
+  // probability, so the scale can cover positive and negative numbers
+  // with smaller numbers representing less likely geometries. This
+  // score should *not* be used to compare across different
+  // topologies. It is only interesting for a given topology to
+  // compare different geometries.
+  //
+  // Note that only bonds between heavy atoms are used in computing this.
+  float geometry_score = 9;
 }
 
 // When doing topology from geometry matching, the results are returned
 // as a set of individual BondTopology's.
 message TopologyMatches {
   repeated BondTopology bond_topology = 1;
+
+  // It is convenient to have the starting smiles.
+  string starting_smiles = 2;
+
+  // And the conformer_id
+  int32 conformer_id = 3;
+
+  // To avoid having to join results later, store the fate.
+  Conformer.FateCategory fate = 4;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left
@@ -330,6 +370,13 @@ message Properties {
 
   // Record of errors encountered during the computations.
   Errors errors = 1 [(availability) = COMPLETE];
+
+  // The original pipeline used SMILES from OpenBabel which were sometimes
+  // unintnetionally aromatic SMILES. or simplified lookup in the database
+  // we are using RDKit canonical SMILES. If these differ from the original
+  // OpenBabel smiles, then we put the original OpenBabel SMILES here.
+  // If they are the same, we leave everything as is.
+  optional string smiles_openbabel = 175 [(availability) = COMPLETE];
 
   // We use suffixes on the properties to indicate the level of theory and, in
   // many cases, the basis set.
@@ -582,9 +629,9 @@ message Properties {
       [(availability) = STANDARD];
   // Dipole-dipole polarizability HF/6-31Gd.
   // Units: atomic units
-  // TODO(pfr): is this actually available in the dataset?
+  // DEPRECATED
   Rank2MolecularProperty dipole_dipole_polarizability_hf_6_31gd = 86
-      [(availability) = STANDARD];
+      [(availability) = INTERNAL_ONLY];
 
   // Dipole moment PBE0/aug-pc-1.
   // Units: Debye
@@ -971,12 +1018,14 @@ message BondTopologySummary {
   // optimization. The sum of
   // count_missing_calculation
   // count_calculation_with_error
+  // count_calculation_with_warning
   // count_calculation_success
   // should be equal to count_kept_geometry.
   // Missing calculations are ones for which we should have results, but are
   // missing them. count_missing_calculation should be 0 in the final dataset.
   int32 count_missing_calculation = 7;
   int32 count_calculation_with_error = 8;
+  int32 count_calculation_with_warning = 12;
   int32 count_calculation_success = 9;
 
   // After all calculations were done, we detected all bond topologies which are
@@ -984,5 +1033,6 @@ message BondTopologySummary {
   // these "detected" geometries. Note that the geometries counted in the
   // "duplicate" fields above will probably be counted here.
   int32 count_detected_match_with_error = 10;
+  int32 count_detected_match_with_warning = 13;
   int32 count_detected_match_success = 11;
 }

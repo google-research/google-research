@@ -30,6 +30,12 @@ message IncrementalUpdateConfig {
 
   optional bool enable_expiration_timestamps = 4 [default = false];
 
+  message Reindexing {
+    optional bool enable_manual_retraining_and_reindexing = 1 [default = false];
+  }
+
+  optional Reindexing reindexing = 9;
+
   message Pubsub2 {
     optional string topic = 1;
 

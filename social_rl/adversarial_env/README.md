@@ -8,6 +8,13 @@ Induced Regret Environment Design), published in:
 >Unsupervised Environment Design](https://bit.ly/2Hitysn), Neural Information 
 >Processing Systems (NeurIPS), Virtual (2020).
 
+For questions about this code, please contact natashajaques AT google.com.
+
+This implementation is based on Tensorflow 2.0 and [TF-Agents](https://github.com/tensorflow/agents); 
+for a PyTorch implementation, see: https://github.com/ucl-dark/paired
+
+## Algorithm description
+
 PAIRED leverages adversarial training to generate a curriculum of increasingly
 complex environments. An adversary learns to design a gridworld environment by
 placing the goal, the start location, and the location of walls or obstacles.

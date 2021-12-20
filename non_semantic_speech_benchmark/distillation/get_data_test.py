@@ -82,7 +82,7 @@ class GetDataTest(parameterized.TestCase):
       target_key = None
     bs = 2
     ds = get_data.get_data(
-        file_pattern=file_pattern,
+        file_patterns=file_pattern,
         output_dimension=self.output_dim,
         reader=tf.data.TFRecordDataset,
         samples_key=self.samples_key,
@@ -93,7 +93,8 @@ class GetDataTest(parameterized.TestCase):
         teacher_fn=teacher_fn,
         target_key=target_key,
         label_key=self.label_key if read_labels else None,
-        shuffle_buffer_size=2)
+        shuffle_buffer_size=2,
+        normalize_to_pm_one=True)
     # Test that one element of the input pipeline can be successfully read.
     if read_labels:
       for wav_samples, targets, labels in ds:

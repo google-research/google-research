@@ -24,4 +24,4 @@ pip install tensorflow
 pip install tensorflow-addons
 pip install tensorflow-datasets
 
-python -m run_ak_experiment --num_epochs=1 --num_parameters=1000 --num_runs=1
+python -m run_ak_experiment --max_num_epochs=1 --num_parameters=1000 --num_runs=1

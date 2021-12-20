@@ -35,120 +35,6 @@ Dtype = Any
 Array = Any
 
 
-class BPReLU(nn.Module):
-  """Biased PReLU that learns the origin point of PReLU.
-
-  Attributes:
-    dtype: the dtype of the computation (default: bfloat16).
-    negative_slope_init: initializer function for the negative slope.
-    bias_init: initializer function for both x and y biases.
-  """
-  init_bias: float = 0.0
-  init_slope: float = 0.25
-  dtype: Any = jnp.bfloat16
-
-  @nn.compact
-  def __call__(self, inputs):
-    """Apply a threshold and negative slope to inputs along the last dimension.
-
-    Args:
-      inputs: The nd-array to be transformed.
-
-    Returns:
-      The transformed input.
-    """
-    params_shape = (inputs.shape[-1],)
-    slope_init_fn = lambda key, shape: jnp.ones(shape) * self.init_slope
-    negative_slope = self.param('negative_slope', slope_init_fn, params_shape)
-    bias_init_fn = lambda key, shape: jnp.ones(shape) * self.init_bias
-    bias_x = self.param('bias_x', bias_init_fn, params_shape)
-    bias_y = self.param('bias_y', bias_init_fn, params_shape)
-    inputs = inputs - bias_x
-    y = jnp.where(inputs >= 0, inputs, negative_slope * inputs) - bias_y
-    return jnp.asarray(y, self.dtype)
-
-
-# A function zoo that contains all candidates of activation functions
-act_function_zoo = {
-    'relu': nn.relu,
-    'leaky_relu': nn.leaky_relu,
-    'soft_sign': nn.soft_sign,
-    'celu': nn.celu,
-    'swish': nn.swish,
-    'elu': nn.elu,
-    'gelu': nn.gelu,
-    'bprelu': lambda x: BPReLU()(x),  # pylint: disable=unnecessary-lambda
-    'none': lambda x: x,
-}
-
-
-def shortcuts_ch_shrink(x, out_features, method):
-  """Match the number of channels in the shortcuts in the 1st conv1x1 layer."""
-  in_features = x.shape[-1]
-  num_ch_avg = in_features // out_features
-  assert out_features * num_ch_avg == in_features, (
-      'in_features needs to be a whole multiple of out_features')
-  dim_nwh = x.shape[0:3]
-  if method == 'consecutive':
-    x = jnp.reshape(x, dim_nwh + (out_features, num_ch_avg))
-    return jnp.average(x, axis=4)
-  elif method == 'every_n':
-    x = jnp.reshape(x, dim_nwh + (num_ch_avg, out_features))
-    return jnp.average(x, axis=3)
-  elif method == 'none':
-    # return all zeros to represent no shortcut
-    return jnp.zeros(dim_nwh + (out_features,), dtype=x.dtype)
-  else:
-    raise ValueError('Unsupported channel shrinking shortcut function type.')
-
-
-def shortcuts_ch_expand(x, out_features, method):
-  """Match the number of channels in the shortcuts in the 3rd conv1x1 layer."""
-  in_features = x.shape[-1]
-  assert in_features < out_features and out_features % in_features == 0, (
-      'Number of in_features should be smaller '
-      'than number of out_features')
-  ch_multiplier = out_features // in_features
-  if method == 'tile':
-    return jnp.tile(x, reps=(1, 1, 1, ch_multiplier))
-  elif method == 'repeat':
-    return jnp.repeat(x, repeats=ch_multiplier, axis=3)
-  elif method == 'zeropad':
-    # pad all zeros after the input feature maps
-    return jnp.pad(
-        x,
-        pad_width=((0, 0), (0, 0), (0, 0), (0, out_features - in_features)),
-        mode='constant')
-  elif method == 'none':
-    # return all zeros to represent no shortcut
-    return jnp.zeros(x.shape[0:3] + (out_features,), dtype=x.dtype)
-  else:
-    raise ValueError('Unsupported channel duplication function type.')
-
-
-def spatial_downsample(x, strides, method):
-  """Match the spatial resolution in the shortcuts in the 2nd conv3x3 layer."""
-  function_zoo = {
-      'max_pool':
-          functools.partial(nn.max_pool, window_shape=(3, 3), padding='SAME'),
-      'avg_pool':
-          functools.partial(nn.avg_pool, window_shape=(3, 3), padding='SAME'),
-      'none':
-          None,
-  }
-  assert method in function_zoo.keys(), 'Unsupported shortcut spatial method.'
-  if method == 'none':
-    # return all zeros to represent no shortcut
-    out_dim_n = x.shape[0]
-    out_dim_w = x.shape[1] // strides[0]
-    out_dim_h = x.shape[2] // strides[1]
-    out_dim_c = x.shape[3]
-    output_shape = (out_dim_n, out_dim_w, out_dim_h, out_dim_c)
-    return jnp.zeros(output_shape, dtype=x.dtype)
-  else:
-    return x if strides == (1, 1) else function_zoo[method](x, strides=strides)
-
-
 class ResidualBlock(nn.Module):
   """Bottleneck ResNet block."""
 
@@ -158,13 +44,14 @@ class ResidualBlock(nn.Module):
     #   where the Tensor shape needs to be matched for the next stage.
     #   When it is not needed, it is set to None in hparams.
     conv_proj: Optional[aqt_flax_layers.ConvAqt.HParams]
+    conv_se: aqt_flax_layers.ConvAqt.HParams  # unused in this model
     conv_1: aqt_flax_layers.ConvAqt.HParams
     conv_2: aqt_flax_layers.ConvAqt.HParams
     conv_3: aqt_flax_layers.ConvAqt.HParams
-    act_function: str
-    shortcut_ch_shrink_method: str
-    shortcut_ch_expand_method: str
-    shortcut_spatial_method: str
+    act_function: str  # unused in this model
+    shortcut_ch_shrink_method: str  # unused in this model
+    shortcut_ch_expand_method: str  # unused in this model
+    shortcut_spatial_method: str  # unused in this model
 
   hparams: HParams
   filters: int
@@ -172,6 +59,7 @@ class ResidualBlock(nn.Module):
   strides: Tuple[int, int]
   train: bool
   dtype: Type[Any]
+  paxis_name: Optional[str] = 'batch'
 
   @nn.compact
   def __call__(
@@ -185,11 +73,7 @@ class ResidualBlock(nn.Module):
     dtype = self.dtype
     train = self.train
     quant_context = self.quant_context
-    assert hparams.act_function in act_function_zoo.keys(
-    ), 'Activation function type is not supported.'
-    act_function = act_function_zoo[hparams.act_function]
 
-    needs_projection = inputs.shape[-1] != filters * 4 or strides != (1, 1)
     batch_norm = functools.partial(
         nn.BatchNorm,
         use_running_average=not train,
@@ -202,67 +86,71 @@ class ResidualBlock(nn.Module):
         use_bias=False,
         dtype=dtype,
         quant_context=quant_context,
-        paxis_name='batch',
+        paxis_name=self.paxis_name,
         train=train)
 
-    residual = inputs
+    needs_projection = inputs.shape[-1] != filters * 4 or strides != (1, 1)
+    assert needs_projection != (hparams.conv_proj is None)
+
+    r1 = inputs
     if needs_projection:
-      if hparams.conv_proj is None:
-        raise ValueError(
-            'hparams.conv_proj cannot be None if needs_projection is True.')
-      assert hparams.conv_proj is not None
-      residual = conv(
+      r1 = conv(
           features=filters * 4,
           kernel_size=(1, 1),
           strides=strides,
           name='proj_conv',
           hparams=hparams.conv_proj)(
-              residual)
-      residual = batch_norm(name='proj_bn')(residual)
-    else:
-      if hparams.conv_proj is not None:
-        raise ValueError(
-            'hparams.conv_proj must be None if needs_projection is False.')
+              r1)
+      r1 = batch_norm(name='proj_bn')(r1)
 
-    shortcut1 = shortcuts_ch_shrink(
-        inputs, out_features=filters, method=hparams.shortcut_ch_shrink_method)
-    y = conv(
+    def conv_block(
+        inputs,
+        n,
+        features,
+        kernel_size,
+        strides,
+        conv_hparams,
+        r1=None,
+    ):
+      y = conv(
+          features=features,
+          kernel_size=kernel_size,
+          name='conv' + n,
+          strides=strides,
+          hparams=conv_hparams)(inputs)
+      scale_init = nn.initializers.zeros if n == '3' else nn.initializers.ones
+      y = batch_norm(name='bn' + n, scale_init=scale_init)(y)
+      if r1 is not None:
+        y = r1 + y
+      y = nn.relu(y)
+      return y
+
+    y = conv_block(
+        inputs,
+        n='1',
         features=filters,
         kernel_size=(1, 1),
-        name='conv1',
-        hparams=hparams.conv_1)(
-            inputs)
-    y = batch_norm(name='bn1')(y)
-    y = y + shortcut1
-    del shortcut1
-    y = act_function(y)
-    shortcut2 = spatial_downsample(
-        y, strides=strides, method=hparams.shortcut_spatial_method)
-    y = conv(
+        strides=(1, 1),
+        conv_hparams=hparams.conv_1)
+
+    y = conv_block(
+        y,
+        n='2',
         features=filters,
         kernel_size=(3, 3),
         strides=strides,
-        name='conv2',
-        hparams=hparams.conv_2)(
-            y)
-    y = batch_norm(name='bn2')(y)
-    y = y + shortcut2
-    del shortcut2
-    y = act_function(y)
-    shortcut3 = shortcuts_ch_expand(
-        y, out_features=filters * 4, method=hparams.shortcut_ch_expand_method)
-    y = conv(
+        conv_hparams=hparams.conv_2)
+
+    y = conv_block(
+        y,
+        n='3',
         features=filters * 4,
         kernel_size=(1, 1),
-        name='conv3',
-        hparams=hparams.conv_3)(
-            y)
+        strides=(1, 1),
+        conv_hparams=hparams.conv_3,
+        r1=r1)
 
-    y = batch_norm(name='bn3', scale_init=nn.initializers.zeros)(y)
-    y = y + shortcut3
-    del shortcut3
-    output = act_function(residual + y)
-    return output
+    return y
 
 
 class ResNet(nn.Module):
@@ -274,7 +162,9 @@ class ResNet(nn.Module):
     conv_init: aqt_flax_layers.ConvAqt.HParams
     residual_blocks: Tuple[ResidualBlock.HParams, Ellipsis]
     filter_multiplier: float
-    act_function: str
+    act_function: str  # unused in this model
+    se_ratio: float  # unused in this model
+    init_group: int  # unused in this model
 
   num_classes: int
   hparams: HParams
@@ -282,6 +172,7 @@ class ResNet(nn.Module):
   num_filters: int
   train: bool
   dtype: Type[Any]
+  paxis_name: Optional[str] = 'batch'
 
   @nn.compact
   def __call__(
@@ -293,8 +184,6 @@ class ResNet(nn.Module):
     hparams = self.hparams
     num_filters = self.num_filters
     dtype = self.dtype
-    assert hparams.act_function in act_function_zoo.keys(
-    ), 'Activation function type is not supported.'
 
     x = aqt_flax_layers.ConvAqt(
         features=num_filters,
@@ -306,7 +195,7 @@ class ResNet(nn.Module):
         name='init_conv',
         train=self.train,
         quant_context=self.quant_context,
-        paxis_name='batch',
+        paxis_name=self.paxis_name,
         hparams=hparams.conv_init,
     )(
         inputs)
@@ -317,13 +206,8 @@ class ResNet(nn.Module):
         dtype=dtype,
         name='init_bn')(
             x)
-    if hparams.act_function == 'relu':
-      x = nn.relu(x)
-      x = nn.max_pool(x, (3, 3), strides=(2, 2), padding='SAME')
-    else:
-      # TODO(yichi): try adding other activation functions here
-      # Use avg pool so that for binary nets, the distribution is symmetric.
-      x = nn.avg_pool(x, (3, 3), strides=(2, 2), padding='SAME')
+    x = nn.relu(x)
+    x = nn.max_pool(x, (3, 3), strides=(2, 2), padding='SAME')
     filter_multiplier = hparams.filter_multiplier
     for i, block_hparams in enumerate(hparams.residual_blocks):
       proj = block_hparams.conv_proj
@@ -339,17 +223,8 @@ class ResNet(nn.Module):
           quant_context=self.quant_context,
           strides=strides,
           train=self.train,
-          dtype=dtype)(
-              x)
-    if hparams.act_function == 'none':
-      # The DenseAQT below is not binarized.
-      # If removing the activation functions, there will be no act function
-      # between the last residual block and the dense layer.
-      # So add a ReLU in that case.
-      # TODO(yichi): try BPReLU
-      x = nn.relu(x)
-    else:
-      pass
+          dtype=dtype)(x)
+
     x = jnp.mean(x, axis=(1, 2))
 
     x = aqt_flax_layers.DenseAqt(
@@ -357,10 +232,25 @@ class ResNet(nn.Module):
         dtype=dtype,
         train=self.train,
         quant_context=self.quant_context,
-        paxis_name='batch',
+        paxis_name=self.paxis_name,
         hparams=hparams.dense_layer,
     )(x, padding_mask=None)
 
     x = jnp.asarray(x, dtype)
-    output = nn.log_softmax(x)
-    return output
+    # The output of ViT does not have log_softmax.
+    # To make resnet50 teacher has the same type of outputs as ViT,
+    # comment out the following line
+    # output = nn.log_softmax(x)
+    return x
+
+
+def create_resnet(hparams, dtype, train, **kwargs):
+  return ResNet(
+      num_classes=1000,
+      dtype=dtype,
+      hparams=hparams,
+      quant_context=quant_config.QuantContext(
+          update_bounds=False, quantize_weights=True),
+      num_filters=64,
+      train=train,
+      **kwargs)

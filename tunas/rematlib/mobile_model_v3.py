@@ -19,7 +19,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from typing import Any, List, Mapping, Optional, Text, Tuple, TypeVar, Union
 import tensorflow.compat.v1 as tf

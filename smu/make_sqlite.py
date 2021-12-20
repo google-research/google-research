@@ -21,7 +21,6 @@ from absl import logging
 
 import tensorflow as tf
 from tensorflow.io import gfile
-from smu import dataset_pb2
 from smu import smu_sqlite
 
 flags.DEFINE_string('input_tfrecord', None, 'Glob of tfrecord files to read')
@@ -38,8 +37,7 @@ def main(argv):
   db = smu_sqlite.SMUSQLite(FLAGS.output_sqlite, 'c')
 
   dataset = tf.data.TFRecordDataset(gfile.glob(FLAGS.input_tfrecord))
-  db.bulk_insert(
-      dataset_pb2.Conformer.FromString(raw.numpy()) for raw in dataset)
+  db.bulk_insert((raw.numpy() for raw in dataset), batch_size=10000)
 
 
 if __name__ == '__main__':

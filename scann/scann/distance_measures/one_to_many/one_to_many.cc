@@ -16,62 +16,30 @@
 
 #include <cstdint>
 
-#include "scann/utils/internal/avx2_funcs.h"
-#include "scann/utils/internal/avx_funcs.h"
-#include "scann/utils/intrinsics/horizontal_sum.h"
-#include "scann/utils/intrinsics/simd.h"
-
 namespace research_scann {
 namespace one_to_many_low_level {
 
-#ifdef __x86_64__
-
-namespace avx1 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx1
-
-namespace avx2 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx2Fma;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx2
-
-#endif
-
 using one_to_many_low_level::SetDistanceFunctor;
+
+template <bool kHasIndices, typename ResultElemT>
+SCANN_INLINE void DenseDotProductDistanceOneToManyInt8FloatDispatch(
+    const DatapointPtr<float>& query,
+    const DefaultDenseDatasetView<int8_t>& view, const DatapointIndex* indices,
+    MutableSpan<ResultElemT> result) {
+  SetDistanceFunctor<ResultElemT> callback(result);
+  DenseDotProductDistanceOneToManyInt8FloatLowLevel<
+      DefaultDenseDatasetView<int8_t>, kHasIndices, DatapointIndex, ResultElemT,
+      SetDistanceFunctor<ResultElemT>>(query.values(), &view, indices, result,
+                                       &callback);
+}
 
 template <bool kHasIndices = false, typename ResultElemT>
 SCANN_INLINE void DenseDotProductDistanceOneToManyInt8FloatDispatch(
     const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
     const DatapointIndex* indices, MutableSpan<ResultElemT> result) {
-  size_t j = 0;
-
-  SetDistanceFunctor<ResultElemT> callback(result);
-
-#ifdef __x86_64__
-  constexpr size_t kUnrollFactor = 3;
-  using DatasetView = DefaultDenseDatasetView<int8_t>;
-  auto view = DatasetView(database);
-  if (RuntimeSupportsAvx2()) {
-    avx2::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
-        query.values(), &view, indices, result, &callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  } else if (RuntimeSupportsAvx1()) {
-    avx1::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
-        query.values(), &view, indices, result, &callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  }
-#endif
-
-  for (; j < result.size(); ++j) {
-    const size_t idx = kHasIndices ? indices[j] : GetDatapointIndex(result, j);
-    const float dist = -DenseDotProduct(query, database[idx]);
-    callback.invoke(j, dist);
-  }
+  auto view = DefaultDenseDatasetView<int8_t>(database);
+  DenseDotProductDistanceOneToManyInt8FloatDispatch<kHasIndices, ResultElemT>(
+      query, view, indices, result);
 }
 
 }  // namespace one_to_many_low_level
@@ -117,6 +85,14 @@ void DenseDotProductDistanceOneToManyInt8Float(
   QCHECK_EQ(indices.size(), result.size());
   one_to_many_low_level::DenseDotProductDistanceOneToManyInt8FloatDispatch<
       true>(query, database, indices.data(), result);
+}
+
+void DenseDotProductDistanceOneToManyInt8Float(
+    const DatapointPtr<float>& query,
+    const DefaultDenseDatasetView<int8_t>& dataset, ConstSpan<uint32_t> indices,
+    MutableSpan<float> result) {
+  one_to_many_low_level::DenseDotProductDistanceOneToManyInt8FloatDispatch<
+      true>(query, dataset, indices.data(), result);
 }
 
 }  // namespace research_scann

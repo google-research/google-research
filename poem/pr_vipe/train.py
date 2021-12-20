@@ -29,7 +29,6 @@ tf.disable_v2_behavior()
 
 FLAGS = flags.FLAGS
 
-flags.adopt_module_key_flags(common)
 flags.adopt_module_key_flags(train_base)
 
 flags.DEFINE_string('master', '', 'BNS name of the TensorFlow master to use.')
@@ -44,8 +43,8 @@ def main(_):
       models_module=models,
       input_example_parser_creator=None,
       keypoint_preprocessor_3d=input_generator.preprocess_keypoints_3d,
-      create_model_input_fn=input_generator.create_model_input,
       keypoint_distance_config_override={},
+      create_model_input_fn_kwargs={},
       embedder_fn_kwargs={})
 
 

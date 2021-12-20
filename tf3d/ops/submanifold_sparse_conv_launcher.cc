@@ -14,8 +14,9 @@
 
 #include "submanifold_sparse_conv_launcher.h"
 
-#include "submanifold_sparse_conv_utils.h"
+#include "absl/container/node_hash_map.h"
 #include "unsupported/Eigen/CXX11/Tensor"
+#include "submanifold_sparse_conv_utils.h"
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
@@ -48,7 +49,7 @@ Status RunSubmanifoldSparseConvolution(
 
   for (int cur_batch = 0; cur_batch < batch_size; ++cur_batch) {
     // Build a hashmap mapping coordinate values to corresponding indices.
-    std::unordered_map<Coordinates<dims>, int, CoordinatesHasher<dims>>
+    absl::node_hash_map<Coordinates<dims>, int, CoordinatesHasher<dims>>
         coordinates_hashmap;
     for (int cur_coords_id = 0;
          cur_coords_id < num_valid_coordinates_t(cur_batch); ++cur_coords_id) {

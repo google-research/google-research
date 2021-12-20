@@ -36,6 +36,9 @@ class GetBondLengthDistribution(beam.DoFn):
 
     natoms = len(bt.atoms)
 
+    if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+      return
+
     for a1 in range(0, natoms):
       atomic_number1 = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[bt.atoms[a1]]
       for a2 in range(a1 + 1, natoms):

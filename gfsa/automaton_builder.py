@@ -489,7 +489,7 @@ class AutomatonBuilder:
     # with the same in-route type, and also over all possible next FSM states)
     distn_reduced = index_reduce(
         distn_reduced_spec,
-        jax.ops.index[:, in_out_route_to_in_route_arr],
+        jnp.index_exp[:, in_out_route_to_in_route_arr],
         arr_reduce(rparams.move, axis=-1),
     )
 

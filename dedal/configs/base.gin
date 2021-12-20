@@ -1,0 +1,120 @@
+#Base config for dedal experiments. Basically everything but the model.
+import dedal.alignment
+import dedal.configs.external_configurables
+import dedal.data.align_transforms
+import dedal.data.builder
+import dedal.data.loaders
+import dedal.data.nlp
+import dedal.data.specs
+import dedal.data.transforms
+import dedal.models.activations
+import dedal.models.aligners
+import dedal.models.dedal
+import dedal.models.encoders
+import dedal.models.homology
+import dedal.models.initializers
+import dedal.models.nlp
+import dedal.multi_task
+import dedal.smith_waterman
+import dedal.train.align_metrics
+import dedal.train.learning_rate_schedules
+import dedal.train.logger
+import dedal.train.losses
+import dedal.train.metrics
+import dedal.train.training_loop
+import dedal.vocabulary
+
+SEQUENCE_LENGTH = 512
+
+TrainingLoop:
+  dataset_builder = @specs.make_fake_builder()
+  model_cls = @Dedal
+  loss_fn = @MultiTaskLoss()
+  optimizer_cls = @tf.keras.optimizers.Adam
+  batch_size = 128
+  num_steps_per_train_iteration = 10
+  num_eval_steps = 2000
+  logger_cls = @logger.Logger
+
+# Dataset
+vocabulary.get_default.vocab = %vocabulary.alternative
+make_fake_builder.max_len = %SEQUENCE_LENGTH
+
+Dedal:
+  aligner_cls = @aligners.SoftAligner
+  heads_cls = @heads/multi_task.Backbone()
+
+SoftAligner:
+  align_fn = @smith_waterman.perturbed_alignment_score
+  eval_align_fn = @smith_waterman.unperturbed_alignment_score
+smith_waterman.perturbed_alignment_score.sigma = 0.1
+
+tf.keras.optimizers.Adam:
+  learning_rate = @InverseSquareRootDecayWithWarmup()
+  epsilon = 1e-08
+  clipnorm = 1.0
+
+# Output heads.
+heads/multi_task.Backbone:
+  embeddings = []
+  alignments = [
+    @dedal.Selector,
+    @homology.LogCorrectedLogits
+  ]
+
+# Losses.
+MultiTaskLoss.losses = @loss/multi_task.Backbone()
+loss/multi_task.Backbone.alignments = [
+    @alignment/WeightedLoss(),
+    @homology/WeightedLoss(),
+]
+alignment/WeightedLoss.weight = 1.0
+alignment/WeightedLoss.loss = @losses.SmithWatermanLoss()
+homology/WeightedLoss.weight = 20.0
+homology/WeightedLoss.loss = @tf.keras.losses.BinaryCrossentropy()
+SmithWatermanLoss.reduction = 'none'
+losses.BinaryCrossentropy:
+  from_logits = True
+  name = 'homology_detection_loss'
+  reduction = 'none'
+
+# Evaluation.
+Logger.scalars = @scalars/multi_task.Backbone()
+scalars/Backbone:
+  embeddings = []
+  alignments = [
+    [
+      @AlignmentPrecisionRecall,
+      (@alignment_pr1/StratifyByPID, 'alignment/pid1'),
+      @AlignmentMSE,
+      @AlignmentStats,
+      @AlignmentScore,
+      @SWParamsStats,
+    ],
+    [
+      @tf.keras.metrics.BinaryAccuracy,
+      @auroc/tf.keras.metrics.AUC,
+      @aupr/tf.keras.metrics.AUC,
+      (@auroc1/StratifyByPID, 'alignment/pid1'),
+      (@aupr1/StratifyByPID, 'alignment/pid1'),
+    ],
+]
+BinaryAccuracy.threshold = 0.0
+BinaryAccuracy.name = 'homology_detection_accuracy'
+tf.keras.metrics.AUC.from_logits = True
+tf.keras.metrics.AUC.num_thresholds = 2500
+auroc/tf.keras.metrics.AUC.name = 'homology_detection_auroc'
+auroc/tf.keras.metrics.AUC.curve = 'ROC'
+aupr/tf.keras.metrics.AUC.name = 'homology_detection_aupr'
+aupr/tf.keras.metrics.AUC.curve = 'PR'
+StratifyByPID.step = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.3]
+StratifyByPID.pid_definition = '1'
+alignment_pr1/StratifyByPID.metric_cls = @AlignmentPrecisionRecall
+auroc1/StratifyByPID.metric_cls = @auroc/tf.keras.metrics.AUC
+aupr1/StratifyByPID.metric_cls = @aupr/tf.keras.metrics.AUC
+
+# Logging
+period = 1000
+Logger.every = %period
+Checkpointer.save_every = %period
+Checkpointer.max_to_keep = 10

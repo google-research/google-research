@@ -23,7 +23,6 @@ tf.get_variable method via tf.variable_scope.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import abc

@@ -28,23 +28,21 @@ import tensorflow_hub as hub  # pylint:disable=g-bad-import-order
 from non_semantic_speech_benchmark.distillation import get_data
 from non_semantic_speech_benchmark.distillation import models
 
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
-
 FLAGS = flags.FLAGS
 
 # Data config flags.
-flags.DEFINE_string('file_pattern', None, 'Dataset location.')
+flags.DEFINE_list('file_patterns', None, 'Dataset location.')
 flags.DEFINE_integer('output_dimension', None, 'Dimension of targets.')
 
 flags.DEFINE_boolean(
     'precomputed_targets', False,
     'Flag to enable training with precomputed targets. '
-    'If True, `file_pattern` must point to precomputed targets, and '
+    'If True, `file_patterns` must point to precomputed targets, and '
     '`target_key` must be supplied.')
 flags.DEFINE_string(
     'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
     'This flag is ignored if `precomputed_targets` is False.')
+flags.DEFINE_boolean('normalize_to_pm_one', False, 'Normalize input.')
 
 flags.DEFINE_string('teacher_model_hub', None, 'Hub teacher model.')
 flags.DEFINE_string('output_key', None, 'Teacher model output_key.')
@@ -53,14 +51,12 @@ flags.DEFINE_integer('min_length', 16000, 'Minimum audio sample length.')
 flags.DEFINE_alias('ml', 'min_length')
 
 # Student network config flags.
-flags.DEFINE_integer(
-    'bottleneck_dimension', None, 'Dimension of bottleneck. '
-    'If 0, bottleneck layer is excluded.')
-flags.DEFINE_alias('bd', 'bottleneck_dimension')
-flags.DEFINE_string(
-    'model_type', 'mobilenet_debug_1.0_False',
-    'Specification for student model.')
+flags.DEFINE_boolean('truncate_output', None, 'Whether to truncate output.')
+flags.DEFINE_alias('tr', 'truncate_output')
+flags.DEFINE_string('model_type', None, 'Specification for student model.')
 flags.DEFINE_alias('mt', 'model_type')
+flags.DEFINE_boolean('spec_augment', False, 'Student spec augment.')
+flags.DEFINE_alias('sa', 'spec_augment')
 
 # Training config flags.
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
@@ -82,29 +78,6 @@ flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
 flags.DEFINE_alias('e', 'num_epochs')
 
 
-# Quantization
-flags.DEFINE_boolean(
-    'quantize_aware_training', False, 'Dynamically '
-    'quantize final layer weights during training.')
-flags.DEFINE_alias('qat', 'quantize_aware_training')
-
-# Compression
-flags.DEFINE_boolean(
-    'compression_op', False, 'Compress pre-bottleneck '
-    'layer dynamically during training using SVD.')
-flags.DEFINE_alias('cop', 'compression_op')
-flags.DEFINE_integer('comp_rank', 100, 'Inner dimension of '
-                     'compressed matrices.')
-flags.DEFINE_integer('comp_freq', 10, 'Compressed matrix update frequency')
-flags.DEFINE_integer('comp_begin_step', 0,
-                     'Training step to begin compression.')
-flags.DEFINE_integer(
-    'comp_end_step', -1, 'Training step to end compression. '
-    '-1 means compression never ends.')
-flags.DEFINE_float(
-    'alpha_step_size', 0.01, 'Amount to decrement alpha each time '
-    'a compression op takes place.')
-
 
 def train_and_report(debug=False):
   """Trains the classifier."""
@@ -122,7 +95,7 @@ def train_and_report(debug=False):
         hub.load(FLAGS.teacher_model_hub), FLAGS.output_key)
     assert target_key is None
   ds = get_data.get_data(
-      file_pattern=FLAGS.file_pattern,
+      file_patterns=FLAGS.file_patterns,
       output_dimension=FLAGS.output_dimension,
       reader=reader,
       samples_key=FLAGS.samples_key,
@@ -132,6 +105,7 @@ def train_and_report(debug=False):
       shuffle=True,
       teacher_fn=teacher_fn,
       target_key=target_key,
+      normalize_to_pm_one=FLAGS.normalize_to_pm_one,
       shuffle_buffer_size=FLAGS.shuffle_buffer_size)
   assert len(ds.element_spec) == 2, ds.element_spec
   ds.element_spec[0].shape.assert_has_rank(2)  # audio samples
@@ -145,27 +119,12 @@ def train_and_report(debug=False):
       learning_rate=FLAGS.lr, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
   global_step = opt.iterations
   # Create model, loss, and other objects.
-  compressor = None
-  if FLAGS.compression_op:
-    custom_params = ','.join([
-        'compression_frequency=%d',
-        'rank=%d',
-        'begin_compression_step=%d',
-        'end_compression_step=%d',
-        'alpha_decrement_value=%d',
-    ]) % (FLAGS.comp_freq, FLAGS.comp_rank, FLAGS.comp_begin_step,
-          FLAGS.comp_end_step, FLAGS.alpha_step_size)
-    compression_params = compression.CompressionOp.get_default_hparams().parse(
-        custom_params)
-    compressor = compression_wrapper.get_apply_compression(
-        compression_params, global_step=global_step)
   model = models.get_keras_model(
       model_type=FLAGS.model_type,
-      bottleneck_dimension=FLAGS.bottleneck_dimension,
       output_dimension=output_dimension,
+      truncate_output=FLAGS.truncate_output,
       frontend=True,
-      compressor=compressor,
-      quantize_aware_training=FLAGS.quantize_aware_training)
+      spec_augment=FLAGS.spec_augment)
   model.summary()
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')
@@ -225,9 +184,8 @@ def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
 
 
 def main(unused_argv):
-  assert FLAGS.file_pattern
+  assert FLAGS.file_patterns
   assert FLAGS.output_dimension
-  assert FLAGS.bottleneck_dimension >= 0
   assert FLAGS.shuffle_buffer_size
   assert FLAGS.logdir
   assert FLAGS.samples_key
@@ -240,9 +198,6 @@ def main(unused_argv):
     assert FLAGS.teacher_model_hub
     assert FLAGS.output_key
     assert FLAGS.target_key is None
-
-  # Incompatible tools.
-  assert not (FLAGS.quantize_aware_training and FLAGS.compression_op)
 
   tf.enable_v2_behavior()
   assert tf.executing_eagerly()

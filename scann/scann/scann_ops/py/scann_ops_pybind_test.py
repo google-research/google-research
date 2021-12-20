@@ -109,6 +109,14 @@ class ScannTest(parameterized.TestCase):
     self.verify_serialization(s, n_dims, 5)
 
   @parameterized.parameters(("squared_l2",), ("dot_product",))
+  def test_tree_brute_force(self, dist):
+    n_dims = 100
+    ds = np.random.rand(12345, n_dims).astype(np.float)
+    s = scann_ops_pybind.builder(ds, 10, dist).tree(
+        100, 10).score_brute_force(False).build()
+    self.verify_serialization(s, n_dims, 5)
+
+  @parameterized.parameters(("squared_l2",), ("dot_product",))
   def test_tree_brute_force_int8(self, dist):
     n_dims = 100
     ds = np.random.rand(12345, n_dims).astype(np.float)

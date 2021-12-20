@@ -902,6 +902,26 @@ TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
 }
 
 template <typename T>
+StatusOr<shared_ptr<const DenseDataset<float>>>
+TreeXHybridSMMD<T>::SharedFloatDatasetIfNeeded() {
+  vector<const DenseDataset<float>*> datasets(datapoints_by_token_.size());
+  for (int i = 0; i < datasets.size(); i++) {
+    auto ptr_or = leaf_searchers_[i]->SharedFloatDatasetIfNeeded();
+    SCANN_RETURN_IF_ERROR(ptr_or.status());
+    datasets[i] = ptr_or->get();
+  }
+  TF_ASSIGN_OR_RETURN(const int dataset_size,
+                      UntypedSingleMachineSearcherBase::DatasetSize());
+  const auto get_dataset = [&](int leaf_idx) { return datasets[leaf_idx]; };
+
+  TF_ASSIGN_OR_RETURN(
+      vector<float> storage,
+      CombineLeafDatasets<float>(dataset_size, "float32", datapoints_by_token_,
+                                 get_dataset));
+  return std::make_shared<const DenseDataset<float>>(storage, dataset_size);
+}
+
+template <typename T>
 Status TreeXHybridSMMD<T>::PreprocessQueryIntoParamsUnlocked(
     const DatapointPtr<T>& query, SearchParameters& search_params) const {
   const auto& params =

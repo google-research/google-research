@@ -21,7 +21,6 @@ This module implements statistics that characterise neural network behavior.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import math
