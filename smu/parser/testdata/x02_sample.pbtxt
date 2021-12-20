@@ -399,12 +399,8 @@ conformers {
       matrix_values: 0.0
     }
     dipole_moment_pbe0_aug_pc_1 {
-      x: -0.0
     }
     dipole_moment_hf_6_31gd {
-      x: -0.0
-      y: -0.0
-      z: -0.0
     }
     quadrupole_moment_pbe0_aug_pc_1 {
       matrix_values: -10.25411
@@ -548,10 +544,8 @@ conformers {
     bond_separation_energy_atomic_b6_um_ci {
     }
     bond_separation_energy_eccsd {
-      value: -0.0
     }
     bond_separation_energy_eccsd_um {
-      value: -0.0
     }
     bond_separation_energy_eccsd_um_ci {
     }

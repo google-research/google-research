@@ -544,26 +544,20 @@ conformers {
       value: " 1 NH3"
     }
     bond_separation_energy_atomic_b5 {
-      value: -0.0
     }
     bond_separation_energy_atomic_b5_um {
-      value: -0.0
     }
     bond_separation_energy_atomic_b5_um_ci {
     }
     bond_separation_energy_atomic_b6 {
-      value: -0.0
     }
     bond_separation_energy_atomic_b6_um {
-      value: -0.0
     }
     bond_separation_energy_atomic_b6_um_ci {
     }
     bond_separation_energy_eccsd {
-      value: -0.0
     }
     bond_separation_energy_eccsd_um {
-      value: -0.0
     }
     bond_separation_energy_eccsd_um_ci {
     }

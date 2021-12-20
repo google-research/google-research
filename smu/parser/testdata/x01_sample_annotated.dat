@@ -196,11 +196,11 @@ AT2_ENE_B6             -56.558975
 # From single_point_energy_eccsd
 AT2_ENE_ECCSD          -56.498168
 # From bond_separation_energy_atomic_b5{,_um,_um_ci}
-AT2_BSE_B5              -0.00       -0.00        0.00
+AT2_BSE_B5               0.00        0.00        0.00
 # From bond_separation_energy_atomic_b6{,_um,_um_ci}
-AT2_BSE_B6              -0.00       -0.00        0.00
+AT2_BSE_B6               0.00        0.00        0.00
 # From bond_separation_energy_eccsd{,_um,_um_ci}
-AT2_BSE_ECCSD           -0.00       -0.00        0.00
+AT2_BSE_ECCSD            0.00        0.00        0.00
 # From atomization_energy_excluding_zpe_atomic_b5{,_um,_um_ci}
 AT2_AEe_B5             297.71      297.82        0.12
 # From atomization_energy_excluding_zpe_atomic_b6{,_um,_um_ci}
