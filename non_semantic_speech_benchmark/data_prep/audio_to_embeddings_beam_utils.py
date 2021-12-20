@@ -498,6 +498,7 @@ def batched_chunked_single_model_pipeline(
     setup_fn: Stuff.
   """
   del split_embeddings_into_separate_tables, use_frontend_fn
+  del label_key, speaker_id_key, delete_audio_from_output
 
   # Common sanity checks and preprocessing.
   _common_pipeline_sanity_checks(embedding_modules, embedding_names,
