@@ -1,5 +1,5 @@
 # Light Field Neural Rendering
-### [Project Page](https://light-field-neural-rendering.github.io/) | [Paper](Coming Soon) | [Video](Coming Soon)
+### [Project Page](https://light-field-neural-rendering.github.io/) | [Paper](https://arxiv.org/pdf/2112.09687.pdf) | [Video](Coming Soon)
 
 This is a JAX/Flax implementation of the paper Suhail et al, "Light Field Neural
 Rendering".
