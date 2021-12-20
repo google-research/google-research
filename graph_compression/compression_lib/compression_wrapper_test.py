@@ -62,14 +62,17 @@ class CompressionWrapperTest(absltest.TestCase):
     spec.set_hparam('rank', hparams.rank)
     return spec
 
-  @mock.patch.object(comp_op, 'LowRankDecompMatrixCompressor')
-  def testWrapper_CreatesProperCompressorOption1(self, low_rank_mock):
+  def testWrapper_CreatesProperCompressorOption1(self):
     hparams = self._create_compression_op_spec(
         compression_wrapper.CompressionOptions.LOWRANK_MATRIX_COMPRESSION,
         compression_wrapper.UpdateOptions.PYTHON_UPDATE)
     mock_compressor = MatrixCompressorInterfaceMock(
         self._default_compressor_spec(hparams))
-    low_rank_mock.side_effect = [mock_compressor]
+    self.enter_context(
+        mock.patch.object(
+            comp_op,
+            'LowRankDecompMatrixCompressor',
+            side_effect=[mock_compressor]))
 
     with mock.patch.object(compression_wrapper,
                            'ApplyCompression') as apply_mock:
