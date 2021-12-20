@@ -26,6 +26,7 @@
 import math
 from typing import Any, Iterable, Tuple, Optional, Union
 
+from absl import logging
 import numpy as np
 import scipy.stats
 from sklearn import metrics as skmetrics
@@ -92,7 +93,9 @@ def calculate_auc(labels,
                   sample_weight = None):
   """Binary or multiclass AUC."""
   if not isinstance(labels, np.ndarray):
-    labels = np.expand_dims(np.array(labels, np.float32), axis=-1)
+    labels = np.array(labels, np.float32)
+  if labels.ndim == 1:
+    labels = np.expand_dims(labels, axis=-1)
   if labels.ndim != 2:
     raise ValueError(f'Labels must have shape 2: {labels.shape}')
   if not isinstance(predictions, np.ndarray):
@@ -106,6 +109,9 @@ def calculate_auc(labels,
   if labels.shape[0] != predictions.shape[0]:
     raise ValueError(
         f'Num examples not the same: {labels.shape} vs {predictions.shape}')
+
+  logging.info('AUC: Labels shape: %s', labels.shape)
+  logging.info('AUC: Predictions shape: %s', predictions.shape)
   if binary_classification:  # Binary case.
     predictions = predictions[:, 1]  # Prob of class 1.
     return skmetrics.roc_auc_score(

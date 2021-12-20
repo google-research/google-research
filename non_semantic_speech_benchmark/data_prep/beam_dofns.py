@@ -327,11 +327,9 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
       assert model_input.ndim == 1
       model_input = np.expand_dims(model_input, axis=0)
       tf_out = self._module_call_fn(model_input, self.post_setup_module)
-      for e in tf_out.values():
-        assert e.ndim == 3, e.shape
+      cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
       bs = chnkd_audio.shape[0]
-      cur_embs = [np.tile(tf_out[okey], (bs, 1, 1))
-                  for okey in self._output_key]
+      cur_embs = [np.tile(e, (bs, 1, 1)) for e in cur_embs]
 
     for emb in cur_embs:
       if emb.ndim != 3:  # (chunk, time, emb dim)

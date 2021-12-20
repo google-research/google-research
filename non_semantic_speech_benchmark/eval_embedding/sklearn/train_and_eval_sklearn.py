@@ -283,12 +283,13 @@ def format_text_line(k_v):
       f'Label: {p["label_name"]}',
       f'Model: {p["model_name"]}',
       f'L2 normalization: {p["l2_normalization"]}',
-      f'Speaker normalization: {p["speaker_id_name"] is not None}', '\n'
+      f'Speaker normalization: {p["speaker_id_name"] is not None}',
   ]
   logging.info('Scores: %s', scores)
   for metric_name, (eval_score, test_score) in scores.items():
     line_list.append(f'Eval score {metric_name}: {eval_score}')
     line_list.append(f'Test score {metric_name}: {test_score}')
+  line_list.append('\n')
   cur_elem = ', '.join(line_list)
   logging.info('Finished formatting: %s', cur_elem)
   return cur_elem
