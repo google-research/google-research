@@ -26,12 +26,12 @@ import tensorflow as tf
 from widget_caption import widget_caption_config
 from widget_caption import widget_caption_eval
 from widget_caption import widget_caption_input as input_utils
+from tensorflow_models.official.legacy.transformer import model_params
+from tensorflow_models.official.legacy.transformer import model_utils
+from tensorflow_models.official.legacy.transformer import optimizer
+from tensorflow_models.official.legacy.transformer import transformer as nlp_transformer
 from tensorflow_models.official.nlp.modeling import layers
 from tensorflow_models.official.nlp.modeling import ops
-from tensorflow_models.official.nlp.transformer import model_params
-from tensorflow_models.official.nlp.transformer import model_utils
-from tensorflow_models.official.nlp.transformer import optimizer
-from tensorflow_models.official.nlp.transformer import transformer as nlp_transformer
 
 flags.DEFINE_string('experiment', 'debug',
                     'Experiment name defined in widget_caption_config.py.')

@@ -26,12 +26,12 @@ import tensorflow as tf
 from screen2words import screen2words_eval
 from screen2words import screen2words_experiment_config
 from screen2words import screen2words_keras_input as input_utils
+from tensorflow_models.official.legacy.transformer import model_params
+from tensorflow_models.official.legacy.transformer import model_utils
+from tensorflow_models.official.legacy.transformer import optimizer
+from tensorflow_models.official.legacy.transformer import transformer as nlp_transformer
 from tensorflow_models.official.nlp.modeling import layers
 from tensorflow_models.official.nlp.modeling import ops
-from tensorflow_models.official.nlp.transformer import model_params
-from tensorflow_models.official.nlp.transformer import model_utils
-from tensorflow_models.official.nlp.transformer import optimizer
-from tensorflow_models.official.nlp.transformer import transformer as nlp_transformer
 
 flags.DEFINE_string(
     'experiment', 'debug',
