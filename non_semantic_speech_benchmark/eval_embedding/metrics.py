@@ -94,10 +94,8 @@ def calculate_auc(labels,
   """Binary or multiclass AUC."""
   if not isinstance(labels, np.ndarray):
     labels = np.array(labels, np.float32)
-  if labels.ndim == 1:
-    labels = np.expand_dims(labels, axis=-1)
-  if labels.ndim != 2:
-    raise ValueError(f'Labels must have shape 2: {labels.shape}')
+  if labels.ndim != 1:
+    raise ValueError(f'Labels must have shape 1: {labels.shape}')
   if not isinstance(predictions, np.ndarray):
     # For backwards compatibility.
     assert binary_classification
