@@ -734,8 +734,8 @@ def distributed_shampoo(learning_rate,
     elif graft_type == GraftingType.RMSPROP:
       w1 = beta2
       w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
-      new_diagonal_statistics = w1 * state.diagonal_statistics + (
-          1.0 - w2) * jnp.square(grad)
+      new_diagonal_statistics = (
+          w1 * state.diagonal_statistics + w2 * jnp.square(grad))
       adagrad_update = grad / (
           jnp.sqrt(new_diagonal_statistics) + diagonal_epsilon)
       grafting_update = adagrad_update
