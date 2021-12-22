@@ -432,22 +432,6 @@ class Preconditioner:
     return jnp.reshape(merged_grad, self._original_shape)
 
 
-def reduce_mean(array):
-  num_elements = array.size
-  if num_elements > 1e8:
-    array_sum = jnp.sum(array, axis=-1)
-    array_sum = jnp.sum(array_sum)
-    return array_sum / jnp.array(num_elements, dtype=array_sum.dtype)
-  else:
-    return jnp.mean(array)
-
-
-def reduce_rms(array):
-  sq = jnp.square(array)
-  sq_mean = reduce_mean(sq)
-  return jnp.sqrt(sq_mean)
-
-
 def distributed_shampoo(learning_rate,
                         block_size,
                         beta1=0.9,
@@ -466,7 +450,7 @@ def distributed_shampoo(learning_rate,
                         inverse_failure_threshold=0.1,
                         moving_average_for_momentum=False,
                         skip_preconditioning_dim_size_gt=4096,
-                        adaptive_clipping=None,
+                        clip_by_scaled_gradient_norm=None,
                         precision=lax.Precision.HIGHEST):
   """Distributed Shampoo optimizer.
 
@@ -521,7 +505,7 @@ def distributed_shampoo(learning_rate,
       instead of exponential moving average.
     skip_preconditioning_dim_size_gt: Skip if preconditioning dim size is
         greater than this value.
-    adaptive_clipping: Adaptive clipping introduced in AdaFactor (only useful
+    clip_by_scaled_gradient_norm: Clip by scaled gradient norm (only useful
       when using RMSProp Grafting).
     precision: precision XLA related flag, the available options are: a)
       lax.Precision.DEFAULT (better step time, but not precise) b)
@@ -757,10 +741,11 @@ def distributed_shampoo(learning_rate,
       rmsprop_update = grad / (
           jnp.sqrt(new_diagonal_statistics) + diagonal_epsilon)
 
-      if adaptive_clipping:
+      if clip_by_scaled_gradient_norm:
+        scaled_grad_norm = jnp.linalg.norm(rmsprop_update) / (
+            jnp.sqrt(rmsprop_update.size.astype(rmsprop_update.dtype)))
         clipping_denom = jnp.maximum(
-            1.,
-            reduce_rms(rmsprop_update) / adaptive_clipping)
+            1., scaled_grad_norm / clip_by_scaled_gradient_norm)
         rmsprop_update /= clipping_denom
 
       grafting_update = rmsprop_update
