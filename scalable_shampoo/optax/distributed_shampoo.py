@@ -432,6 +432,22 @@ class Preconditioner:
     return jnp.reshape(merged_grad, self._original_shape)
 
 
+def reduce_mean(array):
+  num_elements = array.size
+  if num_elements > 1e8:
+    array_sum = jnp.sum(array, axis=-1)
+    array_sum = jnp.sum(array_sum)
+    return array_sum / jnp.array(num_elements, dtype=array_sum.dtype)
+  else:
+    return jnp.mean(array)
+
+
+def reduce_rms(array):
+  sq = jnp.square(array)
+  sq_mean = reduce_mean(sq)
+  return jnp.sqrt(sq_mean)
+
+
 def distributed_shampoo(learning_rate,
                         block_size,
                         beta1=0.9,
@@ -450,6 +466,7 @@ def distributed_shampoo(learning_rate,
                         inverse_failure_threshold=0.1,
                         moving_average_for_momentum=False,
                         skip_preconditioning_dim_size_gt=4096,
+                        adaptive_clipping=None,
                         precision=lax.Precision.HIGHEST):
   """Distributed Shampoo optimizer.
 
@@ -504,6 +521,8 @@ def distributed_shampoo(learning_rate,
       instead of exponential moving average.
     skip_preconditioning_dim_size_gt: Skip if preconditioning dim size is
         greater than this value.
+    adaptive_clipping: Adaptive clipping introduced in AdaFactor (only useful
+      when using RMSProp Grafting).
     precision: precision XLA related flag, the available options are: a)
       lax.Precision.DEFAULT (better step time, but not precise) b)
       lax.Precision.HIGH (increased precision, slower) c) lax.Precision.HIGHEST
@@ -636,7 +655,6 @@ def distributed_shampoo(learning_rate,
             results.append(jnp.squeeze(v))
         else:
           results.append(v_array)
-
       return results
 
     all_statistics, all_exponents = _batch(packed_statistics, exponents,
@@ -736,9 +754,16 @@ def distributed_shampoo(learning_rate,
       w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
       new_diagonal_statistics = (
           w1 * state.diagonal_statistics + w2 * jnp.square(grad))
-      adagrad_update = grad / (
+      rmsprop_update = grad / (
           jnp.sqrt(new_diagonal_statistics) + diagonal_epsilon)
-      grafting_update = adagrad_update
+
+      if adaptive_clipping:
+        clipping_denom = jnp.maximum(
+            1.,
+            reduce_rms(rmsprop_update) / adaptive_clipping)
+        rmsprop_update /= clipping_denom
+
+      grafting_update = rmsprop_update
     else:
       grafting_update = sgd_update
 
