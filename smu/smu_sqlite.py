@@ -95,10 +95,15 @@ class SMUSQLite:
   def _maybe_init_db(self):
     """Create the table and indices if they do not exist."""
     make_table = (f'CREATE TABLE IF NOT EXISTS {_CONFORMER_TABLE_NAME} '
-                  '(cid INTEGER PRIMARY KEY, conformer BLOB)')
+                  '(cid INTEGER PRIMARY KEY, '
+                  'exp_stoich STRING, '
+                  'conformer BLOB)')
     self._conn.execute(make_table)
     self._conn.execute(f'CREATE UNIQUE INDEX IF NOT EXISTS '
                        f'idx_cid ON {_CONFORMER_TABLE_NAME} (cid)')
+    self._conn.execute(f'CREATE INDEX IF NOT EXISTS '
+                       f'idx_exp_stoich ON {_CONFORMER_TABLE_NAME} '
+                       '(exp_stoich)')
     self._conn.execute(f'CREATE TABLE IF NOT EXISTS {_BTID_TABLE_NAME} '
                        '(btid INTEGER, cid INTEGER)')
     self._conn.execute(f'CREATE INDEX IF NOT EXISTS '
@@ -130,7 +135,8 @@ class SMUSQLite:
     if not encoded_conformers:
       raise ValueError()
 
-    insert_conformer = f'INSERT INTO {_CONFORMER_TABLE_NAME} VALUES (?, ?)'
+    insert_conformer = (f'INSERT INTO {_CONFORMER_TABLE_NAME} '
+                        'VALUES (?, ?, ?)')
     insert_btid = f'INSERT INTO {_BTID_TABLE_NAME} VALUES (?, ?)'
     insert_smiles = (f'INSERT INTO {_SMILES_TABLE_NAME} VALUES (?, ?) '
                      f'ON CONFLICT(smiles) DO NOTHING')
@@ -156,7 +162,10 @@ class SMUSQLite:
     for idx, encoded_conformer in enumerate(encoded_conformers, 1):
       conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
       pending_conformer_args.append(
-          (conformer.conformer_id, snappy.compress(encoded_conformer)))
+          (conformer.conformer_id,
+           smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+             conformer.bond_topologies[0]),
+           snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
         pending_btid_args.append(
             (bond_topology.bond_topology_id, conformer.conformer_id))
@@ -248,6 +257,27 @@ class SMUSQLite:
     assert len(result) == 1
     assert len(result[0]) == 1
     return self.find_by_bond_topology_id(result[0][0])
+
+  def find_by_expanded_stoichiometry(self, exp_stoich):
+    """Finds all of the conformers with a stoichiometry.
+
+    The expanded stoichiometry includes hydrogens as part of the atom type.
+    See smu_utils_lib.get_canonical_stoichiometry_with_hydrogens for a
+    description.
+
+    Args:
+      exp_stoich: string
+
+    Returns:
+      iterable of dataset_pb2.Conformer
+    """
+    cur = self._conn.cursor()
+    select = (f'SELECT conformer '
+              f'FROM {_CONFORMER_TABLE_NAME} '
+              f'WHERE exp_stoich = ?')
+    cur.execute(select, (exp_stoich,))
+    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
+            for result in cur)
 
   def __iter__(self):
     """Iterates through all dataset_pb2.Conformer in the DB."""

@@ -22,6 +22,7 @@ from absl.testing import absltest
 
 from smu import dataset_pb2
 from smu import smu_sqlite
+from smu.parser import smu_utils_lib
 
 
 class SmuSqliteTest(absltest.TestCase):
@@ -43,7 +44,20 @@ class SmuSqliteTest(absltest.TestCase):
   def add_bond_topology_to_conformer(self, conformer, btid):
     # We'll use a simple rule for making smiles. The SMILES is just btid
     # number of Cs
-    conformer.bond_topologies.add(bond_topology_id=btid, smiles='C' * btid)
+    def make_connectivity_matrix(num_c):
+      if num_c == 2:
+        return '1'
+      return '1' + ('0' * (num_c - 2)) + make_connectivity_matrix(num_c - 1)
+    if btid == 1:
+      bt = smu_utils_lib.create_bond_topology('C', '', '4')
+    else:
+      bt = smu_utils_lib.create_bond_topology(
+        'C' * btid,
+        make_connectivity_matrix(btid),
+        '3' + ('2' * (btid - 2)) + '3')
+    bt.bond_topology_id=btid
+    bt.smiles = 'C' * btid
+    conformer.bond_topologies.append(bt)
 
   def make_fake_conformer(self, cid):
     conformer = dataset_pb2.Conformer()
@@ -167,6 +181,27 @@ class SmuSqliteTest(absltest.TestCase):
 
     # and test a non existent id
     self.assertEmpty(list(db.find_by_smiles('I do not exist')))
+
+  def test_find_by_expanded_stoichiometry(self):
+    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
+    db.bulk_insert(
+        self.encode_conformers([
+            self.make_fake_conformer(cid) for cid in [2001, 2002, 4004]
+        ]))
+
+    got_cids = [
+        conformer.conformer_id
+        for conformer in db.find_by_expanded_stoichiometry('(ch2)2(ch3)2')
+    ]
+    self.assertCountEqual(got_cids, [4004])
+
+    got_cids = [
+        conformer.conformer_id
+        for conformer in db.find_by_expanded_stoichiometry('(ch3)2')
+    ]
+    self.assertCountEqual(got_cids, [2001, 2002])
+
+    self.assertEmpty(list(db.find_by_expanded_stoichiometry('(nh)')))
 
 
 if __name__ == '__main__':
