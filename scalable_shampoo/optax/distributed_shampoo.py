@@ -61,6 +61,7 @@ class GraftingType(enum.IntEnum):
   SGD = 1
   ADAGRAD = 2
   RMSPROP = 3
+  RMSPROP_NORMALIZED = 4
 
 
 def power_iteration(
@@ -530,7 +531,7 @@ def distributed_shampoo(learning_rate,
         preconditioners = [jnp.eye(s[0]) for s in shapes]
 
       adagrad_statistics = []
-      if graft_type == GraftingType.ADAGRAD or graft_type == GraftingType.RMSPROP:
+      if graft_type != GraftingType.SGD:
         adagrad_statistics = jnp.zeros_like(param)
       return ParameterStats(adagrad_statistics, statistics, preconditioners,
                             jnp.zeros_like(param), jnp.zeros_like(param))
@@ -733,12 +734,19 @@ def distributed_shampoo(learning_rate,
       adagrad_update = grad / (
           jnp.sqrt(new_diagonal_statistics) + diagonal_epsilon)
       grafting_update = adagrad_update
-    elif graft_type == GraftingType.RMSPROP:
+    elif (graft_type == GraftingType.RMSPROP or
+          graft_type == GraftingType.RMSPROP_NORMALIZED):
+
+      scaled_grad = grad
+      if graft_type == GraftingType.RMSPROP_NORMALIZED:
+        scaled_grad = grad / jnp.linalg.norm(grad)
+
       w1 = beta2
       w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
+
       new_diagonal_statistics = (
-          w1 * state.diagonal_statistics + w2 * jnp.square(grad))
-      rmsprop_update = grad / (
+          w1 * state.diagonal_statistics + w2 * jnp.square(scaled_grad))
+      rmsprop_update = scaled_grad / (
           jnp.sqrt(new_diagonal_statistics) + diagonal_epsilon)
 
       if clip_by_scaled_gradient_norm:
