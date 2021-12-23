@@ -743,7 +743,7 @@ def distributed_shampoo(learning_rate,
 
       if clip_by_scaled_gradient_norm:
         scaled_grad_norm = jnp.linalg.norm(rmsprop_update) / (
-            jnp.sqrt(rmsprop_update.size.astype(rmsprop_update.dtype)))
+            jnp.sqrt(float(rmsprop_update.size)))
         clipping_denom = jnp.maximum(
             1., scaled_grad_norm / clip_by_scaled_gradient_norm)
         rmsprop_update /= clipping_denom
