@@ -122,10 +122,13 @@ def calculate_auc(labels,
         # the label indicator matrix as a label.
         average='macro',
         sample_weight=sample_weight,
-        # 'ovr': Stands for One-vs-rest. Computes the AUC of each class against
-        # the rest [3] [4]. This treats the multiclass case in the same way as
-        # the multilabel case
-        multi_class='ovr')
+        # Stands for One-vs-rest. Computes the AUC of each class against the
+        # rest [3] [4]. This treats the multiclass case in the same way as the
+        # multilabel case. Sensitive to class imbalance even when
+        # average == 'macro', because class imbalance affects the composition of
+        # each of the ‘rest’ groupings.
+        multi_class='ovr',
+        labels=range(predictions.shape[1]))
 
 
 def dprime_from_auc(auc):
