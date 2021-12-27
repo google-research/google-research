@@ -27,16 +27,19 @@ class DistributedShampooTest(chex.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.init_params = (jnp.array([1., 2.]), jnp.array([3., 4.]))
-    self.per_step_updates = (jnp.array([500., 5.]), jnp.array([300., 3.]))
+    self.init_params = (
+        jnp.array([[1., 3.], [2., 4.]]), jnp.array([[3., 4.], [3., 4.]]))
+    self.per_step_updates = (jnp.array([[500., 5.], [500., 5.]]),
+                             jnp.array([[300., 3.], [300., 3.]]))
 
   @chex.all_variants(with_pmap=False)
   def test_distributed_shampoo(self):
     params = self.init_params
 
-    scaler = distributed_shampoo.distributed_shampoo(0.1, 32)
-    init_fn = self.variant(scaler.init)
-    transform_fn = self.variant(scaler.update)
+    optim = distributed_shampoo.distributed_shampoo(
+        0.1, 32, batch_axis_name=None, preconditioning_compute_steps=2)
+    init_fn = self.variant(optim.init)
+    transform_fn = self.variant(optim.update)
 
     state = init_fn(params)
     chex.assert_tree_all_finite(state)

@@ -597,7 +597,7 @@ def distributed_shampoo(learning_rate,
     num_statistics = len(statistics)
 
     if not batch_axis_name:
-      num_devices = jax.local_device_count()
+      num_devices = 1
     else:
       num_devices = lax.psum(1, batch_axis_name)
 
@@ -654,10 +654,30 @@ def distributed_shampoo(learning_rate,
       return preconditioners, errors
 
     if not batch_axis_name:
-      preconditioners, errors = jax.pmap(_matrix_inverse_pth_root)(
-          all_statistics, all_exponents)
-      preconditioners_flat = _unbatch(preconditioners)
-      errors_flat = _unbatch(errors)
+      def _internal_inverse_pth_root_all():
+        preconditioners, errors = _matrix_inverse_pth_root(
+            all_statistics[0], all_exponents[0])
+        b1 = preconditioners.shape[0]
+        def split(batched_values):
+          return [
+              jnp.squeeze(v) for v in jnp.split(
+                  batched_values, indices_or_sections=b1, axis=0)
+          ]
+
+        return split(preconditioners), split(errors)
+
+      if preconditioning_compute_steps == 1:
+        preconditioners_flat, errors_flat = _internal_inverse_pth_root_all()
+      else:
+        # Passing statistics instead of preconditioners as they are similarly
+        # shaped tensors. Note statistics will be ignored as we are passing in
+        # a large init value for error.
+        preconditioners_init = packed_statistics
+        errors_init = [inverse_failure_threshold] * len(packed_statistics)
+        init_state = [preconditioners_init, errors_init]
+        perform_step = step % preconditioning_compute_steps == 0
+        preconditioners_flat, errors_flat = efficient_cond(
+            perform_step, _internal_inverse_pth_root_all, init_state)
     else:
 
       def _internal_inverse_pth_root_all():
@@ -675,8 +695,8 @@ def distributed_shampoo(learning_rate,
         preconditioners_flat, errors_flat = _internal_inverse_pth_root_all()
       else:
         # Passing statistics instead of preconditioners as they are similarly
-        # shaped tensors, as error we are passing is the threshold these will
-        # be ignored.
+        # shaped tensors. Note statistics will be ignored as we are passing in
+        # a large init value for error.
         preconditioners_init = packed_statistics
         errors_init = ([inverse_failure_threshold] * len(packed_statistics))
         init_state = [preconditioners_init, errors_init]
