@@ -161,10 +161,18 @@ class SMUSQLite:
     idx = None
     for idx, encoded_conformer in enumerate(encoded_conformers, 1):
       conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
+      # A small efficiency hack: the expanded stoich is only intended for use
+      # with topology_detection, so we only put a real value for those so that
+      # we dont' even have to return the entries we don't want.
+      if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
+        expanded_stoich = (
+          smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+             conformer.bond_topologies[0]))
+      else:
+        expanded_stoich = ''
       pending_conformer_args.append(
           (conformer.conformer_id,
-           smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
-             conformer.bond_topologies[0]),
+           expanded_stoich,
            snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
         pending_btid_args.append(

@@ -203,6 +203,18 @@ class SmuSqliteTest(absltest.TestCase):
 
     self.assertEmpty(list(db.find_by_expanded_stoichiometry('(nh)')))
 
+  def test_no_expanded_stoichiometry_on_ineligible(self):
+    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
+    conf = self.make_fake_conformer(2001)
+    # This makes the conformer ineligible
+    conf.properties.errors.status = 600
+    db.bulk_insert(self.encode_conformers([conf]))
+    got_cids = [
+        conformer.conformer_id
+        for conformer in db.find_by_expanded_stoichiometry('')
+    ]
+    self.assertCountEqual(got_cids, [2001])
+
 
 if __name__ == '__main__':
   absltest.main()
