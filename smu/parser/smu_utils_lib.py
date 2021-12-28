@@ -314,13 +314,19 @@ def compute_adjacency_matrix(topology):
   ])
   adjacency_matrix = [[0] * side_length for _ in range(side_length)]
   for bond in topology.bonds:
-    if topology.atoms[bond.atom_b] != dataset_pb2.BondTopology.AtomType.ATOM_H:
-      if bond.bond_type == dataset_pb2.BondTopology.BondType.BOND_SINGLE:
-        adjacency_matrix[bond.atom_a][bond.atom_b] = 1
-      elif bond.bond_type == dataset_pb2.BondTopology.BondType.BOND_DOUBLE:
-        adjacency_matrix[bond.atom_a][bond.atom_b] = 2
-      elif bond.bond_type == dataset_pb2.BondTopology.BondType.BOND_TRIPLE:
-        adjacency_matrix[bond.atom_a][bond.atom_b] = 3
+    if topology.atoms[bond.atom_a] == dataset_pb2.BondTopology.AtomType.ATOM_H:
+      continue
+    if topology.atoms[bond.atom_b] == dataset_pb2.BondTopology.AtomType.ATOM_H:
+      continue
+    if bond.bond_type == dataset_pb2.BondTopology.BondType.BOND_SINGLE:
+      adjacency_matrix[bond.atom_a][bond.atom_b] = 1
+      adjacency_matrix[bond.atom_b][bond.atom_a] = 1
+    elif bond.bond_type == dataset_pb2.BondTopology.BondType.BOND_DOUBLE:
+      adjacency_matrix[bond.atom_a][bond.atom_b] = 2
+      adjacency_matrix[bond.atom_b][bond.atom_a] = 2
+    elif bond.bond_type == dataset_pb2.BondTopology.BondType.BOND_TRIPLE:
+      adjacency_matrix[bond.atom_a][bond.atom_b] = 3
+      adjacency_matrix[bond.atom_b][bond.atom_a] = 3
   return adjacency_matrix
 
 
@@ -443,7 +449,7 @@ def create_bond_topology(atoms, connectivity_matrix_string, hydrogens_string):
     elif diff:
       raise ValueError(
           f'Bad hydrogen count (actual={actual_h}, expected={expected_h} '
-          'for {atom_type}, index {atom_idx}')
+          f'for {atom_type}, index {atom_idx}')
     for _ in range(actual_h):
       bond_topology.atoms.append(dataset_pb2.BondTopology.AtomType.ATOM_H)
       h_idx = len(bond_topology.atoms) - 1
@@ -1470,3 +1476,20 @@ def conformer_to_bond_topology_summaries(conformer):
 
   if starting_idx is not None:
     yield summary
+
+
+def conformer_eligible_for_topology_detection(conformer):
+  """Returns whether this conformer is worthy of topology detection.
+
+  Simple duplicate marking or conformers with unreliable geometries are not
+  generally useful to do topology detection.
+
+  Args:
+    conformer: dataset_pb2.Conformer
+
+  Returns:
+    bool
+  """
+  return (conformer.duplicated_by == 0 and
+          conformer.properties.errors.status >= 0 and
+          conformer.properties.errors.status < 512)

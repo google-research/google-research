@@ -130,6 +130,113 @@ class GetCanonicalStoichiometryWithHydrogensTest(absltest.TestCase):
         '(nh3)(o)')
 
 
+class ComputeBondedHydrogensTest(absltest.TestCase):
+
+  def test_c2_single(self):
+    bt = text_format.Parse("""
+      atoms: ATOM_C
+      atoms: ATOM_C
+      bonds {
+        atom_b: 1
+        bond_type: BOND_SINGLE
+      }
+      """, dataset_pb2.BondTopology())
+    self.assertEqual(
+      smu_utils_lib.compute_bonded_hydrogens(
+        bt, smu_utils_lib.compute_adjacency_matrix(bt)),
+      [3, 3])
+
+  def test_cn_double(self):
+    bt = text_format.Parse("""
+      atoms: ATOM_C
+      atoms: ATOM_N
+      bonds {
+        atom_b: 1
+        bond_type: BOND_DOUBLE
+      }
+      """, dataset_pb2.BondTopology())
+    self.assertEqual(
+      smu_utils_lib.compute_bonded_hydrogens(
+        bt, smu_utils_lib.compute_adjacency_matrix(bt)),
+      [2, 1])
+
+  def test_cn_double_opposite_bond_order(self):
+    bt = text_format.Parse("""
+      atoms: ATOM_C
+      atoms: ATOM_N
+      bonds {
+        atom_a: 1
+        bond_type: BOND_DOUBLE
+      }
+      """, dataset_pb2.BondTopology())
+    self.assertEqual(
+      smu_utils_lib.compute_bonded_hydrogens(
+        bt, smu_utils_lib.compute_adjacency_matrix(bt)),
+      [2, 1])
+
+  def test_charged(self):
+    bt = text_format.Parse("""
+      atoms: ATOM_NPOS
+      atoms: ATOM_ONEG
+      bonds {
+        atom_b: 1
+        bond_type: BOND_SINGLE
+      }
+      """, dataset_pb2.BondTopology())
+    self.assertEqual(
+      smu_utils_lib.compute_bonded_hydrogens(
+        bt, smu_utils_lib.compute_adjacency_matrix(bt)),
+      [3, 0])
+
+  def test_explicit_hs(self):
+    bt = text_format.Parse("""
+      atoms: ATOM_C
+      atoms: ATOM_O
+      atoms: ATOM_H
+      atoms: ATOM_H
+      bonds {
+        atom_b: 1
+        bond_type: BOND_DOUBLE
+      }
+      bonds {
+        atom_b: 2
+        bond_type: BOND_SINGLE
+      }
+      bonds {
+        atom_b: 3
+        bond_type: BOND_SINGLE
+      }
+      """, dataset_pb2.BondTopology())
+    self.assertEqual(
+      smu_utils_lib.compute_bonded_hydrogens(
+        bt, smu_utils_lib.compute_adjacency_matrix(bt)),
+      [2, 0])
+
+  def test_explicit_hs_opposite_bond_oder(self):
+    bt = text_format.Parse("""
+      atoms: ATOM_C
+      atoms: ATOM_O
+      atoms: ATOM_H
+      atoms: ATOM_H
+      bonds {
+        atom_a: 1
+        bond_type: BOND_DOUBLE
+      }
+      bonds {
+        atom_a: 2
+        bond_type: BOND_SINGLE
+      }
+      bonds {
+        atom_a: 3
+        bond_type: BOND_SINGLE
+      }
+      """, dataset_pb2.BondTopology())
+    self.assertEqual(
+      smu_utils_lib.compute_bonded_hydrogens(
+        bt, smu_utils_lib.compute_adjacency_matrix(bt)),
+      [2, 0])
+
+
 class ParseBondTopologyTest(absltest.TestCase):
 
   def test_4_heavy(self):

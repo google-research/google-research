@@ -506,11 +506,7 @@ class UpdateConformerFn(beam.DoFn):
 
     yield from self._compare_smiles(conformer)
 
-    if (conformer.duplicated_by == 0 and
-        conformer.properties.errors.status < 512):
-      # The duplicate records do not need topology extraction and anything
-      # with this high an error is pretty messed so, do we won't bother trying
-      # to match the topolgy.
+    if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
       self._add_alternative_bond_topologies(conformer, smiles_id_dict)
     else:
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,

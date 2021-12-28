@@ -37,6 +37,7 @@ from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
 from smu.geometry import smu_molecule
+from smu.geometry import utilities
 from smu.geometry import topology_from_geom
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
@@ -60,6 +61,13 @@ flags.DEFINE_string(
 flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
 flags.DEFINE_list('cids', [], 'List of conformer ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
+flags.DEFINE_list('topology_query_smiles', [],
+                  'List of smiles to query, where the valid bond lengths are '
+                  'given by --bond_lengths_csv and --bond_lengths. '
+                  'Will return all conformers where the given smiles is a '
+                  'valid decsription of that geometry given the bond lengths. '
+                  'If you are using the default bond lengths, you should just '
+                  'use --smiles as this method is much slower.')
 flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
@@ -117,6 +125,61 @@ class GeometryData:
     if cls._singleton is None:
       cls._singleton = cls()
     return cls._singleton
+
+
+def _get_geometry_matching_parameters():
+  out = smu_molecule.MatchingParameters()
+  out.must_match_all_bonds = True
+  out.smiles_with_h = False
+  out.smiles_with_labels = False
+  out.neutral_forms_during_bond_matching = True
+  out.consider_not_bonded = True
+  out.ring_atom_count_cannot_decrease = False
+  return out
+
+
+def topology_query(db, smiles):
+  """Find all conformers which have a detected bond topology.
+
+  Note that this *redoes* the detection. If you want to use the default detected
+  versions, you can just query by SMILES string. This is only useful if you
+  adjust the distance thresholds for what a matching bond is.
+
+  Args:
+    db: smu_sqlite.SMUSQLite
+    smiles: smiles string for the target bond topology
+
+  Yields:
+    dataset_pb2.Conformer
+  """
+  mol = Chem.MolFromSmiles(smiles, sanitize=False)
+  Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
+  mol = Chem.AddHs(mol)
+  query_bt = utilities.molecule_to_bond_topology(mol)
+  expanded_stoich = smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+    query_bt)
+  matching_parameters = _get_geometry_matching_parameters()
+  geometry_data = GeometryData.get_singleton()
+  cnt_matched_conformer = 0
+  cnt_conformer = 0
+  logging.info(f'Starting query for "{smiles}" with stoich {expanded_stoich}')
+  for conformer in db.find_by_expanded_stoichiometry(expanded_stoich):
+    if not smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
+      continue
+    cnt_conformer += 1
+    matches = topology_from_geom.bond_topologies_from_geom(
+        bond_lengths=geometry_data.bond_lengths,
+        conformer_id=conformer.conformer_id,
+        fate=conformer.fate,
+        bond_topology=conformer.bond_topologies[0],
+        geometry=conformer.optimized_geometry,
+        matching_parameters=matching_parameters)
+    if smiles in [bt.smiles for bt in matches.bond_topology]:
+      cnt_matched_conformer += 1
+      # SMURF: fix up the bts
+      yield conformer
+  logging.info(f'Topology query for "{smiles}" matched '
+               f'{cnt_matched_conformer} / {cnt_conformer}')
 
 
 class PBTextOutputter:
@@ -245,13 +308,7 @@ class ReDetectTopologiesOutputter:
   def __init__(self, outputter):
     self._wrapped_outputter = outputter
     self._geometry_data = GeometryData.get_singleton()
-    self._matching_parameters = smu_molecule.MatchingParameters()
-    self._matching_parameters.must_match_all_bonds = True
-    self._matching_parameters.smiles_with_h = False
-    self._matching_parameters.smiles_with_labels = False
-    self._matching_parameters.neutral_forms_during_bond_matching = True
-    self._matching_parameters.consider_not_bonded = True
-    self._matching_parameters.ring_atom_count_cannot_decrease = False
+    self._matching_parameters = _get_geometry_matching_parameters()
 
   def output(self, conformer):
     """Writes a Conformer.
@@ -327,6 +384,9 @@ def main(argv):
       if not conformers:
         raise KeyError(f'SMILES {smiles} not found')
       for c in conformers:
+        outputter.output(c)
+    for smiles in FLAGS.topology_query_smiles:
+      for c in topology_query(db, smiles):
         outputter.output(c)
     if FLAGS.random_fraction:
       for conformer in db:
