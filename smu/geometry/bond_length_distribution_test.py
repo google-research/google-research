@@ -78,6 +78,20 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(got.pdf(1.2365), 500)
     self.assertAlmostEqual(got.pdf(1.2405), 0.0)
 
+  def test_from_sparse_dataframe_interpolation(self):
+    df_input = pd.DataFrame.from_dict({
+        'length_str': ['1.2', '1.3', '1.6'],
+        'count': [4, 5, 8]
+    })
+    got = (
+        bond_length_distribution.EmpiricalLengthDistribution
+        .from_sparse_dataframe(df_input, right_tail_mass=0, sig_digits=1))
+    self.assertAlmostEqual(got.pdf(1.25), 4 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.35), 5 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.45), 6 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.55), 7 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.65), 8 / 30 * 10)
+
   def test_from_sparse_dataframe_sig_digit_error(self):
     df_input = pd.DataFrame.from_dict({
         'length_str': ['1.234', '1.235'],
