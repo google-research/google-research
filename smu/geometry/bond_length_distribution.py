@@ -179,6 +179,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
     # The maximum value covered by the emprical values.
     self._maximum = self._df['length'].iloc[-1] + self.bucket_size
 
+    self._df['count'].fillna(0, inplace=True)
     self._df['count'] = interpolate_zeros(np.array(self._df['count']))
 
     self._df['pdf'] = (
