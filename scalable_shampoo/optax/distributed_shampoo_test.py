@@ -18,6 +18,7 @@
 from absl.testing import absltest
 
 import chex
+import jax
 import jax.numpy as jnp
 
 from scalable_shampoo.optax import distributed_shampoo
@@ -37,14 +38,17 @@ class DistributedShampooTest(chex.TestCase):
     params = self.init_params
 
     optim = distributed_shampoo.distributed_shampoo(
-        0.1, 32, batch_axis_name=None, preconditioning_compute_steps=2)
+        0.1, 32, batch_axis_name='batch', preconditioning_compute_steps=2)
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
 
+    def _update(unused_batch):
+      return transform_fn(self.per_step_updates, state, params)
     state = init_fn(params)
     chex.assert_tree_all_finite(state)
+    pmap_fn = jax.pmap(_update, axis_name='batch')
 
-    updates, state = transform_fn(self.per_step_updates, state, params)
+    updates, state = pmap_fn(jnp.array([1.0]))
     chex.assert_tree_all_finite((params, updates, state))
 
 

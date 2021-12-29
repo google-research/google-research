@@ -36,9 +36,11 @@ from typing import Any, NamedTuple
 import chex
 import jax
 from jax import lax
+import jax.experimental.pjit as pjit
 import jax.numpy as jnp
 import numpy as np
 import optax
+
 
 # pylint:disable=no-value-for-parameter
 
@@ -228,7 +230,7 @@ def matrix_inverse_pth_root(
     new_mat_h_0 = identity * jnp.power(z, 1.0 / p)
     init_state = tuple(
         [0, new_mat_m_0, new_mat_h_0, new_mat_h_0, new_error, True])
-    iters, mat_m, mat_h, old_mat_h, error, convergence = lax.while_loop(
+    _, mat_m, mat_h, old_mat_h, error, convergence = lax.while_loop(
         _iter_condition, _iter_body, init_state)
     error = jnp.max(jnp.abs(mat_m - identity))
     is_converged = jnp.asarray(convergence, old_mat_h.dtype)
@@ -448,6 +450,8 @@ def distributed_shampoo(learning_rate,
                         nesterov=True,
                         exponent_override=0,
                         batch_axis_name=None,
+                        mesh_axis_names=None,
+                        num_devices_for_pjit=None,
                         inverse_failure_threshold=0.1,
                         moving_average_for_momentum=False,
                         skip_preconditioning_dim_size_gt=4096,
@@ -498,8 +502,10 @@ def distributed_shampoo(learning_rate,
         GraftingType.SGD and GraftingType.ADAGRAD.
     nesterov: Nesterov momentum.
     exponent_override: Override the exponent used in matrix inverse.
-    batch_axis_name: labeled axis over pmap for dataparallel training the
+    batch_axis_name: labeled axis over pmap for data-parallel training the
       optimizer used for.
+    mesh_axis_names: Axis names for the mesh (used in pjit).
+    num_devices_for_pjit: Number of devices to parallelize over when using pjit.
     inverse_failure_threshold: numerics are hard and inverses fail sometimes; we
       determine that using this threshold.
     moving_average_for_momentum: Whether to use moving average for momentum
@@ -596,56 +602,63 @@ def distributed_shampoo(learning_rate,
         original_shapes.extend(original_shapes_for_state)
     num_statistics = len(statistics)
 
-    if not batch_axis_name:
-      num_devices = 1
-    else:
+    if batch_axis_name:
       num_devices = lax.psum(1, batch_axis_name)
 
-    # Pad statistics and exponents to next multiple of num_devices.
-    packed_statistics = [
-        pad_matrix(stat, max_size) for stat in statistics
-    ]
-    to_pad = -num_statistics % num_devices
-    packed_statistics.extend([
-        jnp.eye(max_size, dtype=packed_statistics[0].dtype)
-        for _ in range(to_pad)
-    ])
-    exponents.extend([1 for _ in range(to_pad)])
+      # Pad statistics and exponents to next multiple of num_devices.
+      packed_statistics = [pad_matrix(stat, max_size) for stat in statistics]
+      to_pad = -num_statistics % num_devices
+      packed_statistics.extend([
+          jnp.eye(max_size, dtype=packed_statistics[0].dtype)
+          for _ in range(to_pad)
+      ])
+      exponents.extend([1 for _ in range(to_pad)])
 
-    if not packed_statistics:
-      return states
-    # Batch statistics and exponents so that so that leading axis is
-    # num_devices.
-    def _batch(statistics, exponents, num_devices):
-      assert len(statistics) == len(exponents)
-      n = len(statistics)
-      b = int(n / num_devices)
-      batched_statistics = [
-          jnp.stack(statistics[idx:idx + b]) for idx in range(0, n, b)
-      ]
-      batched_exponents = [
-          jnp.stack(exponents[idx:idx + b]) for idx in range(0, n, b)
-      ]
-      return jnp.stack(batched_statistics), jnp.stack(batched_exponents)
+      if not packed_statistics:
+        return states
+      # Batch statistics and exponents so that so that leading axis is
+      # num_devices.
+      def _batch(statistics, exponents, num_devices):
+        assert len(statistics) == len(exponents)
+        n = len(statistics)
+        b = int(n / num_devices)
+        batched_statistics = [
+            jnp.stack(statistics[idx:idx + b]) for idx in range(0, n, b)
+        ]
+        batched_exponents = [
+            jnp.stack(exponents[idx:idx + b]) for idx in range(0, n, b)
+        ]
+        return jnp.stack(batched_statistics), jnp.stack(batched_exponents)
 
-    # Unbatch values across leading axis and return a list of elements.
-    def _unbatch(batched_values):
-      b1, b2 = batched_values.shape[0], batched_values.shape[1]
-      results = []
-      for v_array in jnp.split(batched_values, indices_or_sections=b1, axis=0):
-        v_array = jnp.squeeze(v_array)
-        # b2 = batches (number of preconditioner computation) per core.
-        if b2 > 1:
-          for v in jnp.split(v_array, indices_or_sections=b2, axis=0):
-            results.append(jnp.squeeze(v))
-        else:
-          results.append(v_array)
-      return results
+      # Unbatch values across leading axis and return a list of elements.
+      def _unbatch(batched_values):
+        b1, b2 = batched_values.shape[0], batched_values.shape[1]
+        results = []
+        for v_array in jnp.split(
+            batched_values, indices_or_sections=b1, axis=0):
+          v_array = jnp.squeeze(v_array)
+          # b2 = batches (number of preconditioner computation) per core.
+          if b2 > 1:
+            for v in jnp.split(v_array, indices_or_sections=b2, axis=0):
+              results.append(jnp.squeeze(v))
+          else:
+            results.append(v_array)
+        return results
 
-    all_statistics, all_exponents = _batch(packed_statistics, exponents,
-                                           num_devices)
+      all_statistics, all_exponents = _batch(packed_statistics, exponents,
+                                             num_devices)
+    else:
+      to_pad = -num_statistics % num_devices_for_pjit
+      padded_statistics = [pad_matrix(stat, max_size) for stat in statistics]
+      padded_statistics.extend([
+          jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+          for _ in range(to_pad)
+      ])
+      exponents.extend([1 for _ in range(to_pad)])
+      all_statistics = jnp.stack(padded_statistics)
+      all_exponents = jnp.stack(exponents)
 
-    def _matrix_inverse_pth_root(xs, ps):
+    def _matrix_inverse_pth_root_vmap(xs, ps):
       mi_pth_root = functools.partial(
           matrix_inverse_pth_root,
           ridge_epsilon=matrix_epsilon,
@@ -653,10 +666,29 @@ def distributed_shampoo(learning_rate,
       preconditioners, errors = jax.vmap(mi_pth_root)(xs, ps)
       return preconditioners, errors
 
+    def _matrix_inverse_pth_root_pjit(xs, ps):
+      mesh_axis_names_tuple = tuple(mesh_axis_names)
+      # Partition the concatenated statistics matrix across all cores.
+      partitioned_xs, partitioned_ps = pjit.pjit(
+          lambda x, y: (x, y),
+          in_axis_resources=None,
+          out_axis_resources=pjit.PartitionSpec(mesh_axis_names_tuple,))(xs, ps)
+      # Run matrix inverse pth root on each shard.
+      partitioned_preconditioners, partitioned_errors = _matrix_inverse_pth_root_vmap(
+          partitioned_xs, partitioned_ps)
+      # Recombine the outputs at each core.
+      preconditioners, errors = pjit.pjit(
+          lambda x, y: (x, y),
+          in_axis_resources=(pjit.PartitionSpec(mesh_axis_names_tuple,),
+                             pjit.PartitionSpec(mesh_axis_names_tuple,)),
+          out_axis_resources=(None, None))(partitioned_preconditioners,
+                                           partitioned_errors)
+      return preconditioners, errors
+
     if not batch_axis_name:
       def _internal_inverse_pth_root_all():
-        preconditioners, errors = _matrix_inverse_pth_root(
-            all_statistics[0], all_exponents[0])
+        preconditioners, errors = _matrix_inverse_pth_root_pjit(
+            all_statistics, all_exponents)
         b1 = preconditioners.shape[0]
         def split(batched_values):
           return [
@@ -672,8 +704,8 @@ def distributed_shampoo(learning_rate,
         # Passing statistics instead of preconditioners as they are similarly
         # shaped tensors. Note statistics will be ignored as we are passing in
         # a large init value for error.
-        preconditioners_init = packed_statistics
-        errors_init = [inverse_failure_threshold] * len(packed_statistics)
+        preconditioners_init = padded_statistics
+        errors_init = [inverse_failure_threshold] * len(padded_statistics)
         init_state = [preconditioners_init, errors_init]
         perform_step = step % preconditioning_compute_steps == 0
         preconditioners_flat, errors_flat = efficient_cond(
@@ -683,7 +715,7 @@ def distributed_shampoo(learning_rate,
       def _internal_inverse_pth_root_all():
         preconditioners = jnp.array(all_statistics)
         current_replica = lax.axis_index(batch_axis_name)
-        preconditioners, errors = _matrix_inverse_pth_root(
+        preconditioners, errors = _matrix_inverse_pth_root_vmap(
             all_statistics[current_replica], all_exponents[current_replica])
         preconditioners = jax.lax.all_gather(preconditioners, batch_axis_name)
         errors = jax.lax.all_gather(errors, batch_axis_name)
