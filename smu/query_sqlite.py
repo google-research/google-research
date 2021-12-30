@@ -21,6 +21,7 @@ Command line interface to extract molecules from thq SMU database.
 import contextlib
 import csv
 import enum
+import itertools
 import os
 import random
 import sys
@@ -81,11 +82,27 @@ flags.DEFINE_string(
     'observed distribution of bond lengths. '
     'Only needed if --redetect_geometry')
 flags.DEFINE_string(
+    'bond_lengths', None,
+    'Comma separated terms like form XYX:N-N '
+    'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
+    'and N is a possibly empty floating point number. ')
+flags.DEFINE_string(
     'bond_topology_csv', None,
     'File which contains the desription of all bond topologies '
     'considered in SMU. Only needed if --redetect_geometry')
 
 FLAGS = flags.FLAGS
+
+
+class BondLengthParseError(Exception):
+  def __init__(self, term):
+    self.term = term
+
+  def __str__(self):
+    ('--bond_lengths must be comma separated terms like form XYX:N-N '
+     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
+     'and N is a possibly empty floating point number. '
+     '"{}" did not parse.').format(self.term)
 
 
 class GeometryData:
@@ -94,25 +111,46 @@ class GeometryData:
   # These are copied from pipeline.py. Shoudl they be shared somehere?
   _BOND_LENGTHS_SIG_DIGITS = 3
   _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
+  _ATOM_SPECIFICATION_MAP = {
+    'C': [dataset_pb2.BondTopology.ATOM_C],
+    'N': [dataset_pb2.BondTopology.ATOM_N],
+    'O': [dataset_pb2.BondTopology.ATOM_O],
+    'F': [dataset_pb2.BondTopology.ATOM_F],
+    '*': [dataset_pb2.BondTopology.ATOM_C,
+          dataset_pb2.BondTopology.ATOM_N,
+          dataset_pb2.BondTopology.ATOM_O,
+          dataset_pb2.BondTopology.ATOM_F],
+  }
+  _BOND_SPECIFICATION_MAP = {
+    '-': [dataset_pb2.BondTopology.BOND_SINGLE],
+    '=': [dataset_pb2.BondTopology.BOND_DOUBLE],
+    '#': [dataset_pb2.BondTopology.BOND_TRIPLE],
+    '.': [dataset_pb2.BondTopology.BOND_UNDEFINED],
+    '~': [dataset_pb2.BondTopology.BOND_SINGLE,
+          dataset_pb2.BondTopology.BOND_DOUBLE,
+          dataset_pb2.BondTopology.BOND_TRIPLE],
+  }
 
-  def __init__(self):
-    if FLAGS.bond_lengths_csv is None:
+  def __init__(self, bond_lengths_csv, bond_lengths_arg, bond_topology_csv):
+    if bond_lengths_csv is None:
       raise ValueError('--bond_lengths_csv required')
     logging.info('Loading bond_lengths')
-    with gfile.GFile(FLAGS.bond_lengths_csv, 'r') as infile:
+    with gfile.GFile(bond_lengths_csv, 'r') as infile:
       df = pd.read_csv(infile, dtype={'length_str': str})
     self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions(
     )
     self.bond_lengths.add_from_sparse_dataframe(
         df, self._BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS,
         self._BOND_LENGTHS_SIG_DIGITS)
-    logging.info('Done loading bond_lengths')
+    logging.info('Done loading bond_lengths_csv')
 
-    if FLAGS.bond_topology_csv is None:
+    self._parse_bond_lengths_arg(bond_lengths_arg)
+
+    if bond_topology_csv is None:
       raise ValueError('--bond_topology_csv required')
     logging.info('Loading bond topologies')
     self.smiles_id_dict = {}
-    with gfile.GFile(FLAGS.bond_topology_csv, 'r') as infile:
+    with gfile.GFile(bond_topology_csv, 'r') as infile:
       reader = csv.reader(iter(infile))
       next(reader)  # skip the header line
       for row in reader:
@@ -120,10 +158,46 @@ class GeometryData:
         self.smiles_id_dict[smiles] = int(bt_id)
     logging.info('Done loading bond topologies')
 
+  def _parse_bond_lengths_arg(self, bond_lengths_arg):
+    if not bond_lengths_arg:
+      return
+
+    terms = [x.strip() for x in bond_lengths_arg.split(',')]
+    for term in terms:
+      try:
+        atoms_a = self._ATOM_SPECIFICATION_MAP[term[0]]
+        bonds = self._BOND_SPECIFICATION_MAP[term[1]]
+        atoms_b = self._ATOM_SPECIFICATION_MAP[term[2]]
+        if term[3] != ':':
+          raise BondLengthParseError(term)
+        min_str, max_str = term[4:].split('-')
+        if min_str:
+          min_val = float(min_str)
+        else:
+          min_val = 0
+        if max_str:
+          max_val = float(max_str)
+          right_tail_mass = None
+        else:
+          # These numbers are pretty arbitrary
+          max_val = min_val + 0.1
+          right_tail_mass = 0.9
+
+        for atom_a, atom_b, bond in itertools.product(atoms_a, atoms_b, bonds):
+          self.bond_lengths.add(
+            atom_a, atom_b, bond,
+            bond_length_distribution.FixedWindowLengthDistribution(
+              min_val, max_val, right_tail_mass))
+
+      except (KeyError, IndexError, ValueError):
+        raise BondLengthParseError(term)
+
   @classmethod
   def get_singleton(cls):
     if cls._singleton is None:
-      cls._singleton = cls()
+      cls._singleton = cls(FLAGS.bond_lengths_csv,
+                           FLAGS.bond_lengths,
+                           FLAGS.bond_topology_csv)
     return cls._singleton
 
 
@@ -176,7 +250,14 @@ def topology_query(db, smiles):
         matching_parameters=matching_parameters)
     if smiles in [bt.smiles for bt in matches.bond_topology]:
       cnt_matched_conformer += 1
-      # SMURF: fix up the bts
+      del conformer.bond_topologies[:]
+      conformer.bond_topologies.extend(matches.bond_topology)
+      for bt in conformer.bond_topologies:
+        try:
+          bt.bond_topology_id = geometry_data.smiles_id_dict[bt.smiles]
+        except KeyError:
+          logging.error('Did not find bond topology id for smiles %s',
+                        bt.smiles)
       yield conformer
   logging.info(f'Topology query for "{smiles}" matched '
                f'{cnt_matched_conformer} / {cnt_conformer}')
