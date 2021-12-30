@@ -90,7 +90,8 @@ def calculate_det_curve(labels,
 def calculate_auc(labels,
                   predictions,
                   binary_classification = True,
-                  sample_weight = None):
+                  sample_weight = None,
+                  multi_class = 'ovr'):
   """Binary or multiclass AUC."""
   if not isinstance(labels, np.ndarray):
     labels = np.array(labels, np.float32)
@@ -122,12 +123,7 @@ def calculate_auc(labels,
         # the label indicator matrix as a label.
         average='macro',
         sample_weight=sample_weight,
-        # Stands for One-vs-rest. Computes the AUC of each class against the
-        # rest [3] [4]. This treats the multiclass case in the same way as the
-        # multilabel case. Sensitive to class imbalance even when
-        # average == 'macro', because class imbalance affects the composition of
-        # each of the ‘rest’ groupings.
-        multi_class='ovr',
+        multi_class=multi_class,
         labels=range(predictions.shape[1]))
 
 

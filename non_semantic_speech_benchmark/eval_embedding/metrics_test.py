@@ -65,6 +65,18 @@ class MetricsTest(parameterized.TestCase):
                                     [0.1, 0.1, 0.6, 0.5],
                                     [0.1, 0.2, 0.2, 0.4]]).transpose(),
                           binary_classification=False)
+    metrics.calculate_auc([0, 1, 1, 2],
+                          np.array([[0.1, 0.2, 0.7, 0.8],
+                                    [0.5, 0.6, 0.1, 0.1],
+                                    [0.4, 0.2, 0.2, 0.1]]).transpose(),
+                          binary_classification=False,
+                          multi_class='ovo')
+    metrics.calculate_auc([0, 1, 1, 2],
+                          np.array([[0.8, 0.7, 0.2, 0.1],
+                                    [0.1, 0.1, 0.6, 0.5],
+                                    [0.1, 0.2, 0.2, 0.4]]).transpose(),
+                          binary_classification=False,
+                          multi_class='ovo')
 
   def testDPrimeSanity(self):
     auc = metrics.calculate_auc([0, 0, 1, 1],
