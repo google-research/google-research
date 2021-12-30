@@ -34,6 +34,7 @@ import itertools
 from typing import Any, NamedTuple
 
 import chex
+from flax import struct
 import jax
 from jax import lax
 import jax.experimental.pjit as pjit
@@ -45,6 +46,7 @@ import optax
 # pylint:disable=no-value-for-parameter
 
 
+# Per parameter optimizer state used in data-parallel training.
 class ParameterStats(NamedTuple):
   """State associated to each parameter of the model being trained."""
   diagonal_statistics: chex.Array  # Accumulator for diagonal preconditioner
@@ -52,6 +54,34 @@ class ParameterStats(NamedTuple):
   preconditioners: chex.Array  # Preconditioners
   diagonal_momentum: chex.Array  # Momentum for the diagonal preconditioner
   momentum: chex.Array  # Momentum for the shampoo preconditioner
+
+
+# For training extremely large model; We keep a global state with a concatenated
+# statistics and preconditioner states for all vars. This is so that we can
+# annotate the leading axis to be sharded to save memory at the cost of
+# communication.
+class GlobalShardedParameterStats(NamedTuple):
+  statistics: chex.Array  # Statistics
+  preconditioners: chex.Array  # Preconditioners
+
+
+# These are per-parameter local states; All statistics here mirror the parameter
+# Thus the sharding is copied over from the param specification.
+@struct.dataclass
+class LocalShardedParameterStats:
+  """State associated to each parameter of the model being trained."""
+  diagonal_statistics: chex.Array  # Accumulator for diagonal preconditioner
+  diagonal_momentum: chex.Array  # Momentum for the diagonal preconditioner
+  momentum: chex.Array  # Momentum for the shampoo preconditioner
+  index_start: np.int32 = struct.field(
+      pytree_node=False)  # Index into global statistics array
+  sizes: Any = struct.field(pytree_node=False)  # Sizes of the statistics.
+
+
+class ShardedShampooStats(NamedTuple):
+  """Shampoo state in sharded mode."""
+  global_stats: Any
+  local_stats: Any
 
 
 class ShampooState(NamedTuple):
@@ -435,6 +465,30 @@ class Preconditioner:
     return jnp.reshape(merged_grad, self._original_shape)
 
 
+def _convert_to_parameter_stats(global_stats, local_stat):
+  """Creates parameter stats from sharded stats."""
+  index_start = int(local_stat.index_start)
+  index_end = int(len(local_stat.sizes)) + index_start
+  statistics = global_stats.statistics[index_start:index_end, :, :]
+  preconditioners = global_stats.preconditioners[index_start:index_end, :, :]
+  new_statistics = []
+  new_preconditioners = []
+  for i, size in enumerate(local_stat.sizes):
+    new_statistics.append(statistics[i][:size, :size])
+    new_preconditioners.append(preconditioners[i][:size, :size])
+  return ParameterStats(local_stat.diagonal_statistics, new_statistics,
+                        new_preconditioners, local_stat.diagonal_momentum,
+                        local_stat.momentum)
+
+
+def _convert_from_parameter_stats(parameter_stats, local_stats):
+  """Creates sharded stats from paramter stats."""
+  return LocalShardedParameterStats(parameter_stats.diagonal_statistics,
+                                    parameter_stats.diagonal_momentum,
+                                    parameter_stats.momentum,
+                                    local_stats.index_start, local_stats.sizes)
+
+
 def distributed_shampoo(learning_rate,
                         block_size,
                         beta1=0.9,
@@ -452,6 +506,7 @@ def distributed_shampoo(learning_rate,
                         batch_axis_name=None,
                         mesh_axis_names=None,
                         num_devices_for_pjit=None,
+                        shard_optimizer_states=False,
                         inverse_failure_threshold=0.1,
                         moving_average_for_momentum=False,
                         skip_preconditioning_dim_size_gt=4096,
@@ -506,6 +561,8 @@ def distributed_shampoo(learning_rate,
       optimizer used for.
     mesh_axis_names: Axis names for the mesh (used in pjit).
     num_devices_for_pjit: Number of devices to parallelize over when using pjit.
+    shard_optimizer_states: Shard optimizer states to save memory in model
+      parallel training.
     inverse_failure_threshold: numerics are hard and inverses fail sometimes; we
       determine that using this threshold.
     moving_average_for_momentum: Whether to use moving average for momentum
@@ -522,6 +579,134 @@ def distributed_shampoo(learning_rate,
   Returns:
     a GradientTransformation.
   """
+
+  def sharded_init_fn(params):
+    params_flat, treedef = jax.tree_flatten(params)
+    padded_statistics = []
+    padded_preconditioners = []
+    # Find max size to pad to.
+    max_size = 0
+    for param in params_flat:
+      preconditioner = Preconditioner(param, block_size,
+                                      best_effort_shape_interpretation)
+      if not _skip_preconditioning(param):
+        shapes = preconditioner.shapes_for_preconditioners()
+        sizes = [s[0] for s in shapes]
+        max_size = max(max(sizes), max_size)
+
+    local_stats_flat = []
+    for param in params_flat:
+      preconditioner = Preconditioner(param, block_size,
+                                      best_effort_shape_interpretation)
+      shapes = preconditioner.shapes_for_preconditioners()
+      sizes = []
+
+      statistics = []
+      preconditioners = []
+      index_start = len(padded_statistics)
+      if not _skip_preconditioning(param):
+        sizes = [s[0] for s in shapes]
+        shapes = preconditioner.shapes_for_preconditioners()
+        statistics = [matrix_epsilon * jnp.eye(max_size) for s in shapes]
+        preconditioners = [jnp.eye(max_size) for s in shapes]
+        padded_statistics.extend(statistics)
+        padded_preconditioners.extend(preconditioners)
+
+      adagrad_statistics = []
+      if graft_type != GraftingType.SGD:
+        adagrad_statistics = jnp.zeros_like(param)
+      local_stats_flat.append(
+          LocalShardedParameterStats(adagrad_statistics, jnp.zeros_like(param),
+                                     jnp.zeros_like(param), index_start, sizes))
+
+    local_stats = jax.tree_unflatten(treedef, local_stats_flat)
+    # Pad the statistics and preconditioner matrices to be a multiple of
+    # num devices.
+    # TODO(rohananil): Relax to only the size of the mesh axis where the dim
+    # is split on.
+    to_pad = -len(padded_statistics) % num_devices_for_pjit
+    padded_statistics.extend([
+        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        for _ in range(to_pad)
+    ])
+    padded_preconditioners.extend([
+        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        for _ in range(to_pad)
+    ])
+    global_stats = GlobalShardedParameterStats(
+        jnp.stack(padded_statistics), jnp.stack(padded_preconditioners))
+    return ShampooState(
+        count=jnp.zeros([], jnp.int32),
+        stats=ShardedShampooStats(global_stats, local_stats))
+
+  def sharded_update_fn(grads, state, params):
+    """Transform the input gradient and update all statistics in sharded mode.
+
+    Args:
+      grads: the gradient tensors for the parameters.
+      state: a named tuple containing the state of the optimizer
+      params: the parameters that should be updated.
+
+    Returns:
+      A tuple containing the new parameters and the new optimizer state.
+    """
+    params_flat, treedef = jax.tree_flatten(params)
+    grads_flat = treedef.flatten_up_to(grads)
+
+    global_stats = state.stats.global_stats
+    local_stats_flat = treedef.flatten_up_to(state.stats.local_stats)
+    stats_flat = [
+        _convert_to_parameter_stats(global_stats, local_stat)
+        for local_stat in local_stats_flat
+    ]
+    new_stats_flat = jax.tree_multimap(
+        lambda g, s, p: _compute_stats(g, s, p, state.count), grads_flat,
+        stats_flat, params_flat)
+
+    outputs = jax.tree_multimap(
+        lambda g, s, p: _transform_grad(g, s, p, state.count), grads_flat,
+        new_stats_flat, params_flat)
+    updates_flat, new_stats_flat = list(zip(*outputs)) if outputs else ((), ())
+
+    updates = jax.tree_unflatten(treedef, updates_flat)
+    # Create new local_stats
+    new_local_stats_flat = [
+        _convert_from_parameter_stats(new_stat, local_stat)
+        for new_stat, local_stat in zip(new_stats_flat, local_stats_flat)
+    ]
+    new_local_stats = jax.tree_unflatten(treedef, new_local_stats_flat)
+
+    max_size = global_stats.statistics.shape[1]
+    padded_statistics = []
+    padded_preconditioners = []
+    for stat in new_stats_flat:
+      padded_statistics.extend(
+          [pad_matrix(stat, max_size) for stat in stat.statistics])
+      padded_preconditioners.extend(
+          [pad_matrix(stat, max_size) for stat in stat.preconditioners])
+
+    # Create global stats
+    # TODO(rohananil): Preconditioner is not updated every step, so cost of
+    # stack/pad can be obviated away.
+    # Pad the statistics and preconditioner matrices to be a multiple of
+    # num devices.
+    # TODO(rohananil): Relax to only the size of the mesh axis where the dim
+    # is split on.
+    to_pad = -len(padded_statistics) % num_devices_for_pjit
+    padded_statistics.extend([
+        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        for _ in range(to_pad)
+    ])
+    padded_preconditioners.extend([
+        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        for _ in range(to_pad)
+    ])
+    new_global_stats = GlobalShardedParameterStats(
+        jnp.stack(padded_statistics), jnp.stack(padded_preconditioners))
+    new_shampoo_state = ShampooState(
+        count=state.count + 1,
+        stats=ShardedShampooStats(new_global_stats, new_local_stats))
+    return updates, new_shampoo_state
 
   def init_fn(params):
     """Initialise the optimiser's state."""
@@ -895,4 +1080,7 @@ def distributed_shampoo(learning_rate,
         count=state.count+1, stats=new_stats)
     return updates, new_state
 
-  return optax.GradientTransformation(init_fn, update_fn)
+  if shard_optimizer_states:
+    return optax.GradientTransformation(sharded_init_fn, sharded_update_fn)
+  else:
+    return optax.GradientTransformation(init_fn, update_fn)
