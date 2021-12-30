@@ -60,7 +60,8 @@ class ParameterStats(NamedTuple):
 # statistics and preconditioner states for all vars. This is so that we can
 # annotate the leading axis to be sharded to save memory at the cost of
 # communication.
-class GlobalShardedParameterStats(NamedTuple):
+@struct.dataclass
+class GlobalShardedParameterStats:
   statistics: chex.Array  # Statistics
   preconditioners: chex.Array  # Preconditioners
 
@@ -582,8 +583,6 @@ def distributed_shampoo(learning_rate,
 
   def sharded_init_fn(params):
     params_flat, treedef = jax.tree_flatten(params)
-    padded_statistics = []
-    padded_preconditioners = []
     # Find max size to pad to.
     max_size = 0
     for param in params_flat:
@@ -594,6 +593,8 @@ def distributed_shampoo(learning_rate,
         sizes = [s[0] for s in shapes]
         max_size = max(max(sizes), max_size)
 
+    padded_statistics = []
+    padded_preconditioners = []
     local_stats_flat = []
     for param in params_flat:
       preconditioner = Preconditioner(param, block_size,
@@ -663,6 +664,17 @@ def distributed_shampoo(learning_rate,
         lambda g, s, p: _compute_stats(g, s, p, state.count), grads_flat,
         stats_flat, params_flat)
 
+    exponents = []
+    for stat, param in zip(new_stats_flat, params_flat):
+      num_statistics = len(stat.statistics)
+      if num_statistics > 0:
+        preconditioner = Preconditioner(param, block_size,
+                                        best_effort_shape_interpretation)
+        exponent = (
+            preconditioner.exponent_for_preconditioner()
+            if exponent_override == 0 else exponent_override)
+        exponents.extend([exponent] * num_statistics)
+
     outputs = jax.tree_multimap(
         lambda g, s, p: _transform_grad(g, s, p, state.count), grads_flat,
         new_stats_flat, params_flat)
@@ -677,13 +689,10 @@ def distributed_shampoo(learning_rate,
     new_local_stats = jax.tree_unflatten(treedef, new_local_stats_flat)
 
     max_size = global_stats.statistics.shape[1]
-    padded_statistics = []
-    padded_preconditioners = []
+    new_padded_statistics = []
     for stat in new_stats_flat:
-      padded_statistics.extend(
+      new_padded_statistics.extend(
           [pad_matrix(stat, max_size) for stat in stat.statistics])
-      padded_preconditioners.extend(
-          [pad_matrix(stat, max_size) for stat in stat.preconditioners])
 
     # Create global stats
     # TODO(rohananil): Preconditioner is not updated every step, so cost of
@@ -692,17 +701,49 @@ def distributed_shampoo(learning_rate,
     # num devices.
     # TODO(rohananil): Relax to only the size of the mesh axis where the dim
     # is split on.
-    to_pad = -len(padded_statistics) % num_devices_for_pjit
-    padded_statistics.extend([
-        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+    to_pad = -len(new_padded_statistics) % num_devices_for_pjit
+    new_padded_statistics.extend([
+        jnp.eye(max_size, dtype=new_padded_statistics[0].dtype)
         for _ in range(to_pad)
     ])
-    padded_preconditioners.extend([
-        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
-        for _ in range(to_pad)
-    ])
+    exponents.extend([1 for _ in range(to_pad)])
+
+    def _matrix_inverse_pth_root_vmap(xs, ps):
+      mi_pth_root = functools.partial(
+          matrix_inverse_pth_root,
+          ridge_epsilon=matrix_epsilon,
+          precision=precision)
+      preconditioners, errors = jax.vmap(mi_pth_root)(xs, ps)
+      return preconditioners, errors
+
+    def _internal_inverse_pth_root_all():
+      preconditioners, errors = _matrix_inverse_pth_root_vmap(
+          global_stats.statistics, jnp.stack(exponents))
+      return preconditioners, errors
+
+    if preconditioning_compute_steps == 1:
+      new_preconditioners, errors = _internal_inverse_pth_root_all()
+    else:
+      # Passing statistics instead of preconditioners as they are similarly
+      # shaped tensors. Note statistics will be ignored as we are passing in
+      # a large init value for error.
+      preconditioners_init = global_stats.statistics
+      errors_init = np.stack([inverse_failure_threshold] * len(exponents))
+      init_state = [preconditioners_init, errors_init]
+      perform_step = state.count % preconditioning_compute_steps == 0
+      new_preconditioners, errors = efficient_cond(
+          perform_step, _internal_inverse_pth_root_all, init_state)
+
+    errors = errors.reshape((-1, 1, 1))
+    predicate = jnp.logical_or(
+        jnp.isnan(errors),
+        errors >= inverse_failure_threshold).astype(new_preconditioners.dtype)
+    # TODO(rohananil): Check for numerical instabilities.
+    new_conditional_preconditioners = (
+        predicate * global_stats.preconditioners +
+        (1.0 - predicate) * new_preconditioners)
     new_global_stats = GlobalShardedParameterStats(
-        jnp.stack(padded_statistics), jnp.stack(padded_preconditioners))
+        jnp.stack(new_padded_statistics), new_conditional_preconditioners)
     new_shampoo_state = ShampooState(
         count=state.count + 1,
         stats=ShardedShampooStats(new_global_stats, new_local_stats))
