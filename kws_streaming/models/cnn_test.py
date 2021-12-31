@@ -21,7 +21,7 @@ from kws_streaming.layers.compat import tf1
 from kws_streaming.layers.modes import Modes
 from kws_streaming.models import utils
 import kws_streaming.models.cnn as cnn
-from kws_streaming.train import test
+from kws_streaming.train import inference
 from tensorflow_model_optimization.python.core.quantization.keras import quantize
 
 
@@ -147,8 +147,15 @@ class CNNTest(tf.test.TestCase):
 
       return _representative_dataset_gen
 
-    # convert streaming quantization aware model to tflite
-    # and apply post training quantization
+    # Convert streaming quantization aware model to tflite
+    # and apply post training quantization.
+    # With below seetings, all inputs and outputs will be float.
+    # They will be quantized and de-quantized inside of the model,
+    # all conv ops will use quantized versions.
+    # For full model quantization we need to set:
+    # inference_input_type=tf.int8
+    # inference_output_type=tf.int8
+    # in this case all inputs and outputs including states will be quantized
     with quantize.quantize_scope():
       tflite_streaming_model = utils.model_to_tflite(
           sess, model, params,
@@ -164,7 +171,7 @@ class CNNTest(tf.test.TestCase):
     input_states = []
     for detail in interpreter.get_input_details():
       input_states.append(np.zeros(detail['shape'], dtype=np.float32))
-    stream_out_tflite = test.run_stream_inference_classification_tflite(
+    stream_out_tflite = inference.run_stream_inference_classification_tflite(
         params, interpreter, train_image, input_states)
     self.assertAllClose(stream_out_tflite, non_stream_output_tf, atol=0.001)
 

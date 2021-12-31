@@ -67,6 +67,9 @@ def fully_connected(input_features, is_training, name, **kwargs):
 
   Returns:
     net: A tensor for output features. Shape = [..., output_dims].
+
+  Raises:
+    ValueError: If activation function is not supported.
   """
   net = linear(
       input_features,
@@ -85,7 +88,13 @@ def fully_connected(input_features, is_training, name, **kwargs):
         name=name + '/BatchNorm',
         reuse=tf.AUTO_REUSE)
 
-  net = tf.nn.relu(net, name=name + '/Relu')
+  activation_fn_name = kwargs.get('activation_fn', common.ACTIVATION_FN_RELU)
+  if activation_fn_name == common.ACTIVATION_FN_RELU:
+    net = tf.nn.relu(net, name=name + '/Relu')
+  elif (activation_fn_name is not None and
+        activation_fn_name != common.ACTIVATION_FN_NONE):
+    raise ValueError('Unsupported activation function: `%s`.' %
+                     str(activation_fn_name))
 
   dropout_rate = kwargs.get('dropout_rate', 0.0)
   if is_training and dropout_rate > 0.0:
@@ -257,6 +266,92 @@ def simple_model(input_features,
   return outputs, activations
 
 
+def simple_model_late_fuse(input_features,
+                           output_sizes,
+                           is_training,
+                           name='SimpleModelLateFuse',
+                           num_late_fusion_preprojection_nodes=0,
+                           late_fusion_preprojection_activation_fn=None,
+                           num_bottleneck_nodes=0,
+                           **kwargs):
+  """Implements `simple baseline` model base architecture on sequential inputs.
+
+  The model first runs simpel_model on each individual set of keypoints and then
+  performs late fusions.
+
+  Args:
+    input_features: A tensor for input features. Shape = [..., sequence_length,
+      feature_dim].
+    output_sizes: A dictionary for output sizes in the format {output_name:
+      output_size}, where `output_size` can be an integer or a list.
+    is_training: A boolean for whether it is in training mode.
+    name: A string for the name scope.
+    num_late_fusion_preprojection_nodes: An integer for the dimension to project
+      each frame features to before late fusion. No preprojection will be added
+      if non-positive.
+    late_fusion_preprojection_activation_fn: A string for the activation
+      function of the preprojection layer. If None or 'NONE', no activation
+      function is used.
+    num_bottleneck_nodes: An integer for size of the bottleneck layer to be
+      added before the output layer(s). No bottleneck layer will be added if
+      non-positive.
+    **kwargs: A dictionary of additional arguments passed to
+      `simple_base_late_fuse`.
+
+  Returns:
+    A tensor for output activations. Shape = [..., output_dim].
+  """
+  # First flatten temporal axis into batch.
+  flatten_input_features = data_utils.flatten_first_dims(
+      input_features, num_last_dims_to_keep=1)
+  # Batch process each pose.
+  net = simple_base(
+      flatten_input_features,
+      sequential_inputs=False,
+      is_training=is_training,
+      name=name,
+      **kwargs)
+
+  if num_late_fusion_preprojection_nodes > 0:
+    params = dict(kwargs)
+    params.update({
+        'num_hidden_nodes': num_late_fusion_preprojection_nodes,
+        'activation_fn': late_fusion_preprojection_activation_fn,
+    })
+    net = fully_connected(
+        net,
+        is_training=is_training,
+        name=name + '/LateFusePreProject',
+        **params)
+
+  # Recover shape and concatenate temporal axis along feature dims.
+  sequence_length = input_features.shape.as_list()[-2]
+  feature_length = net.shape.as_list()[-1]
+  net = tf.reshape(net, [-1, sequence_length * feature_length])
+  # Late fusion.
+  net = fully_connected(
+      net, is_training=is_training, name=name + '/LateFuseProject', **kwargs)
+  net = fully_connected_block(
+      net, is_training=is_training, name=name + '/LateFuseBlock', **kwargs)
+  activations = {'base_activations': net}
+
+  if num_bottleneck_nodes > 0:
+    net = linear(
+        net,
+        output_size=num_bottleneck_nodes,
+        weight_max_norm=kwargs.get('weight_max_norm', 0.0),
+        weight_initializer=kwargs.get('weight_initializer',
+                                      tf.initializers.he_normal()),
+        bias_initializer=kwargs.get('bias_initializer',
+                                    tf.initializers.he_normal()),
+        name=name + '/BottleneckLogits')
+    activations['bottleneck_activations'] = net
+
+  outputs = multi_head_logits(
+      net, output_sizes=output_sizes, name=name, **kwargs)
+  return outputs, activations
+
+
 def create_model_helper(base_model_fn, sequential_inputs, is_training):
   """Helper function for creating model function given base model function.
 
@@ -333,18 +428,28 @@ def get_model(base_model_type, is_training, **kwargs):
   Raises:
     ValueError: If base model type is not supported.
   """
+  # Single-input model(s).
   if base_model_type == common.BASE_MODEL_TYPE_SIMPLE:
     base_model_fn = functools.partial(
         simple_model,
         sequential_inputs=False,
         is_training=is_training,
         **kwargs)
+    return create_model_helper(
+        base_model_fn, sequential_inputs=False, is_training=is_training)
+
+  # Sequence-input model(s).
+  if base_model_type == common.BASE_MODEL_TYPE_TEMPORAL_SIMPLE:
+    base_model_fn = functools.partial(
+        simple_model, sequential_inputs=True, is_training=is_training, **kwargs)
+  elif base_model_type == common.BASE_MODEL_TYPE_TEMPORAL_SIMPLE_LATE_FUSE:
+    base_model_fn = functools.partial(
+        simple_model_late_fuse, is_training=is_training, **kwargs)
   else:
     raise ValueError('Unsupported base model type: `%s`.' %
                      str(base_model_type))
-
   return create_model_helper(
-      base_model_fn, sequential_inputs=False, is_training=is_training)
+      base_model_fn, sequential_inputs=True, is_training=is_training)
 
 
 _add_prefix = lambda key, c: 'C%d/' % c + key

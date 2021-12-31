@@ -17,6 +17,7 @@
 #ifndef SCANN_PROJECTION_CHUNKING_PROJECTION_H_
 #define SCANN_PROJECTION_CHUNKING_PROJECTION_H_
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -96,9 +97,9 @@ class ChunkingProjection : public ChunkingProjectionUntyped {
   explicit ChunkingProjection(const int32_t num_blocks);
 
   Status ProjectInput(const DatapointPtr<T>& input,
-                      ChunkedDatapoint<float>* result) const;
+                      ChunkedDatapoint<float>* chunked) const;
   Status ProjectInput(const DatapointPtr<T>& input,
-                      ChunkedDatapoint<double>* result) const;
+                      ChunkedDatapoint<double>* chunked) const;
 
   int32_t num_blocks() const { return num_blocks_; }
 

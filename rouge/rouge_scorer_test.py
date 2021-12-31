@@ -170,6 +170,33 @@ class RougeScorerTest(parameterized.TestCase):
     self.assertAlmostEqual(0.66667, result["rougeLsum"].precision, places=5)
     self.assertAlmostEqual(0.47205, result["rougeLsum"].fmeasure, places=5)
 
+  def testRougeLSumSentenceSplitting(self):
+    scorer = rouge_scorer.RougeScorer(["rougeLsum"], use_stemmer=True)
+
+    target = "First sentence.\nSecond Sentence."
+    prediction = "Second sentence.\nFirst Sentence."
+    result = scorer.score(target, prediction)
+    self.assertAlmostEqual(1.0, result["rougeLsum"].fmeasure, places=5)
+
+    scorer = rouge_scorer.RougeScorer(["rougeLsum"],
+                                      use_stemmer=True,
+                                      split_summaries=False)
+    result = scorer.score(target, prediction)
+
+    # Without newlines, summaries are treated as single sentences.
+    target = target.replace("\n", " ")
+    prediction = prediction.replace("\n", " ")
+    result = scorer.score(target, prediction)
+    self.assertAlmostEqual(0.50, result["rougeLsum"].fmeasure, places=5)
+
+    # Split summaries into sentences using nltk
+    scorer = rouge_scorer.RougeScorer(["rougeLsum"],
+                                      use_stemmer=True,
+                                      split_summaries=True)
+    result = scorer.score(target, prediction)
+
+    self.assertAlmostEqual(1.0, result["rougeLsum"].fmeasure, places=5)
+
   def testLcsTable(self):
     ref = [1, 2, 3, 4, 5]
     c1 = [2, 5, 3, 4]

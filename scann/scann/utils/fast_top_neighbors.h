@@ -15,8 +15,12 @@
 #ifndef SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 #define SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 
+#include <atomic>
+#include <cstdint>
 #include <string>
 
+#include "absl/base/optimization.h"
+#include "absl/numeric/bits.h"
 #include "absl/numeric/int128.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
@@ -36,10 +40,26 @@ class FastTopNeighbors {
     Init(max_results, epsilon);
   }
 
+  FastTopNeighbors(FastTopNeighbors&& rhs) { *this = std::move(rhs); }
+
+  FastTopNeighbors& operator=(FastTopNeighbors&& rhs) {
+    indices_ = std::move(rhs.indices_);
+    distances_ = std::move(rhs.distances_);
+    masks_ = std::move(rhs.masks_);
+    sz_ = rhs.sz_;
+    max_results_ = rhs.max_results_;
+    capacity_ = rhs.capacity_;
+    max_capacity_ = rhs.max_capacity_;
+    epsilon_ = rhs.epsilon_.load(std::memory_order_relaxed);
+    tiebreaker_idx_ = rhs.tiebreaker_idx_;
+    mutator_held_ = rhs.mutator_held_;
+    return *this;
+  }
+
   void Init(size_t max_results, DistT epsilon = MaxOrInfinity<DistT>()) {
     CHECK(!mutator_held_);
     sz_ = 0;
-    epsilon_ = epsilon;
+    epsilon_.store(epsilon, std::memory_order_relaxed);
     if (max_results_ == max_results && indices_) {
       return;
     }
@@ -67,19 +87,37 @@ class FastTopNeighbors {
 
   void InitWithCapacity(size_t capacity) {
     CHECK(!mutator_held_);
-    epsilon_ = MaxOrInfinity<DistT>();
+    epsilon_.store(MaxOrInfinity<DistT>(), std::memory_order_relaxed);
     capacity_ = max_capacity_ = capacity;
     AllocateArrays(capacity_);
+    FillDistancesForASan();
   }
 
-  SCANN_INLINE DistT epsilon() const { return epsilon_; }
+  SCANN_INLINE DistT epsilon() const {
+    return epsilon_.load(std::memory_order_relaxed);
+  }
 
   size_t max_results() const { return max_results_; }
 
   size_t capacity() const { return capacity_; }
 
   void PushBlock(ConstSpan<DistT> distances, DatapointIndexT base_dp_idx) {
-    PushBlockToFastTopNeighbors(distances, base_dp_idx, this);
+    PushBlockToFastTopNeighbors(
+        distances,
+        [base_dp_idx](DatapointIndex offset) { return base_dp_idx + offset; },
+        this);
+  }
+
+  template <typename LocalDistT>
+  void PushBlock(ConstSpan<DistT> distances,
+                 ConstSpan<LocalDistT> local_dp_indices,
+                 DatapointIndexT base_dp_idx) {
+    PushBlockToFastTopNeighbors(
+        distances,
+        [&](DatapointIndex offset) {
+          return base_dp_idx + local_dp_indices[offset];
+        },
+        this);
   }
 
   class Mutator;
@@ -166,8 +204,8 @@ class FastTopNeighbors {
 
   size_t max_capacity_ = 0;
 
-  DistT epsilon_;
-  DatapointIndexT tiebreaker_idx_;
+  std::atomic<DistT> epsilon_ = MaxOrInfinity<DistT>();
+  DatapointIndexT tiebreaker_idx_ = kInvalidDatapointIndex;
 
   bool mutator_held_ = false;
 
@@ -203,10 +241,9 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
     return pushes_remaining_negated_ == 0;
   }
 
-  SCANN_OUTLINE void PushBlock(ConstSpan<DistT> distances,
-                               DatapointIndexT base_dp_idx);
-
-  SCANN_INLINE DistT epsilon() const { return parent_->epsilon_; }
+  SCANN_INLINE DistT epsilon() const {
+    return parent_->epsilon_.load(std::memory_order_relaxed);
+  }
 
   SCANN_INLINE void GarbageCollect() {
     parent_->sz_ = parent_->capacity_ + pushes_remaining_negated_;
@@ -253,9 +290,9 @@ void FastTopNeighbors<DistT, DatapointIndexT>::AcquireMutator(
   return mutator->Init(this);
 }
 
-template <typename DistT, typename DatapointIndexT, typename TopN>
-void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
-                                 DatapointIndexT base_dp_idx, TopN* top_n) {
+template <typename DistT, typename DocidFn, typename TopN>
+void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances, DocidFn docid_fn,
+                                 TopN* top_n) {
   typename TopN::Mutator mutator;
   top_n->AcquireMutator(&mutator);
   DatapointIndex dist_idx = 0;
@@ -263,7 +300,8 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
 #ifdef __SSE4_1__
   if constexpr (std::is_same_v<DistT, float>) {
     Sse4<float> sse_epsilon = mutator.epsilon();
-    constexpr size_t kNumFloatsPerSimdRegister = 4;
+    constexpr size_t kNumFloatsPerSimdRegister =
+        Sse4<float>::kElementsPerRegister;
     const size_t num_sse4_registers =
         distances.size() / kNumFloatsPerSimdRegister;
     for (uint32_t simd_idx : Seq(num_sse4_registers)) {
@@ -273,8 +311,8 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
       while (ABSL_PREDICT_FALSE(push_mask)) {
         const int offset = bits::FindLSBSetNonZero(push_mask);
         push_mask &= (push_mask - 1);
-        const DatapointIndexT dp_idx = base_dp_idx + i0 + offset;
-        if (ABSL_PREDICT_FALSE(mutator.Push(dp_idx, (*simd_dists)[offset]))) {
+        if (ABSL_PREDICT_FALSE(
+                mutator.Push(docid_fn(i0 + offset), (*simd_dists)[offset]))) {
           mutator.GarbageCollect();
           sse_epsilon = mutator.epsilon();
 
@@ -290,7 +328,7 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances,
   for (; dist_idx < distances.size(); ++dist_idx) {
     const DistT dist = distances[dist_idx];
     if (dist < eps) {
-      if (mutator.Push(dist_idx + base_dp_idx, dist)) {
+      if (ABSL_PREDICT_FALSE(mutator.Push(docid_fn(dist_idx), dist))) {
         mutator.GarbageCollect();
         eps = mutator.epsilon();
       }

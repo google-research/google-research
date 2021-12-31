@@ -17,6 +17,7 @@
 #ifndef SCANN_PARTITIONING_PROJECTING_DECORATOR_H_
 #define SCANN_PARTITIONING_PROJECTING_DECORATOR_H_
 
+#include <cstdint>
 #include <type_traits>
 
 #include "absl/memory/memory.h"

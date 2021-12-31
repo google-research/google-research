@@ -1,0 +1,45 @@
+# proto-file: third_party/google_research/google_research/zebraix/base/zebraix_graph.proto
+# proto-message: ZebraixGraph
+
+layout {
+  sep_points: 30
+  direction: S
+  octant_rotation: 0.2
+}
+
+base_node {
+  label_text: ""
+}
+
+nodes {
+  prime_rank: 2
+  obverse_rank: 2
+  display: WAYPOINT
+}
+
+nodes {
+  prime_rank: 4
+  obverse_rank: 4
+}
+
+edges {
+  parent: 0
+  child: 2
+  arrow: ARROW_NONE
+}
+
+nodes {
+  prime_rank: 1
+  obverse_rank: 3
+  display: HIDE
+}
+
+nodes {
+  prime_rank: 3
+  obverse_rank: 1
+}
+
+nodes {
+  prime_rank: 0
+  obverse_rank: 0
+}

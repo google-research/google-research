@@ -1,0 +1,983 @@
+# proto-file: third_party/google_research/google_research/smu/dataset.proto
+# proto-message: MultipleConformers
+conformers {
+  conformer_id: 899651001
+  original_conformer_index: 1
+  initial_geometries {
+    atom_positions {
+      x: 2.012558
+      y: 0.127934
+      z: 0.106203
+    }
+    atom_positions {
+      x: 1.42372
+      y: -0.798409
+      z: -1.475876
+    }
+    atom_positions {
+      x: 1.42372
+      y: -0.93995
+      z: 1.596441
+    }
+    atom_positions {
+      x: 3.934977
+      y: 0.017763
+      z: 0.1011
+    }
+  }
+  optimized_geometry {
+    atom_positions {
+      x: 2.018289
+      y: 0.11169
+      z: 0.105457
+    }
+    atom_positions {
+      x: 1.42332
+      y: -0.792586
+      z: -1.472857
+    }
+    atom_positions {
+      x: 1.423344
+      y: -0.933863
+      z: 1.593953
+    }
+    atom_positions {
+      x: 3.930022
+      y: 0.022097
+      z: 0.101315
+    }
+  }
+  properties {
+    errors {
+    }
+    harmonic_intensities {
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 211.8
+      value: 29.4
+      value: 29.4
+      value: 0.5
+      value: 0.2
+      value: 0.2
+    }
+    single_point_energy_pbe0d3_6_311gd {
+      value: -56.494403
+    }
+    single_point_energy_pbe0_6_311gd {
+      value: -56.494382
+    }
+    single_point_energy_pbe0_6_311gd_mrcc {
+      value: -56.494401
+    }
+    single_point_energy_pbe0_6_311gd_orca {
+      value: -56.494392
+    }
+    single_point_energy_pbe0_6_311gd_cat {
+      value: -56.103871
+    }
+    single_point_energy_pbe0_6_311gd_cat_mrcc {
+      value: -56.103869
+    }
+    single_point_energy_pbe0_6_311gd_cat_orca {
+      value: -56.103882
+    }
+    single_point_energy_pbe0_aug_pc_1 {
+      value: -56.48416
+    }
+    single_point_energy_hf_6_31gd {
+      value: -56.183449
+    }
+    single_point_energy_b3lyp_6_31ppgdp {
+      value: -56.565847
+    }
+    single_point_energy_b3lyp_aug_pcs_1 {
+      value: -56.555139
+    }
+    single_point_energy_pbe0_6_31ppgdp {
+      value: -56.494458
+    }
+    single_point_energy_pbe0_aug_pcs_1 {
+      value: -56.483279
+    }
+    single_point_energy_hf_tzvp {
+      value: -56.216088
+    }
+    single_point_energy_mp2_tzvp {
+      value: -56.415907
+    }
+    single_point_energy_cc2_tzvp {
+      value: -56.417346
+    }
+    single_point_energy_hf_3 {
+      value: -56.21781
+    }
+    single_point_energy_mp2_3 {
+      value: -56.452953
+    }
+    single_point_energy_hf_4 {
+      value: -56.223036
+    }
+    single_point_energy_mp2_4 {
+      value: -56.474625
+    }
+    single_point_energy_hf_34 {
+      value: -56.224309
+    }
+    single_point_energy_mp2_34 {
+      value: -56.489538
+    }
+    single_point_energy_hf_cvtz {
+      value: -56.218039
+    }
+    single_point_energy_mp2ful_cvtz {
+      value: -56.505256
+    }
+    single_point_energy_hf_2sp {
+      value: -56.154802
+    }
+    single_point_energy_mp2_2sp {
+      value: -56.26926
+    }
+    single_point_energy_ccsd_2sp {
+      value: -56.282519
+    }
+    single_point_energy_ccsd_t_2sp {
+      value: -56.283944
+    }
+    single_point_energy_hf_2sd {
+      value: -56.176057
+    }
+    single_point_energy_mp2_2sd {
+      value: -56.34317
+    }
+    single_point_energy_ccsd_2sd {
+      value: -56.359108
+    }
+    single_point_energy_ccsd_t_2sd {
+      value: -56.361417
+    }
+    single_point_energy_hf_3psd {
+      value: -56.192382
+    }
+    single_point_energy_mp2_3psd {
+      value: -56.386093
+    }
+    single_point_energy_ccsd_3psd {
+      value: -56.399791
+    }
+    single_point_energy_atomic_b5 {
+      value: -56.55762
+    }
+    single_point_energy_atomic_b6 {
+      value: -56.558975
+    }
+    zpe_unscaled {
+      value: 22.05
+    }
+    homo_pbe0_6_311gd {
+      value: -0.26759
+    }
+    lumo_pbe0_6_311gd {
+      value: 0.05387
+    }
+    homo_pbe0_aug_pc_1 {
+      value: -0.28518
+    }
+    lumo_pbe0_aug_pc_1 {
+      value: -0.00811
+    }
+    homo_pbe0_6_31ppgdp {
+      value: -0.28066
+    }
+    lumo_pbe0_6_31ppgdp {
+      value: -0.00571
+    }
+    homo_pbe0_aug_pcs_1 {
+      value: -0.28501
+    }
+    lumo_pbe0_aug_pcs_1 {
+      value: -0.00808
+    }
+    homo_b3lyp_6_31ppgdp {
+      value: -0.27169
+    }
+    lumo_b3lyp_6_31ppgdp {
+      value: -0.0171
+    }
+    homo_b3lyp_aug_pcs_1 {
+      value: -0.27625
+    }
+    lumo_b3lyp_aug_pcs_1 {
+      value: -0.01813
+    }
+    homo_hf_6_31gd {
+      value: -0.42119
+    }
+    lumo_hf_6_31gd {
+      value: 0.2229
+    }
+    homo_hf_tzvp {
+      value: -0.42638
+    }
+    lumo_hf_tzvp {
+      value: 0.12784
+    }
+    homo_hf_3 {
+      value: -0.4263
+    }
+    lumo_hf_3 {
+      value: 0.13721
+    }
+    homo_hf_4 {
+      value: -0.42849
+    }
+    lumo_hf_4 {
+      value: 0.11145
+    }
+    homo_hf_cvtz {
+      value: -0.42644
+    }
+    lumo_hf_cvtz {
+      value: 0.13712
+    }
+    excitation_energies_cc2 {
+      value: 0.25715
+      value: 0.34258
+      value: 0.34258
+      value: 0.46739
+      value: 0.46739
+    }
+    excitation_oscillator_strengths_cc2 {
+      value: 0.0642
+      value: 0.02805
+      value: 0.02835
+      value: 0.22097
+      value: 0.22097
+    }
+    nmr_isotropic_shielding_pbe0_6_31ppgdp {
+      values: 272.9856
+      values: 31.7872
+      values: 31.7872
+      values: 31.7872
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_pbe0_aug_pcs_1 {
+      values: 261.76
+      values: 31.5024
+      values: 31.5024
+      values: 31.5024
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_b3lyp_6_31ppgdp {
+      values: 270.0928
+      values: 31.856
+      values: 31.856
+      values: 31.856
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_b3lyp_aug_pcs_1 {
+      values: 258.752
+      values: 31.5776
+      values: 31.5776
+      values: 31.5776
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    partial_charges_mulliken_pbe0_aug_pc_1 {
+      values: -0.7968
+      values: 0.2656
+      values: 0.2656
+      values: 0.2656
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_mulliken_hf_6_31gd {
+      values: -1.0159
+      values: 0.3387
+      values: 0.3387
+      values: 0.3387
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_loewdin_pbe0_aug_pc_1 {
+      values: -0.0637
+      values: 0.0212
+      values: 0.0212
+      values: 0.0212
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_loewdin_hf_6_31gd {
+      values: -0.7001
+      values: 0.2334
+      values: 0.2334
+      values: 0.2334
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_natural_nbo_pbe0_aug_pc_1 {
+      values: -1.111
+      values: 0.3703
+      values: 0.3703
+      values: 0.3703
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_natural_nbo_hf_6_31gd {
+      values: -1.1127
+      values: 0.3709
+      values: 0.3709
+      values: 0.3709
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_paboon_pbe0_aug_pc_1 {
+      values: -0.3677
+      values: 0.1226
+      values: 0.1226
+      values: 0.1226
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_paboon_hf_6_31gd {
+      values: -0.4802
+      values: 0.1601
+      values: 0.1601
+      values: 0.1601
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_esp_fit_pbe0_aug_pc_1 {
+      values: -0.8755
+      values: 0.2919
+      values: 0.2918
+      values: 0.2918
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_esp_fit_hf_6_31gd {
+      values: -1.0861
+      values: 0.3621
+      values: 0.362
+      values: 0.362
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    dipole_dipole_polarizability_pbe0_aug_pc_1 {
+      matrix_values: 13.79541
+      matrix_values: 15.21574
+      matrix_values: 13.59549
+      matrix_values: -0.57441
+      matrix_values: -0.02639
+      matrix_values: 0.07456
+    }
+    dipole_moment_pbe0_aug_pc_1 {
+      x: 0.19879
+      y: -0.56161
+      z: -0.02587
+    }
+    dipole_moment_hf_6_31gd {
+      x: 0.25478
+      y: -0.71985
+      z: -0.03316
+    }
+    quadrupole_moment_pbe0_aug_pc_1 {
+      matrix_values: -4.17011
+      matrix_values: -6.68592
+      matrix_values: -4.75444
+      matrix_values: -0.46881
+      matrix_values: -0.00166
+      matrix_values: -0.14572
+    }
+    quadrupole_moment_hf_6_31gd {
+      matrix_values: -3.69318
+      matrix_values: -6.2398
+      matrix_values: -4.53752
+      matrix_values: -0.87519
+      matrix_values: -0.01476
+      matrix_values: -0.15111
+    }
+    octopole_moment_pbe0_aug_pc_1 {
+      tensor_values: -26.61548
+      tensor_values: 0.109
+      tensor_values: -1.57797
+      tensor_values: 0.41575
+      tensor_values: -0.39919
+      tensor_values: -14.11922
+      tensor_values: -0.56677
+      tensor_values: -10.71791
+      tensor_values: -1.08983
+      tensor_values: -0.20411
+    }
+    octopole_moment_hf_6_31gd {
+      tensor_values: -24.14945
+      tensor_values: -0.79479
+      tensor_values: -1.54194
+      tensor_values: -0.83739
+      tensor_values: -0.40907
+      tensor_values: -13.03533
+      tensor_values: -0.54402
+      tensor_values: -10.18653
+      tensor_values: -1.3029
+      tensor_values: -0.21958
+    }
+    compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.200.101\nStage 1  Cluster:   alchemy      \nStage 1  Cores:        24\nStage 1  CPU type:     23\nStage 2  Host IP:   XXX.YYY.200.114\nStage 2  Cluster:   alchemy      \nStage 2  Cores:        24\nStage 2  CPU type:     23\n"
+    symmetry_used_in_calculation: false
+    initial_geometry_energy {
+      value: -56.494308
+    }
+    initial_geometry_gradient_norm {
+      value: 0.010309
+    }
+    optimized_geometry_energy {
+      value: -56.494403
+    }
+    optimized_geometry_gradient_norm {
+      value: 4.6e-05
+    }
+    rotational_constants {
+      x: 189964.859
+      y: 298504.0
+      z: 298504.75
+    }
+    number_imaginary_frequencies: 0
+    number_of_optimization_runs: 1
+    nuclear_repulsion_energy {
+      value: 11.949906
+    }
+    diagnostics_d1_ccsd_2sp {
+      value: 0.0101
+    }
+    diagnostics_t1_ccsd_2sp {
+      value: 0.006
+    }
+    diagnostics_t1_ccsd_2sd {
+      value: 0.006
+    }
+    diagnostics_t1_ccsd_3psd {
+      value: 0.0074
+    }
+    calculation_statistics {
+      computing_location: "Geo"
+      timings: "1"
+    }
+    calculation_statistics {
+      computing_location: "Force"
+      timings: "0"
+    }
+    calculation_statistics {
+      computing_location: "MP2"
+      timings: "1"
+    }
+    calculation_statistics {
+      computing_location: "CC"
+      timings: "1"
+    }
+    calculation_statistics {
+      computing_location: "Polar"
+      timings: "0"
+    }
+    calculation_statistics {
+      computing_location: "Elec"
+      timings: "0"
+    }
+    calculation_statistics {
+      computing_location: "NMRs"
+      timings: "0"
+    }
+    calculation_statistics {
+      computing_location: "NMRl"
+      timings: "0"
+    }
+    calculation_statistics {
+      computing_location: "Exci"
+      timings: "0"
+    }
+    calculation_statistics {
+      computing_location: "IP"
+      timings: "0"
+    }
+    single_point_energy_eccsd {
+      value: -56.498168
+    }
+    diagnostics_t1_ccsd_2sp_excess {
+    }
+    bond_separation_reaction_left {
+      value: " molecule"
+    }
+    bond_separation_reaction_right {
+      value: " 1 NH3"
+    }
+    bond_separation_energy_atomic_b5 {
+      value: -0.0
+    }
+    bond_separation_energy_atomic_b5_um {
+      value: -0.0
+    }
+    bond_separation_energy_atomic_b5_um_ci {
+    }
+    bond_separation_energy_atomic_b6 {
+      value: -0.0
+    }
+    bond_separation_energy_atomic_b6_um {
+      value: -0.0
+    }
+    bond_separation_energy_atomic_b6_um_ci {
+    }
+    bond_separation_energy_eccsd {
+      value: -0.0
+    }
+    bond_separation_energy_eccsd_um {
+      value: -0.0
+    }
+    bond_separation_energy_eccsd_um_ci {
+    }
+    atomization_energy_excluding_zpe_atomic_b5 {
+      value: 297.71
+    }
+    atomization_energy_excluding_zpe_atomic_b5_um {
+      value: 297.82
+    }
+    atomization_energy_excluding_zpe_atomic_b5_um_ci {
+      value: 0.12
+    }
+    atomization_energy_excluding_zpe_atomic_b6 {
+      value: 297.71
+    }
+    atomization_energy_excluding_zpe_atomic_b6_um {
+      value: 297.83
+    }
+    atomization_energy_excluding_zpe_atomic_b6_um_ci {
+      value: 0.12
+    }
+    atomization_energy_excluding_zpe_eccsd {
+      value: 297.71
+    }
+    atomization_energy_excluding_zpe_eccsd_um {
+      value: 297.83
+    }
+    atomization_energy_excluding_zpe_eccsd_um_ci {
+      value: 0.12
+    }
+    atomization_energy_including_zpe_atomic_b5 {
+      value: 276.12
+    }
+    atomization_energy_including_zpe_atomic_b5_um {
+      value: 276.26
+    }
+    atomization_energy_including_zpe_atomic_b5_um_ci {
+      value: 0.33
+    }
+    atomization_energy_including_zpe_atomic_b6 {
+      value: 276.12
+    }
+    atomization_energy_including_zpe_atomic_b6_um {
+      value: 276.26
+    }
+    atomization_energy_including_zpe_atomic_b6_um_ci {
+      value: 0.33
+    }
+    atomization_energy_including_zpe_eccsd {
+      value: 276.12
+    }
+    atomization_energy_including_zpe_eccsd_um {
+      value: 276.26
+    }
+    atomization_energy_including_zpe_eccsd_um_ci {
+      value: 0.33
+    }
+    enthalpy_of_formation_0k_atomic_b5 {
+      value: -8.75
+    }
+    enthalpy_of_formation_0k_atomic_b5_um {
+      value: -8.89
+    }
+    enthalpy_of_formation_0k_atomic_b5_um_ci {
+      value: 0.33
+    }
+    enthalpy_of_formation_0k_atomic_b6 {
+      value: -8.75
+    }
+    enthalpy_of_formation_0k_atomic_b6_um {
+      value: -8.89
+    }
+    enthalpy_of_formation_0k_atomic_b6_um_ci {
+      value: 0.33
+    }
+    enthalpy_of_formation_0k_eccsd {
+      value: -8.75
+    }
+    enthalpy_of_formation_0k_eccsd_um {
+      value: -8.89
+    }
+    enthalpy_of_formation_0k_eccsd_um_ci {
+      value: 0.33
+    }
+    enthalpy_of_formation_298k_atomic_b5 {
+      value: -10.43
+    }
+    enthalpy_of_formation_298k_atomic_b5_um {
+      value: -10.57
+    }
+    enthalpy_of_formation_298k_atomic_b5_um_ci {
+      value: 0.35
+    }
+    enthalpy_of_formation_298k_atomic_b6 {
+      value: -10.44
+    }
+    enthalpy_of_formation_298k_atomic_b6_um {
+      value: -10.57
+    }
+    enthalpy_of_formation_298k_atomic_b6_um_ci {
+      value: 0.35
+    }
+    enthalpy_of_formation_298k_eccsd {
+      value: -10.43
+    }
+    enthalpy_of_formation_298k_eccsd_um {
+      value: -10.57
+    }
+    enthalpy_of_formation_298k_eccsd_um_ci {
+      value: 0.35
+    }
+    zpe_atomic {
+      value: 21.59
+    }
+    zpe_atomic_um {
+      value: 21.57
+    }
+    zpe_atomic_um_ci {
+      value: 0.3
+    }
+    harmonic_frequencies {
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 1129.0
+      value: 1756.1
+      value: 1756.1
+      value: 3508.1
+      value: 3639.1
+      value: 3639.1
+    }
+    normal_modes {
+      displacements {
+        x: 0.0047
+        y: 0.3986
+        z: -0.0154
+      }
+      displacements {
+        x: 0.022
+        y: 0.0081
+        z: 0.2018
+      }
+      displacements {
+        x: 0.035
+        y: 0.7384
+        z: 0.2354
+      }
+      displacements {
+        x: 0.0069
+        y: 0.4446
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.014
+        y: -0.0455
+        z: 0.3313
+      }
+      displacements {
+        x: -0.3039
+        y: -0.2297
+        z: 0.5566
+      }
+      displacements {
+        x: 0.241
+        y: 0.1725
+        z: 0.5752
+      }
+      displacements {
+        x: 0.0098
+        y: -0.1194
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0388
+        y: -0.0894
+        z: -0.1238
+      }
+      displacements {
+        x: 0.1409
+        y: -0.7578
+        z: 0.2206
+      }
+      displacements {
+        x: 0.006
+        y: 0.5022
+        z: 0.2786
+      }
+      displacements {
+        x: 0.042
+        y: -0.0272
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0217
+        y: -0.0071
+        z: 0.0745
+      }
+      displacements {
+        x: 0.5864
+        y: -0.1468
+        z: -0.0747
+      }
+      displacements {
+        x: -0.3333
+        y: -0.035
+        z: -0.0696
+      }
+      displacements {
+        x: -0.0081
+        y: 0.2566
+        z: 0.6632
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.4643
+        y: 0.015
+        z: 0.0255
+      }
+      displacements {
+        x: 0.4757
+        y: 0.188
+        z: -0.0779
+      }
+      displacements {
+        x: 0.5031
+        y: -0.1783
+        z: -0.0948
+      }
+      displacements {
+        x: 0.4666
+        y: 0.0654
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0569
+        y: -0.0213
+        z: -0.0033
+      }
+      displacements {
+        x: 0.127
+        y: -0.1918
+        z: 0.025
+      }
+      displacements {
+        x: 0.5149
+        y: -0.3144
+        z: 0.0194
+      }
+      displacements {
+        x: -0.0222
+        y: 0.7294
+        z: -0.2142
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0385
+        y: -0.1088
+        z: -0.005
+      }
+      displacements {
+        x: -0.2757
+        y: 0.4777
+        z: -0.157
+      }
+      displacements {
+        x: -0.2757
+        y: 0.4613
+        z: 0.2003
+      }
+      displacements {
+        x: 0.0164
+        y: 0.5726
+        z: 0.0264
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0563
+        y: 0.0213
+        z: -0.0293
+      }
+      displacements {
+        x: -0.6127
+        y: -0.2488
+        z: 0.3758
+      }
+      displacements {
+        x: -0.2135
+        y: -0.2854
+        z: -0.3238
+      }
+      displacements {
+        x: 0.0434
+        y: 0.2383
+        z: 0.3557
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0286
+        y: -0.0073
+        z: -0.0602
+      }
+      displacements {
+        x: -0.1843
+        y: 0.2069
+        z: -0.0918
+      }
+      displacements {
+        x: 0.6031
+        y: 0.0551
+        z: 0.255
+      }
+      displacements {
+        x: -0.022
+        y: -0.1601
+        z: 0.6726
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0126
+        y: -0.0355
+        z: -0.0017
+      }
+      displacements {
+        x: 0.2011
+        y: 0.2341
+        z: 0.4876
+      }
+      displacements {
+        x: 0.201
+        y: 0.2778
+        z: -0.4638
+      }
+      displacements {
+        x: -0.5766
+        y: -0.0187
+        z: -0.0009
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0503
+        y: 0.0151
+        z: 0.0592
+      }
+      displacements {
+        x: -0.2471
+        y: -0.3667
+        z: -0.6601
+      }
+      displacements {
+        x: 0.096
+        y: 0.1381
+        z: -0.1807
+      }
+      displacements {
+        x: -0.5485
+        y: 0.0189
+        z: 0.0183
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0551
+        y: 0.0219
+        z: -0.0524
+      }
+      displacements {
+        x: 0.074
+        y: 0.0882
+        z: 0.1336
+      }
+      displacements {
+        x: -0.2394
+        y: -0.4151
+        z: 0.6099
+      }
+      displacements {
+        x: -0.6002
+        y: 0.0223
+        z: -0.0148
+      }
+    }
+  }
+  bond_topologies {
+    atoms: ATOM_N
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    bonds {
+      atom_b: 1
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 2
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 3
+      bond_type: BOND_SINGLE
+    }
+    smiles: "N"
+    bond_topology_id: 899651
+  }
+  which_database: STANDARD
+}

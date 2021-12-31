@@ -14,10 +14,12 @@
 
 #include "scann/partitioning/partitioner_factory.h"
 
+#include <cstdint>
 #include <memory>
 
 #include "absl/memory/memory.h"
 #include "absl/numeric/int128.h"
+#include "absl/strings/match.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/distance_measures/distance_measure_factory.h"

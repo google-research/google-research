@@ -90,6 +90,7 @@ from __future__ import print_function
 import re
 import tensorflow.compat.v1 as tf
 
+from graph_compression.compression_lib import compression_op_utils as comp_op_utils
 from model_pruning.python import hparam
 from model_pruning.python import pruning_utils
 from tensorflow.python.ops import variables  # pylint: disable=g-direct-tensorflow-import
@@ -441,6 +442,8 @@ def get_pruning_hparams():
                               (nonzero entries in) compressed matrix for block
                               compression. Equivalently, number of blocks on
                               diagonal.
+    compression_factor: Compression factor to use for MixedBlockCompressionOp.
+    num_bases: Number of basis matrices to use for MixedBlockCompressionOp.
     group_pruning: perform group pruning if True. Default is False.
     group_sparsity_map: list of strings
       comma separated list of {group_name:target sparsity} or
@@ -460,6 +463,11 @@ def get_pruning_hparams():
                  sparsity_function_begin_step)/pruning_frequency
     sparsity(step) = (initial_sparsity - target_sparsity)*
                      [1-step/(num_steps -1)]**exponent + target_sparsity
+
+    intra_block_sparsity: default False, otherwise indicates pruning within a
+      block. The block size is specified using the `block_width` parameters.
+      `block_height` must be 1. As an example, this paper
+      https://arxiv.org/abs/2104.08378 proposes 2-in-4 sparsity.
 
   Args: None
 
@@ -493,13 +501,13 @@ def get_pruning_hparams():
       begin_compression_step=0,
       end_compression_step=-1,
       compression_frequency=10,
-      compression_option=0,
+      compression_option=comp_op_utils.CompressionOptions.NO_MATRIX_COMPRESSION,
       rank=7,
       block_size=1,
-      update_option=0,
+      update_option=comp_op_utils.UpdateOptions.NO_UPDATE,
       run_update_interval_check=1,
       pruning_fraction=0.4,
-      use_collection=True,
+      use_collection=False,
       do_transpose=False,
       compress_input=True,
       input_compression_factor=1,
@@ -509,8 +517,11 @@ def get_pruning_hparams():
       output_block_size=1,
       block_method='loop',
       block_compression_factor=1,
+      compression_factor=1,
+      num_bases=1,
       add_summary=True,
-      group_pruning=False)
+      group_pruning=False,
+      intra_block_sparsity=False)
 
 
 class Pruning(object):
@@ -919,8 +930,145 @@ class Pruning(object):
           tf.shape(weights))
     return tf.constant(0, tf.float32), new_mask
 
+  def _update_mask_sparsity_m_by_n(self, weights, block_size=4):
+    """Updates the mask m-by-n block sparsity.
+
+    Args:
+      weights: The weight tensor that needs to be masked.
+      block_size: Block size to enforce block sparsity pattern.
+
+    Returns:
+      new_threshold: The new value of the threshold based on weights, and
+        sparsity at the current global_step
+      new_mask: A numpy array of the same size and shape as weights containing
+        0 or 1 to indicate which of the values in weights falls below
+        the threshold
+
+    Raises:
+      ValueError: if sparsity is not defined
+    """
+    if self._sparsity is None:
+      raise ValueError('Sparsity variable undefined')
+
+    sparsity = self._get_sparsity(weights.op.name)
+
+    with tf.name_scope(weights.op.name + '_pruning_ops'):
+      tf.logging.info(
+          'Applying block sparsity pruning for %s, block size (1, %d), shape %s',
+          weights.op.name, block_size, weights.shape)
+
+      # Rearrange weights tensor so that m by n sparsity structure applied in
+      # last channel.
+      # In case of Conv2D weights:
+      #   TF data format is [height, width, channel_in, channel_out],
+      #   TFLite data format is [channel_out, height, width, channel_in]
+      #   Rearranged Conv2D weights format:
+      #   [channel_out x height x width, channel_in]
+      # In case of Dense weights:
+      #   TF data format is [channel_in, channel_out],
+      #   TFLite data format is [width, channel_in]
+      #   Rearranged Dense weights format: [width, channel_in]
+      # In case of Multi-head Attention weights:
+      #   Outermost dimension is the reduction dimension, intra block sparsity
+      #   is applied to the reduction dimension. Therefore transpose the
+      #   weight's outermost to innermost and reshape it to 2D.
+      if weights.shape.rank == 2:
+        prepared_weights = tf.transpose(weights)
+      elif weights.shape.rank == 3:
+        prepared_weights = tf.transpose(
+            tf.reshape(weights, [weights.shape[0], -1]))
+      elif weights.shape.rank == 4:
+        perm_weights = tf.transpose(weights, perm=[3, 0, 1, 2])
+        prepared_weights = tf.reshape(
+            perm_weights, [tf.reduce_prod(perm_weights.shape[:-1]), -1])
+      else:
+        raise ValueError(
+            f'weight tensor with shape: {weights.shape} is not supported.')
+
+      # Generate m-by-n sparsity mask.
+      num_zeros = tf.cast(tf.math.floor(block_size * sparsity), dtype=tf.int32)
+      block_size = tf.constant(block_size, tf.int32)
+      num_non_zeros = block_size - num_zeros
+      abs_weights = tf.abs(prepared_weights)
+
+      # add zero-padding
+      pad_after = block_size - tf.shape(abs_weights)[-1] % block_size
+      abs_weights_pad = tf.pad(abs_weights, [[0, 0], [0, pad_after]],
+                               'CONSTANT')
+
+      num_blocks = tf.size(abs_weights_pad) // block_size
+      reshaped_weights_into_blocks = tf.reshape(abs_weights_pad,
+                                                [num_blocks, block_size])
+
+      # Sort the weights based on magnitude.
+      row_sorted_weights = tf.sort(
+          reshaped_weights_into_blocks, axis=1, direction='DESCENDING')
+      # Calculate cut-off value (thresholds) of the weights.
+      # num_non_zeros is in [1, block_size], therefore pad row_sorted_weights
+      # tensor with one more column of -1.0 to cover the case that sparsity is
+      # 0.0. In case two weights have exactly the same value, they are either
+      # both pruned or both not pruned. Therefore we use tf.greater() rather
+      # than tf.greater_equal(). This guarantees that the number of non-zeros
+      # after pruning is always less than floor(block_size * (1 - sparsity)).
+      thresholds = tf.slice(
+          tf.pad(row_sorted_weights, [[0, 0], [0, 1]], constant_values=-1.0),
+          begin=[0, num_non_zeros],
+          size=[row_sorted_weights.shape[0], 1])
+      expanded_thresholds = tf.repeat(
+          thresholds, repeats=row_sorted_weights.shape[1], axis=1)
+      sparsity_mask_pad = tf.dtypes.cast(
+          tf.math.greater(reshaped_weights_into_blocks, expanded_thresholds),
+          weights.dtype)
+      reshaped_sparsity_mask_pad = tf.reshape(sparsity_mask_pad,
+                                              tf.shape(abs_weights_pad))
+
+      # remove padding from mask
+      sparsity_mask = tf.slice(reshaped_sparsity_mask_pad, [0, 0],
+                               abs_weights.shape)
+
+      # Reshape and permute sparsity mask, so that it match original weights
+      # data format.
+      tf.debugging.assert_equal(
+          tf.size(sparsity_mask),
+          tf.reduce_prod(weights.shape),
+          message='number of elements mismatch between mask and weights.',
+      )
+
+      if sparsity_mask.shape.rank != 2:
+        raise ValueError(
+            f'rank of mask(rank:{sparsity_mask.shape.rank}) should be 2.')
+
+      if weights.shape.rank == 2:
+        prepared_mask = tf.transpose(sparsity_mask)
+      elif weights.shape.rank == 3:
+        prepared_mask = tf.reshape(tf.transpose(sparsity_mask), weights.shape)
+      elif weights.shape.rank == 4:
+        weights_shape = tf.shape(weights)
+        reshaped_mask = tf.reshape(
+            sparsity_mask,
+            [
+                weights_shape[-1], weights_shape[0], weights_shape[1],
+                weights_shape[2]
+            ],
+        )
+        prepared_mask = tf.transpose(reshaped_mask, perm=[1, 2, 3, 0])
+      else:
+        raise ValueError(
+            f'weight tensor with shape: {weights.shape} is not supported.')
+
+      tf.debugging.assert_equal(
+          prepared_mask.shape,
+          weights.shape,
+          message='shape of prepared mask mismatch shape of weights.')
+
+    # Need to return some numbers for threshold.
+    return tf.constant(999.0, tf.float32), prepared_mask
+
   def _maybe_update_block_mask(self, weights, threshold, gradients=None):
     """Performs block-granular masking of the weights.
+
+    If intra_block_sparsity is selected, then we return the relevant pruning
+    mask, that nullify m out of n elements in the block.
 
     Block pruning occurs only if the block_height or block_width is > 1 and
     if the weight tensor, when squeezed, has ndims = 2. Otherwise, elementwise
@@ -934,7 +1082,8 @@ class Pruning(object):
 
     Returns:
       new_threshold: The new value of the threshold based on weights, and
-        sparsity at the current global_step
+        sparsity at the current global_step. In case of intra_block_sparsity,
+        the returned threshold is an arbitrary number.
       new_mask: A numpy array of the same size and shape as weights containing
         0 or 1 to indicate which of the values in weights falls below
         the threshold
@@ -944,6 +1093,14 @@ class Pruning(object):
     """
 
     block_dims = self._get_block_dims(weights.op.name)
+
+    # Intra block sparsity is only enabled when:
+    # 1. `intra_block_sparsity` is set to True.
+    # 2. weights is 2D, 3D or 4D.
+    if (self._spec.intra_block_sparsity and
+        weights.get_shape().ndims in [2, 3, 4]):
+      return self._update_mask_sparsity_m_by_n(weights, block_dims[1])
+
     squeezed_weights = tf.squeeze(weights)
     if squeezed_weights.get_shape().ndims != 2 or block_dims == [1, 1]:
       return self._update_mask(weights, threshold, gradients)

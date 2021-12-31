@@ -51,7 +51,7 @@ class MultiagentPPOLearner(ppo_learner.PPOLearner):
     traj, _ = next(iterator)
     num_frames += _update(traj)
 
-    for _ in tf.range(1, self._num_batches):
+    for _ in tf.range(1, self._num_samples):
       traj, _ = next(iterator)
       num_frames += _update(traj)
 

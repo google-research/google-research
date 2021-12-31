@@ -1,0 +1,46 @@
+# Configuration for the baselines.
+
+include 'dedal/configs/base.gin'
+import dedal.configs.external_configurables
+import dedal.models.aligners
+import dedal.models.encoders
+import dedal.models.homology
+import dedal.models.initializers
+import dedal.models.dedal
+import dedal.multi_task
+import dedal.train.learning_rate_schedules
+import dedal.train.training_loop
+
+
+TrainingLoop.num_steps = 30000
+
+Dedal:
+  encoder_cls = @OneHotEncoder
+  aligner_cls = @aligners.SoftAligner
+
+SoftAligner:
+  similarity_cls = @PairwiseBilinearDense
+  gap_pen_cls = @ConstantGapPenalties
+
+PairwiseBilinearDense:
+  use_bias = False
+  trainable_kernel = False
+  kernel_init = @SubsMatInitializer()
+  sqrt_norm = False
+
+SubsMatInitializer.matrix_str = %BLOSUM_62
+ConstantGapPenalties.trainable_gap_open = False
+ConstantGapPenalties.trainable_gap_extend = False
+model/multi_task.Backbone.alignments = [
+    @dedal.Selector,
+    @homology.LogCorrectedLogits,
+]
+ConstantGapPenalties.gap_open_init = @gap_open/Constant()
+ConstantGapPenalties.gap_extend_init = @gap_extend/Constant()
+gap_open/Constant.value = 11.0
+gap_extend/Constant.value = 1.0
+
+# Optimizer.
+InverseSquareRootDecayWithWarmup:
+  lr_max = 5e-1
+  warmup_steps = 50

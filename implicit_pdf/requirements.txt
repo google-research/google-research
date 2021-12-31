@@ -1,0 +1,7 @@
+tensorflow>=2.4.0
+numpy>=1.16.0
+tfds-nightly
+matplotlib>=3.0.3
+scipy>=1.2.1
+healpy>=1.14.0
+tensorflow_graphics>=2020.5.20

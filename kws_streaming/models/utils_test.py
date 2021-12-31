@@ -64,7 +64,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
 
   def _testTFLite(self,
                   preprocess='raw',
-                  feature_type='mfcc_op',
+                  feature_type='mfcc_tf',
+                  use_tf_fft=False,
                   model_name='svdf'):
     params = model_params.HOTWORD_MODEL_PARAMS[model_name]
     params.clip_duration_ms = 100  # make it shorter for testing
@@ -72,6 +73,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     # set parameters to test
     params.preprocess = preprocess
     params.feature_type = feature_type
+    params.use_tf_fft = use_tf_fft
     params = model_flags.update_flags(params)
 
     # create model
@@ -92,33 +94,44 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.named_parameters([
       {
-          'testcase_name': 'raw with mfcc_tf',
+          'testcase_name': 'raw with mfcc_tf not use tf func',
           'preprocess': 'raw',
-          'feature_type': 'mfcc_tf'
+          'feature_type': 'mfcc_tf',
+          'use_tf_fft': False
+      },
+      {
+          'testcase_name': 'raw with mfcc_tf use tf func',
+          'preprocess': 'raw',
+          'feature_type': 'mfcc_tf',
+          'use_tf_fft': True,
       },
       {
           'testcase_name': 'raw with mfcc_op',
           'preprocess': 'raw',
-          'feature_type': 'mfcc_op'
+          'feature_type': 'mfcc_op',
+          'use_tf_fft': False,  # will be ignored
       },
       {
           'testcase_name': 'mfcc',
           'preprocess': 'mfcc',
-          'feature_type': 'mfcc_op'
-      },  # feature_type will be ignored
+          'feature_type': 'mfcc_op',  # will be ignored
+          'use_tf_fft': False  # will be ignored
+      },
       {
           'testcase_name': 'micro',
           'preprocess': 'micro',
-          'feature_type': 'mfcc_op'
-      },  # feature_type will be ignored
+          'feature_type': 'mfcc_op',  # will be ignored
+          'use_tf_fft': False    # will be ignored
+      }
   ])
   def testPreprocessNonStreamInferenceTFandTFLite(self,
                                                   preprocess,
                                                   feature_type,
+                                                  use_tf_fft,
                                                   model_name='svdf'):
     # Validate that model with different preprocessing
     # can be converted to non stream inference mode.
-    self._testTFLite(preprocess, feature_type, model_name)
+    self._testTFLite(preprocess, feature_type, use_tf_fft, model_name)
 
   @parameterized.named_parameters([
       {
@@ -189,7 +202,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
                             'tc_resnet', 'crnn', 'gru', 'lstm', 'svdf',
                             'mobilenet', 'mobilenet_v2', 'xception',
                             'inception', 'inception_resnet', 'ds_tc_resnet')
-  def testNonStreamInferenceTFandTFLite(self, model_name):
+  def testNonStreamInferenceTFandTFLite(self, model_name='ds_cnn'):
     # Validate that all models with selected preprocessing
     # can be converted to non stream inference mode.
     self._testTFLite(model_name=model_name)
@@ -203,6 +216,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
       'gru',
       'lstm',
       'svdf',
+      'bc_resnet'
   )
   def test_external_streaming_shapes(self, model_name):
     model = utils.get_model_with_default_params(

@@ -16,8 +16,10 @@
 
 #include "scann/data_format/dataset.h"
 
+#include <cstdint>
 #include <hash_set>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/substitute.h"
 #include "absl/time/time.h"
@@ -388,7 +390,7 @@ Status DenseDataset<T>::Append(const DatapointPtr<T>& dptr, string_view docid) {
   const bool dptr_is_binary = dptr.dimensionality() > dptr.nonzero_entries();
   if (dptr_is_binary && !std::is_same<T, uint8_t>::value) {
     return InvalidArgumentError(
-        "Binary DenseDatasets may only be built with uint8_t as a template "
+        "Binary DenseDatasets may only be built with uint8 as a template "
         "parameter.");
   }
 
@@ -538,7 +540,7 @@ void SparseDataset<T>::GetDenseDatapoint(size_t index,
 
 template <typename T>
 DimensionIndex SparseDataset<T>::NumActiveDimensions() const {
-  std::unordered_set<DimensionIndex> is_active;
+  absl::flat_hash_set<DimensionIndex> is_active;
   for (size_t i = 0; i < this->size(); ++i) {
     const DatapointPtr<T> dptr = (*this)[i];
     for (DimensionIndex j = 0; j < dptr.nonzero_entries(); ++j) {
@@ -597,7 +599,7 @@ Status SparseDataset<T>::AppendImpl(const GenericFeatureVector& gfv,
   const bool gfv_is_binary = gfv.feature_type() == GenericFeatureVector::BINARY;
   if (gfv_is_binary && !std::is_same<T, uint8_t>::value) {
     return InvalidArgumentError(
-        "Binary SparseDatasets may only be built with uint8_t as a template "
+        "Binary SparseDatasets may only be built with uint8 as a template "
         "parameter.");
   }
 
@@ -662,7 +664,7 @@ Status SparseDataset<T>::AppendImpl(const DatapointPtr<T>& dptr,
       dptr_may_be_binary && dptr.nonzero_entries() > 0;
   if (dptr_is_definitely_binary && !std::is_same<T, uint8_t>::value) {
     return InvalidArgumentError(
-        "Binary SparseDatasets may only be built with uint8_t as a template "
+        "Binary SparseDatasets may only be built with uint8 as a template "
         "parameter.");
   }
 

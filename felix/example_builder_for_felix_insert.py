@@ -116,7 +116,7 @@ class TaggingBertExample:
       pad_id = pad_token_id if key == 'input_ids' else 0
 
       if feature is not None:
-        feature.extend([pad_id] * pad_len)
+        feature.extend([pad_id] * pad_len)  # pytype: disable=attribute-error
       if len(feature) != max_seq_length:
         raise ValueError(f'{key} has length {len(feature)} (should be '
                          f'{max_seq_length}).')

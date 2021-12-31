@@ -14,9 +14,11 @@
 
 #include "scann/scann_ops/cc/scann.h"
 
+#include <cstdint>
 #include <fstream>
 
 #include "absl/base/internal/sysinfo.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/centers.pb.h"
@@ -34,8 +36,9 @@ int GetNumCPUs() { return std::max(absl::base_internal::NumCPUs(), 1); }
 }  // namespace
 
 template <typename T>
-void ParseTextProto(T* proto, const std::string& proto_str) {
+Status ParseTextProto(T* proto, const std::string& proto_str) {
   ::google::protobuf::TextFormat::ParseFromString(proto_str, proto);
+  return OkStatus();
 }
 
 unique_ptr<DenseDataset<float>> InitDataset(ConstSpan<float> dataset,
@@ -115,7 +118,7 @@ Status ScannInterface::Initialize(ConstSpan<float> dataset,
                                   DatapointIndex n_points,
                                   const std::string& config,
                                   int training_threads) {
-  ParseTextProto(&config_, config);
+  SCANN_RETURN_IF_ERROR(ParseTextProto(&config_, config));
   if (training_threads < 0)
     return InvalidArgumentError("training_threads must be non-negative");
   if (training_threads == 0) training_threads = GetNumCPUs();
@@ -140,7 +143,7 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
                                   config_, dataset, std::move(opts)));
 
   const std::string& distance = config_.distance_measure().distance_measure();
-  const absl::node_hash_set<std::string> negated_distances{
+  const absl::flat_hash_set<std::string> negated_distances{
       "DotProductDistance", "BinaryDotProductDistance", "AbsDotProductDistance",
       "LimitedInnerProductDistance"};
   result_multiplier_ =
@@ -162,8 +165,7 @@ Status ScannInterface::Search(const DatapointPtr<float> query,
                               int pre_reorder_nn, int leaves) const {
   if (query.dimensionality() != dimensionality_)
     return InvalidArgumentError("Query doesn't match dataset dimsensionality");
-  bool has_reordering =
-      config_.has_exact_reordering() || config_.has_compressed_reordering();
+  bool has_reordering = config_.has_exact_reordering();
   int post_reorder_nn = -1;
   if (has_reordering)
     post_reorder_nn = final_nn;
@@ -191,8 +193,7 @@ Status ScannInterface::SearchBatched(const DenseDataset<float>& queries,
   if (!std::isinf(scann_->default_pre_reordering_epsilon()) ||
       !std::isinf(scann_->default_post_reordering_epsilon()))
     return InvalidArgumentError("Batch querying isn't supported with epsilon");
-  bool has_reordering =
-      config_.has_exact_reordering() || config_.has_compressed_reordering();
+  bool has_reordering = config_.has_exact_reordering();
   int post_reorder_nn = -1;
   if (has_reordering)
     post_reorder_nn = final_nn;
@@ -279,15 +280,9 @@ Status ScannInterface::Serialize(std::string path) {
       SCANN_RETURN_IF_ERROR(VectorToNumpy(path + "/dp_norms.npy", *norms));
     }
   }
-  if (scann_->needs_dataset()) {
-    if (scann_->dataset() == nullptr)
-      return InternalError(
-          "Searcher needs original dataset but none is present.");
-    auto dataset = dynamic_cast<const DenseDataset<float>*>(scann_->dataset());
-    if (dataset == nullptr)
-      return InternalError("Failed to cast dataset to DenseDataset<float>.");
+  TF_ASSIGN_OR_RETURN(auto dataset, Float32DatasetIfNeeded());
+  if (dataset != nullptr)
     SCANN_RETURN_IF_ERROR(DatasetToNumpy(path + "/dataset.npy", *dataset));
-  }
   return OkStatus();
 }
 

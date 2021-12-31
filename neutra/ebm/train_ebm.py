@@ -26,10 +26,10 @@ import tensorflow.compat.v2 as tf
 import tensorflow_probability as tfp
 
 # pylint: disable=g-import-not-at-top
-USE_LOCAL_FUN_MCMC = True
+USE_LOCAL_FUN_MC = True
 
-if USE_LOCAL_FUN_MCMC:
-  from discussion import fun_mcmc  # pylint: disable=reimported
+if USE_LOCAL_FUN_MC:
+  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported
 
 from neutra.ebm import ebm_util
 # pylint: enable=g-import-not-at-top
@@ -400,7 +400,7 @@ def train_p(q, u, x_pos, step_size, opt_p):
 
     def kernel(hmc_state, step_size, step):
       """HMC kernel."""
-      hmc_state, hmc_extra = fun_mcmc.hamiltonian_monte_carlo(
+      hmc_state, hmc_extra = fun_mc.hamiltonian_monte_carlo_step(
           hmc_state,
           step_size=step_size,
           num_integrator_steps=FLAGS.mcmc_leapfrog_steps,
@@ -411,14 +411,14 @@ def train_p(q, u, x_pos, step_size, opt_p):
           tf.exp(tf.minimum(0., hmc_extra.log_accept_ratio)))
 
       if FLAGS.mcmc_adapt_step_size:
-        step_size = fun_mcmc.sign_adaptation(
+        step_size = fun_mc.sign_adaptation(
             step_size, output=mean_p_accept, set_point=0.9)
 
       return (hmc_state, step_size, step + 1), hmc_extra
 
-    hmc_state, is_accepted = fun_mcmc.trace(
-        state=(fun_mcmc.hamiltonian_monte_carlo_init(x_neg_q,
-                                                     log_prob_non_transformed),
+    hmc_state, is_accepted = fun_mc.trace(
+        state=(fun_mc.hamiltonian_monte_carlo_init(x_neg_q,
+                                                   log_prob_non_transformed),
                step_size, 0),
         fn=kernel,
         num_steps=FLAGS.mcmc_num_steps,

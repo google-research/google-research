@@ -254,18 +254,12 @@ def binary_index_edge_embeddings(
   e_in_flat = edges.input_indices.squeeze(1)
 
   result = jnp.zeros([num_nodes, num_nodes, embedding_dim])
-  result = jax.ops.index_add(
-      result,
-      jax.ops.index[edges.output_indices[:, 0], edges.output_indices[:, 1],
-                    forward_index_map[e_in_flat]],
-      edges.values * forward_values[e_in_flat],
-  )
-  result = jax.ops.index_add(
-      result,
-      jax.ops.index[edges.output_indices[:, 1], edges.output_indices[:, 0],
-                    reverse_index_map[e_in_flat]],
-      edges.values * reverse_values[e_in_flat],
-  )
+  result = result.at[edges.output_indices[:, 0], edges.output_indices[:, 1],
+                     forward_index_map[e_in_flat]].add(
+                         edges.values * forward_values[e_in_flat])
+  result = result.at[edges.output_indices[:, 1], edges.output_indices[:, 0],
+                     reverse_index_map[e_in_flat]].add(
+                         edges.values * reverse_values[e_in_flat])
   return result
 
 
@@ -369,16 +363,12 @@ def edge_mask(edges, num_nodes,
   e_in_flat = edges.input_indices.squeeze(1)
 
   result = jnp.zeros([num_nodes, num_nodes])
-  result = jax.ops.index_add(
-      result,
-      jax.ops.index[edges.output_indices[:, 0], edges.output_indices[:, 1]],
-      edges.values * forward_values[e_in_flat],
-  )
-  result = jax.ops.index_add(
-      result,
-      jax.ops.index[edges.output_indices[:, 1], edges.output_indices[:, 0]],
-      edges.values * reverse_values[e_in_flat],
-  )
+  result = result.at[edges.output_indices[:, 0],
+                     edges.output_indices[:, 1]].add(edges.values *
+                                                     forward_values[e_in_flat])
+  result = result.at[edges.output_indices[:, 1],
+                     edges.output_indices[:, 0]].add(edges.values *
+                                                     reverse_values[e_in_flat])
   return jnp.minimum(result, 1.0)
 
 

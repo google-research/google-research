@@ -1,0 +1,75 @@
+# proto-file: third_party/google_research/google_research/zebraix/base/zebraix_graph.proto
+# proto-message: ZebraixGraph
+
+layout {
+  sep_points: 36
+  base_margin: 125
+  stretch_alpha: 0.75
+  stretch_beta: -0.25
+}
+
+nodes {
+  prime_rank: 0
+  obverse_rank: 0
+  label_text: "Fruit embedded"
+}
+
+nodes {
+  prime_rank: 1
+  obverse_rank: 7
+  label_text: "apple"
+}
+
+nodes {
+  prime_rank: 2
+  obverse_rank: 10
+  label_text: "apple.granny_smith"
+}
+
+nodes {
+  prime_rank: 3
+  obverse_rank: 9
+  label_text: "apple.bramley"
+}
+
+nodes {
+  prime_rank: 4
+  obverse_rank: 8
+  label_text: "apple.fuji"
+}
+
+nodes {
+  prime_rank: 5
+  obverse_rank: 6
+  label_text: "grape"
+}
+
+nodes {
+  prime_rank: 6
+  obverse_rank: 5
+  label_text: "orange"
+}
+
+nodes {
+  prime_rank: 7
+  obverse_rank: 4
+  label_text: "lemon"
+}
+
+nodes {
+  prime_rank: 8
+  obverse_rank: 3
+  label_text: "grapefruit"
+}
+
+nodes {
+  prime_rank: 9
+  obverse_rank: 2
+  label_text: "lime"
+}
+
+nodes {
+  prime_rank: 10
+  obverse_rank: 1
+  label_text: "peach"
+}

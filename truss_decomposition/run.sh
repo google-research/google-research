@@ -19,6 +19,9 @@ set -e
 # Install gflags development files if not already present.
 [ -d /usr/include/gflags/ ] || sudo apt -y install libgflags-dev
 
+# For travis: libomp.so is not found otherwise.
+export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH
+
 cd "$(readlink -f "$(dirname "$0")")"
 
 echo "Compiling..."

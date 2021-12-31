@@ -15,6 +15,7 @@
 #ifndef SCANN_OSS_WRAPPERS_SCANN_SERIALIZE_H_
 #define SCANN_OSS_WRAPPERS_SCANN_SERIALIZE_H_
 
+#include <cstdint>
 #include <string>
 
 #include "absl/strings/string_view.h"

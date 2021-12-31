@@ -30,7 +30,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('file_pattern', None, 'Dataset location.')
 flags.DEFINE_string('embedding_name', None, 'Embedding name.')
 flags.DEFINE_alias('en', 'embedding_name')
-flags.DEFINE_string('embedding_dimension', None, 'Embedding dimension.')
+flags.DEFINE_integer('embedding_dimension', None, 'Embedding dimension.')
 flags.DEFINE_alias('ed', 'embedding_dimension')
 flags.DEFINE_string('label_name', None, 'Name of label to use.')
 flags.DEFINE_list('label_list', None, 'List of possible label values.')
@@ -58,6 +58,7 @@ flags.DEFINE_integer('training_steps', 1000,
 flags.DEFINE_integer('measurement_store_interval', 10,
                      'The number of steps between storing objective value in '
                      'measurements.')
+flags.DEFINE_boolean('preaverage', False, 'Whether to preaverage.')
 
 
 def train_and_report(debug=False):
@@ -79,11 +80,12 @@ def train_and_report(debug=False):
       bucket_batch_sizes=[FLAGS.train_batch_size] * (len(FLAGS.bucket_boundaries) + 1),  # pylint:disable=line-too-long
       loop_forever=True,
       shuffle=True,
-      shuffle_buffer_size=FLAGS.shuffle_buffer_size)
+      shuffle_buffer_size=FLAGS.shuffle_buffer_size,
+      preaverage=FLAGS.preaverage)
 
   # Create model, loss, and other objects.
   y_onehot_spec = ds.element_spec[1]
-  assert len(y_onehot_spec.shape) == 2
+  assert len(y_onehot_spec.shape) == 2, y_onehot_spec.shape
   num_classes = y_onehot_spec.shape[1]
   model = models.get_keras_model(
       num_classes, FLAGS.use_batch_normalization,

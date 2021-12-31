@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -28,6 +29,9 @@
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/utils/common.h"
+#include "scann/utils/internal/avx2_funcs.h"
+#include "scann/utils/internal/avx_funcs.h"
+#include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/prefetch.h"
@@ -104,6 +108,11 @@ void DenseDotProductDistanceOneToManyInt8Float(
 void DenseDotProductDistanceOneToManyInt8Float(
     const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
     ConstSpan<DatapointIndex> indices, MutableSpan<float> result);
+
+void DenseDotProductDistanceOneToManyInt8Float(
+    const DatapointPtr<float>& query,
+    const DefaultDenseDatasetView<int8_t>& dataset, ConstSpan<uint32_t> indices,
+    MutableSpan<float> result);
 
 template <typename T, typename ResultElem>
 void DenseAbsDotProductDistanceOneToMany(const DatapointPtr<T>& query,
@@ -398,7 +407,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           __m128 v1 = _mm_loadu_ps(f1 + j);
           __m128 v2 = _mm_loadu_ps(f2 + j);
 
-          if (kShouldPrefetch) {
+          if (kShouldPrefetch && p0) {
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
                 p0 + j);
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
@@ -521,7 +530,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
       __m256 v1 = _mm256_loadu_ps(f1 + j);
       __m256 v2 = _mm256_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -545,7 +554,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
       __m128 v1 = _mm_loadu_ps(f1 + j);
       __m128 v2 = _mm_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -659,7 +668,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
       __m256 v1 = _mm256_loadu_ps(f1 + j);
       __m256 v2 = _mm256_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -683,7 +692,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
       __m128 v1 = _mm_loadu_ps(f1 + j);
       __m128 v2 = _mm_loadu_ps(f2 + j);
 
-      if (kShouldPrefetch) {
+      if (kShouldPrefetch && p0) {
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
                                                                            j);
         ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
@@ -858,7 +867,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           __m128d v1 = _mm_loadu_pd(f1 + j);
           __m128d v2 = _mm_loadu_pd(f2 + j);
 
-          if (kShouldPrefetch) {
+          if (kShouldPrefetch && p0) {
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
                 p0 + j);
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
@@ -994,7 +1003,7 @@ void DenseGeneralHammingDistanceMeasureOneToManyInternal(
           __m128i v2 =
               _mm_loadu_si128(reinterpret_cast<const __m128i*>(i2 + j));
 
-          if (kShouldPrefetch) {
+          if (kShouldPrefetch && p0) {
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
                 p0 + j);
             ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
@@ -1700,6 +1709,72 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
   }
 }
 
+namespace one_to_many_low_level {
+
+#ifdef __x86_64__
+
+namespace avx1 {
+using AvxFuncs = ::research_scann::AvxFunctionsAvx;
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
+#define SCANN_AVX_FIXED8
+#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+#undef SCANN_AVX_FIXED8
+}  // namespace avx1
+
+namespace avx2 {
+using AvxFuncs = ::research_scann::AvxFunctionsAvx2Fma;
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
+#define SCANN_AVX_FIXED8
+#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+#undef SCANN_AVX_FIXED8
+}  // namespace avx2
+
+namespace sse4 {
+#define SCANN_SIMD_ATTRIBUTE SCANN_SSE4
+#define SCANN_SSE_FIXED8
+#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
+#undef SCANN_SSE_FIXED8
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace sse4
+
+#endif
+
+template <typename DatasetView, bool kHasIndices, typename IndexT,
+          typename ResultElemT, typename CallbackLambda>
+SCANN_INLINE void DenseDotProductDistanceOneToManyInt8FloatLowLevel(
+    const float* query, const DatasetView* __restrict__ dataset_view,
+    const IndexT* indices, MutableSpan<ResultElemT> result,
+    CallbackLambda* __restrict__ callback) {
+  size_t j = 0;
+#ifdef __x86_64__
+  constexpr size_t kUnrollFactor = 3;
+  if (RuntimeSupportsAvx2()) {
+    avx2::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
+        query, dataset_view, indices, result, callback);
+  } else if (RuntimeSupportsAvx1()) {
+    avx1::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
+        query, dataset_view, indices, result, callback);
+  } else {
+    sse4::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
+        query, dataset_view, indices, result, callback);
+  }
+  j = result.size() / kUnrollFactor * kUnrollFactor;
+#endif
+
+  const DimensionIndex dims = dataset_view->dimensionality();
+  DatapointPtr<float> query_dptr(nullptr, query, dims, dims);
+  for (; j < result.size(); ++j) {
+    const size_t idx = kHasIndices ? indices[j] : GetDatapointIndex(result, j);
+    const float dist = -DenseDotProduct(
+        query_dptr,
+        MakeDatapointPtr(nullptr, dataset_view->GetPtr(idx), dims, dims));
+    callback->invoke(j, dist);
+  }
+}
+
+}  // namespace one_to_many_low_level
 }  // namespace research_scann
 
 #endif

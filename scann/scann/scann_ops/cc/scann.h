@@ -15,6 +15,7 @@
 #ifndef SCANN_SCANN_OPS_CC_SCANN_H_
 #define SCANN_SCANN_OPS_CC_SCANN_H_
 
+#include <cstdint>
 #include <limits>
 
 #include "absl/memory/memory.h"
@@ -69,10 +70,11 @@ class ScannInterface {
                        float* distances);
   template <typename T_idx>
   void ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res, T_idx* indices,
-                              float* distances);
+                              float* distances, int neighbors_per_query);
 
-  bool needs_dataset() const { return scann_->needs_dataset(); }
-  const Dataset* dataset() const { return scann_->dataset(); }
+  StatusOr<shared_ptr<const DenseDataset<float>>> Float32DatasetIfNeeded() {
+    return scann_->SharedFloatDatasetIfNeeded();
+  }
 
   size_t n_points() const { return n_points_; }
   DimensionIndex dimensionality() const { return dimensionality_; }
@@ -100,11 +102,18 @@ void ScannInterface::ReshapeNNResult(const NNResultsVector& res, T_idx* indices,
 
 template <typename T_idx>
 void ScannInterface::ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res,
-                                            T_idx* indices, float* distances) {
+                                            T_idx* indices, float* distances,
+                                            int neighbors_per_query) {
   for (const auto& result_vec : res) {
+    DCHECK_LE(result_vec.size(), neighbors_per_query);
     for (const auto& pair : result_vec) {
       *(indices++) = static_cast<T_idx>(pair.first);
       *(distances++) = result_multiplier_ * pair.second;
+    }
+
+    for (int i = result_vec.size(); i < neighbors_per_query; i++) {
+      *(indices++) = 0;
+      *(distances++) = std::numeric_limits<float>::quiet_NaN();
     }
   }
 }

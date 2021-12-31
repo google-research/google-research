@@ -17,6 +17,7 @@
 #ifndef SCANN_DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
 #define SCANN_DATA_FORMAT_INTERNAL_SHORT_STRING_OPTIMIZED_STRING_H_
 
+#include <cstdint>
 #include <cstdlib>
 
 #include "absl/types/optional.h"
@@ -91,7 +92,7 @@ class ShortStringOptimizedString {
   }
 
  private:
-  static_assert(sizeof(uint32_t) == 4, "The uint32_t typedef is wrong.");
+  static_assert(sizeof(uint32_t) == 4, "The uint32 typedef is wrong.");
 
   static_assert(sizeof(char*) == 4 || sizeof(char*) == 8,
                 "ScaNN only supports 32- and 64-bit flat memory models.");

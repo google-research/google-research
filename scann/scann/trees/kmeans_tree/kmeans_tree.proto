@@ -34,7 +34,7 @@ message SerializedKMeansTree {
 
     optional double learned_spilling_threshold = 4;
 
-    optional int32 leaf_id = 5;
+    optional int32 leaf_id = 5 [default = -1];
 
     repeated double residual_stdevs = 6 [packed = true];
   }

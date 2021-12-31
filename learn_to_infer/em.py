@@ -81,8 +81,7 @@ def kmeans_pp_init(X, k, key):
   keys = jax.random.split(key, num=k)
   n, d = X.shape
   centroids = jnp.ones([k, d]) * jnp.inf
-  centroids = jax.ops.index_update(centroids, 0,
-                                   X[jax.random.randint(keys[0], [], 0, n), :])
+  centroids = centroids.at[0].set(X[jax.random.randint(keys[0], [], 0, n), :])
   dist = lambda x, y: jnp.linalg.norm(x - y, axis=0, keepdims=False)
 
   def for_body(i, centroids):
@@ -90,7 +89,7 @@ def kmeans_pp_init(X, k, key):
     min_square_dists = jnp.square(jnp.min(dists, axis=1))
     new_centroid_ind = jax.random.categorical(keys[i],
                                               jnp.log(min_square_dists))
-    centroids = jax.ops.index_update(centroids, i, X[new_centroid_ind, :])
+    centroids = centroids.at[i].set(X[new_centroid_ind, :])
     return centroids
 
   return jax.lax.fori_loop(1, k, for_body, centroids)

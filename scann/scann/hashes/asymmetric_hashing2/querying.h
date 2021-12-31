@@ -19,6 +19,7 @@
 
 #include <math.h>
 
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 #include <utility>
@@ -205,43 +206,6 @@ class AsymmetricQueryer {
   shared_ptr<const Model<T>> model_;
 };
 
-template <typename T>
-class SymmetricQueryer {
- public:
-  using IdentityPostprocessFunctor =
-      asymmetric_hashing_internal::IdentityPostprocessFunctor;
-
-  struct Option {
-    bool uses_nibble_packing = false;
-  };
-
-  SymmetricQueryer(const DistanceMeasure& lookup_distance,
-                   const Model<T>& model, Option option = Option());
-
-  template <typename TopN, typename Functor = IdentityPostprocessFunctor,
-            typename DatasetView = DefaultDenseDatasetView<uint8_t>>
-  Status FindApproximateNeighbors(
-      const DatapointPtr<uint8_t>& hashed_query,
-      const DatasetView* __restrict__ hashed_dataset,
-      const SearchParameters& params,
-      QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) const;
-
-  float ComputeSingleApproximateDistance(
-      const DatapointPtr<uint8_t>& hashed_dp1,
-      const DatapointPtr<uint8_t>& hashed_dp2) const;
-
-  size_t num_blocks() const { return num_blocks_; }
-
- private:
-  std::vector<float> global_lookup_table_;
-
-  const uint32_t num_clusters_per_block_;
-
-  const uint32_t num_blocks_;
-
-  const Option option_;
-};
-
 inline NNResultsVector FixedToFloatDistance(NNResultsVector possibly_fixed,
                                             float multiplier) {
   return possibly_fixed;
@@ -341,7 +305,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighbors(
           static_cast<int>(lookup_table.int8_lookup_table.empty()) !=
       2) {
     return InvalidArgumentError(
-        "Exactly one of float/int8_t/int16 lookup table must be populated.");
+        "Exactly one of float/int8/int16 lookup table must be populated.");
   }
 
   if (!querying_options.hashed_dataset &&
@@ -501,7 +465,7 @@ Status AsymmetricQueryer<T>::FindApproximateTopNeighborsTopNDispatch(
 
   if (!lookup_table.can_use_int16_accumulator)
     return InvalidArgumentError(
-        "FastTopNeighbors+AsymmetricQueryer fast path only supports int16_t "
+        "FastTopNeighbors+AsymmetricQueryer fast path only supports int16 "
         "accumulators.");
 
   const auto& packed_dataset = *querying_options.lut16_packed_dataset;
@@ -705,13 +669,13 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
       num_hashes > kMaxInt8Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int8_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int8 lookup table = ",
         kMaxInt8Blocks, ")."));
   } else if (std::is_same<LookupElement, int16_t>::value &&
              num_hashes > kMaxInt16Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int16_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int16 lookup table = ",
         kMaxInt16Blocks, ")."));
   }
 
@@ -873,7 +837,7 @@ Status AsymmetricQueryer<T>::PopulateDistances(
           static_cast<int>(lookup_table.int8_lookup_table.empty()) !=
       2) {
     return InvalidArgumentError(
-        "Exactly one of float/int8_t/int16 lookup table must be populated.");
+        "Exactly one of float/int8/int16 lookup table must be populated.");
   }
 
   auto impl_ptr =
@@ -912,13 +876,13 @@ Status AsymmetricQueryer<T>::PopulateDistancesImpl(
   if (IsSame<LookupElement, uint8_t>() && num_hashes > kMaxInt8Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int8_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int8 lookup table = ",
         kMaxInt8Blocks, ")."));
   } else if (IsSame<LookupElement, uint16_t>() &&
              num_hashes > kMaxInt16Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
-        ") may produce overflow.  (Max blocks for int16_t lookup table = ",
+        ") may produce overflow.  (Max blocks for int16 lookup table = ",
         kMaxInt16Blocks, ")."));
   }
 
@@ -953,75 +917,7 @@ Status AsymmetricQueryer<T>::PopulateDistancesImpl(
   return OkStatus();
 }
 
-template <typename T>
-template <typename TopN, typename Functor, typename DatasetView>
-Status SymmetricQueryer<T>::FindApproximateNeighbors(
-    const DatapointPtr<uint8_t>& hashed_query,
-    const DatasetView* __restrict__ hashed_dataset,
-    const SearchParameters& params,
-    QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) const {
-  DCHECK(top_n);
-  static_assert(
-      std::is_same<float, decltype(top_n->approx_bottom().second)>::value,
-      "The distance type for TopN must be float for "
-      "SymmetricQueryer::FindApproximateNeighbors.");
-  if (!top_n->empty()) {
-    return FailedPreconditionError(
-        "TopN must be empty for "
-        "SymmetricQueryer::FindApproximateNeighbors.");
-  }
-  const uint32_t num_clusters_sq = std::pow(num_clusters_per_block_, 2);
-
-  double effective_epsilon = params.pre_reordering_epsilon();
-  for (size_t i = 0; i < hashed_dataset->size(); ++i) {
-    if (!params.IsWhitelisted(i)) continue;
-    double sum = 0.0;
-    const uint8_t* hashed_database_point = hashed_dataset->GetPtr(i);
-    const uint8_t* query = hashed_query.values();
-    const float* matrix_ptr = global_lookup_table_.data();
-
-    if (option_.uses_nibble_packing) {
-      size_t i_end = hashed_query.nonzero_entries();
-
-      if (num_blocks_ & 1) {
-        --i_end;
-        sum += global_lookup_table_[(num_blocks_ - 1) * num_clusters_sq +
-                                    num_clusters_per_block_ * query[i_end] +
-                                    hashed_database_point[i_end]];
-      }
-      for (size_t i = 0; i < i_end; ++i) {
-        const uint8_t dp1_lo = query[i] & 0x0f;
-        const uint8_t dp2_lo = hashed_database_point[i] & 0x0f;
-        const uint8_t dp1_hi = query[i] >> 4;
-        const uint8_t dp2_hi = hashed_database_point[i] >> 4;
-        sum += matrix_ptr[num_clusters_per_block_ * dp1_lo + dp2_lo];
-        sum += matrix_ptr[num_clusters_sq + num_clusters_per_block_ * dp1_hi +
-                          dp2_hi];
-        matrix_ptr += 2 * num_clusters_sq;
-      }
-    } else {
-      for (size_t j : Seq(hashed_query.nonzero_entries())) {
-        sum += matrix_ptr[num_clusters_per_block_ * query[j] +
-                          hashed_database_point[j]];
-        matrix_ptr += num_clusters_sq;
-      }
-    }
-
-    const float dist =
-        querying_options.postprocessing_functor.Postprocess(sum, i);
-    if (dist < effective_epsilon) {
-      top_n->push(std::make_pair(i, dist));
-      if (top_n->full()) {
-        effective_epsilon = top_n->approx_bottom().second;
-      }
-    }
-  }
-
-  return OkStatus();
-}
-
 SCANN_INSTANTIATE_TYPED_CLASS(extern, AsymmetricQueryer);
-SCANN_INSTANTIATE_TYPED_CLASS(extern, SymmetricQueryer);
 
 }  // namespace asymmetric_hashing2
 }  // namespace research_scann

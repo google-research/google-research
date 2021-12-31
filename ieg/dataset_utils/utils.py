@@ -1,23 +1,25 @@
 # coding=utf-8
-"""Utility functions for supporting the code."""
+"""Utils functions for supporting the code."""
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
+
 
 from absl import flags
+import numpy as np
+from numpy.core.numeric import False_  # pylint: disable=unused-import
+import tensorflow.compat.v1 as tf
+from tqdm import tqdm
 
 from ieg.dataset_utils import augmentation_transforms
 from ieg.dataset_utils import autoaugment
 from ieg.dataset_utils import randaugment
 
-import numpy as np
-import tensorflow.compat.v1 as tf
-
 FLAGS = flags.FLAGS
 
 GODD_POLICIES = autoaugment.cifar10_policies()
 RANDOM_POLICY_OPS = randaugment.RANDOM_POLICY_OPS
+BLUR_OPS = randaugment.BLUR_OPS
 _IMAGE_SIZE = 224
 _CROP_PADDING = 32
 # Does multiprocessing speed things up?
@@ -90,6 +92,27 @@ def apply_autoaugment(data, no_policy=False):
   res = np.concatenate(res, 0)
 
   return res
+
+
+def random_blur(images, magnitude=10, nops=1):
+  """Apply random blurs for a batch of data."""
+  # using shared policies are better
+  policies = [(policy, 0.5, mag) for (policy, mag) in zip(
+      np.random.choice(BLUR_OPS, nops), np.random.randint(1, magnitude, nops))]
+  policies = [policies] * images.shape[0]
+  if POOL is not None:
+    jobs = [(image.squeeze(), policy) for image, policy in zip(
+        np.split(images.copy(), images.shape[0], axis=0), policies)]
+    augmented_images = POOL.map(apply_randomaugment, jobs)
+  else:
+    augmented_images = []
+    for image, policy in zip(images.copy(), policies):
+      final_img = apply_randomaugment((image, policy))
+      augmented_images.append(final_img)
+
+  augmented_images = np.stack(augmented_images, axis=0)
+
+  return augmented_images
 
 
 def apply_randomaugment(data):
@@ -268,11 +291,11 @@ def _decode_and_random_crop(image_bytes, image_size):
   bad = _at_least_x_are_equal(original_shape, tf.shape(image), 3)
 
   image = tf.cond(
-      bad,
-      lambda: _decode_and_center_crop(image_bytes, image_size),
-      lambda: tf.image.resize_bicubic(  # pylint: disable=g-long-lambda
-          [image], [image_size, image_size])[0])
-
+      bad, lambda: _decode_and_center_crop(image_bytes, image_size),
+      lambda: tf.compat.v1.image.resize(  # pylint: disable=g-long-lambda
+          image, [image_size, image_size],
+          method=tf.image.ResizeMethod.BILINEAR,
+          align_corners=False))
   return image
 
 
@@ -293,8 +316,10 @@ def _decode_and_center_crop(image_bytes, image_size):
       padded_center_crop_size
   ])
   image = tf.image.decode_and_crop_jpeg(image_bytes, crop_window, channels=3)
-  image = tf.image.resize_bicubic([image], [image_size, image_size])[0]
-  return image
+  return tf.compat.v1.image.resize(
+      image, [image_size, image_size],
+      method=tf.image.ResizeMethod.BILINEAR,
+      align_corners=False)
 
 
 def _flip(image):
@@ -323,14 +348,13 @@ def preprocess_for_train(image_bytes,
   image = _decode_and_random_crop(image_bytes, image_size)
   image = _flip(image)
   image = tf.reshape(image, [image_size, image_size, 3])
-  image = tf.image.convert_image_dtype(
-      image, dtype=tf.bfloat16 if use_bfloat16 else tf.float32)
+  image = tf.cast(image, dtype=tf.bfloat16 if use_bfloat16 else tf.float32)
 
   if autoaugment_name:
     tf.logging.info('Apply AutoAugment policy {}'.format(autoaugment_name))
     image = tf.clip_by_value(image, 0.0, 255.0)
     image = tf.cast(image, dtype=tf.uint8)
-    # Random aug shouldo also work.
+    # Random aug should also work.
     image = autoaugment.distort_image_with_autoaugment(image, autoaugment_name)
     image = tf.cast(image, dtype=tf.bfloat16 if use_bfloat16 else tf.float32)
   return image
@@ -349,8 +373,7 @@ def preprocess_for_eval(image_bytes, use_bfloat16, image_size=_IMAGE_SIZE):
   """
   image = _decode_and_center_crop(image_bytes, image_size)
   image = tf.reshape(image, [image_size, image_size, 3])
-  image = tf.image.convert_image_dtype(
-      image, dtype=tf.bfloat16 if use_bfloat16 else tf.float32)
+  image = tf.cast(image, dtype=tf.bfloat16 if use_bfloat16 else tf.float32)
   return image
 
 
@@ -388,40 +411,6 @@ def cutout(image, pad_size, replace=0):
   return image
 
 
-def preprocess_image(image_bytes,
-                     is_training=False,
-                     use_bfloat16=False,
-                     image_size=_IMAGE_SIZE,
-                     autoaugment_name=None):
-  """Preprocesses the given image.
-
-  Args:
-    image_bytes: `Tensor` representing an image binary of arbitrary size.
-    is_training: `bool` for whether the preprocessing is for training.
-    use_bfloat16: `bool` for whether to use bfloat16.
-    image_size: image size.
-    autoaugment_name: `string` that is the name of the autoaugment policy to
-      apply to the image. If the value is `None` autoaugment will not be
-      applied.
-
-  Returns:
-    A preprocessed image `Tensor` with value range of [0, 1].
-  """
-
-  if is_training:
-    image = preprocess_for_train(image_bytes, use_bfloat16, image_size,
-                                 autoaugment_name)
-  else:
-    image = preprocess_for_eval(image_bytes, use_bfloat16, image_size)
-
-  # rescale to [-1, 1]
-  image = tf.math.divide(image, 255.0)
-  image = tf.subtract(image, 0.5)
-  image = tf.multiply(image, 2.0)
-
-  return image
-
-
 def imagenet_preprocess_image(image_bytes,
                               is_training=False,
                               use_bfloat16=False,
@@ -441,7 +430,7 @@ def imagenet_preprocess_image(image_bytes,
     use_cutout: 'bool' for whether use cutout.
 
   Returns:
-    A preprocessed image `Tensor` with value range of [0, 1].
+    A preprocessed image `Tensor` with value range of [-1, 1].
   """
 
   if is_training:
@@ -452,10 +441,119 @@ def imagenet_preprocess_image(image_bytes,
   else:
     image = preprocess_for_eval(image_bytes, use_bfloat16, image_size)
 
-  # clip the extra values
+  # Clip the extra values
   image = tf.clip_by_value(image, 0.0, 255.0)
   image = tf.math.divide(image, 255.0)
   image = tf.subtract(image, 0.5)
   image = tf.multiply(image, 2.0)
 
   return image
+
+
+def _bytes_feature(value):
+  """Returns a bytes_list from a string / byte."""
+  if isinstance(value, type(tf.constant(0))):
+    value = value.numpy(
+    )  # BytesList won't unpack a string from an EagerTensor.
+  return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def _int64_feature(value):
+  """Returns an int64_list from a bool / enum / int / uint."""
+  return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def image_example(image_str, label, dat_id=None):
+  """Creates tf example."""
+  feature = {
+      'label': _int64_feature(label),
+      'image': _bytes_feature(image_str),
+  }
+  if dat_id is not None:
+    feature.update({'id': _int64_feature(dat_id)})
+  return tf.train.Example(features=tf.train.Features(feature=feature))
+
+
+def _parse_image_function(example_proto, include_id=False):
+  """Parses tf example."""
+  # Parse the input tf.train.Example proto using the dictionary above.
+  image_feature_description = {
+      'label': tf.io.FixedLenFeature([], tf.int64),
+      'image': tf.io.FixedLenFeature([], tf.string),
+  }
+  if include_id:
+    image_feature_description.update(
+        {'id': tf.io.FixedLenFeature([], tf.int64)})
+  results = tf.io.parse_single_example(example_proto, image_feature_description)
+  results['image'] = tf.io.decode_jpeg(
+      results['image'], channels=3, name='parse_image_function_decode_jpeg')
+  results['label'] = tf.cast(results['label'], tf.int32)
+  return results
+
+
+def write_tfrecords(record_file,
+                    ds,
+                    ds_size,
+                    nshard=50,
+                    include_ids=True,
+                    filter_fn=None):
+  """Rewrites ds as tfrecords that contains data ids."""
+  ds = ds.shuffle(ds_size)
+  next_item = tf.data.make_one_shot_iterator(ds).get_next()
+  dat_id = 0
+  part_num = 0
+  per_shard_sample = ds_size // nshard + (0 if ds_size % nshard == 0 else 1)
+  count = 0
+  write_last_round = False
+  with tf.Session() as sess:
+    img_pl = tf.placeholder(tf.uint8)
+    img_str_tf = tf.io.encode_jpeg(img_pl)
+    while True:
+      try:
+        image_str_batch = []
+        label_batch = []
+        for _ in range(per_shard_sample):
+          image, label = sess.run(next_item)
+          image_str = sess.run(img_str_tf, feed_dict={img_pl: image})
+          if filter_fn is None or filter_fn(label):
+            image_str_batch.append(image_str)
+            label_batch.append(label)
+            count += 1
+      except tf.errors.OutOfRangeError:
+        if write_last_round:
+          tf.logging.info(
+              'Generate {} tfrecords ({} samples) with data ids.'.format(
+                  nshard, count))
+          break
+        write_last_round = True
+      part_path = record_file + '-{:05d}-of-{:05d}'.format(part_num, nshard)
+      part_num += 1
+      with tf.io.TFRecordWriter(part_path) as writer:
+        for image_str, label in tqdm(
+            zip(image_str_batch, label_batch),
+            desc='Write tfrecord #%d' % part_num):
+          tf_example = image_example(image_str, label,
+                                     dat_id if include_ids else None)
+          dat_id += 1
+          writer.write(tf_example.SerializeToString())
+
+
+def read_tf_records(record_file, train, include_ids=False):
+  """Reads tfrecords and convert to tf.data with data ids."""
+
+  def fetch_dataset_fn(filename):
+    buffer_size = 8 * 1024 * 1024  # 8 MiB per file
+    dataset = tf.data.TFRecordDataset(filename, buffer_size=buffer_size)
+    return dataset
+
+  dataset = tf.data.Dataset.list_files(record_file, shuffle=train)
+  dataset = dataset.interleave(
+      fetch_dataset_fn,
+      block_length=16,
+      num_parallel_calls=tf.data.experimental.AUTOTUNE)
+  filenames = tf.io.gfile.glob(record_file)
+  nums = sum(1 for filename in filenames  # pylint: disable=g-complex-comprehension
+             for _ in tf.python_io.tf_record_iterator(filename))
+  return dataset.map(
+      lambda x: _parse_image_function(x, include_id=include_ids),
+      num_parallel_calls=tf.data.experimental.AUTOTUNE), nums

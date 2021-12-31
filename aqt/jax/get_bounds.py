@@ -15,10 +15,10 @@
 
 """Functions to get bounds of activation/input using its statistics."""
 
+import dataclasses
 import typing
 from typing import Optional, Tuple, Union
 
-import dataclasses
 from flax import linen as nn
 from jax import lax
 import jax.numpy as jnp
@@ -67,6 +67,16 @@ class GetBounds(nn.Module):
     # Whether to use a running mean of the maximum of the absolute value of
     # activation tensors to calculate bounds.
     use_mean_of_max: bool = False
+
+    # below four variables are new get_bound coefficients
+    # coefficients should be float, but set to None as default value
+    # to avoid invisible bugs
+    cams_coeff: Optional[float] = None
+    cams_stddev_coeff: Optional[float] = None
+    mean_of_max_coeff: Optional[float] = None
+    fixed_bound: Optional[float] = None
+    # whether to use old or new code to compute the bound
+    use_old_code: bool = True
 
   @dataclass
   class Params:
@@ -157,15 +167,27 @@ class GetBounds(nn.Module):
   def _stats_to_bounds(self, stats_value):
     """Computes activation clipping bounds from activation statistics."""
     hyper = self.hyper
-    if hyper.use_cams:  # upper confidence bound formula
-      return jnp.abs(stats_value.mean) + hyper.stddev_coeff * lax.sqrt(
-          stats_value.mean_sq - stats_value.mean**2)
-    elif hyper.use_mean_of_max:
-      maximum = stats_value.mean_batch_maximum
-      minimum = stats_value.mean_batch_minimum
-      return jnp.maximum(jnp.abs(maximum), jnp.abs(minimum))
-    else:
-      stddev_uncentered = lax.sqrt(stats_value.mean_sq)
-      absdev_uncentered = stats_value.mean_abs
-      return (hyper.mix_coeff * hyper.stddev_coeff * stddev_uncentered +
-              (1 - hyper.mix_coeff) * hyper.absdev_coeff * absdev_uncentered)
+    maximum = stats_value.mean_batch_maximum
+    minimum = stats_value.mean_batch_minimum
+    mom = jnp.maximum(jnp.abs(maximum), jnp.abs(minimum))
+    stddev_uncentered = lax.sqrt(stats_value.mean_sq)
+    absdev_uncentered = stats_value.mean_abs
+    stddev = lax.sqrt(stats_value.mean_sq - stats_value.mean**2)
+    abs_mean = jnp.abs(stats_value.mean)
+    if hyper.use_old_code:  # old code of computing the bound
+      if hyper.use_cams:  # upper confidence bound formula
+        return abs_mean + hyper.stddev_coeff * stddev
+      elif hyper.use_mean_of_max:
+        return mom
+      else:
+        return (hyper.mix_coeff * hyper.stddev_coeff * stddev_uncentered +
+                (1 - hyper.mix_coeff) * hyper.absdev_coeff * absdev_uncentered)
+    else:  # use new way of computing the bound
+      cams = abs_mean + hyper.cams_stddev_coeff * stddev
+      return (
+          hyper.fixed_bound +
+          hyper.mean_of_max_coeff * mom +
+          hyper.stddev_coeff * stddev_uncentered +
+          hyper.absdev_coeff * absdev_uncentered +
+          hyper.cams_coeff * cams
+      )

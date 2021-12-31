@@ -108,9 +108,10 @@ from absl import logging
 import tensorflow.compat.v1 as tf
 from kws_streaming.layers import modes
 from kws_streaming.models import model_flags
-from kws_streaming.models import utils
+from kws_streaming.models import model_utils
 import kws_streaming.models.att_mh_rnn as att_mh_rnn
 import kws_streaming.models.att_rnn as att_rnn
+import kws_streaming.models.bc_resnet as bc_resnet
 import kws_streaming.models.cnn as cnn
 import kws_streaming.models.crnn as crnn
 import kws_streaming.models.dnn as dnn
@@ -140,8 +141,16 @@ def main(_):
 
   if flags.train:
     # Create model folders where logs and model will be stored
-    os.makedirs(flags.train_dir)
-    os.mkdir(flags.summaries_dir)
+    try:
+      os.makedirs(flags.train_dir)
+      os.makedirs(os.path.join(flags.train_dir, 'restore'))
+      os.mkdir(flags.summaries_dir)
+    except OSError as e:
+      if flags.restore_checkpoint:
+        pass
+      else:
+        raise ValueError('model already exists in folder %s' %
+                         flags.train_dir) from None
 
     # Model training
     train.train(flags)
@@ -212,14 +221,14 @@ def main(_):
     # below models can use striding in time dimension,
     # but this is currently unsupported
     elif flags.model_name == 'cnn':
-      for strides in utils.parse(flags.cnn_strides):
+      for strides in model_utils.parse(flags.cnn_strides):
         if strides[0] > 1:
           model_is_streamable = False
           break
     elif flags.model_name == 'ds_cnn':
-      if utils.parse(flags.cnn1_strides)[0] > 1:
+      if model_utils.parse(flags.cnn1_strides)[0] > 1:
         model_is_streamable = False
-      for strides in utils.parse(flags.dw2_strides):
+      for strides in model_utils.parse(flags.dw2_strides):
         if strides[0] > 1:
           model_is_streamable = False
           break
@@ -340,6 +349,7 @@ if __name__ == '__main__':
   parser_mobilenet_v2 = subparsers.add_parser('mobilenet_v2')
   mobilenet_v2.model_parameters(parser_mobilenet_v2)
 
+
   # xception model settings
   parser_xception = subparsers.add_parser('xception')
   xception.model_parameters(parser_xception)
@@ -359,6 +369,10 @@ if __name__ == '__main__':
   # ds_tc_resnet model settings
   parser_ds_tc_resnet = subparsers.add_parser('ds_tc_resnet')
   ds_tc_resnet.model_parameters(parser_ds_tc_resnet)
+
+  # bc_resnet model settings
+  parser_bc_resnet = subparsers.add_parser('bc_resnet')
+  bc_resnet.model_parameters(parser_bc_resnet)
 
   FLAGS, unparsed = parser.parse_known_args()
   if unparsed and tuple(unparsed) != ('--alsologtostderr',):

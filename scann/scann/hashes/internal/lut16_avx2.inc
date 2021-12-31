@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "scann/hashes/internal/lut16_avx2.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
@@ -391,8 +393,8 @@ SCANN_AVX2_INLINE int16_t GetInt16Threshold(float float_threshold) {
 }
 
 namespace {
-template <size_t kNumQueries, PrefetchStrategy kPrefetch,
-          bool kHasFinalPredicate, typename TopN>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch, bool kHasAnyPredicate,
+          typename TopN>
 SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
     LUT16ArgsTopN<float, TopN> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
@@ -463,12 +465,19 @@ SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
       while (push_mask) {
         const int offset = bits::FindLSBSetNonZero(push_mask);
         push_mask &= (push_mask - 1);
-        const DatapointIndex dp_idx = first_dp_index + 32 * k + offset;
+        DatapointIndex dp_idx = first_dp_index + 32 * k + offset;
         DCHECK(
             !restrict_whitelist_ptrs[j] ||
             args.restrict_whitelists[j].IsWhitelisted(dp_idx - first_dp_index))
             << dp_idx;
-        if (kHasFinalPredicate && !args.final_predicate(dp_idx)) continue;
+        if (kHasAnyPredicate) {
+          if (args.datapoint_translation_predicate) {
+            dp_idx = args.datapoint_translation_predicate(dp_idx);
+          }
+          if (args.final_predicate && !args.final_predicate(dp_idx)) {
+            continue;
+          }
+        }
 
         const bool needs_gc =
             topn_mutators[j].Push(dp_idx, distances_buffer[offset]);
@@ -491,7 +500,7 @@ SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_AVX2_OUTLINE void LUT16Avx2<kNumQueries, kPrefetch>::GetTopFloatDistances(
     LUT16ArgsTopN<float> args) {
-  if (args.final_predicate) {
+  if (args.final_predicate || args.datapoint_translation_predicate) {
     return GetTopFloatDistancesImpl<kNumQueries, kPrefetch, true>(
         std::move(args));
   } else {

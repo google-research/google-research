@@ -21,7 +21,7 @@ source ./bin/activate
 
 rm -rf probability
 git clone --depth 1 https://github.com/tensorflow/probability.git
-cp -R probability/discussion discussion
+cp -R probability/spinoffs/fun_mc/fun_mc fun_mc
 
 sudo apt-get install r-base
 pip install -r hmc_swindles/requirements.txt

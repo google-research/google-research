@@ -16,7 +16,7 @@
 # Lint as: python3
 """Neural net models for tabular datasets."""
 
-from typing import Union, List
+from typing import List, Optional, Union
 import numpy as np
 import tensorflow as tf
 
@@ -251,7 +251,7 @@ class NAM(tf.keras.Model):
   def _name_scope(self):
     """Overrides the default function to fix name_scope for bias."""
     tf_name_scope = self._kwargs.get('name_scope', None)
-    name_scope = super(NAM, self)._name_scope()
+    name_scope = super(NAM, self)._name_scope()  # pytype: disable=attribute-error  # typed-keras
     if tf_name_scope:
       return tf_name_scope + '/' + name_scope
     else:

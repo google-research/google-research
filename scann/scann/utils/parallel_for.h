@@ -17,8 +17,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
+#include <type_traits>
+#include <utility>
 
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"

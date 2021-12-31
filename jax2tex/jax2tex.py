@@ -43,13 +43,15 @@ from jax import tree_util
 from jax import util
 
 from jax.abstract_arrays import ShapedArray
-from jax.api import make_jaxpr
+from jax import make_jaxpr
 from jax.core import Primitive
 from jax.interpreters import ad
 from jax.interpreters import batching
 from jax.interpreters import xla
 
 import jax.numpy as np
+
+import numpy as onp
 
 # pylint: disable=redefined-builtin
 map = util.safe_map
@@ -129,6 +131,8 @@ def jax2tex(fn: Callable[..., Array], *args) -> str:
     if isinstance(v, core.Literal):
       if isinstance(v.val, float) or isinstance(v.val, int):
         return ShapedArray((), type(v.val))
+      elif v.val is core.unit:
+        return core.AbstractUnit()
       return ShapedArray(v.val.shape, v.val.dtype)
     else:
       return abstract[v]
@@ -245,7 +249,7 @@ def jax2tex(fn: Callable[..., Array], *args) -> str:
   used_exprs = tuple(read_expr(v) for v in used_vars)
 
   # Go through the latex outputs and construct a string representation if they
-  # have a data dependency on the output and are not supressed aliases.
+  # have a data dependency on the output and are not suppressed aliases.
   output = ''
   for out_var, in_var, alias in output_lines:
 
@@ -259,6 +263,7 @@ def jax2tex(fn: Callable[..., Array], *args) -> str:
       continue
 
     shaped = read_shaped(out_var)
+    assert not isinstance(shaped, core.AbstractUnit), shaped
     indices = ''.join([chr(i + ord('i')) for i, s in enumerate(shaped.shape) if
                        s > 1])
 
@@ -417,7 +422,7 @@ class BoundVariable(object):
 
     if isinstance(self.val, float) or isinstance(self.val, int):
       return str(self.var) + suffix
-    elif (isinstance(self.val, np.ndarray) or
+    elif (isinstance(self.val, (onp.ndarray, np.ndarray)) or
           isinstance(self.val, ShapedArray)):
       if not self.val.shape:
         return str(self.var) + suffix
@@ -476,9 +481,7 @@ BoundASTNode = Union[BoundVariable, BoundTExpr]
 
 
 def is_array_or_float(x: Array) -> bool:
-  return (isinstance(x, np.ndarray) or
-          isinstance(x, float) or
-          isinstance(x, int))
+  return isinstance(x, (onp.ndarray, np.ndarray, float, int))
 
 
 def canonicalize_consts(literals: List[Array]) -> MaybeEmptyTuple[Variable]:
@@ -526,6 +529,29 @@ def get_dependencies(expr: ASTNode) -> MaybeEmptyTuple[Variable]:
 op2tex = {}
 op2ind = {}
 
+NEEDS_EXPLICIT_PARENTHESES = [
+    lax.add_p,
+    lax.sub_p,
+    lax.neg_p,
+    lax.reduce_sum_p,
+]
+
+MAYBE_NEEDS_EXPLICIT_PARENTHESES = [
+    lax.broadcast_in_dim_p
+]
+
+
+def prim_needs_explicit_parentheses(node: BoundTExpr) -> bool:
+  """Check whether a node needs parantheses to make sense when multiplied."""
+  if node.prim in NEEDS_EXPLICIT_PARENTHESES:
+    return True
+
+  if node.prim in MAYBE_NEEDS_EXPLICIT_PARENTHESES:
+    assert len(node.in_vars) == 1
+    return prim_needs_explicit_parentheses(node.in_ast_nodes[0])
+
+  return False
+
 
 def broadcast2ind(
     in_shaped: Tuple[ShapedArray, ...], out_indices: str, _: str) -> Tuple[str]:
@@ -560,9 +586,9 @@ op2ind[lax.sub_p] = broadcast2ind
 
 
 def mul2tex(a: BoundASTNode, b: BoundASTNode) -> str:
-  if hasattr(a, 'prim') and a.prim in (lax.add_p, lax.sub_p):
+  if hasattr(a, 'prim') and prim_needs_explicit_parentheses(a):
     a = f'\\left({a}\\right)'
-  if hasattr(b, 'prim') and b.prim in (lax.add_p, lax.sub_p):
+  if hasattr(b, 'prim') and prim_needs_explicit_parentheses(b):
     b = f'\\left({b}\\right)'
   return f'{a}{b}'
 op2tex[lax.mul_p] = mul2tex
@@ -696,8 +722,8 @@ op2tex[lax.convert_element_type_p] = noop2tex
 op2ind[lax.convert_element_type_p] = noop2ind
 op2tex[xla.device_put_p] = noop2tex
 op2ind[xla.device_put_p] = noop2ind
-op2tex[jax.ad_util.stop_gradient_p] = noop2tex
-op2ind[jax.ad_util.stop_gradient_p] = noop2ind
+op2tex[lax.stop_gradient_p] = noop2tex
+op2ind[lax.stop_gradient_p] = noop2ind
 
 op2tex[lax.sqrt_p] = lambda x: '\\sqrt{' + str(x) + '}'
 op2ind[lax.sqrt_p] = noop2ind
@@ -906,9 +932,11 @@ op2tex[lax.reshape_p] = reshape2tex
 
 def reshape2ind(in_shaped: Tuple[ShapedArray, ...],
                 out_indices: str,
+                out_used: str,
                 new_sizes,
                 dimensions) -> Tuple[str, ...]:
   """Computes indices of inputs given indices of outputs for reshape."""
+  del out_used
   x, = in_shaped
   assert not dimensions
 

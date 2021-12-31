@@ -19,7 +19,6 @@ syntax = "proto2";
 package research_scann;
 
 import "scann/proto/brute_force.proto";
-import "scann/proto/compressed_reordering.proto";
 import "scann/proto/crowding.proto";
 import "scann/proto/disjoint_restrict_token.proto";
 import "scann/proto/distance_measure.proto";
@@ -51,8 +50,6 @@ message ScannConfig {
 
   optional ExactReordering exact_reordering = 17;
 
-  optional CompressedReordering compressed_reordering = 23;
-
   optional InputOutputConfig input_output = 6;
 
   optional BruteForceConfig brute_force = 7;
@@ -66,6 +63,8 @@ message ScannConfig {
   optional int32 num_single_shard_neighbors = 21;
 
   optional bytes custom_search_method = 22;
+
+  reserved 23;
 
   optional DisjointRestrictToken disjoint_restrict_token = 31;
 
@@ -81,6 +80,7 @@ message ScannConfig {
   reserved 35;
   reserved 36;
   reserved 38;
+  reserved 40;
   reserved "all_pair";
   reserved "offline_distributed_config";
   reserved "chunked_hamming";

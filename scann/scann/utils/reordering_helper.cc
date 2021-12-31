@@ -15,6 +15,7 @@
 #include "scann/utils/reordering_helper.h"
 
 #include <atomic>
+#include <cstdint>
 #include <limits>
 #include <memory>
 
@@ -29,6 +30,7 @@
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/internal/avx_funcs.h"
+#include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -38,52 +40,14 @@
 namespace research_scann {
 namespace one_to_many_low_level {
 
-#ifdef __x86_64__
-
-namespace avx1 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx1
-
-namespace avx2 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx2Fma;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx2
-
-#endif
-
 template <typename ResultElemT, typename CallbackFunctor>
 SCANN_INLINE void DenseDotProductDistanceOneToManyInt8FloatDispatch(
     const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
     MutableSpan<ResultElemT> result, CallbackFunctor* __restrict__ callback) {
-  size_t j = 0;
-
-#ifdef __x86_64__
-  constexpr size_t kUnrollFactor = 3;
-  using DatasetView = DefaultDenseDatasetView<int8_t>;
-  auto view = DatasetView(database);
-  if (RuntimeSupportsAvx2()) {
-    avx2::DenseDotProductDistanceOneToManyInt8Float<DatasetView, false,
-                                                    DatapointIndex>(
-        query.values(), &view, nullptr, result, callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  } else if (RuntimeSupportsAvx1()) {
-    avx1::DenseDotProductDistanceOneToManyInt8Float<DatasetView, false,
-                                                    DatapointIndex>(
-        query.values(), &view, nullptr, result, callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  }
-#endif
-
-  for (; j < result.size(); ++j) {
-    const size_t idx = GetDatapointIndex(result, j);
-    const float dist = -DenseDotProduct(query, database[idx]);
-    callback->invoke(j, dist);
-  }
+  auto view = DefaultDenseDatasetView<int8_t>(database);
+  DenseDotProductDistanceOneToManyInt8FloatLowLevel<
+      DefaultDenseDatasetView<int8_t>, false, DatapointIndex, ResultElemT,
+      CallbackFunctor>(query.values(), &view, nullptr, result, callback);
 }
 
 using NeighborResult = std::pair<DatapointIndex, float>;
@@ -355,90 +319,6 @@ ExactReorderingHelper<T>::ComputeTop1ReorderingDistance(
   return std::make_pair(idx, smallest);
 }
 
-template <typename T>
-Status CompressedReorderingHelper<T>::ComputeDistancesForReordering(
-    const DatapointPtr<T>& query, NNResultsVector* result) const {
-  DCHECK(compressed_dataset_);
-  asymmetric_hashing2::QueryerOptions<> opts;
-  if (compressed_dataset_) {
-    opts.hashed_dataset = std::make_shared<DefaultDenseDatasetView<uint8_t>>(
-        *compressed_dataset_);
-  }
-  TF_ASSIGN_OR_RETURN(auto lookup_table, compressed_queryer_->CreateLookupTable(
-                                             query, lookup_type_));
-  return compressed_queryer_->PopulateDistances(lookup_table, opts,
-                                                MakeMutableSpan(*result));
-}
-
-template <typename T>
-StatusOr<std::pair<DatapointIndex, float>>
-CompressedReorderingHelper<T>::ComputeTop1ReorderingDistance(
-    const DatapointPtr<T>& query, NNResultsVector* result) const {
-  DCHECK(compressed_dataset_);
-  asymmetric_hashing2::QueryerOptions<> opts;
-  if (compressed_dataset_) {
-    opts.hashed_dataset = std::make_shared<DefaultDenseDatasetView<uint8_t>>(
-        *compressed_dataset_);
-  }
-  TF_ASSIGN_OR_RETURN(auto lookup_table, compressed_queryer_->CreateLookupTable(
-                                             query, lookup_type_));
-  SCANN_RETURN_IF_ERROR(compressed_queryer_->PopulateDistances(
-      lookup_table, opts, MakeMutableSpan(*result)));
-  float smallest = std::numeric_limits<float>::max();
-  DatapointIndex idx = kInvalidDatapointIndex;
-  for (auto& elem : *result) {
-    float dist = elem.second;
-    idx = dist < smallest ? elem.first : idx;
-    smallest = std::min(smallest, dist);
-  }
-  return std::make_pair(idx, smallest);
-}
-
-template <typename T>
-Status CompressedResidualReorderingHelper<T>::ComputeDistancesForReordering(
-    const DatapointPtr<T>& query, NNResultsVector* result) const {
-  DCHECK(compressed_dataset_);
-  asymmetric_hashing2::QueryerOptions<> opts;
-  if (compressed_dataset_) {
-    opts.hashed_dataset = std::make_shared<DefaultDenseDatasetView<uint8_t>>(
-        *compressed_dataset_);
-  }
-  TF_ASSIGN_OR_RETURN(auto lookup_table, compressed_queryer_->CreateLookupTable(
-                                             query, lookup_type_));
-  auto residual_terms = *result;
-  SCANN_RETURN_IF_ERROR(compressed_queryer_->PopulateDistances(
-      lookup_table, opts, MakeMutableSpan(residual_terms)));
-  for (size_t i = 0; i < residual_terms.size(); ++i) {
-    (*result)[i].second += residual_terms[i].second;
-  }
-  return OkStatus();
-}
-
-template <typename T>
-StatusOr<std::pair<DatapointIndex, float>>
-CompressedResidualReorderingHelper<T>::ComputeTop1ReorderingDistance(
-    const DatapointPtr<T>& query, NNResultsVector* result) const {
-  DCHECK(compressed_dataset_);
-  asymmetric_hashing2::QueryerOptions<> opts;
-  if (compressed_dataset_) {
-    opts.hashed_dataset = std::make_shared<DefaultDenseDatasetView<uint8_t>>(
-        *compressed_dataset_);
-  }
-  TF_ASSIGN_OR_RETURN(auto lookup_table, compressed_queryer_->CreateLookupTable(
-                                             query, lookup_type_));
-  auto residual_terms = *result;
-  SCANN_RETURN_IF_ERROR(compressed_queryer_->PopulateDistances(
-      lookup_table, opts, MakeMutableSpan(residual_terms)));
-  float smallest = std::numeric_limits<float>::max();
-  DatapointIndex idx = kInvalidDatapointIndex;
-  for (size_t i = 0; i < residual_terms.size(); ++i) {
-    float dist = result->at(i).second + residual_terms[i].second;
-    idx = dist < smallest ? i : idx;
-    smallest = std::min(smallest, dist);
-  }
-  return std::make_pair(idx, smallest);
-}
-
 FixedPointFloatDenseDotProductReorderingHelper::
     FixedPointFloatDenseDotProductReorderingHelper(
         const DenseDataset<float>& exact_reordering_dataset,
@@ -505,8 +385,8 @@ Status FixedPointFloatDenseDotProductReorderingHelper::Reconstruct(
     DatapointIndex i, MutableSpan<float> output) const {
   if (i >= fixed_point_dataset_.size())
     return InvalidArgumentError(
-        absl::StrFormat("The datapoint index %d is >= the dataset size %d", i,
-                        fixed_point_dataset_.size()));
+        "The datapoint index %d is >= the dataset size %d", i,
+        fixed_point_dataset_.size());
 
   const auto* dp_start = fixed_point_dataset_[i].values();
   std::transform(dp_start, dp_start + dimensionality(),
@@ -638,7 +518,5 @@ FixedPointFloatDenseLimitedInnerReorderingHelper::ComputeTop1ReorderingDistance(
 }
 
 SCANN_INSTANTIATE_TYPED_CLASS(, ExactReorderingHelper);
-SCANN_INSTANTIATE_TYPED_CLASS(, CompressedReorderingHelper);
-SCANN_INSTANTIATE_TYPED_CLASS(, CompressedResidualReorderingHelper);
 
 }  // namespace research_scann

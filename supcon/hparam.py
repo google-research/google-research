@@ -53,7 +53,7 @@ import inspect
 import json
 import numbers
 import re
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, Union
 
 import attr
 import six
@@ -344,10 +344,11 @@ def field(abbrev, default):
     kwargs['factory'] = lambda: copy.copy(default)
   else:
     kwargs['default'] = default
-  return attr.ib(**kwargs)
+  return attr.ib(**kwargs)  # pytype: disable=duplicate-keyword-argument
 
 
-def nest(nested_class, prefix = None):
+def nest(nested_class,
+         prefix = None):
   """Create a nested HParams class field on a parent HParams class.
 
   An HParams class (a class decorated with @hparam.s) can have a field that is
@@ -711,5 +712,5 @@ def s(wrapped, *attrs_args,
   wrapped.__setattr__ = setattr_impl
   wrapped.serialize = serialize
   wrapped.parse = parse
-  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)
+  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)  # pytype: disable=wrong-arg-types  # attr-stubs
   return wrapped

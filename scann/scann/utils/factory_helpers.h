@@ -17,6 +17,8 @@
 #ifndef SCANN_UTILS_FACTORY_HELPERS_H_
 #define SCANN_UTILS_FACTORY_HELPERS_H_
 
+#include <cstdint>
+
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/proto/scann.pb.h"
 

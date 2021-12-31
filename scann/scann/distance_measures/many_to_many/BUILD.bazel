@@ -25,8 +25,9 @@ cc_library(
     tags = ["local"],
     textual_hdrs = ["many_to_many_impl.inc"],
     deps = [
-        "fp8_transposed",
-        "many_to_many_common",
+        ":fp8_transposed",
+        ":many_to_many_common",
+        ":many_to_many_flags",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
@@ -36,12 +37,22 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
+        "//scann/utils:fast_top_neighbors",
         "//scann/utils:types",
         "//scann/utils/intrinsics:horizontal_sum",
         "//scann/utils/intrinsics:simd",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/memory",
+    ],
+)
+
+cc_library(
+    name = "many_to_many_flags",
+    srcs = ["many_to_many_flags.cc"],
+    hdrs = ["many_to_many_flags.h"],
+    tags = ["local"],
+    deps = [
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 
@@ -59,6 +70,7 @@ cc_library(
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
+        "//scann/utils:fast_top_neighbors",
         "//scann/utils:types",
         "//scann/utils/intrinsics:simd",
         "@com_google_absl//absl/base",

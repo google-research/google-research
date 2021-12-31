@@ -18,78 +18,20 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "absl/numeric/bits.h"
+
 namespace research_scann {
 namespace bits {
 
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__)
 
-inline int CountLeadingZeros32(uint32_t n) {
-  if (n == 0) {
-    return sizeof(n) * 8;
-  }
-  return __builtin_clz(n);
-}
-
-inline int CountOnes(uint32_t n) { return __builtin_popcount(n); }
-
-inline int Log2Floor(uint32_t n) { return n == 0 ? -1 : 31 ^ __builtin_clz(n); }
-
-inline int Log2FloorNonZero(uint32_t n) { return 31 ^ __builtin_clz(n); }
-
 inline int FindLSBSetNonZero(uint32_t n) { return __builtin_ctz(n); }
-
-inline int CountLeadingZeros64(uint64_t n) {
-  if (n == 0) {
-    return sizeof(n) * 8;
-  }
-  return __builtin_clzll(n);
-}
-
-inline int CountOnes64(uint64_t n) { return __builtin_popcountll(n); }
-
-inline int Log2Floor64(uint64_t n) {
-  return n == 0 ? -1 : 63 ^ __builtin_clzll(n);
-}
-
-inline int Log2FloorNonZero64(uint64_t n) { return 63 ^ __builtin_clzll(n); }
 
 inline int FindLSBSetNonZero64(uint64_t n) { return __builtin_ctzll(n); }
 
 #else
 
-int CountLeadingZeros32(uint32_t n);
-
-inline int CountOnes(uint32_t n) {
-  n -= ((n >> 1) & 0x55555555);
-  n = ((n >> 2) & 0x33333333) + (n & 0x33333333);
-  return static_cast<int>((((n + (n >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24);
-}
-
-int Log2Floor(uint32_t n);
-
-inline int Log2FloorNonZero(uint32_t n) { return Log2Floor(n); }
-
 int FindLSBSetNonZero(uint32_t n);
-
-inline int CountOnes64(uint64_t n) {
-  return CountOnes(n >> 32) + CountOnes(n & 0xffffffff);
-}
-
-inline int CountLeadingZeros64(uint64_t n) {
-  return ((n >> 32) ? CountLeadingZeros32(n >> 32)
-                    : 32 + CountLeadingZeros32(n));
-}
-
-inline int Log2Floor64(uint64_t n) {
-  const uint32_t topbits = static_cast<uint32_t>(n >> 32);
-  if (topbits == 0) {
-    return Log2Floor(static_cast<uint32_t>(n));
-  } else {
-    return 32 + Log2FloorNonZero(topbits);
-  }
-}
-
-inline int Log2FloorNonZero64(uint64_t n) { return Log2FloorNonZero64(n); }
 
 inline int FindLSBSetNonZero64(uint64_t n) {
   const uint32_t bottombits = static_cast<uint32_t>(n);
@@ -106,7 +48,10 @@ extern const char num_bits[];
 
 int Count(const void *m, int num_bytes);
 
-inline int CountOnesInByte(unsigned char n) { return num_bits[n]; }
+inline int Log2Floor(uint32_t n) { return absl::bit_width(n) - 1; }
+inline int Log2FloorNonZero(uint32_t n) { return Log2Floor(n); }
+inline int Log2Floor64(uint64_t n) { return absl::bit_width(n) - 1; }
+inline int Log2FloorNonZero64(uint64_t n) { return Log2Floor64(n); }
 
 inline int FindMSBSetNonZero(uint32_t n) { return Log2FloorNonZero(n); }
 inline int FindMSBSetNonZero64(uint64_t n) { return Log2FloorNonZero64(n); }

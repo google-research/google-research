@@ -1,12 +1,15 @@
-ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:nightly-devel@sha256:f25973bd35ba78e96a1969df10243bad5811f5c434d04c0b148bf4f71d0f7e5b
+ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:2.7.0-devel
 FROM ${TF_SERVING_DEVEL_IMAGE} AS base_build
 LABEL maintainer="sunphil@google.com"
 
-RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+RUN apt-get update && apt-get install -y dirmngr && \
+    echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu bionic main' >> /etc/apt/sources.list && \
+    echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu bionic main' >> /etc/apt/sources.list && \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F && \
     apt-get update && apt-get install -y --no-install-recommends g++-9 clang-8 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ARG SCANN_COMMIT=f0721be6ff386e646536f931f8ea2cfe5773b8ff
+ARG SCANN_COMMIT=9671c78a46f161cbdb549fd611db770443c92efb
 WORKDIR /
 RUN mkdir scann && cd scann && \
     curl -sSL --retry 5 https://github.com/google-research/google-research/tarball/${SCANN_COMMIT} | \

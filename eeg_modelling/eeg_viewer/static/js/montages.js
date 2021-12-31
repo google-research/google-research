@@ -104,7 +104,7 @@ const getChannelToIndexMap = googMemoize((indexToChannelMap) => {
   if (!indexToChannelMap) {
     return new Map();
   }
-  return new Map(indexToChannelMap.getEntryList().map(x => [x[1], x[0]]));
+  return new Map(Array.from(indexToChannelMap.entries(), x => [x[1], x[0]]));
 });
 
 

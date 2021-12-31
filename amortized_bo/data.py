@@ -223,7 +223,7 @@ class Sample(object):
     metadata: (any type, optional) Additional meta-data.
   """
   structure: np.ndarray = attr.ib(factory=np.array,
-                                  converter=_to_immutable_array)
+                                  converter=_to_immutable_array)  # pytype: disable=wrong-arg-types  # attr-stubs
   reward: float = attr.ib(
       converter=_NumericConverter(float),
       default=None)

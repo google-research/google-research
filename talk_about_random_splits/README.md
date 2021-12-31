@@ -1,7 +1,7 @@
 # We Need to Talk About Random Splits
 
 This is the supplementary source code for the paper:
-[We Need to Talk About Random Splits](https://arxiv.org/abs/2005.00636).
+[We Need to Talk About Random Splits](https://www.aclweb.org/anthology/2021.eacl-main.156).
 
 
 ## How to Run our Code
@@ -13,12 +13,18 @@ to see a full list of supported parameters you can run any binary with `--help`.
 ## How to Cite
 
 ```bibtex
-@misc{søgaard2021need,
-      title={We Need to Talk About Random Splits},
-      author={Anders Søgaard and Sebastian Ebert and Jasmijn Bastings and Katja Filippova},
-      year={2021},
-      eprint={2005.00636},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
+@inproceedings{sogaard-etal-2021-need,
+    title = "We Need To Talk About Random Splits",
+    author = "S{\o}gaard, Anders and
+      Ebert, Sebastian and
+      Bastings, Jasmijn and
+      Filippova, Katja",
+    booktitle = "Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics: Main Volume",
+    month = apr,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/2021.eacl-main.156",
+    pages = "1823--1832",
 }
 ```

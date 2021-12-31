@@ -123,7 +123,7 @@ def _create_temporary_tf_graph_text_cnn(test_model_path):
   # Name of the tensors in the graph:
   # input - input_1:0
   # embedding - embedding/embedding_lookup/Identity_1:0
-  # weights_first_layer - conv1d/conv1d/ExpandDims_1:0
+  # weights_first_layer - conv1d/Conv1D/ExpandDims_1:0
   # biases_first_layer - conv1d/BiasAdd/ReadVariableOp:0
   # first_layer_input - conv1d/BiasAdd:0
   # first_layer_relu_output - conv1d/Relu:0
@@ -255,7 +255,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
         'first_layer_relu': 'conv1d/Relu:0',
         'logits': 'dense/BiasAdd:0',
         'softmax': 'dense/Sigmoid:0',
-        'weights_layer_1': 'conv1d/conv1d/ExpandDims_1:0',
+        'weights_layer_1': 'conv1d/Conv1D/ExpandDims_1:0',
         'biases_layer_1': 'conv1d/BiasAdd/ReadVariableOp:0'}
     session = utils.restore_model(self.test_model_path)
     cnn_predictions = session.run(
@@ -345,7 +345,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
       # accessing tensors by name.
       _create_temporary_tf_graph_fully_connected(self.test_model_path)
     result = masking.find_mask_first_layer(
-        image=np.zeros((2, 2, 1)),
+        image=np.random.random((2, 2, 1)),
         run_params=masking.RunParams(
             **{
                 'model_path': self.test_model_path,
@@ -453,7 +453,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
                     'first_layer_relu': 'conv1d/Relu:0',
                     'logits': 'dense/BiasAdd:0',
                     'softmax': 'dense/Sigmoid:0',
-                    'weights_layer_1': 'conv1d/conv1d/ExpandDims_1:0',
+                    'weights_layer_1': 'conv1d/Conv1D/ExpandDims_1:0',
                     'biases_layer_1': 'conv1d/BiasAdd/ReadVariableOp:0',
                 },
                 'image_placeholder_shape': (1, 5),
@@ -492,7 +492,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
       # accessing tensors by name.
       _create_temporary_tf_graph_cnn(self.test_model_path)
     result = masking.find_mask_first_layer(
-        image=np.zeros((4, 4, 3)),
+        image=np.random.random((4, 4, 3)),
         run_params=masking.RunParams(
             **{
                 'model_path': self.test_model_path,
@@ -746,6 +746,8 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
     mock_run_params.padding = (1, 1)
     mock_run_params.image_placeholder_shape = (4, 4)
     mock_run_params.model_type = 'cnn'
+    mock_run_params.pixel_range = (0, 1)
+
     with mock.patch.object(
         utils, 'restore_model',
         return_value=mock_session), mock.patch.object(

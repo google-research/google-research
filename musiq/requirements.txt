@@ -1,0 +1,11 @@
+absl-py>=0.12.0
+chex>=0.0.7
+clu>=0.0.3
+einops>=0.3.0
+flax>=0.3.3
+ml-collections==0.1.0
+numpy>=1.19.5
+pandas>=1.1.0
+tensorflow>=2.0.0-beta1
+jax>=0.1.55
+jaxlib>=0.1.37

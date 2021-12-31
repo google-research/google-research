@@ -232,6 +232,7 @@ class A(object):
   )
   def test_python_tokenize_handles_tokenization_errors(self, bad_code):
     tokenizer = python_tokenizer.PythonTokenizer()
+    tokenizer.replace_reserved_keywords(('___ERROR___',))
     actual = tokenizer.tokenize(bad_code)
     self.assertListEqual([_ERROR_NAME, _EOS_NAME], actual)
 

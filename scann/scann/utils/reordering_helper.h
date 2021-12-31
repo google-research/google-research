@@ -16,6 +16,7 @@
 #ifndef SCANN_UTILS_REORDERING_HELPER_H_
 #define SCANN_UTILS_REORDERING_HELPER_H_
 
+#include <cstdint>
 #include <limits>
 
 #include "scann/base/single_machine_factory_options.h"
@@ -121,68 +122,6 @@ class ExactReorderingHelper : public ReorderingHelper<T> {
   shared_ptr<const DistanceMeasure> exact_reordering_distance_ = nullptr;
 
   shared_ptr<const TypedDataset<T>> exact_reordering_dataset_ = nullptr;
-};
-
-template <typename T>
-class CompressedReorderingHelper final : public ReorderingHelper<T> {
- public:
-  CompressedReorderingHelper(
-      unique_ptr<const asymmetric_hashing2::AsymmetricQueryer<T>>
-          compressed_queryer,
-      shared_ptr<const DenseDataset<uint8_t>> compressed_dataset,
-      AsymmetricHasherConfig::LookupType lookup_type)
-      : compressed_queryer_(std::move(compressed_queryer)),
-        compressed_dataset_(std::move(compressed_dataset)) {}
-
-  std::string name() const final { return "CompressedReordering"; }
-
-  bool needs_dataset() const final { return false; }
-
-  Status ComputeDistancesForReordering(const DatapointPtr<T>& query,
-                                       NNResultsVector* result) const final;
-
-  StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
-      const DatapointPtr<T>& query, NNResultsVector* result) const final;
-
- private:
-  unique_ptr<const asymmetric_hashing2::AsymmetricQueryer<T>>
-      compressed_queryer_ = nullptr;
-
-  shared_ptr<const DenseDataset<uint8_t>> compressed_dataset_ = nullptr;
-
-  AsymmetricHasherConfig::LookupType lookup_type_ =
-      AsymmetricHasherConfig::FLOAT;
-};
-
-template <typename T>
-class CompressedResidualReorderingHelper final : public ReorderingHelper<T> {
- public:
-  CompressedResidualReorderingHelper(
-      unique_ptr<const asymmetric_hashing2::AsymmetricQueryer<T>>
-          compressed_queryer,
-      shared_ptr<const DenseDataset<uint8_t>> compressed_dataset,
-      AsymmetricHasherConfig::LookupType lookup_type)
-      : compressed_queryer_(std::move(compressed_queryer)),
-        compressed_dataset_(std::move(compressed_dataset)) {}
-
-  std::string name() const final { return "CompressedResidualReordering"; }
-
-  bool needs_dataset() const final { return false; }
-
-  Status ComputeDistancesForReordering(const DatapointPtr<T>& query,
-                                       NNResultsVector* result) const final;
-
-  StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
-      const DatapointPtr<T>& query, NNResultsVector* result) const final;
-
- private:
-  unique_ptr<const asymmetric_hashing2::AsymmetricQueryer<T>>
-      compressed_queryer_ = nullptr;
-
-  shared_ptr<const DenseDataset<uint8_t>> compressed_dataset_ = nullptr;
-
-  AsymmetricHasherConfig::LookupType lookup_type_ =
-      AsymmetricHasherConfig::FLOAT;
 };
 
 class FixedPointFloatDenseDotProductReorderingHelper
@@ -341,8 +280,6 @@ class FixedPointFloatDenseLimitedInnerReorderingHelper
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, ExactReorderingHelper);
-SCANN_INSTANTIATE_TYPED_CLASS(extern, CompressedReorderingHelper);
-SCANN_INSTANTIATE_TYPED_CLASS(extern, CompressedResidualReorderingHelper);
 
 }  // namespace research_scann
 

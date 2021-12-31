@@ -16,7 +16,7 @@
 """Video samplers for mini-batch creation."""
 
 import abc
-from typing import Dict, Iterator, List, Tuple
+from typing import Iterator, List, Tuple
 
 import numpy as np
 import torch
@@ -34,7 +34,7 @@ class VideoBatchSampler(abc.ABC, Sampler):
       self,
       dir_tree,
       batch_size,
-      sequential = False,
+      sequential=False,
   ):
     """Constructor.
 
@@ -138,6 +138,6 @@ class SameClassBatchSamplerDownstream(SameClassBatchSampler):
   def __init__(
       self,
       dir_tree,
-      sequential = False,
+      sequential=False,
   ):
     super().__init__(dir_tree, batch_size=1, sequential=sequential)

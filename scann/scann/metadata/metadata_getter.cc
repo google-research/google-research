@@ -16,7 +16,7 @@
 
 #include "scann/metadata/metadata_getter.h"
 
-#include "tensorflow/core/lib/core/errors.h"
+#include "absl/status/status.h"
 
 namespace research_scann {
 

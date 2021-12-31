@@ -14,6 +14,7 @@
 
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 
+#include <cstdint>
 #include <numeric>
 
 #include "scann/oss_wrappers/scann_aligned_malloc.h"

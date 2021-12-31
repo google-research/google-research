@@ -65,7 +65,7 @@ _INVERSE_PTH_ROOT_PRECISION = lax.Precision.HIGHEST
 # https://arxiv.org/pdf/2002.11803.pdf studies this in detail. Moreover this
 # allows us to plugin the Shampoo optimizer into settings where SGD/AdaGrad
 # is already well tuned.
-class LayerwiseGrafting(enum.Enum):
+class LayerwiseGrafting(enum.IntEnum):
   SGD = 1
   ADAGRAD = 2
 
@@ -103,9 +103,6 @@ class _ShampooHyperParams:
   # How often to compute statistics.
   statistics_compute_steps: int
 
-  # Whether to even try preconditioning large layers.
-  no_preconditioning_for_layers_with_dim_gt: int
-
   # Block size for large layers (if > 0).
   block_size: int
 
@@ -117,6 +114,10 @@ class _ShampooHyperParams:
   # Type of grafting (SGD or AdaGrad).
   # https://arxiv.org/pdf/2002.11803.pdf
   graft_type: int
+
+  # Avoids preconditioning large layers to reduce overall memory usage if any
+  # of the dimensions are greater than this value.
+  no_preconditioning_for_layers_with_dim_gt: int
 
   # Nesterov momentum
   nesterov: bool
@@ -464,10 +465,10 @@ class Shampoo(OptimizerDef):
                start_preconditioning_step=1,
                preconditioning_compute_steps=1,
                statistics_compute_steps=1,
-               no_preconditioning_for_layers_with_dim_gt=8192,
                block_size=128,
                best_effort_shape_interpretation=True,
                graft_type=LayerwiseGrafting.SGD,
+               no_preconditioning_for_layers_with_dim_gt=8192,
                nesterov=True,
                exponent_override=0,
                batch_axis_name=None):
@@ -491,14 +492,14 @@ class Shampoo(OptimizerDef):
         Performance tuning params for controlling memory and compute
         requirements. Ideally set both params to 1.
       statistics_compute_steps: How often to compute statistics.
-      no_preconditioning_for_layers_with_dim_gt: Run diagonal method for if any
-        of the dim is larger than this value.
       block_size: Block size for large layers (if > 0). Preconditioning compute
         operation is cubic in the dimension of the tensor. Block size allows us
         to chunk the layers into sub-layers of maximal dimension dictated by
         this value. Use 128 as default (increase if you have compute budget).
       best_effort_shape_interpretation:
       graft_type: Options are: LayerwiseGrafting.SGD, LayerwiseGrafting.ADAGRAD
+      no_preconditioning_for_layers_with_dim_gt: Avoids preconditioning large
+        layers to reduce overall memory usage.
       nesterov: Nesterov momentum.
       exponent_override: Override the exponent used in matrix inverse.
       batch_axis_name: labeled axis over pmap for dataparallel training the
@@ -514,10 +515,10 @@ class Shampoo(OptimizerDef):
         start_preconditioning_step,
         preconditioning_compute_steps,
         statistics_compute_steps,
-        no_preconditioning_for_layers_with_dim_gt,
         block_size,
         best_effort_shape_interpretation,
         graft_type=graft_type,
+        no_preconditioning_for_layers_with_dim_gt=no_preconditioning_for_layers_with_dim_gt,
         nesterov=nesterov,
         exponent_override=exponent_override,
         batch_axis_name=batch_axis_name)
@@ -526,12 +527,11 @@ class Shampoo(OptimizerDef):
 
   def init_param_state(self, param):
     """Initialize parameter state."""
-    rank = len(param.shape)
     hps = self.hyper_params
-    preconditioner = Preconditioner(param, hps)
     statistics = []
     preconditioners = []
-    if rank >= 1:
+    if not self._skip_preconditioning(param, hps):
+      preconditioner = Preconditioner(param, hps)
       shapes = preconditioner.shapes_for_preconditioners()
       statistics = [
           self.hyper_params.matrix_eps * jnp.eye(s[0]) for s in shapes
@@ -547,7 +547,9 @@ class Shampoo(OptimizerDef):
                                      jnp.zeros_like(param))
 
   def _skip_preconditioning(self, param, hps):
-    return len(param.shape) < 1
+    return (len(param.shape) < 1 or any([
+        s > hps.no_preconditioning_for_layers_with_dim_gt for s in param.shape
+    ]))
 
   def fast_cond(self, predicate, compute_fn, init_state, *args, **kwargs):
     """Avoids wasteful buffer allocation with XLA."""
@@ -592,7 +594,7 @@ class Shampoo(OptimizerDef):
                                           state.momentum)
     return new_state
 
-  def compute_preconditioners_from_statistics(self, states, hps, step):
+  def compute_preconditioners_from_statistics(self, states, params, hps, step):
     """Compute preconditioners for statistics."""
     statistics = []
     num_statistics_per_state = []
@@ -600,14 +602,15 @@ class Shampoo(OptimizerDef):
     exponents = []
     max_size = 0
     prev_preconditioners = []
-    for state in states:
+    for state, param in zip(states, params):
+      preconditioner = Preconditioner(param, hps)
       num_statistics = len(state.statistics)
       num_statistics_per_state.append(num_statistics)
       original_shapes_for_state = []
       if num_statistics > 0:
         for statistic in state.statistics:
-          exponents.append(2 * num_statistics if hps.exponent_override ==
-                           0 else hps.exponent_override)
+          exponents.append(preconditioner.exponent_for_preconditioner() if hps
+                           .exponent_override == 0 else hps.exponent_override)
           original_shapes_for_state.append(statistic.shape)
           max_size = max(max_size, statistic.shape[0])
         statistics.extend(state.statistics)
@@ -843,7 +846,7 @@ class Shampoo(OptimizerDef):
     ]
 
     new_states_flat = self.compute_preconditioners_from_statistics(
-        new_states_flat, hyper_params, step)
+        new_states_flat, params_flat, hyper_params, step)
 
     out = [
         self.apply_per_param_gradient(step, hyper_params, param, state, grad)

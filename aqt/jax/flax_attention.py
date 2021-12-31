@@ -22,8 +22,8 @@ import dataclasses
 from flax import linen as nn
 from flax.linen import initializers
 # TODO(malmaud): Remove reliance on these 'legacy' nn.attention methods
-from flax.nn.attention import _make_causal_mask
-from flax.nn.attention import make_padding_mask
+from flax.deprecated.nn.attention import _make_causal_mask
+from flax.deprecated.nn.attention import make_padding_mask
 import jax
 from jax import lax
 from jax import random
@@ -716,7 +716,7 @@ class MultiHeadDotProductAttentionAqt(nn.Module):
 
         key = lax.dynamic_update_slice(cached_key.value, key, indices)
         value = lax.dynamic_update_slice(cached_value.value, value, indices)
-        one = jnp.array(1, jnp.uint32)
+        one = jnp.array(1, jnp.int32)
         cache_index.value = cache_index.value + one
         cached_key.value = key
         cached_value.value = value
@@ -733,7 +733,7 @@ class MultiHeadDotProductAttentionAqt(nn.Module):
         bias_pre_shape = (1,) * (key.ndim - 1)
         attn_shape = tuple(onp.take(key.shape, attention_axis))
         attn_size = onp.prod(attn_shape)
-        ii = jnp.arange(attn_size, dtype=jnp.uint32)
+        ii = jnp.arange(attn_size, dtype=jnp.int32)
         mask = ii < cache_index.value
         mask_components.append(mask.reshape(bias_pre_shape + attn_shape))
       else:

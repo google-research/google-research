@@ -19,8 +19,8 @@
 from absl import logging
 from absl.testing import absltest
 from absl.testing import parameterized
-import t5
 
+import seqio
 import tensorflow.compat.v1 as tf
 
 from transformer_modifications.transformer_modifications import tasks  # pylint: disable=unused-import
@@ -28,7 +28,7 @@ from transformer_modifications.transformer_modifications import tasks  # pylint:
 tf.disable_v2_behavior()
 tf.enable_eager_execution()
 
-TaskRegistry = t5.data.TaskRegistry
+TaskRegistry = seqio.TaskRegistry
 _SEQUENCE_LENGTH = {"inputs": 512, "targets": 256}
 _TASKS = [
     "c4_v220_unsupervised_en32k",

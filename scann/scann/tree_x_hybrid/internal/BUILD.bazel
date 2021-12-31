@@ -23,3 +23,15 @@ cc_library(
         "@com_google_absl//absl/flags:flag",
     ],
 )
+
+cc_library(
+    name = "batching",
+    hdrs = ["batching.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/base:search_parameters",
+        "//scann/data_format:dataset",
+        "//scann/utils:fast_top_neighbors",
+        "//scann/utils:types",
+    ],
+)

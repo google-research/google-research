@@ -17,6 +17,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 #include "absl/memory/memory.h"
 #include "algorithm.h"
@@ -163,7 +164,7 @@ IntegerT DifferentComponentFunction(const Algorithm& algorithm1,
 IntegerT MissingDataInComponentFunction(
     const vector<shared_ptr<const Instruction>>& component_function1,
     const vector<shared_ptr<const Instruction>>& component_function2) {
-  absl::node_hash_set<IntegerT> data2;
+  absl::flat_hash_set<IntegerT> data2;
   for (const shared_ptr<const Instruction>& instruction : component_function2) {
     data2.insert(instruction->GetIntegerData());
   }

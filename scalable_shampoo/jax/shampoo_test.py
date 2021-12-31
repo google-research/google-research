@@ -39,9 +39,9 @@ class ShampooTest(absltest.TestCase):
         start_preconditioning_step=1,
         preconditioning_compute_steps=1,
         statistics_compute_steps=1,
-        no_preconditioning_for_layers_with_dim_gt=8192,
         best_effort_shape_interpretation=True,
         block_size=8,
+        no_preconditioning_for_layers_with_dim_gt=1024,
         graft_type=shampoo.LayerwiseGrafting.SGD,
         nesterov=False,
         batch_axis_name=None)
@@ -56,9 +56,9 @@ class ShampooTest(absltest.TestCase):
         start_preconditioning_step=1,
         preconditioning_compute_steps=1,
         statistics_compute_steps=1,
-        no_preconditioning_for_layers_with_dim_gt=8192,
         best_effort_shape_interpretation=True,
         block_size=8,
+        no_preconditioning_for_layers_with_dim_gt=1024,
         graft_type=shampoo.LayerwiseGrafting.SGD,
         nesterov=False,
         batch_axis_name=None)

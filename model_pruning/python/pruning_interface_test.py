@@ -53,7 +53,7 @@ class MockLSTMCell(object):
     self._private_theta = {}
     self.vars = MockLSTMVars()
 
-  def CreateVariable(self, name, var_params, theta_fn=None, trainable=False):
+  def CreateVariable(self, name, var_params, trainable=False):
     dtype = var_params["dtype"]
     shape = var_params["shape"]
     scale = var_params["init"]["scale"]
@@ -62,8 +62,6 @@ class MockLSTMCell(object):
     with tf.variable_scope("MockLSTMCell"):
       var = tf.get_variable(name, shape, dtype, v_init, trainable=trainable)
     value = var
-    if theta_fn is not None:
-      value = theta_fn(value)
     self._private_vars[name] = var
     self._private_theta[name] = value
 
@@ -128,8 +126,8 @@ class PruningSpeechUtilsTest(tf.test.TestCase):
         self.pruning_obj)
     self.assertNotEqual(mask_update_op, tf.no_op())
 
-  def testApplyCustomizedLSTMMatrixCompression(self):
-    pruning_interface.apply_customized_lstm_matrix_compression(
+  def testApplyCustomizedMatrixCompression(self):
+    pruning_interface.apply_customized_matrix_compression(
         self.compression_obj,
         self.mock_weight_params_fn,
         MockWeightInit,

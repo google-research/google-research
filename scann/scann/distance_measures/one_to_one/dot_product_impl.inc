@@ -1,3 +1,4 @@
+#include <cstdint>
 template <typename AvxFuncs>
 SCANN_SIMD_INLINE double DenseDotProductInt8FloatAvxImpl(const int8_t* aptr,
                                                          const float* bptr,

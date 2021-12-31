@@ -3,6 +3,7 @@
 `Jax` and `Flax` quantization libraries provides `what you serve is what you train`
 quantization for convolution and matmul.
 
+`jax/imagenet` directory contains quantized ResNet model.
 
 ### Jax Libraries
 
@@ -19,7 +20,5 @@ quantization for convolution and matmul.
 - **flax_layers.EmbedAqt**: Adds quantization to [Flax Embed Module](https://github.com/google/flax/blob/65061e6128f6695eed441acf2bfffc3b1badd318/flax/nn/linear.py#L360).
 - **flax_layers.LayerNormAqt**: Adds quantization support to the [Flax LayerNorm layer](https://github.com/google/flax/blob/65061e6128f6695eed441acf2bfffc3b1badd318/flax/linen/normalization.py#L140)
 - **flax_attention.MultiHeadDotProductAttentionAqt**: Adds quantization to [Flax Multi-head dot-product attention](https://github.com/google/flax/blob/65061e6128f6695eed441acf2bfffc3b1badd318/flax/nn/attention.py#L206).
-
-
 
 

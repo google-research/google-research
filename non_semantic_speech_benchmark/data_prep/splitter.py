@@ -20,7 +20,7 @@ import collections
 import json
 from absl import logging
 import numpy as np
-from non_semantic_speech_benchmark import file_utils
+import tensorflow as tf
 
 
 CANONICAL_SPLIT_NUM = 666
@@ -174,7 +174,7 @@ def write_split_file(filename, data_splits):
     Nothing. Output is written to disk.
   """
   data_splits = {k: list(v) for k, v in data_splits.items()}
-  with file_utils.Open(filename, 'w') as f:
+  with tf.io.gfile.GFile(filename, 'w') as f:
     json.dump(data_splits, f)
 
 
@@ -187,6 +187,6 @@ def read_split_file(filename):
   Returns:
     Dictionary {split_name: set(ids)}
   """
-  with file_utils.Open(filename, 'r') as f:
+  with tf.io.gfile.GFile(filename, 'r') as f:
     data_splits = json.load(f)
   return {k: set(v) for k, v in data_splits.items()}

@@ -1,7 +1,7 @@
 # Replacing Rewards with Examples: Example-Based Policy Search via Recursive Classification
 
 <p align="center"> Benjamin Eysenbach, &nbsp; Sergey Levine, &nbsp; Ruslan Salakhutdinov</p>
-
+<p align="center"> NeurIPS 2021 (oral)</p>
 <p align="center">
    <a href="http://arxiv.org/abs/2103.12656">paper</a>, <a href="https://ben-eysenbach.github.io/rce/">website</a>
 </p>
@@ -12,17 +12,19 @@
 If you use this code, please consider adding the corresponding citation:
 
 ```
-@article{eysenbach2021replacing,
+@inproceedings{
+  eysenbach2021replacing,
   title={Replacing Rewards with Examples: Example-Based Policy Search via Recursive Classification},
-  author={Eysenbach, Benjamin and Levine, Sergey and Salakhutdinov, Ruslan},
-  journal={arXiv preprint arXiv:2103.12656},
-  year={2021}
+  author={Benjamin Eysenbach and Sergey Levine and Ruslan Salakhutdinov},
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2021},
 }
-
 ```
 
 ## Installation
 These instructions were tested in Google Cloud Compute with Ubuntu version 18.04.
+
+
 
 
 ### 1. Install Mujoco
@@ -41,26 +43,19 @@ echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:$HOME/.mujoco/mujoco200/bin" >> ~
 ```
 wget https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh
 chmod +x Miniconda2-latest-Linux-x86_64.sh
-chmod +x ./Miniconda2-latest-Linux-x86_64.sh
+./Miniconda2-latest-Linux-x86_64.sh
 ```
 Restart your terminal so the changes take effect.
 
 
 ### 3. Create an Anaconda environment and install the remaining dependencies
-```
-conda create --name rce python=3.6
-conda activate rce
-pip install tensorflow==2.4.0rc0
-pip install tf_agents==0.6.0
-pip install gym==0.13.1
-pip install git+https://github.com/openai/gym.git@9dea81b48a2e1d8f7e7a81211c0f09f627ee61a9
 
-pip install mujoco-py==2.0.2.10
-pip install git+https://github.com/rlworkgroup/metaworld.git@33f3b90495be99f02a61da501d7d661e6bc675c5
-pip install git+https://github.com/rail-berkeley/d4rl.git@87d13f172aa253004caa32b24df0ce449328f3b3
-```
+*Updated 12/28/22. Thanks to Kevin Lin and Mingdong Wu for developing these revised instructions.*
 
-If you receive an error about dm-control (`ERROR: Failed building wheel for dm-control`), it can safely be ignored.
+* `conda env create -f environment.yml`
+* `git clone https://github.com/rail-berkeley/d4rl.git`
+* In `d4rl/setup.py`, remove installation requirements of `mjrl@master` and `dm_control@master`.
+* In the d4rl repository, run `pip install -e .`
 
 
 ## Running Experiments
@@ -69,19 +64,19 @@ The following lines replicate the RCE experiments on the Sawyer tasks and Adept 
 
 
 ```
-python train_eval.py --root_dir=~/c_learning/sawyer_drawer_open --gin_bindings='train_eval.env_name="sawyer_drawer_open"'
+python train_eval.py --root_dir=~/rce/sawyer_drawer_open --gin_bindings='train_eval.env_name="sawyer_drawer_open"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_push --gin_bindings='train_eval.env_name="sawyer_push"'
+python train_eval.py --root_dir=~/rce/sawyer_push --gin_bindings='train_eval.env_name="sawyer_push"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_lift --gin_bindings='train_eval.env_name="sawyer_lift"'
+python train_eval.py --root_dir=~/rce/sawyer_lift --gin_bindings='train_eval.env_name="sawyer_lift"'
 
-python train_eval.py --root_dir=~/c_learning/door --gin_bindings='train_eval.env_name="door-human-v0"'
+python train_eval.py --root_dir=~/rce/door --gin_bindings='train_eval.env_name="door-human-v0"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_box_close --gin_bindings='train_eval.env_name="sawyer_box_close"'
+python train_eval.py --root_dir=~/rce/sawyer_box_close --gin_bindings='train_eval.env_name="sawyer_box_close"'
 
-python train_eval.py --root_dir=~/c_learning/sawyer_bin_picking --gin_bindings='train_eval.env_name="sawyer_bin_picking"' --gin_bindings='critic_loss.q_combinator="max"' --gin_bindings='actor_loss.q_combinator="max"'
+python train_eval.py --root_dir=~/rce/sawyer_bin_picking --gin_bindings='train_eval.env_name="sawyer_bin_picking"' --gin_bindings='critic_loss.q_combinator="max"' --gin_bindings='actor_loss.q_combinator="max"'
 
-python train_eval.py --root_dir=~/c_learning/hammer --gin_bindings='train_eval.env_name="hammer-human-v0"'
+python train_eval.py --root_dir=~/rce/hammer --gin_bindings='train_eval.env_name="hammer-human-v0"'
 ```
 
 To run SQIL, add the additional arguments:

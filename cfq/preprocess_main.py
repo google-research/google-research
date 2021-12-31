@@ -18,7 +18,7 @@
 from absl import app
 from absl import flags
 
-import preprocess as preprocessor
+from cfq import preprocess as preprocessor
 
 FLAGS = flags.FLAGS
 

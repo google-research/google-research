@@ -14,7 +14,10 @@
 
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 
+#include <cstdint>
+
 #include "absl/base/internal/spinlock.h"
+#include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
@@ -119,17 +122,9 @@ Status KMeansTreePartitioner<T>::TokenForDatapoint(
         "Cannot query a KMeansTreePartitioner before training.");
   }
 
-  TokenizationType cur_type;
+  const TokenizationType cur_type = cur_tokenization_type();
   const bool is_query_mode =
       this->tokenization_mode() == UntypedPartitioner::QUERY;
-  if (is_query_mode)
-    cur_type = query_tokenization_type_;
-  else if (this->tokenization_mode() == UntypedPartitioner::DATABASE)
-    cur_type = database_tokenization_type_;
-  else
-    return InternalError(absl::StrCat("Invalid tokenization mode:  ",
-                                      this->tokenization_mode()));
-
   if (cur_type == ASYMMETRIC_HASHING) {
     int pre_reordering_num_neighbors =
         TokenizationSearcher()->reordering_enabled() ? kAhMultiplierNoSpilling
@@ -155,7 +150,7 @@ template <typename T>
 Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
     const TypedDataset<T>& queries, vector<int32_t>* results,
     ThreadPool* pool) const {
-  if (query_tokenization_type_ != FLOAT || queries.IsSparse() ||
+  if (cur_tokenization_type() != FLOAT || queries.IsSparse() ||
       !is_one_level_tree_) {
     return Partitioner<T>::TokenForDatapointBatched(queries, results);
   }
@@ -661,12 +656,8 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpillingBatched(
                                    : max_centers_override[query_idx];
       ftns[query_idx] = FastTopNeighbors<float>(max_centers);
     }
-    DenseDistanceManyToMany<float>(
-        *query_tokenization_dist_, *float_queries, centers,
-        [&ftns](MutableSpan<float> dists, DatapointIndex base_dp_idx,
-                DatapointIndex query_idx) {
-          ftns[query_idx].PushBlock(dists, base_dp_idx);
-        });
+    DenseDistanceManyToManyTopK(*query_tokenization_dist_, *float_queries,
+                                centers, MakeMutableSpan(ftns));
     NNResultsVector child_centers;
     for (DatapointIndex query_idx : IndicesOf(*float_queries)) {
       ftns[query_idx].FinishUnsorted(&child_centers);
@@ -815,7 +806,7 @@ KMeansTreePartitioner<T>::CreateAsymmetricHashingSearcherForQueryTokenization(
   }
 
   const auto& original_centers = kmeans_tree_->root()->Centers();
-  auto centers = unique_ptr<DenseDataset<float>>(new DenseDataset<float>);
+  auto centers = absl::make_unique<DenseDataset<float>>();
   original_centers.ConvertType(centers.get());
 
   TF_ASSIGN_OR_RETURN(

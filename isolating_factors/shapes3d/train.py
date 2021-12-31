@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Cycle consistency across sets for Shapes3D factor isolation experiments."""
+"""Approximate bijective correspondence (ABC) for Shapes3D factor isolation."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -26,9 +26,9 @@ import os
 from absl import app
 from absl import flags
 from absl import logging
+from isolating_factors.shapes3d import evaluation
+from isolating_factors.shapes3d import loss_fns
 import numpy as np
-from shapes3d import evaluation
-from shapes3d import loss_fns
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
@@ -48,11 +48,8 @@ flags.DEFINE_bool('save_model', False, 'Whether to save the model at the end.')
 flags.DEFINE_integer('visualization_size', 256,
                      'The number of example embeddings to display in outputs.')
 ################################ Model Specs ###################################
-flags.DEFINE_integer('num_latent_dims', 2,
-                     'The size of the latent space for the embeddings. '
-                     'The mutual information and visualization outputs are '
-                     'only for num_latent_dims = 2, but training can be with '
-                     'any dimension.')
+flags.DEFINE_integer('num_latent_dims', 64,
+                     'The size of the latent space for the embeddings.')
 #################################### Data ######################################
 flags.DEFINE_integer('stack_size',
                      32,
@@ -79,8 +76,8 @@ flags.DEFINE_float('learning_rate',
                    3e-5,
                    'The learning rate for the optimizer.')
 flags.DEFINE_string('optimizer', 'Adam', 'The keras optimizer to use.')
-flags.DEFINE_float('temperature', 1.,
-                   'The temperature to use in the cycle consistency loss, both'
+flags.DEFINE_float('temperature', 1.0,
+                   'The temperature to use in the correspondence loss, both'
                    ' for the soft nearest neighbor calculation and the cross-'
                    'entropy loss on the way back.')
 flags.DEFINE_string('similarity_type', 'l2sq',
@@ -121,7 +118,7 @@ def main(_):
   # Load the data
   ##############################################################################
   inactive_vars_num = [
-      evaluation.GENERATIVE_FACTORS[var_id][1] for var_id in inactive_vars
+      evaluation.GENERATIVE_FACTORS[var_id][2] for var_id in inactive_vars
   ]
 
   dataset_full = tfds.load('shapes3d', split='train')
@@ -129,7 +126,7 @@ def main(_):
   def parse_example(example):
     image = tf.image.convert_image_dtype(example['image'], tf.float32)
     gen_factors = [example['label_' + factor_name] for
-                   factor_name, _ in evaluation.GENERATIVE_FACTORS]
+                   factor_name, _, _ in evaluation.GENERATIVE_FACTORS]
     gen_factors = tf.stack(gen_factors, 0)
     return image, gen_factors
 
@@ -204,7 +201,7 @@ def main(_):
     if iteration > num_iters:
       break
 
-    # Forge a new stack each step with random values for the inactive factors
+    # Forge a new stack each step with random values for the inactive factors.
     image_stacks = []
     for _ in range(num_curated_stacks):
       label_values = [
@@ -232,59 +229,60 @@ def main(_):
       if run_augmentation_experiment:
         logits = loss_fns.get_scaled_similarity(embeddings1, embeddings2,
                                                 similarity_type, temperature)
-        labels = tf.one_hot(tf.range(stack_size), stack_size)
-        loss = loss_fns.classification_loss(logits, labels)
+        loss = tf.reduce_mean(
+            tf.keras.losses.sparse_categorical_crossentropy(
+                tf.range(stack_size), logits, from_logits=True))
       else:
-        # Standard cycle consistency across sets
-        logits, labels = loss_fns.quantify_unambiguous_cycles(
+        # ABC across sets
+        loss = loss_fns.correspondence_loss(
             embeddings1, embeddings2, similarity_type, temperature)
-        loss = loss_fns.classification_loss(logits, labels)
-        logits, labels = loss_fns.quantify_unambiguous_cycles(
+        loss += loss_fns.correspondence_loss(
             embeddings2, embeddings1, similarity_type, temperature)
-        loss += loss_fns.classification_loss(logits, labels)
 
     grads = tape.gradient(loss, model.trainable_variables)
+    optimizer.apply_gradients(zip(grads, model.trainable_variables))
     train_loss(loss)
-    # Eval before updating the variables to eval the randomly initialized model
-    if iteration % eval_frequency == 0:
+
+    if (iteration+1) % eval_frequency == 0:
       logging.info('Started eval, step %d', iteration)
       avg_loss = train_loss.result()
-      # Everything but loss is implemented only for 2-dimensional latent space
-      if num_latent_dims == 2:
-        entropy_y, mutual_infos_all = evaluation.compute_mutual_info(
-            model, dataset_full)
+      length_scale = 1.0
+      if similarity_type == 'l2':
+        length_scale = temperature
+      elif similarity_type == 'l2sq':
+        length_scale = np.sqrt(temperature)
+      mutual_infos_all = evaluation.compute_mutual_info(
+          model,
+          dataset_full,
+          noise=length_scale,
+          num_latent_dims=num_latent_dims)
 
-        csv_outfile = os.path.join(outdir, 'mutual_info_results.csv')
-        to_write = [str(iteration), '{:.4f}'.format(entropy_y)] + [
-            '{:.4f}'.format(mutual_info) for mutual_info in mutual_infos_all
-        ]
-        with open(csv_outfile, 'a') as csvfile:
-          results_writer = csv.writer(csvfile, delimiter=',')
-          results_writer.writerow(to_write)
+      csv_outfile = os.path.join(outdir, 'mutual_info_results.csv')
+      to_write = [str(iteration)] + [
+          '{:.4f}'.format(mutual_info) for mutual_info in mutual_infos_all
+      ]
+      with open(csv_outfile, 'a') as csvfile:
+        results_writer = csv.writer(csvfile, delimiter=',')
+        results_writer.writerow(to_write)
 
-        if save_pngs:
-          out_fname = os.path.join(outdir, '{}.png'.format(iteration))
-          visualization_embeddings = model(visualization_images, training=False)
-          evaluation.visualize_embeddings(mutual_infos_all,
-                                          visualization_embeddings,
-                                          visualization_labels, out_fname)
+      if save_pngs:
+        out_fname = os.path.join(outdir, '{}.png'.format(iteration))
+        visualization_embeddings = model(visualization_images, training=False)
+        evaluation.visualize_embeddings(mutual_infos_all,
+                                        visualization_embeddings,
+                                        visualization_labels, out_fname)
       with train_summary_writer.as_default():
         tf.summary.scalar('loss', avg_loss, step=iteration)
-        if num_latent_dims == 2:
-          tf.summary.scalar('entropy_y', entropy_y, step=iteration)
-          for i in range(len(mutual_infos_all)):
-            tf.summary.scalar(
-                'mutual_info_{}'.format(evaluation.GENERATIVE_FACTORS[i][0]),
-                mutual_infos_all[i],
-                step=iteration)
+        for i in range(len(mutual_infos_all)):
+          tf.summary.scalar(
+              'mutual_info_{}'.format(evaluation.GENERATIVE_FACTORS[i][0]),
+              mutual_infos_all[i],
+              step=iteration)
 
       train_loss.reset_states()
 
     if iteration and iteration % save_frequency == 0:
       checkpoint_manager.save()
-
-    # Finally, update the variables
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
   logging.info('Finished training.')
   if save_model:
@@ -293,6 +291,3 @@ def main(_):
 
 if __name__ == '__main__':
   app.run(main)
-
-
-

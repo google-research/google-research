@@ -16,6 +16,8 @@
 
 #include "scann/hashes/hashing_base.h"
 
+#include <cstdint>
+
 namespace research_scann {
 
 Status UntypedHashing::LoadParameters() {

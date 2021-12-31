@@ -23,7 +23,8 @@ def evaluate(
     policy,
     num_episodes = 10,
     ctx_length = None,
-    state_mask_fn = None
+    embed_training_window = None,
+    state_mask_fn = None,  # pylint: disable=g-bare-generic
 ):
   """Evaluates the policy.
 
@@ -32,6 +33,7 @@ def evaluate(
     policy: Policy to evaluate.
     num_episodes: A number of episodes to average the policy on.
     ctx_length: number of previous steps to compute context from.
+    embed_training_window: window size used during embed training.
     state_mask_fn: state masking function for partially obs envs.
 
   Returns:
@@ -53,7 +55,13 @@ def evaluate(
           tf.zeros(policy.action_spec.shape)[None, :] for _ in range(ctx_length)
       ]
       rewards = [[0.] for _ in range(ctx_length)]
+
+    latent_action = None
+    i = 0
     while not timestep.is_last():
+      if embed_training_window and (i % embed_training_window == 0 or
+                                    embed_training_window <= 2):
+        latent_action = None
       if ctx_length:
         states.append(apply_mask(timestep.observation))
         if len(states) > ctx_length:
@@ -66,7 +74,11 @@ def evaluate(
             rewards=tf.stack(rewards, axis=1))
         actions.append(action)
       else:
-        action = policy.act(apply_mask(timestep.observation))
+        if embed_training_window:
+          action, latent_action = policy.act(
+              apply_mask(timestep.observation), latent_action=latent_action)
+        else:
+          action = policy.act(apply_mask(timestep.observation))
 
       timestep = env.step(action)
       if ctx_length:
@@ -74,5 +86,6 @@ def evaluate(
 
       total_returns += timestep.reward[0]
       total_timesteps += 1
+      i += 1
 
   return total_returns / num_episodes, total_timesteps / num_episodes

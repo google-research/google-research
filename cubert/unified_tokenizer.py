@@ -15,6 +15,7 @@
 
 # Lint as: python3
 """Cross-language tokenization library."""
+import dataclasses
 import enum
 import token as python_token
 import tokenize
@@ -26,9 +27,7 @@ from typing import Sequence
 from typing import Text
 from typing import Tuple
 
-
 from absl import logging
-import dataclasses
 import regex  # Using instead of `re` because it handles Unicode classes.
 import six
 
@@ -132,27 +131,30 @@ def fill_range_with_whitespace(start,
   Raises:
     ValueError: if `start` does not precede `end`.
   """
-  if (start.line, start.column) >= (end.line, end.column):
+  current_line = start.line
+  current_column = start.column
+  end_column = end.column
+  end_line = end.line
+  if (current_line, current_column) >= (end_line, end_column):
     raise ValueError('`start` must precede `end`, but we received start %s '
                      'and end %s.' % (start, end))
 
-  current_column = start.column
-  current_line = start.line
-  while current_line < end.line:
+  while current_line < end_line:
+    next_line = current_line + 1
     yield AbstractToken(
-        quote_special(TokenKind.NEWLINE.name),
+        NEWLINE,
         TokenKind.NEWLINE,
         TokenMetadata(
             # A NEWLINE starts at the colum where it occurs and ends
             # at the first character of the next line.
             start=Position(line=current_line, column=current_column),
-            end=Position(line=current_line + 1, column=0)))
+            end=Position(line=next_line, column=0)))
     current_column = 0
-    current_line += 1
+    current_line = next_line
 
   # At this point, we have consumed all newlines. Add any remaining
   # space until the next, non-whitespace token.
-  number_of_final_spaces = end.column - current_column
+  number_of_final_spaces = end_column - current_column
   if number_of_final_spaces:
     # Note that we canonicalize all column differences as space characters.
     # This, for example, will discard any '\t' characters and replace them
@@ -161,14 +163,23 @@ def fill_range_with_whitespace(start,
         ' ' * number_of_final_spaces, TokenKind.WHITESPACE,
         TokenMetadata(
             start=Position(line=current_line, column=current_column),
-            end=Position(line=current_line, column=end.column)))
+            end=Position(line=current_line, column=end_column)))
 
 
-_KINDS_TO_SPLIT_LIKE_WHITESPACE = (TokenKind.COMMENT, TokenKind.STRING,
-                                   TokenKind.WHITESPACE)
-_KINDS_TO_SPLIT_BY_LENGTH = (TokenKind.COMMENT, TokenKind.STRING,
-                             TokenKind.NUMBER, TokenKind.IDENTIFIER,
-                             TokenKind.WHITESPACE)
+_KINDS_TO_SPLIT_LIKE_WHITESPACE = (
+    TokenKind.COMMENT,
+    TokenKind.STRING,
+    TokenKind.WHITESPACE,
+    TokenKind.ERROR,
+)
+_KINDS_TO_SPLIT_BY_LENGTH = (
+    TokenKind.COMMENT,
+    TokenKind.STRING,
+    TokenKind.NUMBER,
+    TokenKind.IDENTIFIER,
+    TokenKind.WHITESPACE,
+    TokenKind.ERROR,
+)
 
 _UPPERCASE = r'\p{Lu}'
 _TITLECASE = r'\p{Lt}'

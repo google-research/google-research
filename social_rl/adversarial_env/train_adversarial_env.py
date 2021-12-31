@@ -170,6 +170,10 @@ def train_eval(
   """Adversarial environment train and eval."""
   tf.compat.v1.enable_v2_behavior()
 
+  if debug:
+    logging.info('In debug mode. Disabling tf functions.')
+    use_tf_functions = False
+
   if combined_population:
     # The number of train steps per environment episodes differs based on the
     # number of agents trained per episode. Adjust value when training a
@@ -505,7 +509,7 @@ def train_eval(
         collect_time = 0
         train_time = 0
 
-    if global_step_val:
+    if total_episodes > 0:
       # Save one final checkpoint for all agent types and population members
       for name, agent_list in agents.items():
         for i, agent in enumerate(agent_list):

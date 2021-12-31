@@ -1,0 +1,1039 @@
+// Copyright 2021 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Protocol buffers for the Small Molecule Universe Project
+//
+// TODO(pfr): add link to paper when available
+
+// This is a machine readable file to produce code for reading the binary format
+// in many languages. The file also serves as detailed documentation of all
+// of the fields provieded in the dataset.
+
+// For a description of protocol buffers and the language spec (if you can't
+// figure it out from the names), see
+// https://developers.google.com/protocol-buffers/
+
+syntax = "proto3";
+
+
+import "google/protobuf/descriptor.proto";
+
+
+///////////// Custom options
+// The dataset is released in two forms
+// 1. COMPLETE: Has all conformers and almost all fields
+// 2. STANDARD: Has conformers where calculations did not encounter serious
+//    errors and a limited set of the most interesting fields.
+//
+// We use protobuf field options for marking the availability of fields in
+// Properties in the different versions of the dataset. These types define those
+// custom options.
+// See https://developers.google.com/protocol-buffers/docs/proto#customoptions
+//
+// For each field, there will be an annotation like [(availability) = COMPLETE]
+// indicating which version of the dataset contains this field. Everything in
+// STANDARD is also included in COMPLETE.
+
+enum AvailabilityEnum {
+  UNSPECIFIED = 0;
+  // INTERNAL_ONLY fields are not in any public version of the dataset
+  INTERNAL_ONLY = 1;
+  STANDARD = 2;
+  COMPLETE = 3;
+}
+
+extend google.protobuf.FieldOptions {
+  optional AvailabilityEnum availability = 336921174;
+}
+
+///////////// Primary data
+
+// BondTopology specifies the atom types and connections.
+message BondTopology {
+  enum AtomType {
+    // ATOM_UNDEFINED never occurs in final data.
+    ATOM_UNDEFINED = 0;
+    ATOM_C = 1;
+    ATOM_N = 2;
+    // NPOS is a positively charged nitrogen
+    ATOM_NPOS = 3;
+    ATOM_O = 4;
+    // ONEG is a negatively charged oxygen
+    ATOM_ONEG = 5;
+    ATOM_F = 6;
+    ATOM_H = 7;
+  }
+
+  // Note that there is no "aromatic" bond type.
+  enum BondType {
+    // BOND_UNDEFINED should never occur in final data
+    BOND_UNDEFINED = 0;
+    BOND_SINGLE = 1;
+    BOND_DOUBLE = 2;
+    BOND_TRIPLE = 3;
+  }
+
+  message Bond {
+    int32 atom_a = 1;
+    int32 atom_b = 2;
+    BondType bond_type = 3;
+  }
+
+  // Note that this order of atoms will be used throughout the specification of
+  // geometries below.
+  repeated AtomType atoms = 1;
+
+  repeated Bond bonds = 2;
+  // The SMILES that are stored are canonical SMILES computed by RDKit. However
+  // since we are not using aromatic bonds, there is one case that must be
+  // special cased. See smu_utils_lib.py:compute_smiles_for_bond_topology
+  string smiles = 3;
+
+  // A unique 1 indexed dense id for this topology.
+  int32 bond_topology_id = 4;
+
+  // INTERNAL ONLY: This will not be available in the external database.
+  //
+  // If this has been discerned from geometry, the associated score.
+  // Now, prefer topology_score and geometry_score to reflect the different
+  // kinds of scores available.
+  // This is still used in smu_molecule as a generic score value accumulator -
+  // smu_molecule does not know what kind of score it is accumulating.
+  float score = 5;
+
+  // If this has been discerned from geometry, is it the same as the
+  // starting BondTopology.
+  bool is_starting_topology = 6;
+
+  // Number of atoms that are in a ring.
+  int32 ring_atom_count = 7;
+
+  // An estimate of log(P(topology|geometry))
+  //
+  // This is a discrete distribution among all matching topologies
+  // from this geometry. Since we are in log space, a value of 0 means
+  // a probability of 1.0 and smaller negative values are smaller
+  // probabilities. Across the matching topologies,
+  // exp(topology_score) will sum to 1.
+  float topology_score = 8;
+
+  // An estimate of log(p(geometry|topology)).
+  //
+  // This reflects how suprising this particular geometry is given the
+  // topology. Note that this is a probability *density* not a
+  // probability, so the scale can cover positive and negative numbers
+  // with smaller numbers representing less likely geometries. This
+  // score should *not* be used to compare across different
+  // topologies. It is only interesting for a given topology to
+  // compare different geometries.
+  //
+  // Note that only bonds between heavy atoms are used in computing this.
+  float geometry_score = 9;
+}
+
+// When doing topology from geometry matching, the results are returned
+// as a set of individual BondTopology's.
+message TopologyMatches {
+  repeated BondTopology bond_topology = 1;
+
+  // It is convenient to have the starting smiles.
+  string starting_smiles = 2;
+
+  // And the conformer_id
+  int32 conformer_id = 3;
+
+  // To avoid having to join results later, store the fate.
+  Conformer.FateCategory fate = 4;
+}
+
+// Geometry captures the 3D locations of the atoms. The atom types are left
+// out and are matched by atom index to a BondTopology.
+message Geometry {
+  // Units: Bohr
+  message AtomPos {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+  }
+  repeated AtomPos atom_positions = 1;
+}
+
+// All the properties that are computed for a molecule.
+message Properties {
+  // These values capture all of the possible error states during computations.
+  // TODO(pfr): this proto will undergo a major revision with next round of
+  // data.
+  message Errors {
+    // status is a summary of all the error conditions encountered.
+    // 0 indicates no errors and larger values indicate increasingly serious
+    // errors.
+    int32 status = 29;
+
+    // All of the warn_ fields are categories of errors encountered.
+    // 0 means no errors and larger values are increasingly serious.
+
+    // T1(2sd) diagnostics 1: > 0.02, 2: > 0.04, 3: > 0.06, 4: > 0.08
+    int32 warn_t1 = 30;
+    // Excess T1(2sd) diagnostics 1: > 0.015, 2: > 0.03, 3: > 0.05, 4: > 0.07
+    int32 warn_t1_excess = 31;
+    // Ratio between
+    // a) usigned difference in B6 and B5 BSEs
+    // b) given uncertainty of B6 BSEs
+    // 1: > 0.5, 2: > 1, 3: > 1.5, 4: > 2.0
+    int32 warn_bse_b5_b6 = 32;
+    // Ratio between
+    // a) unsigned difference in E_CCSD and B5 BSEs
+    // b) given uncertainty of E_CCSD BSEs
+    // 1: > 0.5, 2: > 1,
+    int32 warn_bse_cccsd_b5 = 33;
+    // Lowest excitation energy 1: < 1.0, 2: < 0.5, 3: < 0.0, 4: < -0.5 (eV)
+    int32 warn_exc_lowest_excitation = 34;
+    // Smallest oscillator strength 1: < -0.001
+    // (i.e. negative value, certain to be not due to numerical inaccuracy)
+    int32 warn_exc_smallest_oscillator = 35;
+    // Largest unsigned oscillator strength 1: > 1.0, 2: > 2.0
+    int32 warn_exc_largest_oscillator = 36;
+    // Disagreement between geometry analysis and QM program claim about
+    // linearity of the molecule.
+    // 1: QM claims non-linear, molecule seems to be linear
+    // 2: QM claims linear, molecule seems to be non-linear
+    // (note: value of 2 apparently not found for SMU1-7)
+    // Warning indicates that computed heats of formation for 298.15 K
+    // may be wrong)
+    int32 warn_vib_linearity = 37;
+    // Imaginary frequencies found.
+    // 1: At least one imaginary frequency found, all imaginary
+    // frequencies are between 0 and 30i cm-1. In this case any
+    // imaginary frequency is assumed to be due to numerical
+    // imprecision, and we set it to a small real value (1 cm-1) for
+    // thermochemical analysis.
+    // 2: At least one imaginary frequency found, at least one of
+    // which is larger than 30i cm-1. In this case we assume that the
+    // geometry really corresponds to a transition state or
+    // higher-order saddle point. Imaginary frequencies are skipped in
+    // the calculation of ZPEs and enthalpies of formation for 298 K
+    // are left out.
+    int32 warn_vib_imaginary = 38;
+    // This is simply information about how many of the bonds are
+    // classified as those that need an empirical correction in the
+    // thermochemical analysis to correct for the occurrence of
+    // negatively charged BSR prototype molecules.
+    int32 warn_num_neg = 39;
+
+    // These four errors (nstat1, nstatc, nstatt, frequencies) are only from
+    // the stage1 files and are only useful for internal debugging.
+    int32 error_nstat1 = 24;
+    int32 error_nstatc = 25;
+    int32 error_nstatt = 26;
+    // Computation error for frequencies.
+    // Original error code: nstatv
+    int32 error_frequencies = 2;
+
+    // All errors below here are deprecated and were only used in
+    // earlier versions of the dataset.
+
+    // ATOMIC analysis of the molecule.
+    // Original error code: nsvato
+    int32 error_atomic_analysis = 3;
+    // Failed to compute NMR values with B3LYP small basis set (6-31++G**).
+    // Original error code: nsvnsb
+    int32 error_nmr_analysis_b3lyp_small_basis = 4;
+    // Failed to compute NMR values with B3LYP large basis set (aug-pcS-1).
+    // Original error code: nsvnlb
+    int32 error_nmr_analysis_b3lyp_large_basis = 5;
+    // Failed to compute NMR values with PBE0 small basis set (6-31++G**).
+    // Original error code: nsvnsp
+    int32 error_nmr_analysis_pbe0_small_basis = 6;
+    // Failed to compute NMR values with PBE0 large basis set (aug-pcS-1).
+    // Original error code: nsvnlp
+    int32 error_nmr_analysis_pbe0_large_basis = 7;
+    // Charge analysis failed.
+    // Original error code: nsvele
+    int32 error_charge_analysis = 8;
+    // Computation error during energies / orbitals calculations for HF/cc-pVTZ.
+    // Original error code: nsveh3
+    int32 error_energies_orbitals_pvtz = 9;
+    // Computation error during energies / orbitals calculations for HF/cc-pVQZ.
+    // Original error code: nsveh4
+    int32 error_energies_orbitals_pvqz = 10;
+    // Computation error during energies / orbitals calculations for
+    // HF/cc-pCVTZ.
+    // Original error code: nsvec3
+    int32 error_energies_orbitals_pcvtz = 11;
+    // Computation error during computing excitation energies.
+    // Original error code: nsvexc
+    int32 error_excitation_energies = 12;
+    // Turbomole single point calculations for PBE0/6-311G* looked faulty.
+    // Original error code: nsveca
+    int32 error_single_point_energies = 13;
+    // Turbmole and MRCC gave different results for molecular energy.
+    // Original error code: nsvmr1
+    int32 error_inconsistent_molecule_energy_turbomole_mrcc = 14;
+    // Turbmole and MRCC gave different results for single point calculations.
+    // Original error code: nsvmr2
+    int32 error_inconsistent_cation_energy_turbomole_mrcc = 15;
+    // Turbmole and ORCA gave different results for molecular energy.
+    // Original error code: nsvor1
+    int32 error_inconsistent_molecule_energy_turbomole_orca = 16;
+    // Turbmole and ORCA gave different results for single point calculations.
+    // Original error code: nsvor2
+    int32 error_inconsistent_cation_energy_turbomole_orca = 17;
+    // Normal mode calculations failed.
+    // Original error code: nsvvib
+    int32 error_normal_modes = 18;
+    // TODO(pfr): Document this with Dirk.
+    // Original error code: nsvrot
+    int32 error_rotational_modes = 19;
+    // TODO(pfr): Document and create better names.
+    int32 error_nsvho1 = 20;
+    int32 error_nsvho2 = 21;
+    int32 error_nsvho3 = 22;
+    int32 error_nsvneg = 23;
+    int32 error_nsvego = 27;
+    int32 error_nsvg09 = 28;
+
+    // TODO(pfr): This is a temporary feature that we will deprecate. It's here
+    // so that we could identify the small number of merging failures and figure
+    // out what to do with them.
+    string error_during_merging = 65;
+
+    // Field numbers for deleted fields.
+    reserved 1;
+  }
+
+  // First, a number of general message types are defined (*Property) that are
+  // used for specific field values below.
+
+  // A single string for the molecule.
+  message StringMolecularProperty {
+    string value = 1;
+  }
+
+  // A single value for the whole molecule.
+  message ScalarMolecularProperty {
+    double value = 1;
+  }
+  // Multiple values associated with the whole molecule. Use
+  // AtomicMoleculeProperty for one value per atom.
+  message MultiScalarMolecularProperty {
+    repeated double value = 1;
+  }
+  // One value for each atom. values and precision should be exactly the same
+  // length as atoms in the BondTopology.
+  message AtomicMolecularProperty {
+    repeated double values = 1;
+    // Note that this is just a precision with which the value is stored and is
+    // NOT an estimate of the confidence/accuracy of the value compared to
+    // reality.
+    repeated double precision = 2;
+  }
+  // A vector property.
+  message Vector3DMolecularProperty {
+    double x = 1;
+    double y = 2;
+    double z = 3;
+  }
+
+  // A rank 2 tensor property.
+  message Rank2MolecularProperty {
+    // TODO(pfr): Document the encoding order.
+    repeated double matrix_values = 1;
+  }
+  // A rank 3 tensor property
+  message Rank3MolecularProperty {
+    // TODO(pfr): Document the encoding order.
+
+    repeated double tensor_values = 1;
+  }
+  // Normal modes with atomic displacements.
+  message NormalMode {
+    // Units: unitless, vector norm is scaled to 1.
+    message AtomicDisplacement {
+      double x = 1;
+      double y = 2;
+      double z = 3;
+    }
+    // Should be the same length as the number of atoms in BondTopology.
+    repeated AtomicDisplacement displacements = 1;
+  }
+
+  // Record of errors encountered during the computations.
+  Errors errors = 1 [(availability) = COMPLETE];
+
+  // The original pipeline used SMILES from OpenBabel which were sometimes
+  // unintnetionally aromatic SMILES. or simplified lookup in the database
+  // we are using RDKit canonical SMILES. If these differ from the original
+  // OpenBabel smiles, then we put the original OpenBabel SMILES here.
+  // If they are the same, we leave everything as is.
+  optional string smiles_openbabel = 175 [(availability) = COMPLETE];
+
+  // We use suffixes on the properties to indicate the level of theory and, in
+  // many cases, the basis set.
+  // * hf = Hartree-Fock
+  // * b3lyp = DFT with B3LYP functional
+  // * pbe0 = DFT with PBE0 functional
+  // * pbe0d3 = DFT with PBE0D3 functional
+  // * cc2 = simplified coupled cluster doubles
+  // * atomic = ATOMIC2/B5,B6
+
+  // 3 * num_atoms.
+  // Units: km/mol
+  MultiScalarMolecularProperty harmonic_intensities = 4
+      [(availability) = STANDARD];
+
+  // Values that are negative are imaginary. Frequencies should be exactly
+  // the same length as atoms in the BondTopology.
+  // Units: wave numbers, cm^-1
+  MultiScalarMolecularProperty harmonic_frequencies = 173
+      [(availability) = STANDARD];
+  // TODO(pfr): document better
+  // 3 * num_atoms normal modes with num_atoms x-, y-, and z- displacements
+  // each. Each normal mode corresponds to a particular harmonic_intensity.
+  repeated NormalMode normal_modes = 174 [(availability) = COMPLETE];
+
+  // Single point energies are all in atomic units (Hartrees).
+  // Single point energy PBE0D3/6-311Gd.
+  ScalarMolecularProperty single_point_energy_pbe0d3_6_311gd = 6
+      [(availability) = COMPLETE];
+  // Single point energy PBE0/6-311Gd.
+  ScalarMolecularProperty single_point_energy_pbe0_6_311gd = 7
+      [(availability) = COMPLETE];
+  // Single point energy PBE0D3/6-311Gd computed with MRCC.
+  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_mrcc = 8
+      [(availability) = COMPLETE];
+  // Single point energy PBE0D3/6-311Gd computed with ORCA.
+  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_orca = 9
+      [(availability) = COMPLETE];
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with Turbomole.
+  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat = 10
+      [(availability) = COMPLETE];
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with MRCC.
+  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_mrcc = 11
+      [(availability) = COMPLETE];
+  // Single point cation energy PBE0/6-311Gd(CAT) computed with ORCA.
+  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_orca = 12
+      [(availability) = COMPLETE];
+  // Single point energy PBE0/aug-pc-1.
+  ScalarMolecularProperty single_point_energy_pbe0_aug_pc_1 = 13
+      [(availability) = COMPLETE];
+  // Single point energy HF/6-31Gd.
+  ScalarMolecularProperty single_point_energy_hf_6_31gd = 14
+      [(availability) = COMPLETE];
+  // Single point energy B3LYP/6-31++Gdp.
+  ScalarMolecularProperty single_point_energy_b3lyp_6_31ppgdp = 15
+      [(availability) = COMPLETE];
+  // Single point energy B3LYP/aug-pcS-1.
+  ScalarMolecularProperty single_point_energy_b3lyp_aug_pcs_1 = 16
+      [(availability) = COMPLETE];
+  // Single point energy PBE0/6-31++Gdp.
+  ScalarMolecularProperty single_point_energy_pbe0_6_31ppgdp = 17
+      [(availability) = COMPLETE];
+  // Single point energy PBE0/aug-pcS-1.
+  ScalarMolecularProperty single_point_energy_pbe0_aug_pcs_1 = 18
+      [(availability) = COMPLETE];
+  // Single point energy HF/TZVP.
+  ScalarMolecularProperty single_point_energy_hf_tzvp = 19
+      [(availability) = COMPLETE];
+  // Single point energy MP2/TZVP.
+  ScalarMolecularProperty single_point_energy_mp2_tzvp = 20
+      [(availability) = COMPLETE];
+  // Single point energy CC2/TZVP.
+  ScalarMolecularProperty single_point_energy_cc2_tzvp = 21
+      [(availability) = COMPLETE];
+  // Single point energy HF/3.
+  ScalarMolecularProperty single_point_energy_hf_3 = 22
+      [(availability) = COMPLETE];
+  // Single point energy MP2/3.
+  ScalarMolecularProperty single_point_energy_mp2_3 = 23
+      [(availability) = COMPLETE];
+  // Single point energy HF/4.
+  ScalarMolecularProperty single_point_energy_hf_4 = 24
+      [(availability) = COMPLETE];
+  // Single point energy MP2/4.
+  ScalarMolecularProperty single_point_energy_mp2_4 = 25
+      [(availability) = COMPLETE];
+  // Single point energy HF/(34).
+  ScalarMolecularProperty single_point_energy_hf_34 = 26
+      [(availability) = COMPLETE];
+  // Single point energy MP2/(34).
+  ScalarMolecularProperty single_point_energy_mp2_34 = 27
+      [(availability) = COMPLETE];
+  // Single point energy HF/CVTZ.
+  ScalarMolecularProperty single_point_energy_hf_cvtz = 28
+      [(availability) = COMPLETE];
+  // Single point energy MP2ful/CVTZ.
+  ScalarMolecularProperty single_point_energy_mp2ful_cvtz = 29
+      [(availability) = COMPLETE];
+  // Single point energy HF/2sp.
+  ScalarMolecularProperty single_point_energy_hf_2sp = 30
+      [(availability) = COMPLETE];
+  // Single point energy MP2/2sp.
+  ScalarMolecularProperty single_point_energy_mp2_2sp = 31
+      [(availability) = COMPLETE];
+  // Single point energy CCSD/2sp.
+  ScalarMolecularProperty single_point_energy_ccsd_2sp = 32
+      [(availability) = COMPLETE];
+  // Single point energy CCSD(T)/2sp.
+  ScalarMolecularProperty single_point_energy_ccsd_t_2sp = 33
+      [(availability) = COMPLETE];
+  // Single point energy HF/2sd.
+  ScalarMolecularProperty single_point_energy_hf_2sd = 34
+      [(availability) = COMPLETE];
+  // Single point energy MP2/2sd.
+  ScalarMolecularProperty single_point_energy_mp2_2sd = 35
+      [(availability) = COMPLETE];
+  // Single point energy CCSD/2sd.
+  ScalarMolecularProperty single_point_energy_ccsd_2sd = 36
+      [(availability) = COMPLETE];
+  // Single point energy CCSD(T)/2sd.
+  ScalarMolecularProperty single_point_energy_ccsd_t_2sd = 37
+      [(availability) = COMPLETE];
+  // Single point energy HF/3Psd.
+  ScalarMolecularProperty single_point_energy_hf_3psd = 38
+      [(availability) = COMPLETE];
+  // Single point energy MP2/3Psd.
+  ScalarMolecularProperty single_point_energy_mp2_3psd = 39
+      [(availability) = COMPLETE];
+  // Single point energy CCSD/3Psd.
+  ScalarMolecularProperty single_point_energy_ccsd_3psd = 40
+      [(availability) = COMPLETE];
+  // Single point energy ATOMIC/B5.
+  ScalarMolecularProperty single_point_energy_atomic_b5 = 41
+      [(availability) = STANDARD];
+  // Single point energy ATOMIC/B6.
+  ScalarMolecularProperty single_point_energy_atomic_b6 = 42
+      [(availability) = COMPLETE];
+  // Single point energy for E_{CCSD}.
+  ScalarMolecularProperty single_point_energy_eccsd = 120
+      [(availability) = COMPLETE];
+  // TODO(pfr, dirk): double check that atomic_b5 is still reported even when
+  // other thermochemistry fails.
+
+  // Zero point energy, unscaled.
+  // Units: kcal/mol
+  ScalarMolecularProperty zpe_unscaled = 43 [(availability) = COMPLETE];
+
+  // Units: atomic units (Hartrees)
+  // HOMO PBE0/6-311Gd.
+  ScalarMolecularProperty homo_pbe0_6_311gd = 47 [(availability) = STANDARD];
+  // LUMO PBE0/6-311Gd.
+  ScalarMolecularProperty lumo_pbe0_6_311gd = 48 [(availability) = STANDARD];
+  // HOMO PBE0/aug-pc-1.
+  ScalarMolecularProperty homo_pbe0_aug_pc_1 = 49 [(availability) = COMPLETE];
+  // LUMO PBE0/aug-pc-1.
+  ScalarMolecularProperty lumo_pbe0_aug_pc_1 = 50 [(availability) = COMPLETE];
+  // HOMO PBE0/6-31++Gdp.
+  ScalarMolecularProperty homo_pbe0_6_31ppgdp = 51 [(availability) = COMPLETE];
+  // LUMO PBE0/6-31++Gdp.
+  ScalarMolecularProperty lumo_pbe0_6_31ppgdp = 52 [(availability) = COMPLETE];
+  // HOMO PBE0/aug-pcS-1.
+  ScalarMolecularProperty homo_pbe0_aug_pcs_1 = 53 [(availability) = COMPLETE];
+  // LUMO PBE0/aug-pcS-1.
+  ScalarMolecularProperty lumo_pbe0_aug_pcs_1 = 54 [(availability) = COMPLETE];
+  // HOMO B3LYP/6-31++Gdp.
+  ScalarMolecularProperty homo_b3lyp_6_31ppgdp = 55 [(availability) = COMPLETE];
+  // LUMO B3LYP/6-31++Gdp.
+  ScalarMolecularProperty lumo_b3lyp_6_31ppgdp = 56 [(availability) = COMPLETE];
+  // HOMO B3LYP/aug-pcS-1.
+  ScalarMolecularProperty homo_b3lyp_aug_pcs_1 = 57 [(availability) = COMPLETE];
+  // LUMO B3LYP/aug-pcS-1.
+  ScalarMolecularProperty lumo_b3lyp_aug_pcs_1 = 58 [(availability) = COMPLETE];
+  // HOMO HF/6-31Gd.
+  ScalarMolecularProperty homo_hf_6_31gd = 59 [(availability) = COMPLETE];
+  // LUMO HF/6-31Gd.
+  ScalarMolecularProperty lumo_hf_6_31gd = 60 [(availability) = COMPLETE];
+  // HOMO HF/TZVP.
+  ScalarMolecularProperty homo_hf_tzvp = 61 [(availability) = COMPLETE];
+  // LUMO HF/TZVP.
+  ScalarMolecularProperty lumo_hf_tzvp = 62 [(availability) = COMPLETE];
+  // HOMO HF/3.
+  ScalarMolecularProperty homo_hf_3 = 63 [(availability) = COMPLETE];
+  // LUMO HF/3.
+  ScalarMolecularProperty lumo_hf_3 = 64 [(availability) = COMPLETE];
+  // HOMO HF/4.
+  ScalarMolecularProperty homo_hf_4 = 65 [(availability) = COMPLETE];
+  // LUMO HF/4.
+  ScalarMolecularProperty lumo_hf_4 = 66 [(availability) = COMPLETE];
+  // HOMO HF/CVTZ.
+  ScalarMolecularProperty homo_hf_cvtz = 67 [(availability) = COMPLETE];
+  // LUMO HF/CVTZ.
+  ScalarMolecularProperty lumo_hf_cvtz = 68 [(availability) = COMPLETE];
+
+  // The 5 smallest excitation energies and oscillator strengths.
+  // Units: atomic units
+  MultiScalarMolecularProperty excitation_energies_cc2 = 69
+      [(availability) = STANDARD];
+  MultiScalarMolecularProperty excitation_oscillator_strengths_cc2 = 70
+      [(availability) = STANDARD];
+
+  // NMR isotropic shielding are in ppm
+  // NMR isotropic shielding PBE0/6-31++Gdp.
+  AtomicMolecularProperty nmr_isotropic_shielding_pbe0_6_31ppgdp = 71
+      [(availability) = COMPLETE];
+  // NMR isotropic shielding PBE0/aug-pcS-1.
+  AtomicMolecularProperty nmr_isotropic_shielding_pbe0_aug_pcs_1 = 72
+      [(availability) = STANDARD];
+  // NMR isotropic shielding B3LYP/6-31++Gdp.
+  AtomicMolecularProperty nmr_isotropic_shielding_b3lyp_6_31ppgdp = 73
+      [(availability) = COMPLETE];
+  // NMR isotropic shielding B3LYP/aug-pcS-1.
+  AtomicMolecularProperty nmr_isotropic_shielding_b3lyp_aug_pcs_1 = 74
+      [(availability) = COMPLETE];
+
+  // All partial charges are in electron units
+  // Partial charges MUL-PBE0/aug-pc-1.
+  AtomicMolecularProperty partial_charges_mulliken_pbe0_aug_pc_1 = 75
+      [(availability) = STANDARD];
+  // Partial charges MUL-HF/6-31Gd.
+  AtomicMolecularProperty partial_charges_mulliken_hf_6_31gd = 76
+      [(availability) = COMPLETE];
+  // Partial charges LOE-PBE0/aug-pc-1.
+  AtomicMolecularProperty partial_charges_loewdin_pbe0_aug_pc_1 = 77
+      [(availability) = STANDARD];
+  // Partial charges LOE-HF/6-31Gd.
+  AtomicMolecularProperty partial_charges_loewdin_hf_6_31gd = 78
+      [(availability) = COMPLETE];
+  // Partial charges NAT-PBE0/aug-pc-1.
+  AtomicMolecularProperty partial_charges_natural_nbo_pbe0_aug_pc_1 = 79
+      [(availability) = STANDARD];
+  // Partial charges NAT-HF/6-31Gd.
+  AtomicMolecularProperty partial_charges_natural_nbo_hf_6_31gd = 80
+      [(availability) = COMPLETE];
+  // Partial charges PON-PBE0/aug-pc-1.
+  AtomicMolecularProperty partial_charges_paboon_pbe0_aug_pc_1 = 81
+      [(availability) = INTERNAL_ONLY];
+  // Partial charges PON-HF/6-31Gd.
+  AtomicMolecularProperty partial_charges_paboon_hf_6_31gd = 82
+      [(availability) = INTERNAL_ONLY];
+  // Partial charges ESP-PBE0/aug-pc-1.
+  AtomicMolecularProperty partial_charges_esp_fit_pbe0_aug_pc_1 = 83
+      [(availability) = STANDARD];
+  // Partial charges ESP-HF/6-31Gd.
+  AtomicMolecularProperty partial_charges_esp_fit_hf_6_31gd = 84
+      [(availability) = COMPLETE];
+
+  // Dipole-dipole polarizability PBE0/aug-pc-1.
+  // Units: atomic units
+  Rank2MolecularProperty dipole_dipole_polarizability_pbe0_aug_pc_1 = 85
+      [(availability) = STANDARD];
+  // Dipole-dipole polarizability HF/6-31Gd.
+  // Units: atomic units
+  // DEPRECATED
+  Rank2MolecularProperty dipole_dipole_polarizability_hf_6_31gd = 86
+      [(availability) = INTERNAL_ONLY];
+
+  // Dipole moment PBE0/aug-pc-1.
+  // Units: Debye
+  Vector3DMolecularProperty dipole_moment_pbe0_aug_pc_1 = 87
+      [(availability) = STANDARD];
+  // Dipole moment HF/6-31Gd.
+  // Units: Debye
+  Vector3DMolecularProperty dipole_moment_hf_6_31gd = 88
+      [(availability) = COMPLETE];
+
+  // Units: atomic units (bohr^2 * electron)
+  // Quadrupole moment PBE0/aug-pc-1.
+  Rank2MolecularProperty quadrupole_moment_pbe0_aug_pc_1 = 89
+      [(availability) = STANDARD];
+  // Quardupole moment HF/6-31Gd.
+  Rank2MolecularProperty quadrupole_moment_hf_6_31gd = 90
+      [(availability) = COMPLETE];
+
+  // Units: atomic units (bohr^3 * electron)
+  // Octopole moment PBE0/aug-pc-1.
+  Rank3MolecularProperty octopole_moment_pbe0_aug_pc_1 = 91
+      [(availability) = STANDARD];
+  // Octopole moment HF/6-31Gd.
+  Rank3MolecularProperty octopole_moment_hf_6_31gd = 92
+      [(availability) = COMPLETE];
+
+  // INTERNAL_ONLY
+  // Information about the compute cluster that ran this calculation.
+  optional string compute_cluster_info = 93 [(availability) = INTERNAL_ONLY];
+
+  optional bool symmetry_used_in_calculation = 94
+      [(availability) = INTERNAL_ONLY];
+
+  // Energies and and overall gradient norm at the end of the intial geometry
+  // optimization and at the end of the final geometry optimization.
+  // Units: atomic units (Hartrees)
+  // TODO(pfr): shoudl match single_point_energy_pbe0d3_6_311gd
+  ScalarMolecularProperty initial_geometry_energy = 95
+      [(availability) = STANDARD];
+  ScalarMolecularProperty initial_geometry_gradient_norm = 96
+      [(availability) = STANDARD];
+  // The energy is computed by Turbomole with PBE0-D3/6-311G(d)
+  // Units: atomic units (Hartrees)
+  ScalarMolecularProperty optimized_geometry_energy = 97
+      [(availability) = STANDARD];
+  ScalarMolecularProperty optimized_geometry_gradient_norm = 98
+      [(availability) = STANDARD];
+
+  // The eigenvalues of the moment of inertia tensor.
+  // Units: Mhz
+  Vector3DMolecularProperty rotational_constants = 99
+      [(availability) = STANDARD];
+
+  // Strings describing the bond separation reaction used by ATOMIC2 analysis.
+  // TODO(pfr): example would be helpful.
+  StringMolecularProperty bond_separation_reaction_left = 122
+      [(availability) = STANDARD];
+  StringMolecularProperty bond_separation_reaction_right = 123
+      [(availability) = STANDARD];
+
+  // Notes on field naming below
+  // * "atomic_bX" refers to the ATOMIC-2 protocol with the bX model
+  // * "atomic_bX_um" refers to the ATOMIC-2um protocol with the bX model (a
+  //   bias corrected version of "atomic")
+  // * "eccsd" refers to E_{CCSD}
+  // * "eccsd_um" refers to E_{CCSD} bias corrected in the same way as the
+  //   ATOMIC-2 protocol.
+  // * _ci refers to the one sided length of an approximate 95% confidence
+  //   interval.
+
+  // Bond separation energies, in kcal/mol.
+  ScalarMolecularProperty bond_separation_energy_atomic_b5 = 124
+      [(availability) = STANDARD];
+  ScalarMolecularProperty bond_separation_energy_atomic_b5_um = 125
+      [(availability) = STANDARD];
+  ScalarMolecularProperty bond_separation_energy_atomic_b5_um_ci = 126
+      [(availability) = STANDARD];
+  ScalarMolecularProperty bond_separation_energy_atomic_b6 = 127
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty bond_separation_energy_atomic_b6_um = 128
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty bond_separation_energy_atomic_b6_um_ci = 129
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty bond_separation_energy_eccsd = 130
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty bond_separation_energy_eccsd_um = 131
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty bond_separation_energy_eccsd_um_ci = 132
+      [(availability) = COMPLETE];
+
+  // ZPE-exclusive atomization energy in kcal/mol.
+  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b5 = 133
+      [(availability) = STANDARD];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b5_um = 134
+      [(availability) = STANDARD];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b5_um_ci = 135
+      [(availability) = STANDARD];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b6 = 136
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b6_um = 137
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b6_um_ci = 138
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_eccsd = 139
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_eccsd_um = 140
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_excluding_zpe_eccsd_um_ci = 141
+      [(availability) = COMPLETE];
+
+  // ZPE-inclusive atomization energy in kcal/mol.
+  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b5 = 142
+      [(availability) = STANDARD];
+  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b5_um = 143
+      [(availability) = STANDARD];
+  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b5_um_ci = 144
+      [(availability) = STANDARD];
+  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b6 = 145
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b6_um = 146
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b6_um_ci = 147
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_including_zpe_eccsd = 148
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_including_zpe_eccsd_um = 149
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty atomization_energy_including_zpe_eccsd_um_ci = 150
+      [(availability) = COMPLETE];
+
+  // Enthalpy of formation for T = 0K
+  // Units: kcal/mol
+  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5 = 151
+      [(availability) = STANDARD];
+  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5_um = 152
+      [(availability) = STANDARD];
+  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5_um_ci = 153
+      [(availability) = STANDARD];
+  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b6 = 154
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b6_um = 155
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b6_um_ci = 156
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_0k_eccsd = 157
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_0k_eccsd_um = 158
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_0k_eccsd_um_ci = 159
+      [(availability) = COMPLETE];
+
+  // Enthalpy of formation for T = 298.15K.
+  // Units: kcal/mol
+  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5 = 160
+      [(availability) = STANDARD];
+  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5_um = 161
+      [(availability) = STANDARD];
+  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5_um_ci = 162
+      [(availability) = STANDARD];
+  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b6 = 163
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b6_um = 164
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b6_um_ci = 165
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_298k_eccsd = 166
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_298k_eccsd_um = 167
+      [(availability) = COMPLETE];
+  ScalarMolecularProperty enthalpy_of_formation_298k_eccsd_um_ci = 168
+      [(availability) = COMPLETE];
+
+  // Zero point energy, scaled.
+  // Units: kcal/mol
+  ScalarMolecularProperty zpe_atomic = 169 [(availability) = STANDARD];
+  ScalarMolecularProperty zpe_atomic_um = 170 [(availability) = STANDARD];
+  ScalarMolecularProperty zpe_atomic_um_ci = 171 [(availability) = STANDARD];
+
+  // Number of imaginary frequencies.
+  optional int32 number_imaginary_frequencies = 110
+      [(availability) = INTERNAL_ONLY];
+  // Number of times the optimization was run.
+  optional int32 number_of_optimization_runs = 111
+      [(availability) = INTERNAL_ONLY];
+
+  // For the optimized geoemtry, energy just for the nuclei.
+  // Units: atomic units (Hartree)
+  ScalarMolecularProperty nuclear_repulsion_energy = 112
+      [(availability) = COMPLETE];
+
+  // Diagnostics D1(CCSD/2sp).
+  ScalarMolecularProperty diagnostics_d1_ccsd_2sp = 113
+      [(availability) = COMPLETE];
+  // DEPRECATED
+  // Diagnostics D1(CCSD/2sd).
+  ScalarMolecularProperty diagnostics_d1_ccsd_2sd = 114
+      [(availability) = INTERNAL_ONLY];
+  // DEPRECATED
+  // Diagnostics D1(CCSD/3Psd).
+  ScalarMolecularProperty diagnostics_d1_ccsd_3psd = 115
+      [(availability) = INTERNAL_ONLY];
+  // Diagnostics T1(CCSD/2sp).
+  ScalarMolecularProperty diagnostics_t1_ccsd_2sp = 116
+      [(availability) = COMPLETE];
+  // Diagnostics T1(CCSD/2sd).
+  ScalarMolecularProperty diagnostics_t1_ccsd_2sd = 117
+      [(availability) = STANDARD];
+  // Diagnostics T1(CCSD/3Psd).
+  ScalarMolecularProperty diagnostics_t1_ccsd_3psd = 118
+      [(availability) = COMPLETE];
+  // Diagnostics T1(CCSD/2sp) excess.
+  ScalarMolecularProperty diagnostics_t1_ccsd_2sp_excess = 121
+      [(availability) = STANDARD];
+
+  // INTERNAL_ONLY
+  // The calculation statistics only provide overall runtime per calculation,
+  // but no context on what caused a certain runtime.
+  // Repeated because we may have multiple software runs.
+  message CalculationStatistics {
+    string computing_location = 1;
+    // units are 0.1 minutes
+    string timings = 2;
+  }
+  repeated CalculationStatistics calculation_statistics = 119
+      [(availability) = INTERNAL_ONLY];
+
+  // This message is a set of comparisons to values computed in other fields to
+  // those computed with Gaussian as a sanity check.
+  message GaussianSanityCheck {
+    float energy_pbe0_6_311gd_diff = 1;
+    float max_force = 2;
+    float max_frequencies_diff = 3;
+    float mean_frequencies_diff = 4;
+    float max_intensities_diff = 5;
+    float mean_intensities_diff = 6;
+    float energy_hf_6_31gd_diff = 7;
+    float max_dipole_components_diff = 8;
+    float max_quadropole_components_diff = 9;
+    float max_octopole_components_diff = 10;
+  }
+  GaussianSanityCheck gaussian_sanity_check = 172
+      [(availability) = INTERNAL_ONLY];
+
+  // Field numbers for deleted fields.
+  reserved 2, 3, 5, 100 to 109, 44 to 46;
+}
+
+// Conformer is the primary protocol buffer for the dataset.
+//
+// A Conformer represents a particular optimized geometry (that might derive
+// from several different initial geometries) and be associated with several
+// BondTopology.
+message Conformer {
+  // The conformer ID is unique across all conformers. It is constructed with
+  // the bond_topology_id of one of the bond topologies that generated this
+  // geometry plus a unique id (<1000): bond_topology_id * 1000 + unique id
+  int32 conformer_id = 1;
+
+  // INTERNAL_ONLY In the original .dat format, we kept the 1-based dense index
+  // of this conformer for the bond_topology and we store the index to ensure
+  // perfect production of the .dat file.
+  int32 original_conformer_index = 2 [(availability) = INTERNAL_ONLY];
+
+  // Geometry produced by minimization by with an empirical force
+  // field. This is repeated because Conformers are deduplicated by
+  // their optimized_geometry and multiple initial_geometry can
+  // converge to the same optimized_geometry.  Although duplicates can
+  // be found across bond topologies, *only* the duplicates produced
+  // with two different geometry optimizations starting from the same
+  // bond topology are included. This is to avoid the complex and
+  // potentially ambiguous matching of corresponding atoms across bond
+  // topologies.
+  repeated Geometry initial_geometries = 3;
+  // Geometry produced by PBE0D3 minimization from the initial_geometry. Some
+  // entries in the COMPLETE dataset will be missing optimized_geometry if the
+  // geometry did not converge. All entries in the STANDARD dataset will include
+  // optimized_geometry.
+  Geometry optimized_geometry = 4;
+
+  // After geometry optimization, duplicate geometries were identified and one
+  // of the geometries was kept through a series of heuristics.
+  // If this Conformer was discarded:
+  // * It will only be present in the COMPLETE dataset, not the STANDARD.
+  // * duplicated_by is set with the conformer_id that this Conformer was
+  //   discarded in favor of.
+  // If this Conformer was kept over other duplicates:
+  // * duplicate_of is set with all the conformer_id of the discarded Conformer.
+  int32 duplicated_by = 5;
+  repeated int32 duplicate_of = 6;
+
+  // All of the calculated properties.
+  Properties properties = 7;
+
+  // All of the bond topologies that describe this geometry.
+  // These are ordered by how well the bond topology describes this geometry.
+  // The geometry that was originally used in the geometry optimization phase
+  // is marked by the field is_starting_topology.
+  // TODO(pfr): double check the field name.
+  // TODO(pfr): add a reference to the paper describing this
+  repeated BondTopology bond_topologies = 8;
+
+  // Fate is a simple categorical summary of how this conformer progressed
+  // through the whole pipeline of computations.
+  enum FateCategory {
+    // FATE_UNDEFINED should not be present in the final data
+    FATE_UNDEFINED = 0;
+    // Duplicated to another Conformer with the same bond topology. This
+    // Conformer will not have most properties fields.
+    FATE_DUPLICATE_SAME_TOPOLOGY = 1;
+    // Duplicated to another Conformer with a different bond topology. This
+    // Conformer will not have most properties fields.
+    FATE_DUPLICATE_DIFFERENT_TOPOLOGY = 2;
+    // Errors were encountered during geometry optimization. This
+    // Conformer will not have most properties fields.
+    FATE_GEOMETRY_OPTIMIZATION_PROBLEM = 3;
+    // After geometry optimization, the expected bonding pattern was no longer
+    // consistent with the geometry. This Conformer will not have most
+    // properties fields.
+    FATE_DISASSOCIATED = 4;
+    // During geometry optimization, problems were encountered converging to a
+    // local minima. This Conformer will not have most properties fields.
+    // TODO(pfr): check documentation
+    FATE_FORCE_CONSTANT_FAILURE = 5;
+    // Other problems were encountered during geometry optimization. This
+    // Conformer will not have most properties fields.
+    FATE_DISCARDED_OTHER = 6;
+    // Calculation results are missing. Should not be present in final dataset.
+    FATE_NO_CALCULATION_RESULTS = 7;
+    // Some calculation results had serious/major/moderate errors.
+    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
+    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
+    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
+    // Some calculations had only minor errors with some warnings.
+    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
+    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
+    // Calculations were successful with only minor errors/warnings
+    FATE_SUCCESS = 9;
+  }
+  FateCategory fate = 9;
+
+  // Specifies which database (STANDARD or COMPLETE) this Conformer
+  // will be in. Note that everything in STANDARD is also included in COMPLETE.
+  AvailabilityEnum which_database = 10;
+}
+
+///////////// MultipleConformers
+
+// Bundles a number of conformers. This message is just needed to simplify
+// testing. It will not be present in the main dataset.
+// multiple Conformer entries.
+message MultipleConformers {
+  repeated Conformer conformers = 1;
+}
+
+///////////// BondTopologySummary
+
+// BondTopologySummary is a summarized form with a very small amount of
+// information about each bond topology that was considered. Note the close
+// alignment to the "fate" field in Conformer.
+message BondTopologySummary {
+  BondTopology bond_topology = 1;
+
+  // Attempted conformers are ones that were attempted to be minimized with
+  // PBE0D3. These resulted from potentially many attempts to create 3D
+  // coordinates and minimze with MMFF.
+  int32 count_attempted_conformers = 2;
+
+  // Next set of fields track the result of each attempted conformer. The sum of
+  // count_duplicates_same_topology
+  // count_duplicates_different_topology
+  // count_failed_geometry_optimization
+  // count_non_duplicate_kept_geometry
+  // should be equal to count_attempted_conformers
+  // These fields count duplicates after the PBE0D3 geometry minimization.
+  int32 count_duplicates_same_topology = 3;
+  int32 count_duplicates_different_topology = 4;
+  // Failed geometry optimization is any of a number of failures during hte
+  // initial PBE0D3 optimization step.
+  int32 count_failed_geometry_optimization = 5;
+  // Geometries which should proceed to next level of calculations.
+  int32 count_kept_geometry = 6;
+
+  // Next set of fields tracks the results of the calculations after geometry
+  // optimization. The sum of
+  // count_missing_calculation
+  // count_calculation_with_error
+  // count_calculation_with_warning
+  // count_calculation_success
+  // should be equal to count_kept_geometry.
+  // Missing calculations are ones for which we should have results, but are
+  // missing them. count_missing_calculation should be 0 in the final dataset.
+  int32 count_missing_calculation = 7;
+  int32 count_calculation_with_error = 8;
+  int32 count_calculation_with_warning = 12;
+  int32 count_calculation_success = 9;
+
+  // After all calculations were done, we detected all bond topologies which are
+  // consistent with a conformer's geometry. These fields count the results of
+  // these "detected" geometries. Note that the geometries counted in the
+  // "duplicate" fields above will probably be counted here.
+  int32 count_detected_match_with_error = 10;
+  int32 count_detected_match_with_warning = 13;
+  int32 count_detected_match_success = 11;
+}
+

@@ -406,8 +406,7 @@ def find_mask_full_encoding(image,
   Args:
     image: float numpy array with shape (image_edge_length, image_edge_length,
         image_channels), image to be masked. For MNIST, the pixel values are
-        between [0, 1] and for Imagenet, the pixel values are between
-        [-117, 138].
+        between [0, 1].
     weights: list of num_layers float numpy arrays with shape
         (output_dim, input_dim), weights of the neural network.
     biases: list of num_layers float numpy arrays with shape (output_dim,),
@@ -584,9 +583,7 @@ def get_no_minimization_mask(image, label_index, top_k, run_params,
   Args:
     image:
       * image: float numpy array with shape (image_edge_length,
-          image_edge_length, image_channels), image to be masked. For MNIST,
-          the pixel values are between [0, 1] and for Imagenet, the pixel
-          values are between [-117, 138].
+          image_edge_length, image_channels), image to be masked.
       * text: float numpy array with shape (num_words,), text to be masked.
     label_index: int, index of the label of the training image.
     top_k: int, constrain the nodes with top k activations in the first hidden
@@ -605,6 +602,8 @@ def get_no_minimization_mask(image, label_index, top_k, run_params,
   Returns:
     float numpy array with shape (num_rows, num_cols), no minimization mask.
   """
+  if run_params.model_type == 'cnn':
+    image = utils.process_model_input(image, run_params.pixel_range)
   if not session:
     session = utils.restore_model(run_params.model_path)
   unmasked_predictions = session.run(
@@ -871,9 +870,7 @@ def _sort_indices(session, image, label_index, run_params, unmasked_predictions,
   Args:
     session: instance of tf.Session(), tensorflow session.
     image: float numpy array with shape (image_edge_length, image_edge_length,
-        image_channels), image to be masked. For MNIST, the pixel values are
-        between [0, 1] and for Imagenet, the pixel values are between
-        [-117, 138].
+        image_channels), image to be masked.
     label_index: int, index of the label of the training image.
     run_params: RunParams with image_placeholder_shape and tensor_names.
     unmasked_predictions: dict,
@@ -1078,9 +1075,7 @@ def find_mask_first_layer(image,
   Args:
     image:
       * image: float numpy array with shape (image_edge_length,
-          image_edge_length, image_channels), image to be masked. For MNIST,
-          the pixel values are between [0, 1] and for Imagenet, the pixel
-          values are between [-117, 138].
+          image_edge_length, image_channels), image to be masked.
       * text: float numpy array with shape (num_words,), text to be masked.
     label_index: int, index of the logit in the softmax layer corresponding to
         the input image.
@@ -1141,6 +1136,7 @@ def find_mask_first_layer(image,
     masked_input, unmasked_predictions, session, z3_optimizer = _process_text(
         image, run_params, session)
   else:
+    image = utils.process_model_input(image, run_params.pixel_range)
     masked_input, unmasked_predictions, session, z3_optimizer = _process_image(
         image, run_params, window_size, session)
 

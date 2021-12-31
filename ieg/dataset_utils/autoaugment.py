@@ -1,4 +1,5 @@
 # coding=utf-8
+# coding=utf-8
 # Copyright 2018 The TensorFlow Authors All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 """AutoAugment policies for enhanced image preprocessing.
 
 Reference: https://arxiv.org/abs/1805.09501
 """
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 import collections
 import inspect
 import math
 import tensorflow.compat.v1 as tf
 import tensorflow_addons as tfa
-
 
 # This signifies the max integer that the controller RNN could predict for the
 # augmentation scheme.
@@ -377,8 +375,7 @@ def shear_x(image, level, replace):
   # with a matrix form of:
   # [1  level
   #  0  1].
-  image = tfa.image.transform(
-      wrap(image), [1., level, 0., 0., 1., 0., 0., 0.])
+  image = tfa.image.transform(wrap(image), [1., level, 0., 0., 1., 0., 0., 0.])
   return unwrap(image, replace)
 
 
@@ -388,8 +385,7 @@ def shear_y(image, level, replace):
   # with a matrix form of:
   # [1  0
   #  level  1].
-  image = tfa.image.transform(
-      wrap(image), [1., 0., 0., level, 1., 0., 0., 0.])
+  image = tfa.image.transform(wrap(image), [1., 0., 0., level, 1., 0., 0., 0.])
   return unwrap(image, replace)
 
 
@@ -661,14 +657,14 @@ def _parse_policy_info(name, prob, level, replace_value, augmentation_hparams):
   # Check to see if prob is passed into function. This is used for operations
   # where we alter bboxes independently.
   # pytype:disable=wrong-arg-types
-  if 'prob' in inspect.getargspec(func)[0]:
+  if 'prob' in inspect.getargspec(func)[0]:  # pylint: disable=deprecated-method
     args = tuple([prob] + list(args))
   # pytype:enable=wrong-arg-types
 
   # Add in replace arg if it is required for the function that is being called.
-  if 'replace' in inspect.getargspec(func)[0]:
+  if 'replace' in inspect.getargspec(func)[0]:  # pylint: disable=deprecated-method
     # Make sure replace is the final argument
-    assert 'replace' == inspect.getargspec(func)[0][-1]
+    assert 'replace' == inspect.getargspec(func)[0][-1]  # pylint: disable=deprecated-method
     args = tuple(list(args) + [replace_value])
 
   return (func, prob, args)
@@ -680,7 +676,7 @@ def _apply_func_with_prob(func, image, args, prob):
 
   # If prob is a function argument, then this randomness is being handled
   # inside the function, so make sure it is always called.
-  if 'prob' in inspect.getargspec(func)[0]:
+  if 'prob' in inspect.getargspec(func)[0]:  # pylint: disable=deprecated-method
     prob = 1.0
 
   # Apply the function with probability `prob`.

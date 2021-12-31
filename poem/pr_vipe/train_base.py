@@ -15,6 +15,7 @@
 
 """Pose embedding model training base code."""
 
+import functools
 import math
 
 from absl import flags
@@ -22,10 +23,11 @@ import tensorflow.compat.v1 as tf
 import tf_slim
 
 from poem.core import data_utils
-from poem.core import distance_utils
+from poem.core import input_generator
 from poem.core import keypoint_utils
 from poem.core import loss_utils
 from poem.core import pipeline_utils
+from poem.core import visualization_utils
 
 FLAGS = flags.FLAGS
 
@@ -50,9 +52,52 @@ flags.DEFINE_string('model_input_keypoint_type', '2D_INPUT_AND_3D_PROJECTION',
                     'Type of model input keypoints.')
 
 flags.DEFINE_float(
+    'uniform_keypoint_jittering_max_offset_2d', 0.0,
+    'Maximum 2D keypoint jittering offset. Random jittering offset within '
+    '[-uniform_keypoint_jittering_max_offset_2d, '
+    'uniform_keypoint_jittering_max_offset_2d] is to be added to each keypoint '
+    '2D. Note that the jittering happens after the 2D normalization. Ignored if'
+    ' non-positive.')
+
+flags.DEFINE_float(
+    'gaussian_keypoint_jittering_offset_stddev_2d', 0.0,
+    'Standard deviation of Gaussian 2D keypoint jittering offset. Random '
+    'jittering offset sampled from N(0, '
+    'gaussian_keypoint_jittering_offset_stddev_2d) is to be added to each '
+    'keypoints. Note that the jittering happens after the 2D normalization. '
+    'Ignored if non-positive.')
+
+flags.DEFINE_string('model_input_keypoint_mask_type', 'NO_USE',
+                    'Usage type of model input keypoint masks.')
+
+flags.DEFINE_float(
     'min_input_keypoint_score_2d', -1.0,
     'Minimum threshold for input keypoint score binarization. Use negative '
     'value to ignore. Only used if 2D keypoint masks are used.')
+
+flags.DEFINE_list(
+    'keypoint_dropout_probs', ['0.0', '0.0'],
+    'CSV of 2-tuple probability (probability_to_apply, probability_to_drop) for'
+    ' performing stratified keypoint dropout.')
+
+flags.DEFINE_bool('set_on_mask_for_non_anchors', False,
+                  'Whether to always use on (1) masks for non-anchor samples.')
+
+flags.DEFINE_bool(
+    'mix_mask_sub_batches', False,
+    'Whether to apply sub-batch mixing to processed masks and all-one masks.')
+
+flags.DEFINE_list(
+    'forced_mask_on_part_names', None,
+    'CSV of standard names of parts of which the masks are forced on (setting '
+    'value to 1.0) during training. See '
+    '`KeypointProfile.get_standard_part_index` for standard part names.')
+
+flags.DEFINE_list(
+    'forced_mask_off_part_names', None,
+    'CSV of standard names of parts of which the masks are forced off (setting '
+    'value to 0.0) during training. See '
+    '`KeypointProfile.get_standard_part_index` for standard part names.')
 
 # See `common_module.SUPPORTED_EMBEDDING_TYPES`.
 flags.DEFINE_string('embedding_type', 'GAUSSIAN', 'Type of embeddings.')
@@ -239,19 +284,25 @@ flags.DEFINE_list(
     'random_projection_azimuth_range', ['-180.0', '180.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random azimuth rotations on 3D poses before projection for '
-    'camera augmentation.')
+    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_elevation_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random elevation rotations on 3D poses before projection for '
-    'camera augmentation.')
+    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_roll_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random roll rotations on 3D poses before projection for camera '
-    'augmentation.')
+    'augmentation. For sequential inputs, also supports CSV of 4-tuple '
+    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
+    'delta_upper_limit).')
 
 flags.DEFINE_list(
     'random_projection_camera_depth_range', [],
@@ -281,6 +332,9 @@ flags.DEFINE_integer('log_every_n_steps', 100,
 flags.DEFINE_bool('summarize_gradients', False,
                   'Whether to summarize gradients.')
 
+flags.DEFINE_bool('summarize_inputs', False,
+                  'Whether to visualize input 2D poses.')
+
 flags.DEFINE_bool(
     'summarize_percentiles', True,
     'Whether to summarize percentiles of certain variables, e.g., embedding '
@@ -297,7 +351,8 @@ flags.DEFINE_integer('task', 0, 'Task replica identifier for training.')
 
 
 def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
-                        keypoint_distance_config_override, embedder_fn_kwargs):
+                        keypoint_distance_config_override,
+                        create_model_input_fn_kwargs, embedder_fn_kwargs):
   """Validates and sets up training configurations."""
   # Set default values for unspecified flags.
   if FLAGS.use_normalized_embeddings_for_triplet_mining is None:
@@ -321,6 +376,8 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
   validate_flag = common_module.validate
   validate_flag(FLAGS.model_input_keypoint_type,
                 common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES)
+  validate_flag(FLAGS.model_input_keypoint_mask_type,
+                common_module.SUPPORTED_MODEL_INPUT_KEYPOINT_MASK_TYPES)
   validate_flag(FLAGS.embedding_type, common_module.SUPPORTED_EMBEDDING_TYPES)
   validate_flag(FLAGS.base_model_type, common_module.SUPPORTED_BASE_MODEL_TYPES)
   validate_flag(FLAGS.keypoint_distance_type,
@@ -394,6 +451,23 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               FLAGS.input_keypoint_profile_name_3d),
       'keypoint_profile_2d':
           keypoint_profile_2d,
+      'create_model_input_fn':
+          functools.partial(
+              input_generator.create_model_input,
+              model_input_keypoint_mask_type=(
+                  FLAGS.model_input_keypoint_mask_type),
+              uniform_keypoint_jittering_max_offset_2d=(
+                  FLAGS.uniform_keypoint_jittering_max_offset_2d),
+              gaussian_keypoint_jittering_offset_stddev_2d=(
+                  FLAGS.gaussian_keypoint_jittering_offset_stddev_2d),
+              keypoint_dropout_probs=[
+                  float(x) for x in FLAGS.keypoint_dropout_probs
+              ],
+              set_on_mask_for_non_anchors=FLAGS.set_on_mask_for_non_anchors,
+              mix_mask_sub_batches=FLAGS.mix_mask_sub_batches,
+              forced_mask_on_part_names=FLAGS.forced_mask_on_part_names,
+              forced_mask_off_part_names=FLAGS.forced_mask_off_part_names,
+              **create_model_input_fn_kwargs),
       'embedder_fn':
           models_module.get_embedder(
               base_model_type=FLAGS.base_model_type,
@@ -417,52 +491,10 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               FLAGS.triplet_distance_type,
               replace_samples_with_means=True,
               common_module=common_module),
-      'triplet_embedding_sample_distance_fn':
-          loss_utils.create_sample_distance_fn(
-              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
-              distance_kernel=FLAGS.triplet_distance_kernel,
-              pairwise_reduction=FLAGS.triplet_pairwise_reduction,
-              componentwise_reduction=FLAGS.triplet_componentwise_reduction,
-              # We initialize the sigmoid parameters to avoid model being stuck
-              # in a `dead zone` at the beginning of training.
-              L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              L2_SIGMOID_MATCHING_PROB_b_initializer=(tf.initializers.constant(
-                  FLAGS.sigmoid_b_initial)),
-              L2_SIGMOID_MATCHING_PROB_a_range=(None, FLAGS.sigmoid_a_max),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_b_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_a_range=(None,
-                                                        FLAGS.sigmoid_a_max),
-              EXPECTED_LIKELIHOOD_min_stddev=0.1,
-              EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'positive_pairwise_embedding_keys':
           pipeline_utils.get_embedding_keys(
               FLAGS.positive_pairwise_distance_type,
               common_module=common_module),
-      'positive_pairwise_embedding_sample_distance_fn':
-          loss_utils.create_sample_distance_fn(
-              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
-              distance_kernel=FLAGS.positive_pairwise_distance_kernel,
-              pairwise_reduction=FLAGS.positive_pairwise_pairwise_reduction,
-              componentwise_reduction=(
-                  FLAGS.positive_pairwise_componentwise_reduction),
-              # We initialize the sigmoid parameters to avoid model being stuck
-              # in a `dead zone` at the beginning of training.
-              L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              L2_SIGMOID_MATCHING_PROB_b_initializer=(tf.initializers.constant(
-                  FLAGS.sigmoid_b_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_raw_a_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_raw_a_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_b_initializer=(
-                  tf.initializers.constant(FLAGS.sigmoid_b_initial)),
-              SQUARED_L2_SIGMOID_MATCHING_PROB_a_range=(None,
-                                                        FLAGS.sigmoid_a_max),
-              EXPECTED_LIKELIHOOD_min_stddev=0.1,
-              EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance=100.0),
       'summarize_matching_sigmoid_vars':
           FLAGS.triplet_distance_kernel in [
               common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
@@ -483,6 +515,53 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
           float(x) for x in FLAGS.random_projection_camera_depth_range
       ],
   }
+
+  embedding_sample_distance_fn_kwargs = {
+      'EXPECTED_LIKELIHOOD_min_stddev': 0.1,
+      'EXPECTED_LIKELIHOOD_max_squared_mahalanobis_distance': 100.0,
+  }
+  if FLAGS.triplet_distance_kernel in [
+      common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
+      common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB
+  ] or FLAGS.positive_pairwise_distance_kernel in [
+      common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
+      common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB
+  ]:
+    # We only need sigmoid parameters when a related distance kernel is used.
+    sigmoid_raw_a, sigmoid_a, sigmoid_b = pipeline_utils.get_sigmoid_parameters(
+        name='MatchingSigmoid',
+        raw_a_initial_value=FLAGS.sigmoid_raw_a_initial,
+        b_initial_value=FLAGS.sigmoid_b_initial,
+        a_range=(None, FLAGS.sigmoid_a_max))
+    embedding_sample_distance_fn_kwargs.update({
+        'L2_SIGMOID_MATCHING_PROB_a': sigmoid_a,
+        'L2_SIGMOID_MATCHING_PROB_b': sigmoid_b,
+        'SQUARED_L2_SIGMOID_MATCHING_PROB_a': sigmoid_a,
+        'SQUARED_L2_SIGMOID_MATCHING_PROB_b': sigmoid_b,
+    })
+    configs.update({
+        'sigmoid_raw_a': sigmoid_raw_a,
+        'sigmoid_a': sigmoid_a,
+        'sigmoid_b': sigmoid_b,
+    })
+
+  configs.update({
+      'triplet_embedding_sample_distance_fn':
+          loss_utils.create_sample_distance_fn(
+              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
+              distance_kernel=FLAGS.triplet_distance_kernel,
+              pairwise_reduction=FLAGS.triplet_pairwise_reduction,
+              componentwise_reduction=FLAGS.triplet_componentwise_reduction,
+              **embedding_sample_distance_fn_kwargs),
+      'positive_pairwise_embedding_sample_distance_fn':
+          loss_utils.create_sample_distance_fn(
+              pair_type=common_module.DISTANCE_PAIR_TYPE_ALL_PAIRS,
+              distance_kernel=FLAGS.positive_pairwise_distance_kernel,
+              pairwise_reduction=FLAGS.positive_pairwise_pairwise_reduction,
+              componentwise_reduction=(
+                  FLAGS.positive_pairwise_componentwise_reduction),
+              **embedding_sample_distance_fn_kwargs),
+  })
 
   if FLAGS.keypoint_distance_type == common_module.KEYPOINT_DISTANCE_TYPE_MPJPE:
     configs.update({
@@ -513,7 +592,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
 def run(master, input_dataset_class, common_module, keypoint_profiles_module,
         models_module, input_example_parser_creator, keypoint_preprocessor_3d,
-        create_model_input_fn, keypoint_distance_config_override,
+        keypoint_distance_config_override, create_model_input_fn_kwargs,
         embedder_fn_kwargs):
   """Runs training pipeline.
 
@@ -527,22 +606,23 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
       function. If None, uses the default parser creator.
     keypoint_preprocessor_3d: A function handle for preprocessing raw 3D
       keypoints.
-    create_model_input_fn: A function handle for creating model inputs.
     keypoint_distance_config_override: A dictionary for keypoint distance
       configuration to override the defaults. Ignored if empty.
+    create_model_input_fn_kwargs: A dictionary of addition kwargs for create the
+      model input creator function.
     embedder_fn_kwargs: A dictionary of additional kwargs for creating the
       embedder function.
   """
-  configs = _validate_and_setup(
-      common_module=common_module,
-      keypoint_profiles_module=keypoint_profiles_module,
-      models_module=models_module,
-      keypoint_distance_config_override=keypoint_distance_config_override,
-      embedder_fn_kwargs=embedder_fn_kwargs)
-
   g = tf.Graph()
   with g.as_default():
     with tf.device(tf.train.replica_device_setter(FLAGS.num_ps_tasks)):
+      configs = _validate_and_setup(
+          common_module=common_module,
+          keypoint_profiles_module=keypoint_profiles_module,
+          models_module=models_module,
+          keypoint_distance_config_override=keypoint_distance_config_override,
+          create_model_input_fn_kwargs=create_model_input_fn_kwargs,
+          embedder_fn_kwargs=embedder_fn_kwargs)
 
       def create_inputs():
         """Creates pipeline and model inputs."""
@@ -567,7 +647,7 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
              normalize_keypoints_3d=True)
         inputs.update(keypoint_preprocessor_side_outputs_3d)
 
-        inputs['model_inputs'], side_inputs = create_model_input_fn(
+        inputs['model_inputs'], side_inputs = configs['create_model_input_fn'](
             inputs[common_module.KEY_KEYPOINTS_2D],
             inputs[common_module.KEY_KEYPOINT_MASKS_2D],
             inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_3D],
@@ -709,17 +789,13 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
 
       if configs['summarize_matching_sigmoid_vars']:
         # Summarize variables used in matching sigmoid.
-        raw_a, a, b = distance_utils.get_sigmoid_parameters(
-            name='MatchingSigmoid',
-            reuse=True,
-            a_range=(None, FLAGS.sigmoid_a_max))
         # TODO(liuti): Currently the variable for `raw_a` is named `a` in
         # checkpoints, and true `a` may be referred to as `a_plus` for historic
         # reasons. Consolidate the naming.
         summaries.update({
-            'train/MatchingSigmoid/a': raw_a,
-            'train/MatchingSigmoid/a_plus': a,
-            'train/MatchingSigmoid/b': b,
+            'train/MatchingSigmoid/a': configs['sigmoid_raw_a'],
+            'train/MatchingSigmoid/a_plus': configs['sigmoid_a'],
+            'train/MatchingSigmoid/b': configs['sigmoid_b'],
         })
 
       if FLAGS.use_moving_average:
@@ -741,7 +817,19 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
           pad_step_number=True)
       summaries['train/learning_rate'] = learning_rate
 
-      pipeline_utils.add_summary(scalars_to_summarize=summaries)
+      image_summary = {}
+      if FLAGS.summarize_inputs:
+        image_summary.update({
+            'poses_2d/AnchorPositivePair':
+                visualization_utils.tf_draw_poses_2d(
+                    data_utils.flatten_first_dims(
+                        inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_2D],
+                        num_last_dims_to_keep=2),
+                    keypoint_profile_2d=configs['keypoint_profile_2d'],
+                    num_cols=2),
+        })
+      pipeline_utils.add_summary(
+          scalars_to_summarize=summaries, images_to_summarize=image_summary)
 
       if FLAGS.profile_only:
         pipeline_utils.profile()

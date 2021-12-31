@@ -15,6 +15,8 @@
 #ifndef SCANN_HASHES_INTERNAL_WRITE_DISTANCES_TO_TOPN_H_
 #define SCANN_HASHES_INTERNAL_WRITE_DISTANCES_TO_TOPN_H_
 
+#include <cstdint>
+
 #include "scann/base/restrict_allowlist.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/utils/top_n_amortized_constant.h"

@@ -1,0 +1,10 @@
+absl-py
+numpy
+pandas
+Pillow
+scann
+scipy
+scikit-learn
+tensorflow>=2.0z
+tensorflow-datasets
+tensorflow-probability

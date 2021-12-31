@@ -14,6 +14,8 @@
 
 #include "scann/utils/hash_leaf_helpers.h"
 
+#include <cstdint>
+
 #include "absl/synchronization/mutex.h"
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
@@ -143,11 +145,10 @@ StatusOrSearcher<T> HashLeafHelpers<T>::AsymmetricHasherFactory(
     }
   }
 
-  asymmetric_hashing2::SearcherOptions<T> opts;
+  asymmetric_hashing2::SearcherOptions<T> opts(training_results.queryer,
+                                               training_results.indexer);
   opts.set_asymmetric_lookup_type(training_results.lookup_type);
   opts.set_noise_shaping_threshold(training_results.noise_shaping_threshold);
-  opts.EnableAsymmetricQuerying(training_results.queryer,
-                                training_results.indexer);
   opts.set_fixed_point_lut_conversion_options(
       training_results.fixed_point_lut_conversion_options);
   return StatusOrSearcher<T>(make_unique<asymmetric_hashing2::Searcher<T>>(

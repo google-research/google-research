@@ -164,17 +164,20 @@ message PartitioningConfig {
 
   optional double residual_stdev_min_value = 48 [default = 1e-5];
 
-  optional bool use_float_centers_for_query_tokenization = 26
-      [default = false, deprecated = true];
-
-  optional bool partitioning_on_the_fly = 22 [default = false];
-
-  optional bool use_flume_kmeans = 32 [default = false];
-
   reserved 44;
   reserved "kmeans_flume_config";
 
-  optional int32 max_sample_size = 33 [default = 2147483647];
+  optional float avq = 51 [default = nan];
+
+  optional bool use_float_centers_for_query_tokenization = 26
+      [default = false, deprecated = true];
+
+  optional bool partitioning_on_the_fly = 22
+      [default = false, deprecated = true];
+
+  optional bool use_flume_kmeans = 32 [default = false, deprecated = true];
+
+  optional int32 max_sample_size = 33 [default = 2147483647, deprecated = true];
 }
 
 message DatabaseSpillingConfig {
@@ -231,9 +234,11 @@ message TreeXHybridPartitioningConfig {
 
   optional string assets_dir = 3;
 
-  optional ExactReordering training_reordering = 4;
-  optional ExactReordering database_tokenization_reordering = 5;
   optional ExactReordering query_tokenization_reordering = 6;
+
+  optional ExactReordering training_reordering = 4 [deprecated = true];
+  optional ExactReordering database_tokenization_reordering = 5
+      [deprecated = true];
 }
 
 message TokenList {

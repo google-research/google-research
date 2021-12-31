@@ -86,7 +86,7 @@ class Actor(networks.Actor):
   def latent_dim(self):
     if self._image_encoder_representation:
       # pylint: disable=protected-access
-      return self._fc_encoder.layers[-1]._saved_model_inputs_spec.shape[-1]
+      return self._fc_encoder.layers[-1].save_spec[0][0].shape[-1]
       # pylint: enable=protected-access
     else:
       return self._representation.units

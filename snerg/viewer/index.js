@@ -140,10 +140,11 @@ const rayMarchVertexShader = `
 `;
 
 /**
- * The fragment shader for rendering a baked NeRF scene with ray marching.
+ * We build the ray marching shader programmatically, this string contains the
+ * header for the shader.
  * @const {string}
  */
-const rayMarchFragmentShader = `
+const rayMarchFragmentShaderHeader = `
   varying vec3 vOrigin;
   varying vec3 vDirection;
 
@@ -158,6 +159,10 @@ const rayMarchFragmentShader = `
   uniform mat3 worldspace_R_opengl;
   uniform float nearPlane;
 
+  uniform float ndc_h;
+  uniform float ndc_w;
+  uniform float ndc_f;
+
   uniform lowp sampler3D mapAlpha;
   uniform lowp sampler3D mapColor;
   uniform lowp sampler3D mapFeatures;
@@ -166,7 +171,14 @@ const rayMarchFragmentShader = `
   uniform mediump sampler2D weightsZero;
   uniform mediump sampler2D weightsOne;
   uniform mediump sampler2D weightsTwo;
+`;
 
+/**
+ * We build the ray marching shader programmatically, this string contains the
+ * code needed to evaluate the view-dependence MLP.
+ * @const {string}
+ */
+const viewDependenceNetworkShaderFunctions = `
   mediump float indexToPosEnc(vec3 dir, int index) {
     mediump float coordinate =
       (index % 3 == 0) ? dir.x : (
@@ -242,7 +254,27 @@ const rayMarchFragmentShader = `
 
     return vec3(result[0], result[1], result[2]);
   }
+`;
 
+/**
+ * We build the ray marching shader programmatically, this string contains
+ * dummy code that can be used in diffuse scenes as a replacement for the
+ * view-dependence MLP.
+ * @const {string}
+ */
+const dummyViewDependenceShaderFunctions = `
+  mediump vec3 evaluateNetwork(
+      lowp vec3 color, lowp vec4 features, mediump vec3 viewdir) {
+    return vec3(0.0, 0.0, 0.0);
+  }
+`;
+
+/**
+ * We build the ray marching shader programmatically, this string contains
+ * the main ray marching loop.
+ * @const {string}
+ */
+const rayMarchFragmentShaderBody = `
   mediump vec3 convertOriginToNDC(vec3 origin, vec3 direction) {
     // We store the NDC scenes flipped, so flip back.
     origin.z *= -1.0;
@@ -254,9 +286,9 @@ const rayMarchFragmentShader = `
 
     // Hardcoded, worked out using approximate iPhone FOV of 67.3 degrees
     // and an image width of 1006 px.
-    const float focal = 755.644;
-    const float W = 1006.0;
-    const float H = 756.0;
+    float focal = ndc_f;
+    float W = ndc_w;
+    float H = ndc_h;
     float o0 = 1.0 / (W / (2.0 * focal)) * origin.x / origin.z;
     float o1 = -1.0 / (H / (2.0 * focal)) * origin.y / origin.z;
     float o2 = 1.0 + 2.0 * near / origin.z;
@@ -277,9 +309,9 @@ const rayMarchFragmentShader = `
 
     // Hardcoded, worked out using approximate iPhone FOV of 67.3 degrees
     // and an image width of 1006 px.
-    const float focal = 755.6440;
-    const float W = 1006.0;
-    const float H = 756.0;
+    float focal = ndc_f;
+    float W = ndc_w;
+    float H = ndc_h;
 
     float d0 = 1.0 / (W / (2.0 * focal)) *
       (direction.x / direction.z - origin.x / origin.z);
@@ -467,16 +499,6 @@ const rayMarchFragmentShader = `
       color = features.rgb;
     }
 
-    // For forward-facing scenes, we partially unpremultiply alpha to fill
-    // tiny holes in the rendering.
-    lowp float alpha = 1.0 - visibility;
-    if (ndc != 0 && alpha > 0.0) {
-      lowp float filledAlpha = min(1.0, alpha * 1.5);
-      color *= filledAlpha / alpha;
-      alpha = filledAlpha;
-      visibility = 1.0 - filledAlpha;
-    }
-
     // Compute the final color, to save compute only compute view-depdence
     // for rays that intersected something in the scene.
     color = vec3(1.0, 1.0, 1.0) * visibility + color;
@@ -491,6 +513,103 @@ const rayMarchFragmentShader = `
     gl_FragColor = vec4(color, 1.0);
 }
 `;
+
+/**
+ * Creates a data texture containing MLP weights.
+ *
+ * @param {!Object} network_weights
+ * @return {!THREE.DataTexture}
+ */
+function createNetworkWeightTexture(network_weights) {
+  if (!network_weights) {
+    let weightsData = new Float32Array([0]);
+    return createFloatTextureFromData(
+      1, 1, weightsData);
+  }
+  let width = network_weights.length;
+  let height = network_weights[0].length;
+
+  let weightsData = new Float32Array(width * height);
+  for (let co = 0; co < height; co++) {
+    for (let ci = 0; ci < width; ci++) {
+      let index = co * width + ci;
+      let weight = network_weights[ci][co];
+      weightsData[index] = weight;
+    }
+  }
+  return createFloatTextureFromData(
+      width, height, weightsData);
+}
+
+/**
+ * Creates shader code for the view-dependence MLP.
+ *
+ * This populates the shader code in viewDependenceNetworkShaderFunctions with
+ * network weights and sizes as compile-time constants. The result is returned
+ * as a string.
+ *
+ * @param {!Object} scene_params
+ * @return {string}
+ */
+function createViewDependenceFunctions(scene_params) {
+  let network_weights = scene_params;
+
+  let width = network_weights['0_bias'].length;
+  let biasListZero = '';
+  for (let i = 0; i < width; i++) {
+    let bias = network_weights['0_bias'][i];
+    biasListZero += Number(bias).toFixed(7);
+    if (i + 1 < width) {
+      biasListZero += ', ';
+    }
+  }
+
+  width = network_weights['1_bias'].length;
+  let biasListOne = '';
+  for (let i = 0; i < width; i++) {
+    let bias = network_weights['1_bias'][i];
+    biasListOne += Number(bias).toFixed(7);
+    if (i + 1 < width) {
+      biasListOne += ', ';
+    }
+  }
+
+  width = network_weights['2_bias'].length;
+  let biasListTwo = '';
+  for (let i = 0; i < width; i++) {
+    let bias = network_weights['2_bias'][i];
+    biasListTwo += Number(bias).toFixed(7);
+    if (i + 1 < width) {
+      biasListTwo += ', ';
+    }
+  }
+
+  let channelsZero = network_weights['0_weights'].length;
+  let channelsOne = network_weights['0_bias'].length;
+  let channelsTwo = network_weights['1_bias'].length;
+  let channelsThree = network_weights['2_bias'].length;
+  let posEncScales = 4;
+
+  let fragmentShaderSource = viewDependenceNetworkShaderFunctions.replace(
+      new RegExp('NUM_CHANNELS_ZERO', 'g'), channelsZero);
+  fragmentShaderSource = fragmentShaderSource.replace(
+      new RegExp('NUM_POSENC_SCALES', 'g'), posEncScales.toString());
+  fragmentShaderSource = fragmentShaderSource.replace(
+      new RegExp('NUM_CHANNELS_ONE', 'g'), channelsOne);
+  fragmentShaderSource = fragmentShaderSource.replace(
+      new RegExp('NUM_CHANNELS_TWO', 'g'), channelsTwo);
+  fragmentShaderSource = fragmentShaderSource.replace(
+      new RegExp('NUM_CHANNELS_THREE', 'g'), channelsThree);
+
+  fragmentShaderSource = fragmentShaderSource.replace(
+      new RegExp('BIAS_LIST_ZERO', 'g'), biasListZero);
+  fragmentShaderSource = fragmentShaderSource.replace(
+      new RegExp('BIAS_LIST_ONE', 'g'), biasListOne);
+    fragmentShaderSource = fragmentShaderSource.replace(
+      new RegExp('BIAS_LIST_TWO', 'g'), biasListTwo);
+
+  return fragmentShaderSource;
+}
 
 /**
  * Creates a material (i.e. shaders and texture bindings) for a SNeRG scene.
@@ -522,112 +641,39 @@ function createRayMarchMaterial(
     scene_params, alphaVolumeTexture, rgbVolumeTexture, featureVolumeTexture,
     atlasIndexTexture, minPosition, gridWidth, gridHeight, gridDepth, blockSize,
     voxelSize, atlasWidth, atlasHeight, atlasDepth) {
-  // First set up the network weights.
-  let network_weights = scene_params;
-  let width = network_weights['0_weights'].length;
-  let height = network_weights['0_weights'][0].length;
-
-  let weightsDataZero = new Float32Array(width * height);
-  for (let co = 0; co < height; co++) {
-    for (let ci = 0; ci < width; ci++) {
-      let index = co * width + ci;
-      let weight = network_weights['0_weights'][ci][co];
-      weightsDataZero[index] = weight;
-    }
+  let weightsTexZero = null;
+  let weightsTexOne = null;
+  let weightsTexTwo = null;
+  let fragmentShaderSource = rayMarchFragmentShaderHeader;
+  if (scene_params['diffuse']) {
+    fragmentShaderSource += dummyViewDependenceShaderFunctions;
+    weightsTexZero = createNetworkWeightTexture(null);
+    weightsTexOne = createNetworkWeightTexture(null);
+    weightsTexTwo = createNetworkWeightTexture(null);
+  } else {
+    fragmentShaderSource += createViewDependenceFunctions(scene_params);
+    weightsTexZero = createNetworkWeightTexture(scene_params['0_weights']);
+    weightsTexOne = createNetworkWeightTexture(scene_params['1_weights']);
+    weightsTexTwo = createNetworkWeightTexture(scene_params['2_weights']);
   }
-  let weightsTexZero = createFloatTextureFromData(
-      width, height, weightsDataZero);
-
-  width = network_weights['0_bias'].length;
-  height = 1;
-  let biasListZero = '';
-  for (let i = 0; i < width; i++) {
-    let bias = network_weights['0_bias'][i];
-    biasListZero += Number(bias).toFixed(7);
-    if (i + 1 < width) {
-      biasListZero += ', ';
-    }
-  }
-
-  width = network_weights['1_weights'].length;
-  height = network_weights['1_weights'][0].length;
-  let weightsDataOne = new Float32Array(width * height);
-  for (let co = 0; co < height; co++) {
-    for (let ci = 0; ci < width; ci++) {
-      let index = co * width + ci;
-      let weight = network_weights['1_weights'][ci][co];
-      weightsDataOne[index] = weight;
-    }
-  }
-  let weightsTexOne =
-      createFloatTextureFromData(width, height, weightsDataOne);
-
-  width = network_weights['1_bias'].length;
-  height = 1;
-  let biasListOne = '';
-  for (let i = 0; i < width; i++) {
-    let bias = network_weights['1_bias'][i];
-    biasListOne += Number(bias).toFixed(7);
-    if (i + 1 < width) {
-      biasListOne += ', ';
-    }
-  }
-
-  width = network_weights['2_weights'].length;
-  height = network_weights['2_weights'][0].length;
-  let weightsDataTwo = new Float32Array(width * height);
-  for (let co = 0; co < height; co++) {
-    for (let ci = 0; ci < width; ci++) {
-      let index = co * width + ci;
-      let weight = network_weights['2_weights'][ci][co];
-      weightsDataTwo[index] = weight;
-    }
-  }
-  let weightsTexTwo =
-      createFloatTextureFromData(width, height, weightsDataTwo);
-
-  width = network_weights['2_bias'].length;
-  height = 1;
-  let biasListTwo = '';
-  for (let i = 0; i < width; i++) {
-    let bias = network_weights['2_bias'][i];
-    biasListTwo += Number(bias).toFixed(7);
-    if (i + 1 < width) {
-      biasListTwo += ', ';
-    }
-  }
-
-  let channelsZero = network_weights['0_weights'].length;
-  let channelsOne = network_weights['0_bias'].length;
-  let channelsTwo = network_weights['1_bias'].length;
-  let channelsThree = network_weights['2_bias'].length;
-  let posEncScales = 4;
-
-  let fragmentShaderSource = rayMarchFragmentShader.replace(
-      new RegExp('NUM_CHANNELS_ZERO', 'g'), channelsZero);
-  fragmentShaderSource = fragmentShaderSource.replace(
-      new RegExp('NUM_POSENC_SCALES', 'g'), posEncScales.toString());
-  fragmentShaderSource = fragmentShaderSource.replace(
-      new RegExp('NUM_CHANNELS_ONE', 'g'), channelsOne);
-  fragmentShaderSource = fragmentShaderSource.replace(
-      new RegExp('NUM_CHANNELS_TWO', 'g'), channelsTwo);
-  fragmentShaderSource = fragmentShaderSource.replace(
-      new RegExp('NUM_CHANNELS_THREE', 'g'), channelsThree);
-
-  fragmentShaderSource = fragmentShaderSource.replace(
-      new RegExp('BIAS_LIST_ZERO', 'g'), biasListZero);
-  fragmentShaderSource = fragmentShaderSource.replace(
-      new RegExp('BIAS_LIST_ONE', 'g'), biasListOne);
-    fragmentShaderSource = fragmentShaderSource.replace(
-      new RegExp('BIAS_LIST_TWO', 'g'), biasListTwo);
+  fragmentShaderSource += rayMarchFragmentShaderBody;
 
   // Now pass all the 3D textures as uniforms to the shader.
   let worldspace_R_opengl = new THREE.Matrix3();
-  let M_dict = network_weights['worldspace_T_opengl'];
+  let M_dict = scene_params['worldspace_T_opengl'];
   worldspace_R_opengl['set'](
       M_dict[0][0], M_dict[0][1], M_dict[0][2],
       M_dict[1][0], M_dict[1][1], M_dict[1][2],
       M_dict[2][0], M_dict[2][1], M_dict[2][2]);
+
+  let ndc_f = 755.644059435;
+  let ndc_w = 1006.0;
+  let ndc_h = 756.0;
+  if ("input_focal" in scene_params) {
+    ndc_f = parseFloat(scene_params['input_focal']);
+    ndc_w = parseFloat(scene_params['input_width']);
+    ndc_h = parseFloat(scene_params['input_height']);
+  }
 
   const material = new THREE.ShaderMaterial({
     uniforms: {
@@ -641,6 +687,9 @@ function createRayMarchMaterial(
       'blockSize': {'value': blockSize},
       'voxelSize': {'value': voxelSize},
       'minPosition': {'value': minPosition},
+      'ndc_f': {'value': ndc_f},
+      'ndc_w': {'value': ndc_w},
+      'ndc_h': {'value': ndc_h},
       'weightsZero': {'value': weightsTexZero},
       'weightsOne': {'value': weightsTexOne},
       'weightsTwo': {'value': weightsTexTwo},
@@ -847,16 +896,29 @@ function loadSplitVolumeTexturePNG(
             let oldTexture = gl.getParameter(gl.TEXTURE_BINDING_3D);
             gl.bindTexture(
                 gl.TEXTURE_3D, rgbTextureProperties['__webglTexture']);
-            gl.texSubImage3D(
-                gl.TEXTURE_3D, 0, 0, 0, i * slice_depth, volume_width,
-                volume_height, slice_depth, gl.RGB, gl.UNSIGNED_BYTE,
-                rgbPixels, 0);
+            // Upload row-by-row to work around bug with Intel + Mac OSX.
+            // See https://crbug.com/654258.
+            for (let z = 0; z < slice_depth; ++z) {
+              for (let y = 0; y < volume_height; ++y) {
+              gl.texSubImage3D(
+                  gl.TEXTURE_3D, 0, 0, y, z + i * slice_depth,
+                  volume_width, 1, 1, gl.RGB, gl.UNSIGNED_BYTE,
+                  rgbPixels, 3 * volume_width * (y + volume_height * z));
+              }
+            }
+
             gl.bindTexture(
                 gl.TEXTURE_3D, alphaTextureProperties['__webglTexture']);
-            gl.texSubImage3D(
-                gl.TEXTURE_3D, 0, 0, 0, i * slice_depth, volume_width,
-                volume_height, slice_depth, gl.RED, gl.UNSIGNED_BYTE,
-                alphaPixels, 0);
+            // Upload row-by-row to work around bug with Intel + Mac OSX.
+            // See https://crbug.com/654258.
+            for (let z = 0; z < slice_depth; ++z) {
+              for (let y = 0; y < volume_height; ++y) {
+              gl.texSubImage3D(
+                  gl.TEXTURE_3D, 0, 0, y, z + i * slice_depth,
+                  volume_width, 1, 1, gl.RED, gl.UNSIGNED_BYTE,
+                  alphaPixels, volume_width * (y + volume_height * z));
+              }
+            }
             gl.bindTexture(gl.TEXTURE_3D, oldTexture);
 
             resolve(texture_rgb);
@@ -918,10 +980,16 @@ function loadVolumeTexturePNG(
             let oldTexture = gl.getParameter(gl.TEXTURE_BINDING_3D);
             let textureHandle = textureProperties['__webglTexture'];
             gl.bindTexture(gl.TEXTURE_3D, textureHandle);
-            gl.texSubImage3D(
-                gl.TEXTURE_3D, 0, 0, 0, i * slice_depth,
-                volume_width, volume_height, slice_depth,
-                gl.RGBA, gl.UNSIGNED_BYTE, rgbaImage, 0);
+            // Upload row-by-row to work around bug with Intel + Mac OSX.
+            // See https://crbug.com/654258.
+            for (let z = 0; z < slice_depth; ++z) {
+              for (let y = 0; y < volume_height; ++y) {
+              gl.texSubImage3D(
+                  gl.TEXTURE_3D, 0, 0, y, z + i * slice_depth,
+                  volume_width, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE,
+                  rgbaImage, 4 * volume_width * (y + volume_height * z));
+              }
+            }
             gl.bindTexture(gl.TEXTURE_3D, oldTexture);
 
             resolve(texture);
@@ -987,6 +1055,12 @@ function loadScene(dirUrl, width, height) {
     gSceneParams = parsed;
     gSceneParams['dirUrl'] = dirUrl;
     gSceneParams['loadingTextures'] = false;
+    gSceneParams['diffuse'] = true;
+    // If we have a view-dependence network in the json file, turn on view
+    // dependence.
+    if ('0_bias' in gSceneParams) {
+      gSceneParams['diffuse'] = false;
+    }
     gNumTextures = gSceneParams['num_slices'];
 
     // Create empty 3D textures for the loaders to incrementally fill with data.
@@ -1012,16 +1086,19 @@ function loadScene(dirUrl, width, height) {
         alphaVolumeTexture.wrapR = THREE.ClampToEdgeWrapping;
     alphaVolumeTexture.type = THREE.UnsignedByteType;
 
-    let featureVolumeTexture = new THREE.DataTexture3D(
-        null, gSceneParams['atlas_width'], gSceneParams['atlas_height'],
-        gSceneParams['atlas_depth']);
-    featureVolumeTexture.format = THREE.RGBAFormat;
-    featureVolumeTexture.generateMipmaps = false;
-    featureVolumeTexture.magFilter = featureVolumeTexture.minFilter =
-        THREE.LinearFilter;
-    featureVolumeTexture.wrapS = featureVolumeTexture.wrapT =
-        featureVolumeTexture.wrapR = THREE.ClampToEdgeWrapping;
-    featureVolumeTexture.type = THREE.UnsignedByteType;
+    let featureVolumeTexture = null;
+    if (!gSceneParams['diffuse']) {
+      featureVolumeTexture = new THREE.DataTexture3D(
+          null, gSceneParams['atlas_width'], gSceneParams['atlas_height'],
+          gSceneParams['atlas_depth']);
+      featureVolumeTexture.format = THREE.RGBAFormat;
+      featureVolumeTexture.generateMipmaps = false;
+      featureVolumeTexture.magFilter = featureVolumeTexture.minFilter =
+          THREE.LinearFilter;
+      featureVolumeTexture.wrapS = featureVolumeTexture.wrapT =
+          featureVolumeTexture.wrapR = THREE.ClampToEdgeWrapping;
+      featureVolumeTexture.type = THREE.UnsignedByteType;
+    }
 
     let atlasIndexTexture = new THREE.DataTexture3D(
         atlasIndexImage,
@@ -1144,11 +1221,54 @@ function initFromParameters() {
 }
 
 /**
+ * Checks whether the WebGL context is valid and the underlying hardware is
+ * powerful enough. Otherwise displays a warning.
+ * @return {boolean}
+ */
+function isRendererUnsupported() {
+  let loading = document.getElementById('Loading');
+
+  let gl = document.getElementsByTagName("canvas")[0].getContext('webgl2');
+  if (!gl) {
+    loading.innerHTML = "Error: WebGL2 context not found. Is your machine" +
+    " equipped with a discrete GPU?";
+    return true;
+  }
+
+  let debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+  if (!debugInfo) {
+    loading.innerHTML = "Error: Could not fetch renderer info. Is your" +
+    " machine equipped with a discrete GPU?";
+    return true;
+  }
+
+  let renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+  if (!renderer || renderer.search("SwiftShader") >= 0 ||
+      (renderer.search("ANGLE") >= 0 &&
+       renderer.search("Intel") >= 0 &&
+       (renderer.search("HD Graphics") >= 0 ||
+        renderer.search("UHD Graphics") >= 0))) {
+  loading.innerHTML = "Error: Unsupported renderer: " + renderer +
+    ". Are you running with hardware acceleration enabled?";
+    return true;
+  }
+
+  return false;
+}
+
+
+/**
  * Set up code that needs to run once after the  scene parameters have loaded.
  */
 function loadOnFirstFrame() {
   // Early out if we've already run this function.
   if (gSceneParams['loadingTextures']) {
+    return;
+  }
+
+  // Also early out if the renderer is not supported.
+  if (isRendererUnsupported()) {
+    gSceneParams['loadingTextures'] = true;
     return;
   }
 
@@ -1183,9 +1303,6 @@ function loadOnFirstFrame() {
       gRayMarchScene.children[0].material.uniforms['mapAlpha']['value'];
   const rgbVolumeTexture =
       gRayMarchScene.children[0].material.uniforms['mapColor']['value'];
-  const featureVolumeTexture =
-      gRayMarchScene.children[0].material.uniforms['mapFeatures']['value'];
-
   let rgbVolumeTexturePromise = loadSplitVolumeTexturePNG(
       alphaVolumeTexture, rgbVolumeTexture, gSceneParams['dirUrl'] + '/rgba',
       gNumTextures, gSceneParams['atlas_width'], gSceneParams['atlas_height'],
@@ -1193,13 +1310,19 @@ function loadOnFirstFrame() {
         gLoadedRGBATextures++;
         updateLoadingProgress();
       });
-  let featureVolumeTexturePromise = loadVolumeTexturePNG(
+
+  let featureVolumeTexturePromise = null;
+  if (!gSceneParams['diffuse']) {
+    const featureVolumeTexture =
+      gRayMarchScene.children[0].material.uniforms['mapFeatures']['value'];
+    featureVolumeTexturePromise = loadVolumeTexturePNG(
       featureVolumeTexture, gSceneParams['dirUrl'] + '/feature', gNumTextures,
       gSceneParams['atlas_width'], gSceneParams['atlas_height'],
       gSceneParams['atlas_depth'], function() {
         gLoadedFeatureTextures++;
         updateLoadingProgress();
       });
+  }
 
   let allTexturesPromise =
       Promise.all([rgbVolumeTexturePromise, featureVolumeTexturePromise]);

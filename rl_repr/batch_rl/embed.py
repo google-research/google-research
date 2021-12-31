@@ -235,12 +235,13 @@ class RNNEmbedNet(tf.keras.Model):
   def __init__(self,
                input_dim,
                embedding_dim,
+               hidden_dims=(256, 256),
                num_distributions=None,
                return_sequences=False):
     """Creates a neural net.
 
     Args:
-      embedding_dim: Embedding size.
+      input_dim: (seq_len, in_dim).
       num_distributions: Number of categorical distributions
         for discrete embedding.
       return_sequences: Whether to return the entire sequence embedding.
@@ -252,9 +253,22 @@ class RNNEmbedNet(tf.keras.Model):
     assert not num_distributions or embedding_dim % num_distributions == 0
 
     inputs = tf.keras.Input(shape=input_dim)
-    outputs = tf.keras.layers.LSTM(
-        embedding_dim, return_sequences=return_sequences)(
-            inputs)
+    mlps = keras_utils.create_mlp(
+        input_dim[-1],
+        hidden_dims[-1],
+        hidden_dims=hidden_dims,
+        activation=tf.nn.swish)
+    bidir = tf.keras.layers.Bidirectional(
+        tf.keras.layers.LSTM(hidden_dims[-1], return_sequences=True))
+
+    outputs = tf.reshape(
+        mlps(tf.reshape(inputs, [-1, input_dim[-1]])),
+        [-1, input_dim[0], hidden_dims[-1]])
+    outputs = bidir(outputs)
+    outputs = tf.concat(
+        [outputs[:, -1, :hidden_dims[-1]], outputs[:, 0, hidden_dims[-1]:]],
+        axis=-1)
+    outputs = tf.keras.layers.Dense(embedding_dim)(outputs)
     self.embedder = tf.keras.Model(inputs=inputs, outputs=outputs)
     self.embedder.call = tf.function(self.embedder.call)
 
@@ -269,7 +283,7 @@ class RNNEmbedNet(tf.keras.Model):
     Returns:
       Auto-regressively computed Embeddings of the last states.
     """
-    assert (len(states.shape) == 3)
+    assert len(states.shape) == 3
     if not self.num_distributions:
       out = self.embedder(states)
     else:
@@ -365,6 +379,10 @@ class StochasticEmbedNet(tf.keras.Model):
       sample_out = joined_onehot_samples + joined_probs - tf.stop_gradient(joined_probs)
       raw_out = joined_probs
 
+    if stop_gradient:
+      sample_out = tf.stop_gradient(sample_out)
+      raw_out = tf.stop_gradient(raw_out)
+
     if sample_and_raw_output:
       out = (sample_out, raw_out)
     elif sample:
@@ -372,10 +390,119 @@ class StochasticEmbedNet(tf.keras.Model):
     else:
       out = raw_out
 
+    return out
+
+
+class StochasticRNNEmbedNet(tf.keras.Model):
+  """A stochastic embed network."""
+
+  def __init__(self,
+               input_dim,
+               embedding_dim = 256,
+               hidden_dims=(256, 256),
+               num_distributions = 0,
+               logvar_min = -4.0,
+               logvar_max = 15.0):
+    """Creates a neural net.
+
+    Args:
+      input_dim: (seq_len, in_dim).
+      embedding_dim: Embedding size.
+      hidden_dims: List of hidden dimensions.
+      num_distributions: Number of categorical distributions
+        for discrete embedding.
+      logvar_min: Minimum allowed logvar.
+      logvar_max: Maximum allowed logvar.
+    """
+    super().__init__()
+
+    inputs = tf.keras.Input(shape=input_dim)
+    self.embedding_dim = embedding_dim
+    self.num_distributions = num_distributions
+    assert not num_distributions or embedding_dim % num_distributions == 0
+
+    distribution_dim = (2 if not num_distributions else 1) * self.embedding_dim
+
+    mlps = keras_utils.create_mlp(
+        input_dim[-1],
+        hidden_dims[-1],
+        hidden_dims=hidden_dims,
+        activation=tf.nn.swish)
+    bidir = tf.keras.layers.Bidirectional(
+        tf.keras.layers.LSTM(hidden_dims[-1], return_sequences=True))
+
+    outputs = tf.reshape(
+        mlps(tf.reshape(inputs, [-1, input_dim[-1]])),
+        [-1, input_dim[0], hidden_dims[-1]])
+    outputs = bidir(outputs)
+    outputs = tf.concat(
+        [outputs[:, -1, :hidden_dims[-1]], outputs[:, 0, hidden_dims[-1]:]],
+        axis=-1)
+    outputs = tf.keras.layers.Dense(distribution_dim)(outputs)
+
+    self.embedder = tf.keras.Model(inputs=inputs, outputs=outputs)
+    self.embedder.call = tf.function(self.embedder.call)
+    self.logvar_min = logvar_min
+    self.logvar_max = logvar_max
+
+  @tf.function
+  def call(self,
+           states,
+           stop_gradient = True,
+           sample = True,
+           sample_and_raw_output = False):
+    """Returns embeddings of states.
+
+    Args:
+      states: A batch of states.
+      stop_gradient: Whether to put a stop_gradient on embedding.
+      sample: Whether to sample an embedding.
+      sample_and_raw_output: Whether to return the original
+        probability in addition to sampled embeddings.
+
+    Returns:
+      Embeddings of states.
+    """
+    assert len(states.shape) == 3
+    if not self.num_distributions:
+      mean_and_logvar = self.embedder(states)
+      mean, logvar = tf.split(mean_and_logvar, 2, axis=-1)
+      logvar = tf.clip_by_value(logvar, self.logvar_min, self.logvar_max)
+      sample_out = mean + tf.random.normal(tf.shape(mean)) * tf.exp(
+          0.5 * logvar)
+      raw_out = tf.concat([mean, logvar], -1)
+    else:
+      all_logits = self.embedder(states)
+      all_logits = tf.split(
+          all_logits, num_or_size_splits=self.num_distributions, axis=-1)
+      all_probs = [tf.nn.softmax(logits, -1) for logits in all_logits]
+      joined_probs = tf.concat(all_probs, -1)
+      all_samples = [
+          tfp.distributions.Categorical(logits=logits).sample()
+          for logits in all_logits
+      ]
+      all_onehot_samples = [
+          tf.one_hot(samples, self.embedding_dim // self.num_distributions)
+          for samples in all_samples
+      ]
+      joined_onehot_samples = tf.concat(all_onehot_samples, -1)
+
+      # Straight-through gradients.
+      sample_out = joined_onehot_samples + joined_probs - tf.stop_gradient(
+          joined_probs)
+      raw_out = joined_probs
+
     if stop_gradient:
-      if hasattr(out, '__len__'):
-        return tuple(map(tf.stop_gradient, out))
-      return tf.stop_gradient(out)
+      sample_out = tf.stop_gradient(sample_out)
+      raw_out = tf.stop_gradient(raw_out)
+
+    if sample_and_raw_output:
+      out = (sample_out, raw_out)
+    elif sample:
+      out = sample_out
+    else:
+      out = raw_out
+
     return out
 
 
@@ -548,7 +675,7 @@ class CpcLearner(tf.keras.Model):
       Embedding.
     """
     if not self.ctx_embedder:
-      assert (len(states.shape) == 2)
+      assert len(states.shape) == 2
       return self.embedder(states, stop_gradient=stop_gradient)
 
     outputs = []
@@ -1103,7 +1230,7 @@ class BertLearner(tf.keras.Model):
     self.ctx_length = ctx_length
     self.attention_length = ctx_length or sequence_length
     if ctx_length:
-      assert (ctx_length == sequence_length - 1)
+      assert ctx_length == sequence_length - 1
     self.downstream_input_mode = downstream_input_mode
     self.drop_probability = drop_probability
     self.switch_probability = switch_probability
@@ -1161,11 +1288,11 @@ class BertLearner(tf.keras.Model):
       Embedding.
     """
     if not self.ctx_embedder:
-      assert (len(states.shape) == 2)
+      assert len(states.shape) == 2
       return self.embedder(states, stop_gradient=stop_gradient)
 
     assert len(states.shape) == 3
-    assert (actions is not None)
+    assert actions is not None
 
     outputs = []
     for mode in self.downstream_input_mode.split('-'):
@@ -1366,7 +1493,7 @@ class Bert2Learner(tf.keras.Model):
     self.sequence_length = sequence_length
     self.ctx_length = ctx_length
     if ctx_length:
-      assert (ctx_length == sequence_length - 1)
+      assert ctx_length == sequence_length - 1
     self.attention_length = ctx_length or sequence_length
     self.downstream_input_mode = downstream_input_mode
     self.drop_probability = drop_probability
@@ -1407,10 +1534,10 @@ class Bert2Learner(tf.keras.Model):
       Embedding.
     """
     if not self.ctx_embedder:
-      assert (len(states.shape) == 2)
+      assert len(states.shape) == 2
       return self.embedder(states, stop_gradient=stop_gradient)
 
-    assert (actions is not None)
+    assert actions is not None
     batch_size = tf.shape(states)[0]
     outputs = []
     for mode in self.downstream_input_mode.split('-'):
@@ -2276,7 +2403,7 @@ class VpnLearner(tf.keras.Model):
     Returns:
       Embedding.
     """
-    assert (len(states.shape) == 2)
+    assert len(states.shape) == 2
     return self.embedder(states, stop_gradient=stop_gradient)
 
   def fit(self, states, actions,
@@ -2736,7 +2863,7 @@ class SuperModelLearner(tf.keras.Model):
           forward_pred_mean, forward_pred_logvar = tf.split(forward_pred_raw, 2, axis=-1)
           forward_pred_dist = tfp.distributions.MultivariateNormalDiag(
               forward_pred_mean, tf.exp(0.5 * forward_pred_logvar))
-          forward_loss = forward_pred_dist.log_prob(true_sample)
+          forward_loss = -forward_pred_dist.log_prob(true_sample)
       else:
         energies = self.compute_energy(forward_pred_sample, true_sample)
         positive_loss = tf.linalg.diag_part(energies)

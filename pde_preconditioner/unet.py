@@ -29,7 +29,7 @@ import os
 import functools
 import jax
 import flax
-from flax import nn
+from flax.deprecated import nn
 from jax import lax
 import jax.numpy as np
 import numpy as onp

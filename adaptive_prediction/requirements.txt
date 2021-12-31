@@ -1,0 +1,6 @@
+jupyter>=6.4.0
+matplotlib>=3.4
+numpy>=1.20.3
+jax>=0.2
+pybullet>=3.05
+seaborn>=0.11.1

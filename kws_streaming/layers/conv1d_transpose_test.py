@@ -24,8 +24,7 @@ from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import utils
-from kws_streaming.train import test
-tf1.disable_eager_execution()
+from kws_streaming.train import inference
 
 
 def conv1d_transpose_model(flags, filters, kernel_size, stride):
@@ -99,7 +98,7 @@ class Conv1DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
     # run inference
     non_stream_out = model.predict(inp_audio)
-    stream_out = test.run_stream_inference(params, model_stream, inp_audio)
+    stream_out = inference.run_stream_inference(params, model_stream, inp_audio)
 
     self.assertAllClose(stream_out, non_stream_out)
 
@@ -130,4 +129,5 @@ class Conv1DTransposeTest(tf.test.TestCase, parameterized.TestCase):
 
 
 if __name__ == '__main__':
+  tf1.disable_eager_execution()
   tf.test.main()

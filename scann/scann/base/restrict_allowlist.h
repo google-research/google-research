@@ -17,6 +17,7 @@
 #ifndef SCANN_BASE_RESTRICT_ALLOWLIST_H_
 #define SCANN_BASE_RESTRICT_ALLOWLIST_H_
 
+#include <cstdint>
 #include <limits>
 
 #include "gtest/gtest_prod.h"
@@ -60,7 +61,7 @@ class RestrictAllowlist {
 
   void Resize(size_t num_points, bool default_whitelisted);
 
-  bool CapacityAvailableForAppend(DatapointIndex capacity) const;
+  bool CapacityAvailableForAppend(DatapointIndex dp_index) const;
   bool CapacityAvailableForAppend() const {
     return CapacityAvailableForAppend(num_points_);
   }

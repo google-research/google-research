@@ -16,9 +16,10 @@
 """SVDF model with Mel spectrum and fully connected layers + residual."""
 from kws_streaming.layers import modes
 from kws_streaming.layers import speech_features
+from kws_streaming.layers import stream
 from kws_streaming.layers import svdf
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+import kws_streaming.models.model_utils as utils
 
 
 def model_parameters(parser_nn):
@@ -198,7 +199,7 @@ def model(flags):
   # [batch, time, feature]
   net = tf.keras.layers.Activation(flags.activation)(net)
   net = tf.keras.layers.MaxPool1D(
-      3, strides=blocks_pool[0], padding='valid')(
+      blocks_pool[0], strides=blocks_pool[0], padding='valid')(
           net)
 
   # second residual block
@@ -236,7 +237,7 @@ def model(flags):
   net = tf.keras.layers.Activation(flags.activation)(net)
   # [batch, time, feature]
   net = tf.keras.layers.MaxPool1D(
-      3, strides=blocks_pool[1], padding='valid')(
+      blocks_pool[1], strides=blocks_pool[1], padding='valid')(
           net)
 
   # third residual block
@@ -272,15 +273,22 @@ def model(flags):
   net = tf.keras.layers.Add()([net, residual])
   net = tf.keras.layers.Activation(flags.activation)(net)
   net = tf.keras.layers.MaxPool1D(
-      3, strides=blocks_pool[2], padding='valid')(
+      blocks_pool[2], strides=blocks_pool[2], padding='valid')(
           net)
   # [batch, time, feature]
 
   # convert all feature to one vector
   if flags.flatten:
-    net = tf.keras.layers.Flatten()(net)
+    net = stream.Stream(use_one_step=False, cell=tf.keras.layers.Flatten())(net)
   else:
-    net = tf.keras.layers.GlobalAveragePooling1D()(net)
+    net = tf.keras.backend.expand_dims(net, axis=2)
+    net = stream.Stream(
+        use_one_step=False,
+        cell=tf.keras.layers.AveragePooling2D(
+            pool_size=(int(net.shape[1]), int(net.shape[2]))))(
+                net)
+
+  net = tf.keras.layers.Flatten()(net)
 
   # [batch, feature]
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)

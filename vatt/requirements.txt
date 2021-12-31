@@ -1,0 +1,13 @@
+tensorflow==2.7.0
+tensorflow-addons==0.15.0
+tensorflow-probability==0.15.0
+tensorflow_text==2.7.0
+keras==2.7.0
+scikit-image
+scikit-learn
+scipy
+six
+numpy
+PyYAML
+git+git://github.com/deepmind/dmvr.git
+absl-py

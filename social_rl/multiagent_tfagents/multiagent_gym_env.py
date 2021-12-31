@@ -83,7 +83,7 @@ class MultiagentGymWrapper(gym_wrapper.GymWrapper):
 
   def _step(self, action):
     # Automatically reset the environments on step if they need to be reset.
-    if self._auto_reset and self._done:
+    if self._handle_auto_reset and self._done:
       return self.reset()
 
     # Some environments (e.g. FrozenLake) use the action as a key to the

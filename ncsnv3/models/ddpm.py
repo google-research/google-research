@@ -20,7 +20,7 @@ This code is the FLAX equivalent of:
 https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py
 """
 
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax.numpy as jnp
 
 from . import utils, layers, normalization

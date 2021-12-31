@@ -30,10 +30,10 @@ from hmc_swindles import utils
 from tensorflow.python.util import nest  # pylint: disable=g-direct-tensorflow-import
 
 # pylint: disable=g-import-not-at-top
-USE_LOCAL_FUN_MCMC = True
+USE_LOCAL_FUN_MC = True
 
-if USE_LOCAL_FUN_MCMC:
-  from discussion import fun_mcmc  # pylint: disable=reimported
+if USE_LOCAL_FUN_MC:
+  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported
 
 tfd = tfp.distributions
 tfb = tfp.bijectors
@@ -74,7 +74,7 @@ def MakeHeadTailBijectorFn(num_dims,
     )
     x = tf.reshape(x, shape=tf.concat([input_shape, [2]], axis=0))
     shift, log_scale = tf.unstack(x, num=2, axis=-1)
-    return tfb.AffineScalar(shift=shift, log_scale=log_scale)
+    return tfb.Chain([tfb.Shift(shift=shift), tfb.Scale(log_scale=log_scale)])
 
   @utils.MakeTFTemplate
   def head_to_tail_bijector_fn(x, _):
@@ -89,7 +89,8 @@ def MakeHeadTailBijectorFn(num_dims,
         activation=None,
         kernel_initializer=utils.L2HMCInitializer(factor=0.01),
     )(x,)
-    return tfb.AffineScalar(shift=shift, log_scale=tf.Variable(0.))
+    return tfb.Chain(
+        [tfb.Shift(shift=shift), tfb.Scale(log_scale=tf.Variable(0.))])
 
   @utils.MakeTFTemplate
   def tail_to_head_bijector_fn(x, _):
@@ -97,8 +98,9 @@ def MakeHeadTailBijectorFn(num_dims,
     for units in head_layers:
       x = tfkl.Dense(units=units, activation=activation)(x)
     shift = tfkl.Dense(units=head_dims, activation=None)(x)
-    return tfb.AffineScalar(
-        shift=shift, log_scale=tf.Variable(tf.zeros(head_dims)))
+    return tfb.Chain(
+        [tfb.Shift(shift=shift),
+         tfb.Scale(log_scale=tf.Variable(tf.zeros(head_dims)))])
 
   b = tfb.Identity()
 
@@ -124,7 +126,7 @@ def MakeHeadTailBijectorFn(num_dims,
   b = tfb.Blockwise(
       [
           tfb.Identity(),
-          tfb.AffineScalar(shift=tf.Variable(tf.zeros([tail_dims])))
+          tfb.Shift(shift=tf.Variable(tf.zeros([tail_dims])))
       ],
       [head_dims, tail_dims],
   )(b,)
@@ -145,11 +147,11 @@ def MakeAffineBijectorFn(num_dims, train=False, use_tril=False):
     tril_raw = tfp.math.fill_triangular(tril_flat)
     sigma = tf.nn.softplus(tf.linalg.diag_part(tril_raw))
     tril = tf.linalg.set_diag(tril_raw, sigma)
-    return tfb.Affine(shift=mu, scale_tril=tril)
+    return tfb.Shift(shift=mu)(tfb.ScaleMatvecTriL(scale_tril=tril))
   else:
     sigma = tf.nn.softplus(
         tf.Variable(tf.zeros([num_dims]), name="invpsigma", trainable=train))
-    return tfb.Affine(shift=mu, scale_diag=sigma)
+    return tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma))
 
 
 @gin.configurable("rnvp_bijector")
@@ -187,7 +189,7 @@ def MakeRNVPBijectorFn(num_dims,
   if learn_scale:
     scale = tf.Variable(tfp.math.softplus_inverse(scale),
                         name="isp_global_scale")
-  bijectors.append(tfb.Affine(scale_identity_multiplier=scale))
+  bijectors.append(tfb.Scale(scale=scale))
 
   bijector = tfb.Chain(bijectors)
 
@@ -234,7 +236,7 @@ def MakeIAFBijectorFn(
   if learn_scale:
     scale = tf.nn.softplus(
         tf.Variable(tfp.math.softplus_inverse(scale), name="isp_global_scale"))
-  bijectors.append(tfb.AffineScalar(scale=scale))
+  bijectors.append(tfb.Scale(scale=scale))
 
   bijector = tfb.Chain(bijectors)
 
@@ -303,16 +305,16 @@ class MCMCOutputs(NamedTuple):
 
 def GetIntegrator(integrator, step_size, num_steps, target_log_prob_fn):
   integrators = {
-      "leapfrog": (fun_mcmc.leapfrog_step, 1),
-      "ruth4": (fun_mcmc.ruth4_step, 3),
-      "blanes_3_stage": (fun_mcmc.blanes_3_stage_step, 3),
-      "blanes_4_stage": (fun_mcmc.blanes_4_stage_step, 5),
+      "leapfrog": (fun_mc.leapfrog_step, 1),
+      "ruth4": (fun_mc.ruth4_step, 3),
+      "blanes_3_stage": (fun_mc.blanes_3_stage_step, 3),
+      "blanes_4_stage": (fun_mc.blanes_4_stage_step, 5),
   }
   integrator_step_fn, leapfrog_multiplier = integrators[integrator]
 
-  kinetic_energy_fn = fun_mcmc.make_gaussian_kinetic_energy_fn(1)
+  kinetic_energy_fn = fun_mc.make_gaussian_kinetic_energy_fn(1)
 
-  integrator_fn = lambda state: fun_mcmc.hamiltonian_integrator(  # pylint: disable=g-long-lambda
+  integrator_fn = lambda state: fun_mc.hamiltonian_integrator(  # pylint: disable=g-long-lambda
       state,
       num_steps=num_steps,
       integrator_step_fn=lambda state: integrator_step_fn(  # pylint: disable=g-long-lambda
@@ -338,8 +340,8 @@ def MakeCVANeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
     # N.B. z is concatenated real + antithetic chain.
@@ -362,7 +364,7 @@ def MakeCVANeuTra(target,
     momentum = tf.concat([momentum, -momentum, momentum], axis=0)
     log_uniform = tf.concat([log_uniform] * 3, axis=0)
 
-    return fun_mcmc.hamiltonian_monte_carlo(
+    return fun_mc.hamiltonian_monte_carlo_step(
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         momentum=momentum,
@@ -375,8 +377,8 @@ def MakeCVANeuTra(target,
     return (x_xcv, zcva, extra.log_accept_ratio, extra.is_accepted)
 
   (_, (x_xcv_chain, zcva_chain, log_accept_ratio,
-       is_accepted)) = fun_mcmc.trace(
-           state=fun_mcmc.hamiltonian_monte_carlo_init(
+       is_accepted)) = fun_mc.trace(
+           state=fun_mc.hamiltonian_monte_carlo_init(
                tf.concat([z_init, -z_init, z_init], axis=0), joint_log_prob_fn),
            fn=transition_operator,
            num_steps=num_steps,
@@ -426,8 +428,8 @@ def MakeANeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   integrator, leapfrog_multiplier = GetIntegrator(integrator, step_size,
                                                   num_leapfrog_steps,
@@ -440,7 +442,7 @@ def MakeANeuTra(target,
     momentum = tf.concat([momentum, -momentum], axis=0)
     log_uniform = tf.concat([log_uniform] * 2, axis=0)
 
-    return fun_mcmc.hamiltonian_monte_carlo(
+    return fun_mc.hamiltonian_monte_carlo_step(
         hmc_state,
         target_log_prob_fn=transformed_log_prob_fn,
         momentum=momentum,
@@ -451,8 +453,8 @@ def MakeANeuTra(target,
     x_xa = state.state_extra[0]
     return (x_xa, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.hamiltonian_monte_carlo_init(
+  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.hamiltonian_monte_carlo_init(
           tf.concat([z_init, -z_init], axis=0), transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -490,8 +492,8 @@ def MakeCVNeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
     z, zcv = tf.split(z_zcv, 2, axis=0)
@@ -514,7 +516,7 @@ def MakeCVNeuTra(target,
     momentum = tf.concat([momentum, momentum_cv], axis=0)
     log_uniform = tf.concat([log_uniform] * 2, axis=0)
 
-    return fun_mcmc.hamiltonian_monte_carlo(
+    return fun_mc.hamiltonian_monte_carlo_step(
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         momentum=momentum,
@@ -525,8 +527,8 @@ def MakeCVNeuTra(target,
     x, xcv = tf.split(state.state_extra, 2, axis=0)
     return (x, xcv, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.hamiltonian_monte_carlo_init(
+  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.hamiltonian_monte_carlo_init(
           tf.concat([z_init] * 2, axis=0), joint_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -566,15 +568,15 @@ def MakeNeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   integrator, leapfrog_multiplier = GetIntegrator(integrator, step_size,
                                                   num_leapfrog_steps,
                                                   transformed_log_prob_fn)
 
   def transition_operator(hmc_state):
-    return fun_mcmc.hamiltonian_monte_carlo(
+    return fun_mc.hamiltonian_monte_carlo_step(
         hmc_state,
         target_log_prob_fn=transformed_log_prob_fn,
         integrator_fn=integrator)
@@ -582,9 +584,9 @@ def MakeNeuTra(target,
   def trace_fn(state, extra):
     return (state.state_extra[0], extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.hamiltonian_monte_carlo_init(z_init,
-                                                  transformed_log_prob_fn),
+  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.hamiltonian_monte_carlo_init(z_init,
+                                                transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
       trace_fn=trace_fn)
@@ -613,14 +615,14 @@ def MakeNeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   def proposal_fn(x, seed):
     return x + step_size * tf.random.normal(x.shape, seed=seed), ((), 0.)
 
   def transition_operator(rwm_state):
-    return fun_mcmc.random_walk_metropolis(
+    return fun_mc.random_walk_metropolis_step(
         rwm_state,
         target_log_prob_fn=transformed_log_prob_fn,
         proposal_fn=proposal_fn)
@@ -628,9 +630,9 @@ def MakeNeuTraRWM(target,
   def trace_fn(state, extra):
     return (state.state_extra[0], extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.random_walk_metropolis_init(z_init,
-                                                 transformed_log_prob_fn),
+  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.random_walk_metropolis_init(z_init,
+                                               transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
       trace_fn=trace_fn)
@@ -659,8 +661,8 @@ def MakeCVNeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
     z, zcv = tf.split(z_zcv, 2, axis=0)
@@ -680,7 +682,7 @@ def MakeCVNeuTraRWM(target,
       proposal = tf.concat([proposal] * 2, axis=0)
       return x + step_size * proposal, ((), 0.)
 
-    return fun_mcmc.random_walk_metropolis(
+    return fun_mc.random_walk_metropolis_step(
         rwm_state,
         target_log_prob_fn=joint_log_prob_fn,
         proposal_fn=proposal_fn,
@@ -690,8 +692,8 @@ def MakeCVNeuTraRWM(target,
     x, xcv = tf.split(state.state_extra, 2, axis=0)
     return (x, xcv, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.random_walk_metropolis_init(
+  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.random_walk_metropolis_init(
           tf.concat([z_init] * 2, axis=0), joint_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -730,8 +732,8 @@ def MakeANeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   def transition_operator(rwm_state):
     log_uniform = tf.math.log(tf.random.uniform(shape=tf.shape(x_init)[:-1]))
@@ -743,7 +745,7 @@ def MakeANeuTraRWM(target,
       proposal = tf.concat([proposal, -proposal], axis=0)
       return x + step_size * proposal, ((), 0.)
 
-    return fun_mcmc.random_walk_metropolis(
+    return fun_mc.random_walk_metropolis_step(
         rwm_state,
         target_log_prob_fn=transformed_log_prob_fn,
         proposal_fn=proposal_fn,
@@ -754,8 +756,8 @@ def MakeANeuTraRWM(target,
     x_xa = state.state_extra[0]
     return (x_xa, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.random_walk_metropolis_init(
+  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.random_walk_metropolis_init(
           tf.concat([z_init, -z_init], axis=0), transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -791,8 +793,8 @@ def MakeCVANeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mcmc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
-                                            q.bijector, x_init)
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+                                          q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
     # N.B. z is concatenated real + antithetic chain.
@@ -814,7 +816,7 @@ def MakeCVANeuTraRWM(target,
       proposal = tf.concat([proposal, -proposal, proposal], axis=0)
       return x + step_size * proposal, ((), 0.)
 
-    return fun_mcmc.random_walk_metropolis(
+    return fun_mc.random_walk_metropolis_step(
         rwm_state,
         target_log_prob_fn=joint_log_prob_fn,
         proposal_fn=proposal_fn,
@@ -826,8 +828,8 @@ def MakeCVANeuTraRWM(target,
     return (x_xcv, zcva, extra.log_accept_ratio, extra.is_accepted)
 
   (_, (x_xcv_chain, zcva_chain, log_accept_ratio,
-       is_accepted)) = fun_mcmc.trace(
-           state=fun_mcmc.random_walk_metropolis_init(
+       is_accepted)) = fun_mc.trace(
+           state=fun_mc.random_walk_metropolis_init(
                tf.concat([z_init, -z_init, z_init], axis=0), joint_log_prob_fn),
            fn=transition_operator,
            num_steps=num_steps,
@@ -893,7 +895,7 @@ def MakeCVHMC(target,
     momentum = tf.concat([momentum] * 2, axis=0)
     log_uniform = tf.concat([log_uniform] * 2, axis=0)
 
-    return fun_mcmc.hamiltonian_monte_carlo(
+    return fun_mc.hamiltonian_monte_carlo_step(
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         momentum=momentum,
@@ -904,8 +906,8 @@ def MakeCVHMC(target,
     x, xcv = tf.split(state.state, 2, axis=0)
     return (x, xcv, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.hamiltonian_monte_carlo_init(
+  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.hamiltonian_monte_carlo_init(
           tf.concat([x_init] * 2, axis=0), joint_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -952,7 +954,7 @@ def MakeHMC(target,
                                                   joint_log_prob_fn)
 
   def transition_operator(hmc_state):
-    return fun_mcmc.hamiltonian_monte_carlo(
+    return fun_mc.hamiltonian_monte_carlo_step(
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         integrator_fn=integrator)
@@ -960,8 +962,8 @@ def MakeHMC(target,
   def trace_fn(state, extra):
     return (state.state, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.hamiltonian_monte_carlo_init(x_init, joint_log_prob_fn),
+  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
+      state=fun_mc.hamiltonian_monte_carlo_init(x_init, joint_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
       trace_fn=trace_fn)
@@ -1006,13 +1008,13 @@ def ChainLoss(chain_loss_state,
     chain_loss_state = ChainLossState(
         z_state=z_init, step_size=tf.convert_to_tensor(step_size, tf.float32))
 
-  transformed_log_prob_fn = fun_mcmc.transform_log_prob_fn(
+  transformed_log_prob_fn = fun_mc.transform_log_prob_fn(
       lambda x: (target.log_prob(x), ()), q.bijector)
 
   def transition_operator(hmc_state):
     num_leapfrog_steps = tf.cast(
         tf.math.ceil(trajectory_length / chain_loss_state.step_size), tf.int32)
-    return fun_mcmc.hamiltonian_monte_carlo(
+    return fun_mc.hamiltonian_monte_carlo_step(
         hmc_state,
         target_log_prob_fn=transformed_log_prob_fn,
         step_size=chain_loss_state.step_size,
@@ -1021,8 +1023,8 @@ def ChainLoss(chain_loss_state,
   def trace_fn(_state, extra):
     return (extra.log_accept_ratio, extra.is_accepted)
 
-  (final_state, (_, is_accepted)) = fun_mcmc.trace(
-      state=fun_mcmc.HamiltonianMonteCarloState(
+  (final_state, (_, is_accepted)) = fun_mc.trace(
+      state=fun_mc.HamiltonianMonteCarloState(
           state=chain_loss_state.z_state,
           state_grads=None,
           target_log_prob=None,
@@ -1034,7 +1036,7 @@ def ChainLoss(chain_loss_state,
 
   p_accept = tf.reduce_mean(tf.cast(is_accepted, tf.float32))
 
-  step_size = fun_mcmc.sign_adaptation(
+  step_size = fun_mc.sign_adaptation(
       control=chain_loss_state.step_size,
       output=p_accept,
       set_point=target_accept_prob,

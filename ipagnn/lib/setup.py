@@ -16,6 +16,7 @@
 # Lint as: python3
 """Performs setup tasks for Learned Interpreters binaries."""
 
+import dataclasses
 import json
 import os
 import random
@@ -23,7 +24,6 @@ import random
 from typing import Any, Text
 
 from absl import logging  # pylint: disable=unused-import
-import dataclasses
 import numpy as np
 import tensorflow as tf
 

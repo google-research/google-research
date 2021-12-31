@@ -15,11 +15,17 @@
 #!/bin/bash
 # Please update these paths.
 export OUTPUT_DIR=/path/to/output
-# BERT can be found at https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3
-export BERT_BASE_DIR=/path/to/cased_L-12_H-768_A-12
+# BERT can be found at https://storage.googleapis.com/cloud-tpu-checkpoints/bert/keras_bert/uncased_L-12_H-768_A-12.tar.gz
+# (Access to Pretrained Checkpoints, not Pretrained hub modules)
+# Note: only used uncased if do_lower_case=True. Furthermore, you will need to
+# change the felix_config.json to take into account the different vocab sizes.
+export BERT_BASE_DIR=/path/to/uncased_L-12_H-768_A-12
+# Requires untaring the downloaded file.
 # DiscoFuse can be found at https://github.com/google-research-datasets/discofuse
 export DISCOFUSE_DIR=/path/to/discofuse
 export PREDICTION_FILE=${OUTPUT_DIR}/pred.tsv
+# If you wish to use another dataset please switch from input_format=discofuse
+# to wikisplit. wikisplit expects tab seperated source target pairs.
 
 # If False FelixInsert is used.
 export USE_POINTING='True'
@@ -36,10 +42,10 @@ python phrase_vocabulary_constructor_main \
 echo "Preprocessing data"
 python preprocess_main \
   --input_file="${DISCOFUSE_DIR}/train.tsv" \
-  --input_format="wikisplit" \
+  --input_format="discofuse" \
   --output_file="${OUTPUT_DIR}/train.tfrecord" \
   --label_map_file="${OUTPUT_DIR}/label_map.json" \
-  --vocab_file="${BERT_BASE_DIR}/assets/vocab.txt" \
+  --vocab_file="${BERT_BASE_DIR}/vocab.txt" \
   --do_lower_case="True" \
   --use_open_vocab="True" \
   --max_seq_length="128" \
@@ -48,10 +54,10 @@ python preprocess_main \
 
 python preprocess_main.py \
   --input_file="${DISCOFUSE_DIR}/tune.tsv" \
-  --input_format="wikisplit" \
+  --input_format="discofuse" \
   --output_file="${OUTPUT_DIR}/tune.tfrecord" \
   --label_map_file="${OUTPUT_DIR}/label_map.json" \
-  --vocab_file="${BERT_BASE_DIR}/assets/vocab.txt" \
+  --vocab_file="${BERT_BASE_DIR}/vocab.txt" \
   --do_lower_case="True" \
   --use_open_vocab="True" \
   --max_seq_length="128" \
@@ -78,9 +84,11 @@ python run_felix \
     --steps_per_loop="100" \
     --train_insertion="False" \
     --use_pointing="${USE_POINTING}" \
-    --learning_rate="0.0005" \
+    --init_checkpoint="${BERT_DIR}/bert_model.ckpt" \
+    --learning_rate="0.00003" \
     --pointing_weight="1" \
-    --use_weighted_labels="True"
+    --use_weighted_labels="True" \
+    --init_checkpoint="${BERT_BASE_DIR}"
 
 echo "Training insertion model"
 rm -rf "${DATA_DIRECTORY}/model_insertion"
@@ -99,8 +107,9 @@ python run_felix \
     --log_steps="100" \
     --steps_per_loop="100" \
     --train_insertion="False" \
+    --init_checkpoint="${BERT_DIR}/bert_model.ckpt" \
     --use_pointing="${USE_POINTING}" \
-    --learning_rate="0.0005" \
+    --learning_rate="0.00003" \
     --pointing_weight="1" \
     --train_insertion="True"
 
@@ -108,11 +117,11 @@ python run_felix \
 echo "Generating predictions"
 
 python predict_main \
---input_format="wikisplit" \
+--input_format="discofuse" \
 --predict_input_file="${DISCOFUSE_DIR}/test.tsv" \
 --predict_output_file="${PREDICTION_FILE}"\
 --label_map_file="${OUTPUT_DIR}/label_map.json" \
---vocab_file="${BERT_BASE_DIR}/assets/vocab.txt" \
+--vocab_file="${BERT_BASE_DIR}/vocab.txt" \
 --max_seq_length=128 \
 --predict_batch_size=32 \
 --do_lower_case="True" \

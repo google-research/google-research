@@ -26,9 +26,10 @@ class DCT(tf.keras.layers.Layer):
   This is useful for speech feature extraction.
   """
 
-  def __init__(self, num_features=None, **kwargs):
+  def __init__(self, num_features=None, use_tf=False, **kwargs):
     super(DCT, self).__init__(**kwargs)
     self.num_features = num_features
+    self.use_tf = use_tf
 
   def build(self, input_shape):
     super(DCT, self).build(input_shape)
@@ -40,24 +41,35 @@ class DCT(tf.keras.layers.Layer):
     if self.num_features > feature_size:
       raise ValueError('num_features: %d can not be > feature_size: %d' %
                        (self.num_features, feature_size))
-    # precompute forward dct transformation
-    self.dct = 2.0 * np.cos(np.pi * np.outer(
-        np.arange(feature_size) * 2.0 + 1.0, np.arange(feature_size)) /
-                            (2.0 * feature_size))
-    # DCT normalization
-    norm = 1.0 / np.sqrt(2.0 * feature_size)
 
-    # reduce dims, so that DCT is computed only on returned features
-    # with size num_features
-    self.dct = (self.dct[:, :self.num_features] * norm).astype(np.float32)
+    # DCT normalization
+    self.norm = 1.0 / np.sqrt(2.0 * feature_size)
+
+    if not self.use_tf:
+      # precompute forward dct transformation
+      self.dct = 2.0 * np.cos(np.pi * np.outer(
+          np.arange(feature_size) * 2.0 + 1.0, np.arange(feature_size)) /
+                              (2.0 * feature_size))
+
+      # reduce dims, so that DCT is computed only on returned features
+      # with size num_features
+      self.dct = (self.dct[:, :self.num_features] * self.norm).astype(
+          np.float32)
 
   def call(self, inputs):
-    # compute DCT
-    return tf.matmul(inputs, self.dct)
+
+    if self.use_tf:
+      # compute DCT with tf function
+      output = tf.signal.dct(inputs, type=2, n=self.num_features, norm=None)
+      return output * self.norm
+    else:
+      # compute DCT direct matmul
+      return tf.matmul(inputs, self.dct)
 
   def get_config(self):
     config = {
         'num_features': self.num_features,
+        'use_tf': self.use_tf,
     }
     base_config = super(DCT, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))

@@ -15,56 +15,20 @@
 
 # Lint as: python3
 """Utility functions for operations on Model."""
-
-import ast
 import os.path
+import tempfile
 from typing import Sequence
-
+from keras import models as models_utils
+from keras.engine import functional
+import numpy as np
 from kws_streaming.layers import modes
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
+from kws_streaming.models import model_utils
 from kws_streaming.models import models as kws_models
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.keras import models as models_utils
-from tensorflow.python.keras.engine import functional
-# pylint: enable=g-direct-tensorflow-import
 from tensorflow_model_optimization.python.core.quantization.keras import quantize
-
-
-def conv2d_bn(x,
-              filters,
-              kernel_size,
-              padding='same',
-              strides=(1, 1),
-              activation='relu',
-              use_bias=False,
-              scale=False):
-  """Utility function to apply conv + BN.
-
-  Arguments:
-    x: input tensor.
-    filters: filters in `Conv2D`.
-    kernel_size: size of convolution kernel.
-    padding: padding mode in `Conv2D`.
-    strides: strides in `Conv2D`.
-    activation: activation function applied in the end.
-    use_bias: use bias for convolution.
-    scale: scale batch normalization.
-
-  Returns:
-    Output tensor after applying `Conv2D` and `BatchNormalization`.
-  """
-
-  x = tf.keras.layers.Conv2D(
-      filters, kernel_size,
-      strides=strides,
-      padding=padding,
-      use_bias=use_bias)(x)
-  x = tf.keras.layers.BatchNormalization(scale=scale)(x)
-  x = tf.keras.layers.Activation(activation)(x)
-  return x
 
 
 def save_model_summary(model, path, file_name='model_summary.txt'):
@@ -226,6 +190,16 @@ def _get_state_shapes(model_states):
   return [state.shape for state in _flatten_nested_sequence(model_states)]
 
 
+def get_stride(model):
+  """Computes total stride of a model."""
+  stride = 1
+  for i in range(len(model.layers)):
+    layer = model.layers[i]
+    if hasattr(layer, 'stride'):
+      stride = stride * layer.stride()
+  return stride
+
+
 def convert_to_inference_model(model, input_tensors, mode):
   """Convert functional `Model` instance to a streaming inference.
 
@@ -303,9 +277,12 @@ def to_streaming_inference(model_non_stream, flags, mode):
   """
   tf.keras.backend.set_learning_phase(0)
   input_data_shape = modes.get_input_data_shape(flags, mode)
+
+  # get input data type and use it for input streaming type
+  dtype = model_non_stream.input.dtype
   input_tensors = [
       tf.keras.layers.Input(
-          shape=input_data_shape, batch_size=1, name='input_audio')
+          shape=input_data_shape, batch_size=1, dtype=dtype, name='input_audio')
   ]
   quantize_stream_scope = quantize.quantize_scope()
   with quantize_stream_scope:
@@ -322,15 +299,21 @@ def model_to_tflite(sess,
                     optimizations=None,
                     inference_type=tf1.lite.constants.FLOAT,
                     experimental_new_quantizer=True,
-                    representative_dataset=None):
+                    representative_dataset=None,
+                    inference_input_type=tf.float32,
+                    inference_output_type=tf.float32):
   """Convert non streaming model to tflite inference model.
 
-  In this case inference graph will be stateless.
-  But model can be streaming stateful with external state or
-  non streaming statless (depending on input arg mode)
+  If mode==modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE then inference graph
+  will be stateless: all states will be managed outside of the model and
+  will be passed to the model as additional inputs/outputs.
+  If mode==modes.Modes.STREAM_INTERNAL_STATE_INFERENCE then inference graph
+  will be stateful: all states will be part of the model - so model size
+  can increase. Latest version of TFLite converter supports it, so
+  conversion has to be done in eager mode.
 
   Args:
-    sess: tf session
+    sess: tf session, if None then eager mode is used
     model_non_stream: Keras non streamable model
     flags: settings with global data and model properties
     mode: inference mode it can be streaming with external state or non
@@ -341,25 +324,40 @@ def model_to_tflite(sess,
     experimental_new_quantizer: enable new quantizer
     representative_dataset: function generating representative data sets
       for calibation post training quantizer
+    inference_input_type: it can be used to quantize input data e.g. tf.int8
+    inference_output_type: it can be used to quantize output data e.g. tf.int8
 
   Returns:
     tflite model
   """
-  if mode not in (modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
-                  modes.Modes.NON_STREAM_INFERENCE):
-    raise ValueError('mode %s is not supported ' % mode)
+  if sess and mode not in (modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
+                           modes.Modes.NON_STREAM_INFERENCE):
+    raise ValueError('mode %s is not supported in session mode ' % mode)
+
+  if not sess and mode not in (modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
+                               modes.Modes.NON_STREAM_INFERENCE):
+    raise ValueError('mode %s is not supported in eager mode ' % mode)
+
   # convert non streaming Keras model to
   # Keras inference model (non streaming or streaming)
-  model_stateless_stream = to_streaming_inference(model_non_stream, flags, mode)
+  model_stream = to_streaming_inference(model_non_stream, flags, mode)
 
   if save_model_path:
-    save_model_summary(model_stateless_stream, save_model_path)
+    save_model_summary(model_stream, save_model_path)
 
-  # convert Keras inference model to tflite inference model
-  converter = tf1.lite.TFLiteConverter.from_session(
-      sess, model_stateless_stream.inputs, model_stateless_stream.outputs)
+  if sess:
+    # convert Keras inference model to tflite inference model
+    converter = tf1.lite.TFLiteConverter.from_session(
+        sess, model_stream.inputs, model_stream.outputs)
+  else:
+    if not save_model_path:
+      save_model_path = tempfile.mkdtemp()
+    tf.saved_model.save(model_stream, save_model_path)
+    converter = tf.lite.TFLiteConverter.from_saved_model(save_model_path)
+
   converter.inference_type = inference_type
   converter.experimental_new_quantizer = experimental_new_quantizer
+  converter.experimental_enable_resource_variables = True
   if representative_dataset is not None:
     converter.representative_dataset = representative_dataset
 
@@ -368,6 +366,9 @@ def model_to_tflite(sess,
       tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
   ]
   converter.allow_custom_ops = True
+
+  converter.inference_input_type = inference_input_type
+  converter.inference_output_type = inference_output_type
   if optimizations:
     converter.optimizations = optimizations
   tflite_model = converter.convert()
@@ -409,24 +410,6 @@ def model_to_saved(model_non_stream,
 
   save_model_summary(model, save_model_path)
   model.save(save_model_path, include_optimizer=False, save_format='tf')
-
-
-def parse(text):
-  """Parse model parameters.
-
-  Args:
-    text: string with layer parameters: '128,128' or "'relu','relu'".
-
-  Returns:
-    list of parsed parameters
-  """
-  if not text:
-    return []
-  res = ast.literal_eval(text)
-  if isinstance(res, tuple):
-    return res
-  else:
-    return [res]
 
 
 def next_power_of_two(x):
@@ -476,3 +459,63 @@ def sequential_to_functional(model):
   prev_layer = traverse_graph(prev_layer, model.layers[1:])
   func_model = tf.keras.Model([input_layer], [prev_layer])
   return func_model
+
+
+def ds_tc_resnet_model_params(use_tf_fft=False):
+  """Generate parameters for ds_tc_resnet model."""
+
+  # model parameters
+  model_name = 'ds_tc_resnet'
+  params = model_params.HOTWORD_MODEL_PARAMS[model_name]
+  params.causal_data_frame_padding = 1  # causal padding on DataFrame
+  params.clip_duration_ms = 160
+  params.use_tf_fft = use_tf_fft
+  params.mel_non_zero_only = not use_tf_fft
+  params.feature_type = 'mfcc_tf'
+  params.window_size_ms = 5.0
+  params.window_stride_ms = 2.0
+  params.wanted_words = 'a,b,c'
+  params.ds_padding = "'causal','causal','causal','causal'"
+  params.ds_filters = '4,4,4,2'
+  params.ds_repeat = '1,1,1,1'
+  params.ds_residual = '0,1,1,1'  # no residuals on strided layers
+  params.ds_kernel_size = '3,3,3,1'
+  params.ds_dilation = '1,1,1,1'
+  params.ds_stride = '2,1,1,1'  # streaming conv with stride
+  params.ds_pool = '1,2,1,1'  # streaming conv with pool
+  params.ds_filter_separable = '1,1,1,1'
+
+  # convert ms to samples and compute labels count
+  params = model_flags.update_flags(params)
+
+  # compute total stride
+  pools = model_utils.parse(params.ds_pool)
+  strides = model_utils.parse(params.ds_stride)
+  time_stride = [1]
+  for pool in pools:
+    if pool > 1:
+      time_stride.append(pool)
+  for stride in strides:
+    if stride > 1:
+      time_stride.append(stride)
+  total_stride = np.prod(time_stride)
+
+  # override input data shape for streaming model with stride/pool
+  params.data_stride = total_stride
+  params.data_shape = (total_stride * params.window_stride_samples,)
+
+  # set desired number of frames in model
+  frames_number = 16
+  frames_per_call = total_stride
+  frames_number = (frames_number // frames_per_call) * frames_per_call
+  # number of input audio samples required to produce one output frame
+  framing_stride = max(
+      params.window_stride_samples,
+      max(0, params.window_size_samples -
+          params.window_stride_samples))
+  signal_size = framing_stride * frames_number
+
+  # desired number of samples in the input data to train non streaming model
+  params.desired_samples = signal_size
+  params.batch_size = 1
+  return params

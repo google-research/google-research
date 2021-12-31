@@ -92,7 +92,7 @@ def AdjMatrixLoss(logits, labels):
 
 def NodesLabels(graph, num_labels):
   # labels size is (graph_num_node, 1)
-  labels = [graph.node[n]['label'] for n in graph.nodes()]
+  labels = [graph.nodes[n]['label'] for n in graph.nodes()]
   # labels size is (graph_num_node, num_labels)
   labels = tf.one_hot(labels, num_labels, dtype=tf.float64)
   return ProbFromCounts(labels)
@@ -103,7 +103,7 @@ def NeighborNodesLabels(graph, num_labels):
 
   for v in graph.nodes():
     for u in graph.neighbors(v):
-      neighbors_labels[v, graph.node[u]['label']] += 1.0
+      neighbors_labels[v, graph.nodes[u]['label']] += 1.0
 
   return ProbFromCounts(neighbors_labels)
 

@@ -14,6 +14,7 @@
 
 #ifndef SCANN_HASHES_INTERNAL_LUT16_AVX2_H_
 #define SCANN_HASHES_INTERNAL_LUT16_AVX2_H_
+#include <cstdint>
 
 #ifdef __x86_64__
 

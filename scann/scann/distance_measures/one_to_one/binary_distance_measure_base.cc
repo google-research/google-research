@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_one/binary_distance_measure_base.h"
 
+#include <cstdint>
+
 namespace research_scann {
 
 #define LOG_FATAL_CRASH_OK LOG(FATAL)

@@ -15,6 +15,8 @@
 #ifndef SCANN_HASHES_INTERNAL_LUT16_ARGS_H_
 #define SCANN_HASHES_INTERNAL_LUT16_ARGS_H_
 
+#include <cstdint>
+
 #include "scann/base/restrict_allowlist.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
@@ -99,6 +101,8 @@ struct LUT16ArgsTopN<float, TopN> : public LUT16ArgsTopNBase<float, TopN> {
   ConstSpan<float> biases;
 
   ConstSpan<float> fixed_point_multipliers;
+
+  std::function<DatapointIndex(DatapointIndex)> datapoint_translation_predicate;
 
   std::function<bool(DatapointIndex)> final_predicate;
 };

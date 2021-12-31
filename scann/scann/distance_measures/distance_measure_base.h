@@ -15,6 +15,8 @@
 #ifndef SCANN_DISTANCE_MEASURES_DISTANCE_MEASURE_BASE_H_
 #define SCANN_DISTANCE_MEASURES_DISTANCE_MEASURE_BASE_H_
 
+#include <cstdint>
+
 #include "scann/data_format/datapoint.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/utils/types.h"

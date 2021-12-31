@@ -149,8 +149,8 @@ if [[ "$PIP_MANYLINUX2010" == "0" ]]; then
 fi
 # Add Ubuntu toolchain flags
 if is_linux; then
-  write_to_bazelrc "build:manylinux2010cuda100 --crosstool_top=//third_party/toolchains/preconfig/ubuntu16.04/gcc7_manylinux2010-nvcc-cuda10.0:toolchain"
-  write_to_bazelrc "build:manylinux2010cuda101 --crosstool_top=//third_party/toolchains/preconfig/ubuntu16.04/gcc7_manylinux2010-nvcc-cuda10.1:toolchain"
+  write_to_bazelrc "build:manylinux2010cuda100 --crosstool_top=@ubuntu16.04-py3-gcc7_manylinux2010-cuda10.0-cudnn7-tensorrt5.1_config_cuda:toolchain"
+  write_to_bazelrc "build:manylinux2010cuda101 --crosstool_top=@ubuntu16.04-py3-gcc7_manylinux2010-cuda10.1-cudnn7-tensorrt6.0_config_cuda:toolchain"
 fi
 write_to_bazelrc "build --spawn_strategy=standalone"
 write_to_bazelrc "build --strategy=Genrule=standalone"

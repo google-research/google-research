@@ -15,6 +15,7 @@
 #ifndef SCANN_UTILS_INTRINSICS_FLAGS_H_
 #define SCANN_UTILS_INTRINSICS_FLAGS_H_
 
+#include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "scann/utils/types.h"
 

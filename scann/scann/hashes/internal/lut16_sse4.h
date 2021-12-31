@@ -15,6 +15,8 @@
 #ifndef SCANN_HASHES_INTERNAL_LUT16_SSE4_H_
 #define SCANN_HASHES_INTERNAL_LUT16_SSE4_H_
 
+#include <cstdint>
+
 #ifdef __x86_64__
 
 #include "scann/hashes/internal/lut16_args.h"

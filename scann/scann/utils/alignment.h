@@ -15,6 +15,8 @@
 #ifndef SCANN_UTILS_ALIGNMENT_H_
 #define SCANN_UTILS_ALIGNMENT_H_
 
+#include <cstdint>
+
 #include "scann/utils/common.h"
 
 namespace research_scann {

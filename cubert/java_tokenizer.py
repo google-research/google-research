@@ -19,18 +19,20 @@ This tokenizer uses an extension of the tokenizer from the javalang GitHub
 repository. The extension enables the javalang tokenizer to return end positions
 as well as end-of-sequence tokens and comments.
 """
+import dataclasses
 from typing import List
 from typing import Sequence
 
-
 from absl import logging
-import dataclasses
 from javalang import tokenizer as javalang
-
 
 from cubert import cubert_tokenizer
 from cubert import extended_javalang_tokenizer
 from cubert import unified_tokenizer
+
+
+QUOTED_EOS_NAME = unified_tokenizer.quote_special(
+    unified_tokenizer.TokenKind.EOS.name)
 
 
 class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
@@ -159,19 +161,16 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
       # This should be there. Raise an exception
       raise AssertionError('The end of input token is missing positioning '
                            'information: %s' % eos)
-    # EOS contains an empty spelling. We replace it here with EOS.name
-    eos = dataclasses.replace(
-        eos,
-        spelling=unified_tokenizer.quote_special(
-            unified_tokenizer.TokenKind.EOS.name))
 
     later_token_start: unified_tokenizer.Position = eos.metadata.start
 
+    # EOS contains an empty spelling. We replace it here with EOS.name
     # The EOS token has an empty extent, so the end and the start are set to be
     # the same.
     filled_agnostic_tokens = [
         dataclasses.replace(
             eos,
+            spelling=QUOTED_EOS_NAME,
             metadata=dataclasses.replace(eos.metadata, end=eos.metadata.start))
     ]
     # Go backwards, from the element before `eos` to the beginning.
@@ -202,8 +201,7 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
     tokens: List[str] = []
 
     for token in whole_tokens[:-1]:  # Skip EOS. The caller checked it's there.
-      if token == unified_tokenizer.quote_special(
-          unified_tokenizer.TokenKind.NEWLINE.name):
+      if token == unified_tokenizer.NEWLINE:
         tokens.append('\n')
       else:
         tokens.append(token)

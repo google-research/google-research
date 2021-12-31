@@ -15,10 +15,10 @@
 
 """Types for configuring quantization."""
 
+import dataclasses
 import enum
 import typing
 
-import dataclasses
 import flax
 
 from aqt.jax.flax import struct as flax_struct
@@ -58,6 +58,9 @@ class QuantContext:
 
   # Whether to update activation bounds.
   update_bounds: bool = flax.struct.field(pytree_node=False)
+
+  # This will be passed to create_weight_ops in ConvAqt
+  quantize_weights: bool = flax.struct.field(default=True, pytree_node=False)
 
   # Whether to tag activations to record statistics.
   collect_acts_stats: bool = flax.struct.field(default=False, pytree_node=False)

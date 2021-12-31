@@ -14,6 +14,7 @@
 
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 
+#include <cstdint>
 #include <numeric>
 
 #include "absl/random/distributions.h"

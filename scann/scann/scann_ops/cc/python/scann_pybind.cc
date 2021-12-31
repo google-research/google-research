@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
+
 #include "absl/types/optional.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"

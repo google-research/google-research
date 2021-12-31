@@ -17,13 +17,14 @@
 
 import collections
 import contextlib
+import functools
 import re
 import time
-from typing import Any, Callable, Dict, List, Sequence, Tuple
+from typing import Any, Callable, Dict, List, NamedTuple, Sequence, Tuple
 
 from absl import logging
 from clu import parameter_overview
-from flax import nn
+from flax.deprecated import nn
 import jax
 from jax import numpy as jnp
 import ml_collections
@@ -221,7 +222,7 @@ def get_optax_schedule_fn(
   return schedule_fn
 
 
-class DecoupledWeightDecayState(optax.OptState):
+class DecoupledWeightDecayState(NamedTuple):
   """Maintains count for scale scheduling."""
   count: jnp.ndarray  # shape=(), dtype=jnp.int32
   step_size: jnp.ndarray  # shape=(), dtype=jnp.float32
@@ -433,7 +434,7 @@ def extract_windows(inputs, window_size):
   return windows
 
 
-@jax.partial(jax.jit, static_argnums=(0, 1))
+@functools.partial(jax.jit, static_argnums=(0, 1))
 def position_offsets(height, width):
   """Generates a (height, width, 2) tensor containing pixel indices."""
   position_offset = jnp.indices((height, width))
@@ -485,7 +486,7 @@ def override_dict(d, override):
   return dict_class(d), ignored_keys
 
 
-class MultipliersState(optax.OptState):
+class MultipliersState(NamedTuple):
   """State for per weight learning rate multiplier optimizer."""
   multipliers: Any
 
