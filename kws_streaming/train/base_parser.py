@@ -460,5 +460,32 @@ def base_parser():
       default=1,
       help='Use data in wav format, otherwise use numpy',
   )
+  parser.add_argument(
+      '--quantize',
+      type=int,
+      default=0,
+      help='Apply quantization aware training',
+  )
+  parser.add_argument(
+      '--data_stride',
+      type=int,
+      default=1,
+      help='Total data stride, reqired for model streaming. '
+      'In streaming mode, by default model receives audio data enough '
+      'for one frame so that it can return one output. But if model '
+      'has striding or pooling then data_stride should be equal to '
+      'product of all pools and strides to produce several frames per call.',
+  )
+  parser.add_argument(
+      '--restore_checkpoint',
+      type=int,
+      default=0,
+      help='If 1 it will restore a checkpoint and resume the training '
+      'by initializing model weights and optimizer with checkpoint values. '
+      'It will use learning rate and number of training iterations from '
+      '--learning_rate and --how_many_training_steps accordinlgy. '
+      'This option is useful in cases when training was interrupted. '
+      'With it you should adjust learning_rate and how_many_training_steps.',
+  )
 
   return parser

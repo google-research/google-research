@@ -17,6 +17,8 @@
 #ifndef SCANN_PROJECTION_RANDOM_ORTHOGONAL_PROJECTION_H_
 #define SCANN_PROJECTION_RANDOM_ORTHOGONAL_PROJECTION_H_
 
+#include <cstdint>
+
 #include "scann/data_format/datapoint.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/projection/projection_base.h"

@@ -18,6 +18,7 @@
 
 #include <math.h>
 
+#include <cstdint>
 #include <memory>
 #include <typeinfo>
 
@@ -154,10 +155,6 @@ Status Searcher<T>::FindNeighborsImpl(const DatapointPtr<T>& query,
                                       const SearchParameters& params,
                                       NNResultsVector* result) const {
   if (limited_inner_product_) {
-    if (opts_.symmetric_queryer_) {
-      return FailedPreconditionError(
-          "LimitedInnerProduct does not work with symmetric queryer.");
-    }
     float query_norm = static_cast<float>(sqrt(SquaredL2Norm(query)));
     asymmetric_hashing_internal::LimitedInnerFunctor functor(query_norm,
                                                              norm_inv_);
@@ -190,8 +187,7 @@ Status Searcher<T>::FindNeighborsBatchedImpl(
       break;
     }
   }
-  if (opts_.symmetric_queryer_ || !lut16_ || limited_inner_product_ ||
-      crowding_enabled_for_any_query ||
+  if (!lut16_ || limited_inner_product_ || crowding_enabled_for_any_query ||
       opts_.quantization_scheme() == AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     return SingleMachineSearcherBase<T>::FindNeighborsBatchedImpl(
         queries, params, results);
@@ -226,27 +222,26 @@ template <typename PostprocessFunctor>
 Status Searcher<T>::FindNeighborsTopNDispatcher(
     const DatapointPtr<T>& query, const SearchParameters& params,
     PostprocessFunctor postprocessing_functor, NNResultsVector* result) const {
+  auto queryer_options = GetQueryerOptions(postprocessing_functor);
+  LookupTable lookup_table_storage;
+  TF_ASSIGN_OR_RETURN(
+      const LookupTable* lookup_table,
+      GetOrCreateLookupTable(query, params, &lookup_table_storage));
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
     auto ah_optional_params = params.searcher_specific_optional_parameters<
         AsymmetricHashingOptionalParameters>();
-    if (ah_optional_params && ah_optional_params->top_n() &&
-        !opts_.symmetric_queryer_) {
-      auto queryer_opts = GetQueryerOptions(postprocessing_functor);
-      queryer_opts.first_dp_index = ah_optional_params->starting_dp_idx_;
-      queryer_opts.lut16_bias = ah_optional_params->lut16_bias_;
-      LookupTable lookup_table_storage;
-      TF_ASSIGN_OR_RETURN(
-          const LookupTable* lookup_table,
-          GetOrCreateLookupTable(query, params, &lookup_table_storage));
+    if (ah_optional_params && ah_optional_params->top_n()) {
+      queryer_options.first_dp_index = ah_optional_params->starting_dp_idx_;
+      queryer_options.lut16_bias = ah_optional_params->lut16_bias_;
       SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighbors(
-          *lookup_table, params, std::move(queryer_opts),
+          *lookup_table, params, std::move(queryer_options),
           ah_optional_params->top_n_));
     } else {
       TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
-      SCANN_RETURN_IF_ERROR(FindNeighborsQueryerDispatcher(
-          query, params, postprocessing_functor, &top_n));
+      SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighbors(
+          *lookup_table, params, std::move(queryer_options), &top_n));
       *result = top_n.TakeUnsorted();
     }
   }
@@ -268,30 +263,6 @@ QueryerOptions<PostprocessFunctor> Searcher<T>::GetQueryerOptions(
   queryer_options.postprocessing_functor = std::move(postprocessing_functor);
   if (lut16_) queryer_options.lut16_packed_dataset = &packed_dataset_;
   return queryer_options;
-}
-
-template <typename T>
-template <typename PostprocessFunctor, typename TopN>
-Status Searcher<T>::FindNeighborsQueryerDispatcher(
-    const DatapointPtr<T>& query, const SearchParameters& params,
-    PostprocessFunctor postprocessing_functor, TopN* result) const {
-  auto queryer_options = GetQueryerOptions(postprocessing_functor);
-  if (opts_.symmetric_queryer_) {
-    auto view = queryer_options.hashed_dataset.get();
-    Datapoint<uint8_t> hashed_query;
-    SCANN_RETURN_IF_ERROR(opts_.indexer_->Hash(query, &hashed_query));
-    SCANN_RETURN_IF_ERROR(opts_.symmetric_queryer_->FindApproximateNeighbors(
-        hashed_query.ToPtr(), view, params, std::move(queryer_options),
-        result));
-  } else {
-    LookupTable lookup_table_storage;
-    TF_ASSIGN_OR_RETURN(
-        const LookupTable* lookup_table,
-        GetOrCreateLookupTable(query, params, &lookup_table_storage));
-    SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighbors(
-        *lookup_table, params, std::move(queryer_options), result));
-  }
-  return OkStatus();
 }
 
 template <typename T>

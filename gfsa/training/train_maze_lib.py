@@ -173,8 +173,7 @@ def soft_maze_values(
                     jnp.log(num_actions)) * temperature
     # Goal state is fixed to value 0 (episode terminates before the agent takes
     # any action).
-    new_v_values = jax.ops.index_update(new_v_values,
-                                        jax.ops.index[target_state_index], 0.0)
+    new_v_values = new_v_values.at[target_state_index].set(0.0)
     return new_v_values
 
   # Must iterate at least num_states to guarantee everything is reachable;

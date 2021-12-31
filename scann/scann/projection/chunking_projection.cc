@@ -14,6 +14,8 @@
 
 #include "scann/projection/chunking_projection.h"
 
+#include <cstdint>
+
 #include "absl/strings/substitute.h"
 #include "scann/projection/identity_projection.h"
 #include "scann/utils/datapoint_utils.h"

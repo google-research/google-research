@@ -20,11 +20,13 @@
 2) D-Prime.
 3) AUC.
 4) Balanced accuracy.
+5) F1 score.
 """
 
 import math
-from typing import Any, Iterable, Tuple, Optional
+from typing import Any, Iterable, Tuple, Optional, Union
 
+from absl import logging
 import numpy as np
 import scipy.stats
 from sklearn import metrics as skmetrics
@@ -87,9 +89,42 @@ def calculate_det_curve(labels,
 
 def calculate_auc(labels,
                   predictions,
-                  sample_weight = None):
-  return skmetrics.roc_auc_score(
-      labels, predictions, sample_weight=sample_weight)
+                  binary_classification = True,
+                  sample_weight = None,
+                  multi_class = 'ovr'):
+  """Binary or multiclass AUC."""
+  if not isinstance(labels, np.ndarray):
+    labels = np.array(labels, np.float32)
+  if labels.ndim != 1:
+    raise ValueError(f'Labels must have shape 1: {labels.shape}')
+  if not isinstance(predictions, np.ndarray):
+    # For backwards compatibility.
+    assert binary_classification
+    class_zero_logits = np.array(predictions).reshape((-1, 1))
+    predictions = np.concatenate([class_zero_logits, 1 - class_zero_logits],
+                                 axis=0)
+  if predictions.ndim != 2:
+    raise ValueError(f'Predictions must have shape 2: {predictions.shape}')
+  if labels.shape[0] != predictions.shape[0]:
+    raise ValueError(
+        f'Num examples not the same: {labels.shape} vs {predictions.shape}')
+
+  logging.info('AUC: Labels shape: %s', labels.shape)
+  logging.info('AUC: Predictions shape: %s', predictions.shape)
+  if binary_classification:  # Binary case.
+    predictions = predictions[:, 1]  # Prob of class 1.
+    return skmetrics.roc_auc_score(
+        labels, predictions, sample_weight=sample_weight)
+  else:  # Multiclass case.
+    return skmetrics.roc_auc_score(
+        labels,
+        predictions,
+        # 'micro': Calculate metrics globally by considering each element of
+        # the label indicator matrix as a label.
+        average='macro',
+        sample_weight=sample_weight,
+        multi_class=multi_class,
+        labels=range(predictions.shape[1]))
 
 
 def dprime_from_auc(auc):
@@ -114,3 +149,9 @@ def dprime_from_auc(auc):
 def balanced_accuracy(labels,
                       predictions):
   return skmetrics.balanced_accuracy_score(y_true=labels, y_pred=predictions)
+
+
+def f1_score(labels,
+             predictions):
+  return skmetrics.f1_score(y_true=labels, y_pred=predictions,
+                            average='weighted')

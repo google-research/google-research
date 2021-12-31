@@ -14,6 +14,8 @@
 
 #include "scann/projection/projection_factory.h"
 
+#include <cstdint>
+
 #include "scann/projection/chunking_projection.h"
 #include "scann/projection/identity_projection.h"
 #include "scann/projection/random_orthogonal_projection.h"

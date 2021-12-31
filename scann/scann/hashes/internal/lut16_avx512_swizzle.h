@@ -14,6 +14,7 @@
 
 #ifndef SCANN_HASHES_INTERNAL_LUT16_AVX512_SWIZZLE_H_
 #define SCANN_HASHES_INTERNAL_LUT16_AVX512_SWIZZLE_H_
+#include <cstdint>
 #ifdef __x86_64__
 
 #include "scann/utils/intrinsics/attributes.h"

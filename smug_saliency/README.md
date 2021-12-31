@@ -11,7 +11,7 @@ This repository contains the implementation of the SMUG saliency method as propo
 * python>=3.5
 * ipykernel>=5.5.0
 * numpy>=1.19.4
-* saliency==0.0.6
+* saliency==0.1.2
 * scikit-image>=0.18.1
 * scikit-learn>=0.24.1
 * scipy>=1.6.0

@@ -19,6 +19,8 @@
 
 #include <sys/types.h>
 
+#include <cstdint>
+
 #include "scann/data_format/datapoint.h"
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
 #include "scann/utils/types.h"

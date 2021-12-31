@@ -398,6 +398,7 @@ class FastAttention(object):
                             value,
                             dtype=jnp.float32,
                             bias=None,
+                            mask=None,
                             axis=None,
                             broadcast_dropout=True,
                             dropout_rng=None,
@@ -422,6 +423,8 @@ class FastAttention(object):
       dtype: the dtype of the computation (default: float32)
       bias: bias for the attention weights. This can be used for incorporating
         autoregressive mask, padding mask, proximity bias.
+      mask: mask for the attention weights. This can be used for incorporating
+        autoregressive masks.
       axis: axises over which the attention is applied.
       broadcast_dropout: bool: use a broadcasted dropout along batch dims.
       dropout_rng: JAX PRNGKey: to be used for dropout.
@@ -560,6 +563,7 @@ class FastAttentionviaLowRankDecomposition(FastAttention):
                             value,
                             dtype=jnp.float32,
                             bias=None,
+                            mask=None,
                             axis=None,
                             broadcast_dropout=True,
                             dropout_rng=None,

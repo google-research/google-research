@@ -23,18 +23,18 @@ that a progressive trainer instead of a base trainer.
 # pylint: enable=line-too-long
 # Lint as: python3
 
+import dataclasses
 from absl import app
 from absl import flags
-import dataclasses
 import gin
 
 from grow_bert.progressive import masked_lm
 from grow_bert.progressive import utils
 from official.common import flags as tfm_flags
+from official.core import config_definitions as cfg
 from official.modeling import optimization
-from official.modeling.hyperparams import config_definitions as cfg
-from official.modeling.progressive import train_lib
-from official.modeling.progressive import trainer as prog_trainer_lib
+from official.modeling.fast_training.progressive import train_lib
+from official.modeling.fast_training.progressive import trainer as prog_trainer_lib
 from official.nlp.data import pretrain_dataloader
 from official.utils.misc import distribution_utils
 

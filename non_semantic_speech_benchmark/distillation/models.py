@@ -14,150 +14,194 @@
 # limitations under the License.
 
 # Lint as: python3
-"""Models for distillation."""
+"""Models for distillation.
 
+"""
+import os
+from typing import Tuple
+
+from absl import logging
 import tensorflow as tf
-import tensorflow_model_optimization as tfmot
-from non_semantic_speech_benchmark.distillation.layers import CompressedDense
-from non_semantic_speech_benchmark.export_model import tf_frontend
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.keras.applications import mobilenet_v3 as v3_util
-# pylint: enable=g-direct-tensorflow-import
+import tensorflow_hub as hub
+from non_semantic_speech_benchmark.data_prep import augmentation
+from non_semantic_speech_benchmark.distillation import frontend_lib
 
 
-@tf.function
-def _sample_to_features(x):
-  return tf_frontend.compute_frontend_features(x, 16000, overlap_seconds=79)
+
+def _map_mobilenet_func(mnet_size):
+  return {
+      'small': tf.keras.applications.MobileNetV3Small,
+      'large': tf.keras.applications.MobileNetV3Large,
+      'debug': _debug_net,
+  }[mnet_size.lower()]
 
 
-def get_keras_model(bottleneck_dimension,
+def _debug_net(pooling, *args, **kwargs):
+  """Small net for debugging."""
+  del args, kwargs
+  final_shape = [-1, 1] if pooling else [-1, 1, 1, 1]
+  layers = [
+      tf.keras.layers.Lambda(lambda x: tf.reshape(  # pylint: disable=g-long-lambda
+          tf.reduce_mean(x, axis=[1, 2, 3]), final_shape)),
+  ]
+  return tf.keras.Sequential(layers)
+
+
+def get_keras_model(model_type,
                     output_dimension,
-                    alpha=1.0,
-                    mobilenet_size='small',
-                    frontend=True,
-                    avg_pool=False,
-                    compressor=None,
-                    qat=False,
-                    tflite=False):
+                    truncate_output = False,
+                    frontend = True,
+                    tflite = False,
+                    spec_augment = False):
   """Make a Keras student model."""
+  # For debugging, log hyperparameter values.
+  logging.info('model name: %s', model_type)
+  logging.info('truncate_output: %s', truncate_output)
+  logging.info('output_dimension: %i', output_dimension)
+  logging.info('frontend: %s', frontend)
+  logging.info('tflite: %s', tflite)
+  logging.info('spec_augment: %s', spec_augment)
 
-  def _map_fn_lambda(x):
-    return tf.map_fn(_sample_to_features, x, dtype=tf.float64)
+  output_dict = {}  # Dictionary of model outputs.
 
-  def _map_mobilenet_func(mnet_size):
-    mnet_size_map = {
-        'tiny': mobilenetv3_tiny,
-        'small': tf.keras.applications.MobileNetV3Small,
-        'large': tf.keras.applications.MobileNetV3Large,
-    }
-    if mnet_size.lower() not in mnet_size_map:
-      raise ValueError('Unknown MobileNet size %s.' % mnet_size)
-    return mnet_size_map[mnet_size.lower()]
+  # Construct model input and frontend.
+  model_in, feats = _frontend_keras(frontend, tflite)
+  feats.shape.assert_is_compatible_with([None, None, None, 1])
+  spec_augment_fn = augmentation.SpecAugment() if spec_augment else tf.identity
+  feats = spec_augment_fn(feats)
 
-  # TFLite use-cases usually use non-batched inference, and this also enables
-  # hardware acceleration.
-  num_batches = 1 if tflite else None
-  if frontend:
-    model_in = tf.keras.Input((None,), name='audio_samples')
-    feats = tf.keras.layers.Lambda(_map_fn_lambda)(model_in)
-    feats.shape.assert_is_compatible_with([None, None, 96, 64])
-    feats = tf.transpose(feats, [0, 2, 1, 3])
-    feats = tf.reshape(feats, [-1, 96, 64, 1])
-  else:
-    model_in = tf.keras.Input((96, 64, 1),
-                              name='log_mel_spectrogram',
-                              batch_size=num_batches)
-    feats = model_in
-  model = _map_mobilenet_func(mobilenet_size)(
-      input_shape=[96, 64, 1],
-      alpha=alpha,
-      minimalistic=False,
-      include_top=False,
-      weights=None,
-      pooling='avg' if avg_pool else None,
-      dropout_rate=0.0)
-  model_out = model(feats)
-  if avg_pool:
-    model_out.shape.assert_is_compatible_with([None, None])
-  else:
-    model_out.shape.assert_is_compatible_with([None, 3, 2, None])
-  if bottleneck_dimension:
-    if compressor is not None:
-      bottleneck = CompressedDense(
-          bottleneck_dimension,
-          compression_obj=compressor,
-          name='distilled_output')
+  inputs = [model_in]
+  logging.info('Features shape: %s', feats.shape)
+
+  # Build network.
+  model_out = _build_main_net(model_type, feats)
+  embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
+
+  # The last fully-connected layer can sometimes be the single largest
+  # layer in the entire network. It's also not always very valuable. We try
+  # two methods of getting the right output dimension:
+  # 1) A FC layer
+  # 2) Taking the first `output_dimension` elements.
+  need_final_layer = (output_dimension and
+                      embeddings.shape[1] != output_dimension)
+
+  # If we need to truncate, do it before we save the embedding. Otherwise,
+  # the embedding will contain some garbage dimensions.
+  if need_final_layer and truncate_output:
+    if embeddings.shape[1] < output_dimension:
+      embeddings = tf.pad(
+          embeddings, [[0, 0], [0, output_dimension - embeddings.shape[1]]])
     else:
-      bottleneck = tf.keras.layers.Dense(
-          bottleneck_dimension, name='distilled_output')
-      if qat:
-        bottleneck = tfmot.quantization.keras.quantize_annotate_layer(
-            bottleneck)
-    embeddings = tf.keras.layers.Flatten()(model_out)
-    embeddings = bottleneck(embeddings)
+      embeddings = embeddings[:, :output_dimension]
 
-    if tflite:
-      # We generate TFLite models just for the embeddings.
-      output_model = tf.keras.Model(inputs=model_in, outputs=embeddings)
-      if compressor is not None:
-        # If model employs compression, this ensures that the TFLite model
-        # just uses the smaller matrices for inference.
-        output_model.get_layer('distilled_output').kernel = None
-        output_model.get_layer(
-            'distilled_output').compression_op.a_matrix_tfvar = None
-      return output_model
-  else:
-    embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
-  if output_dimension:
-    output = tf.keras.layers.Dense(
-        output_dimension, name='embedding_to_target')(embeddings)
-  else:
-    output = embeddings
-  output_model = tf.keras.Model(inputs=model_in, outputs=output)
+  # Construct optional final layer, and create output dictionary.
+  output_dict['embedding'] = embeddings
+
+  target = embeddings
+  if need_final_layer and not truncate_output:
+    target = tf.keras.layers.Dense(
+        output_dimension, name='embedding_to_target')(target)
+  output_dict['embedding_to_target'] = target
+  output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
+
   return output_model
 
 
-def mobilenetv3_tiny(input_shape=None,
-                     alpha=1.0,
-                     minimalistic=False,
-                     include_top=True,
-                     weights='imagenet',
-                     input_tensor=None,
-                     classes=1000,
-                     pooling=None,
-                     dropout_rate=0.2,
-                     classifier_activation='softmax'):
-  """Makes MobileNetV3 model."""
+def _frontend_keras(
+    frontend,
+    tflite):
+  """Returns model input and features."""
+  # TFLite use-cases usually use non-batched inference, and this also enables
+  # hardware acceleration.
+  num_batches = 1 if tflite else None
+  frontend_args = frontend_lib.frontend_args_from_flags()
+  feats_inner_dim = frontend_lib.get_frontend_output_shape()[0]
+  if frontend:
+    logging.info('frontend_args: %s', frontend_args)
+    model_in = tf.keras.Input((None,),
+                              name='audio_samples',
+                              batch_size=num_batches)
+    frontend_fn = frontend_lib.get_feats_map_fn(tflite, frontend_args)
+    feats = tf.keras.layers.Lambda(frontend_fn)(model_in)
+    feats.shape.assert_is_compatible_with(
+        [num_batches, feats_inner_dim, frontend_args['frame_width'],
+         frontend_args['num_mel_bins']])
+    feats = tf.reshape(
+        feats, [-1, feats_inner_dim * frontend_args['frame_width'],
+                frontend_args['num_mel_bins'], 1])
+  else:
+    model_in = tf.keras.Input(
+        (feats_inner_dim * frontend_args['frame_width'],
+         frontend_args['num_mel_bins'], 1),
+        batch_size=num_batches,
+        name='log_mel_spectrogram')
+    feats = model_in
 
-  def stack_fn(x, kernel, activation, se_ratio):
+  # `model_in` can be wavs or spectral features, but `feats` must be a 4D
+  # spectrogram.
+  feats.shape.assert_is_compatible_with(
+      [None, feats_inner_dim * frontend_args['frame_width'],
+       frontend_args['num_mel_bins'], 1])
 
-    # Using blocks from MobileNetV3 saves a lot of code duplication.
-    # pylint: disable=protected-access
-    def depth(d):
-      return v3_util._depth(d * alpha)
+  return (model_in, feats)
 
-    x = v3_util._inverted_res_block(x, 1, depth(16), 3, 2, se_ratio,
-                                    v3_util.relu, 0)
-    x = v3_util._inverted_res_block(x, 72. / 16, depth(24), 3, 2, None,
-                                    v3_util.relu, 1)
-    x = v3_util._inverted_res_block(x, 88. / 24, depth(24), 3, 1, None,
-                                    v3_util.relu, 2)
-    x = v3_util._inverted_res_block(x, 4, depth(40), kernel, 2, se_ratio,
-                                    activation, 3)
-    x = v3_util._inverted_res_block(x, 6, depth(40), kernel, 1, se_ratio,
-                                    activation, 4)
-    x = v3_util._inverted_res_block(x, 6, depth(40), kernel, 1, se_ratio,
-                                    activation, 5)
-    x = v3_util._inverted_res_block(x, 3, depth(48), kernel, 1, se_ratio,
-                                    activation, 6)
-    x = v3_util._inverted_res_block(x, 6, depth(96), kernel, 2, se_ratio,
-                                    activation, 8)
-    x = v3_util._inverted_res_block(x, 6, depth(96), kernel, 1, se_ratio,
-                                    activation, 9)
-    # pylint: enable=protected-access
-    return x
 
-  return v3_util.MobileNetV3(stack_fn, 512, input_shape, alpha, 'tiny',
-                             minimalistic, include_top, weights, input_tensor,
-                             classes, pooling, dropout_rate,
-                             classifier_activation)
+def _build_main_net(
+    model_type,
+    feats,
+    ):
+  """Constructs main network."""
+  if model_type.startswith('mobilenet_'):
+    # Format is "mobilenet_{size}_{alpha}_{avg_pool}"
+    _, mobilenet_size, alpha, avg_pool = model_type.split('_')
+    alpha = float(alpha)
+    avg_pool = bool(avg_pool)
+    logging.info('mobilenet_size: %s', mobilenet_size)
+    logging.info('alpha: %f', alpha)
+    logging.info('avg_pool: %s', avg_pool)
+    model = _map_mobilenet_func(mobilenet_size)(
+        input_shape=feats.shape[1:],
+        alpha=alpha,
+        minimalistic=False,
+        include_top=False,
+        weights=None,
+        pooling='avg' if avg_pool else None,
+        dropout_rate=0.0)
+    expected_output_shape = [None, None] if avg_pool else [None, 1, 1, None]
+  elif model_type.startswith('efficientnet'):
+    # pylint:disable=line-too-long
+    model_fn, final_dim = {
+        'efficientnetb0': (tf.keras.applications.EfficientNetB0, 1280),
+        'efficientnetb1': (tf.keras.applications.EfficientNetB1, 1280),
+        'efficientnetb2': (tf.keras.applications.EfficientNetB2, 1408),
+        'efficientnetb3': (tf.keras.applications.EfficientNetB3, 1536),
+        'efficientnetb4': (tf.keras.applications.EfficientNetB4, 1792),
+        'efficientnetb5': (tf.keras.applications.EfficientNetB5, 2048),
+        'efficientnetb6': (tf.keras.applications.EfficientNetB6, 2304),
+        'efficientnetb7': (tf.keras.applications.EfficientNetB7, 2560),
+        # V2
+        'efficientnetv2b0': (tf.keras.applications.efficientnet_v2.EfficientNetV2B0, 1280),
+        'efficientnetv2b1': (tf.keras.applications.efficientnet_v2.EfficientNetV2B1, 1280),
+        'efficientnetv2b2': (tf.keras.applications.efficientnet_v2.EfficientNetV2B2, 1408),
+        'efficientnetv2b3': (tf.keras.applications.efficientnet_v2.EfficientNetV2B3, 1536),
+        'efficientnetv2bL': (tf.keras.applications.efficientnet_v2.EfficientNetV2L, 1280),
+        'efficientnetv2bM': (tf.keras.applications.efficientnet_v2.EfficientNetV2M, 1280),
+        'efficientnetv2bS': (tf.keras.applications.efficientnet_v2.EfficientNetV2S, 1280),
+    }[model_type]
+    # pylint:enable=line-too-long
+    model = model_fn(
+        include_top=False,
+        weights=None,  # could be pretrained from imagenet.
+        input_shape=feats.shape[1:],
+        pooling='avg',
+    )
+    expected_output_shape = [None, final_dim]
+  else:
+    raise ValueError(f'`model_type` not recognized: {model_type}')
+
+  # TODO(joelshor): Consider checking that there are trainable weights in
+  # `model`.
+  model_out = model(feats)
+  model_out.shape.assert_is_compatible_with(expected_output_shape)
+
+  return model_out

@@ -20,6 +20,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 
 namespace automl_zero {
@@ -104,7 +105,7 @@ TEST(HashMixTest, DoesNotGenerateShortCycles) {
   const IntegerT num_iters = 100;
   const RandomSeedT seed = 20;
   RandomSeedT current = seed;
-  absl::node_hash_set<RandomSeedT> values;
+  absl::flat_hash_set<RandomSeedT> values;
   for (IntegerT iters = 0; iters < num_iters; ++iters) {
     current = HashMix(current, seed);
     values.insert(current);

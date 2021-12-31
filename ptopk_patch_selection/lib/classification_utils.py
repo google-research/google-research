@@ -26,11 +26,11 @@ from clu import metric_writers
 from clu import parameter_overview
 from clu import periodic_actions
 import flax
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
-from lib import utils
-from lib.typing import LossOrMetric
+from lib import utils  # pytype: disable=import-error
+from lib.typing import LossOrMetric  # pytype: disable=import-error
 import ml_collections
 import optax
 import tensorflow as tf

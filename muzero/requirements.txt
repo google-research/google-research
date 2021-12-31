@@ -1,0 +1,12 @@
+absl-py
+apache_beam
+attrs
+cloudpickle==1.3.0
+grpcio>=1.32.0
+grpcio-tools
+gym
+keras
+numpy
+tensorflow==2.4.1
+tensorflow_addons
+tensorflow_probability==0.11.0

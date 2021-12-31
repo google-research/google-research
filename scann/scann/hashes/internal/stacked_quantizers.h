@@ -17,6 +17,8 @@
 #ifndef SCANN_HASHES_INTERNAL_STACKED_QUANTIZERS_H_
 #define SCANN_HASHES_INTERNAL_STACKED_QUANTIZERS_H_
 
+#include <cstdint>
+
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"

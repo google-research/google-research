@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/many_to_many/fp8_transposed.h"
 
+#include <cstdint>
+
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/types.h"
 

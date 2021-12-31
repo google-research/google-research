@@ -14,50 +14,14 @@
 
 #include "scann/oss_wrappers/scann_bits.h"
 
+#include <cstdint>
+
 namespace research_scann {
 namespace bits {
 
 #if (defined(__i386__) || defined(__x86_64__)) && defined(__GNUC__)
 
 #else
-
-int CountLeadingZeros32(uint32_t n) {
-  int bits = 1;
-  if (n == 0) return 32;
-  if ((n >> 16) == 0) {
-    bits += 16;
-    n <<= 16;
-  }
-  if ((n >> 24) == 0) {
-    bits += 8;
-    n <<= 8;
-  }
-  if ((n >> 28) == 0) {
-    bits += 4;
-    n <<= 4;
-  }
-  if ((n >> 30) == 0) {
-    bits += 2;
-    n <<= 2;
-  }
-  return bits - (n >> 31);
-}
-
-int Log2Floor(uint32_t n) {
-  if (n == 0) return -1;
-  int log = 0;
-  uint32_t value = n;
-  for (int i = 4; i >= 0; --i) {
-    int shift = (1 << i);
-    uint32_t x = value >> shift;
-    if (x != 0) {
-      value = x;
-      log += shift;
-    }
-  }
-  assert(value == 1);
-  return log;
-}
 
 int FindLSBSetNonZero(uint32_t n) {
   int rc = 31;

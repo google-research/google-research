@@ -17,6 +17,7 @@
 #ifndef SCANN_UTILS_GMM_UTILS_H_
 #define SCANN_UTILS_GMM_UTILS_H_
 
+#include <cstdint>
 #include <limits>
 
 #include "absl/time/time.h"

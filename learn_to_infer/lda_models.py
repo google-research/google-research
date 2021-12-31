@@ -21,7 +21,7 @@ from . import transformer
 from . import util
 
 import flax
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 import jax.random
@@ -194,4 +194,3 @@ class LDADocTopicInferenceMachine(nn.Module):
     doc_topic_loss = util.categorical_kl(doc_topic_proportions,
                                          pred_doc_topic_logprobs)
     return doc_topic_loss
-

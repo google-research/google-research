@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash -e
+#!/bin/bash
+
+set -e
 
 # Install gflags development files if not already present.
-[ -d /usr/include/gflags/ ] || apt install libgflags-dev
+[ -d /usr/include/gflags/ ] || sudo apt -y install libgflags-dev
+
+# For travis: libomp.so is not found otherwise.
+export LD_LIBRARY_PATH=/usr/local/clang/lib:$LD_LIBRARY_PATH
 
 cd "$(readlink -f "$(dirname "$0")")"
 

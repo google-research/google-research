@@ -17,6 +17,7 @@
 #ifndef SCANN_PARTITIONING_KMEANS_TREE_PARTITIONER_H_
 #define SCANN_PARTITIONING_KMEANS_TREE_PARTITIONER_H_
 
+#include <cstdint>
 #include <limits>
 
 #include "absl/synchronization/mutex.h"
@@ -116,7 +117,7 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
       std::vector<int32_t>* result) const;
 
   Status TokenForDatapoint(const DatapointPtr<T>& dptr,
-                           KMeansTreeSearchResult* result) const;
+                           KMeansTreeSearchResult* result) const override;
   Status TokensForDatapointWithSpilling(
       const DatapointPtr<T>& dptr, int32_t max_centers_override,
       std::vector<KMeansTreeSearchResult>* result) const final;
@@ -224,6 +225,14 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
       dataset.ConvertType(storage);
       return storage;
     }
+  }
+
+  TokenizationType cur_tokenization_type() const {
+    DCHECK(this->tokenization_mode() == UntypedPartitioner::QUERY ||
+           this->tokenization_mode() == UntypedPartitioner::DATABASE);
+    return (this->tokenization_mode() == UntypedPartitioner::QUERY)
+               ? query_tokenization_type_
+               : database_tokenization_type_;
   }
 
   shared_ptr<const KMeansTree> kmeans_tree_;

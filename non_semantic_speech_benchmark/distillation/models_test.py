@@ -15,91 +15,147 @@
 
 """Tests for non_semantic_speech_benchmark.distillation.models."""
 
+import os
+
+from absl import flags
 from absl.testing import absltest
+from absl.testing import flagsaver
 from absl.testing import parameterized
 
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.distillation import models
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
 
 
 class ModelsTest(parameterized.TestCase):
 
-  def test_model_frontend(self):
-    input_tensor = tf.zeros([2, 32000], dtype=tf.float32)  # audio signal
-    m = models.get_keras_model(3, 5)
-    o = m(input_tensor)
-    o.shape.assert_has_rank(2)
-    self.assertEqual(o.shape[1], 5)
-
-  def test_model_no_frontend(self):
-    input_tensor = tf.zeros([1, 96, 64, 1],
-                            dtype=tf.float32)  # log Mel spectrogram
-    m = models.get_keras_model(3, 5, frontend=False)
-    o = m(input_tensor)
-    o.shape.assert_has_rank(2)
-    self.assertEqual(o.shape[1], 5)
-
-  def test_model_no_bottleneck(self):
-    input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
-    m = models.get_keras_model(0, 5)
-    o = m(input_tensor)
-    o.shape.assert_has_rank(2)
-    self.assertEqual(o.shape[1], 5)
-
-  def test_invalid_mobilenet_size(self):
-    invalid_mobilenet_size = 'huuuge'
-    with self.assertRaises(ValueError) as exception_context:
-      models.get_keras_model(3, 5, mobilenet_size=invalid_mobilenet_size)
-    if not isinstance(exception_context.exception, ValueError):
-      self.fail()
 
   @parameterized.parameters(
-      {'mobilenet_size': 'tiny'},
-      {'mobilenet_size': 'small'},
-      {'mobilenet_size': 'large'},
-      {'mobilenet_size': 'tiny'},
+      {'frontend': True, 'tflite': True},
+      {'frontend': False, 'tflite': True},
+      {'frontend': True, 'tflite': False},
+      {'frontend': False, 'tflite': False},
   )
-  def test_valid_mobilenet_size(self, mobilenet_size):
-    input_tensor = tf.zeros([2, 32000], dtype=tf.float32)
-    m = models.get_keras_model(3, 5, mobilenet_size=mobilenet_size)
-    o = m(input_tensor)
+  def test_model_frontend(self, frontend, tflite):
+    if frontend:
+      input_tensor_shape = [1 if tflite else 2, 32000]  # audio signal.
+    else:
+      input_tensor_shape = [3, 96, 64, 1]  # log Mel spectrogram.
+    input_tensor = tf.zeros(input_tensor_shape, dtype=tf.float32)
+    output_dimension = 5
+
+    m = models.get_keras_model(
+        'mobilenet_debug_1.0_False', output_dimension,
+        frontend=frontend, tflite=tflite)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+
+    emb.shape.assert_has_rank(2)
     o.shape.assert_has_rank(2)
     self.assertEqual(o.shape[1], 5)
 
-  @parameterized.parameters({'add_compression': True},
-                            {'add_compression': False})
-  def test_tflite_model(self, add_compression):
-    compressor = None
-    bottleneck_dimension = 3
-    if add_compression:
-      compression_params = compression.CompressionOp\
-        .get_default_hparams().parse('')
-      compressor = compression_wrapper.get_apply_compression(
-          compression_params, global_step=0)
+  @parameterized.parameters(
+      {'frontend': True, 'tflite': True, 'spec_augment': False},
+      {'frontend': True, 'tflite': True, 'spec_augment': True},
+      {'frontend': False, 'tflite': True, 'spec_augment': True},
+      {'frontend': True, 'tflite': False, 'spec_augment': True},
+      {'frontend': False, 'tflite': False, 'spec_augment': True},
+  )
+  def test_model_spec_augment(self, frontend, tflite, spec_augment):
+    if frontend:
+      input_tensor_shape = [1 if tflite else 2, 32000]  # audio signal.
+    else:
+      input_tensor_shape = [3, 96, 64, 1]  # log Mel spectrogram.
+    input_tensor = tf.zeros(input_tensor_shape, dtype=tf.float32)
+    output_dimension = 5
+
     m = models.get_keras_model(
-        bottleneck_dimension,
+        'mobilenet_debug_1.0_False', output_dimension,
+        frontend=frontend, tflite=tflite,
+        spec_augment=spec_augment)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+
+    emb.shape.assert_has_rank(2)
+    o.shape.assert_has_rank(2)
+    self.assertEqual(o.shape[1], 5)
+
+  def test_invalid_model(self):
+    invalid_mobilenet_size = 'huuuge'
+    with self.assertRaises(KeyError) as exception_context:
+      models.get_keras_model(
+          f'mobilenet_{invalid_mobilenet_size}_1.0_False', 5)
+    if not isinstance(exception_context.exception, KeyError):
+      self.fail()
+
+  def test_truncation(self):
+    m = models.get_keras_model(
+        'efficientnetb0',
+        frontend=False,
+        output_dimension=5,
+        truncate_output=True)
+
+    input_tensor = tf.zeros([3, 96, 64, 1], dtype=tf.float32)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
+
+    # `embedding` is the original size, but `embedding_to_target` should be the
+    # right size.
+    self.assertEqual(emb.shape[1], 5)
+    self.assertEqual(o.shape[1], 5)
+
+  @parameterized.parameters(
+      {'model_type': 'mobilenet_small_1.0_False'},
+      {'model_type': 'efficientnetb0'},
+      {'model_type': 'efficientnetb1'},
+      {'model_type': 'efficientnetb2'},
+      {'model_type': 'efficientnetb3'},
+      {'model_type': 'efficientnetb4'},
+      {'model_type': 'efficientnetb5'},
+      {'model_type': 'efficientnetb6'},
+      {'model_type': 'efficientnetb7'},
+      {'model_type': 'efficientnetv2b0'},
+      {'model_type': 'efficientnetv2b1'},
+      {'model_type': 'efficientnetv2b2'},
+      {'model_type': 'efficientnetv2b3'},
+      {'model_type': 'efficientnetv2bL'},
+      {'model_type': 'efficientnetv2bM'},
+      {'model_type': 'efficientnetv2bS'},
+  )
+  @flagsaver.flagsaver
+  def test_valid_model_type(self, model_type):
+    # Frontend flags.
+    flags.FLAGS.frame_hop = 5
+    flags.FLAGS.num_mel_bins = 80
+    flags.FLAGS.frame_width = 5
+
+    input_tensor = tf.zeros([2, 16000], dtype=tf.float32)
+    m = models.get_keras_model(
+        model_type, 5, frontend=True, truncate_output=True)
+    o_dict = m(input_tensor)
+    o = o_dict['embedding_to_target']
+
+    o.shape.assert_has_rank(2)
+    self.assertEqual(o.shape[1], 5)
+
+  def test_tflite_model(self):
+    m = models.get_keras_model(
+        'mobilenet_debug_1.0_False',
         5,
         frontend=False,
-        mobilenet_size='small',
-        compressor=compressor,
         tflite=True)
 
-    input_tensor = tf.zeros([1, 96, 64, 1], dtype=tf.float32)
-    o = m(input_tensor)
-    o.shape.assert_has_rank(2)
-    self.assertEqual(o.shape[0], 1)
-    self.assertEqual(o.shape[1], bottleneck_dimension)
+    input_tensor = tf.zeros([2, 96, 64, 1], dtype=tf.float32)
+    o_dict = m(input_tensor)
+    emb, o = o_dict['embedding'], o_dict['embedding_to_target']
 
-    if add_compression:
-      self.assertIsNone(m.get_layer('distilled_output').kernel)
-      self.assertIsNone(
-          m.get_layer('distilled_output').compression_op.a_matrix_tfvar)
+    emb.shape.assert_has_rank(2)
+    self.assertEqual(emb.shape[0], 2)
+    o.shape.assert_has_rank(2)
+    self.assertEqual(o.shape[0], 2)
+    self.assertEqual(o.shape[1], 5)
 
 
 if __name__ == '__main__':
-  tf.compat.v2.enable_v2_behavior()
   assert tf.executing_eagerly()
   absltest.main()

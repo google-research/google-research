@@ -53,7 +53,7 @@ import inspect
 import json
 import numbers
 import re
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, TypeVar, Union
 
 import attr
 import six
@@ -344,10 +344,11 @@ def field(abbrev, default):
     kwargs['factory'] = lambda: copy.copy(default)
   else:
     kwargs['default'] = default
-  return attr.ib(**kwargs)
+  return attr.ib(**kwargs)  # pytype: disable=duplicate-keyword-argument
 
 
-def nest(nested_class, prefix = None):
+def nest(nested_class,
+         prefix = None):
   """Create a nested HParams class field on a parent HParams class.
 
   An HParams class (a class decorated with @hparam.s) can have a field that is
@@ -404,19 +405,19 @@ def _serialize_value(value,
     The serialized value.
   """
   if field_info.is_list:
-    list_value = value  # type: _ValidListInstanceType
+    list_value = value  # type: _ValidListInstanceType  # pytype: disable=annotation-type-mismatch
     modified_field_info = copy.copy(field_info)
     modified_field_info.is_list = False
     # Manually string-ify the list, since default str(list) adds whitespace.
     return ('[' + ','.join(
         [str(_serialize_value(v, modified_field_info)) for v in list_value]) +
             ']')
-  scalar_value = value  # type: _ValidScalarInstanceType
+  scalar_value = value  # type: _ValidScalarInstanceType  # pytype: disable=annotation-type-mismatch
   if issubclass(field_info.scalar_type, enum.Enum):
     enum_value = scalar_value  # type: enum.Enum
     return str(enum_value.value)
   elif field_info.scalar_type == bool:
-    bool_value = scalar_value  # type: bool
+    bool_value = scalar_value  # type: bool  # pytype: disable=annotation-type-mismatch
     # use 0/1 instead of True/False for more compact serialization.
     return str(int(bool_value))
   elif issubclass(field_info.scalar_type, six.string_types):
@@ -577,7 +578,7 @@ def _build_hparams_map(hparams_class):
     path = [attribute.name]
     default = attribute.default
     # pytype: disable=invalid-annotation
-    factory_type = attr.Factory  # type: Type[attr.Factory]
+    factory_type = attr.Factory  # type: Type[attr.Factory]  # pytype: disable=annotation-type-mismatch
     # pytype: enable=invalid-annotation
     if isinstance(default, factory_type):
       default = default.factory()
@@ -711,5 +712,5 @@ def s(wrapped, *attrs_args,
   wrapped.__setattr__ = setattr_impl
   wrapped.serialize = serialize
   wrapped.parse = parse
-  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)
+  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)  # pytype: disable=wrong-arg-types  # attr-stubs
   return wrapped

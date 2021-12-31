@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_one/dot_product_avx1.h"
 
+#include <cstdint>
+
 #ifdef __x86_64__
 
 #include "scann/data_format/datapoint.h"

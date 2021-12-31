@@ -15,10 +15,14 @@
 
 """CNN model with Mel spectrum."""
 from kws_streaming.layers import modes
+from kws_streaming.layers import quantize
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
-from kws_streaming.models import utils
+import kws_streaming.models.model_utils as utils
+from tensorflow_model_optimization.python.core.quantization.keras import quantize_layer
+from tensorflow_model_optimization.python.core.quantization.keras.default_8bit import default_8bit_quantize_configs
+from tensorflow_model_optimization.python.core.quantization.keras.quantizers import AllValuesQuantizer
 
 
 def model_parameters(parser_nn):
@@ -101,28 +105,56 @@ def model(flags):
         speech_features.SpeechFeatures.get_params(flags))(
             net)
 
+  if flags.quantize:
+    net = quantize_layer.QuantizeLayer(
+        AllValuesQuantizer(
+            num_bits=8, per_axis=False, symmetric=False, narrow_range=False))(
+                net)
+
   net = tf.keras.backend.expand_dims(net)
   for filters, kernel_size, activation, dilation_rate, strides in zip(
       utils.parse(flags.cnn_filters), utils.parse(flags.cnn_kernel_size),
       utils.parse(flags.cnn_act), utils.parse(flags.cnn_dilation_rate),
       utils.parse(flags.cnn_strides)):
     net = stream.Stream(
-        cell=tf.keras.layers.Conv2D(
-            filters=filters,
-            kernel_size=kernel_size,
-            activation=activation,
-            dilation_rate=dilation_rate,
-            strides=strides))(
-                net)
+        cell=quantize.quantize_layer(
+            tf.keras.layers.Conv2D(
+                filters=filters,
+                kernel_size=kernel_size,
+                dilation_rate=dilation_rate,
+                activation='linear',
+                strides=strides), flags.quantize,
+            quantize.NoOpActivationConfig(['kernel'], ['activation'], False)),
+        pad_time_dim='causal',
+        use_one_step=False)(
+            net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.BatchNormalization(),
+        default_8bit_quantize_configs.NoOpQuantizeConfig())(
+            net)
+    net = quantize.quantize_layer(tf.keras.layers.Activation(activation))(net)
 
-  net = stream.Stream(cell=tf.keras.layers.Flatten())(net)
+  net = stream.Stream(
+      cell=quantize.quantize_layer(
+          tf.keras.layers.Flatten(), apply_quantization=flags.quantize))(
+              net)
+
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
 
   for units, activation in zip(
       utils.parse(flags.units2), utils.parse(flags.act2)):
-    net = tf.keras.layers.Dense(units=units, activation=activation)(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Dense(units=units, activation=activation),
+        apply_quantization=flags.quantize)(
+            net)
 
-  net = tf.keras.layers.Dense(units=flags.label_count)(net)
+  net = quantize.quantize_layer(
+      tf.keras.layers.Dense(units=flags.label_count),
+      apply_quantization=flags.quantize)(
+          net)
   if flags.return_softmax:
-    net = tf.keras.layers.Activation('softmax')(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Activation('softmax'),
+        apply_quantization=flags.quantize)(
+            net)
   return tf.keras.Model(input_audio, net)

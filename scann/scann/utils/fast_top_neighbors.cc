@@ -14,6 +14,8 @@
 
 #include "scann/utils/fast_top_neighbors.h"
 
+#include <cstdint>
+
 #include "absl/strings/str_cat.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/intrinsics/avx2.h"

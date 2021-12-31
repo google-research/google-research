@@ -18,6 +18,7 @@
 #define SCANN_PARTITIONING_PARTITIONER_BASE_H_
 
 #include <algorithm>
+#include <cstdint>
 #include <hash_set>
 
 #include "scann/data_format/datapoint.h"

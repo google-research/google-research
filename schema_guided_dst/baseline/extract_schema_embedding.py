@@ -24,7 +24,7 @@ import collections
 import re
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from schema_guided_dst.baseline import data_utils
 from schema_guided_dst.baseline.bert import modeling
@@ -143,7 +143,7 @@ def model_fn_builder(bert_config, init_checkpoint, use_tpu,
     # Use the embedding obtained from the final layer.
     predictions["final_layer"] = all_layers[-1]
 
-    output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+    output_spec = tf.estimator.tpu.TPUEstimatorSpec(
         mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
     return output_spec
 

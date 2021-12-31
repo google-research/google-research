@@ -1,5 +1,7 @@
 
 
+#include <cstdint>
+
 #include "scann/hashes/internal/lut16_avx512.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"

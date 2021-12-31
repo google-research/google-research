@@ -1,29 +1,14 @@
 # coding=utf-8
-# Copyright 2019 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     https://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Architecture utilities."""
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 from absl import flags
+import tensorflow.compat.v1 as tf
 
 from ieg import utils
 from ieg.models.custom_ops import decay_weights
-
-import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 
@@ -32,19 +17,16 @@ class StrategyNetBase(object):
   """Base class for supporting model training under tf.distribute.strategy."""
 
   def __init__(self):
-
     self.replica_updates_set = []
     self.regularization_losses_set = []
     self.created = False
+    self.stop_gradient = False
 
-  def count_parameters(self, name):
-    """Count parameters.
-
-    Args:
-      name: variable scope name
-    """
+  def count_parameters(self, scope_name):
+    """Count parameters."""
+    del scope_name
     total_parameters = 0
-    for t_var in tf.trainable_variables(scope=name):
+    for t_var in self.trainable_variables:
       # shape is an array of tf.Dimension
       shape = t_var.get_shape()
       variable_parameters = 1
@@ -55,6 +37,17 @@ class StrategyNetBase(object):
 
     tf.logging.info('Total number of parameters (M) {}'.format(
         total_parameters / 1000000.0))
+
+  @staticmethod
+  def get_vars_before(trainable_variables, prefix):
+    vs = []
+    i = 0
+    for v in trainable_variables:
+      if prefix in v.name:
+        break
+      i += 1
+    vs = trainable_variables[i:]
+    return vs
 
   def get_update_ops(self, name, var_refer):
     """Returns batchnorm update ops.
@@ -82,7 +75,6 @@ class StrategyNetBase(object):
 
   def get_regularization_loss(self, scope_name, name='regularization_loss'):
     losses = self.get_regularization_losses(scope_name)
-
     return tf.add_n(losses, name=name)
 
   def get_regularization_losses(self, scope_name):
@@ -95,25 +87,44 @@ class StrategyNetBase(object):
     for var in variables:
       var = tf.cast(var, dtype)
 
-  def init(self, name, with_name=None, outputs=None):
+  def init(self, name, with_name=None, outputs=None, stop_grad_scope=None):
     """Init model class.
 
     Args:
-      name: name of model scope
-      with_name: variable with prefix_name
-      outputs: an output variable of the model
+      name: name of model scope.
+      with_name: variable with prefix_name of bn update_variables.
+      outputs: an output variable of the model.
+      stop_grad_scope: excluding variables before the scope, e.g. dense.
     """
     self.name = name
     self.updates = self.get_update_ops(name, outputs)
-    assert self.updates
+    assert self.updates or self.stop_gradient
 
     self.trainable_variables = utils.get_var(tf.trainable_variables(), name)
+
+    if self.stop_gradient:
+      # Arxiv total model variables including frozen ones.
+      self.total_model_variables = self.trainable_variables
+      assert stop_grad_scope
+      ind = 0
+      for v in self.trainable_variables:
+        if stop_grad_scope in v.name:
+          break
+        ind += 1
+      self.trainable_variables = self.trainable_variables[ind:]
+      assert self.trainable_variables
+
     # batch_norm variables (moving mean and moving average)
     self.updates_variables = [
         a for a in utils.get_var(
             tf.global_variables(), name, with_name=with_name)
         if a not in self.trainable_variables
     ]
+    if self.stop_gradient:
+      # Arxiv total model update variables including frozen ones.
+      self.total_updates_variables = self.updates_variables
+      self.updates_variables = []
+
     self.total_vars = len(self.trainable_variables) + len(
         self.updates_variables)
 
@@ -183,7 +194,7 @@ class MetaImage(object):
       the variable in self.variables
     """
     var = getter(name, *args, **kwargs)
-    meta_var = self.variables[var.name]
+    meta_var = self.variables.get(var.name, var)
     return meta_var
 
   def __call__(self, inputs, name, training=True, reuse=True):

@@ -1,0 +1,11 @@
+absl-py>=0.9.0
+gin-config>=0.3.0
+matplotlib>=3.2.1
+numpy>=1.18.3
+opencv-python>=4.2.0.34
+scipy>=1.4.1
+six>=1.14.0
+imageio>=2.8.0
+tensorboard>=2.1.1
+tensorflow==2.4.1
+tensorflow-addons>=0.9.1

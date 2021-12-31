@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstdint>
 
 #include "absl/synchronization/mutex.h"
 #include "scann/base/restrict_allowlist.h"
@@ -60,10 +61,6 @@ Status BruteForceSearcher<T>::EnableCrowdingImpl(
         "number of datapoints.  (",
         datapoint_index_to_crowding_attribute.size(), " vs. ",
         this->dataset()->size(), "."));
-  } else if (mutator_) {
-    return FailedPreconditionError(
-        "Mutation and crowding may not yet be used simultaneously on a single "
-        "BruteForceSearcher instance.");
   }
   return OkStatus();
 }
@@ -267,6 +264,15 @@ BruteForceSearcher<T>::FinishBatchedSearch(
     const DenseDataset<Float>& db, const DenseDataset<Float>& queries,
     ConstSpan<SearchParameters> params,
     MutableSpan<NNResultsVector> results) const {
+  if constexpr (std::is_same_v<Float, float>) {
+    if (std::all_of(params.begin(), params.end(),
+                    [](const SearchParameters& params) {
+                      return !params.pre_reordering_crowding_enabled();
+                    })) {
+      return FinishBatchedSearchSimple(db, queries, params, results);
+    }
+  }
+
   vector<unique_ptr<TopNWrapperInterface<Float>>> top_ns(queries.size());
   for (size_t i : IndicesOf(params)) {
     if (params[i].pre_reordering_crowding_enabled()) {
@@ -286,6 +292,23 @@ BruteForceSearcher<T>::FinishBatchedSearch(
                                  write_to_top_n);
   for (size_t i : IndicesOf(top_ns)) {
     results[i] = top_ns[i]->TakeUnsorted();
+  }
+}
+
+template <typename T>
+void BruteForceSearcher<T>::FinishBatchedSearchSimple(
+    const DenseDataset<float>& db, const DenseDataset<float>& queries,
+    ConstSpan<SearchParameters> params,
+    MutableSpan<NNResultsVector> results) const {
+  vector<FastTopNeighbors<float>> top_ns(queries.size());
+  for (size_t i : IndicesOf(params)) {
+    top_ns[i].Init(params[i].pre_reordering_num_neighbors(),
+                   params[i].pre_reordering_epsilon());
+  }
+  DenseDistanceManyToManyTopK(*distance_, queries, db, MakeMutableSpan(top_ns),
+                              pool_.get());
+  for (size_t i : IndicesOf(top_ns)) {
+    top_ns[i].FinishUnsorted(&results[i]);
   }
 }
 

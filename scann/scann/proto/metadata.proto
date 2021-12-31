@@ -50,6 +50,8 @@ message SparseIntersectionResult {
 
 message UserInfoMetadataConfig {
   optional bool set_user_info_for_query = 1 [default = false];
+
+  optional bool set_user_info_for_neighbor = 2 [default = true];
 }
 
 message ClassLabelMetadataConfig {}

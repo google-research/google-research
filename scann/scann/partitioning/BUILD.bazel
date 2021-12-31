@@ -85,6 +85,7 @@ cc_library(
         "//scann/utils:zip_sort",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/memory",
         "@com_google_absl//absl/synchronization",
     ],
 )
@@ -156,7 +157,6 @@ cc_library(
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_random",
-        "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/projection:projection_base",
         "//scann/projection:projection_factory",
@@ -169,6 +169,7 @@ cc_library(
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
     ],
 )

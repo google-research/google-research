@@ -2,7 +2,7 @@
 ======================================================================================
 
 Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720).
-Please cite the paper in your publications if you find the source code useful for your research.
+Please cite the paper in your publications if you find the source code useful for your research and feel free to contribute and add your SOTA model.
 
 Streaming aware neural network models are important for real time response,
 high accuracy and good user experience. In this work we designed keras streaming
@@ -15,31 +15,40 @@ Non streaming means that model has to receive the whole sequence
 During training we use one neural network architecture (called non streaming) and during inference we will use another neural network architecture called streaming.
 This kind of neural network can be considered dynamic: model topology is different in training and inference modes.
 One solution of such problem can be [subclassing](https://www.tensorflow.org/guide/keras/functional#mix-and-match_api_styles), which supports dynamic architectures.
-In this lib we choose keras functional API because of its [advantages](https://www.tensorflow.org/guide/keras/functional#it_does_not_support_dynamic_architectures), but it [does not support dynamic architectures](https://www.tensorflow.org/guide/keras/functional#it_does_not_support_dynamic_architectures). We solved it by using a cloning function, which can automatically convert non streamable model to streamable one (if model is based on streaming aware layers).
+Another option is keras functional API, it has [advantages](https://www.tensorflow.org/guide/keras/functional#it_does_not_support_dynamic_architectures), but it [does not support dynamic architectures](https://www.tensorflow.org/guide/keras/functional#it_does_not_support_dynamic_architectures). We solved it by using a cloning function, which can automatically convert non streamable model to streamable one (if model is based on streaming aware layers).
+
+So we demonstrated streaming aware model with subclassing API in [folder](https://github.com/google-research/google-research/tree/master/kws_streaming/models_sub). In this case developer will have to specify model behavior for both [non streaming](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py#L81) and [streaming inference](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py#L95). States (which are used for streaming) will have to be propagated manually, as shown in [example](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py#L107). This approach works well in eager mode.
+
+Models based on functional API are shown in [folder](https://github.com/google-research/google-research/tree/master/kws_streaming/models). In this case developer will have to specify model once and then cloning utility function will automatically convert it to streaming mode and will help to propagate states (which are used for streaming). We support two streaming modes:
+1. With external state. All buffers required for streaming will be added as additional inputs and outputs in the model, so user will have to manage these buffers during streaming inference. The limitation of this approach: it works with session/graph mode only.
+2. With internal state. All buffers required for streaming will be added as additional weights in the model, so it simplifies model deployment and user will not have to manage these buffers during streaming inference. This his approach works with both session/graph and eager modes.
+With functional API, after model is designed, user can run this model in streaming mode with external or internal state: just need to specify a flag during conversion of non streaming model to streaming one (no need to rewrite the model).
+
 
 We applied this lib for keyword spotting (KWS) problem
 and implemented most popular KWS models:
 
 |  Model name      | Description  | Streamable |
 | ---------------- | --------------------- | --------------------- |
-|[dnn](https://arxiv.org/pdf/1711.07128.pdf) | deep neural network based on combination of fully connected layers      | yes      |
-| dnn_raw | an example of [dnn](https://arxiv.org/pdf/1711.07128.pdf) model on raw audio features  |   yes     |
-| [gru](https://arxiv.org/pdf/1711.07128.pdf) | gated recurrent unit model  |   yes     |
-| [lstm](https://arxiv.org/pdf/1711.07128.pdf) | long short term memory model  |   yes     |
-| [cnn](https://arxiv.org/pdf/1711.07128.pdf) | basic convolutional neural network  |   yes     |
-| [crnn](https://arxiv.org/pdf/1711.07128.pdf) | combination of convolutional layers with RNNs(GRU or LSTM)  |   yes     |
-| [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf) | depth wise convolutional neural network  |   yes     |
-| [svdf](https://arxiv.org/pdf/1812.02802.pdf) | singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv)  |   yes     |
-| svdf_resnet | [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections  |   yes     |
-| ds_tc_resnet | combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)  |   yes     |
-| [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) | combination of cnn, RNN(bi directional LSTM) and attention  |   no     |
-| att_mh_rnn | extended version of [att_rnn](https://arxiv.org/pdf/1808.08929.pdf) with multihead attention |   no     |
-| [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf) | temporal convolution with sequence of residual blocks  |   not converted     |
-| [mobilenet](https://arxiv.org/abs/1704.04861) | reduced version of mobilenet vision/imagenet model, but with 1d temporal conv |   not converted     |
-| [mobilenet_v2](https://arxiv.org/abs/1801.04381) | reduced version of mobilenet_v2 vision/imagenet model, but with 1d temporal conv |   not converted     |
-| [xception](https://arxiv.org/abs/1610.02357) | reduced version of xception vision/imagenet model |   not converted     |
-| [inception](http://arxiv.org/abs/1512.00567) | reduced version of inception vision/imagenet model |   not converted     |
-| [inception_resnet](https://arxiv.org/abs/1602.07261) | reduced version of inception_resnet vision/imagenet model |   not converted     |
+|[dnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/dnn.py) | deep neural network based on combination of fully connected layers, based on [dnn](https://arxiv.org/pdf/1711.07128.pdf)      | yes      |
+| [dnn_raw](https://github.com/google-research/google-research/blob/master/kws_streaming/models/dnn_raw.py) | an example of [dnn](https://arxiv.org/pdf/1711.07128.pdf) model on raw audio features  |   yes     |
+| [gru](https://github.com/google-research/google-research/blob/master/kws_streaming/models/gru.py) | gated recurrent unit model, based on [gru](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [lstm](https://github.com/google-research/google-research/blob/master/kws_streaming/models/lstm.py) | long short term memory model, based on [lstm](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [cnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/cnn.py) | basic convolutional neural network, based on [cnn](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [crnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/crnn.py) | combination of convolutional layers with RNNs(GRU or LSTM), based on [crnn](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [ds_cnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/ds_cnn.py) | depth wise convolutional neural network, based on [ds_cnn](https://arxiv.org/pdf/1711.07128.pdf)  |   yes     |
+| [svdf](https://github.com/google-research/google-research/blob/master/kws_streaming/models/svdf.py) | singular value decomposition filter neural network (sequence of 1d depthwise conv and 1x1 conv), based on [svdf](https://arxiv.org/pdf/1812.02802.pdf)  |   yes     |
+| [svdf_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/svdf_resnet.py) | [svdf](https://arxiv.org/pdf/1812.02802.pdf) neural network with residual connections  |   yes     |
+| [ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/ds_tc_resnet.py) | combination of 1d depthwise convolution in time with residual blocks, based on [MatchboxNet](https://arxiv.org/abs/2004.08531)  |   yes     |
+| [bc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/bc_resnet.py) | combination of 1d depthwise convolution in time with broadcasted residual blocks, based on [BC-ResNet](https://arxiv.org/pdf/2106.04140.pdf)  |   yes     |
+| [att_rnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/att_rnn.py) | combination of cnn, RNN(bi directional LSTM) and attention based on [att_rnn](https://arxiv.org/pdf/1808.08929.pdf)  |   no     |
+| [att_mh_rnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/att_mh_rnn.py) | combination of cnn, RNN(bi directional LSTM) and multihead attention: [att_mh_rnn](https://arxiv.org/pdf/2005.06720.pdf) |   no     |
+| [tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/tc_resnet.py) | temporal convolution with sequence of residual blocks based on [tc_resnet](https://arxiv.org/pdf/1904.03814.pdf)  |   not converted     |
+| [mobilenet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/mobilenet.py) | reduced version of [mobilenet](https://arxiv.org/abs/1704.04861) vision/imagenet model, but with 1d temporal conv |   not converted     |
+| [mobilenet_v2](https://github.com/google-research/google-research/blob/master/kws_streaming/models/mobilenet_v2.py) | reduced version of [mobilenet_v2](https://arxiv.org/abs/1801.04381) vision/imagenet model, but with 1d temporal conv |   not converted     |
+| [xception](https://github.com/google-research/google-research/blob/master/kws_streaming/models/xception.py) | reduced version of [xception](https://arxiv.org/abs/1610.02357) vision/imagenet model |   not converted     |
+| [inception](https://github.com/google-research/google-research/blob/master/kws_streaming/models/inception.py) | reduced version of [inception](http://arxiv.org/abs/1512.00567) vision/imagenet model |   not converted     |
+| [inception_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/models/inception_resnet.py) | reduced version of [inception_resnet](https://arxiv.org/abs/1602.07261) vision/imagenet model |   not converted     |
 
 
 They all use speech feature extractor, which is easy to configure as MFCC, LFBE
@@ -50,10 +59,17 @@ This lib also can be applied on other sequence problems
 such as speech noise reduction, sound detection, text classification...
 
 ## Quick onboarding with toy demo:
+Before running any experiments you should install dependencies listed in [experiments](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md#install-tensorflow-with-deps).
 Step by step demo is shown in [colabs](https://github.com/google-research/google-research/tree/master/kws_streaming/colab):
 1. Download the data and check its properties [00_check_data.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/00_check_data.ipynb)
 2. Train toy svdf or ds_tc_resnet models [01_train.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/01_train.ipynb)
 3. Run inference in streaming and non streaming modes [02_inference.ipynb](https://github.com/google-research/google-research/blob/master/kws_streaming/colab/02_inference.ipynb)
+
+### Good practice of filing an issues at [google-research](https://github.com/google-research/google-research):
+[google-research](https://github.com/google-research/google-research) is a research repository with a lot of different projects/owners.
+When you create an issue for a particular project it is better to mention the owner of the project (e.g. in case of kws_streaming @rybakov),
+so that the owner will be notified and address the issue, otherwise the owner is not notified and can miss it.
+
 
 ## Experimentation steps
 NN model conversion from non streaming mode (which is frequently
@@ -88,13 +104,14 @@ All experiments are listed in folder "experiments". It contains:
 * [kws_experiments_35_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 35 labels. It is a good example of training models on custom data.
 * [kws_experiments_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) - models trained on [data set v2](https://arxiv.org/pdf/1804.03209.pdf) with 12 labels (latest experiments with different hyperparameters).
 
-The latest experiments on speech commands V2 with 12 labels are show in below table:
+The latest experiments on speech commands V2 with 12 labels are shown in below table:
 |  Model name      | accuracy [%]  | # parameters |
 | ---------------- | --------------------- | --------------------- |
+|[bc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [bc_resnet](https://arxiv.org/pdf/2106.04140.pdf) topology | 95.8 (need more HPO,  in paper it is 96.9)      | ~10K      |
 |[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology | 98.0      | 75K      |
 |[att_mh_rnn ](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md)| 98.4  |   750K     |
 
-The latest experiments on speech commands V2 with 35 labels are show in below table:
+The latest experiments on speech commands V2 with 35 labels are shown in below table:
 |  Model name      | accuracy [%]  | # parameters |
 | ---------------- | --------------------- | --------------------- |
 |[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_35_labels.md) with <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology | 96.9      | 75K      |
@@ -153,10 +170,10 @@ output = tf.keras.layers.Dense(...)(output)
 
 ### Limitation:
 * Models which require access to the whole input sequence are not streamable, such as bidirectional RNN or attention computed over the whole sequence.
-* Any causal models including models with pooling and striding in time dimension can be supported in streaming mode: for example [test_stream_strided_convolution](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/stream_test.py). For causal models we set padding='causal'. If the model is not causal, then the delay layer has to be inserted manually, as it is shown in [residual_model](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/delay_test.py).
 
 ### Edge cases:
-* Input data length has to be aligned with striding/pooling, for example if total striding=4, input data length has to be 4. It allows us to run convs efficiently.
+* Any causal models including models with pooling and striding in time dimension can be supported in streaming mode: for example [test_stream_strided_convolution](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/stream_test.py). For causal models we set padding='causal'. If the model is not causal, then the delay layer has to be inserted manually, as it is shown in [residual_model](https://github.com/google-research/google-research/blob/master/kws_streaming/layers/delay_test.py).
+* Input data length in streaming mode has to be aligned with striding/pooling, for example if total striding=4, input data length has to be 4. It allows us to run convs efficiently.
 * pool_size and strides in time dim has to be the same. If they are different it is still streamable but needs to be implemented.
 * Conv() in streaming mode can return a sequence, so it can be applied on any aligned sequence, for example if total striding=4, input data length can be 4, 8, etc
 * Flatten(), GlobalMaxPooling2D(), GlobalAveragePooling2D() can return only one output, so they can not be applied on any aligned sequence, for example if total striding=4, input data length has to be 4.
@@ -233,10 +250,31 @@ We receive audio data in streaming mode: packet by packet.
 Inference graph is stateless, so that graph has no internal state.
 All states are received as inputs and after update are returned as output state
 
-### Further information
+
+## Model quantization
+
+Two options are supported: post training quantization and quantization aware training described below.
+
+### Post training quantization
+
+Post training quantization will be done by [TFLite](https://www.tensorflow.org/lite/performance/post_training_quantization) in evaluation [script](https://github.com/google-research/google-research/blob/master/kws_streaming/train/model_train_eval.py#L187).
+If calibration data are not provided then [hybrid quantization](https://www.tensorflow.org/lite/performance/post_training_quant) will be applied: part of the model will use int operations and remaining part float (there can be still significant inference latency reduction).
+With calibration data set model will be [fully quantized](https://www.tensorflow.org/lite/performance/post_training_integer_quant): model will use only int operations.
+
+### Quantization aware training
+
+Quantization aware training is done with [tensorflow-model-optimization](https://www.tensorflow.org/model_optimization/guide/quantization/training_comprehensive_guide).
+
+#### Quantization aware training with functional api
+Example with functional api is shown in [cnn_test](https://github.com/google-research/google-research/blob/master/kws_streaming/models/cnn_test.py): because we use custom keras layers for streaming aware design, layers quantization annotation has to be done manually, as show in [cnn](https://github.com/google-research/google-research/blob/master/kws_streaming/models/cnn.py) model. We demonstrated how convolutional and batch-norm layers have to be annotated, so that they are trained in quantization aware manner and later can be fused by TFlite.
+
+#### Quantization aware training with sub class api
+Example with subclass api is shown in [conv_model_test](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model_test.py). We use [conv_model](https://github.com/google-research/google-research/blob/master/kws_streaming/models_sub/conv_model.py).
+
+## Further information
 Summary about this work is presented at paper [Streaming keyword spotting on mobile devices](https://arxiv.org/abs/2005.06720)
 All experiments on KWS models presented in this paper can be reproduced by
-following the steps described in [kws_experiments_paper](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper.md).
+following the steps described in [kws_experiments_paper_12_labels](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_paper_12_labels.md).
 Models were trained on a desktop (Ubuntu) and tested on a Pixel4 phone.
 
 
@@ -323,7 +361,7 @@ feature extractor is based on TFLite custom operations. This kind of feature ext
 functionally is the same with mfcc_tf, but all DFT, DCT are executed using FFT,
 so it will be faster and model size will be defined by neural net only.
 If you specify --feature_type 'mfcc_op', then model will be trained and
-evaluated in unquantized and quantized form (only post training quantization is supported). With mfcc_op we observed insignificant accuracy reduction of quantized models.
+evaluated in unquantized and quantized form (here post training quantization is applied). With mfcc_op we observed insignificant accuracy reduction of quantized models.
 
 
 

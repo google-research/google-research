@@ -3,9 +3,11 @@
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 from absl import flags
+import numpy as np
+import tensorflow.compat.v1 as tf
+from tqdm import tqdm
 
 from ieg import utils
 from ieg.dataset_utils.utils import autoaug_batch_process_map_fn
@@ -13,11 +15,6 @@ from ieg.models import networks
 from ieg.models.basemodel import BaseModel
 from ieg.models.custom_ops import logit_norm
 from ieg.models.custom_ops import MixMode
-
-import numpy as np
-import tensorflow.compat.v1 as tf
-from tqdm import tqdm
-
 
 FLAGS = flags.FLAGS
 logging = tf.logging
@@ -31,20 +28,19 @@ class IEG(BaseModel):
     logging.info('Init IEG model')
 
     self.augment = MixMode()
-    self.beta = 0.5  # MixUp hyperparam
-    self.nu = 2      # K value for label guessing
+    self.beta = 0.5
+    self.nu = 2
 
   def set_input(self):
     if len(self.dataset.train_dataflow.output_shapes[0]) == 3:
       # Use for cifar
       train_ds = self.dataset.train_dataflow.shuffle(
           buffer_size=self.batch_size * 10).repeat().batch(
-              self.batch_size, drop_remainder=True
-          ).map(
-              # strong augment each batch data and expand to 5D [Bx2xHxWx3]
-              autoaug_batch_process_map_fn,
-              num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(
-                  buffer_size=tf.data.experimental.AUTOTUNE)
+              self.batch_size, drop_remainder=True).map(
+                  # strong augment each batch data and expand to 5D [Bx2xHxWx3]
+                  autoaug_batch_process_map_fn,
+                  num_parallel_calls=tf.data.experimental.AUTOTUNE).prefetch(
+                      buffer_size=tf.data.experimental.AUTOTUNE)
     else:
       train_ds = self.dataset.train_dataflow.shuffle(
           buffer_size=self.batch_size * 10).repeat().batch(
@@ -52,8 +48,8 @@ class IEG(BaseModel):
                   buffer_size=tf.data.experimental.AUTOTUNE)
     # no shuffle for probe, so a batch is class balanced.
     probe_ds = self.dataset.probe_dataflow.repeat().batch(
-        self.batch_size, drop_remainder=True).prefetch(
-            buffer_size=tf.data.experimental.AUTOTUNE)
+        self.batch_size,
+        drop_remainder=True).prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 
     val_ds = self.dataset.val_dataflow.batch(
         FLAGS.val_batch_size, drop_remainder=False).prefetch(
@@ -190,8 +186,7 @@ class IEG(BaseModel):
       losses.append(tf.constant(0, tf.float32))
 
     if FLAGS.consistency_factor > 0:
-      logging.info('Use consistency loss {}'.format(
-          FLAGS.consistency_factor))
+      logging.info('Use consistency loss {}'.format(FLAGS.consistency_factor))
       consis_loss = self.consistency_loss(logits, aug_logits)
       losses.append(consis_loss)
 
@@ -416,11 +411,14 @@ class IEG(BaseModel):
     merges.append(tf.summary.scalar('loss/net', net_loss))
     merges.append(tf.summary.scalar('loss/meta', meta_loss))
     merges.append(tf.summary.scalar('acc/meta', mean_metaacc))
-    merges.append(
-        tf.summary.scalar('acc/eval_on_train', self.eval_acc_on_train[0]))
-    merges.append(
-        tf.summary.scalar('acc/eval_on_train_top5', self.eval_acc_on_train[1]))
-    merges.append(tf.summary.scalar('acc/num_eval', self.eval_acc_on_train[2]))
+    if hasattr(self, 'eval_acc_on_train'):
+      merges.append(
+          tf.summary.scalar('acc/eval_on_train', self.eval_acc_on_train[0]))
+      merges.append(
+          tf.summary.scalar('acc/eval_on_train_top5',
+                            self.eval_acc_on_train[1]))
+      merges.append(
+          tf.summary.scalar('acc/num_eval', self.eval_acc_on_train[2]))
 
     zw_inds = tf.squeeze(
         tf.where(tf.less_equal(weights, 0), name='zero_weight_index'))
@@ -431,8 +429,7 @@ class IEG(BaseModel):
                 tf.cast(tf.size(zw_inds), tf.float32),
                 tf.cast(tf.size(weights), tf.float32))))
 
-    self.epoch_var = tf.cast(
-        self.global_step / self.iter_epoch, tf.float32, name='epoch')
+    self.epoch_var = tf.cast(self.global_step / self.iter_epoch, tf.float32)
     merges.append(tf.summary.scalar('epoch', self.epoch_var))
     merges.append(tf.summary.scalar('learningrate', self.learning_rate))
     summary = tf.summary.merge(merges)
@@ -483,7 +480,8 @@ class IEG(BaseModel):
                                                        float(acc),
                                                        float(meta_acc))
         pbar.set_description(message)
-        self.summary_writer.add_summary(merged_summary, iteration)
+        if iteration % 100 == 0 or iteration == 1:
+          self.summary_writer.add_summary(merged_summary, iteration)
 
         # checkpoint
         if self.time_for_evaluation(iteration, lr):

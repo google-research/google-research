@@ -28,23 +28,31 @@ from xirl import transforms
 from xirl import video_samplers
 from xirl.dataset import VideoDataset
 from xirl.file_utils import get_subdirs
-from xirl.types import ImageTransformationType
 from xirl.types import SequenceType
 
 # Supported image transformations with default args.
 TRANSFORMS = {
     "random_resized_crop":
         functools.partial(
-            alb.RandomResizedCrop, scale=(0.6, 1.0), ratio=(0.75, 1.333),
+            alb.RandomResizedCrop, scale=(0.8, 1.0), ratio=(0.75, 1.333),
             p=1.0),
     "center_crop":
         functools.partial(alb.CenterCrop, p=1.0),
     "global_resize":
         functools.partial(alb.Resize, p=1.0),
+    "grayscale":
+        functools.partial(alb.ToGray, p=0.2),
     "vertical_flip":
         functools.partial(alb.VerticalFlip, p=0.5),
     "horizontal_flip":
         functools.partial(alb.HorizontalFlip, p=0.5),
+    "gaussian_blur":
+        functools.partial(
+            alb.GaussianBlur,
+            blur_limit=(13, 13),
+            sigma_limit=(1.0, 2.0),
+            p=0.2,
+        ),
     "color_jitter":
         functools.partial(
             alb.ColorJitter,
@@ -56,15 +64,6 @@ TRANSFORMS = {
         ),
     "rotate":
         functools.partial(alb.Rotate, limit=(-5, 5), border_mode=0, p=0.5),
-    "dropout":
-        functools.partial(
-            alb.CoarseDropout,
-            max_holes=1,
-            max_height=70,
-            max_width=70,
-            fill_value=128,
-            p=0.5,
-        ),
     "normalize":
         functools.partial(
             alb.Normalize,
@@ -78,6 +77,7 @@ FRAME_SAMPLERS = {
     "strided": frame_samplers.StridedSampler,
     "variable_strided": frame_samplers.VariableStridedSampler,
     "uniform": frame_samplers.UniformSampler,
+    "uniform_with_positives": frame_samplers.UniformWithPositivesSampler,
     "last_and_randoms": frame_samplers.LastFrameAndRandomFrames,
     "window": frame_samplers.WindowSampler,
 }
@@ -112,55 +112,56 @@ EVALUATORS = {
 def evaluator_from_config(config):
   """Create evaluators from a config."""
   eval_dict = {}
-  for eval_name in config.EVAL.DOWNSTREAM_TASK_EVALUATORS:
-    kwargs = {"distance": config.EVAL.DISTANCE}
+  for eval_name in config.eval.downstream_task_evaluators:
+    kwargs = {"distance": config.eval.distance}
     if eval_name == "kendalls_tau":
-      kwargs["stride"] = config.EVAL.KENDALLS_TAU.STRIDE
+      kwargs["stride"] = config.eval.kendalls_tau.stride
     elif "cycle_consistency" in eval_name:
-      kwargs["stride"] = config.EVAL.CYCLE_CONSISTENCY.STRIDE
+      kwargs["stride"] = config.eval.cycle_consistency.stride
     elif eval_name == "nn_visualizer":
-      kwargs["num_ctx_frames"] = config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES
-      kwargs["num_videos"] = config.EVAL.NEAREST_NEIGHBOUR_VISUALIZER.NUM_VIDEOS
+      kwargs["num_ctx_frames"] = config.frame_sampler.num_context_frames
+      kwargs["num_videos"] = config.eval.nearest_neighbour_visualizer.num_videos
     elif eval_name == "embedding_visualizer":
       kwargs.pop("distance")
-      kwargs["num_seqs"] = config.EVAL.EMBEDDING_VISUALIZER.NUM_SEQS
+      kwargs["num_seqs"] = config.eval.embedding_visualizer.num_seqs
     elif eval_name == "reconstruction_visualizer":
       kwargs.pop("distance")
-      kwargs["num_frames"] = config.EVAL.RECONSTRUCTION_VISUALIZER.NUM_FRAMES
-      kwargs["num_ctx_frames"] = config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES
+      kwargs["num_frames"] = config.eval.reconstruction_visualizer.num_frames
+      kwargs["num_ctx_frames"] = config.frame_sampler.num_context_frames
     elif eval_name == "reward_visualizer":
-      kwargs["num_plots"] = config.EVAL.REWARD_VISUALIZER.NUM_PLOTS
+      kwargs["num_plots"] = config.eval.reward_visualizer.num_plots
     elif eval_name == "reconstruction_visualizer":
       kwargs.pop("distance")
-      kwargs["num_frames"] = config.EVAL.RECONSTRUCTION_VISUALIZER.NUM_FRAMES
+      kwargs["num_frames"] = config.eval.reconstruction_visualizer.num_frames
     eval_dict[eval_name] = EVALUATORS[eval_name](**kwargs)
   return evaluators.EvalManager(eval_dict)
 
 
 def trainer_from_config(config, model, optimizer, device):
-  return TRAINERS[config.ALGORITHM](model, optimizer, device, config)
+  return TRAINERS[config.algorithm](model, optimizer, device, config)
 
 
 def model_from_config(config):
   """Create a model from a config."""
   kwargs = {
-      "num_ctx_frames": config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES,
-      "normalize_embeddings": config.MODEL.NORMALIZE_EMBEDDINGS,
-      "learnable_temp": config.MODEL.LEARNABLE_TEMP,
+      "num_ctx_frames": config.frame_sampler.num_context_frames,
+      "normalize_embeddings": config.model.normalize_embeddings,
+      "learnable_temp": config.model.learnable_temp,
   }
-  if config.MODEL.MODEL_TYPE == "resnet18_linear":
-    kwargs["embedding_size"] = config.MODEL.EMBEDDING_SIZE
-  elif config.MODEL.MODEL_TYPE == "resnet18_linear_ae":
-    kwargs["embedding_size"] = config.MODEL.EMBEDDING_SIZE
-  return MODELS[config.MODEL.MODEL_TYPE](**kwargs)
+  if config.model.model_type == "resnet18_linear":
+    kwargs["embedding_size"] = config.model.embedding_size
+  elif config.model.model_type == "resnet18_linear_ae":
+    kwargs["embedding_size"] = config.model.embedding_size
+  return MODELS[config.model.model_type](**kwargs)
 
 
 def optim_from_config(config, model):
   """Create an optimizer from a config."""
+  # TODO(kevin): Add SGD and AdamW support.
   return torch.optim.Adam(
       model.parameters(),
-      lr=config.OPTIM.LR,
-      weight_decay=config.OPTIM.WEIGHT_DECAY,
+      lr=config.optim.lr,
+      weight_decay=config.optim.weight_decay,
   )
 
 
@@ -168,10 +169,8 @@ def create_transform(name, *args, **kwargs):
   """Create an image augmentation from its name and args."""
   # pylint: disable=invalid-name
   if "::" in name:
+    # e.g., `rotate::{'limit': (-45, 45)}`
     name, __kwargs = name.split("::")
-    # Ensure the transformation we've been provided is supported.
-    if name not in ImageTransformationType._value2member_map_:  # pylint: disable=protected-access
-      raise ValueError(f"{name} is not a supported ImageTransformationType.")
     _kwargs = eval(__kwargs)  # pylint: disable=eval-used
   else:
     _kwargs = {}
@@ -182,58 +181,60 @@ def create_transform(name, *args, **kwargs):
 def frame_sampler_from_config(config, downstream):
   """Create a frame sampler from a config."""
   kwargs = {
-      "num_frames": config.FRAME_SAMPLER.NUM_FRAMES_PER_SEQUENCE,
-      "num_ctx_frames": config.FRAME_SAMPLER.NUM_CONTEXT_FRAMES,
-      "ctx_stride": config.FRAME_SAMPLER.CONTEXT_STRIDE,
-      "pattern": config.FRAME_SAMPLER.IMAGE_EXT,
-      "seed": config.SEED,
+      "num_frames": config.frame_sampler.num_frames_per_sequence,
+      "num_ctx_frames": config.frame_sampler.num_context_frames,
+      "ctx_stride": config.frame_sampler.context_stride,
+      "pattern": config.frame_sampler.image_ext,
+      "seed": config.seed,
   }
 
   if downstream:
     kwargs.pop("num_frames")
-    kwargs["stride"] = config.FRAME_SAMPLER.ALL_SAMPLER.STRIDE
+    kwargs["stride"] = config.frame_sampler.all_sampler.stride
     return FRAME_SAMPLERS["all"](**kwargs)
 
-  if config.FRAME_SAMPLER.STRATEGY == "strided":
-    kwargs["stride"] = config.FRAME_SAMPLER.STRIDED_SAMPLER.STRIDE
-    kwargs["offset"] = config.FRAME_SAMPLER.STRIDED_SAMPLER.OFFSET
-  elif config.FRAME_SAMPLER.STRATEGY == "uniform":
-    kwargs["offset"] = config.FRAME_SAMPLER.UNIFORM_SAMPLER.OFFSET
+  if config.frame_sampler.strategy == "strided":
+    kwargs["stride"] = config.frame_sampler.strided_sampler.stride
+    kwargs["offset"] = config.frame_sampler.strided_sampler.offset
+  elif config.frame_sampler.strategy == "uniform":
+    kwargs["offset"] = config.frame_sampler.uniform_sampler.offset
 
-  return FRAME_SAMPLERS[config.FRAME_SAMPLER.STRATEGY](**kwargs)
+  return FRAME_SAMPLERS[config.frame_sampler.strategy](**kwargs)
 
 
 def video_sampler_from_config(config, dir_tree, downstream, sequential):
   """Create a video sampler from a config."""
   kwargs = {
       "dir_tree": dir_tree,
-      "batch_size": config.DATA.BATCH_SIZE,
+      "batch_size": config.data.batch_size,
       "sequential": sequential,
   }
   if downstream:
     kwargs.pop("batch_size")
     return VIDEO_SAMPLERS["downstream"](**kwargs)
-  return VIDEO_SAMPLERS[config.DATA.PRETRAINING_VIDEO_SAMPLER](**kwargs)
+  return VIDEO_SAMPLERS[config.data.pretraining_video_sampler](**kwargs)
 
 
 def dataset_from_config(config, downstream, split, debug):
   """Create a video dataset from a config."""
-  dataset_path = osp.join(config.DATA.ROOT, split)
+  dataset_path = osp.join(config.data.root, split)
 
-  image_size = config.DATA_AUGMENTATION.IMAGE_SIZE
+  image_size = config.data_augmentation.image_size
   if isinstance(image_size, int):
     image_size = (image_size, image_size)
   image_size = tuple(image_size)
 
-  if debug or downstream:
+  # Note(kevin): We used to disable data augmentation on all downstream
+  # dataloaders. I've decided to keep them for train downstream loaders.
+  if debug:
     # The minimum data augmentation we want to keep is resizing when
     # debugging.
     aug_names = ["global_resize"]
   else:
     if split == "train":
-      aug_names = config.DATA_AUGMENTATION.TRAIN_TRANSFORMS
+      aug_names = config.data_augmentation.train_transforms
     else:
-      aug_names = config.DATA_AUGMENTATION.EVAL_TRANSFORMS
+      aug_names = config.data_augmentation.eval_transforms
 
   # Create a list of data augmentation callables.
   aug_funcs = []
@@ -248,8 +249,8 @@ def dataset_from_config(config, downstream, split, debug):
   # Restrict action classes if they have been provided. Else, load all
   # from the data directory.
   c_action_class = (
-      config.DATA.DOWNSTREAM_ACTION_CLASS
-      if downstream else config.DATA.PRETRAIN_ACTION_CLASS)
+      config.data.downstream_action_class
+      if downstream else config.data.pretrain_action_class)
   if c_action_class:
     action_classes = c_action_class
   else:
@@ -257,7 +258,7 @@ def dataset_from_config(config, downstream, split, debug):
         dataset_path,
         basename=True,
         nonempty=True,
-        sort=False,
+        sort_lexicographical=True,
     )
 
   # We need to separate out the dataclasses for each action class when
@@ -269,9 +270,9 @@ def dataset_from_config(config, downstream, split, debug):
       single_class_dataset = VideoDataset(
           dataset_path,
           frame_sampler,
-          seed=config.SEED,
+          seed=config.seed,
           augmentor=augmentor,
-          max_vids_per_class=config.DATA.MAX_VIDS_PER_CLASS,
+          max_vids_per_class=config.data.max_vids_per_class,
       )
       single_class_dataset.restrict_subdirs(action_class)
       dataset[action_class] = single_class_dataset
@@ -280,9 +281,9 @@ def dataset_from_config(config, downstream, split, debug):
     dataset = VideoDataset(
         dataset_path,
         frame_sampler,
-        seed=config.SEED,
+        seed=config.seed,
         augmentor=augmentor,
-        max_vids_per_class=config.DATA.MAX_VIDS_PER_CLASS,
+        max_vids_per_class=config.data.max_vids_per_class,
     )
     dataset.restrict_subdirs(action_classes)
 

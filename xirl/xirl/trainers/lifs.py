@@ -17,11 +17,8 @@
 
 from typing import Dict, List, Union
 
-from ml_collections import ConfigDict
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from xirl.models import SelfSupervisedReconOutput
 from xirl.trainers.base import Trainer
 
 BatchType = Dict[str, Union[torch.Tensor, List[str]]]
@@ -51,7 +48,7 @@ class LIFSTrainer(Trainer):
   ):
     super().__init__(model, optimizer, device, config)
 
-    self.temperature = config.LOSS.LIFS.TEMPERATURE
+    self.temperature = config.loss.lifs.temperature
 
   def compute_auxiliary_loss(
       self,

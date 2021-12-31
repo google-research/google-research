@@ -25,13 +25,19 @@ LinearDiscriminantAnalysis = discriminant_analysis.LinearDiscriminantAnalysis
 RandomForestClassifier = ensemble.RandomForestClassifier
 
 
-# pylint:disable=line-too-long,unused-variable, g-no-space-after-comment
+# pylint:disable=line-too-long,unused-variable, g-no-space-after-comment, g-long-lambda
 def get_sklearn_models():
   return {
-      'LogisticRegression': lambda: LogisticRegression(C=1e5, solver='lbfgs', multi_class='multinomial'),
-      'LogisticRegression_balanced': lambda: LogisticRegression(C=1e5, solver='lbfgs', multi_class='multinomial', class_weight='balanced'),
-      'LDA_LSQR_AUTO': lambda: LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),
-      'Forest_balanced_100': lambda: RandomForestClassifier(class_weight='balanced', n_estimators=100),
-      'Forest_unbalanced_100': lambda: RandomForestClassifier(class_weight=None, n_estimators=100),
+      'LogisticRegression':
+          lambda: LogisticRegression(
+              C=1e5, solver='lbfgs', multi_class='multinomial'),
+      'LogisticRegression_balanced':
+          lambda: LogisticRegression(
+              C=1e5,
+              solver='lbfgs',
+              multi_class='multinomial',
+              class_weight='balanced'),
+      'LDA_LSQR_AUTO':
+          lambda: LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),
   }
-# pylint:enable=line-too-long,unused-variable, g-no-space-after-comment
+# pylint:enable=line-too-long,unused-variable, g-no-space-after-comment, g-long-lambda

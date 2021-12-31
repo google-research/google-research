@@ -14,7 +14,17 @@
 
 #include "scann/distance_measures/one_to_one/dot_product.h"
 
+#include <cstdint>
+
 namespace research_scann {
+
+SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(DotProductDistance,
+                                              kEarlyStoppingNotSupported);
+SCANN_REGISTER_DISTANCE_MEASURE(DotProductDistance);
+
+SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(AbsDotProductDistance,
+                                              kEarlyStoppingNotSupported);
+SCANN_REGISTER_DISTANCE_MEASURE(AbsDotProductDistance);
 
 double BinaryDotProductDistance::GetDistanceDense(
     const DatapointPtr<uint8_t>& a, const DatapointPtr<uint8_t>& b) const {

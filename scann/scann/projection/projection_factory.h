@@ -17,6 +17,8 @@
 #ifndef SCANN_PROJECTION_PROJECTION_FACTORY_H_
 #define SCANN_PROJECTION_PROJECTION_FACTORY_H_
 
+#include <cstdint>
+
 #include "scann/data_format/dataset.h"
 #include "scann/projection/chunking_projection.h"
 #include "scann/projection/projection_base.h"

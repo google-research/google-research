@@ -32,25 +32,3 @@ class SequenceType(enum.Enum):
 
   def __str__(self):  # pylint: disable=invalid-str-returned
     return self.value
-
-
-@enum.unique
-class ImageTransformationType(enum.Enum):
-  """Transformations we know how to run on images.
-
-  If you want to add additional augmentations, you must add them here.
-  """
-
-  RANDOM_RESIZED_CROP = "random_resized_crop"
-  CENTER_CROP = "center_crop"
-  GLOBAL_RESIZE = "global_resize"
-  VERTICAL_FLIP = "vertical_flip"
-  HORIZONTAL_FLIP = "horizontal_flip"
-  COLOR_JITTER = "color_jitter"
-  ROTATE = "rotate"
-  DROPOUT = "dropout"
-  NORMALIZE = "normalize"
-  UNNORMALIZE = "unnormalize"
-
-  def __str__(self):  # pylint: disable=invalid-str-returned
-    return self.value

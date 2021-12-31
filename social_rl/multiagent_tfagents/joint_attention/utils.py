@@ -13,16 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utlity functions for multigrid environments."""
-from typing import Tuple
+"""Utility functions for multigrid environments."""
 
 import gym
 import numpy as np
-import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
-from tf_agents.drivers import tf_driver
-from tf_agents.trajectories import time_step as ts
-from tf_agents.trajectories import trajectory
-from tf_agents.typing import types
+import tensorflow as tf
+from tf_agents.train import actor
+from tf_agents.utils import common
+from social_rl.multiagent_tfagents.joint_attention import drivers
 
 
 class LSTMStateWrapper(gym.ObservationWrapper):
@@ -58,46 +56,49 @@ class LSTMStateWrapper(gym.ObservationWrapper):
     return observation
 
 
-class StateTFDriver(tf_driver.TFDriver):
-  """A TFDriver that adds policy state to observations.
+class StateActor(actor.Actor):
+  """An Actor that adds uses the StatePyDriver."""
 
-  These policy states are used to compute attention weights in the attention
-  architecture.
-  """
-
-  def run(
-      self, time_step, policy_state = ()
-  ):
-    """Run policy in environment given initial time_step and policy_state.
+  def __init__(self,
+               *args,
+               steps_per_run=None,
+               episodes_per_run=None,
+               **kwargs):
+    """Initializes a StateActor.
 
     Args:
-      time_step: The initial time_step.
-      policy_state: The initial policy_state.
-
-    Returns:
-      A tuple (final time_step, final policy_state).
+      *args: See superclass.
+      steps_per_run: Number of steps evaluated per run call.
+      episodes_per_run: Number of episodes evaluated per run call.
+      **kwargs: See superclass.
     """
-    num_steps = tf.constant(0.0)
-    num_episodes = tf.constant(0.0)
+    super(StateActor, self).__init__(*args,
+                                     steps_per_run,
+                                     episodes_per_run,
+                                     **kwargs)
 
-    while num_steps < self._max_steps and num_episodes < self._max_episodes:
-      action_step = self.policy.action(time_step, policy_state)
-      next_time_step = self.env.step(action_step.action)
-      next_time_step.observation['policy_state'] = (
-          policy_state['actor_network_state'][0],
-          policy_state['actor_network_state'][1])
+    self._driver = drivers.StatePyDriver(
+        self._env,
+        self._policy,
+        self._observers,
+        max_steps=steps_per_run,
+        max_episodes=episodes_per_run)
 
-      traj = trajectory.from_transition(time_step, action_step, next_time_step)
-      for observer in self._transition_observers:
-        observer((time_step, action_step, next_time_step))
-      for observer in self.observers:
-        observer(traj)
+    self.reset()
 
-      num_episodes += tf.math.reduce_sum(
-          tf.cast(traj.is_boundary(), tf.float32))
-      num_steps += tf.math.reduce_sum(tf.cast(~traj.is_boundary(), tf.float32))
-
-      time_step = next_time_step
-      policy_state = action_step.state
-
-    return time_step, policy_state
+  def write_metric_summaries(self):
+    """Generates scalar summaries for the actor metrics."""
+    super().write_metric_summaries()
+    if self._metrics is None:
+      return
+    with self._summary_writer.as_default(), \
+         common.soft_device_placement(), \
+         tf.summary.record_if(lambda: True):
+      # Generate summaries against the train_step
+      for m in self._metrics:
+        tag = m.name
+        if 'Multiagent' in tag:
+          for a in range(m.n_agents):
+            tf.compat.v2.summary.scalar(name=tag + '_agent' + str(a),
+                                        data=m.result_for_agent(a),
+                                        step=self._train_step)

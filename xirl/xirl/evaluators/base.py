@@ -16,12 +16,10 @@
 """Base evaluator."""
 
 import abc
+import dataclasses
 from typing import List, Optional, Union
 
-import dataclasses
 import numpy as np
-from torchkit import Logger
-from xirl.models import SelfSupervisedOutput
 
 
 @dataclasses.dataclass
@@ -67,8 +65,7 @@ class EvaluatorOutput:
       videos = [o.video for o in list_out]
     return EvaluatorOutput(scalars, images, videos)
 
-  def log(self, logger, global_step, name,
-          prefix):
+  def log(self, logger, global_step, name, prefix):
     """Log the attributes to tensorboard."""
     if self.scalar is not None:
       if isinstance(self.scalar, list):
@@ -86,6 +83,7 @@ class EvaluatorOutput:
           logger.log_video(video, global_step, name + f"_{i}", prefix)
       else:
         logger.log_video(self.video, global_step, name, prefix)
+    logger.flush()
 
 
 class Evaluator(abc.ABC):

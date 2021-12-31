@@ -17,11 +17,11 @@
 """Dataset utils for the Learned Interpreters framework."""
 
 import collections
+import dataclasses
 
 from typing import Any, Optional
 
 from absl import logging
-import dataclasses
 import jax
 import jax.numpy as jnp
 import six
@@ -29,6 +29,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 import tree
 
+from ipagnn.datasets import datasets  # pylint: disable=unused-import
 
 
 @dataclasses.dataclass

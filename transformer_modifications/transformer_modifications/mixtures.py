@@ -14,13 +14,14 @@
 # limitations under the License.
 
 """Transformer Modifications Mixtures."""
-import t5
+
+import seqio
 from t5.data.glue_utils import get_super_glue_weight_mapping
 
 from transformer_modifications.transformer_modifications import tasks  # pylint: disable=unused-import
 
-MixtureRegistry = t5.data.MixtureRegistry
-TaskRegistry = t5.data.TaskRegistry
+MixtureRegistry = seqio.MixtureRegistry
+TaskRegistry = seqio.TaskRegistry
 
 _super_glue_tasks_envocab = {}
 for task, value in get_super_glue_weight_mapping().items():

@@ -1,5 +1,14 @@
 # ScaNN Release Notes
 
+### 1.2.4
+Updated to compile against TensorFlow 2.7.0; **not** backwards-compatible with earlier versions of TensorFlow. Python 3.6 support has been dropped because TF 2.7 doesn't support Python 3.6.
+
+### 1.2.3
+Updated to compile against TensorFlow 2.6.0; **not** backwards-compatible with earlier versions of TensorFlow.
+
+### 1.2.2
+Added support for Python 3.9. Wheels and code now depend on TensorFlow 2.5.0. **Code no longer compiles against TensorFlow 2.4.x or earlier due to a change in TensorFlow's Abseil C++ dependency.**
+
 ### 1.2.1
 Improved default parameters to the `tree()` method of `scann_builder`.
 

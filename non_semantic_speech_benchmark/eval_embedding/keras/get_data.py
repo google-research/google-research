@@ -17,8 +17,7 @@
 """Get data."""
 
 import functools
-import tensorflow.compat.v2 as tf
-from non_semantic_speech_benchmark import file_utils
+import tensorflow as tf
 
 
 def get_data(
@@ -32,7 +31,8 @@ def get_data(
     bucket_batch_sizes,
     loop_forever,
     shuffle,
-    shuffle_buffer_size=10000):
+    shuffle_buffer_size=10000,
+    preaverage=False):
   """Gets the data for keras training.
 
   Args:
@@ -47,11 +47,12 @@ def get_data(
     loop_forever: Python bool. Whether to loop forever.
     shuffle: Python bool. Whether to shuffle data.
     shuffle_buffer_size: Size of shuffle buffer.
+    preaverage: Whether ot preaverage.
 
   Returns:
     A tf.data.Dataset of (embeddings, onehot labels).
   """
-  assert file_utils.Glob(file_pattern), file_pattern
+  assert tf.io.gfile.glob(file_pattern), file_pattern
   assert isinstance(bucket_boundaries, (tuple, list))
   if isinstance(bucket_boundaries[0], str):
     bucket_boundaries = [int(x) for x in bucket_boundaries]
@@ -80,34 +81,35 @@ def get_data(
       sloppy_ordering=True)
         .map(lambda kv: (kv[emb_key], kv[label_key]),
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .map(functools.partial(_reshape_full, embedding_dim=embedding_dim),
+        .map(functools.partial(_reshape_full, embedding_dim=embedding_dim,
+                               preaverage=preaverage),
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .map(functools.partial(_y_to_onehot, label_list=label_list),
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .map(_remove_batchdim_one,
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .apply(
-            tf.data.experimental.bucket_by_sequence_length(
-                element_length_func=lambda emb, lbl: tf.shape(emb)[0],
-                bucket_boundaries=bucket_boundaries,
-                bucket_batch_sizes=bucket_batch_sizes,
-                padded_shapes=None,
-                padding_values=None,
-                pad_to_bucket_boundary=False,
-                no_padding=False,
-                drop_remainder=False)
-            )
         )
+  ds = ds.bucket_by_sequence_length(
+      element_length_func=lambda emb, lbl: tf.shape(emb)[0],
+      bucket_boundaries=bucket_boundaries,
+      bucket_batch_sizes=bucket_batch_sizes,
+      padded_shapes=None,
+      padding_values=None,
+      pad_to_bucket_boundary=False,
+      no_padding=False,
+      drop_remainder=False)
 
   return ds
 
 
-def _reshape_full(embeddings, labels, embedding_dim):
+def _reshape_full(embeddings, labels, embedding_dim, preaverage):
   """Reshape to 2D."""
   embeddings.shape.assert_has_rank(2)
   emb = tf.sparse.to_dense(embeddings)
   emb = tf.reshape(emb, [tf.shape(emb)[0], -1, embedding_dim])
   emb.shape.assert_has_rank(3)
+  if preaverage:
+    emb = tf.reduce_mean(emb, axis=1, keepdims=True)
   labels.shape.assert_has_rank(1)
 
   return emb, labels

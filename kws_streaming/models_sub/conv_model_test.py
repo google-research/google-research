@@ -17,7 +17,7 @@
 import os
 import numpy as np
 import tensorflow as tf
-
+from kws_streaming.layers import test_utils
 from kws_streaming.models_sub import conv_model
 from kws_streaming.models_sub import tflite_utils
 from kws_streaming.models_sub import utils
@@ -62,21 +62,16 @@ class ConvModelTest(tf.test.TestCase):
   def test_conv_model_end_to_end(self):
 
     # prepare training and testing data
-    # we will use mnist data to train a streaming and qauntization aware model
-    # mnist data are 2d:
-    # we can consider first dimension as time and second dimension as feature
-    (train_images,
-     train_labels), (test_images,
-                     test_labels) = tf.keras.datasets.mnist.load_data()
-    train_images, test_images = train_images / 255.0, test_images / 255.0
-    train_images = train_images.reshape(train_images.shape[0], 28, 28,
-                                        1)[:200,]
-    train_labels = train_labels[:200,]
-    test_images = test_images.reshape(test_images.shape[0], 28, 28, 1)[:50,]
-    test_labels = test_labels[:50,]
+    num_time_bins = 12
+    feature_dim = 12
+    train_images, train_labels = test_utils.generate_data(
+        img_size_y=num_time_bins, img_size_x=feature_dim, n_samples=32)
+    train_images = np.expand_dims(train_images, 3)
+    test_images = train_images
+    test_labels = train_labels
 
     # create and train quantization aware model in non streaming mode
-    model = conv_model.ConvModel(label_count=10, apply_quantization=True)
+    model = conv_model.ConvModel(label_count=2, apply_quantization=True)
     model.compile(
         optimizer='adam',
         loss=tf.keras.losses.SparseCategoricalCrossentropy(),
@@ -89,7 +84,6 @@ class ConvModelTest(tf.test.TestCase):
     model.summary()
 
     # create streaming graph
-    feature_dim = 28
     states = model.states()
     _ = model.stream_inference(
         tf.zeros((model.inference_batch_size, model.stride, feature_dim, 1),
@@ -130,11 +124,11 @@ class ConvModelTest(tf.test.TestCase):
       def _representative_dataset_gen():
         for i in range(len(calibration_input_data)):
           yield [
-              calibration_input_data[i].astype(np.float32),  # input audio
               calibration_states[i]
               [model.flatten.get_core_layer().name].numpy().astype(np.float32),
               calibration_states[i][
                   model.conv2.get_core_layer().name].numpy().astype(np.float32),
+              calibration_input_data[i].astype(np.float32),  # input audio
           ]
       return _representative_dataset_gen
 
@@ -168,7 +162,7 @@ class ConvModelTest(tf.test.TestCase):
             output_tensor_name=model.output_tensor_name))
 
     # compare tflite streaming and tf non streaming outputs
-    self.assertAllClose(stream_output_tflite, non_stream_output_tf, atol=0.01)
+    self.assertAllClose(stream_output_tflite, non_stream_output_tf, atol=0.001)
 
 
 if __name__ == '__main__':

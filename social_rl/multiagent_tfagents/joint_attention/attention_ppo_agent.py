@@ -50,7 +50,10 @@ class MultiagentAttentionPPO(multiagent_ppo.MultiagentPPO):
       self,
       *args,
       attention_bonus_type='kld',
+      bonus_ratio=0.0,
+      bonus_timescale=1,
       unscaled_bonus_metric=None,
+      scaled_bonus_metric=None,
       **kwargs,
   ):
     """Creates a centralized controller agent that uses joint attention.
@@ -58,12 +61,20 @@ class MultiagentAttentionPPO(multiagent_ppo.MultiagentPPO):
     Args:
       *args: See superclass.
       attention_bonus_type: Method for computing bonus rewards (kld, jsd).
+      bonus_ratio: Final multiplier for bonus rewards.
+      bonus_timescale: How to to linearly scale bonus rewards.
       unscaled_bonus_metric: (Optional) MultiagentScalar for raw attention
+          bonus rewards.
+      scaled_bonus_metric: (Optional) MultiagentScalar for scaled attention
           bonus rewards.
       **kwargs: See superclass.
     """
     self.attention_bonus_type = attention_bonus_type
+    self._bonus_ratio = bonus_ratio
+    self._bonus_timescale = bonus_timescale
     self._unscaled_bonus_metric = unscaled_bonus_metric
+    self._scaled_bonus_metric = scaled_bonus_metric
+
     super(MultiagentAttentionPPO, self).__init__(
         *args,
         network_build_fn=attention_networks.construct_attention_networks,
@@ -99,6 +110,9 @@ class MultiagentAttentionPPO(multiagent_ppo.MultiagentPPO):
       eps = tf.keras.backend.epsilon()
       p += eps
       raw_bonus = 0
+      score_multiplier = tf.cast(
+          tf.clip_by_value(self._global_step, 0, self._bonus_timescale) /
+          self._bonus_timescale * self._bonus_ratio, tf.float32)
       for j, other_policy_info in enumerate(trajectory.policy_info):
         if j == agent_id:
           continue
@@ -113,8 +127,12 @@ class MultiagentAttentionPPO(multiagent_ppo.MultiagentPPO):
               tf.reduce_sum(q * tf.math.log(q / m), axis=(-1, -2))) / 2
         else:
           raise NotImplementedError
+      scaled_bonus = raw_bonus * score_multiplier
+      reward += scaled_bonus
       if self._unscaled_bonus_metric:
         self._unscaled_bonus_metric(raw_bonus, agent_id)
+      if self._scaled_bonus_metric:
+        self._scaled_bonus_metric(scaled_bonus, agent_id)
 
     agent_trajectory.replace(reward=reward)
 
@@ -326,6 +344,9 @@ class AttentionPPOAgent(ppo_agent.PPOAgent):
     self._compute_value_and_advantage_in_train = (
         compute_value_and_advantage_in_train)
     self.update_normalizers_in_train = update_normalizers_in_train
+    # Using the default setup to aggregate losses across multiple cores using
+    # tf_agents.common.aggregate_losses.
+    self._aggregate_losses_across_replicas = True
     if not isinstance(self._optimizer, tf.keras.optimizers.Optimizer):
       logging.warning(
           'Only tf.keras.optimizers.Optimizers are well supported, got a '

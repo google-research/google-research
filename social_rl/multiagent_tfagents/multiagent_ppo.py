@@ -223,6 +223,7 @@ class MultiagentPPO(tf_agent.TFAgent):
           train_step_counter=train_step_counter)
 
     self._global_step = train_step_counter
+    self.update_normalizers_in_train = False
     print('Finished constructing multi-agent PPO')
 
   def get_single_agent_specs(self, time_step_spec, action_spec):
@@ -310,7 +311,7 @@ class MultiagentPPO(tf_agent.TFAgent):
       with tf.name_scope('agent' + str(a) + '_logging/'):
         agent_losses.append(self.agents[a].train(experience=agent_experience))
 
-    total_loss = np.sum([l.loss for l in agent_losses])
+    total_loss = tf.reduce_sum(tf.stack([l.loss for l in agent_losses]))
     loss_info = tf_agent.LossInfo(loss=total_loss, extra=agent_losses)
 
     return loss_info

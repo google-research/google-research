@@ -13,13 +13,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Util methods for compression_op library."""
+"""Util methods and enums for compression_op library."""
 
 from __future__ import division
 
+import enum
 import math
 import numpy as np
 import tensorflow.compat.v1 as tf
+
+
+class CompressionOptions(enum.IntEnum):
+  """Options for specifying the method of matrix compression."""
+  NO_MATRIX_COMPRESSION = 0
+  LOWRANK_MATRIX_COMPRESSION = 1
+  SIMHASH_MATRIX_COMPRESSION = 2
+  DL_MATRIX_COMPRESSION = 3
+  KMEANS_MATRIX_COMPRESSION = 4
+  KMEANS_AND_PRUNING_MATRIX_COMPRESSION = 8
+  INPUTOUTPUT_COMPRESSION = 9
+  BLOCK_COMPRESSION = 10
+  MIXED_BLOCK_COMPRESSION = 12
+
+
+class UpdateOptions(enum.IntEnum):
+  """Options for implementing alpha update logic.
+
+  update_option: integer
+        indicates how the update logic is being run. More specifically:
+        0: TF_UPDATE - run the update logic in TF; needed when using GPU/TPU
+        1: PYTHON_UPDATE - run the update logic in regular
+                           python as opposed to TF.
+        2: TF_AND_PYTHON_UPDATE - run the update logic in TF
+                                  and in regular python.
+        3: NO_UPDATE - no alpha update as alpha not used
+                       in some compression options.
+
+  """
+  TF_UPDATE = 0
+  PYTHON_UPDATE = 1
+  TF_AND_PYTHON_UPDATE = 2
+  NO_UPDATE = 3
 
 
 def compute_compressed_rank_from_matrix_shape(matrix_shape, rank_factor):

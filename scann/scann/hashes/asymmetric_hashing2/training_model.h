@@ -15,6 +15,8 @@
 #ifndef SCANN_HASHES_ASYMMETRIC_HASHING2_TRAINING_MODEL_H_
 #define SCANN_HASHES_ASYMMETRIC_HASHING2_TRAINING_MODEL_H_
 
+#include <cstdint>
+
 #include "scann/data_format/dataset.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/proto/hash.pb.h"

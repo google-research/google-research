@@ -36,8 +36,8 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import lax
-from jax.api import grad
-from jax.api import jvp
+from jax import grad
+from jax import jvp
 from jax.config import config
 from jax.experimental import stax
 import jax.numpy as np
@@ -91,8 +91,8 @@ EXAMPLES = [
     Jax2TexExample(grad(lambda a, b: a * (a - b) / (a + b) + b),
                    (Scalar, Scalar),
                    ('f &= -1.0{\\left(a + b\\right)}^{-2}a\\left(a - b\\right) '
-                    '+ {1.0 \\over a + b}a + {1.0 \\over a + b}'
-                    '\\left(a - b\\right)')),
+                    '+ {1.0 \\over a + b}\\left(a - b\\right) + '
+                    'a{1.0 \\over a + b}')),
     # EX 6
     Jax2TexExample(lambda W, x: W @ x,
                    (S((3, 2)), S((2,))),
@@ -153,8 +153,8 @@ EXAMPLES += [
     # EX 17
     Jax2TexExample(jvp_fn,
                    (Scalar, Scalar),
-                   ('dz &= -1.0b{a}^{-2}\\\\\nf &= 1.0 '
-                    '+ dz')),
+                   ('dz &= \\left(-1.0\\right)b{a}^{-2}\\\\\n'
+                    'f &= 1.0 + dz')),
 ]
 
 
@@ -217,8 +217,8 @@ EXAMPLES += [
                    ('z^1_{i} &= \\sum_{j}W_{ij}x_{j}\\\\\nz^2_{i} &= '
                     '\\sum_{j}W_{ij}z^1_{j}\\\\\n\\delta z^2_{i} &= 1.0z^2_{i}'
                     ' + 1.0z^2_{i}\\\\\n\\delta z^1_{i} &= \\sum_{j}\\delta '
-                    'z^2_{j}W_{ji}\\\\\nq_{ij} &= \\delta z^1_{i}x_{j}'
-                    ' + \\delta z^2_{i}z^1_{j}'))
+                    'z^2_{j}W_{ji}\\\\\nq_{ij} &= \\delta z^2_{i}z^1_{j} + '
+                    '\\delta z^1_{i}x_{j}'))
 ]
 
 
@@ -301,24 +301,26 @@ EXAMPLES += [
                     '\\right\\} - \\log\\left(\\sum_{k}e^{z^2_{ik} - \\max_{l}'
                     '\\left\\{z^2_{il}\\right\\}}\\right)\\right)')),
     # EX 28
-    Jax2TexExample(grad(L), (shaped_params, S((3, 5)), S((3, 3))),
-                   ('z^1_{ij} &= \\sum_{k}x_{ik}W^1_{kj} + b^1_{j}\\\\\n'
-                    'y^1_{ij} &= \\text{relu}(z^1_{ij})\\\\\nz^2_{ij} &= '
-                    '\\sum_{k}y^1_{ik}W^2_{kj} + b^2_{j}\\\\\n\\delta L &= 1.0'
-                    '\\\\\n\\delta z^2_{ij} &= -\\delta L\\hat y_{ij} + '
-                    '{-\\sum_{k}-\\delta L\\hat y_{ik} \\over \\sum_{k}'
-                    'e^{z^2_{ik} - \\max_{l}\\left\\{z^2_{il}\\right\\}}}'
-                    'e^{z^2_{ij} - \\max_{k}\\left\\{z^2_{ik}\\right\\}}\\\\\n'
-                    '\\delta b^2_{i} &= \\sum_{i}\\sum_{j}\\delta z^2_{ji}'
-                    '\\\\\n\\delta W^2_{ij} &= \\sum_{k}\\delta z^2_{kj}'
-                    'y^1_{ki}\\\\\n\\delta y^1_{ij} &= \\sum_{k}'
-                    '\\delta z^2_{ik}W^2_{jk}\\\\\n\\delta z^1_{ij} &= '
-                    '\\mathbbm 1_{z^1_{ij}>0.0}\\delta y^1_{ij} + \\left(1 - '
-                    '\\mathbbm 1_{z^1_{ij}>0.0}\\right)0.0\\\\\n'
-                    '\\delta b^1_{i} &= \\sum_{i}\\sum_{j}\\delta z^1_{ji}'
-                    '\\\\\n\\delta W^1_{ij} &= \\sum_{k}'
-                    '\\delta z^1_{kj}x_{ki}'))
-
+    Jax2TexExample(
+        grad(L), (shaped_params, S((3, 5)), S((3, 3))),
+        ('z^1_{ij} &= \\sum_{k}x_{ik}W^1_{kj} + b^1_{j}\\\\\n'
+         'y^1_{ij} &= \\text{relu}(z^1_{ij})\\\\\n'
+         'z^2_{ij} &= \\sum_{k}y^1_{ik}W^2_{kj} + b^2_{j}\\\\\n'
+         '\\delta L &= 1.0\\\\\n'
+         '\\delta z^2_{ij} &= \\hat y_{ij}\\left(-\\delta L\\right)'
+         ' + \\left({\\sum_{k}-\\hat y_{ik}\\left(-\\delta L\\right)'
+         ' \\over \\sum_{k}e^{z^2_{ik} - '
+         '\\max_{l}\\left\\{z^2_{il}\\right\\}}'
+         '}\\right)e^{z^2_{ij} - \\max_{k}\\left\\{z^2_{ik}\\right'
+         '\\}}\\\\\n'
+         '\\delta b^2_{i} &= \\sum_{i}\\sum_{j}\\delta z^2_{ji}\\\\\n'
+         '\\delta W^2_{ij} &= \\sum_{k}\\delta z^2_{kj}y^1_{ki}\\\\\n'
+         '\\delta y^1_{ij} &= \\sum_{k}\\delta z^2_{ik}W^2_{jk}\\\\\n'
+         '\\delta z^1_{ij} &= \\mathbbm 1_{z^1_{ij}>0.0}\\delta '
+         'y^1_{ij} + '
+         '\\left(1 - \\mathbbm 1_{z^1_{ij}>0.0}\\right)0.0\\\\\n'
+         '\\delta b^1_{i} &= \\sum_{i}\\sum_{j}\\delta z^1_{ji}\\\\\n'
+         '\\delta W^1_{ij} &= \\sum_{k}\\delta z^1_{kj}x_{ki}'))
 ]
 
 

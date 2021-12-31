@@ -14,6 +14,7 @@
 
 #include "scann/hashes/internal/stacked_quantizers.h"
 
+#include <cstdint>
 #include <functional>
 #include <limits>
 #include <numeric>

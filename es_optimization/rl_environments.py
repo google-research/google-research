@@ -45,8 +45,8 @@ class BlackboxRLEnvironment(abc.ABC, gym.Env):
     raise NotImplementedError('Abstract method')
 
 
-class ContMountainCar(BlackboxRLEnvironment,
-                      continuous_mountain_car.Continuous_MountainCarEnv):
+class ContMountainCar(continuous_mountain_car.Continuous_MountainCarEnv,
+                      BlackboxRLEnvironment):
   """Class representing ContinuousMountainCar OpenAIGym env for RL.
 
   OpenAIGym style environment for testing reinforcement learning algorithms.
@@ -69,7 +69,7 @@ class ContMountainCar(BlackboxRLEnvironment,
     return 1
 
 
-class Pendulum(BlackboxRLEnvironment, pendulum.PendulumEnv):
+class Pendulum(pendulum.PendulumEnv, BlackboxRLEnvironment):
   """Class representing Pendulum OpenAIGym env for RL.
 
   OpenAIGym style environment for testing reinforcement learning algorithms.

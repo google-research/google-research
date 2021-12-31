@@ -16,6 +16,7 @@
 #define SCANN_BASE_SEARCH_PARAMETERS_H_
 
 #include <cstddef>
+#include <cstdint>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/features.pb.h"

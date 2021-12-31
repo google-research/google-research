@@ -27,7 +27,6 @@ cc_library(
         "//scann/partitioning:partitioner_factory_base",
         "//scann/partitioning:projecting_decorator",
         "//scann/proto:brute_force_cc_proto",
-        "//scann/proto:compressed_reordering_cc_proto",
         "//scann/proto:distance_measure_cc_proto",
         "//scann/proto:exact_reordering_cc_proto",
         "//scann/proto:scann_cc_proto",
@@ -58,7 +57,6 @@ cc_library(
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/projection:projection_factory",
-        "//scann/proto:compressed_reordering_cc_proto",
         "//scann/proto:distance_measure_cc_proto",
         "//scann/proto:exact_reordering_cc_proto",
         "//scann/utils:factory_helpers",
@@ -92,7 +90,9 @@ cc_library(
 
 cc_library(
     name = "single_machine_base",
-    srcs = ["single_machine_base.cc"],
+    srcs = [
+        "single_machine_base.cc",
+    ],
     hdrs = ["single_machine_base.h"],
     tags = ["local"],
     deps = [
@@ -109,6 +109,7 @@ cc_library(
         "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:scann_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:factory_helpers",
         "//scann/utils:reordering_helper",
         "//scann/utils:types",

@@ -14,6 +14,8 @@
 
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 
+#include <cstdint>
+
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/flags.h"
 
@@ -34,7 +36,7 @@ PackedDataset CreatePackedDataset(
 }
 
 DenseDataset<uint8_t> UnpackDataset(const PackedDataset& packed) {
-  const int num_dim = packed.num_blocks, num_dp = packed.num_datapoints;
+  const size_t num_dim = packed.num_blocks, num_dp = packed.num_datapoints;
 
   vector<uint8_t> unpacked(num_dim * num_dp);
 
@@ -61,10 +63,7 @@ DenseDataset<uint8_t> UnpackDataset(const PackedDataset& packed) {
       }
     }
   }
-  return DenseDataset<uint8_t>(
-      unpacked, make_unique<VariableLengthDocidCollection>(
-                    VariableLengthDocidCollection::CreateWithEmptyDocids(
-                        packed.num_datapoints)));
+  return DenseDataset<uint8_t>(unpacked, packed.num_datapoints);
 }
 
 template <typename T>
@@ -95,71 +94,7 @@ StatusOr<LookupTable> AsymmetricQueryer<T>::CreateLookupTable(
   }
 }
 
-template <typename T>
-SymmetricQueryer<T>::SymmetricQueryer(const DistanceMeasure& lookup_distance,
-                                      const Model<T>& model, Option option)
-    : num_clusters_per_block_(model.num_clusters_per_block()),
-      num_blocks_(model.centers().size()),
-      option_(option) {
-  CHECK_NE(lookup_distance.specially_optimized_distance_tag(),
-           DistanceMeasure::LIMITED_INNER_PRODUCT)
-      << "Limited inner product distance not supported when using symmetric "
-         "querying.";
-  auto centers = model.centers();
-  global_lookup_table_.reserve(std::pow(num_clusters_per_block_, 2) *
-                               num_blocks_);
-
-  for (size_t i = 0; i < num_blocks_; ++i) {
-    const auto& cur_chunk_centers = centers[i];
-    for (size_t j = 0; j < num_clusters_per_block_; ++j) {
-      auto datapoint_j = cur_chunk_centers[j];
-      for (size_t k = 0; k < num_clusters_per_block_; ++k) {
-        global_lookup_table_.push_back(
-            lookup_distance.GetDistance(datapoint_j, cur_chunk_centers[k]));
-      }
-    }
-  }
-}
-
-template <typename T>
-float SymmetricQueryer<T>::ComputeSingleApproximateDistance(
-    const DatapointPtr<uint8_t>& hashed_dp1,
-    const DatapointPtr<uint8_t>& hashed_dp2) const {
-  const uint32_t num_clusters_sq = std::pow(num_clusters_per_block_, 2);
-  double sum = 0.0;
-  const float* matrix_ptr = global_lookup_table_.data();
-  const auto* dp1 = hashed_dp1.values();
-  const auto* dp2 = hashed_dp2.values();
-  if (option_.uses_nibble_packing) {
-    size_t i_end = hashed_dp1.nonzero_entries();
-
-    if (num_blocks_ & 1) {
-      --i_end;
-      sum += matrix_ptr[(num_blocks_ - 1) * num_clusters_sq +
-                        num_clusters_per_block_ * dp1[i_end] + dp2[i_end]];
-    }
-    for (size_t i = 0; i < i_end; ++i) {
-      const uint8_t dp1_lo = dp1[i] & 0x0f;
-      const uint8_t dp2_lo = dp2[i] & 0x0f;
-      const uint8_t dp1_hi = dp1[i] >> 4;
-      const uint8_t dp2_hi = dp2[i] >> 4;
-      sum += matrix_ptr[num_clusters_per_block_ * dp1_lo + dp2_lo];
-      sum += matrix_ptr[num_clusters_sq + num_clusters_per_block_ * dp1_hi +
-                        dp2_hi];
-      matrix_ptr += 2 * num_clusters_sq;
-    }
-  } else {
-    for (size_t i = 0; i < hashed_dp1.nonzero_entries(); ++i) {
-      sum += matrix_ptr[num_clusters_per_block_ * dp1[i] + dp2[i]];
-      matrix_ptr += num_clusters_sq;
-    }
-  }
-
-  return sum;
-}
-
 SCANN_INSTANTIATE_TYPED_CLASS(, AsymmetricQueryer);
-SCANN_INSTANTIATE_TYPED_CLASS(, SymmetricQueryer);
 
 }  // namespace asymmetric_hashing2
 }  // namespace research_scann

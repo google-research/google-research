@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_one/hamming_distance.h"
 
+#include <cstdint>
+
 namespace research_scann {
 
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(GeneralHammingDistance, 32)

@@ -397,7 +397,7 @@ class KohnShamIterationTest(parameterized.TestCase):
         target_energy=target_energy)
 
     # Check gradient values.
-    np.testing.assert_allclose(params_grad, [-1.40994668, -2.58881225])
+    np.testing.assert_allclose(params_grad, [-8.549952, -14.754195])
 
     # Check whether the gradient values match the numerical gradient.
     np.testing.assert_allclose(
@@ -406,7 +406,7 @@ class KohnShamIterationTest(parameterized.TestCase):
             f=functools.partial(
                 loss, initial_state=initial_state, target_energy=target_energy),
             epsilon=1e-9),
-        params_grad, atol=3e-4)
+        params_grad, atol=2e-3)
 
   def test_kohn_sham_iteration_neural_xc_density_loss_gradient(self):
     # The network only has one layer.
@@ -441,7 +441,7 @@ class KohnShamIterationTest(parameterized.TestCase):
         target_density=target_density)
 
     # Check gradient values.
-    np.testing.assert_allclose(params_grad, [0.2013181, 0.], atol=1e-7)
+    np.testing.assert_allclose(params_grad, [-1.34137017, 0.], atol=5e-7)
 
     # Check whether the gradient values match the numerical gradient.
     np.testing.assert_allclose(
@@ -452,7 +452,7 @@ class KohnShamIterationTest(parameterized.TestCase):
                 initial_state=initial_state,
                 target_density=target_density),
             epsilon=1e-9),
-        params_grad, atol=1e-4)
+        params_grad, atol=2e-4)
 
   def test_kohn_sham_iteration_neural_xc_density_loss_gradient_symmetry(self):
     # The network only has one layer.
@@ -487,7 +487,7 @@ class KohnShamIterationTest(parameterized.TestCase):
         target_density=target_density)
 
     # Check gradient values.
-    np.testing.assert_allclose(params_grad, [0.2013181, 0.], atol=1e-7)
+    np.testing.assert_allclose(params_grad, [-1.34137017, 0.], atol=5e-7)
 
     # Check whether the gradient values match the numerical gradient.
     np.testing.assert_allclose(
@@ -498,7 +498,7 @@ class KohnShamIterationTest(parameterized.TestCase):
                 initial_state=initial_state,
                 target_density=target_density),
             epsilon=1e-9),
-        params_grad, atol=1e-4)
+        params_grad, atol=1e-3)
 
 
 class KohnShamTest(parameterized.TestCase):
@@ -619,7 +619,7 @@ class KohnShamTest(parameterized.TestCase):
     params_grad = grad_fn(flatten_init_params, target_energy=target_energy)
 
     # Check gradient values.
-    np.testing.assert_allclose(params_grad, [-3.908153, -5.448675], atol=1e-6)
+    np.testing.assert_allclose(params_grad, [-8.571627, -14.754749], atol=1e-6)
 
     # Check whether the gradient values match the numerical gradient.
     np.testing.assert_allclose(
@@ -662,7 +662,7 @@ class KohnShamTest(parameterized.TestCase):
     params_grad = grad_fn(flatten_init_params, target_density=target_density)
 
     # Check gradient values.
-    np.testing.assert_allclose(params_grad, [0.2643006, 0.], atol=2e-6)
+    np.testing.assert_allclose(params_grad, [-1.596714, 0.], atol=2e-6)
     # Check whether the gradient values match the numerical gradient.
     np.testing.assert_allclose(
         optimize.approx_fprime(

@@ -70,7 +70,8 @@ class HelperTest(parameterized.TestCase):
 
     # Verify the calculated values
     expected_log_alpha = log_sigma2 - np.log(np.power(theta, 2) + 1e-8)
-    self.assertTrue(np.all(np.isclose(expected_log_alpha, log_alpha)))
+    self.assertTrue(
+        np.all(np.isclose(expected_log_alpha, log_alpha, rtol=1e-3)))
 
   def testHelper_ComputeLogSigma2(self, d, k, min_val, max_val):
     # Fix the random seed
@@ -92,7 +93,8 @@ class HelperTest(parameterized.TestCase):
 
     # Verify the calculated values
     expected_log_sigma2 = log_alpha + np.log(np.power(theta, 2) + 1e-8)
-    self.assertTrue(np.all(np.isclose(expected_log_sigma2, log_sigma2)))
+    self.assertTrue(
+        np.all(np.isclose(expected_log_sigma2, log_sigma2, rtol=1e-3)))
 
   def testHelper_ComputeLogAlphaAndBack(self, d, k, min_val, max_val):
     theta, true_log_sigma2 = self._get_weights(d, k, min_val, max_val)
@@ -115,7 +117,8 @@ class HelperTest(parameterized.TestCase):
 
     # The calculated log \sigma^2 values should be the same as the
     # ones that we calculate through the log \alpha values
-    for is_close in np.isclose(true_log_sigma2, log_sigma2).flatten():
+    for is_close in np.isclose(
+        true_log_sigma2, log_sigma2, rtol=1e-3).flatten():
       self.assertTrue(is_close)
 
   def testHelper_ThresholdLogAlphas(self, d, k, min_val, max_val):

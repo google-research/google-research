@@ -15,6 +15,8 @@
 #ifndef SCANN_UTILS_INPUT_DATA_UTILS_H_
 #define SCANN_UTILS_INPUT_DATA_UTILS_H_
 
+#include <cstdint>
+
 #include "scann/data_format/dataset.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
@@ -24,14 +26,12 @@ namespace research_scann {
 StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     const Dataset* dataset, const DenseDataset<uint8_t>* hashed_dataset,
     const PreQuantizedFixedPoint* pre_quantized_fixed_point,
-    const DenseDataset<uint8_t>* compressed_dataset,
     const vector<int64_t>* crowding_attributes);
 
 StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     const HashConfig& config, const Dataset* dataset,
     const DenseDataset<uint8_t>* hashed_dataset,
-    const PreQuantizedFixedPoint* pre_quantized_fixed_point,
-    const DenseDataset<uint8_t>* compressed_dataset);
+    const PreQuantizedFixedPoint* pre_quantized_fixed_point);
 
 }  // namespace research_scann
 

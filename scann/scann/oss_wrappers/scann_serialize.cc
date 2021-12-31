@@ -14,6 +14,8 @@
 
 #include "scann/oss_wrappers/scann_serialize.h"
 
+#include <cstdint>
+
 #include "absl/base/casts.h"
 #include "absl/base/internal/endian.h"
 

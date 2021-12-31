@@ -1,0 +1,164 @@
+<!--
+   Copyright 2021 The Google Research Authors.
+  
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Randomly Sampled gMiniWoB Web Environment</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<!-- stylesheets -->
+<style class="anchorjs"></style>
+<link rel="stylesheet" href="../bootstrap/bootstrap.min.css">
+<link rel="stylesheet" href="../miniwob-plusplus/html/core/jquery-ui/jquery-ui.min.css">
+<link rel="stylesheet" href="env-design.css">
+
+<!-- JS -->
+<script src="../miniwob-plusplus/html/core/core.js"></script>
+<script src="../miniwob-plusplus/html/core/d3.v3.min.js"></script>
+<script src="../miniwob-plusplus/html/common/ui_utils.js"></script>
+
+<script src="../miniwob-plusplus/html/core/jquery-ui/external/jquery/jquery.js"></script>
+<script src="../miniwob-plusplus/html/core/jquery-ui/jquery-ui.min.js"></script>
+<script src="../bootstrap/bootstrap.min.js"></script>
+<script src="env-design.js"></script>
+<script>
+core.EPISODE_MAX_TIME = 600000;
+var NUM_PAGES = 1;
+var CONCEPTS = null;
+var nodeCreateFn = null;
+var edgeCreateFn = null;
+var USE_CONCEPTUAL = false; // A global variable that will compute reward conceptually
+var SEED = 123;
+
+var PAGE_PH = "#PAGE#";
+
+// Some of the primitives used in CoDE.
+var PRIMITIVES2DESIGN = {
+    'navbar':
+        {"concept": "navbar", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"menuItems": ["Home", "Login", "Account", "Cart", "Checkout"], "endOnClick": true}},
+    'carousel':
+        {"concept": "carousel", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"numItems": 5, "itemNames": ["1", "2", "3", "4", "5"], "endOnClick": true}},
+    'dealmedia':
+        {"concept": "dealmedia", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"title": "Deal of the Day", "text": "Gaming workstation", "link": "Get it today!", "endOnClick": true}},
+    'header_select_items':
+        {"concept": "header", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"headerType": 5, "headerText": "Select items", "isCardHeader": false}},
+    'deck':
+        {"concept": "deck", "is_core_concept": false, "source_page": PAGE_PH , "controls": {"numCards": 4, "cardTitles": ["Title 1", "Title 2"], "cardText": ["Product description 1", "Product description 2"], "cardNames": ["Card 1", "Card 2"], "cardHeaders": ["$0.99", "$1.99"], "numStars": [4, 3], "endOnClick": true}},
+    'next_login_page':
+        {"concept": "next", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"buttonText": "Login"}},
+    'header_login':
+        {"concept": "header", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"headerType": 5, "headerText": "Login", "isCardHeader": false}},
+    'username':
+        {"concept": "username", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": true, "putLabel": false, "labelText": "Username"}},
+    'password':
+        {"concept": "password", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": true, "putLabel": false, "labelText": "Password"}},
+    'rememberme':
+        {"concept": "rememberme", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putLabel": true, "labelText": "Remember me"}},
+    'captcha':
+        {"concept": "captcha", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putLabel": true, "labelText": "Enter Captcha"}},
+    'stayloggedin':
+        {"concept": "stayloggedin", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putLabel": true, "labelText": "Stay logged in"}},
+    'forgotusername':
+        {"concept": "forgotusername", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"text": "Forgot user name.", "endOnClick": true}},
+    'forgotpassowrd':
+        {"concept": "forgotpassword", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"text": "Forgot password.", "endOnClick": true}},
+    'next_login':
+        {"concept": "next", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"buttonText": "Login and Checkout"}},
+    'cart':
+        {"concept": "cart", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"wrapInCard": true, "numItems": 3, "itemNames": ["Shoe", "Bag", "Tshirt"], "endOnClick": true}},
+    'next_checkout':
+        {"concept": "next", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"buttonText": "Checkout"}},
+    'header':
+        {"concept": "header", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"headerType": 5, "headerText": "Shipping Information", "isCardHeader": false}},
+    'firstname':
+        {"concept": "name_first", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": false, "putLabel": true, "labelText": "First Name"}},
+    'lastname':
+        {"concept": "name_last", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": false, "putLabel": true, "labelText": "Last Name"}},
+    'addressline1':
+        {"concept": "address_line1", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": false, "putLabel": true, "labelText": "Address"}},
+    'addressline2':
+        {"concept": "address_line2", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": true, "putLabel": false, "labelText": ""}},
+    'city':
+        {"concept": "city", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": false, "putLabel": true, "labelText": "City"}},
+    'zipcode':
+        {"concept": "postal_code", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putPlaceholder": false, "putLabel": true, "labelText": "ZIP Code"}},
+    'state':
+        {"concept": "state", "is_core_concept": true, "source_page": PAGE_PH, "controls": {"putLabel": false, "labelText": "State", "values": ["CA", "NY"]}},
+    'submit':
+        {"concept": "submit", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"buttonText": "Place Order"}},
+    'footer1':
+        {"concept": "footer", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"footerItems": ["Contact", "Terms", "Support", "Full Site"], "endOnClick": true}},
+    'inpgroup1':
+        {"concept": "inputgroup", "is_core_concept": false, "source_page": PAGE_PH, "controls": {"putPlaceholder": true, "putLabel": false, "labelText": "Search"}},
+};
+
+
+var genProblem = function(){
+  // Set these to null to randomly sample websites.
+  nodeCreateFn = null;
+  edgeCreateFn = null;
+  // Number of primitives and pages
+  var numPrimitives = Math.floor(Math.random() * Object.keys(PRIMITIVES2DESIGN).length) + 1;
+  var NUM_PAGES = Math.floor(Math.random() * 3)+1;
+  console.log([numPrimitives, NUM_PAGES]);
+
+  // Randomly sample (primitive, page) pairs.
+  var primitives = [];
+  var usedPrimitiveNames = [];
+  for (var i=0; i < numPrimitives; i++){
+    let sampledPrimitiveName = core.sample(Object.keys(PRIMITIVES2DESIGN));
+    let sampledPage = Math.floor(Math.random() * NUM_PAGES);
+    var sampledPrimitive = PRIMITIVES2DESIGN[sampledPrimitiveName];
+    sampledPrimitive["source_page"] = sampledPage;
+    // Make sure they are unique.
+    if (!usedPrimitiveNames.includes(sampledPrimitiveName)){
+      usedPrimitiveNames.push(sampledPrimitiveName);
+      primitives.push(JSON.parse(JSON.stringify(sampledPrimitive)));
+    }
+  }
+  // Create an empty website.
+  if (nodeCreateFn == null){
+    console.log("Creating empty nodes");
+    var sitemap = addNodes({"num_pages": NUM_PAGES, "actions": primitives});
+  }
+  console.log("Sitemap:", sitemap);
+  if (edgeCreateFn == null){
+    console.log("Creating empty edges");
+    addEdges({"actions": []});
+  }
+
+  // This is where nodes and edges are actually added.
+  nodeCreateFn();
+  edgeCreateFn();
+  // Check and connect web pages if they are disconnected.
+  connectGraph({"conceptual": USE_CONCEPTUAL, "taskSuccessScale": 1.0, "preconditionVisited": []});
+}
+
+window.onload = function() {
+  core.startEpisode();
+}
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="query"></div>
+  <div id="area">
+  </div>
+
+</div>
+</body>
+</html>

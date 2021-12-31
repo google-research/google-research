@@ -18,7 +18,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
@@ -148,7 +147,7 @@ def map_oneofs_with_tuple_paths(
     A copy of `structure` with new values substituted for its OneOf nodes.
   """
 
-  prefix = ()  # type: Tuple[Union[int, str]]
+  prefix = ()  # type: Tuple[Union[int, str]]  # pytype: disable=annotation-type-mismatch
   return _map_oneofs_helper(func, structure, prefix)
 
 

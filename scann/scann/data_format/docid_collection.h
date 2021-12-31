@@ -17,6 +17,10 @@
 #ifndef SCANN_DATA_FORMAT_DOCID_COLLECTION_H_
 #define SCANN_DATA_FORMAT_DOCID_COLLECTION_H_
 
+#include <cstdint>
+
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/node_hash_map.h"
 #include "scann/data_format/docid_collection_interface.h"
 #include "scann/data_format/internal/short_string_optimized_string.h"
 #include "scann/oss_wrappers/scann_serialize.h"
@@ -83,15 +87,15 @@ class VariableLengthDocidCollection final : public DocidCollectionInterface {
     ~Mutator() final {}
     Status AddDatapoint(string_view docid) final;
     bool LookupDatapointIndex(string_view docid,
-                              DatapointIndex* idx) const final;
+                              DatapointIndex* index) const final;
     Status RemoveDatapoint(string_view docid) final;
-    Status RemoveDatapoint(DatapointIndex idx) final;
+    Status RemoveDatapoint(DatapointIndex index) final;
     void Reserve(size_t size) final;
 
    private:
     explicit Mutator(VariableLengthDocidCollection* docids) : docids_(docids) {}
     VariableLengthDocidCollection* docids_ = nullptr;
-    std::unordered_map<string_view, DatapointIndex, absl::Hash<string_view>>
+    absl::flat_hash_map<string_view, DatapointIndex, absl::Hash<string_view>>
         docid_lookup_;
   };
 
@@ -171,9 +175,9 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
     ~Mutator() final {}
     Status AddDatapoint(string_view docid) final;
     bool LookupDatapointIndex(string_view docid,
-                              DatapointIndex* idx) const final;
+                              DatapointIndex* index) const final;
     Status RemoveDatapoint(string_view docid) final;
-    Status RemoveDatapoint(DatapointIndex idx) final;
+    Status RemoveDatapoint(DatapointIndex index) final;
     void Reserve(size_t size) final;
 
    private:
@@ -181,7 +185,7 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
     explicit Mutator(FixedLengthDocidCollection* docids) : docids_(docids) {}
 
     FixedLengthDocidCollection* docids_ = nullptr;
-    std::unordered_map<string_view, DatapointIndex, absl::Hash<string_view>>
+    absl::flat_hash_map<string_view, DatapointIndex, absl::Hash<string_view>>
         docid_lookup_;
   };
 

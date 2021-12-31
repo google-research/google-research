@@ -255,6 +255,8 @@ class DenseDataset final : public TypedDataset<T> {
   DenseDataset<T> Copy() const {
     auto result = DenseDataset<T>(data_, this->docids()->Copy());
     result.set_normalization_tag(this->normalization());
+
+    result.set_dimensionality(this->dimensionality());
     return result;
   }
 
@@ -284,6 +286,12 @@ class DenseDataset final : public TypedDataset<T> {
   MutableSpan<T> mutable_data() { return MakeMutableSpan(data_); }
   MutableSpan<T> mutable_data(size_t index) {
     return MakeMutableSpan(data_.data() + index * stride_, stride_);
+  }
+
+  vector<T> ClearRecyclingDataVector() {
+    vector<T> result = std::move(data_);
+    this->clear();
+    return result;
   }
 
   void clear() final;
@@ -340,6 +348,10 @@ class DenseDatasetView : VirtualDestructor {
 
   virtual size_t size() const = 0;
 
+  virtual research_scann::TypeTag TypeTag() const { return TagForType<T>(); }
+
+  virtual bool IsConsecutiveStorage() const { return false; }
+
   virtual std::unique_ptr<DenseDatasetView<T>> subview(size_t offset,
                                                        size_t size) const {
     return absl::make_unique<DenseDatasetSubView<T>>(this, offset, size);
@@ -381,6 +393,8 @@ class DefaultDenseDatasetView : public DenseDatasetView<T> {
         new DefaultDenseDatasetView<T>(ptr_ + offset * dims_, dims_, size));
   }
 
+  bool IsConsecutiveStorage() const override { return true; }
+
  private:
   DefaultDenseDatasetView(const T* ptr, size_t dim, size_t size)
       : ptr_(ptr), dims_(dim), size_(size) {}
@@ -411,6 +425,10 @@ class DenseDatasetSubView : public DenseDatasetView<T> {
                                                size_t size) const final {
     return absl::make_unique<DenseDatasetSubView<T>>(parent_view_,
                                                      offset + offset_, size);
+  }
+
+  bool IsConsecutiveStorage() const override {
+    return parent_view_->IsConsecutiveStorage();
   }
 
  private:

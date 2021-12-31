@@ -15,6 +15,8 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_COMMON_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_COMMON_H_
 
+#include <cstdint>
+
 #include "scann/data_format/datapoint.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/types.h"

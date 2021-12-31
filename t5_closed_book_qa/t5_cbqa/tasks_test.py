@@ -18,7 +18,7 @@
 from absl import logging
 from absl.testing import absltest
 from absl.testing import parameterized
-import t5
+import seqio
 import tensorflow.compat.v1 as tf
 
 import t5_closed_book_qa.t5_cbqa.tasks  # pylint:disable=unused-import
@@ -26,8 +26,8 @@ import t5_closed_book_qa.t5_cbqa.tasks  # pylint:disable=unused-import
 tf.disable_v2_behavior()
 tf.enable_eager_execution()
 
-MixtureRegistry = t5.data.MixtureRegistry
-TaskRegistry = t5.data.TaskRegistry
+MixtureRegistry = seqio.MixtureRegistry
+TaskRegistry = seqio.TaskRegistry
 _SEQUENCE_LENGTH = {'inputs': 512, 'targets': 114}
 
 _TASKS = [

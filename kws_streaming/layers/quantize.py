@@ -15,18 +15,36 @@
 
 """Quantization functions."""
 
+from absl import logging
 import tensorflow_model_optimization as tfmot
 from tensorflow_model_optimization.python.core.quantization.keras import quantize_wrapper
+from tensorflow_model_optimization.python.core.quantization.keras.default_8bit import default_8bit_quantize_registry
 
 
-def quantize_layer(layer, apply_quantization=True):
+class NoOpActivationConfig(
+    default_8bit_quantize_registry.Default8BitConvQuantizeConfig):
+  """8BitConvQuantizeConfig without activation quantization.
+
+    It is useful for conv + batch_norm quantization aware training, so that
+    TFlite can fold these layers later.
+  """
+
+  def get_activations_and_quantizers(self, layer):
+    return []
+
+  def set_quantize_activations(self, layer, quantize_activations):
+    pass
+
+
+def quantize_layer(layer, apply_quantization=True, quantize_config=None):
   """Quantizes a layer.
 
   It is useful for quantization aware training
   Args:
     layer: input layer to quantize
     apply_quantization: if True layer is quantized, otherwise not
-      returned
+    quantize_config: quantization config for special cases such as
+      sequence of convolution and batch normalization
 
   Returns:
     quantized layer
@@ -37,8 +55,11 @@ def quantize_layer(layer, apply_quantization=True):
     quantize_registry = scheme.get_quantize_registry()
 
     if not quantize_registry.supports(layer):
+      logging.info('layer is not supported: %s', str(layer))
       return layer
-    quantize_config = quantize_registry.get_quantize_config(layer)
+
+    if quantize_config is None:
+      quantize_config = quantize_registry.get_quantize_config(layer)
     return quantize_wrapper.QuantizeWrapper(layer, quantize_config)
   else:
     return layer

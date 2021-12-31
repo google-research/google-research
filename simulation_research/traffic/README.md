@@ -42,3 +42,5 @@ The process to run an evacuation simulation.
     script //research/simulation/traffic/pdf_to_images.sh
 
 6.  Get the demands-evacuation curves.
+
+7.  The required data files are available here:  https://storage.cloud.google.com/traffic-sim/

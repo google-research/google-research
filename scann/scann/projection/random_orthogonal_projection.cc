@@ -16,8 +16,11 @@
 
 #include "scann/projection/random_orthogonal_projection.h"
 
+#include <cstdint>
+
 #include "Eigen/Core"
 #include "Eigen/QR"
+#include "absl/memory/memory.h"
 #include "absl/random/random.h"
 #include "scann/utils/datapoint_utils.h"
 
@@ -36,7 +39,7 @@ RandomOrthogonalProjection<T>::RandomOrthogonalProjection(
 
 template <typename T>
 void RandomOrthogonalProjection<T>::Create() {
-  random_.reset(new MTRandom(seed_));
+  random_ = absl::make_unique<MTRandom>(seed_);
 
   Eigen::MatrixXf input_matrix(input_dims_, projected_dims_);
 

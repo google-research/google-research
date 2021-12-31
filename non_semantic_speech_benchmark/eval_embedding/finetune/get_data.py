@@ -18,7 +18,6 @@
 
 import functools
 import tensorflow as tf
-from non_semantic_speech_benchmark import file_utils
 
 
 def get_data(
@@ -55,7 +54,7 @@ def get_data(
   Returns:
     A tf.data.Dataset of (samples, onehot labels).
   """
-  assert file_utils.Glob(file_pattern), file_pattern
+  assert tf.io.gfile.glob(file_pattern), file_pattern
 
   # Audio samples are variable length.
   features = {

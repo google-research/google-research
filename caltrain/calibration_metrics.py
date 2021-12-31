@@ -147,9 +147,12 @@ class CalibrationMetric():
   def _compute_error_all_binned(self, binned_fx, binned_y, bin_sizes):
     """Compute calibration error given binned data."""
     num_examples = np.sum(bin_sizes[:, 0])
+    num_classes = binned_fx.shape[1]
     ce = pow(np.abs(binned_fx - binned_y), self.norm) * bin_sizes
-    ce_sum = pow(ce.sum() / num_examples, 1. / self.norm)
-    return ce_sum
+    ce_sum = 0
+    for k in range(num_classes):
+      ce_sum += ce[:, k].sum()
+    return pow(ce_sum / (num_examples*num_classes), 1. / self.norm)
 
   def _compute_error_label_binned(self, fx, binned_y, bin_indices):
     """Compute label binned calibration error."""

@@ -19,6 +19,9 @@ import tensorflow as tf
 from kws_streaming.layers import quantize
 from kws_streaming.layers import ring_buffer
 from kws_streaming.models_sub import base_model
+from tensorflow_model_optimization.python.core.quantization.keras import quantize_layer
+from tensorflow_model_optimization.python.core.quantization.keras.default_8bit import default_8bit_quantize_configs
+from tensorflow_model_optimization.python.core.quantization.keras.quantizers import AllValuesQuantizer
 
 
 class ConvModel(base_model.BaseModel):
@@ -36,6 +39,10 @@ class ConvModel(base_model.BaseModel):
     super(ConvModel, self).__init__(**kwargs)
 
     # create layers
+    self.input_quant = quantize_layer.QuantizeLayer(
+        AllValuesQuantizer(
+            num_bits=8, per_axis=False, symmetric=False, narrow_range=False))
+
     self.conv1 = quantize.quantize_layer(
         tf.keras.layers.Conv2D(
             filters=2,
@@ -51,11 +58,14 @@ class ConvModel(base_model.BaseModel):
                 kernel_size=(3, 1),
                 dilation_rate=1,
                 strides=2,
-                use_bias=False), apply_quantization),
+                use_bias=False), apply_quantization,
+            quantize.NoOpActivationConfig(['kernel'], ['activation'], False)),
         use_one_step=False,
         inference_batch_size=self.inference_batch_size,
         pad_time_dim='causal')
-    self.bn2 = quantize.quantize_layer(tf.keras.layers.BatchNormalization())
+    self.bn2 = quantize.quantize_layer(
+        tf.keras.layers.BatchNormalization(),
+        default_8bit_quantize_configs.NoOpQuantizeConfig())
     self.relu2 = quantize.quantize_layer(tf.keras.layers.ReLU())
 
     self.flatten = ring_buffer.RingBuffer(
@@ -70,6 +80,7 @@ class ConvModel(base_model.BaseModel):
 
   def call(self, inputs):
     net = inputs
+    net = self.input_quant(net)
     net = self.conv1(net)
     net = self.bn1(net)
     net = self.relu1(net)
@@ -85,6 +96,7 @@ class ConvModel(base_model.BaseModel):
     net = inputs
     outputs = {}
 
+    net = self.input_quant(net)
     net = self.conv1(net)
     net = self.bn1(net)
     net = self.relu1(net)

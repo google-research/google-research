@@ -17,7 +17,7 @@
 """Learned Interpreters RNN models."""
 
 from absl import logging  # pylint: disable=unused-import
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 
@@ -28,8 +28,7 @@ StackedRNNCell = common_modules.StackedRNNCell
 
 
 class StackedLSTMModel(nn.Module):
-  """Applies an LSTM to form statement embeddings, and again for program embs.
-  """
+  """Applies an LSTM to form statement embeddings, and again for program embs."""
 
   def apply(self,
             example_inputs,
@@ -149,5 +148,3 @@ class StackedLSTMModel(nn.Module):
     logits = jax.vmap(get_logits)(code_embeddings, lengths)
     return jnp.reshape(
         logits, (batch_size, output_length, output_token_vocabulary_size))
-
-

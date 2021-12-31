@@ -107,6 +107,9 @@ flags.DEFINE_string(
     'Profile name for 2D keypoints from input sources. Use None to ignore input'
     ' 2D keypoints.')
 
+flags.DEFINE_string('model_input_keypoint_mask_type', 'NO_USE',
+                    'Usage type of model input keypoint masks.')
+
 flags.DEFINE_float(
     'min_input_keypoint_score_2d', -1.0,
     'Minimum threshold for input keypoint score binarization. Use negative '
@@ -213,6 +216,7 @@ def main(_):
         keypoint_masks_2d=keypoint_masks_2d,
         keypoints_3d=None,
         model_input_keypoint_type=common.MODEL_INPUT_KEYPOINT_TYPE_2D_INPUT,
+        model_input_keypoint_mask_type=FLAGS.model_input_keypoint_mask_type,
         keypoint_profile_2d=keypoint_profile_2d,
         # Fix seed for determinism.
         seed=1)

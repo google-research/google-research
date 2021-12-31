@@ -93,8 +93,11 @@ class Actor(tf.keras.Model):
     return dist, mode
 
   @tf.function
-  def get_log_prob(self, states, actions,
-                   std = None):
+  def get_log_prob(
+      self,
+      states,
+      actions,
+      std = None):
     """Evaluate log probs for actions conditined on states.
 
     Args:

@@ -20,7 +20,6 @@
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_malloc_extension.h"
 #include "scann/projection/projection_factory.h"
-#include "scann/proto/compressed_reordering.pb.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/reordering_helper.h"
@@ -137,14 +136,7 @@ ReorderingHelperFactory<T>::Build(
     const ScannConfig& config,
     const shared_ptr<const DistanceMeasure>& reordering_dist,
     shared_ptr<TypedDataset<T>> dataset, SingleMachineFactoryOptions* opts) {
-  if (config.has_compressed_reordering() && config.has_exact_reordering()) {
-    return InvalidArgumentError(
-        "Compressed and exact reordering may not be enabled in the same "
-        "ScannConfig.");
-  }
-  if (config.has_compressed_reordering()) {
-    return InvalidArgumentError("Compressed reordering not supported.");
-  } else if (config.has_exact_reordering()) {
+  if (config.has_exact_reordering()) {
     return ExactReorderingFactory<T>(config.exact_reordering(), reordering_dist,
                                      dataset, opts);
   } else {

@@ -1,0 +1,8445 @@
+# proto-file: third_party/google_research/google_research/smu/dataset.proto
+# proto-message: MultipleConformers
+conformers {
+  conformer_id: 618451001
+  original_conformer_index: 3
+  initial_geometries {
+    atom_positions {
+      x: -0.599232
+      y: 0.468652
+      z: 4.1882
+    }
+    atom_positions {
+      x: 1.255345
+      y: -6.557917
+      z: 6.569822
+    }
+    atom_positions {
+      x: 3.022428
+      y: -4.726961
+      z: 1.829255
+    }
+    atom_positions {
+      x: 1.562426
+      y: -3.34387
+      z: 3.365035
+    }
+    atom_positions {
+      x: 0.635137
+      y: -4.098816
+      z: 5.68354
+    }
+    atom_positions {
+      x: 0.954312
+      y: -0.93447
+      z: 2.497462
+    }
+    atom_positions {
+      x: 3.815168
+      y: -7.091386
+      z: 2.321718
+    }
+    atom_positions {
+      x: -0.961871
+      y: 2.315859
+      z: 3.333477
+    }
+    atom_positions {
+      x: 0.36226
+      y: 0.778756
+      z: 5.994589
+    }
+    atom_positions {
+      x: -2.420928
+      y: -0.471109
+      z: 4.474494
+    }
+    atom_positions {
+      x: 0.506447
+      y: -8.014329
+      z: 5.306351
+    }
+    atom_positions {
+      x: 3.297194
+      y: -6.761062
+      z: 6.830604
+    }
+    atom_positions {
+      x: 0.358859
+      y: -6.807549
+      z: 8.416462
+    }
+    atom_positions {
+      x: 3.727296
+      y: -4.095603
+      z: 0.019653
+    }
+  }
+  optimized_geometry {
+    atom_positions {
+      x: -0.313382
+      y: 0.35652
+      z: 4.266687
+    }
+    atom_positions {
+      x: 1.020933
+      y: -6.548927
+      z: 6.532749
+    }
+    atom_positions {
+      x: 3.098166
+      y: -4.521578
+      z: 1.87957
+    }
+    atom_positions {
+      x: 1.060933
+      y: -3.666938
+      z: 3.096341
+    }
+    atom_positions {
+      x: -0.233446
+      y: -4.739548
+      z: 5.001116
+    }
+    atom_positions {
+      x: 0.047209
+      y: -1.464903
+      z: 2.323809
+    }
+    atom_positions {
+      x: 4.078021
+      y: -6.849559
+      z: 2.257301
+    }
+    atom_positions {
+      x: -1.056283
+      y: 2.035316
+      z: 3.337331
+    }
+    atom_positions {
+      x: 1.488333
+      y: 0.812315
+      z: 5.181658
+    }
+    atom_positions {
+      x: -1.658765
+      y: -0.312746
+      z: 5.679998
+    }
+    atom_positions {
+      x: 1.263894
+      y: -8.338243
+      z: 5.539461
+    }
+    atom_positions {
+      x: 2.871175
+      y: -5.845894
+      z: 7.12975
+    }
+    atom_positions {
+      x: -0.186802
+      y: -6.821294
+      z: 8.177102
+    }
+    atom_positions {
+      x: 4.034854
+      y: -3.434324
+      z: 0.427788
+    }
+  }
+  properties {
+    errors {
+    }
+    harmonic_intensities {
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 2.7
+      value: 6.9
+      value: 0.8
+      value: 1.7
+      value: 7.5
+      value: 3.1
+      value: 0.7
+      value: 0.4
+      value: 8.2
+      value: 13.1
+      value: 1.4
+      value: 42.6
+      value: 31.9
+      value: 16.8
+      value: 75.4
+      value: 179.9
+      value: 2.8
+      value: 1.8
+      value: 31.6
+      value: 26.7
+      value: 233.2
+      value: 190.2
+      value: 9.8
+      value: 11.9
+      value: 11.0
+      value: 8.7
+      value: 17.4
+      value: 24.3
+      value: 83.9
+      value: 49.9
+      value: 40.3
+      value: 33.7
+      value: 31.3
+      value: 19.3
+      value: 22.4
+      value: 6.4
+    }
+    single_point_energy_pbe0d3_6_311gd {
+      value: -406.522079
+    }
+    single_point_energy_pbe0_6_311gd {
+      value: -406.516515
+    }
+    single_point_energy_pbe0_6_311gd_mrcc {
+      value: -406.516542
+    }
+    single_point_energy_pbe0_6_311gd_orca {
+      value: -406.51661
+    }
+    single_point_energy_pbe0_6_311gd_cat {
+      value: -406.208948
+    }
+    single_point_energy_pbe0_6_311gd_cat_mrcc {
+      value: -406.208975
+    }
+    single_point_energy_pbe0_6_311gd_cat_orca {
+      value: -406.209039
+    }
+    single_point_energy_pbe0_aug_pc_1 {
+      value: -406.367773
+    }
+    single_point_energy_hf_6_31gd {
+      value: -404.636027
+    }
+    single_point_energy_b3lyp_6_31ppgdp {
+      value: -406.884857
+    }
+    single_point_energy_b3lyp_aug_pcs_1 {
+      value: -406.820109
+    }
+    single_point_energy_pbe0_6_31ppgdp {
+      value: -406.439788
+    }
+    single_point_energy_pbe0_aug_pcs_1 {
+      value: -406.372915
+    }
+    single_point_energy_hf_tzvp {
+      value: -404.78774
+    }
+    single_point_energy_mp2_tzvp {
+      value: -405.959501
+    }
+    single_point_energy_cc2_tzvp {
+      value: -405.977857
+    }
+    single_point_energy_hf_3 {
+      value: -404.796437
+    }
+    single_point_energy_mp2_3 {
+      value: -406.179302
+    }
+    single_point_energy_hf_4 {
+      value: -404.826244
+    }
+    single_point_energy_mp2_4 {
+      value: -406.312304
+    }
+    single_point_energy_hf_34 {
+      value: -404.833508
+    }
+    single_point_energy_mp2_34 {
+      value: -406.405144
+    }
+    single_point_energy_hf_cvtz {
+      value: -404.798103
+    }
+    single_point_energy_mp2ful_cvtz {
+      value: -406.547251
+    }
+    single_point_energy_hf_2sp {
+      value: -404.496003
+    }
+    single_point_energy_mp2_2sp {
+      value: -405.200766
+    }
+    single_point_energy_ccsd_2sp {
+      value: -405.247266
+    }
+    single_point_energy_ccsd_t_2sp {
+      value: -405.265911
+    }
+    single_point_energy_hf_2sd {
+      value: -404.645594
+    }
+    single_point_energy_mp2_2sd {
+      value: -405.693582
+    }
+    single_point_energy_ccsd_2sd {
+      value: -405.744897
+    }
+    single_point_energy_ccsd_t_2sd {
+      value: -405.775503
+    }
+    single_point_energy_hf_3psd {
+      value: -404.744205
+    }
+    single_point_energy_mp2_3psd {
+      value: -405.957647
+    }
+    single_point_energy_ccsd_3psd {
+      value: -405.993585
+    }
+    single_point_energy_atomic_b5 {
+      value: -406.837971
+    }
+    single_point_energy_atomic_b6 {
+      value: -406.841388
+    }
+    zpe_unscaled {
+      value: 69.83
+    }
+    homo_pbe0_6_311gd {
+      value: -0.22633
+    }
+    lumo_pbe0_6_311gd {
+      value: 0.04837
+    }
+    homo_pbe0_aug_pc_1 {
+      value: -0.23288
+    }
+    lumo_pbe0_aug_pc_1 {
+      value: -0.00479
+    }
+    homo_pbe0_6_31ppgdp {
+      value: -0.23186
+    }
+    lumo_pbe0_6_31ppgdp {
+      value: -0.00153
+    }
+    homo_pbe0_aug_pcs_1 {
+      value: -0.23291
+    }
+    lumo_pbe0_aug_pcs_1 {
+      value: -0.00465
+    }
+    homo_b3lyp_6_31ppgdp {
+      value: -0.22446
+    }
+    lumo_b3lyp_6_31ppgdp {
+      value: -0.01035
+    }
+    homo_b3lyp_aug_pcs_1 {
+      value: -0.22613
+    }
+    lumo_b3lyp_aug_pcs_1 {
+      value: -0.01239
+    }
+    homo_hf_6_31gd {
+      value: -0.32962
+    }
+    lumo_hf_6_31gd {
+      value: 0.21499
+    }
+    homo_hf_tzvp {
+      value: -0.33878
+    }
+    lumo_hf_tzvp {
+      value: 0.14251
+    }
+    homo_hf_3 {
+      value: -0.33538
+    }
+    lumo_hf_3 {
+      value: 0.13815
+    }
+    homo_hf_4 {
+      value: -0.33714
+    }
+    lumo_hf_4 {
+      value: 0.11064
+    }
+    homo_hf_cvtz {
+      value: -0.33544
+    }
+    lumo_hf_cvtz {
+      value: 0.13773
+    }
+    excitation_energies_cc2 {
+      value: 0.24087
+      value: 0.26738
+      value: 0.27212
+      value: 0.29076
+      value: 0.30522
+    }
+    excitation_oscillator_strengths_cc2 {
+      value: 0.02671
+      value: 0.1593
+      value: 0.2112
+      value: 0.02956
+      value: 0.01099
+    }
+    nmr_isotropic_shielding_pbe0_6_31ppgdp {
+      values: 141.2736
+      values: 140.4672
+      values: 76.3904
+      values: 47.04
+      values: 248.3712
+      values: 272.2432
+      values: 394.24
+      values: 28.0752
+      values: 28.7792
+      values: 27.5088
+      values: 27.1984
+      values: 27.9248
+      values: 27.7792
+      values: 24.8352
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_pbe0_aug_pcs_1 {
+      values: 128.3072
+      values: 128.2688
+      values: 56.032
+      values: 23.9296
+      values: 232.128
+      values: 259.1872
+      values: 388.1216
+      values: 27.9488
+      values: 28.512
+      values: 27.304
+      values: 27.0208
+      values: 27.6288
+      values: 27.632
+      values: 24.6864
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_b3lyp_6_31ppgdp {
+      values: 137.0048
+      values: 136.4608
+      values: 72.7488
+      values: 42.784
+      values: 243.0464
+      values: 266.4576
+      values: 391.0144
+      values: 28.1696
+      values: 28.8784
+      values: 27.5568
+      values: 27.2512
+      values: 27.9888
+      values: 27.8656
+      values: 24.9408
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_b3lyp_aug_pcs_1 {
+      values: 122.08
+      values: 122.2464
+      values: 49.5744
+      values: 16.5184
+      values: 225.5104
+      values: 252.2752
+      values: 384.2048
+      values: 28.0256
+      values: 28.6112
+      values: 27.3648
+      values: 27.072
+      values: 27.7072
+      values: 27.712
+      values: 24.7872
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    partial_charges_mulliken_pbe0_aug_pc_1 {
+      values: -0.0902
+      values: 0.092
+      values: 0.2697
+      values: 1.5354
+      values: -1.4745
+      values: -1.5808
+      values: -0.8401
+      values: 0.2063
+      values: 0.3217
+      values: 0.3209
+      values: 0.3745
+      values: 0.37
+      values: 0.1165
+      values: 0.3787
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_mulliken_hf_6_31gd {
+      values: -0.1811
+      values: -0.1761
+      values: 0.1187
+      values: 0.7116
+      values: -0.6753
+      values: -0.6597
+      values: -0.4344
+      values: 0.1876
+      values: 0.1585
+      values: 0.1895
+      values: 0.1938
+      values: 0.1716
+      values: 0.1831
+      values: 0.2123
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_loewdin_pbe0_aug_pc_1 {
+      values: 0.1837
+      values: 0.1839
+      values: 0.2092
+      values: 0.0009
+      values: -0.4007
+      values: -0.4234
+      values: -0.2322
+      values: 0.0667
+      values: 0.0681
+      values: 0.0586
+      values: 0.0578
+      values: 0.0669
+      values: 0.0681
+      values: 0.0924
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_loewdin_hf_6_31gd {
+      values: -0.1701
+      values: -0.1684
+      values: -0.0667
+      values: 0.1544
+      values: -0.2355
+      values: -0.2341
+      values: -0.1865
+      values: 0.133
+      values: 0.1146
+      values: 0.1285
+      values: 0.1306
+      values: 0.1225
+      values: 0.1297
+      values: 0.148
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_natural_nbo_pbe0_aug_pc_1 {
+      values: -0.238
+      values: -0.2364
+      values: 0.0951
+      values: 0.5842
+      values: -0.6025
+      values: -0.5973
+      values: -0.3868
+      values: 0.2039
+      values: 0.185
+      values: 0.1969
+      values: 0.2009
+      values: 0.1938
+      values: 0.2028
+      values: 0.1984
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_natural_nbo_hf_6_31gd {
+      values: -0.2314
+      values: -0.2258
+      values: 0.0989
+      values: 0.6519
+      values: -0.6423
+      values: -0.6339
+      values: -0.4123
+      values: 0.2077
+      values: 0.1828
+      values: 0.2018
+      values: 0.2046
+      values: 0.1919
+      values: 0.2034
+      values: 0.2028
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_paboon_pbe0_aug_pc_1 {
+      values: 0.2749
+      values: 0.0687
+      values: 0.236
+      values: 0.3945
+      values: -0.7551
+      values: -0.4006
+      values: -0.3655
+      values: 0.0428
+      values: 0.1053
+      values: 0.1164
+      values: 0.1085
+      values: 0.0964
+      values: 0.0323
+      values: 0.0453
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_paboon_hf_6_31gd {
+      values: 0.0232
+      values: 0.0311
+      values: 0.0596
+      values: 0.4157
+      values: -0.3656
+      values: -0.3543
+      values: -0.2786
+      values: 0.0755
+      values: 0.0504
+      values: 0.0675
+      values: 0.0706
+      values: 0.0602
+      values: 0.0705
+      values: 0.0743
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_esp_fit_pbe0_aug_pc_1 {
+      values: -0.1006
+      values: -0.2881
+      values: -0.2132
+      values: 0.3023
+      values: -0.1319
+      values: -0.3123
+      values: -0.1241
+      values: 0.1223
+      values: 0.0739
+      values: 0.0788
+      values: 0.1501
+      values: 0.1293
+      values: 0.1363
+      values: 0.1773
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_esp_fit_hf_6_31gd {
+      values: 0.0269
+      values: -0.2017
+      values: -0.204
+      values: 0.4098
+      values: -0.234
+      values: -0.4122
+      values: -0.1566
+      values: 0.0957
+      values: 0.0526
+      values: 0.0623
+      values: 0.1345
+      values: 0.1182
+      values: 0.1226
+      values: 0.1859
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    dipole_dipole_polarizability_pbe0_aug_pc_1 {
+      matrix_values: 58.80935
+      matrix_values: 65.98525
+      matrix_values: 59.87708
+      matrix_values: -7.76183
+      matrix_values: -8.13571
+      matrix_values: -1.61908
+    }
+    dipole_moment_pbe0_aug_pc_1 {
+      x: 0.00439
+      y: 0.37665
+      z: 0.72709
+    }
+    dipole_moment_hf_6_31gd {
+      x: 0.09513
+      y: 0.46355
+      z: 0.80642
+    }
+    quadrupole_moment_pbe0_aug_pc_1 {
+      matrix_values: -32.30635
+      matrix_values: -31.24161
+      matrix_values: -24.19366
+      matrix_values: 0.96159
+      matrix_values: 0.03026
+      matrix_values: -2.51221
+    }
+    quadrupole_moment_hf_6_31gd {
+      matrix_values: -31.78863
+      matrix_values: -31.32069
+      matrix_values: -23.03958
+      matrix_values: 0.85285
+      matrix_values: 0.49717
+      matrix_values: -2.37817
+    }
+    octopole_moment_pbe0_aug_pc_1 {
+      tensor_values: -119.04308
+      tensor_values: 353.349
+      tensor_values: -301.22711
+      tensor_values: 132.03636
+      tensor_values: -123.29265
+      tensor_values: -52.68846
+      tensor_values: -89.32013
+      tensor_values: -32.35748
+      tensor_values: 83.80084
+      tensor_values: -1.25121
+    }
+    octopole_moment_hf_6_31gd {
+      tensor_values: -115.58582
+      tensor_values: 351.24216
+      tensor_values: -291.96384
+      tensor_values: 131.3532
+      tensor_values: -121.65704
+      tensor_values: -53.00702
+      tensor_values: -86.89651
+      tensor_values: -28.30479
+      tensor_values: 80.41479
+      tensor_values: -3.30141
+    }
+    compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.128.000\nStage 1  Cluster:   google-docker\nStage 1  Cores:        16\nStage 1  CPU type:      2\nStage 2  Host IP:   XXX.YYY.004.126\nStage 2  Cluster:   google-docker\nStage 2  Cores:         8\nStage 2  CPU type:      2\n"
+    symmetry_used_in_calculation: false
+    initial_geometry_energy {
+      value: -406.51179
+    }
+    initial_geometry_gradient_norm {
+      value: 0.052254
+    }
+    optimized_geometry_energy {
+      value: -406.522079
+    }
+    optimized_geometry_gradient_norm {
+      value: 2.5e-05
+    }
+    rotational_constants {
+      x: 1455.371
+      y: 2040.472
+      z: 4104.237
+    }
+    number_imaginary_frequencies: 0
+    number_of_optimization_runs: 1
+    nuclear_repulsion_energy {
+      value: 324.344177
+    }
+    diagnostics_d1_ccsd_2sp {
+      value: 0.0486
+    }
+    diagnostics_t1_ccsd_2sp {
+      value: 0.0121
+    }
+    diagnostics_t1_ccsd_2sd {
+      value: 0.0124
+    }
+    diagnostics_t1_ccsd_3psd {
+      value: 0.013
+    }
+    calculation_statistics {
+      computing_location: "Geo"
+      timings: "153"
+    }
+    calculation_statistics {
+      computing_location: "Force"
+      timings: "45"
+    }
+    calculation_statistics {
+      computing_location: "MP2"
+      timings: "108"
+    }
+    calculation_statistics {
+      computing_location: "CC"
+      timings: "178"
+    }
+    calculation_statistics {
+      computing_location: "Polar"
+      timings: "102"
+    }
+    calculation_statistics {
+      computing_location: "Elec"
+      timings: "4"
+    }
+    calculation_statistics {
+      computing_location: "NMRs"
+      timings: "53"
+    }
+    calculation_statistics {
+      computing_location: "NMRl"
+      timings: "197"
+    }
+    calculation_statistics {
+      computing_location: "Exci"
+      timings: "136"
+    }
+    calculation_statistics {
+      computing_location: "IP"
+      timings: "51"
+    }
+    single_point_energy_eccsd {
+      value: -406.427785
+    }
+    diagnostics_t1_ccsd_2sp_excess {
+      value: 0.0036
+    }
+    bond_separation_reaction_left {
+      value: " molecule +  3 CH4 +  2 H2O"
+    }
+    bond_separation_reaction_right {
+      value: " 4 H3C-OH +  1 H2C=CH2 +  1 H3C-F"
+    }
+    bond_separation_energy_atomic_b5 {
+      value: 30.94
+    }
+    bond_separation_energy_atomic_b5_um {
+      value: 30.78
+    }
+    bond_separation_energy_atomic_b5_um_ci {
+      value: 0.73
+    }
+    bond_separation_energy_atomic_b6 {
+      value: 30.69
+    }
+    bond_separation_energy_atomic_b6_um {
+      value: 30.46
+    }
+    bond_separation_energy_atomic_b6_um_ci {
+      value: 1.58
+    }
+    bond_separation_energy_eccsd {
+      value: 29.86
+    }
+    bond_separation_energy_eccsd_um {
+      value: 30.63
+    }
+    bond_separation_energy_eccsd_um_ci {
+      value: 3.35
+    }
+    atomization_energy_excluding_zpe_atomic_b5 {
+      value: 1341.53
+    }
+    atomization_energy_excluding_zpe_atomic_b5_um {
+      value: 1342.12
+    }
+    atomization_energy_excluding_zpe_atomic_b5_um_ci {
+      value: 1.26
+    }
+    atomization_energy_excluding_zpe_atomic_b6 {
+      value: 1341.28
+    }
+    atomization_energy_excluding_zpe_atomic_b6_um {
+      value: 1341.8
+    }
+    atomization_energy_excluding_zpe_atomic_b6_um_ci {
+      value: 1.89
+    }
+    atomization_energy_excluding_zpe_eccsd {
+      value: 1340.46
+    }
+    atomization_energy_excluding_zpe_eccsd_um {
+      value: 1341.97
+    }
+    atomization_energy_excluding_zpe_eccsd_um_ci {
+      value: 3.51
+    }
+    atomization_energy_including_zpe_atomic_b5 {
+      value: 1273.17
+    }
+    atomization_energy_including_zpe_atomic_b5_um {
+      value: 1273.76
+    }
+    atomization_energy_including_zpe_atomic_b5_um_ci {
+      value: 1.53
+    }
+    atomization_energy_including_zpe_atomic_b6 {
+      value: 1272.92
+    }
+    atomization_energy_including_zpe_atomic_b6_um {
+      value: 1273.44
+    }
+    atomization_energy_including_zpe_atomic_b6_um_ci {
+      value: 2.07
+    }
+    atomization_energy_including_zpe_eccsd {
+      value: 1272.09
+    }
+    atomization_energy_including_zpe_eccsd_um {
+      value: 1273.61
+    }
+    atomization_energy_including_zpe_eccsd_um_ci {
+      value: 3.61
+    }
+    enthalpy_of_formation_0k_atomic_b5 {
+      value: -95.16
+    }
+    enthalpy_of_formation_0k_atomic_b5_um {
+      value: -95.75
+    }
+    enthalpy_of_formation_0k_atomic_b5_um_ci {
+      value: 1.53
+    }
+    enthalpy_of_formation_0k_atomic_b6 {
+      value: -94.91
+    }
+    enthalpy_of_formation_0k_atomic_b6_um {
+      value: -95.43
+    }
+    enthalpy_of_formation_0k_atomic_b6_um_ci {
+      value: 2.07
+    }
+    enthalpy_of_formation_0k_eccsd {
+      value: -94.09
+    }
+    enthalpy_of_formation_0k_eccsd_um {
+      value: -95.6
+    }
+    enthalpy_of_formation_0k_eccsd_um_ci {
+      value: 3.61
+    }
+    enthalpy_of_formation_298k_atomic_b5 {
+      value: -100.64
+    }
+    enthalpy_of_formation_298k_atomic_b5_um {
+      value: -101.24
+    }
+    enthalpy_of_formation_298k_atomic_b5_um_ci {
+      value: 1.55
+    }
+    enthalpy_of_formation_298k_atomic_b6 {
+      value: -100.4
+    }
+    enthalpy_of_formation_298k_atomic_b6_um {
+      value: -100.92
+    }
+    enthalpy_of_formation_298k_atomic_b6_um_ci {
+      value: 2.09
+    }
+    enthalpy_of_formation_298k_eccsd {
+      value: -99.57
+    }
+    enthalpy_of_formation_298k_eccsd_um {
+      value: -101.08
+    }
+    enthalpy_of_formation_298k_eccsd_um_ci {
+      value: 3.62
+    }
+    zpe_atomic {
+      value: 68.36
+    }
+    zpe_atomic_um {
+      value: 68.36
+    }
+    zpe_atomic_um_ci {
+      value: 0.85
+    }
+    harmonic_frequencies {
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 64.4
+      value: 91.7
+      value: 157.3
+      value: 203.0
+      value: 241.8
+      value: 257.6
+      value: 346.4
+      value: 371.0
+      value: 476.5
+      value: 631.7
+      value: 704.1
+      value: 735.4
+      value: 886.4
+      value: 1047.2
+      value: 1128.0
+      value: 1166.7
+      value: 1186.4
+      value: 1190.6
+      value: 1221.9
+      value: 1236.1
+      value: 1292.4
+      value: 1363.6
+      value: 1486.4
+      value: 1501.8
+      value: 1504.3
+      value: 1513.8
+      value: 1522.8
+      value: 1525.7
+      value: 1798.4
+      value: 3040.6
+      value: 3058.4
+      value: 3129.0
+      value: 3144.1
+      value: 3174.7
+      value: 3176.9
+      value: 3269.7
+    }
+    normal_modes {
+      displacements {
+        x: -0.0491
+        y: -0.0199
+        z: 0.1436
+      }
+      displacements {
+        x: -0.2317
+        y: -0.0931
+        z: 0.0278
+      }
+      displacements {
+        x: 0.1393
+        y: 0.0557
+        z: 0.2583
+      }
+      displacements {
+        x: 0.0427
+        y: 0.0173
+        z: 0.1236
+      }
+      displacements {
+        x: -0.1092
+        y: -0.0435
+        z: -0.0138
+      }
+      displacements {
+        x: 0.1049
+        y: 0.0425
+        z: 0.1137
+      }
+      displacements {
+        x: 0.1084
+        y: 0.0432
+        z: 0.2614
+      }
+      displacements {
+        x: 0.0254
+        y: 0.0103
+        z: 0.1384
+      }
+      displacements {
+        x: -0.1217
+        y: -0.0499
+        z: 0.3016
+      }
+      displacements {
+        x: -0.1618
+        y: -0.0648
+        z: 0.015
+      }
+      displacements {
+        x: -0.1533
+        y: -0.0613
+        z: -0.0103
+      }
+      displacements {
+        x: -0.279
+        y: -0.1129
+        z: 0.1977
+      }
+      displacements {
+        x: -0.3626
+        y: -0.1456
+        z: -0.077
+      }
+      displacements {
+        x: 0.2551
+        y: 0.1021
+        z: 0.3677
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0106
+        y: -0.0459
+        z: 0.2991
+      }
+      displacements {
+        x: 0.172
+        y: -0.0558
+        z: 0.174
+      }
+      displacements {
+        x: -0.1295
+        y: -0.0236
+        z: 0.0534
+      }
+      displacements {
+        x: -0.0541
+        y: -0.0357
+        z: 0.1882
+      }
+      displacements {
+        x: 0.07
+        y: -0.0499
+        z: 0.2644
+      }
+      displacements {
+        x: -0.1087
+        y: -0.0337
+        z: 0.2656
+      }
+      displacements {
+        x: -0.0997
+        y: -0.0234
+        z: -0.0226
+      }
+      displacements {
+        x: -0.0527
+        y: -0.0423
+        z: 0.3562
+      }
+      displacements {
+        x: 0.0678
+        y: -0.0468
+        z: 0.187
+      }
+      displacements {
+        x: 0.1023
+        y: -0.0574
+        z: 0.381
+      }
+      displacements {
+        x: 0.1131
+        y: -0.0494
+        z: 0.1481
+      }
+      displacements {
+        x: 0.2083
+        y: -0.0547
+        z: 0.0601
+      }
+      displacements {
+        x: 0.2775
+        y: -0.0683
+        z: 0.2494
+      }
+      displacements {
+        x: -0.2247
+        y: -0.0129
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.3567
+        y: 0.0202
+        z: -0.0435
+      }
+      displacements {
+        x: 0.1026
+        y: 0.0143
+        z: 0.0882
+      }
+      displacements {
+        x: 0.1454
+        y: -0.1634
+        z: 0.0299
+      }
+      displacements {
+        x: 0.1888
+        y: -0.0581
+        z: 0.0285
+      }
+      displacements {
+        x: 0.1617
+        y: 0.0322
+        z: 0.0609
+      }
+      displacements {
+        x: 0.2695
+        y: -0.034
+        z: -0.0088
+      }
+      displacements {
+        x: 0.0567
+        y: -0.1943
+        z: 0.07
+      }
+      displacements {
+        x: 0.4155
+        y: 0.0304
+        z: -0.0722
+      }
+      displacements {
+        x: 0.382
+        y: -0.0319
+        z: -0.0673
+      }
+      displacements {
+        x: 0.3416
+        y: 0.1024
+        z: -0.019
+      }
+      displacements {
+        x: 0.0241
+        y: -0.0157
+        z: 0.1231
+      }
+      displacements {
+        x: 0.135
+        y: -0.0463
+        z: 0.059
+      }
+      displacements {
+        x: 0.1049
+        y: 0.0958
+        z: 0.1034
+      }
+      displacements {
+        x: 0.1767
+        y: -0.2303
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.145
+        y: 0.0488
+        z: 0.2316
+      }
+      displacements {
+        x: 0.019
+        y: -0.1246
+        z: -0.2227
+      }
+      displacements {
+        x: 0.0756
+        y: 0.1513
+        z: -0.0772
+      }
+      displacements {
+        x: 0.0839
+        y: 0.104
+        z: -0.0302
+      }
+      displacements {
+        x: 0.0566
+        y: -0.0016
+        z: -0.1081
+      }
+      displacements {
+        x: 0.1243
+        y: 0.1724
+        z: 0.1118
+      }
+      displacements {
+        x: 0.0351
+        y: 0.1098
+        z: -0.2277
+      }
+      displacements {
+        x: 0.1775
+        y: 0.1231
+        z: 0.3399
+      }
+      displacements {
+        x: 0.1481
+        y: -0.0423
+        z: 0.2708
+      }
+      displacements {
+        x: 0.1269
+        y: -0.0232
+        z: 0.1803
+      }
+      displacements {
+        x: -0.0059
+        y: -0.0624
+        z: -0.3409
+      }
+      displacements {
+        x: 0.0278
+        y: -0.1953
+        z: -0.1667
+      }
+      displacements {
+        x: 0.0064
+        y: -0.2143
+        z: -0.2468
+      }
+      displacements {
+        x: 0.1009
+        y: 0.2326
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.1341
+        y: 0.2603
+        z: -0.0043
+      }
+      displacements {
+        x: -0.1369
+        y: 0.238
+        z: 0.0872
+      }
+      displacements {
+        x: -0.1079
+        y: 0.0747
+        z: 0.029
+      }
+      displacements {
+        x: -0.0554
+        y: 0.1823
+        z: 0.0414
+      }
+      displacements {
+        x: -0.0778
+        y: 0.2684
+        z: 0.0747
+      }
+      displacements {
+        x: 0.0304
+        y: 0.2141
+        z: 0.0197
+      }
+      displacements {
+        x: -0.2042
+        y: 0.0381
+        z: 0.0531
+      }
+      displacements {
+        x: 0.1952
+        y: 0.2779
+        z: -0.0213
+      }
+      displacements {
+        x: 0.1655
+        y: 0.1965
+        z: -0.0344
+      }
+      displacements {
+        x: 0.123
+        y: 0.3409
+        z: 0.0232
+      }
+      displacements {
+        x: -0.2271
+        y: 0.2118
+        z: 0.1122
+      }
+      displacements {
+        x: -0.0988
+        y: 0.167
+        z: 0.0526
+      }
+      displacements {
+        x: -0.1278
+        y: 0.3162
+        z: 0.1068
+      }
+      displacements {
+        x: -0.0792
+        y: 0.0113
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.1007
+        y: -0.0623
+        z: 0.0536
+      }
+      displacements {
+        x: -0.2778
+        y: -0.1859
+        z: -0.1003
+      }
+      displacements {
+        x: -0.1326
+        y: -0.1826
+        z: -0.034
+      }
+      displacements {
+        x: -0.0985
+        y: -0.1058
+        z: -0.031
+      }
+      displacements {
+        x: -0.1706
+        y: -0.0841
+        z: -0.0677
+      }
+      displacements {
+        x: 0.0226
+        y: -0.0346
+        z: 0.0131
+      }
+      displacements {
+        x: -0.2569
+        y: -0.2426
+        z: -0.0813
+      }
+      displacements {
+        x: 0.196
+        y: -0.0014
+        z: 0.0874
+      }
+      displacements {
+        x: 0.1166
+        y: -0.1779
+        z: 0.0799
+      }
+      displacements {
+        x: 0.0539
+        y: -0.0262
+        z: 0.0261
+      }
+      displacements {
+        x: -0.3624
+        y: -0.1748
+        z: -0.141
+      }
+      displacements {
+        x: -0.2463
+        y: -0.2965
+        z: -0.0676
+      }
+      displacements {
+        x: -0.306
+        y: -0.1625
+        z: -0.1171
+      }
+      displacements {
+        x: -0.0636
+        y: -0.1966
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.1249
+        y: 0.0855
+        z: -0.1041
+      }
+      displacements {
+        x: -0.0663
+        y: -0.1892
+        z: -0.0977
+      }
+      displacements {
+        x: -0.0537
+        y: 0.0132
+        z: 0.0029
+      }
+      displacements {
+        x: -0.0416
+        y: -0.0094
+        z: 0.0413
+      }
+      displacements {
+        x: 0.027
+        y: 0.0639
+        z: 0.1273
+      }
+      displacements {
+        x: -0.1132
+        y: -0.0594
+        z: -0.0124
+      }
+      displacements {
+        x: 0.0905
+        y: 0.0812
+        z: 0.0521
+      }
+      displacements {
+        x: -0.0151
+        y: 0.0089
+        z: -0.1307
+      }
+      displacements {
+        x: 0.2441
+        y: 0.1684
+        z: -0.3801
+      }
+      displacements {
+        x: 0.3188
+        y: 0.1794
+        z: 0.1259
+      }
+      displacements {
+        x: -0.2859
+        y: -0.1231
+        z: -0.272
+      }
+      displacements {
+        x: 0.0276
+        y: -0.4221
+        z: -0.1188
+      }
+      displacements {
+        x: -0.0161
+        y: -0.2231
+        z: -0.0671
+      }
+      displacements {
+        x: -0.173
+        y: 0.0002
+        z: -0.084
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.207
+        y: 0.0063
+        z: 0.0314
+      }
+      displacements {
+        x: 0.0062
+        y: 0.0898
+        z: 0.066
+      }
+      displacements {
+        x: -0.0106
+        y: 0.0379
+        z: 0.0154
+      }
+      displacements {
+        x: -0.0722
+        y: -0.0425
+        z: -0.0371
+      }
+      displacements {
+        x: -0.1108
+        y: -0.1457
+        z: -0.1179
+      }
+      displacements {
+        x: -0.0905
+        y: -0.0319
+        z: 0.0107
+      }
+      displacements {
+        x: 0.0354
+        y: 0.0611
+        z: 0.014
+      }
+      displacements {
+        x: 0.0052
+        y: -0.0265
+        z: 0.1337
+      }
+      displacements {
+        x: 0.3637
+        y: 0.0575
+        z: -0.3016
+      }
+      displacements {
+        x: 0.4714
+        y: 0.0048
+        z: 0.2842
+      }
+      displacements {
+        x: 0.3073
+        y: 0.0678
+        z: 0.1799
+      }
+      displacements {
+        x: -0.1246
+        y: 0.3582
+        z: 0.1604
+      }
+      displacements {
+        x: -0.0746
+        y: 0.0217
+        z: -0.0042
+      }
+      displacements {
+        x: 0.028
+        y: 0.0944
+        z: 0.082
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0604
+        y: 0.0293
+        z: -0.0141
+      }
+      displacements {
+        x: -0.0049
+        y: -0.0129
+        z: -0.005
+      }
+      displacements {
+        x: 0.0359
+        y: 0.0016
+        z: 0.0221
+      }
+      displacements {
+        x: 0.0427
+        y: 0.022
+        z: 0.0193
+      }
+      displacements {
+        x: 0.0156
+        y: -0.0068
+        z: -0.0146
+      }
+      displacements {
+        x: 0.0406
+        y: 0.0203
+        z: 0.0151
+      }
+      displacements {
+        x: -0.0426
+        y: -0.0387
+        z: -0.0125
+      }
+      displacements {
+        x: -0.6086
+        y: -0.1909
+        z: 0.0276
+      }
+      displacements {
+        x: -0.0109
+        y: 0.4908
+        z: -0.3405
+      }
+      displacements {
+        x: 0.3285
+        y: -0.2113
+        z: 0.241
+      }
+      displacements {
+        x: -0.0048
+        y: -0.0127
+        z: -0.0046
+      }
+      displacements {
+        x: -0.0066
+        y: -0.0219
+        z: 0.0113
+      }
+      displacements {
+        x: -0.0202
+        y: -0.0091
+        z: -0.0153
+      }
+      displacements {
+        x: 0.0751
+        y: -0.0044
+        z: 0.0432
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0156
+        y: -0.0358
+        z: 0.0551
+      }
+      displacements {
+        x: 0.0605
+        y: 0.0099
+        z: -0.0752
+      }
+      displacements {
+        x: 0.0035
+        y: 0.0046
+        z: -0.0067
+      }
+      displacements {
+        x: -0.0196
+        y: 0.0167
+        z: -0.0598
+      }
+      displacements {
+        x: 0.0049
+        y: -0.0167
+        z: -0.0638
+      }
+      displacements {
+        x: -0.0295
+        y: 0.0243
+        z: -0.0158
+      }
+      displacements {
+        x: -0.038
+        y: 0.0046
+        z: 0.1229
+      }
+      displacements {
+        x: -0.0326
+        y: -0.0129
+        z: 0.1357
+      }
+      displacements {
+        x: 0.0444
+        y: -0.0519
+        z: 0.0062
+      }
+      displacements {
+        x: 0.0724
+        y: -0.0962
+        z: 0.0796
+      }
+      displacements {
+        x: -0.3957
+        y: -0.1486
+        z: 0.0954
+      }
+      displacements {
+        x: 0.2788
+        y: -0.182
+        z: -0.5391
+      }
+      displacements {
+        x: 0.355
+        y: 0.3867
+        z: 0.205
+      }
+      displacements {
+        x: 0.0685
+        y: -0.0483
+        z: -0.0036
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0118
+        y: -0.1807
+        z: 0.1425
+      }
+      displacements {
+        x: -0.1496
+        y: 0.0789
+        z: 0.0636
+      }
+      displacements {
+        x: -0.0621
+        y: -0.0791
+        z: -0.1625
+      }
+      displacements {
+        x: 0.0071
+        y: -0.0172
+        z: -0.0867
+      }
+      displacements {
+        x: 0.0378
+        y: 0.153
+        z: 0.0253
+      }
+      displacements {
+        x: 0.0077
+        y: 0.0051
+        z: -0.0417
+      }
+      displacements {
+        x: 0.1234
+        y: 0.0276
+        z: 0.013
+      }
+      displacements {
+        x: -0.2374
+        y: -0.1737
+        z: 0.357
+      }
+      displacements {
+        x: 0.0587
+        y: -0.0929
+        z: 0.0088
+      }
+      displacements {
+        x: 0.2152
+        y: -0.428
+        z: 0.2136
+      }
+      displacements {
+        x: -0.1966
+        y: 0.0716
+        z: 0.0608
+      }
+      displacements {
+        x: -0.1443
+        y: -0.0369
+        z: 0.1844
+      }
+      displacements {
+        x: -0.2621
+        y: 0.1304
+        z: -0.0101
+      }
+      displacements {
+        x: -0.1839
+        y: -0.1395
+        z: -0.2871
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0014
+        y: -0.0114
+        z: 0.0384
+      }
+      displacements {
+        x: 0.0994
+        y: -0.0292
+        z: -0.1083
+      }
+      displacements {
+        x: -0.0353
+        y: -0.0265
+        z: -0.0516
+      }
+      displacements {
+        x: -0.0035
+        y: 0.0417
+        z: -0.0544
+      }
+      displacements {
+        x: 0.0627
+        y: 0.0257
+        z: -0.0203
+      }
+      displacements {
+        x: -0.0342
+        y: 0.0372
+        z: -0.0216
+      }
+      displacements {
+        x: -0.0814
+        y: -0.0181
+        z: 0.164
+      }
+      displacements {
+        x: -0.0016
+        y: 0.0203
+        z: 0.0988
+      }
+      displacements {
+        x: 0.0176
+        y: -0.0515
+        z: 0.0256
+      }
+      displacements {
+        x: 0.0198
+        y: -0.0482
+        z: 0.0373
+      }
+      displacements {
+        x: 0.5269
+        y: 0.1565
+        z: -0.324
+      }
+      displacements {
+        x: -0.1028
+        y: 0.1683
+        z: 0.2933
+      }
+      displacements {
+        x: -0.1247
+        y: -0.452
+        z: -0.3449
+      }
+      displacements {
+        x: 0.0068
+        y: -0.1502
+        z: -0.1157
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0002
+        y: 0.029
+        z: -0.0208
+      }
+      displacements {
+        x: -0.1219
+        y: -0.1024
+        z: 0.1851
+      }
+      displacements {
+        x: 0.0924
+        y: 0.1143
+        z: -0.1312
+      }
+      displacements {
+        x: 0.1451
+        y: 0.069
+        z: -0.043
+      }
+      displacements {
+        x: 0.2231
+        y: -0.0971
+        z: -0.0852
+      }
+      displacements {
+        x: -0.1206
+        y: -0.0358
+        z: 0.0197
+      }
+      displacements {
+        x: -0.1344
+        y: 0.0526
+        z: 0.0345
+      }
+      displacements {
+        x: 0.1391
+        y: 0.0699
+        z: -0.0602
+      }
+      displacements {
+        x: 0.0248
+        y: -0.0873
+        z: -0.0145
+      }
+      displacements {
+        x: -0.0645
+        y: 0.1574
+        z: -0.0177
+      }
+      displacements {
+        x: -0.223
+        y: -0.2228
+        z: 0.3724
+      }
+      displacements {
+        x: -0.1143
+        y: -0.2815
+        z: 0.3719
+      }
+      displacements {
+        x: -0.3663
+        y: 0.1912
+        z: 0.0583
+      }
+      displacements {
+        x: 0.1361
+        y: -0.019
+        z: -0.202
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0638
+        y: -0.2129
+        z: 0.0147
+      }
+      displacements {
+        x: -0.0109
+        y: 0.0616
+        z: -0.0595
+      }
+      displacements {
+        x: 0.2317
+        y: 0.1629
+        z: 0.2602
+      }
+      displacements {
+        x: 0.0122
+        y: 0.0264
+        z: -0.015
+      }
+      displacements {
+        x: 0.0351
+        y: 0.1708
+        z: 0.0669
+      }
+      displacements {
+        x: -0.1537
+        y: -0.1142
+        z: -0.1223
+      }
+      displacements {
+        x: -0.1239
+        y: -0.0463
+        z: -0.093
+      }
+      displacements {
+        x: 0.0779
+        y: -0.0959
+        z: 0.2185
+      }
+      displacements {
+        x: 0.1765
+        y: -0.4038
+        z: -0.1147
+      }
+      displacements {
+        x: 0.1643
+        y: -0.258
+        z: 0.0837
+      }
+      displacements {
+        x: -0.0026
+        y: 0.1375
+        z: -0.1906
+      }
+      displacements {
+        x: -0.011
+        y: 0.011
+        z: 0.0126
+      }
+      displacements {
+        x: -0.033
+        y: -0.0596
+        z: -0.0972
+      }
+      displacements {
+        x: 0.308
+        y: 0.1915
+        z: 0.3302
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0831
+        y: 0.2123
+        z: 0.114
+      }
+      displacements {
+        x: -0.0515
+        y: 0.1298
+        z: -0.1121
+      }
+      displacements {
+        x: 0.1305
+        y: -0.163
+        z: 0.0112
+      }
+      displacements {
+        x: 0.089
+        y: 0.0509
+        z: -0.0523
+      }
+      displacements {
+        x: 0.0335
+        y: 0.0922
+        z: -0.1159
+      }
+      displacements {
+        x: -0.3183
+        y: -0.0252
+        z: 0.1965
+      }
+      displacements {
+        x: 0.1859
+        y: -0.252
+        z: -0.0359
+      }
+      displacements {
+        x: 0.086
+        y: 0.1877
+        z: -0.0689
+      }
+      displacements {
+        x: -0.0108
+        y: 0.1264
+      }
+      displacements {
+        x: -0.127
+        y: 0.5091
+        z: 0.2153
+      }
+      displacements {
+        x: -0.0495
+        y: 0.1098
+        z: -0.0801
+      }
+      displacements {
+        x: -0.0474
+        y: 0.1061
+        z: -0.0864
+      }
+      displacements {
+        x: -0.0724
+        y: 0.1536
+        z: -0.1232
+      }
+      displacements {
+        x: 0.2256
+        y: -0.247
+        z: 0.0081
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0296
+        y: -0.1336
+        z: -0.0671
+      }
+      displacements {
+        x: -0.0537
+        y: 0.167
+        z: -0.1767
+      }
+      displacements {
+        x: -0.0203
+        y: 0.0272
+        z: -0.1529
+      }
+      displacements {
+        x: 0.274
+        y: 0.0351
+        z: 0.2526
+      }
+      displacements {
+        x: -0.0993
+        y: 0.055
+        z: -0.0699
+      }
+      displacements {
+        x: 0.0495
+        y: -0.2754
+        z: 0.2095
+      }
+      displacements {
+        x: -0.0963
+        y: 0.1086
+        z: 0.0428
+      }
+      displacements {
+        x: 0.0801
+        y: -0.2528
+        z: -0.3222
+      }
+      displacements {
+        x: 0.0015
+        y: 0.0041
+        z: -0.0728
+      }
+      displacements {
+        x: -0.0305
+        y: 0.0988
+        z: -0.0072
+      }
+      displacements {
+        x: -0.0069
+        y: 0.1898
+        z: -0.2075
+      }
+      displacements {
+        x: -0.0477
+        y: 0.2425
+        z: -0.2838
+      }
+      displacements {
+        x: 0.0946
+        y: 0.0624
+        z: -0.0859
+      }
+      displacements {
+        x: -0.2201
+        y: -0.0319
+        z: -0.3264
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0077
+        y: 0.0275
+        z: 0.0107
+      }
+      displacements {
+        x: -0.0145
+        y: 0.0411
+        z: -0.0214
+      }
+      displacements {
+        x: 0.0515
+        y: 0.043
+        z: -0.0846
+      }
+      displacements {
+        x: -0.1523
+        y: -0.242
+        z: -0.2322
+      }
+      displacements {
+        x: 0.0541
+        y: 0.0804
+        z: 0.041
+      }
+      displacements {
+        x: 0.0794
+        y: -0.0909
+        z: 0.1637
+      }
+      displacements {
+        x: -0.0478
+        y: 0.0531
+        z: 0.0285
+      }
+      displacements {
+        x: -0.0136
+        y: -0.14
+        z: -0.2901
+      }
+      displacements {
+        x: -0.0666
+        y: 0.2431
+        z: 0.0242
+      }
+      displacements {
+        x: -0.0743
+        y: 0.2129
+        z: 0.035
+      }
+      displacements {
+        x: -0.0345
+        y: 0.0596
+        z: -0.0582
+      }
+      displacements {
+        x: -0.0093
+        y: -0.014
+        z: 0.0359
+      }
+      displacements {
+        x: -0.0606
+        y: 0.0219
+        z: -0.0593
+      }
+      displacements {
+        x: 0.5062
+        y: 0.337
+        z: 0.4287
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0043
+        y: -0.0206
+        z: -0.0134
+      }
+      displacements {
+        x: 0.005
+        y: -0.0082
+        z: 0.0087
+      }
+      displacements {
+        x: -0.1016
+        y: -0.0677
+        z: -0.0932
+      }
+      displacements {
+        x: 0.0573
+        y: 0.0673
+        z: 0.0705
+      }
+      displacements {
+        x: -0.0024
+        y: 0.0016
+        z: 0.0077
+      }
+      displacements {
+        x: -0.03
+        y: 0.0081
+        z: -0.0351
+      }
+      displacements {
+        x: 0.0141
+        y: -0.0009
+        z: 0.0023
+      }
+      displacements {
+        x: 0.01
+        y: 0.0228
+        z: 0.0607
+      }
+      displacements {
+        x: 0.0216
+        y: -0.0728
+        z: -0.0211
+      }
+      displacements {
+        x: 0.0252
+        y: -0.0511
+        z: -0.0079
+      }
+      displacements {
+        x: -0.0086
+        y: -0.0008
+        z: -0.0097
+      }
+      displacements {
+        x: 0.0104
+        y: -0.0259
+        z: 0.01
+      }
+      displacements {
+        x: 0.009
+        y: -0.0186
+        z: 0.0098
+      }
+      displacements {
+        x: 0.5978
+        y: 0.357
+        z: 0.6784
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0187
+        y: -0.0586
+        z: -0.0474
+      }
+      displacements {
+        x: -0.0322
+        y: 0.1121
+        z: -0.1262
+      }
+      displacements {
+        x: -0.234
+        y: -0.0943
+        z: 0.2502
+      }
+      displacements {
+        x: -0.1102
+        y: 0.006
+        z: 0.0687
+      }
+      displacements {
+        x: 0.2809
+        y: -0.0314
+        z: -0.134
+      }
+      displacements {
+        x: 0.0329
+        y: -0.0102
+        z: 0.0524
+      }
+      displacements {
+        x: 0.0108
+        y: 0.0396
+        z: -0.0289
+      }
+      displacements {
+        x: 0.0051
+        y: -0.0894
+        z: -0.0912
+      }
+      displacements {
+        x: -0.0077
+        y: 0.0054
+        z: -0.0185
+      }
+      displacements {
+        x: -0.0083
+        y: -0.0126
+        z: -0.043
+      }
+      displacements {
+        x: -0.1199
+        y: -0.0259
+        z: 0.0881
+      }
+      displacements {
+        x: -0.0456
+        y: -0.0674
+        z: 0.1496
+      }
+      displacements {
+        x: -0.3363
+        y: 0.384
+        z: -0.305
+      }
+      displacements {
+        x: -0.4098
+        y: 0.133
+        z: 0.3273
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0619
+        y: -0.3405
+        z: -0.2903
+      }
+      displacements {
+        x: 0.0808
+        y: -0.1212
+        z: 0.1085
+      }
+      displacements {
+        x: -0.0359
+        y: 0.1178
+        z: -0.0129
+      }
+      displacements {
+        x: -0.11
+        y: 0.2087
+        z: -0.0805
+      }
+      displacements {
+        x: -0.0695
+        y: 0.087
+        z: -0.0689
+      }
+      displacements {
+        x: -0.0308
+        y: 0.2088
+        z: 0.3125
+      }
+      displacements {
+        x: 0.0669
+        y: -0.117
+        z: 0.0063
+      }
+      displacements {
+        x: 0.1065
+        y: -0.3738
+        z: -0.396
+      }
+      displacements {
+        x: 0.0342
+        y: -0.1473
+        z: -0.2829
+      }
+      displacements {
+        x: 0.0203
+        y: -0.0447
+        z: -0.1686
+      }
+      displacements {
+        x: 0.0449
+        y: -0.0928
+        z: 0.0662
+      }
+      displacements {
+        x: 0.0651
+        y: -0.0975
+        z: 0.0965
+      }
+      displacements {
+        x: 0.0017
+        y: -0.0398
+        z: 0.0598
+      }
+      displacements {
+        x: 0.0969
+        y: -0.0846
+        z: -0.0806
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0183
+        y: -0.0066
+        z: -0.1278
+      }
+      displacements {
+        x: -0.1716
+        y: 0.2001
+        z: -0.1661
+      }
+      displacements {
+        x: 0.0398
+        y: 0.2236
+        z: -0.1538
+      }
+      displacements {
+        x: -0.0815
+        y: -0.0682
+        z: 0.1012
+      }
+      displacements {
+        x: 0.1194
+        y: -0.2214
+        z: 0.204
+      }
+      displacements {
+        x: -0.0183
+        y: 0.1122
+        z: 0.0318
+      }
+      displacements {
+        x: 0.0448
+        y: -0.1483
+        z: 0.0416
+      }
+      displacements {
+        x: -0.0948
+        y: 0.2006
+        z: 0.3298
+      }
+      displacements {
+        x: -0.0168
+        y: -0.1955
+        z: 0.0505
+      }
+      displacements {
+        x: 0.0967
+        y: -0.3438
+        z: -0.2047
+      }
+      displacements {
+        x: -0.0454
+        y: 0.1951
+        z: -0.1424
+      }
+      displacements {
+        x: -0.1486
+        y: 0.2314
+        z: -0.239
+      }
+      displacements {
+        x: 0.0133
+        y: 0.059
+        z: -0.044
+      }
+      displacements {
+        x: 0.0715
+        y: 0.2248
+        z: -0.1483
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0132
+        y: 0.049
+        z: 0.0976
+      }
+      displacements {
+        x: 0.098
+        y: -0.0484
+        z: 0.05
+      }
+      displacements {
+        x: -0.0893
+        y: 0.2672
+        z: -0.0814
+      }
+      displacements {
+        x: -0.0712
+        y: -0.0027
+        z: 0.0967
+      }
+      displacements {
+        x: -0.024
+        y: 0.0818
+        z: -0.1079
+      }
+      displacements {
+        x: 0.0534
+        y: -0.1144
+        z: -0.0742
+      }
+      displacements {
+        x: 0.0548
+        y: -0.1804
+        z: 0.048
+      }
+      displacements {
+        x: 0.0218
+        y: -0.0404
+        z: -0.0806
+      }
+      displacements {
+        x: 0.0176
+        y: 0.0777
+        z: 0.0077
+      }
+      displacements {
+        x: -0.0366
+        y: 0.1243
+        z: 0.1033
+      }
+      displacements {
+        x: -0.1004
+        y: -0.0208
+        z: -0.0195
+      }
+      displacements {
+        x: 0.097
+        y: -0.1869
+        z: 0.1752
+      }
+      displacements {
+        x: -0.207
+        y: 0.1521
+        z: -0.1505
+      }
+      displacements {
+        x: -0.391
+        y: 0.6518
+        z: 0.0086
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.1261
+        y: 0.0399
+        z: -0.0155
+      }
+      displacements {
+        x: 0.0192
+        y: 0.0125
+        z: 0.0263
+      }
+      displacements {
+        x: -0.0033
+        y: 0.0001
+        z: 0.0074
+      }
+      displacements {
+        x: 0.0008
+        y: 0.0108
+        z: -0.0078
+      }
+      displacements {
+        x: -0.0116
+        y: 0.0046
+        z: -0.0198
+      }
+      displacements {
+        x: -0.0564
+        y: -0.0288
+        z: 0.0129
+      }
+      displacements {
+        x: 0.0003
+        y: -0.0005
+        z: -0.0013
+      }
+      displacements {
+        x: -0.2664
+        y: -0.1191
+        z: 0.0128
+      }
+      displacements {
+        x: -0.2194
+        y: 0.3278
+        z: 0.5242
+      }
+      displacements {
+        x: -0.1064
+        y: -0.4269
+        z: -0.4646
+      }
+      displacements {
+        x: -0.0869
+        y: 0.0692
+        z: -0.0981
+      }
+      displacements {
+        x: 0.0656
+        y: -0.128
+        z: 0.0468
+      }
+      displacements {
+        x: -0.0163
+        y: -0.075
+        z: -0.0147
+      }
+      displacements {
+        x: 0.0004
+        y: -0.0084
+        z: 0.0041
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0298
+        y: -0.009
+        z: -0.0077
+      }
+      displacements {
+        x: 0.0421
+        y: 0.1089
+        z: 0.0668
+      }
+      displacements {
+        x: 0.0085
+        y: -0.0146
+        z: 0.0038
+      }
+      displacements {
+        x: 0.0022
+        y: -0.01
+        z: -0.0012
+      }
+      displacements {
+        x: -0.0174
+        y: -0.0537
+        z: -0.0234
+      }
+      displacements {
+        x: 0.0097
+        y: 0.0157
+        z: 0.0052
+      }
+      displacements {
+        x: -0.004
+        y: 0.0105
+        z: -0.0024
+      }
+      displacements {
+        x: 0.0605
+        y: 0.0484
+        z: 0.0222
+      }
+      displacements {
+        x: 0.0493
+        y: -0.0943
+        z: -0.1198
+      }
+      displacements {
+        x: 0.0356
+        y: 0.0741
+        z: 0.096
+      }
+      displacements {
+        x: -0.4056
+        y: 0.3394
+        z: -0.4479
+      }
+      displacements {
+        x: 0.2457
+        y: -0.5015
+        z: 0.1568
+      }
+      displacements {
+        x: -0.0816
+        y: -0.3047
+        z: -0.0916
+      }
+      displacements {
+        x: 0.0206
+        y: -0.0533
+        z: -0.0173
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0443
+        y: -0.0769
+        z: 0.112
+      }
+      displacements {
+        x: -0.0626
+        y: 0.0331
+        z: 0.0027
+      }
+      displacements {
+        x: -0.0217
+        y: 0.0262
+        z: 0.0046
+      }
+      displacements {
+        x: -0.0131
+        y: 0.074
+        z: -0.0152
+      }
+      displacements {
+        x: 0.0322
+        y: -0.0562
+        z: 0.0357
+      }
+      displacements {
+        x: -0.0078
+        y: 0.017
+        z: -0.0721
+      }
+      displacements {
+        x: 0.0101
+        y: -0.0149
+        z: -0.0021
+      }
+      displacements {
+        x: 0.0769
+        y: -0.436
+        z: -0.5562
+      }
+      displacements {
+        x: -0.0316
+        y: 0.404
+        z: 0.013
+      }
+      displacements {
+        x: -0.2159
+        y: 0.348
+        z: 0.0631
+      }
+      displacements {
+        x: 0.0356
+        y: 0.1027
+        z: -0.1033
+      }
+      displacements {
+        x: -0.0181
+        y: 0.0521
+        z: -0.1451
+      }
+      displacements {
+        x: 0.1289
+        y: -0.1571
+        z: 0.1168
+      }
+      displacements {
+        x: 0.0789
+        y: -0.0828
+        z: -0.012
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0122
+        y: 0.0179
+        z: -0.0232
+      }
+      displacements {
+        x: -0.0959
+        y: -0.0317
+        z: 0.1019
+      }
+      displacements {
+        x: -0.0241
+        y: 0.0004
+        z: 0.0182
+      }
+      displacements {
+        x: 0.0082
+        y: -0.031
+        z: -0.0058
+      }
+      displacements {
+        x: 0.0692
+        y: 0.0371
+        z: -0.0821
+      }
+      displacements {
+        x: 0.0013
+        y: -0.0032
+        z: 0.0163
+      }
+      displacements {
+        x: -0.0011
+        y: -0.0089
+        z: 0.0071
+      }
+      displacements {
+        x: -0.0098
+        y: 0.1
+        z: 0.1211
+      }
+      displacements {
+        x: 0.0081
+        y: -0.0856
+        z: -0.0082
+      }
+      displacements {
+        x: 0.0484
+        y: -0.0631
+        z: -0.0029
+      }
+      displacements {
+        x: 0.1877
+        y: 0.2249
+        z: -0.2795
+      }
+      displacements {
+        x: -0.008
+        y: 0.1904
+        z: -0.4383
+      }
+      displacements {
+        x: 0.3546
+        y: -0.4253
+        z: 0.3653
+      }
+      displacements {
+        x: -0.2013
+        y: 0.2164
+        z: 0.069
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0333
+        y: -0.0892
+        z: -0.0196
+      }
+      displacements {
+        x: 0.0329
+        y: -0.0039
+        z: -0.0134
+      }
+      displacements {
+        x: 0.0855
+        y: -0.0791
+        z: -0.0258
+      }
+      displacements {
+        x: 0.1088
+        y: -0.1927
+        z: 0.0609
+      }
+      displacements {
+        x: -0.0216
+        y: 0.021
+        z: -0.007
+      }
+      displacements {
+        x: -0.0857
+        y: 0.1686
+        z: -0.0252
+      }
+      displacements {
+        x: -0.0309
+        y: 0.0131
+        z: 0.0183
+      }
+      displacements {
+        x: 0.0159
+        y: -0.1037
+        z: -0.0557
+      }
+      displacements {
+        x: -0.0764
+        y: 0.2664
+        z: 0.0446
+      }
+      displacements {
+        x: -0.1107
+        y: 0.2555
+        z: 0.0271
+      }
+      displacements {
+        x: -0.061
+        y: -0.0386
+        z: 0.0273
+      }
+      displacements {
+        x: 0.0008
+        y: 0.0006
+        z: 0.072
+      }
+      displacements {
+        x: -0.0687
+        y: 0.0757
+        z: -0.0798
+      }
+      displacements {
+        x: -0.5184
+        y: 0.6361
+        z: 0.1051
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0161
+        y: -0.0367
+        z: -0.012
+      }
+      displacements {
+        x: 0.0208
+        y: -0.0425
+        z: 0.0415
+      }
+      displacements {
+        x: -0.0259
+        y: 0.0633
+        z: -0.0122
+      }
+      displacements {
+        x: -0.0507
+        y: -0.1595
+        z: 0.1696
+      }
+      displacements {
+        x: 0.0292
+        y: 0.0552
+        z: -0.0747
+      }
+      displacements {
+        x: -0.0215
+        y: 0.0522
+        z: -0.0319
+      }
+      displacements {
+        x: 0.0051
+        y: 0.0138
+        z: -0.0133
+      }
+      displacements {
+        x: -0.0293
+        y: 0.0311
+        z: 0.1317
+      }
+      displacements {
+        x: -0.0664
+        y: 0.1612
+        z: 0.0701
+      }
+      displacements {
+        x: -0.0541
+        y: 0.1964
+        z: 0.0487
+      }
+      displacements {
+        x: -0.0036
+        y: 0.085
+        z: -0.1689
+      }
+      displacements {
+        x: 0.0076
+        y: 0.1367
+        z: -0.1636
+      }
+      displacements {
+        x: -0.138
+        y: 0.1367
+        z: -0.0609
+      }
+      displacements {
+        x: 0.5382
+        y: -0.6229
+        z: -0.1407
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0151
+        y: 0.0626
+        z: 0.0528
+      }
+      displacements {
+        x: 0.0267
+        y: -0.0298
+        z: 0.0416
+      }
+      displacements {
+        x: 0.0201
+        y: -0.0199
+        z: -0.0082
+      }
+      displacements {
+        x: 0.0014
+        y: -0.0209
+        z: 0.0188
+      }
+      displacements {
+        x: 0.0044
+        y: -0.004
+        z: 0.0065
+      }
+      displacements {
+        x: -0.0123
+        y: 0.031
+        z: 0.0066
+      }
+      displacements {
+        x: -0.005
+        y: 0.0085
+        z: 0.0001
+      }
+      displacements {
+        x: 0.0217
+        y: -0.221
+        z: -0.4711
+      }
+      displacements {
+        x: 0.1997
+        y: -0.3307
+        z: -0.1914
+      }
+      displacements {
+        x: 0.0127
+        y: -0.4171
+        z: -0.1602
+      }
+      displacements {
+        x: -0.1059
+        y: 0.075
+        z: -0.1741
+      }
+      displacements {
+        x: 0.0171
+        y: 0.2453
+        z: -0.2817
+      }
+      displacements {
+        x: -0.3034
+        y: 0.1265
+        z: -0.1835
+      }
+      displacements {
+        x: -0.0167
+        y: 0.0283
+        z: 0.0014
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0283
+        y: -0.0419
+        z: -0.0101
+      }
+      displacements {
+        x: 0.0201
+        y: -0.004
+        z: 0.0378
+      }
+      displacements {
+        x: 0.0015
+        y: -0.0078
+        z: 0.0032
+      }
+      displacements {
+        x: 0.0023
+        y: 0.0373
+        z: -0.0296
+      }
+      displacements {
+        x: -0.0007
+        y: -0.0118
+        z: 0.0226
+      }
+      displacements {
+        x: 0.001
+        y: -0.0245
+        z: 0.0025
+      }
+      displacements {
+        x: 0.0002
+        z: 0.0002
+      }
+      displacements {
+        x: 0.4694
+        y: 0.2782
+        z: 0.1606
+      }
+      displacements {
+        x: -0.1359
+        y: 0.5079
+        z: -0.0368
+      }
+      displacements {
+        x: 0.0976
+        y: -0.1378
+        z: 0.042
+      }
+      displacements {
+        x: -0.0848
+        y: -0.0157
+        z: 0.0162
+      }
+      displacements {
+        x: 0.0726
+        y: 0.1746
+        z: -0.3695
+      }
+      displacements {
+        x: -0.3369
+        y: -0.0748
+        z: -0.2408
+      }
+      displacements {
+        x: -0.0386
+        y: 0.0409
+        z: 0.0112
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0346
+        y: -0.0004
+        z: -0.0292
+      }
+      displacements {
+        x: 0.0094
+        y: 0.0176
+        z: 0.0334
+      }
+      displacements {
+        x: 0.005
+        y: -0.0087
+        z: -0.0007
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0299
+        z: -0.019
+      }
+      displacements {
+        x: -0.0019
+        y: -0.0055
+        z: 0.0179
+      }
+      displacements {
+        x: 0.0116
+        y: -0.0115
+        z: -0.0033
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0001
+        z: 0.0004
+      }
+      displacements {
+        x: -0.4436
+        y: -0.1187
+        z: 0.1415
+      }
+      displacements {
+        x: -0.0299
+        y: -0.2661
+        z: 0.2101
+      }
+      displacements {
+        x: -0.0535
+        y: 0.4043
+        z: 0.1052
+      }
+      displacements {
+        x: 0.0242
+        y: -0.076
+        z: 0.1719
+      }
+      displacements {
+        x: 0.1445
+        y: 0.0287
+        z: -0.4255
+      }
+      displacements {
+        x: -0.3428
+        y: -0.2002
+        z: -0.2672
+      }
+      displacements {
+        x: -0.0333
+        y: 0.0393
+        z: 0.0071
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0134
+        y: -0.0133
+        z: -0.0253
+      }
+      displacements {
+        x: 0.032
+        y: -0.0664
+        z: 0.0188
+      }
+      displacements {
+        x: 0.0061
+        y: -0.0169
+        z: 0.0042
+      }
+      displacements {
+        x: 0.0016
+        y: 0.0497
+        z: -0.0393
+      }
+      displacements {
+        x: 0.0022
+        y: -0.0288
+        z: 0.0213
+      }
+      displacements {
+        x: 0.0108
+        y: -0.0223
+        z: 0.0002
+      }
+      displacements {
+        x: -0.0007
+        y: 0.0015
+        z: 0.0002
+      }
+      displacements {
+        x: -0.1448
+        y: 0.0138
+        z: 0.1496
+      }
+      displacements {
+        x: -0.0771
+        y: -0.0144
+        z: 0.1536
+      }
+      displacements {
+        x: 0.0141
+        y: 0.2372
+        z: 0.1047
+      }
+      displacements {
+        x: -0.3424
+        y: 0.1984
+        z: -0.501
+      }
+      displacements {
+        x: -0.2142
+        y: 0.4596
+        z: 0.1494
+      }
+      displacements {
+        x: 0.0021
+        y: 0.3809
+        z: 0.0751
+      }
+      displacements {
+        x: -0.0623
+        y: 0.0657
+        z: 0.0182
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0276
+        y: -0.0155
+        z: 0.0429
+      }
+      displacements {
+        x: 0.0085
+        y: -0.0016
+        z: 0.002
+      }
+      displacements {
+        x: 0.0016
+        y: -0.0034
+        z: -0.0006
+      }
+      displacements {
+        x: -0.0034
+        y: 0.0074
+        z: -0.0058
+      }
+      displacements {
+        x: 0.0019
+        y: 0.0001
+        z: 0.0005
+      }
+      displacements {
+        x: 0.0087
+        y: -0.0107
+        z: 0.0119
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0007
+        z: 0.0002
+      }
+      displacements {
+        x: -0.1632
+        y: 0.0759
+        z: 0.3212
+      }
+      displacements {
+        x: 0.2534
+        y: 0.1224
+        z: -0.5244
+      }
+      displacements {
+        x: -0.5269
+        y: 0.0923
+        z: -0.4475
+      }
+      displacements {
+        x: -0.0973
+        y: -0.0185
+        z: 0.0067
+      }
+      displacements {
+        x: -0.0261
+        y: 0.0823
+        z: -0.0023
+      }
+      displacements {
+        x: -0.0079
+        y: -0.0524
+        z: -0.0155
+      }
+      displacements {
+        x: -0.0069
+        y: 0.0095
+        z: 0.0026
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0043
+        y: 0.0075
+        z: -0.0005
+      }
+      displacements {
+        x: 0.0406
+        y: 0.0198
+        z: -0.0215
+      }
+      displacements {
+        x: -0.0089
+        y: 0.0137
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0045
+        y: -0.016
+        z: 0.0149
+      }
+      displacements {
+        x: 0.0153
+        y: 0.0133
+        z: -0.0176
+      }
+      displacements {
+        x: -0.0023
+        y: 0.0056
+        z: -0.0029
+      }
+      displacements {
+        x: 0.0022
+        y: -0.0037
+        z: -0.0002
+      }
+      displacements {
+        x: 0.0176
+        y: -0.029
+        z: -0.0778
+      }
+      displacements {
+        x: -0.0133
+        y: -0.044
+        z: 0.0498
+      }
+      displacements {
+        x: 0.0634
+        y: -0.0432
+        z: 0.0419
+      }
+      displacements {
+        x: -0.5922
+        y: -0.2292
+        z: 0.2699
+      }
+      displacements {
+        x: -0.1758
+        y: 0.3825
+        z: 0.1463
+      }
+      displacements {
+        x: 0.1435
+        y: -0.5275
+        z: -0.0121
+      }
+      displacements {
+        x: 0.0355
+        y: -0.0378
+        z: -0.0076
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0085
+        y: -0.0186
+        z: 0.0044
+      }
+      displacements {
+        x: -0.0095
+        y: -0.0016
+        z: 0.0031
+      }
+      displacements {
+        x: 0.4206
+        y: -0.2842
+        z: -0.204
+      }
+      displacements {
+        x: -0.51
+        y: 0.2216
+        z: 0.3146
+      }
+      displacements {
+        x: 0.0691
+        y: 0.0265
+        z: -0.0846
+      }
+      displacements {
+        x: 0.0369
+        y: -0.0567
+        z: -0.0147
+      }
+      displacements {
+        x: -0.0347
+        y: 0.0582
+        z: 0.0013
+      }
+      displacements {
+        x: 0.0457
+        y: -0.014
+        z: 0.0066
+      }
+      displacements {
+        x: -0.0435
+        y: 0.0954
+        z: 0.0552
+      }
+      displacements {
+        x: 0.0225
+        y: 0.0191
+        z: 0.034
+      }
+      displacements {
+        x: 0.0283
+        y: -0.0231
+        z: 0.0614
+      }
+      displacements {
+        x: -0.0088
+        y: -0.0704
+        z: 0.07
+      }
+      displacements {
+        x: 0.0949
+        y: -0.0726
+        z: 0.0642
+      }
+      displacements {
+        x: -0.0896
+        y: 0.4331
+        z: -0.1502
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0267
+        y: -0.0239
+        z: -0.0389
+      }
+      displacements {
+        x: 0.0011
+        y: -0.0001
+        z: 0.0009
+      }
+      displacements {
+        x: 0.0001
+        y: -0.0002
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0002
+        y: 0.0021
+        z: -0.0012
+      }
+      displacements {
+        x: -0.0002
+        y: -0.0002
+        z: 0.0006
+      }
+      displacements {
+        x: 0.0006
+        y: -0.0023
+        z: -0.0012
+      }
+      displacements {
+        x: 0.0001
+        y: -0.0003
+        z: -0.0001
+      }
+      displacements {
+        x: -0.1284
+        y: 0.2742
+        z: -0.1555
+      }
+      displacements {
+        x: 0.7311
+        y: 0.1771
+        z: 0.3565
+      }
+      displacements {
+        x: -0.291
+        y: -0.1447
+        z: 0.2861
+      }
+      displacements {
+        x: -0.0005
+        y: 0.0089
+        z: 0.0052
+      }
+      displacements {
+        x: -0.0214
+        y: -0.009
+        z: -0.007
+      }
+      displacements {
+        x: 0.0074
+        y: 0.0014
+        z: -0.0096
+      }
+      displacements {
+        x: 0.0004
+        y: 0.0009
+        z: -0.0006
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0002
+        y: 0.0005
+        z: 0.0015
+      }
+      displacements {
+        x: 0.0386
+        y: -0.015
+        z: 0.0253
+      }
+      displacements {
+        x: 0.0004
+        y: -0.0007
+        z: 0.0003
+      }
+      displacements {
+        x: 0.0008
+        y: 0.001
+        z: -0.0017
+      }
+      displacements {
+        x: 0.0006
+        y: -0.0017
+        z: 0.0019
+      }
+      displacements {
+        x: -0.0001
+        y: -0.0002
+        z: 0.0002
+      }
+      displacements {
+        y: 0.0005
+        z: -0.0004
+      }
+      displacements {
+        x: 0.0032
+        y: -0.0079
+        z: 0.0044
+      }
+      displacements {
+        x: -0.0178
+        y: -0.0046
+        z: -0.0084
+      }
+      displacements {
+        x: 0.0131
+        y: 0.0069
+        z: -0.0133
+      }
+      displacements {
+        x: -0.0466
+        y: 0.4139
+        z: 0.2388
+      }
+      displacements {
+        x: -0.683
+        y: -0.2704
+        z: -0.2178
+      }
+      displacements {
+        x: 0.2522
+        y: 0.0554
+        z: -0.3355
+      }
+      displacements {
+        x: -0.004
+        y: -0.0028
+        z: 0.0058
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0888
+        y: 0.0108
+        z: -0.0151
+      }
+      displacements {
+        x: 0.0005
+        y: -0.0002
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0002
+        y: -0.0001
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0005
+        y: 0.001
+        z: -0.0007
+      }
+      displacements {
+        x: -0.0002
+        y: 0.0002
+        z: 0.0004
+      }
+      displacements {
+        x: 0.0001
+        y: -0.0009
+        z: -0.0002
+      }
+      displacements {
+      }
+      displacements {
+        x: -0.0914
+        y: 0.2479
+        z: -0.1403
+      }
+      displacements {
+        x: -0.4462
+        y: -0.1013
+        z: -0.2244
+      }
+      displacements {
+        x: -0.5137
+        y: -0.2777
+        z: 0.549
+      }
+      displacements {
+        x: -0.0007
+        y: 0.0042
+        z: 0.002
+      }
+      displacements {
+        x: -0.0059
+        y: -0.0021
+        z: -0.002
+      }
+      displacements {
+        x: 0.0014
+        y: 0.0001
+        z: -0.0017
+      }
+      displacements {
+        x: 0.002
+        y: 0.0026
+        z: -0.0029
+      }
+    }
+    normal_modes {
+      displacements {
+        y: 0.0009
+        z: -0.0005
+      }
+      displacements {
+        x: 0.0533
+        y: 0.0723
+        z: 0.0233
+      }
+      displacements {
+        x: 0.0001
+        y: 0.0001
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0004
+        y: -0.0006
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0002
+        z: -0.0006
+      }
+      displacements {
+      }
+      displacements {
+        x: -0.0003
+        y: -0.0002
+        z: 0.0001
+      }
+      displacements {
+        x: 0.004
+        y: -0.009
+        z: 0.0049
+      }
+      displacements {
+        x: -0.0017
+        y: -0.0005
+        z: -0.0008
+      }
+      displacements {
+        x: -0.0016
+        y: -0.0009
+        z: 0.0018
+      }
+      displacements {
+        x: 0.096
+        y: -0.6202
+        z: -0.3681
+      }
+      displacements {
+        x: -0.542
+        y: -0.2092
+        z: -0.164
+      }
+      displacements {
+        x: -0.1783
+        y: -0.0267
+        z: 0.2549
+      }
+      displacements {
+        x: 0.0014
+        y: 0.0009
+        z: -0.0019
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0001
+        y: 0.0001
+        z: 0.0001
+      }
+      displacements {
+        x: -0.0573
+        y: 0.0213
+        z: 0.0728
+      }
+      displacements {
+        x: -0.0006
+        y: 0.0001
+        z: 0.0006
+      }
+      displacements {
+        y: 0.0006
+        z: -0.0004
+      }
+      displacements {
+        x: 0.0002
+        y: -0.0003
+        z: -0.0004
+      }
+      displacements {
+        x: 0.0001
+        y: -0.0001
+      }
+      displacements {
+        x: -0.0001
+        y: -0.0003
+        z: 0.0003
+      }
+      displacements {
+        y: 0.0001
+        z: -0.0002
+      }
+      displacements {
+        x: -0.0018
+        y: -0.0004
+        z: -0.0009
+      }
+      displacements {
+        y: -0.0003
+        z: 0.0003
+      }
+      displacements {
+        x: 0.0421
+        y: -0.4249
+        z: -0.24
+      }
+      displacements {
+        x: 0.1296
+        y: 0.0622
+        z: 0.0559
+      }
+      displacements {
+        x: 0.5097
+        y: 0.1078
+        z: -0.675
+      }
+      displacements {
+        x: 0.0061
+        y: 0.0063
+        z: -0.0095
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0142
+        y: 0.0696
+        z: -0.0615
+      }
+      displacements {
+        x: -0.0004
+        y: -0.0009
+      }
+      displacements {
+        z: 0.0001
+      }
+      displacements {
+        x: 0.0007
+        y: -0.0005
+        z: -0.0007
+      }
+      displacements {
+        x: -0.0002
+        y: 0.0001
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0001
+        y: -0.0002
+        z: 0.0001
+      }
+      displacements {
+      }
+      displacements {
+        x: 0.3258
+        y: -0.7242
+        z: 0.4134
+      }
+      displacements {
+        x: 0.1215
+        y: 0.0389
+        z: 0.0469
+      }
+      displacements {
+        x: -0.2803
+        y: -0.1354
+        z: 0.2722
+      }
+      displacements {
+        x: -0.0012
+        y: 0.0079
+        z: 0.0043
+      }
+      displacements {
+        x: 0.0039
+        y: 0.0015
+        z: 0.001
+      }
+      displacements {
+        x: 0.0027
+        y: 0.0004
+        z: -0.004
+      }
+      displacements {
+        x: -0.0004
+        y: -0.0003
+        z: 0.0008
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0005
+        y: -0.0003
+        z: -0.0001
+      }
+      displacements {
+        x: -0.001
+        y: 0.0008
+        z: 0.0007
+      }
+      displacements {
+        x: 0.0453
+        y: 0.0414
+        z: -0.0633
+      }
+      displacements {
+        x: -0.0053
+        y: 0.0031
+        z: 0.0026
+      }
+      displacements {
+        x: -0.0004
+        y: -0.0004
+        z: 0.0006
+      }
+      displacements {
+        x: 0.0002
+        y: -0.0003
+        z: -0.0001
+      }
+      displacements {
+        x: -0.0004
+        y: 0.0001
+        z: 0.0003
+      }
+      displacements {
+        x: -0.0007
+        y: 0.0015
+        z: -0.0013
+      }
+      displacements {
+        x: -0.0011
+        y: 0.0003
+        z: -0.0002
+      }
+      displacements {
+        x: -0.0024
+        y: -0.0011
+        z: 0.0027
+      }
+      displacements {
+        x: 0.0007
+        y: -0.0099
+        z: -0.0046
+      }
+      displacements {
+        x: 0.0049
+        y: 0.002
+        z: 0.0022
+      }
+      displacements {
+        x: 0.0043
+        y: 0.0003
+        z: -0.0055
+      }
+      displacements {
+        x: -0.4665
+        y: -0.5201
+        z: 0.7098
+      }
+    }
+  }
+  bond_topologies {
+    atoms: ATOM_C
+    atoms: ATOM_C
+    atoms: ATOM_C
+    atoms: ATOM_C
+    atoms: ATOM_O
+    atoms: ATOM_O
+    atoms: ATOM_F
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    bonds {
+      atom_b: 5
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 4
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 2
+      atom_b: 3
+      bond_type: BOND_DOUBLE
+    }
+    bonds {
+      atom_a: 2
+      atom_b: 6
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 3
+      atom_b: 4
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 3
+      atom_b: 5
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 7
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 8
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 9
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 10
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 11
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 12
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 2
+      atom_b: 13
+      bond_type: BOND_SINGLE
+    }
+    smiles: "COC(=CF)OC"
+    bond_topology_id: 618451
+  }
+  which_database: STANDARD
+}
+conformers {
+  conformer_id: 618451123
+  original_conformer_index: 4
+  initial_geometries {
+    atom_positions {
+      x: 0.32182
+      y: 0.445597
+      z: 2.520895
+    }
+    atom_positions {
+      x: 0.053668
+      y: -5.21999
+      z: 7.670021
+    }
+    atom_positions {
+      x: 2.875218
+      y: -4.133398
+      z: 1.610614
+    }
+    atom_positions {
+      x: 1.547875
+      y: -3.758098
+      z: 3.732209
+    }
+    atom_positions {
+      x: 1.493451
+      y: -5.737208
+      z: 5.45923
+    }
+    atom_positions {
+      x: 0.249633
+      y: -1.563559
+      z: 4.304796
+    }
+    atom_positions {
+      x: 4.103918
+      y: -6.31811
+      z: 1.157268
+    }
+    atom_positions {
+      x: -0.795953
+      y: 2.009913
+      z: 3.280942
+    }
+    atom_positions {
+      x: -0.527423
+      y: -0.128312
+      z: 0.723576
+    }
+    atom_positions {
+      x: 2.257278
+      y: 1.122308
+      z: 2.244617
+    }
+    atom_positions {
+      x: 0.850944
+      y: -3.622983
+      z: 8.717685
+    }
+    atom_positions {
+      x: -1.931489
+      y: -4.87247
+      z: 7.197967
+    }
+    atom_positions {
+      x: 0.137005
+      y: -6.887863
+      z: 8.888894
+    }
+    atom_positions {
+      x: 3.145827
+      y: -2.846117
+      z: 0.056692
+    }
+  }
+  optimized_geometry {
+    atom_positions {
+      x: 0.524953
+      y: 0.526935
+      z: 2.6067
+    }
+    atom_positions {
+      x: -0.012035
+      y: -5.313864
+      z: 7.483931
+    }
+    atom_positions {
+      x: 2.591535
+      y: -4.200191
+      z: 1.667437
+    }
+    atom_positions {
+      x: 1.92713
+      y: -3.460444
+      z: 3.988768
+    }
+    atom_positions {
+      x: 2.195865
+      y: -4.989491
+      z: 5.985755
+    }
+    atom_positions {
+      x: 0.995595
+      y: -1.166667
+      z: 4.605675
+    }
+    atom_positions {
+      x: 3.419269
+      y: -6.568342
+      z: 1.259724
+    }
+    atom_positions {
+      x: -0.322608
+      y: 2.200181
+      z: 3.450895
+    }
+    atom_positions {
+      x: -0.781169
+      y: -0.296938
+      z: 1.225358
+    }
+    atom_positions {
+      x: 2.282923
+      y: 1.059871
+      z: 1.649222
+    }
+    atom_positions {
+      x: -0.595259
+      y: -3.536825
+      z: 8.355603
+    }
+    atom_positions {
+      x: -1.563248
+      y: -6.070946
+      z: 6.340921
+    }
+    atom_positions {
+      x: 0.492881
+      y: -6.673314
+      z: 8.943176
+    }
+    atom_positions {
+      x: 2.625941
+      y: -3.020256
+      z: 0.002237
+    }
+  }
+  properties {
+    errors {
+    }
+    harmonic_intensities {
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 7.7
+      value: 2.3
+      value: 1.5
+      value: 6.2
+      value: 2.5
+      value: 1.4
+      value: 2.6
+      value: 1.1
+      value: 4.0
+      value: 1.0
+      value: 3.9
+      value: 44.6
+      value: 19.4
+      value: 93.4
+      value: 19.7
+      value: 191.7
+      value: 26.1
+      value: 1.0
+      value: 12.1
+      value: 62.1
+      value: 242.5
+      value: 158.4
+      value: 1.1
+      value: 15.7
+      value: 20.2
+      value: 19.8
+      value: 20.5
+      value: 16.4
+      value: 63.0
+      value: 38.7
+      value: 50.0
+      value: 42.6
+      value: 34.2
+      value: 19.7
+      value: 21.9
+      value: 12.9
+    }
+    single_point_energy_pbe0d3_6_311gd {
+      value: -406.520886
+    }
+    single_point_energy_pbe0_6_311gd {
+      value: -406.515688
+    }
+    single_point_energy_pbe0_6_311gd_mrcc {
+      value: -406.515719
+    }
+    single_point_energy_pbe0_6_311gd_orca {
+      value: -406.515783
+    }
+    single_point_energy_pbe0_6_311gd_cat {
+      value: -406.209062
+    }
+    single_point_energy_pbe0_6_311gd_cat_mrcc {
+      value: -406.20909
+    }
+    single_point_energy_pbe0_6_311gd_cat_orca {
+      value: -406.209152
+    }
+    single_point_energy_pbe0_aug_pc_1 {
+      value: -406.36785
+    }
+    single_point_energy_hf_6_31gd {
+      value: -404.634507
+    }
+    single_point_energy_b3lyp_6_31ppgdp {
+      value: -406.884264
+    }
+    single_point_energy_b3lyp_aug_pcs_1 {
+      value: -406.819892
+    }
+    single_point_energy_pbe0_6_31ppgdp {
+      value: -406.439591
+    }
+    single_point_energy_pbe0_aug_pcs_1 {
+      value: -406.373086
+    }
+    single_point_energy_hf_tzvp {
+      value: -404.787308
+    }
+    single_point_energy_mp2_tzvp {
+      value: -405.958924
+    }
+    single_point_energy_cc2_tzvp {
+      value: -405.977115
+    }
+    single_point_energy_hf_3 {
+      value: -404.796201
+    }
+    single_point_energy_mp2_3 {
+      value: -406.179088
+    }
+    single_point_energy_hf_4 {
+      value: -404.826396
+    }
+    single_point_energy_mp2_4 {
+      value: -406.312459
+    }
+    single_point_energy_hf_34 {
+      value: -404.833754
+    }
+    single_point_energy_mp2_34 {
+      value: -406.405376
+    }
+    single_point_energy_hf_cvtz {
+      value: -404.797881
+    }
+    single_point_energy_mp2ful_cvtz {
+      value: -406.547065
+    }
+    single_point_energy_hf_2sp {
+      value: -404.492861
+    }
+    single_point_energy_mp2_2sp {
+      value: -405.197284
+    }
+    single_point_energy_ccsd_2sp {
+      value: -405.243578
+    }
+    single_point_energy_ccsd_t_2sp {
+      value: -405.262143
+    }
+    single_point_energy_hf_2sd {
+      value: -404.644044
+    }
+    single_point_energy_mp2_2sd {
+      value: -405.691849
+    }
+    single_point_energy_ccsd_2sd {
+      value: -405.74297
+    }
+    single_point_energy_ccsd_t_2sd {
+      value: -405.773505
+    }
+    single_point_energy_hf_3psd {
+      value: -404.744191
+    }
+    single_point_energy_mp2_3psd {
+      value: -405.957365
+    }
+    single_point_energy_ccsd_3psd {
+      value: -405.993129
+    }
+    single_point_energy_atomic_b5 {
+      value: -406.837972
+    }
+    single_point_energy_atomic_b6 {
+      value: -406.84136
+    }
+    zpe_unscaled {
+      value: 69.95
+    }
+    homo_pbe0_6_311gd {
+      value: -0.22534
+    }
+    lumo_pbe0_6_311gd {
+      value: 0.05179
+    }
+    homo_pbe0_aug_pc_1 {
+      value: -0.23238
+    }
+    lumo_pbe0_aug_pc_1 {
+      value: -0.00604
+    }
+    homo_pbe0_6_31ppgdp {
+      value: -0.23116
+    }
+    lumo_pbe0_6_31ppgdp {
+      value: -0.00338
+    }
+    homo_pbe0_aug_pcs_1 {
+      value: -0.23242
+    }
+    lumo_pbe0_aug_pcs_1 {
+      value: -0.00589
+    }
+    homo_b3lyp_6_31ppgdp {
+      value: -0.22379
+    }
+    lumo_b3lyp_6_31ppgdp {
+      value: -0.01229
+    }
+    homo_b3lyp_aug_pcs_1 {
+      value: -0.22566
+    }
+    lumo_b3lyp_aug_pcs_1 {
+      value: -0.01373
+    }
+    homo_hf_6_31gd {
+      value: -0.32855
+    }
+    lumo_hf_6_31gd {
+      value: 0.2196
+    }
+    homo_hf_tzvp {
+      value: -0.33788
+    }
+    lumo_hf_tzvp {
+      value: 0.139
+    }
+    homo_hf_3 {
+      value: -0.33443
+    }
+    lumo_hf_3 {
+      value: 0.136
+    }
+    homo_hf_4 {
+      value: -0.33635
+    }
+    lumo_hf_4 {
+      value: 0.10764
+    }
+    homo_hf_cvtz {
+      value: -0.3345
+    }
+    lumo_hf_cvtz {
+      value: 0.13552
+    }
+    excitation_energies_cc2 {
+      value: 0.24492
+      value: 0.25544
+      value: 0.27051
+      value: 0.27523
+      value: 0.30885
+    }
+    excitation_oscillator_strengths_cc2 {
+      value: 0.03856
+      value: 0.00776
+      value: 0.02054
+      value: 0.37995
+      value: 0.03777
+    }
+    nmr_isotropic_shielding_pbe0_6_31ppgdp {
+      values: 145.1712
+      values: 141.8496
+      values: 80.384
+      values: 45.2416
+      values: 266.624
+      values: 261.5296
+      values: 394.3168
+      values: 27.8464
+      values: 28.4416
+      values: 28.384
+      values: 27.456
+      values: 28.4848
+      values: 27.8592
+      values: 25.3504
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_pbe0_aug_pcs_1 {
+      values: 133.0944
+      values: 129.0112
+      values: 60.416
+      values: 21.696
+      values: 252.1216
+      values: 246.3488
+      values: 387.84
+      values: 27.7248
+      values: 28.1728
+      values: 28.1984
+      values: 27.2688
+      values: 28.2624
+      values: 27.7568
+      values: 25.216
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_b3lyp_6_31ppgdp {
+      values: 141.0112
+      values: 137.6768
+      values: 76.6272
+      values: 40.992
+      values: 260.6464
+      values: 255.7824
+      values: 391.0784
+      values: 27.9392
+      values: 28.504
+      values: 28.4528
+      values: 27.5024
+      values: 28.568
+      values: 27.952
+      values: 25.4736
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    nmr_isotropic_shielding_b3lyp_aug_pcs_1 {
+      values: 127.1488
+      values: 122.8672
+      values: 53.952
+      values: 14.2272
+      values: 245.0816
+      values: 239.3344
+      values: 383.8464
+      values: 27.808
+      values: 28.2448
+      values: 28.2688
+      values: 27.3232
+      values: 28.3536
+      values: 27.832
+      values: 25.3344
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0064
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0128
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+      precision: 0.0016
+    }
+    partial_charges_mulliken_pbe0_aug_pc_1 {
+      values: 0.1342
+      values: -0.1067
+      values: 0.3713
+      values: 1.502
+      values: -1.5784
+      values: -1.5791
+      values: -0.87
+      values: 0.0904
+      values: 0.3978
+      values: 0.399
+      values: 0.3265
+      values: 0.3366
+      values: 0.2066
+      values: 0.3699
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_mulliken_hf_6_31gd {
+      values: -0.1898
+      values: -0.18
+      values: 0.1142
+      values: 0.7244
+      values: -0.6516
+      values: -0.6666
+      values: -0.4245
+      values: 0.1984
+      values: 0.1713
+      values: 0.1722
+      values: 0.186
+      values: 0.1635
+      values: 0.1893
+      values: 0.1934
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_loewdin_pbe0_aug_pc_1 {
+      values: 0.1686
+      values: 0.1888
+      values: 0.1936
+      values: 0.0082
+      values: -0.3963
+      values: -0.416
+      values: -0.2201
+      values: 0.0717
+      values: 0.067
+      values: 0.0645
+      values: 0.0575
+      values: 0.069
+      values: 0.067
+      values: 0.0764
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_loewdin_hf_6_31gd {
+      values: -0.1737
+      values: -0.1669
+      values: -0.0735
+      values: 0.1556
+      values: -0.2246
+      values: -0.2317
+      values: -0.176
+      values: 0.1371
+      values: 0.1198
+      values: 0.1196
+      values: 0.1266
+      values: 0.1175
+      values: 0.1341
+      values: 0.136
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_natural_nbo_pbe0_aug_pc_1 {
+      values: -0.2404
+      values: -0.2376
+      values: 0.0865
+      values: 0.5887
+      values: -0.5938
+      values: -0.5948
+      values: -0.3751
+      values: 0.2106
+      values: 0.1915
+      values: 0.1892
+      values: 0.1954
+      values: 0.1874
+      values: 0.2052
+      values: 0.1871
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_natural_nbo_hf_6_31gd {
+      values: -0.2336
+      values: -0.2303
+      values: 0.0945
+      values: 0.6557
+      values: -0.6281
+      values: -0.6334
+      values: -0.3996
+      values: 0.2141
+      values: 0.1899
+      values: 0.1893
+      values: 0.1993
+      values: 0.1859
+      values: 0.2089
+      values: 0.1873
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_paboon_pbe0_aug_pc_1 {
+      values: 0.2733
+      values: 0.1528
+      values: -0.3072
+      values: 0.2649
+      values: -0.2066
+      values: -0.7856
+      values: -0.1887
+      values: 0.1018
+      values: 0.1508
+      values: 0.1602
+      values: 0.1482
+      values: 0.119
+      values: 0.0429
+      values: 0.0741
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_paboon_hf_6_31gd {
+      values: 0.0199
+      values: 0.0259
+      values: 0.0543
+      values: 0.4165
+      values: -0.3486
+      values: -0.3544
+      values: -0.2661
+      values: 0.0802
+      values: 0.0569
+      values: 0.0562
+      values: 0.0641
+      values: 0.0523
+      values: 0.0757
+      values: 0.0671
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_esp_fit_pbe0_aug_pc_1 {
+      values: -0.1874
+      values: -0.1724
+      values: -0.1785
+      values: 0.2432
+      values: -0.2041
+      values: -0.1797
+      values: -0.1338
+      values: 0.1374
+      values: 0.085
+      values: 0.0947
+      values: 0.0891
+      values: 0.1125
+      values: 0.1256
+      values: 0.1682
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    partial_charges_esp_fit_hf_6_31gd {
+      values: -0.1265
+      values: -0.0352
+      values: -0.1894
+      values: 0.3816
+      values: -0.3242
+      values: -0.2746
+      values: -0.1605
+      values: 0.128
+      values: 0.0806
+      values: 0.0875
+      values: 0.0695
+      values: 0.0826
+      values: 0.1011
+      values: 0.1794
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+      precision: 0.0001
+    }
+    dipole_dipole_polarizability_pbe0_aug_pc_1 {
+      matrix_values: 52.37535
+      matrix_values: 63.95404
+      matrix_values: 68.83053
+      matrix_values: -3.7459
+      matrix_values: -7.12087
+      matrix_values: -2.72761
+    }
+    dipole_moment_pbe0_aug_pc_1 {
+      x: -0.78948
+      y: 0.8726
+      z: -0.01104
+    }
+    dipole_moment_hf_6_31gd {
+      x: -0.90509
+      y: 0.98165
+      z: -0.10518
+    }
+    quadrupole_moment_pbe0_aug_pc_1 {
+      matrix_values: -33.91602
+      matrix_values: -35.90067
+      matrix_values: -28.78465
+      matrix_values: 5.29205
+      matrix_values: -4.08942
+      matrix_values: -0.56903
+    }
+    quadrupole_moment_hf_6_31gd {
+      matrix_values: -33.69901
+      matrix_values: -36.52193
+      matrix_values: -28.80382
+      matrix_values: 6.23392
+      matrix_values: -4.8326
+      matrix_values: -0.32989
+    }
+    octopole_moment_pbe0_aug_pc_1 {
+      tensor_values: -150.57141
+      tensor_values: 358.24957
+      tensor_values: -338.05579
+      tensor_values: 125.10223
+      tensor_values: -136.29333
+      tensor_values: -81.52291
+      tensor_values: -111.82349
+      tensor_values: -67.98473
+      tensor_values: 81.00112
+      tensor_values: 18.4253
+    }
+    octopole_moment_hf_6_31gd {
+      tensor_values: -148.26385
+      tensor_values: 361.37775
+      tensor_values: -334.82935
+      tensor_values: 125.54801
+      tensor_values: -136.11116
+      tensor_values: -87.26404
+      tensor_values: -113.1766
+      tensor_values: -72.26063
+      tensor_values: 78.86946
+      tensor_values: 22.93362
+    }
+    compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.128.000\nStage 1  Cluster:   google-docker\nStage 1  Cores:        16\nStage 1  CPU type:      2\nStage 2  Host IP:   XXX.YYY.002.102\nStage 2  Cluster:   google-docker\nStage 2  Cores:         8\nStage 2  CPU type:      2\n"
+    symmetry_used_in_calculation: false
+    initial_geometry_energy {
+      value: -406.512988
+    }
+    initial_geometry_gradient_norm {
+      value: 0.050203
+    }
+    optimized_geometry_energy {
+      value: -406.520886
+    }
+    optimized_geometry_gradient_norm {
+      value: 1.8e-05
+    }
+    rotational_constants {
+      x: 1424.656
+      y: 2522.924
+      z: 2896.89
+    }
+    number_imaginary_frequencies: 0
+    number_of_optimization_runs: 1
+    nuclear_repulsion_energy {
+      value: 322.821625
+    }
+    diagnostics_d1_ccsd_2sp {
+      value: 0.0482
+    }
+    diagnostics_t1_ccsd_2sp {
+      value: 0.012
+    }
+    diagnostics_t1_ccsd_2sd {
+      value: 0.0123
+    }
+    diagnostics_t1_ccsd_3psd {
+      value: 0.0129
+    }
+    calculation_statistics {
+      computing_location: "Geo"
+      timings: "164"
+    }
+    calculation_statistics {
+      computing_location: "Force"
+      timings: "47"
+    }
+    calculation_statistics {
+      computing_location: "MP2"
+      timings: "150"
+    }
+    calculation_statistics {
+      computing_location: "CC"
+      timings: "262"
+    }
+    calculation_statistics {
+      computing_location: "Polar"
+      timings: "107"
+    }
+    calculation_statistics {
+      computing_location: "Elec"
+      timings: "4"
+    }
+    calculation_statistics {
+      computing_location: "NMRs"
+      timings: "54"
+    }
+    calculation_statistics {
+      computing_location: "NMRl"
+      timings: "205"
+    }
+    calculation_statistics {
+      computing_location: "Exci"
+      timings: "131"
+    }
+    calculation_statistics {
+      computing_location: "IP"
+      timings: "53"
+    }
+    single_point_energy_eccsd {
+      value: -406.427908
+    }
+    diagnostics_t1_ccsd_2sp_excess {
+      value: 0.0035
+    }
+    bond_separation_reaction_left {
+      value: " molecule +  3 CH4 +  2 H2O"
+    }
+    bond_separation_reaction_right {
+      value: " 4 H3C-OH +  1 H2C=CH2 +  1 H3C-F"
+    }
+    bond_separation_energy_atomic_b5 {
+      value: 30.94
+    }
+    bond_separation_energy_atomic_b5_um {
+      value: 30.78
+    }
+    bond_separation_energy_atomic_b5_um_ci {
+      value: 0.73
+    }
+    bond_separation_energy_atomic_b6 {
+      value: 30.67
+    }
+    bond_separation_energy_atomic_b6_um {
+      value: 30.44
+    }
+    bond_separation_energy_atomic_b6_um_ci {
+      value: 1.58
+    }
+    bond_separation_energy_eccsd {
+      value: 29.94
+    }
+    bond_separation_energy_eccsd_um {
+      value: 30.7
+    }
+    bond_separation_energy_eccsd_um_ci {
+      value: 3.35
+    }
+    atomization_energy_excluding_zpe_atomic_b5 {
+      value: 1341.53
+    }
+    atomization_energy_excluding_zpe_atomic_b5_um {
+      value: 1342.11
+    }
+    atomization_energy_excluding_zpe_atomic_b5_um_ci {
+      value: 1.26
+    }
+    atomization_energy_excluding_zpe_atomic_b6 {
+      value: 1341.27
+    }
+    atomization_energy_excluding_zpe_atomic_b6_um {
+      value: 1341.77
+    }
+    atomization_energy_excluding_zpe_atomic_b6_um_ci {
+      value: 1.88
+    }
+    atomization_energy_excluding_zpe_eccsd {
+      value: 1340.53
+    }
+    atomization_energy_excluding_zpe_eccsd_um {
+      value: 1342.04
+    }
+    atomization_energy_excluding_zpe_eccsd_um_ci {
+      value: 3.51
+    }
+    atomization_energy_including_zpe_atomic_b5 {
+      value: 1273.05
+    }
+    atomization_energy_including_zpe_atomic_b5_um {
+      value: 1273.63
+    }
+    atomization_energy_including_zpe_atomic_b5_um_ci {
+      value: 1.52
+    }
+    atomization_energy_including_zpe_atomic_b6 {
+      value: 1272.78
+    }
+    atomization_energy_including_zpe_atomic_b6_um {
+      value: 1273.29
+    }
+    atomization_energy_including_zpe_atomic_b6_um_ci {
+      value: 2.07
+    }
+    atomization_energy_including_zpe_eccsd {
+      value: 1272.05
+    }
+    atomization_energy_including_zpe_eccsd_um {
+      value: 1273.55
+    }
+    atomization_energy_including_zpe_eccsd_um_ci {
+      value: 3.61
+    }
+    enthalpy_of_formation_0k_atomic_b5 {
+      value: -95.04
+    }
+    enthalpy_of_formation_0k_atomic_b5_um {
+      value: -95.62
+    }
+    enthalpy_of_formation_0k_atomic_b5_um_ci {
+      value: 1.52
+    }
+    enthalpy_of_formation_0k_atomic_b6 {
+      value: -94.77
+    }
+    enthalpy_of_formation_0k_atomic_b6_um {
+      value: -95.28
+    }
+    enthalpy_of_formation_0k_atomic_b6_um_ci {
+      value: 2.07
+    }
+    enthalpy_of_formation_0k_eccsd {
+      value: -94.04
+    }
+    enthalpy_of_formation_0k_eccsd_um {
+      value: -95.55
+    }
+    enthalpy_of_formation_0k_eccsd_um_ci {
+      value: 3.61
+    }
+    enthalpy_of_formation_298k_atomic_b5 {
+      value: -100.59
+    }
+    enthalpy_of_formation_298k_atomic_b5_um {
+      value: -101.17
+    }
+    enthalpy_of_formation_298k_atomic_b5_um_ci {
+      value: 1.55
+    }
+    enthalpy_of_formation_298k_atomic_b6 {
+      value: -100.32
+    }
+    enthalpy_of_formation_298k_atomic_b6_um {
+      value: -100.83
+    }
+    enthalpy_of_formation_298k_atomic_b6_um_ci {
+      value: 2.09
+    }
+    enthalpy_of_formation_298k_eccsd {
+      value: -99.59
+    }
+    enthalpy_of_formation_298k_eccsd_um {
+      value: -101.09
+    }
+    enthalpy_of_formation_298k_eccsd_um_ci {
+      value: 3.62
+    }
+    zpe_atomic {
+      value: 68.49
+    }
+    zpe_atomic_um {
+      value: 68.48
+    }
+    zpe_atomic_um_ci {
+      value: 0.86
+    }
+    harmonic_frequencies {
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 0.0
+      value: 61.0
+      value: 104.4
+      value: 162.6
+      value: 234.8
+      value: 244.5
+      value: 267.0
+      value: 339.1
+      value: 345.7
+      value: 562.2
+      value: 615.4
+      value: 691.2
+      value: 717.1
+      value: 871.2
+      value: 1086.2
+      value: 1142.8
+      value: 1175.5
+      value: 1190.1
+      value: 1195.8
+      value: 1227.2
+      value: 1244.6
+      value: 1298.1
+      value: 1392.9
+      value: 1488.7
+      value: 1504.1
+      value: 1506.9
+      value: 1511.0
+      value: 1521.9
+      value: 1527.7
+      value: 1790.2
+      value: 3027.8
+      value: 3045.7
+      value: 3093.0
+      value: 3129.3
+      value: 3174.3
+      value: 3178.3
+      value: 3265.3
+    }
+    normal_modes {
+      displacements {
+        x: -0.1453
+        y: 0.1421
+        z: 0.1062
+      }
+      displacements {
+        x: -0.1962
+        y: 0.0893
+        z: 0.0374
+      }
+      displacements {
+        x: -0.3161
+        y: 0.0916
+        z: -0.0159
+      }
+      displacements {
+        x: -0.2317
+        y: 0.0791
+        z: 0.0123
+      }
+      displacements {
+        x: -0.2259
+        y: 0.0424
+        z: -0.0166
+      }
+      displacements {
+        x: -0.1445
+        y: 0.0991
+        z: 0.0696
+      }
+      displacements {
+        x: -0.4001
+        y: 0.0719
+        z: -0.0715
+      }
+      displacements {
+        x: -0.0712
+        y: 0.1562
+        z: 0.1525
+      }
+      displacements {
+        x: -0.2073
+        y: 0.202
+        z: 0.1291
+      }
+      displacements {
+        x: -0.1542
+        y: 0.1014
+        z: 0.0671
+      }
+      displacements {
+        x: -0.1182
+        y: 0.0949
+        z: 0.0781
+      }
+      displacements {
+        x: -0.2499
+        y: 0.1534
+        z: 0.0678
+      }
+      displacements {
+        x: -0.1994
+        y: 0.0529
+        z: 0.0046
+      }
+      displacements {
+        x: -0.3239
+        y: 0.1142
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0736
+        y: -0.2112
+        z: 0.0664
+      }
+      displacements {
+        x: 0.1377
+        y: -0.1528
+        z: 0.1596
+      }
+      displacements {
+        x: -0.1502
+        y: -0.2345
+        z: 0.0151
+      }
+      displacements {
+        x: -0.028
+        y: -0.2042
+        z: 0.0404
+      }
+      displacements {
+        x: 0.0638
+        y: -0.1833
+        z: 0.044
+      }
+      displacements {
+        x: 0.0173
+        y: -0.1915
+        z: 0.0617
+      }
+      displacements {
+        x: -0.1854
+        y: -0.2442
+        z: -0.0001
+      }
+      displacements {
+        x: -0.0205
+        y: -0.1964
+        z: 0.0904
+      }
+      displacements {
+        x: -0.1486
+        y: -0.2188
+        z: 0.1419
+      }
+      displacements {
+        x: -0.1188
+        y: -0.2328
+        z: -0.0287
+      }
+      displacements {
+        x: 0.1928
+        y: -0.1393
+        z: 0.1691
+      }
+      displacements {
+        x: 0.0752
+        y: -0.1562
+        z: 0.2468
+      }
+      displacements {
+        x: 0.2033
+        y: -0.1394
+        z: 0.1494
+      }
+      displacements {
+        x: -0.2273
+        y: -0.2535
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.3754
+        y: 0.0952
+        z: 0.0421
+      }
+      displacements {
+        x: -0.0817
+        y: 0.0607
+        z: -0.0495
+      }
+      displacements {
+        x: 0.0327
+        y: -0.0427
+        z: -0.0181
+      }
+      displacements {
+        x: 0.0742
+        y: -0.029
+        z: -0.0106
+      }
+      displacements {
+        x: -0.0494
+        y: -0.0791
+        z: -0.0323
+      }
+      displacements {
+        x: 0.2396
+        y: 0.0302
+        z: 0.019
+      }
+      displacements {
+        x: -0.1393
+        y: -0.0974
+        z: -0.0494
+      }
+      displacements {
+        x: 0.4939
+        y: 0.1447
+        z: 0.0628
+      }
+      displacements {
+        x: 0.3225
+        y: 0.2123
+        z: 0.0223
+      }
+      displacements {
+        x: 0.42
+        y: -0.0197
+        z: 0.06
+      }
+      displacements {
+        x: 0.0443
+        y: 0.0904
+        z: -0.0258
+      }
+      displacements {
+        x: -0.131
+        y: 0.1922
+        z: -0.0696
+      }
+      displacements {
+        x: -0.1899
+        y: 0.0014
+        z: -0.0673
+      }
+      displacements {
+        x: 0.1288
+        y: -0.02
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0623
+        y: -0.0295
+        z: -0.2758
+      }
+      displacements {
+        x: 0.1463
+        y: 0.0688
+        z: -0.1351
+      }
+      displacements {
+        x: -0.0862
+        y: -0.043
+        z: -0.2606
+      }
+      displacements {
+        x: 0.0033
+        y: 0.0027
+        z: -0.2495
+      }
+      displacements {
+        x: 0.0863
+        y: 0.0443
+        z: -0.2288
+      }
+      displacements {
+        x: 0.0212
+        y: 0.0127
+        z: -0.2597
+      }
+      displacements {
+        x: -0.0956
+        y: -0.049
+        z: -0.2448
+      }
+      displacements {
+        x: -0.0337
+        y: -0.0146
+        z: -0.2767
+      }
+      displacements {
+        x: -0.1145
+        y: -0.0614
+        z: -0.2075
+      }
+      displacements {
+        x: -0.1016
+        y: -0.0442
+        z: -0.3561
+      }
+      displacements {
+        x: 0.1757
+        y: 0.085
+        z: -0.1485
+      }
+      displacements {
+        x: 0.1034
+        y: 0.0411
+        z: -0.0584
+      }
+      displacements {
+        x: 0.2077
+        y: 0.1001
+        z: -0.1272
+      }
+      displacements {
+        x: -0.1552
+        y: -0.0769
+        z: -0.2861
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0016
+        y: 0.0792
+        z: 0.0621
+      }
+      displacements {
+        x: 0.2972
+        y: 0.1711
+        z: 0.2048
+      }
+      displacements {
+        x: -0.0587
+        y: 0.0604
+        z: 0.0243
+      }
+      displacements {
+        x: 0.084
+        y: 0.1044
+        z: 0.0511
+      }
+      displacements {
+        x: 0.2055
+        y: 0.1417
+        z: 0.0633
+      }
+      displacements {
+        x: 0.1231
+        y: 0.1165
+        z: 0.0651
+      }
+      displacements {
+        x: -0.085
+        y: 0.0522
+        z: 0.018
+      }
+      displacements {
+        x: 0.0543
+        y: 0.0955
+        z: 0.0827
+      }
+      displacements {
+        x: -0.0836
+        y: 0.054
+        z: 0.1577
+      }
+      displacements {
+        x: -0.0568
+        y: 0.0602
+        z: -0.0556
+      }
+      displacements {
+        x: 0.3516
+        y: 0.1878
+        z: 0.2071
+      }
+      displacements {
+        x: 0.2267
+        y: 0.1505
+        z: 0.3141
+      }
+      displacements {
+        x: 0.3858
+        y: 0.1982
+        z: 0.1994
+      }
+      displacements {
+        x: -0.1601
+        y: 0.0291
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0146
+        y: 0.0642
+        z: 0.2536
+      }
+      displacements {
+        x: 0.1106
+        y: -0.2416
+        z: -0.0989
+      }
+      displacements {
+        x: 0.0071
+        y: 0.1385
+        z: -0.0724
+      }
+      displacements {
+        x: 0.0391
+        y: -0.0103
+        z: -0.0158
+      }
+      displacements {
+        x: 0.0837
+        y: -0.1317
+        z: -0.1148
+      }
+      displacements {
+        x: 0.0312
+        y: -0.0557
+        z: 0.1412
+      }
+      displacements {
+        x: 0.019
+        y: 0.1702
+        z: -0.2324
+      }
+      displacements {
+        x: -0.014
+        y: 0.0054
+        z: 0.3709
+      }
+      displacements {
+        x: -0.0307
+        y: 0.1394
+        z: 0.224
+      }
+      displacements {
+        x: -0.0344
+        y: 0.1372
+        z: 0.2579
+      }
+      displacements {
+        x: 0.1109
+        y: -0.3001
+        z: 0.0206
+      }
+      displacements {
+        x: 0.0979
+        y: -0.1831
+        z: -0.1204
+      }
+      displacements {
+        x: 0.1451
+        y: -0.3279
+        z: -0.1912
+      }
+      displacements {
+        x: -0.0293
+        y: 0.2417
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.004
+        y: 0.0222
+        z: -0.0323
+      }
+      displacements {
+        x: -0.016
+        y: -0.1975
+        z: -0.1609
+      }
+      displacements {
+        x: -0.0548
+        y: -0.0151
+        z: 0.0266
+      }
+      displacements {
+        x: 0.0356
+        y: 0.0593
+        z: 0.0271
+      }
+      displacements {
+        x: 0.0927
+        y: 0.116
+        z: 0.0652
+      }
+      displacements {
+        x: 0.0612
+        y: 0.0779
+        z: -0.0002
+      }
+      displacements {
+        x: -0.089
+        y: -0.0347
+        z: 0.0757
+      }
+      displacements {
+        x: 0.0446
+        y: 0.0555
+        z: -0.0495
+      }
+      displacements {
+        x: -0.0664
+        y: -0.0065
+        z: 0.0432
+      }
+      displacements {
+        x: -0.0377
+        y: -0.0211
+        z: -0.1189
+      }
+      displacements {
+        x: -0.4361
+        y: -0.2484
+        z: -0.3355
+      }
+      displacements {
+        x: 0.2564
+        y: -0.5473
+        z: -0.299
+      }
+      displacements {
+        x: 0.0589
+        y: -0.017
+        z: -0.0186
+      }
+      displacements {
+        x: -0.1167
+        y: -0.0762
+        z: -0.0185
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.2163
+        y: 0.098
+        z: -0.0195
+      }
+      displacements {
+        x: 0.0924
+        y: -0.0796
+        z: 0.0748
+      }
+      displacements {
+        x: -0.1084
+        y: -0.0224
+        z: -0.0218
+      }
+      displacements {
+        x: -0.1141
+        y: -0.0145
+        z: -0.0249
+      }
+      displacements {
+        x: 0.0187
+        y: 0.0335
+        z: -0.0052
+      }
+      displacements {
+        x: -0.2105
+        y: -0.0491
+        z: -0.0447
+      }
+      displacements {
+        x: 0.0483
+        y: 0.0236
+        z: 0.0259
+      }
+      displacements {
+        x: 0.3127
+        y: 0.1561
+        z: -0.0392
+      }
+      displacements {
+        x: 0.2735
+        y: 0.3272
+        z: -0.2112
+      }
+      displacements {
+        x: 0.3952
+        y: -0.0745
+        z: 0.2125
+      }
+      displacements {
+        x: -0.0473
+        y: -0.0812
+        z: -0.0144
+      }
+      displacements {
+        x: 0.1303
+        y: -0.2923
+        z: 0.1644
+      }
+      displacements {
+        x: 0.2602
+        y: 0.0562
+        z: 0.1433
+      }
+      displacements {
+        x: -0.2187
+        y: -0.0676
+        z: -0.0553
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0084
+        y: -0.0144
+        z: 0.0135
+      }
+      displacements {
+        x: -0.023
+        y: 0.0409
+        z: 0.0463
+      }
+      displacements {
+        x: 0.0292
+        y: 0.0105
+        z: -0.0012
+      }
+      displacements {
+        x: -0.0011
+        y: -0.0249
+        z: 0.0019
+      }
+      displacements {
+        x: -0.0384
+        y: -0.0288
+        z: 0.0061
+      }
+      displacements {
+        x: 0.0328
+        y: -0.0103
+        z: 0.0056
+      }
+      displacements {
+        x: 0.0083
+        y: 0.0144
+        z: -0.0624
+      }
+      displacements {
+        x: -0.0276
+        y: -0.0295
+        z: 0.0246
+      }
+      displacements {
+        x: -0.0053
+        y: -0.0324
+        z: 0.0217
+      }
+      displacements {
+        x: -0.0251
+        y: 0.0184
+        z: 0.0009
+      }
+      displacements {
+        x: -0.2915
+        y: 0.1756
+        z: -0.4118
+      }
+      displacements {
+        x: 0.1121
+        y: -0.4688
+        z: 0.1999
+      }
+      displacements {
+        x: 0.1411
+        y: 0.4834
+        z: 0.4009
+      }
+      displacements {
+        x: 0.0681
+        y: 0.0576
+        z: 0.0329
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.1038
+        y: -0.185
+        z: -0.1882
+      }
+      displacements {
+        x: -0.0682
+        y: -0.054
+        z: 0.0857
+      }
+      displacements {
+        x: -0.0392
+        y: 0.0478
+        z: 0.0925
+      }
+      displacements {
+        x: 0.024
+        y: -0.0342
+        z: 0.1418
+      }
+      displacements {
+        x: 0.0206
+        y: 0.0638
+        z: 0.2183
+      }
+      displacements {
+        x: -0.0042
+        y: 0.0037
+        z: 0.0013
+      }
+      displacements {
+        x: -0.0259
+        y: 0.1262
+        z: -0.2471
+      }
+      displacements {
+        x: 0.0706
+        y: -0.095
+        z: -0.4024
+      }
+      displacements {
+        x: 0.1694
+        y: -0.3136
+        z: -0.1736
+      }
+      displacements {
+        x: 0.1557
+        y: -0.2891
+        z: -0.151
+      }
+      displacements {
+        x: -0.0654
+        y: -0.1322
+        z: 0.2492
+      }
+      displacements {
+        x: -0.0295
+        y: 0.1097
+        z: -0.0725
+      }
+      displacements {
+        x: -0.1692
+        y: -0.228
+        z: -0.0411
+      }
+      displacements {
+        x: -0.1465
+        y: 0.1858
+        z: 0.1913
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0141
+        y: 0.0077
+        z: 0.0557
+      }
+      displacements {
+        x: -0.0505
+        y: 0.068
+        z: -0.0437
+      }
+      displacements {
+        x: -0.1246
+        y: -0.0733
+        z: -0.0249
+      }
+      displacements {
+        x: -0.0147
+        y: -0.0405
+        z: -0.0033
+      }
+      displacements {
+        x: 0.0243
+        y: 0.0252
+        z: 0.0452
+      }
+      displacements {
+        x: 0.0328
+        y: -0.0239
+        z: 0.0097
+      }
+      displacements {
+        x: 0.1131
+        y: 0.0115
+        z: -0.033
+      }
+      displacements {
+        x: 0.4443
+        y: 0.1806
+        z: 0.1733
+      }
+      displacements {
+        x: -0.4111
+        y: 0.2133
+        z: 0.3077
+      }
+      displacements {
+        x: -0.0932
+        y: -0.3221
+        z: -0.2735
+      }
+      displacements {
+        x: -0.0543
+        y: 0.0837
+        z: -0.0795
+      }
+      displacements {
+        x: -0.0123
+        y: 0.0997
+        z: -0.1171
+      }
+      displacements {
+        x: -0.1488
+        y: 0.0613
+        z: -0.0164
+      }
+      displacements {
+        x: -0.331
+        y: -0.1017
+        z: -0.0501
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0065
+        y: 0.0339
+        z: 0.1044
+      }
+      displacements {
+        x: -0.0362
+        y: 0.1288
+        z: -0.1016
+      }
+      displacements {
+        x: -0.008
+        y: -0.0646
+        z: -0.0057
+      }
+      displacements {
+        x: 0.0733
+        y: -0.0309
+        z: 0.0084
+      }
+      displacements {
+        x: 0.1111
+        y: 0.0786
+        z: 0.0881
+      }
+      displacements {
+        x: -0.0876
+        y: -0.0946
+        z: -0.0007
+      }
+      displacements {
+        x: -0.0167
+        y: -0.0601
+        z: -0.0725
+      }
+      displacements {
+        x: -0.379
+        y: -0.1735
+        z: 0.1438
+      }
+      displacements {
+        x: 0.317
+        y: 0.0118
+        z: -0.1897
+      }
+      displacements {
+        x: 0.0758
+        y: 0.3656
+        z: 0.4392
+      }
+      displacements {
+        x: -0.0848
+        y: 0.1498
+        z: -0.1819
+      }
+      displacements {
+        x: 0.0627
+        y: 0.1568
+        z: -0.254
+      }
+      displacements {
+        x: -0.2114
+        y: 0.1303
+        z: -0.0406
+      }
+      displacements {
+        x: -0.1074
+        y: -0.0553
+        z: -0.0036
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.064
+        y: 0.1929
+        z: 0.0265
+      }
+      displacements {
+        x: -0.0316
+        y: -0.1249
+        z: 0.1477
+      }
+      displacements {
+        x: -0.0203
+        y: -0.1277
+        z: -0.0054
+      }
+      displacements {
+        x: -0.0673
+        y: -0.0454
+        z: -0.0334
+      }
+      displacements {
+        x: -0.0993
+        y: 0.0937
+        z: 0.0875
+      }
+      displacements {
+        x: 0.1371
+        y: 0.0757
+        z: -0.1109
+      }
+      displacements {
+        x: 0.1048
+        y: -0.0795
+        z: -0.1065
+      }
+      displacements {
+        x: -0.3259
+        y: -0.0199
+        z: 0.1923
+      }
+      displacements {
+        x: 0.0656
+        y: 0.1591
+        z: -0.0756
+      }
+      displacements {
+        x: -0.1287
+        y: 0.5477
+        z: 0.1034
+      }
+      displacements {
+        x: -0.057
+        y: -0.2304
+        z: 0.3541
+      }
+      displacements {
+        x: -0.0601
+        y: -0.0879
+        z: 0.164
+      }
+      displacements {
+        x: 0.1053
+        y: -0.2474
+        z: -0.0112
+      }
+      displacements {
+        x: 0.0071
+        y: -0.0573
+        z: 0.0385
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0436
+        y: -0.073
+        z: -0.0233
+      }
+      displacements {
+        x: -0.0054
+        y: 0.0187
+        z: -0.0325
+      }
+      displacements {
+        x: -0.2561
+        y: -0.0261
+        z: -0.0451
+      }
+      displacements {
+        x: -0.0494
+        y: -0.0029
+        z: 0.0021
+      }
+      displacements {
+        x: -0.0061
+        y: -0.0626
+        z: -0.0521
+      }
+      displacements {
+        x: 0.1253
+        y: 0.046
+        z: 0.0585
+      }
+      displacements {
+        x: 0.0856
+        y: 0.0818
+        z: 0.0741
+      }
+      displacements {
+        x: -0.442
+        y: -0.2389
+        z: -0.1834
+      }
+      displacements {
+        x: 0.4035
+        y: -0.3696
+        z: -0.1859
+      }
+      displacements {
+        x: 0.0717
+        y: 0.2566
+        z: 0.21
+      }
+      displacements {
+        x: 0.0271
+        y: 0.0584
+        z: -0.0917
+      }
+      displacements {
+        x: -0.0194
+        y: 0.012
+        z: -0.0107
+      }
+      displacements {
+        x: -0.0311
+        y: 0.0591
+        z: 0.0134
+      }
+      displacements {
+        x: -0.3315
+        y: -0.0656
+        z: -0.0736
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0704
+        y: 0.2221
+        z: -0.1462
+      }
+      displacements {
+        x: 0.0011
+        y: -0.0162
+        z: -0.0138
+      }
+      displacements {
+        x: -0.0626
+        y: -0.0063
+        z: 0.152
+      }
+      displacements {
+        x: 0.1305
+        y: -0.043
+        z: 0.1596
+      }
+      displacements {
+        x: 0.1087
+        y: -0.3191
+        z: 0.0515
+      }
+      displacements {
+        x: -0.0287
+        y: 0.0394
+        z: -0.1893
+      }
+      displacements {
+        x: -0.0297
+        y: 0.0736
+        z: 0.0292
+      }
+      displacements {
+        x: -0.0391
+        y: 0.1217
+        z: 0.0909
+      }
+      displacements {
+        x: -0.1368
+        y: 0.3813
+        z: -0.1765
+      }
+      displacements {
+        x: -0.1062
+        y: 0.3368
+        z: -0.1428
+      }
+      displacements {
+        x: 0.156
+        y: 0.1361
+        z: -0.2268
+      }
+      displacements {
+        x: -0.0159
+        y: 0.0867
+        z: -0.0612
+      }
+      displacements {
+        x: -0.2655
+        y: 0.0609
+        z: 0.1493
+      }
+      displacements {
+        x: -0.2842
+        y: 0.0637
+        z: 0.1967
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0282
+        y: 0.08
+        z: -0.0655
+      }
+      displacements {
+        x: 0.0675
+        y: 0.0218
+        z: -0.0837
+      }
+      displacements {
+        x: -0.0036
+        y: -0.1947
+        z: 0.1735
+      }
+      displacements {
+        x: -0.0135
+        y: 0.1933
+        z: 0.1261
+      }
+      displacements {
+        x: -0.0102
+        y: -0.0926
+        z: -0.1261
+      }
+      displacements {
+        x: -0.1642
+        y: 0.2985
+        z: 0.2811
+      }
+      displacements {
+        x: 0.1169
+        y: -0.2287
+        z: -0.1957
+      }
+      displacements {
+        x: -0.064
+        y: 0.2699
+        z: -0.4807
+      }
+      displacements {
+        x: 0.0816
+        y: -0.187
+        z: -0.0015
+      }
+      displacements {
+        x: 0.0693
+        y: -0.1799
+        z: -0.0181
+      }
+      displacements {
+        x: 0.1365
+        y: 0.0813
+        z: -0.1638
+      }
+      displacements {
+        x: 0.0153
+        y: 0.0215
+        z: -0.0197
+      }
+      displacements {
+        x: 0.0472
+        y: 0.0868
+        z: -0.0177
+      }
+      displacements {
+        x: 0.0138
+        y: -0.2477
+        z: 0.1381
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0052
+        y: -0.0245
+        z: 0.0211
+      }
+      displacements {
+        x: -0.12
+        y: -0.0603
+        z: 0.1328
+      }
+      displacements {
+        x: -0.1564
+        y: -0.0224
+        z: -0.1659
+      }
+      displacements {
+        x: 0.5902
+        y: 0.2448
+        z: 0.0295
+      }
+      displacements {
+        x: -0.1475
+        y: 0.0127
+        z: -0.0371
+      }
+      displacements {
+        x: -0.093
+        y: -0.0529
+        z: -0.0105
+      }
+      displacements {
+        x: 0.0223
+        y: -0.0225
+        z: 0.007
+      }
+      displacements {
+        x: 0.0394
+        y: -0.006
+        z: 0.0268
+      }
+      displacements {
+        x: -0.0097
+        y: 0.0221
+        z: -0.0064
+      }
+      displacements {
+        x: 0.0268
+        y: -0.077
+        z: 0.0533
+      }
+      displacements {
+        x: -0.1407
+        y: -0.1335
+        z: 0.2624
+      }
+      displacements {
+        x: -0.1852
+        y: -0.1875
+        z: 0.3072
+      }
+      displacements {
+        x: 0.2078
+        y: -0.0506
+        z: 0.0311
+      }
+      displacements {
+        x: -0.2192
+        y: -0.1453
+        z: -0.2593
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0016
+        y: 0.0044
+        z: -0.002
+      }
+      displacements {
+        x: 0.015
+        y: 0.0056
+        z: -0.0116
+      }
+      displacements {
+        x: -0.1332
+        y: -0.0419
+        z: -0.0141
+      }
+      displacements {
+        x: 0.0145
+        y: -0.0021
+        z: 0.0163
+      }
+      displacements {
+        x: 0.0163
+        y: 0.0079
+        z: 0.0046
+      }
+      displacements {
+        x: -0.0109
+        y: -0.0101
+        z: -0.0091
+      }
+      displacements {
+        x: 0.0112
+        y: 0.0053
+        z: 0.0016
+      }
+      displacements {
+        x: 0.0567
+        y: 0.0207
+        z: 0.0247
+      }
+      displacements {
+        x: -0.0252
+        y: 0.0168
+        z: 0.0135
+      }
+      displacements {
+        x: -0.0128
+        y: -0.0064
+        z: -0.0277
+      }
+      displacements {
+        x: 0.0061
+        y: 0.0059
+        z: -0.0195
+      }
+      displacements {
+        x: 0.0349
+        y: 0.0139
+        z: -0.0423
+      }
+      displacements {
+        x: -0.0114
+        y: -0.0006
+        z: -0.0086
+      }
+      displacements {
+        x: 0.9097
+        y: 0.2897
+        z: 0.2386
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0298
+        y: 0.0897
+        z: -0.0566
+      }
+      displacements {
+        x: -0.1614
+        y: -0.0541
+        z: 0.1607
+      }
+      displacements {
+        x: 0.0333
+        y: 0.0986
+        z: -0.3173
+      }
+      displacements {
+        x: -0.0345
+        y: -0.0492
+        z: -0.1222
+      }
+      displacements {
+        x: 0.1934
+        y: -0.106
+        z: 0.128
+      }
+      displacements {
+        x: -0.041
+        y: 0.0976
+        z: 0.1356
+      }
+      displacements {
+        x: 0.0103
+        y: -0.049
+        z: 0.0228
+      }
+      displacements {
+        x: -0.049
+        y: 0.2003
+        z: -0.2942
+      }
+      displacements {
+        x: 0.0368
+        y: -0.0667
+        z: -0.0227
+      }
+      displacements {
+        x: 0.0199
+        y: -0.0593
+        z: -0.0439
+      }
+      displacements {
+        x: -0.103
+        y: 0.0415
+        z: -0.0126
+      }
+      displacements {
+        x: -0.0544
+        y: 0.0643
+        z: -0.0432
+      }
+      displacements {
+        x: -0.4376
+        y: -0.059
+        z: 0.2523
+      }
+      displacements {
+        x: 0.2678
+        y: -0.0784
+        z: -0.454
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0634
+        y: -0.2135
+        z: 0.2138
+      }
+      displacements {
+        x: -0.2423
+        y: -0.0878
+        z: 0.1811
+      }
+      displacements {
+        x: -0.0119
+        y: -0.0239
+        z: 0.1422
+      }
+      displacements {
+        x: -0.1004
+        y: 0.2335
+        z: -0.019
+      }
+      displacements {
+        x: 0.2499
+        y: 0.0018
+        z: -0.1794
+      }
+      displacements {
+        x: -0.0183
+        y: 0.1165
+        z: -0.2392
+      }
+      displacements {
+        x: 0.0119
+        y: -0.0207
+        z: -0.0319
+      }
+      displacements {
+        x: 0.073
+        y: -0.2587
+        z: 0.3173
+      }
+      displacements {
+        x: 0.0251
+        y: -0.0936
+        z: 0.1567
+      }
+      displacements {
+        x: 0.0147
+        y: -0.0945
+        z: 0.1601
+      }
+      displacements {
+        x: -0.0083
+        y: 0.088
+        z: -0.0449
+      }
+      displacements {
+        x: -0.2385
+        y: 0.071
+        z: 0.0968
+      }
+      displacements {
+        x: -0.3537
+        y: -0.0078
+        z: 0.286
+      }
+      displacements {
+        x: 0.0578
+        y: -0.0985
+        z: 0.0971
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0472
+        y: 0.1328
+        z: -0.1717
+      }
+      displacements {
+        x: -0.2433
+        y: 0.0385
+        z: 0.0852
+      }
+      displacements {
+        x: 0.0271
+        y: -0.146
+        z: 0.1311
+      }
+      displacements {
+        x: 0.0307
+        y: -0.1021
+        z: -0.0389
+      }
+      displacements {
+        x: 0.1757
+        y: 0.0937
+        z: -0.2135
+      }
+      displacements {
+        x: 0.0468
+        y: -0.1511
+        z: 0.1781
+      }
+      displacements {
+        x: -0.0323
+        y: 0.0929
+        z: 0.0123
+      }
+      displacements {
+        x: -0.0097
+        y: 0.1189
+        z: -0.1131
+      }
+      displacements {
+        x: -0.0333
+        y: 0.1523
+        z: -0.1765
+      }
+      displacements {
+        x: 0.0004
+        y: 0.0871
+        z: -0.0795
+      }
+      displacements {
+        x: -0.237
+        y: -0.0972
+        z: 0.3311
+      }
+      displacements {
+        x: -0.2082
+        y: -0.2052
+        z: 0.2243
+      }
+      displacements {
+        x: 0.39
+        y: -0.0177
+        z: -0.1983
+      }
+      displacements {
+        x: -0.0543
+        y: 0.0375
+        z: 0.2743
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0187
+        y: -0.0286
+        z: -0.0991
+      }
+      displacements {
+        x: -0.0072
+        y: 0.0722
+        z: 0.0553
+      }
+      displacements {
+        x: -0.0661
+        y: 0.2249
+        z: -0.0004
+      }
+      displacements {
+        x: -0.0442
+        y: 0.0442
+        z: 0.086
+      }
+      displacements {
+        x: 0.0149
+        y: -0.0192
+        z: -0.0539
+      }
+      displacements {
+        x: 0.0206
+        y: -0.0491
+        z: 0.0313
+      }
+      displacements {
+        x: 0.0499
+        y: -0.1513
+        z: -0.0135
+      }
+      displacements {
+        x: 0.0723
+        y: -0.2464
+        z: 0.3741
+      }
+      displacements {
+        x: -0.1464
+        y: 0.232
+        z: -0.0868
+      }
+      displacements {
+        x: -0.0327
+        y: 0.2559
+        z: -0.0214
+      }
+      displacements {
+        x: -0.3981
+        y: -0.1152
+        z: 0.178
+      }
+      displacements {
+        x: 0.3025
+        y: -0.0966
+        z: -0.2439
+      }
+      displacements {
+        x: 0.0119
+        y: -0.1351
+        z: -0.1486
+      }
+      displacements {
+        x: -0.136
+        y: 0.3149
+        z: 0.0632
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0043
+        y: -0.0088
+        z: -0.0483
+      }
+      displacements {
+        x: -0.044
+        y: -0.0914
+        z: -0.0811
+      }
+      displacements {
+        x: -0.0263
+        y: 0.0845
+        z: -0.0065
+      }
+      displacements {
+        x: -0.01
+        y: -0.0005
+        z: 0.0314
+      }
+      displacements {
+        x: 0.0194
+        y: 0.054
+        z: 0.0247
+      }
+      displacements {
+        x: 0.0124
+        y: -0.0227
+        z: 0.0274
+      }
+      displacements {
+        x: 0.0179
+        y: -0.0556
+        z: -0.0031
+      }
+      displacements {
+        x: 0.0471
+        y: -0.0763
+        z: 0.1329
+      }
+      displacements {
+        x: -0.0544
+        y: 0.1313
+        z: -0.0798
+      }
+      displacements {
+        x: 0.0047
+        y: 0.0861
+        z: 0.0265
+      }
+      displacements {
+        x: 0.5735
+        y: 0.1561
+        z: -0.184
+      }
+      displacements {
+        x: -0.488
+        y: 0.0875
+        z: 0.4018
+      }
+      displacements {
+        x: 0.1244
+        y: 0.2207
+        z: 0.1491
+      }
+      displacements {
+        x: -0.0414
+        y: 0.1385
+        z: 0.0307
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.1287
+        y: 0.0544
+        z: 0.0079
+      }
+      displacements {
+        x: -0.0102
+        y: -0.0033
+        z: -0.0056
+      }
+      displacements {
+        x: -0.0007
+        y: 0.0077
+        z: 0.0014
+      }
+      displacements {
+        x: -0.0007
+        y: -0.0048
+        z: 0.0033
+      }
+      displacements {
+        x: 0.0074
+        y: 0.0056
+        z: -0.0024
+      }
+      displacements {
+        x: -0.0573
+        y: -0.0275
+        z: -0.0011
+      }
+      displacements {
+        x: 0.0008
+        y: -0.005
+        z: -0.0001
+      }
+      displacements {
+        x: -0.2761
+        y: -0.1435
+        z: -0.0075
+      }
+      displacements {
+        x: -0.0939
+        y: -0.3994
+        z: 0.4887
+      }
+      displacements {
+        x: -0.254
+        y: 0.3084
+        z: -0.5537
+      }
+      displacements {
+        x: 0.0321
+        y: 0.0049
+        z: 0.0052
+      }
+      displacements {
+        x: -0.0394
+        y: -0.0053
+        z: 0.0361
+      }
+      displacements {
+        x: 0.03
+        y: 0.0181
+        z: -0.0002
+      }
+      displacements {
+        x: -0.0173
+        y: 0.0146
+        z: 0.0062
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0192
+        y: -0.0132
+        z: -0.0977
+      }
+      displacements {
+        x: 0.0638
+        y: -0.0747
+        z: 0.068
+      }
+      displacements {
+        x: 0.0182
+        y: -0.0687
+        z: 0.0139
+      }
+      displacements {
+        x: -0.0018
+        y: 0.0694
+        z: -0.0275
+      }
+      displacements {
+        x: -0.0411
+        y: 0.0421
+        z: -0.0294
+      }
+      displacements {
+        x: 0.0068
+        y: -0.0478
+        z: 0.0743
+      }
+      displacements {
+        x: -0.0122
+        y: 0.0444
+        z: -0.0047
+      }
+      displacements {
+        x: 0.0429
+        y: -0.2188
+        z: 0.3225
+      }
+      displacements {
+        x: -0.1362
+        y: 0.1866
+        z: -0.0588
+      }
+      displacements {
+        x: -0.0369
+        y: 0.2377
+        z: -0.0458
+      }
+      displacements {
+        x: 0.0563
+        y: 0.1117
+        z: -0.3151
+      }
+      displacements {
+        x: 0.1168
+        y: 0.2446
+        z: -0.2203
+      }
+      displacements {
+        x: -0.5277
+        y: -0.0386
+        z: 0.3095
+      }
+      displacements {
+        x: 0.0735
+        y: -0.2285
+        z: -0.0991
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0409
+        y: -0.0917
+        z: -0.0434
+      }
+      displacements {
+        x: -0.0225
+        y: 0.0576
+        z: -0.0636
+      }
+      displacements {
+        x: 0.0238
+        y: -0.0659
+        z: -0.0261
+      }
+      displacements {
+        x: -0.0202
+        y: 0.0172
+        z: -0.0165
+      }
+      displacements {
+        x: 0.0189
+        y: -0.0555
+        z: 0.0647
+      }
+      displacements {
+        x: -0.0322
+        y: 0.0791
+        z: 0.0265
+      }
+      displacements {
+        x: -0.0141
+        y: 0.0483
+        z: -0.0037
+      }
+      displacements {
+        x: 0.0795
+        y: -0.312
+        z: 0.4323
+      }
+      displacements {
+        x: -0.1769
+        y: 0.2653
+        z: -0.0509
+      }
+      displacements {
+        x: -0.0497
+        y: 0.3002
+        z: 0.0046
+      }
+      displacements {
+        x: -0.0556
+        y: -0.1009
+        z: 0.2479
+      }
+      displacements {
+        x: -0.0875
+        y: -0.1784
+        z: 0.1768
+      }
+      displacements {
+        x: 0.3348
+        y: 0.0388
+        z: -0.2022
+      }
+      displacements {
+        x: 0.1698
+        y: -0.3124
+        z: -0.2042
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0406
+        y: 0.1077
+        z: -0.0306
+      }
+      displacements {
+        x: 0.0037
+        y: 0.0255
+        z: -0.0459
+      }
+      displacements {
+        x: -0.027
+        y: 0.0477
+        z: 0.0594
+      }
+      displacements {
+        x: -0.0986
+        y: 0.2277
+        z: 0.0128
+      }
+      displacements {
+        x: 0.018
+        y: -0.0552
+        z: 0.0652
+      }
+      displacements {
+        x: 0.0696
+        y: -0.1741
+        z: -0.0176
+      }
+      displacements {
+        x: 0.0077
+        y: -0.003
+        z: -0.0312
+      }
+      displacements {
+        x: -0.0391
+        y: 0.095
+        z: -0.0336
+      }
+      displacements {
+        x: 0.1472
+        y: -0.2667
+        z: 0.0324
+      }
+      displacements {
+        x: 0.0792
+        y: -0.2809
+        z: 0.0039
+      }
+      displacements {
+        x: -0.0409
+        y: -0.0791
+        z: 0.1613
+      }
+      displacements {
+        x: -0.0879
+        y: -0.0903
+        z: 0.1434
+      }
+      displacements {
+        x: 0.0515
+        y: 0.0512
+        z: -0.0322
+      }
+      displacements {
+        x: 0.2917
+        y: -0.6023
+        z: -0.3942
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0025
+        y: 0.0005
+        z: 0.0273
+      }
+      displacements {
+        x: -0.0395
+        y: -0.0165
+        z: 0.0437
+      }
+      displacements {
+        x: -0.0277
+        y: 0.08
+        z: 0.0188
+      }
+      displacements {
+        x: 0.0246
+        y: -0.145
+        z: 0.1508
+      }
+      displacements {
+        x: -0.0099
+        y: 0.0519
+        z: -0.0682
+      }
+      displacements {
+        x: -0.0067
+        y: 0.0284
+        z: -0.023
+      }
+      displacements {
+        x: 0.0026
+        y: 0.0038
+        z: -0.0149
+      }
+      displacements {
+        x: -0.0233
+        y: 0.0328
+        z: -0.046
+      }
+      displacements {
+        x: 0.0389
+        y: 0.0515
+        z: -0.0514
+      }
+      displacements {
+        x: -0.0443
+        y: -0.0072
+        z: -0.0635
+      }
+      displacements {
+        x: 0.1465
+        y: 0.1447
+        z: -0.1934
+      }
+      displacements {
+        x: 0.1268
+        y: 0.0746
+        z: -0.222
+      }
+      displacements {
+        x: 0.2252
+        y: -0.0417
+        z: -0.0866
+      }
+      displacements {
+        x: 0.2816
+        y: -0.6346
+        z: -0.4747
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0249
+        y: 0.0528
+        z: -0.0568
+      }
+      displacements {
+        x: -0.0455
+        y: -0.0118
+        z: 0.0405
+      }
+      displacements {
+        x: 0.0146
+        y: -0.0283
+        z: -0.0237
+      }
+      displacements {
+        x: -0.0043
+        y: 0.0112
+        z: -0.0088
+      }
+      displacements {
+        x: -0.0085
+        y: -0.0097
+        z: 0.019
+      }
+      displacements {
+        x: -0.0077
+        y: 0.0162
+        z: -0.0054
+      }
+      displacements {
+        x: -0.003
+        y: 0.0058
+        z: 0.005
+      }
+      displacements {
+        x: 0.1288
+        y: -0.1402
+        z: 0.4602
+      }
+      displacements {
+        x: 0.0716
+        y: -0.4445
+        z: 0.1631
+      }
+      displacements {
+        x: 0.1879
+        y: -0.2101
+        z: 0.1979
+      }
+      displacements {
+        x: 0.1959
+        y: 0.1836
+        z: -0.2137
+      }
+      displacements {
+        x: 0.1495
+        y: 0.0537
+        z: -0.2597
+      }
+      displacements {
+        x: 0.3579
+        y: -0.0611
+        z: -0.1535
+      }
+      displacements {
+        x: -0.0624
+        y: 0.1238
+        z: 0.0766
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0145
+        y: -0.0157
+        z: 0.015
+      }
+      displacements {
+        x: -0.0349
+        y: -0.0483
+        z: -0.0008
+      }
+      displacements {
+        x: 0.0041
+        y: -0.01
+        z: -0.0028
+      }
+      displacements {
+        x: -0.0121
+        y: 0.0384
+        z: -0.0187
+      }
+      displacements {
+        x: -0.0062
+        y: -0.0216
+        z: 0.0152
+      }
+      displacements {
+        x: 0.0083
+        y: -0.0159
+        z: 0.0037
+      }
+      displacements {
+        x: -0.0003
+        y: 0.0002
+        z: 0.0003
+      }
+      displacements {
+        x: -0.117
+        y: 0.0138
+        z: -0.1708
+      }
+      displacements {
+        x: -0.0719
+        y: 0.1959
+        z: -0.0357
+      }
+      displacements {
+        x: -0.0365
+        y: 0.0228
+        z: -0.0517
+      }
+      displacements {
+        x: 0.003
+        y: -0.1077
+        z: 0.1906
+      }
+      displacements {
+        x: 0.0963
+        y: 0.4169
+        z: -0.4547
+      }
+      displacements {
+        x: 0.4514
+        y: 0.4284
+        z: 0.2675
+      }
+      displacements {
+        x: -0.014
+        y: 0.046
+        z: 0.035
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0431
+        y: 0.0073
+        z: -0.0078
+      }
+      displacements {
+        x: 0.0289
+        y: -0.0147
+        z: -0.0364
+      }
+      displacements {
+        x: -0.0013
+        y: 0.0087
+        z: -0.0027
+      }
+      displacements {
+        x: 0.0118
+        y: -0.0482
+        z: 0.0267
+      }
+      displacements {
+        x: 0.0059
+        y: 0.0113
+        z: -0.0262
+      }
+      displacements {
+        x: -0.0158
+        y: 0.0191
+        z: -0.0032
+      }
+      displacements {
+        x: 0.0001
+        y: 0.0004
+        z: 0.0004
+      }
+      displacements {
+        x: 0.4629
+        y: 0.1232
+        z: 0.2604
+      }
+      displacements {
+        x: 0.2977
+        y: -0.4113
+        z: -0.0658
+      }
+      displacements {
+        x: -0.0859
+        y: 0.1878
+        z: -0.0255
+      }
+      displacements {
+        x: -0.2369
+        y: -0.232
+        z: 0.2634
+      }
+      displacements {
+        x: -0.129
+        y: 0.1935
+        z: 0.047
+      }
+      displacements {
+        x: -0.1084
+        y: 0.2571
+        z: 0.2657
+      }
+      displacements {
+        x: -0.002
+        y: -0.0486
+        z: -0.0427
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0214
+        y: -0.0512
+        z: 0.0303
+      }
+      displacements {
+        x: -0.0307
+        y: 0.006
+        z: 0.0306
+      }
+      displacements {
+        x: 0.0022
+        y: -0.0087
+        z: 0.0046
+      }
+      displacements {
+        x: -0.0167
+        y: 0.0575
+        z: -0.0302
+      }
+      displacements {
+        x: -0.0057
+        y: -0.0149
+        z: 0.0277
+      }
+      displacements {
+        x: 0.0021
+        y: -0.0323
+        z: 0.0084
+      }
+      displacements {
+        x: 0.0008
+        y: -0.0009
+        z: -0.001
+      }
+      displacements {
+        x: 0.4338
+        y: 0.3052
+        z: -0.212
+      }
+      displacements {
+        x: 0.192
+        y: -0.041
+        z: -0.1637
+      }
+      displacements {
+        x: -0.2598
+        y: 0.5129
+        z: -0.137
+      }
+      displacements {
+        x: 0.2139
+        y: 0.1847
+        z: -0.1923
+      }
+      displacements {
+        x: 0.1314
+        y: -0.1113
+        z: -0.1126
+      }
+      displacements {
+        x: 0.1597
+        y: -0.155
+        z: -0.1872
+      }
+      displacements {
+        x: -0.0338
+        y: 0.028
+        z: 0.0292
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0022
+        y: -0.0053
+        z: 0.0025
+      }
+      displacements {
+        x: 0.0423
+        y: -0.0195
+        z: 0.0266
+      }
+      displacements {
+        x: -0.0018
+        y: 0.0029
+        z: 0.0023
+      }
+      displacements {
+        x: -0.0044
+        y: 0.0078
+        z: -0.0052
+      }
+      displacements {
+        x: 0.0099
+        y: -0.0101
+        z: 0.0124
+      }
+      displacements {
+        x: 0.0014
+        y: -0.0026
+        z: -0.0008
+      }
+      displacements {
+        x: 0.0006
+        y: -0.0018
+        z: -0.0006
+      }
+      displacements {
+        x: 0.0006
+        y: 0.0177
+        z: -0.0427
+      }
+      displacements {
+        x: -0.0192
+        y: 0.0226
+        z: 0.0067
+      }
+      displacements {
+        x: -0.0085
+        y: 0.0344
+        z: 0.006
+      }
+      displacements {
+        x: -0.5452
+        y: 0.0279
+        z: -0.4394
+      }
+      displacements {
+        x: -0.3439
+        y: 0.46
+        z: 0.1902
+      }
+      displacements {
+        x: 0.2621
+        y: -0.158
+        z: -0.2036
+      }
+      displacements {
+        x: 0.0068
+        y: -0.0011
+        z: -0.0005
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0049
+        y: 0.0204
+        z: 0.047
+      }
+      displacements {
+        x: -0.0016
+        y: 0.0008
+        z: 0.005
+      }
+      displacements {
+        x: 0.0043
+        y: -0.0086
+        z: -0.0076
+      }
+      displacements {
+        x: -0.0018
+        y: 0.0093
+        z: -0.009
+      }
+      displacements {
+        x: -0.0009
+        y: -0.0033
+        z: 0.0063
+      }
+      displacements {
+        x: -0.0029
+        y: 0.0085
+        z: 0.0152
+      }
+      displacements {
+        x: -0.0002
+        y: -0.0007
+        z: 0.0016
+      }
+      displacements {
+        x: -0.1128
+        y: -0.1659
+        z: 0.2648
+      }
+      displacements {
+        x: 0.4176
+        y: 0.1315
+        z: -0.4523
+      }
+      displacements {
+        x: -0.2058
+        y: -0.3528
+        z: -0.5569
+      }
+      displacements {
+        x: 0.0088
+        y: 0.0288
+        z: -0.0474
+      }
+      displacements {
+        x: 0.0043
+        y: -0.0026
+        z: -0.0026
+      }
+      displacements {
+        x: 0.0276
+        y: -0.0334
+        z: -0.0381
+      }
+      displacements {
+        x: -0.0271
+        y: 0.0641
+        z: 0.0412
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0009
+        y: -0.0031
+        z: -0.0098
+      }
+      displacements {
+        x: 0.0007
+        y: -0.0124
+        z: 0.0178
+      }
+      displacements {
+        x: -0.1674
+        y: 0.255
+        z: 0.4153
+      }
+      displacements {
+        x: 0.1702
+        y: -0.1549
+        z: -0.5663
+      }
+      displacements {
+        x: -0.0217
+        y: -0.0293
+        z: 0.0809
+      }
+      displacements {
+        x: -0.0358
+        y: 0.0719
+        z: 0.0455
+      }
+      displacements {
+        x: 0.0232
+        y: -0.0531
+        z: -0.0226
+      }
+      displacements {
+        x: 0.0219
+        y: -0.0686
+        z: 0.1401
+      }
+      displacements {
+        x: 0.028
+        y: -0.1023
+        z: 0.0168
+      }
+      displacements {
+        x: 0.0468
+        y: -0.0724
+        z: 0.0234
+      }
+      displacements {
+        x: 0.0503
+        y: 0.0227
+        z: -0.0106
+      }
+      displacements {
+        x: 0.0684
+        y: 0.0301
+        z: -0.0995
+      }
+      displacements {
+        x: 0.0332
+        y: -0.0005
+        z: 0.0336
+      }
+      displacements {
+        x: 0.1742
+        y: -0.4939
+        z: 0.0202
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0014
+        y: 0.0102
+        z: -0.0483
+      }
+      displacements {
+        x: 0.0002
+        y: 0.0005
+        z: 0.0002
+      }
+      displacements {
+        x: -0.0001
+        y: -0.0007
+        z: 0.0011
+      }
+      displacements {
+        x: 0.0009
+        y: -0.0022
+        z: -0.0005
+      }
+      displacements {
+        y: 0.0002
+      }
+      displacements {
+        x: -0.0009
+        y: 0.0026
+        z: -0.002
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0003
+        z: 0.0002
+      }
+      displacements {
+        x: 0.1277
+        y: -0.2484
+        z: -0.1286
+      }
+      displacements {
+        x: 0.4357
+        y: 0.2734
+        z: 0.4412
+      }
+      displacements {
+        x: -0.5719
+        y: -0.1712
+        z: 0.2951
+      }
+      displacements {
+        x: 0.001
+        y: -0.0032
+        z: -0.0009
+      }
+      displacements {
+        x: -0.0048
+        y: -0.0021
+        z: -0.0036
+      }
+      displacements {
+        x: 0.0008
+        y: -0.0018
+        z: 0.0027
+      }
+      displacements {
+        x: -0.0005
+        y: 0.0095
+        z: -0.0129
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0008
+        y: -0.0002
+        z: 0.0003
+      }
+      displacements {
+        x: 0.0501
+        y: 0.0093
+        z: 0.0013
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0006
+        z: -0.0003
+      }
+      displacements {
+        x: 0.0004
+        y: -0.002
+        z: 0.0014
+      }
+      displacements {
+        x: 0.0016
+        y: 0.0009
+        z: -0.002
+      }
+      displacements {
+        x: -0.0003
+        y: 0.0004
+        z: 0.0001
+      }
+      displacements {
+        y: -0.0002
+      }
+      displacements {
+        x: -0.0003
+        y: 0.0005
+        z: -0.0001
+      }
+      displacements {
+        x: 0.0015
+        y: 0.001
+        z: 0.0011
+      }
+      displacements {
+        x: 0.0077
+        y: 0.0019
+        z: -0.0042
+      }
+      displacements {
+        x: -0.1217
+        y: 0.4148
+        z: 0.2045
+      }
+      displacements {
+        x: -0.5916
+        y: -0.298
+        z: -0.4529
+      }
+      displacements {
+        x: 0.0909
+        y: -0.2301
+        z: 0.2521
+      }
+      displacements {
+        x: 0.0014
+        y: 0.0004
+        z: -0.0019
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0866
+        y: -0.0369
+        z: -0.0107
+      }
+      displacements {
+        x: -0.0003
+        z: 0.0004
+      }
+      displacements {
+        y: 0.0001
+        z: -0.0002
+      }
+      displacements {
+        x: 0.0003
+        y: 0.0002
+        z: 0.0001
+      }
+      displacements {
+      }
+      displacements {
+        x: 0.0002
+        y: -0.0001
+        z: -0.0001
+      }
+      displacements {
+        x: -0.0001
+      }
+      displacements {
+        x: -0.0131
+        y: -0.0165
+        z: -0.0062
+      }
+      displacements {
+        x: 0.431
+        y: 0.2868
+        z: 0.4637
+      }
+      displacements {
+        x: 0.6082
+        y: 0.1683
+        z: -0.3303
+      }
+      displacements {
+        x: 0.0015
+        y: -0.0053
+        z: -0.0027
+      }
+      displacements {
+        x: 0.0032
+        y: 0.0019
+        z: 0.0024
+      }
+      displacements {
+        x: -0.0014
+        y: 0.0039
+        z: -0.0042
+      }
+      displacements {
+        x: 0.0007
+        y: -0.0016
+        z: 0.0019
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0004
+        y: -0.0001
+        z: -0.0005
+      }
+      displacements {
+        x: -0.0208
+        y: -0.0606
+        z: -0.0664
+      }
+      displacements {
+        y: -0.0001
+        z: -0.0001
+      }
+      displacements {
+        x: 0.0004
+        y: -0.0007
+        z: 0.001
+      }
+      displacements {
+        x: 0.0004
+        y: 0.0005
+        z: -0.0005
+      }
+      displacements {
+        x: -0.0002
+        z: 0.0003
+      }
+      displacements {
+        y: 0.0001
+      }
+      displacements {
+        x: -0.0003
+        y: 0.0007
+        z: 0.0001
+      }
+      displacements {
+        x: 0.0044
+        y: 0.0027
+        z: 0.0047
+      }
+      displacements {
+        x: -0.0013
+        y: -0.0009
+        z: 0.0011
+      }
+      displacements {
+        x: -0.2217
+        y: 0.6949
+        z: 0.3189
+      }
+      displacements {
+        x: 0.4095
+        y: 0.1942
+        z: 0.3135
+      }
+      displacements {
+        x: 0.0541
+        y: -0.1669
+        z: 0.1526
+      }
+      displacements {
+        x: -0.0004
+        y: -0.0008
+        z: 0.0009
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0353
+        y: -0.0675
+        z: -0.0513
+      }
+      displacements {
+        x: 0.0011
+        y: -0.0017
+        z: 0.0014
+      }
+      displacements {
+        x: -0.0001
+        y: -0.001
+        z: 0.0019
+      }
+      displacements {
+        x: -0.0002
+        y: 0.001
+        z: -0.0006
+      }
+      displacements {
+        y: -0.0001
+        z: 0.0002
+      }
+      displacements {
+        x: -0.0001
+        y: -0.0001
+        z: 0.0003
+      }
+      displacements {
+        y: -0.0001
+      }
+      displacements {
+        x: -0.3922
+        y: 0.7704
+        z: 0.4015
+      }
+      displacements {
+        x: 0.1444
+        y: 0.0817
+        z: 0.1312
+      }
+      displacements {
+        x: -0.1663
+        y: -0.0588
+        z: 0.0765
+      }
+      displacements {
+        x: -0.002
+        y: 0.0069
+        z: 0.0037
+      }
+      displacements {
+        x: -0.0047
+        y: -0.0027
+        z: -0.0036
+      }
+      displacements {
+        x: -0.0062
+        y: 0.0157
+        z: -0.0167
+      }
+      displacements {
+        x: -0.0004
+        y: 0.0154
+        z: -0.0205
+      }
+    }
+    normal_modes {
+      displacements {
+        x: -0.0008
+        y: 0.002
+        z: 0.0011
+      }
+      displacements {
+        x: 0.0367
+        y: -0.0715
+        z: 0.0482
+      }
+      displacements {
+        y: 0.0002
+        z: -0.0002
+      }
+      displacements {
+        x: 0.0006
+        y: -0.0002
+        z: -0.0009
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0002
+      }
+      displacements {
+        x: -0.0002
+        y: 0.0002
+        z: 0.0002
+      }
+      displacements {
+        y: 0.0001
+      }
+      displacements {
+        x: 0.0107
+        y: -0.0207
+        z: -0.0108
+      }
+      displacements {
+        x: -0.0032
+        y: -0.0019
+        z: -0.0029
+      }
+      displacements {
+        x: 0.0012
+        y: 0.0003
+      }
+      displacements {
+        x: -0.0912
+        y: 0.3199
+        z: 0.1639
+      }
+      displacements {
+        x: -0.1134
+        y: -0.0733
+        z: -0.0887
+      }
+      displacements {
+        x: -0.2341
+        y: 0.5996
+        z: -0.6423
+      }
+      displacements {
+        x: 0.0002
+        y: -0.0023
+        z: 0.0031
+      }
+    }
+    normal_modes {
+      displacements {
+        x: 0.0009
+        y: -0.001
+        z: -0.002
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0003
+        z: -0.0002
+      }
+      displacements {
+        x: 0.0035
+        y: 0.0449
+        z: -0.0756
+      }
+      displacements {
+        x: -0.002
+        y: 0.0025
+        z: 0.0062
+      }
+      displacements {
+        x: 0.0002
+        y: -0.0003
+        z: 0.0007
+      }
+      displacements {
+        x: 0.0002
+        y: -0.0002
+        z: -0.0005
+      }
+      displacements {
+        x: -0.0001
+        y: 0.0003
+        z: 0.0003
+      }
+      displacements {
+        x: -0.008
+        y: 0.015
+        z: 0.01
+      }
+      displacements {
+        x: 0.0097
+        y: 0.0071
+        z: 0.0094
+      }
+      displacements {
+        x: -0.0159
+        y: -0.0033
+        z: 0.0078
+      }
+      displacements {
+        x: 0.0006
+        y: -0.0013
+        z: -0.001
+      }
+      displacements {
+        x: -0.0014
+        y: -0.0004
+        z: -0.0004
+      }
+      displacements {
+        x: 0.001
+        y: -0.0019
+        z: 0.0019
+      }
+      displacements {
+        x: -0.0166
+        y: -0.5706
+        z: 0.8157
+      }
+    }
+  }
+  bond_topologies {
+    atoms: ATOM_C
+    atoms: ATOM_C
+    atoms: ATOM_C
+    atoms: ATOM_C
+    atoms: ATOM_O
+    atoms: ATOM_O
+    atoms: ATOM_F
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    atoms: ATOM_H
+    bonds {
+      atom_b: 5
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 4
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 2
+      atom_b: 3
+      bond_type: BOND_DOUBLE
+    }
+    bonds {
+      atom_a: 2
+      atom_b: 6
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 3
+      atom_b: 4
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 3
+      atom_b: 5
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 7
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 8
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_b: 9
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 10
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 11
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 1
+      atom_b: 12
+      bond_type: BOND_SINGLE
+    }
+    bonds {
+      atom_a: 2
+      atom_b: 13
+      bond_type: BOND_SINGLE
+    }
+    smiles: "COC(=CF)OC"
+    bond_topology_id: 618451
+  }
+  which_database: STANDARD
+}

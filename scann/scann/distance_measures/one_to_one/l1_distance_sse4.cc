@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "scann/distance_measures/one_to_one/l1_distance_sse4.h"
+
+#include <cstdint>
 #ifdef __x86_64__
 
 #include "scann/utils/intrinsics/sse4.h"

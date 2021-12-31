@@ -25,6 +25,7 @@ import tensorflow.compat.v1 as tf
 
 from dictionary_learning import dictionary_learning
 from graph_compression.compression_lib import compression_op
+from graph_compression.compression_lib import compression_op_utils
 
 FLAGS = flags.FLAGS
 
@@ -155,7 +156,7 @@ class DLCompressionOp(compression_op.CompressionOp):
 
     self.a_matrix_tfvar = a_matrix_tfvar
 
-    if self._spec.update_option == 0:
+    if self._spec.update_option == compression_op_utils.UpdateOptions.TF_UPDATE:
       self.update_op = self._create_update_op()
     else:
       self.setup_update_explicit()
@@ -362,49 +363,3 @@ class DLCompressionOp(compression_op.CompressionOp):
         step_number, self._spec.begin_compression_step,
         self._spec.end_compression_step, self.run_update_count)
 
-
-class DLApplyCompression(compression_op.ApplyCompression):
-  """Wrapper class for Simhash.
-
-  This is to repeatedly invoke above compression operator to different
-  layers in a model.
-
-  Intialized by specifying the compressor and compression_spec.
-
-  After that apply_compression can be called several times for different
-  matrices in the model.
-
-  Finally all_update_op returns the combined update OP from all these
-  compressions.
-  """
-
-  def apply_compression(self, a_matrix_tfvar, scope='default_scope'):
-    """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
-
-    Args:
-      a_matrix_tfvar: TF variable representing a tensor variable in a model
-      scope: TF scope used for creating new TF variables
-
-    Returns:
-      tf node that represents the compressed version of a_matrix_tfvar
-    """
-    logging.info('Entering apply_compression')
-    c = DLCompressionOp(
-        scope=scope,
-        spec=self._compression_op_spec,
-        global_step=self._global_step)
-    self._compression_ops.append(c)
-    [a_matrix_compressed, a_matrix_update_op] = c.get_apply_compression_op(
-        a_matrix_tfvar, self._matrix_compressor, scope=scope)
-    self._update_ops.append(a_matrix_update_op)
-
-    self.uncompressed_size = self.uncompressed_size + c.uncompressed_size
-    self.compressed_size = self.compressed_size + c.compressed_size
-
-    logging.info(
-        'Total so far uncompressed and compressed sizes and comppression ratio'
-        ' are %s %s %s',
-        self.uncompressed_size, self.compressed_size,
-        self.compressed_size * 1.0 / (self.uncompressed_size + 0.00000001))
-
-    return a_matrix_compressed

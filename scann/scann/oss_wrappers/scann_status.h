@@ -38,6 +38,14 @@
   while (ABSL_PREDICT_FALSE(!((lhs) <= (rhs)))) \
   return RetCheckFail("SCANN_RET_CHECK_LE failure ")
 
+#define SCANN_RET_CHECK_GT(lhs, rhs)           \
+  while (ABSL_PREDICT_FALSE(!((lhs) > (rhs)))) \
+  return RetCheckFail("SCANN_RET_CHECK_GT failure ")
+
+#define SCANN_RET_CHECK_LT(lhs, rhs)           \
+  while (ABSL_PREDICT_FALSE(!((lhs) < (rhs)))) \
+  return RetCheckFail("SCANN_RET_CHECK_LT failure ")
+
 #define SCANN_RETURN_IF_ERROR(expr)                      \
   for (auto __return_if_error_res = (expr);              \
        ABSL_PREDICT_FALSE(!__return_if_error_res.ok());) \

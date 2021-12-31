@@ -16,10 +16,10 @@
 """File to define model architectures."""
 from typing import Tuple
 
-from flax import nn
+from flax.deprecated import nn
 from jax import numpy as jnp
 import jax.nn
-from lib import utils
+from lib import utils  # pytype: disable=import-error
 
 
 class SimpleCNNImageClassifier(nn.Module):
@@ -305,4 +305,3 @@ class BasicBlockv2(nn.Module):
 
     x += identity
     return x
-

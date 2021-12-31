@@ -59,6 +59,9 @@ flags.DEFINE_boolean("use_stemmer", False,
                      "Whether to use Porter stemmer to remove common suffixes.")
 flags.DEFINE_boolean("aggregate", True,
                      "Write aggregates if this is set to True")
+flags.DEFINE_boolean("split_summaries", False,
+                     ("Whether to split references and candidates into"
+                      " sentences before computing RougeLsum."))
 
 FLAGS = flags.FLAGS
 
@@ -66,7 +69,10 @@ FLAGS = flags.FLAGS
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
-  scorer = rouge_scorer.RougeScorer(FLAGS.rouge_types, FLAGS.use_stemmer)
+  scorer = rouge_scorer.RougeScorer(
+      FLAGS.rouge_types,
+      use_stemmer=FLAGS.use_stemmer,
+      split_summaries=FLAGS.split_summaries)
   aggregator = scoring.BootstrapAggregator() if FLAGS.aggregate else None
   io.compute_scores_and_write_to_csv(
       FLAGS.target_filepattern,

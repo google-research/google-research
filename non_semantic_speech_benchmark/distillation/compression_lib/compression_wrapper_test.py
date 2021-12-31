@@ -24,8 +24,8 @@ from absl.testing import absltest
 
 import mock
 
-from graph_compression.compression_lib import compression_op as comp_op
-from graph_compression.compression_lib import compression_wrapper
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as comp_op
+from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
 
 # Default global step value.
 _GLOBAL_STEP = 10
@@ -58,12 +58,15 @@ class CompressionWrapperTest(absltest.TestCase):
     spec.set_hparam('rank', hparams.rank)
     return spec
 
-  @mock.patch.object(comp_op, 'LowRankDecompMatrixCompressor')
-  def testWrapper_CreatesProperCompressorOption1(self, low_rank_mock):
+  def testWrapper_CreatesProperCompressorOption1(self):
     hparams = self._create_compression_op_spec(1)
     mock_compressor = MatrixCompressorInterfaceMock(
         self._default_compressor_spec(hparams))
-    low_rank_mock.side_effect = [mock_compressor]
+    self.enter_context(
+        mock.patch.object(
+            comp_op,
+            'LowRankDecompMatrixCompressor',
+            side_effect=[mock_compressor]))
 
     with mock.patch.object(comp_op, 'ApplyCompression') as apply_mock:
       compression_wrapper.get_apply_compression(hparams, _GLOBAL_STEP)

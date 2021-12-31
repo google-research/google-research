@@ -30,7 +30,7 @@ from jax_dft import utils
 
 
 # Set the default dtype as float64
-config.update('jax_enable_x64', True)
+config.update('jax_enable_x64', False)
 
 
 class NetworkTest(parameterized.TestCase):
@@ -74,7 +74,7 @@ class NetworkTest(parameterized.TestCase):
     self.assertEqual(init_params[0].shape, (2,))
     self.assertEqual(output.shape, (1, 5, 2))
 
-  @parameterized.parameters((0.5, 0.7788002), (1., 1.), (100., 0.))
+  @parameterized.parameters((0.5, 0.77880025), (1., 1.), (100., 0.))
   def test_self_interaction_weight(self, density_integral, expected_weight):
     grids = jnp.linspace(-5, 5, 11)
     self.assertAlmostEqual(
@@ -125,9 +125,9 @@ class NetworkTest(parameterized.TestCase):
         apply_fn(init_params, (reshaped_density, features)), features)
 
   def test_wrap_network_with_self_interaction_layer_one_electron(self):
-    grids = jnp.linspace(-5, 5, 9, dtype=jnp.float32)
+    grids = jnp.linspace(-5, 5, 9)
     density = utils.gaussian(
-        grids=grids, center=1., sigma=1.).astype(jnp.float32)
+        grids=grids, center=1., sigma=1.)
     reshaped_density = density[jnp.newaxis, :, jnp.newaxis]
 
     init_fn, apply_fn = neural_xc.wrap_network_with_self_interaction_layer(
@@ -150,9 +150,9 @@ class NetworkTest(parameterized.TestCase):
                 jnp.newaxis, :, jnp.newaxis])
 
   def test_wrap_network_with_self_interaction_layer_large_num_electrons(self):
-    grids = jnp.linspace(-5, 5, 9, dtype=jnp.float32)
+    grids = jnp.linspace(-5, 5, 9)
     density = 100. * utils.gaussian(
-        grids=grids, center=1., sigma=1.).astype(jnp.float32)
+        grids=grids, center=1., sigma=1.)
     reshaped_density = density[jnp.newaxis, :, jnp.newaxis]
     inner_network_init_fn, inner_network_apply_fn = neural_xc.build_unet(
         num_filters_list=[2, 4],
@@ -183,7 +183,7 @@ class NetworkTest(parameterized.TestCase):
     self.assertEqual(output_shape, (-1, 5, 32))
 
     output = apply_fn(
-        init_params, jnp.array(np.random.randn(6, 9, 1), dtype=jnp.float32))
+        init_params, jnp.array(np.random.randn(6, 9, 1)))
     self.assertEqual(output.shape, (6, 5, 32))
 
   def test_linear_interpolation(self):
@@ -218,7 +218,7 @@ class NetworkTest(parameterized.TestCase):
     self.assertEqual(output_shape, (-1, 17, 32))
 
     output = apply_fn(
-        init_params, jnp.array(np.random.randn(6, 9, 1), dtype=jnp.float32))
+        init_params, jnp.array(np.random.randn(6, 9, 1)))
     self.assertEqual(output.shape, (6, 17, 32))
 
   def test_build_unet(self):
@@ -231,7 +231,7 @@ class NetworkTest(parameterized.TestCase):
     self.assertEqual(output_shape, (-1, 9, 1))
 
     output = apply_fn(
-        init_params, jnp.array(np.random.randn(6, 9, 1), dtype=jnp.float32))
+        init_params, jnp.array(np.random.randn(6, 9, 1)))
     self.assertEqual(output.shape, (6, 9, 1))
 
   def test_build_sliding_net(self):
@@ -244,7 +244,7 @@ class NetworkTest(parameterized.TestCase):
     self.assertEqual(output_shape, (-1, 9, 1))
 
     output = apply_fn(
-        init_params, jnp.array(np.random.randn(6, 9, 1), dtype=jnp.float32))
+        init_params, jnp.array(np.random.randn(6, 9, 1)))
     self.assertEqual(output.shape, (6, 9, 1))
 
   def test_build_sliding_net_invalid_window_size(self):

@@ -516,15 +516,15 @@ class BaselineModel(flax.nn.Module):
           shape=(node_embedding_dim,),
           initializer=jax.nn.initializers.normal())
 
-      stacked_node_embeddings = jax.ops.index_add(
+      stacked_node_embeddings = (
           jnp.broadcast_to(node_embeddings[None, :, :],
                            (graph_metadata.num_nodes, graph_metadata.num_nodes,
-                            node_embedding_dim)),
-          jax.ops.index[jnp.arange(graph_metadata.num_nodes),
-                        jnp.arange(graph_metadata.num_nodes)],
-          jnp.broadcast_to(start_node_embedding,
-                           (graph_metadata.num_nodes, node_embedding_dim)),
-      )
+                            node_embedding_dim))
+          .at[jnp.arange(graph_metadata.num_nodes),
+              jnp.arange(graph_metadata.num_nodes)]
+          .add(jnp.broadcast_to(
+              start_node_embedding,
+              (graph_metadata.num_nodes, node_embedding_dim))))
 
       # final_embeddings_from_each_source will be
       # [num_nodes, num_nodes, node_embedding_dim]

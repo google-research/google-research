@@ -12,7 +12,6 @@ proto_library(
     tags = ["local"],
     deps = [
         ":brute_force_proto",
-        ":compressed_reordering_proto",
         ":crowding_proto",
         ":disjoint_restrict_token_proto",
         ":distance_measure_proto",
@@ -58,12 +57,6 @@ cc_proto_library(
     name = "input_output_cc_proto",
     tags = ["local"],
     deps = [":input_output_proto"],
-)
-
-proto_library(
-    name = "query_metadata_proto",
-    srcs = ["query_metadata.proto"],
-    tags = ["local"],
 )
 
 proto_library(
@@ -140,19 +133,6 @@ cc_proto_library(
 )
 
 proto_library(
-    name = "compressed_reordering_proto",
-    srcs = ["compressed_reordering.proto"],
-    tags = ["local"],
-    deps = [":hash_proto"],
-)
-
-cc_proto_library(
-    name = "compressed_reordering_cc_proto",
-    tags = ["local"],
-    deps = [":compressed_reordering_proto"],
-)
-
-proto_library(
     name = "partitioning_proto",
     srcs = ["partitioning.proto"],
     tags = ["local"],
@@ -204,7 +184,7 @@ proto_library(
     srcs = ["results.proto"],
     tags = ["local"],
     deps = [
-        ":query_metadata_proto",
+        "//scann/data_format:features_proto",
     ],
 )
 
@@ -261,4 +241,10 @@ proto_library(
         "@com_google_protobuf//:duration_proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
+)
+
+cc_proto_library(
+    name = "incremental_updates_cc_proto",
+    tags = ["local"],
+    deps = [":incremental_updates_proto"],
 )

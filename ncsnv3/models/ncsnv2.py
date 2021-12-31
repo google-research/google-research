@@ -16,7 +16,7 @@
 # pylint: skip-file
 """The NCSNv2 model."""
 
-import flax.nn as nn
+import flax.deprecated.nn as nn
 
 from .utils import get_sigmas, register_model
 from .layers import (CondRefineBlock, RefineBlock, ResidualBlock, ncsn_conv3x3,

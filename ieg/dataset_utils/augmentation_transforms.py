@@ -1,4 +1,5 @@
 # coding=utf-8
+# coding=utf-8
 # Copyright 2018 The TensorFlow Authors All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 """Transforms used in the Augmentation Policies."""
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
 
 import random
 import numpy as np
@@ -25,7 +24,6 @@ from PIL import Image
 from PIL import ImageEnhance
 from PIL import ImageFilter
 from PIL import ImageOps
-
 
 IMAGE_SIZE = 32
 MEANS = [0.5, 0.5, 0.5]

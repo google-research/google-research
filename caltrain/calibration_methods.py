@@ -149,7 +149,7 @@ class TemperatureScaling(CalibrationMethod):
     return sklearn.metrics.log_loss(
         y_true=one_hot_labels, y_pred=scaled_softmax_probabilities)
 
-  def fit(self, logits, one_hot_labels):
+  def fit(self, logits, one_hot_labels, verbose=False):
     """Trains the model and finds optimal temperature.
 
     Args:
@@ -157,12 +157,14 @@ class TemperatureScaling(CalibrationMethod):
           generates, shape=(num_examples, num_classes)
         one_hot_labels: one-hot-encoding of true labels, shape=(num_examples,
           num_classes)
+        verbose: if True, print initial and final loss to console
 
     Returns:
         the results of optimizer after minimizing is finished.
     """
-    print(('Initial loss: {:0.4f}'.format(
-        self._loss(self.temperature, logits, one_hot_labels))))
+    if verbose:
+      print(('Initial loss: {:0.4f}'.format(
+          self._loss(self.temperature, logits, one_hot_labels))))
     opt = minimize(
         self._loss,
         x0=self.temperature,
@@ -171,9 +173,10 @@ class TemperatureScaling(CalibrationMethod):
         method=self.solver)
     self.temperature = opt.x[0]
 
-    print(('Final loss: {:0.4f}'.format(
-        self._loss(self.temperature, logits, one_hot_labels))))
-    print(('Temperature: {:0.2f}'.format(self.temperature)))
+    if verbose:
+      print(('Final loss: {:0.4f}'.format(
+          self._loss(self.temperature, logits, one_hot_labels))))
+      print(('Temperature: {:0.2f}'.format(self.temperature)))
 
     return opt
 

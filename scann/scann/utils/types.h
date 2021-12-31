@@ -17,6 +17,7 @@
 #ifndef SCANN_UTILS_TYPES_H_
 #define SCANN_UTILS_TYPES_H_
 
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -382,6 +383,15 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
         return ::research_scann::InvalidTagErrorOrCrash<ReturnT>(tag); \
     }                                                                  \
   }()
+
+template <typename T>
+size_t SizeOf() {
+  return sizeof(T);
+}
+
+inline size_t SizeFromTag(InputOutputConfig::InMemoryTypes tag) {
+  return SCANN_CALL_FUNCTION_BY_TAG(tag, SizeOf);
+}
 
 #define SCANN_INSTANTIATE_TYPED_CLASS(EXTERN_KEYWORD, ClassName) \
   EXTERN_KEYWORD template class ClassName<int8_t>;               \

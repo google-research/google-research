@@ -17,7 +17,6 @@
 
 from typing import Dict, List, Union
 
-from ml_collections import ConfigDict
 import torch
 from xirl.losses import compute_tcc_loss
 from xirl.trainers.base import Trainer
@@ -41,16 +40,16 @@ class TCCTrainer(Trainer):
   ):
     super().__init__(model, optimizer, device, config)
 
-    self.normalize_embeddings = config.MODEL.NORMALIZE_EMBEDDINGS
-    self.stochastic_matching = config.LOSS.TCC.STOCHASTIC_MATCHING
-    self.loss_type = config.LOSS.TCC.LOSS_TYPE
-    self.similarity_type = config.LOSS.TCC.SIMILARITY_TYPE
-    self.cycle_length = config.LOSS.TCC.CYCLE_LENGTH
-    self.temperature = config.LOSS.TCC.SOFTMAX_TEMPERATURE
-    self.label_smoothing = config.LOSS.TCC.LABEL_SMOOTHING
-    self.variance_lambda = config.LOSS.TCC.VARIANCE_LAMBDA
-    self.huber_delta = config.LOSS.TCC.HUBER_DELTA
-    self.normalize_indices = config.LOSS.TCC.NORMALIZE_INDICES
+    self.normalize_embeddings = config.model.normalize_embeddings
+    self.stochastic_matching = config.loss.tcc.stochastic_matching
+    self.loss_type = config.loss.tcc.loss_type
+    self.similarity_type = config.loss.tcc.similarity_type
+    self.cycle_length = config.loss.tcc.cycle_length
+    self.temperature = config.loss.tcc.softmax_temperature
+    self.label_smoothing = config.loss.tcc.label_smoothing
+    self.variance_lambda = config.loss.tcc.variance_lambda
+    self.huber_delta = config.loss.tcc.huber_delta
+    self.normalize_indices = config.loss.tcc.normalize_indices
 
   def compute_loss(
       self,

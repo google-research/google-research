@@ -17,6 +17,8 @@
 #ifndef SCANN_UTILS_BIT_ITERATOR_H_
 #define SCANN_UTILS_BIT_ITERATOR_H_
 
+#include <cstdint>
+
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/types.h"
 

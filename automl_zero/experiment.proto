@@ -17,7 +17,6 @@ syntax = "proto2";
 
 package automl_zero;
 
-import "devtools/staticanalysis/pipeline/analyzers/proto_best_practices/proto/optouts.proto";
 import "fec_cache.proto";
 import "generator.proto";
 import "instruction.proto";
@@ -25,7 +24,6 @@ import "mutator.proto";
 import "task.proto";
 import "train_budget.proto";
 
-option (proto_best_practices.suppress_all_findings) = true;
 
 enum FitnessCombinationMode {
   UNKNOWN_FITNESS_COMBINATION = 0;

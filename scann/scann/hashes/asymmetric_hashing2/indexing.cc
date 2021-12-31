@@ -14,6 +14,8 @@
 
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
 
+#include <cstdint>
+
 #include "absl/base/optimization.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measure_base.h"

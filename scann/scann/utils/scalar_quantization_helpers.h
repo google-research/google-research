@@ -15,6 +15,8 @@
 #ifndef SCANN_UTILS_SCALAR_QUANTIZATION_HELPERS_H_
 #define SCANN_UTILS_SCALAR_QUANTIZATION_HELPERS_H_
 
+#include <cstdint>
+
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/common.h"
@@ -76,7 +78,7 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     vector<int8_t>* quantized_storage);
 
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
-    const DatapointPtr<float>& dptr,
+    const DatapointPtr<float>& query,
     ConstSpan<float> inverse_multiplier_by_dimension);
 
 }  // namespace research_scann

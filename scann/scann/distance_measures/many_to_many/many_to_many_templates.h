@@ -15,7 +15,11 @@
 #ifndef SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_TEMPLATES_H_
 #define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_MANY_TO_MANY_TEMPLATES_H_
 
+#include <cstdint>
+
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
+#include "scann/distance_measures/many_to_many/fp8_transposed.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
@@ -73,12 +77,6 @@
 
 namespace research_scann {
 
-namespace fallback {
-#define SCANN_SIMD_ATTRIBUTE
-#include "scann/distance_measures/many_to_many/many_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace fallback
-
 #ifdef __x86_64__
 
 namespace sse4 {
@@ -104,6 +102,14 @@ namespace avx512 {
 #include "scann/distance_measures/many_to_many/many_to_many_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace avx512
+
+#else
+
+namespace fallback {
+#define SCANN_SIMD_ATTRIBUTE
+#include "scann/distance_measures/many_to_many/many_to_many_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace fallback
 
 #endif
 
@@ -159,11 +165,14 @@ SCANN_INLINE void DenseDistanceManyToManyImpl2(
   } else if (RuntimeSupportsSse4()) {
     return sse4::DenseDistanceManyToManyImpl(dist, queries, database, pool,
                                              std::move(callback));
+  } else {
+    LOG(FATAL) << "Pre-SSE4 hardware is not supported on x64.";
   }
-#endif
 
+#else
   return fallback::DenseDistanceManyToManyImpl(dist, queries, database, pool,
                                                std::move(callback));
+#endif
 }
 
 template <typename CallbackT>
@@ -188,11 +197,14 @@ SCANN_INLINE void DenseDistanceManyToManyFP8PretransposedImpl2(
   } else if (RuntimeSupportsSse4()) {
     return sse4::DenseManyToManyFP8PretransposedImpl(dist, queries, database,
                                                      pool, std::move(callback));
+  } else {
+    LOG(FATAL) << "Pre-SSE4 hardware is not supported on x64.";
   }
-#endif
 
+#else
   return fallback::DenseManyToManyFP8PretransposedImpl(
       dist, queries, database, pool, std::move(callback));
+#endif
 }
 
 template <typename FloatT, typename CallbackT>
@@ -202,7 +214,8 @@ void DenseDistanceManyToManyImpl(const DistanceMeasure& dist,
                                  ThreadPool* pool, CallbackT callback) {
   static_assert(IsSameAny<FloatT, float, double>(),
                 "DenseDistanceManyToMany only works with float/double.");
-  if (queries.empty()) return;
+
+  if (database.empty() || queries.empty()) return;
 
   if (queries.size() == 1 || !IsSupportedDistanceMeasure(dist)) {
     return CallOneToManyDistance(dist, queries, database, pool,

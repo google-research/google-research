@@ -46,7 +46,6 @@ Examples:
 # pylint: disable=missing-docstring
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 from lingvo.core import py_utils
@@ -58,6 +57,8 @@ from model_pruning.python import pruning
 
 
 UPDATE_OP_COLLECTION = 'update_op'
+CompressionOptions = compression_wrapper.CompressionOptions
+UpdateOptions = compression_wrapper.UpdateOptions
 
 
 def get_matrix_compression_object(hparams,  # pylint:disable=invalid-name
@@ -122,26 +123,26 @@ def apply_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-n
     return compressed_matrix
 
 
-def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-name
-                                             weight_params_fn,
-                                             weight_init_obj,
-                                             layer_obj,
-                                             weight_name,
-                                             weight_shape,
-                                             weight_dtype,
-                                             scope_name='pruning_interface',
-                                             spec=None):
-  """Apply pruning or compression to a LSTM layer.
+def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disable=invalid-name
+                                        weight_params_fn,
+                                        weight_init_obj,
+                                        layer_obj,
+                                        weight_name,
+                                        weight_shape,
+                                        weight_dtype,
+                                        scope_name='pruning_interface',
+                                        spec=None):
+  """Apply pruning or compression to a lingvo layer.
 
   This provides a unified interface to perform pruning or compression for a
-  lingvo LSTM layer.
+  lingvo layer.
 
   Args:
     matrix_compression_obj: A Pruning or
       compression_lib.lingvo_compression_op.ApplyCompression object;
     weight_params_fn: functional handle to create model parameters;
     weight_init_obj: a weight initialization object;
-    layer_obj: a LSTM cell object in the lingvo package, weight matrix of this
+    layer_obj: a layer object in the lingvo package, weight matrix of this
       layer is pruned or compressed;
     weight_name: name of the tensor that is compressed, str;
     weight_shape: shape of the weight matrix;
@@ -161,9 +162,8 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:d
                                  weight_dtype)
       threshold_pc = weight_params_fn([], weight_init_obj.Constant(0.0),
                                       tf.float32)
-      layer_obj.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
-      layer_obj.CreateVariable(
-          'threshold', threshold_pc, theta_fn=None, trainable=False)
+      layer_obj.CreateVariable('mask', mask_pc, trainable=False)
+      layer_obj.CreateVariable('threshold', threshold_pc, trainable=False)
       if layer_obj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
         tf.add_to_collection(pruning.WEIGHT_COLLECTION,
                              getattr(layer_obj.vars, weight_name))
@@ -173,12 +173,9 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:d
       if prune_option in ['first_order_gradient', 'second_order_gradient']:
         grad_pc = weight_params_fn(weight_shape, weight_init_obj.Constant(0.0),
                                    weight_dtype)
-        layer_obj.CreateVariable(
-            'gradient', grad_pc, theta_fn=None, trainable=False)
-        layer_obj.CreateVariable(
-            'old_weight', grad_pc, theta_fn=None, trainable=False)
-        layer_obj.CreateVariable(
-            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+        layer_obj.CreateVariable('gradient', grad_pc, trainable=False)
+        layer_obj.CreateVariable('old_weight', grad_pc, trainable=False)
+        layer_obj.CreateVariable('old_old_weight', grad_pc, trainable=False)
         tf.add_to_collection(pruning.WEIGHT_GRADIENT_COLLECTION,
                              layer_obj.vars.gradient)
         tf.add_to_collection(pruning.OLD_WEIGHT_COLLECTION,
@@ -188,7 +185,7 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:d
   else:
     _ = matrix_compression_obj.customized_apply_compression(
         getattr(layer_obj.vars, weight_name), layer_obj, weight_params_fn,
-        weight_init_obj, scope_name, spec)
+        weight_init_obj, scope=scope_name, spec=spec)
     hparams = matrix_compression_obj.get_spec()
     if hparams.use_collection:
       tf.add_to_collection(UPDATE_OP_COLLECTION,
@@ -197,16 +194,16 @@ def apply_customized_lstm_matrix_compression(matrix_compression_obj,  # pylint:d
 
 def apply_pruning(pruning_obj,  # pylint:disable=invalid-name
                   pruning_hparams,
-                  weight_params_fn, weight_init_obj, lstmobj,
+                  weight_params_fn, weight_init_obj, layerobj,
                   wm_pc, dtype):
-  """Apply pruning to an LSTM cell.
+  """Apply pruning to an lingvo layer.
 
   Args:
     pruning_obj: a Pruning object;
     pruning_hparams: a Pruning hparams object;
     weight_params_fn: functional handle to create model parameters;
     weight_init_obj: a weight initialization object;
-    lstmobj: a LSTM cell object in the lingvo package;
+    layerobj: a layer object in the lingvo package;
     wm_pc: weight matrix;
     dtype: data type of the weight matrix.
 
@@ -220,13 +217,13 @@ def apply_pruning(pruning_obj,  # pylint:disable=invalid-name
                                dtype)
     threshold_pc = weight_params_fn([], weight_init_obj.Constant(0.0),
                                     tf.float32)
-    lstmobj.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
-    lstmobj.CreateVariable(
-        'threshold', threshold_pc, theta_fn=None, trainable=False)
-    if lstmobj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
-      tf.add_to_collection(pruning.WEIGHT_COLLECTION, lstmobj.vars.wm)
-      tf.add_to_collection(pruning.MASK_COLLECTION, lstmobj.vars.mask)
-      tf.add_to_collection(pruning.THRESHOLD_COLLECTION, lstmobj.vars.threshold)
+    layerobj.CreateVariable('mask', mask_pc, trainable=False)
+    layerobj.CreateVariable('threshold', threshold_pc, trainable=False)
+    if layerobj.vars.mask not in tf.get_collection(pruning.MASK_COLLECTION):
+      tf.add_to_collection(pruning.WEIGHT_COLLECTION, layerobj.vars.wm)
+      tf.add_to_collection(pruning.MASK_COLLECTION, layerobj.vars.mask)
+      tf.add_to_collection(pruning.THRESHOLD_COLLECTION,
+                           layerobj.vars.threshold)
     return pruning_obj
   else:  # TODO(wanxin): add model_compression options.
     return pruning_obj
@@ -283,12 +280,14 @@ def get_matrix_compression_update_op(matrix_compression_obj):  # pylint:disable=
   if hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient']:
     return matrix_compression_obj.conditional_mask_update_op()
-  elif hparams.update_option == 0 or hparams.update_option == 2:
-    # 'update_option' == 0 means matrix compression, for which we can
-    # return an update op here. 'update_option' == 1 means dictionary learning,
-    # for which we cannot return an update op here, and need to explicitly call
-    # run_update_step(), see graph_compression/compression_lib/compression_op.py
-    # for more details.
+  elif (hparams.update_option == UpdateOptions.TF_UPDATE or
+        hparams.update_option
+        == UpdateOptions.TF_AND_PYTHON_UPDATE):
+    # 'update_option' == TF_UPDATE means matrix compression, for which we can
+    # return an update op here. 'update_option' == PYTHON_UPDATE means
+    # dictionary learning, for which we cannot return an update op here, and
+    # need to explicitly call run_update_step(),
+    # see graph_compression/compression_lib/compression_op.py for more details.
     if hparams.use_collection:
       # If use_collection is True, then update_ops are retrieved from
       # UPDATE_OP_COLLECTION, to ensure the same behavior as pruning.
@@ -306,7 +305,7 @@ def run_update_step(matrix_compression_obj, session, step_number=None):  # pylin
   hparams = matrix_compression_obj.get_spec()
   if (hparams.prune_option in [
       'weight', 'first_order_gradient', 'second_order_gradient'] or
-      hparams.update_option == 0):
+      hparams.update_option == UpdateOptions.TF_UPDATE):
     update_op = get_matrix_compression_update_op(matrix_compression_obj)
     session.run(update_op)
   else:
@@ -389,7 +388,7 @@ class PruningOp(object):
     add_compression_summaries(cls._pruning_obj)
 
   @classmethod
-  def ApplyPruning(cls, pruning_hparams_dict, lstmobj, weight_name, wm_pc,  # pylint:disable=invalid-name
+  def ApplyPruning(cls, pruning_hparams_dict, layerobj, weight_name, wm_pc,  # pylint:disable=invalid-name
                    dtype, scope):
     if not cls._pruning_obj:
       train_global_step = py_utils.GetGlobalStep()
@@ -398,12 +397,12 @@ class PruningOp(object):
       cls.Setup(pruning_hparams_dict, global_step=train_global_step)
     compression_op_spec = pruning.get_pruning_hparams().override_from_dict(
         pruning_hparams_dict)
-    return apply_customized_lstm_matrix_compression(cls._pruning_obj,
-                                                    py_utils.WeightParams,
-                                                    py_utils.WeightInit,
-                                                    lstmobj, weight_name,
-                                                    wm_pc.shape, dtype, scope,
-                                                    compression_op_spec)
+    return apply_customized_matrix_compression(cls._pruning_obj,
+                                               py_utils.WeightParams,
+                                               py_utils.WeightInit,
+                                               layerobj, weight_name,
+                                               wm_pc.shape, dtype, scope,
+                                               compression_op_spec)
 
   @classmethod
   def GetMixResult(cls, theta, concat, lstmobj):  # pylint:disable=invalid-name
@@ -436,7 +435,7 @@ class PruningOp(object):
   def GetMatmulResult(cls,
                       a,
                       b,
-                      softmaxlayerobj,
+                      softmax_layer_obj,
                       transpose_a=False,
                       transpose_b=False):  # pylint:disable=invalid-name
     """Compute the compressed result of matmul(a,b).
@@ -444,7 +443,7 @@ class PruningOp(object):
     Args:
       a: a tensor of rank 2;
       b: a tensor of rank 2;
-      softmaxlayerobj: a SimpleFullSoftmax layer object;
+      softmax_layer_obj: a SimpleFullSoftmax layer object;
       transpose_a: whether to transpose a before matmul;
       transpose_b: whether to transpose b before matmul.
 
@@ -458,8 +457,8 @@ class PruningOp(object):
     """
     if cls._pruning_obj:
       # current implementation works for num_shards = 1 in SimpleFullSoftmax.
-      return softmaxlayerobj.compression_ops[-1].get_matmul_operator(
-          a, b, transpose_a, transpose_b)
+      return softmax_layer_obj.compression_ops[-1].get_matmul_operator(
+          a, b, softmax_layer_obj, transpose_a, transpose_b)
     else:
       raise NotImplementedError()
 
@@ -519,7 +518,14 @@ class PruningOp(object):
       else:
         outputs = cls.GetEinSumResult(inputs, proj_obj)
     else:
-      if p.pruning_hparams_dict['compress_input']:
+      if p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.MIXED_BLOCK_COMPRESSION:
+        # can directly call GetEinSumResult as it doesn't use einsum operator
+        # for this compression option.
+        outputs = cls.GetEinSumResult(inputs, proj_obj)
+      elif p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.INPUTOUTPUT_COMPRESSION and p.pruning_hparams_dict[
+              'compress_input']:
         blocked_inputs = tf.reshape(
             inputs,
             py_utils.ToStaticShape(
@@ -534,10 +540,27 @@ class PruningOp(object):
         compressed_inputs = tf.reshape(inputs,
                                        py_utils.ToStaticShape([-1, input_dim]))
 
-      intermediate_result = py_utils.Matmul(compressed_inputs,
-                                            theta.c_matrix_tfvar)
+      if p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.BLOCK_COMPRESSION:
+        if p.pruning_hparams_dict['block_method'] == 'mask':
+          intermediate_result = py_utils.Matmul(
+              compressed_inputs,
+              tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
+        elif p.pruning_hparams_dict['block_method'] == 'loop':
+          num_blocks = p.pruning_hparams_dict['block_compression_factor']
+          input_splitted = tf.split(compressed_inputs, num_blocks, axis=-1)
+          output_splitted = []
+          for i, input_i in enumerate(input_splitted):
+            output_splitted.append(
+                py_utils.Matmul(input_i, theta.c_matrix_tfvar[i, :, :]))
+          intermediate_result = tf.concat(output_splitted, axis=-1)
+      else:
+        intermediate_result = py_utils.Matmul(compressed_inputs,
+                                              theta.c_matrix_tfvar)
 
-      if p.pruning_hparams_dict['compress_output']:
+      if p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.INPUTOUTPUT_COMPRESSION and p.pruning_hparams_dict[
+              'compress_output']:
         blocked_intermediate_result = tf.reshape(
             intermediate_result,
             py_utils.ToStaticShape([
@@ -602,14 +625,19 @@ class PruningOp(object):
     hparams = cls._pruning_obj.get_spec()
     return (hparams.prune_option in [
         'weight', 'first_order_gradient', 'second_order_gradient'
-    ] or hparams.update_option == 0 or hparams.update_option == 2)
+    ] or hparams.update_option == UpdateOptions.TF_UPDATE or
+            hparams.update_option
+            == UpdateOptions.TF_AND_PYTHON_UPDATE)
 
   @classmethod
   def ApplyPythonUpdate(cls):  # pylint:disable=invalid-name
     if not cls._pruning_obj:
       return False
     hparams = cls._pruning_obj.get_spec()
-    return hparams.update_option == 1 or hparams.update_option == 2
+    return (hparams.update_option
+            == UpdateOptions.PYTHON_UPDATE or
+            hparams.update_option
+            == UpdateOptions.TF_AND_PYTHON_UPDATE)
 
   @classmethod
   def ApplyTensorflowAndPythonUpdate(cls):  # pylint:disable=invalid-name
@@ -617,7 +645,8 @@ class PruningOp(object):
     if not cls._pruning_obj:
       return False
     hparams = cls._pruning_obj.get_spec()
-    return hparams.update_option == 2
+    return (hparams.update_option ==
+            UpdateOptions.TF_AND_PYTHON_UPDATE)
 
   @classmethod
   def RunPythonUpdate(cls, session, global_step):  # pylint:disable=invalid-name

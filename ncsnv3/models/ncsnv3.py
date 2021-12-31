@@ -17,7 +17,7 @@
 """The NCSNv3 model."""
 
 from . import utils, layers, layersv3, normalization
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax.numpy as jnp
 import numpy as np
 

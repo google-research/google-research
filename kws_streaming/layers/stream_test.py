@@ -17,6 +17,7 @@
 
 from absl.testing import parameterized
 import numpy as np
+from kws_streaming.layers import delay
 from kws_streaming.layers import modes
 from kws_streaming.layers import stream
 from kws_streaming.layers import temporal_padding
@@ -24,8 +25,7 @@ from kws_streaming.layers import test_utils
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import utils
-from kws_streaming.train import test
-tf1.disable_eager_execution()
+from kws_streaming.train import inference
 
 
 # Toy example which require signal processing in time
@@ -84,18 +84,32 @@ def conv_model(flags, conv_cell, cnn_filters, cnn_kernel_size, cnn_act,
        use_bias) in zip(cnn_filters, cnn_kernel_size, cnn_act,
                         cnn_dilation_rate, cnn_strides, cnn_use_bias):
 
-    net = stream.Stream(
-        cell=conv_cell(
-            filters=filters,
-            kernel_size=kernel_size,
-            activation=activation,
-            dilation_rate=dilation_rate,
-            strides=strides,
-            use_bias=use_bias,
-            padding='valid',
-            **kwargs),
-        use_one_step=False,
-        pad_time_dim='causal')(net)
+    if conv_cell == tf.keras.layers.DepthwiseConv1D:
+      # DepthwiseConv has no filters arg
+      net = stream.Stream(
+          cell=conv_cell(
+              kernel_size=kernel_size,
+              activation=activation,
+              dilation_rate=dilation_rate,
+              strides=strides,
+              use_bias=use_bias,
+              padding='valid',
+              **kwargs),
+          use_one_step=False,
+          pad_time_dim='causal')(net)
+    else:
+      net = stream.Stream(
+          cell=conv_cell(
+              filters=filters,
+              kernel_size=kernel_size,
+              activation=activation,
+              dilation_rate=dilation_rate,
+              strides=strides,
+              use_bias=use_bias,
+              padding='valid',
+              **kwargs),
+          use_one_step=False,
+          pad_time_dim='causal')(net)
 
   return tf.keras.Model(input_audio, net)
 
@@ -152,15 +166,26 @@ def conv_model_no_stream_wrapper(flags, conv_cell, cnn_filters, cnn_kernel_size,
         padding='causal', padding_size=padding_size)(
             net)
 
-    net = conv_cell(
-        filters=filters,
-        kernel_size=kernel_size,
-        activation=activation,
-        dilation_rate=dilation_rate,
-        strides=strides,
-        use_bias=use_bias,
-        padding='valid',  # padding has to be valid!
-        **kwargs)(net)
+    if conv_cell == tf.keras.layers.DepthwiseConv1D:
+      # DepthwiseConv has no filters arg
+      net = conv_cell(
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',  # padding has to be valid!
+          **kwargs)(net)
+    else:
+      net = conv_cell(
+          filters=filters,
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',  # padding has to be valid!
+          **kwargs)(net)
 
   return tf.keras.Model(input_audio, net)
 
@@ -212,15 +237,101 @@ def conv_model_keras_native(flags, conv_cell, cnn_filters, cnn_kernel_size,
     net = tf.keras.layers.ZeroPadding1D(
         [max(dilation_rate * (kernel_size - 1) - (strides - 1), 0), 0])(
             net)
-    net = conv_cell(
-        filters=filters,
-        kernel_size=kernel_size,
-        activation=activation,
-        dilation_rate=dilation_rate,
-        strides=strides,
-        use_bias=use_bias,
-        padding='valid',
-        **kwargs)(net)
+    if conv_cell == tf.keras.layers.DepthwiseConv1D:
+      # DepthwiseConv has no filters arg
+      net = conv_cell(
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',
+          **kwargs)(net)
+    else:
+      net = conv_cell(
+          filters=filters,
+          kernel_size=kernel_size,
+          activation=activation,
+          dilation_rate=dilation_rate,
+          strides=strides,
+          use_bias=use_bias,
+          padding='valid',
+          **kwargs)(net)
+
+  return tf.keras.Model(input_audio, net)
+
+
+def transposed_conv_model(flags,
+                          cnn_filters,
+                          cnn_kernel_size,
+                          cnn_act,
+                          cnn_use_bias,
+                          cnn_paddings,
+                          trans_paddings):
+  """Toy deep convolutional model with transposed convolutions.
+
+  It can be used for speech enhancement.
+
+  Args:
+    flags: model and data settings
+    cnn_filters: list of filters for conv layer
+    cnn_kernel_size: list of kernel_size for conv layer
+    cnn_act: list of activation functions for conv layer
+    cnn_use_bias: list of use_bias for conv layer
+    cnn_paddings: list of padding for conv layer
+    trans_paddings: list of padding for transposed conv layer
+
+  Returns:
+    Keras model and sum delay
+
+  Raises:
+    ValueError: if any of input list has different length from any other
+                or padding in not [same, causal]
+  """
+
+  if not all(
+      len(cnn_filters) == len(l) for l in [
+          cnn_filters, cnn_kernel_size, cnn_act, cnn_use_bias, cnn_paddings,
+          trans_paddings
+      ]):
+    raise ValueError('all input lists have to be the same length')
+
+  # it is an example of deep conv model for speech enhancement
+  # which can be trained in non streaming mode and converted to streaming mode
+  input_audio = tf.keras.layers.Input(
+      shape=(flags.desired_samples,), batch_size=flags.batch_size)
+  net = input_audio
+
+  net = tf.keras.backend.expand_dims(net)
+  for filters, kernel_size, activation, use_bias, padding, trans_padding in zip(
+      cnn_filters, cnn_kernel_size,
+      cnn_act, cnn_use_bias, cnn_paddings, trans_paddings):
+    time_buffer_size = kernel_size - 1
+
+    net = tf.keras.backend.expand_dims(net, axis=-2)
+    net = stream.Stream(
+        cell=tf.keras.layers.Conv2DTranspose(
+            filters=filters, kernel_size=(3, 1),
+            strides=(2, 1), padding='valid'),
+        pad_time_dim=trans_padding)(net)
+    net = tf.keras.backend.squeeze(net, axis=-2)
+
+    if padding == 'same':
+      # model looking into future, so introducing delay for streaming mode
+      net = delay.Delay(delay=time_buffer_size // 2)(net)
+    elif padding != 'causal':
+      raise ValueError('wrong padding mode ', padding)
+
+    # it is a ring buffer in streaming mode and lambda x during training
+    net = stream.Stream(
+        cell=tf.keras.layers.Conv1D(
+            filters=filters,
+            kernel_size=kernel_size,
+            activation=activation,
+            use_bias=use_bias,
+            padding='valid'),
+        use_one_step=False,
+        pad_time_dim=padding)(net)
 
   return tf.keras.Model(input_audio, net)
 
@@ -368,6 +479,10 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
           'get_model': conv_model,
           'conv_cell': tf.keras.layers.SeparableConv1D
       }, {
+          'testcase_name': 'model with stream wrapper on DepthwiseConv1D',
+          'get_model': conv_model,
+          'conv_cell': tf.keras.layers.DepthwiseConv1D
+      }, {
           'testcase_name': 'model without stream wrapper on Conv1D',
           'get_model': conv_model_no_stream_wrapper,
           'conv_cell': tf.keras.layers.Conv1D
@@ -390,11 +505,14 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
     if conv_cell == tf.keras.layers.SeparableConv1D:
       kwargs = dict(
-          depthwise_initializer=tf.keras.initializers.GlorotUniform(seed=123),
-          pointwise_initializer=tf.keras.initializers.GlorotUniform(seed=456))
+          depthwise_initializer=FixedRandomInitializer(seed=123),
+          pointwise_initializer=FixedRandomInitializer(seed=456))
+    elif conv_cell == tf.keras.layers.DepthwiseConv1D:
+      kwargs = dict(
+          depthwise_initializer=FixedRandomInitializer(seed=123))
     else:
       kwargs = dict(
-          kernel_initializer=tf.keras.initializers.GlorotUniform(seed=123))
+          kernel_initializer=FixedRandomInitializer(seed=123))
 
     # Prepare Keras native model.
     model_native = conv_model_keras_native(params, conv_cell, cnn_filters,
@@ -417,7 +535,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
     # run inference
     non_stream_out = model.predict(inp_audio)
     native_out = model_native.predict(inp_audio)
-    stream_out = test.run_stream_inference(params, model_stream, inp_audio)
+    stream_out = inference.run_stream_inference(params, model_stream, inp_audio)
 
     # normalize output data and compare them
     channel = 0
@@ -438,6 +556,80 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
     with self.subTest(name='non_stream_vs_native'):
       self.assertAllClose(non_stream_out, native_out)
 
+  def test_transposed_conv(self):
+    """Test transposed and standard conv model with 'same' padding."""
+    test_utils.set_seed(123)
+
+    # model and data parameters
+    cnn_filters = [1, 1]
+    cnn_kernel_size = [5, 3]
+    cnn_act = ['linear', 'linear']
+    cnn_use_bias = [False, False]
+    cnn_paddings = ['same', 'same']
+    trans_paddings = ['same', 'causal']
+    params = test_utils.Params([1], clip_duration_ms=2)
+
+    # prepare input data
+    x = np.arange(params.desired_samples)
+    inp_audio = x
+    inp_audio = np.expand_dims(inp_audio, 0)
+
+    # prepare non stream model
+    model = transposed_conv_model(params, cnn_filters, cnn_kernel_size, cnn_act,
+                                  cnn_use_bias, cnn_paddings, trans_paddings)
+    # set random weights
+    all_weights = []
+    for w in model.get_weights():
+      if isinstance(w, np.ndarray):
+        shape = w.shape
+        new_w = np.random.rand(*shape)
+        all_weights.append(new_w)
+      else:
+        all_weights.append(True)
+    model.set_weights(all_weights)
+    model.summary()
+    non_stream_out = model.predict(inp_audio)
+
+    # prepare streaming model
+    model_stream = utils.to_streaming_inference(
+        model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
+    model_stream.summary()
+    stream_out = inference.run_stream_inference(params, model_stream, inp_audio)
+
+    # shift defines the index after which data in streaming mode become valid:
+    # in streaming mode we use ring buffers initialized with zeros and it needs
+    # several cycles until they are filled with real data.
+    shift = 2
+    # the total conv delay is (5//2) * 2 + 3//2 = 5
+    # (there is no delay from the k=3 s=2 transposed convs, 'same' or 'causal'),
+    # and the explicit Delay layers add an additional same amount.
+    total_delay = 10
+    # normalize output data and compare them
+    non_stream_out = non_stream_out[0, shift:-(total_delay),]
+    stream_out = stream_out[0, total_delay+shift:,]
+
+    self.assertAllClose(stream_out, non_stream_out)
+
+
+@tf.keras.utils.register_keras_serializable()
+class FixedRandomInitializer(tf.keras.initializers.Initializer):
+
+  def __init__(self, seed, mean=0., stddev=1.):
+    self.mean = mean
+    self.stddev = stddev
+    self.seed = seed
+
+  def __call__(self, shape, dtype=None):
+    return tf.random.stateless_normal(
+        shape, mean=self.mean, stddev=self.stddev, dtype=dtype,
+        seed=[self.seed, 0])
+
+  def get_config(self):
+    return {'seed': self.seed,
+            'mean': self.mean,
+            'stddev': self.stddev}
+
 
 if __name__ == '__main__':
+  tf1.disable_eager_execution()
   tf.test.main()

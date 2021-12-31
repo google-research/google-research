@@ -17,6 +17,8 @@
 #ifndef SCANN_PROJECTION_PROJECTION_BASE_H_
 #define SCANN_PROJECTION_PROJECTION_BASE_H_
 
+#include <cstdint>
+
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/types.h"

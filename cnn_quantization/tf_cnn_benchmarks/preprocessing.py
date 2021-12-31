@@ -26,7 +26,6 @@ import tensorflow.compat.v1 as tf
 
 from cnn_quantization.tf_cnn_benchmarks import cnn_util
 from cnn_quantization.tf_cnn_benchmarks import mlperf
-from tensorflow.contrib.data.python.ops import threadpool
 from tensorflow.contrib.image.python.ops import distort_image_ops
 from tensorflow.python.data.ops import multi_device_iterator_ops
 from tensorflow.python.framework import function
@@ -687,10 +686,9 @@ class BaseImagePreprocessor(InputPreprocessor):
             num_parallel_batches=num_splits))
     ds = ds.prefetch(buffer_size=num_splits)
     if num_threads:
-      ds = threadpool.override_threadpool(
-          ds,
-          threadpool.PrivateThreadPool(
-              num_threads, display_name='input_pipeline_thread_pool'))
+      options = tf.data.Options()
+      options.experimental_threading.private_threadpool_size = num_threads
+      ds = ds.with_options(options)
     return ds
 
 
@@ -1070,10 +1068,9 @@ class COCOPreprocessor(BaseImagePreprocessor):
             drop_remainder=train))
     ds = ds.prefetch(buffer_size=num_splits)
     if num_threads:
-      ds = threadpool.override_threadpool(
-          ds,
-          threadpool.PrivateThreadPool(
-              num_threads, display_name='input_pipeline_thread_pool'))
+      options = tf.data.Options()
+      options.experimental_threading.private_threadpool_size = num_threads
+      ds = ds.with_options(options)
     return ds
 
   def supports_datasets(self):
@@ -1232,10 +1229,9 @@ class LibrispeechPreprocessor(InputPreprocessor):
         drop_remainder=True)
     ds = ds.prefetch(buffer_size=num_splits)
     if num_threads:
-      ds = threadpool.override_threadpool(
-          ds,
-          threadpool.PrivateThreadPool(
-              num_threads, display_name='input_pipeline_thread_pool'))
+      options = tf.data.Options()
+      options.experimental_threading.private_threadpool_size = num_threads
+      ds = ds.with_options(options)
     return ds
 
   def minibatch(self, dataset, subset, params, shift_ratio=-1):

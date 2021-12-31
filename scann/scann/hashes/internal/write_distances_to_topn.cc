@@ -14,6 +14,8 @@
 
 #include "scann/hashes/internal/write_distances_to_topn.h"
 
+#include <cstdint>
+
 #include "scann/base/restrict_allowlist.h"
 #include "scann/utils/intrinsics/sse4.h"
 

@@ -21,7 +21,7 @@ and GGNN ablation versions of the model, see ipagnn_interpolants.py.
 """
 
 from absl import logging  # pylint: disable=unused-import
-from flax import nn
+from flax.deprecated import nn
 import jax
 from jax import lax
 import jax.numpy as jnp
@@ -53,6 +53,35 @@ class IPAGNN(nn.Module):
   """IPAGNN model with batch dimension (not graph batching)."""
 
   def apply(self, inputs, info, config, train=False, cache=None):
+    """Apply the full IPAGNN model to a batch of input programs.
+
+    Args:
+      inputs: A dictionary with the following fields, each with a leading batch
+        dimension.
+        - true_branch_nodes: For each node in the statement-level control flow
+            graph, the index of the node that would be reached if the true
+            branch were followed. If not a branch node, this is simply the index
+            of the next node and matches the index given by false_indexes.
+        - false_branch_nodes: For each node in the statement-level control flow
+            graph, the index of the node that would be reached if the false
+            branch were followed. If not a branch node, this is simply the index
+            of the next node and matches the index given by true_indexes.
+        - start_index: The node index where the function starts.
+        - exit_index: The node index of the exit-node. Both the true- and
+            false- index of the exit node are the exit node itself.
+        - steps: The maximum number of model steps to take for a particular
+            program.
+        - data: Has shape (4, number of nodes). Each 4-tuple represents a single
+            statement in the program. The meaning of each entry in a 4-tuple is
+            described in Figure 1 of the paper.
+      info: Information about the dataset.
+      config: The experimental config.
+      train: (bool) Whether the model is being trained.
+      cache: Unused.
+
+    Returns:
+      The logits predicted from each program in the batch's output nodes.
+    """
     # Inputs
     true_indexes = inputs['true_branch_nodes']
     false_indexes = inputs['false_branch_nodes']
@@ -99,11 +128,10 @@ class IPAGNN(nn.Module):
           rng, cells, (batch_size, num_nodes,), hidden_size)
 
     def _create_instruction_pointer():
-      return jax.ops.index_add(
-          jnp.zeros((batch_size, num_nodes,)),
-          jax.ops.index[:, 0],  # TODO(dbieber): Use "start_index" instead of 0.
-          1
-      )
+      return jnp.zeros((
+          batch_size,
+          num_nodes,
+      )).at[:, 0].add(1)  # TODO(dbieber): Use "start_index" instead of 0.
 
     hidden_states = _create_hidden_states()
     # leaves(hidden_states).shape: batch_size, num_nodes, hidden_size
