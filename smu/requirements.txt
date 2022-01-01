@@ -1,5 +1,6 @@
 absl-py>=0.12.0
 apache-beam>=2.29.0
+google-cloud-bigquery>=2.31.0
 numpy>=1.19.5
 pandas>=1.2.4
 parameterized>=0.8.1
