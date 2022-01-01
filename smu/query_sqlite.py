@@ -427,6 +427,8 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
+  logging.get_absl_handler().use_absl_log_file()
+
   logging.info('Opening %s', FLAGS.input_sqlite)
   db = smu_sqlite.SMUSQLite(FLAGS.input_sqlite, 'r')
   if FLAGS.output_format == OutputFormat.pbtxt:
