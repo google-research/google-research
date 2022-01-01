@@ -615,7 +615,8 @@ def conformer_to_molecules(conformer,
   else:
     bts = conformer.bond_topologies[0:1]
   requested_bond_topologies = [
-      (bt, f'{bt.bond_topology_id}({i}/{bt_count})') for i, bt in enumerate(bts)
+      (bt, f'{bt.bond_topology_id}({i}/{bt_count})')
+      for i, bt in enumerate(bts, start=1)
   ]
 
   # requested_geometries will be a list of tuples of
