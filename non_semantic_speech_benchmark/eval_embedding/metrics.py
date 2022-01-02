@@ -108,19 +108,18 @@ def calculate_auc(labels,
   if labels.shape[0] != predictions.shape[0]:
     raise ValueError(
         f'Num examples not the same: {labels.shape} vs {predictions.shape}')
+  np.testing.assert_almost_equal(np.sum(predictions, axis=1), 1.0, decimal=5)
 
   logging.info('AUC: Labels shape: %s', labels.shape)
   logging.info('AUC: Predictions shape: %s', predictions.shape)
   if binary_classification:  # Binary case.
     predictions = predictions[:, 1]  # Prob of class 1.
     return skmetrics.roc_auc_score(
-        labels, predictions, sample_weight=sample_weight)
+        y_true=labels, y_score=predictions, sample_weight=sample_weight)
   else:  # Multiclass case.
     return skmetrics.roc_auc_score(
-        labels,
-        predictions,
-        # 'micro': Calculate metrics globally by considering each element of
-        # the label indicator matrix as a label.
+        y_true=labels,
+        y_score=predictions,
         average='macro',
         sample_weight=sample_weight,
         multi_class=multi_class,
