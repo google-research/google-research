@@ -707,7 +707,8 @@ def distributed_shampoo(learning_rate,
         for _ in range(to_pad)
     ])
     exponents.extend([1 for _ in range(to_pad)])
-
+    new_stacked_padded_statistics = jnp.stack(new_padded_statistics)
+    new_stacked_exponents = jnp.stack(exponents)
     def _matrix_inverse_pth_root_vmap(xs, ps):
       mi_pth_root = functools.partial(
           matrix_inverse_pth_root,
@@ -718,7 +719,7 @@ def distributed_shampoo(learning_rate,
 
     def _internal_inverse_pth_root_all():
       preconditioners, errors = _matrix_inverse_pth_root_vmap(
-          global_stats.statistics, jnp.stack(exponents))
+          new_stacked_padded_statistics, new_stacked_exponents)
       return preconditioners, errors
 
     if preconditioning_compute_steps == 1:
@@ -727,7 +728,7 @@ def distributed_shampoo(learning_rate,
       # Passing statistics instead of preconditioners as they are similarly
       # shaped tensors. Note statistics will be ignored as we are passing in
       # a large init value for error.
-      preconditioners_init = global_stats.statistics
+      preconditioners_init = new_stacked_padded_statistics
       errors_init = np.stack([inverse_failure_threshold] * len(exponents))
       init_state = [preconditioners_init, errors_init]
       perform_step = state.count % preconditioning_compute_steps == 0
@@ -743,7 +744,7 @@ def distributed_shampoo(learning_rate,
         predicate * global_stats.preconditioners +
         (1.0 - predicate) * new_preconditioners)
     new_global_stats = GlobalShardedParameterStats(
-        jnp.stack(new_padded_statistics), new_conditional_preconditioners)
+        new_stacked_padded_statistics, new_conditional_preconditioners)
     new_shampoo_state = ShampooState(
         count=state.count + 1,
         stats=ShardedShampooStats(new_global_stats, new_local_stats))
