@@ -63,5 +63,6 @@ python main_varlen.py \
     -learn_stop $learn_stop \
     -num_epochs 1001 \
     -epoch_save 50 \
+    -data_dir $gcloud/data/synthetic \
     -gpu 0 \
     $@

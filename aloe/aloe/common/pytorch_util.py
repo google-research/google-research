@@ -341,7 +341,7 @@ def pairwise_distances(x, y=None):
     return torch.clamp(dist, 0.0, np.inf)
 
 
-def hamming_mmd(x, y):
+def linear_mmd(x, y):
     x = x.float()
     y = y.float()
     with torch.no_grad():
@@ -355,6 +355,31 @@ def hamming_mmd(x, y):
         kyy[idx, idx] = 0.0
         kyy = torch.sum(kyy) / y.shape[0] / (y.shape[0] - 1)
         kxy = torch.sum(torch.mm(y, x.transpose(0, 1))) / x.shape[0] / y.shape[0]
+        mmd = kxx + kyy - 2 * kxy
+    return mmd
+
+
+def p0_sim(x, y):
+    x = x.unsqueeze(1)
+    y = y.unsqueeze(0)
+    d = torch.sum(torch.abs(x - y), dim=-1)
+    return x.shape[-1] - d
+
+
+def hamming_mmd(x, y):
+    x = x.float()
+    y = y.float()
+    with torch.no_grad():
+        kxx = p0_sim(x, x)
+        idx = torch.arange(0, x.shape[0], out=torch.LongTensor())
+        kxx[idx, idx] = 0.0
+        kxx = torch.sum(kxx) / x.shape[0] / (x.shape[0] - 1)
+
+        kyy = p0_sim(y, y)
+        idx = torch.arange(0, y.shape[0], out=torch.LongTensor())
+        kyy[idx, idx] = 0.0
+        kyy = torch.sum(kyy) / y.shape[0] / (y.shape[0] - 1)
+        kxy = torch.sum(p0_sim(x, y)) / x.shape[0] / y.shape[0]
         mmd = kxx + kyy - 2 * kxy
     return mmd
 

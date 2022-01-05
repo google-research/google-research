@@ -138,6 +138,21 @@ def main_loop(db, bm, inv_bm, score_func, sampler, proposal_dist, fn_sample_init
         plot_sampler(cmd_args.num_q_steps, fn_sample_init, inv_bm, os.path.join(cmd_args.save_dir, '%s-edit.pdf' % cmd_args.data))
         sys.exit()
 
+    if cmd_args.phase.startswith('check') or cmd_args.phase == 'll':
+        samples_eval = np.load(os.path.join(cmd_args.data_dir, cmd_args.data + '-samples.npy'))
+        samples_eval = torch.from_numpy(samples_eval).to(cmd_args.device)
+        rand_proposal = np.load(os.path.join(cmd_args.data_dir, cmd_args.data + '-proposal.npy'))
+        rand_proposal = torch.from_numpy(rand_proposal).to(cmd_args.device)
+        if cmd_args.phase.startswith('check'):
+            samples_eval = samples_eval[:4000, :]
+            rand_proposal = rand_proposal[:4000, :]
+            mmd = estimate_hamming(score_func, samples_eval, rand_proposal, gibbs_sampler, mmd_func=cmd_args.phase.split('_')[-1])
+            print('%s %.6f' % (cmd_args.phase, mmd.item()))
+        else:
+            ll = estimate_ll(score_func, samples_eval, rand_samples=rand_proposal)
+            print('estimated ll', ll)
+        sys.exit()
+
     for epoch in range(cmd_args.num_epochs):
         pbar = tqdm(range(cmd_args.iter_per_epoch))
         for it in pbar:
