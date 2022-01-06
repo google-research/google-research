@@ -497,17 +497,21 @@ def distributed_shampoo(learning_rate,
                         diagonal_epsilon=1e-10,
                         matrix_epsilon=1e-6,
                         weight_decay=0.0,
-                        start_preconditioning_step=1,
+                        start_preconditioning_step=5,
                         preconditioning_compute_steps=1,
                         statistics_compute_steps=1,
                         best_effort_shape_interpretation=True,
                         graft_type=GraftingType.SGD,
                         nesterov=True,
                         exponent_override=0,
+                        # Pass pmap 'batch axis name' in pmap mode.
                         batch_axis_name=None,
+                        ### Only set following 3 params in pjit/spmd mode.
+                        ### WARNING: Experimental
                         mesh_axis_names=None,
                         num_devices_for_pjit=None,
                         shard_optimizer_states=False,
+                        ###
                         inverse_failure_threshold=0.1,
                         moving_average_for_momentum=False,
                         skip_preconditioning_dim_size_gt=4096,
@@ -773,7 +777,7 @@ def distributed_shampoo(learning_rate,
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
 
   def _skip_preconditioning(param):
-    return len(param.shape) < 1 or any(
+    return len(param.shape) <= 1 or any(
         [s > skip_preconditioning_dim_size_gt for s in param.shape])
 
   def _compute_stats(grad, state, param, step):
