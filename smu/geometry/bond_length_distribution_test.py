@@ -15,7 +15,6 @@
 
 """Tests for the BondLengthDistribution(s) classes."""
 
-import numpy as np
 import os
 from absl.testing import absltest
 import numpy as np

@@ -48,14 +48,14 @@ class SmuSqliteTest(absltest.TestCase):
       if num_c == 2:
         return '1'
       return '1' + ('0' * (num_c - 2)) + make_connectivity_matrix(num_c - 1)
+
     if btid == 1:
       bt = smu_utils_lib.create_bond_topology('C', '', '4')
     else:
-      bt = smu_utils_lib.create_bond_topology(
-        'C' * btid,
-        make_connectivity_matrix(btid),
-        '3' + ('2' * (btid - 2)) + '3')
-    bt.bond_topology_id=btid
+      bt = smu_utils_lib.create_bond_topology('C' * btid,
+                                              make_connectivity_matrix(btid),
+                                              '3' + ('2' * (btid - 2)) + '3')
+    bt.bond_topology_id = btid
     bt.smiles = 'C' * btid
     conformer.bond_topologies.append(bt)
 
@@ -185,9 +185,8 @@ class SmuSqliteTest(absltest.TestCase):
   def test_find_by_expanded_stoichiometry(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     db.bulk_insert(
-        self.encode_conformers([
-            self.make_fake_conformer(cid) for cid in [2001, 2002, 4004]
-        ]))
+        self.encode_conformers(
+            [self.make_fake_conformer(cid) for cid in [2001, 2002, 4004]]))
 
     got_cids = [
         conformer.conformer_id

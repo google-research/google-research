@@ -166,14 +166,12 @@ class SMUSQLite:
       # we dont' even have to return the entries we don't want.
       if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
         expanded_stoich = (
-          smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
-             conformer.bond_topologies[0]))
+            smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+                conformer.bond_topologies[0]))
       else:
         expanded_stoich = ''
-      pending_conformer_args.append(
-          (conformer.conformer_id,
-           expanded_stoich,
-           snappy.compress(encoded_conformer)))
+      pending_conformer_args.append((conformer.conformer_id, expanded_stoich,
+                                     snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
         pending_btid_args.append(
             (bond_topology.bond_topology_id, conformer.conformer_id))

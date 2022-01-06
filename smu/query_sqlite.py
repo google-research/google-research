@@ -38,8 +38,8 @@ from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
 from smu.geometry import smu_molecule
-from smu.geometry import utilities
 from smu.geometry import topology_from_geom
+from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
 
@@ -62,13 +62,14 @@ flags.DEFINE_string(
 flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
 flags.DEFINE_list('cids', [], 'List of conformer ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
-flags.DEFINE_list('topology_query_smiles', [],
-                  'List of smiles to query, where the valid bond lengths are '
-                  'given by --bond_lengths_csv and --bond_lengths. '
-                  'Will return all conformers where the given smiles is a '
-                  'valid decsription of that geometry given the bond lengths. '
-                  'If you are using the default bond lengths, you should just '
-                  'use --smiles as this method is much slower.')
+flags.DEFINE_list(
+    'topology_query_smiles', [],
+    'List of smiles to query, where the valid bond lengths are '
+    'given by --bond_lengths_csv and --bond_lengths. '
+    'Will return all conformers where the given smiles is a '
+    'valid decsription of that geometry given the bond lengths. '
+    'If you are using the default bond lengths, you should just '
+    'use --smiles as this method is much slower.')
 flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
@@ -82,8 +83,7 @@ flags.DEFINE_string(
     'observed distribution of bond lengths. '
     'Only needed if --redetect_geometry')
 flags.DEFINE_string(
-    'bond_lengths', None,
-    'Comma separated terms like form XYX:N-N '
+    'bond_lengths', None, 'Comma separated terms like form XYX:N-N '
     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
     'and N is a possibly empty floating point number. ')
 flags.DEFINE_string(
@@ -95,7 +95,9 @@ FLAGS = flags.FLAGS
 
 
 class BondLengthParseError(Exception):
+
   def __init__(self, term):
+    super().__init__(term)
     self.term = term
 
   def __str__(self):
@@ -112,23 +114,25 @@ class GeometryData:
   _BOND_LENGTHS_SIG_DIGITS = 3
   _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
   _ATOM_SPECIFICATION_MAP = {
-    'C': [dataset_pb2.BondTopology.ATOM_C],
-    'N': [dataset_pb2.BondTopology.ATOM_N],
-    'O': [dataset_pb2.BondTopology.ATOM_O],
-    'F': [dataset_pb2.BondTopology.ATOM_F],
-    '*': [dataset_pb2.BondTopology.ATOM_C,
-          dataset_pb2.BondTopology.ATOM_N,
-          dataset_pb2.BondTopology.ATOM_O,
-          dataset_pb2.BondTopology.ATOM_F],
+      'C': [dataset_pb2.BondTopology.ATOM_C],
+      'N': [dataset_pb2.BondTopology.ATOM_N],
+      'O': [dataset_pb2.BondTopology.ATOM_O],
+      'F': [dataset_pb2.BondTopology.ATOM_F],
+      '*': [
+          dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+          dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F
+      ],
   }
   _BOND_SPECIFICATION_MAP = {
-    '-': [dataset_pb2.BondTopology.BOND_SINGLE],
-    '=': [dataset_pb2.BondTopology.BOND_DOUBLE],
-    '#': [dataset_pb2.BondTopology.BOND_TRIPLE],
-    '.': [dataset_pb2.BondTopology.BOND_UNDEFINED],
-    '~': [dataset_pb2.BondTopology.BOND_SINGLE,
+      '-': [dataset_pb2.BondTopology.BOND_SINGLE],
+      '=': [dataset_pb2.BondTopology.BOND_DOUBLE],
+      '#': [dataset_pb2.BondTopology.BOND_TRIPLE],
+      '.': [dataset_pb2.BondTopology.BOND_UNDEFINED],
+      '~': [
+          dataset_pb2.BondTopology.BOND_SINGLE,
           dataset_pb2.BondTopology.BOND_DOUBLE,
-          dataset_pb2.BondTopology.BOND_TRIPLE],
+          dataset_pb2.BondTopology.BOND_TRIPLE
+      ],
   }
 
   def __init__(self, bond_lengths_csv, bond_lengths_arg, bond_topology_csv):
@@ -159,6 +163,7 @@ class GeometryData:
     logging.info('Done loading bond topologies')
 
   def _parse_bond_lengths_arg(self, bond_lengths_arg):
+    """Parses bond length argument."""
     if not bond_lengths_arg:
       return
 
@@ -185,9 +190,9 @@ class GeometryData:
 
         for atom_a, atom_b, bond in itertools.product(atoms_a, atoms_b, bonds):
           self.bond_lengths.add(
-            atom_a, atom_b, bond,
-            bond_length_distribution.FixedWindowLengthDistribution(
-              min_val, max_val, right_tail_mass))
+              atom_a, atom_b, bond,
+              bond_length_distribution.FixedWindowLengthDistribution(
+                  min_val, max_val, right_tail_mass))
 
       except (KeyError, IndexError, ValueError):
         raise BondLengthParseError(term)
@@ -195,8 +200,7 @@ class GeometryData:
   @classmethod
   def get_singleton(cls):
     if cls._singleton is None:
-      cls._singleton = cls(FLAGS.bond_lengths_csv,
-                           FLAGS.bond_lengths,
+      cls._singleton = cls(FLAGS.bond_lengths_csv, FLAGS.bond_lengths,
                            FLAGS.bond_topology_csv)
     return cls._singleton
 
@@ -231,12 +235,12 @@ def topology_query(db, smiles):
   mol = Chem.AddHs(mol)
   query_bt = utilities.molecule_to_bond_topology(mol)
   expanded_stoich = smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
-    query_bt)
+      query_bt)
   matching_parameters = _get_geometry_matching_parameters()
   geometry_data = GeometryData.get_singleton()
   cnt_matched_conformer = 0
   cnt_conformer = 0
-  logging.info(f'Starting query for "{smiles}" with stoich {expanded_stoich}')
+  logging.info('Starting query for %s with stoich %s', smiles, expanded_stoich)
   for conformer in db.find_by_expanded_stoichiometry(expanded_stoich):
     if not smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
       continue
@@ -259,8 +263,8 @@ def topology_query(db, smiles):
           logging.error('Did not find bond topology id for smiles %s',
                         bt.smiles)
       yield conformer
-  logging.info(f'Topology query for "{smiles}" matched '
-               f'{cnt_matched_conformer} / {cnt_conformer}')
+  logging.info('Topology query for %s matched %d / %d', smiles,
+               cnt_matched_conformer, cnt_conformer)
 
 
 class PBTextOutputter:

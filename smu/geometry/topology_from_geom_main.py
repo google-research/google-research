@@ -88,6 +88,7 @@ def ReadConFormer(bond_lengths, input_string, output):
 
     return protos
 
+
 class TopologyFromGeom(beam.DoFn):
   """Beam class for extracting BondTopology from Conformer protos."""
 
@@ -114,12 +115,9 @@ class TopologyFromGeom(beam.DoFn):
     matching_parameters.consider_not_bonded = True
     matching_parameters.ring_atom_count_cannot_decrease = False
     yield topology_from_geom.bond_topologies_from_geom(
-      self._bond_lengths,
-      conformer.conformer_id,
-      conformer.fate,
-      conformer.bond_topologies[0],
-      conformer.optimized_geometry,
-      matching_parameters)
+        self._bond_lengths, conformer.conformer_id, conformer.fate,
+        conformer.bond_topologies[0], conformer.optimized_geometry,
+        matching_parameters)
 
 
 def TopologyFromGeometryMain(unused_argv):

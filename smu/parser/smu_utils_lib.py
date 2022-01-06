@@ -614,10 +614,8 @@ def conformer_to_molecules(conformer,
     bts = conformer.bond_topologies
   else:
     bts = conformer.bond_topologies[0:1]
-  requested_bond_topologies = [
-      (bt, f'{bt.bond_topology_id}({i}/{bt_count})')
-      for i, bt in enumerate(bts, start=1)
-  ]
+  requested_bond_topologies = [(bt, f'{bt.bond_topology_id}({i}/{bt_count})')
+                               for i, bt in enumerate(bts, start=1)]
 
   # requested_geometries will be a list of tuples of
   # (goemetry, label)
@@ -1425,7 +1423,7 @@ def conformer_to_bond_topology_summaries(conformer):
       yield from conformer.bond_topologies
     else:
       yield from itertools.chain(conformer.bond_topologies[:starting_idx],
-                                 conformer.bond_topologies[(starting_idx+1):])
+                                 conformer.bond_topologies[(starting_idx + 1):])
 
   fate = conformer.fate
 
@@ -1443,10 +1441,9 @@ def conformer_to_bond_topology_summaries(conformer):
   elif fate == dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS:
     summary.count_kept_geometry = 1
     summary.count_missing_calculation = 1
-  elif (
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR):
+  elif (fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
+        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
+        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
     for bt in other_topologies():

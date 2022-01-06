@@ -502,9 +502,9 @@ class AllAtomPairLengthDistributions:
   def __getitem__(self, atom_types):
     """Gets the underlying AtomPairLengthDistribution."""
     atom_a, atom_b = atom_types
-    return self._atom_pair_dict[
-      (smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a],
-       smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b])]
+    return self._atom_pair_dict[(
+        smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a],
+        smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b])]
 
   def pdf_length_given_type(self, atom_a,
                             atom_b,
