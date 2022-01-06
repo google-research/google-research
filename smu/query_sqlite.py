@@ -22,7 +22,7 @@ import contextlib
 import csv
 import enum
 import itertools
-import os
+import os.path
 import random
 import sys
 
@@ -31,8 +31,6 @@ from absl import flags
 from absl import logging
 import pandas as pd
 from rdkit import Chem
-import tensorflow as tf
-from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu import smu_sqlite
@@ -50,7 +48,6 @@ class OutputFormat(enum.Enum):
   sdf_init = 3
   sdf_init_opt = 4
   atomic_input = 5
-  tfdata = 6
 
 
 flags.DEFINE_string(
@@ -139,7 +136,7 @@ class GeometryData:
     if bond_lengths_csv is None:
       raise ValueError('--bond_lengths_csv required')
     logging.info('Loading bond_lengths')
-    with gfile.GFile(bond_lengths_csv, 'r') as infile:
+    with open(bond_lengths_csv, 'r') as infile:
       df = pd.read_csv(infile, dtype={'length_str': str})
     self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions(
     )
@@ -154,7 +151,7 @@ class GeometryData:
       raise ValueError('--bond_topology_csv required')
     logging.info('Loading bond topologies')
     self.smiles_id_dict = {}
-    with gfile.GFile(bond_topology_csv, 'r') as infile:
+    with open(bond_topology_csv, 'r') as infile:
       reader = csv.reader(iter(infile))
       next(reader)  # skip the header line
       for row in reader:
@@ -277,7 +274,7 @@ class PBTextOutputter:
       output_path: file path to write to
     """
     if output_path:
-      self.outfile = gfile.GFile(output_path, 'w')
+      self.outfile = open(output_path, 'w')
     else:
       self.outfile = sys.stdout
 
@@ -291,29 +288,6 @@ class PBTextOutputter:
 
   def close(self):
     self.outfile.close()
-
-
-class TfDataOutputter:
-  """Writes output to TFDataRecord form."""
-
-  def __init__(self, output_path):
-    """Creates TfDataOutputter with output to `output_path`.
-
-    Args:
-      output_path:
-    """
-    self.output = tf.io.TFRecordWriter(path=output_path)
-
-  def output(self, conformer):
-    """Writes serialized `conformer`.
-
-    Args:
-      conformer: dataset_pb2.Conformer
-    """
-    self.output.write(conformer.SerializeToString())
-
-  def close(self):
-    self.output.close()
 
 
 class SDFOutputter:
@@ -332,9 +306,6 @@ class SDFOutputter:
     self.init_geometry = init_geometry
     self.opt_geometry = opt_geometry
     if output_path:
-      # I couldn't get gfile.GFile to be happen with Chem.SDWriter, so I'm just
-      # falling back to a plain old open.
-      # self.writer = Chem.SDWriter(gfile.GFile(output_path, 'w'))
       self.writer = Chem.SDWriter(output_path)
     else:
       self.writer = Chem.SDWriter(sys.stdout)
@@ -366,7 +337,7 @@ class AtomicInputOutputter:
       output_path: directory to write output files to
     """
     self.output_path = output_path
-    if output_path and not gfile.isdir(self.output_path):
+    if output_path and not os.path.isdir(self.output_path):
       raise ValueError(
           'Atomic input requires directory as output path, got {}'.format(
               self.output_path))
@@ -376,7 +347,7 @@ class AtomicInputOutputter:
     if self.output_path is None:
       sys.stdout.write(self.atomic_writer.process(conformer))
     else:
-      with gfile.GFile(
+      with open(
           os.path.join(
               self.output_path,
               self.atomic_writer.get_filename_for_atomic_input(conformer)),
@@ -448,8 +419,6 @@ def main(argv):
         FLAGS.output_path, init_geometry=True, opt_geometry=True)
   elif FLAGS.output_format == OutputFormat.atomic_input:
     outputter = AtomicInputOutputter(FLAGS.output_path)
-  elif FLAGS.output_format == OutputFormat.tfdata:
-    outputter = TfDataOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
