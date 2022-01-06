@@ -398,33 +398,6 @@ class FromCSVTest(absltest.TestCase):
     self.assertEqual(bt.smiles, '[O-][NH+](F)F')
 
 
-class ParseDuplicatesFileTest(absltest.TestCase):
-
-  def test_basic(self):
-    df = smu_utils_lib.parse_duplicates_file(
-        os.path.join(TESTDATA_PATH, 'small.equivalent_isomers.dat'))
-    pd.testing.assert_frame_equal(
-        pd.DataFrame(
-            columns=[
-                'name1', 'stoich1', 'btid1', 'shortconfid1', 'confid1', 'name2',
-                'stoich2', 'btid2', 'shortconfid2', 'confid2'
-            ],
-            data=[
-                [
-                    'x07_c2n2o2fh3.224227.004', 'c2n2o2fh3', 224227, 4,
-                    224227004, 'x07_c2n2o2fh3.224176.005', 'c2n2o2fh3', 224176,
-                    5, 224176005
-                ],
-                [
-                    'x07_c2n2o2fh3.260543.005', 'c2n2o2fh3', 260543, 5,
-                    260543005, 'x07_c2n2o2fh3.224050.001', 'c2n2o2fh3', 224050,
-                    1, 224050001
-                ],
-            ]),
-        df,
-        check_like=True)
-
-
 class BondTopologyToMoleculeTest(absltest.TestCase):
 
   def test_o2(self):

@@ -511,49 +511,6 @@ def generate_bond_topologies_from_csv(filename):
       yield bond_topology
 
 
-def parse_duplicates_file(filename):
-  """Parses duplciate file into a pandas dataframe.
-
-  The duplciate file supplied by our collaborators (called
-  list.equivalent_{isomers,conformers.dat) is a two column, space separated
-  file of composite names like x07_n4o3h4.091404.073
-  which we parse the names into columns
-  * nameX: original composiite name from file
-  * stoichX: string for the stoichiometry
-  * btidX: bond topology id
-  * shortconfidX: 3 digit conformer id
-  * confidX: full conformer id that we use (btid * 1000 + shortconfid)
-  (for X = 1 or 2)
-
-  Args:
-    filename: file to read (usually list.equivalent_isomers.dat)
-
-  Returns:
-    pd.DataFrame
-  """
-  with gfile.GFile(filename) as f:
-    df_dups = pd.read_csv(
-        f, delim_whitespace=True, names=['name1', 'name2'], header=None)
-
-  for idx in ['1', '2']:
-    df_dups = pd.concat([
-        df_dups,
-        df_dups['name' +
-                idx].str.extract(r'x07_([\w\d]+)\.(\d+).(\d+)').rename(columns={
-                    0: 'stoich' + idx,
-                    1: 'btid' + idx,
-                    2: 'shortconfid' + idx
-                })
-    ],
-                        axis=1)
-    df_dups['btid' + idx] = df_dups['btid' + idx].astype(int)
-    df_dups['shortconfid' + idx] = df_dups['shortconfid' + idx].astype(int)
-    df_dups['confid' + idx] = (
-        df_dups['btid' + idx] * 1000 + df_dups['shortconfid' + idx])
-
-  return df_dups
-
-
 def bond_topology_to_molecule(bond_topology):
   """Converts a bond topology proto to an RDKit molecule.
 
