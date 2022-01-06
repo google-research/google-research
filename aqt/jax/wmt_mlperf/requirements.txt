@@ -1,0 +1,6 @@
+dacite
+jax>=0.2.0
+ml-collections>=0.1.0
+sentencepiece>=0.1.91
+tensorflow>=2.0.0
+tensorflow-datasets>=2.1.0
