@@ -519,11 +519,11 @@ class ConformerToMoleculeTest(absltest.TestCase):
     mols = list(smu_utils_lib.conformer_to_molecules(self.conformer))
     self.assertLen(mols, 6)  # 2 bond topologies * (1 opt geom + 2 init_geom)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(1/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=618451(1/2) geom=init(2/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=opt fate=0',
-        'SMU 618451001 bt=99999(2/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=99999(2/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=99999(2/2) geom=init(2/2) fate=0',
         'SMU 618451001 bt=99999(2/2) geom=opt fate=0'
     ])
     self.assertEqual(
@@ -542,8 +542,8 @@ class ConformerToMoleculeTest(absltest.TestCase):
             include_all_bond_topologies=False))
     self.assertLen(mols, 2)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(1/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=618451(1/2) geom=init(2/2) fate=0',
     ])
     # This is just one random atom I picked from the .dat file and converted to
     # angstroms instead of bohr.

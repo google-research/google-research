@@ -625,7 +625,7 @@ def conformer_to_molecules(conformer,
     init_count = len(conformer.initial_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
-        for i, geom in enumerate(conformer.initial_geometries)
+        for i, geom in enumerate(conformer.initial_geometries, start=1)
     ])
   if include_optimized_geometry:
     requested_geometries.append((conformer.optimized_geometry, 'opt'))
