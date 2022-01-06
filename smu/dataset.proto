@@ -1036,4 +1036,3 @@ message BondTopologySummary {
   int32 count_detected_match_with_warning = 13;
   int32 count_detected_match_success = 11;
 }
-

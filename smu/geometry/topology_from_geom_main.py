@@ -18,10 +18,11 @@ from absl import app
 from absl import flags
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
-import topology_from_geom
+from smu.geometry import topology_from_geom
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
+from smu.geometry import smu_molecule
 
 FLAGS = flags.FLAGS
 
@@ -86,6 +87,39 @@ def ReadConFormer(bond_lengths, input_string, output):
         | beam.ParDo(SummaryData()) | beam.io.textio.WriteToText(output))
 
     return protos
+
+class TopologyFromGeom(beam.DoFn):
+  """Beam class for extracting BondTopology from Conformer protos."""
+
+  def __init__(self, bond_lengths):
+    super().__init__()
+    self._bond_lengths = bond_lengths
+
+  def process(self, conformer):
+    """Called by Beam.
+
+      Returns a TopologyMatches for the plausible BondTopology's in `conformer`.
+    Args:
+      conformer:
+
+    Yields:
+      dataset_pb2.TopologyMatches
+    """
+    # Adjust as needed...
+    #   if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+    #     return
+    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters.neutral_forms_during_bond_matching = True
+    matching_parameters.must_match_all_bonds = True
+    matching_parameters.consider_not_bonded = True
+    matching_parameters.ring_atom_count_cannot_decrease = False
+    yield topology_from_geom.bond_topologies_from_geom(
+      self._bond_lengths,
+      conformer.conformer_id,
+      conformer.fate,
+      conformer.bond_topologies[0],
+      conformer.optimized_geometry,
+      matching_parameters)
 
 
 def TopologyFromGeometryMain(unused_argv):

@@ -18,7 +18,6 @@ import itertools
 
 from typing import Dict, Set, Tuple
 
-import apache_beam as beam
 import numpy as np
 from rdkit import Chem
 
@@ -256,35 +255,3 @@ def geometry_score(
                                            dist))
 
   return result
-
-
-class TopologyFromGeom(beam.DoFn):
-  """Beam class for extracting BondTopology from Conformer protos."""
-
-  def __init__(self, bond_lengths):
-    super().__init__()
-    self._bond_lengths = bond_lengths
-
-  def process(self, conformer):
-    """Called by Beam.
-
-      Returns a TopologyMatches for the plausible BondTopology's in `conformer`.
-    Args:
-      conformer:
-
-    Yields:
-      dataset_pb2.TopologyMatches
-    """
-    # Adjust as needed...
-    #   if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
-    #     return
-    matching_parameters = smu_molecule.MatchingParameters()
-    matching_parameters.neutral_forms_during_bond_matching = True
-    matching_parameters.must_match_all_bonds = True
-    matching_parameters.consider_not_bonded = True
-    matching_parameters.ring_atom_count_cannot_decrease = False
-    yield bond_topologies_from_geom(self._bond_lengths, conformer.conformer_id,
-                                    conformer.fate,
-                                    conformer.bond_topologies[0],
-                                    conformer.optimized_geometry,
-                                    matching_parameters)

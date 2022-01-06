@@ -33,6 +33,8 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
+  logging.get_absl_handler().use_absl_log_file()
+
   logging.info('Opening %s', FLAGS.output_sqlite)
   db = smu_sqlite.SMUSQLite(FLAGS.output_sqlite, 'c')
 

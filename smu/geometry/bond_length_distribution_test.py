@@ -15,6 +15,7 @@
 
 """Tests for the BondLengthDistribution(s) classes."""
 
+import numpy as np
 import os
 from absl.testing import absltest
 import numpy as np
@@ -65,7 +66,7 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
 
   def test_from_sparse_dataframe(self):
     df_input = pd.DataFrame.from_dict({
-        'length_str': ['1.234', '1.235', '1.239'],
+        'length_str': ['1.234', '1.235', '1.236'],
         'count': [2, 3, 5]
     })
     got = (
@@ -74,10 +75,22 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(got.pdf(1.2335), 0.0)
     self.assertAlmostEqual(got.pdf(1.2345), 200)
     self.assertAlmostEqual(got.pdf(1.2355), 300)
-    # this is the internal implicit 0 count
-    self.assertAlmostEqual(got.pdf(1.2365), 0.0)
-    self.assertAlmostEqual(got.pdf(1.2395), 500)
+    self.assertAlmostEqual(got.pdf(1.2365), 500)
     self.assertAlmostEqual(got.pdf(1.2405), 0.0)
+
+  def test_from_sparse_dataframe_interpolation(self):
+    df_input = pd.DataFrame.from_dict({
+        'length_str': ['1.2', '1.3', '1.6'],
+        'count': [4, 5, 8]
+    })
+    got = (
+        bond_length_distribution.EmpiricalLengthDistribution
+        .from_sparse_dataframe(df_input, right_tail_mass=0, sig_digits=1))
+    self.assertAlmostEqual(got.pdf(1.25), 4 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.35), 5 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.45), 6 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.55), 7 / 30 * 10)
+    self.assertAlmostEqual(got.pdf(1.65), 8 / 30 * 10)
 
   def test_from_sparse_dataframe_sig_digit_error(self):
     df_input = pd.DataFrame.from_dict({
@@ -321,10 +334,10 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
   def test_add_from_sparse_dataframe(self):
     df = pd.DataFrame.from_records([
         ('c', 'c', 1, '1.0', 10),
-        ('c', 'c', 1, '1.2', 30),
-        ('n', 'o', 2, '1.0', 50),
+        ('c', 'c', 1, '1.1', 30),
+        ('n', 'o', 2, '1.4', 50),
         ('n', 'o', 2, '1.5', 50),
-        ('n', 'n', 0, '1.5', 100),
+        ('n', 'n', 0, '1.7', 100),
         ('n', 'n', 0, '1.8', 100),
     ],
                                    columns=[

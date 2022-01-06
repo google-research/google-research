@@ -179,6 +179,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
     # The maximum value covered by the emprical values.
     self._maximum = self._df['length'].iloc[-1] + self.bucket_size
 
+    self._df['count'].fillna(0, inplace=True)
     self._df['count'] = interpolate_zeros(np.array(self._df['count']))
 
     self._df['pdf'] = (
@@ -497,6 +498,13 @@ class AllAtomPairLengthDistributions:
           atom_0, atom_1, bond_type,
           EmpiricalLengthDistribution.from_sparse_dataframe(
               df, right_tail_mass, sig_digits))
+
+  def __getitem__(self, atom_types):
+    """Gets the underlying AtomPairLengthDistribution."""
+    atom_a, atom_b = atom_types
+    return self._atom_pair_dict[
+      (smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a],
+       smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b])]
 
   def pdf_length_given_type(self, atom_a,
                             atom_b,

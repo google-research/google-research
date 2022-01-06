@@ -23,6 +23,7 @@ from absl.testing import flagsaver
 import apache_beam as beam
 import tensorflow as tf
 from tensorflow.io import gfile
+import tensorflow as tf
 
 from smu import dataset_pb2
 from smu import pipeline

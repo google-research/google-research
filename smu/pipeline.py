@@ -25,6 +25,7 @@ import csv
 import functools
 import itertools
 import logging as stdlogging
+import numpy as np
 
 from absl import app
 from absl import flags
@@ -505,11 +506,7 @@ class UpdateConformerFn(beam.DoFn):
 
     yield from self._compare_smiles(conformer)
 
-    if (conformer.duplicated_by == 0 and
-        conformer.properties.errors.status < 512):
-      # The duplicate records do not need topology extraction and anything
-      # with this high an error is pretty messed so, do we won't bother trying
-      # to match the topolgy.
+    if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
       self._add_alternative_bond_topologies(conformer, smiles_id_dict)
     else:
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
@@ -950,7 +947,6 @@ def pipeline(root):
             f'{FLAGS.output_stem}_{id_str}_tfrecord',
             coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
             num_shards=FLAGS.output_shards))
-
 
   # Write the complete and standard conformers as JSON.
   # Bit of a hack here: the slowest part of the whole pipeline is writing out
