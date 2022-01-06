@@ -215,11 +215,12 @@ def bond_topology_summaries_from_csv(filename):
   Yields:
     dataset_pb2.Entry
   """
-  for bt in smu_utils_lib.generate_bond_topologies_from_csv(filename):
-    summary = dataset_pb2.BondTopologySummary()
-    summary.bond_topology.CopyFrom(bt)
-    # Note that we leave all the counts as 0.
-    yield bt.bond_topology_id, summary
+  with gfile.GFile(filename, 'r') as infile:
+    for bt in smu_utils_lib.generate_bond_topologies_from_csv(infile):
+      summary = dataset_pb2.BondTopologySummary()
+      summary.bond_topology.CopyFrom(bt)
+      # Note that we leave all the counts as 0.
+      yield bt.bond_topology_id, summary
 
 
 class MergeConformersFn(beam.DoFn):

@@ -25,8 +25,6 @@ import pandas as pd
 from rdkit import Chem
 from rdkit import Geometry
 
-from tensorflow.io import gfile
-
 from smu import dataset_pb2
 
 # The stage1 files do not label their error fields explicitly. This is the list
@@ -486,29 +484,28 @@ def parse_bond_topology_line(line):
           line[connectivity_end + 2:connectivity_end + 2 + num_atoms])
 
 
-def generate_bond_topologies_from_csv(filename):
+def generate_bond_topologies_from_csv(fileobj):
   """Generator for bond topologies stored in a csv.
 
   See merge_bond_topologies.py for the expected format.
 
   Args:
-    filename: input csv
+    fileobj: file like object
 
   Yields:
     BondTopology
   """
-  with gfile.GFile(filename, 'r') as infile:
-    reader = csv.reader(iter(infile))
-    next(reader)  # skip the header line
-    for row in reader:
-      bt_id, _, atoms, connectivity, hydrogens, smiles = row
-      # The atoms strings looks like 'C N N+O O-' where every atom has a space,
-      # +, or - after it. create_bond_topology doesn't want the charge markings
-      # (just a string like 'CNNOO') so the [::2] skips those.
-      bond_topology = create_bond_topology(atoms[::2], connectivity, hydrogens)
-      bond_topology.smiles = smiles
-      bond_topology.bond_topology_id = int(bt_id)
-      yield bond_topology
+  reader = csv.reader(iter(fileobj))
+  next(reader)  # skip the header line
+  for row in reader:
+    bt_id, _, atoms, connectivity, hydrogens, smiles = row
+    # The atoms strings looks like 'C N N+O O-' where every atom has a space,
+    # +, or - after it. create_bond_topology doesn't want the charge markings
+    # (just a string like 'CNNOO') so the [::2] skips those.
+    bond_topology = create_bond_topology(atoms[::2], connectivity, hydrogens)
+    bond_topology.smiles = smiles
+    bond_topology.bond_topology_id = int(bt_id)
+    yield bond_topology
 
 
 def bond_topology_to_molecule(bond_topology):

@@ -31,6 +31,8 @@ from smu.geometry import utilities
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 
+from tensorflow.io import gfile
+
 MAIN_DAT_FILE = 'x07_sample.dat'
 STAGE1_DAT_FILE = 'x07_stage1.dat'
 TESTDATA_PATH = os.path.join(
@@ -385,7 +387,8 @@ class FromCSVTest(absltest.TestCase):
     infile.write('134,4,N+O-F F ,111000,1000,[O-][NH+](F)F\n')
     infile.close()
 
-    out = smu_utils_lib.generate_bond_topologies_from_csv(infile.name)
+    with gfile.GFile(infile.name, 'r') as fobj:
+      out = smu_utils_lib.generate_bond_topologies_from_csv(fobj)
 
     bt = next(out)
     self.assertEqual(68, bt.bond_topology_id)
