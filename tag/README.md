@@ -11,9 +11,9 @@ Our results on Taskonomy can be reproduced with the following steps:
 2. Revert your version to the repository version on 09.17.2021 to maintain consistency with `git reset --hard dc6c89c269021597d222860406fa0fb81b02a231`
 3. Create a branch called tag in the repository: `git checkout -b tag`
 4. Apply the patches in `google-research/tag/taskonomy/`
-    a. `git apply gradnorm.patch`
-    b. `git apply xception_taskonomy_new.patch`
-    c. `git apply tag.patch`
+    1. Duplicate `train_taskonomy.py`, rename the copy to `gradnorm_train_taskonomy.py`, and finally `git apply gradnorm.patch`.
+    2. Duplicate `train_taskonomy.py`, rename the copy to `tag_train_taskonomy.py`, and finally `git apply tag.patch`.
+    3. `git apply xception_taskonomy_new.patch`.
 5. Replace the full 12 TB dataset with a smaller ~2 TB dataset by overriding the buildings list in `taskgrouping/train_models.txt` with the corresponding list in `tag/taskonomy/train_models.txt`. Repeat for the validation and test datasets.
 6. Follow the instructions on the [Which Tasks to Train Together in Multi-Task Learning github repository](https://github.com/tstandley/taskgrouping) to download and run the models.
 
