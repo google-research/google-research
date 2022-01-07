@@ -30,10 +30,9 @@ import math
 from typing import Dict, Optional
 from absl import logging
 import numpy as np
+import os.path
 import pandas as pd
 import scipy.stats
-
-from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
@@ -221,7 +220,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
     Returns:
       EmpiricalLengthDistribution
     """
-    with gfile.GFile(filename) as f:
+    with open(filename) as f:
       df = pd.read_csv(f, header=None, names=['length', 'count'], dtype=float)
 
     return EmpiricalLengthDistribution(df, right_tail_mass)
@@ -451,7 +450,7 @@ class AllAtomPairLengthDistributions:
         itertools.combinations_with_replacement(atomic_numbers, 2), bond_types):
       fname = '{}.{}.{}.{}'.format(filestem, atom_a, int(bond_type), atom_b)
 
-      if not gfile.exists(fname):
+      if not os.path.exists(fname):
         logging.info('Skipping non existent file %s', fname)
         continue
 
