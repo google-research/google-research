@@ -25,7 +25,7 @@ import scipy.misc
 import scipy.ndimage
 import tensorflow as tf
 
-from data_conversion_scripts import conversion_utils
+from smurf.data_conversion_scripts import conversion_utils
 
 # EAGER
 tf.compat.v1.enable_eager_execution()

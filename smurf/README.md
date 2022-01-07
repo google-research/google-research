@@ -34,11 +34,11 @@ Currently, the datasets we support are KITTI ('kitti'), Sintel ('sintel'), Flyin
 For example, if you have the sintel dataset in tfrecord format located at /usr/local/home/datasets/sintel_clean, and you wanted to run with batch size 1 on images of size 384 X 512, you could run the following commands to both train and evaluate the network:
 
 ```
-python3 -m smurf.smurf_main --train_on="sintel-clean:/usr/local/home/datasets/sintel_clean/test" --batch_size=1 --height=384 --width=512 --plot_dir='/usr/local/home/plots/smurf' --checkpoint_dir='/usr/local/home/checkpoints/smurf'
+python3 -m smurf.smurf_main --train_on="sintel-clean:/usr/local/home/datasets/sintel_clean/test" --global_gpu_batch_size=1 --height=384 --width=512 --plot_dir='/usr/local/home/plots/smurf' --checkpoint_dir='/usr/local/home/checkpoints/smurf'
 ```
 
 ```
-python3 -m smurf.smurf_main --eval_on="sintel-clean:/usr/local/home/datasets/sintel_clean/train" --batch_size=1 --height=384 --width=512 --plot_dir='/usr/local/home/plots/smurf' --checkpoint_dir='/usr/local/home/checkpoints/smurf'
+python3 -m smurf.smurf_main --eval_on="sintel-clean:/usr/local/home/datasets/sintel_clean/train" --global_gpu_batch_size=1 --height=384 --width=512 --plot_dir='/usr/local/home/plots/smurf' --checkpoint_dir='/usr/local/home/checkpoints/smurf'
 ```
 
 Note that in the above case we train on the test set and evaluate on the train
@@ -78,6 +78,13 @@ if 'sintel' in train_dataset:
   width = 496
   weight_smooth1 = 2.5
   weight_smooth2 = 0.0
+  # Scale all of the training steps to happen faster to avoid overfitting.
+  lr_decay_after_num_steps: int(62500 * .2)
+  lr_decay_steps: int(2500 * .2)
+  num_train_steps: int(75000 * .2)
+  occ_after_num_steps_brox: int(25000 * .2)
+  selfsup_ramp_up_steps: int(6250 * .2)
+
 
 if 'chairs' in train_dataset:
   height = 384
@@ -108,7 +115,7 @@ amount of time.
 Use the following command to retrain on the multi-frame labels:
 
 ```
-python3 -m smurf.smurf_main --train_on="multiframe-test-kitti:<path to records generate in prior step> --batch_size=1 --height=292 --width=296 --train_mode='sequence-supervised' --num_train_steps=30000 --lr_decay_after_num_steps=25000 --lr_decay_steps=1000
+python3 -m smurf.smurf_main --train_on="multiframe-test-kitti:<path to records generate in prior step> --global_gpu_batch_size=1 --height=292 --width=296 --train_mode='sequence-supervised' --num_train_steps=30000 --lr_decay_after_num_steps=25000 --lr_decay_steps=1000
 ```
 
 Note that although we train in mode `sequence-supervised`, we never use the
@@ -120,9 +127,9 @@ step come from the unsupervised model run on multiple frames as described in the
 Pre-trained model checkpoints
 We provide checkpoints of trained models on the Sintel and KITTI dataset. The checkpoints are available on Google Cloud Storage:
 
-* Kitti: [gs://gresearch/smurf/kitti](https://console.cloud.google.com/storage/browser/gresearch/smurf/kitti) (~60MB)
+* Kitti: [gs://gresearch/smurf/kitti-smurf](https://console.cloud.google.com/storage/browser/gresearch/smurf/kitti-smurf) (~60MB)
 
-* Sintel: [gs://gresearch/smurf/sintel](https://console.cloud.google.com/storage/browser/gresearch/smurf/sintel) (~60MB)
+* Sintel: [gs://gresearch/smurf/sintel-smurf](https://console.cloud.google.com/storage/browser/gresearch/smurf/sintel-smurf) (~60MB)
 
 To use these checkpoints, download all files into a local checkpoint directory, e.g. /tmp/smurf/, either by using the Google Cloud Storage web interface or using gsutil:
 

@@ -54,11 +54,11 @@ flags.DEFINE_bool('no_checkpointing', False,
                   'Do not save model checkpoints during training.')
 flags.DEFINE_integer('epoch_length', 1000,
                      'Number of gradient steps per epoch.')
-flags.DEFINE_integer('num_train_steps', int(1e6),
+flags.DEFINE_integer('num_train_steps', int(75000),
                      'Number of gradient steps to train for.')
-flags.DEFINE_integer('selfsup_after_num_steps', int(5e5),
+flags.DEFINE_integer('selfsup_after_num_steps', int(31250),
                      'Number of gradient steps before self-supervision.')
-flags.DEFINE_integer('selfsup_ramp_up_steps', int(1e5),
+flags.DEFINE_integer('selfsup_ramp_up_steps', int(6250),
                      'Number of gradient steps for ramping up self-sup.')
 flags.DEFINE_integer('shuffle_buffer_size', 1024,
                      'Shuffle buffer size for training.')
@@ -80,10 +80,10 @@ flags.DEFINE_float('start_learning_rate', 1e-4, 'The initial learning rate '
                    'which will be warmed up into the final learning rate.')
 flags.DEFINE_float('warm_up_steps', 0, 'Number of steps to warm up into the '
                    'final learning rate.')
-flags.DEFINE_float('gpu_learning_rate', 1e-4, 'Learning rate for training '
+flags.DEFINE_float('gpu_learning_rate', 2e-4, 'Learning rate for training '
                    'SMURF on GPU.')
-flags.DEFINE_integer('lr_decay_after_num_steps', 0, '')
-flags.DEFINE_integer('lr_decay_steps', 0, '')
+flags.DEFINE_integer('lr_decay_after_num_steps', 62500, '')
+flags.DEFINE_integer('lr_decay_steps', 2500, '')
 flags.DEFINE_string('lr_decay_type', 'exponential',
                     'One of ["none", "exponential"]')
 flags.DEFINE_bool(
@@ -141,7 +141,7 @@ flags.DEFINE_float('weight_selfsup', 0.3, 'Weight for self-supervision loss.')
 flags.DEFINE_string('occlusion_estimation', 'wang',
                     'One of: none, brox, wang')
 
-flags.DEFINE_integer('occ_after_num_steps_brox', 0, '')
+flags.DEFINE_integer('occ_after_num_steps_brox', 25000, '')
 flags.DEFINE_integer('occ_after_num_steps_wang', 0, '')
 flags.DEFINE_integer('occ_after_num_steps_forward_collision', 0, '')
 

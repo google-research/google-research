@@ -19,7 +19,7 @@ import os
 from absl import app
 from absl import flags
 import tensorflow as tf
-from data_conversion_scripts import conversion_utils
+from smurf.data_conversion_scripts import conversion_utils
 
 
 FLAGS = flags.FLAGS
