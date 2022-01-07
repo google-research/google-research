@@ -777,7 +777,7 @@ def distributed_shampoo(learning_rate,
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
 
   def _skip_preconditioning(param):
-    return len(param.shape) <= 1 or any(
+    return len(param.shape) < 1 or any(
         [s > skip_preconditioning_dim_size_gt for s in param.shape])
 
   def _compute_stats(grad, state, param, step):
