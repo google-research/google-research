@@ -139,7 +139,8 @@ def power_iteration(
             jnp.greater(jnp.abs(s_new - s), error_tolerance))
 
   # Figure out how to use step as seed for random.
-  v_0 = np.random.uniform(-1.0, 1.0, matrix_size).astype(matrix.dtype)
+  v_0 = np.random.RandomState(1729).uniform(-1.0, 1.0,
+                                            matrix_size).astype(matrix.dtype)
 
   init_state = tuple([0, v_0, jnp.zeros([], dtype=matrix.dtype), v_0, True])
   _, v_out, s_out, _, _ = lax.while_loop(
