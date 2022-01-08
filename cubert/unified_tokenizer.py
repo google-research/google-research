@@ -72,6 +72,9 @@ class Position():
   line: int
   column: int
 
+  def __lt__(self, other):
+    return (self.line, self.column) < (other.line, other.column)
+
 
 @dataclasses.dataclass(frozen=True)
 class TokenMetadata():
