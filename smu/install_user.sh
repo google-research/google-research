@@ -13,13 +13,14 @@ protoc --experimental_allow_proto3_optional smu/dataset.proto --python_out=.
 echo "Creating virtual environment"
 python3 -m venv "${VENV}"
 . ${VENV}/bin/activate
+cd $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+echo ${ROOTDIR} > smu.pth
 
 echo "Installing dependencies"
 pip install -r "${SMUDIR}/requirements_user.txt"
 
 echo "Running tests"
-#cd "${SMUDIR}"
-cd "/tmp"
+cd "${SMUDIR}"
 # Parser test used gfile, so we exclude it
 #python -m smu.parser.smu_parser_test
 # Query test relies on parser, which uses gfile, so we exclude it
