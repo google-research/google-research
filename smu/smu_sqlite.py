@@ -138,8 +138,8 @@ class SMUSQLite:
     insert_conformer = (f'INSERT INTO {_CONFORMER_TABLE_NAME} '
                         'VALUES (?, ?, ?)')
     insert_btid = f'INSERT INTO {_BTID_TABLE_NAME} VALUES (?, ?)'
-    insert_smiles = (f'INSERT INTO {_SMILES_TABLE_NAME} VALUES (?, ?) '
-                     f'ON CONFLICT(smiles) DO NOTHING')
+    insert_smiles = (
+      f'INSERT OR IGNORE INTO {_SMILES_TABLE_NAME} VALUES (?, ?) ')
 
     cur = self._conn.cursor()
 

@@ -182,6 +182,17 @@ class SmuSqliteTest(absltest.TestCase):
     # and test a non existent id
     self.assertEmpty(list(db.find_by_smiles('I do not exist')))
 
+  def test_repeat_smiles_insert(self):
+    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
+    db.bulk_insert(
+        self.encode_conformers([
+            self.make_fake_conformer(cid) for cid in [2001, 2002, 2003]
+        ]))
+    got_cids = [
+        conformer.conformer_id for conformer in db.find_by_smiles('CC')
+    ]
+    self.assertCountEqual(got_cids, [2001, 2002, 2003])
+
   def test_find_by_expanded_stoichiometry(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     db.bulk_insert(
