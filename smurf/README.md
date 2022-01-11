@@ -115,7 +115,7 @@ amount of time.
 Use the following command to retrain on the multi-frame labels:
 
 ```
-python3 -m smurf.smurf_main --train_on="multiframe-test-kitti:<path to records generate in prior step> --global_gpu_batch_size=1 --height=292 --width=296 --train_mode='sequence-supervised' --num_train_steps=30000 --lr_decay_after_num_steps=25000 --lr_decay_steps=1000
+python3 -m smurf.smurf_main --train_on="multiframe-test-kitti:<path to records generate in prior step> --global_gpu_batch_size=1 --height=292 --width=696 --train_mode='sequence-supervised' --num_train_steps=30000 --lr_decay_after_num_steps=25000 --lr_decay_steps=1000
 ```
 
 Note that although we train in mode `sequence-supervised`, we never use the
