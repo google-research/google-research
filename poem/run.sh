@@ -54,7 +54,7 @@ assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.meta"
 assert_file_exists "${PR_VIPE_TRAIN_DIR}/model.ckpt-00000005.index"
 
 # Check if Temporal Pr-VIPE training runs.
-TEMPORL_PR_VIPE_TRAIN_DIR="/tmp/e3d/temporal_pr_vipe/train"
+TEMPORAL_PR_VIPE_TRAIN_DIR="/tmp/e3d/temporal_pr_vipe/train"
 
 mkdir -p "${TEMPORAL_PR_VIPE_TRAIN_DIR}"
 python3 -m poem.pr_vipe.temporal.train \
