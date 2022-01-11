@@ -44,6 +44,63 @@ import optax
 
 
 # pylint:disable=no-value-for-parameter
+@struct.dataclass
+class QuantizedValue:
+  """State associated with quantized value."""
+  quantized: chex.Array
+  bucket_size: chex.Array
+  quantized_dtype: jnp.dtype = struct.field(
+      pytree_node=False)  # Dtype for the quantized value.
+
+  @classmethod
+  def from_float_value(cls, fvalue, quantized_dtype):
+    quantized, bucket_size = QuantizedValue.quantize(fvalue, quantized_dtype)
+    return QuantizedValue(quantized, bucket_size, quantized_dtype)
+
+  # Quantization is from Lingvo JAX optimizers.
+  @classmethod
+  def quantize(cls, fvalue, quantized_dtype):
+    """Returns quantized value and the bucket."""
+    if quantized_dtype == jnp.float32:
+      return fvalue, []
+
+    float_dtype = fvalue.dtype
+    if quantized_dtype == jnp.int8:
+      # value -128 is not used.
+      num_buckets = jnp.array(127.0, dtype=float_dtype)
+    elif quantized_dtype == jnp.int16:
+      # value -32768 is not used.
+      num_buckets = jnp.array(32767.0, dtype=float_dtype)
+    else:
+      raise ValueError(f'Quantized dtype {quantized_dtype} not supported.')
+    # max value is mapped to num_buckets
+
+    # TODO(rohananil): Extend this by making use of information about the blocks
+    # SM3 style which will be useful for diagonal statistics
+    # We first decide the scale.
+    if fvalue.ndim < 1:
+      raise ValueError(
+          f'Input array {fvalue} must have a strictly positive number of '
+          'dimensions.')
+
+    max_abs = jnp.max(jnp.abs(fvalue), axis=0)
+    bucket_size = max_abs / num_buckets
+    bs_expanded = bucket_size[jnp.newaxis, Ellipsis]
+    # To avoid divide by 0.0
+    bs_nonzero = jnp.where(bs_expanded > 0.0, bs_expanded,
+                           jnp.ones_like(bs_expanded))
+    ratio = fvalue / bs_nonzero
+    # We use rounding to remove bias.
+    quantized = jnp.round(ratio)
+    return quantized.astype(quantized_dtype), bucket_size
+
+  def to_float(self):
+    if self.quantized_dtype == jnp.float32:
+      return self.quantized
+
+    float_dtype = self.bucket_size.dtype
+    bucket_size = self.bucket_size[jnp.newaxis, Ellipsis]
+    return self.quantized.astype(float_dtype) * bucket_size
 
 
 # Per parameter optimizer state used in data-parallel training.
@@ -52,8 +109,8 @@ class ParameterStats(NamedTuple):
   diagonal_statistics: chex.Array  # Accumulator for diagonal preconditioner
   statistics: chex.Array  # Statistics
   preconditioners: chex.Array  # Preconditioners
-  diagonal_momentum: chex.Array  # Momentum for the diagonal preconditioner
-  momentum: chex.Array  # Momentum for the shampoo preconditioner
+  diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
+  momentum: QuantizedValue  # Momentum for the shampoo preconditioner
 
 
 # For training extremely large model; We keep a global state with a concatenated
@@ -72,8 +129,8 @@ class GlobalShardedParameterStats:
 class LocalShardedParameterStats:
   """State associated to each parameter of the model being trained."""
   diagonal_statistics: chex.Array  # Accumulator for diagonal preconditioner
-  diagonal_momentum: chex.Array  # Momentum for the diagonal preconditioner
-  momentum: chex.Array  # Momentum for the shampoo preconditioner
+  diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
+  momentum: QuantizedValue  # Momentum for the shampoo preconditioner
   index_start: np.int32 = struct.field(
       pytree_node=False)  # Index into global statistics array
   sizes: Any = struct.field(pytree_node=False)  # Sizes of the statistics.
@@ -491,33 +548,37 @@ def _convert_from_parameter_stats(parameter_stats, local_stats):
                                     local_stats.index_start, local_stats.sizes)
 
 
-def distributed_shampoo(learning_rate,
-                        block_size,
-                        beta1=0.9,
-                        beta2=0.999,
-                        diagonal_epsilon=1e-10,
-                        matrix_epsilon=1e-6,
-                        weight_decay=0.0,
-                        start_preconditioning_step=5,
-                        preconditioning_compute_steps=1,
-                        statistics_compute_steps=1,
-                        best_effort_shape_interpretation=True,
-                        graft_type=GraftingType.SGD,
-                        nesterov=True,
-                        exponent_override=0,
-                        # Pass pmap 'batch axis name' in pmap mode.
-                        batch_axis_name=None,
-                        ### Only set following 3 params in pjit/spmd mode.
-                        ### WARNING: Experimental
-                        mesh_axis_names=None,
-                        num_devices_for_pjit=None,
-                        shard_optimizer_states=False,
-                        ###
-                        inverse_failure_threshold=0.1,
-                        moving_average_for_momentum=False,
-                        skip_preconditioning_dim_size_gt=4096,
-                        clip_by_scaled_gradient_norm=None,
-                        precision=lax.Precision.HIGHEST):
+def distributed_shampoo(
+    learning_rate,
+    block_size,
+    beta1=0.9,
+    beta2=0.999,
+    diagonal_epsilon=1e-10,
+    matrix_epsilon=1e-6,
+    weight_decay=0.0,
+    start_preconditioning_step=5,
+    preconditioning_compute_steps=1,
+    statistics_compute_steps=1,
+    best_effort_shape_interpretation=True,
+    graft_type=GraftingType.SGD,
+    nesterov=True,
+    exponent_override=0,
+    # Pass pmap 'batch axis name' in pmap mode.
+    batch_axis_name=None,
+    ### Only set following 3 params in pjit/spmd mode.
+    ### WARNING: Experimental
+    mesh_axis_names=None,
+    num_devices_for_pjit=None,
+    shard_optimizer_states=False,
+    ###
+    ### Experimental memory reduction mode
+    best_effort_memory_usage_reduction=False,
+    ###
+    inverse_failure_threshold=0.1,
+    moving_average_for_momentum=False,
+    skip_preconditioning_dim_size_gt=4096,
+    clip_by_scaled_gradient_norm=None,
+    precision=lax.Precision.HIGHEST):
   """Distributed Shampoo optimizer.
 
   Distributed Shampoo is a second-order preconditioned method (concretely, a
@@ -569,6 +630,7 @@ def distributed_shampoo(learning_rate,
     num_devices_for_pjit: Number of devices to parallelize over when using pjit.
     shard_optimizer_states: Shard optimizer states to save memory in model
       parallel training.
+    best_effort_memory_usage_reduction: Best effort memory usage reduction.
     inverse_failure_threshold: numerics are hard and inverses fail sometimes; we
       determine that using this threshold.
     moving_average_for_momentum: Whether to use moving average for momentum
@@ -585,6 +647,9 @@ def distributed_shampoo(learning_rate,
   Returns:
     a GradientTransformation.
   """
+
+  def quantized_dtype():
+    return jnp.int8 if best_effort_memory_usage_reduction else jnp.float32
 
   def sharded_init_fn(params):
     params_flat, treedef = jax.tree_flatten(params)
@@ -622,8 +687,13 @@ def distributed_shampoo(learning_rate,
       if graft_type != GraftingType.SGD:
         adagrad_statistics = jnp.zeros_like(param)
       local_stats_flat.append(
-          LocalShardedParameterStats(adagrad_statistics, jnp.zeros_like(param),
-                                     jnp.zeros_like(param), index_start, sizes))
+          LocalShardedParameterStats(
+              adagrad_statistics,
+              QuantizedValue.from_float_value(
+                  jnp.zeros_like(param), quantized_dtype()),
+              QuantizedValue.from_float_value(
+                  jnp.zeros_like(param), quantized_dtype()), index_start,
+              sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     # Pad the statistics and preconditioner matrices to be a multiple of
@@ -771,9 +841,12 @@ def distributed_shampoo(learning_rate,
       adagrad_statistics = []
       if graft_type != GraftingType.SGD:
         adagrad_statistics = jnp.zeros_like(param)
-      return ParameterStats(adagrad_statistics, statistics, preconditioners,
-                            jnp.zeros_like(param), jnp.zeros_like(param))
-
+      return ParameterStats(
+          adagrad_statistics, statistics, preconditioners,
+          QuantizedValue.from_float_value(
+              jnp.zeros_like(param), quantized_dtype()),
+          QuantizedValue.from_float_value(
+              jnp.zeros_like(param), quantized_dtype()))
     return ShampooState(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
 
@@ -1065,9 +1138,10 @@ def distributed_shampoo(learning_rate,
 
     w = (1.0 - beta1) if moving_average_for_momentum else 1.0
     shampoo_update_with_wd_momentum = (
-        state.momentum * beta1 + w * shampoo_update_with_wd)
+        state.momentum.to_float() * beta1 + w * shampoo_update_with_wd)
     grafting_update_with_wd_momentum = (
-        state.diagonal_momentum * beta1 + w * grafting_update_with_wd)
+        state.diagonal_momentum.to_float() * beta1 +
+        w * grafting_update_with_wd)
 
     run_shampoo = (step >= start_preconditioning_step).astype(
         grafting_update_with_wd_momentum.dtype)
@@ -1088,10 +1162,12 @@ def distributed_shampoo(learning_rate,
       lr = learning_rate(step)
     transformed_update = -1.0 * lr * momentum_update
 
-    param_stats = ParameterStats(new_diagonal_statistics, state.statistics,
-                                 state.preconditioners,
-                                 grafting_update_with_wd_momentum,
-                                 shampoo_update_with_wd_momentum)
+    param_stats = ParameterStats(
+        new_diagonal_statistics, state.statistics, state.preconditioners,
+        QuantizedValue.from_float_value(grafting_update_with_wd_momentum,
+                                        quantized_dtype()),
+        QuantizedValue.from_float_value(shampoo_update_with_wd_momentum,
+                                        quantized_dtype()))
     return transformed_update, param_stats
 
   def update_fn(grads, state, params):
