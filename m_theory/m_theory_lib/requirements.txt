@@ -1,5 +1,8 @@
 mpmath>=1.0.0
-numpy>=1.16.2
+numpy==1.18.5
 opt_einsum>=2.3.2
-scipy>=0.19.1
-tensorflow==2.0.1
+matplotlib>=3.0.0
+scipy==1.4.1
+h5py>=2.10.0
+cached_property>=1.5.1
+tensorflow==2.4.1
