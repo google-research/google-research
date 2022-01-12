@@ -6,7 +6,7 @@ SMUDIR="`cd $(dirname $0); pwd`"
 ROOTDIR="`cd "${SMUDIR}/.."; pwd`"
 VENV="${SMUDIR}/venv_smu_user"
 
-echo "Running protocol compilier"
+echo "Running protocol compiler"
 cd ${ROOTDIR}
 protoc --experimental_allow_proto3_optional smu/dataset.proto --python_out=.
 
