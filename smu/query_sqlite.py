@@ -71,6 +71,9 @@ flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
                         'Format for the found SMU entries')
+flags.DEFINE_boolean('sdf_include_all_bond_topologies', True,
+                     'For all sdf outputs, whether to output separate entries '
+                     'for each bond topology or only one')
 flags.DEFINE_boolean(
     'redetect_geometry', False,
     'Whether to rerun the geometry detection on the conformers')
@@ -293,7 +296,7 @@ class PBTextOutputter:
 class SDFOutputter:
   """Simple internal class to write entries as multi molecule SDF files."""
 
-  def __init__(self, output_path, init_geometry, opt_geometry):
+  def __init__(self, output_path, init_geometry, opt_geometry, include_all_bond_topologies):
     """Creates SDFOutputter.
 
     At least one of init_geometry and opt_geometry should be True
@@ -305,6 +308,7 @@ class SDFOutputter:
     """
     self.init_geometry = init_geometry
     self.opt_geometry = opt_geometry
+    self.include_all_bond_topologies = include_all_bond_topologies
     if output_path:
       self.writer = Chem.SDWriter(output_path)
     else:
@@ -320,7 +324,7 @@ class SDFOutputter:
         conformer,
         include_initial_geometries=self.init_geometry,
         include_optimized_geometry=self.opt_geometry,
-        include_all_bond_topologies=True):
+        include_all_bond_topologies=self.include_all_bond_topologies):
       self.writer.write(mol)
 
   def close(self):
@@ -437,13 +441,16 @@ def main(argv):
     outputter = PBTextOutputter(FLAGS.output_path)
   elif FLAGS.output_format == OutputFormat.sdf_init:
     outputter = SDFOutputter(
-        FLAGS.output_path, init_geometry=True, opt_geometry=False)
+        FLAGS.output_path, init_geometry=True, opt_geometry=False,
+        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
   elif FLAGS.output_format == OutputFormat.sdf_opt:
     outputter = SDFOutputter(
-        FLAGS.output_path, init_geometry=False, opt_geometry=True)
+        FLAGS.output_path, init_geometry=False, opt_geometry=True,
+        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
   elif FLAGS.output_format == OutputFormat.sdf_init_opt:
     outputter = SDFOutputter(
-        FLAGS.output_path, init_geometry=True, opt_geometry=True)
+        FLAGS.output_path, init_geometry=True, opt_geometry=True,
+        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
   elif FLAGS.output_format == OutputFormat.atomic_input:
     outputter = AtomicInputOutputter(FLAGS.output_path)
   elif FLAGS.output_format == OutputFormat.dat:
