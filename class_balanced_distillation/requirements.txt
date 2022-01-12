@@ -1,0 +1,12 @@
+absl==0.0
+absl_py==0.12.0
+clu==0.0.6
+dm_sonnet==2.0.0
+jax==0.2.26
+ml_collections==0.1.0
+numpy==1.21.4
+simclr==1.0.2
+sonnet==0.1.6
+tensorflow==2.7.0
+tensorflow_datasets==4.4.0
+tf_nightly_gpu==2.8.0.dev20211210
