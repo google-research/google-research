@@ -367,7 +367,6 @@ class DatOutputter:
     Args:
       output_path: file to write to
     """
-    self.output_path = output_path
     self.writer = smu_writer_lib.SmuWriter(annotate=False)
     if output_path:
       self.outfile = open(output_path, 'w')
