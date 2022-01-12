@@ -48,7 +48,7 @@ class OutputFormat(enum.Enum):
   sdf_init = 3
   sdf_init_opt = 4
   atomic_input = 5
-
+  dat = 6
 
 flags.DEFINE_string(
     'input_sqlite', None,
@@ -358,6 +358,34 @@ class AtomicInputOutputter:
     pass
 
 
+class DatOutputter:
+  """Internal class to write output as the original .dat format."""
+
+  def __init__(self, output_path):
+    """Creates DatOutputter.
+
+    Args:
+      output_path: file to write to
+    """
+    self.output_path = output_path
+    self.writer = smu_writer_lib.SmuWriter(annotate=False)
+    if output_path:
+      self.outfile = open(output_path, 'w')
+    else:
+      self.outfile = sys.stdout
+
+  def output(self, conformer):
+    """Writes a conformer.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+    """
+    self.outfile.write(self.writer.process_stage2_proto(conformer))
+
+  def close(self):
+    self.outfile.close()
+
+
 class ReDetectTopologiesOutputter:
   """Reruns topology detection before handing to another outputter."""
 
@@ -419,6 +447,8 @@ def main(argv):
         FLAGS.output_path, init_geometry=True, opt_geometry=True)
   elif FLAGS.output_format == OutputFormat.atomic_input:
     outputter = AtomicInputOutputter(FLAGS.output_path)
+  elif FLAGS.output_format == OutputFormat.dat:
+    outputter = DatOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
