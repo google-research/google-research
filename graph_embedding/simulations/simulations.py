@@ -67,7 +67,6 @@ def GenerateStochasticBlockModelWithFeatures(
     edge_feature_dim = 0,
     edge_center_distance = 0.0,
     edge_cluster_variance = 1.0,
-    num_vertices2 = 0,
     pi2 = None,
     feature_center_distance2 = 0.0,
     feature_dim2 = 0,
@@ -80,7 +79,8 @@ def GenerateStochasticBlockModelWithFeatures(
   Args:
     num_vertices: number of nodes in the graph.
     num_edges: expected number of edges in the graph.
-    pi: iterable of non-zero community size proportions. Must sum to 1.0.
+    pi: iterable of non-zero community size relative proportions. Community i
+      will be pi[i] / pi[j] times larger than community j.
     prop_mat: square, symmetric matrix of community edge count rates. Example:
       if diagonals are 2.0 and off-diagonals are 1.0, within-community edges are
       twices as likely as between-community edges.
@@ -105,10 +105,9 @@ def GenerateStochasticBlockModelWithFeatures(
       inter-class means. Increasing this strengthens the edge feature signal.
     edge_cluster_variance: variance of edge clusters around their centers.
       Increasing this weakens the edge feature signal.
-    num_vertices2: If simulating a heterogeneous SBM, this is the number of
-      vertices of type 2.
-    pi2: If simulating a heterogeneous SBM, this is the pi vector for the
-      vertices of type 2. Must sum to 1.0.
+    pi2: This is the pi vector for the vertices of type 2. Type 2 community k
+      will be pi2[k] / pi[j] times larger than type 1 community j. Supplying
+      this argument produces a heterogeneous model.
     feature_center_distance2: feature_center_distance for type 2 nodes. Not used
       if len(pi2) = 0.
     feature_dim2: feature_dim for nodes of type 2. Not used if len(pi2) = 0.
@@ -138,7 +137,7 @@ def GenerateStochasticBlockModelWithFeatures(
         p_to_q_ratio_cross=edge_probability_profile.p_to_q_ratio_cross)
 
   sbm_simulator.SimulateSbm(result, num_vertices, num_edges, pi,
-                            prop_mat, out_degs, num_vertices2, pi2)
+                            prop_mat, out_degs, pi2)
   sbm_simulator.SimulateFeatures(result, feature_center_distance,
                                  feature_dim, num_feature_groups,
                                  feature_group_match_type,

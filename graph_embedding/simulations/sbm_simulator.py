@@ -281,7 +281,6 @@ def SimulateSbm(sbm_data,
                 pi,
                 prop_mat,
                 out_degs = None,
-                num_vertices2 = 0,
                 pi2 = None):
   """Generates a stochastic block model, storing data in sbm_data.graph.
 
@@ -290,57 +289,39 @@ def SimulateSbm(sbm_data,
 
   This function can generate a heterogeneous SBM graph, meaning each node is
   exactly one of two types (and both types are present). To generate a
-  heteroteneous SBM graph, both `num_vertices2` and `pi2` must be non-zero and
-  supplied (respectively). When this happens, additional fields of `sbm_data`
-  are filled. See the StochasticBlockModel dataclass for full details.
+  heteroteneous SBM graph, `pi2` must be supplied, and additional fields of
+  `sbm_data` will be filled. See the StochasticBlockModel dataclass for details.
 
   Args:
     sbm_data: StochasticBlockModel dataclass to store result data.
     num_vertices: (int) number of nodes in the graph.
     num_edges: (int) expected number of edges in the graph.
-    pi: iterable of non-zero community size proportions. Must sum to 1.0.
+    pi: iterable of non-zero community size relative proportions. Community i
+      will be pi[i] / pi[j] times larger than community j.
     prop_mat: square, symmetric matrix of community edge count rates.
     out_degs: Out-degree propensity for each node. If not provided, a constant
       value will be used. Note that the values will be normalized inside each
       group, if they are not already so.
-    num_vertices2: If simulating a heterogeneous SBM, this is the number of
-      vertices of type 2.
-    pi2: If simulating a heterogeneous SBM, this is the pi vector for the
-      vertices of type 2. Must sum to 1.0.
+    pi2: This is the pi vector for the vertices of type 2. Type 2 community k
+      will be pi2[k] / pi[j] times larger than type 1 community j. Supplying
+      this argument produces a heterogeneous model.
   Returns: (none)
   """
-  if ((num_vertices2 == 0 and pi2 is not None) or
-      (num_vertices2 > 0 and pi2 is None)):
-    raise ValueError(
-        "num_vertices2 and pi2 must be either both supplied or both None")
-  if num_vertices2 == 0:
-    pi2 = []
-  # Equivalent to assertAlmostEqual(np.sum(pi), 1.0, places=12)
-  # https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertNotAlmostEqual
-  #
-  # Some leniency is required here because some theoretically-valid ways to
-  # programmatically compute a simplex vector suffer from precision errors. One
-  # example of this is in the simulate_sbm_community_sizes_seven_groups test
-  # from sbm_simulator_test.py. Places>=12 covers known similar cases (to date).
-  if round(abs(np.sum(pi) - 1.0), 12) != 0:
-    raise ValueError("entries of pi ( must sum to 1.0")
-  if len(pi2) > 0 and round(abs(np.sum(pi2) - 1.0), 12) != 0:
-    raise ValueError("entries of pi2 ( must sum to 1.0")
+  if pi2 is None: pi2 = []
   k1, k2 = len(pi), len(pi2)
-  pi = np.array(list(pi) + list(pi2))
+  pi = np.array(list(pi) + list(pi2)).astype(np.float64)
   pi /= np.sum(pi)
   if prop_mat.shape[0] != len(pi) or prop_mat.shape[1] != len(pi):
     raise ValueError("prop_mat must be k x k; k = len(pi1) + len(pi2)")
-  sbm_data.graph_memberships = _GenerateNodeMemberships(
-      num_vertices + num_vertices2, pi)
+  sbm_data.graph_memberships = _GenerateNodeMemberships(num_vertices, pi)
   sbm_data.type1_clusters = sorted(list(set(sbm_data.graph_memberships)))
-  if num_vertices2 > 0:
+  if len(pi2) > 0:
     sbm_data.cross_links = hsu.GetCrossLinks(k1, k2)
     type1_clusters, type2_clusters = zip(*sbm_data.cross_links)
     sbm_data.type1_clusters = sorted(list(set(type1_clusters)))
     sbm_data.type2_clusters = sorted(list(set(type2_clusters)))
   edge_counts = _ComputeExpectedEdgeCounts(
-      num_edges, num_vertices + num_vertices2, pi, prop_mat)
+      num_edges, num_vertices, pi, prop_mat)
   sbm_data.graph = generation.generate_sbm(sbm_data.graph_memberships,
                                            edge_counts, out_degs)
   graph_tool.stats.remove_self_loops(sbm_data.graph)

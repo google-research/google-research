@@ -45,7 +45,7 @@ class SbmSimulatorTestSbm(absltest.TestCase):
 
   def test_simulate_sbm_community_sizes(self):
     simulation = sbm_simulator.StochasticBlockModel()
-    unbalanced_pi = np.array([x + 1 for x in range(10)]) / 55
+    unbalanced_pi = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     sbm_simulator.SimulateSbm(
         simulation,
         num_vertices=50,
@@ -153,11 +153,10 @@ class SbmSimulatorTestHeterogeneousSbm(absltest.TestCase):
     self.simulation_with_graph = sbm_simulator.StochasticBlockModel()
     prop_mat = hsu.GetPropMat(2, 5.0, 2, 5.0, 5.0)
     sbm_simulator.SimulateSbm(self.simulation_with_graph,
-                              num_vertices=200,
+                              num_vertices=400,
                               num_edges=16000,
                               pi=np.array([0.5, 0.5]),
                               prop_mat=prop_mat,
-                              num_vertices2=200,
                               pi2=np.array([0.5, 0.5]))
     sbm_simulator.SimulateFeatures(self.simulation_with_graph,
                                    center_var=1.0,
