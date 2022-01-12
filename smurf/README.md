@@ -127,6 +127,8 @@ step come from the unsupervised model run on multiple frames as described in the
 Pre-trained model checkpoints
 We provide checkpoints of trained models on the Sintel and KITTI dataset. The checkpoints are available on Google Cloud Storage:
 
+* Chairs: [gs://gresearch/smurf/chairs-smurf](https://console.cloud.google.com/storage/browser/gresearch/smurf/chairs-smurf) (~60MB)
+
 * Kitti: [gs://gresearch/smurf/kitti-smurf](https://console.cloud.google.com/storage/browser/gresearch/smurf/kitti-smurf) (~60MB)
 
 * Sintel: [gs://gresearch/smurf/sintel-smurf](https://console.cloud.google.com/storage/browser/gresearch/smurf/sintel-smurf) (~60MB)
