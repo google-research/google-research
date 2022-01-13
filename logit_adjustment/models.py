@@ -40,7 +40,7 @@ def _identity_block(input_tensor,
   """The identity block is the block that has no conv layer at shortcut.
 
   Forked from
-  tensorflow_models.official.vision.image_classification.resnet.resnet_model.
+  tensorflow_models.official.legacy.image_classification.resnet.resnet_model.
 
   Args:
     input_tensor: input tensor.
@@ -126,7 +126,7 @@ def _conv_block(input_tensor,
   """A block that has a conv layer at shortcut.
 
   Forked from
-  tensorflow_models.official.vision.image_classification.resnet.resnet_model.
+  tensorflow_models.official.legacy.image_classification.resnet.resnet_model.
 
   Note that from stage 3,
   the second conv layer at main path is with strides=(2, 2)
