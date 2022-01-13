@@ -31,7 +31,7 @@
 import enum
 import functools
 import itertools
-from typing import Any, NamedTuple
+from typing import Any, List, NamedTuple
 
 import chex
 from flax import struct
@@ -48,26 +48,33 @@ import optax
 class QuantizedValue:
   """State associated with quantized value."""
   quantized: chex.Array
+  diagonal: chex.Array  # Diagonal (if extract_diagonal is set)
   bucket_size: chex.Array
   quantized_dtype: jnp.dtype = struct.field(
       pytree_node=False)  # Dtype for the quantized value.
+  extract_diagonal: bool = struct.field(
+      pytree_node=False)  # In case its centered.
+  shape: Any = struct.field(pytree_node=False)  # Shape of the tensor.
 
   @classmethod
-  def from_float_value(cls, fvalue, quantized_dtype):
+  def from_float_value(cls, fvalue, quantized_dtype, extract_diagonal=False):
     if isinstance(fvalue, list) and not fvalue:
-      return QuantizedValue([], [], quantized_dtype)
-
-    quantized, bucket_size = QuantizedValue.quantize(fvalue, quantized_dtype)
-    return QuantizedValue(quantized, bucket_size, quantized_dtype)
+      return QuantizedValue([], [], [], quantized_dtype, extract_diagonal, [])
+    quantized, diagonal_fvalue, bucket_size = QuantizedValue.quantize(
+        fvalue, quantized_dtype, extract_diagonal)
+    return QuantizedValue(quantized, diagonal_fvalue, bucket_size,
+                          quantized_dtype, extract_diagonal,
+                          list(quantized.shape))
 
   # Quantization is from Lingvo JAX optimizers.
+  # We extend it for int16 quantization of PSD matrices.
   @classmethod
-  def quantize(cls, fvalue, quantized_dtype):
+  def quantize(cls, fvalue, quantized_dtype, extract_diagonal=False):
     """Returns quantized value and the bucket."""
     if quantized_dtype == jnp.float32:
-      return fvalue, []
+      return fvalue, [], []
     elif quantized_dtype == jnp.bfloat16:
-      return fvalue.astype(jnp.bfloat16), []
+      return fvalue.astype(jnp.bfloat16), [], []
 
     float_dtype = fvalue.dtype
     if quantized_dtype == jnp.int8:
@@ -79,6 +86,16 @@ class QuantizedValue:
     else:
       raise ValueError(f'Quantized dtype {quantized_dtype} not supported.')
     # max value is mapped to num_buckets
+
+    if extract_diagonal and fvalue.ndim != 2:
+      raise ValueError(
+          f'Input array {fvalue} must be 2D to work with extract_diagonal.')
+
+    diagonal_fvalue = []
+    if extract_diagonal:
+      diagonal_fvalue = jnp.diag(fvalue)
+      # Remove the diagonal entries.
+      fvalue = fvalue - jnp.diag(diagonal_fvalue)
 
     # TODO(rohananil): Extend this by making use of information about the blocks
     # SM3 style which will be useful for diagonal statistics
@@ -97,7 +114,7 @@ class QuantizedValue:
     ratio = fvalue / bs_nonzero
     # We use rounding to remove bias.
     quantized = jnp.round(ratio)
-    return quantized.astype(quantized_dtype), bucket_size
+    return quantized.astype(quantized_dtype), diagonal_fvalue, bucket_size
 
   def to_float(self):
     """Returns the float value."""
@@ -112,15 +129,18 @@ class QuantizedValue:
 
     float_dtype = self.bucket_size.dtype
     bucket_size = self.bucket_size[jnp.newaxis, Ellipsis]
-    return self.quantized.astype(float_dtype) * bucket_size
+    val = self.quantized.astype(float_dtype) * bucket_size
+    if self.extract_diagonal:
+      val += jnp.diag(self.diagonal)
+    return val
 
 
 # Per parameter optimizer state used in data-parallel training.
 class ParameterStats(NamedTuple):
   """State associated to each parameter of the model being trained."""
   diagonal_statistics: QuantizedValue  # Accumulator for diagonal preconditioner
-  statistics: chex.Array  # Statistics
-  preconditioners: chex.Array  # Preconditioners
+  statistics: List[Any]  # Statistics (QuantizedValue, chex.Array)
+  preconditioners: List[Any]  # Preconditioners (QuantizedValue, chex.Array)
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
 
@@ -643,6 +663,9 @@ def distributed_shampoo(
     shard_optimizer_states: Shard optimizer states to save memory in model
       parallel training.
     best_effort_memory_usage_reduction: Best effort memory usage reduction.
+      diagonal_statistics -> jnp.bfloat16
+      momentum buffers (2x) -> jnp.int8
+      statistics, preconditioners -> jnp.int16 + diagonals
     inverse_failure_threshold: numerics are hard and inverses fail sometimes; we
       determine that using this threshold.
     moving_average_for_momentum: Whether to use moving average for momentum
@@ -663,8 +686,67 @@ def distributed_shampoo(
   def quantized_dtype_for_momentum_buffers():
     return jnp.int8 if best_effort_memory_usage_reduction else jnp.float32
 
-  def quantized_dtype_for_statistics_buffers():
+  # TODO(rohananil): Explore int8-16 quantization with non-linear bucket sizes.
+  def quantized_dtype_for_diagonal_statistics_buffers():
     return jnp.bfloat16 if best_effort_memory_usage_reduction else jnp.float32
+
+  # Preconditioner and statistics are both stores as int16 in this mode.
+  # We take out the diagonal to make quantization easier.
+  def quantized_dtype_for_second_moment_statistics_buffers():
+    return jnp.int16 if best_effort_memory_usage_reduction and batch_axis_name else jnp.float32
+
+  # Preconditioner and statistics are both stores as int16 in this mode.
+  # We take out the diagonal to make quantization easier.
+  def quantized_dtype_for_second_moment_preconditioner_buffers():
+    return jnp.int16 if best_effort_memory_usage_reduction and batch_axis_name else jnp.float32
+
+  def _to_float(maybe_quantized):
+    if isinstance(maybe_quantized, QuantizedValue):
+      return maybe_quantized.to_float()
+    else:
+      return maybe_quantized
+
+  def _maybe_quantize_statistics(statistics_list):
+    return _maybe_quantize_matrices_with_dtype(
+        statistics_list, quantized_dtype_for_second_moment_statistics_buffers())
+
+  def _maybe_quantize_preconditioners(statistics_list):
+    return _maybe_quantize_matrices_with_dtype(
+        statistics_list,
+        quantized_dtype_for_second_moment_preconditioner_buffers())
+
+  def _maybe_quantize_matrices_with_dtype(statistics_list, quantized_dtype):
+    if quantized_dtype != jnp.float32:
+      return ([
+          QuantizedValue.from_float_value(
+              s, quantized_dtype, extract_diagonal=True)
+          for s in statistics_list
+      ])
+    else:
+      return statistics_list
+
+  def _maybe_dequantize_statistics(statistics_list):
+    return _maybe_dequantize_matrices_with_dtype(
+        statistics_list, quantized_dtype_for_second_moment_statistics_buffers())
+
+  def _maybe_dequantize_preconditioners(preconditioner_list):
+    return _maybe_dequantize_matrices_with_dtype(
+        preconditioner_list,
+        quantized_dtype_for_second_moment_preconditioner_buffers())
+
+  def _maybe_dequantize_matrices_with_dtype(statistics_list, quantized_dtype):
+    if quantized_dtype != jnp.float32:
+      return [s.to_float() for s in statistics_list]
+    else:
+      return statistics_list
+
+  def _quantize_diagonal_statistics(diagonal_statistics):
+    return QuantizedValue.from_float_value(
+        diagonal_statistics, quantized_dtype_for_diagonal_statistics_buffers())
+
+  def _quantize_momentum(momentum_statistics):
+    return QuantizedValue.from_float_value(
+        momentum_statistics, quantized_dtype_for_momentum_buffers())
 
   def sharded_init_fn(params):
     params_flat, treedef = jax.tree_flatten(params)
@@ -698,19 +780,14 @@ def distributed_shampoo(
         padded_statistics.extend(statistics)
         padded_preconditioners.extend(preconditioners)
 
-      adagrad_statistics = []
+      diagonal_statistics = []
       if graft_type != GraftingType.SGD:
-        adagrad_statistics = jnp.zeros_like(param)
+        diagonal_statistics = jnp.zeros_like(param)
       local_stats_flat.append(
           LocalShardedParameterStats(
-              QuantizedValue.from_float_value(
-                  adagrad_statistics, quantized_dtype_for_statistics_buffers()),
-              QuantizedValue.from_float_value(
-                  jnp.zeros_like(param),
-                  quantized_dtype_for_momentum_buffers()),
-              QuantizedValue.from_float_value(
-                  jnp.zeros_like(param),
-                  quantized_dtype_for_momentum_buffers()), index_start, sizes))
+              _quantize_diagonal_statistics(diagonal_statistics),
+              _quantize_momentum(jnp.zeros_like(param)),
+              _quantize_momentum(jnp.zeros_like(param)), index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     # Pad the statistics and preconditioner matrices to be a multiple of
@@ -855,17 +932,15 @@ def distributed_shampoo(
         statistics = [matrix_epsilon * jnp.eye(s[0]) for s in shapes]
         preconditioners = [jnp.eye(s[0]) for s in shapes]
 
-      adagrad_statistics = []
+      diagonal_statistics = []
       if graft_type != GraftingType.SGD:
-        adagrad_statistics = jnp.zeros_like(param)
+        diagonal_statistics = jnp.zeros_like(param)
       return ParameterStats(
-          QuantizedValue.from_float_value(
-              adagrad_statistics, quantized_dtype_for_statistics_buffers()),
-          statistics, preconditioners,
-          QuantizedValue.from_float_value(
-              jnp.zeros_like(param), quantized_dtype_for_momentum_buffers()),
-          QuantizedValue.from_float_value(
-              jnp.zeros_like(param), quantized_dtype_for_momentum_buffers()))
+          _quantize_diagonal_statistics(diagonal_statistics),
+          _maybe_quantize_statistics(statistics),
+          _maybe_quantize_preconditioners(preconditioners),
+          _quantize_momentum(jnp.zeros_like(param)),
+          _quantize_momentum(jnp.zeros_like(param)))
     return ShampooState(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
 
@@ -886,8 +961,9 @@ def distributed_shampoo(
         new_stats = preconditioner.statistics_from_grad(grad)
         new_stats_accumulators = []
         for stat, stat_accumulator in zip(new_stats, state.statistics):
-          new_stats_accumulators.append(w1 * stat_accumulator + w2 * stat)
-        return new_stats_accumulators
+          new_stats_accumulators.append(w1 * _to_float(stat_accumulator) +
+                                        w2 * stat)
+        return _maybe_quantize_statistics(new_stats_accumulators)
 
       if statistics_compute_steps > 1:
         perform_step = step % statistics_compute_steps == 0
@@ -921,8 +997,9 @@ def distributed_shampoo(
           ) if exponent_override == 0 else exponent_override)
           original_shapes_for_state.append(statistic.shape)
           max_size = max(max_size, statistic.shape[0])
-        statistics.extend(state.statistics)
-        prev_preconditioners.extend(state.preconditioners)
+        statistics.extend(_maybe_dequantize_statistics(state.statistics))
+        prev_preconditioners.extend(
+            _maybe_dequantize_preconditioners(state.preconditioners))
         original_shapes.extend(original_shapes_for_state)
     num_statistics = len(statistics)
 
@@ -1094,8 +1171,8 @@ def distributed_shampoo(
     for state, new_preconditioners in zip(states, preconditioners_for_states):
       new_states.append(
           ParameterStats(state.diagonal_statistics, state.statistics,
-                         new_preconditioners, state.diagonal_momentum,
-                         state.momentum))
+                         _maybe_quantize_preconditioners(new_preconditioners),
+                         state.diagonal_momentum, state.momentum))
 
     return new_states
 
@@ -1140,8 +1217,9 @@ def distributed_shampoo(
 
     precond_grad = grad
     if not _skip_preconditioning(param):
-      precond_grad = preconditioner.preconditioned_grad(precond_grad,
-                                                        state.preconditioners)
+      precond_grad = preconditioner.preconditioned_grad(
+          precond_grad,
+          _maybe_dequantize_preconditioners(state.preconditioners))
     else:
       precond_grad = grafting_update
 
@@ -1184,13 +1262,10 @@ def distributed_shampoo(
     transformed_update = -1.0 * lr * momentum_update
 
     param_stats = ParameterStats(
-        QuantizedValue.from_float_value(
-            new_diagonal_statistics, quantized_dtype_for_statistics_buffers()),
+        _quantize_diagonal_statistics(new_diagonal_statistics),
         state.statistics, state.preconditioners,
-        QuantizedValue.from_float_value(grafting_update_with_wd_momentum,
-                                        quantized_dtype_for_momentum_buffers()),
-        QuantizedValue.from_float_value(shampoo_update_with_wd_momentum,
-                                        quantized_dtype_for_momentum_buffers()))
+        _quantize_momentum(grafting_update_with_wd_momentum),
+        _quantize_momentum(shampoo_update_with_wd_momentum))
     return transformed_update, param_stats
 
   def update_fn(grads, state, params):

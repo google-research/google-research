@@ -38,7 +38,11 @@ class DistributedShampooTest(chex.TestCase):
     params = self.init_params
 
     optim = distributed_shampoo.distributed_shampoo(
-        0.1, 32, batch_axis_name='batch', preconditioning_compute_steps=2)
+        0.1,
+        32,
+        batch_axis_name='batch',
+        preconditioning_compute_steps=2,
+        best_effort_memory_usage_reduction=True)
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
 
