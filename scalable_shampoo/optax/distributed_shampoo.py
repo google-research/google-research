@@ -411,6 +411,25 @@ def pad_matrix(mat, max_size):
   return mat
 
 
+def pad_vector(vec, max_size):
+  """Pad a vector to a max_size.
+
+  Args:
+    vec: a vector to pad.
+    max_size: matrix size requested.
+
+  Returns:
+    Given V returns [V, 0]
+  """
+  size = vec.shape[0]
+  assert size <= max_size
+  if size == max_size:
+    return vec
+  pad_size = max_size - size
+  zs1 = jnp.zeros([pad_size], dtype=vec.dtype)
+  return jnp.concatenate([vec, zs1], 0)
+
+
 def efficient_cond(predicate, compute_fn, init_state, *args, **kwargs):
   """Avoids wasteful buffer allocation with XLA."""
 
@@ -580,6 +599,28 @@ def _convert_from_parameter_stats(parameter_stats, local_stats):
                                     local_stats.index_start, local_stats.sizes)
 
 
+def batch(x, num_devices):
+  """Batch `x` so that so that leading axis is num_devices."""
+  n = len(x)
+  b = int(n / num_devices)
+  return jnp.stack([jnp.stack(x[idx:idx + b]) for idx in range(0, n, b)])
+
+
+def unbatch(batched_values):
+  """Unbatch values across leading axis and return a list of elements."""
+  b1, b2 = batched_values.shape[0], batched_values.shape[1]
+  results = []
+  for v_array in jnp.split(batched_values, indices_or_sections=b1, axis=0):
+    v_array = jnp.squeeze(v_array)
+    # b2 = batches (number of preconditioner computation) per core.
+    if b2 > 1:
+      for v in jnp.split(v_array, indices_or_sections=b2, axis=0):
+        results.append(jnp.squeeze(v))
+    else:
+      results.append(v_array)
+  return results
+
+
 def distributed_shampoo(
     learning_rate,
     block_size,
@@ -724,10 +765,6 @@ def distributed_shampoo(
       ])
     else:
       return statistics_list
-
-  def _maybe_dequantize_statistics(statistics_list):
-    return _maybe_dequantize_matrices_with_dtype(
-        statistics_list, quantized_dtype_for_second_moment_statistics_buffers())
 
   def _maybe_dequantize_preconditioners(preconditioner_list):
     return _maybe_dequantize_matrices_with_dtype(
@@ -977,165 +1014,105 @@ def distributed_shampoo(
                           state.preconditioners, state.diagonal_momentum,
                           state.momentum)
 
-  def _compute_preconditioners(states, params, step):
-    """Compute preconditioners for statistics."""
-    statistics = []
-    num_statistics_per_state = []
-    original_shapes = []
-    exponents = []
-    max_size = 0
-    prev_preconditioners = []
-    for state, param in zip(states, params):
-      num_statistics = len(state.statistics)
-      num_statistics_per_state.append(num_statistics)
-      original_shapes_for_state = []
-      if num_statistics > 0:
-        preconditioner = Preconditioner(param, block_size,
-                                        best_effort_shape_interpretation)
-        for statistic in state.statistics:
-          exponents.append(preconditioner.exponent_for_preconditioner(
-          ) if exponent_override == 0 else exponent_override)
-          original_shapes_for_state.append(statistic.shape)
-          max_size = max(max_size, statistic.shape[0])
-        statistics.extend(_maybe_dequantize_statistics(state.statistics))
-        prev_preconditioners.extend(
-            _maybe_dequantize_preconditioners(state.preconditioners))
-        original_shapes.extend(original_shapes_for_state)
+  def _matrix_inverse_pth_root_vmap(xs, ps):
+    mi_pth_root = functools.partial(
+        matrix_inverse_pth_root,
+        ridge_epsilon=matrix_epsilon,
+        precision=precision)
+    return jax.vmap(mi_pth_root)(xs, ps)
+
+  def _quantized_matrix_inverse_pth_root_vmap(qxs, qds, qbs, ps):
+
+    def _quantized_to_float(qx, qd, qb):
+      qv = QuantizedValue(qx, qd, qb, qx.dtype, True, list(qx.shape))
+      return qv.to_float()
+
+    def matrix_inverse_pth_root_wrapper(qx, qd, qb, p):
+      v = _quantized_to_float(qx, qd, qb)
+      preconditioner, error = matrix_inverse_pth_root(
+          v, p, ridge_epsilon=matrix_epsilon, precision=precision)
+      qp = QuantizedValue.from_float_value(preconditioner, qx.dtype, True)
+      return qp.quantized, qp.diagonal, qp.bucket_size, error
+
+    return jax.vmap(matrix_inverse_pth_root_wrapper)(qxs, qds, qbs, ps)
+
+  def _matrix_inverse_pth_root_pjit(xs, ps):
+    mesh_axis_names_tuple = tuple(mesh_axis_names)
+    # Partition the concatenated statistics matrix across all cores.
+    partitioned_xs, partitioned_ps = pjit.pjit(
+        lambda x, y: (x, y),
+        in_axis_resources=None,
+        out_axis_resources=pjit.PartitionSpec(mesh_axis_names_tuple,))(xs, ps)
+    # Run matrix inverse pth root on each shard.
+    partitioned_preconditioners, partitioned_errors = _matrix_inverse_pth_root_vmap(
+        partitioned_xs, partitioned_ps)
+    # Recombine the outputs at each core.
+    preconditioners, errors = pjit.pjit(
+        lambda x, y: (x, y),
+        in_axis_resources=(pjit.PartitionSpec(mesh_axis_names_tuple,),
+                           pjit.PartitionSpec(mesh_axis_names_tuple,)),
+        out_axis_resources=(None, None))(partitioned_preconditioners,
+                                         partitioned_errors)
+    return preconditioners, errors
+
+  def _pmap_compute_preconditioners(states, step, statistics,
+                                    num_statistics_per_state, original_shapes,
+                                    exponents, max_size, prev_preconditioners):
+    """Computes preconditioners for given statistics in states in PMAP mode.
+
+    Args:
+      states: A list of optimizer states.
+      step: Current step number
+      statistics: A list of statistics for all variables (for every dim)
+      num_statistics_per_state: Number of statistis per state to reconstruct
+        output states.
+      original_shapes: A list of shapes of the statistics.
+      exponents: Exponent power to use for inverse-pth roots.
+      max_size: Maximum dim of the statistics to pad.
+      prev_preconditioners: Previously available preconditioner.
+
+    Returns:
+      New optimizer states after computing the preconditioner.
+    """
+    num_devices = lax.psum(1, batch_axis_name)
     num_statistics = len(statistics)
+    # Pad statistics and exponents to next multiple of num_devices.
+    packed_statistics = [pad_matrix(stat, max_size) for stat in statistics]
+    to_pad = -num_statistics % num_devices
+    packed_statistics.extend([
+        jnp.eye(max_size, dtype=packed_statistics[0].dtype)
+        for _ in range(to_pad)
+    ])
+    exponents.extend([1 for _ in range(to_pad)])
 
-    if batch_axis_name:
-      num_devices = lax.psum(1, batch_axis_name)
+    if not packed_statistics:
+      return states
 
-      # Pad statistics and exponents to next multiple of num_devices.
-      packed_statistics = [pad_matrix(stat, max_size) for stat in statistics]
-      to_pad = -num_statistics % num_devices
-      packed_statistics.extend([
-          jnp.eye(max_size, dtype=packed_statistics[0].dtype)
-          for _ in range(to_pad)
-      ])
-      exponents.extend([1 for _ in range(to_pad)])
+    all_statistics = batch(packed_statistics, num_devices)
+    all_exponents = batch(exponents, num_devices)
 
-      if not packed_statistics:
-        return states
-      # Batch statistics and exponents so that so that leading axis is
-      # num_devices.
-      def _batch(statistics, exponents, num_devices):
-        assert len(statistics) == len(exponents)
-        n = len(statistics)
-        b = int(n / num_devices)
-        batched_statistics = [
-            jnp.stack(statistics[idx:idx + b]) for idx in range(0, n, b)
-        ]
-        batched_exponents = [
-            jnp.stack(exponents[idx:idx + b]) for idx in range(0, n, b)
-        ]
-        return jnp.stack(batched_statistics), jnp.stack(batched_exponents)
+    def _internal_inverse_pth_root_all():
+      current_replica = lax.axis_index(batch_axis_name)
+      preconditioners, errors = _matrix_inverse_pth_root_vmap(
+          all_statistics[current_replica], all_exponents[current_replica])
+      preconditioners = jax.lax.all_gather(preconditioners, batch_axis_name)
+      errors = jax.lax.all_gather(errors, batch_axis_name)
+      preconditioners_flat = unbatch(preconditioners)
+      errors_flat = unbatch(errors)
+      return preconditioners_flat, errors_flat
 
-      # Unbatch values across leading axis and return a list of elements.
-      def _unbatch(batched_values):
-        b1, b2 = batched_values.shape[0], batched_values.shape[1]
-        results = []
-        for v_array in jnp.split(
-            batched_values, indices_or_sections=b1, axis=0):
-          v_array = jnp.squeeze(v_array)
-          # b2 = batches (number of preconditioner computation) per core.
-          if b2 > 1:
-            for v in jnp.split(v_array, indices_or_sections=b2, axis=0):
-              results.append(jnp.squeeze(v))
-          else:
-            results.append(v_array)
-        return results
-
-      all_statistics, all_exponents = _batch(packed_statistics, exponents,
-                                             num_devices)
+    if preconditioning_compute_steps == 1:
+      preconditioners_flat, errors_flat = _internal_inverse_pth_root_all()
     else:
-      to_pad = -num_statistics % num_devices_for_pjit
-      padded_statistics = [pad_matrix(stat, max_size) for stat in statistics]
-      padded_statistics.extend([
-          jnp.eye(max_size, dtype=padded_statistics[0].dtype)
-          for _ in range(to_pad)
-      ])
-      exponents.extend([1 for _ in range(to_pad)])
-      all_statistics = jnp.stack(padded_statistics)
-      all_exponents = jnp.stack(exponents)
-
-    def _matrix_inverse_pth_root_vmap(xs, ps):
-      mi_pth_root = functools.partial(
-          matrix_inverse_pth_root,
-          ridge_epsilon=matrix_epsilon,
-          precision=precision)
-      preconditioners, errors = jax.vmap(mi_pth_root)(xs, ps)
-      return preconditioners, errors
-
-    def _matrix_inverse_pth_root_pjit(xs, ps):
-      mesh_axis_names_tuple = tuple(mesh_axis_names)
-      # Partition the concatenated statistics matrix across all cores.
-      partitioned_xs, partitioned_ps = pjit.pjit(
-          lambda x, y: (x, y),
-          in_axis_resources=None,
-          out_axis_resources=pjit.PartitionSpec(mesh_axis_names_tuple,))(xs, ps)
-      # Run matrix inverse pth root on each shard.
-      partitioned_preconditioners, partitioned_errors = _matrix_inverse_pth_root_vmap(
-          partitioned_xs, partitioned_ps)
-      # Recombine the outputs at each core.
-      preconditioners, errors = pjit.pjit(
-          lambda x, y: (x, y),
-          in_axis_resources=(pjit.PartitionSpec(mesh_axis_names_tuple,),
-                             pjit.PartitionSpec(mesh_axis_names_tuple,)),
-          out_axis_resources=(None, None))(partitioned_preconditioners,
-                                           partitioned_errors)
-      return preconditioners, errors
-
-    if not batch_axis_name:
-      def _internal_inverse_pth_root_all():
-        preconditioners, errors = _matrix_inverse_pth_root_pjit(
-            all_statistics, all_exponents)
-        b1 = preconditioners.shape[0]
-        def split(batched_values):
-          return [
-              jnp.squeeze(v) for v in jnp.split(
-                  batched_values, indices_or_sections=b1, axis=0)
-          ]
-
-        return split(preconditioners), split(errors)
-
-      if preconditioning_compute_steps == 1:
-        preconditioners_flat, errors_flat = _internal_inverse_pth_root_all()
-      else:
-        # Passing statistics instead of preconditioners as they are similarly
-        # shaped tensors. Note statistics will be ignored as we are passing in
-        # a large init value for error.
-        preconditioners_init = padded_statistics
-        errors_init = [inverse_failure_threshold] * len(padded_statistics)
-        init_state = [preconditioners_init, errors_init]
-        perform_step = step % preconditioning_compute_steps == 0
-        preconditioners_flat, errors_flat = efficient_cond(
-            perform_step, _internal_inverse_pth_root_all, init_state)
-    else:
-
-      def _internal_inverse_pth_root_all():
-        preconditioners = jnp.array(all_statistics)
-        current_replica = lax.axis_index(batch_axis_name)
-        preconditioners, errors = _matrix_inverse_pth_root_vmap(
-            all_statistics[current_replica], all_exponents[current_replica])
-        preconditioners = jax.lax.all_gather(preconditioners, batch_axis_name)
-        errors = jax.lax.all_gather(errors, batch_axis_name)
-        preconditioners_flat = _unbatch(preconditioners)
-        errors_flat = _unbatch(errors)
-        return preconditioners_flat, errors_flat
-
-      if preconditioning_compute_steps == 1:
-        preconditioners_flat, errors_flat = _internal_inverse_pth_root_all()
-      else:
-        # Passing statistics instead of preconditioners as they are similarly
-        # shaped tensors. Note statistics will be ignored as we are passing in
-        # a large init value for error.
-        preconditioners_init = packed_statistics
-        errors_init = ([inverse_failure_threshold] * len(packed_statistics))
-        init_state = [preconditioners_init, errors_init]
-        perform_step = step % preconditioning_compute_steps == 0
-        preconditioners_flat, errors_flat = efficient_cond(
-            perform_step, _internal_inverse_pth_root_all, init_state)
+      # Passing statistics instead of preconditioners as they are similarly
+      # shaped tensors. Note statistics will be ignored as we are passing in
+      # a large init value for error.
+      preconditioners_init = packed_statistics
+      errors_init = ([inverse_failure_threshold] * len(packed_statistics))
+      init_state = [preconditioners_init, errors_init]
+      perform_step = step % preconditioning_compute_steps == 0
+      preconditioners_flat, errors_flat = efficient_cond(
+          perform_step, _internal_inverse_pth_root_all, init_state)
 
     def _skip(error):
       condition = jnp.logical_or(
@@ -1171,10 +1148,335 @@ def distributed_shampoo(
     for state, new_preconditioners in zip(states, preconditioners_for_states):
       new_states.append(
           ParameterStats(state.diagonal_statistics, state.statistics,
-                         _maybe_quantize_preconditioners(new_preconditioners),
-                         state.diagonal_momentum, state.momentum))
+                         new_preconditioners, state.diagonal_momentum,
+                         state.momentum))
 
     return new_states
+
+  def _pmap_quantized_compute_preconditioners(states, step, statistics,
+                                              num_statistics_per_state,
+                                              original_shapes, exponents,
+                                              max_size, prev_preconditioners):
+    """Computes preconditioners for given statistics in states in PMAP mode.
+
+    For quantization, each statistic is represented by three values:
+      quantized matrix, diagonal, and bucket sizes, we run inverse pth-roots
+      without ever recreating the original matrix in f32.
+
+    Args:
+      states: A list of optimizer states.
+      step: Current step number
+      statistics: A list of statistics for all variables (for every dim)
+      num_statistics_per_state: Number of statistis per state to reconstruct
+        output states.
+      original_shapes: A list of shapes of the statistics.
+      exponents: Exponent power to use for inverse-pth roots.
+      max_size: Maximum dim of the statistics to pad.
+      prev_preconditioners: Previously available preconditioner.
+
+    Returns:
+      New optimizer states after computing the preconditioner.
+    """
+    num_devices = lax.psum(1, batch_axis_name)
+    num_statistics = len(statistics)
+    quantized_dtype = quantized_dtype_for_second_moment_statistics_buffers()
+    # Complexity here is around: shapes needing be statically shaped,
+    # our custom quantization type requires a different type of packing.
+
+    # Parallel tensors:
+    # quantized [dxd]
+    # diagonals [d] f32
+    # bucket_sizes [d] f32
+    packed_quantized_statistics = [
+        pad_matrix(stat.quantized, max_size) for stat in statistics
+    ]
+    packed_quantized_diagonals = [
+        pad_vector(stat.diagonal, max_size) for stat in statistics
+    ]
+    packed_quantized_bucket_sizes = [
+        pad_vector(stat.bucket_size, max_size) for stat in statistics
+    ]
+
+    to_pad = -num_statistics % num_devices
+    padded_eye = jnp.eye(max_size, dtype=jnp.float32)
+    quantized_eye = QuantizedValue.from_float_value(padded_eye, quantized_dtype,
+                                                    True)
+    packed_quantized_statistics.extend(
+        [quantized_eye.quantized for _ in range(to_pad)])
+    packed_quantized_diagonals.extend(
+        [quantized_eye.diagonal for _ in range(to_pad)])
+    packed_quantized_bucket_sizes.extend(
+        [quantized_eye.bucket_size for _ in range(to_pad)])
+    exponents.extend([1 for _ in range(to_pad)])
+
+    if not packed_quantized_statistics:
+      return states
+
+    all_quantized_statistics = batch(packed_quantized_statistics, num_devices)
+    all_quantized_diagonals = batch(packed_quantized_diagonals, num_devices)
+    all_quantized_bucket_sizes = batch(packed_quantized_bucket_sizes,
+                                       num_devices)
+    all_exponents = batch(exponents, num_devices)
+
+    def _internal_inverse_pth_root_all():
+      current_replica = lax.axis_index(batch_axis_name)
+      quantized_preconditioners, quantized_diagonals, quantized_bucket_sizes, errors = (
+          _quantized_matrix_inverse_pth_root_vmap(
+              all_quantized_statistics[current_replica],
+              all_quantized_diagonals[current_replica],
+              all_quantized_bucket_sizes[current_replica],
+              all_exponents[current_replica]))
+      quantized_preconditioners = jax.lax.all_gather(quantized_preconditioners,
+                                                     batch_axis_name)
+      quantized_diagonals = jax.lax.all_gather(quantized_diagonals,
+                                               batch_axis_name)
+      quantized_bucket_sizes = jax.lax.all_gather(quantized_bucket_sizes,
+                                                  batch_axis_name)
+      errors = jax.lax.all_gather(errors, batch_axis_name)
+      quantized_preconditioners_flat = unbatch(quantized_preconditioners)
+      quantized_diagonals_flat = unbatch(quantized_diagonals)
+      quantized_bucket_sizes_flat = unbatch(quantized_bucket_sizes)
+      errors_flat = unbatch(errors)
+      return (quantized_preconditioners_flat, quantized_diagonals_flat,
+              quantized_bucket_sizes_flat, errors_flat)
+
+    if preconditioning_compute_steps == 1:
+      (quantized_preconditioners_flat, quantized_diagonals_flat,
+       quantized_bucket_sizes_flat, errors_flat) = (
+           _internal_inverse_pth_root_all())
+    else:
+      # Passing statistics instead of preconditioners as they are similarly
+      # shaped tensors. Note statistics will be ignored as we are passing in
+      # a large init value for error.
+      quantized_preconditioners_init = packed_quantized_statistics
+      quantized_diagonals_init = packed_quantized_diagonals
+      quantized_bucket_sizes_init = packed_quantized_bucket_sizes
+      errors_init = ([inverse_failure_threshold] *
+                     len(quantized_preconditioners_init))
+      init_state = [
+          quantized_preconditioners_init, quantized_diagonals_init,
+          quantized_bucket_sizes_init, errors_init
+      ]
+      perform_step = step % preconditioning_compute_steps == 0
+      (quantized_preconditioners_flat, quantized_diagonals_flat,
+       quantized_bucket_sizes_flat, errors_flat) = (
+           efficient_cond(perform_step, _internal_inverse_pth_root_all,
+                          init_state))
+
+    def _skip(error):
+      condition = jnp.logical_or(
+          jnp.isnan(error), error >= inverse_failure_threshold)
+      return condition.astype(error.dtype)
+
+    def _select_preconditioner(error, new_p, old_p):
+      return lax.cond(
+          _skip(error), lambda _: old_p, lambda _: new_p, operand=None)
+
+    new_quantized_preconditioners_flat = []
+    new_quantized_diagonals_flat = []
+    new_quantized_bucket_sizes_flat = []
+    for p, d, b, shape, prev_p, error in zip(quantized_preconditioners_flat,
+                                             quantized_diagonals_flat,
+                                             quantized_bucket_sizes_flat,
+                                             original_shapes,
+                                             prev_preconditioners, errors_flat):
+      new_quantized_preconditioners_flat.append(
+          _select_preconditioner(error, p[:shape[0], :shape[1]],
+                                 prev_p.quantized))
+      new_quantized_diagonals_flat.append(
+          _select_preconditioner(error, d[:shape[0]], prev_p.diagonal))
+      new_quantized_bucket_sizes_flat.append(
+          _select_preconditioner(error, b[:shape[0]], prev_p.bucket_size))
+
+    assert len(states) == len(num_statistics_per_state)
+    assert len(new_quantized_preconditioners_flat) == num_statistics
+    assert len(new_quantized_diagonals_flat) == num_statistics
+    assert len(new_quantized_bucket_sizes_flat) == num_statistics
+
+    # Add back empty preconditioners so we that we can set the optimizer state.
+    preconditioners_for_states = []
+    idx = 0
+    for num_statistics, state in zip(num_statistics_per_state, states):
+      if num_statistics == 0:
+        preconditioners_for_states.append([])
+      else:
+        quantized_preconditioners_for_state = new_quantized_preconditioners_flat[
+            idx:idx + num_statistics]
+        quantized_diagonals_for_state = new_quantized_diagonals_flat[
+            idx:idx + num_statistics]
+        quantized_bucket_sizes_for_state = new_quantized_bucket_sizes_flat[
+            idx:idx + num_statistics]
+
+        assert len(state.statistics) == len(quantized_preconditioners_for_state)
+        assert len(state.statistics) == len(quantized_diagonals_for_state)
+        assert len(state.statistics) == len(quantized_bucket_sizes_for_state)
+
+        quantized_preconditioners = []
+        for qv, qd, qb in zip(quantized_preconditioners_for_state,
+                              quantized_diagonals_for_state,
+                              quantized_bucket_sizes_for_state):
+          quantized_preconditioners.append(
+              QuantizedValue(qv, qd, qb, qv.dtype, True, list(qv.shape)))
+        preconditioners_for_states.append(quantized_preconditioners)
+        idx += num_statistics
+    new_states = []
+    for state, new_preconditioners in zip(states, preconditioners_for_states):
+      new_states.append(
+          ParameterStats(state.diagonal_statistics, state.statistics,
+                         new_preconditioners, state.diagonal_momentum,
+                         state.momentum))
+
+    return new_states
+
+  def _pjit_compute_preconditioners(states, step, statistics,
+                                    num_statistics_per_state, original_shapes,
+                                    exponents, max_size, prev_preconditioners):
+    """Computes preconditioners for given statistics in states in PJIT mode.
+
+    Args:
+      states: A list of optimizer states.
+      step: Current step number
+      statistics: A list of statistics for all variables (for every dim)
+      num_statistics_per_state: Number of statistis per state to reconstruct
+        output states.
+      original_shapes: A list of shapes of the statistics.
+      exponents: Exponent power to use for inverse-pth roots.
+      max_size: Maximum dim of the statistics to pad.
+      prev_preconditioners: Previously available preconditioner.
+
+    Returns:
+      New optimizer states after computing the preconditioner.
+    """
+    num_statistics = len(statistics)
+    to_pad = -num_statistics % num_devices_for_pjit
+    padded_statistics = [pad_matrix(stat, max_size) for stat in statistics]
+    padded_statistics.extend([
+        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        for _ in range(to_pad)
+    ])
+    exponents.extend([1 for _ in range(to_pad)])
+    all_statistics = jnp.stack(padded_statistics)
+    all_exponents = jnp.stack(exponents)
+
+    def _internal_inverse_pth_root_all():
+      preconditioners, errors = _matrix_inverse_pth_root_pjit(
+          all_statistics, all_exponents)
+      b1 = preconditioners.shape[0]
+
+      def split(batched_values):
+        return [
+            jnp.squeeze(v)
+            for v in jnp.split(batched_values, indices_or_sections=b1, axis=0)
+        ]
+
+      return split(preconditioners), split(errors)
+
+    if preconditioning_compute_steps == 1:
+      preconditioners_flat, errors_flat = _internal_inverse_pth_root_all()
+    else:
+      # Passing statistics instead of preconditioners as they are similarly
+      # shaped tensors. Note statistics will be ignored as we are passing in
+      # a large init value for error.
+      preconditioners_init = padded_statistics
+      errors_init = [inverse_failure_threshold] * len(padded_statistics)
+      init_state = [preconditioners_init, errors_init]
+      perform_step = step % preconditioning_compute_steps == 0
+      preconditioners_flat, errors_flat = efficient_cond(
+          perform_step, _internal_inverse_pth_root_all, init_state)
+
+    def _skip(error):
+      condition = jnp.logical_or(
+          jnp.isnan(error), error >= inverse_failure_threshold)
+      return condition.astype(error.dtype)
+
+    def _select_preconditioner(error, new_p, old_p):
+      return lax.cond(
+          _skip(error), lambda _: old_p, lambda _: new_p, operand=None)
+
+    new_preconditioners_flat = []
+    for p, shape, prev_p, error in zip(preconditioners_flat, original_shapes,
+                                       prev_preconditioners, errors_flat):
+      new_preconditioners_flat.append(
+          _select_preconditioner(error, p[:shape[0], :shape[1]], prev_p))
+
+    assert len(states) == len(num_statistics_per_state)
+    assert len(new_preconditioners_flat) == num_statistics
+
+    # Add back empty preconditioners so we that we can set the optimizer state.
+    preconditioners_for_states = []
+    idx = 0
+    for num_statistics, state in zip(num_statistics_per_state, states):
+      if num_statistics == 0:
+        preconditioners_for_states.append([])
+      else:
+        preconditioners_for_state = new_preconditioners_flat[idx:idx +
+                                                             num_statistics]
+        assert len(state.statistics) == len(preconditioners_for_state)
+        preconditioners_for_states.append(preconditioners_for_state)
+        idx += num_statistics
+    new_states = []
+    for state, new_preconditioners in zip(states, preconditioners_for_states):
+      new_states.append(
+          ParameterStats(state.diagonal_statistics, state.statistics,
+                         new_preconditioners, state.diagonal_momentum,
+                         state.momentum))
+
+    return new_states
+
+  def _compute_preconditioners(states, params, step):
+    """Computes preconditioners for given statistics in states.
+
+    Args:
+      states: A list of optimizer states.
+      params: A list of params.
+      step: Current step number
+
+    Returns:
+      New optimizer states after computing the preconditioner.
+    """
+    statistics = []
+    num_statistics_per_state = []
+    original_shapes = []
+    exponents = []
+    max_size = 0
+    prev_preconditioners = []
+
+    for state, param in zip(states, params):
+      num_statistics = len(state.statistics)
+      num_statistics_per_state.append(num_statistics)
+      original_shapes_for_state = []
+      if num_statistics > 0:
+        preconditioner = Preconditioner(param, block_size,
+                                        best_effort_shape_interpretation)
+        for statistic in state.statistics:
+          exponents.append(preconditioner.exponent_for_preconditioner(
+          ) if exponent_override == 0 else exponent_override)
+          original_shapes_for_state.append(statistic.shape)
+          max_size = max(max_size, statistic.shape[0])
+
+        statistics.extend(state.statistics)
+        prev_preconditioners.extend(state.preconditioners)
+        original_shapes.extend(original_shapes_for_state)
+
+    if batch_axis_name:
+      # Quantization is only enabled if batch_axis_name is not set.
+      quantized_dtype = quantized_dtype_for_second_moment_statistics_buffers()
+
+      if quantized_dtype == jnp.float32:
+        return _pmap_compute_preconditioners(states, step, statistics,
+                                             num_statistics_per_state,
+                                             original_shapes, exponents,
+                                             max_size, prev_preconditioners)
+      else:
+        return _pmap_quantized_compute_preconditioners(
+            states, step, statistics, num_statistics_per_state, original_shapes,
+            exponents, max_size, prev_preconditioners)
+
+    else:
+      return _pjit_compute_preconditioners(states, step, statistics,
+                                           num_statistics_per_state,
+                                           original_shapes, exponents, max_size,
+                                           prev_preconditioners)
 
   def _transform_grad(grad, state, param, step):
     """Transform per-parameter gradients."""

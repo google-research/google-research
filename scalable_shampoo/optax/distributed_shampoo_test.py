@@ -20,6 +20,8 @@ from absl.testing import absltest
 import chex
 import jax
 import jax.numpy as jnp
+import numpy as np
+import scipy
 
 from scalable_shampoo.optax import distributed_shampoo
 
@@ -54,6 +56,52 @@ class DistributedShampooTest(chex.TestCase):
 
     updates, state = pmap_fn(jnp.array([1.0]))
     chex.assert_tree_all_finite((params, updates, state))
+
+  @chex.all_variants(with_pmap=False)
+  def test_distributed_shampoo_quantization(self):
+    params = self.init_params
+
+    optim = distributed_shampoo.distributed_shampoo(
+        0.1,
+        32,
+        batch_axis_name='batch',
+        preconditioning_compute_steps=2,
+        best_effort_memory_usage_reduction=True)
+    init_fn = self.variant(optim.init)
+    transform_fn = self.variant(optim.update)
+
+    def _update(unused_batch):
+      return transform_fn(self.per_step_updates, state, params)
+    state = init_fn(params)
+    chex.assert_tree_all_finite(state)
+    pmap_fn = jax.pmap(_update, axis_name='batch')
+
+    updates, state = pmap_fn(jnp.array([1.0]))
+    chex.assert_tree_all_finite((params, updates, state))
+
+  def test_matrix_inverse_root(self):
+    """Test for matrix inverse pth root."""
+
+    def _gen_symmetrix_matrix(dim, condition_number):
+      u = scipy.stats.ortho_group.rvs(dim=dim).astype(np.float64)
+      v = u.T
+      diag = np.diag([condition_number ** (-i/(dim-1)) for i in range(dim)])
+      return u @ diag @ v
+
+    # Fails after it reaches a particular condition number.
+    for e in range(2, 12):
+      condition_number = 10 ** e
+      ms = _gen_symmetrix_matrix(16, condition_number)
+      self.assertLess(
+          np.abs(np.linalg.cond(ms) - condition_number),
+          condition_number * 0.01)
+      error = distributed_shampoo.matrix_inverse_pth_root(
+          ms.astype(np.float32), 4, ridge_epsilon=1e-12)[1]
+      if e < 7:
+        self.assertLess(error, 0.1)
+      else:
+        # No guarantee of success after e >= 7
+        pass
 
 
 if __name__ == '__main__':
