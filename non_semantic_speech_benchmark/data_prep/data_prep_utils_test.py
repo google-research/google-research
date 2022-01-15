@@ -36,7 +36,7 @@ class MockModule(object):
 
   def _fn(self, waveform, paddings):
     del paddings
-    bs = waveform.shape[0]
+    bs = waveform.shape[0] if waveform.ndim == 2 else 1
     assert isinstance(bs, int)
     return {k: tf.zeros([bs, 5, 10]) for k in self.output_keys}
 
@@ -44,12 +44,13 @@ class MockModule(object):
 class DataPrepUtilsTest(parameterized.TestCase):
 
   def test_samples_to_embedding_tfhub_sanity(self):
-    data_prep_utils.samples_to_embedding_tfhub(
+    ret = data_prep_utils.samples_to_embedding_tfhub(
         model_input=tf.zeros([16000], tf.float32),
         sample_rate=16000,
         mod=MockModule(['okey1']),
         output_key='okey1',
         name='name')
+    self.assertEqual(ret.ndim, 2)
 
   def test_samples_to_embedding_tfhub_w2v2_sanity(self):
     data_prep_utils.samples_to_embedding_tfhub_w2v2(

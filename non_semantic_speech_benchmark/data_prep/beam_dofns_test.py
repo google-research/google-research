@@ -64,7 +64,7 @@ class MockModule(object):
 
   def _fn(self, waveform, paddings):
     del paddings
-    bs = waveform.shape[0]
+    bs = waveform.shape[0] if waveform.ndim > 1 else 1
     assert isinstance(bs, int)
     return {k: tf.ones([bs, 5, 10]) for k in self.output_keys}
 

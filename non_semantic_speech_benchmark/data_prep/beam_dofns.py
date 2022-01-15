@@ -182,13 +182,14 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     model_input, sample_rate = self.read_and_preprocess_audio(k, ex)
 
     # Calculate the 2D embedding.
+    logging.info('[%s] `model_input` shape: %s', self._name, model_input.shape)
     embedding_2d = self._module_call_fn(
         model_input, sample_rate, self.post_setup_module, self._output_key,
         self._name)
     if not isinstance(embedding_2d, np.ndarray):
       raise ValueError(f'`embedding_2d` wrong type: {type(embedding_2d)}')
     if embedding_2d.ndim != 2:
-      raise ValueError(f'`embedding_2d` wrong dims: {embedding_2d.ndim}')
+      raise ValueError(f'`embedding_2d` wrong dims: {embedding_2d.shape}')
     if embedding_2d.dtype != np.float32:
       raise ValueError(f'`embedding_2d` wrong type: {embedding_2d.dtype}')
     logging.info('[%s] `embedding_2d` shape: %s', self._name,

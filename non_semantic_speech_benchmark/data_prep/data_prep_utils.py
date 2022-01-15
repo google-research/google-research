@@ -105,8 +105,8 @@ def samples_to_embedding_tfhub(
     ret = tf_out
   ret = np.array(ret)
   if ret.ndim > 2:
-    # Batch-flatten in numpy.
-    ret = np.reshape(ret, [ret.shape[0], -1])
+    # Squeeze all possible dimensions, and hope the dimension is correct.
+    ret = np.squeeze(ret)
   return ret
 
 
