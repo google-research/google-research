@@ -8,9 +8,14 @@ If you use this code or data, please cite:
 
 F. Huot, R. L. Hu, N. Goyal, T. Sankar, M. Ihme, and Y.-F. Chen, “Next Day Wildfire Spread: A Machine Learning Data Set to Predict Wildfire Spreading from Remote-Sensing Data”, arXiv preprint, 2021.
 
+## Data Demo
+
+dataset_demo.ipynb is a Jupyter Notebook demonstrating how to load and parse the data set.
+
 ## Data Export
 
-Example Command:
+To export the data yourself, ensure you have a Google Storage bucket. Here is
+an example command, substituting your own bucket.
 
 ```
 python3 -m simulation_research.wildfire_prediction.export_ee_training_data_main \
