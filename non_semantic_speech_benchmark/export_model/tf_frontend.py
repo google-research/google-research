@@ -16,6 +16,7 @@
 # Lint as: python3
 """Tensorflow code for frontend functions in frontend.py."""
 
+from typing import Optional
 from absl import flags
 import numpy as np
 import tensorflow as tf
@@ -27,19 +28,20 @@ flags.DEFINE_integer('num_mel_bins', 64, 'Frontend fn arg: num_mel_bins.')
 flags.DEFINE_integer('frame_width', 96, 'Frontend fn arg: frame_width.')
 
 
-def stabilized_log(data, additive_offset, floor):
+def stabilized_log(data, additive_offset,
+                   floor):
   """TF version of mfcc_mel.StabilizedLog."""
   return tf.math.log(tf.math.maximum(data, floor) + additive_offset)
 
 
 def log_mel_spectrogram(data,
                         audio_sample_rate,
-                        num_mel_bins=64,
-                        log_additive_offset=0.001,
-                        log_floor=1e-12,
-                        window_length_secs=0.025,
-                        hop_length_secs=0.010,
-                        fft_length=None):
+                        num_mel_bins = 64,
+                        log_additive_offset = 0.001,
+                        log_floor = 1e-12,
+                        window_length_secs = 0.025,
+                        hop_length_secs = 0.010,
+                        fft_length = None):
   """TF version of mfcc_mel.LogMelSpectrogram."""
   window_length_samples = int(round(audio_sample_rate * window_length_secs))
   hop_length_samples = int(round(audio_sample_rate * hop_length_secs))
@@ -73,10 +75,10 @@ def log_mel_spectrogram(data,
 def compute_frontend_features(samples,
                               sr,
                               frame_hop,
-                              tflite=False,
-                              n_required=16000,
-                              num_mel_bins=64,
-                              frame_width=96):
+                              tflite = False,
+                              n_required = 16000,
+                              num_mel_bins = 64,
+                              frame_width = 96):
   """Compute features."""
   if tflite:
     raise ValueError('TFLite frontend unsupported.')
@@ -85,15 +87,26 @@ def compute_frontend_features(samples,
   if samples.dtype == np.float64:
     samples = tf.cast(samples, np.float32)
   assert samples.dtype == np.float32, samples.dtype
-  n = tf.size(samples)
-  samples = tf.cond(
-      n < n_required,
-      lambda: tf.pad(samples, [(0, n_required - n)]),
-      lambda: samples
-  )
+
+  if samples.ndim == 1:
+    has_batchdim = False
+    samples = tf.expand_dims(samples, axis=0)
+  else:
+    assert samples.ndim == 2
+    has_batchdim = True
+
+  if n_required:
+    n = tf.shape(samples)[1]
+    samples = tf.cond(n < n_required,
+                      lambda: tf.pad(samples, [(0, 0), (0, n_required - n)]),
+                      lambda: samples)
   mel = log_mel_spectrogram(samples, sr, num_mel_bins=num_mel_bins)
   mel = tf.signal.frame(
-      mel, frame_length=frame_width, frame_step=frame_hop, axis=0)
+      mel, frame_length=frame_width, frame_step=frame_hop, axis=1)
+
+  if not has_batchdim:
+    mel = tf.squeeze(mel, axis=0)
+
   return mel
 
 
