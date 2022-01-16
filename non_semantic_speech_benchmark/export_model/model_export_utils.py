@@ -28,8 +28,6 @@ import tensorflow as tf
 from non_semantic_speech_benchmark.data_prep import data_prep_utils
 from non_semantic_speech_benchmark.distillation import frontend_lib
 from non_semantic_speech_benchmark.distillation import models
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as compression
-from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper
 
 
 def get_experiment_dirs(experiment_dir):
@@ -74,13 +72,6 @@ def get_params(experiment_dir_str):
       pass
     parsed_params[key] = value
   return parsed_params
-
-
-def get_default_compressor():
-  compression_params = compression.CompressionOp.get_default_hparams().parse('')
-  compressor = compression_wrapper.get_apply_compression(
-      compression_params, global_step=0)
-  return compressor
 
 
 def get_model(checkpoint_folder_path,

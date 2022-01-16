@@ -44,9 +44,5 @@ class ModelExportUtilsTest(absltest.TestCase):
         {'mt': 'mobilenet_debug_1.0_True', 'bd': 5, 'cop': True, 'lr': 0.0001,
          'tbs': 2})
 
-  def test_get_default_compressor(self):
-    compressor = model_export_utils.get_default_compressor()
-    self.assertIsNotNone(compressor)
-
 if __name__ == '__main__':
   absltest.main()
