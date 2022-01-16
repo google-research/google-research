@@ -45,6 +45,16 @@ ATOM_TYPE_TO_MAX_BONDS = {
     dataset_pb2.BondTopology.AtomType.ATOM_H: 1
 }
 
+# Assumes that charged and neutral forms can changed
+ATOM_TYPE_TO_MAX_BONDS_ANY_FORM = {
+    dataset_pb2.BondTopology.AtomType.ATOM_C: 4,
+    dataset_pb2.BondTopology.AtomType.ATOM_N: 4,
+    dataset_pb2.BondTopology.AtomType.ATOM_NPOS: 4,
+    dataset_pb2.BondTopology.AtomType.ATOM_O: 2,
+    dataset_pb2.BondTopology.AtomType.ATOM_ONEG: 2,
+    dataset_pb2.BondTopology.AtomType.ATOM_F: 1,
+    dataset_pb2.BondTopology.AtomType.ATOM_H: 1
+}
 # The value is a pair of an atomic symbol and formal charge
 ATOM_TYPE_TO_RDKIT = {
     dataset_pb2.BondTopology.AtomType.ATOM_C: ('C', 0),
@@ -149,6 +159,16 @@ SPECIAL_ID_CASES = [
 BOHR_TO_ANGSTROMS = 0.529177249
 
 
+class StoichiometryError(Exception):
+
+  def __init__(self, stoich_str):
+    super().__init__()
+    self.stoich_str = stoich_str
+
+  def __str__(self):
+    return f'Could not parse "{self.stoich_str}" as valid stoichiometry for SMU'
+
+
 def special_case_bt_id_from_dat_id(dat_id, smiles):
   """Determines if dat_id is a special case.
 
@@ -246,8 +266,28 @@ _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
     'f', 'fh'
 ]
 
+def _expanded_stoichiometry_from_h_counts(heavy_atoms, hydrogen_counts):
+  components = collections.defaultdict(int)
+  for this_atom, h_count in zip(heavy_atoms, hydrogen_counts):
+    this_component = ATOM_TYPE_TO_CHAR[this_atom]
+    if h_count >= 1:
+      this_component += 'h'
+      if h_count > 1:
+        this_component += str(h_count)
+    components[this_component] += 1
 
-def get_canonical_stoichiometry_with_hydrogens(topology):
+  out = ''
+  for got_component in _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS:
+    if got_component not in components:
+      continue
+    out += f'({got_component})'
+    if components[got_component] > 1:
+      out += str(components[got_component])
+
+  return out
+
+
+def expanded_stoichiometry_from_topology(topology):
   """Get stoichiometry where hydrogen count is part of the atom type.
 
   Each heavy atom is typed by the number of hydrogens it's connected to, e.g.
@@ -274,23 +314,111 @@ def get_canonical_stoichiometry_with_hydrogens(topology):
   """
   hydrogen_counts = compute_bonded_hydrogens(topology,
                                              compute_adjacency_matrix(topology))
-  components = collections.defaultdict(int)
-  for atom_idx, h_count in enumerate(hydrogen_counts):
-    this_component = ATOM_TYPE_TO_CHAR[topology.atoms[atom_idx]]
-    if h_count >= 1:
-      this_component += 'h'
-      if h_count > 1:
-        this_component += str(h_count)
-    components[this_component] += 1
+  return _expanded_stoichiometry_from_h_counts(topology.atoms, hydrogen_counts)
 
-  out = ''
-  for got_component in _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS:
-    if got_component not in components:
-      continue
-    out += f'({got_component})'
-    if components[got_component] > 1:
-      out += str(components[got_component])
 
+def _generate_hydrogen_assignments(heavy_atoms, total_h):
+  # TODO: some error checking would be good
+  if len(heavy_atoms) == 1:
+    if total_h < ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[heavy_atoms[0]]:
+      yield [total_h]
+    return
+  if total_h == 0:
+    yield [0] * len(heavy_atoms)
+    return
+  # It may look like this +1 is misplaced, but it's intentional.
+  # e.g. Carbon has a max of 4 bonds, so we want to try range(3), one less then the total,
+  # because, excpect for single atom special cases, one of the bonds must be to a non-hydrogen.
+  for num_for_first in range(min(ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[heavy_atoms[0]],
+                                 total_h + 1)):
+    for other_assign in _generate_hydrogen_assignments(
+        heavy_atoms[1:], total_h - num_for_first,):
+      yield [num_for_first] + other_assign
+
+
+def expanded_stoichiometries_from_atom_list(heavy_atoms, total_h):
+  """Get the list of possible expanded stoichiometries given atoms.
+
+  See expanded_stoichiometry_from_topology for documentation on the expanded
+  stoichiometry.
+
+  Args:
+    list of dataset_pb2.BondTopology.AtomType
+    total_h: int of total number of hydrogens
+
+  Returns
+    set of expanded stoichiometry strings.
+  """
+  out = set()
+  for assignment in _generate_hydrogen_assignments(heavy_atoms, total_h):
+    out.add(_expanded_stoichiometry_from_h_counts(heavy_atoms, assignment))
+  return out
+
+
+_EXPAND_STOICHIOMETRY_SPECIAL_CASES = {
+  'ch4': '(ch4)',
+  'h4c': '(ch4)',
+  'oh2': '(oh2)',
+  'h2o': '(oh2)',
+  'fh': '(fh)',
+  'hf': '(fh)',
+}
+
+
+def expanded_stoichiometries_from_stoichiometry(stoich_str):
+  """Generates a list possible expanded stoichiometries from a plain one.
+
+  Note that some expanded stoichiometries will be returned even if an invalid
+  number of hydrogens is given.
+  For example "CN" generates (c)(n) and "CNH2" generates (ch2)(n)
+  Further, even for some valid stoichiometries, expanded stoichiometries will be
+  enerated that cannot correspond to a SMU molecule.
+  For example "C2H2" will generate "(c)(ch2)"
+
+  Args:
+    stoich_str: string of a stoichiometry like "C6OH4" (case does not matter)
+
+  Returns:
+    set of strings
+
+  Raises:
+    StoichiometryError: If there are too many hydrogens or an unrecognized atom.
+  """
+  stoich_str = stoich_str.lower()
+  if stoich_str in _EXPAND_STOICHIOMETRY_SPECIAL_CASES:
+    out = set()
+    out.add(_EXPAND_STOICHIOMETRY_SPECIAL_CASES[stoich_str])
+    return out
+
+  heavy_atoms = []
+  total_h = 0
+
+  parse_idx = 0
+  while parse_idx < len(stoich_str):
+    try:
+      atom_type = ATOM_CHAR_TO_TYPE[stoich_str[parse_idx]]
+    except KeyError:
+      raise StoichiometryError(stoich_str)
+
+    num_digits = 0
+    while (parse_idx + num_digits + 1 < len(stoich_str) and
+           stoich_str[parse_idx + num_digits + 1].isdigit()):
+      num_digits += 1
+    if num_digits == 0:
+      atom_count = 1
+    else:
+      atom_count = int(stoich_str[parse_idx + 1: parse_idx + num_digits + 1])
+
+    if atom_type == dataset_pb2.BondTopology.AtomType.ATOM_H:
+      total_h = atom_count
+    else:
+      heavy_atoms.extend([atom_type] * atom_count)
+
+    parse_idx += 1 + num_digits
+
+  out = expanded_stoichiometries_from_atom_list(heavy_atoms, total_h)
+  if not out:
+    raise StoichiometryError(stoich_str)
   return out
 
 

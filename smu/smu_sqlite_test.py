@@ -225,6 +225,28 @@ class SmuSqliteTest(absltest.TestCase):
     ]
     self.assertCountEqual(got_cids, [2001])
 
+  def test_find_by_stoichiometry(self):
+    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
+    db.bulk_insert(
+        self.encode_conformers(
+            [self.make_fake_conformer(cid) for cid in [2001, 2002, 4004]]))
+
+    got_cids = [
+        conformer.conformer_id
+        for conformer in db.find_by_stoichiometry('c2h6')
+    ]
+    self.assertCountEqual(got_cids, [2001, 2002])
+
+    got_cids = [
+        conformer.conformer_id
+        for conformer in db.find_by_stoichiometry('c4h10')
+    ]
+    self.assertCountEqual(got_cids, [4004])
+
+    self.assertEmpty(list(db.find_by_stoichiometry('c3')))
+
+    with self.assertRaises(smu_utils_lib.StoichiometryError):
+      db.find_by_stoichiometry('P3Li')
 
 if __name__ == '__main__':
   absltest.main()

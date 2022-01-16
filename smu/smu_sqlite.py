@@ -166,7 +166,7 @@ class SMUSQLite:
       # we dont' even have to return the entries we don't want.
       if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
         expanded_stoich = (
-            smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+            smu_utils_lib.expanded_stoichiometry_from_topology(
                 conformer.bond_topologies[0]))
       else:
         expanded_stoich = ''
@@ -268,7 +268,7 @@ class SMUSQLite:
     """Finds all of the conformers with a stoichiometry.
 
     The expanded stoichiometry includes hydrogens as part of the atom type.
-    See smu_utils_lib.get_canonical_stoichiometry_with_hydrogens for a
+    See smu_utils_lib.expanded_stoichiometry_from_topology for a
     description.
 
     Args:
@@ -284,6 +284,32 @@ class SMUSQLite:
     cur.execute(select, (exp_stoich,))
     return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
             for result in cur)
+
+  def find_by_stoichiometry(self, stoich):
+    """Finds all conformers with a given stoichiometry.
+
+    The stoichiometry is like "C6H12".
+
+    Internally, the stoichiometry is converted a set of expanded stoichiometries
+    and the query is done to find all of those.
+    Notably, this means only records with status <= 512 are returned.
+
+    Args:
+      stoich: stoichiometry string like "C6H12", case doesn't matter
+
+    Returns
+      iterable of dataset_pb2.Conformer
+    """
+    exp_stoichs = list(
+      smu_utils_lib.expanded_stoichiometries_from_stoichiometry(stoich))
+    cur = self._conn.cursor()
+    select = (f'SELECT conformer '
+              f'FROM {_CONFORMER_TABLE_NAME} '
+              f'WHERE exp_stoich IN (' + ','.join('?' for _ in exp_stoichs) + ')')
+    cur.execute(select, exp_stoichs)
+    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
+            for result in cur)
+
 
   def __iter__(self):
     """Iterates through all dataset_pb2.Conformer in the DB."""

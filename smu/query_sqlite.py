@@ -59,6 +59,7 @@ flags.DEFINE_string(
 flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
 flags.DEFINE_list('cids', [], 'List of conformer ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
+flags.DEFINE_list('stoichiometries', [], 'List of stoichiometries to query')
 flags.DEFINE_list(
     'topology_query_smiles', [],
     'List of smiles to query, where the valid bond lengths are '
@@ -234,7 +235,7 @@ def topology_query(db, smiles):
   Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
   mol = Chem.AddHs(mol)
   query_bt = utilities.molecule_to_bond_topology(mol)
-  expanded_stoich = smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+  expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(
       query_bt)
   matching_parameters = _get_geometry_matching_parameters()
   geometry_data = GeometryData.get_singleton()
@@ -475,6 +476,10 @@ def main(argv):
       conformers = db.find_by_smiles(smiles)
       if not conformers:
         raise KeyError(f'SMILES {smiles} not found')
+      for c in conformers:
+        outputter.output(c)
+    for stoich in FLAGS.stoichiometries:
+      conformers = db.find_by_stoichiometry(stoich)
       for c in conformers:
         outputter.output(c)
     for smiles in FLAGS.topology_query_smiles:
