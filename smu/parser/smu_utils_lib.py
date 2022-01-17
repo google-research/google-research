@@ -45,7 +45,7 @@ ATOM_TYPE_TO_MAX_BONDS = {
     dataset_pb2.BondTopology.AtomType.ATOM_H: 1
 }
 
-# Assumes that charged and neutral forms can changed
+# Assumes that charged and neutral forms can be switched
 ATOM_TYPE_TO_MAX_BONDS_ANY_FORM = {
     dataset_pb2.BondTopology.AtomType.ATOM_C: 4,
     dataset_pb2.BondTopology.AtomType.ATOM_N: 4,
