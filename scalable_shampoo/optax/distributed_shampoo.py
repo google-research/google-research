@@ -42,6 +42,8 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
+PartitionSpec = pjit.PartitionSpec
+
 
 # pylint:disable=no-value-for-parameter
 @struct.dataclass
@@ -177,6 +179,12 @@ class ShardedShampooStats(NamedTuple):
 class ShampooState(NamedTuple):
   count: chex.Array
   stats: Any
+
+
+class InitFnState(NamedTuple):
+  init_fn: Any
+  pspec_fn: Any
+  shape_and_dtype_fn: Any
 
 
 class GraftingType(enum.IntEnum):
@@ -786,6 +794,11 @@ def distributed_shampoo(
         momentum_statistics, quantized_dtype_for_momentum_buffers())
 
   def sharded_init_fn(params):
+    """Returns optimizer state (for PJIT mode).
+
+    Args:
+      params: the parameters that should be updated.
+    """
     params_flat, treedef = jax.tree_flatten(params)
     # Find max size to pad to.
     max_size = 0
@@ -844,6 +857,175 @@ def distributed_shampoo(
         jnp.stack(padded_statistics), jnp.stack(padded_preconditioners))
     return ShampooState(
         count=jnp.zeros([], jnp.int32),
+        stats=ShardedShampooStats(global_stats, local_stats))
+
+  def _max_statistics_size_from_params(params):
+    max_size = 0
+    for param in params:
+      param_clone = jnp.zeros(param.shape, dtype=param.dtype)
+      preconditioner = Preconditioner(param_clone, block_size,
+                                      best_effort_shape_interpretation)
+      if not _skip_preconditioning(param):
+        shapes = preconditioner.shapes_for_preconditioners()
+        sizes = [s[0] for s in shapes]
+        max_size = max(max(sizes), max_size)
+    return max_size
+
+  def _remove_leading_sharding_annotation(pspec):
+    """Mapping from N-d to (N-1)-d, used for quantization, factoring etc."""
+    # None and PSpec(None) are valid PSpecs.
+    if pspec and len(pspec) > 1:
+      return PartitionSpec(*pspec[1:])
+    else:
+      return pspec
+
+  def sharded_init_partition_spec_fn(params, params_partition_spec,
+                                     partition_spec_for_statistics):
+    """Returns a parallel state tree with PartitionSpec associated with state.
+
+
+    Args:
+      params: A pytree with params.
+      params_partition_spec: A pytree with PartitionSpec for params.
+      partition_spec_for_statistics: PartitionSpec for the statistics.
+    """
+    # Parallel lists of spec, and params.
+    param_pspec_flat, _ = jax.tree_flatten(params_partition_spec)
+    params_flat, treedef = jax.tree_flatten(params)
+    assert param_pspec_flat
+    assert params_flat
+    # Step is replicated across cores.
+    # None means cores.
+    count_pspec = PartitionSpec()
+    local_stats_flat = []
+    num_statistics = 0
+    for param, param_pspec in zip(params_flat, param_pspec_flat):
+      param_clone = jnp.zeros(param.shape, dtype=param.dtype)
+      preconditioner = Preconditioner(param_clone, block_size,
+                                      best_effort_shape_interpretation)
+      shapes = preconditioner.shapes_for_preconditioners()
+      sizes = []
+
+      index_start = num_statistics
+      if not _skip_preconditioning(param):
+        sizes = [s[0] for s in shapes]
+        shapes = preconditioner.shapes_for_preconditioners()
+        num_statistics += len(shapes)
+
+      diagonal_statistics_pspec = []
+      diagonal_statistics_scale_pspec = []
+      if graft_type != GraftingType.SGD:
+        # Identically shaped param.
+        diagonal_statistics_pspec = param_pspec
+        if quantized_dtype_for_diagonal_statistics_buffers() != jnp.float32:
+          diagonal_statistics_scale_pspec = _remove_leading_sharding_annotation(
+              param_pspec)
+
+      m1_pspec = param_pspec
+      m2_pspec = param_pspec
+
+      m1_scale_pspec = []
+      m2_scale_pspec = []
+
+      if quantized_dtype_for_momentum_buffers() != jnp.float32:
+        m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
+        m2_scale_pspec = _remove_leading_sharding_annotation(m2_pspec)
+
+      local_stats_flat.append(
+          LocalShardedParameterStats(
+              QuantizedValue(diagonal_statistics_pspec, [],
+                             diagonal_statistics_scale_pspec,
+                             quantized_dtype_for_diagonal_statistics_buffers(),
+                             False, list(param.shape)),
+              QuantizedValue(m1_pspec, [], m1_scale_pspec,
+                             quantized_dtype_for_momentum_buffers(), False,
+                             list(param.shape)),
+              QuantizedValue(m2_pspec, [], m2_scale_pspec,
+                             quantized_dtype_for_momentum_buffers(), False,
+                             list(param.shape)), index_start, sizes))
+
+    local_stats = jax.tree_unflatten(treedef, local_stats_flat)
+    global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
+                                               partition_spec_for_statistics)
+    return ShampooState(
+        count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
+
+  def sharded_init_shape_and_dtype_fn(params):
+    """Returns a parallel state tree with shape, dtype associated with state.
+
+
+    Args:
+      params: A pytree with params.
+    """
+    # Parallel lists of spec, and params.
+    params_flat, treedef = jax.tree_flatten(params)
+    assert params_flat
+    # Step is replicated across cores.
+    # None means cores.
+    local_stats_flat = []
+    num_statistics = 0
+    for param in params_flat:
+      param_clone = jnp.zeros(param.shape, dtype=param.dtype)
+      preconditioner = Preconditioner(param_clone, block_size,
+                                      best_effort_shape_interpretation)
+      shapes = preconditioner.shapes_for_preconditioners()
+      sizes = []
+
+      index_start = num_statistics
+      if not _skip_preconditioning(param):
+        sizes = [s[0] for s in shapes]
+        shapes = preconditioner.shapes_for_preconditioners()
+        num_statistics += len(shapes)
+
+      diagonal_statistics_shape_and_dtype = []
+      diagonal_statistics_scale_shape_and_dtype = []
+      if graft_type != GraftingType.SGD:
+        diagonal_statistics_shape_and_dtype = [list(param.shape), param.dtype]
+        qdtype = quantized_dtype_for_diagonal_statistics_buffers()
+        if qdtype != jnp.float32:
+          diagonal_statistics_shape_and_dtype = [list(param.shape), qdtype]
+          diagonal_statistics_scale_shape_and_dtype = [
+              list(param.shape)[1:], param.dtype
+          ]
+
+      m1_shape_and_dtype = [list(param.shape), param.dtype]
+      m2_shape_and_dtype = [list(param.shape), param.dtype]
+
+      m1_scale_shape_and_dtype = []
+      m2_scale_shape_and_dtype = []
+
+      qdtype = quantized_dtype_for_momentum_buffers()
+      if qdtype != jnp.float32:
+        m1_shape_and_dtype = [list(param.shape), qdtype]
+        m2_shape_and_dtype = [list(param.shape), qdtype]
+
+        m1_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
+        m2_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
+
+      local_stats_flat.append(
+          LocalShardedParameterStats(
+              QuantizedValue(diagonal_statistics_shape_and_dtype, [],
+                             diagonal_statistics_scale_shape_and_dtype,
+                             quantized_dtype_for_diagonal_statistics_buffers(),
+                             False, list(param.shape)),
+              QuantizedValue(m1_shape_and_dtype, [], m1_scale_shape_and_dtype,
+                             quantized_dtype_for_momentum_buffers(), False,
+                             list(param.shape)),
+              QuantizedValue(m2_shape_and_dtype, [], m2_scale_shape_and_dtype,
+                             quantized_dtype_for_momentum_buffers(), False,
+                             list(param.shape)), index_start, sizes))
+
+    local_stats = jax.tree_unflatten(treedef, local_stats_flat)
+    max_statistics_size = _max_statistics_size_from_params(params_flat)
+    to_pad = -num_statistics % num_devices_for_pjit
+    num_statistics += to_pad
+    statistics_shape = [
+        num_statistics, max_statistics_size, max_statistics_size
+    ]
+    global_stats = GlobalShardedParameterStats([statistics_shape, jnp.float32],
+                                               [statistics_shape, jnp.float32])
+    return ShampooState(
+        count=[[], jnp.float32],
         stats=ShardedShampooStats(global_stats, local_stats))
 
   def sharded_update_fn(grads, state, params):
@@ -1044,8 +1226,8 @@ def distributed_shampoo(
         in_axis_resources=None,
         out_axis_resources=pjit.PartitionSpec(mesh_axis_names_tuple,))(xs, ps)
     # Run matrix inverse pth root on each shard.
-    partitioned_preconditioners, partitioned_errors = _matrix_inverse_pth_root_vmap(
-        partitioned_xs, partitioned_ps)
+    partitioned_preconditioners, partitioned_errors = (
+        _matrix_inverse_pth_root_vmap(partitioned_xs, partitioned_ps))
     # Recombine the outputs at each core.
     preconditioners, errors = pjit.pjit(
         lambda x, y: (x, y),
@@ -1220,12 +1402,13 @@ def distributed_shampoo(
 
     def _internal_inverse_pth_root_all():
       current_replica = lax.axis_index(batch_axis_name)
-      quantized_preconditioners, quantized_diagonals, quantized_bucket_sizes, errors = (
-          _quantized_matrix_inverse_pth_root_vmap(
-              all_quantized_statistics[current_replica],
-              all_quantized_diagonals[current_replica],
-              all_quantized_bucket_sizes[current_replica],
-              all_exponents[current_replica]))
+      (quantized_preconditioners, quantized_diagonals, quantized_bucket_sizes,
+       errors) = (
+           _quantized_matrix_inverse_pth_root_vmap(
+               all_quantized_statistics[current_replica],
+               all_quantized_diagonals[current_replica],
+               all_quantized_bucket_sizes[current_replica],
+               all_exponents[current_replica]))
       quantized_preconditioners = jax.lax.all_gather(quantized_preconditioners,
                                                      batch_axis_name)
       quantized_diagonals = jax.lax.all_gather(quantized_diagonals,
@@ -1604,6 +1787,14 @@ def distributed_shampoo(
     return updates, new_state
 
   if shard_optimizer_states:
-    return optax.GradientTransformation(sharded_init_fn, sharded_update_fn)
+    # Hijacks the init_fn signature so we can return an OptState with
+    # appropriate init_fns.
+    def _init_fns(unused_params):
+      return InitFnState(
+          init_fn=sharded_init_fn,
+          pspec_fn=sharded_init_partition_spec_fn,
+          shape_and_dtype_fn=sharded_init_shape_and_dtype_fn)
+
+    return optax.GradientTransformation(_init_fns, sharded_update_fn)
   else:
     return optax.GradientTransformation(init_fn, update_fn)
