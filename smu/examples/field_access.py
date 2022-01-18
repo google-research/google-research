@@ -29,8 +29,24 @@ print('Or you can iterate over all of them')
 for value in conformer.properties.excitation_energies_cc2.value:
     print('Excitation energy:', value)
 
+print('Or just ask how many excitation_energies_cc2 there are:',
+      len(conformer.properties.excitation_energies_cc2.value))
+
 print('Some fields like rotational_constants have explicit x,y,z components')
 
 print(conformer.properties.rotational_constants.x,
       conformer.properties.rotational_constants.y,
       conformer.properties.rotational_constants.z)
+
+print('A couple of important fields are not inside "properties"')
+
+geometry = conformer.optimized_geometry
+print('The geometry has positions for',
+      len(geometry.atom_positions),
+      'atoms and the first atom x-coordinate is',
+      geometry.atom_positions[0].x)
+
+print('In addition to looking at dataset.proto for field documentation,',
+      'you can just print a given conformer to see what fields are available')
+
+print(conformer)
