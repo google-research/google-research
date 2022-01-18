@@ -6,11 +6,11 @@ It assumes you have followed [the setup instructions](../README.md)
 
 The following examples are provided
 - `field_access.py` : basic access to different kinds of fields
-- `missing_fields.py` : how to check for missing fields
 - `indices.py` : using the various indices in the database for faster lookups
-- `csv.py` : generates a CSV file with a few fields
+- `to_csv.py` : generates a CSV file with a few fields
 - `dataframe.py` : generates a [Pandas DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html) of some field values
 - `rdkit.py` : converts Conformers to RDKit molecules
+- `missing_fields.py` : how to check for missing fields
 - `multiple_bond_topology.py` : illustrates some points around multiple BondTopology for each Conformer
 - `special_cases.py` : in the complete database, there are a number of records which have a quite different set of information in them
 
