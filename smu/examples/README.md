@@ -17,3 +17,5 @@ The following examples are provided
 To run them, after you have activated your virtual environment, go to the directory where you have the database files (the .sqlite files) and run a command like this (note no `.py` extension)
 
         python -m smu.examples.field_access
+
+In addition, there is also a `.out` file for each `.py` file which gives the expected output
