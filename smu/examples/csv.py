@@ -20,10 +20,11 @@ with open(OUTFILE, 'w', newline='') as outfile:
                      'first important frequency'])
 
     count = 0
+    # This iteration will go through all conformers in the database.
     for conformer in db:
 
-        # This is kind of a silly filter, but we wanted to show how to filter
-        # for some molecules and not just show the first couple.
+        # This is kind of a silly filter, but this shows how to filter
+        # for some conformers and not just the first couple.
         if conformer.optimized_geometry.atom_positions[0].x > -3:
             continue
 
@@ -37,8 +38,9 @@ with open(OUTFILE, 'w', newline='') as outfile:
             conformer.properties.harmonic_frequencies.value[6],
         ])
 
-        # This is just for this example so that it runs quickly. If you want to
-        # process the whole dataset, remove this.
+        # This breaks out of the loop after a couple of records just so this
+        # examples runs quickly. If you want process the whole dataset,
+        # remove this.
         count += 1
         if count == 5:
             break
