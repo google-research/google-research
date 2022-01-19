@@ -74,7 +74,7 @@ def train_step(model, x, optimizer, permute_key, dropout_key):
 def predict(apply_func, params, x, max_len=8):
   x_in = jnp.zeros(x.shape)
   tok_pred = x[:, 0]
-  x_in = jax.ops.index_update(x_in, jax.ops.index[:, 1], tok_pred)
+  x_in = x_in.at[:, 1].set(tok_pred)
 
   list_pred = [tok_pred]
   for i in range(1, max_len):
@@ -82,7 +82,7 @@ def predict(apply_func, params, x, max_len=8):
     cur_logit = logits[:, i, :]
     tok_pred = jnp.argmax(cur_logit, axis=-1)
     if i + 1 < max_len:
-      x_in = jax.ops.index_update(x_in, jax.ops.index[:, i + 1], tok_pred)
+      x_in = x_in.at[:, i + 1].set(tok_pred)
     list_pred.append(tok_pred)
   pred = jnp.array(list_pred).T
   print(pred)
