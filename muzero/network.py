@@ -125,13 +125,11 @@ class AbstractEncoderandLSTM(tf.Module):
     self._value_head = tf.keras.Sequential(
         self._head_hidden_layers() + [
             tf.keras.layers.Dense(self.value_encoder.num_steps, name='output'),
-            tf.keras.layers.Softmax()
         ],
         name='value_logits')
     self._reward_head = tf.keras.Sequential(
         self._head_hidden_layers() + [
             tf.keras.layers.Dense(self.reward_encoder.num_steps, name='output'),
-            tf.keras.layers.Softmax()
         ],
         name='reward_logits')
 
@@ -212,7 +210,7 @@ class AbstractEncoderandLSTM(tf.Module):
     hidden_state = self._to_hidden(encoded_observation, training=training)
 
     value_logits = self._value_head(hidden_state, training=training)
-    value = self.value_encoder.decode(value_logits)
+    value = self.value_encoder.decode(tf.nn.softmax(value_logits))
 
     # Rewards are only calculated in recurrent_inference.
     reward = tf.zeros_like(value)
@@ -256,10 +254,10 @@ class AbstractEncoderandLSTM(tf.Module):
     next_hidden_state = self._rnn_to_flat(next_rnn_state)
 
     value_logits = self._value_head(next_hidden_state, training=training)
-    value = self.value_encoder.decode(value_logits)
+    value = self.value_encoder.decode(tf.nn.softmax(value_logits))
 
     reward_logits = self._reward_head(rnn_output, training=training)
-    reward = self.reward_encoder.decode(reward_logits)
+    reward = self.reward_encoder.decode(tf.nn.softmax(reward_logits))
 
     policy_logits = self._policy_head(next_hidden_state, training=training)
 
