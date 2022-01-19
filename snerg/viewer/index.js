@@ -791,6 +791,9 @@ function addHandlers() {
 function hideLoading() {
   let loading = document.getElementById('Loading');
   loading.style.display = 'none';
+
+  let loadingContainer = document.getElementById('loading-container');
+  loadingContainer.style.display = 'none';
 }
 
 /**
@@ -1269,6 +1272,8 @@ function loadOnFirstFrame() {
   // Also early out if the renderer is not supported.
   if (isRendererUnsupported()) {
     gSceneParams['loadingTextures'] = true;
+    let loadingContainer = document.getElementById('loading-container');
+    loadingContainer.style.display = 'none';
     return;
   }
 
