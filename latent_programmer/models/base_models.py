@@ -51,22 +51,19 @@ class TransformerConfig:
   mlp_dim: int = 512
   max_len: int = 2048
   dropout_rate: float = 0.1
-  attention_dropout_rate: float = 0.0
+  attention_dropout_rate: float = 0.1
   use_relative_attention: bool = False
   num_input_relative_position_buckets: int = 41
   max_input_distance: int = 20
-  # num_output_relative_position_buckets: int = 50
   num_output_relative_position_buckets: int = 160
   max_output_distance: int = 200
-  # num_input_cross_output_relative_position_buckets: int = 50
   num_input_cross_output_relative_position_buckets: int = 160
   max_input_cross_output_distance: int = 200
-  # num_program_relative_position_buckets: int = 50
   num_program_relative_position_buckets: int = 101
   max_program_distance: int = 100
-  # num_program_cross_embed_relative_position_buckets: int = 50
   num_program_cross_embed_relative_position_buckets: int = 128
   max_program_cross_embed_distance: int = 800
+  bidirectional_program_attention: bool = False
 
   deterministic: bool = False
   decode: bool = False
@@ -458,12 +455,11 @@ class TransformerDecoder(nn.Module):
     for lyr in range(cfg.num_layers):
       y = EncoderDecoderBlock(
           config=cfg,
-          bidirectional_attention=False,
+          bidirectional_attention=cfg.bidirectional_program_attention,
           num_relative_position_buckets=(
               cfg.num_program_relative_position_buckets),
           max_distance=cfg.max_program_distance,
-          # relative_cross_attention=cfg.use_relative_attention,
-          relative_cross_attention=False,
+          relative_cross_attention=cfg.use_relative_attention,
           bidirectional_cross_attention=True,
           num_relative_position_buckets_cross_attention=(
               cfg.num_program_cross_embed_relative_position_buckets),

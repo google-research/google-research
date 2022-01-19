@@ -54,6 +54,7 @@ gfile = tf.io.gfile
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('seed', 0, 'Fixed random seed for training.')
+flags.DEFINE_integer('repeat', 0, 'An ID for this repetition of the same seed.')
 flags.DEFINE_float('lr', 1e-3, 'Learning rate.')
 flags.DEFINE_float('weight_decay', 1e-1,
                    'Decay factor for AdamW-style weight decay.')
@@ -62,9 +63,13 @@ flags.DEFINE_integer('hidden_dim', 512, 'Hidden dimension.')
 flags.DEFINE_integer('num_heads', 4, 'Number of layers.')
 flags.DEFINE_integer('num_layers', 3, 'Number of Transformer heads.')
 flags.DEFINE_boolean('slow_decode', True, 'Use slow decoding for prediction?')
+flags.DEFINE_float('dropout_rate', 0.1, 'Dropout rate')
+flags.DEFINE_float('attention_dropout_rate', 0.1, 'Attention dropout rate')
 
 flags.DEFINE_string('dataset_filepattern', None,
                     'Filepattern for TFRecord dataset.')
+flags.DEFINE_string('test_dataset_filepattern', None,
+                    'Filepattern for TFRecord test dataset.')
 flags.DEFINE_integer('per_device_batch_size', 16,
                      'Number of program tasks in a batch.')
 flags.DEFINE_integer('num_strings_per_task', 4,
@@ -73,12 +78,19 @@ flags.DEFINE_integer('max_program_length', 100,
                      'Maximum number of tokens in program.')
 flags.DEFINE_integer('max_characters', 120,
                      'Maximum number of characters in input/output strings.')
+flags.DEFINE_integer('predict_max_characters', 200,
+                     'Maximum number of characters in input/output strings for '
+                     'prediction.')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 flags.DEFINE_integer('num_train_steps', 2000000, 'Number of training steps.')
 flags.DEFINE_integer('num_eval_steps', 10, 'Number of evaluation steps.')
+flags.DEFINE_integer('num_quick_test_steps', 10,
+                     'Number of test steps during training.')
+flags.DEFINE_integer('num_final_test_steps', 100,
+                     'Number of test steps after training is finished.')
 flags.DEFINE_integer('log_freq', 1000, 'Number of steps between training logs.')
-flags.DEFINE_integer('eval_freq', 2000, 'Number of steps between eval.')
+flags.DEFINE_integer('eval_freq', 5000, 'Number of steps between eval.')
 flags.DEFINE_integer('predict_freq', 50000,
                      'Number of steps between prediction (beam search).')
 flags.DEFINE_integer('checkpoint_freq', 50000,
@@ -98,6 +110,12 @@ flags.DEFINE_bool('use_relative_attention', True,
 flags.DEFINE_bool('bos_special_attention', False,
                   'Whether to use special relative attention computation for '
                   'BOS tokens.')
+flags.DEFINE_integer('num_position_buckets', 32,
+                     'Number of relative attention position buckets.')
+flags.DEFINE_integer('max_distance', 128,
+                     'Max distance for relative attention positions.')
+flags.DEFINE_bool('bidirectional_program_attention', False,
+                  'Whether program self-attention is bidirectional.')
 
 
 _internal = False
@@ -441,15 +459,9 @@ def main(_):
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
 
-  hparam_str_dict = dict(seed=FLAGS.seed, lr=FLAGS.lr)
-  # Get hyperparmaters
-  if FLAGS.xm_parameters:
-    for key, value in json.loads(FLAGS.xm_parameters).items():
-      if key not in hparam_str_dict:
-        hparam_str_dict[key] = value
-
+  hparam_str_dict = json.loads(FLAGS.xm_parameters)
   hparam_str = ','.join(['%s=%s' % (shorten(k), str(hparam_str_dict[k]))
-                         for k in sorted(hparam_str_dict.keys())])
+                         for k in hparam_str_dict.keys()])
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
@@ -462,6 +474,9 @@ def main(_):
   io_shape = (FLAGS.per_device_batch_size,
               FLAGS.num_strings_per_task,
               FLAGS.max_characters)
+  predict_io_shape = (FLAGS.per_device_batch_size,
+                      FLAGS.num_strings_per_task,
+                      FLAGS.predict_max_characters)
   program_shape = (FLAGS.per_device_batch_size, FLAGS.max_program_length)
 
   # Setup DSL
@@ -519,15 +534,37 @@ def main(_):
   # Split evaluation and training.
   eval_ds = dataset.take(FLAGS.num_eval_steps)
   # Decrease batch of predict dataset to handle beam search.
+  predict_padded_shapes = (predict_io_shape[1:],
+                           predict_io_shape[1:],
+                           program_shape[1:])
+  logging.info('predict_padded_shapes: %s', predict_padded_shapes)
   predict_ds = eval_ds.unbatch().padded_batch(
       int(np.ceil(batch_size / 10)),
-      padded_shapes=padded_shapes)
+      padded_shapes=predict_padded_shapes)
   train_ds = dataset.skip(FLAGS.num_eval_steps).repeat()
-  train_iter = train_ds.as_numpy_iterator()
+
+  test_dataset = input_pipeline.create_dataset_from_tf_record(
+      FLAGS.test_dataset_filepattern, token_id_table, char_id_table)
+  test_dataset = test_dataset.padded_batch(
+      batch_size,
+      padded_shapes=predict_padded_shapes,
+      drop_remainder=False)
+  quick_test_dataset = (test_dataset
+                        .take(FLAGS.num_quick_test_steps)
+                        .unbatch()
+                        .padded_batch(int(np.ceil(batch_size / 10)),
+                                      padded_shapes=predict_padded_shapes))
+  final_test_dataset = (test_dataset
+                        .skip(FLAGS.num_quick_test_steps)
+                        .take(FLAGS.num_final_test_steps)
+                        .unbatch()
+                        .padded_batch(int(np.ceil(batch_size / 10)),
+                                      padded_shapes=predict_padded_shapes))
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
-  use_dropout = False
+  default_config = base_models.TransformerConfig(
+      vocab_size=io_vocab_size, output_vocab_size=program_vocab_size)
   base_config = base_models.TransformerConfig(
       vocab_size=io_vocab_size,
       output_vocab_size=program_vocab_size,
@@ -538,22 +575,44 @@ def main(_):
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
+      dropout_rate=FLAGS.dropout_rate,
+      attention_dropout_rate=FLAGS.attention_dropout_rate,
       use_relative_attention=FLAGS.use_relative_attention,
-      deterministic=not use_dropout,
+      deterministic=False,
       decode=False,
-      bos_token=bos_token)
+      bos_token=bos_token,
+      num_input_relative_position_buckets=FLAGS.num_position_buckets,
+      max_input_distance=min(
+          FLAGS.max_distance, default_config.max_input_distance),
+      num_output_relative_position_buckets=FLAGS.num_position_buckets,
+      max_output_distance=min(
+          FLAGS.max_distance, default_config.max_output_distance),
+      num_input_cross_output_relative_position_buckets=(
+          FLAGS.num_position_buckets),
+      max_input_cross_output_distance=min(
+          FLAGS.max_distance, default_config.max_input_cross_output_distance),
+      num_program_relative_position_buckets=FLAGS.num_position_buckets,
+      max_program_distance=min(
+          FLAGS.max_distance, default_config.max_program_distance),
+      num_program_cross_embed_relative_position_buckets=(
+          FLAGS.num_position_buckets),
+      max_program_cross_embed_distance=min(
+          FLAGS.max_distance, default_config.max_program_cross_embed_distance),
+      bidirectional_program_attention=FLAGS.bidirectional_program_attention)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       attention_mask_type=FLAGS.attention_mask_type,
       bos_special_attention=FLAGS.bos_special_attention)
   eval_config = models.DecomposeAttentionTransformerConfig(
-      base_config=base_config.replace(deterministic=not use_dropout),
+      base_config=base_config.replace(deterministic=True),
       attention_mask_type=FLAGS.attention_mask_type,
       bos_special_attention=FLAGS.bos_special_attention)
   predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
-          shift=False, deterministic=not use_dropout,
-          decode=not FLAGS.slow_decode),
+          shift=False, deterministic=True,
+          decode=not FLAGS.slow_decode,
+          max_len=max(FLAGS.max_characters, FLAGS.max_program_length,
+                      FLAGS.predict_max_characters)),
       attention_mask_type=FLAGS.attention_mask_type,
       bos_special_attention=FLAGS.bos_special_attention)
 
@@ -561,9 +620,12 @@ def main(_):
   rng = jax.random.fold_in(rng, jax.host_id())
   rng, init_rng = jax.random.split(rng)
 
+  dropout_rng = jax.random.split(rng, jax.local_device_count())
+  del rng
+
   m = models.DecomposeAttentionTransformer(eval_config)
   initial_variables = jax.jit(m.init)(
-      {'params': init_rng, 'dropout': init_rng},
+      init_rng,
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(program_shape, jnp.float32))
@@ -589,7 +651,26 @@ def main(_):
     if FLAGS.finetune_start_step > 0:
       logging.info('Checking that start_step (%s) == finetune_start_step (%s)',
                    start_step, FLAGS.finetune_start_step)
-      assert start_step == FLAGS.finetune_start_step
+      assert start_step >= FLAGS.finetune_start_step
+      steps_to_skip = start_step - FLAGS.finetune_start_step
+    else:
+      steps_to_skip = start_step
+
+    # TODO(kshi): The code below can lead to XM killing the job. If the job is
+    # restarted after many steps, it appears that this skipping leads to the
+    # training being delayed by several hours. Thus, XM identifies the job as
+    # idling and wasting accelerator resources, and kills the job. In the logs,
+    # 'Finished skipping steps' and 'Starting training!' are seen, but nothing
+    # else from train.py. This suggests the idling might happen during the first
+    # `next(train_iter)`, if the dataset skipping is lazily executed then.
+    logging.info('Skipping %s steps...', steps_to_skip)
+    train_ds = train_ds.skip(steps_to_skip)
+    # dummy_p_train_step = jax.pmap(
+    #     lambda dropout_rng: jax.random.split(dropout_rng)[1])
+    # for _ in range(steps_to_skip):
+    #   dropout_rng = dummy_p_train_step(dropout_rng)
+    logging.info('Finished skipping steps')
+    logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
 
   # Replicate optimizer.
   optimizer = jax_utils.replicate(optimizer)
@@ -634,11 +715,11 @@ def main(_):
 
   # Main Train Loop
   # ---------------------------------------------------------------------------
-  dropout_rng = jax.random.split(rng, jax.local_device_count())
-  del rng
 
+  logging.info('Starting training!')
   metrics_all = []
   tick = time.time()
+  train_iter = train_ds.as_numpy_iterator()
   for step in range(start_step, FLAGS.num_train_steps):
     inputs, outputs, programs = common_utils.shard(next(train_iter))
 
@@ -712,88 +793,118 @@ def main(_):
     # Beam search metrics.
     if (step and step % FLAGS.predict_freq == 0) or is_last_step:
       logging.info('Gathering beam search metrics.')
-      for beam_size in [1, 5, 10, 20, 50]:
-        t_inference_start = time.time()
-        pred_acc = 0
-        pred_denominator = 0
+      test_ds = final_test_dataset if is_last_step else quick_test_dataset
 
-        ios, targets, predictions, top_of_beams = [], [], [], []
-        for batches in predict_ds.as_numpy_iterator():
-          pred_batch = batches
-          # Handle final odd-sized batch by padding instead of dropping it.
-          cur_pred_batch_size = pred_batch[0].shape[0]
-          if cur_pred_batch_size % n_devices:
-            padded_size = int(
-                np.ceil(cur_pred_batch_size / n_devices) * n_devices)
-            # pylint: disable=cell-var-from-loop
-            pred_batch = jax.tree_map(
-                lambda x: pad_examples(x, padded_size), pred_batch)
-          inputs, outputs, programs = common_utils.shard(pred_batch)
+      for dataset, predict_or_test in [(predict_ds, 'predict'),
+                                       (test_ds, 'test')]:
 
-          cache = (p_init_cache(inputs, outputs, programs)
-                   if not FLAGS.slow_decode else None)
-          predicted = p_pred_step(optimizer.target, inputs, outputs, cache,
-                                  beam_size)
-          predicted = tohost(predicted)
-          inputs, outputs, programs = map(tohost, (inputs, outputs, programs))
+        for beam_size in [1, 10]:
+          t_inference_start = time.time()
+          total_successes = 0
+          total_denominator = 0
+          pred_successes = collections.defaultdict(int)
+          pred_denominators = collections.defaultdict(int)
 
-          pred_denominator += programs.shape[0]
-          for i, beams in enumerate(predicted):
-            inps, outs = decode_io(inputs[i], outputs[i])
-            p, p_score = eval_predicted(
-                beams, inps, outs, parse_beam_fn=decode_program)
-            if p_score >= len(inps):
-              pred_acc += 1
-            ios.append(' ; '.join(map(str, zip(inps, outs))))
-            targets.append(decode_program(programs[i]).to_string())
-            try:
-              predictions.append(p.to_string())
-            except:  # pylint: disable=bare-except
-              predictions.append('Did not compile')
-            logging.info('ios: %s', ios[-1])
-            logging.info('target: %s', targets[-1])
-            beams_log = []
-            for beam in beams:
+          ios, targets, predictions, top_of_beams = [], [], [], []
+          for batches in dataset.as_numpy_iterator():
+            pred_batch = batches
+            # Handle final odd-sized batch by padding instead of dropping it.
+            cur_pred_batch_size = pred_batch[0].shape[0]
+            if cur_pred_batch_size % n_devices:
+              padded_size = int(
+                  np.ceil(cur_pred_batch_size / n_devices) * n_devices)
+              # pylint: disable=cell-var-from-loop
+              pred_batch = jax.tree_map(
+                  lambda x: pad_examples(x, padded_size), pred_batch)
+            inputs, outputs, programs = common_utils.shard(pred_batch)
+
+            cache = (p_init_cache(inputs, outputs, programs)
+                     if not FLAGS.slow_decode else None)
+            predicted = p_pred_step(optimizer.target, inputs, outputs, cache,
+                                    beam_size)
+            predicted = tohost(predicted)
+            inputs, outputs, programs = map(tohost, (inputs, outputs, programs))
+
+            for i, beams in enumerate(predicted):
+              inps, outs = decode_io(inputs[i], outputs[i])
+              p, p_score = eval_predicted(
+                  beams, inps, outs, parse_beam_fn=decode_program)
+
+              # Split by length of program.
+              program = programs[i]
+              num_expressions = len(decode_program(program).expressions)
+              pred_denominators[num_expressions] += 1
+              total_denominator += 1
+              if p_score >= len(inps):
+                pred_successes[num_expressions] += 1
+                total_successes += 1
+
+              ios.append(' ; '.join(map(str, zip(inps, outs))))
+              targets.append(decode_program(programs[i]).to_string())
               try:
-                beams_log.append(decode_program(beam).to_string())
+                predictions.append(p.to_string())
               except:  # pylint: disable=bare-except
-                beams_log.append('Did not compile')
-            logging.info('predicted beam: %s', '\n'.join(beams_log))
+                predictions.append('Did not compile')
+              logging.info('ios: %s', ios[-1])
+              logging.info('target: %s', targets[-1])
+              beams_log = []
+              for beam in beams:
+                try:
+                  beams_log.append(decode_program(beam).to_string())
+                except:  # pylint: disable=bare-except
+                  beams_log.append('Did not compile')
+              logging.info('predicted beam: %s', '\n'.join(beams_log))
 
-            top_of_beam = []
-            for index, beam in enumerate(beams[:-5:-1]):
-              try:
-                decoded_program = decode_program(beam).to_string()
-              except:  # pylint: disable=bare-except
-                decoded_program = 'Did not compile'
-              top_of_beam.append('index: {}, decoded: {}, tokens: {}'.format(
-                  index, decoded_program, beam))
-            top_of_beams.append('\n\n'.join(top_of_beam))
+              top_of_beam = []
+              for index, beam in enumerate(beams[:-5:-1]):
+                try:
+                  decoded_program = decode_program(beam).to_string()
+                except:  # pylint: disable=bare-except
+                  decoded_program = 'Did not compile'
+                top_of_beam.append('index: {}, decoded: {}, tokens: {}'.format(
+                    index, decoded_program, beam))
+              top_of_beams.append('\n\n'.join(top_of_beam))
 
-        all_pred_acc, all_pred_denominator = per_host_sum_pmap(
-            jax.tree_map(np.array, (pred_acc, pred_denominator)))
+          all_total_successes, all_total_denominator = per_host_sum_pmap(
+              jax.tree_map(np.array, (total_successes, total_denominator)))
+          all_pred_successes, all_pred_denominators = per_host_sum_pmap(
+              jax.tree_map(np.array, (pred_successes, pred_denominators)))
 
-        # Record beam search results as text summaries.
-        message = []
-        for n in np.random.choice(np.arange(len(predictions)), 8):
-          text = (f'ios: {ios[n]}\n\ntarget: {targets[n]}\n\n'
-                  f'predicted: {predictions[n]}\n\n'
-                  f'top of beam:\n\n{top_of_beams[n]}\n\n')
-          message.append(text)
+          # Record beam search results as text summaries.
+          message = []
+          for n in np.random.choice(np.arange(len(predictions)), 8):
+            text = (f'ios: {ios[n]}\n\ntarget: {targets[n]}\n\n'
+                    f'predicted: {predictions[n]}\n\n'
+                    f'top of beam:\n\n{top_of_beams[n]}\n\n')
+            message.append(text)
 
-        # Write to tensorboard.
-        if jax.host_id() == 0:
-          slow_or_fast = 'slow' if FLAGS.slow_decode else 'fast'
-          logging.info(
-              'Prediction time, %s (beam %d): %.4f s, step %d, score %.4f',
-              slow_or_fast, beam_size, time.time() - t_inference_start, step,
-              all_pred_acc / all_pred_denominator)
-          summary_writer.scalar(
-              'predict-{}/score-{}'.format(slow_or_fast, beam_size),
-              all_pred_acc / all_pred_denominator, step)
-          summary_writer.text('samples-{}'.format(beam_size),
-                              '\n------\n'.join(message), step)
-          summary_writer.flush()
+          # Write to tensorboard.
+          if jax.host_id() == 0:
+            accuracy = 100 * all_total_successes / all_total_denominator
+            logging.info(
+                '%s results, step %d, beam size %d: %s / %s = %.2f%% (%.2f s)',
+                predict_or_test, step, beam_size,
+                all_total_successes, all_total_denominator, accuracy,
+                time.time() - t_inference_start)
+            summary_writer.scalar(
+                '{}/beam-size-{}'.format(predict_or_test, beam_size),
+                accuracy, step)
+
+            for length in sorted(all_pred_successes.keys()):
+              this_length_accuracy = (100 * all_pred_successes[length]
+                                      / all_pred_denominators[length])
+              logging.info('  accuracy for length %s: %s / %s = %.2f%%',
+                           length, all_pred_successes[length],
+                           all_pred_denominators[length], this_length_accuracy)
+              summary_writer.scalar(
+                  '{}-by-length/beam-size-{}-length-{}'.format(
+                      predict_or_test, beam_size, length),
+                  this_length_accuracy, step)
+
+            summary_writer.text('{}-samples-beam-{}'.format(predict_or_test,
+                                                            beam_size),
+                                '\n------\n'.join(message), step)
+            summary_writer.flush()
 
 
 if __name__ == '__main__':
