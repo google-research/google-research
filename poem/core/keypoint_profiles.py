@@ -808,6 +808,63 @@ class LegacyH36m17KeypointProfile3D(KeypointProfile3D):
         right_ankle_keypoint_name=['RFoot'])
 
 
+class LegacyH36m16KeypointProfile3D(KeypointProfile3D):
+  """Legacy Human3.6M 3D 16-keypoint profile.
+
+  Note that this profile should be functionally identical to `3DSTD16`, despite
+  their difference in keypoint names.
+  """
+
+  def __init__(self):
+    """Initializer."""
+    super(LegacyH36m16KeypointProfile3D, self).__init__(
+        name='LEGACY_3DH36M16',
+        keypoint_names=[('Hip', LeftRightType.CENTRAL),
+                        ('Head', LeftRightType.CENTRAL),
+                        ('Thorax', LeftRightType.CENTRAL),
+                        ('LShoulder', LeftRightType.LEFT),
+                        ('RShoulder', LeftRightType.RIGHT),
+                        ('LElbow', LeftRightType.LEFT),
+                        ('RElbow', LeftRightType.RIGHT),
+                        ('LWrist', LeftRightType.LEFT),
+                        ('RWrist', LeftRightType.RIGHT),
+                        ('Spine', LeftRightType.CENTRAL),
+                        ('LHip', LeftRightType.LEFT),
+                        ('RHip', LeftRightType.RIGHT),
+                        ('LKnee', LeftRightType.LEFT),
+                        ('RKnee', LeftRightType.RIGHT),
+                        ('LFoot', LeftRightType.LEFT),
+                        ('RFoot', LeftRightType.RIGHT)],
+        offset_keypoint_names=['Hip'],
+        scale_keypoint_name_pairs=[(['Hip'], ['Spine']),
+                                   (['Spine'], ['Thorax'])],
+        segment_name_pairs=[(['Hip'], ['Spine']), (['Hip'], ['LHip']),
+                            (['Hip'], ['RHip']), (['Spine'], ['Thorax']),
+                            (['LHip'], ['LKnee']), (['RHip'], ['RKnee']),
+                            (['LKnee'], ['LFoot']), (['RKnee'], ['RFoot']),
+                            (['Thorax'], ['LShoulder']),
+                            (['Thorax'], ['RShoulder']), (['Thorax'], ['Head']),
+                            (['LShoulder'], ['LElbow']),
+                            (['RShoulder'], ['RElbow']),
+                            (['LElbow'], ['LWrist']), (['RElbow'], ['RWrist'])],
+        head_keypoint_name=['Head'],
+        neck_keypoint_name=['Thorax'],
+        left_shoulder_keypoint_name=['LShoulder'],
+        right_shoulder_keypoint_name=['RShoulder'],
+        left_elbow_keypoint_name=['LElbow'],
+        right_elbow_keypoint_name=['RElbow'],
+        left_wrist_keypoint_name=['LWrist'],
+        right_wrist_keypoint_name=['RWrist'],
+        spine_keypoint_name=['Spine'],
+        pelvis_keypoint_name=['Hip'],
+        left_hip_keypoint_name=['LHip'],
+        right_hip_keypoint_name=['RHip'],
+        left_knee_keypoint_name=['LKnee'],
+        right_knee_keypoint_name=['RKnee'],
+        left_ankle_keypoint_name=['LFoot'],
+        right_ankle_keypoint_name=['RFoot'])
+
+
 class LegacyH36m13KeypointProfile3D(KeypointProfile3D):
   """Legacy Human3.6M 3D 13-keypoint profile."""
 
@@ -977,6 +1034,10 @@ class Std13KeypointProfile2D(KeypointProfile2D):
                 'Head', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow', 'LWrist',
                 'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee', 'LFoot', 'RFoot'
             ],
+            'LEGACY_3DH36M16': [
+                'Head', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow', 'LWrist',
+                'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee', 'LFoot', 'RFoot'
+            ],
             'LEGACY_3DMPII3DHP17': [
                 'head', 'left_shoulder', 'right_shoulder', 'left_elbow',
                 'right_elbow', 'left_wrist', 'right_wrist', 'left_hip',
@@ -1074,6 +1135,11 @@ class LegacyH36m13KeypointProfile2D(KeypointProfile2D):
                       'LWrist', 'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee',
                       'LFoot', 'RFoot'
                   ],
+                  'LEGACY_3DH36M16': [
+                      'Head', 'LShoulder', 'RShoulder', 'LElbow', 'RElbow',
+                      'LWrist', 'RWrist', 'LHip', 'RHip', 'LKnee', 'RKnee',
+                      'LFoot', 'RFoot'
+                  ],
                   'LEGACY_3DMPII3DHP17': [
                       'head', 'left_shoulder', 'right_shoulder', 'left_elbow',
                       'right_elbow', 'left_wrist', 'right_wrist', 'left_hip',
@@ -1117,6 +1183,8 @@ def create_keypoint_profile_or_die(keypoint_profile_name):
     return Std13KeypointProfile3D()
   if keypoint_profile_name == 'LEGACY_3DH36M17':
     return LegacyH36m17KeypointProfile3D()
+  if keypoint_profile_name == 'LEGACY_3DH36M16':
+    return LegacyH36m16KeypointProfile3D()
   if keypoint_profile_name == 'LEGACY_3DH36M13':
     return LegacyH36m13KeypointProfile3D()
   if keypoint_profile_name == 'LEGACY_3DMPII3DHP17':
