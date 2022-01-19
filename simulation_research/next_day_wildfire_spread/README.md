@@ -18,7 +18,7 @@ To export the data yourself, ensure you have a Google Storage bucket. Here is
 an example command, substituting your own bucket.
 
 ```
-python3 -m simulation_research.wildfire_prediction.export_ee_training_data_main \
+python3 -m simulation_research.next_day_wildfire_spread.data_export.export_ee_training_data_main \
 --bucket=${BUCKET} \
 --start_date="2020-01-01" \
 --end_date="2021-01-01"

@@ -24,7 +24,7 @@ from absl import logging
 from absl.testing import flagsaver
 import ee
 
-from simulation_research.next_day_wildfire_spread import export_ee_data
+from simulation_research.next_day_wildfire_spread.data_export import export_ee_data
 
 
 FLAGS = flags.FLAGS

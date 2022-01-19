@@ -26,7 +26,7 @@ from typing import List, Text, Tuple
 
 import ee
 
-from simulation_research.next_day_wildfire_spread import ee_utils
+from simulation_research.next_day_wildfire_spread.data_export import ee_utils
 
 
 def _get_all_feature_bands():
