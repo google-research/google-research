@@ -13,9 +13,14 @@ The following examples are provided
 - `missing_fields.py` : how to check for missing fields
 - `multiple_bond_topology.py` : illustrates some points around multiple BondTopology for each Conformer
 - `special_cases.py` : in the complete database, there are a number of records which have a quite different set of information in them
+- `c6h6.py` : a more complex example bringing together many of the concepts from other examples
 
 To run them, after you have activated your virtual environment, go to the directory where you have the database files (the .sqlite files) and run a command like this (note no `.py` extension)
 
         python -m smu.examples.field_access
 
-In addition, there is also a `.out` file for each `.py` file which gives the expected output
+You can also execute the examples with
+
+        python <path to the examples directory>/field_access.py
+
+In addition, there is also a `.out` file for each `.py` file which gives the expected standard output for that script
