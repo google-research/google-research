@@ -316,7 +316,7 @@ def SimulateSbm(sbm_data,
   sbm_data.graph_memberships = _GenerateNodeMemberships(num_vertices, pi)
   sbm_data.type1_clusters = sorted(list(set(sbm_data.graph_memberships)))
   if len(pi2) > 0:
-    sbm_data.cross_links = hsu.GetCrossLinks(k1, k2)
+    sbm_data.cross_links = hsu.GetCrossLinks([k1, k2], 0, 1)
     type1_clusters, type2_clusters = zip(*sbm_data.cross_links)
     sbm_data.type1_clusters = sorted(list(set(type1_clusters)))
     sbm_data.type2_clusters = sorted(list(set(type2_clusters)))

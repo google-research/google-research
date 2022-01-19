@@ -14,46 +14,78 @@
 # limitations under the License.
 
 """Library for heterogeneous SBMs with node features."""
-import math
 from typing import List, Tuple
 
 import numpy as np
 
 
-def GetCrossLinks(num_clusters1, num_clusters2):
-  """Given two clustering sizes, returns an ordered linking between clusterings.
+def GetClusterTypeComponents(
+    num_clusters_list):
+  """Given a list of # clusters per-type, compute cross-type cluster components.
 
-  The linking is given as a list of tuples. Each tuple contains two cluster
-  indices. Indices are continuously ordered, so that every index from 0 to
-  num_clusters1 + num_clusters2 - 1 is present in the output. If the inputs
-  are the same, this function returns a 1-1 map:
-    (0, num_clusters1)
-    (1, num_clusters1 + 1)
-    ...
-    (num_clusters1 - 1, num_clusters1 + num_clusters2 - 1)
-  If the inputs are different, the smaller number restarts when looping through
-  the output tuples.
+  This function expands num_clusters_lists into a list of cluster index lists --
+  one list of size num_clusters_list[i] for each i-th entry. It then assigns
+  each member of each list to a unique component out of min(num_clusters_list)
+  components.
+
+  For example, an input [3, 4, 2] implies three clusters for type-1 nodes, four
+  clusters for type-2 nodes, and two clusters for type-1 nodes. This function
+  will return two type components, and evenly (or as-evenly-as-possible) divide
+  the cluster indices of each type among the two components. See the test file
+  for the expected outputs from this example.
 
   Arguments:
-    num_clusters1: number of clusters in the first clustering.
-    num_clusters2: number of clusters in the second clustering.
+    num_clusters_list: list of the number of clusters for each node type.
+  Returns:
+    output: a 2-tuple with the following elements:
+      cluster_index_lists: a list of cluster index lists.
+      type_components: a list of cluster index sets, giving the type components.
+  """
+  # Compute the cluster_index_lists.
+  offset = 0
+  cluster_index_lists = []
+  for num_clusters in num_clusters_list:
+    cluster_index_lists.append(list(range(offset, offset + num_clusters)))
+    offset += num_clusters
+
+  # Compute type_components.
+  num_components = np.min(num_clusters_list)
+  type_components = [list() for _ in range(num_components)]
+  for cluster_index_list in cluster_index_lists:
+    for i in cluster_index_list:
+      type_components[i % num_components].append(i)
+
+  return (cluster_index_lists, type_components)
+
+
+def GetCrossLinks(num_clusters_list,
+                  type_index1,
+                  type_index2):
+  """Returns the cross-type component linking between two specified clusterings.
+
+  The linking is given as a list of tuples. Each tuple contains two cluster
+  indices. Indices are decided based on the first output when num_clusters_list
+  is passed to GetClusterTypeComponents. Each tuple is contained in the second
+  output of the same function.
+
+  Arguments:
+    num_clusters_list: list of the number of clusters for each node type.
+    type_index1: the first node type to return in the linking.
+    type_index2: the second node type to return in the linking.
 
   Returns:
-    cross_links: list of cluster index tuples
+    cross_links: list of cluster index tuples.
   """
-  if num_clusters1 <= num_clusters2:
-    cluster_indices1 = list(range(num_clusters1))
-    cluster_indices2 = list(range(num_clusters2))
-    cluster1_index_list = []
-    for _ in range(math.floor(num_clusters2 / num_clusters1)):
-      cluster1_index_list.extend(cluster_indices1)
-    cluster1_index_list += cluster_indices1[:(num_clusters2 % num_clusters1)]
-    cluster2_index_list = [j + num_clusters1 for j in cluster_indices2]
-    return list(zip(cluster1_index_list, cluster2_index_list))
-  else:
-    reversed_result = GetCrossLinks(num_clusters2, num_clusters1)  # pylint: disable=arguments-out-of-order
-    return [(j - num_clusters2, i + num_clusters1) for (i, j) in reversed_result
-           ]
+  cluster_index_lists, type_components = GetClusterTypeComponents(
+      num_clusters_list)
+  cross_links = []
+  for component in type_components:
+    for cluster_index1 in component:
+      for cluster_index2 in component:
+        if (cluster_index1 in cluster_index_lists[type_index1] and
+            cluster_index2 in cluster_index_lists[type_index2]):
+          cross_links.append((cluster_index1, cluster_index2))
+  return cross_links
 
 
 def _GetHomogeneousPropMat(num_clusters, p_to_q_ratio):
@@ -97,7 +129,7 @@ def GetPropMat(num_clusters1, p_to_q_ratio1,
                                                           p_to_q_ratio1)
   if num_clusters2 == 0:
     return base_prop_mat
-  cross_links = GetCrossLinks(num_clusters1, num_clusters2)
+  cross_links = GetCrossLinks([num_clusters1, num_clusters2], 0, 1)
   base_prop_mat[
       (num_clusters1):(num_clusters1 + num_clusters2),
       (num_clusters1):(num_clusters1 + num_clusters2)] = _GetHomogeneousPropMat(
