@@ -155,6 +155,26 @@ class ModelsTest(parameterized.TestCase):
     self.assertEqual(o.shape[0], 2)
     self.assertEqual(o.shape[1], 5)
 
+  @parameterized.parameters(
+      {'model_type': 'efficientnetv2b0'},
+  )
+  @flagsaver.flagsaver
+  def test_get_keras_model_frontend_input_shapes(self, model_type):
+    flags.FLAGS.frame_hop = 5
+    flags.FLAGS.num_mel_bins = 80
+    flags.FLAGS.frame_width = 5
+    flags.FLAGS.n_required = 32000
+    m = models.get_keras_model(
+        model_type=model_type,
+        output_dimension=0,
+        frontend=True,
+        tflite=False,
+        spec_augment=False)
+    samples = tf.zeros([2, 40000], tf.float32)
+    o = m(samples)
+    for v in o.values():
+      print(v.shape)
+
 
 if __name__ == '__main__':
   assert tf.executing_eagerly()

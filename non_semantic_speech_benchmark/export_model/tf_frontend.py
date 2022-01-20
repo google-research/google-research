@@ -82,11 +82,11 @@ def compute_frontend_features(samples,
   """Compute features."""
   if tflite:
     raise ValueError('TFLite frontend unsupported.')
-  if samples.dtype == np.int16:
-    samples = tf.cast(samples, np.float32) / np.iinfo(np.int16).max
-  if samples.dtype == np.float64:
+  if samples.dtype == tf.int16:
+    samples = tf.cast(samples, tf.float32) / np.iinfo(np.int16).max
+  if samples.dtype == tf.float64:
     samples = tf.cast(samples, np.float32)
-  assert samples.dtype == np.float32, samples.dtype
+  assert samples.dtype == tf.float32, samples.dtype
 
   if samples.ndim == 1:
     has_batchdim = False
