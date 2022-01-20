@@ -42,8 +42,6 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
-PartitionSpec = pjit.PartitionSpec
-
 
 # pylint:disable=no-value-for-parameter
 @struct.dataclass
@@ -887,9 +885,9 @@ def distributed_shampoo(
     """Mapping from N-d to (N-1)-d, used for quantization, factoring etc."""
     # None and PSpec(None) are valid PSpecs.
     if pspec and len(pspec) > 1:
-      return PartitionSpec(*pspec[1:])
+      return pjit.PartitionSpec(*pspec[1:])
     else:
-      return pspec
+      return None
 
   def sharded_init_partition_spec_fn(params, params_partition_spec,
                                      partition_spec_for_statistics):
@@ -958,8 +956,8 @@ def distributed_shampoo(
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
                                                partition_spec_for_statistics,
-                                               PartitionSpec())
-    count_pspec = PartitionSpec()
+                                               pjit.PartitionSpec())
+    count_pspec = pjit.PartitionSpec()
     return ShampooState(
         count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
 
