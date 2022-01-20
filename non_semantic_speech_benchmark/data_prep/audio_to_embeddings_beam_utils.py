@@ -558,7 +558,6 @@ def _common_pipeline_sanity_checks(
   """Common sanity check for beam pipelines."""
   if len(set(embedding_modules)) != 1:
     raise ValueError(f'Too many modules: {set(embedding_modules)}')
-  embedding_module = embedding_modules[0]
   if len(embedding_names) != len(module_output_keys):
     raise ValueError(f'Lens not the same: {len(embedding_names)} vs '
                      f'{len(module_output_keys)}')
