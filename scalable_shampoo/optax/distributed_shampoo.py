@@ -155,6 +155,7 @@ class ParameterStats(NamedTuple):
 class GlobalShardedParameterStats:
   statistics: chex.Array  # Statistics
   preconditioners: chex.Array  # Preconditioners
+  exponents: chex.Array  # exponents
 
 
 # These are per-parameter local states; All statistics here mirror the parameter
@@ -278,6 +279,8 @@ def matrix_inverse_pth_root(
   Returns:
     matrix^(-1/p)
   """
+
+  assert matrix.shape[0] == matrix.shape[1]
 
   # We use float32 for the matrix inverse pth root.
   # Switch to f64 if you have hardware that supports it.
@@ -648,7 +651,8 @@ def distributed_shampoo(
     batch_axis_name=None,
     ### Only set following 3 params in pjit/spmd mode.
     ### WARNING: Experimental
-    mesh_axis_names=None,
+    statistics_partition_spec=None,
+    preconditioner_partition_spec=None,
     num_devices_for_pjit=None,
     shard_optimizer_states=False,
     ###
@@ -707,7 +711,8 @@ def distributed_shampoo(
     exponent_override: Override the exponent used in matrix inverse.
     batch_axis_name: labeled axis over pmap for data-parallel training the
       optimizer used for.
-    mesh_axis_names: Axis names for the mesh (used in pjit).
+    statistics_partition_spec: PartitionSpec to be used in sharded mode.
+    preconditioner_partition_spec: PartitionSpec to be used in sharded mode.
     num_devices_for_pjit: Number of devices to parallelize over when using pjit.
     shard_optimizer_states: Shard optimizer states to save memory in model
       parallel training.
@@ -813,6 +818,7 @@ def distributed_shampoo(
     padded_statistics = []
     padded_preconditioners = []
     local_stats_flat = []
+    exponents = []
     for param in params_flat:
       preconditioner = Preconditioner(param, block_size,
                                       best_effort_shape_interpretation)
@@ -829,6 +835,10 @@ def distributed_shampoo(
         preconditioners = [jnp.eye(max_size) for s in shapes]
         padded_statistics.extend(statistics)
         padded_preconditioners.extend(preconditioners)
+        exponent = (
+            preconditioner.exponent_for_preconditioner()
+            if exponent_override == 0 else exponent_override)
+        exponents.extend([exponent] * len(shapes))
 
       diagonal_statistics = []
       if graft_type != GraftingType.SGD:
@@ -853,8 +863,10 @@ def distributed_shampoo(
         jnp.eye(max_size, dtype=padded_statistics[0].dtype)
         for _ in range(to_pad)
     ])
+    exponents.extend([1 for _ in range(to_pad)])
     global_stats = GlobalShardedParameterStats(
-        jnp.stack(padded_statistics), jnp.stack(padded_preconditioners))
+        jnp.stack(padded_statistics), jnp.stack(padded_preconditioners),
+        jnp.stack(exponents))
     return ShampooState(
         count=jnp.zeros([], jnp.int32),
         stats=ShardedShampooStats(global_stats, local_stats))
@@ -896,7 +908,6 @@ def distributed_shampoo(
     assert params_flat
     # Step is replicated across cores.
     # None means cores.
-    count_pspec = PartitionSpec()
     local_stats_flat = []
     num_statistics = 0
     for param, param_pspec in zip(params_flat, param_pspec_flat):
@@ -946,7 +957,9 @@ def distributed_shampoo(
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
-                                               partition_spec_for_statistics)
+                                               partition_spec_for_statistics,
+                                               PartitionSpec())
+    count_pspec = PartitionSpec()
     return ShampooState(
         count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
 
@@ -1023,7 +1036,8 @@ def distributed_shampoo(
         num_statistics, max_statistics_size, max_statistics_size
     ]
     global_stats = GlobalShardedParameterStats([statistics_shape, jnp.float32],
-                                               [statistics_shape, jnp.float32])
+                                               [statistics_shape, jnp.float32],
+                                               [[num_statistics], jnp.int32])
     return ShampooState(
         count=[[], jnp.float32],
         stats=ShardedShampooStats(global_stats, local_stats))
@@ -1051,17 +1065,6 @@ def distributed_shampoo(
     new_stats_flat = jax.tree_multimap(
         lambda g, s, p: _compute_stats(g, s, p, state.count), grads_flat,
         stats_flat, params_flat)
-
-    exponents = []
-    for stat, param in zip(new_stats_flat, params_flat):
-      num_statistics = len(stat.statistics)
-      if num_statistics > 0:
-        preconditioner = Preconditioner(param, block_size,
-                                        best_effort_shape_interpretation)
-        exponent = (
-            preconditioner.exponent_for_preconditioner()
-            if exponent_override == 0 else exponent_override)
-        exponents.extend([exponent] * num_statistics)
 
     outputs = jax.tree_multimap(
         lambda g, s, p: _transform_grad(g, s, p, state.count), grads_flat,
@@ -1094,20 +1097,13 @@ def distributed_shampoo(
         jnp.eye(max_size, dtype=new_padded_statistics[0].dtype)
         for _ in range(to_pad)
     ])
-    exponents.extend([1 for _ in range(to_pad)])
     new_stacked_padded_statistics = jnp.stack(new_padded_statistics)
-    new_stacked_exponents = jnp.stack(exponents)
-    def _matrix_inverse_pth_root_vmap(xs, ps):
-      mi_pth_root = functools.partial(
-          matrix_inverse_pth_root,
-          ridge_epsilon=matrix_epsilon,
-          precision=precision)
-      preconditioners, errors = jax.vmap(mi_pth_root)(xs, ps)
-      return preconditioners, errors
-
+    new_stacked_padded_statistics = pjit.with_sharding_constraint(
+        new_stacked_padded_statistics, statistics_partition_spec)
     def _internal_inverse_pth_root_all():
-      preconditioners, errors = _matrix_inverse_pth_root_vmap(
-          new_stacked_padded_statistics, new_stacked_exponents)
+      preconditioners, errors = _matrix_inverse_pth_root_pjit(
+          new_stacked_padded_statistics, global_stats.exponents,
+          statistics_partition_spec)
       return preconditioners, errors
 
     if preconditioning_compute_steps == 1:
@@ -1117,7 +1113,8 @@ def distributed_shampoo(
       # shaped tensors. Note statistics will be ignored as we are passing in
       # a large init value for error.
       preconditioners_init = new_stacked_padded_statistics
-      errors_init = np.stack([inverse_failure_threshold] * len(exponents))
+      n = new_stacked_padded_statistics.shape[0]
+      errors_init = jnp.ones([n], jnp.float32) * inverse_failure_threshold
       init_state = [preconditioners_init, errors_init]
       perform_step = state.count % preconditioning_compute_steps == 0
       new_preconditioners, errors = efficient_cond(
@@ -1132,7 +1129,8 @@ def distributed_shampoo(
         predicate * global_stats.preconditioners +
         (1.0 - predicate) * new_preconditioners)
     new_global_stats = GlobalShardedParameterStats(
-        new_stacked_padded_statistics, new_conditional_preconditioners)
+        new_stacked_padded_statistics, new_conditional_preconditioners,
+        global_stats.exponents)
     new_shampoo_state = ShampooState(
         count=state.count + 1,
         stats=ShardedShampooStats(new_global_stats, new_local_stats))
@@ -1218,23 +1216,24 @@ def distributed_shampoo(
 
     return jax.vmap(matrix_inverse_pth_root_wrapper)(qxs, qds, qbs, ps)
 
-  def _matrix_inverse_pth_root_pjit(xs, ps):
-    mesh_axis_names_tuple = tuple(mesh_axis_names)
+  def _matrix_inverse_pth_root_pjit(xs, ps, statistics_partition_spec=None):
     # Partition the concatenated statistics matrix across all cores.
-    partitioned_xs, partitioned_ps = pjit.pjit(
-        lambda x, y: (x, y),
-        in_axis_resources=None,
-        out_axis_resources=pjit.PartitionSpec(mesh_axis_names_tuple,))(xs, ps)
+    pspec_for_partition = preconditioner_partition_spec
+    partitioned_xs = pjit.with_sharding_constraint(xs, pspec_for_partition)
+    partitioned_ps = pjit.with_sharding_constraint(
+        ps, pjit.PartitionSpec(preconditioner_partition_spec[0]))
     # Run matrix inverse pth root on each shard.
     partitioned_preconditioners, partitioned_errors = (
         _matrix_inverse_pth_root_vmap(partitioned_xs, partitioned_ps))
+    # Reshard output to have the same PSpec as input. This is required to avoid
+    # vmap seeing the full set of statistics.
+    partitioned_preconditioners = pjit.with_sharding_constraint(
+        partitioned_preconditioners, pspec_for_partition)
     # Recombine the outputs at each core.
-    preconditioners, errors = pjit.pjit(
-        lambda x, y: (x, y),
-        in_axis_resources=(pjit.PartitionSpec(mesh_axis_names_tuple,),
-                           pjit.PartitionSpec(mesh_axis_names_tuple,)),
-        out_axis_resources=(None, None))(partitioned_preconditioners,
-                                         partitioned_errors)
+    preconditioners = pjit.with_sharding_constraint(partitioned_preconditioners,
+                                                    statistics_partition_spec)
+    errors = pjit.with_sharding_constraint(partitioned_errors,
+                                           pjit.PartitionSpec())
     return preconditioners, errors
 
   def _pmap_compute_preconditioners(states, step, statistics,
