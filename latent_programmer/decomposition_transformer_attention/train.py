@@ -656,19 +656,15 @@ def main(_):
     else:
       steps_to_skip = start_step
 
-    # TODO(kshi): The code below can lead to XM killing the job. If the job is
-    # restarted after many steps, it appears that this skipping leads to the
-    # training being delayed by several hours. Thus, XM identifies the job as
-    # idling and wasting accelerator resources, and kills the job. In the logs,
-    # 'Finished skipping steps' and 'Starting training!' are seen, but nothing
-    # else from train.py. This suggests the idling might happen during the first
-    # `next(train_iter)`, if the dataset skipping is lazily executed then.
+    # TODO(kshi): It is likely that this code can lead to the job stalling for
+    # 10+ hours when restarting from a checkpoint that had been trained a long
+    # time, possibly because dataset skipping is slow.
     logging.info('Skipping %s steps...', steps_to_skip)
     train_ds = train_ds.skip(steps_to_skip)
-    # dummy_p_train_step = jax.pmap(
-    #     lambda dropout_rng: jax.random.split(dropout_rng)[1])
-    # for _ in range(steps_to_skip):
-    #   dropout_rng = dummy_p_train_step(dropout_rng)
+    dummy_p_train_step = jax.pmap(
+        lambda dropout_rng: jax.random.split(dropout_rng)[1])
+    for _ in range(steps_to_skip):
+      dropout_rng = dummy_p_train_step(dropout_rng)
     logging.info('Finished skipping steps')
     logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
 
