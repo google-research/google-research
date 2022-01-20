@@ -26,6 +26,7 @@ from typing import Any, Callable, Iterable, Optional, Sequence, Tuple, Type, Uni
 from absl import flags
 import flax
 from flax import linen as nn
+from flax.linen import partitioning
 import jax
 from jax import lax
 import jax.numpy as jnp
@@ -104,6 +105,7 @@ class DenseAqt(nn.Module):
   kernel_init: InitializerType = default_kernel_init
   bias_init: InitializerType = nn.initializers.zeros
   precision: Optional[lax.Precision] = jax.lax.Precision.DEFAULT
+  kernel_axis_names: Optional[Sequence[str]] = None
 
   # TODO(shivaniagrawal): Changed the strategy to AQT if quant_type is aqt.
 
@@ -147,8 +149,20 @@ class DenseAqt(nn.Module):
           'jax.lax.Precision.DEFAULT to determine whether it is still sufficient.'
       )
 
-    kernel = self.param('kernel', self.kernel_init,
-                        (inputs.shape[-1], self.features))
+    kernel_shape = (inputs.shape[-1], self.features)
+    if self.kernel_axis_names is None:
+      kernel_axis_names = ['unmodeled'] * len(kernel_shape)
+    else:
+      kernel_axis_names = self.kernel_axis_names
+      if len(kernel_axis_names) != len(kernel_shape):
+        raise ValueError(f"Kernel axis names {kernel_axis_names} doesn't match "
+                         f'kernel shape {kernel_shape}.')
+
+    kernel = partitioning.param_with_axes(
+        'kernel',
+        self.kernel_init,
+        kernel_shape,
+        axes=tuple(kernel_axis_names))
 
     inputs = jnp.asarray(inputs, self.dtype)
     kernel = jnp.asarray(kernel, self.dtype)
@@ -200,7 +214,11 @@ class DenseAqt(nn.Module):
 
     # bias
     if self.use_bias:
-      bias = self.param('bias', self.bias_init, (self.features,))
+      bias = partitioning.param_with_axes(
+          'bias',
+          self.bias_init,
+          (self.features,),
+          axes=(kernel_axis_names[-1],))
       # (batch_size, features)
       y = y + bias[jnp.newaxis, :]
     return y

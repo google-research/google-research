@@ -16,6 +16,7 @@
 """Tests for aqt.jax.flax_layers."""
 
 import itertools
+from typing import Any, Dict, Mapping
 from unittest import mock
 
 from absl import flags
@@ -23,6 +24,8 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import flax
 from flax import linen as nn
+from flax import traverse_util
+from flax.core import frozen_dict
 import jax
 from jax import lax
 from jax import random
@@ -64,6 +67,67 @@ fp143_unscaled = QuantOps.FloatQuant(
         sig_bits=3,
     ),
 )
+
+
+METADATA_KEY = '__save_format_metadata__'
+
+
+def filter_out_metadata(params):
+  """Removes "__save_format_metadata__" entries from a parameter tree."""
+  result = {}
+  for k, v in params.items():
+    if k == METADATA_KEY:
+      continue
+    if isinstance(v, Mapping):
+      v = filter_out_metadata(v)
+      if not v:
+        continue
+    result[k] = v
+  return result
+
+
+def param_dtypes_shapes_axes(params,
+                             params_axes):
+  """Construct a tree of param info including dtypes, shapes, and axis names.
+
+  The leaf of the constructed dtree are of format [<dtype>, <axis_dim>, ...],
+  where each <axis_dim> is of format <axis_name>=<dim>.
+
+  Args:
+    params: Model params.
+    params_axes: Axis annotations, typically under state["params_axes"].
+
+  Returns:
+    A pytree with params info.
+  """
+  params = filter_out_metadata(params)
+  params_axes = filter_out_metadata(params_axes)
+  params = frozen_dict.unfreeze(params)  # pytype: disable=wrong-arg-types
+
+  def remove_axes_suffix(ks):
+    if not ks[-1].endswith('_axes'):
+      raise ValueError(
+          f'Param axes name should end with `_axes`, found {ks[-1]}')
+    return tuple(ks[:-1]) + (ks[-1][:-len('_axes')],)
+
+  params_axes = frozen_dict.unfreeze(params_axes)  # pytype: disable=wrong-arg-types
+  flatten_axes = {
+      remove_axes_suffix(ks): v
+      for ks, v in traverse_util.flatten_dict(params_axes).items()
+  }
+  params_axes = traverse_util.unflatten_dict(flatten_axes)
+
+  def _create_entry(param, param_axes):
+    output = [str(param.dtype)]
+    # The param axes should be paired with param dimension, so we check that.
+    if param.ndim != len(param_axes.names):
+      raise ValueError('Length of param dimension does not match axes, '
+                       f'{param.shape} != {param_axes.names}.')
+    for dim, axis_name in zip(param.shape, param_axes.names):
+      output.append(f'{axis_name}={dim}')
+    return output
+
+  return jax.tree_map(_create_entry, params, params_axes)
 
 
 class ConvAqtTest(parameterized.TestCase):
@@ -447,7 +511,8 @@ class DenseAqtTest(parameterized.TestCase):
                               kernel_init=flax_layers.default_kernel_init,
                               weight_prec=None,
                               quant_act=None,
-                              weight_half_shift=False):
+                              weight_half_shift=False,
+                              kernel_axis_names=None):
     """Create and initialize a flax model with a single DenseAqt layer."""
     quant_context = quant_config.QuantContext(
         update_bounds=False, collect_acts_stats=False)
@@ -458,7 +523,8 @@ class DenseAqtTest(parameterized.TestCase):
         'quant_context': quant_context,
         'paxis_name': 'batch',
         'train': False,
-        'dtype': jnp.float32
+        'dtype': jnp.float32,
+        'kernel_axis_names': kernel_axis_names
     }
     layer_kwargs['hparams'] = flax_layers.DenseAqt.HParams(
         weight_prec=weight_prec,
@@ -560,6 +626,20 @@ class DenseAqtTest(parameterized.TestCase):
     outputs = model.apply(state, inputs, padding_mask=None)
     exp_outputs = jnp.matmul(inputs, state['params']['kernel'])
     onp.testing.assert_array_equal(outputs, exp_outputs)
+
+  def test_logical_axis_names(self):
+    inputs = random.uniform(self.rng_key, shape=(2, 3))
+    _, state = self.init_model_with_1_layer(
+        inputs,
+        num_features=4,
+        kernel_init=initializers.ones,
+        weight_prec=8,
+        weight_half_shift=False,
+        kernel_axis_names=('embed', 'mlp'))
+
+    self.assertDictEqual(
+        param_dtypes_shapes_axes(state['params'], state['params_axes']),
+        {'kernel': ['float32', 'embed=3', 'mlp=4']})
 
   @parameterized.named_parameters(
       dict(testcase_name='dense_quant_8bit', weight_prec=8),
