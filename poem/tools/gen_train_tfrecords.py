@@ -61,14 +61,46 @@ from poem.core import keypoint_profiles
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
+# The relevant Human3.6M 3D keypoints and their indices from the H5 file are
+# (with their mapped names in the `3DSTD16` keypoint profile in the
+# parentheses):
+# [0]  Hip (PELVIS)
+# [15] Head (HEAD)
+# [14] Neck/Nose (-)
+# [13] Thorax (NECK)
+# [17] LShoulder (LEFT_SHOULDER)
+# [25] RShoulder (RIGHT_SHOULDER)
+# [18] LElbow (LEFT_ELBOW)
+# [26] RElbow (RIGHT_ELBOW)
+# [19] LWrist (LEFT_WRIST)
+# [27] RWrist (RIGHT_WRIST)
+# [12] Spine (SPINE)
+# [6]  LHip (LEFT_HIP)
+# [1]  RHip (RIGHT_HIP)
+# [7]  LKnee (LEFT_KNEE)
+# [2]  RKnee (RIGHT_KNEE)
+# [8]  LFoot (LEFT_ANKLE)
+# [3]  RFoot (RIGHT_ANKLE)
+
 # Indices of Human3.6M keypoints to be read from the H5 file. The
-# keypoint ordering follows the H5 file.
-KEYPOINT_3D_INDICES_H5 = [
+# keypoint ordering follows the H5 file and the `LEGACY_3DH36M17` keypoint
+# profile.
+KEYPOINT_INDICES_LEGACY_3DH36M17 = [
     0, 15, 14, 13, 17, 25, 18, 26, 19, 27, 12, 6, 1, 7, 2, 8, 3
+]
+
+# Indices of Human3.6M keypoints to be read from the H5 file. The
+# keypoint ordering follows the H5 file and the `3DSTD16` keypoint profile.
+KEYPOINT_INDICES_3DSTD16 = [
+    15, 13, 17, 25, 18, 26, 19, 27, 12, 0, 6, 1, 7, 2, 8, 3
 ]
 
 flags.DEFINE_enum('input_data_type', 'H36M_H5', ['H36M_H5'],
                   'Input type of Human3.6M dataset.')
+
+flags.DEFINE_enum('keypoint_profile_name_3d', 'LEGACY_3DH36M17',
+                  ['LEGACY_3DH36M17', '3DSTD16'],
+                  'Name of the 3D keypoint profile to use.')
 
 flags.DEFINE_string(
     'input_root_dir', '', 'Input root directory that contains the Human3.6M 3D '
@@ -212,8 +244,16 @@ def load_2d_keypoints_and_write_tfrecord_with_3d_keypoints(
   # Read the first row of the file as the header.
   read_header = True
 
-  keypoint_profile_h36m17 = (
-      keypoint_profiles.create_keypoint_profile_or_die('LEGACY_3DH36M17'))
+  if FLAGS.keypoint_profile_name_3d == 'LEGACY_3DH36M17':
+    keypoint_indices_3d = KEYPOINT_INDICES_LEGACY_3DH36M17
+  elif FLAGS.keypoint_profile_name_3d == '3DSTD16':
+    keypoint_indices_3d = KEYPOINT_INDICES_3DSTD16
+  else:
+    raise ValueError('Unsupported 3D keypoint profile: %s.' %
+                     str(FLAGS.keypoint_profile_name_3d))
+
+  keypoint_profile_3d = keypoint_profiles.create_keypoint_profile_or_die(
+      FLAGS.keypoint_profile_name_3d)
 
   tfrecord_writers = []
   if num_shards > 1:
@@ -245,7 +285,7 @@ def load_2d_keypoints_and_write_tfrecord_with_3d_keypoints(
         # Add 3D pose headers using the keypoint names to the header list.
         prefix = 'image/object/part_3d/'
         suffix = '/center/'
-        for name in keypoint_profile_h36m17.keypoint_names:
+        for name in keypoint_profile_3d.keypoint_names:
           headers.append(prefix + name + suffix + 'x')
           headers.append(prefix + name + suffix + 'y')
           headers.append(prefix + name + suffix + 'z')
@@ -260,9 +300,8 @@ def load_2d_keypoints_and_write_tfrecord_with_3d_keypoints(
 
       # Obtain matching 3D keypoints from keypoint_dict.
       anchor_keypoint_3d = keypoint_dict[(
-          anchor_subject,
-          anchor_action)][anchor_frame_index,
-                          KEYPOINT_3D_INDICES_H5, :].reshape([-1])
+          anchor_subject, anchor_action)][anchor_frame_index,
+                                          keypoint_indices_3d, :].reshape([-1])
 
       # If we need to read csv pairs, the second element in the pair in the row
       # is the positive match.
@@ -276,7 +315,7 @@ def load_2d_keypoints_and_write_tfrecord_with_3d_keypoints(
         positive_keypoint_3d = keypoint_dict[(
             positive_subject,
             positive_action)][positive_frame_index,
-                              KEYPOINT_3D_INDICES_H5, :].reshape([-1])
+                              keypoint_indices_3d, :].reshape([-1])
 
         # Concatenate 3D keypoints into current row with 2D keypoints.
         row_with_3d_keypoints = np.concatenate(
