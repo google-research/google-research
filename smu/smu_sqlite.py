@@ -62,7 +62,7 @@ class SMUSQLite:
     toplogy id, the first one provided will be silently kept.
   """
 
-  def __init__(self, filename, mode):
+  def __init__(self, filename, mode='r'):
     """Creates SMUSQLite.
 
     Args:
