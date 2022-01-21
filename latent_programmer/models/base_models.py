@@ -456,7 +456,7 @@ class TransformerDecoder(nn.Module):
 
 
 class TransformerIOEncoder(nn.Module):
-  """Transformer encoder for i/o examples."""
+  """Transformer encoder for i/o examples using double-attention."""
 
   config: TransformerConfig
 
@@ -590,5 +590,114 @@ class ProgramTransformer(nn.Module):
     """Applies Transformer model on the inputs."""
     encoded = self.encode(inputs, outputs)
     encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
+
+    return self.decode(programs, encoded, encoded_padding_mask)
+
+
+# Vanilla Transformer.
+
+
+class TransformerEncoder(nn.Module):
+  """Transformer encoder for i/o examples. Concatenates all i/o examples instead 
+       of using double attention.
+  """
+
+  config: TransformerConfig
+
+  @nn.compact
+  def __call__(self,
+               inputs):
+    """Vanilla Transformer encoder.
+
+    Args:
+      inputs: input data [batch_size, length]
+
+    Returns:
+      Encoded inputs `[batch_size, length, dim]`
+    """
+    cfg = self.config
+
+    # Inputs and outputs shared embeddings.
+    embed = nn.Embed(
+        num_embeddings=cfg.vocab_size,
+        features=cfg.emb_dim,
+        embedding_init=nn.initializers.normal(stddev=1.0),
+        name='embed')
+
+    if not cfg.use_relative_attention:
+      pos_emb = AddPositionEmbs(config=cfg, cache=False, name='posembed_io')
+
+    x = inputs.astype('int32')
+    encoder_mask = nn.make_attention_mask(x > 0, x > 0, dtype=cfg.dtype)
+
+    # Embed outputs.
+    x = embed(x)
+    if not cfg.use_relative_attention:
+      x = pos_emb(x)
+    x = nn.Dropout(rate=cfg.dropout_rate)(
+        x, deterministic=cfg.deterministic)
+
+    for lyr in range(cfg.num_layers):
+      x = EncoderBlock(   # Attend to inputs.
+          config=cfg,
+          name=f'encoderblock_{lyr}')(x, encoder_mask)
+    y = nn.LayerNorm(dtype=cfg.dtype, name='encoder_norm')(x)
+
+    return y
+
+
+class BaseTransformer(nn.Module):
+  """Vanilla Transformer model."""
+  
+  config: TransformerConfig
+
+  def setup(self):
+    cfg = self.config
+
+    self.encoder = TransformerEncoder(config=cfg, name='encoder')
+    self.decoder = TransformerDecoder(config=cfg, name='decoder')
+
+  def encode(self, inputs):
+    """Applies encoder on input specification."""
+    # shape = (batch_size, length)
+    assert inputs.ndim == 2, ('Number of inputs dimensions should be 2,'
+                              ' but it is: %d' % inputs.ndim)
+    return self.encoder(inputs)
+
+  def decode(self,
+             programs,
+             encoded,
+             encoded_padding_mask):
+    """Applies decoder on programs and encoded specification."""
+    cfg = self.config
+
+    assert programs.ndim == 2, ('Number of program dimensions should be 2,'
+                                ' but it is: %d' % programs.ndim)
+    assert encoded.ndim == 3, ('Number of encoded dimensions should be 3,'
+                               ' but it is: %d' % encoded.ndim)
+
+    # Make attention masks.
+    if cfg.decode:
+      # For fast decode with caching, programs shape == [batch_size, 1] and
+      # cfg.shift = False, cfg.decode = True.
+      decoder_mask = None
+      encoder_decoder_mask = nn.make_attention_mask(
+          jnp.ones_like(programs), encoded_padding_mask, dtype=cfg.dtype)
+    else:
+      decoder_mask = nn.combine_masks(
+          nn.make_attention_mask(programs > 0, programs > 0, dtype=cfg.dtype),
+          nn.make_causal_mask(programs, dtype=cfg.dtype))
+      encoder_decoder_mask = nn.make_attention_mask(
+          programs > 0, encoded_padding_mask, dtype=cfg.dtype)
+
+    return self.decoder(
+        programs, encoded, decoder_mask, encoder_decoder_mask)
+
+  def __call__(self,
+               inputs
+               programs):
+    """Applies Transformer model on the inputs."""
+    encoded = self.encode(inputs)
+    encoded_padding_mask = jnp.where(inputs > 0, 1, 0).astype(jnp.float32)
 
     return self.decode(programs, encoded, encoded_padding_mask)
