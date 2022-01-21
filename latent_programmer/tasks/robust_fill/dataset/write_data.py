@@ -55,7 +55,7 @@ flags.DEFINE_integer('min_expressions', 1,
 flags.DEFINE_integer('max_input_length', 20,
                      'Maximum number of characters in input strings.')
 
-flags.DEFINE_string('save_dir', '/tmp/decomposition',
+flags.DEFINE_string('save_dir', '/tmp/decomposition/robust_fill',
                     'Directory to save results to.')
 
 flags.DEFINE_boolean('split_program', False,
@@ -229,7 +229,7 @@ def main(_):
   # Write the `tf.Example` observations to the file.
   with tf.io.TFRecordWriter(worker_fname) as writer:
     for i in range(FLAGS.num_tasks):
-      if FLAGS.experiment == exp_module.Experiment.NONE:
+      if FLAGS.experiment == exp_module.Experiment.NONE.name:
         task = sample_random.random_task(
             max_expressions=FLAGS.max_expressions,
             min_expressions=FLAGS.min_expressions,
