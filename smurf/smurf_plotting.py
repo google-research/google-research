@@ -88,6 +88,11 @@ def plot_data(data_it, plot_dir, num_plots):
       for k, image in enumerate(images):
         save_image_as_png(
             image, os.path.join(plot_dir, '{}_{}_{}.png'.format(i, j, k)))
+    if 'flow' in image_batch:
+      for j, flow in enumerate(image_batch['flow']):
+        save_image_as_png(
+            flow_to_rgb(flow),
+            os.path.join(plot_dir, '{}_{}_flow.png'.format(i, j)))
 
 
 def flow_to_rgb(flow):
