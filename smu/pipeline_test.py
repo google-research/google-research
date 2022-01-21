@@ -267,19 +267,6 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('c,c,2,1.336,1\n', bond_length_lines)
       self.assertIn('c,o,1,1.422,2\n', bond_length_lines)
 
-    # For the gzip files below, we check >100 because even an empty gzip file
-    # has non-zero length. 100 is kind of arbitrary to be bigger than the
-    # expected header of 20.
-    self.assertGreater(
-        gfile.stat(output_stem + '_complete_json-00000-of-00003.json.gz').length
-        +
-        gfile.stat(output_stem + '_complete_json-00001-of-00003.json.gz').length
-        + gfile.stat(output_stem +
-                     '_complete_json-00002-of-00003.json.gz').length, 100)
-    self.assertGreater(
-        gfile.stat(output_stem +
-                   '_standard_json-00000-of-00001.json.gz').length, 100)
-
     # Check that the generated TFRecord files contain some expected outputs
     standard_dataset = tf.data.TFRecordDataset(
         output_stem + '_standard_tfrecord-00000-of-00001')

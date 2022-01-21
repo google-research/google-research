@@ -33,7 +33,6 @@ import apache_beam as beam
 import numpy as np
 from tensorflow.io import gfile
 
-from google.protobuf import json_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
 from smu.geometry import smu_molecule
@@ -721,13 +720,6 @@ def csv_format(vals):
   return ','.join(str(v) for v in vals)
 
 
-def conformer_to_json(conformer):
-  return json_format.MessageToJson(
-      conformer,
-      preserving_proto_field_name=True,
-      including_default_value_fields=True)
-
-
 def dat_input_and_parsing_pipeline(root, stage):
   """Create multiple stages for parsing and validation .dat files.
 
@@ -947,24 +939,6 @@ def pipeline(root):
             f'{FLAGS.output_stem}_{id_str}_tfrecord',
             coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
             num_shards=FLAGS.output_shards))
-
-
-  # Write the complete and standard conformers as JSON.
-  # Bit of a hack here: the slowest part of the whole pipeline is writing out
-  # the JSON for the complete conformers. So we just hard code a tripling of the
-  # shards to get more parallelism.
-  for id_str, collection, num_shards in [[
-      'complete', complete_conformers, FLAGS.output_shards * 3
-  ], ['standard', standard_conformers, FLAGS.output_shards]]:
-    _ = (
-        collection
-        | ('JSONReshuffle_' + id_str) >> beam.Reshuffle()
-        | ('ToJSON_' + id_str) >> beam.Map(conformer_to_json)
-        | ('WriteJSON_' + id_str) >> beam.io.WriteToText(
-            f'{FLAGS.output_stem}_{id_str}_json',
-            compression_type='gzip',
-            num_shards=num_shards,
-            file_name_suffix='.json.gz'))
 
 
 def main(argv):
