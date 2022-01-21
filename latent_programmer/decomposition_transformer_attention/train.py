@@ -89,6 +89,9 @@ flags.DEFINE_integer('num_quick_test_steps', 10,
                      'Number of test steps during training.')
 flags.DEFINE_integer('num_final_test_steps', 100,
                      'Number of test steps after training is finished.')
+flags.DEFINE_integer('train_set_batches', -1,
+                     'Number of batches for a smaller training set, or -1 to '
+                     'use the original training set size.')
 flags.DEFINE_integer('log_freq', 1000, 'Number of steps between training logs.')
 flags.DEFINE_integer('eval_freq', 5000, 'Number of steps between eval.')
 flags.DEFINE_integer('predict_freq', 50000,
@@ -541,7 +544,10 @@ def main(_):
   predict_ds = eval_ds.unbatch().padded_batch(
       int(np.ceil(batch_size / 10)),
       padded_shapes=predict_padded_shapes)
-  train_ds = dataset.skip(FLAGS.num_eval_steps).repeat()
+  train_ds = dataset.skip(FLAGS.num_eval_steps)
+  if FLAGS.train_set_batches > 0:
+    train_ds = train_ds.take(FLAGS.train_set_batches)
+  train_ds = train_ds.repeat()
 
   test_dataset = input_pipeline.create_dataset_from_tf_record(
       FLAGS.test_dataset_filepattern, token_id_table, char_id_table)
@@ -555,7 +561,6 @@ def main(_):
                         .padded_batch(int(np.ceil(batch_size / 10)),
                                       padded_shapes=predict_padded_shapes))
   final_test_dataset = (test_dataset
-                        .skip(FLAGS.num_quick_test_steps)
                         .take(FLAGS.num_final_test_steps)
                         .unbatch()
                         .padded_batch(int(np.ceil(batch_size / 10)),
