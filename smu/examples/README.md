@@ -23,4 +23,4 @@ You can also execute the examples with
 
         python <path to the examples directory>/field_access.py
 
-In addition, there is also a `.out` file for each `.py` file which gives the expected standard output for that script
+In addition, there is a `.out` file for each `.py` file which gives the expected standard output for that script
