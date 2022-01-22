@@ -2,10 +2,12 @@
 
 Papers using this code:
 
-1. [Towards Learning a Universal Non-Semantic Representation of Speech](https://arxiv.org/abs/2002.12764)
-1. [FRILL: A Non-Semantic Speech Embedding for Mobile Devices](https://arxiv.org/abs/2011.04609)
+1. ICASSP 2022: [Universal Paralinguistic Speech Representations Using Self-Supervised Conformers](https://arxiv.org/abs/2110.04621)
 1. [BigSSL: Exploring the Frontier of Large-Scale Semi-Supervised Learning for Automatic Speech Recognition](https://arxiv.org/abs/2109.13226)
-1. [Universal Paralinguistic Speech Representations Using Self-Supervised Conformers](https://arxiv.org/abs/2110.04621)
+1. Interspeech 2021: [FRILL: A Non-Semantic Speech Embedding for Mobile Devices](https://arxiv.org/abs/2011.04609)
+1. Interspeech 2021: [Comparing Supervised Models And Learned Speech Representations For Classifying Intelligibility Of Disordered Speech On Selected Phrases](https://arxiv.org/abs/2107.03985)
+1. Interspeech 2020: [Towards Learning a Universal Non-Semantic Representation of Speech](https://arxiv.org/abs/2002.12764)
+
 
 This paper and code repository describe a benchmark for comparing speech representations,
 and the evaluation code to run it. It also contains a description of our baseline
