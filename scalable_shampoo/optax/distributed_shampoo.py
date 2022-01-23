@@ -135,6 +135,12 @@ class QuantizedValue:
     return val
 
 
+@struct.dataclass
+class TrainingMetrics:
+  inverse_pth_root_errors: chex.Array  # Error for inverse-pth roots.
+  # TODO(rohananil): Add more important metrics to track during training.
+
+
 # Per parameter optimizer state used in data-parallel training.
 class ParameterStats(NamedTuple):
   """State associated to each parameter of the model being trained."""
@@ -143,6 +149,7 @@ class ParameterStats(NamedTuple):
   preconditioners: List[Any]  # Preconditioners (QuantizedValue, chex.Array)
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
+  training_metrics: TrainingMetrics  # Metrics (optional for training).
 
 
 # For training extremely large model; We keep a global state with a concatenated
@@ -164,9 +171,31 @@ class LocalShardedParameterStats:
   diagonal_statistics: QuantizedValue  # Accumulator for diagonal preconditioner
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
+  training_metrics: TrainingMetrics  # Metrics (optional for training).
   index_start: np.int32 = struct.field(
       pytree_node=False)  # Index into global statistics array
   sizes: Any = struct.field(pytree_node=False)  # Sizes of the statistics.
+
+
+def init_training_metrics(num_statistics):
+  if num_statistics:
+    return TrainingMetrics(jnp.zeros([num_statistics], jnp.float32))
+  else:
+    return TrainingMetrics([])
+
+
+def init_training_metrics_shapes(num_statistics):
+  if num_statistics:
+    return TrainingMetrics([[num_statistics], jnp.float32])
+  else:
+    return TrainingMetrics([None, jnp.float32])
+
+
+def init_training_metrics_pspec(num_statistics):
+  if num_statistics:
+    return TrainingMetrics(pjit.PartitionSpec())
+  else:
+    return TrainingMetrics(None)
 
 
 class ShardedShampooStats(NamedTuple):
@@ -597,7 +626,7 @@ def _convert_to_parameter_stats(global_stats, local_stat):
     new_preconditioners.append(preconditioners[i][:size, :size])
   return ParameterStats(local_stat.diagonal_statistics, new_statistics,
                         new_preconditioners, local_stat.diagonal_momentum,
-                        local_stat.momentum)
+                        local_stat.momentum, local_stat.training_metrics)
 
 
 def _convert_from_parameter_stats(parameter_stats, local_stats):
@@ -605,7 +634,29 @@ def _convert_from_parameter_stats(parameter_stats, local_stats):
   return LocalShardedParameterStats(parameter_stats.diagonal_statistics,
                                     parameter_stats.diagonal_momentum,
                                     parameter_stats.momentum,
+                                    parameter_stats.training_metrics,
                                     local_stats.index_start, local_stats.sizes)
+
+
+def _add_error_into_local_stats(local_stats, errors, inverse_failure_threshold):
+  """Adds errors back into local statistics."""
+  new_local_stats = []
+  for local_stat in local_stats:
+    index_start = int(local_stat.index_start)
+    index_end = int(len(local_stat.sizes)) + index_start
+    per_stat_error = errors[index_start:index_end]
+    if local_stat.sizes:
+      per_stat_error = jnp.where(
+          jnp.logical_and(per_stat_error > 0.0,
+                          per_stat_error != inverse_failure_threshold),
+          per_stat_error, local_stat.training_metrics.inverse_pth_root_errors)
+    new_local_stats.append(
+        LocalShardedParameterStats(local_stat.diagonal_statistics,
+                                   local_stat.diagonal_momentum,
+                                   local_stat.momentum,
+                                   TrainingMetrics(per_stat_error),
+                                   local_stat.index_start, local_stat.sizes))
+  return new_local_stats
 
 
 def batch(x, num_devices):
@@ -845,7 +896,8 @@ def distributed_shampoo(
           LocalShardedParameterStats(
               _quantize_diagonal_statistics(diagonal_statistics),
               _quantize_momentum(jnp.zeros_like(param)),
-              _quantize_momentum(jnp.zeros_like(param)), index_start, sizes))
+              _quantize_momentum(jnp.zeros_like(param)),
+              init_training_metrics(len(sizes)), index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     # Pad the statistics and preconditioner matrices to be a multiple of
@@ -951,7 +1003,8 @@ def distributed_shampoo(
                              list(param.shape)),
               QuantizedValue(m2_pspec, [], m2_scale_pspec,
                              quantized_dtype_for_momentum_buffers(), False,
-                             list(param.shape)), index_start, sizes))
+                             list(param.shape)),
+              init_training_metrics_pspec(len(sizes)), index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
@@ -1024,7 +1077,11 @@ def distributed_shampoo(
                              list(param.shape)),
               QuantizedValue(m2_shape_and_dtype, [], m2_scale_shape_and_dtype,
                              quantized_dtype_for_momentum_buffers(), False,
-                             list(param.shape)), index_start, sizes))
+                             list(param.shape)),
+              init_training_metrics_shapes(len(sizes)),
+              index_start,
+              sizes,
+          ))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     max_statistics_size = _max_statistics_size_from_params(params_flat)
@@ -1075,7 +1132,6 @@ def distributed_shampoo(
         _convert_from_parameter_stats(new_stat, local_stat)
         for new_stat, local_stat in zip(new_stats_flat, local_stats_flat)
     ]
-    new_local_stats = jax.tree_unflatten(treedef, new_local_stats_flat)
 
     max_size = global_stats.statistics.shape[1]
     new_padded_statistics = []
@@ -1118,6 +1174,9 @@ def distributed_shampoo(
       new_preconditioners, errors = efficient_cond(
           perform_step, _internal_inverse_pth_root_all, init_state)
 
+    new_local_stats_flat = _add_error_into_local_stats(
+        new_local_stats_flat, errors, inverse_failure_threshold)
+    new_local_stats = jax.tree_unflatten(treedef, new_local_stats_flat)
     errors = errors.reshape((-1, 1, 1))
     predicate = jnp.logical_or(
         jnp.isnan(errors),
@@ -1155,7 +1214,8 @@ def distributed_shampoo(
           _maybe_quantize_statistics(statistics),
           _maybe_quantize_preconditioners(preconditioners),
           _quantize_momentum(jnp.zeros_like(param)),
-          _quantize_momentum(jnp.zeros_like(param)))
+          _quantize_momentum(jnp.zeros_like(param)),
+          init_training_metrics(len(statistics)))
     return ShampooState(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
 
@@ -1190,7 +1250,7 @@ def distributed_shampoo(
         new_statistics = compute_updated_statistics()
     return ParameterStats(state.diagonal_statistics, new_statistics,
                           state.preconditioners, state.diagonal_momentum,
-                          state.momentum)
+                          state.momentum, state.training_metrics)
 
   def _matrix_inverse_pth_root_vmap(xs, ps):
     mi_pth_root = functools.partial(
@@ -1303,32 +1363,49 @@ def distributed_shampoo(
           _skip(error), lambda _: old_p, lambda _: new_p, operand=None)
 
     new_preconditioners_flat = []
+    new_errors_flat = []
     for p, shape, prev_p, error in zip(preconditioners_flat, original_shapes,
                                        prev_preconditioners, errors_flat):
       new_preconditioners_flat.append(
           _select_preconditioner(error, p[:shape[0], :shape[1]], prev_p))
+      new_errors_flat.append(error)
 
     assert len(states) == len(num_statistics_per_state)
     assert len(new_preconditioners_flat) == num_statistics
+    assert len(new_errors_flat) == num_statistics
 
     # Add back empty preconditioners so we that we can set the optimizer state.
     preconditioners_for_states = []
     idx = 0
+    errors_for_states = []
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
+        errors_for_states.append([])
       else:
         preconditioners_for_state = new_preconditioners_flat[idx:idx +
                                                              num_statistics]
         assert len(state.statistics) == len(preconditioners_for_state)
         preconditioners_for_states.append(preconditioners_for_state)
+
+        errors_for_state = jnp.stack(new_errors_flat[idx:idx + num_statistics])
+        assert len(state.statistics) == len(errors_for_state)
+        errors_for_states.append(errors_for_state)
+
         idx += num_statistics
     new_states = []
-    for state, new_preconditioners in zip(states, preconditioners_for_states):
+    for state, new_preconditioners, new_errors in zip(
+        states, preconditioners_for_states, errors_for_states):
+      if state.statistics:
+        new_errors = jnp.where(
+            jnp.logical_and(new_errors > 0.0,
+                            new_errors != inverse_failure_threshold),
+            new_errors, state.training_metrics.inverse_pth_root_errors)
+      new_training_metrics = TrainingMetrics(new_errors)
       new_states.append(
           ParameterStats(state.diagonal_statistics, state.statistics,
                          new_preconditioners, state.diagonal_momentum,
-                         state.momentum))
+                         state.momentum, new_training_metrics))
 
     return new_states
 
@@ -1455,6 +1532,7 @@ def distributed_shampoo(
     new_quantized_preconditioners_flat = []
     new_quantized_diagonals_flat = []
     new_quantized_bucket_sizes_flat = []
+    new_errors_flat = []
     for p, d, b, shape, prev_p, error in zip(quantized_preconditioners_flat,
                                              quantized_diagonals_flat,
                                              quantized_bucket_sizes_flat,
@@ -1467,6 +1545,7 @@ def distributed_shampoo(
           _select_preconditioner(error, d[:shape[0]], prev_p.diagonal))
       new_quantized_bucket_sizes_flat.append(
           _select_preconditioner(error, b[:shape[0]], prev_p.bucket_size))
+      new_errors_flat.append(error)
 
     assert len(states) == len(num_statistics_per_state)
     assert len(new_quantized_preconditioners_flat) == num_statistics
@@ -1475,10 +1554,12 @@ def distributed_shampoo(
 
     # Add back empty preconditioners so we that we can set the optimizer state.
     preconditioners_for_states = []
+    errors_for_states = []
     idx = 0
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
+        errors_for_states.append([])
       else:
         quantized_preconditioners_for_state = new_quantized_preconditioners_flat[
             idx:idx + num_statistics]
@@ -1486,10 +1567,12 @@ def distributed_shampoo(
             idx:idx + num_statistics]
         quantized_bucket_sizes_for_state = new_quantized_bucket_sizes_flat[
             idx:idx + num_statistics]
+        errors_for_state = jnp.stack(new_errors_flat[idx:idx + num_statistics])
 
         assert len(state.statistics) == len(quantized_preconditioners_for_state)
         assert len(state.statistics) == len(quantized_diagonals_for_state)
         assert len(state.statistics) == len(quantized_bucket_sizes_for_state)
+        assert len(state.statistics) == len(errors_for_state)
 
         quantized_preconditioners = []
         for qv, qd, qb in zip(quantized_preconditioners_for_state,
@@ -1498,13 +1581,21 @@ def distributed_shampoo(
           quantized_preconditioners.append(
               QuantizedValue(qv, qd, qb, qv.dtype, True, list(qv.shape)))
         preconditioners_for_states.append(quantized_preconditioners)
+        errors_for_states.append(errors_for_state)
         idx += num_statistics
     new_states = []
-    for state, new_preconditioners in zip(states, preconditioners_for_states):
+    for state, new_preconditioners, new_errors in zip(
+        states, preconditioners_for_states, errors_for_states):
+      if state.statistics:
+        new_errors = jnp.where(
+            jnp.logical_and(new_errors > 0.0,
+                            new_errors != inverse_failure_threshold),
+            new_errors, state.training_metrics.inverse_pth_root_errors)
+      new_training_metrics = TrainingMetrics(new_errors)
       new_states.append(
           ParameterStats(state.diagonal_statistics, state.statistics,
                          new_preconditioners, state.diagonal_momentum,
-                         state.momentum))
+                         state.momentum, new_training_metrics))
 
     return new_states
 
@@ -1574,32 +1665,48 @@ def distributed_shampoo(
           _skip(error), lambda _: old_p, lambda _: new_p, operand=None)
 
     new_preconditioners_flat = []
+    new_errors_flat = []
     for p, shape, prev_p, error in zip(preconditioners_flat, original_shapes,
                                        prev_preconditioners, errors_flat):
       new_preconditioners_flat.append(
           _select_preconditioner(error, p[:shape[0], :shape[1]], prev_p))
+      new_errors_flat.append(error)
 
     assert len(states) == len(num_statistics_per_state)
     assert len(new_preconditioners_flat) == num_statistics
 
     # Add back empty preconditioners so we that we can set the optimizer state.
     preconditioners_for_states = []
+    errors_for_states = []
     idx = 0
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
+        errors_for_states.append([])
       else:
         preconditioners_for_state = new_preconditioners_flat[idx:idx +
                                                              num_statistics]
         assert len(state.statistics) == len(preconditioners_for_state)
         preconditioners_for_states.append(preconditioners_for_state)
+
+        errors_for_state = jnp.stack(new_errors_flat[idx:idx + num_statistics])
+        assert len(state.statistics) == len(errors_for_state)
+        errors_for_states.append(errors_for_state)
         idx += num_statistics
+
     new_states = []
-    for state, new_preconditioners in zip(states, preconditioners_for_states):
+    for state, new_preconditioners, new_errors in zip(
+        states, preconditioners_for_states, errors_for_states):
+      if state.statistics:
+        new_errors = jnp.where(
+            jnp.logical_and(new_errors > 0.0,
+                            new_errors != inverse_failure_threshold),
+            new_errors, state.training_metrics.inverse_pth_root_errors)
+      new_training_metrics = TrainingMetrics(new_errors)
       new_states.append(
           ParameterStats(state.diagonal_statistics, state.statistics,
                          new_preconditioners, state.diagonal_momentum,
-                         state.momentum))
+                         state.momentum, new_training_metrics))
 
     return new_states
 
@@ -1747,7 +1854,9 @@ def distributed_shampoo(
         _quantize_diagonal_statistics(new_diagonal_statistics),
         state.statistics, state.preconditioners,
         _quantize_momentum(grafting_update_with_wd_momentum),
-        _quantize_momentum(shampoo_update_with_wd_momentum))
+        _quantize_momentum(shampoo_update_with_wd_momentum),
+        state.training_metrics)
+
     return transformed_update, param_stats
 
   def update_fn(grads, state, params):
