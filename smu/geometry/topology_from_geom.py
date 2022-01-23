@@ -163,9 +163,6 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
       rdkit_mol, include_hs=True)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
-  # Avoid finding duplicates.
-  all_found_smiles: Set[str] = set()
-
   mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
                                  matching_parameters)
 
@@ -182,10 +179,6 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
 
     found_smiles = smu_utils_lib.compute_smiles_for_molecule(
         rdkit_mol, include_hs=True)
-    if found_smiles in all_found_smiles:
-      continue
-
-    all_found_smiles.add(found_smiles)
 
     if matching_parameters.ring_atom_count_cannot_decrease:
       ring_atoms = utilities.ring_atom_count_mol(rdkit_mol)
