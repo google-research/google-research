@@ -22,6 +22,7 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
 
+import numpy as np
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.distillation import models
@@ -171,9 +172,37 @@ class ModelsTest(parameterized.TestCase):
         tflite=False,
         spec_augment=False)
     samples = tf.zeros([2, 40000], tf.float32)
-    o = m(samples)
-    for v in o.values():
-      print(v.shape)
+    m(samples)
+
+  @flagsaver.flagsaver
+  def test_get_keras_model_frontend_pad_mode(self):
+    """Check that pad mode is properly piped through."""
+    # Flags for both models.
+    flags.FLAGS.frame_hop = 5
+    flags.FLAGS.num_mel_bins = 80
+    flags.FLAGS.frame_width = 5
+    flags.FLAGS.n_required = 32000
+
+    model_input = np.random.random([2, 10000])
+
+    def _model():
+      return models.get_keras_model(
+          model_type='efficientnetv2b0',
+          output_dimension=0,
+          frontend=True,
+          tflite=False,
+          spec_augment=False)
+    flags.FLAGS.pad_mode = 'CONSTANT'
+    m_constant = _model()
+    flags.FLAGS.pad_mode = 'SYMMETRIC'
+    m_symmetric = _model()
+
+    o_constant = m_constant(model_input)
+    o_symmetric = m_symmetric(model_input)
+
+    for k in o_constant.keys():
+      np.testing.assert_raises(AssertionError, np.testing.assert_array_equal,
+                               o_constant[k], o_symmetric[k])
 
 
 if __name__ == '__main__':

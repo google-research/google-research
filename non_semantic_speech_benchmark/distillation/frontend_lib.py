@@ -15,6 +15,9 @@
 
 """Frontend for features."""
 
+from typing import Any, Dict
+
+from absl import logging
 import tensorflow as tf
 from non_semantic_speech_benchmark.export_model import tf_frontend
 
@@ -38,6 +41,7 @@ def get_frontend_output_shape():
   return _sample_to_features(x, frontend_args, tflite=False).shape
 
 
+# TODO(joelshor): Deprecate this.
 def get_feats_map_fn(tflite, frontend_args):
   """Returns a function mapping audio to features, suitable for keras Lambda.
 
@@ -62,3 +66,25 @@ def get_feats_map_fn(tflite, frontend_args):
       return tf.map_fn(map_fn, x, dtype=tf.float64)
 
   return feats_map_fn
+
+
+class SamplesToFeats(tf.keras.layers.Layer):
+  """Compute features from samples."""
+
+  def __init__(self, tflite, frontend_args):
+    super(SamplesToFeats, self).__init__()
+    self.tflite = tflite
+    self.frontend_args = frontend_args
+    logging.info('[SamplesToFeats] frontend_args: %s', self.frontend_args)
+
+  def call(self, samples):
+    if samples.shape.ndims != 2:
+      raise ValueError(f'Frontend input must be ndim 2: {samples.shape.ndims}')
+    if self.tflite:
+      x = tf.squeeze(samples)
+      return _sample_to_features(x, self.frontend_args, self.tflite)
+    else:
+      # TODO(joelshor): When we get a frontend function that works on batches,
+      # remove this loop.
+      map_fn = lambda s: _sample_to_features(s, self.frontend_args, self.tflite)
+      return tf.map_fn(map_fn, samples, dtype=tf.float64)

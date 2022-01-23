@@ -21,11 +21,14 @@ from absl import flags
 import numpy as np
 import tensorflow as tf
 
+from non_semantic_speech_benchmark.export_model import tf_pad
+
 # Add flags here even though it's not a binary, for convenience.
 flags.DEFINE_integer('frame_hop', 17, 'Frontend fn arg: frame_hop.')
 flags.DEFINE_integer('n_required', 16000, 'Frontend fn arg: n_require.')
 flags.DEFINE_integer('num_mel_bins', 64, 'Frontend fn arg: num_mel_bins.')
 flags.DEFINE_integer('frame_width', 96, 'Frontend fn arg: frame_width.')
+flags.DEFINE_string('pad_mode', 'CONSTANT', 'Mode for padding short inputs.')
 
 
 def stabilized_log(data, additive_offset,
@@ -78,7 +81,8 @@ def compute_frontend_features(samples,
                               tflite = False,
                               n_required = 16000,
                               num_mel_bins = 64,
-                              frame_width = 96):
+                              frame_width = 96,
+                              pad_mode = 'CONSTANT'):
   """Compute features."""
   if tflite:
     raise ValueError('TFLite frontend unsupported.')
@@ -97,8 +101,9 @@ def compute_frontend_features(samples,
 
   if n_required:
     n = tf.shape(samples)[1]
-    samples = tf.cond(n < n_required,
-                      lambda: tf.pad(samples, [(0, 0), (0, n_required - n)]),
+    delta = n_required - n
+    samples = tf.cond(delta > 0,
+                      lambda: tf_pad.tf_pad(samples, delta, mode=pad_mode),
                       lambda: samples)
   mel = log_mel_spectrogram(samples, sr, num_mel_bins=num_mel_bins)
   mel = tf.signal.frame(
@@ -117,4 +122,5 @@ def frontend_args_from_flags():
       'n_required': flags.FLAGS.n_required,
       'num_mel_bins': flags.FLAGS.num_mel_bins,
       'frame_width': flags.FLAGS.frame_width,
+      'pad_mode': flags.FLAGS.pad_mode,
   }

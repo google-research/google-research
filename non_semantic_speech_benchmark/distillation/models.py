@@ -122,8 +122,7 @@ def _frontend_keras(
                               name='audio_samples',
                               batch_size=num_batches)
     bs = tf.shape(model_in)[0]
-    frontend_fn = frontend_lib.get_feats_map_fn(tflite, frontend_args)
-    feats = tf.keras.layers.Lambda(frontend_fn)(model_in)
+    feats = frontend_lib.SamplesToFeats(tflite, frontend_args)(model_in)
     feats.shape.assert_is_compatible_with(
         [num_batches, feats_inner_dim, frontend_args['frame_width'],
          frontend_args['num_mel_bins']])

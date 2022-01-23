@@ -82,8 +82,9 @@ def get_model(checkpoint_folder_path,
   """Given folder & training params, exports SavedModel without frontend."""
   # Optionally override frontend flags from
   # `non_semantic_speech_benchmark/export_model/tf_frontend.py`
-  override_flag_names = ['frame_hop', 'n_required', 'num_mel_bins',
-                         'frame_width']
+  override_flag_names = [
+      'frame_hop', 'n_required', 'num_mel_bins', 'frame_width', 'pad_mode'
+  ]
   for flag_name in override_flag_names:
     if flag_name in params:
       setattr(flags.FLAGS, flag_name, params[flag_name])

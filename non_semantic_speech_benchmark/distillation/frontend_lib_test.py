@@ -17,6 +17,8 @@
 
 from absl.testing import absltest
 
+import tensorflow as tf
+
 from non_semantic_speech_benchmark.distillation import frontend_lib
 
 
@@ -24,6 +26,45 @@ class FrontendTest(absltest.TestCase):
 
   def test_default_shape(self):
     self.assertEqual(frontend_lib.get_frontend_output_shape(), [1, 96, 64])
+
+  def test_sample_to_features_nopadding(self):
+    frontend_args = {
+        'frame_hop': 5,
+        'n_required': 16000,
+        'num_mel_bins': 80,
+        'frame_width': 5,
+        'pad_mode': 'CONSTANT',
+    }
+    samples = tf.zeros([17000])
+    feats = frontend_lib._sample_to_features(samples, frontend_args, False)
+    print(f'feats: {feats}')
+    self.assertEqual(feats.shape, (20, 5, 80))
+
+  def test_sample_to_features_yespadding(self):
+    frontend_args = {
+        'frame_hop': 5,
+        'n_required': 16000,
+        'num_mel_bins': 80,
+        'frame_width': 5,
+        'pad_mode': 'CONSTANT',
+    }
+    samples = tf.zeros([5000])
+    feats = frontend_lib._sample_to_features(samples, frontend_args, False)
+    print(f'feats: {feats}')
+    self.assertEqual(feats.shape, (19, 5, 80))
+
+  def test_keras_layer(self):
+    frontend_args = {
+        'frame_hop': 5,
+        'n_required': 16000,
+        'num_mel_bins': 80,
+        'frame_width': 5,
+        'pad_mode': 'SYMMETRIC',
+    }
+    samples = tf.zeros([2, 5000])
+    feats = frontend_lib.SamplesToFeats(False, frontend_args)(samples)
+    print(f'feats: {feats}')
+    self.assertEqual(feats.shape, (2, 19, 5, 80))
 
 
 if __name__ == '__main__':
