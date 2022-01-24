@@ -1,0 +1,9 @@
+absl-py>=0.9.0
+atari-py>=0.2.6
+dopamine-rl>=3.0.1
+gin-config>=0.3.0
+gym>=0.17.2
+numpy>=1.19.1
+scipy>=1.5.2
+tensorboard>=1.15.0
+tensorflow>=1.15.0
