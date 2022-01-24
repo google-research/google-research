@@ -76,13 +76,12 @@ flags.DEFINE_boolean('sdf_include_all_bond_topologies', True,
                      'For all sdf outputs, whether to output separate entries '
                      'for each bond topology or only one')
 flags.DEFINE_boolean(
-    'redetect_geometry', False,
-    'Whether to rerun the geometry detection on the conformers')
+    'redetect_topology', False,
+    'Whether to rerun the topology detection on the conformers')
 flags.DEFINE_string(
     'bond_lengths_csv', None,
     'File usually name <data>_bond_lengths.csv that contains the '
-    'observed distribution of bond lengths. '
-    'Only needed if --redetect_geometry')
+    'observed distribution of bond lengths.')
 flags.DEFINE_string(
     'bond_lengths', None, 'Comma separated terms like form XYX:N-N '
     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
@@ -90,7 +89,7 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'bond_topology_csv', None,
     'File which contains the desription of all bond topologies '
-    'considered in SMU. Only needed if --redetect_geometry')
+    'considered in SMU.')
 
 FLAGS = flags.FLAGS
 
@@ -459,7 +458,7 @@ def main(argv):
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
-  if FLAGS.redetect_geometry:
+  if FLAGS.redetect_topology:
     outputter = ReDetectTopologiesOutputter(outputter)
 
   with contextlib.closing(outputter):
