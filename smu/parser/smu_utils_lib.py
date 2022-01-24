@@ -660,6 +660,24 @@ def bond_topology_to_molecule(bond_topology):
   return mol
 
 
+def get_bond_type(bond_topology, atom_idx0, atom_idx1):
+  """Returns the type of bond in the topology.
+
+  Args:
+    bond_topology: datset_pb2.BondTopology
+    atom_idx0: int, atom index
+    atom_idx1, int atom index
+
+  Returns:
+    dataset_pb2.BondTopology.BondType
+  """
+  for bond in bond_topology.bonds:
+    if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
+        (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
+      return bond.bond_type
+  return dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
+
+
 def conformer_to_molecules(conformer,
                            include_initial_geometries=True,
                            include_optimized_geometry=True,

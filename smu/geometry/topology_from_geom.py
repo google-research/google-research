@@ -122,9 +122,9 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
   distances = utilities.distances(geometry)
 
   # First join each Hydrogen to its nearest heavy atom, thereby
-  # creating a starting BondTopology from which all others can grow
-  starting_bond_topology = hydrogen_to_nearest_atom(bond_topology, distances)
-  if starting_bond_topology is None:
+  # creating a minimal BondTopology from which all others can grow
+  minimal_bond_topology = hydrogen_to_nearest_atom(bond_topology, distances)
+  if minimal_bond_topology is None:
     return result
 
   heavy_atom_indices = [
@@ -157,13 +157,15 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
-  # Need to know when the starting smiles has been recovered.
+  # Need to know when the starting topology has been recovered
+  bare_starting_topology = dataset_pb2.BondTopology(
+    atoms=bond_topology.atoms,
+    bonds=bond_topology.bonds)
+  utilities.canonical_bond_topology(bare_starting_topology)
   rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bond_topology)
-  starting_smiles = smu_utils_lib.compute_smiles_for_molecule(
-      rdkit_mol, include_hs=True)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
-  mol = smu_molecule.SmuMolecule(starting_bond_topology, bonds_to_scores,
+  mol = smu_molecule.SmuMolecule(minimal_bond_topology, bonds_to_scores,
                                  matching_parameters)
 
   search_space = mol.generate_search_state()
@@ -177,8 +179,12 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
         Chem.GetMolFrags(rdkit_mol)) > 1:
       continue
 
-    found_smiles = smu_utils_lib.compute_smiles_for_molecule(
-        rdkit_mol, include_hs=True)
+    utilities.canonical_bond_topology(bt)
+    # We have to compare just the bonds, because bt will have a score
+    # field filled in. The atom order never changes so the only thing
+    # that determines the topology is the bonds.
+    if bt.bonds == bare_starting_topology.bonds:
+      bt.is_starting_topology = True
 
     if matching_parameters.ring_atom_count_cannot_decrease:
       ring_atoms = utilities.ring_atom_count_mol(rdkit_mol)
@@ -186,18 +192,10 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
         continue
       bt.ring_atom_count = ring_atoms
 
-    bt.bond_topology_id = bond_topology.bond_topology_id
-    utilities.canonical_bond_topology(bt)
-
-    if found_smiles == starting_smiles:
-      bt.is_starting_topology = True
-
-    if not matching_parameters.smiles_with_h:
-      found_smiles = smu_utils_lib.compute_smiles_for_molecule(
-          rdkit_mol, include_hs=False)
+    bt.smiles = smu_utils_lib.compute_smiles_for_molecule(
+        rdkit_mol, include_hs=matching_parameters.smiles_with_h)
 
     bt.geometry_score = geometry_score(bt, distances, bond_lengths)
-    bt.smiles = found_smiles
     result.bond_topology.append(bt)
 
   if len(result.bond_topology) > 1:

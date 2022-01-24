@@ -313,12 +313,7 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
         bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
       continue
 
-    bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
-    for bond in bt.bonds:
-      if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
-          (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
-        bond_type = bond.bond_type
-        break
+    bond_type = smu_utils_lib.get_bond_type(bt, atom_idx0, atom_idx1)
 
     geom = conformer.optimized_geometry
     atom_pos0 = np.array([
