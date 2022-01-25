@@ -220,6 +220,13 @@ def _calc_scores(eval_metric, d, npx_eval,
         multi_class=multi_class)
     eval_score = metrics.dprime_from_auc(eval_auc)
     test_score = metrics.dprime_from_auc(test_auc)
+  elif eval_metric == 'f1_score':
+    # Eval.
+    pred_eval = d.predict(npx_eval)
+    eval_score = metrics.f1_score(labels=npy_eval, predictions=pred_eval)
+    # Test.
+    pred_test = d.predict(npx_test)
+    test_score = metrics.f1_score(labels=npy_test, predictions=pred_test)
   else:
     raise ValueError(f'`eval_metric` not recognized: {eval_metric}')
   return eval_score, test_score

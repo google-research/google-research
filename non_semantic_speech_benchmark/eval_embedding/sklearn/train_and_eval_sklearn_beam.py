@@ -43,7 +43,8 @@ flags.DEFINE_string(
     'array of predictions on train, eval, and test into this '
     'directory.')
 flags.DEFINE_list('eval_metrics', 'accuracy',
-                  'Which metric to compute and report.')
+                  'Which metric to compute and report. A list of valid metric '
+                  'names can be found in `train_and_eval_sklearn.py`.')
 flags.DEFINE_string(
     'comma_escape_char', '?',
     'Sometimes we want commas to appear in `embedding_modules`, '
