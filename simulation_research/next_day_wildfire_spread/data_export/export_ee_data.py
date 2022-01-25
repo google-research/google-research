@@ -35,7 +35,8 @@ def _get_all_feature_bands():
           ee_utils.DATA_BANDS[ee_utils.DataType.POPULATION] +
           ee_utils.DATA_BANDS[ee_utils.DataType.DROUGHT_GRIDMET] +
           ee_utils.DATA_BANDS[ee_utils.DataType.VEGETATION_VIIRS] +
-          ee_utils.DATA_BANDS[ee_utils.DataType.WEATHER_GRIDMET])
+          ee_utils.DATA_BANDS[ee_utils.DataType.WEATHER_GRIDMET] +
+          ['PrevFireMask'])
 
 
 def _get_all_response_bands():
@@ -101,7 +102,7 @@ def _get_time_slices(
     window,
     projection,  # Defer calling until called by test code
     resampling_scale,
-    lag = 1,
+    lag = 0,
 ):
   """Extracts the time slice features.
 
@@ -129,10 +130,14 @@ def _get_time_slices(
       window_start.advance(-lag - time_sampling['weather'], 'day'),
       window_start.advance(-lag, 'day')).median().reproject(
           projection.atScale(resampling_scale)).resample('bicubic')
+  prev_fire = image_collections['fire'].filterDate(
+      window_start.advance(-lag - time_sampling['fire'], 'day'),
+      window_start.advance(-lag, 'day')).map(
+          ee_utils.remove_mask).max().rename('PrevFireMask')
   fire = image_collections['fire'].filterDate(window_start, window_end).map(
       ee_utils.remove_mask).max()
   detection = fire.clamp(6, 7).subtract(6).rename('detection')
-  return [drought, vegetation, weather, fire, detection]
+  return [drought, vegetation, weather, prev_fire, fire, detection]
 
 
 def _export_dataset(

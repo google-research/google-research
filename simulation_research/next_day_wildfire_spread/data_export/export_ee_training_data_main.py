@@ -81,17 +81,20 @@ def main(argv):
       num_samples_per_file=FLAGS.num_samples_per_file,
   )
 
-  saved_flag_values = flagsaver.save_flag_values()
-  # Save the names and values of the flags as a json file in a local folder.
-  # Note that this includes more flags than just those defined in this file,
-  # since FLAGS includes many other flags, including default flags.
-  saved_flag_values = {
-      key: flag_dict['_value'] for key, flag_dict in saved_flag_values.items()
-  }
-  saved_flag_path = os.path.join(FLAGS.config_dir, 'export_flags.json')
-  json_str = json.dumps(saved_flag_values, indent=2) + '\n'
-  with f_open(saved_flag_path, 'w') as f:
-    f.write(json_str)
+  if FLAGS.config_dir:
+    saved_flag_values = flagsaver.save_flag_values()
+    # Save the names and values of the flags as a json file in a local folder.
+    # Note that this includes more flags than just those defined in this file,
+    # since FLAGS includes many other flags, including default flags.
+    saved_flag_values = {
+        key: flag_dict['_value']
+        for key, flag_dict in saved_flag_values.items()
+    }
+
+    saved_flag_path = os.path.join(FLAGS.config_dir, 'export_flags.json')
+    json_str = json.dumps(saved_flag_values, indent=2) + '\n'
+    with f_open(saved_flag_path, 'w') as f:
+      f.write(json_str)
 
   logging.info('Ending wildfire ee export job!'
                'Note that the export job may continue in the background by EE.')
