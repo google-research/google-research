@@ -43,8 +43,8 @@ setting, in connection with increased model capacity.</p>
 
 The first stage in our pipeline is to fit the [GHUM model](http://openaccess.thecvf.com/content_CVPR_2020/papers/Xu_GHUM__GHUML_Generative_3D_Human_Shape_and_Articulated_Pose_CVPR_2020_paper.pdf)
 to an initial 3d scan of a person. We build a representation that supports the
-plausible animation of both the body and the clothing based on different 2d
-human motion capture signals.
+plausible animation of both the body and the clothing based on different 3d
+ motion capture signals.
 
 <p align="center">
   <img src='figures/processing_pipeline.png' width="1000"/>
@@ -71,7 +71,7 @@ less tight clothing.
 ### Multiple Render Passes
 
 Scans are animated and placed in complexly lit 3d scenes. For each
-sequence we generate multiple render passes including RGB, segmnentation masks
+sequence we generate multiple render passes including RGB, segmentation masks
 and ground truth GHUM 3D pose and shape information for each character.
 
 <p align="center">
@@ -79,7 +79,7 @@ and ground truth GHUM 3D pose and shape information for each character.
 </p>
 
 ## Paper
-More details can be found in the companion [HPACE paper](https://arxiv.org/abs/2112.12867).
+More details can be found in the companion [HSPACE paper](https://arxiv.org/abs/2112.12867).
 
 ## Citations
 If you use this model or code for your publication, please cite the following papers
