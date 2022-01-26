@@ -1,6 +1,9 @@
 dacite
-jax>=0.2.0
+jax==0.2.27
+flax==0.3.6
 ml-collections>=0.1.0
 sentencepiece>=0.1.91
 tensorflow>=2.0.0
 tensorflow-datasets>=2.1.0
+tensorflow_text>=2.7.0
+sacrebleu==2.0.0
