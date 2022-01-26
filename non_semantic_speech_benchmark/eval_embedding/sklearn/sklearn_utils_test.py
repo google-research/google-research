@@ -27,14 +27,20 @@ from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils
 class SklearnUtilsTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.parameters(
-      {'l2_normalization': True},
-      {'l2_normalization': False},
+      {'l2_normalization': True, 'int64_label_instead_of_bytes': True},
+      {'l2_normalization': True, 'int64_label_instead_of_bytes': False},
+      {'l2_normalization': False, 'int64_label_instead_of_bytes': True},
+      {'l2_normalization': False, 'int64_label_instead_of_bytes': False},
   )
-  def test_tfexample_to_nps(self, l2_normalization):
+  def test_tfexample_to_nps(self, l2_normalization,
+                            int64_label_instead_of_bytes):
     path = os.path.join(absltest.get_default_test_tmpdir(), 'dummy_tfrecords')
     embedding_name = 'fake_emb'
     label_name = 'label/fake_lbl'
-    label_list = ['yes', 'no']
+    if int64_label_instead_of_bytes:
+      label_list = ['0', '1']
+    else:
+      label_list = ['yes', 'no']
 
     np.random.seed(10)
     # Generate fake embeddings and labels.
@@ -49,8 +55,12 @@ class SklearnUtilsTest(tf.test.TestCase, parameterized.TestCase):
       ex = tf.train.Example()
       ex.features.feature[
           f'embedding/{embedding_name}'].float_list.value.extend(emb)
-      ex.features.feature[label_name].bytes_list.value.append(
-          label_list[label_index].encode('utf-8'))
+      if int64_label_instead_of_bytes:
+        ex.features.feature[label_name].int64_list.value.append(
+            int(label_list[label_index]))
+      else:
+        ex.features.feature[label_name].bytes_list.value.append(
+            label_list[label_index].encode('utf-8'))
       return ex
 
     # Write TFRecord of tf.Examples to disk.

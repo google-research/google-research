@@ -69,12 +69,19 @@ def tfexamples_to_nps(
     if label_name not in feats:
       raise ValueError(
           f'`label_name` not in feats: {label_name} vs {list(feats.keys())}')
-    cur_lbl = feats[label_name].bytes_list.value[0]
-    assert isinstance(cur_lbl, bytes)
-    if cur_lbl.decode('utf-8') not in label_list:
-      raise ValueError(
-          f'Current label not found in label list: {cur_lbl} vs {label_list}')
-    labels.append(label_list.index(cur_lbl.decode('utf-8')))
+    if feats[label_name].bytes_list.value:
+      cur_lbl = feats[label_name].bytes_list.value[0]
+      assert isinstance(cur_lbl, bytes)
+      if cur_lbl.decode('utf-8') not in label_list:
+        raise ValueError(
+            f'Current label not found in label list: {cur_lbl} vs {label_list}')
+      label = cur_lbl.decode('utf-8')
+    elif feats[label_name].int64_list.value:
+      cur_lbl = feats[label_name].int64_list.value[0]
+      label = str(cur_lbl)
+    else:
+      raise ValueError('Invalid type for cur_lbl.')
+    labels.append(label_list.index(label))
 
     # Read speaker ID, if necessary.
     if speaker_name:
