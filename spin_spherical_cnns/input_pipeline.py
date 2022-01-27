@@ -16,7 +16,7 @@
 """Deterministic input pipeline."""
 
 import dataclasses
-from typing import Dict
+from typing import Callable, Dict, Optional, Union
 from clu import deterministic_data
 import jax
 import jax.numpy as jnp
@@ -26,6 +26,9 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 # Register spherical_mnist so that tfds.load works.
 import spin_spherical_cnns.spherical_mnist.spherical_mnist  # pylint: disable=unused-import
+
+Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
+Features = Dict[str, Tensor]
 
 
 # Dataset creation functions return info, train, validation and test sets.
@@ -91,8 +94,7 @@ def _create_dataset_tiny_dummy(
                        test=train_dataset.take(5))
 
 
-def _preprocess_spherical_mnist(
-    features):
+def _preprocess_spherical_mnist(features):
   features["input"] = tf.cast(features["image"], tf.float32) / 255.0
   # Add dummy spin dimension.
   features["input"] = features["input"][Ellipsis, None, :]
@@ -100,10 +102,13 @@ def _preprocess_spherical_mnist(
   return features
 
 
-def _create_train_dataset(config,
-                          dataset_builder,
-                          split,
-                          data_rng):
+def create_train_dataset(
+    config,
+    dataset_builder,
+    split,
+    data_rng,
+    preprocess_fn = None,
+):
   """Create train dataset."""
   # This ensures determinism in distributed setting.
   train_split = deterministic_data.get_read_instruction_for_host(
@@ -112,7 +117,7 @@ def _create_train_dataset(config,
       dataset_builder,
       split=train_split,
       rng=data_rng,
-      preprocess_fn=_preprocess_spherical_mnist,
+      preprocess_fn=preprocess_fn,
       shuffle_buffer_size=config.shuffle_buffer_size,
       batch_dims=[jax.local_device_count(), config.per_device_batch_size],
       num_epochs=config.num_epochs,
@@ -126,9 +131,12 @@ def _create_train_dataset(config,
   return train_dataset
 
 
-def _create_eval_dataset(config,
-                         dataset_builder,
-                         split):
+def create_eval_dataset(
+    config,
+    dataset_builder,
+    split,
+    preprocess_fn = None,
+):
   """Create evaluation dataset (validation or test sets)."""
   # This ensures the correct number of elements in the validation sets.
   num_validation_examples = (
@@ -155,7 +163,7 @@ def _create_eval_dataset(config,
       batch_dims=[jax.local_device_count(), config.per_device_batch_size],
       num_epochs=1,
       shuffle=False,
-      preprocess_fn=_preprocess_spherical_mnist,
+      preprocess_fn=preprocess_fn,
       pad_up_to_batches=eval_num_batches,
   )
 
@@ -183,14 +191,22 @@ def _create_dataset_spherical_mnist(
   if config.combine_train_val_and_eval_on_test:
     train_split = f"{train_split} + {validation_split}"
 
-  train_dataset = _create_train_dataset(config,
-                                        dataset_builder,
-                                        train_split,
-                                        data_rng)
-  validation_dataset = _create_eval_dataset(config,
-                                            dataset_builder,
-                                            validation_split)
-  test_dataset = _create_eval_dataset(config, dataset_builder, test_split)
+  train_dataset = create_train_dataset(
+      config,
+      dataset_builder,
+      train_split,
+      data_rng,
+      preprocess_fn=_preprocess_spherical_mnist)
+  validation_dataset = create_eval_dataset(
+      config,
+      dataset_builder,
+      validation_split,
+      preprocess_fn=_preprocess_spherical_mnist)
+  test_dataset = create_eval_dataset(
+      config,
+      dataset_builder,
+      test_split,
+      preprocess_fn=_preprocess_spherical_mnist)
 
   return DatasetSplits(info=dataset_builder.info,
                        train=train_dataset,
