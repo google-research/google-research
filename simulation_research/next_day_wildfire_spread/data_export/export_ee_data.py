@@ -32,7 +32,7 @@ from simulation_research.next_day_wildfire_spread.data_export import ee_utils
 def _get_all_feature_bands():
   """Returns list of all bands corresponding to features."""
   return (ee_utils.DATA_BANDS[ee_utils.DataType.ELEVATION_SRTM] +
-          ee_utils.DATA_BANDS[ee_utils.DataType.POPULATION] +
+          ['population'] +
           ee_utils.DATA_BANDS[ee_utils.DataType.DROUGHT_GRIDMET] +
           ee_utils.DATA_BANDS[ee_utils.DataType.VEGETATION_VIIRS] +
           ee_utils.DATA_BANDS[ee_utils.DataType.WEATHER_GRIDMET] +
@@ -207,7 +207,8 @@ def _export_dataset(
   population = ee_utils.get_image_collection(ee_utils.DataType.POPULATION)
   # Could also move to using the most recent population data for a given sample,
   # which requires more EE logic.
-  population = population.filterDate(start_date, end_date).median()
+  population = population.filterDate(start_date,
+                                     end_date).median().rename('population')
   projection = ee_utils.get_image_collection(ee_utils.DataType.WEATHER_GRIDMET)
   projection = projection.first().select(
       ee_utils.DATA_BANDS[ee_utils.DataType.WEATHER_GRIDMET][0]).projection()
