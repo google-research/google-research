@@ -70,12 +70,10 @@ def get_keras_model(model_type,
   spec_augment_fn = augmentation.SpecAugment() if spec_augment else tf.identity
   feats = spec_augment_fn(feats)
 
-  inputs = [model_in]
-  logging.info('Features shape: %s', feats.shape)
-
   # Build network.
+  logging.info('Features shape: %s', feats.shape)
   model_out = _build_main_net(model_type, feats)
-  embeddings = tf.keras.layers.Flatten(name='distilled_output')(model_out)
+  logging.info('Features shape: %s', feats.shape)
 
   # The last fully-connected layer can sometimes be the single largest
   # layer in the entire network. It's also not always very valuable. We try
@@ -83,16 +81,18 @@ def get_keras_model(model_type,
   # 1) A FC layer
   # 2) Taking the first `output_dimension` elements.
   need_final_layer = (output_dimension and
-                      embeddings.shape[1] != output_dimension)
+                      model_out.shape[1] != output_dimension)
 
   # If we need to truncate, do it before we save the embedding. Otherwise,
   # the embedding will contain some garbage dimensions.
   if need_final_layer and truncate_output:
-    if embeddings.shape[1] < output_dimension:
+    if model_out.shape[1] < output_dimension:
       embeddings = tf.pad(
-          embeddings, [[0, 0], [0, output_dimension - embeddings.shape[1]]])
+          model_out, [[0, 0], [0, output_dimension - model_out.shape[1]]])
     else:
-      embeddings = embeddings[:, :output_dimension]
+      embeddings = model_out[:, :output_dimension]
+  else:
+    embeddings = model_out
 
   # Construct optional final layer, and create output dictionary.
   output_dict['embedding'] = embeddings
@@ -102,7 +102,7 @@ def get_keras_model(model_type,
     target = tf.keras.layers.Dense(
         output_dimension, name='embedding_to_target')(target)
   output_dict['embedding_to_target'] = target
-  output_model = tf.keras.Model(inputs=inputs, outputs=output_dict)
+  output_model = tf.keras.Model(inputs=[model_in], outputs=output_dict)
 
   return output_model
 
