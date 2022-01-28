@@ -1,0 +1,12 @@
+This code was used to produce all empirical results for the paper "A Joint
+Exponential Mechanism For Differentially Private Top-k".  To replicate results
+for the books dataset, first download it from Kaggle:
+https://www.kaggle.com/jealousleopard/goodreadsbooks.
+Save it as "books.csv" in this directory. Then use
+
+> cd ..
+> python -m dp_topk.run_experiment
+
+to run experiments for the books dataset and generate error and time plots,
+saved as books_[error_metric].png and books_time.png, respectively. Instructions
+for other datasets appear in dp_topk.run_experiment.
