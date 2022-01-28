@@ -1396,6 +1396,30 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[1].bond_topology.bond_topology_id, 123)
     self.assertEqual(got[1].count_detected_match_success, 1)
 
+  @parameterized.parameters(0, 1, 2)
+  def test_multiple_detection(self, starting_idx):
+    self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    # Even with 3 detections, we only want to output one multiple detection
+    # record.
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies[starting_idx].is_starting_topology = True
+
+    got = list(
+      smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+    self.assertLen(got, 2)
+
+    # We don't actually care about the order, but this is what comes out right
+    # now.
+    self.assertEqual(got[0].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[0].count_calculation_success, 1)
+    self.assertEqual(got[0].count_multiple_detections, 0)
+
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[1].count_calculation_success, 0)
+    self.assertEqual(got[1].count_multiple_detections, 1)
+
+
 
 class LabeledSmilesTester(absltest.TestCase):
 

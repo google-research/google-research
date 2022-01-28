@@ -1525,6 +1525,16 @@ def conformer_to_bond_topology_summaries(conformer):
       yield from itertools.chain(conformer.bond_topologies[:starting_idx],
                                  conformer.bond_topologies[(starting_idx + 1):])
 
+  def filtered_other_topologies():
+    observed_bt_id = set()
+    if starting_idx is not None:
+      observed_bt_id.add(conformer.bond_topologies[starting_idx]
+                         .bond_topology_id)
+    for bt in other_topologies():
+      if bt.bond_topology_id not in observed_bt_id:
+        yield bt
+        observed_bt_id.add(bt.bond_topology_id)
+
   fate = conformer.fate
 
   if fate == dataset_pb2.Conformer.FATE_UNDEFINED:
@@ -1546,7 +1556,7 @@ def conformer_to_bond_topology_summaries(conformer):
         fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
-    for bt in other_topologies():
+    for bt in filtered_other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_with_error = 1
@@ -1556,7 +1566,7 @@ def conformer_to_bond_topology_summaries(conformer):
       fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
-    for bt in other_topologies():
+    for bt in filtered_other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_with_warning = 1
@@ -1564,7 +1574,7 @@ def conformer_to_bond_topology_summaries(conformer):
   elif fate == dataset_pb2.Conformer.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
-    for bt in other_topologies():
+    for bt in filtered_other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_success = 1
@@ -1574,6 +1584,20 @@ def conformer_to_bond_topology_summaries(conformer):
 
   if starting_idx is not None:
     yield summary
+
+  # Now emit our multiple detection records
+  observed_bt_id = set()
+  yielded_multi_detect = set()
+  for bt in conformer.bond_topologies:
+    if bt.bond_topology_id not in observed_bt_id:
+      observed_bt_id.add(bt.bond_topology_id)
+      continue
+    if bt.bond_topology_id not in yielded_multi_detect:
+      other_summary = dataset_pb2.BondTopologySummary()
+      other_summary.bond_topology.CopyFrom(bt)
+      other_summary.count_multiple_detections = 1
+      yield other_summary
+      yielded_multi_detect.add(bt.bond_topology_id)
 
 
 def conformer_eligible_for_topology_detection(conformer):
