@@ -47,10 +47,10 @@ FLAGS = flags.FLAGS
 
 # Alias for initializer function.
 # Should follow the template `def init(key, shape, dtype=dtype) -> ndarray:`.
-# See flax.nn.initializers and jax.nn.initializers for more details.
+# See flax.linen.initializers and jax.nn.initializers for more details.
 InitializerType = Callable[[jnp.ndarray, Iterable[int], Type[Any]], jnp.ndarray]
 
-default_kernel_init = flax.nn.initializers.lecun_normal()
+default_kernel_init = nn.initializers.lecun_normal()
 
 dataclass = flax_struct.dataclass if not typing.TYPE_CHECKING else dataclasses.dataclass
 
@@ -72,9 +72,9 @@ class DenseAqt(nn.Module):
     dtype: the dtype of the computation (default: float32).
     kernel_init: initializer function for the weight matrix. Should follow the
       template `def init(key, shape, dtype=dtype): -> array`. See
-        flax.nn.initializers and jax.nn.initializers for more details.
+        flax.linen.initializers and jax.nn.initializers for more details.
     bias_init: initializer function for the bias. Should follow the template
-      `def init(key, shape, dtype=dtype): -> array`. See flax.nn.initializers
+      `def init(key, shape, dtype=dtype): -> array`. See flax.linen.initializers
         and jax.nn.initializers for more details.
     precision: numerical precision of the computation see `jax.lax.Precision`
       for details. Defaults to jax.lax.Precision.DEFAULT.
@@ -284,7 +284,7 @@ class ConvAqt(nn.Module):
   feature_group_count: int = 1
   use_bias: bool = True
   kernel_init: InitializerType = default_kernel_init
-  bias_init: InitializerType = flax.nn.initializers.zeros
+  bias_init: InitializerType = flax.linen.initializers.zeros
 
   @nn.compact
   def __call__(self, inputs):

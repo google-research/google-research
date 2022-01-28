@@ -156,15 +156,15 @@ class Stats:
       A new instance of Stats, with statistics intialized to 0.
     """
     key = jax.random.PRNGKey(
-        1)  # no effect, but needed for flax.nn.initializers.zeros.
+        1)  # no effect, but needed for flax.linen.initializers.zeros.
     shape = tuple(shape)
     return cls(
         n=0,
-        mean=flax.nn.initializers.zeros(key, shape, dtype),
-        mean_abs=flax.nn.initializers.zeros(key, shape, dtype),
-        mean_sq=flax.nn.initializers.zeros(key, shape, dtype),
-        mean_batch_maximum=flax.nn.initializers.zeros(key, shape, dtype),
-        mean_batch_minimum=flax.nn.initializers.zeros(key, shape, dtype))
+        mean=flax.linen.initializers.zeros(key, shape, dtype),
+        mean_abs=flax.linen.initializers.zeros(key, shape, dtype),
+        mean_sq=flax.linen.initializers.zeros(key, shape, dtype),
+        mean_batch_maximum=flax.linen.initializers.zeros(key, shape, dtype),
+        mean_batch_minimum=flax.linen.initializers.zeros(key, shape, dtype))
 
   @classmethod
   def create_updated_stats(cls,
