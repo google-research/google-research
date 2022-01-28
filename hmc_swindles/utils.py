@@ -701,8 +701,8 @@ _USE_XLA = False
 def use_xla(enable = True):
   """Context manager to dis/enable XLA for `compile`."""
   global _USE_XLA
+  old_setting = _USE_XLA
   try:
-    old_setting = _USE_XLA
     _USE_XLA = enable
     yield
   finally:
