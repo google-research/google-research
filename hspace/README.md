@@ -116,13 +116,13 @@ If you use this model or code for your publication, please cite the following pa
 }
 ```
 
-### Team
+## Team
 Eduard Gabriel Bazavan, Andrei Zanfir, Mihai Zanfir, William T. Freeman, Rahul Sukthankar, Cristian Sminchisescu
 
 ## Dataset Download
-Please fill in the [this form](https://docs.google.com/forms/d/1wEXK5INhOh7BNJfFHu8XevfRKo2gg3xqgi2CdbSYPQs/viewform?edit_requested=true). The dataset is currently in alpha version so there might be upcoming changes. Feedback is welcome!
+Please fill in the [this form](https://docs.google.com/forms/d/1wEXK5INhOh7BNJfFHu8XevfRKo2gg3xqgi2CdbSYPQs/viewform?edit_requested=true). By completing this form you agree to use the HSPACE dataset in accordance with the [Google AI Principles](https://ai.google/principles/). The dataset is currently in alpha version so there might be upcoming changes. Feedback is welcome!
 
-The data will be available at [https://storage.cloud.google.com/hspace_public](https://storage.cloud.google.com/hspace_public) once access is granted. After downloading this dataset please accept and use it in accordance with the [Google AI Principles](https://ai.google/principles/).
+The data will be available at [https://storage.cloud.google.com/hspace_public](https://storage.cloud.google.com/hspace_public) once access is granted.
 
 ## Contact
 Please contact hspace-inquiry@google.com.
