@@ -152,14 +152,15 @@ def create_eval_dataset(
     # remainder). If you don't mind dropping a few extra examples you can omit
     # the `pad_up_to_batches` argument.
     eval_batch_size = jax.local_device_count() * config.per_device_batch_size
-    eval_num_batches = int(
-        np.ceil(num_validation_examples / eval_batch_size / jax.host_count()))
+    eval_num_batches = int(np.ceil(num_validation_examples /
+                                   eval_batch_size /
+                                   jax.process_count()))
   return deterministic_data.create_dataset(
       dataset_builder,
       split=eval_split,
       # Only cache dataset in distributed setup to avoid consuming a lot of
       # memory in Colab and unit tests.
-      cache=jax.host_count() > 1,
+      cache=jax.process_count() > 1,
       batch_dims=[jax.local_device_count(), config.per_device_batch_size],
       num_epochs=1,
       shuffle=False,

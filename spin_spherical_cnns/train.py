@@ -237,15 +237,15 @@ def eval_step(model, state,
   )
 
 
-class StepTraceContextHelper:
-  """Helper class to use jax.profiler.StepTraceContext."""
+class StepTraceAnnotationHelper:
+  """Helper class to use jax.profiler.StepTraceAnnotation."""
 
   def __init__(self, name, init_step_num):
     self.name = name
     self.step_num = init_step_num
 
   def __enter__(self):
-    self.context = jax.profiler.StepTraceContext(
+    self.context = jax.profiler.StepTraceAnnotation(
         self.name, step_num=self.step_num)
     self.step_num += 1
     self.context.__enter__()
@@ -267,7 +267,7 @@ def evaluate(model,
   """Evaluate the model on the given dataset."""
   logging.info("Starting evaluation.")
   eval_metrics = None
-  with StepTraceContextHelper("eval", 0) as trace_context:
+  with StepTraceAnnotationHelper("eval", 0) as trace_annotation:
     for step, batch in enumerate(eval_ds):  # pytype: disable=wrong-arg-types
       batch = jax.tree_map(np.asarray, batch)
       metrics_update = flax_utils.unreplicate(
@@ -277,7 +277,7 @@ def evaluate(model,
           if eval_metrics is None else eval_metrics.merge(metrics_update))
       if num_eval_steps > 0 and step + 1 == num_eval_steps:
         break
-      trace_context.next_step()
+      trace_annotation.next_step()
   return eval_metrics
 
 
@@ -295,7 +295,7 @@ def train_and_evaluate(config, workdir):
 
   # Build input pipeline.
   rng, data_rng = jax.random.split(rng)
-  data_rng = jax.random.fold_in(data_rng, jax.host_id())
+  data_rng = jax.random.fold_in(data_rng, jax.process_index())
   splits = input_pipeline.create_datasets(config, data_rng)
   num_classes = splits.info.features["label"].num_classes
   train_iter = iter(splits.train)  # pytype: disable=wrong-arg-types
@@ -349,7 +349,7 @@ def train_and_evaluate(config, workdir):
       axis_name=_PMAP_AXIS_NAME)
 
   writer = metric_writers.create_default_writer(
-      workdir, just_logging=jax.host_id() > 0)
+      workdir, just_logging=jax.process_index() > 0)
   if initial_step == 1:
     writer.write_hparams(dict(config))
     # Log the number of trainable params.
@@ -359,7 +359,7 @@ def train_and_evaluate(config, workdir):
   hooks = []
   report_progress = periodic_actions.ReportProgress(
       num_train_steps=num_train_steps, writer=writer)
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     hooks += [
         report_progress,
         periodic_actions.Profile(num_profile_steps=5, logdir=workdir)
@@ -371,7 +371,7 @@ def train_and_evaluate(config, workdir):
       # devices.
       is_last_step = step == num_train_steps
 
-      with jax.profiler.StepTraceContext("train", step_num=step):
+      with jax.profiler.StepTraceAnnotation("train", step_num=step):
         batch = jax.tree_map(np.asarray, next(train_iter))
         state, metrics_update = p_train_step(state=state, batch=batch)
         metric_update = flax_utils.unreplicate(metrics_update)

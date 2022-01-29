@@ -53,11 +53,11 @@ def main(argv):
                        FLAGS.jax_xla_backend)
     logging.info("Using JAX XLA backend %s", jax_xla_backend)
 
-  logging.info("JAX host: %d / %d", jax.host_id(), jax.host_count())
+  logging.info("JAX host: %d / %d", jax.process_index(), jax.process_count())
   logging.info("JAX devices: %r", jax.devices())
 
-  platform.work_unit().set_task_status(
-      f"host_id: {jax.host_id()}, host_count: {jax.host_count()}")
+  platform.work_unit().set_task_status(f"process_index: {jax.process_index()}, "
+                                       f"process_count: {jax.process_count()}")
   platform.work_unit().create_artifact(platform.ArtifactType.DIRECTORY,
                                        FLAGS.workdir, "workdir")
 
