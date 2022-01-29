@@ -3,6 +3,8 @@ This repository will contain the model code and the experimental framework for "
 
 The CLAY dataset used by the paper can be downloaded from https://github.com/google-research-datasets/clay.
 
+The Transformer-based object typing model can be found [here](https://github.com/google-research/scenic/tree/main/scenic/projects/layout_denoise).
+
 BibTex for citation:
 
 ```
