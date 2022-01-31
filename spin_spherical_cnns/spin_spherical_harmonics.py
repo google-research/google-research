@@ -170,7 +170,7 @@ class SpinSphericalFourierTransformer:
     n = sphere.shape[1]
     if n % 2 != 0:
       raise ValueError("Input sphere must have even height!")
-    torus = (-1)**spin * jnp.roll(sphere[1:-1][::-1], n // 2, axis=1)
+    torus = (-1.0)**spin * jnp.roll(sphere[1:-1][::-1], n // 2, axis=1)
     torus = jnp.concatenate([sphere, torus], axis=0)
     weights = self.quadrature_weights[n]
     torus = weights[:, None] * torus

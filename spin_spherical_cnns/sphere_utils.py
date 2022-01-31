@@ -210,4 +210,4 @@ def compute_all_wigner_delta(ell_max):
 
 def swsft_forward_constant(spin, ell, m):
   """Returns constant factor in SWSFT computation."""
-  return (-1)**spin * np.sqrt((2 * ell + 1) / 4 / np.pi) * (1j)**(m + spin)
+  return (-1.0)**spin * np.sqrt((2 * ell + 1) / 4 / np.pi) * (1j)**(m + spin)
