@@ -65,15 +65,15 @@ def get_keras_model(model_type,
   output_dict = {}  # Dictionary of model outputs.
 
   # Construct model input and frontend.
-  model_in, feats = _frontend_keras(frontend, tflite)
+  model_in, feats = frontend_keras(frontend, tflite)
   feats.shape.assert_is_compatible_with([None, None, None, 1])
   spec_augment_fn = augmentation.SpecAugment() if spec_augment else tf.identity
   feats = spec_augment_fn(feats)
 
   # Build network.
   logging.info('Features shape: %s', feats.shape)
-  model_out = _build_main_net(model_type, feats)
-  logging.info('Features shape: %s', feats.shape)
+  model_out = build_main_net(model_type, feats)
+  logging.info('Model output shape: %s', model_out.shape)
 
   # The last fully-connected layer can sometimes be the single largest
   # layer in the entire network. It's also not always very valuable. We try
@@ -107,9 +107,7 @@ def get_keras_model(model_type,
   return output_model
 
 
-def _frontend_keras(
-    frontend,
-    tflite):
+def frontend_keras(frontend, tflite):
   """Returns model input and features."""
   # TFLite use-cases usually use non-batched inference, and this also enables
   # hardware acceleration.
@@ -145,10 +143,10 @@ def _frontend_keras(
   return (model_in, feats)
 
 
-def _build_main_net(
+def build_main_net(
     model_type,
     feats,
-    ):
+):
   """Constructs main network."""
   if model_type.startswith('mobilenet_'):
     # Format is "mobilenet_{size}_{alpha}_{avg_pool}"
