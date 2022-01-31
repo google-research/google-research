@@ -33,7 +33,7 @@ from gfsa.model import graph_layers
 # pylint: disable=unexpected-keyword-arg
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def token_graph_model_core(
     input_graph,
@@ -135,7 +135,7 @@ def token_graph_model_core(
   return node_embeddings
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def two_pointer_output_head(node_embeddings,
                             output_mask):
   """Computes two conditionally independent node pointers.
@@ -157,14 +157,14 @@ def two_pointer_output_head(node_embeddings,
     NDarray <float32[num_nodes, num_nodes]> of log-probabilities (normalized
       over non-padding nodes).
   """
-  logits = flax.nn.Dense(node_embeddings, features=2, bias=False)
+  logits = flax.deprecated.nn.Dense(node_embeddings, features=2, bias=False)
   logits = jnp.where(output_mask[:, None], logits, -jnp.inf)
   logits = jax.nn.log_softmax(logits, axis=0)
   # Convert from [nodes, 2] to [nodes, nodes] using an outer "product".
   return logits[:, 0, None] + logits[None, :, 1]
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def bilinear_joint_output_head(
     node_embeddings,
     output_mask):
@@ -185,7 +185,7 @@ def bilinear_joint_output_head(
   return logits
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def bug_conditional_output_head(
     node_embeddings,
     output_mask):
@@ -202,7 +202,7 @@ def bug_conditional_output_head(
     NDarray <float32[num_nodes, num_nodes]> of log-probabilities (normalized
       over non-padding nodes).
   """
-  bug_logits = flax.nn.Dense(
+  bug_logits = flax.deprecated.nn.Dense(
       node_embeddings, features=1, bias=False).squeeze(-1)
   bug_logits = jnp.where(output_mask, bug_logits, -jnp.inf)
   bug_logits = jax.nn.log_softmax(bug_logits, axis=0)
@@ -221,7 +221,7 @@ VAR_MISUSE_OUTPUT_HEADS = {
 }
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def var_misuse_model(
     padded_example,

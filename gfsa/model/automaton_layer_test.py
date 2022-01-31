@@ -104,7 +104,7 @@ class AutomatonLayerTest(parameterized.TestCase):
     # Make sure the layer can be initialized and applied within a model.
     # This model is fairly simple; it just pretends that the encoded graph and
     # variants depend on the input.
-    class TestModel(flax.nn.Module):
+    class TestModel(flax.deprecated.nn.Module):
 
       def apply(self, dummy_ignored):
         abstract_encoded_graph = jax.tree_map(
@@ -128,7 +128,7 @@ class AutomatonLayerTest(parameterized.TestCase):
             **kwargs)
 
     with side_outputs.collect_side_outputs() as side:
-      with flax.nn.stochastic(jax.random.PRNGKey(0)):
+      with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
         # For some reason init_by_shape breaks the custom_vjp?
         abstract_out, unused_params = TestModel.init(
             jax.random.PRNGKey(1234), jnp.zeros((), jnp.float32))

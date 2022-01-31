@@ -26,10 +26,10 @@ import jax.numpy as jnp
 
 from gfsa import jax_util
 
-_side_output_stack = flax.nn.utils.CallStack()
+_side_output_stack = flax.deprecated.nn.utils.CallStack()
 
 
-class SideOutput(flax.nn.Module):
+class SideOutput(flax.deprecated.nn.Module):
   """Flax module to tag a side output, for later extraction."""
 
   def apply(self, value):
@@ -41,7 +41,7 @@ class SideOutput(flax.nn.Module):
 def collect_side_outputs():
   """Context manager to collect side outputs."""
   result = {}
-  with flax.nn.Collection().mutate() as side_output_collection:
+  with flax.deprecated.nn.Collection().mutate() as side_output_collection:
     with _side_output_stack.frame(side_output_collection):
       yield result
 
@@ -95,7 +95,7 @@ def encourage_discrete_logits(logits,
     SideOutput(mean_entropy, name=(name or "logit") + "_entropy")
 
   if perturb_scale:
-    rng = flax.nn.make_rng()
+    rng = flax.deprecated.nn.make_rng()
     subkeys = jax.random.split(rng, len(logit_leaves))
 
     if distribution_type == "categorical":

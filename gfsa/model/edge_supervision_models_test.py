@@ -181,7 +181,7 @@ class EdgeSupervisionModelsTest(parameterized.TestCase):
             NodeSelfAttention.value_dim = 4
             """))
 
-    with flax.nn.capture_module_outputs() as outputs:
+    with flax.deprecated.nn.capture_module_outputs() as outputs:
       edge_supervision_models.transformer_steps.init(
           jax.random.PRNGKey(0),
           node_embeddings=jnp.zeros((5, 3), jnp.float32),

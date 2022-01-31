@@ -91,7 +91,7 @@ class TrainEdgeSupervisionLibTest(absltest.TestCase):
                                       [0, 3], [0, 0], [0, 0]]),
             values=jnp.array([1, 1, 1, 1, 1, 1, 0, 0])))
 
-    @flax.nn.module
+    @flax.deprecated.nn.module
     def mock_model_def(example):
       del example
       side_outputs.SideOutput(
@@ -109,7 +109,7 @@ class TrainEdgeSupervisionLibTest(absltest.TestCase):
           ]))
 
     _, params = mock_model_def.init(jax.random.PRNGKey(0), example)
-    mock_model = flax.nn.Model(mock_model_def, params)
+    mock_model = flax.deprecated.nn.Model(mock_model_def, params)
 
     _, _, _, loss, metrics = train_edge_supervision_lib.sample_loss_fn(
         mock_model, (example, jax.random.PRNGKey(0)),

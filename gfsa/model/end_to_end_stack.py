@@ -103,7 +103,7 @@ def _add_edges(old_edge_array,
     # Project the outputs into new edge embeddings.
     # (No bias is used so that an absorbing probability of 0 produces no change
     # in the edge embeddings.)
-    new_edge_type_embeddings = flax.nn.Dense(
+    new_edge_type_embeddings = flax.deprecated.nn.Dense(
         new_edge_types,
         features=old_edge_array.shape[-1],
         bias=False,
@@ -136,7 +136,7 @@ def _shared_automaton_logic(
                      graph_context.edges_are_embedded))
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def variantless_automaton(
     graph_context, node_embeddings,
@@ -159,7 +159,7 @@ def variantless_automaton(
       graph_context, node_embeddings, edge_embeddings, variant_weights=None)
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def edge_variant_automaton(
     graph_context,
@@ -195,7 +195,7 @@ def edge_variant_automaton(
                                  edge_embeddings, variant_weights)
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def embedding_variant_automaton(
     graph_context,
@@ -232,7 +232,7 @@ def embedding_variant_automaton(
                                  edge_embeddings, variant_weights)
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def nri_encoder_readout(
     graph_context,
@@ -273,7 +273,7 @@ def nri_encoder_readout(
                      graph_context.edges_are_embedded))
 
 
-class UniformRandomWalk(flax.nn.Module):
+class UniformRandomWalk(flax.deprecated.nn.Module):
   """Adds edges according to a uniform random walk along the graph."""
 
   @gin.configurable("UniformRandomWalk")
@@ -370,7 +370,7 @@ class UniformRandomWalk(flax.nn.Module):
                        graph_context.edges_are_embedded))
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def ggnn_adapter(graph_context,
                  node_embeddings,
                  edge_embeddings):
@@ -394,7 +394,7 @@ def ggnn_adapter(graph_context,
   )
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def transformer_adapter(
     graph_context, node_embeddings,
     edge_embeddings):
@@ -423,7 +423,7 @@ def transformer_adapter(
   )
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def nri_adapter(graph_context,
                 node_embeddings,
                 edge_embeddings):

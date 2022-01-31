@@ -52,7 +52,7 @@ def _unshaped_initializer(fn,
   return _initialize
 
 
-class FiniteStateGraphAutomaton(flax.nn.Module):
+class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
   """GFSA layer, with different edge types as states."""
 
   @gin.configurable("FiniteStateGraphAutomaton")
@@ -279,7 +279,7 @@ class FiniteStateGraphAutomaton(flax.nn.Module):
             node_index=jnp.arange(num_nodes),
             steps=steps,
             max_possible_transitions=sampling_max_possible_transitions,
-            rng=jax.random.split(flax.nn.make_rng(),
+            rng=jax.random.split(flax.deprecated.nn.make_rng(),
                                  num_out_edges * num_nodes).reshape(
                                      [num_out_edges, num_nodes, -1]))
 

@@ -181,7 +181,7 @@ def linear_cross_entropy(prob,
       safe_logit(prob, epsilon_multiplier), target)
 
 
-class ScaleAndShift(flax.nn.Module):
+class ScaleAndShift(flax.deprecated.nn.Module):
   """Learnable function f(x) = ax + b where a and b are scalars."""
 
   def apply(self, x):

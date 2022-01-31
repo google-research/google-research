@@ -97,7 +97,7 @@ def ground_truth_adjacency(
       num_edge_types=len(all_edge_types))[:, :, 1]
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def automaton_model(example,
                     graph_metadata,
@@ -203,7 +203,7 @@ def _layer_helper(step_module,
     return node_embeddings
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def ggnn_steps(node_embeddings,
                edge_embeddings,
@@ -222,7 +222,7 @@ def ggnn_steps(node_embeddings,
     Final node embeddings <float32[num_nodes, node_embedding_dim]>.
   """
 
-  @flax.nn.module
+  @flax.deprecated.nn.module
   def step(node_embeddings, edge_embeddings):
     messages = graph_layers.LinearMessagePassing(
         edge_embeddings=edge_embeddings,
@@ -240,7 +240,7 @@ def ggnn_steps(node_embeddings,
       unroll=unroll)
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def transformer_steps(node_embeddings,
                       edge_embeddings,
@@ -285,7 +285,7 @@ def transformer_steps(node_embeddings,
     mask = jnp.broadcast_to(mask[None, :],
                             (num_nodes, num_nodes)).astype(jnp.float32)
 
-  @flax.nn.module
+  @flax.deprecated.nn.module
   def step(node_embeddings, edge_embeddings):
     attn_out = graph_layers.NodeSelfAttention(
         edge_embeddings=edge_embeddings,
@@ -297,7 +297,7 @@ def transformer_steps(node_embeddings,
         node_embeddings, attn_out, name="attend_ln")
 
     fc_out = jax.nn.relu(
-        flax.nn.Dense(
+        flax.deprecated.nn.Dense(
             node_embeddings,
             features=node_embeddings.shape[-1],
             name="fc_dense"))
@@ -315,7 +315,7 @@ def transformer_steps(node_embeddings,
       unroll=unroll)
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 @gin.configurable
 def nri_steps(node_embeddings,
               edge_embeddings,
@@ -356,7 +356,7 @@ def nri_steps(node_embeddings,
   mask = jnp.arange(num_nodes) < num_real_nodes_per_graph
   mask = mask[None, :] & mask[:, None]
 
-  @flax.nn.module
+  @flax.deprecated.nn.module
   def step(node_embeddings, edge_embeddings):
     nri_activations = graph_layers.NRIEdgeLayer(
         edge_embeddings=edge_embeddings,
@@ -366,7 +366,7 @@ def nri_steps(node_embeddings,
         name="nri_message_passing")
 
     for i, dim in enumerate([*mlp_etov_dims, node_embeddings.shape[-1]]):
-      nri_activations = flax.nn.Dense(
+      nri_activations = flax.deprecated.nn.Dense(
           nri_activations, features=dim, name=f"fc{i}")
       nri_activations = jax.nn.relu(nri_activations)
 
@@ -387,7 +387,7 @@ def nri_steps(node_embeddings,
       unroll=unroll)
 
 
-class BaselineModel(flax.nn.Module):
+class BaselineModel(flax.deprecated.nn.Module):
   """Baseline model for edge-supervision tasks."""
 
   @gin.configurable("BaselineModel")
@@ -543,7 +543,7 @@ class BaselineModel(flax.nn.Module):
             stacked_node_embeddings)
 
       # Extract predictions with a linear transformation.
-      logits = flax.nn.Dense(
+      logits = flax.deprecated.nn.Dense(
           final_embeddings_from_each_source,
           features=1,
           name="target_readout",

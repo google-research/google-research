@@ -112,7 +112,7 @@ def extract_outputs_and_targets(
   padded_example, rng = padded_example_and_rng
   # Run the model.
   with side_outputs.collect_side_outputs() as captured:
-    with flax.nn.stochastic(rng):
+    with flax.deprecated.nn.stochastic(rng):
       output_logits = model(padded_example)
   # Extract targets.
   targets = padded_example.edges.apply_add(
@@ -615,7 +615,7 @@ def train(
     @jax.jit
     def _init(rng):
       # Set up a dummy stochastic scope for random perturbations.
-      with flax.nn.stochastic(jax.random.PRNGKey(0)):
+      with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
         ex = graph_bundle.zeros_like_padded_example(padding_config)
         ex = jax.tree_map(jnp.array, ex)
         _, initial_params = model_def.init(rng, ex)
@@ -623,7 +623,7 @@ def train(
 
     initial_params = _init(jax.random.PRNGKey(int(time.time() * 1000)))
 
-    model = flax.nn.Model(model_def, initial_params)
+    model = flax.deprecated.nn.Model(model_def, initial_params)
     optimizer = flax.optim.Adam().create(model)
 
     validation_fn = build_validation_fn(

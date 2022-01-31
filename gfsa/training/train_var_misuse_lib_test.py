@@ -43,7 +43,7 @@ class TrainVarMisuseLibTest(absltest.TestCase):
 
     mock_metadata = object()
 
-    @flax.nn.module
+    @flax.deprecated.nn.module
     def mock_model_def(example, metadata):
       # Check that we get the right inputs.
       self.assertIs(example, mock_example)
@@ -53,7 +53,7 @@ class TrainVarMisuseLibTest(absltest.TestCase):
       side_outputs.SideOutput(jnp.array(.1234), name="test_penalty")
 
       # Make sure we can generate an rng key with flax.
-      _ = flax.nn.make_rng()
+      _ = flax.deprecated.nn.make_rng()
 
       return jnp.log(
           jnp.array([
@@ -64,11 +64,11 @@ class TrainVarMisuseLibTest(absltest.TestCase):
               [.1, .0, .0, .0, .0],
           ]))
 
-    with flax.nn.stochastic(jax.random.PRNGKey(0)):
+    with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
       _, params = mock_model_def.init(
           jax.random.PRNGKey(0), mock_example, mock_metadata)
 
-    mock_model = flax.nn.Model(mock_model_def, params)
+    mock_model = flax.deprecated.nn.Model(mock_model_def, params)
 
     loss, metrics = train_var_misuse_lib.loss_fn(
         mock_model, (mock_example, jax.random.PRNGKey(0)),

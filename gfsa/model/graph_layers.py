@@ -40,7 +40,7 @@ from gfsa.model import model_util
 ###################
 
 
-class NodeTypeNodeEmbedding(flax.nn.Module):
+class NodeTypeNodeEmbedding(flax.deprecated.nn.Module):
   """Initial embedding of nodes using their types."""
 
   @gin.configurable("NodeTypeNodeEmbedding")
@@ -106,7 +106,7 @@ def positional_node_embedding(
   return embeddings
 
 
-class PositionalAndTypeNodeEmbedding(flax.nn.Module):
+class PositionalAndTypeNodeEmbedding(flax.deprecated.nn.Module):
   """Initial embedding of nodes using their type and position."""
 
   @gin.configurable("PositionalAndTypeNodeEmbedding")
@@ -132,7 +132,7 @@ class PositionalAndTypeNodeEmbedding(flax.nn.Module):
     return node_type + position
 
 
-class TokenOperatorNodeEmbedding(flax.nn.Module):
+class TokenOperatorNodeEmbedding(flax.deprecated.nn.Module):
   """Embeds nodes using a token operator."""
 
   @gin.configurable("TokenOperatorNodeEmbedding")
@@ -170,7 +170,7 @@ class TokenOperatorNodeEmbedding(flax.nn.Module):
         out_dims=(0,))
 
     if bottleneck_dim is not None:
-      node_token_embeddings = flax.nn.Dense(
+      node_token_embeddings = flax.deprecated.nn.Dense(
           node_token_embeddings, features=embedding_dim, bias=False)
 
     return node_token_embeddings
@@ -263,7 +263,7 @@ def binary_index_edge_embeddings(
   return result
 
 
-class LearnableEdgeEmbeddings(flax.nn.Module):
+class LearnableEdgeEmbeddings(flax.deprecated.nn.Module):
   """An edge embedding with learnable continuous outputs."""
 
   @gin.configurable("LearnableEdgeEmbeddings")
@@ -377,7 +377,7 @@ def edge_mask(edges, num_nodes,
 ########################
 
 
-class LinearMessagePassing(flax.nn.Module):
+class LinearMessagePassing(flax.deprecated.nn.Module):
   """Learnable message-passing layer using linear message aggregation.
 
   In particular, computes the message to send from a given node across a given
@@ -492,7 +492,7 @@ class LinearMessagePassing(flax.nn.Module):
     return received
 
 
-class NodeSelfAttention(flax.nn.Module):
+class NodeSelfAttention(flax.deprecated.nn.Module):
   """Node self-attention layer.
 
   Implements (optionally masked) multi-head self attention between nodes.
@@ -590,7 +590,8 @@ class NodeSelfAttention(flax.nn.Module):
       if like_great:
         # Edges contribute based on key sums, as in Hellendoorn et al.
         # edge_biases: <float32[num_nodes, num_nodes]>, computed as `w^T e + b`
-        edge_biases = flax.nn.Dense(edge_embeddings, features=1).squeeze(-1)
+        edge_biases = flax.deprecated.nn.Dense(
+            edge_embeddings, features=1).squeeze(-1)
         # Einsum sums keys over `q` dim (equivalent to broadcasting out biases).
         edge_logits = jnp.einsum("md,hdq,nm->hnm", node_embeddings,
                                  node_key_tensor, edge_biases)
@@ -655,7 +656,7 @@ class NodeSelfAttention(flax.nn.Module):
     return inner_apply(edge_embeddings, node_embeddings)
 
 
-class NRIEdgeLayer(flax.nn.Module):
+class NRIEdgeLayer(flax.deprecated.nn.Module):
   """NRI-style computation of vertex->edge hiddens.
 
   These can be aggregated to do NRI-style message passing, or used as an output
@@ -794,7 +795,7 @@ class NRIEdgeLayer(flax.nn.Module):
 ################
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def residual_layer_norm_update(node_states,
                                messages):
   """Update node states using a residual step and layer norm.
@@ -813,7 +814,7 @@ def residual_layer_norm_update(node_states,
   return model_util.ScaleAndShift(jax.nn.normalize(combined, axis=-1))
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def gated_recurrent_update(node_states,
                            messages):
   """Update node states using the GRU equations.
@@ -825,8 +826,9 @@ def gated_recurrent_update(node_states,
   Returns:
     <float32[num_nodes, state_dim]> new states.
   """
-  # Simply wrap flax.nn.recurrent.GRUCell to have the desired interface.
-  h, h2 = flax.nn.recurrent.GRUCell(node_states, messages)
+  # Simply wrap flax.deprecated.nn.recurrent.GRUCell to have the desired
+  # interface.
+  h, h2 = flax.deprecated.nn.recurrent.GRUCell(node_states, messages)
   assert h is h2
   return h
 
@@ -836,7 +838,7 @@ def gated_recurrent_update(node_states,
 ####################
 
 
-class BilinearPairwiseReadout(flax.nn.Module):
+class BilinearPairwiseReadout(flax.deprecated.nn.Module):
   """Extract pairwise information using a shifted bilinear operator.
 
   In other words, computes
@@ -889,7 +891,7 @@ class BilinearPairwiseReadout(flax.nn.Module):
     return output
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def NRIReadout(  # pylint: disable=invalid-name
     node_embeddings,
     readout_dim = None):
@@ -914,7 +916,7 @@ def NRIReadout(  # pylint: disable=invalid-name
       message_passing=False,
       mask=None)
 
-  result = flax.nn.Dense(
+  result = flax.deprecated.nn.Dense(
       edge_activations, features=(1 if readout_dim is None else readout_dim))
 
   if readout_dim is None:

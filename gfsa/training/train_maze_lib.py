@@ -358,7 +358,7 @@ def train(
         graph_bundle.zeros_like_padded_example(padding_config).automaton_graph,
         dynamic_metadata=padding_config.static_max_metadata)
 
-    model = flax.nn.Model(model_def, initial_params)
+    model = flax.deprecated.nn.Model(model_def, initial_params)
     optimizer = flax.optim.Adam().create(model)
 
     extra_artifacts = {
