@@ -14,6 +14,19 @@ This repository contains code that accompanies the following paper:
 -   The [main project page](https://yichengwu.github.io/flare-removal/) contains
     more information, including a recorded presentation.
 
+## Announcements
+
+-   **1/30/2022:** It has been brought to our attention that there might be an
+    issue with the training code that causes the trained model to perform worse
+    than what we show on the
+    [test images](https://drive.google.com/corp/drive/folders/1_gi3W8fOEusfmglJdiKCUwk3IA7B2jfQ).
+    This issue was likely introduced when we cleaned up the repository prior to
+    open-sourcing. We are actively investigating this issue, and will submit a
+    patch to this repository as soon as possible. The issue does not affect the
+    testing script (`remove_flare.py`). We can also confirm that our published
+    results (both quantitative and qualitative) are accurate and reproducible
+    using an older (internal) version of the code.
+
 ## Dataset
 
 ### Flare-only images
