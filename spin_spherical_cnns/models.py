@@ -63,13 +63,18 @@ class SpinSphericalBlock(nn.Module):
   num_filter_params: Optional[int] = None
 
   @nn.compact
-  def __call__(self, inputs, train):
+  def __call__(self,
+               inputs,
+               train,
+               weights = None):
     """Apply block to `inputs`.
 
     Args:
       inputs: (batch_size, resolution, resolution, n_spins_in, n_channels_in)
         array of spin-weighted spherical functions with equiangular sampling.
       train: whether to run in training or inference mode.
+      weights: Weights per batch element used in batchnorm mean/std
+        computation.
     Returns:
       A (batch_size, resolution // downsampling_factor, resolution //
         downsampling_factor, n_spins_out, num_channels) complex64 array.
@@ -91,7 +96,7 @@ class SpinSphericalBlock(nn.Module):
         spins=self.spins_out,
         use_running_stats=not train,
         axis_name=self.axis_name,
-        name='batch_norm_nonlin')(feature_maps)
+        name='batch_norm_nonlin')(feature_maps, weights=weights)
 
 
 class SpinSphericalClassifier(nn.Module):
