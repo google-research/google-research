@@ -1,0 +1,8 @@
+# This is example csv output from smu/examples/to_csv.py
+# Please see the comments in that file for explanation
+conformer_id,energy,homo,lumo,first important frequency
+854001,-171.976828,-0.27633,-0.01041,157.9
+1055002,-337.248122,-0.1869,0.0178,115.9
+1055005,-337.251512,-0.19384,0.01054,120.4
+1305017,-316.213573,-0.19602,-0.07902,48.0
+1693005,-321.24884,-0.18939,0.01628,99.3

@@ -32,6 +32,7 @@ from absl import logging
 import apache_beam as beam
 import numpy as np
 from rdkit import Chem
+from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
@@ -100,7 +101,7 @@ def pipeline(root):
       root
       | 'CreateTopologies' >> beam.Create(
           smu_utils_lib.generate_bond_topologies_from_csv(
-              FLAGS.input_bond_topology_csv))
+              gfile.GFile(FLAGS.input_bond_topology_csv, 'r')))
       | 'Reshuffle1' >> beam.Reshuffle()
       | 'CheckInvariance' >> beam.FlatMap(check_smiles_permutation_invariance)
       | 'Reshuffle2' >> beam.Reshuffle()
@@ -112,7 +113,6 @@ def pipeline(root):
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
-  runner.program_started()
   logging.info('Pipeline Starts.')
   # If you have custom beam options, add them here.
   beam_options = None

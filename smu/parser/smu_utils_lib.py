@@ -25,8 +25,6 @@ import pandas as pd
 from rdkit import Chem
 from rdkit import Geometry
 
-from tensorflow.io import gfile
-
 from smu import dataset_pb2
 
 # The stage1 files do not label their error fields explicitly. This is the list
@@ -47,6 +45,16 @@ ATOM_TYPE_TO_MAX_BONDS = {
     dataset_pb2.BondTopology.AtomType.ATOM_H: 1
 }
 
+# Assumes that charged and neutral forms can be switched
+ATOM_TYPE_TO_MAX_BONDS_ANY_FORM = {
+    dataset_pb2.BondTopology.AtomType.ATOM_C: 4,
+    dataset_pb2.BondTopology.AtomType.ATOM_N: 4,
+    dataset_pb2.BondTopology.AtomType.ATOM_NPOS: 4,
+    dataset_pb2.BondTopology.AtomType.ATOM_O: 2,
+    dataset_pb2.BondTopology.AtomType.ATOM_ONEG: 2,
+    dataset_pb2.BondTopology.AtomType.ATOM_F: 1,
+    dataset_pb2.BondTopology.AtomType.ATOM_H: 1
+}
 # The value is a pair of an atomic symbol and formal charge
 ATOM_TYPE_TO_RDKIT = {
     dataset_pb2.BondTopology.AtomType.ATOM_C: ('C', 0),
@@ -151,6 +159,16 @@ SPECIAL_ID_CASES = [
 BOHR_TO_ANGSTROMS = 0.529177249
 
 
+class StoichiometryError(Exception):
+
+  def __init__(self, stoich_str):
+    super().__init__()
+    self.stoich_str = stoich_str
+
+  def __str__(self):
+    return f'Could not parse "{self.stoich_str}" as valid stoichiometry for SMU'
+
+
 def special_case_bt_id_from_dat_id(dat_id, smiles):
   """Determines if dat_id is a special case.
 
@@ -248,8 +266,28 @@ _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
     'f', 'fh'
 ]
 
+def _expanded_stoichiometry_from_h_counts(heavy_atoms, hydrogen_counts):
+  components = collections.defaultdict(int)
+  for this_atom, h_count in zip(heavy_atoms, hydrogen_counts):
+    this_component = ATOM_TYPE_TO_CHAR[this_atom]
+    if h_count >= 1:
+      this_component += 'h'
+      if h_count > 1:
+        this_component += str(h_count)
+    components[this_component] += 1
 
-def get_canonical_stoichiometry_with_hydrogens(topology):
+  out = ''
+  for got_component in _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS:
+    if got_component not in components:
+      continue
+    out += f'({got_component})'
+    if components[got_component] > 1:
+      out += str(components[got_component])
+
+  return out
+
+
+def expanded_stoichiometry_from_topology(topology):
   """Get stoichiometry where hydrogen count is part of the atom type.
 
   Each heavy atom is typed by the number of hydrogens it's connected to, e.g.
@@ -276,23 +314,111 @@ def get_canonical_stoichiometry_with_hydrogens(topology):
   """
   hydrogen_counts = compute_bonded_hydrogens(topology,
                                              compute_adjacency_matrix(topology))
-  components = collections.defaultdict(int)
-  for atom_idx, h_count in enumerate(hydrogen_counts):
-    this_component = ATOM_TYPE_TO_CHAR[topology.atoms[atom_idx]]
-    if h_count >= 1:
-      this_component += 'h'
-      if h_count > 1:
-        this_component += str(h_count)
-    components[this_component] += 1
+  return _expanded_stoichiometry_from_h_counts(topology.atoms, hydrogen_counts)
 
-  out = ''
-  for got_component in _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS:
-    if got_component not in components:
-      continue
-    out += f'({got_component})'
-    if components[got_component] > 1:
-      out += str(components[got_component])
 
+def _generate_hydrogen_assignments(heavy_atoms, total_h):
+  # TODO: some error checking would be good
+  if len(heavy_atoms) == 1:
+    if total_h < ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[heavy_atoms[0]]:
+      yield [total_h]
+    return
+  if total_h == 0:
+    yield [0] * len(heavy_atoms)
+    return
+  # It may look like this +1 is misplaced, but it's intentional.
+  # e.g. Carbon has a max of 4 bonds, so we want to try range(3), one less then the total,
+  # because, excpect for single atom special cases, one of the bonds must be to a non-hydrogen.
+  for num_for_first in range(min(ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[heavy_atoms[0]],
+                                 total_h + 1)):
+    for other_assign in _generate_hydrogen_assignments(
+        heavy_atoms[1:], total_h - num_for_first,):
+      yield [num_for_first] + other_assign
+
+
+def expanded_stoichiometries_from_atom_list(heavy_atoms, total_h):
+  """Get the list of possible expanded stoichiometries given atoms.
+
+  See expanded_stoichiometry_from_topology for documentation on the expanded
+  stoichiometry.
+
+  Args:
+    list of dataset_pb2.BondTopology.AtomType
+    total_h: int of total number of hydrogens
+
+  Returns
+    set of expanded stoichiometry strings.
+  """
+  out = set()
+  for assignment in _generate_hydrogen_assignments(heavy_atoms, total_h):
+    out.add(_expanded_stoichiometry_from_h_counts(heavy_atoms, assignment))
+  return out
+
+
+_EXPAND_STOICHIOMETRY_SPECIAL_CASES = {
+  'ch4': '(ch4)',
+  'h4c': '(ch4)',
+  'oh2': '(oh2)',
+  'h2o': '(oh2)',
+  'fh': '(fh)',
+  'hf': '(fh)',
+}
+
+
+def expanded_stoichiometries_from_stoichiometry(stoich_str):
+  """Generates a list possible expanded stoichiometries from a plain one.
+
+  Note that some expanded stoichiometries will be returned even if an invalid
+  number of hydrogens is given.
+  For example "CN" generates (c)(n) and "CNH2" generates (ch2)(n)
+  Further, even for some valid stoichiometries, expanded stoichiometries will be
+  enerated that cannot correspond to a SMU molecule.
+  For example "C2H2" will generate "(c)(ch2)"
+
+  Args:
+    stoich_str: string of a stoichiometry like "C6OH4" (case does not matter)
+
+  Returns:
+    set of strings
+
+  Raises:
+    StoichiometryError: If there are too many hydrogens or an unrecognized atom.
+  """
+  stoich_str = stoich_str.lower()
+  if stoich_str in _EXPAND_STOICHIOMETRY_SPECIAL_CASES:
+    out = set()
+    out.add(_EXPAND_STOICHIOMETRY_SPECIAL_CASES[stoich_str])
+    return out
+
+  heavy_atoms = []
+  total_h = 0
+
+  parse_idx = 0
+  while parse_idx < len(stoich_str):
+    try:
+      atom_type = ATOM_CHAR_TO_TYPE[stoich_str[parse_idx]]
+    except KeyError:
+      raise StoichiometryError(stoich_str)
+
+    num_digits = 0
+    while (parse_idx + num_digits + 1 < len(stoich_str) and
+           stoich_str[parse_idx + num_digits + 1].isdigit()):
+      num_digits += 1
+    if num_digits == 0:
+      atom_count = 1
+    else:
+      atom_count = int(stoich_str[parse_idx + 1: parse_idx + num_digits + 1])
+
+    if atom_type == dataset_pb2.BondTopology.AtomType.ATOM_H:
+      total_h = atom_count
+    else:
+      heavy_atoms.extend([atom_type] * atom_count)
+
+    parse_idx += 1 + num_digits
+
+  out = expanded_stoichiometries_from_atom_list(heavy_atoms, total_h)
+  if not out:
+    raise StoichiometryError(stoich_str)
   return out
 
 
@@ -486,72 +612,28 @@ def parse_bond_topology_line(line):
           line[connectivity_end + 2:connectivity_end + 2 + num_atoms])
 
 
-def generate_bond_topologies_from_csv(filename):
+def generate_bond_topologies_from_csv(fileobj):
   """Generator for bond topologies stored in a csv.
 
   See merge_bond_topologies.py for the expected format.
 
   Args:
-    filename: input csv
+    fileobj: file like object
 
   Yields:
     BondTopology
   """
-  with gfile.GFile(filename, 'r') as infile:
-    reader = csv.reader(iter(infile))
-    next(reader)  # skip the header line
-    for row in reader:
-      bt_id, _, atoms, connectivity, hydrogens, smiles = row
-      # The atoms strings looks like 'C N N+O O-' where every atom has a space,
-      # +, or - after it. create_bond_topology doesn't want the charge markings
-      # (just a string like 'CNNOO') so the [::2] skips those.
-      bond_topology = create_bond_topology(atoms[::2], connectivity, hydrogens)
-      bond_topology.smiles = smiles
-      bond_topology.bond_topology_id = int(bt_id)
-      yield bond_topology
-
-
-def parse_duplicates_file(filename):
-  """Parses duplciate file into a pandas dataframe.
-
-  The duplciate file supplied by our collaborators (called
-  list.equivalent_{isomers,conformers.dat) is a two column, space separated
-  file of composite names like x07_n4o3h4.091404.073
-  which we parse the names into columns
-  * nameX: original composiite name from file
-  * stoichX: string for the stoichiometry
-  * btidX: bond topology id
-  * shortconfidX: 3 digit conformer id
-  * confidX: full conformer id that we use (btid * 1000 + shortconfid)
-  (for X = 1 or 2)
-
-  Args:
-    filename: file to read (usually list.equivalent_isomers.dat)
-
-  Returns:
-    pd.DataFrame
-  """
-  with gfile.GFile(filename) as f:
-    df_dups = pd.read_csv(
-        f, delim_whitespace=True, names=['name1', 'name2'], header=None)
-
-  for idx in ['1', '2']:
-    df_dups = pd.concat([
-        df_dups,
-        df_dups['name' +
-                idx].str.extract(r'x07_([\w\d]+)\.(\d+).(\d+)').rename(columns={
-                    0: 'stoich' + idx,
-                    1: 'btid' + idx,
-                    2: 'shortconfid' + idx
-                })
-    ],
-                        axis=1)
-    df_dups['btid' + idx] = df_dups['btid' + idx].astype(int)
-    df_dups['shortconfid' + idx] = df_dups['shortconfid' + idx].astype(int)
-    df_dups['confid' + idx] = (
-        df_dups['btid' + idx] * 1000 + df_dups['shortconfid' + idx])
-
-  return df_dups
+  reader = csv.reader(iter(fileobj))
+  next(reader)  # skip the header line
+  for row in reader:
+    bt_id, _, atoms, connectivity, hydrogens, smiles = row
+    # The atoms strings looks like 'C N N+O O-' where every atom has a space,
+    # +, or - after it. create_bond_topology doesn't want the charge markings
+    # (just a string like 'CNNOO') so the [::2] skips those.
+    bond_topology = create_bond_topology(atoms[::2], connectivity, hydrogens)
+    bond_topology.smiles = smiles
+    bond_topology.bond_topology_id = int(bt_id)
+    yield bond_topology
 
 
 def bond_topology_to_molecule(bond_topology):
@@ -576,6 +658,24 @@ def bond_topology_to_molecule(bond_topology):
                 BOND_TYPE_TO_RDKIT[pb_bond.bond_type])
 
   return mol
+
+
+def get_bond_type(bond_topology, atom_idx0, atom_idx1):
+  """Returns the type of bond in the topology.
+
+  Args:
+    bond_topology: datset_pb2.BondTopology
+    atom_idx0: int, atom index
+    atom_idx1, int atom index
+
+  Returns:
+    dataset_pb2.BondTopology.BondType
+  """
+  for bond in bond_topology.bonds:
+    if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
+        (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
+      return bond.bond_type
+  return dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
 
 
 def conformer_to_molecules(conformer,
@@ -625,7 +725,7 @@ def conformer_to_molecules(conformer,
     init_count = len(conformer.initial_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
-        for i, geom in enumerate(conformer.initial_geometries)
+        for i, geom in enumerate(conformer.initial_geometries, start=1)
     ])
   if include_optimized_geometry:
     requested_geometries.append((conformer.optimized_geometry, 'opt'))
@@ -1425,6 +1525,16 @@ def conformer_to_bond_topology_summaries(conformer):
       yield from itertools.chain(conformer.bond_topologies[:starting_idx],
                                  conformer.bond_topologies[(starting_idx + 1):])
 
+  def filtered_other_topologies():
+    observed_bt_id = set()
+    if starting_idx is not None:
+      observed_bt_id.add(conformer.bond_topologies[starting_idx]
+                         .bond_topology_id)
+    for bt in other_topologies():
+      if bt.bond_topology_id not in observed_bt_id:
+        yield bt
+        observed_bt_id.add(bt.bond_topology_id)
+
   fate = conformer.fate
 
   if fate == dataset_pb2.Conformer.FATE_UNDEFINED:
@@ -1446,7 +1556,7 @@ def conformer_to_bond_topology_summaries(conformer):
         fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
-    for bt in other_topologies():
+    for bt in filtered_other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_with_error = 1
@@ -1456,7 +1566,7 @@ def conformer_to_bond_topology_summaries(conformer):
       fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
-    for bt in other_topologies():
+    for bt in filtered_other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_with_warning = 1
@@ -1464,7 +1574,7 @@ def conformer_to_bond_topology_summaries(conformer):
   elif fate == dataset_pb2.Conformer.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
-    for bt in other_topologies():
+    for bt in filtered_other_topologies():
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_detected_match_success = 1
@@ -1474,6 +1584,20 @@ def conformer_to_bond_topology_summaries(conformer):
 
   if starting_idx is not None:
     yield summary
+
+  # Now emit our multiple detection records
+  observed_bt_id = set()
+  yielded_multi_detect = set()
+  for bt in conformer.bond_topologies:
+    if bt.bond_topology_id not in observed_bt_id:
+      observed_bt_id.add(bt.bond_topology_id)
+      continue
+    if bt.bond_topology_id not in yielded_multi_detect:
+      other_summary = dataset_pb2.BondTopologySummary()
+      other_summary.bond_topology.CopyFrom(bt)
+      other_summary.count_multiple_detections = 1
+      yield other_summary
+      yielded_multi_detect.add(bt.bond_topology_id)
 
 
 def conformer_eligible_for_topology_detection(conformer):

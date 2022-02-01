@@ -29,8 +29,6 @@ import traceback
 from absl import logging
 import numpy as np
 
-from tensorflow.io import gfile
-
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
 
@@ -253,6 +251,10 @@ class SmuParser:
 
   def _input_generator(self):
     """Yields lines from from input_file."""
+    # This import is here to avoid dependency on gfile except while essential.
+    # This function is the only one that uses gfile.
+    from tensorflow.io import gfile
+
     if not gfile.exists(self.input_file):
       raise FileNotFoundError
 

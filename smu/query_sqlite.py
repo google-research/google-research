@@ -22,7 +22,7 @@ import contextlib
 import csv
 import enum
 import itertools
-import os
+import os.path
 import random
 import sys
 
@@ -31,8 +31,6 @@ from absl import flags
 from absl import logging
 import pandas as pd
 from rdkit import Chem
-import tensorflow as tf
-from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu import smu_sqlite
@@ -50,8 +48,7 @@ class OutputFormat(enum.Enum):
   sdf_init = 3
   sdf_init_opt = 4
   atomic_input = 5
-  tfdata = 6
-
+  dat = 6
 
 flags.DEFINE_string(
     'input_sqlite', None,
@@ -62,6 +59,7 @@ flags.DEFINE_string(
 flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
 flags.DEFINE_list('cids', [], 'List of conformer ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
+flags.DEFINE_list('stoichiometries', [], 'List of stoichiometries to query')
 flags.DEFINE_list(
     'topology_query_smiles', [],
     'List of smiles to query, where the valid bond lengths are '
@@ -74,14 +72,16 @@ flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
                         'Format for the found SMU entries')
+flags.DEFINE_boolean('sdf_include_all_bond_topologies', True,
+                     'For all sdf outputs, whether to output separate entries '
+                     'for each bond topology or only one')
 flags.DEFINE_boolean(
-    'redetect_geometry', False,
-    'Whether to rerun the geometry detection on the conformers')
+    'redetect_topology', False,
+    'Whether to rerun the topology detection on the conformers')
 flags.DEFINE_string(
     'bond_lengths_csv', None,
     'File usually name <data>_bond_lengths.csv that contains the '
-    'observed distribution of bond lengths. '
-    'Only needed if --redetect_geometry')
+    'observed distribution of bond lengths.')
 flags.DEFINE_string(
     'bond_lengths', None, 'Comma separated terms like form XYX:N-N '
     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
@@ -89,7 +89,7 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'bond_topology_csv', None,
     'File which contains the desription of all bond topologies '
-    'considered in SMU. Only needed if --redetect_geometry')
+    'considered in SMU.')
 
 FLAGS = flags.FLAGS
 
@@ -139,7 +139,7 @@ class GeometryData:
     if bond_lengths_csv is None:
       raise ValueError('--bond_lengths_csv required')
     logging.info('Loading bond_lengths')
-    with gfile.GFile(bond_lengths_csv, 'r') as infile:
+    with open(bond_lengths_csv, 'r') as infile:
       df = pd.read_csv(infile, dtype={'length_str': str})
     self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions(
     )
@@ -154,7 +154,7 @@ class GeometryData:
       raise ValueError('--bond_topology_csv required')
     logging.info('Loading bond topologies')
     self.smiles_id_dict = {}
-    with gfile.GFile(bond_topology_csv, 'r') as infile:
+    with open(bond_topology_csv, 'r') as infile:
       reader = csv.reader(iter(infile))
       next(reader)  # skip the header line
       for row in reader:
@@ -234,7 +234,7 @@ def topology_query(db, smiles):
   Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
   mol = Chem.AddHs(mol)
   query_bt = utilities.molecule_to_bond_topology(mol)
-  expanded_stoich = smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+  expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(
       query_bt)
   matching_parameters = _get_geometry_matching_parameters()
   geometry_data = GeometryData.get_singleton()
@@ -277,7 +277,7 @@ class PBTextOutputter:
       output_path: file path to write to
     """
     if output_path:
-      self.outfile = gfile.GFile(output_path, 'w')
+      self.outfile = open(output_path, 'w')
     else:
       self.outfile = sys.stdout
 
@@ -293,33 +293,10 @@ class PBTextOutputter:
     self.outfile.close()
 
 
-class TfDataOutputter:
-  """Writes output to TFDataRecord form."""
-
-  def __init__(self, output_path):
-    """Creates TfDataOutputter with output to `output_path`.
-
-    Args:
-      output_path:
-    """
-    self.output = tf.io.TFRecordWriter(path=output_path)
-
-  def output(self, conformer):
-    """Writes serialized `conformer`.
-
-    Args:
-      conformer: dataset_pb2.Conformer
-    """
-    self.output.write(conformer.SerializeToString())
-
-  def close(self):
-    self.output.close()
-
-
 class SDFOutputter:
   """Simple internal class to write entries as multi molecule SDF files."""
 
-  def __init__(self, output_path, init_geometry, opt_geometry):
+  def __init__(self, output_path, init_geometry, opt_geometry, include_all_bond_topologies):
     """Creates SDFOutputter.
 
     At least one of init_geometry and opt_geometry should be True
@@ -331,10 +308,8 @@ class SDFOutputter:
     """
     self.init_geometry = init_geometry
     self.opt_geometry = opt_geometry
+    self.include_all_bond_topologies = include_all_bond_topologies
     if output_path:
-      # I couldn't get gfile.GFile to be happen with Chem.SDWriter, so I'm just
-      # falling back to a plain old open.
-      # self.writer = Chem.SDWriter(gfile.GFile(output_path, 'w'))
       self.writer = Chem.SDWriter(output_path)
     else:
       self.writer = Chem.SDWriter(sys.stdout)
@@ -349,7 +324,7 @@ class SDFOutputter:
         conformer,
         include_initial_geometries=self.init_geometry,
         include_optimized_geometry=self.opt_geometry,
-        include_all_bond_topologies=True):
+        include_all_bond_topologies=self.include_all_bond_topologies):
       self.writer.write(mol)
 
   def close(self):
@@ -366,7 +341,7 @@ class AtomicInputOutputter:
       output_path: directory to write output files to
     """
     self.output_path = output_path
-    if output_path and not gfile.isdir(self.output_path):
+    if output_path and not os.path.isdir(self.output_path):
       raise ValueError(
           'Atomic input requires directory as output path, got {}'.format(
               self.output_path))
@@ -376,7 +351,7 @@ class AtomicInputOutputter:
     if self.output_path is None:
       sys.stdout.write(self.atomic_writer.process(conformer))
     else:
-      with gfile.GFile(
+      with open(
           os.path.join(
               self.output_path,
               self.atomic_writer.get_filename_for_atomic_input(conformer)),
@@ -385,6 +360,33 @@ class AtomicInputOutputter:
 
   def close(self):
     pass
+
+
+class DatOutputter:
+  """Internal class to write output as the original .dat format."""
+
+  def __init__(self, output_path):
+    """Creates DatOutputter.
+
+    Args:
+      output_path: file to write to
+    """
+    self.writer = smu_writer_lib.SmuWriter(annotate=False)
+    if output_path:
+      self.outfile = open(output_path, 'w')
+    else:
+      self.outfile = sys.stdout
+
+  def output(self, conformer):
+    """Writes a conformer.
+
+    Args:
+      conformer: dataset_pb2.Conformer
+    """
+    self.outfile.write(self.writer.process_stage2_proto(conformer))
+
+  def close(self):
+    self.outfile.close()
 
 
 class ReDetectTopologiesOutputter:
@@ -439,21 +441,24 @@ def main(argv):
     outputter = PBTextOutputter(FLAGS.output_path)
   elif FLAGS.output_format == OutputFormat.sdf_init:
     outputter = SDFOutputter(
-        FLAGS.output_path, init_geometry=True, opt_geometry=False)
+        FLAGS.output_path, init_geometry=True, opt_geometry=False,
+        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
   elif FLAGS.output_format == OutputFormat.sdf_opt:
     outputter = SDFOutputter(
-        FLAGS.output_path, init_geometry=False, opt_geometry=True)
+        FLAGS.output_path, init_geometry=False, opt_geometry=True,
+        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
   elif FLAGS.output_format == OutputFormat.sdf_init_opt:
     outputter = SDFOutputter(
-        FLAGS.output_path, init_geometry=True, opt_geometry=True)
+        FLAGS.output_path, init_geometry=True, opt_geometry=True,
+        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
   elif FLAGS.output_format == OutputFormat.atomic_input:
     outputter = AtomicInputOutputter(FLAGS.output_path)
-  elif FLAGS.output_format == OutputFormat.tfdata:
-    outputter = TfDataOutputter(FLAGS.output_path)
+  elif FLAGS.output_format == OutputFormat.dat:
+    outputter = DatOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
-  if FLAGS.redetect_geometry:
+  if FLAGS.redetect_topology:
     outputter = ReDetectTopologiesOutputter(outputter)
 
   with contextlib.closing(outputter):
@@ -470,6 +475,10 @@ def main(argv):
       conformers = db.find_by_smiles(smiles)
       if not conformers:
         raise KeyError(f'SMILES {smiles} not found')
+      for c in conformers:
+        outputter.output(c)
+    for stoich in FLAGS.stoichiometries:
+      conformers = db.find_by_stoichiometry(stoich)
       for c in conformers:
         outputter.output(c)
     for smiles in FLAGS.topology_query_smiles:

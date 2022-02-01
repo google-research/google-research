@@ -31,6 +31,8 @@ from smu.geometry import utilities
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
 
+from tensorflow.io import gfile
+
 MAIN_DAT_FILE = 'x07_sample.dat'
 STAGE1_DAT_FILE = 'x07_stage1.dat'
 TESTDATA_PATH = os.path.join(
@@ -86,48 +88,129 @@ class GetCompositionTest(absltest.TestCase):
     self.assertEqual('x03_c2nh3', smu_utils_lib.get_composition(bt))
 
 
-class GetCanonicalStoichiometryWithHydrogensTest(absltest.TestCase):
+class ExpandedStoichiometryFromTopologyTest(absltest.TestCase):
 
   def test_cyclobutane(self):
     bt = smu_utils_lib.create_bond_topology('CCCC', '110011', '2222')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt), '(ch2)4')
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt), '(ch2)4')
 
   def test_ethylene(self):
     bt = smu_utils_lib.create_bond_topology('CC', '2', '22')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt), '(ch2)2')
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt), '(ch2)2')
 
   def test_acrylic_acid(self):
     bt = smu_utils_lib.create_bond_topology('CCCOO', '2000100210', '21001')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt),
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt),
         '(c)(ch)(ch2)(o)(oh)')
 
   def test_fluorine(self):
     bt = smu_utils_lib.create_bond_topology('OFF', '110', '000')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt), '(o)(f)2')
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt), '(o)(f)2')
 
   def test_fully_saturated(self):
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('C', '', '4')), '(ch4)')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('N', '', '3')), '(nh3)')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('O', '', '2')), '(oh2)')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('F', '', '1')), '(fh)')
 
   def test_nplus_oneg(self):
     bt = smu_utils_lib.create_bond_topology('NO', '1', '30')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt),
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt),
         '(nh3)(o)')
+
+
+class ExpandedStoichiometryFromAtomListTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    # shortcuts
+    self.C = dataset_pb2.BondTopology.AtomType.ATOM_C
+    self.N = dataset_pb2.BondTopology.AtomType.ATOM_N
+    self.O = dataset_pb2.BondTopology.AtomType.ATOM_O
+    self.F = dataset_pb2.BondTopology.AtomType.ATOM_F
+
+  def test_basic(self):
+    self.assertCountEqual(
+      smu_utils_lib.expanded_stoichiometries_from_atom_list([self.C, self.C], 4),
+      ['(ch2)2', '(ch)(ch3)'])
+    self.assertCountEqual(
+      smu_utils_lib.expanded_stoichiometries_from_atom_list([self.C, self.N], 4),
+      ['(ch2)(nh2)', '(ch)(nh3)', '(ch3)(nh)'])
+    self.assertCountEqual(
+      smu_utils_lib.expanded_stoichiometries_from_atom_list(
+        [self.C, self.C, self.N, self.O, self.F], 9),
+      ['(ch3)2(nh3)(o)(f)', '(ch3)2(nh2)(oh)(f)', '(ch2)(ch3)(nh3)(oh)(f)'])
+    self.assertCountEqual(
+      smu_utils_lib.expanded_stoichiometries_from_atom_list(
+        [self.C, self.C, self.N, self.O, self.F], 5),
+      ['(c)(ch2)(nh2)(oh)(f)',
+       '(ch)(ch3)(n)(oh)(f)',
+       '(c)(ch3)(nh)(oh)(f)',
+       '(c)(ch2)(nh3)(o)(f)',
+       '(ch)(ch3)(nh)(o)(f)',
+       '(c)(ch3)(nh2)(o)(f)',
+       '(ch)2(nh2)(oh)(f)',
+       '(ch2)2(n)(oh)(f)',
+       '(ch)(ch2)(nh2)(o)(f)',
+       '(c)(ch)(nh3)(oh)(f)',
+       '(ch)2(nh3)(o)(f)',
+       '(ch)(ch2)(nh)(oh)(f)',
+       '(ch2)2(nh)(o)(f)',
+       '(ch2)(ch3)(n)(o)(f)'])
+
+
+class ExpandedStoichiometryFromStoichiometry(absltest.TestCase):
+
+  def test_basic(self):
+    self.assertCountEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('N2'),
+                          ['(n)2'])
+    self.assertCountEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C2H2'),
+                          ['(ch)2', '(c)(ch2)'])
+    self.assertCountEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C2OH'),
+                          ['(c)2(oh)', '(c)(ch)(o)'])
+    self.assertCountEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('CNOFH'),
+                          ['(ch)(n)(o)(f)', '(c)(n)(oh)(f)', '(c)(nh)(o)(f)'])
+
+  def test_multi_char_digit(self):
+    got = smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C7H12')
+    self.assertIn('(c)3(ch3)4', got)
+
+  def test_special_cases(self):
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('ch4'),
+                     {'(ch4)'})
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('h4c'),
+                     {'(ch4)'})
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('nh3'),
+                     {'(nh3)'})
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('h3n'),
+                     {'(nh3)'})
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('oh2'),
+                     {'(oh2)'})
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('h2o'),
+                     {'(oh2)'})
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('fh'),
+                     {'(fh)'})
+    self.assertEqual(smu_utils_lib.expanded_stoichiometries_from_stoichiometry('hf'),
+                     {'(fh)'})
+
+  def test_errors(self):
+    with self.assertRaises(smu_utils_lib.StoichiometryError):
+      smu_utils_lib.expanded_stoichiometries_from_stoichiometry('nonsense')
+    with self.assertRaises(smu_utils_lib.StoichiometryError):
+      smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C2H42')
 
 
 class ComputeBondedHydrogensTest(absltest.TestCase):
@@ -385,7 +468,8 @@ class FromCSVTest(absltest.TestCase):
     infile.write('134,4,N+O-F F ,111000,1000,[O-][NH+](F)F\n')
     infile.close()
 
-    out = smu_utils_lib.generate_bond_topologies_from_csv(infile.name)
+    with gfile.GFile(infile.name, 'r') as fobj:
+      out = smu_utils_lib.generate_bond_topologies_from_csv(fobj)
 
     bt = next(out)
     self.assertEqual(68, bt.bond_topology_id)
@@ -396,33 +480,6 @@ class FromCSVTest(absltest.TestCase):
     self.assertEqual(134, bt.bond_topology_id)
     self.assertLen(bt.atoms, 5)
     self.assertEqual(bt.smiles, '[O-][NH+](F)F')
-
-
-class ParseDuplicatesFileTest(absltest.TestCase):
-
-  def test_basic(self):
-    df = smu_utils_lib.parse_duplicates_file(
-        os.path.join(TESTDATA_PATH, 'small.equivalent_isomers.dat'))
-    pd.testing.assert_frame_equal(
-        pd.DataFrame(
-            columns=[
-                'name1', 'stoich1', 'btid1', 'shortconfid1', 'confid1', 'name2',
-                'stoich2', 'btid2', 'shortconfid2', 'confid2'
-            ],
-            data=[
-                [
-                    'x07_c2n2o2fh3.224227.004', 'c2n2o2fh3', 224227, 4,
-                    224227004, 'x07_c2n2o2fh3.224176.005', 'c2n2o2fh3', 224176,
-                    5, 224176005
-                ],
-                [
-                    'x07_c2n2o2fh3.260543.005', 'c2n2o2fh3', 260543, 5,
-                    260543005, 'x07_c2n2o2fh3.224050.001', 'c2n2o2fh3', 224050,
-                    1, 224050001
-                ],
-            ]),
-        df,
-        check_like=True)
 
 
 class BondTopologyToMoleculeTest(absltest.TestCase):
@@ -519,11 +576,11 @@ class ConformerToMoleculeTest(absltest.TestCase):
     mols = list(smu_utils_lib.conformer_to_molecules(self.conformer))
     self.assertLen(mols, 6)  # 2 bond topologies * (1 opt geom + 2 init_geom)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(1/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=618451(1/2) geom=init(2/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=opt fate=0',
-        'SMU 618451001 bt=99999(2/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=99999(2/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=99999(2/2) geom=init(2/2) fate=0',
         'SMU 618451001 bt=99999(2/2) geom=opt fate=0'
     ])
     self.assertEqual(
@@ -542,8 +599,8 @@ class ConformerToMoleculeTest(absltest.TestCase):
             include_all_bond_topologies=False))
     self.assertLen(mols, 2)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(1/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=618451(1/2) geom=init(2/2) fate=0',
     ])
     # This is just one random atom I picked from the .dat file and converted to
     # angstroms instead of bohr.
@@ -1338,6 +1395,30 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
     self.assertEqual(got[1].bond_topology.bond_topology_id, 123)
     self.assertEqual(got[1].count_detected_match_success, 1)
+
+  @parameterized.parameters(0, 1, 2)
+  def test_multiple_detection(self, starting_idx):
+    self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    # Even with 3 detections, we only want to output one multiple detection
+    # record.
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
+    self.conformer.bond_topologies[starting_idx].is_starting_topology = True
+
+    got = list(
+      smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+    self.assertLen(got, 2)
+
+    # We don't actually care about the order, but this is what comes out right
+    # now.
+    self.assertEqual(got[0].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[0].count_calculation_success, 1)
+    self.assertEqual(got[0].count_multiple_detections, 0)
+
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[1].count_calculation_success, 0)
+    self.assertEqual(got[1].count_multiple_detections, 1)
+
 
 
 class LabeledSmilesTester(absltest.TestCase):
