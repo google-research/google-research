@@ -21,7 +21,7 @@ from rdkit import Chem
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220104_standard.sqlite', 'r')
+db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
 
 # We will look at one conformer that illustrates the complexities of
 # converting a conformer to molecules(s). Not all conformers will have

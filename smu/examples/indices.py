@@ -17,7 +17,7 @@
 
 from smu import smu_sqlite
 
-db = smu_sqlite.SMUSQLite('20220104_standard.sqlite', 'r')
+db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
 
 print('There are several ways to efficiently get specific sets of molecules')
 
@@ -35,7 +35,8 @@ except KeyError:
 print()
 print('Looking up by bond topology id will return zero or more conformers')
 bt_conformers = list(db.find_by_bond_topology_id(7984))
-print('Querying for bond topology id 7984 returned', len(bt_conformers),
+print('Querying for bond topology id 8617 returned',
+      len(bt_conformers),
       'conformers')
 
 print('Note that the conformers returned may have multiple bond topologies,'

@@ -5,14 +5,26 @@ Looking up 57001 returns conformer with id 57001 and bond topology with SMILES O
 Looking up a conformer id not in the DB raises a KeyError
 
 Looking up by bond topology id will return zero or more conformers
-Querying for bond topology id 7984 returned 2 conformers
+Querying for bond topology id 8617 returned 6 conformers
 Note that the conformers returned may have multiple bond topologies,and may or may not have the requested bond topology first
-    Result with conformer_id 7984002
-        has bond topology with id 7986 and SMILES O=[N+](O)OO[O-]
-        has bond topology with id 7984 and SMILES [O-][N+]1(O)OOO1
-    Result with conformer_id 7984001
-        has bond topology with id 7986 and SMILES O=[N+](O)OO[O-]
-        has bond topology with id 7984 and SMILES [O-][N+]1(O)OOO1
+    Result with conformer_id 8617001
+        has bond topology with id 8617 and SMILES [O-]N=[NH+][NH+]([O-])O
+        has bond topology with id 9417 and SMILES O=NN[NH+]([O-])O
+    Result with conformer_id 8617003
+        has bond topology with id 9417 and SMILES O=NN[NH+]([O-])O
+        has bond topology with id 8617 and SMILES [O-]N=[NH+][NH+]([O-])O
+    Result with conformer_id 9417006
+        has bond topology with id 8617 and SMILES [O-]N=[NH+][NH+]([O-])O
+        has bond topology with id 9417 and SMILES O=NN[NH+]([O-])O
+    Result with conformer_id 9417001
+        has bond topology with id 9417 and SMILES O=NN[NH+]([O-])O
+        has bond topology with id 8617 and SMILES [O-]N=[NH+][NH+]([O-])O
+    Result with conformer_id 9417003
+        has bond topology with id 9417 and SMILES O=NN[NH+]([O-])O
+        has bond topology with id 8617 and SMILES [O-]N=[NH+][NH+]([O-])O
+    Result with conformer_id 9417004
+        has bond topology with id 9417 and SMILES O=NN[NH+]([O-])O
+        has bond topology with id 8617 and SMILES [O-]N=[NH+][NH+]([O-])O
 
 Finding by SMILES is essentially equivalent to finding by bond topology id
 With query O=NONNNO we found 43 results
