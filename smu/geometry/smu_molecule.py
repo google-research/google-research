@@ -143,8 +143,8 @@ class SmuMolecule:
     self._max_bonds = np.zeros(self._natoms, dtype=np.int32)
     if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
       for i in range(0, self._natoms):
-        self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[
-            hydrogens_attached.atoms[i]]
+        self._max_bonds[i] = utilities.max_bonds_any_form(
+            hydrogens_attached.atoms[i])
     else:
       for i in range(0, self._natoms):
         self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[

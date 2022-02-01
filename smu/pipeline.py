@@ -33,6 +33,7 @@ import apache_beam as beam
 import numpy as np
 from tensorflow.io import gfile
 
+from google.protobuf import json_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
 from smu.geometry import smu_molecule
@@ -214,12 +215,11 @@ def bond_topology_summaries_from_csv(filename):
   Yields:
     dataset_pb2.Entry
   """
-  with gfile.GFile(filename, 'r') as infile:
-    for bt in smu_utils_lib.generate_bond_topologies_from_csv(infile):
-      summary = dataset_pb2.BondTopologySummary()
-      summary.bond_topology.CopyFrom(bt)
-      # Note that we leave all the counts as 0.
-      yield bt.bond_topology_id, summary
+  for bt in smu_utils_lib.generate_bond_topologies_from_csv(filename):
+    summary = dataset_pb2.BondTopologySummary()
+    summary.bond_topology.CopyFrom(bt)
+    # Note that we leave all the counts as 0.
+    yield bt.bond_topology_id, summary
 
 
 class MergeConformersFn(beam.DoFn):
@@ -313,7 +313,12 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
         bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
       continue
 
-    bond_type = smu_utils_lib.get_bond_type(bt, atom_idx0, atom_idx1)
+    bond_type = dataset_pb2.BondTopology.BOND_UNDEFINED
+    for bond in bt.bonds:
+      if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
+          (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
+        bond_type = bond.bond_type
+        break
 
     geom = conformer.optimized_geometry
     atom_pos0 = np.array([
@@ -715,6 +720,13 @@ def csv_format(vals):
   return ','.join(str(v) for v in vals)
 
 
+def conformer_to_json(conformer):
+  return json_format.MessageToJson(
+      conformer,
+      preserving_proto_field_name=True,
+      including_default_value_fields=True)
+
+
 def dat_input_and_parsing_pipeline(root, stage):
   """Create multiple stages for parsing and validation .dat files.
 
@@ -934,6 +946,24 @@ def pipeline(root):
             f'{FLAGS.output_stem}_{id_str}_tfrecord',
             coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
             num_shards=FLAGS.output_shards))
+
+
+  # Write the complete and standard conformers as JSON.
+  # Bit of a hack here: the slowest part of the whole pipeline is writing out
+  # the JSON for the complete conformers. So we just hard code a tripling of the
+  # shards to get more parallelism.
+  for id_str, collection, num_shards in [[
+      'complete', complete_conformers, FLAGS.output_shards * 3
+  ], ['standard', standard_conformers, FLAGS.output_shards]]:
+    _ = (
+        collection
+        | ('JSONReshuffle_' + id_str) >> beam.Reshuffle()
+        | ('ToJSON_' + id_str) >> beam.Map(conformer_to_json)
+        | ('WriteJSON_' + id_str) >> beam.io.WriteToText(
+            f'{FLAGS.output_stem}_{id_str}_json',
+            compression_type='gzip',
+            num_shards=num_shards,
+            file_name_suffix='.json.gz'))
 
 
 def main(argv):

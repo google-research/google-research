@@ -345,6 +345,33 @@ def geom_to_angstroms(geometry):
   return result
 
 
+def max_bonds_any_form(atype):
+  """Return the max number of bonds for any form of `atype`.
+
+  Args:
+    atype: a dataset_pb2 atom type
+
+  Returns:
+    Max number of bonds
+  Raises:
+    ValueError: on unsupported atype
+  """
+  if atype in [
+      dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_NPOS,
+      dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F,
+      dataset_pb2.BondTopology.ATOM_H
+  ]:
+    return smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[atype]
+
+  if atype == dataset_pb2.BondTopology.ATOM_N:
+    return 4
+
+  if atype == dataset_pb2.BondTopology.ATOM_ONEG:
+    return 2
+
+  raise ValueError(f"Unsupported AtomType {atype}")
+
+
 def ring_atom_count_bt(bt):
   """Return the number of ring atoms in `bt`.
 

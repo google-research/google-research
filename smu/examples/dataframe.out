@@ -1,9 +1,0 @@
-This example creates a Pandas dataframe, which is often a useful starting point for importing data into other python modules.
-We are just printing the dataframe here as an example.
-See dataframe.py for details
-   conformer_id      energy     homo     lumo  first important frequency
-0          2001 -175.536324 -0.32933 -0.02874                     1009.8
-1          3001 -151.546740 -0.28498  0.03505                      368.4
-2          5001 -131.674240 -0.20481  0.01097                     1018.6
-3          6001 -155.715927 -0.28791  0.04095                      996.3
-4          7001 -131.714725 -0.26631  0.05892                      447.3

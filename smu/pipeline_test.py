@@ -253,11 +253,11 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('bt_id', bt_summary_lines[0])
       self.assertIn('count_attempted_conformers', bt_summary_lines[0])
       # This is the bond topology that has no conformer
-      self.assertIn('10,0,0,0,0,0,0,0,0,0,0,0,0,0\n', bt_summary_lines)
+      self.assertIn('10,0,0,0,0,0,0,0,0,0,0,0,0\n', bt_summary_lines)
       # This is a bond topology with 1 conformer
-      self.assertIn('620517,1,0,0,0,1,0,1,0,0,0,0,0,0\n', bt_summary_lines)
+      self.assertIn('620517,1,0,0,0,1,0,1,0,0,0,0,0\n', bt_summary_lines)
       # This is a bond topology with 2 conformers
-      self.assertIn('618451,2,0,0,0,2,0,0,0,2,0,0,0,0\n', bt_summary_lines)
+      self.assertIn('618451,2,0,0,0,2,0,0,0,2,0,0,0\n', bt_summary_lines)
 
     # Check the bond lengths file
     with gfile.GFile(output_stem + '_bond_lengths.csv') as f:
@@ -266,6 +266,19 @@ class IntegrationTest(absltest.TestCase):
                        bond_length_lines[0])
       self.assertIn('c,c,2,1.336,1\n', bond_length_lines)
       self.assertIn('c,o,1,1.422,2\n', bond_length_lines)
+
+    # For the gzip files below, we check >100 because even an empty gzip file
+    # has non-zero length. 100 is kind of arbitrary to be bigger than the
+    # expected header of 20.
+    self.assertGreater(
+        gfile.stat(output_stem + '_complete_json-00000-of-00003.json.gz').length
+        +
+        gfile.stat(output_stem + '_complete_json-00001-of-00003.json.gz').length
+        + gfile.stat(output_stem +
+                     '_complete_json-00002-of-00003.json.gz').length, 100)
+    self.assertGreater(
+        gfile.stat(output_stem +
+                   '_standard_json-00000-of-00001.json.gz').length, 100)
 
     # Check that the generated TFRecord files contain some expected outputs
     standard_dataset = tf.data.TFRecordDataset(
