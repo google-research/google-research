@@ -178,6 +178,19 @@ class SmuSqliteTest(absltest.TestCase):
     # and test a non existent id
     self.assertEmpty(list(db.find_by_bond_topology_id(999)))
 
+  def test_find_by_bond_topology_id_unique_only(self):
+    db = self.create_db()
+
+    conf = self.make_fake_conformer(55000)
+    self.add_bond_topology_to_conformer(conf, 55)
+    db.bulk_insert(self.encode_conformers([conf]))
+
+    got_cids = [
+        conformer.conformer_id for conformer in db.find_by_bond_topology_id(55)
+    ]
+    # This is testing that we only get 55000 returned once
+    self.assertCountEqual(got_cids, [55000])
+
   def test_find_by_smiles(self):
     db = self.create_db_with_multiple_bond_topology()
 
@@ -226,18 +239,6 @@ class SmuSqliteTest(absltest.TestCase):
     self.assertCountEqual(got_cids, [2001, 2002])
 
     self.assertEmpty(list(db.find_by_expanded_stoichiometry('(nh)')))
-
-  def test_no_expanded_stoichiometry_on_ineligible(self):
-    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
-    conf = self.make_fake_conformer(2001)
-    # This makes the conformer ineligible
-    conf.properties.errors.status = 600
-    db.bulk_insert(self.encode_conformers([conf]))
-    got_cids = [
-        conformer.conformer_id
-        for conformer in db.find_by_expanded_stoichiometry('')
-    ]
-    self.assertCountEqual(got_cids, [2001])
 
   def test_find_by_stoichiometry(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')

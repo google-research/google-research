@@ -174,15 +174,9 @@ class SMUSQLite:
     idx = None
     for idx, encoded_conformer in enumerate(encoded_conformers, 1):
       conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
-      # A small efficiency hack: the expanded stoich is only intended for use
-      # with topology_detection, so we only put a real value for those so that
-      # we dont' even have to return the entries we don't want.
-      if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
-        expanded_stoich = (
-            smu_utils_lib.expanded_stoichiometry_from_topology(
-                conformer.bond_topologies[0]))
-      else:
-        expanded_stoich = ''
+      expanded_stoich = (
+        smu_utils_lib.expanded_stoichiometry_from_topology(
+          conformer.bond_topologies[0]))
       pending_conformer_args.append((conformer.conformer_id, expanded_stoich,
                                      snappy.compress(encoded_conformer)))
       for bond_topology in conformer.bond_topologies:
@@ -244,7 +238,8 @@ class SMUSQLite:
       iterable of dataset_pb2.Conformer
     """
     cur = self._conn.cursor()
-    select = (f'SELECT cid, conformer '
+    # DISTINCT is because the same cid can have the same btid multiple times.
+    select = (f'SELECT DISTINCT cid, conformer '
               f'FROM {_CONFORMER_TABLE_NAME} '
               f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
               f'WHERE {_BTID_TABLE_NAME}.btid = ?')
