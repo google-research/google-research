@@ -16,7 +16,7 @@
 set -e
 
 SMUDIR=$(dirname $0)
-ROOTDIR=$(realpath ${SMUDIR}/..)
+ROOTDIR=$(cd ${SMUDIR}/..; pwd)
 VENV="${SMUDIR}/venv"
 
 if [ -z "${VIRTUAL_ENV}" -a -d "${VENV}" ]; then
