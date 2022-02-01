@@ -1,5 +1,5 @@
 A single molecule comes from asking for only the optimized geometry and only the first bond topology
-Note that the title line starts with "SMU" and the conformer id
+Note that the title line start with "SMU" and the conformer id
 Note the "geom=opt" indicating this is the optimized geometry
 Note the bt=8240(1/2) indicating this is the first of 2 bond topologies
 In this case, we only generated output for a single topology
