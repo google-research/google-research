@@ -123,7 +123,7 @@ class Trainer(object):
     """Forward pass.
 
     Args:
-      flax_model: flax.nn.Model; Flax model.
+      flax_model: flax.deprecated.nn.Model; Flax model.
       train_state: TrainState object.
       batch: dict; A batch of examples.
       rng: float; Jax random number generator key.

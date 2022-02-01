@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Fork of flax.nn.attention modules with optional quantization."""
+"""Fork of flax.deprecated.nn.attention modules with optional quantization."""
 
 import typing
 from typing import Any, Callable, Iterable, Optional, Type, TypeVar
@@ -257,7 +257,7 @@ def softmax(attn_weights, norm_dims, dtype, softmax_hparams,
   return lax.mul(approx_exp, arecip).astype(dtype)
 
 
-# Forked from flax.nn.attention.dot_product_attention
+# Forked from flax.deprecated.nn.attention.dot_product_attention
 # https://github.com/google/flax/blob/65061e6128f6695eed441acf2bfffc3b1badd318/flax/nn/attention.py#L206
 def dot_product_attention(query,
                           key,
@@ -550,9 +550,9 @@ class MultiHeadDotProductAttentionAqt(nn.Module):
     kernel_init: initializer for the kernel of the Dense layers.
     bias_init: initializer for the bias of the Dense layers.
     bias: bool: whether pointwise QKVO dense transforms use bias.
-    attention_fn: flax.nn.dot_product_attention or compatible function. Accepts
-      query, key, value, and returns output of shape `[bs, dim1, dim2, ...,
-      dimN,, num_heads, value_channels]``
+    attention_fn: flax.deprecated.nn.dot_product_attention or compatible
+      function. Accepts query, key, value, and returns output of shape
+      `[bs, dim1, dim2, ..., dimN, num_heads, value_channels]`.
   """
 
   @dataclass

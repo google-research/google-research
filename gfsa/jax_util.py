@@ -223,7 +223,7 @@ def register_dataclass_pytree(cls):
   return cls
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def flax_tag(arr):
   """Wraps a value in a flax module, to inspect intermediate values."""
   return arr

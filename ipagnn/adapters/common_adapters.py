@@ -47,7 +47,8 @@ def compute_weighted_cross_entropy(logits, targets, weights=None):
                      (str(logits.shape), str(targets.shape)))
   num_classes = logits.shape[-1]
   onehot_targets = common_utils.onehot(targets, num_classes)
-  loss = -jnp.sum(onehot_targets * flax.nn.log_softmax(logits), axis=-1)
+  loss = -jnp.sum(
+      onehot_targets * flax.deprecated.nn.log_softmax(logits), axis=-1)
   normalizing_factor = onehot_targets.sum()
   if weights is not None:
     loss = loss * weights
@@ -105,12 +106,12 @@ class BaseAdapter:
     """Creates the optimizer for training."""
     @functools.partial(jax.jit, static_argnums=(1, 2))
     def create_model(rng, example, model_cls):
-      with flax.nn.attention.Cache().mutate() as cache_def:
+      with flax.deprecated.nn.attention.Cache().mutate() as cache_def:
         _, initial_params = model_cls.init(
             rng,
             example,
             cache=cache_def)
-      model = flax.nn.Model(model_cls, initial_params)
+      model = flax.deprecated.nn.Model(model_cls, initial_params)
       return model, cache_def
 
     config = self.config
@@ -172,8 +173,8 @@ class BaseAdapter:
 
       def loss_fn(model):
         """Loss function used for training."""
-        with flax.nn.stateful() as state:
-          with flax.nn.stochastic(dropout_rng):
+        with flax.deprecated.nn.stateful() as state:
+          with flax.deprecated.nn.stochastic(dropout_rng):
             logits = model(example, train=True)
         loss, weight_sum = compute_weighted_cross_entropy(logits, targets)
         mean_loss = loss / weight_sum
@@ -202,7 +203,7 @@ class BaseAdapter:
   def make_eval_step(self):
     """Creates a eval step function."""
     def eval_step(model, example):
-      with flax.nn.stateful() as state:
+      with flax.deprecated.nn.stateful() as state:
         logits = model(example, train=False)
       if self.info.supervised_keys[-1] == 'error_type':
         targets = example['error_type'][:, None]

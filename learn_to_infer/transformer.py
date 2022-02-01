@@ -31,7 +31,7 @@ class TransformerEncoderLayer(nn.Module):
   def apply(self,
             inputs,
             mask,
-            activation_fn=flax.nn.relu,
+            activation_fn=flax.deprecated.nn.relu,
             num_heads=8,
             weight_init=jax.nn.initializers.xavier_normal()):
     """Applies one transformer encoder layer.
@@ -49,7 +49,7 @@ class TransformerEncoderLayer(nn.Module):
     """
     value_dim = inputs.shape[-1]
 
-    attn_outs = flax.nn.SelfAttention(
+    attn_outs = flax.deprecated.nn.SelfAttention(
         inputs_q=inputs,
         num_heads=num_heads,
         qkv_features=value_dim,
@@ -58,12 +58,11 @@ class TransformerEncoderLayer(nn.Module):
 
     attn_outs = inputs + attn_outs
 
-    out1 = activation_fn(flax.nn.Dense(attn_outs,
-                                       features=value_dim,
-                                       kernel_init=weight_init))
-    out2 = flax.nn.Dense(out1,
-                         features=value_dim,
-                         kernel_init=weight_init)
+    out1 = activation_fn(
+        flax.deprecated.nn.Dense(
+            attn_outs, features=value_dim, kernel_init=weight_init))
+    out2 = flax.deprecated.nn.Dense(
+        out1, features=value_dim, kernel_init=weight_init)
     return attn_outs + out2
 
 
@@ -75,7 +74,7 @@ class TransformerEncoderStack(nn.Module):
             num_encoders=6,
             num_heads=8,
             value_dim=128,
-            activation_fn=flax.nn.relu,
+            activation_fn=flax.deprecated.nn.relu,
             weight_init=jax.nn.initializers.xavier_normal()):
     """Applies a stack of transformer encoder layers.
 
@@ -92,7 +91,8 @@ class TransformerEncoderStack(nn.Module):
     Returns:
       outs: A [batch_size, max_num_data_points, value_dim] tensor of outputs.
     """
-    inputs = flax.nn.Dense(inputs, features=value_dim, kernel_init=weight_init)
+    inputs = flax.deprecated.nn.Dense(
+        inputs, features=value_dim, kernel_init=weight_init)
     for _ in range(num_encoders):
       inputs = TransformerEncoderLayer(inputs,
                                        mask,
@@ -109,7 +109,7 @@ class TransformerDecoderLayer(nn.Module):
             target_mask,
             encoder_inputs,
             encoder_mask,
-            activation_fn=flax.nn.relu,
+            activation_fn=flax.deprecated.nn.relu,
             num_heads=8,
             weight_init=jax.nn.initializers.xavier_normal()):
     """Applies one transformer decoder layer.
@@ -130,7 +130,7 @@ class TransformerDecoderLayer(nn.Module):
       outs: A [batch_size, max_k, value_dim] tensor of outputs.
     """
     value_dim = target_inputs.shape[-1]
-    target_inputs_attn = flax.nn.SelfAttention(
+    target_inputs_attn = flax.deprecated.nn.SelfAttention(
         inputs_q=target_inputs,
         num_heads=num_heads,
         causal_mask=True,
@@ -140,7 +140,7 @@ class TransformerDecoderLayer(nn.Module):
 
     target_inputs_out = target_inputs_attn + target_inputs
 
-    enc_dec_attn_out = flax.nn.MultiHeadDotProductAttention(
+    enc_dec_attn_out = flax.deprecated.nn.MultiHeadDotProductAttention(
         inputs_q=target_inputs_attn,
         inputs_kv=encoder_inputs,
         padding_mask=target_mask,
@@ -151,12 +151,11 @@ class TransformerDecoderLayer(nn.Module):
 
     enc_dec_attn_out += target_inputs_out
 
-    out_layer1 = activation_fn(flax.nn.Dense(enc_dec_attn_out,
-                                             features=value_dim,
-                                             kernel_init=weight_init))
-    out_layer2 = flax.nn.Dense(out_layer1,
-                               features=value_dim,
-                               kernel_init=weight_init)
+    out_layer1 = activation_fn(
+        flax.deprecated.nn.Dense(
+            enc_dec_attn_out, features=value_dim, kernel_init=weight_init))
+    out_layer2 = flax.deprecated.nn.Dense(
+        out_layer1, features=value_dim, kernel_init=weight_init)
 
     return out_layer2 + enc_dec_attn_out
 
@@ -168,7 +167,7 @@ class TransformerDecoderStack(nn.Module):
             target_mask,
             encoder_inputs,
             encoder_mask,
-            activation_fn=flax.nn.relu,
+            activation_fn=flax.deprecated.nn.relu,
             num_decoders=6,
             num_heads=8,
             value_dim=128,
@@ -192,7 +191,7 @@ class TransformerDecoderStack(nn.Module):
     Returns:
       outs: A [batch_size, max_k, value_dim] tensor of outputs.
     """
-    inputs = flax.nn.Dense(
+    inputs = flax.deprecated.nn.Dense(
         target_inputs, features=value_dim, kernel_init=weight_init)
 
     for _ in range(num_decoders):
@@ -220,7 +219,7 @@ class EncoderDecoderTransformer(nn.Module):
             num_encoders=6,
             num_decoders=6,
             qkv_dim=512,
-            activation_fn=flax.nn.relu,
+            activation_fn=flax.deprecated.nn.relu,
             weight_init=jax.nn.initializers.xavier_uniform()):
     """Applies Transformer model on the inputs.
 
@@ -269,26 +268,23 @@ class EncoderDecoderTransformer(nn.Module):
 
     def decode_body(target_inputs, i):
       # decoder_out is [batch_size, max_target_length, value_dim]
-      decoder_out = TransformerDecoderStack(target_inputs,
-                                            target_mask,
-                                            encoder_hs,
-                                            input_mask,
-                                            activation_fn=flax.nn.relu,
-                                            num_decoders=num_decoders,
-                                            num_heads=num_heads,
-                                            value_dim=qkv_dim,
-                                            weight_init=weight_init)
+      decoder_out = TransformerDecoderStack(
+          target_inputs,
+          target_mask,
+          encoder_hs,
+          input_mask,
+          activation_fn=flax.deprecated.nn.relu,
+          num_decoders=num_decoders,
+          num_heads=num_heads,
+          value_dim=qkv_dim,
+          weight_init=weight_init)
       # out is [batch_size, qkv_dim]
       out = activation_fn(
-          flax.nn.Dense(
-              decoder_out[:, i],
-              features=qkv_dim,
-              kernel_init=weight_init))
+          flax.deprecated.nn.Dense(
+              decoder_out[:, i], features=qkv_dim, kernel_init=weight_init))
       # dense layer to arrive at [batch_size, target_dim]
-      out = flax.nn.Dense(
-          out,
-          features=target_dim,
-          kernel_init=weight_init)
+      out = flax.deprecated.nn.Dense(
+          out, features=target_dim, kernel_init=weight_init)
 
       if sampling:
         target_inputs = target_inputs.at[:, i + 1].set(out)

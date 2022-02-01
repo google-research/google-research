@@ -25,7 +25,7 @@ from . import gmres
 import os
 import functools
 import jax
-import flax
+from flax.deprecated import nn
 from jax import lax
 import jax.numpy as np
 import numpy as onp
@@ -38,91 +38,91 @@ glorot = stax.glorot
 
 # CNN definition
 
-class CNN_old_linear(flax.nn.Module):
+class CNN_old_linear(nn.Module):
   def apply(self, x, inner_channels=8):
-    x = flax.nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
                      strides=(2, 2),
                      padding='VALID')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='VALID', strides=(2,2))
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      input_dilation=(2,2),padding=[(2, 2), (2, 2)])
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
                      input_dilation=(2,2),padding=[(2, 2), (2, 2)])
     return x
 
-class Relaxation(flax.nn.Module):
+class Relaxation(nn.Module):
   def apply(self, x, inner_channels=8):
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
                      padding='SAME')
     return x
 
-class Cycle(flax.nn.Module):
+class Cycle(nn.Module):
   def apply(self, x, num_cycles=3, inner_channels=8):
     x = Relaxation(x, inner_channels=inner_channels)
     if num_cycles > 0:
-      x1 = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3),
+      x1 = nn.Conv(x, features=inner_channels, kernel_size=(3, 3),
                         bias=False,
                         strides=(2, 2),
                         padding='VALID')
       x1 = Cycle(x1, num_cycles=num_cycles-1, inner_channels=inner_channels)
-      x1 = flax.nn.Conv(x1, features=1, kernel_size=(3, 3), bias=False,
+      x1 = nn.Conv(x1, features=1, kernel_size=(3, 3), bias=False,
                        input_dilation=(2,2),padding=[(2, 2), (2, 2)])
       x = x + x1
       x = Relaxation(x, inner_channels=inner_channels)
     return x
 
-class new_CNN(flax.nn.Module):
+class new_CNN(nn.Module):
   def apply(self, x, inner_channels=8):
     x = Cycle(x, 3, inner_channels)
-    x = flax.nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
                      padding='SAME')
     return x
 
-class NonLinearRelaxation(flax.nn.Module):
+class NonLinearRelaxation(nn.Module):
   def apply(self, x, inner_channels=8):
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
-                     padding='SAME')
-    x = flax.nn.relu(x)
-    #x = flax.nn.BatchNorm(x)
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
-                     padding='SAME')
-    x = flax.nn.relu(x)
-    #x = flax.nn.BatchNorm(x)
-    x = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3), bias=False,
-                     padding='SAME')
-    x = flax.nn.relu(x)
-    #x = flax.nn.BatchNorm(x)
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3),
+                                bias=False, padding='SAME')
+    x = nn.relu(x)
+    #x = nn.BatchNorm(x)
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3),
+                                bias=False, padding='SAME')
+    x = nn.relu(x)
+    #x = nn.BatchNorm(x)
+    x = nn.Conv(x, features=inner_channels, kernel_size=(3, 3),
+                                bias=False, padding='SAME')
+    x = nn.relu(x)
+    #x = nn.BatchNorm(x)
     return x
 
-class NonLinearCycle(flax.nn.Module):
+class NonLinearCycle(nn.Module):
   def apply(self, x, num_cycles=3, inner_channels=8):
     x = NonLinearRelaxation(x, inner_channels=inner_channels)
     if num_cycles > 0:
-      x1 = flax.nn.Conv(x, features=inner_channels, kernel_size=(3, 3),
+      x1 = nn.Conv(x, features=inner_channels, kernel_size=(3, 3),
                         bias=False,
                         strides=(2, 2),
                         padding='VALID')
       x1 = NonLinearCycle(x1, num_cycles=num_cycles-1, inner_channels=inner_channels)
-      x1 = flax.nn.Conv(x1, features=1, kernel_size=(3, 3), bias=False,
+      x1 = nn.Conv(x1, features=1, kernel_size=(3, 3), bias=False,
                        input_dilation=(2,2),padding=[(2, 2), (2, 2)])
       x = x + x1
       #x = np.concatenate((x,x1), axis=3)
@@ -130,12 +130,10 @@ class NonLinearCycle(flax.nn.Module):
       x = NonLinearRelaxation(x, inner_channels=inner_channels)
     return x
 
-class new_NonLinearCNN(flax.nn.Module):
+class new_NonLinearCNN(nn.Module):
   def apply(self, x, inner_channels=8):
     x = NonLinearCycle(x, 4, inner_channels)
-    x = flax.nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
+    x = nn.Conv(x, features=1, kernel_size=(3, 3), bias=False,
                      padding='SAME')
-    x = flax.nn.relu(x)
+    x = nn.relu(x)
     return x
-
-

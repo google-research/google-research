@@ -169,7 +169,8 @@ def eval_step(
       key.
   """
   rng, new_rng = jax.random.split(rng)
-  with nn.stochastic(rng), flax.nn.stateful(state.model_state, mutable=False):
+  with nn.stochastic(rng), flax.deprecated.nn.stateful(
+      state.model_state, mutable=False):
     logits, stats = module.call(state.model_params, batch["image"], train=False)
   metrics = {m: fn(logits, batch["label"], stats)
              for (m, fn) in metrics_dict.items()}

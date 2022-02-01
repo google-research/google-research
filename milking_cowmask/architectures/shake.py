@@ -79,7 +79,7 @@ def shake_drop_train(x, mask_prob, alpha_min, alpha_max, beta_min, beta_max,
     alpha_max: alpha range upper
     beta_min: beta range lower
     beta_max: beta range upper
-    rng: PRNG key (if `None`, uses `flax.nn.make_rng`)
+    rng: PRNG key (if `None`, uses `flax.deprecated.nn.make_rng`)
 
   Returns:
   """

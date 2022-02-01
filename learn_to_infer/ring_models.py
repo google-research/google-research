@@ -38,7 +38,7 @@ class RingInferenceMachine(object):
                num_encoders=6,
                num_decoders=6,
                qkv_dim=512,
-               activation_fn=flax.nn.relu,
+               activation_fn=flax.deprecated.nn.relu,
                weight_init=jax.nn.initializers.xavier_uniform()):
     """Creates the model.
 

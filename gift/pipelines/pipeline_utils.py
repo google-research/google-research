@@ -410,7 +410,7 @@ def vmapped_flax_module_eval(flax_module, env_batch):
   """Vmapped forward pass of flax_module (with train flag == False).
 
   Args:
-    flax_module: flax.nn.Model; Flax model.
+    flax_module: flax.deprecated.nn.Model; Flax model.
     env_batch: dict; A batch of examples.
 
   Returns:
@@ -425,8 +425,8 @@ def vmapped_flax_module_train(flax_module, model_state, env_batch):
   """Vmapped forward pass of flax_module (with train flag == True).
 
   Args:
-    flax_module: flax.nn.Model; Flax model.
-    model_state: flax.nn.Collection; Model state.
+    flax_module: flax.deprecated.nn.Model; Flax model.
+    model_state: flax.deprecated.nn.Collection; Model state.
     env_batch: dict; A batch of examples.
 
   Returns:
@@ -444,8 +444,8 @@ def vmapped_flax_module_with_reps(env_batch, flax_module, model_state,
 
   Args:
     env_batch: dict; A batch of examples.
-    flax_module: flax.nn.Model; Flax model.
-    model_state: flax.nn.Collection; Model state.
+    flax_module: flax.deprecated.nn.Model; Flax model.
+    model_state: flax.deprecated.nn.Collection; Model state.
     input_layer_key: str; Which layer the input should be plugged in.
     train: bool; Train flag.
 
@@ -464,8 +464,8 @@ def vmapped_dann_flax_module(env_batch, flax_module, model_state,
 
   Args:
     env_batch: dict; A batch of examples.
-    flax_module: flax.nn.Model; Flax model.
-    model_state: flax.nn.Collection; Model state.
+    flax_module: flax.deprecated.nn.Model; Flax model.
+    model_state: flax.deprecated.nn.Collection; Model state.
     input_layer_key: str; Which layer the input should be plugged in.
     train: bool; Train flag.
 
@@ -488,8 +488,8 @@ def forward_pass_with_reps(
 
   Args:
     batch: dict; A batch of examples.
-    flax_module: flax.nn.Model; Flax model.
-    model_state: flax.nn.Collection; Model state.
+    flax_module: flax.deprecated.nn.Model; Flax model.
+    model_state: flax.deprecated.nn.Collection; Model state.
     input_layer_key: str; Which layer the input should be plugged in.
     train: bool; Train flag.
 
@@ -519,8 +519,8 @@ def dann_forward_pass(
 
   Args:
     batch: dict; A batch of examples.
-    flax_module: flax.nn.Model; Flax model.
-    model_state: flax.nn.Collection; Model state.
+    flax_module: flax.deprecated.nn.Model; Flax model.
+    model_state: flax.deprecated.nn.Collection; Model state.
     input_layer_key: str; Which layer the input should be plugged in.
     train: bool; Train flag.
 
