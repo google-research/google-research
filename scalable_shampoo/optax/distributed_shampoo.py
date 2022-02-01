@@ -220,6 +220,7 @@ class GraftingType(enum.IntEnum):
   ADAGRAD = 2
   RMSPROP = 3
   RMSPROP_NORMALIZED = 4
+  SQRT_N = 5
 
 
 def power_iteration(
@@ -786,6 +787,14 @@ def distributed_shampoo(
     a GradientTransformation.
   """
 
+  def _graft_type_has_diagonal_statistics():
+    """Returns True if using diagonal firt order method for grafting."""
+    return graft_type != GraftingType.SGD and graft_type != GraftingType.SQRT_N
+
+  def _graft_type_has_diagonal_momentum_states():
+    """Returns False if using SQRT_N for grafting."""
+    return graft_type != GraftingType.SQRT_N
+
   def quantized_dtype_for_momentum_buffers():
     return jnp.int8 if best_effort_memory_usage_reduction else jnp.float32
 
@@ -890,14 +899,19 @@ def distributed_shampoo(
         exponents.extend([exponent] * len(shapes))
 
       diagonal_statistics = []
-      if graft_type != GraftingType.SGD:
+      if _graft_type_has_diagonal_statistics():
         diagonal_statistics = jnp.zeros_like(param)
+
+      diagonal_momentum = _quantize_momentum([])
+      momentum = _quantize_momentum(jnp.zeros_like(param))
+      if _graft_type_has_diagonal_momentum_states():
+        diagonal_momentum = _quantize_momentum((jnp.zeros_like(param)))
+
       local_stats_flat.append(
           LocalShardedParameterStats(
               _quantize_diagonal_statistics(diagonal_statistics),
-              _quantize_momentum(jnp.zeros_like(param)),
-              _quantize_momentum(jnp.zeros_like(param)),
-              init_training_metrics(len(sizes)), index_start, sizes))
+              diagonal_momentum, momentum, init_training_metrics(len(sizes)),
+              index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     # Pad the statistics and preconditioner matrices to be a multiple of
@@ -975,21 +989,23 @@ def distributed_shampoo(
 
       diagonal_statistics_pspec = []
       diagonal_statistics_scale_pspec = []
-      if graft_type != GraftingType.SGD:
+      if _graft_type_has_diagonal_statistics():
         # Identically shaped param.
         diagonal_statistics_pspec = param_pspec
         if quantized_dtype_for_diagonal_statistics_buffers() != jnp.float32:
           diagonal_statistics_scale_pspec = _remove_leading_sharding_annotation(
               param_pspec)
 
-      m1_pspec = param_pspec
-      m2_pspec = param_pspec
-
+      m1_pspec = []
       m1_scale_pspec = []
-      m2_scale_pspec = []
+      if _graft_type_has_diagonal_momentum_states():
+        m1_pspec = param_pspec
+        if quantized_dtype_for_momentum_buffers() != jnp.float32:
+          m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
 
+      m2_pspec = param_pspec
+      m2_scale_pspec = []
       if quantized_dtype_for_momentum_buffers() != jnp.float32:
-        m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
         m2_scale_pspec = _remove_leading_sharding_annotation(m2_pspec)
 
       local_stats_flat.append(
@@ -1043,7 +1059,7 @@ def distributed_shampoo(
 
       diagonal_statistics_shape_and_dtype = []
       diagonal_statistics_scale_shape_and_dtype = []
-      if graft_type != GraftingType.SGD:
+      if _graft_type_has_diagonal_statistics():
         diagonal_statistics_shape_and_dtype = [list(param.shape), param.dtype]
         qdtype = quantized_dtype_for_diagonal_statistics_buffers()
         if qdtype != jnp.float32:
@@ -1052,18 +1068,18 @@ def distributed_shampoo(
               list(param.shape)[1:], param.dtype
           ]
 
-      m1_shape_and_dtype = [list(param.shape), param.dtype]
-      m2_shape_and_dtype = [list(param.shape), param.dtype]
-
-      m1_scale_shape_and_dtype = []
-      m2_scale_shape_and_dtype = []
-
       qdtype = quantized_dtype_for_momentum_buffers()
-      if qdtype != jnp.float32:
+      m1_shape_and_dtype = []
+      m1_scale_shape_and_dtype = []
+      if _graft_type_has_diagonal_momentum_states():
         m1_shape_and_dtype = [list(param.shape), qdtype]
-        m2_shape_and_dtype = [list(param.shape), qdtype]
+        if quantized_dtype_for_momentum_buffers() != jnp.float32:
+          m1_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
 
-        m1_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
+      m2_shape_and_dtype = [list(param.shape), param.dtype]
+      m2_scale_shape_and_dtype = []
+      if qdtype != jnp.float32:
+        m2_shape_and_dtype = [list(param.shape), qdtype]
         m2_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
 
       local_stats_flat.append(
@@ -1207,15 +1223,19 @@ def distributed_shampoo(
         preconditioners = [jnp.eye(s[0]) for s in shapes]
 
       diagonal_statistics = []
-      if graft_type != GraftingType.SGD:
+      if _graft_type_has_diagonal_statistics():
         diagonal_statistics = jnp.zeros_like(param)
+
+      diagonal_momentum = _quantize_momentum([])
+      momentum = _quantize_momentum(jnp.zeros_like(param))
+      if _graft_type_has_diagonal_momentum_states():
+        diagonal_momentum = _quantize_momentum(jnp.zeros_like(param))
+
       return ParameterStats(
           _quantize_diagonal_statistics(diagonal_statistics),
           _maybe_quantize_statistics(statistics),
-          _maybe_quantize_preconditioners(preconditioners),
-          _quantize_momentum(jnp.zeros_like(param)),
-          _quantize_momentum(jnp.zeros_like(param)),
-          init_training_metrics(len(statistics)))
+          _maybe_quantize_preconditioners(preconditioners), diagonal_momentum,
+          momentum, init_training_metrics(len(statistics)))
     return ShampooState(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
 
@@ -1801,8 +1821,10 @@ def distributed_shampoo(
         rmsprop_update /= clipping_denom
 
       grafting_update = rmsprop_update
-    else:
+    elif graft_type == GraftingType.SGD:
       grafting_update = sgd_update
+    else:
+      grafting_update = jnp.ones_like(sgd_update) * jnp.sign(sgd_update)
 
     precond_grad = grad
     if not _skip_preconditioning(param):
@@ -1825,11 +1847,18 @@ def distributed_shampoo(
       grafting_update_with_wd = grafting_update + weight_decay * param
 
     w = (1.0 - beta1) if moving_average_for_momentum else 1.0
+
     shampoo_update_with_wd_momentum = (
         state.momentum.to_float() * beta1 + w * shampoo_update_with_wd)
-    grafting_update_with_wd_momentum = (
-        state.diagonal_momentum.to_float() * beta1 +
-        w * grafting_update_with_wd)
+
+    if _graft_type_has_diagonal_momentum_states():
+      grafting_update_with_wd_momentum = (
+          state.diagonal_momentum.to_float() * beta1 +
+          w * grafting_update_with_wd)
+    else:
+      # Share the momentum buffer
+      grafting_update_with_wd_momentum = (
+          state.momentum.to_float() * beta1 + w * grafting_update_with_wd)
 
     run_shampoo = (step >= start_preconditioning_step).astype(
         grafting_update_with_wd_momentum.dtype)
@@ -1842,20 +1871,26 @@ def distributed_shampoo(
         run_shampoo * shampoo_update_with_wd +
         (1.0 - run_shampoo) * grafting_update_with_wd)
 
+    nesterov_momentum_update = momentum_update
     if nesterov:
-      momentum_update = w * wd_update + beta1 * momentum_update
+      nesterov_momentum_update = w * wd_update + beta1 * momentum_update
 
     lr = learning_rate
     if callable(learning_rate):
       lr = learning_rate(step)
-    transformed_update = -1.0 * lr * momentum_update
+    transformed_update = -1.0 * lr * nesterov_momentum_update
+
+    new_diagonal_momentum = grafting_update_with_wd_momentum
+    new_momentum = shampoo_update_with_wd_momentum
+    if not _graft_type_has_diagonal_momentum_states():
+      new_diagonal_momentum = []
+      new_momentum = momentum_update
 
     param_stats = ParameterStats(
         _quantize_diagonal_statistics(new_diagonal_statistics),
         state.statistics, state.preconditioners,
-        _quantize_momentum(grafting_update_with_wd_momentum),
-        _quantize_momentum(shampoo_update_with_wd_momentum),
-        state.training_metrics)
+        _quantize_momentum(new_diagonal_momentum),
+        _quantize_momentum(new_momentum), state.training_metrics)
 
     return transformed_update, param_stats
 
