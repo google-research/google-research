@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Lint as: python3
 """A parser for Small Molecule Universe (SMU) files in custom Uni Basel format.
 
@@ -29,7 +43,6 @@ import traceback
 from absl import logging
 import numpy as np
 
-from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
@@ -102,52 +115,80 @@ class Atomic2FieldTypes(enum.Enum):
 
 
 ATOMIC_LABEL_FIELDS = collections.OrderedDict([
-    ['AT2_BSR_LEFT',
-     ('bond_separation_reaction_left', Atomic2FieldTypes.STRING)],
-    ['AT2_BSR_RIGHT',
-     ('bond_separation_reaction_right', Atomic2FieldTypes.STRING)],
-    ['AT2_T1mol',
-     ('diagnostics_t1_ccsd_2sd', Atomic2FieldTypes.SCALAR)],
-    ['AT2_T1exc',
-     ('diagnostics_t1_ccsd_2sp_excess', Atomic2FieldTypes.SCALAR)],
-    ['AT2_ZPE',
-     ('zpe_atomic', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_ENE_B5',
-     ('single_point_energy_atomic_b5', Atomic2FieldTypes.SCALAR)],
-    ['AT2_ENE_B6',
-     ('single_point_energy_atomic_b6', Atomic2FieldTypes.SCALAR)],
-    ['AT2_ENE_ECCSD',
-     ('single_point_energy_eccsd', Atomic2FieldTypes.SCALAR)],
-    ['AT2_BSE_B5',
-     ('bond_separation_energy_atomic_b5', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_BSE_B6',
-     ('bond_separation_energy_atomic_b6', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_BSE_ECCSD',
-     ('bond_separation_energy_eccsd', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_AEe_B5',
-     ('atomization_energy_excluding_zpe_atomic_b5', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_AEe_B6',
-     ('atomization_energy_excluding_zpe_atomic_b6', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_AEe_ECCSD',
-     ('atomization_energy_excluding_zpe_eccsd', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_AE0_B5',
-     ('atomization_energy_including_zpe_atomic_b5', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_AE0_B6',
-     ('atomization_energy_including_zpe_atomic_b6', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_AE0_ECCSD',
-     ('atomization_energy_including_zpe_eccsd', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_HF0_B5',
-     ('enthalpy_of_formation_0k_atomic_b5', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_HF0_B6',
-     ('enthalpy_of_formation_0k_atomic_b6', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_HF0_ECCSD',
-     ('enthalpy_of_formation_0k_eccsd', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_HF298_B5',
-     ('enthalpy_of_formation_298k_atomic_b5', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_HF298_B6',
-     ('enthalpy_of_formation_298k_atomic_b6', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_HF298_ECCSD',
-     ('enthalpy_of_formation_298k_eccsd', Atomic2FieldTypes.TRIPLE)],
+    [
+        'AT2_BSR_LEFT',
+        ('bond_separation_reaction_left', Atomic2FieldTypes.STRING)
+    ],
+    [
+        'AT2_BSR_RIGHT',
+        ('bond_separation_reaction_right', Atomic2FieldTypes.STRING)
+    ],
+    ['AT2_T1mol', ('diagnostics_t1_ccsd_2sd', Atomic2FieldTypes.SCALAR)],
+    ['AT2_T1exc', ('diagnostics_t1_ccsd_2sp_excess', Atomic2FieldTypes.SCALAR)],
+    ['AT2_ZPE', ('zpe_atomic', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_ENE_B5', ('single_point_energy_atomic_b5', Atomic2FieldTypes.SCALAR)],
+    ['AT2_ENE_B6', ('single_point_energy_atomic_b6', Atomic2FieldTypes.SCALAR)],
+    ['AT2_ENE_ECCSD', ('single_point_energy_eccsd', Atomic2FieldTypes.SCALAR)],
+    [
+        'AT2_BSE_B5',
+        ('bond_separation_energy_atomic_b5', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_BSE_B6',
+        ('bond_separation_energy_atomic_b6', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_BSE_ECCSD',
+        ('bond_separation_energy_eccsd', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_AEe_B5',
+        ('atomization_energy_excluding_zpe_atomic_b5', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_AEe_B6',
+        ('atomization_energy_excluding_zpe_atomic_b6', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_AEe_ECCSD',
+        ('atomization_energy_excluding_zpe_eccsd', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_AE0_B5',
+        ('atomization_energy_including_zpe_atomic_b5', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_AE0_B6',
+        ('atomization_energy_including_zpe_atomic_b6', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_AE0_ECCSD',
+        ('atomization_energy_including_zpe_eccsd', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_HF0_B5',
+        ('enthalpy_of_formation_0k_atomic_b5', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_HF0_B6',
+        ('enthalpy_of_formation_0k_atomic_b6', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_HF0_ECCSD',
+        ('enthalpy_of_formation_0k_eccsd', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_HF298_B5',
+        ('enthalpy_of_formation_298k_atomic_b5', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_HF298_B6',
+        ('enthalpy_of_formation_298k_atomic_b6', Atomic2FieldTypes.TRIPLE)
+    ],
+    [
+        'AT2_HF298_ECCSD',
+        ('enthalpy_of_formation_298k_eccsd', Atomic2FieldTypes.TRIPLE)
+    ],
 ])
 
 PARTIAL_CHARGES_LABEL_FIELDS = collections.OrderedDict([
@@ -253,6 +294,10 @@ class SmuParser:
 
   def _input_generator(self):
     """Yields lines from from input_file."""
+    # This import is here to avoid dependency on gfile except while essential.
+    # This function is the only one that uses gfile.
+    from tensorflow.io import gfile  # pylint: disable=g-import-not-at-top
+
     if not gfile.exists(self.input_file):
       raise FileNotFoundError
 

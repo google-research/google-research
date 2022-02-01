@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Interface to a SQLite DB file for SMU data.
 
 Provides a simpler interface than SQL to create and access the SMU data in an
@@ -23,10 +36,10 @@ smiles string pulled out as fields.
 """
 import datetime
 import os
+import sqlite3
 
 from absl import logging
 from rdkit import Chem
-import sqlite3
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
@@ -62,7 +75,7 @@ class SMUSQLite:
     toplogy id, the first one provided will be silently kept.
   """
 
-  def __init__(self, filename, mode):
+  def __init__(self, filename, mode='r'):
     """Creates SMUSQLite.
 
     Args:
@@ -138,8 +151,8 @@ class SMUSQLite:
     insert_conformer = (f'INSERT INTO {_CONFORMER_TABLE_NAME} '
                         'VALUES (?, ?, ?)')
     insert_btid = f'INSERT INTO {_BTID_TABLE_NAME} VALUES (?, ?)'
-    insert_smiles = (f'INSERT INTO {_SMILES_TABLE_NAME} VALUES (?, ?) '
-                     f'ON CONFLICT(smiles) DO NOTHING')
+    insert_smiles = (
+        f'INSERT OR IGNORE INTO {_SMILES_TABLE_NAME} VALUES (?, ?) ')
 
     cur = self._conn.cursor()
 
@@ -166,7 +179,7 @@ class SMUSQLite:
       # we dont' even have to return the entries we don't want.
       if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
         expanded_stoich = (
-            smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+            smu_utils_lib.expanded_stoichiometry_from_topology(
                 conformer.bond_topologies[0]))
       else:
         expanded_stoich = ''
@@ -268,7 +281,7 @@ class SMUSQLite:
     """Finds all of the conformers with a stoichiometry.
 
     The expanded stoichiometry includes hydrogens as part of the atom type.
-    See smu_utils_lib.get_canonical_stoichiometry_with_hydrogens for a
+    See smu_utils_lib.expanded_stoichiometry_from_topology for a
     description.
 
     Args:
@@ -282,6 +295,31 @@ class SMUSQLite:
               f'FROM {_CONFORMER_TABLE_NAME} '
               f'WHERE exp_stoich = ?')
     cur.execute(select, (exp_stoich,))
+    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
+            for result in cur)
+
+  def find_by_stoichiometry(self, stoich):
+    """Finds all conformers with a given stoichiometry.
+
+    The stoichiometry is like "C6H12".
+
+    Internally, the stoichiometry is converted a set of expanded stoichiometries
+    and the query is done to find all of those.
+    Notably, this means only records with status <= 512 are returned.
+
+    Args:
+      stoich: stoichiometry string like "C6H12", case doesn't matter
+    Returns:
+      Iterable of type dataset_pb2.Conformer.
+    """
+    exp_stoichs = list(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry(stoich))
+    cur = self._conn.cursor()
+    select = (f'SELECT conformer '
+              f'FROM {_CONFORMER_TABLE_NAME} '
+              f'WHERE exp_stoich IN (' + ','.join('?' for _ in exp_stoichs) +
+              ')')
+    cur.execute(select, exp_stoichs)
     return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
             for result in cur)
 

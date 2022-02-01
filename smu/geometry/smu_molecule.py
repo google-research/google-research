@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Class that is responsible for building and assessing proposed.
 
    bonding patterns.
@@ -24,7 +37,6 @@ from typing import List, Optional
 import numpy as np
 
 from smu import dataset_pb2
-from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 
 
@@ -143,8 +155,8 @@ class SmuMolecule:
     self._max_bonds = np.zeros(self._natoms, dtype=np.int32)
     if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
       for i in range(0, self._natoms):
-        self._max_bonds[i] = utilities.max_bonds_any_form(
-            hydrogens_attached.atoms[i])
+        self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[
+            hydrogens_attached.atoms[i]]
     else:
       for i in range(0, self._natoms):
         self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[

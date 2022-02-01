@@ -1,0 +1,164 @@
+A single molecule comes from asking for only the optimized geometry and only the first bond topology
+Note that the title line starts with "SMU" and the conformer id
+Note the "geom=opt" indicating this is the optimized geometry
+Note the bt=8240(1/2) indicating this is the first of 2 bond topologies
+In this case, we only generated output for a single topology
+SMU 8240001 bt=8240(1/2) geom=opt fate=9
+     RDKit          3D
+
+  7  6  0  0  0  0  0  0  0  0999 V2000
+    0.3483    0.7706    0.6155 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.5542   -0.4636    0.0957 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0252   -1.2527    0.8378 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.4567    0.1732    0.2306 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.9052   -0.8266   -0.6392 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.0409    1.6774   -0.4376 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0898   -0.0782   -0.7029 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  4  1  0
+  1  6  1  0
+  2  3  2  0
+  2  7  1  0
+  4  5  1  0
+M  CHG  2   2   1   5  -1
+M  END
+$$$$
+
+When we ask for the initial gemetries only, we get 1 or more molecules
+In this case we get 4 molecules because there are 4 initial_geometries
+Note the "geom=init(X/4)" inidicating which geometry this is
+SMU 8240001 bt=8240(1/2) geom=init(1/4) fate=9
+     RDKit          3D
+
+  7  6  0  0  0  0  0  0  0  0999 V2000
+    0.2746    0.2161    0.3057 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8325   -0.5332   -0.1244 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.6339   -0.7450    0.9755 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.2895   -0.0172   -0.5934 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.3132   -0.5079    0.0131 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.0353    1.5320    0.2189 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.3755    0.0553   -0.7954 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  4  1  0
+  1  6  1  0
+  2  3  2  0
+  2  7  1  0
+  4  5  1  0
+M  CHG  2   2   1   5  -1
+M  END
+$$$$
+SMU 8240001 bt=8240(1/2) geom=init(2/4) fate=9
+     RDKit          3D
+
+  7  6  0  0  0  0  0  0  0  0999 V2000
+    0.2502    0.2577    0.5781 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.6169   -0.6840   -0.0053 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.7865   -0.6642    0.7213 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.5510   -0.1823    0.4003 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.8733   -0.2347   -0.8495 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.1046    1.4522   -0.0496 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.8465   -0.3525   -0.9692 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  4  1  0
+  1  6  1  0
+  2  3  2  0
+  2  7  1  0
+  4  5  1  0
+M  CHG  2   2   1   5  -1
+M  END
+$$$$
+SMU 8240001 bt=8240(1/2) geom=init(3/4) fate=9
+     RDKit          3D
+
+  7  6  0  0  0  0  0  0  0  0999 V2000
+   -0.0284    0.4242   -0.1927 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.5558   -0.3064    0.8853 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.5101   -1.1552    0.3693 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.0564   -0.2706   -0.7009 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.0092   -0.3703    0.1651 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.4044    1.6232    0.2693 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0614    0.3751    1.4931 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  4  1  0
+  1  6  1  0
+  2  3  2  0
+  2  7  1  0
+  4  5  1  0
+M  CHG  2   2   1   5  -1
+M  END
+$$$$
+SMU 8240001 bt=8240(1/2) geom=init(4/4) fate=9
+     RDKit          3D
+
+  7  6  0  0  0  0  0  0  0  0999 V2000
+    0.0264    0.3037   -0.2298 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.4455   -0.7198    0.6121 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.8211   -0.6562    0.5972 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.2209   -0.1139   -0.7922 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.1368   -0.2890    0.1015 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.2581    1.4202    0.5064 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.1368   -0.5002    1.5858 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  4  1  0
+  1  6  1  0
+  2  3  2  0
+  2  7  1  0
+  4  5  1  0
+M  CHG  2   2   1   5  -1
+M  END
+$$$$
+
+When we ask for all bond topologies, we get 1 or more molecules
+In this case, there are 2 bond topologies to describe this molecule
+Note that the atoms are the same but the connection table is different
+Note the "bt=8240(1/2)" and "bt=8237(2/2)" for the bond topology ids.
+All the available bond topologies are listed in bond_topology.csv
+SMU 8240001 bt=8240(1/2) geom=opt fate=9
+     RDKit          3D
+
+  7  6  0  0  0  0  0  0  0  0999 V2000
+    0.3483    0.7706    0.6155 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.5542   -0.4636    0.0957 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0252   -1.2527    0.8378 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.4567    0.1732    0.2306 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.9052   -0.8266   -0.6392 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.0409    1.6774   -0.4376 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0898   -0.0782   -0.7029 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  4  1  0
+  1  6  1  0
+  2  3  2  0
+  2  7  1  0
+  4  5  1  0
+M  CHG  2   2   1   5  -1
+M  END
+$$$$
+SMU 8240001 bt=8237(2/2) geom=opt fate=9
+     RDKit          3D
+
+  7  7  0  0  0  0  0  0  0  0999 V2000
+    0.3483    0.7706    0.6155 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.5542   -0.4636    0.0957 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0252   -1.2527    0.8378 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.4567    0.1732    0.2306 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.9052   -0.8266   -0.6392 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.0409    1.6774   -0.4376 F   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.0898   -0.0782   -0.7029 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0
+  1  4  1  0
+  1  6  1  0
+  2  3  1  0
+  2  5  1  0
+  2  7  1  0
+  4  5  1  0
+M  CHG  2   2   1   3  -1
+M  END
+$$$$
+
+If we ask for everything, we get 10 molecules
+5 possible geometries (4 initial and 1 optimized)
+times
+2 possible bond topologies
+Number of molecules generated: 10
+
+See the comments in rdkit.py for API details.

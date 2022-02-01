@@ -1035,5 +1035,11 @@ message BondTopologySummary {
   int32 count_detected_match_with_error = 10;
   int32 count_detected_match_with_warning = 13;
   int32 count_detected_match_success = 11;
+
+  // The same topology can be detected multiple times for a single conformer.
+  // Typically this would be for kekulized forms that results in an isomorphic
+  // graph. When this happens, the bond topology id is only counted once per
+  // conformer by the other fields and counted once per conformer here.
+  int32 count_multiple_detections = 14;
 }
 

@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Classes for holding information about distribution of bond lengths.
 
 The core idea is to represent the probability distribution function (via
@@ -27,13 +40,13 @@ Data for all atom pairs is collected in AllAtomPairLengthDistributions
 import abc
 import itertools
 import math
+import os.path
 from typing import Dict, Optional
+
 from absl import logging
 import numpy as np
 import pandas as pd
 import scipy.stats
-
-from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
@@ -221,7 +234,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
     Returns:
       EmpiricalLengthDistribution
     """
-    with gfile.GFile(filename) as f:
+    with open(filename) as f:
       df = pd.read_csv(f, header=None, names=['length', 'count'], dtype=float)
 
     return EmpiricalLengthDistribution(df, right_tail_mass)
@@ -451,7 +464,7 @@ class AllAtomPairLengthDistributions:
         itertools.combinations_with_replacement(atomic_numbers, 2), bond_types):
       fname = '{}.{}.{}.{}'.format(filestem, atom_a, int(bond_type), atom_b)
 
-      if not gfile.exists(fname):
+      if not os.path.exists(fname):
         logging.info('Skipping non existent file %s', fname)
         continue
 

@@ -1,0 +1,306 @@
+We will examine conformer with id 57001
+The computed properties are generally in the .properties field
+Scalar values are access by name (note the .value suffix), like this single point energy:  -213.76513
+Fields with repeated values like harmonic_intensities and excitation_energies_cc2) use an index with [] on the repeated values
+The 0th and 6th harmonic_intensities: 0.0 21.5
+Or you can iterate over all of them
+Excitation energy: 0.23229
+Excitation energy: 0.34252
+Excitation energy: 0.35454
+Excitation energy: 0.3652
+Excitation energy: 0.39769
+Or just ask how many excitation_energies_cc2 there are: 5
+Some fields like rotational_constants have explicit x,y,z components
+10473.771 11808.073 92688.945
+A couple of important fields are not inside "properties"
+The geometry has positions for 4 atoms and the first atom x-coordinate is 1.9872709512710571
+In addition to looking at dataset.proto for field documentation, you can just print a given conformer to see what fields are available
+conformer_id: 57001
+initial_geometries {
+  atom_positions {
+    x: 2.046005964279175
+    y: -0.05990400165319443
+    z: -0.04686500132083893
+  }
+  atom_positions {
+    x: 0.8208969831466675
+    y: 1.5367250442504883
+    z: -1.1752209663391113
+  }
+  atom_positions {
+    x: 0.7711970210075378
+    y: -1.8451290130615234
+    z: 1.2147159576416016
+  }
+  atom_positions {
+    x: 4.124516010284424
+    y: -0.12472199648618698
+    z: -0.0011340000201016665
+  }
+}
+optimized_geometry {
+  atom_positions {
+    x: 1.9872709512710571
+    y: 0.001541999983601272
+    z: -0.09030699729919434
+  }
+  atom_positions {
+    x: 0.8458210229873657
+    y: 1.5565420389175415
+    z: -1.1892169713974
+  }
+  atom_positions {
+    x: 0.8833469748497009
+    y: -1.8555140495300293
+    z: 1.2220569849014282
+  }
+  atom_positions {
+    x: 4.046177864074707
+    y: -0.1956000030040741
+    z: 0.0489640012383461
+  }
+}
+properties {
+  harmonic_intensities {
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 21.5
+    value: 0.2
+    value: 259.5
+    value: 2.5
+    value: 290.8
+    value: 43.7
+  }
+  single_point_energy_atomic_b5 {
+    value: -213.76513
+  }
+  homo_pbe0_6_311gd {
+    value: -0.34427
+  }
+  lumo_pbe0_6_311gd {
+    value: -0.02321
+  }
+  excitation_energies_cc2 {
+    value: 0.23229
+    value: 0.34252
+    value: 0.35454
+    value: 0.3652
+    value: 0.39769
+  }
+  excitation_oscillator_strengths_cc2 {
+    value: 0.00237
+    value: 1e-05
+    value: 0.10047
+    value: 0.06747
+    value: 0.15779
+  }
+  nmr_isotropic_shielding_pbe0_aug_pcs_1 {
+    values: 28.0736
+    values: -126.0672
+    values: 119.1424
+    values: 23.4408
+    precision: 0.0016
+    precision: 0.0064
+    precision: 0.0064
+    precision: 0.0008
+  }
+  partial_charges_mulliken_pbe0_aug_pc_1 {
+    values: 1.1429
+    values: -0.8308
+    values: -0.5849
+    values: 0.2728
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+  }
+  partial_charges_loewdin_pbe0_aug_pc_1 {
+    values: 0.2448
+    values: -0.1433
+    values: -0.1816
+    values: 0.0801
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+  }
+  partial_charges_natural_nbo_pbe0_aug_pc_1 {
+    values: 0.8086
+    values: -0.5495
+    values: -0.3837
+    values: 0.1246
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+  }
+  partial_charges_esp_fit_pbe0_aug_pc_1 {
+    values: 0.5444
+    values: -0.3912
+    values: -0.2043
+    values: 0.0512
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+    precision: 0.0001
+  }
+  dipole_dipole_polarizability_pbe0_aug_pc_1 {
+    matrix_values: 18.44366
+    matrix_values: 19.24036
+    matrix_values: 16.25237
+    matrix_values: -1.14202
+    matrix_values: 0.80691
+    matrix_values: -4.21845
+  }
+  dipole_moment_pbe0_aug_pc_1 {
+    x: 0.76262
+    y: -0.24296
+    z: 0.1717
+  }
+  quadrupole_moment_pbe0_aug_pc_1 {
+    matrix_values: -8.99568
+    matrix_values: -13.3491
+    matrix_values: -12.44867
+    matrix_values: -0.28195
+    matrix_values: 0.1312
+    matrix_values: 1.33611
+  }
+  octopole_moment_pbe0_aug_pc_1 {
+    tensor_values: -36.61988
+    tensor_values: 1.32409
+    tensor_values: 2.19806
+    tensor_values: -0.11857
+    tensor_values: 0.88628
+    tensor_values: -17.85217
+    tensor_values: 1.13763
+    tensor_values: -16.62721
+    tensor_values: 0.11383
+    tensor_values: 1.79615
+  }
+  initial_geometry_energy {
+    value: -213.600956
+  }
+  initial_geometry_gradient_norm {
+    value: 0.114996
+  }
+  optimized_geometry_energy {
+    value: -213.607287
+  }
+  optimized_geometry_gradient_norm {
+    value: 6.7e-05
+  }
+  rotational_constants {
+    x: 10473.771
+    y: 11808.073
+    z: 92688.945
+  }
+  diagnostics_t1_ccsd_2sd {
+    value: 0.0159
+  }
+  diagnostics_t1_ccsd_2sp_excess {
+    value: 0.0036
+  }
+  bond_separation_reaction_left {
+    value: " molecule +  1 CH4"
+  }
+  bond_separation_reaction_right {
+    value: " 1 H2C=O +  1 H3C-F"
+  }
+  bond_separation_energy_atomic_b5 {
+    value: 26.52
+  }
+  bond_separation_energy_atomic_b5_um {
+    value: 26.54
+  }
+  bond_separation_energy_atomic_b5_um_ci {
+    value: 0.34
+  }
+  atomization_energy_excluding_zpe_atomic_b5 {
+    value: 402.33
+  }
+  atomization_energy_excluding_zpe_atomic_b5_um {
+    value: 402.64
+  }
+  atomization_energy_excluding_zpe_atomic_b5_um_ci {
+    value: 0.53
+  }
+  atomization_energy_including_zpe_atomic_b5 {
+    value: 389.33
+  }
+  atomization_energy_including_zpe_atomic_b5_um {
+    value: 389.83
+  }
+  atomization_energy_including_zpe_atomic_b5_um_ci {
+    value: 0.67
+  }
+  enthalpy_of_formation_0k_atomic_b5 {
+    value: -90.21
+  }
+  enthalpy_of_formation_0k_atomic_b5_um {
+    value: -90.7
+  }
+  enthalpy_of_formation_0k_atomic_b5_um_ci {
+    value: 0.67
+  }
+  enthalpy_of_formation_298k_atomic_b5 {
+    value: -91.07
+  }
+  enthalpy_of_formation_298k_atomic_b5_um {
+    value: -91.57
+  }
+  enthalpy_of_formation_298k_atomic_b5_um_ci {
+    value: 0.69
+  }
+  zpe_atomic {
+    value: 12.99
+  }
+  zpe_atomic_um {
+    value: 12.81
+  }
+  zpe_atomic_um_ci {
+    value: 0.41
+  }
+  harmonic_frequencies {
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 0.0
+    value: 680.9
+    value: 1043.4
+    value: 1109.9
+    value: 1395.5
+    value: 1941.9
+    value: 3111.8
+  }
+}
+bond_topologies {
+  atoms: ATOM_C
+  atoms: ATOM_O
+  atoms: ATOM_F
+  atoms: ATOM_H
+  bonds {
+    atom_b: 1
+    bond_type: BOND_DOUBLE
+  }
+  bonds {
+    atom_b: 2
+    bond_type: BOND_SINGLE
+  }
+  bonds {
+    atom_b: 3
+    bond_type: BOND_SINGLE
+  }
+  smiles: "O=CF"
+  bond_topology_id: 57
+  is_starting_topology: true
+  geometry_score: 3.1316471099853516
+}
+fate: FATE_SUCCESS
+which_database: STANDARD
+

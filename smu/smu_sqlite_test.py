@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tests for smu_sqlite."""
 
 import os
@@ -182,6 +196,17 @@ class SmuSqliteTest(absltest.TestCase):
     # and test a non existent id
     self.assertEmpty(list(db.find_by_smiles('I do not exist')))
 
+  def test_repeat_smiles_insert(self):
+    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
+    db.bulk_insert(
+        self.encode_conformers([
+            self.make_fake_conformer(cid) for cid in [2001, 2002, 2003]
+        ]))
+    got_cids = [
+        conformer.conformer_id for conformer in db.find_by_smiles('CC')
+    ]
+    self.assertCountEqual(got_cids, [2001, 2002, 2003])
+
   def test_find_by_expanded_stoichiometry(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     db.bulk_insert(
@@ -214,6 +239,28 @@ class SmuSqliteTest(absltest.TestCase):
     ]
     self.assertCountEqual(got_cids, [2001])
 
+  def test_find_by_stoichiometry(self):
+    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
+    db.bulk_insert(
+        self.encode_conformers(
+            [self.make_fake_conformer(cid) for cid in [2001, 2002, 4004]]))
+
+    got_cids = [
+        conformer.conformer_id
+        for conformer in db.find_by_stoichiometry('c2h6')
+    ]
+    self.assertCountEqual(got_cids, [2001, 2002])
+
+    got_cids = [
+        conformer.conformer_id
+        for conformer in db.find_by_stoichiometry('c4h10')
+    ]
+    self.assertCountEqual(got_cids, [4004])
+
+    self.assertEmpty(list(db.find_by_stoichiometry('c3')))
+
+    with self.assertRaises(smu_utils_lib.StoichiometryError):
+      db.find_by_stoichiometry('P3Li')
 
 if __name__ == '__main__':
   absltest.main()

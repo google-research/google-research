@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for smu_utils_lib."""
 
 import copy
@@ -22,8 +35,8 @@ import tempfile
 from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as np
-import pandas as pd
 from rdkit import Chem
+from tensorflow.io import gfile
 
 from google.protobuf import text_format
 from smu import dataset_pb2
@@ -86,48 +99,133 @@ class GetCompositionTest(absltest.TestCase):
     self.assertEqual('x03_c2nh3', smu_utils_lib.get_composition(bt))
 
 
-class GetCanonicalStoichiometryWithHydrogensTest(absltest.TestCase):
+class ExpandedStoichiometryFromTopologyTest(absltest.TestCase):
 
   def test_cyclobutane(self):
     bt = smu_utils_lib.create_bond_topology('CCCC', '110011', '2222')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt), '(ch2)4')
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt), '(ch2)4')
 
   def test_ethylene(self):
     bt = smu_utils_lib.create_bond_topology('CC', '2', '22')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt), '(ch2)2')
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt), '(ch2)2')
 
   def test_acrylic_acid(self):
     bt = smu_utils_lib.create_bond_topology('CCCOO', '2000100210', '21001')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt),
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt),
         '(c)(ch)(ch2)(o)(oh)')
 
   def test_fluorine(self):
     bt = smu_utils_lib.create_bond_topology('OFF', '110', '000')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt), '(o)(f)2')
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt), '(o)(f)2')
 
   def test_fully_saturated(self):
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('C', '', '4')), '(ch4)')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('N', '', '3')), '(nh3)')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('O', '', '2')), '(oh2)')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(
+        smu_utils_lib.expanded_stoichiometry_from_topology(
             smu_utils_lib.create_bond_topology('F', '', '1')), '(fh)')
 
   def test_nplus_oneg(self):
     bt = smu_utils_lib.create_bond_topology('NO', '1', '30')
     self.assertEqual(
-        smu_utils_lib.get_canonical_stoichiometry_with_hydrogens(bt),
-        '(nh3)(o)')
+        smu_utils_lib.expanded_stoichiometry_from_topology(bt), '(nh3)(o)')
+
+
+class ExpandedStoichiometryFromAtomListTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    # shortcuts
+    self._c = dataset_pb2.BondTopology.AtomType.ATOM_C
+    self._n = dataset_pb2.BondTopology.AtomType.ATOM_N
+    self._o = dataset_pb2.BondTopology.AtomType.ATOM_O
+    self._f = dataset_pb2.BondTopology.AtomType.ATOM_F
+
+  def test_basic(self):
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_atom_list(
+            [self._c, self._c], 4), ['(ch2)2', '(ch)(ch3)'])
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_atom_list(
+            [self._c, self._n], 4), ['(ch2)(nh2)', '(ch)(nh3)', '(ch3)(nh)'])
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_atom_list(
+            [self._c, self._c, self._n, self._o, self._f], 9),
+        ['(ch3)2(nh3)(o)(f)', '(ch3)2(nh2)(oh)(f)', '(ch2)(ch3)(nh3)(oh)(f)'])
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_atom_list(
+            [self._c, self._c, self._n, self._o, self._f], 5),
+        [
+            '(c)(ch2)(nh2)(oh)(f)', '(ch)(ch3)(n)(oh)(f)',
+            '(c)(ch3)(nh)(oh)(f)', '(c)(ch2)(nh3)(o)(f)', '(ch)(ch3)(nh)(o)(f)',
+            '(c)(ch3)(nh2)(o)(f)', '(ch)2(nh2)(oh)(f)', '(ch2)2(n)(oh)(f)',
+            '(ch)(ch2)(nh2)(o)(f)', '(c)(ch)(nh3)(oh)(f)', '(ch)2(nh3)(o)(f)',
+            '(ch)(ch2)(nh)(oh)(f)', '(ch2)2(nh)(o)(f)', '(ch2)(ch3)(n)(o)(f)'
+        ])
+
+
+class ExpandedStoichiometryFromStoichiometry(absltest.TestCase):
+
+  def test_basic(self):
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('N2'),
+        ['(n)2'])
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C2H2'),
+        ['(ch)2', '(c)(ch2)'])
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C2OH'),
+        ['(c)2(oh)', '(c)(ch)(o)'])
+    self.assertCountEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('CNOFH'),
+        ['(ch)(n)(o)(f)', '(c)(n)(oh)(f)', '(c)(nh)(o)(f)'])
+
+  def test_multi_char_digit(self):
+    got = smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C7H12')
+    self.assertIn('(c)3(ch3)4', got)
+
+  def test_special_cases(self):
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('ch4'),
+        {'(ch4)'})
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('h4c'),
+        {'(ch4)'})
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('nh3'),
+        {'(nh3)'})
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('h3n'),
+        {'(nh3)'})
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('oh2'),
+        {'(oh2)'})
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('h2o'),
+        {'(oh2)'})
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('fh'),
+        {'(fh)'})
+    self.assertEqual(
+        smu_utils_lib.expanded_stoichiometries_from_stoichiometry('hf'),
+        {'(fh)'})
+
+  def test_errors(self):
+    with self.assertRaises(smu_utils_lib.StoichiometryError):
+      smu_utils_lib.expanded_stoichiometries_from_stoichiometry('nonsense')
+    with self.assertRaises(smu_utils_lib.StoichiometryError):
+      smu_utils_lib.expanded_stoichiometries_from_stoichiometry('C2H42')
 
 
 class ComputeBondedHydrogensTest(absltest.TestCase):
@@ -385,7 +483,8 @@ class FromCSVTest(absltest.TestCase):
     infile.write('134,4,N+O-F F ,111000,1000,[O-][NH+](F)F\n')
     infile.close()
 
-    out = smu_utils_lib.generate_bond_topologies_from_csv(infile.name)
+    with gfile.GFile(infile.name, 'r') as fobj:
+      out = smu_utils_lib.generate_bond_topologies_from_csv(fobj)
 
     bt = next(out)
     self.assertEqual(68, bt.bond_topology_id)
@@ -396,33 +495,6 @@ class FromCSVTest(absltest.TestCase):
     self.assertEqual(134, bt.bond_topology_id)
     self.assertLen(bt.atoms, 5)
     self.assertEqual(bt.smiles, '[O-][NH+](F)F')
-
-
-class ParseDuplicatesFileTest(absltest.TestCase):
-
-  def test_basic(self):
-    df = smu_utils_lib.parse_duplicates_file(
-        os.path.join(TESTDATA_PATH, 'small.equivalent_isomers.dat'))
-    pd.testing.assert_frame_equal(
-        pd.DataFrame(
-            columns=[
-                'name1', 'stoich1', 'btid1', 'shortconfid1', 'confid1', 'name2',
-                'stoich2', 'btid2', 'shortconfid2', 'confid2'
-            ],
-            data=[
-                [
-                    'x07_c2n2o2fh3.224227.004', 'c2n2o2fh3', 224227, 4,
-                    224227004, 'x07_c2n2o2fh3.224176.005', 'c2n2o2fh3', 224176,
-                    5, 224176005
-                ],
-                [
-                    'x07_c2n2o2fh3.260543.005', 'c2n2o2fh3', 260543, 5,
-                    260543005, 'x07_c2n2o2fh3.224050.001', 'c2n2o2fh3', 224050,
-                    1, 224050001
-                ],
-            ]),
-        df,
-        check_like=True)
 
 
 class BondTopologyToMoleculeTest(absltest.TestCase):
@@ -496,13 +568,13 @@ class ConformerToMoleculeTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.conformer = get_stage2_conformer()
+    self._conformer = get_stage2_conformer()
 
     # We'll make a new initial_geometry which is just the current one with all
     # coordinates multiplied by 1000
-    self.conformer.initial_geometries.append(
-        self.conformer.initial_geometries[0])
-    new_geom = self.conformer.initial_geometries[1]
+    self._conformer.initial_geometries.append(
+        self._conformer.initial_geometries[0])
+    new_geom = self._conformer.initial_geometries[1]
     for atom_pos in new_geom.atom_positions:
       atom_pos.x = atom_pos.x * 1000
       atom_pos.y = atom_pos.y * 1000
@@ -512,18 +584,18 @@ class ConformerToMoleculeTest(absltest.TestCase):
     # the id. Through the dumb luck of the molecule we picked there's not a
     # simple way to make this a new bond topology and still have it look valid
     # to RDKit
-    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
-    self.conformer.bond_topologies[1].bond_topology_id = 99999
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies[1].bond_topology_id = 99999
 
   def test_all_outputs(self):
-    mols = list(smu_utils_lib.conformer_to_molecules(self.conformer))
+    mols = list(smu_utils_lib.conformer_to_molecules(self._conformer))
     self.assertLen(mols, 6)  # 2 bond topologies * (1 opt geom + 2 init_geom)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(1/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=618451(1/2) geom=init(2/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=opt fate=0',
-        'SMU 618451001 bt=99999(2/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=99999(2/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=99999(2/2) geom=init(2/2) fate=0',
         'SMU 618451001 bt=99999(2/2) geom=opt fate=0'
     ])
     self.assertEqual(
@@ -536,14 +608,14 @@ class ConformerToMoleculeTest(absltest.TestCase):
   def test_initial_only(self):
     mols = list(
         smu_utils_lib.conformer_to_molecules(
-            self.conformer,
+            self._conformer,
             include_initial_geometries=True,
             include_optimized_geometry=False,
             include_all_bond_topologies=False))
     self.assertLen(mols, 2)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
-        'SMU 618451001 bt=618451(1/2) geom=init(0/2) fate=0',
         'SMU 618451001 bt=618451(1/2) geom=init(1/2) fate=0',
+        'SMU 618451001 bt=618451(1/2) geom=init(2/2) fate=0',
     ])
     # This is just one random atom I picked from the .dat file and converted to
     # angstroms instead of bohr.
@@ -560,7 +632,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
   def test_optimized_only(self):
     mols = list(
         smu_utils_lib.conformer_to_molecules(
-            self.conformer,
+            self._conformer,
             include_initial_geometries=False,
             include_optimized_geometry=True,
             include_all_bond_topologies=False))
@@ -963,8 +1035,8 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.conformer = dataset_pb2.Conformer()
-    properties = self.conformer.properties
+    self._conformer = dataset_pb2.Conformer()
+    properties = self._conformer.properties
     # A STANDARD field
     properties.initial_geometry_energy.value = 1.23
     # A COMPLETE field
@@ -973,20 +1045,21 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     properties.compute_cluster_info = 'not set'
 
   def test_standard(self):
-    smu_utils_lib.filter_conformer_by_availability(self.conformer,
+    smu_utils_lib.filter_conformer_by_availability(self._conformer,
                                                    [dataset_pb2.STANDARD])
     self.assertTrue(
-        self.conformer.properties.HasField('initial_geometry_energy'))
-    self.assertFalse(self.conformer.properties.HasField('zpe_unscaled'))
-    self.assertFalse(self.conformer.properties.HasField('compute_cluster_info'))
+        self._conformer.properties.HasField('initial_geometry_energy'))
+    self.assertFalse(self._conformer.properties.HasField('zpe_unscaled'))
+    self.assertFalse(
+        self._conformer.properties.HasField('compute_cluster_info'))
 
   def test_complete_and_internal_only(self):
     smu_utils_lib.filter_conformer_by_availability(
-        self.conformer, [dataset_pb2.COMPLETE, dataset_pb2.INTERNAL_ONLY])
+        self._conformer, [dataset_pb2.COMPLETE, dataset_pb2.INTERNAL_ONLY])
     self.assertFalse(
-        self.conformer.properties.HasField('initial_geometry_energy'))
-    self.assertTrue(self.conformer.properties.HasField('zpe_unscaled'))
-    self.assertTrue(self.conformer.properties.HasField('compute_cluster_info'))
+        self._conformer.properties.HasField('initial_geometry_energy'))
+    self.assertTrue(self._conformer.properties.HasField('zpe_unscaled'))
+    self.assertTrue(self._conformer.properties.HasField('compute_cluster_info'))
 
 
 class ConformerToStandardTest(absltest.TestCase):
@@ -994,35 +1067,35 @@ class ConformerToStandardTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
 
-    self.conformer = get_stage2_conformer()
+    self._conformer = get_stage2_conformer()
 
   def test_field_filtering(self):
     # Check that the field which should be filtered starts out set
     self.assertTrue(
-        self.conformer.properties.HasField('optimized_geometry_energy'))
+        self._conformer.properties.HasField('optimized_geometry_energy'))
 
-    got = smu_utils_lib.conformer_to_standard(self.conformer)
-    # Check for a field that was originally in self.conformer and should be
+    got = smu_utils_lib.conformer_to_standard(self._conformer)
+    # Check for a field that was originally in self._conformer and should be
     # filtered and a field which should still be present.
     self.assertTrue(got.properties.HasField('optimized_geometry_energy'))
     self.assertFalse(got.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_conformer(self):
-    self.conformer.which_database = dataset_pb2.UNSPECIFIED
-    self.conformer.properties.errors.status = 256
+    self._conformer.which_database = dataset_pb2.UNSPECIFIED
+    self._conformer.properties.errors.status = 256
 
-    self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
+    self.assertIsNone(smu_utils_lib.conformer_to_standard(self._conformer))
 
   def test_remove_duplicate(self):
-    self.conformer.which_database = dataset_pb2.UNSPECIFIED
-    self.conformer.duplicated_by = 123
+    self._conformer.which_database = dataset_pb2.UNSPECIFIED
+    self._conformer.duplicated_by = 123
 
-    self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
+    self.assertIsNone(smu_utils_lib.conformer_to_standard(self._conformer))
 
   def test_remove_complete(self):
-    self.conformer.which_database = dataset_pb2.COMPLETE
+    self._conformer.which_database = dataset_pb2.COMPLETE
 
-    self.assertIsNone(smu_utils_lib.conformer_to_standard(self.conformer))
+    self.assertIsNone(smu_utils_lib.conformer_to_standard(self._conformer))
 
 
 class CleanUpErrorCodesTest(parameterized.TestCase):
@@ -1190,39 +1263,39 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.conformer = get_stage2_conformer()
+    self._conformer = get_stage2_conformer()
 
   def test_dup_same(self):
-    self.conformer.fate = dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY
+    self._conformer.fate = dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
     self.assertLen(got, 1)
     self.assertEqual(got[0].bond_topology.bond_topology_id,
-                     self.conformer.bond_topologies[0].bond_topology_id)
+                     self._conformer.bond_topologies[0].bond_topology_id)
     self.assertEqual(got[0].count_attempted_conformers, 1)
     self.assertEqual(got[0].count_duplicates_same_topology, 1)
 
   def test_dup_diff(self):
-    self.conformer.fate = (
+    self._conformer.fate = (
         dataset_pb2.Conformer.FATE_DUPLICATE_DIFFERENT_TOPOLOGY)
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
     self.assertLen(got, 1)
     self.assertEqual(got[0].count_attempted_conformers, 1)
     self.assertEqual(got[0].count_duplicates_different_topology, 1)
 
   def test_geometry_failed(self):
-    self.conformer.fate = (dataset_pb2.Conformer.FATE_DISCARDED_OTHER)
+    self._conformer.fate = (dataset_pb2.Conformer.FATE_DISCARDED_OTHER)
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
     self.assertLen(got, 1)
     self.assertEqual(got[0].count_attempted_conformers, 1)
     self.assertEqual(got[0].count_failed_geometry_optimization, 1)
 
   def test_missing_calculation(self):
-    self.conformer.fate = dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS
+    self._conformer.fate = dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
     self.assertLen(got, 1)
     self.assertEqual(got[0].count_attempted_conformers, 1)
     self.assertEqual(got[0].count_kept_geometry, 1)
@@ -1230,23 +1303,23 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   def _swap_bond_topologies(self):
     """Swaps the order of the first two topologies."""
-    bt0 = self.conformer.bond_topologies[0]
-    bt1 = self.conformer.bond_topologies[1]
-    del self.conformer.bond_topologies[:]
-    self.conformer.bond_topologies.extend([bt1, bt0])
+    bt0 = self._conformer.bond_topologies[0]
+    bt1 = self._conformer.bond_topologies[1]
+    del self._conformer.bond_topologies[:]
+    self._conformer.bond_topologies.extend([bt1, bt0])
 
   @parameterized.parameters(False, True)
   def test_calculation_with_error(self, swap_order):
-    self.conformer.fate = (
+    self._conformer.fate = (
         dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR)
-    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
-    self.conformer.bond_topologies[-1].bond_topology_id = 123
-    self.conformer.bond_topologies[0].is_starting_topology = True
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies[-1].bond_topology_id = 123
+    self._conformer.bond_topologies[0].is_starting_topology = True
     if swap_order:
       self._swap_bond_topologies()
 
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
 
     self.assertLen(got, 2)
     # We don't actually care about the order, but this is what comes out right
@@ -1265,16 +1338,16 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def test_calculation_with_warning(self, swap_order):
-    self.conformer.fate = (
+    self._conformer.fate = (
         dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS)
-    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
-    self.conformer.bond_topologies[-1].bond_topology_id = 123
-    self.conformer.bond_topologies[0].is_starting_topology = True
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies[-1].bond_topology_id = 123
+    self._conformer.bond_topologies[0].is_starting_topology = True
     if swap_order:
       self._swap_bond_topologies()
 
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
 
     self.assertLen(got, 2)
     # We don't actually care about the order, but this is what comes out right
@@ -1297,15 +1370,15 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def test_calculation_success(self, swap_order):
-    self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
-    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
-    self.conformer.bond_topologies[-1].bond_topology_id = 123
-    self.conformer.bond_topologies[0].is_starting_topology = True
+    self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies[-1].bond_topology_id = 123
+    self._conformer.bond_topologies[0].is_starting_topology = True
     if swap_order:
       self._swap_bond_topologies()
 
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
 
     self.assertLen(got, 2)
     # We don't actually care about the order, but this is what comes out right
@@ -1323,12 +1396,12 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[1].count_detected_match_success, 0)
 
   def test_no_starting_topology(self):
-    self.conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
-    self.conformer.bond_topologies.append(self.conformer.bond_topologies[0])
-    self.conformer.bond_topologies[-1].bond_topology_id = 123
+    self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies[-1].bond_topology_id = 123
 
     got = list(
-        smu_utils_lib.conformer_to_bond_topology_summaries(self.conformer))
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
 
     self.assertLen(got, 2)
     # We don't actually care about the order, but this is what comes out right
@@ -1338,6 +1411,29 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
     self.assertEqual(got[1].bond_topology.bond_topology_id, 123)
     self.assertEqual(got[1].count_detected_match_success, 1)
+
+  @parameterized.parameters(0, 1, 2)
+  def test_multiple_detection(self, starting_idx):
+    self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    # Even with 3 detections, we only want to output one multiple detection
+    # record.
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies[starting_idx].is_starting_topology = True
+
+    got = list(
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
+    self.assertLen(got, 2)
+
+    # We don't actually care about the order, but this is what comes out right
+    # now.
+    self.assertEqual(got[0].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[0].count_calculation_success, 1)
+    self.assertEqual(got[0].count_multiple_detections, 0)
+
+    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
+    self.assertEqual(got[1].count_calculation_success, 0)
+    self.assertEqual(got[1].count_multiple_detections, 1)
 
 
 class LabeledSmilesTester(absltest.TestCase):
