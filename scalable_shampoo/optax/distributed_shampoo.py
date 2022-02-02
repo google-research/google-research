@@ -221,7 +221,7 @@ class GraftingType(enum.IntEnum):
   RMSPROP = 3
   RMSPROP_NORMALIZED = 4
   SQRT_N = 5
-  ADAGRAD_NORMALIZED = 5
+  ADAGRAD_NORMALIZED = 6
 
 
 def power_iteration(
