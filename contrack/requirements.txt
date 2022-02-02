@@ -1,0 +1,4 @@
+tensorflow>=2.3
+gensim>=3.8.3
+tensorflow-hub>=0.11
+tensorflow-text>=2.4.3
