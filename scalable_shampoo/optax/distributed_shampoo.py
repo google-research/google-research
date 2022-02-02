@@ -221,6 +221,7 @@ class GraftingType(enum.IntEnum):
   RMSPROP = 3
   RMSPROP_NORMALIZED = 4
   SQRT_N = 5
+  ADAGRAD_NORMALIZED = 5
 
 
 def power_iteration(
@@ -318,7 +319,7 @@ def matrix_inverse_pth_root(
   _, max_ev = power_iteration(
       matrix=matrix, num_iters=100,
       error_tolerance=1e-6, precision=precision)
-  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, 1e-16)
+  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, 1e-6)
 
   def _unrolled_mat_pow_1(mat_m):
     """Computes mat_m^1."""
@@ -755,8 +756,7 @@ def distributed_shampoo(
       block = 1024, [1, 2, 768, 1, 2048] --> [2, 768, 2048]
     graft_type: Grafting is a technique to fix the layerwise scale of Shampoo
       optimizer. This allows us to plugin the Shampoo optimizer into settings
-      where SGD/AdaGrad is already well tuned. Available options are:
-        GraftingType.SGD and GraftingType.ADAGRAD.
+      where SGD/AdaGrad is already well tuned.
     nesterov: Nesterov momentum.
     exponent_override: Override the exponent used in matrix inverse.
     batch_axis_name: labeled axis over pmap for data-parallel training the
@@ -800,7 +800,7 @@ def distributed_shampoo(
 
   # TODO(rohananil): Explore int8-16 quantization with non-linear bucket sizes.
   def quantized_dtype_for_diagonal_statistics_buffers():
-    return jnp.bfloat16 if best_effort_memory_usage_reduction else jnp.float32
+    return jnp.float32
 
   # Preconditioner and statistics are both stores as int16 in this mode.
   # We take out the diagonal to make quantization easier.
@@ -966,7 +966,8 @@ def distributed_shampoo(
       partition_spec_for_statistics: PartitionSpec for the statistics.
     """
     # Parallel lists of spec, and params.
-    param_pspec_flat, _ = jax.tree_flatten(params_partition_spec)
+    param_pspec_flat, _ = jax.tree_flatten(
+        params_partition_spec, is_leaf=lambda x: x is None)
     params_flat, treedef = jax.tree_flatten(params)
     assert param_pspec_flat
     assert params_flat
@@ -1791,10 +1792,16 @@ def distributed_shampoo(
                                     best_effort_shape_interpretation)
     sgd_update = grad
     new_diagonal_statistics = state.diagonal_statistics.to_float()
-    if graft_type == GraftingType.ADAGRAD:
-      new_diagonal_statistics = state.diagonal_statistics.to_float(
-      ) + jnp.square(grad)
-      adagrad_update = grad / (
+    if (graft_type == GraftingType.ADAGRAD or
+        graft_type == GraftingType.ADAGRAD_NORMALIZED):
+
+      scaled_grad = grad
+      if graft_type == GraftingType.ADAGRAD_NORMALIZED:
+        scaled_grad = grad / jnp.linalg.norm(grad)
+
+      new_diagonal_statistics = (
+          state.diagonal_statistics.to_float() + jnp.square(scaled_grad))
+      adagrad_update = scaled_grad / (
           jnp.sqrt(new_diagonal_statistics) + diagonal_epsilon)
       grafting_update = adagrad_update
     elif (graft_type == GraftingType.RMSPROP or
