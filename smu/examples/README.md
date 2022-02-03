@@ -11,7 +11,7 @@ The following examples are provided
 - `dataframe.py` : generates a [Pandas DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html) of some field values
 - `to_rdkit.py` : converts Conformers to RDKit molecules
 - `missing_fields.py` : how to check for missing fields
-- *TODO* `multiple_bond_topology.py` : illustrates some points around multiple BondTopology for each Conformer
+- `multiple_bond_topology.py` : illustrates some points around multiple BondTopology for each Conformer
 - `special_cases.py` : in the complete database, there are a number of records which have a quite different set of information in them
 - *TODO* `c6h6.py` : a more complex example bringing together many of the concepts from other examples
 

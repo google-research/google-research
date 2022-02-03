@@ -1,0 +1,51 @@
+Each Conformer can have multiple bond topologies associated with it
+
+Most Conformers (~96%) have exactly one bond topology like this one
+Conformer 57429002 has 1 bond topologies
+    Topology with id 57429 and SMILES COC=NC#N
+        is_starting_topology: True
+
+Some Conformers have multiple possible bond topologies like this one
+Conformer 8400001 has 2 bond topologies
+    Topology with id 8405 and SMILES O=[N+]1ON1O[O-]
+    Topology with id 8400 and SMILES [O-][N+]12OON1O2
+        is_starting_topology: True
+For ones with multiple topologies one will generally be marked
+with is_starting_topology, indicating that this is the topology
+that was used during the initial geometry generation
+
+However, the same topology id can be present multiple times for a given conformer
+For example, consider good old benzene
+Conformer 79488001 has 2 bond topologies
+    Topology with id 79488 and SMILES C1=CC=CC=C1
+    Topology with id 79488 and SMILES C1=CC=CC=C1
+        is_starting_topology: True
+These are the two kekulized forms of benzene
+While the final graphs are isomorphic, for a given pair of carbons, the bond types are switched
+The first bond topology has
+atom_a: 1
+atom_b: 3
+bond_type: BOND_DOUBLE
+and the second bond topology has
+atom_a: 1
+atom_b: 3
+bond_type: BOND_SINGLE
+
+There are also some cases with a mix of same and different ids, like this
+Conformer 3177001 has 3 bond topologies
+    Topology with id 3177 and SMILES C1N2NN1O2
+        is_starting_topology: True
+    Topology with id 2805 and SMILES [O-][N+]12CN1N2
+    Topology with id 2805 and SMILES [O-][N+]12CN1N2
+
+There are also a handful of special cases that have no topology marked
+with is_starting_topology. These have exactly one bond topology and
+1 or 2 heavy atoms
+Conformer 899650001 has 1 bond topologies
+    Topology with id 899650 and SMILES O
+Conformer 899651001 has 1 bond topologies
+    Topology with id 899651 and SMILES N
+Conformer 899652001 has 1 bond topologies
+    Topology with id 899652 and SMILES C
+Those are all the cases in the standard database
+There are a couple more in the complete database
