@@ -1,0 +1,7 @@
+absl-py
+dm-acme[tensorflow]
+dm-sonnet
+gym
+numpy
+tensorflow
+tensorflow_probability
