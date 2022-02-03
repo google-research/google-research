@@ -318,6 +318,13 @@ def combine_multiple_embeddings_to_tfex(
 
   if delete_audio_from_output:
     ex.features.feature.pop(audio_key, None)
+  else:
+    # If audio is an int, store a normalized version of it instead.
+    if ex.features.feature[audio_key].int64_list.value:
+      audio_int = ex.features.feature[audio_key].int64_list.value
+      ex.features.feature.pop(audio_key, None)
+      ex.features.feature[audio_key].float_list.value.extend(
+          np.array(audio_int).astype(np.float32) / np.iinfo(np.int16).max)
 
   for name, embedding in out_dict.items():
     assert isinstance(embedding, np.ndarray)

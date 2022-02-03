@@ -129,5 +129,20 @@ class DataPrepUtilsTest(parameterized.TestCase):
     self.assertIn('audio_key', ex.features.feature)
     self.assertIn('embedding/ename', ex.features.feature)
 
+  def test_combine_multiple_embeddings_to_tfex(self):
+    ex = tf.train.Example()
+    audio_samples = np.zeros([64000], np.int64)
+    ex.features.feature['aud'].int64_list.value.extend(audio_samples)
+    ex.features.feature['lbl'].bytes_list.value.append(b'test')
+    k, new_ex = data_prep_utils.combine_multiple_embeddings_to_tfex(
+        ('key', ex, {'emb1': np.zeros([1, 10], np.float32)}),
+        delete_audio_from_output=False,
+        audio_key='aud',
+        label_key='lbl',
+        speaker_id_key=None)
+    self.assertEqual(k, 'key')
+    self.assertIn('aud', new_ex.features.feature)
+    self.assertIsNotNone(new_ex.features.feature['aud'].float_list.value)
+
 if __name__ == '__main__':
   absltest.main()
