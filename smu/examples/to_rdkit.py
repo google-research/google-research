@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Converts Conformers to RDKit molecules."""
+
 import sys
 
 from rdkit import Chem
@@ -26,7 +27,6 @@ db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
 # We will look at one conformer that illustrates the complexities of
 # converting a conformer to molecules(s). Not all conformers will have
 # this level of complexity.
-
 conformer = db.find_by_conformer_id(8240001)
 
 # This RDKit object will be used to write SDF files to stdout to illustrate

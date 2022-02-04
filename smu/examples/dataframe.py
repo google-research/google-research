@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""generates a Pandas DataFrame of some field values."""
+"""Generates a Pandas DataFrame of some field values."""
 
 import pandas as pd
 

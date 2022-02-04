@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""using the various indices in the database for faster lookups."""
+"""Use the various indices in the database for fast lookups."""
 
 from smu import smu_sqlite
 

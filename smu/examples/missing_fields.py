@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""How to check for missing fields."""
+"""Shows how to check for missing fields."""
+
 from smu import smu_sqlite
 
 # Note that we are loading the *complete* database

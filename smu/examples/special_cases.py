@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The complete database has a different set of information in its records."""
+"""The complete database has a special cases to be aware of."""
+
 from smu import smu_sqlite
 
 # Note that we are loading the *complete* database

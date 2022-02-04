@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Generates a CSV file with a few fields."""
+"""Generates a CSV file with a few field values."""
+
 import csv
 import sys
 
