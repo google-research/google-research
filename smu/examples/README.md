@@ -13,7 +13,7 @@ The following examples are provided
 - `missing_fields.py` : how to check for missing fields
 - `multiple_bond_topology.py` : illustrates some points around multiple BondTopology for each Conformer
 - `special_cases.py` : in the complete database, there are a number of records which have a quite different set of information in them
-- *TODO* `c6h6.py` : a more complex example bringing together many of the concepts from other examples
+- `c6h6.py` : a more complex example bringing together many of the concepts from other examples
 
 To run them, after you have activated your virtual environment, go to the directory where you have the database files (the .sqlite files) and run a command like this (note no `.py` extension)
 
