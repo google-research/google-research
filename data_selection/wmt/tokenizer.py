@@ -15,17 +15,18 @@
 
 """Provides op for tokenizing a dataset."""
 
+import dataclasses
 import os
 import tempfile
 import time
 from typing import Any, Dict, Iterable, Tuple
 
 from absl import logging
-import dataclasses
 import jax
-from sentencepiece.src.python.sentencepiece_trainer import SentencePieceTrainer
 import tensorflow as tf
 import tensorflow_text as tftxt
+
+from sentencepiece import SentencePieceTrainer
 
 Features = Dict[str, tf.Tensor]
 
@@ -152,4 +153,23 @@ class TokenizeOp:
   def __call__(self, features):
     for k in self.data_keys:
       features[k] = self.sp_tokenizer.tokenize(features[k])
+    return features
+
+
+@dataclasses.dataclass
+class DoubleTokenizeOp:
+  """Tokenize with 2 different tokenizers."""
+
+  sp_tokenizer_input: Any
+  sp_tokenizer_target: Any
+  data_keys: Iterable[str] = ('inputs', 'targets')
+
+  def __call__(self, features):
+    for k in self.data_keys:
+      if k == 'inputs':
+        features[k] = self.sp_tokenizer_input.tokenize(features[k])
+      elif k == 'targets':
+        features[k] = self.sp_tokenizer_target.tokenize(features[k])
+      else:
+        raise RuntimeError('Data Key not recognized')
     return features

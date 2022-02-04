@@ -48,7 +48,8 @@ def raw_wmt_datasets(dataset_name='wmt17_translate/de-en',
                      paracrawl_size=0,
                      shuffle_train_files=True,
                      pseudo_path=None,
-                     newscommentary_size=None):
+                     newscommentary_size=None,
+                     newscomment_sample_ratio=1.0):
   """Load raw WMT datasets and normalize feature keys.
 
   Args:
@@ -64,6 +65,7 @@ def raw_wmt_datasets(dataset_name='wmt17_translate/de-en',
     shuffle_train_files: whether to shuffle the input data files
     pseudo_path: path to pseudo references
     newscommentary_size: Size of news commentary ft set
+    newscomment_sample_ratio: how much to downsample newscommentary data
 
   Returns:
     training tf.dataset, evaluation tf.dataset, and training features_info
@@ -76,22 +78,26 @@ def raw_wmt_datasets(dataset_name='wmt17_translate/de-en',
                                                         shuffle_train_files,
                                                         pseudo_path)
   train_data, eval_data = wmt_dataset_builder.build_train_and_eval_datasets(
-      dataset_name, eval_dataset_name, paracrawl_size, newscommentary_size)
+      dataset_name, eval_dataset_name, paracrawl_size, newscommentary_size,
+      newscomment_sample_ratio)
 
   builder = wmt_dataset_builder.retrieve_builder()
 
-  features_info = builder.info
+  if builder is not None:
+    features_info = builder.info
 
-  # standardize on 'inputs' and 'targets' features.
-  input_lang = features_info.supervised_keys[0]
-  target_lang = features_info.supervised_keys[1]
-  if reverse_translation:
-    input_lang, target_lang = target_lang, input_lang
-  def to_features_dict(x):
-    return {'inputs': x[input_lang], 'targets': x[target_lang]}
-  if 'pseudo' not in dataset_name:  # Perhaps remove this code path.
-    train_data = train_data.map(to_features_dict, num_parallel_calls=AUTOTUNE)
-  eval_data = eval_data.map(to_features_dict, num_parallel_calls=AUTOTUNE)
+    # standardize on 'inputs' and 'targets' features.
+    input_lang = features_info.supervised_keys[0]
+    target_lang = features_info.supervised_keys[1]
+    if reverse_translation:
+      input_lang, target_lang = target_lang, input_lang
+    def to_features_dict(x):
+      return {'inputs': x[input_lang], 'targets': x[target_lang]}
+    if 'pseudo' not in dataset_name:  # Perhaps remove this code path.
+      train_data = train_data.map(to_features_dict, num_parallel_calls=AUTOTUNE)
+    eval_data = eval_data.map(to_features_dict, num_parallel_calls=AUTOTUNE)
+  else:
+    features_info = None
 
   return train_data, eval_data, features_info
 
@@ -301,7 +307,9 @@ def preprocess_wmt_data(dataset,
                         drop_remainder = True,
                         prefetch_size = AUTOTUNE,
                         is_scores_path=None,
-                        num_to_keep=0):
+                        num_to_keep=0,
+                        truncate=False,
+                        sample_size=-1):
   """Shuffle and batch/pack the given dataset."""
 
   def length_filter(max_len):
@@ -313,13 +321,22 @@ def preprocess_wmt_data(dataset,
 
     return filter_fn
 
-  if max_length > 0:
+  if truncate:
+    dataset = dataset.map(
+        lambda x: {k: v[:max_length] for k, v in x.items()},
+        num_parallel_calls=AUTOTUNE)
+  elif max_length > 0:
     dataset = dataset.filter(length_filter(max_length))
 
   if is_scores_path is not None:
     logging.info('Doing data selection!')
     logging.info('Num to keep = %d', num_to_keep)
     dataset = data_selection(dataset, is_scores_path, num_to_keep)
+
+  if sample_size > 0:
+    logging.info('Downsampling: %d', sample_size)
+    shuff_buff = 200000  # num_to_keep if num_to_keep > 0 else 200000
+    dataset = dataset.shuffle(shuff_buff).take(sample_size)
 
   if shuffle:
     dataset = dataset.shuffle(shuffle_buffer_size)
@@ -410,7 +427,10 @@ def get_wmt_datasets(dataset_name='wmt17_translate/de-en',
                      pseudo_path=None,
                      shuffle_repeat_train=True,
                      repeat_count=-1,
-                     newscommentary_size=None):
+                     newscommentary_size=None,
+                     split_tokenizer=False,
+                     sample_size=-1,
+                     newscomment_sample_ratio=1.0):
   """Load and return dataset of batched examples for use during training."""
   if vocab_path is None:
     vocab_path = os.path.expanduser('~/wmt_sentencepiece_model')
@@ -425,25 +445,49 @@ def get_wmt_datasets(dataset_name='wmt17_translate/de-en',
       paracrawl_size=paracrawl_size,
       shuffle_train_files=(is_scores_path is None) and shuffle_repeat_train,
       pseudo_path=pseudo_path,
-      newscommentary_size=newscommentary_size)
+      newscommentary_size=newscommentary_size,
+      newscomment_sample_ratio=newscomment_sample_ratio)
   # If is_score_path is None, there is no data selection so we can shuffle.
   # If it is not None, then we cannot shuffle the input files.
 
   # Tokenize data.
-  sp_tokenizer = tokenizer.load_or_train_tokenizer(
-      train_data,
-      vocab_path=vocab_path,
-      vocab_size=target_vocab_size,
-      max_corpus_chars=max_corpus_chars)
-
-  # Currently the pseudorefs are stored in pickle files and are pre-tokenized
-  # so we would not tokenize them here. Instead we should write the
-  # pseudo references to a tfrecord in the future.
-  if 'pseudo' not in dataset_name:
+  if split_tokenizer:
+    sp_tokenizer_input = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path + '_input',
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars,
+        data_keys=('inputs',))
+    sp_tokenizer_target = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path + '_target',
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars,
+        data_keys=('targets',))
     train_data = train_data.map(
+        tokenizer.DoubleTokenizeOp(sp_tokenizer_input=sp_tokenizer_input,
+                                   sp_tokenizer_target=sp_tokenizer_target),
+        num_parallel_calls=AUTOTUNE)
+    eval_data = eval_data.map(
+        tokenizer.DoubleTokenizeOp(sp_tokenizer_input=sp_tokenizer_input,
+                                   sp_tokenizer_target=sp_tokenizer_target),
+        num_parallel_calls=AUTOTUNE)
+    sp_tokenizer = sp_tokenizer_target
+  else:
+    sp_tokenizer = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path,
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars)
+
+    # Currently the pseudorefs are stored in pickle files and are pre-tokenized
+    # so we would not tokenize them here. Instead we should write the
+    # pseudo references to a tfrecord in the future.
+    if 'pseudo' not in dataset_name:
+      train_data = train_data.map(
+          tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
+    eval_data = eval_data.map(
         tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
-  eval_data = eval_data.map(
-      tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
 
   train_ds = preprocess_wmt_data(
       train_data,
@@ -453,7 +497,8 @@ def get_wmt_datasets(dataset_name='wmt17_translate/de-en',
       batch_size=batch_size,
       max_length=max_length,
       is_scores_path=is_scores_path,
-      num_to_keep=num_to_keep)
+      num_to_keep=num_to_keep,
+      sample_size=sample_size)
 
   eval_ds = preprocess_wmt_data(
       eval_data,
@@ -484,7 +529,10 @@ def get_wmt_is_datasets(n_devices,
                         max_corpus_chars=10**7,
                         batch_size=256,
                         max_length=256,
-                        paracrawl_size=0):
+                        paracrawl_size=0,
+                        split_tokenizer=False,
+                        use_eval_data=False,
+                        truncate=False):
   """Load and return dataset of batched examples for use during training."""
   if batch_size % n_devices:
     raise ValueError("Batch size %d isn't divided evenly by n_devices %d" %
@@ -492,7 +540,7 @@ def get_wmt_is_datasets(n_devices,
   if vocab_path is None:
     vocab_path = os.path.expanduser('~/wmt_sentencepiece_model')
 
-  train_data, _, _ = raw_wmt_datasets(
+  train_data, eval_data, _ = raw_wmt_datasets(
       dataset_name=dataset_name,
       eval_dataset_name=None,
       reverse_translation=reverse_translation,
@@ -502,16 +550,39 @@ def get_wmt_is_datasets(n_devices,
       paracrawl_size=paracrawl_size,
       shuffle_train_files=False)
 
-  # Tokenize data.
-  sp_tokenizer = tokenizer.load_or_train_tokenizer(
-      train_data,
-      vocab_path=vocab_path,
-      vocab_size=target_vocab_size,
-      max_corpus_chars=max_corpus_chars)
+  if use_eval_data:
+    # Unfortunate use of names but easiest for refactor w/o errors.
+    train_data = eval_data
 
-  # Encode strings with sentencepiece tokenizer.
-  train_data = train_data.map(
-      tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
+  # Tokenize data.
+  if split_tokenizer:
+    sp_tokenizer_input = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path + '_input',
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars,
+        data_keys=('inputs',))
+    sp_tokenizer_target = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path + '_target',
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars,
+        data_keys=('targets',))
+    train_data = train_data.map(
+        tokenizer.DoubleTokenizeOp(sp_tokenizer_input=sp_tokenizer_input,
+                                   sp_tokenizer_target=sp_tokenizer_target),
+        num_parallel_calls=AUTOTUNE)
+    sp_tokenizer = sp_tokenizer_target
+  else:
+    sp_tokenizer = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path,
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars)
+
+    # Encode strings with sentencepiece tokenizer.
+    train_data = train_data.map(
+        tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
 
   train_batches = preprocess_wmt_data(
       train_data,
@@ -520,11 +591,14 @@ def get_wmt_is_datasets(n_devices,
       pack_examples=False,
       batch_size=batch_size,
       max_length=max_length,
-      drop_remainder=False)
+      drop_remainder=False,
+      truncate=truncate)
   # Note: we drop remainder which will truncate the training data but the
   # effect is 0.017% of the dataset so shouldn't effect model
 
-  return train_batches, sp_tokenizer
+  if split_tokenizer:
+    return train_batches, (sp_tokenizer_input, sp_tokenizer_target)
+  return train_batches, (sp_tokenizer, sp_tokenizer)
 
 
 def get_dynamic_datasets(dataset_name='wmt17_translate/de-en',
@@ -541,7 +615,8 @@ def get_dynamic_datasets(dataset_name='wmt17_translate/de-en',
                          max_eval_length=256,
                          paracrawl_size=0,
                          is_scores_path=None,
-                         num_buckets=100):
+                         num_buckets=100,
+                         split_tokenizer=False):
   """Load and return dataset of batched examples for use during training."""
   if vocab_path is None:
     vocab_path = os.path.expanduser('~/wmt_sentencepiece_model')
@@ -556,15 +631,38 @@ def get_dynamic_datasets(dataset_name='wmt17_translate/de-en',
       paracrawl_size=paracrawl_size,
       shuffle_train_files=False)
 
-  sp_tokenizer = tokenizer.load_or_train_tokenizer(
-      train_data,
-      vocab_path=vocab_path,
-      vocab_size=target_vocab_size,
-      max_corpus_chars=max_corpus_chars)
-  train_data = train_data.map(
-      tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
-  eval_data = eval_data.map(
-      tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
+  if split_tokenizer:
+    sp_tokenizer_input = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path + '_input',
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars,
+        data_keys=('inputs',))
+    sp_tokenizer_target = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path + '_target',
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars,
+        data_keys=('targets',))
+    train_data = train_data.map(
+        tokenizer.DoubleTokenizeOp(sp_tokenizer_input=sp_tokenizer_input,
+                                   sp_tokenizer_target=sp_tokenizer_target),
+        num_parallel_calls=AUTOTUNE)
+    eval_data = eval_data.map(
+        tokenizer.DoubleTokenizeOp(sp_tokenizer_input=sp_tokenizer_input,
+                                   sp_tokenizer_target=sp_tokenizer_target),
+        num_parallel_calls=AUTOTUNE)
+    sp_tokenizer = sp_tokenizer_target
+  else:
+    sp_tokenizer = tokenizer.load_or_train_tokenizer(
+        train_data,
+        vocab_path=vocab_path,
+        vocab_size=target_vocab_size,
+        max_corpus_chars=max_corpus_chars)
+    train_data = train_data.map(
+        tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
+    eval_data = eval_data.map(
+        tokenizer.TokenizeOp(sp_tokenizer), num_parallel_calls=AUTOTUNE)
 
   train_data_manager = build_dynamic_data(
       train_data,

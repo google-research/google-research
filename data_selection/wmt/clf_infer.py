@@ -27,9 +27,15 @@ from typing import Sequence
 
 from absl import app
 from absl import flags
+import jax
+import numpy as np
 from scipy.special import softmax
 import tensorflow as tf
 import transformers
+
+from data_selection.wmt import decode
+from data_selection.wmt import input_pipeline
+
 
 tf.compat.v1.enable_eager_execution()
 
@@ -50,7 +56,27 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     'target_text', default=None,
     help='Filename with target text. This data will be labeled by model.')
-
+flags.DEFINE_string(
+    'dataset_name', default=None,
+    help='Name of dataset if targets not provided.')
+flags.DEFINE_string(
+    'data_dir', default=None,
+    help='Dataset dir if targets not provided.')
+flags.DEFINE_string(
+    'vocab_path', default=None,
+    help='Vocab file if targets not provided.')
+flags.DEFINE_bool(
+    'split_tokenizer', default=False,
+    help='Use 1 or 2 tokenizers if targets not provided.')
+flags.DEFINE_bool(
+    'clf_inputs', default=False,
+    help='Classify the input language.')
+flags.DEFINE_bool(
+    'clf_targets', default=True,
+    help='Classify the target language.')
+flags.DEFINE_integer(
+    'paracrawl_size', default=0,
+    help='Number of examples to sample from paracrawl.')
 
 PROC_SIZE = 300000
 
@@ -60,11 +86,61 @@ def main(argv):
     raise app.UsageError('Too many command-line arguments.')
 
   # Grab pretrain text data
-  targets_decoded_pt = []
-  for i in range(1, 9):
-    with tf.io.gfile.GFile(FLAGS.target_text % i, 'rb') as f:
-      pt_targs_tmp = pickle.load(f)
-    targets_decoded_pt.extend(pt_targs_tmp)
+  if FLAGS.target_text:
+    targets_decoded_pt = []
+    for i in range(1, 9):
+      with tf.io.gfile.GFile(FLAGS.target_text % i, 'rb') as f:
+        pt_targs_tmp = pickle.load(f)
+      targets_decoded_pt.extend(pt_targs_tmp)
+  else:
+    train_ds, (encoder_in, encoder_tgt) = input_pipeline.get_wmt_is_datasets(
+        n_devices=jax.local_device_count(),
+        dataset_name=FLAGS.dataset_name,
+        shard_idx=jax.process_index(),
+        shard_count=jax.process_count(),
+        data_dir=FLAGS.data_dir,
+        vocab_path=FLAGS.vocab_path,
+        target_vocab_size=32000,
+        batch_size=1024,
+        max_length=256,
+        paracrawl_size=FLAGS.paracrawl_size,
+        split_tokenizer=FLAGS.split_tokenizer)
+
+    train_data = iter(train_ds)
+    eos_id = decode.EOS_ID
+    def decode_tokens(encoder, toks):
+      valid_toks = toks[:np.argmax(toks == eos_id) + 1].astype(np.int32)
+      return encoder.detokenize(valid_toks).numpy().decode('utf-8')
+    targets = []
+    inputs = []
+    for x in train_data:
+      trg = x['targets']._numpy()  # pylint:disable=protected-access
+      ins = x['inputs']._numpy()  # pylint:disable=protected-access
+      targets.append(trg)
+      inputs.append(ins)
+
+    # flatten targets_decoded_pt
+    # pylint:disable=g-complex-comprehension
+    targets_flat = [t for batch_t in targets for t in batch_t]
+    inputs_flat = [t for batch_t in inputs for t in batch_t]
+    # pylint:enable=g-complex-comprehension
+
+    # decode only the slice for this one
+    targets_decoded_pt = []
+    start = PROC_SIZE * FLAGS.slice
+    end = PROC_SIZE * (FLAGS.slice + 1)
+    if FLAGS.slice == 14:
+      end = 9999999
+    for i, x in enumerate(targets_flat[start:end]):
+      if FLAGS.clf_inputs:
+        input_decode = decode_tokens(encoder_in, inputs_flat[i + start])
+      if FLAGS.clf_targets:
+        target_decode = decode_tokens(encoder_tgt, x)
+      if FLAGS.clf_inputs and FLAGS.clf_targets:
+        decode_tok = input_decode + ' [SEP] ' + target_decode
+      else:
+        decode_tok = target_decode if FLAGS.clf_targets else input_decode
+      targets_decoded_pt.append(decode_tok)
 
   # Load model
   cache_dir = '/tmp/'  # model weights get temporarily written to this directory
@@ -79,12 +155,18 @@ def main(argv):
       os.path.join(trained_path, 'tf_model.h5'), config=config,
       cache_dir=cache_dir)
 
-  start = PROC_SIZE * FLAGS.slice
-  end = PROC_SIZE * (FLAGS.slice + 1)
-  if FLAGS.slice == 14:
-    end = 9999999
+  if FLAGS.target_text:
+    # If we read the entire dataset from text, select the slice to encode
+    start = PROC_SIZE * FLAGS.slice
+    end = PROC_SIZE * (FLAGS.slice + 1)
+    if FLAGS.slice == 14:
+      end = 9999999
+    input_targets = targets_decoded_pt[start:end]
+  else:
+    # the targets were decoded above so just use the ones that were decoded
+    input_targets = targets_decoded_pt
   encoding = tokenizer(
-      targets_decoded_pt[start:end],
+      input_targets,
       return_tensors='tf',
       padding=True,
       truncation=True,
@@ -93,7 +175,11 @@ def main(argv):
   train_dataset = tf.data.Dataset.from_tensor_slices((
       dict(encoding),
   ))
-  train_dataset = train_dataset.batch(256)
+  batch_size = 256
+  if FLAGS.clf_inputs and FLAGS.clf_targets:
+    # multiling model is larger
+    batch_size = 128
+  train_dataset = train_dataset.batch(batch_size)
   logits = model.predict(train_dataset)
 
   probs = softmax(logits.logits, axis=1)

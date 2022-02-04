@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Standard data selection NMT runner.
+"""Gradual training for NMT.
 
-This script trains a Transformer on a WMT dataset. It supports
-a number of alternative training options used in various
-experimental setups.
+This script trains a Transformer on a WMT dataset.
+Gradual training refers to the periodic decrease in the
+out of domain dataset size. This is similar to the
+gradual finetining proposed in dynamic data selection.
 """
 
 # pytype: disable=wrong-arg-count
@@ -46,22 +47,8 @@ from data_selection.wmt import decode
 from data_selection.wmt import input_pipeline
 from data_selection.wmt import models
 from data_selection.wmt import train_util
-from data_selection.wmt.gradient_utils import tree_diff
-from data_selection.wmt.gradient_utils import tree_div
-from data_selection.wmt.gradient_utils import tree_dot
-from data_selection.wmt.gradient_utils import tree_mult
-from data_selection.wmt.gradient_utils import tree_norm
 
 FLAGS = flags.FLAGS
-
-flags.DEFINE_integer(
-    'sample_size', default=-1,
-    help='Number of examples from train dataset to keep.')
-
-flags.DEFINE_float(
-    'newscomment_sample_ratio', default=1.0,
-    help='Upweight newscommentary.')
-
 flags.adopt_module_key_flags(train_util)
 
 
@@ -93,55 +80,24 @@ def main(argv):
   # Load Dataset
   # ---------------------------------------------------------------------------
   logging.info('Initializing dataset.')
-  if FLAGS.dynamic:
-    train_ds_mgr, eval_ds, predict_ds, encoder = input_pipeline.get_dynamic_datasets(
-        dataset_name=FLAGS.dataset_name,
-        eval_dataset_name=FLAGS.eval_dataset_name,
-        shard_idx=jax.process_index(),
-        shard_count=jax.process_count(),
-        data_dir=FLAGS.data_dir,
-        vocab_path=FLAGS.vocab_path,
-        target_vocab_size=FLAGS.vocab_size,
-        batch_size=FLAGS.batch_size,
-        max_length=FLAGS.max_target_length,
-        max_eval_length=FLAGS.max_eval_target_length,
-        paracrawl_size=FLAGS.paracrawl_size,
-        is_scores_path=FLAGS.is_scores_path,
-        num_buckets=FLAGS.num_data_buckets)
-    if FLAGS.static:
-      weights = np.array([float(w) for w in FLAGS.static.split(',')])
-      assert len(weights) == FLAGS.num_data_buckets
-      train_ds = train_ds_mgr.sampled_dataset(weights)
-      FLAGS.dynamic = False
-    else:
-      init_dist = np.zeros(FLAGS.num_data_buckets)
-      if FLAGS.data_selection_size < FLAGS.num_data_buckets:
-        init_dist[range(FLAGS.data_selection_size)] = 1.0
-        train_ds = train_ds_mgr.sampled_dataset(init_dist)
-      else:
-        train_ds = build_split(train_ds_mgr, 1.0)
-
-  else:
-    train_ds, eval_ds, predict_ds, encoder = input_pipeline.get_wmt_datasets(
-        dataset_name=FLAGS.dataset_name,
-        eval_dataset_name=FLAGS.eval_dataset_name,
-        shard_idx=jax.process_index(),
-        shard_count=jax.process_count(),
-        data_dir=FLAGS.data_dir,
-        vocab_path=vocab_path,
-        target_vocab_size=FLAGS.vocab_size,
-        batch_size=FLAGS.batch_size,
-        max_length=FLAGS.max_target_length,
-        max_eval_length=FLAGS.max_eval_target_length,
-        paracrawl_size=FLAGS.paracrawl_size,
-        is_scores_path=FLAGS.is_scores_path,
-        num_to_keep=FLAGS.data_selection_size,
-        pseudo_path=FLAGS.pseudo_path,
-        repeat_count=FLAGS.repeat_count,
-        newscommentary_size=FLAGS.newscommentary_size,
-        split_tokenizer=FLAGS.split_tokenizer,
-        sample_size=FLAGS.sample_size,
-        newscomment_sample_ratio=FLAGS.newscomment_sample_ratio)
+  train_ds, eval_ds, predict_ds, encoder = input_pipeline.get_wmt_datasets(
+      dataset_name=FLAGS.dataset_name,
+      eval_dataset_name=FLAGS.eval_dataset_name,
+      shard_idx=jax.process_index(),
+      shard_count=jax.process_count(),
+      data_dir=FLAGS.data_dir,
+      vocab_path=vocab_path,
+      target_vocab_size=FLAGS.vocab_size,
+      batch_size=FLAGS.batch_size,
+      max_length=FLAGS.max_target_length,
+      max_eval_length=FLAGS.max_eval_target_length,
+      paracrawl_size=FLAGS.paracrawl_size,
+      is_scores_path=FLAGS.is_scores_path,
+      num_to_keep=FLAGS.data_selection_size,
+      pseudo_path=FLAGS.pseudo_path,
+      repeat_count=FLAGS.repeat_count,
+      newscommentary_size=FLAGS.newscommentary_size,
+      split_tokenizer=FLAGS.split_tokenizer)
 
   if FLAGS.aux_eval_dataset:
     aux_datasets = []
@@ -231,10 +187,6 @@ def main(argv):
     # Grab last step.
     start_step = int(optimizer.state.step)
 
-  if FLAGS.adapter != train_util.NONE:
-    adapter = optim.ModelParamTraversal(lambda path, _: FLAGS.adapter in path)
-    optimizer = optimizer_def.create(optimizer.target, focus=adapter)
-
   writer = metric_writers.create_default_writer(
       FLAGS.model_dir, just_logging=jax.process_index() > 0)
 
@@ -250,16 +202,10 @@ def main(argv):
   # Replicate optimizer.
   optimizer = jax_utils.replicate(optimizer)
 
-  if FLAGS.adapter != train_util.NONE:
-    learning_rate_fn = common.create_learning_rate_scheduler(
-        factors='constant',
-        base_learning_rate=FLAGS.learning_rate,
-        warmup_steps=FLAGS.warmup_steps)
-  else:
-    learning_rate_fn = common.create_learning_rate_scheduler(
-        base_learning_rate=FLAGS.learning_rate, warmup_steps=FLAGS.warmup_steps,
-        steps_per_cycle=FLAGS.steps_per_cycle, init_step=start_step,
-        finetune_lr=FLAGS.finetune_lr)
+  learning_rate_fn = common.create_learning_rate_scheduler(
+      base_learning_rate=FLAGS.learning_rate, warmup_steps=FLAGS.warmup_steps,
+      steps_per_cycle=FLAGS.steps_per_cycle, init_step=start_step,
+      finetune_lr=FLAGS.finetune_lr)
 
   # compile multidevice versions of train/eval/predict step and cache init fn.
   p_train_step = jax.pmap(
@@ -287,18 +233,6 @@ def main(argv):
       axis_name='batch',
       static_broadcasted_argnums=(3, 4))  # eos token, max_length are constant
 
-  p_get_diag_grads = jax.pmap(
-      functools.partial(
-          train_util.get_diag_grads,
-          config=eval_config),
-      axis_name='batch')
-
-  p_get_bucket_score = jax.pmap(
-      functools.partial(
-          get_diag_score,
-          strategy=FLAGS.strategy),
-      axis_name='batch')
-
   # Main Train Loop
   # ---------------------------------------------------------------------------
 
@@ -322,33 +256,41 @@ def main(argv):
     total_steps = start_step + 1
   best_eval_loss = 1000
   curr_eval_loss = 1000
+  eval_loss_history = []
+  last_eval_step = 0
+  do_resample_data = False
+  gradual_selection_size = FLAGS.data_selection_size
+  dynamic_eval_freq = FLAGS.eval_frequency
   with metric_writers.ensure_flushes(writer):
     for step in range(start_step, total_steps):
       is_last_step = step == total_steps - 1
 
-      if FLAGS.dynamic and ((step - start_step) % FLAGS.resample_freq == 0):
-        # Dynamic macro: use gradient alignment to score different ratios
-        # of top k vs bottom N-k bins
-        if FLAGS.macro:
-          train_iter = get_macro_distribution(p_get_diag_grads,
-                                              p_get_bucket_score, aux_eval_ds,
-                                              train_ds_mgr, optimizer, eval_ds)
-        else:
-          # Use gradient alignment to score bins
-          # take the top k bins and sample uniformly from them.
-          raw_distribution = get_new_distribution(p_get_diag_grads,
-                                                  p_get_bucket_score,
-                                                  aux_eval_ds, train_ds_mgr,
-                                                  optimizer,
-                                                  eval_ds)
-          logging.info(raw_distribution)
-          selected = np.argsort(
-              raw_distribution)[::-1][:FLAGS.data_selection_size]
-          new_distribution = np.zeros(100)
-          new_distribution[selected] = 1.0
-          logging.info(new_distribution)
-          train_ds = train_ds_mgr.sampled_dataset(new_distribution)
-          train_iter = iter(train_ds)
+      # Resample training data for gradual FT
+      if do_resample_data:
+        # resample data
+        do_resample_data = False
+        gradual_selection_size *= .7
+        dynamic_eval_freq = int(gradual_selection_size / 1000 / 4)
+
+        train_ds, eval_ds, predict_ds, encoder = input_pipeline.get_wmt_datasets(
+            dataset_name=FLAGS.dataset_name,
+            eval_dataset_name=FLAGS.eval_dataset_name,
+            shard_idx=jax.process_index(),
+            shard_count=jax.process_count(),
+            data_dir=FLAGS.data_dir,
+            vocab_path=vocab_path,
+            target_vocab_size=FLAGS.vocab_size,
+            batch_size=FLAGS.batch_size,
+            max_length=FLAGS.max_target_length,
+            max_eval_length=FLAGS.max_eval_target_length,
+            paracrawl_size=FLAGS.paracrawl_size,
+            is_scores_path=FLAGS.is_scores_path,
+            num_to_keep=int(gradual_selection_size),
+            pseudo_path=FLAGS.pseudo_path,
+            repeat_count=FLAGS.repeat_count,
+            newscommentary_size=FLAGS.newscommentary_size,
+            split_tokenizer=FLAGS.split_tokenizer)
+        train_iter = iter(train_ds)
 
       # Shard data to devices and do a training step.
       if not FLAGS.eval_only:
@@ -369,7 +311,7 @@ def main(argv):
         h(step)
 
       # Periodic metric handling.
-      if (step - start_step) % FLAGS.eval_frequency == 0 or is_last_step:
+      if (step - start_step) % dynamic_eval_freq == 0 or is_last_step:
         if not FLAGS.eval_only:
           with report_progress.timed('training_metrics'):
             logging.info('Gathering training metrics.')
@@ -404,6 +346,17 @@ def main(argv):
                 eval_ds=eval_ds,
                 num_eval_steps=FLAGS.num_eval_steps)
             curr_eval_loss = eval_results['loss']
+            eval_loss_history.append(curr_eval_loss)
+            if len(eval_loss_history) > 1:
+              improvement_rate = 0.000004
+              orig_loss = eval_loss_history[-2]
+              true_improvement = orig_loss - curr_eval_loss
+              expected_improvement = (step - last_eval_step) * improvement_rate
+              # percent_change = (orig_loss - curr_eval_loss) / orig_loss
+              # percent_change *= 100
+              if true_improvement < expected_improvement:  # percent_change<.1:
+                do_resample_data = True
+            last_eval_step = step
             writer.write_scalars(
                 step, {'eval_' + k: v for k, v in eval_results.items()})
 
@@ -450,149 +403,6 @@ def main(argv):
 
       if is_last_step:
         break
-
-
-def get_new_distribution(p_get_diag_grads, p_get_bucket_score, eval_ds,
-                         train_ds_mgr, optimizer, ft_ds):
-  """Compute the new training distribution."""
-  new_distribution = [1./FLAGS.num_data_buckets]*FLAGS.num_data_buckets
-  val_grad, curr_grad, ft_grad = None, None, None
-  for bucket_id in range(-2, FLAGS.num_data_buckets):
-    print('Running bucket', bucket_id)
-    if curr_grad is not None:
-      del curr_grad
-      curr_grad = None
-
-    if bucket_id == -2:
-      diag_iter = iter(eval_ds)
-    elif bucket_id == -1:
-      diag_iter = iter(ft_ds)
-    else:
-      diag_iter = train_ds_mgr.get_bucket(bucket_id)
-
-    diag_batch = next(diag_iter)
-    diag_batch = common_utils.shard(jax.tree_map(
-        lambda x: x._numpy(), diag_batch))  # pylint: disable=protected-access
-
-    if bucket_id == -2:
-      val_grad = p_get_diag_grads(optimizer, diag_batch)
-    elif bucket_id == -1:
-      ft_grad = p_get_diag_grads(optimizer, diag_batch)
-    else:  # get diag grad
-      curr_grad = p_get_diag_grads(optimizer, diag_batch)
-
-    # compute bucket score
-    if bucket_id == -2:
-      print('Val grad mean')
-      val_grad = jax.pmap(
-          functools.partial(tree_div, val_y=FLAGS.num_train_steps),
-          axis_name='batch')(val_grad)
-    if bucket_id == -1:
-      print('Val grad mean')
-      ft_grad = jax.pmap(
-          functools.partial(tree_div, val_y=FLAGS.num_train_steps),
-          axis_name='batch')(ft_grad)
-    if bucket_id >= 0:
-      print('cur grad mean')
-      curr_grad = jax.pmap(
-          functools.partial(tree_div, val_y=FLAGS.num_train_steps),
-          axis_name='batch')(curr_grad)
-
-      print('compute bucket scores')
-      score = p_get_bucket_score(val_grad, ft_grad, curr_grad)
-      device_score = jax.tree_map(lambda x: x[0], score)
-      score_np = jax.device_get(device_score)
-      new_distribution[bucket_id] = score_np
-  logging.info(new_distribution)
-  new_distribution = np.array(new_distribution).ravel()
-
-  return new_distribution
-
-
-def build_split(train_ds_mgr, split):
-  bucket_size = 4500000. / FLAGS.num_data_buckets
-  in_domain = int(np.round(FLAGS.data_selection_size / bucket_size))
-  deadbins = 20
-  new_distribution = np.zeros(FLAGS.num_data_buckets)
-  new_distribution[:in_domain] = split / in_domain
-  out_of_domain = FLAGS.num_data_buckets - in_domain - deadbins
-  new_distribution[in_domain:out_of_domain] = (1-split) / out_of_domain
-  train_ds = train_ds_mgr.sampled_dataset(new_distribution)
-  return iter(train_ds)
-
-
-def get_macro_distribution(p_get_diag_grads, p_get_bucket_score, eval_ds,
-                           train_ds_mgr, optimizer, ft_ds):
-  """Compute the new training distribution."""
-  options = [0] * 10
-  val_grad, curr_grad, ft_grad = None, None, None
-  splits = [1.0, .95, .9, .85, .8, .75, .6, .5, .4, .25]
-  for bucket_id in range(-2, 10):
-    print('Running bucket', bucket_id)
-    if curr_grad is not None:
-      del curr_grad
-      curr_grad = None
-
-    if bucket_id == -2:
-      diag_iter = iter(eval_ds)
-    elif bucket_id == -1:
-      diag_iter = iter(ft_ds)
-    else:
-      diag_iter = build_split(train_ds_mgr, splits[bucket_id])
-
-    diag_batch = next(diag_iter)
-    diag_batch = common_utils.shard(jax.tree_map(
-        lambda x: x._numpy(), diag_batch))  # pylint: disable=protected-access
-
-    if bucket_id == -2:
-      val_grad = p_get_diag_grads(optimizer, diag_batch)
-    elif bucket_id == -1:
-      ft_grad = p_get_diag_grads(optimizer, diag_batch)
-    else:  # get diag grad
-      curr_grad = p_get_diag_grads(optimizer, diag_batch)
-
-    # compute bucket score
-    if bucket_id == -2:
-      print('Val grad mean')
-      val_grad = jax.pmap(
-          functools.partial(tree_div, val_y=FLAGS.num_train_steps),
-          axis_name='batch')(val_grad)
-    if bucket_id == -1:
-      print('Val grad mean')
-      ft_grad = jax.pmap(
-          functools.partial(tree_div, val_y=FLAGS.num_train_steps),
-          axis_name='batch')(ft_grad)
-    if bucket_id >= 0:
-      print('cur grad mean')
-      curr_grad = jax.pmap(
-          functools.partial(tree_div, val_y=FLAGS.num_train_steps),
-          axis_name='batch')(curr_grad)
-
-      print('compute bucket scores')
-      score = p_get_bucket_score(val_grad, ft_grad, curr_grad)
-      device_score = jax.tree_map(lambda x: x[0], score)
-      score_np = jax.device_get(device_score)
-      options[bucket_id] = score_np
-  logging.info(options)
-  logging.info(splits[np.argmax(options)])
-  return build_split(train_ds_mgr, splits[np.argmax(options)])
-
-
-def get_diag_score(g_val, g_ft, g_curr, strategy=train_util.ORTH):
-  """Compute diagnostic - cosine similarity between gradients."""
-  if strategy == train_util.ORTH:
-    g_curr_proj_on_train = tree_div(
-        tree_mult(g_val, tree_dot(g_curr, g_val)),
-        tree_dot(g_val, g_val))
-    g_curr_orth = tree_diff(g_curr, g_curr_proj_on_train)
-    orth_dot_valid = tree_dot(g_curr_orth, g_ft)
-    orth_score = orth_dot_valid / tree_norm(g_curr_orth) * tree_norm(g_ft)
-    return orth_score
-
-  else:
-    obw_dot_valid = tree_dot(g_curr, g_val)
-    greedy_score = obw_dot_valid / tree_norm(g_curr) * tree_norm(g_val)
-    return greedy_score
 
 
 if __name__ == '__main__':

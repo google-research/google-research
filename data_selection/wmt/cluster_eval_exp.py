@@ -20,7 +20,6 @@ This script trains a Transformer on a WMT dataset.
 
 import csv
 import functools
-import os
 import time
 
 from absl import app
@@ -38,34 +37,16 @@ import numpy as np
 import tensorflow as tf
 
 from data_selection.wmt import common
+from data_selection.wmt import decode
 from data_selection.wmt import input_pipeline
 from data_selection.wmt import models
 
-LAYERNORM_ADAPTER = 'LayerNorm'
-ENDCODE_DECODE_B5 = 'encoderdecoderblock_5'
-PASSTHRU = ''
 NONE = 'None'
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
     'model_dir', default=None,
     help='Directory to store model data.')
-
-flags.DEFINE_string(
-    'is_save_path', default=None,
-    help='Path to save is scores to.')
-
-flags.DEFINE_string(
-    'is_score_filename', default=None,
-    help='Filename to save is scores to.')
-
-flags.DEFINE_string(
-    'is_diff_name', default=None,
-    help='Filename to save is diff scores to.')
-
-flags.DEFINE_string(
-    'base_log_loss_file', default=None,
-    help='Filename of log loss from base run.')
 
 flags.DEFINE_string(
     'pretrained_model_dir', default=None,
@@ -151,7 +132,6 @@ flags.DEFINE_integer(
     'random_seed', default=0,
     help='Integer for PRNG random seed.')
 
-
 flags.DEFINE_bool(
     'save_checkpoints', default=True,
     help='Whether to save model checkpoints.')
@@ -173,15 +153,41 @@ flags.DEFINE_integer(
     'paracrawl_size', default=1200000,
     help='Number of examples to sample from paracrawl.')
 
-flags.DEFINE_enum(
-    'adapter', default=NONE, enum_values=[LAYERNORM_ADAPTER,
-                                          ENDCODE_DECODE_B5,
-                                          PASSTHRU,
-                                          NONE],
-    help='Whether to finetune only some parameters.')
 flags.DEFINE_bool(
     'split_tokenizer', default=False,
     help='Separate tokenizer for each language.')
+
+flags.DEFINE_string(
+    'save_path', default='',
+    help='Path for saving the losses.')
+
+flags.DEFINE_string(
+    'model_template', default='',
+    help='Name of model with %s instead of cell and %d instead of cluster id.')
+
+flags.DEFINE_string(
+    'model_range', default='',
+    help='Start and stop index for model template, comma separated.')
+
+flags.DEFINE_string(
+    'eval_clusters', default='',
+    help='Comma separated list of clusters to evaluate.')
+
+flags.DEFINE_string(
+    'aux_models', default='',
+    help='Comma separated list of models to evaluate.')
+
+flags.DEFINE_string(
+    'data_dir_template', default='',
+    help='Template for cluster data dir.')
+
+flags.DEFINE_integer(
+    'limit', default=40,
+    help='Template for cluster data dir.')
+
+flags.DEFINE_bool(
+    'save_decodes', default=False,
+    help='Whether to save decodes instead of losses.')
 
 
 def compute_per_example_loss(logits,
@@ -234,7 +240,7 @@ def eval_for_is_step(params, batch, config, label_smoothing=0.0):
   return losses, length
 
 
-def compute_is_scores(filename):
+def setup():
   """Compute IS scores for training data."""
 
   # Make sure tf does not allocate gpu memory.
@@ -247,25 +253,21 @@ def compute_is_scores(filename):
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
 
-  if jax.host_id() == 0:
-    tf.io.gfile.makedirs(FLAGS.model_dir)
-
   if FLAGS.batch_size % n_devices:
     raise ValueError('Batch size must be divisible by the number of devices')
 
   vocab_path = FLAGS.vocab_path
   if vocab_path is None:
-    vocab_path = os.path.join(FLAGS.model_dir, 'sentencepiece_model')
-  tf.io.gfile.makedirs(os.path.split(vocab_path)[0])
+    raise RuntimeError('Vocab path must be provided')
 
   # Load Dataset
   print('Loading data')
   logging.info('Initializing dataset.')
-  train_ds, (_, encoder_tgt) = input_pipeline.get_wmt_is_datasets(
+  _, (_, encoder_tgt) = input_pipeline.get_wmt_is_datasets(
       n_devices=n_devices,
       dataset_name=FLAGS.dataset_name,
-      shard_idx=jax.host_id(),
-      shard_count=jax.host_count(),
+      shard_idx=jax.process_index(),
+      shard_count=jax.process_count(),
       data_dir=FLAGS.data_dir,
       vocab_path=vocab_path,
       target_vocab_size=FLAGS.vocab_size,
@@ -276,8 +278,12 @@ def compute_is_scores(filename):
   print('Datasets created')
 
   encoder = encoder_tgt
-  train_iter = iter(train_ds)
   vocab_size = int(encoder.vocab_size())
+
+  def decode_tokens(toks):
+    valid_toks = toks[:np.argmax(toks == decode.EOS_ID) + 1].astype(np.int32)
+    return encoder.detokenize(valid_toks).numpy().decode('utf-8')
+
   print('data iterators created')
 
   logging.info('Initializing model, optimizer, and step functions.')
@@ -301,7 +307,7 @@ def compute_is_scores(filename):
       decode=False,
       kernel_init=nn.initializers.xavier_uniform(),
       bias_init=nn.initializers.normal(stddev=1e-6))
-
+  predict_config = eval_config.replace(deterministic=True, decode=True)
   rng = jax.random.PRNGKey(FLAGS.random_seed)
   rng, init_rng = jax.random.split(rng)
   # It's possible that is supposed to be per device batch size
@@ -325,50 +331,115 @@ def compute_is_scores(filename):
   # We access model params only from optimizer below via optimizer.target.
   del initial_variables
 
-  if FLAGS.restore_checkpoints:
-    logging.info('Restoring checkpoint.')
-    # If we have a pretrained model, use that. Else, just continue where leftoff
-    model_path = FLAGS.pretrained_model_dir if FLAGS.pretrained_model_dir else FLAGS.model_dir
-    # When loading a checkpoint trained with adapters (ie. frozen weights)
-    # restoring from the base optimizer fails. We catch this error and create
-    # the optimizer with frozen weights.
-    try:
-      optimizer = checkpoints.restore_checkpoint(model_path, optimizer)
-      # Grab last step.
-    except ValueError:
-      adapter = optim.ModelParamTraversal(lambda path, _: FLAGS.adapter in path)
-      optimizer = optimizer_def.create(optimizer.target, focus=adapter)
-      optimizer = checkpoints.restore_checkpoint(model_path, optimizer)
-
-  else:
-    raise RuntimeError('Must restore checkpoint for IS')
-
-  if FLAGS.adapter != NONE and not isinstance(optimizer, optim.MultiOptimizer):
-    adapter = optim.ModelParamTraversal(lambda path, _: FLAGS.adapter in path)
-    optimizer = optimizer_def.create(optimizer.target, focus=adapter)
-  # Replicate optimizer.
-  optimizer = jax_utils.replicate(optimizer)
-
   p_eval_step = jax.pmap(
       functools.partial(
           eval_for_is_step,
           config=eval_config),
       axis_name='batch')
+  p_init_cache = jax.pmap(
+      functools.partial(
+          initialize_cache,
+          max_decode_len=256,
+          config=predict_config),
+      axis_name='batch')
+  p_pred_step = jax.pmap(
+      functools.partial(
+          predict_step, config=predict_config, beam_size=4),
+      axis_name='batch',
+      static_broadcasted_argnums=(3, 4))  # eos token, max_length are constant
 
+  return p_eval_step, optimizer, p_init_cache, p_pred_step, decode_tokens
+
+
+def predict_step_full(inputs, params, cache, eos_id, max_decode_len, config,
+                      beam_size=4):
+  """Predict translation with fast decoding beam search on a batch."""
+  # Prepare transformer fast-decoder call for beam search: for beam search, we
+  # need to set up our decoder model to handle a batch size equal to
+  # batch_size * beam_size, where each batch item"s data is expanded in-place
+  # rather than tiled.
+  # i.e. if we denote each batch element subtensor as el[n]:
+  # [el0, el1, el2] --> beamsize=2 --> [el0,el0,el1,el1,el2,el2]
+  encoded_inputs = decode.flat_batch_beam_expand(
+      models.Transformer(config).apply({'params': params},
+                                       inputs,
+                                       method=models.Transformer.encode),
+      beam_size)
+  raw_inputs = decode.flat_batch_beam_expand(inputs, beam_size)
+
+  def tokens_ids_to_logits(flat_ids, flat_cache):
+    """Token slice to logits from decoder model."""
+    # --> [batch * beam, 1, vocab]
+    flat_logits, new_vars = models.Transformer(config).apply(
+        {
+            'params': params,
+            'cache': flat_cache
+        },
+        encoded_inputs,
+        raw_inputs,  # only needed for input padding mask
+        flat_ids,
+        mutable=['cache'],
+        method=models.Transformer.decode)
+    new_flat_cache = new_vars['cache']
+    # Remove singleton sequence-length dimension:
+    # [batch * beam, 1, vocab] --> [batch * beam, vocab]
+    flat_logits = flat_logits.squeeze(axis=1)
+
+    return flat_logits, new_flat_cache
+
+  # Using the above-defined single-step decoder function, run a
+  # beam search over possible sequences given input encoding.
+  beam_seqs, scores = decode.beam_search(
+      inputs,
+      cache,
+      tokens_ids_to_logits,
+      beam_size=beam_size,
+      alpha=0.6,
+      eos_id=eos_id,
+      max_decode_len=max_decode_len)
+
+  # Beam search returns [n_batch, n_beam, n_length + 1] with beam dimension
+  # sorted in increasing order of log-probability.
+  # Return the highest scoring beam sequence, drop first dummy 0 token.
+  return beam_seqs, scores
+
+
+def predict_step(inputs, params, cache, eos_id, max_decode_len, config,
+                 beam_size=4):
+  beam_seqs, scores = predict_step_full(inputs, params, cache, eos_id,
+                                        max_decode_len, config, beam_size)
+  return beam_seqs[:, -1, 1:], scores[:, -1]
+
+
+def initialize_cache(inputs, max_decode_len, config):
+  """Initialize a cache for a given input shape and max decode length."""
+  target_shape = (inputs.shape[0], max_decode_len) + inputs.shape[2:]
+  initial_variables = models.Transformer(config).init(
+      jax.random.PRNGKey(0), jnp.ones(inputs.shape, config.dtype),
+      jnp.ones(target_shape, config.dtype))
+  return initial_variables['cache']
+
+
+def pad_examples(x, desired_batch_size):
+  """Expand batch to desired size by repeating last slice."""
+  batch_pad = desired_batch_size - x.shape[0]
+  return np.concatenate([x, np.tile(x[-1], (batch_pad, 1))], axis=0)
+
+
+def get_losses(ds_iter, optimizer, p_eval_step, model_id, test_cluster_id):
+  """Given optimizer and dataset, compute losses and write to file."""
   logging.info('Start scoring loop.')
+  n_devices = jax.local_device_count()
   t_loop_start = time.time()
 
-  # Eval Metrics
-  logging.info('Gathering evaluation metrics.')
-  save_file = FLAGS.is_save_path + '/' + filename + '-lengths.txt'
-  length_fp = tf.io.gfile.GFile(save_file, 'w')
-  lengths_writer = csv.writer(length_fp)
-
-  save_file = FLAGS.is_save_path + '/' + filename + '.txt'
+  filename = '/losses_testcluster{test_cluster_id}_ftid{model_id}.csv'
+  save_file = filename.format(test_cluster_id=test_cluster_id,
+                              model_id=model_id)
+  save_file = FLAGS.save_path + save_file
   with tf.io.gfile.GFile(save_file, 'w') as fp:
     writer = csv.writer(fp)
 
-    for batch_idx, eval_batch in enumerate(train_iter):
+    for batch_idx, eval_batch in enumerate(ds_iter):
       eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
       cur_pred_batch_size = eval_batch['inputs'].shape[0]
       if cur_pred_batch_size % n_devices:
@@ -378,72 +449,143 @@ def compute_is_scores(filename):
             lambda x: common.pad_examples(x, padded_size), eval_batch)  # pylint: disable=cell-var-from-loop
       eval_batch = common_utils.shard(eval_batch)
       losses, lengths = p_eval_step(optimizer.target, eval_batch)
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         losses = common.tohost(losses)
         lengths = common.tohost(lengths)
         if cur_pred_batch_size % n_devices:
           writer.writerow(losses[:cur_pred_batch_size])
-          lengths_writer.writerow(lengths[:cur_pred_batch_size])
         else:
           writer.writerow(losses)
-          lengths_writer.writerow(lengths)
 
       if batch_idx % 500 == 0:
         print('Batch', batch_idx)
         print(time.time() - t_loop_start)
-  length_fp.close()
+
+      if batch_idx >= FLAGS.limit:
+        break
+
+
+def get_decodes(ds_iter, optimizer, p_init_cache, p_pred_step, model_id,
+                test_cluster_id, decode_tokens):
+  """Given optimizer and dataset, compute losses and write to file."""
+  logging.info('Start scoring loop.')
+  n_devices = jax.local_device_count()
+  predictions = []
+  max_predict_length = 256
+
+  filename = '/decodes_testcluster{test_cluster_id}_ftid{model_id}.csv'
+  save_file = filename.format(test_cluster_id=test_cluster_id,
+                              model_id=model_id)
+  save_file = FLAGS.save_path + save_file
+  with tf.io.gfile.GFile(save_file, 'w') as fp:
+    writer = csv.writer(fp)
+
+    for batch_idx, pred_batch in enumerate(ds_iter):
+      pred_batch = jax.tree_map(lambda x: x._numpy(), pred_batch)  # pylint: disable=protected-access
+      # Handle final odd-sized batch by padding instead of dropping it.
+      cur_pred_batch_size = pred_batch['inputs'].shape[0]
+      if cur_pred_batch_size % n_devices:
+        padded_size = int(np.ceil(cur_pred_batch_size / n_devices) * n_devices)
+        pred_batch = jax.tree_map(
+            lambda x: pad_examples(x, padded_size),  # pylint: disable=cell-var-from-loop
+            pred_batch)
+      pred_batch = common_utils.shard(pred_batch)
+
+      cache = p_init_cache(pred_batch['inputs'])
+      predicted, _ = p_pred_step(pred_batch['inputs'], optimizer.target, cache,
+                                 decode.EOS_ID, max_predict_length)
+      if jax.process_index() == 0:
+        predicted = common.tohost(predicted)
+        # Iterate through non-padding examples of batch.
+        for s in predicted[:cur_pred_batch_size]:
+          predictions.append(decode_tokens(s))
+
+      if batch_idx >= FLAGS.limit:
+        break
+    writer.writerow(predictions)
+
+
+def reload_opt(optimizer, model_path):
+  optimizer = checkpoints.restore_checkpoint(model_path, optimizer)
+  # Replicate optimizer.
+  optimizer = jax_utils.replicate(optimizer)
+  return optimizer
+
+
+def get_data(cl):
+  """Get dataset iterator."""
+  n_devices = jax.local_device_count()
+  data_dir = FLAGS.data_dir_template
+  data_dir = data_dir.format(cl)
+
+  eval_ds, _ = input_pipeline.get_wmt_is_datasets(
+      n_devices=n_devices,
+      dataset_name=FLAGS.dataset_name,
+      shard_idx=jax.process_index(),
+      shard_count=jax.process_count(),
+      data_dir=data_dir,
+      vocab_path=FLAGS.vocab_path,
+      target_vocab_size=FLAGS.vocab_size,
+      batch_size=FLAGS.batch_size,
+      max_length=FLAGS.max_target_length,
+      paracrawl_size=FLAGS.paracrawl_size,
+      split_tokenizer=FLAGS.split_tokenizer,
+      use_eval_data=True,
+      truncate=True)
+
+  ds_iter = iter(eval_ds)
+  return ds_iter
 
 
 def main(_):
-  compute_is_scores(FLAGS.is_score_filename)
 
-  if FLAGS.base_log_loss_file:
-    beforefile = FLAGS.base_log_loss_file
-    afterfile = FLAGS.is_save_path + '/' + FLAGS.is_score_filename + '.txt'
-    before_scores = []
-    after_scores = []
-    with tf.io.gfile.GFile(beforefile, 'r') as f:
-      reader = csv.reader(f)
-      for row in reader:
-        before_scores.extend(row)
-    with tf.io.gfile.GFile(afterfile, 'r') as f:
-      reader = csv.reader(f)
-      for row in reader:
-        after_scores.extend(row)
+  # Given a list of cluster ids, list of model ids
+  # for model:
+  #   load model
+  #   for clustered data
+  #     Compute per example losses and write to file
+  #      file is cluster id + model id and to save file, in txt
+  aux_models = FLAGS.aux_models.split(',')
+  model_range_start, model_range_end = FLAGS.model_range.split(',')
+  model_range = range(int(model_range_start), int(model_range_end))
+  if FLAGS.eval_clusters == 'all':
+    eval_clusters = list(range(100))
+  else:
+    eval_clusters = [int(cl) for cl in FLAGS.eval_clusters.split(',')]
+  model_dict = {}
+  for i, model in enumerate(aux_models):
+    if model:
+      model_dict['aux'+str(i)] = model
 
-    beforefile = beforefile.replace('.txt', '-lengths.txt')
-    afterfile = afterfile.replace('.txt', '-lengths.txt')
-    before_length = []
-    after_length = []
-    with tf.io.gfile.GFile(beforefile, 'r') as f:
-      reader = csv.reader(f)
-      for row in reader:
-        before_length.extend(row)
-    with tf.io.gfile.GFile(afterfile, 'r') as f:
-      reader = csv.reader(f)
-      for row in reader:
-        after_length.extend(row)
+  for model_id in model_range:
+    for cell in ['tp', 'pw', 'el']:
+      model_name = FLAGS.model_template.format(cell, model_id)
+      if tf.io.gfile.exists(model_name):
+        model_dict[model_id] = model_name
+        break
 
-    diff = [float(a)-float(b) for (a, b) in zip(after_scores, before_scores)]
-    after_scores = [float(a) for a in after_scores]
-    before_scores = [float(a) for a in before_scores]
-    after_length = [float(a) for a in after_length]
-    before_length = [float(b) for b in before_length]
+  p_eval_step, optimizer, p_init_cache, p_pred_step, decode_tokens = setup()
 
-    for a, b in zip(before_length, after_length):
-      assert a == b
-
-    is_diff_name = FLAGS.is_save_path + '/' + FLAGS.is_diff_name
-    with tf.io.gfile.GFile(is_diff_name, 'w') as f:
-      writer = csv.writer(f)
-      for val in diff:
-        writer.writerow([val])
-
-    with tf.io.gfile.GFile(
-        is_diff_name.replace('.csv', '_length.csv'), 'w') as f:
-      writer = csv.writer(f)
-      for val in after_length:
-        writer.writerow([int(val)])
+  for model_id, model in model_dict.items():
+    optimizer = reload_opt(optimizer, model)
+    for cl in eval_clusters:
+      ds_iter = get_data(cl)
+      if FLAGS.save_decodes:
+        get_decodes(
+            ds_iter=ds_iter,
+            optimizer=optimizer,
+            p_init_cache=p_init_cache,
+            p_pred_step=p_pred_step,
+            model_id=model_id,
+            test_cluster_id=cl,
+            decode_tokens=decode_tokens)
+      else:
+        get_losses(
+            ds_iter=ds_iter,
+            optimizer=optimizer,
+            p_eval_step=p_eval_step,
+            model_id=model_id,
+            test_cluster_id=cl)
 
 
 if __name__ == '__main__':
