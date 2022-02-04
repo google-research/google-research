@@ -238,7 +238,7 @@ def do_prediction(p_init_cache, p_pred_step, dataset, optimizer, beam_size,
           beams, inps, outs, parse_beam_fn=decode_program)
 
       # Split by length of program.
-      num_expressions = len(decode_program(programs[i]).expressions)
+      num_expressions = len(decode_program(programs[i]).expressions)  # pytype: disable=attribute-error  # py39-upgrade
       program = programs[i]
       program_length = len(program[:np.argmax(program == eos_token)])
       program_lengths[num_expressions].append(program_length)
@@ -249,7 +249,7 @@ def do_prediction(p_init_cache, p_pred_step, dataset, optimizer, beam_size,
         total_acc += 1
 
       ios.append(' ; '.join(map(str, zip(inps, outs))))
-      targets.append(decode_program(programs[i]).to_string())
+      targets.append(decode_program(programs[i]).to_string())  # pytype: disable=attribute-error  # py39-upgrade
       try:
         predictions.append(p.to_string())
       except:  # pylint: disable=bare-except
@@ -261,7 +261,7 @@ def do_prediction(p_init_cache, p_pred_step, dataset, optimizer, beam_size,
         logging.info('Top of beam:')
         for index, beam in enumerate(beams[:-5:-1]):
           try:
-            decoded_program = decode_program(beam).to_string()
+            decoded_program = decode_program(beam).to_string()  # pytype: disable=attribute-error  # py39-upgrade
           except:  # pylint: disable=bare-except
             decoded_program = 'Did not compile'
           logging.info('index: %s\n  decoded: %s\n  tokens: %s',
