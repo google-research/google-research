@@ -13,3 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Diffusion distillation package."""
+from . import checkpoints
+from . import config
+from . import datasets
+from . import model
+from . import utils

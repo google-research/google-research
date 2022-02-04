@@ -13,3 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Configs for training and distilling diffusion models."""
+from . import bedroom128_base
+from . import bedroom128_distill
+from . import church128_base
+from . import church128_distill
+from . import cifar_base
+from . import cifar_distill
+from . import imagenet64_base
+from . import imagenet64_distill
