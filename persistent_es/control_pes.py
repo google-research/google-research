@@ -22,7 +22,7 @@ available_envs = ['Swimmer-v2', 'Reacher-v1', 'Hopper-v2', 'Ant-v2',
                   'HalfCheetah-v2', 'Walker2d-v2', 'Humanoid-v2']
 
 parser = argparse.ArgumentParser(description='ES/PES for MuJoCo control tasks')
-parser.add_argument('--iterations', type=int, default=1000000,
+parser.add_argument('--iterations', type=int, default=500,
                     help='How many gradient steps to perform')
 parser.add_argument('--env_name', type=str, default='Swimmer-v2',
                     choices=available_envs,
@@ -65,7 +65,7 @@ exp_name = '{}-{}-lr:{}-sigma:{}-N:{}-T:{}-K:{}-c:{}-d:{}'.format(
 
 save_dir = os.path.join(args.save_dir, exp_name, 'seed_{}'.format(args.seed))
 if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
+  os.makedirs(save_dir)
 
 iteration_logger = CSVLogger(
     fieldnames=['time', 'iteration', 'total_steps', 'reward_mean', 'reward_std',
@@ -283,9 +283,9 @@ outer_optim_params = {
 
 @jax.jit
 def outer_optim_step(params, grads, optim_params):
-    lr = optim_params['lr']
-    updated_params = params - lr * grads
-    return updated_params, optim_params
+  lr = optim_params['lr']
+  updated_params = params - lr * grads
+  return updated_params, optim_params
 
 
 estimator = MultiParticleEstimator(
@@ -302,34 +302,34 @@ start_time = time.time()
 for iteration in range(args.iterations):
 
   if iteration % args.log_every == 0:
-      elapsed_time += time.time() - start_time
+    elapsed_time += time.time() - start_time
 
-      # Do 50 rollouts at evaluation time and compute their mean
-      # --------------------------------------------------------
-      fresh_env = gym.make(args.env_name)
+    # Do 50 rollouts at evaluation time and compute their mean
+    # --------------------------------------------------------
+    fresh_env = gym.make(args.env_name)
 
-      all_eval_rewards = []
-      for eval_rollout in range(50):
-          fresh_state = fresh_env.reset()
-          total_reward, _, _, _, _ = unroll(
-              theta, fresh_state, fresh_env, 0, args.horizon, args.horizon,
-              training=False, shift=0.0
-          )
-          all_eval_rewards.append(total_reward)
+    all_eval_rewards = []
+    for eval_rollout in range(50):
+      fresh_state = fresh_env.reset()
+      total_reward, _, _, _, _ = unroll(
+          theta, fresh_state, fresh_env, 0, args.horizon, args.horizon,
+          training=False, shift=0.0
+      )
+      all_eval_rewards.append(total_reward)
 
-      all_eval_rewards = onp.array(all_eval_rewards)
-      print('time: {} | i: {} | steps: {} | reward: {:6.4f}'.format(
-            elapsed_time, iteration, total_count, onp.mean(all_eval_rewards)))
-      sys.stdout.flush()
-      # --------------------------------------------------------
+    all_eval_rewards = onp.array(all_eval_rewards)
+    print('time: {} | i: {} | steps: {} | reward: {:6.4f}'.format(
+          elapsed_time, iteration, total_count, onp.mean(all_eval_rewards)))
+    sys.stdout.flush()
+    # --------------------------------------------------------
 
-      iteration_logger.writerow({
-          'time': elapsed_time,
-          'iteration': iteration,
-          'total_steps': total_count,
-          'reward_mean': onp.mean(all_eval_rewards),
-      })
-      start_time = time.time()
+    iteration_logger.writerow({
+        'time': elapsed_time,
+        'iteration': iteration,
+        'total_steps': total_count,
+        'reward_mean': onp.mean(all_eval_rewards),
+    })
+    start_time = time.time()
 
   theta_grad = estimator.compute_gradient(theta)
   theta, outer_optim_params = outer_optim_step(theta, -theta_grad, outer_optim_params)
