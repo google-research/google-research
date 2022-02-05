@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('white')
 sns.set_palette('bright')
+colors = sns.color_palette('bright')
 
 
 # Load data from saved CSV files
@@ -48,9 +49,9 @@ plt.plot(tbptt_K10['iteration'], tbptt_K10['loss'],
 plt.plot(tbptt_K100['iteration'], tbptt_K100['loss'],
          linewidth=3, label='TBPTT 100')
 plt.plot(es_K1['iteration'], es_K1['loss'],
-         linewidth=3, linestyle='--', label='ES')
+         linewidth=3, linestyle=':', label='ES')
 plt.plot(pes_K1['iteration'], pes_K1['loss'],
-         linewidth=4, label='PES')
+         linewidth=4, color=colors[-1], label='PES')
 plt.plot(uoro_K1['iteration'], uoro_K1['loss'],
          linewidth=3, label='UORO')
 plt.plot(rtrl_K1['iteration'], rtrl_K1['loss'],

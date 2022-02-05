@@ -52,7 +52,7 @@ for (label, exp_dir) in exps:
 
   steps = steps[0][:min_num_rewards]
   plt.plot(steps, means, linewidth=2, label=label)
-  plt.fill_between(steps, means - stds, means+stds, linewidth=2, alpha=0.3)
+  plt.fill_between(steps, means - stds, means + stds, linewidth=2, alpha=0.3)
 
 plt.title('Swimmer-v2', fontsize=22)
 plt.xticks(fontsize=16)

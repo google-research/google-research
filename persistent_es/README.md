@@ -33,6 +33,8 @@ Then plot the resulting loss curves:
 python plot_influence_balancing.py
 ```
 
+<img src="figures/influence_balancing/influence_balancing.png" width="50%" />
+
 
 ### Toy 2D Regression Task
 
@@ -55,6 +57,10 @@ After running all the training commands above, as well as the grid command, plot
 python plot_toy_regression.py
 ```
 
+<img src="figures/toy_regression/toy_regression_heatmap.png" width="45%" />
+<img src="figures/toy_regression/toy_regression_meta_obj.png" width="45%" />
+
+
 ### Variance Measurement with a Toy LSTM
 
 To reproduce the experiment measuring the empirical variance of PES with a toy LSTM on a subset of the Penn TreeBank data, first download the PTB dataset (this will create the directory `data/pennchar`):
@@ -73,6 +79,8 @@ Then, plot the variance curves:
 ```
 python plot_variance_combined.py
 ```
+
+<img src="figures/variance/pes_combined_variance_real_random_repeat.png" width="50%" />
 
 
 ### MNIST Hyperparameter Optimization
@@ -289,41 +297,8 @@ Then, plot the visualization:
 python plot_mnist_lr_decay.py
 ```
 
-
-### UCI Regression
-
-These commands must be run within the `hyperopt` directory.
-
-**ES**
-```
-for INIT_THETA in 5 3 1 -1 -3 -5 ; do
-    python uci.py \
-        --estimate=es \
-        --K=1 \
-        --outer_lr=0.003 \
-        --lr=0.001 \
-        --init_theta=$INIT_THETA \
-        --save_dir=saves_uci &
-done
-```
-
-**PES**
-```
-for INIT_THETA in 5 3 1 -1 -3 -5 ; do
-    python uci.py \
-        --estimate=pes \
-        --K=1 \
-        --outer_lr=0.003 \
-        --lr=0.001 \
-        --init_theta=$INIT_THETA \
-        --save_dir=saves_uci &
-done
-```
-
-**Plot the results**
-```
-python plot_uci.py
-```
+<img src="figures/mnist_heatmaps/mnist_train_loss.png" width="45%" />
+<img src="figures/mnist_heatmaps/mnist_val_acc.png" width="45%" />
 
 
 ### Tuning Several Continuous and Discrete Hyperparameters
@@ -414,6 +389,8 @@ done
 python plot_hyperopt_comparison.py
 ```
 
+<img src="figures/hyperopt/hyperopt_comparison_val.png" width="50%" />
+
 
 ### Control
 
@@ -471,6 +448,46 @@ done
 ```
 python plot_control.py
 ```
+
+<img src="figures/control/swimmer.png" width="50%" />
+
+
+### UCI Regression
+
+These commands must be run within the `hyperopt` directory.
+
+**ES**
+```
+for INIT_THETA in 5 3 1 -1 -3 -5 ; do
+    python uci.py \
+        --estimate=es \
+        --K=1 \
+        --outer_lr=0.003 \
+        --lr=0.001 \
+        --init_theta=$INIT_THETA \
+        --save_dir=saves_uci &
+done
+```
+
+**PES**
+```
+for INIT_THETA in 5 3 1 -1 -3 -5 ; do
+    python uci.py \
+        --estimate=pes \
+        --K=1 \
+        --outer_lr=0.003 \
+        --lr=0.001 \
+        --init_theta=$INIT_THETA \
+        --save_dir=saves_uci &
+done
+```
+
+**Plot the results**
+```
+python plot_uci.py
+```
+
+<img src="figures/uci/UCI_L2_trajectories.png" width="50%" />
 
 
 ## Tips
