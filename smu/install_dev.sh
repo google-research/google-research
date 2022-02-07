@@ -30,6 +30,10 @@ python3 -m venv "${VENV}"
 cd $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
 echo ${ROOTDIR} > smu.pth
 
+# On mac, rdkit-pypi couldn't be found without upgrading pip. No idea why.
+echo "Upgrading pip"
+python -m pip install --upgrade pip
+
 echo "Installing dependencies"
 pip install -r "${SMUDIR}/requirements.txt"
 
