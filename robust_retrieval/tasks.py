@@ -125,11 +125,13 @@ class RobustRetrieval(tf.keras.layers.Layer):
 
     # Initialization of group weights.
     self._group_weights = tf.Variable(
-        initial_value=tf.convert_to_tensor(group_weight_init), trainable=False)
+        initial_value=tf.convert_to_tensor(group_weight_init, dtype=tf.float32),
+        trainable=False)
 
     # Initialization of group loss.
     self._group_loss = tf.Variable(
-        initial_value=tf.convert_to_tensor(group_loss_init), trainable=False)
+        initial_value=tf.convert_to_tensor(group_loss_init, dtype=tf.float32),
+        trainable=False)
 
     self._sample_loss = (
         loss if loss is not None else tf.keras.losses.CategoricalCrossentropy(
@@ -139,11 +141,12 @@ class RobustRetrieval(tf.keras.layers.Layer):
     self._factorized_metrics = metrics
     if isinstance(candidates, tf.data.Dataset):
       candidates = tfrs.layers.factorized_top_k.Streaming(
-          k=self._topk).index(candidates)
+          k=self._topk).index_from_dataset(candidates)
 
     # Initialization of group metric.
     self._group_metric_estimates = tf.Variable(
-        initial_value=tf.convert_to_tensor(group_metric_init), trainable=False)
+        initial_value=tf.convert_to_tensor(group_metric_init, dtype=tf.float32),
+        trainable=False)
 
     self._group_metrics = []
     for x in range(self._num_groups):

@@ -173,10 +173,7 @@ class MovieLensRetrievalModel(tfrs.models.Model):
 
       if isinstance(group_identity, tf.SparseTensor):
         group_identity = group_identity.values
-      group_identity = tf.squeeze(group_identity)
-
-      if group_identity.shape != tf.TensorShape([user_embeddings.shape[0]]):
-        raise ValueError("Expected a tensor of shape [batch_size].")
+      group_identity = tf.reshape(group_identity, [-1])
 
       return self.task(
           user_embeddings,

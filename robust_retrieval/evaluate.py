@@ -79,13 +79,13 @@ def evaluate_sparse_dataset(
 
   if train is not None:
     for batch in train:
-      users = tensor_to_numpy(batch["user"])
+      users = tensor_to_numpy(batch["user_id"])
       movies = tensor_to_numpy(batch["item_id"])
       for user, movie in zip(users, movies):
         train_user_to_movie_ids[user].append(movie_vocabulary[movie])
 
   for batch in test:
-    users = tensor_to_numpy(batch["user"])  # shape (batch_size, 1)
+    users = tensor_to_numpy(batch["user_id"])  # shape (batch_size, 1)
     movies = tensor_to_numpy(batch["item_id"])
     user_feature_dict = {
         feature: tensor_to_numpy(batch[feature]) for feature in user_features
@@ -99,11 +99,11 @@ def evaluate_sparse_dataset(
 
       if user not in test_user_to_features:
         test_user_to_features[user] = {
-            k: v[i] for k, v in user_feature_dict.items()
+            k: [v[i]] for k, v in user_feature_dict.items()
         }
       if item not in test_item_to_features:
         test_item_to_features[item] = {
-            k: v[i] for k, v in item_features_dict.items()
+            k: [v[i]] for k, v in item_features_dict.items()
         }
 
   movie_embeddings = movie_model(movie_candidates).numpy()
@@ -142,13 +142,17 @@ def evaluate_sparse_dataset(
         for group in groups:
           if group.startswith("item:"):
             # Parse item-side subgroup features.
-            subgroup = test_item_to_features[test_movies][group.strip("item:")]
+            subgroups = []
+            for movie in test_movies:
+              subgroups.extend(
+                  test_item_to_features[movie][group.replace("item:", "")])
           else:
             # Parse user-side subgroup features.
-            subgroup = test_user_to_features[user][group]
-          groups_wise_precision_values[group][subgroup][k].append(
-              sample_precision)
-          groups_wise_recall_values[group][subgroup][k].append(sample_recall)
+            subgroups = test_user_to_features[user][group]
+          for subgroup in subgroups:
+            groups_wise_precision_values[group][subgroup][k].append(
+                sample_precision)
+            groups_wise_recall_values[group][subgroup][k].append(sample_recall)
 
   # Logging for averaged performance.
   number_of_samples = len(precision_values[cutoffs[0]])
