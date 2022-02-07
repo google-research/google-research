@@ -12,27 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+#!/bin/sh
+
 set -e
 
-SMUDIR=$(dirname $0)
-ROOTDIR=$(cd ${SMUDIR}/..; pwd)
+SMUDIR="`cd $(dirname $0); pwd`"
+ROOTDIR="`cd "${SMUDIR}/.."; pwd`"
 VENV="${SMUDIR}/venv_smu_dev"
 
-if [ -z "${VIRTUAL_ENV}" -a -d "${VENV}" ]; then
-    echo "Activating virtual environment in ${VENV}"
-    source ${VENV}/bin/activate
-fi
+echo "Running protocol compiler"
+cd ${ROOTDIR}
+protoc --experimental_allow_proto3_optional smu/dataset.proto --python_out=.
 
-set -u
+echo "Creating virtual environment"
+python3 -m venv "${VENV}"
+. ${VENV}/bin/activate
+cd $(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+echo ${ROOTDIR} > smu.pth
 
-for TESTFN in $(find $SMUDIR -maxdepth 3 -name '*_test.py')
-do
-    if [[ $TESTFN == *"$VENV"* ]]; then
-        continue
-    fi
-    echo "Executing ${TESTFN}"
-    python $TESTFN
-done
+echo "Installing dependencies"
+pip install -r "${SMUDIR}/requirements.txt"
 
-echo "ALL TESTS PASSED"
+echo "Running tests"
+cd "${SMUDIR}"
+./run_tests.sh
+
+echo "============================================================="
+echo "SUCCESS"
