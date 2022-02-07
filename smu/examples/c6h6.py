@@ -26,9 +26,8 @@ topology.
 
 import collections
 import csv
+import math
 import sys
-
-import numpy as np
 
 from smu import smu_sqlite
 
@@ -81,9 +80,9 @@ writer.writerow(['conformer_id',
                  'dip'])
 
 for smiles in smiles_to_conformers:
-  min_energy_conformer_idx = np.argmin([
-    conf.properties.enthalpy_of_formation_298k_atomic_b5.value
-    for conf in smiles_to_conformers[smiles]])
+  energies = [conf.properties.enthalpy_of_formation_298k_atomic_b5.value
+              for conf in smiles_to_conformers[smiles]]
+  min_energy_conformer_idx = energies.index(min(energies))
   conf = smiles_to_conformers[smiles][min_energy_conformer_idx]
   # See field_access.py for details on the formats of many different kinds of
   # fields
@@ -94,4 +93,4 @@ for smiles in smiles_to_conformers:
                    dipole.x,
                    dipole.y,
                    dipole.z,
-                   np.linalg.norm([dipole.x, dipole.y, dipole.z])])
+                   math.sqrt(dipole.x**2 + dipole.y**2 + dipole.z**2)])
