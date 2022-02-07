@@ -15,7 +15,9 @@ The following examples are provided
 - `special_cases.py` : in the complete database, there are a number of records which have a quite different set of information in them
 - `c6h6.py` : a more complex example bringing together many of the concepts from other examples
 
-To run them, after you have activated your virtual environment, go to the directory where you have the database files (the .sqlite files) and run a command like this (note no `.py` extension)
+To run them, after you have activated your virtual environment, go to
+the directory where you have the database files (the .sqlite files)
+and run a command like this (note no `.py` extension)
 
         python -m smu.examples.field_access
 
@@ -23,4 +25,5 @@ You can also execute the examples with
 
         python <path to the examples directory>/field_access.py
 
-In addition, there is a `.out` file for each `.py` file which gives the expected standard output for that script
+In addition, there is a `.out` file for each `.py` file which gives
+the expected standard output for that script
