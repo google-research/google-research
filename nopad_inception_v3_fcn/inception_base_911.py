@@ -14,18 +14,17 @@
 # limitations under the License.
 
 # Lint as: python2, python3
-"""Contains the definition for no padding inception FCN.
+"""No padding inception FCN base network for a 911x911 receptive field.
 
-This is a variant of inception v3 by removing all the paddings. This change
-allows the network to be trained and inference run with different patch size
-(Fully Convolutional Network, FCN mode) while having the same inference results.
+This is a variant of inception v3 FCN that takes a larger receptive field and
+predicts a larger patch size.
 """
 import tensorflow.compat.v1 as tf
 
-from nopad_inception_v3_fcn import network
-from nopad_inception_v3_fcn import network_params
-from nopad_inception_v3_fcn import scope_utils
 from tensorflow.contrib import slim
+
+# The downsampling factor of the network.
+MODEL_DOWNSAMPLE_FACTOR = 2**4
 
 
 def _trim_border_px(inputs, n):
@@ -47,11 +46,11 @@ def _trim_border_px(inputs, n):
   return inputs[:, n:-n, n:-n, :]
 
 
-def nopad_inception_v3_base(inputs,
-                            min_depth=16,
-                            depth_multiplier=1.0,
-                            num_final_1x1_conv=0,
-                            scope=None):
+def nopad_inception_v3_base_911(inputs,
+                                min_depth=16,
+                                depth_multiplier=1.0,
+                                num_final_1x1_conv=0,
+                                scope=None):
   """Constructs a no padding Inception v3 network from inputs.
 
   Args:
@@ -385,110 +384,3 @@ def nopad_inception_v3_base(inputs,
             net, depth(256), [1, 1], scope='Final_Conv2d_{}_1x1'.format(i))
         end_points['Final_Conv2d_{}_1x1'.format(i)] = net
       return net, end_points
-
-
-class InceptionV3FCN(network.Network):
-  """A no pad, fully convolutional InceptionV3 model."""
-
-  # The downsampling factor of the network.
-  _DOWNSAMPLE_FACTOR = 2**4
-
-  def __init__(
-      self,
-      inception_params,
-      conv_scope_params,
-      num_classes = 2,
-      is_training = True,
-  ):
-    """Creates a no pad, fully convolutional InceptionV3 model.
-
-    Args:
-      inception_params: parameters specific to the InceptionV3
-      conv_scope_params: parameters used to configure the general convolution
-        parameters used in the slim argument scope.
-      num_classes: number of output classes from the model
-      is_training: whether the network should be built for training or inference
-    """
-    super().__init__()
-    self._num_classes = num_classes
-    self._is_training = is_training
-    self._prelogit_dropout_keep_prob = inception_params.prelogit_dropout_keep_prob
-    self._depth_multiplier = inception_params.depth_multiplier
-    self._min_depth = inception_params.min_depth
-    self._inception_fcn_stride = inception_params.inception_fcn_stride
-    self._conv_scope_params = conv_scope_params
-    if self._depth_multiplier <= 0:
-      raise ValueError('param depth_multiplier should be greater than zero.')
-    self._logits_stride = int(
-        self._inception_fcn_stride /
-        self._DOWNSAMPLE_FACTOR) if self._inception_fcn_stride else 1
-
-  def build(self, inputs):
-    """Returns an InceptionV3FCN model with configurable conv2d normalization.
-
-    Args:
-      inputs: a map from input string names to tensors. Required:
-        * IMAGES: a tensor of shape [batch, height, width, channels]
-
-    Returns:
-      A dictionary from network layer names to the corresponding layer
-      activation Tensors. Includes:
-        * PRE_LOGITS: activation layer preceding LOGITS
-        * LOGITS: the pre-softmax activations, size [batch, num_classes]
-        * PROBABILITIES: softmax probs, size [batch, num_classes]
-    """
-    images = self._get_tensor(inputs, self.IMAGES, expected_rank=4)
-    with slim.arg_scope(
-        scope_utils.get_conv_scope(self._conv_scope_params, self._is_training)):
-      net, end_points = nopad_inception_v3_base(
-          images,
-          min_depth=self._min_depth,
-          depth_multiplier=self._depth_multiplier)
-      # Final pooling and prediction
-      with tf.variable_scope('Logits'):
-        # 1 x 1 x 768
-        net = slim.dropout(
-            net,
-            keep_prob=self._prelogit_dropout_keep_prob,
-            is_training=self._is_training,
-            scope='Dropout_1b')
-        end_points[self.PRE_LOGITS] = net
-        # 1 x 1 x num_classes
-        logits = slim.conv2d(
-            net,
-            self._num_classes, [1, 1],
-            activation_fn=None,
-            normalizer_fn=None,
-            stride=self._logits_stride,
-            scope='Conv2d_1c_1x1')
-      probabilities_tensor = tf.nn.softmax(logits)
-      end_points[self.PROBABILITIES_TENSOR] = probabilities_tensor
-      if self._logits_stride == 1:
-        # Reshape to remove height and width
-        end_points[self.LOGITS] = tf.squeeze(
-            logits, [1, 2], name='SpatialSqueeze')
-        end_points[self.PROBABILITIES] = tf.squeeze(
-            probabilities_tensor, [1, 2], name='SpatialSqueeze')
-      else:
-        end_points[self.LOGITS] = logits
-        end_points[self.PROBABILITIES] = probabilities_tensor
-    return end_points
-
-
-def get_inception_v3_fcn_network_fn(
-    inception_params,
-    conv_scope_params,
-    num_classes = 2,
-    is_training = True,
-):
-  """Returns a function that return logits and endpoints for slim uptraining."""
-
-  net = InceptionV3FCN(inception_params, conv_scope_params, num_classes,
-                       is_training)
-
-  def network_fn(images):
-    images_dict = {'Images': images}
-    endpoints = net.build(images_dict)
-    return endpoints['Logits'], endpoints
-
-  return network_fn

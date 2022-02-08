@@ -40,6 +40,10 @@ class ConvScopeParams:
 @dataclasses.dataclass
 class InceptionV3FCNParams:
   """Parameters for configuring an InceptionV3FCN network."""
+  # The receptive field size used by the network. Currently only two sizes are
+  # supported: 911 and 129.
+  receptive_field_size: int = 911
+
   # Prelogit dropout regularization strength.
   prelogit_dropout_keep_prob: float = 0.8
 
