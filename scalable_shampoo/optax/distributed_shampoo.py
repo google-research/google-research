@@ -414,7 +414,7 @@ def merge_small_dims(shape_to_merge, max_dim):
   Returns:
     Merged shape.
   """
-  if np.all(shape_to_merge == 1):
+  if shape_to_merge and np.all(shape_to_merge == 1):
     return [1]
 
   resulting_shape = []
