@@ -488,7 +488,7 @@ class TransformerDecoder(nn.Module):
 
 
 class TransformerIOEncoder(nn.Module):
-  """Transformer encoder for i/o examples."""
+  """Transformer encoder for i/o examples using double-attention."""
 
   config: TransformerConfig
 
@@ -514,9 +514,6 @@ class TransformerIOEncoder(nn.Module):
         embedding_init=nn.initializers.normal(stddev=1.0),
         name='embed')
 
-    if not cfg.use_relative_attention:
-      pos_emb = AddPositionEmbs(config=cfg, cache=False, name='posembed_io')
-
     x = inputs.astype('int32')
     y = outputs.astype('int32')
 
@@ -531,6 +528,7 @@ class TransformerIOEncoder(nn.Module):
     # Embed inputs.
     x = embed(x)
     if not cfg.use_relative_attention:
+      pos_emb = AddPositionEmbs(config=cfg, cache=False, name='posembed_io')
       x = pos_emb(x)
     x = nn.Dropout(rate=cfg.dropout_rate)(
         x, deterministic=cfg.deterministic)
@@ -637,3 +635,50 @@ class ProgramTransformer(nn.Module):
     encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
 
     return self.decode(programs, encoded, encoded_padding_mask)
+
+
+class TransformerEncoder(nn.Module):
+  """Vanilla Transformer encoder."""
+
+  config: TransformerConfig
+
+  @nn.compact
+  def __call__(self, inputs, dummy):
+    """Vanilla Transformer encoder.
+
+    Args:
+      inputs: input data [batch_size, num_io, length]
+      dummy: unused for SCAN dataset.
+    Returns:
+      Encoded inputs `[batch_size, num_io, length, dim]`
+    """
+    del dummy
+    # TODO(kshi): possibly use dummy for RobustFill.
+
+    cfg = self.config
+
+    # Inputs and outputs shared embeddings.
+    embed = nn.Embed(
+        num_embeddings=cfg.vocab_size,
+        features=cfg.emb_dim,
+        embedding_init=nn.initializers.normal(stddev=1.0),
+        name='embed')
+
+    x = inputs.astype('int32')
+    encoder_mask = nn.make_attention_mask(x > 0, x > 0, dtype=cfg.dtype)
+
+    # Embed outputs.
+    x = embed(x)
+    if not cfg.use_relative_attention:
+      pos_emb = AddPositionEmbs(config=cfg, cache=False, name='posembed_io')
+      x = pos_emb(x)
+    x = nn.Dropout(rate=cfg.dropout_rate)(
+        x, deterministic=cfg.deterministic)
+
+    for lyr in range(cfg.num_layers):
+      x = EncoderBlock(   # Attend to inputs.
+          config=cfg,
+          name=f'encoderblock_{lyr}')(x, encoder_mask)
+    y = nn.LayerNorm(dtype=cfg.dtype, name='encoder_norm')(x)
+
+    return y

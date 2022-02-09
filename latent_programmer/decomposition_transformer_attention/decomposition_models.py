@@ -37,6 +37,8 @@ class DecomposeAttentionTransformerConfig:
   attention_mask_type: str
   # Whether to use special relative attention computation for BOS tokens
   bos_special_attention: bool
+  # The kind of dataset: 'robust_fill' or 'scan'.
+  dataset_type: str
 
 
 def shift_left(x):
@@ -90,8 +92,15 @@ class DecomposeAttentionTransformer(nn.Module):
   def setup(self):
     base_config = self.config.base_config
 
-    self.encoder = base_models.TransformerIOEncoder(config=base_config,
+    if self.config.dataset_type == 'robust_fill':
+      self.encoder = base_models.TransformerIOEncoder(config=base_config,
+                                                      name='encoder')
+    elif self.config.dataset_type == 'scan':
+      self.encoder = base_models.TransformerEncoder(config=base_config,
                                                     name='encoder')
+    else:
+      raise ValueError('Unhandled dataset_type: {}'.format(
+          self.config.dataset_type))
     # Shifting is done separately in decoder.
     self.decoder = base_models.TransformerDecoder(
         config=base_config.replace(shift=False), name='decoder')
