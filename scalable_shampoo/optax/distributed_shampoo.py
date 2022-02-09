@@ -414,7 +414,7 @@ def merge_small_dims(shape_to_merge, max_dim):
   Returns:
     Merged shape.
   """
-  if shape_to_merge and np.all(shape_to_merge == 1):
+  if shape_to_merge and np.all(np.array(shape_to_merge) == 1):
     return [1]
 
   resulting_shape = []
@@ -917,17 +917,23 @@ def distributed_shampoo(
               index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
+    to_pad = -len(padded_statistics) % num_devices_for_pjit
+    if max_size == 0:
+      to_pad = num_devices_for_pjit
+      max_size = block_size
+      stat_dtype = jnp.float32
+    else:
+      stat_dtype = padded_statistics[0].dtype
     # Pad the statistics and preconditioner matrices to be a multiple of
     # num devices.
     # TODO(rohananil): Relax to only the size of the mesh axis where the dim
     # is split on.
-    to_pad = -len(padded_statistics) % num_devices_for_pjit
     padded_statistics.extend([
-        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        jnp.eye(max_size, dtype=stat_dtype)
         for _ in range(to_pad)
     ])
     padded_preconditioners.extend([
-        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        jnp.eye(max_size, dtype=stat_dtype)
         for _ in range(to_pad)
     ])
     exponents.extend([1 for _ in range(to_pad)])
@@ -1107,6 +1113,9 @@ def distributed_shampoo(
     max_statistics_size = _max_statistics_size_from_params(params_flat)
     to_pad = -num_statistics % num_devices_for_pjit
     num_statistics += to_pad
+    if num_statistics == 0:
+      num_statistics = num_devices_for_pjit
+      max_statistics_size = block_size
     statistics_shape = [
         num_statistics, max_statistics_size, max_statistics_size
     ]
