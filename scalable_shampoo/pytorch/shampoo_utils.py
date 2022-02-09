@@ -38,6 +38,8 @@ def merge_small_dims(var_shape, reshape_size):
   Returns:
     shape: a list of integers. Product(shape) = number of elements in var.
   """
+  if var_shape and np.all(np.array(var_shape) == 1):
+    return [1]
   shape = []
   product = 1
   for d in var_shape:
