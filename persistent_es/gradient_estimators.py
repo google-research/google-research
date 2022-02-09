@@ -1,5 +1,19 @@
-"""Gradient estimators.
-"""
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Gradient estimators."""
 import pdb
 from functools import partial
 
@@ -19,8 +33,8 @@ def es_grad(key, key_for_data, unroll_fn, theta, state, T, K, N, sigma):
     state: A NamedTuple containing the inner problem state information.
     T: The total horizon length for a full sequence/inner problem
     K: The truncation length for a partial unroll.
-    N: The number of particles/samples used to compute a Monte-Carlo estimate
-       of the expectation defining the ES gradient estimate.
+    N: The number of particles/samples used to compute a Monte-Carlo estimate of
+      the expectation defining the ES gradient estimate.
     sigma: The variance of perturbations.
 
   Returns:
@@ -28,14 +42,15 @@ def es_grad(key, key_for_data, unroll_fn, theta, state, T, K, N, sigma):
     noise pairs and unrolling the dynamical system for K steps with each
     perturbed value of theta.
   """
-  pos_pert = jax.random.normal(key, (N//2, len(theta))) * sigma
+  pos_pert = jax.random.normal(key, (N // 2, len(theta))) * sigma
   neg_pert = -pos_pert
   perts = jnp.concatenate([pos_pert, neg_pert])
-  obj, _ = jax.vmap(unroll_fn, in_axes=(None,0,None,None,None))(
-    key_for_data, theta + perts, state, T, K
-  )
+  obj, _ = jax.vmap(
+      unroll_fn,
+      in_axes=(None, 0, None, None, None))(key_for_data, theta + perts, state,
+                                           T, K)
 
-  weighted_obj = obj.reshape(-1,1) * perts
+  weighted_obj = obj.reshape(-1, 1) * perts
   grad_estimate = jnp.sum(weighted_obj, axis=0) / (N * sigma**2)
   return grad_estimate
 
@@ -52,8 +67,8 @@ def pes_grad(key, key_for_data, unroll_fn, theta, state, T, K, N, sigma):
     state: A NamedTuple containing the inner problem state information.
     T: The total horizon length for a full sequence/inner problem
     K: The truncation length for a partial unroll.
-    N: The number of particles/samples used to compute a Monte-Carlo estimate
-       of the expectation defining the ES gradient estimate.
+    N: The number of particles/samples used to compute a Monte-Carlo estimate of
+      the expectation defining the ES gradient estimate.
     sigma: The variance of perturbations.
 
   Returns:
@@ -61,15 +76,13 @@ def pes_grad(key, key_for_data, unroll_fn, theta, state, T, K, N, sigma):
     pairs and unrolling the dynamical system for K steps with each perturbed
     value of theta.
   """
-  pos_pert = jax.random.normal(key, (N//2, len(theta))) * sigma
+  pos_pert = jax.random.normal(key, (N // 2, len(theta))) * sigma
   neg_pert = -pos_pert
   perts = jnp.concatenate([pos_pert, neg_pert])
-  obj, state_new = jax.vmap(unroll_fn, in_axes=(None,0,0,None,None))(
-    key_for_data, theta + perts, state, T, K
-  )
-  state_new = state_new._replace(
-    pert_accums=state_new.pert_accums + perts
-  )
+  obj, state_new = jax.vmap(
+      unroll_fn, in_axes=(None, 0, 0, None, None))(key_for_data, theta + perts,
+                                                   state, T, K)
+  state_new = state_new._replace(pert_accums=state_new.pert_accums + perts)
 
   weighted_obj = obj.reshape(-1, 1) * state_new.pert_accums
   grad_estimate = jnp.sum(weighted_obj, axis=0) / (N * sigma**2)
@@ -77,9 +90,10 @@ def pes_grad(key, key_for_data, unroll_fn, theta, state, T, K, N, sigma):
 
 
 @partial(jax.jit, static_argnames=('unroll_fn', 'T', 'K', 'N', 'sigma'))
-def pes_grad_telescoping(key, key_for_data, unroll_fn, theta, state,
-                         T, K, N, sigma):
+def pes_grad_telescoping(key, key_for_data, unroll_fn, theta, state, T, K, N,
+                         sigma):
   """Computes the Persistent Evolution Strategies gradient estimate with
+
   telescoping sums.
 
   Args:
@@ -90,8 +104,8 @@ def pes_grad_telescoping(key, key_for_data, unroll_fn, theta, state,
     state: A NamedTuple containing the inner problem state information.
     T: The total horizon length for a full sequence/inner problem
     K: The truncation length for a partial unroll.
-    N: The number of particles/samples used to compute a Monte-Carlo estimate
-       of the expectation defining the ES gradient estimate.
+    N: The number of particles/samples used to compute a Monte-Carlo estimate of
+      the expectation defining the ES gradient estimate.
     sigma: The variance of perturbations.
 
   Returns:
@@ -99,31 +113,31 @@ def pes_grad_telescoping(key, key_for_data, unroll_fn, theta, state,
     pairs and unrolling the dynamical system for K steps with each perturbed
     value of theta.
   """
-  pos_pert = jax.random.normal(key, (N//2, len(theta))) * sigma
+  pos_pert = jax.random.normal(key, (N // 2, len(theta))) * sigma
   neg_pert = -pos_pert
   perts = jnp.concatenate([pos_pert, neg_pert])
 
   prev_obj = state.prev_obj
-  obj, state_new = jax.vmap(unroll_fn, in_axes=(None,0,0,None,None))(
-    key_for_data, theta + perts, state, T, K
-  )
+  obj, state_new = jax.vmap(
+      unroll_fn, in_axes=(None, 0, 0, None, None))(key_for_data, theta + perts,
+                                                   state, T, K)
 
   result = obj + prev_obj
   grad_estimate = jnp.sum(
       result.reshape(-1, 1) * (state_new.pert_accums + perts) -
       (prev_obj.reshape(-1, 1) * state_new.pert_accums),
-      axis=0) / (N * sigma**2)
+      axis=0) / (
+          N * sigma**2)
 
-  state_new = state_new._replace(
-    pert_accums=state_new.pert_accums + perts
-  )
+  state_new = state_new._replace(pert_accums=state_new.pert_accums + perts)
   return grad_estimate, state_new
 
 
 @partial(jax.jit, static_argnames=('unroll_fn', 'T', 'K', 'N', 'sigma'))
-def pes_grad_analytic(key, key_for_data, unroll_fn, theta, state, state_mean,
-                      T, K, N, sigma):
+def pes_grad_analytic(key, key_for_data, unroll_fn, theta, state, state_mean, T,
+                      K, N, sigma):
   """Computes the PES+Analytic gradient estimate, which incorporates the
+
   analytic gradient from the most recent unroll.
 
   Args:
@@ -133,11 +147,11 @@ def pes_grad_analytic(key, key_for_data, unroll_fn, theta, state, state_mean,
     theta: The mean value of theta about which we sample perturbed thetas.
     state: A NamedTuple containing the inner problem state information.
     state_mean: An extra (single) state that is evolved using the mean outer
-                parameters theta (without perturbations).
+      parameters theta (without perturbations).
     T: The total horizon length for a full sequence/inner problem
     K: The truncation length for a partial unroll.
-    N: The number of particles/samples used to compute a Monte-Carlo estimate
-       of the expectation defining the ES gradient estimate.
+    N: The number of particles/samples used to compute a Monte-Carlo estimate of
+      the expectation defining the ES gradient estimate.
     sigma: The variance of perturbations.
 
   Returns:
@@ -145,32 +159,38 @@ def pes_grad_analytic(key, key_for_data, unroll_fn, theta, state, state_mean,
     noise pairs and unrolling the dynamical system for K steps with each
     perturbed value of theta.
   """
-  pos_pert = jax.random.normal(key, (N//2, len(theta))) * sigma
+  pos_pert = jax.random.normal(key, (N // 2, len(theta))) * sigma
   neg_pert = -pos_pert
   perts = jnp.concatenate([pos_pert, neg_pert])
 
-  losses, state_new = jax.vmap(unroll_fn, in_axes=(None,0,0,None,None))(
-    key_for_data, theta + perts, state, T, K
-  )
+  losses, state_new = jax.vmap(
+      unroll_fn, in_axes=(None, 0, 0, None, None))(key_for_data, theta + perts,
+                                                   state, T, K)
 
   analytic_gradient, _ = jax.jit(
-    jax.grad(unroll_fn, argnums=1, has_aux=True),
-    static_argnames=('T', 'K')
-  )(key_for_data, theta, state_mean, T, K)
+      jax.grad(unroll_fn, argnums=1, has_aux=True),
+      static_argnames=('T', 'K'))(key_for_data, theta, state_mean, T, K)
   flat_analytic_grad = analytic_gradient
   things = losses - jnp.dot(perts, flat_analytic_grad)
   weighted_objective = things.reshape(-1, 1) * state_new.pert_accums
   grad_estimate = jnp.sum(weighted_objective, axis=0) / (N * sigma**2)
-  state_new = state_new._replace(
-    pert_accums=state_new.pert_accums + perts
-  )
+  state_new = state_new._replace(pert_accums=state_new.pert_accums + perts)
   grad_estimate = grad_estimate + flat_analytic_grad
   return grad_estimate, state_new
 
 
 class ESParticleChunk:
-  def __init__(self, key, K, T, sigma, N, init_state_fn, unroll_fn,
-               initial_reset_t=None, telescoping=False):
+
+  def __init__(self,
+               key,
+               K,
+               T,
+               sigma,
+               N,
+               init_state_fn,
+               unroll_fn,
+               initial_reset_t=None,
+               telescoping=False):
     super().__init__()
     self.key, self.key_unroll, self.key_eval = jax.random.split(key, num=3)
     self.unroll_fn = unroll_fn
@@ -201,14 +221,19 @@ class ESParticleChunk:
 
     skey_for_data = (skey_unroll, skey_eval)
     gradient = es_grad(
-        skey, skey_for_data, self.unroll_fn, theta, self.state,
-        self.T, self.K, N=self.N, sigma=self.sigma
-    )
+        skey,
+        skey_for_data,
+        self.unroll_fn,
+        theta,
+        self.state,
+        self.T,
+        self.K,
+        N=self.N,
+        sigma=self.sigma)
 
     if update_state:
-      _, self.state = self.unroll_fn(
-        skey_for_data, theta, self.state, self.T, self.K
-      )
+      _, self.state = self.unroll_fn(skey_for_data, theta, self.state, self.T,
+                                     self.K)
 
       self.key = key
       self.key_eval = key_eval
@@ -223,8 +248,18 @@ class ESParticleChunk:
 
 
 class PESParticleChunk:
-  def __init__(self, key, init_state_fn, unroll_fn, theta_shape,
-               K, T, sigma, N, initial_reset_t=None, telescoping=False):
+
+  def __init__(self,
+               key,
+               init_state_fn,
+               unroll_fn,
+               theta_shape,
+               K,
+               T,
+               sigma,
+               N,
+               initial_reset_t=None,
+               telescoping=False):
     super().__init__()
     self.key, self.key_unroll, self.key_eval = jax.random.split(key, num=3)
     self.T = T
@@ -240,12 +275,9 @@ class PESParticleChunk:
     self.reset()
 
   def reset(self):
-    self.state = jax.vmap(self.init_state_fn)(
-      jnp.array([self.key] * self.N)
-    )
+    self.state = jax.vmap(self.init_state_fn)(jnp.array([self.key] * self.N))
     self.state = self.state._replace(
-      pert_accums=jnp.zeros((self.N, self.theta_shape[0]))
-    )
+        pert_accums=jnp.zeros((self.N, self.theta_shape[0])))
 
     if self.telescoping:
       self.key_eval, skey_eval = jax.random.split(self.key_eval)
@@ -263,9 +295,15 @@ class PESParticleChunk:
 
     skey_for_data = (skey_unroll, skey_eval)
     gradient, state_updated = pes_grad_fn(
-        skey, skey_for_data, self.unroll_fn, theta, self.state,
-        self.T, self.K, N=self.N, sigma=self.sigma
-    )
+        skey,
+        skey_for_data,
+        self.unroll_fn,
+        theta,
+        self.state,
+        self.T,
+        self.K,
+        N=self.N,
+        sigma=self.sigma)
 
     if update_state:
       self.key = key
@@ -281,8 +319,18 @@ class PESParticleChunk:
 
 
 class PESAParticleChunk:
-  def __init__(self, key, init_state_fn, unroll_fn, theta_shape,
-               K, T, sigma, N, initial_reset_t=None, telescoping=False):
+
+  def __init__(self,
+               key,
+               init_state_fn,
+               unroll_fn,
+               theta_shape,
+               K,
+               T,
+               sigma,
+               N,
+               initial_reset_t=None,
+               telescoping=False):
     super().__init__()
     self.key, self.key_for_data = jax.random.split(key)
     self.T = T
@@ -298,12 +346,9 @@ class PESAParticleChunk:
     self.reset()
 
   def reset(self):
-    self.state = jax.vmap(self.init_state_fn)(
-      jnp.array([self.key] * self.N)
-    )
+    self.state = jax.vmap(self.init_state_fn)(jnp.array([self.key] * self.N))
     self.state = self.state._replace(
-      pert_accums=jnp.zeros((self.N, self.theta_shape[0]))
-    )
+        pert_accums=jnp.zeros((self.N, self.theta_shape[0])))
 
     # Initialize an additional state that will be evolved using the mean thetas
     self.state_mean = self.init_state_fn(self.key)
@@ -322,15 +367,21 @@ class PESAParticleChunk:
       key_for_data, skey_for_data = jax.random.split(self.key_for_data)
 
     gradient, state_updated = pes_grad_analytic(
-        skey, skey_for_data, self.unroll_fn, theta, self.state, self.state_mean,
-        self.T, self.K, N=self.N, sigma=self.sigma
-    )
+        skey,
+        skey_for_data,
+        self.unroll_fn,
+        theta,
+        self.state,
+        self.state_mean,
+        self.T,
+        self.K,
+        N=self.N,
+        sigma=self.sigma)
 
     if update_state:
       # Update state_mean using the mean thetas
-      _, self.state_mean = self.unroll_fn(
-          skey_for_data, theta, self.state_mean, self.T, self.K
-      )
+      _, self.state_mean = self.unroll_fn(skey_for_data, theta, self.state_mean,
+                                          self.T, self.K)
 
       self.key = key
       self.key_for_data = key_for_data
@@ -345,6 +396,7 @@ class PESAParticleChunk:
 
 
 class TBPTTParticle:
+
   def __init__(self, key, init_state_fn, unroll_fn, K, T, initial_reset_t=None):
     super().__init__()
 
@@ -361,23 +413,18 @@ class TBPTTParticle:
 
     self.unroll_grad = jax.jit(
         jax.grad(unroll_fn, argnums=1, has_aux=True),
-        static_argnames=('T', 'K')
-    )
+        static_argnames=('T', 'K'))
 
   def reset(self):
     self.state = self.init_state_fn(self.key)
 
   def grad_estimate(self, theta, update_state=True):
     key, skey = jax.random.split(self.key)
-    gradient, _ = self.unroll_grad(
-        skey, theta, self.state, self.T, self.K
-    )
+    gradient, _ = self.unroll_grad(skey, theta, self.state, self.T, self.K)
 
     if update_state:
       self.key = key
-      _, self.state = self.unroll_fn(
-          skey, theta, self.state, self.T, self.K
-      )
+      _, self.state = self.unroll_fn(skey, theta, self.state, self.T, self.K)
 
       if (self.state.t >= self.T) or \
          (not self.has_been_reset and (self.state.t >= self.initial_reset_t)):
@@ -388,6 +435,7 @@ class TBPTTParticle:
 
 
 class RTRLParticle:
+
   def __init__(self, key, init_state_fn, unroll_fn, K, T, initial_reset_t=None):
     super().__init__()
 
@@ -435,11 +483,9 @@ class RTRLParticle:
     dl_dtheta_direct = self.compute_dL_dtheta_direct(theta, state_old)
 
     d_state_new_d_state_old = self.compute_d_state_new_d_state_old(
-        theta, state_old
-    )
+        theta, state_old)
     d_state_new_d_theta_direct = self.compute_d_state_new_d_theta_direct(
-        theta, state_old
-    )
+        theta, state_old)
 
     dl_dstate_old = dl_dstate_old.inner_state
     d_state_new_d_state_old = d_state_new_d_state_old.inner_state
@@ -453,9 +499,9 @@ class RTRLParticle:
     return (total_loss, state_new, dstate_dtheta), total_theta_grad
 
   def grad_estimate(self, theta, update_state=True):
-    (loss, state_updated, dstate_dtheta_updated), gradient = self.rtrl_grad(
-        theta, self.state, self.dstate_dtheta
-    )
+    (loss, state_updated,
+     dstate_dtheta_updated), gradient = self.rtrl_grad(theta, self.state,
+                                                       self.dstate_dtheta)
 
     if update_state:
       self.state = state_updated
@@ -470,6 +516,7 @@ class RTRLParticle:
 
 
 class UOROParticle:
+
   def __init__(self, key, init_state_fn, unroll_fn, K, T, initial_reset_t=None):
     super().__init__()
 
@@ -531,28 +578,26 @@ class UOROParticle:
     indirect_grad = (dl_dstate_old * s_tilde).sum() * theta_tilde
     pseudograds = indirect_grad + dl_dtheta_direct
 
-    state_old_perturbed = state_old._replace(
-        inner_state=state_old.inner_state + s_tilde * epsilon_perturbation
-    )
+    state_old_perturbed = state_old._replace(inner_state=state_old.inner_state +
+                                             s_tilde * epsilon_perturbation)
     state_new_perturbed = self.f(theta, state_old_perturbed)
 
     state_deriv_in_direction_s_tilde = (
-        (state_new_perturbed - state_new.inner_state) / epsilon_perturbation
-    )
+        (state_new_perturbed - state_new.inner_state) / epsilon_perturbation)
 
-    nus = jnp.round(jax.random.uniform(key, state_old.inner_state.shape)) * 2 - 1
+    nus = jnp.round(jax.random.uniform(key,
+                                       state_old.inner_state.shape)) * 2 - 1
 
     custom_f = lambda param_vector: self.f(param_vector, state_old)
     primals, f_vjp = jax.vjp(custom_f, theta)
     direct_theta_tilde_contribution, = f_vjp(nus)
 
-    rho_0 = jnp.sqrt((jnp.linalg.norm(theta_tilde) + epsilon_stability)
-                      / (jnp.linalg.norm(state_deriv_in_direction_s_tilde)
-                      + epsilon_stability))
+    rho_0 = jnp.sqrt(
+        (jnp.linalg.norm(theta_tilde) + epsilon_stability) /
+        (jnp.linalg.norm(state_deriv_in_direction_s_tilde) + epsilon_stability))
     rho_1 = jnp.sqrt(
-        (jnp.linalg.norm(direct_theta_tilde_contribution) + epsilon_stability)
-        / (jnp.linalg.norm(nus) + epsilon_stability)
-    )
+        (jnp.linalg.norm(direct_theta_tilde_contribution) + epsilon_stability) /
+        (jnp.linalg.norm(nus) + epsilon_stability))
 
     theta_grad = pseudograds
     total_theta_grad += theta_grad
@@ -564,9 +609,9 @@ class UOROParticle:
 
   def grad_estimate(self, theta, update_state=True):
     key, skey = jax.random.split(self.key)
-    (loss, state_updated, s_tilde, theta_tilde), gradient = self.uoro_grad(
-      skey, theta, self.state, self.s_tilde, self.theta_tilde
-    )
+    (loss, state_updated, s_tilde,
+     theta_tilde), gradient = self.uoro_grad(skey, theta, self.state,
+                                             self.s_tilde, self.theta_tilde)
 
     if update_state:
       self.key = key
@@ -583,10 +628,20 @@ class UOROParticle:
 
 
 class MultiParticleEstimator:
-  def __init__(self, key, theta_shape, n_chunks,
-               n_particles_per_chunk, K, T, sigma,
-               init_state_fn, unroll_fn, method='lockstep',
-               estimator_type='es', telescoping=False):
+
+  def __init__(self,
+               key,
+               theta_shape,
+               n_chunks,
+               n_particles_per_chunk,
+               K,
+               T,
+               sigma,
+               init_state_fn,
+               unroll_fn,
+               method='lockstep',
+               estimator_type='es',
+               telescoping=False):
     super().__init__()
 
     if T is None:
@@ -609,46 +664,68 @@ class MultiParticleEstimator:
 
       if estimator_type == 'es':
         particle_chunk = ESParticleChunk(
-          key=keys[i], K=K, T=T, sigma=sigma,
-          N=n_particles_per_chunk, initial_reset_t=initial_reset_t,
-          init_state_fn=init_state_fn, unroll_fn=unroll_fn,
-          telescoping=telescoping
-        )
+            key=keys[i],
+            K=K,
+            T=T,
+            sigma=sigma,
+            N=n_particles_per_chunk,
+            initial_reset_t=initial_reset_t,
+            init_state_fn=init_state_fn,
+            unroll_fn=unroll_fn,
+            telescoping=telescoping)
       elif estimator_type == 'pes':
         particle_chunk = PESParticleChunk(
-          key=keys[i], theta_shape=theta_shape, K=K, T=T, sigma=sigma,
-          N=n_particles_per_chunk, initial_reset_t=initial_reset_t,
-          init_state_fn=init_state_fn, unroll_fn=unroll_fn,
-          telescoping=telescoping
-        )
+            key=keys[i],
+            theta_shape=theta_shape,
+            K=K,
+            T=T,
+            sigma=sigma,
+            N=n_particles_per_chunk,
+            initial_reset_t=initial_reset_t,
+            init_state_fn=init_state_fn,
+            unroll_fn=unroll_fn,
+            telescoping=telescoping)
       elif estimator_type == 'pes-a':
         particle_chunk = PESAParticleChunk(
-          key=keys[i], theta_shape=theta_shape, K=K, T=T, sigma=sigma,
-          N=n_particles_per_chunk, initial_reset_t=initial_reset_t,
-          init_state_fn=init_state_fn, unroll_fn=unroll_fn,
-          telescoping=telescoping
-        )
+            key=keys[i],
+            theta_shape=theta_shape,
+            K=K,
+            T=T,
+            sigma=sigma,
+            N=n_particles_per_chunk,
+            initial_reset_t=initial_reset_t,
+            init_state_fn=init_state_fn,
+            unroll_fn=unroll_fn,
+            telescoping=telescoping)
       elif estimator_type == 'tbptt':
         particle_chunk = TBPTTParticle(
-          key=keys[i], K=K, T=T, initial_reset_t=initial_reset_t,
-          init_state_fn=init_state_fn, unroll_fn=unroll_fn
-        )
+            key=keys[i],
+            K=K,
+            T=T,
+            initial_reset_t=initial_reset_t,
+            init_state_fn=init_state_fn,
+            unroll_fn=unroll_fn)
       elif estimator_type == 'rtrl':
         particle_chunk = RTRLParticle(
-          key=keys[i], K=K, T=T, initial_reset_t=initial_reset_t,
-          init_state_fn=init_state_fn, unroll_fn=unroll_fn
-        )
+            key=keys[i],
+            K=K,
+            T=T,
+            initial_reset_t=initial_reset_t,
+            init_state_fn=init_state_fn,
+            unroll_fn=unroll_fn)
       elif estimator_type == 'uoro':
         particle_chunk = UOROParticle(
-          key=keys[i], K=K, T=T, initial_reset_t=initial_reset_t,
-          init_state_fn=init_state_fn, unroll_fn=unroll_fn
-        )
+            key=keys[i],
+            K=K,
+            T=T,
+            initial_reset_t=initial_reset_t,
+            init_state_fn=init_state_fn,
+            unroll_fn=unroll_fn)
       self.particle_chunks.append(particle_chunk)
 
   def grad_estimate(self, theta, update_state=True):
     total_gradient = 0.0
     for particle_chunk in self.particle_chunks:
       total_gradient += particle_chunk.grad_estimate(
-          theta, update_state=update_state
-      )
+          theta, update_state=update_state)
     return total_gradient / float(self.n_chunks)

@@ -1,3 +1,18 @@
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Meta-learning a learning rate schedule for a toy 2D regression task.
 
 Examples:
@@ -37,53 +52,70 @@ from logger import CSVLogger
 
 
 parser = argparse.ArgumentParser(
-    description='Hyperparameter Optimization for a 2D Toy Regression Task'
-)
-parser.add_argument('--outer_iterations', type=int, default=20000,
-                    help='Max number of outer iterations')
+    description='Hyperparameter Optimization for a 2D Toy Regression Task')
+parser.add_argument(
+    '--outer_iterations',
+    type=int,
+    default=20000,
+    help='Max number of outer iterations')
 
 # Meta-optimization hyperparameters
-parser.add_argument('--estimate', type=str, default='es',
-                    choices=['tbptt', 'rtrl', 'uoro', 'es', 'pes', 'pes-a'],
-                    help='Method for estimating gradients')
-parser.add_argument('--tune_params', type=str, default='lr:linear',
-                    help='Comma-separated string of hparams to search over')
-parser.add_argument('--objective', type=str, default='sum',
-                    choices=['sum', 'final'],
-                    help='Whether to evaluate theta based on the sum of losses'
-                         'for the unroll or the final loss')
+parser.add_argument(
+    '--estimate',
+    type=str,
+    default='es',
+    choices=['tbptt', 'rtrl', 'uoro', 'es', 'pes', 'pes-a'],
+    help='Method for estimating gradients')
+parser.add_argument(
+    '--tune_params',
+    type=str,
+    default='lr:linear',
+    help='Comma-separated string of hparams to search over')
+parser.add_argument(
+    '--objective',
+    type=str,
+    default='sum',
+    choices=['sum', 'final'],
+    help='Whether to evaluate theta based on the sum of losses'
+    'for the unroll or the final loss')
 parser.add_argument('--T', type=int, default=100,
                     help='Number of unroll steps for the inner optimization')
 parser.add_argument('--K', type=int, default=10,
                     help='Truncation length')
-parser.add_argument('--sigma', type=float, default=0.3,
-                    help='Perturbation scale for ES/PES')
-parser.add_argument('--n_per_chunk', type=int, default=100,
-                    help='Number of particles per chunk')
-parser.add_argument('--n_chunks', type=int, default=1,
-                    help='Number of ParticleChunks')
+parser.add_argument(
+    '--sigma', type=float, default=0.3, help='Perturbation scale for ES/PES')
+parser.add_argument(
+    '--n_per_chunk',
+    type=int,
+    default=100,
+    help='Number of particles per chunk')
+parser.add_argument(
+    '--n_chunks', type=int, default=1, help='Number of ParticleChunks')
 
 # Inner optimization hyperparameters
-parser.add_argument('--inner_optimizer', type=str, default='sgd',
-                    choices=['sgd', 'sgdm', 'adam'],
-                    help='Inner optimizer')
-parser.add_argument('--lr', type=float, default=1e-2,
-                    help='Learning rate')
-parser.add_argument('--b1', type=float, default=0.99,
-                    help='Adam b1 hyperparameter')
-parser.add_argument('--b2', type=float, default=0.999,
-                    help='Adam b2 hyperparameter')
-parser.add_argument('--eps', type=float, default=1e-8,
-                    help='Adam epsilon hyperparameter')
-parser.add_argument('--mom', type=float, default=0.9,
-                    help='Momentum')
-parser.add_argument('--wd', type=float, default=1e-10,
-                    help='Weight decay')
+parser.add_argument(
+    '--inner_optimizer',
+    type=str,
+    default='sgd',
+    choices=['sgd', 'sgdm', 'adam'],
+    help='Inner optimizer')
+parser.add_argument('--lr', type=float, default=1e-2, help='Learning rate')
+parser.add_argument(
+    '--b1', type=float, default=0.99, help='Adam b1 hyperparameter')
+parser.add_argument(
+    '--b2', type=float, default=0.999, help='Adam b2 hyperparameter')
+parser.add_argument(
+    '--eps', type=float, default=1e-8, help='Adam epsilon hyperparameter')
+parser.add_argument('--mom', type=float, default=0.9, help='Momentum')
+parser.add_argument('--wd', type=float, default=1e-10, help='Weight decay')
 
 # Outer optimization hyperparameters
-parser.add_argument('--outer_optimizer', type=str, default='adam',
-                    choices=['adam', 'sgd'],
-                    help='Optimizer')
+parser.add_argument(
+    '--outer_optimizer',
+    type=str,
+    default='adam',
+    choices=['adam', 'sgd'],
+    help='Optimizer')
 parser.add_argument('--outer_lr', type=float, default=1e-2,
                     help='Outer learning rate')
 parser.add_argument('--outer_b1', type=float, default=0.99,
@@ -92,33 +124,42 @@ parser.add_argument('--outer_b2', type=float, default=0.999,
                     help='Outer optimizer beta2')
 parser.add_argument('--outer_eps', type=float, default=1e-8,
                     help='Outer optimizer epsilon')
-parser.add_argument('--outer_clip', type=float, default=-1,
-                    help='Gradient clipping for the outer optimization'
-                         '(-1 means no clipping)')
+parser.add_argument(
+    '--outer_clip',
+    type=float,
+    default=-1,
+    help='Gradient clipping for the outer optimization'
+    '(-1 means no clipping)')
 
-parser.add_argument('--init_theta', type=str, default='-4.0,-4.0',
-                    help='Initial value for the initial learning rate')
+parser.add_argument(
+    '--init_theta',
+    type=str,
+    default='-4.0,-4.0',
+    help='Initial value for the initial learning rate')
 
 # Logging/plotting hyperparameters
-parser.add_argument('--print_interval', type=int, default=10,
-                    help='How often to print stats')
-parser.add_argument('--log_interval', type=int, default=10,
-                    help='How often to print stats and save to log files')
-parser.add_argument('--seed', type=int, default=3,
-                    help='Seed for PRNG')
+parser.add_argument(
+    '--print_interval', type=int, default=10, help='How often to print stats')
+parser.add_argument(
+    '--log_interval',
+    type=int,
+    default=10,
+    help='How often to print stats and save to log files')
+parser.add_argument('--seed', type=int, default=3, help='Seed for PRNG')
 parser.add_argument('--save_dir', type=str, default='saves/toy_regression',
                     help='Base save directory')
 args = parser.parse_args()
 
 args.tune_param_string = args.tune_params
-args.tune_params = [{'param': p.split(':')[0], 'sched': p.split(':')[1]} for
-                    p in args.tune_params.split(',')]
+args.tune_params = [{
+    'param': p.split(':')[0],
+    'sched': p.split(':')[1]
+} for p in args.tune_params.split(',')]
 
 exp_name = '{}-{}-{}-{}-optim:{}-lr:{}-T:{}-K:{}-Nc:{}-Npc:{}-sigma:{}-seed:{}'.format(
-            args.estimate, args.objective, args.tune_param_string,
-            args.init_theta, args.outer_optimizer, args.outer_lr,
-            args.T, args.K, args.n_chunks, args.n_per_chunk, args.sigma,
-            args.seed)
+    args.estimate, args.objective, args.tune_param_string, args.init_theta,
+    args.outer_optimizer, args.outer_lr, args.T, args.K, args.n_chunks,
+    args.n_per_chunk, args.sigma, args.seed)
 
 args.init_theta = [float(p.strip()) for p in args.init_theta.split(',')]
 
@@ -131,10 +172,11 @@ with open(os.path.join(save_dir, 'args.yaml'), 'w') as f:
   yaml.dump(vars(args), f)
 
 iteration_logger = CSVLogger(
-    fieldnames=['time_elapsed', 'iteration', 'inner_problem_steps',
-                'theta0', 'theta1', 'theta0_grad', 'theta1_grad', 'L'],
-    filename=os.path.join(save_dir, 'iteration.csv')
-)
+    fieldnames=[
+        'time_elapsed', 'iteration', 'inner_problem_steps', 'theta0', 'theta1',
+        'theta0_grad', 'theta1_grad', 'L'
+    ],
+    filename=os.path.join(save_dir, 'iteration.csv'))
 
 @jax.jit
 def loss(x):
@@ -162,15 +204,10 @@ if args.inner_optimizer == 'adam':
       'eps': args.eps
   }
 elif args.inner_optimizer == 'sgdm':
-  init_opt_params = {
-      'lr': args.lr,
-      'mom': args.momentum
-  }
+  init_opt_params = {'lr': args.lr, 'mom': args.momentum}
 elif args.inner_optimizer == 'sgd':
-  init_opt_params = {
-      'lr': args.lr,
-      'wd': args.wd
-  }
+  init_opt_params = {'lr': args.lr, 'wd': args.wd}
+
 
 def get_inner_opt_params(inner_opt_params, theta, t, T):
   updated_inner_opt_params = copy.deepcopy(inner_opt_params)
@@ -182,42 +219,39 @@ def get_inner_opt_params(inner_opt_params, theta, t, T):
       continue
     theta_subset = theta[jnp.array(idx_dict[param])]
     updated_inner_opt_params[param] = schedule.schedule_funcs[sched](
-        updated_inner_opt_params, theta_subset, param, t, T
-    )
+        updated_inner_opt_params, theta_subset, param, t, T)
   return updated_inner_opt_params
 
 
 @partial(jax.jit, static_argnames=('T', 'K'))
 def unroll(rng, theta, state, T, K):
+
   def update(loop_state, t):
     state, L = loop_state
     g = loss_grad(state.inner_state)
-    inner_opt_params = get_inner_opt_params(
-        state.inner_opt_state, theta, state.t, T
-    )
-    inner_state_updated, inner_opt_params = opt_step(
-        state.inner_state, g, inner_opt_params
-    )
+    inner_opt_params = get_inner_opt_params(state.inner_opt_state, theta,
+                                            state.t, T)
+    inner_state_updated, inner_opt_params = opt_step(state.inner_state, g,
+                                                     inner_opt_params)
     loss_value = loss(inner_state_updated)
     L += loss_value
 
     state_updated = state._replace(
-      inner_state=inner_state_updated,
-      inner_opt_state=inner_opt_params,
-      t=state.t+1,
+        inner_state=inner_state_updated,
+        inner_opt_state=inner_opt_params,
+        t=state.t + 1,
     )
     return (state_updated, L), loss_value
 
-  (state_updated, L), loss_values = jax.lax.scan(
-    update, (state, 0.0), jnp.array(list(range(K)))
-  )
+  (state_updated, L), loss_values = jax.lax.scan(update, (state, 0.0),
+                                                 jnp.array(list(range(K))))
 
   result = jnp.sum(loss_values)
   return result, state_updated
 
-grad_unroll = jax.jit(jax.grad(unroll, argnums=0, has_aux=True),
-                      static_argnames=('T', 'K'))
 
+grad_unroll = jax.jit(
+    jax.grad(unroll, argnums=0, has_aux=True), static_argnames=('T', 'K'))
 
 theta_vals = []
 idx_dict = {}
@@ -232,11 +266,11 @@ for (j, setting) in enumerate(args.tune_params):
     idx += 1
   elif sched == 'linear':
     theta_vals += [default, default]
-    idx_dict[param] = [idx, idx+1]
+    idx_dict[param] = [idx, idx + 1]
     idx += 2
   elif sched == 'inverse-time-decay':
     theta_vals += [default, default]
-    idx_dict[param] = [idx, idx+1]
+    idx_dict[param] = [idx, idx + 1]
     idx += 2
 
 theta = jnp.array(theta_vals)
@@ -250,17 +284,16 @@ class InnerState(NamedTuple):
 
 
 def init_state_fn(rng):
-  """Initialize the inner parameters.
-  """
+  """Initialize the inner parameters."""
   x = jnp.array([1.0, 1.0])
   inner_opt_state = reset_opt_params(x, init_opt_params)
   inner_state = InnerState(
       # Need to have t be floating point for jax.grad in RTRL and UORO
       t=jnp.array(0.0),
       inner_state=x,
-      inner_opt_state=inner_opt_state
-  )
+      inner_opt_state=inner_opt_state)
   return inner_state
+
 
 # =============================================================
 
@@ -269,17 +302,17 @@ theta_opt_state = theta_opt.init(theta)
 
 key = jax.random.PRNGKey(args.seed)
 estimator = gradient_estimators.MultiParticleEstimator(
-  key=key,
-  theta_shape=theta.shape,
-  n_chunks=args.n_chunks,
-  n_particles_per_chunk=args.n_per_chunk,
-  K=args.K,
-  T=args.T,
-  sigma=args.sigma,
-  method='lockstep',
-  estimator_type=args.estimate,
-  init_state_fn=init_state_fn,
-  unroll_fn=unroll,
+    key=key,
+    theta_shape=theta.shape,
+    n_chunks=args.n_chunks,
+    n_particles_per_chunk=args.n_per_chunk,
+    K=args.K,
+    T=args.T,
+    sigma=args.sigma,
+    method='lockstep',
+    estimator_type=args.estimate,
+    init_state_fn=init_state_fn,
+    unroll_fn=unroll,
 )
 
 # This will never be reset, it will track time from the very start
@@ -296,8 +329,7 @@ for outer_iteration in range(args.outer_iterations):
 
   if outer_iteration % args.print_interval == 0:
     print('Outer iter: {} | Outer params: {} | Exp(outer): {}'.format(
-      outer_iteration, theta, jnp.exp(theta)
-    ))
+        outer_iteration, theta, jnp.exp(theta)))
     sys.stdout.flush()
 
   if outer_iteration % args.log_interval == 0:
@@ -308,18 +340,19 @@ for outer_iteration in range(args.outer_iterations):
     L, _ = unroll(skey, theta, fresh_inner_state, args.T, args.T)
 
     iteration_logger.writerow({
-      'time_elapsed': time.time() - start_time,
-      'iteration': outer_iteration,
-      'inner_problem_steps': outer_iteration * args.K,
-      'theta0': float(theta[0]),
-      'theta1': float(theta[1]),
-      'theta0_grad': float(theta_grad[0]),
-      'theta1_grad': float(theta_grad[1]),
-      'L': float(L)
+        'time_elapsed': time.time() - start_time,
+        'iteration': outer_iteration,
+        'inner_problem_steps': outer_iteration * args.K,
+        'theta0': float(theta[0]),
+        'theta1': float(theta[1]),
+        'theta0_grad': float(theta_grad[0]),
+        'theta1_grad': float(theta_grad[1]),
+        'L': float(L)
     })
 
-    print('Time: {:6.3f} | Meta-iter: {} | theta: {} | theta_grad: {} | L: {:6.3f}'.format(
-           time.time() - log_start_time, outer_iteration, theta, theta_grad,
-           float(L)))
+    print(
+        'Time: {:6.3f} | Meta-iter: {} | theta: {} | theta_grad: {} | L: {:6.3f}'
+        .format(time.time() - log_start_time, outer_iteration, theta,
+                theta_grad, float(L)))
     sys.stdout.flush()
     log_start_time = time.time()

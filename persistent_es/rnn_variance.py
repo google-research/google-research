@@ -1,4 +1,20 @@
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """This script measures the empirical variance of PES using a tiny toy LSTM on
+
 a subset of the Penn TreeBank dataset.
 
 Examples:
@@ -53,6 +69,7 @@ from jax.tree_util import tree_flatten, tree_unflatten
 import haiku as hk
 
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -61,18 +78,26 @@ sns.set_palette('bright')
 
 import gradient_estimators
 
-
-parser = argparse.ArgumentParser(description='Empirical variance for a small LSTM')
-parser.add_argument('--scenario', type=str, default='real',
-                    choices=['real', 'random', 'repeat'],
-                    help='Scenario for the data distribution')
-parser.add_argument('--estimate', type=str, default='pes',
-                    choices=['pes', 'pes-a'],
-                    help='Choose which gradient estimate to use')
-parser.add_argument('--T', type=int, default=1000,
-                    help='Total sequence length')
-parser.add_argument('--save_dir', type=str, default='saves/rnn_variance',
-                    help='Save directory for the RNN variance result dict')
+parser = argparse.ArgumentParser(
+    description='Empirical variance for a small LSTM')
+parser.add_argument(
+    '--scenario',
+    type=str,
+    default='real',
+    choices=['real', 'random', 'repeat'],
+    help='Scenario for the data distribution')
+parser.add_argument(
+    '--estimate',
+    type=str,
+    default='pes',
+    choices=['pes', 'pes-a'],
+    help='Choose which gradient estimate to use')
+parser.add_argument('--T', type=int, default=1000, help='Total sequence length')
+parser.add_argument(
+    '--save_dir',
+    type=str,
+    default='saves/rnn_variance',
+    help='Save directory for the RNN variance result dict')
 args = parser.parse_args()
 
 
@@ -88,18 +113,18 @@ def batchify(data, batch_size):
   # Work out how cleanly we can divide the dataset into batch_size parts.
   nbatch = data.shape[0] // batch_size
   # Trim off any extra elements that wouldn't cleanly fit (remainders).
-  data = data[0:nbatch*batch_size]
+  data = data[0:nbatch * batch_size]
   # Evenly divide the data across the batch_size batches.
   data = data.reshape(batch_size, -1).T
   return data
 
 def get_batch(source, i, seq_len=40, flatten_targets=True):
   seq_len = min(seq_len, len(source) - 1 - i)
-  data = source[i:i+seq_len]
+  data = source[i:i + seq_len]
   if flatten_targets:
-      target = source[i+1:i+1+seq_len].reshape(-1)
+    target = source[i + 1:i + 1 + seq_len].reshape(-1)
   else:
-      target = source[i+1:i+1+seq_len]
+    target = source[i + 1:i + 1 + seq_len]
   return data, target
 
 def flatten(parameters):
@@ -113,6 +138,7 @@ def flat_norm(parameters):
   return total_norm
 
 class Dictionary(object):
+
   def __init__(self):
     self.word2idx = {}
     self.idx2word = []
@@ -132,6 +158,7 @@ class Dictionary(object):
     return len(self.idx2word)
 
 class Corpus(object):
+
   def __init__(self, path):
     self.dictionary = Dictionary()
     self.train = self.tokenize(os.path.join(path, 'train.txt'))
@@ -170,13 +197,15 @@ train_data = batchify(corpus.train, batch_size)
 print('Total training sequence length: {}'.format(train_data.shape))
 
 class LSTMCell(hk.Module):
+
   def __init__(self, nhid, name=None):
     super().__init__(name=name)
     self.nhid = nhid
-    self.i2h = hk.Linear(4*nhid)
-    self.h2h = hk.Linear(4*nhid)
+    self.i2h = hk.Linear(4 * nhid)
+    self.h2h = hk.Linear(4 * nhid)
 
   def __call__(self, input, hidden):
+
     def update(state, x):
       nhid = self.nhid
 
@@ -189,11 +218,11 @@ class LSTMCell(hk.Module):
 
       preactivations = x_components + h_components
 
-      gates_together = jax.nn.sigmoid(preactivations[:, 0:3*nhid])
+      gates_together = jax.nn.sigmoid(preactivations[:, 0:3 * nhid])
       forget_gate = gates_together[:, 0:nhid]
-      input_gate = gates_together[:, nhid:2*nhid]
-      output_gate = gates_together[:, 2*nhid:3*nhid]
-      new_cell = jnp.tanh(preactivations[:, 3*nhid:4*nhid])
+      input_gate = gates_together[:, nhid:2 * nhid]
+      output_gate = gates_together[:, 2 * nhid:3 * nhid]
+      new_cell = jnp.tanh(preactivations[:, 3 * nhid:4 * nhid])
 
       cell = forget_gate * cell + input_gate * new_cell
       h = output_gate * jnp.tanh(cell)
@@ -206,9 +235,19 @@ class LSTMCell(hk.Module):
     return hidden_stacked, new_state
 
 class RNNModel(hk.Module):
-  def __init__(self, model='lstm', ntoken=10000, nhid=650, nlayers=1,
-               dropoute=0.0, dropouti=0.0, dropouth=0.0, dropouto=0.0,
-               tie_weights=False, use_embeddings=True, with_bias=True):
+
+  def __init__(self,
+               model='lstm',
+               ntoken=10000,
+               nhid=650,
+               nlayers=1,
+               dropoute=0.0,
+               dropouti=0.0,
+               dropouth=0.0,
+               dropouto=0.0,
+               tie_weights=False,
+               use_embeddings=True,
+               with_bias=True):
     super().__init__()
     self.nhid = nhid
     self.ntoken = ntoken
@@ -226,18 +265,17 @@ class RNNModel(hk.Module):
     initrange = 0.1
     if use_embeddings:
       self.embedding = hk.Embed(
-        ntoken,
-        nhid,
-        w_init=hk.initializers.RandomUniform(-initrange, initrange)
-      )
+          ntoken,
+          nhid,
+          w_init=hk.initializers.RandomUniform(-initrange, initrange))
 
     if self.tie_weights:
       self.decoder_bias = hk.Bias(b_init=hk.initializers.Constant(0.0))
     else:
       self.decoder = hk.Linear(
-        ntoken,
-        with_bias=with_bias,
-        b_init=hk.initializers.Constant(0.0),
+          ntoken,
+          with_bias=with_bias,
+          b_init=hk.initializers.Constant(0.0),
       )
 
   def __call__(self, input, hidden, key, training=True, return_h=False):
@@ -247,8 +285,12 @@ class RNNModel(hk.Module):
       key1, key2, key3, key4 = None, None, None, None
 
     if self.use_embeddings:
-      emb = embedded_dropout(key1, self.embedding, input, self.ntoken,
-                             dropout=self.dropoute if training else 0)
+      emb = embedded_dropout(
+          key1,
+          self.embedding,
+          input,
+          self.ntoken,
+          dropout=self.dropoute if training else 0)
       emb = locked_dropout(emb, self.dropouti, key2, training=training)
     else:
       emb = jax.nn.one_hot(input, self.ntoken)
@@ -263,8 +305,8 @@ class RNNModel(hk.Module):
       new_hidden.append(new_h)
       raw_outputs.append(raw_output)
       if l != self.nlayers - 1:
-        raw_output = locked_dropout(raw_output, self.dropouth, key3,
-                                    training=training)
+        raw_output = locked_dropout(
+            raw_output, self.dropouth, key3, training=training)
         outputs.append(raw_output)
 
     hidden = jnp.stack(new_hidden)  # For PES with vmap
@@ -274,14 +316,12 @@ class RNNModel(hk.Module):
 
     if self.tie_weights:
       decoded = jnp.matmul(
-        output.reshape(output.shape[0]*output.shape[1], output.shape[2]),
-        self.embedding.embeddings.T
-      )
+          output.reshape(output.shape[0] * output.shape[1], output.shape[2]),
+          self.embedding.embeddings.T)
       decoded = self.decoder_bias(decoded)
     else:
       decoded = self.decoder(
-        output.reshape(output.shape[0]*output.shape[1], output.shape[2])
-      )
+          output.reshape(output.shape[0] * output.shape[1], output.shape[2]))
 
     result = decoded.reshape(output.shape[0], output.shape[1], decoded.shape[1])
     if return_h:
@@ -290,6 +330,7 @@ class RNNModel(hk.Module):
 
 def locked_dropout(x, rate, key=None, training=True):
   """The difference between this and regular dropout is that here
+
      we use the same dropout mask for every step of the sequence.
 
      This is based on the Haiku dropout implementation at:
@@ -306,8 +347,7 @@ def locked_dropout(x, rate, key=None, training=True):
 def embedded_dropout(key, embed, words, ntoken, dropout=0.1):
   if dropout:
     keep_rate = 1 - dropout
-    mask = jax.random.bernoulli(key,
-                                keep_rate,
+    mask = jax.random.bernoulli(key, keep_rate,
                                 (embed.embeddings.shape[0], 1)) / keep_rate
     masked_embed_weight = mask * embed.embeddings
   else:
@@ -315,6 +355,8 @@ def embedded_dropout(key, embed, words, ntoken, dropout=0.1):
 
   X = masked_embed_weight[words.reshape(-1)].reshape(*words.shape, -1)
   return X
+
+
 # =============================================================================
 
 nlayers = 1
@@ -338,8 +380,8 @@ def cross_entropy(logits, targets):
 
 def loss_fn(params, data, targets, hidden):
   result, hidden, outputs = apply_jit(params, data, hidden, None, False)
-  loss = cross_entropy(result.reshape(-1, ntokens),
-                       hk.one_hot(targets, ntokens))
+  loss = cross_entropy(
+      result.reshape(-1, ntokens), hk.one_hot(targets, ntokens))
   return loss, hidden
 
 loss_jit = jax.jit(loss_fn)
@@ -367,7 +409,8 @@ print('Num parameters: {}'.format(count_params(params)))
 def loss_fn_flat(param_vector, hidden, data, targets):
   params = params_unravel_pytree(param_vector)
   result, hidden, outputs = apply_jit(params, data, hidden, None, False)
-  loss = cross_entropy(result.reshape(-1, ntokens), hk.one_hot(targets, ntokens))
+  loss = cross_entropy(
+      result.reshape(-1, ntokens), hk.one_hot(targets, ntokens))
   return loss, hidden
 
 
@@ -375,11 +418,9 @@ def loss_fn_flat(param_vector, hidden, data, targets):
 def unroll(rng, theta, state, T, K):
   curr_data = jax.lax.dynamic_slice_in_dim(data, state.t * K, K, axis=0)
   curr_targets = jax.lax.dynamic_slice_in_dim(targets, state.t * K, K, axis=0)
-  loss, hidden = loss_fn_flat(theta, state.hidden_state, curr_data, curr_targets)
-  updated_state = state._replace(
-      t=state.t+1,
-      hidden_state=hidden
-  )
+  loss, hidden = loss_fn_flat(theta, state.hidden_state, curr_data,
+                              curr_targets)
+  updated_state = state._replace(t=state.t + 1, hidden_state=hidden)
   return loss, updated_state
 
 
@@ -401,17 +442,17 @@ def full_pes_grad(key, params, data, targets, K, sigma, N):
   theta, unflatten_fn = flatten_util.ravel_pytree(params)
 
   estimator = gradient_estimators.MultiParticleEstimator(
-    key=key,
-    theta_shape=theta.shape,
-    n_chunks=1,
-    n_particles_per_chunk=N,
-    K=K,
-    T=None,
-    sigma=sigma,
-    method='lockstep',
-    estimator_type=args.estimate,
-    init_state_fn=init_state_fn,
-    unroll_fn=unroll,
+      key=key,
+      theta_shape=theta.shape,
+      n_chunks=1,
+      n_particles_per_chunk=N,
+      K=K,
+      T=None,
+      sigma=sigma,
+      method='lockstep',
+      estimator_type=args.estimate,
+      init_state_fn=init_state_fn,
+      unroll_fn=unroll,
   )
 
   T = len(data)
@@ -427,7 +468,7 @@ def full_pes_grad(key, params, data, targets, K, sigma, N):
 if args.scenario == 'random':
   # For the case where we want the data to be randomly generated
   key_for_randint = jax.random.PRNGKey(5)
-  train_data = jax.random.randint(key_for_randint, (20000,1), 0, ntokens)
+  train_data = jax.random.randint(key_for_randint, (20000, 1), 0, ntokens)
 elif args.scenario == 'repeat':
   # This is for the case where we want to have all gradients equal to each other
   # --> repeat the same character for the whole sequence
@@ -487,13 +528,15 @@ for K in Ks:
     num_unrolls = T / K
     pes_var_dict[(K, num_unrolls, N)] = onp.mean(grad_diff_list)
     print('PES | K: {:5d} | N: {} | variance: {:6.4e}'.format(
-           K, N, pes_var_dict[(K, num_unrolls, N)]))
+        K, N, pes_var_dict[(K, num_unrolls, N)]))
     sys.stdout.flush()
 
 pkl_fname = 'pes_lstm_variance_dict_{}.pkl'.format(args.scenario)
 with open(os.path.join(args.save_dir, pkl_fname), 'wb') as f:
-  pkl.dump({'variance_dict': pes_var_dict,
-            'total_grad_norm': total_grad_norm}, f)
+  pkl.dump({
+      'variance_dict': pes_var_dict,
+      'total_grad_norm': total_grad_norm
+  }, f)
 
 # ---------------------------------
 # Plot variance
@@ -512,8 +555,12 @@ for N_pert in [10, 30, 100, 1000]:
       num_unrolls_list.append(num_unrolls)
       variances.append(var)
 
-  plt.plot(num_unrolls_list, variances, linewidth=2,
-           marker='o', label='P={}'.format(N_pert))
+  plt.plot(
+      num_unrolls_list,
+      variances,
+      linewidth=2,
+      marker='o',
+      label='P={}'.format(N_pert))
 
 plt.xlabel('# Unrolls', fontsize=20)
 plt.ylabel('Variance', fontsize=20)
@@ -531,7 +578,7 @@ plt.legend(fontsize=18, fancybox=True, framealpha=0.3, loc='upper left', ncol=2)
 sns.despine()
 
 fname = 'pes_lstm_variance_{}.pdf'.format(args.scenario)
-plt.savefig(os.path.join(args.save_dir, fname),
-            bbox_inches='tight', pad_inches=0)
-plt.savefig(os.path.join(args.save_dir, fname),
-            bbox_inches='tight', pad_inches=0)
+plt.savefig(
+    os.path.join(args.save_dir, fname), bbox_inches='tight', pad_inches=0)
+plt.savefig(
+    os.path.join(args.save_dir, fname), bbox_inches='tight', pad_inches=0)

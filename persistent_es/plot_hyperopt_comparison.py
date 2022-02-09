@@ -1,3 +1,18 @@
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Plot the hyperopt results, comparing random search, ES, and PES.
 
 Example:
@@ -12,28 +27,34 @@ import pickle as pkl
 import numpy as np
 
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tick
 import matplotlib.colors as colors
 import seaborn as sns
+
 sns.set_style('white')
 sns.set_palette('bright')
 
 # Local imports
 import plot_utils
 
-
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-mycolors = ["#FF349B", "#18DF29", "#674DEA", "#FF8031", "#02D4F9", "#4F4C4B",]
+mycolors = [
+    '#FF349B',
+    '#18DF29',
+    '#674DEA',
+    '#FF8031',
+    '#02D4F9',
+    '#4F4C4B',
+]
 sns.set_palette(mycolors)
 sns.palplot(sns.color_palette())
-
 
 figure_dir = 'figures/hyperopt'
 if not os.path.exists(figure_dir):
   os.makedirs(figure_dir)
-
 
 # Load the random search results
 # ==================================================================
@@ -60,12 +81,12 @@ for res in all_results:
 
 shortest_len = min([len(arr) for arr in all_running_mins])
 rs_iterations = [inner_problem_len * i for i in range(shortest_len)]
-stacked_running_mins = np.stack([arr[:shortest_len] for arr in all_running_mins])
+stacked_running_mins = np.stack(
+    [arr[:shortest_len] for arr in all_running_mins])
 rs_mean = np.mean(stacked_running_mins, axis=0)
 rs_min = np.min(stacked_running_mins, axis=0)
 rs_max = np.max(stacked_running_mins, axis=0)
 # ==================================================================
-
 
 # Load the vanilla ES results
 # ==================================================================
@@ -85,12 +106,12 @@ for exp_dir in os.listdir(base_dir):
 
 shortest_len = min([len(arr) for arr in all_es_running_mins])
 es_iterations = all_es_iterations[0][:shortest_len]
-es_stacked_running_mins = np.stack([arr[:shortest_len] for arr in all_es_running_mins])
+es_stacked_running_mins = np.stack(
+    [arr[:shortest_len] for arr in all_es_running_mins])
 es_mean = np.mean(es_stacked_running_mins, axis=0)
 es_min = np.min(es_stacked_running_mins, axis=0)
 es_max = np.max(es_stacked_running_mins, axis=0)
 # ==================================================================
-
 
 # Load the PES results
 # ==================================================================
@@ -110,16 +131,16 @@ for exp_dir in os.listdir(base_dir):
 
 shortest_len = min([len(arr) for arr in all_pes_running_mins])
 pes_iterations = all_pes_iterations[0][:shortest_len]
-pes_stacked_running_mins = np.stack([arr[:shortest_len] for arr in all_pes_running_mins])
+pes_stacked_running_mins = np.stack(
+    [arr[:shortest_len] for arr in all_pes_running_mins])
 pes_mean = np.mean(pes_stacked_running_mins, axis=0)
 pes_min = np.min(pes_stacked_running_mins, axis=0)
 pes_max = np.max(pes_stacked_running_mins, axis=0)
 # ==================================================================
 
-
 # Plot the results
 # ==================================================================
-plt.figure(figsize=(6,4))
+plt.figure(figsize=(6, 4))
 
 plt.fill_between(pes_iterations, pes_min, pes_max, alpha=0.3)
 plt.plot(pes_iterations, pes_mean, linewidth=3, label='PES')
@@ -138,12 +159,16 @@ plt.xlabel('Total Compute', fontsize=18)
 plt.ylabel('Best Meta-Obj Value', fontsize=18)
 sns.despine()
 plt.gca().xaxis.set_major_formatter(
-    tick.FuncFormatter(plot_utils.reformat_large_tick_values)
-)
+    tick.FuncFormatter(plot_utils.reformat_large_tick_values))
 plt.legend(fontsize=18, fancybox=True, framealpha=0.3, loc='upper right')
 plt.tight_layout()
 
-plt.savefig(os.path.join(figure_dir, 'hyperopt_comparison_val.pdf'),
-            bbox_inches='tight', pad_inches=0)
-plt.savefig(os.path.join(figure_dir, 'hyperopt_comparison_val.png'),
-            bbox_inches='tight', pad_inches=0, dpi=300)
+plt.savefig(
+    os.path.join(figure_dir, 'hyperopt_comparison_val.pdf'),
+    bbox_inches='tight',
+    pad_inches=0)
+plt.savefig(
+    os.path.join(figure_dir, 'hyperopt_comparison_val.png'),
+    bbox_inches='tight',
+    pad_inches=0,
+    dpi=300)

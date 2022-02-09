@@ -1,5 +1,19 @@
-"""Script for running control experiments with ES and PES.
-"""
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Script for running control experiments with ES and PES."""
 import os
 import sys
 import pdb
@@ -17,61 +31,70 @@ import mujoco_py
 
 from logger import CSVLogger
 
-
-available_envs = ['Swimmer-v2', 'Reacher-v1', 'Hopper-v2', 'Ant-v2',
-                  'HalfCheetah-v2', 'Walker2d-v2', 'Humanoid-v2']
+available_envs = [
+    'Swimmer-v2', 'Reacher-v1', 'Hopper-v2', 'Ant-v2', 'HalfCheetah-v2',
+    'Walker2d-v2', 'Humanoid-v2'
+]
 
 parser = argparse.ArgumentParser(description='ES/PES for MuJoCo control tasks')
-parser.add_argument('--iterations', type=int, default=500,
-                    help='How many gradient steps to perform')
-parser.add_argument('--env_name', type=str, default='Swimmer-v2',
-                    choices=available_envs,
-                    help='MuJoCo environment name')
+parser.add_argument(
+    '--iterations',
+    type=int,
+    default=500,
+    help='How many gradient steps to perform')
+parser.add_argument(
+    '--env_name',
+    type=str,
+    default='Swimmer-v2',
+    choices=available_envs,
+    help='MuJoCo environment name')
 parser.add_argument('--estimate', type=str, default='es', choices=['es', 'pes'],
                     help='Which gradient estimate to use')
 parser.add_argument('--horizon', type=int, default=1000,
                     help='Total training horizon for an episode')
-parser.add_argument('--K', type=int, default=1000,
-                    help='Unroll length')
-parser.add_argument('--lr', type=float, default=0.1,
-                    help='Learning rate')
-parser.add_argument('--N', type=int, default=10,
-                    help='Number of particle pairs for ES/PES')
+parser.add_argument('--K', type=int, default=1000, help='Unroll length')
+parser.add_argument('--lr', type=float, default=0.1, help='Learning rate')
+parser.add_argument(
+    '--N', type=int, default=10, help='Number of particle pairs for ES/PES')
 parser.add_argument('--normalize_state', action='store_true', default=False,
                     help='Whether to normalize states or not')
 parser.add_argument('--clip_rewards', action='store_true', default=False,
                     help='Whether to clip the rewards to be in [-1, 1]')
 parser.add_argument('--divide_by_variance', action='store_true', default=False,
                     help='Whether to divide the gradient by the variance of the rewards')
-parser.add_argument('--noise', type=float, default=0.1,
-                    help='Perturbation scale for ES/PES')
-parser.add_argument('--shift', type=float, default=0.0,
-                    help='Choose the shift amount for certain environments')
+parser.add_argument(
+    '--noise', type=float, default=0.1, help='Perturbation scale for ES/PES')
+parser.add_argument(
+    '--shift',
+    type=float,
+    default=0.0,
+    help='Choose the shift amount for certain environments')
 parser.add_argument('--log_every', type=int, default=1,
                     help='Log every T iterations')
 parser.add_argument('--seed', type=int, default=1,
                     help='Random seed')
-parser.add_argument('--save_dir', type=str, default='saves/control',
-                    help='Save directory')
+parser.add_argument(
+    '--save_dir', type=str, default='saves/control', help='Save directory')
 args = parser.parse_args()
 
 random.seed(args.seed)
 onp.random.seed(args.seed)
 
 exp_name = '{}-{}-lr:{}-sigma:{}-N:{}-T:{}-K:{}-c:{}-d:{}'.format(
-            args.estimate, args.env_name, args.lr, args.noise, args.N,
-            args.horizon, args.K, int(args.normalize_state),
-            int(args.clip_rewards), int(args.divide_by_variance))
+    args.estimate, args.env_name, args.lr, args.noise, args.N, args.horizon,
+    args.K, int(args.normalize_state), int(args.clip_rewards),
+    int(args.divide_by_variance))
 
 save_dir = os.path.join(args.save_dir, exp_name, 'seed_{}'.format(args.seed))
 if not os.path.exists(save_dir):
   os.makedirs(save_dir)
 
 iteration_logger = CSVLogger(
-    fieldnames=['time', 'iteration', 'total_steps', 'reward_mean', 'reward_std',
-                'reward_max', 'reward_min', 'theta_grad_norm'],
-    filename=os.path.join(save_dir, 'iteration.csv')
-)
+    fieldnames=[
+        'time', 'iteration', 'total_steps', 'reward_mean', 'reward_std',
+        'reward_max', 'reward_min', 'theta_grad_norm'
+    ],
+    filename=os.path.join(save_dir, 'iteration.csv'))
 
 total_count = 0
 
@@ -150,9 +173,13 @@ class ParticlePairPES(object):
       env_copy = copy.deepcopy(self.envs[i])
       env_copy.sim.set_state(self.envs[i].sim.get_state())
       objective, new_state, new_env, reset, t = unroll(
-          theta + perts[i] * self.sigma, self.states[i], env_copy,
-          self.ts[i], self.K, self.T, shift=args.shift
-      )
+          theta + perts[i] * self.sigma,
+          self.states[i],
+          env_copy,
+          self.ts[i],
+          self.K,
+          self.T,
+          shift=args.shift)
       ts.append(t)
       resets.append(reset)
       new_envs.append(new_env)
@@ -209,9 +236,13 @@ class ParticlePairES(object):
       env_copy = copy.deepcopy(self.env)
       env_copy.sim.set_state(env_state)
       objective, new_state, new_env, reset, _ = unroll(
-          theta + perts[i] * self.sigma, self.state, env_copy,
-          self.t, self.K, self.T, shift=args.shift
-      )
+          theta + perts[i] * self.sigma,
+          self.state,
+          env_copy,
+          self.t,
+          self.K,
+          self.T,
+          shift=args.shift)
       resets.append(reset)
       objectives.append(objective)
 
@@ -222,8 +253,7 @@ class ParticlePairES(object):
       env_copy.sim.set_state(env_state)
       # Compute new state/env using mean theta
       _, self.state, self.env, _, self.t = unroll(
-          theta, self.state, env_copy, self.t, self.K, self.T, shift=args.shift
-      )
+          theta, self.state, env_copy, self.t, self.K, self.T, shift=args.shift)
 
     gradient_estimate = jnp.mean(objective.reshape(-1, 1, 1) * perts, axis=0) / (self.sigma**2)
 
@@ -262,9 +292,13 @@ class MultiParticleEstimator(object):
     sigma_r = objectives.std()
 
     if args.divide_by_variance:
-      gradient_estimate = jnp.sum(objectives.reshape(-1, 1, 1) * perturbations, axis=0) / (sigma_r * args.N)
+      gradient_estimate = jnp.sum(
+          objectives.reshape(-1, 1, 1) * perturbations, axis=0) / (
+              sigma_r * args.N)
     else:
-      gradient_estimate = jnp.sum(objectives.reshape(-1, 1, 1) * (perturbations), axis=0) / (args.N * args.noise)
+      gradient_estimate = jnp.sum(
+          objectives.reshape(-1, 1, 1) * (perturbations), axis=0) / (
+              args.N * args.noise)
 
     return gradient_estimate
 
@@ -281,6 +315,7 @@ outer_optim_params = {
     'lr': args.lr,
 }
 
+
 @jax.jit
 def outer_optim_step(params, grads, optim_params):
   lr = optim_params['lr']
@@ -294,8 +329,7 @@ estimator = MultiParticleEstimator(
     sigma=args.noise,
     T=args.horizon,
     K=args.K,
-    estimate_type=args.estimate
-)
+    estimate_type=args.estimate)
 
 elapsed_time = 0.0
 start_time = time.time()
@@ -312,14 +346,19 @@ for iteration in range(args.iterations):
     for eval_rollout in range(50):
       fresh_state = fresh_env.reset()
       total_reward, _, _, _, _ = unroll(
-          theta, fresh_state, fresh_env, 0, args.horizon, args.horizon,
-          training=False, shift=0.0
-      )
+          theta,
+          fresh_state,
+          fresh_env,
+          0,
+          args.horizon,
+          args.horizon,
+          training=False,
+          shift=0.0)
       all_eval_rewards.append(total_reward)
 
     all_eval_rewards = onp.array(all_eval_rewards)
     print('time: {} | i: {} | steps: {} | reward: {:6.4f}'.format(
-          elapsed_time, iteration, total_count, onp.mean(all_eval_rewards)))
+        elapsed_time, iteration, total_count, onp.mean(all_eval_rewards)))
     sys.stdout.flush()
     # --------------------------------------------------------
 
@@ -332,4 +371,5 @@ for iteration in range(args.iterations):
     start_time = time.time()
 
   theta_grad = estimator.compute_gradient(theta)
-  theta, outer_optim_params = outer_optim_step(theta, -theta_grad, outer_optim_params)
+  theta, outer_optim_params = outer_optim_step(theta, -theta_grad,
+                                               outer_optim_params)

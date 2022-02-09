@@ -1,5 +1,19 @@
-"""Utilities for plotting.
-"""
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Utilities for plotting."""
 import os
 import csv
 import pdb
@@ -13,24 +27,22 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 
 import seaborn as sns
+
 sns.set_style('white')
 sns.set_palette('bright')
 
 
 def reformat_large_tick_values(tick_val, pos):
-  """
-  Turns large tick values (in the billions, millions and thousands) such as
-  4500 into 4.5K and also appropriately turns 4000 into 4K (no zero after the
-  decimal).
+  """Turns large tick values (in the billions, millions and thousands) such as 4500 into 4.5K and also appropriately turns 4000 into 4K (no zero after the decimal).
   """
   if tick_val >= 1000000000:
-    val = round(tick_val/1000000000, 1)
+    val = round(tick_val / 1000000000, 1)
     new_tick_format = '{:}B'.format(val)
   elif tick_val >= 1000000:
-    val = round(tick_val/1000000, 1)
+    val = round(tick_val / 1000000, 1)
     new_tick_format = '{:}M'.format(val)
   elif tick_val >= 1000:
-    val = round(tick_val/1000, 1)
+    val = round(tick_val / 1000, 1)
     new_tick_format = '{:}K'.format(val)
   elif tick_val < 1000:
     new_tick_format = round(tick_val, 1)
@@ -42,11 +54,11 @@ def reformat_large_tick_values(tick_val, pos):
 
   # code below will keep 4.5M as is but change values such as 4.0M to 4M since
   # that zero after the decimal isn't needed
-  index_of_decimal = new_tick_format.find(".")
+  index_of_decimal = new_tick_format.find('.')
 
   if index_of_decimal != -1:
-    value_after_decimal = new_tick_format[index_of_decimal+1]
-    if value_after_decimal == "0":
+    value_after_decimal = new_tick_format[index_of_decimal + 1]
+    if value_after_decimal == '0':
       # remove the 0 after the decimal point since it's not needed
       new_tick_format = new_tick_format[0:index_of_decimal] + \
                         new_tick_format[index_of_decimal+2:]
@@ -81,7 +93,7 @@ def plot_heatmap(pkl_path,
                  use_smoothing=True,
                  show_contours=False,
                  contour_alpha=0.2,
-                 figsize=(10,8)):
+                 figsize=(10, 8)):
   with open(pkl_path, 'rb') as f:
     result = pkl.load(f)
 
@@ -110,10 +122,12 @@ def plot_heatmap(pkl_path,
 
   if 'acc' in key:
     # Good for val_acc
-    levels = [0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.9, 0.91, 0.92, 0.93, 0.94,
-              0.95, 0.96, 0.97, 0.98]
+    levels = [
+        0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.9, 0.91, 0.92, 0.93, 0.94, 0.95,
+        0.96, 0.97, 0.98
+    ]
 
-    contour_cmap = plt.cm.get_cmap(cmap, len(levels)+1)
+    contour_cmap = plt.cm.get_cmap(cmap, len(levels) + 1)
     CS = plt.contourf(yv, xv, F_grid.T, levels, cmap=contour_cmap)
     cbar = plt.colorbar(CS, boundaries=levels)
     cbar.ax.tick_params(labelsize=16)
@@ -122,15 +136,14 @@ def plot_heatmap(pkl_path,
       plt.contour(yv, xv, F_grid.T, levels, colors='white', alpha=contour_alpha)
 
   else:
-    contour_cmap = plt.cm.get_cmap(cmap, levels+1)
+    contour_cmap = plt.cm.get_cmap(cmap, levels + 1)
     CS = plt.contourf(yv, xv, np.log(F_grid).T, levels, cmap=contour_cmap)
     cbar = plt.colorbar(CS)
     cbar.ax.tick_params(labelsize=16)
 
     if show_contours:
       plt.contour(
-          yv, xv, np.log(F_grid).T, levels, colors='white', alpha=contour_alpha
-      )
+          yv, xv, np.log(F_grid).T, levels, colors='white', alpha=contour_alpha)
 
   plt.xticks(fontsize=18)
   plt.yticks(fontsize=18)

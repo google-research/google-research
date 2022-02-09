@@ -1,5 +1,19 @@
-"""Run grid and random searches with an MLP/ResNet on MNIST/CIFAR-10.
-"""
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Run grid and random searches with an MLP/ResNet on MNIST/CIFAR-10."""
 import os
 import sys
 import pdb
@@ -28,107 +42,130 @@ import inner_optim
 import hparam_utils
 import general_utils
 
-
 parser = argparse.ArgumentParser(description='Grid and random search')
 # Dataset arguments
-parser.add_argument('--dataset', type=str, default='mnist',
-                    help='Choose dataset')
-parser.add_argument('--batch_size', type=int, default=100,
-                    help='Batch size')
+parser.add_argument(
+    '--dataset', type=str, default='mnist', help='Choose dataset')
+parser.add_argument('--batch_size', type=int, default=100, help='Batch size')
 
 # Model arguments
-parser.add_argument('--model', type=str, default='mlp',
-                    help='Choose the model')
-parser.add_argument('--model_size', type=str, default='small',
-                    help='Model size, that affects #channels in the ResNet'
-                         '(tiny, small, med, or large)')
-parser.add_argument('--nlayers', type=int, default=2,
-                    help='Number of layers in the MLP')
-parser.add_argument('--nhid', type=int, default=100,
-                    help='Number of hidden units in each layer')
+parser.add_argument('--model', type=str, default='mlp', help='Choose the model')
+parser.add_argument(
+    '--model_size',
+    type=str,
+    default='small',
+    help='Model size, that affects #channels in the ResNet'
+    '(tiny, small, med, or large)')
+parser.add_argument(
+    '--nlayers', type=int, default=2, help='Number of layers in the MLP')
+parser.add_argument(
+    '--nhid',
+    type=int,
+    default=100,
+    help='Number of hidden units in each layer')
 
 # Inner optimization arguments
-parser.add_argument('--inner_optimizer', type=str, default='sgdm',
-                    help='Choose the inner optimizer')
-parser.add_argument('--lr', type=float, default=1e-2,
-                    help='Learning rate')
-parser.add_argument('--b1', type=float, default=0.99,
-                    help='Adam b1 hyperparameter')
-parser.add_argument('--b2', type=float, default=0.999,
-                    help='Adam b2 hyperparameter')
-parser.add_argument('--eps', type=float, default=1e-8,
-                    help='Adam epsilon hyperparameter')
-parser.add_argument('--mom', type=float, default=0.9,
-                    help='Momentum')
-parser.add_argument('--wd', type=float, default=1e-10,
-                    help='Weight decay')
-parser.add_argument('--inner_clip', type=float, default= -1,
-                    help='Gradient clipping for each step of the inner unroll'
-                         '(-1 means no grad clipping)')
+parser.add_argument(
+    '--inner_optimizer',
+    type=str,
+    default='sgdm',
+    help='Choose the inner optimizer')
+parser.add_argument('--lr', type=float, default=1e-2, help='Learning rate')
+parser.add_argument(
+    '--b1', type=float, default=0.99, help='Adam b1 hyperparameter')
+parser.add_argument(
+    '--b2', type=float, default=0.999, help='Adam b2 hyperparameter')
+parser.add_argument(
+    '--eps', type=float, default=1e-8, help='Adam epsilon hyperparameter')
+parser.add_argument('--mom', type=float, default=0.9, help='Momentum')
+parser.add_argument('--wd', type=float, default=1e-10, help='Weight decay')
+parser.add_argument(
+    '--inner_clip',
+    type=float,
+    default=-1,
+    help='Gradient clipping for each step of the inner unroll'
+    '(-1 means no grad clipping)')
 
 # Search arguments
-parser.add_argument('--objective', type=str, default='train_sum_loss',
-                    help='The "objective" that determines what we measure'
-                         '(random minibatches vs fixed ones)')
-parser.add_argument('--objective_batch_size', type=int, default=100,
-                    help='The batch size for computing the meta-objective'
-                         'after each unroll')
-parser.add_argument('--search_type', type=str, default='random',
-                    help='Choose either grid search or random search')
-parser.add_argument('--num_points', type=int, default=20,
-                    help='Num points for the grid search')
-parser.add_argument('--chunk_size', type=int, default=10,
-                    help='How many networks to train in parallel during the'
-                         'grid/random search')
-parser.add_argument('--tune_params', type=str, default='lr:fixed',
-                    help='A comma-separated string of hyperparameters to search'
-                         'over')
-parser.add_argument('--T', type=int, default=1000,
-                    help='Maximum number of iterations of the inner loop')
-parser.add_argument('--K', type=int, default=50,
-                    help='Number of steps to unroll')
-parser.add_argument('--num_eval_runs', type=int, default=10,
-                    help='Number of runs to average over when doing a search')
+parser.add_argument(
+    '--objective',
+    type=str,
+    default='train_sum_loss',
+    help='The "objective" that determines what we measure'
+    '(random minibatches vs fixed ones)')
+parser.add_argument(
+    '--objective_batch_size',
+    type=int,
+    default=100,
+    help='The batch size for computing the meta-objective'
+    'after each unroll')
+parser.add_argument(
+    '--search_type',
+    type=str,
+    default='random',
+    help='Choose either grid search or random search')
+parser.add_argument(
+    '--num_points', type=int, default=20, help='Num points for the grid search')
+parser.add_argument(
+    '--chunk_size',
+    type=int,
+    default=10,
+    help='How many networks to train in parallel during the'
+    'grid/random search')
+parser.add_argument(
+    '--tune_params',
+    type=str,
+    default='lr:fixed',
+    help='A comma-separated string of hyperparameters to search'
+    'over')
+parser.add_argument(
+    '--T',
+    type=int,
+    default=1000,
+    help='Maximum number of iterations of the inner loop')
+parser.add_argument(
+    '--K', type=int, default=50, help='Number of steps to unroll')
+parser.add_argument(
+    '--num_eval_runs',
+    type=int,
+    default=10,
+    help='Number of runs to average over when doing a search')
 
 # Logging/saving arguments
-parser.add_argument('--seed', type=int, default=3,
-                    help='Random seed')
-parser.add_argument('--save_dir', type=str, default='saves',
-                    help='Save directory')
+parser.add_argument('--seed', type=int, default=3, help='Random seed')
+parser.add_argument(
+    '--save_dir', type=str, default='saves', help='Save directory')
 args = parser.parse_args()
-
 
 tune_params_str = args.tune_params or 'None'
 
 if args.tune_params:
-  args.tune_params = [{'param': hparam_utils.abbreviation_dict[p.split(':')[0]],
-                       'sched': hparam_utils.abbreviation_dict[p.split(':')[1]]}
-                      for p in args.tune_params.split(',')]
+  args.tune_params = [{
+      'param': hparam_utils.abbreviation_dict[p.split(':')[0]],
+      'sched': hparam_utils.abbreviation_dict[p.split(':')[1]]
+  } for p in args.tune_params.split(',')]
 
 schedule_info = {}
 for item in args.tune_params:
-  schedule_info[item['param']]= item['sched']
+  schedule_info[item['param']] = item['sched']
 
 # Set random seed for reproducibility
 if args.seed is not None:
   onp.random.seed(args.seed)
 
 exp_dir = '{}/{}_{}_{}_{}_{}_T_{}_N_{}/seed_{}'.format(
-           args.save_dir, args.search_type, args.dataset, args.model,
-           tune_params_str, args.inner_optimizer, args.T, args.num_points,
-           args.seed)
+    args.save_dir, args.search_type, args.dataset, args.model, tune_params_str,
+    args.inner_optimizer, args.T, args.num_points, args.seed)
 
 if not os.path.exists(exp_dir):
   os.makedirs(exp_dir)
 
 with open(os.path.join(exp_dir, 'command.txt'), 'w') as f:
   f.write('\n'.join(['python {} \\'.format(sys.argv[0])] + \
-          ["    {} \\".format(line) for line in sys.argv[1:-1]] + \
+          ['    {} \\'.format(line) for line in sys.argv[1:-1]] + \
           ['    {}'.format(sys.argv[-1])]))
 
-shutil.copyfile(
-    'hparam_utils.py', os.path.join(exp_dir, 'hparam_utils.py')
-)
+shutil.copyfile('hparam_utils.py', os.path.join(exp_dir, 'hparam_utils.py'))
 
 # Create dataloaders
 # ----------------------------------------
@@ -136,16 +173,16 @@ data_dict = data_utils.load_data(args.dataset)
 train_data, train_targets = data_dict['train_data'], data_dict['train_targets']
 val_data, val_targets = data_dict['val_data'], data_dict['val_targets']
 test_data, test_targets = data_dict['test_data'], data_dict['test_targets']
+
 # ----------------------------------------
+
 
 # Initialize model
 # ----------------------------------------
 def net_fn(inputs, theta=None, is_training=True):
   if args.model == 'mlp':
-    mlp = models.MLP(nlayers=args.nlayers,
-                     nhid=args.nhid,
-                     with_bias=True,
-                     batch_norm=False)
+    mlp = models.MLP(
+        nlayers=args.nlayers, nhid=args.nhid, with_bias=True, batch_norm=False)
     return mlp(inputs, theta, is_training)
   elif args.model == 'resnet':
     network = models.Net(args.model_size)
@@ -171,7 +208,8 @@ def loss_with_logits(params, state, inputs, targets, theta, is_training):
   else:
     mask_props = None
 
-  logits, updated_state = net.apply(params, state, inputs, mask_props, is_training)
+  logits, updated_state = net.apply(params, state, inputs, mask_props,
+                                    is_training)
   labels = jax.nn.one_hot(targets, 10)
   softmax_xent = -jnp.sum(labels * jax.nn.log_softmax(logits))
   softmax_xent /= labels.shape[0]
@@ -180,14 +218,14 @@ def loss_with_logits(params, state, inputs, targets, theta, is_training):
 
 @partial(jax.jit, static_argnames=('is_training',))
 def loss(params, state, inputs, targets, theta, is_training):
-  softmax_xent, (logits, updated_state) = loss_with_logits(
-      params, state, inputs, targets, theta, is_training
-  )
+  softmax_xent, (logits,
+                 updated_state) = loss_with_logits(params, state, inputs,
+                                                   targets, theta, is_training)
   return softmax_xent, updated_state
 
-loss_and_grad = jax.jit(jax.value_and_grad(loss, has_aux=True),
-                        static_argnames=('is_training',))
 
+loss_and_grad = jax.jit(
+    jax.value_and_grad(loss, has_aux=True), static_argnames=('is_training',))
 
 opt_funcs = inner_optim.init_optimizer(args.inner_optimizer)
 reset_opt_params = opt_funcs['reset_opt_params']
@@ -234,34 +272,30 @@ def get_current_opt_params(inner_optim_params, theta, t, T):
       continue
     theta_subset = theta[idx_dict[param]]
     inner_optim_params[param] = schedule.schedule_funcs[sched](
-        inner_optim_params, theta_subset, param, t, T,
-        unflatten_func_dict=unflatten_func_dict
-    )
+        inner_optim_params,
+        theta_subset,
+        param,
+        t,
+        T,
+        unflatten_func_dict=unflatten_func_dict)
   return inner_optim_params
 
 
 def get_train_or_val_minibatch(key):
   if 'train' in args.objective:
-    inputs_to_eval, targets_to_eval = get_minibatch(
-        key, train_data, train_targets, args.objective_batch_size
-    )
+    inputs_to_eval, targets_to_eval = get_minibatch(key, train_data,
+                                                    train_targets,
+                                                    args.objective_batch_size)
   elif 'val' in args.objective:
-    inputs_to_eval, targets_to_eval = get_minibatch(
-        key, val_data, val_targets, args.objective_batch_size
-    )
+    inputs_to_eval, targets_to_eval = get_minibatch(key, val_data, val_targets,
+                                                    args.objective_batch_size)
   return inputs_to_eval, targets_to_eval
 
 
 @partial(jax.jit, static_argnames='is_training')
 def compute_obj(params, model_state, inputs, targets, theta, is_training):
-  loss_value, (logits, _) = loss_with_logits(
-      params,
-      model_state,
-      inputs,
-      targets,
-      theta,
-      is_training
-  )
+  loss_value, (logits, _) = loss_with_logits(params, model_state, inputs,
+                                             targets, theta, is_training)
 
   if 'acc' in args.objective:
     pred = jnp.argmax(logits, axis=1)
@@ -280,10 +314,12 @@ def unroll(key, theta, state, T, K):
   def update_fn(loop_state, x):
     key = loop_state.key
     state = loop_state.state
-    inputs, targets = get_minibatch(key, train_data, train_targets, args.batch_size)
-    (loss_value, updated_model_state), grads = loss_and_grad(
-        state.params, state.model_state, inputs, targets, theta, True
-    )
+    inputs, targets = get_minibatch(key, train_data, train_targets,
+                                    args.batch_size)
+    (loss_value,
+     updated_model_state), grads = loss_and_grad(state.params,
+                                                 state.model_state, inputs,
+                                                 targets, theta, True)
 
     # Gradient clipping
     # =================
@@ -292,57 +328,43 @@ def unroll(key, theta, state, T, K):
     if args.inner_clip > 0:
       grads = jax.tree_map(
           lambda g: jnp.clip(g, a_min=-args.inner_clip, a_max=args.inner_clip),
-          grads
-      )
+          grads)
     # =================
 
-    inner_opt_params = get_current_opt_params(
-        state.inner_opt_state, theta, state.t, T
-    )
-    updated_params, updated_inner_opt_params = opt_step(
-        state.params, grads, inner_opt_params
-    )
+    inner_opt_params = get_current_opt_params(state.inner_opt_state, theta,
+                                              state.t, T)
+    updated_params, updated_inner_opt_params = opt_step(state.params, grads,
+                                                        inner_opt_params)
 
     # Sample a minibatch to compute the loss after the gradient step
     # --------------------------------------------------------------
     key, skey = jax.random.split(key)
     inputs_to_eval, targets_to_eval = get_train_or_val_minibatch(skey)
-    obj = compute_obj(
-        updated_params,
-        updated_model_state,
-        inputs_to_eval,
-        targets_to_eval,
-        theta,
-        False
-    )
+    obj = compute_obj(updated_params, updated_model_state, inputs_to_eval,
+                      targets_to_eval, theta, False)
     # --------------------------------------------------------------
 
     # Update state and loop_state
     updated_key, _ = jax.random.split(key)
     state = state._replace(
-        t=state.t+1,
+        t=state.t + 1,
         params=updated_params,
         model_state=updated_model_state,
-        inner_opt_state=updated_inner_opt_params
-    )
+        inner_opt_state=updated_inner_opt_params)
     loop_state = loop_state._replace(key=updated_key, state=state)
     return loop_state, obj
 
   key_unroll, key_eval = key
   loop_state = LoopState(key=key_unroll, state=state)
-  updated_loop_state, unroll_objs = jax.lax.scan(update_fn, loop_state, None, length=K)
+  updated_loop_state, unroll_objs = jax.lax.scan(
+      update_fn, loop_state, None, length=K)
   updated_inner_state = updated_loop_state.state
 
   # Final evaluation on a random minibatch after the unroll
   inputs_to_eval, targets_to_eval = get_train_or_val_minibatch(key_eval)
-  final_obj = compute_obj(
-      updated_inner_state.params,
-      updated_inner_state.model_state,
-      inputs_to_eval,
-      targets_to_eval,
-      theta,
-      False
-  )
+  final_obj = compute_obj(updated_inner_state.params,
+                          updated_inner_state.model_state, inputs_to_eval,
+                          targets_to_eval, theta, False)
 
   if 'final' in args.objective:
     meta_obj = final_obj
@@ -359,8 +381,7 @@ def init_state_fn(key):
       params=inner_params,
       model_state=model_state,
       inner_opt_state=inner_opt_state,
-      t=jnp.array(0).astype(jnp.int32)
-  )
+      t=jnp.array(0).astype(jnp.int32))
 
 
 @jax.jit
@@ -369,7 +390,8 @@ def evaluate_minibatch(params, state, data, theta):
   if targets.ndim == 0:
     inputs = inputs.reshape(1, *inputs.shape)
     targets = targets.reshape(1)
-  xentropy, (logits, _) = loss_with_logits(params, state, inputs, targets, theta, False)
+  xentropy, (logits, _) = loss_with_logits(params, state, inputs, targets,
+                                           theta, False)
   pred = jnp.argmax(logits, axis=1)
   num_total = targets.shape[0]
   num_correct = (pred == targets).sum()
@@ -379,24 +401,22 @@ def evaluate_minibatch(params, state, data, theta):
 @jax.jit
 def evaluate(params, state, xs, ys, theta):
   (losses, num_correct, num_total) = jax.lax.map(
-      lambda data: evaluate_minibatch(params, state, data, theta),
-      (xs, ys)
-  )
-  return jnp.mean(losses), jnp.sum(losses), jnp.sum(num_correct) / jnp.sum(num_total)
+      lambda data: evaluate_minibatch(params, state, data, theta), (xs, ys))
+  return jnp.mean(losses), jnp.sum(
+      losses), jnp.sum(num_correct) / jnp.sum(num_total)
 
 
 def full_eval(key, theta):
   key, model_key, unroll_key, eval_key = jax.random.split(key, 4)
   inner_state = init_state_fn(model_key)
-  unroll_obj, inner_state_new = unroll(
-      (unroll_key, eval_key), theta, inner_state, args.T, args.T
-  )
+  unroll_obj, inner_state_new = unroll((unroll_key, eval_key), theta,
+                                       inner_state, args.T, args.T)
   train_mean_loss, train_sum_loss, train_acc = evaluate(
-    inner_state_new.params, inner_state_new.model_state, train_data, train_targets, theta
-  )
-  val_mean_loss, val_sum_loss, val_acc = evaluate(
-    inner_state_new.params, inner_state_new.model_state, val_data, val_targets, theta
-  )
+      inner_state_new.params, inner_state_new.model_state, train_data,
+      train_targets, theta)
+  val_mean_loss, val_sum_loss, val_acc = evaluate(inner_state_new.params,
+                                                  inner_state_new.model_state,
+                                                  val_data, val_targets, theta)
 
   return {
       'unroll_obj': unroll_obj,
@@ -412,7 +432,7 @@ def full_eval(key, theta):
 @partial(jax.jit, static_argnames='num_eval_runs')
 def full_evaluation_runs(key, theta, num_eval_runs=1):
   eval_run_keys = jax.random.split(key, num_eval_runs)
-  stats_dict = jax.vmap(full_eval, in_axes=(0,None))(eval_run_keys, theta)
+  stats_dict = jax.vmap(full_eval, in_axes=(0, None))(eval_run_keys, theta)
   return stats_dict
 
 
@@ -427,7 +447,7 @@ for setting in args.tune_params:
 
   if param == 'mask':
     theta_vals.append(jnp.array([default] * args.nlayers))
-    idx_dict[param] = jnp.array(list(range(idx, idx+args.nlayers)))
+    idx_dict[param] = jnp.array(list(range(idx, idx + args.nlayers)))
     idx += args.nlayers
     continue
 
@@ -437,32 +457,35 @@ for setting in args.tune_params:
     idx += 1
   elif sched == 'linear':
     theta_vals.append(jnp.array([default, default]))
-    idx_dict[param] = jnp.array([idx, idx+1])
+    idx_dict[param] = jnp.array([idx, idx + 1])
     idx += 2
   elif sched == 'inverse-time-decay':
     theta_vals.append(jnp.array([default, 0.0]))
-    idx_dict[param] = jnp.array([idx, idx+1])
+    idx_dict[param] = jnp.array([idx, idx + 1])
     idx += 2
   elif sched == 'fixed-pl':
     hparam_tree = jax.tree_map(lambda x: jnp.array(default), params)
-    hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(hparam_tree)
+    hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
+        hparam_tree)
     unflatten_func_dict[param] = hparam_unravel_pytree
     theta_vals.append(hparam_vector)
-    idx_dict[param] = jnp.array(list(range(idx, idx+len(hparam_vector))))
+    idx_dict[param] = jnp.array(list(range(idx, idx + len(hparam_vector))))
     idx += len(hparam_vector)
   elif sched == 'linear-pl':
     hparam_tree = jax.tree_map(lambda x: jnp.array([default, default]), params)
-    hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(hparam_tree)
+    hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
+        hparam_tree)
     unflatten_func_dict[param] = hparam_unravel_pytree
     theta_vals.append(hparam_vector)
-    idx_dict[param] = jnp.array(list(range(idx, idx+len(hparam_vector))))
+    idx_dict[param] = jnp.array(list(range(idx, idx + len(hparam_vector))))
     idx += len(hparam_vector)
   elif sched == 'inverse-time-decay-pl':
     hparam_tree = jax.tree_map(lambda x: jnp.array([default, 0.0]), params)
-    hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(hparam_tree)
+    hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
+        hparam_tree)
     unflatten_func_dict[param] = hparam_unravel_pytree
     theta_vals.append(hparam_vector)
-    idx_dict[param] = jnp.array(list(range(idx, idx+len(hparam_vector))))
+    idx_dict[param] = jnp.array(list(range(idx, idx + len(hparam_vector))))
     idx += len(hparam_vector)
 
 theta = jnp.concatenate(theta_vals)
@@ -474,11 +497,13 @@ for setting in args.tune_params:
   elif setting['sched'] == 'fixed':
     param_fieldnames += ['{}_0'.format(setting['param'])]
   elif setting['sched'] == 'linear':
-    param_fieldnames += ['{}_0'.format(setting['param']),
-                         '{}_1'.format(setting['param'])]
+    param_fieldnames += [
+        '{}_0'.format(setting['param']), '{}_1'.format(setting['param'])
+    ]
   elif setting['sched'] == 'inverse-time-decay':
-    param_fieldnames += ['{}_0'.format(setting['param']),
-                         '{}_1'.format(setting['param'])]
+    param_fieldnames += [
+        '{}_0'.format(setting['param']), '{}_1'.format(setting['param'])
+    ]
   elif setting['sched'] == 'fixed-pl':
     for name in general_utils.recursive_keys(params):
       base_str = '{}/{}'.format(name, setting['param'])
@@ -488,6 +513,7 @@ for setting in args.tune_params:
       base_str = '{}/{}'.format(name, setting['param'])
       param_fieldnames += ['{}_0'.format(base_str), '{}_1'.format(base_str)]
 # =======================================================================
+
 
 def to_constrained(theta_unconstrained):
   theta_constrained = []
@@ -514,12 +540,10 @@ if args.search_type == 'grid':
     grid_dim = 2
     X = onp.linspace(-3, -0.5, args.num_points)
     Y = onp.linspace(-2.2, 2.2, args.num_points)
-    X_for_base_e = onp.linspace(onp.log(10**(-3.0)),
-                                onp.log(10**(-0.5)),
-                                args.num_points)
-    Y_for_base_e = onp.linspace(onp.log(10**(-2.2)),
-                                onp.log(10**2.2),
-                                args.num_points)
+    X_for_base_e = onp.linspace(
+        onp.log(10**(-3.0)), onp.log(10**(-0.5)), args.num_points)
+    Y_for_base_e = onp.linspace(
+        onp.log(10**(-2.2)), onp.log(10**2.2), args.num_points)
     thetas = jnp.array(list(itertools.product(X_for_base_e, Y_for_base_e)))
   elif len(args.tune_params) == 1:
     setting = args.tune_params[0]
@@ -527,7 +551,8 @@ if args.search_type == 'grid':
     sched = setting['sched']
     if sched == 'fixed':
       grid_dim = 1
-      thetas = jnp.linspace(*hparam_utils.hparam_range_dict[param], args.num_points).reshape(-1,1)
+      thetas = jnp.linspace(*hparam_utils.hparam_range_dict[param],
+                            args.num_points).reshape(-1, 1)
     elif sched == 'linear':
       grid_dim = 2
       X = jnp.linspace(*hparam_utils.hparam_range_dict[param], args.num_points)
@@ -542,7 +567,8 @@ if args.search_type == 'grid':
     param2 = args.tune_params[1]['param']
     sched2 = args.tune_params[1]['sched']
     if not (sched1 == sched2 == 'fixed'):
-      raise Exception('Both params must have fixed schedules for a 2D grid search!')
+      raise Exception(
+          'Both params must have fixed schedules for a 2D grid search!')
 
     X = jnp.linspace(*hparam_utils.hparam_range_dict[param1], args.num_points)
     Y = jnp.linspace(*hparam_utils.hparam_range_dict[param2], args.num_points)
@@ -560,12 +586,12 @@ elif args.search_type == 'random':
       # A fixed range for the decay factor regardless of which hyperparameter
       # we're dealing with
       decay_min_range, decay_max_range = -4, 4
-      sampled_init = jax.random.uniform(
-          key1, (args.num_points,len(theta_val)//2)
-      ) * (max_range - min_range) + min_range
+      sampled_init = jax.random.uniform(key1,
+                                        (args.num_points, len(theta_val) // 2
+                                        )) * (max_range - min_range) + min_range
       sampled_decay = jax.random.uniform(
-          key2, (args.num_points,len(theta_val)//2)
-      ) * (decay_max_range - decay_min_range) + decay_min_range
+          key2, (args.num_points, len(theta_val) //
+                 2)) * (decay_max_range - decay_min_range) + decay_min_range
       theta = jnp.concatenate([sampled_init, sampled_decay], axis=1)
       thetas.append(theta)
     elif sched == 'inverse-time-decay-pl':
@@ -576,8 +602,10 @@ elif args.search_type == 'random':
         point_hparams = []
         for j in range(num_leaves):
           key, key1, key2 = jax.random.split(key, 3)
-          leaf_init = jax.random.uniform(key1) * (max_range - min_range) + min_range
-          leaf_decay = jax.random.uniform(key2) * (decay_max_range - decay_min_range) + decay_min_range
+          leaf_init = jax.random.uniform(key1) * (max_range -
+                                                  min_range) + min_range
+          leaf_decay = jax.random.uniform(key2) * (
+              decay_max_range - decay_min_range) + decay_min_range
           point_hparams.append(jnp.array([leaf_init, leaf_decay]))
         point_hparams = jnp.concatenate(point_hparams)
         theta.append(point_hparams)
@@ -586,9 +614,8 @@ elif args.search_type == 'random':
     else:
       key, skey = jax.random.split(key)
       min_range, max_range = hparam_utils.hparam_range_dict[param]
-      theta = jax.random.uniform(
-          skey, (args.num_points, len(theta_val))
-      ) * (max_range - min_range) + min_range
+      theta = jax.random.uniform(skey, (args.num_points, len(theta_val))) * (
+          max_range - min_range) + min_range
       thetas.append(theta)
 
   thetas = jnp.concatenate(thetas, axis=1)
@@ -610,47 +637,77 @@ for chunk in tqdm(range(num_chunks)):
   thetas_in_chunk = thetas[start:end]
 
   keys = jax.random.split(skey, len(thetas_in_chunk))
-  results = jax.vmap(full_evaluation_runs, in_axes=(None, 0, None))(
-      skey, thetas_in_chunk, args.num_eval_runs
-  )
+  results = jax.vmap(
+      full_evaluation_runs, in_axes=(None, 0, None))(skey, thetas_in_chunk,
+                                                     args.num_eval_runs)
 
   for metric_key in results:
-    results_dict[metric_key].append(
-        onp.array(results[metric_key]).mean(axis=1)
-    )
+    results_dict[metric_key].append(onp.array(results[metric_key]).mean(axis=1))
 
   if args.search_type == 'grid':
     if grid_dim == 1:
       with open(os.path.join(exp_dir, 'result.pkl'), 'wb') as f:
-        pkl.dump({
-            'thetas': onp.array(thetas[:end]),
-            'thetas_cons': onp.array([to_constrained(theta_value.reshape(1))
-                                      for theta_value in thetas[:end]]).reshape(-1),
-            'hparam_names': hparam_names,
-            'hparam_fieldnames': param_fieldnames,
-            **{metric_key: onp.concatenate(results_dict[metric_key]) for metric_key in results_dict},
-        }, f)
+        pkl.dump(
+            {
+                'thetas':
+                    onp.array(thetas[:end]),
+                'thetas_cons':
+                    onp.array([
+                        to_constrained(theta_value.reshape(1))
+                        for theta_value in thetas[:end]
+                    ]).reshape(-1),
+                'hparam_names':
+                    hparam_names,
+                'hparam_fieldnames':
+                    param_fieldnames,
+                **{
+                    metric_key: onp.concatenate(results_dict[metric_key])
+                    for metric_key in results_dict
+                },
+            }, f)
     elif grid_dim == 2:
       xv, yv = onp.meshgrid(X, Y)
       with open(os.path.join(exp_dir, 'result.pkl'), 'wb') as f:
-        pkl.dump({
-            'thetas': onp.array(thetas[:end]),
-            'thetas_cons': onp.array([to_constrained(theta_value)
-                                      for theta_value in thetas[:end]]),
-            'xv': xv,
-            'yv': yv,
-            'hparam_names': hparam_names,
-            'hparam_fieldnames': param_fieldnames,
-            **{metric_key: onp.concatenate(results_dict[metric_key]) for metric_key in results_dict},
-        }, f)
+        pkl.dump(
+            {
+                'thetas':
+                    onp.array(thetas[:end]),
+                'thetas_cons':
+                    onp.array([
+                        to_constrained(theta_value)
+                        for theta_value in thetas[:end]
+                    ]),
+                'xv':
+                    xv,
+                'yv':
+                    yv,
+                'hparam_names':
+                    hparam_names,
+                'hparam_fieldnames':
+                    param_fieldnames,
+                **{
+                    metric_key: onp.concatenate(results_dict[metric_key])
+                    for metric_key in results_dict
+                },
+            }, f)
 
   elif args.search_type == 'random':
     with open(os.path.join(exp_dir, 'result.pkl'), 'wb') as f:
-      pkl.dump({
-          'thetas': onp.array(thetas[:end]),
-          'thetas_cons': onp.array([to_constrained(theta_value)
-                                    for theta_value in thetas[:end]]),
-          'hparam_names': hparam_names,
-          'hparam_fieldnames': param_fieldnames,
-          **{metric_key: onp.concatenate(results_dict[metric_key]) for metric_key in results_dict},
-      }, f)
+      pkl.dump(
+          {
+              'thetas':
+                  onp.array(thetas[:end]),
+              'thetas_cons':
+                  onp.array([
+                      to_constrained(theta_value)
+                      for theta_value in thetas[:end]
+                  ]),
+              'hparam_names':
+                  hparam_names,
+              'hparam_fieldnames':
+                  param_fieldnames,
+              **{
+                  metric_key: onp.concatenate(results_dict[metric_key])
+                  for metric_key in results_dict
+              },
+          }, f)
