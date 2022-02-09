@@ -28,39 +28,39 @@ from latent_programmer.tasks.scan import translate_scan
 @enum.unique
 class ScanExperiment(enum.Enum):
   """Kinds of decomposition-based generalization for SCAN tasks."""
-  # No generalization.
+  # No generalization. All tasks have 1-10 parts.
   NONE = 0
 
-  # For train, tasks have 1-4 parts. For test, tasks have 5-6 parts.
-  LENGTH_1_4_TO_5_6 = 1
+  # For train, tasks have 1-6 parts. For test, tasks have 7-10 parts.
+  LENGTH_1_6_TO_7_10 = 1
 
-  # For train, tasks have exactly 4 parts. For test, tasks have 1-6 parts (but
-  # not 4 parts).
-  LENGTH_4_TO_1_6 = 2
+  # For train, tasks have exactly 6 parts. For test, tasks have 1-10 parts (but
+  # not 6 parts).
+  LENGTH_6_TO_1_10 = 2
 
-  # For train, tasks have exactly 1 part. For test, tasks have 2-4 parts.
-  LENGTH_1_TO_2_4 = 3
+  # For train, tasks have exactly 1 part. For test, tasks have 2-6 parts.
+  LENGTH_1_TO_2_6 = 3
 
   # For train, half of the tasks have "left" as the only direction, and the
   # other half have "right" as the only direction. For test, all tasks have both
-  # "left" and "right". All tasks have 2-4 parts, and each part must have a
+  # "left" and "right". All tasks have 2-6 parts, and each part must have a
   # direction component.
   COMPOSE_DIFFERENT_CONCEPTS = 4
 
   # For train, the tasks have only "left" in the first half of parts and only
   # "right" in the second half of parts. For test, the ordering is reversed. All
-  # tasks have 2-4 parts, and each part must have a direction component.
+  # tasks have 2-6 parts, and each part must have a direction component.
   SWITCH_CONCEPT_ORDER = 5
 
   # For train, 10% of tasks are just "jump", and the other 90% of tasks do not
   # contain "jump". For test, all tasks contain "jump" (but aren't just "jump"
   # itself). This is SCAN's "addprim_jump" task, generalized to tasks with more
-  # parts (all tasks have 1-4 parts).
+  # parts (all tasks have 1-6 parts).
   COMPOSE_NEW_OP = 6
 
   # For train, the tasks do not contain "around right". For test, the tasks all
   # contain "around right". This is SCAN's "template_around_right" task,
-  # generalized to tasks with more parts (all tasks have 1-4 parts).
+  # generalized to tasks with more parts (all tasks have 1-6 parts).
   EXTEND_OP_FUNCTIONALITY = 7
 
 
@@ -127,7 +127,7 @@ def generate_task(
 
 def generate_task_switch_concept_order(is_train):
   """Returns a random task for SWITCH_CONCEPT_ORDER."""
-  num_parts = random.randint(2, 4)
+  num_parts = random.randint(2, 6)
 
   first_half_num_parts = num_parts // 2
   second_half_num_parts = num_parts - first_half_num_parts
@@ -163,22 +163,22 @@ def sample_task(experiment, is_train):
   keep_fn = None
 
   if experiment == ScanExperiment.NONE.name:
-    choose_num_parts = lambda: random.randint(1, 6)
+    choose_num_parts = lambda: random.randint(1, 10)
 
-  elif experiment == ScanExperiment.LENGTH_1_4_TO_5_6.name:
-    choose_num_parts = ((lambda: random.randint(1, 4)) if is_train else
-                        (lambda: random.randint(5, 6)))
+  elif experiment == ScanExperiment.LENGTH_1_6_TO_7_10.name:
+    choose_num_parts = ((lambda: random.randint(1, 6)) if is_train else
+                        (lambda: random.randint(7, 10)))
 
-  elif experiment == ScanExperiment.LENGTH_4_TO_1_6.name:
-    choose_num_parts = ((lambda: 4) if is_train else
-                        (lambda: random.choice([1, 2, 3, 5, 6])))
+  elif experiment == ScanExperiment.LENGTH_6_TO_1_10.name:
+    choose_num_parts = ((lambda: 6) if is_train else
+                        (lambda: random.choice([1, 2, 3, 4, 5, 7, 8, 9, 10])))
 
-  elif experiment == ScanExperiment.LENGTH_1_TO_2_4.name:
+  elif experiment == ScanExperiment.LENGTH_1_TO_2_6.name:
     choose_num_parts = ((lambda: 1) if is_train else
-                        (lambda: random.randint(2, 4)))
+                        (lambda: random.randint(2, 6)))
 
   elif experiment == ScanExperiment.COMPOSE_DIFFERENT_CONCEPTS.name:
-    choose_num_parts = lambda: random.randint(2, 4)
+    choose_num_parts = lambda: random.randint(2, 6)
     templates = TEMPLATES_REQUIRE_DIRECTION
     if is_train:
       directions = [random.choice(DIRECTIONS)]
@@ -187,7 +187,7 @@ def sample_task(experiment, is_train):
                                 tokens_contains(tokens, 'right'))
 
   elif experiment == ScanExperiment.COMPOSE_NEW_OP.name:
-    choose_num_parts = lambda: random.randint(1, 4)
+    choose_num_parts = lambda: random.randint(1, 6)
     if is_train:
       if random.random() < 0.1:
         return ['jump']
@@ -198,7 +198,7 @@ def sample_task(experiment, is_train):
                                 len(tokens) != 1)
 
   elif experiment == ScanExperiment.EXTEND_OP_FUNCTIONALITY.name:
-    choose_num_parts = lambda: random.randint(1, 4)
+    choose_num_parts = lambda: random.randint(1, 6)
     if is_train:
       keep_fn = lambda tokens: not tokens_contains(tokens, 'around right')
     else:

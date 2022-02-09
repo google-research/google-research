@@ -95,7 +95,7 @@ class DecomposeAttentionTransformer(nn.Module):
     if self.config.dataset_type == 'robust_fill':
       self.encoder = base_models.TransformerIOEncoder(config=base_config,
                                                       name='encoder')
-    elif self.config.dataset_type == 'scan':
+    elif self.config.dataset_type in ['robust_fill_base', 'scan']:
       self.encoder = base_models.TransformerEncoder(config=base_config,
                                                     name='encoder')
     else:

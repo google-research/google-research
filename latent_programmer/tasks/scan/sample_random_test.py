@@ -38,13 +38,13 @@ class SampleRandomTest(parameterized.TestCase):
     # There should be a lot of variety in tasks.
     print('{} train distinct tasks: {}'.format(experiment, len(train_set)))
     print('{} test distinct tasks: {}'.format(experiment, len(test_set)))
-    if experiment == sample_random.ScanExperiment.LENGTH_1_TO_2_4.name:
+    if experiment == sample_random.ScanExperiment.LENGTH_1_TO_2_6.name:
       # This is the only experiment where tasks are commonly duplicated, since
       # there's only 1 part per task.
       self.assertGreater(len(train_set), 40)
     else:
-      self.assertGreater(len(train_set), 75)
-    self.assertGreater(len(test_set), 75)
+      self.assertGreater(len(train_set), 80)
+    self.assertGreater(len(test_set), 80)
 
     # There should be zero overlap between train and test, unless the experiment
     # is NONE.

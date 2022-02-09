@@ -24,8 +24,8 @@ from latent_programmer.tasks.scan import scan_vocab
 gfile = tf.io.gfile
 
 
-def create_robust_fill_dataset_from_tf_record(file_pattern, token_id_table,
-                                              char_id_table):
+def create_robust_fill_dataset_from_tf_record(
+    file_pattern, token_id_table, char_id_table, use_bos_separators, split_ios):
   """Returns an instance of tf.data.Dataset."""
 
   filenames = gfile.glob(file_pattern)
@@ -53,30 +53,48 @@ def create_robust_fill_dataset_from_tf_record(file_pattern, token_id_table,
                 tf.io.FixedLenFeature([], tf.string, default_value=''),
         })
 
-    ios = tf.strings.split(
-        tf.strings.split(feature_values['i/o'], sep='>'), sep='<')
+    if split_ios:
+      ios = tf.strings.split(
+          tf.strings.split(feature_values['i/o'], sep='>'), sep='<')
 
-    inputs, outputs = ios.merge_dims(0, 1)[::2], ios.merge_dims(0, 1)[1::2]
-    # Step 1. Parse inputs into tokens.
-    inputs = tf.strings.unicode_split(inputs, 'UTF-8').to_tensor()
-    inputs = char_table.lookup(inputs)  # Map characters to tokens.
+      inputs, outputs = ios.merge_dims(0, 1)[::2], ios.merge_dims(0, 1)[1::2]
+      # Step 1. Parse inputs into tokens.
+      inputs = tf.strings.unicode_split(inputs, 'UTF-8').to_tensor()
+      inputs = char_table.lookup(inputs)  # Map characters to tokens.
 
-    # Step 2. Parse outputs into tokens.
-    split_outputs = tf.strings.unicode_split(
-        tf.strings.split(outputs, sep='|'), 'UTF-8')
-    outputs = split_outputs.merge_dims(1, 2).to_tensor()
-    outputs = char_table.lookup(outputs)
+      # Step 2. Parse outputs into tokens.
+      split_outputs = tf.strings.unicode_split(
+          tf.strings.split(outputs, sep='|'), 'UTF-8')
+      outputs = split_outputs.merge_dims(1, 2).to_tensor()
+      outputs = char_table.lookup(outputs)
+
+    else:
+      # Step 1. Parse input tokens.
+      inputs = feature_values['i/o']
+      inputs = tf.strings.unicode_split(inputs, 'UTF-8')
+      inputs = char_table.lookup(inputs)  # Map characters to tokens.
+      inputs = tf.expand_dims(inputs, axis=0)
+
+      # Step 2. Create dummy "output" (analogous to RobustFill's output).
+      dummy = inputs
+      outputs = dummy
 
     # Step 3. Parse program into tokens.
     program_encoding = feature_values['program_encoding']
-    # Add BOS between every partial program, then add BOS followed by EOS.
-    # `program_encoding` has a | between partial programs (not at the beginning
-    # or end of the sequence, and no spaces around |).
-    program_encoding = tf.strings.join([
-        tf.strings.regex_replace(program_encoding, r'\|',
-                                 ' {} '.format(bos_token)),
-        ' {} {}'.format(bos_token, eos_token),
-    ])
+    if use_bos_separators:
+      # Add BOS between every partial program, then add BOS followed by EOS.
+      # `program_encoding` has a | between partial programs (not at the
+      # beginning or end of the sequence, and no spaces around |).
+      program_encoding = tf.strings.join([
+          tf.strings.regex_replace(program_encoding, r'\|',
+                                   ' {} '.format(bos_token)),
+          ' {} {}'.format(bos_token, eos_token),
+      ])
+    else:
+      program_encoding = tf.strings.join([
+          tf.strings.regex_replace(program_encoding, r'\|', ' '),
+          ' {}'.format(eos_token),
+      ])
     # Parse numbers.
     program_encoding = tf.strings.split(program_encoding, sep=' ')
     program_encoding = tf.strings.to_number(
@@ -88,8 +106,8 @@ def create_robust_fill_dataset_from_tf_record(file_pattern, token_id_table,
   return dataset
 
 
-def create_scan_dataset_from_tf_record(file_pattern, token_id_table,
-                                       char_id_table):
+def create_scan_dataset_from_tf_record(
+    file_pattern, token_id_table, char_id_table, use_bos_separators):
   """Returns an instance of tf.data.Dataset."""
   del char_id_table
 
@@ -122,10 +140,16 @@ def create_scan_dataset_from_tf_record(file_pattern, token_id_table,
     # Add BOS between every part, then add BOS followed by EOS. `program` has a
     # | between parts (not at the beginning or end of the sequence, and no
     # spaces around |).
-    program = tf.strings.join([
-        tf.strings.regex_replace(program, r'\|', ' {} '.format(bos_token)),
-        ' {} {}'.format(bos_token, eos_token),
-    ])
+    if use_bos_separators:
+      program = tf.strings.join([
+          tf.strings.regex_replace(program, r'\|', ' {} '.format(bos_token)),
+          ' {} {}'.format(bos_token, eos_token),
+      ])
+    else:
+      program = tf.strings.join([
+          tf.strings.regex_replace(program, r'\|', ' '),
+          ' {}'.format(eos_token),
+      ])
     # Parse numbers.
     program = tf.strings.split(program, sep=' ')
     program = tf.strings.to_number(program, out_type=tf.int32)

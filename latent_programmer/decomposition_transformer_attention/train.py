@@ -94,8 +94,8 @@ flags.DEFINE_integer('num_final_test_steps', 100,
 flags.DEFINE_integer('train_set_batches', -1,
                      'Number of batches for a smaller training set, or -1 to '
                      'use the original training set size.')
-flags.DEFINE_integer('log_freq', 1000, 'Number of steps between training logs.')
-flags.DEFINE_integer('eval_freq', 2000, 'Number of steps between eval.')
+flags.DEFINE_integer('log_freq', 2000, 'Number of steps between training logs.')
+flags.DEFINE_integer('eval_freq', 10000, 'Number of steps between eval.')
 flags.DEFINE_integer('predict_freq', 50000,
                      'Number of steps between prediction (beam search).')
 flags.DEFINE_integer('checkpoint_freq', 50000,
@@ -106,9 +106,11 @@ flags.DEFINE_integer('finetune_start_step', -1,
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
+flags.DEFINE_bool('use_bos_separators', True,
+                  'Whether to use BOS tokens between partial programs.')
 flags.DEFINE_string('attention_mask_type', 'bos_full_attention',
                     'The kind of attention mask to use. Options are: baseline, '
-                    'bos_to_bos, bos_full_attention')
+                    'bos_to_last, bos_to_bos_and_last, bos_full_attention')
 
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
@@ -122,7 +124,8 @@ flags.DEFINE_integer('max_distance', 128,
 flags.DEFINE_bool('bidirectional_program_attention', False,
                   'Whether program self-attention is bidirectional.')
 
-flags.DEFINE_enum('dataset_type', 'robust_fill', ['robust_fill', 'scan'],
+flags.DEFINE_enum('dataset_type', 'robust_fill',
+                  ['robust_fill', 'robust_fill_base', 'scan'],
                   'The kind of dataset to use.')
 
 
@@ -431,7 +434,7 @@ def eval_predicted(predicted, inputs, outputs, parse_beam_fn):
   # predicted shape [beam_size, length]
   for beam in predicted[::-1]:
     program = parse_beam_fn(beam)
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
       try:
         p_outs = [program(inp) for inp in inputs]
         score = np.sum([p_out == out for p_out, out in zip(p_outs, outputs)])
@@ -509,9 +512,10 @@ def main(_):
   # ---------------------------------------------------------------------------
 
   # Build token tables.
-  if FLAGS.dataset_type == 'robust_fill':
+  if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+    characters = robust_fill_dsl.CHARACTER + '<>'
     id_char_table = {i+1: char
-                     for i, char in enumerate(robust_fill_dsl.CHARACTER)}
+                     for i, char in enumerate(characters)}
     char_id_table = {char: id for id, char in id_char_table.items()}
     id_token_table, token_id_table = dsl_tokens.build_token_tables()
     bos_token = token_id_table[robust_fill_dsl.BOS]
@@ -543,6 +547,22 @@ def main(_):
         outs.append(decode_str(out))
       return inps, outs
 
+    elif FLAGS.dataset_type == 'robust_fill_base':
+      def decode_str(s):
+        """Decode string tokens."""
+        return ''.join([id_char_table[c_id] for c_id in s if c_id > 0])
+
+      inps = [decode_str(inp) for inp in inputs]
+      assert len(inps) == 1
+      combined_io_examples = inps[0]
+      io_pairs = combined_io_examples.split('>')
+      inps, outs = [], []
+      for pair in io_pairs:
+        inp, output = pair.split('<')
+        inps.append(inp)
+        outs.append(output)
+      return inps, outs
+
     elif FLAGS.dataset_type == 'scan':
       def decode_str(s):
         """Decode string tokens."""
@@ -559,7 +579,7 @@ def main(_):
     """Decode program tokens."""
     program = program[:np.argmax(program == eos_token) + 1].astype(np.int32)
 
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
       # Returns either a Concat program object, or None.
       program = program[program != bos_token].tolist()
       try:
@@ -577,7 +597,7 @@ def main(_):
   def decode_program_str(program):
     """Decode program tokens into a string."""
     decoded = decode_program(program)
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
       try:
         return decoded.to_string()
       except:  # pylint: disable=bare-except
@@ -598,14 +618,21 @@ def main(_):
   logging.info('padded_shapes: %s', padded_shapes)
 
   if FLAGS.dataset_type == 'robust_fill':
-    create_dataset_fn = input_pipeline.create_robust_fill_dataset_from_tf_record
+    create_dataset_fn = functools.partial(
+        input_pipeline.create_robust_fill_dataset_from_tf_record,
+        split_ios=True)
+  elif FLAGS.dataset_type == 'robust_fill_base':
+    create_dataset_fn = functools.partial(
+        input_pipeline.create_robust_fill_dataset_from_tf_record,
+        split_ios=False)
   elif FLAGS.dataset_type == 'scan':
     create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   dataset = create_dataset_fn(
-      FLAGS.dataset_filepattern, token_id_table, char_id_table)
+      FLAGS.dataset_filepattern, token_id_table, char_id_table,
+      use_bos_separators=FLAGS.use_bos_separators)
   dataset = dataset.padded_batch(
       batch_size,
       padded_shapes=padded_shapes,
@@ -626,7 +653,8 @@ def main(_):
   train_ds = train_ds.repeat()
 
   test_dataset = create_dataset_fn(
-      FLAGS.test_dataset_filepattern, token_id_table, char_id_table)
+      FLAGS.test_dataset_filepattern, token_id_table, char_id_table,
+      use_bos_separators=FLAGS.use_bos_separators)
   test_dataset = test_dataset.padded_batch(
       batch_size,
       padded_shapes=predict_padded_shapes,
@@ -808,15 +836,6 @@ def main(_):
     metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
-    # Save a Checkpoint
-    if (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step:
-      if jax.host_id() == 0:
-        # Save unreplicated optimizer + model state.
-        checkpoints.save_checkpoint(
-            os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
-            jax_utils.unreplicate(optimizer),
-            step)
-
     # Periodic metric handling.
 
     # Training Metrics
@@ -914,10 +933,12 @@ def main(_):
               ground_truth_str = decode_program_str(ground_truth_tokens)
 
               # Split by length of program.
-              # There is a BOS token before every part and at the end.
-              # TODO(kshi): Fix this for use_bos_separators=False
-              num_expressions = int(jnp.sum(ground_truth_tokens == bos_token)
-                                    - 1)
+              if FLAGS.use_bos_separators:
+                # There is a BOS token between parts and at the end.
+                num_expressions = int(jnp.sum(ground_truth_tokens == bos_token))
+              else:
+                # TODO(kshi): Fix this if we care about it enough.
+                num_expressions = -1
               pred_denominators[num_expressions] += 1
               total_denominator += 1
               if p_score >= len(inps):
@@ -979,6 +1000,16 @@ def main(_):
                                 '\n------\n'.join(message), step)
             summary_writer.flush()
 
+    # Save a Checkpoint. Do this at the end of the training loop, so that if a
+    # worker is descheduled during a round of prediction (which takes a while),
+    # we will redo prediction upon restarting (to avoid losing data).
+    if (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step:
+      if jax.host_id() == 0:
+        # Save unreplicated optimizer + model state.
+        checkpoints.save_checkpoint(
+            os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
+            jax_utils.unreplicate(optimizer),
+            step)
 
 if __name__ == '__main__':
   app.run(main)
