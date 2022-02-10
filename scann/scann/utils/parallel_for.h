@@ -19,14 +19,17 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <limits>
 #include <type_traits>
 #include <utility>
 
-#include "absl/status/status.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/functional/function_ref.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 

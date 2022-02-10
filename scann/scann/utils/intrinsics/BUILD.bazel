@@ -47,7 +47,6 @@ cc_library(
     deps = [
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "@com_google_absl//absl/base",

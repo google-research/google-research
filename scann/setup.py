@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2020 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ def get_long_description():
 
 setuptools.setup(
     name="scann",
-    version="1.2.4",
+    version="1.2.5",
     author="Google Inc.",
     url="https://github.com/google-research/google-research/tree/master/scann",
     author_email="opensource@google.com",

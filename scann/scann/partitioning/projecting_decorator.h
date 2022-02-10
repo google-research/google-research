@@ -23,7 +23,6 @@
 #include "absl/memory/memory.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/partitioner_base.h"
-#include "scann/partitioning/projecting_decorator.h"
 #include "scann/projection/projection_base.h"
 
 namespace research_scann {
@@ -151,9 +150,16 @@ class KMeansTreeProjectingDecorator final
       MutableSpan<std::vector<KMeansTreeSearchResult>> results) const final;
   Status TokenForDatapoint(const DatapointPtr<T>& dptr,
                            KMeansTreeSearchResult* result) const final;
+  Status TokenForDatapointBatched(
+      const TypedDataset<T>& queries,
+      std::vector<KMeansTreeSearchResult>* result) const final;
   StatusOr<Datapoint<float>> ResidualizeToFloat(
       const DatapointPtr<T>& dptr, int32_t token,
       bool normalize_residual_by_cluster_stdev) const final;
+
+ private:
+  StatusOrPtr<TypedDataset<ProjectionType>> CreateProjectedDataset(
+      const TypedDataset<T>& queries) const;
 };
 
 }  // namespace research_scann

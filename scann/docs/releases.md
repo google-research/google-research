@@ -1,5 +1,8 @@
 # ScaNN Release Notes
 
+### 1.2.5
+Updated to compile against TensorFlow 2.8.0; **not** backwards-compatible with earlier versions of TensorFlow.
+
 ### 1.2.4
 Updated to compile against TensorFlow 2.7.0; **not** backwards-compatible with earlier versions of TensorFlow. Python 3.6 support has been dropped because TF 2.7 doesn't support Python 3.6.
 

@@ -15,6 +15,7 @@
 #include "scann/projection/projection_factory.h"
 
 #include <cstdint>
+#include <memory>
 
 #include "scann/projection/chunking_projection.h"
 #include "scann/projection/identity_projection.h"

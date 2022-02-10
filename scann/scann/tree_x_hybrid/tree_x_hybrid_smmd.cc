@@ -24,7 +24,6 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_map.h"
 #include "absl/memory/memory.h"
-#include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -43,6 +42,7 @@
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 

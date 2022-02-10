@@ -81,11 +81,10 @@ Status KMeansTreeProjectingDecorator<T, ProjectionType>::
 }
 
 template <typename T, typename ProjectionType>
-Status KMeansTreeProjectingDecorator<T, ProjectionType>::
-    TokensForDatapointWithSpillingBatched(
-        const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-        MutableSpan<std::vector<KMeansTreeSearchResult>> results) const {
-  if (queries.empty()) return OkStatus();
+StatusOrPtr<TypedDataset<ProjectionType>>
+KMeansTreeProjectingDecorator<T, ProjectionType>::CreateProjectedDataset(
+    const TypedDataset<T>& queries) const {
+  if (queries.empty()) return {nullptr};
   unique_ptr<TypedDataset<ProjectionType>> projected_ds;
   for (size_t i : IndicesOf(queries)) {
     TF_ASSIGN_OR_RETURN(auto projected, this->ProjectAndNormalize(queries[i]));
@@ -100,6 +99,32 @@ Status KMeansTreeProjectingDecorator<T, ProjectionType>::
     }
     SCANN_RETURN_IF_ERROR(projected_ds->Append(projected.ToPtr(), ""));
   }
+  return projected_ds;
+}
+
+template <typename T, typename ProjectionType>
+Status
+KMeansTreeProjectingDecorator<T, ProjectionType>::TokenForDatapointBatched(
+    const TypedDataset<T>& queries,
+    std::vector<KMeansTreeSearchResult>* results) const {
+  if (queries.empty()) {
+    results->clear();
+    return OkStatus();
+  }
+  TF_ASSIGN_OR_RETURN(unique_ptr<TypedDataset<ProjectionType>> projected_ds,
+                      CreateProjectedDataset(queries));
+  return base_kmeans_tree_partitioner()->TokenForDatapointBatched(*projected_ds,
+                                                                  results);
+}
+
+template <typename T, typename ProjectionType>
+Status KMeansTreeProjectingDecorator<T, ProjectionType>::
+    TokensForDatapointWithSpillingBatched(
+        const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
+        MutableSpan<std::vector<KMeansTreeSearchResult>> results) const {
+  if (queries.empty()) return OkStatus();
+  TF_ASSIGN_OR_RETURN(unique_ptr<TypedDataset<ProjectionType>> projected_ds,
+                      CreateProjectedDataset(queries));
   return base_kmeans_tree_partitioner()->TokensForDatapointWithSpillingBatched(
       *projected_ds, max_centers_override, results);
 }

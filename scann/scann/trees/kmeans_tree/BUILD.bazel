@@ -46,7 +46,6 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_castops",
         "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_random",
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/oss_wrappers:tf_dependency",

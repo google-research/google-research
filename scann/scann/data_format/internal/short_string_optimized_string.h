@@ -78,7 +78,7 @@ class ShortStringOptimizedString {
   size_t HeapStorageUsed() const {
     if (size() <= kMaxInline) return 0;
     absl::optional<size_t> true_size =
-        MallocExtension::GetAllocatedSize(heap_string());
+        tcmalloc::MallocExtension::GetAllocatedSize(heap_string());
     return *true_size;
   }
 

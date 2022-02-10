@@ -45,13 +45,14 @@ size_t GfvStorage(const vector<GenericFeatureVector>& gfvs) {
 }
 
 std::string GetTcMallocLogString() {
-  size_t allocated_bytes =
-      *MallocExtension::GetNumericProperty("generic.current_allocated_bytes");
-  size_t free_bytes =
-      *MallocExtension::GetNumericProperty("tcmalloc.pageheap_free_bytes");
-  size_t unmapped_bytes =
-      *MallocExtension::GetNumericProperty("tcmalloc.pageheap_unmapped_bytes");
-  size_t heap_size = *MallocExtension::GetNumericProperty("generic.heap_size");
+  size_t allocated_bytes = *tcmalloc::MallocExtension::GetNumericProperty(
+      "generic.current_allocated_bytes");
+  size_t free_bytes = *tcmalloc::MallocExtension::GetNumericProperty(
+      "tcmalloc.pageheap_free_bytes");
+  size_t unmapped_bytes = *tcmalloc::MallocExtension::GetNumericProperty(
+      "tcmalloc.pageheap_unmapped_bytes");
+  size_t heap_size =
+      *tcmalloc::MallocExtension::GetNumericProperty("generic.heap_size");
 
   return absl::StrCat("From TCMalloc:  ", allocated_bytes / bytes_in_mb,
                       "MB allocated, ", free_bytes / bytes_in_mb,

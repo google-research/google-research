@@ -21,6 +21,7 @@
 #include "absl/types/optional.h"
 
 namespace research_scann {
+namespace tcmalloc {
 
 class MallocExtension {
  public:
@@ -34,6 +35,7 @@ class MallocExtension {
   static size_t GetAllocatedSize(const void* p) { return 0; }
 };
 
+}  // namespace tcmalloc
 }  // namespace research_scann
 
 #endif

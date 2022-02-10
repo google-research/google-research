@@ -32,7 +32,7 @@ class ScannTest(parameterized.TestCase):
       indices = []
       distances = []
       for _ in range(n_queries):
-        queries.append(np.random.rand(n_dims).astype(np.float))
+        queries.append(np.random.rand(n_dims).astype(np.float32))
         idx_orig, dis_orig = searcher.search(queries[-1])
         indices.append(idx_orig)
         distances.append(dis_orig)
@@ -57,11 +57,11 @@ class ScannTest(parameterized.TestCase):
     k = 10
     n_dims = 10
     n_points = 1000
-    ds = np.random.rand(n_points, n_dims).astype(np.float)
+    ds = np.random.rand(n_points, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, k,
                                  "dot_product").score_brute_force().build()
     for _ in range(100):
-      q = np.random.rand(n_dims).astype(np.float)
+      q = np.random.rand(n_dims).astype(np.float32)
       idx, dis = s.search(q)
       _, gt_dis = ground_truth(ds, q, 10)
 
@@ -78,11 +78,11 @@ class ScannTest(parameterized.TestCase):
     k = 10
     n_dims = 10
     n_points = 1000
-    ds = np.random.rand(n_points, n_dims).astype(np.float)
+    ds = np.random.rand(n_points, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, k,
                                  "dot_product").score_brute_force().build()
 
-    qs = np.random.rand(n_points, n_dims).astype(np.float)
+    qs = np.random.rand(n_points, n_dims).astype(np.float32)
     batch_idx, batch_dis = s.search_batched(qs)
     for i, q in enumerate(qs):
       _, dis = s.search(q)
@@ -95,7 +95,7 @@ class ScannTest(parameterized.TestCase):
                             ("dot_product", True), ("dot_product", False))
   def test_tree_ah(self, dist, quantize_tree):
     n_dims = 50
-    ds = np.random.rand(12345, n_dims).astype(np.float)
+    ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10, dist).tree(
         300, 30, min_partition_size=10,
         quantize_centroids=quantize_tree).score_ah(2).build()
@@ -104,14 +104,14 @@ class ScannTest(parameterized.TestCase):
   @parameterized.parameters(("squared_l2",), ("dot_product",))
   def test_pure_ah(self, dist):
     n_dims = 50
-    ds = np.random.rand(12345, n_dims).astype(np.float)
+    ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10, dist).score_ah(2).build()
     self.verify_serialization(s, n_dims, 5)
 
   @parameterized.parameters(("squared_l2",), ("dot_product",))
   def test_tree_brute_force(self, dist):
     n_dims = 100
-    ds = np.random.rand(12345, n_dims).astype(np.float)
+    ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10, dist).tree(
         100, 10).score_brute_force(False).build()
     self.verify_serialization(s, n_dims, 5)
@@ -119,7 +119,7 @@ class ScannTest(parameterized.TestCase):
   @parameterized.parameters(("squared_l2",), ("dot_product",))
   def test_tree_brute_force_int8(self, dist):
     n_dims = 100
-    ds = np.random.rand(12345, n_dims).astype(np.float)
+    ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10,
                                  dist).tree(100,
                                             10).score_brute_force(True).build()
@@ -127,7 +127,7 @@ class ScannTest(parameterized.TestCase):
 
   def test_empty_partitions(self):
     n_dims = 100
-    ds = np.random.rand(1234, n_dims).astype(np.float)
+    ds = np.random.rand(1234, n_dims).astype(np.float32)
     # with 1234 points and 200 partitions, k-means fails to work well and some
     # partitions are empty; make sure this serializes properly
     s = scann_ops_pybind.builder(ds, 10, "dot_product").tree(
@@ -137,7 +137,7 @@ class ScannTest(parameterized.TestCase):
   @parameterized.parameters(("squared_l2",), ("dot_product",))
   def test_brute_force_int8(self, dist):
     n_dims = 100
-    ds = np.random.rand(12345, n_dims).astype(np.float)
+    ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10, dist).score_brute_force(True).build()
     self.verify_serialization(s, n_dims, 5)
 
@@ -145,7 +145,7 @@ class ScannTest(parameterized.TestCase):
                             ("dot_product", True), ("dot_product", False))
   def test_reordering(self, dist, int8_reordering):
     n_dims = 100
-    ds = np.random.rand(12345, n_dims).astype(np.float)
+    ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10, dist).score_ah(2).reorder(
         20, int8_reordering).build()
     self.verify_serialization(s, n_dims, 5)
@@ -153,11 +153,11 @@ class ScannTest(parameterized.TestCase):
   def test_shapes(self):
     n_dims = 128
     k = 10
-    ds = np.random.rand(1234, n_dims).astype(np.float)
+    ds = np.random.rand(1234, n_dims).astype(np.float32)
     # first look at AH searcher with reordering
     s = scann_ops_pybind.builder(ds, k,
                                  "dot_product").score_ah(2).reorder(30).build()
-    q = np.random.rand(n_dims).astype(np.float)
+    q = np.random.rand(n_dims).astype(np.float32)
     self.assertLen(s.search(q)[0], k)
     self.assertLen(s.search(q, final_num_neighbors=20)[0], 20)
     self.assertLen(s.search(q, pre_reorder_num_neighbors=50)[0], k)
@@ -165,7 +165,7 @@ class ScannTest(parameterized.TestCase):
         s.search(q, final_num_neighbors=15, pre_reorder_num_neighbors=30)[0],
         15)
 
-    batch_q = np.random.rand(18, n_dims).astype(np.float)
+    batch_q = np.random.rand(18, n_dims).astype(np.float32)
     self.assertEqual(s.search_batched(batch_q)[0].shape, (18, k))
     self.assertEqual(
         s.search_batched(batch_q, final_num_neighbors=20)[0].shape, (18, 20))
@@ -190,8 +190,8 @@ class ScannTest(parameterized.TestCase):
 
     n_dims = 50
     k = 10
-    ds = np.random.rand(2500, n_dims).astype(np.float)
-    qs = np.random.rand(500, n_dims).astype(np.float)
+    ds = np.random.rand(2500, n_dims).astype(np.float32)
+    qs = np.random.rand(500, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, k,
                                  "squared_l2").score_brute_force(False).build()
     idx, dis = s.search_batched(qs)
@@ -205,8 +205,8 @@ class ScannTest(parameterized.TestCase):
   def test_parallel_batching(self):
     n_dims = 50
     k = 10
-    ds = np.random.rand(12500, n_dims).astype(np.float)
-    qs = np.random.rand(2500, n_dims).astype(np.float)
+    ds = np.random.rand(12500, n_dims).astype(np.float32)
+    qs = np.random.rand(2500, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, k,
                                  "squared_l2").tree(80, 10).score_ah(2).build()
     idx, dis = s.search_batched(qs)
@@ -218,7 +218,7 @@ class ScannTest(parameterized.TestCase):
   def test_spherical_kmeans(self):
     n_dims = 50
     k = 10
-    ds = self.normalize(np.random.rand(12500, n_dims).astype(np.float))
+    ds = self.normalize(np.random.rand(12500, n_dims).astype(np.float32))
     s = scann_ops_pybind.builder(ds, k, "squared_l2").tree(
         80, 10, spherical=True).score_ah(2).build()
     self.verify_serialization(s, n_dims, 20)

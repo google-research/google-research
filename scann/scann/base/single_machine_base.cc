@@ -20,7 +20,6 @@
 #include <typeinfo>
 
 #include "absl/flags/flag.h"
-#include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/substitute.h"
 #include "scann/base/search_parameters.h"

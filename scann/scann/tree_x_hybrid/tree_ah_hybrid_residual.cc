@@ -659,23 +659,19 @@ TreeAHHybridResidual::TokenizeAndMaybeResidualize(
     const TypedDataset<float>& dps,
     MutableSpan<Datapoint<float>*> residual_storage) {
   SCANN_RET_CHECK_EQ(dps.size(), residual_storage.size());
-  vector<vector<KMeansTreeSearchResult>> token_storage(dps.size());
-  vector<int32_t> max_centers(dps.size(), 1);
+  vector<KMeansTreeSearchResult> token_storage(dps.size());
   SCANN_RETURN_IF_ERROR(
-      database_tokenizer_->TokensForDatapointWithSpillingBatched(
-          dps, max_centers, MakeMutableSpan(token_storage)));
+      database_tokenizer_->TokenForDatapointBatched(dps, &token_storage));
   vector<pair<int32_t, DatapointPtr<float>>> result(dps.size());
   for (size_t dp_idx : IndicesOf(residual_storage)) {
     DatapointPtr<float> dptr = dps[dp_idx];
     std::vector<float>& vals = *residual_storage[dp_idx]->mutable_values();
     vals.resize(dptr.values_slice().size());
-
-    SCANN_RET_CHECK_GE(token_storage[dp_idx].size(), 1);
-    auto center = token_storage[dp_idx].front().node->cur_node_center();
+    auto center = token_storage[dp_idx].node->cur_node_center();
     for (size_t dim_idx : IndicesOf(vals)) {
       vals[dim_idx] = dptr.values()[dim_idx] - center.values()[dim_idx];
     }
-    result[dp_idx] = {token_storage[dp_idx].front().node->LeafId(),
+    result[dp_idx] = {token_storage[dp_idx].node->LeafId(),
                       residual_storage[dp_idx]->ToPtr()};
   }
   return result;

@@ -18,12 +18,12 @@
 
 #include <cstdint>
 
-#include "absl/status/status.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/utils/memory_logging.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 

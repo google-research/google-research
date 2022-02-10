@@ -81,6 +81,11 @@ class ScannInterface {
   const ScannConfig* config() const { return &config_; }
 
  private:
+  SearchParameters GetSearchParameters(int final_nn, int pre_reorder_nn,
+                                       int leaves) const;
+  vector<SearchParameters> GetSearchParametersBatched(
+      int batch_size, int final_nn, int pre_reorder_nn, int leaves,
+      bool set_unspecified) const;
   size_t n_points_;
   DimensionIndex dimensionality_;
   std::unique_ptr<SingleMachineSearcherBase<float>> scann_;

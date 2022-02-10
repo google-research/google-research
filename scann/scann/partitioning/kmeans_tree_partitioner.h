@@ -107,6 +107,7 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
   Status TokenForDatapointBatched(const TypedDataset<T>& queries,
                                   std::vector<int32_t>* results,
                                   ThreadPool* pool = nullptr) const final;
+
   Status TokensForDatapointWithSpilling(
       const DatapointPtr<T>& dptr, std::vector<int32_t>* result) const final {
     return TokensForDatapointWithSpillingAndOverride(dptr, 0, result);
@@ -117,7 +118,10 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
       std::vector<int32_t>* result) const;
 
   Status TokenForDatapoint(const DatapointPtr<T>& dptr,
-                           KMeansTreeSearchResult* result) const override;
+                           KMeansTreeSearchResult* result) const final;
+  Status TokenForDatapointBatched(
+      const TypedDataset<T>& queries,
+      std::vector<KMeansTreeSearchResult>* result) const final;
   Status TokensForDatapointWithSpilling(
       const DatapointPtr<T>& dptr, int32_t max_centers_override,
       std::vector<KMeansTreeSearchResult>* result) const final;
@@ -234,6 +238,12 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
                ? query_tokenization_type_
                : database_tokenization_type_;
   }
+
+  StatusOr<vector<pair<DatapointIndex, float>>> TokenForDatapointBatchedImpl(
+      const TypedDataset<T>& queries, ThreadPool* pool = nullptr) const;
+
+  vector<KMeansTreeSearchResult> ToKmeansTreeSearchResults(
+      ConstSpan<pair<DatapointIndex, float>> partitions) const;
 
   shared_ptr<const KMeansTree> kmeans_tree_;
 

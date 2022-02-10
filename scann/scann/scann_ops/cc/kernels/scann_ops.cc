@@ -35,6 +35,14 @@
 
 namespace tensorflow {
 namespace scann_ops {
+namespace {
+
+void GetTensorRequireOk(OpKernelContext* context, const absl::string_view name,
+                        const Tensor** tensor) {
+  OP_REQUIRES_OK(context, context->input(name, tensor));
+}
+
+}  // namespace
 
 class ScannResource : public ResourceBase {
  public:
@@ -58,9 +66,9 @@ void CreateSearcherFromConfig(OpKernelContext* context,
   const Tensor* config_tensor;
   const Tensor* db_tensor;
   const Tensor* threads_tensor;
-  OP_REQUIRES_OK(context, context->input("scann_config", &config_tensor));
-  OP_REQUIRES_OK(context, context->input("x", &db_tensor));
-  OP_REQUIRES_OK(context, context->input("training_threads", &threads_tensor));
+  GetTensorRequireOk(context, "scann_config", &config_tensor);
+  GetTensorRequireOk(context, "x", &db_tensor);
+  GetTensorRequireOk(context, "training_threads", &threads_tensor);
 
   OP_REQUIRES(context, db_tensor->dims() == 2,
               errors::InvalidArgument("Dataset must be two-dimensional"));
@@ -109,12 +117,11 @@ class ScannSearchOp : public OpKernel {
     const Tensor* final_nn_tensor;
     const Tensor* reorder_nn_tensor;
     const Tensor* leaves_tensor;
-    OP_REQUIRES_OK(context, context->input("queries", &query_tensor));
-    OP_REQUIRES_OK(context,
-                   context->input("final_num_neighbors", &final_nn_tensor));
-    OP_REQUIRES_OK(context, context->input("pre_reordering_num_neighbors",
-                                           &reorder_nn_tensor));
-    OP_REQUIRES_OK(context, context->input("leaves_to_search", &leaves_tensor));
+    GetTensorRequireOk(context, "queries", &query_tensor);
+    GetTensorRequireOk(context, "final_num_neighbors", &final_nn_tensor);
+    GetTensorRequireOk(context, "pre_reordering_num_neighbors",
+                       &reorder_nn_tensor);
+    GetTensorRequireOk(context, "leaves_to_search", &leaves_tensor);
 
     OP_REQUIRES(context, query_tensor->dims() == 1,
                 errors::InvalidArgument("Query must be one-dimensional. Use "
@@ -160,13 +167,12 @@ class ScannSearchBatchedOp : public OpKernel {
     const Tensor* reorder_nn_tensor;
     const Tensor* leaves_tensor;
     const Tensor* parallel_tensor;
-    OP_REQUIRES_OK(context, context->input("queries", &query_tensor));
-    OP_REQUIRES_OK(context,
-                   context->input("final_num_neighbors", &final_nn_tensor));
-    OP_REQUIRES_OK(context, context->input("pre_reordering_num_neighbors",
-                                           &reorder_nn_tensor));
-    OP_REQUIRES_OK(context, context->input("leaves_to_search", &leaves_tensor));
-    OP_REQUIRES_OK(context, context->input("parallel", &parallel_tensor));
+    GetTensorRequireOk(context, "queries", &query_tensor);
+    GetTensorRequireOk(context, "final_num_neighbors", &final_nn_tensor);
+    GetTensorRequireOk(context, "pre_reordering_num_neighbors",
+                       &reorder_nn_tensor);
+    GetTensorRequireOk(context, "leaves_to_search", &leaves_tensor);
+    GetTensorRequireOk(context, "parallel", &parallel_tensor);
 
     OP_REQUIRES(context, query_tensor->dims() == 2,
                 errors::InvalidArgument(
@@ -284,17 +290,16 @@ void CreateSearcherFromSerialized(OpKernelContext* context,
   const Tensor* int8_multipliers;
   const Tensor* dp_norms;
 
-  OP_REQUIRES_OK(context, context->input("x", &db_tensor));
-  OP_REQUIRES_OK(context, context->input("scann_config", &config_tensor));
-  OP_REQUIRES_OK(context, context->input("serialized_partitioner",
-                                         &serialized_partitioner));
-  OP_REQUIRES_OK(context, context->input("datapoint_to_token", &dp_to_token));
-  OP_REQUIRES_OK(context, context->input("ah_codebook", &ah_codebook));
-  OP_REQUIRES_OK(context, context->input("hashed_dataset", &hashed_dataset));
-  OP_REQUIRES_OK(context, context->input("int8_dataset", &int8_dataset));
-  OP_REQUIRES_OK(context,
-                 context->input("int8_multipliers", &int8_multipliers));
-  OP_REQUIRES_OK(context, context->input("dp_norms", &dp_norms));
+  GetTensorRequireOk(context, "x", &db_tensor);
+  GetTensorRequireOk(context, "scann_config", &config_tensor);
+  GetTensorRequireOk(context, "serialized_partitioner",
+                     &serialized_partitioner);
+  GetTensorRequireOk(context, "datapoint_to_token", &dp_to_token);
+  GetTensorRequireOk(context, "ah_codebook", &ah_codebook);
+  GetTensorRequireOk(context, "hashed_dataset", &hashed_dataset);
+  GetTensorRequireOk(context, "int8_dataset", &int8_dataset);
+  GetTensorRequireOk(context, "int8_multipliers", &int8_multipliers);
+  GetTensorRequireOk(context, "dp_norms", &dp_norms);
 
   uint32_t n_points = research_scann::kInvalidDatapointIndex;
   research_scann::ConstSpan<float> dataset;

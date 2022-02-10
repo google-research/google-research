@@ -43,6 +43,9 @@ using StatusOrSearcherUntyped =
 template <typename T>
 class SingleMachineSearcherBase;
 
+template <typename T>
+class BruteForceSearcher;
+
 class UntypedSingleMachineSearcherBase {
  public:
   SCANN_DECLARE_MOVE_ONLY_CLASS(UntypedSingleMachineSearcherBase);

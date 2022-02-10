@@ -201,6 +201,7 @@ void StackedQuantizers<T>::Reconstruct(ConstSpan<uint8_t> input,
   const auto num_codebooks = codebook_list.size();
   DCHECK_EQ(num_codebooks, input.size());
   DCHECK_EQ(output.size(), codebook_list[0].dimensionality());
+  std::fill(output.begin(), output.end(), 0);
   for (int i = 0; i < num_codebooks; ++i)
     UpdateSpanByVec(std::plus<FloatT>(), codebook_list[i][input[i]], output);
 }

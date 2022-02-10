@@ -137,6 +137,9 @@ class Dataset : public VirtualDestructor {
 
   size_t DocidMemoryUsage() const { return docids_->MemoryUsage(); }
 
+  class Mutator;
+  virtual StatusOr<typename Dataset::Mutator*> GetUntypedMutator() const = 0;
+
  protected:
   void set_dimensionality_no_checks(DimensionIndex dim) {
     dimensionality_ = dim;
@@ -160,6 +163,18 @@ class Dataset : public VirtualDestructor {
   HashedItem::PackingStrategy packing_strategy_ = HashedItem::NONE;
 
   virtual void UnusedKeyMethod();
+};
+
+class Dataset::Mutator : public VirtualDestructor {
+ public:
+  virtual Status RemoveDatapoint(string_view docid) = 0;
+
+  virtual bool LookupDatapointIndex(string_view docid,
+                                    DatapointIndex* index) const = 0;
+
+  virtual void Reserve(size_t size) = 0;
+
+  virtual Status RemoveDatapoint(DatapointIndex index) = 0;
 };
 
 template <typename T>
@@ -214,10 +229,14 @@ class TypedDataset : public Dataset {
 
   class Mutator;
   virtual StatusOr<typename TypedDataset::Mutator*> GetMutator() const = 0;
+  StatusOr<typename Dataset::Mutator*> GetUntypedMutator() const override {
+    TF_ASSIGN_OR_RETURN(Dataset::Mutator * result, GetMutator());
+    return result;
+  }
 };
 
 template <typename T>
-class TypedDataset<T>::Mutator : public VirtualDestructor {
+class TypedDataset<T>::Mutator : public Dataset::Mutator {
  public:
   virtual Status AddDatapoint(const DatapointPtr<T>& dptr,
                               string_view docid) = 0;

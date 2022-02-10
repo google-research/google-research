@@ -154,29 +154,29 @@ Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
       !is_one_level_tree_) {
     return Partitioner<T>::TokenForDatapointBatched(queries, results);
   }
-
-  const DenseDataset<T>& dense = *down_cast<const DenseDataset<T>*>(&queries);
-  DenseDataset<float> float_query_storage;
-  auto float_queries = ConvertToFloatIfNecessary(dense, &float_query_storage);
-
-  const DenseDataset<float>& centers = kmeans_tree_->root()->Centers();
-  if (centers.dimensionality() != queries.dimensionality()) {
-    return FailedPreconditionError(
-        "Incorrect query dimensionality.  Expected %d, got %d.\n",
-        centers.dimensionality(), queries.dimensionality());
-  }
-
-  const auto& dist = (this->tokenization_mode() == UntypedPartitioner::QUERY)
-                         ? *query_tokenization_dist_
-                         : *database_tokenization_dist_;
-
-  vector<pair<uint32_t, float>> top1_results =
-      DenseDistanceManyToManyTop1<float>(dist, *float_queries, centers, pool);
-
+  TF_ASSIGN_OR_RETURN(auto top1_results,
+                      TokenForDatapointBatchedImpl(queries, pool));
   results->resize(queries.size());
   for (size_t j : Seq(queries.size())) {
     (*results)[j] = static_cast<int32_t>(top1_results[j].first);
   }
+  return OkStatus();
+}
+
+template <typename T>
+Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
+    const TypedDataset<T>& queries,
+    vector<KMeansTreeSearchResult>* results) const {
+  if (cur_tokenization_type() != FLOAT || queries.IsSparse() ||
+      !is_one_level_tree_) {
+    results->resize(queries.size());
+    for (size_t i : IndicesOf(queries)) {
+      SCANN_RETURN_IF_ERROR(TokenForDatapoint(queries[i], &(*results)[i]));
+    }
+  }
+  TF_ASSIGN_OR_RETURN(auto top1_results,
+                      TokenForDatapointBatchedImpl(queries, nullptr));
+  *results = ToKmeansTreeSearchResults(top1_results);
   return OkStatus();
 }
 
@@ -626,28 +626,6 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpillingBatched(
   auto float_queries = ConvertToFloatIfNecessary(
       *down_cast<const DenseDataset<T>*>(&queries), &float_query_storage);
 
-  auto to_kmeans_tree_search_results =
-      [&](ConstSpan<pair<DatapointIndex, float>> child_centers)
-      -> vector<KMeansTreeSearchResult> {
-    const auto* root = kmeans_tree_->root();
-    vector<KMeansTreeSearchResult> this_query_results;
-    this_query_results.reserve(child_centers.size());
-    for (const auto& child_center : child_centers) {
-      const auto token = child_center.first;
-      const KMeansTreeNode* node = &root->Children()[token];
-      DCHECK_EQ(child_center.first, node->LeafId());
-      KMeansTreeSearchResult result;
-      result.node = node;
-      result.distance_to_center = child_center.second;
-      result.residual_stdev =
-          populate_residual_stdev_ && token < root->residual_stdevs().size()
-              ? root->residual_stdevs()[token]
-              : 1.0;
-      this_query_results.push_back(result);
-    }
-    return this_query_results;
-  };
-
   if (query_spilling_type_ == QuerySpillingConfig::FIXED_NUMBER_OF_CENTERS) {
     vector<FastTopNeighbors<float>> ftns(float_queries->size());
     for (DatapointIndex query_idx : IndicesOf(*float_queries)) {
@@ -664,7 +642,7 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpillingBatched(
       ZipNthElementBranchOptimized(DistanceComparatorBranchOptimized(),
                                    ftns[query_idx].max_results() - 1,
                                    child_centers.begin(), child_centers.end());
-      results[query_idx] = to_kmeans_tree_search_results(child_centers);
+      results[query_idx] = ToKmeansTreeSearchResults(child_centers);
     }
     return OkStatus();
   }
@@ -729,7 +707,7 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpillingBatched(
 
     ZipSortBranchOptimized(DistanceComparatorBranchOptimized(),
                            child_centers.begin(), child_centers.end());
-    results[query_idx] = to_kmeans_tree_search_results(child_centers);
+    results[query_idx] = ToKmeansTreeSearchResults(child_centers);
   }
 
   return OkStatus();
@@ -845,6 +823,53 @@ Status KMeansTreePartitioner<
                           std::move(centers), database_tokenization_dist_, 1,
                           numeric_limits<float>::infinity()));
   return OkStatus();
+}
+
+template <typename T>
+StatusOr<vector<pair<DatapointIndex, float>>>
+KMeansTreePartitioner<T>::TokenForDatapointBatchedImpl(
+    const TypedDataset<T>& queries, ThreadPool* pool) const {
+  const DenseDataset<T>& dense = *down_cast<const DenseDataset<T>*>(&queries);
+  DenseDataset<float> float_query_storage;
+  auto float_queries = ConvertToFloatIfNecessary(dense, &float_query_storage);
+
+  const DenseDataset<float>& centers = kmeans_tree_->root()->Centers();
+  if (centers.dimensionality() != queries.dimensionality()) {
+    return FailedPreconditionError(
+        "Incorrect query dimensionality.  Expected %d, got %d.\n",
+        centers.dimensionality(), queries.dimensionality());
+  }
+
+  const auto& dist = (this->tokenization_mode() == UntypedPartitioner::QUERY)
+                         ? *query_tokenization_dist_
+                         : *database_tokenization_dist_;
+
+  return DenseDistanceManyToManyTop1<float>(dist, *float_queries, centers,
+                                            pool);
+}
+
+template <typename T>
+vector<KMeansTreeSearchResult>
+KMeansTreePartitioner<T>::ToKmeansTreeSearchResults(
+    ConstSpan<pair<DatapointIndex, float>> partitions) const {
+  DCHECK(is_one_level_tree_);
+  const auto* root = kmeans_tree_->root();
+  vector<KMeansTreeSearchResult> this_query_results;
+  this_query_results.reserve(partitions.size());
+  for (const auto& partition : partitions) {
+    const DatapointIndex token = partition.first;
+    const KMeansTreeNode* node = &root->Children()[token];
+    DCHECK_EQ(partition.first, node->LeafId());
+    KMeansTreeSearchResult result;
+    result.node = node;
+    result.distance_to_center = partition.second;
+    result.residual_stdev =
+        populate_residual_stdev_ && token < root->residual_stdevs().size()
+            ? root->residual_stdevs()[token]
+            : 1.0;
+    this_query_results.push_back(result);
+  }
+  return this_query_results;
 }
 
 SCANN_INSTANTIATE_TYPED_CLASS(, KMeansTreePartitioner);

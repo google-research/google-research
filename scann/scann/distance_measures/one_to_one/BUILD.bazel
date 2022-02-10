@@ -244,7 +244,6 @@ cc_library(
         "//scann/distance_measures:distance_measure_base",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:reduction",
         "@com_google_absl//absl/base",

@@ -18,7 +18,6 @@
 
 #include "scann/hashes/asymmetric_hashing2/training_model.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
-#include "scann/oss_wrappers/scann_malloc_extension.h"
 #include "scann/projection/projection_factory.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"

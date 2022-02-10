@@ -91,8 +91,7 @@ void RemoveNeighborsPastLimit(DatapointIndex num_neighbors,
 namespace {
 
 struct PartiallyConsumedNeighborList {
-  google::protobuf::RepeatedPtrField<NearestNeighbors::Neighbor>*
-      neighbor_list = nullptr;
+  google::protobuf::RepeatedPtrField<NearestNeighbors::Neighbor> neighbor_list;
 
   int pos = 0;
 };
@@ -102,7 +101,7 @@ class PartiallyConsumedNeighborListComparator {
   bool operator()(const PartiallyConsumedNeighborList& a,
                   const PartiallyConsumedNeighborList& b) const {
     DistanceComparator comp;
-    return comp(b.neighbor_list->Get(b.pos), a.neighbor_list->Get(a.pos));
+    return comp(b.neighbor_list.Get(b.pos), a.neighbor_list.Get(a.pos));
   }
 };
 
@@ -126,7 +125,7 @@ inline NearestNeighbors MergeNeighborListsImpl(
     total_neighbors += list.neighbor_size();
     PartiallyConsumedNeighborList pc_list;
     if (list.neighbor_size() > 0) {
-      pc_list.neighbor_list = list.mutable_neighbor();
+      pc_list.neighbor_list.Swap(list.mutable_neighbor());
       heap.push_back(pc_list);
     }
     if (list.has_metadata()) {
@@ -136,7 +135,7 @@ inline NearestNeighbors MergeNeighborListsImpl(
     }
   }
 
-  result.mutable_docid()->swap(*neighbor_lists[0].mutable_docid());
+  *result.mutable_docid() = *neighbor_lists[0].mutable_docid();
   if (heap.empty()) {
     return result;
   }
@@ -148,19 +147,19 @@ inline NearestNeighbors MergeNeighborListsImpl(
     std::pop_heap(heap.begin(), heap.end(), comp);
 
     auto merge_from = &heap.back();
-    auto next_neighbor = merge_from->neighbor_list->Mutable(merge_from->pos++);
+    auto next_neighbor = merge_from->neighbor_list.Mutable(merge_from->pos++);
 
     if (should_drop(next_neighbor)) {
       delete next_neighbor;
     } else {
-      result.mutable_neighbor()->UnsafeArenaAddAllocated(next_neighbor);
+      result.mutable_neighbor()->AddAllocated(next_neighbor);
     }
 
-    if (merge_from->pos < merge_from->neighbor_list->size()) {
+    if (merge_from->pos < merge_from->neighbor_list.size()) {
       std::push_heap(heap.begin(), heap.end(), comp);
     } else {
-      while (!heap.back().neighbor_list->empty()) {
-        heap.back().neighbor_list->UnsafeArenaReleaseLast();
+      while (!heap.back().neighbor_list.empty()) {
+        heap.back().neighbor_list.UnsafeArenaReleaseLast();
       }
       heap.pop_back();
     }
@@ -168,23 +167,23 @@ inline NearestNeighbors MergeNeighborListsImpl(
 
   auto last_list = &heap.front();
   while (result.neighbor_size() < num_neighbors &&
-         last_list->pos < last_list->neighbor_list->size()) {
-    auto next_neighbor = last_list->neighbor_list->Mutable(last_list->pos++);
+         last_list->pos < last_list->neighbor_list.size()) {
+    auto next_neighbor = last_list->neighbor_list.Mutable(last_list->pos++);
 
     if (should_drop(next_neighbor)) {
       delete next_neighbor;
     } else {
-      result.mutable_neighbor()->UnsafeArenaAddAllocated(next_neighbor);
+      result.mutable_neighbor()->AddAllocated(next_neighbor);
     }
   }
 
   for (auto& list : heap) {
-    while (list.neighbor_list->size() > list.pos) {
-      list.neighbor_list->RemoveLast();
+    while (list.neighbor_list.size() > list.pos) {
+      list.neighbor_list.RemoveLast();
     }
 
-    while (!list.neighbor_list->empty()) {
-      list.neighbor_list->UnsafeArenaReleaseLast();
+    while (!list.neighbor_list.empty()) {
+      list.neighbor_list.UnsafeArenaReleaseLast();
     }
   }
 
@@ -216,12 +215,12 @@ void MergeNeighborListsSwapImpl(MutableSpan<NearestNeighbors*> neighbor_lists,
     total_neighbors += list->neighbor_size();
     PartiallyConsumedNeighborList pc_list;
     if (list->neighbor_size() > 0) {
-      pc_list.neighbor_list = list->mutable_neighbor();
+      pc_list.neighbor_list.Swap(list->mutable_neighbor());
       heap.push_back(pc_list);
     }
   }
 
-  result->mutable_docid()->swap(*neighbor_lists[0]->mutable_docid());
+  *result->mutable_docid() = *neighbor_lists[0]->mutable_docid();
   if (heap.empty()) {
     return;
   }
@@ -233,12 +232,12 @@ void MergeNeighborListsSwapImpl(MutableSpan<NearestNeighbors*> neighbor_lists,
     std::pop_heap(heap.begin(), heap.end(), comp);
 
     auto merge_from = &heap.back();
-    auto next_neighbor = merge_from->neighbor_list->Mutable(merge_from->pos++);
+    auto next_neighbor = merge_from->neighbor_list.Mutable(merge_from->pos++);
     if (!should_drop(next_neighbor)) {
       result->add_neighbor()->Swap(next_neighbor);
     }
 
-    if (merge_from->pos < merge_from->neighbor_list->size()) {
+    if (merge_from->pos < merge_from->neighbor_list.size()) {
       std::push_heap(heap.begin(), heap.end(), comp);
     } else {
       heap.pop_back();
@@ -247,8 +246,8 @@ void MergeNeighborListsSwapImpl(MutableSpan<NearestNeighbors*> neighbor_lists,
 
   auto last_list = &heap.front();
   while (result->neighbor_size() < num_neighbors &&
-         last_list->pos < last_list->neighbor_list->size()) {
-    auto next_neighbor = last_list->neighbor_list->Mutable(last_list->pos++);
+         last_list->pos < last_list->neighbor_list.size()) {
+    auto next_neighbor = last_list->neighbor_list.Mutable(last_list->pos++);
     if (!should_drop(next_neighbor)) {
       result->add_neighbor()->Swap(next_neighbor);
     }

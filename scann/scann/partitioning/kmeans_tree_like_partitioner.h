@@ -41,6 +41,7 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
   using Partitioner<T>::TokensForDatapointWithSpilling;
   using Partitioner<T>::TokensForDatapointWithSpillingBatched;
   using Partitioner<T>::TokenForDatapoint;
+  using Partitioner<T>::TokenForDatapointBatched;
 
   virtual Status TokensForDatapointWithSpilling(
       const DatapointPtr<T>& dptr, int32_t max_centers_override,
@@ -52,6 +53,10 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
 
   virtual Status TokenForDatapoint(const DatapointPtr<T>& dptr,
                                    KMeansTreeSearchResult* result) const = 0;
+
+  virtual Status TokenForDatapointBatched(
+      const TypedDataset<T>& queries,
+      std::vector<KMeansTreeSearchResult>* result) const = 0;
 
   virtual StatusOr<Datapoint<float>> ResidualizeToFloat(
       const DatapointPtr<T>& dptr, int32_t token,

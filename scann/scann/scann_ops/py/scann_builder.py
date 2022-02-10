@@ -223,18 +223,6 @@ class ScannBuilder(object):
       config += self.reorder.proto_maker(self, **reorder_params)
     return config
 
-  def create_tf(self, **kwargs):
-    del kwargs  # Unused, now that function has moved.
-    raise Exception(
-        "No longer supported: replace scann_builder.ScannBuilder(...)"
-        " ... .create_tf(...) with scann_ops.builder(...) ... .build(...)")
-
-  def create_pybind(self):
-    raise Exception(
-        "No longer supported: replace scann_builder.ScannBuilder(...) ... "
-        ".create_pybind(...) with scann_ops_pybind.builder(...) ... .build(...)"
-    )
-
   def build(self, **kwargs):
     """Calls builder_lambda to return a ScaNN searcher with the built config.
 

@@ -16,11 +16,13 @@
 
 #include <cstdint>
 #include <fstream>
+#include <string>
 
 #include "absl/base/internal/sysinfo.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 #include "scann/partitioning/partitioner.pb.h"
+#include "scann/proto/brute_force.pb.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/tree_x_hybrid/tree_x_params.h"
 #include "scann/utils/io_npy.h"
@@ -33,10 +35,8 @@ namespace {
 
 int GetNumCPUs() { return std::max(absl::base_internal::NumCPUs(), 1); }
 
-}  // namespace
-
 template <typename T>
-Status ParseTextProto(T* proto, const std::string& proto_str) {
+Status ParseTextProto(T* proto, const string& proto_str) {
   ::google::protobuf::TextFormat::ParseFromString(proto_str, proto);
   return OkStatus();
 }
@@ -48,6 +48,8 @@ unique_ptr<DenseDataset<float>> InitDataset(ConstSpan<float> dataset,
   vector<float> dataset_vec(dataset.data(), dataset.data() + dataset.size());
   return absl::make_unique<DenseDataset<float>>(dataset_vec, n_points);
 }
+
+}  // namespace
 
 Status ScannInterface::Initialize(
     ConstSpan<float> dataset, ConstSpan<int32_t> datapoint_to_token,
@@ -160,19 +162,17 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
   return OkStatus();
 }
 
-Status ScannInterface::Search(const DatapointPtr<float> query,
-                              NNResultsVector* res, int final_nn,
-                              int pre_reorder_nn, int leaves) const {
-  if (query.dimensionality() != dimensionality_)
-    return InvalidArgumentError("Query doesn't match dataset dimsensionality");
+SearchParameters ScannInterface::GetSearchParameters(int final_nn,
+                                                     int pre_reorder_nn,
+                                                     int leaves) const {
+  SearchParameters params;
   bool has_reordering = config_.has_exact_reordering();
   int post_reorder_nn = -1;
-  if (has_reordering)
+  if (has_reordering) {
     post_reorder_nn = final_nn;
-  else
+  } else {
     pre_reorder_nn = final_nn;
-
-  SearchParameters params;
+  }
   params.set_pre_reordering_num_neighbors(pre_reorder_nn);
   params.set_post_reordering_num_neighbors(post_reorder_nn);
   if (leaves > 0) {
@@ -180,6 +180,42 @@ Status ScannInterface::Search(const DatapointPtr<float> query,
     tree_params->set_num_partitions_to_search_override(leaves);
     params.set_searcher_specific_optional_parameters(tree_params);
   }
+  return params;
+}
+
+vector<SearchParameters> ScannInterface::GetSearchParametersBatched(
+    int batch_size, int final_nn, int pre_reorder_nn, int leaves,
+    bool set_unspecified) const {
+  vector<SearchParameters> params(batch_size);
+  bool has_reordering = config_.has_exact_reordering();
+  int post_reorder_nn = -1;
+  if (has_reordering) {
+    post_reorder_nn = final_nn;
+  } else {
+    pre_reorder_nn = final_nn;
+  }
+  std::shared_ptr<research_scann::TreeXOptionalParameters> tree_params;
+  if (leaves > 0) {
+    tree_params = std::make_shared<TreeXOptionalParameters>();
+    tree_params->set_num_partitions_to_search_override(leaves);
+  }
+
+  for (auto& p : params) {
+    p.set_pre_reordering_num_neighbors(pre_reorder_nn);
+    p.set_post_reordering_num_neighbors(post_reorder_nn);
+    if (tree_params) p.set_searcher_specific_optional_parameters(tree_params);
+    if (set_unspecified) scann_->SetUnspecifiedParametersToDefaults(&p);
+  }
+  return params;
+}
+
+Status ScannInterface::Search(const DatapointPtr<float> query,
+                              NNResultsVector* res, int final_nn,
+                              int pre_reorder_nn, int leaves) const {
+  if (query.dimensionality() != dimensionality_)
+    return InvalidArgumentError("Query doesn't match dataset dimsensionality");
+  SearchParameters params =
+      GetSearchParameters(final_nn, pre_reorder_nn, leaves);
   scann_->SetUnspecifiedParametersToDefaults(&params);
   return scann_->FindNeighbors(query, params, res);
 }
@@ -193,27 +229,8 @@ Status ScannInterface::SearchBatched(const DenseDataset<float>& queries,
   if (!std::isinf(scann_->default_pre_reordering_epsilon()) ||
       !std::isinf(scann_->default_post_reordering_epsilon()))
     return InvalidArgumentError("Batch querying isn't supported with epsilon");
-  bool has_reordering = config_.has_exact_reordering();
-  int post_reorder_nn = -1;
-  if (has_reordering)
-    post_reorder_nn = final_nn;
-  else
-    pre_reorder_nn = final_nn;
-
-  std::vector<SearchParameters> params(queries.size());
-  std::shared_ptr<research_scann::TreeXOptionalParameters> tree_params;
-  if (leaves > 0) {
-    tree_params = std::make_shared<TreeXOptionalParameters>();
-    tree_params->set_num_partitions_to_search_override(leaves);
-  }
-
-  for (auto& p : params) {
-    p.set_pre_reordering_num_neighbors(pre_reorder_nn);
-    p.set_post_reordering_num_neighbors(post_reorder_nn);
-    if (tree_params) p.set_searcher_specific_optional_parameters(tree_params);
-    scann_->SetUnspecifiedParametersToDefaults(&p);
-  }
-
+  auto params = GetSearchParametersBatched(queries.size(), final_nn,
+                                           pre_reorder_nn, leaves, true);
   return scann_->FindNeighborsBatched(queries, params, MakeMutableSpan(res));
 }
 
@@ -235,7 +252,7 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
             queries.data().begin() + begin * dimensionality_,
             queries.data().begin() + (begin + curSize) * dimensionality_);
         DenseDataset<float> curQueryDataset(queryCopy, curSize);
-        return SearchBatched(curQueryDataset, {res.begin() + begin, curSize},
+        return SearchBatched(curQueryDataset, res.subspan(begin, curSize),
                              final_nn, pre_reorder_nn, leaves);
       });
 }

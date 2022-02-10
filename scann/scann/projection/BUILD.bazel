@@ -19,7 +19,6 @@ cc_library(
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "//scann/utils:util_functions",
@@ -75,14 +74,19 @@ cc_library(
 
 cc_library(
     name = "projection_factory",
-    srcs = ["projection_factory.cc"],
+    srcs = select({
+        "//conditions:default": ["projection_factory.cc"],
+    }),
     hdrs = ["projection_factory.h"],
     tags = ["local"],
-    deps = [
+    deps = select({
+        "//conditions:default": [
+        ],
+    }) + [
+        ":random_orthogonal_projection",
         ":chunking_projection",
         ":identity_projection",
         ":projection_base",
-        ":random_orthogonal_projection",
         "//scann/data_format:dataset",
         "//scann/proto:projection_cc_proto",
         "//scann/utils:types",
