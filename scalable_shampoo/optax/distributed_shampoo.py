@@ -1809,7 +1809,7 @@ def distributed_shampoo(
 
       scaled_grad = grad
       if graft_type == GraftingType.ADAGRAD_NORMALIZED:
-        scaled_grad = grad / jnp.linalg.norm(grad)
+        scaled_grad = grad / (jnp.linalg.norm(grad) + 1e-16)
 
       new_diagonal_statistics = (
           state.diagonal_statistics.to_float() + jnp.square(scaled_grad))
@@ -1821,7 +1821,7 @@ def distributed_shampoo(
 
       scaled_grad = grad
       if graft_type == GraftingType.RMSPROP_NORMALIZED:
-        scaled_grad = grad / jnp.linalg.norm(grad)
+        scaled_grad = grad / (jnp.linalg.norm(grad) + 1e-16)
 
       w1 = beta2
       w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
@@ -1933,7 +1933,6 @@ def distributed_shampoo(
         stats_flat, params_flat)
     new_stats_flat = _compute_preconditioners(new_stats_flat, params_flat,
                                               state.count)
-
     outputs = jax.tree_multimap(
         lambda g, s, p: _transform_grad(g, s, p, state.count), grads_flat,
         new_stats_flat, params_flat)
