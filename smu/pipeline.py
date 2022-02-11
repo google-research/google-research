@@ -71,9 +71,7 @@ flags.DEFINE_integer('output_shards', 10,
 FLAGS = flags.FLAGS
 
 _METRICS_NAMESPACE = 'SMU'
-_BOND_LENGTHS_SIG_DIGITS = 3
 _BOND_LENGTHS_UNBONDED_MAX = 2.0
-_BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
 
 def parse_equivalent_file(filename):
@@ -497,8 +495,9 @@ class UpdateConformerFn(beam.DoFn):
       try:
         self._cached_bond_lengths.add_from_sparse_dataframe(
             bond_length_distribution.sparse_dataframe_from_records(
-                bond_length_records), _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS,
-            _BOND_LENGTHS_SIG_DIGITS)
+                bond_length_records),
+          bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
+            bond_length_distribution.STANDARD_SIG_DIGITS)
       except ValueError as err:
         raise ValueError(
             'Invalid sparse dataframe for conformer {0} org. ValueError: {1}'
@@ -856,7 +855,7 @@ def pipeline(root):
       cleaned_conformers
       | 'ExtractBondLengths' >> beam.FlatMap(
           extract_bond_lengths,
-          dist_sig_digits=_BOND_LENGTHS_SIG_DIGITS,
+          dist_sig_digits=bond_length_distribution.STANDARD_SIG_DIGITS,
           unbonded_max=_BOND_LENGTHS_UNBONDED_MAX)
       | 'CountBondLengths' >> beam.combiners.Count.PerElement()
       | 'ToListBondLengths' >> beam.combiners.ToList())

@@ -59,6 +59,10 @@ ATOMIC_NUMBER_TO_ATYPE = {
     9: dataset_pb2.BondTopology.ATOM_F
 }
 
+# These are the numbers we will use throughout the pipeline in normal use
+STANDARD_SIG_DIGITS = 3
+STANDARD_UNBONDED_RIGHT_TAIL_MASS = 0.9
+
 
 class BondLengthParseError(Exception):
 
@@ -546,6 +550,24 @@ class AllAtomPairLengthDistributions:
           atom_0, atom_1, bond_type,
           EmpiricalLengthDistribution.from_sparse_dataframe(
               df, right_tail_mass, sig_digits))
+
+  def add_from_sparse_dataframe_file(self, filename,
+                                     unbonded_right_tail_mass, sig_digits):
+    """Adds distribution from a sparse dataframe in a csv file.
+
+    See sparse_dataframe_from_records for a description of the expected input
+    format.
+
+    Args:
+      filename: string, file to read
+      unbonded_right_tail_mass: right_tail_mass (as described in
+        EmpiricalLengthDistribution) for the unbonded cases.
+      sig_digits: number of significant digits after the decimal point
+    """
+    with open(filename, 'r') as infile:
+      df = pd.read_csv(infile, dtype={'length_str': str})
+    self.add_from_sparse_dataframe(df, unbonded_right_tail_mass, sig_digits)
+
 
   def add_from_string_spec(self, spec_string):
     """Adds entries from a compact string specifiction

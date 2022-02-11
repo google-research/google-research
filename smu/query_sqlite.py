@@ -112,21 +112,17 @@ FLAGS = flags.FLAGS
 class GeometryData:
   """Class GeometryData."""
   _singleton = None
-  # These are copied from pipeline.py. Shoudl they be shared somehere?
-  _BOND_LENGTHS_SIG_DIGITS = 3
-  _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
   def __init__(self, bond_lengths_csv, bond_lengths_arg, bond_topology_csv):
     if bond_lengths_csv is None:
       raise ValueError('--bond_lengths_csv required')
     logging.info('Loading bond_lengths')
-    with open(bond_lengths_csv, 'r') as infile:
-      df = pd.read_csv(infile, dtype={'length_str': str})
-    self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions(
-    )
-    self.bond_lengths.add_from_sparse_dataframe(
-        df, self._BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS,
-        self._BOND_LENGTHS_SIG_DIGITS)
+    self.bond_lengths = (
+      bond_length_distribution.AllAtomPairLengthDistributions())
+    self.bond_lengths.add_from_sparse_dataframe_file(
+      bond_lengths_csv,
+      bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
+      bond_length_distribution.STANDARD_SIG_DIGITS)
     logging.info('Done loading bond_lengths_csv')
 
     self.bond_lengths.add_from_string_spec(bond_lengths_arg)
