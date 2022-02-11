@@ -677,6 +677,24 @@ def generate_bond_topologies_from_csv(fileobj):
     yield bond_topology
 
 
+def smiles_id_dict_from_csv(fileobj):
+  """Generates a dict of smiles to id from bond_topology.csv.
+
+  Args:
+    fileobj: file like object
+
+  Returns:
+    dict of smiles to bodn topology id
+  """
+  smiles_id_dict = {}
+  reader = csv.reader(iter(fileobj))
+  next(reader)  # skip the header line
+  for row in reader:
+    bt_id, _, _, _, _, smiles = row
+    smiles_id_dict[smiles] = int(bt_id)
+  return smiles_id_dict
+
+
 def bond_topology_to_molecule(bond_topology):
   """Converts a bond topology proto to an RDKit molecule.
 

@@ -130,13 +130,8 @@ class GeometryData:
     if bond_topology_csv is None:
       raise ValueError('--bond_topology_csv required')
     logging.info('Loading bond topologies')
-    self.smiles_id_dict = {}
     with open(bond_topology_csv, 'r') as infile:
-      reader = csv.reader(iter(infile))
-      next(reader)  # skip the header line
-      for row in reader:
-        bt_id, _, _, _, _, smiles = row
-        self.smiles_id_dict[smiles] = int(bt_id)
+      self.smiles_id_dict = smu_utils_lib.smiles_id_dict_from_csv(infile)
     logging.info('Done loading bond topologies')
 
   @classmethod
