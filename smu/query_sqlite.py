@@ -176,10 +176,7 @@ def topology_query(db, smiles):
   Yields:
     dataset_pb2.Conformer
   """
-  mol = Chem.MolFromSmiles(smiles, sanitize=False)
-  Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
-  mol = Chem.AddHs(mol)
-  query_bt = utilities.molecule_to_bond_topology(mol)
+  query_bt = smu_utils_lib.smiles_to_bond_topology(smiles)
   expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(query_bt)
   matching_parameters = _get_geometry_matching_parameters()
   geometry_data = GeometryData.get_singleton()

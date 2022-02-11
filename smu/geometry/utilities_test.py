@@ -64,39 +64,6 @@ class TestUtilities(absltest.TestCase):
     coords.atom_positions[1].z = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
-  def test_connected(self):
-    pass
-
-
-#  @parameterized.expand(
-#  [
-#    ["[H]", 0, dataset_pb2.BondTopology.ATOM_H],
-#    ["C", 0, dataset_pb2.BondTopology.ATOM_C],
-#    ["N", 0, dataset_pb2.BondTopology.ATOM_N],
-#    ["[N+]", 1, dataset_pb2.BondTopology.ATOM_NPOS],
-#    ["O", 0, dataset_pb2.BondTopology.ATOM_O],
-#    ["[O-]", -1, dataset_pb2.BondTopology.ATOM_ONEG],
-#    ["F", 0, dataset_pb2.BondTopology.ATOM_F]
-#  ]
-#  )
-#  def test_molecule_to_bond_topology_geom(self, smiles, charge, expected):
-#    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-#    bt,geom = utilities.molecule_to_bond_topology_geom(mol)
-#    self.assertEqual(len(bt.atoms), mol.GetNumAtoms())
-#    self.assertEqual(bt.atoms[0], expected)
-#
-#  @parameterized.expand(
-#  [
-#    ["CC", dataset_pb2.BondTopology.BOND_SINGLE],
-#    ["C=C", dataset_pb2.BondTopology.BOND_DOUBLE],
-#    ["C#C", dataset_pb2.BondTopology.BOND_TRIPLE]
-#  ]
-#  )
-#  def test_bonds(self, smiles, expected):
-#    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-#    bt,geom = utilities.molecule_to_bond_topology_geom(mol)
-#    self.assertEqual(len(bt.atoms), mol.GetNumAtoms())
-
   def test_canonical(self):
     bt = text_format.Parse(
         """
@@ -310,11 +277,11 @@ class TestUtilities(absltest.TestCase):
   ])
   def test_with_smiles(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    bt = utilities.molecule_to_bond_topology(mol)
+    bt = smu_utils_lib.molecule_to_bond_topology(mol)
     self.assertEqual(utilities.is_single_fragment(bt), expected)
     Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
     mol_h = Chem.AddHs(mol)
-    bt_h = utilities.molecule_to_bond_topology(mol_h)
+    bt_h = smu_utils_lib.molecule_to_bond_topology(mol_h)
     self.assertEqual(utilities.is_single_fragment(bt_h), expected)
 
   @parameterized.expand([["C", 0], ["CC", 0], ["CCC", 0], ["C1CC1", 3],

@@ -656,6 +656,41 @@ class ConformerToMoleculeTest(absltest.TestCase):
                                atol=1e-6)
 
 
+# Note that this class implictly tests molecule_to_bond_topology as well
+class SmilesToBondTopologyTest(parameterized.TestCase):
+
+  @parameterized.parameters([
+    ["C", dataset_pb2.BondTopology.ATOM_C],
+    ["N", dataset_pb2.BondTopology.ATOM_N],
+    ["[N+]", dataset_pb2.BondTopology.ATOM_NPOS],
+    ["O", dataset_pb2.BondTopology.ATOM_O],
+    ["[O-]", dataset_pb2.BondTopology.ATOM_ONEG],
+    ["F", dataset_pb2.BondTopology.ATOM_F],
+  ])
+  def test_atoms(self, smiles, expected):
+    mol = Chem.MolFromSmiles(smiles, sanitize=False)
+    bt = smu_utils_lib.smiles_to_bond_topology(smiles)
+    got = None
+    for atom in bt.atoms:
+      if atom != dataset_pb2.BondTopology.ATOM_H:
+        got = atom
+    self.assertEqual(got, expected)
+
+  @parameterized.parameters([
+    ["CC", dataset_pb2.BondTopology.BOND_SINGLE],
+    ["C=C", dataset_pb2.BondTopology.BOND_DOUBLE],
+    ["C#C", dataset_pb2.BondTopology.BOND_TRIPLE]
+  ])
+  def test_bonds(self, smiles, expected):
+    bt = smu_utils_lib.smiles_to_bond_topology(smiles)
+    got = None
+    for bond in bt.bonds:
+      if (bt.atoms[bond.atom_a] == dataset_pb2.BondTopology.ATOM_C and
+          bt.atoms[bond.atom_b] == dataset_pb2.BondTopology.ATOM_C):
+        got = bond.bond_type
+    self.assertEqual(got, expected)
+
+
 class SmilesCompareTest(absltest.TestCase):
 
   def test_string_format(self):
