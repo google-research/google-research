@@ -109,46 +109,12 @@ flags.DEFINE_string(
 FLAGS = flags.FLAGS
 
 
-class BondLengthParseError(Exception):
-
-  def __init__(self, term):
-    super().__init__(term)
-    self.term = term
-
-  def __str__(self):
-    ('--bond_lengths must be comma separated terms like form XYX:N-N '
-     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
-     'and N is a possibly empty floating point number. '
-     '"{}" did not parse.').format(self.term)
-
-
 class GeometryData:
   """Class GeometryData."""
   _singleton = None
   # These are copied from pipeline.py. Shoudl they be shared somehere?
   _BOND_LENGTHS_SIG_DIGITS = 3
   _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
-  _ATOM_SPECIFICATION_MAP = {
-      'C': [dataset_pb2.BondTopology.ATOM_C],
-      'N': [dataset_pb2.BondTopology.ATOM_N],
-      'O': [dataset_pb2.BondTopology.ATOM_O],
-      'F': [dataset_pb2.BondTopology.ATOM_F],
-      '*': [
-          dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
-          dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F
-      ],
-  }
-  _BOND_SPECIFICATION_MAP = {
-      '-': [dataset_pb2.BondTopology.BOND_SINGLE],
-      '=': [dataset_pb2.BondTopology.BOND_DOUBLE],
-      '#': [dataset_pb2.BondTopology.BOND_TRIPLE],
-      '.': [dataset_pb2.BondTopology.BOND_UNDEFINED],
-      '~': [
-          dataset_pb2.BondTopology.BOND_SINGLE,
-          dataset_pb2.BondTopology.BOND_DOUBLE,
-          dataset_pb2.BondTopology.BOND_TRIPLE
-      ],
-  }
 
   def __init__(self, bond_lengths_csv, bond_lengths_arg, bond_topology_csv):
     if bond_lengths_csv is None:
@@ -163,7 +129,7 @@ class GeometryData:
         self._BOND_LENGTHS_SIG_DIGITS)
     logging.info('Done loading bond_lengths_csv')
 
-    self._parse_bond_lengths_arg(bond_lengths_arg)
+    self.bond_lengths.add_from_string_spec(bond_lengths_arg)
 
     if bond_topology_csv is None:
       raise ValueError('--bond_topology_csv required')
@@ -176,41 +142,6 @@ class GeometryData:
         bt_id, _, _, _, _, smiles = row
         self.smiles_id_dict[smiles] = int(bt_id)
     logging.info('Done loading bond topologies')
-
-  def _parse_bond_lengths_arg(self, bond_lengths_arg):
-    """Parses bond length argument."""
-    if not bond_lengths_arg:
-      return
-
-    terms = [x.strip() for x in bond_lengths_arg.split(',')]
-    for term in terms:
-      try:
-        atoms_a = self._ATOM_SPECIFICATION_MAP[term[0]]
-        bonds = self._BOND_SPECIFICATION_MAP[term[1]]
-        atoms_b = self._ATOM_SPECIFICATION_MAP[term[2]]
-        if term[3] != ':':
-          raise BondLengthParseError(term)
-        min_str, max_str = term[4:].split('-')
-        if min_str:
-          min_val = float(min_str)
-        else:
-          min_val = 0
-        if max_str:
-          max_val = float(max_str)
-          right_tail_mass = None
-        else:
-          # These numbers are pretty arbitrary
-          max_val = min_val + 0.1
-          right_tail_mass = 0.9
-
-        for atom_a, atom_b, bond in itertools.product(atoms_a, atoms_b, bonds):
-          self.bond_lengths.add(
-              atom_a, atom_b, bond,
-              bond_length_distribution.FixedWindowLengthDistribution(
-                  min_val, max_val, right_tail_mass))
-
-      except (KeyError, IndexError, ValueError) as an_exception:
-        raise BondLengthParseError(term) from an_exception
 
   @classmethod
   def get_singleton(cls):

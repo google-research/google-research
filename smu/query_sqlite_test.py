@@ -20,7 +20,6 @@ import tempfile
 
 from absl.testing import absltest
 from absl.testing import flagsaver
-from absl.testing import parameterized
 
 from smu import dataset_pb2
 from smu import query_sqlite
@@ -77,7 +76,7 @@ BOND_DOUBLE = dataset_pb2.BondTopology.BOND_DOUBLE
 BOND_TRIPLE = dataset_pb2.BondTopology.BOND_TRIPLE
 
 
-class GeometryDataTest(parameterized.TestCase):
+class GeometryDataTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -96,108 +95,18 @@ class GeometryDataTest(parameterized.TestCase):
     return isinstance(length_dist,
                       bond_length_distribution.EmpiricalLengthDistribution)
 
-  def fixed_window_min(self, atom_a, atom_b, bond_type):
-    length_dist = self._geometry_data.bond_lengths[(atom_a, atom_b)][bond_type]
-    if not isinstance(length_dist,
-                      bond_length_distribution.FixedWindowLengthDistribution):
-      return None
-    return length_dist.minimum
-
-  def fixed_window_max(self, atom_a, atom_b, bond_type):
-    length_dist = self._geometry_data.bond_lengths[(atom_a, atom_b)][bond_type]
-    if not isinstance(length_dist,
-                      bond_length_distribution.FixedWindowLengthDistribution):
-      return None
-    return length_dist.maximum
-
-  def fixed_window_right_tail_mass(self, atom_a, atom_b, bond_type):
-    length_dist = self._geometry_data.bond_lengths[(atom_a, atom_b)][bond_type]
-    if not isinstance(length_dist,
-                      bond_length_distribution.FixedWindowLengthDistribution):
-      return None
-    return length_dist.right_tail_mass
-
   def test_empty_bond_lengths(self):
     self.create(None)
     self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_SINGLE))
     self.assertTrue(self.is_empirical(ATOM_N, ATOM_O, BOND_DOUBLE))
 
-  def test_fully_specified(self):
-    self.create('C#C:1.1-1.2,N=O:1.3-1.4,O-F:1.5-1.6,C.F:2.0-2.1')
-
-    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_TRIPLE), 1.1)
-    self.assertEqual(self.fixed_window_max(ATOM_C, ATOM_C, BOND_TRIPLE), 1.2)
-    self.assertIsNone(
-        self.fixed_window_right_tail_mass(ATOM_C, ATOM_C, BOND_TRIPLE))
+  def test_simple(self):
+    # The real testing for this is in bond_length_distribution. We're just
+    # checking that it is hooked up
+    self.create('N=O:1-2')
     self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_SINGLE))
+    self.assertFalse(self.is_empirical(ATOM_N, ATOM_O, BOND_DOUBLE))
 
-    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_O, BOND_DOUBLE), 1.3)
-    self.assertEqual(self.fixed_window_max(ATOM_N, ATOM_O, BOND_DOUBLE), 1.4)
-    self.assertIsNone(
-        self.fixed_window_right_tail_mass(ATOM_N, ATOM_O, BOND_DOUBLE))
-    self.assertTrue(self.is_empirical(ATOM_N, ATOM_O, BOND_SINGLE))
-
-    self.assertEqual(self.fixed_window_min(ATOM_O, ATOM_F, BOND_SINGLE), 1.5)
-    self.assertEqual(self.fixed_window_max(ATOM_O, ATOM_F, BOND_SINGLE), 1.6)
-    self.assertIsNone(
-        self.fixed_window_right_tail_mass(ATOM_O, ATOM_F, BOND_SINGLE))
-
-    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_F, BOND_UNDEFINED), 2.0)
-    self.assertEqual(self.fixed_window_max(ATOM_C, ATOM_F, BOND_UNDEFINED), 2.1)
-    self.assertIsNone(
-        self.fixed_window_right_tail_mass(ATOM_C, ATOM_F, BOND_UNDEFINED))
-
-  def test_bond_wildcard(self):
-    self.create('C~C:1.1-1.2')
-
-    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_SINGLE), 1.1)
-    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_DOUBLE), 1.1)
-    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_TRIPLE), 1.1)
-    self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_UNDEFINED))
-
-  @parameterized.parameters(
-      '*-N:1.1-1.2',
-      'N-*:1.1-1.2',
-  )
-  def test_atom_wildcard(self, spec):
-    self.create(spec)
-
-    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_N, BOND_SINGLE), 1.1)
-    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_C, BOND_SINGLE), 1.1)
-    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_O, BOND_SINGLE), 1.1)
-    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_F, BOND_SINGLE), 1.1)
-    self.assertTrue(self.is_empirical(ATOM_N, ATOM_N, BOND_DOUBLE))
-    self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_SINGLE))
-
-  def test_left_missing_dist(self):
-    self.create('C-C:-1.2')
-    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_SINGLE), 0)
-    self.assertEqual(self.fixed_window_max(ATOM_C, ATOM_C, BOND_SINGLE), 1.2)
-
-  def test_right_missing_dist(self):
-    self.create('C-C:1.1-')
-    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_SINGLE), 1.1)
-    self.assertGreater(
-        self.fixed_window_right_tail_mass(ATOM_C, ATOM_C, BOND_SINGLE), 0)
-
-  @parameterized.parameters(
-      'Nonsense',
-      'Hi',
-      ',',
-      'Hi,C-C:-',
-      'P-N:1.1-1.2,C-C:-',
-      'N-P:1.1-1.2,C-C:-',
-      'N%N:1.1-1.2,C-C:-',
-      'N=N',
-      'N=N:',
-      'N=N:1.2',
-      'N=N:Nonsense',
-      'N=N:Nonsense-1.2',
-      'N=N:1.2-Nonsense',
-  )
-  def test_parse_errors(self, spec):
-    with self.assertRaises(query_sqlite.BondLengthParseError):
-      self.create(spec)
 
 
 if __name__ == '__main__':

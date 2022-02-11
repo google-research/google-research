@@ -60,6 +60,19 @@ ATOMIC_NUMBER_TO_ATYPE = {
 }
 
 
+class BondLengthParseError(Exception):
+
+  def __init__(self, term):
+    super().__init__(term)
+    self.term = term
+
+  def __str__(self):
+    ('Bond lengths spec must be comma separated terms like form XYX:N-N '
+     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
+     'and N is a possibly empty floating point number. '
+     '"{}" did not parse.').format(self.term)
+
+
 def interpolate_zeros(values):
   """For each zero value in `values` replace with an interpolated value.
 
@@ -399,6 +412,28 @@ class AllAtomPairLengthDistributions:
   for either order of the arguments.
   """
 
+  _ATOM_SPECIFICATION_MAP = {
+      'C': [dataset_pb2.BondTopology.ATOM_C],
+      'N': [dataset_pb2.BondTopology.ATOM_N],
+      'O': [dataset_pb2.BondTopology.ATOM_O],
+      'F': [dataset_pb2.BondTopology.ATOM_F],
+      '*': [
+          dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+          dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F
+      ],
+  }
+  _BOND_SPECIFICATION_MAP = {
+      '-': [dataset_pb2.BondTopology.BOND_SINGLE],
+      '=': [dataset_pb2.BondTopology.BOND_DOUBLE],
+      '#': [dataset_pb2.BondTopology.BOND_TRIPLE],
+      '.': [dataset_pb2.BondTopology.BOND_UNDEFINED],
+      '~': [
+          dataset_pb2.BondTopology.BOND_SINGLE,
+          dataset_pb2.BondTopology.BOND_DOUBLE,
+          dataset_pb2.BondTopology.BOND_TRIPLE
+      ],
+  }
+
   def __init__(self):
     self._atom_pair_dict = {}
 
@@ -511,6 +546,53 @@ class AllAtomPairLengthDistributions:
           atom_0, atom_1, bond_type,
           EmpiricalLengthDistribution.from_sparse_dataframe(
               df, right_tail_mass, sig_digits))
+
+  def add_from_string_spec(self, spec_string):
+    """Adds entries from a compact string specifiction
+
+    spec_string is a comma separated list of terms of form
+    XYX:N-N
+    where
+    * X is an atom type 'CNOF*'
+    * Y is a bond type '-=#.~'
+    * N is a possibly empty floating point number
+
+    Args:
+      spec_string: string
+    """
+    if not spec_string:
+      return
+
+    terms = [x.strip() for x in spec_string.split(',')]
+    for term in terms:
+      try:
+        atoms_a = self._ATOM_SPECIFICATION_MAP[term[0]]
+        bonds = self._BOND_SPECIFICATION_MAP[term[1]]
+        atoms_b = self._ATOM_SPECIFICATION_MAP[term[2]]
+        if term[3] != ':':
+          raise BondLengthParseError(term)
+        min_str, max_str = term[4:].split('-')
+        if min_str:
+          min_val = float(min_str)
+        else:
+          min_val = 0
+        if max_str:
+          max_val = float(max_str)
+          right_tail_mass = None
+        else:
+          # These numbers are pretty arbitrary
+          max_val = min_val + 0.1
+          right_tail_mass = 0.9
+
+        for atom_a, atom_b, bond in itertools.product(atoms_a, atoms_b, bonds):
+          self.add(
+              atom_a, atom_b, bond,
+              FixedWindowLengthDistribution(
+                  min_val, max_val, right_tail_mass))
+
+      except (KeyError, IndexError, ValueError) as an_exception:
+        raise BondLengthParseError(term) from an_exception
+
 
   def __getitem__(self, atom_types):
     """Gets the underlying AtomPairLengthDistribution."""

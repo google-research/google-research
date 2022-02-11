@@ -16,12 +16,26 @@
 """Tests for the BondLengthDistribution(s) classes."""
 
 import os
-from absl.testing import absltest
+import itertools
 import numpy as np
 import pandas as pd
 
+from absl.testing import absltest
+from absl.testing import parameterized
+
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
+
+
+# Some shortcuts to write less characters below
+ATOM_C = dataset_pb2.BondTopology.ATOM_C
+ATOM_N = dataset_pb2.BondTopology.ATOM_N
+ATOM_O = dataset_pb2.BondTopology.ATOM_O
+ATOM_F = dataset_pb2.BondTopology.ATOM_F
+BOND_UNDEFINED = dataset_pb2.BondTopology.BOND_UNDEFINED
+BOND_SINGLE = dataset_pb2.BondTopology.BOND_SINGLE
+BOND_DOUBLE = dataset_pb2.BondTopology.BOND_DOUBLE
+BOND_TRIPLE = dataset_pb2.BondTopology.BOND_TRIPLE
 
 
 class FixedWindowLengthDistributionTest(absltest.TestCase):
@@ -144,10 +158,10 @@ class AtomPairLengthDistributionsTest(absltest.TestCase):
     super().setUp()
     self.dists = bond_length_distribution.AtomPairLengthDistributions()
     self.dists.add(
-        dataset_pb2.BondTopology.BOND_SINGLE,
+        BOND_SINGLE,
         bond_length_distribution.FixedWindowLengthDistribution(1.2, 1.8, None))
     self.dists.add(
-        dataset_pb2.BondTopology.BOND_DOUBLE,
+        BOND_DOUBLE,
         bond_length_distribution.FixedWindowLengthDistribution(1.0, 1.4, None))
 
   def test_simple(self):
@@ -155,16 +169,16 @@ class AtomPairLengthDistributionsTest(absltest.TestCase):
 
     self.assertEqual(
         self.dists.probability_of_bond_types(1.1),
-        {dataset_pb2.BondTopology.BOND_DOUBLE: 1.0})
+        {BOND_DOUBLE: 1.0})
 
     got = self.dists.probability_of_bond_types(1.3)
     self.assertLen(got, 2)
-    self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_SINGLE], 0.4)
-    self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_DOUBLE], 0.6)
+    self.assertAlmostEqual(got[BOND_SINGLE], 0.4)
+    self.assertAlmostEqual(got[BOND_DOUBLE], 0.6)
 
     self.assertEqual(
         self.dists.probability_of_bond_types(1.5),
-        {dataset_pb2.BondTopology.BOND_SINGLE: 1.0})
+        {BOND_SINGLE: 1.0})
 
     self.assertEqual(self.dists.probability_of_bond_types(2.5), {})
 
@@ -174,79 +188,79 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
   def test_atom_ordering(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(
-        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_O,
-        dataset_pb2.BondTopology.BOND_SINGLE,
+        ATOM_N, ATOM_O,
+        BOND_SINGLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
     self.assertEqual(
-        all_dists.pdf_length_given_type(dataset_pb2.BondTopology.ATOM_N,
-                                        dataset_pb2.BondTopology.ATOM_O,
-                                        dataset_pb2.BondTopology.BOND_SINGLE,
+        all_dists.pdf_length_given_type(ATOM_N,
+                                        ATOM_O,
+                                        BOND_SINGLE,
                                         1.5), 1)
     self.assertEqual(
-        all_dists.pdf_length_given_type(dataset_pb2.BondTopology.ATOM_O,
-                                        dataset_pb2.BondTopology.ATOM_N,
-                                        dataset_pb2.BondTopology.BOND_SINGLE,
+        all_dists.pdf_length_given_type(ATOM_O,
+                                        ATOM_N,
+                                        BOND_SINGLE,
                                         1.5), 1)
 
     self.assertEqual(
-        all_dists.pdf_length_given_type(dataset_pb2.BondTopology.ATOM_N,
-                                        dataset_pb2.BondTopology.ATOM_O,
-                                        dataset_pb2.BondTopology.BOND_SINGLE,
+        all_dists.pdf_length_given_type(ATOM_N,
+                                        ATOM_O,
+                                        BOND_SINGLE,
                                         999), 0)
     self.assertEqual(
-        all_dists.pdf_length_given_type(dataset_pb2.BondTopology.ATOM_O,
-                                        dataset_pb2.BondTopology.ATOM_N,
-                                        dataset_pb2.BondTopology.BOND_SINGLE,
+        all_dists.pdf_length_given_type(ATOM_O,
+                                        ATOM_N,
+                                        BOND_SINGLE,
                                         999), 0)
 
     # Make sure subsequent additions work as well
     all_dists.add(
-        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_O,
-        dataset_pb2.BondTopology.BOND_DOUBLE,
+        ATOM_N, ATOM_O,
+        BOND_DOUBLE,
         bond_length_distribution.FixedWindowLengthDistribution(2, 3, None))
     self.assertEqual(
-        all_dists.pdf_length_given_type(dataset_pb2.BondTopology.ATOM_N,
-                                        dataset_pb2.BondTopology.ATOM_O,
-                                        dataset_pb2.BondTopology.BOND_DOUBLE,
+        all_dists.pdf_length_given_type(ATOM_N,
+                                        ATOM_O,
+                                        BOND_DOUBLE,
                                         2.5), 1)
     self.assertEqual(
-        all_dists.pdf_length_given_type(dataset_pb2.BondTopology.ATOM_O,
-                                        dataset_pb2.BondTopology.ATOM_N,
-                                        dataset_pb2.BondTopology.BOND_DOUBLE,
+        all_dists.pdf_length_given_type(ATOM_O,
+                                        ATOM_N,
+                                        BOND_DOUBLE,
                                         2.5), 1)
 
   def test_probability_bond_types(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(
-        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_O,
-        dataset_pb2.BondTopology.BOND_SINGLE,
+        ATOM_N, ATOM_O,
+        BOND_SINGLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 4, None))
     all_dists.add(
-        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_O,
-        dataset_pb2.BondTopology.BOND_DOUBLE,
+        ATOM_N, ATOM_O,
+        BOND_DOUBLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
-    got = all_dists.probability_of_bond_types(dataset_pb2.BondTopology.ATOM_N,
-                                              dataset_pb2.BondTopology.ATOM_O,
+    got = all_dists.probability_of_bond_types(ATOM_N,
+                                              ATOM_O,
                                               1.5)
     self.assertLen(got, 2)
-    self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_SINGLE], 0.25)
-    self.assertAlmostEqual(got[dataset_pb2.BondTopology.BOND_DOUBLE], 0.75)
+    self.assertAlmostEqual(got[BOND_SINGLE], 0.25)
+    self.assertAlmostEqual(got[BOND_DOUBLE], 0.75)
 
   def test_missing_types(self):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add(
-        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_O,
-        dataset_pb2.BondTopology.BOND_SINGLE,
+        ATOM_N, ATOM_O,
+        BOND_SINGLE,
         bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
 
     with self.assertRaises(KeyError):
-      all_dists.probability_of_bond_types(dataset_pb2.BondTopology.ATOM_C,
-                                          dataset_pb2.BondTopology.ATOM_C, 1.0)
+      all_dists.probability_of_bond_types(ATOM_C,
+                                          ATOM_C, 1.0)
 
     with self.assertRaises(KeyError):
-      all_dists.pdf_length_given_type(dataset_pb2.BondTopology.ATOM_C,
-                                      dataset_pb2.BondTopology.ATOM_C,
-                                      dataset_pb2.BondTopology.BOND_SINGLE, 1.0)
+      all_dists.pdf_length_given_type(ATOM_C,
+                                      ATOM_C,
+                                      BOND_SINGLE, 1.0)
 
   def test_add_from_files(self):
     data = """1.0,1
@@ -274,61 +288,54 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
     all_dists.add_from_files(stem, unbonded_right_tail_mass=0.8)
 
-    carbon = dataset_pb2.BondTopology.AtomType.ATOM_C
-    nitrogen = dataset_pb2.BondTopology.AtomType.ATOM_N
-    unbonded = dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
-    single = dataset_pb2.BondTopology.BondType.BOND_SINGLE
-    double = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
-    triple = dataset_pb2.BondTopology.BondType.BOND_TRIPLE
-
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, carbon, unbonded, 0.99), 0.0)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_UNDEFINED, 0.99), 0.0)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, unbonded, 0.99), 0.0)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_UNDEFINED, 0.99), 0.0)
 
     # The 3/15 is the counts in the data_increasing file.
     # * 10 is for the pdf because the bucket is 0.1 wide
     # * 0.2 is because of the right tail mass.
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, carbon, unbonded, 1.25),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_UNDEFINED, 1.25),
         3.0 / 15.0 * 10 * 0.2)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, unbonded, 1.25),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_UNDEFINED, 1.25),
         3.0 / 15.0 * 10 * 0.2)
 
     # Test the right tail mass for the unbonded
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, carbon, unbonded, 1.5),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_UNDEFINED, 1.5),
         0.66666667)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, unbonded, 1.5),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_UNDEFINED, 1.5),
         0.66666667)
 
     # Test the bonded inside the pdf.
     # 3/8 are the counts in the data file
     # * 10 is for the pdf because the bucket is 0.1 wide
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, carbon, single, 1.25),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_SINGLE, 1.25),
         3.0 / 8.0 * 10)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, single, 1.25),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_SINGLE, 1.25),
         3.0 / 8.0 * 10)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, double, 1.25),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_DOUBLE, 1.25),
         3.0 / 8.0 * 10)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, triple, 1.25),
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_TRIPLE, 1.25),
         3.0 / 8.0 * 10)
 
     # Check for no right tail mass for the bonded
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, carbon, single, 1.5), 0.0)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_SINGLE, 1.5), 0.0)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, single, 1.5), 0.0)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_SINGLE, 1.5), 0.0)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, double, 1.5), 0.0)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_DOUBLE, 1.5), 0.0)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, nitrogen, triple, 1.5), 0.0)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_N, BOND_TRIPLE, 1.5), 0.0)
 
   def test_add_from_sparse_dataframe(self):
     df = pd.DataFrame.from_records([
@@ -347,27 +354,146 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     all_dists.add_from_sparse_dataframe(
         df, sig_digits=1, unbonded_right_tail_mass=0.8)
 
-    carbon = dataset_pb2.BondTopology.AtomType.ATOM_C
-    nitrogen = dataset_pb2.BondTopology.AtomType.ATOM_N
-    oxygen = dataset_pb2.BondTopology.AtomType.ATOM_O
-    unbonded = dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
-    single = dataset_pb2.BondTopology.BondType.BOND_SINGLE
-    double = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
-
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, carbon, single, 1.05), 2.5)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_SINGLE, 1.05), 2.5)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(carbon, carbon, single, 999), 0.0)
+        all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_SINGLE, 999), 0.0)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(nitrogen, oxygen, double, 1.55), 5.0)
+        all_dists.pdf_length_given_type(ATOM_N, ATOM_O, BOND_DOUBLE, 1.55), 5.0)
     self.assertAlmostEqual(
-        all_dists.pdf_length_given_type(nitrogen, nitrogen, unbonded, 1.85),
+        all_dists.pdf_length_given_type(ATOM_N, ATOM_N, BOND_UNDEFINED, 1.85),
         1.0)
     # This makes sure the right tail mass was included
     self.assertGreater(
-        all_dists.pdf_length_given_type(nitrogen, nitrogen, unbonded, 2.0), 0.0)
+        all_dists.pdf_length_given_type(ATOM_N, ATOM_N, BOND_UNDEFINED, 2.0), 0.0)
     self.assertGreater(
-        all_dists.pdf_length_given_type(nitrogen, nitrogen, unbonded, 3.0), 0.0)
+        all_dists.pdf_length_given_type(ATOM_N, ATOM_N, BOND_UNDEFINED, 3.0), 0.0)
+
+
+class AddFromSpecStringTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
+    for atom_a, atom_b in itertools.combinations_with_replacement(
+        [ATOM_C, ATOM_N, ATOM_O, ATOM_F], 2):
+      self.bond_lengths.add(
+        atom_a, atom_b, BOND_UNDEFINED,
+        bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
+          np.arange(1, 2, 0.1), [1] * 10, 0))
+      for bond_type in [BOND_SINGLE, BOND_DOUBLE, BOND_TRIPLE]:
+        self.bond_lengths.add(
+          atom_a, atom_b, bond_type,
+          bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
+            np.arange(1, 2, 0.1), [1] * 10, 0))
+
+  def is_empirical(self, atom_a, atom_b, bond_type):
+    length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
+    return isinstance(length_dist,
+                      bond_length_distribution.EmpiricalLengthDistribution)
+
+  def fixed_window_min(self, atom_a, atom_b, bond_type):
+    length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
+    if not isinstance(length_dist,
+                      bond_length_distribution.FixedWindowLengthDistribution):
+      return None
+    return length_dist.minimum
+
+  def fixed_window_max(self, atom_a, atom_b, bond_type):
+    length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
+    if not isinstance(length_dist,
+                      bond_length_distribution.FixedWindowLengthDistribution):
+      return None
+    return length_dist.maximum
+
+  def fixed_window_right_tail_mass(self, atom_a, atom_b, bond_type):
+    length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
+    if not isinstance(length_dist,
+                      bond_length_distribution.FixedWindowLengthDistribution):
+      return None
+    return length_dist.right_tail_mass
+
+  def test_empty_bond_lengths(self):
+    self.bond_lengths.add_from_string_spec(None)
+    self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_SINGLE))
+    self.assertTrue(self.is_empirical(ATOM_N, ATOM_O, BOND_DOUBLE))
+
+  def test_fully_specified(self):
+    self.bond_lengths.add_from_string_spec('C#C:1.1-1.2,N=O:1.3-1.4,O-F:1.5-1.6,C.F:2.0-2.1')
+
+    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_TRIPLE), 1.1)
+    self.assertEqual(self.fixed_window_max(ATOM_C, ATOM_C, BOND_TRIPLE), 1.2)
+    self.assertIsNone(
+        self.fixed_window_right_tail_mass(ATOM_C, ATOM_C, BOND_TRIPLE))
+    self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_SINGLE))
+
+    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_O, BOND_DOUBLE), 1.3)
+    self.assertEqual(self.fixed_window_max(ATOM_N, ATOM_O, BOND_DOUBLE), 1.4)
+    self.assertIsNone(
+        self.fixed_window_right_tail_mass(ATOM_N, ATOM_O, BOND_DOUBLE))
+    self.assertTrue(self.is_empirical(ATOM_N, ATOM_O, BOND_SINGLE))
+
+    self.assertEqual(self.fixed_window_min(ATOM_O, ATOM_F, BOND_SINGLE), 1.5)
+    self.assertEqual(self.fixed_window_max(ATOM_O, ATOM_F, BOND_SINGLE), 1.6)
+    self.assertIsNone(
+        self.fixed_window_right_tail_mass(ATOM_O, ATOM_F, BOND_SINGLE))
+
+    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_F, BOND_UNDEFINED), 2.0)
+    self.assertEqual(self.fixed_window_max(ATOM_C, ATOM_F, BOND_UNDEFINED), 2.1)
+    self.assertIsNone(
+        self.fixed_window_right_tail_mass(ATOM_C, ATOM_F, BOND_UNDEFINED))
+
+  def test_bond_wildcard(self):
+    self.bond_lengths.add_from_string_spec('C~C:1.1-1.2')
+
+    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_SINGLE), 1.1)
+    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_DOUBLE), 1.1)
+    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_TRIPLE), 1.1)
+    self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_UNDEFINED))
+
+  @parameterized.parameters(
+      '*-N:1.1-1.2',
+      'N-*:1.1-1.2',
+  )
+  def test_atom_wildcard(self, spec):
+    self.bond_lengths.add_from_string_spec(spec)
+
+    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_N, BOND_SINGLE), 1.1)
+    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_C, BOND_SINGLE), 1.1)
+    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_O, BOND_SINGLE), 1.1)
+    self.assertEqual(self.fixed_window_min(ATOM_N, ATOM_F, BOND_SINGLE), 1.1)
+    self.assertTrue(self.is_empirical(ATOM_N, ATOM_N, BOND_DOUBLE))
+    self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_SINGLE))
+
+  def test_left_missing_dist(self):
+    self.bond_lengths.add_from_string_spec('C-C:-1.2')
+    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_SINGLE), 0)
+    self.assertEqual(self.fixed_window_max(ATOM_C, ATOM_C, BOND_SINGLE), 1.2)
+
+  def test_right_missing_dist(self):
+    self.bond_lengths.add_from_string_spec('C-C:1.1-')
+    self.assertEqual(self.fixed_window_min(ATOM_C, ATOM_C, BOND_SINGLE), 1.1)
+    self.assertGreater(
+        self.fixed_window_right_tail_mass(ATOM_C, ATOM_C, BOND_SINGLE), 0)
+
+  @parameterized.parameters(
+      'Nonsense',
+      'Hi',
+      ',',
+      'Hi,C-C:-',
+      'P-N:1.1-1.2,C-C:-',
+      'N-P:1.1-1.2,C-C:-',
+      'N%N:1.1-1.2,C-C:-',
+      'N=N',
+      'N=N:',
+      'N=N:1.2',
+      'N=N:Nonsense',
+      'N=N:Nonsense-1.2',
+      'N=N:1.2-Nonsense',
+  )
+  def test_parse_errors(self, spec):
+    with self.assertRaises(bond_length_distribution.BondLengthParseError):
+      self.bond_lengths.add_from_string_spec(spec)
 
 
 class SparseDataframFromRecordsTest(absltest.TestCase):
