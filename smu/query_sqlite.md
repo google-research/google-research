@@ -32,7 +32,10 @@ There are a variety of different output formats
 Where to write the output (uses stdout if not given)
 
 
-## Simple Indexed Selection
+## Selecting Conformers
+
+The most straightforward way to get some conformers out is with
+* `--random_fraction` where each record in the database is returned with this probability. Note that the entire database is read, so this can be quite slow.
 
 During the build of the database, we add several indices for fast lookup. You can provide multiple options and you will get output for all of them.
 
@@ -141,7 +144,7 @@ python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
 --output_format sdf_opt  \
 --bond_topology_csv bond_topology.csv \
---bond_lengths_csv 20220104_bond_lengths.csv \
+--bond_lengths_csv 20220128_bond_lengths.csv \
 --topology_query_smiles 'O=[N+]=NNN([O-])F' \
 --bond_lengths 'N~N:-2.0'
 ```
