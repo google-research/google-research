@@ -455,11 +455,8 @@ class UpdateConformerFn(beam.DoFn):
     matching_parameters.ring_atom_count_cannot_decrease = False
 
     matches = topology_from_geom.bond_topologies_from_geom(
+        conformer,
         bond_lengths=self._cached_bond_lengths,
-        conformer_id=conformer.conformer_id,
-        fate=conformer.fate,
-        bond_topology=conformer.bond_topologies[0],
-        geometry=conformer.optimized_geometry,
         matching_parameters=matching_parameters)
 
     if not matches.bond_topology:

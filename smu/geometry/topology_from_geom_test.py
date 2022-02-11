@@ -98,7 +98,9 @@ class TestTopoFromGeom(absltest.TestCase):
     bldc2c = bond_length_distribution.EmpiricalLengthDistribution(df, 0.0)
     all_distributions.add(carbon, carbon, double_bond, bldc2c)
 
-    bond_topology = text_format.Parse(
+    conformer = dataset_pb2.Conformer()
+
+    conformer.bond_topologies.append(text_format.Parse(
         """
 atoms: ATOM_C
 atoms: ATOM_C
@@ -107,9 +109,9 @@ bonds: {
   atom_b: 1
   bond_type: BOND_SINGLE
 }
-""", dataset_pb2.BondTopology())
+""", dataset_pb2.BondTopology()))
 
-    geometry = text_format.Parse(
+    conformer.optimized_geometry.MergeFrom(text_format.Parse(
         """
 atom_positions {
   x: 0.0
@@ -121,16 +123,16 @@ atom_positions {
   y: 0.0
   z: 0.0
 }
-""", dataset_pb2.Geometry())
-    geometry.atom_positions[1].x = 1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS
+""", dataset_pb2.Geometry()))
+    conformer.optimized_geometry.atom_positions[1].x = (
+      1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
 
     matching_parameters = smu_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    fate = dataset_pb2.Conformer.FATE_SUCCESS
-    conformer_id = 1001
+    conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    conformer.conformer_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
-        all_distributions, conformer_id, fate, bond_topology, geometry,
-        matching_parameters)
+      conformer, all_distributions, matching_parameters)
     self.assertIsNotNone(result)
     self.assertLen(result.bond_topology, 2)
     self.assertLen(result.bond_topology[0].bonds, 1)
@@ -162,7 +164,8 @@ atom_positions {
     # This conformer is a flat aromatic square of nitrogens. The single and
     # double bonds can be rotated such that it's the same topology but
     # individual bonds have switched single/double.
-    conformer = dataset_pb2.Conformer()
+    conformer = dataset_pb2.Conformer(conformer_id=123,
+                                      fate=dataset_pb2.Conformer.FATE_SUCCESS)
 
     conformer.bond_topologies.add(bond_topology_id=123, smiles="N1=NN=N1")
     conformer.bond_topologies[0].atoms.extend([
@@ -188,12 +191,7 @@ atom_positions {
 
     matching_parameters = smu_molecule.MatchingParameters()
     result = topology_from_geom.bond_topologies_from_geom(
-        bond_lengths=all_dist,
-        conformer_id=123,
-        fate=dataset_pb2.Conformer.FATE_SUCCESS,
-        bond_topology=conformer.bond_topologies[0],
-        geometry=conformer.optimized_geometry,
-        matching_parameters=matching_parameters)
+      conformer, all_dist, matching_parameters)
 
     self.assertLen(result.bond_topology, 2)
 

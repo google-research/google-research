@@ -115,8 +115,8 @@ class TopologyFromGeom(beam.DoFn):
     matching_parameters.consider_not_bonded = True
     matching_parameters.ring_atom_count_cannot_decrease = False
     yield topology_from_geom.bond_topologies_from_geom(
-        self._bond_lengths, conformer.conformer_id, conformer.fate,
-        conformer.bond_topologies[0], conformer.optimized_geometry,
+        conformer,
+        self._bond_lengths,
         matching_parameters)
 
 

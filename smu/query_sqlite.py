@@ -191,11 +191,8 @@ def topology_query(db, smiles):
       continue
     cnt_conformer += 1
     matches = topology_from_geom.bond_topologies_from_geom(
+        conformer,
         bond_lengths=geometry_data.bond_lengths,
-        conformer_id=conformer.conformer_id,
-        fate=conformer.fate,
-        bond_topology=conformer.bond_topologies[0],
-        geometry=conformer.optimized_geometry,
         matching_parameters=matching_parameters)
     if smiles in [bt.smiles for bt in matches.bond_topology]:
       cnt_matched_conformer += 1
@@ -364,11 +361,8 @@ class ReDetectTopologiesOutputter:
       conformer: dataset_pb2.Conformer
     """
     matches = topology_from_geom.bond_topologies_from_geom(
+        conformer,
         bond_lengths=self._geometry_data.bond_lengths,
-        conformer_id=conformer.conformer_id,
-        fate=conformer.fate,
-        bond_topology=conformer.bond_topologies[0],
-        geometry=conformer.optimized_geometry,
         matching_parameters=self._matching_parameters)
 
     if not matches.bond_topology:

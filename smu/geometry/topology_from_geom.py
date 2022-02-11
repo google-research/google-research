@@ -100,8 +100,7 @@ def indices_of_heavy_atoms(bond_topology):
   ]
 
 
-def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
-                              geometry, matching_parameters):
+def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
   """Return all BondTopology's that are plausible.
 
     Given a molecule described by `bond_topology` and `geometry`, return all
@@ -120,27 +119,29 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
   Returns:
     TopologyMatches
   """
-  result = dataset_pb2.TopologyMatches()  # To be returned.
-  result.starting_smiles = bond_topology.smiles
-  result.conformer_id = conformer_id
-  result.fate = fate
+  starting_topology = conformer.bond_topologies[0]
 
-  natoms = len(bond_topology.atoms)
+  result = dataset_pb2.TopologyMatches()  # To be returned.
+  result.starting_smiles = starting_topology.smiles
+  result.conformer_id = conformer.conformer_id
+  result.fate = conformer.fate
+
+  natoms = len(starting_topology.atoms)
   if natoms == 1:
     return result  # empty.
 
-  if len(geometry.atom_positions) != natoms:
+  if len(conformer.optimized_geometry.atom_positions) != natoms:
     return result  # empty
-  distances = utilities.distances(geometry)
+  distances = utilities.distances(conformer.optimized_geometry)
 
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a minimal BondTopology from which all others can grow
-  minimal_bond_topology = hydrogen_to_nearest_atom(bond_topology, distances)
+  minimal_bond_topology = hydrogen_to_nearest_atom(starting_topology, distances)
   if minimal_bond_topology is None:
     return result
 
   heavy_atom_indices = [
-      i for i, t in enumerate(bond_topology.atoms)
+      i for i, t in enumerate(starting_topology.atoms)
       if t != dataset_pb2.BondTopology.AtomType.ATOM_H
   ]
 
@@ -155,7 +156,7 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
       continue
     try:
       possible_bonds = bond_lengths.probability_of_bond_types(
-          bond_topology.atoms[i], bond_topology.atoms[j], dist)
+          starting_topology.atoms[i], starting_topology.atoms[j], dist)
     except KeyError:  # Happens when this bond type has no data
       continue
     if not possible_bonds:
@@ -171,9 +172,9 @@ def bond_topologies_from_geom(bond_lengths, conformer_id, fate, bond_topology,
 
   # Need to know when the starting topology has been recovered
   bare_starting_topology = dataset_pb2.BondTopology(
-      atoms=bond_topology.atoms, bonds=bond_topology.bonds)
+      atoms=starting_topology.atoms, bonds=starting_topology.bonds)
   utilities.canonical_bond_topology(bare_starting_topology)
-  rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bond_topology)
+  rdkit_mol = smu_utils_lib.bond_topology_to_molecule(starting_topology)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
   mol = smu_molecule.SmuMolecule(minimal_bond_topology, bonds_to_scores,
