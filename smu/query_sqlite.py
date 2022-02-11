@@ -151,17 +151,6 @@ class GeometryData:
     return cls._singleton
 
 
-def _get_geometry_matching_parameters():
-  out = smu_molecule.MatchingParameters()
-  out.must_match_all_bonds = True
-  out.smiles_with_h = False
-  out.smiles_with_labels = False
-  out.neutral_forms_during_bond_matching = True
-  out.consider_not_bonded = True
-  out.ring_atom_count_cannot_decrease = False
-  return out
-
-
 def topology_query(db, smiles):
   """Find all conformers which have a detected bond topology.
 
@@ -178,7 +167,7 @@ def topology_query(db, smiles):
   """
   query_bt = smu_utils_lib.smiles_to_bond_topology(smiles)
   expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(query_bt)
-  matching_parameters = _get_geometry_matching_parameters()
+  matching_parameters = smu_molecule.MatchingParameters()
   geometry_data = GeometryData.get_singleton()
   cnt_matched_conformer = 0
   cnt_conformer = 0
@@ -349,7 +338,7 @@ class ReDetectTopologiesOutputter:
   def __init__(self, outputter):
     self._wrapped_outputter = outputter
     self._geometry_data = GeometryData.get_singleton()
-    self._matching_parameters = _get_geometry_matching_parameters()
+    self._matching_parameters = smu_molecule.MatchingParameters()
 
   def output(self, conformer):
     """Writes a Conformer.

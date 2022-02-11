@@ -46,19 +46,19 @@ class MatchingParameters:
   def __init__(self):
     self._must_match_all_bonds: bool = True
     self._smiles_with_h: bool = False
-    self._smiles_with_labels: bool = True
+    self._smiles_with_labels: bool = False
 
     # A variant on matching is to consider all N and O as neutral forms during
     # matching, and then as a post processing step, see whether a valid,
     # neutral, molecule can be formed.
-    self._neutral_forms_during_bond_matching: bool = False
+    self._neutral_forms_during_bond_matching: bool = True
 
     # If not a bond is being considered during matching.
-    self._consider_not_bonded = False
+    self._consider_not_bonded = True
 
     # Avoid destroying rings if not bonded is enabled.
     # Note that only the ring atom count is considered.
-    self._ring_atom_count_cannot_decrease = True
+    self._ring_atom_count_cannot_decrease = False
 
   @property
   def must_match_all_bonds(self):
