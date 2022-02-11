@@ -300,7 +300,7 @@ def train_and_evaluate(distance_fn, rng):
 
   env_logger = loggers.CSVLogger(logdir, 'env_loop', flush_every=5)
   eval_env_logger = loggers.CSVLogger(logdir, 'eval_env_loop', flush_every=1)
-  train_loop = acme.EnvironmentLoopV2(
+  train_loop = acme.EnvironmentLoop(
       environment, agent, label='train_loop', logger=env_logger,
       counter=counter)
 
@@ -333,7 +333,7 @@ def train_and_evaluate(distance_fn, rng):
       num_episodes_to_record=FLAGS.num_eval_episodes,
       baseline_distance=baseline_distance)
 
-  eval_loop = acme.EnvironmentLoopV2(
+  eval_loop = acme.EnvironmentLoop(
       eval_env, eval_actor, label='eval_loop', logger=eval_env_logger,
       counter=eval_counter)
 
