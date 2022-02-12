@@ -142,50 +142,6 @@ class GeometryData:
     return cls._singleton
 
 
-def topology_query(db, smiles):
-  """Find all conformers which have a detected bond topology.
-
-  Note that this *redoes* the detection. If you want to use the default detected
-  versions, you can just query by SMILES string. This is only useful if you
-  adjust the distance thresholds for what a matching bond is.
-
-  Args:
-    db: smu_sqlite.SMUSQLite
-    smiles: smiles string for the target bond topology
-
-  Yields:
-    dataset_pb2.Conformer
-  """
-  query_bt = smu_utils_lib.smiles_to_bond_topology(smiles)
-  expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(query_bt)
-  matching_parameters = smu_molecule.MatchingParameters()
-  geometry_data = GeometryData.get_singleton()
-  cnt_matched_conformer = 0
-  cnt_conformer = 0
-  logging.info('Starting query for %s with stoich %s', smiles, expanded_stoich)
-  for conformer in db.find_by_expanded_stoichiometry(expanded_stoich):
-    if not smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
-      continue
-    cnt_conformer += 1
-    matches = topology_from_geom.bond_topologies_from_geom(
-        conformer,
-        bond_lengths=geometry_data.bond_lengths,
-        matching_parameters=matching_parameters)
-    if smiles in [bt.smiles for bt in matches.bond_topology]:
-      cnt_matched_conformer += 1
-      del conformer.bond_topologies[:]
-      conformer.bond_topologies.extend(matches.bond_topology)
-      for bt in conformer.bond_topologies:
-        try:
-          bt.bond_topology_id = geometry_data.smiles_id_dict[bt.smiles]
-        except KeyError:
-          logging.error('Did not find bond topology id for smiles %s',
-                        bt.smiles)
-      yield conformer
-  logging.info('Topology query for %s matched %d / %d', smiles,
-               cnt_matched_conformer, cnt_conformer)
-
-
 class PBTextOutputter:
   """Simple internal class to write entries to text protocol buffer."""
 
@@ -419,7 +375,10 @@ def main(argv):
       for c in conformers:
         outputter.output(c)
     for smiles in FLAGS.topology_query_smiles:
-      for c in topology_query(db, smiles):
+      geometry_data = GeometryData.get_singleton()
+      for c in db.find_by_topology(smiles,
+                                   bond_lengths=geometry_data.bond_lengths,
+                                   smiles_id_dict=geometry_data.smiles_id_dict):
         outputter.output(c)
     if FLAGS.random_fraction:
       for conformer in db:

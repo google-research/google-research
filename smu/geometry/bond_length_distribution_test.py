@@ -374,18 +374,7 @@ class AddFromSpecStringTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
-    for atom_a, atom_b in itertools.combinations_with_replacement(
-        [ATOM_C, ATOM_N, ATOM_O, ATOM_F], 2):
-      self.bond_lengths.add(
-        atom_a, atom_b, BOND_UNDEFINED,
-        bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
-          np.arange(1, 2, 0.1), [1] * 10, 0))
-      for bond_type in [BOND_SINGLE, BOND_DOUBLE, BOND_TRIPLE]:
-        self.bond_lengths.add(
-          atom_a, atom_b, bond_type,
-          bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
-            np.arange(1, 2, 0.1), [1] * 10, 0))
+    self.bond_lengths = bond_length_distribution.make_fake_empiricals()
 
   def is_empirical(self, atom_a, atom_b, bond_type):
     length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]

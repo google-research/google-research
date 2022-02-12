@@ -683,3 +683,31 @@ def sparse_dataframe_from_records(records):
       ])
   return df.sort_values(
       ['atom_char_0', 'atom_char_1', 'bond_type', 'length_str'])
+
+
+def make_fake_empiricals():
+  """Testing utility to make an AllAtomPairLengthDistributions
+
+  Every atom pair and bond type is an empirical dstribution between 1 and 2
+
+  Returns:
+    AllAtomPairLengthDistributions
+  """
+  bond_lengths = AllAtomPairLengthDistributions()
+  for atom_a, atom_b in itertools.combinations_with_replacement(
+      [dataset_pb2.BondTopology.ATOM_C,
+       dataset_pb2.BondTopology.ATOM_N,
+       dataset_pb2.BondTopology.ATOM_O,
+       dataset_pb2.BondTopology.ATOM_F], 2):
+    bond_lengths.add(
+      atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
+      EmpiricalLengthDistribution.from_arrays(
+        np.arange(1, 2, 0.1), [1] * 10, 0))
+    for bond_type in [dataset_pb2.BondTopology.BOND_SINGLE,
+                      dataset_pb2.BondTopology.BOND_DOUBLE,
+                      dataset_pb2.BondTopology.BOND_TRIPLE]:
+      bond_lengths.add(
+        atom_a, atom_b, bond_type,
+        EmpiricalLengthDistribution.from_arrays(
+          np.arange(1, 2, 0.1), [1] * 10, 0))
+  return bond_lengths

@@ -43,6 +43,8 @@ from rdkit import Chem
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
+from smu.geometry import smu_molecule
+from smu.geometry import topology_from_geom
 import snappy
 
 _CONFORMER_TABLE_NAME = 'conformer'
@@ -317,6 +319,57 @@ class SMUSQLite:
     cur.execute(select, exp_stoichs)
     return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
             for result in cur)
+
+
+  def find_by_topology(self, smiles, bond_lengths, smiles_id_dict,
+                       matching_parameters=smu_molecule.MatchingParameters()):
+    """Find all conformers which have a detected bond topology.
+
+    Note that this *redoes* the detection. If you want to use the default detected
+    versions, you can just query by SMILES string. This is only useful if you
+    adjust the distance thresholds for what a matching bond is.
+    To adjust those, you probably want to use
+    AllAtomPairLengthDistributions.add_from_string_spec
+
+    Args:
+      smiles: smiles string for the target bond topology
+      bond_lengths: AllAtomPairLengthDistributions
+      smiles_id_dict: see smu_utils_lib.smiles_id_dict_from_csv
+      matching_parameters: controls the algorithm for matching topologies.
+        Generally should not need to be modified.
+
+    Yields:
+      dataset_pb2.Conformer
+    """
+    query_bt = smu_utils_lib.smiles_to_bond_topology(smiles)
+    expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(
+      query_bt)
+    cnt_matched_conformer = 0
+    cnt_conformer = 0
+    logging.info('Starting query for %s with stoich %s',
+                 smiles, expanded_stoich)
+    for conformer in self.find_by_expanded_stoichiometry(expanded_stoich):
+      if not smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
+        continue
+      cnt_conformer += 1
+      matches = topology_from_geom.bond_topologies_from_geom(
+          conformer,
+          bond_lengths=bond_lengths,
+          matching_parameters=matching_parameters)
+      if smiles in [bt.smiles for bt in matches.bond_topology]:
+        cnt_matched_conformer += 1
+        del conformer.bond_topologies[:]
+        conformer.bond_topologies.extend(matches.bond_topology)
+        for bt in conformer.bond_topologies:
+          try:
+            bt.bond_topology_id = smiles_id_dict[bt.smiles]
+          except KeyError:
+            logging.error('Did not find bond topology id for smiles %s',
+                          bt.smiles)
+        yield conformer
+    logging.info('Topology query for %s matched %d / %d', smiles,
+                 cnt_matched_conformer, cnt_conformer)
+
 
   def __iter__(self):
     """Iterates through all dataset_pb2.Conformer in the DB."""

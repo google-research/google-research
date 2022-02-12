@@ -31,40 +31,6 @@ TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
 
-class TopologyDetectionTest(absltest.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    query_sqlite.GeometryData._singleton = None
-
-  def tearDown(self):
-    super().tearDown()
-    query_sqlite.GeometryData._singleton = None
-
-  def test_simple(self):
-    db_filename = os.path.join(tempfile.mkdtemp(), 'query_sqlite_test.sqlite')
-    db = smu_sqlite.SMUSQLite(db_filename, 'w')
-    parser = smu_parser_lib.SmuParser(
-        os.path.join(TESTDATA_PATH, 'pipeline_input_stage2.dat'))
-    db.bulk_insert(x.SerializeToString() for (x, _) in parser.process_stage2())
-
-    with flagsaver.flagsaver(
-        bond_lengths_csv=os.path.join(TESTDATA_PATH,
-                                      'minmax_bond_distances.csv'),
-        bond_topology_csv=os.path.join(TESTDATA_PATH,
-                                       'pipeline_bond_topology.csv')):
-      got = list(query_sqlite.topology_query(db, 'COC(=CF)OC'))
-
-    # These are just the two conformers that came in with this smiles, so no
-    # interesting detection happened, but it verifies that the code ran without
-    # error.
-    self.assertEqual([c.conformer_id for c in got], [618451001, 618451123])
-    self.assertLen(got[0].bond_topologies, 1)
-    self.assertEqual(got[0].bond_topologies[0].bond_topology_id, 618451)
-    self.assertLen(got[1].bond_topologies, 1)
-    self.assertEqual(got[1].bond_topologies[0].bond_topology_id, 618451)
-
-
 # Some shortcuts to write less characters below
 ATOM_C = dataset_pb2.BondTopology.ATOM_C
 ATOM_N = dataset_pb2.BondTopology.ATOM_N

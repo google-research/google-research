@@ -36,6 +36,7 @@ from absl.testing import absltest
 
 from smu import dataset_pb2
 from smu import smu_sqlite
+from smu.geometry import bond_length_distribution
 from smu.parser import smu_utils_lib
 
 
@@ -262,6 +263,66 @@ class SmuSqliteTest(absltest.TestCase):
 
     with self.assertRaises(smu_utils_lib.StoichiometryError):
       db.find_by_stoichiometry('P3Li')
+
+  def test_find_by_topology(self):
+    db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
+
+    # We'll make a pretty fake molecule. N2O2H2 with
+    # the O at 0,0
+    # the Ns at 1.1,0 and 0,1.1
+    # The Hs right night to the Ns
+    # We'll given it the ring topology to start and the symetric ring broken
+    # topologies should be found.
+
+    conformer = dataset_pb2.Conformer(conformer_id=9999,
+                                      fate=dataset_pb2.Conformer.FATE_SUCCESS)
+    bt = conformer.bond_topologies.add(smiles='N1NO1')
+    geom = conformer.optimized_geometry.atom_positions
+
+    bt.atoms.append(dataset_pb2.BondTopology.ATOM_O)
+    geom.append(dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0))
+
+    bt.atoms.append(dataset_pb2.BondTopology.ATOM_N)
+    geom.append(dataset_pb2.Geometry.AtomPos(x=0, y=1.1, z=0))
+    bt.bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.atoms.append(dataset_pb2.BondTopology.ATOM_N)
+    geom.append(dataset_pb2.Geometry.AtomPos(x=1.1, y=0, z=0))
+    bt.bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=1, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+
+    bt.atoms.append(dataset_pb2.BondTopology.ATOM_H)
+    geom.append(dataset_pb2.Geometry.AtomPos(x=0, y=1.2, z=0))
+    bt.bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=1, atom_b=3, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.atoms.append(dataset_pb2.BondTopology.ATOM_H)
+    geom.append(dataset_pb2.Geometry.AtomPos(x=1.2, y=0, z=0))
+    bt.bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=2, atom_b=4, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+
+    for pos in geom:
+      pos.x /= smu_utils_lib.BOHR_TO_ANGSTROMS
+      pos.y /= smu_utils_lib.BOHR_TO_ANGSTROMS
+      pos.z /= smu_utils_lib.BOHR_TO_ANGSTROMS
+
+    db.bulk_insert([conformer.SerializeToString()])
+
+    bond_lengths = bond_length_distribution.make_fake_empiricals()
+    smiles_id_dict = {'N1NO1': 9, 'N=[NH+][O-]': 10}
+
+    # We'll query by the topology that was in the DB then the one that wasn't
+    for query_smiles in ['N1NO1', 'N=[NH+][O-]']:
+
+      got = list(db.find_by_topology(query_smiles,
+                                     bond_lengths=bond_lengths,
+                                     smiles_id_dict=smiles_id_dict))
+      self.assertLen(got, 1)
+      self.assertCountEqual(
+        [9, 10, 10],
+        [bt.bond_topology_id for bt in got[0].bond_topologies])
+
 
 if __name__ == '__main__':
   absltest.main()
