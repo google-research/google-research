@@ -28,9 +28,8 @@ class SM3Test(chex.TestCase):
   def setUp(self):
     super().setUp()
     self.init_params = (
-        jnp.array([[1., 3.], [2., 4.]]), jnp.array([[3., 4.], [3., 4.]]))
-    self.per_step_updates = (jnp.array([[500., 5.], [500., 5.]]),
-                             jnp.array([[300., 3.], [300., 3.]]))
+        jnp.array([[0.5, 0.5], [0.5, 0.5]]))
+    self.per_step_updates = (jnp.array([[0.1, -0.1], [0.01, 0.01]]))
 
   @chex.all_variants(with_pmap=False)
   def test_sm3_basic(self):

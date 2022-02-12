@@ -89,19 +89,16 @@ def sm3(
     return [1] * i + [shape[i]] + [1] * (rank - i - 1)
 
   def _moving_averages(grad, accumulators):
-    w1 = beta2
-    w2 = (1.0 - beta2) if beta2 != 1.0 else 1.0
-
+    w = (1.0 - beta2) if beta2 != 1.0 else 1.0
     if grad.ndim < 2:
-      return w1 * accumulators[0] + w2 * grad**2
+      return beta2 * accumulators[0] + w * grad**2
     else:
       min_accumulator = functools.reduce(jnp.minimum, accumulators)
-      return w1 * min_accumulator + w2 * grad**2
+      return beta2 * min_accumulator + w * grad**2
 
   def _moving_averages_momentum(grad, momentum):
-    w1 = beta1
-    w2 = (1.0 - beta1) if beta1 != 1.0 else 1.0
-    return w1 * momentum.to_float() + w2 * grad**2
+    w = (1.0 - beta1) if beta1 != 1.0 else 1.0
+    return beta1 * momentum.to_float() + w * grad
 
   def _sketch_diagonal_statistics(grad, updated_diagonal_statistics):
     all_diagonal_statistics = []
