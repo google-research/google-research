@@ -115,6 +115,15 @@ class SmuSqliteTest(absltest.TestCase):
     with self.assertRaises(KeyError):
       db.find_bond_topology_id_for_smiles('DoesNotExist')
 
+  def test_bulk_insert_smiles(self):
+    db = self.create_db()
+
+    with self.assertRaises(KeyError):
+      db.find_bond_topology_id_for_smiles('NewSmiles')
+
+    db.bulk_insert_smiles([['FirstSmiles', 111], ['NewSmiles', 222]])
+    self.assertEqual(db.find_bond_topology_id_for_smiles('NewSmiles'), 222)
+
   def test_find_by_conformer_id(self):
     db = self.create_db()
 
@@ -157,6 +166,14 @@ class SmuSqliteTest(absltest.TestCase):
       db.find_by_conformer_id(9999)
 
     self.assertEqual(db.find_by_conformer_id(4001).conformer_id, 4001)
+
+  def test_vaccum(self):
+    db = self.create_db()
+    self.assertEqual(db.find_by_conformer_id(2001).conformer_id,
+                     2001)
+    db.vacuum()
+    self.assertEqual(db.find_by_conformer_id(2001).conformer_id,
+                     2001)
 
   def test_iteration(self):
     db = self.create_db()

@@ -205,6 +205,11 @@ class SMUSQLite:
                  elapsed.total_seconds() / idx)
 
   def bulk_insert_smiles(self, smiles_btid_pairs, batch_size=10000):
+    """Insert smiles to bond topology id mapping.
+
+    Args:
+      smiles_btid_pairs: iterable of pairs of (smiles, btid)
+    """
     if self._read_only:
       raise ReadOnlyError()
 
@@ -228,9 +233,20 @@ class SMUSQLite:
     # Commit a final time
     commit_pending()
 
+  def vacuum(self):
+    """Uses SQL VACUUM to clean up db.
+
+    Args:
+      filename to write to
+    """
+    if self._read_only:
+      raise ReadOnlyError()
+    cur = self._conn.cursor()
+    cur.execute('VACUUM')
+    self._conn.commit()
 
   def find_bond_topology_id_for_smiles(self, smiles):
-    """Finds the bon_topology_id for the given smiles.
+    """Finds the bond_topology_id for the given smiles.
 
     Args:
       smiles: string to look up
