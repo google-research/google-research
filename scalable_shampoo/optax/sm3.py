@@ -50,7 +50,8 @@ def sm3(
     learning_rate,
     beta1=0.9,
     beta2=0.999,
-    diagonal_epsilon=1e-10):
+    diagonal_epsilon=1e-10,
+    normalize_grads=False):
   """SM3 optimizer.
 
   Memory-Efficient Adaptive Optimization, Rohan Anil, Vineet Gupta, Tomer Koren,
@@ -63,6 +64,8 @@ def sm3(
     beta1: momentum parameter.
     beta2: second moment averaging parameter.
     diagonal_epsilon: epsilon for sm3
+    normalize_grads: Whether to normalize grads. Author finds it useful when
+      grads are high variance.
 
   Returns:
     a GradientTransformation.
@@ -113,6 +116,9 @@ def sm3(
   def update_fn(updates, state, params=None):
     del params
     stats = state.stats
+    if normalize_grads:
+      updates = jax.tree_map(
+          lambda g: g / (jnp.linalg.norm(g) + 1e-16), updates)
     # Reshape all vectors into N-d tensors to compute min over them.
     # [n], [m] -> [n, 1], [1, m]
     expanded_diagonal_statistics = jax.tree_multimap(
