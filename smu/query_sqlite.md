@@ -76,8 +76,6 @@ To support specified alternative bond length restrictions, you can specify lengt
 
     Implementation note of interest: `--bond_lengths_csv` creates a EmpiricalLengthDistribution for each atom type pair. `--bond_lengths` creates a FixedWindowLengthDistribution for each given pair to replace the EmpiricalLengthDistribution
 
-* `--bond_topology_csv` The CSV file `bond_topology.csv` provided in the download mapping topologies to a bond topology id. Must be provided to do geometry based searches.
-
 * `--topology_query_smiles` To do a geometry based search, you then provide a comma separated list of SMILES strings specifying the geometry to search. Note that if `--bond_lengths` are not given, this will return the same conformers as `--smiles`.
 
 ### How does this work internally?
@@ -96,7 +94,7 @@ Note that this is not an especially efficient algorithm, but it’s able to reus
 
 Similar to the [geometry based searching](#geometry-based-searching), you can use the modification of allowed bond lengths (via the `--bond_lengths_csv` and `--bond_lengths` arguments) to perform topology sensing on any conformer returned (i.e. from the options in [Simple Indexed Selection](#simple-indexed-selection) )
 
-* `--redetect_topology` Just specify this flag (in addition to `--bond_lengths_csv`, `--bond_lengths`, `--bond_topology_csv`
+* `--redetect_topology` Just specify this flag (in addition to `--bond_lengths_csv`, `--bond_lengths`)
 
 
 ## Examples
@@ -143,7 +141,6 @@ A geometry based query. A SMILES string is given to define the topology, but the
 python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
 --output_format sdf_opt  \
---bond_topology_csv bond_topology.csv \
 --bond_lengths_csv 20220128_bond_lengths.csv \
 --topology_query_smiles 'O=[N+]=NNN([O-])F' \
 --bond_lengths 'N~N:-2.0'

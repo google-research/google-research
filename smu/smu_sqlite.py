@@ -204,6 +204,58 @@ class SMUSQLite:
                  elapsed.total_seconds(),
                  elapsed.total_seconds() / idx)
 
+  def bulk_insert_smiles(self, smiles_btid_pairs, batch_size=10000):
+    if self._read_only:
+      raise ReadOnlyError()
+
+    insert_smiles = (
+        f'INSERT OR IGNORE INTO {_SMILES_TABLE_NAME} VALUES (?, ?) ')
+
+    cur = self._conn.cursor()
+
+    pending = []
+
+    def commit_pending():
+      cur.executemany(insert_smiles, pending)
+      pending.clear()
+      self._conn.commit()
+
+    for idx, (smiles, btid) in enumerate(smiles_btid_pairs, 1):
+      pending.append([smiles, btid])
+      if batch_size and idx % batch_size == 0:
+        commit_pending()
+
+    # Commit a final time
+    commit_pending()
+
+
+  def find_bond_topology_id_for_smiles(self, smiles):
+    """Finds the bon_topology_id for the given smiles.
+
+    Args:
+      smiles: string to look up
+
+    Returns:
+      integer of bond_topology_id
+
+    Raises:
+      KeyError: if smiles not found
+    """
+    cur = self._conn.cursor()
+    select = f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles = ?'
+    cur.execute(select, (smiles,))
+    result = cur.fetchall()
+
+    if not result:
+      raise KeyError(f'SMILES {smiles} not found')
+
+    # Since it's a unique index, there should only be one result and it's a
+    # tuple with one value.
+    assert len(result) == 1
+    assert len(result[0]) == 1
+    return result[0][0]
+
+
   def find_by_conformer_id(self, cid):
     """Finds the conformer associated with a conformer id.
 
@@ -321,11 +373,11 @@ class SMUSQLite:
             for result in cur)
 
 
-  def find_by_topology(self, smiles, bond_lengths, smiles_id_dict,
+  def find_by_topology(self, smiles, bond_lengths,
                        matching_parameters=smu_molecule.MatchingParameters()):
     """Find all conformers which have a detected bond topology.
 
-    Note that this *redoes* the detection. If you want to use the default detected
+    Note that this *redoes* the detection. If you want the default detected
     versions, you can just query by SMILES string. This is only useful if you
     adjust the distance thresholds for what a matching bond is.
     To adjust those, you probably want to use
@@ -334,7 +386,6 @@ class SMUSQLite:
     Args:
       smiles: smiles string for the target bond topology
       bond_lengths: AllAtomPairLengthDistributions
-      smiles_id_dict: see smu_utils_lib.smiles_id_dict_from_csv
       matching_parameters: controls the algorithm for matching topologies.
         Generally should not need to be modified.
 
@@ -362,7 +413,8 @@ class SMUSQLite:
         conformer.bond_topologies.extend(matches.bond_topology)
         for bt in conformer.bond_topologies:
           try:
-            bt.bond_topology_id = smiles_id_dict[bt.smiles]
+            bt.bond_topology_id = self.find_bond_topology_id_for_smiles(
+              bt.smiles)
           except KeyError:
             logging.error('Did not find bond topology id for smiles %s',
                           bt.smiles)

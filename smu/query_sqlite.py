@@ -101,10 +101,6 @@ flags.DEFINE_string(
     'bond_lengths', None, 'Comma separated terms like form XYX:N-N '
     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
     'and N is a possibly empty floating point number. ')
-flags.DEFINE_string(
-    'bond_topology_csv', None,
-    'File which contains the desription of all bond topologies '
-    'considered in SMU.')
 
 FLAGS = flags.FLAGS
 
@@ -113,7 +109,7 @@ class GeometryData:
   """Class GeometryData."""
   _singleton = None
 
-  def __init__(self, bond_lengths_csv, bond_lengths_arg, bond_topology_csv):
+  def __init__(self, bond_lengths_csv, bond_lengths_arg):
     if bond_lengths_csv is None:
       raise ValueError('--bond_lengths_csv required')
     logging.info('Loading bond_lengths')
@@ -127,18 +123,10 @@ class GeometryData:
 
     self.bond_lengths.add_from_string_spec(bond_lengths_arg)
 
-    if bond_topology_csv is None:
-      raise ValueError('--bond_topology_csv required')
-    logging.info('Loading bond topologies')
-    with open(bond_topology_csv, 'r') as infile:
-      self.smiles_id_dict = smu_utils_lib.smiles_id_dict_from_csv(infile)
-    logging.info('Done loading bond topologies')
-
   @classmethod
   def get_singleton(cls):
     if cls._singleton is None:
-      cls._singleton = cls(FLAGS.bond_lengths_csv, FLAGS.bond_lengths,
-                           FLAGS.bond_topology_csv)
+      cls._singleton = cls(FLAGS.bond_lengths_csv, FLAGS.bond_lengths)
     return cls._singleton
 
 
@@ -282,10 +270,11 @@ class DatOutputter:
 class ReDetectTopologiesOutputter:
   """Reruns topology detection before handing to another outputter."""
 
-  def __init__(self, outputter):
+  def __init__(self, outputter, db):
     self._wrapped_outputter = outputter
     self._geometry_data = GeometryData.get_singleton()
     self._matching_parameters = smu_molecule.MatchingParameters()
+    self._db = db
 
   def output(self, conformer):
     """Writes a Conformer.
@@ -305,7 +294,7 @@ class ReDetectTopologiesOutputter:
       conformer.bond_topologies.extend(matches.bond_topology)
       for bt in conformer.bond_topologies:
         try:
-          bt.bond_topology_id = self._geometry_data.smiles_id_dict[bt.smiles]
+          bt.bond_topology_id = self._db.find_bond_topology_id_for_smiles(bt.smiles)
         except KeyError:
           logging.error('Did not find bond topology id for smiles %s',
                         bt.smiles)
@@ -352,7 +341,7 @@ def main(argv):
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
   if FLAGS.redetect_topology:
-    outputter = ReDetectTopologiesOutputter(outputter)
+    outputter = ReDetectTopologiesOutputter(outputter, db)
 
   with contextlib.closing(outputter):
     for cid in (int(x) for x in FLAGS.cids):
@@ -377,8 +366,7 @@ def main(argv):
     for smiles in FLAGS.topology_query_smiles:
       geometry_data = GeometryData.get_singleton()
       for c in db.find_by_topology(smiles,
-                                   bond_lengths=geometry_data.bond_lengths,
-                                   smiles_id_dict=geometry_data.smiles_id_dict):
+                                   bond_lengths=geometry_data.bond_lengths):
         outputter.output(c)
     if FLAGS.random_fraction:
       for conformer in db:

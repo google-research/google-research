@@ -8,8 +8,7 @@ But you can modify the allowed distances for each type of bond
 and find all conformers which match a given topology with these modifications
 While this does not have the read the whole database, it is a much less efficient operation than querying by smiles, so only use it if you modify the allowed distances
 
-First you have to load some auxiliary files
-Done loading files
+First you have to load the default bond lengths
 
 You then provide the desired topology as a SMILES string
 The topology query without modifying bond lengths, finds the same result
@@ -34,7 +33,7 @@ With the topologies from the query with modified bond distances:
     88595001 has bond topologies: [88595, 89158, 89347, 85227, 85395, 85532]
     88595005 has bond topologies: [88595, 89158, 89347, 85227, 85395, 85532]
     89158002 has bond topologies: [89347, 89158, 88595, 89395, 85465, 85504, 85395, 85227, 85532, 88603, 85225, 85398, 85519]
-    89158006 has bond topologies: [89158, 88595, 85395, 85227, 85532, 89243, 88707, 89347]
+    89158006 has bond topologies: [89158, 88595, 85395, 85227, 85532, 89243, 0, 89347]
     89347002 has bond topologies: [89347, 89158, 88595, 85395, 85532, 85227]
     89347004 has bond topologies: [89347, 89158, 88595, 85465, 85504, 85395, 85532, 85227]
     89351001 has bond topologies: [89347, 85395, 85532, 85227, 89351, 89158, 88595]

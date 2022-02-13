@@ -17,7 +17,6 @@
 
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
-from smu.parser import smu_utils_lib
 
 db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
 smiles = '[O-]N=N[NH+]=[N+]([O-])F'
@@ -39,20 +38,18 @@ print('and find all conformers which match a given topology with these modificat
 print('While this does not have the read the whole database, it is a much less efficient operation than querying by smiles, so only use it if you modify the allowed distances')
 
 print()
-print('First you have to load some auxiliary files')
+print('First you have to load the default bond lengths')
 bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
 bond_lengths.add_from_sparse_dataframe_file(
   '20220128_bond_lengths.csv',
   bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
   bond_length_distribution.STANDARD_SIG_DIGITS)
-smiles_id_dict = smu_utils_lib.smiles_id_dict_from_csv(open('bond_topology.csv'))
-print('Done loading files')
 
 print()
 print('You then provide the desired topology as a SMILES string')
 print('The topology query without modifying bond lengths, finds the same result')
 unmodified_conformers = sorted(
-  list(db.find_by_topology(smiles, bond_lengths, smiles_id_dict)),
+  list(db.find_by_topology(smiles, bond_lengths)),
   key=lambda c: c.conformer_id)
 print('Unmodified find_by_topology finds these conformer ids')
 print([c.conformer_id for c in unmodified_conformers])
@@ -62,7 +59,7 @@ print('We now modify the bond lengths by allowing N to N bonds of any order')
 print('to be between 1A and 2A with the string "N~N:1.0-2.0"')
 bond_lengths.add_from_string_spec('N~N:1.0-2.0')
 modified_conformers = sorted(
-  list(db.find_by_topology(smiles, bond_lengths, smiles_id_dict)),
+  list(db.find_by_topology(smiles, bond_lengths)),
   key=lambda c: c.conformer_id)
 print('We now find these conformer ids')
 print([c.conformer_id for c in modified_conformers])

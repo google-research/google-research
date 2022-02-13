@@ -108,6 +108,13 @@ class SmuSqliteTest(absltest.TestCase):
 
     return db
 
+  def test_find_bond_topology_id_for_smiles(self):
+    db = self.create_db()
+
+    self.assertEqual(db.find_bond_topology_id_for_smiles('CC'), 2)
+    with self.assertRaises(KeyError):
+      db.find_bond_topology_id_for_smiles('DoesNotExist')
+
   def test_find_by_conformer_id(self):
     db = self.create_db()
 
@@ -276,7 +283,7 @@ class SmuSqliteTest(absltest.TestCase):
 
     conformer = dataset_pb2.Conformer(conformer_id=9999,
                                       fate=dataset_pb2.Conformer.FATE_SUCCESS)
-    bt = conformer.bond_topologies.add(smiles='N1NO1')
+    bt = conformer.bond_topologies.add(smiles='N1NO1', bond_topology_id=100)
     geom = conformer.optimized_geometry.atom_positions
 
     bt.atoms.append(dataset_pb2.BondTopology.ATOM_O)
@@ -308,19 +315,18 @@ class SmuSqliteTest(absltest.TestCase):
       pos.z /= smu_utils_lib.BOHR_TO_ANGSTROMS
 
     db.bulk_insert([conformer.SerializeToString()])
+    db.bulk_insert_smiles([['N1NO1', 100], ['N=[NH+][O-]', 101]])
 
     bond_lengths = bond_length_distribution.make_fake_empiricals()
-    smiles_id_dict = {'N1NO1': 9, 'N=[NH+][O-]': 10}
 
     # We'll query by the topology that was in the DB then the one that wasn't
     for query_smiles in ['N1NO1', 'N=[NH+][O-]']:
 
       got = list(db.find_by_topology(query_smiles,
-                                     bond_lengths=bond_lengths,
-                                     smiles_id_dict=smiles_id_dict))
+                                     bond_lengths=bond_lengths))
       self.assertLen(got, 1)
       self.assertCountEqual(
-        [9, 10, 10],
+        [100, 101, 101],
         [bt.bond_topology_id for bt in got[0].bond_topologies])
 
 

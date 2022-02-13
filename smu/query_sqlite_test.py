@@ -48,13 +48,10 @@ class GeometryDataTest(absltest.TestCase):
     super().setUp()
     self.bond_lengths_csv = os.path.join(TESTDATA_PATH,
                                          'minmax_bond_distances.csv')
-    self.bond_topology_csv = os.path.join(TESTDATA_PATH,
-                                          'pipeline_bond_topology.csv')
 
   def create(self, bond_lengths):
     self._geometry_data = query_sqlite.GeometryData(self.bond_lengths_csv,
-                                                    bond_lengths,
-                                                    self.bond_topology_csv)
+                                                    bond_lengths)
 
   def is_empirical(self, atom_a, atom_b, bond_type):
     length_dist = self._geometry_data.bond_lengths[(atom_a, atom_b)][bond_type]
