@@ -347,31 +347,27 @@ def main(argv):
     for cid in (int(x) for x in FLAGS.cids):
       conformer = db.find_by_conformer_id(cid)
       outputter.output(conformer)
-    for btid in (int(x) for x in FLAGS.btids):
-      conformers = db.find_by_bond_topology_id(btid)
-      if not conformers:
-        raise KeyError(f'Bond topology {btid} not found')
-      for c in conformers:
-        outputter.output(c)
-    for smiles in FLAGS.smiles:
-      conformers = db.find_by_smiles(smiles)
-      if not conformers:
-        raise KeyError(f'SMILES {smiles} not found')
-      for c in conformers:
-        outputter.output(c)
+
+    for c in db.find_by_bond_topology_id_list([int(x) for x in FLAGS.btids]):
+      outputter.output(c)
+
+    for c in db.find_by_smiles_list(FLAGS.smiles):
+      outputter.output(c)
+
     for stoich in FLAGS.stoichiometries:
       conformers = db.find_by_stoichiometry(stoich)
       for c in conformers:
         outputter.output(c)
+
     for smiles in FLAGS.topology_query_smiles:
       geometry_data = GeometryData.get_singleton()
       for c in db.find_by_topology(smiles,
                                    bond_lengths=geometry_data.bond_lengths):
         outputter.output(c)
+
     if FLAGS.random_fraction:
       for conformer in db:
-        if conformer.fate == dataset_pb2.Conformer.FATE_SUCCESS and random.random(
-        ) < FLAGS.random_fraction:
+        if random.random() < FLAGS.random_fraction:
           outputter.output(conformer)
 
 

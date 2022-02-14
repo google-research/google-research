@@ -34,7 +34,7 @@ except KeyError:
 
 print()
 print('Looking up by bond topology id will return zero or more conformers')
-bt_conformers = list(db.find_by_bond_topology_id(7984))
+bt_conformers = list(db.find_by_bond_topology_id_list([7984]))
 print('Querying for bond topology id 8617 returned',
       len(bt_conformers),
       'conformers')
@@ -51,12 +51,12 @@ print()
 print(
     'Finding by SMILES is essentially equivalent to finding by bond topology id'
 )
-smiles_conformers = list(db.find_by_smiles('O=NONNNO'))
+smiles_conformers = list(db.find_by_smiles_list(['O=NONNNO']))
 print('With query O=NONNNO', 'we found', len(smiles_conformers), 'results')
 
 print('Note that the SMILES are canonicalized internally, you do not need to')
 print('So the equivalent SMILES query ONNNON=O returns the same',
-      len(list(db.find_by_smiles('ONNNON=O'))), 'results')
+      len(list(db.find_by_smiles_list(['ONNNON=O']))), 'results')
 
 print()
 print('You can also find all the conformers with a given stoichiometry')

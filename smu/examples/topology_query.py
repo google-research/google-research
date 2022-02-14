@@ -26,7 +26,7 @@ print('(see multiple_bond_topology.py for some illustration)')
 
 print('This is what the "find_by_smiles" method is using and is very efficient')
 
-original_conformers = sorted(db.find_by_smiles(smiles),
+original_conformers = sorted(db.find_by_smiles_list([smiles]),
                              key=lambda c: c.conformer_id)
 print('find_by_smiles on', smiles, 'finds these conformer ids')
 print([c.conformer_id for c in original_conformers])

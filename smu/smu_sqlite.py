@@ -271,7 +271,6 @@ class SMUSQLite:
     assert len(result[0]) == 1
     return result[0][0]
 
-
   def find_by_conformer_id(self, cid):
     """Finds the conformer associated with a conformer id.
 
@@ -298,51 +297,54 @@ class SMUSQLite:
     assert len(result[0]) == 1
     return dataset_pb2.Conformer().FromString(snappy.uncompress(result[0][0]))
 
-  def find_by_bond_topology_id(self, btid):
+  def find_by_bond_topology_id_list(self, btids):
     """Finds all the conformer associated with a bond topology id.
 
     Args:
-      btid: bond topology id to look up.
+      btids: list of bond topology id to look up.
 
     Returns:
       iterable of dataset_pb2.Conformer
     """
     cur = self._conn.cursor()
     # DISTINCT is because the same cid can have the same btid multiple times.
-    select = (f'SELECT DISTINCT cid, conformer '
-              f'FROM {_CONFORMER_TABLE_NAME} '
-              f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
-              f'WHERE {_BTID_TABLE_NAME}.btid = ?')
-    cur.execute(select, (btid,))
+    select = (''.join([
+      f'SELECT DISTINCT cid, conformer '
+      f'FROM {_CONFORMER_TABLE_NAME} '
+      f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
+      f'WHERE {_BTID_TABLE_NAME}.btid IN (',
+      ','.join('?' for _ in btids),
+      ')']))
+    cur.execute(select, btids)
     return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[1]))
             for result in cur)
 
-  def find_by_smiles(self, smiles):
+  def find_by_smiles_list(self, smiles):
     """Finds all conformer associated with a given smiles string.
 
     Args:
-      smiles: string
+      smiles: list of string
 
     Returns:
       iterable for dataset_pb2.Conformer
     """
-    canon_smiles = smu_utils_lib.compute_smiles_for_molecule(
-        Chem.MolFromSmiles(smiles, sanitize=False), include_hs=False)
+    canon_smiles = [smu_utils_lib.compute_smiles_for_molecule(
+        Chem.MolFromSmiles(s, sanitize=False), include_hs=False)
+                    for s in smiles]
     cur = self._conn.cursor()
-    select = f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles = ?'
-    cur.execute(select, (canon_smiles,))
+    select = (''.join([
+      f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles IN (',
+      ','.join('?' for _ in canon_smiles),
+      ')']))
+    cur.execute(select, canon_smiles)
     result = cur.fetchall()
 
     if not result:
       return []
 
-    # Since it's a unique index, there should only be one result and it's a
-    # tuple with one value.
-    assert len(result) == 1
-    assert len(result[0]) == 1
-    return self.find_by_bond_topology_id(result[0][0])
+    return self.find_by_bond_topology_id_list([r[0] for r in result])
 
-  def find_by_expanded_stoichiometry(self, exp_stoich):
+  def find_by_expanded_stoichiometry_list(self, exp_stoichs):
     """Finds all of the conformers with a stoichiometry.
 
     The expanded stoichiometry includes hydrogens as part of the atom type.
@@ -350,16 +352,19 @@ class SMUSQLite:
     description.
 
     Args:
-      exp_stoich: string
+      exp_stoichs: list of string
 
     Returns:
       iterable of dataset_pb2.Conformer
     """
     cur = self._conn.cursor()
-    select = (f'SELECT conformer '
-              f'FROM {_CONFORMER_TABLE_NAME} '
-              f'WHERE exp_stoich = ?')
-    cur.execute(select, (exp_stoich,))
+    select = (''.join([
+      f'SELECT conformer '
+      f'FROM {_CONFORMER_TABLE_NAME} '
+      f'WHERE exp_stoich IN (',
+      ','.join('?' for _ in exp_stoichs),
+      ')']))
+    cur.execute(select, exp_stoichs)
     return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
             for result in cur)
 
@@ -370,7 +375,6 @@ class SMUSQLite:
 
     Internally, the stoichiometry is converted a set of expanded stoichiometries
     and the query is done to find all of those.
-    Notably, this means only records with status <= 512 are returned.
 
     Args:
       stoich: stoichiometry string like "C6H12", case doesn't matter
@@ -379,15 +383,7 @@ class SMUSQLite:
     """
     exp_stoichs = list(
         smu_utils_lib.expanded_stoichiometries_from_stoichiometry(stoich))
-    cur = self._conn.cursor()
-    select = (f'SELECT conformer '
-              f'FROM {_CONFORMER_TABLE_NAME} '
-              f'WHERE exp_stoich IN (' + ','.join('?' for _ in exp_stoichs) +
-              ')')
-    cur.execute(select, exp_stoichs)
-    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
-            for result in cur)
-
+    return self.find_by_expanded_stoichiometry_list(exp_stoichs)
 
   def find_by_topology(self, smiles, bond_lengths,
                        matching_parameters=smu_molecule.MatchingParameters()):
@@ -416,7 +412,7 @@ class SMUSQLite:
     cnt_conformer = 0
     logging.info('Starting query for %s with stoich %s',
                  smiles, expanded_stoich)
-    for conformer in self.find_by_expanded_stoichiometry(expanded_stoich):
+    for conformer in self.find_by_expanded_stoichiometry_list([expanded_stoich]):
       if not smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
         continue
       cnt_conformer += 1
@@ -439,6 +435,33 @@ class SMUSQLite:
     logging.info('Topology query for %s matched %d / %d', smiles,
                  cnt_matched_conformer, cnt_conformer)
 
+  def find_bond_topology_id_by_smarts(self, smarts):
+    """Find all bond topology ids that match a smarts pattern.
+
+    Args:
+      smarts: SMARTS string
+
+    Yields:
+      int, bond topology id
+    """
+    pattern = Chem.MolFromSmarts(smarts)
+    if not pattern:
+      raise ValueError(f'Could not parse SMARTS {smarts}')
+
+    for smiles, bt_id in self.smiles_iter():
+      mol = smu_utils_lib.smiles_to_molecule(smiles)
+      if mol.GetSubstructMatches(pattern):
+        yield bt_id
+
+  def smiles_iter(self):
+    """Iterates through all (smiles, btid) pairs in the DB.
+
+    Yields:
+      (smiles, bt_id)
+    """
+    cur = self._conn.cursor()
+    cur.execute('SELECT smiles, btid FROM smiles')
+    yield from cur
 
   def __iter__(self):
     """Iterates through all dataset_pb2.Conformer in the DB."""
