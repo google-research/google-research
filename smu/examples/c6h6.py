@@ -33,7 +33,7 @@ from smu import smu_sqlite
 
 # We'll use the complete database because we'll be a little more permissive
 # on the status variable.
-db = smu_sqlite.SMUSQLite('20220128_complete.sqlite')
+db = smu_sqlite.SMUSQLite('20220128_complete_v2.sqlite')
 
 print('# Output from c6h6.py, an example bringing together many concepts')
 print('# Please see that file for documentation')

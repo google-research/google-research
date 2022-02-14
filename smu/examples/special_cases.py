@@ -18,7 +18,7 @@
 from smu import smu_sqlite
 
 # Note that we are loading the *complete* database
-db = smu_sqlite.SMUSQLite('20220128_complete.sqlite')
+db = smu_sqlite.SMUSQLite('20220128_complete_v2.sqlite')
 
 print(
     'When processing the complete database, there are a few special kinds of conformers to look out for'
