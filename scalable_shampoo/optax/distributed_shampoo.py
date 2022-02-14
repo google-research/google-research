@@ -44,6 +44,11 @@ import optax
 
 from scalable_shampoo.optax.quantization_utils import QuantizedValue
 
+# Dtype for inverse-pth root routine
+# Switch to f64 if you have hardware that supports it. Enable the jax flag
+# jax_enable_x64 for this to work, otherwise it will default to float32.
+_MAT_INV_PTH_ROOT_DTYPE = jnp.float64
+
 
 @struct.dataclass
 class TrainingMetrics:
@@ -186,6 +191,29 @@ def power_iteration(
   return v_out, s_out
 
 
+def mat_power(mat_m, p, precision=lax.Precision.HIGHEST):
+  """A simple matrix power method. M^p where p can be TracedValue."""
+  power = jnp.eye(mat_m.shape[0], dtype=_MAT_INV_PTH_ROOT_DTYPE)
+
+  def _iter_condition(state):
+    i, _, _ = state
+    return i > 0
+
+  def _iter_body(state):
+    i, power, mat = state
+
+    power = jax.lax.cond(i % 2 == 1,
+                         lambda: jnp.matmul(mat, power, precision=precision),
+                         lambda: power)
+    i //= 2
+    mat = jnp.matmul(mat, mat, precision=precision)
+    return i, power, mat
+
+  _, result, _ = lax.while_loop(
+      _iter_condition, _iter_body, (p, power, mat_m))
+  return result
+
+
 def matrix_inverse_pth_root(
     matrix,
     p,
@@ -221,55 +249,18 @@ def matrix_inverse_pth_root(
 
   assert matrix.shape[0] == matrix.shape[1]
 
-  # We use float32 for the matrix inverse pth root.
-  # Switch to f64 if you have hardware that supports it.
+  # We use _MAT_INV_PTH_ROOT_DTYPE for the matrix inverse pth root.
+  # Switch to f64 if you have hardware that supports it. Enable the jax flag
+  # jax_enable_x64 for this to work.
   matrix_size = matrix.shape[0]
-  alpha = jnp.asarray(-1.0 / p, jnp.float32)
-  identity = jnp.eye(matrix_size, dtype=jnp.float32)
+  orig_dtype = matrix.dtype
+  matrix = matrix.astype(_MAT_INV_PTH_ROOT_DTYPE)
+  alpha = jnp.asarray(-1.0 / p, _MAT_INV_PTH_ROOT_DTYPE)
+  identity = jnp.eye(matrix_size, dtype=_MAT_INV_PTH_ROOT_DTYPE)
   _, max_ev = power_iteration(
       matrix=matrix, num_iters=100,
       error_tolerance=1e-6, precision=precision)
   ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, 1e-6)
-
-  def _unrolled_mat_pow_1(mat_m):
-    """Computes mat_m^1."""
-    return mat_m
-
-  def _unrolled_mat_pow_2(mat_m):
-    """Computes mat_m^2."""
-    return jnp.matmul(mat_m, mat_m, precision=precision)
-
-  def _unrolled_mat_pow_4(mat_m):
-    """Computes mat_m^4."""
-    mat_pow_2 = _unrolled_mat_pow_2(mat_m)
-    return jnp.matmul(
-        mat_pow_2, mat_pow_2, precision=precision)
-
-  def _unrolled_mat_pow_8(mat_m):
-    """Computes mat_m^4."""
-    mat_pow_4 = _unrolled_mat_pow_4(mat_m)
-    return jnp.matmul(
-        mat_pow_4, mat_pow_4, precision=precision)
-
-  def mat_power(mat_m, p):
-    """Computes mat_m^p, for p == 1, 2, 4 or 8.
-
-    Args:
-      mat_m: a square matrix
-      p: a positive integer
-
-    Returns:
-      mat_m^p
-    """
-    # We unrolled the loop for performance reasons.
-    exponent = jnp.round(jnp.log2(p))
-    return lax.switch(
-        jnp.asarray(exponent, jnp.int32), [
-            _unrolled_mat_pow_1,
-            _unrolled_mat_pow_2,
-            _unrolled_mat_pow_4,
-            _unrolled_mat_pow_8,
-        ], (mat_m))
 
   def _iter_condition(state):
     (i, unused_mat_m, unused_mat_h, unused_old_mat_h, error,
@@ -303,10 +294,10 @@ def matrix_inverse_pth_root(
         [0, new_mat_m_0, new_mat_h_0, new_mat_h_0, new_error, True])
     _, mat_m, mat_h, old_mat_h, error, convergence = lax.while_loop(
         _iter_condition, _iter_body, init_state)
-    error = jnp.max(jnp.abs(mat_m - identity))
+    error = jnp.max(jnp.abs(mat_m - identity)).astype(jnp.float32)
     is_converged = jnp.asarray(convergence, old_mat_h.dtype)
     resultant_mat_h = is_converged * mat_h + (1 - is_converged) * old_mat_h
-    resultant_mat_h = jnp.asarray(resultant_mat_h, matrix.dtype)
+    resultant_mat_h = jnp.asarray(resultant_mat_h, orig_dtype)
   return resultant_mat_h, error
 
 
@@ -935,11 +926,11 @@ def distributed_shampoo(
                              quantized_dtype_for_diagonal_statistics_buffers(),
                              False, list(param.shape)),
               QuantizedValue(m1_pspec, [], m1_scale_pspec,
-                             quantized_dtype_for_momentum_buffers(), False,
-                             list(param.shape)),
+                             quantized_dtype_for_momentum_buffers(),
+                             False, list(param.shape)),
               QuantizedValue(m2_pspec, [], m2_scale_pspec,
-                             quantized_dtype_for_momentum_buffers(), False,
-                             list(param.shape)),
+                             quantized_dtype_for_momentum_buffers(),
+                             False, list(param.shape)),
               init_training_metrics_pspec(len(sizes)), index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
@@ -1819,7 +1810,8 @@ def distributed_shampoo(
         _quantize_diagonal_statistics(new_diagonal_statistics),
         state.statistics, state.preconditioners,
         _quantize_momentum(new_diagonal_momentum),
-        _quantize_momentum(new_momentum), state.training_metrics)
+        _quantize_momentum(new_momentum),
+        state.training_metrics)
 
     return transformed_update, param_stats
 
