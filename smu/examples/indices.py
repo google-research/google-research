@@ -17,7 +17,7 @@
 
 from smu import smu_sqlite
 
-db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
 print('There are several ways to efficiently get specific sets of molecules')
 

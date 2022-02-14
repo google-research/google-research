@@ -17,7 +17,7 @@
 
 from smu import smu_sqlite
 
-db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
 # This is an arbitrary choice of the conformers to use.
 conformer = db.find_by_conformer_id(57001)

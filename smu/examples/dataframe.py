@@ -19,7 +19,7 @@ import pandas as pd
 
 from smu import smu_sqlite
 
-db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
 count = 0
 data_dict = {

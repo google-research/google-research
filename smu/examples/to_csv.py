@@ -20,7 +20,7 @@ import sys
 
 from smu import smu_sqlite
 
-db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
 print('# This is example csv output from smu/examples/to_csv.py')
 print('# Please see the comments in that file for explanation')

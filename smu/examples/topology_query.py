@@ -18,7 +18,7 @@
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
 
-db = smu_sqlite.SMUSQLite('20220128_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 smiles = '[O-]N=N[NH+]=[N+]([O-])F'
 
 print('Conformers can have multiple bond topologies that match the geometry')
