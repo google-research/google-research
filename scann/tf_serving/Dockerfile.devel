@@ -1,4 +1,4 @@
-ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:2.7.0-devel
+ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:2.8.0-devel
 FROM ${TF_SERVING_DEVEL_IMAGE} AS base_build
 LABEL maintainer="sunphil@google.com"
 
@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y dirmngr && \
     apt-get update && apt-get install -y --no-install-recommends g++-9 clang-8 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ARG SCANN_COMMIT=9671c78a46f161cbdb549fd611db770443c92efb
+ARG SCANN_COMMIT=dcc7dbef5cdfac1fb15264348e5ce695678348a5
 WORKDIR /
 RUN mkdir scann && cd scann && \
     curl -sSL --retry 5 https://github.com/google-research/google-research/tarball/${SCANN_COMMIT} | \
