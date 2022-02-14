@@ -656,7 +656,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
                                atol=1e-6)
 
 
-# Note that this class implictly tests molecule_to_bond_topology as well
+# Note that this class tests smiles to molecule and molecule_to_bond_topology
 class SmilesToBondTopologyTest(parameterized.TestCase):
 
   @parameterized.parameters([
@@ -669,7 +669,8 @@ class SmilesToBondTopologyTest(parameterized.TestCase):
   ])
   def test_atoms(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    bt = smu_utils_lib.smiles_to_bond_topology(smiles)
+    bt = smu_utils_lib.molecule_to_bond_topology(
+      smu_utils_lib.smiles_to_molecule(smiles))
     got = None
     for atom in bt.atoms:
       if atom != dataset_pb2.BondTopology.ATOM_H:
@@ -682,7 +683,8 @@ class SmilesToBondTopologyTest(parameterized.TestCase):
     ["C#C", dataset_pb2.BondTopology.BOND_TRIPLE]
   ])
   def test_bonds(self, smiles, expected):
-    bt = smu_utils_lib.smiles_to_bond_topology(smiles)
+    bt = smu_utils_lib.molecule_to_bond_topology(
+      smu_utils_lib.smiles_to_molecule(smiles))
     got = None
     for bond in bt.bonds:
       if (bt.atoms[bond.atom_a] == dataset_pb2.BondTopology.ATOM_C and

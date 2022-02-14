@@ -912,7 +912,7 @@ def molecule_to_bond_topology(mol):
   """Converts RDKit molecule to BondTopology.
 
   Args:
-    mol: RDKit molecules
+    mol: RDKit molecule
 
   Returns:
     dataset_pb2.BondTopology
@@ -932,16 +932,22 @@ def molecule_to_bond_topology(mol):
   pass
 
 
-def smiles_to_bond_topology(smiles):
+def smiles_to_molecule(smiles):
   """Converts a smiles string to a BondTopology
 
   Uses RDKit, and because we avoid aromaticity, there's a little
   subtlety in how that is done.
+
+  Args:
+    smiles: string
+
+  Returns:
+    RDKit molecule
   """
   mol = Chem.MolFromSmiles(smiles, sanitize=False)
   Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
   mol = Chem.AddHs(mol)
-  return molecule_to_bond_topology(mol)
+  return mol
 
 
 class SmilesCompareResult(enum.Enum):

@@ -408,7 +408,8 @@ class SMUSQLite:
     Yields:
       dataset_pb2.Conformer
     """
-    query_bt = smu_utils_lib.smiles_to_bond_topology(smiles)
+    query_bt = smu_utils_lib.molecule_to_bond_topology(
+      smu_utils_lib.smiles_to_molecule(smiles))
     expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(
       query_bt)
     cnt_matched_conformer = 0
