@@ -49,7 +49,6 @@ Outputs:
  - Intermediate mark-up documents are output to --output_dir_wiki.
 """
 
-import collections
 import hashlib
 import os
 
@@ -161,8 +160,8 @@ def verify_doc_index(original, reconstructed):
       suffixes=("_expected", "_got"))
   text_diff = (merged["text_md5_expected"] != merged["text_md5_got"])
   for missed in merged[text_diff].itertuples():
-    logging.warning("Text hash mismatch: %s - %s", missed.Index,
-                    missed.text_md5_got)
+    logging.warning("Text hash mismatch for docid %s. Got %s, expected %s.",
+                    missed.Index, missed.text_md5_got, missed.text_md5_expected)
 
   return not missing_docs and not any(text_diff)
 

@@ -112,12 +112,38 @@ class WikiNewsArchiveParser(object):
             logging.debug("Skip: no text element")
             continue
 
+          # Apply manual fixes.
+          wiki_doc = _apply_wiki_overrides(wiki_doc, url)
+
           # Create internal document identifier.
           docid = f"{self._language}-{curid}"
           logging.debug("Found (%s): %s", docid, title)
           self._counter["found"] += 1
 
           yield docid, title, url, curid, revid, wiki_doc
+
+
+def _apply_wiki_overrides(wiki_doc, url):
+  """Apply manual content fixes to wiki_doc with the given url."""
+  if url == "https://es.wikinews.org/wiki?curid=57585":
+    # This article's byline contains the wikitext:
+    #   '3 de {{CURRENTMONTHNAME}} de {{CURRENTYEAR}}'
+    # WikiExtractor converts that to the following substring in wiki_doc:
+    #   '3 de de 2022' (or '3 de de 2021', etc)
+    # I.e., the month is elided, and the year depends on the (non-constant)
+    # system date. In order to match previously released mention offsets, text
+    # validation hash codes and experiments, we replace the extracted year
+    # with the constant '2020'.
+    old_wiki_doc = wiki_doc
+    wiki_doc = re.sub(
+        pattern="^3 de de [0-9]{4}",
+        repl="3 de de 2020",
+        string=wiki_doc,
+        count=1,
+        flags=re.MULTILINE)
+    if wiki_doc != old_wiki_doc:
+      logging.info("Applied manual fix to wikitext for %s.", url)
+  return wiki_doc
 
 
 class WikiNewsArchiveConsumer(object):
