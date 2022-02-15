@@ -20,7 +20,7 @@ This is not an officially supported Google product.
 ## Data file format
 
 The data file should have tab-separated UTF-8-encoded data with the following
-nine columns, one line per marked error:
+nine (or ten) columns, one line per marked error:
 
 - **system**: Name of the translation system.
 - **doc**: Name of the document.
@@ -32,6 +32,7 @@ nine columns, one line per marked error:
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
 - **severity**: MQM error severity (or "no-error").
+- **note**: Optional note.
 
 An optional header line in the data file will be ignored (identified by the
 presence of the text "system\tdoc").
