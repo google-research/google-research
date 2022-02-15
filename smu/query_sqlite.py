@@ -74,6 +74,9 @@ flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
 flags.DEFINE_list('cids', [], 'List of conformer ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
 flags.DEFINE_list('stoichiometries', [], 'List of stoichiometries to query')
+flags.DEFINE_string('smarts', '',
+                    'SMARTS query to retrieve confomers with matching bond topology. '
+                    'Note that this is a single value, not a comma separated list')
 flags.DEFINE_list(
     'topology_query_smiles', [],
     'List of smiles to query, where the valid bond lengths are '
@@ -128,6 +131,35 @@ class GeometryData:
     if cls._singleton is None:
       cls._singleton = cls(FLAGS.bond_lengths_csv, FLAGS.bond_lengths)
     return cls._singleton
+
+
+_SMARTS_BT_BATCH_SIZE = 20000
+
+def smarts_query(db, smarts, outputter):
+  if not smarts:
+    return
+
+  logging.info('Starting SMARTS query "%s"', smarts)
+  bt_ids = list(db.find_bond_topology_id_by_smarts(smarts))
+
+  logging.info('SMARTS query "%s" produced bond topology %d results',
+               smarts, len(bt_ids))
+
+  if not bt_ids:
+    return
+
+  if len(bt_ids) > _SMARTS_BT_BATCH_SIZE:
+    logging.warning(
+      'Smarts query "%s" matched %d bond topologies. '
+      'This may be very slow and produce the same conformer multiple times. '
+      'Trying anyways...', smarts, len(bt_ids))
+
+  count = 0
+  for c in db.find_by_bond_topology_id_list(bt_ids):
+    count += 1
+    outputter.output(c)
+
+  logging.info('SMARTS query produced %d conformers', count)
 
 
 class PBTextOutputter:
@@ -364,6 +396,8 @@ def main(argv):
       for c in db.find_by_topology(smiles,
                                    bond_lengths=geometry_data.bond_lengths):
         outputter.output(c)
+
+    smarts_query(db, FLAGS.smarts, outputter)
 
     if FLAGS.random_fraction:
       for conformer in db:
