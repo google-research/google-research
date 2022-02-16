@@ -17,11 +17,15 @@
 
 from smu import smu_sqlite
 
+#-----------------------------------------------------------------------------
 # Note that we are loading the *complete* database
+#-----------------------------------------------------------------------------
 db = smu_sqlite.SMUSQLite('20220128_complete_v2.sqlite')
 
+#-----------------------------------------------------------------------------
 # We'll grab a couple of conformers with different amount of information
 # stored.
+#-----------------------------------------------------------------------------
 PARTIAL_CONFORMER_ID = 35004068
 MINIMAL_CONFORMER_ID = 35553043
 partial_conformer = db.find_by_conformer_id(PARTIAL_CONFORMER_ID)

@@ -21,6 +21,10 @@ from smu import smu_sqlite
 
 db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
+#-----------------------------------------------------------------------------
+# This sets up a variable to store the data in an intermediate form before
+# we convert it to a pandas dataframe at the end.
+#-----------------------------------------------------------------------------
 count = 0
 data_dict = {
     'conformer_id': [],
@@ -29,7 +33,10 @@ data_dict = {
     'lumo': [],
     'first important frequency': [],
 }
+
+#-----------------------------------------------------------------------------
 # This iteration will go through all conformers in the database.
+#-----------------------------------------------------------------------------
 for conformer in db:
 
   data_dict['conformer_id'].append(conformer.conformer_id)
@@ -40,13 +47,18 @@ for conformer in db:
   data_dict['first important frequency'].append(
       conformer.properties.harmonic_frequencies.value[6])
 
+  #---------------------------------------------------------------------------
   # This breaks out of the loop after a couple of records just so this
   # examples runs quickly. If you want process the whole dataset,
   # remove this.
+  #-----------------------------------------------------------------------------
   count += 1
   if count == 5:
     break
 
+#-----------------------------------------------------------------------------
+# Converting to a pandas DataFrame is trivial given how we set up data_dict
+#-----------------------------------------------------------------------------
 df = pd.DataFrame(data_dict)
 print('This example creates a Pandas dataframe, which is often a useful',
       'starting point for importing data into other python modules.')

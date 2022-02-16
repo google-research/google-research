@@ -24,25 +24,23 @@ from smu.parser import smu_utils_lib
 
 db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
+#-----------------------------------------------------------------------------
 # We will look at one conformer that illustrates the complexities of
 # converting a conformer to molecules(s). Not all conformers will have
 # this level of complexity.
+#-----------------------------------------------------------------------------
 conformer = db.find_by_conformer_id(8240001)
 
-# This RDKit object will be used to write SDF files to stdout to illustrate
-# the example.
+#-----------------------------------------------------------------------------
+# This RDKit object "writer" will be used to write SDF files to stdout to
+# illustrate using the RDKit molecule.
+#-----------------------------------------------------------------------------
 writer = Chem.SDWriter(sys.stdout)
 
+#-----------------------------------------------------------------------------
 # We'll start with the simplest case that always generates a single molcule.
-case0_mols = list(
-    smu_utils_lib.conformer_to_molecules(
-        conformer,
-        include_initial_geometries=False,
-        include_optimized_geometry=True,
-        include_all_bond_topologies=False))
-assert len(case0_mols) == 1
-
-# Note the three "include" arguments above
+#
+# Note the three "include" arguments below
 # * include_initial_geometries: means to generate molecules for all the
 #   initial geometries. There will always be at least one initial
 #   geometry, but there can be many.
@@ -51,6 +49,17 @@ assert len(case0_mols) == 1
 # * include_all_bond_topologies: False means to use only the first
 #   (i.e. best matching) bond topology that fits this geometry. True
 #   means to generate separate rdkit molcules for each topology.
+#
+# The other cases below will modify these args.
+#-----------------------------------------------------------------------------
+case0_mols = list(
+    smu_utils_lib.conformer_to_molecules(
+        conformer,
+        include_initial_geometries=False,
+        include_optimized_geometry=True,
+        include_all_bond_topologies=False))
+assert len(case0_mols) == 1
+
 
 print(
     'A single molecule comes from asking for only the optimized geometry and only',

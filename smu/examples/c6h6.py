@@ -138,10 +138,11 @@ for smiles in smiles_to_conformers:
   #---------------------------------------------------------------------------
 
   dipole = conf.properties.dipole_moment_pbe0_aug_pc_1
-  writer.writerow([conf.conformer_id,
-                   smiles,
-                   len(smiles_to_conformers[smiles]),
-                   dipole.x,
-                   dipole.y,
-                   dipole.z,
-                   math.sqrt(dipole.x**2 + dipole.y**2 + dipole.z**2)])
+  writer.writerow([
+    conf.conformer_id,
+    smiles,
+    len(smiles_to_conformers[smiles]),
+    dipole.x,
+    dipole.y,
+    dipole.z,
+    '{:.8f}'.format(math.sqrt(dipole.x**2 + dipole.y**2 + dipole.z**2))])

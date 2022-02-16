@@ -68,6 +68,10 @@ print()
 print('Also note that the bond_topologies field of all conformers returned')
 print('from a topology query have been modified with the new allowed bond distances')
 
+#-----------------------------------------------------------------------------
+# This is a utility function we will use below to print summary information
+# about the bnd topologies found
+#-----------------------------------------------------------------------------
 def print_conformers_and_bond_topology_id(conformers):
   for conf in conformers:
     print('   ', conf.conformer_id, 'has bond topologies:',
