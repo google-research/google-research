@@ -109,6 +109,9 @@ for conf in conformers:
 #-----------------------------------------------------------------------------
 # Now process each bond topology separately and write the output.
 # We will use the csv writer, see to_csv.py for more details
+#
+# You can also create a pandas dataframe which gives more flexibility for
+# output formats. See dataframe.py for how to do this.
 #-----------------------------------------------------------------------------
 writer = csv.writer(sys.stdout)
 writer.writerow(['conformer_id',
@@ -122,6 +125,10 @@ writer.writerow(['conformer_id',
 for smiles in smiles_to_conformers:
   energies = [conf.properties.enthalpy_of_formation_298k_atomic_b5.value
               for conf in smiles_to_conformers[smiles]]
+  #---------------------------------------------------------------------------
+  # While this line may look mysterious, it's doing exactly what the words say:
+  # it finds the index of the minimum value of the energies
+  #---------------------------------------------------------------------------
   min_energy_conformer_idx = energies.index(min(energies))
   conf = smiles_to_conformers[smiles][min_energy_conformer_idx]
 
