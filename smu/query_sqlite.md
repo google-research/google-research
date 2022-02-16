@@ -45,8 +45,11 @@ During the build of the database, we add several indices for fast lookup. You ca
 
 * `--smiles`: List of SMILES strings (e.g. CC=O). All conformers with bond topologies represented by these SMILES (including the detected bond topologies) are returned. Note that these inputs will be recanonicalized using the same procedure we used to build the database so alternative SMILES that are the same bond topology will return the same set of results. Note that if aromatic smiles are given one of the kekulized forms will be chosen somewhat arbitrarily. However, because of our geometry detection, this should still return the set of conformers covering the other kekulized form.
 
-* `–stoichiometries`: List of stoichiometries like (C6H6) to query. Case does not matter.
+* `-–stoichiometries`: List of stoichiometries like (C6H6) to query. Case does not matter.
 
+* `--smarts`: Use a [SMARTS pattern](https://www.daylight.com/dayhtml/doc/theory/theory.smarts.html) to select a set of conformers. This effectively finds a set of bond topology ids and then returns all conformers for those bond topology ids (like `--btids`. A couple points to note
+    * Unlike the other options here, only a single SMARTS pattern is allowed.
+    * Since we do not use any notion of aromatic bonds, you should only use aliphatic atoms (i.e. 'C' and not 'c') in your SMARTS.
 
 ## Geometry Based Searching
 To support geometric manipulations, a file generated from our pipeline with histograms of observed bond lengths is needed to provide the default bond length information. This file is called `20220128_bond_lengths.csv`

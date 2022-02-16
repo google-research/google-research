@@ -7,6 +7,7 @@ It assumes you have followed [the setup instructions](../README.md)
 The following examples are provided
 - `field_access.py` : basic access to different kinds of fields
 - `indices.py` : using the various indices in the database for faster lookups
+- `smarts.py` : using [SMARTS pattern](https://www.daylight.com/dayhtml/doc/theory/theory.smarts.html) to select bond topologies
 - `to_csv.py` : generates a CSV file with a few fields
 - `dataframe.py` : generates a [Pandas DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html) of some field values
 - `to_rdkit.py` : converts Conformers to RDKit molecules

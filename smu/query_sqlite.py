@@ -149,15 +149,22 @@ def smarts_query(db, smarts, outputter):
     return
 
   if len(bt_ids) > _SMARTS_BT_BATCH_SIZE:
-    logging.warning(
-      'Smarts query "%s" matched %d bond topologies. '
+    message = (
+      f'WARNING: Smarts query "{smarts}" matched {len(bt_ids)} bond topologies. '
       'This may be very slow and produce the same conformer multiple times. '
-      'Trying anyways...', smarts, len(bt_ids))
+      'Trying anyways...')
+    logging.warning(message)
+    print(message, file=sys.stderr, flush=True)
 
   count = 0
-  for c in db.find_by_bond_topology_id_list(bt_ids):
-    count += 1
-    outputter.output(c)
+  for batch_idx in range(len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1):
+    logging.info('Starting batch %d / %d',
+                 batch_idx, len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1)
+    for c in db.find_by_bond_topology_id_list(
+        bt_ids[batch_idx * _SMARTS_BT_BATCH_SIZE
+               :(batch_idx + 1) * _SMARTS_BT_BATCH_SIZE]):
+      count += 1
+      outputter.output(c)
 
   logging.info('SMARTS query produced %d conformers', count)
 
