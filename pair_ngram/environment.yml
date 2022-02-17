@@ -1,0 +1,11 @@
+name: pair_ngram
+channels:
+ - conda-forge
+ - defaults
+dependencies:
+ - baumwelch=0.3.7
+ - ngram=1.3.14
+ - numpy=1.21.2
+ - openfst=1.8.2
+ - pynini=2.1.5
+ - python=3.9.5
