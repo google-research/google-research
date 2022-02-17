@@ -38,7 +38,7 @@ class Encoder(tf.keras.Model):
 
   def __init__(self,
                vocab = None,
-               mask_special_tokens = True,
+               mask_special_tokens = False,
                trainable = True,
                **kwargs):
     super().__init__(trainable=trainable, **kwargs)
@@ -47,12 +47,18 @@ class Encoder(tf.keras.Model):
 
   def compute_mask(self,
                    inputs,
-                   mask = None):
+                   mask = None,
+                   mask_special_tokens = None):
     """Standard keras method."""
     del mask
     mask = self._vocab.padding_mask(inputs)
-    if self._mask_special_tokens:
+
+    # Overrides `self._mask_special_tokens` with `mask_special_tokens` if given.
+    if mask_special_tokens is None:
+      mask_special_tokens = self._mask_special_tokens
+    if mask_special_tokens:
       mask = tf.math.logical_and(mask, self._vocab.special_token_mask(inputs))
+
     return mask
 
 

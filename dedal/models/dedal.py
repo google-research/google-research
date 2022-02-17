@@ -182,6 +182,10 @@ class Dedal(tf.keras.Model):
         result.alignments.append(tf.constant([]))
       return result
 
+    # Recomputes padding mask, this time ensuring special tokens such as EOS or
+    # MASK are zeroed out as well, regardless of the value of the flag
+    # `self.encoder._mask_special_tokens`.
+    masks = self.encoder.compute_mask(inputs, mask_special_tokens=True)
     # For each head, we compute the output of positive pairs and negative ones,
     # then concatenate to obtain an output batch where the first half is
     # positive and the second half is negative.
@@ -266,7 +270,11 @@ class DedalLight(tf.keras.Model):
     embeddings = self.encoder(inputs, training=training)
     if embeddings_only:
       return embeddings
-    masks = self.encoder.compute_mask(inputs)
+
+    # Recomputes padding mask, this time ensuring special tokens such as EOS or
+    # MASK are zeroed out as well, regardless of the value of the flag
+    # `self.encoder._mask_special_tokens`.
+    masks = self.encoder.compute_mask(inputs, mask_special_tokens=True)
     indices = pairs_lib.consecutive_indices(inputs)
     embedding_pairs, mask_pairs = pairs_lib.build(indices, embeddings, masks)
     alignments = self.aligner(
