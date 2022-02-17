@@ -101,12 +101,13 @@ TAPE_PROT_ENGINEERING_TASKS = ('log_fluorescence', 'stability_score')
 @gin.configurable
 def make_pfam34_loader(
     root_dir,
+    sub_dir = 'pfam34',
     extra_keys = ('fam_key',),
     task = 'iid'):
   """Creates a loader for Pfam-A seed 34.0 data."""
   has_context = task.endswith('with_ctx')
 
-  folder = os.path.join(root_dir, 'pfam34')
+  folder = os.path.join(root_dir, sub_dir)
   with tf.io.gfile.GFile(os.path.join(folder, 'metadata.json'), 'r') as f:
     metadata = json.load(f)
 
