@@ -25,7 +25,7 @@ from dedal import smith_waterman
 from dedal.models import initializers
 
 
-Initializer = tf.initializers.Initializer
+Initializer = initializers.Initializer
 LayerFactory = Type[tf.keras.layers.Layer]
 SWParams = Tuple[tf.Tensor, tf.Tensor, tf.Tensor]
 # Score, path and Smith-Waterman params
@@ -43,8 +43,8 @@ class PairwiseBilinearDense(tf.keras.layers.Layer):
       use_bias = True,
       trainable_kernel = True,
       trainable_bias = True,
-      kernel_init = initializers.SymmetricKernelInitializer(),
-      bias_init = tf.initializers.Zeros(),
+      kernel_init = None,
+      bias_init = 'Zeros',
       symmetric_kernel = True,
       dropout = 0.0,
       symmetric_dropout = True,
@@ -53,6 +53,9 @@ class PairwiseBilinearDense(tf.keras.layers.Layer):
       mask_penalty = -1e9,
       **kwargs):
     super().__init__(**kwargs)
+    if kernel_init is None:
+      kernel_init = initializers.SymmetricKernelInitializer()
+    bias_init = tf.keras.initializers.get(bias_init)
     self._use_kernel = use_kernel
     self._use_bias = use_bias
     self._trainable_kernel = trainable_kernel
@@ -144,8 +147,8 @@ class SoftSymmetricAlignment(tf.keras.Model):
       norm = 'l2',
       proj = True,
       batch_size = None,
-      kernel_init = tf.initializers.HeUniform(),
-      bias_init = tf.initializers.Zeros(),
+      kernel_init = 'HeUniform',
+      bias_init = 'Zeros',
       return_att_weights = False,
       **kwargs):
     super().__init__(**kwargs)
@@ -153,6 +156,9 @@ class SoftSymmetricAlignment(tf.keras.Model):
     self._proj = proj
     self._batch_size = batch_size
     self._return_att_weights = return_att_weights
+
+    kernel_init = tf.keras.initializers.get(kernel_init)
+    bias_init = tf.keras.initializers.get(bias_init)
 
     if self._norm not in ('l1', 'l2'):
       raise ValueError(f'Option {self._norm} not recognized.')

@@ -38,13 +38,13 @@ class DensePerTokenOutputHead(tf.keras.layers.Layer):
 
   def __init__(self,
                vocab = None,
-               kernel_init=tf.initializers.GlorotUniform(),
-               bias_init=tf.initializers.Zeros(),
+               kernel_init='GlorotUniform',
+               bias_init='Zeros',
                **kwargs):
     super().__init__(**kwargs)
     self._vocab = vocabulary.get_default() if vocab is None else vocab
-    self._kernel_init = kernel_init
-    self._bias_init = bias_init
+    self._kernel_init = tf.keras.initializers.get(kernel_init)
+    self._bias_init = tf.keras.initializers.get(bias_init)
 
   def build(self, _):
     self.dense = tf.keras.layers.Dense(
@@ -109,18 +109,18 @@ class BERTPerTokenOutputHead(tf.keras.layers.Layer):
                vocab = None,
                use_hidden_layer = True,
                activation=activations.approximate_gelu,
-               kernel_init=tf.initializers.GlorotUniform(),
-               bias_init=tf.initializers.Zeros(),
-               logits_bias_init=tf.initializers.Zeros(),
+               kernel_init='GlorotUniform',
+               bias_init='Zeros',
+               logits_bias_init='Zeros',
                norm_logits = True,
                **kwargs):
     super().__init__(**kwargs)
     self._vocab = vocabulary.get_default() if vocab is None else vocab
     self._use_hidden_layer = use_hidden_layer
     self._activation = activation
-    self._kernel_init = kernel_init
-    self._bias_init = bias_init
-    self._logits_bias_init = logits_bias_init
+    self._kernel_init = tf.keras.initializers.get(kernel_init)
+    self._bias_init = tf.keras.initializers.get(bias_init)
+    self._logits_bias_init = tf.keras.initializers.get(logits_bias_init)
     self._norm_logits = norm_logits
 
   def build(self, input_shape):
@@ -197,13 +197,13 @@ class DenseEOSOutputHead(tf.keras.layers.Layer):
 
   def __init__(self,
                vocab = None,
-               kernel_init=tf.initializers.GlorotUniform(),
-               bias_init=tf.initializers.Zeros(),
+               kernel_init='GlorotUniform',
+               bias_init='Zeros',
                **kwargs):
     super().__init__(**kwargs)
     self._vocab = vocabulary.get_default() if vocab is None else vocab
-    self._kernel_init = kernel_init
-    self._bias_init = bias_init
+    self._kernel_init = tf.keras.initializers.get(kernel_init)
+    self._bias_init = tf.keras.initializers.get(bias_init)
 
   def build(self, _):
     self._dense = tf.keras.layers.Dense(

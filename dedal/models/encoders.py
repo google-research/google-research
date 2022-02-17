@@ -80,14 +80,19 @@ class LookupEncoder(Encoder):
       dropout = 0.0,
       use_layer_norm = False,
       use_positional_embedding = False,
-      position_embed_init=initializers.HarmonicEmbeddings(
-          scale_factor=1e-4, max_freq=1.0),
+      position_embed_init = None,
       train_position_embed = True,
-      aaemb_init=tf.initializers.TruncatedNormal(stddev=1.0),
+      aaemb_init = None,
       aaemb_scale_factor = None,
       max_len = 1024,
       **kwargs):
     super().__init__(**kwargs)
+    if position_embed_init is None:
+      position_embed_init = initializers.HarmonicEmbeddings(
+          scale_factor=1e-4, max_freq=1.0)
+    if aaemb_init is None:
+      aaemb_init = tf.initializers.TruncatedNormal(stddev=1.0)
+
     self._use_layer_norm = use_layer_norm
 
     if use_positional_embedding:
@@ -138,12 +143,16 @@ class RecurrentEncoder(Encoder):
       rnn_input_dropout = 0.0,
       rnn_recurrent_dropout = 0.0,
       causal = False,
-      aaemb_init=tf.initializers.TruncatedNormal(stddev=1.0),
-      kernel_init=tf.initializers.GlorotUniform(),
-      recurrent_init=tf.initializers.Orthogonal(),
+      aaemb_init = None,
+      kernel_init = 'GlorotUniform',
+      recurrent_init = 'Orthogonal',
       aaemb_scale_factor = None,
       **kwargs):
     super().__init__(**kwargs)
+    if aaemb_init is None:
+      aaemb_init = tf.initializers.TruncatedNormal(stddev=1.0)
+    kernel_init = tf.keras.initializers.get(kernel_init)
+    recurrent_init = tf.keras.initializers.get(recurrent_init)
 
     self._aaemb_layer = nlp_layers.OnDeviceEmbedding(
         vocab_size=len(self._vocab),
@@ -193,14 +202,19 @@ class TransformerEncoder(Encoder):
       norm_output = True,
       causal = False,
       trainable_posemb = False,
-      posemb_init=initializers.HarmonicEmbeddings(
-          scale_factor=1e-4, max_freq=1.0),
-      aaemb_init=tf.initializers.RandomNormal(stddev=1.0),
-      kernel_init=tf.initializers.GlorotUniform(),
+      posemb_init = None,
+      aaemb_init = None,
+      kernel_init = 'GlorotUniform',
       aaemb_scale_factor = None,
       max_len = 1024,
       **kwargs):
     super().__init__(**kwargs)
+    if posemb_init is None:
+      posemb_init = initializers.HarmonicEmbeddings(
+          scale_factor=1e-4, max_freq=1.0)
+    if aaemb_init is None:
+      aaemb_init = tf.initializers.RandomNormal(stddev=1.0)
+    kernel_init = tf.keras.initializers.get(kernel_init)
     self._causal = causal
     self.posemb_layer = nlp_layers.PositionEmbedding(
         max_length=max_len,

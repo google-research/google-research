@@ -15,7 +15,7 @@
 
 """Implements custom initializers."""
 
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional, Union
 
 import gin
 import numpy as np
@@ -51,6 +51,9 @@ X  0 -1 -1 -1 -2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -2  0  0 -2 -1 -1 -1 -1 -1 -4
 * -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4 -4  1
 """
 gin.constant('BLOSUM_62', BLOSUM_62)
+
+
+Initializer = Union[tf.initializers.Initializer, str]
 
 
 @gin.configurable
@@ -185,11 +188,11 @@ class SymmetricKernelInitializer(tf.initializers.Initializer):
 
   def __init__(
       self,
-      base_init = tf.initializers.GlorotUniform(),
+      base_init = 'GlorotUniform',
       factorized = True,
       **kwargs):
     super().__init__(**kwargs)
-    self.base_init = base_init
+    self.base_init = tf.keras.initializers.get(base_init)
     self.factorized = factorized
 
   def __call__(
