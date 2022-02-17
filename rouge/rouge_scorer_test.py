@@ -32,6 +32,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from rouge import rouge_scorer
 from rouge import test_util
+from rouge import tokenizers
 
 
 class RougeScorerTest(parameterized.TestCase):
@@ -286,6 +287,15 @@ class RougeScorerTest(parameterized.TestCase):
     scorer = rouge_scorer.RougeScorer(["rougeLsum"])
     result = scorer.score(target, prediction)
     self.assertAlmostEqual(0.533, result["rougeLsum"].fmeasure, places=3)
+
+  def testRougeTokenizerInit(self):
+    scorer = rouge_scorer.RougeScorer(["rouge1"],
+                                      tokenizer=tokenizers.DefaultTokenizer())
+
+    target = "this is a test"
+    prediction = target
+    result = scorer.score(target, prediction)
+    self.assertEqual(1.0, result["rouge1"].fmeasure)
 
 
 if __name__ == "__main__":

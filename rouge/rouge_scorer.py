@@ -38,13 +38,13 @@ from __future__ import print_function
 import collections
 import re
 
+from absl import logging
 import nltk
-from nltk.stem import porter
 import six
 from six.moves import map
 from six.moves import range
 from rouge import scoring
-from rouge import tokenize
+from rouge import tokenizers
 
 
 class RougeScorer(scoring.BaseScorer):
@@ -56,7 +56,8 @@ class RougeScorer(scoring.BaseScorer):
                           'The quick brown dog jumps on the log.')
   """
 
-  def __init__(self, rouge_types, use_stemmer=False, split_summaries=False):
+  def __init__(self, rouge_types, use_stemmer=False, split_summaries=False,
+               tokenizer=None):
     """Initializes a new RougeScorer.
 
     Valid rouge types that can be computed are:
@@ -66,14 +67,22 @@ class RougeScorer(scoring.BaseScorer):
     Args:
       rouge_types: A list of rouge types to calculate.
       use_stemmer: Bool indicating whether Porter stemmer should be used to
-        strip word suffixes to improve matching.
+        strip word suffixes to improve matching. This arg is used in the
+        DefaultTokenizer, but other tokenizers might or might not choose to
+        use this.
       split_summaries: whether to add newlines between sentences for rougeLsum
+      tokenizer: Tokenizer object which has a tokenize() method.
     Returns:
       A dict mapping rouge types to Score tuples.
     """
 
     self.rouge_types = rouge_types
-    self._stemmer = porter.PorterStemmer() if use_stemmer else None
+    if tokenizer:
+      self._tokenizer = tokenizer
+    else:
+      self._tokenizer = tokenizers.DefaultTokenizer(use_stemmer)
+      logging.info("Using default tokenizer.")
+
     self._split_summaries = split_summaries
 
   def score(self, target, prediction):
@@ -94,8 +103,8 @@ class RougeScorer(scoring.BaseScorer):
       target_tokens = None
       prediction_tokens = None
     else:
-      target_tokens = tokenize.tokenize(target, self._stemmer)
-      prediction_tokens = tokenize.tokenize(prediction, self._stemmer)
+      target_tokens = self._tokenizer.tokenize(target)
+      prediction_tokens = self._tokenizer.tokenize(prediction)
     result = {}
 
     for rouge_type in self.rouge_types:
@@ -114,9 +123,10 @@ class RougeScorer(scoring.BaseScorer):
           return sents
 
         target_tokens_list = [
-            tokenize.tokenize(s, self._stemmer) for s in get_sents(target)]
+            self._tokenizer.tokenize(s) for s in get_sents(target)]
         prediction_tokens_list = [
-            tokenize.tokenize(s, self._stemmer) for s in get_sents(prediction)]
+            self._tokenizer.tokenize(s) for s in get_sents(prediction)]
+
         scores = _summary_level_lcs(target_tokens_list,
                                     prediction_tokens_list)
       elif re.match(r"rouge[0-9]$", six.ensure_str(rouge_type)):
