@@ -23,22 +23,27 @@ set -eux
 DEFAULT_OUTDIR="$(dirname $0)/wikiextractor_repo"
 OUTDIR="${1:-${DEFAULT_OUTDIR}}"
 
-PATCH="$(readlink -e $(dirname $0))/wikiextractor.patch"
-if [[ ! -f "${PATCH}" ]]; then
-  echo "! Failed to locate the patch file expected at ${PATCH}"
-  exit 1
+if [[ ! -f "${OUTDIR}/WikiExtractor.py" ]]; then
+  PATCH="$(readlink -e $(dirname $0))/wikiextractor.patch"
+  if [[ ! -f "${PATCH}" ]]; then
+    echo "! Failed to locate the patch file expected at ${PATCH}"
+    exit 1
+  fi
+
+  echo ">Download external wikiextractor tool..."
+  OLDPWD=${PWD}
+  git clone https://github.com/attardi/wikiextractor.git "${OUTDIR}"
+  cd "${OUTDIR}"
+
+  echo
+  echo ">Apply custom patch.."
+  git checkout -b linkfilter_off 16186e290d
+  git apply "${PATCH}"
+  cd "${OLDPWD}"
+else
+  echo ">Use WikiExtractor already present in ${OUTDIR}"
+  echo "(To start over, clear the above directory and rerun this script.)"
 fi
-
-echo ">Download external wikiextractor tool..."
-OLDPWD=${PWD}
-git clone https://github.com/attardi/wikiextractor.git "${OUTDIR}"
-cd "${OUTDIR}"
-
-echo
-echo ">Apply custom patch.."
-git checkout -b linkfilter_off 16186e290d
-git apply "${PATCH}"
-cd "${OLDPWD}"
 
 echo
 echo ">Done: ${OUTDIR}"
