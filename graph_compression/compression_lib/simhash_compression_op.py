@@ -231,7 +231,8 @@ class SimhashCompressionOp(compression_op.CompressionOp):
                                           layer_obj,
                                           weight_params_fn,
                                           weight_init_obj,
-                                          scope='default_scope'):
+                                          scope='default_scope',
+                                          a_matrix_tfvar_shape=None):
     """Returns simhash compressed tensorflow operator for a customized layer.
 
     Does this for variable a_matrix_tfvar for compression method specified in
@@ -247,12 +248,18 @@ class SimhashCompressionOp(compression_op.CompressionOp):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      a_matrix_tfvar_shape: A list specifying the shape of the tensor to
+        compress. In some cases when a_matrix_tfvar is set to None,
+        this field is used to pass in the shape of the matrix to compress.
+
 
     Returns:
       A TF node that has the compressed version of a_matrix_tfvar.
     """
+    shape = (a_matrix_tfvar.shape if a_matrix_tfvar is not None
+             else a_matrix_tfvar_shape)
     self.matrix_compressor = simhash_compressor
-    a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
+    a_matrix = np.zeros(shape=shape)
 
     [a_matrix_approx] = simhash_compressor.static_matrix_compressor(a_matrix)
 
@@ -455,7 +462,8 @@ class KMeansCompressionOp(compression_op.CompressionOp):
                                           layer_obj,
                                           weight_params_fn,
                                           weight_init_obj,
-                                          scope='default_scope'):
+                                          scope='default_scope',
+                                          a_matrix_tfvar_shape=None):
     """Returns kmeans compressed tensorflow operator for a customized layer.
 
     Replaces a_matrix by alpha * a_matrix + (1 - alpha) *
@@ -470,12 +478,17 @@ class KMeansCompressionOp(compression_op.CompressionOp):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      a_matrix_tfvar_shape: A list specifying the shape of the tensor to
+        compress. In some cases when a_matrix_tfvar is set to None,
+        this field is used to pass in the shape of the matrix to compress.
 
     Returns:
       A TF node that has the compressed version of a_matrix_tfvar.
     """
+    shape = (a_matrix_tfvar.shape if a_matrix_tfvar is not None
+             else a_matrix_tfvar_shape)
     self.matrix_compressor = matrix_compressor
-    a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
+    a_matrix = np.zeros(shape=shape)
     [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(
         a_matrix, skip_decomp=True)
 
@@ -806,7 +819,8 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
                                           layer_obj,
                                           weight_params_fn,
                                           weight_init_obj,
-                                          scope='default_scope'):
+                                          scope='default_scope',
+                                          a_matrix_tfvar_shape=None):
     """Returns pruning + kmeans compressed operator for a customized layer.
 
     Args:
@@ -818,12 +832,17 @@ class KMeansPruningCompressionOp(compression_op.CompressionOp):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      a_matrix_tfvar_shape: A list specifying the shape of the tensor to
+        compress. In some cases when a_matrix_tfvar is set to None,
+        this field is used to pass in the shape of the matrix to compress.
 
     Returns:
       A TF node that has the compressed version of a_matrix_tfvar.
     """
+    shape = (a_matrix_tfvar.shape if a_matrix_tfvar is not None
+             else a_matrix_tfvar_shape)
     self.matrix_compressor = matrix_compressor
-    a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
+    a_matrix = np.zeros(shape=shape)
     if getattr(self._spec, 'do_transpose', False):
       a_matrix = np.transpose(a_matrix)
     [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(

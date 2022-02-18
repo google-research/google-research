@@ -183,9 +183,10 @@ def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disabl
         tf.add_to_collection(pruning.OLD_OLD_WEIGHT_COLLECTION,
                              layer_obj.vars.old_old_weight)
   else:
-    _ = matrix_compression_obj.customized_apply_compression(
-        getattr(layer_obj.vars, weight_name), layer_obj, weight_params_fn,
-        weight_init_obj, scope=scope_name, spec=spec)
+    matrix_compression_obj.customized_apply_compression(
+        getattr(layer_obj.vars, weight_name, None), layer_obj, weight_params_fn,
+        weight_init_obj, scope=scope_name, spec=spec,
+        a_matrix_tfvar_shape=weight_shape)
     hparams = matrix_compression_obj.get_spec()
     if hparams.use_collection:
       tf.add_to_collection(UPDATE_OP_COLLECTION,

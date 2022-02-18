@@ -240,7 +240,8 @@ class ApplyCompression(object):
                                    weight_init_obj,
                                    scope='default_scope',
                                    spec=None,
-                                   compressor=None):
+                                   compressor=None,
+                                   a_matrix_tfvar_shape=None):
     """Applies matrix compression OP on a_matrix_tfvar as specified in spec.
 
     Args:
@@ -253,6 +254,9 @@ class ApplyCompression(object):
             if not provided, self._compression_op_spec is used.
       compressor: matrix_compressor to for the compression op. this is optional.
                   if not provided, self._matrix_compressor is used.
+      a_matrix_tfvar_shape: shape of the weight matrix to compress, can be set
+                            to None if a_matrix_tfvar is not None.
+                            Must be provided otherwise.
 
     Returns:
       TF node that represents the compressed version of a_matrix_tfvar.
@@ -273,7 +277,8 @@ class ApplyCompression(object):
          layer_obj,
          weight_params_fn,
          weight_init_obj,
-         scope=scope)
+         scope=scope,
+         a_matrix_tfvar_shape=a_matrix_tfvar_shape)
     if compression_op_spec.update_option in [
         UpdateOptions.TF_UPDATE, UpdateOptions.TF_AND_PYTHON_UPDATE
     ]:

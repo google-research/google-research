@@ -567,7 +567,8 @@ class CompressionOp(CompressionOpInterface):
                                           layer_obj,
                                           weight_params_fn,
                                           weight_init_obj,
-                                          scope='default_scope'):
+                                          scope='default_scope',
+                                          a_matrix_tfvar_shape=None):
     """Returns compressed tensorflow operator for a customized model/layer.
 
     Does this for variable a_matrix_tfvar for
@@ -576,7 +577,7 @@ class CompressionOp(CompressionOpInterface):
     a_matrix by alpha*a_matrix + (1-alpha)b_matrix*c_matrix.
 
     Args:
-      a_matrix_tfvar: TF variable representihg a tensor variable in a model.
+      a_matrix_tfvar: TF variable representing a tensor variable in a model.
       matrix_compressor: MatrixCompressorInferface object to specify the
         compression algorithm. Must return two matrices b_matrix,c_matrix in its
         compression.
@@ -584,12 +585,17 @@ class CompressionOp(CompressionOpInterface):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      a_matrix_tfvar_shape: A list specifying the shape of the tensor to
+        compress. In some cases when a_matrix_tfvar is set to None,
+        this field is used to pass in the shape of the matrix to compress.
 
     Returns:
       A TF node that has the compressed version of a_matrix_tfvar.
     """
+    shape = (a_matrix_tfvar.shape if a_matrix_tfvar is not None
+             else a_matrix_tfvar_shape)
     self.matrix_compressor = matrix_compressor
-    a_matrix = np.zeros(shape=a_matrix_tfvar.shape)
+    a_matrix = np.zeros(shape=shape)
     [b_matrix, c_matrix] = matrix_compressor.static_matrix_compressor(a_matrix)
 
     p = layer_obj.params
@@ -1073,7 +1079,8 @@ class InputOutputCompressionOp(CompressionOpInterface):
                                           layer_obj,
                                           weight_params_fn,
                                           weight_init_obj,
-                                          scope='default_scope'):
+                                          scope='default_scope',
+                                          a_matrix_tfvar_shape=None):
     """Returns input (and) or output compressed operator for a babelfish layer.
 
     Args:
@@ -1085,10 +1092,15 @@ class InputOutputCompressionOp(CompressionOpInterface):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      a_matrix_tfvar_shape: A list specifying the shape of the tensor to
+        compress. In some cases when a_matrix_tfvar is set to None,
+        this field is used to pass in the shape of the matrix to compress.
 
     Returns:
       A TF node that has the compressed version of a_matrix_tfvar.
     """
+    shape = (a_matrix_tfvar.shape if a_matrix_tfvar is not None
+             else a_matrix_tfvar_shape)
     self.matrix_compressor = matrix_compressor
     with tf.variable_scope(scope) as scope:
       if self._spec.compress_input:
@@ -1108,8 +1120,8 @@ class InputOutputCompressionOp(CompressionOpInterface):
       # shape of c determined by whether input-side and output-side compression
       # are turned on.
       c_matrix_pc = weight_params_fn([
-          a_matrix_tfvar.shape[0] // self._spec.input_compression_factor,
-          a_matrix_tfvar.shape[1] // self._spec.output_compression_factor
+          shape[0] // self._spec.input_compression_factor,
+          shape[1] // self._spec.output_compression_factor
       ], weight_init_obj.Xavier(1.0), layer_obj.params.dtype)
 
       # create the TF variables using babelfish variable creation function
@@ -1581,12 +1593,14 @@ class BlockCompressionOp(CompressionOpInterface):
     with tf.name_scope(self._spec.name + '_summaries'):
       logging.info('add_compression_summaries scope name is %s',
                    self._spec.name)
-      tf.compat.v2.summary.scalar(
-          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
-          tf.norm(self.a_matrix_tfvar))
-      tf.compat.v2.summary.scalar(
-          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
-          tf.norm(self.c_matrix_tfvar))
+      if self.a_matrix_tfvar is not None:
+        tf.compat.v2.summary.scalar(
+            self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+            tf.norm(self.a_matrix_tfvar))
+      if self.c_matrix_tfvar is not None:
+        tf.compat.v2.summary.scalar(
+            self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+            tf.norm(self.c_matrix_tfvar))
 
   def get_apply_compression_op(self,
                                a_matrix_tfvar,
@@ -1660,7 +1674,8 @@ class BlockCompressionOp(CompressionOpInterface):
                                           layer_obj,
                                           weight_params_fn,
                                           weight_init_obj,
-                                          scope='default_scope'):
+                                          scope='default_scope',
+                                          a_matrix_tfvar_shape=None):
     """Returns compressed operator for block diagonal compression.
 
     Args:
@@ -1672,34 +1687,39 @@ class BlockCompressionOp(CompressionOpInterface):
       weight_params_fn: functional handle to create model parameters.
       weight_init_obj: a weight initialization object.
       scope: TF scope used for creating new TF variables.
+      a_matrix_tfvar_shape: A list specifying the shape of the tensor to
+        compress. In some cases when a_matrix_tfvar is set to None,
+        this field is used to pass in the shape of the matrix to compress.
 
     Returns:
       A TF node that has the compressed version of a_matrix_tfvar.
     """
+    shape = (a_matrix_tfvar.shape if a_matrix_tfvar is not None
+             else a_matrix_tfvar_shape)
     self.matrix_compressor = matrix_compressor
     with tf.variable_scope(scope) as scope:
       if self._spec.block_method == 'mask':
         # c_matrix has same shape as a_matrix
-        c_matrix_pc = weight_params_fn(a_matrix_tfvar.shape,
+        c_matrix_pc = weight_params_fn(shape,
                                        weight_init_obj.Xavier(1.0),
                                        layer_obj.params.dtype)
         # create block diagonal mask for c_matrix
         num_blocks = self._spec.block_compression_factor
-        num_rows, num_cols = a_matrix_tfvar.shape.as_list()
+        num_rows, num_cols = shape.as_list()
         r_block, c_block = num_rows // num_blocks, num_cols // num_blocks
         c_mask = np.array(
             [[float(j // c_block == i // r_block)
               for j in range(num_cols)]
              for i in range(num_rows)])
-        c_mask_pc = weight_params_fn(a_matrix_tfvar.shape,
+        c_mask_pc = weight_params_fn(shape,
                                      weight_init_obj.Constant(c_mask),
                                      layer_obj.params.dtype)
       elif self._spec.block_method == 'loop':
         # c_matrix is a rank 3 tensor consisting of num_blocks blocks
         num_blocks = self._spec.block_compression_factor
         c_matrix_pc = weight_params_fn([
-            num_blocks, a_matrix_tfvar.shape[0] // num_blocks,
-            a_matrix_tfvar.shape[1] // num_blocks
+            num_blocks, shape[0] // num_blocks,
+            shape[1] // num_blocks
         ], weight_init_obj.Xavier(1.0), layer_obj.params.dtype)
 
       # create the c_matrix and c_mask variables
