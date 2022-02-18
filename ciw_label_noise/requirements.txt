@@ -1,0 +1,7 @@
+numpy>=1.19.5
+scipy>=1.2
+tensorflow>=2.5.0
+tensorflow_datasets
+tensorflow_addons
+edward2
+cvxpy
