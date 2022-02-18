@@ -450,6 +450,12 @@ class SMUSQLite:
 
     for smiles, bt_id in self.smiles_iter():
       mol = smu_utils_lib.smiles_to_molecule(smiles)
+      # This is not the prettiest thing in the world. In order for ring markings
+      # in the SMARTS to work, RingInfo has to be added. The simplest way to get
+      # RingInfo set is to call this function. We didn't put this into the
+      # smu_utils_lib just in case it messes something else up.
+      Chem.GetSymmSSSR(mol)
+
       if mol.GetSubstructMatches(pattern):
         yield bt_id
 
