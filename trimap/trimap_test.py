@@ -30,6 +30,22 @@ python_version = 'PY3'
 
 class TestTrimap(absltest.TestCase):
 
+  def test_sliced_distances(self):
+    num_points = 100
+    dim = 50
+    key = random.PRNGKey(42)
+    use_keys = random.split(key, num=3)
+    indices1 = random.randint(use_keys[0], shape=(int(1.5 * num_points),),
+                              minval=0, maxval=num_points)
+    indices2 = random.randint(use_keys[1], shape=(int(1.5 * num_points),),
+                              minval=0, maxval=num_points)
+    inputs = random.normal(use_keys[2], shape=(num_points, dim))
+    distance_fn = trimap.euclidean_dist
+    dist_sliced = trimap.sliced_distances(
+        indices1, indices2, inputs, distance_fn)
+    dist_direct = distance_fn(inputs[indices1], inputs[indices2])
+    npt.assert_equal(np.array(dist_sliced), np.array(dist_direct))
+
   def test_rejection_sample(self):
     in1dvec = jax.vmap(jnp.in1d)
     maxval = 10000

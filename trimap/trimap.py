@@ -20,6 +20,7 @@ Source: https://arxiv.org/pdf/1910.00204.pdf
 
 import datetime
 import time
+from typing import Mapping
 
 from absl import logging
 import jax
@@ -29,7 +30,6 @@ import numpy as np
 import pynndescent
 from sklearn.decomposition import PCA
 from sklearn.decomposition import TruncatedSVD
-
 
 _DIM_PCA = 100
 _INIT_SCALE = 0.01
@@ -66,22 +66,49 @@ def get_distance_fn(distance_fn_name):
     raise ValueError(f'Distance function {distance_fn_name} not supported.')
 
 
+def sliced_distances(
+    indices1,
+    indices2,
+    inputs,
+    distance_fn):
+  """Applies distance_fn in smaller slices to avoid memory blow-ups.
+
+  Args:
+    indices1: First array of indices.
+    indices2: Second array of indices.
+    inputs: 2-D array of inputs.
+    distance_fn: Distance function that applies row-wise.
+
+  Returns:
+    Pairwise distances between the row indices in indices1 and indices2.
+  """
+  slice_size = inputs.shape[0]
+  distances = []
+  num_slices = int(np.ceil(len(indices1) / slice_size))
+  for slice_id in range(num_slices):
+    start = slice_id * slice_size
+    end = (slice_id + 1) * slice_size
+    distances.append(
+        distance_fn(inputs[indices1[start:end]], inputs[indices2[start:end]]))
+  return jnp.concatenate(distances)
+
+
 @jax.jit
 def squared_euclidean_dist(x1, x2):
   """Squared Euclidean distance between rows of x1 and x2."""
-  return jnp.sum(jnp.power(x1 - x2, 2), axis=1)
+  return jnp.sum(jnp.power(x1 - x2, 2), axis=-1)
 
 
 @jax.jit
 def euclidean_dist(x1, x2):
   """Euclidean distance between rows of x1 and x2."""
-  return jnp.sqrt(jnp.sum(jnp.power(x1 - x2, 2), axis=1))
+  return jnp.sqrt(jnp.sum(jnp.power(x1 - x2, 2), axis=-1))
 
 
 @jax.jit
 def manhattan_dist(x1, x2):
   """Manhattan distance between rows of x1 and x2."""
-  return jnp.sum(jnp.abs(x1 - x2), -1)
+  return jnp.sum(jnp.abs(x1 - x2), axis=-1)
 
 
 @jax.jit
@@ -95,7 +122,7 @@ def cosine_dist(x1, x2):
 @jax.jit
 def hamming_dist(x1, x2):
   """Hamming distance between two vectors."""
-  return jnp.sum(x1 != x2, -1)
+  return jnp.sum(x1 != x2, axis=-1)
 
 
 @jax.jit
@@ -158,10 +185,9 @@ def sample_knn_triplets(key, neighbors, n_inliers, n_outliers):
   anchors = jnp.tile(
       jnp.arange(n_points).reshape([-1, 1]),
       [1, n_inliers * n_outliers]).reshape([-1, 1])
-  inliers = jnp.tile(neighbors[:, 1:n_inliers+1],
+  inliers = jnp.tile(neighbors[:, 1:n_inliers + 1],
                      [1, n_outliers]).reshape([-1, 1])
-  outliers = rejection_sample(key, (n_points, n_inliers * n_outliers),
-                              n_points,
+  outliers = rejection_sample(key, (n_points, n_inliers * n_outliers), n_points,
                               neighbors).reshape([-1, 1])
   triplets = jnp.concatenate((anchors, inliers, outliers), 1)
   return triplets
@@ -188,8 +214,10 @@ def sample_random_triplets(key, inputs, n_random, distance_fn, sig):
   anc = triplets[:, 0]
   sim = triplets[:, 1]
   out = triplets[:, 2]
-  p_sim = -(distance_fn(inputs[anc], inputs[sim]) ** 2) / (sig[anc] * sig[sim])
-  p_out = -(distance_fn(inputs[anc], inputs[out]) ** 2) / (sig[anc] * sig[out])
+  p_sim = -(sliced_distances(anc, sim, inputs, distance_fn)**2) / (
+      sig[anc] * sig[sim])
+  p_out = -(sliced_distances(anc, out, inputs, distance_fn)**2) / (
+      sig[anc] * sig[out])
   flip = p_sim < p_out
   weights = p_sim - p_out
   pairs = jnp.where(
@@ -213,7 +241,7 @@ def find_scaled_neighbors(inputs, neighbors, distance_fn):
   anchors = jnp.tile(jnp.arange(n_points).reshape([-1, 1]),
                      [1, n_neighbors]).flatten()
   hits = neighbors.flatten()
-  distances = distance_fn(inputs[anchors], inputs[hits]) ** 2
+  distances = sliced_distances(anchors, hits, inputs, distance_fn)**2
   distances = distances.reshape([n_points, -1])
   sig = jnp.maximum(jnp.mean(jnp.sqrt(distances[:, 3:6]), axis=1), 1e-10)
   scaled_distances = distances / (sig.reshape([-1, 1]) * sig[neighbors])
@@ -223,7 +251,11 @@ def find_scaled_neighbors(inputs, neighbors, distance_fn):
   return scaled_distances, sorted_neighbors, sig
 
 
-def find_triplet_weights(inputs, triplets, neighbors, distance_fn, sig,
+def find_triplet_weights(inputs,
+                         triplets,
+                         neighbors,
+                         distance_fn,
+                         sig,
                          distances=None):
   """Calculates the weights for the sampled nearest neighbors triplets.
 
@@ -240,32 +272,31 @@ def find_triplet_weights(inputs, triplets, neighbors, distance_fn, sig,
   """
   n_points, n_inliers = neighbors.shape
   if distances is None:
-    anchs = jnp.tile(
-        jnp.arange(n_points).reshape([-1, 1]), [1, n_inliers]).flatten()
+    anchs = jnp.tile(jnp.arange(n_points).reshape([-1, 1]),
+                     [1, n_inliers]).flatten()
     inliers = neighbors.flatten()
-    distances = distance_fn(inputs[anchs], inputs[inliers]) ** 2
+    distances = sliced_distances(anchs, inliers, inputs, distance_fn)**2
     p_sim = -distances / (sig[anchs] * sig[inliers])
   else:
     p_sim = -distances.flatten()
   n_outliers = triplets.shape[0] // (n_points * n_inliers)
   p_sim = jnp.tile(p_sim.reshape([n_points, n_inliers]),
                    [1, n_outliers]).flatten()
-  out_distances = distance_fn(
-      inputs[triplets[:, 0]], inputs[triplets[:, 2]]) ** 2
+  out_distances = sliced_distances(triplets[:, 0], triplets[:, 2], inputs,
+                                   distance_fn)**2
   p_out = -out_distances / (sig[triplets[:, 0]] * sig[triplets[:, 2]])
   weights = p_sim - p_out
   return weights
 
 
-def generate_triplets(
-    key,
-    inputs,
-    n_inliers,
-    n_outliers,
-    n_random,
-    weight_temp=0.5,
-    distance='euclidean',
-    verbose=False):
+def generate_triplets(key,
+                      inputs,
+                      n_inliers,
+                      n_outliers,
+                      n_random,
+                      weight_temp=0.5,
+                      distance='euclidean',
+                      verbose=False):
   """Generate triplets.
 
   Args:
@@ -298,9 +329,13 @@ def generate_triplets(
   knn_distances = knn_distances[:, :n_inliers + 1]
   key, use_key = random.split(key)
   triplets = sample_knn_triplets(use_key, neighbors, n_inliers, n_outliers)
-  weights = find_triplet_weights(inputs, triplets, neighbors[:, 1:n_inliers+1],
-                                 distance_fn, sig,
-                                 distances=knn_distances[:, 1:n_inliers+1])
+  weights = find_triplet_weights(
+      inputs,
+      triplets,
+      neighbors[:, 1:n_inliers + 1],
+      distance_fn,
+      sig,
+      distances=knn_distances[:, 1:n_inliers + 1])
   flip = weights < 0
   anchors, pairs = triplets[:, 0].reshape([-1, 1]), triplets[:, 1:]
   pairs = jnp.where(
@@ -324,9 +359,9 @@ def generate_triplets(
 def update_embedding_dbd(embedding, grad, vel, gain, lr, iter_num):
   """Update the embedding using delta-bar-delta."""
   gamma = jnp.where(iter_num > _SWITCH_ITER, _FINAL_MOMENTUM, _INIT_MOMENTUM)
-  gain = jnp.where(jnp.sign(vel) != jnp.sign(grad),
-                   gain + _INCREASE_GAIN,
-                   jnp.maximum(gain * _DAMP_GAIN, _MIN_GAIN))
+  gain = jnp.where(
+      jnp.sign(vel) != jnp.sign(grad), gain + _INCREASE_GAIN,
+      jnp.maximum(gain * _DAMP_GAIN, _MIN_GAIN))
   vel = gamma * vel - lr * gain * grad
   embedding += vel
   return embedding, gain, vel
@@ -352,22 +387,21 @@ def trimap_loss(embedding, triplets, weights):
   return loss
 
 
-def transform(
-    key,
-    inputs,
-    n_dims=2,
-    n_inliers=10,
-    n_outliers=5,
-    n_random=3,
-    weight_temp=0.5,
-    distance='euclidean',
-    lr=0.1,
-    n_iters=400,
-    init_embedding='pca',
-    apply_pca=True,
-    triplets=None,
-    weights=None,
-    verbose=False):
+def transform(key,
+              inputs,
+              n_dims=2,
+              n_inliers=10,
+              n_outliers=5,
+              n_random=3,
+              weight_temp=0.5,
+              distance='euclidean',
+              lr=0.1,
+              n_iters=400,
+              init_embedding='pca',
+              apply_pca=True,
+              triplets=None,
+              weights=None,
+              verbose=False):
   """Transform inputs using TriMap.
 
   Args:
@@ -435,8 +469,9 @@ def transform(
       if pca_solution:
         embedding = jnp.array(_INIT_SCALE * inputs[:, :n_dims])
       else:
-        embedding = jnp.array(_INIT_SCALE * PCA(
-            n_components=n_dims).fit_transform(inputs).astype(np.float32))
+        embedding = jnp.array(
+            _INIT_SCALE *
+            PCA(n_components=n_dims).fit_transform(inputs).astype(np.float32))
     elif init_embedding == 'random':
       key, use_key = random.split(key)
       embedding = random.normal(
@@ -462,8 +497,7 @@ def transform(
                                                 itr)
     if verbose:
       if (itr + 1) % _DISPLAY_ITER == 0:
-        loss, n_violated = trimap_metrics(
-            embedding, triplets, weights)
+        loss, n_violated = trimap_metrics(embedding, triplets, weights)
         logging.info(
             'Iteration: %4d / %4d, Loss: %3.3f, Violated triplets: %0.4f',
             itr + 1, n_iters, loss, n_violated / n_triplets * 100.0)
