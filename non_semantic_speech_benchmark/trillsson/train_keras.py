@@ -24,27 +24,16 @@ from absl import logging
 import tensorflow as tf
 
 
-from non_semantic_speech_benchmark.distillation import get_data
+from non_semantic_speech_benchmark.trillsson import get_data
 from non_semantic_speech_benchmark.trillsson import models
 
 FLAGS = flags.FLAGS
 
 # Data config flags.
 flags.DEFINE_list('file_patterns', None, 'Dataset location.')
-
-flags.DEFINE_boolean(
-    'precomputed_targets', False,
-    'Flag to enable training with precomputed targets. '
-    'If True, `file_patterns` must point to precomputed targets, and '
-    '`target_key` must be supplied.')
-flags.DEFINE_string(
-    'target_key', None, 'Teacher embedding key in precomputed tf.Examples. '
-    'This flag is ignored if `precomputed_targets` is False.')
-flags.DEFINE_boolean('normalize_to_pm_one', False, 'Normalize input.')
-
 flags.DEFINE_string('samples_key', None, 'Samples name.')
-flags.DEFINE_integer('min_length', 16000, 'Minimum audio sample length.')
-flags.DEFINE_alias('ml', 'min_length')
+flags.DEFINE_string(
+    'target_key', None, 'Teacher embedding key in precomputed tf.Examples.')
 
 # Student network config flags.
 flags.DEFINE_string('model_type', None, 'Specification for student model.')
@@ -53,6 +42,8 @@ flags.DEFINE_alias('mt', 'model_type')
 # Training config flags.
 flags.DEFINE_integer('train_batch_size', 1, 'Hyperparameter: batch size.')
 flags.DEFINE_alias('tbs', 'train_batch_size')
+flags.DEFINE_integer('max_sample_length', 32000, 'Max samples length.')
+flags.DEFINE_alias('msl', 'max_sample_length')
 flags.DEFINE_integer('shuffle_buffer_size', None, 'shuffle_buffer_size')
 flags.DEFINE_float('lr', 0.001, 'Hyperparameter: learning rate.')
 flags.DEFINE_string('logdir', None,
@@ -70,10 +61,8 @@ flags.DEFINE_integer('num_epochs', 50, 'Number of epochs to train for.')
 flags.DEFINE_alias('e', 'num_epochs')
 
 
-OUTPUT_DIM = 1024
 
-
-def train_and_report(debug=False, target_dim=OUTPUT_DIM):
+def train_and_report(debug=False, target_dim=1024):
   """Trains the classifier."""
   logging.info('Logdir: %s', FLAGS.logdir)
   logging.info('Batch size: %s', FLAGS.train_batch_size)
@@ -86,14 +75,13 @@ def train_and_report(debug=False, target_dim=OUTPUT_DIM):
       output_dimension=target_dim,
       reader=reader,
       samples_key=FLAGS.samples_key,
-      min_length=FLAGS.min_length,
+      target_key=target_key,
       batch_size=FLAGS.train_batch_size,
       loop_forever=True,
       shuffle=True,
-      teacher_fn=None,
-      target_key=target_key,
-      normalize_to_pm_one=FLAGS.normalize_to_pm_one,
-      shuffle_buffer_size=FLAGS.shuffle_buffer_size)
+      max_samples_length=FLAGS.max_sample_length,
+      shuffle_buffer_size=FLAGS.shuffle_buffer_size,
+      samples_are_float=True)
   assert len(ds.element_spec) == 2, ds.element_spec
   ds.element_spec[0].shape.assert_has_rank(2)  # audio samples
   ds.element_spec[1].shape.assert_has_rank(2)  # teacher embeddings
@@ -107,8 +95,7 @@ def train_and_report(debug=False, target_dim=OUTPUT_DIM):
   global_step = opt.iterations
   # Create model, loss, and other objects.
   model = models.get_keras_model(
-      model_type=FLAGS.model_type,
-      manually_average=True if 'ast' in FLAGS.model_type else False)
+      model_type=FLAGS.model_type, frame_hop=FLAGS.frame_hop)
   assert model.trainable_variables
   # Add additional metrics to track.
   train_loss = tf.keras.metrics.MeanSquaredError(name='train_loss')
@@ -123,6 +110,7 @@ def train_and_report(debug=False, target_dim=OUTPUT_DIM):
   checkpoint.restore(manager.latest_checkpoint)
 
   if debug: return
+  logging.info('Starting loop with tbs: %s', FLAGS.train_batch_size)
   for inputs, targets in ds:
     # Inputs are audio vectors.
     inputs.shape.assert_has_rank(2)
@@ -169,7 +157,6 @@ def get_train_step(model, loss_obj, opt, train_loss, train_mae, summary_writer):
 
 def main(unused_argv):
   assert FLAGS.file_patterns
-  assert FLAGS.output_dimension
   assert FLAGS.shuffle_buffer_size
   assert FLAGS.logdir
   assert FLAGS.samples_key

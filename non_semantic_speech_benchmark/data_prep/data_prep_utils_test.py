@@ -59,8 +59,8 @@ class DataPrepUtilsTest(parameterized.TestCase):
   @parameterized.parameters(
       {'feature_inputs': True},
       {'feature_inputs': False},
-  )
-  def test_tflite_inference(self, feature_inputs):
+  )  # pylint:disable=g-unreachable-test-method
+  def disable_test_tflite_inference(self, feature_inputs):
     if feature_inputs:
       test_file = 'model1_woutfrontend.tflite'
     else:
@@ -137,6 +137,7 @@ class DataPrepUtilsTest(parameterized.TestCase):
     k, new_ex = data_prep_utils.combine_multiple_embeddings_to_tfex(
         ('key', ex, {'emb1': np.zeros([1, 10], np.float32)}),
         delete_audio_from_output=False,
+        pass_through_normalized_audio=True,
         audio_key='aud',
         label_key='lbl',
         speaker_id_key=None)

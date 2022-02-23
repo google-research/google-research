@@ -107,6 +107,7 @@ def make_many_models_beam_pipeline(
     speaker_id_key,
     average_over_time,
     delete_audio_from_output,
+    pass_through_normalized_audio,
     split_embeddings_into_separate_tables = False,
     use_frontend_fn = False,
     normalize_to_pm_one = True,
@@ -136,6 +137,8 @@ def make_many_models_beam_pipeline(
     average_over_time: Python bool. If `True`, average over the time axis.
     delete_audio_from_output: Python bool. Whether to remove audio fromm
       outputs.
+    pass_through_normalized_audio: Python bool. If passing through audio,
+      whether to make sure it's normalized.
     split_embeddings_into_separate_tables: Python bool. If true, write each
       embedding to a separate table.
     use_frontend_fn: If `true`, call frontend fn on audio before passing to the
@@ -214,6 +217,7 @@ def make_many_models_beam_pipeline(
             utils.add_embeddings_to_tfex,
             original_example_key=tf_examples_key_,
             delete_audio_from_output=delete_audio_from_output,
+            pass_through_normalized_audio=pass_through_normalized_audio,
             audio_key=audio_key,
             label_key=label_key,
             speaker_id_key=speaker_id_key))
@@ -236,6 +240,7 @@ def multiple_embeddings_from_single_model_pipeline(
     speaker_id_key,
     average_over_time,
     delete_audio_from_output,
+    pass_through_normalized_audio,
     split_embeddings_into_separate_tables = False,
     use_frontend_fn = False,
     normalize_to_pm_one = True,
@@ -267,6 +272,8 @@ def multiple_embeddings_from_single_model_pipeline(
     average_over_time: Python bool. If `True`, average over the time axis.
     delete_audio_from_output: Python bool. Whether to remove audio fromm
       outputs.
+    pass_through_normalized_audio: Python bool. If passing through audio,
+      whether to make sure it's normalized.
     split_embeddings_into_separate_tables: stuff
     use_frontend_fn: stuff
     normalize_to_pm_one: stuff
@@ -316,6 +323,7 @@ def multiple_embeddings_from_single_model_pipeline(
       | f'ToTFExample-{s}' >> beam.Map(
           utils.combine_multiple_embeddings_to_tfex,
           delete_audio_from_output=delete_audio_from_output,
+          pass_through_normalized_audio=pass_through_normalized_audio,
           audio_key=audio_key,
           label_key=label_key,
           speaker_id_key=speaker_id_key)
@@ -340,6 +348,7 @@ def precompute_chunked_audio_pipeline(
     speaker_id_key = None,
     average_over_time = True,
     delete_audio_from_output = True,
+    pass_through_normalized_audio = True,
     split_embeddings_into_separate_tables = False,
     use_frontend_fn = False,
     normalize_to_pm_one = True,
@@ -371,6 +380,7 @@ def precompute_chunked_audio_pipeline(
     speaker_id_key: Python string. Field for speaker id.
     average_over_time: Whether to average over time.
     delete_audio_from_output: Whether to remove audio.
+    pass_through_normalized_audio: stuff
     split_embeddings_into_separate_tables: stuff
     use_frontend_fn: stuff
     normalize_to_pm_one: stuff
@@ -426,6 +436,7 @@ def precompute_chunked_audio_pipeline(
       | f'ToTFExample-{s}' >> beam.Map(
           utils.chunked_audio_to_tfex,
           delete_audio_from_output=delete_audio_from_output,
+          pass_through_normalized_audio=pass_through_normalized_audio,
           chunk_len=chunk_len,
           label_key=label_key,
           speaker_id_key=speaker_id_key,
@@ -450,6 +461,7 @@ def batched_chunked_single_model_pipeline(
     speaker_id_key,
     average_over_time,
     delete_audio_from_output,
+    pass_through_normalized_audio,
     split_embeddings_into_separate_tables = False,
     use_frontend_fn = False,
     normalize_to_pm_one = True,
@@ -482,6 +494,7 @@ def batched_chunked_single_model_pipeline(
     average_over_time: Python bool. If `True`, average over the time axis.
     delete_audio_from_output: Python bool. Whether to remove audio fromm
       outputs.
+    pass_through_normalized_audio: stuff
     split_embeddings_into_separate_tables: stuff
     use_frontend_fn: stuff
     normalize_to_pm_one: stuff
@@ -499,6 +512,7 @@ def batched_chunked_single_model_pipeline(
   """
   del split_embeddings_into_separate_tables, use_frontend_fn
   del label_key, speaker_id_key, delete_audio_from_output
+  del pass_through_normalized_audio
 
   # Common sanity checks and preprocessing.
   _common_pipeline_sanity_checks(embedding_modules, embedding_names,
@@ -648,6 +662,7 @@ def get_beam_params_from_flags(
       split_embeddings_into_separate_tables=FLAGS.split_embeddings_into_separate_tables,
       use_frontend_fn=FLAGS.use_frontend_fn,
       normalize_to_pm_one=FLAGS.normalize_to_pm_one,
+      pass_through_normalized_audio=FLAGS.pass_through_normalized_audio,
       model_input_min_length=FLAGS.model_input_min_length,
       input_format=input_format,
       output_format=output_format,
@@ -682,7 +697,7 @@ def validate_inputs(input_filenames_list,
           raise ValueError(f'Files not found: {filename}')
       except (tf.errors.InvalidArgumentError, ValueError):  # was a glob.
         if not tf.io.gfile.glob(filename):
-          raise ValueError(f'Files not found: {filename}')
+          raise ValueError(f'Files not found: {filename}')  # pylint:disable=raise-missing-from
 
   if len(input_filenames_list) != len(output_filenames):
     raise ValueError('Input/output filename lengths don\'t match: '

@@ -115,7 +115,7 @@ def _get_sklearn_scores(
       test_glob=_glob('test'),
       embedding_name=edef.EMBEDDING_KEY_,
       label_name=label_name,
-      speaker_id=FLAGS.speaker_id_name)
+      speaker_id=FLAGS.speaker_id_key)
 
   return step, eval_score, test_score
 
@@ -219,7 +219,7 @@ def main(unused_argv):
         FLAGS.file_pattern_test,
         embedding_name=FLAGS.target_key[len('embedding/'):],
         label_name=FLAGS.label_name,
-        speaker_id=FLAGS.speaker_id_name,
+        speaker_id=FLAGS.speaker_id_key,
     )
     logging.info('Baseline performance: %f, %f', baseline_score_eval,
                  baseline_score_test)

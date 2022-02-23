@@ -108,6 +108,7 @@ class AudioToEmbeddingsTests(parameterized.TestCase):
           speaker_id_key='speaker_id',
           average_over_time=True,
           delete_audio_from_output=False,
+          pass_through_normalized_audio=True,
           chunk_len=0,
           embedding_length=10,
           input_format='tfrecord',

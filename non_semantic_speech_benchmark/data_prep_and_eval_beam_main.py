@@ -32,7 +32,7 @@ import tensorflow as tf
 
 
 # Gets flags from data_prep's main.
-from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_main as data_prep  # pylint:disable=unused-import
+from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_flags  # pylint:disable=unused-import
 from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_utils as utils
 from non_semantic_speech_benchmark.eval_embedding.sklearn import train_and_eval_sklearn as sklearn_utils
 

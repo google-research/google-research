@@ -82,7 +82,7 @@ def compute_frontend_features(samples,
                               n_required = 16000,
                               num_mel_bins = 64,
                               frame_width = 96,
-                              pad_mode = 'CONSTANT'):
+                              pad_mode = 'SYMMETRIC'):
   """Compute features."""
   if tflite:
     raise ValueError('TFLite frontend unsupported.')
@@ -92,11 +92,11 @@ def compute_frontend_features(samples,
     samples = tf.cast(samples, np.float32)
   assert samples.dtype == tf.float32, samples.dtype
 
-  if samples.ndim == 1:
+  if samples.shape.ndims == 1:
     has_batchdim = False
     samples = tf.expand_dims(samples, axis=0)
   else:
-    assert samples.ndim == 2
+    assert samples.shape.ndims == 2
     has_batchdim = True
 
   if n_required:

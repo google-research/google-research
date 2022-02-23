@@ -29,7 +29,6 @@ from non_semantic_speech_benchmark.trillsson import train_keras
 def _get_data(*args, **kwargs):
   del args
   assert 'samples_key' in kwargs
-  assert 'min_length' in kwargs
   assert 'batch_size' in kwargs
   bs = kwargs['batch_size']
   samples = tf.zeros((bs, 16000), tf.float32)
@@ -39,17 +38,11 @@ def _get_data(*args, **kwargs):
 
 class TrainKerasTest(parameterized.TestCase):
 
-  @parameterized.parameters(
-      {'alpha': 1.0},
-      {'alpha': 0.5},
-  )
-  def test_get_model(self, alpha):
+  def test_get_model(self):
     batched_samples = tf.zeros([3, 16000])
     targets = tf.ones([3, 1024])
 
-    model = train_keras.models.get_keras_model(
-        f'mobilenet_debug_{alpha}_False',
-        manually_average=False)
+    model = train_keras.models.get_keras_model('efficientnetv2b0')
 
     loss_obj = tf.keras.losses.MeanSquaredError()
     opt = tf.keras.optimizers.Adam()
@@ -68,7 +61,7 @@ class TrainKerasTest(parameterized.TestCase):
   @mock.patch.object(train_keras.get_data, 'get_data', new=_get_data)
   @flagsaver.flagsaver
   def test_full_flow(self):
-    flags.FLAGS.model_type = 'mobilenet_debug_1.0_False'
+    flags.FLAGS.model_type = 'efficientnetv2b0'
     flags.FLAGS.file_patterns = 'dummy'
     flags.FLAGS.shuffle_buffer_size = 4
     flags.FLAGS.samples_key = 'audio'

@@ -29,7 +29,7 @@ import apache_beam as beam
 import numpy as np
 import tensorflow as tf
 # Import from main to force ourselves to use the same flags.
-from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_main  # pylint:disable=unused-import
+from non_semantic_speech_benchmark.data_prep import audio_to_embeddings_beam_flags  # pylint:disable=unused-import
 from non_semantic_speech_benchmark.export_model import model_conversion_beam_utils as utils
 from non_semantic_speech_benchmark.trillsson import models
 
@@ -47,8 +47,7 @@ def _get_model(params,
                checkpoint_folder_path):
   model_type = params['mt']
   static_model = models.get_keras_model(
-      model_type=model_type,
-      manually_average=True if 'ast' in model_type else False)
+      model_type=model_type, frame_hop=flags.FLAGS.frame_hop)
   checkpoint = tf.train.Checkpoint(model=static_model)
   checkpoint_to_load = tf.train.latest_checkpoint(checkpoint_folder_path)
   checkpoint.restore(checkpoint_to_load).expect_partial()

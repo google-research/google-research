@@ -17,7 +17,6 @@
 """Tests for eval_downstream."""
 
 import os
-from absl import flags
 from absl.testing import absltest
 import mock
 import numpy as np
@@ -26,16 +25,7 @@ from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils
 from non_semantic_speech_benchmark.trillsson import eval_downstream_embedding_fidelity
 
 
-class EvalKerasTest(absltest.TestCase):
-
-  def disabled_test_full_flow(self):  # pylint:disable=g-unreachable-test-method
-    flags.FLAGS.model_type = 'debug'
-    flags.FLAGS.logdir = absltest.get_default_test_tmpdir()
-    flags.FLAGS.eval_dir = absltest.get_default_test_tmpdir()
-    flags.FLAGS.embeddings_output_dir = os.path.join(
-        absltest.get_default_test_tmpdir(), 'embeddings')
-    flags.FLAGS.timeout = 5
-    eval_downstream_embedding_fidelity.eval_and_report()
+class EvalDownstreamEmbeddingFidelityTest(absltest.TestCase):
 
   def test_make_tfexample_and_write(self):
     expected = [[1., 2., 3.],

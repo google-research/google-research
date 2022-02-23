@@ -15,26 +15,40 @@
 
 # Lint as: python3
 """Keras models with only the features needed for TRILLsson."""
+
+from typing import Optional
+from absl import flags
 from absl import logging
 import tensorflow as tf
-from non_semantic_speech_benchmark.distillation import frontend_lib
 from non_semantic_speech_benchmark.distillation import models
+from non_semantic_speech_benchmark.trillsson import frontend_lib
 
 
 def get_keras_model(model_type,
-                    manually_average,
-                    frontend = True,
-                    output_dimension = 1024):
-  """Make a Keras student model."""
+                    output_dimension = 1024,
+                    frame_hop = None):
+  """Make a Keras student model.
+
+  Args:
+    model_type: A string defining the architecture.
+    output_dimension: The dimension of the output.
+    frame_hop: Frontend framehop.
+
+  Returns:
+    A keras model encapsulating everything.
+  """
+  if frame_hop is None:
+    frame_hop = flags.FLAGS.frame_hop
   # For debugging, log hyperparameter values.
   logging.info('model name: %s', model_type)
-  logging.info('frontend: %s', frontend)
+  logging.info('frame_hop: %s', frame_hop)
 
   output_dict = {}  # Dictionary of model outputs.
 
   # Construct model input and frontend.
+  # TODO(joelshor): Consider using a ragged Tensor.
   model_in = tf.keras.Input((None,), name='audio_samples')
-  feats = frontend_keras(model_in, manually_average)
+  feats = frontend_keras(model_in, frame_hop)
   feats.shape.assert_is_compatible_with([None, None, None, 1])
 
   # Build network.
@@ -42,11 +56,11 @@ def get_keras_model(model_type,
   model_out = models.build_main_net(model_type, feats)
   logging.info('Model output shape: %s', model_out.shape)
 
-  if manually_average:
-    # Reshape back to batch dimension, and average.
-    bs = tf.shape(model_in)[0]
-    model_out = tf.reshape(model_out, [bs, -1, output_dimension])
-    model_out = tf.math.reduce_mean(model_out, axis=1, keepdims=False)
+  # Reshape back to batch dimension, and average.
+  bs = tf.shape(model_in)[0]
+  main_net_output_dim = tf.shape(model_out)[-1]
+  model_out = tf.reshape(model_out, [bs, -1, main_net_output_dim])
+  model_out = tf.math.reduce_mean(model_out, axis=1, keepdims=False)
 
   # Construct optional final layer, and create output dictionary.
   if model_out.shape[1] == output_dimension:
@@ -59,30 +73,28 @@ def get_keras_model(model_type,
   return output_model
 
 
-def frontend_keras(model_in, manually_average):
+def frontend_keras(
+    model_in,
+    frame_hop):
   """Returns features."""
-  frontend_args = frontend_lib.frontend_args_from_flags()
-  logging.info('frontend_args: %s', frontend_args)
+  frontend_args = dict(
+      frame_width=195,
+      frame_hop=frame_hop,
+      n_required=32000,
+      num_mel_bins=80,
+      pad_mode='SYMMETRIC')
+  logging.info('frontend_args overrides: %s', frontend_args)
 
-  bs = tf.shape(model_in)[0]
-  feats = frontend_lib.SamplesToFeats(
-      tflite=False, frontend_args=frontend_args)(
-          model_in)
+  feats = frontend_lib.SamplesToFeats(frontend_args)(model_in)
   feats.shape.assert_is_compatible_with(
       [None, None, frontend_args['frame_width'], frontend_args['num_mel_bins']])
-  if manually_average:
-    # Change the number of batches so we can run all chunks through the model
-    # at once.
-    # Note: A priori, it's not clear that reshape will group frames from the
-    # first clip into the first N elements. We've verified this.
-    feats = tf.reshape(
-        feats,
-        [-1, frontend_args['frame_width'], frontend_args['num_mel_bins'], 1])
-  else:
-    # Keep the number of batches, and change the first dimension. We expect the
-    # model to automatically average.
-    feats = tf.reshape(feats, [bs, -1, frontend_args['num_mel_bins'], 1])
-    feats.shape.assert_is_compatible_with(
-        [None, None, frontend_args['num_mel_bins'], 1])
+
+  # Change the number of batches so we can run all chunks through the model
+  # at once.
+  # Note: A priori, it's not clear that reshape will group frames from the
+  # first clip into the first N elements. We've verified this.
+  feats = tf.reshape(
+      feats,
+      [-1, frontend_args['frame_width'], frontend_args['num_mel_bins'], 1])
 
   return feats

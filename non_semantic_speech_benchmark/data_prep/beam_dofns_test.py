@@ -154,8 +154,8 @@ class BeamDofnsTest(parameterized.TestCase):
       {'average_over_time': True, 'sample_rate_key': 's', 'sample_rate': None},
       {'average_over_time': False, 'sample_rate_key': 's', 'sample_rate': None},
       {'average_over_time': False, 'sample_rate_key': None, 'sample_rate': 5},
-  )
-  def test_compute_embedding_map_fn_tflite(
+  )  # pylint:disable=g-unreachable-test-method
+  def disable_test_compute_embedding_map_fn_tflite(
       self, average_over_time, sample_rate_key, sample_rate):
     # Establish required key names.
     audio_key = 'audio_key'
@@ -231,10 +231,12 @@ class BeamDofnsTest(parameterized.TestCase):
 
         # Now run the next stage of the pipeline on it.
         # TODO(joelshor): Add correctness checks on the output.
-        data_prep_utils.chunked_audio_to_tfex((kn, aud, lbl, spkr, embs_d),
-                                              delete_audio_from_output=True,
-                                              chunk_len=chunk_len,
-                                              embedding_length=10)
+        data_prep_utils.chunked_audio_to_tfex(
+            (kn, aud, lbl, spkr, embs_d),
+            delete_audio_from_output=True,
+            pass_through_normalized_audio=False,
+            chunk_len=chunk_len,
+            embedding_length=10)
 
   @parameterized.parameters([
       {'emb_on_chnks': True},
@@ -333,6 +335,7 @@ class BeamDofnsTest(parameterized.TestCase):
       data_prep_utils.combine_multiple_embeddings_to_tfex(
           (kn, exn, emb_dict),
           delete_audio_from_output=True,
+          pass_through_normalized_audio=True,
           audio_key='audio',
           label_key='label',
           speaker_id_key='speaker_id')
@@ -415,6 +418,7 @@ class BeamDofnsTest(parameterized.TestCase):
           | beam.Map(
               data_prep_utils.combine_multiple_embeddings_to_tfex,
               delete_audio_from_output=True,
+              pass_through_normalized_audio=True,
               audio_key='audio',
               label_key='label',
               speaker_id_key='speaker_id'))
