@@ -295,7 +295,7 @@ def SimulateSbm(sbm_data,
   Args:
     sbm_data: StochasticBlockModel dataclass to store result data.
     num_vertices: (int) number of nodes in the graph.
-    num_edges: (int) expected number of edges in the graph.
+    num_edges: (float) expected number of edges in the graph.
     pi: iterable of non-zero community size relative proportions. Community i
       will be pi[i] / pi[j] times larger than community j.
     prop_mat: square, symmetric matrix of community edge count rates.

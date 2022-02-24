@@ -27,7 +27,7 @@ class SimulationsTest(absltest.TestCase):
 
   def test_simulate_sbm_with_features(self):
     result = simulations.GenerateStochasticBlockModelWithFeatures(
-        num_vertices=50, num_edges=500, pi=[1, 1],
+        num_vertices=50, num_edges=500.0, pi=[1, 1],
         prop_mat=np.ones(shape=(2, 2)),
         feature_center_distance=1.0, feature_dim=16,
         feature_group_match_type=simulations.MatchType.NESTED,
@@ -46,7 +46,7 @@ class SimulationsTest(absltest.TestCase):
   def test_heterogeneous_sbm(self):
     result = simulations.GenerateStochasticBlockModelWithFeatures(
         num_vertices=400,
-        num_edges=16000,
+        num_edges=16000.0,
         pi=[1, 1],
         feature_center_distance=1.0,
         feature_dim=32,
