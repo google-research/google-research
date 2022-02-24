@@ -1,0 +1,33 @@
+import dopamine.jax.agents.implicit_quantile.implicit_quantile_agent
+import dopamine.discrete_domains.atari_lib
+import dopamine.discrete_domains.run_experiment
+import generalization_representations_rl_aistats22.offline_rl.fixed_replay
+
+JaxImplicitQuantileAgent.kappa = 1.0
+JaxImplicitQuantileAgent.num_tau_samples = 64
+JaxImplicitQuantileAgent.num_tau_prime_samples = 64
+JaxImplicitQuantileAgent.num_quantile_samples = 32
+JaxImplicitQuantileAgent.gamma = 0.99
+JaxImplicitQuantileAgent.update_horizon = 3
+JaxImplicitQuantileAgent.min_replay_history = 20000 # agent steps
+JaxDQNAgent.update_period = 1  # Offline RL (update every step)
+JaxImplicitQuantileAgent.target_update_period = 2000 # Offline RL
+JaxImplicitQuantileAgent.epsilon_train = 0.01
+JaxImplicitQuantileAgent.epsilon_eval = 0.001
+JaxImplicitQuantileAgent.epsilon_decay_period = 250000  # agent steps
+JaxImplicitQuantileAgent.optimizer = 'adam'
+create_optimizer.learning_rate = 0.00005
+create_optimizer.eps = 0.0003125
+
+atari_lib.create_atari_environment.game_name = 'Pong'
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+create_agent.agent_name = 'jax_implicit_quantile'
+create_agent.debug_mode = False
+Runner.num_iterations = 200
+Runner.training_steps = 62500  # agent steps (Offline RL)
+Runner.evaluation_steps = 125000  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps
+
+fixed_replay.FixedReplayBuffer.replay_capacity = 1000000
+fixed_replay.FixedReplayBuffer.batch_size = 32
