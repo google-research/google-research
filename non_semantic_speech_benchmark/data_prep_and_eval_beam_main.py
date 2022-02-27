@@ -58,6 +58,18 @@ flags.DEFINE_list('eval_metrics', 'accuracy',
 FLAGS = flags.FLAGS
 
 
+def _remove_existing_outputs(
+    input_filenames_list,
+    output_filenames):
+  """If files exists, don't write to output, and remove corresponding inputs."""
+  filtered_inputs, filtered_outputs = [], []
+  for cur_input_list, cur_output in zip(input_filenames_list, output_filenames):
+    if not tf.io.gfile.glob(f'{cur_output}*'):
+      filtered_inputs.append(cur_input_list)
+      filtered_outputs.append(cur_output)
+  return filtered_inputs, filtered_outputs
+
+
 def _get_data_prep_params_from_flags(
 ):
   """Get parameters for data prep pipeline from flags."""
@@ -102,7 +114,12 @@ def _get_data_prep_params_from_flags(
         prep_params['module_output_keys'])
   except ValueError:
     if FLAGS.skip_existing_error:
-      run_data_prep = False
+      # Check if there are any files left after filtering. Return the expected
+      # locations, though, and remove.
+      _, output_filenames_filtered = _remove_existing_outputs(
+          input_filenames_list, output_filenames)
+      if not output_filenames_filtered:
+        run_data_prep = False
     else:
       raise
 
@@ -138,6 +155,8 @@ def main(unused_argv):
   beam_options = None
 
   if run_data_prep:
+    input_filenames_list, output_filenames = _remove_existing_outputs(
+        input_filenames_list, output_filenames)
     logging.info('Data prep on: %s, %s...', input_filenames_list,
                  output_filenames)
     with beam.Pipeline(beam_options) as root:
