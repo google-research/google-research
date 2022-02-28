@@ -31,6 +31,45 @@ both an eval process along with a training one, so that the evaluation does not 
 To play with the dedal configuration, for example changing a parameter, the
 encoder or even add an extra head, one should get inspiration from the `base.gin`, `dedal.gin` and `substitution_matrix.gin` config files. The first one contains the configuration of the training loop, the data, metrics, losses, while the two others only contains what in the network is specific to dedal or to the substitution matrix based sequence alignment methods.
 
+## Pre-trained model
+
+DEDAL is available in [TensorFlow Hub](https://tfhub.dev/google/dedal/1).
+
+The model expects a `tf.Tensor<tf.int32>[2B, 512]` as inputs, representing a batch of B sequence pairs to be aligned right-padded to a maximum length of 512, including the special EOS token. Pairs are expected to be arranged consecutively in this batch, that is, `inputs[2*b]` and `inputs[2*b + 1]` represent the b-th sequence pair with b ranging from 0 up to B - 1 (inclusive).
+
+By default, the model runs in "alignment" mode and its output consists of:
++ a `tf.Tensor<tf.float32>[B, 512]` with the alignment scores
++ a `tf.Tensor<tf.float32>[B, 512, 512, 9]` representing the predicted alignments
++ a tuple of three `tf.Tensor<tf.float32>[B, 512, 512]` containing the contextual Smith-Waterman parameters (substitution scores, gap open and gap extend penalties)
+
+Additional signatures are provided to run the model in "embedding" mode, in which case it returns a single `tf.Tensor<tf.float32>[2B, 512, 768]` with the embeddings of each input sequence.
+
+```python
+import tensorflow as tf
+import tensorflow_hub as hub
+from dedal import infer  # Requires google_research/google-research.
+
+dedal_model = hub.load('https://tfhub.dev/google/dedal/1')
+
+# "Gorilla" and "Mallard" sequences from [1, Figure 3].
+protein_a = 'SVCCRDYVRYRLPLRVVKHFYWTSDSCPRPGVVLLTFRDKEICADPRVPWVKMILNKL'
+protein_b = 'VKCKCSRKGPKIRFSNVRKLEIKPRYPFCVEEMIIVTLWTRVRGEQQHCLNPKRQNTVRLLKWY'
+# Represents sequences as `tf.Tensor<tf.float32>[2, 512]` batch of tokens.
+inputs = infer.preprocess(protein_a, protein_b)
+
+# Aligns `protein_a` to `protein_b`.
+scores, path, sw_params = dedal_model(inputs)
+
+# Retrieves per-position embeddings of both sequences.
+embeddings = dedal_model.call(inputs, embeddings_only=True)
+
+# Postprocesses output and displays alignment.
+output = infer.expand([scores, path, sw_params])
+output = infer.postprocess(output, len(protein_a), len(protein_b))
+alignment = infer.Alignment(protein_a, protein_b, *output)
+print(alignment)
+```
+
 ## Data
 This repo does not contain real-world data. Training uses synthetic data sampled on-the-fly for illustration purposes. However, the repo does contain tools to build the datasets to be fed to Dedal for training or eval. Sequence identifiers to reproduce all Pfam-A seed splits can be downloaded [here](https://drive.google.com/file/d/11S2OdnduXM3id7F3k6kUxi8_qXJC8bav/view?usp=sharing).
 
