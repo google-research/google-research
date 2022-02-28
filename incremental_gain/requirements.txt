@@ -1,0 +1,17 @@
+absl-py>=1.0.0
+chex>=0.1.0
+dm-haiku>=0.0.6
+dm-tree>=0.1.6
+flatbuffers>=2.0
+jax>=0.3.1
+jaxlib>=0.3.0
+jmp>=0.0.2
+numpy>=1.22.2
+opt-einsum>=3.3.0
+optax>=0.1.1
+scipy>=1.8.0
+six>=1.16.0
+tabulate>=0.8.9
+toolz>=0.11.2
+tqdm>=4.62.3
+typing-extensions>=4.1.1
