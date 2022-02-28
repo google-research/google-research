@@ -226,9 +226,13 @@ def main(unused_argv):
   else:
     baseline_score_eval, baseline_score_test = None, None
 
-  sklearn_eval(FLAGS.embeddings_output_dir, FLAGS.folder_waittime_seconds,
-               FLAGS.eval_dir, FLAGS.max_error_count,
-               baseline_score_eval, baseline_score_test)
+  sklearn_eval(
+      watched_dir=FLAGS.embeddings_output_dir,
+      file_watchdog_waittime_seconds=FLAGS.folder_waittime_seconds,
+      eval_dir=FLAGS.eval_dir,
+      max_error_count=FLAGS.max_error_count,
+      baseline_score_eval=baseline_score_eval,
+      baseline_score_test=baseline_score_test)
 
 
 if __name__ == '__main__':

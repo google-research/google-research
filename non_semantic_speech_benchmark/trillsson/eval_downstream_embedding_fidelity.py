@@ -194,7 +194,7 @@ def process_single_checkpoint(
         for emb, lbl, speaker_id in zip(embs, labels, speaker_ids):
           make_tfexample_and_write(emb, lbl, speaker_id, FLAGS.speaker_id_key,
                                    emb_writer)
-        logging.info('Write %i embeddings to disk.', ex_count)
+        logging.info('Wrote %i embeddings to disk.', ex_count)
   with writer.as_default():
     suff = FLAGS.eval_suffix
     tf.summary.scalar(f'mse_all_{suff}', mse_all.result().numpy(), step=step)
