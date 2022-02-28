@@ -34,13 +34,13 @@ To Appear in AISTATS'22.
           * `wget https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/heart/heart.dat`
       * From top dir (containing README.md): `mkdir -p Data/FullDatasets Data/Australian Data/Ionosphere Data/Heart`.
       * From top dir (containing README.md): `source Code/pythenv/bin/activate`, `./dataCreation.sh`, `deactivate`.
-5. Run LR and Mean-Map methods.
+5. Run LogReg and Mean-Map baselines `MM, LMM(v(G,s)), AMM(MM), AMM(LMM(v(G,s))` using code downloaded from `https://github.com/giorgiop/almostnolabel`.
       * Install `R`.
       * From top dir (containing README.md): `./RCode.sh`.
-6. Run Generalized Bag baselines.
-      * From top dir (containing README.md): `source Code/pythenv/bin/activate`, `./GenBagCode.sh`, `deactivate`.
-7. Run LMMCM baseline.
+6. Run `LMMCM` baseline using code downloaded from `https://github.com/Z-Jianxin/Learning-from-Label-Proportions-A-Mutual-Contamination-Framework`.
       * From top dir (containing README.md): `conda activate LLP`, `./PythCode.sh`, `conda deactivate`.
+7. Run Bag and Generalized Bag methods: `LIN(KL-div, U), LIN(l_2^2,S), LIN(l_2^2,U), LIN(l_2^2,R). LIN(l_1,S), LIN(l_1,U), LIN(l_1,R)`.
+      * From top dir (containing README.md): `source Code/pythenv/bin/activate`, `./GenBagCode.sh`, `deactivate`.
 8. Collect the results and process them.
       * From top dir (containing README.md): `mkdir -p Results/Raw_Results`.
       * From top dir (containing README.md): `source Code/pythenv/bin/activate`, `./resultsProcessing.sh`, `deactivate`.
