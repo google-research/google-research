@@ -564,6 +564,67 @@ bonds {
     self.assertEqual('C#[N+]([O-])F', Chem.MolToSmiles(got))
 
 
+class IterateBondTopologiesTest(parameterized.TestCase):
+
+  def make_fake_conformer(self, conformer_id, num_bts):
+    conformer = dataset_pb2.Conformer(conformer_id=conformer_id)
+    conformer.properties.errors.status = 1
+    for bt_id in range(num_bts):
+      conformer.bond_topologies.add(bond_topology_id=100 + bt_id)
+    return conformer
+
+  def test_bad_which(self):
+    with self.assertRaises(ValueError):
+      list(smu_utils_lib.iterate_bond_topologies(
+        self.make_fake_conformer(123, 2), 'badval'))
+
+  def test_all(self):
+    got = list(smu_utils_lib.iterate_bond_topologies(
+      self.make_fake_conformer(123, 3), 'all'))
+    self.assertEqual([(0, 100), (1, 101), (2, 102)],
+                     [(bt_idx, bt.bond_topology_id)
+                      for bt_idx, bt in got])
+
+  def test_best(self):
+    conformer = self.make_fake_conformer(123, 3)
+    conformer.bond_topologies[1].is_starting_topology = True
+    got = list(smu_utils_lib.iterate_bond_topologies(conformer, 'best'))
+    self.assertLen(got, 1)
+    self.assertEqual(0, got[0][0])
+    self.assertEqual(100, got[0][1].bond_topology_id)
+
+  @parameterized.parameters([0, 1, 2])
+  def test_starting(self, starting_idx):
+    conformer = self.make_fake_conformer(123, 3)
+    conformer.bond_topologies[starting_idx].is_starting_topology = True
+    got = list(smu_utils_lib.iterate_bond_topologies(conformer, 'starting'))
+    self.assertLen(got, 1)
+    self.assertEqual(starting_idx, got[0][0])
+    self.assertEqual(100 + starting_idx, got[0][1].bond_topology_id)
+
+  def test_no_starting(self):
+    conformer = self.make_fake_conformer(123, 3)
+    got = list(smu_utils_lib.iterate_bond_topologies(conformer, 'starting'))
+    self.assertLen(got, 0)
+
+  def test_stage1(self):
+    conformer = self.make_fake_conformer(123, 1)
+    conformer.properties.errors.status = 600
+    got = list(smu_utils_lib.iterate_bond_topologies(conformer, 'starting'))
+    self.assertLen(got, 1)
+    self.assertEqual(0, got[0][0])
+    self.assertEqual(100, got[0][1].bond_topology_id)
+
+  def test_duplicated(self):
+    conformer = self.make_fake_conformer(123, 1)
+    conformer.properties.errors.status = -1
+    conformer.duplicated_by = 456
+    got = list(smu_utils_lib.iterate_bond_topologies(conformer, 'starting'))
+    self.assertLen(got, 1)
+    self.assertEqual(0, got[0][0])
+    self.assertEqual(100, got[0][1].bond_topology_id)
+
+
 class ConformerToMoleculeTest(absltest.TestCase):
 
   def setUp(self):
@@ -611,7 +672,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
             self._conformer,
             include_initial_geometries=True,
             include_optimized_geometry=False,
-            include_all_bond_topologies=False))
+            which_topologies='best'))
     self.assertLen(mols, 2)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
         'SMU 618451001 bt=618451(1/2) geom=init(1/2) fate=0',
@@ -635,7 +696,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
             self._conformer,
             include_initial_geometries=False,
             include_optimized_geometry=True,
-            include_all_bond_topologies=False))
+            which_topologies='best'))
     self.assertLen(mols, 1)
     self.assertEqual(
         mols[0].GetProp('_Name'),

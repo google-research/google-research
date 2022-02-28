@@ -737,10 +737,35 @@ def get_bond_type(bond_topology, atom_idx0, atom_idx1):
   return dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
 
 
+def iterate_bond_topologies(conformer, which):
+  """Iterates over (possibly a subset of) bond topologies in a conformer.
+
+  Args:
+    conformer: dataset_pb2.Conformer
+    which: which conformers to iterate over: all, best, starting
+
+  Yields
+    index of topology, dataset_pb2.BondTopology
+  """
+  if which not in ['all', 'best', 'starting']:
+    raise ValueError(f'Unexpected value of which: "{which}"')
+  if which == 'all':
+    yield from enumerate(conformer.bond_topologies)
+  if which == 'best':
+    yield 0, conformer.bond_topologies[0]
+  if which == 'starting':
+    if (conformer.properties.errors.status >= 512 or
+        conformer.duplicated_by > 0):
+      yield 0, conformer.bond_topologies[0]
+    for bt_idx, bt in enumerate(conformer.bond_topologies):
+      if bt.is_starting_topology:
+        yield bt_idx, bt
+
+
 def conformer_to_molecules(conformer,
                            include_initial_geometries=True,
                            include_optimized_geometry=True,
-                           include_all_bond_topologies=True):
+                           which_topologies='all'):
   """Converts a Conformer to RDKit molecules.
 
   Because a Conformer can include multiple bond topologies and geometries,
@@ -762,19 +787,15 @@ def conformer_to_molecules(conformer,
     conformer: dataset_pb2.Conformer
     include_initial_geometries: output molecule for each initial_geometries
     include_optimized_geometry: output molecule for optimized_geometry
-    include_all_bond_topologies: if False, use only the first entry of
-      bond_topologies. If True, output molecule for each bond_topologies.
+    which_topologies: "all", "best", or "starting": which topologies to return
 
   Yields:
     rdkit.Chem.rdchem.RWMol
   """
   bt_count = len(conformer.bond_topologies)
-  if include_all_bond_topologies:
-    bts = conformer.bond_topologies
-  else:
-    bts = conformer.bond_topologies[0:1]
-  requested_bond_topologies = [(bt, f'{bt.bond_topology_id}({i}/{bt_count})')
-                               for i, bt in enumerate(bts, start=1)]
+  requested_bond_topologies = [
+    (bt, f'{bt.bond_topology_id}({i+1}/{bt_count})')
+    for i, bt in iterate_bond_topologies(conformer, which_topologies)]
 
   # requested_geometries will be a list of tuples of
   # (goemetry, label)

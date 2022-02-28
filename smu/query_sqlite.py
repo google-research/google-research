@@ -89,10 +89,13 @@ flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
                         'Format for the found SMU entries')
-flags.DEFINE_boolean(
-    'sdf_include_all_bond_topologies', True,
-    'For all sdf outputs, whether to output separate entries '
-    'for each bond topology or only one')
+flags.DEFINE_enum(
+  'which_topologies', 'all', ['all', 'best', 'starting'],
+  'For sdf and atomic_input output formats, which bond '
+  'topologies shoudl be returned? '
+  '"all" means all topologies '
+  '"best" means a single best topology '
+  '"starting" means the single topology used for the calculations')
 flags.DEFINE_boolean(
     'redetect_topology', False,
     'Whether to rerun the topology detection on the conformers')
@@ -212,7 +215,7 @@ class SDFOutputter:
   """Simple internal class to write entries as multi molecule SDF files."""
 
   def __init__(self, output_path, init_geometry, opt_geometry,
-               include_all_bond_topologies):
+               which_topologies):
     """Creates SDFOutputter.
 
     At least one of init_geometry and opt_geometry should be True
@@ -221,11 +224,11 @@ class SDFOutputter:
       output_path: file path to write to
       init_geometry: bool, whether to write with initial_geometries
       opt_geometry: bool, whether to write with optimized_geometry
-      include_all_bond_topologies: bool, whether to include all bond topologies
+      which_topologies: string, which topologies to return
     """
     self.init_geometry = init_geometry
     self.opt_geometry = opt_geometry
-    self.include_all_bond_topologies = include_all_bond_topologies
+    self.which_topologies = which_topologies
     if output_path:
       self.writer = Chem.SDWriter(output_path)
     else:
@@ -241,7 +244,7 @@ class SDFOutputter:
         conformer,
         include_initial_geometries=self.init_geometry,
         include_optimized_geometry=self.opt_geometry,
-        include_all_bond_topologies=self.include_all_bond_topologies):
+        which_topologies=self.which_topologies):
       self.writer.write(mol)
 
   def close(self):
@@ -359,19 +362,19 @@ def main(argv):
         FLAGS.output_path,
         init_geometry=True,
         opt_geometry=False,
-        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
+        which_topologies=FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.sdf_opt:
     outputter = SDFOutputter(
         FLAGS.output_path,
         init_geometry=False,
         opt_geometry=True,
-        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
+        which_topologies=FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.sdf_init_opt:
     outputter = SDFOutputter(
         FLAGS.output_path,
         init_geometry=True,
         opt_geometry=True,
-        include_all_bond_topologies=FLAGS.sdf_include_all_bond_topologies)
+        which_topologies=FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.atomic_input:
     outputter = AtomicInputOutputter(FLAGS.output_path)
   elif FLAGS.output_format == OutputFormat.dat:

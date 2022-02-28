@@ -46,9 +46,14 @@ writer = Chem.SDWriter(sys.stdout)
 #   geometry, but there can be many.
 # * include_optimized_geometry: means to include output for the
 #   (single) optimized geometry.
-# * include_all_bond_topologies: False means to use only the first
-#   (i.e. best matching) bond topology that fits this geometry. True
-#   means to generate separate rdkit molcules for each topology.
+# * which_topologies: Can take one of 3 string values indicating which
+#    topologies to return. See multiple_bond_topology.py for more details on
+#    multiple bond topologies.
+#    * all: Separate molecules for each topology
+#    * best: Use only the best matching topology (which is first in
+#            conformer.bond_topologies)
+#    * starting: Use only the topology that was used to generate this goemetry
+#                and was used for some calculations
 #
 # The other cases below will modify these args.
 #-----------------------------------------------------------------------------
@@ -57,7 +62,7 @@ case0_mols = list(
         conformer,
         include_initial_geometries=False,
         include_optimized_geometry=True,
-        include_all_bond_topologies=False))
+        which_topologies='best'))
 assert len(case0_mols) == 1
 
 
@@ -76,7 +81,7 @@ case1_mols = list(
         conformer,
         include_initial_geometries=True,
         include_optimized_geometry=False,
-        include_all_bond_topologies=False))
+        which_topologies='best'))
 assert len(case1_mols) == 4
 
 print()
@@ -92,7 +97,7 @@ case2_mols = list(
         conformer,
         include_initial_geometries=False,
         include_optimized_geometry=True,
-        include_all_bond_topologies=True))
+        which_topologies='all'))
 assert len(case2_mols) == 2
 
 print()
@@ -110,7 +115,7 @@ case3_mols = list(
         conformer,
         include_initial_geometries=True,
         include_optimized_geometry=True,
-        include_all_bond_topologies=True))
+        which_topologies='all'))
 assert len(case3_mols) == 10
 
 print()
