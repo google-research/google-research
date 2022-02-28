@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+# Code for testing LogReg, MM, LMM(v(G,s)), AMM(MM), AMM(LMM(v(G,s)) using API in github.com/giorgiop/almostnolabel/blob/master/demo.R
+# Bag distribution Scenario III
 library(doMC)
 registerDoMC(cores = 2)
 library(ggplot2)
