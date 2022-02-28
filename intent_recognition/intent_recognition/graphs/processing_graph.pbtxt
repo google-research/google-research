@@ -1,0 +1,106 @@
+# proto-file: mediapipe/framework/calculator.proto
+# proto-message: CalculatorGraphConfig
+
+node {
+  calculator: "ClassMappingsSidePacketCalculator"
+  output_side_packet: "CLASS_MAPPINGS_PROVIDER:string_label_mapping_provider"
+  options {
+    [ambient_sensing.ClassMappingsSidePacketCalculatorOptions.ext] {
+      mapping_type: STRING_CLASS
+    }
+  }
+}
+
+node {
+  calculator: "FilterAnnotatedRecordingCollectionCalculator"
+  input_side_packet: "INPUT_ANNOTATED_RECORDING_COLLECTION:input"
+  output_stream: "FILTERED_ANNOTATED_RECORDING_COLLECTION:intermediate_filter"
+  options {
+    [ambient_sensing.FilterAnnotatedRecordingCollectionCalculatorOptions.ext] {
+      filter_if_sensor_not_present_or_empty: "ACCELEROMETER"
+    }
+  }
+}
+
+node {
+  calculator: "AddClassMappingsCalculator"
+  input_stream: "INPUT_ANNOTATED_RECORDING_COLLECTION:intermediate_filter"
+  input_side_packet: "CLASS_MAPPINGS_PROVIDER:string_label_mapping_provider"
+  output_stream: "OUTPUT_ANNOTATED_RECORDING_COLLECTION:label_mapped_recording_collection"
+}
+
+node {
+  calculator: "FilterAnnotatedRecordingCollectionCalculator"
+  input_stream: "INPUT_ANNOTATED_RECORDING_COLLECTION:label_mapped_recording_collection"
+  output_stream: "FILTERED_ANNOTATED_RECORDING_COLLECTION:prefiltered_output"
+  options {
+    [ambient_sensing.FilterAnnotatedRecordingCollectionCalculatorOptions.ext] {
+    }
+  }
+}
+
+node {
+  calculator: "ExtractSensorDataFromAnnotatedRecordingCollectionCalculator"
+  input_stream: "INPUT_ANNOTATED_RECORDING_COLLECTION:prefiltered_output"
+  output_stream: "OUTPUT_DATA_STREAM:0:accel_data"
+  options {
+    [ambient_sensing.ExtractSensorDataFromAnnotatedRecordingCollectionCalculatorOptions.ext] {
+      sensor_options {
+        type: "SENSOR"
+        subtype: "ACCELEROMETER"
+        required_dims: 3
+        duplicate_timestamps_handling_strategy: RAISE_ERROR
+      }
+    }
+  }
+}
+
+node {
+  calculator: "PacketResamplerCalculator"
+  input_stream: "accel_data"
+  output_stream: "resampled_accel_data"
+  options {
+    [mediapipe.PacketResamplerCalculatorOptions.ext]: {
+    }
+  }
+}
+
+node {
+  calculator: "WindowCalculator"
+  input_stream: "INPUT_STREAM:0:resampled_accel_data"
+  output_stream: "WINDOWED_VALUES_OUTPUT_STREAM:0:windowed_accel_data"
+  options {
+    [ambient_sensing.WindowCalculatorOptions.ext]: {
+      enforce_input_dims: 3
+    }
+  }
+}
+
+node {
+  calculator: "MergeSensorDataIntoAnnotatedRecordingCollectionCalculator"
+  input_stream: "INPUT_DATA_STREAM:0:resampled_accel_data"
+  input_stream: "INPUT_DATA_STREAM:1:windowed_accel_data"
+  output_stream: "OUTPUT_ANNOTATED_RECORDING_COLLECTION:merged_recording_collection"
+  options {
+    [ambient_sensing.MergeSensorDataIntoAnnotatedRecordingCollectionCalculatorOptions.ext] {
+      sensor_options {
+        type: "SENSOR"
+        subtype: "ACCELEROMETER"
+        required_dims: 3
+      }
+      sensor_options {
+        type: "SENSOR"
+        subtype: "ACCELEROMETER_WINDOW"
+        required_dims: 3
+      }
+    }
+  }
+}
+
+node {
+  calculator: "SetAnnotatedRecordingCollectionMetadataCalculator"
+  input_stream: "PROCESSED_ANNOTATED_RECORDING_COLLECTION:merged_recording_collection"
+  input_stream: "ORIGINAL_ANNOTATED_RECORDING_COLLECTION:prefiltered_output"
+  output_stream: "OUTPUT_ANNOTATED_RECORDING_COLLECTION:output"
+}
+

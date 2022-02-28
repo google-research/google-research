@@ -1,0 +1,334 @@
+// Copyright 2022 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package ambient_sensing;
+
+import "google/protobuf/duration.proto";
+
+// AnnotatedRecordingCollection is composed of a single RecordingCollection, and
+// zero or more annotations for that RecordingCollection.
+// RecordingCollection: All the recorded data from different sensors (such as
+//   proximity sensor, accelerometer, a stream of video bytes, a stream of audio
+//   bytes, etc.) over a period of time. We refer to a single
+//   RecordingCollection as a trace.
+// Sequence: All the data for a single sensor within a RecordingCollection e.g.
+//   The proximity sensor data for a single task. Composed of Datapoints or
+//   Windows of Datapoints.
+// Datapoint: the readings of a sensor at a specific point in time.
+// Window: All Datapoints for a specific period of time.
+message AnnotatedRecordingCollection {
+  reserved 2;
+  RecordingCollection recording_collection = 1;
+
+  // Annotations that are grouped by common themes. The two main themes for
+  // annotations are
+  //  - specifying ground truth information: Including, but not limited to
+  //    timestamps of events, labels & tags and rater annotations.
+  //  - incorporating results generated from the data in recording_collection:
+  //    Including, but not limited to tf model predictions, results of staged
+  //    models and artifacts to compute metrics.
+  repeated AnnotationGroup annotation_group = 3;
+}
+
+message AnnotationGroupMetadata {
+  // Shared information between AnnotationSequences in group.
+  enum AnnotationGroupType {
+    UNKNOWN = 0;
+    GROUND_TRUTH = 1;
+    // Predictions from any model/heuristic.
+    MODEL = 2;
+  }
+  AnnotationGroupType group_type = 1;
+  // When the Annotation was generated in time from epoch.
+  google.protobuf.Duration generation_time = 2;
+  // Name of the AnnotationGroup.
+  string group_descriptor = 3;
+}
+
+// Logic grouping of AnnotationSequences for e.g. AnnotationSequences for a
+// StagedModel, Predictions and metric artefacts for a specific model, ...
+message AnnotationGroup {
+  // Information about how the AnnotationsSequences are related to one-another.
+  AnnotationGroupMetadata metadata = 1;
+  // Sequence of annotations from the same source.
+  repeated AnnotationSequence annotation_sequence = 2;
+}
+
+// RecordingCollection encompasses timeseries data. Since annotations can refer
+// to any timestamp of the data, multiple Annotations of the same type with
+// different timestamp references can provide more temporal information.
+message AnnotationSequence {
+  // Metadata that identifies the source of the annotation.
+  AnnotationMetadata metadata = 1;
+  // Additional information for a RecordingCollection.
+  // This can, for example, be ground truth information or model inferences or
+  // StagedModel predictions. Annotations in AnnotationSequence are expected to
+  // be sorted by increasing timestamps.
+  repeated Annotation annotation = 2;
+  // Counter of executed analyses for a particular source. The higher the
+  // analysis counts, the higher the power impact. In a StagedModel this refers
+  // to the number of inferences for each stage.
+  int64 num_executed_analyses = 3;
+}
+
+// Additional information for a specific annotation, e.g. which Sensor it
+// pertains to.
+message AnnotationReference {
+  string reference_type = 1;
+  int64 reference_int = 2;
+}
+
+// Stores a single annotation about a recording collection. This annotation
+// can apply to a single sequence within a recording collection or to all of
+// the sequences.
+message Annotation {
+  reserved 3, 4, 5;
+  // Offset from base_timestamp.
+  // If neither start_timestamp nor end_timestamp are provided, the annotation
+  // applies to the entire sequence.
+  google.protobuf.Duration start_timestamp = 1;
+  // If end_timestamp is not provided, but start_timestamp is, the annotation
+  // refers to that point in time.
+  google.protobuf.Duration end_timestamp = 2;
+
+  // Labels of the annotation.
+  repeated AnnotationLabel label = 6;
+  // Indicates whether additional verification has been provided for the
+  // annotation. Only used to make sure that metric computation matches AT
+  // results. Will be deprecated afterwards.
+  bool verified = 7;
+  // Additional information that pertains to the annotation, e.g. whether it is
+  // related to a specific sensor. The string value should make the reference
+  // clear.
+  repeated AnnotationReference reference = 8;
+}
+
+// Information for a single label of a model.
+message AnnotationLabel {
+  // Label name.
+  string name = 1;
+  // Label id.
+  int64 id = 2;
+  // Confidence value.
+  float confidence = 3;
+}
+
+// Metadata associated with a given annotation.
+message AnnotationMetadata {
+  reserved 3, 4;
+  enum AnnotationType {
+    UNKNOWN = 0;
+    MODEL_GENERATED = 1;
+    HUMAN_LABEL = 2;
+    DERIVED = 3;
+    TAG = 4;
+    CLASS_LABEL = 5;
+    STAGED_MODEL_GENERATED = 6;
+    TASK_DURATION = 7;
+  }
+  AnnotationType annotation_type = 1;
+  // When the Annotation was generated in time from epoch.
+  google.protobuf.Duration generation_time = 2;
+
+  // Specification of the source of the annotation.
+  SourceDetails source_details = 5;
+}
+
+// Specification of source used to create annotation.
+message SourceDetails {
+  // Details to reference between different AnnotationSequences.
+  SourceIdentifier identifier = 1;
+  // Constraints used to filter annotations.
+  FilterDetails filter_details = 2;
+}
+
+message SourceIdentifier {
+  // Where the annotation came from, such as "Crowd Compute". If the annotation
+  // is model generated, this is the name of the model used to generate the
+  // annotation.
+  string name = 1;
+  // Version information for the source of the annotation.
+  string version = 2;
+  // Name of the mapping that correspondes to a model prediction.
+  string mapping_name = 3;
+}
+
+message FilterDetails {
+  // Activity labels that should not be considered as a prediction. For example,
+  // when trying to classify different lifts there might be a 'negative' class
+  // that should not affect the evaluations.
+  repeated string exclude_activity = 1;
+  // Minimum confidence a predicted label (prediction) needs to have in order to
+  // be considered for further analysis.
+  // If confidence_threshold = 0, the maximum prediction per trace is selected
+  // and no subsequent models will be assessed.
+  float confidence_threshold = 2;
+  // A model returns predictions every time it is evaluated. However, these
+  // predictions may not be very stable. It is possible to require a minimum
+  // number of identical labels within a certain number of model predictions
+  // before considering a prediction as a trigger.
+  // prediciton_to_output_filter specifies how reliable predictions have to be.
+  // If num_matching_labels == 1, the first prediction will trigger.
+  // Low-pass filering options to ensure only steady predictions are propagated.
+  // If no values are specified, model output is based on single predictions.
+  message PredictionToTriggerFilter {
+    // The number of predictions that should be evaluated together. If this
+    // value is greater than one, predictions will be assessed using a sliding
+    // window over the predictions with a stride of one.
+    int64 num_consecutive_predictions = 1;
+    // The minimum number of times a label has to be predicted within
+    // num_consecutive_predictions. If both, num_consecutive_predictions and
+    // num_matching_labels are set to one, each prediciton will be evaluated
+    // separately. num_requested_matches may not be higher than
+    // num_consecutive_predictions, otherwise the condition can never be met.
+    int64 num_matching_labels = 2;
+  }
+  PredictionToTriggerFilter prediction_to_trigger_filter = 3;
+  // Number of inferences that should be conducted after the stage has been
+  // triggered. If the value is below 1, it will default to evaluating all
+  // remaining model annotations. num_inferences_per_invocation should be equal
+  // or greater than prediction_to_output_filter.num_consecutive_predictions,
+  // otherwise the filter will be reduced to only num_inferences_per_invocation
+  // predictions.
+  int64 num_inferences_per_invocation = 4;
+  // Time model should not be run after triggering a lift.
+  int64 cooldown_period_ms = 5;
+}
+
+// RecordingCollection contains the data for a single trace.
+message RecordingCollection {
+  RecordingCollectionMetadata metadata = 1;
+  // Each Sequence holds the data for a single sensor.
+  repeated Sequence sequence = 2;
+}
+
+// Metadata associated with a given trace.
+message RecordingCollectionMetadata {
+  // The timestamp at the very start of the trace in time from epoch. All
+  // timestamps in the sequences are offsets of this timestamp.
+  google.protobuf.Duration base_timestamp = 1;
+  // Unique ID for the current session.
+  string session_id = 2;
+  // The user id of the user to whom this session belongs.
+  string user_id = 3;
+
+  // Information about how the data was collected.
+  MobileCollectionMetadata mobile_collection_metadata = 4;
+}
+
+message MobileCollectionMetadata {
+  // Descriptions of the device used to gather the data.
+  message DeviceType {
+    // Specific model the data was recorded with.
+    string model = 1;
+    // The Operating System version the device was using while recording the
+    // RecordingCollection.
+    string os_version = 2;
+    // The application version used to record the RecordingCollection.
+    string app_version = 3;
+  }
+  DeviceType device_type = 1;
+
+  // The activity being done in this trace. Serves as the ground truth for the
+  // model.
+  string session_activity = 2;
+  // The category into which session_activity falls.
+  // e.g.: session_activity  == "outdoor running"
+  //   ==> activity_category == "run"
+  string activity_category = 3;
+
+}
+
+// Stores the data for a single sensor within a trace. It can hold processed or
+// unprocessed data. If the data is processed each window is stored in a
+// windowed_datapoints field. Otherwise the data is stored as Datapoints in
+// the datapoints field.
+message Sequence {
+  SequenceMetadata metadata = 1;
+  oneof datapoints_or_windows {
+    RepeatedDatapoint repeated_datapoint = 2;
+    RepeatedWindow repeated_window = 3;
+  }
+}
+
+// A list of datapoints.
+message RepeatedDatapoint {
+  repeated Datapoint datapoint = 1;
+}
+
+// A list of windows.
+message RepeatedWindow {
+  repeated Window window = 1;
+}
+
+// Metadata associated with a single sequence.
+// NEXT_ID: 7
+message SequenceMetadata {
+  // Type of data in the sequence.
+  string type = 1;
+  // Optional subtype. Used for some types.
+  // For example, for type 'SENSOR', a subtype '1' might be specified which
+  // would in that context mean that this is accelerometer data.
+  string subtype = 6;
+  // Number of values in each measurement.
+  int32 measurement_dimensionality = 2;
+  // True if the sequence is windowed. False otherwise.
+  bool windowed = 3;
+  // Number of measurements in each window.
+  int32 window_size = 4;
+  // Number of measurements taken each second.
+  int32 sampling_rate = 5;
+}
+
+// A single window of data. May overlap with other windows within a sequence.
+message Window {
+  repeated Datapoint datapoint = 1;
+  // Relative to the base timestamp of the RecordingCollection.
+  google.protobuf.Duration offset = 2;
+}
+
+// A single datapoint within a Window or Sequence.
+message Datapoint {
+  oneof measurement {
+    DoubleDatapoint double_value = 1;
+    Int64Datapoint int_value = 2;
+    BoolDatapoint bool_value = 3;
+    BytesDatapoint bytes_value = 5;
+  }
+
+  // Relative to the base timestamp of the RecordingCollecion.
+  google.protobuf.Duration offset = 4;
+}
+
+// A list of double values.
+message DoubleDatapoint {
+  repeated double value = 1;
+}
+
+// A list of int64 values.
+message Int64Datapoint {
+  repeated int64 value = 1;
+}
+
+// A list of bool values.
+message BoolDatapoint {
+  repeated bool value = 1;
+}
+
+// A list of bytes values.
+message BytesDatapoint {
+  repeated bytes value = 1;
+}

@@ -1,0 +1,111 @@
+// Copyright 2022 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+syntax = "proto2";
+
+package ambient_sensing;
+
+import "intent_recognition/processing/window_calculator.proto";
+
+
+// Provides required information to preprocess the raw sensor data to inference
+// format.
+// Next id: 45.
+message ProcessingOptions {
+  reserved 7, 11, 12, 13, 19, 20, 21, 23, 24;
+
+  // Path to drishti config graph that specifies how the data should be
+  // preprocessed, i.e., sensor selection, sampling rate, windowing.
+  // Can be a template file where window_size, sampling_rate, window_stride, etc
+  // can be specified via parameters in PreprocessingOptions.
+  optional string processing_graph_file = 2;
+
+  // Optional window_size if preprocessing_graph is templated and needs
+  // specification of window_size.
+  optional int64 window_size = 3;
+
+  // Optional sampling_rate if preprocessing_graph is templated and needs
+  // specification of sampling_rate.
+  optional int64 sampling_rate = 4;
+
+  // Optional window_stride if preprocessing_graph is templated and needs
+  // specification of window_stride.
+  optional int64 window_stride = 6;
+
+  // Optional window_padding_strategy if preprocessing_graph is templated and
+  // needs specification of window_padding_strategy.
+  // The value must represent the valid name of
+  // WindowCalculatorOptions_PaddingStrategy enum.
+  // This field can't be of type WindowCalculatorOptions_PaddingStrategy due to
+  // proto2 vs proto3 incompatibility.
+  // Also note that explicit default values are not allowed in proto3.
+  optional WindowCalculatorOptions.PaddingStrategy padding_strategy = 34;
+
+  // Optional minimum_windows if preprocessing_graph is templated and needs
+  // specification of minimum_windows
+  optional int64 minimum_windows = 14;
+
+  // If a corresponding pattern is found in the templated config, this list will
+  // be propagated further to a filtering calculator section.
+  // Each element should only contain letters, digits and _. Other characters
+  // are not allowed.
+  repeated string at_least_one_annotation_with_substring = 8;
+
+  // If a corresponding pattern is found in the templated config, this list will
+  // be propagated further to a filtering calculator section.
+  // Each element should only contain letters, digits and _. Other characters
+  // are not allowed.
+  repeated string no_annotations_with_substring = 9;
+
+  // If a corresponding pattern is found in the templated config, this list will
+  // be propagated further to a filtering calculator section.
+  optional int64 trace_length_less_or_equal_millis = 10;
+
+  // Traces that have user ID corresponding to any of these emails are filtered
+  // out.
+  repeated string exclude_user_id = 44;
+
+  // Traces that have session_activity corresponding to any of these activities
+  // are filtered out.
+  // If exclude_session_activity is used, include_session_activity must
+  // not be used.
+  repeated string exclude_session_activity = 25;
+
+  // Keeps traces that have session_activity corresponding to any of these
+  // activities and filters out all others.
+  // If include_session_activity is empty, it will not filter out anything.
+  // If include_session_activity is used, exclude_session_activity must
+  // not be used.
+  repeated string include_session_activity = 26;
+
+  // Path to label-based class mapping files.
+  repeated string label_mapping_files = 30;
+
+  // The mapping to using for filtering.
+  optional string filter_label_mapping_name = 31;
+  // Filters out traces for which the mapping specified by
+  // filter_label_mapping_name maps an AnnotatedRecordingCollection's label
+  // to one of the names in exclude_class_name. If exclude_class_name is used,
+  // include_class_name must not be used.
+  repeated string exclude_class_name = 32;
+  // Filters out traces for which  the mapping specified by
+  // filter_label_mapping_name does not map
+  // an AnnotatedRecordingCollection's label to one of the names in
+  // include_class_name. If include_class_name is empty, it will not filter out
+  // anything. If include_class_name is used, exclude_class_name must not be
+  // used.
+  repeated string include_class_name = 33;
+
+}

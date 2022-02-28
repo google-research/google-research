@@ -16,7 +16,7 @@ syntax = "proto2";
 
 package eeg_modelling.protos;
 
-import "data.proto";
+import "protos/data.proto";
 
 
 // Represent the part of a wave that is similar to another, with a given
