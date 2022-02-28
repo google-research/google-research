@@ -217,7 +217,7 @@ class AtomicInputTest(absltest.TestCase):
 
     smu_writer_lib.check_dat_formats_match(
         expected,
-        writer.process(conformer).splitlines())
+        writer.process(conformer, 0).splitlines())
 
 
 if __name__ == '__main__':

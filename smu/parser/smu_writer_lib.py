@@ -956,13 +956,23 @@ class AtomicInputWriter:
   def __init__(self):
     pass
 
-  def get_filename_for_atomic_input(self, conformer):
+  def get_filename_for_atomic_input(self, conformer, bond_topology_idx):
     """Returns the expected filename for an atomic input."""
-    return '{}.{:06d}.{:03d}.inp'.format(
-        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
-        conformer.conformer_id // 1000, conformer.conformer_id % 1000)
+    if bond_topology_idx:
+      return '{}.{:06d}.{:03d}.{:02d}.inp'.format(
+        smu_utils_lib.get_composition(
+          conformer.bond_topologies[bond_topology_idx]),
+        conformer.conformer_id // 1000,
+        conformer.conformer_id % 1000,
+        bond_topology_idx)
+    else:
+      return '{}.{:06d}.{:03d}.inp'.format(
+        smu_utils_lib.get_composition(
+          conformer.bond_topologies[bond_topology_idx]),
+        conformer.conformer_id // 1000,
+        conformer.conformer_id % 1000)
 
-  def get_mol_block(self, conformer):
+  def get_mol_block(self, conformer, bond_topology_idx):
     """Returns the MOL file block with atoms and bonds.
 
     Args:
@@ -974,10 +984,11 @@ class AtomicInputWriter:
     contents = []
     contents.append('\n')
     contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
-        len(conformer.bond_topologies[0].atoms),
-        len(conformer.bond_topologies[0].bonds)))
-    for atom_type, coords in zip(conformer.bond_topologies[0].atoms,
-                                 conformer.optimized_geometry.atom_positions):
+        len(conformer.bond_topologies[bond_topology_idx].atoms),
+        len(conformer.bond_topologies[bond_topology_idx].bonds)))
+    for atom_type, coords in zip(
+        conformer.bond_topologies[bond_topology_idx].atoms,
+        conformer.optimized_geometry.atom_positions):
       contents.append(
           '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
           .format(
@@ -985,7 +996,7 @@ class AtomicInputWriter:
               smu_utils_lib.bohr_to_angstroms(coords.y),
               smu_utils_lib.bohr_to_angstroms(coords.z),
               smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
-    for bond in conformer.bond_topologies[0].bonds:
+    for bond in conformer.bond_topologies[bond_topology_idx].bonds:
       contents.append('{:3d}{:3d}{:3d}  0\n'.format(bond.atom_a + 1,
                                                     bond.atom_b + 1,
                                                     bond.bond_type))
@@ -1073,15 +1084,16 @@ class AtomicInputWriter:
       contents.append(line + '\n')
     return contents
 
-  def process(self, conformer):
+  def process(self, conformer, bond_topology_idx):
     """Creates the atomic input file for conformer."""
     contents = []
-    contents.append(conformer.bond_topologies[0].smiles + '\n')
+    contents.append(conformer.bond_topologies[bond_topology_idx].smiles + '\n')
     contents.append('{}.{:06d}.{:03d}\n'.format(
-        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
+        smu_utils_lib.get_composition(
+          conformer.bond_topologies[bond_topology_idx]),
         conformer.conformer_id // 1000, conformer.conformer_id % 1000))
 
-    contents.extend(self.get_mol_block(conformer))
+    contents.extend(self.get_mol_block(conformer, bond_topology_idx))
     contents.extend(self.get_energies(conformer))
     contents.extend(self.get_frequencies(conformer))
     contents.append('$end\n')

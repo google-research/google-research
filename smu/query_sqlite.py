@@ -254,7 +254,7 @@ class SDFOutputter:
 class AtomicInputOutputter:
   """Internal class to write output as the inputs to atomic code."""
 
-  def __init__(self, output_path):
+  def __init__(self, output_path, which_topologies):
     """Creates AtomicInputOutputter.
 
     Args:
@@ -265,18 +265,22 @@ class AtomicInputOutputter:
       raise ValueError(
           'Atomic input requires directory as output path, got {}'.format(
               self.output_path))
+    self.which_topologies = which_topologies
     self.atomic_writer = smu_writer_lib.AtomicInputWriter()
 
   def output(self, conformer):
-    if self.output_path is None:
-      sys.stdout.write(self.atomic_writer.process(conformer))
-    else:
-      with open(
-          os.path.join(
-              self.output_path,
-              self.atomic_writer.get_filename_for_atomic_input(conformer)),
-          'w') as f:
-        f.write(self.atomic_writer.process(conformer))
+    for bt_idx, _ in smu_utils_lib.iterate_bond_topologies(
+        conformer, self.which_topologies):
+      if self.output_path is None:
+        sys.stdout.write(self.atomic_writer.process(conformer, bt_idx))
+      else:
+        with open(
+            os.path.join(
+                self.output_path,
+                self.atomic_writer.get_filename_for_atomic_input(
+                  conformer, bt_idx)),
+            'w') as f:
+          f.write(self.atomic_writer.process(conformer, bt_idx))
 
   def close(self):
     pass
@@ -376,7 +380,7 @@ def main(argv):
         opt_geometry=True,
         which_topologies=FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.atomic_input:
-    outputter = AtomicInputOutputter(FLAGS.output_path)
+    outputter = AtomicInputOutputter(FLAGS.output_path, FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.dat:
     outputter = DatOutputter(FLAGS.output_path)
   else:

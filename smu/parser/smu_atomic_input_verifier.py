@@ -60,9 +60,9 @@ def main(argv):
     for conformer, _ in smu_parser.process_stage2():
       conformer_count += 1
 
-      actual_contents = atomic_writer.process(conformer)
+      actual_contents = atomic_writer.process(conformer, 0)
 
-      expected_fn = atomic_writer.get_filename_for_atomic_input(conformer)
+      expected_fn = atomic_writer.get_filename_for_atomic_input(conformer, 0)
       with gfile.GFile(os.path.join(FLAGS.atomic_input_dir,
                                     expected_fn)) as expected_f:
         expected_contents = expected_f.readlines()
