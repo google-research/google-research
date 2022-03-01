@@ -15,19 +15,18 @@
 
 """Fork of flax.deprecated.nn.attention modules with optional quantization."""
 
+import dataclasses
 import typing
 from typing import Any, Callable, Iterable, Optional, Type, TypeVar
 
-import dataclasses
 from flax import linen as nn
-from flax.linen import initializers
 # TODO(malmaud): Remove reliance on these 'legacy' nn.attention methods
 from flax.deprecated.nn.attention import _make_causal_mask
 from flax.deprecated.nn.attention import make_padding_mask
+from flax.linen import initializers
 import jax
 from jax import lax
 from jax import random
-from jax._src.numpy import lax_numpy
 import jax.numpy as jnp
 import numpy as onp
 
@@ -147,15 +146,10 @@ def exponential(tensor, dtype, exp_hparams):
   if exp_hparams.low_bound != 0:
     tensor = jnp.clip(tensor, exp_hparams.low_bound, 0.)
 
-  # TODO(luispazos) Use standard calls to top level jnp functions.
-  # pylint: disable=protected-access
-  def make_constant(c):
-    return lax_numpy._constant_like(tensor, c).astype(dtype)
-
   # If clip_and_subtract, replace exp(clip(x-M,low_bound)) term with
   # exp(clip(x-M,low_bound))-exp(low_bound).'
   if exp_hparams.clip_and_subtract:
-    tensor = lax.sub(tensor, make_constant(onp.exp(exp_hparams.low_bound)))
+    tensor = lax.sub(tensor, onp.exp(exp_hparams.low_bound).astype(dtype))
   # If linear_gradient: use this gradient as linear approximation of
   # exponential.
   if exp_hparams.linear_gradient is not None and exp_hparams.linear_gradient != 0:
@@ -232,8 +226,7 @@ def softmax(attn_weights, norm_dims, dtype, softmax_hparams,
   shape = jax.util.subvals(onp.shape(a), zip(norm_dims, (1,) * len(norm_dims)))
   dimadd = lambda x: lax.reshape(x, shape)
   # pylint: disable=protected-access
-  amax = lax.reduce(a, lax_numpy._constant_like(a, -onp.inf), lax.max,
-                    norm_dims)
+  amax = lax.reduce(a, onp.array(-onp.inf, dtype=a.dtype), lax.max, norm_dims)
   amax = lax.select(lax.is_finite(amax), amax, lax.full_like(amax, 0))
   amax_singletons = dimadd(amax)
   asubmax = lax.sub(a, amax_singletons)
@@ -243,8 +236,7 @@ def softmax(attn_weights, norm_dims, dtype, softmax_hparams,
 
   # If sum_high_bound: Upper clip bound for sum(exp(x-M)).
   asumexp = dimadd(
-      lax.reduce(approx_exp, lax_numpy._constant_like(a, 0), lax.add,
-                 norm_dims))
+      lax.reduce(approx_exp, onp.array(0, dtype=a.dtype), lax.add, norm_dims))
 
   if exp_hparams.sum_high_bound is not None and exp_hparams.sum_high_bound != 0:
     sum_low_bound = 1.
