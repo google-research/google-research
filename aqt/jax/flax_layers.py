@@ -39,6 +39,10 @@ from aqt.jax import shape_utils
 from aqt.jax import stats_tag
 from aqt.jax import utils
 from aqt.jax.flax import struct as flax_struct
+
+# BEGIN GOOGLE_INTERNAL
+from aqt.jax.google.sparsity import SparseHParams
+
 from aqt.jax.quantization import QuantOps
 from aqt.jax.quantization import QuantType
 
@@ -82,7 +86,7 @@ class DenseAqt(nn.Module):
 
   @dataclass
   class HParams:
-    """Hyperparameter class to quantize Dense Layer."""
+    """Hyperparameter class to quantize/sparsify Dense Layer."""
     # Target integer precision of weights in bits.
     # If None, no weight quantization will be applied.
     weight_prec: Union[None, int, QuantOps.FloatQuant]
@@ -94,6 +98,7 @@ class DenseAqt(nn.Module):
     # Quantization strategy, one of `fake_quant` or `aqt`.
     quant_type: QuantType
     weight_quant_granularity: quant_config.QuantGranularity
+
 
   hparams: HParams
   paxis_name: Optional[str]

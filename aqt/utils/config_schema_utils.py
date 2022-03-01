@@ -120,8 +120,13 @@ def get_dense_config(
   """Creates a ConfigDict corresponding to aqt.flax_layers.DenseAqt.HParams."""
   config = ml_collections.ConfigDict()
   set_default_reference(config, parent_config, [
-      "weight_prec", "weight_quant_granularity", "quant_type", "quant_act",
-      "weight_half_shift"
+      "weight_prec",
+      "weight_quant_granularity",
+      "quant_type",
+      "quant_act",
+      "weight_half_shift",
+      "act_sparsity",
+      "weight_sparsity",
   ])
   config.lock()
   return config
@@ -158,10 +163,26 @@ def get_fp_config():
   return config
 
 
+def get_sparse_config(use_unstructured):
+  """Returns a sparse ConfigDict based on sparsity type argument."""
+  prune_rate = float_ph() if use_unstructured else (int_ph(), int_ph())
+  config = ml_collections.ConfigDict({
+      "type": str_ph(),
+      "prune_rate": prune_rate,
+      "smallest": bool_ph(),
+      "order": str_ph(),
+      "absolute": bool_ph()
+  })
+  config.lock()
+  return config
+
+
 # TODO(shivaniagrawal): base config should be more generic and only model
 # specific configs should be updated.
-def get_base_config(use_auto_acts,
-                    fp_quant):
+def get_base_config(
+    use_auto_acts,
+    fp_quant,
+    use_unstructured = False):
   """Return a base ConfigDict for AQT; does not have model specific fields."""
   if use_auto_acts:
     bounds = ml_collections.ConfigDict({
@@ -182,6 +203,7 @@ def get_base_config(use_auto_acts,
     prec = get_fp_quant_config()
   else:
     prec = int_ph()
+  sparsity = get_sparse_config(use_unstructured)
   base_config = ml_collections.ConfigDict({
       "metadata": {
           "description": "Base configuration",
@@ -191,6 +213,7 @@ def get_base_config(use_auto_acts,
       "activation_bound_update_freq": int_ph(),
       "activation_bound_start_step": int_ph(),
       "prec": prec,
+      "sparsity": sparsity,
       "half_shift": bool_ph(),
       "quant_type": str_ph(),
       "quant_act": {
@@ -207,6 +230,11 @@ def get_base_config(use_auto_acts,
   set_default_reference(
       base_config, base_config, "weight_prec", parent_field="prec")
   set_default_reference(base_config.quant_act, base_config, "prec")
+  set_default_reference(
+      base_config, base_config, "act_sparsity", parent_field="sparsity")
+  set_default_reference(
+      base_config, base_config, "weight_sparsity", parent_field="sparsity")
+
   set_default_reference(
       base_config, base_config, "weight_half_shift", parent_field="half_shift")
   set_default_reference(base_config.quant_act, base_config, "half_shift")

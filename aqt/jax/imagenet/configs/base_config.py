@@ -23,6 +23,8 @@ from typing import List
 
 from aqt.jax.imagenet.configs_script import config_schema
 
+# pylint: disable=invalid-name
+
 
 class ImagenetType(enum.Enum):
   """Enum to distinguish between different resnet architectures.
@@ -106,6 +108,13 @@ def get_base_config(imagenet_type, quant_target):
       "activation_bound_update_freq": -1,
       "activation_bound_start_step": -1,
       "prec": None,
+      "sparsity": {
+          "type": "N_M_STRUCTURED",
+          "prune_rate": None,
+          "order": "C",
+          "absolute": True,
+          "smallest": True,
+      },
       "quant_type": "fake_quant",
       "weight_quant_granularity": "per_channel",
       "act_function": "relu",

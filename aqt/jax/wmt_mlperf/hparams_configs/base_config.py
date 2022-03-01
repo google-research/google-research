@@ -22,6 +22,8 @@ import enum
 
 from aqt.jax.wmt_mlperf.hparams_config_scripts import config_schema
 
+# pylint: disable=invalid-name
+
 
 class QuantTarget(enum.Enum):
   """Specifies which part of the model to quantize."""
@@ -99,7 +101,14 @@ def get_base_config(n_layers, use_auto_acts, fp_quant):
           "logits_via_embedding": True,
       },
       "weight_outlier_regularization_regex": "^.*kernel$",
-      "weight_quant_granularity": "per_channel"
+      "weight_quant_granularity": "per_channel",
+      "sparsity": {
+          "type": "N_M_STRUCTURED",
+          "prune_rate": None,
+          "order": "C",
+          "absolute": True,
+          "smallest": True,
+      },
   })
   if not fp_quant:
     config.prec = None

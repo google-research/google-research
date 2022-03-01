@@ -172,6 +172,14 @@ class BaseConfigTest(parameterized.TestCase):
     # below indicates a real configuration would have a concrete scalar value
     # there.
 
+    sparsity_schema = {
+        'type': None,
+        'prune_rate': [None, None],  # set to default structured
+        'smallest': None,
+        'order': None,
+        'absolute': None
+    }
+
     quant_act_schema = {
         'bounds': {
             'initial_bound': None,
@@ -196,6 +204,8 @@ class BaseConfigTest(parameterized.TestCase):
         'quant_type': None,
         'quant_act': quant_act_schema,
         'weight_half_shift': None,
+        'weight_sparsity': sparsity_schema,
+        'act_sparsity': sparsity_schema,
     }
 
     embedding_schema = {
@@ -275,6 +285,9 @@ class BaseConfigTest(parameterized.TestCase):
         'embedding': embedding_schema,
         'mlp_block': mlp_block_schema,
         'attention': attention_schema,
+        'sparsity': sparsity_schema,
+        'weight_sparsity': sparsity_schema,
+        'act_sparsity': sparsity_schema,
         'model_hparams': {
             'emb_dim': None,
             'num_heads': None,

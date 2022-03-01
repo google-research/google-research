@@ -15,13 +15,13 @@
 
 """Functions to load/save the hparams to/from a config dict."""
 
+import dataclasses
 import json
 import os
 import typing
 from typing import Any, Dict, Optional, Type, TypeVar
 
 import dacite
-import dataclasses
 import jax
 import ml_collections
 
@@ -29,6 +29,8 @@ import ml_collections
 from aqt.jax import quant_config
 from aqt.jax import quantization
 from aqt.jax.flax import struct as flax_struct
+
+
 
 T = TypeVar('T')
 
@@ -106,7 +108,8 @@ def load_dataclass_from_dict(dataclass_name,
   # listed here. See https://github.com/konradhalas/dacite#casting.
   enum_classes = [
       quantization.QuantOps.ActHParams.InputDistribution,
-      quantization.QuantType, quant_config.QuantGranularity
+      quantization.QuantType, quant_config.QuantGranularity,
+      sparsity.SparseType,
   ]
   data_dict = _convert_lists_to_tuples(data_dict)
   return dacite.from_dict(
