@@ -1,0 +1,9 @@
+absl-py
+matplotlib
+numpy
+pandas
+psutil
+seaborn
+tensorflow
+tensorflow-datasets
+tqdm
