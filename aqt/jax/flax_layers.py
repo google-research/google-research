@@ -15,7 +15,7 @@
 
 """Implementation of matrix multiply layers in flax with quantization.
 
-Extends flax layers flax.deprecated.nn.Dense.
+Extends flax layers flax.linen.Dense.
 """
 
 import contextlib
@@ -57,7 +57,7 @@ default_kernel_init = nn.initializers.lecun_normal()
 dataclass = flax_struct.dataclass if not typing.TYPE_CHECKING else dataclasses.dataclass
 
 
-# Based on flax.deprecated.nn.Dense
+# Based on flax.linen.Dense
 class DenseAqt(nn.Module):
   """A linear transformation with optional per-feature weight quantization.
 
@@ -227,7 +227,7 @@ class DenseAqt(nn.Module):
     return y
 
 
-# Based on flax.deprecated.nn.Conv
+# Based on flax.linen.Conv
 class ConvAqt(nn.Module):
   """Convolution Module with optional quantization.
 
@@ -349,7 +349,7 @@ class ConvAqt(nn.Module):
           quantize_weights=self.quant_context.quantize_weights)
 
     # Convolution
-    dimension_numbers = flax.deprecated.nn.linear._conv_dimension_numbers(
+    dimension_numbers = flax.linen.linear._conv_dimension_numbers(
         inputs.shape)  # pylint: disable=protected-access
     metadata_context = contextlib.suppress()
     # Use metadata context to annotate op metadata with quantization info
@@ -384,12 +384,12 @@ class ConvAqt(nn.Module):
       y = y + bias
     return y
 
-# From flax.deprecated.nn.Embed
+# From flax.linen.Embed
 default_embed_init = nn.initializers.variance_scaling(
     1.0, 'fan_in', 'normal', out_axis=0)
 
 
-# This is based on flax.deprecated.nn.Embed
+# This is based on flax.linen.Embed
 # (https://github.com/google/flax/blob/65061e6128f6695eed441acf2bfffc3b1badd318/flax/nn/linear.py#L360)
 class EmbedAqt(nn.Module):
   """Quantized Embedding Module.

@@ -14,14 +14,17 @@ Pouya Dormiani, Phoenix Meadowlark, Oleg Rybakov.
 # Install SVN to only download the aqt directory of Google Research.
 sudo apt install subversion
 
-# Download this directory
+# Download this directory.
 svn export https://github.com/google-research/google-research/trunk/aqt
 
-# Upgrade pip
+# Upgrade pip.
 pip install --user --upgrade pip
 
-# Install the requirements from `requirements.txt`
+# Install the requirements from `requirements.txt`.
 pip install --user -r aqt/requirements.txt
+
+# Add aqt to PYTHONPATH so that its modules can be imported anywhere.
+export PYTHONPATH=/path/to/parent/dir/of/aqt
 ```
 
 ## AQT Quantization Library
