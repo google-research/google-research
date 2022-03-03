@@ -109,7 +109,7 @@ def load_dataclass_from_dict(dataclass_name,
   enum_classes = [
       quantization.QuantOps.ActHParams.InputDistribution,
       quantization.QuantType, quant_config.QuantGranularity,
-      sparsity.SparseType,
+
   ]
   data_dict = _convert_lists_to_tuples(data_dict)
   return dacite.from_dict(

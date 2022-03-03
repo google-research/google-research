@@ -40,8 +40,6 @@ from aqt.jax import stats_tag
 from aqt.jax import utils
 from aqt.jax.flax import struct as flax_struct
 
-# BEGIN GOOGLE_INTERNAL
-from aqt.jax.google.sparsity import SparseHParams
 
 from aqt.jax.quantization import QuantOps
 from aqt.jax.quantization import QuantType
