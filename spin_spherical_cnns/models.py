@@ -24,7 +24,7 @@ perfect reproduction is not yet achieved.
 """
 import functools
 import operator
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Type, Union
 from flax import linen as nn
 import jax.numpy as jnp
 import numpy as np
@@ -51,6 +51,9 @@ class SpinSphericalBlock(nn.Module):
     downsampling_factor: How much to downsample before applying the
       convolution. Will not downsample when downsampling_factor==1.
     axis_name: Identifier for the mapped axis in parallel training.
+    after_conv_module: Module to apply after convolution. Usually a
+      non-linearity or batch norm + non-linearity. Must follow the
+      interface of `layers.SpinSphericalBatchNormMagnitudeNonlin`.
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of filter parameters in the convolutional layer.
   """
@@ -60,6 +63,8 @@ class SpinSphericalBlock(nn.Module):
   downsampling_factor: int
   axis_name: Any
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
+  after_conv_module: Type[
+      nn.Module] = layers.SpinSphericalBatchNormMagnitudeNonlin
   num_filter_params: Optional[int] = None
 
   @nn.compact
@@ -92,7 +97,7 @@ class SpinSphericalBlock(nn.Module):
         transformer=self.transformer,
         name='spherical_conv')(feature_maps)
 
-    return layers.SpinSphericalBatchNormalizationNonlinearity(
+    return self.after_conv_module(
         spins=self.spins_out,
         use_running_stats=not train,
         axis_name=self.axis_name,
