@@ -2,6 +2,7 @@
 
 Papers using this code:
 
+1. [TRILLsson: Distilled Universal Paralinguistic Speech Representations](https://arxiv.org/abs/2203.00236)
 1. ICASSP 2022: [Universal Paralinguistic Speech Representations Using Self-Supervised Conformers](https://arxiv.org/abs/2110.04621)
 1. [BigSSL: Exploring the Frontier of Large-Scale Semi-Supervised Learning for Automatic Speech Recognition](https://arxiv.org/abs/2109.13226)
 1. Interspeech 2021: [FRILL: A Non-Semantic Speech Embedding for Mobile Devices](https://arxiv.org/abs/2011.04609)
