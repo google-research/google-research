@@ -519,3 +519,50 @@ def ds_tc_resnet_model_params(use_tf_fft=False):
   params.desired_samples = signal_size
   params.batch_size = 1
   return params
+
+
+def saved_model_to_tflite(saved_model_path,
+                          optimizations=None,
+                          inference_type=tf1.lite.constants.FLOAT,
+                          experimental_new_quantizer=True,
+                          representative_dataset=None,
+                          inference_input_type=tf.float32,
+                          inference_output_type=tf.float32):
+  """Convert saved_model to tflite.
+
+  Args:
+    saved_model_path: path to saved_model
+    optimizations: list of optimization options
+    inference_type: inference type, can be float or int8
+    experimental_new_quantizer: enable new quantizer
+    representative_dataset: function generating representative data sets
+      for calibation post training quantizer
+    inference_input_type: it can be used to quantize input data e.g. tf.int8
+    inference_output_type: it can be used to quantize output data e.g. tf.int8
+
+  Returns:
+    tflite model
+  """
+
+  converter = tf.compat.v2.lite.TFLiteConverter.from_saved_model(
+      saved_model_path)
+
+  converter.inference_type = inference_type
+  converter.experimental_new_quantizer = experimental_new_quantizer
+  converter.experimental_enable_resource_variables = True
+  converter.experimental_new_converter = True
+  if representative_dataset is not None:
+    converter.representative_dataset = representative_dataset
+
+  # this will enable audio_spectrogram and mfcc in TFLite
+  converter.target_spec.supported_ops = [
+      tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
+  ]
+  converter.allow_custom_ops = True
+
+  converter.inference_input_type = inference_input_type
+  converter.inference_output_type = inference_output_type
+  if optimizations:
+    converter.optimizations = optimizations
+  tflite_model = converter.convert()
+  return tflite_model
