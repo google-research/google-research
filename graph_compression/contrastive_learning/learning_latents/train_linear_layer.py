@@ -26,10 +26,10 @@ from absl import logging
 from simclr.tf2 import lars_optimizer as lars
 import tensorflow.compat.v2 as tf
 
-import graph_compression.contrastive_learning.data_utils as data_lib  # pylint: disable=unused-import
-import graph_compression.contrastive_learning.datasets as datasets_lib
-import graph_compression.contrastive_learning.metrics_utils as metrics_lib
-import graph_compression.contrastive_learning.models as models_lib
+import graph_compression.contrastive_learning.data_utils.learning_latents as data_lib  # pylint: disable=unused-import
+import graph_compression.contrastive_learning.datasets.learning_latents as datasets_lib
+import graph_compression.contrastive_learning.metrics_utils.learning_latents as metrics_lib
+import graph_compression.contrastive_learning.models.learning_latents as models_lib
 
 
 FLAGS = flags.FLAGS

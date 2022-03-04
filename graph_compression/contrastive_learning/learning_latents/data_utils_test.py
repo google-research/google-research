@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v2 as tf
 
-from graph_compression.contrastive_learning import data_utils
+from graph_compression.contrastive_learning.learning_latents import data_utils
 
 
 # create some fake datasets with the same structure as the real ones

@@ -35,7 +35,7 @@ import pandas as pd
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 
-from graph_compression.contrastive_learning import data_utils
+from graph_compression.contrastive_learning.learning_latents import data_utils
 
 FLAGS = flags.FLAGS
 
