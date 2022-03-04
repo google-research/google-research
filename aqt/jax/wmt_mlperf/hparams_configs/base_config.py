@@ -102,13 +102,7 @@ def get_base_config(n_layers, use_auto_acts, fp_quant):
       },
       "weight_outlier_regularization_regex": "^.*kernel$",
       "weight_quant_granularity": "per_channel",
-      "sparsity": {
-          "type": "N_M_STRUCTURED",
-          "prune_rate": None,
-          "order": "C",
-          "absolute": True,
-          "smallest": True,
-      },
+
   })
   if not fp_quant:
     config.prec = None

@@ -168,27 +168,6 @@ class BaseConfigTest(parameterized.TestCase):
     self.assertEqual(config.weight_prec.to_dict(), expected_prec_dict)
     self.assertEqual(config.quant_act.prec.to_dict(), expected_prec_dict)
 
-  @parameterized.parameters(
-      dict(use_unstructured=True), dict(use_unstructured=False))
-  def test_sparsity_propagates(self, use_unstructured):
-    config = config_schema_utils.get_base_config(
-        use_auto_acts=True, fp_quant=False, use_unstructured=use_unstructured)
-
-    prune_rate = 0.2 if use_unstructured else (1, 2)
-
-    expected_sparse_dict = {
-        'type': 'unstructured',
-        'prune_rate': prune_rate,
-        'smallest': True,
-        'absolute': False,
-        'order': 'C'
-    }
-
-    config.sparsity.update(expected_sparse_dict)
-
-    # Test that this sets the weight and activation to 4 as well.
-    self.assertEqual(config.weight_sparsity.to_dict(), expected_sparse_dict)
-    self.assertEqual(config.act_sparsity.to_dict(), expected_sparse_dict)
 
   def test_auto_acts_parameter(self):
     # If use_auto_acts is False, then the bounds should be a single scalar that
@@ -211,11 +190,11 @@ class BaseConfigTest(parameterized.TestCase):
       dict(use_auto_acts=True, fp_quant=False),
       dict(use_auto_acts=False, fp_quant=False),
       dict(use_auto_acts=False, fp_quant=True),
-      dict(use_auto_acts=False, fp_quant=True, use_unstructured=True))
+      )
   def test_schema_matches_expected(self,
                                    use_auto_acts,
                                    fp_quant,
-                                   use_unstructured=False):
+                                   ):
     # This tests that the schema of the configdict returned by 'base_config',
     # once all references are resolved, matches an expected schema. 'Schema'
     # here means the names and structure of fields at each level of the
@@ -260,14 +239,6 @@ class BaseConfigTest(parameterized.TestCase):
           'prec': prec,
           'half_shift': None,
       }
-    prune_rate = None if use_unstructured else [None, None]
-    sparsity = {
-        'type': None,
-        'prune_rate': prune_rate,
-        'smallest': None,
-        'order': None,
-        'absolute': None
-    }
     expected_top_level_schema = {
         'metadata': {
             'description': None,
@@ -283,15 +254,12 @@ class BaseConfigTest(parameterized.TestCase):
         'quant_type': None,
         'quant_act': quant_act_schema,
         'weight_quant_granularity': None,
-        'sparsity': sparsity,
-        'weight_sparsity': sparsity,
-        'act_sparsity': sparsity,
     }
 
     config = config_schema_utils.get_base_config(
         use_auto_acts=use_auto_acts,
         fp_quant=fp_quant,
-        use_unstructured=use_unstructured)
+        )
     # This round-trip conversion from JSON forces all references to resolve to
     # concrete values.
     config_reified = json.loads(config.to_json())

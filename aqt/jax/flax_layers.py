@@ -84,7 +84,7 @@ class DenseAqt(nn.Module):
 
   @dataclass
   class HParams:
-    """Hyperparameter class to quantize/sparsify Dense Layer."""
+    """Hyperparameter class to quantize Dense Layer."""
     # Target integer precision of weights in bits.
     # If None, no weight quantization will be applied.
     weight_prec: Union[None, int, QuantOps.FloatQuant]
