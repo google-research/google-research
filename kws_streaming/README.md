@@ -238,8 +238,16 @@ We change neural net topology by introducing additional buffers/states
 into layers such as conv, lstm, etc.
 We receive audio data in streaming mode: packet by packet.
 (so we do not have access to the whole sequence).
-Inference graph is stateful, so that graph has internal states which are kept updated 
-between inference invocations.
+Inference graph is stateful, so that graph has internal states which are kept
+updated between inference invocations.
+
+Model streaming with internal state is supported in TFlite, but conversion
+has to be done with separate utility (in eager mode), shown below.
+```
+python -m kws_streaming.train.convert \
+--saved_model_path=/tmp/ds_tc_resnet/stream_state_internal \
+--tflite_model_path=/tmp/ds_tc_resnet/stream_state_internal/model_stream.tflite
+```
 
 4. Streaming inference with external state
 'Modes.STREAM_EXTERNAL_STATE_INFERENCE'.

@@ -19,9 +19,11 @@ import sys
 import kws_streaming.models.utils as utils
 import tensorflow as tf
 
-FLAGS = tf.flags.FLAGS
-tf.flags.DEFINE_string('saved_model_path', '', 'Path to input saved_model.')
-tf.flags.DEFINE_string('tflite_model_path', '', 'Path to output tflite module.')
+FLAGS = tf.compat.v1.flags.FLAGS
+tf.compat.v1.flags.DEFINE_string('saved_model_path', '',
+                                 'Path to input saved_model.')
+tf.compat.v1.flags.DEFINE_string('tflite_model_path', '',
+                                 'Path to output tflite module.')
 
 
 def main(unused_argv):
