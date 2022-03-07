@@ -93,24 +93,21 @@ class LocalShardedParameterStats:
 
 
 def init_training_metrics(num_statistics):
-  if num_statistics:
-    return TrainingMetrics(jnp.zeros([num_statistics], jnp.float32))
-  else:
-    return TrainingMetrics([])
+  # Since the downstream apis expect a jnp.array - we create a dummy one if
+  # num_statistics=0.
+  n = 1 if not num_statistics else num_statistics
+  return TrainingMetrics(jnp.zeros([n], jnp.float32))
 
 
 def init_training_metrics_shapes(num_statistics):
-  if num_statistics:
-    return TrainingMetrics([[num_statistics], jnp.float32])
-  else:
-    return TrainingMetrics([None, jnp.float32])
+  # Since the downstream apis expect a jnp.array - we create a dummy one if
+  # num_statistics=0.
+  n = 1 if not num_statistics else num_statistics
+  return TrainingMetrics([[n], jnp.float32])
 
 
-def init_training_metrics_pspec(num_statistics):
-  if num_statistics:
-    return TrainingMetrics(pjit.PartitionSpec())
-  else:
-    return TrainingMetrics(None)
+def init_training_metrics_pspec():
+  return TrainingMetrics(pjit.PartitionSpec())
 
 
 class ShardedShampooStats(NamedTuple):
@@ -863,7 +860,7 @@ def distributed_shampoo(
     if pspec and len(pspec) > 1:
       return pjit.PartitionSpec(*pspec[1:])
     else:
-      return None
+      return []
 
   def sharded_init_partition_spec_fn(params, params_partition_spec,
                                      partition_spec_for_statistics):
@@ -921,17 +918,20 @@ def distributed_shampoo(
 
       local_stats_flat.append(
           LocalShardedParameterStats(
-              QuantizedValue(diagonal_statistics_pspec, [],
+              QuantizedValue(diagonal_statistics_pspec,
+                             [],
                              diagonal_statistics_scale_pspec,
                              quantized_dtype_for_diagonal_statistics_buffers(),
                              False, list(param.shape)),
-              QuantizedValue(m1_pspec, [], m1_scale_pspec,
+              QuantizedValue(m1_pspec,
+                             [],
+                             m1_scale_pspec,
                              quantized_dtype_for_momentum_buffers(),
                              False, list(param.shape)),
               QuantizedValue(m2_pspec, [], m2_scale_pspec,
                              quantized_dtype_for_momentum_buffers(),
                              False, list(param.shape)),
-              init_training_metrics_pspec(len(sizes)), index_start, sizes))
+              init_training_metrics_pspec(), index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
