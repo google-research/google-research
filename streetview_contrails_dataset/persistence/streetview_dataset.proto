@@ -113,9 +113,16 @@ message FormationInfo {
   Waypoints nearby_flight_waypoints = 5;
   LinearContrail streetview_contrail = 3;
   FlightMatchScore match_score = 4;
+  string streetview_detection_id = 7;
 
   reserved 2;
 }
+
+message PlausibleOtherFlight {
+  int64 flight_id = 1;
+  Waypoints nearby_flight_waypoints = 2;
+}
+
 
 enum DetectionOutcome {
   NOT_DETECTED = 0;
@@ -141,6 +148,11 @@ message PersistenceLabel {
   // Flight waypoints from FormationInfo advected forward
   // in time to the `timestamp` above,
   Waypoints advected_flight_waypoints = 6;
+
+  // If satellite_contrail is present,
+  // this contains other flights that plausibly caused it (aside from the
+  // Streetview-imaged flight that's recorded in advected_flight_waypoints).
+  repeated PlausibleOtherFlight plausible_other_flights = 7;
 
   reserved 5;
 }
