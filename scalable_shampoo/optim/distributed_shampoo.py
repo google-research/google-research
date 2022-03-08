@@ -30,8 +30,10 @@
 from typing import Any
 
 from flax import struct
+from flax.core import unfreeze
 from flax.optim.base import OptimizerDef
 from flax.optim.base import OptimizerState
+import jax
 from jax import lax
 import jax.experimental.pjit as pjit
 import numpy as onp
@@ -292,7 +294,12 @@ class DistributedShampoo(OptimizerDef):
                                                   optim_state.param_states)
 
   def init_state(self, params):
-    opt_state = self.distributed_shampoo.init(params=params)
+    init_fn = self.distributed_shampoo.init
+    if self._hps.shard_optimizer_states:
+      init_state = self.distributed_shampoo.init(None)
+      init_fn = init_state.init_fn
+
+    opt_state = init_fn(params=params)
     return self._optax_state_to_optim_state(opt_state)
 
   def apply_gradient(self, hyper_params, params, state, grads):
@@ -314,3 +321,22 @@ class DistributedShampoo(OptimizerDef):
     new_params = optax.apply_updates(params, unapplied_updates)
     new_state = self._optax_state_to_optim_state(new_optax_state)
     return new_params, new_state
+
+  def derive_logical_axes(self, optimizer, param_logical_axes):
+    """Returns PartitionSpec associated with optimizer states.
+
+    Args:
+      optimizer: A flax.Optim optimizer.
+      param_logical_axes: Pytree of pjit.PartitionSpec associated with params.
+    """
+    assert self._hps.shard_optimizer_states
+    optimizer_dict = optimizer.state_dict()
+    optimizer_logical_axes = jax.tree_map(lambda x: None,
+                                          optimizer.state_dict())
+    optimizer_logical_axes['target'] = param_logical_axes
+    init_state = self.distributed_shampoo.init(None)
+    pspec_fn = init_state.pspec_fn
+    optimizer_logical_axes['state']['param_states'] = pspec_fn(
+        optimizer_dict['target'], param_logical_axes,
+        self._hps.statistics_partition_spec)
+    return optimizer.restore_state(unfreeze(optimizer_logical_axes))
