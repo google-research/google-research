@@ -1,0 +1,17 @@
+# LLFF settings
+Config.data_dir = "/data/nerf_data/nerf_llff_data"
+Config.checkpoint_dir = "out/llff3_room_bl"
+Config.dataset_loader = 'llff'
+Config.llff_scan = 'room'
+Config.white_background = False
+Config.factor = 8
+Config.render_factor = 8
+Config.near = 0
+Config.far = 1
+MipNerfModel.ray_shape = 'cylinder'
+MLP.density_noise = 1.
+
+Config.n_input_views = 3
+
+# For BL
+Config.load_random_rays = False
