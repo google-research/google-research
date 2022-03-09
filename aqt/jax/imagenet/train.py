@@ -32,6 +32,7 @@ from absl import logging
 from flax import jax_utils
 from flax import optim
 from flax.metrics import tensorboard
+from flax.optim import dynamic_scale as dynamic_scale_lib
 from flax.training import checkpoints
 from flax.training import common_utils
 import jax
@@ -256,7 +257,7 @@ def main(argv):
     else:
       model_dtype = jnp.float16
       input_dtype = tf.float16
-      dynamic_scale = optim.DynamicScale()
+      dynamic_scale = dynamic_scale_lib.DynamicScale()
   else:
     model_dtype = jnp.float32
     input_dtype = tf.float32

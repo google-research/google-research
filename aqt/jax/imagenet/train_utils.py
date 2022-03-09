@@ -26,6 +26,7 @@ from typing import Any, Mapping
 import flax
 from flax import jax_utils
 from flax import optim
+from flax.optim import dynamic_scale as dynamic_scale_lib
 from flax.training import common_utils
 import jax
 from jax import lax
@@ -192,7 +193,7 @@ class TrainState:
   step: int
   optimizer: optim.Optimizer
   model_state: Mapping[str, Any]
-  dynamic_scale: optim.DynamicScale
+  dynamic_scale: dynamic_scale_lib.DynamicScale
 
 
 def sync_batch_stats(state):
