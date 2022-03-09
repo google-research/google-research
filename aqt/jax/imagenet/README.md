@@ -70,8 +70,8 @@ If VM setup works well when following the guide, then ignore this section. There
     2. If not, create one in the cloud CLI tool with command `gcloud alpha compute networks create [NAME]` ([reference](https://cloud.google.com/sdk/gcloud/reference/alpha/compute/networks/create))
     3. Pass the network name via the –network flag when creating the vm
 2. **What if connection to TPU VM fails or "no firewall rules" error occurs?**
-    4. Create an ingress firewall rule that accepts ssh traffics from outside to the TPU VM in the cloud CLI tool with the command:  `gcloud compute firewall-rules create allow-ssh-ingress -direction=INGRESS -action=allow -rules=tcp:22 -network=default -no-enable-logging`
-    5. [Reference for other firewall rules](https://cloud.google.com/vpc/docs/using-firewalls#console)
+    1. Create an ingress firewall rule that accepts ssh traffics from outside to the TPU VM in the cloud CLI tool with the command:  `gcloud compute firewall-rules create allow-ssh-ingress -direction=INGRESS -action=allow -rules=tcp:22 -network=default -no-enable-logging`
+    2. [Reference for other firewall rules](https://cloud.google.com/vpc/docs/using-firewalls#console)
 
 
 ### Create and Connect VM to Cloud Storage Bucket
@@ -108,7 +108,7 @@ Note that the preprocessing will extract and prepare the ImageNet dataset in a n
 `$ export TFDS_DATA_DIR=/path/to/preprocess/folder` 
 in the command line _before executing the tfds python code block_ to specify a different folder for storing the processed dataset.
 
-After the processing ends, copy the `tensorflow_datasets `directory (where the processed data are stored) to the cloud storage bucket. It can then be used across different VMs.
+After the processing ends, copy the `tensorflow_datasets` directory (where the processed data are stored) to the cloud storage bucket. It can then be used across different VMs.
 ```
 $ gsutil cp -r /path/to/tensorflow_datasets gs://GCS_BUCKET_NAME/datasets
 ```
