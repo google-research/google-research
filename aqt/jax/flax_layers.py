@@ -337,7 +337,6 @@ class ConvAqt(nn.Module):
       expected_scale_shape = (1,) * (kernel.ndim - 1) + (self.features,)
       assert hparams.quant_type == QuantType.fake_quant, (
           'we only support fake_quant style of aqt for ConvAqt.')
-      quantized_type = hparams.quant_type.to_jax_type()
       kernel = QuantOps.create_weights_fake_quant(
           kernel,
           weight_params=QuantOps.WeightParams(
@@ -345,7 +344,7 @@ class ConvAqt(nn.Module):
               half_shift=hparams.weight_half_shift,
               axis=kernel_reduction_axis,
               expected_scale_shape=expected_scale_shape),
-          quantized_type=quantized_type,
+          quant_type=hparams.quant_type,
           quantize_weights=self.quant_context.quantize_weights)
 
     # Convolution

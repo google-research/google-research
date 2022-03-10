@@ -103,6 +103,8 @@ class _FloatQuant:
 
 _PrecT = Union[None, int, _FloatQuant]  # pylint: disable=invalid-name
 
+# pylint: disable=invalid-name
+
 
 class QuantType(str, enum.Enum):
   """Quantization strategy dataclass."""
@@ -111,6 +113,8 @@ class QuantType(str, enum.Enum):
   # sequence e.g.  0*s ... 255*s for 8-bit positive quantization, for some s.
   # it can be implemented as a local op: upscale, floor, clip, downscale.
   fake_quant = 'fake_quant'
+
+
   # fake_quant strategy with quantized inputs/weights type-casted to int.
   fake_quant_with_int = 'fake_quant_with_int'
   # aqt ensures that MatMul/Conv are in actual integer domain.
@@ -129,10 +133,13 @@ class QuantType(str, enum.Enum):
     # return type for 'to_quantized' overall is fp. TODO(malmaud): As part of
     # the refactor of this module, clean this up to eliminate the
     # counter-intuitive behavior.
-    if self.value in ['aqt', 'fake_quant']:  # pylint: disable=comparison-with-callable
-      return SCALE_DTYPE
-    elif self.value == 'fake_quant_with_int':  # pylint: disable=comparison-with-callable
+    if self.value == 'fake_quant_with_int':  # pylint: disable=comparison-with-callable
       return jnp.int8
+    elif self.value in [
+        'aqt', 'fake_quant', 'fake_quant_with_sub',
+        'fake_quant_with_sub_sort'
+    ]:  # pylint: disable=comparison-with-callable
+      return SCALE_DTYPE
     else:
       raise RuntimeError(f'QuantType {self.value} is unknown.')
 
@@ -419,7 +426,7 @@ class QuantOps:
       w,
       *,
       weight_params,
-      quantized_type = SCALE_DTYPE,
+      quant_type,
       fake_dependency = None,
       quantize_weights = True,
   ):
@@ -428,8 +435,7 @@ class QuantOps:
     Args:
       w: The weights to quantize.
       weight_params: WeightParams Parameters required for weight quantization.
-      quantized_type: type of intermediate quantized value of weights. Defaults
-        to SCALE_DTYPE.
+      quant_type: Quantization strategy
       fake_dependency: dynamic array, quantized weights will have fake
         dependency on. lax.tie_in for more details. This is used in order to
         prevent constant folding of rescale op with quantized weights. Defaults
@@ -443,9 +449,16 @@ class QuantOps:
     # TODO(yichi): if weight_params.prec is None or weight_binarize flag True:
     if weight_params.prec is None or not quantize_weights:
       return w
+
+    quantized_type = quant_type.to_jax_type()
+    input_shape = w.shape
+
+
     ops = cls.create_weights_ops(w, weight_params=weight_params)
-    return ops.fake_quant(
+    weight_rescaled = ops.fake_quant(
         w, quantized_type=quantized_type, fake_dependency=fake_dependency)
+
+    return weight_rescaled
 
   # TODO(malmaud): rename 'input' to activation here and elsewhere in this file.
   @classmethod
@@ -896,18 +909,18 @@ def quantized_dot_general(
 
     return (out_quantized * (1 / weight_scale)).astype(input_dtype)
 
-  elif quant_type in (QuantType.fake_quant, QuantType.fake_quant_with_int):
+  else:
     if quant_type == QuantType.fake_quant_with_int:
       fake_dependency = act
     # create a dependency on fake input to control constant folding
     else:
       fake_dependency = None
 
-    quantized_type = quant_type.to_jax_type()
+    # quantized_type = quant_type.to_jax_type()
     w = QuantOps.create_weights_fake_quant(
         w,
+        quant_type=quant_type,
         weight_params=weight_params,
-        quantized_type=quantized_type,
         fake_dependency=fake_dependency)
 
     # TODO(shivaniagrawal): HParams currently allows act_hparams to be NONE.
@@ -930,8 +943,6 @@ def quantized_dot_general(
       out_quantized = lax.dot_general(
           act, w, dimension_numbers=dimension_numbers, precision=dot_precision)
     return out_quantized
-  else:
-    raise RuntimeError(f'Unsupported quant_type {quant_type}')
 
 
 class QuantizedDot(nn.Module):
@@ -1081,7 +1092,7 @@ def quantized_dynamic_dot_general(
     # dividing by the product of the scale factors, we don't use QuantOps. It
     # would be cleaner to do both operations at the same level of abstraction.
     out = (out_quantized / (lhs_scale * rhs_scale)).astype(input_dtype)
-  elif quant_type in (QuantType.fake_quant, QuantType.fake_quant_with_int):
+  else:
     # TODO(shivaniagrawal): HParams currently allows act_hparams to be NONE.
     # Going forward we can change act_hparams to be required field where if
     # either `prec` or `bounds` is None will result in No activation
@@ -1112,8 +1123,6 @@ def quantized_dynamic_dot_general(
           rhs_act,
           dimension_numbers=dot_dimension_numbers,
           precision=dot_precision)
-  else:
-    raise RuntimeError(f'Unknown quant_type {quant_type}')
   return out
 
 

@@ -274,6 +274,7 @@ class QuantOpsTest(parameterized.TestCase):
 
 class WeightQuantizationTest(parameterized.TestCase):
 
+
   @parameterized.named_parameters(
       dict(testcase_name='per_layer_quant', axis=None),
       dict(testcase_name='per_channel_quant', axis=(0,)))
@@ -292,7 +293,8 @@ class WeightQuantizationTest(parameterized.TestCase):
             prec=8.0,
             axis=axis,
             expected_scale_shape=expected_scale_shape,
-            half_shift=False))
+            half_shift=False),
+        quant_type=QuantType.fake_quant)
 
   @parameterized.named_parameters(
       dict(testcase_name='prec_4', prec=4),
@@ -304,7 +306,8 @@ class WeightQuantizationTest(parameterized.TestCase):
     rescaled_weights = QuantOps.create_weights_fake_quant(
         w=weights,
         weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
+            prec=prec, axis=None, half_shift=False),
+        quant_type=QuantType.fake_quant)
     test_utils.assert_all_close_prec(weights, rescaled_weights, prec=prec)
 
   @parameterized.named_parameters(
@@ -343,12 +346,14 @@ class WeightQuantizationTest(parameterized.TestCase):
     weights = QuantOps.create_weights_fake_quant(
         w=weights,
         weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
+            prec=prec, axis=None, half_shift=False),
+        quant_type=QuantType.fake_quant)
 
     scaled_weights = QuantOps.create_weights_fake_quant(
         w=scaled_weights,
         weight_params=QuantOps.WeightParams(
-            prec=prec, axis=None, half_shift=False))
+            prec=prec, axis=None, half_shift=False),
+        quant_type=QuantType.fake_quant)
 
     onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
 
@@ -367,12 +372,14 @@ class WeightQuantizationTest(parameterized.TestCase):
     weights = quantization.QuantOps.create_weights_fake_quant(
         w=weights,
         weight_params=QuantOps.WeightParams(
-            prec=prec, axis=0, half_shift=False))
+            prec=prec, axis=0, half_shift=False),
+        quant_type=QuantType.fake_quant)
 
     scaled_weights = quantization.QuantOps.create_weights_fake_quant(
         w=scaled_weights,
         weight_params=QuantOps.WeightParams(
-            prec=prec, axis=0, half_shift=False))
+            prec=prec, axis=0, half_shift=False),
+        quant_type=QuantType.fake_quant)
 
     onp.testing.assert_array_equal(weights * weight_scale, scaled_weights)
 
@@ -1148,12 +1155,10 @@ class QuantizedDotFakeQuantTest(parameterized.TestCase):
         get_bounds_params=get_bounds_params,
         prefer_int8_to_int32_dot=True)
 
-    quantized_type = strategy.to_jax_type()
-
     mock_w_fq.assert_called_with(
         mock.ANY,
         weight_params=weight_params,
-        quantized_type=quantized_type,
+        quant_type=strategy,
         fake_dependency=mock.ANY)
     if act_hparams:
       mock_act_fq.assert_called_with(
