@@ -3030,10 +3030,8 @@ def online_kmeans(inputs,
       n = tf.reduce_sum(updated_ema_count, axis=-1, keep_dims=True)
       updated_ema_count = ((updated_ema_count + epsilon) /
                            (n + sparsity_cluster_size * epsilon) * n)
-      # pylint: disable=g-no-augmented-assignment
       updated_ema_means = updated_ema_means / tf.expand_dims(
           updated_ema_count, axis=-1)
-      # pylint: enable=g-no-augmented-assignment
 
       with tf.control_dependencies([e_loss]):
         update_means = tf.assign(means, updated_ema_means)
