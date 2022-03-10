@@ -1,10 +1,19 @@
 # PRIME
 
 ## Table of contents
+<a href='#Description'>Description</a><br>
 <a href='#Principles'>AI Principles</a><br>
 <a href='#Acknowledgement'>Acknowledgements</a><br>
 <a href='#Citation'>How to cite</a><br>
 <a href='#Disclaimer'>Disclaimer</a><br>
+
+
+<a id='Description'></a>
+## Description
+
+An **introductory tutorial** for the PRIME algorithm is available as a Colaboratory
+notebook:
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/prime/prime_colab.ipynb)
 
 
 <a id='Principles'></a>
