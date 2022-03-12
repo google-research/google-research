@@ -1,3 +1,5 @@
+Input/output audio data discussed in paper [Real time spectrogram inversion on mobile phone](https://arxiv.org/abs/2203.00756).
+
 
 # Vocoder evaluation on VCTK data.
 VCTK data [license](https://datashare.ed.ac.uk/bitstream/handle/10283/3443/license_text?sequence=3&isAllowed=y)
