@@ -20,11 +20,15 @@ import os
 import sys
 import numpy as np
 
-run_on_test_data = True  # set this variable to True to run on sample test data,
+run_on_test_data = True  # set this variable to True to run on sample test data
                          # otherwise, download the metrics/weights for a desired
                          # dataset (asoutlined in the README), and set this
                          # variable to False.
-dataset = 'mnist'
+
+ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
+dataset = 'cifar10'
+assert dataset in ALLOWABLE_DATASETS
+
 READAHEAD = '/readahead/6G'
 FASTWRITE = '/fastwrite'
 if run_on_test_data:
@@ -32,19 +36,28 @@ if run_on_test_data:
 else:
   DATA_DIR = dataset + '/'
 
+if run_on_test_data:  # The test data is a subset of the MNIST dataset.
+  assert dataset == 'mnist'
 
 PLOTS_SUBPATH = '_plots'
 MODELS_SUBPATH = '_models'
 
 KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.98
 USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = False
+NUM_BASE_MODELS = 30000
 NUM_SAMPLES_PER_BASE_MODEL = 32
-NUM_SAMPLES_TO_PLOT_TE_FOR = 10
-if 'google.colab' in sys.modules:
-  NUM_BASE_MODELS = 30000
-else:
-  print('[WARNING] Running locally so running in DEBUG mode!')
-  NUM_BASE_MODELS = 1000
+NUM_SAMPLES_TO_PLOT_TE_FOR = 32
+
+ALLOWABLE_EXPLANATION_METHODS = [
+    'grad',
+    # 'smooth_grad',
+    'gradcam',
+    # 'smooth_gradcam',
+    'ig',
+    # 'smooth_ig',
+]
+EXPLANATION_TYPE = 'ig'
+assert EXPLANATION_TYPE in ALLOWABLE_EXPLANATION_METHODS
 
 BASE_MODEL_BATCH_SIZE = 32
 META_MODEL_BATCH_SIZE = 32

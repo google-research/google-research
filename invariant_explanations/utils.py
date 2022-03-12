@@ -33,6 +33,7 @@ import tensorflow_datasets as tfds
 from tqdm import tqdm
 
 from invariant_explanations import config
+from invariant_explanations import explanation_utils
 from invariant_explanations import other
 
 logging.set_verbosity(logging.INFO)
@@ -432,6 +433,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
     y_preds: the predicted target of samples on each base-model;
              instance of np.ndarray.
     y_trues: the true target of samples; instance of np.ndarray.
+    explans: the model explanations for each sample; instance of np.ndarray.
     hparams: the hparams used to train the base model; instance of pd.DataFrame.
     weights_chkpt: flattened weights of each base model at chkpt epoch;
                    instance of np.ndarray.
@@ -520,6 +522,8 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   samples = np.zeros((num_new_samples, size_x))
   y_preds = np.zeros((num_new_samples, size_y))
   y_trues = np.zeros((num_new_samples, size_y))
+  explans = np.zeros((num_new_samples, size_x))  # saliency explanations are the
+                                                 # same size as input samples
 
   tmp = (
       f'[INFO] For each base model, construct network, load base_model_weights,'
@@ -589,9 +593,21 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
       )
       batch_img_samples = all_img_samples[rand_indices, :, :, :]
       batch_img_y_trues = all_img_y_trues[rand_indices, :]
-    predictions = model.predict_on_batch(batch_img_samples)
+
     # We use `predict_on_batch` instead of `predict` to avoid a memory leak; see
     # github.com/keras-team/keras/issues/13118#issuecomment-541688220
+    predictions = model.predict_on_batch(batch_img_samples)
+    # explanation_utils.plot_and_save_various_explanations(
+    #     model,
+    #     batch_img_samples,
+    #     predictions,
+    # )
+    explanations = explanation_utils.get_model_explanations_for_instances(
+        model,
+        batch_img_samples,
+        predictions,
+        config.EXPLANATION_TYPE,
+    )
 
     new_instances_range = range(
         idx * config.NUM_SAMPLES_PER_BASE_MODEL,
@@ -604,6 +620,10 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
     )  # collapse all image dims
     y_preds[new_instances_range, :] = predictions
     y_trues[new_instances_range, :] = batch_img_y_trues
+    explans[new_instances_range, :] = np.reshape(
+        explanations,
+        (explanations.shape[0], -1),
+    )  # collapse all image dims
 
   # weights_chkpt, weights_final, hparams, and metrics are global properties of
   # a model shared for all instances predicted on each model; apply np.repeat
@@ -642,6 +662,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   assert isinstance(samples, np.ndarray)
   assert isinstance(y_preds, np.ndarray)
   assert isinstance(y_trues, np.ndarray)
+  assert isinstance(explans, np.ndarray)
   assert isinstance(hparams, pd.core.frame.DataFrame)
   assert isinstance(weights_chkpt, np.ndarray)
   assert isinstance(weights_final, np.ndarray)
@@ -650,12 +671,16 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
       samples.shape[0] ==
       y_preds.shape[0] ==
       y_trues.shape[0] ==
+      explans.shape[0] ==
       hparams.shape[0] ==
       weights_chkpt.shape[0] ==
       weights_final.shape[0] ==
       metrics.shape[0]
   )
-  return samples, y_preds, y_trues, hparams, weights_chkpt, weights_final, metrics
+  return (
+      samples, y_preds, y_trues, explans, hparams,
+      weights_chkpt, weights_final, metrics,
+  )
 
 
 def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
@@ -688,7 +713,7 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
         config.KEEP_MODELS_ABOVE_TEST_ACCURACY,
     )
 
-    samples, y_preds, y_trues, hparams, w_chkpt, w_final, metrics = extract_new_covariates_and_targets(
+    samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics = extract_new_covariates_and_targets(
         random_seed,
         model_wireframe,
         other.get_dataset_info(config.dataset),
@@ -703,6 +728,8 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
       pickle.dump(y_preds, f, protocol=4)
     with file_handler(f'y_trues{file_suffix}.npy', 'wb') as f:
       pickle.dump(y_trues, f, protocol=4)
+    with file_handler(f'explans{file_suffix}.npy', 'wb') as f:
+      pickle.dump(explans, f, protocol=4)
     with file_handler(f'hparams{file_suffix}.npy', 'wb') as f:
       pickle.dump(hparams, f, protocol=4)
     with file_handler(f'w_chkpt{file_suffix}.npy', 'wb') as f:
@@ -712,7 +739,7 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
     with file_handler(f'metrics{file_suffix}.npy', 'wb') as f:
       pickle.dump(metrics, f, protocol=4)
 
-    del samples, y_preds, y_trues, hparams, w_chkpt, w_final, metrics
+    del samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics
     logging.info('\tdone.')
 
 
