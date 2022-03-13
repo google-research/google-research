@@ -19,6 +19,23 @@ notebook:
 <a id='Dataset'></a>
 ## Dataset
 
+We provide the PRIME dataset for nine applications, collected using an industry
+grade simulator. The dataset is available on Google Cloud Storage:
+
+
+* PRIME Dataset: [gs://gresearch/prime](https://console.cloud.google.com/storage/browser/gresearch/prime)
+
+You may download the dataset either by using the Google Cloud Storage web interface or using gsutil:
+
+```
+gsutil cp -r gs://gresearch/prime /tmp/prime/
+```
+
+This dataset contains both infeasible and feasible data points as described in
+[PRIME](https://arxiv.org/abs/2110.11346). The descriptors of the collected
+data are presented in the table below.
+
+
 |                  | # of Infeasible | # of Feasible | Max Runtime (ms) | Min Runtime (ms) | Average Runtime (ms) |
 |------------------|-----------------|---------------|------------------|------------------|----------------------|
 | MobileNetEdgeTPU |          384355 |        115711 |         16352.26 |           252.22 |               529.13 |
