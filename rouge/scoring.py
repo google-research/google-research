@@ -26,6 +26,7 @@ from __future__ import print_function
 
 import abc
 import collections
+from typing import Dict
 
 import numpy as np
 import six
@@ -37,7 +38,7 @@ class Score(
   """Tuple containing precision, recall, and f-measure values."""
 
 
-class BaseScorer(object):
+class BaseScorer(object, metaclass=abc.ABCMeta):
   """Base class for Scorer objects."""
 
   @abc.abstractmethod
