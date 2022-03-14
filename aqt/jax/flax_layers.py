@@ -170,6 +170,7 @@ class DenseAqt(nn.Module):
     inputs = jnp.asarray(inputs, self.dtype)
     kernel = jnp.asarray(kernel, self.dtype)
 
+
     get_bounds_params = get_bounds.GetBounds.Params(
         update_bounds=self.quant_context.update_bounds,
         update_stats=self.train,
