@@ -104,8 +104,8 @@ tfds.builder('imagenet2012').download_and_prepare(
 "
 ```
 
-Note that the preprocessing will extract and prepare the ImageNet dataset in a new folder defined by the environment variable `TFDS_DATA_DIR`, which is by default `~/tensorflow_datasets` under the home directory ([reference](https://www.tensorflow.org/datasets/api_docs/python/tfds/core/DatasetBuilder)). If one has insufficient disk space under `/home` (about 150 GB), please use 
-`$ export TFDS_DATA_DIR=/path/to/preprocess/folder` 
+Note that the preprocessing will extract and prepare the ImageNet dataset in a new folder defined by the environment variable `TFDS_DATA_DIR`, which is by default `~/tensorflow_datasets` under the home directory ([reference](https://www.tensorflow.org/datasets/api_docs/python/tfds/core/DatasetBuilder)). If one has insufficient disk space under `/home` (about 150 GB), please use
+`$ export TFDS_DATA_DIR=/path/to/preprocess/folder`
 in the command line _before executing the tfds python code block_ to specify a different folder for storing the processed dataset.
 
 After the processing ends, copy the `tensorflow_datasets` directory (where the processed data are stored) to the cloud storage bucket. It can then be used across different VMs.
