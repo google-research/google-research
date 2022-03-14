@@ -453,7 +453,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
              instance of pd.DataFrame
   """
 
-  np.random.RandomState(random_seed)
+  random_state = np.random.RandomState(random_seed)
 
   assert base_model_weights.shape[0] == base_model_metrics.shape[0]
   if not config.run_on_test_data:
@@ -501,7 +501,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
 
   # IMPORTANT: indices is used for metrics, weights_chkpt, and weights_final;
   #            shuffling the order should be done consistently on all 3 arrays
-  permuted_indices = np.random.permutation(range(len(metrics_indices)))
+  permuted_indices = random_state.permutation(range(len(metrics_indices)))
   metrics_indices = np.array(metrics_indices)[permuted_indices]
   weights_chkpt_indices = np.array(weights_chkpt_indices)[permuted_indices]
   weights_final_indices = np.array(weights_final_indices)[permuted_indices]
@@ -584,7 +584,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
       class_specific_indices = np.argwhere(
           np.argmax(all_img_y_trues, axis=1) == class_idx
       ).flatten()
-      rand_indices = np.random.choice(
+      rand_indices = random_state.choice(
           class_specific_indices,
           size=num_samples_per_class[class_idx],
           replace=False,
@@ -598,7 +598,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
     model = reset_model_using_weights(model, base_model_weights_final[idx, :])
 
     if not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
-      rand_indices = np.random.choice(
+      rand_indices = random_state.choice(
           num_train_samples,
           size=config.NUM_SAMPLES_PER_BASE_MODEL,
           replace=False,
@@ -775,7 +775,7 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
     test_results: test set results; a tuple with (loss, accuracy) information.
   """
 
-  np.random.RandomState(random_seed)
+  random_state = np.random.RandomState(random_seed)
 
   logging.debug(
       '%s[Train meta-model @ checkpoint %d on %.3f fraction of train data]%s',
@@ -797,7 +797,7 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
   input_shape = (num_features,)
 
   # Split into train/test indices.
-  permuted_indices = np.random.permutation(range(len(samples)))
+  permuted_indices = random_state.permutation(range(len(samples)))
   train_indices = permuted_indices[:int(train_fraction * len(permuted_indices))]
   test_indices = permuted_indices[int(train_fraction * len(permuted_indices)):]
 
