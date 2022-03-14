@@ -20,13 +20,13 @@ import os
 import sys
 import numpy as np
 
-run_on_test_data = True  # set this variable to True to run on sample test data
+run_on_test_data = False  # set this variable to True to run on sample test data
                          # otherwise, download the metrics/weights for a desired
                          # dataset (asoutlined in the README), and set this
                          # variable to False.
 
 ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
-dataset = 'cifar10'
+dataset = 'mnist'
 assert dataset in ALLOWABLE_DATASETS
 
 READAHEAD = '/readahead/6G'
@@ -47,6 +47,7 @@ USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = False
 NUM_BASE_MODELS = 30000
 NUM_SAMPLES_PER_BASE_MODEL = 32
 NUM_SAMPLES_TO_PLOT_TE_FOR = 32
+assert NUM_SAMPLES_TO_PLOT_TE_FOR <= NUM_SAMPLES_PER_BASE_MODEL
 
 ALLOWABLE_EXPLANATION_METHODS = [
     'grad',

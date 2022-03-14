@@ -21,12 +21,12 @@ import pickle
 import sys
 
 from absl import logging
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import psutil
 import seaborn as sns
+from sklearn.metrics.pairwise import pairwise_kernels
 import tensorflow.compat.v2 as tf
 from tensorflow.io import gfile
 import tensorflow_datasets as tfds
@@ -147,39 +147,49 @@ def rounder(values, markers, use_log_rounding=False):
   return tmp
 
 
-def process_hparams(hparams):
+def process_hparams(hparams, round_num, cat_to_code):
   """Convert columns of the hparams dataframe to appropriate datatypes.
 
   Args:
     hparams: a dataframe of hyperparameters.
+    round_num: flag to round numerical values.
+    cat_to_code: flag to convert categorical features to numeric codes.
 
   Returns:
-    dataframe of hparams whereby values in each column are (log-)rounded to the
+    A numpy array or dataframe of hparams whereby values in each column are
+    processed according to the input arguemnts, e.g., (log-)rounded to the
     nearest market values as set out in config.py.
   """
-
   assert isinstance(hparams, pd.core.frame.DataFrame)
+
   # Convert numerical columns to numerical values (s/dtype=Object/dtype=float32)
   for col in config.NUM_HPARAMS:
     hparams[col] = hparams[col].astype('float32')
 
-  for col in config.CAT_HPARAMS:
-    logging.info(('Unique values for `%s`:\t', col), hparams[col].unique())
+  if cat_to_code:
+    # Convert categorical columns to numerical values for training meta_model.
+    for hparam in config.CAT_HPARAMS:
+      hparams[hparam] = pd.Categorical(hparams[hparam]).codes
+  else:
+    for col in config.CAT_HPARAMS:
+      logging.info(('Unique values for `%s`:\t', col), hparams[col].unique())
 
-  # Because num_hparams are sampled (log-)uniformly from some range, we first
-  # bin the values by rounding to carefully selected hparam values, and then
-  # use the (few) selected bins are markers for drawing out ITE plots.
-  for col in config.NUM_HPARAMS:
-    values = hparams[col].values
-    markers = config.ALL_HPARAM_RANGES[col]
-    use_log_rounding = False
-    if col in {'config.l2reg', 'config.init_std', 'config.learning_rate'}:
-      use_log_rounding = True
+  if round_num:
+    # Because num_hparams are sampled (log-)uniformly from some range, we first
+    # bin the values by rounding to carefully selected hparam values, and then
+    # use the (few) selected bins are markers for drawing out ITE plots.
+    for col in config.NUM_HPARAMS:
+      values = hparams[col].values
+      markers = config.ALL_HPARAM_RANGES[col]
+      use_log_rounding = False
+      if col in {'config.l2reg', 'config.init_std', 'config.learning_rate'}:
+        use_log_rounding = True
 
-    rounded_values = rounder(values, markers, use_log_rounding)
-    hparams[col] = rounded_values
-
-  return hparams
+      rounded_values = rounder(values, markers, use_log_rounding)
+      hparams[col] = rounded_values
+    return hparams
+  else:
+    return hparams.to_numpy().astype('float32')
 
 
 def plot_treatment_effect_values():
@@ -210,7 +220,7 @@ def plot_treatment_effect_values():
   # be different from config.NUM_BASE_MODELS * config.NUM_SAMPLES_PER_BASE_MODEL
   num_base_models_times_samples = samples.shape[0]
 
-  hparams = process_hparams(hparams)
+  hparams = process_hparams(hparams, round_num=True, cat_to_code=False)
 
   # For each of the desired hparams
   for col in config.ALL_HPARAMS:
@@ -420,7 +430,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   corresponding to X,H-->Y and X,W@epoch-->Y.
 
   Args:
-    random_seed: the random seed used for reproducibility of results
+    random_seed: the random seed used for reproducibility of results.
     model: the wireframe of the CNN model in the zoo.
     dataset_info: a tfds dataset info with dimnesionality and number of samples.
     covariates_setting: a dictionary specifying the checkpoint at which to
@@ -506,6 +516,8 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
       base_model_metrics['test_accuracy'] >
       config.KEEP_MODELS_ABOVE_TEST_ACCURACY
   )[0][:config.NUM_BASE_MODELS]
+  if not list(filtered_indices):
+    raise ValueError('No base-models identifed after filtering.')
   base_model_weights_chkpt = base_model_weights_chkpt[filtered_indices]
   base_model_weights_final = base_model_weights_final[filtered_indices]
   base_model_metrics = base_model_metrics.iloc[filtered_indices]
@@ -694,11 +706,11 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
   information is then saved (to be loaded later for meta-model training).
 
   Args:
-    random_seed: the random seed used for reproducibility of results
+    random_seed: the random seed used for reproducibility of results.
     model_wireframe: the tf model graph whose weights are then populated from
-                     the save weights in the CNN zoo
+                     the save weights in the CNN zoo.
     covariates_settings: a dictionary specifying the checkpoints at which to
-                         extract data from the saved weights/metrics in the zoo
+                         extract data from the saved weights/metrics in the zoo.
   """
 
   base_model_weights, base_model_metrics = load_base_model_weights_and_metrics()
@@ -748,10 +760,10 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
   """Train a meta-model given covariates and targets.
 
   Args:
-    random_seed: the random seed used for reproducibility of results
+    random_seed: the random seed used for reproducibility of results.
     samples: samples used to train meta-model; instance of np.ndarray.
     auxvals: additional covariates used to train meta-model (hparams: instance
-             of pd.DataFrame; OR weights: instance of np.ndarray)
+             of pd.DataFrame; OR weights: instance of np.ndarray).
     targets: the predicted target of samples on each base-model;
              instance of np.ndarray.
     chkpt: the checkpoint of base-model weights used to train the meta-model;
@@ -759,8 +771,8 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
     train_fraction: the fraction of the overall meta-model training set to use.
 
   Returns:
-    train_results: train set results; a tuple with (loss, accuracy) information
-    test_results: test set results; a tuple with (loss, accuracy) information
+    train_results: train set results; a tuple with (loss, accuracy) information.
+    test_results: test set results; a tuple with (loss, accuracy) information.
   """
 
   np.random.RandomState(random_seed)
@@ -902,7 +914,7 @@ def train_meta_model_over_different_setups(random_seed):
   be processed and displayed later in aggregate.
 
   Args:
-      random_seed: the random seed used for reproducibility of results
+      random_seed: the random seed used for reproducibility of results.
   """
   assert not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS
   all_results = pd.DataFrame({
@@ -927,14 +939,7 @@ def train_meta_model_over_different_setups(random_seed):
   with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
     hparams = pickle.load(f)
 
-  # Convert numerical columns to float values (s/dtype=Object/dtype=float32).
-  for col in config.NUM_HPARAMS:
-    hparams[col] = hparams[col].astype('float32')
-
-  # Convert categorical columns to numerical values for training meta_model.
-  for hparam in config.CAT_HPARAMS:
-    hparams[hparam] = pd.Categorical(hparams[hparam]).codes
-  hparams = hparams.to_numpy().astype('float32')
+  hparams = process_hparams(hparams, round_num=False, cat_to_code=True)
 
   for train_fraction in config.TRAIN_FRACTIONS:
 
@@ -1046,6 +1051,241 @@ def save_heat_map_of_meta_model_results():
           os.path.join(
               config.PLOTS_FOLDER_PATH,
               'heatmap_results_for_meta_model.png',
+          ),
+          'wb',
+      ),
+      dpi=400,
+  )
+
+
+def project_using_spca(samples, targets, n_components=2,
+                       samples_kernel_type='rbf', targets_kernel_type='rbf'):
+  """Apply Supervised PCA on samples and targets as per Barshan et al, 2011.
+
+  Source (see Alg 3):
+  https://uwaterloo.ca/data-science/sites/ca.data-science/files/uploads/files/
+  barshan_supervised_preprint.pdf
+
+  Code inspiration:
+  https://github.com/kumarnikhil936/supervised_pca
+  https://github.com/bghojogh/Principal-Component-Analysis
+
+  Args:
+    samples: the covariates, X, which are to be down-projected.
+    targets: the targets, Y, which determine the direction towards which the
+             down-projection should be maximally aligned.
+    samples and targets are np.ndarrays with #features cols and #instances rows.
+    n_components: the dimensionality of the projection space.
+    samples_kernel_type: the particular kernel type to use on samples.
+                    If value is None, then perform SPCA, otherwise KSPCA.
+    targets_kernel_type: the particular kernel type to use on targets.
+
+  Returns:
+    samples_orig: the original samples (#instances rows & #features cols).
+    samples_proj: the down-projected samples (#instances rows & #features cols).
+    targets: the targets used for supervised PCA projection.
+  """
+
+  assert isinstance(samples, np.ndarray)
+  assert isinstance(targets, np.ndarray)
+  assert samples.shape[0] == targets.shape[0]
+
+  if samples_kernel_type:
+    projection_type = 'KSPCA'
+  else:
+    projection_type = 'SPCA'
+
+  # Some samples (explanations) may unfortunately have nan values; remove these.
+  keep_idx = []
+  for idx in range(samples.shape[0]):
+    if np.any(np.isnan(samples[idx])):
+      continue
+    keep_idx.append(idx)
+  samples = samples[keep_idx]
+  targets = targets[keep_idx]
+
+  # Transpose samples and targets so features are in rows and instances in cols.
+  samples_orig = samples.T
+  n_samples = samples_orig.shape[1]
+
+  # Compute centering matrix.
+  # The centering matrix should generally only appear in math and not code.
+  # See equivalence of `matrix_h.dot(x)` and `x - np.mean(x, 0, keepdims=True)`,
+  # whereas the former has complexity O(n^2m), the latter has complexity O(nm).
+  matrix_h = np.eye(n_samples) - 1 / n_samples * np.ones((n_samples, n_samples))
+
+  # Compute kernel on targets.
+  kernel_y = pairwise_kernels(targets, n_jobs=-1, metric=targets_kernel_type)
+
+  if projection_type == 'KSPCA':
+    # Compute kernel on samples.
+    kernel_x = pairwise_kernels(samples, n_jobs=-1, metric=samples_kernel_type)
+    # Compute correlation between samples and targets.
+    matrix_q = matrix_h.dot(kernel_y).dot(matrix_h).dot(kernel_x.T)
+  else:
+    # Compute correlation between samples and targets.
+    matrix_q = samples_orig.dot(matrix_h).dot(kernel_y).dot(matrix_h).dot(
+        samples_orig.T
+    )
+
+  # Extract top-n_components eigenvalues and eigenvectors for projection matrix.
+  eig_vals, eig_vecs = np.linalg.eigh(matrix_q)
+  desc_idx = eig_vals.argsort()[::-1]  # Sort eigenvalues in descending order.
+  eig_vals = eig_vals[desc_idx]
+  eig_vecs = eig_vecs[:, desc_idx]
+  matrix_u = eig_vecs[:, :n_components]
+
+  if projection_type == 'KSPCA':
+    samples_proj = (matrix_u.T).dot(kernel_x)
+    logging.debug('Cannot project back using KSPCA; setting to zeros instead.')
+    samples_reco = np.zeros(samples_orig.shape)
+  else:
+    samples_proj = (matrix_u.T).dot(samples_orig)
+    samples_reco = matrix_u.dot(samples_proj)
+
+  data_dim = np.prod(other.get_dataset_info(config.dataset)['data_shape'])
+  if samples_orig.shape[0] == data_dim:  # IMPORTANT: only works for samples
+                                         # and explans that are (image based).
+    num_rows = 3  # Row 1: orig samples; Row 2: reco samples; Row 3: difference.
+    num_cols = 10
+    fig, axes = plt.subplots(
+        num_rows,
+        num_cols,
+        figsize=(num_cols * 1.5, num_rows),
+    )
+    axes = axes.flatten()
+
+    for col_idx in range(num_cols):
+
+      tmp_samples_orig = samples_orig[:, col_idx].reshape((28, 28))
+      tmp_samples_reco = samples_reco[:, col_idx].reshape((28, 28))
+      tmp_samples_diff = np.abs(tmp_samples_orig - tmp_samples_reco)
+
+      axes[col_idx + 0 * num_cols].imshow(tmp_samples_orig)
+      axes[col_idx + 0 * num_cols].axis('off')
+      axes[col_idx + 0 * num_cols].set_title('orig')
+
+      axes[col_idx + 1 * num_cols].imshow(tmp_samples_reco)
+      axes[col_idx + 1 * num_cols].axis('off')
+      axes[col_idx + 1 * num_cols].set_title('reco')
+
+      axes[col_idx + 2 * num_cols].imshow(tmp_samples_diff)
+      axes[col_idx + 2 * num_cols].axis('off')
+      axes[col_idx + 2 * num_cols].set_title('diff')
+
+    fig.savefig(
+        gfile.GFile(
+            os.path.join(
+                config.PLOTS_FOLDER_PATH,
+                f'spca_orig_reco_diff_{np.random.randint(100)}.png',
+            ),
+            'wb',
+        ),
+        dpi=400,
+    )
+
+  return samples_orig.T, samples_proj.T, targets
+
+
+def process_per_class_explanations(random_seed):
+  """Process saved explanations in lower dimensions using SPCA.
+
+  Args:
+    random_seed: the random seed used for reproducibility of results.
+  """
+
+  np.random.RandomState(random_seed)
+
+  chkpt = 86
+  file_suffix = get_file_suffix(chkpt)
+  with file_handler(f'samples{file_suffix}.npy', 'rb') as f:
+    samples = pickle.load(f)
+  with file_handler(f'y_preds{file_suffix}.npy', 'rb') as f:
+    y_preds = pickle.load(f)
+  with file_handler(f'explans{file_suffix}.npy', 'rb') as f:
+    explans = pickle.load(f)
+  with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
+    hparams = pickle.load(f)
+
+  assert isinstance(samples, np.ndarray)
+  assert isinstance(y_preds, np.ndarray)
+  assert isinstance(explans, np.ndarray)
+  hparams = process_hparams(hparams, round_num=False, cat_to_code=True)
+
+  _, samples_proj, samples_targets = project_using_spca(
+      samples=samples,
+      targets=y_preds,
+      n_components=2,
+  )
+
+  _, y_preds_proj, y_preds_targets = project_using_spca(
+      samples=y_preds,
+      targets=y_preds,
+      n_components=2,
+  )
+
+  _, explans_proj, explans_targets = project_using_spca(
+      samples=explans,
+      targets=y_preds,
+      n_components=2,
+  )
+
+  _, hparams_proj, hparams_targets = project_using_spca(
+      samples=hparams,
+      targets=y_preds,
+      n_components=2,
+  )
+
+  # Show projections in 2D.
+  fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(24, 6))
+  num_classes = other.get_dataset_info(config.dataset)['num_classes']
+
+  for class_idx in range(num_classes):
+
+    ax1.scatter(
+        samples_proj[np.argmax(samples_targets, axis=1) == class_idx, 0],
+        samples_proj[np.argmax(samples_targets, axis=1) == class_idx, 1],
+        label=class_idx, alpha=0.4,
+    )
+
+    ax2.scatter(
+        y_preds_proj[np.argmax(y_preds_targets, axis=1) == class_idx, 0],
+        y_preds_proj[np.argmax(y_preds_targets, axis=1) == class_idx, 1],
+        label=class_idx, alpha=0.4,
+    )
+
+    ax3.scatter(
+        explans_proj[np.argmax(explans_targets, axis=1) == class_idx, 0],
+        explans_proj[np.argmax(explans_targets, axis=1) == class_idx, 1],
+        label=class_idx, alpha=0.4,
+    )
+
+    ax4.scatter(
+        hparams_proj[np.argmax(hparams_targets, axis=1) == class_idx, 0],
+        hparams_proj[np.argmax(hparams_targets, axis=1) == class_idx, 1],
+        label=class_idx, alpha=0.4,
+    )
+
+  ax1.set_title('Projected samples (784-D --> 2-D)')
+  ax2.set_title('Projected y_preds (10-D --> 2-D)')
+  ax3.set_title('Projected explans (784-D --> 2-D)')
+  ax4.set_title('Projected hparams (9-D --> 2-D)')
+  ax1.grid(True)
+  ax2.grid(True)
+  ax3.grid(True)
+  ax4.grid(True)
+
+  # Share handle between subplots in same fig.
+  handles, labels = ax4.get_legend_handles_labels()
+  fig.legend(handles, labels, loc='upper left', title='Class')
+  fig.tight_layout()
+
+  # Save to file.
+  fig.savefig(
+      gfile.GFile(
+          os.path.join(
+              config.PLOTS_FOLDER_PATH,
+              'spca_projections.png',
           ),
           'wb',
       ),
