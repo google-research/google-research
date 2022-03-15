@@ -49,6 +49,9 @@ data are presented in the table below.
 | T-RNN Enc        |          410933 |         88880 |          5112.82 |           127.97 |               731.20 |
 
 
+A demo on how to parse the dataset on Google Cloud Storage and reproducing the
+numbers in the table above is available as a Colaboratory notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/prime/prime_dataset_colab.ipynb)
+
 <a id='Principles'></a>
 
 ## Principles
