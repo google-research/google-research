@@ -790,8 +790,11 @@ def distributed_shampoo(
       if not _skip_preconditioning(param):
         sizes = [s[0] for s in shapes]
         shapes = preconditioner.shapes_for_preconditioners()
-        statistics = [matrix_epsilon * jnp.eye(max_size) for s in shapes]
-        preconditioners = [jnp.eye(max_size) for s in shapes]
+        statistics = [
+            matrix_epsilon * jnp.eye(max_size, dtype=jnp.float32)
+            for s in shapes
+        ]
+        preconditioners = [jnp.eye(max_size, dtype=jnp.float32) for s in shapes]
         padded_statistics.extend(statistics)
         padded_preconditioners.extend(preconditioners)
         exponent = (
@@ -1133,8 +1136,10 @@ def distributed_shampoo(
       preconditioners = []
       if not _skip_preconditioning(param):
         shapes = preconditioner.shapes_for_preconditioners()
-        statistics = [matrix_epsilon * jnp.eye(s[0]) for s in shapes]
-        preconditioners = [jnp.eye(s[0]) for s in shapes]
+        statistics = [
+            matrix_epsilon * jnp.eye(s[0], dtype=jnp.float32) for s in shapes
+        ]
+        preconditioners = [jnp.eye(s[0], dtype=jnp.float32) for s in shapes]
 
       diagonal_statistics = []
       if _graft_type_has_diagonal_statistics():
