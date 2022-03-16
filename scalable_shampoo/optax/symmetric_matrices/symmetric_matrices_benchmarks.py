@@ -32,7 +32,7 @@ import pandas as pd
 from scalable_shampoo.optax.symmetric_matrices import symmetric_matrices
 
 
-def make_device_mat(shape, dtype=jnp.bfloat16, seed=0):
+def make_device_mat(shape, dtype, seed=0):
   """Returns a matrix on device."""
   key = jax.random.PRNGKey(seed)
   mat = jax.random.uniform(key=key, shape=shape, dtype=dtype)
@@ -84,17 +84,17 @@ def time_setup_and_run(
 
 def run_benchmarks_sliced_transposed_product(matmul_func,
                                              mat_size=4096,
+                                             batch_size=16,
                                              min_block_size=128,
-                                             batch_size=8,
                                              precision=lax.Precision.DEFAULT,
-                                             dtype=jnp.bfloat16,
+                                             dtype=jnp.float32,
                                              seed=0):
   """Returns a Dataframe with benchmarks for sliced_transposed_product.
 
   The sliced_transposed_product is applied to compute G * G^T for a matrix G of
-  size mat_size (with batch batch_size). Varied block sizes are used, from
-  min_block_size up to mat_size in increments of powers of 2. The last row
-  corresponds to the full matrix multiplication.
+  size mat_size. Varied block sizes are used, from min_block_size up to mat_size
+  in increments of powers of 2. The last row corresponds to the full matrix
+  multiplication.
 
   The returned dataframe will have index 'block_size' corresponding to the
   benchmark being run. The other columns are:
@@ -112,10 +112,10 @@ def run_benchmarks_sliced_transposed_product(matmul_func,
   Args:
     matmul_func: Which function to use for the matrix multiplication G * G^T.
       This function is expected to have inputs mat, block_size, and precision.
-    mat_size: The size of the matrix to use
+    mat_size: The size of the matrix to use.
+    batch_size: Batch size to use. The batching will be done via vmap.
     min_block_size: The smallest block size to use. The various block sizes will
       multiply this by powers of 2 until the matrix size is reached.
-    batch_size: The batch size to use.
     precision: The JAX precision to use.
     dtype: The dtype to use for the input matrix.
     seed: Seed to use for randomly generating the input matrix.
@@ -133,16 +133,20 @@ def run_benchmarks_sliced_transposed_product(matmul_func,
 
   print(f'Collecting data for mat_size={mat_size}.')
   results = {}
+
+  def make_matmul_func(block_size, precision):
+    """Make the matmul function on batches."""
+    def _matmul_func(mat):
+      return matmul_func(mat=mat, block_size=block_size, precision=precision)
+    return jax.vmap(_matmul_func)
+
   for block_size in block_sizes:
+    vmap_matmul = make_matmul_func(block_size, precision)
     mat = make_device_mat(
-        shape=(batch_size, mat_size, mat_size), seed=seed, dtype=dtype)
+        shape=(batch_size, mat_size, mat_size), dtype=dtype, seed=seed)
     results[block_size] = time_setup_and_run(
-        func=matmul_func,
-        kwargs={
-            'mat': mat,
-            'block_size': block_size,
-            'precision': precision
-        },
+        func=vmap_matmul,
+        kwargs={'mat': mat},
         iters=100,
     )
   print('Done collecting data.')
