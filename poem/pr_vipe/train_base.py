@@ -237,19 +237,32 @@ flags.DEFINE_list(
     'CSV of training batch sizes to use from each input table. Must have the '
     'same length as `input_table`.')
 
-flags.DEFINE_enum('optimizer', 'ADAGRAD', ['ADAGRAD'], 'Optimizer to use.')
+flags.DEFINE_enum('optimizer', 'ADAGRAD', ['ADAGRAD', 'ADAM', 'ADAMW'],
+                  'Optimizer to use.')
 
 flags.DEFINE_float('learning_rate', 0.02, 'Initial learning rate.')
+
+flags.DEFINE_enum('learning_rate_schedule', '',
+                  ['', 'EXP_DECAY', 'LINEAR_DECAY'],
+                  'Learning rate schedule to use. Use empty to skip.')
 
 flags.DEFINE_integer(
     'num_steps', 5000000,
     'Number of training steps. Use None to train indefinitely.')
+
+flags.DEFINE_integer(
+    'num_warmup_steps', None,
+    'Number of linear warmup training steps. Use None to skip warmup.')
 
 flags.DEFINE_string('init_model_checkpoint', None,
                     'Path to checkpoint to initialize from.')
 
 flags.DEFINE_float('gradient_clip_norm', 0.0,
                    'Norm gradients are clipped to. Only used if positive.')
+
+flags.DEFINE_float(
+    'gradient_clip_global_norm', 0.0,
+    'Global norm gradients are clipped to. Only used if positive.')
 
 flags.DEFINE_bool('use_moving_average', True,
                   'Whether to use exponential moving average.')
@@ -801,16 +814,22 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
       if FLAGS.use_moving_average:
         pipeline_utils.add_moving_average(FLAGS.moving_average_decay)
 
-      learning_rate = FLAGS.learning_rate
+      learning_rate = pipeline_utils.get_learning_rate(
+          FLAGS.learning_rate_schedule,
+          FLAGS.learning_rate,
+          decay_steps=FLAGS.num_steps,
+          num_warmup_steps=FLAGS.num_warmup_steps)
       optimizer = pipeline_utils.get_optimizer(
           FLAGS.optimizer.upper(), learning_rate=learning_rate)
       init_fn = pipeline_utils.get_init_fn(
           train_dir=FLAGS.train_log_dir,
           model_checkpoint=FLAGS.init_model_checkpoint)
-      train_op = tf_slim.learning.create_train_op(
+      train_op = tf_slim.training.create_train_op(
           total_loss,
           optimizer,
-          clip_gradient_norm=FLAGS.gradient_clip_norm,
+          transform_grads_fn=pipeline_utils.get_clip_grads_fn(
+              max_norm=FLAGS.gradient_clip_norm,
+              max_global_norm=FLAGS.gradient_clip_global_norm),
           summarize_gradients=FLAGS.summarize_gradients)
       saver = tf.train.Saver(
           keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,

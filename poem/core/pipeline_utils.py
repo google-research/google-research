@@ -25,6 +25,7 @@ import tf_slim
 
 from poem.core import common
 from poem.core import keypoint_utils
+from poem.core import optimization_utils
 from poem.core import tfe_input_layer
 
 
@@ -152,16 +153,21 @@ def read_batch_from_dataset_tables(input_table_patterns,
 
 def get_learning_rate(schedule_type,
                       init_learning_rate,
+                      decay_steps,
+                      num_warmup_steps=None,
                       global_step=None,
                       **kwargs):
   """Creates learning rate with schedules.
 
   Currently supported schedules include:
-    'EXP_DECAY'
+    'EXP_DECAY', 'LINEAR_DECAY'
 
   Args:
     schedule_type: A string for the type of learning rate schedule to choose.
     init_learning_rate: A float or tensor for the learning rate.
+    decay_steps: A float or tensor for the number of decay steps.
+    num_warmup_steps: An integer for the number of linear warmup training steps.
+      Use None or 0 to skip warmup.
     global_step: A tensor for the global step. If None, uses default value.
     **kwargs: A dictionary of assorted arguments used by learning rate
       schedulers, keyed in the format of '${schedule_type}_${arg}'.
@@ -172,17 +178,44 @@ def get_learning_rate(schedule_type,
   Raises:
     ValueError: If the schedule type is not supported.
   """
-  if schedule_type == 'EXP_DECAY':
-    if global_step is None:
-      global_step = tf.train.get_or_create_global_step()
-    learning_rate = tf.train.exponential_decay(
-        init_learning_rate,
-        global_step=global_step,
-        decay_steps=kwargs.get('EXP_DECAY_decay_steps'),
-        decay_rate=kwargs.get('EXP_DECAY_decay_rate'),
-        staircase=kwargs.get('EXP_DECAY_staircase', False))
-  else:
-    raise ValueError('Unsupported optimizer type: `%s`.' % str(schedule_type))
+  if global_step is None:
+    global_step = tf.train.get_or_create_global_step()
+
+  learning_rate = tf.constant(
+      value=init_learning_rate, shape=[], dtype=tf.float32)
+
+  if schedule_type:
+    if schedule_type == 'EXP_DECAY':
+      learning_rate = tf.train.exponential_decay(
+          init_learning_rate,
+          global_step=global_step,
+          decay_steps=decay_steps,
+          decay_rate=kwargs.get('EXP_DECAY_decay_rate'),
+          staircase=kwargs.get('EXP_DECAY_staircase', False))
+    elif schedule_type == 'LINEAR_DECAY':
+      learning_rate = tf.train.polynomial_decay(
+          init_learning_rate,
+          global_step=global_step,
+          decay_steps=decay_steps,
+          end_learning_rate=kwargs.get('LINEAR_DECAY_end_learning_rate', 0.0),
+          power=1.0,
+          cycle=kwargs.get('LINEAR_DECAY_cycle', False))
+    else:
+      raise ValueError('Unsupported learning rate schedule type: `%s`.' %
+                       str(schedule_type))
+
+  # Implement linear warmup. I.e., if global_step < num_warmup_steps, the
+  # learning rate will be `global_step / num_warmup_steps * init_lr`.
+  if num_warmup_steps:
+    global_steps_float = tf.cast(global_step, dtype=tf.float32)
+    warmup_steps_float = tf.constant(num_warmup_steps, dtype=tf.float32)
+
+    warmup_percent_done = global_steps_float / warmup_steps_float
+    warmup_learning_rate = init_learning_rate * warmup_percent_done
+
+    is_warmup = tf.cast(global_steps_float < warmup_steps_float, tf.float32)
+    learning_rate = ((1.0 - is_warmup) * learning_rate +
+                     is_warmup * warmup_learning_rate)
 
   return learning_rate
 
@@ -191,7 +224,7 @@ def get_optimizer(optimizer_type, learning_rate, **kwargs):
   """Creates optimizer with learning rate.
 
   Currently supported optimizers include:
-    'ADAGRAD'
+    'ADAGRAD', 'ADAM', 'ADAMW'
 
   Args:
     optimizer_type: A string for the type of optimizer to choose.
@@ -216,6 +249,18 @@ def get_optimizer(optimizer_type, learning_rate, **kwargs):
         beta1=kwargs.get('ADAM_beta1', 0.9),
         beta2=kwargs.get('ADAM_beta2', 0.999),
         epsilon=kwargs.get('ADAM_epsilon', 1e-8))
+  elif optimizer_type == 'ADAMW':
+    optimizer = optimization_utils.AdamWeightDecayOptimizer(
+        learning_rate,
+        weight_decay_rate=kwargs.get('ADAMW_weight_decay_rate', 0.1),
+        beta1=kwargs.get('ADAMW_beta1', 0.9),
+        beta2=kwargs.get('ADAMW_beta2', 0.999),
+        epsilon=kwargs.get('ADAMW_epsilon', 1e-8),
+        exclude_from_weight_decay=kwargs.get(
+            'ADAMW_exclude_from_weight_decay', [
+                'BatchNorm', 'bias', 'class_embedding', 'LayerNorm',
+                'MatchingSigmoid', 'PositionalEncoding'
+            ]))
   elif optimizer_type == 'RMSPROP':
     optimizer = tf.train.RMSPropOptimizer(
         learning_rate=learning_rate,
@@ -330,6 +375,40 @@ def get_init_fn(train_dir=None,
       model_checkpoint,
       variables_to_restore,
       ignore_missing_vars=ignore_missing_vars)
+
+
+def get_clip_grads_fn(max_norm=0.0, max_global_norm=0.0):
+  """Gets gradient clipping function.
+
+  Two gradient clipping operations are support. If `max_norm` is set, each
+  gradient will be rescaled by the norm independently. If `max_global_norm` is
+  set, all gradients will be rescaled so that the total norm of the vector of
+  all their norms does not exceed the value.
+
+  Args:
+    max_norm: A float for the maximum norm value. If non-positive, gradients
+      will not clipped by the norm.
+    max_global_norm: A float for the maximum global norm value. If non-positive,
+      gradients will not clipped by the global norm.
+
+  Returns:
+    A function which takes a list of gradient to variable pairs, performs
+      gradient clipping, and returns the updated list.
+  """
+  if max_norm <= 0.0 and max_global_norm <= 0.0:
+    return None
+
+  def transform_grads_fn(grads_and_vars):
+    if max_norm > 0.0:
+      grads_and_vars = tf_slim.learning.clip_gradient_norms(
+          grads_and_vars, max_norm)
+    if max_global_norm > 0.0:
+      grads, variables = zip(*grads_and_vars)
+      grads, _ = tf.clip_by_global_norm(grads, max_global_norm)
+      grads_and_vars = list(zip(grads, variables))
+    return grads_and_vars
+
+  return transform_grads_fn
 
 
 def add_summary(scalars_to_summarize=None,
