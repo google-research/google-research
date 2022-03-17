@@ -30,41 +30,49 @@ of these loanwords are multi-word expressions in English.
 
 1.  Create a temporary directory:
 
-        readonly TEMPDATA="$(mktemp --directory)"
+    ```bash
+    readonly TEMPDATA="$(mktemp --directory)"
+    ```
 
 2.  Download the data files:
 
-        curl \
-            --silent \
-            --output "${TEMPDATA}/pairs.tsv" \
-            "https://gist.githubusercontent.com/kylebgorman/01adff5799edb0edf3bcce20187c833a/raw/fb0e66d31e021fca7adec4c2104ffea0e879f2e4/pairs.tsv"
-        curl \
-            --silent \
-            --output "${TEMPDATA}/lexicon.txt"
-            "http://cvsweb.netbsd.org/bsdweb.cgi/src/share/dict/web2?rev=1.54"
+    ```bash
+    curl \
+        --silent \
+        --output "${TEMPDATA}/pairs.tsv" \
+        "https://gist.githubusercontent.com/kylebgorman/01adff5799edb0edf3bcce20187c833a/raw/fb0e66d31e021fca7adec4c2104ffea0e879f2e4/pairs.tsv"
+    curl \
+        --silent \
+        --output "${TEMPDATA}/lexicon.txt"
+        "http://cvsweb.netbsd.org/bsdweb.cgi/src/share/dict/web2?rev=1.54"
+    ```
 
-3.  Randomly split the data using [`split`](pair_ngram/split.py).
+3.  Randomly split the data using [`split`](split.py).
 
-        python -m pair_ngram.split \
-            --seed 10037 \
-            --input "${TEMPDATA}/pairs.tsv" \
-            --train "${TEMPDATA}/train.tsv" \
-            --dev "${TEMPDATA}/dev.tsv" \
-            --test "${TEMPDATA}/test.tsv"
+    ```bash
+    python split.py \
+        --seed 10037 \
+        --input "${TEMPDATA}/pairs.tsv" \
+        --train "${TEMPDATA}/train.tsv" \
+        --dev "${TEMPDATA}/dev.tsv" \
+        --test "${TEMPDATA}/test.tsv"
+    ```
 
     This will log the size of the data, which should be roughly 26,000 lines in
     total.
 
-4.  Train the pair LM using [`train`](pair_ngram/train.py).
+4.  Train the pair LM using [`train`](train.py).
 
-        python -m pair_ngram.train \
-           --seed 10037 \
-           --batch-size 128
-           --max-iters 10 \
-           --order 4 \
-           --size 100000
-           --tsv "${TEMPDATA}/train.tsv" \
-           --fst "${TEMPDATA}/plm.fst"
+    ```bash
+    python train.py \
+        --seed 10037 \
+        --batch-size 128
+        --max-iters 10 \
+        --order 6 \
+        --size 100000
+        --tsv "${TEMPDATA}/train.tsv" \
+        --fst "${TEMPDATA}/plm.fst"
+    ```
 
     This script depends on OpenFst's command-line tools, its
     [`pywrapfst`](https://www.openfst.org/twiki/bin/view/FST/PythonExtension)
@@ -86,28 +94,33 @@ of these loanwords are multi-word expressions in English.
     See Gorman in preparation for further details.
 
 5.  Predict the development set English words using `cut` and
-    [`predict`](pair_ngram/predict.py):
+    [`predict`](predict.py):
 
-        python -m pair_ngram.predict \
-            --rule "${TEMPDATA}/plm.fst" \
-            --input <(cut -f1 "${TEMPDATA}/dev.tsv") \
-            --output "${TEMPDATA}/hypo.txt"
+    ```bash
+    python predict.py \
+        --rule "${TEMPDATA}/plm.fst" \
+        --input <(cut -f1 "${TEMPDATA}/dev.tsv") \
+        --output "${TEMPDATA}/hypo.txt"
+    ```
 
-6.  Score the model using `cut` and [`error`](pair_ngram/error.py):
+6.  Score the model using `cut` and [`error`](error.py):
 
-        python -m pair_ngram.error \
-            --gold <(cut -f2 "${TEMPDATA}/dev.tsv") \
-            --hypo "${TEMPDATA}/hypo.txt"
+    ```bash
+    python error.py \
+        --gold <(cut -f2 "${TEMPDATA}/dev.tsv") \
+        --hypo "${TEMPDATA}/hypo.txt"
+    ```
 
 With the random seeds used in the [demo](run.sh), we obtain an error rate of
-47.61 on the development set.
+35.71 on the development set.
 
 A better model can be had by constraining the output to consist of known English
-words. For this, see [`predict_lexicon`](pair_ngram/predict_lexicon.py). With
-the random seeds used in the [demo](run.sh), we obtain an error rate of 36.54 on
+words. For this, see [`predict_lexicon`](predict_lexicon.py). With
+the random seeds used in the [demo](run.sh), we obtain an error rate of 31.77 on
 the development set.
 
-Naturally, we would normally use the development set to tune hyperparameters.
+Naturally, we would normally use the development set to tune hyperparameters,
+such as the model order (here, 6).
 
 Authors
 -------
@@ -142,7 +155,7 @@ Gorman, K. 2016. Pynini: a Python library for weighted finite-state grammar
 compilation. In *Proceedings of the ACL Workshop on Statistical NLP and Weighted
 Automata*, pages 75-80.
 
-Gorman, K. In preparation. A tutorial on pair n-gram models. Ms., Google Inc.
+Gorman, K. In preparation. A tutorial on pair n-gram models. Ms., Google.
 
 Knight, K. and Graehl, J. 1998. Machine transliteration. *Computational
 Linguistics* 24(4): 599-612.

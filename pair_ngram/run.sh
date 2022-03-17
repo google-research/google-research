@@ -18,13 +18,15 @@
 set -eou pipefail
 
 readonly TEMPDATA="$(mktemp --directory)"
-trap "rm -rf ${TEMPDATA}" EXIT  # Deletes the temporary directory on exit.
+
+# On exit, remove temporary directory and deactivate conda.
+trap "rm -rf ${TEMPDATA}; conda deactivate" EXIT
 
 # Hyperparameters and seeds.
 readonly SEED=10037  # For reproducibility.
 readonly BATCH_SIZE=128
 readonly MAX_ITERS=10
-readonly ORDER=4
+readonly ORDER=6
 readonly SIZE=100000
 
 # File paths; none exist yet.
