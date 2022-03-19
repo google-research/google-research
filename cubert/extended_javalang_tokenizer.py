@@ -84,6 +84,68 @@ class JavalangTokenizerExtended(javalang.JavaTokenizer):
 
     self.i = i
 
+  def read_string(self):
+    """Overrides the superclass to reject newlines inside a string."""
+    delim = self.data[self.i]
+
+    state = 0
+    j = self.i + 1
+    length = self.length
+
+    while True:
+      if j >= length:
+        self.error('Unterminated character/string literal')
+        break
+
+      ########################################################################
+      # Deviation from javalang:
+      #
+      # Reject newline character in strings. javalang expects a string to span
+      # a single line, and does not account for newlines when computing the end
+      # position of the token, which can result in invalid positions.
+      if self.data[j] == '\n':
+        self.error('Unexpected newline character in string')
+        break
+      # End of deviation.
+      ########################################################################
+
+      if state == 0:
+        if self.data[j] == '\\':
+          state = 1
+        elif self.data[j] == delim:
+          break
+
+      elif state == 1:
+        if self.data[j] in 'btnfru"\'\\':
+          state = 0
+        elif self.data[j] in '0123':
+          state = 2
+        elif self.data[j] in '01234567':
+          state = 3
+        else:
+          self.error('Illegal escape character', self.data[j])
+
+      elif state == 2:
+        # Possibly long octal
+        if self.data[j] in '01234567':
+          state = 3
+        elif self.data[j] == '\\':
+          state = 1
+        elif self.data[j] == delim:
+          break
+
+      elif state == 3:
+        state = 0
+
+        if self.data[j] == '\\':
+          state = 1
+        elif self.data[j] == delim:
+          break
+
+      j += 1
+
+    self.j = j + 1
+
   def tokenize(self):
     """Clones the superclass `tokenize` method, but introduces extra tokens.
 

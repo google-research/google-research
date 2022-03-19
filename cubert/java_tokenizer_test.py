@@ -122,6 +122,13 @@ TokenB TokenC""",
               (0, 0, unified_tokenizer.TokenKind.ERROR),
           )),
       (
+          'newline_in_string',
+          'TokenA "\nmystring";',
+          (
+              # This is invalid, abort and return an error.
+              (0, 0, unified_tokenizer.TokenKind.ERROR),
+          )),
+      (
           'concluding_comment_with_newline',
           """  /* comment */
  """,
