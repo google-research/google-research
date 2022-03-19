@@ -20,44 +20,56 @@ from absl import app
 from smu import dataset_pb2
 
 CONFORMER_FIELDS = [
-    ('bond_topologies', '>0 struct',
+    (r'bond\_topologies', '$>0$ struct',
      'Description of all bond topologies that adequately match this geometry'),
-    ('.atoms', 'n * enum',
+    (r'.atoms', '$n *$\ enum',
      'Atom types, including charge. See AtomType for names and numbers'),
-    ('.bonds.atom_a', '>=0 * I', 'Index of one atom in bond'),
-    ('.bonds.atom_b', '>=0 * I', 'Index of other atom in bond'),
-    ('.bonds.bond_type', '>=0 * enum', 'See BondType for names and numbers'),
-    ('.smiles', 'S', 'SMILES canonicalied by RDKit'),
-    ('.bond_topology_id', 'I',
-     'Unique ID for this topology. See bond_topology.csv'),
-    ('.is_starting_topology', 'B',
+    (r'.bonds.atom\_a', r'$\geq 0 * I$', 'Index of one atom in bond'),
+    (r'.bonds.atom\_b', r'$\geq 0 * I$', 'Index of other atom in bond'),
+    (r'.bonds.bond\_type', r'$\geq 0 *$\ enum',
+     'See BondType for names and numbers'),
+    (r'.smiles', '$S$', 'SMILES canonicalied by RDKit'),
+    (r'.bond\_topology\_id', '$I$',
+     'Unique ID for this topology. See bond\_topology.csv'),
+    (r'.is\_starting\_topology', '$B$',
      'Is this the topology used during geometry creation?'),
-    ('.topology_score', 'F', r'See \section{INSERT REF}'),
-    ('.geometry_score', 'F', r'See \section{INSERT REF}'),
-    ('conformer_id', 'I', 'Unique ID for this conformer'),
-    ('duplicated_by', 'I',
+    (r'.topology\_score', '$F$', r'See Section~\ref{sec:topology_detection}'),
+    (r'.geometry\_score', '$F$', r'See Section~\ref{sec:topology_detection}'),
+    (r'conformer\_id', '$I$', 'Unique ID for this conformer'),
+    (r'duplicated\_by', '$I$',
      'If this conformer did not proceed to full calculation because it was a ' +
      'duplicate, the conformer id that did proceed to full calculation'),
-    ('duplicate_of', '>=0 * I',
+    (r'duplicate\_of', '$\geq 0 * I$',
      'For conformer that proceeded to full calculation, the conformer ids of ' +
      'any other conformers that were duplicates of this one'),
-    ('fate', 'enum',
+    (r'fate', 'enum',
      'A simple categorical summary of how successful the calculations were.' +
      'See FateCategory for names and numbers'),
-    ('initial_geometries', '>0 struct', ''),
-    ('.atom_positions', 'n * v', ''),
-    ('optimized_geometries', '1 struct', ''),
-    ('.atom_positions', 'n * V', ''),
-    ('properties', 'struct', 'See other table for details'),
-    ('which_database', 'enum', 'STANDARD(2) or COMPLETE(3)'),
+    (r'initial\_geometries', '$>0$ struct',
+     'List of intial geometries that produced this optimized geometry. '
+     r'May not have the same length as bond\_topologies or duplicate\ of, '
+     r'see Section~\ref{sec:duplicates} for details'),
+    (r'.atom\_positions', '$n * V$', '3D vector for each atom in .atoms'),
+    (r'optimized\_geometries', '$1$ struct',
+     'Single geometry used for all Stage 2 calculations'),
+    (r'.atom\_positions', '$n * V$', '3D vector for each atom in .atoms'),
+    (r'properties', 'struct',
+     r'See Table~\ref{tab:properties_fields} for details'),
+    (r'which\_database', 'enum', 'STANDARD(2) or COMPLETE(3)'),
 ]
 
 
-def conformer_table():
-  print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-  print('% This is the contents of a table describing fields of Conformer')
+def conformer_table(outf):
+  print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%', file=outf)
+  print('%%% This section is automatically generated. Before editing, talk with Pat',
+        file=outf)
+  print('% This is the contents of a table describing fields of Conformer',
+        file=outf)
+  #print(r'\begin{tabular}{|l|l|p{3in}}', file=outf)
   for name, field_type, description in CONFORMER_FIELDS:
-    print(f'{name:22s}& {field_type:10s} & \n    {description} \\\\')
+    print(f'{name:22s}& {field_type:10s} & \n    {description} \\\\', file=outf)
+  #print(r'\end{tabular}
+  print('%%% End automatically generated section', file=outf)
 
 
 # Maps suffixes of field names to the level of theory used
@@ -104,18 +116,18 @@ LEVEL_DICT = {
     'atomic_b6': 'ATOMIC-2, B6',
     'atomic_b6_um': 'ATOMIC-2, B6',
     'atomic_b6_um_ci': 'ATOMIC-2, B6',
-    'eccsd': 'E_{CCSD}',
-    'eccsd_um': 'E_{CCSD}',
-    'eccsd_um_ci': 'E_{CCSD}',
+    'eccsd': '$E_{CCSD}$',
+    'eccsd_um': '$E_{CCSD}$',
+    'eccsd_um_ci': '$E_{CCSD}$',
 }
 
 
 # Fields to consider adding: description, symbol, units
-def properties_table():
+def properties_table(outf):
   """Prints a properties table."""
-  print()
-  print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
-  print('% This is the contents of a table describing fields of Properties')
+  print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%', file=outf)
+  print('% This is the contents of a table describing fields of Properties', file=outf)
+  print('%%% This section is automatically generated. Before editing, talk with Pat', file=outf)
 
   descriptors = sorted(
       dataset_pb2.Properties.DESCRIPTOR.fields, key=lambda d: d.name)
@@ -176,13 +188,19 @@ def properties_table():
         level = value
         break
 
-    print(f'{name:48s}& {availability} & {field_type:13s} & {level:30s}\\\\')
+    armored_name = name.replace('_', r'\_')
+    print(f'{armored_name:56s}& {availability} & {field_type:13s} & {level:30s}\\\\',
+          file=outf)
+
+  print('%%% End automatically generated section', file=outf)
 
 
 def main(argv):
   del argv  # Unused.
-  conformer_table()
-  properties_table()
+  with open('conformer_table.tex', 'w') as outf:
+    conformer_table(outf)
+  with open('properties_table.tex', 'w') as outf:
+    properties_table(outf)
 
 
 if __name__ == '__main__':
