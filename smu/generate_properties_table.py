@@ -176,9 +176,9 @@ def properties_table(outf):
     if avail_enum == dataset_pb2.AvailabilityEnum.INTERNAL_ONLY:
       continue
     elif avail_enum == dataset_pb2.AvailabilityEnum.STANDARD:
-      availability = 'X'
+      availability = r'\checkmark'
     elif avail_enum == dataset_pb2.AvailabilityEnum.COMPLETE:
-      availability = ' '
+      availability = ''
     else:
       raise ValueError(f'Unknown availiability {avail_enum}')
 
@@ -189,7 +189,7 @@ def properties_table(outf):
         break
 
     armored_name = name.replace('_', r'\_')
-    print(f'{armored_name:56s}& {availability} & {field_type:13s} & {level:30s}\\\\',
+    print(f'{armored_name:56s}& {availability:10s} & {field_type:13s} & {level:30s}\\\\',
           file=outf)
 
   print('%%% End automatically generated section', file=outf)
