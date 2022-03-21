@@ -16,6 +16,7 @@
 """Utilities used for approxNN project."""
 
 import gc
+import itertools
 import os
 import pickle
 import platform
@@ -38,6 +39,21 @@ from invariant_explanations import explanation_utils
 from invariant_explanations import other
 
 logging.set_verbosity(logging.INFO)
+
+
+SMALL_SIZE = 8
+MEDIUM_SIZE = 10
+BIGGER_SIZE = 12
+
+
+def update_matplotlib_defaults():
+  plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+  plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+  plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+  plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+  plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+  plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+  plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
 def create_experimental_folders():
@@ -187,7 +203,7 @@ def process_hparams(hparams, round_num, cat_to_code):
         use_log_rounding = True
 
       rounded_values = rounder(values, markers, use_log_rounding)
-      hparams[col] = rounded_values
+      hparams[col] = rounded_values.astype('float32')
     return hparams
   else:
     return hparams.to_numpy().astype('float32')
@@ -196,7 +212,8 @@ def process_hparams(hparams, round_num, cat_to_code):
 def plot_treatment_effect_values():
   """A method to plot individual and average treatment effects."""
 
-  assert config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS
+  if not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+    raise ValueError('Expected use of identical samples for base models.')
 
   chkpt = 86
   file_suffix = get_file_suffix(chkpt)
@@ -208,6 +225,7 @@ def plot_treatment_effect_values():
     y_trues = pickle.load(f)
   with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
     hparams = pickle.load(f)
+
   # Reorder columns for easier readability when debugging.
   hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
 
@@ -239,9 +257,10 @@ def plot_treatment_effect_values():
     tmp_y_trues = []  # Keep track for plotting; easier than indexing later.
     for x_offset_idx in range(min(
         config.NUM_SAMPLES_TO_PLOT_TE_FOR,
-        config.NUM_SAMPLES_PER_BASE_MODEL
+        config.NUM_SAMPLES_PER_BASE_MODEL,
     )):
 
+      # x_* prefix is used for variables that correspond to instance x.
       x_indices = range(
           x_offset_idx,
           num_base_models_times_samples,
@@ -1292,3 +1311,251 @@ def process_per_class_explanations(random_seed):
       ),
       dpi=400,
   )
+
+
+def measure_prediction_explanation_variance(random_seed):
+  """Measure and compare the change in predictions with that of explanations.
+
+  We aim to understand the relative effect that changing hparams has on both the
+  y_preds and the explans for a trained model. Therefore, we compute pairwise
+  similarity between y_preds and explans under certain values of the hparams,
+  and then plot and compare the similarities in a scatter plot. Ultimately, we
+  would like to study the ITE := y_h_treatment(x) - y_h_control(x), but because
+  there does not exist a canonical definition of treatment or control, we resort
+  to comparing all pairwise relations under some similarity function.
+
+  For every instance x...
+  |--  For every hparam type...
+       |--  For every pair (h1, h2) of unique hparam valuess of this type...
+            |--  Compute and plot the average dissimilarity between the y_preds
+            |--  (explans) resulting from models trained under h1 in contrast to
+            |--  models trained under h2. Finally, scatter the dissimilarity in
+            |--  y_preds against that of explans. Essentially, this plots
+            |--  d(y_{h_{ij}}(x), y_{h_{ik}}(x)) vs.
+            |--  d(e_{h_{ij}}(x), e_{h_{ik}}(x))
+            |--  forall j != k in |unique(h_i)|
+            |--  forall i in |hparams|
+
+  Args:
+    random_seed: the random seed used for reproducibility of results.
+  """
+
+  if not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+    raise ValueError('Expected use of identical samples for base models.')
+
+  random_state = np.random.RandomState(random_seed)
+
+  chkpt = 86
+  file_suffix = get_file_suffix(chkpt)
+  with file_handler(f'y_preds{file_suffix}.npy', 'rb') as f:
+    y_preds = pickle.load(f)
+  with file_handler(f'y_trues{file_suffix}.npy', 'rb') as f:
+    y_trues = pickle.load(f)
+  with file_handler(f'explans{file_suffix}.npy', 'rb') as f:
+    explans = pickle.load(f)
+  with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
+    hparams = pickle.load(f)
+
+  # Reorder columns for easier readability when debugging.
+  hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
+  hparams = process_hparams(hparams, round_num=True, cat_to_code=False)
+
+  assert (
+      y_preds.shape[0] ==
+      y_trues.shape[0] ==
+      explans.shape[0] ==
+      hparams.shape[0]
+  )
+  num_base_models_times_samples = y_preds.shape[0]
+  num_rows = config.NUM_SAMPLES_TO_PLOT_TE_FOR
+  num_cols = len(config.ALL_HPARAMS)
+  update_matplotlib_defaults()
+  fig, axes = plt.subplots(
+      num_rows,
+      num_cols,
+      figsize=(num_cols*6, num_rows*6),
+      sharex=True,
+      sharey=True,
+  )
+  if num_rows == 1:
+    axes = np.expand_dims(axes, 0)
+
+  # Iterate over different samples, X.
+  for row_idx, x_offset_idx in enumerate(range(min(
+      config.NUM_SAMPLES_TO_PLOT_TE_FOR,
+      config.NUM_SAMPLES_PER_BASE_MODEL,
+  ))):
+
+    logging.info('Processing instance w/ index `%d`...', x_offset_idx)
+
+    # x_* prefix is used for variables that correspond to instance x.
+    x_indices = range(
+        x_offset_idx,
+        num_base_models_times_samples,
+        config.NUM_SAMPLES_PER_BASE_MODEL,
+    )
+    # The processing below is rather expensive, and need not be done for all
+    # samples in order to get a trend. Therefore, only limit samples to some
+    # (arbitrary) random subset of samples.
+    x_indices = random_state.permutation(x_indices)[:100]
+    x_y_preds = y_preds[x_indices, :]
+    x_y_trues = y_trues[x_indices, :]
+    x_explans = explans[x_indices, :]
+    x_hparams = hparams.iloc[x_indices]
+
+    # Sanity check: irrespective of the base model,
+    # X_i is shared and so should share y_true value.
+    assert np.all(
+        np.argmax(x_y_trues, axis=1) ==
+        np.argmax(x_y_trues, axis=1)[0]
+    )
+
+    def get_y_preds_and_explans_for_hparams(x_hparams, x_y_preds,
+                                            x_explans, col, hi):
+      """Get y_preds and explans when hparam of type col is hi (i.e., h_i).
+
+      Args:
+        x_hparams: the hparams of instance `x` over multiple base models.
+        x_y_preds: the y_preds of instance `x` over multiple base models.
+        x_explans: the explans of instance `x` over multiple base models.
+        col: the particular hparam column which is the be filtered over.
+        hi: the unique value of the hparam to filter over.
+
+      Returns:
+        x_hi_y_preds: y_preds for when hparam of type col is hi,
+        x_hi_explans: explans for when hparam of type col is hi,
+      """
+
+      # Get list of indices where hparam of type col is hi,
+      # then filter the y_preds and explans matrices accordingly.
+      x_hi_indices = x_hparams.index[x_hparams[col] == hi].to_list()
+      x_hi_y_preds = x_y_preds[x_hi_indices, :]
+      x_hi_explans = x_explans[x_hi_indices, :]
+
+      # Some explanations may unfortunately have nan values;
+      # remove these and the corresponding (non-nan) prediction values.
+      keep_idx = []
+      for idx in range(x_hi_explans.shape[0]):
+        if np.any(np.isnan(x_hi_explans[idx])):
+          continue
+        keep_idx.append(idx)
+      x_hi_y_preds = x_hi_y_preds[keep_idx]
+      x_hi_explans = x_hi_explans[keep_idx]
+      assert x_hi_y_preds.shape[0] == x_hi_explans.shape[0]
+
+      return x_hi_y_preds, x_hi_explans
+
+    # Reset index of hparams df as they will be used to filter np arrays.
+    x_hparams = x_hparams.reset_index()
+
+    # Iterate over different hparams, H.
+    for col_idx, col in enumerate(config.ALL_HPARAMS):
+
+      logging.info('Processing hparam `%s`...', col)
+
+      scatter_tracker = pd.DataFrame({
+          'd_y_preds': [],
+          'd_explans': [],
+          'h1_h2_str': [],
+      })
+
+      # Iterate over all pairs (h1, h2) of unique values of this hparam type...
+      for h1, h2 in itertools.permutations(x_hparams[col].unique(), 2):
+
+        x_h1_y_preds, x_h1_explans = get_y_preds_and_explans_for_hparams(
+            x_hparams,
+            x_y_preds,
+            x_explans,
+            col,
+            h1,
+        )
+        x_h2_y_preds, x_h2_explans = get_y_preds_and_explans_for_hparams(
+            x_hparams,
+            x_y_preds,
+            x_explans,
+            col,
+            h2,
+        )
+
+        # Compute kernel of going from y_preds (explans) resulting from models
+        # trained under h1 to y_preds (explans) of models trained under h2.
+        # Important: to make the dissimilarity comparable for y_preds \in 10D
+        #            and explans in 784D, the kernel is chosen s.t. the result
+        #            \in [0, 1].
+        x_h1_h2_kernel_y_preds = pairwise_kernels(
+            x_h1_y_preds,
+            x_h2_y_preds,
+            metric='rbf',
+            n_jobs=-1,
+        )
+        x_h1_h2_kernel_explans = pairwise_kernels(
+            x_h1_explans,
+            x_h2_explans,
+            metric='rbf',
+            n_jobs=-1,
+        )
+        assert x_h1_h2_kernel_y_preds.shape == x_h1_h2_kernel_explans.shape
+
+        # Depending on the type of kernel function used, the kernel matrix
+        # may or may not be symmetric (consider, e.g., k(x,y) = x - y is not
+        # symmetric). Therefore, we DO NOT only take the lower-/upper-triangular
+        # portions of the kernel matrix but take all values.
+        d_y_preds = x_h1_h2_kernel_y_preds.flatten()
+        d_explans = x_h1_h2_kernel_explans.flatten()
+
+        scatter_tracker = scatter_tracker.append(
+            pd.DataFrame({
+                'd_y_preds': d_y_preds,
+                'd_explans': d_explans,
+                'h1_h2_str': ['%s - others' % h1] * len(d_explans),
+            }),
+            ignore_index=True,
+        )
+
+      # Scatter the y_preds against explans for all (h1, h2) pairs
+      # of this hparam and this sample.
+      ax = axes[row_idx, col_idx]
+      sns.scatterplot(
+          data=scatter_tracker,
+          x='d_y_preds',
+          y='d_explans',
+          hue='h1_h2_str',
+          ax=ax,
+          alpha=0.3,
+      )
+      ax.legend()
+      ax.get_legend().set_title(col)
+      ax.set_xlabel('y_preds')
+      ax.set_ylabel('explans')
+
+  # Add x=y to all plots (some repeated work from sharex, sharey).
+  lims = [  # Getting limits on last ax is appropriate, since they are shared.
+      np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+      np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+  ]
+  for ax in axes.flatten():
+    ax.plot(lims, lims, 'k--', alpha=0.3)
+    ax.set_aspect('equal')
+    ax.set_xlim(lims)
+    ax.set_ylim(lims)
+
+  # Save figure.
+  plt.suptitle(
+      r'$d(y_{h_{ij}}(x), y_{h_{ik}}(x)) ~ vs. ~ $'
+      r'$d(e_{h_{ij}}(x), e_{h_{ik}}(x))$'
+      r'$~ \forall ~ j != k \in |unique(hi)| ~ \forall ~ i \in |hparams|$'
+      r'$~ s.t. ~ acc(f_{h_{ij}}), acc(f_{h_{ik}}) > $'
+      '%%%.2f' % (100 * config.KEEP_MODELS_ABOVE_TEST_ACCURACY)
+  )
+  plt.tight_layout()
+  fig.savefig(
+      gfile.GFile(
+          os.path.join(
+              config.PLOTS_FOLDER_PATH,
+              'scatter_d(y)_d(e).png',
+          ),
+          'wb',
+      ),
+      dpi=150,
+  )
+

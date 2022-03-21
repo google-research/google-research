@@ -43,9 +43,13 @@ def main(argv):
 
   # utils.plot_treatment_effect_values()
 
-  utils.train_meta_model_over_different_setups(config.RANDOM_SEED)
+  # utils.train_meta_model_over_different_setups(config.RANDOM_SEED)
 
-  utils.save_heat_map_of_meta_model_results()
+  # utils.save_heat_map_of_meta_model_results()
+
+  # utils.process_per_class_explanations(config.RANDOM_SEED)
+
+  utils.measure_prediction_explanation_variance(config.RANDOM_SEED)
 
 
 if __name__ == '__main__':
