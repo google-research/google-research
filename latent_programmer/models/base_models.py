@@ -230,8 +230,7 @@ class EncoderBlock(nn.Module):
   def __call__(self,
                inputs,
                encoder_mask = None,
-               encoder_relative_position = None,
-               get_attn_weights = False):
+               encoder_relative_position = None):
     """Applies Transformer block.
 
     Args:
@@ -239,7 +238,6 @@ class EncoderBlock(nn.Module):
       encoder_mask: encoder self-attention mask
       encoder_relative_position: encoder relative positions tensor
           `[batch_sizes..., length, length]'
-      get_attn_weights: whether to return attention weights
 
     Returns:
       Encoded input data `[batch_size, ..., length, mlp_dim]`
@@ -418,7 +416,7 @@ class TransformerDecoder(nn.Module):
                encoder_decoder_mask = None,
                decoder_relative_position = None,
                encoder_decoder_relative_position = None,
-               get_attention_weights = False):
+               get_cross_attention_weights = False):
     """Applies Transformer to decode the targets.
 
     Args:
@@ -430,7 +428,7 @@ class TransformerDecoder(nn.Module):
           `[batch_sizes..., length2, length2]'
       encoder_decoder_relative_position: encoder-decoder relative tensor
           `[batch_sizes..., length2, length]'
-      get_attention_weights: whether to get attention weights
+      get_cross_attention_weights: whether to get target-encoded cross-attention weights
 
     Returns:
       output of a transformer decoder.
@@ -457,7 +455,7 @@ class TransformerDecoder(nn.Module):
     y = nn.Dropout(rate=cfg.dropout_rate)(
         y, deterministic=cfg.deterministic)
 
-    attn_weights = collections.defaultdict(list)
+    attn_weights = []
     y = y.astype(cfg.dtype)
     # Target-Input Decoder
     for lyr in range(cfg.num_layers):
@@ -475,8 +473,7 @@ class TransformerDecoder(nn.Module):
           name=f'encoderdecoderblock_{lyr}')(
               y, encoded, decoder_mask, encoder_decoder_mask,
               decoder_relative_position, encoder_decoder_relative_position)
-      for k,v in aux.items():
-        attn_weights[k].append(v)
+      attn_weights.append(aux['cross_attn_weights'])
     y = nn.LayerNorm(dtype=cfg.dtype, name='encoderdecoder_norm')(y)
 
     heads['output_emb'] = y * (
@@ -490,13 +487,13 @@ class TransformerDecoder(nn.Module):
     heads['logits'] = logits
     if cfg.output_head:
       if get_attention_weights:
-        return heads[cfg.output_head], attn_weights
+        return heads[cfg.output_head], jnp.array(attn_weights)
       else:
         return heads[cfg.output_head]
     else:
       # Return both output embeddings and logits.
       if get_attention_weights:
-        return heads, attn_weights
+        return heads, jnp.array(attn_weights)
       else:
         return heads  
 
@@ -515,15 +512,13 @@ class TransformerIOEncoder(nn.Module):
                outputs,
                inputs_encoder_mask=None,
                outputs_encoder_mask=None,
-               io_mask=None,
-               get_attention_weights=False):
+               io_mask=None):
     """Applies Transformer model to encode the IO specification.
 
     Args:
       inputs: input data [batch_size, num_io, length]
       outputs: output data [batch_size, num_io, length2]
       inputs_encoder_mask: decoder self-attention mask
-      get_attention_weights: whether to get attention weights
 
     Returns:
       Encoded IO data `[batch_size, num_io, length2, dim]`
@@ -559,7 +554,6 @@ class TransformerIOEncoder(nn.Module):
     x = nn.Dropout(rate=cfg.dropout_rate)(
         x, deterministic=cfg.deterministic)
 
-    attn_weights = collections.defaultdict(list)
     x = x.astype(cfg.dtype)
     for lyr in range(cfg.num_layers):
       x, aux = EncoderBlock(   # Attend to inputs.
@@ -569,8 +563,6 @@ class TransformerIOEncoder(nn.Module):
               cfg.num_input_relative_position_buckets),
           max_distance=cfg.max_input_distance,
           name=f'encoderblock_{lyr}')(x, inputs_encoder_mask)
-      for k,v in aux.items():
-        attn_weights['inputs/' + k].append(v)
     x = nn.LayerNorm(dtype=cfg.dtype, name='encoder_norm')(x)
 
     # Embed outputs.
@@ -595,14 +587,9 @@ class TransformerIOEncoder(nn.Module):
           max_distance_cross_attention=cfg.max_input_cross_output_distance,
           name=f'encoderdecoderblock_{lyr}')(
               y, x, outputs_encoder_mask, io_mask)
-      for k,v in aux.items():
-        attn_weights['outputs/' + k].append(v)
     y = nn.LayerNorm(dtype=cfg.dtype, name='encoderdecoder_norm')(y)
 
-    if get_attention_weights:
-      return y, attn_weights
-    else:
-      return y
+    return y
 
 
 class ProgramTransformer(nn.Module):

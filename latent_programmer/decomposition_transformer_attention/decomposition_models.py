@@ -40,9 +40,7 @@ class DecomposeAttentionTransformerConfig:
   # The kind of dataset: 'robust_fill' or 'scan'.
   dataset_type: str
   # Whether we have partial specifications
-  split_encoding: bool = False
-  # Whether to return attention weights
-  get_attention_weights: bool = False
+  use_spec_separators: bool = False
 
 
 def shift_left(x):
@@ -104,17 +102,17 @@ def make_partial_spec_mask(split_spec,
   return mask.astype(dtype)
 
 
-def make_partial_cross_mask(split_spec,
-                            programs,
-                            bos_token = 1,
-                            dtype = jnp.float32):
+def make_partial_program_cross_mask(split_spec,
+                                    programs,
+                                    bos_token = 1,
+                                    dtype = jnp.float32):
   """Make cross-attention mask where program attends to the relevant parts in specification."""
   num_spec_partials = jnp.cumsum(jnp.where(split_spec == bos_token, 1, 0), axis=-1)
   num_spec_partials[split_spec == bos_token] = -1
   num_spec_partials = base_models.flatten_num_io_dim(num_spec_partials)
   num_program_partials = jnp.cumsum(jnp.where(programs == bos_token, 1, 0), axis=-1)
 
-  mask = jnp.equal(jnp.expand_dims(num_spec_partials, axis=-1) + 1,
+  mask = jnp.equal(jnp.expand_dims(num_spec_partials, axis=-1) + 1,  # Programs start with BOS token.
                    jnp.expand_dims(num_program_partials, axis=-2))
   mask = jnp.expand_dims(mask, axis=-3)
   # shape == [batch..., 1, program_length, spec_length]
@@ -152,19 +150,20 @@ class DecomposeAttentionTransformer(nn.Module):
                               ' but it is: %d' % inputs.ndim)
     assert outputs.ndim == inputs.ndim
 
-    if self.config.split_encoding:
+    if self.config.use_spec_separators:
       outputs_encoder_mask = make_partial_spec_mask(
           outputs, bos_token=cfg.bos_token, dtype=cfg.dtype)
     else:
       outputs_encoder_mask = None
 
-    return self.encoder(inputs, outputs, outputs_encoder_mask=outputs_encoder_mask,
-                        get_attention_weights=cfg.get_attention_weights)
+    return self.encoder(inputs, outputs, outputs_encoder_mask=outputs_encoder_mask)
 
   def decode(self,
              programs,
              encoded,
-             encoded_padding_mask):
+             encoded_padding_mask
+             # Whether to return cross-attention weights
+             get_cross_attention_weights: bool = False):
     """Applies decoder on programs and encoded specification."""
     cfg = self.config.base_config
 
@@ -267,25 +266,17 @@ class DecomposeAttentionTransformer(nn.Module):
     return self.decoder(
         programs, flat_encoded, decoder_mask, encoder_decoder_mask,
         decoder_relative_position,
-        get_attention_weights=cfg.get_attention_weights)
+        get_cross_attention_weights=get_cross_attention_weights)
 
   def __call__(self,
                inputs,
                outputs,
-               programs):
+               programs,
+               # Whether to return cross-attention weights
+               get_cross_attention_weights: bool = False):
     """Applies Transformer model on the inputs."""
-    attn_weights = {}
-    if cfg.get_attention_weights:
-      encoded, encoder_attn_weights = self.encode(inputs, outputs)
-      for k,v in encoder_attn_weights:
-        attn_weights['encoder/' + k] = v
-      else:
-        encoded = self.encode(inputs, outputs)
+    encoded = self.encode(inputs, outputs)
     encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
 
-    if cfg.get_attention_weights:
-      y, decoder_attn_weights = self.decode(programs, encoded, encoded_padding_mask)
-      for k,v in decoder_attn_weights:
-        attn_weights['decoder/' + k] = v
-    else:
-      return self.decode(programs, encoded, encoded_padding_mask)
+    return self.decode(programs, encoded, encoded_padding_mask,
+                       get_cross_attention_weights=get_cross_attention_weights)
