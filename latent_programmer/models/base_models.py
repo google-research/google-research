@@ -247,7 +247,7 @@ class EncoderBlock(nn.Module):
     # Attention block.
     x = nn.LayerNorm(dtype=cfg.dtype)(inputs)
     if cfg.use_relative_attention:
-      x, aux = attention.RelativeSelfAttention(
+      x, _ = attention.RelativeSelfAttention(
           num_heads=cfg.num_heads,
           dtype=cfg.dtype,
           qkv_features=cfg.qkv_dim,
@@ -262,7 +262,7 @@ class EncoderBlock(nn.Module):
           max_distance=self.max_distance)(
               x, encoder_mask, encoder_relative_position)
     else:
-      x, aux = attention.SelfAttention(
+      x, _ = attention.SelfAttention(
           num_heads=cfg.num_heads,
           dtype=cfg.dtype,
           qkv_features=cfg.qkv_dim,
@@ -281,7 +281,7 @@ class EncoderBlock(nn.Module):
     y = nn.LayerNorm(dtype=cfg.dtype)(x)
     y = MLPBlock(config=cfg)(y)
 
-    return x + y, aux
+    return x + y
 
 
 class EncoderDecoderBlock(nn.Module):
@@ -325,7 +325,7 @@ class EncoderDecoderBlock(nn.Module):
     # Decoder block.
     x = nn.LayerNorm(dtype=cfg.dtype)(targets)
     if cfg.use_relative_attention:
-      x, aux = attention.RelativeSelfAttention(
+      x, _ = attention.RelativeSelfAttention(
           num_heads=cfg.num_heads,
           dtype=cfg.dtype,
           qkv_features=cfg.qkv_dim,
@@ -340,7 +340,7 @@ class EncoderDecoderBlock(nn.Module):
           max_distance=self.max_distance)(
               x, decoder_mask, decoder_relative_position)
     else:
-      x, aux = attention.SelfAttention(
+      x, _ = attention.SelfAttention(
           num_heads=cfg.num_heads,
           dtype=cfg.dtype,
           qkv_features=cfg.qkv_dim,
@@ -358,7 +358,7 @@ class EncoderDecoderBlock(nn.Module):
     # Encoder-Decoder block.
     y = nn.LayerNorm(dtype=cfg.dtype)(x)
     if self.relative_cross_attention:
-      y, aux2 = attention.RelativeMultiHeadDotProductAttention(
+      y, attn_weights_dict = attention.RelativeMultiHeadDotProductAttention(
           num_heads=cfg.num_heads,
           dtype=cfg.dtype,
           qkv_features=cfg.qkv_dim,
@@ -375,7 +375,7 @@ class EncoderDecoderBlock(nn.Module):
               y, encoded, encoder_decoder_mask,
               encoder_decoder_relative_position)
     else:
-      y, aux2 = attention.MultiHeadDotProductAttention(
+      y, attn_weights_dict = attention.MultiHeadDotProductAttention(
           num_heads=cfg.num_heads,
           dtype=cfg.dtype,
           qkv_features=cfg.qkv_dim,
@@ -394,10 +394,7 @@ class EncoderDecoderBlock(nn.Module):
     z = nn.LayerNorm(dtype=cfg.dtype)(y)
     z = MLPBlock(config=cfg)(z)
 
-    return (y + z,
-            {'self_attn_weights': aux['attn_weights'],
-             'cross_attn_weights': aux2['attn_weights']}
-            )
+    return y + z, attn_weights_dict
 
 
 # Transformer baseline model
@@ -459,7 +456,7 @@ class TransformerDecoder(nn.Module):
     y = y.astype(cfg.dtype)
     # Target-Input Decoder
     for lyr in range(cfg.num_layers):
-      y, aux = EncoderDecoderBlock( 
+      y, lyr_attn_weights_dict = EncoderDecoderBlock( 
           config=cfg,
           bidirectional_attention=cfg.bidirectional_program_attention,
           num_relative_position_buckets=(
@@ -473,7 +470,7 @@ class TransformerDecoder(nn.Module):
           name=f'encoderdecoderblock_{lyr}')(
               y, encoded, decoder_mask, encoder_decoder_mask,
               decoder_relative_position, encoder_decoder_relative_position)
-      attn_weights.append(aux['cross_attn_weights'])
+      attn_weights.append(lyr_attn_weights_dict['attn_weights'])
     y = nn.LayerNorm(dtype=cfg.dtype, name='encoderdecoder_norm')(y)
 
     heads['output_emb'] = y * (
@@ -687,7 +684,8 @@ class TransformerEncoder(nn.Module):
 
     x = inputs.astype('int32')
     encoder_mask = nn.make_attention_mask(x > 0, x > 0, dtype=cfg.dtype)
-
+    # TODO(jxihong): Allow for custom masks when given partial specifications.
+ 
     # Embed outputs.
     x = embed(x)
     if not cfg.use_relative_attention:

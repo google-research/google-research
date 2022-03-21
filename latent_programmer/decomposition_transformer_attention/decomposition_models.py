@@ -94,10 +94,10 @@ def make_partial_spec_mask(split_spec,
                            bos_token = 1,
                            dtype = jnp.float32):
   """Make mask that segments specification based on partial programs."""
-  num_partials = jnp.cumsum(jnp.where(split_spec == bos_token, 1, 0), axis=-1)
+  part_idx = jnp.cumsum(jnp.where(split_spec == bos_token, 1, 0), axis=-1)
 
-  mask = jnp.equal(jnp.expand_dims(num_partials, axis=-1),
-                   jnp.expand_dims(num_partials, axis=-2))
+  mask = jnp.equal(jnp.expand_dims(part_idx, axis=-1),
+                   jnp.expand_dims(part_idx, axis=-2))
   mask = jnp.expand_dims(mask, axis=-3)
   return mask.astype(dtype)
 
@@ -106,14 +106,20 @@ def make_partial_program_cross_mask(split_spec,
                                     programs,
                                     bos_token = 1,
                                     dtype = jnp.float32):
-  """Make cross-attention mask where program attends to the relevant parts in specification."""
-  num_spec_partials = jnp.cumsum(jnp.where(split_spec == bos_token, 1, 0), axis=-1)
-  num_spec_partials[split_spec == bos_token] = -1
-  num_spec_partials = base_models.flatten_num_io_dim(num_spec_partials)
-  num_program_partials = jnp.cumsum(jnp.where(programs == bos_token, 1, 0), axis=-1)
+  """Make cross-attention mask where program attends to the relevant parts in specification.
+  
+  Args:
+    split_spec: `[batch..., num_io, length]` with BOS as separators (no BOS in front)
+    programs: `[batch..., length]` with BOS as separators (BOS is the first token)
+  """
+  spec_part_idx = jnp.cumsum(jnp.where(split_spec == bos_token, 1, 0), axis=-1)
+  spec_part_idx[split_spec == bos_token] = -1
+  spec_part_idx = base_models.flatten_num_io_dim(num_spec_partials)
+  # Programs start with BOS token.
+  program_part_idx = jnp.cumsum(jnp.where(programs == bos_token, 1, 0), axis=-1) - 1
 
-  mask = jnp.equal(jnp.expand_dims(num_spec_partials, axis=-1) + 1,  # Programs start with BOS token.
-                   jnp.expand_dims(num_program_partials, axis=-2))
+  mask = jnp.equal(jnp.expand_dims(spec_part_idx, axis=-1),
+                   jnp.expand_dims(program_part_idx, axis=-2))
   mask = jnp.expand_dims(mask, axis=-3)
   # shape == [batch..., 1, program_length, spec_length]
   return mask.astype(dtype)
