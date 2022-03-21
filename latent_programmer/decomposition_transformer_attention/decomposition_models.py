@@ -110,14 +110,20 @@ def make_partial_program_cross_mask(split_spec,
   
   Args:
     split_spec: `[batch..., num_io, length]` with BOS as separators (no BOS in front)
-    programs: `[batch..., length]` with BOS as separators (BOS is the first token)
+    programs: `[batch..., length]` with BOS as separators and before shifting (no BOS in front)
   """
   spec_part_idx = jnp.cumsum(jnp.where(split_spec == bos_token, 1, 0), axis=-1)
   spec_part_idx[split_spec == bos_token] = -1
   spec_part_idx = base_models.flatten_num_io_dim(num_spec_partials)
+  programs = base_models.shift_right(programs, bos_token)
   # Programs start with BOS token.
   program_part_idx = jnp.cumsum(jnp.where(programs == bos_token, 1, 0), axis=-1) - 1
 
+  assert (
+    jnp.all(jnp.max(spec_part_idx, axis=-1) == jnp.max(program_part_idx, axis=-1)),
+    'Number of partial programs does not match number of partial specifications'
+  )
+  
   mask = jnp.equal(jnp.expand_dims(spec_part_idx, axis=-1),
                    jnp.expand_dims(program_part_idx, axis=-2))
   mask = jnp.expand_dims(mask, axis=-3)
