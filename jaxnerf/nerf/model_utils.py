@@ -182,7 +182,7 @@ def volumetric_rendering(rgb, sigma, z_vals, dirs, white_bkgd):
   eps = 1e-10
   dists = jnp.concatenate([
       z_vals[Ellipsis, 1:] - z_vals[Ellipsis, :-1],
-      jnp.broadcast_to([1e10], z_vals[Ellipsis, :1].shape)
+      jnp.broadcast_to(1e10, z_vals[Ellipsis, :1].shape)
   ], -1)
   dists = dists * jnp.linalg.norm(dirs[Ellipsis, None, :], axis=-1)
   # Note that we're quietly turning sigma from [..., 0] to [...].

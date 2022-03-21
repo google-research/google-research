@@ -18,8 +18,8 @@ import functools
 from absl.testing import absltest
 from absl.testing import parameterized
 import jax
-from jax import test_util
 import jax.numpy as jnp
+import numpy as np
 
 from scalable_shampoo.optax.symmetric_matrices import symmetric_matrices
 
@@ -79,7 +79,16 @@ def _make_random_spd_mat(shape, axes, seed=0):
       mat1=mat, mat2=mat, axes=(axes, axes))
 
 
-class SymmetricMatricesTest(test_util.JaxTestCase):
+class SymmetricMatricesTest(parameterized.TestCase):
+
+  def assertAllClose(self, x, y, atol=1e-5, rtol=1e-5):
+
+    def assert_close(x, y):
+      x = x.astype("float32") if x.dtype == jnp.bfloat16 else x
+      y = y.astype("float32") if y.dtype == jnp.bfloat16 else y
+      np.testing.assert_allclose(x, y, atol=atol, rtol=rtol)
+
+    jax.tree_util.tree_map(assert_close, x, y)
 
   def test_raises_dimension_error(self):
     with self.assertRaisesRegex(ValueError, "must be divisible by block_size"):

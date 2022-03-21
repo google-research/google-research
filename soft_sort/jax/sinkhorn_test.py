@@ -22,12 +22,11 @@ from __future__ import print_function
 
 from absl.testing import absltest
 import jax.numpy as np
-import jax.test_util
 
 from soft_sort.jax import sinkhorn
 
 
-class SinkhornTestCase(jax.test_util.JaxTestCase):
+class SinkhornTestCase(absltest.TestCase):
   """Test case for Sinkhorn1D."""
 
   def setUp(self):
