@@ -429,7 +429,7 @@ class TransformerDecoder(nn.Module):
       encoder_decoder_relative_position: encoder-decoder relative tensor
           `[batch_sizes..., length2, length]'
       get_cross_attention_weights: whether to get target-encoded cross-attention weights
-
+          `[num_layers, batch_sizes..., num_heads, length2, length]'
     Returns:
       output of a transformer decoder.
     """
@@ -556,7 +556,7 @@ class TransformerIOEncoder(nn.Module):
 
     x = x.astype(cfg.dtype)
     for lyr in range(cfg.num_layers):
-      x, aux = EncoderBlock(   # Attend to inputs.
+      x, _ = EncoderBlock(   # Attend to inputs.
           config=cfg,
           bidirectional_attention=True,
           num_relative_position_buckets=(
@@ -574,7 +574,7 @@ class TransformerIOEncoder(nn.Module):
 
     encode_decoder_cfg = cfg.replace(decode=False)
     for lyr in range(cfg.num_layers):
-      y, aux = EncoderDecoderBlock(   # Double attend to inputs and outputs.
+      y, _ = EncoderDecoderBlock(   # Double attend to inputs and outputs.
           config=encode_decoder_cfg,
           bidirectional_attention=True,
           num_relative_position_buckets=(
