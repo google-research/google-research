@@ -158,7 +158,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     """Convert audio to features, if required."""
     logging.info('`audio` shape is: %s', audio.shape)
     if self._feature_fn:
-      model_input = self._feature_fn(audio, sample_rate)
+      model_input = self._feature_fn(audio, sample_rate)  # pytype: disable=wrong-arg-types  # trace-all-classes
       if not isinstance(model_input, np.ndarray):
         raise ValueError(f'Expected ndarray, got {type(model_input)}')
       if model_input.dtype != np.float32:
@@ -185,7 +185,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     logging.info('[%s] `model_input` shape: %s', self._name, model_input.shape)
     embedding_2d = self._module_call_fn(
         model_input, sample_rate, self.post_setup_module, self._output_key,
-        self._name)
+        self._name)  # pytype: disable=wrong-arg-types  # trace-all-classes
     if not isinstance(embedding_2d, np.ndarray):
       raise ValueError(f'`embedding_2d` wrong type: {type(embedding_2d)}')
     if embedding_2d.ndim != 2:

@@ -183,8 +183,8 @@ class SwitchNamedLists(NamedLists[int]):
     offsets = len(inputs) * [0]
     outputs = []
     for i in list(self):  # Needed to appease AutoGraph?
-      outputs.append(inputs[i][offsets[i]])
-      offsets[i] += 1
+      outputs.append(inputs[i][offsets[i]])  # pytype: disable=unsupported-operands  # trace-all-classes
+      offsets[i] += 1  # pytype: disable=unsupported-operands  # trace-all-classes
     return self.pack(outputs)
 
   def merge_flattened(

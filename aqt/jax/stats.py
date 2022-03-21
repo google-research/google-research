@@ -164,7 +164,7 @@ class Stats:
         mean_abs=flax.linen.initializers.zeros(key, shape, dtype),
         mean_sq=flax.linen.initializers.zeros(key, shape, dtype),
         mean_batch_maximum=flax.linen.initializers.zeros(key, shape, dtype),
-        mean_batch_minimum=flax.linen.initializers.zeros(key, shape, dtype))
+        mean_batch_minimum=flax.linen.initializers.zeros(key, shape, dtype))  # pytype: disable=wrong-keyword-args  # trace-all-classes
 
   @classmethod
   def create_updated_stats(cls,
@@ -246,4 +246,4 @@ class Stats:
         mean_abs=new_mean_abs,
         mean_sq=new_mean_sq,
         mean_batch_minimum=new_mean_batch_minimum,
-        mean_batch_maximum=new_mean_batch_maximum)
+        mean_batch_maximum=new_mean_batch_maximum)  # pytype: disable=wrong-keyword-args  # trace-all-classes

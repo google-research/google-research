@@ -202,7 +202,7 @@ class DiscreteDomain(Domain):
 
   @property
   def vocab(self):
-    return self._vocab
+    return self._vocab  # pytype: disable=attribute-error  # trace-all-classes
 
   def encode(self, samples, **kwargs):
     """Maps a list of string tokens to a list of lists of integer token ids."""

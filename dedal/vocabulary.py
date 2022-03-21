@@ -87,8 +87,8 @@ class Vocabulary:
     return self.get(self._padding)
 
   def get_specials(self, with_padding = True):
-    return (self.specials if not with_padding
-            else self.specials + (self._padding,))
+    return (self.specials if not with_padding  # pytype: disable=bad-return-type  # trace-all-classes
+            else self.specials + (self._padding,))  # pytype: disable=bad-return-type  # trace-all-classes
 
   @property
   def mask_code(self):
@@ -96,7 +96,7 @@ class Vocabulary:
 
   def get(self, token, default_value=None):
     """Returns the int encoding of the token if exists or the default value."""
-    return self._indices.get(token, default_value)
+    return self._indices.get(token, default_value)  # pytype: disable=bad-return-type  # trace-all-classes
 
   def compute_mask(self, inputs, tokens):
     """Computes mask for a batch of input tokens.
