@@ -17,36 +17,38 @@
 
 import datetime
 import os
-import sys
+import platform
 import numpy as np
 
-run_on_test_data = False  # set this variable to True to run on sample test data
+RANDOM_SEED = 42
+
+RUN_ON_TEST_DATA = False  # Set this variable to True to run on sample test data
                          # otherwise, download the metrics/weights for a desired
                          # dataset (asoutlined in the README), and set this
                          # variable to False.
 
 ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
-dataset = 'mnist'
-assert dataset in ALLOWABLE_DATASETS
+DATASET = 'mnist'
+assert DATASET in ALLOWABLE_DATASETS
 
 READAHEAD = '/readahead/6G'
 FASTWRITE = '/fastwrite'
-if run_on_test_data:
+if RUN_ON_TEST_DATA:
   DATA_DIR = 'test_data/'
 else:
-  DATA_DIR = dataset + '/'
+  DATA_DIR = DATASET + '/'
 
-if run_on_test_data:  # The test data is a subset of the MNIST dataset.
-  assert dataset == 'mnist'
+if RUN_ON_TEST_DATA:  # The test data is a subset of the MNIST dataset.
+  assert DATASET == 'mnist'
 
 PLOTS_SUBPATH = '_plots'
 MODELS_SUBPATH = '_models'
 
-KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.98
-USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = False
 NUM_BASE_MODELS = 30000
-NUM_SAMPLES_PER_BASE_MODEL = 32
-NUM_SAMPLES_TO_PLOT_TE_FOR = 32
+NUM_SAMPLES_PER_BASE_MODEL = 8
+NUM_SAMPLES_TO_PLOT_TE_FOR = 8
+KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.95
+USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = True
 assert NUM_SAMPLES_TO_PLOT_TE_FOR <= NUM_SAMPLES_PER_BASE_MODEL
 
 ALLOWABLE_EXPLANATION_METHODS = [
@@ -63,7 +65,7 @@ assert EXPLANATION_TYPE in ALLOWABLE_EXPLANATION_METHODS
 BASE_MODEL_BATCH_SIZE = 32
 META_MODEL_BATCH_SIZE = 32
 TRAIN_FRACTIONS = [0.01, 0.03, 0.1]
-if 'google.colab' in sys.modules:
+if platform.system() != 'Darwin':
   META_MODEL_EPOCHS = 50
 else:
   META_MODEL_EPOCHS = 10
@@ -122,7 +124,7 @@ COVARIATES_SETTINGS = [
 
 # Create timestamp'ed experiment folder and subfolders.
 SETUP_NAME = (
-    f'dataset_{dataset}_'
+    f'dataset_{DATASET}_'
     f'num_base_model_{NUM_BASE_MODELS}_'
     f'min_test_accuracy_{KEEP_MODELS_ABOVE_TEST_ACCURACY}_'
     f'num_image_samples_{NUM_SAMPLES_PER_BASE_MODEL}_'
@@ -133,8 +135,8 @@ EXPERIMENT_DIR = (
     f'{SETUP_NAME}'
 )
 
-# create folders to save results, models, and plots
-if 'google.colab' in sys.modules:
+# Create folders to save results, models, and plots.
+if platform.system() != 'Darwin':
   EXP_FOLDER_PATH = os.path.join(CNS_PATH, EXPERIMENT_DIR)
 else:
   EXP_FOLDER_PATH = os.path.join(os.path.dirname(__file__), EXPERIMENT_DIR)

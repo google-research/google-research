@@ -24,7 +24,7 @@ processed and displayed later in aggregate.
 The codebase is accompanied with sample weights and metrics data extracted from
 the predict_dnn_accuracy repository (link below), and can run out of the box.
 To run on the actual weights/metrics files, download the data form the link
-below and set the `run_on_test_data` variable to False.
+below and set the `RUN_ON_TEST_DATA` variable to False.
 
 https://github.com/google-research/google-research/tree/master/dnn_predict_accuracy
 

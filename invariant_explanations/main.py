@@ -31,21 +31,19 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  random_seed = 42
-
   utils.create_experimental_folders()
 
-  utils.analyze_accuracies_of_base_models()
+  # utils.analyze_accuracies_of_base_models()
 
   utils.process_and_resave_cnn_zoo_data(
-      random_seed,
+      config.RANDOM_SEED,
       other.get_model_wireframe(),
       config.COVARIATES_SETTINGS,
   )
 
   # utils.plot_treatment_effect_values()
 
-  utils.train_meta_model_over_different_setups(random_seed)
+  utils.train_meta_model_over_different_setups(config.RANDOM_SEED)
 
   utils.save_heat_map_of_meta_model_results()
 

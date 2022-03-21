@@ -18,6 +18,7 @@
 import gc
 import os
 import pickle
+import platform
 import sys
 
 from absl import logging
@@ -330,7 +331,7 @@ def load_base_model_weights_and_metrics():
   """Load base weights and metrics from CNN collections."""
 
   logging.info('Loading CNN Zoo weights and metrics...')
-  if 'google.colab' in sys.modules:
+  if platform.system() != 'Darwin':
 
     weights_path = (
         config.READAHEAD +
@@ -456,14 +457,14 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   random_state = np.random.RandomState(random_seed)
 
   assert base_model_weights.shape[0] == base_model_metrics.shape[0]
-  if not config.run_on_test_data:
-    if config.dataset == 'mnist':
+  if not config.RUN_ON_TEST_DATA:
+    if config.DATASET == 'mnist':
       assert base_model_weights.shape[0] == 269973
-    elif config.dataset == 'fashion_mnist':
+    elif config.DATASET == 'fashion_mnist':
       assert base_model_weights.shape[0] == 270000
-    elif config.dataset == 'cifar10':
+    elif config.DATASET == 'cifar10':
       assert base_model_weights.shape[0] == 270000
-    elif config.dataset == 'svhn_cropped':
+    elif config.DATASET == 'svhn_cropped':
       assert base_model_weights.shape[0] == 269892
 
   logging.info('\tConstructing new dataset...')
@@ -552,7 +553,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   # all_img_y_trues = np.concatenate([y for x, y in data_tr], axis=0)
   all_img_samples, all_img_y_trues = tfds.as_numpy(
       tfds.load(
-          config.dataset,
+          config.DATASET,
           split='train',
           batch_size=-1,
           as_supervised=True,
@@ -574,7 +575,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
 
   if config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
     # Select identical samples in such a way that they are class-balanced.
-    num_classes = other.get_dataset_info(config.dataset)['num_classes']
+    num_classes = other.get_dataset_info(config.DATASET)['num_classes']
     num_samples_per_class = [len(x) for x in np.array_split(
         np.arange(config.NUM_SAMPLES_PER_BASE_MODEL),
         num_classes,
@@ -728,7 +729,7 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
     samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics = extract_new_covariates_and_targets(
         random_seed,
         model_wireframe,
-        other.get_dataset_info(config.dataset),
+        other.get_dataset_info(config.DATASET),
         covariates_setting,
         base_model_weights,
         base_model_metrics,
@@ -791,7 +792,7 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
 
   # Configuration options
   num_features = samples.shape[1] + auxvals.shape[1]
-  num_classes = other.get_dataset_info(config.dataset)['num_classes']
+  num_classes = other.get_dataset_info(config.DATASET)['num_classes']
 
   # Set the input shape.
   input_shape = (num_features,)
@@ -993,11 +994,11 @@ def train_meta_model_over_different_setups(random_seed):
     # performed on the various saved files are similar.
     # Do NOT use w_chkpt below; y_pred is computed/saved using w_final.
     m = reset_model_using_weights(
-        other.get_model_wireframe(config.dataset),
+        other.get_model_wireframe(config.DATASET),
         w_final[0],
     )
     s = samples[0].reshape(
-        (1,) + other.get_dataset_info(config.dataset)['data_shape']
+        (1,) + other.get_dataset_info(config.DATASET)['data_shape']
     )
     y = y_preds[0]
     assert np.allclose(m.predict_on_batch(s)[0], y, rtol=1e-2)
@@ -1143,7 +1144,7 @@ def project_using_spca(samples, targets, n_components=2,
     samples_proj = (matrix_u.T).dot(samples_orig)
     samples_reco = matrix_u.dot(samples_proj)
 
-  data_dim = np.prod(other.get_dataset_info(config.dataset)['data_shape'])
+  data_dim = np.prod(other.get_dataset_info(config.DATASET)['data_shape'])
   if samples_orig.shape[0] == data_dim:  # IMPORTANT: only works for samples
                                          # and explans that are (image based).
     num_rows = 3  # Row 1: orig samples; Row 2: reco samples; Row 3: difference.
@@ -1238,7 +1239,7 @@ def process_per_class_explanations(random_seed):
 
   # Show projections in 2D.
   fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(24, 6))
-  num_classes = other.get_dataset_info(config.dataset)['num_classes']
+  num_classes = other.get_dataset_info(config.DATASET)['num_classes']
 
   for class_idx in range(num_classes):
 
