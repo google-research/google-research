@@ -201,7 +201,7 @@ def plot_and_save_various_explanations(model, samples, y_preds, save_file_name):
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_FOLDER_PATH,
+              config.PLOTS_DIR_PATH,
               save_file_name,
           ),
           'wb',

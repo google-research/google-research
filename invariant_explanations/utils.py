@@ -617,6 +617,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
     #     model,
     #     batch_img_samples,
     #     predictions,
+    #     f'explanations_for_model_{idx}.png'
     # )
     explanations = explanation_utils.get_model_explanations_for_instances(
         model,
@@ -1331,6 +1332,8 @@ def measure_prediction_explanation_variance(random_seed):
 
   chkpt = 86
   file_suffix = get_file_suffix(chkpt)
+  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
+    samples = pickle.load(f)
   with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
   with file_handler(config.EXP_DIR_PATH, f'y_trues{file_suffix}', 'rb') as f:
@@ -1345,30 +1348,31 @@ def measure_prediction_explanation_variance(random_seed):
   hparams = process_hparams(hparams, round_num=True, cat_to_code=False)
 
   assert (
+      samples.shape[0] ==
       y_preds.shape[0] ==
       y_trues.shape[0] ==
       explans.shape[0] ==
       hparams.shape[0]
   )
   num_base_models_times_samples = y_preds.shape[0]
-  num_rows = config.NUM_SAMPLES_TO_PLOT_TE_FOR
-  num_cols = len(config.ALL_HPARAMS)
+  num_rows = min(
+      config.NUM_SAMPLES_TO_PLOT_TE_FOR,
+      config.NUM_SAMPLES_PER_BASE_MODEL,
+  )
+  num_cols = len(config.ALL_HPARAMS) + 1  # +1 to also plot the image instance.
   update_matplotlib_defaults()
   fig, axes = plt.subplots(
       num_rows,
       num_cols,
       figsize=(num_cols*6, num_rows*6),
-      sharex=True,
-      sharey=True,
+      sharex='col',
+      sharey='col',
   )
   if num_rows == 1:
     axes = np.expand_dims(axes, 0)
 
   # Iterate over different samples, X.
-  for row_idx, x_offset_idx in enumerate(range(min(
-      config.NUM_SAMPLES_TO_PLOT_TE_FOR,
-      config.NUM_SAMPLES_PER_BASE_MODEL,
-  ))):
+  for row_idx, x_offset_idx in enumerate(range(num_rows)):
 
     logging.info('Processing instance w/ index `%d`...', x_offset_idx)
 
@@ -1382,6 +1386,7 @@ def measure_prediction_explanation_variance(random_seed):
     # samples in order to get a trend. Therefore, only limit samples to some
     # (arbitrary) random subset of samples.
     x_indices = random_state.permutation(x_indices)[:100]
+    x_samples = samples[x_indices, :]
     x_y_preds = y_preds[x_indices, :]
     x_y_trues = y_trues[x_indices, :]
     x_explans = explans[x_indices, :]
@@ -1406,8 +1411,8 @@ def measure_prediction_explanation_variance(random_seed):
         hi: the unique value of the hparam to filter over.
 
       Returns:
-        x_hi_y_preds: y_preds for when hparam of type col is hi,
-        x_hi_explans: explans for when hparam of type col is hi,
+        x_hi_y_preds: y_preds for when hparam of type col is hi.
+        x_hi_explans: explans for when hparam of type col is hi.
       """
 
       # Get list of indices where hparam of type col is hi,
@@ -1428,6 +1433,15 @@ def measure_prediction_explanation_variance(random_seed):
       assert x_hi_y_preds.shape[0] == x_hi_explans.shape[0]
 
       return x_hi_y_preds, x_hi_explans
+
+    # Show the instance being processed.
+    ax = axes[row_idx, 0]
+    ax.imshow(
+        x_samples[0].reshape(
+            other.get_dataset_info(config.DATASET)['data_shape']
+        )
+    )  # Samples at all indices are identical; just take the first.
+    ax.axis('off')
 
     # Reset index of hparams df as they will be used to filter np arrays.
     x_hparams = x_hparams.reset_index()
@@ -1498,7 +1512,7 @@ def measure_prediction_explanation_variance(random_seed):
 
       # Scatter the y_preds against explans for all (h1, h2) pairs
       # of this hparam and this sample.
-      ax = axes[row_idx, col_idx]
+      ax = axes[row_idx, col_idx + 1]
       sns.scatterplot(
           data=scatter_tracker,
           x='d_y_preds',
@@ -1512,16 +1526,17 @@ def measure_prediction_explanation_variance(random_seed):
       ax.set_xlabel('y_preds')
       ax.set_ylabel('explans')
 
-  # Add x=y to all plots (some repeated work from sharex, sharey).
-  lims = [  # Getting limits on last ax is appropriate, since they are shared.
-      np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-      np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
-  ]
-  for ax in axes.flatten():
-    ax.plot(lims, lims, 'k--', alpha=0.3)
-    ax.set_aspect('equal')
-    ax.set_xlim(lims)
-    ax.set_ylim(lims)
+  # Add the x=y line to all plots & adjust aspect ratios per hparam type (col).
+  for col_idx in range(1, len(config.ALL_HPARAMS) + 1):
+    # Axes (limits) are shared in each column.
+    for row_idx in range(num_rows):
+      ax = axes[row_idx, col_idx]
+      lims = [  # Getting limits on last ax is OK, since they are shared.
+          np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+          np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+      ]
+      ax.plot(lims, lims, 'k--', alpha=0.3)
+      ax.set_aspect('equal')
 
   # Save figure.
   plt.suptitle(
@@ -1535,7 +1550,7 @@ def measure_prediction_explanation_variance(random_seed):
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_FOLDER_PATH,
+              config.PLOTS_DIR_PATH,
               'scatter_d(y)_d(e).png',
           ),
           'wb',
