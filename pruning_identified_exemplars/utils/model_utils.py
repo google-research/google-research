@@ -17,6 +17,7 @@
 """Helper model functions for retrieving model predictions."""
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2
 from pruning_identified_exemplars.pruning_tools import pruning
 from pruning_identified_exemplars.utils import class_level_metrics
@@ -134,7 +135,7 @@ def model_fn_w_pruning(features, labels, mode, params):
       data_format="channels_last")
 
   logits = network(
-      inputs=images, is_training=(mode == tf.estimator.ModeKeys.TRAIN))
+      inputs=images, is_training=(mode == tf_estimator.ModeKeys.TRAIN))
   one_hot_labels = tf.one_hot(labels, params["num_label_classes"])
 
   cross_entropy = tf.losses.softmax_cross_entropy(
@@ -151,7 +152,7 @@ def model_fn_w_pruning(features, labels, mode, params):
 
   # we run predictions on gpu since ordering is very important and
   # thus we need to run with batch size 1 (not enabled on tpu)
-  if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf_estimator.ModeKeys.PREDICT:
     train_op = None
     eval_metrics = None
     predicted_probability = tf.cast(
@@ -167,12 +168,12 @@ def model_fn_w_pruning(features, labels, mode, params):
         "top_5_indices": top_5_indices
     }
 
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     train_op = train_function(params, loss)
     eval_metrics = None
     predictions = None
 
-  if mode == tf.estimator.ModeKeys.EVAL:
+  if mode == tf_estimator.ModeKeys.EVAL:
     train_op = None
     predictions = None
     params_eval = {
@@ -182,7 +183,7 @@ def model_fn_w_pruning(features, labels, mode, params):
     eval_metrics = class_level_metrics.create_eval_metrics(
         labels, logits, human_labels, params_eval)
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       predictions=predictions,
       mode=mode,
       loss=loss,
@@ -205,7 +206,7 @@ def initiate_task_helper(model_params,
   """
 
   if model_params["task"] != "imagenet_training":
-    classifier = tf.estimator.Estimator(
+    classifier = tf_estimator.Estimator(
         model_fn=model_fn_w_pruning, params=model_params)
 
     if model_params["task"] in ["imagenet_predictions"]:
@@ -220,7 +221,7 @@ def initiate_task_helper(model_params,
 
       eval_steps = model_params["num_eval_images"] // model_params["batch_size"]
       tf.logging.info("start computing eval metrics...")
-      classifier = tf.estimator.Estimator(
+      classifier = tf_estimator.Estimator(
           model_fn=model_fn_w_pruning, params=model_params)
       evaluation_metrics = classifier.evaluate(
           input_fn=data_input.input_fn,
@@ -231,11 +232,11 @@ def initiate_task_helper(model_params,
 
   else:
     model_params["pruning_dict"] = pruning_params
-    run_config = tf.estimator.RunConfig(
+    run_config = tf_estimator.RunConfig(
         save_summary_steps=300,
         save_checkpoints_steps=1000,
         log_step_count_steps=100)
-    classifier = tf.estimator.Estimator(
+    classifier = tf_estimator.Estimator(
         model_fn=model_fn_w_pruning, config=run_config, params=model_params)
     tf.logging.info("start training...")
     classifier.train(

@@ -29,6 +29,7 @@ import numpy as np
 from tensor2tensor.bin.t2t_decoder import create_hparams
 from tensor2tensor.utils import registry
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from ..utils import save_im
 
 FLAGS = flags.FLAGS
@@ -119,7 +120,7 @@ class SubGoalEnv(object):
       }
       # Creat model
       forward_model_cls = registry.model(FLAGS.model)
-      forward_model = forward_model_cls(hparams, tf.estimator.ModeKeys.PREDICT)
+      forward_model = forward_model_cls(hparams, tf_estimator.ModeKeys.PREDICT)
       self.forward_prediction_ops, _ = forward_model(self.forward_placeholders)
       forward_saver = tf.train.Saver()
       forward_saver.restore(self.forward_sess,

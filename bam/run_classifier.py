@@ -32,6 +32,7 @@ from bam.data import task_weighting
 from bam.helpers import training_utils
 from bam.helpers import utils
 from bam.task_specific import task_builder
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
 from tensorflow.contrib import tpu as contrib_tpu
 
@@ -84,7 +85,7 @@ def model_fn_builder(config, tasks, task_weights, num_train_steps):
     """The `model_fn` for TPUEstimator."""
     utils.log("Building model")
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
     model = MultitaskModel(
         config, tasks, task_weights, is_training, features, num_train_steps)
 
@@ -103,7 +104,7 @@ def model_fn_builder(config, tasks, task_weights, num_train_steps):
         tf.train.init_from_checkpoint(config.init_checkpoint, assignment_map)
 
     # Run training or prediction
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       train_op = optimization.create_optimizer(
           config, model.loss, num_train_steps)
       output_spec = contrib_tpu.TPUEstimatorSpec(
@@ -117,7 +118,7 @@ def model_fn_builder(config, tasks, task_weights, num_train_steps):
                   num_train_steps)
           ])
     else:
-      assert mode == tf.estimator.ModeKeys.PREDICT
+      assert mode == tf_estimator.ModeKeys.PREDICT
       output_spec = contrib_tpu.TPUEstimatorSpec(
           mode=mode,
           predictions=utils.flatten_dict(model.outputs),

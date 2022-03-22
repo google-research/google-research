@@ -47,7 +47,7 @@ import dataset_utils
 from ..model_training import cnn
 from ..model_training import lr
 from ..model_training import rnn
-import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 
 def load_hparams(model_dir):
@@ -103,7 +103,7 @@ def load_model(model_dir, inference_batch_size=1024):
   else:
     raise ValueError('Model type "%s" is not supported' % hparams['model'])
 
-  model = tf.estimator.Estimator(
+  model = tf_estimator.Estimator(
       model_fn=model_fn,
       params=hparams,
       model_dir=model_dir,

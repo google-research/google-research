@@ -22,6 +22,7 @@ from . import utils
 from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 FLAGS = flags.FLAGS
 
 # General flags.
@@ -119,7 +120,7 @@ def net_point_cloud(points1, points2, mode):
 
   if FLAGS.method == 'svd-inf':
     p = regress_from_features(f, 9)
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       return tf.reshape(p, (-1, 3, 3))
     else:
       return utils.symmetric_orthogonalization(p)
@@ -132,7 +133,7 @@ def net_point_cloud(points1, points2, mode):
 def model_fn(features, labels, mode, params):
   """The model_fn used to construct the tf.Estimator."""
   del labels, params  # Unused.
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     # Training data has point cloud of size [1, N, 3] and random rotations
     # of size [1, FLAGS.num_train_augmentations, 3, 3]
     rot = features['rot'][0]
@@ -163,7 +164,7 @@ def model_fn(features, labels, mode, params):
   mean_theta_deg = mean_theta * 180.0 / np.pi
 
   # Train, eval, or predict depending on mode.
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     tf.summary.scalar('train/loss', loss)
     tf.summary.scalar('train/theta', mean_theta_deg)
     global_step = tf.train.get_or_create_global_step()
@@ -182,12 +183,12 @@ def model_fn(features, labels, mode, params):
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
       train_op = optimizer.minimize(loss, global_step=global_step)
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         loss=loss,
         train_op=train_op)
 
-  if mode == tf.estimator.ModeKeys.EVAL:
+  if mode == tf_estimator.ModeKeys.EVAL:
     if FLAGS.predict_all_test:
       print_error_op = tf.print('error:', mean_theta_deg)
       with tf.control_dependencies([print_error_op]):
@@ -199,14 +200,14 @@ def model_fn(features, labels, mode, params):
           'mean_degree_err': tf.metrics.mean(mean_theta_deg),
       }
 
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         loss=loss,
         eval_metric_ops=eval_metric_ops)
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf_estimator.ModeKeys.PREDICT:
     pred = {'error': mean_theta_deg}
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         predictions=pred)
 
@@ -297,7 +298,7 @@ def eval_input_fn():
 def print_variable_names():
   """Print variable names in a model."""
   params = {'dummy': 0}
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=model_fn,
       model_dir=FLAGS.checkpoint_dir,
       params=params)
@@ -309,7 +310,7 @@ def print_variable_names():
 def predict_all_test():
   """Print error statistics for the test dataset."""
   params = {'dummy': 0}
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=model_fn,
       model_dir=FLAGS.checkpoint_dir,
       params=params)
@@ -336,29 +337,29 @@ def train_and_eval():
   save_checkpoints_steps = FLAGS.save_checkpoints_steps
   log_step_count = FLAGS.log_step_count
 
-  config = tf.estimator.RunConfig(
+  config = tf_estimator.RunConfig(
       save_summary_steps=save_summary_steps,
       save_checkpoints_steps=save_checkpoints_steps,
       log_step_count_steps=log_step_count,
       keep_checkpoint_max=None)
 
   params = {'dummy': 0}
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=model_fn,
       model_dir=FLAGS.checkpoint_dir,
       config=config,
       params=params)
 
-  train_spec = tf.estimator.TrainSpec(
+  train_spec = tf_estimator.TrainSpec(
       input_fn=train_input_fn,
       max_steps=FLAGS.train_steps)
 
-  eval_spec = tf.estimator.EvalSpec(input_fn=eval_input_fn,
+  eval_spec = tf_estimator.EvalSpec(input_fn=eval_input_fn,
                                     start_delay_secs=60,
                                     steps=FLAGS.eval_examples,
                                     throttle_secs=60)
 
-  tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+  tf_estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 
 def main(argv=None):  # pylint: disable=unused-argument

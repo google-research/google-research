@@ -23,6 +23,7 @@ from absl import app
 from absl import flags
 from absl import logging
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from readtwice.models import checkpoint_utils
 from readtwice.models import config
@@ -299,7 +300,7 @@ def model_fn_builder(model_config, padding_token_id, enable_side_inputs,
 
     main_output = model(
         token_ids=token_ids,
-        training=(mode == tf.estimator.ModeKeys.TRAIN),
+        training=(mode == tf_estimator.ModeKeys.TRAIN),
         block_ids=block_ids,
         block_pos=block_pos,
         att_mask=att_mask,
@@ -487,7 +488,7 @@ def model_fn_builder(model_config, padding_token_id, enable_side_inputs,
         block_ids=block_ids)
 
     output_spec = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu,
           optimizer, poly_power, start_warmup_step, learning_rate_schedule)
@@ -505,20 +506,20 @@ def model_fn_builder(model_config, padding_token_id, enable_side_inputs,
           metrics_dir=os.path.join(FLAGS.output_dir, "train_metrics"),
           metrics_name=metrics_name or "train_metrics"), metric_fn_tensors)
 
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
           scaffold_fn=scaffold_fn,
           host_call=host_call)
 
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
 
       eval_metrics = (functools.partial(
           metric_utils.masked_lm_metrics,
           is_train=False,
           metrics_name=metrics_name or "eval_metrics"), metric_fn_tensors)
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
@@ -658,13 +659,13 @@ def main(_):
   # PER_HOST_V1: iterator.get_next() is called 1 time with per_worker_batch_size
   # PER_HOST_V2: iterator.get_next() is called 8 times with per_core_batch_size
   # pylint: enable=line-too-long
-  is_per_host = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V1
-  run_config = tf.estimator.tpu.RunConfig(
+  is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V1
+  run_config = tf_estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           tpu_job_name=FLAGS.tpu_job_name,
           per_host_input_for_training=is_per_host,
@@ -704,7 +705,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,

@@ -22,6 +22,7 @@ import apache_beam as beam
 from apache_beam.metrics import Metrics
 import numpy as np
 import tensorflow as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_datasets.public_api as tfds
 import tensorflow_hub as hub
 
@@ -207,10 +208,10 @@ class GenerateBERTEmbeddings(beam.DoFn):
     self._tokenizer = tokenization.FullTokenizer(
         vocab_file=self._vocab_file, do_lower_case=self._do_lower_case)
 
-    is_per_host = tf.compat.v1.estimator.tpu.InputPipelineConfig.PER_HOST_V2
-    run_config = tf.compat.v1.estimator.tpu.RunConfig(
+    is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
+    run_config = tf_estimator.tpu.RunConfig(
         master=None,
-        tpu_config=tf.compat.v1.estimator.tpu.TPUConfig(
+        tpu_config=tf_estimator.tpu.TPUConfig(
             num_shards=1,
             per_host_input_for_training=is_per_host))
 
@@ -221,7 +222,7 @@ class GenerateBERTEmbeddings(beam.DoFn):
         use_tpu=False,
         use_one_hot_embeddings=False)
 
-    self._estimator = tf.compat.v1.estimator.tpu.TPUEstimator(
+    self._estimator = tf_estimator.tpu.TPUEstimator(
         use_tpu=False,
         model_fn=model_fn,
         config=run_config,

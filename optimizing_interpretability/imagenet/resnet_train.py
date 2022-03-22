@@ -22,6 +22,7 @@ import os
 from absl import app
 from absl import flags
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 from optimizing_interpretability import regularizers as reg
 from optimizing_interpretability.imagenet import data_helper
 from optimizing_interpretability.imagenet import resnet_model
@@ -274,7 +275,7 @@ def resnet_model_fn(features, labels, mode, params):
         num_classes=params['num_label_classes'],
         data_format=FLAGS.data_format)
     return network(
-        inputs=images, is_training=(mode == tf.estimator.ModeKeys.TRAIN))
+        inputs=images, is_training=(mode == tf_estimator.ModeKeys.TRAIN))
 
   logits = build_network()
 
@@ -288,7 +289,7 @@ def resnet_model_fn(features, labels, mode, params):
       label_smoothing=FLAGS.label_smoothing)
 
   reg_loss = 0.0
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     if params['regularize_gradients']:
       ## if regularize_aux evaluate perceptual quality at earlier layer
       one_hot_labels = tf.one_hot(labels, params['num_label_classes'])
@@ -305,7 +306,7 @@ def resnet_model_fn(features, labels, mode, params):
       if 'batch_normalization' not in v.name
   ])
   global_step = tf.compat.v1.train.get_global_step()
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     train_op = train_function(loss, params, global_step)
     tf.summary.scalar('reg_loss', reg_loss, step=global_step)
     tf.summary.scalar('cross_entropy', cross_entropy, step=global_step)
@@ -313,10 +314,10 @@ def resnet_model_fn(features, labels, mode, params):
     train_op = None
 
   eval_metrics = None
-  if mode == tf.estimator.ModeKeys.EVAL:
+  if mode == tf_estimator.ModeKeys.EVAL:
     eval_metrics = (create_eval_metrics, [labels, logits])
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       mode=mode, loss=loss, train_op=train_op, eval_metric_ops=eval_metrics)
 
 
@@ -390,12 +391,12 @@ def main(argv):
     params['batch_size'] = params['eval_batch_size']
     params['data_dir'] = params['eval_directory']
 
-  run_config = tf.estimator.RunConfig(
+  run_config = tf_estimator.RunConfig(
       save_summary_steps=300,
       save_checkpoints_steps=1000,
       log_step_count_steps=100)
 
-  classifier = tf.estimator.Estimator(
+  classifier = tf_estimator.Estimator(
       model_fn=resnet_model_fn,
       config=run_config,
       params=params,

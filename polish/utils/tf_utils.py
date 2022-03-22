@@ -23,6 +23,7 @@ from absl import logging
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import predictor as contrib_predictor
 from tensorflow.contrib import slim as contrib_slim
 slim = contrib_slim
@@ -72,7 +73,7 @@ def export_model(working_dir, model_path, model_fn, serving_input):
     model_fn: model_fn of model.
     serving_input: function for processing input.
   """
-  estimator = tf.estimator.Estimator(model_fn, model_dir=working_dir)
+  estimator = tf_estimator.Estimator(model_fn, model_dir=working_dir)
   estimator.export_saved_model(
       model_path, serving_input_receiver_fn=serving_input)
 
@@ -191,7 +192,7 @@ def get_tpu_estimator(
   # invoked per host rather than per core. In this case, a global batch size
   # is transformed a per-host batch size in params for `input_fn`,
   # but `model_fn` still gets per-core batch size.
-  run_config = tf.estimator.tpu.RunConfig(
+  run_config = tf_estimator.tpu.RunConfig(
       master=FLAGS.master,
       evaluation_master=FLAGS.master,
       model_dir=working_dir,
@@ -200,12 +201,12 @@ def get_tpu_estimator(
       keep_checkpoint_max=keep_checkpoint_max,
       session_config=tf.ConfigProto(
           allow_soft_placement=True, log_device_placement=True),
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=iterations_per_loop,
           per_host_input_for_training=True,
           tpu_job_name=FLAGS.tpu_job_name))
 
-  return tf.estimator.tpu.TPUEstimator(
+  return tf_estimator.tpu.TPUEstimator(
       use_tpu=use_tpu,
       model_fn=model_fn,
       config=run_config,
@@ -248,17 +249,17 @@ def create_estimator(
     warmstart: if not None, warm start the estimator from an existing
       checkpoint.
   """
-  run_config = tf.estimator.RunConfig(
+  run_config = tf_estimator.RunConfig(
       save_checkpoints_steps=iterations_per_loop,
       save_summary_steps=iterations_per_loop,
       keep_checkpoint_max=keep_checkpoint_max)
 
   if warmstart is not None:
-    return tf.estimator.Estimator(
+    return tf_estimator.Estimator(
         model_fn, model_dir=working_dir, config=run_config,
         warm_start_from=warmstart)
   else:
-    return tf.estimator.Estimator(
+    return tf_estimator.Estimator(
         model_fn, model_dir=working_dir, config=run_config)
 
 
@@ -275,4 +276,4 @@ def serving_input_fn(env_state_space=2):
   """
   x = tf.placeholder(dtype=tf.float32, shape=[None, env_state_space])
   features = {'mcts_features': x, 'policy_features': x}
-  return tf.estimator.export.ServingInputReceiver(features, features)
+  return tf_estimator.export.ServingInputReceiver(features, features)

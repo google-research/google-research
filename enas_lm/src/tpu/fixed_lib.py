@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from enas_lm.src.tpu import utils
 from tensorflow.contrib import tpu as contrib_tpu
@@ -424,7 +425,7 @@ def _forward(params, x, y, model_params, init_states, is_training=False):
 def model_fn(features, labels, mode, params):
   """`model_fn` for training mode for `TPUEstimator`."""
   labels = labels
-  is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+  is_training = (mode == tf_estimator.ModeKeys.TRAIN)
   x = tf.transpose(features['x'], [1, 0])
   y = tf.transpose(features['y'], [1, 0])
   init_states, model_params = _build_params(params)
@@ -481,6 +482,6 @@ def model_fn(features, labels, mode, params):
       return metrics
 
     return contrib_tpu.TPUEstimatorSpec(
-        mode=tf.estimator.ModeKeys.EVAL,
+        mode=tf_estimator.ModeKeys.EVAL,
         loss=total_loss,
         eval_metrics=(_metric_fn, [cross_entropy_loss]))
