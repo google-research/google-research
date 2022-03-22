@@ -23,6 +23,7 @@ from typing import Mapping, Sequence, Union
 from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from etcmodel.models import input_utils
 from etcmodel.models import modeling
@@ -323,7 +324,7 @@ def _write_scores_to_text(scores: Mapping[str, Union[float, int]],
 def _serving_input_receiver_fn(
     long_seq_length: int,
     global_seq_length: int,
-) -> tf.estimator.export.ServingInputReceiver:
+) -> tf_estimator.export.ServingInputReceiver:
   """Creates an input function to parse input features for inference.
 
   This function defines format of the inputs to the exported HotpotQA model.
@@ -344,7 +345,7 @@ def _serving_input_receiver_fn(
   schema = run_finetuning_lib.get_inference_name_to_features(
       long_seq_length, global_seq_length)
   features = tf.parse_example(serialized_tf_example, schema)
-  return tf.estimator.export.ServingInputReceiver(features, receiver_tensors)
+  return tf_estimator.export.ServingInputReceiver(features, receiver_tensors)
 
 
 def run_export(estimator, model_dir, export_ckpts, long_seq_length,
@@ -410,16 +411,16 @@ def main(_):
     tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  run_config = tf.estimator.tpu.RunConfig(
+  run_config = tf_estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=(
-              tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2),
+              tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2),
           tpu_job_name=FLAGS.tpu_job_name))
 
   num_train_steps = int(FLAGS.num_train_tf_examples / FLAGS.train_batch_size *
@@ -431,7 +432,7 @@ def main(_):
       use_wordpiece, FLAGS.optimizer, FLAGS.poly_power, FLAGS.start_warmup_step,
       FLAGS.learning_rate_schedule, FLAGS.init_checkpoint)
 
-  estimator = tf.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,

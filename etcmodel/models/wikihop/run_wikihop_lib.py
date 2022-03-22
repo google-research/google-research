@@ -22,6 +22,7 @@ from typing import Dict, Mapping, Text
 
 import attr
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from etcmodel import tensor_utils
 from etcmodel.layers import wrappers
@@ -102,7 +103,7 @@ def model_fn_builder(model_config,
     else:
       is_real_example = tf.ones(tf.shape(labels), dtype=tf.float32)
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
     model = modeling.EtcModel(
         config=model_config,
         is_training=is_training,
@@ -141,7 +142,7 @@ def model_fn_builder(model_config,
                       init_string)
 
     output_spec = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu,
           optimizer, poly_power, start_warmup_step, learning_rate_schedule,
@@ -169,14 +170,14 @@ def model_fn_builder(model_config,
           metrics_dir=os.path.join(model_dir, "train_metrics"),
           steps_per_summary=50), host_inputs)
 
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
           scaffold_fn=scaffold_fn,
           host_call=host_call)
 
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
       metric_fn_tensors = dict(
           per_example_loss=per_example_loss,
           logits=logits,
@@ -185,13 +186,13 @@ def model_fn_builder(model_config,
 
       eval_metrics = (functools.partial(metric_fn,
                                         is_train=False), metric_fn_tensors)
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
           scaffold_fn=scaffold_fn)
-    elif mode == tf.estimator.ModeKeys.PREDICT:
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+    elif mode == tf_estimator.ModeKeys.PREDICT:
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           predictions={
               "logits": logits,
@@ -269,7 +270,7 @@ def process_model_output(model_config,
 
   if add_final_layer:
     with tf.variable_scope("global_output_layer/transform"):
-      is_training = True if mode == tf.estimator.ModeKeys.TRAIN else False
+      is_training = True if mode == tf_estimator.ModeKeys.TRAIN else False
       final_layer = wrappers.ResidualBlock(
           inner_intermediate_size=model_config.intermediate_size,
           inner_activation=tensor_utils.get_activation(model_config.hidden_act),
@@ -490,7 +491,7 @@ def serving_input_receiver_fn(
     candidate_ignore_hard_g2l: bool = True,
     query_ignore_hard_g2l: bool = True,
     enable_l2g_linking: bool = True
-) -> tf.estimator.export.ServingInputReceiver:
+) -> tf_estimator.export.ServingInputReceiver:
   """Creates an input function to parse input features for inference."""
 
   # An input receiver that expects a vector of serialized `tf.Example`s.
@@ -505,7 +506,7 @@ def serving_input_receiver_fn(
       candidate_ignore_hard_g2l=candidate_ignore_hard_g2l,
       query_ignore_hard_g2l=query_ignore_hard_g2l,
       enable_l2g_linking=enable_l2g_linking)
-  return tf.estimator.export.ServingInputReceiver(features, receiver_tensors)
+  return tf_estimator.export.ServingInputReceiver(features, receiver_tensors)
 
 
 def run_export(estimator, model_dir, export_ckpts, model_config, long_seq_len,

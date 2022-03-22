@@ -22,6 +22,7 @@ from typing import Mapping, Text
 import attr
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from etcmodel import tensor_utils
 from etcmodel.models import input_utils
@@ -192,7 +193,7 @@ def model_fn_builder(etc_model_config, num_train_steps, num_warmup_steps,
     for name in sorted(features.keys()):
       tf.logging.info("  name = %s, shape = %s" % (name, features[name].shape))
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
     position_logits, answer_type_logits, extra_model_losses = build_model(
         etc_model_config, features, is_training, flags)
 
@@ -225,7 +226,7 @@ def model_fn_builder(etc_model_config, num_train_steps, num_warmup_steps,
                       init_string)
 
     output_spec = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       # Computes the loss for positions.
       def compute_loss(logits, positions, depth):
         one_hot_positions = tf.one_hot(
@@ -259,10 +260,10 @@ def model_fn_builder(etc_model_config, num_train_steps, num_warmup_steps,
           flags.use_tpu, flags.optimizer, flags.poly_power,
           flags.start_warmup_step, flags.learning_rate_schedule)
 
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, loss=loss, train_op=train_op, scaffold_fn=scaffold_fn)
 
-    elif mode == tf.estimator.ModeKeys.PREDICT:
+    elif mode == tf_estimator.ModeKeys.PREDICT:
       predictions = {
           "unique_ids": tf.identity(features["unique_ids"]),
           "token_ids": tf.identity(features["token_ids"]),
@@ -282,7 +283,7 @@ def model_fn_builder(etc_model_config, num_train_steps, num_warmup_steps,
         predictions[output_name + "_pred"] = indices
         predictions[output_name + "_logit"] = values
         predictions[output_name + "_logit0"] = position_logits[idx][:, 0]
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
     else:
       raise ValueError("Only TRAIN and PREDICT modes are supported: %s" %

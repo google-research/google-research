@@ -50,6 +50,7 @@ from goemotions.bert import tokenization
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 flags = tf.flags
 
@@ -454,7 +455,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     segment_ids = features["segment_ids"]
     label_ids = features["label_ids"]
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
 
     (total_loss, per_example_loss, logits,
      probabilities) = create_model(bert_config, is_training, input_ids,
@@ -480,7 +481,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                       init_string)
 
     output_spec = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
 
       freeze_layer_fn = lambda x: "new_output" not in x
       train_op = optimization.create_optimizer(
@@ -491,10 +492,10 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
           use_tpu=False,
           freeze_layer_fn=freeze_layer_fn)
 
-      output_spec = tf.estimator.EstimatorSpec(
+      output_spec = tf_estimator.EstimatorSpec(
           mode=mode, loss=total_loss, train_op=train_op, scaffold=scaffold_fn)
 
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
 
       # Create dictionary for evaluation metrics
       eval_dict = {}
@@ -575,14 +576,14 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
       else:
         metric_fn_single(per_example_loss, label_ids, logits)
 
-      output_spec = tf.estimator.EstimatorSpec(
+      output_spec = tf_estimator.EstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metric_ops=eval_dict,
           scaffold=scaffold_fn)
     else:
       print("mode:", mode, "probabilities:", probabilities)
-      output_spec = tf.estimator.EstimatorSpec(
+      output_spec = tf_estimator.EstimatorSpec(
           mode=mode,
           predictions={"probabilities": probabilities},
           scaffold=scaffold_fn)
@@ -627,7 +628,7 @@ def main(_):
   tokenizer = tokenization.FullTokenizer(
       vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
 
-  run_config = tf.estimator.RunConfig(
+  run_config = tf_estimator.RunConfig(
       model_dir=FLAGS.output_dir,
       save_summary_steps=FLAGS.save_summary_steps,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
@@ -672,7 +673,7 @@ def main(_):
       multilabel=FLAGS.multilabel,
       idx2emotion=idx2emotion)
 
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=model_fn,
       config=run_config,
       params={"batch_size": FLAGS.train_batch_size})
@@ -697,7 +698,7 @@ def main(_):
         is_training=True,
         drop_remainder=True,
         num_labels=num_labels)
-    train_spec = tf.estimator.TrainSpec(
+    train_spec = tf_estimator.TrainSpec(
         input_fn=train_input_fn, max_steps=num_train_steps)
     eval_input_fn = file_based_input_fn_builder(
         input_file=eval_file,
@@ -705,13 +706,13 @@ def main(_):
         is_training=False,
         drop_remainder=False,
         num_labels=num_labels)
-    eval_spec = tf.estimator.EvalSpec(
+    eval_spec = tf_estimator.EvalSpec(
         input_fn=eval_input_fn,
         steps=FLAGS.eval_steps,
         start_delay_secs=0,
         throttle_secs=1000)
 
-    tf.estimator.train_and_evaluate(
+    tf_estimator.train_and_evaluate(
         estimator, train_spec=train_spec, eval_spec=eval_spec)
 
   if FLAGS.calculate_metrics:

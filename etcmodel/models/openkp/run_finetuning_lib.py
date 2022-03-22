@@ -21,6 +21,7 @@ from typing import Dict, Mapping, Text
 
 import attr
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from etcmodel import layers as etc_layers
 from etcmodel import tensor_utils
@@ -268,7 +269,7 @@ def model_fn_builder(model_config, num_train_steps, num_warmup_steps, flags):
     for name in sorted(features.keys()):
       tf.logging.info('  name = %s, shape = %s' % (name, features[name].shape))
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
     ngram_logits, extra_model_losses = _build_model(model_config, features,
                                                     is_training, flags)
 
@@ -299,7 +300,7 @@ def model_fn_builder(model_config, num_train_steps, num_warmup_steps, flags):
       tf.logging.info('  name = %s, shape = %s%s', var.name, var.shape,
                       init_string)
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       # [batch_size, kp_max_length * long_max_length]
       ngram_labels = make_ngram_labels(
           label_start_idx=features['label_start_idx'],
@@ -321,18 +322,18 @@ def model_fn_builder(model_config, num_train_steps, num_warmup_steps, flags):
           flags.use_tpu, flags.optimizer, flags.poly_power,
           flags.start_warmup_step, flags.learning_rate_schedule)
 
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
           scaffold_fn=scaffold_fn)
 
-    elif mode == tf.estimator.ModeKeys.PREDICT:
+    elif mode == tf_estimator.ModeKeys.PREDICT:
       predictions = {
           'url_code_points': tf.identity(features['url_code_points']),
           'ngram_logits': ngram_logits
       }
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
     else:
       raise ValueError('Only TRAIN and PREDICT modes are supported: %s' %

@@ -20,6 +20,7 @@ r"""Testing script for data iterator and training for implementing ROAR.
 from absl import flags
 from absl.testing import absltest
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from interpretability_benchmark import data_input
 from interpretability_benchmark.train_resnet import imagenet_params
 from interpretability_benchmark.train_resnet import resnet_model_fn
@@ -75,11 +76,11 @@ class TrainSaliencyTest(absltest.TestCase):
         2,
     ])
 
-    run_config = tf.estimator.RunConfig(
+    run_config = tf_estimator.RunConfig(
         model_dir=FLAGS.dest_dir,
         save_checkpoints_steps=FLAGS.steps_per_checkpoint)
 
-    classifier = tf.estimator.Estimator(
+    classifier = tf_estimator.Estimator(
         model_fn=resnet_model_fn,
         model_dir=FLAGS.dest_dir,
         params=params,

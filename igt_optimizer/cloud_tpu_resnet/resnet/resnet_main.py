@@ -44,6 +44,7 @@ import absl.logging as _logging  # pylint: disable=unused-import
 import numpy as np
 from six.moves import zip
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from igt_optimizer import exp_igt_optimizer
 from igt_optimizer.cloud_tpu_resnet.hyperparameters import common_hparams_flags
@@ -406,7 +407,7 @@ def resnet_model_fn(features, labels, mode, params):
     assert not params['transpose_input']  # channels_first only for GPU
     features = tf.transpose(features, [0, 3, 1, 2])
 
-  if params['transpose_input'] and mode != tf.estimator.ModeKeys.PREDICT:
+  if params['transpose_input'] and mode != tf_estimator.ModeKeys.PREDICT:
     image_size = tf.sqrt(tf.shape(features)[0] / (3 * tf.shape(labels)[0]))
     features = tf.reshape(features, [image_size, image_size, 3, -1])
     features = tf.transpose(features, [3, 0, 1, 2])  # HWCN to NHWC
@@ -447,7 +448,7 @@ def resnet_model_fn(features, labels, mode, params):
         dropblock_keep_probs=dropblock_keep_probs,
         data_format=params['data_format'])
     return network(
-        inputs=features, is_training=(mode == tf.estimator.ModeKeys.TRAIN))
+        inputs=features, is_training=(mode == tf_estimator.ModeKeys.TRAIN))
 
   if params['precision'] == 'bfloat16':
     with contrib_tpu.bfloat16_scope():
@@ -456,16 +457,16 @@ def resnet_model_fn(features, labels, mode, params):
   elif params['precision'] == 'float32':
     logits = build_network()
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf_estimator.ModeKeys.PREDICT:
     predictions = {
         'classes': tf.argmax(logits, axis=1),
         'probabilities': tf.nn.softmax(logits, name='softmax_tensor')
     }
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         predictions=predictions,
         export_outputs={
-            'classify': tf.estimator.export.PredictOutput(predictions)
+            'classify': tf_estimator.export.PredictOutput(predictions)
         })
 
   # If necessary, in the model_fn, use params['batch_size'] instead the batch
@@ -487,7 +488,7 @@ def resnet_model_fn(features, labels, mode, params):
   ])
 
   host_call = None
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     # Compute the current epoch and associated learning rate from global_step.
     global_step = tf.train.get_global_step()
     steps_per_epoch = params['num_train_images'] / params['train_batch_size']
@@ -594,7 +595,7 @@ def resnet_model_fn(features, labels, mode, params):
 
   eval_metrics = None
   scaffold_fn = None
-  if mode == tf.estimator.ModeKeys.EVAL:
+  if mode == tf_estimator.ModeKeys.EVAL:
 
     def metric_fn(labels, logits):
       """Evaluation metric function.

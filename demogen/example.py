@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import demogen.data_util as data_util
 import demogen.model_config as mc
 
@@ -54,7 +55,7 @@ def evaluate_model(model_config, root_dir):
         batch_size=500,
         data=model_config.dataset,
         data_format=model_config.data_format,
-        mode=tf.estimator.ModeKeys.EVAL)
+        mode=tf_estimator.ModeKeys.EVAL)
     images, labels = input_fn()
     logits = model_fn(images, is_training=False)
     predictions = tf.argmax(logits, axis=-1)
