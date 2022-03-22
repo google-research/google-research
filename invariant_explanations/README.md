@@ -43,6 +43,11 @@ pip install -r requirements.txt
 mkdir -p _experiments
 ```
 
+Check that the test data and code are correct by running (all test should pass):
+```console
+python utils_test.py
+```
+
 Then, for each execution, run:
 
 ```console

@@ -17,8 +17,9 @@
 
 import datetime
 import os
-import platform
+import sys
 import numpy as np
+
 
 RANDOM_SEED = 42
 
@@ -30,16 +31,16 @@ RUN_ON_TEST_DATA = False  # Set this variable to True to run on sample test data
 ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
 DATASET = 'mnist'
 assert DATASET in ALLOWABLE_DATASETS
+if RUN_ON_TEST_DATA:  # The test data is a subset of the MNIST dataset.
+  assert DATASET == 'mnist'
 
-READAHEAD = '/readahead/6G'
-FASTWRITE = '/fastwrite'
+
 if RUN_ON_TEST_DATA:
   DATA_DIR = 'test_data/'
 else:
   DATA_DIR = DATASET + '/'
 
-if RUN_ON_TEST_DATA:  # The test data is a subset of the MNIST dataset.
-  assert DATASET == 'mnist'
+RUNNING_INTERNALLY = False
 
 PLOTS_SUBPATH = '_plots'
 MODELS_SUBPATH = '_models'
@@ -65,7 +66,7 @@ assert EXPLANATION_TYPE in ALLOWABLE_EXPLANATION_METHODS
 BASE_MODEL_BATCH_SIZE = 32
 META_MODEL_BATCH_SIZE = 32
 TRAIN_FRACTIONS = [0.01, 0.03, 0.1]
-if platform.system() != 'Darwin':
+if RUNNING_INTERNALLY:
   META_MODEL_EPOCHS = 50
 else:
   META_MODEL_EPOCHS = 10
@@ -121,7 +122,6 @@ COVARIATES_SETTINGS = [
     {'chkpt': 86},
 ]
 
-
 # Create timestamp'ed experiment folder and subfolders.
 SETUP_NAME = (
     f'dataset_{DATASET}_'
@@ -136,9 +136,11 @@ EXPERIMENT_DIR = (
 )
 
 # Create folders to save results, models, and plots.
-if platform.system() != 'Darwin':
-  EXP_FOLDER_PATH = os.path.join(CNS_PATH, EXPERIMENT_DIR)
+if RUNNING_INTERNALLY:
+  EXP_DIR_PATH = os.path.join(CNS_PATH, EXPERIMENT_DIR)
+  DATA_DIR_PATH = READAHEAD + os.path.join(CNS_PATH, DATA_DIR)
 else:
-  EXP_FOLDER_PATH = os.path.join(os.path.dirname(__file__), EXPERIMENT_DIR)
-PLOTS_FOLDER_PATH = os.path.join(EXP_FOLDER_PATH, PLOTS_SUBPATH)
-MODELS_FOLDER_PATH = os.path.join(EXP_FOLDER_PATH, MODELS_SUBPATH)
+  EXP_DIR_PATH = os.path.join(os.path.dirname(__file__), EXPERIMENT_DIR)
+  DATA_DIR_PATH = os.path.join(os.path.dirname(__file__), DATA_DIR)
+PLOTS_DIR_PATH = os.path.join(EXP_DIR_PATH, PLOTS_SUBPATH)
+MODELS_DIR_PATH = os.path.join(EXP_DIR_PATH, MODELS_SUBPATH)

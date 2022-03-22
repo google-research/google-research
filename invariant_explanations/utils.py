@@ -19,9 +19,9 @@ import gc
 import itertools
 import os
 import pickle
-import platform
 import sys
 
+from absl import flags
 from absl import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -39,6 +39,8 @@ from invariant_explanations import explanation_utils
 from invariant_explanations import other
 
 logging.set_verbosity(logging.INFO)
+
+FLAGS = flags.FLAGS
 
 
 SMALL_SIZE = 8
@@ -64,28 +66,27 @@ def create_experimental_folders():
   |         `-- _models/
   |         `-- _plots/
   """
-  if not gfile.exists(config.EXP_FOLDER_PATH):
-    gfile.makedirs(config.EXP_FOLDER_PATH)
-  if not gfile.exists(config.PLOTS_FOLDER_PATH):
-    gfile.makedirs(config.PLOTS_FOLDER_PATH)
-  if not gfile.exists(config.MODELS_FOLDER_PATH):
-    gfile.makedirs(config.MODELS_FOLDER_PATH)
+  if not gfile.exists(config.EXP_DIR_PATH):
+    gfile.makedirs(config.EXP_DIR_PATH)
+  if not gfile.exists(config.PLOTS_DIR_PATH):
+    gfile.makedirs(config.PLOTS_DIR_PATH)
+  if not gfile.exists(config.MODELS_DIR_PATH):
+    gfile.makedirs(config.MODELS_DIR_PATH)
 
 
-def file_handler(file_name, stream_flags):
+def file_handler(dir_path, file_name, stream_flags):
   """Central method to handle saving and loading a file by filename.
 
   Args:
-    file_name: the name of the file that is being saved/loaded
-    stream_flags: flag to whether to read or write {wb, rb}
+    dir_path: the directory path in/from which the file is to be saved/loaded.
+    file_name: the name of the file that is being saved/loaded.
+    stream_flags: flag to whether to read or write {wb, rb}.
 
   Returns:
     a function handle used to stream the file bits.
   """
-  return gfile.GFile(
-      os.path.join(config.EXP_FOLDER_PATH, file_name),
-      stream_flags,
-  )
+  file_opener = gfile.GFile
+  return file_opener(os.path.join(dir_path, file_name), stream_flags)
 
 
 # Inspired by: https://stackoverflow.com/a/287944
@@ -101,6 +102,7 @@ def get_file_suffix(chkpt):
       f'_@_epoch_{chkpt}'
       f'_test_acc>{config.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
       f'_identical_samples_{config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
+      '.npy'
   )
 
 
@@ -122,7 +124,7 @@ def reset_model_using_weights(model_wireframe, weights):
       4: [(4800, 4810), (4810, 4970)],  # FC
   }
   for layer_idx, layer_obj in enumerate(model_wireframe.layers):
-    if not layer_obj.get_weights(): continue  # skip GlobalAvgPool
+    if not layer_obj.get_weights(): continue  # Skip GlobalAvgPool.
     layer_bias_start_idx = all_boundaries[layer_idx][0][0]
     layer_bias_stop_idx = all_boundaries[layer_idx][0][1]
     layer_weights_start_idx = all_boundaries[layer_idx][1][0]
@@ -217,13 +219,13 @@ def plot_treatment_effect_values():
 
   chkpt = 86
   file_suffix = get_file_suffix(chkpt)
-  with file_handler(f'samples{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
     samples = pickle.load(f)
-  with file_handler(f'y_preds{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(f'y_trues{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'y_trues{file_suffix}', 'rb') as f:
     y_trues = pickle.load(f)
-  with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   # Reorder columns for easier readability when debugging.
@@ -318,7 +320,7 @@ def plot_treatment_effect_values():
     fig.savefig(
         gfile.GFile(
             os.path.join(
-                config.PLOTS_FOLDER_PATH,
+                config.PLOTS_DIR_PATH,
                 f'ite_{col}.png'
             ),
             'wb',
@@ -337,7 +339,7 @@ def plot_treatment_effect_values():
     fig.savefig(
         gfile.GFile(
             os.path.join(
-                config.PLOTS_FOLDER_PATH,
+                config.PLOTS_DIR_PATH,
                 f'ate_{col}.png'
             ),
             'wb',
@@ -350,34 +352,13 @@ def load_base_model_weights_and_metrics():
   """Load base weights and metrics from CNN collections."""
 
   logging.info('Loading CNN Zoo weights and metrics...')
-  if platform.system() != 'Darwin':
+  with file_handler(config.DATA_DIR_PATH, 'weights.npy', 'rb') as f:
+    # A numpy array of weights of the trained models.
+    base_model_weights = np.load(f)
 
-    weights_path = (
-        config.READAHEAD +
-        os.path.join(config.CNS_PATH, config.DATA_DIR, 'weights.npy')
-    )
-    metrics_path = (
-        config.READAHEAD +
-        os.path.join(config.CNS_PATH, config.DATA_DIR, 'metrics.csv')
-    )
-
-    with gfile.GFile(weights_path, 'rb') as f:
-      # Weights of the trained models
-      base_model_weights = np.load(f)
-
-    with gfile.GFile(metrics_path, 'rb') as f:
-      # pandas DataFrame with metrics
-      base_model_metrics = pd.read_csv(f, sep=',')
-
-  else:
-
-    base_model_weights = np.load(
-        os.path.join(os.path.dirname(__file__), config.DATA_DIR, 'weights.npy')
-    )
-    base_model_metrics = pd.read_csv(
-        os.path.join(os.path.dirname(__file__), config.DATA_DIR, 'metrics.csv'),
-        sep=','
-    )
+  with file_handler(config.DATA_DIR_PATH, 'metrics.csv', 'r') as f:
+    # A pandas DataFrame with metrics of the trained models.
+    base_model_metrics = pd.read_csv(f, sep=',')
 
   assert base_model_weights.shape[0] == base_model_metrics.values.shape[0]
   logging.info('Done.')
@@ -420,6 +401,9 @@ def analyze_accuracies_of_base_models():
           ignore_index=True,
       )
 
+  with file_handler(config.EXP_DIR_PATH, 'accuracy_tracker.npy', 'wb') as f:
+    pickle.dump(accuracy_tracker, f, protocol=4)
+
   catplot = sns.catplot(
       x='chkpt',
       y='accuracy',
@@ -432,7 +416,7 @@ def analyze_accuracies_of_base_models():
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_FOLDER_PATH,
+              config.PLOTS_DIR_PATH,
               'base_model_accuracies.png',
           ),
           'wb',
@@ -754,21 +738,21 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
         base_model_metrics,
     )
 
-    with file_handler(f'samples{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'wb') as f:
       pickle.dump(samples, f, protocol=4)
-    with file_handler(f'y_preds{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'wb') as f:
       pickle.dump(y_preds, f, protocol=4)
-    with file_handler(f'y_trues{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'y_trues{file_suffix}', 'wb') as f:
       pickle.dump(y_trues, f, protocol=4)
-    with file_handler(f'explans{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'explans{file_suffix}', 'wb') as f:
       pickle.dump(explans, f, protocol=4)
-    with file_handler(f'hparams{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'wb') as f:
       pickle.dump(hparams, f, protocol=4)
-    with file_handler(f'w_chkpt{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'w_chkpt{file_suffix}', 'wb') as f:
       pickle.dump(w_chkpt, f, protocol=4)
-    with file_handler(f'w_final{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'w_final{file_suffix}', 'wb') as f:
       pickle.dump(w_final, f, protocol=4)
-    with file_handler(f'metrics{file_suffix}.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'metrics{file_suffix}', 'wb') as f:
       pickle.dump(metrics, f, protocol=4)
 
     del samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics
@@ -870,7 +854,7 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
       f'_chkpt_{chkpt}'
       f'_train_fraction_{train_fraction}'
   )
-  model.save(os.path.join(config.MODELS_FOLDER_PATH, model_file_name))
+  model.save(os.path.join(config.MODELS_DIR_PATH, model_file_name))
   print_memory_usage()
   logging.info('Evaluating on train/test sets... ')
   print_memory_usage()
@@ -952,11 +936,11 @@ def train_meta_model_over_different_setups(random_seed):
   #   Y_@_86: targets at epoch 86.
   chkpt = 86
   file_suffix = get_file_suffix(chkpt)
-  with file_handler(f'samples{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
     samples = pickle.load(f)
-  with file_handler(f'y_preds{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   hparams = process_hparams(hparams, round_num=False, cat_to_code=True)
@@ -982,7 +966,7 @@ def train_meta_model_over_different_setups(random_seed):
         },
         ignore_index=True)
 
-    with file_handler('all_results.npy', 'wb') as f:
+    with file_handler(config.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
       pickle.dump(all_results, f, protocol=4)
 
   # Save memory; if this fails, use DataGenerator; source:
@@ -1000,13 +984,13 @@ def train_meta_model_over_different_setups(random_seed):
 
     chkpt = int(covariates_setting['chkpt'])
     file_suffix = get_file_suffix(chkpt)
-    with file_handler(f'samples{file_suffix}.npy', 'rb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
       samples = pickle.load(f)
-    with file_handler(f'y_preds{file_suffix}.npy', 'rb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
       y_preds = pickle.load(f)
-    with file_handler(f'w_chkpt{file_suffix}.npy', 'rb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'w_chkpt{file_suffix}', 'rb') as f:
       w_chkpt = pickle.load(f)
-    with file_handler(f'w_final{file_suffix}.npy', 'rb') as f:
+    with file_handler(config.EXP_DIR_PATH, f'w_final{file_suffix}', 'rb') as f:
       w_final = pickle.load(f)
 
     # Sanity check: make sure the random permutations
@@ -1041,7 +1025,7 @@ def train_meta_model_over_different_setups(random_seed):
               'test_accuracy': test_results[1],
           },
           ignore_index=True)
-      with file_handler('all_results.npy', 'wb') as f:
+      with file_handler(config.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
         pickle.dump(all_results, f, protocol=4)
 
     # Save memory; if this fails, use DataGenerator; source:
@@ -1051,7 +1035,7 @@ def train_meta_model_over_different_setups(random_seed):
 
 def save_heat_map_of_meta_model_results():
   """Plot and save a heatmap of results of training meta-models."""
-  with file_handler('all_results.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, 'all_results.npy', 'rb') as f:
     all_results = pickle.load(f)
   train_results = all_results.pivot('train_fraction', 'chkpt', 'train_accuracy')
   test_results = all_results.pivot('train_fraction', 'chkpt', 'test_accuracy')
@@ -1069,7 +1053,7 @@ def save_heat_map_of_meta_model_results():
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_FOLDER_PATH,
+              config.PLOTS_DIR_PATH,
               'heatmap_results_for_meta_model.png',
           ),
           'wb',
@@ -1196,7 +1180,7 @@ def project_using_spca(samples, targets, n_components=2,
     fig.savefig(
         gfile.GFile(
             os.path.join(
-                config.PLOTS_FOLDER_PATH,
+                config.PLOTS_DIR_PATH,
                 f'spca_orig_reco_diff_{np.random.randint(100)}.png',
             ),
             'wb',
@@ -1218,13 +1202,13 @@ def process_per_class_explanations(random_seed):
 
   chkpt = 86
   file_suffix = get_file_suffix(chkpt)
-  with file_handler(f'samples{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
     samples = pickle.load(f)
-  with file_handler(f'y_preds{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(f'explans{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'explans{file_suffix}', 'rb') as f:
     explans = pickle.load(f)
-  with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   assert isinstance(samples, np.ndarray)
@@ -1304,7 +1288,7 @@ def process_per_class_explanations(random_seed):
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_FOLDER_PATH,
+              config.PLOTS_DIR_PATH,
               'spca_projections.png',
           ),
           'wb',
@@ -1347,13 +1331,13 @@ def measure_prediction_explanation_variance(random_seed):
 
   chkpt = 86
   file_suffix = get_file_suffix(chkpt)
-  with file_handler(f'y_preds{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(f'y_trues{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'y_trues{file_suffix}', 'rb') as f:
     y_trues = pickle.load(f)
-  with file_handler(f'explans{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'explans{file_suffix}', 'rb') as f:
     explans = pickle.load(f)
-  with file_handler(f'hparams{file_suffix}.npy', 'rb') as f:
+  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   # Reorder columns for easier readability when debugging.
