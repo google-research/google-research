@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from depth_and_motion_learning import depth_prediction_nets
 from depth_and_motion_learning import intrinsics_utils
@@ -428,7 +429,7 @@ def infer_depth(rgb_image, params):
       DEFAULT_PARAMS, params, is_strict=True, strictness_depth=2)
 
   depth_predictor = depth_prediction_nets.ResNet18DepthPredictor(
-      tf.estimator.ModeKeys.PREDICT, params.depth_predictor_params.as_dict())
+      tf_estimator.ModeKeys.PREDICT, params.depth_predictor_params.as_dict())
   return depth_predictor.predict_depth(rgb_image)
 
 

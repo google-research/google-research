@@ -22,6 +22,7 @@ import abc
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from depth_and_motion_learning import maybe_summary
 from tensorflow.contrib import framework as contrib_framework
@@ -118,7 +119,7 @@ class GenericDepthPredictor(object):
     """
     allowed_attrs = ['TRAIN', 'PREDICT', 'EVAL']
     allowed_values = [
-        getattr(tf.estimator.ModeKeys, attr) for attr in allowed_attrs
+        getattr(tf_estimator.ModeKeys, attr) for attr in allowed_attrs
     ]
     if mode not in allowed_values:
       raise ValueError('\'mode\' must be one of tf.estimator.ModeKeys.(%s)' %
@@ -168,7 +169,7 @@ class ResNet18DepthPredictor(GenericDepthPredictor):
   def predict_depth(self, rgb, sensor_depth=None):
     del sensor_depth  # unused
     with tf.variable_scope('depth_prediction', reuse=tf.AUTO_REUSE):
-      if self._mode == tf.estimator.ModeKeys.TRAIN:
+      if self._mode == tf_estimator.ModeKeys.TRAIN:
         noise_stddev = 0.5
         global_step = tf.train.get_global_step()
         rampup_steps = self._params['layer_norm_noise_rampup_steps']
@@ -191,7 +192,7 @@ class ResNet18DepthPredictor(GenericDepthPredictor):
 
       return depth_scale * depth_prediction_resnet18unet(
           2 * rgb - 1.0,
-          self._mode == tf.estimator.ModeKeys.TRAIN,
+          self._mode == tf_estimator.ModeKeys.TRAIN,
           self._params['weight_decay'],
           _normalizer_fn,
           reflect_padding=self._params['reflect_padding'])

@@ -41,6 +41,7 @@ from tensor2tensor.utils import mlperf_log
 from tensor2tensor.utils import registry
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from state_of_sparsity.sparse_transformer.layers import common_sparse
 from state_of_sparsity.sparse_transformer.layers import sparse_attention
@@ -156,7 +157,7 @@ class SparseTransformer(sparse_model.SparseModel):
         losses=losses)
 
     if (common_layers.is_xla_compiled() and
-        hparams.mode == tf.estimator.ModeKeys.TRAIN):
+        hparams.mode == tf_estimator.ModeKeys.TRAIN):
       return decoder_output
     else:
       # Expand since t2t expects 4d tensors.
@@ -846,7 +847,7 @@ def fast_decode_tpu(encoder_output,
             vars_3d_num_heads=vars_3d_num_heads,
             sparsity_technique=hparams.get("sparsity_technique"),
             threshold=hparams.get("log_alpha_threshold"),
-            training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+            training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
             clip_alpha=hparams.get("clip_log_alpha"),
             initial_sparsity=initial_sparsity,
             split_heads=hparams.get("split_heads"),
@@ -857,7 +858,7 @@ def fast_decode_tpu(encoder_output,
             vars_3d_num_heads=vars_3d_num_heads,
             sparsity_technique=hparams.get("sparsity_technique"),
             threshold=hparams.get("log_alpha_threshold"),
-            training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+            training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
             clip_alpha=hparams.get("clip_log_alpha"),
             initial_sparsity=initial_sparsity,
             split_heads=hparams.get("split_heads"),
@@ -1040,7 +1041,7 @@ def fast_decode(encoder_output,
             vars_3d_num_heads=vars_3d_num_heads,
             sparsity_technique=hparams.get("sparsity_technique"),
             threshold=hparams.get("log_alpha_threshold"),
-            training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+            training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
             clip_alpha=hparams.get("clip_log_alpha"),
             initial_sparsity=initial_sparsity,
             split_heads=hparams.get("split_heads"),
@@ -1051,7 +1052,7 @@ def fast_decode(encoder_output,
             vars_3d_num_heads=vars_3d_num_heads,
             sparsity_technique=hparams.get("sparsity_technique"),
             threshold=hparams.get("log_alpha_threshold"),
-            training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+            training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
             clip_alpha=hparams.get("clip_log_alpha"),
             initial_sparsity=initial_sparsity,
             split_heads=hparams.get("split_heads"),
@@ -1282,7 +1283,7 @@ def transformer_decoder(decoder_input,
               vars_3d=hparams.get("attention_variables_3d"),
               sparsity_technique=hparams.get("sparsity_technique"),
               threshold=hparams.get("log_alpha_threshold"),
-              training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+              training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
               clip_alpha=hparams.get("clip_log_alpha"),
               initial_sparsity=initial_sparsity,
               split_heads=hparams.get("split_heads"))
@@ -1310,7 +1311,7 @@ def transformer_decoder(decoder_input,
                 vars_3d=hparams.get("attention_variables_3d"),
                 sparsity_technique=hparams.get("sparsity_technique"),
                 threshold=hparams.get("log_alpha_threshold"),
-                training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+                training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
                 clip_alpha=hparams.get("clip_log_alpha"),
                 initial_sparsity=initial_sparsity,
                 split_heads=hparams.get("split_heads"))

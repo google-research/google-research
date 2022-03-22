@@ -26,6 +26,7 @@ from absl import flags
 import model
 import model_utils
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
+from tensorflow import estimator as tf_estimator
 import tensorflow_datasets as tfds
 import tensorflow_probability as tfp
 
@@ -299,7 +300,7 @@ def train_model_fn(features, labels, mode, params):  # pylint: disable=unused-ar
       log_prob = loss_log_prob + log_prob
       train_op, _, _ = meta_train_op(acc, entropy, log_prob, rl_scope, params)
 
-  return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+  return tf_estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
 
 def rl_label_weights(name=None):
@@ -367,13 +368,13 @@ def main(unused_argv):
     tf.logging.info('Warm-starting tensors: %s', sorted(var_names))
 
     vars_to_warm_start = var_names
-    warm_start_settings = tf.estimator.WarmStartSettings(
+    warm_start_settings = tf_estimator.WarmStartSettings(
         ckpt_to_initialize_from=checkpoint_path,
         vars_to_warm_start=vars_to_warm_start)
   else:
     warm_start_settings = None
 
-  l2tl_classifier = tf.estimator.Estimator(
+  l2tl_classifier = tf_estimator.Estimator(
       train_model_fn, config=config, warm_start_from=warm_start_settings)
 
   def make_input_dataset():

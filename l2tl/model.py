@@ -22,6 +22,7 @@ from __future__ import print_function
 from absl import flags
 
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
+from tensorflow import estimator as tf_estimator
 
 flags.DEFINE_string('source_dataset', 'mnist', 'Name of the source dataset.')
 flags.DEFINE_string('target_dataset', 'svhn_cropped_small',
@@ -113,6 +114,6 @@ def conv_model(features,
 
     return dense
 
-  is_training = mode == tf.estimator.ModeKeys.TRAIN
+  is_training = mode == tf_estimator.ModeKeys.TRAIN
   network_output = build_network(features, is_training=is_training)
   return network_output

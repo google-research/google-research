@@ -15,7 +15,7 @@
 
 """Wrapper class around TF estimator to perform training."""
 import gin
-import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from polish.utils import tf_utils
 
 
@@ -69,11 +69,11 @@ class PpoTrainer(object):
     if self._use_tpu:
       return tf_utils.get_tpu_estimator(self._checkpoint_dir, self._model_fn)
 
-    run_config = tf.estimator.RunConfig(
+    run_config = tf_estimator.RunConfig(
         save_summary_steps=self._iterations_per_loop,
         save_checkpoints_steps=self._iterations_per_loop,
         keep_checkpoint_max=self._keep_checkpoint_max)
-    return tf.estimator.Estimator(
+    return tf_estimator.Estimator(
         self._model_fn, model_dir=self._checkpoint_dir, config=run_config)
 
   def train(self):

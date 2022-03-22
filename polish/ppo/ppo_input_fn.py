@@ -27,6 +27,7 @@ from absl import logging
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from polish.utils import math_utils
 from polish.utils import tf_utils
 
@@ -434,7 +435,7 @@ class PpoInputFn(tf.train.SessionRunHook):
       self._model_fn(
           features=features,
           labels=None,
-          mode=tf.estimator.ModeKeys.PREDICT,
+          mode=tf_estimator.ModeKeys.PREDICT,
           params=None)
       sess.run(tf.global_variables_initializer())
       tf.train.Saver().save(sess, save_file)
@@ -461,4 +462,4 @@ class PpoInputFn(tf.train.SessionRunHook):
         'policy_features':
             tf.placeholder(tf.float32, shape=[None, self._env_state_space]),
     }
-    return tf.estimator.export.ServingInputReceiver(features, features)
+    return tf_estimator.export.ServingInputReceiver(features, features)

@@ -23,6 +23,7 @@ import numpy as np
 from tensor2tensor.data_generators import problem_hparams
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from state_of_sparsity.sparse_transformer.models import sparse_transformer
 
@@ -34,7 +35,7 @@ VOCAB_SIZE = 10
 
 def get_model(
     hparams=None,
-    mode=tf.estimator.ModeKeys.TRAIN,
+    mode=tf_estimator.ModeKeys.TRAIN,
     has_input=True,
     model_cls=sparse_transformer.SparseTransformer):
   if hparams is None:

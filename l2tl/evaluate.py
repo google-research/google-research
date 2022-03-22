@@ -24,6 +24,7 @@ from absl import flags
 import model
 import model_utils
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
+from tensorflow import estimator as tf_estimator
 import tensorflow_datasets as tfds
 
 flags.DEFINE_string('ckpt_path', '', 'Path to evaluation checkpoint')
@@ -78,7 +79,7 @@ def get_model_fn():
 
     eval_metrics = model_utils.metric_fn(labels, logits)
 
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         loss=loss,
         train_op=None,
@@ -89,9 +90,9 @@ def get_model_fn():
 
 
 def main(unused_argv):
-  config = tf.estimator.RunConfig()
+  config = tf_estimator.RunConfig()
 
-  classifier = tf.estimator.Estimator(get_model_fn(), config=config)
+  classifier = tf_estimator.Estimator(get_model_fn(), config=config)
 
   def _merge_datasets(test_batch):
     feature, label = test_batch['image'], test_batch['label'],

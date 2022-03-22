@@ -24,6 +24,7 @@ import functools
 import os
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from mobilebert import distill_util
 from mobilebert import modeling
@@ -246,7 +247,7 @@ def model_fn_builder(bert_config,
     masked_lm_weights = features["masked_lm_weights"]
     next_sentence_labels = features["next_sentence_labels"]
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
 
     if bert_teacher_config is None:
       model = modeling.BertModel(
@@ -525,7 +526,7 @@ def model_fn_builder(bert_config,
     tf.logging.info("  total variable parameters: %d", total_size)
 
     output_spec = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       if layer_wise_warmup:
         train_op = optimization.create_optimizer(
             total_loss, learning_rate, num_train_steps,
@@ -537,13 +538,13 @@ def model_fn_builder(bert_config,
             total_loss, learning_rate, num_train_steps,
             num_warmup_steps, use_tpu, optimizer)
 
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
           scaffold_fn=scaffold_fn,
           host_call=host_call)
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
 
       def metric_fn(masked_lm_example_loss, masked_lm_log_probs, masked_lm_ids,
                     masked_lm_weights, next_sentence_example_loss,
@@ -585,7 +586,7 @@ def model_fn_builder(bert_config,
           masked_lm_weights, next_sentence_example_loss,
           next_sentence_log_probs, next_sentence_labels
       ])
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
@@ -811,18 +812,18 @@ def main(_):
     tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  is_per_host = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
 
   if FLAGS.do_train and FLAGS.layer_wise_warmup:
     warmup_path = os.path.join(FLAGS.output_dir, "warmup")
     tf.gfile.MakeDirs(warmup_path)
-    run_config = tf.estimator.tpu.RunConfig(
+    run_config = tf_estimator.tpu.RunConfig(
         cluster=tpu_cluster_resolver,
         master=FLAGS.master,
         model_dir=warmup_path,
         keep_checkpoint_max=0,
         save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-        tpu_config=tf.estimator.tpu.TPUConfig(
+        tpu_config=tf_estimator.tpu.TPUConfig(
             iterations_per_loop=FLAGS.iterations_per_loop,
             per_host_input_for_training=is_per_host))
 
@@ -849,7 +850,7 @@ def main(_):
     for input_pattern in FLAGS.input_file.split(","):
       input_files.extend(tf.gfile.Glob(input_pattern))
 
-    estimator = tf.estimator.tpu.TPUEstimator(
+    estimator = tf_estimator.tpu.TPUEstimator(
         use_tpu=FLAGS.use_tpu,
         model_fn=model_fn,
         config=run_config,
@@ -866,13 +867,13 @@ def main(_):
   if FLAGS.layer_wise_warmup:
     init_checkpoint = warmup_path
 
-  run_config = tf.estimator.tpu.RunConfig(
+  run_config = tf_estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       keep_checkpoint_max=0,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           per_host_input_for_training=is_per_host))
 
@@ -906,14 +907,14 @@ def main(_):
 
     if (FLAGS.first_train_batch_size is not None and
         FLAGS.first_train_batch_size != FLAGS.train_batch_size):
-      estimator = tf.estimator.tpu.TPUEstimator(
+      estimator = tf_estimator.tpu.TPUEstimator(
           use_tpu=FLAGS.use_tpu,
           model_fn=model_fn,
           config=run_config,
           train_batch_size=FLAGS.first_train_batch_size,
           eval_batch_size=FLAGS.eval_batch_size)
     else:
-      estimator = tf.estimator.tpu.TPUEstimator(
+      estimator = tf_estimator.tpu.TPUEstimator(
           use_tpu=FLAGS.use_tpu,
           model_fn=model_fn,
           config=run_config,
@@ -938,7 +939,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,

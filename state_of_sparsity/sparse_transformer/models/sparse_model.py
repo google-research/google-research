@@ -20,6 +20,7 @@ from __future__ import print_function
 
 from tensor2tensor.utils import t2t_model
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import tpu as contrib_tpu
 from tensorflow.contrib import training as contrib_training
 
@@ -183,7 +184,7 @@ class SparseModel(t2t_model.T2TModel):
       t2t_model.remove_summaries()
 
       return contrib_tpu.TPUEstimatorSpec(
-          tf.estimator.ModeKeys.TRAIN,
+          tf_estimator.ModeKeys.TRAIN,
           loss=loss,
           train_op=train_op,
           host_call=host_call,
@@ -196,7 +197,7 @@ class SparseModel(t2t_model.T2TModel):
         self.initialize_masks_from_ckpt(
             self._hparams.load_masks_from)
 
-      return tf.estimator.EstimatorSpec(
-          tf.estimator.ModeKeys.TRAIN,
+      return tf_estimator.EstimatorSpec(
+          tf_estimator.ModeKeys.TRAIN,
           loss=loss,
           train_op=train_op)

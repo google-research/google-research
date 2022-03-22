@@ -26,6 +26,7 @@ from absl import flags
 import model
 import model_utils
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
+from tensorflow import estimator as tf_estimator
 from tensorflow.python.estimator import estimator
 import tensorflow_datasets as tfds
 
@@ -113,7 +114,7 @@ def get_model_fn():
     loss = dst_loss + dst_l2_loss
 
     train_op = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       cur_finetune_step = tf.train.get_global_step()
       update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
       with tf.control_dependencies(update_ops):
@@ -129,16 +130,16 @@ def get_model_fn():
       train_op = None
 
     eval_metrics = None
-    if mode == tf.estimator.ModeKeys.EVAL:
+    if mode == tf_estimator.ModeKeys.EVAL:
       eval_metrics = model_utils.metric_fn(labels, logits)
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       with tf.control_dependencies([train_op]):
         tf.summary.scalar('classifier/finetune_lr', finetune_learning_rate)
     else:
       train_op = None
 
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         loss=loss,
         train_op=train_op,
@@ -159,7 +160,7 @@ def main(unused_argv):
       'keep_checkpoint_max': 200,
   }
 
-  config = tf.estimator.RunConfig(**run_config_args)
+  config = tf_estimator.RunConfig(**run_config_args)
 
   if FLAGS.warm_start_ckpt_path:
     var_names = []
@@ -173,13 +174,13 @@ def main(unused_argv):
     tf.logging.info('Warm-starting tensors: %s', sorted(var_names))
 
     vars_to_warm_start = var_names
-    warm_start_settings = tf.estimator.WarmStartSettings(
+    warm_start_settings = tf_estimator.WarmStartSettings(
         ckpt_to_initialize_from=checkpoint_path,
         vars_to_warm_start=vars_to_warm_start)
   else:
     warm_start_settings = None
 
-  classifier = tf.estimator.Estimator(
+  classifier = tf_estimator.Estimator(
       get_model_fn(), config=config, warm_start_from=warm_start_settings)
 
   def _merge_datasets(train_batch):

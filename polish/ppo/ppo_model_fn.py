@@ -21,6 +21,7 @@ from absl import logging
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from polish.ppo import ppo_loss
 from polish.utils import distributions
 from polish.utils import host_call_fn
@@ -494,7 +495,7 @@ class PpoModelFn(object):
     action_sample_neg_logprob = pd_new.negative_log_prob(action_sample)
 
     # Used during TF estimator prediction
-    if mode == tf.estimator.ModeKeys.PREDICT:
+    if mode == tf_estimator.ModeKeys.PREDICT:
       predictions = {
           'mean': self.mean_new,
           'logstd': self.logstd_new,
@@ -502,12 +503,12 @@ class PpoModelFn(object):
           'action': action_sample,
           'neg_logprob': action_sample_neg_logprob
       }
-      pred_estimator = tf.estimator.tpu.TPUEstimatorSpec(
+      pred_estimator = tf_estimator.tpu.TPUEstimatorSpec(
           mode,
           predictions=predictions,
           export_outputs={
               'ppo_inference':
-                  tf.estimator.export.PredictOutput({
+                  tf_estimator.export.PredictOutput({
                       'mean': self.mean_new,
                       'logstd': self.logstd_new,
                       'value': self.value_new,
@@ -543,10 +544,10 @@ class PpoModelFn(object):
 
     host_call = self.create_host_call_fn(params)
 
-    if mode != tf.estimator.ModeKeys.TRAIN:
+    if mode != tf_estimator.ModeKeys.TRAIN:
       raise ValueError('Estimator mode should be train at this point.')
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       # Setup fine tune scaffold
       # The scaffold here is used to restore the weights from _warmstart_file.
       # If _warmstart_file is None, the training starts from the beginning.
@@ -561,7 +562,7 @@ class PpoModelFn(object):
       else:
         scaffold_fn = None
 
-      tpu_estimator_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      tpu_estimator_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=self.total_loss,
           train_op=train_ops,
