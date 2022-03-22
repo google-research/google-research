@@ -163,8 +163,9 @@ class DecomposeAttentionTransformer(nn.Module):
     assert outputs.ndim == inputs.ndim
 
     if self.config.use_spec_separators:
-      outputs_encoder_mask = make_partial_spec_mask(
-          outputs, bos_token=cfg.bos_token, dtype=cfg.dtype)
+      outputs_encoder_mask = nn.combine_masks(
+        make_partial_spec_mask(outputs, bos_token=cfg.bos_token, dtype=cfg.dtype),
+        nn.make_attention_mask(outputs > 0, outputs > 0, dtype=cfg.dtype))
     else:
       outputs_encoder_mask = None
 
