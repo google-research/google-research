@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import data as contrib_data
 
 CONTEXT_KEY_PREFIX = 'c-'
@@ -186,7 +187,7 @@ def _make_parsing_fn(mode, label_name, sequence_features,
   context_features_config['sequenceLength'] = tf.io.FixedLenFeature(
       [], tf.int64, default_value=-1)
 
-  if mode != tf.estimator.ModeKeys.PREDICT:
+  if mode != tf_estimator.ModeKeys.PREDICT:
     context_features_config[label_name] = tf.io.VarLenFeature(tf.string)
 
   def _parse_fn(serialized_examples):
@@ -318,7 +319,7 @@ def get_input_fn(mode,
       the feature names, and 2) a tensor of target labels if the mode
       is not INFER (and None, otherwise).
     """
-    is_training = mode == tf.estimator.ModeKeys.TRAIN
+    is_training = mode == tf_estimator.ModeKeys.TRAIN
     num_epochs = None if is_training else 1
 
     with tf.name_scope('read_batch'):
@@ -345,7 +346,7 @@ def get_input_fn(mode,
           .map(feature_engineering_fn, num_parallel_calls=8)
           .prefetch(buffer_size=1).make_one_shot_iterator().get_next())
       label = None
-      if mode != tf.estimator.ModeKeys.PREDICT:
+      if mode != tf_estimator.ModeKeys.PREDICT:
         label = feature_map.pop(CONTEXT_KEY_PREFIX + label_name)
       return feature_map, {label_name: label}
 

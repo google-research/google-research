@@ -21,6 +21,7 @@ import os
 from absl import app
 from absl import flags
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2
 import tf_slim as slim
 
@@ -653,16 +654,16 @@ def model_fn(features, labels, mode, params):
       training_set_size=inputs.get_num_train_images(hparams),
       is_tpu=params['use_tpu'])
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf_estimator.ModeKeys.PREDICT:
     predictions_map = trainer.signature_def_map()
     exports = {
-        k: tf.estimator.export.PredictOutput(v)
+        k: tf_estimator.export.PredictOutput(v)
         for k, v in predictions_map.items()
     }
     # Export a default SignatureDef to keep the API happy.
     exports[tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY] = (
         exports['contrastive_eval'])
-    spec = tf.estimator.tpu.TPUEstimatorSpec(
+    spec = tf_estimator.tpu.TPUEstimatorSpec(
         mode=mode,
         predictions=predictions_map['contrastive_eval'],
         export_outputs=exports)
@@ -672,12 +673,12 @@ def model_fn(features, labels, mode, params):
   # dummy value to keep the Estimator API happy.
   loss = tf.constant(0.)
 
-  if mode == tf.estimator.ModeKeys.EVAL:
-    spec = tf.estimator.tpu.TPUEstimatorSpec(
+  if mode == tf_estimator.ModeKeys.EVAL:
+    spec = tf_estimator.tpu.TPUEstimatorSpec(
         mode=mode, loss=loss, eval_metrics=trainer.eval_metrics())
     return spec
   else:  # TRAIN
-    spec = tf.estimator.tpu.TPUEstimatorSpec(
+    spec = tf_estimator.tpu.TPUEstimatorSpec(
         mode=mode,
         train_op=trainer.train_op(),
         loss=loss,
@@ -713,7 +714,7 @@ def main(_):
       not hparams.input_data.preprocessing.defer_blurring):
     # RewriterConfig.OFF = 2
     session_config.graph_options.rewrite_options.layout_optimizer = 2
-  run_config = tf.estimator.tpu.RunConfig(
+  run_config = tf_estimator.tpu.RunConfig(
       master=FLAGS.master,
       cluster=cluster,
       model_dir=FLAGS.model_dir,
@@ -723,20 +724,20 @@ def main(_):
                                      (60.0 * 60.0)),
       log_step_count_steps=100,
       session_config=session_config,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.steps_per_loop,
           per_host_input_for_training=True,
           experimental_host_call_every_n_steps=FLAGS.summary_interval_steps,
           tpu_job_name='train_tpu_worker' if FLAGS.mode == 'train' else None,
           eval_training_input_configuration=(
-              tf.estimator.tpu.InputPipelineConfig.SLICED if FLAGS.use_tpu else
-              tf.estimator.tpu.InputPipelineConfig.PER_HOST_V1)))
+              tf_estimator.tpu.InputPipelineConfig.SLICED if FLAGS.use_tpu else
+              tf_estimator.tpu.InputPipelineConfig.PER_HOST_V1)))
   params = {
       'hparams': hparams,
       'use_tpu': FLAGS.use_tpu,
       'data_dir': FLAGS.data_dir,
   }
-  estimator = tf.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       model_fn=model_fn,
       use_tpu=FLAGS.use_tpu,
       config=run_config,
@@ -766,7 +767,7 @@ def main(_):
           input_fn=input_fn, checkpoint_path=ckpt_str, steps=eval_steps)
       estimator.export_saved_model(
           os.path.join(FLAGS.model_dir, 'exports'),
-          lambda: input_fn(tf.estimator.ModeKeys.PREDICT, params),
+          lambda: input_fn(tf_estimator.ModeKeys.PREDICT, params),
           checkpoint_path=ckpt_str)
       if result['global_step'] >= total_steps:
         return
@@ -776,7 +777,7 @@ def main(_):
       result = estimator.evaluate(input_fn=input_fn, steps=eval_steps)
       estimator.export_saved_model(
           os.path.join(FLAGS.model_dir, 'exports'),
-          lambda: input_fn(tf.estimator.ModeKeys.PREDICT, params))
+          lambda: input_fn(tf_estimator.ModeKeys.PREDICT, params))
 
 
 if __name__ == '__main__':

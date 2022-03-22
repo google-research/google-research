@@ -29,6 +29,7 @@ import numpy as np
 
 from six.moves import range
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from explaining_risk_increase import input_fn
 from explaining_risk_increase import observation_sequence_model as osm
 from tensorflow.contrib import training as contrib_training
@@ -267,7 +268,7 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
         observation_code_ids=observation_code_ids,
         observation_values=self.observation_values,
         vocab_size=vocab_size,
-        mode=tf.estimator.ModeKeys.TRAIN,
+        mode=tf_estimator.ModeKeys.TRAIN,
         normalize=False,
         momentum=0.9,
         min_value=-10000000,
@@ -301,7 +302,7 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
         }, ['loinc:1', 'loinc:2', 'MISSING'],
         'Observation.code',
         'Observation.valueQuantity.value',
-        mode=tf.estimator.ModeKeys.TRAIN,
+        mode=tf_estimator.ModeKeys.TRAIN,
         normalize=False,
         momentum=0.9,
         min_value=-10000000,
@@ -347,7 +348,7 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
         }, ['loinc:1', 'loinc:2', 'MISSING'],
         'Observation.code',
         'Observation.valueQuantity.value',
-        mode=tf.estimator.ModeKeys.TRAIN,
+        mode=tf_estimator.ModeKeys.TRAIN,
         normalize=False,
         momentum=0.9,
         min_value=-10000000,
@@ -467,13 +468,13 @@ class ObservationSequenceTest(tf.test.TestCase, parameterized.TestCase):
     labels = {label_key: tf.constant([[1.0], [0.0]], dtype=tf.float32)}
     with tf.variable_scope('test'):
       model_fn_ops_train = model_fn(features, labels,
-                                    tf.estimator.ModeKeys.TRAIN)
+                                    tf_estimator.ModeKeys.TRAIN)
     with tf.variable_scope('test', reuse=True):
       features[input_fn.CONTEXT_KEY_PREFIX + 'label.in_hospital_death'
               ] = tf.SparseTensor(indices=[[0, 0]], values=['expired'],
                                   dense_shape=[2, 1])
       model_fn_ops_eval = model_fn(
-          features, labels=None, mode=tf.estimator.ModeKeys.PREDICT)
+          features, labels=None, mode=tf_estimator.ModeKeys.PREDICT)
 
     with self.test_session() as sess:
       sess.run(tf.global_variables_initializer())

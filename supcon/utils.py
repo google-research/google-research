@@ -19,6 +19,7 @@
 import re
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from supcon import enums
 
@@ -665,7 +666,7 @@ def cross_replica_concat(tensor):
 
 def estimator_mode_to_model_mode(estimator_mode):
   return {
-      tf.estimator.ModeKeys.TRAIN: enums.ModelMode.TRAIN,
-      tf.estimator.ModeKeys.EVAL: enums.ModelMode.EVAL,
-      tf.estimator.ModeKeys.PREDICT: enums.ModelMode.INFERENCE,
+      tf_estimator.ModeKeys.TRAIN: enums.ModelMode.TRAIN,
+      tf_estimator.ModeKeys.EVAL: enums.ModelMode.EVAL,
+      tf_estimator.ModeKeys.PREDICT: enums.ModelMode.INFERENCE,
   }[estimator_mode]

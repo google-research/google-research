@@ -22,6 +22,7 @@ import functools
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_datasets as tfds
 
 from supcon import enums
@@ -200,7 +201,7 @@ class CommonInput(metaclass=abc.ABCMeta):
             None, self.preprocessor.preprocessing_options.image_size,
             self.preprocessor.preprocessing_options.image_size, 3
         ])
-        return tf.estimator.export.TensorServingInputReceiver(
+        return tf_estimator.export.TensorServingInputReceiver(
             features=images, receiver_tensors=images)
 
       # Retrieves the batch size for the current shard. The # of shards is

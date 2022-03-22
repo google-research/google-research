@@ -18,6 +18,7 @@
 from absl import flags
 from absl.testing import parameterized
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_datasets as tfds
 
 from supcon import enums
@@ -26,8 +27,8 @@ from supcon import inputs
 from supcon import preprocessing
 
 FLAGS = flags.FLAGS
-ALL_MODES = (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL,
-             tf.estimator.ModeKeys.PREDICT)
+ALL_MODES = (tf_estimator.ModeKeys.TRAIN, tf_estimator.ModeKeys.EVAL,
+             tf_estimator.ModeKeys.PREDICT)
 
 
 def make_params(input_fn):
@@ -91,7 +92,7 @@ class InputsTest(tf.test.TestCase, parameterized.TestCase):
 
     if model_mode == enums.ModelMode.INFERENCE:
       self.assertIsInstance(data,
-                            tf.estimator.export.TensorServingInputReceiver)
+                            tf_estimator.export.TensorServingInputReceiver)
       image_shape = data.features.shape.as_list()
     else:
       self.assertIsInstance(data, tf.data.Dataset)
@@ -123,16 +124,16 @@ class InputsTest(tf.test.TestCase, parameterized.TestCase):
     params['hparams'].input_data.preprocessing.image_size = (
         expected_image_size)
     expected_batch_size = {
-        tf.estimator.ModeKeys.TRAIN: params['hparams'].bs,
-        tf.estimator.ModeKeys.EVAL: params['hparams'].eval.batch_size,
-        tf.estimator.ModeKeys.PREDICT: None,
+        tf_estimator.ModeKeys.TRAIN: params['hparams'].bs,
+        tf_estimator.ModeKeys.EVAL: params['hparams'].eval.batch_size,
+        tf_estimator.ModeKeys.PREDICT: None,
     }[mode]
     params['batch_size'] = expected_batch_size
     input_data = input_fn(mode, params)
-    expected_channels = 3 if mode == tf.estimator.ModeKeys.PREDICT else 6
-    if mode == tf.estimator.ModeKeys.PREDICT:
+    expected_channels = 3 if mode == tf_estimator.ModeKeys.PREDICT else 6
+    if mode == tf_estimator.ModeKeys.PREDICT:
       self.assertIsInstance(input_data,
-                            tf.estimator.export.TensorServingInputReceiver)
+                            tf_estimator.export.TensorServingInputReceiver)
       image_shape = input_data.features.shape.as_list()
     else:
       self.assertIsInstance(input_data, tf.compat.v2.data.Dataset)
@@ -142,7 +143,7 @@ class InputsTest(tf.test.TestCase, parameterized.TestCase):
         expected_batch_size, expected_image_size, expected_image_size,
         expected_channels
     ], image_shape)
-    if mode != tf.estimator.ModeKeys.PREDICT:
+    if mode != tf_estimator.ModeKeys.PREDICT:
       self.assertEqual([expected_batch_size], labels_shape)
 
   @parameterized.parameters(*ALL_MODES)

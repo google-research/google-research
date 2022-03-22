@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from explaining_risk_increase import input_fn
 from tensorflow.contrib import estimator as contrib_estimator
@@ -427,7 +428,7 @@ def normalize_each_feature(observation_values, obs_code, vocab_size, mode,
         positions_of_feature_i = tf.where(tf.equal(obs_code, i))
         values_of_feature_i = tf.gather_nd(observation_values.values,
                                            positions_of_feature_i)
-        if mode == tf.estimator.ModeKeys.TRAIN:
+        if mode == tf_estimator.ModeKeys.TRAIN:
           tf.summary.scalar('avg_observation_values/' + str(i),
                             tf.reduce_mean(values_of_feature_i))
           tf.summary.histogram('observation_values/' + str(i),
@@ -440,11 +441,11 @@ def normalize_each_feature(observation_values, obs_code, vocab_size, mode,
         normalized_values = tf.squeeze(
             batchnorm_layer.apply(
                 tf.expand_dims(values_of_feature_i, axis=1),
-                training=(mode == tf.estimator.ModeKeys.TRAIN)
+                training=(mode == tf_estimator.ModeKeys.TRAIN)
             ),
             axis=1,
             name='squeeze_normalized_values')
-        if mode == tf.estimator.ModeKeys.TRAIN:
+        if mode == tf_estimator.ModeKeys.TRAIN:
           tf.summary.scalar('batchnorm_layer/moving_mean/' + str(i),
                             tf.squeeze(batchnorm_layer.moving_mean))
           tf.summary.scalar('batchnorm_layer/moving_variance/' + str(i),
@@ -584,7 +585,7 @@ def construct_input(sequence_feature_map, categorical_values,
       random_tensor += tf.random_uniform(tf.shape(observation_values.values))
       # 0. if [input_keep_prob, 1.0) and 1. if [1.0, 1.0 + input_keep_prob)
       dropout_mask = tf.floor(random_tensor)
-      if mode == tf.estimator.ModeKeys.TRAIN:
+      if mode == tf_estimator.ModeKeys.TRAIN:
         valid_values = tf.to_float(valid_values) * dropout_mask
         valid_values = valid_values > 0.5
     sequence_feature_map[feature_value] = tf.sparse_retain(
@@ -846,7 +847,7 @@ class ObservationSequenceModel(object):
           reuse=False)
 
       all_attribution_dict = {}
-      if mode == tf.estimator.ModeKeys.TRAIN:
+      if mode == tf_estimator.ModeKeys.TRAIN:
         if hparams.sequence_prediction:
           assert not hparams.use_rnn_attention
           # If we train a sequence_prediction we repeat the labels over time.
@@ -869,7 +870,7 @@ class ObservationSequenceModel(object):
               logits, tf.to_int32(sequence_length))
         else:
           last_logits = logits
-        if mode == tf.estimator.ModeKeys.PREDICT:
+        if mode == tf_estimator.ModeKeys.PREDICT:
           delta_time = sequence_feature_map['deltaTime']
           all_attributions = {}
           if hparams.include_gradients_attribution:
@@ -934,7 +935,7 @@ class ObservationSequenceModel(object):
           PredictionKeys.CLASSES: classes
       }
       # Calculate the loss for TRAIN and EVAL, but not PREDICT.
-      if mode == tf.estimator.ModeKeys.PREDICT:
+      if mode == tf_estimator.ModeKeys.PREDICT:
         loss = None
       else:
         loss = tf.nn.sigmoid_cross_entropy_with_logits(
@@ -952,14 +953,14 @@ class ObservationSequenceModel(object):
         tf.summary.scalar('loss', loss)
 
       train_op = None
-      if mode == tf.estimator.ModeKeys.TRAIN:
+      if mode == tf_estimator.ModeKeys.TRAIN:
         optimizer = tf.train.AdamOptimizer(
             learning_rate=hparams.learning_rate, beta1=0.9, beta2=0.999,
             epsilon=1e-8)
         optimizer = contrib_estimator.clip_gradients_by_norm(optimizer, 6.0)
         train_op = contrib_training.create_train_op(
             total_loss=loss, optimizer=optimizer, summarize_gradients=False)
-      if mode != tf.estimator.ModeKeys.TRAIN:
+      if mode != tf_estimator.ModeKeys.TRAIN:
         for k, v in all_attribution_dict.items():
           if not isinstance(v, tf.SparseTensor):
             raise ValueError('Expect attributions to be in SparseTensor, '
@@ -970,7 +971,7 @@ class ObservationSequenceModel(object):
           predictions['attention_attribution,%s,shape' % k] = v.dense_shape
 
       eval_metric_ops = {}
-      if mode == tf.estimator.ModeKeys.EVAL:
+      if mode == tf_estimator.ModeKeys.EVAL:
         auc = tf.metrics.auc
         prob_k = PredictionKeys.PROBABILITIES
         class_k = PredictionKeys.CLASSES
@@ -987,12 +988,12 @@ class ObservationSequenceModel(object):
           eval_metric_ops[k] = f(label_tensor, predictions)
       # Define the output for serving.
       export_outputs = {}
-      if mode == tf.estimator.ModeKeys.PREDICT:
+      if mode == tf_estimator.ModeKeys.PREDICT:
         export_outputs = {
-            'mortality': tf.estimator.export.PredictOutput(predictions)
+            'mortality': tf_estimator.export.PredictOutput(predictions)
         }
 
-      return tf.estimator.EstimatorSpec(
+      return tf_estimator.EstimatorSpec(
           mode=mode,
           predictions=predictions,
           loss=loss,
