@@ -1399,19 +1399,24 @@ def measure_prediction_explanation_variance(random_seed):
         np.argmax(x_y_trues, axis=1)[0]
     )
 
-    def get_y_preds_and_explans_for_hparams(x_hparams, x_y_preds,
-                                            x_explans, col, hi):
+    def get_y_preds_and_y_trues_and_explans_for_hparams_of_type(x_y_preds,
+                                                                x_y_trues,
+                                                                x_explans,
+                                                                x_hparams,
+                                                                col, hi):
       """Get y_preds and explans when hparam of type col is hi (i.e., h_i).
 
       Args:
-        x_hparams: the hparams of instance `x` over multiple base models.
         x_y_preds: the y_preds of instance `x` over multiple base models.
+        x_y_trues: the y_trues of instance `x` over multiple base models.
         x_explans: the explans of instance `x` over multiple base models.
+        x_hparams: the hparams of instance `x` over multiple base models.
         col: the particular hparam column which is the be filtered over.
         hi: the unique value of the hparam to filter over.
 
       Returns:
         x_hi_y_preds: y_preds for when hparam of type col is hi.
+        x_hi_y_trues: y_trues for when hparam of type col is hi.
         x_hi_explans: explans for when hparam of type col is hi.
       """
 
@@ -1419,6 +1424,7 @@ def measure_prediction_explanation_variance(random_seed):
       # then filter the y_preds and explans matrices accordingly.
       x_hi_indices = x_hparams.index[x_hparams[col] == hi].to_list()
       x_hi_y_preds = x_y_preds[x_hi_indices, :]
+      x_hi_y_trues = x_y_trues[x_hi_indices, :]
       x_hi_explans = x_explans[x_hi_indices, :]
 
       # Some explanations may unfortunately have nan values;
@@ -1429,10 +1435,15 @@ def measure_prediction_explanation_variance(random_seed):
           continue
         keep_idx.append(idx)
       x_hi_y_preds = x_hi_y_preds[keep_idx]
+      x_hi_y_trues = x_hi_y_trues[keep_idx]
       x_hi_explans = x_hi_explans[keep_idx]
-      assert x_hi_y_preds.shape[0] == x_hi_explans.shape[0]
+      assert (
+          x_hi_y_preds.shape[0] ==
+          x_hi_explans.shape[0] ==
+          x_hi_explans.shape[0]
+      )
 
-      return x_hi_y_preds, x_hi_explans
+      return x_hi_y_preds, x_hi_y_trues, x_hi_explans
 
     # Show the instance being processed.
     ax = axes[row_idx, 0]
@@ -1455,22 +1466,25 @@ def measure_prediction_explanation_variance(random_seed):
           'd_y_preds': [],
           'd_explans': [],
           'h1_h2_str': [],
+          'pred_correctness': [],
       })
 
       # Iterate over all pairs (h1, h2) of unique values of this hparam type...
       for h1, h2 in itertools.permutations(x_hparams[col].unique(), 2):
 
-        x_h1_y_preds, x_h1_explans = get_y_preds_and_explans_for_hparams(
-            x_hparams,
+        x_h1_y_preds, x_h1_y_trues, x_h1_explans = get_y_preds_and_y_trues_and_explans_for_hparams_of_type(
             x_y_preds,
+            x_y_trues,
             x_explans,
+            x_hparams,
             col,
             h1,
         )
-        x_h2_y_preds, x_h2_explans = get_y_preds_and_explans_for_hparams(
-            x_hparams,
+        x_h2_y_preds, x_h2_y_trues, x_h2_explans = get_y_preds_and_y_trues_and_explans_for_hparams_of_type(
             x_y_preds,
+            x_y_trues,
             x_explans,
+            x_hparams,
             col,
             h2,
         )
@@ -1501,11 +1515,26 @@ def measure_prediction_explanation_variance(random_seed):
         d_y_preds = x_h1_h2_kernel_y_preds.flatten()
         d_explans = x_h1_h2_kernel_explans.flatten()
 
+        # Under h1 and h2, zero, one, or both of the resulting y_preds may be
+        # incorrect. Distinguish between three cases of T-T, T-F/F-T, and F-F
+        # and plot accordingly.
+        h1_pred_correctness = (
+            np.argmax(x_h1_y_preds, axis=1) == np.argmax(x_h1_y_trues, axis=1)
+        ).astype(int)
+        h2_pred_correctness = (
+            np.argmax(x_h2_y_preds, axis=1) == np.argmax(x_h2_y_trues, axis=1)
+        ).astype(int)
+        pred_correctness = np.add.outer(
+            h1_pred_correctness,
+            h2_pred_correctness,
+        ).flatten()
+
         scatter_tracker = scatter_tracker.append(
             pd.DataFrame({
                 'd_y_preds': d_y_preds,
                 'd_explans': d_explans,
                 'h1_h2_str': ['%s - others' % h1] * len(d_explans),
+                'pred_correctness': pred_correctness,
             }),
             ignore_index=True,
         )
@@ -1518,6 +1547,7 @@ def measure_prediction_explanation_variance(random_seed):
           x='d_y_preds',
           y='d_explans',
           hue='h1_h2_str',
+          style='pred_correctness',
           ax=ax,
           alpha=0.3,
       )
