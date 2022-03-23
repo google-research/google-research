@@ -49,7 +49,7 @@ def get_config():
               logsnr_input_type='inv_cos',
               resblock_resample=True,
           ),
-          mean_type='both',  # eps, x, both, v
+          mean_type='x',  # eps, x, both, v
           logvar_type='fixed_large',
           mean_loss_weight_type='snr_trunc',  # constant, snr, snr_trunc, v_mse
 

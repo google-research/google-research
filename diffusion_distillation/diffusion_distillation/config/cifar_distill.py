@@ -22,7 +22,7 @@ import ml_collections
 end_num_steps = 1  # eventual number of steps in the sampler
 start_num_steps = 8192  # number of steps in baseline sampler
 distill_steps_per_iter = 50000
-teacher_ckpt_path = ''  # checkpoints to be released later
+teacher_ckpt_path = 'gs://gresearch/diffusion-distillation/cifar_original'  # checkpoints to be released later
 
 
 def D(**kwargs):

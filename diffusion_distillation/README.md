@@ -1,5 +1,5 @@
 # Progressive Distillation for Fast Sampling of Diffusion Models
-Code for the <a href="https://openreview.net/forum?id=TIdIXIpzhoI">ICLR 2022 paper</a> by Tim Salimans and Jonathan Ho.
+Code and model checkpoints for the <a href="https://openreview.net/forum?id=TIdIXIpzhoI">ICLR 2022 paper</a> by Tim Salimans and Jonathan Ho.
 
 <a href="https://colab.research.google.com/github/google-research/google-research/blob/master/diffusion_distillation/diffusion_distillation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 

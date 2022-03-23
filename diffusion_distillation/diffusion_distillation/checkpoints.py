@@ -26,9 +26,7 @@ checkpoint files.
 import os
 import re
 import time
-
 from absl import logging
-
 from flax import serialization
 from tensorflow.compat.v2.io import gfile
 
@@ -127,7 +125,27 @@ def latest_checkpoint_path(ckpt_dir, prefix):
   return checkpoint_files[-1] if checkpoint_files else None
 
 
+def check_and_convert_gcs_filepath(filepath, raise_if_not_gcs=False):
+  """Utility for loading model checkpoints from GCS."""
+  if filepath[:5] == 'gs://':
+    local_filepath = '/temp/download/' + filepath[5:]
+    if os.path.exists(local_filepath):
+      print('loading from local copy of GCS file: ' + local_filepath)
+    else:
+      print('downloading file from GCS: ' + filepath)
+      dir_index = local_filepath.rfind('/')
+      os.system('mkdir -p ' + local_filepath[:dir_index])
+      os.system('gsutil cp ' + filepath + ' ' + local_filepath)
+    return local_filepath
+
+  else:
+    if raise_if_not_gcs:
+      raise ValueError('input not recognized as a GCS path')
+    return filepath
+
+
 def restore_from_path(ckpt_path, target):
+  ckpt_path = check_and_convert_gcs_filepath(ckpt_path)
   logging.info('Restoring checkpoint from %s', ckpt_path)
   with gfile.GFile(ckpt_path, 'rb') as fp:
     return serialization.from_bytes(target, fp.read())
