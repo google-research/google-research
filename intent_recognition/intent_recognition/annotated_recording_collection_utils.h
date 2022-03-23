@@ -19,9 +19,12 @@
 #include <vector>
 
 #include "google/protobuf/duration.pb.h"
+#include "mediapipe/framework/calculator.pb.h"
+#include "mediapipe/framework/tool/calculator_graph_template.pb.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "intent_recognition/annotated_recording_collection.pb.h"
+#include "intent_recognition/processing/processing_options.pb.h"
 
 namespace ambient_sensing {
 
@@ -62,6 +65,14 @@ bool IsStagedModelSequence(const AnnotationSequence& sequence);
 
 // Returns true if AnnotationSequence type is HUMAN_LABEL.
 bool IsHumanLabelSequence(const AnnotationSequence& sequence);
+
+
+// Given a Drishti graph template, substitutes the provided parameters and
+// returns a valid CalculatorGraphConfig. If any error occurs (e.g. the config
+// couldn't be parsed), crashes the binary.
+mediapipe::CalculatorGraphConfig BuildDrishtiGraphWithProcessingOptions(
+    const std::string& config_template,
+    const ProcessingOptions& processing_options);
 
 }  // namespace ambient_sensing
 

@@ -1,0 +1,15 @@
+# proto-file: google_research/google_research/intent_recognition/processing/string_label_class_map.proto
+# proto-message: ambient_sensing.StringLabelClassMap
+
+name: "climb_stair_mapping"
+
+entry {
+  identifier {
+    include_substrings: "climb_stair"
+  }
+  target_class_string: "Stair_climb"
+}
+
+entry {
+  target_class_string: "Negative"
+}

@@ -33,11 +33,31 @@ cc_library(
     hdrs = ["annotated_recording_collection_utils.h"],
     deps = [
         ":annotated_recording_collection_cc_proto",
+        "//intent_recognition/processing:processing_options_cc_proto",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:optional",
         "@com_google_protobuf//:protobuf",
+        "@mediapipe//mediapipe/framework:calculator_cc_proto",
+        "@mediapipe//mediapipe/framework/tool:calculator_graph_template_cc_proto",
+        "@mediapipe//mediapipe/framework/tool:template_expander",
+        "@mediapipe//mediapipe/framework/tool:template_parser",
+    ],
+)
+
+cc_binary(
+    name = "convert_adl_dataset_to_annotated_recording_collection",
+    srcs = ["convert_adl_dataset_to_annotated_recording_collection.cc"],
+    deps = [
+        ":annotated_recording_collection_cc_proto",
+        "@com_github_glog_glog//:glog",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+        "@com_google_protobuf//:protobuf",
+        "@riegeli//riegeli/bytes:fd_writer",
+        "@riegeli//riegeli/records:record_writer",
     ],
 )

@@ -7,6 +7,9 @@ node {
   options {
     [ambient_sensing.ClassMappingsSidePacketCalculatorOptions.ext] {
       mapping_type: STRING_CLASS
+      % for (label_mapping_file : label_mapping_files) %
+      label_mapping_files: %label_mapping_file%
+      %end%
     }
   }
 }
@@ -18,6 +21,21 @@ node {
   options {
     [ambient_sensing.FilterAnnotatedRecordingCollectionCalculatorOptions.ext] {
       filter_if_sensor_not_present_or_empty: "ACCELEROMETER"
+      % for (exclude_user_id : exclude_user_ids) %
+      exclude_user_id: %exclude_user_id%
+      %end%
+      % for (exclude_session_activity : exclude_session_activities) %
+      exclude_session_activity: %exclude_session_activity%
+      %end%
+      % for (include_session_activity : include_session_activities) %
+      include_session_activity: %include_session_activity%
+      %end%
+      % for (substring : at_least_one_annotation_with_substring) %
+      at_least_one_annotation_with_substring: %substring%
+      %end%
+      % for (substring : no_annotations_with_substring) %
+      no_annotations_with_substring: %substring%
+      %end%
     }
   }
 }
@@ -35,6 +53,13 @@ node {
   output_stream: "FILTERED_ANNOTATED_RECORDING_COLLECTION:prefiltered_output"
   options {
     [ambient_sensing.FilterAnnotatedRecordingCollectionCalculatorOptions.ext] {
+      filter_label_mapping_name: %filter_label_mapping_name%
+      % for (exclude_class_name : exclude_class_names) %
+      exclude_class_name: %exclude_class_name%
+      %end%
+      % for (include_class_name : include_class_names) %
+      include_class_name: %include_class_name%
+      %end%
     }
   }
 }
@@ -61,6 +86,7 @@ node {
   output_stream: "resampled_accel_data"
   options {
     [mediapipe.PacketResamplerCalculatorOptions.ext]: {
+      frame_rate: %sampling_rate%
     }
   }
 }
@@ -72,6 +98,10 @@ node {
   options {
     [ambient_sensing.WindowCalculatorOptions.ext]: {
       enforce_input_dims: 3
+      window_size: %window_size%
+      window_stride: %window_stride%
+      padding_strategy: %window_padding_strategy%
+      minimum_windows: %minimum_windows%
     }
   }
 }
@@ -91,6 +121,7 @@ node {
       sensor_options {
         type: "SENSOR"
         subtype: "ACCELEROMETER_WINDOW"
+        window_dims: %window_size%
         required_dims: 3
       }
     }

@@ -18,6 +18,9 @@
 #include <cstdint>
 
 #include "google/protobuf/duration.pb.h"
+#include "mediapipe/framework/tool/calculator_graph_template.pb.h"
+#include "mediapipe/framework/tool/template_expander.h"
+#include "mediapipe/framework/tool/template_parser.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/time/time.h"
@@ -64,8 +67,6 @@ bool IsStringLabelMappingGroup(const AnnotationGroup& group) {
          kStringLabelMappingGroupDescriptor;
 }
 
-
-
 bool IsModelGroup(const AnnotationGroup& group) {
   return HasAnnotationGroupType(group, AnnotationGroupMetadata::MODEL);
 }
@@ -89,6 +90,80 @@ bool IsStagedModelSequence(const AnnotationSequence& sequence) {
 
 bool IsHumanLabelSequence(const AnnotationSequence& sequence) {
   return HasAnnotationType(sequence, AnnotationMetadata::HUMAN_LABEL);
+}
+
+void AddStringArg(const std::string& key, const std::string& value,
+                  mediapipe::TemplateDict* arguments) {
+  auto arg = arguments->add_arg();
+  arg->set_key(key);
+  arg->mutable_value()->set_str(value);
+}
+
+void AddNumArg(const std::string& key, double value,
+               mediapipe::TemplateDict* arguments) {
+  auto arg = arguments->add_arg();
+  arg->set_key(key);
+
+  arg->mutable_value()->set_num(value);
+}
+
+template <typename T>
+void AddStringElements(const std::string& key, T values,
+                       mediapipe::TemplateDict* arguments) {
+  auto arg = arguments->add_arg();
+  arg->set_key(key);
+  auto value = arg->mutable_value();
+  for (const auto& v : values) {
+    mediapipe::TemplateArgument* value_arg = value->add_element();
+    value_arg->set_str(v);
+  }
+}
+
+void PopulateProcessingOptions(const ProcessingOptions& processing_options,
+                               mediapipe::TemplateDict* arguments) {
+  AddStringElements("label_mapping_files",
+                    processing_options.label_mapping_files(), arguments);
+  AddStringElements("exclude_user_ids", processing_options.exclude_user_id(),
+                    arguments);
+  AddStringElements("exclude_session_activities",
+                    processing_options.exclude_session_activity(), arguments);
+  AddStringElements("include_session_activities",
+                    processing_options.include_session_activity(), arguments);
+  AddStringElements("at_least_one_annotation_with_substring",
+                    processing_options.at_least_one_annotation_with_substring(),
+                    arguments);
+  AddStringElements("no_annotations_with_substring",
+                    processing_options.no_annotations_with_substring(),
+                    arguments);
+  AddStringArg("filter_label_mapping_name",
+               processing_options.filter_label_mapping_name(), arguments);
+  AddStringElements("exclude_class_names",
+                    processing_options.exclude_class_name(), arguments);
+  AddStringElements("include_class_names",
+                    processing_options.include_class_name(), arguments);
+  AddNumArg("sampling_rate", processing_options.sampling_rate(), arguments);
+  AddNumArg("window_size", processing_options.window_size(), arguments);
+  AddNumArg("window_stride", processing_options.window_stride(), arguments);
+  AddNumArg("window_padding_strategy",
+            static_cast<int>(processing_options.padding_strategy()), arguments);
+  AddNumArg("minimum_windows", processing_options.minimum_windows(), arguments);
+}
+
+mediapipe::CalculatorGraphConfig BuildDrishtiGraphWithProcessingOptions(
+    const std::string& config_template,
+    const ProcessingOptions& processing_options) {
+  mediapipe::CalculatorGraphTemplate graph_template;
+  mediapipe::tool::TemplateParser::Parser parser;
+  CHECK(parser.ParseFromString(config_template, &graph_template));
+
+  mediapipe::TemplateDict arguments;
+  PopulateProcessingOptions(processing_options, &arguments);
+
+  mediapipe::tool::TemplateExpander expander;
+  mediapipe::CalculatorGraphConfig graph_config;
+  CHECK_OK(expander.ExpandTemplates(arguments, graph_template, &graph_config));
+
+  return graph_config;
 }
 
 }  // namespace ambient_sensing

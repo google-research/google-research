@@ -1,0 +1,16 @@
+# proto-file: google_research/google_research/intent_recognition/processing/processing_options.proto
+# proto-message: ambient_sensing.ProcessingOptions
+
+window_size: 50
+sampling_rate: 50
+window_stride: 5
+padding_strategy: RIGHT_LAST_VALUE
+minimum_windows: 1
+
+# [path to intent_recognition] needs to manually be replaced with the absolute
+# path to the intent_recognition directory.
+processing_graph_file: "[path to intent_recognition]/intent_recognition/sample_configs/graph/processing_graph.pbtxt"
+label_mapping_files: "[path to intent_recognition]/intent_recognition/sample_configs/labelmap/climb_stairs_labelmap.textproto"
+
+filter_label_mapping_name: "climb_stair_mapping"
+exclude_class_name: "Negative"
