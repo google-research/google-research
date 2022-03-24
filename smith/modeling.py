@@ -16,6 +16,7 @@
 """Dual encoder SMITH models."""
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from smith import constants
 from smith import layers
@@ -334,7 +335,7 @@ def model_fn_builder(dual_encoder_config,
       is_real_example = tf.ones(
           tf.shape(documents_match_labels), dtype=tf.float32)
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
 
     if (dual_encoder_config.encoder_config.model_name ==
         constants.MODEL_NAME_SMITH_DUAL_ENCODER):
@@ -426,17 +427,17 @@ def model_fn_builder(dual_encoder_config,
       raise ValueError("Unsupported model: %s" %
                        dual_encoder_config.encoder_config.model_name)
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       train_op = optimization.create_optimizer(total_loss, learning_rate,
                                                num_train_steps,
                                                num_warmup_steps, use_tpu)
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
           scaffold_fn=scaffold_fn)
 
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
       if (train_mode == constants.TRAIN_MODE_JOINT_TRAIN or
           train_mode == constants.TRAIN_MODE_PRETRAIN):
         eval_metrics = (metric_fns.metric_fn_pretrain, [
@@ -453,14 +454,14 @@ def model_fn_builder(dual_encoder_config,
         ])
       else:
         raise ValueError("Only joint_train, pretrain, finetune are supported.")
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           eval_metrics=eval_metrics,
           scaffold_fn=scaffold_fn)
 
-    elif mode == tf.estimator.ModeKeys.PREDICT:
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+    elif mode == tf_estimator.ModeKeys.PREDICT:
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, predictions=prediction_dict, scaffold_fn=scaffold_fn)
     else:
       raise ValueError("Only TRAIN, EVAL, PREDICT modes are supported: %s" %

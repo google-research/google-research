@@ -17,6 +17,7 @@
 
 
 from absl import flags
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 from smith import constants
 FLAGS = flags.FLAGS
@@ -196,7 +197,7 @@ def make_serving_input_example_fn(max_seq_length=32, max_predictions_per_seq=5):
           parsed_features["masked_lm_positions_1"], tf.int32)
       parsed_features["masked_lm_positions_2"] = tf.cast(
           parsed_features["masked_lm_positions_2"], tf.int32)
-    return tf.estimator.export.ServingInputReceiver(
+    return tf_estimator.export.ServingInputReceiver(
         features=parsed_features, receiver_tensors=receiver_tensors)
 
   return _serving_input_fn

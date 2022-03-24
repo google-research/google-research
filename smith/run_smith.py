@@ -21,6 +21,7 @@ import os
 from absl import app
 from absl import flags
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from smith import constants
 from smith import experiment_config_pb2
@@ -206,14 +207,14 @@ def main(_):
     tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  is_per_host = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.estimator.tpu.RunConfig(
+  is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  run_config = tf_estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=exp_config.train_eval_config
       .save_checkpoints_steps,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=exp_config.train_eval_config.iterations_per_loop,
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=is_per_host))
@@ -230,7 +231,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU. The batch size for eval and predict is the same.
-  estimator = tf.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,
@@ -299,11 +300,11 @@ def main(_):
       json.dump(pred_res_list, writer)
 
   elif FLAGS.schedule == "export":
-    run_config = tf.estimator.RunConfig(
+    run_config = tf_estimator.RunConfig(
         model_dir=FLAGS.output_dir,
         save_checkpoints_steps=exp_config.train_eval_config
         .save_checkpoints_steps)
-    estimator = tf.estimator.Estimator(model_fn=model_fn, config=run_config)
+    estimator = tf_estimator.Estimator(model_fn=model_fn, config=run_config)
     export_dir_base = os.path.join(FLAGS.output_dir, "export/")
     tf.logging.info(
         "***** Export the prediction checkpoint to the folder {} *****".format(

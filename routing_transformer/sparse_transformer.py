@@ -23,6 +23,7 @@ from tensor2tensor.layers import common_hparams
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from routing_transformer import utils
 
@@ -57,7 +58,7 @@ class SparseTransformer(t2t_model.T2TModel):
 
   @property
   def is_decode(self):
-    return self.hparams.mode == tf.estimator.ModeKeys.PREDICT
+    return self.hparams.mode == tf_estimator.ModeKeys.PREDICT
 
   def process_partial_targets_decoding(self, targets):
     """Processes partially generated targets in decoding mode."""

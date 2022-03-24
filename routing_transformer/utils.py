@@ -20,6 +20,7 @@ import itertools
 import math
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.python.ops import control_flow_util  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
@@ -639,7 +640,7 @@ def multihead_attention_nd(query_antecedent,  # pylint: disable=dangerous-defaul
                            sparsity_strided_num_heads=0,
                            sparsity_strided_relative=False,
                            losses=None,
-                           mode=tf.estimator.ModeKeys.EVAL,
+                           mode=tf_estimator.ModeKeys.EVAL,
                            masked=False,
                            cache=None,
                            decode_step=None,
@@ -1381,7 +1382,7 @@ def attention_nd(q,  # pylint: disable=dangerous-default-value
                  sparsity_strided_relative=False,
                  masked=True,
                  losses=None,
-                 mode=tf.estimator.ModeKeys.EVAL,
+                 mode=tf_estimator.ModeKeys.EVAL,
                  decode_step=None,
                  name=None,
                  max_relative_position=None,
@@ -1513,7 +1514,7 @@ def attention_nd(q,  # pylint: disable=dangerous-default-value
               padding_bias=padding_bias,
               use_tpu=use_tpu))
       outputs.append(output_cluster)
-      if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
+      if mode in [tf_estimator.ModeKeys.TRAIN, tf_estimator.ModeKeys.EVAL]:
         losses.append(cluster_loss)
     if sparsity_cluster_strided_num_heads:
       remainder_num_heads -= sparsity_cluster_strided_num_heads
@@ -1548,7 +1549,7 @@ def attention_nd(q,  # pylint: disable=dangerous-default-value
               padding_bias=padding_bias,
               use_tpu=use_tpu))
       outputs.append(output_cluster)
-      if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
+      if mode in [tf_estimator.ModeKeys.TRAIN, tf_estimator.ModeKeys.EVAL]:
         losses.append(cluster_loss)
     # Rest of attention types work on latest_q instead of the whole q.
     if decode_step is not None:
@@ -3006,7 +3007,7 @@ def online_kmeans(inputs,
     x_means_hot = tf.multiply(x_means_hot, x_means_hot_pad_mask)
     extra_loss = 0
     # Update the EMA variables.
-    if ema and mode == tf.estimator.ModeKeys.TRAIN and not is_recomputing:
+    if ema and mode == tf_estimator.ModeKeys.TRAIN and not is_recomputing:
       tf.logging.info("Using EMA with beta = {}".format(beta))
       # [bs, n, s, k], [n, k]
       count = tf.reduce_sum(
@@ -3047,7 +3048,7 @@ def online_kmeans(inputs,
     x_dist = tf.reshape(x_dist, dist_shape)
 
     # Add a tf summary for average cluster occupancy
-    if mode != tf.estimator.ModeKeys.PREDICT and not skip_summaries:
+    if mode != tf_estimator.ModeKeys.PREDICT and not skip_summaries:
       cluster_occupancy = tf.reduce_mean(
           tf.reduce_sum(x_means_hot, axis=2), axis=[0, 1])
       tf.summary.histogram("cluster_occupancy", cluster_occupancy)

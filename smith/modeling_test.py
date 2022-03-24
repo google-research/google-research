@@ -19,6 +19,7 @@ import tempfile
 from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from smith import constants
 from smith import experiment_config_pb2
@@ -162,21 +163,21 @@ class ModelingTest(tf.test.TestCase):
     self.model_fn(
         features=self.features,
         labels=None,
-        mode=tf.estimator.ModeKeys.TRAIN,
+        mode=tf_estimator.ModeKeys.TRAIN,
         params=None)
 
   def test_model_fn_builder_eval(self):
     self.model_fn(
         features=self.features,
         labels=None,
-        mode=tf.estimator.ModeKeys.EVAL,
+        mode=tf_estimator.ModeKeys.EVAL,
         params=None)
 
   def test_model_fn_builder_predict(self):
     self.model_fn(
         features=self.features,
         labels=None,
-        mode=tf.estimator.ModeKeys.PREDICT,
+        mode=tf_estimator.ModeKeys.PREDICT,
         params=None)
 
 

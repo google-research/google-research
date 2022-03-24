@@ -25,6 +25,7 @@ from tensor2tensor.layers import modalities
 from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from routing_transformer import utils
 
@@ -81,7 +82,7 @@ class SparseImagetransformer(t2t_model.T2TModel):
 
   @property
   def is_decode(self):
-    return self.hparams.mode == tf.estimator.ModeKeys.PREDICT
+    return self.hparams.mode == tf_estimator.ModeKeys.PREDICT
 
   def get_shape_for_decoder(self):
     """Returns the shape of the sequence to be fed into the decoder."""

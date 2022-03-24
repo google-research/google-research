@@ -30,6 +30,7 @@ from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.data_generators import problem
 
 from routing_transformer.problems import pg19
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tqdm import tqdm
 
 from routing_transformer.sparse_transformer import SparseTransformer
@@ -56,7 +57,7 @@ class SparseTransformerWrapper(object):
         hparams.use_tpu = False
         hparams = zero_dropout(hparams)
         # Build TF1 graph of model
-        sptf_model = SparseTransformer(hparams, tf.estimator.ModeKeys.EVAL)
+        sptf_model = SparseTransformer(hparams, tf_estimator.ModeKeys.EVAL)
         self.input_nodes = {
             "targets": tf.placeholder(tf.int32, [None, self.max_seq_length])
         }

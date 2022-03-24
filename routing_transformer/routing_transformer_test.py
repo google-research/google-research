@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 from tensor2tensor.utils import trainer_lib
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 from routing_transformer import sparse_transformer as sptf
@@ -42,7 +43,7 @@ class RoutingTransformerTest(tf.test.TestCase):
         hparams.memory_flange = (0,)
         hparams.max_length = 200
         sparse_transformer = sptf.SparseTransformer(hparams)
-        sparse_transformer.set_mode(tf.estimator.ModeKeys.PREDICT)
+        sparse_transformer.set_mode(tf_estimator.ModeKeys.PREDICT)
         sparse_transformer.vocab_size = 50
         features = {}
         decode_step = 10

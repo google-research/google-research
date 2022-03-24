@@ -19,6 +19,7 @@ import collections
 from typing import Any, Text
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from google.protobuf import text_format
 from smith import constants
@@ -71,23 +72,23 @@ def get_export_outputs_prediction_dict_smith_de(
   """Generates export and prediction dict for dual encoder SMITH model."""
   export_outputs = {
       tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-          tf.estimator.export.PredictOutput(predicted_score),
+          tf_estimator.export.PredictOutput(predicted_score),
       "seq_embed_1":
-          tf.estimator.export.PredictOutput(seq_embed_1),
+          tf_estimator.export.PredictOutput(seq_embed_1),
       "seq_embed_2":
-          tf.estimator.export.PredictOutput(seq_embed_2),
+          tf_estimator.export.PredictOutput(seq_embed_2),
       "input_sent_embed_1":
-          tf.estimator.export.PredictOutput(input_sent_embed_1),
+          tf_estimator.export.PredictOutput(input_sent_embed_1),
       "input_sent_embed_2":
-          tf.estimator.export.PredictOutput(input_sent_embed_2),
+          tf_estimator.export.PredictOutput(input_sent_embed_2),
       "output_sent_embed_1":
-          tf.estimator.export.PredictOutput(output_sent_embed_1),
+          tf_estimator.export.PredictOutput(output_sent_embed_1),
       "output_sent_embed_2":
-          tf.estimator.export.PredictOutput(output_sent_embed_2),
+          tf_estimator.export.PredictOutput(output_sent_embed_2),
       "predicted_class":
-          tf.estimator.export.PredictOutput(predicted_class),
+          tf_estimator.export.PredictOutput(predicted_class),
       "documents_match_labels":
-          tf.estimator.export.PredictOutput(documents_match_labels)
+          tf_estimator.export.PredictOutput(documents_match_labels)
   }
 
   prediction_dict = {
