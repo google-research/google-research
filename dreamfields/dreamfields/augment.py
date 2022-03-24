@@ -52,10 +52,8 @@ def checkerboard(key, nsq, size, dtype=np.float32):
   sq = size // nsq
   color1, color2 = random.uniform(key, (2, 3), dtype=dtype)
   canvas = np.full((nsq, sq, nsq, sq, 3), color1, dtype=dtype)
-  canvas = jax.ops.index_update(canvas, jax.ops.index[::2, :, 1::2, :, :],
-                                color2)
-  canvas = jax.ops.index_update(canvas, jax.ops.index[1::2, :, ::2, :, :],
-                                color2)
+  canvas = canvas.at[::2, :, 1::2, :, :].set(color2)
+  canvas = canvas.at[1::2, :, ::2, :, :].set(color2)
   return canvas.reshape(sq * nsq, sq * nsq, 3)
 
 
