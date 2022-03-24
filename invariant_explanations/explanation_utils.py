@@ -45,8 +45,12 @@ def get_model_explanations_for_instances(model, samples, y_preds,
     explans: the model explanations for all samples; instance of np.ndarray.
   """
 
-  if (-1 <= np.min(samples)) and (np.max(samples) <= +1):
-    samples = (samples + 1) / 2 * 255  # Reprocess images to original space.
+  # While explanation methods can work on inputs sampled from arbitrary domains,
+  # they work best when the image is sampled from the same domain upon which the
+  # model was trained.
+  if not ((-1 <= np.min(samples)) and (np.max(samples) <= +1)):
+    raise ValueError('Sample images must be in [-1,1] domain for explaination.')
+  #   samples = (samples + 1) / 2 * 255 # Omit; original domain was [-1,1].
 
   model = tf.keras.models.Model(
       [model.inputs],
@@ -91,55 +95,74 @@ def get_model_explanations_for_instances(model, samples, y_preds,
     """
 
     sample, y_pred = inputs[0], inputs[1]
+    sample = sample.squeeze()
+    if sample.ndim != 2:
+      raise ValueError('Expected grayscale samples.')
+
+    baseline = np.zeros(sample.shape)  # Baseline is a black image.
 
     # Construct a shared list of function arguments to be called below.
-    call_model_args = [
-        sample,
-        _call_model_function,
-        {class_idx_str: y_pred}
-    ]
+    # The kwargs here are shared among all methods below; method specific kwargs
+    # are additionally passed in when invocation each specific method.
+    call_model_kwargs = {
+        'x_value': sample,
+        'call_model_function': _call_model_function,
+        'call_model_args': {class_idx_str: y_pred},
+    }
 
     # Select among types of explanation methods.
     if explanation_method == 'grad':
-      gradient_saliency = saliency.core.GradientSaliency()
-      explan = gradient_saliency.GetMask(*call_model_args)
-      explan = saliency.core.VisualizeImageGrayscale(explan)
+      explan = saliency.core.GradientSaliency().GetMask(
+          **call_model_kwargs,
+      )
     elif explanation_method == 'smooth_grad':
-      gradient_saliency = saliency.core.GradientSaliency()
-      explan = gradient_saliency.GetSmoothedMask(*call_model_args)
-      explan = saliency.core.VisualizeImageGrayscale(explan)
+      explan = saliency.core.GradientSaliency().GetSmoothedMask(
+          **call_model_kwargs,
+      )
     elif explanation_method == 'gradcam':
-      grad_cam = saliency.core.GradCam()
-      explan = grad_cam.GetMask(*call_model_args)
-      explan = saliency.core.VisualizeImageGrayscale(explan)
+      explan = saliency.core.GradCam().GetMask(
+          **call_model_kwargs,
+          three_dims=False,
+      )
     elif explanation_method == 'smooth_gradcam':
-      grad_cam = saliency.core.GradCam()
-      explan = grad_cam.GetSmoothedMask(*call_model_args)
-      explan = saliency.core.VisualizeImageGrayscale(explan)
+      explan = saliency.core.GradCam().GetSmoothedMask(
+          **call_model_kwargs,
+          three_dims=False,
+      )
     elif explanation_method == 'ig':
-      integrated_gradients = saliency.core.IntegratedGradients()
-      baseline = np.zeros(sample.shape)  # Baseline is a black image.
-      explan = integrated_gradients.GetMask(
-          *call_model_args,
+      explan = saliency.core.IntegratedGradients().GetMask(
+          **call_model_kwargs,
           x_steps=25,
           x_baseline=baseline,
           batch_size=20,
       )
-      explan = saliency.core.VisualizeImageGrayscale(explan)
     elif explanation_method == 'smooth_ig':
-      integrated_gradients = saliency.core.IntegratedGradients()
-      baseline = np.zeros(sample.shape)  # Baseline is a black image.
-      explan = integrated_gradients.GetSmoothedMask(
-          *call_model_args,
+      explan = saliency.core.IntegratedGradients().GetSmoothedMask(
+          **call_model_kwargs,
           x_steps=25,
           x_baseline=baseline,
           batch_size=20,
       )
-      explan = saliency.core.VisualizeImageGrayscale(explan)
+    elif explanation_method == 'guided_ig':
+      explan = saliency.core.GuidedIG().GetMask(
+          **call_model_kwargs,
+          x_steps=25,
+          x_baseline=baseline,
+          max_dist=1.0,
+          fraction=0.5,
+      )
+
     else:
       raise NotImplementedError
 
-    return explan
+    assert explan.ndim == 2, 'Expected grayscale explans.'
+
+    # Perform percentile clipping to remove outliers, then return explan.
+    # To not repeat code, you may use the saliency library as below, but
+    # first construct a 3D copy of the explan by tiling across all 3 channels.
+    explan = np.expand_dims(explan, axis=2)
+    explan = np.tile(explan, [1, 1, 3])
+    return saliency.core.VisualizeImageGrayscale(explan)
 
   # Process explans in parallel. Code below inspired by:
   # https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
@@ -172,6 +195,7 @@ def plot_and_save_various_explanations(model, samples, y_preds, save_file_name):
 
   num_rows = len(config.ALLOWABLE_EXPLANATION_METHODS) + 1  # +1 for samples
   num_cols = len(samples)
+  plt.rc('font', size=6)
   fig, axes = plt.subplots(
       num_rows,
       num_cols,

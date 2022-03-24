@@ -52,14 +52,15 @@ USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = True
 assert NUM_SAMPLES_TO_PLOT_TE_FOR <= NUM_SAMPLES_PER_BASE_MODEL
 
 ALLOWABLE_EXPLANATION_METHODS = [
-    'grad',
-    # 'smooth_grad',
-    'gradcam',
-    # 'smooth_gradcam',
     'ig',
-    # 'smooth_ig',
+    'grad',
+    'gradcam',
+    'guided_ig',
+    'smooth_ig',
+    'smooth_grad',
+    'smooth_gradcam',
 ]
-EXPLANATION_TYPE = 'ig'
+EXPLANATION_TYPE = 'guided_ig'
 assert EXPLANATION_TYPE in ALLOWABLE_EXPLANATION_METHODS
 
 BASE_MODEL_BATCH_SIZE = 32
