@@ -29,11 +29,10 @@ RUN_ON_TEST_DATA = False  # Set this variable to True to run on sample test data
                          # variable to False.
 
 ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
-DATASET = 'mnist'
+DATASET = 'cifar10'
 assert DATASET in ALLOWABLE_DATASETS
 if RUN_ON_TEST_DATA:  # The test data is a subset of the MNIST dataset.
   assert DATASET == 'mnist'
-
 
 if RUN_ON_TEST_DATA:
   DATA_DIR = 'test_data/'
@@ -48,7 +47,7 @@ MODELS_SUBPATH = '_models'
 NUM_BASE_MODELS = 30000
 NUM_SAMPLES_PER_BASE_MODEL = 8
 NUM_SAMPLES_TO_PLOT_TE_FOR = 8
-KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.975
+KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.55
 USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = True
 assert NUM_SAMPLES_TO_PLOT_TE_FOR <= NUM_SAMPLES_PER_BASE_MODEL
 

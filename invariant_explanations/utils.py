@@ -531,7 +531,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   # Construct and fill arrays of appropriate size for covariates and targets.
   ############################################################################
 
-  size_x = np.prod(dataset_info['data_shape'])
+  size_x = dataset_info['data_shape'][0] * dataset_info['data_shape'][1]
   size_y = dataset_info['num_classes']
 
   num_new_samples = config.NUM_SAMPLES_PER_BASE_MODEL * local_num_base_models
@@ -573,6 +573,9 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   min_out = -1.0
   max_out = 1.0
   all_img_samples = min_out + all_img_samples * (max_out - min_out)
+  # The CNN Zoo operated all data using a reduced mean single channel.
+  all_img_samples = tf.math.reduce_mean(all_img_samples, axis=-1, keepdims=True)
+  all_img_samples = all_img_samples.numpy()
 
   num_train_samples = all_img_samples.shape[0]
 
@@ -1001,9 +1004,13 @@ def train_meta_model_over_different_setups(random_seed):
         other.get_model_wireframe(config.DATASET),
         w_final[0],
     )
-    s = samples[0].reshape(
-        (1,) + other.get_dataset_info(config.DATASET)['data_shape']
-    )
+    dataset_info = other.get_dataset_info(config.DATASET)
+    s = samples[0].reshape((
+        1,  # One sample.
+        dataset_info['data_shape'][0],
+        dataset_info['data_shape'][1],
+        1,  # The CNN Zoo operated all data using a reduced mean single channel.
+    ))
     y = y_preds[0]
     assert np.allclose(m.predict_on_batch(s)[0], y, rtol=1e-2)
 
@@ -1148,7 +1155,8 @@ def project_using_spca(samples, targets, n_components=2,
     samples_proj = (matrix_u.T).dot(samples_orig)
     samples_reco = matrix_u.dot(samples_proj)
 
-  data_dim = np.prod(other.get_dataset_info(config.DATASET)['data_shape'])
+  channel_1_and_2_dim = other.get_dataset_info(config.DATASET)['data_shape'][:2]
+  data_dim = np.prod(channel_1_and_2_dim)
   if samples_orig.shape[0] == data_dim:  # IMPORTANT: only works for samples
                                          # and explans that are (image based).
     num_rows = 3  # Row 1: orig samples; Row 2: reco samples; Row 3: difference.
@@ -1162,8 +1170,8 @@ def project_using_spca(samples, targets, n_components=2,
 
     for col_idx in range(num_cols):
 
-      tmp_samples_orig = samples_orig[:, col_idx].reshape((28, 28))
-      tmp_samples_reco = samples_reco[:, col_idx].reshape((28, 28))
+      tmp_samples_orig = samples_orig[:, col_idx].reshape(channel_1_and_2_dim)
+      tmp_samples_reco = samples_reco[:, col_idx].reshape(channel_1_and_2_dim)
       tmp_samples_diff = np.abs(tmp_samples_orig - tmp_samples_reco)
 
       axes[col_idx + 0 * num_cols].imshow(tmp_samples_orig)
@@ -1449,7 +1457,7 @@ def measure_prediction_explanation_variance(random_seed):
     ax = axes[row_idx, 0]
     ax.imshow(
         x_samples[0].reshape(
-            other.get_dataset_info(config.DATASET)['data_shape']
+            other.get_dataset_info(config.DATASET)['data_shape'][:2]
         )
     )  # Samples at all indices are identical; just take the first.
     ax.axis('off')
