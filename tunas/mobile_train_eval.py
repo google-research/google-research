@@ -28,6 +28,7 @@ from typing import Any, Dict, Optional, Text, Tuple, Union
 from absl import flags
 from six.moves import zip
 import tensorflow.compat.v1 as tf  # tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2  # pylint:disable=g-bad-import-order
 from tunas import custom_layers
 from tunas import fast_imagenet_input
@@ -131,9 +132,9 @@ def model_fn(features,
              labels, mode,
              params):
   """Construct a TPUEstimatorSpec for a model."""
-  training = (mode == tf.estimator.ModeKeys.TRAIN)
+  training = (mode == tf_estimator.ModeKeys.TRAIN)
 
-  if mode == tf.estimator.ModeKeys.EVAL:
+  if mode == tf_estimator.ModeKeys.EVAL:
     # At evaluation time, the function argument `features` is really a 2-element
     # tuple containing:
     # * A tensor of features w/ shape [batch_size, image_height, image_width, 3]
@@ -180,15 +181,15 @@ def model_fn(features,
   # Cast back to float32 (effectively only when using use_bfloat16 is true).
   logits = tf.cast(logits, tf.float32)
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(
+  if mode == tf_estimator.ModeKeys.PREDICT:
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         predictions={
             'classes': tf.argmax(logits, axis=1),
             'probabilities': tf.nn.softmax(logits),
         },
         export_outputs={
-            'logits': tf.estimator.export.PredictOutput({'logits': logits}),
+            'logits': tf_estimator.export.PredictOutput({'logits': logits}),
         })
 
   empirical_loss = tf.losses.softmax_cross_entropy(
@@ -199,7 +200,7 @@ def model_fn(features,
 
   # Optionally define an op for model training.
   global_step = tf.train.get_global_step()
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     # linearly scale up the learning rate before switching to cosine decay
     learning_rate = custom_layers.cosine_decay_with_linear_warmup(
         peak_learning_rate=params['learning_rate'],
@@ -224,7 +225,7 @@ def model_fn(features,
     scaffold_fn = None
 
   # Optionally define evaluation metrics.
-  if mode == tf.estimator.ModeKeys.EVAL:
+  if mode == tf_estimator.ModeKeys.EVAL:
     def metric_fn(labels, logits, mask):
       label_values = tf.argmax(labels, axis=1)
       predictions = tf.argmax(logits, axis=1)
@@ -240,7 +241,7 @@ def model_fn(features,
   # tf.stack to merge all of the float32 scalar values into a single rank-1
   # tensor that can be sent to the host relatively cheaply and (ii) reshaping
   # the remaining values from scalars to rank-1 tensors.
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     tensorboard_scalars = collections.OrderedDict()
     tensorboard_scalars['model/loss'] = loss
     tensorboard_scalars['model/empirical_loss'] = empirical_loss
@@ -263,7 +264,7 @@ def model_fn(features,
     host_call = None
 
   # Construct the estimator specification.
-  return tf.estimator.tpu.TPUEstimatorSpec(
+  return tf_estimator.tpu.TPUEstimatorSpec(
       mode=mode,
       loss=loss,
       train_op=train_op,
@@ -277,7 +278,7 @@ def _make_estimator(
 ):
   """Returns a TPUEstimator for use in training or evaluation."""
   if is_training:
-    input_mode = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
+    input_mode = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
   else:
     # Enable BROADCAST mode for model evaluation. In BROADCAST mode, input
     # preprocessing happens on a single host. We then broadcast each batch of
@@ -285,17 +286,17 @@ def _make_estimator(
     # However, it's needed to make TPUEstimator work with multi-host setups
     # right now, since TF doesn't support PER_HOST_V2 input pipelines with more
     # than one host.
-    input_mode = tf.estimator.tpu.InputPipelineConfig.BROADCAST
+    input_mode = tf_estimator.tpu.InputPipelineConfig.BROADCAST
 
-  config = tf.estimator.tpu.RunConfig(
+  config = tf_estimator.tpu.RunConfig(
       cluster=tf.distribute.cluster_resolver.TPUClusterResolver(
           params['tpu'],
           zone=params['tpu_zone'],
           project=params['gcp_project']),
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=params['tpu_iterations_per_loop'],
           per_host_input_for_training=input_mode))
-  return tf.estimator.tpu.TPUEstimator(
+  return tf_estimator.tpu.TPUEstimator(
       model_fn=model_fn,
       model_dir=params['checkpoint_dir'],
       config=config,

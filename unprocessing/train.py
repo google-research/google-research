@@ -25,6 +25,7 @@ from __future__ import print_function
 
 from absl import flags
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from unprocessing import dataset
 from unprocessing import estimator
@@ -81,8 +82,8 @@ def main(_):
   inference_fn = network.inference
   hparams = contrib_training.HParams(learning_rate=FLAGS.learning_rate)
   model_fn = estimator.create_model_fn(inference_fn, hparams)
-  config = tf.estimator.RunConfig(FLAGS.model_dir)
-  tf_estimator = tf.estimator.Estimator(model_fn=model_fn, config=config)
+  config = tf_estimator.RunConfig(FLAGS.model_dir)
+  tf_estimator = tf_estimator.Estimator(model_fn=model_fn, config=config)
 
   train_dataset_fn = dataset.create_dataset_fn(
       FLAGS.train_pattern,
@@ -100,7 +101,7 @@ def main(_):
       train_dataset_fn, eval_dataset_fn)
 
   tf.logging.set_verbosity(tf.logging.INFO)
-  tf.estimator.train_and_evaluate(tf_estimator, train_spec, eval_spec)
+  tf_estimator.train_and_evaluate(tf_estimator, train_spec, eval_spec)
 
 
 if __name__ == '__main__':

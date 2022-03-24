@@ -34,6 +34,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 
 def rnn_model_fn(features, labels, mode, params):
@@ -59,8 +60,8 @@ def rnn_model_fn(features, labels, mode, params):
   pred_labels = tf.argmax(logits_test, axis=1)
   pred_probas = tf.nn.softmax(logits_test)
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(
+  if mode == tf_estimator.ModeKeys.PREDICT:
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         predictions={
             'label': pred_labels,
@@ -71,7 +72,7 @@ def rnn_model_fn(features, labels, mode, params):
   # Note: labels=None when mode==PREDICT (see tf.estimator API).
   one_hot_labels = tf.one_hot(labels, params['num_classes'])
 
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     loss_train = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
         logits=logits_train, labels=one_hot_labels))
     tf.summary.scalar('loss_train', loss_train)
@@ -80,7 +81,7 @@ def rnn_model_fn(features, labels, mode, params):
     train_op = optimizer.minimize(
         loss_train, global_step=tf.train.get_global_step())
 
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         train_op=train_op,
         loss=loss_train,
@@ -99,7 +100,7 @@ def rnn_model_fn(features, labels, mode, params):
       logits=logits_test, labels=one_hot_labels))
   tf.summary.scalar('loss_test', loss_test)
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       mode=mode,
       loss=loss_test,
       eval_metric_ops={

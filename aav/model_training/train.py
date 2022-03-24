@@ -64,6 +64,7 @@ import cnn
 import lr
 import rnn
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 import train_utils
 from ..util import dataset_utils
 
@@ -168,14 +169,14 @@ def train_model(
     validation_input_fn: (fn) A tf.Estimator input_fn for the validation data.
     params: (dict) Model hyperparameters.
   """
-  run_config = tf.estimator.RunConfig(
+  run_config = tf_estimator.RunConfig(
       model_dir=FLAGS.model_dir,
       save_checkpoints_steps=FLAGS.train_steps_per_eval,
       keep_checkpoint_max=None)
 
   logging.warn('RUN CONFIG: %r', run_config)
 
-  model = tf.estimator.Estimator(
+  model = tf_estimator.Estimator(
       model_fn=model_fn,
       params=params,
       config=run_config)

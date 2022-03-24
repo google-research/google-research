@@ -34,6 +34,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 
 def cnn_model_fn(features, labels, mode, params, refs=None):
@@ -74,8 +75,8 @@ def cnn_model_fn(features, labels, mode, params, refs=None):
   pred_classes = tf.argmax(logits_test, axis=1)
   pred_probas = tf.nn.softmax(logits_test)
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(
+  if mode == tf_estimator.ModeKeys.PREDICT:
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         predictions={
             'label': pred_classes,
@@ -107,7 +108,7 @@ def cnn_model_fn(features, labels, mode, params, refs=None):
       labels=labels,
       predictions=pred_classes)
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       mode=mode,
       train_op=train_op,
       loss=loss_op,

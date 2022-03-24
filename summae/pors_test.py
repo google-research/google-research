@@ -24,6 +24,7 @@ import os
 from absl import flags
 from absl.testing import parameterized
 from six.moves import range
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 from summae import pors
 from summae import util
@@ -577,10 +578,10 @@ class PorsTest(tf.test.TestCase, parameterized.TestCase):
         'max_decode_steps': 2,
         'encoder_type': encoder_type,
     })
-    run_config = tf.estimator.tpu.RunConfig(
+    run_config = tf_estimator.tpu.RunConfig(
         model_dir=self.create_tempdir().full_path, keep_checkpoint_max=10)
 
-    pors_estimator = tf.estimator.tpu.TPUEstimator(
+    pors_estimator = tf_estimator.tpu.TPUEstimator(
         use_tpu=use_tpu,
         config=run_config,
         model_fn=pors.get_model_fn(spid_dict),

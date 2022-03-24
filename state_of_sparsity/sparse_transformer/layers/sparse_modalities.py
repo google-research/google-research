@@ -23,6 +23,7 @@ from six.moves import range  # pylint: disable=redefined-builtin
 from tensor2tensor.layers import common_layers
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import state_of_sparsity.layers.l0_regularization as l0
 import state_of_sparsity.layers.variational_dropout as vd
 from state_of_sparsity.sparse_transformer.layers import common_sparse
@@ -135,7 +136,7 @@ def bottom_simple(x, model_hparams, vocab_size, name, reuse):
         x, 1.0 - model_hparams.symbol_dropout)
 
     sparsity_technique = model_hparams.get("sparsity_technique")
-    training = model_hparams.get("mode") == tf.estimator.ModeKeys.TRAIN
+    training = model_hparams.get("mode") == tf_estimator.ModeKeys.TRAIN
     if sparsity_technique == "variational_dropout":
       if training:
         ret = vd.nn.embedding_lookup_train(
@@ -225,7 +226,7 @@ def top(body_output, targets, model_hparams, vocab_size):
     body_output_shape = common_layers.shape_list(body_output)
     var = _get_weights(model_hparams, vocab_size, body_output_shape[-1])
     if (model_hparams.factored_logits and
-        model_hparams.mode == tf.estimator.ModeKeys.TRAIN):
+        model_hparams.mode == tf_estimator.ModeKeys.TRAIN):
       # Sparsity techniques only support non-factored logits for now
       assert not sparsity_technique
 
@@ -235,7 +236,7 @@ def top(body_output, targets, model_hparams, vocab_size):
     else:
       body_output = tf.reshape(body_output, [-1, body_output_shape[-1]])
 
-      training = model_hparams.get("mode") == tf.estimator.ModeKeys.TRAIN
+      training = model_hparams.get("mode") == tf_estimator.ModeKeys.TRAIN
       if sparsity_technique == "variational_dropout":
         if training:
           logits = vd.nn.matmul_train(

@@ -24,6 +24,7 @@ from tensor2tensor.utils import expert_utils
 from tensor2tensor.utils import mlperf_log
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from state_of_sparsity.sparse_transformer.layers import sparse_attention
 from state_of_sparsity.sparse_transformer.layers import sparse_layers
 
@@ -114,7 +115,7 @@ def transformer_encoder(encoder_input,
               vars_3d=hparams.get("attention_variables_3d"),
               sparsity_technique=hparams.get("sparsity_technique"),
               threshold=hparams.get("log_alpha_threshold"),
-              training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+              training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
               clip_alpha=hparams.get("clip_log_alpha"),
               initial_sparsity=initial_sparsity,
               split_heads=hparams.get("split_heads"))
@@ -192,7 +193,7 @@ def transformer_ffn_layer(x, hparams, pad_remover=None):
       dropout_broadcast_dims=relu_dropout_broadcast_dims,
       sparsity_technique=hparams.get("sparsity_technique"),
       threshold=hparams.get("log_alpha_threshold"),
-      training=hparams.get("mode") == tf.estimator.ModeKeys.TRAIN,
+      training=hparams.get("mode") == tf_estimator.ModeKeys.TRAIN,
       clip_alpha=hparams.get("clip_log_alpha"),
       initial_sparsity=initial_sparsity)
   if pad_remover:

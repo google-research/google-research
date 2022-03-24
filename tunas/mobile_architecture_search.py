@@ -29,6 +29,7 @@ from absl import flags
 from six.moves import range
 from six.moves import zip
 import tensorflow.compat.v1 as tf  # tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2  # pylint:disable=g-bad-import-order
 
 from tunas import controller
@@ -186,7 +187,7 @@ def model_fn(
     mode, params
 ):
   """Construct a TPUEstimatorSpec for a model."""
-  if mode != tf.estimator.ModeKeys.TRAIN:
+  if mode != tf_estimator.ModeKeys.TRAIN:
     raise NotImplementedError(
         'Expected that mode == TRAIN, but got {:!r}'.format(mode))
 
@@ -457,7 +458,7 @@ def model_fn(
       [tf.reshape(global_step, [1]), host_call_values])
 
   # Construct the estimator specification.
-  return tf.estimator.tpu.TPUEstimatorSpec(
+  return tf_estimator.tpu.TPUEstimatorSpec(
       mode=mode,
       loss=model_loss,
       train_op=train_op,
@@ -528,17 +529,17 @@ def run_model(params):
         'shared weight training than for RL controller training. And use '
         'increased filter sizes only for the shared weight training.')
 
-  per_host_input_v2 = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
-  config = tf.estimator.tpu.RunConfig(
+  per_host_input_v2 = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  config = tf_estimator.tpu.RunConfig(
       cluster=tf.distribute.cluster_resolver.TPUClusterResolver(
           params['tpu'],
           zone=params['tpu_zone'],
           project=params['gcp_project']),
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=params['tpu_iterations_per_loop'],
           per_host_input_for_training=per_host_input_v2))
 
-  estimator = tf.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       model_fn=model_fn,
       model_dir=params['checkpoint_dir'],
       config=config,

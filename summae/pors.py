@@ -29,6 +29,7 @@ from absl import flags
 import six
 from six.moves import range
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_probability as tfp
 
 from summae import model as m
@@ -764,22 +765,22 @@ def get_model_fn(spid_dict):
       TPUEstimatorSpec
     """
     loss, train_op, metrics_dict, preds_dict, host_call = pors_model(
-        features, params, mode == tf.estimator.ModeKeys.TRAIN, spid_dict)
+        features, params, mode == tf_estimator.ModeKeys.TRAIN, spid_dict)
 
     # Need loss, train_op
-    if mode == tf.estimator.ModeKeys.TRAIN:
-      return tf.estimator.tpu.TPUEstimatorSpec(
+    if mode == tf_estimator.ModeKeys.TRAIN:
+      return tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, loss=loss, train_op=train_op, host_call=host_call)
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
       # We need to use eval_on_tpu=False when creating TPUEstimator for
       # this to work.
       # TODO(peterjliu): Get eval on TPU?
-      return tf.estimator.EstimatorSpec(mode=mode, loss=loss,
+      return tf_estimator.EstimatorSpec(mode=mode, loss=loss,
                                         eval_metric_ops=metrics_dict)
 
-    elif mode == tf.estimator.ModeKeys.PREDICT:
+    elif mode == tf_estimator.ModeKeys.PREDICT:
       # Use this mode for auto-regressive decoding.
-      return tf.estimator.tpu.TPUEstimatorSpec(mode,
+      return tf_estimator.tpu.TPUEstimatorSpec(mode,
                                                predictions=preds_dict)
   return model_fn
 
@@ -994,13 +995,13 @@ def main(unused_argv):
     with tf.gfile.Open(hypers_file, 'w') as f:
       json.dump(params, f)
 
-  run_config = tf.estimator.tpu.RunConfig(
+  run_config = tf_estimator.tpu.RunConfig(
       model_dir=FLAGS.model_dir,
       keep_checkpoint_max=0,
       save_checkpoints_steps=FLAGS.checkpoint_steps,
       master=FLAGS.master,
       tpu_config=tpu_config.TPUConfig(iterations_per_loop=1000,))
-  ae_estimator = tf.estimator.tpu.TPUEstimator(
+  ae_estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,  # If false, like a regular Estimator
       model_fn=get_model_fn(spid_dict),
       config=run_config,
