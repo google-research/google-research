@@ -25,6 +25,7 @@ import numpy as np
 from six.moves import reduce
 from tensor2tensor.models import transformer
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow_addons as tfa
 from simpdom import block_lstm
 from simpdom import seq_tagging_metric_util
@@ -573,7 +574,7 @@ def joint_extraction_model_fn(features, labels, mode, params):
   #    the last two are the maximum length of friend nodes and words.
 
   nnodes = merge_first_two_dims(nnodes)
-  training = (mode == tf.estimator.ModeKeys.TRAIN)
+  training = (mode == tf_estimator.ModeKeys.TRAIN)
   vocab_words = _index_table_from_file(
       params["words"], num_oov_buckets=params["num_oov_buckets"])
   with tf.gfile.Open(params["tags"]) as f:
@@ -802,7 +803,7 @@ def joint_extraction_model_fn(features, labels, mode, params):
     pred_ids = tf.argmax(logits, 2)
     logging.info("pred_ids.shape: %s", pred_ids.shape)
   # Predict for new sentences in target set.
-  if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf_estimator.ModeKeys.PREDICT:
     reverse_vocab_tags = _index_table_from_file(params["tags"], 1)
     pred_strings = reverse_vocab_tags.lookup(tf.strings.as_string(pred_ids))
     predictions = {
@@ -818,7 +819,7 @@ def joint_extraction_model_fn(features, labels, mode, params):
       predictions["friends_embs"] = circle_representation
     if params["extract_node_emb"]:
       predictions["node_embs"] = node_seq_output
-    return tf.estimator.EstimatorSpec(mode, predictions=predictions)
+    return tf_estimator.EstimatorSpec(mode, predictions=predictions)
 
   vocab_tags = _index_table_from_file(params["tags"], 1)
   tags = vocab_tags.lookup(labels)
@@ -853,11 +854,11 @@ def joint_extraction_model_fn(features, labels, mode, params):
   for metric_name, op in metrics.items():
     tf.summary.scalar(metric_name, op[1])
 
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     with tf.name_scope("train_scope"):
       optimizer = tf.train.AdamOptimizer()
       train_op = optimizer.minimize(
           loss, global_step=tf.train.get_or_create_global_step())
-    return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-  return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+  return tf_estimator.EstimatorSpec(
       mode=mode, loss=loss, eval_metric_ops=metrics)

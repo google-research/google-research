@@ -20,6 +20,7 @@ from __future__ import print_function
 
 from tensor2tensor.utils import trainer_lib
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from seq2act.models import input as input_utils
 from seq2act.models import seq2act_estimator
@@ -77,7 +78,7 @@ def create_estimator(experiment_dir, hparams, decode_length=20):
     strategy = tf.distribute.MirroredStrategy()
   else:
     strategy = None
-  config = tf.estimator.RunConfig(
+  config = tf_estimator.RunConfig(
       save_checkpoints_steps=1000, save_summary_steps=300,
       train_distribute=strategy)
   model_fn = seq2act_estimator.create_model_fn(
@@ -91,13 +92,13 @@ def create_estimator(experiment_dir, hparams, decode_length=20):
   if FLAGS.reference_checkpoint:
     latest_checkpoint = tf.train.latest_checkpoint(
         FLAGS.reference_checkpoint)
-    ws = tf.estimator.WarmStartSettings(
+    ws = tf_estimator.WarmStartSettings(
         ckpt_to_initialize_from=latest_checkpoint,
         vars_to_warm_start=["embed_tokens/task_embed_w", "encode_decode/.*",
                             "output_layer/.*"])
   else:
     ws = None
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=model_fn, model_dir=experiment_dir, config=config,
       warm_start_from=ws)
   return estimator

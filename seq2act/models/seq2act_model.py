@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from seq2act.models import seq2act_grounding
 from seq2act.models import seq2act_reference
 
@@ -25,7 +26,7 @@ from seq2act.models import seq2act_reference
 def compute_logits(features, hparams, mode,
                    use_cache=None, cache=None):
   """Computes the logits."""
-  if mode != tf.estimator.ModeKeys.TRAIN:
+  if mode != tf_estimator.ModeKeys.TRAIN:
     for key in hparams.values():
       if key.endswith("dropout"):
         setattr(hparams, key, 0.0)
@@ -33,7 +34,7 @@ def compute_logits(features, hparams, mode,
   tf.logging.info(hparams)
   references = seq2act_reference.compute_logits(
       features, hparams,
-      train=(mode == tf.estimator.ModeKeys.TRAIN))
+      train=(mode == tf_estimator.ModeKeys.TRAIN))
   if use_cache is not None and cache is not None:
     for key in cache:
       references[key] = tf.where(
@@ -78,15 +79,15 @@ def core_graph(features, hparams, mode,
       compute_logits(features, hparams, mode))
   prediction_dict = {}
   loss_dict = {}
-  if mode != tf.estimator.ModeKeys.PREDICT:
+  if mode != tf_estimator.ModeKeys.PREDICT:
     compute_loss(loss_dict, features,
                  action_logits, obj_logits, consumed_logits, references,
                  hparams)
     if compute_additional_loss:
       compute_additional_loss(hparams, features, references["decoder_output"],
                               loss_dict, prediction_dict, mode)
-  if mode != tf.estimator.ModeKeys.TRAIN:
-    if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode != tf_estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.PREDICT:
       prediction_dict["task"] = features["task"]
       prediction_dict["raw_task"] = features["raw_task"]
       prediction_dict["data_source"] = features["data_source"]

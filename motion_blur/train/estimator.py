@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import layers as contrib_layers
 
 
@@ -80,12 +81,12 @@ def create_model_fn(inference_fn, hparams):
 
     blurred = inference_fn(features['frame_0'], features['frame_1'])
 
-    if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
+    if mode in [tf_estimator.ModeKeys.TRAIN, tf_estimator.ModeKeys.EVAL]:
       loss = tf.losses.absolute_difference(labels, blurred)
     else:
       loss = None
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
       train_op = contrib_layers.optimize_loss(
           loss=loss,
@@ -96,7 +97,7 @@ def create_model_fn(inference_fn, hparams):
     else:
       train_op = None
 
-    if mode == tf.estimator.ModeKeys.EVAL:
+    if mode == tf_estimator.ModeKeys.EVAL:
       eval_metric_ops = {'PSNR': psnr(labels, blurred)}
 
       def summary(images, name):
@@ -116,7 +117,7 @@ def create_model_fn(inference_fn, hparams):
     else:
       eval_metric_ops = None
 
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         loss=loss,
         train_op=train_op,
@@ -138,9 +139,9 @@ def create_train_and_eval_specs(train_dataset_fn,
   Returns:
     Tuple of (TrainSpec, EvalSpec).
   """
-  train_spec = tf.estimator.TrainSpec(input_fn=train_dataset_fn, max_steps=None)
+  train_spec = tf_estimator.TrainSpec(input_fn=train_dataset_fn, max_steps=None)
 
-  eval_spec = tf.estimator.EvalSpec(
+  eval_spec = tf_estimator.EvalSpec(
       input_fn=eval_dataset_fn, steps=eval_steps, name='')
 
   return train_spec, eval_spec

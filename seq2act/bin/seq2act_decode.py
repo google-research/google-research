@@ -21,6 +21,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from seq2act.models import input as input_utils
 from seq2act.models import seq2act_estimator
 from seq2act.models import seq2act_model
@@ -89,7 +90,7 @@ def _decode_common(hparams):
       continue
     decode_features[key] = features[key]
   _, _, _, references = seq2act_model.compute_logits(
-      features, hparams, mode=tf.estimator.ModeKeys.EVAL)
+      features, hparams, mode=tf_estimator.ModeKeys.EVAL)
   decode_utils.decode_n_step(seq2act_model.compute_logits,
                              decode_features, references["areas"],
                              hparams, n=20,

@@ -30,7 +30,7 @@ $ python3 -m keypose.trainer.py configs/bottle_0_t5 /tmp/model
 import os
 import sys
 
-import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 from tensorflow import keras
 
 from keypose import estimator as est
@@ -67,7 +67,7 @@ def train_and_eval(params,
 
   mparams = params.model_params
 
-  run_config = tf.estimator.RunConfig(
+  run_config = tf_estimator.RunConfig(
       keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
       save_checkpoints_secs=save_checkpoints_secs,
       save_summary_steps=save_summary_steps)
@@ -75,14 +75,14 @@ def train_and_eval(params,
   if run_config.model_dir:
     params.model_dir = run_config.model_dir
   print('\nCreating estimator with model dir %s' % params.model_dir)
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=model_fn,
       model_dir=params.model_dir,
       config=run_config,
       params=params)
 
   print('\nCreating train_spec')
-  train_spec = tf.estimator.TrainSpec(
+  train_spec = tf_estimator.TrainSpec(
       input_fn=input_fn(params, split='train'), max_steps=params.steps)
 
   print('\nCreating eval_spec')
@@ -109,9 +109,9 @@ def train_and_eval(params,
         'offsets': offsets,
         'hom': hom
     }
-    return tf.estimator.export.build_raw_serving_input_receiver_fn(features)
+    return tf_estimator.export.build_raw_serving_input_receiver_fn(features)
 
-  class SaveModel(tf.estimator.SessionRunHook):
+  class SaveModel(tf_estimator.SessionRunHook):
     """Saves a model in SavedModel format."""
 
     def __init__(self, estimator, output_dir):
@@ -133,7 +133,7 @@ def train_and_eval(params,
 
   if eval_steps == 0:
     eval_steps = None
-  eval_spec = tf.estimator.EvalSpec(
+  eval_spec = tf_estimator.EvalSpec(
       input_fn=input_fn(params, split='val'),
       steps=eval_steps,
       hooks=[saver_hook],
@@ -148,7 +148,7 @@ def train_and_eval(params,
       params.write_yaml(os.path.join(outdir, 'params.yaml'))
 
   print('\nRunning estimator')
-  tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+  tf_estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
   print('\nSaving last model')
   ckpt = estimator.latest_checkpoint()

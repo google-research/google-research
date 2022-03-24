@@ -24,6 +24,7 @@ from tensor2tensor.models import transformer
 from tensor2tensor.utils import learning_rate
 from tensor2tensor.utils import optimize
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from seq2act.models import input as input_utils
 from seq2act.models import seq2act_model
 from seq2act.utils import decode_utils
@@ -227,12 +228,12 @@ def create_model_fn(hparams, compute_additional_loss_fn=None,
     tf.summary.scalar("input_count", input_count)
     loss_dict, pred_dict, areas = seq2act_model.core_graph(
         features, hparams, mode, compute_additional_loss_fn)
-    if mode == tf.estimator.ModeKeys.PREDICT:
+    if mode == tf_estimator.ModeKeys.PREDICT:
       pred_dict["sequences"] = decode_sequence(
           features, areas, hparams, decode_length,
           post_processing=FLAGS.post_processing)
-      return tf.estimator.EstimatorSpec(mode, predictions=pred_dict)
-    elif mode == tf.estimator.ModeKeys.EVAL:
+      return tf_estimator.EstimatorSpec(mode, predictions=pred_dict)
+    elif mode == tf_estimator.ModeKeys.EVAL:
       metrics = {}
       _eval(metrics, pred_dict, loss_dict, features,
             areas, compute_seq_accuracy,
@@ -241,10 +242,10 @@ def create_model_fn(hparams, compute_additional_loss_fn=None,
             decode_length=decode_length)
       if compute_additional_metric_fn:
         compute_additional_metric_fn(metrics, pred_dict, features)
-      return tf.estimator.EstimatorSpec(
+      return tf_estimator.EstimatorSpec(
           mode, loss=loss_dict["total_loss"], eval_metric_ops=metrics)
     else:
-      assert mode == tf.estimator.ModeKeys.TRAIN
+      assert mode == tf_estimator.ModeKeys.TRAIN
       loss = loss_dict["total_loss"]
       for loss_name in loss_dict:
         if loss_name == "total_loss":
@@ -260,7 +261,7 @@ def create_model_fn(hparams, compute_additional_loss_fn=None,
       for name in names:
         ret *= learning_rate.learning_rate_factor(name, step_num, hparams)
       train_op = optimize.optimize(loss, ret, hparams)
-      return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+      return tf_estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
   return model_fn
 
 

@@ -24,6 +24,7 @@ import functools
 import numpy as np
 from six.moves import zip
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.compat.v1 import gfile
 
 from neural_guided_symbolic_regression.models import core
@@ -447,7 +448,7 @@ def input_fn(input_pattern, mode, params, grammar):
     features: Dict containing input tensors.
     labels: label tensor.
   """
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     randomize = True
     num_epochs = None
   else:
@@ -530,5 +531,5 @@ def serving_input_receiver_fn(params, num_production_rules):
           shape=[None, len(numerical_points)],
           name='numerical_values')
 
-  return tf.estimator.export.ServingInputReceiver(
+  return tf_estimator.export.ServingInputReceiver(
       features=features, receiver_tensors=features)

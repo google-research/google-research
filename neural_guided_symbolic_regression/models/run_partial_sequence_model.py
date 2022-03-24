@@ -31,6 +31,7 @@ from absl import flags
 import six
 from six.moves import range
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.compat.v1 import gfile
 
 from neural_guided_symbolic_regression.models import core
@@ -94,7 +95,7 @@ def model_fn(features, labels, mode, params, grammar):
   Returns:
     A ModelFnOps object defining predictions, loss, and train_op.
   """
-  if mode != tf.estimator.ModeKeys.PREDICT:
+  if mode != tf_estimator.ModeKeys.PREDICT:
     tf.summary.text('expression_string', features['expression_string'][:10])
   tf.summary.text('production_rules', tf.constant(grammar.grammar_to_string()))
 
@@ -130,8 +131,8 @@ def model_fn(features, labels, mode, params, grammar):
       axis=1,
       name='predictions/next_production_rule')
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
-    return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+  if mode == tf_estimator.ModeKeys.PREDICT:
+    return tf_estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
   # NOTE(leeley): The mask cannot be applied directly on logits. Because 0
   # logit is still corresponding to a positive probability. Since
@@ -143,7 +144,7 @@ def model_fn(features, labels, mode, params, grammar):
       labels, tf.log(predictions['masked_probabilities'] + 1e-10))
 
   # Configure the training op for TRAIN mode.
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     train_op = contrib_layers.optimize_loss(
         loss=loss,
         global_step=tf.train.get_global_step(),
@@ -153,7 +154,7 @@ def model_fn(features, labels, mode, params, grammar):
             decay_rate=params.learning_rate_decay_rate),
         optimizer=params.optimizer,
         summaries=contrib_layers.OPTIMIZER_SUMMARIES)
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         loss=loss,
         train_op=train_op)
@@ -217,7 +218,7 @@ def model_fn(features, labels, mode, params, grammar):
         'generation_fail_ratio': tf.metrics.mean(fail_ratio),
     })
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
@@ -316,14 +317,14 @@ def run():
 
   grammar = grammar_utils.load_grammar(grammar_path=hparams.grammar_path)
 
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=functools.partial(model_fn, grammar=grammar),
       params=hparams,
-      config=tf.estimator.RunConfig(
+      config=tf_estimator.RunConfig(
           save_checkpoints_secs=hparams.save_checkpoints_secs,
           keep_checkpoint_max=hparams.keep_checkpoint_max))
 
-  train_spec = tf.estimator.TrainSpec(
+  train_spec = tf_estimator.TrainSpec(
       input_fn=functools.partial(
           input_ops.input_fn,
           input_pattern=hparams.train_pattern,
@@ -332,7 +333,7 @@ def run():
 
   # NOTE(leeley): The SavedModel will be stored under the
   # tf.saved_model.tag_constants.SERVING tag.
-  latest_exporter = tf.estimator.LatestExporter(
+  latest_exporter = tf_estimator.LatestExporter(
       name='latest_exported_model',
       serving_input_receiver_fn=functools.partial(
           input_ops.serving_input_receiver_fn,
@@ -350,7 +351,7 @@ def run():
             max_length=hparams.max_length,
             grammar=grammar))
 
-  eval_spec = tf.estimator.EvalSpec(
+  eval_spec = tf_estimator.EvalSpec(
       input_fn=functools.partial(
           input_ops.input_fn,
           input_pattern=hparams.tune_pattern,
@@ -361,7 +362,7 @@ def run():
       throttle_secs=hparams.throttle_secs,
       hooks=eval_hooks)
 
-  tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+  tf_estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 
 def main(argv):

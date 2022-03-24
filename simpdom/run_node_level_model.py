@@ -29,6 +29,7 @@ from absl import app
 from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from simpdom import constants
 from simpdom import model_util
@@ -443,7 +444,7 @@ def main(_):
       shuffle_and_repeat=True,
       mode="train")
 
-  cfg = tf.estimator.RunConfig(
+  cfg = tf_estimator.RunConfig(
       save_checkpoints_steps=300, save_summary_steps=300, tf_random_seed=42)
   # Set up the checkpoint to load.
   if FLAGS.checkpoint_path:
@@ -451,10 +452,10 @@ def main(_):
     checkpoint_file = FLAGS.checkpoint_path + "/model/model.ckpt-601"
     # Do not load parameters whose names contain the "label_dense".
     # These parameters are ought to be learned from scratch.
-    ws = tf.estimator.WarmStartSettings(
+    ws = tf_estimator.WarmStartSettings(
         ckpt_to_initialize_from=checkpoint_file,
         vars_to_warm_start="^((?!label_dense).)*$")
-    estimator = tf.estimator.Estimator(
+    estimator = tf_estimator.Estimator(
         models.joint_extraction_model_fn,
         os.path.join(
             FLAGS.result_path,
@@ -464,7 +465,7 @@ def main(_):
         params,
         warm_start_from=ws)
   else:
-    estimator = tf.estimator.Estimator(
+    estimator = tf_estimator.Estimator(
         models.joint_extraction_model_fn,
         os.path.join(
             FLAGS.result_path,
@@ -480,7 +481,7 @@ def main(_):
       min_steps=300,
       run_every_steps=100,
       run_every_secs=None)
-  train_spec = tf.estimator.TrainSpec(
+  train_spec = tf_estimator.TrainSpec(
       input_fn=train_input_function, hooks=[hook])
 
   if FLAGS.run == "train":
@@ -498,9 +499,9 @@ def main(_):
             goldmine=True),
         FLAGS.vertical,
         mode="all")
-    eval_spec = tf.estimator.EvalSpec(
+    eval_spec = tf_estimator.EvalSpec(
         input_fn=eval_input_function, steps=300, throttle_secs=1)
-    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+    tf_estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
   target_websites = FLAGS.target_website.split("_")
   if FLAGS.source_website not in target_websites:

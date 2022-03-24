@@ -28,6 +28,7 @@ import os
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 from schema_guided_dst import schema
@@ -643,7 +644,7 @@ def _model_fn_builder(bert_config, init_checkpoint, learning_rate,
 
   def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
     """The `model_fn` for TPUEstimator."""
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
 
     schema_guided_dst = SchemaGuidedDST(bert_config, use_one_hot_embeddings)
     outputs = schema_guided_dst.define_model(features, is_training)
@@ -668,7 +669,7 @@ def _model_fn_builder(bert_config, init_checkpoint, learning_rate,
         tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
     output_spec = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       train_op = optimization.create_optimizer(total_loss, learning_rate,
                                                num_train_steps,
                                                num_warmup_steps, use_tpu)
@@ -677,7 +678,7 @@ def _model_fn_builder(bert_config, init_checkpoint, learning_rate,
           "global_step": global_step,
           "total_loss": total_loss,
       }
-      output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
@@ -686,13 +687,13 @@ def _model_fn_builder(bert_config, init_checkpoint, learning_rate,
               tf.train.LoggingTensorHook(logged_tensors, every_n_iter=5)
           ])
 
-    elif mode == tf.estimator.ModeKeys.EVAL:
-      output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
+    elif mode == tf_estimator.ModeKeys.EVAL:
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, loss=total_loss, scaffold_fn=scaffold_fn)
 
     else:  # mode == tf.estimator.ModeKeys.PREDICT
       predictions = schema_guided_dst.define_predictions(features, outputs)
-      output_spec = tf.compat.v1.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
 
     return output_spec
@@ -715,10 +716,10 @@ def _create_schema_embeddings(bert_config, schema_embedding_file,
   """Create schema embeddings and save it into file."""
   if not tf.io.gfile.exists(FLAGS.schema_embedding_dir):
     tf.io.gfile.makedirs(FLAGS.schema_embedding_dir)
-  is_per_host = tf.compat.v1.estimator.tpu.InputPipelineConfig.PER_HOST_V2
-  schema_emb_run_config = tf.compat.v1.estimator.tpu.RunConfig(
+  is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  schema_emb_run_config = tf_estimator.tpu.RunConfig(
       master=FLAGS.master,
-      tpu_config=tf.compat.v1.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           num_shards=FLAGS.num_tpu_cores,
           per_host_input_for_training=is_per_host))
 
@@ -735,7 +736,7 @@ def _create_schema_embeddings(bert_config, schema_embedding_file,
       use_one_hot_embeddings=FLAGS.use_one_hot_embeddings)
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  schema_emb_estimator = tf.compat.v1.estimator.tpu.TPUEstimator(
+  schema_emb_estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=schema_emb_model_fn,
       config=schema_emb_run_config,
@@ -803,14 +804,14 @@ def main(_):
     tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         FLAGS.tpu_name, zone=FLAGS.tpu_zone, project=FLAGS.gcp_project)
 
-  is_per_host = tf.compat.v1.estimator.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.compat.v1.estimator.tpu.RunConfig(
+  is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  run_config = tf_estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
       keep_checkpoint_max=None,
-      tpu_config=tf.compat.v1.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           # Recommended value is number of global steps for next checkpoint.
           iterations_per_loop=FLAGS.save_checkpoints_steps,
           num_shards=FLAGS.num_tpu_cores,
@@ -836,7 +837,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.compat.v1.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,

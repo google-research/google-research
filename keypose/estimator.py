@@ -25,6 +25,7 @@ Can be instance or class specific, depending on training set.
 """
 
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 from keypose import losses as ls
 from keypose import nets
@@ -79,7 +80,7 @@ def est_model_fn(features, labels, mode, params):
   """
   print('In est_model_fn')
 
-  is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+  is_training = (mode == tf_estimator.ModeKeys.TRAIN)
 
   step = tf.compat.v1.train.get_or_create_global_step()
   print('Step is:', step)
@@ -92,9 +93,9 @@ def est_model_fn(features, labels, mode, params):
   preds = model(features, training=is_training)
   print('Symbolic predictions:\n', preds)
 
-  if mode == tf.estimator.ModeKeys.PREDICT:
+  if mode == tf_estimator.ModeKeys.PREDICT:
     print('Model_fn is returning from prediction mode')
-    return tf.estimator.EstimatorSpec(mode=mode, predictions=preds)
+    return tf_estimator.EstimatorSpec(mode=mode, predictions=preds)
 
   # Get both the unconditional losses (the None part)
   # and the input-conditional losses (the features part).
@@ -183,7 +184,7 @@ def est_model_fn(features, labels, mode, params):
     train_op = tf.group(minimize_op, *update_ops)
     tf.compat.v1.summary.scalar('Learning_rate', optimizer.lr)
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       mode=mode,
       predictions=preds,
       loss=total_loss,
