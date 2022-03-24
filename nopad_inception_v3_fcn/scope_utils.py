@@ -16,14 +16,9 @@
 """Utils for working with slim argscopes."""
 
 import tensorflow.compat.v1 as tf
-import tf_slim  # For tensorflow.contrib.layers
+import tf_slim  as slim
 
 from nopad_inception_v3_fcn import network_params
-from tensorflow.contrib import framework as contrib_framework
-from tensorflow.contrib import slim as contrib_slim
-
-
-slim = contrib_slim
 
 
 def get_conv_scope(params,
@@ -59,7 +54,7 @@ def get_conv_scope(params,
   """
   sc_gen = _get_base_scope(float(params.l2_weight_decay))
   with sc_gen:
-    sc = contrib_framework.current_arg_scope()
+    sc = slim.current_arg_scope()
   if params.batch_norm:
     batch_norm_sc_gen = _get_batch_norm_scope(
         is_training, decay=params.batch_norm_decay)
@@ -85,7 +80,7 @@ def _update_arg_scope(base_sc, override_sc_gen):
   """
   with slim.arg_scope(base_sc):
     with override_sc_gen:
-      return contrib_framework.current_arg_scope()
+      return slim.current_arg_scope()
 
 
 def _get_base_scope(weight_decay=0.00004):
@@ -149,8 +144,8 @@ def _get_dropout_scope(is_training, keep_prob=0.8):
 
 def _get_base_scope_args(weight_decay):
   """Returns arguments needed to initialize the base `arg_scope`."""
-  regularizer = tf_slim.l2_regularizer(weight_decay)
-  conv_weights_init = tf_slim.xavier_initializer_conv2d()
+  regularizer = slim.l2_regularizer(weight_decay)
+  conv_weights_init = slim.xavier_initializer_conv2d()
   base_scope_args = {
       'weights_initializer': conv_weights_init,
       'activation_fn': tf.nn.relu,

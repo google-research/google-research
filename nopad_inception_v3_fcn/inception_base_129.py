@@ -20,8 +20,7 @@ predicts a smaller patch size.
 """
 
 import tensorflow.compat.v1 as tf
-
-from tensorflow.contrib import slim
+import tf_slim as slim
 
 # The downsampling factor of the network.
 MODEL_DOWNSAMPLE_FACTOR = 2**2

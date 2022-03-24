@@ -138,6 +138,8 @@ def _get_variables_to_train():
 
 
 def main(_):
+  tf.disable_eager_execution()
+
   if not FLAGS.dataset_dir:
     raise ValueError('You must supply the dataset directory with --dataset_dir')
 
