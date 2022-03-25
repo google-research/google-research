@@ -18,39 +18,19 @@
 import datetime
 import os
 import sys
+
+from absl import logging
 import numpy as np
 
 
-RANDOM_SEED = 42
-
-RUN_ON_TEST_DATA = False  # Set this variable to True to run on sample test data
-                         # otherwise, download the metrics/weights for a desired
-                         # dataset (asoutlined in the README), and set this
-                         # variable to False.
-
-ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
-DATASET = 'cifar10'
-assert DATASET in ALLOWABLE_DATASETS
-if RUN_ON_TEST_DATA:  # The test data is a subset of the MNIST dataset.
-  assert DATASET == 'mnist'
-
-if RUN_ON_TEST_DATA:
-  DATA_DIR = 'test_data/'
-else:
-  DATA_DIR = DATASET + '/'
-
 RUNNING_INTERNALLY = False
 
+# Create folders to save results, models, and plots.
 PLOTS_SUBPATH = '_plots'
 MODELS_SUBPATH = '_models'
 
-NUM_BASE_MODELS = 30000
-NUM_SAMPLES_PER_BASE_MODEL = 8
-NUM_SAMPLES_TO_PLOT_TE_FOR = 8
-KEEP_MODELS_ABOVE_TEST_ACCURACY = 0
-USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = True
-assert NUM_SAMPLES_TO_PLOT_TE_FOR <= NUM_SAMPLES_PER_BASE_MODEL
-
+# Define constants.
+ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
 ALLOWABLE_EXPLANATION_METHODS = [
     'ig',
     'grad',
@@ -60,16 +40,6 @@ ALLOWABLE_EXPLANATION_METHODS = [
     'smooth_grad',
     'smooth_gradcam',
 ]
-EXPLANATION_TYPE = 'guided_ig'
-assert EXPLANATION_TYPE in ALLOWABLE_EXPLANATION_METHODS
-
-BASE_MODEL_BATCH_SIZE = 32
-META_MODEL_BATCH_SIZE = 32
-TRAIN_FRACTIONS = [0.01, 0.03, 0.1]
-if RUNNING_INTERNALLY:
-  META_MODEL_EPOCHS = 50
-else:
-  META_MODEL_EPOCHS = 10
 
 # Specify the column names and types to be read from metrics.csv for base models
 CAT_HPARAMS = [
@@ -112,35 +82,151 @@ ALL_METRICS = [
     'train_loss'
 ]
 
-COVARIATES_SETTINGS = [
-    # {'chkpt': 0},
-    # {'chkpt': 1},
-    # {'chkpt': 2},
-    # {'chkpt': 20},
-    # {'chkpt': 40},
-    # {'chkpt': 60},
-    {'chkpt': 86},
-]
 
-# Create timestamp'ed experiment folder and subfolders.
-SETUP_NAME = (
-    f'dataset_{DATASET}_'
-    f'num_base_model_{NUM_BASE_MODELS}_'
-    f'min_test_accuracy_{KEEP_MODELS_ABOVE_TEST_ACCURACY}_'
-    f'num_image_samples_{NUM_SAMPLES_PER_BASE_MODEL}_'
-    f'identical_samples_{USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
-)
-EXPERIMENT_DIR = (
-    f'_experiments/{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}__'
-    f'{SETUP_NAME}'
-)
+class Config(object):
+  """A class to allow for overwritable and assertable config attributes."""
 
-# Create folders to save results, models, and plots.
-if RUNNING_INTERNALLY:
-  EXP_DIR_PATH = os.path.join(CNS_PATH, EXPERIMENT_DIR)
-  DATA_DIR_PATH = READAHEAD + os.path.join(CNS_PATH, DATA_DIR)
-else:
-  EXP_DIR_PATH = os.path.join(os.path.dirname(__file__), EXPERIMENT_DIR)
-  DATA_DIR_PATH = os.path.join(os.path.dirname(__file__), DATA_DIR)
-PLOTS_DIR_PATH = os.path.join(EXP_DIR_PATH, PLOTS_SUBPATH)
-MODELS_DIR_PATH = os.path.join(EXP_DIR_PATH, MODELS_SUBPATH)
+  def __init__(self):
+
+    # Use __dict__ so as to not invoke __setattr__ below as the variable
+    # is not yet set.
+    self.__dict__['initialized'] = False
+
+    # pylint: disable=invalid-name
+
+    # Default values may be updated through absl.FLAGS.
+    self.RANDOM_SEED = 42
+    self.DATASET = 'cifar10'
+    self.EXPLANATION_TYPE = 'ig'
+    self.RUN_ON_TEST_DATA = False
+    self.NUM_BASE_MODELS = 30000
+    self.NUM_SAMPLES_PER_BASE_MODEL = 8
+    self.NUM_SAMPLES_TO_PLOT_TE_FOR = 8
+    self.KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.55
+    self.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = True
+
+    # Not currently updated through absl.FLAGS.
+    self.BASE_MODEL_BATCH_SIZE = 32
+    self.META_MODEL_BATCH_SIZE = 32
+    self.TRAIN_FRACTIONS = [0.01, 0.03, 0.1]
+    self.META_MODEL_EPOCHS = 50
+    self.COVARIATES_SETTINGS = [
+        # {'chkpt': 0},
+        # {'chkpt': 1},
+        # {'chkpt': 2},
+        # {'chkpt': 20},
+        # {'chkpt': 40},
+        # {'chkpt': 60},
+        {'chkpt': 86},
+    ]
+
+    # The attributes below will only be set after calling initialize_config().
+    self.SETUP_NAME = None
+    self.EXPERIMENT_DIR = None
+    self.DATA_DIR = None
+    self.EXP_DIR_PATH = None
+    self.DATA_DIR_PATH = None
+    self.PLOTS_DIR_PATH = None
+    self.MODELS_DIR_PATH = None
+
+    # pylint: enable=invalid-name
+
+    self.paths_set = False
+    self.initialized = True
+    logging.info('Do not forget to call set_config_paths() to set all params.')
+
+  def __setattr__(self, name, value):
+    """Central method for asserting new attribute values before updating.
+
+    Args:
+      name: name of the class attribute to be set (updated).
+      value: value of the class attribute to be set (updated).
+    """
+
+    # This function is meant only for updating attributes, but not for __init__.
+    if not self.initialized:
+      super(Config, self).__setattr__(name, value)
+      return
+
+    if name not in self.__dict__:
+      raise ValueError('Cannot set unrecognized attribute with name %s.' % name)
+
+    if name == 'DATASET' and value not in ALLOWABLE_DATASETS:
+      raise ValueError('DATASET not recognized.')
+
+    if (
+        name == 'EXPLANATION_TYPE' and
+        value not in ALLOWABLE_EXPLANATION_METHODS
+    ):
+      raise ValueError('EXPLANATION_TYPE not recognized.')
+
+    if name == 'RUN_ON_TEST_DATA' and value and self.DATASET != 'mnist':
+      raise ValueError('Invoke test data only when dataset is MNIST.')
+
+    if (
+        name == 'NUM_SAMPLES_PER_BASE_MODEL' and
+        value < self.NUM_SAMPLES_TO_PLOT_TE_FOR
+    ) or (
+        name == 'NUM_SAMPLES_TO_PLOT_TE_FOR' and
+        self.NUM_SAMPLES_PER_BASE_MODEL < value
+    ):
+      raise ValueError(
+          'Num samples to plot treatment effects for '
+          'must be less than num samples per base model.'
+      )
+
+    super(Config, self).__setattr__(name, value)
+
+  def set_config_paths(self, attr_dict):
+    """Update default config attributes with args passed in through cmd line.
+
+    Args:
+      attr_dict: a dictionary of keyword arguments for attributes to be updated.
+    """
+
+    if self.paths_set:
+      raise ValueError('Paths should only be set once per execution.')
+
+    # Confirm that we are setting already defined attributes.
+    for key, value in attr_dict.items():
+      self.__setattr__(key, value)
+
+    # Create timestamp'ed experiment folder and subfolders.
+    self.SETUP_NAME = (
+        f'dataset_{self.DATASET}_'
+        f'explainer_{self.EXPLANATION_TYPE}_'
+        f'num_base_models_{self.NUM_BASE_MODELS}_'
+        f'min_test_accuracy_{self.KEEP_MODELS_ABOVE_TEST_ACCURACY}_'
+        f'num_image_samples_{self.NUM_SAMPLES_PER_BASE_MODEL}_'
+        f'identical_samples_{self.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
+    )
+    self.EXPERIMENT_DIR = (
+        f'_experiments/{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}__'
+        f'{self.SETUP_NAME}'
+    )
+
+    # Create folders to save results, models, and plots.
+    if self.RUN_ON_TEST_DATA:
+      self.DATA_DIR = 'test_data/'
+    else:
+      self.DATA_DIR = self.DATASET + '/'
+
+    if RUNNING_INTERNALLY:
+      self.EXP_DIR_PATH = os.path.join(CNS_PATH, self.EXPERIMENT_DIR)
+      self.DATA_DIR_PATH = READAHEAD + os.path.join(CNS_PATH, self.DATA_DIR)
+    else:
+      self.EXP_DIR_PATH = os.path.join(
+          os.path.dirname(__file__),
+          self.EXPERIMENT_DIR,
+      )
+      self.DATA_DIR_PATH = os.path.join(
+          os.path.dirname(__file__),
+          self.DATA_DIR,
+      )
+    self.PLOTS_DIR_PATH = os.path.join(self.EXP_DIR_PATH, PLOTS_SUBPATH)
+    self.MODELS_DIR_PATH = os.path.join(self.EXP_DIR_PATH, MODELS_SUBPATH)
+
+    self.paths_set = True
+
+
+cfg = Config()

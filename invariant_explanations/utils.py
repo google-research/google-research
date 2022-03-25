@@ -66,12 +66,12 @@ def create_experimental_folders():
   |         `-- _models/
   |         `-- _plots/
   """
-  if not gfile.exists(config.EXP_DIR_PATH):
-    gfile.makedirs(config.EXP_DIR_PATH)
-  if not gfile.exists(config.PLOTS_DIR_PATH):
-    gfile.makedirs(config.PLOTS_DIR_PATH)
-  if not gfile.exists(config.MODELS_DIR_PATH):
-    gfile.makedirs(config.MODELS_DIR_PATH)
+  if not gfile.exists(config.cfg.EXP_DIR_PATH):
+    gfile.makedirs(config.cfg.EXP_DIR_PATH)
+  if not gfile.exists(config.cfg.PLOTS_DIR_PATH):
+    gfile.makedirs(config.cfg.PLOTS_DIR_PATH)
+  if not gfile.exists(config.cfg.MODELS_DIR_PATH):
+    gfile.makedirs(config.cfg.MODELS_DIR_PATH)
 
 
 def file_handler(dir_path, file_name, stream_flags):
@@ -100,8 +100,8 @@ def get_file_suffix(chkpt):
   """Defining a consistent file suffix for saving temporary files."""
   return (
       f'_@_epoch_{chkpt}'
-      f'_test_acc>{config.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
-      f'_identical_samples_{config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
+      f'_test_acc>{config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
+      f'_identical_samples_{config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
       '.npy'
   )
 
@@ -214,18 +214,18 @@ def process_hparams(hparams, round_num, cat_to_code):
 def plot_treatment_effect_values():
   """A method to plot individual and average treatment effects."""
 
-  if not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+  if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
     raise ValueError('Expected use of identical samples for base models.')
 
   chkpt = 86
-  file_suffix = get_file_suffix(chkpt)
-  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
+  f_suffix = get_file_suffix(chkpt)
+  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
     samples = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'y_trues{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'y_trues{f_suffix}', 'rb') as f:
     y_trues = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   # Reorder columns for easier readability when debugging.
@@ -237,8 +237,8 @@ def plot_treatment_effect_values():
       y_preds.shape[0] ==
       hparams.shape[0]
   )
-  # If NUM_BASE_MODELS < NUM_MODELS_WITH_TEST_ACC_<THRESH, the line below may
-  # be different from config.NUM_BASE_MODELS * config.NUM_SAMPLES_PER_BASE_MODEL
+  # If NUM_BASE_MODELS < NUM_MODELS_WITH_TEST_ACC_<THRESH, the line below may be
+  # diff from config.cfg.NUM_BASE_MODELS * config.cfg.NUM_SAMPLES_PER_BASE_MODEL
   num_base_models_times_samples = samples.shape[0]
 
   hparams = process_hparams(hparams, round_num=True, cat_to_code=False)
@@ -258,15 +258,15 @@ def plot_treatment_effect_values():
 
     tmp_y_trues = []  # Keep track for plotting; easier than indexing later.
     for x_offset_idx in range(min(
-        config.NUM_SAMPLES_TO_PLOT_TE_FOR,
-        config.NUM_SAMPLES_PER_BASE_MODEL,
+        config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR,
+        config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
     )):
 
       # x_* prefix is used for variables that correspond to instance x.
       x_indices = range(
           x_offset_idx,
           num_base_models_times_samples,
-          config.NUM_SAMPLES_PER_BASE_MODEL,
+          config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
       )
       x_y_preds = np.argmax(y_preds[x_indices, :], axis=1)
       x_y_trues = np.argmax(y_trues[x_indices, :], axis=1)
@@ -307,20 +307,20 @@ def plot_treatment_effect_values():
     )
     fig = catplot.fig
     fig.set_size_inches(18, 6)
-    # For every X_i (count: config.NUM_SAMPLES_TO_PLOT_TE_FOR),
+    # For every X_i (count: config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR),
     # put a star on the plot close to where the true label is.
     # Inspired by https://stackoverflow.com/a/37518947
-    for tmp_x in range(config.NUM_SAMPLES_TO_PLOT_TE_FOR):
+    for tmp_x in range(config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR):
       tmp_y = tmp_y_trues[tmp_x]
       plt.plot(tmp_x, tmp_y, color='black', marker='*', markersize=14)
     fig.suptitle(
         f'Averaged over models with '
-        f'test acc > %{100 * config.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
+        f'test acc > %{100 * config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
     )
     fig.savefig(
         gfile.GFile(
             os.path.join(
-                config.PLOTS_DIR_PATH,
+                config.cfg.PLOTS_DIR_PATH,
                 f'ite_{col}.png'
             ),
             'wb',
@@ -339,7 +339,7 @@ def plot_treatment_effect_values():
     fig.savefig(
         gfile.GFile(
             os.path.join(
-                config.PLOTS_DIR_PATH,
+                config.cfg.PLOTS_DIR_PATH,
                 f'ate_{col}.png'
             ),
             'wb',
@@ -352,11 +352,11 @@ def load_base_model_weights_and_metrics():
   """Load base weights and metrics from CNN collections."""
 
   logging.info('Loading CNN Zoo weights and metrics...')
-  with file_handler(config.DATA_DIR_PATH, 'weights.npy', 'rb') as f:
+  with file_handler(config.cfg.DATA_DIR_PATH, 'weights.npy', 'rb') as f:
     # A numpy array of weights of the trained models.
     base_model_weights = np.load(f)
 
-  with file_handler(config.DATA_DIR_PATH, 'metrics.csv', 'r') as f:
+  with file_handler(config.cfg.DATA_DIR_PATH, 'metrics.csv', 'r') as f:
     # A pandas DataFrame with metrics of the trained models.
     base_model_metrics = pd.read_csv(f, sep=',')
 
@@ -401,7 +401,7 @@ def analyze_accuracies_of_base_models():
           ignore_index=True,
       )
 
-  with file_handler(config.EXP_DIR_PATH, 'accuracy_tracker.npy', 'wb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, 'accuracy_tracker.npy', 'wb') as f:
     pickle.dump(accuracy_tracker, f, protocol=4)
 
   catplot = sns.catplot(
@@ -416,7 +416,7 @@ def analyze_accuracies_of_base_models():
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_DIR_PATH,
+              config.cfg.PLOTS_DIR_PATH,
               'base_model_accuracies.png',
           ),
           'wb',
@@ -460,14 +460,14 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   random_state = np.random.RandomState(random_seed)
 
   assert base_model_weights.shape[0] == base_model_metrics.shape[0]
-  if not config.RUN_ON_TEST_DATA:
-    if config.DATASET == 'mnist':
+  if not config.cfg.RUN_ON_TEST_DATA:
+    if config.cfg.DATASET == 'mnist':
       assert base_model_weights.shape[0] == 269973
-    elif config.DATASET == 'fashion_mnist':
+    elif config.cfg.DATASET == 'fashion_mnist':
       assert base_model_weights.shape[0] == 270000
-    elif config.DATASET == 'cifar10':
+    elif config.cfg.DATASET == 'cifar10':
       assert base_model_weights.shape[0] == 270000
-    elif config.DATASET == 'svhn_cropped':
+    elif config.cfg.DATASET == 'svhn_cropped':
       assert base_model_weights.shape[0] == 269892
 
   logging.info('\tConstructing new dataset...')
@@ -518,8 +518,8 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   # and limit selection to only NUM_BASE_MODELS models.
   filtered_indices = np.where(
       base_model_metrics['test_accuracy'] >
-      config.KEEP_MODELS_ABOVE_TEST_ACCURACY
-  )[0][:config.NUM_BASE_MODELS]
+      config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY
+  )[0][:config.cfg.NUM_BASE_MODELS]
   if not list(filtered_indices):
     raise ValueError('No base-models identifed after filtering.')
   base_model_weights_chkpt = base_model_weights_chkpt[filtered_indices]
@@ -534,7 +534,9 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   size_x = dataset_info['data_shape'][0] * dataset_info['data_shape'][1]
   size_y = dataset_info['num_classes']
 
-  num_new_samples = config.NUM_SAMPLES_PER_BASE_MODEL * local_num_base_models
+  num_new_samples = (
+      config.cfg.NUM_SAMPLES_PER_BASE_MODEL * local_num_base_models
+  )
   samples = np.zeros((num_new_samples, size_x))
   y_preds = np.zeros((num_new_samples, size_y))
   y_trues = np.zeros((num_new_samples, size_y))
@@ -543,9 +545,9 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
 
   tmp = (
       f'[INFO] For each base model, construct network, load base_model_weights,'
-      f'then get predictions for {config.NUM_SAMPLES_PER_BASE_MODEL} samples'
+      f'then get preds for {config.cfg.NUM_SAMPLES_PER_BASE_MODEL} samples.'
   )
-  if config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+  if config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
     tmp += '(on the same samples).'
   else:
     tmp += '(on different samples... to cover a wider distribution).'
@@ -556,7 +558,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   # all_img_y_trues = np.concatenate([y for x, y in data_tr], axis=0)
   all_img_samples, all_img_y_trues = tfds.as_numpy(
       tfds.load(
-          config.DATASET,
+          config.cfg.DATASET,
           split='train',
           batch_size=-1,
           as_supervised=True,
@@ -573,17 +575,16 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   min_out = -1.0
   max_out = 1.0
   all_img_samples = min_out + all_img_samples * (max_out - min_out)
-  # The CNN Zoo operated all data using a reduced mean single channel.
   all_img_samples = tf.math.reduce_mean(all_img_samples, axis=-1, keepdims=True)
   all_img_samples = all_img_samples.numpy()
 
   num_train_samples = all_img_samples.shape[0]
 
-  if config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+  if config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
     # Select identical samples in such a way that they are class-balanced.
-    num_classes = other.get_dataset_info(config.DATASET)['num_classes']
+    num_classes = other.get_dataset_info(config.cfg.DATASET)['num_classes']
     num_samples_per_class = [len(x) for x in np.array_split(
-        np.arange(config.NUM_SAMPLES_PER_BASE_MODEL),
+        np.arange(config.cfg.NUM_SAMPLES_PER_BASE_MODEL),
         num_classes,
     )]
     all_rand_indices = np.array([], dtype='int64')  # int64 b/c it stores idx
@@ -604,10 +605,10 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
 
     model = reset_model_using_weights(model, base_model_weights_final[idx, :])
 
-    if not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+    if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
       rand_indices = random_state.choice(
           num_train_samples,
-          size=config.NUM_SAMPLES_PER_BASE_MODEL,
+          size=config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
           replace=False,
       )
       batch_img_samples = all_img_samples[rand_indices, :, :, :]
@@ -626,12 +627,12 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
         model,
         batch_img_samples,
         predictions,
-        config.EXPLANATION_TYPE,
+        config.cfg.EXPLANATION_TYPE,
     )
 
     new_instances_range = range(
-        idx * config.NUM_SAMPLES_PER_BASE_MODEL,
-        (idx + 1) * config.NUM_SAMPLES_PER_BASE_MODEL
+        idx * config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
+        (idx + 1) * config.cfg.NUM_SAMPLES_PER_BASE_MODEL
     )
 
     samples[new_instances_range, :] = np.reshape(
@@ -650,19 +651,19 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   # outside of loop for efficiency.
   weights_chkpt = np.repeat(
       base_model_weights_chkpt,
-      config.NUM_SAMPLES_PER_BASE_MODEL,
+      config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
       axis=0,
   )
   weights_final = np.repeat(
       base_model_weights_final,
-      config.NUM_SAMPLES_PER_BASE_MODEL,
+      config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
       axis=0,
   )
 
   hparams = pd.DataFrame(
       np.repeat(
           base_model_metrics[config.ALL_HPARAMS].values,
-          config.NUM_SAMPLES_PER_BASE_MODEL,
+          config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
           axis=0,
       )
   )
@@ -671,7 +672,7 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   metrics = pd.DataFrame(
       np.repeat(
           base_model_metrics[config.ALL_METRICS].values,
-          config.NUM_SAMPLES_PER_BASE_MODEL,
+          config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
           axis=0,
       )
   )
@@ -726,37 +727,37 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
   for covariates_setting in covariates_settings:
 
     chkpt = int(covariates_setting['chkpt'])
-    file_suffix = get_file_suffix(chkpt)
+    f_suffix = get_file_suffix(chkpt)
     logging.info(
         'Extracting new covariates and targets for chkpt %s @ test acc > %.2f',
         covariates_setting['chkpt'],
-        config.KEEP_MODELS_ABOVE_TEST_ACCURACY,
+        config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY,
     )
 
     samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics = extract_new_covariates_and_targets(
         random_seed,
         model_wireframe,
-        other.get_dataset_info(config.DATASET),
+        other.get_dataset_info(config.cfg.DATASET),
         covariates_setting,
         base_model_weights,
         base_model_metrics,
     )
 
-    with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'wb') as f:
       pickle.dump(samples, f, protocol=4)
-    with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'wb') as f:
       pickle.dump(y_preds, f, protocol=4)
-    with file_handler(config.EXP_DIR_PATH, f'y_trues{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'y_trues{f_suffix}', 'wb') as f:
       pickle.dump(y_trues, f, protocol=4)
-    with file_handler(config.EXP_DIR_PATH, f'explans{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'explans{f_suffix}', 'wb') as f:
       pickle.dump(explans, f, protocol=4)
-    with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'wb') as f:
       pickle.dump(hparams, f, protocol=4)
-    with file_handler(config.EXP_DIR_PATH, f'w_chkpt{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'w_chkpt{f_suffix}', 'wb') as f:
       pickle.dump(w_chkpt, f, protocol=4)
-    with file_handler(config.EXP_DIR_PATH, f'w_final{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'w_final{f_suffix}', 'wb') as f:
       pickle.dump(w_final, f, protocol=4)
-    with file_handler(config.EXP_DIR_PATH, f'metrics{file_suffix}', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'metrics{f_suffix}', 'wb') as f:
       pickle.dump(metrics, f, protocol=4)
 
     del samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics
@@ -799,7 +800,7 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
 
   # Configuration options
   num_features = samples.shape[1] + auxvals.shape[1]
-  num_classes = other.get_dataset_info(config.DATASET)['num_classes']
+  num_classes = other.get_dataset_info(config.cfg.DATASET)['num_classes']
 
   # Set the input shape.
   input_shape = (num_features,)
@@ -845,8 +846,8 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
   model.fit(
       train_covariates,
       train_targets,
-      epochs=config.META_MODEL_EPOCHS,
-      batch_size=config.META_MODEL_BATCH_SIZE,
+      epochs=config.cfg.META_MODEL_EPOCHS,
+      batch_size=config.cfg.META_MODEL_BATCH_SIZE,
       verbose=0,
       validation_split=0.1)
   logging.info('Training finished.')
@@ -854,11 +855,11 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
   logging.info('Saving model.')
   model_file_name = (
       'model_weights'
-      f'_min_acc_{config.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
+      f'_min_acc_{config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
       f'_chkpt_{chkpt}'
       f'_train_fraction_{train_fraction}'
   )
-  model.save(os.path.join(config.MODELS_DIR_PATH, model_file_name))
+  model.save(os.path.join(config.cfg.MODELS_DIR_PATH, model_file_name))
   print_memory_usage()
   logging.info('Evaluating on train/test sets... ')
   print_memory_usage()
@@ -924,7 +925,7 @@ def train_meta_model_over_different_setups(random_seed):
   Args:
       random_seed: the random seed used for reproducibility of results.
   """
-  assert not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS
+  assert not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS
   all_results = pd.DataFrame({
       'chkpt': [],
       'train_fraction': [],
@@ -939,17 +940,17 @@ def train_meta_model_over_different_setups(random_seed):
   # Target:
   #   Y_@_86: targets at epoch 86.
   chkpt = 86
-  file_suffix = get_file_suffix(chkpt)
-  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
+  f_suffix = get_file_suffix(chkpt)
+  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
     samples = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   hparams = process_hparams(hparams, round_num=False, cat_to_code=True)
 
-  for train_fraction in config.TRAIN_FRACTIONS:
+  for train_fraction in config.cfg.TRAIN_FRACTIONS:
 
     chkpt = -1
     train_results, test_results = train_meta_model_and_evaluate_results(
@@ -970,7 +971,7 @@ def train_meta_model_over_different_setups(random_seed):
         },
         ignore_index=True)
 
-    with file_handler(config.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
       pickle.dump(all_results, f, protocol=4)
 
   # Save memory; if this fails, use DataGenerator; source:
@@ -984,37 +985,36 @@ def train_meta_model_over_different_setups(random_seed):
   # Target:
   #   Y_@_86: targets at epoch 86. (Remindere: we want to predict final network
   #                                 performance from intermediary weights.)
-  for covariates_setting in config.COVARIATES_SETTINGS:
+  for covariates_setting in config.cfg.COVARIATES_SETTINGS:
 
     chkpt = int(covariates_setting['chkpt'])
-    file_suffix = get_file_suffix(chkpt)
-    with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
+    f_suffix = get_file_suffix(chkpt)
+    with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
       samples = pickle.load(f)
-    with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
       y_preds = pickle.load(f)
-    with file_handler(config.EXP_DIR_PATH, f'w_chkpt{file_suffix}', 'rb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'w_chkpt{f_suffix}', 'rb') as f:
       w_chkpt = pickle.load(f)
-    with file_handler(config.EXP_DIR_PATH, f'w_final{file_suffix}', 'rb') as f:
+    with file_handler(config.cfg.EXP_DIR_PATH, f'w_final{f_suffix}', 'rb') as f:
       w_final = pickle.load(f)
 
     # Sanity check: make sure the random permutations
     # performed on the various saved files are similar.
     # Do NOT use w_chkpt below; y_pred is computed/saved using w_final.
     m = reset_model_using_weights(
-        other.get_model_wireframe(config.DATASET),
+        other.get_model_wireframe(config.cfg.DATASET),
         w_final[0],
     )
-    dataset_info = other.get_dataset_info(config.DATASET)
     s = samples[0].reshape((
         1,  # One sample.
-        dataset_info['data_shape'][0],
-        dataset_info['data_shape'][1],
+        other.get_dataset_info(config.cfg.DATASET)['data_shape'][0],
+        other.get_dataset_info(config.cfg.DATASET)['data_shape'][1],
         1,  # The CNN Zoo operated all data using a reduced mean single channel.
     ))
     y = y_preds[0]
     assert np.allclose(m.predict_on_batch(s)[0], y, rtol=1e-2)
 
-    for train_fraction in config.TRAIN_FRACTIONS:
+    for train_fraction in config.cfg.TRAIN_FRACTIONS:
 
       train_results, test_results = train_meta_model_and_evaluate_results(
           random_seed,
@@ -1033,7 +1033,7 @@ def train_meta_model_over_different_setups(random_seed):
               'test_accuracy': test_results[1],
           },
           ignore_index=True)
-      with file_handler(config.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
+      with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
         pickle.dump(all_results, f, protocol=4)
 
     # Save memory; if this fails, use DataGenerator; source:
@@ -1043,7 +1043,7 @@ def train_meta_model_over_different_setups(random_seed):
 
 def save_heat_map_of_meta_model_results():
   """Plot and save a heatmap of results of training meta-models."""
-  with file_handler(config.EXP_DIR_PATH, 'all_results.npy', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'rb') as f:
     all_results = pickle.load(f)
   train_results = all_results.pivot('train_fraction', 'chkpt', 'train_accuracy')
   test_results = all_results.pivot('train_fraction', 'chkpt', 'test_accuracy')
@@ -1061,7 +1061,7 @@ def save_heat_map_of_meta_model_results():
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_DIR_PATH,
+              config.cfg.PLOTS_DIR_PATH,
               'heatmap_results_for_meta_model.png',
           ),
           'wb',
@@ -1155,7 +1155,10 @@ def project_using_spca(samples, targets, n_components=2,
     samples_proj = (matrix_u.T).dot(samples_orig)
     samples_reco = matrix_u.dot(samples_proj)
 
-  channel_1_and_2_dim = other.get_dataset_info(config.DATASET)['data_shape'][:2]
+  channel_1_and_2_dim = (
+      other.get_dataset_info(config.cfg.DATASET)['data_shape'][0],
+      other.get_dataset_info(config.cfg.DATASET)['data_shape'][1],
+  )
   data_dim = np.prod(channel_1_and_2_dim)
   if samples_orig.shape[0] == data_dim:  # IMPORTANT: only works for samples
                                          # and explans that are (image based).
@@ -1189,7 +1192,7 @@ def project_using_spca(samples, targets, n_components=2,
     fig.savefig(
         gfile.GFile(
             os.path.join(
-                config.PLOTS_DIR_PATH,
+                config.cfg.PLOTS_DIR_PATH,
                 f'spca_orig_reco_diff_{np.random.randint(100)}.png',
             ),
             'wb',
@@ -1210,14 +1213,14 @@ def process_per_class_explanations(random_seed):
   np.random.RandomState(random_seed)
 
   chkpt = 86
-  file_suffix = get_file_suffix(chkpt)
-  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
+  f_suffix = get_file_suffix(chkpt)
+  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
     samples = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'explans{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'explans{f_suffix}', 'rb') as f:
     explans = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   assert isinstance(samples, np.ndarray)
@@ -1251,7 +1254,7 @@ def process_per_class_explanations(random_seed):
 
   # Show projections in 2D.
   fig, (ax1, ax2, ax3, ax4) = plt.subplots(1, 4, figsize=(24, 6))
-  num_classes = other.get_dataset_info(config.DATASET)['num_classes']
+  num_classes = other.get_dataset_info(config.cfg.DATASET)['num_classes']
 
   for class_idx in range(num_classes):
 
@@ -1297,7 +1300,7 @@ def process_per_class_explanations(random_seed):
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_DIR_PATH,
+              config.cfg.PLOTS_DIR_PATH,
               'spca_projections.png',
           ),
           'wb',
@@ -1333,22 +1336,22 @@ def measure_prediction_explanation_variance(random_seed):
     random_seed: the random seed used for reproducibility of results.
   """
 
-  if not config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+  if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
     raise ValueError('Expected use of identical samples for base models.')
 
   random_state = np.random.RandomState(random_seed)
 
   chkpt = 86
-  file_suffix = get_file_suffix(chkpt)
-  with file_handler(config.EXP_DIR_PATH, f'samples{file_suffix}', 'rb') as f:
+  f_suffix = get_file_suffix(chkpt)
+  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
     samples = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'y_preds{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
     y_preds = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'y_trues{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'y_trues{f_suffix}', 'rb') as f:
     y_trues = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'explans{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'explans{f_suffix}', 'rb') as f:
     explans = pickle.load(f)
-  with file_handler(config.EXP_DIR_PATH, f'hparams{file_suffix}', 'rb') as f:
+  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
     hparams = pickle.load(f)
 
   # Reorder columns for easier readability when debugging.
@@ -1364,8 +1367,8 @@ def measure_prediction_explanation_variance(random_seed):
   )
   num_base_models_times_samples = y_preds.shape[0]
   num_rows = min(
-      config.NUM_SAMPLES_TO_PLOT_TE_FOR,
-      config.NUM_SAMPLES_PER_BASE_MODEL,
+      config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR,
+      config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
   )
   num_cols = len(config.ALL_HPARAMS) + 1  # +1 to also plot the image instance.
   update_matplotlib_defaults()
@@ -1388,7 +1391,7 @@ def measure_prediction_explanation_variance(random_seed):
     x_indices = range(
         x_offset_idx,
         num_base_models_times_samples,
-        config.NUM_SAMPLES_PER_BASE_MODEL,
+        config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
     )
     # The processing below is rather expensive, and need not be done for all
     # samples in order to get a trend. Therefore, only limit samples to some
@@ -1456,9 +1459,10 @@ def measure_prediction_explanation_variance(random_seed):
     # Show the instance being processed.
     ax = axes[row_idx, 0]
     ax.imshow(
-        x_samples[0].reshape(
-            other.get_dataset_info(config.DATASET)['data_shape'][:2]
-        )
+        x_samples[0].reshape((
+            other.get_dataset_info(config.cfg.DATASET)['data_shape'][0],
+            other.get_dataset_info(config.cfg.DATASET)['data_shape'][1],
+        ))
     )  # Samples at all indices are identical; just take the first.
     ax.axis('off')
 
@@ -1582,13 +1586,13 @@ def measure_prediction_explanation_variance(random_seed):
       r'$d(e_{h_{ij}}(x), e_{h_{ik}}(x))$'
       r'$~ \forall ~ j != k \in |unique(hi)| ~ \forall ~ i \in |hparams|$'
       r'$~ s.t. ~ acc(f_{h_{ij}}), acc(f_{h_{ik}}) > $'
-      '%%%.2f' % (100 * config.KEEP_MODELS_ABOVE_TEST_ACCURACY)
+      '%%%.2f' % (100 * config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY)
   )
   plt.tight_layout()
   fig.savefig(
       gfile.GFile(
           os.path.join(
-              config.PLOTS_DIR_PATH,
+              config.cfg.PLOTS_DIR_PATH,
               'scatter_d(y)_d(e).png',
           ),
           'wb',

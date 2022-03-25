@@ -35,22 +35,24 @@ class UtilsTest(absltest.TestCase):
     super().setUpClass()
 
     # Override some configuration parameters for reproducible tests.
-    config.RANDOM_SEED = 42
-    config.DATASET = 'mnist'
-    config.DATA_DIR = 'test_data/'
-    config.EXPLANATION_TYPE = 'ig'
-    config.RUN_ON_TEST_DATA = True
-    config.NUM_BASE_MODELS = 30000
-    config.NUM_SAMPLES_PER_BASE_MODEL = 8
-    config.NUM_SAMPLES_TO_PLOT_TE_FOR = 8
-    config.KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.98
-    config.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = True
-    config.COVARIATES_SETTINGS = [{'chkpt': 86}]
+    config.cfg.set_config_paths({
+        'RANDOM_SEED': 42,
+        'DATASET': 'mnist',
+        'DATA_DIR': 'test_data/',
+        'EXPLANATION_TYPE': 'ig',
+        'RUN_ON_TEST_DATA': True,
+        'NUM_BASE_MODELS': 30000,
+        'NUM_SAMPLES_PER_BASE_MODEL': 8,
+        'NUM_SAMPLES_TO_PLOT_TE_FOR': 8,
+        'KEEP_MODELS_ABOVE_TEST_ACCURACY': 0.98,
+        'USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS': True,
+        'COVARIATES_SETTINGS': [{'chkpt': 86}],
+    })
 
     if not config.RUNNING_INTERNALLY:
-      config.DATA_DIR_PATH = os.path.join(
+      config.cfg.DATA_DIR_PATH = os.path.join(
           os.path.dirname(__file__),
-          config.DATA_DIR,
+          config.cfg.DATA_DIR,
       )
 
     utils.create_experimental_folders()
@@ -62,7 +64,7 @@ class UtilsTest(absltest.TestCase):
 
     # Load the saved results.
     with utils.file_handler(
-        config.EXP_DIR_PATH,
+        config.cfg.EXP_DIR_PATH,
         'accuracy_tracker.npy',
         'rb',
     ) as f:
