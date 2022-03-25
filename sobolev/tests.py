@@ -20,7 +20,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util as jtu
+import numpy as np
 from scipy import integrate
 from scipy import special
 
@@ -28,7 +28,7 @@ from sobolev import chebyshev
 from sobolev import sobolev
 
 
-class TestChebyshev(jtu.JaxTestCase):
+class TestChebyshev(parameterized.TestCase):
   """Check the implementation of Chebyshev polynomials."""
 
   def test_chebyshev(self):
@@ -36,7 +36,7 @@ class TestChebyshev(jtu.JaxTestCase):
     for i in range(10):
       poly0 = chebyshev.eval_chebyt(i, xx)
       poly1 = special.eval_chebyt(i, xx)
-      self.assertAllClose(poly0, poly1, check_dtypes=True)
+      np.testing.assert_allclose(poly0, poly1, rtol=1E-5)
 
   def test_chebyshev_matrices(self):
     # test that it works on matrices too
@@ -45,7 +45,7 @@ class TestChebyshev(jtu.JaxTestCase):
     for i in range(10):
       poly0 = chebyshev.eval_chebyt(i, xx)
       poly1 = special.eval_chebyt(i, xx)
-      self.assertAllClose(poly0, poly1, check_dtypes=True)
+      np.testing.assert_allclose(poly0, poly1, rtol=1E-4)
 
   @parameterized.named_parameters(
       ('0_1', 0, 1),
@@ -99,7 +99,7 @@ class TestChebyshev(jtu.JaxTestCase):
     self.assertAlmostEqual(chebyshev_product(Si, Sj), 0., places=3)
 
 
-class TestSobolevChebyshev(jtu.JaxTestCase):
+class TestSobolevChebyshev(parameterized.TestCase):
   """Tests for Sobolev-Chebyshev polynomials."""
 
   def test_sobolev_residual(self):
