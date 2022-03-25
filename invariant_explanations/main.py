@@ -20,9 +20,10 @@ import warnings
 
 from absl import app
 
-import config
-import other
-import utils
+from invariant_explanations import config
+from invariant_explanations import other
+from invariant_explanations import utils
+
 
 warnings.simplefilter('ignore')
 
@@ -49,7 +50,7 @@ def main(argv):
 
   # utils.process_per_class_explanations(config.RANDOM_SEED)
 
-  utils.measure_prediction_explanation_variance(config.RANDOM_SEED)
+  # utils.measure_prediction_explanation_variance(config.RANDOM_SEED)
 
 
 if __name__ == '__main__':
