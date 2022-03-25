@@ -19,9 +19,10 @@ Model pruning hooks are used in estimators (instances of tf.estimator.Estimator)
 to explicitly update the graph.
 """
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
-class ModelPruningListener(tf.estimator.CheckpointSaverListener):
+class ModelPruningListener(tf_estimator.CheckpointSaverListener):
   """Listener class for ModelPruningHook.
 
   Used for pruning python update functions that are run periodically.
@@ -44,7 +45,7 @@ class ModelPruningListener(tf.estimator.CheckpointSaverListener):
     self.pruning_obj.run_update_step(session, global_step_value)
 
 
-class ModelPruningHook(tf.estimator.SessionRunHook):
+class ModelPruningHook(tf_estimator.SessionRunHook):
   """Prune the model every N steps."""
 
   _STEPS_PER_RUN = 1
@@ -59,7 +60,7 @@ class ModelPruningHook(tf.estimator.SessionRunHook):
     tf.logging.info("Creating ModelPruningHook.")
     self._every_steps = every_steps
     self._listeners = listeners
-    self._timer = tf.estimator.SecondOrStepTimer(every_steps=every_steps)
+    self._timer = tf_estimator.SecondOrStepTimer(every_steps=every_steps)
 
   def _call_prune_listener(self, session, step):
     """Calls model pruning listeners, return should_step_training."""
@@ -91,7 +92,7 @@ class ModelPruningHook(tf.estimator.SessionRunHook):
     self._timer.update_last_triggered_step(global_step)
 
   def before_run(self, run_context):  # pylint: disable=unused-argument
-    return tf.estimator.SessionRunArgs(self._global_step_tensor)
+    return tf_estimator.SessionRunArgs(self._global_step_tensor)
 
   def after_run(self, run_context, run_values):
     stale_global_step = run_values.results
