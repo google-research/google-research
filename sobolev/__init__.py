@@ -13,23 +13,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# coding=utf-8
-"""Install sobolev package."""
-import os
-import setuptools
-
-
-# Read in requirements
-with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as f:
-  requirements = [r.strip() for r in f]
-
-setuptools.setup(
-    name='sobolev',
-    version='0.0.1',
-    license='Apache 2.0',
-    install_requires=requirements,
-    url='https://github.com/google-research/google-research/'
-    'tree/master/sobolev',
-    packages=['sobolev'],
-    package_dir={'sobolev': ''},
-    python_requires='>=3.5')
