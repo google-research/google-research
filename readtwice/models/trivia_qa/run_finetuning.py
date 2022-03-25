@@ -343,7 +343,7 @@ def model_fn_builder(model_config,
 
     main_output = model(
         token_ids=token_ids,
-        training=(mode == tf.estimator.ModeKeys.TRAIN),
+        training=(mode == tf_estimator.ModeKeys.TRAIN),
         block_ids=block_ids,
         block_pos=block_pos,
         att_mask=att_mask,
@@ -360,7 +360,7 @@ def model_fn_builder(model_config,
         token_ids=token_ids,
         padding_token_id=padding_token_id,
         ignore_prefix_length=features["prefix_length"],
-        training=(mode == tf.estimator.ModeKeys.TRAIN))
+        training=(mode == tf_estimator.ModeKeys.TRAIN))
 
     tvars = tf.trainable_variables()
 
@@ -389,7 +389,7 @@ def model_fn_builder(model_config,
                    init_string)
 
     output_spec = None
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       span_prediction_loss = losses.BatchSpanCrossEntropyLoss()
 
       total_loss = span_prediction_loss(
@@ -428,13 +428,13 @@ def model_fn_builder(model_config,
           metrics_dir=os.path.join(FLAGS.output_dir,
                                    "train_metrics")), host_inputs)
 
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=total_loss,
           train_op=train_op,
           scaffold_fn=scaffold_fn,
           host_call=host_call)
-    elif mode == tf.estimator.ModeKeys.PREDICT:
+    elif mode == tf_estimator.ModeKeys.PREDICT:
       begin_logits_values, begin_logits_indices = tf.math.top_k(
           span_logits[:, :, 0],
           k=nbest_logits_for_eval,
@@ -452,7 +452,7 @@ def model_fn_builder(model_config,
           "end_logits_indices": end_logits_indices,
           "token_ids": tf.identity(token_ids),
       }
-      output_spec = tf.estimator.tpu.TPUEstimatorSpec(
+      output_spec = tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
     else:
       raise ValueError("Only TRAIN and PREDICT modes is supported: %s" % (mode))
@@ -561,13 +561,13 @@ def main(_):
 
   # PER_HOST_V1: iterator.get_next() is called 1 time with per_worker_batch_size
   # PER_HOST_V2: iterator.get_next() is called 8 times with per_core_batch_size
-  is_per_host = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V1
-  run_config = tf.estimator.tpu.RunConfig(
+  is_per_host = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V1
+  run_config = tf_estimator.tpu.RunConfig(
       cluster=tpu_cluster_resolver,
       master=FLAGS.master,
       model_dir=FLAGS.output_dir,
       save_checkpoints_steps=FLAGS.save_checkpoints_steps,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=FLAGS.iterations_per_loop,
           tpu_job_name=FLAGS.tpu_job_name,
           per_host_input_for_training=is_per_host,
@@ -612,7 +612,7 @@ def main(_):
 
   # If TPU is not available, this will fall back to normal Estimator on CPU
   # or GPU.
-  estimator = tf.estimator.tpu.TPUEstimator(
+  estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       config=run_config,

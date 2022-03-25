@@ -21,6 +21,7 @@ from __future__ import print_function
 from enum import Enum
 from tensor2tensor.layers import common_layers
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from seq2act.layers import area_utils
 
 
@@ -225,7 +226,7 @@ def decode_one_step(step, live_beams, eos_positions,
                     beam_log_probs, batch_size, beam_size,
                     features, areas, hparams,
                     use_cache, cache,
-                    mode=tf.estimator.ModeKeys.EVAL,
+                    mode=tf_estimator.ModeKeys.EVAL,
                     always_consumed=True):
   """decode one step."""
   # features: [batch_size * beam_size, step + 1, ...]

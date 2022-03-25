@@ -21,6 +21,7 @@ from __future__ import print_function
 import math
 import protein_dataset
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib.layers.python.layers import optimizers as optimizers_lib
 
@@ -135,7 +136,7 @@ def _make_representation(features, hparams, mode):
   sequence_features = features[protein_dataset.SEQUENCE_KEY]
   sequence_lengths = features[protein_dataset.SEQUENCE_LENGTH_KEY]
 
-  is_training = mode == tf.estimator.ModeKeys.TRAIN
+  is_training = mode == tf_estimator.ModeKeys.TRAIN
 
   sequence_features = _conv_layer(
       sequence_features=sequence_features,
@@ -297,14 +298,14 @@ def make_model_fn(label_vocab, hparams):
         num_output_classes=num_output_classes)
 
     evaluation_hooks = []
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       loss = _make_loss(
           predictions_for_loss=predictions_for_loss,
           labels=labels,
           num_output_classes=num_output_classes)
       train_op = _make_train_op(loss=loss, hparams=params)
       eval_ops = None
-    elif mode == tf.estimator.ModeKeys.PREDICT:
+    elif mode == tf_estimator.ModeKeys.PREDICT:
       loss = None
       train_op = None
       eval_ops = None
@@ -317,7 +318,7 @@ def make_model_fn(label_vocab, hparams):
       train_op = None
       eval_ops = None
 
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode,
         predictions=predictions,
         loss=loss,

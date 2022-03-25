@@ -25,6 +25,7 @@ from tensor2tensor.layers import common_layers
 from tensor2tensor.utils import hparams_lib
 from tensor2tensor.utils import registry
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from sgk import driver
 from sgk.transformer import transformer  # pylint: disable=unused-import
@@ -74,7 +75,7 @@ class InferenceDriver(driver.Driver):
     hparams = registry.hparams(self.hparams_set)
     hparams_lib.add_problem_hparams(hparams, self.problem_name)
     model_cls = registry.model(self.model_name)
-    model = model_cls(hparams, tf.estimator.ModeKeys.EVAL)
+    model = model_cls(hparams, tf_estimator.ModeKeys.EVAL)
 
     # Run only the model body (no data pipeline) on device.
     feature_shape = [hparams.batch_size, 3 * self.image_size * self.image_size]

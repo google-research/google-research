@@ -19,6 +19,7 @@ import collections
 import re
 from six.moves import zip
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2
 
 from tensorflow.contrib.layers.python.layers import initializers
@@ -45,13 +46,13 @@ def configure_tpu(flags):
     tf.logging.info("Use MirroredStrategy with %d devices.",
                     strategy.num_replicas_in_sync)
 
-  per_host_input = tf.estimator.tpu.InputPipelineConfig.PER_HOST_V2
-  run_config = tf.estimator.tpu.RunConfig(
+  per_host_input = tf_estimator.tpu.InputPipelineConfig.PER_HOST_V2
+  run_config = tf_estimator.tpu.RunConfig(
       master=flags.master,
       model_dir=flags.output_dir,
       save_checkpoints_steps=flags.save_checkpoints_steps,
       session_config=session_config,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=flags.iterations_per_loop,
           num_shards=flags.num_hosts * flags.num_core_per_host,
           per_host_input_for_training=per_host_input),

@@ -31,6 +31,7 @@ from absl import logging
 import gin
 import gin.tf.external_configurables
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 # We need to import them so that gin can discover them.
 from yoto import architectures  # pylint: disable=unused-import
@@ -212,7 +213,7 @@ def construct_model_fn(problem, optimizer_class, base_optimizer_class,
       learning_rate_conditioning = get_learning_rate(
           training_params_conditioning)
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
 
       base_optimizer = get_optimizer(base_optimizer_class, learning_rate_normal,
                                      params["use_tpu"])
@@ -246,9 +247,9 @@ def construct_model_fn(problem, optimizer_class, base_optimizer_class,
       # batch norm update ops
       update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
       train_op = tf.group([opt_step, decay_op] + update_ops)
-      return tf.estimator.tpu.TPUEstimatorSpec(
+      return tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode, loss=loss, train_op=train_op)
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
       def unstack_metrics(**metrics):
         """Unstack separate metrics from one big aggregate tensor.
 
@@ -314,7 +315,7 @@ def construct_model_fn(problem, optimizer_class, base_optimizer_class,
       sorted_keys = sorted(all_metrics.keys())
       sorted_values = [all_metrics[key] for key in sorted_keys]
       metrics_stacked = {"!".join(sorted_keys): tf.stack(sorted_values, axis=1)}
-      return tf.estimator.tpu.TPUEstimatorSpec(
+      return tf_estimator.tpu.TPUEstimatorSpec(
           mode=mode,
           loss=loss,
           eval_metrics=(unstack_metrics, metrics_stacked))
@@ -353,11 +354,11 @@ def run(model_dir,
   else:
     kwargs = {"save_checkpoints_secs": 60*10}  # Every 10 minutes.
 
-  run_config = tf.estimator.tpu.RunConfig(
+  run_config = tf_estimator.tpu.RunConfig(
       keep_checkpoint_max=keep_checkpoint_max,
       master=FLAGS.master,
       evaluation_master=FLAGS.master,
-      tpu_config=tf.estimator.tpu.TPUConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=iterations_per_loop),
       **kwargs)
   # We use one estimator (potentially on TPU) for training and evaluation.
@@ -368,7 +369,7 @@ def run(model_dir,
       base_optimizer_conditioning_class=base_optimizer_conditioning_class,
       training_params_class=training_params_class,
       training_params_conditioning_class=training_params_conditioning_class)
-  tpu_estimator = tf.estimator.tpu.TPUEstimator(
+  tpu_estimator = tf_estimator.tpu.TPUEstimator(
       use_tpu=FLAGS.use_tpu,
       model_fn=model_fn,
       model_dir=model_dir,

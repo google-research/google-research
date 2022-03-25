@@ -27,6 +27,7 @@ import pandas as pd
 import protein_dataset
 import protein_model
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import utils
 
 flags.DEFINE_string(
@@ -71,9 +72,9 @@ def _make_estimator(hparams, label_vocab, output_dir):
   """
   model_fn = protein_model.make_model_fn(
       label_vocab=label_vocab, hparams=hparams)
-  run_config = tf.estimator.RunConfig(model_dir=output_dir)
+  run_config = tf_estimator.RunConfig(model_dir=output_dir)
 
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=model_fn,
       params=hparams,
       config=run_config,
@@ -107,7 +108,7 @@ def get_serving_input_fn():
         protein_dataset.SEQUENCE_LENGTH_KEY: sequence_lengths
     }
 
-    input_receiver = tf.estimator.export.ServingInputReceiver(
+    input_receiver = tf_estimator.export.ServingInputReceiver(
         features=features, receiver_tensors=receivers)
     return input_receiver
 
@@ -143,7 +144,7 @@ def _make_estimator_and_inputs(hparams, label_vocab, data_base_path, output_dir,
       label_vocab=label_vocab,
       train_dev_or_test=train_fold)
 
-  train_spec = tf.estimator.TrainSpec(
+  train_spec = tf_estimator.TrainSpec(
       train_input_fn, max_steps=hparams.train_steps)
 
   eval_input_fn = protein_dataset.make_input_fn(
@@ -152,12 +153,12 @@ def _make_estimator_and_inputs(hparams, label_vocab, data_base_path, output_dir,
       label_vocab=label_vocab,
       train_dev_or_test=eval_fold)
   savedmodel_exporters = [
-      tf.estimator.LatestExporter(
+      tf_estimator.LatestExporter(
           name='saved_model',
           serving_input_receiver_fn=get_serving_input_fn(),
           exports_to_keep=1)
   ]
-  eval_spec = tf.estimator.EvalSpec(
+  eval_spec = tf_estimator.EvalSpec(
       input_fn=eval_input_fn,
       throttle_secs=1,
       exporters=savedmodel_exporters,
@@ -234,7 +235,7 @@ def train(data_base_path, output_dir, label_vocab_path, hparams_set_name,
       output_dir=output_dir,
       train_fold=train_fold,
       eval_fold=eval_fold)
-  return tf.estimator.train_and_evaluate(
+  return tf_estimator.train_and_evaluate(
       estimator=estimator, train_spec=train_spec, eval_spec=eval_spec)
 
 

@@ -25,6 +25,7 @@ from typing import Callable, Dict, Optional, Text, Tuple
 from bert import modeling
 from bert import optimization
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 from tensorflow import contrib
 
@@ -196,7 +197,7 @@ def model_fn_builder(
     else:
       is_real_example = tf.ones(tf.shape(input_ids)[0], dtype=tf.float32)
 
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
 
     (total_loss, per_example_loss, _, probabilities) = (
         create_original_varmisuse_model(
@@ -235,7 +236,7 @@ def model_fn_builder(
       tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape,
                       init_string)
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
 
       train_op = optimization.create_optimizer(
           total_loss, learning_rate, num_train_steps, num_warmup_steps, use_tpu)
@@ -247,7 +248,7 @@ def model_fn_builder(
           scaffold_fn=scaffold_fn)
       return output_spec
 
-    elif mode == tf.estimator.ModeKeys.EVAL:
+    elif mode == tf_estimator.ModeKeys.EVAL:
 
       def metric_fn(
           per_example_loss,
