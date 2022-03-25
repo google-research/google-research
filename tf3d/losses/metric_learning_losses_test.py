@@ -19,12 +19,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from absl.testing import parameterized
 import tensorflow as tf
+
 from tf3d import standard_fields
 from tf3d.losses import metric_learning_losses
 
 
-class LossesTest(tf.test.TestCase):
+class LossesTest(tf.test.TestCase, parameterized.TestCase):
 
   def _get_embeddings(self):
     embeddings1 = tf.constant([[[1.0, 0.0, 0.0],
@@ -48,7 +50,10 @@ class LossesTest(tf.test.TestCase):
     instance_ids = tf.constant([[0, 0, 1, 1, 2, 2]])
     return embeddings1, embeddings2, embeddings3, instance_ids
 
-  def test_npair_loss_func_dotproduct(self):
+  @parameterized.named_parameters(
+      ('non_across_batch', False),
+      ('across_batch', True))
+  def test_npair_loss_func_dotproduct(self, across_batch):
     embeddings1, embeddings2, embeddings3, instance_ids = self._get_embeddings()
     loss1 = metric_learning_losses.npair_loss_func(
         embeddings=embeddings1,
@@ -57,7 +62,8 @@ class LossesTest(tf.test.TestCase):
         valid_mask=None,
         max_instance_id=5,
         similarity_strategy='dotproduct',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     loss2 = metric_learning_losses.npair_loss_func(
         embeddings=embeddings2,
         instance_ids=instance_ids,
@@ -65,7 +71,8 @@ class LossesTest(tf.test.TestCase):
         valid_mask=None,
         max_instance_id=5,
         similarity_strategy='dotproduct',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     loss3 = metric_learning_losses.npair_loss_func(
         embeddings=embeddings3,
         instance_ids=instance_ids,
@@ -73,11 +80,15 @@ class LossesTest(tf.test.TestCase):
         valid_mask=None,
         max_instance_id=5,
         similarity_strategy='dotproduct',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     self.assertLessEqual(loss1.numpy(), loss2.numpy())
     self.assertLessEqual(loss1.numpy(), loss3.numpy())
 
-  def test_npair_loss_distance(self):
+  @parameterized.named_parameters(
+      ('non_across_batch', False),
+      ('across_batch', True))
+  def test_npair_loss_distance(self, across_batch):
     embeddings1, embeddings2, embeddings3, instance_ids = self._get_embeddings()
     loss1 = metric_learning_losses.npair_loss_func(
         embeddings=embeddings1,
@@ -86,7 +97,8 @@ class LossesTest(tf.test.TestCase):
         valid_mask=None,
         max_instance_id=5,
         similarity_strategy='distance',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     loss2 = metric_learning_losses.npair_loss_func(
         embeddings=embeddings2,
         instance_ids=instance_ids,
@@ -94,7 +106,8 @@ class LossesTest(tf.test.TestCase):
         valid_mask=None,
         max_instance_id=5,
         similarity_strategy='distance',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     loss3 = metric_learning_losses.npair_loss_func(
         embeddings=embeddings3,
         instance_ids=instance_ids,
@@ -102,11 +115,15 @@ class LossesTest(tf.test.TestCase):
         valid_mask=None,
         max_instance_id=5,
         similarity_strategy='distance',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     self.assertLessEqual(loss1.numpy(), loss2.numpy())
     self.assertLessEqual(loss1.numpy(), loss3.numpy())
 
-  def test_npair_loss(self):
+  @parameterized.named_parameters(
+      ('non_across_batch', False),
+      ('across_batch', True))
+  def test_npair_loss(self, across_batch):
     embeddings1, embeddings2, embeddings3, instance_ids = self._get_embeddings()
     inputs = {
         standard_fields.InputDataFields.object_instance_id_voxels:
@@ -132,21 +149,24 @@ class LossesTest(tf.test.TestCase):
         num_samples=40,
         max_instance_id=5,
         similarity_strategy='distance',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     loss2 = metric_learning_losses.npair_loss(
         inputs=inputs,
         outputs=outputs2,
         num_samples=40,
         max_instance_id=5,
         similarity_strategy='distance',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     loss3 = metric_learning_losses.npair_loss(
         inputs=inputs,
         outputs=outputs3,
         num_samples=40,
         max_instance_id=5,
         similarity_strategy='distance',
-        loss_strategy='softmax')
+        loss_strategy='softmax',
+        across_batch=across_batch)
     self.assertLessEqual(loss1.numpy(), loss2.numpy())
     self.assertLessEqual(loss1.numpy(), loss3.numpy())
 

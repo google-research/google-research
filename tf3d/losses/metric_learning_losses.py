@@ -29,7 +29,8 @@ def npair_loss_func(embeddings,
                     valid_mask=None,
                     max_instance_id=None,
                     similarity_strategy='dotproduct',
-                    loss_strategy='softmax'):
+                    loss_strategy='softmax',
+                    across_batch=False):
   """N-pair metric learning loss for learning feature embeddings.
 
   Args:
@@ -45,15 +46,31 @@ def npair_loss_func(embeddings,
                          embedding vectors. Possible values are 'dotproduct' and
                          'distance'.
     loss_strategy: Defines the type of loss including 'softmax' or 'sigmoid'.
+    across_batch: Whether calculate the loss across the whole batch.
 
   Returns:
     A tf.float32 scalar loss tensor.
   """
-  batch_size = embeddings.get_shape().as_list()[0]
+  batch_size, _, embedding_dim = embeddings.get_shape().as_list()
   if batch_size is None:
     raise ValueError('Unknown batch size at graph construction time.')
   if max_instance_id is None:
     max_instance_id = tf.reduce_max(instance_ids)
+  if across_batch:
+    max_instance_batches = tf.reduce_max(instance_ids, axis=1)
+    instance_id_list = []
+    addition = 0
+    for i in range(batch_size):
+      if i != 0:
+        addition += max_instance_batches[i-1] + 1
+      instance_id_list.append(instance_ids[i, :] + addition)
+    instance_ids = tf.expand_dims(tf.concat(instance_id_list, axis=0), axis=0)
+    if valid_mask is not None:
+      valid_mask = tf.reshape(valid_mask, [1, -1])
+    embeddings = tf.reshape(embeddings, [1, -1, embedding_dim])
+    max_instance_id = tf.reduce_sum(max_instance_batches) + batch_size
+    batch_size = 1
+
   sampled_embeddings, sampled_instance_ids, _ = sampling_utils.balanced_sample(
       features=embeddings,
       instance_ids=instance_ids,
@@ -94,7 +111,8 @@ def npair_loss(inputs,
                max_instance_id=None,
                similarity_strategy='distance',
                loss_strategy='softmax',
-               is_intermediate=False):
+               is_intermediate=False,
+               across_batch=False):
   """N-pair metric learning loss for learning feature embeddings.
 
   Args:
@@ -114,6 +132,7 @@ def npair_loss(inputs,
     loss_strategy: Defines the type of loss including 'softmax' or 'sigmoid'.
     is_intermediate: True if applied to intermediate predictions;
       otherwise, False.
+    across_batch: Whether calculate the loss across the whole batch.
 
   Returns:
     A tf.float32 scalar loss tensor.
@@ -148,7 +167,8 @@ def npair_loss(inputs,
       valid_mask=valid_mask,
       max_instance_id=max_instance_id,
       similarity_strategy=similarity_strategy,
-      loss_strategy=loss_strategy)
+      loss_strategy=loss_strategy,
+      across_batch=across_batch)
 
 
 @gin.configurable(
