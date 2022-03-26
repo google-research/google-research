@@ -140,7 +140,7 @@ report = report_utils.create_end_of_training_report_oss(
             num_train_steps=200000,
             experiment_name='test_experiment',
             user_name='lisa',
-            launch_time='20210216T071237'.
+            launch_time='20210216T071237',
             tensorboard_id='<tensorboard_dev_url>'
          )
 ```
