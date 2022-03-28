@@ -18,7 +18,7 @@
 import tensorflow.compat.v1 as tf
 import tf_slim  as slim
 
-from nopad_inception_v3_fcn import network_params
+import network_params
 
 
 def get_conv_scope(params,

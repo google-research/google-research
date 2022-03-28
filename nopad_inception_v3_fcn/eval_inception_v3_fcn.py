@@ -38,10 +38,10 @@ import math
 import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
-from nopad_inception_v3_fcn import inception_v3_fcn
-from nopad_inception_v3_fcn import network_params
-from tensorflow_models.slim.datasets import dataset_factory
-from tensorflow_models.slim.preprocessing import preprocessing_factory
+import inception_v3_fcn
+import network_params
+from datasets import dataset_factory
+from preprocessing import preprocessing_factory
 
 
 tf.app.flags.DEFINE_integer(

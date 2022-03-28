@@ -24,11 +24,11 @@ The network can be initialized for two different receptive fields: 911 and 129.
 import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
-from nopad_inception_v3_fcn import inception_base_129
-from nopad_inception_v3_fcn import inception_base_911
-from nopad_inception_v3_fcn import network
-from nopad_inception_v3_fcn import network_params
-from nopad_inception_v3_fcn import scope_utils
+import inception_base_129
+import inception_base_911
+import network
+import network_params
+import scope_utils
 
 
 def get_inception_base_and_downsample_factor(receptive_field_size):
