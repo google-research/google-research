@@ -15,8 +15,7 @@
 #ifndef INTENT_RECOGNITION_ANNOTATED_RECORDING_COLLECTION_UTILS_H_
 #define INTENT_RECOGNITION_ANNOTATED_RECORDING_COLLECTION_UTILS_H_
 
-#include <utility>
-#include <vector>
+#include <string>
 
 #include "google/protobuf/duration.pb.h"
 #include "mediapipe/framework/calculator.pb.h"

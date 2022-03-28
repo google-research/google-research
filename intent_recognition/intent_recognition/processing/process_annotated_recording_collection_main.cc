@@ -14,24 +14,17 @@
 
 // Process AnnotatedRecordingCollections.
 
-#include <fcntl.h>
-
-#include <fstream>
 #include <string>
 #include <vector>
 
 #include "glog/logging.h"
 #include "google/protobuf/text_format.h"
-#include "mediapipe/calculators/core/packet_resampler_calculator.pb.h"
 #include "mediapipe/framework/calculator.pb.h"
 #include "mediapipe/framework/calculator_framework.h"
-#include "mediapipe/framework/packet.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/match.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "intent_recognition/annotated_recording_collection.pb.h"
 #include "intent_recognition/annotated_recording_collection_sensor_options.pb.h"
@@ -39,9 +32,12 @@
 #include "intent_recognition/processing/class_mappings_side_packet_calculator.pb.h"
 #include "intent_recognition/processing/filter_annotated_recording_collection_calculator.pb.h"
 #include "intent_recognition/processing/merge_sensor_data_into_annotated_recording_collection_calculator.pb.h"
+#include "intent_recognition/processing/processing_options.pb.h"
 #include "intent_recognition/processing/window_calculator.pb.h"
 #include "riegeli/bytes/fd_reader.h"
 #include "riegeli/bytes/fd_writer.h"
+#include "riegeli/bytes/reader.h"
+#include "riegeli/messages/message_parse.h"
 #include "riegeli/records/record_reader.h"
 #include "riegeli/records/record_writer.h"
 
@@ -95,29 +91,21 @@ absl::Status ProcessAnnotatedRecordingCollection(
     absl::string_view input_record_filename,
     absl::string_view output_record_filename,
     const ProcessingOptions& processing_options) {
-  int input_fd = open(input_record_filename.data(), O_RDONLY);
-  if (input_fd < 0) {
-    return absl::InternalError(
-        absl::StrCat("Failed to open input file: ", strerror(errno)));
-  }
+  riegeli::RecordReader input_reader(
+      riegeli::FdReader(input_record_filename.data()));
+  if (!input_reader.ok()) return input_reader.status();
 
-  int output_fd = open(output_record_filename.data(), O_RDWR | O_CREAT, 666);
-  if (output_fd < 0) {
-    return absl::InternalError(
-        absl::StrCat("Failed to open output file: ", strerror(errno)));
-  }
+  riegeli::RecordWriter output_writer(
+      riegeli::FdWriter(output_record_filename.data()));
+  if (!output_writer.ok()) return output_writer.status();
 
-  riegeli::RecordReader input_reader((riegeli::FdReader(input_fd)));
-  riegeli::RecordWriter output_writer((riegeli::FdWriter(output_fd)));
-
-  std::ifstream input_stream(processing_options.processing_graph_file());
-  if (!input_stream.is_open()) {
-    return absl::NotFoundError(absl::StrCat(
-        "Could not find file ", processing_options.processing_graph_file()));
+  std::string proto_string;
+  if (absl::Status status = riegeli::ReadAll(
+          riegeli::FdReader(processing_options.processing_graph_file()),
+          proto_string);
+      !status.ok()) {
+    return status;
   }
-  std::string proto_string =
-      std::string((std::istreambuf_iterator<char>(input_stream)),
-                  (std::istreambuf_iterator<char>()));
 
   // Create the graph config based on the processing options.
   mediapipe::CalculatorGraphConfig graph_config =
@@ -142,11 +130,8 @@ absl::Status ProcessAnnotatedRecordingCollection(
   LOG(INFO) << "Num of records read: " << num_records;
   LOG(INFO) << "Num of records written: " << num_records_written;
 
-  input_reader.Close();
   if (!output_writer.Close()) return output_writer.status();
-
-  close(input_fd);
-  close(output_fd);
+  if (!input_reader.Close()) return input_reader.status();
 
   return absl::OkStatus();
 }
@@ -158,17 +143,15 @@ int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 
   // Get the processing options.
-  std::ifstream input_stream(absl::GetFlag(FLAGS_processing_options_filename));
-  if (!input_stream.is_open()) {
-    LOG(ERROR) << "Could not find file: "
-               << absl::GetFlag(FLAGS_processing_options_filename);
+  riegeli::FdReader input_file(
+      absl::GetFlag(FLAGS_processing_options_filename));
+  if (!input_file.ok()) {
+    LOG(ERROR) << "Failed to read input file: " << input_file.status();
     return 1;
   }
-  std::string proto_string =
-      std::string((std::istreambuf_iterator<char>(input_stream)),
-                  (std::istreambuf_iterator<char>()));
+  riegeli::ReaderInputStream input_stream(&input_file);
   ambient_sensing::ProcessingOptions processing_options;
-  if (!google::protobuf::TextFormat::ParseFromString(proto_string, &processing_options)) {
+  if (!google::protobuf::TextFormat::Parse(&input_stream, &processing_options)) {
     LOG(ERROR) << "Failed to parse processing options textproto from string";
     return 1;
   }

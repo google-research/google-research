@@ -16,13 +16,9 @@
 // Information about the dataset can be found at
 // https://archive.ics.uci.edu/ml/datasets/Dataset+for+ADL+Recognition+with+Wrist-worn+Accelerometer
 
-#include <fcntl.h>
 #include <stdint.h>
-#include <string.h>
 
-#include <cerrno>
 #include <filesystem>
-#include <fstream>
 #include <string>
 #include <vector>
 
@@ -30,9 +26,13 @@
 #include "google/protobuf/duration.pb.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/status/status.h"
 #include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 #include "intent_recognition/annotated_recording_collection.pb.h"
+#include "riegeli/bytes/fd_reader.h"
 #include "riegeli/bytes/fd_writer.h"
+#include "riegeli/lines/line_reading.h"
 #include "riegeli/records/record_writer.h"
 
 ABSL_FLAG(std::string, adl_dataset_dir_path, "",
@@ -55,13 +55,12 @@ double DecodeAccel(double raw_accel) {
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 
-  int output_fd = open(absl::GetFlag(FLAGS_record_output_filename).c_str(),
-                       O_RDWR | O_CREAT, 0666);
-  if (output_fd < 0) {
-    LOG(ERROR) << "Failed to open output file: " << strerror(errno);
+  riegeli::RecordWriter writer(
+      riegeli::FdWriter(absl::GetFlag(FLAGS_record_output_filename)));
+  if (!writer.ok()) {
+    LOG(ERROR) << "Failed to open output file: " << writer.status();
     return 1;
   }
-  riegeli::RecordWriter writer((riegeli::FdWriter(output_fd)));
 
   // Session ID will start at 0 and increment for each entry.
   int session_id = 0;
@@ -96,10 +95,10 @@ int main(int argc, char* argv[]) {
     ++session_id;
 
     // Add accelorometer reading found in the file
-    std::ifstream input_stream(path.path().generic_string());
-    std::string line;
+    riegeli::FdReader input_file(path.path().generic_string());
+    absl::string_view line;
     int64_t entry = 0;
-    while (std::getline(input_stream, line)) {
+    while (riegeli::ReadLine(input_file, line)) {
       ambient_sensing::Datapoint* datapoint =
           repeated_datapoint->add_datapoint();
 
@@ -121,6 +120,9 @@ int main(int argc, char* argv[]) {
       // Increment entry;
       ++entry;
     }
+    if (!input_file.Close()) {
+      LOG(ERROR) << "Failed to read input file: " << input_file.status();
+    }
 
     writer.WriteRecord(arc);
   }
@@ -129,7 +131,6 @@ int main(int argc, char* argv[]) {
     LOG(ERROR) << "Failed to close record writer: " << writer.status();
     return 1;
   }
-  close(output_fd);
 
   LOG(INFO) << "Successfully converted ADL dataset into "
                "AnnotatedRecordingCollections";

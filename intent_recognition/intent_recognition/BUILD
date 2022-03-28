@@ -55,9 +55,12 @@ cc_binary(
         "@com_github_glog_glog//:glog",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_protobuf//:protobuf",
+        "@riegeli//riegeli/bytes:fd_reader",
         "@riegeli//riegeli/bytes:fd_writer",
+        "@riegeli//riegeli/lines:line_reading",
         "@riegeli//riegeli/records:record_writer",
     ],
 )
