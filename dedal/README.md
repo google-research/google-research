@@ -33,14 +33,15 @@ encoder or even add an extra head, one should get inspiration from the `base.gin
 
 ## Pre-trained model
 
-DEDAL is available in [TensorFlow Hub](https://tfhub.dev/google/dedal/1).
+DEDAL is available in [TensorFlow Hub](https://tfhub.dev/google/dedal/2).
 
 The model expects a `tf.Tensor<tf.int32>[2B, 512]` as inputs, representing a batch of B sequence pairs to be aligned right-padded to a maximum length of 512, including the special EOS token. Pairs are expected to be arranged consecutively in this batch, that is, `inputs[2*b]` and `inputs[2*b + 1]` represent the b-th sequence pair with b ranging from 0 up to B - 1 (inclusive).
 
-By default, the model runs in "alignment" mode and its output consists of:
-+ a `tf.Tensor<tf.float32>[B, 512]` with the alignment scores
-+ a `tf.Tensor<tf.float32>[B, 512, 512, 9]` representing the predicted alignments
-+ a tuple of three `tf.Tensor<tf.float32>[B, 512, 512]` containing the contextual Smith-Waterman parameters (substitution scores, gap open and gap extend penalties)
+By default, the model runs in "alignment" mode and its output is a Python dict containing:
++ 'sw_scores': a `tf.Tensor<tf.float32>[B]` with the alignment scores
++ 'homology_logits': a `tf.Tensor<tf.float32>[B]` with the homology detection logits
++ 'paths': a `tf.Tensor<tf.float32>[B, 512, 512, 9]` representing the predicted alignments
++ 'sw_params': a tuple of three `tf.Tensor<tf.float32>[B, 512, 512]` containing the contextual Smith-Waterman parameters (substitution scores, gap open and gap extend penalties)
 
 Additional signatures are provided to run the model in "embedding" mode, in which case it returns a single `tf.Tensor<tf.float32>[2B, 512, 768]` with the embeddings of each input sequence.
 
@@ -49,7 +50,7 @@ import tensorflow as tf
 import tensorflow_hub as hub
 from dedal import infer  # Requires google_research/google-research.
 
-dedal_model = hub.load('https://tfhub.dev/google/dedal/1')
+dedal_model = hub.load('https://tfhub.dev/google/dedal/2')
 
 # "Gorilla" and "Mallard" sequences from [1, Figure 3].
 protein_a = 'SVCCRDYVRYRLPLRVVKHFYWTSDSCPRPGVVLLTFRDKEICADPRVPWVKMILNKL'
@@ -58,16 +59,21 @@ protein_b = 'VKCKCSRKGPKIRFSNVRKLEIKPRYPFCVEEMIIVTLWTRVRGEQQHCLNPKRQNTVRLLKWY'
 inputs = infer.preprocess(protein_a, protein_b)
 
 # Aligns `protein_a` to `protein_b`.
-scores, path, sw_params = dedal_model(inputs)
+align_out = dedal_model(inputs)
 
 # Retrieves per-position embeddings of both sequences.
 embeddings = dedal_model.call(inputs, embeddings_only=True)
 
 # Postprocesses output and displays alignment.
-output = infer.expand([scores, path, sw_params])
+output = infer.expand(
+    [align_out['sw_scores'], align_out['paths'], align_out['sw_params']])
 output = infer.postprocess(output, len(protein_a), len(protein_b))
 alignment = infer.Alignment(protein_a, protein_b, *output)
 print(alignment)
+
+# Displays the raw Smith-Waterman score and the homology detection logits.
+print('Smith-Waterman score (uncorrected):', align_out['sw_scores'].numpy())
+print('Homology detection logits:', align_out['homology_logits'].numpy())
 ```
 
 ## Data
