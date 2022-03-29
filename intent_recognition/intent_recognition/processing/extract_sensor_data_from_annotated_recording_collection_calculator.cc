@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "net/google::protobuf/util/legacy_debug_string/legacy_unredacted_debug_string.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/calculator_options.pb.h"
 #include "absl/container/flat_hash_map.h"
@@ -45,6 +46,7 @@ namespace ambient_sensing {
 namespace {
 using ::mediapipe::CalculatorContext;
 using ::mediapipe::CalculatorContract;
+using ::google::protobuf::util::LegacyUnredactedDebugString;
 
 constexpr char kOutputDataStreamTag[] = "OUTPUT_DATA_STREAM";
 constexpr char kInputAnnotatedRecordingCollectionTag[] =
@@ -154,7 +156,8 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
         return absl::InvalidArgumentError(absl::StrCat(
             "Bad configuration: duplicate_timestamps_handling_strategy must be "
             "set. ",
-            sensor_options.DebugString(), " ", options.DebugString()));
+            LegacyUnredactedDebugString(sensor_options), " ",
+            LegacyUnredactedDebugString(options)));
       }
       SensorType sensor_type = {sensor_options.type(),
                                 sensor_options.subtype()};
@@ -163,9 +166,10 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
       auto emplace2 = sensor_options_map_.emplace(sensor_type, sensor_options);
 
       if (!emplace1.second || !emplace2.second) {
-        return absl::InvalidArgumentError(absl::StrCat(
-            "Invalid options: repeated type/subtype combination ",
-            sensor_options.DebugString(), " ", options.DebugString()));
+        return absl::InvalidArgumentError(
+            absl::StrCat("Invalid options: repeated type/subtype combination ",
+                         LegacyUnredactedDebugString(sensor_options), " ",
+                         LegacyUnredactedDebugString(options)));
       }
     }
 
@@ -286,10 +290,10 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
             case RecordingCollectionSensorOptions::UNKNOWN:
               return absl::InternalError("Internal error");
             case RecordingCollectionSensorOptions::RAISE_ERROR:
-              return absl::InvalidArgumentError(
-                  absl::StrCat("Duplicate timestamp for stream ",
-                               sensor_options.DebugString(), " at offset ",
-                               absl::FormatDuration(datapoint_offset)));
+              return absl::InvalidArgumentError(absl::StrCat(
+                  "Duplicate timestamp for stream ",
+                  LegacyUnredactedDebugString(sensor_options), " at offset ",
+                  absl::FormatDuration(datapoint_offset)));
           }
         }
       }
