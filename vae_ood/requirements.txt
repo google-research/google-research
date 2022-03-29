@@ -1,0 +1,11 @@
+absl-py==1.0.0
+matplotlib==3.5.1
+scikit-image==0.19.2
+scikit-learn==1.0.2
+scipy==1.7.3
+seaborn==0.11.2
+tensorboard==2.8.0
+tensorflow==2.8.0
+tensorflow-datasets==4.5.2
+tensorflow-probability==0.16.0
+tqdm==4.63.0
