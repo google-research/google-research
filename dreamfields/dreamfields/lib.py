@@ -108,15 +108,15 @@ class DreamField:
           7 arrays of constants of length config.substeps are expected:
             (1) lrs: learning rates
             (2) scs: scale factor for integrated positional encoding. Larger
-                scales lead to a blurrier appearance. A constant sc=1 is the
-                standard mip-NeRF IPE, and used by Dream Fields.
+              scales lead to a blurrier appearance. A constant sc=1 is the
+              standard mip-NeRF IPE, and used by Dream Fields.
             (3) sns: standard deviation of pre-activation noise for NeRF
-                density. Dream Fields use sn=0.
-                  density(x) = softplus(s(x) + eps), eps ~ N(0, sn^2)
+              density. Dream Fields use sn=0. density(x) = softplus(s(x) + eps),
+              eps ~ N(0, sn^2)
             (4) mrs: norm of radiance mask, defining scene bounds.
             (5) betas: scale of beta prior loss. Dream Fields use beta=0.
             (6) acct: transmittance loss hyperparameter, defining the target
-                average opacity. This is 1 - tau (target transmittance).
+              average opacity. This is 1 - tau (target transmittance).
             (7) acclam: weight of transmittance loss.
 
       Returns:
@@ -337,8 +337,8 @@ class DreamField:
     # Scale instrinsics to different resolutions.
     hwf_clip_r = scene.scale_intrinsics(config.retrieve_widths[0])
     hwf_base = scene.scale_intrinsics(config.render_width)
-    hwf_video = scene.scale_intrinsics(300.)
-    hwf_video_hq = scene.scale_intrinsics(400.)
+    hwf_video = scene.scale_intrinsics(config.get('lq_video_width', 300.))
+    hwf_video_hq = scene.scale_intrinsics(config.get('hq_video_width', 400.))
 
     # JIT compile ray generation
     @jax.jit
@@ -526,25 +526,26 @@ class DreamField:
 
         writer.write_images(step=l, images=step_images)
 
-        if config.render_lq_video and config.video_every and (
-            i % config.video_every == 0 or i + 1 == config.iters):
+      if config.render_lq_video and (i == config.iters or config.video_every and
+                                     i % config.video_every == 0):
 
-          def rays_theta(th):
-            cam2world = scene.pose_spherical(th, -30., 4.)
-            return scene.camera_ray_batch(cam2world, *hwf_video)
+        def rays_theta(th):
+          cam2world = scene.pose_spherical(th, -30., 4.)
+          return scene.camera_ray_batch(cam2world, *hwf_video)
 
-          th_range = np.linspace(0, 360, 60, endpoint=False)
-          frames_all = [
-              render_loop(
-                  rays_theta(th), variables, scs[-1], mrs[-1], hq=False)
-              for th in tqdm.tqdm(th_range, desc='render video')
-          ]
+        th_range = np.linspace(
+            0, 360, config.get('lq_video_n_frames', 60), endpoint=False)
+        variables = helpers.state_to_variables(state)
+        frames_all = [
+            render_loop(rays_theta(th), variables, scs[-1], mrs[-1], hq=False)
+            for th in tqdm.tqdm(th_range, desc='render video')
+        ]
 
-          videos = [[np.squeeze(f[i]) for f in frames_all] for i in range(3)]
-          for video, label in zip(videos, 'rgb depth acc'.split()):
-            scale = (label == 'depth')
-            log.log_video(
-                None, video, 'frames', label, l, work_unit_dir, scale=scale)
+        videos = [[np.squeeze(f[i]) for f in frames_all] for i in range(3)]
+        for video, label in zip(videos, 'rgb depth acc'.split()):
+          scale = (label == 'depth')
+          log.log_video(
+              None, video, 'frames', label, l, work_unit_dir, scale=scale)
 
       if i % config.log_scalars_every == 0:
         writer.write_scalars(step=l, scalars=scalars)
@@ -576,7 +577,8 @@ class DreamField:
                                      i == config.iters):
 
         my_rays = lambda c2w: scene.camera_ray_batch(c2w, *hwf_video_hq)
-        th_range = np.linspace(0, 360, 240, endpoint=False)
+        th_range = np.linspace(
+            0, 360, config.get('hq_video_n_frames', 240), endpoint=False)
         poses = [scene.pose_spherical(th, -30., 4.) for th in th_range]
         variables = helpers.state_to_variables(state)
         frames_all = [
@@ -798,8 +800,8 @@ class DreamField:
     return metrics
 
 
-def run_train(*, config, experiment_dir,
-              work_unit_dir, rng):
+def run_train(*, config, experiment_dir, work_unit_dir,
+              rng):
   for _ in DreamField(config).run_train(
       experiment_dir=experiment_dir,
       work_unit_dir=work_unit_dir,
