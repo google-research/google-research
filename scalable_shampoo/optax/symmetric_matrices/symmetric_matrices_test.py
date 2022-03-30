@@ -79,6 +79,13 @@ def _make_random_spd_mat(shape, axes, seed=0):
       mat1=mat, mat2=mat, axes=(axes, axes))
 
 
+def make_sliced_concat_mat(mat, block_size):
+  """Returns the sliced/concatenated representation of a symmetric matrix."""
+  return jnp.concatenate(
+      slice_symmetric_matrix(mat=mat, block_size=block_size).block_rows,
+      axis=-1)
+
+
 class SymmetricMatricesTest(parameterized.TestCase):
 
   def assertAllClose(self, x, y, atol=1e-5, rtol=1e-5):
@@ -134,8 +141,12 @@ class SymmetricMatricesTest(parameterized.TestCase):
     sliced_mat_concat = jnp.concatenate(
         slice_symmetric_matrix(mat=sym_mat, block_size=block_size).block_rows,
         axis=-1)
-    reconstructed_sym_mat = symmetric_matrices.materialize_matrix_from_concat(
-        sliced_mat_concat, num_blocks=shape[-2] // block_size)
+    with self.subTest(name="SpecifiedBlockSize"):
+      reconstructed_sym_mat = symmetric_matrices.materialize_matrix_from_concat(
+          sliced_mat_concat, num_blocks=shape[-2] // block_size)
+    with self.subTest(name="UnspecifiedSpecifiedBlockSize"):
+      reconstructed_sym_mat = symmetric_matrices.materialize_matrix_from_concat(
+          sliced_mat_concat, num_blocks=None)
     self.assertAllClose(sym_mat, reconstructed_sym_mat)
 
   @parameterized.parameters(_PARAMS)
@@ -157,16 +168,57 @@ class SymmetricMatricesTest(parameterized.TestCase):
         axes=axes)
     self.assertAllClose(expected_slices.block_rows, generated_slices.block_rows)
 
+  def test_num_blocks_from_total_blocks(self):
+    self.assertEqual(
+        symmetric_matrices.num_blocks_from_total_blocks(10), 4)
+
+  def test_num_blocks_from_total_blocks_wrong_size(self):
+    with self.assertRaises(ValueError):
+      # 11 does not have form x * (x + 1) / 2 for a positive integer x.
+      symmetric_matrices.num_blocks_from_total_blocks(11)
+
   @parameterized.parameters(_PARAMS)
   def test_find_num_blocks(self, shape, block_size, axes):
-    mat_concat = jnp.concatenate(
-        slice_symmetric_matrix(
-            mat=_make_random_spd_mat(shape, axes, seed=0),
-            block_size=block_size).block_rows,
-        axis=-1)
+    mat_concat = make_sliced_concat_mat(
+        _make_random_spd_mat(shape, axes, seed=0), block_size)
     found_num_blocks = symmetric_matrices.find_num_blocks(mat_concat)
     expected_num_blocks = shape[-2] / block_size
     self.assertEqual(found_num_blocks, expected_num_blocks)
+
+  @parameterized.parameters(_PARAMS)
+  def test_sliced_matrix_diag(self, shape, block_size, axes):
+    spd_mat = _make_random_spd_mat(shape, axes, seed=0)
+    sliced_concat_mat = make_sliced_concat_mat(spd_mat, block_size)
+    self.assertAllClose(
+        symmetric_matrices.sliced_matrix_diag(sliced_concat_mat),
+        jnp.diag(spd_mat))
+
+  def test_diag_as_concat(self):
+    block_size = 3
+    size = 4 * block_size
+    self.assertAllClose(
+        symmetric_matrices.diag_as_concat(
+            diag=jnp.ones(shape=(size)), block_size=block_size),
+        symmetric_matrices.slice_symmetric_matrix_concat(
+            jnp.eye(size), block_size=block_size))
+
+  @parameterized.parameters(_PARAMS)
+  def test_row_abs_maxes(self, shape, block_size, axes):
+    mat = _make_random_spd_mat(shape, axes, seed=0)
+    mat_concat = make_sliced_concat_mat(mat, block_size)
+    self.assertAllClose(
+        symmetric_matrices.row_abs_maxes(mat_concat),
+        jnp.max(jnp.abs(mat), axis=0))
+
+  @parameterized.parameters(_PARAMS)
+  def test_times_vector(self, shape, block_size, axes):
+    mat = _make_random_spd_mat(shape, axes, seed=0)
+    vec = jnp.max(jnp.abs(mat), axis=0)
+    mat_concat = make_sliced_concat_mat(mat, block_size)
+
+    self.assertAllClose(
+        symmetric_matrices.times_vector(mat_concat, vec),
+        make_sliced_concat_mat(jnp.transpose(mat * vec), block_size))
 
 if __name__ == "__main__":
   absltest.main()
