@@ -427,9 +427,9 @@ There are several options to run a model on desktop and mobile phone. These opti
 |                  | preprocess 'raw'; <br> feature_type 'mfcc_tf'  | preprocess 'raw'; <br> feature_type 'mfcc_op'  | preprocess 'mfcc'; <br> feature_type is ignored     | preprocess 'micro'; <br> feature_type is ignored    |
 | ---------------- | --------------------- | --------------------- | ------------------- | ------------------- |
 |**Speech feature <br> extractor:**| part of model      | part of model      |  not part of model|  not part of model|
-|**Speech feature <br> based on:**| DFT, DFT weights <br> are part of model  |   FFT     |    FFT    |     FFT         |
-|**Model size:**   |   DFT weights + model weights         |      model weights          |        model weights      |         model weights     |
-|**Quantization:** |    not implemented    |      post training    |     post training   |     post training   |
+|**Speech feature <br> based on:**| DFT, DFT weights <br> are part of model <br> if use_tf_fft=1 then with FFT is used |   FFT     |    FFT    |     FFT         |
+|**Model size:**   |   DFT weights + model weights, <br> if use_tf_fft=1 then use FFT + model weights only        |      model weights          |        model weights      |         model weights     |
+|**Quantization:** |    not implemented for DFT, <br> if use_tf_fft=1 PTQ works    |      post training    |     post training   |     post training   |
 |**Can run on:**   |    desktop, <br> mobile    |      desktop, <br> mobile  |     desktop, <br> mobile |   microcontrollers  |
 
 If speech feature extractor is part of the model then it is convenient for deployment, otherwise user will have to manage speech feature extractor and data streams between model and speech feature extractor. Speech feature extractor based on DFT can be a good option for hardware with no FFT support. Combination of FFT with post training quantization can reduce latency by 2x.
