@@ -15,6 +15,7 @@
 
 """Contains utilities for dataloading."""
 
+import functools
 from typing import Tuple, Sequence
 
 import jax.numpy as jnp
@@ -158,7 +159,8 @@ def make_graph_pathfinder(
   # TODO(gnegiar): Allow multiple start nodes.
   # The threshold value .3 was selected to keep information
   # while not introducing noise
-  def _get_start_pixel_fn(image, thresh=.3):
+  def _get_start_pixel_fn(
+      image, thresh = .5 * len(bins)):
     """Detects a probable start point in a Pathfinder image example."""
     thresh_image = np.where(image > thresh, 1, 0)
     distance = ndi.distance_transform_edt(thresh_image)
@@ -169,6 +171,8 @@ def make_graph_pathfinder(
   # TODO(gnegiar): Allow continuous features in models.
   return image_graph.ImageGraph.create(
       jnp.digitize(image, bins).squeeze(),
-      get_start_pixel_fn=_get_start_pixel_fn,
+      # Set thresh to .5 by leveraging the image discretization.
+      get_start_pixel_fn=functools.partial(
+          _get_start_pixel_fn, thresh=.5 * len(bins)),
       num_colors=len(bins),  # number of bins + 'out of bounds' pixel
       patch_size=patch_size)
