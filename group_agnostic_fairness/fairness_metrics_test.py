@@ -25,6 +25,7 @@ import tempfile
 
 from absl.testing import absltest
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from group_agnostic_fairness import adversarial_reweighting_model
 from group_agnostic_fairness.data_utils.uci_adult_input import UCIAdultInput
@@ -63,13 +64,13 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
 
   def _get_train_test_input_fn(self):
     train_input_fn = self.load_dataset.get_input_fn(
-        mode=tf.estimator.ModeKeys.TRAIN, batch_size=self.batch_size)
+        mode=tf_estimator.ModeKeys.TRAIN, batch_size=self.batch_size)
     test_input_fn = self.load_dataset.get_input_fn(
-        mode=tf.estimator.ModeKeys.EVAL, batch_size=self.batch_size)
+        mode=tf_estimator.ModeKeys.EVAL, batch_size=self.batch_size)
     return train_input_fn, test_input_fn
 
   def _get_estimator(self):
-    config = tf.estimator.RunConfig(model_dir=self.model_dir,
+    config = tf_estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=1)
     feature_columns, _, _, label_column_name = (
         self.load_dataset.get_feature_columns(include_sensitive_columns=True))
@@ -93,12 +94,12 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
   def test_create_and_add_fairness_metrics(self):
     # Instantiates a robust estimator
     estimator = self._get_estimator()
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
     # Adds additional fairness metrics to estimator
     eval_metrics_fn = self.fairness_metrics.create_fairness_metrics_fn(
         num_thresholds=self.num_thresholds)
-    estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
+    estimator = tf_estimator.add_metrics(estimator, eval_metrics_fn)
 
     # Trains and evaluated robust model
     train_input_fn, test_input_fn = self._get_train_test_input_fn()
@@ -115,7 +116,7 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
   def test_create_and_add_fairness_metrics_with_print_dir(self):
     # Instantiates a robust estimator
     estimator = self._get_estimator()
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
     # Adds additional fairness metrics to estimator
     self.fairness_metrics_with_print = RobustFairnessMetrics(
@@ -125,7 +126,7 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
         print_dir=self.print_dir)
     eval_metrics_fn = self.fairness_metrics.create_fairness_metrics_fn(
         num_thresholds=self.num_thresholds)
-    estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
+    estimator = tf_estimator.add_metrics(estimator, eval_metrics_fn)
 
     # Trains and evaluated robust model
     train_input_fn, test_input_fn = self._get_train_test_input_fn()
@@ -142,12 +143,12 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
 
     # Instantiates a robust estimator
     estimator = self._get_estimator()
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
     # Adds additional fairness metrics to estimator
     eval_metrics_fn = self.fairness_metrics.create_fairness_metrics_fn(
         num_thresholds=self.num_thresholds)
-    estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
+    estimator = tf_estimator.add_metrics(estimator, eval_metrics_fn)
 
     # Trains and evaluated robust model
     train_input_fn, test_input_fn = self._get_train_test_input_fn()
@@ -168,12 +169,12 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
 
     # Instantiates a robust estimator
     estimator = self._get_estimator()
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
     # Adds additional fairness metrics to estimator
     eval_metrics_fn = self.fairness_metrics.create_fairness_metrics_fn(
         num_thresholds=self.num_thresholds)
-    estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
+    estimator = tf_estimator.add_metrics(estimator, eval_metrics_fn)
 
     # Trains and evaluated robust model
     train_input_fn, test_input_fn = self._get_train_test_input_fn()
@@ -193,12 +194,12 @@ class FairnessMetricsTest(tf.test.TestCase, absltest.TestCase):
 
     # Instantiates a robust estimator
     estimator = self._get_estimator()
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
     # Adds additional fairness metrics to estimator
     eval_metrics_fn = self.fairness_metrics.create_fairness_metrics_fn(
         num_thresholds=self.num_thresholds)
-    estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
+    estimator = tf_estimator.add_metrics(estimator, eval_metrics_fn)
 
     # Trains and evaluated robust model
     train_input_fn, test_input_fn = self._get_train_test_input_fn()

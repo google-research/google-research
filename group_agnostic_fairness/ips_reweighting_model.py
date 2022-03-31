@@ -34,6 +34,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import layers as contrib_layers
@@ -209,7 +210,7 @@ class _IPSReweightingModel():
       logistics_kwargs = {'labels': class_labels, 'predictions': sigmoid_output}
 
       # EVAL Mode
-      if mode == tf.estimator.ModeKeys.EVAL:
+      if mode == tf_estimator.ModeKeys.EVAL:
         with tf.name_scope('eval_metrics'):
           eval_metric_ops = {
               'accuracy': tf.metrics.accuracy(**class_id_kwargs),
@@ -226,21 +227,21 @@ class _IPSReweightingModel():
           }
 
           # EstimatorSpec object for evaluation
-          estimator_spec = tf.estimator.EstimatorSpec(
+          estimator_spec = tf_estimator.EstimatorSpec(
               mode=mode,
               predictions=predictions,
               loss=loss,
               eval_metric_ops=eval_metric_ops)
 
       # TRAIN Mode
-      if mode == tf.estimator.ModeKeys.TRAIN:
+      if mode == tf_estimator.ModeKeys.TRAIN:
         train_op_primary = contrib_layers.optimize_loss(
             loss=loss,
             learning_rate=self._learning_rate,
             global_step=contrib_framework.get_global_step(),
             optimizer=self._optimizer)
 
-        estimator_spec = tf.estimator.EstimatorSpec(
+        estimator_spec = tf_estimator.EstimatorSpec(
             mode=mode,
             predictions=predictions,
             loss=loss,
@@ -251,7 +252,7 @@ class _IPSReweightingModel():
     return model_fn
 
 
-class _IPSReweightingEstimator(tf.estimator.Estimator):
+class _IPSReweightingEstimator(tf_estimator.Estimator):
   """An estimator based on the core estimator."""
 
   def __init__(self, *args, **kwargs):

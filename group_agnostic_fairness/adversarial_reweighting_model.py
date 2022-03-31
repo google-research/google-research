@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import layers as contrib_layers
@@ -270,9 +271,9 @@ class _AdversarialReweightingModel():
       # Initialize a global step variable used for alternate training
       current_step = self._get_or_create_global_step_var()
 
-      if mode == tf.estimator.ModeKeys.EVAL:
+      if mode == tf_estimator.ModeKeys.EVAL:
         tf.logging.info('model_fn: EVAL, {}'.format(mode))
-      elif mode == tf.estimator.ModeKeys.TRAIN:
+      elif mode == tf_estimator.ModeKeys.TRAIN:
         tf.logging.info('model_fn: TRAIN, {}'.format(mode))
 
       # Creates a DNN architecture for primary binary classification task
@@ -333,7 +334,7 @@ class _AdversarialReweightingModel():
       logistics_kwargs = {'labels': class_labels, 'predictions': sigmoid_output}
 
       # EVAL Mode
-      if mode == tf.estimator.ModeKeys.EVAL:
+      if mode == tf_estimator.ModeKeys.EVAL:
         with tf.name_scope('eval_metrics'):
           eval_metric_ops = {
               'accuracy': tf.metrics.accuracy(**class_id_kwargs),
@@ -350,14 +351,14 @@ class _AdversarialReweightingModel():
           }
 
           # EstimatorSpec object for evaluation
-          estimator_spec = tf.estimator.EstimatorSpec(
+          estimator_spec = tf_estimator.EstimatorSpec(
               mode=mode,
               predictions=predictions,
               loss=primary_loss,
               eval_metric_ops=eval_metric_ops)
 
       # TRAIN Mode
-      if mode == tf.estimator.ModeKeys.TRAIN:
+      if mode == tf_estimator.ModeKeys.TRAIN:
         # Filters trainable variables for each task
         all_trainable_vars = tf.trainable_variables()
         primary_trainable_vars = [
@@ -385,7 +386,7 @@ class _AdversarialReweightingModel():
 
         # Upto ``pretrain_steps'' trains primary only.
         # Beyond ``pretrain_steps'' alternates between primary and adversary.
-        estimator_spec = tf.estimator.EstimatorSpec(
+        estimator_spec = tf_estimator.EstimatorSpec(
             mode=mode,
             predictions=predictions,
             loss=primary_loss + adversary_loss,
@@ -399,7 +400,7 @@ class _AdversarialReweightingModel():
     return model_fn
 
 
-class _AdversarialReweightingEstimator(tf.estimator.Estimator):
+class _AdversarialReweightingEstimator(tf_estimator.Estimator):
   """An estimator based on the core estimator."""
 
   def __init__(self, *args, **kwargs):

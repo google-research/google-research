@@ -24,6 +24,7 @@ import tempfile
 
 from absl.testing import absltest
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from group_agnostic_fairness import baseline_model
 from group_agnostic_fairness.data_utils.uci_adult_input import UCIAdultInput
@@ -69,7 +70,7 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
 
   def test_get_input_fn(self):
     input_fn = self.load_dataset.get_input_fn(
-        mode=tf.estimator.ModeKeys.TRAIN, batch_size=self.batch_size)
+        mode=tf_estimator.ModeKeys.TRAIN, batch_size=self.batch_size)
     features, targets = input_fn()
     self.assertIn('sex', targets)
     self.assertIn('race', targets)
@@ -79,13 +80,13 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
 
   def _get_train_test_input_fn(self):
     train_input_fn = self.load_dataset.get_input_fn(
-        mode=tf.estimator.ModeKeys.TRAIN, batch_size=self.batch_size)
+        mode=tf_estimator.ModeKeys.TRAIN, batch_size=self.batch_size)
     test_input_fn = self.load_dataset.get_input_fn(
-        mode=tf.estimator.ModeKeys.EVAL, batch_size=self.batch_size)
+        mode=tf_estimator.ModeKeys.EVAL, batch_size=self.batch_size)
     return train_input_fn, test_input_fn
 
   def test_eval_results_baseline_model(self):
-    config = tf.estimator.RunConfig(model_dir=self.model_dir,
+    config = tf_estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
     estimator = baseline_model.get_estimator(
@@ -95,7 +96,7 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
         model_dir=self.model_dir,
         hidden_units=self.hidden_units,
         batch_size=self.batch_size)
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
     train_input_fn, test_input_fn = self._get_train_test_input_fn()
     estimator.train(input_fn=train_input_fn, steps=self.train_steps)
     eval_results = estimator.evaluate(input_fn=test_input_fn,
@@ -109,7 +110,7 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
     self.assertIn('tn', eval_results)
 
   def test_add_fairness_metrics_baseline_model(self):
-    config = tf.estimator.RunConfig(model_dir=self.model_dir,
+    config = tf_estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
     estimator = baseline_model.get_estimator(
@@ -119,11 +120,11 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
         model_dir=self.model_dir,
         hidden_units=self.hidden_units,
         batch_size=self.batch_size)
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
     # Adds additional fairness metrics to estimator
     eval_metrics_fn = self.fairness_metrics.create_fairness_metrics_fn()
-    estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
+    estimator = tf_estimator.add_metrics(estimator, eval_metrics_fn)
 
     train_input_fn, test_input_fn = self._get_train_test_input_fn()
     estimator.train(input_fn=train_input_fn, steps=self.train_steps)
@@ -135,7 +136,7 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
       self.assertIn('auc subgroup {}'.format(subgroup), eval_results)
 
   def test_global_steps_baseline_model(self):
-    config = tf.estimator.RunConfig(model_dir=self.model_dir,
+    config = tf_estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
     estimator = baseline_model.get_estimator(
@@ -145,7 +146,7 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
         model_dir=self.model_dir,
         hidden_units=self.hidden_units,
         batch_size=self.batch_size)
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
     train_input_fn, test_input_fn = self._get_train_test_input_fn()
     estimator.train(input_fn=train_input_fn, steps=self.train_steps)
     eval_results = estimator.evaluate(input_fn=test_input_fn,
@@ -155,7 +156,7 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
     self.assertEqual(eval_results['global_step'], self.train_steps)
 
   def test_create_baseline_estimator_with_demographics(self):
-    config = tf.estimator.RunConfig(model_dir=self.model_dir,
+    config = tf_estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=True)  # pylint: disable=line-too-long
     estimator = baseline_model.get_estimator(
@@ -168,10 +169,10 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
         learning_rate=0.01,
         optimizer='Adagrad',
         activation=tf.nn.relu)
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
   def test_create_baseline_estimator_without_demographics(self):
-    config = tf.estimator.RunConfig(model_dir=self.model_dir,
+    config = tf_estimator.RunConfig(model_dir=self.model_dir,
                                     save_checkpoints_steps=2)
     feature_columns, _, _, label_column_name = self.load_dataset.get_feature_columns(include_sensitive_columns=False)  # pylint: disable=line-too-long
     estimator = baseline_model.get_estimator(
@@ -184,7 +185,7 @@ class BaselineModelTest(tf.test.TestCase, absltest.TestCase):
         learning_rate=0.01,
         optimizer='Adagrad',
         activation=tf.nn.relu)
-    self.assertIsInstance(estimator, tf.estimator.Estimator)
+    self.assertIsInstance(estimator, tf_estimator.Estimator)
 
 
 if __name__ == '__main__':
