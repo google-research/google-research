@@ -30,6 +30,7 @@ from flax.linen import partitioning
 import jax
 from jax import lax
 import jax.numpy as jnp
+import numpy as np
 
 from aqt.jax import compute_cost_utils
 from aqt.jax import get_bounds
@@ -100,7 +101,7 @@ class DenseAqt(nn.Module):
 
   hparams: HParams
   paxis_name: Optional[str]
-  features: int
+  features: Union[int, Tuple[int, Ellipsis]]
   train: bool
   quant_context: quant_config.QuantContext
   dtype: Any
@@ -145,14 +146,17 @@ class DenseAqt(nn.Module):
               inputs, mask=padding_mask)
     hparams = self.hparams
     if (hparams.weight_prec is not None and
-        isinstance(hparams.weight_prec, int) and
-        hparams.weight_prec > 8):
+        isinstance(hparams.weight_prec, int) and hparams.weight_prec > 8):
       raise NotImplementedError(
           'If you want to use more than 8bits for quantization, please revisit '
           'jax.lax.Precision.DEFAULT to determine whether it is still sufficient.'
       )
 
-    kernel_shape = (inputs.shape[-1], self.features)
+    if not isinstance(self.features, tuple):
+      features = (self.features,)
+    else:
+      features = self.features
+    kernel_shape = (inputs.shape[-1],) + features
     if self.kernel_axis_names is None:
       kernel_axis_names = ['unmodeled'] * len(kernel_shape)
     else:
@@ -183,11 +187,11 @@ class DenseAqt(nn.Module):
       # Compute scale factors by reducing over the rows of the weight matrix,
       # resulting in one scale factor per column. This results in one scale
       # factor per output channel.
-      expected_scale_shape = (1, self.features)
+      expected_scale_shape = (1,) + features
       weight_quant_axis = (0,)
     elif weight_quant_granularity == quant_config.QuantGranularity.per_tensor:
       # Compute a single scale factor for the entire weight matrix.
-      expected_scale_shape = (1, 1)
+      expected_scale_shape = (1,) * len(kernel_shape)
       weight_quant_axis = None
     else:
       raise ValueError(
@@ -220,9 +224,10 @@ class DenseAqt(nn.Module):
     if self.use_bias:
       bias = partitioning.param_with_axes(
           'bias',
-          self.bias_init,
-          (self.features,),
+          self.bias_init, (np.prod(features),),
           axes=(kernel_axis_names[-1],))
+      bias = jnp.asarray(bias, self.dtype)
+      bias = jnp.reshape(bias, features)
       # (batch_size, features)
       y = y + bias[jnp.newaxis, :]
     return y

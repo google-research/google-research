@@ -602,19 +602,7 @@ class QuantOps:
       return scale.reshape(())
     # If the caller requested a a single per-layer scaling factor but the scale
     # factor is non-scalar, raise an error.
-    if not allow_per_channel_scales:
-      raise ValueError('Scale is not per-layer since it has shape '
-                       f'{scale.shape}.')
-    # If 'scale' is not scalar, then the only allowed shape for 'scale'
-    # that is currently compatible with AQT is [1,..., 1, num_channels]. If
-    # instead it had a shape like [N, 1] or [N, num_channels], that would
-    # correspond to per-row scale factors, which our AQT implementation does
-    # not currently handle.
-    if any(x != 1 for x in scale.shape[:-1]):
-      raise ValueError(
-          'Scale has per-row scaling factors, which is not currently '
-          f'compatible with AQT. Scale has shape {scale.shape}, but '
-          'a 1 is expected as the shape of the first n-1 dimension.')
+    del allow_per_channel_scales
     return scale
 
 
@@ -691,6 +679,25 @@ def quantized_dot(*,
       dot_precision=dot_precision)
 
 
+def _canonicalize_feature_axes(axis,
+                               ndims):
+  """Returns feature axes from reduction axes."""
+  if not isinstance(axis, tuple):
+    axis = (axis,)
+  if not all([dim < ndims and dim >= -ndims for dim in axis]):
+    raise ValueError(f'Axis {axis} should correspond to dimensions '
+                     f'of the weight.')
+  axis = tuple(sorted([(ndims + dim) % ndims for dim in axis]))
+  # Feature axes must be either first len(Feature_axis) consecutive
+  # dimensions of weight or last len(axis) consecutive axes.
+  is_first_consecutive_dims = (axis == tuple(range(len(axis))))
+  if not is_first_consecutive_dims:
+    raise ValueError(
+        f'Reduction axis {axis} should be consecutive first dimensions '
+        f'of the weight.')
+  return axis
+
+
 # TODO(shivaniagrawal): extend it for generic dot_dimenson_numbers
 def quantized_dot_general(
     *,
@@ -749,11 +756,17 @@ def quantized_dot_general(
     # lax.dot accepts any combination of 1d and 2d arguments for its lhs and rhs
     # input. To simplify the AQT implementation, we only accept 2d arguments for
     # now.
-    if w.ndim != 2 or act.shape[-1] != w.shape[0]:
+    if act.shape[-1] != w.shape[0]:
       raise ValueError(
           'AQT is currently only implemented for matrix*matrix operations')
     num_input_channels = act.shape[-1]
-    num_output_channels = w.shape[1]
+
+    if weight_params.axis is None:
+      out_channel_shape = ()
+    else:
+      axes = _canonicalize_feature_axes(weight_params.axis, w.ndim)
+      out_channel_shape = tuple(
+          [w.shape[i] for i in range(w.ndim) if i not in axes])
 
     # The ValueError raised in the guard at the beginning of this function
     # should have already checked that the weight matrix has a number of rows
@@ -837,13 +850,13 @@ def quantized_dot_general(
           w_scaled_rows, weight_params=weight_params)
       weight_scale = weight_op.get_scale_for_aqt(allow_per_channel_scales=True)
       # Similar to 'act_scale' above, the weight_scale can either be a single
-      # scalar or be a matrix with shape (1, num_output_channels), corresponding
+      # scalar or be a matrix with shape (1, out_channel_shape), corresponding
       # to a per-channel scale factor for the weight matrix. We verify it here.
       if weight_scale.ndim != 0:
         shape_utils.assert_shapes_equal(weight_scale.shape,
-                                        (1, num_output_channels))
+                                        (1,) + out_channel_shape)
         if act.ndim != 0:
-          weight_scale_shape = (1,) * (act.ndim - 1) + (num_output_channels,)
+          weight_scale_shape = (1,) * (act.ndim - 1) + out_channel_shape
           weight_scale = weight_scale.reshape(weight_scale_shape)
 
       # Quantize weight matrix by calculating RoundAndClip(s^-1 * w * t)
