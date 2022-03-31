@@ -1,0 +1,13 @@
+matplotlib
+mediapy
+ftfy
+regex
+tqdm
+torch
+torchvision
+pytorch3d
+wandb
+moviepy
+git+https://github.com/openai/CLIP.git
+git+https://github.com/openai/glide-text2im
+tensorflow==1.15
