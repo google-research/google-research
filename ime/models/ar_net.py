@@ -60,7 +60,8 @@ class  ARNet(nn.Module):
                i] = self.fc(torch.cat((x[:, i:], true_output[:, :i]),
                                       dim=1)).squeeze()
       for i in range(0, self.n_forecasts - self.n_lags):
-        output[:, i] = self.fc(true_output[:, i:i + self.n_lags]).squeeze()
+        output[:, self.n_lags + i] = self.fc(
+            true_output[:, i:i + self.n_lags]).squeeze()
     else:
       for i in range(1, self.n_forecasts):
         output[:,
