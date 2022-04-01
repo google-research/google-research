@@ -12,17 +12,17 @@ and (2) to assess whether learning logical inference abilities in the abstract
 tasks.
 
 For a detailed description of the dataset, please check the following paper:
-https://arxiv.org/abs/2203.15099
+https://openreview.net/pdf?id=HAGeIS_Lcg9 (arXiv preprint: https://arxiv.org/abs/2203.15099 )
 
 Please cite as:
 
 ```
-@misc{ontanon2022logicinference,
-  url = {https://arxiv.org/abs/2203.15099},
+@inproceedings{ontanon2022logicinference,
+  url = {https://openreview.net/pdf?id=HAGeIS_Lcg9},
   author = {Onta\~{n}\'{o}n, Santiago and Ainslie, Joshua and Cvicek, Vaclav and Fisher, Zachary},
-  title = {LogicInference: A New Dataset for Teaching Logical Inference to seq2seq Models},
-  publisher = {arXiv},
-  year = {2022},
+  title = {{LogicInference}: A New Dataset for Teaching Logical Inference to seq2seq Models},
+  booktitle={Proceedings of ICLR 2022 workshop on Objects, Structure and Causality},
+  year={2022}
 }
 ```
 
