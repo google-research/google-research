@@ -12,7 +12,7 @@ and (2) to assess whether learning logical inference abilities in the abstract
 tasks.
 
 For a detailed description of the dataset, please check the following paper:
-https://arxiv.org/abs/2203.15099]
+https://arxiv.org/abs/2203.15099
 
 Please cite as:
 
