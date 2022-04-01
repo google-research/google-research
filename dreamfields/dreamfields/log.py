@@ -37,7 +37,12 @@ def scale_depth(depth, min_depth=4 - onp.sqrt(3), max_depth=4 + onp.sqrt(3)):
   depth_scaled = depth_scaled - onp.min(depth_scaled)
   depth_scaled = depth_scaled / onp.max(depth_scaled)
 
-  depth_colored = cm.get_cmap('turbo')(depth_scaled)
+  try:
+    cmap = cm.get_cmap('turbo')
+  except ValueError:
+    # Fallback to jet cmap for older versions of matplotlib, <3.3
+    cmap = cm.get_cmap('jet')
+  depth_colored = cmap(depth_scaled)
   alpha = depth_colored[Ellipsis, 3:]
   depth_colored = depth_colored[Ellipsis, :3] * alpha + (1 - alpha)
 
