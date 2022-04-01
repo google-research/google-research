@@ -184,7 +184,7 @@ def _make_encode_fn(
 ):
   """Prepares the BERT encoder function."""
 
-  @tf.function(experimental_relax_shapes=True)
+  @tf.function(reduce_retracing=True)
   def _encode(batch):
     """Encodes a sample with REALM BERT."""
     # Add a CLS token at the start of the input, and a SEP token at the end
@@ -208,7 +208,7 @@ def make_encode_fn_strategy_run_fn(
   # Giving {} as a default value would make the default value mutable, which
   # is prohibited (because changing the object would change the default value).
 
-  @tf.function(experimental_relax_shapes=True)
+  @tf.function(reduce_retracing=True)
   def encode_fn_strategy_run_fn(batch):
     """Runs the distribute strategy on the query encoder."""
     return strategy.run(encode_fn, args=(batch,))

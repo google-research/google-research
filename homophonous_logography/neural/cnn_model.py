@@ -361,7 +361,7 @@ class Seq2SeqCnnModel(object):
     # Restore stdout.
     sys.stdout = stdout_file
 
-  @tf.function(experimental_relax_shapes=True)
+  @tf.function(reduce_retracing=True)
   def _predict_step(self, encoder_input, output):
     return self._cnn(
         inputs=[encoder_input, output], training=False)

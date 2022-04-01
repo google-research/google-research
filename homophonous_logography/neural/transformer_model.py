@@ -525,7 +525,7 @@ class Seq2SeqTransformerModel(object):
           self._multihead_retrieval))
     return attention
 
-  @tf.function(experimental_relax_shapes=True)
+  @tf.function(reduce_retracing=True)
   def _predict_step(self, encoder_input, output):
     """One prediction step."""
     return self._transformer(

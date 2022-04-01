@@ -610,7 +610,7 @@ def main(argv):
     )
     tf_function_flags = dict(
         experimental_compile=FLAG_EXPERIMENTAL_COMPILE.value,
-        experimental_relax_shapes=not FLAG_INPUT_FIXED_SIZE.value
+        reduce_retracing=not FLAG_INPUT_FIXED_SIZE.value
     )
 
     if (FLAG_DISTRIBUTE_MODE.value ==

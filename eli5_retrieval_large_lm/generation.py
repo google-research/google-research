@@ -165,7 +165,7 @@ def main(argv):
 
       model.__call__ = tf.function(
           model.__call__,
-          experimental_relax_shapes=True,
+          reduce_retracing=True,
           experimental_compile=True,
       )
 
