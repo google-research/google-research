@@ -157,3 +157,25 @@ def init_nerf_model(key, config):
     raise ValueError
 
   return variables, render_rays
+
+
+def compute_tv_norm(values, losstype='l2'):
+  """Computes TV norm for input values, based on RegNeRF.
+
+  Args:
+    values: H x W x * tensor
+    losstype: l2 or l1
+
+  Returns:
+    loss: (H-1) x (W-1) x * tensor
+  """
+  v00 = values[:-1, :-1]
+  v01 = values[:-1, 1:]
+  v10 = values[1:, :-1]
+  if losstype == 'l2':
+    loss = ((v00 - v01) ** 2) + ((v00 - v10) ** 2)
+  elif losstype == 'l1':
+    loss = np.abs(v00 - v01) + np.abs(v00 - v10)
+  else:
+    raise ValueError(f'losstype must be l2 or l1 but is {losstype}')
+  return loss
