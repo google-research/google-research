@@ -1,0 +1,7 @@
+numpy>=1.21.5
+jax>=0.3.2
+sklearn>=1.0.2
+tensorflow_probability>=0.17.0-dev
+absl
+functools
+operator
