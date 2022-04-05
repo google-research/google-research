@@ -6,5 +6,8 @@ principle of fully convolutional network design. This change allows the network
 to be trained and inference run with different patch size while having the same
 inference results.
 
+This folder can be downloaded using subversion:
+```svn export https://github.com/google-research/google-research/trunk/nopad_inception_v3_fcn```.
+
 An example uptraining script is provided at ```finetune_on_flowers.sh```. Note
 the setup instructions detailed in the file.

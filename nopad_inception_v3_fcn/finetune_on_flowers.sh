@@ -25,7 +25,7 @@
 #
 # In addition, the Python packages at requirements.txt should be installed.
 #
-# Usage:
+# Usage (run from nopad_inception_v3_fcn folder):
 # ./finetune_on_flowers.sh \
 #     /{path_to_checkpoint}/cervical_10x model.ckpt-2000200 911 cervical_10x
 
@@ -56,7 +56,7 @@ python train_inception_v3_fcn.py \
   --dataset_name=flowers \
   --dataset_split_name=train \
   --dataset_dir=${DATASET_DIR} \
-  --receptive_field_size=911 \
+  --receptive_field_size=${MODEL_RECEPTIVE_FIELD} \
   --checkpoint_path=${PRETRAINED_CHECKPOINT_DIR}/${PRETRAINED_CHECKPOINT_PREFIX} \
   --checkpoint_exclude_scopes=Logits,Softmax \
   --trainable_scopes=Logits,Softmax \
@@ -73,7 +73,7 @@ python eval_inception_v3_fcn.py \
   --dataset_name=flowers \
   --dataset_split_name=validation \
   --dataset_dir=${DATASET_DIR} \
-  --receptive_field_size=911
+  --receptive_field_size=${MODEL_RECEPTIVE_FIELD}
 
 # Fine-tune all layers.
 echo "Fine-tuning all layers"
@@ -82,7 +82,7 @@ python train_inception_v3_fcn.py \
   --dataset_name=flowers \
   --dataset_split_name=train \
   --dataset_dir=${DATASET_DIR} \
-  --receptive_field_size=911 \
+  --receptive_field_size=${MODEL_RECEPTIVE_FIELD} \
   --checkpoint_path=${PRETRAINED_CHECKPOINT_DIR}/${PRETRAINED_CHECKPOINT_PREFIX} \
   --checkpoint_exclude_scopes=Logits,Softmax \
   --max_number_of_steps=50 \
@@ -98,4 +98,4 @@ python eval_inception_v3_fcn.py \
   --dataset_name=flowers \
   --dataset_split_name=validation \
   --dataset_dir=${DATASET_DIR} \
-  --receptive_field_size=911
+  --receptive_field_size=${MODEL_RECEPTIVE_FIELD}

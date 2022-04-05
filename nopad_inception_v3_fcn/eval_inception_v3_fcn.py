@@ -95,7 +95,7 @@ def main(_):
         prelogit_dropout_keep_prob=0.8,
         depth_multiplier=0.1,
         min_depth=16,
-        inception_fcn_stride=16,
+        inception_fcn_stride=0,
     )
     conv_params = network_params.ConvScopeParams(
         dropout=False,
