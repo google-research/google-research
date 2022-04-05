@@ -510,7 +510,7 @@ def precompute_rules():
           [["~", ["<->", ["p"], ["q"]]]],
           [],
           ["p", "q"],
-          "biconditioal introduction"),
+          "biconditional introduction"),
 
       lib.InferenceRule(
           [["<->", ["p"], ["q"]]],
@@ -518,7 +518,7 @@ def precompute_rules():
           [["~", ["->", ["p"], ["q"]]]],
           [],
           ["p", "q"],
-          "biconditioal elimination"),
+          "biconditional elimination"),
 
       lib.InferenceRule(
           [["<->", ["p"], ["q"]]],
@@ -526,7 +526,7 @@ def precompute_rules():
           [["~", ["->", ["q"], ["p"]]]],
           [],
           ["p", "q"],
-          "biconditioal elimination"),
+          "biconditional elimination"),
 
       lib.InferenceRule(
           [["<->", ["p"], ["q"]], ["~", ["p"]]],
@@ -534,7 +534,7 @@ def precompute_rules():
           [["q"]],
           [],
           ["p", "q"],
-          "biconditiomal elimination"),
+          "biconditional elimination"),
 
       lib.InferenceRule(
           [["<->", ["p"], ["q"]], ["~", ["q"]]],
