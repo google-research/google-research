@@ -1,4 +1,0 @@
-numpy>=1.16.4
-jax>=0.2.7
-flax>=0.3.6
-tensorflow>=2.3.1

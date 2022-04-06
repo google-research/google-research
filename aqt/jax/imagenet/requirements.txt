@@ -1,6 +1,0 @@
-dacite
-jax
-flax
-ml-collections
-tensorflow
-tensorflow-datasets
