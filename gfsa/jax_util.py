@@ -276,6 +276,9 @@ force_physical_layout_p.def_abstract_eval(
 jax.interpreters.xla.translations[
     force_physical_layout_p] = jax.interpreters.xla.lower_fun(
         _force_physical_layout_impl, multiple_results=False)
+jax.interpreters.mlir.register_lowering(
+    force_physical_layout_p, jax.interpreters.mlir.lower_fun(
+        _force_physical_layout_impl, multiple_results=False))
 jax.interpreters.ad.deflinear(force_physical_layout_p,
                               lambda ct: [force_physical_layout(ct)])
 jax.interpreters.batching.primitive_batchers[force_physical_layout_p] = (
