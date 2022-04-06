@@ -22,24 +22,24 @@ from smu import dataset_pb2
 CONFORMER_FIELDS = [
     (r'bond\_topologies', '$>0$ struct',
      'Description of all bond topologies that adequately match this geometry'),
-    (r'.atoms', '$n *$\ enum',
+    (r'\quad .atoms', 'n * enum',
      'Atom types, including charge. See AtomType for names and numbers'),
-    (r'.bonds.atom\_a', r'$\geq 0 * I$', 'Index of one atom in bond'),
-    (r'.bonds.atom\_b', r'$\geq 0 * I$', 'Index of other atom in bond'),
-    (r'.bonds.bond\_type', r'$\geq 0 *$\ enum',
+    (r'\quad .bonds.atom\_a', r'$\geq 0$ * I', 'Index of one atom in bond'),
+    (r'\quad .bonds.atom\_b', r'$\geq 0$ * I', 'Index of other atom in bond'),
+    (r'\quad .bonds.bond\_type', r'$\geq 0$ * enum',
      'See BondType for names and numbers'),
-    (r'.smiles', '$S$', 'SMILES canonicalied by RDKit'),
-    (r'.bond\_topology\_id', '$I$',
+    (r'\quad .smiles', 'S', 'SMILES canonicalied by RDKit'),
+    (r'\quad .bond\_topology\_id', 'I',
      'Unique ID for this topology. See bond\_topology.csv'),
-    (r'.is\_starting\_topology', '$B$',
+    (r'\quad .is\_starting\_topology', 'B',
      'Is this the topology used during geometry creation?'),
-    (r'.topology\_score', '$F$', r'See Section~\ref{sec:topology_detection}'),
-    (r'.geometry\_score', '$F$', r'See Section~\ref{sec:topology_detection}'),
-    (r'conformer\_id', '$I$', 'Unique ID for this conformer'),
-    (r'duplicated\_by', '$I$',
+    (r'\quad .topology\_score', 'F', r'See Section~\ref{sec:topology_detection}'),
+    (r'\quad .geometry\_score', 'F', r'See Section~\ref{sec:topology_detection}'),
+    (r'conformer\_id', 'I', 'Unique ID for this conformer'),
+    (r'duplicated\_by', 'I',
      'If this conformer did not proceed to full calculation because it was a ' +
      'duplicate, the conformer id that did proceed to full calculation'),
-    (r'duplicate\_of', '$\geq 0 * I$',
+    (r'duplicate\_of', '$\geq 0$ * I',
      'For conformer that proceeded to full calculation, the conformer ids of ' +
      'any other conformers that were duplicates of this one'),
     (r'fate', 'enum',
@@ -49,10 +49,10 @@ CONFORMER_FIELDS = [
      'List of intial geometries that produced this optimized geometry. '
      r'May not have the same length as bond\_topologies or duplicate\ of, '
      r'see Section~\ref{sec:duplicates} for details'),
-    (r'.atom\_positions', '$n * V$', '3D vector for each atom in .atoms'),
-    (r'optimized\_geometries', '$1$ struct',
+    (r'\quad .atom\_positions', 'n * V', '3D vector for each atom in .atoms'),
+    (r'optimized\_geometries', '1 struct',
      'Single geometry used for all Stage 2 calculations'),
-    (r'.atom\_positions', '$n * V$', '3D vector for each atom in .atoms'),
+    (r'\quad .atom\_positions', 'n * V', '3D vector for each atom in .atoms'),
     (r'properties', 'struct',
      r'See Table~\ref{tab:properties_fields} for details'),
     (r'which\_database', 'enum', 'STANDARD(2) or COMPLETE(3)'),
@@ -122,6 +122,74 @@ LEVEL_DICT = {
 }
 
 
+def properties_table_line(name, field_descriptor):
+  # Let's throw out a few special cases.
+  if (name == 'compute_cluster_info' or
+      name == 'symmetry_used_in_calculation' or
+      name == 'gaussian_sanity_check' or
+      name == 'calculation_statistics' or
+      name == 'number_imaginary_frequencies' or
+      name == 'number_of_optimization_runs'):
+    return None
+
+  if not field_descriptor.message_type:
+    if field_descriptor.type == field_descriptor.TYPE_STRING:
+      field_type = 'S'
+    elif field_descriptor.type == field_descriptor.TYPE_INT32:
+      field_type = 'I'
+    else:
+      raise ValueError(f'Unknown field type {field_descriptor}')
+  elif field_descriptor.message_type.name == 'StringMolecularProperty':
+    field_type = 'S'
+  elif field_descriptor.message_type.name == 'ScalarMolecularProperty':
+    field_type = 'F'
+  elif field_descriptor.message_type.name == 'StringMolecularProperty':
+    field_type = 'S'
+  elif field_descriptor.message_type.name == 'MultiScalarMolecularProperty':
+    field_type = 'TODO * F'
+  elif field_descriptor.message_type.name == 'AtomicMolecularProperty':
+    field_type = 'n * F'
+  elif field_descriptor.message_type.name == 'Vector3DMolecularProperty':
+    field_type = 'V'
+  elif field_descriptor.message_type.name == 'Rank2MolecularProperty':
+    field_type = 'T2'
+  elif field_descriptor.message_type.name == 'Rank3MolecularProperty':
+    field_type = 'T3'
+  elif field_descriptor.message_type.name == 'NormalMode':
+    field_type = '3 * n * n * V'
+  elif field_descriptor.message_type.name == 'CalculationStatistics':
+    # Internal only, ignoring
+    return None
+  else:
+    raise ValueError(
+        f'Unknown field type {field_descriptor.message_type.name}')
+
+  avail_enum = field_descriptor.GetOptions().Extensions[
+      dataset_pb2.availability]
+  if avail_enum == dataset_pb2.AvailabilityEnum.INTERNAL_ONLY:
+    return None
+  elif avail_enum == dataset_pb2.AvailabilityEnum.STANDARD:
+    availability = r'\checkmark'
+  elif avail_enum == dataset_pb2.AvailabilityEnum.COMPLETE:
+    availability = ''
+  else:
+    if name == 'errors.status':
+      availability = r'\checkmark'
+    elif name.startswith('errors.'):
+      availability = ''
+    else:
+      raise ValueError(f'Unknown availiability {avail_enum}')
+
+  level = ''
+  for suffix, value in LEVEL_DICT.items():
+    if name.endswith(suffix):
+      level = value
+      break
+
+  armored_name = name.replace('_', r'\_')
+  return f'{armored_name:56s}& {availability:10s} & {field_type:13s} & {level:30s}\\\\'
+
+
 # Fields to consider adding: description, symbol, units
 def properties_table(outf):
   """Prints a properties table."""
@@ -134,63 +202,20 @@ def properties_table(outf):
   for field_descriptor in descriptors:
     name = field_descriptor.name
 
-    # Let's throw out a few special cases.
-    if (name == 'compute_cluster_info' or
-        name == 'symmetry_used_in_calculation' or
-        name == 'gaussian_sanity_check' or name == 'calculation_statistics' or
-        name == 'number_imaginary_frequencies' or
-        name == 'number_of_optimization_runs'):
-      continue
-
-    if (field_descriptor.type == field_descriptor.TYPE_STRING or
-        field_descriptor.message_type.name == 'StringMolecularProperty'):
-      field_type = 'S'
-    elif field_descriptor.message_type.name == 'ScalarMolecularProperty':
-      field_type = 'F'
-    elif field_descriptor.message_type.name == 'StringMolecularProperty':
-      field_type = 'S'
-    elif field_descriptor.message_type.name == 'MultiScalarMolecularProperty':
-      field_type = 'TODO * F'
-    elif field_descriptor.message_type.name == 'AtomicMolecularProperty':
-      field_type = 'n * F'
-    elif field_descriptor.message_type.name == 'Vector3DMolecularProperty':
-      field_type = 'V'
-    elif field_descriptor.message_type.name == 'Rank2MolecularProperty':
-      field_type = 'T2'
-    elif field_descriptor.message_type.name == 'Rank3MolecularProperty':
-      field_type = 'T3'
-    elif field_descriptor.message_type.name == 'NormalMode':
-      field_type = '3 * n * n * v'
-    elif field_descriptor.message_type.name == 'Errors':
-      # We'll deal with the Errors field separately.
-      continue
-    elif field_descriptor.message_type.name == 'CalculationStatistics':
-      # Internal only, ignoring
-      continue
+    if field_descriptor.message_type and field_descriptor.message_type.name == 'Errors':
+      # Errors has subfields so we deal with it separately
+      for error_field_descriptor in field_descriptor.message_type.fields:
+        if error_field_descriptor.name.startswith('error_'):
+          continue
+        line = properties_table_line('errors.' + error_field_descriptor.name,
+                                     error_field_descriptor)
+        if not line:
+          raise ValueError(f'Did not understand error field {error_field_descriptor}')
+        print(line, file=outf)
     else:
-      raise ValueError(
-          f'Unknown field type {field_descriptor.message_type.name}')
-
-    avail_enum = field_descriptor.GetOptions().Extensions[
-        dataset_pb2.availability]
-    if avail_enum == dataset_pb2.AvailabilityEnum.INTERNAL_ONLY:
-      continue
-    elif avail_enum == dataset_pb2.AvailabilityEnum.STANDARD:
-      availability = r'\checkmark'
-    elif avail_enum == dataset_pb2.AvailabilityEnum.COMPLETE:
-      availability = ''
-    else:
-      raise ValueError(f'Unknown availiability {avail_enum}')
-
-    level = ''
-    for suffix, value in LEVEL_DICT.items():
-      if name.endswith(suffix):
-        level = value
-        break
-
-    armored_name = name.replace('_', r'\_')
-    print(f'{armored_name:56s}& {availability:10s} & {field_type:13s} & {level:30s}\\\\',
-          file=outf)
+      line = properties_table_line(name, field_descriptor)
+      if line:
+        print(line, file=outf)
 
   print('%%% End automatically generated section', file=outf)
 
