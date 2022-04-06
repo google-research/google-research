@@ -42,6 +42,7 @@ import sys
 from absl import app
 from absl import flags
 from absl import logging
+from google.protobuf import text_format
 import pandas as pd
 from rdkit import Chem
 
@@ -204,7 +205,8 @@ class PBTextOutputter:
     print(
       'conformers {',
       file=self.outfile)
-    self.outfile.write(str(conformer))
+    self.outfile.write(text_format.MessageToString(conformer,
+                                                   use_short_repeated_primitives=True))
     print('}', file=self.outfile)
 
   def close(self):
