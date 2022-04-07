@@ -21,7 +21,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 import jax.numpy as jnp
-import jax.test_util
 import numpy as np
 from gfsa import automaton_builder
 from gfsa import graph_types
@@ -699,7 +698,8 @@ class AutomatonTest(parameterized.TestCase):
         steps=1000,
         backtrack_fails_prob=0.01)
 
-    jax.test_util.check_close(absorbing_probs, expected_absorbing_probs)
+    np.testing.assert_allclose(
+        absorbing_probs, expected_absorbing_probs, atol=1E-5, rtol=1E-5)
 
   def test_all_nodes_absorbing_solve_explicit_conv(self):
     schema, graph = self.build_doubly_linked_list_graph(4)
@@ -730,10 +730,13 @@ class AutomatonTest(parameterized.TestCase):
         functools.partial(go, explicit_conv=False), routing_params,
         variant_weights, start_states)
 
-    jax.test_util.check_close(vals, unopt_vals)
+    assert_allclose = functools.partial(
+        np.testing.assert_allclose, atol=1E-5, rtol=1E-5)
+
+    assert_allclose(vals, unopt_vals)
     some_cotangent = jax.random.normal(jax.random.PRNGKey(0), vals.shape)
-    jax.test_util.check_close(
-        vjpfun(some_cotangent), unopt_vjpfun(some_cotangent))
+    jax.tree_util.tree_map(assert_allclose, vjpfun(some_cotangent),
+                           unopt_vjpfun(some_cotangent))
 
   def test_unroll_and_aggregate(self):
     schema, graph = self.build_doubly_linked_list_graph(4)

@@ -16,14 +16,13 @@
 # Lint as: python3
 """Tests for gfsa.jax_util."""
 
+import dataclasses
 import pickle
 from typing import Any, Tuple, Union
 from absl.testing import absltest
-import dataclasses
 import flax
 import jax
 import jax.numpy as jnp
-import jax.test_util
 import numpy as np
 from gfsa import jax_util
 
@@ -122,13 +121,14 @@ class JaxUtilTest(absltest.TestCase):
         y=Foo(a=jnp.array([15, 16]), b=(jnp.array(17.), jnp.array(18.))),
     )
 
-    jax.test_util.check_close(bar_plus_ten, expected)
+    jax.tree_util.tree_map(np.testing.assert_allclose, bar_plus_ten, expected)
     self.assertIsInstance(bar_plus_ten, Bar)
     self.assertIsInstance(bar_plus_ten.x, Foo)
     self.assertIsInstance(bar_plus_ten.y, Foo)
 
     bar_dict = flax.serialization.to_state_dict(bar)
-    jax.test_util.check_close(
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose,
         flax.serialization.from_state_dict(bar_plus_ten, bar_dict), bar)
 
 
