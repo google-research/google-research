@@ -104,6 +104,8 @@ class Config(object):
     self.NUM_SAMPLES_TO_PLOT_TE_FOR = 8
     self.KEEP_MODELS_ABOVE_TEST_ACCURACY = 0.55
     self.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = True
+    self.MODEL_BATCH_IDX = 0
+    self.MODEL_BATCH_COUNT = 1
 
     # Not currently updated through absl.FLAGS.
     self.BASE_MODEL_BATCH_SIZE = 32
@@ -175,6 +177,11 @@ class Config(object):
           'must be less than num samples per base model.'
       )
 
+    if self.MODEL_BATCH_IDX >= self.MODEL_BATCH_COUNT:
+      raise ValueError(
+          'The value of model_batch_idx must be smaller than model_batch_count.'
+      )
+
     super(Config, self).__setattr__(name, value)
 
   def set_config_paths(self, attr_dict):
@@ -199,6 +206,7 @@ class Config(object):
         f'min_test_accuracy_{self.KEEP_MODELS_ABOVE_TEST_ACCURACY}_'
         f'num_image_samples_{self.NUM_SAMPLES_PER_BASE_MODEL}_'
         f'identical_samples_{self.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
+        f'batch_{self.MODEL_BATCH_IDX}_of_{self.MODEL_BATCH_COUNT}'
     )
     self.EXPERIMENT_DIR = (
         f'_experiments/{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}__'
