@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utilities for constructing run_dir paths used by the launcher and runner."""
 
 import json

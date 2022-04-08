@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """JAX workflows used by the Learned Interpreters framework.
 
 Contains runner functions for training, evaluation, inference, and analysis of
