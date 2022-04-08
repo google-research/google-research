@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Defines Residual Networks with basic blocks.
 
 The networks implemented in this module is for training on CIFAR-10 dataset.

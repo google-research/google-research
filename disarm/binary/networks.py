@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Trainable models for DisARM experiments."""
 import tensorflow as tf
 import tensorflow_probability as tfp

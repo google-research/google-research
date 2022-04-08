@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """ConQUR agent to fine-tune the second-last layer of a Q-network."""
 import collections
 

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utility functions for creating and using selection_pb2 protos.
 
 See the proto file itself for detailed documentation on these fields.

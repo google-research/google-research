@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Code for running ConQUR training.
 
 Refer to the paper ConQUR: Mitigating Delusional Bias in Deep Q-learning
