@@ -79,6 +79,15 @@ class GaussianTest(absltest.TestCase):
       np.trapz(y=[dist.pdf(x) for x in xs], x=xs),
       1.0)
 
+  def test_bad_inputs(self):
+    with self.assertRaises(ValueError):
+      dist = bond_length_distribution.Gaussian(10, -1, 1)
+    with self.assertRaises(ValueError):
+      dist = bond_length_distribution.Gaussian(10, 1, 0)
+    with self.assertRaises(ValueError):
+      dist = bond_length_distribution.Gaussian(10, 1, -1)
+
+
 
 class EmpiricalTest(absltest.TestCase):
 
@@ -172,6 +181,31 @@ class EmpiricalTest(absltest.TestCase):
     with self.assertRaises(ValueError):
       bond_length_distribution.Empirical.from_arrays(
           [1.0, 1.1, 1.9], [1, 1, 1], None)
+
+
+class MixtureTest(absltest.TestCase):
+
+  def test_simple(self):
+    dist = bond_length_distribution.Mixture()
+    dist.add(bond_length_distribution.FixedWindow(0.5, 1.5, None), 75)
+    dist.add(bond_length_distribution.FixedWindow(1, 2, None), 25)
+    self.assertAlmostEqual(dist.pdf(0.25), 0)
+    self.assertAlmostEqual(dist.pdf(0.75), .75)
+    self.assertAlmostEqual(dist.pdf(1.25), 1)
+    self.assertAlmostEqual(dist.pdf(1.75), .25)
+    self.assertAlmostEqual(dist.pdf(2.25), 0)
+
+  def test_bad_weight(self):
+    dist = bond_length_distribution.Mixture()
+    with self.assertRaises(ValueError):
+      dist.add(bond_length_distribution.FixedWindow(1, 2, None), 0)
+    with self.assertRaises(ValueError):
+      dist.add(bond_length_distribution.FixedWindow(1, 2, None), 0)
+
+  def test_empty_mixture(self):
+    dist = bond_length_distribution.Mixture()
+    with self.assertRaises(ValueError):
+      dist.pdf(1)
 
 
 class AtomPairLengthDistributionsTest(absltest.TestCase):

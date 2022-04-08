@@ -176,6 +176,10 @@ class Gaussian(LengthDistribution):
   """
 
   def __init__(self, mean, stdev, cutoff):
+    if not stdev > 0:
+      raise ValueError(f'stdev must be positive, got {stdev}')
+    if not cutoff > 0:
+      raise ValueError(f'cutoff must be positive, got {cutoff}')
     self._dist = scipy.stats.norm(loc=mean, scale=stdev)
     self._cutoff = cutoff
     self._normalizer = 1 - 2 * self._dist.cdf(mean - cutoff * stdev)
@@ -359,6 +363,44 @@ class Empirical(LengthDistribution):
     if math.isnan(result):
       return 0.0
     return result
+
+
+class Mixture:
+  """Represents a mixture of underlying LengthDistribution.
+
+  Each given LengthDistribution is provided with a numeric weight. The weight
+  can be on arbitrary scale; the outputs will be scaled by the sum of the
+  weights.
+  """
+  def __init__(self):
+    self._dists = []
+    self._total_weight = 0.0
+
+  def add(self, dist, weight):
+    """Adds a new compoment to the mixture.
+
+    Args:
+      dist: LengthDistribution
+      weight: weight strictly > 0
+    """
+    if weight <= 0.0:
+      raise ValueError(f'Mixture: weight must be positive, got {weight}')
+    self._dists.append( (dist, weight) )
+    self._total_weight += weight
+
+  def pdf(self, length):
+    """Probability distribution function at given length.
+
+    Args:
+      length: length to query
+
+    Returns:
+      pdf value
+    """
+    if not self._dists:
+      raise ValueError('Mixture.pdf called with empty components')
+    return (sum([w * dist.pdf(length) for dist, w in self._dists])
+            / self._total_weight)
 
 
 class AtomPairLengthDistributions:
