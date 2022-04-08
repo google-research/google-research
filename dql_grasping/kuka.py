@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 # fork of //third_party/bullet/examples/pybullet/gym/envs/bullet/kuka.py with
 # fast reset capability.
 # pylint: skip-file
