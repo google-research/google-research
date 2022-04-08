@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Small models to be finetuned on embeddings."""
 
 import tensorflow.compat.v2 as tf

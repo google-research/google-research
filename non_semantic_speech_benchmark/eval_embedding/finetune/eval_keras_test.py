@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for non_semantic_speech_benchmark.eval_embedding.finetune.eval_keras."""
 
 from absl import flags
