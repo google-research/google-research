@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """A graph schema for 2d gridworld mazes.
 
 This schema assumes that the maze has no dead ends; in other words, every square

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Encoder specifications and hyperparameters used for county-level models.
 
 Each encoder outputs the variables of the corresponding county-level
