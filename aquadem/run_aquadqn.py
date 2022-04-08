@@ -84,6 +84,7 @@ def main(_):
       builder=builder,
       networks=networks,
       policy_network=behavior_policy,
+      min_replay_size=1000,
       batch_size=dqn_config.batch_size * dqn_config.num_sgd_steps_per_step,
       samples_per_insert=dqn_config.samples_per_insert)
 
