@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Get data."""
 
 from typing import Callable, Dict, Optional, List, Union

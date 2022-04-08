@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.datasets.google.random_python.python_numbers_control_flow."""
 
 from absl.testing import absltest

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Generation templates for Python programs using numbers and control flow.
 
 For this task, we assume that every variable holds a number.
