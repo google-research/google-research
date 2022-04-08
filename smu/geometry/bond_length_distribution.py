@@ -171,6 +171,30 @@ class FixedWindowLengthDistribution(LengthDistribution):
     return self._right_tail_dist(length)
 
 
+class GaussianLengthDistribution(LengthDistribution):
+  """Represents a trimmed Gaussian.
+  """
+
+  def __init__(self, mean, stdev, cutoff):
+    self._dist = scipy.stats.norm(loc=mean, scale=stdev)
+    self._cutoff = cutoff
+    self._normalizer = 1 - 2 * self._dist.cdf(mean - cutoff * stdev)
+
+  def pdf(self, length):
+    """Probability distribution function at given length.
+
+    Args:
+      length: length to query
+
+    Returns:
+      pdf value
+    """
+    if (length < self._dist.mean() - self._cutoff * self._dist.std() or
+        length > self._dist.mean() + self._cutoff * self._dist.std()):
+      return 0.0
+    return self._dist.pdf(length) / self._normalizer
+
+
 class EmpiricalLengthDistribution(LengthDistribution):
   """Represents a distribution from empirically observed counts.
 

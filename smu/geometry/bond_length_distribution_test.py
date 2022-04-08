@@ -58,6 +58,28 @@ class FixedWindowLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(6), 0.08824969)
 
 
+class GaussianLengthDistributionTest(absltest.TestCase):
+
+  def test_simple(self):
+    dist = bond_length_distribution.GaussianLengthDistribution(10, 2, 3)
+    # 4 stddev away shoudl be 0
+    self.assertEqual(dist.pdf(2), 0)
+    self.assertEqual(dist.pdf(18), 0)
+    # 1 stddev away
+    self.assertAlmostEqual(dist.pdf(8), 0.12131288)
+    self.assertAlmostEqual(dist.pdf(12), 0.12131288)
+    # mean
+    self.assertAlmostEqual(dist.pdf(10), 0.200011129)
+
+  def test_integral(self):
+    dist = bond_length_distribution.GaussianLengthDistribution(2, .5, 2)
+    # The precision/range here was empirical. GOing to higher does get closer and closer to 1.
+    xs = np.arange(.99, 3.01, .0005)
+    self.assertAlmostEqual(
+      np.trapz(y=[dist.pdf(x) for x in xs], x=xs),
+      1.0)
+
+
 class EmpiricalLengthDistributionTest(absltest.TestCase):
 
   def test_from_file(self):
