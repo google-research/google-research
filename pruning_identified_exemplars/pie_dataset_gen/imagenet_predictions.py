@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Saves predictions for all ImageNet eval shards and ResNet-50 checkpoints.
 
 This script stores individual predictions in a pandas dataframe and outputs

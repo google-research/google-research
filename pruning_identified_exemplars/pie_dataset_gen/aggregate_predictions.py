@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""This script aggregates saved csv files of imagenet predictions.
 
 Given multiple sets of predictions for the same image, it computes the modal
