@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Generates the dsub configuration for running scran, Seurat and ZinbWave.
 
 This script is used to generate the hyperparameter grid for scran, Seurat and
