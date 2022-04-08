@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Temporal Fusion Transformer Model.
 
 Contains the full TFT architecture and associated components. Defines functions

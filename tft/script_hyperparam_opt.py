@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Main hyperparameter optimisation script.
 
 Performs random search to optimize hyperparameters on a single machine. For new

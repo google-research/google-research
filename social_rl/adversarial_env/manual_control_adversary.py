@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Script used for debugging the environment via command line.
 
 The env is rendered as a string so it can be used over ssh.
