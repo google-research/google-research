@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utils for data prep beam jobs.
 
 1) `data_prep_utils.py` contains low-level utils.

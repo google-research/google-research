@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Keras models with only the features needed for TRILLsson."""
 
 from typing import Optional

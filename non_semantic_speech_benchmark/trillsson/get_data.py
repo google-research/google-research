@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Get data."""
 # TODO(joelshor): The current cropping scheme biases data towards the beginning
 # of samples. Consider random cropping the longer utterances, instead of taking
