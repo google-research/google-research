@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Library parsing a preprocessing spec.
 
 A preprocessing spec is a list of preprocessing ops separated by '|' that can be

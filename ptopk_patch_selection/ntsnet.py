@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """NTS-Net adapted for perturbed top-k.
 
 Based on the original PyTorch code

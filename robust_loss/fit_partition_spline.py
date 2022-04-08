@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Approximate the distribution's partition function with a spline.
 
 This script generates values for the distribution's partition function and then

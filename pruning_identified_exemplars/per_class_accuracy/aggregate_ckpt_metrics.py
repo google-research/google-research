@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Scrape class summaries from tensorboard event summaries and save as CSV.
 
 This script scrapes class summaries and stores individual predictions
