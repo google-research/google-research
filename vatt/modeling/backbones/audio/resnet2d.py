@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """This code is directly inheritted from:
 https://github.com/google-research/simclr/blob/master/tf2/resnet.py
 """
