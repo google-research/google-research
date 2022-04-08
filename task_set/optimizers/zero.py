@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """An optimizer that simply zeros out weights.
 
 This is a sanity check optimizer. All other optimizer should obtain higher loss

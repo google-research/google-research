@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Import that loads all optimizers."""
 # pylint: disable=unused-import
 from task_set.optimizers import adagrad
