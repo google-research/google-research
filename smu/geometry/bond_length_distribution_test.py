@@ -38,16 +38,16 @@ BOND_DOUBLE = dataset_pb2.BondTopology.BOND_DOUBLE
 BOND_TRIPLE = dataset_pb2.BondTopology.BOND_TRIPLE
 
 
-class FixedWindowLengthDistributionTest(absltest.TestCase):
+class FixedWindowTest(absltest.TestCase):
 
   def test_simple(self):
-    dist = bond_length_distribution.FixedWindowLengthDistribution(3, 5, None)
+    dist = bond_length_distribution.FixedWindow(3, 5, None)
     self.assertAlmostEqual(dist.pdf(2.9), 0.0)
     self.assertAlmostEqual(dist.pdf(5.1), 0.0)
     self.assertAlmostEqual(dist.pdf(3.456), 0.5)
 
   def test_right_tail(self):
-    dist = bond_length_distribution.FixedWindowLengthDistribution(
+    dist = bond_length_distribution.FixedWindow(
         3, 5, right_tail_mass=0.8)
     # 0.2 of the mass is in the window, divded by 2 (size of the window)
     self.assertAlmostEqual(dist.pdf(3.456), 0.1)
@@ -58,10 +58,10 @@ class FixedWindowLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(6), 0.08824969)
 
 
-class GaussianLengthDistributionTest(absltest.TestCase):
+class GaussianTest(absltest.TestCase):
 
   def test_simple(self):
-    dist = bond_length_distribution.GaussianLengthDistribution(10, 2, 3)
+    dist = bond_length_distribution.Gaussian(10, 2, 3)
     # 4 stddev away shoudl be 0
     self.assertEqual(dist.pdf(2), 0)
     self.assertEqual(dist.pdf(18), 0)
@@ -72,7 +72,7 @@ class GaussianLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(10), 0.200011129)
 
   def test_integral(self):
-    dist = bond_length_distribution.GaussianLengthDistribution(2, .5, 2)
+    dist = bond_length_distribution.Gaussian(2, .5, 2)
     # The precision/range here was empirical. GOing to higher does get closer and closer to 1.
     xs = np.arange(.99, 3.01, .0005)
     self.assertAlmostEqual(
@@ -80,7 +80,7 @@ class GaussianLengthDistributionTest(absltest.TestCase):
       1.0)
 
 
-class EmpiricalLengthDistributionTest(absltest.TestCase):
+class EmpiricalTest(absltest.TestCase):
 
   def test_from_file(self):
     data = """1.0,1
@@ -88,7 +88,7 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
 1.2,3
 1.3,4"""
     tmpfile = self.create_tempfile(content=data)
-    dist = bond_length_distribution.EmpiricalLengthDistribution.from_file(
+    dist = bond_length_distribution.Empirical.from_file(
         tmpfile, None)
     self.assertAlmostEqual(dist.bucket_size, 0.1)
 
@@ -105,7 +105,7 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
         'count': [2, 3, 5]
     })
     got = (
-        bond_length_distribution.EmpiricalLengthDistribution
+        bond_length_distribution.Empirical
         .from_sparse_dataframe(df_input, right_tail_mass=0, sig_digits=3))
     self.assertAlmostEqual(got.pdf(1.2335), 0.0)
     self.assertAlmostEqual(got.pdf(1.2345), 200)
@@ -119,7 +119,7 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
         'count': [4, 5, 8]
     })
     got = (
-        bond_length_distribution.EmpiricalLengthDistribution
+        bond_length_distribution.Empirical
         .from_sparse_dataframe(df_input, right_tail_mass=0, sig_digits=1))
     self.assertAlmostEqual(got.pdf(1.25), 4 / 30 * 10)
     self.assertAlmostEqual(got.pdf(1.35), 5 / 30 * 10)
@@ -134,11 +134,11 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
     })
     with self.assertRaisesRegex(ValueError, 'Unexpected length_str'):
       _ = (
-          bond_length_distribution.EmpiricalLengthDistribution
+          bond_length_distribution.Empirical
           .from_sparse_dataframe(df_input, right_tail_mass=0, sig_digits=2))
 
   def test_from_arrays(self):
-    dist = bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
+    dist = bond_length_distribution.Empirical.from_arrays(
         [1.0, 1.1], [5, 15], None)
 
     # Since the bucket sizes are 0.1, the pdfs are 10x the probability mass in
@@ -148,7 +148,7 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(1.15), 7.5)
 
   def test_edges(self):
-    dist = bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
+    dist = bond_length_distribution.Empirical.from_arrays(
         [1.0, 1.1, 1.2, 1.3], [1, 2, 3, 4], None)
 
     # Test just below and above the minimum
@@ -160,7 +160,7 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(1.4001), 0.0)
 
   def test_right_tail(self):
-    dist = bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
+    dist = bond_length_distribution.Empirical.from_arrays(
         [1.0, 1.1], [5, 15], right_tail_mass=0.8)
     self.assertAlmostEqual(dist.pdf(1.05), 0.5)
     self.assertAlmostEqual(dist.pdf(1.15), 1.5)
@@ -170,7 +170,7 @@ class EmpiricalLengthDistributionTest(absltest.TestCase):
 
   def test_different_bucket_sizes(self):
     with self.assertRaises(ValueError):
-      bond_length_distribution.EmpiricalLengthDistribution.from_arrays(
+      bond_length_distribution.Empirical.from_arrays(
           [1.0, 1.1, 1.9], [1, 1, 1], None)
 
 
@@ -181,10 +181,10 @@ class AtomPairLengthDistributionsTest(absltest.TestCase):
     self.dists = bond_length_distribution.AtomPairLengthDistributions()
     self.dists.add(
         BOND_SINGLE,
-        bond_length_distribution.FixedWindowLengthDistribution(1.2, 1.8, None))
+        bond_length_distribution.FixedWindow(1.2, 1.8, None))
     self.dists.add(
         BOND_DOUBLE,
-        bond_length_distribution.FixedWindowLengthDistribution(1.0, 1.4, None))
+        bond_length_distribution.FixedWindow(1.0, 1.4, None))
 
   def test_simple(self):
     self.assertEqual(self.dists.probability_of_bond_types(0.5), {})
@@ -212,7 +212,7 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     all_dists.add(
         ATOM_N, ATOM_O,
         BOND_SINGLE,
-        bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
+        bond_length_distribution.FixedWindow(1, 2, None))
     self.assertEqual(
         all_dists.pdf_length_given_type(ATOM_N,
                                         ATOM_O,
@@ -239,7 +239,7 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     all_dists.add(
         ATOM_N, ATOM_O,
         BOND_DOUBLE,
-        bond_length_distribution.FixedWindowLengthDistribution(2, 3, None))
+        bond_length_distribution.FixedWindow(2, 3, None))
     self.assertEqual(
         all_dists.pdf_length_given_type(ATOM_N,
                                         ATOM_O,
@@ -256,11 +256,11 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     all_dists.add(
         ATOM_N, ATOM_O,
         BOND_SINGLE,
-        bond_length_distribution.FixedWindowLengthDistribution(1, 4, None))
+        bond_length_distribution.FixedWindow(1, 4, None))
     all_dists.add(
         ATOM_N, ATOM_O,
         BOND_DOUBLE,
-        bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
+        bond_length_distribution.FixedWindow(1, 2, None))
     got = all_dists.probability_of_bond_types(ATOM_N,
                                               ATOM_O,
                                               1.5)
@@ -273,7 +273,7 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
     all_dists.add(
         ATOM_N, ATOM_O,
         BOND_SINGLE,
-        bond_length_distribution.FixedWindowLengthDistribution(1, 2, None))
+        bond_length_distribution.FixedWindow(1, 2, None))
 
     with self.assertRaises(KeyError):
       all_dists.probability_of_bond_types(ATOM_C,
@@ -401,26 +401,26 @@ class AddFromSpecStringTest(parameterized.TestCase):
   def is_empirical(self, atom_a, atom_b, bond_type):
     length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
     return isinstance(length_dist,
-                      bond_length_distribution.EmpiricalLengthDistribution)
+                      bond_length_distribution.Empirical)
 
   def fixed_window_min(self, atom_a, atom_b, bond_type):
     length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
     if not isinstance(length_dist,
-                      bond_length_distribution.FixedWindowLengthDistribution):
+                      bond_length_distribution.FixedWindow):
       return None
     return length_dist.minimum
 
   def fixed_window_max(self, atom_a, atom_b, bond_type):
     length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
     if not isinstance(length_dist,
-                      bond_length_distribution.FixedWindowLengthDistribution):
+                      bond_length_distribution.FixedWindow):
       return None
     return length_dist.maximum
 
   def fixed_window_right_tail_mass(self, atom_a, atom_b, bond_type):
     length_dist = self.bond_lengths[(atom_a, atom_b)][bond_type]
     if not isinstance(length_dist,
-                      bond_length_distribution.FixedWindowLengthDistribution):
+                      bond_length_distribution.FixedWindow):
       return None
     return length_dist.right_tail_mass
 

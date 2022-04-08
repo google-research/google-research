@@ -90,12 +90,12 @@ class TestTopoFromGeom(absltest.TestCase):
     )
     x, y = triangular_distribution(1.0, 1.4, 2.0)
     df = pd.DataFrame({"length": x, "count": y})
-    bldc1c = bond_length_distribution.EmpiricalLengthDistribution(df, 0.0)
+    bldc1c = bond_length_distribution.Empirical(df, 0.0)
     all_distributions.add(carbon, carbon, single_bond, bldc1c)
 
     x, y = triangular_distribution(1.0, 1.5, 2.0)
     df = pd.DataFrame({"length": x, "count": y})
-    bldc2c = bond_length_distribution.EmpiricalLengthDistribution(df, 0.0)
+    bldc2c = bond_length_distribution.Empirical(df, 0.0)
     all_distributions.add(carbon, carbon, double_bond, bldc2c)
 
     conformer = dataset_pb2.Conformer()
@@ -158,7 +158,7 @@ atom_positions {
       all_dist.add(
           dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
           bond_type,
-          bond_length_distribution.FixedWindowLengthDistribution(
+          bond_length_distribution.FixedWindow(
               1.0, 2.0, None))
 
     # This conformer is a flat aromatic square of nitrogens. The single and

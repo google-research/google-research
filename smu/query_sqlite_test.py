@@ -56,7 +56,7 @@ class GeometryDataTest(absltest.TestCase):
   def is_empirical(self, atom_a, atom_b, bond_type):
     length_dist = self._geometry_data.bond_lengths[(atom_a, atom_b)][bond_type]
     return isinstance(length_dist,
-                      bond_length_distribution.EmpiricalLengthDistribution)
+                      bond_length_distribution.Empirical)
 
   def test_empty_bond_lengths(self):
     self.create(None)

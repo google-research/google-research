@@ -109,7 +109,7 @@ class LengthDistribution(abc.ABC):
     raise NotImplementedError
 
 
-class FixedWindowLengthDistribution(LengthDistribution):
+class FixedWindow(LengthDistribution):
   """Represents a distribution with a fixed value over a window.
 
   The window is specified by a mimimum and maximum value.
@@ -121,7 +121,7 @@ class FixedWindowLengthDistribution(LengthDistribution):
 
   def __init__(self, minimum, maximum,
                right_tail_mass):
-    """Construct a FixedWindowLengthDistribution.
+    """Construct a FixedWindow.
 
     Args:
       minimum: left side of window
@@ -171,7 +171,7 @@ class FixedWindowLengthDistribution(LengthDistribution):
     return self._right_tail_dist(length)
 
 
-class GaussianLengthDistribution(LengthDistribution):
+class Gaussian(LengthDistribution):
   """Represents a trimmed Gaussian.
   """
 
@@ -195,7 +195,7 @@ class GaussianLengthDistribution(LengthDistribution):
     return self._dist.pdf(length) / self._normalizer
 
 
-class EmpiricalLengthDistribution(LengthDistribution):
+class Empirical(LengthDistribution):
   """Represents a distribution from empirically observed counts.
 
   Note that while the values are given as discrete buckets, these discrete
@@ -208,7 +208,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
   """
 
   def __init__(self, df, right_tail_mass):
-    """Construct EmpiricalLengthDistribution.
+    """Construct Empirical.
 
     It is expected that the space between the elements of df['length'] are
     equal.
@@ -273,16 +273,16 @@ class EmpiricalLengthDistribution(LengthDistribution):
         (see class documentation)
 
     Returns:
-      EmpiricalLengthDistribution
+      Empirical
     """
     with open(filename) as f:
       df = pd.read_csv(f, header=None, names=['length', 'count'], dtype=float)
 
-    return EmpiricalLengthDistribution(df, right_tail_mass)
+    return Empirical(df, right_tail_mass)
 
   @classmethod
   def from_sparse_dataframe(cls, df_input, right_tail_mass, sig_digits):
-    """Creates EmpiricalLengthDistribution from a sparse dataframe.
+    """Creates Empirical from a sparse dataframe.
 
     "sparse" means that not every bucket is listed explictly. The main work
     in this function to to fill in the implicit values expected in the
@@ -295,7 +295,7 @@ class EmpiricalLengthDistribution(LengthDistribution):
       sig_digits: number of significant digits after the decimal point
 
     Returns:
-      EmpiricalLengthDistribution
+      Empirical
     """
     bucket_size = np.float_power(10, -sig_digits)
     input_lengths = df_input['length_str'].astype(np.double)
@@ -315,11 +315,11 @@ class EmpiricalLengthDistribution(LengthDistribution):
       raise ValueError('Unexpected length_str values in input: {}'.format(
           set(df_input['length_str']).difference(df_lengths['length_str'])))
 
-    return EmpiricalLengthDistribution(df, right_tail_mass=right_tail_mass)
+    return Empirical(df, right_tail_mass=right_tail_mass)
 
   @classmethod
   def from_arrays(cls, lengths, counts, right_tail_mass):
-    """Creates EmpiricalLengthDistribution from arrays.
+    """Creates Empirical from arrays.
 
     Args:
       lengths: sequence of values of the left edges of the buckets (same length
@@ -329,9 +329,9 @@ class EmpiricalLengthDistribution(LengthDistribution):
         (see class documentation)
 
     Returns:
-      EmpiricalLengthDistribution
+      Empirical
     """
-    return EmpiricalLengthDistribution(
+    return Empirical(
         pd.DataFrame.from_dict({
             'length': lengths,
             'count': counts
@@ -499,12 +499,12 @@ class AllAtomPairLengthDistributions:
 
     Missing files are silently ignored.
 
-    Contents are as expected by EmpiricalLengthDistribution.from_file
+    Contents are as expected by Empirical.from_file
 
     Args:
       filestem: prefix of files to load
       unbonded_right_tail_mass: right_tail_mass (as described in
-        EmpiricalLengthDistribution) for the unbonded cases.
+        Empirical) for the unbonded cases.
       include_nonbonded: whether or not to include non-bonded data.
     """
     atomic_numbers = [1, 6, 7, 8, 9]
@@ -538,7 +538,7 @@ class AllAtomPairLengthDistributions:
       atom_a = ATOMIC_NUMBER_TO_ATYPE[atom_a]
       atom_b = ATOMIC_NUMBER_TO_ATYPE[atom_b]
       self.add(atom_a, atom_b, bond_type,
-               EmpiricalLengthDistribution.from_file(fname, right_tail_mass))
+               Empirical.from_file(fname, right_tail_mass))
 
   def add_from_sparse_dataframe(self, df_input, unbonded_right_tail_mass,
                                 sig_digits):
@@ -550,7 +550,7 @@ class AllAtomPairLengthDistributions:
     Args:
       df_input: pd.DataFrame
       unbonded_right_tail_mass: right_tail_mass (as described in
-        EmpiricalLengthDistribution) for the unbonded cases.
+        Empirical) for the unbonded cases.
       sig_digits: number of significant digits after the decimal point
     """
     avail_pairs = set(
@@ -572,7 +572,7 @@ class AllAtomPairLengthDistributions:
       atom_1 = ATOMIC_NUMBER_TO_ATYPE[atom_1]
       self.add(
           atom_0, atom_1, bond_type,
-          EmpiricalLengthDistribution.from_sparse_dataframe(
+          Empirical.from_sparse_dataframe(
               df, right_tail_mass, sig_digits))
 
   def add_from_sparse_dataframe_file(self, filename,
@@ -585,7 +585,7 @@ class AllAtomPairLengthDistributions:
     Args:
       filename: string, file to read
       unbonded_right_tail_mass: right_tail_mass (as described in
-        EmpiricalLengthDistribution) for the unbonded cases.
+        Empirical) for the unbonded cases.
       sig_digits: number of significant digits after the decimal point
     """
     with open(filename, 'r') as infile:
@@ -633,7 +633,7 @@ class AllAtomPairLengthDistributions:
         for atom_a, atom_b, bond in itertools.product(atoms_a, atoms_b, bonds):
           self.add(
               atom_a, atom_b, bond,
-              FixedWindowLengthDistribution(
+              FixedWindow(
                   min_val, max_val, right_tail_mass))
 
       except (KeyError, IndexError, ValueError) as an_exception:
@@ -725,13 +725,13 @@ def make_fake_empiricals():
        dataset_pb2.BondTopology.ATOM_F], 2):
     bond_lengths.add(
       atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
-      EmpiricalLengthDistribution.from_arrays(
+      Empirical.from_arrays(
         np.arange(1, 2, 0.1), [1] * 10, 0))
     for bond_type in [dataset_pb2.BondTopology.BOND_SINGLE,
                       dataset_pb2.BondTopology.BOND_DOUBLE,
                       dataset_pb2.BondTopology.BOND_TRIPLE]:
       bond_lengths.add(
         atom_a, atom_b, bond_type,
-        EmpiricalLengthDistribution.from_arrays(
+        Empirical.from_arrays(
           np.arange(1, 2, 0.1), [1] * 10, 0))
   return bond_lengths
