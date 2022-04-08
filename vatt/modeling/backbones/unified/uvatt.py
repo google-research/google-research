@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Universal Video, Audio, and Text Transformer (UVATT)."""
 
 import tensorflow as tf

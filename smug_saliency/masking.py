@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Find the minimal mask for a given image and a trained neural network.
 
 Given an image and a trained neural network this code constructs an smt encoding

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Main evaluators classes/functions for MMV/VATT models."""
 
 from absl import logging
