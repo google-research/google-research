@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Evaluate robustness of sparse models on PIE, ImageNet-A and ImageNet-C.
 
 run locally:

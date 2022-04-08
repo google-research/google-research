@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tensorflow code for frontend functions in frontend.py."""
 
 from typing import Optional
