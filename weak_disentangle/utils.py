@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Utilities for logging, neural network activations, and initializations."""
 
 # pylint: disable=g-bad-import-order, unused-import, g-multiple-import

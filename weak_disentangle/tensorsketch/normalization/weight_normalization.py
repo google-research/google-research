@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Weight normalization utilities."""
 
 # pylint: disable=g-importing-member, g-bad-import-order
