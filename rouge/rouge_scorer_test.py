@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Tests for rouge scorer.
 
 Tests for both correctness and for consistency with the official ROUGE-1.5.5

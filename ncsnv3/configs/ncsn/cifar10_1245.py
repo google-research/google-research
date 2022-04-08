@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Config file for training NCSN with technique 1,2,4,5 only."""
 
 import ml_collections

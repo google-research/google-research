@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Computes rouge scores between two text blobs.
 
 Implementation replicates the functionality in the original ROUGE package. See:
