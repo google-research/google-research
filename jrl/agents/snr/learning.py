@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Spectral Norm Regularization (SNR) learner implementation.
 
 Almost like a vanilla actor-critic method with SNR ideas added on top.

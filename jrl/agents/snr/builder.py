@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """SNR Builder.
 
 Spectral norm regularization on the policy w.r.t. the Q-fn kernel"""
