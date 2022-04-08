@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Computes metrics from prediction and ground truth."""
 import numpy as np
 import tensorflow.compat.v2 as tf

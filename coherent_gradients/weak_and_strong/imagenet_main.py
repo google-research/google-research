@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Imagenet trainer.
 
 This trainer is heavily based on PyTorch Imagenet trainer example that can be
