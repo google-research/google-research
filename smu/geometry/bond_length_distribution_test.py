@@ -27,6 +27,9 @@ from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
 
 
+TESTDATA_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'testdata')
+
 # Some shortcuts to write less characters below
 ATOM_C = dataset_pb2.BondTopology.ATOM_C
 ATOM_N = dataset_pb2.BondTopology.ATOM_N
@@ -317,6 +320,55 @@ class AllAtomPairLengthDistributions(absltest.TestCase):
       all_dists.pdf_length_given_type(ATOM_C,
                                       ATOM_C,
                                       BOND_SINGLE, 1.0)
+
+  def test_add_from_gaussians_file(self):
+    all_dists = bond_length_distribution.AllAtomPairLengthDistributions()
+
+    all_dists.add_from_gaussians_file(
+      os.path.join(TESTDATA_PATH, 'example_gaussian_input.csv'), 1)
+
+    # The example file has a few lines copied from the real exporte files.
+    #
+    # Note two things in the file that might not be obvious
+    # * An line with "n/a" as Bond that is ignored
+    # * A line with "N:N" but no values that is ignored
+    #
+    # The numbers in the test below come from looking at a few cases there.
+
+    # Two enties for C-C, making sure they mix.
+    self.assertGreater(
+      all_dists.pdf_length_given_type(ATOM_C, ATOM_C, BOND_SINGLE, 1.513), 0)
+    self.assertGreater(
+      all_dists.pdf_length_given_type(
+        ATOM_C, ATOM_C, BOND_SINGLE, 1.588 + .001), 0)
+    self.assertEqual(
+      all_dists.pdf_length_given_type(
+        ATOM_C, ATOM_C, BOND_SINGLE, 1.8), 0)
+
+    # Testing double bond
+    self.assertGreater(
+      all_dists.pdf_length_given_type(
+        ATOM_C, ATOM_C, BOND_DOUBLE, 1.299 + .001), 0)
+    self.assertEqual(
+      all_dists.pdf_length_given_type(
+        ATOM_C, ATOM_C, BOND_DOUBLE, 1.8), 0)
+
+    # Testing triple bond
+    self.assertGreater(
+      all_dists.pdf_length_given_type(
+        ATOM_C, ATOM_C, BOND_TRIPLE, 1.183 + .001), 0)
+    self.assertEqual(
+      all_dists.pdf_length_given_type(
+        ATOM_C, ATOM_C, BOND_TRIPLE, 1.0), 0)
+
+    # Aromatic are converted to both single and double.
+    self.assertGreater(
+      all_dists.pdf_length_given_type(ATOM_N, ATOM_N, BOND_SINGLE, 1.304), 0)
+    self.assertGreater(
+      all_dists.pdf_length_given_type(ATOM_N, ATOM_N, BOND_DOUBLE, 1.304), 0)
+    with self.assertRaises(KeyError):
+      all_dists.pdf_length_given_type(ATOM_N, ATOM_N, BOND_TRIPLE, 1.304)
+
 
   def test_add_from_files(self):
     data = """1.0,1

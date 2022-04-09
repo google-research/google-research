@@ -38,6 +38,7 @@ Data for all atom pairs is collected in AllAtomPairLengthDistributions
 """
 
 import abc
+import csv
 import itertools
 import math
 import os.path
@@ -497,6 +498,10 @@ class AllAtomPairLengthDistributions:
       '=': [dataset_pb2.BondTopology.BOND_DOUBLE],
       '#': [dataset_pb2.BondTopology.BOND_TRIPLE],
       '.': [dataset_pb2.BondTopology.BOND_UNDEFINED],
+      ':': [
+          dataset_pb2.BondTopology.BOND_SINGLE,
+          dataset_pb2.BondTopology.BOND_DOUBLE,
+      ],
       '~': [
           dataset_pb2.BondTopology.BOND_SINGLE,
           dataset_pb2.BondTopology.BOND_DOUBLE,
@@ -634,6 +639,52 @@ class AllAtomPairLengthDistributions:
       df = pd.read_csv(infile, dtype={'length_str': str})
     self.add_from_sparse_dataframe(df, unbonded_right_tail_mass, sig_digits)
 
+  def _triples_from_atom_bond_atom_spec(self, spec):
+    if len(spec) != 3:
+      raise BondLengthParseError(spec)
+
+    atoms_a = self._ATOM_SPECIFICATION_MAP[spec[0]]
+    bonds = self._BOND_SPECIFICATION_MAP[spec[1]]
+    atoms_b = self._ATOM_SPECIFICATION_MAP[spec[2]]
+    yield from itertools.product(atoms_a, atoms_b, bonds)
+
+  def add_from_gaussians_file(self, filename, cutoff):
+    """Adds distribution by reading specs of Guassians.
+
+    The original intention is to take a specially formatted version of the table
+    from
+    Allen, F. H. et al. Tables of bond lengths determined by X-ray and neutron
+    diffraction. Part 1. Bond lengths in organic compounds.
+    J. Chem. Soc. Perkin Trans. 2 S1–S19 (1987)
+
+    The file shoudl be a csv with at least the columns:
+    * Bond: A bond specification like C=C (like add_from_string_spec) (or n/a)
+    * d: mean
+    * sigma: standard deviation
+
+    Creates a Mixture distribution for every atom/pair/bond combo.
+
+    Args:
+      filename: file to read
+      cutoff: cutoff passed to Gaussian
+    """
+    with open(filename, encoding='utf-8-sig') as f:
+      reader = csv.DictReader(f)
+      for row in reader:
+        if row['Bond'] == 'n/a' or not row['d']:
+          continue
+        gaussian = Gaussian(float(row['d']), float(row['sigma']), cutoff)
+        for atom_a, atom_b, bond in self._triples_from_atom_bond_atom_spec(row['Bond']):
+          try:
+            atom_a_num = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
+            atom_b_num = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
+            mix_dist = self._atom_pair_dict[(atom_a_num, atom_b_num)][bond]
+          except KeyError:
+            mix_dist = Mixture()
+            self.add(atom_a, atom_b, bond, mix_dist)
+          print(f'SMURF {atom_a} {atom_b} {bond} {mix_dist}')
+          mix_dist.add(gaussian, 1.0)
+
 
   def add_from_string_spec(self, spec_string):
     """Adds entries from a compact string specifiction
@@ -654,9 +705,6 @@ class AllAtomPairLengthDistributions:
     terms = [x.strip() for x in spec_string.split(',')]
     for term in terms:
       try:
-        atoms_a = self._ATOM_SPECIFICATION_MAP[term[0]]
-        bonds = self._BOND_SPECIFICATION_MAP[term[1]]
-        atoms_b = self._ATOM_SPECIFICATION_MAP[term[2]]
         if term[3] != ':':
           raise BondLengthParseError(term)
         min_str, max_str = term[4:].split('-')
@@ -672,7 +720,7 @@ class AllAtomPairLengthDistributions:
           max_val = min_val + 0.1
           right_tail_mass = 0.9
 
-        for atom_a, atom_b, bond in itertools.product(atoms_a, atoms_b, bonds):
+        for atom_a, atom_b, bond in self._triples_from_atom_bond_atom_spec(term[:3]):
           self.add(
               atom_a, atom_b, bond,
               FixedWindow(
