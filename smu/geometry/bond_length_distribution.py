@@ -682,7 +682,6 @@ class AllAtomPairLengthDistributions:
           except KeyError:
             mix_dist = Mixture()
             self.add(atom_a, atom_b, bond, mix_dist)
-          print(f'SMURF {atom_a} {atom_b} {bond} {mix_dist}')
           mix_dist.add(gaussian, 1.0)
 
 
