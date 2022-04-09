@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Defines cache replacement OpenAI gym environment.
 
 See policy.py for LRU and Belady's policies.
