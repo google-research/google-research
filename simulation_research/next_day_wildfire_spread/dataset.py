@@ -19,6 +19,7 @@ import re
 from typing import Dict, Text, Sequence, Optional, Tuple
 
 import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 from simulation_research.next_day_wildfire_spread import constants
 from simulation_research.next_day_wildfire_spread import image_utils
@@ -418,7 +419,7 @@ def get_dataset(file_pattern,
 
 def make_dataset(
     hparams,
-    mode = tf.estimator.ModeKeys.TRAIN
+    mode = tf_estimator.ModeKeys.TRAIN
 ):
   """Creates a dataset.
 
@@ -450,7 +451,7 @@ def make_dataset(
   else:
     azimuth_out_channel = output_features.index(hparams.azimuth_out_channel)
 
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     file_pattern = hparams.train_path
     shuffle = True
     repeat = True
@@ -458,7 +459,7 @@ def make_dataset(
     random_rotate = hparams.random_rotate
     random_crop = hparams.random_crop
     center_crop = False
-  elif mode == tf.estimator.ModeKeys.EVAL:
+  elif mode == tf_estimator.ModeKeys.EVAL:
     file_pattern = hparams.eval_path
     shuffle = True
     repeat = True
@@ -466,7 +467,7 @@ def make_dataset(
     random_rotate = False
     random_crop = hparams.random_crop
     center_crop = False
-  elif mode == tf.estimator.ModeKeys.PREDICT:
+  elif mode == tf_estimator.ModeKeys.PREDICT:
     file_pattern = hparams.test_path
     shuffle = False
     repeat = False
