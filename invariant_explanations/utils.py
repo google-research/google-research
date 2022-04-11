@@ -98,12 +98,7 @@ class Bcolors:
 
 def get_file_suffix(chkpt):
   """Defining a consistent file suffix for saving temporary files."""
-  return (
-      f'_@_epoch_{chkpt}'
-      f'_test_acc>{config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
-      f'_identical_samples_{config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
-      '.npy'
-  )
+  return f'_@_epoch_{chkpt}.npy'
 
 
 def print_memory_usage():
@@ -520,6 +515,11 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
       base_model_metrics['test_accuracy'] >
       config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY
   )[0][:config.cfg.NUM_BASE_MODELS]
+  # For faster processing, select a batch of models to process.
+  filtered_indices = np.array_split(
+      filtered_indices,
+      config.cfg.MODEL_BATCH_COUNT,
+  )[config.cfg.MODEL_BATCH_IDX]
   if not list(filtered_indices):
     raise ValueError('No base-models identifed after filtering.')
   base_model_weights_chkpt = base_model_weights_chkpt[filtered_indices]

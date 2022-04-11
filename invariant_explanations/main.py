@@ -15,7 +15,6 @@
 
 """Main file used for approxNN project."""
 
-from typing import Sequence
 import warnings
 
 from absl import app
@@ -73,6 +72,17 @@ _USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS = flags.DEFINE_boolean(
     True,
     'A flag indicating whether or not to use identical samples on base models.',
 )
+_MODEL_BATCH_COUNT = flags.DEFINE_integer(
+    'model_batch_count',
+    100,
+    'A total number of model batches to use (from a total of num_base_models).',
+)
+_MODEL_BATCH_IDX = flags.DEFINE_integer(
+    'model_batch_idx',
+    1,
+    'The index of the batch of models to use for analysis.',
+)
+
 
 warnings.simplefilter('ignore')
 
@@ -94,6 +104,8 @@ def main(argv):
       'USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS': (
           _USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS.value
       ),
+      'MODEL_BATCH_COUNT': _MODEL_BATCH_COUNT.value,
+      'MODEL_BATCH_IDX': _MODEL_BATCH_IDX.value,
   })
 
   utils.create_experimental_folders()
