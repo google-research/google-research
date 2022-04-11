@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Load sequence datasets into tf.data.Dataset pipeline."""
 
 import functools
