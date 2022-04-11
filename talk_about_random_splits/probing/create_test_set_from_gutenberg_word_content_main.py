@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Creates test sets for the SentEval word_content task from Gutenberg data.
 
 In the word_content task, all sentences contain exactly 1 out of a set of

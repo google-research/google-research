@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for google_research.google_research.cold_posterior_bnn.core.statistics."""
 from __future__ import absolute_import
 from __future__ import division

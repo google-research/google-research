@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Creates new train/dev/test split for SentEval data based on text length.
 
 This script randomly samples text lengths until the number of examples having
