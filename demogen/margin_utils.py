@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Utilities for computing the margin of a model specified by a model config.
 
 This file contains function for computing the linear approximation of

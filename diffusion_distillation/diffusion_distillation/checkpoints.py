@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Blocking checkpoint loading loops with flax/training/checkpoints.py.
 
 Checkpointing helper functions.

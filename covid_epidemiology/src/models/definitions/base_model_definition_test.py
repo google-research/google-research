@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Unit tests for ModelDefinition code.
 
 Use python3 -m models.definitions.base_model_definition_test to run the tests.

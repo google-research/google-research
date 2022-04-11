@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# lint as: python3
 """Main file to run AwA experiments."""
 import os
 import awa_helper
