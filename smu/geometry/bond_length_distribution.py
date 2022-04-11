@@ -129,6 +129,7 @@ class LengthDistribution(abc.ABC):
     """
     raise NotImplementedError
 
+
 class FixedWindow(LengthDistribution):
   """Represents a distribution with a fixed value over a window.
 
@@ -444,6 +445,12 @@ class Mixture:
     return (sum([w * dist.pdf(length) for dist, w in self._dists])
             / self._total_weight)
 
+  def min(self):
+    return np.min([d.min() for (d, w) in self._dists])
+
+  def max(self):
+    return np.max([d.max() for (d, w) in self._dists])
+
 
 class AtomPairLengthDistributions:
   """Maintains a set of distributions for different bond types.
@@ -702,6 +709,7 @@ class AllAtomPairLengthDistributions:
     * Bond: A bond specification like C=C (like add_from_string_spec) (or n/a)
     * d: mean
     * sigma: standard deviation
+    * n: number of observations of this type
 
     Creates a Mixture distribution for every atom/pair/bond combo.
 
@@ -723,7 +731,7 @@ class AllAtomPairLengthDistributions:
           except KeyError:
             mix_dist = Mixture()
             self.add(atom_a, atom_b, bond, mix_dist)
-          mix_dist.add(gaussian, 1.0)
+          mix_dist.add(gaussian, int(row['n']))
 
 
   def add_from_string_spec(self, spec_string):

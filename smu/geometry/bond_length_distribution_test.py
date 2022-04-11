@@ -211,6 +211,9 @@ class MixtureTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(1.75), .25)
     self.assertAlmostEqual(dist.pdf(2.25), 0)
 
+    self.assertEqual(dist.min(), 0.5)
+    self.assertEqual(dist.max(), 2)
+
   def test_bad_weight(self):
     dist = bond_length_distribution.Mixture()
     with self.assertRaises(ValueError):
