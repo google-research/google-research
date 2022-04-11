@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for supcon.losses."""
 from absl.testing import parameterized
 import numpy as np
