@@ -23,7 +23,6 @@ from absl import logging
 from absl.testing import absltest
 from absl.testing import parameterized
 import jax
-import jax.test_util
 import numpy as np
 from gfsa.datasets import data_loading
 
@@ -71,7 +70,7 @@ class DataLoadingTest(parameterized.TestCase):
             "v": np.array([[[12], [13]], [[14], [15]], [[16], [17]]])
         },
     ]
-    jax.test_util.check_eq(batched, expected)
+    jax.tree_util.tree_map(np.testing.assert_array_equal, batched, expected)
 
   def test_batch_uneven_error(self):
     values = range(10)
@@ -91,7 +90,7 @@ class DataLoadingTest(parameterized.TestCase):
         np.array([6, 7, 8]),
         np.array([9, 0, 0]),
     ]
-    jax.test_util.check_eq(batched, expected)
+    jax.tree_util.tree_map(np.testing.assert_array_equal, batched, expected)
 
   def test_batch_bucketed(self):
     values = [("a", (1,)), ("b", (2,)), ("c", (3,)), ("a", (4,)), ("b", (5,)),
@@ -115,7 +114,7 @@ class DataLoadingTest(parameterized.TestCase):
     self.assertEqual(len(batched), len(expected))
     for (bk, bv), (ek, ev) in zip(batched, expected):
       self.assertEqual(bk, ek)
-      jax.test_util.check_eq(bv, ev)
+      jax.tree_util.tree_map(np.testing.assert_array_equal, bv, ev)
 
   def test_batch_into_prototype(self):
     # Silence expected warning for this test.
@@ -179,7 +178,7 @@ class DataLoadingTest(parameterized.TestCase):
                 ]]),
         },
     ]
-    jax.test_util.check_eq(batched, expected)
+    jax.tree_util.tree_map(np.testing.assert_array_equal, batched, expected)
 
   def test_prefetch_to_end(self):
     with data_loading.ThreadedPrefetcher(range(100), 10) as prefetched:
