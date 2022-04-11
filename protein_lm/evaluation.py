@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Baselines and evaluation metrics for Jax language models."""
 import itertools
 from flax.training import common_utils
