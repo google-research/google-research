@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Fixed masked autoregressive flows tasks.
 
 See: https://arxiv.org/abs/1705.07057 for more information.
