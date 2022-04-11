@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Graph Convolutional Network layer, as in Kipf&Welling with modifications.
 
 Modifications include the skip-connection and changing the nonlinearity to SeLU.
