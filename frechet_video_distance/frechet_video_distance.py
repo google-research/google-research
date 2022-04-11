@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Minimal Reference implementation for the Frechet Video Distance (FVD).
 
 FVD is a metric for the quality of video generation models. It is inspired by

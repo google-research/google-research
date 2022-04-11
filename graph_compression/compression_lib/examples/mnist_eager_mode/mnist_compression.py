@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """MNIST example with compression op in eager mode."""
 
 from __future__ import absolute_import
