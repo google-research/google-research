@@ -678,8 +678,8 @@ def generate_examples_from_problems(problems, n_variations, n_examples,
   for i in range(n_examples):
     if i%10000 == 0:
       print(f"    {i}/{n_examples} with {len(examples)} so far")
-    problem = random.choice(problems)
-    example = generate_example_with_problem(problem,
+    variation = random.choice(variations)
+    example = generate_example_with_problem(variation,
                                             example_types=example_types,
                                             answer_at_the_end=answer_at_the_end)
     if example is not None:
