@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Wraps drq_sac_agent and expands the root_dir for nightly baselines.
 
 """
