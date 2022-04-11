@@ -48,6 +48,8 @@ class FixedWindowTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(2.9), 0.0)
     self.assertAlmostEqual(dist.pdf(5.1), 0.0)
     self.assertAlmostEqual(dist.pdf(3.456), 0.5)
+    self.assertEqual(dist.min(), 3)
+    self.assertEqual(dist.max(), 5)
 
   def test_right_tail(self):
     dist = bond_length_distribution.FixedWindow(
@@ -59,6 +61,8 @@ class FixedWindowTest(absltest.TestCase):
     # right tail correct.
     self.assertAlmostEqual(dist.pdf(5.00000001), 0.1)
     self.assertAlmostEqual(dist.pdf(6), 0.08824969)
+    self.assertEqual(dist.min(), 3)
+    self.assertEqual(dist.max(), np.inf)
 
 
 class GaussianTest(absltest.TestCase):
@@ -73,6 +77,8 @@ class GaussianTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(12), 0.12131288)
     # mean
     self.assertAlmostEqual(dist.pdf(10), 0.200011129)
+    self.assertEqual(dist.min(), 4)
+    self.assertEqual(dist.max(), 16)
 
   def test_integral(self):
     dist = bond_length_distribution.Gaussian(2, .5, 2)
@@ -171,6 +177,10 @@ class EmpiricalTest(absltest.TestCase):
     self.assertAlmostEqual(dist.pdf(1.3999), 4.0)
     self.assertAlmostEqual(dist.pdf(1.4001), 0.0)
 
+    self.assertEqual(dist.min(), 1.0)
+    self.assertEqual(dist.max(), 1.4)
+
+
   def test_right_tail(self):
     dist = bond_length_distribution.Empirical.from_arrays(
         [1.0, 1.1], [5, 15], right_tail_mass=0.8)
@@ -179,6 +189,9 @@ class EmpiricalTest(absltest.TestCase):
     # This is just barely into the right tail, so should have the same pdf
     self.assertAlmostEqual(dist.pdf(1.2000000001), 1.5)
     self.assertAlmostEqual(dist.pdf(1.3), 1.2435437)
+
+    self.assertEqual(dist.min(), 1)
+    self.assertEqual(dist.max(), np.inf)
 
   def test_different_bucket_sizes(self):
     with self.assertRaises(ValueError):

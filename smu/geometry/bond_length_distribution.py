@@ -105,10 +105,29 @@ class LengthDistribution(abc.ABC):
 
     Args:
       length: length to query
-    Return: pdf value
+
+    Returns:
+      pdf value
     """
     raise NotImplementedError
 
+  @abc.abstractmethod
+  def min(self):
+    """Minimum value that returns a non-zero pdf.
+
+    Returns:
+      float
+    """
+    raise NotImplementedError
+
+  @abc.abstractmethod
+  def max(self):
+    """Maximum value that returns a non-zero pdf.
+
+    Returns:
+      float
+    """
+    raise NotImplementedError
 
 class FixedWindow(LengthDistribution):
   """Represents a distribution with a fixed value over a window.
@@ -171,6 +190,14 @@ class FixedWindow(LengthDistribution):
 
     return self._right_tail_dist(length)
 
+  def min(self):
+    return self.minimum
+
+  def max(self):
+    if self.right_tail_mass:
+      return np.inf
+    return self.maximum
+
 
 class Gaussian(LengthDistribution):
   """Represents a trimmed Gaussian.
@@ -198,6 +225,12 @@ class Gaussian(LengthDistribution):
         length > self._dist.mean() + self._cutoff * self._dist.std()):
       return 0.0
     return self._dist.pdf(length) / self._normalizer
+
+  def min(self):
+    return self._dist.mean() - self._cutoff * self._dist.std()
+
+  def max(self):
+    return self._dist.mean() + self._cutoff * self._dist.std()
 
 
 class Empirical(LengthDistribution):
@@ -364,6 +397,14 @@ class Empirical(LengthDistribution):
     if math.isnan(result):
       return 0.0
     return result
+
+  def min(self):
+    return self._df['length'].min()
+
+  def max(self):
+    if self._right_tail_dist:
+      return np.inf
+    return self._df['length'].max() + self.bucket_size
 
 
 class Mixture:
