@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Extract images from summaries.
 
 During training, we save image summaries. This extracts the images and dumps
