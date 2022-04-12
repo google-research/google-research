@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Puts everything together to train any factorization on any dataset."""
 
 import os.path
