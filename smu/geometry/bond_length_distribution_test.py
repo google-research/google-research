@@ -33,7 +33,9 @@ TESTDATA_PATH = os.path.join(
 # Some shortcuts to write less characters below
 ATOM_C = dataset_pb2.BondTopology.ATOM_C
 ATOM_N = dataset_pb2.BondTopology.ATOM_N
+ATOM_NPOS = dataset_pb2.BondTopology.ATOM_NPOS
 ATOM_O = dataset_pb2.BondTopology.ATOM_O
+ATOM_ONEG = dataset_pb2.BondTopology.ATOM_ONEG
 ATOM_F = dataset_pb2.BondTopology.ATOM_F
 BOND_UNDEFINED = dataset_pb2.BondTopology.BOND_UNDEFINED
 BOND_SINGLE = dataset_pb2.BondTopology.BOND_SINGLE
@@ -660,6 +662,47 @@ class TestInterpolateOutZeros(absltest.TestCase):
     inputs = np.array([1, 0, 0, 0, 0, 6])
     got = bond_length_distribution.interpolate_zeros(inputs)
     np.testing.assert_almost_equal([1, 2, 3, 4, 5, 6], got)
+
+
+class TestStandardDists(parameterized.TestCase):
+
+  @parameterized.parameters(
+    (ATOM_C, ATOM_C, BOND_SINGLE, True),
+    (ATOM_C, ATOM_C, BOND_DOUBLE, True),
+    (ATOM_C, ATOM_N, BOND_TRIPLE, True),
+    (ATOM_C, ATOM_NPOS, BOND_TRIPLE, True),
+    (ATOM_C, ATOM_O, BOND_TRIPLE, False),
+    (ATOM_F, ATOM_F, BOND_DOUBLE, False),
+    (ATOM_N, ATOM_F, BOND_DOUBLE, False),
+    (ATOM_O, ATOM_F, BOND_DOUBLE, False),
+    (ATOM_N, ATOM_ONEG, BOND_SINGLE, True),
+    (ATOM_N, ATOM_ONEG, BOND_DOUBLE, True),
+    (ATOM_F, ATOM_F, BOND_UNDEFINED, True),
+    (ATOM_C, ATOM_N, BOND_UNDEFINED, True),
+  )
+  def test_is_valid_bond(self, atom_a, atom_b, bond, expected):
+    self.assertEqual(
+      bond_length_distribution.is_valid_bond(atom_a, atom_b, bond),
+      expected)
+    self.assertEqual(
+      bond_length_distribution.is_valid_bond(atom_b, atom_a, bond),
+      expected)
+
+  def test_covalent_radii(self):
+    dists = bond_length_distribution.make_covalent_radii_dists()
+    for bond in [BOND_SINGLE, BOND_DOUBLE, BOND_TRIPLE]:
+      self.assertGreater(dists[(ATOM_C, ATOM_N)][bond].pdf(1.75), 0)
+      self.assertEqual(dists[(ATOM_C, ATOM_N)][bond].pdf(1.77), 0)
+    self.assertGreater(dists[(ATOM_C, ATOM_N)][BOND_UNDEFINED].pdf(1.75), 0)
+    self.assertGreater(dists[(ATOM_C, ATOM_N)][BOND_UNDEFINED].pdf(4.0), 0)
+    self.assertEqual(dists[(ATOM_C, ATOM_N)][BOND_UNDEFINED].pdf(1.55), 0)
+
+    self.assertEqual(dists[(ATOM_C, ATOM_F)][BOND_SINGLE].pdf(1.73), 0)
+    self.assertGreater(dists[(ATOM_C, ATOM_F)][BOND_SINGLE].pdf(1.71), 0)
+
+    with self.assertRaises(KeyError):
+      dists[(ATOM_C, ATOM_F)][BOND_DOUBLE]
+
 
 
 if __name__ == '__main__':

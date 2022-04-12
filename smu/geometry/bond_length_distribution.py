@@ -873,3 +873,78 @@ def make_fake_empiricals():
         Empirical.from_arrays(
           np.arange(1, 2, 0.1), [1] * 10, 0))
   return bond_lengths
+
+
+def is_valid_bond(atom_a, atom_b, bond):
+  """Whether this bond type can exist in SMU.
+
+  Note that for N and O, we assume the charge states can change.
+
+  Args:
+    atom_a: dataset_pb2.AtomType
+    atom_b: dataset_pb2.AtomType
+    bond: dataset_pb2.BondType
+
+  Returns:
+    bool
+  """
+  if bond == dataset_pb2.BondTopology.BOND_UNDEFINED:
+    return True
+  bond_order = int(bond)
+  return (bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_a] and
+          bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_b])
+
+
+_COVALENT_RADIUS = {
+  dataset_pb2.BondTopology.ATOM_C: 0.68,
+  dataset_pb2.BondTopology.ATOM_N: 0.68,
+  dataset_pb2.BondTopology.ATOM_O: 0.68,
+  dataset_pb2.BondTopology.ATOM_F: 0.64,
+}
+
+_COVALENT_RADII_MIN = 0.8
+_COVALENT_RADII_TOLERANCE = 0.4
+_COVALENT_RADII_UNBONDED_OVERLAP = 0.2
+
+
+def make_covalent_radii_dists():
+  """Makes distributions based on covalent radii.
+
+  This is a commonly used method to identify if atoms are bonded from geometry.
+  We are folllowing
+
+  Meng, E. C. & Lewis, R. A. Determination of molecular topology and
+  atomic hybridization states from heavy atom
+  coordinates. J. Comput. Chem. 12, 891–898 (1991)
+
+  The approach is to allow bonds of any order with distances > 0.8A and <
+  sum of covalent radii + tolerance (0.4A)
+
+  We additionally allow some overlap of bonded and unbonded by allowing
+  an overlap of 0.2A
+
+  Returns:
+    AllAtomPairLengthDistributions
+  """
+
+  dists = AllAtomPairLengthDistributions()
+  for atom_a, atom_b in itertools.combinations_with_replacement(
+      [dataset_pb2.BondTopology.ATOM_C,
+       dataset_pb2.BondTopology.ATOM_N,
+       dataset_pb2.BondTopology.ATOM_O,
+       dataset_pb2.BondTopology.ATOM_F], 2):
+    max_dist = (_COVALENT_RADIUS[atom_a] +
+                _COVALENT_RADIUS[atom_b] +
+                _COVALENT_RADII_TOLERANCE)
+    for bond in [dataset_pb2.BondTopology.BOND_SINGLE,
+                 dataset_pb2.BondTopology.BOND_DOUBLE,
+                 dataset_pb2.BondTopology.BOND_TRIPLE]:
+      if is_valid_bond(atom_a, atom_b, bond):
+        dists.add(atom_a, atom_b, bond,
+                  FixedWindow(_COVALENT_RADII_MIN, max_dist, None))
+
+    dists.add(atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
+              FixedWindow(max_dist - _COVALENT_RADII_UNBONDED_OVERLAP, max_dist,
+                          STANDARD_UNBONDED_RIGHT_TAIL_MASS))
+
+  return dists
