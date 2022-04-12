@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 r"""Script to create dataset for offline RL.
 
 Includes ProcGen, DMC suite (pixel and state, as well as DMC with distractor

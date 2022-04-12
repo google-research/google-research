@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Training NCSNv3 on CIFAR-10 with class label information."""
 
 import ml_collections
