@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Beam search for inference from a trained model.
 
 Adapts code from: flax/examples/wmt/decode.py

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Train Latent Programmer model on random supervised training tasks."""
 
 # pytype: disable=wrong-arg-count
