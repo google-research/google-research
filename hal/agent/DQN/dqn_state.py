@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 # pylint: disable=unused-argument
 # pylint: disable=line-too-long
 """Build DQN agent with state observation for state input."""

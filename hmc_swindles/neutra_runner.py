@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Binary to run a neutra experiment."""
 # pylint: disable=invalid-name,missing-docstring
 import os

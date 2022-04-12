@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Loads COMPAS dataset, processes it and saves it to output folder.
 
 Adapted from code provided by Heinrich Jiang (heinrichj@google.com). The COMPAS
