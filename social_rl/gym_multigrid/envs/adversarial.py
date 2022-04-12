@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """An environment which is built by a learning adversary.
 
 Has additional functions, step_adversary, and reset_agent. How to use:

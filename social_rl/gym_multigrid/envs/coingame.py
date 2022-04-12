@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Implements the multi-agent coingame environments.
 
 The agents must pick up (move adjacent to) coins in the environment. In each

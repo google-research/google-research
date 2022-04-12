@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Implements single-agent manually generated Maze environments.
 
 Humans provide a bit map to describe the position of walls, the starting
