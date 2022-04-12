@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# lint as: python3
 """A representation of a small subset of Python as a graph schema.
 
 The goal is to allow representing some simple functions as graphs in order to

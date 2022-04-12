@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Finite-state automaton builder and parameter logic.
 
 This module contains functions and objects to handle conversion of graphs into
