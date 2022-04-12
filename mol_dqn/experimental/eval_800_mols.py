@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Run evaluation on 800 molecules.
 
 Run pretrained model on all 800 molecules and record the optimization path.
