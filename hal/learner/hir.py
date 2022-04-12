@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Hindsight Instruction Relabeling."""
 # pylint: disable=unused-variable
 # pylint: disable=unused-argument

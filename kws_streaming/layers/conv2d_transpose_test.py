@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for kws_streaming.layers.conv2d_transpose."""
 
 from absl.testing import parameterized
