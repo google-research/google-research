@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Quantum circuit transformation rules.
 
 TransformationRule is the abstract base class for all transformation rules. In

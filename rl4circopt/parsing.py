@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tool for parsing Gate types.
 
 This module currently contains two functions, parse_gates(...) and
