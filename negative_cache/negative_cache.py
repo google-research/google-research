@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Code for managing an in-memory cache of negative examples."""
 import collections
 from typing import Dict
