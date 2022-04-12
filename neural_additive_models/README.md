@@ -1,6 +1,7 @@
 ## Neural Additive Models: Interpretable Machine Learning with Neural Nets
 
-# [![Website](https://img.shields.io/badge/www-Website-green)](https://neural-additive-models.github.io)
+# [![Website](https://img.shields.io/badge/www-Website-green)](https://neural-additive-models.github.io) [![Visualization Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1E3_t7Inhol-qVPmFNq1Otj9sWt1vU_DQ?usp=sharing)
+
 
 This repository contains open-source code
 for the paper
@@ -25,6 +26,12 @@ The code was tested under Ubuntu 16 and uses these packages:
 - sklearn>=0.23
 - pandas>=0.24
 - absl-py
+
+## Datasets
+
+The datasets used in the paper (except MIMIC-II) can be found in the <a href="https://console.cloud.google.com/storage/browser/nam_datasets/data"> public GCP bucket</a> `gs://nam_datasets/data`, which can be downloaded using [gsutil][gsutil]. To install gsutil, follow the instructions [here][gsutil_install]. The preprocessed version of MIMIC-II dataset, used in the NAM paper, can be
+shared only if you provide us with the signed data use agreement to the MIMIC-III Clinical
+Database on the <a href="https://mimic.mit.edu/docs/gettingstarted/#physionet-credentialing">PhysioNet website</a>.
 
 Citing
 ------
@@ -57,3 +64,6 @@ remediate fairness concerns in data. This dataset is canonical in the
 algorithmic fairness literature.*
 
 *Disclaimer: This is not an official Google product.*
+
+[gsutil_install]: https://cloud.google.com/storage/docs/gsutil_install#install
+[gsutil]: https://cloud.google.com/storage/docs/gsutil
