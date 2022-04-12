@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Defines agent class for learning and executing behavioural cloning policies.
 """
 import collections

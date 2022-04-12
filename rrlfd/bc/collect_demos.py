@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Execute a script agent to gather demonstrations on mime."""
 
 import os

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Functions to extract a grid/atlas of colors and features from a SNeRG MLP."""
 
 import gc
