@@ -124,3 +124,7 @@
 #mqm-th-severity {
   width: 3%;
 }
+.mqm-ci {
+  color: gray;
+  font-size: x-small
+}

@@ -454,6 +454,94 @@ function mqmAvgRaterStats(raterStats, num) {
 }
 
 /**
+ * Aggregates segment stats. This returns a two-element array:
+ * an object representing the aggregates, and the total number of ratings.
+ * @param {!Array} segs
+ * @return {!Array}
+ */
+function mqmAggregateSegStats(segs) {
+    aggregates = mqmInitRaterStats('');
+    ratings = 0;
+    if (!segs || !segs.length) {
+      aggregates.score = Infinity;
+      return [aggregates, ratings];
+    }
+    for (let raterStats of segs) {
+      const allRaterStats = mqmInitRaterStats('');
+      for (let r of raterStats) {
+        r.scoreMajor = r.major * 5.0;
+        r.scoreMinor = r.minor;
+        r.scoreNT = r.nonTrans * 25.0;
+        r.scoreTrivial = r.trivial * 0.1;
+        r.score = r.scoreMajor + r.scoreMinor + r.scoreNT + r.scoreTrivial;
+        r.scoreAccuracy = (r.majorA * 5.0) + r.minorA;
+        r.scoreFluency = (r.majorF * 5.0) + r.minorF;
+        r.scoreUncat = (r.majorUncat * 5.0) + r.minorUncat;
+        mqmAddRaterStats(allRaterStats, r);
+      }
+      mqmAvgRaterStats(allRaterStats, raterStats.length);
+      ratings += raterStats.length;
+      mqmAddRaterStats(aggregates, allRaterStats);
+    }
+    mqmAvgRaterStats(aggregates, segs.length);
+    return [aggregates, ratings];
+}
+
+/**
+ * Samples from [0, max) for a specified number of times.
+ * @param {number} max
+ * @param {number} size
+ * @return {!Array}
+ */
+function getRandomInt(max, size) {
+  let samples = [];
+  for (let i = 0; i < size; i++) {
+    samples.push(Math.floor(Math.random() * max));
+  }
+  return samples;
+}
+
+
+/**
+ * Uses bootstrap sampling to obtain the confidence interval
+ * (95% from 1000 document-level samples).
+ * @param {!Object} stats
+ * @return {!Array}
+ */
+function mqmGetBootstrapSampleCI(stats) {
+  // For each document, we only need to keep track of two stats:
+  // 1. The total number of segments in the document;
+  // 2. The MQM scores (averaged over the number of segments).
+  // These two stats are later used to compute a weighted average
+  // of MQM scores to take into account the different total number
+  // of segments when we use document-level sampling.
+  let docs = [];
+  for (let doc of Object.values(stats)) {
+    let segs_in_doc = Object.values(doc);
+    let [a, r] = mqmAggregateSegStats(segs_in_doc);
+    docs.push({'score': a.score, 'num_segments': segs_in_doc.length});
+  }
+
+  const num_samples = 1000;
+  const lower_idx = num_samples / 40;
+  const upper_idx = num_samples - lower_idx - 1;
+  let sampled_scores = [];
+  for (let i = 0; i < num_samples; i++) {
+    let indices = getRandomInt(docs.length, docs.length);
+    let score = 0.0;
+    let num_segments = 0;
+    for (let index of indices) {
+      let doc = docs[index];
+      score += doc['score'] * doc['num_segments'];
+      num_segments += doc['num_segments'];
+    }
+    sampled_scores.push(score / num_segments);
+  }
+  sampled_scores.sort();
+  return [sampled_scores[lower_idx], sampled_scores[upper_idx]];
+}
+
+/**
  * Appends MQM score details from the stats object to the table with the given
  * id.
  * @param {string} id
@@ -471,35 +559,14 @@ function mqmShowSegmentStats(id, title, stats) {
   const aggregates = {};
   const ratings = {};
   for (let k of keys) {
-    aggregates[k] = mqmInitRaterStats('');
-    ratings[k] = 0;
-    const segs = stats[k];
-    if (!segs || !segs.length) {
-      aggregates[k].score = Infinity;
-      continue;
-    }
-    for (let raterStats of segs) {
-      const allRaterStats = mqmInitRaterStats('');
-      for (let r of raterStats) {
-        r.scoreMajor = r.major * 5.0;
-        r.scoreMinor = r.minor;
-        r.scoreNT = r.nonTrans * 25.0;
-        r.scoreTrivial = r.trivial * 0.1;
-        r.score = r.scoreMajor + r.scoreMinor + r.scoreNT + r.scoreTrivial;
-        r.scoreAccuracy = (r.majorA * 5.0) + r.minorA;
-        r.scoreFluency = (r.majorF * 5.0) + r.minorF;
-        r.scoreUncat = (r.majorUncat * 5.0) + r.minorUncat;
-        mqmAddRaterStats(allRaterStats, r);
-      }
-      mqmAvgRaterStats(allRaterStats, raterStats.length);
-      ratings[k] += raterStats.length;
-      mqmAddRaterStats(aggregates[k], allRaterStats);
-    }
-    mqmAvgRaterStats(aggregates[k], segs.length);
+    const segs = mqmGetSegStatsAsArray(stats[k]);
+    let [a, r] = mqmAggregateSegStats(segs);
+    aggregates[k] = a;
+    ratings[k] = r;
   }
   keys.sort((k1, k2) => aggregates[k1].score - aggregates[k2].score);
   for (let k of keys) {
-    const segs = stats[k];
+    const segs = mqmGetSegStatsAsArray(stats[k]);
     const k_disp = (k == mqmTotal) ? 'Total' : k;
     let rowHTML = `<tr><td>${k_disp}</td><td>${segs.length}</td>` +
         `<td>${ratings[k]}</td>`;
@@ -508,10 +575,18 @@ function mqmShowSegmentStats(id, title, stats) {
         rowHTML += '<td>-</td>';
       }
     } else {
+      // Obtain confidence intervals for each system MQM score.
       for (let s of ['score', 'scoreNT', 'scoreMajor', 'scoreMinor',
                      'scoreTrivial', 'scoreAccuracy', 'scoreFluency',
                      'scoreUncat']) {
-        rowHTML += `<td>${(aggregates[k][s]).toFixed(3)}</td>`;
+        let content = aggregates[k][s].toFixed(3);
+        // Only show confidence intervals for system-level MQM scores for now.
+        if (title == 'By system' && s == 'score')  {
+          let [lb, ub] = mqmGetBootstrapSampleCI(stats[k]);
+          let ci = `${lb.toFixed(3)} - ${ub.toFixed(3)}`;
+          content += `<span class="mqm-ci"> (${ci}) </span>`;
+        }
+        rowHTML += `<td>${content}</td>`;
       }
       let errorSpan = 0;
       if (aggregates[k].numWithErrors > 0) {
@@ -739,6 +814,40 @@ function mqmArrayLast(a) {
 }
 
 /**
+ * Returns the segment stats keyed by doc_id and seg_id. This will
+ * create an empty array if the associated segment stats array doesn't exist.
+ * @param {!Object} stats_by_doc_seg
+ * @param {string} doc_id
+ * @param {string} seg_id
+ * @return {!Array}
+ */
+function mqmGetSegStats(stats_by_doc_seg, doc_id, seg_id) {
+  if (!stats_by_doc_seg.hasOwnProperty(doc_id)) {
+    stats_by_doc_seg[doc_id] = {};
+  }
+  if (!stats_by_doc_seg[doc_id].hasOwnProperty(seg_id)) {
+    stats_by_doc_seg[doc_id][seg_id] = [];
+  }
+  return stats_by_doc_seg[doc_id][seg_id];
+}
+
+/** 
+ * Flattens the nested stats object into an array of segment stats.
+ * @param {!Object} stats_by_doc_seg
+ * @return {!Array}
+*/
+function mqmGetSegStatsAsArray(stats_by_doc_seg) {
+  let arr = [];
+  for (let doc_id of Object.keys(stats_by_doc_seg)) {
+    let stats_by_seg = stats_by_doc_seg[doc_id];
+    for (let seg_id of Object.keys(stats_by_seg)) {
+      arr.push(stats_by_seg[seg_id]);
+    }
+  }
+  return arr;
+}
+
+/**
  * Updates the display to show the segment data and scores according to the
  * current filters.
  */
@@ -752,13 +861,16 @@ function mqmShow() {
 
   /**
    * The following mqmStats* objects are all keyed by something from:
-   * ({mqmTotal} or {system} or {rater}). Each keyed object is an array with
-   * one entry per segment. Each entry for a segment is itself an array, one
+   * ({mqmTotal} or {system} or {rater}). Each keyed object is itself an object
+   * mapping from the document ID and the segment ID to an entry representing
+   * the information for that segment. For instance, let `x` be the keyed object,
+   * then `x["1"]["2"]` is the entry for the segment with segment ID "2" and
+   * document ID "1". Each entry for a segment is itself an array, one
    * entry per rater. Each  entry for a rater is an object tracking scores,
    * errors, and their breakdowns.
    */
   mqmStats = {};
-  mqmStats[mqmTotal] = [];
+  mqmStats[mqmTotal] = {};
   mqmStatsBySystem = {};
   mqmStatsByRater = {};
 
@@ -794,14 +906,15 @@ function mqmShow() {
       (parts[1] == lastRow[1]) && (parts[2] == lastRow[2]) &&
       (parts[3] == lastRow[3]);
 
+    const doc_id = parts[2];
+    const seg_id = parts[3];
     if (!sameAsLast) {
-      mqmStats[mqmTotal].push([]);
-      currSegStats = mqmArrayLast(mqmStats[mqmTotal]);
+      currSegStats = mqmGetSegStats(mqmStats[mqmTotal], doc_id, seg_id);
       if (!mqmStatsBySystem.hasOwnProperty(system)) {
         mqmStatsBySystem[system] = [];
       }
-      mqmStatsBySystem[system].push([]);
-      currSegStatsBySys = mqmArrayLast(mqmStatsBySystem[system]);
+      currSegStatsBySys =
+          mqmGetSegStats(mqmStatsBySystem[system], doc_id, seg_id);
     }
 
     if (!sameAsLast || (rater != lastRow[6])) {
@@ -811,8 +924,8 @@ function mqmShow() {
       if (!mqmStatsByRater.hasOwnProperty(rater)) {
         mqmStatsByRater[rater] = [];
       }
-      mqmStatsByRater[rater].push([]);
-      currSegStatsByRater = mqmArrayLast(mqmStatsByRater[rater]);
+      currSegStatsByRater =
+          mqmGetSegStats(mqmStatsByRater[rater], doc_id, seg_id);
       currSegStatsByRater.push(mqmInitRaterStats(rater));
     }
     const span = mqmSpanLength(parts[4]) + mqmSpanLength(parts[5]);
