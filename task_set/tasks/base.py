@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Base classes for tasks.
 
 All tasks inherit from `BaseTask`.

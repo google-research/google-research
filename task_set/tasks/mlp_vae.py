@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """MLP VAE on images task family."""
 
 import numpy as np

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Utilities for tasks based off of quadratics."""
 import collections
 from typing import Optional

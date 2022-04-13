@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 # pylint: disable=unused-import
 """Load all tasks. Each import registers some tasks."""
 from task_set.tasks import conv_fc
