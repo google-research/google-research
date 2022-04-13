@@ -18,6 +18,7 @@ This repository contains data and code for our [EMNLP 2021](https://2021.emnlp.o
       * [Practical recommendations](#practical-recommendations)
    * [Comparison to our work](#comparison-to-our-work)
    * [Demo](#demo)
+   * [FAQ](#faq)
    * [How to cite](#how-to-cite)
 
 ## Installation
@@ -192,6 +193,10 @@ Please check out `run.sh` to see how to perform our self-training algorithm with
 | eval_16.csv | 16 | 87.50
 | eval_256.csv | 256 | **92.97**
 | eval.csv | 1304 | 92.15
+
+## FAQ
+### What should I do if I do not have enough computational resources to run `T5` to produce synthetic data?
+In this case, you could fine-tune a model on an intermediate task (e.g., `MNLI` or a closely related task to your task) before using it for self-training on your task. In our experiments, self-training on top of `BERT` fine-tuned on `MNLI` performs competitively with `STraTA` in many cases.
 
 ## How to cite
 If you extend or use this work, please cite the [paper](https://arxiv.org/abs/2109.06270) where it was introduced:
