@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Training logic for edge supervision task.
 
 This module contains the training and evaluation logic for edge-supervision
