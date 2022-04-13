@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Runs distributional-skew UQ experiments on MNIST.
 
 Lightweight wrapper around experiment.py -- mostly useful to keep flags and

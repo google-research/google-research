@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Slow/long-running unit tests for mobile_model_v3.py."""
 
 from __future__ import absolute_import
