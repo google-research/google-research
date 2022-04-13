@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Re-implementation of the DS2 encoder (Amodei et al., 2016).
 
 Made to be compatible with Open Seq2Seq implementation (Kuchaev et al., 2018).
