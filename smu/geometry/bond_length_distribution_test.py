@@ -703,6 +703,16 @@ class TestStandardDists(parameterized.TestCase):
     with self.assertRaises(KeyError):
       dists[(ATOM_C, ATOM_F)][BOND_DOUBLE]
 
+  def test_allen_et_al(self):
+    dists = bond_length_distribution.make_allen_et_al_dists()
+    self.assertGreater(dists[(ATOM_C, ATOM_N)][BOND_SINGLE].pdf(1.271), 0)
+    # Note the extra 1 at the end to check that we add the slop for rounding
+    self.assertGreater(dists[(ATOM_C, ATOM_N)][BOND_SINGLE].pdf(1.6211), 0)
+    self.assertEqual(dists[(ATOM_C, ATOM_N)][BOND_SINGLE].pdf(1.622), 0)
+
+    # This is the case that is missing from the Allen et al data
+    self.assertGreater(dists[(ATOM_O, ATOM_F)][BOND_SINGLE].pdf(1.71), 0)
+    self.assertEqual(dists[(ATOM_O, ATOM_F)][BOND_SINGLE].pdf(1.73), 0)
 
 
 if __name__ == '__main__':
