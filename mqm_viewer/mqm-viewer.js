@@ -831,11 +831,11 @@ function mqmGetSegStats(stats_by_doc_seg, doc_id, seg_id) {
   return stats_by_doc_seg[doc_id][seg_id];
 }
 
-/** 
+/**
  * Flattens the nested stats object into an array of segment stats.
  * @param {!Object} stats_by_doc_seg
  * @return {!Array}
-*/
+ */
 function mqmGetSegStatsAsArray(stats_by_doc_seg) {
   let arr = [];
   for (let doc_id of Object.keys(stats_by_doc_seg)) {
@@ -1151,22 +1151,43 @@ function mqmParseData(tsvData) {
 }
 
 /**
- * Opens the data file picked by the user and loads its data into mqmData[].
+ * Opens the data file(s) picked by the user and loads the data into mqmData[].
  */
-function mqmOpenFile() {
+function mqmOpenFiles() {
   document.body.style.cursor = 'wait';
   mqmClearFilters();
   const errors = document.getElementById('mqm-errors');
   errors.innerHTML = '';
-  const f = document.getElementById('mqm-file').files[0];
-  let fr = new FileReader();
-  fr.onload = function(){
-    mqmParseData(fr.result);
-  };
+  const filesElt = document.getElementById('mqm-file');
+  const numFiles = filesElt.files.length;
+  if (numFiles <= 0) {
+    errors.innerHTML = 'No files were selected';
+    return;
+  }
+  let erroneousFile = '';
   try {
-    fr.readAsText(f);
+    const filesData = [];
+    let filesRead = 0;
+    for (let i = 0; i < numFiles; i++) {
+      filesData.push('');
+      const f = filesElt.files[i];
+      erroneousFile = f.name;
+      const fr = new FileReader();
+      fr.onload = (evt) => {
+        erroneousFile = f.name;
+        filesData[i] = fr.result;
+        filesRead++;
+        if (filesRead == numFiles) {
+          mqmParseData(filesData.join('\n'));
+        }
+      };
+      fr.readAsText(f);
+    }
   } catch (err) {
-    errors.innerHTML = err;
+    let errString = err +
+        (errnoeousFile ? ' (file with error: ' + erroneousFile + ')' : '');
+    errors.innerHTML = errString;
+    filesElt.value = '';
   }
 }
 
@@ -1203,13 +1224,14 @@ function createMQMViewer(elt, tsvData=null) {
       Save MQM data to file "mqm-data.tsv"
       </button>
     </span>
-  </div>` : `
+  </div>` :
+                              `
   <div class="mqm-header">
     <span class="mqm-title">MQM Scores</span>
     <span class="mqm-header-right">
-      <b>Open MQM data file (9-column TSV format):</b>
-      <input id="mqm-file" accept=".tsv" onchange="mqmOpenFile()"
-          type="file"></input>
+      <b>Open MQM data file(s) (9-column TSV format):</b>
+      <input id="mqm-file" accept=".tsv" onchange="mqmOpenFiles()"
+          type="file" multiple></input>
     </span>
   </div>
   `;

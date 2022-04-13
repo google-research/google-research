@@ -12,8 +12,9 @@ wget https://raw.githubusercontent.com/google-research/google-research/master/mq
 ```
 
 Then, simply open the `mqm-viewer.html` file in a web browser, and use
-the "Choose file" button to pick an MQM data file. MQM data spans several
-columns, so it's best to use a desktop or laptop computer with a wide screen.
+the "Choose files" button to pick one or more MQM data files. MQM data spans
+several columns, so it's best to use a desktop or laptop computer with a wide
+screen.
 
 This is not an officially supported Google product.
 
@@ -23,7 +24,9 @@ The data file should have tab-separated UTF-8-encoded data with the following
 nine (or ten) columns, one line per marked error:
 
 - **system**: Name of the translation system.
-- **doc**: Name of the document.
+- **doc**: Name of the document. It's useful to suffix this with language-pair,
+  (eg., "doc42:English-German"), especially as you may want to view the data
+  from several evaluations together.
 - **doc_id**: Id of segment (sentence or group of sentences) within the
   document.
 - **seg_id**: Id of segment across all documents.
