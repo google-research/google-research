@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """BatchEnsembleMSG learner implementation.
 
 This is the version of MSG that trains N independent Q-fns."""

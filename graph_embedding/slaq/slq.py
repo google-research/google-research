@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 # pylint: disable=invalid-name
 """Core Stochastic Lanczos Quadrature routines for SLaQ."""
 from typing import Callable
