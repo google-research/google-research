@@ -814,34 +814,34 @@ function mqmArrayLast(a) {
 }
 
 /**
- * Returns the segment stats keyed by doc_id and seg_id. This will
+ * Returns the segment stats keyed by doc and doc_id. This will
  * create an empty array if the associated segment stats array doesn't exist.
- * @param {!Object} stats_by_doc_seg
+ * @param {!Object} stats_by_doc_and_doc_id
+ * @param {string} doc
  * @param {string} doc_id
- * @param {string} seg_id
  * @return {!Array}
  */
-function mqmGetSegStats(stats_by_doc_seg, doc_id, seg_id) {
-  if (!stats_by_doc_seg.hasOwnProperty(doc_id)) {
-    stats_by_doc_seg[doc_id] = {};
+function mqmGetSegStats(stats_by_doc_and_doc_id, doc, doc_id) {
+  if (!stats_by_doc_and_doc_id.hasOwnProperty(doc)) {
+    stats_by_doc_and_doc_id[doc] = {};
   }
-  if (!stats_by_doc_seg[doc_id].hasOwnProperty(seg_id)) {
-    stats_by_doc_seg[doc_id][seg_id] = [];
+  if (!stats_by_doc_and_doc_id[doc].hasOwnProperty(doc_id)) {
+    stats_by_doc_and_doc_id[doc][doc_id] = [];
   }
-  return stats_by_doc_seg[doc_id][seg_id];
+  return stats_by_doc_and_doc_id[doc][doc_id];
 }
 
 /**
  * Flattens the nested stats object into an array of segment stats.
- * @param {!Object} stats_by_doc_seg
+ * @param {!Object} stats_by_doc_and_doc_id
  * @return {!Array}
- */
-function mqmGetSegStatsAsArray(stats_by_doc_seg) {
+*/
+function mqmGetSegStatsAsArray(stats_by_doc_and_doc_id) {
   let arr = [];
-  for (let doc_id of Object.keys(stats_by_doc_seg)) {
-    let stats_by_seg = stats_by_doc_seg[doc_id];
-    for (let seg_id of Object.keys(stats_by_seg)) {
-      arr.push(stats_by_seg[seg_id]);
+  for (let doc of Object.keys(stats_by_doc_and_doc_id)) {
+    let stats_by_doc_id = stats_by_doc_and_doc_id[doc];
+    for (let doc_id of Object.keys(stats_by_doc_id)) {
+      arr.push(stats_by_doc_id[doc_id]);
     }
   }
   return arr;
@@ -862,10 +862,10 @@ function mqmShow() {
   /**
    * The following mqmStats* objects are all keyed by something from:
    * ({mqmTotal} or {system} or {rater}). Each keyed object is itself an object
-   * mapping from the document ID and the segment ID to an entry representing
+   * mapping from doc and doc_id to an entry representing
    * the information for that segment. For instance, let `x` be the keyed object,
-   * then `x["1"]["2"]` is the entry for the segment with segment ID "2" and
-   * document ID "1". Each entry for a segment is itself an array, one
+   * then `x["1"]["2"]` is the entry for the segment with doc == "1" and 
+   * doc_id == "2". Each entry for a segment is itself an array, one
    * entry per rater. Each  entry for a rater is an object tracking scores,
    * errors, and their breakdowns.
    */
@@ -906,15 +906,15 @@ function mqmShow() {
       (parts[1] == lastRow[1]) && (parts[2] == lastRow[2]) &&
       (parts[3] == lastRow[3]);
 
+    const doc = parts[1];
     const doc_id = parts[2];
-    const seg_id = parts[3];
     if (!sameAsLast) {
-      currSegStats = mqmGetSegStats(mqmStats[mqmTotal], doc_id, seg_id);
+      currSegStats = mqmGetSegStats(mqmStats[mqmTotal], doc, doc_id);
       if (!mqmStatsBySystem.hasOwnProperty(system)) {
         mqmStatsBySystem[system] = [];
       }
       currSegStatsBySys =
-          mqmGetSegStats(mqmStatsBySystem[system], doc_id, seg_id);
+          mqmGetSegStats(mqmStatsBySystem[system], doc, doc_id);
     }
 
     if (!sameAsLast || (rater != lastRow[6])) {
@@ -925,7 +925,7 @@ function mqmShow() {
         mqmStatsByRater[rater] = [];
       }
       currSegStatsByRater =
-          mqmGetSegStats(mqmStatsByRater[rater], doc_id, seg_id);
+          mqmGetSegStats(mqmStatsByRater[rater], doc, doc_id);
       currSegStatsByRater.push(mqmInitRaterStats(rater));
     }
     const span = mqmSpanLength(parts[4]) + mqmSpanLength(parts[5]);
