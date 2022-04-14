@@ -35,6 +35,7 @@ import numpy as np
 from rdkit import Chem
 
 from smu import dataset_pb2
+from smu.geometry import bond_length_distribution
 from smu.geometry import smu_molecule
 from smu.geometry import utilities
 from smu.parser import smu_utils_lib
@@ -170,10 +171,6 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
-  # Need to know when the starting topology has been recovered
-  bare_starting_topology = dataset_pb2.BondTopology(
-      atoms=starting_topology.atoms, bonds=starting_topology.bonds)
-  utilities.canonical_bond_topology(bare_starting_topology)
   rdkit_mol = smu_utils_lib.bond_topology_to_molecule(starting_topology)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
@@ -191,12 +188,7 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
         Chem.GetMolFrags(rdkit_mol)) > 1:
       continue
 
-    utilities.canonical_bond_topology(bt)
-    # We have to compare just the bonds, because bt will have a score
-    # field filled in. The atom order never changes so the only thing
-    # that determines the topology is the bonds.
-    if bt.bonds == bare_starting_topology.bonds:
-      bt.is_starting_topology = True
+    utilities.canonicalize_bond_topology(bt)
 
     if matching_parameters.ring_atom_count_cannot_decrease:
       ring_atoms = utilities.ring_atom_count_mol(rdkit_mol)
@@ -255,3 +247,123 @@ def geometry_score(bt, distances, bond_lengths):
                                            dist))
 
   return result
+
+
+_CACHED_COAVELENT_RADII_DISTS = None
+_CACHED_ALLEN_ET_AL_DISTS = None
+
+
+def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
+  """Modifies conformer with our standard set of topology sensing.
+
+  Uses 3 sets of bond lengths to extract a set of bond topologies,
+  replaces the bond topolgies in conformer, setting appropriate
+  source fields.
+
+  Special case: Some SMU1 and SMU2 will fail detection because they
+  have no bonds or unique bonds (like F-F). In that case, we still
+  set
+  source = SOURCE_SMU | SOURCE_STARTING_TOPOLOGY
+  and return False
+
+  Args:
+    conformer: dataset_pb2.Conformer
+    bond_lengths: AllAtomPairLengthDistributions, empirical
+      distribution from SMU molecules
+    smiles_id_dict: dictionary from smiles string to bond topology id
+
+  Returns:
+    Whether topology sensing was successful
+  """
+  global _CACHED_COAVELENT_RADII_DISTS
+  global _CACHED_ALLEN_ET_AL_DISTS
+
+  if not _CACHED_COAVELENT_RADII_DISTS:
+    _CACHED_COAVELENT_RADII_DISTS = (
+      bond_length_distribution.make_covalent_radii_dists())
+  if not _CACHED_ALLEN_ET_AL_DISTS:
+    _CACHED_ALLEN_ET_AL_DISTS = (
+      bond_length_distribution.make_allen_et_al_dists())
+
+  matching_parameters = smu_molecule.MatchingParameters()
+  matching_parameters.must_match_all_bonds = True
+  matching_parameters.smiles_with_h = False
+  matching_parameters.smiles_with_labels = False
+  matching_parameters.neutral_forms_during_bond_matching = True
+  matching_parameters.consider_not_bonded = True
+  matching_parameters.ring_atom_count_cannot_decrease = False
+
+  smu_matches = bond_topologies_from_geom(
+        conformer,
+        bond_lengths=smu_bond_lengths,
+        matching_parameters=matching_parameters)
+  # print('SMU: ', [bt.smiles for bt in smu_matches.bond_topology])
+
+  if not smu_matches.bond_topology:
+    # This means the SMU matching failed. We're gong to set the first bond
+    # topology as setarting and notify the caller
+    conformer.bond_topologies[0].source = (
+      dataset_pb2.BondTopology.SOURCE_SMU |
+      dataset_pb2.BondTopology.SOURCE_STARTING)
+    return False
+
+  starting_topology = conformer.bond_topologies[0]
+  utilities.canonicalize_bond_topology(starting_topology)
+
+  # in order to test for equivalent topologies, we jsut have to test
+  # the bonds since atom order is fixed. We canonicalizaed the starting
+  # and everything coming out of bond_topologies_from_geom has been
+  # canonicalized.
+  for bt in smu_matches.bond_topology:
+    try:
+      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+    except KeyError:
+      pass
+    bt.source = dataset_pb2.BondTopology.SOURCE_SMU
+    if bt.bonds == starting_topology.bonds:
+      bt.source |= dataset_pb2.BondTopology.SOURCE_STARTING
+
+  del conformer.bond_topologies[:]
+  conformer.bond_topologies.extend(smu_matches.bond_topology)
+
+  cov_matches = bond_topologies_from_geom(
+        conformer,
+        bond_lengths=_CACHED_COAVELENT_RADII_DISTS,
+        matching_parameters=matching_parameters)
+  # print('COV: ', [bt.smiles for bt in cov_matches.bond_topology])
+  for bt in cov_matches.bond_topology:
+    try:
+      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+    except KeyError:
+      pass
+    bt.source = dataset_pb2.BondTopology.SOURCE_COVALENT_RADII
+    bt.topology_score = np.nan
+    bt.geometry_score = np.nan
+
+  allen_matches = bond_topologies_from_geom(
+        conformer,
+        bond_lengths=_CACHED_ALLEN_ET_AL_DISTS,
+        matching_parameters=matching_parameters)
+  # print('ALLEN: ', [bt.smiles for bt in allen_matches.bond_topology])
+  for bt in allen_matches.bond_topology:
+    try:
+      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+    except KeyError:
+      pass
+    bt.source = dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL
+    bt.topology_score = np.nan
+    bt.geometry_score = np.nan
+
+  for bt in itertools.chain(cov_matches.bond_topology,
+                            allen_matches.bond_topology):
+    found = False
+    for query_bt in conformer.bond_topologies:
+      if query_bt.bonds == bt.bonds:
+        query_bt.source |= bt.source
+        found = True
+        break
+    if not found:
+      conformer.bond_topologies.append(bt)
+
+
+  return True

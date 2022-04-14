@@ -90,6 +90,34 @@ message BondTopology {
     BondType bond_type = 3;
   }
 
+  // These values are for the source bitfield below
+  enum SourceType {
+    SOURCE_UNSET = 0;
+    // Indicates that this is a topology that matches the bond ranges used for
+    // the geometry search procedure internally in SMU.
+    SOURCE_SMU = 1;
+    // Indicates taht this was the topology used during the geometry creation
+    // process itself. It will always co-occur with SOURCE_SMU
+    SOURCE_STARTING = 2;
+    // Indicates that this topology matches bond lengths determined by covalent
+    // radii plus a tolerance factor.
+    // Follows the procedure from:
+    // Meng, E. C. & Lewis, R. A. Determination of molecular topology and atomic
+    // hybridization states from heavy atom coordinates. J. Comput. Chem. 12,
+    // 891–898 (1991)
+    SOURCE_COVALENT_RADII = 4;
+    // Indicates that this topology matches bond lengths extracted from
+    // Allen, F. H. et al. Tables of bond lengths determined by X-ray and neutron
+    // diffraction. Part 1. Bond lengths in organic compounds.
+    // J. Chem. Soc. Perkin Trans. 2 S1–S19 (1987)
+    // with a 3 sigma cutoff.
+    SOURCE_ALLEN_ET_AL = 8;
+    // This value will never appear in the published database, but if bond
+    // lengths are modified for geometry based queries to the database, then this
+    // value will be used.
+    SOURCE_CUSTOM = 16;
+  }
+
   // Note that this order of atoms will be used throughout the specification of
   // geometries below.
   repeated AtomType atoms = 1;
@@ -103,21 +131,8 @@ message BondTopology {
   // A unique 1 indexed dense id for this topology.
   int32 bond_topology_id = 4;
 
-  // INTERNAL ONLY: This will not be available in the external database.
-  //
-  // If this has been discerned from geometry, the associated score.
-  // Now, prefer topology_score and geometry_score to reflect the different
-  // kinds of scores available.
-  // This is still used in smu_molecule as a generic score value accumulator -
-  // smu_molecule does not know what kind of score it is accumulating.
-  float score = 5;
-
-  // If this has been discerned from geometry, is it the same as the
-  // starting BondTopology.
-  bool is_starting_topology = 6;
-
-  // Number of atoms that are in a ring.
-  int32 ring_atom_count = 7;
+  // Bitfield of values from SourceType indicating where this bond topology came from.
+  int32 source = 10;
 
   // An estimate of log(P(topology|geometry))
   //
@@ -140,6 +155,23 @@ message BondTopology {
   //
   // Note that only bonds between heavy atoms are used in computing this.
   float geometry_score = 9;
+
+  // INTERNAL ONLY: This will not be available in the external database.
+  //
+  // If this has been discerned from geometry, the associated score.
+  // Now, prefer topology_score and geometry_score to reflect the different
+  // kinds of scores available.
+  // This is still used in smu_molecule as a generic score value accumulator -
+  // smu_molecule does not know what kind of score it is accumulating.
+  float score = 5 [(availability) = INTERNAL_ONLY];
+
+  // If this has been discerned from geometry, is it the same as the
+  // starting BondTopology.
+  bool is_starting_topology = 6;
+
+  // Number of atoms that are in a ring.
+  // INTERNAL ONLY: This will not be available in the external database.
+  int32 ring_atom_count = 7 [(availability) = INTERNAL_ONLY];
 }
 
 // When doing topology from geometry matching, the results are returned
@@ -1042,4 +1074,3 @@ message BondTopologySummary {
   // conformer by the other fields and counted once per conformer here.
   int32 count_multiple_detections = 14;
 }
-

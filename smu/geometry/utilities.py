@@ -135,7 +135,7 @@ def distances(geometry):
   return result
 
 
-def canonical_bond_topology(bond_topology):
+def canonicalize_bond_topology(bond_topology):
   """Transform the bonds attribute of `bond_topology` to a canonical form.
 
   Args:

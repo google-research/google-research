@@ -1663,8 +1663,8 @@ bonds {
     s2 = smu_utils_lib.compute_smiles_for_bond_topology(bt2, True)
     self.assertEqual(s1, s2)
 
-    utilities.canonical_bond_topology(bt1)
-    utilities.canonical_bond_topology(bt2)
+    utilities.canonicalize_bond_topology(bt1)
+    utilities.canonicalize_bond_topology(bt2)
     self.assertFalse(utilities.same_bond_topology(bt1, bt2))
 
 

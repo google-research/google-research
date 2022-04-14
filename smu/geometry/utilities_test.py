@@ -98,7 +98,7 @@ class TestUtilities(absltest.TestCase):
     }
 """, dataset_pb2.BondTopology())
 
-    utilities.canonical_bond_topology(bt)
+    utilities.canonicalize_bond_topology(bt)
     self.assertEqual(
         text_format.MessageToString(bt), text_format.MessageToString(expected))
 
@@ -137,7 +137,7 @@ class TestUtilities(absltest.TestCase):
 """, dataset_pb2.BondTopology())
 
     self.assertFalse(utilities.same_bond_topology(bt1, bt2))
-    utilities.canonical_bond_topology(bt1)
+    utilities.canonicalize_bond_topology(bt1)
     self.assertTrue(utilities.same_bond_topology(bt1, bt2))
 
   def test_single_fragment_single_atom(self):

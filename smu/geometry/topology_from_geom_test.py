@@ -73,7 +73,8 @@ def triangular_distribution(min_dist, dist_max_value, max_dist):
   dx = x_extent / RESOLUTION
   distances = np.arange(min_dist, max_dist, dx, dtype=np.float32)
 
-  return distances, population
+  df = pd.DataFrame({"length": distances, "count": population})
+  return bond_length_distribution.Empirical(df, 0.0)
 
 
 class TestTopoFromGeom(absltest.TestCase):
@@ -88,15 +89,10 @@ class TestTopoFromGeom(absltest.TestCase):
 
     all_distributions = bond_length_distribution.AllAtomPairLengthDistributions(
     )
-    x, y = triangular_distribution(1.0, 1.4, 2.0)
-    df = pd.DataFrame({"length": x, "count": y})
-    bldc1c = bond_length_distribution.Empirical(df, 0.0)
+    bldc1c = triangular_distribution(1.0, 1.4, 2.0)
     all_distributions.add(carbon, carbon, single_bond, bldc1c)
-
-    x, y = triangular_distribution(1.0, 1.5, 2.0)
-    df = pd.DataFrame({"length": x, "count": y})
-    bldc2c = bond_length_distribution.Empirical(df, 0.0)
-    all_distributions.add(carbon, carbon, double_bond, bldc2c)
+    bldc2c = triangular_distribution(1.0, 1.5, 2.0)
+    all_distributions.add(carbon, carbon, double_bond,bldc2c)
 
     conformer = dataset_pb2.Conformer()
 
@@ -154,16 +150,19 @@ atom_positions {
     double = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
 
     all_dist = bond_length_distribution.AllAtomPairLengthDistributions()
-    for bond_type in [single, double]:
-      all_dist.add(
-          dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
-          bond_type,
-          bond_length_distribution.FixedWindow(
-              1.0, 2.0, None))
+    all_dist.add(
+      dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
+      single,
+      triangular_distribution(1.0, 1.5, 2.0))
+    all_dist.add(
+      dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
+      double,
+      triangular_distribution(1.0, 1.4, 2.0))
 
     # This conformer is a flat aromatic square of nitrogens. The single and
     # double bonds can be rotated such that it's the same topology but
     # individual bonds have switched single/double.
+    # We set it so the bond lengths favor one of the two arrangements
     conformer = dataset_pb2.Conformer(conformer_id=123,
                                       fate=dataset_pb2.Conformer.FATE_SUCCESS)
 
@@ -182,11 +181,12 @@ atom_positions {
     ])
 
     dist15a = 1.5 / smu_utils_lib.BOHR_TO_ANGSTROMS
+    dist14a = 1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS
     conformer.optimized_geometry.atom_positions.extend([
         dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0),
         dataset_pb2.Geometry.AtomPos(x=0, y=dist15a, z=0),
-        dataset_pb2.Geometry.AtomPos(x=dist15a, y=dist15a, z=0),
-        dataset_pb2.Geometry.AtomPos(x=dist15a, y=0, z=0),
+        dataset_pb2.Geometry.AtomPos(x=dist14a, y=dist15a, z=0),
+        dataset_pb2.Geometry.AtomPos(x=dist14a, y=0, z=0),
     ])
 
     matching_parameters = smu_molecule.MatchingParameters()
@@ -195,27 +195,139 @@ atom_positions {
 
     self.assertLen(result.bond_topology, 2)
 
-    # The returned order is arbitrary so we figure out which is is marked
-    # as the starting topology.
-    starting_idx = min([
-        i for i, bt, in enumerate(result.bond_topology)
-        if bt.is_starting_topology
-    ])
-    other_idx = (starting_idx + 1) % 2
+    first = result.bond_topology[0]
+    self.assertEqual(smu_utils_lib.get_bond_type(first, 0, 1), single)
+    self.assertEqual(smu_utils_lib.get_bond_type(first, 1, 2), double)
+    self.assertEqual(smu_utils_lib.get_bond_type(first, 2, 3), single)
+    self.assertEqual(smu_utils_lib.get_bond_type(first, 3, 0), double)
 
-    starting = result.bond_topology[starting_idx]
-    self.assertTrue(starting.is_starting_topology)
-    self.assertEqual(smu_utils_lib.get_bond_type(starting, 0, 1), single)
-    self.assertEqual(smu_utils_lib.get_bond_type(starting, 1, 2), double)
-    self.assertEqual(smu_utils_lib.get_bond_type(starting, 2, 3), single)
-    self.assertEqual(smu_utils_lib.get_bond_type(starting, 3, 0), double)
+    second = result.bond_topology[1]
+    self.assertEqual(smu_utils_lib.get_bond_type(second, 0, 1), double)
+    self.assertEqual(smu_utils_lib.get_bond_type(second, 1, 2), single)
+    self.assertEqual(smu_utils_lib.get_bond_type(second, 2, 3), double)
+    self.assertEqual(smu_utils_lib.get_bond_type(second, 3, 0), single)
 
-    other = result.bond_topology[other_idx]
-    self.assertFalse(other.is_starting_topology)
-    self.assertEqual(smu_utils_lib.get_bond_type(other, 0, 1), double)
-    self.assertEqual(smu_utils_lib.get_bond_type(other, 1, 2), single)
-    self.assertEqual(smu_utils_lib.get_bond_type(other, 2, 3), double)
-    self.assertEqual(smu_utils_lib.get_bond_type(other, 3, 0), single)
+
+class TestStandardTopologySensing(absltest.TestCase):
+  """Tests standard_topology_sensing.
+
+  Simple artifical case is a linear molecule
+  OCNH which could have 1 or both bonding patterns
+  O=C=N-H
+  [O-]-C#[N+]-H
+
+  We'll create some fake SMU bonding distances and use the real values
+  from the covalent and Allen et al cases to explore a couple of cases.
+  """
+
+  def get_smu_dists(self):
+    bld = bond_length_distribution.AllAtomPairLengthDistributions()
+    # This is set up to make the O=C length of 1.25 a much better fit than
+    # the [O-]-C bond
+    bld.add(dataset_pb2.BondTopology.ATOM_O,
+            dataset_pb2.BondTopology.ATOM_C,
+            dataset_pb2.BondTopology.BondType.BOND_SINGLE,
+            triangular_distribution(1.2, 1.6, 1.8))
+    bld.add(dataset_pb2.BondTopology.ATOM_O,
+            dataset_pb2.BondTopology.ATOM_C,
+            dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
+            triangular_distribution(1.2, 1.25, 1.3))
+    bld.add(dataset_pb2.BondTopology.ATOM_C,
+            dataset_pb2.BondTopology.ATOM_N,
+            dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
+            bond_length_distribution.FixedWindow(1.1, 1.3, None))
+    bld.add(dataset_pb2.BondTopology.ATOM_C,
+            dataset_pb2.BondTopology.ATOM_N,
+            dataset_pb2.BondTopology.BondType.BOND_TRIPLE,
+            bond_length_distribution.FixedWindow(1.2, 1.4, None))
+    return bld
+
+  def get_conformer(self, oc_dist, cn_dist):
+    conformer = dataset_pb2.Conformer(conformer_id=12345)
+    conformer.bond_topologies.append(dataset_pb2.BondTopology(smiles='N=C=O'))
+    conformer.bond_topologies[0].atoms.extend([
+      dataset_pb2.BondTopology.ATOM_O,
+      dataset_pb2.BondTopology.ATOM_C,
+      dataset_pb2.BondTopology.ATOM_N,
+      dataset_pb2.BondTopology.ATOM_H])
+    conformer.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=0, atom_b=1,
+      bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
+    conformer.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=1, atom_b=2,
+      bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
+    conformer.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
+      atom_a=2, atom_b=3,
+      bond_type=dataset_pb2.BondTopology.BondType.BOND_SINGLE))
+
+    conformer.optimized_geometry.atom_positions.append(
+      dataset_pb2.Geometry.AtomPos(
+        x=0, y=0, z=0))
+    conformer.optimized_geometry.atom_positions.append(
+      dataset_pb2.Geometry.AtomPos(
+        x=0, y=0, z=oc_dist / smu_utils_lib.BOHR_TO_ANGSTROMS))
+    conformer.optimized_geometry.atom_positions.append(
+      dataset_pb2.Geometry.AtomPos(
+        x=0, y=0, z=(oc_dist + cn_dist) / smu_utils_lib.BOHR_TO_ANGSTROMS))
+    conformer.optimized_geometry.atom_positions.append(
+      dataset_pb2.Geometry.AtomPos(
+        x=0, y=0, z=(oc_dist + cn_dist + 1) / smu_utils_lib.BOHR_TO_ANGSTROMS))
+
+    return conformer
+
+  def get_smiles_id_dict(self):
+    return {'N=C=O': 111, '[NH+]#C[O-]': 222}
+
+  def test_without_smu(self):
+    conf = self.get_conformer(1.25, 1.11)
+    self.assertTrue(
+      topology_from_geom.standard_topology_sensing(
+        conf, self.get_smu_dists(), self.get_smiles_id_dict()))
+
+    self.assertLen(conf.bond_topologies, 2)
+
+    self.assertEqual(conf.bond_topologies[0].source,
+                     dataset_pb2.BondTopology.SOURCE_SMU |
+                     dataset_pb2.BondTopology.SOURCE_STARTING |
+                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII)
+    self.assertEqual(conf.bond_topologies[0].smiles, 'N=C=O')
+    self.assertEqual(conf.bond_topologies[0].bond_topology_id, 111)
+    self.assertEqual(conf.bond_topologies[0].topology_score, 0)
+    self.assertNotEqual(conf.bond_topologies[0].geometry_score, 0)
+
+    self.assertEqual(conf.bond_topologies[1].source,
+                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII |
+                     dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL)
+    self.assertEqual(conf.bond_topologies[1].smiles, '[NH+]#C[O-]')
+    self.assertEqual(conf.bond_topologies[1].bond_topology_id, 222)
+    self.assertTrue(np.isnan(conf.bond_topologies[1].topology_score))
+    self.assertTrue(np.isnan(conf.bond_topologies[1].geometry_score))
+
+  def test_smu_and_covalent(self):
+    conf = self.get_conformer(1.25, 1.25)
+    self.assertTrue(
+      topology_from_geom.standard_topology_sensing(
+        conf, self.get_smu_dists(), self.get_smiles_id_dict()))
+
+    self.assertLen(conf.bond_topologies, 2)
+
+    self.assertEqual(conf.bond_topologies[0].source,
+                     dataset_pb2.BondTopology.SOURCE_SMU |
+                     dataset_pb2.BondTopology.SOURCE_STARTING |
+                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII |
+                     dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL)
+    self.assertEqual(conf.bond_topologies[0].smiles, 'N=C=O')
+    self.assertEqual(conf.bond_topologies[0].bond_topology_id, 111)
+    self.assertLess(conf.bond_topologies[0].topology_score, 0)
+    self.assertNotEqual(conf.bond_topologies[0].geometry_score, 0)
+
+    self.assertEqual(conf.bond_topologies[1].source,
+                     dataset_pb2.BondTopology.SOURCE_SMU |
+                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII)
+    self.assertEqual(conf.bond_topologies[1].smiles, '[NH+]#C[O-]')
+    self.assertEqual(conf.bond_topologies[1].bond_topology_id, 222)
+    self.assertLess(conf.bond_topologies[1].topology_score, 0)
+    self.assertNotEqual(conf.bond_topologies[1].geometry_score, 0)
 
 
 if __name__ == "__main__":
