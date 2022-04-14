@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""A command line tool to write a protocol buffer to a file in SMU file format.
 
 This tool is intended to faithfully reproduce the Basel University SMU file

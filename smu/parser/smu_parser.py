@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""A command line tool to parse a SMU file and convert it to a protocol buffer.
 
 This tool is intended to do a one-to-one conversion from a SMU file to the

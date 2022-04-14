@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Gym-specific (non-Atari) utilities.
 
 Some network specifications specific to certain Gym environments are provided

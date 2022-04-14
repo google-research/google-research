@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Writes Small Molecule Universe (SMU) files in custom Uni Basel format.
 
 Used to write SMU entries from a protocol buffer to a SMU .dat file in Basel

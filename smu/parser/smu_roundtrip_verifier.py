@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Verifies that we can correctly roundtrip SMU7 data files through protos.
 
 smu_parser_lib and smu_writer_lib allows us to read and write the .dat file
