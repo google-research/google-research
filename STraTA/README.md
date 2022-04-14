@@ -38,7 +38,7 @@ pip install transformers
 Finally, install all necessary Python packages for our self-training algorithm.
 
 ```sh
-pip install -r STraTA/selftraining/requirements.txt
+pip install -r requirements.txt
 ```
 This will install PyTorch as a backend.
 
