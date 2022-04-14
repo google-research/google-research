@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Tests for learning.brain.models.learned_optimizer.problems.model_adapter."""
 
 from task_set.tasks.losg_problems import model_adapter

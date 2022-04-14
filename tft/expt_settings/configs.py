@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Default configs for TFT experiments.
 
 Contains the default output paths for data, serialised models and predictions
