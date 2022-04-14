@@ -171,7 +171,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
                               precision=self.precision)
     relative_attention_embed = linear.Embed(
         num_embeddings=self.num_relative_position_buckets,
-        features=head_dim,
+        features=self.num_heads,
         embedding_init=initializers.normal(stddev=1.0),
         dtype=self.dtype)
 
@@ -194,10 +194,11 @@ class RelativeMultiHeadDotProductAttention(module.Module):
           num_buckets=self.num_relative_position_buckets,
           max_distance=self.max_distance)
 
-      # [length, length2, n_features_per_head]
-      r = relative_attention_embed(relative_position_bucket)
-      # [batch..., n_heads, length, length2]
-      bias = jnp.einsum('...qhd,...qkd->...hqk', query, r)
+      bias = relative_attention_embed(relative_position_bucket)
+      bias = bias.transpose((2, 0, 1))
+      # Expand batch dimensions.
+      bias = jnp.broadcast_to(
+          bias, (1,) * len(inputs_q.shape[:-2]) + bias.shape)
 
     else:
       relative_position = custom_relative_position
@@ -207,9 +208,10 @@ class RelativeMultiHeadDotProductAttention(module.Module):
           num_buckets=self.num_relative_position_buckets,
           max_distance=self.max_distance)
 
-      r = relative_attention_embed(relative_position_bucket)
-      # [batch..., n_heads, length, length2]
-      bias = jnp.einsum('...qhd,qkd->...hqk', query, r)
+      bias = relative_attention_embed(relative_position_bucket)
+      permute = tuple(map(lambda i: len(inputs_q.shape) + 1 + i, (-1, -3, -2)))
+      bias = bias.transpose(
+          tuple(range(len(inputs_q.shape[:-2]))) + permute)
 
     # During fast autoregressive decoding, we feed one position at a time,
     # and cache the keys and values step by step.
