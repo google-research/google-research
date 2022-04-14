@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """NIGT Optimizer.
 
 See the paper https://arxiv.org/abs/2002.03305
