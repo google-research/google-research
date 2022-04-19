@@ -20,7 +20,6 @@ from typing import Callable, Iterator
 import acme
 from acme import wrappers
 from acme.datasets import tfds as acme_tfds
-from acme.datasets.tfds import _episode_steps_to_transition
 import d4rl  # pylint:disable=unused-import
 import dm_env
 import gym
@@ -80,8 +79,11 @@ def get_make_demonstrations_fn(
     return step
 
   episodes = rlds.transformations.map_nested_steps(episodes, sparsify_reward)
-  transitions_iterator = episodes.flat_map(_episode_steps_to_transition)
-
+  # pylint: disable=protected-access
+  batched_steps = episodes.flat_map(acme_tfds._batch_steps)
+  transitions_iterator = rlds.transformations.map_steps(
+      batched_steps, acme_tfds._batched_step_to_transition)
+  # pylint: enable=protected-access
   def make_demonstrations(batch_size):
     return acme_tfds.JaxInMemoryRandomSampleIterator(
         transitions_iterator, jax.random.PRNGKey(seed), batch_size)
