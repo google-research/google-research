@@ -973,7 +973,7 @@ _ALLEN_MIN_MAX = {
    dataset_pb2.BondTopology.BOND_TRIPLE): (1.106, 1.191),
   (dataset_pb2.BondTopology.ATOM_C,
    dataset_pb2.BondTopology.ATOM_O,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.236, 1.524),
+   dataset_pb2.BondTopology.BOND_SINGLE): (1.198, 1.524),
   (dataset_pb2.BondTopology.ATOM_C,
    dataset_pb2.BondTopology.ATOM_O,
    dataset_pb2.BondTopology.BOND_DOUBLE): (1.148, 1.301),
