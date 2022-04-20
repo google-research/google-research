@@ -426,6 +426,7 @@ class SMUSQLite:
         conformer.bond_topologies.extend(matches.bond_topology)
         for bt in conformer.bond_topologies:
           try:
+            bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
             bt.bond_topology_id = self.find_bond_topology_id_for_smiles(
               bt.smiles)
           except KeyError:

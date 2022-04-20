@@ -444,30 +444,13 @@ class UpdateConformerFn(beam.DoFn):
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                  'attempted_topology_matches').inc()
 
-    matching_parameters = smu_molecule.MatchingParameters()
-    matching_parameters.must_match_all_bonds = True
-    matching_parameters.smiles_with_h = False
-    matching_parameters.smiles_with_labels = False
-    matching_parameters.neutral_forms_during_bond_matching = True
-    matching_parameters.consider_not_bonded = True
-    matching_parameters.ring_atom_count_cannot_decrease = False
-
-    matches = topology_from_geom.bond_topologies_from_geom(
-        conformer,
-        bond_lengths=self._cached_bond_lengths,
-        matching_parameters=matching_parameters)
-
-    if not matches.bond_topology:
+    if not topology_from_geom.standard_topology_sensing(
+        conformer, self._cached_bond_lengths, smiles_id_dict):
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'no_topology_matches').inc()
-      return
 
-    del conformer.bond_topologies[:]
-    conformer.bond_topologies.extend(matches.bond_topology)
     for bt in conformer.bond_topologies:
-      try:
-        bt.bond_topology_id = smiles_id_dict[bt.smiles]
-      except KeyError:
+      if not bt.bond_topology_id:
         beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                      'topology_match_smiles_failure').inc()
 

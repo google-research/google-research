@@ -167,6 +167,7 @@ message BondTopology {
 
   // If this has been discerned from geometry, is it the same as the
   // starting BondTopology.
+  // DEPRECATED: will not be set in final database.
   bool is_starting_topology = 6;
 
   // Number of atoms that are in a ring.
@@ -959,8 +960,6 @@ message Conformer {
 
   // All of the bond topologies that describe this geometry.
   // These are ordered by how well the bond topology describes this geometry.
-  // The geometry that was originally used in the geometry optimization phase
-  // is marked by the field is_starting_topology.
   // TODO(pfr): double check the field name.
   // TODO(pfr): add a reference to the paper describing this
   repeated BondTopology bond_topologies = 8;

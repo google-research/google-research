@@ -90,13 +90,18 @@ flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
 flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
                         'Format for the found SMU entries')
-flags.DEFINE_enum(
-  'which_topologies', 'all', ['all', 'best', 'starting'],
+flags.DEFINE_enum_class(
+  'which_topologies',
+  smu_utils_lib.WhichTopologies.all,
+  smu_utils_lib.WhichTopologies,
   'For sdf and atomic_input output formats, which bond '
   'topologies shoudl be returned? '
-  '"all" means all topologies '
-  '"best" means a single best topology '
-  '"starting" means the single topology used for the calculations')
+  '"all" means all topologies, '
+  '"best" means a single best topology, '
+  '"starting" means the single topology used for the calculations, '
+  '"smu" means all topologies detected with our original bond lengths, '
+  '"covalent" means all topologies using very permissive covalent radii, '
+  '"allen" means all topologies using bond lengths from Allen et al ')
 flags.DEFINE_boolean(
     'redetect_topology', False,
     'Whether to rerun the topology detection on the conformers')
@@ -341,6 +346,7 @@ class ReDetectTopologiesOutputter:
       del conformer.bond_topologies[:]
       conformer.bond_topologies.extend(matches.bond_topology)
       for bt in conformer.bond_topologies:
+        bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
         try:
           bt.bond_topology_id = self._db.find_bond_topology_id_for_smiles(bt.smiles)
         except KeyError:

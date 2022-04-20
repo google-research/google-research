@@ -737,35 +737,69 @@ def get_bond_type(bond_topology, atom_idx0, atom_idx1):
   return dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
 
 
+# These are lower case so they can be used in a command line argument
+class WhichTopologies(enum.Enum):
+  # All topologies
+  all = 1
+  # Single "best" topology from SMU lengths
+  best = 2
+  # The topology used during geometry finding
+  starting = 3
+  # All topologies matching the bond length ranges used in SMU
+  smu = 4
+  # All topologies maatching a covalent bond length criteria
+  # (see dataset.proto for SourceType for details)
+  covalent = 5
+  # All topologies maatching bond lengths from Allen et al
+  # (see dataset.proto for SourceType for details)
+  allen = 6
+
+
 def iterate_bond_topologies(conformer, which):
   """Iterates over (possibly a subset of) bond topologies in a conformer.
 
   Args:
     conformer: dataset_pb2.Conformer
-    which: which conformers to iterate over: all, best, starting
+    which: WhichTopologies
 
   Yields
     index of topology, dataset_pb2.BondTopology
   """
-  if which not in ['all', 'best', 'starting']:
-    raise ValueError(f'Unexpected value of which: "{which}"')
-  if which == 'all':
+  if which == WhichTopologies.all:
     yield from enumerate(conformer.bond_topologies)
-  if which == 'best':
+
+  if which == WhichTopologies.best:
     yield 0, conformer.bond_topologies[0]
-  if which == 'starting':
+
+  if which == WhichTopologies.starting:
     if (conformer.properties.errors.status >= 512 or
         conformer.duplicated_by > 0):
       yield 0, conformer.bond_topologies[0]
     for bt_idx, bt in enumerate(conformer.bond_topologies):
-      if bt.is_starting_topology:
+      if (bt.is_starting_topology or
+          bt.source & dataset_pb2.BondTopology.SOURCE_STARTING):
+        yield bt_idx, bt
+
+  if which == WhichTopologies.smu:
+    for bt_idx, bt in enumerate(conformer.bond_topologies):
+      if not bt.source or bt.source & dataset_pb2.BondTopology.SOURCE_SMU:
+        yield bt_idx, bt
+
+  if which == WhichTopologies.covalent:
+    for bt_idx, bt in enumerate(conformer.bond_topologies):
+      if bt.source & dataset_pb2.BondTopology.SOURCE_COVALENT_RADII:
+        yield bt_idx, bt
+
+  if which == WhichTopologies.allen:
+    for bt_idx, bt in enumerate(conformer.bond_topologies):
+      if bt.source & dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL:
         yield bt_idx, bt
 
 
 def conformer_to_molecules(conformer,
                            include_initial_geometries=True,
                            include_optimized_geometry=True,
-                           which_topologies='all'):
+                           which_topologies=WhichTopologies.all):
   """Converts a Conformer to RDKit molecules.
 
   Because a Conformer can include multiple bond topologies and geometries,
@@ -787,7 +821,7 @@ def conformer_to_molecules(conformer,
     conformer: dataset_pb2.Conformer
     include_initial_geometries: output molecule for each initial_geometries
     include_optimized_geometry: output molecule for optimized_geometry
-    which_topologies: "all", "best", or "starting": which topologies to return
+    which_topologies: WhichTopologies
 
   Yields:
     rdkit.Chem.rdchem.RWMol
