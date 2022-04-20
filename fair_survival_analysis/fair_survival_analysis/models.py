@@ -81,7 +81,7 @@ def train_model(x, t, e, a, folds, groups, model='coupled_deep_cph'):
       ef = e[folds != f]
       af = a[folds != f]
 
-      validx = sorted(np.random.choice(len(xf), size=(int(0.15*len(xf))),\
+      validx = sorted(np.random.choice(len(xf), size=(int(0.15*len(xf))),
                                        replace=False))
       vidx = np.array([False] * len(xf))
       vidx[validx] = True
