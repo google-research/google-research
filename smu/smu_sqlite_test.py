@@ -115,6 +115,16 @@ class SmuSqliteTest(absltest.TestCase):
     with self.assertRaises(KeyError):
       db.find_bond_topology_id_for_smiles('DoesNotExist')
 
+  def test_get_smiles_to_id_dict(self):
+    db = self.create_db()
+
+    self.assertEqual(db.get_smiles_id_dict(),
+                     {'CC': 2,
+                      'CCCC': 4,
+                      'CCCCCC': 6,
+                      'CCCCCCCC': 8,
+                      })
+
   def test_bulk_insert_smiles(self):
     db = self.create_db()
 

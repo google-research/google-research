@@ -271,6 +271,23 @@ class SMUSQLite:
     assert len(result[0]) == 1
     return result[0][0]
 
+  def get_smiles_id_dict(self):
+    """Creates a dictinary of smiles to bond topology id.
+
+    This is not the most efficient way to do this, but we will just pull
+    everything out of the db and create a python dictionary.
+    If we wanted to be smart, we could make a dictionary behaving object
+    that does the queries as needed.
+
+    Returns:
+      Dict from SMILES string to bond topology id
+    """
+    cur = self._conn.cursor()
+    select = f'SELECT smiles, btid FROM {_SMILES_TABLE_NAME}'
+    cur.execute(select)
+
+    return {smiles: bt_id for (smiles, bt_id) in cur}
+
   def find_by_conformer_id(self, cid):
     """Finds the conformer associated with a conformer id.
 
