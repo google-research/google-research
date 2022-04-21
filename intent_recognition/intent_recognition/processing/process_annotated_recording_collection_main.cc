@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "glog/logging.h"
-#include "google/protobuf/text_format.h"
 #include "mediapipe/framework/calculator.pb.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "absl/flags/flag.h"
@@ -37,7 +36,7 @@
 #include "riegeli/bytes/fd_reader.h"
 #include "riegeli/bytes/fd_writer.h"
 #include "riegeli/bytes/reader.h"
-#include "riegeli/messages/message_parse.h"
+#include "riegeli/messages/text_parse.h"
 #include "riegeli/records/record_reader.h"
 #include "riegeli/records/record_writer.h"
 
@@ -143,16 +142,12 @@ int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
 
   // Get the processing options.
-  riegeli::FdReader input_file(
-      absl::GetFlag(FLAGS_processing_options_filename));
-  if (!input_file.ok()) {
-    LOG(ERROR) << "Failed to read input file: " << input_file.status();
-    return 1;
-  }
-  riegeli::ReaderInputStream input_stream(&input_file);
   ambient_sensing::ProcessingOptions processing_options;
-  if (!google::protobuf::TextFormat::Parse(&input_stream, &processing_options)) {
-    LOG(ERROR) << "Failed to parse processing options textproto from string";
+  if (absl::Status status = riegeli::TextParseFromReader(
+          riegeli::FdReader(absl::GetFlag(FLAGS_processing_options_filename)),
+          processing_options);
+      !status.ok()) {
+    LOG(ERROR) << "Failed to parse input file: " << status;
     return 1;
   }
 
