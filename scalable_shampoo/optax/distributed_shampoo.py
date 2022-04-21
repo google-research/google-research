@@ -95,19 +95,23 @@ class LocalShardedParameterStats:
 def init_training_metrics(num_statistics):
   # Since the downstream apis expect a jnp.array - we create a dummy one if
   # num_statistics=0.
-  n = 1 if not num_statistics else num_statistics
-  return TrainingMetrics(jnp.zeros([n], jnp.float32))
+  if not num_statistics:
+    return TrainingMetrics(jnp.array(0, jnp.float32))
+  else:
+    return TrainingMetrics(jnp.zeros([num_statistics], jnp.float32))
 
 
 def init_training_metrics_shapes(num_statistics):
   # Since the downstream apis expect a jnp.array - we create a dummy one if
   # num_statistics=0.
-  n = 1 if not num_statistics else num_statistics
-  return TrainingMetrics([[n], jnp.float32])
+  if not num_statistics:
+    return TrainingMetrics([[], jnp.float32])
+  else:
+    return TrainingMetrics([[num_statistics], jnp.float32])
 
 
 def init_training_metrics_pspec():
-  return TrainingMetrics(pjit.PartitionSpec())
+  return TrainingMetrics(None)
 
 
 class ShardedShampooStats(NamedTuple):
@@ -286,7 +290,7 @@ def matrix_inverse_pth_root(
 
   if matrix_size == 1:
     resultant_mat_h = (matrix + ridge_epsilon)**alpha
-    error = 0
+    error = jnp.array(0, jnp.float32)
   else:
     damped_matrix = matrix + ridge_epsilon * identity
 
@@ -658,9 +662,12 @@ def _add_error_into_local_stats(local_stats, errors, inverse_failure_threshold):
   """Adds errors back into local statistics."""
   new_local_stats = []
   for local_stat in local_stats:
-    index_start = int(local_stat.index_start)
-    index_end = int(len(local_stat.sizes)) + index_start
-    per_stat_error = errors[index_start:index_end]
+    if local_stat.sizes:
+      index_start = int(local_stat.index_start)
+      index_end = int(len(local_stat.sizes)) + index_start
+      per_stat_error = errors[index_start:index_end]
+    else:
+      per_stat_error = jnp.array(0, jnp.float32)
     if local_stat.sizes:
       per_stat_error = jnp.where(
           jnp.logical_and(per_stat_error > 0.0,
@@ -1008,17 +1015,21 @@ def distributed_shampoo(
 
       diagonal_statistics_pspec = []
       diagonal_statistics_scale_pspec = []
+      diagonal_statistics_shape = []
       if _graft_type_has_diagonal_statistics():
         # Identically shaped param.
         diagonal_statistics_pspec = param_pspec
+        diagonal_statistics_shape = list(param.shape)
         if quantized_dtype_for_diagonal_statistics_buffers() != jnp.float32:
           diagonal_statistics_scale_pspec = _remove_leading_sharding_annotation(
               param_pspec)
 
       m1_pspec = []
+      m1_shape = []
       m1_scale_pspec = []
       if _graft_type_has_diagonal_momentum_states():
         m1_pspec = param_pspec
+        m1_shape = list(param.shape)
         if quantized_dtype_for_momentum_buffers() != jnp.float32:
           m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
 
@@ -1032,10 +1043,10 @@ def distributed_shampoo(
               QuantizedValue(diagonal_statistics_pspec, [],
                              diagonal_statistics_scale_pspec,
                              quantized_dtype_for_diagonal_statistics_buffers(),
-                             False, list(param.shape)),
+                             False, diagonal_statistics_shape),
               QuantizedValue(m1_pspec, [], m1_scale_pspec,
                              quantized_dtype_for_momentum_buffers(), False,
-                             list(param.shape)),
+                             m1_shape),
               QuantizedValue(m2_pspec, [], m2_scale_pspec,
                              quantized_dtype_for_momentum_buffers(), False,
                              list(param.shape)), init_training_metrics_pspec(),
@@ -1044,8 +1055,8 @@ def distributed_shampoo(
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
                                                partition_spec_for_statistics,
-                                               pjit.PartitionSpec())
-    count_pspec = pjit.PartitionSpec()
+                                               None)
+    count_pspec = None
     return ShampooState(
         count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
 
@@ -1324,8 +1335,12 @@ def distributed_shampoo(
     # Partition the concatenated statistics matrix across all cores.
     pspec_for_partition = preconditioner_partition_spec
     partitioned_xs = pjit.with_sharding_constraint(xs, pspec_for_partition)
+    if preconditioner_partition_spec:
+      partitioned_ps_spec = pjit.PartitionSpec(preconditioner_partition_spec[0])
+    else:
+      partitioned_ps_spec = None
     partitioned_ps = pjit.with_sharding_constraint(
-        ps, pjit.PartitionSpec(preconditioner_partition_spec[0]))
+        ps, partitioned_ps_spec)
     # Run matrix inverse pth root on each shard.
     partitioned_preconditioners, partitioned_errors = (
         _matrix_inverse_pth_root_vmap(partitioned_xs, partitioned_ps))
@@ -1337,7 +1352,7 @@ def distributed_shampoo(
     preconditioners = pjit.with_sharding_constraint(partitioned_preconditioners,
                                                     statistics_partition_spec)
     errors = pjit.with_sharding_constraint(partitioned_errors,
-                                           pjit.PartitionSpec())
+                                           None)
     return preconditioners, errors
 
   def _pmap_compute_preconditioners(states, step, statistics,
@@ -1429,7 +1444,7 @@ def distributed_shampoo(
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
-        errors_for_states.append([])
+        errors_for_states.append(jnp.array(0, jnp.float32))
       else:
         preconditioners_for_state = new_preconditioners_flat[idx:idx +
                                                              num_statistics]
@@ -1607,7 +1622,7 @@ def distributed_shampoo(
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
-        errors_for_states.append([])
+        errors_for_states.append(jnp.array(0, jnp.float32))
       else:
         quantized_preconditioners_for_state = new_quantized_preconditioners_flat[
             idx:idx + num_statistics]
@@ -1732,7 +1747,7 @@ def distributed_shampoo(
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
-        errors_for_states.append([])
+        errors_for_states.append(jnp.array(0, jnp.float32))
       else:
         preconditioners_for_state = new_preconditioners_flat[idx:idx +
                                                              num_statistics]
