@@ -28,7 +28,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Script for getting the top words associated with each emotion."""
 
 from __future__ import absolute_import
