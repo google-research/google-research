@@ -111,7 +111,7 @@ def init_training_metrics_shapes(num_statistics):
 
 
 def init_training_metrics_pspec():
-  return TrainingMetrics(None)
+  return TrainingMetrics(pjit.PartitionSpec())
 
 
 class ShardedShampooStats(NamedTuple):
@@ -1055,8 +1055,8 @@ def distributed_shampoo(
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
                                                partition_spec_for_statistics,
-                                               None)
-    count_pspec = None
+                                               pjit.PartitionSpec())
+    count_pspec = pjit.PartitionSpec()
     return ShampooState(
         count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
 
@@ -1352,7 +1352,7 @@ def distributed_shampoo(
     preconditioners = pjit.with_sharding_constraint(partitioned_preconditioners,
                                                     statistics_partition_spec)
     errors = pjit.with_sharding_constraint(partitioned_errors,
-                                           None)
+                                           pjit.PartitionSpec())
     return preconditioners, errors
 
   def _pmap_compute_preconditioners(states, step, statistics,
