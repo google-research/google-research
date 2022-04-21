@@ -27,7 +27,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """This class provides shared utilities for parsing and writing SMU7 files."""
 
 import collections

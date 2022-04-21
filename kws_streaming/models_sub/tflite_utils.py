@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """TFlite utils."""
-# Lint as: python3
 import os
 
 import numpy as np

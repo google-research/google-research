@@ -27,7 +27,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """A parser for Small Molecule Universe (SMU) files in custom Uni Basel format.
 
 Used to read contents from SMU files and populates a corresponding protocol

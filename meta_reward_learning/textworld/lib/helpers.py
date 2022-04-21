@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: Python3
 """Helper functions for environment and agent class."""
 
 import collections

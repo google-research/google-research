@@ -25,7 +25,6 @@ before computing a cost volume. We found these changes to improve the
 performance.
 """
 
-# Lint as: python3
 
 import collections
 

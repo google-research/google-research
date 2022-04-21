@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Usage: `python -m r_to_pkl infile.R outfile.pkl 'in1->out1,in2->out2'`."""
-# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
