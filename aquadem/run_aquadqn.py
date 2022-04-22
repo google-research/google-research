@@ -52,7 +52,7 @@ def main(_):
   loss_fn = dqn.losses.MunchausenQLearning(max_abs_reward=100.)
   dqn_config = dqn.DQNConfig(
       samples_per_insert_tolerance_rate=float('inf'),
-      min_replay_size=1,
+      min_replay_size=1000,
       n_step=3,
       num_sgd_steps_per_step=8,
       learning_rate=1e-4,
@@ -66,8 +66,7 @@ def main(_):
       make_demonstrations=make_demonstrations)
 
   # Create networks.
-  q_network = aquadem_networks.make_q_network(
-      spec=discretized_spec,)
+  q_network = aquadem_networks.make_q_network(spec=discretized_spec,)
   networks = aquadem_networks.make_action_candidates_network(
       spec=spec,
       num_actions=aqua_config.num_actions,
@@ -84,9 +83,7 @@ def main(_):
       builder=builder,
       networks=networks,
       policy_network=behavior_policy,
-      min_replay_size=1000,
-      batch_size=dqn_config.batch_size * dqn_config.num_sgd_steps_per_step,
-      samples_per_insert=dqn_config.samples_per_insert)
+      batch_size=dqn_config.batch_size * dqn_config.num_sgd_steps_per_step)
 
   train_logger = loggers.CSVLogger(FLAGS.workdir, label='train')
   train_loop = acme.EnvironmentLoop(environment, agent, logger=train_logger)
