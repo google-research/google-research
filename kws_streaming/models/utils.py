@@ -296,6 +296,7 @@ def model_to_tflite(sess,
                     mode=modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
                     save_model_path=None,
                     optimizations=None,
+                    use_fp16=False,
                     inference_type=tf1.lite.constants.FLOAT,
                     experimental_new_quantizer=True,
                     representative_dataset=None,
@@ -319,6 +320,8 @@ def model_to_tflite(sess,
       streaming
     save_model_path: path to save intermediate model summary
     optimizations: list of optimization options
+    use_fp16: uses float16 post-training quantization in place for float.
+      Only effective when `optimizations` is not None.
     inference_type: inference type, can be float or int8
     experimental_new_quantizer: enable new quantizer
     representative_dataset: function generating representative data sets
@@ -370,6 +373,13 @@ def model_to_tflite(sess,
   converter.inference_output_type = inference_output_type
   if optimizations:
     converter.optimizations = optimizations
+    if use_fp16:
+      converter.target_spec.supported_types = [tf.float16]
+      # pylint: disable=protected-access
+      converter.target_spec._experimental_supported_accumulation_type = (
+          tf.dtypes.float16)
+      # pylint: enable=protected-access
+
   tflite_model = converter.convert()
   return tflite_model
 
