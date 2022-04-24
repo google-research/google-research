@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Generates tables of fields of Conformer to got into papers."""
+"""Script to sample differences in topology detection with different methods."""
 
 import collections
 
