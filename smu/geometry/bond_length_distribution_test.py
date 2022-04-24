@@ -37,6 +37,7 @@ ATOM_NPOS = dataset_pb2.BondTopology.ATOM_NPOS
 ATOM_O = dataset_pb2.BondTopology.ATOM_O
 ATOM_ONEG = dataset_pb2.BondTopology.ATOM_ONEG
 ATOM_F = dataset_pb2.BondTopology.ATOM_F
+ATOM_H = dataset_pb2.BondTopology.ATOM_H
 BOND_UNDEFINED = dataset_pb2.BondTopology.BOND_UNDEFINED
 BOND_SINGLE = dataset_pb2.BondTopology.BOND_SINGLE
 BOND_DOUBLE = dataset_pb2.BondTopology.BOND_DOUBLE
@@ -687,6 +688,13 @@ class TestStandardDists(parameterized.TestCase):
     self.assertEqual(
       bond_length_distribution.is_valid_bond(atom_b, atom_a, bond),
       expected)
+
+  def test_add_itc_h_lengths(self):
+    dists = bond_length_distribution.AllAtomPairLengthDistributions()
+    bond_length_distribution.add_itc_h_lengths(dists)
+    self.assertGreater(dists[ATOM_H, ATOM_C][BOND_SINGLE].pdf(1.0), 0)
+    with self.assertRaises(KeyError):
+      dists[ATOM_H, ATOM_C][BOND_DOUBLE]
 
   def test_covalent_radii(self):
     dists = bond_length_distribution.make_covalent_radii_dists()

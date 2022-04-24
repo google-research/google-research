@@ -71,8 +71,11 @@ def main(argv):
 
   buffers = [0, 0.01, 0.025, 0.05]
   bond_lengths = {buf: get_modified_bond_lengths(buf) for buf in buffers}
+  for dists in bond_lengths.values():
+    bond_length_distribution.add_itc_h_lengths(dists)
   smiles_id_dict = db.get_smiles_id_dict()
   matching_parameters = smu_molecule.MatchingParameters()
+  matching_parameters.check_hydrogen_dists = True
 
   count_processed = 0
   count_matched = 0
@@ -122,8 +125,8 @@ def main(argv):
       if any_match:
         writer.writerow(row)
         count_matched += 1
-        if count_matched > 20:
-          break
+        # if count_matched > 1000:
+        #   break
 
   print(f'Final stats: {count_matched} / {count_processed}')
 

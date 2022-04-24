@@ -44,15 +44,19 @@ from smu.parser import smu_utils_lib
 THRESHOLD = 2.0
 
 
-def hydrogen_to_nearest_atom(bond_topology, distances):
-  """Generate a BondTopology that joins each Hydrogen atom to its nearest.
+def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
+  """Generate a BondTopology with each Hydrogen atom to its nearest heavy atom.
 
-      heavy atom.
+  If bond_lengths is given, the distance of the hydrogen is checked to the nearest
+  heavy is checked to be allowed under that distance
+
   Args:
     bond_topology:
     distances: matrix of interatomic distances.
+    bond_lengths: None or AllAtomPairLengthDistributions
 
   Returns:
+    dataset_pb2.BondTopology
   """
   result = dataset_pb2.BondTopology()
   result.atoms[:] = bond_topology.atoms
@@ -76,6 +80,12 @@ def hydrogen_to_nearest_atom(bond_topology, distances):
 
     if closest_heavy_atom < 0:
       return None
+
+    if bond_lengths:
+      if (bond_lengths[(bond_topology.atoms[closest_heavy_atom],
+                       dataset_pb2.BondTopology.ATOM_H)]
+          [dataset_pb2.BondTopology.BOND_SINGLE].pdf(shortest_distance) == 0.0):
+        return None
 
     bond = dataset_pb2.BondTopology.Bond(
         atom_a=a1,
@@ -137,7 +147,13 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
 
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a minimal BondTopology from which all others can grow
-  minimal_bond_topology = hydrogen_to_nearest_atom(starting_topology, distances)
+  if matching_parameters.check_hydrogen_dists:
+    minimal_bond_topology = hydrogen_to_nearest_atom(
+      starting_topology, distances, bond_lengths)
+  else:
+    minimal_bond_topology = hydrogen_to_nearest_atom(
+      starting_topology, distances, None)
+
   if minimal_bond_topology is None:
     return result
 
