@@ -150,6 +150,22 @@ class FixedWindow(LengthDistribution):
       right_tail_mass: probability mass added part the right side of the window
         (see class documentation)
     """
+    if (minimum < 0.0 or
+        maximum < 0.0 or
+        not np.isfinite(minimum) or
+        not np.isfinite(maximum) or
+        maximum <= minimum):
+      raise ValueError(
+        f'Bad args to FixedWindow(minimum={minimum}, maximum={maximum}, '
+        f'right_tail_mass={right_tail_mass})')
+    if (right_tail_mass and
+        (right_tail_mass < 0 or
+         right_tail_mass >= 1 or
+         not np.isfinite(right_tail_mass))):
+      raise ValueError(
+        f'Bad args to FixedWindow(minimum={minimum}, maximum={maximum}, '
+        f'right_tail_mass={right_tail_mass})')
+
     self.minimum = minimum
     self.maximum = maximum
     self.right_tail_mass = right_tail_mass
@@ -928,7 +944,7 @@ _COVALENT_RADII_TOLERANCE = 0.4
 _COVALENT_RADII_UNBONDED_OVERLAP = 0.2
 
 
-def make_covalent_radii_dists():
+def make_mlcr_dists():
   """Makes distributions based on covalent radii.
 
   This is a commonly used method to identify if atoms are bonded from geometry.
@@ -973,7 +989,7 @@ def make_covalent_radii_dists():
 
 # This table is cut and pasted from the output for tools/generate_allen_minmax.py
 # We put this into code for simplicity.
-_ALLEN_MIN_MAX = {
+_CSD_MIN_MAX = {
   (dataset_pb2.BondTopology.ATOM_C,
    dataset_pb2.BondTopology.ATOM_C,
    dataset_pb2.BondTopology.BOND_SINGLE): (1.316, 1.663),
@@ -1024,7 +1040,7 @@ _ALLEN_MIN_MAX = {
    dataset_pb2.BondTopology.BOND_SINGLE): (1.433, 1.511),
 }
 
-def make_allen_et_al_dists():
+def make_csd_dists():
   dists = AllAtomPairLengthDistributions()
 
   for atom_a, atom_b in itertools.combinations_with_replacement(
@@ -1038,7 +1054,7 @@ def make_allen_et_al_dists():
                  dataset_pb2.BondTopology.BOND_TRIPLE]:
       if is_valid_bond(atom_a, atom_b, bond):
         try:
-          mn, mx = _ALLEN_MIN_MAX[(atom_a, atom_b, bond)]
+          mn, mx = _CSD_MIN_MAX[(atom_a, atom_b, bond)]
           # Add this slop so that anything that rounds to the published distances
           # wil be considered valid.
           mn -= .0005

@@ -287,17 +287,17 @@ class TestStandardTopologySensing(absltest.TestCase):
     self.assertLen(conf.bond_topologies, 2)
 
     self.assertEqual(conf.bond_topologies[0].source,
-                     dataset_pb2.BondTopology.SOURCE_SMU |
+                     dataset_pb2.BondTopology.SOURCE_ITC |
                      dataset_pb2.BondTopology.SOURCE_STARTING |
-                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII)
+                     dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(conf.bond_topologies[0].smiles, 'N=C=O')
     self.assertEqual(conf.bond_topologies[0].bond_topology_id, 111)
     self.assertEqual(conf.bond_topologies[0].topology_score, 0)
     self.assertNotEqual(conf.bond_topologies[0].geometry_score, 0)
 
     self.assertEqual(conf.bond_topologies[1].source,
-                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII |
-                     dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL)
+                     dataset_pb2.BondTopology.SOURCE_MLCR |
+                     dataset_pb2.BondTopology.SOURCE_CSD)
     self.assertEqual(conf.bond_topologies[1].smiles, '[NH+]#C[O-]')
     self.assertEqual(conf.bond_topologies[1].bond_topology_id, 222)
     self.assertTrue(np.isnan(conf.bond_topologies[1].topology_score))
@@ -312,18 +312,18 @@ class TestStandardTopologySensing(absltest.TestCase):
     self.assertLen(conf.bond_topologies, 2)
 
     self.assertEqual(conf.bond_topologies[0].source,
-                     dataset_pb2.BondTopology.SOURCE_SMU |
+                     dataset_pb2.BondTopology.SOURCE_ITC |
                      dataset_pb2.BondTopology.SOURCE_STARTING |
-                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII |
-                     dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL)
+                     dataset_pb2.BondTopology.SOURCE_MLCR |
+                     dataset_pb2.BondTopology.SOURCE_CSD)
     self.assertEqual(conf.bond_topologies[0].smiles, 'N=C=O')
     self.assertEqual(conf.bond_topologies[0].bond_topology_id, 111)
     self.assertLess(conf.bond_topologies[0].topology_score, 0)
     self.assertNotEqual(conf.bond_topologies[0].geometry_score, 0)
 
     self.assertEqual(conf.bond_topologies[1].source,
-                     dataset_pb2.BondTopology.SOURCE_SMU |
-                     dataset_pb2.BondTopology.SOURCE_COVALENT_RADII)
+                     dataset_pb2.BondTopology.SOURCE_ITC |
+                     dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(conf.bond_topologies[1].smiles, '[NH+]#C[O-]')
     self.assertEqual(conf.bond_topologies[1].bond_topology_id, 222)
     self.assertLess(conf.bond_topologies[1].topology_score, 0)

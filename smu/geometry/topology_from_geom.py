@@ -265,8 +265,8 @@ def geometry_score(bt, distances, bond_lengths):
   return result
 
 
-_CACHED_COAVELENT_RADII_DISTS = None
-_CACHED_ALLEN_ET_AL_DISTS = None
+_CACHED_MLCR_DISTS = None
+_CACHED_CSD_DISTS = None
 
 
 def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
@@ -279,7 +279,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
   Special case: Some SMU1 and SMU2 will fail detection because they
   have no bonds or unique bonds (like F-F). In that case, we still
   set
-  source = SOURCE_SMU | SOURCE_STARTING_TOPOLOGY
+  source = SOURCE_ITC | SOURCE_STARTING_TOPOLOGY
   and return False
 
   Args:
@@ -291,15 +291,13 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
   Returns:
     Whether topology sensing was successful
   """
-  global _CACHED_COAVELENT_RADII_DISTS
-  global _CACHED_ALLEN_ET_AL_DISTS
+  global _CACHED_MLCR_DISTS
+  global _CACHED_CSD_DISTS
 
-  if not _CACHED_COAVELENT_RADII_DISTS:
-    _CACHED_COAVELENT_RADII_DISTS = (
-      bond_length_distribution.make_covalent_radii_dists())
-  if not _CACHED_ALLEN_ET_AL_DISTS:
-    _CACHED_ALLEN_ET_AL_DISTS = (
-      bond_length_distribution.make_allen_et_al_dists())
+  if not _CACHED_MLCR_DISTS:
+    _CACHED_MLCR_DISTS = bond_length_distribution.make_mlcr_dists()
+  if not _CACHED_CSD_DISTS:
+    _CACHED_CSD_DISTS = bond_length_distribution.make_csd_dists()
 
   matching_parameters = smu_molecule.MatchingParameters()
   matching_parameters.must_match_all_bonds = True
@@ -319,7 +317,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
     # This means the SMU matching failed. We're gong to set the first bond
     # topology as setarting and notify the caller
     conformer.bond_topologies[0].source = (
-      dataset_pb2.BondTopology.SOURCE_SMU |
+      dataset_pb2.BondTopology.SOURCE_ITC |
       dataset_pb2.BondTopology.SOURCE_STARTING)
     return False
 
@@ -335,7 +333,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
       bt.bond_topology_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
-    bt.source = dataset_pb2.BondTopology.SOURCE_SMU
+    bt.source = dataset_pb2.BondTopology.SOURCE_ITC
     if bt.bonds == starting_topology.bonds:
       bt.source |= dataset_pb2.BondTopology.SOURCE_STARTING
 
@@ -344,7 +342,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
 
   cov_matches = bond_topologies_from_geom(
         conformer,
-        bond_lengths=_CACHED_COAVELENT_RADII_DISTS,
+        bond_lengths=_CACHED_MLCR_DISTS,
         matching_parameters=matching_parameters)
   # print('COV: ', [bt.smiles for bt in cov_matches.bond_topology])
   for bt in cov_matches.bond_topology:
@@ -352,13 +350,13 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
       bt.bond_topology_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
-    bt.source = dataset_pb2.BondTopology.SOURCE_COVALENT_RADII
+    bt.source = dataset_pb2.BondTopology.SOURCE_MLCR
     bt.topology_score = np.nan
     bt.geometry_score = np.nan
 
   allen_matches = bond_topologies_from_geom(
         conformer,
-        bond_lengths=_CACHED_ALLEN_ET_AL_DISTS,
+        bond_lengths=_CACHED_CSD_DISTS,
         matching_parameters=matching_parameters)
   # print('ALLEN: ', [bt.smiles for bt in allen_matches.bond_topology])
   for bt in allen_matches.bond_topology:
@@ -366,7 +364,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
       bt.bond_topology_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
-    bt.source = dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL
+    bt.source = dataset_pb2.BondTopology.SOURCE_CSD
     bt.topology_score = np.nan
     bt.geometry_score = np.nan
 

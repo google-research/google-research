@@ -746,13 +746,13 @@ class WhichTopologies(enum.Enum):
   # The topology used during geometry finding
   starting = 3
   # All topologies matching the bond length ranges used in SMU
-  smu = 4
-  # All topologies maatching a covalent bond length criteria
+  itc = 4
+  # All topologies maatching a covalent bond length criteria from Meng and Lewis
   # (see dataset.proto for SourceType for details)
-  covalent = 5
-  # All topologies maatching bond lengths from Allen et al
+  mlcr = 5
+  # All topologies maatching bond lengths from Cambridge Structural Database
   # (see dataset.proto for SourceType for details)
-  allen = 6
+  csd = 6
 
 
 def iterate_bond_topologies(conformer, which):
@@ -780,19 +780,19 @@ def iterate_bond_topologies(conformer, which):
           bt.source & dataset_pb2.BondTopology.SOURCE_STARTING):
         yield bt_idx, bt
 
-  if which == WhichTopologies.smu:
+  if which == WhichTopologies.itc:
     for bt_idx, bt in enumerate(conformer.bond_topologies):
-      if not bt.source or bt.source & dataset_pb2.BondTopology.SOURCE_SMU:
+      if not bt.source or bt.source & dataset_pb2.BondTopology.SOURCE_ITC:
         yield bt_idx, bt
 
-  if which == WhichTopologies.covalent:
+  if which == WhichTopologies.mlcr:
     for bt_idx, bt in enumerate(conformer.bond_topologies):
-      if bt.source & dataset_pb2.BondTopology.SOURCE_COVALENT_RADII:
+      if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR:
         yield bt_idx, bt
 
-  if which == WhichTopologies.allen:
+  if which == WhichTopologies.csd:
     for bt_idx, bt in enumerate(conformer.bond_topologies):
-      if bt.source & dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL:
+      if bt.source & dataset_pb2.BondTopology.SOURCE_CSD:
         yield bt_idx, bt
 
 

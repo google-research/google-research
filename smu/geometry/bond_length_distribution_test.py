@@ -67,6 +67,28 @@ class FixedWindowTest(absltest.TestCase):
     self.assertEqual(dist.min(), 3)
     self.assertEqual(dist.max(), np.inf)
 
+  def test_bad_values(self):
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(-1, 1, None)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(-2, -1, None)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(10, 8, None)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(np.inf, 1, None)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(np.nan, 1, None)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(1, np.inf, None)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(1, np.nan, None)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(1, 2, -1.0)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(1, 2, 2)
+    with self.assertRaises(ValueError):
+      bond_length_distribution.FixedWindow(1, 2, np.inf)
+
 
 class GaussianTest(absltest.TestCase):
 
@@ -696,8 +718,8 @@ class TestStandardDists(parameterized.TestCase):
     with self.assertRaises(KeyError):
       dists[ATOM_H, ATOM_C][BOND_DOUBLE]
 
-  def test_covalent_radii(self):
-    dists = bond_length_distribution.make_covalent_radii_dists()
+  def test_mlcr(self):
+    dists = bond_length_distribution.make_mlcr_dists()
     for bond in [BOND_SINGLE, BOND_DOUBLE, BOND_TRIPLE]:
       self.assertGreater(dists[(ATOM_C, ATOM_N)][bond].pdf(1.75), 0)
       self.assertEqual(dists[(ATOM_C, ATOM_N)][bond].pdf(1.77), 0)
@@ -711,8 +733,8 @@ class TestStandardDists(parameterized.TestCase):
     with self.assertRaises(KeyError):
       dists[(ATOM_C, ATOM_F)][BOND_DOUBLE]
 
-  def test_allen_et_al(self):
-    dists = bond_length_distribution.make_allen_et_al_dists()
+  def test_csd(self):
+    dists = bond_length_distribution.make_csd_dists()
     self.assertGreater(dists[(ATOM_C, ATOM_N)][BOND_SINGLE].pdf(1.271), 0)
     # Note the extra 1 at the end to check that we add the slop for rounding
     self.assertGreater(dists[(ATOM_C, ATOM_N)][BOND_SINGLE].pdf(1.6211), 0)

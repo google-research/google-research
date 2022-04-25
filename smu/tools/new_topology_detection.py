@@ -44,13 +44,13 @@ def main(argv):
       conformer, bond_lengths, fake_smiles_id_dict)
 
     count_all = len(conformer.bond_topologies)
-    count_smu = sum(bt.source & dataset_pb2.BondTopology.SOURCE_SMU != 0
+    count_smu = sum(bt.source & dataset_pb2.BondTopology.SOURCE_ITC != 0
                     for bt in conformer.bond_topologies)
     count_covalent = sum(
-      bt.source & dataset_pb2.BondTopology.SOURCE_COVALENT_RADII != 0
+      bt.source & dataset_pb2.BondTopology.SOURCE_MLCR != 0
       for bt in conformer.bond_topologies)
     count_allen = sum(
-      bt.source & dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL != 0
+      bt.source & dataset_pb2.BondTopology.SOURCE_CSD != 0
       for bt in conformer.bond_topologies)
 
     print(f'{conformer.conformer_id}, {count_all}, {count_smu}, {count_covalent}, {count_allen}')

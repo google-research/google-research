@@ -94,10 +94,10 @@ message BondTopology {
   enum SourceType {
     SOURCE_UNSET = 0;
     // Indicates that this is a topology that matches the bond ranges used for
-    // the geometry search procedure internally in SMU.
-    SOURCE_SMU = 1;
+    // the the Initial Topology Checks in the geometry search procedure.
+    SOURCE_ITC = 1;
     // Indicates taht this was the topology used during the geometry creation
-    // process itself. It will always co-occur with SOURCE_SMU
+    // process itself. It will always co-occur with SOURCE_ITC
     SOURCE_STARTING = 2;
     // Indicates that this topology matches bond lengths determined by covalent
     // radii plus a tolerance factor.
@@ -105,13 +105,14 @@ message BondTopology {
     // Meng, E. C. & Lewis, R. A. Determination of molecular topology and atomic
     // hybridization states from heavy atom coordinates. J. Comput. Chem. 12,
     // 891–898 (1991)
-    SOURCE_COVALENT_RADII = 4;
+    SOURCE_MLCR = 4;
     // Indicates that this topology matches bond lengths extracted from
+    // the Cambridge Structural Database as complied by :
     // Allen, F. H. et al. Tables of bond lengths determined by X-ray and neutron
     // diffraction. Part 1. Bond lengths in organic compounds.
     // J. Chem. Soc. Perkin Trans. 2 S1–S19 (1987)
     // with a 3 sigma cutoff.
-    SOURCE_ALLEN_ET_AL = 8;
+    SOURCE_CSD = 8;
     // This value will never appear in the published database, but if bond
     // lengths are modified for geometry based queries to the database, then this
     // value will be used.

@@ -593,9 +593,9 @@ class IterateBondTopologiesTest(parameterized.TestCase):
 
   def test_new_all(self):
     conformer = self.make_new_fake_conformer(
-      123, [dataset_pb2.BondTopology.SOURCE_SMU,
-            dataset_pb2.BondTopology.SOURCE_COVALENT_RADII,
-            dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL])
+      123, [dataset_pb2.BondTopology.SOURCE_ITC,
+            dataset_pb2.BondTopology.SOURCE_MLCR,
+            dataset_pb2.BondTopology.SOURCE_CSD])
     got = list(smu_utils_lib.iterate_bond_topologies(
       conformer, smu_utils_lib.WhichTopologies.all))
     self.assertEqual([(0, 100), (1, 101), (2, 102)],
@@ -613,8 +613,8 @@ class IterateBondTopologiesTest(parameterized.TestCase):
 
   def test_new_best(self):
     conformer = self.make_new_fake_conformer(
-      123, [dataset_pb2.BondTopology.SOURCE_SMU,
-            dataset_pb2.BondTopology.SOURCE_SMU |
+      123, [dataset_pb2.BondTopology.SOURCE_ITC,
+            dataset_pb2.BondTopology.SOURCE_ITC |
             dataset_pb2.BondTopology.SOURCE_STARTING])
     got = list(smu_utils_lib.iterate_bond_topologies(
       conformer, smu_utils_lib.WhichTopologies.best))
@@ -636,9 +636,9 @@ class IterateBondTopologiesTest(parameterized.TestCase):
   def test_new_starting(self, starting_idx):
     conformer = self.make_new_fake_conformer(
       123,
-      [dataset_pb2.BondTopology.SOURCE_SMU,
-       dataset_pb2.BondTopology.SOURCE_SMU,
-       dataset_pb2.BondTopology.SOURCE_SMU])
+      [dataset_pb2.BondTopology.SOURCE_ITC,
+       dataset_pb2.BondTopology.SOURCE_ITC,
+       dataset_pb2.BondTopology.SOURCE_ITC])
 
     conformer.bond_topologies[starting_idx].source |= (
       dataset_pb2.BondTopology.SOURCE_STARTING)
@@ -657,8 +657,8 @@ class IterateBondTopologiesTest(parameterized.TestCase):
   def test_new_no_starting(self):
     conformer = self.make_new_fake_conformer(
       123,
-      [dataset_pb2.BondTopology.SOURCE_SMU,
-       dataset_pb2.BondTopology.SOURCE_COVALENT_RADII])
+      [dataset_pb2.BondTopology.SOURCE_ITC,
+       dataset_pb2.BondTopology.SOURCE_MLCR])
     got = list(smu_utils_lib.iterate_bond_topologies(
       conformer, smu_utils_lib.WhichTopologies.starting))
     self.assertLen(got, 0)
@@ -666,23 +666,23 @@ class IterateBondTopologiesTest(parameterized.TestCase):
   def test_old_smu(self):
     conformer = self.make_old_fake_conformer(123, 2)
     got = [i for i, _ in smu_utils_lib.iterate_bond_topologies(
-      conformer, smu_utils_lib.WhichTopologies.smu)]
+      conformer, smu_utils_lib.WhichTopologies.itc)]
     self.assertEqual(got, [0, 1])
 
   @parameterized.parameters([
-    (smu_utils_lib.WhichTopologies.smu, [0, 1]),
-    (smu_utils_lib.WhichTopologies.allen, [2, 3]),
-    (smu_utils_lib.WhichTopologies.covalent, [4, 5]),
+    (smu_utils_lib.WhichTopologies.itc, [0, 1]),
+    (smu_utils_lib.WhichTopologies.csd, [2, 3]),
+    (smu_utils_lib.WhichTopologies.mlcr, [4, 5]),
     ])
   def test_subsets(self, which, expected):
     conformer = self.make_new_fake_conformer(
       123,
-      [dataset_pb2.BondTopology.SOURCE_SMU,
-       dataset_pb2.BondTopology.SOURCE_SMU,
-       dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL,
-       dataset_pb2.BondTopology.SOURCE_ALLEN_ET_AL,
-       dataset_pb2.BondTopology.SOURCE_COVALENT_RADII,
-       dataset_pb2.BondTopology.SOURCE_COVALENT_RADII])
+      [dataset_pb2.BondTopology.SOURCE_ITC,
+       dataset_pb2.BondTopology.SOURCE_ITC,
+       dataset_pb2.BondTopology.SOURCE_CSD,
+       dataset_pb2.BondTopology.SOURCE_CSD,
+       dataset_pb2.BondTopology.SOURCE_MLCR,
+       dataset_pb2.BondTopology.SOURCE_MLCR])
     got = [i for i, _ in smu_utils_lib.iterate_bond_topologies(conformer, which)]
     self.assertEqual(got, expected)
 

@@ -50,11 +50,18 @@ def get_modified_bond_lengths(epsilon):
         continue
       try:
         dist = orig_bond_lengths[(atom_a, atom_b)][bond]
-        bond_lengths.add(
-          atom_a, atom_b, bond,
-          bond_length_distribution.FixedWindow(dist.min() - epsilon,
-                                               dist.max() + epsilon,
-                                               dist.right_tail_mass))
+        if bond == dataset_pb2.BondTopology.BOND_UNDEFINED:
+          bond_lengths.add(
+            atom_a, atom_b, bond,
+            bond_length_distribution.FixedWindow(dist.min() - epsilon,
+                                                 2.0,
+                                                 dist.right_tail_mass))
+        else:
+          bond_lengths.add(
+            atom_a, atom_b, bond,
+            bond_length_distribution.FixedWindow(dist.min() - epsilon,
+                                                 dist.max() + epsilon,
+                                                 None))
       except KeyError:
         # We have a few missing cases from our original empirical dists
         # For this exercise, we will just copy the CC bond dists for this order
@@ -80,7 +87,6 @@ def main(argv):
   count_processed = 0
   count_matched = 0
 
-
   with open('extend_bond_dists.csv', 'w') as outf:
     fields = ['conformer_id']
     for buf in buffers:
@@ -90,6 +96,7 @@ def main(argv):
     writer.writeheader()
 
     for conformer in db:
+    # for conformer in [db.find_by_conformer_id(375986006)]:
       if conformer.fate != dataset_pb2.Conformer.FATE_DISASSOCIATED:
         continue
 
