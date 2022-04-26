@@ -15,8 +15,6 @@
 
 """Image pixel inpainting adapted for cognate reflex generation."""
 
-import csv
-import itertools
 import json
 import logging
 import os
@@ -29,27 +27,37 @@ from absl import flags
 import numpy as np
 import tensorflow as tf
 
+
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('data_dir',
                     'experimental/users/rws/st2022',
                     'Location of SIGTYP 2022 data.')
-flags.DEFINE_string('data_division', '0.10',
-                    'Which data division.')
+flags.DEFINE_string('train_file', 'training-mod_0.10.tsv',
+                    'Location of SIGTYP 2022 training data within data_dir.')
+flags.DEFINE_string('dev_file', 'dev_0.10.tsv',
+                    'Location of SIGTYP 2022 dev data within data_dir.')
+flags.DEFINE_string(
+    'dev_solutions_file', 'dev_solutions_0.10.tsv',
+    'Location of SIGTYP 2022 dev solution data within data_dir.')
+flags.DEFINE_string('test_file', 'test_0.10.tsv',
+                    'Location of SIGTYP 2022 test data within data_dir.')
+flags.DEFINE_string('preds_file', 'model_result_0.10.tsv',
+                    'Name of the output file were to put decoding results'
+                    '(in the data_dir). The file is in TSV format.')
 flags.DEFINE_string('checkpoint_dir', None, 'Location of model checkpoint.')
-flags.DEFINE_string('language_group', 'felekesemitic',
-                    'Which language group.')
-flags.DEFINE_integer('max_epochs', 100, 'Maximum number of epochs.')
-flags.DEFINE_integer('steps_per_epoch', 1000, 'Steps per epoch.')
+flags.DEFINE_integer('max_epochs', 150, 'Maximum number of epochs.')
+flags.DEFINE_integer('steps_per_epoch', 500, 'Steps per epoch.')
 flags.DEFINE_integer('embedding_dim', 32, 'Character embedding size.')
 flags.DEFINE_integer('kernel_width', 4, 'Kernel context size.')
 flags.DEFINE_integer('filters', 128, 'Number of convolution filters.')
+flags.DEFINE_float('dropout', 0.1, 'Number of convolution filters.')
 flags.DEFINE_enum('nonlinearity', 'leaky_relu', ['leaky_relu', 'relu', 'tanh'],
                   'Nonlinearity.')
+flags.DEFINE_enum('sfactor', 'inputs', ['inputs', 'conv', 'none'],
+                  'Where to renormalize the convolution filters, if at all.')
 flags.DEFINE_boolean('decode', False, 'Run evaluation against the test data.')
-flags.DEFINE_string('output_results_tsv', None,
-                    'Location of the output file with decoding results. The '
-                    'file is in TSV format.')
+
 
 _HPARAMS_FILENAME = 'hparams.json'  # Model configuration.
 _VOCAB_FILENAME = 'vocab.txt'  # Symbol vocabulary.
@@ -61,14 +69,17 @@ class Infiller(tf.keras.Model):
   def __init__(self, vocab_size, hparams, batch_size, nlangs, max_length):
     super(Infiller, self).__init__()
     self.batch_size = batch_size
+    self.units = hparams['filters']
+    self.kernel_width = hparams['kernel_width']
     self.vocab_size = vocab_size
     self.embedding_dim = hparams['embedding_dim']
-    self.units = hparams['filters']
     self.nlangs = nlangs
     self.max_length = max_length
+    self.scale_pos = hparams['sfactor']
 
     ##-------- Embedding layers in Encoder ------- ##
-    self.embedding = tf.keras.layers.Embedding(vocab_size, self.embedding_dim)
+    self.embedding = tf.keras.layers.Embedding(self.vocab_size,
+                                               self.embedding_dim)
 
     ##-------- Convolution ------- ##
     self.conv = tf.keras.layers.Conv2D(
@@ -82,11 +93,14 @@ class Infiller(tf.keras.Model):
     else:
       self.act = tf.keras.layers.Activation('tanh')
 
+    ##-------- Dropout ------- ##
+    self.dropout = tf.keras.layers.Dropout(hparams['dropout'])
+
     ##-------- Deconvolution ------- ##
     self.deconv = tf.keras.layers.Conv2DTranspose(
-        filters=vocab_size, kernel_size=(nlangs, hparams['kernel_width']))
+        filters=self.vocab_size, kernel_size=(nlangs, hparams['kernel_width']))
 
-  def call(self, inputs, input_mask):
+  def call(self, inputs, input_mask, training):
     # Reshape the mask.
     rmask = tf.repeat(input_mask, self.embedding_dim, axis=-1)
     rmask = tf.reshape(
@@ -98,8 +112,16 @@ class Infiller(tf.keras.Model):
     inputs = self.embedding(inputs)
     inputs = inputs * rmask
 
+    # Scale the inputs.
+    sfactor = (self.nlangs * self.max_length) / tf.math.reduce_sum(input_mask)
+    if self.scale_pos == 'inputs':
+      inputs = inputs * sfactor
+
     # Convolve
     inputs = self.conv(inputs)
+    if self.scale_pos == 'conv':
+      inputs = inputs * sfactor
+    inputs = self.dropout(inputs, training=training)
     inputs = self.act(inputs)
 
     # Deconvolve
@@ -108,7 +130,7 @@ class Infiller(tf.keras.Model):
     return logits
 
 
-def get_hparams(num_langs=0):
+def get_hparams():
   """Builds hyper-parameter dictionary from flags or file."""
   if FLAGS.decode and FLAGS.checkpoint_dir:
     file_path = os.path.join(FLAGS.checkpoint_dir, _HPARAMS_FILENAME)
@@ -125,14 +147,15 @@ def get_hparams(num_langs=0):
         'kernel_width': FLAGS.kernel_width,
         'filters': FLAGS.filters,
         'nonlinearity': FLAGS.nonlinearity,
-        'num_langs': num_langs,
+        'dropout': FLAGS.dropout,
+        'sfactor': FLAGS.sfactor,
     }
 
 
 @tf.function
 def loss_function(real, pred, mask):
   # real shape = (BATCH_SIZE, max_length_output)
-  # pred shape = (BATCH_SIZE, max_length_output, tar_vocab_size)
+  # pred shape = (BATCH_SIZE, max_length_output, tar_vocab_size )
   cross_entropy = tf.keras.losses.SparseCategoricalCrossentropy(
       from_logits=True, reduction='none')
   loss = cross_entropy(y_true=real, y_pred=pred)
@@ -146,9 +169,8 @@ def train_step(infiller, optimizer, inp, inp_mask, targ, targ_mask):
   """Single training step."""
   loss = 0
   with tf.GradientTape() as tape:
-    logits = infiller(inp, inp_mask)
+    logits = infiller(inp, inp_mask, training=True)
     loss = loss_function(targ, logits, targ_mask)
-
   variables = infiller.trainable_variables
   gradients = tape.gradient(loss, variables)
   optimizer.apply_gradients(zip(gradients, variables))
@@ -160,7 +182,7 @@ def evaluate_cset(infiller, cset, char2idx, max_length):
   tgt_index = 0
   inputs = []
   input_mask = []
-  # Find possible target positions.
+  # Find possible target positions
   for i, p in enumerate(cset):
     if p.strip():
       if p == '<TARGET>':
@@ -172,7 +194,7 @@ def evaluate_cset(infiller, cset, char2idx, max_length):
             char2idx[c] if c in char2idx else char2idx['<UNK>']
             for c in p.split()
         ] + [char2idx['<EOS>']]
-        template = [char2idx['<EOS>']] * max_length
+        template = [char2idx['<BLANK>']] * max_length
         for j in range(min(len(seq), max_length)):
           template[j] = seq[j]
         inputs.append(template)
@@ -184,7 +206,7 @@ def evaluate_cset(infiller, cset, char2idx, max_length):
   inputs = tf.constant([inputs], dtype='int32')
   input_mask = tf.constant([input_mask], dtype='float32')
 
-  logits = infiller(inputs, input_mask)
+  logits = infiller(inputs, input_mask, training=False)
   trow = tf.math.argmax(logits[0, tgt_index, :, :], axis=-1)
   return trow.numpy()
 
@@ -192,11 +214,10 @@ def evaluate_cset(infiller, cset, char2idx, max_length):
 def silent_translate(infiller, cset, char2idx, max_length, idx2char):
   result = evaluate_cset(infiller, cset, char2idx, max_length)
   result = list(result)
-  if char2idx['<EOS>'] in result:
-    result = result[1:result.index(char2idx['<EOS>'])]
-  else:
-    result = result[1:]
-  result = ' '.join([idx2char[x] for x in result])
+  result = ' '.join([
+      idx2char[x] for x in result if idx2char[x] not in
+      ['<PAD>', '<EOS>', '<BOS>', '<UNK>', '<TARGET>', '<BLANK>']
+  ])
   return result
 
 
@@ -205,45 +226,39 @@ def build_train_dataset(all_samples, batch_size, nlangs, max_length, char2idx):
   # Create data generators to feed into the networks.
   def la_gen():
     while True:
-      for icset, tcset in all_samples:
-        assert len(icset) == nlangs
-        assert len(tcset) == nlangs
+      for icset in all_samples:
         inputs = []
         targets = []
         input_mask = []
         target_mask = []
+        # Get the present items.
+        valids = [i for i in range(len(icset)) if icset[i] != '<BLANK>']
+        # Select how many inputs will be present to provide information.
+        num_present = random.randint(1, len(valids))
+        present = random.sample(valids, num_present)
         # Create the actual data content.
         for i in range(len(icset)):
-          if icset[i] == '<TARGET>':
-            seq = [char2idx['<BOS>']] + [
-                char2idx[c] if c in char2idx else char2idx['<UNK>']
-                for c in tcset[i].split()
-            ] + [char2idx['<EOS>']]
-            template = [char2idx['<EOS>']] * max_length
-            for j in range(min(len(seq), max_length)):
-              template[j] = seq[j]
-            inputs.append([char2idx['<TARGET>']] * max_length)
-            targets.append(template)
-            input_mask.append([0.0] * max_length)
+          # Create a max_length sequence.
+          template = [char2idx['<BLANK>']] * max_length
+          seq = [char2idx['<BOS>']] + [
+              char2idx[c] if c in char2idx else char2idx['<UNK>']
+              for c in icset[i].split()
+          ] + [char2idx['<EOS>']]
+          for j in range(min(len(seq), max_length)):
+            template[j] = seq[j]
+          targets.append(template)
+          inputs.append(template)
+          # If the sequence if valid, get gradient from it.
+          if i in valids:
             target_mask.append([1.0] * max_length)
-          elif icset[i] == '<BLANK>':
-            inputs.append([char2idx['<BLANK>']] * max_length)
-            targets.append([char2idx['<BLANK>']] * max_length)
-            input_mask.append([0.0] * max_length)
-            target_mask.append([0.0] * max_length)
           else:
-            seq = [char2idx['<BOS>']] + [
-                char2idx[c] if c in char2idx else char2idx['<UNK>']
-                for c in icset[i].split()
-            ] + [char2idx['<EOS>']]
-            template = [char2idx['<EOS>']] * max_length
-            for j in range(min(len(seq), max_length)):
-              template[j] = seq[j]
-            inputs.append(template)
-            targets.append(template)
+            target_mask.append([0.0] * max_length)
+          # If the sequence should be present, don't mask it.
+          if i in present:
             input_mask.append([1.0] * max_length)
-            target_mask.append([1.0] * max_length)
-          # Convert to required tensor formats.
+          else:
+            input_mask.append([0.0] * max_length)
+        # Convert to required tensor formats.
         inputs = tf.constant([inputs], dtype='int32')
         targets = tf.constant([targets], dtype='int32')
         input_mask = tf.constant([input_mask], dtype='float32')
@@ -272,30 +287,14 @@ def expand_training_set(cogsets):
   nlangs = len(cogsets[0])
   all_samples = []
   for cs in cogsets:
-    # Loop over all possible target positions.
+    # Find all valid positions.
+    isample = []
     for i in range(nlangs):
       if cs[i]:
-        # Find all remaining valid indexes...
-        valids = []
-        for j in range(nlangs):
-          if j != i and cs[j]:
-            valids.append(j)
-        # Loop over all combinations of valids of size at least 1:
-        for j in range(1, nlangs):
-          for combo in itertools.combinations(valids, j):
-            isample = []
-            tsample = []
-            for k, p in enumerate(cs):
-              if k == i:
-                isample.append('<TARGET>')
-                tsample.append(p)
-              elif k in combo:
-                isample.append(p)
-                tsample.append(p)
-              else:
-                isample.append('<BLANK>')
-                tsample.append('<BLANK>')
-            all_samples.append((isample, tsample))
+        isample.append(cs[i])
+      else:
+        isample.append('<BLANK>')
+    all_samples.append(isample)
   random.shuffle(all_samples)
   return all_samples
 
@@ -304,9 +303,9 @@ def build_base_data_and_vocab(datadir):
   """Builds vocabulary from the training data files."""
   vocab = set()
   cogsets = []
-  filepath = os.path.join(datadir, f'training-{FLAGS.data_division}.tsv')
+  filepath = os.path.join(datadir, FLAGS.train_file)
   logging.info('Preparing base training data from %s ...', filepath)
-  with open(filepath, 'r', encoding='utf8') as fin:
+  with open(filepath, 'r', encoding='utf-8') as fin:
     # Skip header.
     next(fin)
     for line in fin:
@@ -315,8 +314,8 @@ def build_base_data_and_vocab(datadir):
         for c in p.split():
           vocab.add(c)
       cogsets.append([p.strip() for p in parts])
-  vocab = ['<PAD>', '<EOS>', '<BOS>', '<UNK>', '<TARGET>', '<BLANK>'
-          ] + list(vocab)
+  vocab = ['<PAD>', '<EOS>', '<BOS>', '<UNK>', '<TARGET>', '<BLANK>'] + sorted(
+      list(vocab))
   return cogsets, vocab
 
 
@@ -332,81 +331,47 @@ def get_vocab(checkpoint_dir):
   return vocab
 
 
-def load_test_set(datadir):
-  """Loads test set from the files."""
-  test_sets = []
-  targets = []
-  filepath = os.path.join(datadir, f'test-{FLAGS.data_division}.tsv')
-  logging.info('Preparing test data from %s ...', filepath)
-  with open(filepath, 'r', encoding='utf8') as fin:
-    # Parse header.
-    header = next(fin)
-    # Parse the actual test data.
-    for line in fin:
-      tokens = line.strip('\n').split('\t')
-      parts = []
-      target_col = -1
-      for i, p in enumerate(tuple(tokens[1:])):
-        part = '<TARGET>' if p == '?' else p
-        parts.append(part)
-        if part == '<TARGET>':
-          if target_col != -1:
-            raise ValueError(f'{tokens[0]}: Multiple targets in the same set!')
-          target_col = i
-          targets.append((tokens[0], target_col))
-      test_sets.append(parts)
-  assert len(test_sets) == len(targets)
-  return test_sets, header.split(), targets
-
-
-def get_datadir():
-  return os.path.join(FLAGS.data_dir, 'data', FLAGS.language_group)
-
-
 def train_model(checkpoint_dir):
   """Training pipeline."""
+
+
   # Produce base training data and vocab, and expand the training data.
-  datadir = get_datadir()
+  datadir = FLAGS.data_dir
   cogsets, vocab = build_base_data_and_vocab(datadir)
   char2idx = {vocab[i]: i for i in range(len(vocab))}
   idx2char = {i: vocab[i] for i in range(len(vocab))}
   nlangs = len(cogsets[0])
-  hparams = get_hparams(nlangs)
+  hparams = get_hparams()
   vocab_size = len(vocab)
   all_samples = expand_training_set(cogsets)
 
-  # Read in the test data.
-  test_sets, _, _ = load_test_set(datadir)
-
-  # Read in the baseline results.
-  baseline_results = []
-  with open(os.path.join(datadir, f'result-{FLAGS.data_division}.tsv'), 'r',
-            encoding='utf8') as fin:
+  # Read in the dev data.
+  dev_sets = []
+  filepath = os.path.join(datadir, FLAGS.dev_file)
+  with open(filepath, 'r', encoding='utf-8') as fin:
     # Skip header.
     next(fin)
     for line in fin:
       parts = tuple(line.strip('\n').split('\t')[1:])
-      baseline_results.append(''.join(parts).strip())
+      parts = ['<TARGET>' if p == '?' else p for p in parts]
+      dev_sets.append(parts)
 
-  # Read in the solution set.
-  solutions = []
-  with open(os.path.join(datadir, f'solutions-{FLAGS.data_division}.tsv'), 'r',
-            encoding='utf8') as fin:
+  # Read in the dev  solution set.
+  dev_solutions = []
+  filepath = os.path.join(datadir, FLAGS.dev_solutions_file)
+  with open(filepath, 'r', encoding='utf-8') as fin:
     # Skip header.
     next(fin)
     for line in fin:
       parts = tuple(line.strip('\n').split('\t')[1:])
-      solutions.append(''.join(parts).strip())
+      dev_solutions.append(''.join(parts).strip())
 
   # Core settings.
   steps_per_epoch = FLAGS.steps_per_epoch
   batch_size = 1
   max_length = 20
-  # Have we written the vocab already?
+  # Have we written the vocab and hparams already?
   vocab_written = False
-
-  # How many test samples per language?
-  offset = len(solutions) / nlangs
 
   # Define the model, optimizer and loss function.
   infiller = Infiller(vocab_size, hparams, batch_size, nlangs, max_length)
@@ -416,16 +381,16 @@ def train_model(checkpoint_dir):
     checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
     checkpoint = tf.train.Checkpoint(optimizer=optimizer, infiller=infiller)
 
-  # Train the model.
-  best_error = None
-  epochs = FLAGS.max_epochs
-
   logging.info('Training the model ...')
   train_dataset = build_train_dataset(all_samples, batch_size, nlangs,
                                       max_length, char2idx)
-  for epoch in range(epochs):
+  best_error = None
+
+  for epoch in range(FLAGS.max_epochs):
     start = time.time()
+
     total_loss = 0
+
     for (_, (inp, targ, inp_mask,
              targ_mask)) in enumerate(train_dataset.take(steps_per_epoch)):
       batch_loss = train_step(infiller, optimizer, inp, inp_mask, targ,
@@ -434,47 +399,48 @@ def train_model(checkpoint_dir):
 
     print('Epoch {} Loss {:.4f}'.format(epoch + 1,
                                         total_loss / steps_per_epoch))
+
     print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
 
     # Evaluate on dev set:
-    # Get model predictions.
-    predictions = []
-    for tset in test_sets:
-      assert len(tset) == nlangs
-      predictions.append(silent_translate(infiller, tset, char2idx, max_length,
-                                          idx2char))
-    # Calculate model error.
-    terrors = []
-    for lang in range(1, nlangs + 1):
-      errors = 0
-      merrors = 0
-      for i, (_, _) in enumerate(zip(solutions, baseline_results)):
-        if i >= (lang - 1) * offset and i < lang * offset:
-          if solutions[i] != baseline_results[i]:
-            errors += 1
-          if solutions[i] != predictions[i]:
-            merrors += 1
-      print(lang, 'MODEL ERROR:', merrors / offset)
-      terrors.append(merrors / offset)
-    mean_accuracy = np.mean(terrors)
-    print(mean_accuracy)
+    derrors = [0 for l in range(nlangs)]
+    dtotals = [0 for l in range(nlangs)]
+    allerrors = 0
+    for dset, dsol in zip(dev_sets, dev_solutions):
+      tgt_index = dset.index('<TARGET>')
+      dtotals[tgt_index] += 1
+      pred = silent_translate(infiller, dset, char2idx, max_length, idx2char)
+      if pred != dsol:
+        derrors[tgt_index] += 1
+        allerrors += 1
+    derrors = [x / y for x, y in zip(derrors, dtotals) if y != 0]
+    mean_accuracy = np.mean(derrors)
+
+    # Update based on dev set.
     if not best_error or mean_accuracy <= best_error:
-      print('ERROR_UPDATE:', terrors)
+      print('ERROR_UPDATE:', derrors)
       if checkpoint_dir:
         checkpoint.save(file_prefix=checkpoint_prefix)
-        # Write the vocab and hparams AFTER ensuring checkpoint dir has been
-        # created.
+        # Write the vocab AFTER ensuring checkpoint dir has been created.
         if not vocab_written:
-          with open(os.path.join(checkpoint_dir, _VOCAB_FILENAME), 'w',
-                    encoding='utf8') as vfile:
+          # Write the model parameters.
+          hparams = {}
+          hparams['embedding_dim'] = FLAGS.embedding_dim
+          hparams['kernel_width'] = FLAGS.kernel_width
+          hparams['filters'] = FLAGS.filters
+          hparams['dropout'] = FLAGS.dropout
+          hparams['nonlinearity'] = FLAGS.nonlinearity
+          hparams['sfactor'] = FLAGS.sfactor
+          with open(checkpoint_dir + '/hparams.json', 'w') as vfile:
+            json.dump(hparams, vfile)
+          # Write the vocabulary.
+          with open(
+              checkpoint_dir + '/vocab.txt', 'w', encoding='utf-8') as vfile:
             for v in vocab:
               vfile.write(v + '\n')
           vocab_written = True
-          with open(os.path.join(checkpoint_dir, _HPARAMS_FILENAME),
-                    'w') as hfile:
-            json.dump(hparams, hfile)
       best_error = mean_accuracy
-    print(best_error, '\n')
+    print(best_error, mean_accuracy, '\n')
 
   # For some reason this step takes a couple of minutes to complete using
   # Tensorflow 2.8.0.
@@ -483,19 +449,24 @@ def train_model(checkpoint_dir):
 
 def decode_with_model(checkpoint_dir):
   """Runs the decoding on the unseen data."""
-  if not FLAGS.output_results_tsv:
-    raise app.UsageError('Specify --output_results_tsv')
+  if not FLAGS.preds_file:
+    raise app.UsageError('Specify --preds_file')
 
   # Fetch the hyper-parameters and the vocab.
   hparams = get_hparams()
-  assert 'num_langs' in hparams
   vocab = get_vocab(checkpoint_dir)
   char2idx = {vocab[i]: i for i in range(len(vocab))}
   idx2char = {i: vocab[i] for i in range(len(vocab))}
   vocab_size = len(vocab)
   batch_size = 1
   max_length = 20
-  nlangs = hparams['num_langs']
+
+  test_filepath = os.path.join(FLAGS.data_dir, FLAGS.test_file)
+  preds_filepath = os.path.join(FLAGS.data_dir, FLAGS.preds_file)
+
+  # Infer nlangs from test file header
+  with open(test_filepath, 'r', encoding='utf-8') as fin:
+    nlangs = len(next(fin).strip('\n').split('\t')) - 1
 
   # Load the model from the latest checkpoint.
   latest_ckpt_path = tf.train.latest_checkpoint(checkpoint_dir)
@@ -506,30 +477,21 @@ def decode_with_model(checkpoint_dir):
   checkpoint = tf.train.Checkpoint(infiller=infiller)
   checkpoint.restore(latest_ckpt_path).expect_partial()
 
-  # Get model predictions.
-  test_sets, columns, targets = load_test_set(get_datadir())
-  logging.info('Generating predictions ...')
-  predictions = []
-  for i, test_set in enumerate(test_sets):
-    assert len(test_set) == nlangs
-    prediction = silent_translate(infiller, test_set, char2idx, max_length,
-                                  idx2char)
-    predictions.append((targets[i][0], targets[i][1], prediction))
-
-  # Save the predictions.
-  logging.info('Saving %d predictions to %s ...', len(predictions),
-               FLAGS.output_results_tsv)
-  with open(FLAGS.output_results_tsv, 'w', encoding='utf8') as f:
-    writer = csv.writer(f, delimiter='\t')
-    writer.writerow(columns)
-    for cog_id, col_id, prediction in predictions:
-      row = [cog_id]
-      for i in range(len(columns)-1):
-        if i == col_id:
-          row.append(prediction)
-        else:
-          row.append(None)
-      writer.writerow(row)
+  # Generate predictions.
+  logging.info('Generating predictions and saving results...')
+  with open(preds_filepath, 'w', encoding='utf-8') as vfile:
+    with open(test_filepath, 'r', encoding='utf-8') as tfile:
+      # Copy the header.
+      vfile.write(next(tfile))
+      for line in tfile:
+        parts = line.strip('\n').split('\t')
+        tset = ['<TARGET>' if p == '?' else p for p in parts[1:]]
+        tgt_index = tset.index('<TARGET>')
+        pred = silent_translate(infiller, tset, char2idx, max_length, idx2char)
+        row = ['' for p in parts]
+        row[0] = parts[0]
+        row[tgt_index + 1] = pred
+        vfile.write('\t'.join(row) + '\n')
 
 
 def main(argv):
