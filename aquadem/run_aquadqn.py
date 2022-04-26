@@ -51,7 +51,6 @@ def main(_):
   # Create AQuaDem builder.
   loss_fn = dqn.losses.MunchausenQLearning(max_abs_reward=100.)
   dqn_config = dqn.DQNConfig(
-      samples_per_insert_tolerance_rate=float('inf'),
       min_replay_size=1000,
       n_step=3,
       num_sgd_steps_per_step=8,
