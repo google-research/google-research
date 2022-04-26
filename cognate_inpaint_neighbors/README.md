@@ -1,14 +1,26 @@
 # Inpainting and Neighborhood Techniques for Prediction of Cognate Reflexes
 
-This directory contains the software developed for the
-[SIGTYP 2022 Shared Task](https://github.com/sigtyp/ST2022) on prediction of
-cognate reflexes held at the The Fourth Workshop on Computational Typology and
-Multilingual NLP (SIGTYP 2022).
+This directory contains the software developed for the [SIGTYP 2022 Shared
+Task](https://github.com/sigtyp/ST2022) on prediction of cognate reflexes held
+at the 4th Workshop on Research in Computational Typology and Multilingual NLP
+(SIGTYP 2022).
 
 There are two model implementations in this directory:
 
-1.  Cognate Neighbors model (under the `neighbors` subdirectory).
-1.  Cognate Inpainting model (under the `inpaint` subdirectory).
+1.  Cognate Neighbors model (under the `neighbors` subdirectory). This model
+    corresponds to two systems submitted to the shared task:
+    *   Model for each individual language. The configurations
+        [mockingbird-n1-a](https://github.com/sigtyp/ST2022/tree/main/systems/mockingbird-n1-a),
+        [mockingbird-n1-b](https://github.com/sigtyp/ST2022/tree/main/systems/mockingbird-n1-b),
+        and
+        [mockingbird-n1-c](https://github.com/sigtyp/ST2022/tree/main/systems/mockingbird-n1-c)
+        correspond to the models trained for 25000, 30000 and 100000 steps,
+        respectively.
+    *   Model for each language group:
+        [mockingbird-n2](https://github.com/sigtyp/ST2022/tree/main/systems/mockingbird-n2). The
+        stopping condition ad-hoc corresponding to varying numbers of training steps.
+1.  Cognate Inpainting model (under the `inpaint` subdirectory):
+    [mockingbird-i1](https://github.com/sigtyp/ST2022/tree/main/systems/mockingbird-i1).
 
 ## Dependencies
 
