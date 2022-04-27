@@ -850,7 +850,7 @@ def conformer_to_molecules(conformer,
       mol = bond_topology_to_molecule(bt)
       mol.SetProp(
           '_Name',
-          f'SMU {conformer.conformer_id} bt={bt_label} geom={geom_label} fate={conformer.fate}'
+          f'SMU {conformer.conformer_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
       )
 
       # Add in the coordinates
