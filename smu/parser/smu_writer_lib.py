@@ -151,7 +151,8 @@ class SmuWriter:
     """
     if conformer.which_database == dataset_pb2.STANDARD:
       return 'Database   standard\n'
-    elif conformer.which_database == dataset_pb2.COMPLETE:
+    elif (conformer.which_database == dataset_pb2.COMPLETE or
+          conformer.which_database == dataset_pb2.UNSPECIFIED):
       return 'Database   complete\n'
     raise ValueError('Bad which_database: {}'.format(conformer.which_database))
 
