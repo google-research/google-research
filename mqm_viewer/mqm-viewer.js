@@ -61,6 +61,39 @@ let mqmClauseAddOr;
 const mqmTotal = '_MQM_TOTAL_';
 
 /**
+ * Bootstrap sampling is used to compute 95% confidence intervals.
+ * Currently only system MQM scores are supported.
+ * Samples are obtained incrementally, i.e., each `mqmShowCI` call samples
+ * a given number of times until 1000 samples are collected.
+ */
+/** Total Number of document-level samples to collect. */
+const mqmNumSamples = 1000;
+
+/**
+ * Number of document-level samples per `mqmShowCI` call.
+ * Make sure that this number can divide `mqmNumSamples`.
+ */
+const mqmNumSamplesPerCall = 200;
+
+/**
+ * Document-level info used for bootstrap sampling.
+ * This is keyed by the system name.
+ */
+let mqmDocs = {};
+
+/**
+ * Bootstrap samples already collected by previous calls.
+ * This is keyed by the system name.
+ */
+let mqmSampledScores = {};
+
+/**
+ * This stores the return from `setTimeout` call for incrementally obtaining
+ * bootstrap samples.
+ */
+let mqmCIComputation = null;
+
+/**
  * Listener for changes to the input field that specifies the limit on
  * the number of rows shown.
  */
@@ -503,42 +536,84 @@ function getRandomInt(max, size) {
 
 
 /**
- * Uses bootstrap sampling to obtain the confidence interval
- * (95% from 1000 document-level samples).
- * @param {!Object} stats
- * @return {!Array}
+ * Prepare the document-level info prior to sampling.
+ * For each document, we only need to keep track of two stats:
+ * 1. The total number of segments in the document;
+ * 2. The MQM scores (averaged over the number of segments).
+ * These two stats are later used to compute a weighted average of MQM scores
+ * to take into account the different total number of segments when we use
+ * document-level sampling.
+ * The input `stats_by_system` is an mqmStats* object keyed by the system name.
+ * @param {!Object} stats_by_system
  */
-function mqmGetBootstrapSampleCI(stats) {
-  // For each document, we only need to keep track of two stats:
-  // 1. The total number of segments in the document;
-  // 2. The MQM scores (averaged over the number of segments).
-  // These two stats are later used to compute a weighted average
-  // of MQM scores to take into account the different total number
-  // of segments when we use document-level sampling.
-  let docs = [];
-  for (let doc of Object.values(stats)) {
-    let segs_in_doc = Object.values(doc);
-    let [a, r] = mqmAggregateSegStats(segs_in_doc);
-    docs.push({'score': a.score, 'num_segments': segs_in_doc.length});
+function mqmPrepareDocScores(stats_by_system) {
+  mqmDocs = {};
+  for (system of Object.keys(stats_by_system)) {
+    mqmDocs[system] = [];
+    for (let doc of Object.values(stats_by_system[system])) {
+      let segs_in_doc = Object.values(doc);
+      let [a, r] = mqmAggregateSegStats(segs_in_doc);
+      mqmDocs[system].push(
+          {'score': a.score, 'num_segments': segs_in_doc.length});
+    }
+  }
+}
+
+/**
+ * Implements the core logic to incrementally obtain bootstrap samples and
+ * show confidence intervals. Each call will obtain `mqmNumberSamplesPerCall`
+ * document-level samples. At the end of the call, CIs are shown if all samples
+ * have been collected. Otherwise, call again to collect more.
+ * The input `systems` is a (sorted) array of system names, in the same order
+ * as rendered in HTML.
+ * @param {!Array} systems
+ */
+function mqmShowCI(systems) {
+  for (system of systems) {
+    if (!mqmSampledScores.hasOwnProperty(system)) {
+      mqmSampledScores[system] = [];
+    }
+    const docs = mqmDocs[system];
+    for (let i = 0; i < mqmNumSamplesPerCall; i++) {
+      let indices = getRandomInt(docs.length, docs.length);
+      let score = 0.0;
+      let num_segments = 0;
+      for (let index of indices) {
+        let doc = docs[index];
+        score += doc['score'] * doc['num_segments'];
+        num_segments += doc['num_segments'];
+      }
+      mqmSampledScores[system].push(score / num_segments);
+    }
   }
 
-  const num_samples = 1000;
-  const lower_idx = num_samples / 40;
-  const upper_idx = num_samples - lower_idx - 1;
-  let sampled_scores = [];
-  for (let i = 0; i < num_samples; i++) {
-    let indices = getRandomInt(docs.length, docs.length);
-    let score = 0.0;
-    let num_segments = 0;
-    for (let index of indices) {
-      let doc = docs[index];
-      score += doc['score'] * doc['num_segments'];
-      num_segments += doc['num_segments'];
+  if (Object.values(mqmSampledScores)[0].length < mqmNumSamples) {
+    // We need to collect more samples.
+    mqmCIComputation = setTimeout(mqmShowCI, 200, systems);
+  } else {
+    // We can now show the confidence intervals.
+    const lower_idx = mqmNumSamples / 40;
+    const upper_idx = mqmNumSamples - lower_idx - 1;
+    for (let [row_idx, system] of systems.entries()) {
+      mqmSampledScores[system].sort();
+      const lb = mqmSampledScores[system][lower_idx];
+      const ub = mqmSampledScores[system][upper_idx];
+      const ci = `${lb.toFixed(3)} - ${ub.toFixed(3)}`;
+      const span_id = `mqm-ci-${row_idx}`;
+      const ci_span = document.getElementById(span_id);
+      ci_span.insertAdjacentHTML('beforeend', ` (${ci})`);
     }
-    sampled_scores.push(score / num_segments);
+    mqmClearCIComputation();
   }
-  sampled_scores.sort();
-  return [sampled_scores[lower_idx], sampled_scores[upper_idx]];
+}
+
+/**
+ * Clears all computed confidence interval-related information.
+ */
+function mqmClearCIComputation() {
+  mqmCIComputation = null;
+  mqmDocs = {};
+  mqmSampledScores = {};
 }
 
 /**
@@ -565,7 +640,7 @@ function mqmShowSegmentStats(id, title, stats) {
     ratings[k] = r;
   }
   keys.sort((k1, k2) => aggregates[k1].score - aggregates[k2].score);
-  for (let k of keys) {
+  for (let [row_idx, k] of keys.entries()) {
     const segs = mqmGetSegStatsAsArray(stats[k]);
     const k_disp = (k == mqmTotal) ? 'Total' : k;
     let rowHTML = `<tr><td>${k_disp}</td><td>${segs.length}</td>` +
@@ -580,11 +655,23 @@ function mqmShowSegmentStats(id, title, stats) {
                      'scoreTrivial', 'scoreAccuracy', 'scoreFluency',
                      'scoreUncat']) {
         let content = aggregates[k][s].toFixed(3);
-        // Only show confidence intervals for system-level MQM scores for now.
-        if (title == 'By system' && s == 'score')  {
-          let [lb, ub] = mqmGetBootstrapSampleCI(stats[k]);
-          let ci = `${lb.toFixed(3)} - ${ub.toFixed(3)}`;
-          content += `<span class="mqm-ci"> (${ci}) </span>`;
+        /**
+         * Only show confidence intervals for system-level MQM scores when
+         * there are at least 5 documents after filtering.
+         * Otherwise, show N/A instead.
+         */
+        if (title == 'By system' && s == 'score') {
+          if (Object.keys(stats[k]).length >= 5) {
+            /**
+             * Insert placeholder for the CI span. Span id is determined by
+             * the order the systems are rendered in HTML. In this case, systems
+             * are sorted by MQM score.
+             */
+            const span_id = `mqm-ci-${row_idx}`;
+            content += `<span class="mqm-ci" id=${span_id}></span>`;
+          } else {
+            content += `<span class="mqm-ci"> (N/A)</span>`;
+          }
         }
         rowHTML += `<td>${content}</td>`;
       }
@@ -603,6 +690,11 @@ function mqmShowSegmentStats(id, title, stats) {
     }
     rowHTML += '</tr>\n';
     tbody.insertAdjacentHTML('beforeend', rowHTML);
+  }
+  // Incrementally collect samples and show confidence intervals.
+  if (title == 'By system') {
+    mqmPrepareDocScores(stats);
+    mqmShowCI(keys);
   }
 }
 
@@ -853,6 +945,12 @@ function mqmGetSegStatsAsArray(stats_by_doc_and_doc_id) {
  */
 function mqmShow() {
   document.body.style.cursor = 'wait';
+
+  // Cancel existing CI computation when a new `mqmShow` is called.
+  if (mqmCIComputation) {
+    clearTimeout(mqmCIComputation);
+    mqmClearCIComputation();
+  }
 
   const tbody = document.getElementById('mqm-tbody');
   tbody.innerHTML = '';
@@ -1236,6 +1334,12 @@ function createMQMViewer(elt, tsvData=null) {
   </div>
   `;
 
+  const mqm_help_text = `MQM score. When there are at least 5 documents after ` +
+      `filtering, 95% confidence intervals for each system are also shown. ` +
+      `Confidence intervals are estimated through bootstrap sampling ` +
+      `for 1000 times on the document level. ` + 
+      `If there are less than 5 documents, N/A is shown instead.`;
+  const mqm_score_with_ci = `<b>MQM score</b><sup class="mqm-help-icon">?</sup>`;
   elt.innerHTML = `
   ${header}
   <div id="mqm-errors"></div>
@@ -1247,7 +1351,7 @@ function createMQMViewer(elt, tsvData=null) {
         <th></th>
         <th title="Number of segments"><b>Segments</b></th>
         <th title="Number of ratings"><b>Ratings</b></th>
-        <th title="MQM score"><b>MQM score</b></th>
+        <th title="${mqm_help_text}">${mqm_score_with_ci}</th>
         <th title="Non-trans. component of MQM score (25 * #non-translation)"><b>MQM
           Non-trans.</b></th>
         <th title="Major component of MQM score (5 * #major)"><b>MQM

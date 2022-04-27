@@ -93,6 +93,9 @@
 .mqm-table th {
   border-bottom: 1px solid gray;
 }
+.mqm-help-icon {
+  vertical-align: top;
+}
 .mqm-table td:first-child,
 .mqm-table th:first-child {
   border-left: none;
