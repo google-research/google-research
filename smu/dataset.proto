@@ -93,12 +93,12 @@ message BondTopology {
   // These values are for the source bitfield below
   enum SourceType {
     SOURCE_UNSET = 0;
-    // Indicates that this is a topology that matches the bond ranges used for
-    // the the Initial Topology Checks in the geometry search procedure.
-    SOURCE_ITC = 1;
     // Indicates taht this was the topology used during the geometry creation
     // process itself. It will always co-occur with SOURCE_ITC
-    SOURCE_STARTING = 2;
+    SOURCE_STARTING = 1;
+    // Indicates that this is a topology that matches the bond ranges used for
+    // the the Initial Topology Checks in the geometry search procedure.
+    SOURCE_ITC = 2;
     // Indicates that this topology matches bond lengths determined by covalent
     // radii plus a tolerance factor.
     // Follows the procedure from:
