@@ -36,7 +36,7 @@ STAGE1_DAT_FILE = 'x07_stage1.dat'
 SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
-ATOMIC_INPUT = 'x07_first_atomic_input.inp'
+ATOMIC_INPUT = 'x07_first_atomic2_input.inp'
 TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
@@ -206,14 +206,14 @@ class ParseLongIdentifierTest(absltest.TestCase):
           'Im a little teapot, short and stout')
 
 
-class AtomicInputTest(absltest.TestCase):
+class Atomic2InputTest(absltest.TestCase):
 
   def test_simple(self):
     parser = smu_parser_lib.SmuParser(
         os.path.join(TESTDATA_PATH, MAIN_DAT_FILE))
     conformer, _ = next(parser.process_stage2())
     expected = get_file_contents(os.path.join(TESTDATA_PATH, ATOMIC_INPUT))
-    writer = smu_writer_lib.AtomicInputWriter()
+    writer = smu_writer_lib.Atomic2InputWriter()
 
     smu_writer_lib.check_dat_formats_match(
         expected,

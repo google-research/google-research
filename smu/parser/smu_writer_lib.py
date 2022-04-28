@@ -951,13 +951,13 @@ class SmuWriter:
     return ''.join(contents)
 
 
-class AtomicInputWriter:
+class Atomic2InputWriter:
   """From conformer, produces the input file for the (fortran) atomic2 code."""
 
   def __init__(self):
     pass
 
-  def get_filename_for_atomic_input(self, conformer, bond_topology_idx):
+  def get_filename_for_atomic2_input(self, conformer, bond_topology_idx):
     """Returns the expected filename for an atomic input."""
     if bond_topology_idx:
       return '{}.{:06d}.{:03d}.{:02d}.inp'.format(

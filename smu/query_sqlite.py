@@ -61,7 +61,7 @@ class OutputFormat(enum.Enum):
   sdf_opt = 2
   sdf_init = 3
   sdf_init_opt = 4
-  atomic_input = 5
+  atomic2_input = 5
   dat = 6
 
 
@@ -94,7 +94,7 @@ flags.DEFINE_enum_class(
   'which_topologies',
   smu_utils_lib.WhichTopologies.all,
   smu_utils_lib.WhichTopologies,
-  'For sdf and atomic_input output formats, which bond '
+  'For sdf and atomic2_input output formats, which bond '
   'topologies shoudl be returned? '
   '"all" means all topologies, '
   '"best" means a single best topology, '
@@ -258,11 +258,11 @@ class SDFOutputter:
     self.writer.close()
 
 
-class AtomicInputOutputter:
+class Atomic2InputOutputter:
   """Internal class to write output as the inputs to atomic code."""
 
   def __init__(self, output_path, which_topologies):
-    """Creates AtomicInputOutputter.
+    """Creates Atomic2InputOutputter.
 
     Args:
       output_path: directory to write output files to
@@ -270,24 +270,24 @@ class AtomicInputOutputter:
     self.output_path = output_path
     if output_path and not os.path.isdir(self.output_path):
       raise ValueError(
-          'Atomic input requires directory as output path, got {}'.format(
+          'ATOMIC-2 input requires directory as output path, got {}'.format(
               self.output_path))
     self.which_topologies = which_topologies
-    self.atomic_writer = smu_writer_lib.AtomicInputWriter()
+    self.atomic2_writer = smu_writer_lib.Atomic2InputWriter()
 
   def output(self, conformer):
     for bt_idx, _ in smu_utils_lib.iterate_bond_topologies(
         conformer, self.which_topologies):
       if self.output_path is None:
-        sys.stdout.write(self.atomic_writer.process(conformer, bt_idx))
+        sys.stdout.write(self.atomic2_writer.process(conformer, bt_idx))
       else:
         with open(
             os.path.join(
                 self.output_path,
-                self.atomic_writer.get_filename_for_atomic_input(
+                self.atomic2_writer.get_filename_for_atomic2_input(
                   conformer, bt_idx)),
             'w') as f:
-          f.write(self.atomic_writer.process(conformer, bt_idx))
+          f.write(self.atomic2_writer.process(conformer, bt_idx))
 
   def close(self):
     pass
@@ -387,8 +387,8 @@ def main(argv):
         init_geometry=True,
         opt_geometry=True,
         which_topologies=FLAGS.which_topologies)
-  elif FLAGS.output_format == OutputFormat.atomic_input:
-    outputter = AtomicInputOutputter(FLAGS.output_path, FLAGS.which_topologies)
+  elif FLAGS.output_format == OutputFormat.atomic2_input:
+    outputter = Atomic2InputOutputter(FLAGS.output_path, FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.dat:
     outputter = DatOutputter(FLAGS.output_path)
   else:
