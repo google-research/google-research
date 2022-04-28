@@ -24,6 +24,17 @@ Status OpenSourceableFileWriter::Write(ConstSpan<char> bytes) {
   return OkStatus();
 }
 
+OpenSourceableFileReader::OpenSourceableFileReader(absl::string_view filename)
+    : fin_(std::string(filename), std::ifstream::binary) {}
+
+void OpenSourceableFileReader::ReadLine(std::string& dest) {
+  std::getline(fin_, dest);
+}
+
+void OpenSourceableFileReader::Read(size_t bytes, char* buffer) {
+  fin_.read(buffer, bytes);
+}
+
 Status WriteProtobufToFile(absl::string_view filename,
                            google::protobuf::Message* message) {
   std::ofstream fout(std::string(filename).c_str(), std::ofstream::binary);

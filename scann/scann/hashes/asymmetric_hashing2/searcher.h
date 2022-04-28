@@ -132,6 +132,8 @@ class Searcher final : public SingleMachineSearcherBase<T> {
              opts_.asymmetric_queryer_->num_clusters_per_block() == 16);
   }
 
+  Status VerifyLimitedInnerProductNormsSize() const;
+
   StatusOr<const LookupTable*> GetOrCreateLookupTable(
       const DatapointPtr<T>& query, const SearchParameters& params,
       LookupTable* created_lookup_table_storage) const;

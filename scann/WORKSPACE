@@ -62,8 +62,21 @@ rules_proto_dependencies()
 
 rules_proto_toolchains()
 
+bind(
+    name = "python_headers",
+    actual = "@local_config_python//:python_headers",
+)
+
+http_archive(
+    name = "six_archive",
+    build_file = "//build_deps/patches:six.BUILD",
+    sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
+    urls = ["https://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz#md5=34eed507548117b2ab523ab14b2f8b55"],
+)
+
 git_repository(
     name = "com_google_protobuf",
+    patches = ["//build_deps/patches:protobuf.patch"],
     remote = "https://github.com/protocolbuffers/protobuf.git",
     tag = "v3.9.2",
 )
@@ -82,6 +95,12 @@ git_repository(
     name = "com_google_highway",
     commit = "c5db74e8881e81dbbfd9030f9a6fcbc3c7a9504a",
     remote = "https://github.com/google/highway.git",
+)
+
+git_repository(
+    name = "cnpy",
+    commit = "57184ee0db37cac383fc29175950747a46a8b512",
+    remote = "https://github.com/sammymax/cnpy.git",
 )
 
 # rules_cc defines rules for generating C++ code from Protocol Buffers.

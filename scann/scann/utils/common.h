@@ -60,7 +60,7 @@ using ::std::vector;
 
 using std::vector;
 
-using ::absl::make_unique;
+using ::std::make_unique;
 
 using ::absl::flat_hash_map;
 using ::absl::flat_hash_set;

@@ -17,6 +17,8 @@
 #ifndef SCANN_UTILS_SAMPLED_INDEX_LIST_H_
 #define SCANN_UTILS_SAMPLED_INDEX_LIST_H_
 
+#include <variant>
+
 #include "absl/types/variant.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/macros.h"
@@ -43,14 +45,14 @@ class SampledIndexList {
   using SparseIndices = vector<Index>;
 
   const DenseIndices* dense() const {
-    return absl::get_if<DenseIndices>(&indices_);
+    return std::get_if<DenseIndices>(&indices_);
   }
 
   const SparseIndices* sparse() const {
-    return absl::get_if<SparseIndices>(&indices_);
+    return std::get_if<SparseIndices>(&indices_);
   }
 
-  absl::variant<DenseIndices, SparseIndices> indices_;
+  std::variant<DenseIndices, SparseIndices> indices_;
   Index current_;
 };
 

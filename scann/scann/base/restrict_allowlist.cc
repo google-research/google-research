@@ -16,7 +16,9 @@
 
 #include "scann/base/restrict_allowlist.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"

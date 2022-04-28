@@ -14,10 +14,12 @@
 
 #include "scann/hashes/internal/stacked_quantizers.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <numeric>
+#include <utility>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"

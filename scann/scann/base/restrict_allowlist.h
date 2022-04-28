@@ -18,7 +18,9 @@
 #define SCANN_BASE_RESTRICT_ALLOWLIST_H_
 
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <utility>
 
 #include "gtest/gtest_prod.h"
 #include "scann/oss_wrappers/scann_bits.h"

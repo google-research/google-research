@@ -38,6 +38,7 @@
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/core/status.h"
 
 using absl::StartsWith;
 

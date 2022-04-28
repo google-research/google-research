@@ -163,8 +163,8 @@ Status Indexer<T>::HashWithNoiseShaping(const DatapointPtr<T>& maybe_residual,
   if (quantization_distance_->specially_optimized_distance_tag() !=
       DistanceMeasure::SQUARED_L2) {
     return FailedPreconditionError(
-        "Cannot perform noise-shaped hashing with a non-Squared L2 distance "
-        "measure.");
+        "Cannot perform noise-shaped hashing with a non-Squared L2 "
+        "quantization distance measure.");
   }
   if (!original.IsDense() || !maybe_residual.IsDense()) {
     return UnimplementedError(

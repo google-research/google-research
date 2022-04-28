@@ -201,6 +201,7 @@ cc_library(
         "//scann/proto:restricts_cc_proto",
         "//scann/proto:scann_cc_proto",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
     ],
@@ -335,6 +336,7 @@ cc_library(
     deps = [
         ":io_oss_wrapper",
         "//scann/data_format:dataset",
+        "@cnpy",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
     ],

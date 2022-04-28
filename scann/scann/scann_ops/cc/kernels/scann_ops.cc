@@ -14,7 +14,9 @@
 
 
 
+#include <algorithm>
 #include <limits>
+#include <string>
 
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"

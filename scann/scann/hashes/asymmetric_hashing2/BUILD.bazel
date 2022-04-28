@@ -155,12 +155,14 @@ cc_library(
         "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:hash_cc_proto",
         "//scann/tree_x_hybrid:leaf_searcher_optional_parameter_creator",
+        "//scann/utils:common",
         "//scann/utils:datapoint_utils",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
         "//scann/utils:util_functions",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/status",
     ],
 )
 

@@ -1,6 +1,8 @@
 # Description:
 #   This package contains ScaNN partitioners.
 
+load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -188,6 +190,17 @@ cc_proto_library(
     deps = [":partitioner_proto"],
 )
 
+scann_py_proto_library(
+    name = "partitioner_py_pb2",
+    srcs = ["partitioner.proto"],
+    proto_deps = [":partitioner_proto"],
+    py_proto_deps = [
+        ":kmeans_tree_partitioner_py_pb2",
+        ":linear_projection_tree_py_pb2",
+    ],
+    tags = ["local"],
+)
+
 proto_library(
     name = "kmeans_tree_partitioner_proto",
     srcs = ["kmeans_tree_partitioner.proto"],
@@ -204,12 +217,30 @@ cc_proto_library(
     deps = [":kmeans_tree_partitioner_proto"],
 )
 
+scann_py_proto_library(
+    name = "kmeans_tree_partitioner_py_pb2",
+    srcs = ["kmeans_tree_partitioner.proto"],
+    proto_deps = [":kmeans_tree_partitioner_proto"],
+    py_proto_deps = [
+        "//scann/proto:partitioning_py_pb2",
+        "//scann/trees/kmeans_tree:kmeans_tree_py_pb2",
+    ],
+    tags = ["local"],
+)
+
 proto_library(
     name = "linear_projection_tree_proto",
     srcs = ["linear_projection_tree.proto"],
     tags = ["local"],
     deps = [
     ],
+)
+
+scann_py_proto_library(
+    name = "linear_projection_tree_py_pb2",
+    srcs = ["linear_projection_tree.proto"],
+    proto_deps = [":linear_projection_tree_proto"],
+    tags = ["local"],
 )
 
 # Tests

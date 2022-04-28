@@ -1,3 +1,5 @@
+load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+
 # -*- mode: python; -*-
 #
 package(
@@ -19,6 +21,16 @@ cc_proto_library(
     name = "kmeans_tree_cc_proto",
     tags = ["local"],
     deps = [":kmeans_tree_proto"],
+)
+
+scann_py_proto_library(
+    name = "kmeans_tree_py_pb2",
+    srcs = ["kmeans_tree.proto"],
+    proto_deps = [":kmeans_tree_proto"],
+    py_proto_deps = [
+        "//scann/proto:partitioning_py_pb2",
+    ],
+    tags = ["local"],
 )
 
 # Library

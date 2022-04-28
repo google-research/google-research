@@ -108,8 +108,6 @@ message AsymmetricHasherConfig {
 
   optional float clustering_convergence_tolerance = 5 [default = 1e-5];
 
-  optional float min_cluster_size = 19 [default = 1.0];
-
   optional string centers_filename = 6;
 
   optional int32 num_machines = 27;
@@ -137,6 +135,7 @@ message AsymmetricHasherConfig {
 
   optional float partition_level_confidence_interval_stdevs = 26
       [default = 0.0, deprecated = true];
+  optional float min_cluster_size = 19 [default = 1.0, deprecated = true];
 
   optional bool use_single_machine_trainer = 8
       [default = false, deprecated = true];

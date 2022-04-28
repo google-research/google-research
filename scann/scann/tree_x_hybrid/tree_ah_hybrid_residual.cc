@@ -22,7 +22,6 @@
 #include <unordered_set>
 
 #include "absl/flags/flag.h"
-#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/base/search_parameters.h"
@@ -42,6 +41,7 @@
 #include "scann/tree_x_hybrid/internal/batching.h"
 #include "scann/tree_x_hybrid/internal/utils.h"
 #include "scann/tree_x_hybrid/tree_x_params.h"
+#include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -312,13 +312,8 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
           projector, lookup_distance, ah_model);
   leaf_searchers_ = vector<unique_ptr<asymmetric_hashing2::Searcher<float>>>(
       datapoints_by_token.size());
-  Status status = OkStatus();
-  absl::Mutex status_mutex;
-  auto set_status = [&](Status new_status) {
-    absl::MutexLock mutex(&status_mutex);
-    if (status.ok()) status = new_status;
-  };
-  ParallelFor<1>(IndicesOf(datapoints_by_token), pool, [&](size_t token) {
+
+  auto build_leaf_for_token = [&](size_t token) -> Status {
     const absl::Time token_start = absl::Now();
     auto hashed_partition = make_unique<DenseDataset<uint8_t>>();
     if (asymmetric_queryer_->quantization_scheme() ==
@@ -330,16 +325,10 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
     for (DatapointIndex dp_index : datapoints_by_token[token]) {
       auto status_or_hashed_dptr =
           get_hashed_datapoint(dp_index, token, &hashed_storage);
-      if (!status_or_hashed_dptr.status().ok()) {
-        set_status(status_or_hashed_dptr.status());
-        return;
-      }
+      SCANN_RETURN_IF_ERROR(status_or_hashed_dptr.status());
       auto hashed_dptr = status_or_hashed_dptr.ValueOrDie();
       auto local_status = hashed_partition->Append(hashed_dptr, "");
-      if (!local_status.ok()) {
-        set_status(local_status);
-        return;
-      }
+      SCANN_RETURN_IF_ERROR(local_status);
     }
     asymmetric_hashing2::SearcherOptions<float> opts(asymmetric_queryer_,
                                                      indexer);
@@ -356,9 +345,11 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
             << datapoints_by_token.size()
             << " (size = " << datapoints_by_token[token].size() << " DPs) in "
             << absl::ToDoubleSeconds(absl::Now() - token_start) << " sec.";
-  });
-  SCANN_RETURN_IF_ERROR(status);
+    return OkStatus();
+  };
 
+  SCANN_RETURN_IF_ERROR(ParallelForWithStatus<1>(IndicesOf(datapoints_by_token),
+                                                 pool, build_leaf_for_token));
   for (auto& vec : datapoints_by_token) {
     for (DatapointIndex token : vec) {
       num_datapoints_ = std::max(token + 1, num_datapoints_);

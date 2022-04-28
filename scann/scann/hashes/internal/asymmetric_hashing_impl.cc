@@ -14,8 +14,10 @@
 
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <numeric>
+#include <utility>
 
 #include "absl/random/distributions.h"
 #include "scann/data_format/datapoint.h"

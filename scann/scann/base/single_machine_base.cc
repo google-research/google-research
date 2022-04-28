@@ -17,7 +17,9 @@
 #include "scann/base/single_machine_base.h"
 
 #include <cstdint>
+#include <string>
 #include <typeinfo>
+#include <utility>
 
 #include "absl/flags/flag.h"
 #include "absl/strings/match.h"

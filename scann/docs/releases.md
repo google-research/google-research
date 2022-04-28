@@ -1,5 +1,8 @@
 # ScaNN Release Notes
 
+### 1.2.6
+Exposes several ScaNN Protocol Buffer files to the Python interface.
+
 ### 1.2.5
 Updated to compile against TensorFlow 2.8.0; **not** backwards-compatible with earlier versions of TensorFlow.
 

@@ -16,6 +16,7 @@
 #define SCANN_HASHES_INTERNAL_LUT16_ARGS_H_
 
 #include <cstdint>
+#include <functional>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/utils/fast_top_neighbors.h"
