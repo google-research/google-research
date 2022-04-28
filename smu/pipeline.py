@@ -495,6 +495,7 @@ class UpdateConformerFn(beam.DoFn):
     if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
       self._add_alternative_bond_topologies(conformer, smiles_id_dict)
     else:
+      conformer.bond_topologies[0].source = dataset_pb2.BondTopology.SOURCE_STARTING
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'skipped_topology_matches').inc()
 
