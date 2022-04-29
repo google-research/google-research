@@ -280,6 +280,27 @@ def get_composition(topology):
   return 'x{:02d}_{}'.format(heavy_atom_count, ''.join(components))
 
 
+def get_original_label(conformer):
+  """Returns the original id used to identify this conformer.
+
+  We use an integer conformer id, but the original data used a form like
+  x07_n6oh4.099599.008
+
+  Args:
+    conformer: dataset_pb2.Conformer
+
+  Returns:
+    string
+  """
+  bt_id = conformer.conformer_id // 1000
+  if special_case_dat_id_from_bt_id(bt_id):
+    bt_id = 0
+  return "{:s}.{:06d}.{:03d}".format(
+    get_composition(conformer.bond_topologies[0]),
+    bt_id,
+    conformer.conformer_id % 1000)
+
+
 _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
     'c', 'ch', 'ch2', 'ch3', 'ch4', 'n', 'nh', 'nh2', 'nh3', 'o', 'oh', 'oh2',
     'f', 'fh'
@@ -851,7 +872,7 @@ def conformer_to_molecules(conformer,
       mol.SetProp(
           '_Name',
           f'SMU {conformer.conformer_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
-      )
+        )
 
       # Add in the coordinates
       conf = Chem.Conformer(len(bt.atoms))

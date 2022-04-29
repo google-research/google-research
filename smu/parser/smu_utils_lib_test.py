@@ -69,9 +69,9 @@ def get_stage2_conformer():
   return conformer
 
 
-class SpecialIDTest(absltest.TestCase):
+class GetOriginalLabelsTest(absltest.TestCase):
 
-  def test_from_dat_id(self):
+  def test_special_from_dat_id(self):
     self.assertIsNone(
         smu_utils_lib.special_case_bt_id_from_dat_id(123456, 'CC'))
     self.assertEqual(
@@ -81,15 +81,12 @@ class SpecialIDTest(absltest.TestCase):
     with self.assertRaises(ValueError):
       smu_utils_lib.special_case_bt_id_from_dat_id(0, 'NotASpecialCaseSmiles')
 
-  def test_from_bt_id(self):
+  def test_special_from_bt_id(self):
     self.assertIsNone(smu_utils_lib.special_case_dat_id_from_bt_id(123456))
     self.assertEqual(
         smu_utils_lib.special_case_dat_id_from_bt_id(899651), 999997)
 
-
-class GetCompositionTest(absltest.TestCase):
-
-  def test_simple(self):
+  def test_get_composition(self):
     bt = dataset_pb2.BondTopology()
     bt.atoms.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
@@ -97,6 +94,31 @@ class GetCompositionTest(absltest.TestCase):
         dataset_pb2.BondTopology.ATOM_H, dataset_pb2.BondTopology.ATOM_H
     ])
     self.assertEqual('x03_c2nh3', smu_utils_lib.get_composition(bt))
+
+  def test_get_original_label(self):
+    conformer = dataset_pb2.Conformer()
+    conformer.bond_topologies.add()
+    conformer.bond_topologies[0].atoms.extend([
+        dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
+        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_H,
+        dataset_pb2.BondTopology.ATOM_H, dataset_pb2.BondTopology.ATOM_H
+    ])
+    conformer.conformer_id = 123045
+    self.assertEqual('x03_c2nh3.000123.045',
+                     smu_utils_lib.get_original_label(conformer))
+
+  def test_get_original_label_special_case(self):
+    conformer = dataset_pb2.Conformer()
+    conformer.bond_topologies.add()
+    conformer.bond_topologies[0].atoms.extend([
+        dataset_pb2.BondTopology.ATOM_O,
+        dataset_pb2.BondTopology.ATOM_H,
+        dataset_pb2.BondTopology.ATOM_H,
+    ])
+    conformer.conformer_id = 899650001
+
+    self.assertEqual('x01_oh2.000000.001',
+        smu_utils_lib.get_original_label(conformer))
 
 
 class ExpandedStoichiometryFromTopologyTest(absltest.TestCase):

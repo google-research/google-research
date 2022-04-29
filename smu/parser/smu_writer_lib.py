@@ -86,7 +86,7 @@ class SmuWriter:
     else:
       return str(conformer.original_conformer_index).rjust(5)
 
-  def get_stage1_header(self, conformer, identifier):
+  def get_stage1_header(self, conformer):
     """Returns formatted header (separator and first line).
 
     This is for the stage1 format, which just contains the results of geometry
@@ -94,7 +94,6 @@ class SmuWriter:
 
     Args:
       conformer: dataset_pb2.Conformer.
-      identifier: string like x07_c3n3oh7
 
     Returns:
       A multiline string representation of the header.
@@ -105,23 +104,19 @@ class SmuWriter:
       result += ('# From original_conformer_index, topology, bond_topology_id, '
                  'error_{nstat1, nstatc, nstatt, frequences} conformer_id\n')
     errors = conformer.properties.errors
-    bond_topology_id = conformer.bond_topologies[-1].bond_topology_id
-    if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topology_id):
-      bond_topology_id = 0
-    result += '{:5s}{:5d}{:5d}{:5d}{:5d}{:5d}     {:s}.{:06d}.{:03d}\n'.format(
+    result += '{:5s}{:5d}{:5d}{:5d}{:5d}{:5d}     {:s}\n'.format(
         self._conformer_index_string(conformer), errors.error_nstat1,
         errors.error_nstatc, errors.error_nstatt, errors.error_frequencies,
-        num_atoms, identifier, bond_topology_id, conformer.conformer_id % 1000)
+        num_atoms, smu_utils_lib.get_original_label(conformer))
     return result
 
-  def get_stage2_header(self, conformer, identifier):
+  def get_stage2_header(self, conformer):
     """Returns formatted header (separator and first line).
 
     This is for the stage2 format which is at the end of the pipeline.
 
     Args:
       conformer: dataset_pb2.Conformer.
-      identifier: string like x07_c3n3oh7
 
     Returns:
       A multiline string representation of the header.
@@ -131,13 +126,9 @@ class SmuWriter:
     if self.annotate:
       result += ('# From original_conformer_index, topology, '
                  'bond_topology_id, conformer_id\n')
-    bond_topology_id = conformer.bond_topologies[-1].bond_topology_id
-    if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topology_id):
-      bond_topology_id = 0
-    result += '%s%s     %s\n' % (
-        self._conformer_index_string(conformer), str(num_atoms).rjust(5),
-        '%s.%s.%s' % (identifier, str(bond_topology_id).rjust(
-            6, '0'), str(conformer.conformer_id % 1000).rjust(3, '0')))
+    result += '{:s}{:5d}     {:s}\n'.format(
+      self._conformer_index_string(conformer), num_atoms,
+      smu_utils_lib.get_original_label(conformer))
     return result
 
   def get_database(self, conformer):
@@ -208,7 +199,7 @@ class SmuWriter:
         topology, adjacency_matrix)
     return result + ''.join(str(item) for item in num_bonded_hydrogens) + '\n'
 
-  def get_ids(self, conformer, identifier, stage):
+  def get_ids(self, conformer, stage):
     """Returns lines with identifiers.
 
     This include the smiles string, the file, and the ID line.
@@ -217,7 +208,6 @@ class SmuWriter:
 
     Args:
       conformer: dataset_pb2.Conformer
-      identifier: string for the file/stoichiometry
       stage: 'stage1' or 'stage2'
 
     Returns:
@@ -229,7 +219,7 @@ class SmuWriter:
     result += conformer.bond_topologies[0].smiles + '\n'
     if self.annotate:
       result += '# From topology\n'
-    result += identifier + '\n'
+    result += smu_utils_lib.get_composition(conformer.bond_topologies[0]) + '\n'
     if self.annotate:
       result += '# From bond_topology_id, conformer_id\n'
     bond_topology_id = conformer.bond_topologies[-1].bond_topology_id
@@ -886,12 +876,11 @@ class SmuWriter:
     """
     contents = []
 
-    identifier = smu_utils_lib.get_composition(conformer.bond_topologies[0])
     properties = conformer.properties
-    contents.append(self.get_stage1_header(conformer, identifier))
+    contents.append(self.get_stage1_header(conformer))
     contents.append(
         self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
-    contents.append(self.get_ids(conformer, identifier, 'stage1'))
+    contents.append(self.get_ids(conformer, 'stage1'))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage1_timings(properties))
     contents.append(self.get_gradient_norms(properties, spacer=' '))
@@ -915,14 +904,13 @@ class SmuWriter:
     """
     contents = []
 
-    identifier = smu_utils_lib.get_composition(conformer.bond_topologies[0])
     properties = conformer.properties
-    contents.append(self.get_stage2_header(conformer, identifier))
+    contents.append(self.get_stage2_header(conformer))
     contents.append(self.get_database(conformer))
     contents.append(self.get_error_codes(properties))
     contents.append(
         self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
-    contents.append(self.get_ids(conformer, identifier, 'stage2'))
+    contents.append(self.get_ids(conformer, 'stage2'))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage2_timings(properties))
     contents.append(self.get_bonds(conformer.bond_topologies[0], properties))
@@ -1088,11 +1076,14 @@ class Atomic2InputWriter:
   def process(self, conformer, bond_topology_idx):
     """Creates the atomic input file for conformer."""
     contents = []
-    contents.append(conformer.bond_topologies[bond_topology_idx].smiles + '\n')
-    contents.append('{}.{:06d}.{:03d}\n'.format(
-        smu_utils_lib.get_composition(
-          conformer.bond_topologies[bond_topology_idx]),
-        conformer.conformer_id // 1000, conformer.conformer_id % 1000))
+    contents.append(
+      'SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
+        conformer.conformer_id,
+        conformer.bond_topologies[bond_topology_idx].smiles,
+        conformer.bond_topologies[bond_topology_idx].bond_topology_id,
+        bond_topology_idx + 1,
+        len(conformer.bond_topologies)))
+    contents.append(smu_utils_lib.get_original_label(conformer) + '\n')
 
     contents.extend(self.get_mol_block(conformer, bond_topology_idx))
     contents.extend(self.get_energies(conformer))
@@ -1125,6 +1116,7 @@ def check_dat_formats_match(original, generated):
     # The original file has several coordinates stored as -0.0, which creates
     # mismatches when compared with the corresponding 0.0 in generated files.
     lines = [NEGATIVE_ZERO_RE.sub(r' \1', s).rstrip() for s in lines]
+    # This code removes any blank lines at the very end.
     cnt = 0
     while not lines[-(cnt + 1)]:
       cnt += 1
