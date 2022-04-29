@@ -923,7 +923,7 @@ class SmuParser:
         if not np.isclose(
             new_val, properties.diagnostics_t1_ccsd_2sd.value, atol=.00015):
           raise ValueError(
-              'Atomic block AT2_T1mol ({:f}) differs from current value ({:f})'
+              'ATOMIC-2 block AT2_T1mol ({:f}) differs from current value ({:f})'
               .format(new_val, properties.diagnostics_t1_ccsd_2sd.value))
 
       if field_type == Atomic2FieldTypes.STRING:
