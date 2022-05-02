@@ -201,6 +201,26 @@ message Geometry {
     float z = 3;
   }
   repeated AtomPos atom_positions = 1;
+
+  // Energy and and overall gradient norm (gnorm) for the geometty.
+  // The energy is computed by Turbomole with PBE0-D3/6-311G(d)
+  // Units: atomic units (Hartrees)
+  Properties.ScalarMolecularProperty energy = 2
+      [(availability) = STANDARD];
+  Properties.ScalarMolecularProperty gnorm = 3
+      [(availability) = STANDARD];
+
+  // Just the nuclear repulsion energy term for the energy.
+  // Will only be available for the optimized geometry.
+  // Units: atomic units (Hartree)
+  Properties.ScalarMolecularProperty enuc = 4
+      [(availability) = COMPLETE];
+
+  // The eigenvalues of the moment of inertia tensor.
+  // Will only be available for the optimized geometry.
+  // Units: Mhz
+  Properties.MultiScalarMolecularProperty rotcon = 5
+      [(availability) = STANDARD];
 }
 
 // All the properties that are computed for a molecule.
