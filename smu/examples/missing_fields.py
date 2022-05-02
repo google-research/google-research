@@ -37,6 +37,10 @@ print('When you process the *complete* database, you have to be careful to',
 print('We will examine conformers', PARTIAL_CONFORMER_ID, 'and',
       MINIMAL_CONFORMER_ID)
 
+print('In general, you need to consider the status field and various warning flags')
+print('in order to understand what fields are available and what you should trust')
+
+
 print(
     'If you ask for the optimized_geometry_energy for both you get sensible values'
 )
@@ -62,7 +66,8 @@ print('These are cases of missing values.')
 print(
     'If you request a value which is actually missing, you will silently get a default value (0.0 for floats)'
 )
-print('You can check whether a Conformer has a value with the HasField method')
+print('Therefore, in addition to checking the status field, we recommend you also:')
+print('Check whether a Conformer has a value with the HasField method')
 print('Calling HasField for optimized_geometry_energy:')
 print(PARTIAL_CONFORMER_ID,
       partial_conformer.properties.HasField('optimized_geometry_energy'))
@@ -94,9 +99,6 @@ print(PARTIAL_CONFORMER_ID, len(partial_conformer.properties.normal_modes))
 print(MINIMAL_CONFORMER_ID, len(minimal_conformer.properties.normal_modes))
 
 print()
-print('The properties.errors.status variable can shed some light on why',
-      'fields are missing')
-print('However, the exact rules of what fields are missing when are complex')
-print(
-    'Therefore, whenever accessing properties fields in the complete database,',
-    'you should check HasField first')
+print('In summary, when processing the complete database:')
+print('1. Always check the status field and warning flags.')
+print('2. Always check HasField before accessing properties.')

@@ -1,5 +1,7 @@
 When you process the *complete* database, you have to be careful to check what data is available
 We will examine conformers 35004068 and 35553043
+In general, you need to consider the status field and various warning flags
+in order to understand what fields are available and what you should trust
 If you ask for the optimized_geometry_energy for both you get sensible values
 35004068 -340.597698
 35553043 -340.576816
@@ -14,7 +16,8 @@ And if you ask for enthalpy_of_formation_298k_atomic_b6, both give 0
 
 These are cases of missing values.
 If you request a value which is actually missing, you will silently get a default value (0.0 for floats)
-You can check whether a Conformer has a value with the HasField method
+Therefore, in addition to checking the status field, we recommend you also:
+Check whether a Conformer has a value with the HasField method
 Calling HasField for optimized_geometry_energy:
 35004068 True
 35553043 True
@@ -32,6 +35,6 @@ The length of normal_modes in our two conformers are:
 35004068 42
 35553043 0
 
-The properties.errors.status variable can shed some light on why fields are missing
-However, the exact rules of what fields are missing when are complex
-Therefore, whenever accessing properties fields in the complete database, you should check HasField first
+In summary, when processing the complete database:
+1. Always check the status field and warning flags.
+2. Always check HasField before accessing properties.

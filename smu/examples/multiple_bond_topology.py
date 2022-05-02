@@ -66,3 +66,5 @@ print_bond_topologies(db.find_by_conformer_id(899651001))
 print_bond_topologies(db.find_by_conformer_id(899652001))
 print('Those are all the cases in the standard database')
 print('There are a couple more in the complete database')
+
+# TODO: add examples using iterate_bond_topologies
