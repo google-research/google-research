@@ -15,6 +15,7 @@
 
 # Lint as: python3
 """Tests for parsing and writing code."""
+import copy
 import os
 
 from absl import logging
@@ -218,6 +219,32 @@ class Atomic2InputTest(absltest.TestCase):
     smu_writer_lib.check_dat_formats_match(
         expected,
         writer.process(conformer, 0).splitlines())
+
+  def test_error_cases(self):
+    parser = smu_parser_lib.SmuParser(
+        os.path.join(TESTDATA_PATH, MAIN_DAT_FILE))
+    orig_conformer, _ = next(parser.process_stage2())
+    writer = smu_writer_lib.Atomic2InputWriter()
+
+    with self.assertRaises(ValueError):
+      conformer = copy.deepcopy(orig_conformer)
+      conformer.properties.errors.status = -1
+      writer.process(conformer, 0)
+
+    with self.assertRaises(ValueError):
+      conformer = copy.deepcopy(orig_conformer)
+      conformer.properties.errors.status = 19
+      writer.process(conformer, 0)
+
+    with self.assertRaises(ValueError):
+      conformer = copy.deepcopy(orig_conformer)
+      conformer.properties.ClearField('single_point_energy_hf_3')
+      writer.process(conformer, 0)
+
+    with self.assertRaises(ValueError):
+      conformer = copy.deepcopy(orig_conformer)
+      conformer.properties.ClearField('single_point_energy_mp2_3')
+      writer.process(conformer, 0)
 
 
 if __name__ == '__main__':

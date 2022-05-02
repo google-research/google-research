@@ -1075,6 +1075,14 @@ class Atomic2InputWriter:
 
   def process(self, conformer, bond_topology_idx):
     """Creates the atomic input file for conformer."""
+    if (conformer.properties.errors.status < 0 or
+        conformer.properties.errors.status > 3 or
+        # While we should check all the fields, this is conveinient shortcut.
+        not conformer.properties.HasField('single_point_energy_hf_3') or
+        not conformer.properties.HasField('single_point_energy_mp2_3')):
+      raise ValueError(f'Conformer {conformer.conformer_id} is lacking required info '
+                       'for generating atomic2 input. Maybe you need to query the complete DB?')
+
     contents = []
     contents.append(
       'SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
