@@ -101,7 +101,7 @@ PROPERTIES_LABEL_FIELDS = collections.OrderedDict([
     ['HF/3Psd', 'single_point_energy_hf_3psd'],
     ['MP2/3Psd', 'single_point_energy_mp2_3psd'],
     ['CCSD/3Psd', 'single_point_energy_ccsd_3psd'],
-    ['NUCREP', 'nuclear_repulsion_energy'],
+    ['NUCREP', 'enuc'],  # special cased to refer to optimized_geometry
     ['NUM_OPT', 'number_of_optimization_runs'],
     ['NIMAG', 'number_imaginary_frequencies'],
     ['ZPE_unscaled', 'zpe_unscaled'],
@@ -674,11 +674,11 @@ class SmuParser:
         ), 'Unable to parse section for gradient norm: %s.' % section
     properties = self._conformer.properties
     items = str(section[0]).split()
-    properties.initial_geometry_energy.value = float(items[1])
-    properties.initial_geometry_gradient_norm.value = float(items[2])
+    properties.initial_geometry_energy_deprecated.value = float(items[1])
+    properties.initial_geometry_gradient_norm_deprecated.value = float(items[2])
     items = str(section[1]).split()
-    properties.optimized_geometry_energy.value = float(items[1])
-    properties.optimized_geometry_gradient_norm.value = float(items[2])
+    properties.optimized_geometry_energy_deprecated.value = float(items[1])
+    properties.optimized_geometry_gradient_norm_deprecated.value = float(items[2])
 
   def parse_coordinates(self, label, num_atoms):
     """Parses a section defining a molecule's geometry in Cartesian coordinates.
@@ -713,10 +713,8 @@ class SmuParser:
       return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
-    rotational_constants = self._conformer.properties.rotational_constants
-    rotational_constants.x = float(values[0])
-    rotational_constants.y = float(values[1])
-    rotational_constants.z = float(values[2])
+    self._conformer.optimized_geometry.rotcon.value.extend(
+      float(x) for x in values)
 
   def parse_symmetry_used(self):
     """Parses whether or not symmetry was used in the computation."""
@@ -831,6 +829,9 @@ class SmuParser:
       if label in ['NIMAG', 'NUM_OPT']:
         setattr(properties, PROPERTIES_LABEL_FIELDS[label],
                 int(labels_and_values[label]))
+      elif label == 'NUCREP':
+        value = float(labels_and_values[label])
+        self._conformer.optimized_geometry.enuc.value = value
       else:
         value = float(labels_and_values[label])
         getattr(properties, PROPERTIES_LABEL_FIELDS[label]).value = value

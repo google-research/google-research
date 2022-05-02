@@ -106,16 +106,16 @@ properties {
   errors {
     status: 590
   }
-  initial_geometry_energy {
+  initial_geometry_energy_deprecated {
     value: -261.898872
   }
-  initial_geometry_gradient_norm {
+  initial_geometry_gradient_norm_deprecated {
     value: 0.16787
   }
-  optimized_geometry_energy {
+  optimized_geometry_energy_deprecated {
     value: -262.052347
   }
-  optimized_geometry_gradient_norm {
+  optimized_geometry_gradient_norm_deprecated {
     value: 0.00011
   }
   smiles_openbabel: "[O-][NH+]([NH3+])[O-]"

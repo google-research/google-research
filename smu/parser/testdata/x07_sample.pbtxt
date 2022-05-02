@@ -146,6 +146,14 @@ conformers {
       y: -3.434324
       z: 0.427788
     }
+    enuc {
+      value: 324.344177
+    }
+    rotcon {
+      value: 1455.371
+      value: 2040.472
+      value: 4104.237
+    }
   }
   properties {
     errors {
@@ -868,28 +876,20 @@ conformers {
     }
     compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.128.000\nStage 1  Cluster:   google-docker\nStage 1  Cores:        16\nStage 1  CPU type:      2\nStage 2  Host IP:   XXX.YYY.004.126\nStage 2  Cluster:   google-docker\nStage 2  Cores:         8\nStage 2  CPU type:      2\n"
     symmetry_used_in_calculation: false
-    initial_geometry_energy {
+    initial_geometry_energy_deprecated {
       value: -406.51179
     }
-    initial_geometry_gradient_norm {
+    initial_geometry_gradient_norm_deprecated {
       value: 0.052254
     }
-    optimized_geometry_energy {
+    optimized_geometry_energy_deprecated {
       value: -406.522079
     }
-    optimized_geometry_gradient_norm {
+    optimized_geometry_gradient_norm_deprecated {
       value: 2.5e-05
-    }
-    rotational_constants {
-      x: 1455.371
-      y: 2040.472
-      z: 4104.237
     }
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
-    nuclear_repulsion_energy {
-      value: 324.344177
-    }
     diagnostics_d1_ccsd_2sp {
       value: 0.0486
     }
@@ -4369,6 +4369,14 @@ conformers {
       y: -3.020256
       z: 0.002237
     }
+    enuc {
+      value: 322.821625
+    }
+    rotcon {
+      value: 1424.656
+      value: 2522.924
+      value: 2896.89
+    }
   }
   properties {
     errors {
@@ -5091,28 +5099,20 @@ conformers {
     }
     compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.128.000\nStage 1  Cluster:   google-docker\nStage 1  Cores:        16\nStage 1  CPU type:      2\nStage 2  Host IP:   XXX.YYY.002.102\nStage 2  Cluster:   google-docker\nStage 2  Cores:         8\nStage 2  CPU type:      2\n"
     symmetry_used_in_calculation: false
-    initial_geometry_energy {
+    initial_geometry_energy_deprecated {
       value: -406.512988
     }
-    initial_geometry_gradient_norm {
+    initial_geometry_gradient_norm_deprecated {
       value: 0.050203
     }
-    optimized_geometry_energy {
+    optimized_geometry_energy_deprecated {
       value: -406.520886
     }
-    optimized_geometry_gradient_norm {
+    optimized_geometry_gradient_norm_deprecated {
       value: 1.8e-05
-    }
-    rotational_constants {
-      x: 1424.656
-      y: 2522.924
-      z: 2896.89
     }
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
-    nuclear_repulsion_energy {
-      value: 322.821625
-    }
     diagnostics_d1_ccsd_2sp {
       value: 0.0482
     }

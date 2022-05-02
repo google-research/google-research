@@ -300,7 +300,7 @@ class IntegrationTest(absltest.TestCase):
     self.assertFalse(
         standard_output[0].properties.HasField('homo_pbe0_aug_pc_1'))
     self.assertTrue(
-        standard_output[0].properties.HasField('rotational_constants'))
+        standard_output[0].properties.HasField('harmonic_frequencies'))
 
     complete_dataset = tf.data.TFRecordDataset(
         output_stem + '_complete_tfrecord-00000-of-00001')
@@ -318,7 +318,7 @@ class IntegrationTest(absltest.TestCase):
     ][0]
     self.assertFalse(complete_entry.properties.HasField('compute_cluster_info'))
     self.assertTrue(complete_entry.properties.HasField('homo_pbe0_aug_pc_1'))
-    self.assertTrue(complete_entry.properties.HasField('rotational_constants'))
+    self.assertTrue(complete_entry.properties.HasField('harmonic_frequencies'))
 
     complete_entry_for_smiles = [
         c for c in complete_output if c.conformer_id == 620517002

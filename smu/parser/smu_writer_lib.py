@@ -356,13 +356,13 @@ class SmuWriter:
     return result
 
   _GRADIENT_NORMS_LABEL_FIELDS = [[
-      'E_ini/G_norm', 'initial_geometry_energy',
-      'initial_geometry_gradient_norm'
+      'E_ini/G_norm', 'initial_geometry_energy_deprecated',
+      'initial_geometry_gradient_norm_deprecated'
   ],
                                   [
                                       'E_opt/G_norm',
-                                      'optimized_geometry_energy',
-                                      'optimized_geometry_gradient_norm'
+                                      'optimized_geometry_energy_deprecated',
+                                      'optimized_geometry_gradient_norm_deprecated'
                                   ]]
 
   def get_gradient_norms(self, properties, spacer):
@@ -417,24 +417,31 @@ class SmuWriter:
                 positions.y).rjust(12), '{:f}'.format(positions.z).rjust(12))
     return coordinates
 
-  def get_rotational_constants(self, properties):
+  def get_rotational_constants(self, conformer):
     """Returns rotational constants vector (MHz).
 
     Args:
-      properties: A Properties protocol buffer message.
+      conformer: dataset_pb2.Conformer
 
     Returns:
       A string representation of the rotational constants vector.
     """
-    if not properties.HasField('rotational_constants'):
+    if conformer.optimized_geometry.HasField('rotcon'):
+      annotate = '# From optimized_geometry.rotcon\n'
+      vals = conformer.optimized_geometry.rotcon.value
+      pass
+    elif conformer.properties.HasField('rotational_constants_deprecated'):
+      annotate = '# From rotational_constants_deprecated\n'
+      constants = conformer.properties.rotational_constants_deprecated
+      vals = (constants.x, constants.y, constants.z)
+    else:
       return ''
     result = ''
     if self.annotate:
-      result += '# From rotational_constants\n'
-    constants = properties.rotational_constants
+      result += '# From rotational_constants_deprecated\n'
     result += (
         'Rotational constants (MHz)  {:-20.3f}{:-20.3f}{:-20.3f}\n'.format(
-            constants.x, constants.y, constants.z))
+          vals[0], vals[1], vals[2]))
     return result
 
   def get_symmetry_used(self, properties):
@@ -541,15 +548,16 @@ class SmuWriter:
         result += '\n'
     return result
 
-  def get_properties(self, properties):
+  def get_properties(self, conformer):
     """Returns a variety of properties, in particular single point energies.
 
     Args:
-      properties: A Properties protocol buffer message.
+      conformer: dataset_pb2.Conformer
 
     Returns:
       A multiline string representation of the labeled properties.
     """
+    properties = conformer.properties
     float_line = '{:21s}{:-12.6f}\n'.format
     int_line = '{:21s}{:-5d}\n'.format
     result = ''
@@ -560,6 +568,21 @@ class SmuWriter:
         if self.annotate:
           result += '# From %s\n' % field
         result += int_line(label, getattr(properties, field))
+
+      elif label == 'NUCREP':
+        value = None
+        if conformer.optimized_geometry.HasField('enuc'):
+          if self.annotate:
+            result += '# From optimized_geometry.enuc\n'
+          value = conformer.optimized_geometry.enuc.value
+        elif properties.HasField('nuclear_repulsion_energy_deprecated'):
+          if self.annotate:
+            result += '# From nuclear_repulsion_energy_deprecated\n'
+          value = properties.nuclear_repulsion_energy_deprecated.value
+        if value is None:
+          continue
+        result += float_line(label, _FortranFloat(value))
+
       elif label == 'ZPE_unscaled':
         # This is just a special case because the number of significant digts is
         # different.
@@ -569,6 +592,7 @@ class SmuWriter:
           result += '# From zpe_unscaled\n'
         result += 'ZPE_unscaled {:-16.2f}\n'.format(
             properties.zpe_unscaled.value)
+
       else:
         if not properties.HasField(field):
           continue
@@ -917,13 +941,13 @@ class SmuWriter:
     contents.append(self.get_gradient_norms(properties, spacer='         '))
     contents.append(
         self.get_coordinates(conformer.bond_topologies[0], conformer))
-    contents.append(self.get_rotational_constants(properties))
+    contents.append(self.get_rotational_constants(conformer))
     contents.append(self.get_symmetry_used(properties))
     contents.append(
         self.get_frequencies_and_intensities(properties, header=True))
     contents.append(self.get_gaussian_sanity_check(properties))
     contents.append(self.get_normal_modes(properties))
-    contents.append(self.get_properties(properties))
+    contents.append(self.get_properties(conformer))
     contents.append(self.get_diagnostics(properties))
     contents.append(self.get_atomic_block(properties))
     contents.append(self.get_homo_lumo(properties))

@@ -38,6 +38,14 @@ conformers {
     atom_positions {
       z: -3.147236
     }
+    enuc {
+      value: 24.805948
+    }
+    rotcon {
+      value: 0.0
+      value: 35519.086
+      value: 35519.086
+    }
   }
   properties {
     errors {
@@ -438,26 +446,19 @@ conformers {
     }
     compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.200.108\nStage 1  Cluster:   alchemy\nStage 1  Cores:        24\nStage 1  CPU type:     23\nStage 2  Host IP:   XXX.YYY.200.108\nStage 2  Cluster:   alchemy\nStage 2  Cores:        24\nStage 2  CPU type:     23\n"
     symmetry_used_in_calculation: true
-    initial_geometry_energy {
+    initial_geometry_energy_deprecated {
       value: -77.240567
     }
-    initial_geometry_gradient_norm {
+    initial_geometry_gradient_norm_deprecated {
       value: 3e-06
     }
-    optimized_geometry_energy {
+    optimized_geometry_energy_deprecated {
       value: -77.240567
     }
-    optimized_geometry_gradient_norm {
-    }
-    rotational_constants {
-      y: 35519.086
-      z: 35519.086
+    optimized_geometry_gradient_norm_deprecated {
     }
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
-    nuclear_repulsion_energy {
-      value: 24.805948
-    }
     diagnostics_d1_ccsd_2sp {
       value: 0.0249
     }

@@ -1200,10 +1200,10 @@ def merge_conformer(conf1, conf2):
   conflict_info.append(conf1.properties.errors.error_frequencies)  # nstatv
   conflict_info.append(conf1.properties.errors.error_nstatt)
   for c in [conf1, conf2]:
-    conflict_info.append(c.properties.initial_geometry_energy.value)
-    conflict_info.append(c.properties.initial_geometry_gradient_norm.value)
-    conflict_info.append(c.properties.optimized_geometry_energy.value)
-    conflict_info.append(c.properties.optimized_geometry_gradient_norm.value)
+    conflict_info.append(c.properties.initial_geometry_energy_deprecated.value)
+    conflict_info.append(c.properties.initial_geometry_gradient_norm_deprecated.value)
+    conflict_info.append(c.properties.optimized_geometry_energy_deprecated.value)
+    conflict_info.append(c.properties.optimized_geometry_gradient_norm_deprecated.value)
     conflict_info.append(bool(c.initial_geometries))
     conflict_info.append(c.HasField('optimized_geometry'))
 
@@ -1227,10 +1227,10 @@ def merge_conformer(conf1, conf2):
               getattr(conf1.properties.errors, field))
 
     for field, atol in [
-        ('initial_geometry_energy', 2e-6),
-        ('initial_geometry_gradient_norm', 1e-6),
-        ('optimized_geometry_energy', 2e-6),
-        ('optimized_geometry_gradient_norm', 1e-6),
+        ('initial_geometry_energy_deprecated', 2e-6),
+        ('initial_geometry_gradient_norm_deprecated', 1e-6),
+        ('optimized_geometry_energy_deprecated', 2e-6),
+        ('optimized_geometry_gradient_norm_deprecated', 1e-6),
     ]:
       val1 = getattr(conf1.properties, field).value
       val2 = getattr(conf2.properties, field).value
@@ -1259,10 +1259,10 @@ def merge_conformer(conf1, conf2):
 
     # After all of that, we always take the stage1 initial energy,
     # gradient norm, and positions.
-    conf2.properties.initial_geometry_energy.value = (
-        conf1.properties.initial_geometry_energy.value)
-    conf2.properties.initial_geometry_gradient_norm.value = (
-        conf1.properties.initial_geometry_gradient_norm.value)
+    conf2.properties.initial_geometry_energy_deprecated.value = (
+        conf1.properties.initial_geometry_energy_deprecated.value)
+    conf2.properties.initial_geometry_gradient_norm_deprecated.value = (
+        conf1.properties.initial_geometry_gradient_norm_deprecated.value)
     conf2.initial_geometries[0].CopyFrom(conf1.initial_geometries[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
@@ -1445,10 +1445,10 @@ def clean_up_error_codes(conformer):
     elif conformer.properties.errors.error_nstat1 == 2:
       # optimization failed. Clean up the error codes and remove some info
       conformer.properties.errors.status = 600
-      conformer.properties.ClearField('initial_geometry_energy')
-      conformer.properties.ClearField('initial_geometry_gradient_norm')
-      conformer.properties.ClearField('optimized_geometry_energy')
-      conformer.properties.ClearField('optimized_geometry_gradient_norm')
+      conformer.properties.ClearField('initial_geometry_energy_deprecated')
+      conformer.properties.ClearField('initial_geometry_gradient_norm_deprecated')
+      conformer.properties.ClearField('optimized_geometry_energy_deprecated')
+      conformer.properties.ClearField('optimized_geometry_gradient_norm_deprecated')
       conformer.ClearField('optimized_geometry')
 
     # If something isn't caught there, we'll let it go through with
@@ -1464,10 +1464,10 @@ def clean_up_error_codes(conformer):
 
 
 _SENTINEL_VALUE_FIELDS = [
-    'initial_geometry_energy',
-    'initial_geometry_gradient_norm',
-    'optimized_geometry_energy',
-    'optimized_geometry_gradient_norm',
+    'initial_geometry_energy_deprecated',
+    'initial_geometry_gradient_norm_deprecated',
+    'optimized_geometry_energy_deprecated',
+    'optimized_geometry_gradient_norm_deprecated',
 ]
 
 

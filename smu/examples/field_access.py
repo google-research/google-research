@@ -47,11 +47,11 @@ for value in conformer.properties.excitation_energies_cc2.value:
 print('Or just ask how many excitation_energies_cc2 there are:',
       len(conformer.properties.excitation_energies_cc2.value))
 
-print('Some fields like rotational_constants have explicit x,y,z components')
+print('Some fields like dipole_moment_pbe0_aug_pc_1 have explicit x,y,z components')
 
-print(conformer.properties.rotational_constants.x,
-      conformer.properties.rotational_constants.y,
-      conformer.properties.rotational_constants.z)
+print(conformer.properties.dipole_moment_pbe0_aug_pc_1.x,
+      conformer.properties.dipole_moment_pbe0_aug_pc_1.y,
+      conformer.properties.dipole_moment_pbe0_aug_pc_1.z)
 
 print('A couple of important fields are not inside "properties"')
 

@@ -42,12 +42,12 @@ print('in order to understand what fields are available and what you should trus
 
 
 print(
-    'If you ask for the optimized_geometry_energy for both you get sensible values'
+    'If you ask for the harmonic_frequencies for both you get sensible values'
 )
 print(PARTIAL_CONFORMER_ID,
-      partial_conformer.properties.optimized_geometry_energy.value)
+      partial_conformer.properties.harmonic_frequencies)
 print(MINIMAL_CONFORMER_ID,
-      minimal_conformer.properties.optimized_geometry_energy.value)
+      minimal_conformer.properties.harmonic_frequencies)
 
 print()
 print('But if you ask for zpe_unscaled, the second gives a 0')
@@ -66,13 +66,13 @@ print('These are cases of missing values.')
 print(
     'If you request a value which is actually missing, you will silently get a default value (0.0 for floats)'
 )
-print('Therefore, in addition to checking the status field, we recommend you also:')
-print('Check whether a Conformer has a value with the HasField method')
-print('Calling HasField for optimized_geometry_energy:')
+print('Therefore, in addition to checking the status field, we recommend you also')
+print('check whether a Conformer has a value with the HasField method')
+print('Calling HasField for harmonic_frequencies:')
 print(PARTIAL_CONFORMER_ID,
-      partial_conformer.properties.HasField('optimized_geometry_energy'))
+      partial_conformer.properties.HasField('harmonic_frequencies'))
 print(MINIMAL_CONFORMER_ID,
-      minimal_conformer.properties.HasField('optimized_geometry_energy'))
+      minimal_conformer.properties.HasField('harmonic_frequencies'))
 print('Calling HasField for zpe_unscaled:')
 print(PARTIAL_CONFORMER_ID,
       partial_conformer.properties.HasField('zpe_unscaled'))

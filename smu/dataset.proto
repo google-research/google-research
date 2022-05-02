@@ -736,20 +736,20 @@ message Properties {
   // optimization and at the end of the final geometry optimization.
   // Units: atomic units (Hartrees)
   // TODO(pfr): shoudl match single_point_energy_pbe0d3_6_311gd
-  ScalarMolecularProperty initial_geometry_energy = 95
+  ScalarMolecularProperty initial_geometry_energy_deprecated = 95
       [(availability) = STANDARD];
-  ScalarMolecularProperty initial_geometry_gradient_norm = 96
+  ScalarMolecularProperty initial_geometry_gradient_norm_deprecated = 96
       [(availability) = STANDARD];
   // The energy is computed by Turbomole with PBE0-D3/6-311G(d)
   // Units: atomic units (Hartrees)
-  ScalarMolecularProperty optimized_geometry_energy = 97
+  ScalarMolecularProperty optimized_geometry_energy_deprecated = 97
       [(availability) = STANDARD];
-  ScalarMolecularProperty optimized_geometry_gradient_norm = 98
+  ScalarMolecularProperty optimized_geometry_gradient_norm_deprecated = 98
       [(availability) = STANDARD];
 
   // The eigenvalues of the moment of inertia tensor.
   // Units: Mhz
-  Vector3DMolecularProperty rotational_constants = 99
+  Vector3DMolecularProperty rotational_constants_deprecated = 99
       [(availability) = STANDARD];
 
   // Strings describing the bond separation reaction used by ATOMIC2 analysis.
@@ -886,7 +886,7 @@ message Properties {
 
   // For the optimized geoemtry, energy just for the nuclei.
   // Units: atomic units (Hartree)
-  ScalarMolecularProperty nuclear_repulsion_energy = 112
+  ScalarMolecularProperty nuclear_repulsion_energy_deprecated = 112
       [(availability) = COMPLETE];
 
   // Diagnostics D1(CCSD/2sp).
