@@ -998,12 +998,14 @@ class SmuParser:
     rank2_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
     if items[-1].startswith('PBE0'):
       for label in RANK2_ENCODING_ORDER:
-        properties.dipole_dipole_polarizability_pbe0_aug_pc_1.matrix_values.append(
-            float(rank2_data[label]))
+        setattr(properties.dipole_dipole_polarizability_pbe0_aug_pc_1,
+                label,
+                float(rank2_data[label]))
     elif items[-1].startswith('HF'):
       for label in RANK2_ENCODING_ORDER:
-        properties.dipole_dipole_polarizability_hf_6_31gd.matrix_values.append(
-            float(rank2_data[label]))
+        setattr(properties.dipole_dipole_polarizability_hf_6_31gd,
+                label,
+                float(rank2_data[label]))
 
   def parse_multipole_moments(self):
     """Parses Di-, Quadru-, and Octopole moments in (au)."""
@@ -1018,15 +1020,17 @@ class SmuParser:
       self.parse(ParseModes.SKIP, num_lines=1)  # Quadrupole moment (au).
       quadrupole_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
       for label in RANK2_ENCODING_ORDER:
-        properties.quadrupole_moment_pbe0_aug_pc_1.matrix_values.append(
-            float(quadrupole_data[label]))
+        setattr(properties.quadrupole_moment_pbe0_aug_pc_1,
+                label,
+                float(quadrupole_data[label]))
       self.parse(ParseModes.SKIP, num_lines=1)  # Octopole moment (au).
       octopole_data = self.parse(ParseModes.KEYVALUE, num_lines=10)
       if '**********' in dict(octopole_data).values():
         raise SmuOverfullFloatFieldError()
       for label in RANK3_ENCODING_ORDER:
-        properties.octopole_moment_pbe0_aug_pc_1.tensor_values.append(
-            float(octopole_data[label]))
+        setattr(properties.octopole_moment_pbe0_aug_pc_1,
+                label,
+                float(octopole_data[label]))
     # Hartree-Fock section.
     if self._next_line_startswith('Dipole moment (au):     HF/6-31Gd'):
       self.parse(ParseModes.SKIP, num_lines=1)  # Dipole moment (au).
@@ -1037,15 +1041,17 @@ class SmuParser:
       self.parse(ParseModes.SKIP, num_lines=1)  # Quadrupole moment (au).
       quadrupole_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
       for label in RANK2_ENCODING_ORDER:
-        properties.quadrupole_moment_hf_6_31gd.matrix_values.append(
-            float(quadrupole_data[label]))
+        setattr(properties.quadrupole_moment_hf_6_31gd,
+                label,
+                float(quadrupole_data[label]))
       self.parse(ParseModes.SKIP, num_lines=1)  # Octopole moment (au).
       octopole_data = self.parse(ParseModes.KEYVALUE, num_lines=10)
       if '**********' in dict(octopole_data).values():
         raise SmuOverfullFloatFieldError()
       for label in RANK3_ENCODING_ORDER:
-        properties.octopole_moment_hf_6_31gd.tensor_values.append(
-            float(octopole_data[label]))
+        setattr(properties.octopole_moment_hf_6_31gd,
+                label,
+                float(octopole_data[label]))
 
   def parse_stage1_to_proto(self):
     """Read _raw_contents and parses the various sections.

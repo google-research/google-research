@@ -391,12 +391,10 @@ conformers {
       precision: 0.0001
     }
     dipole_dipole_polarizability_pbe0_aug_pc_1 {
-      matrix_values: 19.22399
-      matrix_values: 19.22399
-      matrix_values: 30.9373
-      matrix_values: -0.0
-      matrix_values: 0.0
-      matrix_values: 0.0
+      xx: 19.22399
+      yy: 19.22399
+      zz: 30.9373
+      xy: -0.0
     }
     dipole_moment_pbe0_aug_pc_1 {
       x: -0.0
@@ -407,44 +405,36 @@ conformers {
       z: -0.0
     }
     quadrupole_moment_pbe0_aug_pc_1 {
-      matrix_values: -10.25411
-      matrix_values: -10.25411
-      matrix_values: -5.22335
-      matrix_values: 0.0
-      matrix_values: 0.0
-      matrix_values: 0.0
+      xx: -10.25411
+      yy: -10.25411
+      zz: -5.22335
     }
     quadrupole_moment_hf_6_31gd {
-      matrix_values: -9.97016
-      matrix_values: -9.97016
-      matrix_values: -4.83733
-      matrix_values: 0.0
-      matrix_values: -0.0
-      matrix_values: -0.0
+      xx: -9.97016
+      yy: -9.97016
+      zz: -4.83733
+      xz: -0.0
+      yz: -0.0
     }
     octopole_moment_pbe0_aug_pc_1 {
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: 0.0
-      tensor_values: 0.0
-      tensor_values: 0.0
-      tensor_values: -0.0
+      xxx: -0.0
+      yyy: -0.0
+      zzz: -0.0
+      xxy: -0.0
+      xxz: -0.0
+      xyy: -0.0
+      xyz: -0.0
     }
     octopole_moment_hf_6_31gd {
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: -0.0
-      tensor_values: 0.0
+      xxx: -0.0
+      yyy: -0.0
+      zzz: -0.0
+      xxy: -0.0
+      xxz: -0.0
+      xyy: -0.0
+      yyz: -0.0
+      xzz: -0.0
+      yzz: -0.0
     }
     compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.200.108\nStage 1  Cluster:   alchemy\nStage 1  Cores:        24\nStage 1  CPU type:     23\nStage 2  Host IP:   XXX.YYY.200.108\nStage 2  Cluster:   alchemy\nStage 2  Cores:        24\nStage 2  CPU type:     23\n"
     symmetry_used_in_calculation: true

@@ -381,14 +381,27 @@ message Properties {
 
   // A rank 2 tensor property.
   message Rank2MolecularProperty {
-    // TODO(pfr): Document the encoding order.
-    repeated double matrix_values = 1;
+    repeated double matrix_values_deprecated = 1 [deprecated = true];
+    double xx = 2;
+    double yy = 3;
+    double zz = 4;
+    double xy = 5;
+    double xz = 6;
+    double yz = 7;
   }
   // A rank 3 tensor property
   message Rank3MolecularProperty {
-    // TODO(pfr): Document the encoding order.
-
-    repeated double tensor_values = 1;
+    repeated double tensor_values_deprecated = 1 [deprecated = true];
+    double xxx = 2;
+    double yyy = 3;
+    double zzz = 4;
+    double xxy = 5;
+    double xxz = 6;
+    double xyy = 7;
+    double yyz = 8;
+    double xzz = 9;
+    double yzz = 10;
+    double xyz = 11;
   }
   // Normal modes with atomic displacements.
   message NormalMode {

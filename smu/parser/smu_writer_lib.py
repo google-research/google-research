@@ -790,9 +790,9 @@ class SmuWriter:
       result += '# From dipole_dipole_polarizability_pbe0_aug_pc_1\n'
     labels = ['xx', 'yy', 'zz', 'xy', 'xz', 'yz']
     dipole_dipole = properties.dipole_dipole_polarizability_pbe0_aug_pc_1
-    for i, label in enumerate(labels):
+    for label in labels:
       result += '    %s%s\n' % (label, '{:.5f}'.format(
-          dipole_dipole.matrix_values[i]).rjust(14))
+        getattr(dipole_dipole, label)).rjust(14))
     return result
 
   def get_multipole_moments(self, properties):
@@ -822,18 +822,18 @@ class SmuWriter:
       result += 'Quadrupole moment (au): PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From quadrupole_moment_pbe0_aug_pc_1\n'
-      for i, label in enumerate(smu_parser_lib.RANK2_ENCODING_ORDER):
+      for label in smu_parser_lib.RANK2_ENCODING_ORDER:
         result += segment(
-            ' ' + label,
-            properties.quadrupole_moment_pbe0_aug_pc_1.matrix_values[i])
+          ' ' + label,
+          getattr(properties.quadrupole_moment_pbe0_aug_pc_1, label))
 
     if properties.HasField('octopole_moment_pbe0_aug_pc_1'):
       result += 'Octopole moment (au):   PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From octopole_moment_pbe0_aug_pc_1\n'
-      for i, label in enumerate(smu_parser_lib.RANK3_ENCODING_ORDER):
+      for label in smu_parser_lib.RANK3_ENCODING_ORDER:
         result += segment(
-            label, properties.octopole_moment_pbe0_aug_pc_1.tensor_values[i])
+          label, getattr(properties.octopole_moment_pbe0_aug_pc_1, label))
 
     if properties.HasField('dipole_moment_hf_6_31gd'):
       result += 'Dipole moment (au):     HF/6-31Gd\n'
@@ -847,18 +847,18 @@ class SmuWriter:
       result += 'Quadrupole moment (au): HF/6-31Gd\n'
       if self.annotate:
         result += '# From quadrupole_moment_hf_6_31gd\n'
-      for i, label in enumerate(smu_parser_lib.RANK2_ENCODING_ORDER):
+      for label in smu_parser_lib.RANK2_ENCODING_ORDER:
         result += segment(
-            ' ' + label,
-            properties.quadrupole_moment_hf_6_31gd.matrix_values[i])
+          ' ' + label,
+          getattr(properties.quadrupole_moment_hf_6_31gd, label))
 
     if properties.HasField('octopole_moment_hf_6_31gd'):
       result += 'Octopole moment (au):   HF/6-31Gd\n'
       if self.annotate:
         result += '# From octopole_moment_hf_6_31gd\n'
-      for i, label in enumerate(smu_parser_lib.RANK3_ENCODING_ORDER):
+      for label in smu_parser_lib.RANK3_ENCODING_ORDER:
         result += segment(label,
-                          properties.octopole_moment_hf_6_31gd.tensor_values[i])
+                          getattr(properties.octopole_moment_hf_6_31gd, label))
 
     return result
 
