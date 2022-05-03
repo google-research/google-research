@@ -3,7 +3,7 @@
 This directory contains the software developed for the [SIGTYP 2022 Shared
 Task](https://github.com/sigtyp/ST2022) on prediction of cognate reflexes held
 at the 4th Workshop on Research in Computational Typology and Multilingual NLP
-(SIGTYP 2022).
+([SIGTYP 2022](https://sigtyp.github.io/workshop.html)).
 
 There are two model implementations in this directory:
 
