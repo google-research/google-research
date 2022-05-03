@@ -44,11 +44,11 @@ BOND    2   11     TYPE  611300
 BOND    2   12     TYPE  611300
 BOND    2   13     TYPE  611300
 BOND    3   14     TYPE  611300
-# From initial_geometry_energy_deprecated, initial_geometry_gradient_norm_deprecated
+# From energy, gnorm
 E_ini/G_norm         -406.511790    0.052254
-# From optimized_geometry_energy_deprecated, optimized_geometry_gradient_norm_deprecated
+# From energy, gnorm
 E_opt/G_norm         -406.522079    0.000025
-# From initial_geometry
+# From initial_geometry.atom_positions
 Initial Coords       6   -0.599232    0.468652    4.188200
 Initial Coords       6    1.255345   -6.557917    6.569822
 Initial Coords       6    3.022428   -4.726961    1.829255
@@ -63,7 +63,7 @@ Initial Coords       1    0.506447   -8.014329    5.306351
 Initial Coords       1    3.297194   -6.761062    6.830604
 Initial Coords       1    0.358859   -6.807549    8.416462
 Initial Coords       1    3.727296   -4.095603    0.019653
-# From optimized_geometry
+# From optimized_geometry.atom_positions
 Optimized Coords     6   -0.313382    0.356520    4.266687
 Optimized Coords     6    1.020933   -6.548927    6.532749
 Optimized Coords     6    3.098166   -4.521578    1.879570
@@ -834,11 +834,11 @@ BOND    2   11     TYPE  611300
 BOND    2   12     TYPE  611300
 BOND    2   13     TYPE  611300
 BOND    3   14     TYPE  611300
-# From initial_geometry_energy_deprecated, initial_geometry_gradient_norm_deprecated
+# From energy, gnorm
 E_ini/G_norm         -406.512988    0.050203
-# From optimized_geometry_energy_deprecated, optimized_geometry_gradient_norm_deprecated
+# From energy, gnorm
 E_opt/G_norm         -406.520886    0.000018
-# From initial_geometry
+# From initial_geometry.atom_positions
 Initial Coords       6    0.321820    0.445597    2.520895
 Initial Coords       6    0.053668   -5.219990    7.670021
 Initial Coords       6    2.875218   -4.133398    1.610614
@@ -853,7 +853,7 @@ Initial Coords       1    0.850944   -3.622983    8.717685
 Initial Coords       1   -1.931489   -4.872470    7.197967
 Initial Coords       1    0.137005   -6.887863    8.888894
 Initial Coords       1    3.145827   -2.846117    0.056692
-# From optimized_geometry
+# From optimized_geometry.atom_positions
 Optimized Coords     6    0.524953    0.526935    2.606700
 Optimized Coords     6   -0.012035   -5.313864    7.483931
 Optimized Coords     6    2.591535   -4.200191    1.667437

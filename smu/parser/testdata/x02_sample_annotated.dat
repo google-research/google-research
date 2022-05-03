@@ -34,16 +34,16 @@ TIMINGS     0     0     1     3     1     0     0     2     1     2
 BOND    1    2     TYPE  663110
 BOND    1    3     TYPE  611300
 BOND    2    4     TYPE  611300
-# From initial_geometry_energy_deprecated, initial_geometry_gradient_norm_deprecated
+# From energy, gnorm
 E_ini/G_norm          -77.240567    0.000003
-# From optimized_geometry_energy_deprecated, optimized_geometry_gradient_norm_deprecated
+# From energy, gnorm
 E_opt/G_norm          -77.240567    0.000000
-# From initial_geometry
+# From initial_geometry.atom_positions
 Initial Coords       6    1.795729    0.186894   -0.027023
 Initial Coords       6   -0.470464    0.186894   -0.027023
 Initial Coords       1    3.809866    0.186894   -0.027023
 Initial Coords       1   -2.484601    0.186894   -0.027023
-# From optimized_geometry
+# From optimized_geometry.atom_positions
 Optimized Coords     6    0.000000    0.000000    1.133096
 Optimized Coords     6    0.000000    0.000000   -1.133096
 Optimized Coords     1    0.000000    0.000000    3.147236

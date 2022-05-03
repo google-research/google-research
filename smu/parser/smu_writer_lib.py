@@ -355,34 +355,47 @@ class SmuWriter:
     result += ''.join(bonds)
     return result
 
-  _GRADIENT_NORMS_LABEL_FIELDS = [[
+  _DEPRECATED_ENERGY_FIELDS = [
+    [
       'E_ini/G_norm', 'initial_geometry_energy_deprecated',
       'initial_geometry_gradient_norm_deprecated'
-  ],
-                                  [
-                                      'E_opt/G_norm',
-                                      'optimized_geometry_energy_deprecated',
-                                      'optimized_geometry_gradient_norm_deprecated'
-                                  ]]
+    ],
+    [
+      'E_opt/G_norm',
+      'optimized_geometry_energy_deprecated',
+      'optimized_geometry_gradient_norm_deprecated'
+    ]]
 
-  def get_gradient_norms(self, properties, spacer):
+  def get_gradient_norms(self, conformer, spacer):
     """Returns initial and optimized geometry energies and gradient norms.
 
     Args:
-      properties: A Properties protocol buffer message.
+      conformer: dataset_pb2.Conformer
       spacer: spacer after label (differs between stage1 and stage2)
 
     Returns:
       A multiline string representation of geometry energies and gradient norms.
     """
     result = ''
-    for label, field_energy, field_norm in self._GRADIENT_NORMS_LABEL_FIELDS:
-      if self.annotate:
-        result += '# From %s, %s\n' % (field_energy, field_norm)
-      result += '{}{}{:11.6f}{:12.6f}\n'.format(
+    if conformer.optimized_geometry.HasField('energy'):
+      for label, geometry in [('E_ini/G_norm', conformer.initial_geometries[0]),
+                              ('E_opt/G_norm', conformer.optimized_geometry)]:
+        if self.annotate:
+          result += '# From energy, gnorm\n'
+        result += '{}{}{:11.6f}{:12.6f}\n'.format(
           label, spacer,
-          getattr(properties, field_energy).value,
-          getattr(properties, field_norm).value)
+          geometry.energy.value,
+          geometry.gnorm.value)
+    elif conformer.properties.HasField('optimized_geometry_energy_deprecated'):
+      for label, field_energy, field_norm in self._DEPRECATED_ENERGY_FIELDS:
+        if self.annotate:
+          result += '# From %s, %s\n' % (field_energy, field_norm)
+        result += '{}{}{:11.6f}{:12.6f}\n'.format(
+            label, spacer,
+            getattr(conformer.properties, field_energy).value,
+            getattr(conformer.properties, field_norm).value)
+    else:
+      raise ValueError('All conformers should have energies')
     return result
 
   def get_coordinates(self, topology, conformer):
@@ -396,9 +409,10 @@ class SmuWriter:
       A multiline string representation of geometries in Cartesian coordinates.
     """
     coordinates = ''
-    if conformer.initial_geometries:
+    if (conformer.initial_geometries and
+        conformer.initial_geometries[0].atom_positions):
       if self.annotate:
-        coordinates += '# From initial_geometry\n'
+        coordinates += '# From initial_geometry.atom_positions\n'
       for i, atom in enumerate(topology.atoms):
         positions = conformer.initial_geometries[0].atom_positions[i]
 
@@ -406,9 +420,10 @@ class SmuWriter:
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(8),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
                 positions.y).rjust(12), '{:f}'.format(positions.z).rjust(12))
-    if conformer.HasField('optimized_geometry'):
+    if (conformer.HasField('optimized_geometry') and
+        conformer.optimized_geometry.atom_positions):
       if self.annotate:
-        coordinates += '# From optimized_geometry\n'
+        coordinates += '# From optimized_geometry.atom_positions\n'
       for i, atom in enumerate(topology.atoms):
         positions = conformer.optimized_geometry.atom_positions[i]
         coordinates += 'Optimized Coords%s%s%s%s\n' % (
@@ -907,7 +922,7 @@ class SmuWriter:
     contents.append(self.get_ids(conformer, 'stage1'))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage1_timings(properties))
-    contents.append(self.get_gradient_norms(properties, spacer=' '))
+    contents.append(self.get_gradient_norms(conformer, spacer=' '))
     contents.append(
         self.get_coordinates(conformer.bond_topologies[0], conformer))
     contents.append(
@@ -938,7 +953,7 @@ class SmuWriter:
     contents.append(self.get_system(properties))
     contents.append(self.get_stage2_timings(properties))
     contents.append(self.get_bonds(conformer.bond_topologies[0], properties))
-    contents.append(self.get_gradient_norms(properties, spacer='         '))
+    contents.append(self.get_gradient_norms(conformer, spacer='         '))
     contents.append(
         self.get_coordinates(conformer.bond_topologies[0], conformer))
     contents.append(self.get_rotational_constants(conformer))

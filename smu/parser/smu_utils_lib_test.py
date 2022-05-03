@@ -1030,7 +1030,7 @@ class MergeConformersTest(absltest.TestCase):
     self.assertNotEmpty(got_conf.properties.normal_modes)
 
   def test_stage2_stage1_conflict_energy(self):
-    self.stage2_conformer.properties.initial_geometry_energy_deprecated.value = -1.23
+    self.stage2_conformer.initial_geometries[0].energy.value = -1.23
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
@@ -1040,11 +1040,44 @@ class MergeConformersTest(absltest.TestCase):
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_conf.properties.normal_modes)
     # This stage1 value should be returned
-    self.assertEqual(got_conf.properties.initial_geometry_energy_deprecated.value,
+    self.assertEqual(got_conf.initial_geometries[0].energy.value,
                      -406.51179)
 
-  def test_stage2_stage1_conflict_missing_geometry(self):
+  def test_stage2_stage1_conflict_missing_iniital_geometry_field(self):
+    del self.stage2_conformer.initial_geometries[:]
+    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage2_conformer, self.stage1_conformer)
+    self.assertEqual(got_conflict, [
+        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, 0.0, 0.0, -406.522079, 2.5e-05, False, True
+    ])
+    # Just check a random field that is in stage2 but not stage1
+    self.assertNotEmpty(got_conf.properties.normal_modes)
+
+  def test_stage2_stage1_conflict_missing_iniital_geometry(self):
+    del self.stage2_conformer.initial_geometries[0].atom_positions[:]
+    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage2_conformer, self.stage1_conformer)
+    self.assertEqual(got_conflict, [
+        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, -406.51179, 0.052254, -406.522079, 2.5e-05, False, True
+    ])
+    # Just check a random field that is in stage2 but not stage1
+    self.assertNotEmpty(got_conf.properties.normal_modes)
+
+  def test_stage2_stage1_conflict_missing_optimized_geometry_field(self):
     self.stage2_conformer.ClearField('optimized_geometry')
+    got_conf, got_conflict = smu_utils_lib.merge_conformer(
+        self.stage2_conformer, self.stage1_conformer)
+    self.assertEqual(got_conflict, [
+        618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
+        True, -406.51179, 0.052254, 0.0, 0.0, True, False
+    ])
+    # Just check a random field that is in stage2 but not stage1
+    self.assertNotEmpty(got_conf.properties.normal_modes)
+
+  def test_stage2_stage1_conflict_missing_optimized_geometry(self):
+    del self.stage2_conformer.optimized_geometry.atom_positions[:]
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertEqual(got_conflict, [
@@ -1056,16 +1089,16 @@ class MergeConformersTest(absltest.TestCase):
 
   def test_stage2_stage1_no_conflict_minus1(self):
     # If stage2 contains a -1, we keep that (stricter error checking later on)
-    self.stage2_conformer.properties.initial_geometry_energy_deprecated.value = -1.0
+    self.stage2_conformer.initial_geometries[0].energy.value = -1.0
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertIsNone(got_conflict)
     # This stage1 value should be returned
-    self.assertEqual(got_conf.properties.initial_geometry_energy_deprecated.value,
+    self.assertEqual(got_conf.initial_geometries[0].energy.value,
                      -406.51179)
 
   def test_stage2_stage1_no_conflict_approx_equal(self):
-    self.stage2_conformer.properties.initial_geometry_energy_deprecated.value += 1e-7
+    self.stage2_conformer.initial_geometries[0].energy.value += 1e-7
     got_conf, got_conflict = smu_utils_lib.merge_conformer(
         self.stage2_conformer, self.stage1_conformer)
     self.assertIsNone(got_conflict)
@@ -1075,32 +1108,32 @@ class MergeConformersTest(absltest.TestCase):
   def test_status_800(self):
     self.stage2_conformer.properties.errors.status = 800
     # Set a value so that we make sure we use the stage1 data
-    self.stage2_conformer.properties.initial_geometry_energy_deprecated.value += 12345
+    self.stage2_conformer.initial_geometries[0].energy.value += 12345
     expected_init_energy = (
-        self.stage1_conformer.properties.initial_geometry_energy_deprecated.value)
+        self.stage1_conformer.initial_geometries[0].energy.value)
     got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
                                                 self.stage1_conformer)
     self.assertEqual(got_conf.properties.errors.status, 580)
-    self.assertEqual(got_conf.properties.initial_geometry_energy_deprecated.value,
+    self.assertEqual(got_conf.initial_geometries[0].energy.value,
                      expected_init_energy)
     self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
 
   def test_status_700(self):
     self.stage2_conformer.properties.errors.status = 700
     # Set a value so that we make sure we use the stage1 data
-    self.stage2_conformer.properties.initial_geometry_energy_deprecated.value += 12345
+    self.stage2_conformer.initial_geometries[0].energy.value += 12345
     expected_init_energy = (
-        self.stage1_conformer.properties.initial_geometry_energy_deprecated.value)
+        self.stage1_conformer.initial_geometries[0].energy.value)
     got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
                                                 self.stage1_conformer)
     self.assertEqual(got_conf.properties.errors.status, 570)
-    self.assertEqual(got_conf.properties.initial_geometry_energy_deprecated.value,
+    self.assertEqual(got_conf.initial_geometries[0].energy.value,
                      expected_init_energy)
     self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
 
   def test_status_800_warn_vib_2(self):
     self.stage2_conformer.properties.errors.status = 800
-    # We set two values because 1 is any neative and 2 is for a large negative
+    # We set two values because 1 is any negative and 2 is for a large negative
     self.stage1_conformer.properties.harmonic_frequencies.value[3] = -123
     self.stage1_conformer.properties.harmonic_frequencies.value[4] = -1
     got_conf, _ = smu_utils_lib.merge_conformer(self.stage2_conformer,
@@ -1155,7 +1188,7 @@ class MergeConformersTest(absltest.TestCase):
     self.assertEqual(got_conf.duplicate_of, [111, 222])
     self.assertEqual(got_conf.duplicated_by, 123)
     # Just check a random field from stage1
-    self.assertTrue(got_conf.properties.HasField('initial_geometry_energy_deprecated'))
+    self.assertTrue(got_conf.properties.HasField('harmonic_frequencies'))
 
   def test_multiple_initial_geometries(self):
     bad_conformer = copy.deepcopy(self.stage1_conformer)
@@ -1272,15 +1305,20 @@ class ConformerToStandardTest(absltest.TestCase):
     self._conformer = get_stage2_conformer()
 
   def test_field_filtering(self):
-    # Check that the field which should be filtered starts out set
-    self.assertTrue(
-        self._conformer.properties.HasField('optimized_geometry_energy_deprecated'))
+    # Check that all fields start out set
+    self.assertTrue(self._conformer.initial_geometries[0].HasField('energy'))
+    self.assertTrue(self._conformer.optimized_geometry.HasField('energy'))
+    self.assertTrue(self._conformer.optimized_geometry.HasField('enuc'))
+    self.assertTrue(self._conformer.properties.HasField('harmonic_frequencies'))
+    self.assertTrue(self._conformer.properties.HasField('zpe_unscaled'))
 
     got = smu_utils_lib.conformer_to_standard(self._conformer)
-    # Check for a field that was originally in self._conformer and should be
-    # filtered and a field which should still be present.
-    self.assertTrue(got.properties.HasField('optimized_geometry_energy_deprecated'))
-    self.assertFalse(got.properties.HasField('zpe_unscaled'))
+
+    self.assertTrue(self._conformer.initial_geometries[0].HasField('energy'))
+    self.assertTrue(self._conformer.optimized_geometry.HasField('energy'))
+    self.assertFalse(self._conformer.optimized_geometry.HasField('enuc'))
+    self.assertTrue(self._conformer.properties.HasField('harmonic_frequencies'))
+    self.assertFalse(self._conformer.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_conformer(self):
     self._conformer.which_database = dataset_pb2.UNSPECIFIED
@@ -1334,8 +1372,8 @@ class CleanUpErrorCodesTest(parameterized.TestCase):
     smu_utils_lib.clean_up_error_codes(conformer)
     self.assertEqual(conformer.properties.errors.status, 600)
     self.assertEqual(conformer.properties.errors.error_nstat1, 0)
-    self.assertFalse(conformer.properties.HasField('initial_geometry_energy_deprecated'))
-    self.assertFalse(conformer.properties.HasField('optimized_geometry_energy_deprecated'))
+    self.assertFalse(conformer.initial_geometries[0].HasField('energy'))
+    self.assertFalse(conformer.initial_geometries[0].HasField('gnorm'))
     self.assertFalse(conformer.HasField('optimized_geometry'))
 
 
@@ -1344,24 +1382,21 @@ class CleanUpSentinelValuestest(parameterized.TestCase):
   def test_no_change(self):
     conformer = get_stage2_conformer()
     smu_utils_lib.clean_up_sentinel_values(conformer)
-    self.assertTrue(conformer.properties.HasField('initial_geometry_energy_deprecated'))
-    self.assertTrue(
-        conformer.properties.HasField('initial_geometry_gradient_norm_deprecated'))
-    self.assertTrue(conformer.properties.HasField('optimized_geometry_energy_deprecated'))
-    self.assertTrue(
-        conformer.properties.HasField('optimized_geometry_gradient_norm_deprecated'))
+    self.assertTrue(conformer.initial_geometries[0].HasField('energy'))
+    self.assertTrue(conformer.initial_geometries[0].HasField('gnorm'))
+    self.assertTrue(conformer.optimized_geometry.HasField('energy'))
+    self.assertTrue(conformer.optimized_geometry.HasField('gnorm'))
 
   @parameterized.parameters(
-      'initial_geometry_energy_deprecated',
-      'initial_geometry_gradient_norm_deprecated',
-      'optimized_geometry_energy_deprecated',
-      'optimized_geometry_gradient_norm_deprecated',
+    'energy', 'gnorm'
   )
   def test_one_field(self, field):
     conformer = get_stage2_conformer()
-    getattr(conformer.properties, field).value = -1.0
+    getattr(conformer.initial_geometries[0], field).value = -1.0
+    getattr(conformer.optimized_geometry, field).value = -1.0
     smu_utils_lib.clean_up_sentinel_values(conformer)
-    self.assertFalse(conformer.properties.HasField(field))
+    self.assertFalse(conformer.initial_geometries[0].HasField(field))
+    self.assertFalse(conformer.optimized_geometry.HasField(field))
 
 
 class FindZeroValuesTest(parameterized.TestCase):

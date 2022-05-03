@@ -672,13 +672,13 @@ class SmuParser:
         section[1]).startswith(
             'E_opt/G_norm'
         ), 'Unable to parse section for gradient norm: %s.' % section
-    properties = self._conformer.properties
     items = str(section[0]).split()
-    properties.initial_geometry_energy_deprecated.value = float(items[1])
-    properties.initial_geometry_gradient_norm_deprecated.value = float(items[2])
+    self._conformer.initial_geometries.add()
+    self._conformer.initial_geometries[0].energy.value = float(items[1])
+    self._conformer.initial_geometries[0].gnorm.value = float(items[2])
     items = str(section[1]).split()
-    properties.optimized_geometry_energy_deprecated.value = float(items[1])
-    properties.optimized_geometry_gradient_norm_deprecated.value = float(items[2])
+    self._conformer.optimized_geometry.energy.value = float(items[1])
+    self._conformer.optimized_geometry.gnorm.value = float(items[2])
 
   def parse_coordinates(self, label, num_atoms):
     """Parses a section defining a molecule's geometry in Cartesian coordinates.
@@ -694,8 +694,12 @@ class SmuParser:
     coordinate_section = self.parse(ParseModes.RAW, num_lines=num_atoms)
     assert label in VALID_COORDINATE_LABELS, 'Unknown label %s.' % label
     conformer = self._conformer
-    geometry = conformer.initial_geometries.add(
-    ) if label == 'Initial Coords' else conformer.optimized_geometry
+    if label == 'Initial Coords':
+      if not conformer.initial_geometries:
+        conformer.initial_geometries.add()
+      geometry = conformer.initial_geometries[0]
+    else:
+      geometry = conformer.optimized_geometry
     for line in coordinate_section:
       label1, label2, unused_atomic_number, x, y, z = str(line).strip().split()
       assert '%s %s' % (

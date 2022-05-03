@@ -1200,12 +1200,16 @@ def merge_conformer(conf1, conf2):
   conflict_info.append(conf1.properties.errors.error_frequencies)  # nstatv
   conflict_info.append(conf1.properties.errors.error_nstatt)
   for c in [conf1, conf2]:
-    conflict_info.append(c.properties.initial_geometry_energy_deprecated.value)
-    conflict_info.append(c.properties.initial_geometry_gradient_norm_deprecated.value)
-    conflict_info.append(c.properties.optimized_geometry_energy_deprecated.value)
-    conflict_info.append(c.properties.optimized_geometry_gradient_norm_deprecated.value)
-    conflict_info.append(bool(c.initial_geometries))
-    conflict_info.append(c.HasField('optimized_geometry'))
+    if c.initial_geometries:
+      conflict_info.append(c.initial_geometries[0].energy.value)
+      conflict_info.append(c.initial_geometries[0].gnorm.value)
+    else:
+      conflict_info.extend([0.0, 0.0])
+    conflict_info.append(c.optimized_geometry.energy.value)
+    conflict_info.append(c.optimized_geometry.gnorm.value)
+    conflict_info.append(bool(c.initial_geometries) and
+                         bool(c.initial_geometries[0].atom_positions))
+    conflict_info.append(len(c.optimized_geometry.atom_positions) > 0)
 
   # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
   # merge. We look for conflicts between them and then a few special cases.
@@ -1216,8 +1220,17 @@ def merge_conformer(conf1, conf2):
 
     if len(conf1.initial_geometries) != len(conf2.initial_geometries):
       has_conflict = True
+    elif len(conf1.initial_geometries) == 1:
+      if (len(conf1.initial_geometries[0].atom_positions) !=
+          len(conf2.initial_geometries[0].atom_positions)):
+        has_conflict = True
+
     if (conf1.HasField('optimized_geometry') !=
         conf2.HasField('optimized_geometry')):
+      has_conflict = True
+
+    if (len(conf1.optimized_geometry.atom_positions) !=
+        len(conf2.optimized_geometry.atom_positions)):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
@@ -1226,14 +1239,20 @@ def merge_conformer(conf1, conf2):
       setattr(conf2.properties.errors, field,
               getattr(conf1.properties.errors, field))
 
-    for field, atol in [
-        ('initial_geometry_energy_deprecated', 2e-6),
-        ('initial_geometry_gradient_norm_deprecated', 1e-6),
-        ('optimized_geometry_energy_deprecated', 2e-6),
-        ('optimized_geometry_gradient_norm_deprecated', 1e-6),
+    for field_fn, atol in [
+        (lambda c: c.initial_geometries[0].energy, 2e-6),
+        (lambda c: c.initial_geometries[0].gnorm, 1e-6),
+        (lambda c: c.optimized_geometry.energy, 2e-6),
+        (lambda c: c.optimized_geometry.gnorm, 1e-6),
     ]:
-      val1 = getattr(conf1.properties, field).value
-      val2 = getattr(conf2.properties, field).value
+      try:
+        val1 = field_fn(conf1).value
+      except IndexError:
+        val1 = 0.0
+      try:
+        val2 = field_fn(conf2).value
+      except IndexError:
+        val2 = 0.0
       # In some cases, stage2 files have -1 for these fields where stage1
       # doesn't. At some point, stricter error checking was done such that
       # nonsense values were not put into the .dat. So if stage2 has a -1, we
@@ -1259,11 +1278,10 @@ def merge_conformer(conf1, conf2):
 
     # After all of that, we always take the stage1 initial energy,
     # gradient norm, and positions.
-    conf2.properties.initial_geometry_energy_deprecated.value = (
-        conf1.properties.initial_geometry_energy_deprecated.value)
-    conf2.properties.initial_geometry_gradient_norm_deprecated.value = (
-        conf1.properties.initial_geometry_gradient_norm_deprecated.value)
-    conf2.initial_geometries[0].CopyFrom(conf1.initial_geometries[0])
+    if conf2.initial_geometries:
+      conf2.initial_geometries[0].CopyFrom(conf1.initial_geometries[0])
+    else:
+      conf2.initial_geometries.append(conf1.initial_geometries[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
     if (conf2.properties.errors.status == 800 or
@@ -1365,6 +1383,15 @@ def filter_conformer_by_availability(conformer, allowed):
     if (descriptor.GetOptions().Extensions[dataset_pb2.availability]
         not in allowed):
       conformer.properties.ClearField(descriptor.name)
+  for geometry in itertools.chain([conformer.optimized_geometry],
+                                  conformer.initial_geometries):
+    for descriptor, _ in geometry.ListFields():
+      if descriptor.name == 'atom_positions':
+        # We never filter atom positions and we can't call ClearField on it
+        continue
+      if (descriptor.GetOptions().Extensions[dataset_pb2.availability]
+          not in allowed):
+        geometry.ClearField(descriptor.name)
 
 
 def should_include_in_standard(conformer):
@@ -1445,10 +1472,8 @@ def clean_up_error_codes(conformer):
     elif conformer.properties.errors.error_nstat1 == 2:
       # optimization failed. Clean up the error codes and remove some info
       conformer.properties.errors.status = 600
-      conformer.properties.ClearField('initial_geometry_energy_deprecated')
-      conformer.properties.ClearField('initial_geometry_gradient_norm_deprecated')
-      conformer.properties.ClearField('optimized_geometry_energy_deprecated')
-      conformer.properties.ClearField('optimized_geometry_gradient_norm_deprecated')
+      conformer.initial_geometries[0].ClearField('energy')
+      conformer.initial_geometries[0].ClearField('gnorm')
       conformer.ClearField('optimized_geometry')
 
     # If something isn't caught there, we'll let it go through with
@@ -1463,14 +1488,6 @@ def clean_up_error_codes(conformer):
     conformer.properties.errors.ClearField(field)
 
 
-_SENTINEL_VALUE_FIELDS = [
-    'initial_geometry_energy_deprecated',
-    'initial_geometry_gradient_norm_deprecated',
-    'optimized_geometry_energy_deprecated',
-    'optimized_geometry_gradient_norm_deprecated',
-]
-
-
 def clean_up_sentinel_values(conformer):
   """Removes some snetinel values, relying on empty protobuf fields to indicate absence.
 
@@ -1479,9 +1496,11 @@ def clean_up_sentinel_values(conformer):
   Args:
     conformer: dataset_pb2.Conformer
   """
-  for field in _SENTINEL_VALUE_FIELDS:
-    if getattr(conformer.properties, field).value == -1.0:
-      conformer.properties.ClearField(field)
+  for geometry in itertools.chain([conformer.optimized_geometry],
+                                  conformer.initial_geometries):
+    for field in ['energy', 'gnorm']:
+      if getattr(geometry, field).value == -1.0:
+        geometry.ClearField(field)
 
 
 _ZERO_FIELD_CHECK_SCALAR = [
