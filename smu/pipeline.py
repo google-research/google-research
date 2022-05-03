@@ -207,7 +207,8 @@ def conformer_to_stat_values(conformer):
 
   yield 'fate', dataset_pb2.Conformer.FateCategory.Name(conformer.fate)
 
-  yield 'num_initial_geometries', len(conformer.initial_geometries)
+  yield 'num_initial_geometries', len(
+    [g for g in conformer.initial_geometries if g.atom_positions])
   yield 'num_duplicates', len(conformer.duplicate_of)
   if not conformer.duplicated_by:
     yield 'num_topologies', len(conformer.bond_topologies)
