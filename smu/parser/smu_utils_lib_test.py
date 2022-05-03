@@ -1273,7 +1273,7 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     self._conformer = dataset_pb2.Conformer()
     properties = self._conformer.properties
     # A STANDARD field
-    properties.initial_geometry_energy_deprecated.value = 1.23
+    properties.single_point_energy_atomic_b5.value = 1.23
     # A COMPLETE field
     properties.zpe_unscaled.value = 1.23
     # An INTERNAL_ONLY field
@@ -1283,7 +1283,7 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     smu_utils_lib.filter_conformer_by_availability(self._conformer,
                                                    [dataset_pb2.STANDARD])
     self.assertTrue(
-        self._conformer.properties.HasField('initial_geometry_energy_deprecated'))
+        self._conformer.properties.HasField('single_point_energy_atomic_b5'))
     self.assertFalse(self._conformer.properties.HasField('zpe_unscaled'))
     self.assertFalse(
         self._conformer.properties.HasField('compute_cluster_info'))
@@ -1292,7 +1292,7 @@ class FilterConformerByAvailabilityTest(absltest.TestCase):
     smu_utils_lib.filter_conformer_by_availability(
         self._conformer, [dataset_pb2.COMPLETE, dataset_pb2.INTERNAL_ONLY])
     self.assertFalse(
-        self._conformer.properties.HasField('initial_geometry_energy_deprecated'))
+        self._conformer.properties.HasField('single_point_energy_atomic_b5'))
     self.assertTrue(self._conformer.properties.HasField('zpe_unscaled'))
     self.assertTrue(self._conformer.properties.HasField('compute_cluster_info'))
 
