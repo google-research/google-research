@@ -14,6 +14,10 @@
 # limitations under the License.
 
 """Sub spectral normalization layer."""
+from typing import Any, Dict
+
+import tensorflow_model_optimization as tfmot
+
 from kws_streaming.layers.compat import tf
 
 
@@ -59,3 +63,64 @@ class SubSpectralNormalization(tf.keras.layers.Layer):
     config = {'sub_groups': self.sub_groups}
     base_config = super(SubSpectralNormalization, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
+
+
+# Quantization aware training support for custom operations.
+
+
+def quantizable_sub_spectral_normalization(is_quantize = False,
+                                           **kwargs):
+  """Functional API with quantization annotations.
+
+  Args:
+    is_quantize: bool, if True quantize using layer annotation with custom
+      quantization config.
+    **kwargs: Any
+
+  Returns:
+    keras layer
+  """
+  if is_quantize:
+    return tfmot.quantization.keras.quantize_annotate_layer(
+        SubSpectralNormalization(**kwargs), DoNotQuantizeConfig())
+  else:
+    return SubSpectralNormalization(**kwargs)
+
+
+class DoNotQuantizeConfig(tfmot.quantization.keras.QuantizeConfig):
+  """QuantizeConfig which does not quantize any part of the layer."""
+
+  def get_weights_and_quantizers(
+      self, layer
+  ):
+    return []
+
+  def get_activations_and_quantizers(
+      self, layer
+  ):
+    return []
+
+  def set_quantize_weights(self, layer,
+                           quantize_weights):
+    return []
+
+  def set_quantize_activations(
+      self, layer, quantize_activations
+  ):
+    return []
+
+  def get_output_quantizers(
+      self, layer
+  ):
+    return []
+
+  def get_config(self):
+    return {}
+
+
+def quantization_scopes():
+  """Quantization scope for all known custom ops."""
+  return {
+      'SubSpectralNormalization': SubSpectralNormalization,
+      'DoNotQuantizeConfig': DoNotQuantizeConfig,
+  }
