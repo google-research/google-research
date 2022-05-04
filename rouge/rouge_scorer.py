@@ -39,6 +39,7 @@ import re
 
 from absl import logging
 import nltk
+import numpy as np
 import six
 from six.moves import map
 from six.moves import range
@@ -84,11 +85,34 @@ class RougeScorer(scoring.BaseScorer):
 
     self._split_summaries = split_summaries
 
+  def score_multi(self, targets, prediction):
+    """Calculates rouge scores between targets and prediction.
+
+    The target with the maximum f-measure is used for the final score for
+    each score type..
+
+    Args:
+      targets: list of texts containing the targets
+      prediction: Text containing the predicted text.
+    Returns:
+      A dict mapping each rouge type to a Score object.
+    Raises:
+      ValueError: If an invalid rouge type is encountered.
+    """
+    score_dicts = [self.score(t, prediction) for t in targets]
+    max_score = {}
+    for k in self.rouge_types:
+      index = np.argmax([s[k].fmeasure for s in score_dicts])
+      max_score[k] = score_dicts[index][k]
+
+    return max_score
+
   def score(self, target, prediction):
     """Calculates rouge scores between the target and prediction.
 
     Args:
-      target: Text containing the target (ground truth) text.
+      target: Text containing the target (ground truth) text,
+      or if a list
       prediction: Text containing the predicted text.
     Returns:
       A dict mapping each rouge type to a Score object.
