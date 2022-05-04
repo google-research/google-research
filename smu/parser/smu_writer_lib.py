@@ -813,6 +813,47 @@ class SmuWriter:
 
     return result
 
+  def format_for_tensors(self, label, val):
+    return '   %s%s\n' % (label, '{:.5f}'.format(val).rjust(14))
+
+  def get_rank2(self, prop):
+    """Returns the output for a Rank2MolecularProperty.
+
+    Args:
+      prop: Rank2MolecularProperty
+
+    Returns:
+      string
+    """
+    out = ''
+    if prop.matrix_values_deprecated:
+      for label, val in zip(smu_parser_lib.RANK2_ENCODING_ORDER,
+                            prop.matrix_values_deprecated):
+        out += self.format_for_tensors(' ' + label, val)
+    else:
+      for label in smu_parser_lib.RANK2_ENCODING_ORDER:
+        out += self.format_for_tensors(' ' + label, getattr(prop, label))
+    return out
+
+  def get_rank3(self, prop):
+    """Returns the output for a Rank3MolecularProperty.
+
+    Args:
+      prop: Rank3MolecularProperty
+
+    Returns:
+      string
+    """
+    out = ''
+    if prop.tensor_values_deprecated:
+      for label, val in zip(smu_parser_lib.RANK3_ENCODING_ORDER,
+                            prop.tensor_values_deprecated):
+        out += self.format_for_tensors(label, val)
+    else:
+      for label in smu_parser_lib.RANK3_ENCODING_ORDER:
+        out += self.format_for_tensors(label, getattr(prop, label))
+    return out
+
   def get_polarizability(self, properties):
     """Returns dipole-dipole polarizability.
 
@@ -827,11 +868,8 @@ class SmuWriter:
     result = 'Polarizability (au):    PBE0/aug-pc-1\n'
     if self.annotate:
       result += '# From dipole_dipole_polarizability_pbe0_aug_pc_1\n'
-    labels = ['xx', 'yy', 'zz', 'xy', 'xz', 'yz']
-    dipole_dipole = properties.dipole_dipole_polarizability_pbe0_aug_pc_1
-    for label in labels:
-      result += '    %s%s\n' % (label, '{:.5f}'.format(
-        getattr(dipole_dipole, label)).rjust(14))
+    result += self.get_rank2(
+      properties.dipole_dipole_polarizability_pbe0_aug_pc_1)
     return result
 
   def get_multipole_moments(self, properties):
@@ -844,60 +882,53 @@ class SmuWriter:
       A multiline string representation of the multipole moments.
     """
 
-    def segment(label, v):
-      return '   %s%s\n' % (label, '{:.5f}'.format(v).rjust(14))
-
     result = ''
 
     if properties.HasField('dipole_moment_pbe0_aug_pc_1'):
       result += 'Dipole moment (au):     PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From dipole_moment_pbe0_aug_pc_1\n'
-      result += segment('  x', properties.dipole_moment_pbe0_aug_pc_1.x)
-      result += segment('  y', properties.dipole_moment_pbe0_aug_pc_1.y)
-      result += segment('  z', properties.dipole_moment_pbe0_aug_pc_1.z)
+      result += self.format_for_tensors('  x',
+                                        properties.dipole_moment_pbe0_aug_pc_1.x)
+      result += self.format_for_tensors('  y',
+                                        properties.dipole_moment_pbe0_aug_pc_1.y)
+      result += self.format_for_tensors('  z',
+                                        properties.dipole_moment_pbe0_aug_pc_1.z)
 
     if properties.HasField('quadrupole_moment_pbe0_aug_pc_1'):
       result += 'Quadrupole moment (au): PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From quadrupole_moment_pbe0_aug_pc_1\n'
-      for label in smu_parser_lib.RANK2_ENCODING_ORDER:
-        result += segment(
-          ' ' + label,
-          getattr(properties.quadrupole_moment_pbe0_aug_pc_1, label))
+      result += self.get_rank2(properties.quadrupole_moment_pbe0_aug_pc_1)
 
     if properties.HasField('octopole_moment_pbe0_aug_pc_1'):
       result += 'Octopole moment (au):   PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From octopole_moment_pbe0_aug_pc_1\n'
-      for label in smu_parser_lib.RANK3_ENCODING_ORDER:
-        result += segment(
-          label, getattr(properties.octopole_moment_pbe0_aug_pc_1, label))
+      result += self.get_rank3(properties.octopole_moment_pbe0_aug_pc_1)
 
     if properties.HasField('dipole_moment_hf_6_31gd'):
       result += 'Dipole moment (au):     HF/6-31Gd\n'
       if self.annotate:
         result += '# From dipole_moment_hf\n'
-      result += segment('  x', properties.dipole_moment_hf_6_31gd.x)
-      result += segment('  y', properties.dipole_moment_hf_6_31gd.y)
-      result += segment('  z', properties.dipole_moment_hf_6_31gd.z)
+      result += self.format_for_tensors('  x',
+                                        properties.dipole_moment_hf_6_31gd.x)
+      result += self.format_for_tensors('  y',
+                                        properties.dipole_moment_hf_6_31gd.y)
+      result += self.format_for_tensors('  z',
+                                        properties.dipole_moment_hf_6_31gd.z)
 
     if properties.HasField('quadrupole_moment_hf_6_31gd'):
       result += 'Quadrupole moment (au): HF/6-31Gd\n'
       if self.annotate:
         result += '# From quadrupole_moment_hf_6_31gd\n'
-      for label in smu_parser_lib.RANK2_ENCODING_ORDER:
-        result += segment(
-          ' ' + label,
-          getattr(properties.quadrupole_moment_hf_6_31gd, label))
+      result += self.get_rank2(properties.quadrupole_moment_hf_6_31gd)
 
     if properties.HasField('octopole_moment_hf_6_31gd'):
       result += 'Octopole moment (au):   HF/6-31Gd\n'
       if self.annotate:
         result += '# From octopole_moment_hf_6_31gd\n'
-      for label in smu_parser_lib.RANK3_ENCODING_ORDER:
-        result += segment(label,
-                          getattr(properties.octopole_moment_hf_6_31gd, label))
+      result += self.get_rank3(properties.octopole_moment_hf_6_31gd)
 
     return result
 

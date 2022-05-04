@@ -857,12 +857,14 @@ def conformer_to_molecules(conformer,
   # where label is a string describing the geometry
   requested_geometries = []
   if include_initial_geometries:
-    init_count = len(conformer.initial_geometries)
+    valid_init_geometries = [g for g in conformer.initial_geometries
+                             if g.atom_positions]
+    init_count = len(valid_init_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
-        for i, geom in enumerate(conformer.initial_geometries, start=1)
+        for i, geom in enumerate(valid_init_geometries, start=1)
     ])
-  if include_optimized_geometry:
+  if include_optimized_geometry and conformer.optimized_geometry.atom_positions:
     requested_geometries.append((conformer.optimized_geometry, 'opt'))
 
   for bt, bt_label in requested_bond_topologies:
