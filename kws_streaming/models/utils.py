@@ -16,7 +16,7 @@
 """Utility functions for operations on Model."""
 import os.path
 import tempfile
-from typing import Sequence
+from typing import Sequence, Optional, List
 from keras import models as models_utils
 from keras.engine import functional
 import numpy as np
@@ -290,18 +290,21 @@ def to_streaming_inference(model_non_stream, flags, mode):
   return model_inference
 
 
-def model_to_tflite(sess,
-                    model_non_stream,
-                    flags,
-                    mode=modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
-                    save_model_path=None,
-                    optimizations=None,
-                    use_fp16=False,
-                    inference_type=tf1.lite.constants.FLOAT,
-                    experimental_new_quantizer=True,
-                    representative_dataset=None,
-                    inference_input_type=tf.float32,
-                    inference_output_type=tf.float32):
+def model_to_tflite(
+    sess,
+    model_non_stream,
+    flags,
+    mode=modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
+    save_model_path=None,
+    optimizations=None,
+    use_fp16=False,
+    inference_type=tf1.lite.constants.FLOAT,
+    experimental_new_quantizer=True,
+    representative_dataset=None,
+    inference_input_type=tf.float32,
+    inference_output_type=tf.float32,
+    supported_ops_override = None,
+    allow_custom_ops = True):
   """Convert non streaming model to tflite inference model.
 
   If mode==modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE then inference graph
@@ -325,9 +328,11 @@ def model_to_tflite(sess,
     inference_type: inference type, can be float or int8
     experimental_new_quantizer: enable new quantizer
     representative_dataset: function generating representative data sets
-      for calibation post training quantizer
+      for calibration post training quantizer
     inference_input_type: it can be used to quantize input data e.g. tf.int8
     inference_output_type: it can be used to quantize output data e.g. tf.int8
+    supported_ops_override: explicitly set supported ops in converter.
+    allow_custom_ops: explicitly set custom op usage.
 
   Returns:
     tflite model
@@ -362,13 +367,14 @@ def model_to_tflite(sess,
   converter.experimental_enable_resource_variables = True
   if representative_dataset is not None:
     converter.representative_dataset = representative_dataset
-
-  # this will enable audio_spectrogram and mfcc in TFLite
-  converter.target_spec.supported_ops = [
-      tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
-  ]
-  converter.allow_custom_ops = True
-
+  if not supported_ops_override:
+    # this will enable audio_spectrogram and mfcc in TFLite
+    converter.target_spec.supported_ops = [
+        tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
+    ]
+  else:
+    converter.target_spec.supported_ops = supported_ops_override
+  converter.allow_custom_ops = allow_custom_ops
   converter.inference_input_type = inference_input_type
   converter.inference_output_type = inference_output_type
   if optimizations:
