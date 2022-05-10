@@ -17,17 +17,25 @@
  */
 
 /**
- * Raw data read from the data file. Each entry is an array with 9 entries,
+ * Raw data read from the data file. Each entry is an array with 10 entries,
  * in this order (slightly different from the original order in the TSV data):
- *     0: system, 1: doc, 2: doc_id, 3: seg_id, 4: source, 5: target,
- *     6: rater, 7: category, 8: severity.
- * Optionally, some entries can have a value at index 9: note.
+ *
+ *     0: system, 1: doc, 2: doc_seg_id, 3: global_seg_id, 4: source, 5: target,
+ *     6: rater, 7: category, 8: severity, 9: metadata
+ *
+ * The doc_seg_id field is the 1-based index of the segment within the doc.
+ *
+ * The global_seg_id field is an arbitrary, application-specific segment
+ * identifier.
+ *
+ * The last field, "metadata", is an object that includes the timestamp of
+ * the rating, any note the rater may have left, and other metadata.
  *
  * There is a special severity, "HOTW-test", reserved for hands-on-the-wheel
  *   test results. These are test sentences in which a deliberate error is
  *   injected, just to help the rater stay on task. The test result is captured
- *   by category = "Found" or "Missed" and there is a note that captures the
- *   injected error.
+ *   by category = "Found" or "Missed" and there is a note in the metadata that
+ *   captures the injected error.
  */
 let mqmData = [];
 
@@ -113,9 +121,9 @@ function setMqmLimit() {
  */
 function mqmSort() {
   mqmData.sort((e1, e2) => {
-    let diff = e1[3] - e2[3];  /** seg_id **/
+    let diff = e1[3] - e2[3]; /** global_seg_id **/
     if (diff == 0) {
-      diff = e1[2] - e2[2];  /** doc_id **/
+      diff = e1[2] - e2[2]; /** doc_seg_id **/
       if (diff == 0) {
         if (e1[1] < e2[1]) {  /** doc **/
           diff = -1;
@@ -158,31 +166,33 @@ function mqmAddToArray(obj, key, val) {
 
 /**
  * Aggregates mqmData, collecting all data for a particular segment translation
- * (i.e., for a given (doc, doc_id, seg_id) triple) into a "segment" object
- * that has the following properties: {cats,sevs,sevcats}_by_{rater,system}.
- * Each of these properties is an object keyed by system or rater, with the
- * values being arrays of strings that are categories, severities,
- * and <sev>[/<cat>], * respectively.
+ *     (i.e., for a given (doc, doc_seg_id, global_seg_id) triple) into a
+ *     "segment" object that has the following properties:
+ *         {cats,sevs,sevcats}_by_{rater,system}.
+ *     Each of these properties is an object keyed by system or rater, with the
+ *     values being arrays of strings that are categories, severities,
+ *     and <sev>[/<cat>], * respectively.
  *
- * Appends each aggregated segment object as the last column (index 9, or 10 if
- * there is a note) to each mqmData[*] array for that segment.
+ * Appends each aggregated segment object as the last column (index 10) to each
+ *     mqmData[*] array for that segment.
  */
 function mqmAddSegmentAggregations() {
   let segment = null;
   let curr_doc = '';
-  let curr_doc_id = -1;
-  let curr_seg_id = -1;
+  let curr_doc_seg_id = -1;
+  let curr_global_seg_id = -1;
   let curr_start = -1;
   for (let i = 0; i < mqmData.length; i++) {
     const parts = mqmData[i];
     const system = parts[0];
     const doc = parts[1];
-    const doc_id = parts[2];
-    const seg_id = parts[3];
+    const doc_seg_id = parts[2];
+    const global_seg_id = parts[3];
     const rater = parts[6];
     const category = parts[7];
     const severity = parts[8];
-    if (curr_doc == doc && curr_doc_id == doc_id && curr_seg_id == seg_id) {
+    if (curr_doc == doc && curr_doc_seg_id == doc_seg_id &&
+        curr_global_seg_id == global_seg_id) {
       console.assert(segment != null, i);
     } else {
       if (segment != null) {
@@ -200,8 +210,8 @@ function mqmAddSegmentAggregations() {
         'sevcats_by_rater': {},
       };
       curr_doc = doc;
-      curr_doc_id = doc_id;
-      curr_seg_id = seg_id;
+      curr_doc_seg_id = doc_seg_id;
+      curr_global_seg_id = global_seg_id;
       curr_start = i;
     }
     mqmAddToArray(segment.cats_by_system, system, category);
@@ -244,9 +254,9 @@ function mqmGetFilterREs() {
 
 /**
  * Retains only the marked part in a segment, replacing the parts before/after
- * (if they exist) with ellipsis. Used to show just the marked parts for
- * source/target text segments when the full text has already been shown
- * previously.
+ *     (if they exist) with ellipsis. Used to show just the marked parts for
+ *     source/target text segments when the full text has already been shown
+ *     previously.
  * @param {string} s
  * @return {string}
  */
@@ -274,7 +284,7 @@ function mqmOnlyKeepSpans(s) {
 
 /**
  * Short-cut function (convenient in filter expressions) for:
- *   "obj has array property prop that includes val"
+ *     "obj has array property prop that includes val"
  * @param {!Object} obj
  * @param {string} prop
  * @param {string} val
@@ -287,7 +297,7 @@ function mqmIncl(obj, prop, val) {
 
 /**
  * Short-cut function (convenient in filter expressions) for:
- *   "obj has array property prop that excludes val"
+ *     "obj has array property prop that excludes val"
  * @param {!Object} obj
  * @param {string} prop
  * @param {string} val
@@ -313,7 +323,7 @@ function mqmClearClause() {
 
 /**
  * Checks if filter expression clause is fully specified, enables "add"
- * buttons if so.
+ *     buttons if so.
  */
 function mqmCheckClause() {
   mqmClause = '';
@@ -366,7 +376,7 @@ function mqmAddClause(andor) {
 
 /**
  * Evaluates the JavaScript filter_expr on an mqmData[] row and returns true
- * only if the filter passes.
+ *     only if the filter passes.
  * @param {string} filter_expr
  * @param {!Array<string>} parts
  * @return {boolean}
@@ -374,20 +384,23 @@ function mqmAddClause(andor) {
 function mqmFilterExprPasses(filter_expr, parts) {
   if (!filter_expr.trim()) return true;
   try {
-  return Function('"use strict";' + `
+    return Function(
+        '"use strict";' +
+        `
     const system = arguments[0];
     const doc = arguments[1];
-    const doc_id = arguments[2];
-    const seg_id = arguments[3];
+    const doc_seg_id = arguments[2];
+    const global_seg_id = arguments[3];
     const source = arguments[4];
     const target = arguments[5];
     const rater = arguments[6];
     const category = arguments[7];
     const severity = arguments[8];
-    const segment = arguments[9];` +
-    'return (' + filter_expr + ')')(parts[0], parts[2], parts[2], parts[3],
-                                    parts[4], parts[5], parts[6], parts[7],
-                                    parts[8], parts[parts.length - 1]);
+    const metadata = arguments[9];
+    const segment = arguments[10];` +
+        'return (' + filter_expr + ')')(
+        parts[0], parts[2], parts[2], parts[3], parts[4], parts[5], parts[6],
+        parts[7], parts[8], parts[9], parts[10]);
   } catch (err) {
     document.getElementById('mqm-filter-expr-error').innerHTML = err;
     return false;
@@ -906,34 +919,34 @@ function mqmArrayLast(a) {
 }
 
 /**
- * Returns the segment stats keyed by doc and doc_id. This will
+ * Returns the segment stats keyed by doc and doc_seg_id. This will
  * create an empty array if the associated segment stats array doesn't exist.
- * @param {!Object} stats_by_doc_and_doc_id
+ * @param {!Object} stats_by_doc_and_doc_seg_id
  * @param {string} doc
- * @param {string} doc_id
+ * @param {string} doc_seg_id
  * @return {!Array}
  */
-function mqmGetSegStats(stats_by_doc_and_doc_id, doc, doc_id) {
-  if (!stats_by_doc_and_doc_id.hasOwnProperty(doc)) {
-    stats_by_doc_and_doc_id[doc] = {};
+function mqmGetSegStats(stats_by_doc_and_doc_seg_id, doc, doc_seg_id) {
+  if (!stats_by_doc_and_doc_seg_id.hasOwnProperty(doc)) {
+    stats_by_doc_and_doc_seg_id[doc] = {};
   }
-  if (!stats_by_doc_and_doc_id[doc].hasOwnProperty(doc_id)) {
-    stats_by_doc_and_doc_id[doc][doc_id] = [];
+  if (!stats_by_doc_and_doc_seg_id[doc].hasOwnProperty(doc_seg_id)) {
+    stats_by_doc_and_doc_seg_id[doc][doc_seg_id] = [];
   }
-  return stats_by_doc_and_doc_id[doc][doc_id];
+  return stats_by_doc_and_doc_seg_id[doc][doc_seg_id];
 }
 
 /**
  * Flattens the nested stats object into an array of segment stats.
- * @param {!Object} stats_by_doc_and_doc_id
+ * @param {!Object} stats_by_doc_and_doc_seg_id
  * @return {!Array}
-*/
-function mqmGetSegStatsAsArray(stats_by_doc_and_doc_id) {
+ */
+function mqmGetSegStatsAsArray(stats_by_doc_and_doc_seg_id) {
   let arr = [];
-  for (let doc of Object.keys(stats_by_doc_and_doc_id)) {
-    let stats_by_doc_id = stats_by_doc_and_doc_id[doc];
-    for (let doc_id of Object.keys(stats_by_doc_id)) {
-      arr.push(stats_by_doc_id[doc_id]);
+  for (let doc of Object.keys(stats_by_doc_and_doc_seg_id)) {
+    let stats_by_doc_seg_id = stats_by_doc_and_doc_seg_id[doc];
+    for (let doc_seg_id of Object.keys(stats_by_doc_seg_id)) {
+      arr.push(stats_by_doc_seg_id[doc_seg_id]);
     }
   }
   return arr;
@@ -960,10 +973,10 @@ function mqmShow() {
   /**
    * The following mqmStats* objects are all keyed by something from:
    * ({mqmTotal} or {system} or {rater}). Each keyed object is itself an object
-   * mapping from doc and doc_id to an entry representing
-   * the information for that segment. For instance, let `x` be the keyed object,
-   * then `x["1"]["2"]` is the entry for the segment with doc == "1" and 
-   * doc_id == "2". Each entry for a segment is itself an array, one
+   * mapping from doc and doc_seg_id to an entry representing
+   * the information for that segment. For instance, let `x` be the keyed
+   * object, then `x["1"]["2"]` is the entry for the segment with doc == "1" and
+   * doc_seg_id == "2". Each entry for a segment is itself an array, one
    * entry per rater. Each  entry for a rater is an object tracking scores,
    * errors, and their breakdowns.
    */
@@ -1005,14 +1018,14 @@ function mqmShow() {
       (parts[3] == lastRow[3]);
 
     const doc = parts[1];
-    const doc_id = parts[2];
+    const doc_seg_id = parts[2];
     if (!sameAsLast) {
-      currSegStats = mqmGetSegStats(mqmStats[mqmTotal], doc, doc_id);
+      currSegStats = mqmGetSegStats(mqmStats[mqmTotal], doc, doc_seg_id);
       if (!mqmStatsBySystem.hasOwnProperty(system)) {
         mqmStatsBySystem[system] = [];
       }
       currSegStatsBySys =
-          mqmGetSegStats(mqmStatsBySystem[system], doc, doc_id);
+          mqmGetSegStats(mqmStatsBySystem[system], doc, doc_seg_id);
     }
 
     if (!sameAsLast || (rater != lastRow[6])) {
@@ -1023,7 +1036,7 @@ function mqmShow() {
         mqmStatsByRater[rater] = [];
       }
       currSegStatsByRater =
-          mqmGetSegStats(mqmStatsByRater[rater], doc, doc_id);
+          mqmGetSegStats(mqmStatsByRater[rater], doc, doc_seg_id);
       currSegStatsByRater.push(mqmInitRaterStats(rater));
     }
     const span = mqmSpanLength(parts[4]) + mqmSpanLength(parts[5]);
@@ -1048,9 +1061,9 @@ function mqmShow() {
           val = mqmOnlyKeepSpans(val);
         }
       }
-      if (i == 7 && parts.length > 10 && parts[9]) {
+      if (i == 7 && parts[9].note) {
         /* There is a note */
-        val += '<br><i>' + parts[9] + '</i>';
+        val += '<br><i>' + parts[9].note + '</i>';
       }
       rowHTML += `<td ${cls} id="mqm-val-${shown}-${i}">` + val + '</td>\n';
     }
@@ -1140,8 +1153,8 @@ function mqmSetSelectOptions() {
   const selects = [
     document.getElementById('mqm-select-system'),
     document.getElementById('mqm-select-doc'),
-    document.getElementById('mqm-select-doc-id'),
-    document.getElementById('mqm-select-seg-id'),
+    document.getElementById('mqm-select-doc-seg-id'),
+    document.getElementById('mqm-select-global-seg-id'),
     null,
     null,
     document.getElementById('mqm-select-rater'),
@@ -1216,9 +1229,30 @@ function mqmParseData(tsvData) {
       }
     }
     const parts = line.split('\t');
+
+    let metadata = {};
     if (parts.length < 9) {
       errors.insertAdjacentHTML('beforeend', `Could not parse: ${line}`);
       continue;
+    } else if (parts.length == 9) {
+      /** TSV data is missing the last metadata column. Create it. */
+      parts.push(metadata);
+    } else {
+      /**
+       * The 10th column should be a JSON-encoded "metadata" object. Prior to
+       * May 2022, the 10th column, when present, was just a string that was a
+       * "note" from the rater, so convert that to a metadata object if needed.
+       */
+      try {
+        metadata = JSON.parse(parts[9]);
+      } catch (err) {
+        metadata = {};
+        const note = parts[9].trim();
+        if (note) {
+          metadata['note'] = note;
+        }
+      }
+      parts[9] = metadata;
     }
     /** Move "Rater" to go after source/target. */
     const temp = parts[4];
@@ -1307,8 +1341,8 @@ function mqmSaveData() {
 
 /**
  * Replaces the HTML contents of elt with the HTML needed to render the
- * MQM Viewer. If tsvData is not null, then this data is loaded, and  instead of
- * a file-open button there is a "download TSV data" button.
+ *     MQM Viewer. If tsvData is not null, then this data is loaded, and instead
+ *     of a file-open button there is a "download TSV data" button.
  * @param {!Element} elt
  * @param {?string=} tsvData
  */
@@ -1430,8 +1464,8 @@ function createMQMViewer(elt, tsvData=null) {
         <ul>
           <li>This allows you to filter using any expression
               involving the columns. It can use the following
-              variables: <b>system</b>, <b>doc</b>, <b>seg_id</b>,
-              <b>doc_id</b>, <b>rater</b>, <b>category</b>, <b>severity</b>,
+              variables: <b>system</b>, <b>doc</b>, <b>global_seg_id</b>,
+              <b>doc_seg_id</b>, <b>rater</b>, <b>category</b>, <b>severity</b>,
               <b>source</b>, <b>target</b>.
           </li>
           <li>
@@ -1450,7 +1484,7 @@ function createMQMViewer(elt, tsvData=null) {
             segment-level aggregation allows you to select specific segments
             rather than just specific error ratings.
           </li>
-          <li><b>Example</b>: seg_id > 10 || severity == 'Major'</li>
+          <li><b>Example</b>: global_seg_id > 10 || severity == 'Major'</li>
           <li><b>Example</b>: target.indexOf('thethe') >= 0</li>
           <li><b>Example</b>:
             segment.sevs_by_system['System-42'].includes('Major')</li>
@@ -1519,27 +1553,29 @@ function createMQMViewer(elt, tsvData=null) {
           <select onchange="mqmPick('doc')"
               class="mqm-select" id="mqm-select-doc"></select>
         </th>
-        <th id="mqm-th-doc-id" title="ID of the segment within its document">
-          ID/Doc
+        <th id="mqm-th-doc-seg-id" title="ID of the segment
+            within its document">
+          DocSeg
           <br>
-          <input class="mqm-filter-re" id="mqm-filter-doc-id"
+          <input class="mqm-filter-re" id="mqm-filter-doc-seg-id"
               title="Provide a regexp to filter (and press Enter)"
               onchange="mqmShow()" type="text" placeholder=".*" size="4">
           </input>
           <br>
-          <select onchange="mqmPick('doc-id')"
-              class="mqm-select" id="mqm-select-doc-id"></select>
+          <select onchange="mqmPick('doc-seg-id')"
+              class="mqm-select" id="mqm-select-doc-seg-id"></select>
         </th>
-        <th id="mqm-th-seg-id" title="ID of the segment across all documents">
-          ID/All
+        <th id="mqm-th-global-seg-id" title="ID of the segment across
+            all documents">
+          GlbSeg
           <br>
-          <input class="mqm-filter-re" id="mqm-filter-seg-id"
+          <input class="mqm-filter-re" id="mqm-filter-global-seg-id"
               title="Provide a regexp to filter (and press Enter)"
               onchange="mqmShow()" type="text" placeholder=".*" size="4">
           </input>
           <br>
-          <select onchange="mqmPick('seg-id')"
-              class="mqm-select" id="mqm-select-seg-id"></select>
+          <select onchange="mqmPick('global-seg-id')"
+              class="mqm-select" id="mqm-select-global-seg-id"></select>
         </th>
         <th id="mqm-th-source" title="Source text of segment">
           Source
