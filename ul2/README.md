@@ -12,7 +12,7 @@ UL2 uses Mixture-of-Denoisers (MoD), apre-training objective that combines diver
 The following table contains pretrained UL2 checkpoints.
 
 | Model           |    Size     | Step | Config  | Checkpoint  |
-|:------------:|:-----------:|:------------:|:---:|:----------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|:---------------:|:-----------:|:----:|:-------:|:-----------:|
 | UL2    | 20B  | 1870000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/ul220b/checkpoint_1870000` |
 | UL2    | 20B  | 2050000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/ul220b/checkpoint_2050000` |
 | UL2    | 20B  | 2650000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/ul220b/checkpoint_2650000` |
@@ -27,5 +27,6 @@ If you use UL2, please use the following BibTeX entry.
   title={Unifying Language Learning Paradigms},
   author={Yi Tay*, Mostafa Dehghani*, Vinh Q. Tran, Xavier Garcia, Dara Bahr, Tal Schuster, Huaixiu Steven Zheng, Neil Houlsby, and Donald Metzler},
   year={2022}
+}
 ```
 
