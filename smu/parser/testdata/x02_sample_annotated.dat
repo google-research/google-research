@@ -12,7 +12,7 @@ Warn_NEG      0
 # From topology
      3
      11
-# From smiles
+# From smiles or properties.smiles_openbabel
 C#C
 # From topology
 x02_c2h2

@@ -199,7 +199,7 @@ class SmuWriter:
         topology, adjacency_matrix)
     return result + ''.join(str(item) for item in num_bonded_hydrogens) + '\n'
 
-  def get_ids(self, conformer, stage):
+  def get_ids(self, conformer, stage, bt_idx):
     """Returns lines with identifiers.
 
     This include the smiles string, the file, and the ID line.
@@ -215,14 +215,17 @@ class SmuWriter:
     """
     result = ''
     if self.annotate:
-      result += '# From smiles\n'
-    result += conformer.bond_topologies[0].smiles + '\n'
+      result += '# From smiles or properties.smiles_openbabel\n'
+    if conformer.properties.HasField('smiles_openbabel'):
+      result += conformer.properties.smiles_openbabel + '\n'
+    else:
+      result += conformer.bond_topologies[bt_idx].smiles + '\n'
     if self.annotate:
       result += '# From topology\n'
-    result += smu_utils_lib.get_composition(conformer.bond_topologies[0]) + '\n'
+    result += smu_utils_lib.get_composition(conformer.bond_topologies[bt_idx]) + '\n'
     if self.annotate:
       result += '# From bond_topology_id, conformer_id\n'
-    bond_topology_id = conformer.bond_topologies[-1].bond_topology_id
+    bond_topology_id = conformer.bond_topologies[bt_idx].bond_topology_id
     # Special case SMU1. Fun.
     if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topology_id):
       if stage == 'stage1':
@@ -947,15 +950,18 @@ class SmuWriter:
     contents = []
 
     properties = conformer.properties
+    bt_idx, _ = next(smu_utils_lib.iterate_bond_topologies(
+      conformer, smu_utils_lib.WhichTopologies.starting))
+
     contents.append(self.get_stage1_header(conformer))
     contents.append(
-        self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
-    contents.append(self.get_ids(conformer, 'stage1'))
+        self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[bt_idx]))
+    contents.append(self.get_ids(conformer, 'stage1', bt_idx))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage1_timings(properties))
     contents.append(self.get_gradient_norms(conformer, spacer=' '))
     contents.append(
-        self.get_coordinates(conformer.bond_topologies[0], conformer))
+        self.get_coordinates(conformer.bond_topologies[bt_idx], conformer))
     contents.append(
         self.get_frequencies_and_intensities(properties, header=False))
 
@@ -975,18 +981,21 @@ class SmuWriter:
     contents = []
 
     properties = conformer.properties
+    bt_idx, _ = next(smu_utils_lib.iterate_bond_topologies(
+      conformer, smu_utils_lib.WhichTopologies.starting))
+
     contents.append(self.get_stage2_header(conformer))
     contents.append(self.get_database(conformer))
     contents.append(self.get_error_codes(properties))
     contents.append(
-        self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
-    contents.append(self.get_ids(conformer, 'stage2'))
+        self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[bt_idx]))
+    contents.append(self.get_ids(conformer, 'stage2', bt_idx))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage2_timings(properties))
-    contents.append(self.get_bonds(conformer.bond_topologies[0], properties))
+    contents.append(self.get_bonds(conformer.bond_topologies[bt_idx], properties))
     contents.append(self.get_gradient_norms(conformer, spacer='         '))
     contents.append(
-        self.get_coordinates(conformer.bond_topologies[0], conformer))
+        self.get_coordinates(conformer.bond_topologies[bt_idx], conformer))
     contents.append(self.get_rotational_constants(conformer))
     contents.append(self.get_symmetry_used(properties))
     contents.append(
@@ -999,10 +1008,10 @@ class SmuWriter:
     contents.append(self.get_homo_lumo(properties))
     contents.append(self.get_excitation_energies_and_oscillations(properties))
     contents.append(
-        self.get_nmr_isotropic_shieldings(conformer.bond_topologies[0],
+        self.get_nmr_isotropic_shieldings(conformer.bond_topologies[bt_idx],
                                           properties))
     contents.append(
-        self.get_partial_charges(conformer.bond_topologies[0], properties))
+        self.get_partial_charges(conformer.bond_topologies[bt_idx], properties))
     contents.append(self.get_polarizability(properties))
     contents.append(self.get_multipole_moments(properties))
 

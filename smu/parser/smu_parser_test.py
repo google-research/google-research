@@ -69,6 +69,24 @@ class SmuParserTest(absltest.TestCase):
           orig_contents,
           smu_writer.process_stage2_proto(conformer).splitlines())
 
+  def test_roundtrip_tweaked_bt(self):
+    """Tests a conversion from a SMU .dat file to protocol buffer and back."""
+    smu_writer = smu_writer_lib.SmuWriter(annotate=False)
+    for conformer, orig_contents in self.parser.process_stage2():
+      # We're going to mess with the conformer by perturbing the bond_toplogies.
+      # The .dat format shoudl only ever use the starting topology, so we are going to
+      # add some wrong bond topologies to make sure they are ignored.
+      conformer.bond_topologies.append(conformer.bond_topologies[0])
+      conformer.bond_topologies.append(conformer.bond_topologies[0])
+      conformer.bond_topologies[0].source = dataset_pb2.BondTopology.SOURCE_ITC
+      conformer.bond_topologies[1].source = dataset_pb2.BondTopology.SOURCE_CSD
+      for bt in conformer.bond_topologies[0:2]:
+        bt.bonds[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE
+        bt.bond_topology_id += 9999
+      smu_writer_lib.check_dat_formats_match(
+          orig_contents,
+          smu_writer.process_stage2_proto(conformer).splitlines())
+
 
 class RoundtripTest(absltest.TestCase):
   """Test roundtrip of several files."""

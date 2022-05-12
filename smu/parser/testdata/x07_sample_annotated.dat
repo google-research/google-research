@@ -12,7 +12,7 @@ Warn_NEG      0
 # From topology
      000010001002001110000
      3310000
-# From smiles
+# From smiles or properties.smiles_openbabel
 COC(=CF)OC
 # From topology
 x07_c4o2fh7
@@ -802,7 +802,7 @@ Warn_NEG      0
 # From topology
      000010001002001110000
      3310000
-# From smiles
+# From smiles or properties.smiles_openbabel
 COC(=CF)OC
 # From topology
 x07_c4o2fh7
