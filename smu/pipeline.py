@@ -216,6 +216,9 @@ def conformer_to_stat_values(conformer):
   for field in smu_utils_lib.find_zero_values(conformer):
     yield 'zero_field', field
 
+  for bt in conformer.bond_topologies:
+    yield 'bt_source', bt.source
+
 
 def bond_topology_summaries_from_csv(filename):
   """Beam DoFn for generating bare BondTopologySummary.
@@ -586,7 +589,7 @@ def to_keyed_bond_topology_summary(conformer):
 
 
 def merge_bond_topology_summaries(summaries, field_names):
-  """Merges BondToplogySummary protos.
+  """Merges BondTopologySummary protos.
 
   See CombineAndWriteBondTopologySummary for context.
 
@@ -620,7 +623,7 @@ def merge_bond_topology_summaries(summaries, field_names):
 
 
 def csv_format_bond_topology_summary(summary, field_names):
-  """Formats BondToplogySummary protos as csv line.
+  """Formats BondTopologySummary protos as csv line.
 
   See CombineAndWriteBondTopologySummary for context.
 
