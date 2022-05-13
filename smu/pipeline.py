@@ -210,14 +210,25 @@ def conformer_to_stat_values(conformer):
   yield 'num_initial_geometries', len(
     [g for g in conformer.initial_geometries if g.atom_positions])
   yield 'num_duplicates', len(conformer.duplicate_of)
-  if not conformer.duplicated_by:
-    yield 'num_topologies', len(conformer.bond_topologies)
 
   for field in smu_utils_lib.find_zero_values(conformer):
     yield 'zero_field', field
 
-  for bt in conformer.bond_topologies:
-    yield 'bt_source', bt.source
+  if not conformer.duplicated_by and conformer.properties.errors.status < 512:
+    yield 'num_topologies', len(conformer.bond_topologies)
+
+    yield 'num_topologies_itc', len(
+      [None for bt in conformer.bond_topologies
+       if bt.source & dataset_pb2.BondTopology.SOURCE_ITC])
+    yield 'num_topologies_mlcr', len(
+      [None for bt in conformer.bond_topologies
+       if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR])
+    yield 'num_topologies_csd', len(
+      [None for bt in conformer.bond_topologies
+       if bt.source & dataset_pb2.BondTopology.SOURCE_CSD])
+
+    for bt in conformer.bond_topologies:
+      yield 'bt_source', bt.source
 
 
 def bond_topology_summaries_from_csv(filename):

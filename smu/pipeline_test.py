@@ -251,7 +251,9 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('zero_field,single_point_energy_pbe0d3_6_311gd,1\n',
                     stats_lines)
       self.assertIn('bt_source,3,1\n', stats_lines)
-      self.assertIn('bt_source,1,1\n', stats_lines)
+      self.assertIn('bt_source,15,2\n', stats_lines)
+      self.assertIn('num_topologies_csd,1,2\n', stats_lines)
+      self.assertIn('num_topologies_mlcr,0,1\n', stats_lines)
 
     # Check the smiles comparison output
     with gfile.GFile(output_stem + '_smiles_compare-00000-of-00001.csv') as f:
