@@ -35,6 +35,7 @@ from absl import logging
 from absl.testing import absltest
 from absl.testing import flagsaver
 import apache_beam as beam
+import pandas as pd
 import tensorflow as tf
 from tensorflow.io import gfile
 
@@ -264,16 +265,25 @@ class IntegrationTest(absltest.TestCase):
 
     # Check the bond topology summary
     with gfile.GFile(output_stem + '_bt_summary-00000-of-00001.csv') as f:
-      bt_summary_lines = f.readlines()
+      df_bt_summary = pd.read_csv(f, index_col='bt_id')
       # Check part of the header line
-      self.assertIn('bt_id', bt_summary_lines[0])
-      self.assertIn('count_attempted_conformers', bt_summary_lines[0])
+      self.assertIn('count_attempted_conformers', df_bt_summary.columns)
       # This is the bond topology that has no conformer
-      self.assertIn('10,0,0,0,0,0,0,0,0,0,0,0,0,0\n', bt_summary_lines)
+      self.assertEqual(df_bt_summary.loc[10, 'count_attempted_conformers'], 0)
       # This is a bond topology with 1 conformer
-      self.assertIn('620517,1,0,0,0,1,0,1,0,0,0,0,0,0\n', bt_summary_lines)
+      self.assertEqual(
+        df_bt_summary.loc[620517, 'count_attempted_conformers'], 1)
+      self.assertEqual(
+        df_bt_summary.loc[620517, 'count_calculation_with_error'], 1)
       # This is a bond topology with 2 conformers
-      self.assertIn('618451,2,0,0,0,2,0,0,0,2,0,0,0,0\n', bt_summary_lines)
+      self.assertEqual(
+        df_bt_summary.loc[618451, 'count_attempted_conformers'], 2)
+      self.assertEqual(
+        df_bt_summary.loc[618451, 'count_calculation_success'], 2)
+      self.assertEqual(
+        df_bt_summary.loc[618451, 'count_detected_match_mlcr_success'], 2)
+      self.assertEqual(
+        df_bt_summary.loc[618451, 'count_detected_match_csd_success'], 2)
 
     # Check the bond lengths file
     with gfile.GFile(output_stem + '_bond_lengths.csv') as f:

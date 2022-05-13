@@ -1744,67 +1744,95 @@ def conformer_to_bond_topology_summaries(conformer):
     # In this case, we won't yield the summary at all so we don't set anything
     # about it.
 
-  def other_topologies():
-    if starting_idx is None:
-      yield from conformer.bond_topologies
-    else:
-      yield from itertools.chain(conformer.bond_topologies[:starting_idx],
-                                 conformer.bond_topologies[(starting_idx + 1):])
-
-  def filtered_other_topologies():
+  def filtered_topologies(source):
     observed_bt_id = set()
-    if starting_idx is not None:
+    # Special case ITC: We only want to filter the starting topology for the ITC
+    # source.
+    if (starting_idx is not None and
+        source == dataset_pb2.BondTopology.SOURCE_ITC):
       observed_bt_id.add(
           conformer.bond_topologies[starting_idx].bond_topology_id)
-    for bt in other_topologies():
-      if bt.bond_topology_id not in observed_bt_id:
-        yield bt
-        observed_bt_id.add(bt.bond_topology_id)
+    for bt in conformer.bond_topologies:
+      if not source & bt.source:
+        continue
+      if bt.bond_topology_id in observed_bt_id:
+        continue;
+      yield bt
+      observed_bt_id.add(bt.bond_topology_id)
 
   fate = conformer.fate
 
   if fate == dataset_pb2.Conformer.FATE_UNDEFINED:
     raise ValueError(f'Conformer {conformer.conformer_id} has undefined fate')
+
   elif fate == dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY:
     summary.count_duplicates_same_topology = 1
+
   elif fate == dataset_pb2.Conformer.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
     summary.count_duplicates_different_topology = 1
+
   elif (fate == dataset_pb2.Conformer.FATE_GEOMETRY_OPTIMIZATION_PROBLEM or
         fate == dataset_pb2.Conformer.FATE_DISASSOCIATED or
         fate == dataset_pb2.Conformer.FATE_FORCE_CONSTANT_FAILURE or
         fate == dataset_pb2.Conformer.FATE_DISCARDED_OTHER):
     summary.count_failed_geometry_optimization = 1
+
   elif fate == dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS:
     summary.count_kept_geometry = 1
     summary.count_missing_calculation = 1
+
   elif (fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
         fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
         fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
-    for bt in filtered_other_topologies():
-      other_summary = dataset_pb2.BondTopologySummary()
-      other_summary.bond_topology.CopyFrom(bt)
-      other_summary.count_detected_match_with_error = 1
-      yield other_summary
+    for source, field in [
+        (dataset_pb2.BondTopology.SOURCE_ITC,
+         'count_detected_match_itc_with_error'),
+        (dataset_pb2.BondTopology.SOURCE_MLCR,
+         'count_detected_match_mlcr_with_error'),
+        (dataset_pb2.BondTopology.SOURCE_CSD,
+         'count_detected_match_csd_with_error')]:
+      for bt in filtered_topologies(source):
+        other_summary = dataset_pb2.BondTopologySummary()
+        other_summary.bond_topology.CopyFrom(bt)
+        setattr(other_summary, field, 1)
+        yield other_summary
+
   elif (
       fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS or
       fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
-    for bt in filtered_other_topologies():
-      other_summary = dataset_pb2.BondTopologySummary()
-      other_summary.bond_topology.CopyFrom(bt)
-      other_summary.count_detected_match_with_warning = 1
-      yield other_summary
+    for source, field in [
+        (dataset_pb2.BondTopology.SOURCE_ITC,
+         'count_detected_match_itc_with_warning'),
+        (dataset_pb2.BondTopology.SOURCE_MLCR,
+         'count_detected_match_mlcr_with_warning'),
+        (dataset_pb2.BondTopology.SOURCE_CSD,
+         'count_detected_match_csd_with_warning')]:
+      for bt in filtered_topologies(source):
+        other_summary = dataset_pb2.BondTopologySummary()
+        other_summary.bond_topology.CopyFrom(bt)
+        setattr(other_summary, field, 1)
+        yield other_summary
+
   elif fate == dataset_pb2.Conformer.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
-    for bt in filtered_other_topologies():
-      other_summary = dataset_pb2.BondTopologySummary()
-      other_summary.bond_topology.CopyFrom(bt)
-      other_summary.count_detected_match_success = 1
-      yield other_summary
+    for source, field in [
+        (dataset_pb2.BondTopology.SOURCE_ITC,
+         'count_detected_match_itc_success'),
+        (dataset_pb2.BondTopology.SOURCE_MLCR,
+         'count_detected_match_mlcr_success'),
+        (dataset_pb2.BondTopology.SOURCE_CSD,
+         'count_detected_match_csd_success')]:
+      for bt in filtered_topologies(source):
+        other_summary = dataset_pb2.BondTopologySummary()
+        other_summary.bond_topology.CopyFrom(bt)
+        setattr(other_summary, field, 1)
+        yield other_summary
+
   else:
     raise ValueError(f'Did not understand {fate}')
 

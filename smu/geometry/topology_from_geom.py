@@ -315,7 +315,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
 
   if not smu_matches.bond_topology:
     # This means the SMU matching failed. We're gong to set the first bond
-    # topology as setarting and notify the caller
+    # topology as starting and notify the caller
     conformer.bond_topologies[0].source = (
       dataset_pb2.BondTopology.SOURCE_ITC |
       dataset_pb2.BondTopology.SOURCE_STARTING)

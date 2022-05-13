@@ -1502,6 +1502,15 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     super().setUp()
     self._conformer = get_stage2_conformer()
 
+  def get_output_with(self, got, bt_id, field):
+    out = None
+    for summary in got:
+      if (summary.bond_topology.bond_topology_id == bt_id and
+          getattr(summary, field) > 0):
+        assert out is None
+        out = summary
+    return out
+
   def test_dup_same(self):
     self._conformer.fate = dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY
     got = list(
@@ -1552,9 +1561,11 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies[-1].bond_topology_id = 123
     self._conformer.bond_topologies[-1].source = (
-      dataset_pb2.BondTopology.SOURCE_ITC)
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_MLCR)
     self._conformer.bond_topologies[0].source = (
       dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_CSD |
       dataset_pb2.BondTopology.SOURCE_STARTING)
 
     if swap_order:
@@ -1563,20 +1574,31 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     got = list(
         smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
 
-    self.assertLen(got, 2)
-    # We don't actually care about the order, but this is what comes out right
-    # now.
-    self.assertEqual(got[0].bond_topology.bond_topology_id, 123)
-    self.assertEqual(got[0].count_attempted_conformers, 0)
-    self.assertEqual(got[0].count_kept_geometry, 0)
-    self.assertEqual(got[0].count_calculation_with_error, 0)
-    self.assertEqual(got[0].count_detected_match_with_error, 1)
+    self.assertLen(got, 4)
 
-    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
-    self.assertEqual(got[1].count_attempted_conformers, 1)
-    self.assertEqual(got[1].count_kept_geometry, 1)
-    self.assertEqual(got[1].count_calculation_with_error, 1)
-    self.assertEqual(got[1].count_detected_match_with_error, 0)
+    one_out = self.get_output_with(got, 123,
+                                   'count_detected_match_itc_with_error')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
+
+    one_out = self.get_output_with(got, 618451,
+                                   'count_attempted_conformers')
+    self.assertEqual(one_out.count_kept_geometry, 1)
+    self.assertEqual(one_out.count_calculation_with_error, 1)
+    self.assertEqual(one_out.count_detected_match_itc_with_error, 0)
+
+    one_out = self.get_output_with(got, 123,
+                                   'count_detected_match_mlcr_with_error')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
+
+    one_out = self.get_output_with(got, 618451,
+                                   'count_detected_match_csd_with_error')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
 
   @parameterized.parameters(False, True)
   def test_calculation_with_warning(self, swap_order):
@@ -1585,44 +1607,60 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies[-1].bond_topology_id = 123
     self._conformer.bond_topologies[-1].source = (
-      dataset_pb2.BondTopology.SOURCE_ITC)
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_MLCR)
     self._conformer.bond_topologies[0].source = (
       dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_CSD |
       dataset_pb2.BondTopology.SOURCE_STARTING)
+
     if swap_order:
       self._swap_bond_topologies()
 
     got = list(
         smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
 
-    self.assertLen(got, 2)
-    # We don't actually care about the order, but this is what comes out right
-    # now.
-    self.assertEqual(got[0].bond_topology.bond_topology_id, 123)
-    self.assertEqual(got[0].count_attempted_conformers, 0)
-    self.assertEqual(got[0].count_kept_geometry, 0)
-    self.assertEqual(got[0].count_calculation_with_error, 0)
-    self.assertEqual(got[0].count_calculation_with_warning, 0)
-    self.assertEqual(got[0].count_detected_match_with_error, 0)
-    self.assertEqual(got[0].count_detected_match_with_warning, 1)
+    self.assertLen(got, 4)
 
-    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
-    self.assertEqual(got[1].count_attempted_conformers, 1)
-    self.assertEqual(got[1].count_kept_geometry, 1)
-    self.assertEqual(got[1].count_calculation_with_error, 0)
-    self.assertEqual(got[1].count_calculation_with_warning, 1)
-    self.assertEqual(got[1].count_detected_match_with_error, 0)
-    self.assertEqual(got[1].count_detected_match_with_warning, 0)
+    one_out = self.get_output_with(got, 123,
+                                   'count_detected_match_itc_with_warning')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_with_warning, 0)
+
+    one_out = self.get_output_with(got, 618451,
+                                   'count_attempted_conformers')
+    self.assertEqual(one_out.count_kept_geometry, 1)
+    self.assertEqual(one_out.count_calculation_with_warning, 1)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
+    self.assertEqual(one_out.count_detected_match_itc_with_warning, 0)
+    self.assertEqual(one_out.count_detected_match_itc_with_error, 0)
+
+    one_out = self.get_output_with(got, 123,
+                                   'count_detected_match_mlcr_with_warning')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_with_warning, 0)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
+
+    one_out = self.get_output_with(got, 618451,
+                                   'count_detected_match_csd_with_warning')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_with_warning, 0)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
 
   @parameterized.parameters(False, True)
-  def test_calculation_success(self, swap_order):
+  def test_calculation_success_itc(self, swap_order):
     self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies[-1].bond_topology_id = 123
     self._conformer.bond_topologies[-1].source = (
-      dataset_pb2.BondTopology.SOURCE_ITC)
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_MLCR)
     self._conformer.bond_topologies[0].source = (
       dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_CSD |
       dataset_pb2.BondTopology.SOURCE_STARTING)
     if swap_order:
       self._swap_bond_topologies()
@@ -1630,20 +1668,86 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     got = list(
         smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
 
-    self.assertLen(got, 2)
-    # We don't actually care about the order, but this is what comes out right
-    # now.
-    self.assertEqual(got[0].bond_topology.bond_topology_id, 123)
-    self.assertEqual(got[0].count_attempted_conformers, 0)
-    self.assertEqual(got[0].count_kept_geometry, 0)
-    self.assertEqual(got[0].count_calculation_success, 0)
-    self.assertEqual(got[0].count_detected_match_success, 1)
+    self.assertLen(got, 4)
 
-    self.assertEqual(got[1].bond_topology.bond_topology_id, 618451)
-    self.assertEqual(got[1].count_attempted_conformers, 1)
-    self.assertEqual(got[1].count_kept_geometry, 1)
-    self.assertEqual(got[1].count_calculation_success, 1)
-    self.assertEqual(got[1].count_detected_match_success, 0)
+    one_out = self.get_output_with(got, 123,
+                                   'count_detected_match_itc_success')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_success, 0)
+
+    one_out = self.get_output_with(got, 618451,
+                                   'count_attempted_conformers')
+    self.assertEqual(one_out.count_kept_geometry, 1)
+    self.assertEqual(one_out.count_calculation_success, 1)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
+    self.assertEqual(one_out.count_detected_match_itc_success, 0)
+    self.assertEqual(one_out.count_detected_match_itc_with_error, 0)
+
+    one_out = self.get_output_with(got, 123,
+                                   'count_detected_match_mlcr_success')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_success, 0)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
+
+    one_out = self.get_output_with(got, 618451,
+                                   'count_detected_match_csd_success')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_success, 0)
+    self.assertEqual(one_out.count_calculation_with_error, 0)
+
+  def test_success_varied_sources(self):
+    self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
+    self._conformer.bond_topologies[0].bond_topology_id = 123
+    self._conformer.bond_topologies[0].source = (
+      dataset_pb2.BondTopology.SOURCE_STARTING |
+      dataset_pb2.BondTopology.SOURCE_ITC)
+    self._conformer.bond_topologies[1].bond_topology_id = 456
+    self._conformer.bond_topologies[1].source = (
+      dataset_pb2.BondTopology.SOURCE_CSD |
+      dataset_pb2.BondTopology.SOURCE_MLCR)
+    self._conformer.bond_topologies[2].bond_topology_id = 789
+    self._conformer.bond_topologies[2].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_MLCR)
+
+    got = list(
+        smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
+
+    self.assertLen(got, 5)
+
+    one_out = self.get_output_with(got, 123, 'count_calculation_success')
+    self.assertEqual(one_out.count_detected_match_itc_success, 0)
+    self.assertEqual(one_out.count_detected_match_mlcr_success, 0)
+    self.assertEqual(one_out.count_detected_match_csd_success, 0)
+
+    one_out = self.get_output_with(got, 789, 'count_detected_match_itc_success')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_success, 0)
+
+    one_out = self.get_output_with(got, 456,
+                                   'count_detected_match_mlcr_success')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_success, 0)
+
+    one_out = self.get_output_with(got, 789,
+                                   'count_detected_match_mlcr_success')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_success, 0)
+
+    one_out = self.get_output_with(got, 456,
+                                   'count_detected_match_csd_success')
+    self.assertEqual(one_out.count_attempted_conformers, 0)
+    self.assertEqual(one_out.count_kept_geometry, 0)
+    self.assertEqual(one_out.count_calculation_success, 0)
+
 
   def test_no_starting_topology(self):
     self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
@@ -1661,10 +1765,10 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     # We don't actually care about the order, but this is what comes out right
     # now.
     self.assertEqual(got[0].bond_topology.bond_topology_id, 618451)
-    self.assertEqual(got[0].count_detected_match_success, 1)
+    self.assertEqual(got[0].count_detected_match_itc_success, 1)
 
     self.assertEqual(got[1].bond_topology.bond_topology_id, 123)
-    self.assertEqual(got[1].count_detected_match_success, 1)
+    self.assertEqual(got[1].count_detected_match_itc_success, 1)
 
   @parameterized.parameters(0, 1, 2)
   def test_multiple_detection(self, starting_idx):
