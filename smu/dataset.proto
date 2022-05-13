@@ -135,7 +135,7 @@ message BondTopology {
   // Bitfield of values from SourceType indicating where this bond topology came from.
   int32 source = 10;
 
-  // An estimate of log(P(topology|geometry))
+  // An estimate of ln(P(topology|geometry))
   //
   // This is a discrete distribution among all matching topologies
   // from this geometry. Since we are in log space, a value of 0 means
@@ -144,7 +144,7 @@ message BondTopology {
   // exp(topology_score) will sum to 1.
   float topology_score = 8;
 
-  // An estimate of log(p(geometry|topology)).
+  // An estimate of ln(p(geometry|topology)).
   //
   // This reflects how suprising this particular geometry is given the
   // topology. Note that this is a probability *density* not a

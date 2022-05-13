@@ -950,8 +950,7 @@ class SmuWriter:
     contents = []
 
     properties = conformer.properties
-    bt_idx, _ = next(smu_utils_lib.iterate_bond_topologies(
-      conformer, smu_utils_lib.WhichTopologies.starting))
+    bt_idx = smu_utils_lib.get_starting_bond_topology_index(conformer)
 
     contents.append(self.get_stage1_header(conformer))
     contents.append(
@@ -981,8 +980,7 @@ class SmuWriter:
     contents = []
 
     properties = conformer.properties
-    bt_idx, _ = next(smu_utils_lib.iterate_bond_topologies(
-      conformer, smu_utils_lib.WhichTopologies.starting))
+    bt_idx = smu_utils_lib.get_starting_bond_topology_index(conformer)
 
     contents.append(self.get_stage2_header(conformer))
     contents.append(self.get_database(conformer))

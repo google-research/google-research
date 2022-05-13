@@ -875,7 +875,7 @@ conformers {
     }
     smiles: "C#C"
     bond_topology_id: 20
-    source: 3
+    source: 1
   }
   which_database: STANDARD
 }

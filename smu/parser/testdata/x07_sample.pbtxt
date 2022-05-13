@@ -4220,7 +4220,7 @@ conformers {
     }
     smiles: "COC(=CF)OC"
     bond_topology_id: 618451
-    source: 3
+    source: 1
   }
   which_database: STANDARD
 }
@@ -8441,7 +8441,7 @@ conformers {
     }
     smiles: "COC(=CF)OC"
     bond_topology_id: 618451
-    source: 3
+    source: 1
   }
   which_database: STANDARD
 }

@@ -1702,8 +1702,7 @@ def determine_fate(conformer):
 def get_starting_bond_topology_index(conformer):
   """Gets the index of the bond topology which generated this calculation.
 
-  If there is only a single geometry, it's that one.
-  Otherwise, one of the geometries should be marked with is_starting_topology
+  see iterate_bond_topologies for fun details
 
   Args:
     conformer: dataset_pb2.Conformer
@@ -1714,13 +1713,12 @@ def get_starting_bond_topology_index(conformer):
   Raises:
     ValueError: if no starting topology can be found
   """
-  if len(conformer.bond_topologies) == 1:
-    return 0
-  for i in range(len(conformer.bond_topologies)):
-    if conformer.bond_topologies[i].is_starting_topology:
-      return i
-
-  raise ValueError(
+  try:
+    bt_idx, _ = next(iterate_bond_topologies(conformer,
+                                             WhichTopologies.starting))
+    return bt_idx
+  except StopIteration:
+    raise ValueError(
       f'For conformer {conformer.conformer_id}, no starting topology')
 
 

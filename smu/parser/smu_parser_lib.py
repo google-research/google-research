@@ -565,8 +565,11 @@ class SmuParser:
                                            hydrogen_counts))
     self._conformer.bond_topologies[-1].smiles = str(smiles).replace(
         '\'', '').strip()
-    self._conformer.bond_topologies[-1].source = (dataset_pb2.BondTopology.SOURCE_ITC |
-                                                  dataset_pb2.BondTopology.SOURCE_STARTING)
+    # Note that we only set source to STARTING and not ITC. This is because this
+    # geometry may not actually pass the ITC criteria. We let the later geometry
+    # detection take care of this.
+    self._conformer.bond_topologies[-1].source = (
+      dataset_pb2.BondTopology.SOURCE_STARTING)
 
   def expand_atom_types(self, atom_types):
     """Takes an abbreviated atom composition, such as c4o2fh7, and expands it.

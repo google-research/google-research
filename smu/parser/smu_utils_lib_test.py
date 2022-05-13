@@ -1551,7 +1551,12 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
         dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR)
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies[-1].bond_topology_id = 123
-    self._conformer.bond_topologies[0].is_starting_topology = True
+    self._conformer.bond_topologies[-1].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC)
+    self._conformer.bond_topologies[0].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_STARTING)
+
     if swap_order:
       self._swap_bond_topologies()
 
@@ -1579,7 +1584,11 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
         dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS)
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies[-1].bond_topology_id = 123
-    self._conformer.bond_topologies[0].is_starting_topology = True
+    self._conformer.bond_topologies[-1].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC)
+    self._conformer.bond_topologies[0].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_STARTING)
     if swap_order:
       self._swap_bond_topologies()
 
@@ -1610,7 +1619,11 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies[-1].bond_topology_id = 123
-    self._conformer.bond_topologies[0].is_starting_topology = True
+    self._conformer.bond_topologies[-1].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC)
+    self._conformer.bond_topologies[0].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_STARTING)
     if swap_order:
       self._swap_bond_topologies()
 
@@ -1636,6 +1649,10 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies[-1].bond_topology_id = 123
+    self._conformer.bond_topologies[-1].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC)
+    self._conformer.bond_topologies[0].source = (
+      dataset_pb2.BondTopology.SOURCE_ITC)
 
     got = list(
         smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))
@@ -1656,7 +1673,11 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     # record.
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
     self._conformer.bond_topologies.append(self._conformer.bond_topologies[0])
-    self._conformer.bond_topologies[starting_idx].is_starting_topology = True
+    for i in range(3):
+      self._conformer.bond_topologies[starting_idx].source = (
+        dataset_pb2.BondTopology.SOURCE_ITC)
+    self._conformer.bond_topologies[starting_idx].source |= (
+        dataset_pb2.BondTopology.SOURCE_STARTING)
 
     got = list(
         smu_utils_lib.conformer_to_bond_topology_summaries(self._conformer))

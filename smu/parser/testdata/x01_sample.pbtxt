@@ -978,7 +978,7 @@ conformers {
     }
     smiles: "N"
     bond_topology_id: 899651
-    source: 3
+    source: 1
   }
   which_database: STANDARD
 }
