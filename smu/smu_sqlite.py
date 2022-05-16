@@ -314,14 +314,16 @@ class SMUSQLite:
     assert len(result[0]) == 1
     return dataset_pb2.Conformer().FromString(snappy.uncompress(result[0][0]))
 
-  def find_by_bond_topology_id_list(self, btids):
+  def find_by_bond_topology_id_list(self, btids, which_topologies):
     """Finds all the conformer associated with a bond topology id.
 
     Args:
       btids: list of bond topology id to look up.
+      which_topologies: which topologies to match, see
+        smu_utils_lib.WhichTopologies
 
-    Returns:
-      iterable of dataset_pb2.Conformer
+    Yields:
+      dataset_pb2.Conformer
     """
     cur = self._conn.cursor()
     # DISTINCT is because the same cid can have the same btid multiple times.
@@ -333,14 +335,20 @@ class SMUSQLite:
       ','.join('?' for _ in btids),
       ')']))
     cur.execute(select, btids)
-    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[1]))
-            for result in cur)
+    for result in cur:
+      conformer = dataset_pb2.Conformer().FromString(snappy.uncompress(result[1]))
+      for _, bt in smu_utils_lib.iterate_bond_topologies(conformer, which_topologies):
+        if bt.bond_topology_id in btids:
+          yield conformer
+          break
 
-  def find_by_smiles_list(self, smiles):
+  def find_by_smiles_list(self, smiles, which_topologies):
     """Finds all conformer associated with a given smiles string.
 
     Args:
       smiles: list of string
+      which_topologies: which topologies to match, see
+        smu_utils_lib.WhichTopologies
 
     Returns:
       iterable for dataset_pb2.Conformer
@@ -359,7 +367,8 @@ class SMUSQLite:
     if not result:
       return []
 
-    return self.find_by_bond_topology_id_list([r[0] for r in result])
+    return self.find_by_bond_topology_id_list([r[0] for r in result],
+                                              which_topologies)
 
   def find_by_expanded_stoichiometry_list(self, exp_stoichs):
     """Finds all of the conformers with a stoichiometry.

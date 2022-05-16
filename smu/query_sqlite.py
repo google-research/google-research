@@ -94,14 +94,18 @@ flags.DEFINE_enum_class(
   'which_topologies',
   smu_utils_lib.WhichTopologies.all,
   smu_utils_lib.WhichTopologies,
-  'For sdf and atomic2_input output formats, which bond '
-  'topologies shoudl be returned? '
-  '"all" means all topologies, '
-  '"best" means a single best topology, '
-  '"starting" means the single topology used for the calculations, '
-  '"smu" means all topologies detected with our original bond lengths, '
-  '"covalent" means all topologies using very permissive covalent radii, '
-  '"allen" means all topologies using bond lengths from Allen et al ')
+  'This flag has double duty. '
+  'For btids, smiles, and smarts queries, it specifies which topologies'
+  'to match. For sdf and atomic2_input output formats, it specifies which bond '
+  'topologies should be returned:\n '
+  '"all" means all topologies,\n '
+  '"best" means a single best topology,\n '
+  '"starting" means the single topology used for the calculations,\n '
+  '"itc" means all topologies detected with our original bond lengths,\n '
+  '"mlcr" means all topologies using very permissive covalent radii\n '
+  '(from Meng and Lewis), '
+  '"csd" means all topologies using bond lengths from the '
+  'Cambridge Structural Database')
 flags.DEFINE_boolean(
     'redetect_topology', False,
     'Whether to rerun the topology detection on the conformers')
@@ -144,7 +148,7 @@ class GeometryData:
 
 _SMARTS_BT_BATCH_SIZE = 20000
 
-def smarts_query(db, smarts, outputter):
+def smarts_query(db, smarts, which_topologies, outputter):
   if not smarts:
     return
 
@@ -171,7 +175,8 @@ def smarts_query(db, smarts, outputter):
                  batch_idx, len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1)
     for c in db.find_by_bond_topology_id_list(
         bt_ids[batch_idx * _SMARTS_BT_BATCH_SIZE
-               :(batch_idx + 1) * _SMARTS_BT_BATCH_SIZE]):
+               :(batch_idx + 1) * _SMARTS_BT_BATCH_SIZE],
+        which_topologies):
       count += 1
       outputter.output(c)
 
@@ -402,10 +407,11 @@ def main(argv):
       conformer = db.find_by_conformer_id(cid)
       outputter.output(conformer)
 
-    for c in db.find_by_bond_topology_id_list([int(x) for x in FLAGS.btids]):
+    for c in db.find_by_bond_topology_id_list(
+        [int(x) for x in FLAGS.btids], FLAGS.which_topologies):
       outputter.output(c)
 
-    for c in db.find_by_smiles_list(FLAGS.smiles):
+    for c in db.find_by_smiles_list(FLAGS.smiles, FLAGS.which_topologies):
       outputter.output(c)
 
     for stoich in FLAGS.stoichiometries:
@@ -419,7 +425,7 @@ def main(argv):
                                    bond_lengths=geometry_data.bond_lengths):
         outputter.output(c)
 
-    smarts_query(db, FLAGS.smarts, outputter)
+    smarts_query(db, FLAGS.smarts, FLAGS.which_topologies, outputter)
 
     if FLAGS.random_fraction:
       for conformer in db:
