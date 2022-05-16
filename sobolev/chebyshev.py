@@ -31,7 +31,12 @@ def rec_chebyt_classical():
 
 
 def rec_chebyt_residual(low, high):
-  """Recurrence for the Residual Chebyshev polynomial."""
+  """Recurrence for the Residual Chebyshev polynomial.
+
+  Provides the coefficients a_t, b_t and c_t in the recurrence
+
+      P_{t+1}(x) =
+  """
   # Reference: https://fa.bianp.net/blog/2020/polyopt/
   yield 1, - 2 / (low + high), 0
   rho = (high - low) / (high + low)
