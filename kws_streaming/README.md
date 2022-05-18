@@ -115,7 +115,7 @@ All experiments are listed in folder "experiments". It contains:
 The latest experiments on speech commands V2 with 12 labels are shown in below table:
 |  Model name      | accuracy [%]  | # parameters |
 | ---------------- | --------------------- | --------------------- |
-|[bc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [bc_resnet](https://arxiv.org/pdf/2106.04140.pdf) topology | 95.8 (need more HPO,  in paper it is 96.9)      | ~10K      |
+|[bc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [bc_resnet](https://arxiv.org/pdf/2106.04140.pdf) topology | 96.4 (need more HPO, in paper it is 96.9)      | ~10K      |
 |[ds_tc_resnet](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md) with <br> [MatchboxNet](https://arxiv.org/abs/2004.08531) topology | 98.0      | 75K      |
 |[att_mh_rnn ](https://github.com/google-research/google-research/blob/master/kws_streaming/experiments/kws_experiments_12_labels.md)| 98.4  |   750K     |
 
