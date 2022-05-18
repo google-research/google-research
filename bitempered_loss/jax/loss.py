@@ -207,6 +207,7 @@ def tempered_softmax(activations, t, num_iters=5):
   Returns:
     A probabilities array.
   """
+  activations = jnp.asarray(activations, dtype=float)
   normalization_constants = compute_normalization(activations, t, num_iters)
   return exp_t(activations - normalization_constants, t)
 
@@ -275,6 +276,8 @@ def bi_tempered_logistic_loss(activations,
   Returns:
     A loss array.
   """
+  activations = jnp.asarray(activations, dtype=float)
+  labels = jnp.asarray(labels, dtype=float)
   loss_values, _ = bi_tempered_logistic_loss_fwd(activations, labels, t1, t2,
                                                  label_smoothing, num_iters)
   return loss_values
