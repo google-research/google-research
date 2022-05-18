@@ -556,16 +556,22 @@ def main(_):
       deterministic=False,
       decode=False,
       bos_token=bos_token)
-  train_config = models.SpecDecomposerConfig(
+  train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
+      attention_mask_type='baseline',
+      bos_special_attention=False,
       dataset_type=FLAGS.dataset_type)
-  eval_config = models.SpecDecomposerConfig(
+  eval_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(deterministic=True),
+      attention_mask_type='baseline',
+      bos_special_attention=False,
       dataset_type=FLAGS.dataset_type)
-  predict_config = models.SpecDecomposerConfig(
+  predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
           shift=False, deterministic=True,
           decode=not FLAGS.slow_decode),
+      attention_mask_type='baseline',
+      bos_special_attention=False,    
       dataset_type=FLAGS.dataset_type)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
@@ -575,7 +581,7 @@ def main(_):
   dropout_rng = jax.random.split(rng, jax.local_device_count())
   del rng
 
-  m = models.SpecDecomposerTransformer(eval_config)
+  m = models.DecomposeAttentionTransformer(eval_config)
   initial_variables = jax.jit(m.init)(
       init_rng,
       jnp.ones(io_shape, jnp.float32),
