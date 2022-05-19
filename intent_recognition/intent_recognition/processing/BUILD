@@ -61,12 +61,59 @@ mediapipe_proto_library(
 )
 
 mediapipe_proto_library(
+    name = "compute_sample_magnitude_variance_calculator_proto",
+    srcs = ["compute_sample_magnitude_variance_calculator.proto"],
+    def_java_lite_proto = False,
+    def_options_lib = False,
+    def_portable_proto = False,
+    deps = ["@mediapipe//mediapipe/framework:calculator_proto"],
+)
+
+cc_library(
+    name = "compute_sample_magnitude_variance_calculator",
+    srcs = ["compute_sample_magnitude_variance_calculator.cc"],
+    deps = [
+        ":compute_sample_magnitude_variance_calculator_cc_proto",
+        "//util/math:mathutil",
+        "@com_github_glog_glog//:glog",
+        "@com_google_absl//absl/status",
+        "@mediapipe//mediapipe/framework:calculator_framework",
+    ],
+    alwayslink = 1,
+)
+
+mediapipe_proto_library(
+    name = "drop_on_threshold_value_calculator_proto",
+    srcs = ["drop_on_threshold_value_calculator.proto"],
+    def_java_lite_proto = False,
+    def_options_lib = False,
+    def_portable_proto = False,
+    deps = ["@mediapipe//mediapipe/framework:calculator_proto"],
+)
+
+cc_library(
+    name = "drop_on_threshold_value_calculator",
+    srcs = ["drop_on_threshold_value_calculator.cc"],
+    deps = [
+        ":drop_on_threshold_value_calculator_cc_proto",
+        "@com_github_glog_glog//:glog",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@mediapipe//mediapipe/framework:calculator_cc_proto",
+        "@mediapipe//mediapipe/framework:calculator_framework",
+        "@mediapipe//mediapipe/framework:calculator_options_cc_proto",
+    ],
+    alwayslink = 1,
+)
+
+mediapipe_proto_library(
     name = "processing_options_proto",
     srcs = ["processing_options.proto"],
     def_java_lite_proto = False,
     def_options_lib = False,
     def_portable_proto = False,
     deps = [
+        ":drop_on_threshold_value_calculator_proto",
         ":window_calculator_proto",
     ],
 )
@@ -268,6 +315,10 @@ cc_binary(
         ":add_class_mappings_calculator",
         ":class_mappings_side_packet_calculator",
         ":class_mappings_side_packet_calculator_cc_proto",
+        ":compute_sample_magnitude_variance_calculator",
+        ":compute_sample_magnitude_variance_calculator_cc_proto",
+        ":drop_on_threshold_value_calculator",
+        ":drop_on_threshold_value_calculator_cc_proto",
         ":extract_sensor_data_from_annotated_recording_collection_calculator",
         ":filter_annotated_recording_collection_calculator",
         ":filter_annotated_recording_collection_calculator_cc_proto",
