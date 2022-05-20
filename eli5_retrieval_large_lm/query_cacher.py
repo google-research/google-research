@@ -41,7 +41,7 @@ import pathlib
 import subprocess
 import tempfile
 import time
-from typing import List, Callable, Dict
+from typing import Callable, Dict, List
 
 from absl import app
 from absl import flags
@@ -55,7 +55,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.distribute.values as values
 import tensorflow.python.framework.ops as ops
-import tensorflow.python.training.tracking.tracking as tracking
+import tensorflow.python.trackable.autotrackable as autotrackable
 import tensorflow_hub as hub
 import tf_utils
 import tqdm
