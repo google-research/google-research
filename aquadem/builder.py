@@ -69,7 +69,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
                rl_agent,
                config,
                make_demonstrations,
-               logger_fn = lambda: None,):
+               ):
     """Builds an Aquadem agent.
 
     Args:
@@ -78,18 +78,17 @@ class AquademBuilder(builders.ActorLearnerBuilder):
         offline learner.
       make_demonstrations: A function that returns a dataset of
         acme.types.Transition.
-      logger_fn: a logger factory for the learner.
     """
     self._rl_agent = rl_agent
     self._config = config
     self._make_demonstrations = make_demonstrations
-    self._logger_fn = logger_fn
 
   def make_learner(
       self,
       random_key,
       networks,
       dataset,
+      logger,
       replay_client = None,
       counter = None,
   ):
@@ -105,6 +104,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
           discrete_rl_learner_key,
           networks,
           dataset,
+          logger=logger,
           replay_client=replay_client,
           counter=discrete_rl_counter)
 
@@ -130,7 +130,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
         demonstration_ratio=self._config.demonstration_ratio,
         min_demo_reward=self._config.min_demo_reward,
         counter=counter,
-        logger=self._logger_fn())
+        logger=logger)
 
   def make_replay_tables(
       self, environment_spec):

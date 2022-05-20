@@ -163,6 +163,7 @@ def main(_):
         sub_key,
         networks,
         dataset=iter(()),  # dummy iterator
+        logger=train_logger_factory(),
         counter=learner_counter)
     variable_source = learner
     train_loop = learner

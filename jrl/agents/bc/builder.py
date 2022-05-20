@@ -42,9 +42,8 @@ class BCBuilder(builders.ActorLearnerBuilder):
       config,
       # make_demonstrations: Callable[[int], Iterator[types.Transition]],
       make_demonstrations,
-      logger_fn = lambda: None,):
+      ):
     self._config = config
-    self._logger_fn = logger_fn
     self._make_demonstrations = make_demonstrations
 
   def make_learner(
@@ -52,6 +51,7 @@ class BCBuilder(builders.ActorLearnerBuilder):
       random_key,
       networks,
       dataset,
+      logger,
       replay_client = None,
       counter = None,
       checkpoint = False,
@@ -71,7 +71,7 @@ class BCBuilder(builders.ActorLearnerBuilder):
         use_img_encoder=self._config.use_img_encoder,
         img_encoder_params_ckpt_path=self._config.img_encoder_params_ckpt_path,
         counter=counter,
-        logger=self._logger_fn(),
+        logger=logger,
         num_sgd_steps_per_step=self._config.num_sgd_steps_per_step,)
 
   def make_actor(

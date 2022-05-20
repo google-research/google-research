@@ -42,9 +42,8 @@ class MSGBuilder(builders.ActorLearnerBuilder):
       config,
       # make_demonstrations: Callable[[int], Iterator[types.Transition]],
       make_demonstrations,
-      logger_fn = lambda: None,):
+      ):
     self._config = config
-    self._logger_fn = logger_fn
     self._make_demonstrations = make_demonstrations
 
   def make_learner(
@@ -52,6 +51,7 @@ class MSGBuilder(builders.ActorLearnerBuilder):
       random_key,
       networks,
       dataset,
+      logger,
       replay_client = None,
       counter = None,
       checkpoint = False,
@@ -91,7 +91,7 @@ class MSGBuilder(builders.ActorLearnerBuilder):
         policy_lr=self._config.policy_lr,
         q_lr=self._config.q_lr,
         counter=counter,
-        logger=self._logger_fn(),
+        logger=logger,
         num_sgd_steps_per_step=self._config.num_sgd_steps_per_step,)
 
   def make_actor(

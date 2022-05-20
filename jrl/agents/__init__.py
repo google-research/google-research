@@ -36,15 +36,15 @@ def create_agent(
     logger_fn,
 ):
   if algorithm == 'bc':
-    return bc.BCRLComponents(logger_fn, spec, create_data_iter_fn)
+    return bc.BCRLComponents(spec, create_data_iter_fn)
   elif algorithm == 'cql':
-    return cql.CQLRLComponents(logger_fn, spec, create_data_iter_fn)
+    return cql.CQLRLComponents(spec, create_data_iter_fn)
   elif algorithm == 'msg':
-    return msg.MSGRLComponents(logger_fn, spec, create_data_iter_fn)
+    return msg.MSGRLComponents(spec, create_data_iter_fn)
   elif algorithm == 'batch_ensemble_msg':
     return batch_ensemble_msg.BatchEnsembleMSGRLComponents(
-        logger_fn, spec, create_data_iter_fn)
+        spec, create_data_iter_fn)
   elif algorithm == 'snr':
-    return snr.SNRRLComponents(logger_fn, spec, create_data_iter_fn)
+    return snr.SNRRLComponents(spec, create_data_iter_fn)
   else:
     raise NotImplementedError()
