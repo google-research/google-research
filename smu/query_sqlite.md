@@ -38,22 +38,22 @@ There are a variety of different output formats
 Where to write the output (uses stdout if not given)
 
 
-## Selecting Conformers
+## Selecting Molecules
 
-The most straightforward way to get some conformers out is with
+The most straightforward way to get some molecules out is with
 * `--random_fraction` where each record in the database is returned with this probability. Note that the entire database is read, so this can be quite slow.
 
 During the build of the database, we add several indices for fast lookup. You can provide multiple options and you will get output for all of them.
 
-* `--btids`: List of bond topology ids (e.g 85532). All conformers with this bond topology ID (including the detected bond topologies) are returned.
+* `--btids`: List of bond topology ids (e.g 85532). All molecules with this bond topology ID (including the detected bond topologies) are returned.
 
-* `--cids`: List of conformer id (eg 85532001). Zero or one conformers will be returned for each cid.
+* `--cids`: List of molecule id (eg 85532001). Zero or one molecules will be returned for each cid.
 
-* `--smiles`: List of SMILES strings (e.g. CC=O). All conformers with bond topologies represented by these SMILES (including the detected bond topologies) are returned. Note that these inputs will be recanonicalized using the same procedure we used to build the database so alternative SMILES that are the same bond topology will return the same set of results. Note that if aromatic smiles are given one of the kekulized forms will be chosen somewhat arbitrarily. However, because of our geometry detection, this should still return the set of conformers covering the other kekulized form.
+* `--smiles`: List of SMILES strings (e.g. CC=O). All molecules with bond topologies represented by these SMILES (including the detected bond topologies) are returned. Note that these inputs will be recanonicalized using the same procedure we used to build the database so alternative SMILES that are the same bond topology will return the same set of results. Note that if aromatic smiles are given one of the kekulized forms will be chosen somewhat arbitrarily. However, because of our geometry detection, this should still return the set of molecules covering the other kekulized form.
 
 * `-–stoichiometries`: List of stoichiometries like (C6H6) to query. Case does not matter.
 
-* `--smarts`: Use a [SMARTS pattern](https://www.daylight.com/dayhtml/doc/theory/theory.smarts.html) to select a set of conformers. This effectively finds a set of bond topology ids and then returns all conformers for those bond topology ids (like `--btids`. A couple points to note
+* `--smarts`: Use a [SMARTS pattern](https://www.daylight.com/dayhtml/doc/theory/theory.smarts.html) to select a set of molecules. This effectively finds a set of bond topology ids and then returns all molecules for those bond topology ids (like `--btids`. A couple points to note
     * Unlike the other options here, only a single SMARTS pattern is allowed.
     * Since we do not use any notion of aromatic bonds, you should only use aliphatic atoms (i.e. 'C' and not 'c') in your SMARTS.
 
@@ -85,29 +85,29 @@ To support specified alternative bond length restrictions, you can specify lengt
 
     Implementation note of interest: `--bond_lengths_csv` creates a EmpiricalLengthDistribution for each atom type pair. `--bond_lengths` creates a FixedWindowLengthDistribution for each given pair to replace the EmpiricalLengthDistribution
 
-* `--topology_query_smiles` To do a geometry based search, you then provide a comma separated list of SMILES strings specifying the geometry to search. Note that if `--bond_lengths` are not given, this will return the same conformers as `--smiles`.
+* `--topology_query_smiles` To do a geometry based search, you then provide a comma separated list of SMILES strings specifying the geometry to search. Note that if `--bond_lengths` are not given, this will return the same molecules as `--smiles`.
 
 ### How does this work internally?
-Each conformer is associated with a hydrogen specific stoichiometry. That is, the number of hydrogens bonded to a heavy atom is part of the atom type. So a carbon with no hydrogens is “c” but with two hydrogen is “ch2”. Examples:
+Each molecule is associated with a hydrogen specific stoichiometry. That is, the number of hydrogens bonded to a heavy atom is part of the atom type. So a carbon with no hydrogens is “c” but with two hydrogen is “ch2”. Examples:
 * benzene: (ch)6
 * water: (oh2)   (note that the 1 is implicit)
 * ethylene: (ch2)2
 * acrylic acid: (c)(ch)(ch2)(o)(oh)
 
-In order for a conformer to match a query geometry, the hydrogen specific stoichiometry must match. So we locate all the conformers with matching hydrogen specific stoichiometry. For each one, we run the geometry detection algorithm (with the modified bond lengths from `--bond_lengths`). If one of the detected bond topologies is the same as the original geometry given in `--topology_query_smiles`, then the conformer is returned.
+In order for a molecule to match a query geometry, the hydrogen specific stoichiometry must match. So we locate all the molecules with matching hydrogen specific stoichiometry. For each one, we run the geometry detection algorithm (with the modified bond lengths from `--bond_lengths`). If one of the detected bond topologies is the same as the original geometry given in `--topology_query_smiles`, then the molecule is returned.
 
 Note that this is not an especially efficient algorithm, but it’s able to reuse exactly the same geometry detection code so that we ensure everything is consistent.
 
 
 ## Redetecting Bond Topologies
 
-Similar to the [geometry based searching](#geometry-based-searching), you can use the modification of allowed bond lengths (via the `--bond_lengths_csv` and `--bond_lengths` arguments) to perform topology sensing on any conformer returned (i.e. from the options in [Simple Indexed Selection](#simple-indexed-selection) )
+Similar to the [geometry based searching](#geometry-based-searching), you can use the modification of allowed bond lengths (via the `--bond_lengths_csv` and `--bond_lengths` arguments) to perform topology sensing on any molecule returned (i.e. from the options in [Simple Indexed Selection](#simple-indexed-selection) )
 
 * `--redetect_topology` Just specify this flag (in addition to `--bond_lengths_csv`, `--bond_lengths`)
 
 
 ## Examples
-Find the record for a specific conformer id.
+Find the record for a specific molecule id.
 ```
 python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
@@ -115,7 +115,7 @@ python -m smu.query_sqlite \
 --output_format sdf_opt
 ```
 
-Find the records for a bunch of conformer ids and send the output to a file
+Find the records for a bunch of molecule ids and send the output to a file
 ```
 python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
@@ -123,14 +123,14 @@ python -m smu.query_sqlite \
 --output_path /tmp/example.pbtxt
 ```
 
-Find all the conformers for the given bond topology ids. Note that this searches by all detected topologies, not just the topology that originally created the conformer.
+Find all the molecules for the given bond topology ids. Note that this searches by all detected topologies, not just the topology that originally created the molecule.
 ```
 python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
 --btids '581948,532611,532626,540263'
 ```
 
-Find all the conformers corresponding to a given SMILES and output to sdf. Note that this internally canonicalizes the SMILES so that both the forms given here return the same thing.
+Find all the molecules corresponding to a given SMILES and output to sdf. Note that this internally canonicalizes the SMILES so that both the forms given here return the same thing.
 ```
 python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
@@ -155,7 +155,7 @@ python -m smu.query_sqlite \
 --bond_lengths 'N~N:-2.0'
 ```
 
-A query by stoichiometry where we only return one bond topology for each conformer.
+A query by stoichiometry where we only return one bond topology for each molecule.
 ```
 python -m smu.query_sqlite \
 --input_sqlite 20220128_standard.sqlite \

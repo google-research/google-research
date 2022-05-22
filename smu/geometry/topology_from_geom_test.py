@@ -94,9 +94,9 @@ class TestTopoFromGeom(absltest.TestCase):
     bldc2c = triangular_distribution(1.0, 1.5, 2.0)
     all_distributions.add(carbon, carbon, double_bond,bldc2c)
 
-    conformer = dataset_pb2.Conformer()
+    molecule = dataset_pb2.Molecule()
 
-    conformer.bond_topologies.append(text_format.Parse(
+    molecule.bond_topologies.append(text_format.Parse(
         """
 atoms: ATOM_C
 atoms: ATOM_C
@@ -107,7 +107,7 @@ bonds: {
 }
 """, dataset_pb2.BondTopology()))
 
-    conformer.optimized_geometry.MergeFrom(text_format.Parse(
+    molecule.optimized_geometry.MergeFrom(text_format.Parse(
         """
 atom_positions {
   x: 0.0
@@ -120,15 +120,15 @@ atom_positions {
   z: 0.0
 }
 """, dataset_pb2.Geometry()))
-    conformer.optimized_geometry.atom_positions[1].x = (
+    molecule.optimized_geometry.atom_positions[1].x = (
       1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
 
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
-    conformer.conformer_id = 1001
+    molecule.fate = dataset_pb2.Molecule.FATE_SUCCESS
+    molecule.molecule_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
-      conformer, all_distributions, matching_parameters)
+      molecule, all_distributions, matching_parameters)
     self.assertIsNotNone(result)
     self.assertLen(result.bond_topology, 2)
     self.assertLen(result.bond_topology[0].bonds, 1)
@@ -159,21 +159,21 @@ atom_positions {
       double,
       triangular_distribution(1.0, 1.4, 2.0))
 
-    # This conformer is a flat aromatic square of nitrogens. The single and
+    # This molecule is a flat aromatic square of nitrogens. The single and
     # double bonds can be rotated such that it's the same topology but
     # individual bonds have switched single/double.
     # We set it so the bond lengths favor one of the two arrangements
-    conformer = dataset_pb2.Conformer(conformer_id=123,
-                                      fate=dataset_pb2.Conformer.FATE_SUCCESS)
+    molecule = dataset_pb2.Molecule(molecule_id=123,
+                                      fate=dataset_pb2.Molecule.FATE_SUCCESS)
 
-    conformer.bond_topologies.add(bond_topology_id=123, smiles="N1=NN=N1")
-    conformer.bond_topologies[0].atoms.extend([
+    molecule.bond_topologies.add(bond_topology_id=123, smiles="N1=NN=N1")
+    molecule.bond_topologies[0].atoms.extend([
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
     ])
-    conformer.bond_topologies[0].bonds.extend([
+    molecule.bond_topologies[0].bonds.extend([
         dataset_pb2.BondTopology.Bond(atom_a=0, atom_b=1, bond_type=single),
         dataset_pb2.BondTopology.Bond(atom_a=1, atom_b=2, bond_type=double),
         dataset_pb2.BondTopology.Bond(atom_a=2, atom_b=3, bond_type=single),
@@ -182,7 +182,7 @@ atom_positions {
 
     dist15a = 1.5 / smu_utils_lib.BOHR_TO_ANGSTROMS
     dist14a = 1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS
-    conformer.optimized_geometry.atom_positions.extend([
+    molecule.optimized_geometry.atom_positions.extend([
         dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0),
         dataset_pb2.Geometry.AtomPos(x=0, y=dist15a, z=0),
         dataset_pb2.Geometry.AtomPos(x=dist14a, y=dist15a, z=0),
@@ -191,7 +191,7 @@ atom_positions {
 
     matching_parameters = topology_molecule.MatchingParameters()
     result = topology_from_geom.bond_topologies_from_geom(
-      conformer, all_dist, matching_parameters)
+      molecule, all_dist, matching_parameters)
 
     self.assertLen(result.bond_topology, 2)
 
@@ -242,44 +242,44 @@ class TestStandardTopologySensing(absltest.TestCase):
             bond_length_distribution.FixedWindow(1.2, 1.4, None))
     return bld
 
-  def get_conformer(self, oc_dist, cn_dist):
-    conformer = dataset_pb2.Conformer(conformer_id=12345)
-    conformer.bond_topologies.append(dataset_pb2.BondTopology(smiles='N=C=O'))
-    conformer.bond_topologies[0].atoms.extend([
+  def get_molecule(self, oc_dist, cn_dist):
+    molecule = dataset_pb2.Molecule(molecule_id=12345)
+    molecule.bond_topologies.append(dataset_pb2.BondTopology(smiles='N=C=O'))
+    molecule.bond_topologies[0].atoms.extend([
       dataset_pb2.BondTopology.ATOM_O,
       dataset_pb2.BondTopology.ATOM_C,
       dataset_pb2.BondTopology.ATOM_N,
       dataset_pb2.BondTopology.ATOM_H])
-    conformer.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
+    molecule.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
       atom_a=0, atom_b=1,
       bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
-    conformer.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
+    molecule.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
       atom_a=1, atom_b=2,
       bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
-    conformer.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
+    molecule.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
       atom_a=2, atom_b=3,
       bond_type=dataset_pb2.BondTopology.BondType.BOND_SINGLE))
 
-    conformer.optimized_geometry.atom_positions.append(
+    molecule.optimized_geometry.atom_positions.append(
       dataset_pb2.Geometry.AtomPos(
         x=0, y=0, z=0))
-    conformer.optimized_geometry.atom_positions.append(
+    molecule.optimized_geometry.atom_positions.append(
       dataset_pb2.Geometry.AtomPos(
         x=0, y=0, z=oc_dist / smu_utils_lib.BOHR_TO_ANGSTROMS))
-    conformer.optimized_geometry.atom_positions.append(
+    molecule.optimized_geometry.atom_positions.append(
       dataset_pb2.Geometry.AtomPos(
         x=0, y=0, z=(oc_dist + cn_dist) / smu_utils_lib.BOHR_TO_ANGSTROMS))
-    conformer.optimized_geometry.atom_positions.append(
+    molecule.optimized_geometry.atom_positions.append(
       dataset_pb2.Geometry.AtomPos(
         x=0, y=0, z=(oc_dist + cn_dist + 1) / smu_utils_lib.BOHR_TO_ANGSTROMS))
 
-    return conformer
+    return molecule
 
   def get_smiles_id_dict(self):
     return {'N=C=O': 111, '[NH+]#C[O-]': 222}
 
   def test_without_smu(self):
-    conf = self.get_conformer(1.25, 1.11)
+    conf = self.get_molecule(1.25, 1.11)
     self.assertTrue(
       topology_from_geom.standard_topology_sensing(
         conf, self.get_smu_dists(), self.get_smiles_id_dict()))
@@ -304,7 +304,7 @@ class TestStandardTopologySensing(absltest.TestCase):
     self.assertTrue(np.isnan(conf.bond_topologies[1].geometry_score))
 
   def test_smu_and_covalent(self):
-    conf = self.get_conformer(1.25, 1.25)
+    conf = self.get_molecule(1.25, 1.25)
     self.assertTrue(
       topology_from_geom.standard_topology_sensing(
         conf, self.get_smu_dists(), self.get_smiles_id_dict()))

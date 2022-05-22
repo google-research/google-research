@@ -28,15 +28,15 @@ MAX_DIST = 2.0
 class GetBondLengthDistribution(beam.DoFn):
   """Generates a bond length distribution."""
 
-  def process(self, conformer):
-    bt = conformer.bond_topologies[0]
-    geom = conformer.optimized_geometry
+  def process(self, molecule):
+    bt = molecule.bond_topologies[0]
+    geom = molecule.optimized_geometry
 
     bonded = utilities.bonded(bt)
 
     natoms = len(bt.atoms)
 
-    if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
+    if molecule.fate != dataset_pb2.Molecule.FATE_SUCCESS:
       return
 
     for a1 in range(0, natoms):

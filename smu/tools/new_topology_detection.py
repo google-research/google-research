@@ -35,25 +35,25 @@ def main(argv):
     bond_length_distribution.STANDARD_SIG_DIGITS)
   fake_smiles_id_dict = collections.defaultdict(lambda: -1)
 
-  print('conformer_id, count_all, count_smu, count_covalent, count_allen')
-  for conformer in db:
-    if abs(hash(str(conformer.conformer_id))) % 1000 != 1:
+  print('molecule_id, count_all, count_smu, count_covalent, count_allen')
+  for molecule in db:
+    if abs(hash(str(molecule.molecule_id))) % 1000 != 1:
       continue
 
     topology_from_geom.standard_topology_sensing(
-      conformer, bond_lengths, fake_smiles_id_dict)
+      molecule, bond_lengths, fake_smiles_id_dict)
 
-    count_all = len(conformer.bond_topologies)
+    count_all = len(molecule.bond_topologies)
     count_smu = sum(bt.source & dataset_pb2.BondTopology.SOURCE_ITC != 0
-                    for bt in conformer.bond_topologies)
+                    for bt in molecule.bond_topologies)
     count_covalent = sum(
       bt.source & dataset_pb2.BondTopology.SOURCE_MLCR != 0
-      for bt in conformer.bond_topologies)
+      for bt in molecule.bond_topologies)
     count_allen = sum(
       bt.source & dataset_pb2.BondTopology.SOURCE_CSD != 0
-      for bt in conformer.bond_topologies)
+      for bt in molecule.bond_topologies)
 
-    print(f'{conformer.conformer_id}, {count_all}, {count_smu}, {count_covalent}, {count_allen}')
+    print(f'{molecule.molecule_id}, {count_all}, {count_smu}, {count_covalent}, {count_allen}')
 
 
 if __name__ == '__main__':

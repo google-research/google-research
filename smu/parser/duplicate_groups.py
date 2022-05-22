@@ -26,10 +26,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Converts pairwise conformer duplicates to duplicate bond topologies.
+"""Converts pairwise molecule duplicates to duplicate bond topologies.
 
-We are given pair wise duplicates for individual conformers with different
-bond topology ids. We consider two bond topologies equivalent if any conformer
+We are given pair wise duplicates for individual molecules with different
+bond topology ids. We consider two bond topologies equivalent if any molecule
 of the two is considered equivalent. We want to consider a whole group
 equivalent as long as there are edges connecting them. Yes, this is a graph
 connected components problem.
@@ -63,14 +63,14 @@ def parse_duplicates_file(filename):
   """Parses duplciate file into a pandas dataframe.
 
   The duplciate file supplied by our collaborators (called
-  list.equivalent_{isomers,conformers.dat) is a two column, space separated
+  list.equivalent_{isomers,molecules.dat) is a two column, space separated
   file of composite names like x07_n4o3h4.091404.073
   which we parse the names into columns
   * nameX: original composiite name from file
   * stoichX: string for the stoichiometry
   * btidX: bond topology id
-  * shortconfidX: 3 digit conformer id
-  * confidX: full conformer id that we use (btid * 1000 + shortconfid)
+  * shortconfidX: 3 digit molecule id
+  * confidX: full molecule id that we use (btid * 1000 + shortconfid)
   (for X = 1 or 2)
 
   Args:

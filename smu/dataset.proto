@@ -32,8 +32,8 @@ import "google/protobuf/descriptor.proto";
 
 ///////////// Custom options
 // The dataset is released in two forms
-// 1. COMPLETE: Has all conformers and almost all fields
-// 2. STANDARD: Has conformers where calculations did not encounter serious
+// 1. COMPLETE: Has all molecules and almost all fields
+// 2. STANDARD: Has molecules where calculations did not encounter serious
 //    errors and a limited set of the most interesting fields.
 //
 // We use protobuf field options for marking the availability of fields in
@@ -184,11 +184,11 @@ message TopologyMatches {
   // It is convenient to have the starting smiles.
   string starting_smiles = 2;
 
-  // And the conformer_id
-  int32 conformer_id = 3;
+  // And the molecule_id
+  int32 molecule_id = 3;
 
   // To avoid having to join results later, store the fate.
-  Conformer.FateCategory fate = 4;
+  Molecule.FateCategory fate = 4;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left
@@ -947,24 +947,24 @@ message Properties {
   reserved 2, 3, 5, 100 to 109, 44 to 46;
 }
 
-// Conformer is the primary protocol buffer for the dataset.
+// Molecule is the primary protocol buffer for the dataset.
 //
-// A Conformer represents a particular optimized geometry (that might derive
+// A Molecule represents a particular optimized geometry (that might derive
 // from several different initial geometries) and be associated with several
 // BondTopology.
-message Conformer {
-  // The conformer ID is unique across all conformers. It is constructed with
+message Molecule {
+  // The molecule ID is unique across all molecules. It is constructed with
   // the bond_topology_id of one of the bond topologies that generated this
   // geometry plus a unique id (<1000): bond_topology_id * 1000 + unique id
-  int32 conformer_id = 1;
+  int32 molecule_id = 1;
 
   // INTERNAL_ONLY In the original .dat format, we kept the 1-based dense index
-  // of this conformer for the bond_topology and we store the index to ensure
+  // of this molecule for the bond_topology and we store the index to ensure
   // perfect production of the .dat file.
-  int32 original_conformer_index = 2 [(availability) = INTERNAL_ONLY];
+  int32 original_molecule_index = 2 [(availability) = INTERNAL_ONLY];
 
   // Geometry produced by minimization by with an empirical force
-  // field. This is repeated because Conformers are deduplicated by
+  // field. This is repeated because Molecules are deduplicated by
   // their optimized_geometry and multiple initial_geometry can
   // converge to the same optimized_geometry.  Although duplicates can
   // be found across bond topologies, *only* the duplicates produced
@@ -981,12 +981,12 @@ message Conformer {
 
   // After geometry optimization, duplicate geometries were identified and one
   // of the geometries was kept through a series of heuristics.
-  // If this Conformer was discarded:
+  // If this Molecule was discarded:
   // * It will only be present in the COMPLETE dataset, not the STANDARD.
-  // * duplicated_by is set with the conformer_id that this Conformer was
+  // * duplicated_by is set with the molecule_id that this Molecule was
   //   discarded in favor of.
-  // If this Conformer was kept over other duplicates:
-  // * duplicate_of is set with all the conformer_id of the discarded Conformer.
+  // If this Molecule was kept over other duplicates:
+  // * duplicate_of is set with all the molecule_id of the discarded Molecule.
   int32 duplicated_by = 5;
   repeated int32 duplicate_of = 6;
 
@@ -999,30 +999,30 @@ message Conformer {
   // TODO(pfr): add a reference to the paper describing this
   repeated BondTopology bond_topologies = 8;
 
-  // Fate is a simple categorical summary of how this conformer progressed
+  // Fate is a simple categorical summary of how this molecule progressed
   // through the whole pipeline of computations.
   enum FateCategory {
     // FATE_UNDEFINED should not be present in the final data
     FATE_UNDEFINED = 0;
-    // Duplicated to another Conformer with the same bond topology. This
-    // Conformer will not have most properties fields.
+    // Duplicated to another Molecule with the same bond topology. This
+    // Molecule will not have most properties fields.
     FATE_DUPLICATE_SAME_TOPOLOGY = 1;
-    // Duplicated to another Conformer with a different bond topology. This
-    // Conformer will not have most properties fields.
+    // Duplicated to another Molecule with a different bond topology. This
+    // Molecule will not have most properties fields.
     FATE_DUPLICATE_DIFFERENT_TOPOLOGY = 2;
     // Errors were encountered during geometry optimization. This
-    // Conformer will not have most properties fields.
+    // Molecule will not have most properties fields.
     FATE_GEOMETRY_OPTIMIZATION_PROBLEM = 3;
     // After geometry optimization, the expected bonding pattern was no longer
-    // consistent with the geometry. This Conformer will not have most
+    // consistent with the geometry. This Molecule will not have most
     // properties fields.
     FATE_DISASSOCIATED = 4;
     // During geometry optimization, problems were encountered converging to a
-    // local minima. This Conformer will not have most properties fields.
+    // local minima. This Molecule will not have most properties fields.
     // TODO(pfr): check documentation
     FATE_FORCE_CONSTANT_FAILURE = 5;
     // Other problems were encountered during geometry optimization. This
-    // Conformer will not have most properties fields.
+    // Molecule will not have most properties fields.
     FATE_DISCARDED_OTHER = 6;
     // Calculation results are missing. Should not be present in final dataset.
     FATE_NO_CALCULATION_RESULTS = 7;
@@ -1038,39 +1038,39 @@ message Conformer {
   }
   FateCategory fate = 9;
 
-  // Specifies which database (STANDARD or COMPLETE) this Conformer
+  // Specifies which database (STANDARD or COMPLETE) this Molecule
   // will be in. Note that everything in STANDARD is also included in COMPLETE.
   AvailabilityEnum which_database = 10;
 }
 
-///////////// MultipleConformers
+///////////// MultipleMolecules
 
-// Bundles a number of conformers. This message is just needed to simplify
+// Bundles a number of molecules. This message is just needed to simplify
 // testing. It will not be present in the main dataset.
-// multiple Conformer entries.
-message MultipleConformers {
-  repeated Conformer conformers = 1;
+// multiple Molecule entries.
+message MultipleMolecules {
+  repeated Molecule molecules = 1;
 }
 
 ///////////// BondTopologySummary
 
 // BondTopologySummary is a summarized form with a very small amount of
 // information about each bond topology that was considered. Note the close
-// alignment to the "fate" field in Conformer.
+// alignment to the "fate" field in Molecule.
 message BondTopologySummary {
   BondTopology bond_topology = 1;
 
-  // Attempted conformers are ones that were attempted to be minimized with
+  // Attempted molecules are ones that were attempted to be minimized with
   // PBE0D3. These resulted from potentially many attempts to create 3D
   // coordinates and minimze with MMFF.
-  int32 count_attempted_conformers = 2;
+  int32 count_attempted_molecules = 2;
 
-  // Next set of fields track the result of each attempted conformer. The sum of
+  // Next set of fields track the result of each attempted molecule. The sum of
   // count_duplicates_same_topology
   // count_duplicates_different_topology
   // count_failed_geometry_optimization
   // count_non_duplicate_kept_geometry
-  // should be equal to count_attempted_conformers
+  // should be equal to count_attempted_molecules
   // These fields count duplicates after the PBE0D3 geometry minimization.
   int32 count_duplicates_same_topology = 3;
   int32 count_duplicates_different_topology = 4;
@@ -1095,7 +1095,7 @@ message BondTopologySummary {
   int32 count_calculation_success = 9;
 
   // After all calculations were done, we detected all bond topologies
-  // which are consistent with a conformer's geometry, with several
+  // which are consistent with a molecule's geometry, with several
   // different criteria (ITC, MLCR, CSD (see Source above for
   // details)). These fields count the results of these "detected"
   // geometries. Note that the geometries counted in the "duplicate"
@@ -1112,9 +1112,9 @@ message BondTopologySummary {
   int32 count_detected_match_csd_with_warning = 19;
   int32 count_detected_match_csd_success = 20;
 
-  // The same topology can be detected multiple times for a single conformer.
+  // The same topology can be detected multiple times for a single molecule.
   // Typically this would be for kekulized forms that results in an isomorphic
   // graph. When this happens, the bond topology id is only counted once per
-  // conformer by the other fields and counted once per conformer here.
+  // molecule by the other fields and counted once per molecule here.
   int32 count_multiple_detections = 14;
 }

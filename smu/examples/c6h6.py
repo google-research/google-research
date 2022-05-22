@@ -20,10 +20,10 @@ If you are not comfortable with python and just want to get some data out
 of SMU, the other examples are easier to work from.
 
 Purpose:
-  Select conformers that
+  Select molecules that
     * match a given stoichiometry
     * fulfil certain minimum requirements for the status variable
-    * are the lowest in enthalpy among all conformers of a given topology
+    * are the lowest in enthalpy among all molecules of a given topology
 """
 
 import collections
@@ -44,24 +44,24 @@ print('# Output from c6h6.py, an example bringing together many concepts')
 print('# Please see that file for documentation')
 
 #-----------------------------------------------------------------------------
-# Here we select conformers by stoichiometry
-# See indices.py for other way to locate a limited set of conformers
-#  (by conformer or bond topology ID, by expanded stoichiometry)
+# Here we select molecules by stoichiometry
+# See indices.py for other way to locate a limited set of molecules
+#  (by molecule or bond topology ID, by expanded stoichiometry)
 #-----------------------------------------------------------------------------
 
-conformers = list(db.find_by_stoichiometry('c6h6'))
-print(f'# Found a total of {len(conformers)} conformers')
+molecules = list(db.find_by_stoichiometry('c6h6'))
+print(f'# Found a total of {len(molecules)} molecules')
 
 #-----------------------------------------------------------------------------
 # We are going to process each bond topology separately, so we will group the
-# conformers by bond topology. We'll use the SMILES string because it is
+# molecules by bond topology. We'll use the SMILES string because it is
 # unique and canonical per bond topology.
 # For collections.defaultdict, see
 # https://docs.python.org/3/library/collections.html
 #-----------------------------------------------------------------------------
 
-smiles_to_conformers = collections.defaultdict(list)
-for conf in conformers:
+smiles_to_molecules = collections.defaultdict(list)
+for conf in molecules:
   #---------------------------------------------------------------------------
   # We select only molecules for which the status variable is 4 or lower
   # and that are not simple duplicates of others.
@@ -73,8 +73,8 @@ for conf in conformers:
     continue
 
   #---------------------------------------------------------------------------
-  # It's good hygiene to make sure the conformer has the field we want
-  # to process. In this case, all the conformers will have this field
+  # It's good hygiene to make sure the molecule has the field we want
+  # to process. In this case, all the molecules will have this field
   # so this check won't actually do anything but we have it here as a
   # reminder/example. See missing_fields.py for details.
   #---------------------------------------------------------------------------
@@ -84,9 +84,9 @@ for conf in conformers:
 
   #---------------------------------------------------------------------------
   # See multiple_bond_topology.py for details on multiple bond topologies
-  # per conformer
+  # per molecule
   #
-  # Here we consider all conformers (i.e. optimized geometries) that match
+  # Here we consider all molecules (i.e. optimized geometries) that match
   # a given bond topology (expressed as SMILES).
   #
   # ALTERNATIVE
@@ -103,7 +103,7 @@ for conf in conformers:
   for bt in conf.bond_topologies:
     #if not bt.is_starting_topology:
     #  continue
-    smiles_to_conformers[bt.smiles].append(conf)
+    smiles_to_molecules[bt.smiles].append(conf)
 
 
 #-----------------------------------------------------------------------------
@@ -114,23 +114,23 @@ for conf in conformers:
 # output formats. See dataframe.py for how to do this.
 #-----------------------------------------------------------------------------
 writer = csv.writer(sys.stdout)
-writer.writerow(['conformer_id',
+writer.writerow(['molecule_id',
                  'smiles',
-                 'conformer_count',
+                 'molecule_count',
                  'dip_x',
                  'dip_y',
                  'dip_z',
                  'dip'])
 
-for smiles in smiles_to_conformers:
+for smiles in smiles_to_molecules:
   energies = [conf.properties.enthalpy_of_formation_298k_atomic_b5.value
-              for conf in smiles_to_conformers[smiles]]
+              for conf in smiles_to_molecules[smiles]]
   #---------------------------------------------------------------------------
   # While this line may look mysterious, it's doing exactly what the words say:
   # it finds the index of the minimum value of the energies
   #---------------------------------------------------------------------------
-  min_energy_conformer_idx = energies.index(min(energies))
-  conf = smiles_to_conformers[smiles][min_energy_conformer_idx]
+  min_energy_molecule_idx = energies.index(min(energies))
+  conf = smiles_to_molecules[smiles][min_energy_molecule_idx]
 
   #---------------------------------------------------------------------------
   # See field_access.py for details on the formats of many different kinds of
@@ -139,9 +139,9 @@ for smiles in smiles_to_conformers:
 
   dipole = conf.properties.dipole_moment_pbe0_aug_pc_1
   writer.writerow([
-    conf.conformer_id,
+    conf.molecule_id,
     smiles,
-    len(smiles_to_conformers[smiles]),
+    len(smiles_to_molecules[smiles]),
     dipole.x,
     dipole.y,
     dipole.z,

@@ -47,7 +47,10 @@ from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
 import snappy
 
-_CONFORMER_TABLE_NAME = 'conformer'
+# The name of this table is a hold over before we did a big rename of
+# Conformer to Molecule. The column that holds the protobuf is also called
+# "conformer"
+_MOLECULE_TABLE_NAME = 'conformer'
 _BTID_TABLE_NAME = 'btid'
 _SMILES_TABLE_NAME = 'smiles'
 
@@ -59,17 +62,17 @@ class ReadOnlyError(Exception):
 class SMUSQLite:
   """Provides an interface for SMU data to a SQLite DB file.
 
-  The class hides away all the SQL fun with just Conformer protobuf visible in
+  The class hides away all the SQL fun with just Molecule protobuf visible in
   the interface.
 
   Internal details about the tables:
   There are 3 separate tables
-  * conformer: Is the primary table which has columns
-      * cid: integer conformer id (unique)
-      * conformer: blob wire format proto of a conformer proto
+  * molecule: Is the primary table which has columns
+      * cid: integer molecule id (unique)
+      * molecule: blob wire format proto of a molecule proto
   * btid: Used for lookups by bond topology id which has columns
       * btid: integer bond topology id (not unique)
-      * cid: integer conformer id (not unique)
+      * cid: integer molecule id (not unique)
   * smiles: Used to map smiles to bond topology ids with columns
       * smiles: text canonical smiles string (unique)
       * btid: integer bond topology id
@@ -109,15 +112,15 @@ class SMUSQLite:
 
   def _maybe_init_db(self):
     """Create the table and indices if they do not exist."""
-    make_table = (f'CREATE TABLE IF NOT EXISTS {_CONFORMER_TABLE_NAME} '
+    make_table = (f'CREATE TABLE IF NOT EXISTS {_MOLECULE_TABLE_NAME} '
                   '(cid INTEGER PRIMARY KEY, '
                   'exp_stoich STRING, '
                   'conformer BLOB)')
     self._conn.execute(make_table)
     self._conn.execute(f'CREATE UNIQUE INDEX IF NOT EXISTS '
-                       f'idx_cid ON {_CONFORMER_TABLE_NAME} (cid)')
+                       f'idx_cid ON {_MOLECULE_TABLE_NAME} (cid)')
     self._conn.execute(f'CREATE INDEX IF NOT EXISTS '
-                       f'idx_exp_stoich ON {_CONFORMER_TABLE_NAME} '
+                       f'idx_exp_stoich ON {_MOLECULE_TABLE_NAME} '
                        '(exp_stoich)')
     self._conn.execute(f'CREATE TABLE IF NOT EXISTS {_BTID_TABLE_NAME} '
                        '(btid INTEGER, cid INTEGER)')
@@ -131,11 +134,11 @@ class SMUSQLite:
     self._conn.execute('PRAGMA journal_mode = MEMORY')
     self._conn.commit()
 
-  def bulk_insert(self, encoded_conformers, batch_size=10000, limit=None):
-    """Inserts conformers into the database.
+  def bulk_insert(self, encoded_molecules, batch_size=10000, limit=None):
+    """Inserts molecules into the database.
 
     Args:
-      encoded_conformers: iterable for encoded dataset_pb2.Conformer
+      encoded_molecules: iterable for encoded dataset_pb2.Molecule
       batch_size: insert performance is greatly improved by putting multiple
         insert into one transaction. 10k was a reasonable default from some
         early exploration.
@@ -143,14 +146,14 @@ class SMUSQLite:
 
     Raises:
       ReadOnlyError: if mode is 'r'
-      ValueError: If encoded_conformers is empty.
+      ValueError: If encoded_molecules is empty.
     """
     if self._read_only:
       raise ReadOnlyError()
-    if not encoded_conformers:
+    if not encoded_molecules:
       raise ValueError()
 
-    insert_conformer = (f'INSERT INTO {_CONFORMER_TABLE_NAME} '
+    insert_molecule = (f'INSERT INTO {_MOLECULE_TABLE_NAME} '
                         'VALUES (?, ?, ?)')
     insert_btid = f'INSERT INTO {_BTID_TABLE_NAME} VALUES (?, ?)'
     insert_smiles = (
@@ -160,30 +163,30 @@ class SMUSQLite:
 
     start_time = datetime.datetime.now()
 
-    pending_conformer_args = []
+    pending_molecule_args = []
     pending_btid_args = []
     pending_smiles_args = []
 
     def commit_pending():
-      cur.executemany(insert_conformer, pending_conformer_args)
+      cur.executemany(insert_molecule, pending_molecule_args)
       cur.executemany(insert_btid, pending_btid_args)
       cur.executemany(insert_smiles, pending_smiles_args)
-      pending_conformer_args.clear()
+      pending_molecule_args.clear()
       pending_btid_args.clear()
       pending_smiles_args.clear()
       self._conn.commit()
 
     idx = None
-    for idx, encoded_conformer in enumerate(encoded_conformers, 1):
-      conformer = dataset_pb2.Conformer.FromString(encoded_conformer)
+    for idx, encoded_molecule in enumerate(encoded_molecules, 1):
+      molecule = dataset_pb2.Molecule.FromString(encoded_molecule)
       expanded_stoich = (
         smu_utils_lib.expanded_stoichiometry_from_topology(
-          conformer.bond_topologies[0]))
-      pending_conformer_args.append((conformer.conformer_id, expanded_stoich,
-                                     snappy.compress(encoded_conformer)))
-      for bond_topology in conformer.bond_topologies:
+          molecule.bond_topologies[0]))
+      pending_molecule_args.append((molecule.molecule_id, expanded_stoich,
+                                     snappy.compress(encoded_molecule)))
+      for bond_topology in molecule.bond_topologies:
         pending_btid_args.append(
-            (bond_topology.bond_topology_id, conformer.conformer_id))
+            (bond_topology.bond_topology_id, molecule.molecule_id))
         pending_smiles_args.append(
             (bond_topology.smiles, bond_topology.bond_topology_id))
       if batch_size and idx % batch_size == 0:
@@ -288,34 +291,34 @@ class SMUSQLite:
 
     return {smiles: bt_id for (smiles, bt_id) in cur}
 
-  def find_by_conformer_id(self, cid):
-    """Finds the conformer associated with a conformer id.
+  def find_by_molecule_id(self, cid):
+    """Finds the molecule associated with a molecule id.
 
     Args:
-      cid: conformer id to look up.
+      cid: molecule id to look up.
 
     Returns:
-      dataset_pb2.Conformer
+      dataset_pb2.Molecule
 
     Raises:
       KeyError: if cid is not found
     """
     cur = self._conn.cursor()
-    select = f'SELECT conformer FROM {_CONFORMER_TABLE_NAME} WHERE cid = ?'
+    select = f'SELECT conformer FROM {_MOLECULE_TABLE_NAME} WHERE cid = ?'
     cur.execute(select, (cid,))
     result = cur.fetchall()
 
     if not result:
-      raise KeyError(f'Conformer id {cid} not found')
+      raise KeyError(f'Molecule id {cid} not found')
 
     # Since it's a unique index, there should only be one result and it's a
     # tuple with one value.
     assert len(result) == 1
     assert len(result[0]) == 1
-    return dataset_pb2.Conformer().FromString(snappy.uncompress(result[0][0]))
+    return dataset_pb2.Molecule().FromString(snappy.uncompress(result[0][0]))
 
   def find_by_bond_topology_id_list(self, btids, which_topologies):
-    """Finds all the conformer associated with a bond topology id.
+    """Finds all the molecule associated with a bond topology id.
 
     Args:
       btids: list of bond topology id to look up.
@@ -323,27 +326,27 @@ class SMUSQLite:
         smu_utils_lib.WhichTopologies
 
     Yields:
-      dataset_pb2.Conformer
+      dataset_pb2.Molecule
     """
     cur = self._conn.cursor()
     # DISTINCT is because the same cid can have the same btid multiple times.
     select = (''.join([
       f'SELECT DISTINCT cid, conformer '
-      f'FROM {_CONFORMER_TABLE_NAME} '
+      f'FROM {_MOLECULE_TABLE_NAME} '
       f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
       f'WHERE {_BTID_TABLE_NAME}.btid IN (',
       ','.join('?' for _ in btids),
       ')']))
     cur.execute(select, btids)
     for result in cur:
-      conformer = dataset_pb2.Conformer().FromString(snappy.uncompress(result[1]))
-      for _, bt in smu_utils_lib.iterate_bond_topologies(conformer, which_topologies):
+      molecule = dataset_pb2.Molecule().FromString(snappy.uncompress(result[1]))
+      for _, bt in smu_utils_lib.iterate_bond_topologies(molecule, which_topologies):
         if bt.bond_topology_id in btids:
-          yield conformer
+          yield molecule
           break
 
   def find_by_smiles_list(self, smiles, which_topologies):
-    """Finds all conformer associated with a given smiles string.
+    """Finds all molecule associated with a given smiles string.
 
     Args:
       smiles: list of string
@@ -351,7 +354,7 @@ class SMUSQLite:
         smu_utils_lib.WhichTopologies
 
     Returns:
-      iterable for dataset_pb2.Conformer
+      iterable for dataset_pb2.Molecule
     """
     canon_smiles = [smu_utils_lib.compute_smiles_for_rdkit_molecule(
         Chem.MolFromSmiles(s, sanitize=False), include_hs=False)
@@ -371,7 +374,7 @@ class SMUSQLite:
                                               which_topologies)
 
   def find_by_expanded_stoichiometry_list(self, exp_stoichs):
-    """Finds all of the conformers with a stoichiometry.
+    """Finds all of the molecules with a stoichiometry.
 
     The expanded stoichiometry includes hydrogens as part of the atom type.
     See smu_utils_lib.expanded_stoichiometry_from_topology for a
@@ -381,21 +384,21 @@ class SMUSQLite:
       exp_stoichs: list of string
 
     Returns:
-      iterable of dataset_pb2.Conformer
+      iterable of dataset_pb2.Molecule
     """
     cur = self._conn.cursor()
     select = (''.join([
       f'SELECT conformer '
-      f'FROM {_CONFORMER_TABLE_NAME} '
+      f'FROM {_MOLECULE_TABLE_NAME} '
       f'WHERE exp_stoich IN (',
       ','.join('?' for _ in exp_stoichs),
       ')']))
     cur.execute(select, exp_stoichs)
-    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
+    return (dataset_pb2.Molecule().FromString(snappy.uncompress(result[0]))
             for result in cur)
 
   def find_by_stoichiometry(self, stoich):
-    """Finds all conformers with a given stoichiometry.
+    """Finds all molecules with a given stoichiometry.
 
     The stoichiometry is like "C6H12".
 
@@ -405,7 +408,7 @@ class SMUSQLite:
     Args:
       stoich: stoichiometry string like "C6H12", case doesn't matter
     Returns:
-      Iterable of type dataset_pb2.Conformer.
+      Iterable of type dataset_pb2.Molecule.
     """
     exp_stoichs = list(
         smu_utils_lib.expanded_stoichiometries_from_stoichiometry(stoich))
@@ -413,7 +416,7 @@ class SMUSQLite:
 
   def find_by_topology(self, smiles, bond_lengths,
                        matching_parameters=topology_molecule.MatchingParameters()):
-    """Find all conformers which have a detected bond topology.
+    """Find all molecules which have a detected bond topology.
 
     Note that this *redoes* the detection. If you want the default detected
     versions, you can just query by SMILES string. This is only useful if you
@@ -428,29 +431,29 @@ class SMUSQLite:
         Generally should not need to be modified.
 
     Yields:
-      dataset_pb2.Conformer
+      dataset_pb2.Molecule
     """
     query_bt = smu_utils_lib.rdkit_molecule_to_bond_topology(
       smu_utils_lib.smiles_to_rdkit_molecule(smiles))
     expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(
       query_bt)
-    cnt_matched_conformer = 0
-    cnt_conformer = 0
+    cnt_matched_molecule = 0
+    cnt_molecule = 0
     logging.info('Starting query for %s with stoich %s',
                  smiles, expanded_stoich)
-    for conformer in self.find_by_expanded_stoichiometry_list([expanded_stoich]):
-      if not smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
+    for molecule in self.find_by_expanded_stoichiometry_list([expanded_stoich]):
+      if not smu_utils_lib.molecule_eligible_for_topology_detection(molecule):
         continue
-      cnt_conformer += 1
+      cnt_molecule += 1
       matches = topology_from_geom.bond_topologies_from_geom(
-          conformer,
+          molecule,
           bond_lengths=bond_lengths,
           matching_parameters=matching_parameters)
       if smiles in [bt.smiles for bt in matches.bond_topology]:
-        cnt_matched_conformer += 1
-        del conformer.bond_topologies[:]
-        conformer.bond_topologies.extend(matches.bond_topology)
-        for bt in conformer.bond_topologies:
+        cnt_matched_molecule += 1
+        del molecule.bond_topologies[:]
+        molecule.bond_topologies.extend(matches.bond_topology)
+        for bt in molecule.bond_topologies:
           try:
             bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
             bt.bond_topology_id = self.find_bond_topology_id_for_smiles(
@@ -458,9 +461,9 @@ class SMUSQLite:
           except KeyError:
             logging.error('Did not find bond topology id for smiles %s',
                           bt.smiles)
-        yield conformer
+        yield molecule
     logging.info('Topology query for %s matched %d / %d', smiles,
-                 cnt_matched_conformer, cnt_conformer)
+                 cnt_matched_molecule, cnt_molecule)
 
   def find_bond_topology_id_by_smarts(self, smarts):
     """Find all bond topology ids that match a smarts pattern.
@@ -497,9 +500,9 @@ class SMUSQLite:
     yield from cur
 
   def __iter__(self):
-    """Iterates through all dataset_pb2.Conformer in the DB."""
-    select = f'SELECT conformer FROM {_CONFORMER_TABLE_NAME} ORDER BY rowid'
+    """Iterates through all dataset_pb2.Molecule in the DB."""
+    select = f'SELECT conformer FROM {_MOLECULE_TABLE_NAME} ORDER BY rowid'
     cur = self._conn.cursor()
     cur.execute(select)
-    return (dataset_pb2.Conformer().FromString(snappy.uncompress(result[0]))
+    return (dataset_pb2.Molecule().FromString(snappy.uncompress(result[0]))
             for result in cur)

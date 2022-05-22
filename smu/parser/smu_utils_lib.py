@@ -280,25 +280,25 @@ def get_composition(topology):
   return 'x{:02d}_{}'.format(heavy_atom_count, ''.join(components))
 
 
-def get_original_label(conformer):
-  """Returns the original id used to identify this conformer.
+def get_original_label(molecule):
+  """Returns the original id used to identify this molecule.
 
-  We use an integer conformer id, but the original data used a form like
+  We use an integer molecule id, but the original data used a form like
   x07_n6oh4.099599.008
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
     string
   """
-  bt_id = conformer.conformer_id // 1000
+  bt_id = molecule.molecule_id // 1000
   if special_case_dat_id_from_bt_id(bt_id):
     bt_id = 0
   return "{:s}.{:06d}.{:03d}".format(
-    get_composition(conformer.bond_topologies[0]),
+    get_composition(molecule.bond_topologies[0]),
     bt_id,
-    conformer.conformer_id % 1000)
+    molecule.molecule_id % 1000)
 
 
 _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
@@ -776,54 +776,54 @@ class WhichTopologies(enum.Enum):
   csd = 6
 
 
-def iterate_bond_topologies(conformer, which):
-  """Iterates over (possibly a subset of) bond topologies in a conformer.
+def iterate_bond_topologies(molecule, which):
+  """Iterates over (possibly a subset of) bond topologies in a molecule.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
     which: WhichTopologies
 
   Yields
     index of topology, dataset_pb2.BondTopology
   """
   if which == WhichTopologies.all:
-    yield from enumerate(conformer.bond_topologies)
+    yield from enumerate(molecule.bond_topologies)
 
   if which == WhichTopologies.best:
-    yield 0, conformer.bond_topologies[0]
+    yield 0, molecule.bond_topologies[0]
 
   if which == WhichTopologies.starting:
-    if (conformer.properties.errors.status >= 512 or
-        conformer.duplicated_by > 0):
-      yield 0, conformer.bond_topologies[0]
-    for bt_idx, bt in enumerate(conformer.bond_topologies):
+    if (molecule.properties.errors.status >= 512 or
+        molecule.duplicated_by > 0):
+      yield 0, molecule.bond_topologies[0]
+    for bt_idx, bt in enumerate(molecule.bond_topologies):
       if (bt.is_starting_topology or
           bt.source & dataset_pb2.BondTopology.SOURCE_STARTING):
         yield bt_idx, bt
 
   if which == WhichTopologies.itc:
-    for bt_idx, bt in enumerate(conformer.bond_topologies):
+    for bt_idx, bt in enumerate(molecule.bond_topologies):
       if not bt.source or bt.source & dataset_pb2.BondTopology.SOURCE_ITC:
         yield bt_idx, bt
 
   if which == WhichTopologies.mlcr:
-    for bt_idx, bt in enumerate(conformer.bond_topologies):
+    for bt_idx, bt in enumerate(molecule.bond_topologies):
       if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR:
         yield bt_idx, bt
 
   if which == WhichTopologies.csd:
-    for bt_idx, bt in enumerate(conformer.bond_topologies):
+    for bt_idx, bt in enumerate(molecule.bond_topologies):
       if bt.source & dataset_pb2.BondTopology.SOURCE_CSD:
         yield bt_idx, bt
 
 
-def conformer_to_rdkit_molecules(conformer,
+def molecule_to_rdkit_molecules(molecule,
                            include_initial_geometries=True,
                            include_optimized_geometry=True,
                            which_topologies=WhichTopologies.all):
-  """Converts a Conformer to RDKit molecules.
+  """Converts a Molecule to RDKit molecules.
 
-  Because a Conformer can include multiple bond topologies and geometries,
+  Because a Molecule can include multiple bond topologies and geometries,
   multiple RDKit molecule objects can be produced
 
   The name of the molcule will be (all on one line)
@@ -831,7 +831,7 @@ def conformer_to_rdkit_molecules(conformer,
   bt=<bt_id>(<bt_idx>/<bt_count>)
   geom=[opt|init(<init_idx>/<init_count>)]
   where
-    confid: conformer_id
+    confid: molecule_id
     bt_id: bond_topology_id
     bt_idx: index in bond_topologies
     bt_count: size of bond_topologies
@@ -839,7 +839,7 @@ def conformer_to_rdkit_molecules(conformer,
     init_count: size of initial_geometries
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
     include_initial_geometries: output molecule for each initial_geometries
     include_optimized_geometry: output molecule for optimized_geometry
     which_topologies: WhichTopologies
@@ -847,25 +847,25 @@ def conformer_to_rdkit_molecules(conformer,
   Yields:
     rdkit.Chem.rdchem.RWMol
   """
-  bt_count = len(conformer.bond_topologies)
+  bt_count = len(molecule.bond_topologies)
   requested_bond_topologies = [
     (bt, f'{bt.bond_topology_id}({i+1}/{bt_count})')
-    for i, bt in iterate_bond_topologies(conformer, which_topologies)]
+    for i, bt in iterate_bond_topologies(molecule, which_topologies)]
 
   # requested_geometries will be a list of tuples of
   # (goemetry, label)
   # where label is a string describing the geometry
   requested_geometries = []
   if include_initial_geometries:
-    valid_init_geometries = [g for g in conformer.initial_geometries
+    valid_init_geometries = [g for g in molecule.initial_geometries
                              if g.atom_positions]
     init_count = len(valid_init_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
         for i, geom in enumerate(valid_init_geometries, start=1)
     ])
-  if include_optimized_geometry and conformer.optimized_geometry.atom_positions:
-    requested_geometries.append((conformer.optimized_geometry, 'opt'))
+  if include_optimized_geometry and molecule.optimized_geometry.atom_positions:
+    requested_geometries.append((molecule.optimized_geometry, 'opt'))
 
   for bt, bt_label in requested_bond_topologies:
     for geom, geom_label in requested_geometries:
@@ -873,7 +873,7 @@ def conformer_to_rdkit_molecules(conformer,
       mol = bond_topology_to_rdkit_molecule(bt)
       mol.SetProp(
           '_Name',
-          f'SMU {conformer.conformer_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
+          f'SMU {molecule.molecule_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
         )
 
       # Add in the coordinates
@@ -1072,31 +1072,31 @@ def bond_topology_smiles_comparison(bond_topology):
     return SmilesCompareResult.MISMATCH, smiles_with_h, smiles_without_h
 
 
-class _ConformerSource(enum.Enum):
+class _MoleculeSource(enum.Enum):
   DUPLICATE = 0
   STAGE1 = 1
   STAGE2 = 2
 
 
-def _conformer_source(conf):
-  """Determines source of given conformer."""
+def _molecule_source(conf):
+  """Determines source of given molecule."""
   if not conf.HasField('properties'):
     if conf.duplicated_by == 0 and not conf.duplicate_of:
       raise ValueError(
-          'Unknown conformer source, no properties or duplicates: ' + str(conf))
-    return _ConformerSource.DUPLICATE
+          'Unknown molecule source, no properties or duplicates: ' + str(conf))
+    return _MoleculeSource.DUPLICATE
   # Kind of a dumb hack, but the easiest thing to look for to distinguish stage1
   # and stage 2 is that stage 1 only has timings for two computation steps.
   if len(conf.properties.calculation_statistics) == 2:
-    return _ConformerSource.STAGE1
-  return _ConformerSource.STAGE2
+    return _MoleculeSource.STAGE1
+  return _MoleculeSource.STAGE2
 
 
-# A list of fields that will be returned by merge_conformer on a conflict.
-# The fields for the STAGE1 conformer are first, then fields for the STAGE2
-# conformer.
+# A list of fields that will be returned by merge_molecule on a conflict.
+# The fields for the STAGE1 molecule are first, then fields for the STAGE2
+# molecule.
 MERGE_CONFLICT_FIELDS = [
-    'conformer_id',
+    'molecule_id',
     'error_nstat1',
     'error_nstatc',
     'error_nstatv',
@@ -1116,28 +1116,28 @@ MERGE_CONFLICT_FIELDS = [
 ]
 
 
-def merge_conformer(conf1, conf2):
-  """Tries to merge information from two conformers.
+def merge_molecule(conf1, conf2):
+  """Tries to merge information from two molecules.
 
-  During the pipeline, we have partial information about conformers that we
+  During the pipeline, we have partial information about molecules that we
   need to merge. This is the workhorse function for merging these.
 
-  Only conformers with the same conformer_id should be merged.
+  Only molecules with the same molecule_id should be merged.
 
-  The key concept is to identify a source of each conformer:
+  The key concept is to identify a source of each molecule:
   * STAGE2: From end of pipeline, with mostly complete info
   * STAGE1: From after geometry optimization. Except for duplicate information
     which may have been merged, mostly contains duplicate information to
     STAGE2. However, in some cases it's expected that stage2 will differ
     because of reruns in STAGE2.
-  * DUPLICATE: An almost bare conformer with just duplicated_by and/or
+  * DUPLICATE: An almost bare molecule with just duplicated_by and/or
     duplicate_of fields
 
   May modify one of the inputs.
 
   Note that this is not the most general merge that the format suggests. In
   particular, it's expected that there is at most 1 initial_geometries and
-  1 bond_topologies (and it's the same for all conformers). The final data won't
+  1 bond_topologies (and it's the same for all molecules). The final data won't
   be like this but it handles what's in the pipeline at this point we use this.
 
   While merging STAGE1 and STAGE2, conflicting values of some fields may be
@@ -1149,23 +1149,23 @@ def merge_conformer(conf1, conf2):
   differences is found.
 
   Args:
-    conf1: dataset_pb2.Conformer
-    conf2: dataset_pb2.Conformer
+    conf1: dataset_pb2.Molecule
+    conf2: dataset_pb2.Molecule
 
   Returns:
-    dataset_pb2.Conformer, None or list of field values (see above)
+    dataset_pb2.Molecule, None or list of field values (see above)
 
   Raises:
     ValueError: if len(initial_geometries) != 1, len(bond_topologies) != 1,
       bond_topologies differ, or incompatible duplicated_by fields
   """
-  source1 = _conformer_source(conf1)
-  source2 = _conformer_source(conf2)
+  source1 = _molecule_source(conf1)
+  source2 = _molecule_source(conf2)
 
   if source1 == source2:
-    if source1 == _ConformerSource.STAGE1 or source1 == _ConformerSource.STAGE2:
+    if source1 == _MoleculeSource.STAGE1 or source1 == _MoleculeSource.STAGE2:
       raise ValueError(
-          'Can not merge two conformers of source {}'.format(source1))
+          'Can not merge two molecules of source {}'.format(source1))
     conf1.MergeFrom(conf2)
     return conf1, None
 
@@ -1196,7 +1196,7 @@ def merge_conformer(conf1, conf2):
 
   # We set the conflict info here because we'll be messing around with fields
   # below. We may not need this if we don't actually find a conflict.
-  conflict_info = [conf1.conformer_id]
+  conflict_info = [conf1.molecule_id]
   conflict_info.append(conf1.properties.errors.error_nstat1)
   conflict_info.append(conf1.properties.errors.error_nstatc)
   conflict_info.append(conf1.properties.errors.error_frequencies)  # nstatv
@@ -1216,7 +1216,7 @@ def merge_conformer(conf1, conf2):
   # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
   # merge. We look for conflicts between them and then a few special cases.
   has_conflict = False
-  if source1 == _ConformerSource.STAGE1 and source2 == _ConformerSource.STAGE2:
+  if source1 == _MoleculeSource.STAGE1 and source2 == _MoleculeSource.STAGE2:
     if len(conf1.bond_topologies) != 1 or len(conf2.bond_topologies) != 1:
       has_conflict = True
 
@@ -1272,7 +1272,7 @@ def merge_conformer(conf1, conf2):
     if conf1.properties.errors.error_frequencies == 101:
       # This happens for exactly one molecule. If anything else shows up
       # here we will mark it as a conflict so it comes out in that output
-      if conf2.conformer_id != 795795001:
+      if conf2.molecule_id != 795795001:
         has_conflict = True
     elif error_codes not in [(1, 1, 1, 1), (3, 1, 1, 1), (2, 3, 2, 1),
                              (5, 1, 3, 1), (1, 1, 101, 1)]:
@@ -1315,11 +1315,11 @@ def merge_conformer(conf1, conf2):
   return conf2, conflict_info
 
 
-def conformer_calculation_error_level(conformer):
-  """Returns whether status codes indicate this conformer had serious errors.
+def molecule_calculation_error_level(molecule):
+  """Returns whether status codes indicate this molecule had serious errors.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
     integer, higher values are more srious errors
@@ -1330,12 +1330,12 @@ def conformer_calculation_error_level(conformer):
       1: minor problems, vibrational analysis warning
       0: minor or no problem
   """
-  source = _conformer_source(conformer)
-  errors = conformer.properties.errors
+  source = _molecule_source(molecule)
+  errors = molecule.properties.errors
 
   # The levels aren't very well defined for STAGE1.
   # We'll call all errors serious
-  if source == _ConformerSource.STAGE1:
+  if source == _MoleculeSource.STAGE1:
     if errors.error_nstat1 != 1 and errors.error_nstat1 != 3:
       return 5
 
@@ -1368,25 +1368,25 @@ def conformer_calculation_error_level(conformer):
   return 0
 
 
-def filter_conformer_by_availability(conformer, allowed):
-  """Filters fields of Conformer by availability annotations.
+def filter_molecule_by_availability(molecule, allowed):
+  """Filters fields of Molecule by availability annotations.
 
-  *Modifies* the input conformer.
+  *Modifies* the input molecule.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
     allowed: list of AvailabilityEnum
   """
-  # A bit of a hack because original_conformer_index is the only field we
-  # filter in the conformer not in the properties subfield.
+  # A bit of a hack because original_molecule_index is the only field we
+  # filter in the molecule not in the properties subfield.
   if dataset_pb2.INTERNAL_ONLY not in allowed:
-    conformer.ClearField('original_conformer_index')
-  for descriptor, _ in conformer.properties.ListFields():
+    molecule.ClearField('original_molecule_index')
+  for descriptor, _ in molecule.properties.ListFields():
     if (descriptor.GetOptions().Extensions[dataset_pb2.availability]
         not in allowed):
-      conformer.properties.ClearField(descriptor.name)
-  for geometry in itertools.chain([conformer.optimized_geometry],
-                                  conformer.initial_geometries):
+      molecule.properties.ClearField(descriptor.name)
+  for geometry in itertools.chain([molecule.optimized_geometry],
+                                  molecule.initial_geometries):
     for descriptor, _ in geometry.ListFields():
       if descriptor.name == 'atom_positions':
         # We never filter atom positions and we can't call ClearField on it
@@ -1396,110 +1396,110 @@ def filter_conformer_by_availability(conformer, allowed):
         geometry.ClearField(descriptor.name)
 
 
-def should_include_in_standard(conformer):
-  """Returns whether this conformer should be included in the Standard form.
+def should_include_in_standard(molecule):
+  """Returns whether this molecule should be included in the Standard form.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
     boolean
   """
-  if conformer.duplicated_by > 0:
+  if molecule.duplicated_by > 0:
     return False
-  if conformer.which_database == dataset_pb2.COMPLETE:
+  if molecule.which_database == dataset_pb2.COMPLETE:
     return False
-  elif conformer.which_database == dataset_pb2.STANDARD:
+  elif molecule.which_database == dataset_pb2.STANDARD:
     return True
   else:
     # This should only happen with stage1 only files.
-    if conformer_calculation_error_level(conformer) > 0:
+    if molecule_calculation_error_level(molecule) > 0:
       return False
     else:
       return True
 
 
-def conformer_to_standard(conformer):
-  """Converts a Conformer from internal to 'Standard' form.
+def molecule_to_standard(molecule):
+  """Converts a Molecule from internal to 'Standard' form.
 
   The "Complete" dataset has all information that anyone could reasonably use.
   The "Standard" dataset is a reduced form with information that we trust and
   various simplifications.
 
-  *Modifies* the input conformer.
+  *Modifies* the input molecule.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
-    dataset_pb2.Conformer or None (meaning that this conformer should be
+    dataset_pb2.Molecule or None (meaning that this molecule should be
       filtered)
   """
-  if not should_include_in_standard(conformer):
+  if not should_include_in_standard(molecule):
     return None
 
-  filter_conformer_by_availability(conformer, [dataset_pb2.STANDARD])
+  filter_molecule_by_availability(molecule, [dataset_pb2.STANDARD])
 
-  return conformer
+  return molecule
 
 
-def clean_up_error_codes(conformer):
+def clean_up_error_codes(molecule):
   """Cleans up error codes for the final dataset.
 
   Two major types of thigns need to be changed.
-  * For stage1 only conformers, the new status code needs to be set
-  * For stage2 conformers, the old style error codes need to be cleared.
+  * For stage1 only molecules, the new status code needs to be set
+  * For stage2 molecules, the old style error codes need to be cleared.
 
-  Modifies the input conformer
+  Modifies the input molecule
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
   """
-  source = _conformer_source(conformer)
-  if source == _ConformerSource.STAGE1:
-    if conformer.properties.errors.status:
-      # This is a special case where the stage1 conformer was already put
+  source = _molecule_source(molecule)
+  if source == _MoleculeSource.STAGE1:
+    if molecule.properties.errors.status:
+      # This is a special case where the stage1 molecule was already put
       # together as a final entry during the merging process. Everything
       # has already been set up.
       pass
-    elif (conformer.properties.errors.error_nstat1 == 1 or
-          conformer.properties.errors.error_nstat1 == 3):
+    elif (molecule.properties.errors.error_nstat1 == 1 or
+          molecule.properties.errors.error_nstat1 == 3):
       # This should be a duplciate. If we have no record of a dup, we'll
       # leaves is as stauts 0 and let it be caught by fate below
-      if conformer.duplicated_by:
-        conformer.properties.errors.status = -1
-    elif conformer.properties.errors.error_nstat1 == 5:
+      if molecule.duplicated_by:
+        molecule.properties.errors.status = -1
+    elif molecule.properties.errors.error_nstat1 == 5:
       # optimization was successful, but optimized to different topology
-      conformer.properties.errors.status = 590
-    elif conformer.properties.errors.error_nstat1 == 2:
+      molecule.properties.errors.status = 590
+    elif molecule.properties.errors.error_nstat1 == 2:
       # optimization failed. Clean up the error codes and remove some info
-      conformer.properties.errors.status = 600
-      conformer.initial_geometries[0].ClearField('energy')
-      conformer.initial_geometries[0].ClearField('gnorm')
-      conformer.ClearField('optimized_geometry')
+      molecule.properties.errors.status = 600
+      molecule.initial_geometries[0].ClearField('energy')
+      molecule.initial_geometries[0].ClearField('gnorm')
+      molecule.ClearField('optimized_geometry')
 
     # If something isn't caught there, we'll let it go through with
     # status still unset. This will be categorized later in determine_fate
-  elif source == _ConformerSource.STAGE2:
+  elif source == _MoleculeSource.STAGE2:
     pass
   else:
     raise ValueError(
-        f'Clean up can only handle Stage1 or 2 conformers, got {conformer}')
+        f'Clean up can only handle Stage1 or 2 molecules, got {molecule}')
 
   for field in STAGE1_ERROR_FIELDS:
-    conformer.properties.errors.ClearField(field)
+    molecule.properties.errors.ClearField(field)
 
 
-def clean_up_sentinel_values(conformer):
+def clean_up_sentinel_values(molecule):
   """Removes some snetinel values, relying on empty protobuf fields to indicate absence.
 
-  Modifies the conformer
+  Modifies the molecule
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
   """
-  for geometry in itertools.chain([conformer.optimized_geometry],
-                                  conformer.initial_geometries):
+  for geometry in itertools.chain([molecule.optimized_geometry],
+                                  molecule.initial_geometries):
     for field in ['energy', 'gnorm']:
       if getattr(geometry, field).value == -1.0:
         geometry.ClearField(field)
@@ -1610,7 +1610,7 @@ _ZERO_FIELD_CHECK_ATOMIC = [
 ]
 
 
-def find_zero_values(conformer):
+def find_zero_values(molecule):
   """Finds fields whose values are exactly 0.
 
   Fields that are exactly zero are likely to be problematic in some way so we
@@ -1618,12 +1618,12 @@ def find_zero_values(conformer):
   a handful of these.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Yields:
     string of field name
   """
-  properties = conformer.properties
+  properties = molecule.properties
 
   # excitation is different because it's a MultiScalar
   if properties.HasField('excitation_energies_cc2'):
@@ -1642,56 +1642,56 @@ def find_zero_values(conformer):
           yield field
 
 
-def determine_fate(conformer):
-  """Determines the cateogrical FateCategory for conformer.
+def determine_fate(molecule):
+  """Determines the cateogrical FateCategory for molecule.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
-    dataset_pb2.Conformer.FateCategory
+    dataset_pb2.Molecule.FateCategory
   """
-  source = _conformer_source(conformer)
-  if source == _ConformerSource.DUPLICATE:
+  source = _molecule_source(molecule)
+  if source == _MoleculeSource.DUPLICATE:
     # This shouldn't really happen in the real set so we'll just leave it as
     # undefined.
-    return dataset_pb2.Conformer.FATE_UNDEFINED
+    return dataset_pb2.Molecule.FATE_UNDEFINED
 
-  elif source == _ConformerSource.STAGE1:
-    if conformer.duplicated_by > 0:
-      this_btid = conformer.conformer_id // 1000
-      other_btid = conformer.duplicated_by // 1000
+  elif source == _MoleculeSource.STAGE1:
+    if molecule.duplicated_by > 0:
+      this_btid = molecule.molecule_id // 1000
+      other_btid = molecule.duplicated_by // 1000
       if this_btid == other_btid:
-        return dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY
+        return dataset_pb2.Molecule.FATE_DUPLICATE_SAME_TOPOLOGY
       else:
-        return dataset_pb2.Conformer.FATE_DUPLICATE_DIFFERENT_TOPOLOGY
+        return dataset_pb2.Molecule.FATE_DUPLICATE_DIFFERENT_TOPOLOGY
 
-    status = conformer.properties.errors.status
+    status = molecule.properties.errors.status
     if status == 600:
-      return dataset_pb2.Conformer.FATE_GEOMETRY_OPTIMIZATION_PROBLEM
+      return dataset_pb2.Molecule.FATE_GEOMETRY_OPTIMIZATION_PROBLEM
     elif status == 590:
-      return dataset_pb2.Conformer.FATE_DISASSOCIATED
+      return dataset_pb2.Molecule.FATE_DISASSOCIATED
     elif status == 570 or status == 580:
-      return dataset_pb2.Conformer.FATE_DISCARDED_OTHER
+      return dataset_pb2.Molecule.FATE_DISCARDED_OTHER
     else:
       # This means that we can find no reason this shouldn't have gone on to
       # stage2.
-      return dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS
+      return dataset_pb2.Molecule.FATE_NO_CALCULATION_RESULTS
 
-  elif source == _ConformerSource.STAGE2:
-    error_level = conformer_calculation_error_level(conformer)
+  elif source == _MoleculeSource.STAGE2:
+    error_level = molecule_calculation_error_level(molecule)
     if error_level == 5:
-      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR
+      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_SERIOUS_ERROR
     elif error_level == 4:
-      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR
+      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_MAJOR_ERROR
     elif error_level == 3:
-      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR
+      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_MODERATE_ERROR
     elif error_level == 2:
-      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS
+      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_SERIOUS
     elif error_level == 1:
-      return dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL
+      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL
     elif error_level == 0:
-      return dataset_pb2.Conformer.FATE_SUCCESS
+      return dataset_pb2.Molecule.FATE_SUCCESS
     else:
       raise ValueError(f'Bad error_level {error_level}')
 
@@ -1699,13 +1699,13 @@ def determine_fate(conformer):
     raise ValueError(f'Got an unknown source {source}')
 
 
-def get_starting_bond_topology_index(conformer):
+def get_starting_bond_topology_index(molecule):
   """Gets the index of the bond topology which generated this calculation.
 
   see iterate_bond_topologies for fun details
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
     integer
@@ -1714,31 +1714,31 @@ def get_starting_bond_topology_index(conformer):
     ValueError: if no starting topology can be found
   """
   try:
-    bt_idx, _ = next(iterate_bond_topologies(conformer,
+    bt_idx, _ = next(iterate_bond_topologies(molecule,
                                              WhichTopologies.starting))
     return bt_idx
   except StopIteration:
     raise ValueError(
-      f'For conformer {conformer.conformer_id}, no starting topology')
+      f'For molecule {molecule.molecule_id}, no starting topology')
 
 
-def conformer_to_bond_topology_summaries(conformer):
-  """Produces BondTopologySummary protos from Conformer.
+def molecule_to_bond_topology_summaries(molecule):
+  """Produces BondTopologySummary protos from Molecule.
 
-  Since a conformer can be associated with many bond topologies, this can output
+  Since a molecule can be associated with many bond topologies, this can output
   potentially many summaries.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Yields:
     dataset_pb2.BondTopologySummary
   """
   summary = dataset_pb2.BondTopologySummary()
   try:
-    starting_idx = get_starting_bond_topology_index(conformer)
-    summary.bond_topology.CopyFrom(conformer.bond_topologies[starting_idx])
-    summary.count_attempted_conformers = 1
+    starting_idx = get_starting_bond_topology_index(molecule)
+    summary.bond_topology.CopyFrom(molecule.bond_topologies[starting_idx])
+    summary.count_attempted_molecules = 1
   except ValueError:
     starting_idx = None
     # In this case, we won't yield the summary at all so we don't set anything
@@ -1751,8 +1751,8 @@ def conformer_to_bond_topology_summaries(conformer):
     if (starting_idx is not None and
         source == dataset_pb2.BondTopology.SOURCE_ITC):
       observed_bt_id.add(
-          conformer.bond_topologies[starting_idx].bond_topology_id)
-    for bt in conformer.bond_topologies:
+          molecule.bond_topologies[starting_idx].bond_topology_id)
+    for bt in molecule.bond_topologies:
       if not source & bt.source:
         continue
       if bt.bond_topology_id in observed_bt_id:
@@ -1760,30 +1760,30 @@ def conformer_to_bond_topology_summaries(conformer):
       yield bt
       observed_bt_id.add(bt.bond_topology_id)
 
-  fate = conformer.fate
+  fate = molecule.fate
 
-  if fate == dataset_pb2.Conformer.FATE_UNDEFINED:
-    raise ValueError(f'Conformer {conformer.conformer_id} has undefined fate')
+  if fate == dataset_pb2.Molecule.FATE_UNDEFINED:
+    raise ValueError(f'Molecule {molecule.molecule_id} has undefined fate')
 
-  elif fate == dataset_pb2.Conformer.FATE_DUPLICATE_SAME_TOPOLOGY:
+  elif fate == dataset_pb2.Molecule.FATE_DUPLICATE_SAME_TOPOLOGY:
     summary.count_duplicates_same_topology = 1
 
-  elif fate == dataset_pb2.Conformer.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
+  elif fate == dataset_pb2.Molecule.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
     summary.count_duplicates_different_topology = 1
 
-  elif (fate == dataset_pb2.Conformer.FATE_GEOMETRY_OPTIMIZATION_PROBLEM or
-        fate == dataset_pb2.Conformer.FATE_DISASSOCIATED or
-        fate == dataset_pb2.Conformer.FATE_FORCE_CONSTANT_FAILURE or
-        fate == dataset_pb2.Conformer.FATE_DISCARDED_OTHER):
+  elif (fate == dataset_pb2.Molecule.FATE_GEOMETRY_OPTIMIZATION_PROBLEM or
+        fate == dataset_pb2.Molecule.FATE_DISASSOCIATED or
+        fate == dataset_pb2.Molecule.FATE_FORCE_CONSTANT_FAILURE or
+        fate == dataset_pb2.Molecule.FATE_DISCARDED_OTHER):
     summary.count_failed_geometry_optimization = 1
 
-  elif fate == dataset_pb2.Conformer.FATE_NO_CALCULATION_RESULTS:
+  elif fate == dataset_pb2.Molecule.FATE_NO_CALCULATION_RESULTS:
     summary.count_kept_geometry = 1
     summary.count_missing_calculation = 1
 
-  elif (fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_SERIOUS_ERROR or
-        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MAJOR_ERROR or
-        fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_MODERATE_ERROR):
+  elif (fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_SERIOUS_ERROR or
+        fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_MAJOR_ERROR or
+        fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
     for source, field in [
@@ -1800,8 +1800,8 @@ def conformer_to_bond_topology_summaries(conformer):
         yield other_summary
 
   elif (
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_SERIOUS or
-      fate == dataset_pb2.Conformer.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
+      fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_SERIOUS or
+      fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
     for source, field in [
@@ -1817,7 +1817,7 @@ def conformer_to_bond_topology_summaries(conformer):
         setattr(other_summary, field, 1)
         yield other_summary
 
-  elif fate == dataset_pb2.Conformer.FATE_SUCCESS:
+  elif fate == dataset_pb2.Molecule.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
     for source, field in [
@@ -1842,7 +1842,7 @@ def conformer_to_bond_topology_summaries(conformer):
   # Now emit our multiple detection records
   observed_bt_id = set()
   yielded_multi_detect = set()
-  for bt in conformer.bond_topologies:
+  for bt in molecule.bond_topologies:
     if bt.bond_topology_id not in observed_bt_id:
       observed_bt_id.add(bt.bond_topology_id)
       continue
@@ -1854,18 +1854,18 @@ def conformer_to_bond_topology_summaries(conformer):
       yielded_multi_detect.add(bt.bond_topology_id)
 
 
-def conformer_eligible_for_topology_detection(conformer):
-  """Returns whether this conformer is worthy of topology detection.
+def molecule_eligible_for_topology_detection(molecule):
+  """Returns whether this molecule is worthy of topology detection.
 
-  Simple duplicate marking or conformers with unreliable geometries are not
+  Simple duplicate marking or molecules with unreliable geometries are not
   generally useful to do topology detection.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
     bool
   """
-  return (conformer.duplicated_by == 0 and
-          conformer.properties.errors.status >= 0 and
-          conformer.properties.errors.status < 512)
+  return (molecule.duplicated_by == 0 and
+          molecule.properties.errors.status >= 0 and
+          molecule.properties.errors.status < 512)

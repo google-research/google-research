@@ -72,7 +72,7 @@ flags.DEFINE_string(
     'output_path', None,
     'Path to output file to write. If not specified, will write to stdout.')
 flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
-flags.DEFINE_list('cids', [], 'List of conformer ids to query')
+flags.DEFINE_list('cids', [], 'List of molecule ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
 flags.DEFINE_list('stoichiometries', [], 'List of stoichiometries to query')
 flags.DEFINE_string('smarts', '',
@@ -82,7 +82,7 @@ flags.DEFINE_list(
     'topology_query_smiles', [],
     'List of smiles to query, where the valid bond lengths are '
     'given by --bond_lengths_csv and --bond_lengths. '
-    'Will return all conformers where the given smiles is a '
+    'Will return all molecules where the given smiles is a '
     'valid decsription of that geometry given the bond lengths. '
     'If you are using the default bond lengths, you should just '
     'use --smiles as this method is much slower.')
@@ -108,7 +108,7 @@ flags.DEFINE_enum_class(
   'Cambridge Structural Database')
 flags.DEFINE_boolean(
     'redetect_topology', False,
-    'Whether to rerun the topology detection on the conformers')
+    'Whether to rerun the topology detection on the molecules')
 flags.DEFINE_string(
     'bond_lengths_csv', None,
     'File usually name <data>_bond_lengths.csv that contains the '
@@ -164,7 +164,7 @@ def smarts_query(db, smarts, which_topologies, outputter):
   if len(bt_ids) > _SMARTS_BT_BATCH_SIZE:
     message = (
       f'WARNING: Smarts query "{smarts}" matched {len(bt_ids)} bond topologies. '
-      'This may be very slow and produce the same conformer multiple times. '
+      'This may be very slow and produce the same molecule multiple times. '
       'Trying anyways...')
     logging.warning(message)
     print(message, file=sys.stderr, flush=True)
@@ -180,7 +180,7 @@ def smarts_query(db, smarts, which_topologies, outputter):
       count += 1
       outputter.output(c)
 
-  logging.info('SMARTS query produced %d conformers', count)
+  logging.info('SMARTS query produced %d molecules', count)
 
 
 class PBTextOutputter:
@@ -200,22 +200,22 @@ class PBTextOutputter:
       '# proto-file: third_party/google_research/google_research/smu/dataset.proto',
       file=self.outfile)
     print(
-      '# proto-message: MultipleConformers',
+      '# proto-message: MultipleMolecules',
       file=self.outfile)
 
-  def output(self, conformer):
-    """Writes a conformer.
+  def output(self, molecule):
+    """Writes a molecule.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
     """
-    # This is kind of a hack. We manually write the conformers { }
-    # formatting expected by MultipleConformers rather than actually using a
-    # MultipleConformers message.
+    # This is kind of a hack. We manually write the molecules { }
+    # formatting expected by MultipleMolecules rather than actually using a
+    # MultipleMolecules message.
     print(
-      'conformers {',
+      'molecules {',
       file=self.outfile)
-    self.outfile.write(text_format.MessageToString(conformer,
+    self.outfile.write(text_format.MessageToString(molecule,
                                                    use_short_repeated_primitives=True))
     print('}', file=self.outfile)
 
@@ -246,14 +246,14 @@ class SDFOutputter:
     else:
       self.writer = Chem.SDWriter(sys.stdout)
 
-  def output(self, conformer):
-    """Writes a Conformer.
+  def output(self, molecule):
+    """Writes a Molecule.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
     """
-    for mol in smu_utils_lib.conformer_to_rdkit_molecules(
-        conformer,
+    for mol in smu_utils_lib.molecule_to_rdkit_molecules(
+        molecule,
         include_initial_geometries=self.init_geometry,
         include_optimized_geometry=self.opt_geometry,
         which_topologies=self.which_topologies):
@@ -280,19 +280,19 @@ class Atomic2InputOutputter:
     self.which_topologies = which_topologies
     self.atomic2_writer = smu_writer_lib.Atomic2InputWriter()
 
-  def output(self, conformer):
+  def output(self, molecule):
     for bt_idx, _ in smu_utils_lib.iterate_bond_topologies(
-        conformer, self.which_topologies):
+        molecule, self.which_topologies):
       if self.output_path is None:
-        sys.stdout.write(self.atomic2_writer.process(conformer, bt_idx))
+        sys.stdout.write(self.atomic2_writer.process(molecule, bt_idx))
       else:
         with open(
             os.path.join(
                 self.output_path,
                 self.atomic2_writer.get_filename_for_atomic2_input(
-                  conformer, bt_idx)),
+                  molecule, bt_idx)),
             'w') as f:
-          f.write(self.atomic2_writer.process(conformer, bt_idx))
+          f.write(self.atomic2_writer.process(molecule, bt_idx))
 
   def close(self):
     pass
@@ -313,13 +313,13 @@ class DatOutputter:
     else:
       self.outfile = sys.stdout
 
-  def output(self, conformer):
-    """Writes a conformer.
+  def output(self, molecule):
+    """Writes a molecule.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
     """
-    self.outfile.write(self.writer.process_stage2_proto(conformer))
+    self.outfile.write(self.writer.process_stage2_proto(molecule))
 
   def close(self):
     self.outfile.close()
@@ -334,23 +334,23 @@ class ReDetectTopologiesOutputter:
     self._matching_parameters = topology_molecule.MatchingParameters()
     self._db = db
 
-  def output(self, conformer):
-    """Writes a Conformer.
+  def output(self, molecule):
+    """Writes a Molecule.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
     """
     matches = topology_from_geom.bond_topologies_from_geom(
-        conformer,
+        molecule,
         bond_lengths=self._geometry_data.bond_lengths,
         matching_parameters=self._matching_parameters)
 
     if not matches.bond_topology:
-      logging.error('No bond topology matched for %s', conformer.conformer_id)
+      logging.error('No bond topology matched for %s', molecule.molecule_id)
     else:
-      del conformer.bond_topologies[:]
-      conformer.bond_topologies.extend(matches.bond_topology)
-      for bt in conformer.bond_topologies:
+      del molecule.bond_topologies[:]
+      molecule.bond_topologies.extend(matches.bond_topology)
+      for bt in molecule.bond_topologies:
         bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
         try:
           bt.bond_topology_id = self._db.find_bond_topology_id_for_smiles(bt.smiles)
@@ -358,7 +358,7 @@ class ReDetectTopologiesOutputter:
           logging.error('Did not find bond topology id for smiles %s',
                         bt.smiles)
 
-    self._wrapped_outputter.output(conformer)
+    self._wrapped_outputter.output(molecule)
 
   def close(self):
     self._wrapped_outputter.close()
@@ -404,8 +404,8 @@ def main(argv):
 
   with contextlib.closing(outputter):
     for cid in (int(x) for x in FLAGS.cids):
-      conformer = db.find_by_conformer_id(cid)
-      outputter.output(conformer)
+      molecule = db.find_by_molecule_id(cid)
+      outputter.output(molecule)
 
     for c in db.find_by_bond_topology_id_list(
         [int(x) for x in FLAGS.btids], FLAGS.which_topologies):
@@ -415,8 +415,8 @@ def main(argv):
       outputter.output(c)
 
     for stoich in FLAGS.stoichiometries:
-      conformers = db.find_by_stoichiometry(stoich)
-      for c in conformers:
+      molecules = db.find_by_stoichiometry(stoich)
+      for c in molecules:
         outputter.output(c)
 
     for smiles in FLAGS.topology_query_smiles:
@@ -428,9 +428,9 @@ def main(argv):
     smarts_query(db, FLAGS.smarts, FLAGS.which_topologies, outputter)
 
     if FLAGS.random_fraction:
-      for conformer in db:
+      for molecule in db:
         if random.random() < FLAGS.random_fraction:
-          outputter.output(conformer)
+          outputter.output(molecule)
 
 
 if __name__ == '__main__':

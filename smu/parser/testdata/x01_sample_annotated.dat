@@ -1,5 +1,5 @@
 ================================================================================
-# From original_conformer_index, topology, bond_topology_id, conformer_id
+# From original_molecule_index, topology, bond_topology_id, molecule_id
     1    4     x01_nh3.000000.001
 Database   standard
 # From errors
@@ -16,7 +16,7 @@ Warn_NEG      0
 N
 # From topology
 x01_nh3
-# From bond_topology_id, conformer_id
+# From bond_topology_id, molecule_id
 ID  999997       1
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.200.101

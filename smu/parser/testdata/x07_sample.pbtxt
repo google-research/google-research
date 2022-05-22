@@ -1,8 +1,8 @@
 # proto-file: third_party/google_research/google_research/smu/dataset.proto
-# proto-message: MultipleConformers
-conformers {
-  conformer_id: 618451001
-  original_conformer_index: 3
+# proto-message: MultipleMolecules
+molecules {
+  molecule_id: 618451001
+  original_molecule_index: 3
   initial_geometries {
     atom_positions {
       x: -0.599232
@@ -4224,9 +4224,9 @@ conformers {
   }
   which_database: STANDARD
 }
-conformers {
-  conformer_id: 618451123
-  original_conformer_index: 4
+molecules {
+  molecule_id: 618451123
+  original_molecule_index: 4
   initial_geometries {
     atom_positions {
       x: 0.32182

@@ -88,41 +88,41 @@ def main(argv):
   count_matched = 0
 
   with open('extend_bond_dists.csv', 'w') as outf:
-    fields = ['conformer_id']
+    fields = ['molecule_id']
     for buf in buffers:
       fields.append(f'is_matched_{buf}')
       fields.append(f'num_matched_{buf}')
     writer = csv.DictWriter(outf, fields)
     writer.writeheader()
 
-    for conformer in db:
-    # for conformer in [db.find_by_conformer_id(375986006)]:
-      if conformer.fate != dataset_pb2.Conformer.FATE_DISASSOCIATED:
+    for molecule in db:
+    # for molecule in [db.find_by_molecule_id(375986006)]:
+      if molecule.fate != dataset_pb2.Molecule.FATE_DISASSOCIATED:
         continue
 
       count_processed += 1
       if count_processed % 25000 == 0:
         logging.info(f'Processed {count_processed}, matched {count_matched}')
 
-      row = {'conformer_id': conformer.conformer_id}
+      row = {'molecule_id': molecule.molecule_id}
       any_match = False
 
       for buf in buffers:
 
         matches = topology_from_geom.bond_topologies_from_geom(
-          conformer,
+          molecule,
           bond_lengths=bond_lengths[buf],
           matching_parameters=matching_parameters)
 
         matching_bt = [smiles_id_dict[bt.smiles]
                        for bt in matches.bond_topology]
         is_matched = (
-          conformer.bond_topologies[0].bond_topology_id in matching_bt)
+          molecule.bond_topologies[0].bond_topology_id in matching_bt)
 
         # if matches.bond_topology:
         #   logging.info('For %d, bt %d, got %s',
-        #                conformer.conformer_id,
-        #                conformer.bond_topologies[0].bond_topology_id,
+        #                molecule.molecule_id,
+        #                molecule.bond_topologies[0].bond_topology_id,
         #                str(matching_bt))
 
         row[f'is_matched_{buf}'] = is_matched

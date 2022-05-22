@@ -50,19 +50,19 @@ def main(argv):
   atomic2_writer = smu_writer_lib.Atomic2InputWriter()
 
   file_count = 0
-  conformer_count = 0
+  molecule_count = 0
   mismatches = 0
 
   for filepath in gfile.glob(FLAGS.input_glob):
     logging.info('Processing file %s', filepath)
     file_count += 1
     smu_parser = smu_parser_lib.SmuParser(filepath)
-    for conformer, _ in smu_parser.process_stage2():
-      conformer_count += 1
+    for molecule, _ in smu_parser.process_stage2():
+      molecule_count += 1
 
-      actual_contents = atomic2_writer.process(conformer, 0)
+      actual_contents = atomic2_writer.process(molecule, 0)
 
-      expected_fn = atomic2_writer.get_filename_for_atomic2_input(conformer, 0)
+      expected_fn = atomic2_writer.get_filename_for_atomic2_input(molecule, 0)
       with gfile.GFile(os.path.join(FLAGS.atomic2_input_dir,
                                     expected_fn)) as expected_f:
         expected_contents = expected_f.readlines()
@@ -77,12 +77,12 @@ def main(argv):
           with gfile.GFile(
               os.path.join(
                   FLAGS.output_dir,
-                  atomic2_writer.get_filename_for_atomic2_input(conformer)),
+                  atomic2_writer.get_filename_for_atomic2_input(molecule)),
               'w') as f:
             f.write(actual_contents)
 
-  status_str = ('COMPLETE: Read %d files, %d conformers, %d mismatches\n' %
-                (file_count, conformer_count, mismatches))
+  status_str = ('COMPLETE: Read %d files, %d molecules, %d mismatches\n' %
+                (file_count, molecule_count, mismatches))
 
   logging.info(status_str)
   print(status_str)

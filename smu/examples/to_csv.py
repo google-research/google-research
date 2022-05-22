@@ -38,19 +38,19 @@ writer = csv.writer(sys.stdout)
 # you like.
 #-----------------------------------------------------------------------------
 writer.writerow(
-    ['conformer_id', 'energy', 'homo', 'lumo', 'first important frequency'])
+    ['molecule_id', 'energy', 'homo', 'lumo', 'first important frequency'])
 
 count = 0
 #-----------------------------------------------------------------------------
-# This iteration will go through all conformers in the database.
+# This iteration will go through all molecules in the database.
 #-----------------------------------------------------------------------------
-for conformer in db:
+for molecule in db:
 
   #---------------------------------------------------------------------------
   # This is kind of a silly filter, but this shows how to filter
-  # for some conformers and not just the first couple.
+  # for some molecules and not just the first couple.
   #---------------------------------------------------------------------------
-  if conformer.optimized_geometry.atom_positions[0].x > -3:
+  if molecule.optimized_geometry.atom_positions[0].x > -3:
     continue
 
   #---------------------------------------------------------------------------
@@ -58,11 +58,11 @@ for conformer in db:
   # See field_access.py for more examples of accessing fields.
   #---------------------------------------------------------------------------
   writer.writerow([
-      conformer.conformer_id,
-      conformer.properties.single_point_energy_atomic_b5.value,
-      conformer.properties.homo_pbe0_6_311gd.value,
-      conformer.properties.lumo_pbe0_6_311gd.value,
-      conformer.properties.harmonic_frequencies.value[6],
+      molecule.molecule_id,
+      molecule.properties.single_point_energy_atomic_b5.value,
+      molecule.properties.homo_pbe0_6_311gd.value,
+      molecule.properties.lumo_pbe0_6_311gd.value,
+      molecule.properties.harmonic_frequencies.value[6],
   ])
 
   #---------------------------------------------------------------------------

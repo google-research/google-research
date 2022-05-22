@@ -10,9 +10,9 @@ The following examples are provided
 - `smarts.py` : using [SMARTS pattern](https://www.daylight.com/dayhtml/doc/theory/theory.smarts.html) to select bond topologies
 - `to_csv.py` : generates a CSV file with a few fields
 - `dataframe.py` : generates a [Pandas DataFrame](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html) of some field values
-- `to_rdkit.py` : converts Conformers to RDKit molecules
+- `to_rdkit.py` : converts Molecules to RDKit molecules
 - `missing_fields.py` : how to check for missing fields
-- `multiple_bond_topology.py` : illustrates some points around multiple BondTopology for each Conformer
+- `multiple_bond_topology.py` : illustrates some points around multiple BondTopology for each Molecule
 - `special_cases.py` : in the complete database, there are a number of records which have a quite different set of information in them
 - `topology_query.py`: queries by topology where the allowed bond distances are tweaked from the defaults
 - `c6h6.py` : a more complex example bringing together many of the concepts from other examples

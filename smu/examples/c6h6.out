@@ -1,7 +1,7 @@
 # Output from c6h6.py, an example bringing together many concepts
 # Please see that file for documentation
-# Found a total of 741 conformers
-conformer_id,smiles,conformer_count,dip_x,dip_y,dip_z,dip
+# Found a total of 741 molecules
+molecule_id,smiles,molecule_count,dip_x,dip_y,dip_z,dip
 79159005,C=C=CC1C=C1,1,0.00825,0.3605,0.00319,0.36060850
 79177001,C=C1C=CC=C1,1,0.12137,-0.05934,-0.20637,0.24665865
 79179001,C=CC=C1C=C1,2,0.00016,-1.2095,-0.35715,1.26112902

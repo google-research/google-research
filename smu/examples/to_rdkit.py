@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Converts Conformers to RDKit molecules."""
+"""Converts Molecules to RDKit molecules."""
 
 import sys
 
@@ -25,11 +25,11 @@ from smu.parser import smu_utils_lib
 db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
 #-----------------------------------------------------------------------------
-# We will look at one conformer that illustrates the complexities of
-# converting a conformer to molecules(s). Not all conformers will have
+# We will look at one molecule that illustrates the complexities of
+# converting a molecule to molecules(s). Not all molecules will have
 # this level of complexity.
 #-----------------------------------------------------------------------------
-conformer = db.find_by_conformer_id(8240001)
+molecule = db.find_by_molecule_id(8240001)
 
 #-----------------------------------------------------------------------------
 # This RDKit object "writer" will be used to write SDF files to stdout to
@@ -53,8 +53,8 @@ writer = Chem.SDWriter(sys.stdout)
 # The other cases below will modify these args.
 #-----------------------------------------------------------------------------
 case0_mols = list(
-    smu_utils_lib.conformer_to_rdkit_molecules(
-        conformer,
+    smu_utils_lib.molecule_to_rdkit_molecules(
+        molecule,
         include_initial_geometries=False,
         include_optimized_geometry=True,
         which_topologies=smu_utils_lib.WhichTopologies.best))
@@ -64,7 +64,7 @@ assert len(case0_mols) == 1
 print(
     'A single molecule comes from asking for only the optimized geometry and only',
     'the first bond topology')
-print('Note that the title line start with "SMU" and the conformer id')
+print('Note that the title line start with "SMU" and the molecule id')
 print('Note the "geom=opt" indicating this is the optimized geometry')
 print('Note the bt=8240(1/2) indicating this is the first of 2 bond topologies')
 print('In this case, we only generated output for a single topology')
@@ -72,8 +72,8 @@ writer.write(case0_mols[0])
 writer.flush()
 
 case1_mols = list(
-    smu_utils_lib.conformer_to_rdkit_molecules(
-        conformer,
+    smu_utils_lib.molecule_to_rdkit_molecules(
+        molecule,
         include_initial_geometries=True,
         include_optimized_geometry=False,
         which_topologies=smu_utils_lib.WhichTopologies.best))
@@ -88,8 +88,8 @@ for mol in case1_mols:
 writer.flush()
 
 case2_mols = list(
-    smu_utils_lib.conformer_to_rdkit_molecules(
-        conformer,
+    smu_utils_lib.molecule_to_rdkit_molecules(
+        molecule,
         include_initial_geometries=False,
         include_optimized_geometry=True,
         which_topologies=smu_utils_lib.WhichTopologies.all))
@@ -106,8 +106,8 @@ for mol in case2_mols:
 writer.flush()
 
 case3_mols = list(
-    smu_utils_lib.conformer_to_rdkit_molecules(
-        conformer,
+    smu_utils_lib.molecule_to_rdkit_molecules(
+        molecule,
         include_initial_geometries=True,
         include_optimized_geometry=True,
         which_topologies=smu_utils_lib.WhichTopologies.all))

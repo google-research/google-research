@@ -9,7 +9,7 @@ We use find_bond_topology_id_by_smarts to get the bt_ids
 This typically takes 20-40 seconds
 In this case we find 1743 matching bond topologies
 
-You can then use find_by_bond_topology_id_list (just like indices.py) to get the conformers
-In this case we find 1163 matching conformers
-As you can see, not all bond topology ids in the standard database will find a matching conformer
+You can then use find_by_bond_topology_id_list (just like indices.py) to get the molecules
+In this case we find 1163 matching molecules
+As you can see, not all bond topology ids in the standard database will find a matching molecule
 You can always find descriptions of all bond topologies in bond_topology.csv

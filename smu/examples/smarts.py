@@ -36,9 +36,9 @@ bt_ids = list(db.find_bond_topology_id_by_smarts(smarts))
 print('In this case we find', len(bt_ids), 'matching bond topologies')
 
 print()
-print('You can then use find_by_bond_topology_id_list (just like indices.py) to get the conformers')
-conformers = list(db.find_by_bond_topology_id_list(
+print('You can then use find_by_bond_topology_id_list (just like indices.py) to get the molecules')
+molecules = list(db.find_by_bond_topology_id_list(
     bt_ids, which_topologies=smu_utils_lib.WhichTopologies.all))
-print('In this case we find', len(conformers), 'matching conformers')
-print('As you can see, not all bond topology ids in the standard database will find a matching conformer')
+print('In this case we find', len(molecules), 'matching molecules')
+print('As you can see, not all bond topology ids in the standard database will find a matching molecule')
 print('You can always find descriptions of all bond topologies in bond_topology.csv')

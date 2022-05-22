@@ -18,7 +18,7 @@
 from smu import smu_sqlite
 
 def print_bond_topologies(conf):
-  print('Conformer', conf.conformer_id, 'has', len(conf.bond_topologies),
+  print('Molecule', conf.molecule_id, 'has', len(conf.bond_topologies),
         'bond topologies')
   for bt in conf.bond_topologies:
     print('    Topology with id', bt.bond_topology_id,
@@ -28,23 +28,23 @@ def print_bond_topologies(conf):
 
 db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
-print('Each Conformer can have multiple bond topologies associated with it')
+print('Each Molecule can have multiple bond topologies associated with it')
 
 print()
-print('Most Conformers (~96%) have exactly one bond topology like this one')
-print_bond_topologies(db.find_by_conformer_id(57429002))
+print('Most Molecules (~96%) have exactly one bond topology like this one')
+print_bond_topologies(db.find_by_molecule_id(57429002))
 
 print()
-print('Some Conformers have multiple bond topologies like this one')
-print_bond_topologies(db.find_by_conformer_id(8400001))
-print('For Conformers with multiple topologies one will generally be marked')
+print('Some Molecules have multiple bond topologies like this one')
+print_bond_topologies(db.find_by_molecule_id(8400001))
+print('For Molecules with multiple topologies one will generally be marked')
 print('with is_starting_topology, indicating that this is the topology')
 print('that was used during the initial geometry generation')
 
 print()
-print('However, the same topology id can be present multiple times for a given Conformer')
+print('However, the same topology id can be present multiple times for a given Molecule')
 print('For example, consider good old benzene')
-benzene = db.find_by_conformer_id(79488001)
+benzene = db.find_by_molecule_id(79488001)
 print_bond_topologies(benzene)
 print('These are the two kekulized forms of benzene')
 print('While the final graphs are isomorphic, for a given pair of carbons, the bond types are switched')
@@ -55,15 +55,15 @@ print(benzene.bond_topologies[1].bonds[3], end='')
 
 print()
 print('There are also some cases with a mix of same and different ids, like this')
-print_bond_topologies(db.find_by_conformer_id(3177001))
+print_bond_topologies(db.find_by_molecule_id(3177001))
 
 print()
 print('There are also a handful of special cases that have no topology marked')
 print('with is_starting_topology. These have exactly one bond topology and')
 print('1 or 2 heavy atoms')
-print_bond_topologies(db.find_by_conformer_id(899650001))
-print_bond_topologies(db.find_by_conformer_id(899651001))
-print_bond_topologies(db.find_by_conformer_id(899652001))
+print_bond_topologies(db.find_by_molecule_id(899650001))
+print_bond_topologies(db.find_by_molecule_id(899651001))
+print_bond_topologies(db.find_by_molecule_id(899652001))
 print('Those are all the cases in the standard database')
 print('There are a couple more in the complete database')
 

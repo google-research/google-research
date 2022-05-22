@@ -111,7 +111,7 @@ def indices_of_heavy_atoms(bond_topology):
   ]
 
 
-def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
+def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
   """Return all BondTopology's that are plausible.
 
     Given a molecule described by `bond_topology` and `geometry`, return all
@@ -121,7 +121,7 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
 
   Args:
     bond_lengths: matrix of interatomic distances
-    conformer_id:
+    molecule_id:
     fate: outcome of calculations
     bond_topology:
     geometry: coordinates for the bond_topology
@@ -130,20 +130,20 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
   Returns:
     TopologyMatches
   """
-  starting_topology = conformer.bond_topologies[0]
+  starting_topology = molecule.bond_topologies[0]
 
   result = dataset_pb2.TopologyMatches()  # To be returned.
   result.starting_smiles = starting_topology.smiles
-  result.conformer_id = conformer.conformer_id
-  result.fate = conformer.fate
+  result.molecule_id = molecule.molecule_id
+  result.fate = molecule.fate
 
   natoms = len(starting_topology.atoms)
   if natoms == 1:
     return result  # empty.
 
-  if len(conformer.optimized_geometry.atom_positions) != natoms:
+  if len(molecule.optimized_geometry.atom_positions) != natoms:
     return result  # empty
-  distances = utilities.distances(conformer.optimized_geometry)
+  distances = utilities.distances(molecule.optimized_geometry)
 
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a minimal BondTopology from which all others can grow
@@ -269,11 +269,11 @@ _CACHED_MLCR_DISTS = None
 _CACHED_CSD_DISTS = None
 
 
-def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
-  """Modifies conformer with our standard set of topology sensing.
+def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
+  """Modifies molecule with our standard set of topology sensing.
 
   Uses 3 sets of bond lengths to extract a set of bond topologies,
-  replaces the bond topolgies in conformer, setting appropriate
+  replaces the bond topolgies in molecule, setting appropriate
   source fields.
 
   Special case: Some SMU1 and SMU2 will fail detection because they
@@ -283,7 +283,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
   and return False
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
     bond_lengths: AllAtomPairLengthDistributions, empirical
       distribution from SMU molecules
     smiles_id_dict: dictionary from smiles string to bond topology id
@@ -308,7 +308,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
   matching_parameters.ring_atom_count_cannot_decrease = False
 
   smu_matches = bond_topologies_from_geom(
-        conformer,
+        molecule,
         bond_lengths=smu_bond_lengths,
         matching_parameters=matching_parameters)
   # print('SMU: ', [bt.smiles for bt in smu_matches.bond_topology])
@@ -316,12 +316,12 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
   if not smu_matches.bond_topology:
     # This means the SMU matching failed. We're gong to set the first bond
     # topology as starting and notify the caller
-    conformer.bond_topologies[0].source = (
+    molecule.bond_topologies[0].source = (
       dataset_pb2.BondTopology.SOURCE_ITC |
       dataset_pb2.BondTopology.SOURCE_STARTING)
     return False
 
-  starting_topology = conformer.bond_topologies[0]
+  starting_topology = molecule.bond_topologies[0]
   utilities.canonicalize_bond_topology(starting_topology)
 
   # in order to test for equivalent topologies, we jsut have to test
@@ -337,11 +337,11 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
     if bt.bonds == starting_topology.bonds:
       bt.source |= dataset_pb2.BondTopology.SOURCE_STARTING
 
-  del conformer.bond_topologies[:]
-  conformer.bond_topologies.extend(smu_matches.bond_topology)
+  del molecule.bond_topologies[:]
+  molecule.bond_topologies.extend(smu_matches.bond_topology)
 
   cov_matches = bond_topologies_from_geom(
-        conformer,
+        molecule,
         bond_lengths=_CACHED_MLCR_DISTS,
         matching_parameters=matching_parameters)
   # print('COV: ', [bt.smiles for bt in cov_matches.bond_topology])
@@ -355,7 +355,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
     bt.geometry_score = np.nan
 
   allen_matches = bond_topologies_from_geom(
-        conformer,
+        molecule,
         bond_lengths=_CACHED_CSD_DISTS,
         matching_parameters=matching_parameters)
   # print('ALLEN: ', [bt.smiles for bt in allen_matches.bond_topology])
@@ -371,13 +371,13 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
   for bt in itertools.chain(cov_matches.bond_topology,
                             allen_matches.bond_topology):
     found = False
-    for query_bt in conformer.bond_topologies:
+    for query_bt in molecule.bond_topologies:
       if query_bt.bonds == bt.bonds:
         query_bt.source |= bt.source
         found = True
         break
     if not found:
-      conformer.bond_topologies.append(bt)
+      molecule.bond_topologies.append(bt)
 
 
   return True

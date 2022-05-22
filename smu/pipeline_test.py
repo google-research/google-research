@@ -49,16 +49,16 @@ TESTDATA_PATH = os.path.join(
 class FunctionalTest(absltest.TestCase):
 
   def test_merge_duplicate_information_same_topology(self):
-    main_conf = dataset_pb2.Conformer(conformer_id=123000)
+    main_conf = dataset_pb2.Molecule(molecule_id=123000)
     main_conf.initial_geometries.add()
     main_conf.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
 
-    dup_conf = dataset_pb2.Conformer(conformer_id=123456, duplicated_by=123000)
+    dup_conf = dataset_pb2.Molecule(molecule_id=123456, duplicated_by=123000)
     dup_conf.initial_geometries.add()
     dup_conf.initial_geometries[0].atom_positions.add(x=4, y=5, z=6)
 
     got = pipeline.merge_duplicate_information(123000, [dup_conf, main_conf])
-    self.assertEqual(got.conformer_id, 123000)
+    self.assertEqual(got.molecule_id, 123000)
     self.assertEqual(got.duplicated_by, 0)
     self.assertEqual(got.duplicate_of, [123456])
     self.assertLen(got.initial_geometries, 2)
@@ -66,16 +66,16 @@ class FunctionalTest(absltest.TestCase):
     self.assertEqual(got.initial_geometries[1].atom_positions[0].x, 4)
 
   def test_merge_duplicate_information_diff_topology(self):
-    main_conf = dataset_pb2.Conformer(conformer_id=123000)
+    main_conf = dataset_pb2.Molecule(molecule_id=123000)
     main_conf.initial_geometries.add()
     main_conf.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
 
-    dup_conf = dataset_pb2.Conformer(conformer_id=456000, duplicated_by=123000)
+    dup_conf = dataset_pb2.Molecule(molecule_id=456000, duplicated_by=123000)
     dup_conf.initial_geometries.add()
     dup_conf.initial_geometries[0].atom_positions.add(x=4, y=5, z=6)
 
     got = pipeline.merge_duplicate_information(123000, [dup_conf, main_conf])
-    self.assertEqual(got.conformer_id, 123000)
+    self.assertEqual(got.molecule_id, 123000)
     self.assertEqual(got.duplicated_by, 0)
     self.assertEqual(got.duplicate_of, [456000])
     # TODO(pfr, ianwatson): implement correct copying of initial geometry
@@ -83,8 +83,8 @@ class FunctionalTest(absltest.TestCase):
     self.assertEqual(got.initial_geometries[0].atom_positions[0].x, 1)
 
   def test_extract_bond_lengths(self):
-    # This conformer does not obey valence rules, but it's fine for this test.
-    conf = dataset_pb2.Conformer(conformer_id=123000)
+    # This molecule does not obey valence rules, but it's fine for this test.
+    conf = dataset_pb2.Molecule(molecule_id=123000)
     conf.properties.errors.status = 4
     bt = conf.bond_topologies.add()
     bt.atoms.extend([
@@ -118,8 +118,8 @@ class FunctionalTest(absltest.TestCase):
         ])
 
   def test_extract_bond_lengths_max_unbonded(self):
-    # This conformer does not obery valence rules, but it's fine for this test.
-    conf = dataset_pb2.Conformer(conformer_id=123000)
+    # This molecule does not obery valence rules, but it's fine for this test.
+    conf = dataset_pb2.Molecule(molecule_id=123000)
     conf.properties.errors.status = 4
     bt = conf.bond_topologies.add()
     bt.atoms.extend([
@@ -149,8 +149,8 @@ class FunctionalTest(absltest.TestCase):
         ])
     # Note that the N-O distance is not reported while the C-O is.
 
-  def _create_dummy_conformer(self):
-    conf = dataset_pb2.Conformer(conformer_id=123000)
+  def _create_dummy_molecule(self):
+    conf = dataset_pb2.Molecule(molecule_id=123000)
     bt = conf.bond_topologies.add()
     bt.atoms.extend(
         [dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C])
@@ -161,7 +161,7 @@ class FunctionalTest(absltest.TestCase):
     return conf
 
   def test_extract_bond_lengths_has_errors(self):
-    conf = self._create_dummy_conformer()
+    conf = self._create_dummy_molecule()
     conf.properties.errors.status = 8
     got = list(
         pipeline.extract_bond_lengths(
@@ -169,7 +169,7 @@ class FunctionalTest(absltest.TestCase):
     self.assertEqual([], got)
 
   def test_extract_bond_lengths_is_dup(self):
-    conf = self._create_dummy_conformer()
+    conf = self._create_dummy_molecule()
     conf.properties.errors.status = 0
     conf.duplicated_by = 456000
     got = list(
@@ -209,8 +209,8 @@ class IntegrationTest(absltest.TestCase):
     }
 
     self.assertEqual(counters_dict['attempted_topology_matches'], 3)
-    # Conformer 620517 will not match because bond lengths are not extracted
-    # from conformers with serious errors like this.
+    # Molecule 620517 will not match because bond lengths are not extracted
+    # from molecules with serious errors like this.
     self.assertEqual(counters_dict['no_topology_matches'], 1)
     self.assertNotIn('topology_match_smiles_failure', counters_dict)
 
@@ -233,7 +233,7 @@ class IntegrationTest(absltest.TestCase):
     # Check the merge conflicts file
     with gfile.GFile(output_stem + '_conflicts-00000-of-00001.csv') as f:
       conflicts_lines = f.readlines()
-      self.assertIn('conformer_id,', conflicts_lines[0])
+      self.assertIn('molecule_id,', conflicts_lines[0])
       self.assertEqual(
           conflicts_lines[1], '618451001,1,1,1,1,'
           '-406.51179,9.999999,-406.522079,9.999999,True,True,'
@@ -269,17 +269,17 @@ class IntegrationTest(absltest.TestCase):
     with gfile.GFile(output_stem + '_bt_summary-00000-of-00001.csv') as f:
       df_bt_summary = pd.read_csv(f, index_col='bt_id')
       # Check part of the header line
-      self.assertIn('count_attempted_conformers', df_bt_summary.columns)
-      # This is the bond topology that has no conformer
-      self.assertEqual(df_bt_summary.loc[10, 'count_attempted_conformers'], 0)
-      # This is a bond topology with 1 conformer
+      self.assertIn('count_attempted_molecules', df_bt_summary.columns)
+      # This is the bond topology that has no molecule
+      self.assertEqual(df_bt_summary.loc[10, 'count_attempted_molecules'], 0)
+      # This is a bond topology with 1 molecule
       self.assertEqual(
-        df_bt_summary.loc[620517, 'count_attempted_conformers'], 1)
+        df_bt_summary.loc[620517, 'count_attempted_molecules'], 1)
       self.assertEqual(
         df_bt_summary.loc[620517, 'count_calculation_with_error'], 1)
-      # This is a bond topology with 2 conformers
+      # This is a bond topology with 2 molecules
       self.assertEqual(
-        df_bt_summary.loc[618451, 'count_attempted_conformers'], 2)
+        df_bt_summary.loc[618451, 'count_attempted_molecules'], 2)
       self.assertEqual(
         df_bt_summary.loc[618451, 'count_calculation_success'], 2)
       self.assertEqual(
@@ -303,10 +303,10 @@ class IntegrationTest(absltest.TestCase):
     standard_dataset = tf.data.TFRecordDataset(
         output_stem + '_standard_tfrecord-00000-of-00001')
     standard_output = [
-        dataset_pb2.Conformer.FromString(raw)
+        dataset_pb2.Molecule.FromString(raw)
         for raw in standard_dataset.as_numpy_iterator()
     ]
-    self.assertCountEqual([c.conformer_id for c in standard_output],
+    self.assertCountEqual([c.molecule_id for c in standard_output],
                           [618451001, 618451123])
     # Check that fields are filtered the way we expect
     self.assertFalse(
@@ -319,23 +319,23 @@ class IntegrationTest(absltest.TestCase):
     complete_dataset = tf.data.TFRecordDataset(
         output_stem + '_complete_tfrecord-00000-of-00001')
     complete_output = [
-        dataset_pb2.Conformer.FromString(raw)
+        dataset_pb2.Molecule.FromString(raw)
         for raw in complete_dataset.as_numpy_iterator()
     ]
-    self.assertCountEqual([c.conformer_id for c in complete_output],
+    self.assertCountEqual([c.molecule_id for c in complete_output],
                           [618451001, 618451123, 620517002, 79593005])
     # Check that fields are filtered the way we expect
     # The DirectRunner randomizes the order of output so we need to make sure
     # that we get a full record.
     complete_entry = [
-        c for c in complete_output if c.conformer_id == 618451001
+        c for c in complete_output if c.molecule_id == 618451001
     ][0]
     self.assertFalse(complete_entry.properties.HasField('compute_cluster_info'))
     self.assertTrue(complete_entry.properties.HasField('homo_pbe0_aug_pc_1'))
     self.assertTrue(complete_entry.properties.HasField('harmonic_frequencies'))
 
     complete_entry_for_smiles = [
-        c for c in complete_output if c.conformer_id == 620517002
+        c for c in complete_output if c.molecule_id == 620517002
     ][0]
     self.assertEqual(complete_entry_for_smiles.properties.smiles_openbabel,
                      'NotAValidSmilesString')

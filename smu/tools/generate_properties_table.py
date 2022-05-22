@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Generates tables of fields of Conformer to got into papers."""
+"""Generates tables of fields of Molecule to got into papers."""
 
 from absl import app
 
 from smu import dataset_pb2
 
-CONFORMER_FIELDS = [
+MOLECULE_FIELDS = [
     (r'bond\_topologies', '$>0$ struct',
      'Description of all bond topologies that adequately match this geometry'),
     (r'\quad .atoms', 'n * enum',
@@ -35,13 +35,13 @@ CONFORMER_FIELDS = [
      'Is this the topology used during geometry creation?'),
     (r'\quad .topology\_score', 'F', r'See Section~\ref{sec:topology_detection}'),
     (r'\quad .geometry\_score', 'F', r'See Section~\ref{sec:topology_detection}'),
-    (r'conformer\_id', 'I', 'Unique ID for this conformer'),
+    (r'molecule\_id', 'I', 'Unique ID for this molecule'),
     (r'duplicated\_by', 'I',
-     'If this conformer did not proceed to full calculation because it was a ' +
-     'duplicate, the conformer id that did proceed to full calculation'),
+     'If this molecule did not proceed to full calculation because it was a ' +
+     'duplicate, the molecule id that did proceed to full calculation'),
     (r'duplicate\_of', '$\geq 0$ * I',
-     'For conformer that proceeded to full calculation, the conformer ids of ' +
-     'any other conformers that were duplicates of this one'),
+     'For molecule that proceeded to full calculation, the molecule ids of ' +
+     'any other molecules that were duplicates of this one'),
     (r'fate', 'enum',
      'A simple categorical summary of how successful the calculations were.' +
      'See FateCategory for names and numbers'),
@@ -59,14 +59,14 @@ CONFORMER_FIELDS = [
 ]
 
 
-def conformer_table(outf):
+def molecule_table(outf):
   print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%', file=outf)
   print('%%% This section is automatically generated. Before editing, talk with Pat',
         file=outf)
-  print('% This is the contents of a table describing fields of Conformer',
+  print('% This is the contents of a table describing fields of Molecule',
         file=outf)
   #print(r'\begin{tabular}{|l|l|p{3in}}', file=outf)
-  for name, field_type, description in CONFORMER_FIELDS:
+  for name, field_type, description in MOLECULE_FIELDS:
     print(f'{name:22s}& {field_type:10s} & \n    {description} \\\\', file=outf)
   #print(r'\end{tabular}
   print('%%% End automatically generated section', file=outf)
@@ -222,8 +222,8 @@ def properties_table(outf):
 
 def main(argv):
   del argv  # Unused.
-  with open('conformer_table.tex', 'w') as outf:
-    conformer_table(outf)
+  with open('molecule_table.tex', 'w') as outf:
+    molecule_table(outf)
   with open('properties_table.tex', 'w') as outf:
     properties_table(outf)
 

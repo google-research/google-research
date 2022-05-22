@@ -27,7 +27,7 @@ db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 #-----------------------------------------------------------------------------
 count = 0
 data_dict = {
-    'conformer_id': [],
+    'molecule_id': [],
     'energy': [],
     'homo': [],
     'lumo': [],
@@ -35,17 +35,17 @@ data_dict = {
 }
 
 #-----------------------------------------------------------------------------
-# This iteration will go through all conformers in the database.
+# This iteration will go through all molecules in the database.
 #-----------------------------------------------------------------------------
-for conformer in db:
+for molecule in db:
 
-  data_dict['conformer_id'].append(conformer.conformer_id)
+  data_dict['molecule_id'].append(molecule.molecule_id)
   data_dict['energy'].append(
-      conformer.properties.single_point_energy_atomic_b5.value)
-  data_dict['homo'].append(conformer.properties.homo_pbe0_6_311gd.value)
-  data_dict['lumo'].append(conformer.properties.lumo_pbe0_6_311gd.value)
+      molecule.properties.single_point_energy_atomic_b5.value)
+  data_dict['homo'].append(molecule.properties.homo_pbe0_6_311gd.value)
+  data_dict['lumo'].append(molecule.properties.lumo_pbe0_6_311gd.value)
   data_dict['first important frequency'].append(
-      conformer.properties.harmonic_frequencies.value[6])
+      molecule.properties.harmonic_frequencies.value[6])
 
   #---------------------------------------------------------------------------
   # This breaks out of the loop after a couple of records just so this

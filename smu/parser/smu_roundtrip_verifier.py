@@ -81,7 +81,7 @@ def main(argv):
       gfile.GFile(FLAGS.output_stem + '_parse_error_unknown_regen.dat', 'w'))
 
   file_count = 0
-  conformer_count = 0
+  molecule_count = 0
   outcome_counts = collections.Counter()
 
   for filepath in gfile.glob(FLAGS.input_glob):
@@ -92,25 +92,25 @@ def main(argv):
       process_fn = smu_parser.process_stage1
     else:
       process_fn = smu_parser.process_stage2
-    for conformer, orig_contents_list in process_fn():
-      conformer_count += 1
+    for molecule, orig_contents_list in process_fn():
+      molecule_count += 1
 
       outcome = None
 
-      if isinstance(conformer, Exception):
-        if isinstance(conformer, smu_parser_lib.SmuKnownError):
+      if isinstance(molecule, Exception):
+        if isinstance(molecule, smu_parser_lib.SmuKnownError):
           outcome = Outcome.PARSE_ERROR_KNOWN
         else:
           outcome = Outcome.PARSE_ERROR_UNKNOWN
         regen_contents = '{}\n{}: {} {}\n'.format(smu_parser_lib.SEPARATOR_LINE,
-                                                  conformer.conformer_id,
-                                                  type(conformer).__name__,
-                                                  str(conformer))
+                                                  molecule.molecule_id,
+                                                  type(molecule).__name__,
+                                                  str(molecule))
       else:
         if FLAGS.stage == 'stage1':
-          regen_contents = smu_writer.process_stage1_proto(conformer)
+          regen_contents = smu_writer.process_stage1_proto(molecule)
         else:
-          regen_contents = smu_writer.process_stage2_proto(conformer)
+          regen_contents = smu_writer.process_stage2_proto(molecule)
         try:
           smu_writer_lib.check_dat_formats_match(orig_contents_list,
                                                  regen_contents.splitlines())
@@ -129,15 +129,15 @@ def main(argv):
     file_regen.close()
 
   def outcome_status(outcome):
-    if conformer_count:
-      percent = outcome_counts[outcome] / conformer_count * 100
+    if molecule_count:
+      percent = outcome_counts[outcome] / molecule_count * 100
     else:
       percent = float('nan')
     return '%5.1f%% %7d %s \n' % (percent, outcome_counts[outcome],
                                   str(outcome))
 
-  status_str = ('COMPLETE: Read %d files, %d conformers\n' %
-                (file_count, conformer_count) +
+  status_str = ('COMPLETE: Read %d files, %d molecules\n' %
+                (file_count, molecule_count) +
                 outcome_status(Outcome.SUCCESS) +
                 outcome_status(Outcome.PARSE_ERROR_KNOWN) +
                 outcome_status(Outcome.MISMATCH) +
