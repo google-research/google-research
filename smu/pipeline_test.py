@@ -49,15 +49,15 @@ TESTDATA_PATH = os.path.join(
 class FunctionalTest(absltest.TestCase):
 
   def test_merge_duplicate_information_same_topology(self):
-    main_conf = dataset_pb2.Molecule(molecule_id=123000)
-    main_conf.initial_geometries.add()
-    main_conf.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
+    main_mol = dataset_pb2.Molecule(molecule_id=123000)
+    main_mol.initial_geometries.add()
+    main_mol.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
 
-    dup_conf = dataset_pb2.Molecule(molecule_id=123456, duplicated_by=123000)
-    dup_conf.initial_geometries.add()
-    dup_conf.initial_geometries[0].atom_positions.add(x=4, y=5, z=6)
+    dup_mol = dataset_pb2.Molecule(molecule_id=123456, duplicated_by=123000)
+    dup_mol.initial_geometries.add()
+    dup_mol.initial_geometries[0].atom_positions.add(x=4, y=5, z=6)
 
-    got = pipeline.merge_duplicate_information(123000, [dup_conf, main_conf])
+    got = pipeline.merge_duplicate_information(123000, [dup_mol, main_mol])
     self.assertEqual(got.molecule_id, 123000)
     self.assertEqual(got.duplicated_by, 0)
     self.assertEqual(got.duplicate_of, [123456])
@@ -66,15 +66,15 @@ class FunctionalTest(absltest.TestCase):
     self.assertEqual(got.initial_geometries[1].atom_positions[0].x, 4)
 
   def test_merge_duplicate_information_diff_topology(self):
-    main_conf = dataset_pb2.Molecule(molecule_id=123000)
-    main_conf.initial_geometries.add()
-    main_conf.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
+    main_mol = dataset_pb2.Molecule(molecule_id=123000)
+    main_mol.initial_geometries.add()
+    main_mol.initial_geometries[0].atom_positions.add(x=1, y=2, z=3)
 
-    dup_conf = dataset_pb2.Molecule(molecule_id=456000, duplicated_by=123000)
-    dup_conf.initial_geometries.add()
-    dup_conf.initial_geometries[0].atom_positions.add(x=4, y=5, z=6)
+    dup_mol = dataset_pb2.Molecule(molecule_id=456000, duplicated_by=123000)
+    dup_mol.initial_geometries.add()
+    dup_mol.initial_geometries[0].atom_positions.add(x=4, y=5, z=6)
 
-    got = pipeline.merge_duplicate_information(123000, [dup_conf, main_conf])
+    got = pipeline.merge_duplicate_information(123000, [dup_mol, main_mol])
     self.assertEqual(got.molecule_id, 123000)
     self.assertEqual(got.duplicated_by, 0)
     self.assertEqual(got.duplicate_of, [456000])
@@ -84,9 +84,9 @@ class FunctionalTest(absltest.TestCase):
 
   def test_extract_bond_lengths(self):
     # This molecule does not obey valence rules, but it's fine for this test.
-    conf = dataset_pb2.Molecule(molecule_id=123000)
-    conf.properties.errors.status = 4
-    bt = conf.bond_topologies.add()
+    mol = dataset_pb2.Molecule(molecule_id=123000)
+    mol.properties.errors.status = 4
+    bt = mol.bond_topologies.add()
     bt.atoms.extend([
         dataset_pb2.BondTopology.ATOM_ONEG, dataset_pb2.BondTopology.ATOM_NPOS,
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_H
@@ -97,14 +97,14 @@ class FunctionalTest(absltest.TestCase):
         atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_DOUBLE)
     bt.bonds.add(
         atom_a=0, atom_b=3, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
-    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
-    conf.optimized_geometry.atom_positions.add(x=0, y=2, z=0)
-    conf.optimized_geometry.atom_positions.add(x=111, y=222, z=333)
+    mol.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    mol.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    mol.optimized_geometry.atom_positions.add(x=0, y=2, z=0)
+    mol.optimized_geometry.atom_positions.add(x=111, y=222, z=333)
 
     got = list(
         pipeline.extract_bond_lengths(
-            conf, dist_sig_digits=2, unbonded_max=2.0))
+            mol, dist_sig_digits=2, unbonded_max=2.0))
     # Note that these are *not* rounded, but truncated to this many digits.
     self.assertEqual(
         got,
@@ -119,9 +119,9 @@ class FunctionalTest(absltest.TestCase):
 
   def test_extract_bond_lengths_max_unbonded(self):
     # This molecule does not obery valence rules, but it's fine for this test.
-    conf = dataset_pb2.Molecule(molecule_id=123000)
-    conf.properties.errors.status = 4
-    bt = conf.bond_topologies.add()
+    mol = dataset_pb2.Molecule(molecule_id=123000)
+    mol.properties.errors.status = 4
+    bt = mol.bond_topologies.add()
     bt.atoms.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_O
@@ -130,13 +130,13 @@ class FunctionalTest(absltest.TestCase):
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
     bt.bonds.add(
         atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
-    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
-    conf.optimized_geometry.atom_positions.add(x=100, y=2, z=0)
+    mol.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    mol.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    mol.optimized_geometry.atom_positions.add(x=100, y=2, z=0)
 
     got = list(
         pipeline.extract_bond_lengths(
-            conf, dist_sig_digits=2, unbonded_max=2.0))
+            mol, dist_sig_digits=2, unbonded_max=2.0))
     # Note that these are *not* rounded, but truncated to this many digits.
     self.assertEqual(
         got,
@@ -150,31 +150,31 @@ class FunctionalTest(absltest.TestCase):
     # Note that the N-O distance is not reported while the C-O is.
 
   def _create_dummy_molecule(self):
-    conf = dataset_pb2.Molecule(molecule_id=123000)
-    bt = conf.bond_topologies.add()
+    mol = dataset_pb2.Molecule(molecule_id=123000)
+    bt = mol.bond_topologies.add()
     bt.atoms.extend(
         [dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C])
     bt.bonds.add(
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    conf.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
-    conf.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
-    return conf
+    mol.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
+    mol.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
+    return mol
 
   def test_extract_bond_lengths_has_errors(self):
-    conf = self._create_dummy_molecule()
-    conf.properties.errors.status = 8
+    mol = self._create_dummy_molecule()
+    mol.properties.errors.status = 8
     got = list(
         pipeline.extract_bond_lengths(
-            conf, dist_sig_digits=2, unbonded_max=2.0))
+            mol, dist_sig_digits=2, unbonded_max=2.0))
     self.assertEqual([], got)
 
   def test_extract_bond_lengths_is_dup(self):
-    conf = self._create_dummy_molecule()
-    conf.properties.errors.status = 0
-    conf.duplicated_by = 456000
+    mol = self._create_dummy_molecule()
+    mol.properties.errors.status = 0
+    mol.duplicated_by = 456000
     got = list(
         pipeline.extract_bond_lengths(
-            conf, dist_sig_digits=2, unbonded_max=2.0))
+            mol, dist_sig_digits=2, unbonded_max=2.0))
     self.assertEqual([], got)
 
 

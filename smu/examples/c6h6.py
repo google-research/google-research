@@ -61,15 +61,15 @@ print(f'# Found a total of {len(molecules)} molecules')
 #-----------------------------------------------------------------------------
 
 smiles_to_molecules = collections.defaultdict(list)
-for conf in molecules:
+for mol in molecules:
   #---------------------------------------------------------------------------
   # We select only molecules for which the status variable is 4 or lower
   # and that are not simple duplicates of others.
   # See special_cases.py for a description of the duplicated_by field
   #---------------------------------------------------------------------------
 
-  if (conf.properties.errors.status >= 4 or
-      conf.duplicated_by != 0):
+  if (mol.properties.errors.status >= 4 or
+      mol.duplicated_by != 0):
     continue
 
   #---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ for conf in molecules:
   # reminder/example. See missing_fields.py for details.
   #---------------------------------------------------------------------------
 
-  if not conf.properties.HasField('dipole_moment_pbe0_aug_pc_1'):
+  if not mol.properties.HasField('dipole_moment_pbe0_aug_pc_1'):
     continue
 
   #---------------------------------------------------------------------------
@@ -100,10 +100,10 @@ for conf in molecules:
   # If you want this, jsut uncomment the if statement below
   #---------------------------------------------------------------------------
 
-  for bt in conf.bond_topologies:
+  for bt in mol.bond_topologies:
     #if not bt.is_starting_topology:
     #  continue
-    smiles_to_molecules[bt.smiles].append(conf)
+    smiles_to_molecules[bt.smiles].append(mol)
 
 
 #-----------------------------------------------------------------------------
@@ -123,23 +123,23 @@ writer.writerow(['molecule_id',
                  'dip'])
 
 for smiles in smiles_to_molecules:
-  energies = [conf.properties.enthalpy_of_formation_298k_atomic_b5.value
-              for conf in smiles_to_molecules[smiles]]
+  energies = [mol.properties.enthalpy_of_formation_298k_atomic_b5.value
+              for mol in smiles_to_molecules[smiles]]
   #---------------------------------------------------------------------------
   # While this line may look mysterious, it's doing exactly what the words say:
   # it finds the index of the minimum value of the energies
   #---------------------------------------------------------------------------
   min_energy_molecule_idx = energies.index(min(energies))
-  conf = smiles_to_molecules[smiles][min_energy_molecule_idx]
+  mol = smiles_to_molecules[smiles][min_energy_molecule_idx]
 
   #---------------------------------------------------------------------------
   # See field_access.py for details on the formats of many different kinds of
   # fields
   #---------------------------------------------------------------------------
 
-  dipole = conf.properties.dipole_moment_pbe0_aug_pc_1
+  dipole = mol.properties.dipole_moment_pbe0_aug_pc_1
   writer.writerow([
-    conf.molecule_id,
+    mol.molecule_id,
     smiles,
     len(smiles_to_molecules[smiles]),
     dipole.x,

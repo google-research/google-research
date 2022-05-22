@@ -204,20 +204,20 @@ class GoldenTest(parameterized.TestCase):
 class ParseLongIdentifierTest(absltest.TestCase):
 
   def test_success_smu7(self):
-    num_heavy_atoms, stoich, btid, cid = smu_parser_lib.parse_long_identifier(
+    num_heavy_atoms, stoich, btid, mid = smu_parser_lib.parse_long_identifier(
         'x07_c4o2fh7.618451.001')
     self.assertEqual(7, num_heavy_atoms)
     self.assertEqual('c4o2fh7', stoich)
     self.assertEqual(618451, btid)
-    self.assertEqual(1, cid)
+    self.assertEqual(1, mid)
 
   def test_success_smu2(self):
-    num_heavy_atoms, stoich, btid, cid = smu_parser_lib.parse_long_identifier(
+    num_heavy_atoms, stoich, btid, mid = smu_parser_lib.parse_long_identifier(
         'x02_c2h2.123.456')
     self.assertEqual(2, num_heavy_atoms)
     self.assertEqual('c2h2', stoich)
     self.assertEqual(123, btid)
-    self.assertEqual(456, cid)
+    self.assertEqual(456, mid)
 
   def test_failure(self):
     with self.assertRaises(ValueError):

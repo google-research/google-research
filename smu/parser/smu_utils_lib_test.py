@@ -1013,97 +1013,97 @@ class MergeMoleculesTest(absltest.TestCase):
     duplicate_molecule2 = copy.deepcopy(self.duplicate_molecule)
     duplicate_molecule2.duplicate_of[:] = [333, 444]
 
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.duplicate_molecule, duplicate_molecule2)
     self.assertIsNone(got_conflict)
-    self.assertEqual(123, got_conf.duplicated_by)
-    self.assertCountEqual([111, 222, 333, 444], got_conf.duplicate_of)
+    self.assertEqual(123, got_mol.duplicated_by)
+    self.assertCountEqual([111, 222, 333, 444], got_mol.duplicate_of)
 
   def test_stage2_stage1(self):
     # Add a duplicate to stage1 to make sure it is copied
     self.stage1_molecule.duplicate_of.append(999)
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_conf.duplicate_of, [999])
+    self.assertEqual(got_mol.duplicate_of, [999])
     # Just check a random field that is in stage2 but not stage1
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
 
   def test_stage2_stage1_conflict_energy(self):
     self.stage2_molecule.initial_geometries[0].energy.value = -1.23
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
         618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
         True, -1.23, 0.052254, -406.522079, 2.5e-05, True, True
     ])
     # Just check a random field that is in stage2 but not stage1
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
     # This stage1 value should be returned
-    self.assertEqual(got_conf.initial_geometries[0].energy.value,
+    self.assertEqual(got_mol.initial_geometries[0].energy.value,
                      -406.51179)
 
   def test_stage2_stage1_conflict_missing_iniital_geometry_field(self):
     del self.stage2_molecule.initial_geometries[:]
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
         618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
         True, 0.0, 0.0, -406.522079, 2.5e-05, False, True
     ])
     # Just check a random field that is in stage2 but not stage1
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
 
   def test_stage2_stage1_conflict_missing_iniital_geometry(self):
     del self.stage2_molecule.initial_geometries[0].atom_positions[:]
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
         618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
         True, -406.51179, 0.052254, -406.522079, 2.5e-05, False, True
     ])
     # Just check a random field that is in stage2 but not stage1
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
 
   def test_stage2_stage1_conflict_missing_optimized_geometry_field(self):
     self.stage2_molecule.ClearField('optimized_geometry')
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
         618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
         True, -406.51179, 0.052254, 0.0, 0.0, True, False
     ])
     # Just check a random field that is in stage2 but not stage1
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
 
   def test_stage2_stage1_conflict_missing_optimized_geometry(self):
     del self.stage2_molecule.optimized_geometry.atom_positions[:]
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
         618451001, 1, 1, 1, 1, -406.51179, 0.052254, -406.522079, 2.5e-05, True,
         True, -406.51179, 0.052254, -406.522079, 2.5e-05, True, False
     ])
     # Just check a random field that is in stage2 but not stage1
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
 
   def test_stage2_stage1_no_conflict_minus1(self):
     # If stage2 contains a -1, we keep that (stricter error checking later on)
     self.stage2_molecule.initial_geometries[0].energy.value = -1.0
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
     # This stage1 value should be returned
-    self.assertEqual(got_conf.initial_geometries[0].energy.value,
+    self.assertEqual(got_mol.initial_geometries[0].energy.value,
                      -406.51179)
 
   def test_stage2_stage1_no_conflict_approx_equal(self):
     self.stage2_molecule.initial_geometries[0].energy.value += 1e-7
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
     # Just check a random field from stage2
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
 
   def test_status_800(self):
     self.stage2_molecule.properties.errors.status = 800
@@ -1111,12 +1111,12 @@ class MergeMoleculesTest(absltest.TestCase):
     self.stage2_molecule.initial_geometries[0].energy.value += 12345
     expected_init_energy = (
         self.stage1_molecule.initial_geometries[0].energy.value)
-    got_conf, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
+    got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                                 self.stage1_molecule)
-    self.assertEqual(got_conf.properties.errors.status, 580)
-    self.assertEqual(got_conf.initial_geometries[0].energy.value,
+    self.assertEqual(got_mol.properties.errors.status, 580)
+    self.assertEqual(got_mol.initial_geometries[0].energy.value,
                      expected_init_energy)
-    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
+    self.assertEqual(got_mol.properties.errors.warn_vib_imaginary, 0)
 
   def test_status_700(self):
     self.stage2_molecule.properties.errors.status = 700
@@ -1124,34 +1124,34 @@ class MergeMoleculesTest(absltest.TestCase):
     self.stage2_molecule.initial_geometries[0].energy.value += 12345
     expected_init_energy = (
         self.stage1_molecule.initial_geometries[0].energy.value)
-    got_conf, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
+    got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                                 self.stage1_molecule)
-    self.assertEqual(got_conf.properties.errors.status, 570)
-    self.assertEqual(got_conf.initial_geometries[0].energy.value,
+    self.assertEqual(got_mol.properties.errors.status, 570)
+    self.assertEqual(got_mol.initial_geometries[0].energy.value,
                      expected_init_energy)
-    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 0)
+    self.assertEqual(got_mol.properties.errors.warn_vib_imaginary, 0)
 
   def test_status_800_warn_vib_2(self):
     self.stage2_molecule.properties.errors.status = 800
     # We set two values because 1 is any negative and 2 is for a large negative
     self.stage1_molecule.properties.harmonic_frequencies.value[3] = -123
     self.stage1_molecule.properties.harmonic_frequencies.value[4] = -1
-    got_conf, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
+    got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                                 self.stage1_molecule)
-    self.assertEqual(got_conf.properties.errors.status, 580)
-    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 2)
+    self.assertEqual(got_mol.properties.errors.status, 580)
+    self.assertEqual(got_mol.properties.errors.warn_vib_imaginary, 2)
 
   def test_status_800_warn_vib_1(self):
     self.stage2_molecule.properties.errors.status = 800
     self.stage1_molecule.properties.harmonic_frequencies.value[4] = -1
-    got_conf, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
+    got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                                 self.stage1_molecule)
-    self.assertEqual(got_conf.properties.errors.status, 580)
-    self.assertEqual(got_conf.properties.errors.warn_vib_imaginary, 1)
+    self.assertEqual(got_mol.properties.errors.status, 580)
+    self.assertEqual(got_mol.properties.errors.warn_vib_imaginary, 1)
 
   def test_error_frequencies_101(self):
     self.stage1_molecule.properties.errors.error_frequencies = 101
-    unused_got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    unused_got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.stage2_molecule)
     self.assertIsNotNone(got_conflict)
 
@@ -1159,7 +1159,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.stage1_molecule.molecule_id = 795795001
     self.stage2_molecule.molecule_id = 795795001
     self.stage1_molecule.properties.errors.error_frequencies = 101
-    unused_got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    unused_got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.stage2_molecule)
     self.assertIsNone(got_conflict)
 
@@ -1168,27 +1168,27 @@ class MergeMoleculesTest(absltest.TestCase):
     self.stage1_molecule.properties.errors.error_nstat1 = 3
     self.stage1_molecule.properties.errors.error_nstatc = 3
     self.stage1_molecule.properties.errors.error_frequencies = 3
-    unused_got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    unused_got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.stage2_molecule)
     self.assertIsNotNone(got_conflict)
 
   def test_stage2_duplicate(self):
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.duplicate_molecule)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_conf.duplicate_of, [111, 222])
-    self.assertEqual(got_conf.duplicated_by, 123)
+    self.assertEqual(got_mol.duplicate_of, [111, 222])
+    self.assertEqual(got_mol.duplicated_by, 123)
     # Just check a random field from stage2
-    self.assertNotEmpty(got_conf.properties.normal_modes)
+    self.assertNotEmpty(got_mol.properties.normal_modes)
 
   def test_stage1_duplicate(self):
-    got_conf, got_conflict = smu_utils_lib.merge_molecule(
+    got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.duplicate_molecule)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_conf.duplicate_of, [111, 222])
-    self.assertEqual(got_conf.duplicated_by, 123)
+    self.assertEqual(got_mol.duplicate_of, [111, 222])
+    self.assertEqual(got_mol.duplicated_by, 123)
     # Just check a random field from stage1
-    self.assertTrue(got_conf.properties.HasField('harmonic_frequencies'))
+    self.assertTrue(got_mol.properties.HasField('harmonic_frequencies'))
 
   def test_multiple_initial_geometries(self):
     bad_molecule = copy.deepcopy(self.stage1_molecule)

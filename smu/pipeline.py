@@ -63,7 +63,7 @@ flags.DEFINE_string('input_bond_topology_csv', None,
 flags.DEFINE_string(
     'input_equivalent_glob', None,
     'Glob of files containing list of equivalent structure (usually '
-    'list.equivalent_isomers.dat and list.equivalent_confomers.dat)')
+    'list.equivalent_isomers.dat and list.equivalent_molomers.dat)')
 flags.DEFINE_string('output_stem', None, 'Filestem for output files')
 flags.DEFINE_integer('output_shards', 10,
                      'Number of output shards for our primary outputs')
@@ -91,15 +91,15 @@ def parse_equivalent_file(filename):
   with gfile.GFile(filename) as f:
     for line in f:
       kept_str, discard_str = line.split()
-      _, _, kept_btid, kept_cid = smu_parser_lib.parse_long_identifier(kept_str)
-      _, _, discard_btid, discard_cid = smu_parser_lib.parse_long_identifier(
+      _, _, kept_btid, kept_mid = smu_parser_lib.parse_long_identifier(kept_str)
+      _, _, discard_btid, discard_mid = smu_parser_lib.parse_long_identifier(
           discard_str)
       # Convert to our molecule ids which include the btid
-      kept_cid = kept_btid * 1000 + kept_cid
-      discard_cid = discard_btid * 1000 + discard_cid
+      kept_mid = kept_btid * 1000 + kept_mid
+      discard_mid = discard_btid * 1000 + discard_mid
 
       yield dataset_pb2.Molecule(
-          molecule_id=discard_cid, duplicated_by=kept_cid)
+          molecule_id=discard_mid, duplicated_by=kept_mid)
 
 
 def parse_dat_file(filename, stage):
@@ -279,16 +279,16 @@ class MergeMoleculesFn(beam.DoFn):
 
     conflicts = []
 
-    def _merge_two_molecules(conf0, conf1):
-      if conf0 is sentinel:
-        return conf1
+    def _merge_two_molecules(mol0, mol1):
+      if mol0 is sentinel:
+        return mol1
 
-      merged_conf, merge_conflict = smu_utils_lib.merge_molecule(conf0, conf1)
+      merged_mol, merge_conflict = smu_utils_lib.merge_molecule(mol0, mol1)
       if merge_conflict:
         beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                      'molecule_merge_error').inc()
         conflicts.append(merge_conflict)
-      return merged_conf
+      return merged_mol
 
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'merged_molecules').inc()
 
@@ -562,17 +562,17 @@ def merge_duplicate_information(molecule_id, molecules):
         molecule_id, len(matching_molecules)))
   main_molecule = copy.deepcopy(matching_molecules[0])
 
-  for conf in molecules:
-    if conf.molecule_id == molecule_id:
+  for mol in molecules:
+    if mol.molecule_id == molecule_id:
       continue
-    if conf.duplicated_by != molecule_id:
+    if mol.duplicated_by != molecule_id:
       raise ValueError(
           'Molecule {} should have duplicated_by {} but has {}'.format(
-              conf.molecule_id, molecule_id, conf.duplicated_by))
-    main_molecule.duplicate_of.append(conf.molecule_id)
-    if molecule_id // 1000 == conf.molecule_id // 1000:
+              mol.molecule_id, molecule_id, mol.duplicated_by))
+    main_molecule.duplicate_of.append(mol.molecule_id)
+    if molecule_id // 1000 == mol.molecule_id // 1000:
       # easy case! Bond topologies are the same, just copy over
-      main_molecule.initial_geometries.append(conf.initial_geometries[0])
+      main_molecule.initial_geometries.append(mol.initial_geometries[0])
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'dup_same_topology').inc()
     else:

@@ -47,7 +47,7 @@ During the build of the database, we add several indices for fast lookup. You ca
 
 * `--btids`: List of bond topology ids (e.g 85532). All molecules with this bond topology ID (including the detected bond topologies) are returned.
 
-* `--cids`: List of molecule id (eg 85532001). Zero or one molecules will be returned for each cid.
+* `--mids`: List of molecule id (eg 85532001). Zero or one molecules will be returned for each mid.
 
 * `--smiles`: List of SMILES strings (e.g. CC=O). All molecules with bond topologies represented by these SMILES (including the detected bond topologies) are returned. Note that these inputs will be recanonicalized using the same procedure we used to build the database so alternative SMILES that are the same bond topology will return the same set of results. Note that if aromatic smiles are given one of the kekulized forms will be chosen somewhat arbitrarily. However, because of our geometry detection, this should still return the set of molecules covering the other kekulized form.
 
@@ -111,7 +111,7 @@ Find the record for a specific molecule id.
 ```
 python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
---cids 85485001 \
+--mids 85485001 \
 --output_format sdf_opt
 ```
 
@@ -119,7 +119,7 @@ Find the records for a bunch of molecule ids and send the output to a file
 ```
 python -m smu.query_sqlite \
 --input_sqlite 20220128_complete.sqlite \
---cids 1001,4001,1193001,81680048,91856010,102959011,102959027,108993002,200252001,405360002,899649001,899650001,899651001,899652001  \
+--mids 1001,4001,1193001,81680048,91856010,102959011,102959027,108993002,200252001,405360002,899649001,899650001,899651001,899652001  \
 --output_path /tmp/example.pbtxt
 ```
 

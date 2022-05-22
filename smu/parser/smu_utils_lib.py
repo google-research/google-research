@@ -827,11 +827,11 @@ def molecule_to_rdkit_molecules(molecule,
   multiple RDKit molecule objects can be produced
 
   The name of the molcule will be (all on one line)
-  SMU <confid>
+  SMU <molid>
   bt=<bt_id>(<bt_idx>/<bt_count>)
   geom=[opt|init(<init_idx>/<init_count>)]
   where
-    confid: molecule_id
+    molid: molecule_id
     bt_id: bond_topology_id
     bt_idx: index in bond_topologies
     bt_count: size of bond_topologies
@@ -1078,16 +1078,16 @@ class _MoleculeSource(enum.Enum):
   STAGE2 = 2
 
 
-def _molecule_source(conf):
+def _molecule_source(mol):
   """Determines source of given molecule."""
-  if not conf.HasField('properties'):
-    if conf.duplicated_by == 0 and not conf.duplicate_of:
+  if not mol.HasField('properties'):
+    if mol.duplicated_by == 0 and not mol.duplicate_of:
       raise ValueError(
-          'Unknown molecule source, no properties or duplicates: ' + str(conf))
+          'Unknown molecule source, no properties or duplicates: ' + str(mol))
     return _MoleculeSource.DUPLICATE
   # Kind of a dumb hack, but the easiest thing to look for to distinguish stage1
   # and stage 2 is that stage 1 only has timings for two computation steps.
-  if len(conf.properties.calculation_statistics) == 2:
+  if len(mol.properties.calculation_statistics) == 2:
     return _MoleculeSource.STAGE1
   return _MoleculeSource.STAGE2
 
@@ -1116,7 +1116,7 @@ MERGE_CONFLICT_FIELDS = [
 ]
 
 
-def merge_molecule(conf1, conf2):
+def merge_molecule(mol1, mol2):
   """Tries to merge information from two molecules.
 
   During the pipeline, we have partial information about molecules that we
@@ -1149,8 +1149,8 @@ def merge_molecule(conf1, conf2):
   differences is found.
 
   Args:
-    conf1: dataset_pb2.Molecule
-    conf2: dataset_pb2.Molecule
+    mol1: dataset_pb2.Molecule
+    mol2: dataset_pb2.Molecule
 
   Returns:
     dataset_pb2.Molecule, None or list of field values (see above)
@@ -1159,49 +1159,49 @@ def merge_molecule(conf1, conf2):
     ValueError: if len(initial_geometries) != 1, len(bond_topologies) != 1,
       bond_topologies differ, or incompatible duplicated_by fields
   """
-  source1 = _molecule_source(conf1)
-  source2 = _molecule_source(conf2)
+  source1 = _molecule_source(mol1)
+  source2 = _molecule_source(mol2)
 
   if source1 == source2:
     if source1 == _MoleculeSource.STAGE1 or source1 == _MoleculeSource.STAGE2:
       raise ValueError(
           'Can not merge two molecules of source {}'.format(source1))
-    conf1.MergeFrom(conf2)
-    return conf1, None
+    mol1.MergeFrom(mol2)
+    return mol1, None
 
   if source2.value < source1.value:
-    conf1, conf2 = conf2, conf1
+    mol1, mol2 = mol2, mol1
     source1, source2 = source2, source1
 
-  if len(conf1.initial_geometries) > 1:
+  if len(mol1.initial_geometries) > 1:
     raise ValueError('At most 1 initial_geometries allowed, got {}'.format(
-        len(conf1.initial_geometries)))
-  if len(conf2.initial_geometries) > 1:
+        len(mol1.initial_geometries)))
+  if len(mol2.initial_geometries) > 1:
     raise ValueError('At most 1 initial_geometries allowed, got {}'.format(
-        len(conf2.initial_geometries)))
+        len(mol2.initial_geometries)))
 
-  if len(conf1.bond_topologies) > 1:
+  if len(mol1.bond_topologies) > 1:
     raise ValueError('At most 1 bond_topologies allowed, got {}'.format(
-        len(conf1.initial_geometries)))
-  if len(conf2.bond_topologies) > 1:
+        len(mol1.initial_geometries)))
+  if len(mol2.bond_topologies) > 1:
     raise ValueError('At most 1 bond_topologies allowed, got {}'.format(
-        len(conf2.initial_geometries)))
+        len(mol2.initial_geometries)))
 
-  if conf1.bond_topologies and conf2.bond_topologies:
-    if conf1.bond_topologies[0] != conf2.bond_topologies[0]:
+  if mol1.bond_topologies and mol2.bond_topologies:
+    if mol1.bond_topologies[0] != mol2.bond_topologies[0]:
       raise ValueError(
           'All bond topologies must be the same, got ids {} and {}'.format(
-              conf1.bond_topologies[0].bond_topology_id,
-              conf2.bond_topologies[0].bond_topology_id))
+              mol1.bond_topologies[0].bond_topology_id,
+              mol2.bond_topologies[0].bond_topology_id))
 
   # We set the conflict info here because we'll be messing around with fields
   # below. We may not need this if we don't actually find a conflict.
-  conflict_info = [conf1.molecule_id]
-  conflict_info.append(conf1.properties.errors.error_nstat1)
-  conflict_info.append(conf1.properties.errors.error_nstatc)
-  conflict_info.append(conf1.properties.errors.error_frequencies)  # nstatv
-  conflict_info.append(conf1.properties.errors.error_nstatt)
-  for c in [conf1, conf2]:
+  conflict_info = [mol1.molecule_id]
+  conflict_info.append(mol1.properties.errors.error_nstat1)
+  conflict_info.append(mol1.properties.errors.error_nstatc)
+  conflict_info.append(mol1.properties.errors.error_frequencies)  # nstatv
+  conflict_info.append(mol1.properties.errors.error_nstatt)
+  for c in [mol1, mol2]:
     if c.initial_geometries:
       conflict_info.append(c.initial_geometries[0].energy.value)
       conflict_info.append(c.initial_geometries[0].gnorm.value)
@@ -1217,29 +1217,29 @@ def merge_molecule(conf1, conf2):
   # merge. We look for conflicts between them and then a few special cases.
   has_conflict = False
   if source1 == _MoleculeSource.STAGE1 and source2 == _MoleculeSource.STAGE2:
-    if len(conf1.bond_topologies) != 1 or len(conf2.bond_topologies) != 1:
+    if len(mol1.bond_topologies) != 1 or len(mol2.bond_topologies) != 1:
       has_conflict = True
 
-    if len(conf1.initial_geometries) != len(conf2.initial_geometries):
+    if len(mol1.initial_geometries) != len(mol2.initial_geometries):
       has_conflict = True
-    elif len(conf1.initial_geometries) == 1:
-      if (len(conf1.initial_geometries[0].atom_positions) !=
-          len(conf2.initial_geometries[0].atom_positions)):
+    elif len(mol1.initial_geometries) == 1:
+      if (len(mol1.initial_geometries[0].atom_positions) !=
+          len(mol2.initial_geometries[0].atom_positions)):
         has_conflict = True
 
-    if (conf1.HasField('optimized_geometry') !=
-        conf2.HasField('optimized_geometry')):
+    if (mol1.HasField('optimized_geometry') !=
+        mol2.HasField('optimized_geometry')):
       has_conflict = True
 
-    if (len(conf1.optimized_geometry.atom_positions) !=
-        len(conf2.optimized_geometry.atom_positions)):
+    if (len(mol1.optimized_geometry.atom_positions) !=
+        len(mol2.optimized_geometry.atom_positions)):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
       # Only stage1 uses these old style error fields, so we just copy them
       # over
-      setattr(conf2.properties.errors, field,
-              getattr(conf1.properties.errors, field))
+      setattr(mol2.properties.errors, field,
+              getattr(mol1.properties.errors, field))
 
     for field_fn, atol in [
         (lambda c: c.initial_geometries[0].energy, 2e-6),
@@ -1248,11 +1248,11 @@ def merge_molecule(conf1, conf2):
         (lambda c: c.optimized_geometry.gnorm, 1e-6),
     ]:
       try:
-        val1 = field_fn(conf1).value
+        val1 = field_fn(mol1).value
       except IndexError:
         val1 = 0.0
       try:
-        val2 = field_fn(conf2).value
+        val2 = field_fn(mol2).value
       except IndexError:
         val2 = 0.0
       # In some cases, stage2 files have -1 for these fields where stage1
@@ -1265,14 +1265,14 @@ def merge_molecule(conf1, conf2):
 
     # This isn't actually a conflict per-se, but we want to find anything that
     # is not an allowed set of combinations of error values.
-    error_codes = (conf1.properties.errors.error_nstat1,
-                   conf1.properties.errors.error_nstatc,
-                   conf1.properties.errors.error_frequencies,
-                   conf1.properties.errors.error_nstatt)
-    if conf1.properties.errors.error_frequencies == 101:
+    error_codes = (mol1.properties.errors.error_nstat1,
+                   mol1.properties.errors.error_nstatc,
+                   mol1.properties.errors.error_frequencies,
+                   mol1.properties.errors.error_nstatt)
+    if mol1.properties.errors.error_frequencies == 101:
       # This happens for exactly one molecule. If anything else shows up
       # here we will mark it as a conflict so it comes out in that output
-      if conf2.molecule_id != 795795001:
+      if mol2.molecule_id != 795795001:
         has_conflict = True
     elif error_codes not in [(1, 1, 1, 1), (3, 1, 1, 1), (2, 3, 2, 1),
                              (5, 1, 3, 1), (1, 1, 101, 1)]:
@@ -1280,39 +1280,39 @@ def merge_molecule(conf1, conf2):
 
     # After all of that, we always take the stage1 initial energy,
     # gradient norm, and positions.
-    if conf2.initial_geometries:
-      conf2.initial_geometries[0].CopyFrom(conf1.initial_geometries[0])
+    if mol2.initial_geometries:
+      mol2.initial_geometries[0].CopyFrom(mol1.initial_geometries[0])
     else:
-      conf2.initial_geometries.append(conf1.initial_geometries[0])
+      mol2.initial_geometries.append(mol1.initial_geometries[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
-    if (conf2.properties.errors.status == 800 or
-        conf2.properties.errors.status == 700):
+    if (mol2.properties.errors.status == 800 or
+        mol2.properties.errors.status == 700):
       # Flip back because we will base everything on the stage1 file
-      conf1, conf2 = conf2, conf1
+      mol1, mol2 = mol2, mol1
       source1, source2 = source2, source1
 
-      conf2.properties.errors.status = (500 +
-                                        conf1.properties.errors.status // 10)
-      conf2.which_database = dataset_pb2.COMPLETE
-      if np.any(np.asarray(conf2.properties.harmonic_frequencies.value) < -30):
-        conf2.properties.errors.warn_vib_imaginary = 2
-      elif np.any(np.asarray(conf2.properties.harmonic_frequencies.value) < 0):
-        conf2.properties.errors.warn_vib_imaginary = 1
+      mol2.properties.errors.status = (500 +
+                                        mol1.properties.errors.status // 10)
+      mol2.which_database = dataset_pb2.COMPLETE
+      if np.any(np.asarray(mol2.properties.harmonic_frequencies.value) < -30):
+        mol2.properties.errors.warn_vib_imaginary = 2
+      elif np.any(np.asarray(mol2.properties.harmonic_frequencies.value) < 0):
+        mol2.properties.errors.warn_vib_imaginary = 1
 
   # Move over all duplicate info.
-  if (conf1.duplicated_by != 0 and conf2.duplicated_by != 0 and
-      conf1.duplicated_by != conf2.duplicated_by):
+  if (mol1.duplicated_by != 0 and mol2.duplicated_by != 0 and
+      mol1.duplicated_by != mol2.duplicated_by):
     raise ValueError('Incompatible duplicated_by {} {}'.format(
-        conf1.duplicated_by, conf2.duplicated_by))
+        mol1.duplicated_by, mol2.duplicated_by))
   # max is just to get the non-zero one
-  conf2.duplicated_by = max(conf1.duplicated_by, conf2.duplicated_by)
-  conf2.duplicate_of.extend(conf1.duplicate_of)
+  mol2.duplicated_by = max(mol1.duplicated_by, mol2.duplicated_by)
+  mol2.duplicate_of.extend(mol1.duplicate_of)
 
   if not has_conflict:
-    return conf2, None
+    return mol2, None
 
-  return conf2, conflict_info
+  return mol2, conflict_info
 
 
 def molecule_calculation_error_level(molecule):

@@ -24,9 +24,9 @@ print('There are several ways to efficiently get specific sets of molecules')
 
 print()
 print('First is a lookup by molecule id')
-cid_molecule = db.find_by_molecule_id(57001)
-print('Looking up 57001 returns molecule with id', cid_molecule.molecule_id,
-      'and bond topology with SMILES', cid_molecule.bond_topologies[0].smiles)
+mid_molecule = db.find_by_molecule_id(57001)
+print('Looking up 57001 returns molecule with id', mid_molecule.molecule_id,
+      'and bond topology with SMILES', mid_molecule.bond_topologies[0].smiles)
 
 try:
   db.find_by_molecule_id(999999)
@@ -44,9 +44,9 @@ print('Querying for bond topology id 8617 returned',
 
 print('Note that the molecules returned may have multiple bond topologies,'
       'and may or may not have the requested bond topology first')
-for conf in bt_molecules:
-  print('    Result with molecule_id', conf.molecule_id)
-  for bt in conf.bond_topologies:
+for mol in bt_molecules:
+  print('    Result with molecule_id', mol.molecule_id)
+  for bt in mol.bond_topologies:
     print('        has bond topology with id', bt.bond_topology_id,
           'and SMILES', bt.smiles)
 

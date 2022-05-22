@@ -72,11 +72,11 @@ flags.DEFINE_string(
     'output_path', None,
     'Path to output file to write. If not specified, will write to stdout.')
 flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
-flags.DEFINE_list('cids', [], 'List of molecule ids to query')
+flags.DEFINE_list('mids', [], 'List of molecule ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
 flags.DEFINE_list('stoichiometries', [], 'List of stoichiometries to query')
 flags.DEFINE_string('smarts', '',
-                    'SMARTS query to retrieve confomers with matching bond topology. '
+                    'SMARTS query to retrieve molomers with matching bond topology. '
                     'Note that this is a single value, not a comma separated list')
 flags.DEFINE_list(
     'topology_query_smiles', [],
@@ -403,8 +403,8 @@ def main(argv):
     outputter = ReDetectTopologiesOutputter(outputter, db)
 
   with contextlib.closing(outputter):
-    for cid in (int(x) for x in FLAGS.cids):
-      molecule = db.find_by_molecule_id(cid)
+    for mid in (int(x) for x in FLAGS.mids):
+      molecule = db.find_by_molecule_id(mid)
       outputter.output(molecule)
 
     for c in db.find_by_bond_topology_id_list(

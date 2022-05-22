@@ -76,9 +76,9 @@ print('from a topology query have been modified with the new allowed bond distan
 # about the bnd topologies found
 #-----------------------------------------------------------------------------
 def print_molecules_and_bond_topology_id(molecules):
-  for conf in molecules:
-    print('   ', conf.molecule_id, 'has bond topologies:',
-          [bt.bond_topology_id for bt in conf.bond_topologies])
+  for mol in molecules:
+    print('   ', mol.molecule_id, 'has bond topologies:',
+          [bt.bond_topology_id for bt in mol.bond_topologies])
 
 print()
 print('Compare the bond topologies from the orignal query:')

@@ -17,10 +17,10 @@
 
 from smu import smu_sqlite
 
-def print_bond_topologies(conf):
-  print('Molecule', conf.molecule_id, 'has', len(conf.bond_topologies),
+def print_bond_topologies(mol):
+  print('Molecule', mol.molecule_id, 'has', len(mol.bond_topologies),
         'bond topologies')
-  for bt in conf.bond_topologies:
+  for bt in mol.bond_topologies:
     print('    Topology with id', bt.bond_topology_id,
           'and SMILES', bt.smiles)
     if bt.is_starting_topology:

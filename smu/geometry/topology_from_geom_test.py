@@ -279,55 +279,55 @@ class TestStandardTopologySensing(absltest.TestCase):
     return {'N=C=O': 111, '[NH+]#C[O-]': 222}
 
   def test_without_smu(self):
-    conf = self.get_molecule(1.25, 1.11)
+    mol = self.get_molecule(1.25, 1.11)
     self.assertTrue(
       topology_from_geom.standard_topology_sensing(
-        conf, self.get_smu_dists(), self.get_smiles_id_dict()))
+        mol, self.get_smu_dists(), self.get_smiles_id_dict()))
 
-    self.assertLen(conf.bond_topologies, 2)
+    self.assertLen(mol.bond_topologies, 2)
 
-    self.assertEqual(conf.bond_topologies[0].source,
+    self.assertEqual(mol.bond_topologies[0].source,
                      dataset_pb2.BondTopology.SOURCE_ITC |
                      dataset_pb2.BondTopology.SOURCE_STARTING |
                      dataset_pb2.BondTopology.SOURCE_MLCR)
-    self.assertEqual(conf.bond_topologies[0].smiles, 'N=C=O')
-    self.assertEqual(conf.bond_topologies[0].bond_topology_id, 111)
-    self.assertEqual(conf.bond_topologies[0].topology_score, 0)
-    self.assertNotEqual(conf.bond_topologies[0].geometry_score, 0)
+    self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
+    self.assertEqual(mol.bond_topologies[0].bond_topology_id, 111)
+    self.assertEqual(mol.bond_topologies[0].topology_score, 0)
+    self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
 
-    self.assertEqual(conf.bond_topologies[1].source,
+    self.assertEqual(mol.bond_topologies[1].source,
                      dataset_pb2.BondTopology.SOURCE_MLCR |
                      dataset_pb2.BondTopology.SOURCE_CSD)
-    self.assertEqual(conf.bond_topologies[1].smiles, '[NH+]#C[O-]')
-    self.assertEqual(conf.bond_topologies[1].bond_topology_id, 222)
-    self.assertTrue(np.isnan(conf.bond_topologies[1].topology_score))
-    self.assertTrue(np.isnan(conf.bond_topologies[1].geometry_score))
+    self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
+    self.assertEqual(mol.bond_topologies[1].bond_topology_id, 222)
+    self.assertTrue(np.isnan(mol.bond_topologies[1].topology_score))
+    self.assertTrue(np.isnan(mol.bond_topologies[1].geometry_score))
 
   def test_smu_and_covalent(self):
-    conf = self.get_molecule(1.25, 1.25)
+    mol = self.get_molecule(1.25, 1.25)
     self.assertTrue(
       topology_from_geom.standard_topology_sensing(
-        conf, self.get_smu_dists(), self.get_smiles_id_dict()))
+        mol, self.get_smu_dists(), self.get_smiles_id_dict()))
 
-    self.assertLen(conf.bond_topologies, 2)
+    self.assertLen(mol.bond_topologies, 2)
 
-    self.assertEqual(conf.bond_topologies[0].source,
+    self.assertEqual(mol.bond_topologies[0].source,
                      dataset_pb2.BondTopology.SOURCE_ITC |
                      dataset_pb2.BondTopology.SOURCE_STARTING |
                      dataset_pb2.BondTopology.SOURCE_MLCR |
                      dataset_pb2.BondTopology.SOURCE_CSD)
-    self.assertEqual(conf.bond_topologies[0].smiles, 'N=C=O')
-    self.assertEqual(conf.bond_topologies[0].bond_topology_id, 111)
-    self.assertLess(conf.bond_topologies[0].topology_score, 0)
-    self.assertNotEqual(conf.bond_topologies[0].geometry_score, 0)
+    self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
+    self.assertEqual(mol.bond_topologies[0].bond_topology_id, 111)
+    self.assertLess(mol.bond_topologies[0].topology_score, 0)
+    self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
 
-    self.assertEqual(conf.bond_topologies[1].source,
+    self.assertEqual(mol.bond_topologies[1].source,
                      dataset_pb2.BondTopology.SOURCE_ITC |
                      dataset_pb2.BondTopology.SOURCE_MLCR)
-    self.assertEqual(conf.bond_topologies[1].smiles, '[NH+]#C[O-]')
-    self.assertEqual(conf.bond_topologies[1].bond_topology_id, 222)
-    self.assertLess(conf.bond_topologies[1].topology_score, 0)
-    self.assertNotEqual(conf.bond_topologies[1].geometry_score, 0)
+    self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
+    self.assertEqual(mol.bond_topologies[1].bond_topology_id, 222)
+    self.assertLess(mol.bond_topologies[1].topology_score, 0)
+    self.assertNotEqual(mol.bond_topologies[1].geometry_score, 0)
 
 
 if __name__ == "__main__":

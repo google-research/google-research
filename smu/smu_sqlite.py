@@ -68,11 +68,11 @@ class SMUSQLite:
   Internal details about the tables:
   There are 3 separate tables
   * molecule: Is the primary table which has columns
-      * cid: integer molecule id (unique)
+      * mid: integer molecule id (unique)
       * molecule: blob wire format proto of a molecule proto
   * btid: Used for lookups by bond topology id which has columns
       * btid: integer bond topology id (not unique)
-      * cid: integer molecule id (not unique)
+      * mid: integer molecule id (not unique)
   * smiles: Used to map smiles to bond topology ids with columns
       * smiles: text canonical smiles string (unique)
       * btid: integer bond topology id
@@ -291,25 +291,25 @@ class SMUSQLite:
 
     return {smiles: bt_id for (smiles, bt_id) in cur}
 
-  def find_by_molecule_id(self, cid):
+  def find_by_molecule_id(self, mid):
     """Finds the molecule associated with a molecule id.
 
     Args:
-      cid: molecule id to look up.
+      mid: molecule id to look up.
 
     Returns:
       dataset_pb2.Molecule
 
     Raises:
-      KeyError: if cid is not found
+      KeyError: if mid is not found
     """
     cur = self._conn.cursor()
     select = f'SELECT conformer FROM {_MOLECULE_TABLE_NAME} WHERE cid = ?'
-    cur.execute(select, (cid,))
+    cur.execute(select, (mid,))
     result = cur.fetchall()
 
     if not result:
-      raise KeyError(f'Molecule id {cid} not found')
+      raise KeyError(f'Molecule id {mid} not found')
 
     # Since it's a unique index, there should only be one result and it's a
     # tuple with one value.
@@ -329,7 +329,7 @@ class SMUSQLite:
       dataset_pb2.Molecule
     """
     cur = self._conn.cursor()
-    # DISTINCT is because the same cid can have the same btid multiple times.
+    # DISTINCT is because the same mid can have the same btid multiple times.
     select = (''.join([
       f'SELECT DISTINCT cid, conformer '
       f'FROM {_MOLECULE_TABLE_NAME} '

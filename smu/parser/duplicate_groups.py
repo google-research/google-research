@@ -69,8 +69,8 @@ def parse_duplicates_file(filename):
   * nameX: original composiite name from file
   * stoichX: string for the stoichiometry
   * btidX: bond topology id
-  * shortconfidX: 3 digit molecule id
-  * confidX: full molecule id that we use (btid * 1000 + shortconfid)
+  * shortmolidX: 3 digit molecule id
+  * molidX: full molecule id that we use (btid * 1000 + shortmolid)
   (for X = 1 or 2)
 
   Args:
@@ -90,14 +90,14 @@ def parse_duplicates_file(filename):
                 idx].str.extract(r'x07_([\w\d]+)\.(\d+).(\d+)').rename(columns={
                     0: 'stoich' + idx,
                     1: 'btid' + idx,
-                    2: 'shortconfid' + idx
+                    2: 'shortmolid' + idx
                 })
     ],
                         axis=1)
     df_dups['btid' + idx] = df_dups['btid' + idx].astype(int)
-    df_dups['shortconfid' + idx] = df_dups['shortconfid' + idx].astype(int)
-    df_dups['confid' + idx] = (
-        df_dups['btid' + idx] * 1000 + df_dups['shortconfid' + idx])
+    df_dups['shortmolid' + idx] = df_dups['shortmolid' + idx].astype(int)
+    df_dups['molid' + idx] = (
+        df_dups['btid' + idx] * 1000 + df_dups['shortmolid' + idx])
 
   return df_dups
 
