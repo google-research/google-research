@@ -17,6 +17,7 @@
 
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
+from smu.parser import smu_utils_lib
 
 db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 smiles = '[O-]N=N[NH+]=[N+]([O-])F'
@@ -26,8 +27,10 @@ print('(see multiple_bond_topology.py for some illustration)')
 
 print('This is what the "find_by_smiles" method is using and is very efficient')
 
-original_conformers = sorted(db.find_by_smiles_list([smiles]),
-                             key=lambda c: c.conformer_id)
+original_conformers = sorted(
+  db.find_by_smiles_list(
+    [smiles], which_topologies=smu_utils_lib.WhichTopologies.all),
+  key=lambda c: c.conformer_id)
 print('find_by_smiles on', smiles, 'finds these conformer ids')
 print([c.conformer_id for c in original_conformers])
 

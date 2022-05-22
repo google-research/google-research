@@ -252,7 +252,7 @@ class SDFOutputter:
     Args:
       conformer: dataset_pb2.Conformer
     """
-    for mol in smu_utils_lib.conformer_to_molecules(
+    for mol in smu_utils_lib.conformer_to_rdkit_molecules(
         conformer,
         include_initial_geometries=self.init_geometry,
         include_optimized_geometry=self.opt_geometry,

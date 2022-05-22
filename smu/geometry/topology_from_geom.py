@@ -187,7 +187,7 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
   if not bonds_to_scores:  # Seems unlikely.
     return result
 
-  rdkit_mol = smu_utils_lib.bond_topology_to_molecule(starting_topology)
+  rdkit_mol = smu_utils_lib.bond_topology_to_rdkit_molecule(starting_topology)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
   mol = smu_molecule.SmuMolecule(minimal_bond_topology, bonds_to_scores,
@@ -199,7 +199,7 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
     if not bt:
       continue
 
-    rdkit_mol = smu_utils_lib.bond_topology_to_molecule(bt)
+    rdkit_mol = smu_utils_lib.bond_topology_to_rdkit_molecule(bt)
     if matching_parameters.consider_not_bonded and len(
         Chem.GetMolFrags(rdkit_mol)) > 1:
       continue
@@ -212,7 +212,7 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
         continue
       bt.ring_atom_count = ring_atoms
 
-    bt.smiles = smu_utils_lib.compute_smiles_for_molecule(
+    bt.smiles = smu_utils_lib.compute_smiles_for_rdkit_molecule(
         rdkit_mol, include_hs=matching_parameters.smiles_with_h)
 
     bt.geometry_score = geometry_score(bt, distances, bond_lengths)

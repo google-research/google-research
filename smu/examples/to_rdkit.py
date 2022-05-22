@@ -53,7 +53,7 @@ writer = Chem.SDWriter(sys.stdout)
 # The other cases below will modify these args.
 #-----------------------------------------------------------------------------
 case0_mols = list(
-    smu_utils_lib.conformer_to_molecules(
+    smu_utils_lib.conformer_to_rdkit_molecules(
         conformer,
         include_initial_geometries=False,
         include_optimized_geometry=True,
@@ -72,7 +72,7 @@ writer.write(case0_mols[0])
 writer.flush()
 
 case1_mols = list(
-    smu_utils_lib.conformer_to_molecules(
+    smu_utils_lib.conformer_to_rdkit_molecules(
         conformer,
         include_initial_geometries=True,
         include_optimized_geometry=False,
@@ -88,7 +88,7 @@ for mol in case1_mols:
 writer.flush()
 
 case2_mols = list(
-    smu_utils_lib.conformer_to_molecules(
+    smu_utils_lib.conformer_to_rdkit_molecules(
         conformer,
         include_initial_geometries=False,
         include_optimized_geometry=True,
@@ -106,7 +106,7 @@ for mol in case2_mols:
 writer.flush()
 
 case3_mols = list(
-    smu_utils_lib.conformer_to_molecules(
+    smu_utils_lib.conformer_to_rdkit_molecules(
         conformer,
         include_initial_geometries=True,
         include_optimized_geometry=True,

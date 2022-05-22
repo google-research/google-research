@@ -16,6 +16,7 @@
 """Use the various indices in the database for fast lookups."""
 
 from smu import smu_sqlite
+from smu.parser import smu_utils_lib
 
 db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
@@ -34,7 +35,9 @@ except KeyError:
 
 print()
 print('Looking up by bond topology id will return zero or more conformers')
-bt_conformers = list(db.find_by_bond_topology_id_list([7984]))
+bt_conformers = list(db.find_by_bond_topology_id_list(
+  [7984],
+  which_topologies=smu_utils_lib.WhichTopologies.all))
 print('Querying for bond topology id 8617 returned',
       len(bt_conformers),
       'conformers')
@@ -51,12 +54,17 @@ print()
 print(
     'Finding by SMILES is essentially equivalent to finding by bond topology id'
 )
-smiles_conformers = list(db.find_by_smiles_list(['O=NONNNO']))
+smiles_conformers = list(db.find_by_smiles_list(
+  ['O=NONNNO'],
+  which_topologies=smu_utils_lib.WhichTopologies.all))
 print('With query O=NONNNO', 'we found', len(smiles_conformers), 'results')
 
 print('Note that the SMILES are canonicalized internally, you do not need to')
 print('So the equivalent SMILES query ONNNON=O returns the same',
-      len(list(db.find_by_smiles_list(['ONNNON=O']))), 'results')
+      len(list(db.find_by_smiles_list(
+        ['ONNNON=O'],
+        which_topologies=smu_utils_lib.WhichTopologies.all))),
+      'results')
 
 print()
 print('You can also find all the conformers with a given stoichiometry')

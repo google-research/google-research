@@ -552,7 +552,7 @@ def labeled_smiles(mol):
   because atom map 0 is never displayed.
 
   Args:
-    mol: a molecule.
+    mol: a rdkit_molecule.
 
   Returns:
     A labelled smiles string.
@@ -716,7 +716,7 @@ def smiles_id_dict_from_csv(fileobj):
   return smiles_id_dict
 
 
-def bond_topology_to_molecule(bond_topology):
+def bond_topology_to_rdkit_molecule(bond_topology):
   """Converts a bond topology proto to an RDKit molecule.
 
   Args:
@@ -817,7 +817,7 @@ def iterate_bond_topologies(conformer, which):
         yield bt_idx, bt
 
 
-def conformer_to_molecules(conformer,
+def conformer_to_rdkit_molecules(conformer,
                            include_initial_geometries=True,
                            include_optimized_geometry=True,
                            which_topologies=WhichTopologies.all):
@@ -870,7 +870,7 @@ def conformer_to_molecules(conformer,
   for bt, bt_label in requested_bond_topologies:
     for geom, geom_label in requested_geometries:
 
-      mol = bond_topology_to_molecule(bt)
+      mol = bond_topology_to_rdkit_molecule(bt)
       mol.SetProp(
           '_Name',
           f'SMU {conformer.conformer_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
@@ -908,13 +908,13 @@ def compute_smiles_for_bond_topology(bond_topology,
   Returns:
     string
   """
-  return compute_smiles_for_molecule(
-      bond_topology_to_molecule(bond_topology),
+  return compute_smiles_for_rdkit_molecule(
+      bond_topology_to_rdkit_molecule(bond_topology),
       include_hs,
       labeled_atoms=labeled_atoms)
 
 
-def compute_smiles_for_molecule(mol, include_hs, labeled_atoms=False):
+def compute_smiles_for_rdkit_molecule(mol, include_hs, labeled_atoms=False):
   """Calculate a canonical smiles for the given RDKit Molecule.
 
   Note that you probably should NOT have sanitized your RDKit molecule. The
@@ -986,7 +986,7 @@ def rdkit_atom_to_atom_type(atom):
   raise ValueError(f"Unrecognized atom type {atom.GetAtomicNum()}")
 
 
-def molecule_to_bond_topology(mol):
+def rdkit_molecule_to_bond_topology(mol):
   """Converts RDKit molecule to BondTopology.
 
   Args:
@@ -1010,7 +1010,7 @@ def molecule_to_bond_topology(mol):
   pass
 
 
-def smiles_to_molecule(smiles):
+def smiles_to_rdkit_molecule(smiles):
   """Converts a smiles string to a BondTopology
 
   Uses RDKit, and because we avoid aromaticity, there's a little

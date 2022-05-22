@@ -519,7 +519,7 @@ class FromCSVTest(absltest.TestCase):
     self.assertEqual(bt.smiles, '[O-][NH+](F)F')
 
 
-class BondTopologyToMoleculeTest(absltest.TestCase):
+class BondTopologyToRDKitMoleculeTest(absltest.TestCase):
 
   def test_o2(self):
     bond_topology = str_to_bond_topology("""
@@ -530,7 +530,7 @@ bonds {
   bond_type: BOND_DOUBLE
 }
 """)
-    got = smu_utils_lib.bond_topology_to_molecule(bond_topology)
+    got = smu_utils_lib.bond_topology_to_rdkit_molecule(bond_topology)
     self.assertEqual('O=O', Chem.MolToSmiles(got))
 
   def test_methane(self):
@@ -557,7 +557,7 @@ bonds {
   bond_type: BOND_SINGLE
 }
 """)
-    got = smu_utils_lib.bond_topology_to_molecule(bond_topology)
+    got = smu_utils_lib.bond_topology_to_rdkit_molecule(bond_topology)
     self.assertEqual('[H]C([H])([H])[H]', Chem.MolToSmiles(got))
 
   # This molecule is an N+ central atom, bonded to C (triply), O-, and F
@@ -582,7 +582,7 @@ bonds {
   bond_type: BOND_SINGLE
 }
 """)
-    got = smu_utils_lib.bond_topology_to_molecule(bond_topology)
+    got = smu_utils_lib.bond_topology_to_rdkit_molecule(bond_topology)
     self.assertEqual('C#[N+]([O-])F', Chem.MolToSmiles(got))
 
 
@@ -729,7 +729,7 @@ class IterateBondTopologiesTest(parameterized.TestCase):
     self.assertEqual(100, got[0][1].bond_topology_id)
 
 
-class ConformerToMoleculeTest(absltest.TestCase):
+class ConformerToRDKitMoleculeTest(absltest.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -753,7 +753,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
     self._conformer.bond_topologies[1].bond_topology_id = 99999
 
   def test_all_outputs(self):
-    mols = list(smu_utils_lib.conformer_to_molecules(self._conformer))
+    mols = list(smu_utils_lib.conformer_to_rdkit_molecules(self._conformer))
     self.assertLen(mols, 6)  # 2 bond topologies * (1 opt geom + 2 init_geom)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
         'SMU 618451001, RDKIT COC(=CF)OC, bt 618451(1/2), geom init(1/2)',
@@ -772,7 +772,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
 
   def test_initial_only(self):
     mols = list(
-        smu_utils_lib.conformer_to_molecules(
+        smu_utils_lib.conformer_to_rdkit_molecules(
             self._conformer,
             include_initial_geometries=True,
             include_optimized_geometry=False,
@@ -796,7 +796,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
 
   def test_optimized_only(self):
     mols = list(
-        smu_utils_lib.conformer_to_molecules(
+        smu_utils_lib.conformer_to_rdkit_molecules(
             self._conformer,
             include_initial_geometries=False,
             include_optimized_geometry=True,
@@ -821,7 +821,7 @@ class ConformerToMoleculeTest(absltest.TestCase):
                                atol=1e-6)
 
 
-# Note that this class tests smiles to molecule and molecule_to_bond_topology
+# Note that this class tests smiles to rdkit_molecule and rdkit_molecule_to_bond_topology
 class SmilesToBondTopologyTest(parameterized.TestCase):
 
   @parameterized.parameters([
@@ -834,8 +834,8 @@ class SmilesToBondTopologyTest(parameterized.TestCase):
   ])
   def test_atoms(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    bt = smu_utils_lib.molecule_to_bond_topology(
-      smu_utils_lib.smiles_to_molecule(smiles))
+    bt = smu_utils_lib.rdkit_molecule_to_bond_topology(
+      smu_utils_lib.smiles_to_rdkit_molecule(smiles))
     got = None
     for atom in bt.atoms:
       if atom != dataset_pb2.BondTopology.ATOM_H:
@@ -848,8 +848,8 @@ class SmilesToBondTopologyTest(parameterized.TestCase):
     ["C#C", dataset_pb2.BondTopology.BOND_TRIPLE]
   ])
   def test_bonds(self, smiles, expected):
-    bt = smu_utils_lib.molecule_to_bond_topology(
-      smu_utils_lib.smiles_to_molecule(smiles))
+    bt = smu_utils_lib.rdkit_molecule_to_bond_topology(
+      smu_utils_lib.smiles_to_rdkit_molecule(smiles))
     got = None
     for bond in bt.bonds:
       if (bt.atoms[bond.atom_a] == dataset_pb2.BondTopology.ATOM_C and
@@ -935,51 +935,51 @@ smiles: "O"
         smu_utils_lib.compute_smiles_for_bond_topology(
             bond_topology, include_hs=False))
 
-  def test_compute_smiles_from_molecule_no_hs(self):
+  def test_compute_smiles_from_rdkit_molecule_no_hs(self):
     mol = Chem.MolFromSmiles('FOC', sanitize=False)
     self.assertEqual(
-        smu_utils_lib.compute_smiles_for_molecule(mol, include_hs=False), 'COF')
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(mol, include_hs=False), 'COF')
     # This is expected. Even with include_hs=True, if there were no Hs in the
     # molecule, they will not be in the smiles.
     self.assertEqual(
-        smu_utils_lib.compute_smiles_for_molecule(mol, include_hs=True), 'COF')
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(mol, include_hs=True), 'COF')
 
-  def test_compute_smiles_from_molecule_with_hs(self):
+  def test_compute_smiles_from_rdkit_molecule_with_hs(self):
     mol = Chem.MolFromSmiles('FOC', sanitize=False)
     Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
     mol = Chem.AddHs(mol)
     self.assertEqual(
-        smu_utils_lib.compute_smiles_for_molecule(mol, include_hs=False), 'COF')
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(mol, include_hs=False), 'COF')
     self.assertEqual(
-        smu_utils_lib.compute_smiles_for_molecule(mol, include_hs=True),
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(mol, include_hs=True),
         '[H]C([H])([H])OF')
 
-  def test_compute_smiles_from_molecule_special_case(self):
+  def test_compute_smiles_from_rdkit_molecule_special_case(self):
     mol = Chem.MolFromSmiles('C12=C3C4=C1C4=C23', sanitize=False)
     # Double check that this really is the special case -- we get back the
     # SMILES we put in even though it's not the one we want.
     self.assertEqual('C12=C3C4=C1C4=C23',
                      Chem.MolToSmiles(mol, kekuleSmiles=True))
     self.assertEqual(
-        smu_utils_lib.compute_smiles_for_molecule(mol, include_hs=False),
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(mol, include_hs=False),
         'C12=C3C1=C1C2=C31')
 
-  def test_compute_smiles_from_molecule_labeled_with_h(self):
+  def test_compute_smiles_from_rdkit_molecule_labeled_with_h(self):
     mol = Chem.MolFromSmiles(
         '[O-][N+]([H])([H])N([H])OC([H])([H])F', sanitize=False)
     self.assertIsNotNone(mol)
     self.assertEqual(
         '[O-][N+:1]([H:2])([H:3])[N:4]([H:5])[O:6][C:7]([H:8])([H:9])[F:10]',
-        smu_utils_lib.compute_smiles_for_molecule(
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(
             mol, include_hs=True, labeled_atoms=True))
 
-  def test_compute_smiles_from_molecule_labeled_no_h(self):
+  def test_compute_smiles_from_rdkit_molecule_labeled_no_h(self):
     mol = Chem.MolFromSmiles(
         '[O-][N+]([H])([H])N([H])OC([H])([H])F', sanitize=False)
     self.assertIsNotNone(mol)
     self.assertEqual(
         '[O-][NH2+:1][NH:2][O:3][CH2:4][F:5]',
-        smu_utils_lib.compute_smiles_for_molecule(
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(
             mol, include_hs=False, labeled_atoms=True))
 
 

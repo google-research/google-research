@@ -16,6 +16,7 @@
 """Shows how to use a SMARTS pattern to choose bond topologies."""
 
 from smu import smu_sqlite
+from smu.parser import smu_utils_lib
 
 db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
 
@@ -36,7 +37,8 @@ print('In this case we find', len(bt_ids), 'matching bond topologies')
 
 print()
 print('You can then use find_by_bond_topology_id_list (just like indices.py) to get the conformers')
-conformers = list(db.find_by_bond_topology_id_list(bt_ids))
+conformers = list(db.find_by_bond_topology_id_list(
+    bt_ids, which_topologies=smu_utils_lib.WhichTopologies.all))
 print('In this case we find', len(conformers), 'matching conformers')
 print('As you can see, not all bond topology ids in the standard database will find a matching conformer')
 print('You can always find descriptions of all bond topologies in bond_topology.csv')

@@ -353,7 +353,7 @@ class SMUSQLite:
     Returns:
       iterable for dataset_pb2.Conformer
     """
-    canon_smiles = [smu_utils_lib.compute_smiles_for_molecule(
+    canon_smiles = [smu_utils_lib.compute_smiles_for_rdkit_molecule(
         Chem.MolFromSmiles(s, sanitize=False), include_hs=False)
                     for s in smiles]
     cur = self._conn.cursor()
@@ -430,8 +430,8 @@ class SMUSQLite:
     Yields:
       dataset_pb2.Conformer
     """
-    query_bt = smu_utils_lib.molecule_to_bond_topology(
-      smu_utils_lib.smiles_to_molecule(smiles))
+    query_bt = smu_utils_lib.rdkit_molecule_to_bond_topology(
+      smu_utils_lib.smiles_to_rdkit_molecule(smiles))
     expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(
       query_bt)
     cnt_matched_conformer = 0
@@ -476,7 +476,7 @@ class SMUSQLite:
       raise ValueError(f'Could not parse SMARTS {smarts}')
 
     for smiles, bt_id in self.smiles_iter():
-      mol = smu_utils_lib.smiles_to_molecule(smiles)
+      mol = smu_utils_lib.smiles_to_rdkit_molecule(smiles)
       # This is not the prettiest thing in the world. In order for ring markings
       # in the SMARTS to work, RingInfo has to be added. The simplest way to get
       # RingInfo set is to call this function. We didn't put this into the

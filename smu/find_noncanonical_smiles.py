@@ -98,7 +98,7 @@ def check_smiles_permutation_invariance(original_bt):
   smiles = None
   variance_found = False
   for bt in generate_bond_topology_permutations(original_bt):
-    mol = smu_utils_lib.bond_topology_to_molecule(bt)
+    mol = smu_utils_lib.bond_topology_to_rdkit_molecule(bt)
     this_smiles = Chem.MolToSmiles(
         Chem.RemoveHs(mol, sanitize=False),
         kekuleSmiles=True,

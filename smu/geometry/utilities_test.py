@@ -277,11 +277,11 @@ class TestUtilities(absltest.TestCase):
   ])
   def test_with_smiles(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    bt = smu_utils_lib.molecule_to_bond_topology(mol)
+    bt = smu_utils_lib.rdkit_molecule_to_bond_topology(mol)
     self.assertEqual(utilities.is_single_fragment(bt), expected)
     Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
     mol_h = Chem.AddHs(mol)
-    bt_h = smu_utils_lib.molecule_to_bond_topology(mol_h)
+    bt_h = smu_utils_lib.rdkit_molecule_to_bond_topology(mol_h)
     self.assertEqual(utilities.is_single_fragment(bt_h), expected)
 
   @parameterized.expand([["C", 0], ["CC", 0], ["CCC", 0], ["C1CC1", 3],
