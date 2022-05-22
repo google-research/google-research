@@ -43,7 +43,7 @@ python -m smu.smu_sqlite_test
 python -m smu.geometry.topology_from_geom_test
 python -m smu.geometry.bond_length_distribution_test
 python -m smu.geometry.utilities_test
-python -m smu.geometry.smu_molecule_test
+python -m smu.geometry.topology_molecule_test
 
 echo "============================================================="
 echo "Before running query_sqlite, please make sure to do:"

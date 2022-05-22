@@ -41,7 +41,7 @@ from smu.parser import smu_utils_lib
 
 
 class MatchingParameters:
-  """A class to specify optional matching parameters for SmuMolecule.place_bonds."""
+  """A class to specify optional matching parameters for TopologyMolecule.place_bonds."""
 
   def __init__(self):
     self.must_match_all_bonds: bool = True
@@ -80,7 +80,7 @@ def add_bond(a1, a2, btype, destination):
           bond_type=smu_utils_lib.INTEGER_TO_BOND_TYPE[btype]))
 
 
-class SmuMolecule:
+class TopologyMolecule:
   """Holds information about partially built molecules."""
 
   def __init__(self, hydrogens_attached, bonds_to_scores, matching_parameters):

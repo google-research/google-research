@@ -43,7 +43,7 @@ from rdkit import Chem
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
 import snappy
 
@@ -412,7 +412,7 @@ class SMUSQLite:
     return self.find_by_expanded_stoichiometry_list(exp_stoichs)
 
   def find_by_topology(self, smiles, bond_lengths,
-                       matching_parameters=smu_molecule.MatchingParameters()):
+                       matching_parameters=topology_molecule.MatchingParameters()):
     """Find all conformers which have a detected bond topology.
 
     Note that this *redoes* the detection. If you want the default detected

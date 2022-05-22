@@ -37,7 +37,7 @@ import pandas as pd
 from google.protobuf import text_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
 from smu.parser import smu_utils_lib
 
@@ -85,7 +85,7 @@ class TestTopoFromGeom(absltest.TestCase):
     double_bond = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
 
     # For testing, turn off the need for complete matching.
-    smu_molecule.default_must_match_all_bonds = False
+    topology_molecule.default_must_match_all_bonds = False
 
     all_distributions = bond_length_distribution.AllAtomPairLengthDistributions(
     )
@@ -123,7 +123,7 @@ atom_positions {
     conformer.optimized_geometry.atom_positions[1].x = (
       1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
 
-    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
     conformer.fate = dataset_pb2.Conformer.FATE_SUCCESS
     conformer.conformer_id = 1001
@@ -189,7 +189,7 @@ atom_positions {
         dataset_pb2.Geometry.AtomPos(x=dist14a, y=0, z=0),
     ])
 
-    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters = topology_molecule.MatchingParameters()
     result = topology_from_geom.bond_topologies_from_geom(
       conformer, all_dist, matching_parameters)
 

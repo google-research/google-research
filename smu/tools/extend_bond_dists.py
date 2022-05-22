@@ -26,7 +26,7 @@ from smu import dataset_pb2
 
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
 
 def get_modified_bond_lengths(epsilon):
@@ -81,7 +81,7 @@ def main(argv):
   for dists in bond_lengths.values():
     bond_length_distribution.add_itc_h_lengths(dists)
   smiles_id_dict = db.get_smiles_id_dict()
-  matching_parameters = smu_molecule.MatchingParameters()
+  matching_parameters = topology_molecule.MatchingParameters()
   matching_parameters.check_hydrogen_dists = True
 
   count_processed = 0

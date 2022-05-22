@@ -22,7 +22,7 @@ from smu.geometry import topology_from_geom
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 
 FLAGS = flags.FLAGS
 
@@ -109,7 +109,7 @@ class TopologyFromGeom(beam.DoFn):
     # Adjust as needed...
     #   if conformer.fate != dataset_pb2.Conformer.FATE_SUCCESS:
     #     return
-    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.neutral_forms_during_bond_matching = True
     matching_parameters.must_match_all_bonds = True
     matching_parameters.consider_not_bonded = True

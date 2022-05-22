@@ -49,7 +49,7 @@ from rdkit import Chem
 from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
 from smu.geometry import utilities
 from smu.parser import smu_utils_lib
@@ -331,7 +331,7 @@ class ReDetectTopologiesOutputter:
   def __init__(self, outputter, db):
     self._wrapped_outputter = outputter
     self._geometry_data = GeometryData.get_singleton()
-    self._matching_parameters = smu_molecule.MatchingParameters()
+    self._matching_parameters = topology_molecule.MatchingParameters()
     self._db = db
 
   def output(self, conformer):

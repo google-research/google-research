@@ -48,7 +48,7 @@ from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib

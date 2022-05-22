@@ -36,7 +36,7 @@ from rdkit import Chem
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 from smu.geometry import utilities
 from smu.parser import smu_utils_lib
 
@@ -190,7 +190,7 @@ def bond_topologies_from_geom(conformer, bond_lengths, matching_parameters):
   rdkit_mol = smu_utils_lib.bond_topology_to_rdkit_molecule(starting_topology)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
-  mol = smu_molecule.SmuMolecule(minimal_bond_topology, bonds_to_scores,
+  mol = topology_molecule.TopologyMolecule(minimal_bond_topology, bonds_to_scores,
                                  matching_parameters)
 
   search_space = mol.generate_search_state()
@@ -299,7 +299,7 @@ def standard_topology_sensing(conformer, smu_bond_lengths, smiles_id_dict):
   if not _CACHED_CSD_DISTS:
     _CACHED_CSD_DISTS = bond_length_distribution.make_csd_dists()
 
-  matching_parameters = smu_molecule.MatchingParameters()
+  matching_parameters = topology_molecule.MatchingParameters()
   matching_parameters.must_match_all_bonds = True
   matching_parameters.smiles_with_h = False
   matching_parameters.smiles_with_labels = False
