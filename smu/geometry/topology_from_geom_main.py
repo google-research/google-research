@@ -59,7 +59,7 @@ class SummaryData(beam.DoFn):
     yield result.rstrip("\n")
 
 
-def ReadConFormer(bond_lengths, input_string, output):
+def ReadMolecule(bond_lengths, input_string, output):
   """Reads molecule.
 
   Args:
@@ -125,7 +125,7 @@ def TopologyFromGeometryMain(unused_argv):
 
   bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
   bond_lengths.add_from_files(FLAGS.bonds, 0.0, FLAGS.xnonbond)
-  protos = ReadConFormer(bond_lengths, FLAGS.input, FLAGS.output)
+  protos = ReadMolecule(bond_lengths, FLAGS.input, FLAGS.output)
   print(protos)
 
 
