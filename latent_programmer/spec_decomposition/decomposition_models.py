@@ -232,3 +232,58 @@ class DecomposeAttentionTransformer(nn.Module):
     encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
 
     return self.decode(programs, encoded, encoded_padding_mask)
+
+
+
+@struct.dataclass
+class SpecDecomposerConfig:
+  """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
+  base_config: base_models.TransformerConfig
+  # The kind of dataset: 'robust_fill' or 'scan'.
+  dataset_type: str
+
+
+class SpecDecomposerPointer(nn.Module):
+  """Model for predicting pointers within a specification"""
+
+  config: SpecDecomposerConfig
+
+  def setup(self):
+    base_config = self.config.base_config
+
+    if self.config.dataset_type == 'robust_fill':
+      self.encoder = base_models.TransformerIOEncoder(config=base_config,
+                                                      name='encoder')
+    elif self.config.dataset_type in ['robust_fill_base', 'scan']:
+      self.encoder = base_models.TransformerEncoder(config=base_config,
+                                                    name='encoder')
+    else:
+      raise ValueError('Unhandled dataset_type: {}'.format(
+          self.config.dataset_type))
+
+    self.separator_query = self.param(
+      'query',
+      nn.initializers.variance_scaling(1.0, 'fan_in', 'uniform'),
+      [base_config.emb_dim])
+
+  def encode(self,
+             inputs,
+             outputs):
+    """Applies encoder on input specification."""
+    # i/o shape = (batch_size, num_io, length)
+    assert inputs.ndim == 3, ('Number of i/o dimensions should be 3,'
+                              ' but it is: %d' % inputs.ndim)
+    assert outputs.ndim == inputs.ndim
+
+    return self.encoder(inputs, outputs)
+
+
+  def __call__(self,
+               inputs,
+               outputs,
+               programs):
+    """Applies Transformer model on the inputs."""
+    encoded = self.encode(inputs, outputs)
+    encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
+
+    # @TODO(jxihong): compute pointer as a softmax over the specification tokens.
