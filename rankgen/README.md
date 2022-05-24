@@ -7,12 +7,12 @@ The following table contains pretrained RankGen checkpoints. We release 6 models
 
 |    Size     | Step | Training Data  | Checkpoint  |
 |:-----------:|:----:|:--------------:|:-----------:|
-| Base  | 100000| All |  [base-all](`https://storage.googleapis.com/gresearch/rankgen/rankgen-base-all.zip`)    |
-| L     | 100000| All |  [large-all](`https://storage.googleapis.com/gresearch/rankgen/rankgen-large-all.zip`)   |
-| XL    | 100000| All |  [xlarge-all](`https://storage.googleapis.com/gresearch/rankgen/rankgen-xlarge-all.zip`)  |
-| Base  | 100000| PG19|  [base-pg19](`https://storage.googleapis.com/gresearch/rankgen/rankgen-base-pg19.zip`)   |
-| L     | 100000| PG19|  [large-pg19](`https://storage.googleapis.com/gresearch/rankgen/rankgen-large-pg19.zip`)  |
-| XL    | 100000| PG19|  [xlarge-pg19](`https://storage.googleapis.com/gresearch/rankgen/rankgen-xlarge-pg19.zip`) |
+| Base  | 100000| All |  [base-all](https://storage.googleapis.com/gresearch/rankgen/rankgen-base-all.zip)    |
+| L     | 100000| All |  [large-all](https://storage.googleapis.com/gresearch/rankgen/rankgen-large-all.zip)   |
+| XL    | 100000| All |  [xlarge-all](https://storage.googleapis.com/gresearch/rankgen/rankgen-xlarge-all.zip)  |
+| Base  | 100000| PG19|  [base-pg19](https://storage.googleapis.com/gresearch/rankgen/rankgen-base-pg19.zip)   |
+| L     | 100000| PG19|  [large-pg19](https://storage.googleapis.com/gresearch/rankgen/rankgen-large-pg19.zip)  |
+| XL    | 100000| PG19|  [xlarge-pg19](https://storage.googleapis.com/gresearch/rankgen/rankgen-xlarge-pg19.zip) |
 
 ## Usage
 See https://github.com/martiansideofthemoon/rankgen.
