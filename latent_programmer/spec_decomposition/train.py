@@ -47,7 +47,7 @@ from latent_programmer.spec_decomposition import input_pipeline
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 from latent_programmer.tasks.scan import scan_vocab
-from latent_programmer.tasks.scan import translate_scan
+from latent_programmer.tasks.scan import translate_scan  # pylint: disable=unused-import
 
 sys.path.append('../../')
 gfile = tf.io.gfile
@@ -82,6 +82,8 @@ flags.DEFINE_integer('max_characters', 120,
 flags.DEFINE_integer('predict_max_characters', 200,
                      'Maximum number of characters in input/output strings for '
                      'prediction.')
+flags.DEFINE_integer('max_target_length', 200,
+                     'Maximum number of characters in the target.')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 flags.DEFINE_integer('num_train_steps', 2000000, 'Number of training steps.')
@@ -105,17 +107,8 @@ flags.DEFINE_integer('finetune_start_step', -1,
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
-flags.DEFINE_bool('use_bos_separators', True,
-                  'Whether to use BOS tokens between partial programs.')
-flags.DEFINE_string('attention_mask_type', 'bos_full_attention',
-                    'The kind of attention mask to use. Options are: baseline, '
-                    'bos_to_last, bos_to_bos_and_last, bos_full_attention')
-
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
-flags.DEFINE_bool('bos_special_attention', False,
-                  'Whether to use special relative attention computation for '
-                  'BOS tokens.')
 flags.DEFINE_integer('num_position_buckets', 32,
                      'Number of relative attention position buckets.')
 flags.DEFINE_integer('max_distance', 128,
@@ -259,7 +252,7 @@ def compute_metrics(logits, targets, weights):
 def train_step(optimizer,
                inputs,
                outputs,
-               programs,
+               targets,
                learning_rate_fn,
                config,
                dropout_rng):
@@ -269,7 +262,7 @@ def train_step(optimizer,
   # latter can add some stalls to the devices.
   dropout_rng, new_dropout_rng = jax.random.split(dropout_rng)
 
-  weights = jnp.where(programs > 0, 1, 0).astype(jnp.float32)
+  weights = jnp.where(targets > 0, 1, 0).astype(jnp.float32)
 
   def loss_fn(params):
     """Loss function used for training."""
@@ -277,9 +270,9 @@ def train_step(optimizer,
         {'params': params},
         inputs,
         outputs,
-        programs,
+        targets,
         rngs={'dropout': dropout_rng})
-    loss, weight_sum = compute_weighted_cross_entropy(logits, programs, weights)
+    loss, weight_sum = compute_weighted_cross_entropy(logits, targets, weights)
     mean_loss = loss / weight_sum
     return mean_loss, logits
 
@@ -291,27 +284,27 @@ def train_step(optimizer,
   new_optimizer = optimizer.apply_gradient(grad, learning_rate=lr)
 
   # Get metrics.
-  metrics = compute_metrics(logits, programs, weights)
+  metrics = compute_metrics(logits, targets, weights)
   metrics['learning_rate'] = lr
   return new_optimizer, metrics, new_dropout_rng
 
 
-def eval_step(params, inputs, outputs, programs, eos_token, config):
+def eval_step(params, inputs, outputs, targets, eos_token, config):
   """Collect metrics for evaluation during training."""
   weights = jnp.where(
-      jnp.logical_and(programs > 0,
-                      jnp.logical_and(programs != config.base_config.bos_token,
-                                      programs != eos_token)),
+      jnp.logical_and(targets > 0,
+                      jnp.logical_and(targets != config.base_config.bos_token,
+                                      targets != eos_token)),
       1, 0).astype(jnp.float32)
   logits = models.DecomposeAttentionTransformer(config).apply(
-      {'params': params}, inputs, outputs, programs)
+      {'params': params}, inputs, outputs, targets)
 
-  return compute_metrics(logits, programs, weights)
+  return compute_metrics(logits, targets, weights)
 
 
-def initialize_cache(inputs, outputs, programs, max_decode_len, config):
+def initialize_cache(inputs, outputs, targets, max_decode_len, config):
   """Initialize a cache for a given input shape and max decode length."""
-  target_shape = (programs.shape[0], max_decode_len)
+  target_shape = (targets.shape[0], max_decode_len)
   dtype = config.base_config.dtype
   initial_variables = models.DecomposeAttentionTransformer(config).init(
       jax.random.PRNGKey(0),
@@ -426,46 +419,14 @@ def per_host_sum_pmap(in_tree):
   return post_pmap(host_psum(pre_pmap(in_tree)))
 
 
-def eval_predicted(predicted, inputs, outputs, parse_beam_fn):
-  """Evaluate predicted program beams."""
-  best_program_str, best_score = None, -1
-
-  # predicted shape [beam_size, length]
-  for beam in predicted[::-1]:
-    program = parse_beam_fn(beam)
-    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
-      try:
-        p_outs = [program(inp) for inp in inputs]
-        score = np.sum([p_out == out for p_out, out in zip(p_outs, outputs)])
-        program_str = program.to_string()
-      except:  # pylint: disable=bare-except
-        score = -1
-        program_str = 'did not compile'
-    elif FLAGS.dataset_type == 'scan':
-      assert len(inputs) == 1, 'inputs should have length 1: {}'.format(inputs)
-      assert len(outputs) == 1
-      input_tokens = inputs[0].split()
-      expected_tokens = translate_scan.translate(input_tokens,
-                                                 add_separators=False)
-      expected_str = ' '.join(expected_tokens)
-      score = int(program == expected_str)
-      program_str = program
-    else:
-      raise ValueError('Unhandled dataset_type {}'.format(FLAGS.dataset_type))
-
-    if score > best_score:
-      best_program_str, best_score = program_str, score
-
-    if best_score >= len(inputs):  # Found solution.
-      break
-
-  # best_program_str could be None if no RobustFill program compiles.
-  return best_program_str, best_score
-
-
 def shorten(key):
   splits = key.split('_')
   return ''.join(s[0] for s in splits)
+
+
+def load_data(batches):
+  data_dict = common_utils.shard(batches)
+  return data_dict['inputs'], data_dict['outputs'], data_dict['spec_parts']
 
 
 def main(_):
@@ -474,15 +435,6 @@ def main(_):
   tf.random.set_seed(FLAGS.seed)
   np.random.seed(FLAGS.seed)
   random.seed(FLAGS.seed)
-
-  # BOS special attention only makes sense if we are using relative attention
-  # and it's not the baseline.
-  if FLAGS.bos_special_attention and (not FLAGS.use_relative_attention or
-                                      FLAGS.attention_mask_type == 'baseline'):
-    raise ValueError(
-        "bos_special_attention doesn't work when use_relative_attention={} and "
-        'attention_mask_type={}'.format(FLAGS.use_relative_attention,
-                                        FLAGS.attention_mask_type))
 
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
@@ -505,30 +457,32 @@ def main(_):
   predict_io_shape = (FLAGS.per_device_batch_size,
                       FLAGS.num_strings_per_task,
                       FLAGS.predict_max_characters)
-  program_shape = (FLAGS.per_device_batch_size, FLAGS.max_program_length)
+  target_shape = (FLAGS.per_device_batch_size, FLAGS.max_target_length)
+  indices_shape = (FLAGS.per_device_batch_size,
+                   FLAGS.num_strings_per_task)
+  program_shape = (FLAGS.per_device_batch_size, FLAGS.max_program_length)  # pylint: disable=unused-variable
 
   # Setup DSL
   # ---------------------------------------------------------------------------
 
   # Build token tables.
   if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
-    characters = robust_fill_dsl.CHARACTER + '<>'
-    id_char_table = {i+1: char
-                     for i, char in enumerate(characters)}
-    char_id_table = {char: id for id, char in id_char_table.items()}
-    id_token_table, token_id_table = dsl_tokens.build_token_tables()
-    bos_token = token_id_table[robust_fill_dsl.BOS]
-    eos_token = token_id_table[robust_fill_dsl.EOS]
-    io_vocab_size = len(char_id_table) + 1  # For padding.
-    program_vocab_size = len(token_id_table) + 1
+    spec_vocab = robust_fill_dsl.CHARACTER + '|'
+    spec_id_token_table = {i+3: token
+                           for i, token in enumerate(spec_vocab)}
+    bos_id = 1
+    eos_id = 2
+    spec_id_token_table[bos_id] = robust_fill_dsl.BOS
+    spec_id_token_table[eos_id] = robust_fill_dsl.EOS
+    spec_token_id_table = {token: id
+                           for id, token in spec_id_token_table.items()}
+    spec_vocab_size = len(spec_token_id_table) + 1  # For padding.
+    program_id_token_table, program_token_id_table = (
+        dsl_tokens.build_token_tables())
+    program_vocab_size = len(program_id_token_table) + 1  # pylint: disable=unused-variable
   elif FLAGS.dataset_type == 'scan':
-    id_char_table = {}
-    char_id_table = {}
-    id_token_table, token_id_table = scan_vocab.build_token_tables()
-    bos_token = token_id_table[scan_vocab.BOS]
-    eos_token = token_id_table[scan_vocab.EOS]
-    io_vocab_size = len(id_token_table) + 1  # For padding.
-    program_vocab_size = io_vocab_size
+    # TODO(jxihong): Scan is not handled yet.
+    raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
@@ -538,7 +492,7 @@ def main(_):
     if FLAGS.dataset_type == 'robust_fill':
       def decode_str(s):
         """Decode string tokens."""
-        return ''.join([id_char_table[c_id] for c_id in s if c_id > 0])
+        return ''.join([spec_id_token_table[t_id] for t_id in s if t_id > 0])
 
       inps, outs = [], []
       for inp, out in zip(inputs, outputs):
@@ -546,26 +500,10 @@ def main(_):
         outs.append(decode_str(out))
       return inps, outs
 
-    elif FLAGS.dataset_type == 'robust_fill_base':
-      def decode_str(s):
-        """Decode string tokens."""
-        return ''.join([id_char_table[c_id] for c_id in s if c_id > 0])
-
-      inps = [decode_str(inp) for inp in inputs]
-      assert len(inps) == 1
-      combined_io_examples = inps[0]
-      io_pairs = combined_io_examples.split('>')
-      inps, outs = [], []
-      for pair in io_pairs:
-        inp, output = pair.split('<')
-        inps.append(inp)
-        outs.append(output)
-      return inps, outs
-
     elif FLAGS.dataset_type == 'scan':
       def decode_str(s):
         """Decode string tokens."""
-        return ' '.join([id_token_table[t_id] for t_id in s if t_id > 0])
+        return ' '.join([spec_id_token_table[t_id] for t_id in s if t_id > 0])
 
       inps = [decode_str(inp) for inp in inputs]
       dummy_outs = [''] * len(inps)
@@ -574,29 +512,42 @@ def main(_):
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
+  def decode_target(target):
+    """Decode program tokens."""
+    target = target[:np.argmax(target == eos_id)].astype(np.int32)
+
+    if FLAGS.dataset_type == 'robust_fill':
+      target = target[target != bos_id].tolist()
+      return ''.join([spec_id_token_table[t_id] for t_id in target if t_id > 0])
+    elif FLAGS.dataset_type == 'scan':
+      # TODO(jxihong): Scan is not handled yet.
+      raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+    else:
+      raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+
   def decode_program(program):
     """Decode program tokens."""
-    program = program[:np.argmax(program == eos_token) + 1].astype(np.int32)
+    program = program[:np.argmax(program == eos_id) + 1].astype(np.int32)
 
-    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+    if FLAGS.dataset_type == 'robust_fill':
       # Returns either a Concat program object, or None.
-      program = program[program != bos_token].tolist()
+      program = program[program != bos_id].tolist()
       try:
-        return robust_fill_dsl.decode_program(program, id_token_table)
+        return robust_fill_dsl.decode_program(program, program_id_token_table)
       except:  # pylint: disable=bare-except
         return None  # Program does not compile.
     elif FLAGS.dataset_type == 'scan':
       # Returns a string.
-      program = program[jnp.logical_and(program != bos_token,
-                                        program != eos_token)].tolist()
-      return ' '.join(scan_vocab.decode(program, id_token_table))
+      program = program[jnp.logical_and(program != bos_id,
+                                        program != eos_id)].tolist()
+      return ' '.join(scan_vocab.decode(program, program_id_token_table))
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  def decode_program_str(program):
+  def decode_program_str(program):  # pylint: disable=unused-variable
     """Decode program tokens into a string."""
     decoded = decode_program(program)
-    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+    if FLAGS.dataset_type == 'robust_fill':
       try:
         return decoded.to_string()
       except:  # pylint: disable=bare-except
@@ -613,25 +564,28 @@ def main(_):
 
   # Training dataset.
   logging.info('Loading dataset from %s', FLAGS.dataset_filepattern)
-  padded_shapes = (io_shape[1:], io_shape[1:], program_shape[1:])
+  padded_shapes = {
+      'inputs': io_shape[1:],
+      'outputs': io_shape[1:],
+      'spec_parts': target_shape[1:],
+      'start_index': indices_shape[1:],
+      'end_index': indices_shape[1:],
+      # TODO(kshi): include programs.
+      # 'program': program_shape[1:],
+  }
   logging.info('padded_shapes: %s', padded_shapes)
 
   if FLAGS.dataset_type == 'robust_fill':
-    create_dataset_fn = functools.partial(
-        input_pipeline.create_robust_fill_dataset_from_tf_record,
-        split_ios=True)
-  elif FLAGS.dataset_type == 'robust_fill_base':
-    create_dataset_fn = functools.partial(
-        input_pipeline.create_robust_fill_dataset_from_tf_record,
-        split_ios=False)
+    create_dataset_fn = input_pipeline.create_robust_fill_dataset_from_tf_record
   elif FLAGS.dataset_type == 'scan':
-    create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
+    raise NotImplementedError()  # TODO(kshi): Implement.
+    # create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   dataset = create_dataset_fn(
-      FLAGS.dataset_filepattern, token_id_table, char_id_table,
-      use_bos_separators=FLAGS.use_bos_separators)
+      FLAGS.dataset_filepattern, program_token_id_table, spec_token_id_table,
+      max_target_length=FLAGS.max_target_length)
   dataset = dataset.padded_batch(
       batch_size,
       padded_shapes=padded_shapes,
@@ -639,9 +593,9 @@ def main(_):
   # Split evaluation and training.
   eval_ds = dataset.take(FLAGS.num_eval_steps)
   # Decrease batch of predict dataset to handle beam search.
-  predict_padded_shapes = (predict_io_shape[1:],
-                           predict_io_shape[1:],
-                           program_shape[1:])
+  predict_padded_shapes = padded_shapes.copy()
+  predict_padded_shapes['inputs'] = predict_io_shape[1:]
+  predict_padded_shapes['outputs'] = predict_io_shape[1:]
   logging.info('predict_padded_shapes: %s', predict_padded_shapes)
   predict_ds = eval_ds.unbatch().padded_batch(
       int(np.ceil(batch_size / 10)),
@@ -652,8 +606,8 @@ def main(_):
   train_ds = train_ds.repeat()
 
   test_dataset = create_dataset_fn(
-      FLAGS.test_dataset_filepattern, token_id_table, char_id_table,
-      use_bos_separators=FLAGS.use_bos_separators)
+      FLAGS.test_dataset_filepattern, program_token_id_table,
+      spec_token_id_table, max_target_length=FLAGS.max_target_length)
   test_dataset = test_dataset.padded_batch(
       batch_size,
       padded_shapes=predict_padded_shapes,
@@ -671,11 +625,9 @@ def main(_):
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
-  default_config = base_models.TransformerConfig(
-      vocab_size=io_vocab_size, output_vocab_size=program_vocab_size)
   base_config = base_models.TransformerConfig(
-      vocab_size=io_vocab_size,
-      output_vocab_size=program_vocab_size,
+      vocab_size=spec_vocab_size,
+      output_vocab_size=spec_vocab_size,
       shift=True,
       emb_dim=FLAGS.embedding_dim,
       num_heads=FLAGS.num_heads,
@@ -688,43 +640,31 @@ def main(_):
       use_relative_attention=FLAGS.use_relative_attention,
       deterministic=False,
       decode=False,
-      bos_token=bos_token,
+      bos_token=bos_id,
       num_input_relative_position_buckets=FLAGS.num_position_buckets,
-      max_input_distance=min(
-          FLAGS.max_distance, default_config.max_input_distance),
+      max_input_distance=FLAGS.max_distance,
       num_output_relative_position_buckets=FLAGS.num_position_buckets,
-      max_output_distance=min(
-          FLAGS.max_distance, default_config.max_output_distance),
+      max_output_distance=FLAGS.max_distance,
       num_input_cross_output_relative_position_buckets=(
           FLAGS.num_position_buckets),
-      max_input_cross_output_distance=min(
-          FLAGS.max_distance, default_config.max_input_cross_output_distance),
+      max_input_cross_output_distance=FLAGS.max_distance,
       num_program_relative_position_buckets=FLAGS.num_position_buckets,
-      max_program_distance=min(
-          FLAGS.max_distance, default_config.max_program_distance),
+      max_program_distance=FLAGS.max_distance,
       num_program_cross_embed_relative_position_buckets=(
           FLAGS.num_position_buckets),
-      max_program_cross_embed_distance=min(
-          FLAGS.max_distance, default_config.max_program_cross_embed_distance),
+      max_program_cross_embed_distance=FLAGS.max_distance,
       bidirectional_program_attention=FLAGS.bidirectional_program_attention)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
-      attention_mask_type=FLAGS.attention_mask_type,
-      bos_special_attention=FLAGS.bos_special_attention,
       dataset_type=FLAGS.dataset_type)
   eval_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(deterministic=True),
-      attention_mask_type=FLAGS.attention_mask_type,
-      bos_special_attention=FLAGS.bos_special_attention,
       dataset_type=FLAGS.dataset_type)
   predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config.replace(
           shift=False, deterministic=True,
           decode=not FLAGS.slow_decode,
-          max_len=max(FLAGS.max_characters, FLAGS.max_program_length,
-                      FLAGS.predict_max_characters)),
-      attention_mask_type=FLAGS.attention_mask_type,
-      bos_special_attention=FLAGS.bos_special_attention,
+          max_len=max(FLAGS.predict_max_characters, FLAGS.max_target_length)),
       dataset_type=FLAGS.dataset_type)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
@@ -739,7 +679,7 @@ def main(_):
       init_rng,
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
-      jnp.ones(program_shape, jnp.float32))
+      jnp.ones(target_shape, jnp.float32))
 
   optimizer_def = optim.Adam(
       FLAGS.lr,
@@ -801,20 +741,20 @@ def main(_):
       axis_name='batch')
   p_eval_step = jax.pmap(
       functools.partial(eval_step,
-                        eos_token=eos_token,
+                        eos_token=eos_id,
                         config=eval_config),
       axis_name='batch')
   p_init_cache = jax.pmap(
       functools.partial(
           initialize_cache,
-          max_decode_len=FLAGS.max_program_length,
+          max_decode_len=FLAGS.max_target_length,
           config=predict_config),
       axis_name='batch')
   p_pred_step = jax.pmap(
       functools.partial(
           predict_step,
-          eos_token=eos_token,
-          max_decode_len=FLAGS.max_program_length,
+          eos_token=eos_id,
+          max_decode_len=FLAGS.max_target_length,
           config=predict_config,
           slow_decode=FLAGS.slow_decode),
       axis_name='batch',
@@ -828,10 +768,10 @@ def main(_):
   tick = time.time()
   train_iter = train_ds.as_numpy_iterator()
   for step in range(start_step, FLAGS.num_train_steps):
-    inputs, outputs, programs = common_utils.shard(next(train_iter))
+    inputs, outputs, targets = load_data(next(train_iter))
 
     optimizer, metrics, dropout_rng = p_train_step(
-        optimizer, inputs, outputs, programs, dropout_rng=dropout_rng)
+        optimizer, inputs, outputs, targets, dropout_rng=dropout_rng)
     metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
@@ -869,9 +809,9 @@ def main(_):
       t_evaluation_start = time.time()
       eval_metrics = []
       for batches in eval_ds.as_numpy_iterator():
-        inputs, outputs, programs = common_utils.shard(batches)
+        inputs, outputs, targets = load_data(batches)
 
-        metrics = p_eval_step(optimizer.target, inputs, outputs, programs)
+        metrics = p_eval_step(optimizer.target, inputs, outputs, targets)
         eval_metrics.append(metrics)
 
       eval_metrics = common_utils.get_metrics(eval_metrics)
@@ -900,73 +840,66 @@ def main(_):
           t_inference_start = time.time()
           total_successes = 0
           total_denominator = 0
-          pred_successes = collections.defaultdict(int)
-          pred_denominators = collections.defaultdict(int)
 
-          ios, targets, predictions, top_of_beams = [], [], [], []
+          ios, targets_list, predictions, top_of_beams = [], [], [], []
           for batches in dataset.as_numpy_iterator():
             pred_batch = batches
             # Handle final odd-sized batch by padding instead of dropping it.
-            cur_pred_batch_size = pred_batch[0].shape[0]
+            cur_pred_batch_size = pred_batch['inputs'].shape[0]
             if cur_pred_batch_size % n_devices:
               padded_size = int(
                   np.ceil(cur_pred_batch_size / n_devices) * n_devices)
               # pylint: disable=cell-var-from-loop
               pred_batch = jax.tree_map(
                   lambda x: pad_examples(x, padded_size), pred_batch)
-            inputs, outputs, programs = common_utils.shard(pred_batch)
+            inputs, outputs, targets = load_data(pred_batch)
 
-            cache = (p_init_cache(inputs, outputs, programs)
+            cache = (p_init_cache(inputs, outputs, targets)
                      if not FLAGS.slow_decode else None)
             predicted = p_pred_step(optimizer.target, inputs, outputs, cache,
                                     beam_size)
             predicted = tohost(predicted)
-            inputs, outputs, programs = map(tohost, (inputs, outputs, programs))
+            inputs, outputs, targets = map(tohost, (inputs, outputs, targets))
 
             for i, beams in enumerate(predicted):
               inps, outs = decode_io(inputs[i], outputs[i])
-              predicted_program_str, p_score = eval_predicted(
-                  beams, inps, outs, parse_beam_fn=decode_program)
-
-              ground_truth_tokens = programs[i]
-              ground_truth_str = decode_program_str(ground_truth_tokens)
-
-              # Split by length of program.
-              if FLAGS.use_bos_separators:
-                # There is a BOS token between parts and at the end.
-                num_expressions = int(jnp.sum(ground_truth_tokens == bos_token))
-              else:
-                # TODO(kshi): Fix this if we care about it enough.
-                num_expressions = -1
-              pred_denominators[num_expressions] += 1
+              ground_truth = decode_target(targets[i])
+              beams_target = [decode_target(beam) for beam in beams]
+              predicted_target = beams_target[0]
+              for beam_target in beams_target:
+                if beam_target == ground_truth:
+                  predicted_target = beam_target
+                  total_successes += 1
+                  break
               total_denominator += 1
-              if p_score >= len(inps):
-                pred_successes[num_expressions] += 1
-                total_successes += 1
 
               ios.append(' ; '.join(map(str, zip(inps, outs))))
-              targets.append(ground_truth_str)
-              predictions.append(predicted_program_str)
+              targets_list.append(ground_truth)
+              predictions.append(predicted_target)
+              logging.info('')
               logging.info('ios: %s', ios[-1])
-              logging.info('target: %s', targets[-1])
-              beams_log = [decode_program_str(beam) for beam in beams]
-              logging.info('predicted beam: %s', '\n'.join(beams_log))
+              logging.info('targets[%s]: %s', i, targets[i])
+              logging.info('ground_truth: %s', ground_truth)
+              logging.info('predicted beam: %s', '\n'.join(beams_target))
+              logging.info('predicted_target: %s', predicted_target)
+              logging.info('beams: %s', beams)
+
+              if not ground_truth:
+                logging.warn('ground_truth is empty!')
 
               top_of_beam = []
               for index, beam in enumerate(beams[:-5:-1]):
                 top_of_beam.append('index: {}, decoded: {}, tokens: {}'.format(
-                    index, decode_program_str(beam), beam))
+                    index, decode_target(beam), beam))
               top_of_beams.append('\n\n'.join(top_of_beam))
 
           all_total_successes, all_total_denominator = per_host_sum_pmap(
               jax.tree_map(np.array, (total_successes, total_denominator)))
-          all_pred_successes, all_pred_denominators = per_host_sum_pmap(
-              jax.tree_map(np.array, (pred_successes, pred_denominators)))
 
           # Record beam search results as text summaries.
           message = []
           for n in np.random.choice(np.arange(len(predictions)), 8):
-            text = (f'ios: {ios[n]}\n\ntarget: {targets[n]}\n\n'
+            text = (f'ios: {ios[n]}\n\ntarget: {targets_list[n]}\n\n'
                     f'predicted: {predictions[n]}\n\n'
                     f'top of beam:\n\n{top_of_beams[n]}\n\n')
             message.append(text)
@@ -982,17 +915,6 @@ def main(_):
             summary_writer.scalar(
                 '{}/beam-size-{}'.format(predict_or_test, beam_size),
                 accuracy, step)
-
-            for length in sorted(all_pred_successes.keys()):
-              this_length_accuracy = (100 * all_pred_successes[length]
-                                      / all_pred_denominators[length])
-              logging.info('  accuracy for length %s: %s / %s = %.2f%%',
-                           length, all_pred_successes[length],
-                           all_pred_denominators[length], this_length_accuracy)
-              summary_writer.scalar(
-                  '{}-by-length/beam-size-{}-length-{}'.format(
-                      predict_or_test, beam_size, length),
-                  this_length_accuracy, step)
 
             summary_writer.text('{}-samples-beam-{}'.format(predict_or_test,
                                                             beam_size),

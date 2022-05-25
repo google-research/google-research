@@ -34,11 +34,11 @@ class DecomposeAttentionTransformerConfig:
   base_config: base_models.TransformerConfig
   # Options: baseline, bos_to_bos, bos_to_last, bos_to_bos_and_last,
   # bos_full_attention
-  attention_mask_type: str
+  attention_mask_type: str = 'baseline'
   # Whether to use special relative attention computation for BOS tokens
-  bos_special_attention: bool
+  bos_special_attention: bool = False
   # The kind of dataset: 'robust_fill' or 'scan'.
-  dataset_type: str
+  dataset_type: str = 'robust_fill'
 
 
 def shift_left(x):
