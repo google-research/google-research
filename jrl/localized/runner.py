@@ -152,8 +152,9 @@ def main(_):
   builder = rl_components.make_builder()
 
   counter = counting.Counter(time_delta=0.)
-  is_offline_agent = not builder.make_replay_tables(spec)
   networks = rl_components.make_networks()
+  policy = rl_components.make_behavior_policy(networks)
+  is_offline_agent = not builder.make_replay_tables(spec, policy)
   seed = FLAGS.seed
   random_key = jax.random.PRNGKey(seed)
   learner_counter = counting.Counter(counter, 'learner', time_delta=0.)
@@ -164,6 +165,7 @@ def main(_):
         networks,
         dataset=iter(()),  # dummy iterator
         logger=train_logger_factory(),
+        environment_spec=spec,
         counter=learner_counter)
     variable_source = learner
     train_loop = learner
@@ -194,7 +196,8 @@ def main(_):
 
   eval_actor = builder.make_actor(
       random_key=sub_key,
-      policy_network=rl_components.make_eval_behavior_policy(networks),
+      policy=rl_components.make_eval_behavior_policy(networks),
+      environment_spec=spec,
       variable_source=variable_source)
   eval_env = create_env_fn()
   eval_counter = counting.Counter(
@@ -227,8 +230,9 @@ def main(_):
     builder._config.eval_with_q_filter = True
     q_filter_eval_actor = builder.make_actor(
         random_key=sub_key,
-        policy_network=rl_components.make_eval_behavior_policy(
+        policy=rl_components.make_eval_behavior_policy(
             networks, force_eval_with_q_filter=True, q_filter_with_unif=True),
+        environment_spec=spec,
         variable_source=variable_source,)
     builder._config.eval_with_q_filter = old_value
     # pytype: enable=attribute-error
@@ -255,8 +259,9 @@ def main(_):
     builder._config.eval_with_q_filter = True
     q_filter_eval_actor = builder.make_actor(
         random_key=sub_key,
-        policy_network=rl_components.make_eval_behavior_policy(
+        policy=rl_components.make_eval_behavior_policy(
             networks, force_eval_with_q_filter=True, q_filter_with_unif=False),
+        environment_spec=spec,
         variable_source=variable_source,)
     builder._config.eval_with_q_filter = old_value
     # pytype: enable=attribute-error
@@ -292,23 +297,24 @@ def main(_):
   for el in all_eval_loops:
     el.run_once()
 
-
   # saved model policy
   if FLAGS.create_saved_model_actor:
-    _select_action = rl_components.make_eval_behavior_policy(networks)
+    select_action_ = rl_components.make_eval_behavior_policy(networks)
     def select_action(params, x):
       obs, rng_seed = x[0], x[1]
       rng = jax.random.PRNGKey(rng_seed)
-      return _select_action(params, rng, obs)
+      return select_action_(params, rng, obs)
     input_spec = (
         tf.TensorSpec(eval_env.reset().observation.shape, dtype=tf.float32),
         tf.TensorSpec(shape=(), dtype=tf.int32),
     )
+    # pylint: disable=protected-access
     saved_model_lib.convert_and_save_model(
         select_action,
         params=eval_actor._variable_client.params,  # pytype: disable=attribute-error
         model_dir=os.path.join(FLAGS.root_dir, 'saved_model'),
         input_signatures=[input_spec],)
+    # pylint: enable=protected-access
 
 
   # Make sure to properly tear down the evaluators.

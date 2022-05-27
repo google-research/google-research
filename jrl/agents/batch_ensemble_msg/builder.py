@@ -95,8 +95,10 @@ class BatchEnsembleMSGBuilder(builders.ActorLearnerBuilder):
   def make_replay_tables(
       self,
       environment_spec,
+      policy
   ):
     """Create tables to insert data into."""
+    del policy
     return []
 
   def make_dataset_iterator(

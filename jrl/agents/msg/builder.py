@@ -15,8 +15,7 @@
 
 """MSG Builder."""
 
-import dataclasses
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 import acme
 from acme import adders
 from acme import core
@@ -27,9 +26,8 @@ from acme.jax import networks as networks_lib
 from acme.jax import variable_utils
 from acme.utils import counting
 from acme.utils import loggers
-import optax
 import reverb
-from jrl.agents.msg import config
+from jrl.agents.msg import config as msg_config
 from jrl.agents.msg import learning
 from jrl.agents.msg import networks as msg_networks
 
@@ -56,7 +54,7 @@ class MSGBuilder(builders.ActorLearnerBuilder):
       counter = None,
       checkpoint = False,
   ):
-    del dataset # Offline RL
+    del dataset  # Offline RL
 
     data_iter = self._make_demonstrations()
 
@@ -72,13 +70,15 @@ class MSGBuilder(builders.ActorLearnerBuilder):
         pretrain_temp=self._config.pretrain_temp,
         use_sass=self._config.use_sass,
         num_bc_iters=self._config.num_bc_iters,
-        use_random_weighting_in_critic_loss=self._config.use_random_weighting_in_critic_loss,
+        use_random_weighting_in_critic_loss=(
+            self._config.use_random_weighting_in_critic_loss),
         use_ema_target_critic_params=self._config.use_ema_target_critic_params,
         entropy_coefficient=self._config.entropy_coefficient,
         target_entropy=self._config.target_entropy,
         use_entropy_regularization=self._config.use_entropy_regularization,
         behavior_regularization_type=self._config.behavior_regularization_type,
-        behavior_regularization_alpha=self._config.behavior_regularization_alpha,
+        behavior_regularization_alpha=(
+            self._config.behavior_regularization_alpha),
         num_cql_actions=self._config.num_cql_actions,
         td_target_method=self._config.td_target_method,
         critic_random_init=self._config.critic_random_init,
@@ -106,18 +106,10 @@ class MSGBuilder(builders.ActorLearnerBuilder):
       params_to_get = ['policy', 'all_q']
       if self._config.use_img_encoder:
         params_to_get.append('img_encoder')
-      # return actors.GenericActor(
-      #     policy_network,
-      #     random_key=random_key,
-      #     # Inference happens on CPU, so it's better to move variables there too.
-      #     variable_client=variable_utils.VariableClient(
-      #         variable_source, params_to_get, device='cpu'),
-      #     adder=adder,
-      #     backend='cpu')
       return actors.GenericActor(
           actor=policy_network,
           random_key=random_key,
-          # Inference happens on CPU, so it's better to move variables there too.
+          # Inference happens on CPU, so it's better to move variables there.
           variable_client=variable_utils.VariableClient(
               variable_source, params_to_get, device='cpu'),
           adder=adder,
@@ -129,7 +121,7 @@ class MSGBuilder(builders.ActorLearnerBuilder):
       return actors.GenericActor(
           actor=policy_network,
           random_key=random_key,
-          # Inference happens on CPU, so it's better to move variables there too.
+          # Inference happens on CPU, so it's better to move variables there.
           variable_client=variable_utils.VariableClient(
               variable_source, params_to_get, device='cpu'),
           adder=adder,
@@ -138,6 +130,7 @@ class MSGBuilder(builders.ActorLearnerBuilder):
   def make_replay_tables(
       self,
       environment_spec,
+      policy
   ):
     """Create tables to insert data into."""
     return []

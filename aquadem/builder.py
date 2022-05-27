@@ -89,6 +89,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
       networks,
       dataset,
       logger,
+      environment_spec = None,
       replay_client = None,
       counter = None,
   ):
@@ -105,6 +106,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
           networks,
           dataset,
           logger=logger,
+          environment_spec=environment_spec,
           replay_client=replay_client,
           counter=discrete_rl_counter)
 
@@ -133,10 +135,12 @@ class AquademBuilder(builders.ActorLearnerBuilder):
         logger=logger)
 
   def make_replay_tables(
-      self, environment_spec):
+      self, environment_spec,
+      policy):
     discretized_spec = discretize_spec(environment_spec,
                                        self._config.num_actions)
-    return self._rl_agent.make_replay_tables(discretized_spec)
+    return self._rl_agent.make_replay_tables(discretized_spec,
+                                             policy.discrete_policy)
 
   def make_dataset_iterator(
       self,
@@ -150,18 +154,21 @@ class AquademBuilder(builders.ActorLearnerBuilder):
   def make_actor(
       self,
       random_key,
-      policy_network,
-      adder = None,
+      policy,
+      environment_spec,
       variable_source = None,
+      adder = None,
   ):
     assert variable_source is not None
+
     wrapped_actor = self._rl_agent.make_actor(random_key,
-                                              policy_network.discrete_policy,
+                                              policy.discrete_policy,
+                                              environment_spec,
                                               adder,
                                               variable_source)
     return actor.AquademActor(
         wrapped_actor=wrapped_actor,
-        policy=policy_network.aquadem_policy,
+        policy=policy.aquadem_policy,
         # Inference happens on CPU, so it's better to move variables there too.
         variable_client=variable_utils.VariableClient(
             variable_source,

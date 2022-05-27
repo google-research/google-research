@@ -42,7 +42,7 @@ import numpy as np
 from scenic.model_lib.base_models import base_model
 from scenic.projects.func_dist import pretrain_utils as scenic_pretrain_utils
 from scenic.projects.func_dist import train_utils as scenic_train_utils
-from scenic.train_lib import train_utils as train_lib_utils
+from scenic.train_lib_deprecated import train_utils as train_lib_utils
 import tensorflow as tf
 
 from func_dist.data_utils import pickle_datasets
@@ -306,8 +306,8 @@ def train_and_evaluate(distance_fn, rng):
 
   eval_actor = agent.builder.make_actor(
       random_key=rng,
-      policy_network=sac.apply_policy_and_sample(
-          agent_networks, eval_mode=True),
+      policy=sac.apply_policy_and_sample(agent_networks, eval_mode=True),
+      environment_spec=environment_spec,
       variable_source=agent)
 
   eval_video_dir = paths.process_path(logdir, 'eval_videos')

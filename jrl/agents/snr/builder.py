@@ -13,12 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""SNR Builder.
+"""Spectral norm regularization (SNR) on the policy wrt the Q-fn kernel."""
 
-Spectral norm regularization on the policy w.r.t. the Q-fn kernel"""
-
-import dataclasses
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 import acme
 from acme import adders
 from acme import core
@@ -29,9 +26,8 @@ from acme.jax import networks as networks_lib
 from acme.jax import variable_utils
 from acme.utils import counting
 from acme.utils import loggers
-import optax
 import reverb
-from jrl.agents.snr import config
+from jrl.agents.snr import config as snr_config
 from jrl.agents.snr import learning
 from jrl.agents.snr import networks as snr_networks
 
@@ -58,7 +54,7 @@ class SNRBuilder(builders.ActorLearnerBuilder):
       counter = None,
       checkpoint = False,
   ):
-    del dataset # Offline RL
+    del dataset  # Offline RL
 
     data_iter = self._make_demonstrations()
 
@@ -98,6 +94,7 @@ class SNRBuilder(builders.ActorLearnerBuilder):
   def make_replay_tables(
       self,
       environment_spec,
+      policy
   ):
     """Create tables to insert data into."""
     return []

@@ -15,8 +15,7 @@
 
 """BC Builder."""
 
-import dataclasses
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 import acme
 from acme import adders
 from acme import core
@@ -27,9 +26,8 @@ from acme.jax import networks as networks_lib
 from acme.jax import variable_utils
 from acme.utils import counting
 from acme.utils import loggers
-import optax
 import reverb
-from jrl.agents.bc import config
+from jrl.agents.bc import config as bc_config
 from jrl.agents.bc import learning
 from jrl.agents.bc import networks as bc_networks
 
@@ -56,7 +54,7 @@ class BCBuilder(builders.ActorLearnerBuilder):
       counter = None,
       checkpoint = False,
   ):
-    del dataset # Offline RL
+    del dataset  # Offline RL
 
     data_iter = self._make_demonstrations()
 
@@ -67,7 +65,8 @@ class BCBuilder(builders.ActorLearnerBuilder):
         policy_lr=self._config.policy_lr,
         loss_type=self._config.loss_type,
         regularize_entropy=self._config.regularize_entropy,
-        entropy_regularization_weight=self._config.entropy_regularization_weight,
+        entropy_regularization_weight=(
+            self._config.entropy_regularization_weight),
         use_img_encoder=self._config.use_img_encoder,
         img_encoder_params_ckpt_path=self._config.img_encoder_params_ckpt_path,
         counter=counter,
@@ -82,27 +81,30 @@ class BCBuilder(builders.ActorLearnerBuilder):
       variable_source = None):
     assert variable_source is not None
     if self._config.use_img_encoder:
+      # Inference happens on CPU, so it's better to move variables there too.
+      variable_client = variable_utils.VariableClient(
+          variable_source, ['policy', 'img_encoder'], device='cpu')
       return actors.GenericActor(
           actor=policy_network,
           random_key=random_key,
-          # Inference happens on CPU, so it's better to move variables there too.
-          variable_client=variable_utils.VariableClient(
-              variable_source, ['policy', 'img_encoder'], device='cpu'),
+          variable_client=variable_client,
           adder=adder,
       )
     else:
+      # Inference happens on CPU, so it's better to move variables there too.
+      variable_client = variable_utils.VariableClient(
+          variable_source, ['policy',], device='cpu')
       return actors.GenericActor(
           actor=policy_network,
           random_key=random_key,
-          # Inference happens on CPU, so it's better to move variables there too.
-          variable_client=variable_utils.VariableClient(
-              variable_source, ['policy',], device='cpu'),
+          variable_client=variable_client,
           adder=adder,
       )
 
   def make_replay_tables(
       self,
       environment_spec,
+      policy
   ):
     """Create tables to insert data into."""
     return []

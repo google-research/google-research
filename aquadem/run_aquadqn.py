@@ -92,7 +92,8 @@ def main(_):
   eval_policy = aquadem_builder.get_aquadem_policy(eval_policy, networks)
   eval_actor = builder.make_actor(
       random_key=jax.random.PRNGKey(FLAGS.seed),
-      policy_network=eval_policy,
+      policy=eval_policy,
+      environment_spec=spec,
       variable_source=agent)
   eval_env = utils.make_environment(task=FLAGS.env_name, evaluation=True)
 
