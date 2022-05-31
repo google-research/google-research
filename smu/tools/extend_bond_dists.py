@@ -97,7 +97,7 @@ def main(argv):
 
     for molecule in db:
     # for molecule in [db.find_by_molecule_id(375986006)]:
-      if molecule.fate != dataset_pb2.Molecule.FATE_DISASSOCIATED:
+      if molecule.properties.errors.fate != dataset_pb2.Properties.FATE_DISASSOCIATED:
         continue
 
       count_processed += 1

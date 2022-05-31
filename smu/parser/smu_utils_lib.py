@@ -1649,49 +1649,49 @@ def determine_fate(molecule):
     molecule: dataset_pb2.Molecule
 
   Returns:
-    dataset_pb2.Molecule.FateCategory
+    dataset_pb2.Properties.FateCategory
   """
   source = _molecule_source(molecule)
   if source == _MoleculeSource.DUPLICATE:
     # This shouldn't really happen in the real set so we'll just leave it as
     # undefined.
-    return dataset_pb2.Molecule.FATE_UNDEFINED
+    return dataset_pb2.Properties.FATE_UNDEFINED
 
   elif source == _MoleculeSource.STAGE1:
     if molecule.duplicated_by > 0:
       this_btid = molecule.molecule_id // 1000
       other_btid = molecule.duplicated_by // 1000
       if this_btid == other_btid:
-        return dataset_pb2.Molecule.FATE_DUPLICATE_SAME_TOPOLOGY
+        return dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY
       else:
-        return dataset_pb2.Molecule.FATE_DUPLICATE_DIFFERENT_TOPOLOGY
+        return dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY
 
     status = molecule.properties.errors.status
     if status == 600:
-      return dataset_pb2.Molecule.FATE_GEOMETRY_OPTIMIZATION_PROBLEM
+      return dataset_pb2.Properties.FATE_GEOMETRY_OPTIMIZATION_PROBLEM
     elif status == 590:
-      return dataset_pb2.Molecule.FATE_DISASSOCIATED
+      return dataset_pb2.Properties.FATE_DISASSOCIATED
     elif status == 570 or status == 580:
-      return dataset_pb2.Molecule.FATE_DISCARDED_OTHER
+      return dataset_pb2.Properties.FATE_DISCARDED_OTHER
     else:
       # This means that we can find no reason this shouldn't have gone on to
       # stage2.
-      return dataset_pb2.Molecule.FATE_NO_CALCULATION_RESULTS
+      return dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS
 
   elif source == _MoleculeSource.STAGE2:
     error_level = molecule_calculation_error_level(molecule)
     if error_level == 5:
-      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_SERIOUS_ERROR
+      return dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR
     elif error_level == 4:
-      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_MAJOR_ERROR
+      return dataset_pb2.Properties.FATE_CALCULATION_WITH_MAJOR_ERROR
     elif error_level == 3:
-      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_MODERATE_ERROR
+      return dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR
     elif error_level == 2:
-      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_SERIOUS
+      return dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS
     elif error_level == 1:
-      return dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL
+      return dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL
     elif error_level == 0:
-      return dataset_pb2.Molecule.FATE_SUCCESS
+      return dataset_pb2.Properties.FATE_SUCCESS
     else:
       raise ValueError(f'Bad error_level {error_level}')
 
@@ -1760,30 +1760,30 @@ def molecule_to_bond_topology_summaries(molecule):
       yield bt
       observed_bt_id.add(bt.bond_topology_id)
 
-  fate = molecule.fate
+  fate = molecule.properties.errors.fate
 
-  if fate == dataset_pb2.Molecule.FATE_UNDEFINED:
+  if fate == dataset_pb2.Properties.FATE_UNDEFINED:
     raise ValueError(f'Molecule {molecule.molecule_id} has undefined fate')
 
-  elif fate == dataset_pb2.Molecule.FATE_DUPLICATE_SAME_TOPOLOGY:
+  elif fate == dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY:
     summary.count_duplicates_same_topology = 1
 
-  elif fate == dataset_pb2.Molecule.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
+  elif fate == dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
     summary.count_duplicates_different_topology = 1
 
-  elif (fate == dataset_pb2.Molecule.FATE_GEOMETRY_OPTIMIZATION_PROBLEM or
-        fate == dataset_pb2.Molecule.FATE_DISASSOCIATED or
-        fate == dataset_pb2.Molecule.FATE_FORCE_CONSTANT_FAILURE or
-        fate == dataset_pb2.Molecule.FATE_DISCARDED_OTHER):
+  elif (fate == dataset_pb2.Properties.FATE_GEOMETRY_OPTIMIZATION_PROBLEM or
+        fate == dataset_pb2.Properties.FATE_DISASSOCIATED or
+        fate == dataset_pb2.Properties.FATE_FORCE_CONSTANT_FAILURE or
+        fate == dataset_pb2.Properties.FATE_DISCARDED_OTHER):
     summary.count_failed_geometry_optimization = 1
 
-  elif fate == dataset_pb2.Molecule.FATE_NO_CALCULATION_RESULTS:
+  elif fate == dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS:
     summary.count_kept_geometry = 1
     summary.count_missing_calculation = 1
 
-  elif (fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_SERIOUS_ERROR or
-        fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_MAJOR_ERROR or
-        fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_MODERATE_ERROR):
+  elif (fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR or
+        fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MAJOR_ERROR or
+        fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
     for source, field in [
@@ -1800,8 +1800,8 @@ def molecule_to_bond_topology_summaries(molecule):
         yield other_summary
 
   elif (
-      fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_SERIOUS or
-      fate == dataset_pb2.Molecule.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
+      fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS or
+      fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
     for source, field in [
@@ -1817,7 +1817,7 @@ def molecule_to_bond_topology_summaries(molecule):
         setattr(other_summary, field, 1)
         yield other_summary
 
-  elif fate == dataset_pb2.Molecule.FATE_SUCCESS:
+  elif fate == dataset_pb2.Properties.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
     for source, field in [

@@ -411,8 +411,9 @@ class SmuSqliteTest(absltest.TestCase):
     # We'll given it the ring topology to start and the symetric ring broken
     # topologies should be found.
 
-    molecule = dataset_pb2.Molecule(molecule_id=9999,
-                                      fate=dataset_pb2.Molecule.FATE_SUCCESS)
+    molecule = dataset_pb2.Molecule(molecule_id=9999)
+    molecule.properties.errors.fate=dataset_pb2.Properties.FATE_SUCCESS
+
     bt = molecule.bond_topologies.add(smiles='N1NO1', bond_topology_id=100)
     geom = molecule.optimized_geometry.atom_positions
 

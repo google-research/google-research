@@ -188,7 +188,7 @@ message TopologyMatches {
   int32 molecule_id = 3;
 
   // To avoid having to join results later, store the fate.
-  Molecule.FateCategory fate = 4;
+  Properties.FateCategory fate = 4;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left
@@ -226,10 +226,50 @@ message Geometry {
 
 // All the properties that are computed for a molecule.
 message Properties {
-  // These values capture all of the possible error states during computations.
-  // TODO(pfr): this proto will undergo a major revision with next round of
-  // data.
+  // Fate is a simple categorical summary of how this molecule progressed
+  // through the whole pipeline of computations.
+  enum FateCategory {
+    // FATE_UNDEFINED should not be present in the final data
+    FATE_UNDEFINED = 0;
+    // Duplicated to another Molecule with the same bond topology. This
+    // Molecule will not have most properties fields.
+    FATE_DUPLICATE_SAME_TOPOLOGY = 1;
+    // Duplicated to another Molecule with a different bond topology. This
+    // Molecule will not have most properties fields.
+    FATE_DUPLICATE_DIFFERENT_TOPOLOGY = 2;
+    // Errors were encountered during geometry optimization. This
+    // Molecule will not have most properties fields.
+    FATE_GEOMETRY_OPTIMIZATION_PROBLEM = 3;
+    // After geometry optimization, the expected bonding pattern was no longer
+    // consistent with the geometry. This Molecule will not have most
+    // properties fields.
+    FATE_DISASSOCIATED = 4;
+    // During geometry optimization, problems were encountered converging to a
+    // local minima. This Molecule will not have most properties fields.
+    // TODO(pfr): check documentation
+    FATE_FORCE_CONSTANT_FAILURE = 5;
+    // Other problems were encountered during geometry optimization. This
+    // Molecule will not have most properties fields.
+    FATE_DISCARDED_OTHER = 6;
+    // Calculation results are missing. Should not be present in final dataset.
+    FATE_NO_CALCULATION_RESULTS = 7;
+    // Some calculation results had serious/major/moderate errors.
+    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
+    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
+    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
+    // Some calculations had only minor errors with some warnings.
+    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
+    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
+    // Calculations were successful with only minor errors/warnings
+    FATE_SUCCESS = 9;
+  }
+
+  // Errors captures information about how the computation on this molecule
+  // progressed.
   message Errors {
+    // A simple categorical summary of the outcome.
+    FateCategory fate = 40;
+
     // status is a summary of all the error conditions encountered.
     // 0 indicates no errors and larger values indicate increasingly serious
     // errors.
@@ -999,44 +1039,8 @@ message Molecule {
   // TODO(pfr): add a reference to the paper describing this
   repeated BondTopology bond_topologies = 8;
 
-  // Fate is a simple categorical summary of how this molecule progressed
-  // through the whole pipeline of computations.
-  enum FateCategory {
-    // FATE_UNDEFINED should not be present in the final data
-    FATE_UNDEFINED = 0;
-    // Duplicated to another Molecule with the same bond topology. This
-    // Molecule will not have most properties fields.
-    FATE_DUPLICATE_SAME_TOPOLOGY = 1;
-    // Duplicated to another Molecule with a different bond topology. This
-    // Molecule will not have most properties fields.
-    FATE_DUPLICATE_DIFFERENT_TOPOLOGY = 2;
-    // Errors were encountered during geometry optimization. This
-    // Molecule will not have most properties fields.
-    FATE_GEOMETRY_OPTIMIZATION_PROBLEM = 3;
-    // After geometry optimization, the expected bonding pattern was no longer
-    // consistent with the geometry. This Molecule will not have most
-    // properties fields.
-    FATE_DISASSOCIATED = 4;
-    // During geometry optimization, problems were encountered converging to a
-    // local minima. This Molecule will not have most properties fields.
-    // TODO(pfr): check documentation
-    FATE_FORCE_CONSTANT_FAILURE = 5;
-    // Other problems were encountered during geometry optimization. This
-    // Molecule will not have most properties fields.
-    FATE_DISCARDED_OTHER = 6;
-    // Calculation results are missing. Should not be present in final dataset.
-    FATE_NO_CALCULATION_RESULTS = 7;
-    // Some calculation results had serious/major/moderate errors.
-    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
-    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
-    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
-    // Some calculations had only minor errors with some warnings.
-    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
-    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
-    // Calculations were successful with only minor errors/warnings
-    FATE_SUCCESS = 9;
-  }
-  FateCategory fate = 9;
+  // DEPRECATED: old location for this value
+  Properties.FateCategory fate_deprecated = 9;
 
   // Specifies which database (STANDARD or COMPLETE) this Molecule
   // will be in. Note that everything in STANDARD is also included in COMPLETE.

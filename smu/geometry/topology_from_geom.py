@@ -135,7 +135,7 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
   result = dataset_pb2.TopologyMatches()  # To be returned.
   result.starting_smiles = starting_topology.smiles
   result.molecule_id = molecule.molecule_id
-  result.fate = molecule.fate
+  result.fate = molecule.properties.errors.fate
 
   natoms = len(starting_topology.atoms)
   if natoms == 1:

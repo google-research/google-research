@@ -205,7 +205,7 @@ def molecule_to_stat_values(molecule):
   ]:
     yield 'errors.' + field, getattr(molecule.properties.errors, field)
 
-  yield 'fate', dataset_pb2.Molecule.FateCategory.Name(molecule.fate)
+  yield 'fate', dataset_pb2.Properties.FateCategory.Name(molecule.properties.errors.fate)
 
   yield 'num_initial_geometries', len(
     [g for g in molecule.initial_geometries if g.atom_positions])
@@ -503,7 +503,7 @@ class UpdateMoleculeFn(beam.DoFn):
 
     molecule = copy.deepcopy(molecule)
 
-    molecule.fate = smu_utils_lib.determine_fate(molecule)
+    molecule.properties.errors.fate = smu_utils_lib.determine_fate(molecule)
 
     yield from self._compare_smiles(molecule)
 
