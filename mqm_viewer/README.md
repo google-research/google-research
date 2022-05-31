@@ -27,9 +27,9 @@ ten columns, one line per marked error:
 - **doc**: Name of the document. It's useful to suffix this with language-pair,
   (eg., "doc42:English-German"), especially as you may want to view the data
   from several evaluations together.
-- **doc_seg_id**: Id of segment (sentence or group of sentences) within the
+- **docSegId**: Id of segment (sentence or group of sentences) within the
   document.
-- **global_seg_id**: Id of segment across all documents.
+- **globalSegId**: Id of segment across all documents.
 - **rater**: Rater who evaluated segment.
 - **source**: Source text for segment.
 - **target**: Translated text for segment.
@@ -64,23 +64,23 @@ filters.
   example) using a **JavaScript filter expression**.
   - This allows you to filter using any expression
     involving the columns. It can use the following
-    variables: **system**, **doc**, **doc_seg_id**,
-    **global_seg_id**, **rater**, **category**, **severity**,
+    variables: **system**, **doc**, **docSegId**,
+    **globalSegId**, **rater**, **category**, **severity**,
     **source**, **target**.
   - Filter expressions also have access to an aggregated **segment**
     variable that is an object with the following properties:
-    **segment.cats_by_system**,
-    **segment.cats_by_rater**,
-    **segment.sevs_by_system**,
-    **segment.sevs_by_rater**,
-    **segment.sevcats_by_system**,
-    **segment.sevcats_by_rater**.
+    **segment.catsBySystem**,
+    **segment.catsByRater**,
+    **segment.sevsBySystem**,
+    **segment.sevsByRater**,
+    **segment.sevcatsBySystem**,
+    **segment.sevcatsByRater**.
     Each of these properties is an object keyed by system or rater, with the
-    values being arrays of strings. The "sevcats_\*" values look like
+    values being arrays of strings. The "sevcats\*" values look like
     "Minor/Fluency/Punctuation" or are just the same as severities if
     categories are empty. This segment-level aggregation allows you
     to select specific segments rather than just specific error ratings.
-  - **Example**: global_seg_id > 10 || severity == 'Major'
+  - **Example**: globalSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
-  - **Example**: segment.sevs_by_system['System-42'].includes('Major')
-  - **Example**: JSON.stringify(segment.sevcats_by_system).includes('Major/Fl')
+  - **Example**: segment.sevsBySystem['System-42'].includes('Major')
+  - **Example**: JSON.stringify(segment.sevcatsBySystem).includes('Major/Fl')

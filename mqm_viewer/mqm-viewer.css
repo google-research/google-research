@@ -17,71 +17,108 @@
 .mqm {
   font-family: monospace;
 }
-.mqm-header {
-  width: 90%;
-  margin: 8px;
-  position: relative;
-}
-.mqm-title {
-  font-family: Impact;
-  font-size: x-large;
-}
-.mqm-header-right {
+#mqm-accuracy-th,
+#mqm-critical-th,
+#mqm-fluency-th,
+#mqm-major-th,
+#mqm-minor-th,
+#mqm-uncategorized-th {
   color: blue;
-  font-style: italic;
-  vertical-align: baseline;
-  position: absolute;
-  right: 0;
-  bottom: 0;
 }
-.mqm-section {
-  font-weight: bold;
-  font-size: large;
+.mqm-ci {
+  color: gray;
+  font-size: x-small
 }
-.mqm-filter-expr,
-.mqm-filter-re {
-  border: none;
-  border-bottom: 1px solid blue;
-  padding: 0 0 4px 0;
-  outline: none;
+.mqm-critical {
+  background: violet;
 }
 #mqm-errors {
   color: red;
-  overflow-y: auto;
   max-height: 100px;
-}
-.mqm-filter-expr-error {
-  color: red;
+  overflow-y: auto;
 }
 .mqm-filters * {
   line-height: 1.5;
 }
-.mqm-minor {
-  background: lightyellow;
+.mqm-filter-expr-error {
+  color: red;
+}
+.mqm-header {
+  margin: 8px;
+  position: relative;
+  width: 90%;
+}
+.mqm-header-right {
+  bottom: 0;
+  color: blue;
+  font-style: italic;
+  position: absolute;
+  right: 0;
+  vertical-align: baseline;
+}
+.mqm-help-icon {
+  color: blue;
+  cursor: pointer;
+  font-weight: bold;
+  vertical-align: top;
+}
+.mqm-input {
+  border: none;
+  border-bottom: 1px solid blue;
+  outline: none;
+  padding: 0 0 4px 0;
 }
 .mqm-major {
-  background: mistyrose;
+  background: pink;
+}
+.mqm-minor {
+  background: #fbec5d;
 }
 .mqm-neutral {
   background: lightgray;
 }
-.mqm-val {
-  max-width: 150px;
+.mqm-note {
+  font-style: italic;
+  cursor: default;
 }
-.mqm-val:hover {
+#mqm-reset-settings {
   cursor: pointer;
+}
+#mqm-reset-settings:hover {
+  background-color: lightgreen;
+}
+#mqm-score-heading {
+  font-weight: bold;
+  max-width: 15ch;
+}
+.mqm-score-th {
+  min-width: 10ch;
+}
+.mqm-section {
+  font-size: large;
+  font-weight: bold;
 }
 .mqm-select {
   margin: 4px 0;
-  min-width: 50px;
   max-width: 100px;
+  min-width: 50px;
+}
+.mqm-settings-table {
+  margin: 6px 0 4px 20px;
+}
+.mqm-settings {
+  margin: 6px 0 4px;
+}
+.mqm-settings summary {
+  cursor: pointer;
+  color: blue;
 }
 .mqm-table {
-  table-layout: fixed;
   border: none;
   border-collapse: collapse;
   box-sizing: border-box;
   margin-top: 8px;
+  table-layout: fixed;
 }
 .mqm-table td,
 .mqm-table th {
@@ -92,9 +129,6 @@
 }
 .mqm-table th {
   border-bottom: 1px solid gray;
-}
-.mqm-help-icon {
-  vertical-align: top;
 }
 .mqm-table td:first-child,
 .mqm-table th:first-child {
@@ -127,7 +161,25 @@
 #mqm-th-severity {
   width: 3%;
 }
-.mqm-ci {
+.mqm-timestamp {
+  font-size: x-small;
+  font-style: italic;
   color: gray;
-  font-size: x-small
+  cursor: default;
+}
+.mqm-timestamp:hover {
+  color: black;
+}
+.mqm-title {
+  font-family: Impact;
+  font-size: x-large;
+}
+.mqm-trivial {
+  background: beige;
+}
+.mqm-val {
+  max-width: 150px;
+}
+.mqm-val:hover {
+  cursor: pointer;
 }
