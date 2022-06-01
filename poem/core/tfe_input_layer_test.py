@@ -28,13 +28,26 @@ FLAGS = flags.FLAGS
 
 class TfeInputLayerTest(tf.test.TestCase):
 
-  def testGenerateClassTargets(self):
+  def testGenerateBinaryClassTargets(self):
     label_ids = tf.constant([0, 1, 3], dtype=tf.int64)
     label_confidences = tf.constant([0.9, 0.3, 0.7], dtype=tf.float32)
     class_targets, class_weights = (
         tfe_input_layer.generate_class_targets(
             label_ids, label_confidences, num_classes=5))
     self.assertAllEqual(class_targets, [1, 0, 0, 1, 0])
+    self.assertAllClose(class_weights, [1.0, 1.0, 0.0, 1.0, 0.0])
+
+  def testGenerateSoftClassTargets(self):
+    label_ids = tf.constant([0, 1, 3], dtype=tf.int64)
+    label_confidences = tf.constant([0.9, 0.3, 0.7], dtype=tf.float32)
+    class_targets, class_weights = (
+        tfe_input_layer.generate_class_targets(
+            label_ids,
+            label_confidences,
+            num_classes=5,
+            use_label_confidence_as_class_target=True,
+            default_label_confidence=0.05))
+    self.assertAllClose(class_targets, [0.9, 0.3, 0.05, 0.7, 0.05])
     self.assertAllClose(class_weights, [1.0, 1.0, 0.0, 1.0, 0.0])
 
   def testReadFromTable(self):
@@ -185,6 +198,7 @@ class TfeInputLayerTest(tf.test.TestCase):
             keypoint_profiles.LegacyCoco13KeypointProfile2D().keypoint_names),
         include_keypoint_scores_2d=True,
         num_classes=6,
+        use_label_confidence_as_class_target=True,
         num_objects=1,
         sequence_length=5)
     inputs = tfe_input_layer.read_from_table(
