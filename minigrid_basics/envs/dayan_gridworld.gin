@@ -1,0 +1,16 @@
+# Dayan's (1993) grid task.
+register_environment.env_id = 'MiniGrid-DayanGridTask-v0'
+
+MonMiniGridEnv.directional = True
+MonMiniGridEnv.agent_pos = None
+MonMiniGridEnv.goal_pos = None
+MonMiniGridEnv.ascii_grid = """
+*************
+*           *
+*g    ****  *
+*     *     *
+*     *s    *
+*     *     *
+*     ****  *
+*           *
+*************"""
