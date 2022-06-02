@@ -10,4 +10,4 @@ wandb
 moviepy
 git+https://github.com/openai/CLIP.git
 git+https://github.com/openai/glide-text2im
-tensorflow==1.15
+tensorflow==2.7.2
