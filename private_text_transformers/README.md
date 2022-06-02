@@ -46,6 +46,19 @@ For some of the experiments in the paper, you might want to retrain a SentencePi
 tokenizer (with or without differential privacy).
 
 Please use an implementation of SentencePiece from https://github.com/google/sentencepiece
+and set the other parameters accordingly.
+
+To retrain a sentence piece with privacy:
+
+```sh
+spm_train -- \
+   --input=<input> \
+   --input_format="tsv" \
+   ...
+   --enable_differential_privacy="true" \
+   --differential_privacy_noise_level=<noise_level> \
+   --differential_privacy_clipping_threshold=<clipping_threshold>
+```
 
 ### Training models
 
