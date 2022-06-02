@@ -266,7 +266,7 @@ def generate_rays_th(pixel_coords, pix2cam,
   dpixel = torch.tensor([[[1.5, 0.5]]],
                         device=pixel_coords.device)  # [1, 1, 2].
   dpixel_dirs = torch.cat([pixel_coords + dpixel, homog],
-                          dim=-1)  # [width, height, 3]
+                          dim=-1)  # [width, height, 3].
   dpixel_dirs_cam = torch.matmul(
       pix2cam_unsqueezed,
       dpixel_dirs.view(*new_dims, *dpixel_dirs.shape,
@@ -274,7 +274,7 @@ def generate_rays_th(pixel_coords, pix2cam,
   )
   ray_diffs = torch.linalg.norm(
       (dpixel_dirs_cam - cam_dirs).squeeze(-1), dim=-1,
-      keepdims=True) / np.sqrt(12.)  # [*batch, width, height, 1]
+      keepdims=True) / np.sqrt(12.)  # [*batch, width, height, 1].
   return ray_origins, ray_dirs, ray_diffs
 
 
