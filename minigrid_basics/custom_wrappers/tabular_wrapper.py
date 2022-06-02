@@ -55,7 +55,7 @@ class TabularWrapper(gym.core.ObservationWrapper):
           curr_state += 1
     self.num_states = curr_state
     obs_space_dict = {'state': gym.spaces.Discrete(self.num_states)}
-    if self.get_rgb and 'image' in self.observation_space:
+    if self.get_rgb and 'image' in self.observation_space.spaces:
       # Re-use the image obs spec from the env we are wrapping.
       obs_space_dict['image'] = self.observation_space['image']
     self.observation_space = gym.spaces.Dict(obs_space_dict)
