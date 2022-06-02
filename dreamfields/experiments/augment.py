@@ -13,82 +13,114 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Data augmentation helpers with random crops and backgrounds, with PyTorch."""
+"""Data augmentation helpers with random crops and backgrounds."""
 
 # pylint: disable=g-bad-import-order
-import functools
-
+import dm_pix
 import jax
-import numpy as np
+from jax import random
+import jax.numpy as np
+import numpy as onp
 import torch
-import torchvision
 
 import optvis
 # pylint: enable=g-bad-import-order
 
 
-cpu = torch.device("cpu")
+def crop(image, ix, iy, n_crop):
+  """Crop image to a n_crop sized square with the top left at (ix, iy)."""
+  return np.roll(np.roll(image, -ix, axis=-2), -iy, axis=-3)[:n_crop, :n_crop]
 
 
-def checkerboard(batch_size, nsq, size, device=cpu):
-  """Create a checkerboard background image."""
+def resize(image, n_clip):
+  """Resize image bilinearly to size n_clip."""
+  return jax.image.resize(image, (n_clip, n_clip, 3), method='bilinear')
+
+
+def checkerboard(key, nsq, size, dtype=np.float32):
+  """Create a checkerboard background image with random colors.
+
+  NOTE: only supports a single value for nsq (number squares).
+
+  Args:
+    key: JAX PRNGkey.
+    nsq (int): number of squares per side of the checkerboard.
+    size (int): size of one side of the checkerboard in pixels.
+    dtype: desired return data type.
+
+  Returns:
+    canvas (np.array): checkerboard background image.
+  """
   assert size % nsq == 0
   sq = size // nsq
-  color1, color2 = torch.rand((2, batch_size, 1, 1, 1, 1, 3), device=device)
-  canvas = color1.expand((batch_size, nsq, sq, nsq, sq, 3)).clone()
-  canvas[:, ::2, :, 1::2, :] = color2
-  canvas[:, 1::2, :, ::2, :] = color2
-  canvas = canvas.reshape(batch_size, size, size, 3)
-  canvas = canvas.movedim(-1, 1)
-  return canvas
+  color1, color2 = random.uniform(key, (2, 3), dtype=dtype)
+  canvas = np.full((nsq, sq, nsq, sq, 3), color1, dtype=dtype)
+  canvas = canvas.at[::2, :, 1::2, :, :].set(color2)
+  canvas = canvas.at[1::2, :, ::2, :, :].set(color2)
+  return canvas.reshape(sq * nsq, sq * nsq, 3)
 
 
-def fft_images(batch_size, size, device=cpu):
-  """Random FFT backgrounds from dreamfields/dreamfields/optvis.py."""
-  key = jax.random.PRNGKey(np.random.randint(1000000))
-  keys = jax.random.split(key, batch_size)
-  fn = functools.partial(
-      optvis.image_sample, shape=[1, size, size, 3], sd=0.2, decay_power=1.5)
-  bg = jax.vmap(fn)(keys)[:, 0]  # NHWC.
-  bg = torch.from_numpy(np.asarray(bg)).to(device)
-  bg = bg.movedim(-1, 1)  # NHWC to NCHW.
+def random_bg(key,
+              n_clip,
+              checker_bg_nsq,
+              white_bg_prob=0.25,
+              noise_bg_prob=0.25,
+              checker_bg_prob=0.25,
+              fft_bg_prob=0.25,
+              bg_blur_std_range=(0, 10),
+              bg_random_saturation_range=None):
+  """Generate and augment background."""
+  noise_key, checker_key, fft_key, bg_sel_key, blur_key, bg_saturation_key = (
+      random.split(key, 6))
+  # White background.
+  white_bg = np.ones((n_clip, n_clip, 3), dtype=np.float32)
+
+  # Uniform noise background.
+  noise_bg = random.uniform(noise_key, (n_clip, n_clip, 3))
+
+  # Checkerboard background.
+  checker_bg = checkerboard(checker_key, checker_bg_nsq, n_clip)
+
+  # Random smoothed gaussian bg used in
+  # https://distill.pub/2018/differentiable-parameterizations/#section-rgba.
+  fft_bg = optvis.image_sample(
+      fft_key, [1, n_clip, n_clip, 3], sd=0.2, decay_power=1.5)[0]
+
+  # Select background.
+  probs = [white_bg_prob, noise_bg_prob, checker_bg_prob, fft_bg_prob]
+  assert onp.isclose(sum(probs), 1)
+  bgs = np.stack([white_bg, noise_bg, checker_bg, fft_bg])
+  bg = random.choice(bg_sel_key, bgs, p=np.array(probs))
+
+  # Blur background.
+  if bg_blur_std_range is not None:
+    min_blur, max_blur = bg_blur_std_range
+    blur_std = random.uniform(blur_key) * (max_blur - min_blur) + min_blur
+    bg = dm_pix.gaussian_blur(bg, blur_std, kernel_size=15)
+
+  # (de)saturate background. values < 1 indicate desaturation (grayscale).
+  if bg_random_saturation_range is not None:
+    lower, upper = bg_random_saturation_range
+    bg = dm_pix.random_saturation(bg_saturation_key, bg, lower, upper)
+
   return bg
 
 
-def random_blur(image, min_blur, max_blur, kernel_size=15):
-  blur_std = np.random.uniform() * (max_blur - min_blur) + min_blur
-  image = torchvision.transforms.functional.gaussian_blur(
-      image, kernel_size=kernel_size, sigma=blur_std)
-  return image
-
-
-def sample_backgrounds(num,
-                       res,
-                       *,
-                       checkerboard_nsq,
-                       min_blur_std,
-                       max_blur_std,
-                       device=cpu):
-  """Sample random backgrounds."""
-  per_type_num = int(np.ceil(num / 5))
-
+def sample_backgrounds(num, res, checkerboard_nsq, min_blur_std, max_blur_std,
+                       device):
+  """Generate random background images."""
   bgs = []
-  # White background.
-  bgs.append(torch.ones((per_type_num, 3, res, res)))
-  # Black background.
-  bgs.append(torch.zeros((per_type_num, 3, res, res)))
-  # Randomly colored checkerboard.
-  bgs.append(checkerboard(per_type_num, checkerboard_nsq, res))
-  # Random noise.
-  bgs.append(torch.rand((per_type_num, 3, res, res)))
-  # FFT background.
-  bgs.append(fft_images(per_type_num, res))
-  bgs = torch.cat(bgs, dim=0)
+  key = random.PRNGKey(onp.random.randint(0, 100000000))
+  keys = random.split(key, num)
+  for key in keys:
+    bg = random_bg(
+        key,
+        res,
+        checkerboard_nsq,
+        bg_blur_std_range=(min_blur_std, max_blur_std))
+    bgs.append(bg)
 
-  # Sample and blur backgrounds.
-  idx = np.random.choice(len(bgs), size=num, replace=False)
-  bgs = torch.stack(
-      [random_blur(bgs[i], min_blur_std, max_blur_std) for i in idx])
-
-  bgs = bgs.to(device)
+  # Stack and convert to torch.
+  bgs = onp.array(np.stack(bgs))  # [num, res, res, 3].
+  bgs = torch.from_numpy(bgs).movedim(3, 1).to(device)  # [num, 3, res, res].
   return bgs
