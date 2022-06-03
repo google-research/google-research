@@ -95,7 +95,8 @@ There are two options of running python script. One with bazel and another by ca
 CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
 ```
 
-### bc_resnet - based on [Broadcasted Residual Learning for Efficient Keyword Spotting](https://arxiv.org/pdf/2106.04140.pdf)
+### bc_resnet_1
+It is based on [Broadcasted Residual Learning for Efficient Keyword Spotting](https://arxiv.org/pdf/2106.04140.pdf)
 
 We did not run much hyperparameter optimization, so accuracy can be optimized futher.
 
@@ -138,7 +139,9 @@ bc_resnet \
 --max_pool 0
 ```
 
-BC-ResNet-2
+### bc_resnet_2
+It is based on [Broadcasted Residual Learning for Efficient Keyword Spotting](https://arxiv.org/pdf/2106.04140.pdf)
+bc_resnet_2 is improved version of bc_resnet_1: more accurate with more parameters.
 parameters: 30K \
 float accuracy 97.6 \
 ```shell
