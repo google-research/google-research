@@ -811,10 +811,6 @@ def distributed_shampoo(
     """Returns True if using diagonal firt order method for grafting."""
     return graft_type != GraftingType.SGD and graft_type != GraftingType.SQRT_N
 
-  def _graft_type_has_diagonal_momentum_states():
-    """Returns False if using SQRT_N for grafting."""
-    return graft_type != GraftingType.SQRT_N
-
   def quantized_dtype_for_momentum_buffers():
     return jnp.int8 if best_effort_memory_usage_reduction else jnp.float32
 
@@ -921,19 +917,16 @@ def distributed_shampoo(
             if exponent_override == 0 else exponent_override)
         exponents.extend([exponent] * len(shapes))
 
-      diagonal_statistics = []
-      if _graft_type_has_diagonal_statistics():
-        diagonal_statistics = jnp.zeros_like(param)
-
-      diagonal_momentum = _quantize_momentum([])
+      diagonal_statistics = _quantize_diagonal_statistics(
+          jnp.zeros_like(param))
+      diagonal_momentum = _quantize_momentum(jnp.zeros_like(param))
       momentum = _quantize_momentum(jnp.zeros_like(param))
-      if _graft_type_has_diagonal_momentum_states():
-        diagonal_momentum = _quantize_momentum((jnp.zeros_like(param)))
 
       local_stats_flat.append(
           LocalShardedParameterStats(
-              _quantize_diagonal_statistics(diagonal_statistics),
-              diagonal_momentum, momentum, init_training_metrics(len(sizes)),
+              diagonal_statistics,
+              diagonal_momentum,
+              momentum, init_training_metrics(len(sizes)),
               index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
@@ -1015,26 +1008,18 @@ def distributed_shampoo(
 
       diagonal_statistics_pspec = []
       diagonal_statistics_scale_pspec = []
-      diagonal_statistics_shape = []
-      if _graft_type_has_diagonal_statistics():
-        # Identically shaped param.
-        diagonal_statistics_pspec = param_pspec
-        diagonal_statistics_shape = list(param.shape)
-        if quantized_dtype_for_diagonal_statistics_buffers() != jnp.float32:
-          diagonal_statistics_scale_pspec = _remove_leading_sharding_annotation(
-              param_pspec)
+      diagonal_statistics_pspec = param_pspec
+      if quantized_dtype_for_diagonal_statistics_buffers() != jnp.float32:
+        diagonal_statistics_scale_pspec = _remove_leading_sharding_annotation(
+            param_pspec)
 
-      m1_pspec = []
-      m1_shape = []
       m1_scale_pspec = []
-      if _graft_type_has_diagonal_momentum_states():
-        m1_pspec = param_pspec
-        m1_shape = list(param.shape)
-        if quantized_dtype_for_momentum_buffers() != jnp.float32:
-          m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
+      m1_pspec = param_pspec
+      if quantized_dtype_for_momentum_buffers() != jnp.float32:
+        m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
 
-      m2_pspec = param_pspec
       m2_scale_pspec = []
+      m2_pspec = param_pspec
       if quantized_dtype_for_momentum_buffers() != jnp.float32:
         m2_scale_pspec = _remove_leading_sharding_annotation(m2_pspec)
 
@@ -1043,10 +1028,10 @@ def distributed_shampoo(
               QuantizedValue(diagonal_statistics_pspec, [],
                              diagonal_statistics_scale_pspec,
                              quantized_dtype_for_diagonal_statistics_buffers(),
-                             False, diagonal_statistics_shape),
+                             False, list(param.shape)),
               QuantizedValue(m1_pspec, [], m1_scale_pspec,
                              quantized_dtype_for_momentum_buffers(), False,
-                             m1_shape),
+                             list(param.shape)),
               QuantizedValue(m2_pspec, [], m2_scale_pspec,
                              quantized_dtype_for_momentum_buffers(), False,
                              list(param.shape)), init_training_metrics_pspec(),
@@ -1087,24 +1072,20 @@ def distributed_shampoo(
         shapes = preconditioner.shapes_for_preconditioners()
         num_statistics += len(shapes)
 
-      diagonal_statistics_shape_and_dtype = []
       diagonal_statistics_scale_shape_and_dtype = []
-      if _graft_type_has_diagonal_statistics():
-        diagonal_statistics_shape_and_dtype = [list(param.shape), param.dtype]
-        qdtype = quantized_dtype_for_diagonal_statistics_buffers()
-        if qdtype != jnp.float32:
-          diagonal_statistics_shape_and_dtype = [list(param.shape), qdtype]
-          diagonal_statistics_scale_shape_and_dtype = [
-              list(param.shape)[1:], param.dtype
-          ]
+      diagonal_statistics_shape_and_dtype = [list(param.shape), param.dtype]
+      qdtype = quantized_dtype_for_diagonal_statistics_buffers()
+      if qdtype != jnp.float32:
+        diagonal_statistics_shape_and_dtype = [list(param.shape), qdtype]
+        diagonal_statistics_scale_shape_and_dtype = [
+            list(param.shape)[1:], param.dtype
+        ]
 
       qdtype = quantized_dtype_for_momentum_buffers()
-      m1_shape_and_dtype = []
       m1_scale_shape_and_dtype = []
-      if _graft_type_has_diagonal_momentum_states():
-        m1_shape_and_dtype = [list(param.shape), qdtype]
-        if quantized_dtype_for_momentum_buffers() != jnp.float32:
-          m1_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
+      m1_shape_and_dtype = [list(param.shape), qdtype]
+      if quantized_dtype_for_momentum_buffers() != jnp.float32:
+        m1_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
 
       m2_shape_and_dtype = [list(param.shape), param.dtype]
       m2_scale_shape_and_dtype = []
@@ -1262,10 +1243,8 @@ def distributed_shampoo(
       if _graft_type_has_diagonal_statistics():
         diagonal_statistics = jnp.zeros_like(param)
 
-      diagonal_momentum = _quantize_momentum([])
+      diagonal_momentum = _quantize_momentum(jnp.zeros_like(param))
       momentum = _quantize_momentum(jnp.zeros_like(param))
-      if _graft_type_has_diagonal_momentum_states():
-        diagonal_momentum = _quantize_momentum(jnp.zeros_like(param))
 
       return ParameterStats(
           _quantize_diagonal_statistics(diagonal_statistics),
@@ -1902,14 +1881,9 @@ def distributed_shampoo(
     shampoo_update_with_wd_momentum = (
         state.momentum.to_float() * beta1 + w * shampoo_update_with_wd)
 
-    if _graft_type_has_diagonal_momentum_states():
-      grafting_update_with_wd_momentum = (
-          state.diagonal_momentum.to_float() * beta1 +
-          w * grafting_update_with_wd)
-    else:
-      # Share the momentum buffer
-      grafting_update_with_wd_momentum = (
-          state.momentum.to_float() * beta1 + w * grafting_update_with_wd)
+    grafting_update_with_wd_momentum = (
+        state.diagonal_momentum.to_float() * beta1 +
+        w * grafting_update_with_wd)
 
     run_shampoo = (step >= start_preconditioning_step).astype(
         grafting_update_with_wd_momentum.dtype)
@@ -1933,9 +1907,6 @@ def distributed_shampoo(
 
     new_diagonal_momentum = grafting_update_with_wd_momentum
     new_momentum = shampoo_update_with_wd_momentum
-    if not _graft_type_has_diagonal_momentum_states():
-      new_diagonal_momentum = []
-      new_momentum = momentum_update
 
     param_stats = ParameterStats(
         _quantize_diagonal_statistics(new_diagonal_statistics),
