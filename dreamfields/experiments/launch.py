@@ -294,7 +294,6 @@ def main(argv):
         "config.lr_init": 5e-4,
         "config.lr_final": 5e-4,
     }
-    # assert isinstance(configs[key]["config.view_specific_templates"], tuple)
     print(" ".join([f"--{arg}={val}" for arg, val in configs[key].items()]))
 
     # Limit to one job when local.

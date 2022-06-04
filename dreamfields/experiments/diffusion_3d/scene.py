@@ -16,7 +16,7 @@
 """Camera sampling, 3D and scene bound helpers, in Numpy and PyTorch."""
 
 import functools
-from typing import Number, Tuple
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -27,6 +27,7 @@ import torch
 _HWF_BLENDER = np.array([800., 800., 1111.1111])
 
 Rays = Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+Number = Union[int, float]
 
 
 def scale_intrinsics(new_width, hwf=_HWF_BLENDER):

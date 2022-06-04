@@ -21,7 +21,7 @@ docker run \
     --gpus $GPUS \
     --mount type=bind,source="$HOME"/diffusion_3d_logs,target=/gcs/xcloud-shared/$USER/diffusion_3d \
     -it diffusion_3d:latest \
-    python diffusion_3d/main_v7.py \
+    python diffusion_3d/main.py \
         --config.view_specific_templates='("{query}. on a white background.",)' \
         --config.seed=0 \
         --config.output_dir="/gcs/xcloud-shared/$USER/diffusion_3d/$(date +"%m-%d-%s")_$EXPNAME" \

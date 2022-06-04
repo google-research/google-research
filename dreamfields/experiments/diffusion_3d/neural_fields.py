@@ -187,40 +187,40 @@ def distance_to_density(d, alpha, beta, sigma_noise_std):
   return alpha * laplace_cdf(-d, beta, sigma_noise_std)
 
 
-def render_rays(
-    rays,
-    model,
-    deformation_codes,
-    *,
-    near,
-    far,
-    device,
-    white_bkgd = True,
-    mask_rad = 1.,
-    mask_rad_norm="inf",
-    jitter = True,
-    n_pts_per_ray=192,
-    origin=None,
-    train = False,
-    eps = 1e-6,
-    chunksize_per_view=None,
-    parameterization="nerf",
-    sigma_noise_std = 0.,
-    # VolSDF specific options.
-    volsdf_beta=0.1,
-    **forward_kwargs):
+def render_rays(rays,
+                *,
+                volume_model,
+                deformation_model,
+                render_deformation,
+                deformation_codes,
+                decayscales,
+                near,
+                far,
+                device,
+                white_bkgd = True,
+                mask_rad = 1.,
+                mask_rad_norm="inf",
+                jitter = True,
+                n_pts_per_ray=192,
+                origin=None,
+                train = False,
+                eps = 1e-6,
+                chunksize_per_view=None,
+                parameterization="nerf",
+                sigma_noise_std = 0.,
+                volsdf_beta=0.1,
+                **forward_kwargs):
   """Volumetric rendering.
-
-  TODO(jainajay):
-    - Implement coarse to fine sampling, with the same network
-    - Render texture-free images, with lighting given by autodiff normals
 
   Args:
     rays: tuple of (ray_origins, ray_directions, ray_diffs). Each is a
       torch.tensor. ray_origins is (..., 3), ray_directions is (..., 3), and
       ray_diffs is (..., 1).
-    model (torch.nn.Module): NeRF MLP model.
+    volume_model (torch.nn.Module): NeRF MLP model.
+    deformation_model (torch.nn.Module): Nerfies deformation model.
+    render_deformation: If True, deform points with the deformation model.
     deformation_codes (torch.Tensor): Latents describing deformation.
+    decayscales: Dictionary of coarse-to-fine schedules.
     near (float): Distance from camera origin to near plane.
     far (float): Distance from camera origin to far plane.
     device: Torch device, e.g. CUDA or CPU. white_bkgd mask_rad mask_rad_norm
@@ -278,15 +278,24 @@ def render_rays(
   t_mids = .5 * (t[Ellipsis, 1:] + t[Ellipsis, :-1])
   mean, cov = dists_to_samples(rays_shift, t, dtype=torch.float32)
 
+  deformation_kwargs = dict(
+      deformation_codes=deformation_codes,
+      decayscale=decayscales["deformation"],
+      enabled=render_deformation,
+  )
+
   # Run model.
   if chunksize_per_view:
     raw_outputs = []
     aux = []
     for i in range(0, mean.shape[1], chunksize_per_view):
-      batch_outputs, batch_aux = model(
-          mean=mean[:, i:i + chunksize_per_view],
+      mean_chunk = mean[:, i:i + chunksize_per_view]
+      mean_transformed, batch_aux = deformation_model(mean_chunk,
+                                                      **deformation_kwargs)
+      batch_outputs = volume_model(
+          mean=mean_transformed,
           cov=cov[:, i:i + chunksize_per_view],
-          deformation_codes=deformation_codes,
+          decayscales=decayscales,
           **forward_kwargs)
       raw_outputs.append(batch_outputs)
       aux.append(batch_aux)
@@ -301,10 +310,11 @@ def render_rays(
         for k in aux[0].keys()
     }
   else:
-    raw_outputs, aux = model(
-        mean=mean,
+    mean_transformed, aux = deformation_model(mean, **deformation_kwargs)
+    raw_outputs = volume_model(
+        mean=mean_transformed,
         cov=cov,
-        deformation_codes=deformation_codes,
+        decayscales=decayscales,
         **forward_kwargs)
 
   # Reduce auxiliary dict.
@@ -312,6 +322,8 @@ def render_rays(
 
   # Activations to get rgb, sigma.
   # NOTE(jainajay): removed sigmoid for grid encoding, based on ReLU fields.
+  # TODO(jainajay): Tune this. Not clear whether color should have sigmoid
+  #   or be clamped.
   # rgb = torch.sigmoid(raw_outputs[..., :3])
   rgb = helpers.dclamp(raw_outputs[Ellipsis, :3], 0, 1)
 
@@ -363,16 +375,15 @@ def render_rays(
 
 
 @torch.inference_mode()
-def render_rotating_volume(volume_model,
-                           *,
+def render_rotating_volume(*,
                            deformation_codes,
                            n_frames,
                            video_size,
                            elevation_range,
                            depth_cmap="jet",
+                           device,
                            **render_kwargs):
   """Render frames from a camera orbiting the volume."""
-  device = deformation_codes.device
   render_azimuths = np.linspace(0., 360., n_frames)
   elevation = (elevation_range[0] + elevation_range[1]) / 2.
   cam2worlds = [
@@ -388,9 +399,9 @@ def render_rotating_volume(volume_model,
     rays = [torch.from_numpy(r).to(device).type(torch.float32) for r in rays]
     rendered, _ = render_rays(
         rays,
-        volume_model,
         deformation_codes=deformation_codes,
         white_bkgd=True,
+        device=device,
         **render_kwargs)  # rgb, depth, disparity, silhouette.
     rendered = torch.cat(rendered, dim=-1)  # [H, W, 6].
     frames.append(rendered)
@@ -495,23 +506,31 @@ class WrappedNetwork(nn.Module):
     self.computation_dtype = computation_dtype
     self.output_dtype = output_dtype
 
+    n_hidden_layers = network_config["n_hidden_layers"]
+
     if self.otype == "torch":
       # Pure PyTorch network.
       activation = getattr(nn, network_config["activation"])
       width = network_config["n_neurons"]
-      layers = [nn.Linear(n_input_dims, width), activation()]
-      for _ in range(network_config["n_hidden_layers"]):
-        layers.append(nn.Linear(width, width))
-        layers.append(activation())
-      layers.append(nn.Linear(width, n_output_dims))
+      if n_hidden_layers == -1:
+        # Remove the input layer, so this is linear.
+        layers = [nn.Linear(n_input_dims, n_output_dims)]
+      else:
+        layers = [nn.Linear(n_input_dims, width), activation()]
+        for _ in range(n_hidden_layers):
+          layers.append(nn.Linear(width, width))
+          layers.append(activation())
+        layers.append(nn.Linear(width, n_output_dims))
       output_activation = network_config["output_activation"]
       if output_activation and output_activation != "None":
         layers.append(getattr(nn, output_activation)())
       print("layers", layers)
       self.layers = nn.Sequential(*layers)
-      if self.computation_dtype:
-        self.layers = self.layers.type(self.computation_dtype)
+
+      if computation_dtype:
+        self.layers = self.layers.type(computation_dtype)
     elif self.otype in ["FullyFusedMLP", "CutlassMLP"]:
+      assert n_hidden_layers > 0
       self.layers = tcnn.Network(
           n_input_dims, n_output_dims, network_config, seed=seed)
 
@@ -574,84 +593,6 @@ def compute_elastic_loss(jacobian, eps=1e-6, loss_type="log_svals"):
   residual = torch.sqrt(sq_residual)
   loss = sq_residual.mean()
   return loss, residual.mean()
-
-
-def get_deformation(
-    screw_axis,
-    # Rotation params.
-    with_rotation = True,
-    fix_axis_vertical = False,
-    # Scaling params.
-    with_isotropic_scaling = False,
-    min_scale = 0.5,
-    max_scale = 1.5,
-):
-  """Get screw axis encoding of per-point rigid transformation.
-
-  Args:
-    screw_axis: [*batch, 6]. Per point, contains 3-dim rotation $r in so(3)$ and
-      3 dimensions related to the translation, $v$.
-    with_rotation:
-    fix_axis_vertical:
-    with_isotropic_scaling:
-    min_scale:
-    max_scale: float. Maximum scale. The scale is activated with a sigmoid
-      between 0 and max_scale. Note that this affects the scale at a 0 logit.
-      With max_scale=2, the zero-logit scaling is 1.
-
-  Returns:
-    er: [*batch, 3, 3]. Rotation matrix $e^r in SO(3)$ where r is the
-    unnormalized axis of rotation.
-    p: [*batch, 3]. Translation component of screw motion.
-    with_isotropic_scaling (bool): Whether to scale points within rotation
-    matrix.
-  """
-  identity = torch.eye(3, dtype=torch.float, device=screw_axis.device)
-
-  if with_rotation:
-    # Compute angle of rotation.
-    norm = torch.linalg.norm(
-        screw_axis[Ellipsis, :3], dim=-1, keepdim=True)  # [*batch, 1].
-    theta = norm.unsqueeze(-1)  # [*batch, 1, 1].
-    thetasq = torch.square(theta)
-    thetacubed = thetasq * theta
-
-    # Get axis of rotation and compute $[r]_x$ and $[r]_x^2$.
-    axis = screw_axis[Ellipsis, :3] / norm
-    tx1, tx2, tx3 = axis[Ellipsis, 0], axis[Ellipsis, 1], axis[Ellipsis, 2]  # [*batch].
-
-    if fix_axis_vertical:
-      tx1 = torch.zeros_like(tx1)
-      tx3 = torch.zeros_like(tx3)
-
-    rx = cross_product_matrix(tx1, tx2, tx3)  # [*batch, 3, 3].
-    rxsq = torch.matmul(rx, rx)
-
-    # Get exponentiated axis of rotation.
-    # Nerfies equation 9, Rodrigues' formula.
-    er = (
-        identity + torch.sin(theta) / theta * rx +
-        (1 - torch.cos(theta)) / thetasq * rxsq)
-
-    # Get translation vector.
-    # Nerfies equation 3 or 11.
-    g = (
-        identity + (1 - torch.cos(theta)) / thetasq * rx +
-        (theta - torch.sin(theta)) / thetacubed * rxsq)
-    p = torch.matmul(g, screw_axis[Ellipsis, 3:6, None]).squeeze(-1)
-  else:
-    er = identity
-    p = screw_axis[Ellipsis, 3:6]
-
-  if with_isotropic_scaling:
-    scale = (
-        torch.sigmoid(screw_axis[Ellipsis, 6]) * (max_scale - min_scale) + min_scale)
-    new_dims = (1,) * scale.ndim
-    scale_matrix = (
-        identity.view(*new_dims, 3, 3) * scale.view(*scale.shape, 1, 1))
-    er = torch.matmul(er, scale_matrix)
-
-  return er, p
 
 
 class FourierFeatureIPE(nn.Module):
@@ -730,9 +671,7 @@ class FourierFeatureIPE(nn.Module):
     return torch.cat([decay * torch.cos(x_proj), decay * torch.sin(x_proj)], -1)
 
 
-def render_validation_views(volume_model,
-                            deformation_codes,
-                            *,
+def render_validation_views(*,
                             render_size,
                             max_size,
                             thetas=(30,),
@@ -750,11 +689,7 @@ def render_validation_views(volume_model,
       rays = scene.camera_rays(cam2world, height, width, focal)
       rays = [torch.from_numpy(r).to(device).type(torch.float32) for r in rays]
       rendered, _ = render_rays(
-          rays,
-          volume_model,
-          deformation_codes=deformation_codes,
-          white_bkgd=True,
-          device=device,
+          rays, white_bkgd=True, device=device,
           **render_kwargs)  # rgb, depth, disparity, silhouette.
       rendered = torch.cat(rendered, dim=-1)  # [H, W, 6].
       frames.append(rendered)
@@ -773,3 +708,24 @@ def render_validation_views(volume_model,
       depth_cmap(depth.numpy().squeeze(-1))[Ellipsis, :3],  # [T, H, W, 1].
       depth_cmap(disparity.numpy().squeeze(-1))[Ellipsis, :3],  # [T, H, W, 1].
       silhouette.numpy())  # [T, H, W, 1].
+
+
+def mask_grid_features(features, num_levels_to_mask, n_features_per_level):
+  """For coarse-to-fine on multi-res grids, zero higher resolution features."""
+  num_levels_to_mask = int(num_levels_to_mask)
+  if num_levels_to_mask == 0:
+    return features
+
+  original_shape = features.shape
+  batch_shape = original_shape[:-1]
+
+  # Assuming features are stored as L0, L0, L1, L1, ...
+  features = features.view(*batch_shape, -1, n_features_per_level)
+  features = F.pad(
+      features[Ellipsis, :-num_levels_to_mask, :], (0, 0, 0, num_levels_to_mask),
+      mode="constant",
+      value=0.)
+
+  features = features.view(*batch_shape, -1)
+  assert features.shape == original_shape
+  return features
