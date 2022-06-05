@@ -227,7 +227,7 @@ def matrix_inverse_pth_root(
     ridge_epsilon = 1e-6,
     error_tolerance = 1e-6,
     precision = lax.Precision.HIGHEST,
-):
+    relative_matrix_epsilon = True):
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
   This function uses the Coupled newton iterations algorithm for
@@ -249,6 +249,8 @@ def matrix_inverse_pth_root(
       lax.Precision.DEFAULT (better step time, but not precise) b)
       lax.Precision.HIGH (increased precision, slower) c) lax.Precision.HIGHEST
       (best possible precision, slowest)
+    relative_matrix_epsilon: Whether to use relative epsilon to the max eigen
+      value when computing inverse-pth root.
 
   Returns:
     matrix^(-1/p)
@@ -268,8 +270,11 @@ def matrix_inverse_pth_root(
   matrix = matrix.astype(_MAT_INV_PTH_ROOT_DTYPE)
   alpha = jnp.asarray(-1.0 / p, _MAT_INV_PTH_ROOT_DTYPE)
   identity = jnp.eye(matrix_size, dtype=_MAT_INV_PTH_ROOT_DTYPE)
-  _, max_ev = power_iteration(
-      matrix=matrix, num_iters=100, error_tolerance=1e-6, precision=precision)
+  max_ev = 1.0
+  if relative_matrix_epsilon:
+    _, max_ev = power_iteration(
+        matrix=matrix, num_iters=100, error_tolerance=1e-6, precision=precision)
+
   ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, 1e-6)
 
   def _iter_condition(state):
@@ -735,7 +740,8 @@ def distributed_shampoo(
     moving_average_for_momentum=False,
     skip_preconditioning_dim_size_gt=4096,
     clip_by_scaled_gradient_norm=None,
-    precision=lax.Precision.HIGHEST):
+    precision=lax.Precision.HIGHEST,
+    relative_matrix_epsilon=True):
   """Distributed Shampoo optimizer.
 
   Distributed Shampoo is a second-order preconditioned method (concretely, a
@@ -802,6 +808,8 @@ def distributed_shampoo(
       lax.Precision.DEFAULT (better step time, but not precise) b)
       lax.Precision.HIGH (increased precision, slower) c) lax.Precision.HIGHEST
       (best possible precision, slowest)
+    relative_matrix_epsilon: Whether to use relative epsilon to the max eigen
+      value when computing inverse-pth root.
 
   Returns:
     a GradientTransformation.
@@ -1292,7 +1300,8 @@ def distributed_shampoo(
     mi_pth_root = functools.partial(
         matrix_inverse_pth_root,
         ridge_epsilon=matrix_epsilon,
-        precision=precision)
+        precision=precision,
+        relative_matrix_epsilon=relative_matrix_epsilon)
     return jax.vmap(mi_pth_root)(xs, ps)
 
   def _quantized_matrix_inverse_pth_root_vmap(qxs, qds, qbs, ps):
@@ -1304,7 +1313,11 @@ def distributed_shampoo(
     def matrix_inverse_pth_root_wrapper(qx, qd, qb, p):
       v = _quantized_to_float(qx, qd, qb)
       preconditioner, error = matrix_inverse_pth_root(
-          v, p, ridge_epsilon=matrix_epsilon, precision=precision)
+          v,
+          p,
+          ridge_epsilon=matrix_epsilon,
+          precision=precision,
+          relative_matrix_epsilon=relative_matrix_epsilon)
       qp = QuantizedValue.from_float_value(preconditioner, qx.dtype, True)
       return qp.quantized, qp.diagonal, qp.bucket_size, error
 
