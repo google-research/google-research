@@ -798,6 +798,7 @@ def distributed_shampoo(
     skip_preconditioning_dim_size_gt=4096,
     clip_by_scaled_gradient_norm=None,
     precision=lax.Precision.HIGHEST,
+    tensordot_precision = None,
     relative_matrix_epsilon=True,
 ):
   """Distributed Shampoo optimizer.
@@ -866,6 +867,8 @@ def distributed_shampoo(
       lax.Precision.DEFAULT (better step time, but not precise) b)
       lax.Precision.HIGH (increased precision, slower) c) lax.Precision.HIGHEST
       (best possible precision, slowest)
+    tensordot_precision: Optional precision to use for the tensordot operation
+      when computing statistics (e.g., G Gᵀ). Same options as `precision` above.
     relative_matrix_epsilon: Whether to use relative epsilon to the max eigen
       value when computing inverse-pth root.
 
@@ -1342,6 +1345,7 @@ def distributed_shampoo(
             w2=w2,
             to_float=_to_float,
             from_float=lambda x: _maybe_quantize_statistics([x])[0],
+            precision=tensordot_precision,
         )
 
       if statistics_compute_steps > 1:
