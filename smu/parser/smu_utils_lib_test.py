@@ -1321,19 +1321,19 @@ class MoleculeToStandardTest(absltest.TestCase):
     self.assertFalse(self._molecule.properties.HasField('zpe_unscaled'))
 
   def test_remove_error_molecule(self):
-    self._molecule.which_database = dataset_pb2.UNSPECIFIED
+    self._molecule.properties.errors.which_database = dataset_pb2.UNSPECIFIED
     self._molecule.properties.errors.status = 256
 
     self.assertIsNone(smu_utils_lib.molecule_to_standard(self._molecule))
 
   def test_remove_duplicate(self):
-    self._molecule.which_database = dataset_pb2.UNSPECIFIED
+    self._molecule.properties.errors.which_database = dataset_pb2.UNSPECIFIED
     self._molecule.duplicated_by = 123
 
     self.assertIsNone(smu_utils_lib.molecule_to_standard(self._molecule))
 
   def test_remove_complete(self):
-    self._molecule.which_database = dataset_pb2.COMPLETE
+    self._molecule.properties.errors.which_database = dataset_pb2.COMPLETE
 
     self.assertIsNone(smu_utils_lib.molecule_to_standard(self._molecule))
 

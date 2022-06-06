@@ -169,6 +169,7 @@ molecules {
   }
   properties {
     errors {
+      which_database: STANDARD
     }
     harmonic_intensities {
       value: 0.0
@@ -4222,7 +4223,6 @@ molecules {
     bond_topology_id: 618451
     source: 1
   }
-  which_database: STANDARD
 }
 molecules {
   molecule_id: 618451123
@@ -4393,6 +4393,7 @@ molecules {
   }
   properties {
     errors {
+      which_database: STANDARD
     }
     harmonic_intensities {
       value: 0.0
@@ -8443,5 +8444,4 @@ molecules {
     bond_topology_id: 618451
     source: 1
   }
-  which_database: STANDARD
 }

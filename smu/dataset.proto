@@ -275,6 +275,10 @@ message Properties {
     // errors.
     int32 status = 29;
 
+    // Specifies which database (STANDARD or COMPLETE) this Molecule
+    // will be in. Note that everything in STANDARD is also included in COMPLETE.
+    AvailabilityEnum which_database = 41;
+
     // All of the warn_ fields are categories of errors encountered.
     // 0 means no errors and larger values are increasingly serious.
 
@@ -1044,7 +1048,7 @@ message Molecule {
 
   // Specifies which database (STANDARD or COMPLETE) this Molecule
   // will be in. Note that everything in STANDARD is also included in COMPLETE.
-  AvailabilityEnum which_database = 10;
+  AvailabilityEnum which_database_deprecated = 10;
 }
 
 ///////////// MultipleMolecules

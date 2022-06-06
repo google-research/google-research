@@ -140,12 +140,21 @@ class SmuWriter:
     Returns:
       String
     """
-    if molecule.which_database == dataset_pb2.STANDARD:
+    if not molecule.properties.HasField('errors'):
+      # Standard database has the errors message filtered, so we assume this is
+      # standard
+      val = dataset_pb2.STANDARD
+    elif molecule.properties.errors.which_database != dataset_pb2.UNSPECIFIED:
+      val = molecule.properties.errors.which_database
+    else:
+      # The deprecated location
+      val = molecule.which_database_deprecated
+    if val == dataset_pb2.STANDARD:
       return 'Database   standard\n'
-    elif (molecule.which_database == dataset_pb2.COMPLETE or
-          molecule.which_database == dataset_pb2.UNSPECIFIED):
+    elif (val == dataset_pb2.COMPLETE or
+          val == dataset_pb2.UNSPECIFIED):
       return 'Database   complete\n'
-    raise ValueError('Bad which_database: {}'.format(molecule.which_database))
+    raise ValueError('Bad which_database: {}'.format(val))
 
   def get_error_codes(self, properties):
     """Returns a section of error/warning codes (as defined by Uni Basel).

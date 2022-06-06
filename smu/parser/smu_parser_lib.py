@@ -499,9 +499,9 @@ class SmuParser:
     if parts[0] != 'Database':
       raise ValueError('Bad keyword on database line, got: {}'.format(parts[0]))
     if parts[1] == 'standard':
-      self._molecule.which_database = dataset_pb2.STANDARD
+      self._molecule.properties.errors.which_database = dataset_pb2.STANDARD
     elif parts[1] == 'complete':
-      self._molecule.which_database = dataset_pb2.COMPLETE
+      self._molecule.properties.errors.which_database = dataset_pb2.COMPLETE
     else:
       raise ValueError('Expected database indicator, got: {}'.format(parts[1]))
 

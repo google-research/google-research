@@ -302,5 +302,5 @@ bond_topologies {
   geometry_score: 3.1316471099853516
 }
 fate: FATE_SUCCESS
-which_database: STANDARD
+which_database_deprecated: STANDARD
 

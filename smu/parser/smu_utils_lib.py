@@ -1294,7 +1294,7 @@ def merge_molecule(mol1, mol2):
 
       mol2.properties.errors.status = (500 +
                                         mol1.properties.errors.status // 10)
-      mol2.which_database = dataset_pb2.COMPLETE
+      mol2.properties.errors.which_database = dataset_pb2.COMPLETE
       if np.any(np.asarray(mol2.properties.harmonic_frequencies.value) < -30):
         mol2.properties.errors.warn_vib_imaginary = 2
       elif np.any(np.asarray(mol2.properties.harmonic_frequencies.value) < 0):
@@ -1407,9 +1407,9 @@ def should_include_in_standard(molecule):
   """
   if molecule.duplicated_by > 0:
     return False
-  if molecule.which_database == dataset_pb2.COMPLETE:
+  if molecule.properties.errors.which_database == dataset_pb2.COMPLETE:
     return False
-  elif molecule.which_database == dataset_pb2.STANDARD:
+  elif molecule.properties.errors.which_database == dataset_pb2.STANDARD:
     return True
   else:
     # This should only happen with stage1 only files.
