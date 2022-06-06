@@ -180,8 +180,12 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
           'block_statistics': True
       },
   )
-  def test_distributed_shampoo(self, best_effort_memory_usage_reduction,
-                               symmetric_block_size, block_statistics):
+  def test_distributed_shampoo(
+      self,
+      best_effort_memory_usage_reduction,
+      symmetric_block_size,
+      block_statistics,
+  ):
     params = self.init_params
 
     optim = distributed_shampoo.distributed_shampoo(
@@ -189,7 +193,8 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         32,
         batch_axis_name='batch',
         preconditioning_compute_steps=2,
-        best_effort_memory_usage_reduction=best_effort_memory_usage_reduction)
+        best_effort_memory_usage_reduction=best_effort_memory_usage_reduction,
+    )
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
 
@@ -226,6 +231,8 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
       else:
         # No guarantee of success after e >= 7
         pass
+
+
 
 
 if __name__ == '__main__':
