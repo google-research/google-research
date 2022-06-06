@@ -1,0 +1,15 @@
+# Two rooms separated by an almost-complete wall.
+register_environment.env_id = 'MiniGrid-Separator-v0'
+
+MonMiniGridEnv.directional = True
+MonMiniGridEnv.agent_pos = None
+MonMiniGridEnv.goal_pos = None
+MonMiniGridEnv.ascii_grid = """
+*********
+*       *
+*   *   *
+*   *   *
+*   *   *
+*   *   *
+* s * g *
+*********"""
