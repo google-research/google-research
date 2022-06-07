@@ -18,20 +18,17 @@
 #define SCANN_UTILS_GMM_UTILS_H_
 
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <utility>
 
 #include "absl/time/time.h"
-#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
-#include "scann/distance_measures/distance_measures.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
-#include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/partitioning.pb.h"
-#include "scann/utils/parallel_for.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/types.h"
 
 namespace research_scann {
 
@@ -87,8 +84,6 @@ class GmmUtils {
     CenterInitializationType center_initialization_type = KMEANS_PLUS_PLUS;
 
     int32_t max_power_of_2_split = 1;
-
-    double parallel_cost_multiplier = 1.0;
   };
 
   GmmUtils(shared_ptr<const DistanceMeasure> dist, Options opts);
@@ -96,23 +91,28 @@ class GmmUtils {
   explicit GmmUtils(shared_ptr<const DistanceMeasure> dist)
       : GmmUtils(std::move(dist), Options()) {}
 
-  Status GenericKmeans(
-      const Dataset& dataset, const int32_t num_clusters,
-      DenseDataset<double>* final_centers,
-      vector<vector<DatapointIndex>>* final_partitions = nullptr);
-  Status GenericKmeans(
-      const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-      const int32_t num_clusters, DenseDataset<double>* final_centers,
-      vector<vector<DatapointIndex>>* final_partitions = nullptr);
+  struct ComputeKmeansClusteringOptions {
+    ConstSpan<DatapointIndex> subset;
 
-  Status SphericalKmeans(
+    vector<vector<DatapointIndex>>* final_partitions = nullptr;
+
+    bool spherical = false;
+
+    ConstSpan<float> weights;
+  };
+
+  Status ComputeKmeansClustering(
       const Dataset& dataset, const int32_t num_clusters,
       DenseDataset<double>* final_centers,
-      vector<vector<DatapointIndex>>* final_partitions = nullptr);
-  Status SphericalKmeans(
-      const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-      const int32_t num_clusters, DenseDataset<double>* final_centers,
-      vector<vector<DatapointIndex>>* final_partitions = nullptr);
+      const ComputeKmeansClusteringOptions& kmeans_opts);
+
+  Status ComputeKmeansClustering(const Dataset& dataset,
+                                 const int32_t num_clusters,
+                                 DenseDataset<double>* final_centers) {
+    ComputeKmeansClusteringOptions kmeans_opts;
+    return ComputeKmeansClustering(dataset, num_clusters, final_centers,
+                                   kmeans_opts);
+  }
 
   StatusOr<double> ComputeSpillingThreshold(
       const Dataset& dataset, ConstSpan<DatapointIndex> subset,
@@ -124,14 +124,15 @@ class GmmUtils {
       ConstSpan<pair<uint32_t, double>> top1_results,
       GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
       bool spherical, DenseDataset<double>* centroids) const;
-  Status RecomputeCentroidsWithParallelCostMultiplier(
+
+  Status RecomputeCentroidsWeighted(
       ConstSpan<pair<uint32_t, double>> top1_results,
-      GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
-      bool spherical, DenseDataset<double>* centroids) const;
+      GmmUtilsImplInterface* impl, ConstSpan<float> weights, bool spherical,
+      DenseDataset<double>* centroids) const;
 
   Status InitializeCenters(const Dataset& dataset,
                            ConstSpan<DatapointIndex> subset,
-                           int32_t num_clusters,
+                           int32_t num_clusters, ConstSpan<float> weights,
                            DenseDataset<double>* initial_centers);
 
   using PartitionAssignmentFn =
@@ -165,16 +166,16 @@ class GmmUtils {
   Status MeanDistanceInitializeCenters(const Dataset& dataset,
                                        ConstSpan<DatapointIndex> subset,
                                        int32_t num_clusters,
+                                       ConstSpan<float> weights,
                                        DenseDataset<double>* initial_centers);
-
   Status KMeansPPInitializeCenters(const Dataset& dataset,
                                    ConstSpan<DatapointIndex> subset,
                                    int32_t num_clusters,
+                                   ConstSpan<float> weights,
                                    DenseDataset<double>* initial_centers);
-
   Status RandomInitializeCenters(const Dataset& dataset,
                                  ConstSpan<DatapointIndex> subset,
-                                 int32_t num_clusters,
+                                 int32_t num_clusters, ConstSpan<float> weights,
                                  DenseDataset<double>* initial_centers);
 
   shared_ptr<const DistanceMeasure> distance_;

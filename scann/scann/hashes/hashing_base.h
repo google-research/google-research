@@ -18,6 +18,7 @@
 #define SCANN_HASHES_HASHING_BASE_H_
 
 #include <cstdint>
+#include <string>
 #include <utility>
 
 #include "scann/data_format/datapoint.h"

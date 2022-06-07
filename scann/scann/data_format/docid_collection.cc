@@ -16,7 +16,9 @@
 
 #include "scann/data_format/docid_collection.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include "absl/time/clock.h"
 #include "absl/time/time.h"

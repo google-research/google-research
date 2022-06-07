@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <unordered_set>
+#include <utility>
 
 #include "absl/base/casts.h"
 #include "absl/container/flat_hash_set.h"

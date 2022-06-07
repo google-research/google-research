@@ -15,7 +15,10 @@
 #include "scann/partitioning/partitioner_factory.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <utility>
 
 #include "absl/memory/memory.h"
 #include "absl/numeric/int128.h"

@@ -14,6 +14,8 @@
 
 #include "scann/data_format/datapoint.h"
 
+#include <algorithm>
+
 #include "scann/data_format/gfv_properties.h"
 #include "scann/utils/types.h"
 #include "scann/utils/zip_sort.h"

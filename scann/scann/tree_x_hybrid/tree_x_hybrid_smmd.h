@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <utility>
 
 #include "absl/synchronization/mutex.h"
 #include "gtest/gtest_prod.h"

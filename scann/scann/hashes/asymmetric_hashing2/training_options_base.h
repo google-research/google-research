@@ -50,9 +50,13 @@ class TrainingOptionsBase {
 
   AsymmetricHasherConfig* mutable_config() { return &conf_; }
 
+  ConstSpan<float> weights() const { return weights_; }
+  void set_weights(vector<float> weights) { weights_ = std::move(weights); }
+
  protected:
   AsymmetricHasherConfig conf_;
   shared_ptr<const DistanceMeasure> quantization_distance_;
+  vector<float> weights_;
 };
 
 template <typename T>

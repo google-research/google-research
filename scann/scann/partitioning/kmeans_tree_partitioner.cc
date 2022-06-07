@@ -14,8 +14,11 @@
 
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <utility>
 
 #include "absl/base/internal/spinlock.h"
 #include "absl/memory/memory.h"

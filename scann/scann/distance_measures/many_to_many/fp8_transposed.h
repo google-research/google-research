@@ -17,6 +17,7 @@
 #ifndef SCANN_DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
 #define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
 
+#include <algorithm>
 #include <cstdint>
 
 #include "scann/data_format/dataset.h"

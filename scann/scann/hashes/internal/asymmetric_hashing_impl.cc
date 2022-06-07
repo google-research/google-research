@@ -28,78 +28,13 @@
 #include "scann/projection/chunking_projection.h"
 #include "scann/utils/common.h"
 #include "scann/utils/gmm_utils.h"
-#include "scann/utils/noise_shaping_utils.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {
-
-class ParallelPerpendicularDistance : public DistanceMeasure {
- public:
-  SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS(NOT_SPECIALLY_OPTIMIZED);
-
-  void set_parallel_cost_multiplier(double x) { parallel_cost_multiplier_ = x; }
-
- private:
-  template <typename T>
-  SCANN_INLINE double GetDistanceDenseImpl(
-      const DatapointPtr<T>& x_dptr, const DatapointPtr<T>& y_dptr) const {
-    DCHECK(x_dptr.IsDense());
-    DCHECK(y_dptr.IsDense());
-    auto x = x_dptr.values_slice();
-    auto y = y_dptr.values_slice();
-    DCHECK_EQ(x.size(), y.size());
-    double parallel_error = 0.0;
-    double residual_squared_norm = 0.0;
-    for (size_t i : IndicesOf(x)) {
-      const double residual_coord =
-          static_cast<double>(y[i]) - static_cast<double>(x[i]);
-      parallel_error += residual_coord * x[i];
-      residual_squared_norm += Square(residual_coord);
-    }
-    parallel_error = Square(parallel_error);
-    const double perpendicular_error = residual_squared_norm - parallel_error;
-    return parallel_cost_multiplier_ * parallel_error + perpendicular_error;
-  }
-
-  template <typename T>
-  SCANN_INLINE double GetDistanceSparseImpl(
-      const DatapointPtr<T>& x_dptr, const DatapointPtr<T>& y_dptr) const {
-    LOG(FATAL) << "NOT IMPLEMENTED";
-  }
-
-  template <typename T>
-  SCANN_INLINE double GetDistanceHybridImpl(
-      const DatapointPtr<T>& x_dptr, const DatapointPtr<T>& y_dptr) const {
-    LOG(FATAL) << "NOT IMPLEMENTED";
-  }
-
-  double parallel_cost_multiplier_ = 1.0;
-};
-
-SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(ParallelPerpendicularDistance,
-                                              numeric_limits<size_t>::max());
-
-string_view ParallelPerpendicularDistance::name() const {
-  return "ParallelPerpendicularDistance";
-}
-
-namespace {
-
-double ComputeNormBiasCorrection(const DenseDataset<double>& db,
-                                 DatapointPtr<double> center,
-                                 ConstSpan<DatapointIndex> cluster_members) {
-  double mean_norm = 0.0;
-  for (DatapointIndex idx : cluster_members) {
-    mean_norm += std::sqrt(SquaredL2Norm(db[idx]));
-  }
-  mean_norm /= cluster_members.size();
-  const double center_norm = std::sqrt(SquaredL2Norm(center));
-  return (center_norm == 0.0) ? 1.0 : (mean_norm / center_norm);
-}
-
-}  // namespace
 
 template <typename T>
 StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
@@ -130,6 +65,7 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
                          static_cast<double>(dataset.size()))
           : opts.config().sampling_fraction();
 
+  ConstSpan<float> weights = opts.weights();
   if (sampling_fraction == 1.0) {
     for (int32_t i = 0; i < num_blocks; ++i) {
       DenseDataset<double>& ds = chunked_dataset[i];
@@ -160,6 +96,15 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
         sample.size(), ")."));
   }
 
+  vector<float> sample_weight_storage;
+  if (sample.size() < dataset.size() && !weights.empty()) {
+    sample_weight_storage.reserve(sample.size());
+    for (DatapointIndex dp_idx : sample) {
+      sample_weight_storage.push_back(weights[dp_idx]);
+    }
+    weights = sample_weight_storage;
+  }
+
   auto append_chunked_blocks = [&] {
     for (size_t j = 0; j < num_blocks; ++j) {
       chunked_dataset[j].AppendOrDie(chunked_vec[j], "");
@@ -168,14 +113,17 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
 
   if (opts.preprocessing_function()) {
     for (DatapointIndex i : sample) {
+      SCANN_RETURN_IF_ERROR(VerifyAllFinite(dataset[i].values_slice()));
       TF_ASSIGN_OR_RETURN(Datapoint<T> preprocessed,
                           opts.preprocessing_function()(dataset[i]));
+      SCANN_RETURN_IF_ERROR(VerifyAllFinite(preprocessed.values()));
       SCANN_RETURN_IF_ERROR(
           opts.projector()->ProjectInput(preprocessed.ToPtr(), &chunked_vec));
       append_chunked_blocks();
     }
   } else {
     for (DatapointIndex i : sample) {
+      SCANN_RETURN_IF_ERROR(VerifyAllFinite(dataset[i].values_slice()));
       SCANN_RETURN_IF_ERROR(
           opts.projector()->ProjectInput(dataset[i], &chunked_vec));
       append_chunked_blocks();
@@ -188,31 +136,28 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
   gmm_opts.max_iterations = opts.config().max_clustering_iterations();
   gmm_opts.epsilon = opts.config().clustering_convergence_tolerance();
   gmm_opts.parallelization_pool = std::move(pool);
-  if (!std::isnan(opts.config().noise_shaping_threshold()) &&
-      opts.config().use_noise_shaped_training()) {
-    gmm_opts.parallel_cost_multiplier = ComputeParallelCostMultiplier(
-        opts.config().noise_shaping_threshold(), 1.0, dataset.dimensionality());
-    auto d = make_shared<ParallelPerpendicularDistance>();
-    d->set_parallel_cost_multiplier(gmm_opts.parallel_cost_multiplier);
-    quantization_distance = d;
-  }
   GmmUtils gmm(quantization_distance, gmm_opts);
 
   vector<DenseDataset<double>> all_centers(num_blocks);
   for (size_t i : Seq(num_blocks)) {
     DenseDataset<double> centers;
     vector<vector<DatapointIndex>> subpartitions;
-    SCANN_RETURN_IF_ERROR(gmm.GenericKmeans(
+    SCANN_RETURN_IF_ERROR(gmm.ComputeKmeansClustering(
         chunked_dataset[i], opts.config().num_clusters_per_block(), &centers,
-        &subpartitions));
+        {.final_partitions = &subpartitions, .weights = weights}));
 
-    if (opts.config().use_norm_biasing_correction()) {
-      for (size_t center_idx : IndicesOf(centers)) {
-        const double norm_bias_correction = ComputeNormBiasCorrection(
-            chunked_dataset[i], centers[center_idx], subpartitions[center_idx]);
-        for (double& d : centers.mutable_data(center_idx)) {
-          d *= norm_bias_correction;
-        }
+    for (size_t center_idx : IndicesOf(centers)) {
+      SCANN_RETURN_IF_ERROR(
+          VerifyAllFinite(centers[center_idx].values_slice()));
+      if (!opts.config().use_norm_biasing_correction()) continue;
+      TF_ASSIGN_OR_RETURN(
+          const double norm_bias_correction,
+          ComputeNormBiasCorrection(chunked_dataset[i], centers[center_idx],
+                                    subpartitions[center_idx]));
+      SCANN_RET_CHECK(std::isfinite(norm_bias_correction))
+          << norm_bias_correction;
+      for (double& d : centers.mutable_data(center_idx)) {
+        d *= norm_bias_correction;
       }
     }
 
@@ -467,13 +412,29 @@ CoordinateDescentResult OptimizeSingleSubspace(
   return result;
 }
 
+Status ValidateNoiseShapingParams(double threshold, double eta) {
+  if (std::isnan(eta) && std::isnan(threshold)) {
+    return InvalidArgumentError(
+        "Either threshold or eta must be specified for noise-shaped AH "
+        "indexing.");
+  }
+  if (!std::isnan(eta) && !std::isnan(threshold)) {
+    return InvalidArgumentError(
+        "Threshold and eta may not both be specified for noise-shaped AH "
+        "indexing.");
+  }
+  return OkStatus();
+}
+
+}  // namespace
+
 template <typename T>
-Status CoordinateDescentAHQuantize(
-    DatapointPtr<T> maybe_residual_dptr, DatapointPtr<T> original_dptr,
-    ConstSpan<DenseDataset<FloatingTypeFor<T>>> centers,
-    const ChunkingProjection<T>& projection, double threshold,
-    MutableSpan<uint8_t> result, int* num_changes = nullptr,
-    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr) {
+Status AhImpl<T>::IndexDatapointNoiseShaped(
+    const DatapointPtr<T>& maybe_residual_dptr,
+    const DatapointPtr<T>& original_dptr,
+    const ChunkingProjection<T>& projection,
+    ConstSpan<DenseDataset<FloatingTypeFor<T>>> centers, double threshold,
+    double eta, MutableSpan<uint8_t> result) {
   SCANN_RET_CHECK_EQ(result.size(), centers.size());
   SCANN_RET_CHECK_EQ(maybe_residual_dptr.dimensionality(),
                      original_dptr.dimensionality());
@@ -481,8 +442,12 @@ Status CoordinateDescentAHQuantize(
                       ComputeResidualStats(maybe_residual_dptr, original_dptr,
                                            centers, projection));
 
-  const double parallel_cost_multiplier = ComputeParallelCostMultiplier(
-      threshold, SquaredL2Norm(original_dptr), original_dptr.dimensionality());
+  SCANN_RETURN_IF_ERROR(ValidateNoiseShapingParams(threshold, eta));
+  const double parallel_cost_multiplier =
+      std::isnan(eta) ? ComputeParallelCostMultiplier(
+                            threshold, SquaredL2Norm(original_dptr),
+                            original_dptr.dimensionality())
+                      : eta;
   InitializeToMinResidualNorm(residual_stats, result);
   double parallel_residual_component =
       ComputeParallelResidualComponent(result, residual_stats);
@@ -503,7 +468,6 @@ Status CoordinateDescentAHQuantize(
 
   enum { kMaxRounds = 10 };
   bool cur_round_changes = true;
-  if (num_changes) *num_changes = 0;
   for (int round = 0; cur_round_changes && round < kMaxRounds; ++round) {
     cur_round_changes = false;
     for (size_t i : IndicesOf(subspace_idxs)) {
@@ -515,7 +479,6 @@ Status CoordinateDescentAHQuantize(
           cur_subspace_residual_stats, cur_center_idx,
           parallel_residual_component, parallel_cost_multiplier);
       if (subspace_result.new_center_idx != cur_center_idx) {
-        if (num_changes) ++*num_changes;
         parallel_residual_component =
             subspace_result.new_parallel_residual_component;
         result_sorted[i] = subspace_result.new_center_idx;
@@ -532,24 +495,7 @@ Status CoordinateDescentAHQuantize(
     final_residual_norm +=
         residual_stats[subspace_idx][center_idx].residual_norm;
   }
-  if (residual_ptr) *residual_ptr = final_residual_norm;
-  if (parallel_residual_ptr) {
-    *parallel_residual_ptr = Square(parallel_residual_component);
-  }
   return OkStatus();
-}
-
-}  // namespace
-
-template <typename T>
-Status AhImpl<T>::IndexDatapointNoiseShaped(
-    const DatapointPtr<T>& maybe_residual_dptr,
-    const DatapointPtr<T>& original_dptr,
-    const ChunkingProjection<T>& projection,
-    ConstSpan<DenseDataset<FloatingTypeFor<T>>> centers, double threshold,
-    MutableSpan<uint8_t> result) {
-  return CoordinateDescentAHQuantize<T>(maybe_residual_dptr, original_dptr,
-                                        centers, projection, threshold, result);
 }
 
 template <typename T>

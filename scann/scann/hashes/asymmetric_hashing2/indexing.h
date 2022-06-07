@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -26,7 +27,6 @@
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/hashes/asymmetric_hashing2/training_model.h"
 #include "scann/projection/chunking_projection.h"
-#include "scann/proto/hash.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -50,31 +50,38 @@ class Indexer {
 
   Status Hash(ConstSpan<T> input, MutableSpan<uint8_t> hashed) const;
 
-  Status HashWithNoiseShaping(const DatapointPtr<T>& input,
-                              Datapoint<uint8_t>* hashed,
-                              double threshold) const;
+  struct NoiseShapingParameter {
+    double eta = NAN;
 
-  Status HashWithNoiseShaping(const DatapointPtr<T>& input,
-                              MutableSpan<uint8_t> hashed,
-                              double threshold) const;
+    double threshold = NAN;
+  };
 
-  Status HashWithNoiseShaping(ConstSpan<T> input, MutableSpan<uint8_t> hashed,
-                              double threshold) const;
+  Status HashWithNoiseShaping(
+      const DatapointPtr<T>& input, Datapoint<uint8_t>* hashed,
+      const NoiseShapingParameter& noise_shaping_param) const;
 
-  Status HashWithNoiseShaping(const DatapointPtr<T>& maybe_residual,
-                              const DatapointPtr<T>& original,
-                              Datapoint<uint8_t>* hashed,
-                              double threshold) const;
+  Status HashWithNoiseShaping(
+      const DatapointPtr<T>& input, MutableSpan<uint8_t> hashed,
+      const NoiseShapingParameter& noise_shaping_param) const;
 
-  Status HashWithNoiseShaping(const DatapointPtr<T>& maybe_residual,
-                              const DatapointPtr<T>& original,
-                              MutableSpan<uint8_t> hashed,
-                              double threshold) const;
+  Status HashWithNoiseShaping(
+      ConstSpan<T> input, MutableSpan<uint8_t> hashed,
+      const NoiseShapingParameter& noise_shaping_param) const;
 
-  Status HashWithNoiseShaping(ConstSpan<T> maybe_residual,
-                              ConstSpan<T> original,
-                              MutableSpan<uint8_t> hashed,
-                              double threshold) const;
+  Status HashWithNoiseShaping(
+      const DatapointPtr<T>& maybe_residual, const DatapointPtr<T>& original,
+      Datapoint<uint8_t>* hashed,
+      const NoiseShapingParameter& noise_shaping_param) const;
+
+  Status HashWithNoiseShaping(
+      const DatapointPtr<T>& maybe_residual, const DatapointPtr<T>& original,
+      MutableSpan<uint8_t> hashed,
+      const NoiseShapingParameter& noise_shaping_param) const;
+
+  Status HashWithNoiseShaping(
+      ConstSpan<T> maybe_residual, ConstSpan<T> original,
+      MutableSpan<uint8_t> hashed,
+      const NoiseShapingParameter& noise_shaping_param) const;
 
   StatusOr<DenseDataset<uint8_t>> HashDataset(
       const TypedDataset<T>& dataset) const;

@@ -18,20 +18,16 @@
 #include <cstdint>
 #include <limits>
 
-#include "Eigen/Core"
 #include "Eigen/Dense"
-#include "Eigen/SVD"
-#include "Eigen/StdVector"
 #include "absl/base/internal/endian.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/numeric/bits.h"
+#include "absl/random/discrete_distribution.h"
 #include "absl/random/distributions.h"
 #include "absl/time/time.h"
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
-#include "scann/data_format/docid_collection.h"
-#include "scann/distance_measures/distance_measures.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
@@ -39,7 +35,6 @@
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
-#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
@@ -358,60 +353,28 @@ GmmUtils::PartitionAssignmentFn GetPartitionAssignmentFn(
 
 }  // namespace
 
-Status GmmUtils::GenericKmeans(
-    const Dataset& dataset, const int32_t num_clusters,
-    DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions) {
-  return KMeansImpl(false, dataset, {}, num_clusters,
-                    GetPartitionAssignmentFn(opts_.partition_assignment_type),
-                    final_centers, final_partitions);
-}
-Status GmmUtils::GenericKmeans(
-    const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    const int32_t num_clusters, DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions) {
-  return KMeansImpl(false, dataset, subset, num_clusters,
-                    GetPartitionAssignmentFn(opts_.partition_assignment_type),
-                    final_centers, final_partitions);
-}
-
-Status GmmUtils::SphericalKmeans(
-    const Dataset& dataset, const int32_t num_clusters,
-    DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions) {
-  return KMeansImpl(true, dataset, {}, num_clusters,
-                    GetPartitionAssignmentFn(opts_.partition_assignment_type),
-                    final_centers, final_partitions);
-}
-Status GmmUtils::SphericalKmeans(
-    const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    const int32_t num_clusters, DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions) {
-  return KMeansImpl(true, dataset, subset, num_clusters,
-                    GetPartitionAssignmentFn(opts_.partition_assignment_type),
-                    final_centers, final_partitions);
-}
-
 Status GmmUtils::InitializeCenters(const Dataset& dataset,
                                    ConstSpan<DatapointIndex> subset,
                                    int32_t num_clusters,
+                                   ConstSpan<float> weights,
                                    DenseDataset<double>* initial_centers) {
   switch (opts_.center_initialization_type) {
     case Options::KMEANS_PLUS_PLUS:
-      return KMeansPPInitializeCenters(dataset, subset, num_clusters,
+      return KMeansPPInitializeCenters(dataset, subset, num_clusters, weights,
                                        initial_centers);
     case Options::RANDOM_INITIALIZATION:
-      return RandomInitializeCenters(dataset, subset, num_clusters,
+      return RandomInitializeCenters(dataset, subset, num_clusters, weights,
                                      initial_centers);
     case Options::MEAN_DISTANCE_INITIALIZATION:
       return MeanDistanceInitializeCenters(dataset, subset, num_clusters,
-                                           initial_centers);
+                                           weights, initial_centers);
   }
 }
 
 Status GmmUtils::MeanDistanceInitializeCenters(
     const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    int32_t num_clusters, DenseDataset<double>* initial_centers) {
+    int32_t num_clusters, ConstSpan<float> weights,
+    DenseDataset<double>* initial_centers) {
   SCANN_RET_CHECK(initial_centers);
   initial_centers->clear();
   auto impl = GmmUtilsImplInterface::Create(*distance_, dataset, subset,
@@ -436,38 +399,45 @@ Status GmmUtils::MeanDistanceInitializeCenters(
   DatapointPtr<double> last_center = storage.ToPtr();
 
   vector<DatapointIndex> sample_ids;
-  vector<double> distances(dataset_size, 0.0);
+  vector<double> distance_weights(dataset_size, 0.0);
 
-  impl->DistancesFromPoint(last_center, MakeMutableSpan(distances));
+  impl->DistancesFromPoint(last_center, MakeMutableSpan(distance_weights));
+  if (!weights.empty()) {
+    SCANN_RET_CHECK_EQ(weights.size(), distance_weights.size());
+    for (size_t i : IndicesOf(weights)) {
+      distance_weights[i] *= weights[i];
+    }
+  }
   SCANN_RETURN_IF_ERROR(VerifyAllFinite(last_center.values_slice()))
       << "(Center Number = " << centers.size() << ")";
   double min_dist = 0.0;
   double sum = 0.0;
-  for (size_t j : Seq(distances.size())) {
-    SCANN_RET_CHECK(!std::isnan(distances[j]))
-        << "NaN distances found (j = " << j << ").";
-    SCANN_RET_CHECK(std::isfinite(distances[j]))
-        << "Infinite distances found (j = " << j << ").";
-    min_dist = std::min(min_dist, distances[j]);
-    sum += distances[j];
+  for (size_t j : Seq(distance_weights.size())) {
+    SCANN_RET_CHECK(!std::isnan(distance_weights[j]))
+        << "NaN distance_weights found (j = " << j << ").";
+    SCANN_RET_CHECK(std::isfinite(distance_weights[j]))
+        << "Infinite distance_weights found (j = " << j << ").";
+    min_dist = std::min(min_dist, distance_weights[j]);
+    sum += distance_weights[j];
   }
 
   if (min_dist < 0.0) {
-    VLOG(1) << "Biasing to get rid of negative distances. (min_dist = "
+    VLOG(1) << "Biasing to get rid of negative distance_weights. (min_dist = "
             << min_dist << ")";
-    BiasDistances(-min_dist, MakeMutableSpan(distances));
-    sum += -min_dist * distances.size();
+    BiasDistances(-min_dist, MakeMutableSpan(distance_weights));
+    sum += -min_dist * distance_weights.size();
   }
 
   while (centers.size() < num_clusters) {
     for (DatapointIndex idx : sample_ids) {
-      sum -= distances[idx];
-      distances[idx] = 0.0;
+      sum -= distance_weights[idx];
+      distance_weights[idx] = 0.0;
     }
 
-    SCANN_RET_CHECK(!std::isnan(sum)) << "NaN distances sum found.";
-    SCANN_RET_CHECK(std::isfinite(sum)) << "Infinite distances sum found.";
-    DatapointIndex sample_id = GetSample(&random_, distances, sum, true);
+    SCANN_RET_CHECK(!std::isnan(sum)) << "NaN distance_weights sum found.";
+    SCANN_RET_CHECK(std::isfinite(sum))
+        << "Infinite distance_weights sum found.";
+    DatapointIndex sample_id = GetSample(&random_, distance_weights, sum, true);
     sample_ids.push_back(sample_id);
     last_center = impl->GetPoint(sample_id, &storage);
     SCANN_RETURN_IF_ERROR(VerifyAllFinite(storage.values()));
@@ -481,7 +451,8 @@ Status GmmUtils::MeanDistanceInitializeCenters(
 
 Status GmmUtils::KMeansPPInitializeCenters(
     const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    int32_t num_clusters, DenseDataset<double>* initial_centers) {
+    int32_t num_clusters, ConstSpan<float> weights,
+    DenseDataset<double>* initial_centers) {
   SCANN_RET_CHECK(initial_centers);
   initial_centers->clear();
   auto impl = GmmUtilsImplInterface::Create(*distance_, dataset, subset,
@@ -538,8 +509,20 @@ Status GmmUtils::KMeansPPInitializeCenters(
 
     SCANN_RET_CHECK(!std::isnan(sum)) << "NaN distances sum found.";
     SCANN_RET_CHECK(std::isfinite(sum)) << "Infinite distances sum found.";
-    DatapointIndex sample_id =
-        GetSample(&random_, distances, sum, centers.empty());
+    const DatapointIndex sample_id = [&] {
+      const bool is_first = centers.empty();
+      if (weights.empty()) {
+        return GetSample(&random_, distances, sum, is_first);
+      } else {
+        vector<double> distance_weights = distances;
+        double weighted_sum = 0.0;
+        for (size_t weight_idx : IndicesOf(weights)) {
+          distance_weights[weight_idx] *= weights[weight_idx];
+          weighted_sum += distance_weights[weight_idx];
+        }
+        return GetSample(&random_, distance_weights, weighted_sum, is_first);
+      }
+    }();
     sample_ids.push_back(sample_id);
     last_center = impl->GetPoint(sample_id, &storage);
     SCANN_RETURN_IF_ERROR(VerifyAllFinite(storage.values()));
@@ -558,7 +541,8 @@ Status GmmUtils::KMeansPPInitializeCenters(
 
 Status GmmUtils::RandomInitializeCenters(
     const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    int32_t num_clusters, DenseDataset<double>* initial_centers) {
+    int32_t num_clusters, ConstSpan<float> weights,
+    DenseDataset<double>* initial_centers) {
   SCANN_RET_CHECK(initial_centers);
   initial_centers->clear();
   auto impl = GmmUtilsImplInterface::Create(*distance_, dataset, subset,
@@ -579,8 +563,16 @@ Status GmmUtils::RandomInitializeCenters(
   centers.set_dimensionality(dataset.dimensionality());
   centers.Reserve(num_clusters);
   absl::flat_hash_set<DatapointIndex> center_ids;
-  while (center_ids.size() < num_clusters) {
-    center_ids.insert(absl::Uniform<DatapointIndex>(random_, 0, dataset_size));
+  if (weights.empty()) {
+    while (center_ids.size() < num_clusters) {
+      center_ids.insert(
+          absl::Uniform<DatapointIndex>(random_, 0, dataset_size));
+    }
+  } else {
+    absl::discrete_distribution<size_t> distrib(weights.begin(), weights.end());
+    while (center_ids.size() < num_clusters) {
+      center_ids.insert(distrib(random_));
+    }
   }
   for (DatapointIndex idx : center_ids) {
     SCANN_RETURN_IF_ERROR(centers.Append(impl->GetPoint(idx, &storage)));
@@ -602,19 +594,22 @@ bool IsStdIota(ConstSpan<DatapointIndex> indices) {
 
 }  // namespace
 
-SCANN_OUTLINE Status GmmUtils::KMeansImpl(
-    bool spherical, const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-    int32_t num_clusters, PartitionAssignmentFn partition_assignment_fn,
+SCANN_OUTLINE Status GmmUtils::ComputeKmeansClustering(
+    const Dataset& dataset, int32_t num_clusters,
     DenseDataset<double>* final_centers,
-    vector<vector<DatapointIndex>>* final_partitions) {
-  DCHECK(final_centers);
+    const ComputeKmeansClusteringOptions& kmeans_opts) {
+  SCANN_RET_CHECK(final_centers);
+  const bool spherical = kmeans_opts.spherical;
+  ConstSpan<DatapointIndex> subset = kmeans_opts.subset;
   if (dataset.IsDense() && subset.size() == dataset.size() &&
       IsStdIota(subset)) {
     subset = ConstSpan<DatapointIndex>();
   }
+  auto partition_assignment_fn =
+      GetPartitionAssignmentFn(opts_.partition_assignment_type);
   DenseDataset<double> centers;
-  SCANN_RETURN_IF_ERROR(
-      InitializeCenters(dataset, subset, num_clusters, &centers));
+  SCANN_RETURN_IF_ERROR(InitializeCenters(dataset, subset, num_clusters,
+                                          kmeans_opts.weights, &centers));
   SCANN_RETURN_IF_ERROR(VerifyAllFinite(centers.data()))
       << "Initial centers contain NaN/infinity.";
 
@@ -705,16 +700,16 @@ SCANN_OUTLINE Status GmmUtils::KMeansImpl(
       break;
     }
 
-    if (opts_.parallel_cost_multiplier == 1.0) {
+    if (kmeans_opts.weights.empty()) {
       SCANN_RETURN_IF_ERROR(RecomputeCentroidsSimple(
           top1_results, impl.get(), partition_sizes, spherical, &centers));
       SCANN_RETURN_IF_ERROR(VerifyAllFinite(centers.data()))
           << "RecomputeCentroidsSimple";
     } else {
-      SCANN_RETURN_IF_ERROR(RecomputeCentroidsWithParallelCostMultiplier(
-          top1_results, impl.get(), partition_sizes, spherical, &centers));
+      SCANN_RETURN_IF_ERROR(RecomputeCentroidsWeighted(
+          top1_results, impl.get(), kmeans_opts.weights, spherical, &centers));
       SCANN_RETURN_IF_ERROR(VerifyAllFinite(centers.data()))
-          << "RecomputeCentroidsWithParallelCostMultiplier";
+          << "RecomputeCentroidsWeighted";
     }
 
     switch (opts_.center_reassignment_type) {
@@ -741,7 +736,7 @@ SCANN_OUTLINE Status GmmUtils::KMeansImpl(
     }
   }
 
-  if (final_partitions) {
+  if (kmeans_opts.final_partitions) {
     vector<vector<DatapointIndex>> partitions(num_clusters);
     for (size_t c : Seq(num_clusters)) {
       partitions[c].reserve(partition_sizes[c]);
@@ -752,13 +747,10 @@ SCANN_OUTLINE Status GmmUtils::KMeansImpl(
       const DatapointIndex dp_idx = subset.empty() ? j : subset[j];
       partitions[cluster_idx].push_back(dp_idx);
     }
-    *final_partitions = std::move(partitions);
+    *kmeans_opts.final_partitions = std::move(partitions);
   }
 
   *final_centers = std::move(centers);
-  if (spherical && opts_.parallel_cost_multiplier > 1.0) {
-    SCANN_RETURN_IF_ERROR(final_centers->NormalizeUnitL2());
-  }
   return OkStatus();
 }
 
@@ -851,6 +843,20 @@ StatusOr<double> GmmUtils::ComputeSpillingThreshold(
   }
 }
 
+namespace {
+void NormalizeCentroid(MutableSpan<double> mut_centroid, double divisor) {
+  if (divisor == 0) {
+    SCANN_LOG_NOOP(WARNING, 1) << "Could not normalize centroid due to zero "
+                                  "norm or empty or zero-weight partition.";
+    return;
+  }
+  const double multiplier = 1.0 / divisor;
+  for (double& dim : mut_centroid) {
+    dim *= multiplier;
+  }
+}
+}  // namespace
+
 Status GmmUtils::RecomputeCentroidsSimple(
     ConstSpan<pair<uint32_t, double>> top1_results, GmmUtilsImplInterface* impl,
     ConstSpan<uint32_t> partition_sizes, bool spherical,
@@ -875,15 +881,41 @@ Status GmmUtils::RecomputeCentroidsSimple(
     MutableSpan<double> mut_centroid = centroids->mutable_data(c);
     const double divisor = spherical ? std::sqrt(SquaredL2Norm((*centroids)[c]))
                                      : static_cast<double>(partition_sizes[c]);
-    if (divisor == 0) {
-      SCANN_LOG_NOOP(WARNING, 1) << "Could not normalize centroid due to zero "
-                                    "norm or empty partition.";
-      continue;
+    NormalizeCentroid(mut_centroid, divisor);
+  }
+  return OkStatus();
+}
+
+Status GmmUtils::RecomputeCentroidsWeighted(
+    ConstSpan<pair<uint32_t, double>> top1_results, GmmUtilsImplInterface* impl,
+    ConstSpan<float> weights, bool spherical,
+    DenseDataset<double>* centroids) const {
+  const size_t dataset_size = impl->size();
+  SCANN_RET_CHECK_EQ(weights.size(), dataset_size);
+  const size_t dimensionality = impl->dimensionality();
+  std::fill(centroids->mutable_data().begin(), centroids->mutable_data().end(),
+            0.0);
+  Datapoint<double> storage;
+  vector<double> denominators(centroids->size());
+  for (size_t dp_idx : Seq(dataset_size)) {
+    const size_t cluster_idx = top1_results[dp_idx].first;
+    const double weight = weights[dp_idx];
+    denominators[cluster_idx] += weight;
+    MutableSpan<double> mut_centroid = centroids->mutable_data(cluster_idx);
+    ConstSpan<double> datapoint =
+        impl->GetPoint(dp_idx, &storage).values_slice();
+    SCANN_RET_CHECK_EQ(mut_centroid.size(), dimensionality);
+    SCANN_RET_CHECK_EQ(datapoint.size(), dimensionality);
+    for (size_t dim_idx : Seq(dimensionality)) {
+      mut_centroid[dim_idx] += datapoint[dim_idx] * weight;
     }
-    const double multiplier = 1.0 / divisor;
-    for (size_t jj : Seq(dimensionality)) {
-      mut_centroid[jj] *= multiplier;
-    }
+  }
+
+  for (size_t c : IndicesOf(*centroids)) {
+    MutableSpan<double> mut_centroid = centroids->mutable_data(c);
+    const double divisor =
+        spherical ? std::sqrt(SquaredL2Norm((*centroids)[c])) : denominators[c];
+    NormalizeCentroid(mut_centroid, divisor);
   }
   return OkStatus();
 }
@@ -1148,65 +1180,6 @@ end_covariance_loop:
               << " seconds for computing covariances";
   }
 
-  return OkStatus();
-}
-
-Status GmmUtils::RecomputeCentroidsWithParallelCostMultiplier(
-    ConstSpan<pair<uint32_t, double>> top1_results, GmmUtilsImplInterface* impl,
-    ConstSpan<uint32_t> partition_sizes, bool spherical,
-    DenseDataset<double>* centroids) const {
-  const double parallel_cost_multiplier = opts_.parallel_cost_multiplier;
-  SCANN_RET_CHECK_NE(parallel_cost_multiplier, 1.0);
-  const size_t dimensionality = impl->dimensionality();
-
-  vector<double> mean_vec(centroids->data().size());
-  DenseDataset<double> means(std::move(mean_vec), centroids->size());
-  SCANN_RETURN_IF_ERROR(RecomputeCentroidsSimple(
-      top1_results, impl, partition_sizes, false, &means));
-
-  vector<std::vector<DatapointIndex>> assignments(centroids->size());
-  for (DatapointIndex dp_idx : IndicesOf(top1_results)) {
-    const size_t partition_idx = top1_results[dp_idx].first;
-    assignments[partition_idx].push_back(dp_idx);
-  }
-
-  Datapoint<double> storage;
-  Eigen::MatrixXd outer_prodsums;
-  auto add_outer_product = [&outer_prodsums](ConstSpan<double> vec) {
-    DCHECK_EQ(vec.size(), outer_prodsums.cols());
-    DCHECK_EQ(vec.size(), outer_prodsums.rows());
-    Eigen::Map<const Eigen::VectorXd> vm(vec.data(), vec.size());
-    const double denom = vm.transpose() * vm;
-    if (denom > 0) {
-      outer_prodsums += (vm * vm.transpose()) / denom;
-    }
-  };
-  const double lambda = 1.0 / parallel_cost_multiplier;
-  for (size_t partition_idx : IndicesOf(assignments)) {
-    MutableSpan<double> mut_centroid = centroids->mutable_data(partition_idx);
-    if (assignments[partition_idx].empty()) {
-      std::fill(mut_centroid.begin(), mut_centroid.end(), 0.0);
-      continue;
-    }
-    outer_prodsums = Eigen::MatrixXd::Zero(dimensionality, dimensionality);
-    for (DatapointIndex dp_idx : assignments[partition_idx]) {
-      ConstSpan<double> datapoint =
-          impl->GetPoint(dp_idx, &storage).values_slice();
-      add_outer_product(datapoint);
-    }
-    outer_prodsums *= (1.0 - lambda) / assignments[partition_idx].size();
-
-    for (size_t i : Seq(dimensionality)) {
-      outer_prodsums(i, i) += lambda;
-    }
-
-    Eigen::Map<const Eigen::VectorXd> mean(means[partition_idx].values(),
-                                           dimensionality);
-    Eigen::VectorXd centroid = outer_prodsums.inverse() * mean;
-    for (size_t i : Seq(dimensionality)) {
-      mut_centroid[i] = centroid(i);
-    }
-  }
   return OkStatus();
 }
 

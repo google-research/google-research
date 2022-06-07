@@ -36,6 +36,26 @@
 namespace research_scann {
 namespace asymmetric_hashing_internal {
 
+template <typename FloatT>
+StatusOr<double> ComputeNormBiasCorrection(
+    const DenseDataset<FloatT>& db, DatapointPtr<double> center,
+    ConstSpan<DatapointIndex> cluster_members) {
+  if (cluster_members.empty()) return 1.0;
+  SCANN_RETURN_IF_ERROR(VerifyAllFinite(center.values_slice()));
+  double mean_norm = 0.0;
+  for (DatapointIndex idx : cluster_members) {
+    SCANN_RETURN_IF_ERROR(VerifyAllFinite(db[idx].values_slice()));
+    mean_norm += std::sqrt(SquaredL2Norm(db[idx]));
+  }
+  SCANN_RET_CHECK(std::isfinite(mean_norm)) << mean_norm;
+  mean_norm /= cluster_members.size();
+  SCANN_RET_CHECK(std::isfinite(mean_norm))
+      << mean_norm << " " << cluster_members.size();
+  const double center_norm = std::sqrt(SquaredL2Norm(center));
+  SCANN_RET_CHECK(std::isfinite(center_norm)) << center_norm;
+  return (center_norm == 0.0) ? 1.0 : (mean_norm / center_norm);
+}
+
 template <typename T>
 inline vector<DenseDataset<FloatingTypeFor<T>>> ConvertCentersIfNecessary(
     std::vector<DenseDataset<double>> double_centers) {
@@ -79,7 +99,7 @@ struct AhImpl {
       const DatapointPtr<T>& original_dptr,
       const ChunkingProjection<T>& projection,
       ConstSpan<DenseDataset<FloatingTypeFor<T>>> centers, double threshold,
-      MutableSpan<uint8_t> result);
+      double eta, MutableSpan<uint8_t> result);
 
   static StatusOr<std::vector<float>> CreateRawFloatLookupTable(
       const DatapointPtr<T>& query, const ChunkingProjection<T>& projection,
@@ -115,18 +135,6 @@ Status IndexDatapoint(const DatapointPtr<T>& input,
                       MutableSpan<uint8_t> result) {
   return AhImpl<T>::IndexDatapoint(input, projection, quantization_distance,
                                    centers, result);
-}
-
-template <typename T>
-Status IndexDatapointNoiseShaped(
-    const DatapointPtr<T>& maybe_residual_dptr,
-    const DatapointPtr<T>& original_dptr,
-    const ChunkingProjection<T>& projection,
-    ConstSpan<DenseDataset<FloatingTypeFor<T>>> centers, double threshold,
-    MutableSpan<uint8_t> result) {
-  return AhImpl<T>::IndexDatapointNoiseShaped(maybe_residual_dptr,
-                                              original_dptr, projection,
-                                              centers, threshold, result);
 }
 
 template <typename T>

@@ -351,8 +351,8 @@ StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
   for (auto _ : Seq(num_codebooks)) {
     DenseDataset<double> centers;
     vector<vector<DatapointIndex>> labels;
-    SCANN_RETURN_IF_ERROR(
-        gmm.GenericKmeans(residual, num_centers, &centers, &labels));
+    SCANN_RETURN_IF_ERROR(gmm.ComputeKmeansClustering(
+        residual, num_centers, &centers, {.final_partitions = &labels}));
     DCHECK_EQ(labels.size(), num_centers);
 
     DenseDataset<double> buffer;

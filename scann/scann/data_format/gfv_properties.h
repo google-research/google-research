@@ -17,6 +17,8 @@
 #ifndef SCANN_DATA_FORMAT_GFV_PROPERTIES_H_
 #define SCANN_DATA_FORMAT_GFV_PROPERTIES_H_
 
+#include <string>
+
 #include "scann/data_format/features.pb.h"
 #include "scann/utils/types.h"
 

@@ -136,7 +136,8 @@ StatusOrSearcher<T> HashLeafHelpers<T>::AsymmetricHasherFactory(
           *dataset,
           [&](const DatapointPtr<T>& dptr, Datapoint<uint8_t>* dp) {
             return training_results.indexer->HashWithNoiseShaping(
-                dptr, dp, training_results.noise_shaping_threshold);
+                dptr, dp,
+                {.threshold = training_results.noise_shaping_threshold});
           },
           pool);
     }

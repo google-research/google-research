@@ -17,6 +17,7 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>

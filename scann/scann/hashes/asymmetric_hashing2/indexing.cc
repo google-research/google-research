@@ -15,6 +15,8 @@
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
 
 #include <cstdint>
+#include <string>
+#include <utility>
 
 #include "absl/base/optimization.h"
 #include "scann/data_format/datapoint.h"
@@ -27,7 +29,6 @@
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/common.h"
-#include "scann/utils/reduction.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -103,7 +104,7 @@ Status Indexer<T>::Hash(const DatapointPtr<T>& input,
     return OkStatus();
   } else {
     return UnimplementedError(
-        "The model's quantization scheme is not supproted.");
+        "The model's quantization scheme is not supported.");
   }
 }
 
@@ -125,41 +126,42 @@ Status Indexer<T>::Hash(const DatapointPtr<T>& input,
 }
 
 template <typename T>
-Status Indexer<T>::HashWithNoiseShaping(const DatapointPtr<T>& input,
-                                        Datapoint<uint8_t>* hashed,
-                                        double threshold) const {
-  return HashWithNoiseShaping(input, input, hashed, threshold);
+Status Indexer<T>::HashWithNoiseShaping(
+    const DatapointPtr<T>& input, Datapoint<uint8_t>* hashed,
+    const NoiseShapingParameter& noise_shaping_param) const {
+  return HashWithNoiseShaping(input, input, hashed, noise_shaping_param);
 }
 
 template <typename T>
-Status Indexer<T>::HashWithNoiseShaping(const DatapointPtr<T>& input,
-                                        MutableSpan<uint8_t> hashed,
-                                        double threshold) const {
-  return HashWithNoiseShaping(input, input, hashed, threshold);
+Status Indexer<T>::HashWithNoiseShaping(
+    const DatapointPtr<T>& input, MutableSpan<uint8_t> hashed,
+    const NoiseShapingParameter& noise_shaping_param) const {
+  return HashWithNoiseShaping(input, input, hashed, noise_shaping_param);
 }
 
 template <typename T>
-Status Indexer<T>::HashWithNoiseShaping(ConstSpan<T> input,
-                                        MutableSpan<uint8_t> hashed,
-                                        double threshold) const {
-  return HashWithNoiseShaping(input, input, hashed, threshold);
+Status Indexer<T>::HashWithNoiseShaping(
+    ConstSpan<T> input, MutableSpan<uint8_t> hashed,
+    const NoiseShapingParameter& noise_shaping_param) const {
+  return HashWithNoiseShaping(input, input, hashed, noise_shaping_param);
 }
 
 template <typename T>
-Status Indexer<T>::HashWithNoiseShaping(const DatapointPtr<T>& maybe_residual,
-                                        const DatapointPtr<T>& original,
-                                        Datapoint<uint8_t>* hashed,
-                                        double threshold) const {
+Status Indexer<T>::HashWithNoiseShaping(
+    const DatapointPtr<T>& maybe_residual, const DatapointPtr<T>& original,
+    Datapoint<uint8_t>* hashed,
+    const NoiseShapingParameter& noise_shaping_param) const {
   hashed->mutable_values()->resize(hash_space_dimension());
   return HashWithNoiseShaping(maybe_residual, original,
-                              hashed->mutable_values_slice(), threshold);
+                              hashed->mutable_values_slice(),
+                              noise_shaping_param);
 }
 
 template <typename T>
-Status Indexer<T>::HashWithNoiseShaping(const DatapointPtr<T>& maybe_residual,
-                                        const DatapointPtr<T>& original,
-                                        MutableSpan<uint8_t> hashed,
-                                        double threshold) const {
+Status Indexer<T>::HashWithNoiseShaping(
+    const DatapointPtr<T>& maybe_residual, const DatapointPtr<T>& original,
+    MutableSpan<uint8_t> hashed,
+    const NoiseShapingParameter& noise_shaping_param) const {
   if (quantization_distance_->specially_optimized_distance_tag() !=
       DistanceMeasure::SQUARED_L2) {
     return FailedPreconditionError(
@@ -174,18 +176,19 @@ Status Indexer<T>::HashWithNoiseShaping(const DatapointPtr<T>& maybe_residual,
     return UnimplementedError(
         "Noise-shaped hashing only works with product quantization for now.");
   }
-  return asymmetric_hashing_internal::IndexDatapointNoiseShaped(
-      maybe_residual, original, *projector_, model_->centers(), threshold,
-      hashed);
+  return asymmetric_hashing_internal::AhImpl<T>::IndexDatapointNoiseShaped(
+      maybe_residual, original, *projector_, model_->centers(),
+      noise_shaping_param.threshold, noise_shaping_param.eta, hashed);
 }
 
 template <typename T>
-Status Indexer<T>::HashWithNoiseShaping(ConstSpan<T> maybe_residual,
-                                        ConstSpan<T> original,
-                                        MutableSpan<uint8_t> hashed,
-                                        double threshold) const {
+Status Indexer<T>::HashWithNoiseShaping(
+    ConstSpan<T> maybe_residual, ConstSpan<T> original,
+    MutableSpan<uint8_t> hashed,
+    const NoiseShapingParameter& noise_shaping_param) const {
   return HashWithNoiseShaping(MakeDatapointPtr(maybe_residual),
-                              MakeDatapointPtr(original), hashed, threshold);
+                              MakeDatapointPtr(original), hashed,
+                              noise_shaping_param);
 }
 
 template <typename T>
@@ -208,18 +211,20 @@ SCANN_INLINE void ReconstructProductQuantized(
     ConstSpan<uint8_t> input, MutableSpan<FloatT> reconstructed) {
   DCHECK_LE(subspace_sizes.size(), input.size());
 
-  FloatT* __restrict result_ptr = reconstructed.data();
-  const FloatT* __restrict src_ptr = flattend_model.data();
-  const uint8_t* input_ptr = input.data();
+  auto result_ptr = reconstructed.begin();
+  auto result_end = reconstructed.end();
+  auto src_ptr = flattend_model.cbegin();
+  auto input_ptr = input.cbegin();
 
-  uint32_t subspace_size, center_size;
-  for (const auto& subspace_info : subspace_sizes) {
-    std::tie(subspace_size, center_size) = subspace_info;
+  for (auto [subspace_size, center_size] : subspace_sizes) {
     uint32_t center_idx = (*input_ptr) * center_size;
-    memcpy(result_ptr, src_ptr + center_idx, sizeof(FloatT) * center_size);
-    result_ptr += center_size;
+    const size_t num_elements_to_copy =
+        std::min<size_t>(center_size, result_end - result_ptr);
+    auto center_begin = src_ptr + center_idx;
+    std::copy(center_begin, center_begin + num_elements_to_copy, result_ptr);
+    result_ptr += num_elements_to_copy;
     src_ptr += subspace_size;
-    input_ptr++;
+    ++input_ptr;
   }
 }
 

@@ -15,6 +15,7 @@
 #ifndef SCANN_TREES_KMEANS_TREE_KMEANS_TREE_NODE_H_
 #define SCANN_TREES_KMEANS_TREE_KMEANS_TREE_NODE_H_
 
+#include <algorithm>
 #include <cstdint>
 #include <type_traits>
 

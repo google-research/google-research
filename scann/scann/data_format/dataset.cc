@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <hash_set>
+#include <utility>
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/str_cat.h"

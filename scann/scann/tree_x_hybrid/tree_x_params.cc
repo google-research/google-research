@@ -17,6 +17,7 @@
 #include "scann/tree_x_hybrid/tree_x_params.h"
 
 #include <cstdint>
+#include <utility>
 
 #include "scann/base/search_parameters.h"
 #include "scann/utils/types.h"

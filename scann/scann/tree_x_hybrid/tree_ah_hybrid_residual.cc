@@ -18,8 +18,10 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <numeric>
 #include <unordered_set>
+#include <utility>
 
 #include "absl/flags/flag.h"
 #include "absl/time/clock.h"
@@ -297,9 +299,9 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
       if (std::isnan(config.noise_shaping_threshold())) {
         SCANN_RETURN_IF_ERROR(indexer->Hash(residual.ToPtr(), storage));
       } else {
-        SCANN_RETURN_IF_ERROR(
-            indexer->HashWithNoiseShaping(residual.ToPtr(), original, storage,
-                                          config.noise_shaping_threshold()));
+        SCANN_RETURN_IF_ERROR(indexer->HashWithNoiseShaping(
+            residual.ToPtr(), original, storage,
+            {.threshold = config.noise_shaping_threshold()}));
       }
       return storage->ToPtr();
     };

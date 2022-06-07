@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 #include "scann/data_format/dataset.h"
 #include "scann/partitioning/partitioner.pb.h"

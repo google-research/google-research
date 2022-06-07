@@ -18,6 +18,7 @@
 #define SCANN_DATA_FORMAT_DOCID_COLLECTION_H_
 
 #include <cstdint>
+#include <string>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/node_hash_map.h"

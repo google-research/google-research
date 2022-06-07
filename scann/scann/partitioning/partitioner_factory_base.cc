@@ -14,7 +14,9 @@
 
 #include "scann/partitioning/partitioner_factory_base.h"
 
+#include <algorithm>
 #include <memory>
+#include <utility>
 
 #include "absl/memory/memory.h"
 #include "absl/random/random.h"

@@ -15,6 +15,7 @@
 #ifndef SCANN_UTILS_INTRINSICS_AVX1_H_
 #define SCANN_UTILS_INTRINSICS_AVX1_H_
 
+#include <algorithm>
 #include <cstdint>
 
 #include "scann/utils/index_sequence.h"

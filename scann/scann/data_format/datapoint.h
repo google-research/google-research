@@ -18,6 +18,7 @@
 #define SCANN_DATA_FORMAT_DATAPOINT_H_
 
 #include <cstdint>
+#include <utility>
 
 #include "scann/data_format/features.pb.h"
 #include "scann/data_format/gfv_conversion.h"
