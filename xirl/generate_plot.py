@@ -75,7 +75,6 @@ class Experiment:
     self.path = pathlib.Path(self.path)
     if not self.path.exists():
       raise ValueError(f"{self.path} does not exist.")
-
     # Find seed directories.
     subdirs = [f for f in self.path.iterdir() if f.is_dir()]
     # cd into their respective log subdirs.
@@ -105,8 +104,9 @@ def cross_shortstick(savename):
   # Note: Append baselines or other methods to this list.
   experiments = [
       Experiment(
-          # Note: An example experiment path, replace with your own.
-          path="/tmp/xirl/rl_runs/env_name=SweepToTop-Shortstick-State-Allo-TestLayout-v0_reward=learned_reward_type=distance_to_goal_mode=cross_algo=xirl_uid=2d6818b7-075e-4dae-895f-e59f4a70ea3d",
+          # Note: replace with an actual experiment path.
+          path="/PATH/TO/AN/EXPERIMENT/HERE/",
+          # Note: You can customize the below attributes to your liking.
           name="XIRL",
           color="tab:red",
           linestyle="dashdot",
@@ -131,8 +131,8 @@ def cross_shortstick(savename):
     )
     ax.fill_between(
         return_mean_x,
-        return_mean_y + _STD_DEV_FRAC * return_stddev[:, 1],
-        return_mean_y - _STD_DEV_FRAC * return_stddev[:, 1],
+        return_mean_y + _STD_DEV_FRAC.value * return_stddev[:, 1],
+        return_mean_y - _STD_DEV_FRAC.value * return_stddev[:, 1],
         alpha=0.2,
         color=experiment.color,
     )
@@ -144,16 +144,18 @@ def cross_shortstick(savename):
   ax.legend(loc="lower right")
   ax.grid(linestyle="--", linewidth=0.5)
 
-  plt.savefig(f"{_PLOT_DIR}/{savename}.pdf", format="pdf")
-  plt.savefig(f"{_PLOT_DIR}/{savename}.png", format="png", dpi=_MATPLOTLIB_DPI)
+  plt.savefig(f"{_PLOT_DIR.value}/{savename}.pdf", format="pdf")
+  plt.savefig(
+      f"{_PLOT_DIR.value}/{savename}.png",
+      format="png",
+      dpi=_MATPLOTLIB_DPI.value,
+  )
   plt.close()
 
 
 def main(_):
-  os.makedirs(_PLOT_DIR, exist_ok=True)
-
-  update_plotting_params(_MATPLOTLIB_SIZE)
-
+  os.makedirs(_PLOT_DIR.value, exist_ok=True)
+  update_plotting_params(_MATPLOTLIB_SIZE.value)
   cross_shortstick("cross_embodiment_shortstick")
 
 
