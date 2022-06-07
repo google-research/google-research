@@ -26,7 +26,8 @@ import numpy
 
 def get_eigval_for_eigvec(op, eigvec):
   """Given a matrix and an approximate eigenvector, estimates the eigenvalue."""
-  return numpy.array(op.dot(eigvec).dot(eigvec) / eigvec.dot(eigvec))
+  return numpy.array(op.dot(eigvec).dot(eigvec.conj()) /
+                     eigvec.dot(eigvec.conj()))
 
 
 def weightspaces_quality(hermitean_operators, weightspace_by_weight):
