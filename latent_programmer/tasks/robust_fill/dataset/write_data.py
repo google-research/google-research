@@ -59,8 +59,6 @@ flags.DEFINE_string('save_dir', '/tmp/decomposition/robust_fill',
 
 flags.DEFINE_boolean('split_program', False,
                      'Whether to split program by parial program.')
-flags.DEFINE_boolean('split_outputs', False,
-                     'Whether to split outputs by partial program.')
 
 flags.DEFINE_enum('split', None, ['train', 'valid', 'test', 'finetune'],
                   'Which split of the dataset to generate.')
@@ -68,28 +66,14 @@ flags.DEFINE_enum('experiment', 'NONE', [e.name for e in exp_module.Experiment],
                   'Kind of experiment (see document for descriptions).')
 
 
-def _bytes_feature(value):
-  """Returns a bytes_list from a string / byte."""
-  return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+def _bytes_feature(strs):
+  """Returns a bytes_list Feature from a list of strings."""
+  return tf.train.Feature(bytes_list=tf.train.BytesList(
+      value=[str.encode(s) for s in strs]))
 
 
-def serialize_example(task, token_id_table):
-  """Creates a tf.Example message to be written to a file."""
-  # Create a dictionary mapping the feature name to the tf.Example-compatible
-  # data type.
-  io_string = ''
-  if FLAGS.split_outputs:
-    for inp in task.inputs:
-      io_string += inp + '<'
-      for expr in task.program.expressions:
-        io_string += expr(inp) + '|'
-      io_string = io_string[:-1] + '>'
-    io_string = io_string[:-1]
-  else:
-    for inp, out in zip(task.inputs, task.outputs):
-      io_string += inp + '<' + out + '>'
-    io_string = io_string[:-1]
-
+def serialize_entire_program_example(task, token_id_table):
+  """Creates a tf.Example message for the entire program."""
   program_string = ''
   if FLAGS.split_program:
     for expr in task.program.expressions:
@@ -101,13 +85,43 @@ def serialize_example(task, token_id_table):
         map(str, task.program.encode(token_id_table)[:-1]))
 
   feature = {
-      'i/o': _bytes_feature(str.encode(io_string)),
-      'program_encoding': _bytes_feature(str.encode(program_string)),
+      'inputs': _bytes_feature(task.inputs),
+      'outputs': _bytes_feature(task.outputs),
+      'program_encoding': _bytes_feature([program_string]),
   }
 
   # Create a Features message using tf.train.Example.
   example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
   return example_proto.SerializeToString()
+
+
+def serialize_decomposition_examples(task, token_id_table):
+  """Creates tf.Example messages for decomposition."""
+  # TODO(kshi): If we want to include length-2 programs in the subprogram
+  # synthesizer's training data, we'll need to create a separate dataset for
+  # that, since we don't want such data in the spec decomposer model's training
+  # data.
+  output_parts = [[expr(inp) for expr in task.program.expressions]
+                  for inp in task.inputs]
+  assert all(''.join(parts) == out
+             for parts, out in zip(output_parts, task.outputs))
+
+  results = []
+  for i, expr in enumerate(task.program.expressions):
+    outputs = [''.join(parts[i:]) for parts in output_parts]
+    next_part = [parts[i] for parts in output_parts]
+    program_part_string = ' '.join(map(str, expr.encode(token_id_table)))
+    feature = {
+        'inputs': _bytes_feature(task.inputs),
+        'outputs': _bytes_feature(outputs),
+        'next_part': _bytes_feature(next_part),
+        'program_part': _bytes_feature([program_part_string]),
+    }
+    example_proto = tf.train.Example(
+        features=tf.train.Features(feature=feature))
+    results.append(example_proto.SerializeToString())
+
+  return results
 
 
 def generate_task_for_experiment(experiment, is_train):
@@ -221,12 +235,21 @@ def main(_):
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
 
-  worker_fname = os.path.join(
+  shard_id = 0
+  total_shards = 1
+
+  entire_programs_fname = os.path.join(
       FLAGS.save_dir,
-      'program_tasks_{}.tf_records-00000-of-00001'.format(FLAGS.split))
+      'entire_programs_{}.tf_records-{:05d}-of-{:05d}'.format(
+          FLAGS.split, shard_id, total_shards))
+  decomposition_data_fname = os.path.join(
+      FLAGS.save_dir,
+      'decomposition_data_{}.tf_records-{:05d}-of-{:05d}'.format(
+          FLAGS.split, shard_id, total_shards))
 
   # Write the `tf.Example` observations to the file.
-  with tf.io.TFRecordWriter(worker_fname) as writer:
+  with tf.io.TFRecordWriter(entire_programs_fname) as entire_programs_writer, \
+      tf.io.TFRecordWriter(decomposition_data_fname) as decomposition_data_writer:
     for i in range(FLAGS.num_tasks):
       if FLAGS.experiment == exp_module.Experiment.NONE.name:
         task = sample_random.random_task(
@@ -247,9 +270,10 @@ def main(_):
           raise ValueError('Unhandled split: {}'.format(FLAGS.split))
         task = generate_task_for_experiment(FLAGS.experiment, is_train)
 
-      example = serialize_example(task, token_id_table)
-      writer.write(example)
-
+      entire_programs_writer.write(
+          serialize_entire_program_example(task, token_id_table))
+      for example in serialize_decomposition_examples(task, token_id_table):
+        decomposition_data_writer.write(example)
 
 if __name__ == '__main__':
   app.run(main)
