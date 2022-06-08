@@ -75,6 +75,11 @@ class TfeInputLayerTest(tf.test.TestCase):
 
   def testReadBatchFromOneTable(self):
     testdata_dir = 'poem/testdata'  # Assume $PWD == "google_research/".
+
+    def tile_images(inputs):
+      inputs['tiled_image_sizes'] = tf.tile(inputs['image_sizes'], (1, 2, 2))
+      return inputs
+
     table_path = os.path.join(FLAGS.test_srcdir, testdata_dir,
                               'tfe-2.tfrecords')
     parser_fn = tfe_input_layer.create_tfe_parser(
@@ -85,26 +90,34 @@ class TfeInputLayerTest(tf.test.TestCase):
         include_keypoint_scores_2d=True,
         include_keypoint_scores_3d=False,
         num_objects=2)
-    inputs = tfe_input_layer.read_batch_from_tables([table_path],
-                                                    batch_sizes=[4],
-                                                    drop_remainder=True,
-                                                    shuffle=True,
-                                                    num_shards=2,
-                                                    shard_index=1,
-                                                    parser_fn=parser_fn)
+    inputs = tfe_input_layer.read_batch_from_tables(
+        [table_path],
+        batch_sizes=[4],
+        drop_remainder=True,
+        shuffle=True,
+        num_shards=2,
+        shard_index=1,
+        preprocess_fns=[tile_images],
+        parser_fn=parser_fn)
     inputs = next(iter(inputs))
 
-    self.assertCountEqual(
-        inputs.keys(),
-        ['image_sizes', 'keypoints_2d', 'keypoint_scores_2d', 'keypoints_3d'])
+    self.assertCountEqual(inputs.keys(), [
+        'image_sizes', 'tiled_image_sizes', 'keypoints_2d',
+        'keypoint_scores_2d', 'keypoints_3d'
+    ])
     self.assertEqual(inputs['image_sizes'].shape, [4, 2, 2])
-    self.assertEqual(inputs['image_sizes'].shape, [4, 2, 2])
+    self.assertEqual(inputs['tiled_image_sizes'].shape, [4, 4, 4])
     self.assertEqual(inputs['keypoints_2d'].shape, [4, 2, 13, 2])
     self.assertEqual(inputs['keypoint_scores_2d'].shape, [4, 2, 13])
     self.assertEqual(inputs['keypoints_3d'].shape, [4, 2, 17, 3])
 
   def testReadBatchFromThreeTables(self):
     testdata_dir = 'poem/testdata'  # Assume $PWD == "google_research/".
+
+    def tile_images(inputs):
+      inputs['tiled_image_sizes'] = tf.tile(inputs['image_sizes'], (1, 2, 2))
+      return inputs
+
     table_path = os.path.join(FLAGS.test_srcdir, testdata_dir,
                               'tfe-2.tfrecords')
     parser_fn = tfe_input_layer.create_tfe_parser(
@@ -120,14 +133,16 @@ class TfeInputLayerTest(tf.test.TestCase):
         batch_sizes=[4, 2, 3],
         drop_remainder=True,
         shuffle=True,
+        preprocess_fns=[tile_images, tile_images, tile_images],
         parser_fn=parser_fn)
     inputs = next(iter(inputs))
 
-    self.assertCountEqual(
-        inputs.keys(),
-        ['image_sizes', 'keypoints_2d', 'keypoint_scores_2d', 'keypoints_3d'])
+    self.assertCountEqual(inputs.keys(), [
+        'image_sizes', 'tiled_image_sizes', 'keypoints_2d',
+        'keypoint_scores_2d', 'keypoints_3d'
+    ])
     self.assertEqual(inputs['image_sizes'].shape, [9, 2, 2])
-    self.assertEqual(inputs['image_sizes'].shape, [9, 2, 2])
+    self.assertEqual(inputs['tiled_image_sizes'].shape, [9, 4, 4])
     self.assertEqual(inputs['keypoints_2d'].shape, [9, 2, 13, 2])
     self.assertEqual(inputs['keypoint_scores_2d'].shape, [9, 2, 13])
     self.assertEqual(inputs['keypoints_3d'].shape, [9, 2, 17, 3])

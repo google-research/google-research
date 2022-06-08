@@ -32,6 +32,11 @@ class PipelineUtilsTest(tf.test.TestCase):
 
   def test_read_batch_from_dataset_tables(self):
     testdata_dir = 'poem/testdata'  # Assume $PWD == "google_research/".
+
+    def tile_images(inputs):
+      inputs['tiled_image_sizes'] = tf.tile(inputs['image_sizes'], (1, 2, 2))
+      return inputs
+
     table_path = os.path.join(FLAGS.test_srcdir, testdata_dir,
                               'tfe-2.tfrecords')
     inputs = pipeline_utils.read_batch_from_dataset_tables(
@@ -44,13 +49,15 @@ class PipelineUtilsTest(tf.test.TestCase):
             'LEGACY_3DH36M17').keypoint_names,
         keypoint_names_2d=keypoint_profiles.create_keypoint_profile_or_die(
             'LEGACY_2DCOCO13').keypoint_names,
+        preprocess_fns=[tile_images, tile_images],
         seed=0)
 
     self.assertCountEqual(inputs.keys(), [
-        'image_sizes', 'keypoints_2d', 'keypoint_scores_2d',
-        'keypoint_masks_2d', 'keypoints_3d'
+        'image_sizes', 'tiled_image_sizes', 'keypoints_2d',
+        'keypoint_scores_2d', 'keypoint_masks_2d', 'keypoints_3d'
     ])
     self.assertEqual(inputs['image_sizes'].shape, [6, 2, 2])
+    self.assertEqual(inputs['tiled_image_sizes'].shape, [6, 4, 4])
     self.assertEqual(inputs['keypoints_2d'].shape, [6, 2, 13, 2])
     self.assertEqual(inputs['keypoint_scores_2d'].shape, [6, 2, 13])
     self.assertEqual(inputs['keypoint_masks_2d'].shape, [6, 2, 13])

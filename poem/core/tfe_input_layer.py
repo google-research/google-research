@@ -586,6 +586,7 @@ def read_from_table(table_pattern,
 def read_batch_from_tables(table_patterns,
                            batch_sizes,
                            drop_remainder,
+                           preprocess_fns=None,
                            seed=None,
                            **reader_kwargs):
   """Reads and batches inputs from tf.Example tables.
@@ -596,6 +597,7 @@ def read_batch_from_tables(table_patterns,
     drop_remainder: A boolean for whether to drop remaining elements that cannot
       make up a full batch at the end of an epoch. Usually set to True for
       evaluation.
+    preprocess_fns: A list of preprocess function handles for input tables.
     seed: An integer for random seed.
     **reader_kwargs: A dictionary of additional arguments passed to
       `read_from_table`.
@@ -617,13 +619,30 @@ def read_batch_from_tables(table_patterns,
         'Number of table patterns is different than that of batch sizes: %d vs.'
         ' %d.' % (len(table_patterns), len(batch_sizes)))
 
+  if preprocess_fns and len(table_patterns) != len(preprocess_fns):
+    raise ValueError(
+        'Number of table patterns is different than that of function handles: '
+        '%d vs. %d.' % (len(table_patterns), len(preprocess_fns)))
+
+  def create_dataset(table_index):
+    """Creates the dataset with its preprocess function handle if provided."""
+    dataset = read_from_table(
+        table_patterns[table_index], seed=seed, **reader_kwargs)
+
+    # TODO(longzh): find a better way to avoid the `unbatch` operation.
+    if preprocess_fns:
+      dataset = dataset.batch(batch_sizes[table_index], drop_remainder=False)
+      dataset = dataset.map(
+          preprocess_fns[table_index],
+          num_parallel_calls=tf.data.experimental.AUTOTUNE)
+      dataset = dataset.unbatch()
+    return dataset
+
   if len(table_patterns) == 1:
-    dataset = read_from_table(table_patterns[0], seed=seed, **reader_kwargs)
+    dataset = create_dataset(0)
   else:
-    datasets = [
-        read_from_table(table_pattern, seed=seed, **reader_kwargs)
-        for table_pattern in table_patterns
-    ]
+    datasets = [create_dataset(i) for i in range(len(table_patterns))]
     dataset = tf.data.experimental.sample_from_datasets(
         datasets, weights=[float(x) for x in batch_sizes], seed=seed)
+
   return dataset.batch(sum(batch_sizes), drop_remainder=drop_remainder)
