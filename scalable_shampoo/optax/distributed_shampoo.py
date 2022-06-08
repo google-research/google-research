@@ -880,12 +880,9 @@ def distributed_shampoo(
     """Returns True if using diagonal firt order method for grafting."""
     return graft_type != GraftingType.SGD and graft_type != GraftingType.SQRT_N
 
-  def quantized_dtype_for_momentum_buffers():
-    return jnp.int8 if best_effort_memory_usage_reduction else jnp.float32
-
-  # TODO(rohananil): Explore int8-16 quantization with non-linear bucket sizes.
-  def quantized_dtype_for_diagonal_statistics_buffers():
-    return jnp.float32
+  def quantized_dtype_for_momentum_buffers(var):
+    return jnp.int8 if best_effort_memory_usage_reduction and len(
+        var.shape) > 1 else jnp.float32
 
   # Preconditioner and statistics are both stores as int16 in this mode.
   # We take out the diagonal to make quantization easier.
@@ -934,12 +931,12 @@ def distributed_shampoo(
       return statistics_list
 
   def _quantize_diagonal_statistics(diagonal_statistics):
-    return QuantizedValue.from_float_value(
-        diagonal_statistics, quantized_dtype_for_diagonal_statistics_buffers())
+    return QuantizedValue.from_float_value(diagonal_statistics, jnp.float32)
 
   def _quantize_momentum(momentum_statistics):
     return QuantizedValue.from_float_value(
-        momentum_statistics, quantized_dtype_for_momentum_buffers())
+        momentum_statistics,
+        quantized_dtype_for_momentum_buffers(momentum_statistics))
 
   def sharded_init_fn(params):
     """Returns optimizer state (for PJIT mode).
@@ -1075,34 +1072,22 @@ def distributed_shampoo(
         shapes = preconditioner.shapes_for_preconditioners()
         num_statistics += len(shapes)
 
-      diagonal_statistics_pspec = []
-      diagonal_statistics_scale_pspec = []
-      diagonal_statistics_pspec = param_pspec
-      if quantized_dtype_for_diagonal_statistics_buffers() != jnp.float32:
-        diagonal_statistics_scale_pspec = _remove_leading_sharding_annotation(
-            param_pspec)
-
-      m1_scale_pspec = []
+      qdtype = quantized_dtype_for_momentum_buffers(param)
       m1_pspec = param_pspec
-      if quantized_dtype_for_momentum_buffers() != jnp.float32:
-        m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
-
-      m2_scale_pspec = []
       m2_pspec = param_pspec
-      if quantized_dtype_for_momentum_buffers() != jnp.float32:
+      m1_scale_pspec = []
+      m2_scale_pspec = []
+      if qdtype != jnp.float32:
+        m1_scale_pspec = _remove_leading_sharding_annotation(m1_pspec)
         m2_scale_pspec = _remove_leading_sharding_annotation(m2_pspec)
 
       local_stats_flat.append(
           LocalShardedParameterStats(
-              QuantizedValue(diagonal_statistics_pspec, [],
-                             diagonal_statistics_scale_pspec,
-                             quantized_dtype_for_diagonal_statistics_buffers(),
-                             False, list(param.shape)),
-              QuantizedValue(m1_pspec, [], m1_scale_pspec,
-                             quantized_dtype_for_momentum_buffers(), False,
+              QuantizedValue(param_pspec, [], [], jnp.float32, False,
                              list(param.shape)),
-              QuantizedValue(m2_pspec, [], m2_scale_pspec,
-                             quantized_dtype_for_momentum_buffers(), False,
+              QuantizedValue(m1_pspec, [], m1_scale_pspec, qdtype, False,
+                             list(param.shape)),
+              QuantizedValue(m2_pspec, [], m2_scale_pspec, qdtype, False,
                              list(param.shape)), init_training_metrics_pspec(),
               index_start, sizes))
 
@@ -1141,39 +1126,24 @@ def distributed_shampoo(
         shapes = preconditioner.shapes_for_preconditioners()
         num_statistics += len(shapes)
 
-      diagonal_statistics_scale_shape_and_dtype = []
-      diagonal_statistics_shape_and_dtype = [list(param.shape), param.dtype]
-      qdtype = quantized_dtype_for_diagonal_statistics_buffers()
-      if qdtype != jnp.float32:
-        diagonal_statistics_shape_and_dtype = [list(param.shape), qdtype]
-        diagonal_statistics_scale_shape_and_dtype = [
-            list(param.shape)[1:], param.dtype
-        ]
-
-      qdtype = quantized_dtype_for_momentum_buffers()
-      m1_scale_shape_and_dtype = []
-      m1_shape_and_dtype = [list(param.shape), qdtype]
-      if quantized_dtype_for_momentum_buffers() != jnp.float32:
-        m1_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
-
+      qdtype = quantized_dtype_for_momentum_buffers(param)
+      m1_shape_and_dtype = [list(param.shape), param.dtype]
       m2_shape_and_dtype = [list(param.shape), param.dtype]
+      m1_scale_shape_and_dtype = []
       m2_scale_shape_and_dtype = []
       if qdtype != jnp.float32:
-        m2_shape_and_dtype = [list(param.shape), qdtype]
+        m1_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
         m2_scale_shape_and_dtype = [list(param.shape)[1:], qdtype]
 
+      diagonal_statistics_shape_and_dtype = [list(param.shape), param.dtype]
       local_stats_flat.append(
           LocalShardedParameterStats(
-              QuantizedValue(diagonal_statistics_shape_and_dtype, [],
-                             diagonal_statistics_scale_shape_and_dtype,
-                             quantized_dtype_for_diagonal_statistics_buffers(),
-                             False, list(param.shape)),
+              QuantizedValue(diagonal_statistics_shape_and_dtype, [], [],
+                             jnp.float32, False, list(param.shape)),
               QuantizedValue(m1_shape_and_dtype, [], m1_scale_shape_and_dtype,
-                             quantized_dtype_for_momentum_buffers(), False,
-                             list(param.shape)),
+                             qdtype, False, list(param.shape)),
               QuantizedValue(m2_shape_and_dtype, [], m2_scale_shape_and_dtype,
-                             quantized_dtype_for_momentum_buffers(), False,
-                             list(param.shape)),
+                             qdtype, False, list(param.shape)),
               init_training_metrics_shapes(len(sizes)),
               index_start,
               sizes,
