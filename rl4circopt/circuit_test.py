@@ -64,7 +64,7 @@ def _random_matrix_gate(num_qubits):
 
 
 def _euler_to_dcm(*args, **kwargs):
-  return transform.Rotation.from_euler(*args, **kwargs).as_dcm()
+  return transform.Rotation.from_euler(*args, **kwargs).as_matrix()
 
 
 def _clifford_group():
@@ -136,7 +136,7 @@ def _clifford_group():
     if np.linalg.det(pauli_transform) < 0.0:
       continue  # filter orientation-conserving transformations (rotations)
 
-    rot_vector = transform.Rotation.from_dcm(pauli_transform).as_rotvec()
+    rot_vector = transform.Rotation.from_matrix(pauli_transform).as_rotvec()
     rot_angle = np.linalg.norm(rot_vector)  # the rotation angle
 
     x, y, z = rot_vector

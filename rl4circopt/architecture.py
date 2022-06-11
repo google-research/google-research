@@ -183,7 +183,7 @@ class XmonArchitecture:
       beta = np.pi
       alpha = -gamma
     else:
-      rot = scipy.spatial.transform.Rotation.from_dcm(pauli_transform)
+      rot = scipy.spatial.transform.Rotation.from_matrix(pauli_transform)
       alpha, beta, gamma = rot.as_euler('zxz')
 
     gates = []

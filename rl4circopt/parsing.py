@@ -74,7 +74,7 @@ def parse_gates(gates, *gate_types):
               0.5 * np.arctan2(pauli_transform[0, 1], pauli_transform[0, 0])
           )
         else:
-          rotation = scipy.spatial.transform.Rotation.from_dcm(pauli_transform)
+          rotation = scipy.spatial.transform.Rotation.from_matrix(pauli_transform)
           alpha, beta, gamma = rotation.as_euler('zxz')
           if np.isclose(alpha, -gamma):
             gate_out = circuit.PhasedXGate(beta, -alpha)

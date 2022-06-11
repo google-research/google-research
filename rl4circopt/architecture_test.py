@@ -217,19 +217,19 @@ class XmonArchitectureTest(parameterized.TestCase):
           []
       ),
       (
-          transform.Rotation.from_euler('z', 0.42).as_dcm(),
+          transform.Rotation.from_euler('z', 0.42).as_matrix(),
           [circuit.RotZGate]
       ),
       (
-          transform.Rotation.from_euler('zxz', [0.42, 0.4711, -0.42]).as_dcm(),
+          transform.Rotation.from_euler('zxz', [0.42, 0.4711, -0.42]).as_matrix(),
           [circuit.PhasedXGate]
       ),
       (
-          transform.Rotation.from_euler('zxz', [0.42, np.pi, -0.42]).as_dcm(),
+          transform.Rotation.from_euler('zxz', [0.42, np.pi, -0.42]).as_matrix(),
           [circuit.PhasedXGate]
       ),
       (
-          transform.Rotation.from_euler('zxz', [0.42, 0.4711, 0.137]).as_dcm(),
+          transform.Rotation.from_euler('zxz', [0.42, 0.4711, 0.137]).as_matrix(),
           [circuit.PhasedXGate, circuit.RotZGate]
       )
   ])
