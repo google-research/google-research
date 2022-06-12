@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <regex>  // NOLINT: ok to use std::regex in third_party code.
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "glog/logging.h"
@@ -115,9 +116,7 @@ std::string NpyDataTypeString<uint64_t>() {
   return "u";
 }
 
-std::string NpyEndiannessString() {
-  return IsLittleEndian() ? "<" : ">";
-}
+std::string NpyEndiannessString() { return IsLittleEndian() ? "<" : ">"; }
 
 std::string NpyShapeString(const std::vector<size_t>& shape) {
   if (shape.empty()) {
@@ -126,7 +125,7 @@ std::string NpyShapeString(const std::vector<size_t>& shape) {
   return "(" + absl::StrJoin(shape.begin(), shape.end(), ",") + ",)";
 }
 
-std::string NpyHeaderLengthString(absl::string_view header) {
+std::string NpyHeaderLengthString(std::string_view header) {
   std::string header_length_string(4, '\0');
   const uint32_t header_length = header.length();
   uint32_t* header_length_ptr =
@@ -138,9 +137,9 @@ std::string NpyHeaderLengthString(absl::string_view header) {
   return header_length_string;
 }
 
-NpyHeader ReadHeader(absl::string_view src) {
+NpyHeader ReadHeader(std::string_view src) {
   NpyHeader header;
-  constexpr absl::string_view kMagic("\x93NUMPY");
+  constexpr std::string_view kMagic("\x93NUMPY");
 
   // Check for size - at least magic + 2 bytes of version. We are going to
   // adjust this value as we go through header parsing.
@@ -207,8 +206,7 @@ NpyHeader ReadHeader(absl::string_view src) {
     // outermost).
     std::regex fortran_order_re("('fortran_order': (False|True))");
     std::smatch match;
-    if (!std::regex_search(header_substr, match,
-                           fortran_order_re)) {
+    if (!std::regex_search(header_substr, match, fortran_order_re)) {
       LOG(ERROR) << "DeserializeFromNpyString ReadHeader unable to parse "
                     "header, couldn't find fortran_order.";
       return NpyHeader();
@@ -221,24 +219,24 @@ NpyHeader ReadHeader(absl::string_view src) {
     std::regex descr_re(R"('descr':\s*'(<|>)(\w)(\d+)')");
     std::smatch match;
     if (!std::regex_search(header_substr, match, descr_re)) {
-        LOG(ERROR) << "DeserializeFromNpyString ReadHeader unable to parse "
-                      "header, couldn't find type descr.";
-        return NpyHeader();
-      }
-      const bool little_endian = match[1].str() == "<";
-
-      // We don't support endianness swapping at the moment.
-      if (little_endian != IsLittleEndian()) {
-        LOG(ERROR) << "DeserializeFromNpyString ReadHeader invalid header, we "
-                      "don't support endianness swapping at the moment.";
-        return NpyHeader();
-      }
-
-      header.type_char = match[2].str()[0];
-      if (!absl::SimpleAtoi(match[3].str(), &header.word_size)) {
-        return NpyHeader();
-      }
+      LOG(ERROR) << "DeserializeFromNpyString ReadHeader unable to parse "
+                    "header, couldn't find type descr.";
+      return NpyHeader();
     }
+    const bool little_endian = match[1].str() == "<";
+
+    // We don't support endianness swapping at the moment.
+    if (little_endian != IsLittleEndian()) {
+      LOG(ERROR) << "DeserializeFromNpyString ReadHeader invalid header, we "
+                    "don't support endianness swapping at the moment.";
+      return NpyHeader();
+    }
+
+    header.type_char = match[2].str()[0];
+    if (!absl::SimpleAtoi(match[3].str(), &header.word_size)) {
+      return NpyHeader();
+    }
+  }
 
   {
     // Find the "shape" (array dimensions).
@@ -252,7 +250,7 @@ NpyHeader ReadHeader(absl::string_view src) {
     std::string shape_desc = match[1];
     header.total_element_count = 1;
     bool last_element = false;
-    for (absl::string_view dim_s : absl::StrSplit(shape_desc, ',')) {
+    for (std::string_view dim_s : absl::StrSplit(shape_desc, ',')) {
       if (dim_s == "") {
         // We allow a trailing "," (empty last element), but if it wasn't really
         // last, it's going to be an error next loop iteration.

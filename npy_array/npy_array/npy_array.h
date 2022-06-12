@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -30,8 +31,10 @@
 
 namespace npy_array {
 
-// This header exposes a single function, `SerializeToNpyString`, whose behavior
-// can be configured with `NpySerializeOptions`.
+// This header exposes two functions:
+// - `SerializeToNpyString`, whose behavior can be configured with
+// `NpySerializeOptions`.
+// - `DeserializeFromNpyString`.
 
 struct NpySerializeOptions {
   // # In Numpy, shapes are indexed outermost to innermost. #
@@ -143,7 +146,7 @@ std::vector<size_t> NpyShapeVector(ShapeType shape) {
 std::string NpyShapeString(const std::vector<size_t>& shape);
 
 // Encodes the length of `header` in NPY format (four bytes, little endian).
-std::string NpyHeaderLengthString(absl::string_view header);
+std::string NpyHeaderLengthString(std::string_view header);
 
 // Returns the "full" NPY file header for the given DataType and ShapeType.
 // The "full header" consists of the magic 6 bytes, version number, and the
@@ -152,11 +155,11 @@ std::string NpyHeaderLengthString(absl::string_view header);
 // This returns a header for version 2.0.
 template <typename DataType, typename ShapeType>
 std::string NpyFullHeaderString(ShapeType shape, bool reverse_axes) {
-  constexpr absl::string_view kMagic("\x93NUMPY");
+  constexpr std::string_view kMagic("\x93NUMPY");
 
   // The explicit count is required since the \x00 in the literal would be
   // interpreted to construct a string of length 1.
-  constexpr absl::string_view kVersion("\x02\x00", /*count=*/2);
+  constexpr std::string_view kVersion("\x02\x00", /*count=*/2);
 
   // The NPY format says that:
   // - If fortran_order = False (the default NPY ordering):
@@ -248,7 +251,7 @@ struct NpyHeader {
   bool valid = false;
 };
 
-NpyHeader ReadHeader(absl::string_view src);
+NpyHeader ReadHeader(std::string_view src);
 
 template <class Shape, size_t... Is>
 Shape ToShapeImpl(const std::vector<size_t>& sizes,
@@ -270,20 +273,21 @@ std::string SerializeToNpyString(nda::array_ref<DataType, ShapeType> src,
   return internal::SerializeToNpyString(src.cref(), options);
 }
 
-template <typename DataType, typename ShapeType>
-nda::array<DataType, ShapeType> DeserializeFromNpyString(
-    absl::string_view src) {
+template <typename DataType, typename ShapeType,
+          typename Alloc = std::allocator<DataType>>
+nda::array<DataType, ShapeType, Alloc> DeserializeFromNpyString(
+    std::string_view src) {
   if (src.empty()) {
     LOG(ERROR) << "DeserializeFromNpyString: unable to deserialize, got an "
                   "empty string.";
-    return nda::array<DataType, ShapeType>();
+    return nda::array<DataType, ShapeType, Alloc>();
   }
 
   internal::NpyHeader header = internal::ReadHeader(src);
   if (!header.valid) {
     LOG(ERROR) << "DeserializeFromNpyString: unable to deserialize, got an "
                   "invalid npy header.";
-    return nda::array<DataType, ShapeType>();
+    return nda::array<DataType, ShapeType, Alloc>();
   }
 
   // After parsing the header, perform expected data verification.
@@ -294,23 +298,23 @@ nda::array<DataType, ShapeType> DeserializeFromNpyString(
                   "string of length "
                << header.data_start_offset + expected_data_size << ", got "
                << src.size() << ".";
-    return nda::array<DataType, ShapeType>();
+    return nda::array<DataType, ShapeType, Alloc>();
   }
   if (internal::NpyDataTypeString<DataType>()[0] != header.type_char ||
       sizeof(DataType) != header.word_size) {
     LOG(ERROR) << "DeserializeFromNpyString: unable to deserialize, npy "
                   "contains data type "
                << header.type_char << header.word_size << ", while requested "
-               << internal::NpyDataTypeString<DataType>()[0]
-               << sizeof(DataType) << ".";
-    return nda::array<DataType, ShapeType>();
+               << internal::NpyDataTypeString<DataType>()[0] << sizeof(DataType)
+               << ".";
+    return nda::array<DataType, ShapeType, Alloc>();
   }
 
   if (ShapeType::rank() != header.shape.size()) {
     LOG(ERROR) << "DeserializeFromNpyString: unable to deserialize, got rank "
                << header.shape.size() << ", while requested "
                << ShapeType::rank() << ".";
-    return nda::array<DataType, ShapeType>();
+    return nda::array<DataType, ShapeType, Alloc>();
   }
 
   // See the rationale for flipping in NpySerializeOptions.
@@ -318,7 +322,7 @@ nda::array<DataType, ShapeType> DeserializeFromNpyString(
     std::reverse(header.shape.begin(), header.shape.end());
   }
 
-  nda::array<DataType, ShapeType> array = nda::array<DataType, ShapeType>(
+  nda::array<DataType, ShapeType, Alloc> array(
       internal::ToShape<ShapeType>(header.shape));
   src.copy(reinterpret_cast<char*>(array.data()), expected_data_size,
            header.data_start_offset);
