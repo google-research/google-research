@@ -19,10 +19,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
-from tensorflow.compat.v1.keras import layers
-from tensorflow.compat.v1.keras import models
+from tensorflow.keras import layers
+from tensorflow.keras import models
 
 
 class ModelHeadComponent(object):

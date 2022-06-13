@@ -25,10 +25,10 @@ from learning_parameter_allocation.pathnet import pathnet_lib as pn
 from learning_parameter_allocation.pathnet.utils import \
     create_identity_input_layer
 
-import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
-from tensorflow.compat.v1.keras import layers
-from tensorflow.compat.v1.keras import models
+from tensorflow.keras import layers
+from tensorflow.keras import models
 
 
 def get_keras_layers_for_mnist_experiment(num_components):

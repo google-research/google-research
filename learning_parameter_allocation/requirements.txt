@@ -1,4 +1,4 @@
-absl-py==0.8.0
+absl-py==0.9.0
 numpy==1.17.2
 tensorflow==1.15.0rc1
 tensorflow-datasets==1.2.0
