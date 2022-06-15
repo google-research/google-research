@@ -1206,9 +1206,10 @@ function mqmShow() {
         }
       }
       if (i == 6 && parts[9].timestamp) {
-        /* There is a timestamp */
+        /* There is a timestamp, but it might have been stringified */
+        const timestamp = parseInt(parts[9].timestamp, 10);
         val += '<br><span class="mqm-timestamp">' +
-            (new Date(parts[9].timestamp)).toLocaleString() + '</span>';
+            (new Date(timestamp)).toLocaleString() + '</span>';
       }
       if (i == 7 && parts[9].note) {
         /* There is a note */
