@@ -49,7 +49,7 @@ class BCBuilder(builders.ActorLearnerBuilder):
       random_key,
       networks,
       dataset,
-      logger,
+      logger_fn,
       replay_client = None,
       counter = None,
       checkpoint = False,
@@ -70,7 +70,7 @@ class BCBuilder(builders.ActorLearnerBuilder):
         use_img_encoder=self._config.use_img_encoder,
         img_encoder_params_ckpt_path=self._config.img_encoder_params_ckpt_path,
         counter=counter,
-        logger=logger,
+        logger=logger_fn('learner'),
         num_sgd_steps_per_step=self._config.num_sgd_steps_per_step,)
 
   def make_actor(

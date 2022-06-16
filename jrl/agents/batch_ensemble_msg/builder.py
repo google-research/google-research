@@ -15,8 +15,7 @@
 
 """Batch Ensemble MSG Builder."""
 
-import dataclasses
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 import acme
 from acme import adders
 from acme import core
@@ -27,7 +26,6 @@ from acme.jax import networks as networks_lib
 from acme.jax import variable_utils
 from acme.utils import counting
 from acme.utils import loggers
-import optax
 import reverb
 from jrl.agents.batch_ensemble_msg import config
 from jrl.agents.batch_ensemble_msg import learning
@@ -51,12 +49,12 @@ class BatchEnsembleMSGBuilder(builders.ActorLearnerBuilder):
       random_key,
       networks,
       dataset,
-      logger,
+      logger_fn,
       replay_client = None,
       counter = None,
       checkpoint = False,
   ):
-    del dataset # Offline RL
+    del dataset  # Offline RL
 
     data_iter = self._make_demonstrations()
 
@@ -69,11 +67,12 @@ class BatchEnsembleMSGBuilder(builders.ActorLearnerBuilder):
         num_bc_iters=self._config.num_bc_iters,
         target_entropy=self._config.target_entropy,
         behavior_regularization_type=self._config.behavior_regularization_type,
-        behavior_regularization_alpha=self._config.behavior_regularization_alpha,
+        behavior_regularization_alpha=self._config
+        .behavior_regularization_alpha,
         policy_lr=self._config.policy_lr,
         q_lr=self._config.q_lr,
         counter=counter,
-        logger=logger,
+        logger=logger_fn('learner'),
         num_sgd_steps_per_step=self._config.num_sgd_steps_per_step,)
 
   def make_actor(

@@ -88,7 +88,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
       random_key,
       networks,
       dataset,
-      logger,
+      logger_fn,
       environment_spec = None,
       replay_client = None,
       counter = None,
@@ -105,7 +105,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
           discrete_rl_learner_key,
           networks,
           dataset,
-          logger=logger,
+          logger_fn=logger_fn,
           environment_spec=environment_spec,
           replay_client=replay_client,
           counter=discrete_rl_counter)
@@ -132,7 +132,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
         demonstration_ratio=self._config.demonstration_ratio,
         min_demo_reward=self._config.min_demo_reward,
         counter=counter,
-        logger=logger)
+        logger=logger_fn('learner'))
 
   def make_replay_tables(
       self, environment_spec,

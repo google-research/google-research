@@ -49,7 +49,7 @@ class SNRBuilder(builders.ActorLearnerBuilder):
       random_key,
       networks,
       dataset,
-      logger,
+      logger_fn,
       replay_client = None,
       counter = None,
       checkpoint = False,
@@ -72,7 +72,7 @@ class SNRBuilder(builders.ActorLearnerBuilder):
         policy_lr=self._config.policy_lr,
         q_lr=self._config.q_lr,
         counter=counter,
-        logger=logger,
+        logger=logger_fn('learner'),
         num_sgd_steps_per_step=self._config.num_sgd_steps_per_step,)
 
   def make_actor(

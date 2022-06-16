@@ -164,7 +164,8 @@ def main(_):
         sub_key,
         networks,
         dataset=iter(()),  # dummy iterator
-        logger=train_logger_factory(),
+        logger_fn=lambda label, steps_key=None, task_instance=None:  # pylint:disable=g-long-lambda
+        train_logger_factory(),
         environment_spec=spec,
         counter=learner_counter)
     variable_source = learner
