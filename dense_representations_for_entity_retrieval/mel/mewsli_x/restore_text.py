@@ -22,7 +22,6 @@ The tool assumes you have already extracted and parsed the article texts from
 public WikiNews dumps using the other scripts in this directory.
 """
 
-import functools
 import pathlib
 import typing
 from typing import Dict, List, Sequence
@@ -59,7 +58,6 @@ OUTPUT = flags.DEFINE_string(
     required=True)
 
 
-@functools.cache
 def _load_text(
     input_path  # pylint: disable=g-bare-generic
 ):

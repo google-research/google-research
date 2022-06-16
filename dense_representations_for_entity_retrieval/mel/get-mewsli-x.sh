@@ -49,7 +49,9 @@ if [[ $# -eq 1 && "$1" == "no_new_virtualenv" ]]; then
 else
   echo 'Installing dependencies into new virtual environment.'
   virtualenv -p python3 ./env
+  set +u
   source ./env/bin/activate
+  set -u
 fi
 pip install -r wikinews_extractor/requirements.txt
 
