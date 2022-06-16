@@ -15,9 +15,10 @@
 
 """Tests for distributed_shampoo."""
 
+import functools
+
 from absl.testing import absltest
 from absl.testing import parameterized
-
 import chex
 import jax
 import jax.numpy as jnp
