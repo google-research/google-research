@@ -17,6 +17,9 @@ dataset split.
 
 Use `./run.sh` test script to ensure that the setup is correct.
 
+## Multi-task NAMs
+The code for multi task NAMs can be found at [https://github.com/lemeln/nam](https://github.com/lemeln/nam).
+
 ## Dependencies
 
 The code was tested under Ubuntu 16 and uses these packages:
