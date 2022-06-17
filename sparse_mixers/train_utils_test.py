@@ -23,11 +23,11 @@ from typing import Callable, Tuple  # pylint: disable=g-import-not-at-top
 
 from absl.testing import absltest
 from flax import jax_utils
-from flax import optim
 from flax.training import common_utils
 import jax
 from jax import numpy as jnp
 import ml_collections
+import optax
 
 from sparse_mixers import core_utils
 from sparse_mixers import models
@@ -43,6 +43,7 @@ Params = train_utils.Params
 PretrainingStats = models.PretrainingStats
 PRNGKey = train_utils.PRNGKey
 Stats = train_utils.Stats
+FlaxTrainState = train_utils.FlaxTrainState
 
 
 def frozen_config(
@@ -80,8 +81,10 @@ def dummy_loss_and_metrics(
       batch_loss=dummy_loss, num_labels=2, correct_predictions=1)
 
 
-def create_optimizer(key, config):
-  """Creates optimizer for models.EncoderModel."""
+def create_flax_train_state(key,
+                            config,
+                            num_steps):
+  """Creates train state for models.EncoderModel."""
   model = models.EncoderModel(config=config)
 
   init_batch = {
@@ -100,8 +103,8 @@ def create_optimizer(key, config):
       }, **init_batch)
   params = initial_variables["params"]
 
-  optimizer_def = optim.Adam(learning_rate=1e-4)
-  return optimizer_def.create(params)
+  tx = optax.adamw(learning_rate=simple_lr_fn(num_steps=num_steps))
+  return FlaxTrainState.create(apply_fn=model.apply, params=params, tx=tx)
 
 
 def simple_lr_fn(num_steps):
@@ -184,8 +187,7 @@ class TrainUtilsTest(absltest.TestCase):
         masked_lm_total=jnp.array([1, 3]),
         next_sentence_correct=jnp.array([0, 1]),
         num_next_sentence_labels=jnp.array([1, 1]),
-        unclipped_grad_l2_sum=jnp.array([100, 100]),
-        clipped_grad_l2_sum=jnp.array([10, 10]),
+        grad_l2_sum=jnp.array([100, 100]),
         expert_metrics=DiversityMetrics(
             auxiliary_loss=jnp.array([0.1, 0.9]),
             router_z_loss=jnp.array([0.1, 0.3]),
@@ -200,8 +202,7 @@ class TrainUtilsTest(absltest.TestCase):
             "masked_lm_loss": 0.25,
             "next_sentence_accuracy": 0.5,
             "next_sentence_loss": 0.2,
-            "unclipped_grad_l2_norm": 14.142136,
-            "clipped_grad_l2_norm": 4.472136,
+            "grad_l2_norm": 14.142136,
             "auxiliary_loss": 0.5,
             "router_z_loss": 0.2,
             "expert_usage": 0.75,
@@ -287,21 +288,18 @@ class TrainUtilsTest(absltest.TestCase):
 
   def test_replicated_train_step(self):
     num_steps = 2
-    learning_rate_fn = simple_lr_fn(num_steps)
 
     rng = jax.random.PRNGKey(0)
     rngs = jax.random.split(rng, jax.local_device_count())
 
     config = frozen_config()
-    optimizer = create_optimizer(rng, config)
-    p_optimizer = jax_utils.replicate(optimizer)
+    train_state = create_flax_train_state(rng, config, num_steps)
+    p_train_state = jax_utils.replicate(train_state)
 
     p_train_step = jax.pmap(
         functools.partial(
             train_utils.pmap_train_step,
             loss_and_metrics_fn=dummy_loss_and_metrics,
-            learning_rate_fn=learning_rate_fn,
-            clipped_grad_norm=1.0,
             axis_name="batch"),
         axis_name="batch")
 
@@ -309,20 +307,15 @@ class TrainUtilsTest(absltest.TestCase):
     batch = common_utils.shard(batch)
 
     expected_metrics = ClassificationStats(
-        batch_loss=0.1,
-        num_labels=2,
-        correct_predictions=1,
-        unclipped_grad_l2_sum=0.,
-        clipped_grad_l2_sum=0.)
+        batch_loss=0.1, num_labels=2, correct_predictions=1, grad_l2_sum=0.)
 
     for _ in range(num_steps):
-      p_optimizer, metrics, rngs = p_train_step(
-          optimizer=p_optimizer, batch=batch, rng=rngs)
+      p_train_state, metrics, rngs = p_train_step(
+          train_state=p_train_state, batch=batch, rng=rngs)
       self.assertEqual(metrics, expected_metrics)
 
   def test_sharded_train_step(self):
     num_steps = 2
-    learning_rate_fn = simple_lr_fn(num_steps)
 
     rng = jax.random.PRNGKey(0)
     rngs = jax.random.split(rng, jax.device_count())
@@ -330,14 +323,13 @@ class TrainUtilsTest(absltest.TestCase):
     config = frozen_config(sharded_params=True)
     sharded_match_fn = core_utils.match_fn(r".*expert.*")
 
-    optimizer = create_optimizer(rng, config)
-    p_optimizer = jax_utils.replicate(optimizer)
+    train_state = create_flax_train_state(rng, config, num_steps)
+    p_train_state = jax_utils.replicate(train_state)
 
     p_train_step = jax.pmap(
         functools.partial(
             train_utils.pmap_train_step,
             loss_and_metrics_fn=dummy_loss_and_metrics,
-            learning_rate_fn=learning_rate_fn,
             axis_name="batch",
             sharded_match_fn=sharded_match_fn),
         axis_name="batch")
@@ -346,15 +338,11 @@ class TrainUtilsTest(absltest.TestCase):
     batch = common_utils.shard(batch)
 
     expected_metrics = ClassificationStats(
-        batch_loss=0.1,
-        num_labels=2,
-        correct_predictions=1,
-        unclipped_grad_l2_sum=0.,
-        clipped_grad_l2_sum=0.)
+        batch_loss=0.1, num_labels=2, correct_predictions=1, grad_l2_sum=0.)
 
     for _ in range(num_steps):
-      p_optimizer, metrics, rngs = p_train_step(
-          optimizer=p_optimizer, batch=batch, rng=rngs)
+      p_train_state, metrics, rngs = p_train_step(
+          train_state=p_train_state, batch=batch, rng=rngs)
       self.assertEqual(metrics, expected_metrics)
 
   def test_accumulate_gradient(self):
@@ -362,7 +350,7 @@ class TrainUtilsTest(absltest.TestCase):
     config = frozen_config()
 
     opt_rng, batch_rng, loss_rng = jax.random.split(rng, num=3)
-    optimizer = create_optimizer(opt_rng, config)
+    train_state = create_flax_train_state(opt_rng, config, num_steps=1)
     batch = dummy_batch(batch_rng, config.train_batch_size,
                         config.max_seq_length)
     loss_fn = functools.partial(dummy_loss_and_metrics, rng=loss_rng)
@@ -370,10 +358,10 @@ class TrainUtilsTest(absltest.TestCase):
     # Accumulated gradient and metrics over mini-batches should match results
     # over single (large) batch.
     expected_grad, expected_metrics = jax.grad(
-        loss_fn, has_aux=True)(optimizer.target, batch)
+        loss_fn, has_aux=True)(train_state.params, batch)
 
     actual_grad, actual_metrics = train_utils._accumulate_gradient(
-        optimizer.target, batch, loss_fn, accum_steps=2)
+        train_state.params, batch, loss_fn, accum_steps=2)
 
     self.assertEqual(
         jax.tree_map(jnp.shape, actual_grad),

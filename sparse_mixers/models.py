@@ -76,9 +76,7 @@ class PretrainingStats:
       current batch.
     num_next_sentence_labels: Number of next sentence prediction labels for
       current batch.
-    unclipped_grad_l2_sum: Unclipped L2-norm of gradient. Typically populated by
-      the trainer.
-    clipped_grad_l2_sum: As above, but records the gradient after any clipping.
+    grad_l2_sum: L2-norm of gradient. Typically populated by the trainer.
     expert_metrics: Metrics for analyzing diversity among experts in mixture of
       experts architectures. Typically populated by the trainer.
   """
@@ -94,8 +92,7 @@ class PretrainingStats:
 
   # The following attributes are typically populated by the trainer as opposed
   # to the model.
-  unclipped_grad_l2_sum: Optional[float] = None
-  clipped_grad_l2_sum: Optional[float] = None
+  grad_l2_sum: Optional[float] = None
   expert_metrics: Optional[DiversityMetrics] = None
 
 
@@ -109,9 +106,8 @@ class ClassificationStats:
       will also be less than or equal to num_labels.
     correct_predictions: Number of correct predictions for current batch. This
       field is typically only populated for classification tasks.
-    unclipped_grad_l2_sum: Unclipped L2-norm of gradient. Typically populated by
-      the trainer.
-    clipped_grad_l2_sum: As above, but records the gradient after any clipping.
+    grad_l2_sum: L2-norm of gradient. Typically populated by the
+      trainer.
     expert_metrics: Metrics for analyzing diversity among experts in mixture of
       experts architectures. Typically populated by the trainer.
   """
@@ -121,8 +117,7 @@ class ClassificationStats:
 
   # The following attributes are typically populated by the trainer as opposed
   # to the model.
-  unclipped_grad_l2_sum: Optional[float] = None
-  clipped_grad_l2_sum: Optional[float] = None
+  grad_l2_sum: Optional[float] = None
   expert_metrics: Optional[DiversityMetrics] = None
 
 
@@ -480,7 +475,7 @@ class SequenceClassificationModel(nn.Module):
     Returns:
       * If labels supplied (training mode): Model loss and metrics.
       * If no labels supplied (prediction / evaluation mode): Logits with shape
-        <float>[BATCH_SIZE, n_classes],
+        <float>[BATCH_SIZE, n_classes].
     """
     encoder_output = EncoderModel(
         self.config, name="encoder")(

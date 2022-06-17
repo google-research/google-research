@@ -22,7 +22,6 @@ from typing import Callable, Dict, Iterable, Optional, Tuple, Union
 
 from absl import logging
 from flax import jax_utils
-from flax import optim
 from flax.metrics import tensorboard
 from flax.training import common_utils
 import jax
@@ -30,6 +29,7 @@ from jax import random
 import jax.numpy as jnp
 import ml_collections
 import numpy as np
+import optax
 
 from sparse_mixers import checkpoints
 from sparse_mixers import core_utils
@@ -41,6 +41,7 @@ import sentencepiece as spm
 
 # Type Stubs
 Batch = train_utils.Batch
+FlaxTrainState = train_utils.FlaxTrainState
 Loss = train_utils.Loss
 Params = train_utils.Params
 PRNGKey = train_utils.PRNGKey
@@ -86,35 +87,13 @@ def _init_params(model, key,
   return initial_variables["params"]
 
 
-def _create_adam_optimizer(learning_rate,
-                           params):
-  """Creates Adam optimizer.
-
-  Args:
-    learning_rate: Initial learning rate.
-    params: Model state (parameters).
-
-  Returns:
-    Adam optimizer.
-  """
-  optimizer_def = optim.Adam(
-      learning_rate=learning_rate,
-      beta1=0.9,
-      beta2=0.999,
-      eps=1e-6,
-      weight_decay=0.01)
-  # jit optimizer creation to ensure arrays are created on same device as input
-  # (i.e. CPU).
-  return jax.jit(optimizer_def.create)(params)
-
-
 def _replicate_and_shard_target(target,
                                 sharded_match_fn,
                                 not_sharded_match_fn):
   """Replicates and shards parameters and state accordingly.
 
   Args:
-    target: Optimizer or parameters to replicate and shard.
+    target: Train state or parameters to replicate and shard.
     sharded_match_fn: Filter function for identifying sharded (mixture of
       expert) parameters.
     not_sharded_match_fn: Filter function for identifying replicated parameters.
@@ -130,17 +109,17 @@ def _replicate_and_shard_target(target,
   return target
 
 
-def _restore_optimizer_from_checkpoint(
-    workdir, optimizer_cpu,
+def _restore_state_from_checkpoint(
+    workdir, state_cpu,
     sharded_match_fn,
     not_sharded_match_fn,
     config):
-  """Attempts to restore optimizer from latest checkpoint or config.
+  """Attempts to restore train state from latest checkpoint or config.
 
   Args:
     workdir: Working directory for model training. We first attempt to resume
       training from this directory.
-    optimizer_cpu: CPU-initialized optimizer, containing shape initialized
+    state_cpu: CPU-initialized train state, containing shape initialized
       parameters.
     sharded_match_fn: Filter function for identifying sharded (mixture of
       expert) parameters.
@@ -148,17 +127,16 @@ def _restore_optimizer_from_checkpoint(
     config: Model and training configuration.
 
   Returns:
-    - Restored and replicated optimizer.
+    - Restored and replicated train state.
     - Start step based on restored model.
   """
   # If current job restarts, attempt to continue from most recent checkpoint.
-  optimizer = checkpoints.restore_checkpoint(workdir, optimizer_cpu,
-                                             sharded_match_fn)
+  state = checkpoints.restore_checkpoint(workdir, state_cpu, sharded_match_fn)
 
-  if optimizer:
-    start_step = int(optimizer.state.step)
-    optimizer = _replicate_and_shard_target(optimizer, sharded_match_fn,
-                                            not_sharded_match_fn)
+  if state:
+    start_step = int(state.step)
+    state = _replicate_and_shard_target(state, sharded_match_fn,
+                                        not_sharded_match_fn)
   else:
     start_step = 0
 
@@ -170,14 +148,14 @@ def _restore_optimizer_from_checkpoint(
           sharded_match_fn=sharded_match_fn)
       ckpt_state = _replicate_and_shard_target(ckpt_state, sharded_match_fn,
                                                not_sharded_match_fn)
-      optimizer = jax_utils.replicate(optimizer_cpu)
-      optimizer = optimizer.restore_state(ckpt_state)
+      state = jax_utils.replicate(state_cpu)
+      state = state.restore_state(ckpt_state)
     else:
       # Failing the above attempts, we replicate all parameters (including any
       # experts) equally across all devices.
-      optimizer = jax_utils.replicate(optimizer_cpu)
+      state = jax_utils.replicate(state_cpu)
 
-  return optimizer, start_step
+  return state, start_step
 
 
 def _init_train_and_eval_ds(
@@ -337,21 +315,6 @@ def train_and_evaluate(config, workdir,
   rng, init_rng = random.split(rng)
   params = _init_params(model, init_rng, config)
 
-  optimizer_cpu = _create_adam_optimizer(config.learning_rate, params)
-
-  # We access model state only from optimizer via optimizer.target.
-  del params
-
-  if config.num_experts > 1:
-    sharded_match_fn = core_utils.match_fn(r".*feed_forward_expert.*")
-    not_sharded_match_fn = lambda name: not sharded_match_fn(name)
-  else:
-    sharded_match_fn = None
-    not_sharded_match_fn = lambda name: True
-
-  optimizer, start_step = _restore_optimizer_from_checkpoint(
-      workdir, optimizer_cpu, sharded_match_fn, not_sharded_match_fn, config)
-
   learning_rate_fn = train_utils.create_learning_rate_scheduler(
       factors="constant * linear_warmup * linear_decay",
       base_learning_rate=config.learning_rate,
@@ -359,6 +322,31 @@ def train_and_evaluate(config, workdir,
       decay_steps=config.num_train_steps - config.num_warmup_steps,
   )
 
+  tx = optax.adamw(
+      learning_rate_fn, b1=0.9, b2=0.999, eps=1e-6, weight_decay=0.01)
+  if config.clipped_grad_norm:
+    tx = optax.chain(optax.clip_by_global_norm(config.clipped_grad_norm), tx)
+
+  # jit state creation to ensure arrays are created on same device as input
+  # (i.e. CPU).
+  state_cpu = jax.jit(
+      functools.partial(
+          FlaxTrainState.create, apply_fn=model.apply, params=params, tx=tx))()
+
+  # We access model params only via state.params
+  del params
+
+  if config.num_experts > 1:
+    sharded_match_fn = core_utils.match_fn(r".*expert.*")
+    not_sharded_match_fn = lambda name: not sharded_match_fn(name)
+  else:
+    sharded_match_fn = None
+    not_sharded_match_fn = lambda name: True
+
+  state, start_step = _restore_state_from_checkpoint(workdir, state_cpu,
+                                                     sharded_match_fn,
+                                                     not_sharded_match_fn,
+                                                     config)
   train_ds, eval_ds = _init_train_and_eval_ds(tokenizer, config)
   train_iter = iter(train_ds)
 
@@ -375,10 +363,8 @@ def train_and_evaluate(config, workdir,
   train_step = functools.partial(
       train_utils.pmap_train_step,
       loss_and_metrics_fn=loss_and_metrics_fn,
-      learning_rate_fn=learning_rate_fn,
       axis_name="batch",
       sharded_match_fn=sharded_match_fn,
-      clipped_grad_norm=config.clipped_grad_norm,
       gradient_accum_steps=config.gradient_accum_steps)
   p_train_step = jax.pmap(train_step, axis_name="batch")
 
@@ -396,10 +382,9 @@ def train_and_evaluate(config, workdir,
       train_batch = common_utils.shard(train_batch)
 
       tick = time.time()
-      optimizer, train_step_stats, rngs = p_train_step(
-          optimizer, train_batch, rng=rngs)
+      state, train_step_stats, rngs = p_train_step(state, train_batch, rng=rngs)
       if config.measure_step_speed:
-        jax.tree_map(lambda opt: opt.block_until_ready(), optimizer)
+        jax.tree_map(lambda opt: opt.block_until_ready(), state)
         tock = time.time()
         seconds += tock - tick
 
@@ -410,16 +395,16 @@ def train_and_evaluate(config, workdir,
       # We allow all hosts to potentially save checkpoints because some model
       # parameters are sharded across devices. Parameters replicated across
       # devices (i.e. not sharded) will only be checkpointed by host 0.
-      unreplicated_optimizer = jax.tree_map(
+      unreplicated_state = jax.tree_map(
           np.array,
-          core_utils.tree_unreplicate_by_name(optimizer, not_sharded_match_fn))
+          core_utils.tree_unreplicate_by_name(state, not_sharded_match_fn))
       checkpoints.save_checkpoint(
           workdir,
-          unreplicated_optimizer,
+          unreplicated_state,
           sharded_match_fn,
           step,
           keep=config.checkpoints_to_keep)
-      del unreplicated_optimizer  # Only used for checkpointing.
+      del unreplicated_state  # Only used for checkpointing.
 
     # Periodic metric handling.
     if step % config.eval_frequency != 0 and step > 0:
@@ -445,7 +430,7 @@ def train_and_evaluate(config, workdir,
     eval_stats = []
     for _, eval_batch in zip(range(config.max_num_eval_steps), eval_ds):
       eval_batch = common_utils.shard(eval_batch)
-      eval_stats.append(p_eval_step(optimizer.target, eval_batch))
+      eval_stats.append(p_eval_step(state.params, eval_batch))
     eval_metrics = train_utils.collect_metrics(eval_stats)
     eval_summary = train_utils.compute_pretraining_metrics(
         eval_metrics, record_grad_norm=False)

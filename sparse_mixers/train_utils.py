@@ -19,8 +19,9 @@ import functools
 from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple, Union
 
 import flax
-from flax import optim
+from flax import serialization
 from flax import traverse_util
+from flax.training import train_state as train_state_lib
 import jax
 from jax import random
 import jax.experimental.optimizers
@@ -40,6 +41,51 @@ Loss = float
 Params = flax.core.FrozenDict
 PRNGKey = Any
 Stats = Union[PretrainingStats, ClassificationStats]
+
+
+class FlaxTrainState(train_state_lib.TrainState):
+  """Flax train state subclass with support for restoring state."""
+
+  def restore_state(self, state_dict):
+    """Restore parameter and optimizer state from state dictionary.
+
+    Adapted from
+    https://github.com/google-research/t5x/blob/main/t5x/optimizers.py. Includes
+    support to handle `optax.EmptyState`.
+
+    Args:
+      state_dict: Contains desired new parameters and optimizer state
+
+    Returns:
+      Updated train state.
+    """
+    params = serialization.from_state_dict(self.params, state_dict["params"])
+
+    # Get all the possible keys in the reference optimizer state.
+    flat_ref_opt_state_dict = traverse_util.flatten_dict(
+        serialization.to_state_dict(self.opt_state),
+        keep_empty_nodes=True,
+        sep="/")
+
+    flat_src_opt_state_dict = dict(
+        traverse_util.flatten_dict(state_dict["opt_state"], sep="/"))
+    # Adding the empty paths back to flat_src_opt_state_dict.
+    for k, v in flat_ref_opt_state_dict.items():
+      if k in flat_src_opt_state_dict:
+        continue
+      # The key is not in the input state dict, presumably because it
+      # corresponds to an empty dict.
+      if v != traverse_util.empty_node:
+        raise ValueError(
+            f"Failed to restore optimizer state, path {k} is not present "
+            "in the input optimizer state dict.")
+      flat_src_opt_state_dict[k] = v
+
+    # Restore state from the enhanced state dict.
+    opt_state = serialization.from_state_dict(
+        self.opt_state,
+        traverse_util.unflatten_dict(flat_src_opt_state_dict, sep="/"))
+    return self.replace(params=params, opt_state=opt_state)
 
 
 def validate_config(config):
@@ -132,11 +178,7 @@ def compute_pretraining_metrics(stats,
   metrics["loss"] = metrics["masked_lm_loss"] + metrics["next_sentence_loss"]
 
   if record_grad_norm:
-    metrics.update({
-        "clipped_grad_l2_norm": jnp.sqrt(jnp.sum(stats.clipped_grad_l2_sum)),
-        "unclipped_grad_l2_norm": jnp.sqrt(
-            jnp.sum(stats.unclipped_grad_l2_sum))
-    })
+    metrics.update({"grad_l2_norm": jnp.sqrt(jnp.sum(stats.grad_l2_sum))})
 
   if stats.expert_metrics:
     # Mixture of experts specific metrics are averaged across experts/devices.
@@ -283,14 +325,12 @@ def create_learning_rate_scheduler(
 
 
 def pmap_train_step(
-    optimizer,
+    train_state,
     batch,
     rng,
     loss_and_metrics_fn,
-    learning_rate_fn,
     axis_name = "batch",
     sharded_match_fn = None,
-    clipped_grad_norm = None,
     gradient_accum_steps = None
 ):
   """Performs a single training step.
@@ -299,17 +339,15 @@ def pmap_train_step(
   using jax.pmap.
 
   Args:
-    optimizer: Underlying model and model state.
+    train_state: Training state holding model params, state and gradient.
     batch: Current batch of training examples.
     rng: Random number generator key.
     loss_and_metrics_fn: Given the current model parameters, a batch of
       examples, and a PRNGKey, this function returns the model loss and metrics.
-    learning_rate_fn: Function mapping training step to learning rate.
     axis_name: Axis name used by JAX for SPMD. This should match the axis name
       of jax.pmap.
     sharded_match_fn: Filter function for distinguishing sharded (mixture of
       expert) parameters from replicated parameters.
-    clipped_grad_norm: If set, clip the gradient norm to this value.
     gradient_accum_steps: Number of mini-steps over which to split batch and
       accumulate the gradient. If None or 1, no gradient accumulation is used.
 
@@ -323,19 +361,18 @@ def pmap_train_step(
   rng, new_rng = random.split(rng)
 
   loss_fn = functools.partial(loss_and_metrics_fn, rng=rng)
-  grads, metrics = _accumulate_gradient(optimizer.target, batch, loss_fn,
+  grads, metrics = _accumulate_gradient(train_state.params, batch, loss_fn,
                                         gradient_accum_steps)
   # Average gradients among replicas of each parameter.
   grads = _pmean_with_sharded_params(grads, sharded_match_fn)
-  grads, metrics = _measure_and_maybe_clip_grad(grads, metrics,
-                                                clipped_grad_norm)
 
-  step = optimizer.state.step
+  # Record L2 norm of gradients.
+  metrics = metrics.replace(
+      grad_l2_sum=sum([jnp.sum(x**2) for x in jax.tree_leaves(grads)]))
 
-  new_optimizer = optimizer.apply_gradient(
-      grads, learning_rate=learning_rate_fn(step))
+  new_train_state = train_state.apply_gradients(grads=grads)
 
-  return new_optimizer, metrics, new_rng
+  return new_train_state, metrics, new_rng
 
 
 def _accumulate_gradient(
@@ -391,25 +428,3 @@ def _pmean_with_sharded_params(grads,
            grad), grad_mean in zip(names_and_grads, non_sharded_grads_mean)
   ])
   return grads_mean
-
-
-def _measure_and_maybe_clip_grad(
-    grads,
-    metrics,
-    clipped_grad_norm = None):
-  """Records and optionally clips gradient."""
-  grad_l2_sum = sum([jnp.sum(x**2) for x in jax.tree_leaves(grads)])
-
-  if clipped_grad_norm is not None:
-    # Clip gradients after pmean aggregation
-    grads = jax.experimental.optimizers.clip_grads(grads, clipped_grad_norm)
-    clipped_grad_l2_sum = sum([jnp.sum(x**2) for x in jax.tree_leaves(grads)])
-  else:
-    # Clipped grads same as unclipped grads
-    clipped_grad_l2_sum = grad_l2_sum
-
-  metrics = metrics.replace(
-      unclipped_grad_l2_sum=grad_l2_sum,
-      clipped_grad_l2_sum=clipped_grad_l2_sum)
-
-  return grads, metrics
