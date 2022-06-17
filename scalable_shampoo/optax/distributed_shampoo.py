@@ -610,12 +610,22 @@ def gram_weighted_update(
 class Preconditioner:
   """Compute statistics/shape from gradients for preconditioning."""
 
-  def __init__(self, param, block_size, best_effort_shape_interpretation):
+  def __init__(self, param, block_size,
+               merge_small_dims_block_size,
+               best_effort_shape_interpretation):
+    """Initializes the preconditioner.
+
+    Args:
+      param: parameter to precondition.
+      block_size: Block size used to split param.
+      merge_small_dims_block_size: Block size for merging dims.
+      best_effort_shape_interpretation: Whether to collapse/merge dims together.
+    """
     self._original_shape = param.shape
     self._transformed_shape = param.shape
     if best_effort_shape_interpretation:
-      self._transformed_shape = merge_small_dims(self._original_shape,
-                                                 block_size)
+      self._transformed_shape = merge_small_dims(
+          self._original_shape, merge_small_dims_block_size)
     reshaped_param = jnp.reshape(param, self._transformed_shape)
     self._partitioner = BlockPartitioner(reshaped_param, block_size)
 
@@ -806,6 +816,7 @@ def distributed_shampoo(
     precision=lax.Precision.HIGHEST,
     tensordot_precision = None,
     relative_matrix_epsilon=True,
+    merge_small_dims_block_size=4096,
 ):
   """Distributed Shampoo optimizer.
 
@@ -877,6 +888,8 @@ def distributed_shampoo(
       when computing statistics (e.g., G Gᵀ). Same options as `precision` above.
     relative_matrix_epsilon: Whether to use relative epsilon to the max eigen
       value when computing inverse-pth root.
+    merge_small_dims_block_size: Used as the maximum block size
+      to merge the shapes.
 
   Returns:
     a GradientTransformation.
@@ -954,8 +967,9 @@ def distributed_shampoo(
     # Find max size to pad to.
     max_size = 0
     for param in params_flat:
-      preconditioner = Preconditioner(param, block_size,
-                                      best_effort_shape_interpretation)
+      preconditioner = Preconditioner(
+          param, block_size, merge_small_dims_block_size,
+          best_effort_shape_interpretation)
       if not _skip_preconditioning(param):
         shapes = preconditioner.shapes_for_preconditioners()
         sizes = [s[0] for s in shapes]
@@ -966,8 +980,9 @@ def distributed_shampoo(
     local_stats_flat = []
     exponents = []
     for param in params_flat:
-      preconditioner = Preconditioner(param, block_size,
-                                      best_effort_shape_interpretation)
+      preconditioner = Preconditioner(
+          param, block_size, merge_small_dims_block_size,
+          best_effort_shape_interpretation)
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
@@ -1029,8 +1044,9 @@ def distributed_shampoo(
     max_size = 0
     for param in params:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(param_clone, block_size,
-                                      best_effort_shape_interpretation)
+      preconditioner = Preconditioner(
+          param_clone, block_size, merge_small_dims_block_size,
+          best_effort_shape_interpretation)
       if not _skip_preconditioning(param):
         shapes = preconditioner.shapes_for_preconditioners()
         sizes = [s[0] for s in shapes]
@@ -1067,8 +1083,9 @@ def distributed_shampoo(
     num_statistics = 0
     for param, param_pspec in zip(params_flat, param_pspec_flat):
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(param_clone, block_size,
-                                      best_effort_shape_interpretation)
+      preconditioner = Preconditioner(
+          param_clone, block_size, merge_small_dims_block_size,
+          best_effort_shape_interpretation)
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
@@ -1121,8 +1138,9 @@ def distributed_shampoo(
     num_statistics = 0
     for param in params_flat:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(param_clone, block_size,
-                                      best_effort_shape_interpretation)
+      preconditioner = Preconditioner(
+          param_clone, block_size, merge_small_dims_block_size,
+          best_effort_shape_interpretation)
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
@@ -1274,8 +1292,9 @@ def distributed_shampoo(
     """Initialise the optimiser's state."""
 
     def _init(param):
-      preconditioner = Preconditioner(param, block_size,
-                                      best_effort_shape_interpretation)
+      preconditioner = Preconditioner(
+          param, block_size, merge_small_dims_block_size,
+          best_effort_shape_interpretation)
       statistics = []
       preconditioners = []
       if not _skip_preconditioning(param):
@@ -1308,8 +1327,9 @@ def distributed_shampoo(
 
   def _compute_stats(grad, state, param, step):
     """Compute per-parameter statistics."""
-    preconditioner = Preconditioner(param, block_size,
-                                    best_effort_shape_interpretation)
+    preconditioner = Preconditioner(
+        param, block_size, merge_small_dims_block_size,
+        best_effort_shape_interpretation)
     new_statistics = [[]] * len(state.statistics)
     w1 = beta2
     w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
@@ -1829,8 +1849,9 @@ def distributed_shampoo(
       num_statistics_per_state.append(num_statistics)
       original_shapes_for_state = []
       if num_statistics > 0:
-        preconditioner = Preconditioner(param, block_size,
-                                        best_effort_shape_interpretation)
+        preconditioner = Preconditioner(
+            param, block_size, merge_small_dims_block_size,
+            best_effort_shape_interpretation)
         for statistic in state.statistics:
           exponents.append(preconditioner.exponent_for_preconditioner(
           ) if exponent_override == 0 else exponent_override)
@@ -1863,8 +1884,9 @@ def distributed_shampoo(
 
   def _transform_grad(grad, state, param, step):
     """Transform per-parameter gradients."""
-    preconditioner = Preconditioner(param, block_size,
-                                    best_effort_shape_interpretation)
+    preconditioner = Preconditioner(
+        param, block_size, merge_small_dims_block_size,
+        best_effort_shape_interpretation)
     sgd_update = grad
     new_diagonal_statistics = state.diagonal_statistics.to_float()
     if (graft_type == GraftingType.ADAGRAD or
