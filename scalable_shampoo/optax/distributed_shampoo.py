@@ -25,6 +25,7 @@
 # Authors: Rohan Anil (rohananil at google dot com)
 #          Vineet Gupta (vineet at google dot com)
 #          James Lottes (jlottes at google dot com)
+#          Anudhyan Boral (anudhyan at google dot com)
 #
 """Distributed Shampoo Implementation."""
 
@@ -33,6 +34,7 @@ import functools
 import itertools
 from typing import Any, Callable, List, NamedTuple, Optional, Tuple
 
+from absl import logging
 import chex
 from flax import struct
 import jax
@@ -695,7 +697,9 @@ class Preconditioner:
     return jnp.reshape(merged_grad, self._original_shape)
 
 
-def _convert_to_parameter_stats(global_stats, local_stat):
+def _convert_to_parameter_stats(global_stats,
+                                local_stat,
+                                convert_statistics=True):
   """Creates parameter stats from sharded stats."""
   index_start = int(local_stat.index_start)
   index_end = int(len(local_stat.sizes)) + index_start
@@ -706,6 +710,8 @@ def _convert_to_parameter_stats(global_stats, local_stat):
   for i, size in enumerate(local_stat.sizes):
     new_statistics.append(statistics[i][:size, :size])
     new_preconditioners.append(preconditioners[i][:size, :size])
+  if not convert_statistics:
+    new_statistics = None
   return ParameterStats(local_stat.diagonal_statistics, new_statistics,
                         new_preconditioners, local_stat.diagonal_momentum,
                         local_stat.momentum, local_stat.training_metrics)
@@ -1166,6 +1172,7 @@ def distributed_shampoo(
         count=[[], jnp.float32],
         stats=ShardedShampooStats(global_stats, local_stats))
 
+
   def sharded_update_fn(grads, state, params):
     """Transform the input gradient and update all statistics in sharded mode.
 
@@ -1297,6 +1304,7 @@ def distributed_shampoo(
   def _skip_preconditioning(param):
     return len(param.shape) < 1 or any(
         [s > skip_preconditioning_dim_size_gt for s in param.shape])
+
 
   def _compute_stats(grad, state, param, step):
     """Compute per-parameter statistics."""
@@ -2001,6 +2009,7 @@ def distributed_shampoo(
           pspec_fn=sharded_init_partition_spec_fn,
           shape_and_dtype_fn=sharded_init_shape_and_dtype_fn)
 
-    return optax.GradientTransformation(_init_fns, sharded_update_fn)
+    opt_update_fn = sharded_update_fn
+    return optax.GradientTransformation(_init_fns, opt_update_fn)
   else:
     return optax.GradientTransformation(init_fn, update_fn)
