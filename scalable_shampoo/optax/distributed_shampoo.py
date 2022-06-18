@@ -1040,6 +1040,7 @@ def distributed_shampoo(
         count=jnp.zeros([], jnp.int32),
         stats=ShardedShampooStats(global_stats, local_stats))
 
+
   def _max_statistics_size_from_params(params):
     max_size = 0
     for param in params:
@@ -2025,13 +2026,7 @@ def distributed_shampoo(
   if shard_optimizer_states:
     # Hijacks the init_fn signature so we can return an OptState with
     # appropriate init_fns.
-    def _init_fns(unused_params):
-      return InitFnState(
-          init_fn=sharded_init_fn,
-          pspec_fn=sharded_init_partition_spec_fn,
-          shape_and_dtype_fn=sharded_init_shape_and_dtype_fn)
-
-    opt_update_fn = sharded_update_fn
+    opt_init_fn = sharded_init_fn
     return optax.GradientTransformation(_init_fns, opt_update_fn)
   else:
     return optax.GradientTransformation(init_fn, update_fn)
