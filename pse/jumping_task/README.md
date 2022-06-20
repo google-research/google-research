@@ -3,9 +3,14 @@ for generalization in reinforcement learning](https://agarwl.github.io/pse/), pu
 
 <img src="https://i.imgur.com/3uY9ZXK.png" width="95%" alt="Jumping Task" >
 
+### Environment
+Please use the jumping-task environment at https://github.com/google-research/jumping-task.
+
+### Testing
 To test whether the code runs correctly, go to the base `google_research` directory
 and run: `bash pse/jumping_task/run.sh`.
 
+### Launch
 To run (from inside the `pse` directory):
 ```
 python -m jumping_task.train --train_dir {TRAIN_DIR} --training_epochs {EPOCHS}
