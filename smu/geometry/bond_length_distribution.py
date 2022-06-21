@@ -42,7 +42,7 @@ import csv
 import itertools
 import math
 import os.path
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 
 from absl import logging
 import numpy as np
@@ -424,7 +424,7 @@ class Empirical(LengthDistribution):
     return self._df['length'].max() + self.bucket_size
 
 
-class Mixture:
+class Mixture(LengthDistribution):
   """Represents a mixture of underlying LengthDistribution.
 
   Each given LengthDistribution is provided with a numeric weight. The weight
@@ -743,7 +743,10 @@ class AllAtomPairLengthDistributions:
           try:
             atom_a_num = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
             atom_b_num = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
-            mix_dist = self._atom_pair_dict[(atom_a_num, atom_b_num)][bond]
+            # We are assuming that there were no other items in _atom_pair_dict
+            # before this function called. If this is violated, the .add below will
+            # cause a run time error.
+            mix_dist = cast(Mixture, self._atom_pair_dict[(atom_a_num, atom_b_num)][bond])
           except KeyError:
             mix_dist = Mixture()
             self.add(atom_a, atom_b, bond, mix_dist)
