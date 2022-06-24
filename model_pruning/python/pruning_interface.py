@@ -428,7 +428,7 @@ class PruningOp(object):
           concat,
           lstmobj.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weight')))
     elif cls._pruning_obj:
-      return lstmobj.compression_op.get_mix_operator(theta, concat)
+      return lstmobj.compression_op.get_mix_operator(theta, concat, lstmobj)
     else:
       raise NotImplementedError()
 
