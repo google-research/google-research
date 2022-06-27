@@ -13,23 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for query_sqlite."""
 
 import os
-import tempfile
 
 from absl.testing import absltest
-from absl.testing import flagsaver
 
 from smu import dataset_pb2
 from smu import query_sqlite
-from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
-from smu.parser import smu_parser_lib
 
 TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
-
 
 # Some shortcuts to write less characters below
 ATOM_C = dataset_pb2.BondTopology.ATOM_C
@@ -55,8 +63,7 @@ class GeometryDataTest(absltest.TestCase):
 
   def is_empirical(self, atom_a, atom_b, bond_type):
     length_dist = self._geometry_data.bond_lengths[(atom_a, atom_b)][bond_type]
-    return isinstance(length_dist,
-                      bond_length_distribution.Empirical)
+    return isinstance(length_dist, bond_length_distribution.Empirical)
 
   def test_empty_bond_lengths(self):
     self.create(None)
@@ -69,7 +76,6 @@ class GeometryDataTest(absltest.TestCase):
     self.create('N=O:1-2')
     self.assertTrue(self.is_empirical(ATOM_C, ATOM_C, BOND_SINGLE))
     self.assertFalse(self.is_empirical(ATOM_N, ATOM_O, BOND_DOUBLE))
-
 
 
 if __name__ == '__main__':

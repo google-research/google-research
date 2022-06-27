@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Writes Small Molecule Universe (SMU) files in custom Uni Basel format.
 
 Used to write SMU entries from a protocol buffer to a SMU .dat file in Basel
@@ -126,8 +139,8 @@ class SmuWriter:
       result += ('# From original_molecule_index, topology, '
                  'bond_topology_id, molecule_id\n')
     result += '{:s}{:5d}     {:s}\n'.format(
-      self._molecule_index_string(molecule), num_atoms,
-      smu_utils_lib.get_original_label(molecule))
+        self._molecule_index_string(molecule), num_atoms,
+        smu_utils_lib.get_original_label(molecule))
     return result
 
   def get_database(self, molecule):
@@ -150,8 +163,7 @@ class SmuWriter:
       val = molecule.which_database_deprecated
     if val == dataset_pb2.STANDARD:
       return 'Database   standard\n'
-    elif (val == dataset_pb2.COMPLETE or
-          val == dataset_pb2.UNSPECIFIED):
+    elif (val == dataset_pb2.COMPLETE or val == dataset_pb2.UNSPECIFIED):
       return 'Database   complete\n'
     raise ValueError('Bad which_database: {}'.format(val))
 
@@ -217,6 +229,7 @@ class SmuWriter:
     Args:
       molecule: dataset_pb2.Molecule
       stage: 'stage1' or 'stage2'
+      bt_idx: bond topology index
 
     Returns:
       A multiline string representation of id lines.
@@ -230,7 +243,8 @@ class SmuWriter:
       result += molecule.bond_topologies[bt_idx].smiles + '\n'
     if self.annotate:
       result += '# From topology\n'
-    result += smu_utils_lib.get_composition(molecule.bond_topologies[bt_idx]) + '\n'
+    result += smu_utils_lib.get_composition(
+        molecule.bond_topologies[bt_idx]) + '\n'
     if self.annotate:
       result += '# From bond_topology_id, molecule_id\n'
     bond_topology_id = molecule.bond_topologies[bt_idx].bond_topology_id
@@ -366,16 +380,15 @@ class SmuWriter:
     result += ''.join(bonds)
     return result
 
-  _DEPRECATED_ENERGY_FIELDS = [
-    [
+  _DEPRECATED_ENERGY_FIELDS = [[
       'E_ini/G_norm', 'initial_geometry_energy_deprecated',
       'initial_geometry_gradient_norm_deprecated'
-    ],
-    [
-      'E_opt/G_norm',
-      'optimized_geometry_energy_deprecated',
-      'optimized_geometry_gradient_norm_deprecated'
-    ]]
+  ],
+                               [
+                                   'E_opt/G_norm',
+                                   'optimized_geometry_energy_deprecated',
+                                   'optimized_geometry_gradient_norm_deprecated'
+                               ]]
 
   def get_gradient_norms(self, molecule, spacer):
     """Returns initial and optimized geometry energies and gradient norms.
@@ -393,10 +406,9 @@ class SmuWriter:
                               ('E_opt/G_norm', molecule.optimized_geometry)]:
         if self.annotate:
           result += '# From energy, gnorm\n'
-        result += '{}{}{:11.6f}{:12.6f}\n'.format(
-          label, spacer,
-          geometry.energy.value,
-          geometry.gnorm.value)
+        result += '{}{}{:11.6f}{:12.6f}\n'.format(label, spacer,
+                                                  geometry.energy.value,
+                                                  geometry.gnorm.value)
     elif molecule.properties.HasField('optimized_geometry_energy_deprecated'):
       for label, field_energy, field_norm in self._DEPRECATED_ENERGY_FIELDS:
         if self.annotate:
@@ -452,22 +464,21 @@ class SmuWriter:
     Returns:
       A string representation of the rotational constants vector.
     """
+    result = ''
     if molecule.optimized_geometry.HasField('rotcon'):
-      annotate = '# From optimized_geometry.rotcon\n'
+      # result += '# From optimized_geometry.rotcon\n'
       vals = molecule.optimized_geometry.rotcon.value
-      pass
     elif molecule.properties.HasField('rotational_constants_deprecated'):
-      annotate = '# From rotational_constants_deprecated\n'
+      # result += '# From rotational_constants_deprecated\n'
       constants = molecule.properties.rotational_constants_deprecated
       vals = (constants.x, constants.y, constants.z)
     else:
       return ''
-    result = ''
     if self.annotate:
       result += '# From rotational_constants_deprecated\n'
     result += (
         'Rotational constants (MHz)  {:-20.3f}{:-20.3f}{:-20.3f}\n'.format(
-          vals[0], vals[1], vals[2]))
+            vals[0], vals[1], vals[2]))
     return result
 
   def get_symmetry_used(self, properties):
@@ -741,7 +752,9 @@ class SmuWriter:
     return result
 
   def get_excitation_energies_and_oscillations(self, properties):
-    """Returns excitation energies and length rep. osc.
+    """Returns excitation energies and length rep.
+
+    osc.
 
     strengths at CC2/TZVP.
 
@@ -880,7 +893,7 @@ class SmuWriter:
     if self.annotate:
       result += '# From dipole_dipole_polarizability_pbe0_aug_pc_1\n'
     result += self.get_rank2(
-      properties.dipole_dipole_polarizability_pbe0_aug_pc_1)
+        properties.dipole_dipole_polarizability_pbe0_aug_pc_1)
     return result
 
   def get_multipole_moments(self, properties):
@@ -899,12 +912,12 @@ class SmuWriter:
       result += 'Dipole moment (au):     PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From dipole_moment_pbe0_aug_pc_1\n'
-      result += self.format_for_tensors('  x',
-                                        properties.dipole_moment_pbe0_aug_pc_1.x)
-      result += self.format_for_tensors('  y',
-                                        properties.dipole_moment_pbe0_aug_pc_1.y)
-      result += self.format_for_tensors('  z',
-                                        properties.dipole_moment_pbe0_aug_pc_1.z)
+      result += self.format_for_tensors(
+          '  x', properties.dipole_moment_pbe0_aug_pc_1.x)
+      result += self.format_for_tensors(
+          '  y', properties.dipole_moment_pbe0_aug_pc_1.y)
+      result += self.format_for_tensors(
+          '  z', properties.dipole_moment_pbe0_aug_pc_1.z)
 
     if properties.HasField('quadrupole_moment_pbe0_aug_pc_1'):
       result += 'Quadrupole moment (au): PBE0/aug-pc-1\n'
@@ -998,7 +1011,8 @@ class SmuWriter:
     contents.append(self.get_ids(molecule, 'stage2', bt_idx))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage2_timings(properties))
-    contents.append(self.get_bonds(molecule.bond_topologies[bt_idx], properties))
+    contents.append(
+        self.get_bonds(molecule.bond_topologies[bt_idx], properties))
     contents.append(self.get_gradient_norms(molecule, spacer='         '))
     contents.append(
         self.get_coordinates(molecule.bond_topologies[bt_idx], molecule))
@@ -1034,23 +1048,22 @@ class Atomic2InputWriter:
     """Returns the expected filename for an atomic input."""
     if bond_topology_idx:
       return '{}.{:06d}.{:03d}.{:02d}.inp'.format(
-        smu_utils_lib.get_composition(
-          molecule.bond_topologies[bond_topology_idx]),
-        molecule.molecule_id // 1000,
-        molecule.molecule_id % 1000,
-        bond_topology_idx)
+          smu_utils_lib.get_composition(
+              molecule.bond_topologies[bond_topology_idx]),
+          molecule.molecule_id // 1000, molecule.molecule_id % 1000,
+          bond_topology_idx)
     else:
       return '{}.{:06d}.{:03d}.inp'.format(
-        smu_utils_lib.get_composition(
-          molecule.bond_topologies[bond_topology_idx]),
-        molecule.molecule_id // 1000,
-        molecule.molecule_id % 1000)
+          smu_utils_lib.get_composition(
+              molecule.bond_topologies[bond_topology_idx]),
+          molecule.molecule_id // 1000, molecule.molecule_id % 1000)
 
   def get_mol_block(self, molecule, bond_topology_idx):
     """Returns the MOL file block with atoms and bonds.
 
     Args:
       molecule: dataset_pb2.Molecule
+      bond_topology_idx: Bond topology index.
 
     Returns:
       list of strings
@@ -1165,17 +1178,17 @@ class Atomic2InputWriter:
         # While we should check all the fields, this is conveinient shortcut.
         not molecule.properties.HasField('single_point_energy_hf_3') or
         not molecule.properties.HasField('single_point_energy_mp2_3')):
-      raise ValueError(f'Molecule {molecule.molecule_id} is lacking required info '
-                       'for generating atomic2 input. Maybe you need to query the complete DB?')
+      raise ValueError(
+          f'Molecule {molecule.molecule_id} is lacking required info '
+          'for generating atomic2 input. Maybe you need to query the complete DB?'
+      )
 
     contents = []
-    contents.append(
-      'SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
+    contents.append('SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
         molecule.molecule_id,
         molecule.bond_topologies[bond_topology_idx].smiles,
         molecule.bond_topologies[bond_topology_idx].bond_topology_id,
-        bond_topology_idx + 1,
-        len(molecule.bond_topologies)))
+        bond_topology_idx + 1, len(molecule.bond_topologies)))
     contents.append(smu_utils_lib.get_original_label(molecule) + '\n')
 
     contents.extend(self.get_mol_block(molecule, bond_topology_idx))

@@ -26,6 +26,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Interface to a SQLite DB file for SMU data.
 
 Provides a simpler interface than SQL to create and access the SMU data in an
@@ -34,6 +48,7 @@ SQLite database.
 The majority of the data is stored as a blob, with just the bond topology id and
 smiles string pulled out as fields.
 """
+
 import datetime
 import os
 import sqlite3
@@ -42,9 +57,9 @@ from absl import logging
 from rdkit import Chem
 
 from smu import dataset_pb2
-from smu.parser import smu_utils_lib
-from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
+from smu.geometry import topology_molecule
+from smu.parser import smu_utils_lib
 import snappy
 
 # The name of this table is a hold over before we did a big rename of
@@ -154,7 +169,7 @@ class SMUSQLite:
       raise ValueError()
 
     insert_molecule = (f'INSERT INTO {_MOLECULE_TABLE_NAME} '
-                        'VALUES (?, ?, ?)')
+                       'VALUES (?, ?, ?)')
     insert_btid = f'INSERT INTO {_BTID_TABLE_NAME} VALUES (?, ?)'
     insert_smiles = (
         f'INSERT OR IGNORE INTO {_SMILES_TABLE_NAME} VALUES (?, ?) ')
@@ -180,10 +195,10 @@ class SMUSQLite:
     for idx, encoded_molecule in enumerate(encoded_molecules, 1):
       molecule = dataset_pb2.Molecule.FromString(encoded_molecule)
       expanded_stoich = (
-        smu_utils_lib.expanded_stoichiometry_from_topology(
-          molecule.bond_topologies[0]))
+          smu_utils_lib.expanded_stoichiometry_from_topology(
+              molecule.bond_topologies[0]))
       pending_molecule_args.append((molecule.molecule_id, expanded_stoich,
-                                     snappy.compress(encoded_molecule)))
+                                    snappy.compress(encoded_molecule)))
       for bond_topology in molecule.bond_topologies:
         pending_btid_args.append(
             (bond_topology.bond_topology_id, molecule.molecule_id))
@@ -212,6 +227,10 @@ class SMUSQLite:
 
     Args:
       smiles_btid_pairs: iterable of pairs of (smiles, btid)
+      batch_size:
+
+    Raises:
+      ReadOnlyError:
     """
     if self._read_only:
       raise ReadOnlyError()
@@ -239,8 +258,8 @@ class SMUSQLite:
   def vacuum(self):
     """Uses SQL VACUUM to clean up db.
 
-    Args:
-      filename to write to
+    Raises:
+      ReadOnlyError:
     """
     if self._read_only:
       raise ReadOnlyError()
@@ -331,16 +350,17 @@ class SMUSQLite:
     cur = self._conn.cursor()
     # DISTINCT is because the same mid can have the same btid multiple times.
     select = (''.join([
-      f'SELECT DISTINCT cid, conformer '
-      f'FROM {_MOLECULE_TABLE_NAME} '
-      f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
-      f'WHERE {_BTID_TABLE_NAME}.btid IN (',
-      ','.join('?' for _ in btids),
-      ')']))
+        f'SELECT DISTINCT cid, conformer '
+        f'FROM {_MOLECULE_TABLE_NAME} '
+        f'INNER JOIN {_BTID_TABLE_NAME} USING(cid) '
+        f'WHERE {_BTID_TABLE_NAME}.btid IN (', ','.join('?' for _ in btids), ')'
+    ]))
     cur.execute(select, btids)
     for result in cur:
-      molecule = dataset_pb2.Molecule().FromString(snappy.uncompress(result[1]))
-      for _, bt in smu_utils_lib.iterate_bond_topologies(molecule, which_topologies):
+      molecule = dataset_pb2.Molecule().FromString(
+          snappy.uncompress(result[1]))
+      for _, bt in smu_utils_lib.iterate_bond_topologies(
+          molecule, which_topologies):
         if bt.bond_topology_id in btids:
           yield molecule
           break
@@ -356,14 +376,16 @@ class SMUSQLite:
     Returns:
       iterable for dataset_pb2.Molecule
     """
-    canon_smiles = [smu_utils_lib.compute_smiles_for_rdkit_molecule(
-        Chem.MolFromSmiles(s, sanitize=False), include_hs=False)
-                    for s in smiles]
+    canon_smiles = [
+        smu_utils_lib.compute_smiles_for_rdkit_molecule(
+            Chem.MolFromSmiles(s, sanitize=False), include_hs=False)
+        for s in smiles
+    ]
     cur = self._conn.cursor()
     select = (''.join([
-      f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles IN (',
-      ','.join('?' for _ in canon_smiles),
-      ')']))
+        f'SELECT btid FROM {_SMILES_TABLE_NAME} WHERE smiles IN (',
+        ','.join('?' for _ in canon_smiles), ')'
+    ]))
     cur.execute(select, canon_smiles)
     result = cur.fetchall()
 
@@ -388,11 +410,10 @@ class SMUSQLite:
     """
     cur = self._conn.cursor()
     select = (''.join([
-      f'SELECT conformer '
-      f'FROM {_MOLECULE_TABLE_NAME} '
-      f'WHERE exp_stoich IN (',
-      ','.join('?' for _ in exp_stoichs),
-      ')']))
+        f'SELECT conformer '
+        f'FROM {_MOLECULE_TABLE_NAME} '
+        f'WHERE exp_stoich IN (', ','.join('?' for _ in exp_stoichs), ')'
+    ]))
     cur.execute(select, exp_stoichs)
     return (dataset_pb2.Molecule().FromString(snappy.uncompress(result[0]))
             for result in cur)
@@ -407,6 +428,7 @@ class SMUSQLite:
 
     Args:
       stoich: stoichiometry string like "C6H12", case doesn't matter
+
     Returns:
       Iterable of type dataset_pb2.Molecule.
     """
@@ -414,8 +436,11 @@ class SMUSQLite:
         smu_utils_lib.expanded_stoichiometries_from_stoichiometry(stoich))
     return self.find_by_expanded_stoichiometry_list(exp_stoichs)
 
-  def find_by_topology(self, smiles, bond_lengths,
-                       matching_parameters=topology_molecule.MatchingParameters()):
+  def find_by_topology(
+      self,
+      smiles,
+      bond_lengths,
+      matching_parameters=topology_molecule.MatchingParameters()):
     """Find all molecules which have a detected bond topology.
 
     Note that this *redoes* the detection. If you want the default detected
@@ -434,13 +459,13 @@ class SMUSQLite:
       dataset_pb2.Molecule
     """
     query_bt = smu_utils_lib.rdkit_molecule_to_bond_topology(
-      smu_utils_lib.smiles_to_rdkit_molecule(smiles))
+        smu_utils_lib.smiles_to_rdkit_molecule(smiles))
     expanded_stoich = smu_utils_lib.expanded_stoichiometry_from_topology(
-      query_bt)
+        query_bt)
     cnt_matched_molecule = 0
     cnt_molecule = 0
-    logging.info('Starting query for %s with stoich %s',
-                 smiles, expanded_stoich)
+    logging.info('Starting query for %s with stoich %s', smiles,
+                 expanded_stoich)
     for molecule in self.find_by_expanded_stoichiometry_list([expanded_stoich]):
       if not smu_utils_lib.molecule_eligible_for_topology_detection(molecule):
         continue
@@ -457,7 +482,7 @@ class SMUSQLite:
           try:
             bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
             bt.bond_topology_id = self.find_bond_topology_id_for_smiles(
-              bt.smiles)
+                bt.smiles)
           except KeyError:
             logging.error('Did not find bond topology id for smiles %s',
                           bt.smiles)

@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Generate the SQLite DB from TFRecord files."""
 
 from absl import app
@@ -27,8 +41,8 @@ from smu.parser import smu_utils_lib
 flags.DEFINE_string('input_tfrecord', None, 'Glob of tfrecord files to read')
 flags.DEFINE_string('output_sqlite', None, 'Path of sqlite file to generate')
 flags.DEFINE_string(
-  'bond_topology_csv', None,
-  '(optional) Path of bond_topology.csv for smiles to btid mapping')
+    'bond_topology_csv', None,
+    '(optional) Path of bond_topology.csv for smiles to btid mapping')
 
 FLAGS = flags.FLAGS
 
@@ -45,7 +59,7 @@ def main(argv):
   if FLAGS.bond_topology_csv:
     logging.info('Starting smiles to btid inserts')
     smiles_id_dict = smu_utils_lib.smiles_id_dict_from_csv(
-      open(FLAGS.bond_topology_csv))
+        open(FLAGS.bond_topology_csv))
     db.bulk_insert_smiles(smiles_id_dict.items())
     logging.info('Finished smiles to btid inserts')
   else:

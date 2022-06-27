@@ -27,6 +27,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """This class provides shared utilities for parsing and writing SMU7 files."""
 
 import collections
@@ -119,9 +132,9 @@ BOND_TYPE_TO_RDKIT = {
 }
 
 RDKIT_TO_BOND_TYPE = {
-  Chem.rdchem.BondType.SINGLE: dataset_pb2.BondTopology.BondType.BOND_SINGLE,
-  Chem.rdchem.BondType.DOUBLE: dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
-  Chem.rdchem.BondType.TRIPLE: dataset_pb2.BondTopology.BondType.BOND_TRIPLE,
+    Chem.rdchem.BondType.SINGLE: dataset_pb2.BondTopology.BondType.BOND_SINGLE,
+    Chem.rdchem.BondType.DOUBLE: dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
+    Chem.rdchem.BondType.TRIPLE: dataset_pb2.BondTopology.BondType.BOND_TRIPLE,
 }
 
 INTEGER_TO_BOND_TYPE = [
@@ -294,10 +307,9 @@ def get_original_label(molecule):
   bt_id = molecule.molecule_id // 1000
   if special_case_dat_id_from_bt_id(bt_id):
     bt_id = 0
-  return "{:s}.{:06d}.{:03d}".format(
-    get_composition(molecule.bond_topologies[0]),
-    bt_id,
-    molecule.molecule_id % 1000)
+  return '{:s}.{:06d}.{:03d}'.format(
+      get_composition(molecule.bond_topologies[0]), bt_id,
+      molecule.molecule_id % 1000)
 
 
 _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
@@ -759,20 +771,21 @@ def get_bond_type(bond_topology, atom_idx0, atom_idx1):
 
 # These are lower case so they can be used in a command line argument
 class WhichTopologies(enum.Enum):
+  """Enum of topology types."""
   # All topologies
-  all = 1
+  ALL = 1
   # Single "best" topology from SMU lengths
-  best = 2
+  BEST = 2
   # The topology used during geometry finding
-  starting = 3
+  STARTING = 3
   # All topologies matching the bond length ranges used in SMU
-  itc = 4
+  ITC = 4
   # All topologies maatching a covalent bond length criteria from Meng and Lewis
   # (see dataset.proto for SourceType for details)
-  mlcr = 5
+  MLCR = 5
   # All topologies maatching bond lengths from Cambridge Structural Database
   # (see dataset.proto for SourceType for details)
-  csd = 6
+  CSD = 6
 
 
 def iterate_bond_topologies(molecule, which):
@@ -780,46 +793,45 @@ def iterate_bond_topologies(molecule, which):
 
   Args:
     molecule: dataset_pb2.Molecule
-    which: WhichTopologies
+    which: WhichTopologies  Yields index of topology, dataset_pb2.BondTopology
 
-  Yields
-    index of topology, dataset_pb2.BondTopology
+  Yields:
+    Bond topology.
   """
-  if which == WhichTopologies.all:
+  if which == WhichTopologies.ALL:
     yield from enumerate(molecule.bond_topologies)
 
-  if which == WhichTopologies.best:
+  if which == WhichTopologies.BEST:
     yield 0, molecule.bond_topologies[0]
 
-  if which == WhichTopologies.starting:
-    if (molecule.properties.errors.status >= 512 or
-        molecule.duplicated_by > 0):
+  if which == WhichTopologies.STARTING:
+    if (molecule.properties.errors.status >= 512 or molecule.duplicated_by > 0):
       yield 0, molecule.bond_topologies[0]
     for bt_idx, bt in enumerate(molecule.bond_topologies):
       if (bt.is_starting_topology or
           bt.source & dataset_pb2.BondTopology.SOURCE_STARTING):
         yield bt_idx, bt
 
-  if which == WhichTopologies.itc:
+  if which == WhichTopologies.ITC:
     for bt_idx, bt in enumerate(molecule.bond_topologies):
       if not bt.source or bt.source & dataset_pb2.BondTopology.SOURCE_ITC:
         yield bt_idx, bt
 
-  if which == WhichTopologies.mlcr:
+  if which == WhichTopologies.MLCR:
     for bt_idx, bt in enumerate(molecule.bond_topologies):
       if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR:
         yield bt_idx, bt
 
-  if which == WhichTopologies.csd:
+  if which == WhichTopologies.CSD:
     for bt_idx, bt in enumerate(molecule.bond_topologies):
       if bt.source & dataset_pb2.BondTopology.SOURCE_CSD:
         yield bt_idx, bt
 
 
 def molecule_to_rdkit_molecules(molecule,
-                           include_initial_geometries=True,
-                           include_optimized_geometry=True,
-                           which_topologies=WhichTopologies.all):
+                                include_initial_geometries=True,
+                                include_optimized_geometry=True,
+                                which_topologies=WhichTopologies.ALL):
   """Converts a Molecule to RDKit molecules.
 
   Because a Molecule can include multiple bond topologies and geometries,
@@ -848,16 +860,18 @@ def molecule_to_rdkit_molecules(molecule,
   """
   bt_count = len(molecule.bond_topologies)
   requested_bond_topologies = [
-    (bt, f'{bt.bond_topology_id}({i+1}/{bt_count})')
-    for i, bt in iterate_bond_topologies(molecule, which_topologies)]
+      (bt, f'{bt.bond_topology_id}({i+1}/{bt_count})')
+      for i, bt in iterate_bond_topologies(molecule, which_topologies)
+  ]
 
   # requested_geometries will be a list of tuples of
   # (goemetry, label)
   # where label is a string describing the geometry
   requested_geometries = []
   if include_initial_geometries:
-    valid_init_geometries = [g for g in molecule.initial_geometries
-                             if g.atom_positions]
+    valid_init_geometries = [
+        g for g in molecule.initial_geometries if g.atom_positions
+    ]
     init_count = len(valid_init_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
@@ -873,7 +887,7 @@ def molecule_to_rdkit_molecules(molecule,
       mol.SetProp(
           '_Name',
           f'SMU {molecule.molecule_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
-        )
+      )
 
       # Add in the coordinates
       conf = Chem.Conformer(len(bt.atoms))
@@ -982,7 +996,7 @@ def rdkit_atom_to_atom_type(atom):
   if atom.GetAtomicNum() == 9:
     return dataset_pb2.BondTopology.ATOM_F
 
-  raise ValueError(f"Unrecognized atom type {atom.GetAtomicNum()}")
+  raise ValueError(f'Unrecognized atom type {atom.GetAtomicNum()}')
 
 
 def rdkit_molecule_to_bond_topology(mol):
@@ -1006,11 +1020,10 @@ def rdkit_molecule_to_bond_topology(mol):
     bond_topology.bonds.append(bt_bond)
 
   return bond_topology
-  pass
 
 
 def smiles_to_rdkit_molecule(smiles):
-  """Converts a smiles string to a BondTopology
+  """Converts a smiles string to a BondTopology.
 
   Uses RDKit, and because we avoid aromaticity, there's a little
   subtlety in how that is done.
@@ -1039,7 +1052,6 @@ class SmilesCompareResult(enum.Enum):
 
 
 def bond_topology_smiles_comparison(bond_topology):
-
   """Compares the given smiles string to one generated by RDKit.
 
   The atom/bond structure defines a molecule that we can then turn into a
@@ -1208,9 +1220,10 @@ def merge_molecule(mol1, mol2):
       conflict_info.extend([0.0, 0.0])
     conflict_info.append(c.optimized_geometry.energy.value)
     conflict_info.append(c.optimized_geometry.gnorm.value)
-    conflict_info.append(bool(c.initial_geometries) and
-                         bool(c.initial_geometries[0].atom_positions))
-    conflict_info.append(len(c.optimized_geometry.atom_positions) > 0)
+    conflict_info.append(
+        bool(c.initial_geometries) and
+        bool(c.initial_geometries[0].atom_positions))
+    conflict_info.append(bool(len(c.optimized_geometry.atom_positions)))
 
   # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
   # merge. We look for conflicts between them and then a few special cases.
@@ -1222,16 +1235,16 @@ def merge_molecule(mol1, mol2):
     if len(mol1.initial_geometries) != len(mol2.initial_geometries):
       has_conflict = True
     elif len(mol1.initial_geometries) == 1:
-      if (len(mol1.initial_geometries[0].atom_positions) !=
-          len(mol2.initial_geometries[0].atom_positions)):
+      if (len(mol1.initial_geometries[0].atom_positions) != len(
+          mol2.initial_geometries[0].atom_positions)):
         has_conflict = True
 
     if (mol1.HasField('optimized_geometry') !=
         mol2.HasField('optimized_geometry')):
       has_conflict = True
 
-    if (len(mol1.optimized_geometry.atom_positions) !=
-        len(mol2.optimized_geometry.atom_positions)):
+    if (len(mol1.optimized_geometry.atom_positions) != len(
+        mol2.optimized_geometry.atom_positions)):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
@@ -1292,7 +1305,7 @@ def merge_molecule(mol1, mol2):
       source1, source2 = source2, source1
 
       mol2.properties.errors.status = (500 +
-                                        mol1.properties.errors.status // 10)
+                                       mol1.properties.errors.status // 10)
       mol2.properties.errors.which_database = dataset_pb2.COMPLETE
       if np.any(np.asarray(mol2.properties.harmonic_frequencies.value) < -30):
         mol2.properties.errors.warn_vib_imaginary = 2
@@ -1713,12 +1726,13 @@ def get_starting_bond_topology_index(molecule):
     ValueError: if no starting topology can be found
   """
   try:
-    bt_idx, _ = next(iterate_bond_topologies(molecule,
-                                             WhichTopologies.starting))
+    bt_idx, _ = next(
+        iterate_bond_topologies(molecule, WhichTopologies.STARTING))
     return bt_idx
   except StopIteration:
     raise ValueError(
-      f'For molecule {molecule.molecule_id}, no starting topology')
+        f'For molecule {molecule.molecule_id}, no starting topology'
+    ) from StopIteration
 
 
 def molecule_to_bond_topology_summaries(molecule):
@@ -1755,7 +1769,7 @@ def molecule_to_bond_topology_summaries(molecule):
       if not source & bt.source:
         continue
       if bt.bond_topology_id in observed_bt_id:
-        continue;
+        continue
       yield bt
       observed_bt_id.add(bt.bond_topology_id)
 
@@ -1785,13 +1799,12 @@ def molecule_to_bond_topology_summaries(molecule):
         fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
-    for source, field in [
-        (dataset_pb2.BondTopology.SOURCE_ITC,
-         'count_detected_match_itc_with_error'),
-        (dataset_pb2.BondTopology.SOURCE_MLCR,
-         'count_detected_match_mlcr_with_error'),
-        (dataset_pb2.BondTopology.SOURCE_CSD,
-         'count_detected_match_csd_with_error')]:
+    for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
+                           'count_detected_match_itc_with_error'),
+                          (dataset_pb2.BondTopology.SOURCE_MLCR,
+                           'count_detected_match_mlcr_with_error'),
+                          (dataset_pb2.BondTopology.SOURCE_CSD,
+                           'count_detected_match_csd_with_error')]:
       for bt in filtered_topologies(source):
         other_summary = dataset_pb2.BondTopologySummary()
         other_summary.bond_topology.CopyFrom(bt)
@@ -1803,13 +1816,12 @@ def molecule_to_bond_topology_summaries(molecule):
       fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
-    for source, field in [
-        (dataset_pb2.BondTopology.SOURCE_ITC,
-         'count_detected_match_itc_with_warning'),
-        (dataset_pb2.BondTopology.SOURCE_MLCR,
-         'count_detected_match_mlcr_with_warning'),
-        (dataset_pb2.BondTopology.SOURCE_CSD,
-         'count_detected_match_csd_with_warning')]:
+    for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
+                           'count_detected_match_itc_with_warning'),
+                          (dataset_pb2.BondTopology.SOURCE_MLCR,
+                           'count_detected_match_mlcr_with_warning'),
+                          (dataset_pb2.BondTopology.SOURCE_CSD,
+                           'count_detected_match_csd_with_warning')]:
       for bt in filtered_topologies(source):
         other_summary = dataset_pb2.BondTopologySummary()
         other_summary.bond_topology.CopyFrom(bt)
@@ -1819,13 +1831,12 @@ def molecule_to_bond_topology_summaries(molecule):
   elif fate == dataset_pb2.Properties.FATE_SUCCESS:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
-    for source, field in [
-        (dataset_pb2.BondTopology.SOURCE_ITC,
-         'count_detected_match_itc_success'),
-        (dataset_pb2.BondTopology.SOURCE_MLCR,
-         'count_detected_match_mlcr_success'),
-        (dataset_pb2.BondTopology.SOURCE_CSD,
-         'count_detected_match_csd_success')]:
+    for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
+                           'count_detected_match_itc_success'),
+                          (dataset_pb2.BondTopology.SOURCE_MLCR,
+                           'count_detected_match_mlcr_success'),
+                          (dataset_pb2.BondTopology.SOURCE_CSD,
+                           'count_detected_match_csd_success')]:
       for bt in filtered_topologies(source):
         other_summary = dataset_pb2.BondTopologySummary()
         other_summary.bond_topology.CopyFrom(bt)

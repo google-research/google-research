@@ -26,15 +26,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Queries the SMU sqlite database.
 
 Command line interface to extract molecules from thq SMU database.
 """
-
 import contextlib
-import csv
 import enum
-import itertools
 import os.path
 import random
 import sys
@@ -43,26 +54,25 @@ from absl import app
 from absl import flags
 from absl import logging
 from google.protobuf import text_format
-import pandas as pd
 from rdkit import Chem
 
 from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
-from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
-from smu.geometry import utilities
+from smu.geometry import topology_molecule
 from smu.parser import smu_utils_lib
 from smu.parser import smu_writer_lib
 
 
 class OutputFormat(enum.Enum):
-  pbtxt = 1
-  sdf_opt = 2
-  sdf_init = 3
-  sdf_init_opt = 4
-  atomic2_input = 5
-  dat = 6
+  """Output format enum."""
+  PBTXT = 1
+  SDF_OPT = 2
+  SDF_INIT = 3
+  SDF_INIT_OPT = 4
+  ATOMIC2_INPUT = 5
+  DAT = 6
 
 
 flags.DEFINE_string(
@@ -75,9 +85,10 @@ flags.DEFINE_list('btids', [], 'List of bond topology ids to query')
 flags.DEFINE_list('mids', [], 'List of molecule ids to query')
 flags.DEFINE_list('smiles', [], 'List of smiles to query')
 flags.DEFINE_list('stoichiometries', [], 'List of stoichiometries to query')
-flags.DEFINE_string('smarts', '',
-                    'SMARTS query to retrieve molomers with matching bond topology. '
-                    'Note that this is a single value, not a comma separated list')
+flags.DEFINE_string(
+    'smarts', '',
+    'SMARTS query to retrieve molomers with matching bond topology. '
+    'Note that this is a single value, not a comma separated list')
 flags.DEFINE_list(
     'topology_query_smiles', [],
     'List of smiles to query, where the valid bond lengths are '
@@ -88,24 +99,22 @@ flags.DEFINE_list(
     'use --smiles as this method is much slower.')
 flags.DEFINE_float('random_fraction', 0.0,
                    'Randomly return this fraction of DB.')
-flags.DEFINE_enum_class('output_format', OutputFormat.pbtxt, OutputFormat,
+flags.DEFINE_enum_class('output_format', OutputFormat.PBTXT, OutputFormat,
                         'Format for the found SMU entries')
 flags.DEFINE_enum_class(
-  'which_topologies',
-  smu_utils_lib.WhichTopologies.all,
-  smu_utils_lib.WhichTopologies,
-  'This flag has double duty. '
-  'For btids, smiles, and smarts queries, it specifies which topologies'
-  'to match. For sdf and atomic2_input output formats, it specifies which bond '
-  'topologies should be returned:\n '
-  '"all" means all topologies,\n '
-  '"best" means a single best topology,\n '
-  '"starting" means the single topology used for the calculations,\n '
-  '"itc" means all topologies detected with our original bond lengths,\n '
-  '"mlcr" means all topologies using very permissive covalent radii\n '
-  '(from Meng and Lewis), '
-  '"csd" means all topologies using bond lengths from the '
-  'Cambridge Structural Database')
+    'which_topologies', smu_utils_lib.WhichTopologies.ALL,
+    smu_utils_lib.WhichTopologies, 'This flag has double duty. '
+    'For btids, smiles, and smarts queries, it specifies which topologies'
+    'to match. For sdf and atomic2_input output formats, it specifies which bond '
+    'topologies should be returned:\n '
+    '"all" means all topologies,\n '
+    '"best" means a single best topology,\n '
+    '"starting" means the single topology used for the calculations,\n '
+    '"itc" means all topologies detected with our original bond lengths,\n '
+    '"mlcr" means all topologies using very permissive covalent radii\n '
+    '(from Meng and Lewis), '
+    '"csd" means all topologies using bond lengths from the '
+    'Cambridge Structural Database')
 flags.DEFINE_boolean(
     'redetect_topology', False,
     'Whether to rerun the topology detection on the molecules')
@@ -130,11 +139,11 @@ class GeometryData:
       raise ValueError('--bond_lengths_csv required')
     logging.info('Loading bond_lengths')
     self.bond_lengths = (
-      bond_length_distribution.AllAtomPairLengthDistributions())
+        bond_length_distribution.AllAtomPairLengthDistributions())
     self.bond_lengths.add_from_sparse_dataframe_file(
-      bond_lengths_csv,
-      bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
-      bond_length_distribution.STANDARD_SIG_DIGITS)
+        bond_lengths_csv,
+        bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
+        bond_length_distribution.STANDARD_SIG_DIGITS)
     logging.info('Done loading bond_lengths_csv')
 
     self.bond_lengths.add_from_string_spec(bond_lengths_arg)
@@ -148,35 +157,43 @@ class GeometryData:
 
 _SMARTS_BT_BATCH_SIZE = 20000
 
+
 def smarts_query(db, smarts, which_topologies, outputter):
+  """SMARTS query.
+
+  Args:
+    db:
+    smarts:
+    which_topologies:
+    outputter:
+  """
   if not smarts:
     return
 
   logging.info('Starting SMARTS query "%s"', smarts)
   bt_ids = list(db.find_bond_topology_id_by_smarts(smarts))
 
-  logging.info('SMARTS query "%s" produced bond topology %d results',
-               smarts, len(bt_ids))
+  logging.info('SMARTS query "%s" produced bond topology %d results', smarts,
+               len(bt_ids))
 
   if not bt_ids:
     return
 
   if len(bt_ids) > _SMARTS_BT_BATCH_SIZE:
     message = (
-      f'WARNING: Smarts query "{smarts}" matched {len(bt_ids)} bond topologies. '
-      'This may be very slow and produce the same molecule multiple times. '
-      'Trying anyways...')
+        f'WARNING: Smarts query "{smarts}" matched {len(bt_ids)} bond topologies. '
+        'This may be very slow and produce the same molecule multiple times. '
+        'Trying anyways...')
     logging.warning(message)
     print(message, file=sys.stderr, flush=True)
 
   count = 0
   for batch_idx in range(len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1):
-    logging.info('Starting batch %d / %d',
-                 batch_idx, len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1)
+    logging.info('Starting batch %d / %d', batch_idx,
+                 len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1)
     for c in db.find_by_bond_topology_id_list(
-        bt_ids[batch_idx * _SMARTS_BT_BATCH_SIZE
-               :(batch_idx + 1) * _SMARTS_BT_BATCH_SIZE],
-        which_topologies):
+        bt_ids[batch_idx * _SMARTS_BT_BATCH_SIZE:(batch_idx + 1) *
+               _SMARTS_BT_BATCH_SIZE], which_topologies):
       count += 1
       outputter.output(c)
 
@@ -197,11 +214,9 @@ class PBTextOutputter:
     else:
       self.outfile = sys.stdout
     print(
-      '# proto-file: third_party/google_research/google_research/smu/dataset.proto',
-      file=self.outfile)
-    print(
-      '# proto-message: MultipleMolecules',
-      file=self.outfile)
+        '# proto-file: third_party/google_research/google_research/smu/dataset.proto',
+        file=self.outfile)
+    print('# proto-message: MultipleMolecules', file=self.outfile)
 
   def output(self, molecule):
     """Writes a molecule.
@@ -212,11 +227,10 @@ class PBTextOutputter:
     # This is kind of a hack. We manually write the molecules { }
     # formatting expected by MultipleMolecules rather than actually using a
     # MultipleMolecules message.
-    print(
-      'molecules {',
-      file=self.outfile)
-    self.outfile.write(text_format.MessageToString(molecule,
-                                                   use_short_repeated_primitives=True))
+    print('molecules {', file=self.outfile)
+    self.outfile.write(
+        text_format.MessageToString(
+            molecule, use_short_repeated_primitives=True))
     print('}', file=self.outfile)
 
   def close(self):
@@ -271,6 +285,7 @@ class Atomic2InputOutputter:
 
     Args:
       output_path: directory to write output files to
+      which_topologies: enum used to select topologies
     """
     self.output_path = output_path
     if output_path and not os.path.isdir(self.output_path):
@@ -281,6 +296,11 @@ class Atomic2InputOutputter:
     self.atomic2_writer = smu_writer_lib.Atomic2InputWriter()
 
   def output(self, molecule):
+    """Writes a molecule.
+
+    Args:
+      molecule:
+    """
     for bt_idx, _ in smu_utils_lib.iterate_bond_topologies(
         molecule, self.which_topologies):
       if self.output_path is None:
@@ -290,8 +310,7 @@ class Atomic2InputOutputter:
             os.path.join(
                 self.output_path,
                 self.atomic2_writer.get_filename_for_atomic2_input(
-                  molecule, bt_idx)),
-            'w') as f:
+                    molecule, bt_idx)), 'w') as f:
           f.write(self.atomic2_writer.process(molecule, bt_idx))
 
   def close(self):
@@ -353,7 +372,8 @@ class ReDetectTopologiesOutputter:
       for bt in molecule.bond_topologies:
         bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
         try:
-          bt.bond_topology_id = self._db.find_bond_topology_id_for_smiles(bt.smiles)
+          bt.bond_topology_id = self._db.find_bond_topology_id_for_smiles(
+              bt.smiles)
         except KeyError:
           logging.error('Did not find bond topology id for smiles %s',
                         bt.smiles)
@@ -372,29 +392,29 @@ def main(argv):
 
   logging.info('Opening %s', FLAGS.input_sqlite)
   db = smu_sqlite.SMUSQLite(FLAGS.input_sqlite, 'r')
-  if FLAGS.output_format == OutputFormat.pbtxt:
+  if FLAGS.output_format == OutputFormat.PBTXT:
     outputter = PBTextOutputter(FLAGS.output_path)
-  elif FLAGS.output_format == OutputFormat.sdf_init:
+  elif FLAGS.output_format == OutputFormat.SDF_INIT:
     outputter = SDFOutputter(
         FLAGS.output_path,
         init_geometry=True,
         opt_geometry=False,
         which_topologies=FLAGS.which_topologies)
-  elif FLAGS.output_format == OutputFormat.sdf_opt:
+  elif FLAGS.output_format == OutputFormat.SDF_OPT:
     outputter = SDFOutputter(
         FLAGS.output_path,
         init_geometry=False,
         opt_geometry=True,
         which_topologies=FLAGS.which_topologies)
-  elif FLAGS.output_format == OutputFormat.sdf_init_opt:
+  elif FLAGS.output_format == OutputFormat.SDF_INIT_OPT:
     outputter = SDFOutputter(
         FLAGS.output_path,
         init_geometry=True,
         opt_geometry=True,
         which_topologies=FLAGS.which_topologies)
-  elif FLAGS.output_format == OutputFormat.atomic2_input:
+  elif FLAGS.output_format == OutputFormat.ATOMIC2_INPUT:
     outputter = Atomic2InputOutputter(FLAGS.output_path, FLAGS.which_topologies)
-  elif FLAGS.output_format == OutputFormat.dat:
+  elif FLAGS.output_format == OutputFormat.DAT:
     outputter = DatOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
@@ -407,8 +427,8 @@ def main(argv):
       molecule = db.find_by_molecule_id(mid)
       outputter.output(molecule)
 
-    for c in db.find_by_bond_topology_id_list(
-        [int(x) for x in FLAGS.btids], FLAGS.which_topologies):
+    for c in db.find_by_bond_topology_id_list([int(x) for x in FLAGS.btids],
+                                              FLAGS.which_topologies):
       outputter.output(c)
 
     for c in db.find_by_smiles_list(FLAGS.smiles, FLAGS.which_topologies):
@@ -421,8 +441,8 @@ def main(argv):
 
     for smiles in FLAGS.topology_query_smiles:
       geometry_data = GeometryData.get_singleton()
-      for c in db.find_by_topology(smiles,
-                                   bond_lengths=geometry_data.bond_lengths):
+      for c in db.find_by_topology(
+          smiles, bond_lengths=geometry_data.bond_lengths):
         outputter.output(c)
 
     smarts_query(db, FLAGS.smarts, FLAGS.which_topologies, outputter)

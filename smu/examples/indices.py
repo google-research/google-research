@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Use the various indices in the database for fast lookups."""
 
 from smu import smu_sqlite
@@ -35,11 +48,10 @@ except KeyError:
 
 print()
 print('Looking up by bond topology id will return zero or more molecules')
-bt_molecules = list(db.find_by_bond_topology_id_list(
-  [7984],
-  which_topologies=smu_utils_lib.WhichTopologies.all))
-print('Querying for bond topology id 8617 returned',
-      len(bt_molecules),
+bt_molecules = list(
+    db.find_by_bond_topology_id_list(
+        [7984], which_topologies=smu_utils_lib.WhichTopologies.ALL))
+print('Querying for bond topology id 8617 returned', len(bt_molecules),
       'molecules')
 
 print('Note that the molecules returned may have multiple bond topologies,'
@@ -54,17 +66,20 @@ print()
 print(
     'Finding by SMILES is essentially equivalent to finding by bond topology id'
 )
-smiles_molecules = list(db.find_by_smiles_list(
-  ['O=NONNNO'],
-  which_topologies=smu_utils_lib.WhichTopologies.all))
+smiles_molecules = list(
+    db.find_by_smiles_list(['O=NONNNO'],
+                           which_topologies=smu_utils_lib.WhichTopologies.ALL))
 print('With query O=NONNNO', 'we found', len(smiles_molecules), 'results')
 
 print('Note that the SMILES are canonicalized internally, you do not need to')
-print('So the equivalent SMILES query ONNNON=O returns the same',
-      len(list(db.find_by_smiles_list(
-        ['ONNNON=O'],
-        which_topologies=smu_utils_lib.WhichTopologies.all))),
-      'results')
+print(
+    'So the equivalent SMILES query ONNNON=O returns the same',
+    len(
+        list(
+            db.find_by_smiles_list(
+                ['ONNNON=O'],
+                which_topologies=smu_utils_lib.WhichTopologies.ALL))),
+    'results')
 
 print()
 print('You can also find all the molecules with a given stoichiometry')

@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for parsing and writing code."""
 import copy
 import os
@@ -27,7 +40,6 @@ from tensorflow.io import gfile
 from smu import dataset_pb2
 from smu.parser import smu_parser_lib
 from smu.parser import smu_writer_lib
-
 
 MAIN_DAT_FILE = 'x07_sample.dat'
 SMU1_DAT_FILE = 'x01_sample.dat'
@@ -73,8 +85,8 @@ class SmuParserTest(absltest.TestCase):
     smu_writer = smu_writer_lib.SmuWriter(annotate=False)
     for molecule, orig_contents in self.parser.process_stage2():
       # We're going to mess with the molecule by perturbing the bond_toplogies.
-      # The .dat format shoudl only ever use the starting topology, so we are going to
-      # add some wrong bond topologies to make sure they are ignored.
+      # The .dat format shoudl only ever use the starting topology, so we are
+      # going to add some wrong bond topologies to make sure they are ignored.
       molecule.bond_topologies.append(molecule.bond_topologies[0])
       molecule.bond_topologies.append(molecule.bond_topologies[0])
       molecule.bond_topologies[0].source = dataset_pb2.BondTopology.SOURCE_ITC
@@ -152,7 +164,7 @@ class GoldenTest(parameterized.TestCase):
 
     multiple_molecules = dataset_pb2.MultipleMolecules()
     parser = smu_parser_lib.SmuParser(full_input_fn)
-    for e, orig_contents in parser.process_stage2():
+    for e, unused_orig_contents in parser.process_stage2():
       if isinstance(e, Exception):
         raise e
       multiple_molecules.molecules.append(e)
@@ -196,8 +208,7 @@ class GoldenTest(parameterized.TestCase):
           '--input_file {} --output_file {} --annotate True'.format(
               full_input_fn, full_expected_fn))
 
-    self.assertEqual([l.rstrip('\n') for l in expected],
-                     got.splitlines())
+    self.assertEqual([l.rstrip('\n') for l in expected], got.splitlines())
 
 
 class ParseLongIdentifierTest(absltest.TestCase):

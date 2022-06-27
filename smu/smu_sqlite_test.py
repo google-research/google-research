@@ -27,6 +27,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for smu_sqlite."""
 
 import os
@@ -79,7 +92,7 @@ class SmuSqliteTest(absltest.TestCase):
     molecule = dataset_pb2.Molecule()
     molecule.molecule_id = mid
     self.add_bond_topology_to_molecule(molecule, mid // 1000,
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_ITC)
     return molecule
 
   def encode_molecules(self, molecules):
@@ -88,9 +101,8 @@ class SmuSqliteTest(absltest.TestCase):
   def create_db(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     db.bulk_insert(
-        self.encode_molecules([
-            self.make_fake_molecule(mid) for mid in range(2001, 10001, 2000)
-        ]))
+        self.encode_molecules(
+            [self.make_fake_molecule(mid) for mid in range(2001, 10001, 2000)]))
     return db
 
   def create_db_with_multiple_bond_topology(self):
@@ -101,13 +113,13 @@ class SmuSqliteTest(absltest.TestCase):
     mol1 = self.make_fake_molecule(1000)
     mol2 = self.make_fake_molecule(2000)
     self.add_bond_topology_to_molecule(mol2, 1,
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_ITC)
 
     mol3 = self.make_fake_molecule(3000)
     self.add_bond_topology_to_molecule(mol3, 1,
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_ITC)
     self.add_bond_topology_to_molecule(mol3, 2,
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_ITC)
 
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     db.bulk_insert(self.encode_molecules([mol1, mol2, mol3]))
@@ -124,12 +136,12 @@ class SmuSqliteTest(absltest.TestCase):
   def test_get_smiles_to_id_dict(self):
     db = self.create_db()
 
-    self.assertEqual(db.get_smiles_id_dict(),
-                     {'CC': 2,
-                      'CCCC': 4,
-                      'CCCCCC': 6,
-                      'CCCCCCCC': 8,
-                      })
+    self.assertEqual(db.get_smiles_id_dict(), {
+        'CC': 2,
+        'CCCC': 4,
+        'CCCCCC': 6,
+        'CCCCCCCC': 8,
+    })
 
   def test_bulk_insert_smiles(self):
     db = self.create_db()
@@ -185,22 +197,20 @@ class SmuSqliteTest(absltest.TestCase):
 
   def test_vaccum(self):
     db = self.create_db()
-    self.assertEqual(db.find_by_molecule_id(2001).molecule_id,
-                     2001)
+    self.assertEqual(db.find_by_molecule_id(2001).molecule_id, 2001)
     db.vacuum()
-    self.assertEqual(db.find_by_molecule_id(2001).molecule_id,
-                     2001)
+    self.assertEqual(db.find_by_molecule_id(2001).molecule_id, 2001)
 
   def test_smiles_iteration(self):
     db = self.create_db()
 
-    iter = db.smiles_iter()
-    self.assertEqual(('CC', 2), next(iter))
-    self.assertEqual(('CCCC', 4), next(iter))
-    self.assertEqual(('CCCCCC', 6), next(iter))
-    self.assertEqual(('CCCCCCCC', 8), next(iter))
+    iterate = db.smiles_iter()
+    self.assertEqual(('CC', 2), next(iterate))
+    self.assertEqual(('CCCC', 4), next(iterate))
+    self.assertEqual(('CCCCCC', 6), next(iterate))
+    self.assertEqual(('CCCCCCCC', 8), next(iterate))
     with self.assertRaises(StopIteration):
-      next(iter)
+      next(iterate)
 
   def test_iteration(self):
     db = self.create_db()
@@ -214,32 +224,34 @@ class SmuSqliteTest(absltest.TestCase):
     # Test the cases with 1, 2, and 3 results
     got_mids = [
         mol.molecule_id for mol in db.find_by_bond_topology_id_list(
-          [3], smu_utils_lib.WhichTopologies.all)
+            [3], smu_utils_lib.WhichTopologies.ALL)
     ]
     self.assertCountEqual(got_mids, [3000])
 
     got_mids = [
         mol.molecule_id for mol in db.find_by_bond_topology_id_list(
-          [2], smu_utils_lib.WhichTopologies.all)
+            [2], smu_utils_lib.WhichTopologies.ALL)
     ]
     self.assertCountEqual(got_mids, [2000, 3000])
 
     got_mids = [
         mol.molecule_id for mol in db.find_by_bond_topology_id_list(
-          [1], smu_utils_lib.WhichTopologies.all)
+            [1], smu_utils_lib.WhichTopologies.ALL)
     ]
     self.assertCountEqual(got_mids, [1000, 2000, 3000])
 
     # and test a non existent id
-    self.assertEmpty(list(db.find_by_bond_topology_id_list(
-      [999], smu_utils_lib.WhichTopologies.all)))
+    self.assertEmpty(
+        list(
+            db.find_by_bond_topology_id_list(
+                [999], smu_utils_lib.WhichTopologies.ALL)))
 
   def test_find_by_bond_topology_id_list_multi_arg(self):
     db = self.create_db()
 
     got_mids = [
         mol.molecule_id for mol in db.find_by_bond_topology_id_list(
-          [2, 8], smu_utils_lib.WhichTopologies.all)
+            [2, 8], smu_utils_lib.WhichTopologies.ALL)
     ]
     # This is testing that we only get 55000 returned once
     self.assertCountEqual(got_mids, [2001, 8001])
@@ -249,12 +261,12 @@ class SmuSqliteTest(absltest.TestCase):
 
     mol = self.make_fake_molecule(55000)
     self.add_bond_topology_to_molecule(mol, 55,
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_ITC)
     db.bulk_insert(self.encode_molecules([mol]))
 
     got_mids = [
         mol.molecule_id for mol in db.find_by_bond_topology_id_list(
-          [55], smu_utils_lib.WhichTopologies.all)
+            [55], smu_utils_lib.WhichTopologies.ALL)
     ]
     # This is testing that we only get 55000 returned once
     self.assertCountEqual(got_mids, [55000])
@@ -267,46 +279,44 @@ class SmuSqliteTest(absltest.TestCase):
     # 6001 with bt id 12 (MLCR)
     molecules = []
     molecules.append(dataset_pb2.Molecule(molecule_id=2001))
-    self.add_bond_topology_to_molecule(molecules[-1], 10,
-                                        dataset_pb2.BondTopology.SOURCE_STARTING |
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
+    self.add_bond_topology_to_molecule(
+        molecules[-1], 10, dataset_pb2.BondTopology.SOURCE_STARTING
+        | dataset_pb2.BondTopology.SOURCE_ITC)
     self.add_bond_topology_to_molecule(molecules[-1], 11,
-                                        dataset_pb2.BondTopology.SOURCE_MLCR)
+                                       dataset_pb2.BondTopology.SOURCE_MLCR)
     molecules.append(dataset_pb2.Molecule(molecule_id=4001))
     self.add_bond_topology_to_molecule(molecules[-1], 10,
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
-    self.add_bond_topology_to_molecule(molecules[-1], 11,
-                                        dataset_pb2.BondTopology.SOURCE_STARTING |
-                                        dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_ITC)
+    self.add_bond_topology_to_molecule(
+        molecules[-1], 11, dataset_pb2.BondTopology.SOURCE_STARTING
+        | dataset_pb2.BondTopology.SOURCE_ITC)
     self.add_bond_topology_to_molecule(molecules[-1], 12,
-                                        dataset_pb2.BondTopology.SOURCE_CSD)
+                                       dataset_pb2.BondTopology.SOURCE_CSD)
     molecules.append(dataset_pb2.Molecule(molecule_id=6001))
     self.add_bond_topology_to_molecule(molecules[-1], 12,
-                                        dataset_pb2.BondTopology.SOURCE_MLCR)
+                                       dataset_pb2.BondTopology.SOURCE_MLCR)
     db.bulk_insert(self.encode_molecules(molecules))
 
     def ids_for(bt_id, which):
-      return [c.molecule_id
-              for c in db.find_by_bond_topology_id_list([bt_id], which)]
+      return [
+          c.molecule_id
+          for c in db.find_by_bond_topology_id_list([bt_id], which)
+      ]
 
-    self.assertEqual(ids_for(10, smu_utils_lib.WhichTopologies.all),
-                     [2001, 4001])
-    self.assertEqual(ids_for(11, smu_utils_lib.WhichTopologies.all),
-                     [2001, 4001])
-    self.assertEqual(ids_for(12, smu_utils_lib.WhichTopologies.all),
-                     [4001, 6001])
+    self.assertEqual(
+        ids_for(10, smu_utils_lib.WhichTopologies.ALL), [2001, 4001])
+    self.assertEqual(
+        ids_for(11, smu_utils_lib.WhichTopologies.ALL), [2001, 4001])
+    self.assertEqual(
+        ids_for(12, smu_utils_lib.WhichTopologies.ALL), [4001, 6001])
 
-    self.assertEqual(ids_for(10, smu_utils_lib.WhichTopologies.starting),
-                     [2001])
-    self.assertEqual(ids_for(11, smu_utils_lib.WhichTopologies.mlcr),
-                     [2001])
-    self.assertEqual(ids_for(12, smu_utils_lib.WhichTopologies.csd),
-                     [4001])
+    self.assertEqual(
+        ids_for(10, smu_utils_lib.WhichTopologies.STARTING), [2001])
+    self.assertEqual(ids_for(11, smu_utils_lib.WhichTopologies.MLCR), [2001])
+    self.assertEqual(ids_for(12, smu_utils_lib.WhichTopologies.CSD), [4001])
 
-    self.assertEmpty(ids_for(12, smu_utils_lib.WhichTopologies.itc))
-    self.assertEmpty(ids_for(11, smu_utils_lib.WhichTopologies.csd))
-
-
+    self.assertEmpty(ids_for(12, smu_utils_lib.WhichTopologies.ITC))
+    self.assertEmpty(ids_for(11, smu_utils_lib.WhichTopologies.CSD))
 
   def test_find_by_smiles_list(self):
     db = self.create_db_with_multiple_bond_topology()
@@ -314,40 +324,45 @@ class SmuSqliteTest(absltest.TestCase):
     # Test the cases with 1, 2, and 3 results
     got_mids = [
         mol.molecule_id for mol in db.find_by_smiles_list(
-          ['CCC'], smu_utils_lib.WhichTopologies.all)
+            ['CCC'], smu_utils_lib.WhichTopologies.ALL)
     ]
     self.assertCountEqual(got_mids, [3000])
 
-    got_mids = [mol.molecule_id for mol in db.find_by_smiles_list(
-      ['CC'], smu_utils_lib.WhichTopologies.all)]
+    got_mids = [
+        mol.molecule_id for mol in db.find_by_smiles_list(
+            ['CC'], smu_utils_lib.WhichTopologies.ALL)
+    ]
     self.assertCountEqual(got_mids, [2000, 3000])
 
-    got_mids = [mol.molecule_id for mol in db.find_by_smiles_list(
-      ['C'], smu_utils_lib.WhichTopologies.all)]
+    got_mids = [
+        mol.molecule_id for mol in db.find_by_smiles_list(
+            ['C'], smu_utils_lib.WhichTopologies.ALL)
+    ]
     self.assertCountEqual(got_mids, [1000, 2000, 3000])
 
     # and test a non existent id
-    self.assertEmpty(list(db.find_by_smiles_list(
-      ['I do not exist'], smu_utils_lib.WhichTopologies.all)))
+    self.assertEmpty(
+        list(
+            db.find_by_smiles_list(['I do not exist'],
+                                   smu_utils_lib.WhichTopologies.ALL)))
 
   def test_find_by_smiles_list_multi_arg(self):
     db = self.create_db()
 
     got_mids = [
         mol.molecule_id for mol in db.find_by_smiles_list(
-          ['CC', 'CCCCCC'], smu_utils_lib.WhichTopologies.all)
+            ['CC', 'CCCCCC'], smu_utils_lib.WhichTopologies.ALL)
     ]
     self.assertCountEqual(got_mids, [2001, 6001])
 
   def test_repeat_smiles_insert(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     db.bulk_insert(
-        self.encode_molecules([
-            self.make_fake_molecule(mid) for mid in [2001, 2002, 2003]
-        ]))
+        self.encode_molecules(
+            [self.make_fake_molecule(mid) for mid in [2001, 2002, 2003]]))
     got_mids = [
         molecule.molecule_id for molecule in db.find_by_smiles_list(
-          ['CC'], smu_utils_lib.WhichTopologies.all)
+            ['CC'], smu_utils_lib.WhichTopologies.ALL)
     ]
     self.assertCountEqual(got_mids, [2001, 2002, 2003])
 
@@ -370,9 +385,8 @@ class SmuSqliteTest(absltest.TestCase):
     self.assertCountEqual(got_mids, [2001, 2002])
 
     got_mids = [
-        molecule.molecule_id
-        for molecule in db.find_by_expanded_stoichiometry_list(
-            ['(ch2)2(ch3)2', '(ch3)2'])
+        molecule.molecule_id for molecule in
+        db.find_by_expanded_stoichiometry_list(['(ch2)2(ch3)2', '(ch3)2'])
     ]
     self.assertCountEqual(got_mids, [2001, 2002, 4004])
 
@@ -385,14 +399,12 @@ class SmuSqliteTest(absltest.TestCase):
             [self.make_fake_molecule(mid) for mid in [2001, 2002, 4004]]))
 
     got_mids = [
-        molecule.molecule_id
-        for molecule in db.find_by_stoichiometry('c2h6')
+        molecule.molecule_id for molecule in db.find_by_stoichiometry('c2h6')
     ]
     self.assertCountEqual(got_mids, [2001, 2002])
 
     got_mids = [
-        molecule.molecule_id
-        for molecule in db.find_by_stoichiometry('c4h10')
+        molecule.molecule_id for molecule in db.find_by_stoichiometry('c4h10')
     ]
     self.assertCountEqual(got_mids, [4004])
 
@@ -412,7 +424,7 @@ class SmuSqliteTest(absltest.TestCase):
     # topologies should be found.
 
     molecule = dataset_pb2.Molecule(molecule_id=9999)
-    molecule.properties.errors.fate=dataset_pb2.Properties.FATE_SUCCESS
+    molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS
 
     bt = molecule.bond_topologies.add(smiles='N1NO1', bond_topology_id=100)
     geom = molecule.optimized_geometry.atom_positions
@@ -422,23 +434,28 @@ class SmuSqliteTest(absltest.TestCase):
 
     bt.atoms.append(dataset_pb2.BondTopology.ATOM_N)
     geom.append(dataset_pb2.Geometry.AtomPos(x=0, y=1.1, z=0))
-    bt.bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
     bt.atoms.append(dataset_pb2.BondTopology.ATOM_N)
     geom.append(dataset_pb2.Geometry.AtomPos(x=1.1, y=0, z=0))
-    bt.bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
-    bt.bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=1, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=1, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
 
     bt.atoms.append(dataset_pb2.BondTopology.ATOM_H)
     geom.append(dataset_pb2.Geometry.AtomPos(x=0, y=1.2, z=0))
-    bt.bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=1, atom_b=3, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=1, atom_b=3, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
     bt.atoms.append(dataset_pb2.BondTopology.ATOM_H)
     geom.append(dataset_pb2.Geometry.AtomPos(x=1.2, y=0, z=0))
-    bt.bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=2, atom_b=4, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
+    bt.bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=2, atom_b=4, bond_type=dataset_pb2.BondTopology.BOND_SINGLE))
 
     for pos in geom:
       pos.x /= smu_utils_lib.BOHR_TO_ANGSTROMS
@@ -453,22 +470,20 @@ class SmuSqliteTest(absltest.TestCase):
     # We'll query by the topology that was in the DB then the one that wasn't
     for query_smiles in ['N1NO1', 'N=[NH+][O-]']:
 
-      got = list(db.find_by_topology(query_smiles,
-                                     bond_lengths=bond_lengths))
+      got = list(db.find_by_topology(query_smiles, bond_lengths=bond_lengths))
       self.assertLen(got, 1)
       self.assertCountEqual(
-        [100, 101, 101],
-        [bt.bond_topology_id for bt in got[0].bond_topologies])
+          [100, 101, 101],
+          [bt.bond_topology_id for bt in got[0].bond_topologies])
 
   def test_find_bond_topology_id_by_smarts(self):
     db = self.create_db()
 
     # 5 carbons in a row will only match the 6 or 8 carbon bond topology
-    self.assertEqual(list(db.find_bond_topology_id_by_smarts('CCCCC')),
-                     [6, 8])
+    self.assertEqual(list(db.find_bond_topology_id_by_smarts('CCCCC')), [6, 8])
 
     with self.assertRaises(ValueError):
-      got = list(db.find_bond_topology_id_by_smarts(']Broken)](Smarts'))
+      _ = list(db.find_bond_topology_id_by_smarts(']Broken)](Smarts'))
 
 
 if __name__ == '__main__':

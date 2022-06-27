@@ -26,6 +26,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Functions related to discerning the BondTopology from the geometry."""
 import itertools
 
@@ -47,7 +61,8 @@ THRESHOLD = 2.0
 def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
   """Generate a BondTopology with each Hydrogen atom to its nearest heavy atom.
 
-  If bond_lengths is given, the distance of the hydrogen is checked to the nearest
+  If bond_lengths is given, the distance of the hydrogen is checked to the
+  nearest
   heavy is checked to be allowed under that distance
 
   Args:
@@ -83,7 +98,7 @@ def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
 
     if bond_lengths:
       if (bond_lengths[(bond_topology.atoms[closest_heavy_atom],
-                       dataset_pb2.BondTopology.ATOM_H)]
+                        dataset_pb2.BondTopology.ATOM_H)]
           [dataset_pb2.BondTopology.BOND_SINGLE].pdf(shortest_distance) == 0.0):
         return None
 
@@ -120,11 +135,8 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
     Note that `bond_topology` will be put in a canonical form.
 
   Args:
+    molecule:
     bond_lengths: matrix of interatomic distances
-    molecule_id:
-    fate: outcome of calculations
-    bond_topology:
-    geometry: coordinates for the bond_topology
     matching_parameters:
 
   Returns:
@@ -148,11 +160,11 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a minimal BondTopology from which all others can grow
   if matching_parameters.check_hydrogen_dists:
-    minimal_bond_topology = hydrogen_to_nearest_atom(
-      starting_topology, distances, bond_lengths)
+    minimal_bond_topology = hydrogen_to_nearest_atom(starting_topology,
+                                                     distances, bond_lengths)
   else:
-    minimal_bond_topology = hydrogen_to_nearest_atom(
-      starting_topology, distances, None)
+    minimal_bond_topology = hydrogen_to_nearest_atom(starting_topology,
+                                                     distances, None)
 
   if minimal_bond_topology is None:
     return result
@@ -190,8 +202,8 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
   rdkit_mol = smu_utils_lib.bond_topology_to_rdkit_molecule(starting_topology)
   initial_ring_atom_count = utilities.ring_atom_count_mol(rdkit_mol)
 
-  mol = topology_molecule.TopologyMolecule(minimal_bond_topology, bonds_to_scores,
-                                 matching_parameters)
+  mol = topology_molecule.TopologyMolecule(minimal_bond_topology,
+                                           bonds_to_scores, matching_parameters)
 
   search_space = mol.generate_search_state()
   for s in itertools.product(*search_space):
@@ -284,8 +296,8 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
 
   Args:
     molecule: dataset_pb2.Molecule
-    bond_lengths: AllAtomPairLengthDistributions, empirical
-      distribution from SMU molecules
+    smu_bond_lengths: AllAtomPairLengthDistributions, empirical distribution
+      from SMU molecules
     smiles_id_dict: dictionary from smiles string to bond topology id
 
   Returns:
@@ -308,17 +320,17 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   matching_parameters.ring_atom_count_cannot_decrease = False
 
   smu_matches = bond_topologies_from_geom(
-        molecule,
-        bond_lengths=smu_bond_lengths,
-        matching_parameters=matching_parameters)
+      molecule,
+      bond_lengths=smu_bond_lengths,
+      matching_parameters=matching_parameters)
   # print('SMU: ', [bt.smiles for bt in smu_matches.bond_topology])
 
   if not smu_matches.bond_topology:
     # This means the SMU matching failed. We're gong to set the first bond
     # topology as starting and notify the caller
     molecule.bond_topologies[0].source = (
-      dataset_pb2.BondTopology.SOURCE_ITC |
-      dataset_pb2.BondTopology.SOURCE_STARTING)
+        dataset_pb2.BondTopology.SOURCE_ITC
+        | dataset_pb2.BondTopology.SOURCE_STARTING)
     return False
 
   starting_topology = molecule.bond_topologies[0]
@@ -341,9 +353,9 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   molecule.bond_topologies.extend(smu_matches.bond_topology)
 
   cov_matches = bond_topologies_from_geom(
-        molecule,
-        bond_lengths=_CACHED_MLCR_DISTS,
-        matching_parameters=matching_parameters)
+      molecule,
+      bond_lengths=_CACHED_MLCR_DISTS,
+      matching_parameters=matching_parameters)
   # print('COV: ', [bt.smiles for bt in cov_matches.bond_topology])
   for bt in cov_matches.bond_topology:
     try:
@@ -355,9 +367,9 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
     bt.geometry_score = np.nan
 
   allen_matches = bond_topologies_from_geom(
-        molecule,
-        bond_lengths=_CACHED_CSD_DISTS,
-        matching_parameters=matching_parameters)
+      molecule,
+      bond_lengths=_CACHED_CSD_DISTS,
+      matching_parameters=matching_parameters)
   # print('ALLEN: ', [bt.smiles for bt in allen_matches.bond_topology])
   for bt in allen_matches.bond_topology:
     try:
@@ -378,6 +390,5 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
         break
     if not found:
       molecule.bond_topologies.append(bt)
-
 
   return True

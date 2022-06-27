@@ -26,6 +26,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Beam pipeline for converting basel files to final output.
 
 We get horrible fortran formatted text files from Basel. This pipeline
@@ -48,7 +62,6 @@ from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
@@ -205,10 +218,11 @@ def molecule_to_stat_values(molecule):
   ]:
     yield 'errors.' + field, getattr(molecule.properties.errors, field)
 
-  yield 'fate', dataset_pb2.Properties.FateCategory.Name(molecule.properties.errors.fate)
+  yield 'fate', dataset_pb2.Properties.FateCategory.Name(
+      molecule.properties.errors.fate)
 
   yield 'num_initial_geometries', len(
-    [g for g in molecule.initial_geometries if g.atom_positions])
+      [g for g in molecule.initial_geometries if g.atom_positions])
   yield 'num_duplicates', len(molecule.duplicate_of)
 
   for field in smu_utils_lib.find_zero_values(molecule):
@@ -217,15 +231,18 @@ def molecule_to_stat_values(molecule):
   if not molecule.duplicated_by and molecule.properties.errors.status < 512:
     yield 'num_topologies', len(molecule.bond_topologies)
 
-    yield 'num_topologies_itc', len(
-      [None for bt in molecule.bond_topologies
-       if bt.source & dataset_pb2.BondTopology.SOURCE_ITC])
-    yield 'num_topologies_mlcr', len(
-      [None for bt in molecule.bond_topologies
-       if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR])
-    yield 'num_topologies_csd', len(
-      [None for bt in molecule.bond_topologies
-       if bt.source & dataset_pb2.BondTopology.SOURCE_CSD])
+    yield 'num_topologies_itc', len([
+        None for bt in molecule.bond_topologies
+        if bt.source & dataset_pb2.BondTopology.SOURCE_ITC
+    ])
+    yield 'num_topologies_mlcr', len([
+        None for bt in molecule.bond_topologies
+        if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR
+    ])
+    yield 'num_topologies_csd', len([
+        None for bt in molecule.bond_topologies
+        if bt.source & dataset_pb2.BondTopology.SOURCE_CSD
+    ])
 
     for bt in molecule.bond_topologies:
       yield 'bt_source', bt.source
@@ -296,12 +313,12 @@ class MergeMoleculesFn(beam.DoFn):
     # modify the input and smu_utils_lib.merge_molecule wants to reserve the
     # right to modify either input so it's simplest to just copy it once right
     # off the bat.
-    yield functools.reduce(_merge_two_molecules,
-                           copy.deepcopy(list(molecules)), sentinel)
+    yield functools.reduce(_merge_two_molecules, copy.deepcopy(list(molecules)),
+                           sentinel)
 
     for c in conflicts:
-      yield beam.pvalue.TaggedOutput(
-          MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT, c)
+      yield beam.pvalue.TaggedOutput(MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT,
+                                     c)
 
 
 def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
@@ -494,7 +511,7 @@ class UpdateMoleculeFn(beam.DoFn):
         self._cached_bond_lengths.add_from_sparse_dataframe(
             bond_length_distribution.sparse_dataframe_from_records(
                 bond_length_records),
-          bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
+            bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
             bond_length_distribution.STANDARD_SIG_DIGITS)
       except ValueError as err:
         raise ValueError(
@@ -510,7 +527,8 @@ class UpdateMoleculeFn(beam.DoFn):
     if smu_utils_lib.molecule_eligible_for_topology_detection(molecule):
       self._add_alternative_bond_topologies(molecule, smiles_id_dict)
     else:
-      molecule.bond_topologies[0].source = dataset_pb2.BondTopology.SOURCE_STARTING
+      molecule.bond_topologies[
+          0].source = dataset_pb2.BondTopology.SOURCE_STARTING
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'skipped_topology_matches').inc()
 
@@ -554,9 +572,7 @@ def merge_duplicate_information(molecule_id, molecules):
   Returns:
     dataset_pb2.Molecule
   """
-  matching_molecules = [
-      c for c in molecules if c.molecule_id == molecule_id
-  ]
+  matching_molecules = [c for c in molecules if c.molecule_id == molecule_id]
   if len(matching_molecules) != 1:
     raise ValueError('Expected 1 molecules with id {}, got {}'.format(
         molecule_id, len(matching_molecules)))
@@ -826,8 +842,7 @@ def pipeline(root):
 
   # Merge by bond_topology_id
   merged_results = (
-      (stage1_matched_molecules, stage2_matched_molecules,
-       equivalent_molecules)
+      (stage1_matched_molecules, stage2_matched_molecules, equivalent_molecules)
       | 'FlattenAllMolecules' >> beam.Flatten()
       | 'GroupByCID' >> beam.GroupBy(lambda c: c.molecule_id)
       | 'MergeMolecules' >> beam.ParDo(MergeMoleculesFn()).with_outputs(

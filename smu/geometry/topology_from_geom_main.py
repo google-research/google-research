@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Topology from Geometry."""
 from absl import app
 from absl import flags
@@ -26,8 +39,7 @@ from smu.geometry import topology_molecule
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("input", None,
-                    "TFDataRecord file containg Molecule protos")
+flags.DEFINE_string("input", None, "TFDataRecord file containg Molecule protos")
 flags.DEFINE_string("bonds", None,
                     "File name stem for bond length distributions")
 flags.DEFINE_string("output", None, "Output file")
@@ -107,17 +119,16 @@ class TopologyFromGeom(beam.DoFn):
       dataset_pb2.TopologyMatches
     """
     # Adjust as needed...
-    #   if molecule.properties.errors.fate != dataset_pb2.Properties.FATE_SUCCESS:
-    #     return
+    # if molecule.properties.errors.fate != dataset_pb2.Properties.FATE_SUCCESS:
+    #   return
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.neutral_forms_during_bond_matching = True
     matching_parameters.must_match_all_bonds = True
     matching_parameters.consider_not_bonded = True
     matching_parameters.ring_atom_count_cannot_decrease = False
-    yield topology_from_geom.bond_topologies_from_geom(
-        molecule,
-        self._bond_lengths,
-        matching_parameters)
+    yield topology_from_geom.bond_topologies_from_geom(molecule,
+                                                       self._bond_lengths,
+                                                       matching_parameters)
 
 
 def TopologyFromGeometryMain(unused_argv):

@@ -27,6 +27,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tests for pipeline."""
 
 import os
@@ -103,8 +117,7 @@ class FunctionalTest(absltest.TestCase):
     mol.optimized_geometry.atom_positions.add(x=111, y=222, z=333)
 
     got = list(
-        pipeline.extract_bond_lengths(
-            mol, dist_sig_digits=2, unbonded_max=2.0))
+        pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
     # Note that these are *not* rounded, but truncated to this many digits.
     self.assertEqual(
         got,
@@ -135,8 +148,7 @@ class FunctionalTest(absltest.TestCase):
     mol.optimized_geometry.atom_positions.add(x=100, y=2, z=0)
 
     got = list(
-        pipeline.extract_bond_lengths(
-            mol, dist_sig_digits=2, unbonded_max=2.0))
+        pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
     # Note that these are *not* rounded, but truncated to this many digits.
     self.assertEqual(
         got,
@@ -164,8 +176,7 @@ class FunctionalTest(absltest.TestCase):
     mol = self._create_dummy_molecule()
     mol.properties.errors.status = 8
     got = list(
-        pipeline.extract_bond_lengths(
-            mol, dist_sig_digits=2, unbonded_max=2.0))
+        pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
     self.assertEqual([], got)
 
   def test_extract_bond_lengths_is_dup(self):
@@ -173,8 +184,7 @@ class FunctionalTest(absltest.TestCase):
     mol.properties.errors.status = 0
     mol.duplicated_by = 456000
     got = list(
-        pipeline.extract_bond_lengths(
-            mol, dist_sig_digits=2, unbonded_max=2.0))
+        pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
     self.assertEqual([], got)
 
 
@@ -273,19 +283,19 @@ class IntegrationTest(absltest.TestCase):
       # This is the bond topology that has no molecule
       self.assertEqual(df_bt_summary.loc[10, 'count_attempted_molecules'], 0)
       # This is a bond topology with 1 molecule
+      self.assertEqual(df_bt_summary.loc[620517, 'count_attempted_molecules'],
+                       1)
       self.assertEqual(
-        df_bt_summary.loc[620517, 'count_attempted_molecules'], 1)
-      self.assertEqual(
-        df_bt_summary.loc[620517, 'count_calculation_with_error'], 1)
+          df_bt_summary.loc[620517, 'count_calculation_with_error'], 1)
       # This is a bond topology with 2 molecules
+      self.assertEqual(df_bt_summary.loc[618451, 'count_attempted_molecules'],
+                       2)
+      self.assertEqual(df_bt_summary.loc[618451, 'count_calculation_success'],
+                       2)
       self.assertEqual(
-        df_bt_summary.loc[618451, 'count_attempted_molecules'], 2)
+          df_bt_summary.loc[618451, 'count_detected_match_mlcr_success'], 2)
       self.assertEqual(
-        df_bt_summary.loc[618451, 'count_calculation_success'], 2)
-      self.assertEqual(
-        df_bt_summary.loc[618451, 'count_detected_match_mlcr_success'], 2)
-      self.assertEqual(
-        df_bt_summary.loc[618451, 'count_detected_match_csd_success'], 2)
+          df_bt_summary.loc[618451, 'count_detected_match_csd_success'], 2)
 
     # Check the bond lengths file
     with gfile.GFile(output_stem + '_bond_lengths.csv') as f:
@@ -327,9 +337,8 @@ class IntegrationTest(absltest.TestCase):
     # Check that fields are filtered the way we expect
     # The DirectRunner randomizes the order of output so we need to make sure
     # that we get a full record.
-    complete_entry = [
-        c for c in complete_output if c.molecule_id == 618451001
-    ][0]
+    complete_entry = [c for c in complete_output if c.molecule_id == 618451001
+                     ][0]
     self.assertFalse(complete_entry.properties.HasField('compute_cluster_info'))
     self.assertTrue(complete_entry.properties.HasField('homo_pbe0_aug_pc_1'))
     self.assertTrue(complete_entry.properties.HasField('harmonic_frequencies'))

@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """More complex example processing all isomers of C6H6.
 
 This example will use more python features and idioms than the other examples.
@@ -68,8 +81,7 @@ for mol in molecules:
   # See special_cases.py for a description of the duplicated_by field
   #---------------------------------------------------------------------------
 
-  if (mol.properties.errors.status >= 4 or
-      mol.duplicated_by != 0):
+  if (mol.properties.errors.status >= 4 or mol.duplicated_by != 0):
     continue
 
   #---------------------------------------------------------------------------
@@ -101,10 +113,9 @@ for mol in molecules:
   #---------------------------------------------------------------------------
 
   for bt in mol.bond_topologies:
-    #if not bt.is_starting_topology:
-    #  continue
+    # if not bt.is_starting_topology:
+    #   continue
     smiles_to_molecules[bt.smiles].append(mol)
-
 
 #-----------------------------------------------------------------------------
 # Now process each bond topology separately and write the output.
@@ -114,17 +125,15 @@ for mol in molecules:
 # output formats. See dataframe.py for how to do this.
 #-----------------------------------------------------------------------------
 writer = csv.writer(sys.stdout)
-writer.writerow(['molecule_id',
-                 'smiles',
-                 'molecule_count',
-                 'dip_x',
-                 'dip_y',
-                 'dip_z',
-                 'dip'])
+writer.writerow([
+    'molecule_id', 'smiles', 'molecule_count', 'dip_x', 'dip_y', 'dip_z', 'dip'
+])
 
 for smiles in smiles_to_molecules:
-  energies = [mol.properties.enthalpy_of_formation_298k_atomic_b5.value
-              for mol in smiles_to_molecules[smiles]]
+  energies = [
+      mol.properties.enthalpy_of_formation_298k_atomic_b5.value
+      for mol in smiles_to_molecules[smiles]
+  ]
   #---------------------------------------------------------------------------
   # While this line may look mysterious, it's doing exactly what the words say:
   # it finds the index of the minimum value of the energies
@@ -139,10 +148,7 @@ for smiles in smiles_to_molecules:
 
   dipole = mol.properties.dipole_moment_pbe0_aug_pc_1
   writer.writerow([
-    mol.molecule_id,
-    smiles,
-    len(smiles_to_molecules[smiles]),
-    dipole.x,
-    dipole.y,
-    dipole.z,
-    '{:.8f}'.format(math.sqrt(dipole.x**2 + dipole.y**2 + dipole.z**2))])
+      mol.molecule_id, smiles,
+      len(smiles_to_molecules[smiles]), dipole.x, dipole.y, dipole.z,
+      '{:.8f}'.format(math.sqrt(dipole.x**2 + dipole.y**2 + dipole.z**2))
+  ])

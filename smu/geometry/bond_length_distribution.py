@@ -26,6 +26,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Classes for holding information about distribution of bond lengths.
 
 The core idea is to represent the probability distribution function (via
@@ -72,10 +86,10 @@ class BondLengthParseError(Exception):
     self.term = term
 
   def __str__(self):
-    ('Bond lengths spec must be comma separated terms like form XYX:N-N '
-     'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
-     'and N is a possibly empty floating point number. '
-     '"{}" did not parse.').format(self.term)
+    return ('Bond lengths spec must be comma separated terms like form XYX:N-N '
+            'where X is an atom type (CNOF*), Y is a bond type (-=#.~), '
+            'and N is a possibly empty floating point number. '
+            '"{}" did not parse.').format(self.term)
 
 
 def interpolate_zeros(values):
@@ -150,21 +164,16 @@ class FixedWindow(LengthDistribution):
       right_tail_mass: probability mass added part the right side of the window
         (see class documentation)
     """
-    if (minimum < 0.0 or
-        maximum < 0.0 or
-        not np.isfinite(minimum) or
-        not np.isfinite(maximum) or
-        maximum <= minimum):
+    if (minimum < 0.0 or maximum < 0.0 or not np.isfinite(minimum) or
+        not np.isfinite(maximum) or maximum <= minimum):
       raise ValueError(
-        f'Bad args to FixedWindow(minimum={minimum}, maximum={maximum}, '
-        f'right_tail_mass={right_tail_mass})')
-    if (right_tail_mass and
-        (right_tail_mass < 0 or
-         right_tail_mass >= 1 or
-         not np.isfinite(right_tail_mass))):
+          f'Bad args to FixedWindow(minimum={minimum}, maximum={maximum}, '
+          f'right_tail_mass={right_tail_mass})')
+    if (right_tail_mass and (right_tail_mass < 0 or right_tail_mass >= 1 or
+                             not np.isfinite(right_tail_mass))):
       raise ValueError(
-        f'Bad args to FixedWindow(minimum={minimum}, maximum={maximum}, '
-        f'right_tail_mass={right_tail_mass})')
+          f'Bad args to FixedWindow(minimum={minimum}, maximum={maximum}, '
+          f'right_tail_mass={right_tail_mass})')
 
     self.minimum = minimum
     self.maximum = maximum
@@ -217,8 +226,7 @@ class FixedWindow(LengthDistribution):
 
 
 class Gaussian(LengthDistribution):
-  """Represents a trimmed Gaussian.
-  """
+  """Represents a trimmed Gaussian."""
 
   def __init__(self, mean, stdev, cutoff):
     if not stdev > 0:
@@ -431,6 +439,7 @@ class Mixture(LengthDistribution):
   can be on arbitrary scale; the outputs will be scaled by the sum of the
   weights.
   """
+
   def __init__(self):
     self._dists = []
     self._total_weight = 0.0
@@ -444,7 +453,7 @@ class Mixture(LengthDistribution):
     """
     if weight <= 0.0:
       raise ValueError(f'Mixture: weight must be positive, got {weight}')
-    self._dists.append( (dist, weight) )
+    self._dists.append((dist, weight))
     self._total_weight += weight
 
   def pdf(self, length):
@@ -458,8 +467,8 @@ class Mixture(LengthDistribution):
     """
     if not self._dists:
       raise ValueError('Mixture.pdf called with empty components')
-    return (sum([w * dist.pdf(length) for dist, w in self._dists])
-            / self._total_weight)
+    return (sum([w * dist.pdf(length) for dist, w in self._dists]) /
+            self._total_weight)
 
   def min(self):
     return np.min([d.min() for (d, w) in self._dists])
@@ -614,8 +623,8 @@ class AllAtomPairLengthDistributions:
 
     Args:
       filestem: prefix of files to load
-      unbonded_right_tail_mass: right_tail_mass (as described in
-        Empirical) for the unbonded cases.
+      unbonded_right_tail_mass: right_tail_mass (as described in Empirical) for
+        the unbonded cases.
       include_nonbonded: whether or not to include non-bonded data.
     """
     atomic_numbers = [1, 6, 7, 8, 9]
@@ -660,8 +669,8 @@ class AllAtomPairLengthDistributions:
 
     Args:
       df_input: pd.DataFrame
-      unbonded_right_tail_mass: right_tail_mass (as described in
-        Empirical) for the unbonded cases.
+      unbonded_right_tail_mass: right_tail_mass (as described in Empirical) for
+        the unbonded cases.
       sig_digits: number of significant digits after the decimal point
     """
     avail_pairs = set(
@@ -681,13 +690,11 @@ class AllAtomPairLengthDistributions:
 
       atom_0 = ATOMIC_NUMBER_TO_ATYPE[atom_0]
       atom_1 = ATOMIC_NUMBER_TO_ATYPE[atom_1]
-      self.add(
-          atom_0, atom_1, bond_type,
-          Empirical.from_sparse_dataframe(
-              df, right_tail_mass, sig_digits))
+      self.add(atom_0, atom_1, bond_type,
+               Empirical.from_sparse_dataframe(df, right_tail_mass, sig_digits))
 
-  def add_from_sparse_dataframe_file(self, filename,
-                                     unbonded_right_tail_mass, sig_digits):
+  def add_from_sparse_dataframe_file(self, filename, unbonded_right_tail_mass,
+                                     sig_digits):
     """Adds distribution from a sparse dataframe in a csv file.
 
     See sparse_dataframe_from_records for a description of the expected input
@@ -695,8 +702,8 @@ class AllAtomPairLengthDistributions:
 
     Args:
       filename: string, file to read
-      unbonded_right_tail_mass: right_tail_mass (as described in
-        Empirical) for the unbonded cases.
+      unbonded_right_tail_mass: right_tail_mass (as described in Empirical) for
+        the unbonded cases.
       sig_digits: number of significant digits after the decimal point
     """
     with open(filename, 'r') as infile:
@@ -713,7 +720,7 @@ class AllAtomPairLengthDistributions:
     yield from itertools.product(atoms_a, atoms_b, bonds)
 
   def add_from_gaussians_file(self, filename, cutoff):
-    """Adds distribution by reading specs of Guassians.
+    """Adds distribution by reading specs of Gaussians.
 
     The original intention is to take a specially formatted version of the table
     from
@@ -739,22 +746,23 @@ class AllAtomPairLengthDistributions:
         if row['Bond'] == 'n/a' or not row['d']:
           continue
         gaussian = Gaussian(float(row['d']), float(row['sigma']), cutoff)
-        for atom_a, atom_b, bond in self._triples_from_atom_bond_atom_spec(row['Bond']):
+        for atom_a, atom_b, bond in self._triples_from_atom_bond_atom_spec(
+            row['Bond']):
           try:
             atom_a_num = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
             atom_b_num = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
             # We are assuming that there were no other items in _atom_pair_dict
-            # before this function called. If this is violated, the .add below will
-            # cause a run time error.
-            mix_dist = cast(Mixture, self._atom_pair_dict[(atom_a_num, atom_b_num)][bond])
+            # before this function called. If this is violated, the .add below
+            # will cause a run time error.
+            mix_dist = cast(
+                Mixture, self._atom_pair_dict[(atom_a_num, atom_b_num)][bond])
           except KeyError:
             mix_dist = Mixture()
             self.add(atom_a, atom_b, bond, mix_dist)
           mix_dist.add(gaussian, int(row['n']))
 
-
   def add_from_string_spec(self, spec_string):
-    """Adds entries from a compact string specifiction
+    """Adds entries from a compact string specification.
 
     spec_string is a comma separated list of terms of form
     XYX:N-N
@@ -787,15 +795,13 @@ class AllAtomPairLengthDistributions:
           max_val = min_val + 0.1
           right_tail_mass = 0.9
 
-        for atom_a, atom_b, bond in self._triples_from_atom_bond_atom_spec(term[:3]):
-          self.add(
-              atom_a, atom_b, bond,
-              FixedWindow(
-                  min_val, max_val, right_tail_mass))
+        for atom_a, atom_b, bond in self._triples_from_atom_bond_atom_spec(
+            term[:3]):
+          self.add(atom_a, atom_b, bond,
+                   FixedWindow(min_val, max_val, right_tail_mass))
 
       except (KeyError, IndexError, ValueError) as an_exception:
         raise BondLengthParseError(term) from an_exception
-
 
   def __getitem__(self, atom_types):
     """Gets the underlying AtomPairLengthDistribution."""
@@ -867,7 +873,7 @@ def sparse_dataframe_from_records(records):
 
 
 def make_fake_empiricals():
-  """Testing utility to make an AllAtomPairLengthDistributions
+  """Testing utility to make an AllAtomPairLengthDistributions.
 
   Every atom pair and bond type is an empirical dstribution between 1 and 2
 
@@ -875,22 +881,19 @@ def make_fake_empiricals():
     AllAtomPairLengthDistributions
   """
   bond_lengths = AllAtomPairLengthDistributions()
-  for atom_a, atom_b in itertools.combinations_with_replacement(
-      [dataset_pb2.BondTopology.ATOM_C,
-       dataset_pb2.BondTopology.ATOM_N,
-       dataset_pb2.BondTopology.ATOM_O,
-       dataset_pb2.BondTopology.ATOM_F], 2):
-    bond_lengths.add(
-      atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
-      Empirical.from_arrays(
-        np.arange(1, 2, 0.1), [1] * 10, 0))
-    for bond_type in [dataset_pb2.BondTopology.BOND_SINGLE,
-                      dataset_pb2.BondTopology.BOND_DOUBLE,
-                      dataset_pb2.BondTopology.BOND_TRIPLE]:
-      bond_lengths.add(
-        atom_a, atom_b, bond_type,
-        Empirical.from_arrays(
-          np.arange(1, 2, 0.1), [1] * 10, 0))
+  for atom_a, atom_b in itertools.combinations_with_replacement([
+      dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+      dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F
+  ], 2):
+    bond_lengths.add(atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
+                     Empirical.from_arrays(np.arange(1, 2, 0.1), [1] * 10, 0))
+    for bond_type in [
+        dataset_pb2.BondTopology.BOND_SINGLE,
+        dataset_pb2.BondTopology.BOND_DOUBLE,
+        dataset_pb2.BondTopology.BOND_TRIPLE
+    ]:
+      bond_lengths.add(atom_a, atom_b, bond_type,
+                       Empirical.from_arrays(np.arange(1, 2, 0.1), [1] * 10, 0))
   return bond_lengths
 
 
@@ -910,17 +913,19 @@ def is_valid_bond(atom_a, atom_b, bond):
   if bond == dataset_pb2.BondTopology.BOND_UNDEFINED:
     return True
   bond_order = int(bond)
-  return (bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_a] and
+  return (bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_a]
+          and
           bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_b])
 
 
 _ITC_H_BOND_MIN_MAX = {
-  dataset_pb2.BondTopology.ATOM_H: (0.54, 0.94),
-  dataset_pb2.BondTopology.ATOM_C: (0.89, 1.29),
-  dataset_pb2.BondTopology.ATOM_N: (0.81, 1.21),
-  dataset_pb2.BondTopology.ATOM_O: (0.76, 1.16),
-  dataset_pb2.BondTopology.ATOM_F: (0.72, 1.12),
+    dataset_pb2.BondTopology.ATOM_H: (0.54, 0.94),
+    dataset_pb2.BondTopology.ATOM_C: (0.89, 1.29),
+    dataset_pb2.BondTopology.ATOM_N: (0.81, 1.21),
+    dataset_pb2.BondTopology.ATOM_O: (0.76, 1.16),
+    dataset_pb2.BondTopology.ATOM_F: (0.72, 1.12),
 }
+
 
 def add_itc_h_lengths(dists):
   """Add all H bond lenghts.
@@ -929,17 +934,15 @@ def add_itc_h_lengths(dists):
     dists: AllAtomPairLengthDistributions
   """
   for atom, (mn, mx) in _ITC_H_BOND_MIN_MAX.items():
-    dists.add(atom,
-              dataset_pb2.BondTopology.ATOM_H,
-              dataset_pb2.BondTopology.BOND_SINGLE,
-              FixedWindow(mn, mx, None))
+    dists.add(atom, dataset_pb2.BondTopology.ATOM_H,
+              dataset_pb2.BondTopology.BOND_SINGLE, FixedWindow(mn, mx, None))
 
 
 _COVALENT_RADIUS = {
-  dataset_pb2.BondTopology.ATOM_C: 0.68,
-  dataset_pb2.BondTopology.ATOM_N: 0.68,
-  dataset_pb2.BondTopology.ATOM_O: 0.68,
-  dataset_pb2.BondTopology.ATOM_F: 0.64,
+    dataset_pb2.BondTopology.ATOM_C: 0.68,
+    dataset_pb2.BondTopology.ATOM_N: 0.68,
+    dataset_pb2.BondTopology.ATOM_O: 0.68,
+    dataset_pb2.BondTopology.ATOM_F: 0.64,
 }
 
 _COVALENT_RADII_MIN = 0.8
@@ -968,116 +971,109 @@ def make_mlcr_dists():
   """
 
   dists = AllAtomPairLengthDistributions()
-  for atom_a, atom_b in itertools.combinations_with_replacement(
-      [dataset_pb2.BondTopology.ATOM_C,
-       dataset_pb2.BondTopology.ATOM_N,
-       dataset_pb2.BondTopology.ATOM_O,
-       dataset_pb2.BondTopology.ATOM_F], 2):
-    max_dist = (_COVALENT_RADIUS[atom_a] +
-                _COVALENT_RADIUS[atom_b] +
-                _COVALENT_RADII_TOLERANCE)
-    for bond in [dataset_pb2.BondTopology.BOND_SINGLE,
-                 dataset_pb2.BondTopology.BOND_DOUBLE,
-                 dataset_pb2.BondTopology.BOND_TRIPLE]:
+  for atom_a, atom_b in itertools.combinations_with_replacement([
+      dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+      dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F
+  ], 2):
+    max_dist = (
+        _COVALENT_RADIUS[atom_a] + _COVALENT_RADIUS[atom_b] +
+        _COVALENT_RADII_TOLERANCE)
+    for bond in [
+        dataset_pb2.BondTopology.BOND_SINGLE,
+        dataset_pb2.BondTopology.BOND_DOUBLE,
+        dataset_pb2.BondTopology.BOND_TRIPLE
+    ]:
       if is_valid_bond(atom_a, atom_b, bond):
         dists.add(atom_a, atom_b, bond,
                   FixedWindow(_COVALENT_RADII_MIN, max_dist, None))
 
-    dists.add(atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
-              FixedWindow(max_dist - _COVALENT_RADII_UNBONDED_OVERLAP, max_dist,
-                          STANDARD_UNBONDED_RIGHT_TAIL_MASS))
+    dists.add(
+        atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
+        FixedWindow(max_dist - _COVALENT_RADII_UNBONDED_OVERLAP, max_dist,
+                    STANDARD_UNBONDED_RIGHT_TAIL_MASS))
 
   return dists
 
 
-# This table is cut and pasted from the output for tools/generate_allen_minmax.py
+# This table is cut and pasted from the output for
+# tools/generate_allen_minmax.py
 # We put this into code for simplicity.
 _CSD_MIN_MAX = {
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.316, 1.663),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.BOND_DOUBLE): (1.218, 1.477),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.BOND_TRIPLE): (1.139, 1.225),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.270, 1.621),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.BOND_DOUBLE): (1.239, 1.402),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.BOND_TRIPLE): (1.106, 1.191),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_O,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.198, 1.524),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_O,
-   dataset_pb2.BondTopology.BOND_DOUBLE): (1.148, 1.301),
-  (dataset_pb2.BondTopology.ATOM_C,
-   dataset_pb2.BondTopology.ATOM_F,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.277, 1.485),
-  (dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.132, 1.517),
-  (dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.BOND_DOUBLE): (1.079, 1.401),
-  (dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.BOND_TRIPLE): (1.079, 1.169),
-  (dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.ATOM_O,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.176, 1.499),
-  (dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.ATOM_O,
-   dataset_pb2.BondTopology.BOND_DOUBLE): (1.176, 1.299),
-  (dataset_pb2.BondTopology.ATOM_N,
-   dataset_pb2.BondTopology.ATOM_F,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.358, 1.454),
-  (dataset_pb2.BondTopology.ATOM_O,
-   dataset_pb2.BondTopology.ATOM_O,
-   dataset_pb2.BondTopology.BOND_SINGLE): (1.433, 1.511),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.316, 1.663),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
+     dataset_pb2.BondTopology.BOND_DOUBLE): (1.218, 1.477),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
+     dataset_pb2.BondTopology.BOND_TRIPLE): (1.139, 1.225),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.270, 1.621),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+     dataset_pb2.BondTopology.BOND_DOUBLE): (1.239, 1.402),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+     dataset_pb2.BondTopology.BOND_TRIPLE): (1.106, 1.191),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_O,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.198, 1.524),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_O,
+     dataset_pb2.BondTopology.BOND_DOUBLE): (1.148, 1.301),
+    (dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_F,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.277, 1.485),
+    (dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.132, 1.517),
+    (dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
+     dataset_pb2.BondTopology.BOND_DOUBLE): (1.079, 1.401),
+    (dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
+     dataset_pb2.BondTopology.BOND_TRIPLE): (1.079, 1.169),
+    (dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_O,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.176, 1.499),
+    (dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_O,
+     dataset_pb2.BondTopology.BOND_DOUBLE): (1.176, 1.299),
+    (dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_F,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.358, 1.454),
+    (dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_O,
+     dataset_pb2.BondTopology.BOND_SINGLE): (1.433, 1.511),
 }
 
+
 def make_csd_dists():
+  """Make CSD distances.
+
+  Returns:
+    CSD distances.
+  """
   dists = AllAtomPairLengthDistributions()
 
-  for atom_a, atom_b in itertools.combinations_with_replacement(
-      [dataset_pb2.BondTopology.ATOM_C,
-       dataset_pb2.BondTopology.ATOM_N,
-       dataset_pb2.BondTopology.ATOM_O,
-       dataset_pb2.BondTopology.ATOM_F], 2):
+  for atom_a, atom_b in itertools.combinations_with_replacement([
+      dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
+      dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_F
+  ], 2):
     max_dist = -np.inf
-    for bond in [dataset_pb2.BondTopology.BOND_SINGLE,
-                 dataset_pb2.BondTopology.BOND_DOUBLE,
-                 dataset_pb2.BondTopology.BOND_TRIPLE]:
+    for bond in [
+        dataset_pb2.BondTopology.BOND_SINGLE,
+        dataset_pb2.BondTopology.BOND_DOUBLE,
+        dataset_pb2.BondTopology.BOND_TRIPLE
+    ]:
       if is_valid_bond(atom_a, atom_b, bond):
         try:
           mn, mx = _CSD_MIN_MAX[(atom_a, atom_b, bond)]
-          # Add this slop so that anything that rounds to the published distances
-          # wil be considered valid.
+          # Add this slop so that anything that rounds to the published
+          # distances wil be considered valid.
           mn -= .0005
           mx += .0005
         except KeyError:
           # If Allen et al is missing a pair, fill in the covalent radii case
           mn = _COVALENT_RADII_MIN
-          mx =  (_COVALENT_RADIUS[atom_a] +
-                 _COVALENT_RADIUS[atom_b] +
-                 _COVALENT_RADII_TOLERANCE)
-        dists.add(atom_a, atom_b, bond,
-                  FixedWindow(mn, mx, None))
+          mx = (
+              _COVALENT_RADIUS[atom_a] + _COVALENT_RADIUS[atom_b] +
+              _COVALENT_RADII_TOLERANCE)
+        dists.add(atom_a, atom_b, bond, FixedWindow(mn, mx, None))
         max_dist = max(max_dist, mx)
 
     assert np.isfinite(max_dist)
     # We are creating unbonded distances that don't overlap at all with the
     # defined ranges.
-    dists.add(atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
-              FixedWindow(max_dist, max_dist + 0.1,
-                          STANDARD_UNBONDED_RIGHT_TAIL_MASS))
-
+    dists.add(
+        atom_a, atom_b, dataset_pb2.BondTopology.BOND_UNDEFINED,
+        FixedWindow(max_dist, max_dist + 0.1,
+                    STANDARD_UNBONDED_RIGHT_TAIL_MASS))
 
   return dists

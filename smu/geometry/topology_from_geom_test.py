@@ -27,6 +27,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Tester for topology_from_geometry
 
 from absl.testing import absltest
@@ -37,8 +51,8 @@ import pandas as pd
 from google.protobuf import text_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import topology_molecule
 from smu.geometry import topology_from_geom
+from smu.geometry import topology_molecule
 from smu.parser import smu_utils_lib
 
 # Only needed so we can alter the default bond matching
@@ -73,7 +87,7 @@ def triangular_distribution(min_dist, dist_max_value, max_dist):
   dx = x_extent / RESOLUTION
   distances = np.arange(min_dist, max_dist, dx, dtype=np.float32)
 
-  df = pd.DataFrame({"length": distances, "count": population})
+  df = pd.DataFrame({'length': distances, 'count': population})
   return bond_length_distribution.Empirical(df, 0.0)
 
 
@@ -92,12 +106,13 @@ class TestTopoFromGeom(absltest.TestCase):
     bldc1c = triangular_distribution(1.0, 1.4, 2.0)
     all_distributions.add(carbon, carbon, single_bond, bldc1c)
     bldc2c = triangular_distribution(1.0, 1.5, 2.0)
-    all_distributions.add(carbon, carbon, double_bond,bldc2c)
+    all_distributions.add(carbon, carbon, double_bond, bldc2c)
 
     molecule = dataset_pb2.Molecule()
 
-    molecule.bond_topologies.append(text_format.Parse(
-        """
+    molecule.bond_topologies.append(
+        text_format.Parse(
+            """
 atoms: ATOM_C
 atoms: ATOM_C
 bonds: {
@@ -107,8 +122,9 @@ bonds: {
 }
 """, dataset_pb2.BondTopology()))
 
-    molecule.optimized_geometry.MergeFrom(text_format.Parse(
-        """
+    molecule.optimized_geometry.MergeFrom(
+        text_format.Parse(
+            """
 atom_positions {
   x: 0.0
   y: 0.0
@@ -121,14 +137,14 @@ atom_positions {
 }
 """, dataset_pb2.Geometry()))
     molecule.optimized_geometry.atom_positions[1].x = (
-      1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
+        1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
 
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
     molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS
     molecule.molecule_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
-      molecule, all_distributions, matching_parameters)
+        molecule, all_distributions, matching_parameters)
     self.assertIsNotNone(result)
     self.assertLen(result.bond_topology, 2)
     self.assertLen(result.bond_topology[0].bonds, 1)
@@ -150,14 +166,12 @@ atom_positions {
     double = dataset_pb2.BondTopology.BondType.BOND_DOUBLE
 
     all_dist = bond_length_distribution.AllAtomPairLengthDistributions()
-    all_dist.add(
-      dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
-      single,
-      triangular_distribution(1.0, 1.5, 2.0))
-    all_dist.add(
-      dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_N,
-      double,
-      triangular_distribution(1.0, 1.4, 2.0))
+    all_dist.add(dataset_pb2.BondTopology.ATOM_N,
+                 dataset_pb2.BondTopology.ATOM_N, single,
+                 triangular_distribution(1.0, 1.5, 2.0))
+    all_dist.add(dataset_pb2.BondTopology.ATOM_N,
+                 dataset_pb2.BondTopology.ATOM_N, double,
+                 triangular_distribution(1.0, 1.4, 2.0))
 
     # This molecule is a flat aromatic square of nitrogens. The single and
     # double bonds can be rotated such that it's the same topology but
@@ -166,7 +180,7 @@ atom_positions {
     molecule = dataset_pb2.Molecule(molecule_id=123)
     molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS
 
-    molecule.bond_topologies.add(bond_topology_id=123, smiles="N1=NN=N1")
+    molecule.bond_topologies.add(bond_topology_id=123, smiles='N1=NN=N1')
     molecule.bond_topologies[0].atoms.extend([
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
@@ -191,7 +205,7 @@ atom_positions {
 
     matching_parameters = topology_molecule.MatchingParameters()
     result = topology_from_geom.bond_topologies_from_geom(
-      molecule, all_dist, matching_parameters)
+        molecule, all_dist, matching_parameters)
 
     self.assertLen(result.bond_topology, 2)
 
@@ -224,20 +238,16 @@ class TestStandardTopologySensing(absltest.TestCase):
     bld = bond_length_distribution.AllAtomPairLengthDistributions()
     # This is set up to make the O=C length of 1.25 a much better fit than
     # the [O-]-C bond
-    bld.add(dataset_pb2.BondTopology.ATOM_O,
-            dataset_pb2.BondTopology.ATOM_C,
+    bld.add(dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_C,
             dataset_pb2.BondTopology.BondType.BOND_SINGLE,
             triangular_distribution(1.2, 1.6, 1.8))
-    bld.add(dataset_pb2.BondTopology.ATOM_O,
-            dataset_pb2.BondTopology.ATOM_C,
+    bld.add(dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_C,
             dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
             triangular_distribution(1.2, 1.25, 1.3))
-    bld.add(dataset_pb2.BondTopology.ATOM_C,
-            dataset_pb2.BondTopology.ATOM_N,
+    bld.add(dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
             dataset_pb2.BondTopology.BondType.BOND_DOUBLE,
             bond_length_distribution.FixedWindow(1.1, 1.3, None))
-    bld.add(dataset_pb2.BondTopology.ATOM_C,
-            dataset_pb2.BondTopology.ATOM_N,
+    bld.add(dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
             dataset_pb2.BondTopology.BondType.BOND_TRIPLE,
             bond_length_distribution.FixedWindow(1.2, 1.4, None))
     return bld
@@ -246,32 +256,38 @@ class TestStandardTopologySensing(absltest.TestCase):
     molecule = dataset_pb2.Molecule(molecule_id=12345)
     molecule.bond_topologies.append(dataset_pb2.BondTopology(smiles='N=C=O'))
     molecule.bond_topologies[0].atoms.extend([
-      dataset_pb2.BondTopology.ATOM_O,
-      dataset_pb2.BondTopology.ATOM_C,
-      dataset_pb2.BondTopology.ATOM_N,
-      dataset_pb2.BondTopology.ATOM_H])
-    molecule.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=0, atom_b=1,
-      bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
-    molecule.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=1, atom_b=2,
-      bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
-    molecule.bond_topologies[0].bonds.append(dataset_pb2.BondTopology.Bond(
-      atom_a=2, atom_b=3,
-      bond_type=dataset_pb2.BondTopology.BondType.BOND_SINGLE))
+        dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_C,
+        dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_H
+    ])
+    molecule.bond_topologies[0].bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=0,
+            atom_b=1,
+            bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
+    molecule.bond_topologies[0].bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=1,
+            atom_b=2,
+            bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
+    molecule.bond_topologies[0].bonds.append(
+        dataset_pb2.BondTopology.Bond(
+            atom_a=2,
+            atom_b=3,
+            bond_type=dataset_pb2.BondTopology.BondType.BOND_SINGLE))
 
     molecule.optimized_geometry.atom_positions.append(
-      dataset_pb2.Geometry.AtomPos(
-        x=0, y=0, z=0))
+        dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0))
     molecule.optimized_geometry.atom_positions.append(
-      dataset_pb2.Geometry.AtomPos(
-        x=0, y=0, z=oc_dist / smu_utils_lib.BOHR_TO_ANGSTROMS))
+        dataset_pb2.Geometry.AtomPos(
+            x=0, y=0, z=oc_dist / smu_utils_lib.BOHR_TO_ANGSTROMS))
     molecule.optimized_geometry.atom_positions.append(
-      dataset_pb2.Geometry.AtomPos(
-        x=0, y=0, z=(oc_dist + cn_dist) / smu_utils_lib.BOHR_TO_ANGSTROMS))
+        dataset_pb2.Geometry.AtomPos(
+            x=0, y=0, z=(oc_dist + cn_dist) / smu_utils_lib.BOHR_TO_ANGSTROMS))
     molecule.optimized_geometry.atom_positions.append(
-      dataset_pb2.Geometry.AtomPos(
-        x=0, y=0, z=(oc_dist + cn_dist + 1) / smu_utils_lib.BOHR_TO_ANGSTROMS))
+        dataset_pb2.Geometry.AtomPos(
+            x=0,
+            y=0,
+            z=(oc_dist + cn_dist + 1) / smu_utils_lib.BOHR_TO_ANGSTROMS))
 
     return molecule
 
@@ -281,23 +297,23 @@ class TestStandardTopologySensing(absltest.TestCase):
   def test_without_smu(self):
     mol = self.get_molecule(1.25, 1.11)
     self.assertTrue(
-      topology_from_geom.standard_topology_sensing(
-        mol, self.get_smu_dists(), self.get_smiles_id_dict()))
+        topology_from_geom.standard_topology_sensing(mol, self.get_smu_dists(),
+                                                     self.get_smiles_id_dict()))
 
     self.assertLen(mol.bond_topologies, 2)
 
-    self.assertEqual(mol.bond_topologies[0].source,
-                     dataset_pb2.BondTopology.SOURCE_ITC |
-                     dataset_pb2.BondTopology.SOURCE_STARTING |
-                     dataset_pb2.BondTopology.SOURCE_MLCR)
+    self.assertEqual(
+        mol.bond_topologies[0].source, dataset_pb2.BondTopology.SOURCE_ITC
+        | dataset_pb2.BondTopology.SOURCE_STARTING
+        | dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
     self.assertEqual(mol.bond_topologies[0].bond_topology_id, 111)
     self.assertEqual(mol.bond_topologies[0].topology_score, 0)
     self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
 
-    self.assertEqual(mol.bond_topologies[1].source,
-                     dataset_pb2.BondTopology.SOURCE_MLCR |
-                     dataset_pb2.BondTopology.SOURCE_CSD)
+    self.assertEqual(
+        mol.bond_topologies[1].source, dataset_pb2.BondTopology.SOURCE_MLCR
+        | dataset_pb2.BondTopology.SOURCE_CSD)
     self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
     self.assertEqual(mol.bond_topologies[1].bond_topology_id, 222)
     self.assertTrue(np.isnan(mol.bond_topologies[1].topology_score))
@@ -306,29 +322,29 @@ class TestStandardTopologySensing(absltest.TestCase):
   def test_smu_and_covalent(self):
     mol = self.get_molecule(1.25, 1.25)
     self.assertTrue(
-      topology_from_geom.standard_topology_sensing(
-        mol, self.get_smu_dists(), self.get_smiles_id_dict()))
+        topology_from_geom.standard_topology_sensing(mol, self.get_smu_dists(),
+                                                     self.get_smiles_id_dict()))
 
     self.assertLen(mol.bond_topologies, 2)
 
-    self.assertEqual(mol.bond_topologies[0].source,
-                     dataset_pb2.BondTopology.SOURCE_ITC |
-                     dataset_pb2.BondTopology.SOURCE_STARTING |
-                     dataset_pb2.BondTopology.SOURCE_MLCR |
-                     dataset_pb2.BondTopology.SOURCE_CSD)
+    self.assertEqual(
+        mol.bond_topologies[0].source, dataset_pb2.BondTopology.SOURCE_ITC
+        | dataset_pb2.BondTopology.SOURCE_STARTING
+        | dataset_pb2.BondTopology.SOURCE_MLCR
+        | dataset_pb2.BondTopology.SOURCE_CSD)
     self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
     self.assertEqual(mol.bond_topologies[0].bond_topology_id, 111)
     self.assertLess(mol.bond_topologies[0].topology_score, 0)
     self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
 
-    self.assertEqual(mol.bond_topologies[1].source,
-                     dataset_pb2.BondTopology.SOURCE_ITC |
-                     dataset_pb2.BondTopology.SOURCE_MLCR)
+    self.assertEqual(
+        mol.bond_topologies[1].source, dataset_pb2.BondTopology.SOURCE_ITC
+        | dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
     self.assertEqual(mol.bond_topologies[1].bond_topology_id, 222)
     self.assertLess(mol.bond_topologies[1].topology_score, 0)
     self.assertNotEqual(mol.bond_topologies[1].geometry_score, 0)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
   absltest.main()

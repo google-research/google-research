@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Generates tables of fields of Molecule to got into papers."""
 
 from absl import app
@@ -30,25 +43,27 @@ MOLECULE_FIELDS = [
      'See BondType for names and numbers'),
     (r'\quad .smiles', 'S', 'SMILES canonicalied by RDKit'),
     (r'\quad .bond\_topology\_id', 'I',
-     'Unique ID for this topology. See bond\_topology.csv'),
+     r'Unique ID for this topology. See bond\ _topology.csv'),
     (r'\quad .is\_starting\_topology', 'B',
      'Is this the topology used during geometry creation?'),
-    (r'\quad .topology\_score', 'F', r'See Section~\ref{sec:topology_detection}'),
-    (r'\quad .geometry\_score', 'F', r'See Section~\ref{sec:topology_detection}'),
+    (r'\quad .topology\_score', 'F',
+     r'See Section~\ref{sec:topology_detection}'),
+    (r'\quad .geometry\_score', 'F',
+     r'See Section~\ref{sec:topology_detection}'),
     (r'molecule\_id', 'I', 'Unique ID for this molecule'),
     (r'duplicated\_by', 'I',
      'If this molecule did not proceed to full calculation because it was a ' +
      'duplicate, the molecule id that did proceed to full calculation'),
-    (r'duplicate\_of', '$\geq 0$ * I',
+    (r'duplicate\_of', r'$\geq 0$ * I',
      'For molecule that proceeded to full calculation, the molecule ids of ' +
      'any other molecules that were duplicates of this one'),
     (r'fate', 'enum',
      'A simple categorical summary of how successful the calculations were.' +
      'See FateCategory for names and numbers'),
     (r'initial\_geometries', '$>0$ struct',
-     'List of intial geometries that produced this optimized geometry. '
-     r'May not have the same length as bond\_topologies or duplicate\ of, '
-     r'see Section~\ref{sec:duplicates} for details'),
+     (r'List of intial geometries that produced this optimized geometry. '
+      r'May not have the same length as bond\_topologies or duplicate\ of, '
+      r'see Section~\ref{sec:duplicates} for details')),
     (r'\quad .atom\_positions', 'n * V', '3D vector for each atom in .atoms'),
     (r'optimized\_geometries', '1 struct',
      'Single geometry used for all Stage 2 calculations'),
@@ -60,15 +75,20 @@ MOLECULE_FIELDS = [
 
 
 def molecule_table(outf):
+  """Prints out a molecule table.
+
+  Args:
+    outf: File handler.
+  """
   print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%', file=outf)
-  print('%%% This section is automatically generated. Before editing, talk with Pat',
-        file=outf)
-  print('% This is the contents of a table describing fields of Molecule',
-        file=outf)
-  #print(r'\begin{tabular}{|l|l|p{3in}}', file=outf)
+  print(
+      '%%% This section is automatically generated. Before editing, talk with Pat',
+      file=outf)
+  print(
+      '% This is the contents of a table describing fields of Molecule',
+      file=outf)
   for name, field_type, description in MOLECULE_FIELDS:
     print(f'{name:22s}& {field_type:10s} & \n    {description} \\\\', file=outf)
-  #print(r'\end{tabular}
   print('%%% End automatically generated section', file=outf)
 
 
@@ -123,11 +143,16 @@ LEVEL_DICT = {
 
 
 def properties_table_line(name, field_descriptor):
+  """Returns a line of a properties table.
+
+  Args:
+    name: Property name.
+    field_descriptor: Describes field properties.
+  """
   # Let's throw out a few special cases.
   if (name == 'compute_cluster_info' or
       name == 'symmetry_used_in_calculation' or
-      name == 'gaussian_sanity_check' or
-      name == 'calculation_statistics' or
+      name == 'gaussian_sanity_check' or name == 'calculation_statistics' or
       name == 'number_imaginary_frequencies' or
       name == 'number_of_optimization_runs'):
     return None
@@ -161,8 +186,7 @@ def properties_table_line(name, field_descriptor):
     # Internal only, ignoring
     return None
   else:
-    raise ValueError(
-        f'Unknown field type {field_descriptor.message_type.name}')
+    raise ValueError(f'Unknown field type {field_descriptor.message_type.name}')
 
   avail_enum = field_descriptor.GetOptions().Extensions[
       dataset_pb2.availability]
@@ -194,8 +218,12 @@ def properties_table_line(name, field_descriptor):
 def properties_table(outf):
   """Prints a properties table."""
   print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%', file=outf)
-  print('% This is the contents of a table describing fields of Properties', file=outf)
-  print('%%% This section is automatically generated. Before editing, talk with Pat', file=outf)
+  print(
+      '% This is the contents of a table describing fields of Properties',
+      file=outf)
+  print(
+      '%%% This section is automatically generated. Before editing, talk with Pat',
+      file=outf)
 
   descriptors = sorted(
       dataset_pb2.Properties.DESCRIPTOR.fields, key=lambda d: d.name)
@@ -210,7 +238,8 @@ def properties_table(outf):
         line = properties_table_line('errors.' + error_field_descriptor.name,
                                      error_field_descriptor)
         if not line:
-          raise ValueError(f'Did not understand error field {error_field_descriptor}')
+          raise ValueError(
+              f'Did not understand error field {error_field_descriptor}')
         print(line, file=outf)
     else:
       line = properties_table_line(name, field_descriptor)

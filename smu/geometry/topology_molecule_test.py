@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import itertools
 import operator
 
@@ -49,7 +63,8 @@ class TestTopologyMolecule(absltest.TestCase):
     bonds_to_scores = {(0, 1): scores}
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores,
+                                             matching_parameters)
     state = mol.generate_search_state()
     self.assertLen(state, 1)
     self.assertEqual(state, [[0, 1, 2, 3]])
@@ -74,7 +89,8 @@ class TestTopologyMolecule(absltest.TestCase):
     bonds_to_scores[(0, 1)][btype] = 1.0
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores,
+                                             matching_parameters)
     state = mol.generate_search_state()
     for s in itertools.product(*state):
       res = mol.place_bonds(s, matching_parameters)
@@ -113,7 +129,8 @@ class TestTopologyMolecule(absltest.TestCase):
     bonds_to_scores[(1, 2)][btype2] = 1.0
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores,
+                                             matching_parameters)
     state = mol.generate_search_state()
     for s in itertools.product(*state):
       res = mol.place_bonds(s, matching_parameters)
@@ -147,7 +164,8 @@ class TestTopologyMolecule(absltest.TestCase):
     bonds_to_scores[(1, 2)][1] = scores[1]
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores,
+                                             matching_parameters)
     mol.set_initial_score_and_incrementer(1.0, operator.mul)
     state = mol.generate_search_state()
     for s in itertools.product(*state):

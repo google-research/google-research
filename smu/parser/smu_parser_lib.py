@@ -27,6 +27,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """A parser for Small Molecule Universe (SMU) files in custom Uni Basel format.
 
 Used to read contents from SMU files and populates a corresponding protocol
@@ -562,13 +575,13 @@ class SmuParser:
     self._molecule.bond_topologies[-1].CopyFrom(
         smu_utils_lib.create_bond_topology(expanded_atom_types, adjacency_code,
                                            hydrogen_counts))
-    self._molecule.bond_topologies[-1].smiles = str(smiles).replace(
-        '\'', '').strip()
+    self._molecule.bond_topologies[-1].smiles = str(smiles).replace('\'',
+                                                                    '').strip()
     # Note that we only set source to STARTING and not ITC. This is because this
     # geometry may not actually pass the ITC criteria. We let the later geometry
     # detection take care of this.
     self._molecule.bond_topologies[-1].source = (
-      dataset_pb2.BondTopology.SOURCE_STARTING)
+        dataset_pb2.BondTopology.SOURCE_STARTING)
 
   def expand_atom_types(self, atom_types):
     """Takes an abbreviated atom composition, such as c4o2fh7, and expands it.
@@ -722,7 +735,7 @@ class SmuParser:
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
     self._molecule.optimized_geometry.rotcon.value.extend(
-      float(x) for x in values)
+        float(x) for x in values)
 
   def parse_symmetry_used(self):
     """Parses whether or not symmetry was used in the computation."""
@@ -1007,13 +1020,11 @@ class SmuParser:
     rank2_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
     if items[-1].startswith('PBE0'):
       for label in RANK2_ENCODING_ORDER:
-        setattr(properties.dipole_dipole_polarizability_pbe0_aug_pc_1,
-                label,
+        setattr(properties.dipole_dipole_polarizability_pbe0_aug_pc_1, label,
                 float(rank2_data[label]))
     elif items[-1].startswith('HF'):
       for label in RANK2_ENCODING_ORDER:
-        setattr(properties.dipole_dipole_polarizability_hf_6_31gd,
-                label,
+        setattr(properties.dipole_dipole_polarizability_hf_6_31gd, label,
                 float(rank2_data[label]))
 
   def parse_multipole_moments(self):
@@ -1029,16 +1040,14 @@ class SmuParser:
       self.parse(ParseModes.SKIP, num_lines=1)  # Quadrupole moment (au).
       quadrupole_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
       for label in RANK2_ENCODING_ORDER:
-        setattr(properties.quadrupole_moment_pbe0_aug_pc_1,
-                label,
+        setattr(properties.quadrupole_moment_pbe0_aug_pc_1, label,
                 float(quadrupole_data[label]))
       self.parse(ParseModes.SKIP, num_lines=1)  # Octopole moment (au).
       octopole_data = self.parse(ParseModes.KEYVALUE, num_lines=10)
       if '**********' in dict(octopole_data).values():
         raise SmuOverfullFloatFieldError()
       for label in RANK3_ENCODING_ORDER:
-        setattr(properties.octopole_moment_pbe0_aug_pc_1,
-                label,
+        setattr(properties.octopole_moment_pbe0_aug_pc_1, label,
                 float(octopole_data[label]))
     # Hartree-Fock section.
     if self._next_line_startswith('Dipole moment (au):     HF/6-31Gd'):
@@ -1050,16 +1059,14 @@ class SmuParser:
       self.parse(ParseModes.SKIP, num_lines=1)  # Quadrupole moment (au).
       quadrupole_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
       for label in RANK2_ENCODING_ORDER:
-        setattr(properties.quadrupole_moment_hf_6_31gd,
-                label,
+        setattr(properties.quadrupole_moment_hf_6_31gd, label,
                 float(quadrupole_data[label]))
       self.parse(ParseModes.SKIP, num_lines=1)  # Octopole moment (au).
       octopole_data = self.parse(ParseModes.KEYVALUE, num_lines=10)
       if '**********' in dict(octopole_data).values():
         raise SmuOverfullFloatFieldError()
       for label in RANK3_ENCODING_ORDER:
-        setattr(properties.octopole_moment_hf_6_31gd,
-                label,
+        setattr(properties.octopole_moment_hf_6_31gd, label,
                 float(octopole_data[label]))
 
   def parse_stage1_to_proto(self):

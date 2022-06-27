@@ -13,6 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Verifies that we can correctly roundtrip SMU7 data files through protos.
 
 smu_parser_lib and smu_writer_lib allows us to read and write the .dat file
@@ -31,17 +44,13 @@ from tensorflow.io import gfile
 from smu.parser import smu_parser_lib
 from smu.parser import smu_writer_lib
 
-
 flags.DEFINE_string(
-    'input_glob', None,
-    'Glob of .dat files to read. '
+    'input_glob', None, 'Glob of .dat files to read. '
     'These files are expected to be in the SMU file format provided by Uni Basel.'
 )
 flags.DEFINE_string(
-    'output_stem', None,
-    'Filestem to be used for writing entries that differ. '
-    'Files with _original.dat and _regenerated.dat suffixes will be created'
-)
+    'output_stem', None, 'Filestem to be used for writing entries that differ. '
+    'Files with _original.dat and _regenerated.dat suffixes will be created')
 flags.DEFINE_enum('stage', 'stage2', ['stage1', 'stage2'],
                   'Whether to expect files in stage1 or stage2 format')
 
@@ -66,15 +75,16 @@ def main(argv):
 
   # output_files maps from Outcome to the a pair of file handle
   output_files = {}
-  output_files[Outcome.SUCCESS] = (
-      gfile.GFile(FLAGS.output_stem + '_success_original.dat', 'w'),
-      gfile.GFile(FLAGS.output_stem + '_success_regen.dat', 'w'))
-  output_files[Outcome.MISMATCH] = (
-      gfile.GFile(FLAGS.output_stem + '_mismatch_original.dat', 'w'),
-      gfile.GFile(FLAGS.output_stem + '_mismatch_regen.dat', 'w'))
-  output_files[Outcome.PARSE_ERROR_KNOWN] = (
-      gfile.GFile(FLAGS.output_stem + '_parse_error_known_original.dat', 'w'),
-      gfile.GFile(FLAGS.output_stem + '_parse_error_known_regen.dat', 'w'))
+  output_files[Outcome.SUCCESS] = (gfile.GFile(
+      FLAGS.output_stem + '_success_original.dat',
+      'w'), gfile.GFile(FLAGS.output_stem + '_success_regen.dat', 'w'))
+  output_files[Outcome.MISMATCH] = (gfile.GFile(
+      FLAGS.output_stem + '_mismatch_original.dat',
+      'w'), gfile.GFile(FLAGS.output_stem + '_mismatch_regen.dat', 'w'))
+  output_files[Outcome.PARSE_ERROR_KNOWN] = (gfile.GFile(
+      FLAGS.output_stem + '_parse_error_known_original.dat',
+      'w'), gfile.GFile(FLAGS.output_stem + '_parse_error_known_regen.dat',
+                        'w'))
   output_files[Outcome.PARSE_ERROR_UNKNOWN] = (
       gfile.GFile(FLAGS.output_stem + '_parse_error_unknown_original.dat', 'w'),
       gfile.GFile(FLAGS.output_stem + '_parse_error_unknown_regen.dat', 'w'))
@@ -136,8 +146,7 @@ def main(argv):
                                   str(outcome))
 
   status_str = ('COMPLETE: Read %d files, %d molecules\n' %
-                (file_count, molecule_count) +
-                outcome_status(Outcome.SUCCESS) +
+                (file_count, molecule_count) + outcome_status(Outcome.SUCCESS) +
                 outcome_status(Outcome.PARSE_ERROR_KNOWN) +
                 outcome_status(Outcome.MISMATCH) +
                 outcome_status(Outcome.PARSE_ERROR_UNKNOWN))
