@@ -21,7 +21,7 @@ topologies.
 
 Input looks like:
 
-Smiles,StartSmi,conformer_id,NBts,IsStart
+Smiles,StartSmi,molecule_id,NBts,IsStart
 CCC1=NNNN1,CCC1=NNNN1,6104990001,1,True
 CC(N)C(N)NN,CC(N)C(N)NN,6103750002,1,True
 
@@ -93,7 +93,7 @@ def reconcile_dupes(unused_argv):
   del df_list
   logging.info(data.shape)
 
-  # Convert conformer_ids to bond_topology_id by dividing by 1000
+  # Convert molecule_ids to bond_topology_id by dividing by 1000
   # Expect many dupes to be overwritten here.
   smiles_to_id = {k: v for k, v in zip(data["StartSmi"], data["id"] // 1000)}
 

@@ -1,5 +1,5 @@
 ================================================================================
-# From original_conformer_index, topology, bond_topology_id, conformer_id
+# From original_molecule_index, topology, bond_topology_id, molecule_id
     1    4     x02_c2h2.000020.001
 Database   standard
 # From errors
@@ -12,11 +12,11 @@ Warn_NEG      0
 # From topology
      3
      11
-# From smiles
+# From smiles or properties.smiles_openbabel
 C#C
 # From topology
 x02_c2h2
-# From bond_topology_id, conformer_id
+# From bond_topology_id, molecule_id
 ID      20       1
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.200.108
@@ -34,21 +34,21 @@ TIMINGS     0     0     1     3     1     0     0     2     1     2
 BOND    1    2     TYPE  663110
 BOND    1    3     TYPE  611300
 BOND    2    4     TYPE  611300
-# From initial_geometry_energy, initial_geometry_gradient_norm
+# From energy, gnorm
 E_ini/G_norm          -77.240567    0.000003
-# From optimized_geometry_energy, optimized_geometry_gradient_norm
+# From energy, gnorm
 E_opt/G_norm          -77.240567    0.000000
-# From initial_geometry
+# From initial_geometry.atom_positions
 Initial Coords       6    1.795729    0.186894   -0.027023
 Initial Coords       6   -0.470464    0.186894   -0.027023
 Initial Coords       1    3.809866    0.186894   -0.027023
 Initial Coords       1   -2.484601    0.186894   -0.027023
-# From optimized_geometry
+# From optimized_geometry.atom_positions
 Optimized Coords     6    0.000000    0.000000    1.133096
 Optimized Coords     6    0.000000    0.000000   -1.133096
 Optimized Coords     1    0.000000    0.000000    3.147236
 Optimized Coords     1    0.000000    0.000000   -3.147236
-# From rotational_constants
+# From rotational_constants_deprecated
 Rotational constants (MHz)                 0.000           35519.086           35519.086
 # From symmetry_used_in_calculation
 Symmetry used in calculation   yes
@@ -167,7 +167,7 @@ HF/3Psd                -76.832088
 MP2/3Psd               -77.107773
 # From single_point_energy_ccsd_3psd
 CCSD/3Psd              -77.120977
-# From nuclear_repulsion_energy
+# From optimized_geometry.enuc
 NUCREP                  24.805948
 # From number_of_optimization_runs
 NUM_OPT                  1

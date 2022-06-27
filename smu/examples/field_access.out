@@ -1,4 +1,4 @@
-We will examine conformer with id 57001
+We will examine molecule with id 57001
 The computed properties are generally in the .properties field
 Scalar values are access by name (note the .value suffix), like this single point energy:  -213.76513
 Fields with repeated values like harmonic_intensities and excitation_energies_cc2) use an index with [] on the repeated values
@@ -10,12 +10,12 @@ Excitation energy: 0.35454
 Excitation energy: 0.3652
 Excitation energy: 0.39769
 Or just ask how many excitation_energies_cc2 there are: 5
-Some fields like rotational_constants have explicit x,y,z components
-10473.771 11808.073 92688.945
+Some fields like dipole_moment_pbe0_aug_pc_1 have explicit x,y,z components
+0.76262 -0.24296 0.1717
 A couple of important fields are not inside "properties"
 The geometry has positions for 4 atoms and the first atom x-coordinate is 1.9872709512710571
-In addition to looking at dataset.proto for field documentation, you can just print a given conformer to see what fields are available
-conformer_id: 57001
+In addition to looking at dataset.proto for field documentation, you can just print a given molecule to see what fields are available
+molecule_id: 57001
 initial_geometries {
   atom_positions {
     x: 2.046005964279175
@@ -149,12 +149,12 @@ properties {
     precision: 0.0001
   }
   dipole_dipole_polarizability_pbe0_aug_pc_1 {
-    matrix_values: 18.44366
-    matrix_values: 19.24036
-    matrix_values: 16.25237
-    matrix_values: -1.14202
-    matrix_values: 0.80691
-    matrix_values: -4.21845
+    matrix_values_deprecated: 18.44366
+    matrix_values_deprecated: 19.24036
+    matrix_values_deprecated: 16.25237
+    matrix_values_deprecated: -1.14202
+    matrix_values_deprecated: 0.80691
+    matrix_values_deprecated: -4.21845
   }
   dipole_moment_pbe0_aug_pc_1 {
     x: 0.76262
@@ -162,38 +162,38 @@ properties {
     z: 0.1717
   }
   quadrupole_moment_pbe0_aug_pc_1 {
-    matrix_values: -8.99568
-    matrix_values: -13.3491
-    matrix_values: -12.44867
-    matrix_values: -0.28195
-    matrix_values: 0.1312
-    matrix_values: 1.33611
+    matrix_values_deprecated: -8.99568
+    matrix_values_deprecated: -13.3491
+    matrix_values_deprecated: -12.44867
+    matrix_values_deprecated: -0.28195
+    matrix_values_deprecated: 0.1312
+    matrix_values_deprecated: 1.33611
   }
   octopole_moment_pbe0_aug_pc_1 {
-    tensor_values: -36.61988
-    tensor_values: 1.32409
-    tensor_values: 2.19806
-    tensor_values: -0.11857
-    tensor_values: 0.88628
-    tensor_values: -17.85217
-    tensor_values: 1.13763
-    tensor_values: -16.62721
-    tensor_values: 0.11383
-    tensor_values: 1.79615
+    tensor_values_deprecated: -36.61988
+    tensor_values_deprecated: 1.32409
+    tensor_values_deprecated: 2.19806
+    tensor_values_deprecated: -0.11857
+    tensor_values_deprecated: 0.88628
+    tensor_values_deprecated: -17.85217
+    tensor_values_deprecated: 1.13763
+    tensor_values_deprecated: -16.62721
+    tensor_values_deprecated: 0.11383
+    tensor_values_deprecated: 1.79615
   }
-  initial_geometry_energy {
+  initial_geometry_energy_deprecated {
     value: -213.600956
   }
-  initial_geometry_gradient_norm {
+  initial_geometry_gradient_norm_deprecated {
     value: 0.114996
   }
-  optimized_geometry_energy {
+  optimized_geometry_energy_deprecated {
     value: -213.607287
   }
-  optimized_geometry_gradient_norm {
+  optimized_geometry_gradient_norm_deprecated {
     value: 6.7e-05
   }
-  rotational_constants {
+  rotational_constants_deprecated {
     x: 10473.771
     y: 11808.073
     z: 92688.945
@@ -302,5 +302,5 @@ bond_topologies {
   geometry_score: 3.1316471099853516
 }
 fate: FATE_SUCCESS
-which_database: STANDARD
+which_database_deprecated: STANDARD
 

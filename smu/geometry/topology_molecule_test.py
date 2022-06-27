@@ -22,11 +22,11 @@ from parameterized import parameterized
 
 from google.protobuf import text_format
 from smu import dataset_pb2
-from smu.geometry import smu_molecule
+from smu.geometry import topology_molecule
 
 
-class TestSmuMolecule(absltest.TestCase):
-  """Test the SmuMolecule class."""
+class TestTopologyMolecule(absltest.TestCase):
+  """Test the TopologyMolecule class."""
 
   @absltest.skip("This test is duplciative of test_ethane_all")
   def test_ethane(self):
@@ -47,9 +47,9 @@ class TestSmuMolecule(absltest.TestCase):
 """, dataset_pb2.BondTopology())
     scores = np.array([0.1, 1.1, 2.1, 3.1], dtype=np.float32)
     bonds_to_scores = {(0, 1): scores}
-    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = smu_molecule.SmuMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
     state = mol.generate_search_state()
     self.assertLen(state, 1)
     self.assertEqual(state, [[0, 1, 2, 3]])
@@ -72,9 +72,9 @@ class TestSmuMolecule(absltest.TestCase):
 """, dataset_pb2.BondTopology())
     bonds_to_scores = {(0, 1): np.zeros(4, dtype=np.float32)}
     bonds_to_scores[(0, 1)][btype] = 1.0
-    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = smu_molecule.SmuMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
     state = mol.generate_search_state()
     for s in itertools.product(*state):
       res = mol.place_bonds(s, matching_parameters)
@@ -111,9 +111,9 @@ class TestSmuMolecule(absltest.TestCase):
     }
     bonds_to_scores[(0, 1)][btype1] = 1.0
     bonds_to_scores[(1, 2)][btype2] = 1.0
-    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = smu_molecule.SmuMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
     state = mol.generate_search_state()
     for s in itertools.product(*state):
       res = mol.place_bonds(s, matching_parameters)
@@ -145,9 +145,9 @@ class TestSmuMolecule(absltest.TestCase):
     scores = np.array([1.0, 3.0], dtype=np.float32)
     bonds_to_scores[(0, 1)][1] = scores[0]
     bonds_to_scores[(1, 2)][1] = scores[1]
-    matching_parameters = smu_molecule.MatchingParameters()
+    matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    mol = smu_molecule.SmuMolecule(cc, bonds_to_scores, matching_parameters)
+    mol = topology_molecule.TopologyMolecule(cc, bonds_to_scores, matching_parameters)
     mol.set_initial_score_and_incrementer(1.0, operator.mul)
     state = mol.generate_search_state()
     for s in itertools.product(*state):

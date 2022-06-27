@@ -43,10 +43,11 @@ python -m smu.smu_sqlite_test
 python -m smu.geometry.topology_from_geom_test
 python -m smu.geometry.bond_length_distribution_test
 python -m smu.geometry.utilities_test
-python -m smu.geometry.smu_molecule_test
+python -m smu.geometry.topology_molecule_test
 
 echo "============================================================="
-echo "Success! Before running query_sqlite, please make sure to do:"
+echo "Before running query_sqlite, please make sure to do:"
 echo "source ${VENV}/bin/activate"
 echo "Example command line:"
 echo "python -m smu.query_sqlite --input_sqlite <path to standard.sqlite> --smiles NN"
+echo "SUCCESS"

@@ -52,17 +52,17 @@ FLAGS = flags.FLAGS
 def main(argv):
   del argv  # Unused.
 
-  smu_proto = dataset_pb2.MultipleConformers()
+  smu_proto = dataset_pb2.MultipleMolecules()
   with gfile.GFile(FLAGS.input_file) as f:
     raw_proto = f.read()
   text_format.Parse(raw_proto, smu_proto)
   smu_writer = SmuWriter(FLAGS.annotate)
   contents = ''.join(
-      smu_writer.process_stage2_proto(conformer)
-      for conformer in smu_proto.conformers
+      smu_writer.process_stage2_proto(molecule)
+      for molecule in smu_proto.molecules
   )
   if FLAGS.output_file:
-    logging.info('Writing smu7 conformers to .dat file %s.', FLAGS.output_file)
+    logging.info('Writing smu7 molecules to .dat file %s.', FLAGS.output_file)
     with open(FLAGS.output_file, 'w') as f:
       f.write(contents)
   else:

@@ -1,8 +1,8 @@
 # proto-file: third_party/google_research/google_research/smu/dataset.proto
-# proto-message: MultipleConformers
-conformers {
-  conformer_id: 899651001
-  original_conformer_index: 1
+# proto-message: MultipleMolecules
+molecules {
+  molecule_id: 899651001
+  original_molecule_index: 1
   initial_geometries {
     atom_positions {
       x: 2.012558
@@ -23,6 +23,12 @@ conformers {
       x: 3.934977
       y: 0.017763
       z: 0.1011
+    }
+    energy {
+      value: -56.494308
+    }
+    gnorm {
+      value: 0.010309
     }
   }
   optimized_geometry {
@@ -46,9 +52,24 @@ conformers {
       y: 0.022097
       z: 0.101315
     }
+    energy {
+      value: -56.494403
+    }
+    gnorm {
+      value: 4.6e-05
+    }
+    enuc {
+      value: 11.949906
+    }
+    rotcon {
+      value: 189964.859
+      value: 298504.0
+      value: 298504.75
+    }
   }
   properties {
     errors {
+      which_database: STANDARD
     }
     harmonic_intensities {
       value: 0.0
@@ -399,12 +420,12 @@ conformers {
       precision: 0.0001
     }
     dipole_dipole_polarizability_pbe0_aug_pc_1 {
-      matrix_values: 13.79541
-      matrix_values: 15.21574
-      matrix_values: 13.59549
-      matrix_values: -0.57441
-      matrix_values: -0.02639
-      matrix_values: 0.07456
+      xx: 13.79541
+      yy: 15.21574
+      zz: 13.59549
+      xy: -0.57441
+      xz: -0.02639
+      yz: 0.07456
     }
     dipole_moment_pbe0_aug_pc_1 {
       x: 0.19879
@@ -417,69 +438,49 @@ conformers {
       z: -0.03316
     }
     quadrupole_moment_pbe0_aug_pc_1 {
-      matrix_values: -4.17011
-      matrix_values: -6.68592
-      matrix_values: -4.75444
-      matrix_values: -0.46881
-      matrix_values: -0.00166
-      matrix_values: -0.14572
+      xx: -4.17011
+      yy: -6.68592
+      zz: -4.75444
+      xy: -0.46881
+      xz: -0.00166
+      yz: -0.14572
     }
     quadrupole_moment_hf_6_31gd {
-      matrix_values: -3.69318
-      matrix_values: -6.2398
-      matrix_values: -4.53752
-      matrix_values: -0.87519
-      matrix_values: -0.01476
-      matrix_values: -0.15111
+      xx: -3.69318
+      yy: -6.2398
+      zz: -4.53752
+      xy: -0.87519
+      xz: -0.01476
+      yz: -0.15111
     }
     octopole_moment_pbe0_aug_pc_1 {
-      tensor_values: -26.61548
-      tensor_values: 0.109
-      tensor_values: -1.57797
-      tensor_values: 0.41575
-      tensor_values: -0.39919
-      tensor_values: -14.11922
-      tensor_values: -0.56677
-      tensor_values: -10.71791
-      tensor_values: -1.08983
-      tensor_values: -0.20411
+      xxx: -26.61548
+      yyy: 0.109
+      zzz: -1.57797
+      xxy: 0.41575
+      xxz: -0.39919
+      xyy: -14.11922
+      yyz: -0.56677
+      xzz: -10.71791
+      yzz: -1.08983
+      xyz: -0.20411
     }
     octopole_moment_hf_6_31gd {
-      tensor_values: -24.14945
-      tensor_values: -0.79479
-      tensor_values: -1.54194
-      tensor_values: -0.83739
-      tensor_values: -0.40907
-      tensor_values: -13.03533
-      tensor_values: -0.54402
-      tensor_values: -10.18653
-      tensor_values: -1.3029
-      tensor_values: -0.21958
+      xxx: -24.14945
+      yyy: -0.79479
+      zzz: -1.54194
+      xxy: -0.83739
+      xxz: -0.40907
+      xyy: -13.03533
+      yyz: -0.54402
+      xzz: -10.18653
+      yzz: -1.3029
+      xyz: -0.21958
     }
     compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.200.101\nStage 1  Cluster:   alchemy      \nStage 1  Cores:        24\nStage 1  CPU type:     23\nStage 2  Host IP:   XXX.YYY.200.114\nStage 2  Cluster:   alchemy      \nStage 2  Cores:        24\nStage 2  CPU type:     23\n"
     symmetry_used_in_calculation: false
-    initial_geometry_energy {
-      value: -56.494308
-    }
-    initial_geometry_gradient_norm {
-      value: 0.010309
-    }
-    optimized_geometry_energy {
-      value: -56.494403
-    }
-    optimized_geometry_gradient_norm {
-      value: 4.6e-05
-    }
-    rotational_constants {
-      x: 189964.859
-      y: 298504.0
-      z: 298504.75
-    }
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
-    nuclear_repulsion_energy {
-      value: 11.949906
-    }
     diagnostics_d1_ccsd_2sp {
       value: 0.0101
     }
@@ -978,6 +979,6 @@ conformers {
     }
     smiles: "N"
     bond_topology_id: 899651
+    source: 1
   }
-  which_database: STANDARD
 }

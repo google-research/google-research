@@ -1,8 +1,94 @@
 When you process the *complete* database, you have to be careful to check what data is available
-We will examine conformers 35004068 and 35553043
-If you ask for the optimized_geometry_energy for both you get sensible values
-35004068 -340.597698
-35553043 -340.576816
+We will examine molecules 35004068 and 35553043
+In general, you need to consider the status field and various warning flags
+in order to understand what fields are available and what you should trust
+If you ask for the harmonic_frequencies for both you get sensible values
+35004068 value: -30.8
+value: 0.0
+value: 0.0
+value: 0.0
+value: 0.0
+value: 0.0
+value: 0.0
+value: 77.6
+value: 155.4
+value: 159.1
+value: 176.0
+value: 180.9
+value: 381.8
+value: 415.9
+value: 589.9
+value: 945.1
+value: 948.3
+value: 1043.9
+value: 1053.8
+value: 1128.9
+value: 1133.2
+value: 1152.9
+value: 1158.5
+value: 1242.3
+value: 1250.3
+value: 1296.6
+value: 1300.9
+value: 1360.8
+value: 1431.7
+value: 1478.7
+value: 1516.4
+value: 1561.4
+value: 1561.6
+value: 1574.5
+value: 2947.7
+value: 2949.2
+value: 2998.9
+value: 2999.7
+value: 3490.2
+value: 3505.6
+value: 3878.7
+value: 3878.9
+
+35553043 value: 0.0
+value: 0.0
+value: 0.0
+value: 0.0
+value: 0.0
+value: 0.0
+value: 58.3
+value: 116.1
+value: 128.4
+value: 269.5
+value: 321.9
+value: 361.9
+value: 428.7
+value: 529.0
+value: 582.7
+value: 795.0
+value: 834.9
+value: 906.1
+value: 1036.9
+value: 1062.6
+value: 1104.2
+value: 1118.8
+value: 1138.3
+value: 1231.5
+value: 1249.6
+value: 1332.5
+value: 1344.8
+value: 1389.6
+value: 1419.2
+value: 1446.4
+value: 1496.7
+value: 1527.1
+value: 1550.6
+value: 1756.6
+value: 3018.0
+value: 3032.1
+value: 3086.5
+value: 3144.0
+value: 3471.7
+value: 3558.1
+value: 3611.9
+value: 3842.3
+
 
 But if you ask for zpe_unscaled, the second gives a 0
 35004068 75.66
@@ -14,8 +100,9 @@ And if you ask for enthalpy_of_formation_298k_atomic_b6, both give 0
 
 These are cases of missing values.
 If you request a value which is actually missing, you will silently get a default value (0.0 for floats)
-You can check whether a Conformer has a value with the HasField method
-Calling HasField for optimized_geometry_energy:
+Therefore, in addition to checking the status field, we recommend you also
+check whether a Molecule has a value with the HasField method
+Calling HasField for harmonic_frequencies:
 35004068 True
 35553043 True
 Calling HasField for zpe_unscaled:
@@ -28,10 +115,10 @@ Calling HasField for enthalpy_of_formation_298k_atomic_b6:
 The one field that is different is normal_modes
 Since normal_modes is a list of composite values, missing just means the list is length 0
 You cannot call HasField on normal_modes
-The length of normal_modes in our two conformers are:
+The length of normal_modes in our two molecules are:
 35004068 42
 35553043 0
 
-The properties.errors.status variable can shed some light on why fields are missing
-However, the exact rules of what fields are missing when are complex
-Therefore, whenever accessing properties fields in the complete database, you should check HasField first
+In summary, when processing the complete database:
+1. Always check the status field and warning flags.
+2. Always check HasField before accessing properties.

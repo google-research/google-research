@@ -54,7 +54,7 @@ def main(argv):
   del argv  # Unused.
 
   number_of_parse_errors = 0
-  multiple_conformers = dataset_pb2.MultipleConformers()
+  multiple_molecules = dataset_pb2.MultipleMolecules()
 
   parser = smu_parser_lib.SmuParser(FLAGS.input_file)
   for e, orig_contents in parser.process_stage2():
@@ -63,7 +63,7 @@ def main(argv):
       print('Parse error for:\n{}\n{}'.format(
           orig_contents[1], e))
     else:
-      multiple_conformers.conformers.append(e)
+      multiple_molecules.molecules.append(e)
 
   if FLAGS.output_file:
     logging.info('Writing protobuf to file %s.', FLAGS.output_file)
@@ -71,14 +71,14 @@ def main(argv):
       f.write(
           '# proto-file: third_party/google_research/google_research/smu/dataset.proto\n'
       )
-      f.write('# proto-message: MultipleConformers\n')
-      f.write(text_format.MessageToString(multiple_conformers))
+      f.write('# proto-message: MultipleMolecules\n')
+      f.write(text_format.MessageToString(multiple_molecules))
   else:
     print(
         '# proto-file: third_party/google_research/google_research/smu/dataset.proto'
     )
-    print('# proto-message: MultipleConformers')
-    print(text_format.MessageToString(multiple_conformers), end='')
+    print('# proto-message: MultipleMolecules')
+    print(text_format.MessageToString(multiple_molecules), end='')
 
   return number_of_parse_errors
 

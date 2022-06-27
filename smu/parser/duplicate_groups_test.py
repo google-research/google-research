@@ -33,8 +33,8 @@ class ParseDuplicatesFileTest(absltest.TestCase):
     pd.testing.assert_frame_equal(
         pd.DataFrame(
             columns=[
-                'name1', 'stoich1', 'btid1', 'shortconfid1', 'confid1', 'name2',
-                'stoich2', 'btid2', 'shortconfid2', 'confid2'
+                'name1', 'stoich1', 'btid1', 'shortmolid1', 'molid1', 'name2',
+                'stoich2', 'btid2', 'shortmolid2', 'molid2'
             ],
             data=[
                 [

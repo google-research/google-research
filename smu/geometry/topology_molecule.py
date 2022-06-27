@@ -41,72 +41,27 @@ from smu.parser import smu_utils_lib
 
 
 class MatchingParameters:
-  """A class to specify optional matching parameters for SmuMolecule.place_bonds."""
+  """A class to specify optional matching parameters for TopologyMolecule.place_bonds."""
 
   def __init__(self):
-    self._must_match_all_bonds: bool = True
-    self._smiles_with_h: bool = False
-    self._smiles_with_labels: bool = True
+    self.must_match_all_bonds: bool = True
+    self.smiles_with_h: bool = False
+    self.smiles_with_labels: bool = False
 
     # A variant on matching is to consider all N and O as neutral forms during
     # matching, and then as a post processing step, see whether a valid,
     # neutral, molecule can be formed.
-    self._neutral_forms_during_bond_matching: bool = False
+    self.neutral_forms_during_bond_matching: bool = True
 
     # If not a bond is being considered during matching.
-    self._consider_not_bonded = False
+    self.consider_not_bonded = True
 
     # Avoid destroying rings if not bonded is enabled.
     # Note that only the ring atom count is considered.
-    self._ring_atom_count_cannot_decrease = True
+    self.ring_atom_count_cannot_decrease = False
 
-  @property
-  def must_match_all_bonds(self):
-    return self._must_match_all_bonds
-
-  @must_match_all_bonds.setter
-  def must_match_all_bonds(self, value):
-    self._must_match_all_bonds = value
-
-  @property
-  def smiles_with_h(self):
-    return self._smiles_with_h
-
-  @smiles_with_h.setter
-  def smiles_with_h(self, value):
-    self._smiles_with_h = value
-
-  @property
-  def smiles_with_labels(self):
-    return self._smiles_with_labels
-
-  @smiles_with_labels.setter
-  def smiles_with_labels(self, value):
-    self._smiles_with_labels = value
-
-  @property
-  def neutral_forms_during_bond_matching(self):
-    return self._neutral_forms_during_bond_matching
-
-  @neutral_forms_during_bond_matching.setter
-  def neutral_forms_during_bond_matching(self, value):
-    self._neutral_forms_during_bond_matching = value
-
-  @property
-  def consider_not_bonded(self):
-    return self._consider_not_bonded
-
-  @consider_not_bonded.setter
-  def consider_not_bonded(self, value):
-    self._consider_not_bonded = value
-
-  @property
-  def ring_atom_count_cannot_decrease(self):
-    return self._ring_atom_count_cannot_decrease
-
-  @ring_atom_count_cannot_decrease.setter
-  def ring_atom_count_cannot_decrease(self, value):
-    self._ring_atom_count_cannot_decrease = value
+    # Should we verify that the hydrogens have an appropriate bond length?
+    self.check_hydrogen_dists = False
 
 
 def add_bond(a1, a2, btype, destination):
@@ -125,7 +80,7 @@ def add_bond(a1, a2, btype, destination):
           bond_type=smu_utils_lib.INTEGER_TO_BOND_TYPE[btype]))
 
 
-class SmuMolecule:
+class TopologyMolecule:
   """Holds information about partially built molecules."""
 
   def __init__(self, hydrogens_attached, bonds_to_scores, matching_parameters):
