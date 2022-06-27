@@ -154,8 +154,10 @@ message BondTopology {
   // This is a discrete distribution among all matching topologies
   // from this geometry. Since we are in log space, a value of 0 means
   // a probability of 1.0 and smaller negative values are smaller
-  // probabilities. Across the matching topologies,
-  // exp(topology_score) will sum to 1.
+  // probabilities.
+  // Note that this score is *only* available for topologies with source
+  // including SOURCE_ITC.
+  // Across the SOURCE_ITC topologies, exp(topology_score) will sum to 1.
   float topology_score = 8;
 
   // An estimate of ln(p(geometry|topology)).
@@ -167,6 +169,9 @@ message BondTopology {
   // score should *not* be used to compare across different
   // topologies. It is only interesting for a given topology to
   // compare different geometries.
+  //
+  // Note that this score is *only* available for topologies with source
+  // including SOURCE_ITC.
   //
   // Note that only bonds between heavy atoms are used in computing this.
   float geometry_score = 9;

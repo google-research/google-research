@@ -26,9 +26,9 @@ Also note that the bond_topologies field of all molecules returned
 from a topology query have been modified with the new allowed bond distances
 
 Compare the bond topologies from the orignal query:
-    85532001 has bond topologies: [85532, 89347, 89158, 88595, 85227, 85395]
-    88595001 has bond topologies: [88595, 89158, 85532, 89347, 85227, 85395]
-    89347002 has bond topologies: [85532, 89347, 89158, 88595, 85227, 85395]
+    85532001 has bond topologies: [85532, 89347, 89158, 88595, 85227]
+    88595001 has bond topologies: [88595, 89158, 85532, 89347, 85227]
+    89347002 has bond topologies: [85532, 89347, 89158, 88595, 85227]
 
 With the topologies from the query with modified bond distances:
     85532001 has bond topologies: [89347, 88595, 89158, 85532, 85227, 85395]

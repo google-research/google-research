@@ -28,6 +28,7 @@
 # limitations under the License.
 """Examples showing important features about multiple bond topologies."""
 
+from smu import dataset_pb2
 from smu import smu_sqlite
 
 
@@ -36,8 +37,16 @@ def print_bond_topologies(mol):
         'bond topologies')
   for bt in mol.bond_topologies:
     print('    Topology with id', bt.bond_topology_id, 'and SMILES', bt.smiles)
-    if bt.is_starting_topology:
-      print('        is_starting_topology: True')
+    source_string = ''
+    if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING:
+      source_string += 'STARTING '
+    if bt.source & dataset_pb2.BondTopology.SOURCE_ITC:
+      source_string += 'ITC '
+    if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR:
+      source_string += 'MLCR '
+    if bt.source & dataset_pb2.BondTopology.SOURCE_CSD:
+      source_string += 'CSD '
+    print('        Sources: ', source_string)
 
 
 db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
@@ -51,14 +60,29 @@ print_bond_topologies(db.find_by_molecule_id(57429002))
 print()
 print('Some Molecules have multiple bond topologies like this one')
 print_bond_topologies(db.find_by_molecule_id(8400001))
-print('For Molecules with multiple topologies one will generally be marked')
-print('with is_starting_topology, indicating that this is the topology')
-print('that was used during the initial geometry generation')
 
 print()
-print(
-    'However, the same topology id can be present multiple times for a given Molecule'
-)
+print('The "source" field gives information about these multiple topologies')
+print('"source" is an integer which is a bit field of several values from')
+print('dataset_pb2.BondTopology.SourceType')
+
+print()
+print('The most important bit to check is SOURCE_STARTING')
+print('This bit is set on the topology used during initial geometry generation')
+print('You check this bit with code like')
+print('bt.source & dataset_pb2.BondTopology.SOURCE_STARTING')
+
+print()
+print('The other three bits are related to the three methods we have for ')
+print('matching a topology to the geometry of the Molecule.')
+print('Please see the manuscript for details on these methods.')
+print('The three bits are:')
+print('Initial Topology Criteria: dataset_pb2.BondTopology.SOURCE_ITC')
+print('Meng Lewis Covalent Radii: dataset_pb2.BondTopology.SOURCE_MLCR')
+print('Cambridge Structural Database: dataset_pb2.BondTopology.SOURCE_CSD')
+
+print()
+print('One further note, the same topology id can be present multiple times')
 print('For example, consider good old benzene')
 benzene = db.find_by_molecule_id(79488001)
 print_bond_topologies(benzene)
@@ -75,15 +99,5 @@ print()
 print(
     'There are also some cases with a mix of same and different ids, like this')
 print_bond_topologies(db.find_by_molecule_id(3177001))
-
-print()
-print('There are also a handful of special cases that have no topology marked')
-print('with is_starting_topology. These have exactly one bond topology and')
-print('1 or 2 heavy atoms')
-print_bond_topologies(db.find_by_molecule_id(899650001))
-print_bond_topologies(db.find_by_molecule_id(899651001))
-print_bond_topologies(db.find_by_molecule_id(899652001))
-print('Those are all the cases in the standard database')
-print('There are a couple more in the complete database')
 
 # TODO(pfr): add examples using iterate_bond_topologies

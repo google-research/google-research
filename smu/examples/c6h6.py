@@ -102,18 +102,18 @@ for mol in molecules:
   # a given bond topology (expressed as SMILES).
   #
   # ALTERNATIVE
-  # You can just consider the bond topology that was used to produce this
-  # geometry. Notably tThermochemical
-  # analyses depend on the chosen bond topology and those reported in the
-  # database are (strictly) valid only for these "starting" bond topologies,
-  # even though dependence on the chosen bond topology is usually fairly
+  # You can just consider the bond topology that was used to produce
+  # this geometry. Notably, thermochemical analyses depend on the
+  # chosen bond topology and those reported in the database are
+  # (strictly) valid only for these "starting" bond topologies, even
+  # though dependence on the chosen bond topology is usually fairly
   # small.
   #
   # If you want this, jsut uncomment the if statement below
   #---------------------------------------------------------------------------
 
   for bt in mol.bond_topologies:
-    # if not bt.is_starting_topology:
+    # if not bt.source & dataset_pb2.BondTopology.SOURCE_STARTING:
     #   continue
     smiles_to_molecules[bt.smiles].append(mol)
 
