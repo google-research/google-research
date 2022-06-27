@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,28 +29,6 @@ class SequenceType(enum.Enum):
   FRAME_IDXS = "frame_idxs"
   VIDEO_NAME = "video_name"
   VIDEO_LEN = "video_len"
-
-  def __str__(self):  # pylint: disable=invalid-str-returned
-    return self.value
-
-
-@enum.unique
-class ImageTransformationType(enum.Enum):
-  """Transformations we know how to run on images.
-
-  If you want to add additional augmentations, you must add them here.
-  """
-
-  RANDOM_RESIZED_CROP = "random_resized_crop"
-  CENTER_CROP = "center_crop"
-  GLOBAL_RESIZE = "global_resize"
-  VERTICAL_FLIP = "vertical_flip"
-  HORIZONTAL_FLIP = "horizontal_flip"
-  COLOR_JITTER = "color_jitter"
-  ROTATE = "rotate"
-  DROPOUT = "dropout"
-  NORMALIZE = "normalize"
-  UNNORMALIZE = "unnormalize"
 
   def __str__(self):  # pylint: disable=invalid-str-returned
     return self.value

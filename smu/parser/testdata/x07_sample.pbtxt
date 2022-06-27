@@ -1,8 +1,8 @@
 # proto-file: third_party/google_research/google_research/smu/dataset.proto
-# proto-message: MultipleConformers
-conformers {
-  conformer_id: 618451001
-  original_conformer_index: 3
+# proto-message: MultipleMolecules
+molecules {
+  molecule_id: 618451001
+  original_molecule_index: 3
   initial_geometries {
     atom_positions {
       x: -0.599232
@@ -73,6 +73,12 @@ conformers {
       x: 3.727296
       y: -4.095603
       z: 0.019653
+    }
+    energy {
+      value: -406.51179
+    }
+    gnorm {
+      value: 0.052254
     }
   }
   optimized_geometry {
@@ -146,9 +152,24 @@ conformers {
       y: -3.434324
       z: 0.427788
     }
+    energy {
+      value: -406.522079
+    }
+    gnorm {
+      value: 2.5e-05
+    }
+    enuc {
+      value: 324.344177
+    }
+    rotcon {
+      value: 1455.371
+      value: 2040.472
+      value: 4104.237
+    }
   }
   properties {
     errors {
+      which_database: STANDARD
     }
     harmonic_intensities {
       value: 0.0
@@ -809,12 +830,12 @@ conformers {
       precision: 0.0001
     }
     dipole_dipole_polarizability_pbe0_aug_pc_1 {
-      matrix_values: 58.80935
-      matrix_values: 65.98525
-      matrix_values: 59.87708
-      matrix_values: -7.76183
-      matrix_values: -8.13571
-      matrix_values: -1.61908
+      xx: 58.80935
+      yy: 65.98525
+      zz: 59.87708
+      xy: -7.76183
+      xz: -8.13571
+      yz: -1.61908
     }
     dipole_moment_pbe0_aug_pc_1 {
       x: 0.00439
@@ -827,69 +848,49 @@ conformers {
       z: 0.80642
     }
     quadrupole_moment_pbe0_aug_pc_1 {
-      matrix_values: -32.30635
-      matrix_values: -31.24161
-      matrix_values: -24.19366
-      matrix_values: 0.96159
-      matrix_values: 0.03026
-      matrix_values: -2.51221
+      xx: -32.30635
+      yy: -31.24161
+      zz: -24.19366
+      xy: 0.96159
+      xz: 0.03026
+      yz: -2.51221
     }
     quadrupole_moment_hf_6_31gd {
-      matrix_values: -31.78863
-      matrix_values: -31.32069
-      matrix_values: -23.03958
-      matrix_values: 0.85285
-      matrix_values: 0.49717
-      matrix_values: -2.37817
+      xx: -31.78863
+      yy: -31.32069
+      zz: -23.03958
+      xy: 0.85285
+      xz: 0.49717
+      yz: -2.37817
     }
     octopole_moment_pbe0_aug_pc_1 {
-      tensor_values: -119.04308
-      tensor_values: 353.349
-      tensor_values: -301.22711
-      tensor_values: 132.03636
-      tensor_values: -123.29265
-      tensor_values: -52.68846
-      tensor_values: -89.32013
-      tensor_values: -32.35748
-      tensor_values: 83.80084
-      tensor_values: -1.25121
+      xxx: -119.04308
+      yyy: 353.349
+      zzz: -301.22711
+      xxy: 132.03636
+      xxz: -123.29265
+      xyy: -52.68846
+      yyz: -89.32013
+      xzz: -32.35748
+      yzz: 83.80084
+      xyz: -1.25121
     }
     octopole_moment_hf_6_31gd {
-      tensor_values: -115.58582
-      tensor_values: 351.24216
-      tensor_values: -291.96384
-      tensor_values: 131.3532
-      tensor_values: -121.65704
-      tensor_values: -53.00702
-      tensor_values: -86.89651
-      tensor_values: -28.30479
-      tensor_values: 80.41479
-      tensor_values: -3.30141
+      xxx: -115.58582
+      yyy: 351.24216
+      zzz: -291.96384
+      xxy: 131.3532
+      xxz: -121.65704
+      xyy: -53.00702
+      yyz: -86.89651
+      xzz: -28.30479
+      yzz: 80.41479
+      xyz: -3.30141
     }
     compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.128.000\nStage 1  Cluster:   google-docker\nStage 1  Cores:        16\nStage 1  CPU type:      2\nStage 2  Host IP:   XXX.YYY.004.126\nStage 2  Cluster:   google-docker\nStage 2  Cores:         8\nStage 2  CPU type:      2\n"
     symmetry_used_in_calculation: false
-    initial_geometry_energy {
-      value: -406.51179
-    }
-    initial_geometry_gradient_norm {
-      value: 0.052254
-    }
-    optimized_geometry_energy {
-      value: -406.522079
-    }
-    optimized_geometry_gradient_norm {
-      value: 2.5e-05
-    }
-    rotational_constants {
-      x: 1455.371
-      y: 2040.472
-      z: 4104.237
-    }
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
-    nuclear_repulsion_energy {
-      value: 324.344177
-    }
     diagnostics_d1_ccsd_2sp {
       value: 0.0486
     }
@@ -4220,12 +4221,12 @@ conformers {
     }
     smiles: "COC(=CF)OC"
     bond_topology_id: 618451
+    source: 1
   }
-  which_database: STANDARD
 }
-conformers {
-  conformer_id: 618451123
-  original_conformer_index: 4
+molecules {
+  molecule_id: 618451123
+  original_molecule_index: 4
   initial_geometries {
     atom_positions {
       x: 0.32182
@@ -4296,6 +4297,12 @@ conformers {
       x: 3.145827
       y: -2.846117
       z: 0.056692
+    }
+    energy {
+      value: -406.512988
+    }
+    gnorm {
+      value: 0.050203
     }
   }
   optimized_geometry {
@@ -4369,9 +4376,24 @@ conformers {
       y: -3.020256
       z: 0.002237
     }
+    energy {
+      value: -406.520886
+    }
+    gnorm {
+      value: 1.8e-05
+    }
+    enuc {
+      value: 322.821625
+    }
+    rotcon {
+      value: 1424.656
+      value: 2522.924
+      value: 2896.89
+    }
   }
   properties {
     errors {
+      which_database: STANDARD
     }
     harmonic_intensities {
       value: 0.0
@@ -5032,12 +5054,12 @@ conformers {
       precision: 0.0001
     }
     dipole_dipole_polarizability_pbe0_aug_pc_1 {
-      matrix_values: 52.37535
-      matrix_values: 63.95404
-      matrix_values: 68.83053
-      matrix_values: -3.7459
-      matrix_values: -7.12087
-      matrix_values: -2.72761
+      xx: 52.37535
+      yy: 63.95404
+      zz: 68.83053
+      xy: -3.7459
+      xz: -7.12087
+      yz: -2.72761
     }
     dipole_moment_pbe0_aug_pc_1 {
       x: -0.78948
@@ -5050,69 +5072,49 @@ conformers {
       z: -0.10518
     }
     quadrupole_moment_pbe0_aug_pc_1 {
-      matrix_values: -33.91602
-      matrix_values: -35.90067
-      matrix_values: -28.78465
-      matrix_values: 5.29205
-      matrix_values: -4.08942
-      matrix_values: -0.56903
+      xx: -33.91602
+      yy: -35.90067
+      zz: -28.78465
+      xy: 5.29205
+      xz: -4.08942
+      yz: -0.56903
     }
     quadrupole_moment_hf_6_31gd {
-      matrix_values: -33.69901
-      matrix_values: -36.52193
-      matrix_values: -28.80382
-      matrix_values: 6.23392
-      matrix_values: -4.8326
-      matrix_values: -0.32989
+      xx: -33.69901
+      yy: -36.52193
+      zz: -28.80382
+      xy: 6.23392
+      xz: -4.8326
+      yz: -0.32989
     }
     octopole_moment_pbe0_aug_pc_1 {
-      tensor_values: -150.57141
-      tensor_values: 358.24957
-      tensor_values: -338.05579
-      tensor_values: 125.10223
-      tensor_values: -136.29333
-      tensor_values: -81.52291
-      tensor_values: -111.82349
-      tensor_values: -67.98473
-      tensor_values: 81.00112
-      tensor_values: 18.4253
+      xxx: -150.57141
+      yyy: 358.24957
+      zzz: -338.05579
+      xxy: 125.10223
+      xxz: -136.29333
+      xyy: -81.52291
+      yyz: -111.82349
+      xzz: -67.98473
+      yzz: 81.00112
+      xyz: 18.4253
     }
     octopole_moment_hf_6_31gd {
-      tensor_values: -148.26385
-      tensor_values: 361.37775
-      tensor_values: -334.82935
-      tensor_values: 125.54801
-      tensor_values: -136.11116
-      tensor_values: -87.26404
-      tensor_values: -113.1766
-      tensor_values: -72.26063
-      tensor_values: 78.86946
-      tensor_values: 22.93362
+      xxx: -148.26385
+      yyy: 361.37775
+      zzz: -334.82935
+      xxy: 125.54801
+      xxz: -136.11116
+      xyy: -87.26404
+      yyz: -113.1766
+      xzz: -72.26063
+      yzz: 78.86946
+      xyz: 22.93362
     }
     compute_cluster_info: "Stage 1  Host IP:   XXX.YYY.128.000\nStage 1  Cluster:   google-docker\nStage 1  Cores:        16\nStage 1  CPU type:      2\nStage 2  Host IP:   XXX.YYY.002.102\nStage 2  Cluster:   google-docker\nStage 2  Cores:         8\nStage 2  CPU type:      2\n"
     symmetry_used_in_calculation: false
-    initial_geometry_energy {
-      value: -406.512988
-    }
-    initial_geometry_gradient_norm {
-      value: 0.050203
-    }
-    optimized_geometry_energy {
-      value: -406.520886
-    }
-    optimized_geometry_gradient_norm {
-      value: 1.8e-05
-    }
-    rotational_constants {
-      x: 1424.656
-      y: 2522.924
-      z: 2896.89
-    }
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
-    nuclear_repulsion_energy {
-      value: 322.821625
-    }
     diagnostics_d1_ccsd_2sp {
       value: 0.0482
     }
@@ -8440,6 +8442,6 @@ conformers {
     }
     smiles: "COC(=CF)OC"
     bond_topology_id: 618451
+    source: 1
   }
-  which_database: STANDARD
 }

@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 #ifndef SCANN_UTILS_SAMPLED_INDEX_LIST_H_
 #define SCANN_UTILS_SAMPLED_INDEX_LIST_H_
+
+#include <variant>
 
 #include "absl/types/variant.h"
 #include "scann/utils/types.h"
@@ -43,14 +45,14 @@ class SampledIndexList {
   using SparseIndices = vector<Index>;
 
   const DenseIndices* dense() const {
-    return absl::get_if<DenseIndices>(&indices_);
+    return std::get_if<DenseIndices>(&indices_);
   }
 
   const SparseIndices* sparse() const {
-    return absl::get_if<SparseIndices>(&indices_);
+    return std::get_if<SparseIndices>(&indices_);
   }
 
-  absl::variant<DenseIndices, SparseIndices> indices_;
+  std::variant<DenseIndices, SparseIndices> indices_;
   Index current_;
 };
 

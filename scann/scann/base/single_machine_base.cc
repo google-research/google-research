@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 #include "scann/base/single_machine_base.h"
 
 #include <cstdint>
+#include <string>
 #include <typeinfo>
+#include <utility>
 
 #include "absl/flags/flag.h"
-#include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/substitute.h"
 #include "scann/base/search_parameters.h"
@@ -262,10 +263,23 @@ SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions() {
 
   opts.crowding_attributes = std::const_pointer_cast<vector<int64_t>>(
       datapoint_index_to_crowding_attribute_);
-  opts.creation_timestamp = creation_timestamp_;
   if (reordering_helper_)
     reordering_helper_->AppendDataToSingleMachineFactoryOptions(&opts);
   return opts;
+}
+
+template <typename T>
+StatusOr<shared_ptr<const DenseDataset<float>>>
+SingleMachineSearcherBase<T>::SharedFloatDatasetIfNeeded() {
+  if (!needs_dataset()) return shared_ptr<const DenseDataset<float>>(nullptr);
+  if (dataset() == nullptr)
+    return InternalError(
+        "Searcher needs original dataset but none is present.");
+  auto dataset =
+      std::dynamic_pointer_cast<const DenseDataset<float>>(shared_dataset());
+  if (dataset == nullptr)
+    return InternalError("Failed to cast to DenseDataset<float>.");
+  return dataset;
 }
 
 bool UntypedSingleMachineSearcherBase::needs_hashed_dataset() const {

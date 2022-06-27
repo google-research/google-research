@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ def create_vertices_intrinsics(disparity, intrinsics):
   batch_size, height, width = disparity.shape.as_list()
   vertex_count = height * width
 
-  i, j = tf.meshgrid(tf.range(width), tf.range(height))
+  i, j = tf.meshgrid(np.arange(width), np.arange(height))
   i = tf.cast(i, tf.float32)
   j = tf.cast(j, tf.float32)
   width = tf.cast(width, tf.float32)

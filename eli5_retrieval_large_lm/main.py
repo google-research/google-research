@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -610,7 +610,7 @@ def main(argv):
     )
     tf_function_flags = dict(
         experimental_compile=FLAG_EXPERIMENTAL_COMPILE.value,
-        experimental_relax_shapes=not FLAG_INPUT_FIXED_SIZE.value
+        reduce_retracing=not FLAG_INPUT_FIXED_SIZE.value
     )
 
     if (FLAG_DISTRIBUTE_MODE.value ==

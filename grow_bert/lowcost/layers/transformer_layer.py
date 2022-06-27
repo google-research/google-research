@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -175,7 +175,7 @@ class TransformerLayer(tf.keras.layers.Layer):
           kernel_initializer=self._kernel_initializer,
           **common_kwargs)
 
-    policy = tf.keras.mixed_precision.experimental.global_policy()
+    policy = tf.keras.mixed_precision.global_policy()
     if policy.name == "mixed_bfloat16":
       policy = tf.float32
     self._intermediate_activation_layer = tf.keras.layers.Activation(

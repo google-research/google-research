@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,7 +81,7 @@ def train_model(x, t, e, a, folds, groups, model='coupled_deep_cph'):
       ef = e[folds != f]
       af = a[folds != f]
 
-      validx = sorted(np.random.choice(len(xf), size=(int(0.15*len(xf))),\
+      validx = sorted(np.random.choice(len(xf), size=(int(0.15*len(xf))),
                                        replace=False))
       vidx = np.array([False] * len(xf))
       vidx[validx] = True

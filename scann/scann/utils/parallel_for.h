@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,12 +19,17 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
 #include <limits>
+#include <type_traits>
+#include <utility>
 
-#include "absl/status/status.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/functional/function_ref.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 

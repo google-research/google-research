@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,10 @@
 # limitations under the License.
 
 """Spectrogram augmentation for model regularization."""
+from typing import Any, Dict
+
+import tensorflow_model_optimization as tfmot
+
 from kws_streaming.layers.compat import tf
 from tensorflow.python.keras.utils import control_flow_util  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
@@ -105,3 +109,55 @@ class SpecAugment(tf.keras.layers.Layer):
     }
     base_config = super(SpecAugment, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
+
+
+# Quantization aware training support for custom operations.
+
+
+def quantizable_spectrogram_augment(is_quantize = False,
+                                    **kwargs):
+  """Functional API with quantization annotations."""
+  if is_quantize:
+    return tfmot.quantization.keras.quantize_annotate_layer(
+        SpecAugment(**kwargs), DoNotQuantizeConfig())
+  else:
+    return SpecAugment(**kwargs)
+
+
+class DoNotQuantizeConfig(tfmot.quantization.keras.QuantizeConfig):
+  """QuantizeConfig which does not quantize any part of the layer."""
+
+  def get_weights_and_quantizers(
+      self, layer
+  ):
+    return []
+
+  def get_activations_and_quantizers(
+      self, layer
+  ):
+    return []
+
+  def set_quantize_weights(self, layer,
+                           quantize_weights):
+    return []
+
+  def set_quantize_activations(
+      self, layer, quantize_activations
+  ):
+    return []
+
+  def get_output_quantizers(
+      self, layer
+  ):
+    return []
+
+  def get_config(self):
+    return {}
+
+
+def quantization_scopes():
+  """Quantization scope for known custom operations."""
+  return {
+      'SpecAugment': SpecAugment,
+      'DoNotQuantizeConfig': DoNotQuantizeConfig,
+  }

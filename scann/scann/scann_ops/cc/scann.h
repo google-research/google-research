@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <string>
 
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
@@ -28,19 +29,15 @@
 #include "scann/base/single_machine_factory_scann.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_status.h"
+#include "scann/scann_ops/scann_assets.pb.h"
 #include "scann/utils/threads.h"
 
 namespace research_scann {
 
 class ScannInterface {
  public:
-  Status Initialize(ConstSpan<float> dataset,
-                    ConstSpan<int32_t> datapoint_to_token,
-                    ConstSpan<uint8_t> hashed_dataset,
-                    ConstSpan<int8_t> int8_dataset,
-                    ConstSpan<float> int8_multipliers,
-                    ConstSpan<float> dp_norms, DatapointIndex n_points,
-                    const std::string& artifacts_dir);
+  Status Initialize(const std::string& config_pbtxt,
+                    const std::string& scann_assets_pbtxt);
   Status Initialize(ScannConfig config, SingleMachineFactoryOptions opts,
                     ConstSpan<float> dataset,
                     ConstSpan<int32_t> datapoint_to_token,
@@ -62,7 +59,7 @@ class ScannInterface {
   Status SearchBatchedParallel(const DenseDataset<float>& queries,
                                MutableSpan<NNResultsVector> res, int final_nn,
                                int pre_reorder_nn, int leaves) const;
-  Status Serialize(std::string path);
+  StatusOr<ScannAssets> Serialize(std::string path);
   StatusOr<SingleMachineFactoryOptions> ExtractOptions();
 
   template <typename T_idx>
@@ -72,14 +69,20 @@ class ScannInterface {
   void ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res, T_idx* indices,
                               float* distances, int neighbors_per_query);
 
-  bool needs_dataset() const { return scann_->needs_dataset(); }
-  const Dataset* dataset() const { return scann_->dataset(); }
+  StatusOr<shared_ptr<const DenseDataset<float>>> Float32DatasetIfNeeded() {
+    return scann_->SharedFloatDatasetIfNeeded();
+  }
 
   size_t n_points() const { return n_points_; }
   DimensionIndex dimensionality() const { return dimensionality_; }
   const ScannConfig* config() const { return &config_; }
 
  private:
+  SearchParameters GetSearchParameters(int final_nn, int pre_reorder_nn,
+                                       int leaves) const;
+  vector<SearchParameters> GetSearchParametersBatched(
+      int batch_size, int final_nn, int pre_reorder_nn, int leaves,
+      bool set_unspecified) const;
   size_t n_points_;
   DimensionIndex dimensionality_;
   std::unique_ptr<SingleMachineSearcherBase<float>> scann_;

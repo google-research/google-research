@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #define SCANN_HASHES_INTERNAL_LUT16_INTERFACE_H_
 
 #include <cstdint>
+#include <utility>
 
 #include "scann/hashes/internal/lut16_args.h"
 #include "scann/hashes/internal/lut16_avx2.h"

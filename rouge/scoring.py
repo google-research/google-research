@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Library for scoring and evaluation of text samples.
 
 Aggregation functions use bootstrap resampling to compute confidence intervals
@@ -26,6 +25,7 @@ from __future__ import print_function
 
 import abc
 import collections
+from typing import Dict
 
 import numpy as np
 import six
@@ -37,7 +37,7 @@ class Score(
   """Tuple containing precision, recall, and f-measure values."""
 
 
-class BaseScorer(object):
+class BaseScorer(object, metaclass=abc.ABCMeta):
   """Base class for Scorer objects."""
 
   @abc.abstractmethod

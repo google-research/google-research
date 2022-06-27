@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
@@ -97,7 +96,7 @@ def _map_oneofs_helper(
     new_choices = []
     for i, choice in enumerate(value.choices):
       new_path = path + ('choices', i)
-      new_choices.append(_map_oneofs_helper(func, choice, new_path))
+      new_choices.append(_map_oneofs_helper(func, choice, new_path))  # pytype: disable=wrong-arg-types
     new_value = OneOf(choices=new_choices, mask=value.mask, tag=value.tag)
     return func(path, new_value)
   elif isinstance(value, (list, tuple)):
@@ -106,11 +105,11 @@ def _map_oneofs_helper(
     new_elements = []
     if hasattr(value, '_fields'):  # value is a namedtuple
       for k, v in zip(value._fields, value):
-        new_elements.append(_map_oneofs_helper(func, v, path + (k,)))
+        new_elements.append(_map_oneofs_helper(func, v, path + (k,)))  # pytype: disable=wrong-arg-types
       return value.__class__(*new_elements)
     else:
       for k, v in enumerate(value):
-        new_elements.append(_map_oneofs_helper(func, v, path + (k,)))
+        new_elements.append(_map_oneofs_helper(func, v, path + (k,)))  # pytype: disable=wrong-arg-types
       return value.__class__(new_elements)
   elif isinstance(value, dict):
     # Value could be an ordinary Python dictionary or an OrderedDict. If
@@ -118,7 +117,7 @@ def _map_oneofs_helper(
     # elements by key. We do this for compatibility with tf.nest.map_structure.
     new_items = []
     for k in sorted(value):
-      new_items.append((k, _map_oneofs_helper(func, value[k], path + (k,))))
+      new_items.append((k, _map_oneofs_helper(func, value[k], path + (k,))))  # pytype: disable=wrong-arg-types
     return value.__class__(new_items)
   elif isinstance(value, (int, float, str, bytes)):  # six.string_types
     return value

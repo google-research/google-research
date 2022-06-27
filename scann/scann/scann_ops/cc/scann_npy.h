@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <limits>
 #include <optional>
 #include <stdexcept>
+#include <string>
 
 #include "absl/types/span.h"
 #include "pybind11/numpy.h"
@@ -35,13 +36,8 @@ using np_row_major_arr =
 
 class ScannNumpy {
  public:
-  ScannNumpy(std::optional<const np_row_major_arr<float>> np_dataset,
-             std::optional<const np_row_major_arr<int32_t>> datapoint_to_token,
-             std::optional<const np_row_major_arr<uint8_t>> hashed_dataset,
-             std::optional<const np_row_major_arr<int8_t>> int8_dataset,
-             std::optional<const np_row_major_arr<float>> int8_multipliers,
-             std::optional<const np_row_major_arr<float>> dp_norms,
-             const std::string& artifacts_dir);
+  ScannNumpy(const std::string& artifacts_dir,
+             const std::string& scann_assets_pbtxt);
   ScannNumpy(const np_row_major_arr<float>& np_dataset,
              const std::string& config, int training_threads);
   std::pair<pybind11::array_t<DatapointIndex>, pybind11::array_t<float>> Search(

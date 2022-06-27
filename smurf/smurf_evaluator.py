@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,32 @@ import os
 import gin
 import tensorflow as tf
 
+
+from smurf import smurf_data
+from smurf import smurf_flags
+from smurf import smurf_plotting
+from smurf import smurf_net
+
+FLAGS = flags.FLAGS
+
+
+def build_network(batch_size):
+  """Builds the model architecture."""
+  return smurf_net.SMURFNet(
+      checkpoint_dir=FLAGS.checkpoint_dir,
+      optimizer=FLAGS.optimizer,
+      dropout_rate=0.,
+      feature_architecture=FLAGS.feature_architecture,
+      flow_architecture=FLAGS.flow_architecture,
+      size=(batch_size, FLAGS.height, FLAGS.width),
+      occlusion_estimation=FLAGS.occlusion_estimation,
+      smoothness_at_level=FLAGS.smoothness_at_level,
+      use_float16=True,
+  )
+
+
+def evaluate():
+  """Eval happens on GPU or CPU, and evals each checkpoint as it appears."""
 
   candidate_checkpoint = None
   smurf =build_network(batch_size=1)

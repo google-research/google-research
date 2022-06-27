@@ -1,0 +1,17 @@
+# DTU settings
+Config.data_dir = "data/DTU/Rectified/"
+Config.dtu_mask_path = 'data/submission_data/idrmasks'
+Config.checkpoint_dir = "out/dtu3_114_bl"
+Config.dtu_scan = "scan114"
+Config.dataset_loader = 'dtu'
+Config.white_background = False
+Config.near = 0.5
+Config.far = 3.5
+Config.factor = 4
+Config.render_factor = 4
+MLP.density_noise = 1.
+
+Config.n_input_views = 3
+
+# For BL
+Config.load_random_rays = False

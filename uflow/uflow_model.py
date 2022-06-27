@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 
 """UFlow models.
 
@@ -26,7 +25,6 @@ before computing a cost volume. We found these changes to improve the
 performance.
 """
 
-# Lint as: python3
 
 import collections
 
@@ -149,11 +147,9 @@ class PWCFlow(Model):
     super(PWCFlow, self).__init__()
     self._use_bfloat16 = use_bfloat16
     if use_bfloat16:
-      self._dtype_policy = tf.keras.mixed_precision.experimental.Policy(
-          'mixed_bfloat16')
+      self._dtype_policy = tf.keras.mixed_precision.Policy('mixed_bfloat16')
     else:
-      self._dtype_policy = tf.keras.mixed_precision.experimental.Policy(
-          'float32')
+      self._dtype_policy = tf.keras.mixed_precision.Policy('float32')
     self._leaky_relu_alpha = leaky_relu_alpha
     self._drop_out_rate = dropout_rate
     self._num_context_up_channels = num_channels_upsampled_context
@@ -420,11 +416,9 @@ class PWCFeaturePyramid(Model):
     super(PWCFeaturePyramid, self).__init__()
     self._use_bfloat16 = use_bfloat16
     if use_bfloat16:
-      self._dtype_policy = tf.keras.mixed_precision.experimental.Policy(
-          'mixed_bfloat16')
+      self._dtype_policy = tf.keras.mixed_precision.Policy('mixed_bfloat16')
     else:
-      self._dtype_policy = tf.keras.mixed_precision.experimental.Policy(
-          'float32')
+      self._dtype_policy = tf.keras.mixed_precision.Policy('float32')
     self._channel_multiplier = channel_multiplier
     if num_levels > 6:
       raise NotImplementedError('Max number of pyramid levels is 6')

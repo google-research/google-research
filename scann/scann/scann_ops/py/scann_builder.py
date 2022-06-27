@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -222,18 +222,6 @@ class ScannBuilder(object):
     if reorder_params is not None:
       config += self.reorder.proto_maker(self, **reorder_params)
     return config
-
-  def create_tf(self, **kwargs):
-    del kwargs  # Unused, now that function has moved.
-    raise Exception(
-        "No longer supported: replace scann_builder.ScannBuilder(...)"
-        " ... .create_tf(...) with scann_ops.builder(...) ... .build(...)")
-
-  def create_pybind(self):
-    raise Exception(
-        "No longer supported: replace scann_builder.ScannBuilder(...) ... "
-        ".create_pybind(...) with scann_ops_pybind.builder(...) ... .build(...)"
-    )
 
   def build(self, **kwargs):
     """Calls builder_lambda to return a ScaNN searcher with the built config.

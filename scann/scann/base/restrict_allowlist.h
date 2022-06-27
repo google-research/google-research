@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,9 @@
 #define SCANN_BASE_RESTRICT_ALLOWLIST_H_
 
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <utility>
 
 #include "gtest/gtest_prod.h"
 #include "scann/oss_wrappers/scann_bits.h"

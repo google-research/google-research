@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 Liu, H., Brock, A., Simonyan, K., & Le, Q. V. (2020, April 6). Evolving
 Normalization-Activation Layers. arXiv [cs.LG]. http://arxiv.org/abs/2004.02967
 """
-from flax import nn
-from flax.nn import initializers
+from flax.deprecated import nn
+from flax.deprecated.nn import initializers
 from jax import lax
 import jax.numpy as jnp
 import jax.scipy.stats

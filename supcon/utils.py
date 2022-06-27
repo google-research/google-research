@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utility functions to build losses, optimizers, EMA etc."""
 
 import re
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from supcon import enums
 
@@ -665,7 +665,7 @@ def cross_replica_concat(tensor):
 
 def estimator_mode_to_model_mode(estimator_mode):
   return {
-      tf.estimator.ModeKeys.TRAIN: enums.ModelMode.TRAIN,
-      tf.estimator.ModeKeys.EVAL: enums.ModelMode.EVAL,
-      tf.estimator.ModeKeys.PREDICT: enums.ModelMode.INFERENCE,
+      tf_estimator.ModeKeys.TRAIN: enums.ModelMode.TRAIN,
+      tf_estimator.ModeKeys.EVAL: enums.ModelMode.EVAL,
+      tf_estimator.ModeKeys.PREDICT: enums.ModelMode.INFERENCE,
   }[estimator_mode]

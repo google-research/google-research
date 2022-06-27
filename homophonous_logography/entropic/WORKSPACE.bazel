@@ -28,8 +28,8 @@ http_archive(
 
 http_archive(
     name = "io_abseil_py",
-    strip_prefix = "abseil-py-master",
-    urls = ["https://github.com/abseil/abseil-py/archive/master.zip"],
+    strip_prefix = "abseil-py-main",
+    urls = ["https://github.com/abseil/abseil-py/archive/main.zip"],
 )
 
 # -------------------------------------------------------------------------

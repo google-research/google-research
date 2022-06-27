@@ -1,0 +1,19 @@
+--find-links https://storage.googleapis.com/jax-releases/jax_releases.html
+--find-links https://download.pytorch.org/whl/torch_stable.html
+absl-py
+clu
+git+https://github.com/openai/CLIP.git
+dm_pix
+jax[cuda]>=0.2.12,<=0.2.25
+jaxlib>=0.1.65
+flax
+matplotlib
+mediapy
+ml_collections
+numpy>=1.21.5
+regex
+git+git://github.com/google-research/scenic.git
+scipy
+tensorflow>=2.7.0
+tqdm
+torch==1.7.1+cpu

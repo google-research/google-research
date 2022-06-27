@@ -50,6 +50,8 @@ and the LCS is computed between each pair of reference and candidate sentences,
 and something called union-LCS is computed. This is called `rougeLsum` in this
 package. This is the ROUGE-L reported in *[Get To The Point: Summarization with
 Pointer-Generator Networks](https://arxiv.org/abs/1704.04368)*, for example.
+If your references/candidates do not have newline delimiters, you can use the
+--split_summaries flag (or optional argument in RougeScorer).
 
 ## How to run
 
@@ -62,7 +64,8 @@ python -m rouge.rouge \
     --target_filepattern=*.targets \
     --prediction_filepattern=*.decodes \
     --output_filename=scores.csv \
-    --use_stemmer=true
+    --use_stemmer=true \
+    --split_summaries=true
 ```
 
 ## Using pip

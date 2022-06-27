@@ -46,6 +46,11 @@ After training, you can draw samples from the sampler, as well as visualize the 
 
     ./run_varlen.sh -phase plot -epoch_load 500
 
+You can also check the MMD on held-out set, via 
+
+    ./run_varlen.sh -phase check_{KERNEL} -epoch_load 500
+
+where `KERNEL` can be either `linear` or `hamming`.
 
 # Fuzzing
 

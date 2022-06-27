@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Code for training a VAE using our adaptive loss on the Celeb-A dataset.
 
 This code is a fork of TensorFlow Probability's example code at
@@ -72,6 +71,7 @@ import os
 from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow_probability import distributions as tfd
 from robust_loss import adaptive
 
@@ -515,7 +515,7 @@ def model_fn(features, labels, mode, params, config):
   tf.summary.scalar("learning_rate", learning_rate)
   optimizer = tf.train.AdamOptimizer(learning_rate)
 
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     train_op = optimizer.minimize(loss, global_step=global_step)
   else:
     train_op = None
@@ -532,7 +532,7 @@ def model_fn(features, labels, mode, params, config):
   eval_metric_ops["img_summary_recon"] = (img_summary_recon, tf.no_op())
   eval_metric_ops = {str(k): v for k, v in eval_metric_ops.items()}
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       mode=mode,
       loss=loss,
       train_op=train_op,
@@ -603,25 +603,25 @@ def main(argv):
   with tf.Graph().as_default():
     train_input_fn = prep_dataset_fn(filenames, splits, is_training=True)
     eval_input_fn = prep_dataset_fn(filenames, splits, is_training=False)
-    estimator = tf.estimator.Estimator(
+    estimator = tf_estimator.Estimator(
         model_fn,
-        config=tf.estimator.RunConfig(
+        config=tf_estimator.RunConfig(
             model_dir=FLAGS.output_dir,
             save_checkpoints_steps=FLAGS.viz_steps,
         ),
     )
 
-    train_spec = tf.estimator.TrainSpec(
+    train_spec = tf_estimator.TrainSpec(
         input_fn=train_input_fn, max_steps=FLAGS.max_steps)
     # Sad ugly hack here. Setting steps=None should go through all of the
     # validation set, but doesn't seem to, so I'm doing it manually.
-    eval_spec = tf.estimator.EvalSpec(
+    eval_spec = tf_estimator.EvalSpec(
         input_fn=eval_input_fn,
         steps=len(filenames[splits == 1]) // FLAGS.batch_size,
         start_delay_secs=0,
         throttle_secs=0)
     for _ in range(FLAGS.max_steps // FLAGS.viz_steps):
-      tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+      tf_estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 
 if __name__ == "__main__":

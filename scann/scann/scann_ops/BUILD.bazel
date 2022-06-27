@@ -1,0 +1,25 @@
+load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+proto_library(
+    name = "scann_assets_proto",
+    srcs = ["scann_assets.proto"],
+    tags = ["local"],
+)
+
+cc_proto_library(
+    name = "scann_assets_cc_proto",
+    tags = ["local"],
+    deps = [":scann_assets_proto"],
+)
+
+scann_py_proto_library(
+    name = "scann_assets_py_pb2",
+    srcs = ["scann_assets.proto"],
+    proto_deps = [":scann_assets_proto"],
+    tags = ["local"],
+)

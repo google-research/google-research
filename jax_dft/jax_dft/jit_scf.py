@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -196,8 +196,7 @@ def _kohn_sham(
         xc_energy_density_fn=xc_energy_density_fn,
         interaction_fn=interaction_fn,
         enforce_reflection_symmetry=enforce_reflection_symmetry)
-    differences = jax.ops.index_update(
-        differences, idx, state.density - old_state.density)
+    differences = differences.at[idx].set(state.density - old_state.density)
     # Density mixing.
     state = state._replace(
         density=old_state.density + alpha * jnp.dot(weights[idx], differences))

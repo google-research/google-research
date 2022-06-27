@@ -1,6 +1,5 @@
+#if defined SCANN_AVX_FIXED8
 
-
-#include <cstdint>
 template <typename DatasetView, bool kShouldPrefetch, bool kHasIndices,
           typename IndexT, typename ResultElemT, typename CallbackLambda>
 SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
@@ -118,6 +117,158 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
     callback->invoke(i + 2 * num_outer_iters, result2);
   }
 }
+
+#elif defined SCANN_SSE_FIXED8
+
+template <typename DatasetView, bool kShouldPrefetch, bool kHasIndices,
+          typename IndexT, typename ResultElemT, typename CallbackLambda>
+SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
+    const float* query, const DatasetView* __restrict__ dataset_view,
+    const IndexT* indices, MutableSpan<ResultElemT> result,
+    CallbackLambda* __restrict__ callback) {
+  const size_t dims = dataset_view->dimensionality();
+  const size_t num_datapoints = result.size();
+  if (num_datapoints == 0 || dims == 0) return;
+  constexpr size_t kMinPrefetchAheadBytes =
+      (IsFloatingType<ResultElemT>()) ? 2048 : 1024;
+  size_t num_prefetch_datapoints;
+  if (kShouldPrefetch) {
+    num_prefetch_datapoints =
+        (kMinPrefetchAheadBytes > dims) ? (kMinPrefetchAheadBytes / dims) : 1;
+  }
+
+  auto get_db_ptr = [indices, &dataset_view, result, callback](size_t i)
+                        SCANN_INLINE_LAMBDA -> const int8_t* {
+    const size_t idx =
+        kHasIndices
+            ? indices[i]
+            : ::research_scann::one_to_many_low_level::GetDatapointIndex(result,
+                                                                         i);
+    callback->prefetch(idx);
+    return dataset_view->GetPtr(idx);
+  };
+
+  auto _mm_cvtepi8_ps = [](__m128i x) {
+    return _mm_cvtepi32_ps(_mm_cvtepi8_epi32(x));
+  };
+
+  const size_t num_outer_iters = num_datapoints / 3;
+  for (size_t i = 0; i < num_outer_iters; ++i) {
+    const int8_t* i0 = get_db_ptr(i);
+    const int8_t* i1 = get_db_ptr(i + num_outer_iters);
+    const int8_t* i2 = get_db_ptr(i + 2 * num_outer_iters);
+
+    __m128 a0 = _mm_setzero_ps();
+    __m128 a1 = _mm_setzero_ps();
+    __m128 a2 = _mm_setzero_ps();
+
+    auto do_accumulation = [&](__m128i v0, __m128i v1, __m128i v2,
+                               __m128 q) SCANN_INLINE_LAMBDA {
+      a0 = _mm_sub_ps(a0, _mm_mul_ps(q, _mm_cvtepi8_ps(v0)));
+      a1 = _mm_sub_ps(a1, _mm_mul_ps(q, _mm_cvtepi8_ps(v1)));
+      a2 = _mm_sub_ps(a2, _mm_mul_ps(q, _mm_cvtepi8_ps(v2)));
+    };
+
+    size_t j = 0;
+
+    if (j + 16 <= dims) {
+      const int8_t *p0 = nullptr, *p1 = nullptr, *p2 = nullptr;
+
+      if (kShouldPrefetch && i + num_prefetch_datapoints < num_outer_iters) {
+        p0 = get_db_ptr(i + num_prefetch_datapoints);
+        p1 = get_db_ptr(i + num_outer_iters + num_prefetch_datapoints);
+        p2 = get_db_ptr(i + 2 * num_outer_iters + num_prefetch_datapoints);
+      }
+
+      for (; j + 16 <= dims; j += 16) {
+        __m128 q = _mm_loadu_ps(query + j);
+        __m128i v0 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(i0 + j));
+        __m128i v1 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(i1 + j));
+        __m128i v2 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(i2 + j));
+
+        if (kShouldPrefetch && p0) {
+          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
+              p0 + j);
+          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
+              p1 + j);
+          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
+              p2 + j);
+        }
+        do_accumulation(v0, v1, v2, q);
+
+        q = _mm_loadu_ps(query + j + 4);
+        v0 = _mm_srli_si128(v0, 4);
+        v1 = _mm_srli_si128(v1, 4);
+        v2 = _mm_srli_si128(v2, 4);
+        do_accumulation(v0, v1, v2, q);
+
+        q = _mm_loadu_ps(query + j + 8);
+        v0 = _mm_srli_si128(v0, 4);
+        v1 = _mm_srli_si128(v1, 4);
+        v2 = _mm_srli_si128(v2, 4);
+        do_accumulation(v0, v1, v2, q);
+
+        q = _mm_loadu_ps(query + j + 12);
+        v0 = _mm_srli_si128(v0, 4);
+        v1 = _mm_srli_si128(v1, 4);
+        v2 = _mm_srli_si128(v2, 4);
+        do_accumulation(v0, v1, v2, q);
+      }
+    }
+
+    if (j + 8 <= dims) {
+      __m128 q = _mm_loadu_ps(query + j);
+      __m128i v0 = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(i0 + j));
+      __m128i v1 = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(i1 + j));
+      __m128i v2 = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(i2 + j));
+      do_accumulation(v0, v1, v2, q);
+
+      q = _mm_loadu_ps(query + j + 4);
+      v0 = _mm_srli_si128(v0, 4);
+      v1 = _mm_srli_si128(v1, 4);
+      v2 = _mm_srli_si128(v2, 4);
+      do_accumulation(v0, v1, v2, q);
+      j += 8;
+    }
+
+    if (j + 4 <= dims) {
+      __m128 q = _mm_loadu_ps(query + j);
+      __m128i v0 = _mm_cvtepi8_epi32(
+          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i0 + j)));
+      __m128i v1 = _mm_cvtepi8_epi32(
+          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i1 + j)));
+      __m128i v2 = _mm_cvtepi8_epi32(
+          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i2 + j)));
+      a0 = _mm_sub_ps(a0, _mm_mul_ps(q, _mm_cvtepi32_ps(v0)));
+      a1 = _mm_sub_ps(a1, _mm_mul_ps(q, _mm_cvtepi32_ps(v1)));
+      a2 = _mm_sub_ps(a2, _mm_mul_ps(q, _mm_cvtepi32_ps(v2)));
+      j += 4;
+    }
+
+    float result0;
+    float result1;
+    ::research_scann::sse4::HorizontalSum2X({a0}, {a1}, &result0, &result1);
+    float result2 = ::research_scann::sse4::HorizontalSum(
+        ::research_scann::Sse4<float>{a2});
+    for (; j < dims; ++j) {
+      result0 -= query[j] * i0[j];
+      result1 -= query[j] * i1[j];
+      result2 -= query[j] * i2[j];
+    }
+
+    callback->invoke(i, result0);
+    callback->invoke(i + num_outer_iters, result1);
+    callback->invoke(i + 2 * num_outer_iters, result2);
+  }
+}
+
+#else
+
+static_assert(false,
+              "Must define either SCANN_SSE_FIXED8 or SCANN_AVX_FIXED8 when "
+              "including one_to_many_impl.inc.");
+
+#endif
 
 template <typename DatasetView, bool kHasIndices, typename IndexT,
           typename ResultElemT, typename CallbackLambda>

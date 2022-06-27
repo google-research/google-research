@@ -1,0 +1,15 @@
+absl-py
+astunparse
+flax
+gast
+imageio
+jax
+jaxlib
+matplotlib
+ml_collections
+numpy
+python_graphs
+six
+tensor2tensor
+tensorflow
+tensorflow_datasets

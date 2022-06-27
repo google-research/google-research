@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Standalone Flax models."""
 
 import abc
@@ -27,7 +26,7 @@ import time
 
 from absl import logging
 from flax import jax_utils
-from flax import nn
+from flax.deprecated import nn
 from flax.training import checkpoints
 from flax.training import common_utils
 import gin
@@ -274,14 +273,15 @@ def _tokens_to_logits(last_token, cache, model, internal_state=None):
 
   Args:
     last_token: An array of shape (batch_size, 1) containing last token ids.
-    cache: A flax.nn.attention.Cache object.
+    cache: A flax.deprecated.nn.attention.Cache object.
     model: A Jax decoder model to be used for computing the next token logits.
     internal_state: A dict with internal state received from the previous time
       step. If None, no information is shared across time steps.
 
   Returns:
     logits: An array of shape (batch_size, vocab_size) with the logits.
-    new_cache: A flax.nn.attention.Cache object with the updated cache.
+    new_cache: A flax.deprecated.nn.attention.Cache object with the updated
+      cache.
     new_internal_state: A dict with internal state passed to the next time step.
   """
   del internal_state  # Not used.
@@ -311,7 +311,7 @@ def sample_step(prompt,
       prompt (the model consumes these tokens and starts generation after). For
       generic sampling, the prompt must be a single BOS token.
     model: A Jax decoder model to be used for computing the next token logits.
-    cache: A flax.nn.attention.Cache object.
+    cache: A flax.deprecated.nn.attention.Cache object.
     rng: A jax.random.PRNGKey object.
     masked_tokens: A list of ints indicating tokens to mask out during sampling.
     eos_token: An int indicating the EOS token id. If None, we decode until

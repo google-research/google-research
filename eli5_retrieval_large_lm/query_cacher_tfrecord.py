@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import collections
 import logging
 import os
 import time
-from typing import List, Callable, Dict
+from typing import Callable, Dict, List
 
 from absl import app
 from absl import flags
@@ -48,7 +48,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.python.distribute.values as values
 import tensorflow.python.framework.ops as ops
-import tensorflow.python.training.tracking.tracking as tracking
+import tensorflow.python.trackable.autotrackable as autotrackable
 import tensorflow_hub as hub
 import tf_utils
 import tqdm
@@ -184,7 +184,7 @@ def _make_encode_fn(
 ):
   """Prepares the BERT encoder function."""
 
-  @tf.function(experimental_relax_shapes=True)
+  @tf.function(reduce_retracing=True)
   def _encode(batch):
     """Encodes a sample with REALM BERT."""
     # Add a CLS token at the start of the input, and a SEP token at the end
@@ -208,7 +208,7 @@ def make_encode_fn_strategy_run_fn(
   # Giving {} as a default value would make the default value mutable, which
   # is prohibited (because changing the object would change the default value).
 
-  @tf.function(experimental_relax_shapes=True)
+  @tf.function(reduce_retracing=True)
   def encode_fn_strategy_run_fn(batch):
     """Runs the distribute strategy on the query encoder."""
     return strategy.run(encode_fn, args=(batch,))

@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #define SCANN_UTILS_IO_OSS_WRAPPER_H_
 
 #include <fstream>
+#include <string>
 
 #include "google/protobuf/message.h"
 #include "scann/utils/common.h"
@@ -29,6 +30,16 @@ class OpenSourceableFileWriter {
 
  private:
   std::ofstream fout_;
+};
+
+class OpenSourceableFileReader {
+ public:
+  explicit OpenSourceableFileReader(absl::string_view filename);
+  void ReadLine(std::string& dest);
+  void Read(size_t bytes, char* buffer);
+
+ private:
+  std::ifstream fin_;
 };
 
 Status WriteProtobufToFile(absl::string_view filename,

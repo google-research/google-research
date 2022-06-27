@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <string>
 
 #include "absl/types/optional.h"
 #include "pybind11/pybind11.h"
@@ -22,14 +23,7 @@
 PYBIND11_MODULE(scann_pybind, py_module) {
   py_module.doc() = "pybind11 wrapper for ScaNN";
   pybind11::class_<research_scann::ScannNumpy>(py_module, "ScannNumpy")
-      .def(pybind11::init<
-           std::optional<const research_scann::np_row_major_arr<float>>,
-           std::optional<const research_scann::np_row_major_arr<uint32_t>>,
-           std::optional<const research_scann::np_row_major_arr<uint8_t>>,
-           std::optional<const research_scann::np_row_major_arr<int8_t>>,
-           std::optional<const research_scann::np_row_major_arr<float>>,
-           std::optional<const research_scann::np_row_major_arr<float>>,
-           const std::string&>())
+      .def(pybind11::init<const std::string&, const std::string&>())
       .def(pybind11::init<const research_scann::np_row_major_arr<float>&,
                           const std::string&, int>())
       .def("search", &research_scann::ScannNumpy::Search)

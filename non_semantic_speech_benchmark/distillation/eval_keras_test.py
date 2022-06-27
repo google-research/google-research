@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for non_semantic_speech_benchmark.eval_embedding.finetune.eval_keras."""
 
 from absl import flags
@@ -25,9 +24,9 @@ from non_semantic_speech_benchmark.distillation import eval_keras
 class EvalKerasTest(absltest.TestCase):
 
   def test_full_flow(self):
+    flags.FLAGS.model_type = 'mobilenet_debug_1.0_False'
     flags.FLAGS.logdir = absltest.get_default_test_tmpdir()
     flags.FLAGS.eval_dir = absltest.get_default_test_tmpdir()
-    flags.FLAGS.bottleneck_dimension = 2
     flags.FLAGS.output_dimension = 5
     flags.FLAGS.ai = 2.0
     flags.FLAGS.timeout = 5

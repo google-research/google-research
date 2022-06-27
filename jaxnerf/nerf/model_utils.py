@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Helper functions/classes for model definition."""
 
 import functools
@@ -182,7 +181,7 @@ def volumetric_rendering(rgb, sigma, z_vals, dirs, white_bkgd):
   eps = 1e-10
   dists = jnp.concatenate([
       z_vals[Ellipsis, 1:] - z_vals[Ellipsis, :-1],
-      jnp.broadcast_to([1e10], z_vals[Ellipsis, :1].shape)
+      jnp.broadcast_to(1e10, z_vals[Ellipsis, :1].shape)
   ], -1)
   dists = dists * jnp.linalg.norm(dirs[Ellipsis, None, :], axis=-1)
   # Note that we're quietly turning sigma from [..., 0] to [...].

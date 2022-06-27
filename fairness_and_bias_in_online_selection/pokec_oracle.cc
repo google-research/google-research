@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include <ostream>
 #include <string>
 
+#include "absl/container/btree_map.h"
 #include "utils.h"
 
 namespace fair_secretary {
@@ -33,8 +34,8 @@ vector<SecretaryInstance> PokecOracle::GetSecretaryInput() {
   string input_edges = "";
   std::ifstream in_bmi(input_bmi);
   std::ifstream in_edges(input_edges);
-  map<int, int> nodes;
-  map<int, int> ids;
+  absl::btree_map<int, int> nodes;
+  absl::btree_map<int, int> ids;
   int id, color;
   int counter = 0;
   while (in_bmi >> id >> color) {

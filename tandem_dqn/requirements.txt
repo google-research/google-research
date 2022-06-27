@@ -1,7 +1,0 @@
-absl-py
-atari-py
-dopamine-rl
-gin-config
-gym
-numpy
-tensorflow

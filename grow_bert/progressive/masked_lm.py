@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Masked language task with progressive training."""
-# Lint as: python3
 import copy
 import dataclasses
 import os
@@ -30,12 +29,12 @@ from grow_bert.lowcost.config import config_encoder as ecfg
 from grow_bert.lowcost.models import bert_pretrain_model as small_pretrainer
 from grow_bert.lowcost.models import pretrain_dataloader as small_dataloader
 from grow_bert.lowcost.models import transformer_encoder as small_encoder_lib
+from official.core import config_definitions as cfg
 from official.core import task_factory
 from official.modeling import optimization
 from official.modeling import tf_utils
 from official.modeling.fast_training.progressive import policies
 from official.modeling.hyperparams import base_config
-from official.modeling.hyperparams import config_definitions as cfg
 from official.nlp.configs import bert
 from official.nlp.configs import encoders
 from official.nlp.data import pretrain_dataloader

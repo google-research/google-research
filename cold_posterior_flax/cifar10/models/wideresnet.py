@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,8 +48,8 @@ that is widely used as a benchmark.
 from typing import List
 from typing import Tuple
 from typing import Type
-from flax import nn
-from flax.nn import initializers
+from flax.deprecated import nn
+from flax.deprecated.nn import initializers
 import jax.numpy as jnp
 import jax.scipy.stats
 from cold_posterior_flax.cifar10.models import activations

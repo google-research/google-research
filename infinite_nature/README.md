@@ -81,8 +81,8 @@ will run 100 steps of Infinite Nature using autocruise to control the pose and s
   author = {Liu, Andrew and Tucker, Richard and Jampani, Varun and
             Makadia, Ameesh and Snavely, Noah and Kanazawa, Angjoo},
   title = {Infinite Nature: Perpetual View Generation of Natural Scenes from a Single Image},
-  booktitle = {arXiv},
-  month = {December},
-  year = {2020}
+  booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+  month = {October},
+  year = {2021}
 }
 ```

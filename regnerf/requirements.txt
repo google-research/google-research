@@ -1,0 +1,9 @@
+gin-config==0.5.0
+absl-py==0.15.0
+flax==0.3.5
+tensorflow==2.6.2
+opencv-python==4.5.5.62
+oryx==0.2.1
+jax==0.2.16
+scikit-image==0.17.2
+dm-pix==0.3.0

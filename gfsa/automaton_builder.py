@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Finite-state automaton builder and parameter logic.
 
 This module contains functions and objects to handle conversion of graphs into
@@ -473,10 +472,10 @@ class AutomatonBuilder:
     """
     if reduction == "sum":
       arr_reduce = jnp.sum
-      index_reduce = jax.ops.index_add
+      index_reduce = lambda x, idx, y: x.at[idx].add(y)
     elif reduction == "max":
       arr_reduce = jnp.max
-      index_reduce = jax.ops.index_max
+      index_reduce = lambda x, idx, y: x.at[idx].max(y)
     else:
       raise ValueError(f"Invalid reduction {reduction}")
 
@@ -489,7 +488,7 @@ class AutomatonBuilder:
     # with the same in-route type, and also over all possible next FSM states)
     distn_reduced = index_reduce(
         distn_reduced_spec,
-        jax.ops.index[:, in_out_route_to_in_route_arr],
+        jnp.index_exp[:, in_out_route_to_in_route_arr],
         arr_reduce(rparams.move, axis=-1),
     )
 
@@ -1070,11 +1069,8 @@ def all_nodes_absorbing_solve(builder,
   finish_from_in_tagged = jnp.einsum(
       "vnis,vis->ni", with_variants,
       transition_matrix.in_tagged_to_special[:, :, :, finish_index])
-  finish_probs = jax.ops.index_add(
-      jnp.diag(finish_from_initial),
-      jax.ops.index[:, in_tagged_idxs],
-      finish_from_in_tagged,
-  )
+  finish_probs = jnp.diag(finish_from_initial).at[:, in_tagged_idxs].add(
+      finish_from_in_tagged)
 
   if SpecialActions.BACKTRACK in builder.special_actions:
     # Normalize FINISH by (FINISH + FAIL + backtrack_fails_prob * BACKTRACK)

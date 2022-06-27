@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Train seq-to-seq model on random supervised training tasks."""
 
 # pylint: disable=g-bare-generic
@@ -67,7 +66,7 @@ flags.DEFINE_integer('num_partial_programs', 1,
                      'Number of partial programs to decompose into.')
 flags.DEFINE_boolean('best_first_search', False,
                      'Use best-first search (True) or beam search (False).')
-flags.DEFINE_boolean('slow_decode', False, 'Use slow decoding for predction?')
+flags.DEFINE_boolean('slow_decode', True, 'Use slow decoding for predction?')
 flags.DEFINE_boolean('use_expanding_layer', True, 'Use expanding layer?')
 
 flags.DEFINE_string('dataset_filepattern', None,
@@ -106,6 +105,9 @@ flags.DEFINE_bool('match_split_encoding', False,
                   'Train the encoder to match the split ones?')
 flags.DEFINE_float('alpha_encoding', 1,
                    'Scaling hyperparameter for the encoding loss.')
+
+flags.DEFINE_bool('use_relative_attention', True,
+                  'Whether to use relative positonal embeddings.')
 
 
 def create_learning_rate_scheduler(
@@ -914,6 +916,7 @@ def main(_):
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
       max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
+      use_relative_attention=FLAGS.use_relative_attention,
       deterministic=False,
       decode=False,
       bos_token=bos_token)

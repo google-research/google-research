@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -525,7 +525,7 @@ class Seq2SeqTransformerModel(object):
           self._multihead_retrieval))
     return attention
 
-  @tf.function(experimental_relax_shapes=True)
+  @tf.function(reduce_retracing=True)
   def _predict_step(self, encoder_input, output):
     """One prediction step."""
     return self._transformer(

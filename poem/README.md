@@ -2,8 +2,8 @@
 
 We target learning representations/embeddings for 3D human poses from their 2D projections, including:
 
-* **`Pr-VIPE`**: Learning a view-invariant probabilistic pose embedding space. [[`paper`](https://arxiv.org/abs/1912.01001)][[`website`](https://sites.google.com/corp/view/pr-vipe/home)]
-* **`CV-MIM`**: Learning disentangled view-invariant pose representations and view representations. [[`paper`](https://arxiv.org/abs/2012.01405)]
+* **`Pr-VIPE`**: Learning a view-invariant probabilistic pose embedding space. [[`ECCV'20 paper`](https://arxiv.org/abs/1912.01001)][[`IJCV'21 paper`](https://arxiv.org/abs/2010.13321)][[`website`](https://sites.google.com/corp/view/pr-vipe/home)]
+* **`CV-MIM`**: Learning disentangled view-invariant pose representations and view representations. [[`CVPR'21 paper`](https://arxiv.org/abs/2012.01405)]
 
 Please refer to our papers for details and consider citing them if you find the
 code useful:
@@ -14,6 +14,14 @@ code useful:
   author={Sun, Jennifer J and Zhao, Jiaping and Chen, Liang-Chieh and Schroff, Florian and Adam, Hartwig and Liu, Ting},
   booktitle={ECCV},
   year={2020}
+}
+
+@article{liu2021view,
+  title={View-Invariant, Occlusion-Robust Probabilistic Embedding for Human Pose},
+  author={Liu, Ting and Sun, Jennifer J and Zhao, Long and Zhao, Jiaping and Yuan, Liangzhe and Wang, Yuxiao and Chen, Liang-Chieh and Schroff, Florian and Adam, Hartwig},
+  journal={International Journal of Computer Vision},
+  year={2021},
+  publisher={Springer}
 }
 
 @inproceedings{zhao2021learning,
@@ -55,7 +63,9 @@ include the **"`[POEM]`"** prefix in the issue title.
 - [Liangzhe Yuan](https://github.com/yuanliangzhe)
 
 ## Updates
-- `06/08/2021`: Added [**`CV-MIM`**](https://github.com/google-research/google-research/tree/master/poem/cv_mim) code for the CVPR 2021 [paper](https://arxiv.org/abs/2012.01405).
+- `12/03/2021`: Added [**`Temporal Pr-VIPE`**](https://github.com/google-research/google-research/tree/master/poem/pr_vipe/temporal) training support. Please refer to our [IJCV'21 paper](https://arxiv.org/abs/2010.13321) for details.
+- `11/23/2021`: Added individual random keypoint dropout support. Please refer to our [IJCV'21 paper](https://arxiv.org/abs/2010.13321) for details.
+- `06/08/2021`: Added [**`CV-MIM`**](https://github.com/google-research/google-research/tree/master/poem/cv_mim) code for the [CVPR'21 paper](https://arxiv.org/abs/2012.01405).
 - `03/25/2021`: Moved **`Pr-VIPE`** code into a [subfolder](https://github.com/google-research/google-research/tree/master/poem/pr_vipe). Added **`CV-MIM`** [subfolder](https://github.com/google-research/google-research/tree/master/poem/cv_mim) and updated documentations.
 - `03/17/2021`: Fixed an [issue](https://github.com/google-research/google-research/issues/636) in camera augmentation.
 - `03/04/2021`: Added a program for running model inference.

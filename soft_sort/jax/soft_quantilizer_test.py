@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for the soft_quantilizer module."""
 
 from absl.testing import absltest
-import jax.numpy as np
-import jax.test_util
+import jax.numpy as jnp
+import numpy as np
 
 from soft_sort.jax import soft_quantilizer
 
 
-class SoftQuantilizerTestCase(jax.test_util.JaxTestCase):
+class SoftQuantilizerTestCase(absltest.TestCase):
   """Test case for the SoftQuantilizer class."""
 
   def setUp(self):
@@ -35,9 +34,8 @@ class SoftQuantilizerTestCase(jax.test_util.JaxTestCase):
 
   def test_sort(self):
     q = soft_quantilizer.SoftQuantilizer(self.x, threshold=1e-3, epsilon=1e-3)
-    deltas = np.diff(q.softsort, axis=-1) > 0
-    self.assertAllClose(
-        deltas, np.ones(deltas.shape, dtype=bool), check_dtypes=True)
+    deltas = jnp.diff(q.softsort, axis=-1) > 0
+    np.testing.assert_allclose(deltas, jnp.ones(deltas.shape, dtype=bool))
 
   def test_target_weights(self):
     q = soft_quantilizer.SoftQuantilizer(
@@ -57,8 +55,8 @@ class SoftQuantilizerTestCase(jax.test_util.JaxTestCase):
   def test_ranks(self):
     q = soft_quantilizer.SoftQuantilizer(self.x, threshold=1e-3, epsilon=1e-3)
     soft_ranks = q._n * q.softcdf
-    true_ranks = np.argsort(np.argsort(q.x, axis=-1), axis=-1) + 1
-    self.assertAllClose(soft_ranks, true_ranks, check_dtypes=False, atol=1e-3)
+    true_ranks = jnp.argsort(jnp.argsort(q.x, axis=-1), axis=-1) + 1
+    np.testing.assert_allclose(soft_ranks, true_ranks, atol=1e-3)
 
 
 if __name__ == '__main__':

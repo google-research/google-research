@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 # pylint:disable=line-too-long
 r"""Beam job to try a bunch of hparams.
 
@@ -42,10 +41,9 @@ flags.DEFINE_string(
     'save_predictions_dir', None, 'If not `None`, write numpy '
     'array of predictions on train, eval, and test into this '
     'directory.')
-flags.DEFINE_enum('eval_metric', 'accuracy',
-                  ['accuracy', 'balanced_accuracy', 'equal_error_rate',
-                   'unweighted_average_recall', 'auc'],
-                  'Which metric to compute and report.')
+flags.DEFINE_list('eval_metrics', 'accuracy',
+                  'Which metric to compute and report. A list of valid metric '
+                  'names can be found in `train_and_eval_sklearn.py`.')
 flags.DEFINE_string(
     'comma_escape_char', '?',
     'Sometimes we want commas to appear in `embedding_modules`, '
@@ -63,16 +61,16 @@ def main(unused_argv):
 
   # Generate experiment parameters based on flags.
   exp_params = utils.experiment_params(
-      FLAGS.embedding_list,
-      FLAGS.speaker_id_name,
-      FLAGS.label_name,
-      FLAGS.label_list,
-      FLAGS.train_glob,
-      FLAGS.eval_glob,
-      FLAGS.test_glob,
-      FLAGS.save_model_dir,
-      FLAGS.save_predictions_dir,
-      FLAGS.eval_metric,
+      train_glob=FLAGS.train_glob,
+      eval_glob=FLAGS.eval_glob,
+      test_glob=FLAGS.test_glob,
+      embedding_list=FLAGS.embedding_list,
+      speaker_id_name=FLAGS.speaker_id_name,
+      label_name=FLAGS.label_name,
+      label_list=FLAGS.label_list,
+      save_model_dir=FLAGS.save_model_dir,
+      save_predictions_dir=FLAGS.save_predictions_dir,
+      eval_metrics=FLAGS.eval_metrics,
   )
 
   # Make and run beam pipeline.

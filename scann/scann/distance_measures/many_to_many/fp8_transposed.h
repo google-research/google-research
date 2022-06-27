@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #ifndef SCANN_DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
 #define SCANN_DISTANCE_MEASURES_MANY_TO_MANY_FP8_TRANSPOSED_H_
 
+#include <algorithm>
 #include <cstdint>
 
 #include "scann/data_format/dataset.h"

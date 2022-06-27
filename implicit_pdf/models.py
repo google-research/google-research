@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ contained within the class definition.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import re
@@ -51,7 +50,7 @@ def create_vision_model(image_dims=(224, 224, 3), weights='imagenet'):
   Returns:
     The vision model and the length of the visual description vector.
   """
-  base_model = tf.keras.applications.ResNet101V2(
+  base_model = tf.keras.applications.ResNet50V2(
       weights=weights, include_top=False, input_shape=image_dims)
   inp = tf.keras.layers.Input(shape=image_dims)
   x = base_model(inp)
@@ -186,7 +185,7 @@ class ImplicitSO3(tfkl.Layer):
 
     probabilities = tf.nn.softmax(logits, axis=-1)
     # Scale by the volume per grid point.
-    probabilities *= np.pi**2 / query_rotations.shape[1]
+    probabilities *= query_rotations.shape[1] / np.pi**2
     # The final query rotation is the rotation we care about.
     return probabilities[:, -1]
 

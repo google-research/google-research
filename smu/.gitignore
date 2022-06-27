@@ -4,3 +4,5 @@ dataset_pb2.pyi
 
 **/*~
 venv/**
+venv_smu_user/**
+venv_smu_dev/**

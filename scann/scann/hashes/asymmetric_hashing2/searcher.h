@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -131,6 +131,8 @@ class Searcher final : public SingleMachineSearcherBase<T> {
     return !(RuntimeSupportsSse4() && lut16_ &&
              opts_.asymmetric_queryer_->num_clusters_per_block() == 16);
   }
+
+  Status VerifyLimitedInnerProductNormsSize() const;
 
   StatusOr<const LookupTable*> GetOrCreateLookupTable(
       const DatapointPtr<T>& query, const SearchParameters& params,

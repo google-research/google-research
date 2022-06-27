@@ -5,11 +5,12 @@ Annotate the Protein Universe". [preprint link](https://doi.org/10.1101/626507)
 
 A colab demonstrating usage of the available neural networks is in [Using_Deep_Learning_to_Annotate_the_Protein_Universe.ipynb](https://colab.research.google.com/github/google-research/google-research/blob/master/using_dl_to_annotate_protein_universe/Using_Deep_Learning_to_Annotate_the_Protein_Universe.ipynb).
 This shows both prediction of Pfam families as well as how to produce an
-embedding for a domain.
+embedding for a domain. A colab computing single-neural-network accuracy
+on the random split of Pfam seed is in [Neural_network_accuracy_on_random_seed_split.ipynb](https://colab.research.google.com/github/google-research/google-research/blob/master/using_dl_to_annotate_protein_universe/neural_network/Neural_network_accuracy_on_random_seed_split.ipynb)
 
 Code in the following directories is intended for documentation purposes, and is
 not necessarily runnable. More information on these files is in a README.md in
-each folder.
+each folder. We used tensorflow-gpu v1.15.4 and python v3.7 in this project.
 
 evaluation/
 
@@ -18,9 +19,9 @@ evaluation/
 -   inference confidence
 -   accuracy stratification based on sequence similarity, family size, etc.
 
-hmm_baseline/
+hmm_blast_baselines/
 
--   running hmmer and phmmer
+-   running hmmer/phmmer, blast.
 
 neural_network/
 
@@ -30,7 +31,7 @@ neural_network/
 ## Availability of trained models
 
 Trained models are available in
-[Google Cloud Storage](https://storage.googleapis.com/brain-genomics-public/research/proteins/pfam/models/single_domain_per_sequence_zipped_models)
+[Google Cloud Storage](https://console.cloud.google.com/storage/browser/brain-genomics-public/research/proteins/pfam/models/single_domain_per_sequence_zipped_models)
 
 ```
 └── single_domain_per_sequence_zipped_models
@@ -49,3 +50,6 @@ https://www.kaggle.com/googleai/pfam-seed-random-split
 
 Data for the random and clustered splits is available in google cloud storage:
 https://console.cloud.google.com/storage/browser/brain-genomics-public/research/proteins/pfam
+
+This data is licensed by
+https://storage.cloud.google.com/brain-genomics-public/research/proteins/pfam/LICENSE

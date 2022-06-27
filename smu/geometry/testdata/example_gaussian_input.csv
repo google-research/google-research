@@ -1,0 +1,8 @@
+﻿Bond,OrigBond,OrigSubstructure,d,m,sigma,q_l,q_u,n
+C-C,Csp3-Csp3,C#-CH 2-CH 3,1.513,1.514,0.014,1.507,1.523,192
+C-C,,"(C#),-C-C-(C#),",1.588,1.580,0.025,1.566,1.610,21
+C=C,Csp2=Csp2,C*-CH=CHz,1.299,1.300,0.027,1.280,1.311,42
+C#C,Csp1#Csp1,x-CS-x,1.183,1.183,0.014,1.174,1.193,119
+N:N,N(2):N(2),N z N (aromatic) in pyridazine,,,,,,
+N:N,,"with C,H as ortho substituents",1.304,1.300,0.019,1.287,1.326,6
+n/a,Csp3-Cl,"Omitting 1,2-dichlorides:",,,,,,

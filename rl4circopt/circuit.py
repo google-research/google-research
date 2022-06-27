@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Basic representation of a quantum circuit.
 
 This module contains the classes:
@@ -1213,7 +1212,7 @@ class PhasedXGate(Gate):
     return transform.Rotation.from_euler(
         'zxz',
         [-phase_angle, rotation_angle, phase_angle]
-    ).as_dcm()
+    ).as_matrix()
 
   def is_identity(self, phase_invariant=False, **kwargs):
     # overrides method from parent class Gate
@@ -1284,7 +1283,7 @@ class RotZGate(Gate):
     # This implementation avoids to construct the operator which might be a
     # little more efficient.
     rotation_angle = self.get_rotation_angle()
-    return transform.Rotation.from_euler('z', rotation_angle).as_dcm()
+    return transform.Rotation.from_euler('z', rotation_angle).as_matrix()
 
   def is_identity(self, phase_invariant=False, **kwargs):
     # overrides method from parent class Gate

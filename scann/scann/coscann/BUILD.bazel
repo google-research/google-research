@@ -1,3 +1,5 @@
+load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -6,5 +8,12 @@ package(
 proto_library(
     name = "v2_restricts_proto",
     srcs = ["v2_restricts.proto"],
+    tags = ["local"],
+)
+
+scann_py_proto_library(
+    name = "v2_restricts_py_pb2",
+    srcs = ["v2_restricts.proto"],
+    proto_deps = [":v2_restricts_proto"],
     tags = ["local"],
 )

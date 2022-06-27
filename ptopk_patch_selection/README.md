@@ -1,4 +1,4 @@
-# Slot Attention
+# Differentiable Patch Selection for Image Recognition 
 
 This is a reference implementation for 
 "Differentiable Patch Selection for Image Recognition"

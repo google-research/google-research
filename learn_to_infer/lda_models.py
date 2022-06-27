@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ from . import transformer
 from . import util
 
 import flax
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 import jax.random
@@ -75,7 +75,7 @@ class LDATopicWordInferenceMachine(nn.Module):
             num_decoders=6,
             qkv_dim=512,
             embedding_dim=512,
-            activation_fn=flax.nn.relu,
+            activation_fn=flax.deprecated.nn.relu,
             weight_init=jax.nn.initializers.xavier_uniform(),
             embedding_init=jax.nn.initializers.normal(stddev=1.0)):
     batch_size, num_documents, _ = documents.shape
@@ -135,7 +135,7 @@ class LDADocTopicInferenceMachine(nn.Module):
             num_decoders=6,
             qkv_dim=512,
             embedding_dim=512,
-            activation_fn=flax.nn.relu,
+            activation_fn=flax.deprecated.nn.relu,
             weight_init=jax.nn.initializers.xavier_uniform(),
             embedding_init=jax.nn.initializers.normal(stddev=1.0)):
     """
@@ -155,10 +155,8 @@ class LDADocTopicInferenceMachine(nn.Module):
     doc_word_embeddings = embedding(documents)
 
     # embedded_topics will be [batch_size, num_topics, embedding_dim]
-    embedded_topics = flax.nn.Dense(
-        topic_params,
-        features=embedding_dim,
-        kernel_init=weight_init)
+    embedded_topics = flax.deprecated.nn.Dense(
+        topic_params, features=embedding_dim, kernel_init=weight_init)
 
     # concatenate the document and topic embeddings to produce
     # [batch_size, document_length + num_topics, embedding_dim]
@@ -194,4 +192,3 @@ class LDADocTopicInferenceMachine(nn.Module):
     doc_topic_loss = util.categorical_kl(doc_topic_proportions,
                                          pred_doc_topic_logprobs)
     return doc_topic_loss
-

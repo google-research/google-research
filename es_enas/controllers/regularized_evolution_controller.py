@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ class RegularizedEvolutionController(base_controller.BaseController):
     population_size = self._batch_size
     tournament_size = int(np.sqrt(population_size))
 
-    self._controller = pg.generators.RegularizedEvolution(
+    self._controller = pg.evolution.regularized_evolution(
         population_size=population_size,
         tournament_size=tournament_size,
-        mutator=pg.generators.evolution_mutators.Uniform())
+        mutator=pg.evolution.mutators.Uniform())    # pytype: disable=wrong-arg-types  # gen-stub-imports
     self._controller.setup(self._dna_spec)

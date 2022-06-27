@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Data reader for Law School dataset."""
 from __future__ import absolute_import
 from __future__ import division
@@ -21,6 +20,7 @@ from __future__ import print_function
 
 import json
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.contrib import lookup as contrib_lookup
 
@@ -124,9 +124,9 @@ class LawSchoolInput():
 
     def _input_fn():
       """Input_fn for the dataset."""
-      if mode == tf.estimator.ModeKeys.TRAIN:
+      if mode == tf_estimator.ModeKeys.TRAIN:
         filename_queue = tf.train.string_input_producer(self._train_file)
-      elif mode == tf.estimator.ModeKeys.EVAL:
+      elif mode == tf_estimator.ModeKeys.EVAL:
         filename_queue = tf.train.string_input_producer(self._test_file)
 
       # Extracts basic features and targets from filename_queue

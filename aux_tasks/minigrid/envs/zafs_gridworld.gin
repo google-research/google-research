@@ -1,0 +1,17 @@
+# Gridworld by Ahmed et al. (2019) when talking about policy gradient methods.
+register_environment.env_id = 'MiniGrid-ZafGridworld-v0'
+
+MonMiniGridEnv.directional = True
+MonMiniGridEnv.agent_pos = None
+MonMiniGridEnv.goal_pos = None
+MonMiniGridEnv.mission = 'Maximize the return across several episodes.'
+MonMiniGridEnv.custom_rewards = [(5, 1, 5.0), (1, 5, 4.5)]
+MonMiniGridEnv.ascii_grid = """
+*******
+*s   g*
+*     *
+*     *
+*     *
+*g    *
+*******
+"""

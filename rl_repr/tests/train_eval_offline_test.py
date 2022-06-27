@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,11 +26,47 @@ from rl_repr.batch_rl import train_eval_offline
 
 class TrainEvalOfflineTest(tf.test.TestCase):
 
-  def test_train_eval_offline(self):
+  def test_train_eval_offline_bc(self):
+    flags.FLAGS.algo_name = 'bc'
     flags.FLAGS.embed_learner = 'acl'
     flags.FLAGS.state_embed_dim = 64
     flags.FLAGS.embed_pretraining_steps = 10
-    flags.FLAGS.bc_pretraining_steps = 10
+    flags.FLAGS.eval_interval = 10
+    flags.FLAGS.num_updates = 30
+    train_eval_offline.main(None)
+
+  def test_train_eval_offline_brac(self):
+    flags.FLAGS.algo_name = 'brac'
+    flags.FLAGS.embed_learner = 'acl'
+    flags.FLAGS.state_embed_dim = 64
+    flags.FLAGS.embed_pretraining_steps = 10
+    flags.FLAGS.eval_interval = 10
+    flags.FLAGS.num_updates = 30
+    train_eval_offline.main(None)
+
+  def test_train_eval_offline_sac(self):
+    flags.FLAGS.algo_name = 'sac'
+    flags.FLAGS.embed_learner = 'acl'
+    flags.FLAGS.state_embed_dim = 64
+    flags.FLAGS.embed_pretraining_steps = 10
+    flags.FLAGS.eval_interval = 10
+    flags.FLAGS.num_updates = 30
+    train_eval_offline.main(None)
+
+  def test_train_eval_offline_trail(self):
+    flags.FLAGS.algo_name = 'latent_bc'
+    flags.FLAGS.embed_learner = 'action_fourier'
+    flags.FLAGS.state_action_embed_dim = 64
+    flags.FLAGS.embed_pretraining_steps = 10
+    flags.FLAGS.eval_interval = 10
+    flags.FLAGS.num_updates = 30
+    train_eval_offline.main(None)
+
+  def test_train_eval_offline_opal(self):
+    flags.FLAGS.algo_name = 'latent_bc'
+    flags.FLAGS.embed_learner = 'action_opal'
+    flags.FLAGS.state_action_embed_dim = 64
+    flags.FLAGS.embed_pretraining_steps = 10
     flags.FLAGS.eval_interval = 10
     flags.FLAGS.num_updates = 30
     train_eval_offline.main(None)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Functions related to sampling from a model."""
 
 from absl import logging
@@ -128,7 +127,7 @@ def temperature_sample(prompt,
     prompt: An array of shape (batch_size, prompt_length) containing the input
       prompt (the model consumes these tokens and starts generation after). For
       generic sampling, the prompt must be a single BOS token.
-    init_cache: A flax.nn.attention.Cache object.
+    init_cache: A flax.deprecated.nn.attention.Cache object.
     tokens_to_logits: A fast autoregressive decoder function taking single token
       slices and the cache and returning next-token logits and updated cache.
     temperature: A float with the sampling temperature factor. As it approaches

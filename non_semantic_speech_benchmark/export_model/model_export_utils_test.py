@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,20 +33,16 @@ class ModelExportUtilsTest(absltest.TestCase):
     dirs = model_export_utils.get_experiment_dirs(self.exp_dir)
     self.assertEqual(
         dirs,
-        ['1-bd=5,cop=True,lr=0.0001,mt=mobilenet_debug_1.0_True,qat=False,'
+        ['1-bd=5,cop=True,lr=0.0001,mt=mobilenet_debug_1.0_True,qat=False,' +
          'tbs=2'])
 
   def test_get_params(self):
     params = model_export_utils.get_params(
-        '1-mt=mobilenet_debug_1.0_True,bd=5,cop=True,lr=0.0001,qat=False,tbs=2')
+        '1-mt=mobilenet_debug_1.0_True,bd=5,cop=True,lr=0.0001,tbs=2')
     self.assertEqual(
         params,
         {'mt': 'mobilenet_debug_1.0_True', 'bd': 5, 'cop': True, 'lr': 0.0001,
-         'qat': False, 'tbs': 2})
-
-  def test_get_default_compressor(self):
-    compressor = model_export_utils.get_default_compressor()
-    self.assertIsNotNone(compressor)
+         'tbs': 2})
 
 if __name__ == '__main__':
   absltest.main()

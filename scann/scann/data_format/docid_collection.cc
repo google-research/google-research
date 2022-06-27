@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@
 
 #include "scann/data_format/docid_collection.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <utility>
 
-#include "absl/status/status.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/utils/memory_logging.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 

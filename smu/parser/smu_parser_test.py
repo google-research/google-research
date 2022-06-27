@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for parsing and writing code."""
+import copy
 import os
 
 from absl import logging
@@ -28,7 +41,6 @@ from smu import dataset_pb2
 from smu.parser import smu_parser_lib
 from smu.parser import smu_writer_lib
 
-
 MAIN_DAT_FILE = 'x07_sample.dat'
 SMU1_DAT_FILE = 'x01_sample.dat'
 SMU2_DAT_FILE = 'x02_sample.dat'
@@ -36,7 +48,7 @@ STAGE1_DAT_FILE = 'x07_stage1.dat'
 SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
-ATOMIC_INPUT = 'x07_first_atomic_input.inp'
+ATOMIC_INPUT = 'x07_first_atomic2_input.inp'
 TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
@@ -63,10 +75,28 @@ class SmuParserTest(absltest.TestCase):
   def test_roundtrip(self):
     """Tests a conversion from a SMU .dat file to protocol buffer and back."""
     smu_writer = smu_writer_lib.SmuWriter(annotate=False)
-    for conformer, orig_contents in self.parser.process_stage2():
+    for molecule, orig_contents in self.parser.process_stage2():
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
-          smu_writer.process_stage2_proto(conformer).splitlines())
+          smu_writer.process_stage2_proto(molecule).splitlines())
+
+  def test_roundtrip_tweaked_bt(self):
+    """Tests a conversion from a SMU .dat file to protocol buffer and back."""
+    smu_writer = smu_writer_lib.SmuWriter(annotate=False)
+    for molecule, orig_contents in self.parser.process_stage2():
+      # We're going to mess with the molecule by perturbing the bond_toplogies.
+      # The .dat format shoudl only ever use the starting topology, so we are
+      # going to add some wrong bond topologies to make sure they are ignored.
+      molecule.bond_topologies.append(molecule.bond_topologies[0])
+      molecule.bond_topologies.append(molecule.bond_topologies[0])
+      molecule.bond_topologies[0].source = dataset_pb2.BondTopology.SOURCE_ITC
+      molecule.bond_topologies[1].source = dataset_pb2.BondTopology.SOURCE_CSD
+      for bt in molecule.bond_topologies[0:2]:
+        bt.bonds[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE
+        bt.bond_topology_id += 9999
+      smu_writer_lib.check_dat_formats_match(
+          orig_contents,
+          smu_writer.process_stage2_proto(molecule).splitlines())
 
 
 class RoundtripTest(absltest.TestCase):
@@ -85,13 +115,13 @@ class RoundtripTest(absltest.TestCase):
     else:
       raise ValueError(stage)
 
-    for maybe_conformer, orig_contents in process_fn():
-      if isinstance(maybe_conformer, Exception):
-        raise maybe_conformer
-      self.assertGreater(maybe_conformer.bond_topologies[0].bond_topology_id, 0)
+    for maybe_molecule, orig_contents in process_fn():
+      if isinstance(maybe_molecule, Exception):
+        raise maybe_molecule
+      self.assertGreater(maybe_molecule.bond_topologies[0].bond_topology_id, 0)
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
-          writer_fn(maybe_conformer).splitlines())
+          writer_fn(maybe_molecule).splitlines())
 
   def test_minimal_input_stage2(self):
     self.try_roundtrip(MINIMAL_DAT_FILE, 'stage2')
@@ -132,17 +162,17 @@ class GoldenTest(parameterized.TestCase):
     full_input_fn = os.path.join(TESTDATA_PATH, input_fn)
     full_expected_fn = os.path.join(TESTDATA_PATH, expected_fn)
 
-    multiple_conformers = dataset_pb2.MultipleConformers()
+    multiple_molecules = dataset_pb2.MultipleMolecules()
     parser = smu_parser_lib.SmuParser(full_input_fn)
-    for e, orig_contents in parser.process_stage2():
+    for e, unused_orig_contents in parser.process_stage2():
       if isinstance(e, Exception):
         raise e
-      multiple_conformers.conformers.append(e)
+      multiple_molecules.molecules.append(e)
 
     got = ('# proto-file: '
            'third_party/google_research/google_research/smu/dataset.proto\n# '
-           'proto-message: MultipleConformers\n')
-    got += text_format.MessageToString(multiple_conformers)
+           'proto-message: MultipleMolecules\n')
+    got += text_format.MessageToString(multiple_molecules)
 
     expected = get_file_contents(full_expected_fn)
 
@@ -164,13 +194,13 @@ class GoldenTest(parameterized.TestCase):
     full_input_fn = os.path.join(TESTDATA_PATH, input_fn)
     full_expected_fn = os.path.join(TESTDATA_PATH, expected_fn)
 
-    smu_proto = dataset_pb2.MultipleConformers()
+    smu_proto = dataset_pb2.MultipleMolecules()
     raw_proto = '\n'.join(get_file_contents(full_input_fn))
     text_format.Parse(raw_proto, smu_proto)
     smu_writer = smu_writer_lib.SmuWriter(True)
     got = ''.join(
-        smu_writer.process_stage2_proto(conformer)
-        for conformer in smu_proto.conformers)
+        smu_writer.process_stage2_proto(molecule)
+        for molecule in smu_proto.molecules)
 
     expected = get_file_contents(full_expected_fn)
 
@@ -178,27 +208,26 @@ class GoldenTest(parameterized.TestCase):
           '--input_file {} --output_file {} --annotate True'.format(
               full_input_fn, full_expected_fn))
 
-    self.assertEqual([l.rstrip('\n') for l in expected],
-                     got.splitlines())
+    self.assertEqual([l.rstrip('\n') for l in expected], got.splitlines())
 
 
 class ParseLongIdentifierTest(absltest.TestCase):
 
   def test_success_smu7(self):
-    num_heavy_atoms, stoich, btid, cid = smu_parser_lib.parse_long_identifier(
+    num_heavy_atoms, stoich, btid, mid = smu_parser_lib.parse_long_identifier(
         'x07_c4o2fh7.618451.001')
     self.assertEqual(7, num_heavy_atoms)
     self.assertEqual('c4o2fh7', stoich)
     self.assertEqual(618451, btid)
-    self.assertEqual(1, cid)
+    self.assertEqual(1, mid)
 
   def test_success_smu2(self):
-    num_heavy_atoms, stoich, btid, cid = smu_parser_lib.parse_long_identifier(
+    num_heavy_atoms, stoich, btid, mid = smu_parser_lib.parse_long_identifier(
         'x02_c2h2.123.456')
     self.assertEqual(2, num_heavy_atoms)
     self.assertEqual('c2h2', stoich)
     self.assertEqual(123, btid)
-    self.assertEqual(456, cid)
+    self.assertEqual(456, mid)
 
   def test_failure(self):
     with self.assertRaises(ValueError):
@@ -206,18 +235,44 @@ class ParseLongIdentifierTest(absltest.TestCase):
           'Im a little teapot, short and stout')
 
 
-class AtomicInputTest(absltest.TestCase):
+class Atomic2InputTest(absltest.TestCase):
 
   def test_simple(self):
     parser = smu_parser_lib.SmuParser(
         os.path.join(TESTDATA_PATH, MAIN_DAT_FILE))
-    conformer, _ = next(parser.process_stage2())
+    molecule, _ = next(parser.process_stage2())
     expected = get_file_contents(os.path.join(TESTDATA_PATH, ATOMIC_INPUT))
-    writer = smu_writer_lib.AtomicInputWriter()
+    writer = smu_writer_lib.Atomic2InputWriter()
 
     smu_writer_lib.check_dat_formats_match(
         expected,
-        writer.process(conformer).splitlines())
+        writer.process(molecule, 0).splitlines())
+
+  def test_error_cases(self):
+    parser = smu_parser_lib.SmuParser(
+        os.path.join(TESTDATA_PATH, MAIN_DAT_FILE))
+    orig_molecule, _ = next(parser.process_stage2())
+    writer = smu_writer_lib.Atomic2InputWriter()
+
+    with self.assertRaises(ValueError):
+      molecule = copy.deepcopy(orig_molecule)
+      molecule.properties.errors.status = -1
+      writer.process(molecule, 0)
+
+    with self.assertRaises(ValueError):
+      molecule = copy.deepcopy(orig_molecule)
+      molecule.properties.errors.status = 19
+      writer.process(molecule, 0)
+
+    with self.assertRaises(ValueError):
+      molecule = copy.deepcopy(orig_molecule)
+      molecule.properties.ClearField('single_point_energy_hf_3')
+      writer.process(molecule, 0)
+
+    with self.assertRaises(ValueError):
+      molecule = copy.deepcopy(orig_molecule)
+      molecule.properties.ClearField('single_point_energy_mp2_3')
+      writer.process(molecule, 0)
 
 
 if __name__ == '__main__':

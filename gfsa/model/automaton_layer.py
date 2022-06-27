@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Flax module for the GFSA layer."""
 
 from typing import Any, Callable, Optional, TypeVar
@@ -52,7 +51,7 @@ def _unshaped_initializer(fn,
   return _initialize
 
 
-class FiniteStateGraphAutomaton(flax.nn.Module):
+class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
   """GFSA layer, with different edge types as states."""
 
   @gin.configurable("FiniteStateGraphAutomaton")
@@ -279,7 +278,7 @@ class FiniteStateGraphAutomaton(flax.nn.Module):
             node_index=jnp.arange(num_nodes),
             steps=steps,
             max_possible_transitions=sampling_max_possible_transitions,
-            rng=jax.random.split(flax.nn.make_rng(),
+            rng=jax.random.split(flax.deprecated.nn.make_rng(),
                                  num_out_edges * num_nodes).reshape(
                                      [num_out_edges, num_nodes, -1]))
 

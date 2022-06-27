@@ -12,26 +12,35 @@ wget https://raw.githubusercontent.com/google-research/google-research/master/mq
 ```
 
 Then, simply open the `mqm-viewer.html` file in a web browser, and use
-the "Choose file" button to pick an MQM data file. MQM data spans several
-columns, so it's best to use a desktop or laptop computer with a wide screen.
+the "Choose files" button to pick one or more MQM data files. MQM data spans
+several columns, so it's best to use a desktop or laptop computer with a wide
+screen.
 
 This is not an officially supported Google product.
 
 ## Data file format
 
 The data file should have tab-separated UTF-8-encoded data with the following
-nine columns, one line per marked error:
+ten columns, one line per marked error:
 
 - **system**: Name of the translation system.
-- **doc**: Name of the document.
-- **doc_id**: Id of segment (sentence or group of sentences) within the
+- **doc**: Name of the document. It's useful to suffix this with language-pair,
+  (eg., "doc42:English-German"), especially as you may want to view the data
+  from several evaluations together.
+- **docSegId**: Id of segment (sentence or group of sentences) within the
   document.
-- **seg_id**: Id of segment across all documents.
+- **globalSegId**: Id of segment across all documents.
 - **rater**: Rater who evaluated segment.
 - **source**: Source text for segment.
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
 - **severity**: MQM error severity (or "no-error").
+- **metadata**: JSON-formatted object that may contain a "timestamp" field,
+  a "note" field, among others.
+  
+The "metadata" column used to be an optional "note" column, and MQM Viewer
+continues to support that legacy format. Going forward, the metadata object
+may be augmented to contain additional information about the rating.
 
 An optional header line in the data file will be ignored (identified by the
 presence of the text "system\tdoc").
@@ -55,23 +64,23 @@ filters.
   example) using a **JavaScript filter expression**.
   - This allows you to filter using any expression
     involving the columns. It can use the following
-    variables: **system**, **doc**, **seg_id**,
-    **doc_id**, **rater**, **category**, **severity**,
+    variables: **system**, **doc**, **docSegId**,
+    **globalSegId**, **rater**, **category**, **severity**,
     **source**, **target**.
   - Filter expressions also have access to an aggregated **segment**
     variable that is an object with the following properties:
-    **segment.cats_by_system**,
-    **segment.cats_by_rater**,
-    **segment.sevs_by_system**,
-    **segment.sevs_by_rater**,
-    **segment.sevcats_by_system**,
-    **segment.sevcats_by_rater**.
+    **segment.catsBySystem**,
+    **segment.catsByRater**,
+    **segment.sevsBySystem**,
+    **segment.sevsByRater**,
+    **segment.sevcatsBySystem**,
+    **segment.sevcatsByRater**.
     Each of these properties is an object keyed by system or rater, with the
-    values being arrays of strings. The "sevcats_\*" values look like
+    values being arrays of strings. The "sevcats\*" values look like
     "Minor/Fluency/Punctuation" or are just the same as severities if
     categories are empty. This segment-level aggregation allows you
     to select specific segments rather than just specific error ratings.
-  - **Example**: seg_id > 10 || severity == 'Major'
+  - **Example**: globalSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
-  - **Example**: segment.sevs_by_system['System-42'].includes('Major')
-  - **Example**: JSON.stringify(segment.sevcats_by_system).includes('Major/Fl')
+  - **Example**: segment.sevsBySystem['System-42'].includes('Major')
+  - **Example**: JSON.stringify(segment.sevcatsBySystem).includes('Major/Fl')

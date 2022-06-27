@@ -11,6 +11,11 @@ sh_binary(
         "README.md",
         "requirements.txt",
         "setup.py",
+        "//scann/data_format:features_py_pb2",
+        "//scann/partitioning:partitioner_py_pb2",
+        "//scann/proto:centers_py_pb2",
+        "//scann/proto:hash_py_pb2",
+        "//scann/proto:scann_py_pb2",
         "//scann/scann_ops/py:scann",
     ],
     tags = [

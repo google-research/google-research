@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 """File to define model architectures."""
 from typing import Tuple
 
-from flax import nn
+from flax.deprecated import nn
 from jax import numpy as jnp
 import jax.nn
 from lib import utils  # pytype: disable=import-error
@@ -305,4 +305,3 @@ class BasicBlockv2(nn.Module):
 
     x += identity
     return x
-

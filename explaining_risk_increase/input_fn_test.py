@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Tests for input function."""
 from __future__ import absolute_import
 from __future__ import division
@@ -30,6 +29,7 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 from google.protobuf import text_format
+from tensorflow.compat.v1 import estimator as tf_estimator
 from explaining_risk_increase import input_fn
 from explaining_risk_increase import observation_sequence_model as osm
 from tensorflow.contrib import training as contrib_training
@@ -122,7 +122,7 @@ class TestInputFn(tf.test.TestCase):
 
   def test_input_fn(self):
     feature_map, label = input_fn.get_input_fn(
-        tf.estimator.ModeKeys.TRAIN,
+        tf_estimator.ModeKeys.TRAIN,
         [self.input_data_dir],
         'label.in_hospital_death.class',
         sequence_features=[
@@ -178,7 +178,7 @@ class TestInputFn(tf.test.TestCase):
 
   def test_model_integration(self):
     features, labels = input_fn.get_input_fn(
-        tf.estimator.ModeKeys.TRAIN,
+        tf_estimator.ModeKeys.TRAIN,
         [self.input_data_dir],
         'label.in_hospital_death.class',
         sequence_features=[
@@ -230,10 +230,10 @@ class TestInputFn(tf.test.TestCase):
     model_fn = model.create_model_fn(hparams)
     with tf.variable_scope('test'):
       model_fn_ops_train = model_fn(features, labels,
-                                    tf.estimator.ModeKeys.TRAIN)
+                                    tf_estimator.ModeKeys.TRAIN)
     with tf.variable_scope('test', reuse=True):
       model_fn_ops_eval = model_fn(
-          features, labels=None, mode=tf.estimator.ModeKeys.PREDICT)
+          features, labels=None, mode=tf_estimator.ModeKeys.PREDICT)
 
     with self.test_session() as sess:
       sess.run(tf.global_variables_initializer())

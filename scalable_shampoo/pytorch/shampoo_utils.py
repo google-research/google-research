@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ def merge_small_dims(var_shape, reshape_size):
   Returns:
     shape: a list of integers. Product(shape) = number of elements in var.
   """
+  if var_shape and np.all(np.array(var_shape) == 1):
+    return [1]
   shape = []
   product = 1
   for d in var_shape:

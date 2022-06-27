@@ -1,6 +1,9 @@
 # Data selection for machine translation
 
 This repo contains code for experiments on data selection for machine translation.
+The model, data and experiments are described in our paper (https://arxiv.org/abs/2109.07591).
+The main focus of this repo is to explore various tradeoffs and
+interactions between data selection and finetuning on out-of-domain and in domain data.
 The code is written in python / flax. The model is a vanilla transformer.
 The data used is from tfds.datasets. We use the WMT data; specifically Paracrawl and News Commentary.
 
@@ -34,6 +37,14 @@ The scores.csv file is a file of the selection scores for each example in the da
 
 
 ## Citations
+
+@article{iter2021complementarity,
+  title={On the Complementarity of Data Selection and Fine Tuning for Domain Adaptation},
+  author={Iter, Dan and Grangier, David},
+  journal={arXiv preprint arXiv:2109.07591},
+  year={2021},
+  url={https://arxiv.org/abs/2109.07591}
+}
 
 This code branches from the Flax WMT example:
 https://github.com/google/flax/tree/master/examples/wmt

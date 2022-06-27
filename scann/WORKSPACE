@@ -38,19 +38,52 @@ http_archive(
     name = "com_google_absl",
     patch_args = ["-p1"],
     patches = ["//build_deps/patches:absl-cpp17.patch"],
-    sha256 = "35f22ef5cb286f09954b7cc4c85b5a3f6221c9d4df6b8c4a1e9d399555b366ee",
-    strip_prefix = "abseil-cpp-997aaf3a28308eba1b9156aa35ab7bca9688e9f6",
+    sha256 = "237e2e6aec7571ae90d961d02de19f56861a7417acbbc15713b8926e39d461ed",
+    strip_prefix = "abseil-cpp-215105818dfde3174fe799600bb0f3cae233d0bf",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/997aaf3a28308eba1b9156aa35ab7bca9688e9f6.tar.gz",
-        "https://github.com/abseil/abseil-cpp/archive/997aaf3a28308eba1b9156aa35ab7bca9688e9f6.tar.gz",
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/215105818dfde3174fe799600bb0f3cae233d0bf.tar.gz",
+        "https://github.com/abseil/abseil-cpp/archive/215105818dfde3174fe799600bb0f3cae233d0bf.tar.gz",
     ],
+)
+
+# rules_proto defines abstract rules for building Protocol Buffers.
+http_archive(
+    name = "rules_proto",
+    sha256 = "ba66b430aaed1b6d2530154fd5ff968fb810ee0936edfe5f48e1f1c36ff2ea65",
+    strip_prefix = "rules_proto-e507ccded37c389186afaeb2b836ec576dc875dc",
+    urls = [
+        "https://github.com/bazelbuild/rules_proto/archive/e507ccded37c389186afaeb2b836ec576dc875dc.zip",
+    ],
+)
+
+load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+
+rules_proto_dependencies()
+
+rules_proto_toolchains()
+
+bind(
+    name = "python_headers",
+    actual = "@local_config_python//:python_headers",
+)
+
+http_archive(
+    name = "six_archive",
+    build_file = "//build_deps/patches:six.BUILD",
+    sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
+    urls = ["https://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz#md5=34eed507548117b2ab523ab14b2f8b55"],
 )
 
 git_repository(
     name = "com_google_protobuf",
+    patches = ["//build_deps/patches:protobuf.patch"],
     remote = "https://github.com/protocolbuffers/protobuf.git",
     tag = "v3.9.2",
 )
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+protobuf_deps()
 
 git_repository(
     name = "com_google_googletest",
@@ -64,6 +97,12 @@ git_repository(
     remote = "https://github.com/google/highway.git",
 )
 
+git_repository(
+    name = "cnpy",
+    commit = "57184ee0db37cac383fc29175950747a46a8b512",
+    remote = "https://github.com/sammymax/cnpy.git",
+)
+
 # rules_cc defines rules for generating C++ code from Protocol Buffers.
 http_archive(
     name = "rules_cc",
@@ -74,22 +113,6 @@ http_archive(
     ],
 )
 
-# rules_proto defines abstract rules for building Protocol Buffers.
-http_archive(
-    name = "rules_proto",
-    sha256 = "37d32b789be90fead9ab108dbe4fe4df463d26c122dc896dc1bf134252d3c49a",
-    strip_prefix = "rules_proto-40298556293ae502c66579620a7ce867d5f57311",
-    urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/40298556293ae502c66579620a7ce867d5f57311.zip",
-    ],
-)
-
 load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies")
 
 rules_cc_dependencies()
-
-load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
-
-rules_proto_dependencies()
-
-rules_proto_toolchains()

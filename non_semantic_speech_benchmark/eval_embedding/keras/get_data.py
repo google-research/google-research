@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Get data."""
 
 import functools
@@ -31,7 +30,8 @@ def get_data(
     bucket_batch_sizes,
     loop_forever,
     shuffle,
-    shuffle_buffer_size=10000):
+    shuffle_buffer_size=10000,
+    preaverage=False):
   """Gets the data for keras training.
 
   Args:
@@ -46,6 +46,7 @@ def get_data(
     loop_forever: Python bool. Whether to loop forever.
     shuffle: Python bool. Whether to shuffle data.
     shuffle_buffer_size: Size of shuffle buffer.
+    preaverage: Whether ot preaverage.
 
   Returns:
     A tf.data.Dataset of (embeddings, onehot labels).
@@ -79,7 +80,8 @@ def get_data(
       sloppy_ordering=True)
         .map(lambda kv: (kv[emb_key], kv[label_key]),
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        .map(functools.partial(_reshape_full, embedding_dim=embedding_dim),
+        .map(functools.partial(_reshape_full, embedding_dim=embedding_dim,
+                               preaverage=preaverage),
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .map(functools.partial(_y_to_onehot, label_list=label_list),
              num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -99,12 +101,14 @@ def get_data(
   return ds
 
 
-def _reshape_full(embeddings, labels, embedding_dim):
+def _reshape_full(embeddings, labels, embedding_dim, preaverage):
   """Reshape to 2D."""
   embeddings.shape.assert_has_rank(2)
   emb = tf.sparse.to_dense(embeddings)
   emb = tf.reshape(emb, [tf.shape(emb)[0], -1, embedding_dim])
   emb.shape.assert_has_rank(3)
+  if preaverage:
+    emb = tf.reduce_mean(emb, axis=1, keepdims=True)
   labels.shape.assert_has_rank(1)
 
   return emb, labels

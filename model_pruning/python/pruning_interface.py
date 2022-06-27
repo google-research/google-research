@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,6 @@ Examples:
 # pylint: disable=missing-docstring
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 from lingvo.core import py_utils
@@ -184,9 +183,10 @@ def apply_customized_matrix_compression(matrix_compression_obj,  # pylint:disabl
         tf.add_to_collection(pruning.OLD_OLD_WEIGHT_COLLECTION,
                              layer_obj.vars.old_old_weight)
   else:
-    _ = matrix_compression_obj.customized_apply_compression(
-        getattr(layer_obj.vars, weight_name), layer_obj, weight_params_fn,
-        weight_init_obj, scope=scope_name, spec=spec)
+    matrix_compression_obj.customized_apply_compression(
+        getattr(layer_obj.vars, weight_name, None), layer_obj, weight_params_fn,
+        weight_init_obj, scope=scope_name, spec=spec,
+        a_matrix_tfvar_shape=weight_shape)
     hparams = matrix_compression_obj.get_spec()
     if hparams.use_collection:
       tf.add_to_collection(UPDATE_OP_COLLECTION,
@@ -428,7 +428,7 @@ class PruningOp(object):
           concat,
           lstmobj.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weight')))
     elif cls._pruning_obj:
-      return lstmobj.compression_op.get_mix_operator(theta, concat)
+      return lstmobj.compression_op.get_mix_operator(theta, concat, lstmobj)
     else:
       raise NotImplementedError()
 
@@ -436,7 +436,7 @@ class PruningOp(object):
   def GetMatmulResult(cls,
                       a,
                       b,
-                      softmaxlayerobj,
+                      softmax_layer_obj,
                       transpose_a=False,
                       transpose_b=False):  # pylint:disable=invalid-name
     """Compute the compressed result of matmul(a,b).
@@ -444,7 +444,7 @@ class PruningOp(object):
     Args:
       a: a tensor of rank 2;
       b: a tensor of rank 2;
-      softmaxlayerobj: a SimpleFullSoftmax layer object;
+      softmax_layer_obj: a SimpleFullSoftmax layer object;
       transpose_a: whether to transpose a before matmul;
       transpose_b: whether to transpose b before matmul.
 
@@ -458,8 +458,8 @@ class PruningOp(object):
     """
     if cls._pruning_obj:
       # current implementation works for num_shards = 1 in SimpleFullSoftmax.
-      return softmaxlayerobj.compression_ops[-1].get_matmul_operator(
-          a, b, transpose_a, transpose_b)
+      return softmax_layer_obj.compression_ops[-1].get_matmul_operator(
+          a, b, softmax_layer_obj, transpose_a, transpose_b)
     else:
       raise NotImplementedError()
 
@@ -520,7 +520,12 @@ class PruningOp(object):
         outputs = cls.GetEinSumResult(inputs, proj_obj)
     else:
       if p.pruning_hparams_dict[
-          'compression_option'] == 9 and p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.MIXED_BLOCK_COMPRESSION:
+        # can directly call GetEinSumResult as it doesn't use einsum operator
+        # for this compression option.
+        outputs = cls.GetEinSumResult(inputs, proj_obj)
+      elif p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.INPUTOUTPUT_COMPRESSION and p.pruning_hparams_dict[
               'compress_input']:
         blocked_inputs = tf.reshape(
             inputs,
@@ -536,7 +541,8 @@ class PruningOp(object):
         compressed_inputs = tf.reshape(inputs,
                                        py_utils.ToStaticShape([-1, input_dim]))
 
-      if p.pruning_hparams_dict['compression_option'] == 10:
+      if p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.BLOCK_COMPRESSION:
         if p.pruning_hparams_dict['block_method'] == 'mask':
           intermediate_result = py_utils.Matmul(
               compressed_inputs,
@@ -554,7 +560,7 @@ class PruningOp(object):
                                               theta.c_matrix_tfvar)
 
       if p.pruning_hparams_dict[
-          'compression_option'] == 9 and p.pruning_hparams_dict[
+          'compression_option'] == CompressionOptions.INPUTOUTPUT_COMPRESSION and p.pruning_hparams_dict[
               'compress_output']:
         blocked_intermediate_result = tf.reshape(
             intermediate_result,

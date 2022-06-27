@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <limits>
 #include <type_traits>
 
+#include "absl/base/thread_annotations.h"
 #include "scann/proto/input_output.pb.h"
 #include "scann/utils/common.h"
 
@@ -249,7 +250,7 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
 #ifndef SCANN_DISABLE_UNCOMMON_TYPES
 
 #define SCANN_CALL_FUNCTION_BY_TAG(tag, function, ...)                 \
-  [&] {                                                                \
+  [&]() ABSL_NO_THREAD_SAFETY_ANALYSIS {                               \
     using ReturnT = decltype(function<float>(__VA_ARGS__));            \
     switch (tag) {                                                     \
       case ::research_scann::InputOutputConfig::INT8:                  \

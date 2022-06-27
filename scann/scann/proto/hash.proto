@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -76,8 +76,6 @@ message AsymmetricHasherConfig {
 
   optional bool use_global_topn = 33 [default = false];
 
-  optional bool use_noise_shaped_training = 30 [default = false];
-
   message FixedPointLUTConversionOptions {
     enum FloatToIntConversionMethod {
       TRUNCATE = 0;
@@ -108,8 +106,6 @@ message AsymmetricHasherConfig {
 
   optional float clustering_convergence_tolerance = 5 [default = 1e-5];
 
-  optional float min_cluster_size = 19 [default = 1.0];
-
   optional string centers_filename = 6;
 
   optional int32 num_machines = 27;
@@ -135,15 +131,17 @@ message AsymmetricHasherConfig {
 
   optional StackedQuantizersConfig stacked_quantizers_config = 24;
 
-  optional float partition_level_confidence_interval_stdevs = 26
-      [default = 0.0, deprecated = true];
-
-  optional bool use_single_machine_trainer = 8
-      [default = false, deprecated = true];
-
   optional int32 min_number_machines = 7 [deprecated = true];
 
   optional int32 max_sample_size = 3 [default = 2147483647];
+
+  optional bool use_noise_shaped_training = 30
+      [default = false, deprecated = true];
+  optional float partition_level_confidence_interval_stdevs = 26
+      [default = 0.0, deprecated = true];
+  optional float min_cluster_size = 19 [default = 1.0, deprecated = true];
+  optional bool use_single_machine_trainer = 8
+      [default = false, deprecated = true];
 }
 
 message MinHasherConfig {

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,8 +34,11 @@ class CalibrationMetric():
     """Initialize calibration metric class.
 
     Args:
-      ce_type: str describing the type of calibration error to compute. Must be
-        "quant", "bn" or "neighborhood".
+      ce_type: str describing the type of calibration error to compute.
+        em_ece_bin implements equal mass ECE_bin
+        ew_ece_bin implements equal width ECE_bin
+        em_ece_sweep implements equal mass ECE_sweep
+        ew_ece_sweep implements equal width ECE_sweep
       num_bins: int for number of bins.
       bin_method: string for binning technique to use. Must be either
         "equal_width", "equal_examples" or "".

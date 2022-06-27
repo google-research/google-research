@@ -1,0 +1,218 @@
+// Copyright 2022 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package clay.vh;
+
+
+// Types of the different UI objects.
+enum ObjectType {
+  UNKNOWN_TYPE = 0;
+  BUTTON = 1;
+  CHECKBOX = 2;
+  CHECKEDTEXTVIEW = 3;
+  EDITTEXT = 4;
+  IMAGEBUTTON = 5;
+  IMAGEVIEW = 6;
+  RADIOBUTTON = 7;
+  SLIDINGDRAWER = 8;
+  SPINNER = 9;
+  SWITCH = 10;
+  TABWIDGET = 11;
+  TEXTVIEW = 12;
+  TOGGLEBUTTON = 13;
+  VIDEOVIEW = 14;
+
+  // Append more type merge from Panel dataset defined in WidgetType of
+  // wireless/android/play/playlog/proto/personal_recorder.proto
+  APPWIDGETHOSTVIEW = 15;          // android.appwidget.AppWidgetHostView
+  VIEW = 16;                       // android.view.View
+  WEBVIEW = 17;                    // android.webkit.WebView
+  FRAMELAYOUT = 18;                // android.widget.FrameLayout
+  HORIZONTALSCROLLVIEW = 19;       // android.widget.HorizontalScrollView
+  LINEARLAYOUT = 20;               // android.widget.LinearLayout
+  LISTVIEW = 21;                   // android.widget.ListView
+  MULTIAUTOCOMPLETETEXTVIEW = 22;  // android.widget.MultiAutoCompleteTextView
+  PROGRESSBAR = 23;                // android.widget.ProgressBar
+  RELATIVELAYOUT = 24;             // android.widget.RelativeLayout
+  SCROLLVIEW = 25;                 // android.widget.ScrollView
+  TABHOST = 26;                    // android.widget.TabHost
+  VIEWSWITCHER = 27;               // android.widget.ViewSwitcher
+
+  SEEKBAR = 28;  // android.widget.SeekBar
+}
+
+// The on-screen grid location (3x3 grid) of an UI object.
+enum GridLocation {
+  UNKNOWN_LOCATION = 0;
+  TOP_LEFT = 1;
+  TOP_CENTER = 2;
+  TOP_RIGHT = 3;
+  LEFT = 4;
+  CENTER = 5;
+  RIGHT = 6;
+  BOTTOM_LEFT = 7;
+  BOTTOM_CENTER = 8;
+  BOTTOM_RIGHT = 9;
+}
+
+// Observation for the agent.
+message Observation {
+  // Stats info of view hierarchy.
+  VHInfo vh_info = 12;
+
+  // List of objects on the screen.
+  repeated Object objects = 1;
+
+  // Screen state of the obvervation.
+  ScreenState screen_state = 2;
+
+  // Raw bytes of the screenshot.
+  bytes screenshot = 3;
+
+  // Id of image.
+  string image_id = 13;
+
+  // Raw bytes of the view hierarchy XML or Json
+  oneof view_hierarchy_format {
+    bytes xml = 4;
+    bytes json = 9;
+  }
+
+  // Width of the screenshot.
+  int32 screen_width = 5;
+
+  // Height of the screenshot.
+  int32 screen_height = 6;
+
+  // A numpy 2-D map from pixel coordinate to rendered object id. The shape is
+  // [screen_height // render_scale, screen_width // render_scale].
+  bytes render_bitmap = 7;
+
+  // Scale to down-sample to screenshot for the bitmap.
+  int32 render_scale = 8;
+
+  // Absolute path of screenshot file.
+  string debug_screenshot_filepath = 10;
+
+  // Absolute path of vew_hierarchy file.
+  string debug_vh_filepath = 11;
+}
+
+// Stats info of View Hierarchy tree.
+message VHInfo {
+  // The number of children for the node with the most children.
+  int32 max_children = 1;
+
+  // The original dataset have multiple roots.
+  bool pick_from_multiple_roots = 2;
+}
+
+// Screen object proto.
+message Object {
+  // Object id defined and used by each pipeline.
+  string id = 100;
+
+  // Object index in the observation object list.
+  int32 index = 1;
+
+  // The id of parent object.
+  string parent_id = 101;
+
+  // The index of parent object in the objects list.
+  int32 parent_index = 102;
+
+  // Object name.
+  string name = 2;
+
+  // Object type.
+  ObjectType type = 3;
+
+  // Android class of the object, e.g., android.widget.LinearLayout.
+  string android_class = 4;
+
+  // Android package of the object, e.g., com.google.android.gms.
+  string android_package = 5;
+
+  // Text from content-desc, text and resource-id attribute.
+  string text = 6;
+  string content_desc = 7;
+  string resource_id = 8;
+
+  // Boolean attribuets.
+  bool clickable = 9;
+  bool visible = 10;
+  bool enabled = 11;
+  bool focusable = 12;
+  bool focused = 13;
+  bool scrollable = 14;
+  bool long_clickable = 15;
+  bool selected = 16;
+  bool checkable = 17;
+  bool checked = 18;
+
+  // Bounding box of the object.
+  BoundingBox bbox = 19;
+
+  // Below are computed attributes from view hierarchy.
+  // Grid location of the object.
+  GridLocation grid_location = 30;
+
+  // Dom position of the object.
+  DomPosition dom_position = 31;
+
+  // Whether it's a leaf node.
+  bool is_leaf = 32;
+
+  // Whether it's an actionable object for RL policy.
+  bool is_actionable = 33;
+}
+
+
+// Screen state proto.
+message ScreenState {
+  message StateField {
+    // Name of this field.
+    string name = 1;
+
+    // Value of this field.
+    string value = 2;
+
+    // Whether this state is required/optional, used in goal only
+    bool is_required = 3;
+  }
+  repeated StateField state_fields = 1;
+}
+
+// A <x, y> coordinate on the screen.
+message ScreenPosition {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+// A bounding box on the screen.
+message BoundingBox {
+  int32 left = 1;
+  int32 right = 2;
+  int32 top = 3;
+  int32 bottom = 4;
+}
+
+// Dom position of the object.
+message DomPosition {
+  int32 depth = 1;
+  int32 pre_order_id = 2;
+  int32 post_order_id = 3;
+}

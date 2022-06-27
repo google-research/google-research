@@ -1,4 +1,4 @@
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,4 +24,4 @@ pip install tensorflow
 pip install tensorflow-addons
 pip install tensorflow-datasets
 
-python -m run_ak_experiment --num_epochs=1 --num_parameters=1000 --num_runs=1
+python -m run_ak_experiment --max_num_epochs=1 --num_parameters=1000 --num_runs=1

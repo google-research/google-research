@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@ import numpy as np
 import tensorflow as tf
 
 from data_selection.wmt import common
-from data_selection.wmt import decode
 from data_selection.wmt import input_pipeline
 from data_selection.wmt import models
 
@@ -180,6 +179,9 @@ flags.DEFINE_enum(
                                           PASSTHRU,
                                           NONE],
     help='Whether to finetune only some parameters.')
+flags.DEFINE_bool(
+    'split_tokenizer', default=False,
+    help='Separate tokenizer for each language.')
 
 
 def compute_per_example_loss(logits,
@@ -259,7 +261,7 @@ def compute_is_scores(filename):
   # Load Dataset
   print('Loading data')
   logging.info('Initializing dataset.')
-  train_ds, encoder = input_pipeline.get_wmt_is_datasets(
+  train_ds, (_, encoder_tgt) = input_pipeline.get_wmt_is_datasets(
       n_devices=n_devices,
       dataset_name=FLAGS.dataset_name,
       shard_idx=jax.host_id(),
@@ -269,12 +271,13 @@ def compute_is_scores(filename):
       target_vocab_size=FLAGS.vocab_size,
       batch_size=FLAGS.batch_size,
       max_length=FLAGS.max_target_length,
-      paracrawl_size=FLAGS.paracrawl_size)
+      paracrawl_size=FLAGS.paracrawl_size,
+      split_tokenizer=FLAGS.split_tokenizer)
   print('Datasets created')
 
+  encoder = encoder_tgt
   train_iter = iter(train_ds)
   vocab_size = int(encoder.vocab_size())
-  eos_id = decode.EOS_ID  # Default Sentencepiece EOS token.
   print('data iterators created')
 
   logging.info('Initializing model, optimizer, and step functions.')
@@ -299,7 +302,6 @@ def compute_is_scores(filename):
       kernel_init=nn.initializers.xavier_uniform(),
       bias_init=nn.initializers.normal(stddev=1e-6))
 
-  start_step = 0
   rng = jax.random.PRNGKey(FLAGS.random_seed)
   rng, init_rng = jax.random.split(rng)
   # It's possible that is supposed to be per device batch size
@@ -333,12 +335,10 @@ def compute_is_scores(filename):
     try:
       optimizer = checkpoints.restore_checkpoint(model_path, optimizer)
       # Grab last step.
-      start_step = int(optimizer.state.step)
     except ValueError:
       adapter = optim.ModelParamTraversal(lambda path, _: FLAGS.adapter in path)
       optimizer = optimizer_def.create(optimizer.target, focus=adapter)
       optimizer = checkpoints.restore_checkpoint(model_path, optimizer)
-      start_step = optimizer.state[0].step
 
   else:
     raise RuntimeError('Must restore checkpoint for IS')
@@ -356,12 +356,10 @@ def compute_is_scores(filename):
       axis_name='batch')
 
   logging.info('Start scoring loop.')
-  metrics_all = []
   t_loop_start = time.time()
 
   # Eval Metrics
   logging.info('Gathering evaluation metrics.')
-  t_eval_start = time.time()
   save_file = FLAGS.is_save_path + '/' + filename + '-lengths.txt'
   length_fp = tf.io.gfile.GFile(save_file, 'w')
   lengths_writer = csv.writer(length_fp)

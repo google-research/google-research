@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -712,5 +712,5 @@ def s(wrapped, *attrs_args,
   wrapped.__setattr__ = setattr_impl
   wrapped.serialize = serialize
   wrapped.parse = parse
-  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)
+  wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)  # pytype: disable=wrong-arg-types  # attr-stubs
   return wrapped

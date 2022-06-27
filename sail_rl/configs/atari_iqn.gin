@@ -1,0 +1,62 @@
+import dopamine.discrete_domains.atari_lib
+import dopamine.discrete_domains.run_experiment
+import dopamine.agents.implicit_quantile.implicit_quantile_agent
+import dopamine.agents.rainbow.rainbow_agent
+import dopamine.replay_memory.circular_replay_buffer
+import gin.tf.external_configurables
+
+# Rainbow (base class for IQN)
+RainbowAgent.gamma = 0.99
+RainbowAgent.update_horizon = 3
+RainbowAgent.min_replay_history = 20000 # agent steps
+RainbowAgent.update_period = 4
+RainbowAgent.target_update_period = 8000 # agent steps
+RainbowAgent.epsilon_train = 0.01
+RainbowAgent.epsilon_eval = 0.001
+RainbowAgent.epsilon_decay_period = 250000  # agent steps
+# IQN currently does not support prioritized replay.
+RainbowAgent.replay_scheme = 'uniform'
+RainbowAgent.tf_device = '/gpu:0'  # '/cpu:*' use for non-GPU version
+RainbowAgent.optimizer = @tf.train.AdamOptimizer()
+
+# IQN
+ImplicitQuantileAgent.kappa = 1.0
+ImplicitQuantileAgent.num_tau_samples = 64
+ImplicitQuantileAgent.num_tau_prime_samples = 64
+ImplicitQuantileAgent.num_quantile_samples = 32
+
+# SAIL-IQN
+SAILImplicitQuantileAgent.alpha = 0.9
+SAILImplicitQuantileAgent.clip = 1.
+SAILImplicitQuantileAgent.kappa = 1.0
+SAILImplicitQuantileAgent.num_tau_samples = 64
+SAILImplicitQuantileAgent.num_tau_prime_samples = 64
+SAILImplicitQuantileAgent.num_quantile_samples = 32
+
+# AL-IQN
+ALImplicitQuantileAgent.alpha = 0.9
+ALImplicitQuantileAgent.clip = -1.
+ALImplicitQuantileAgent.kappa = 1.0
+ALImplicitQuantileAgent.num_tau_samples = 64
+ALImplicitQuantileAgent.num_tau_prime_samples = 64
+ALImplicitQuantileAgent.num_quantile_samples = 32
+
+# Replay buffers
+WrappedReplayBuffer.replay_capacity = 1000000
+WrappedReplayBuffer.batch_size = 32
+
+SAILWrappedReplayBuffer.replay_capacity = 1000000
+SAILWrappedReplayBuffer.batch_size = 32
+
+# Optimizer
+tf.train.AdamOptimizer.learning_rate = 0.00005
+tf.train.AdamOptimizer.epsilon = 0.0003125
+
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+
+# Runner
+Runner.num_iterations = 200
+Runner.training_steps = 250000  # agent steps
+Runner.evaluation_steps = 125000  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps

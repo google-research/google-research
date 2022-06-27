@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utilities for defining loss functions."""
 
 from typing import Optional
@@ -181,7 +180,7 @@ def linear_cross_entropy(prob,
       safe_logit(prob, epsilon_multiplier), target)
 
 
-class ScaleAndShift(flax.nn.Module):
+class ScaleAndShift(flax.deprecated.nn.Module):
   """Learnable function f(x) = ax + b where a and b are scalars."""
 
   def apply(self, x):

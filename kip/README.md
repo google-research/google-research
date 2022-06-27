@@ -10,6 +10,8 @@ Infinitely Wide Convolutional Networks](https://arxiv.org/abs/2107.13034) by Tim
 Lechao Xiao, Jaehoon Lee. We distill datasets using the KIP algorithm developed in the previous
 paper together with large-scale distributed computational resources to handle convolutional networks. See [dataset.ipynb](https://colab.research.google.com/github/google-research/google-research/blob/master/kip/dataset.ipynb) for access to the datasets stored in GCS.
 
+An example of finite network (ConvNet) training using one of the distilled data in GCS is also included in [Neural Network Training Notebook](https://colab.research.google.com/github/google-research/google-research/blob/master/kip/nn_training.ipynb).
+
 
 ## Citation
 

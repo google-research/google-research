@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.model.automaton_layer."""
 
 from absl.testing import absltest
@@ -104,7 +103,7 @@ class AutomatonLayerTest(parameterized.TestCase):
     # Make sure the layer can be initialized and applied within a model.
     # This model is fairly simple; it just pretends that the encoded graph and
     # variants depend on the input.
-    class TestModel(flax.nn.Module):
+    class TestModel(flax.deprecated.nn.Module):
 
       def apply(self, dummy_ignored):
         abstract_encoded_graph = jax.tree_map(
@@ -128,7 +127,7 @@ class AutomatonLayerTest(parameterized.TestCase):
             **kwargs)
 
     with side_outputs.collect_side_outputs() as side:
-      with flax.nn.stochastic(jax.random.PRNGKey(0)):
+      with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
         # For some reason init_by_shape breaks the custom_vjp?
         abstract_out, unused_params = TestModel.init(
             jax.random.PRNGKey(1234), jnp.zeros((), jnp.float32))

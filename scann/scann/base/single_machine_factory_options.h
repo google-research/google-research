@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "scann/partitioning/partitioner.pb.h"
@@ -63,8 +65,6 @@ struct SingleMachineFactoryOptions {
   shared_ptr<vector<int64_t>> crowding_attributes;
 
   shared_ptr<ThreadPool> parallelization_pool;
-
-  int64_t creation_timestamp = numeric_limits<int64_t>::max();
 };
 
 }  // namespace research_scann

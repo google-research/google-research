@@ -1,6 +1,8 @@
 # This package defines the in-memory representation of ScaNN datasets and
 # datapoints.
 
+load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -25,6 +27,17 @@ cc_proto_library(
     name = "features_cc_proto",
     tags = ["local"],
     deps = [":features_proto"],
+)
+
+scann_py_proto_library(
+    name = "features_py_pb2",
+    srcs = ["features.proto"],
+    proto_deps = [":features_proto"],
+    py_proto_deps = [
+        "//scann/coscann:v2_restricts_py_pb2",
+        "//scann/proto:restricts_py_pb2",
+    ],
+    tags = ["local"],
 )
 
 # Libraries
@@ -77,8 +90,6 @@ cc_library(
         "//scann/distance_measures:distance_measure_base",
         "//scann/distance_measures/one_to_one:l2_distance",
         "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:hashed_cc_proto",
         "//scann/utils:common",
@@ -88,9 +99,7 @@ cc_library(
         "//scann/utils:types",
         "//scann/utils:util_functions",
         "//scann/utils:zip_sort",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -120,7 +129,6 @@ cc_library(
         "//scann/data_format/internal:short_string_optimized_string",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:scann_serialize",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
@@ -145,7 +153,6 @@ cc_library(
         ":features_cc_proto",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_malloc_extension",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
         "@com_google_absl//absl/base",

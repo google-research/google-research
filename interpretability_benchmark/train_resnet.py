@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Training script for implementing ROAR benchmark.
 
 This script trains a ResNet 50 model on either:
@@ -33,6 +32,7 @@ import os
 from absl import app
 from absl import flags
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2
 
 from interpretability_benchmark import data_input
@@ -194,7 +194,7 @@ def resnet_model_fn(features, labels, mode, params):
       num_classes=num_label_classes, data_format=params['data_format'])
 
   logits = network(
-      inputs=features, is_training=(mode == tf.estimator.ModeKeys.TRAIN))
+      inputs=features, is_training=(mode == tf_estimator.ModeKeys.TRAIN))
 
   output_dir = params['output_dir']
   weight_decay = params['weight_decay']
@@ -209,7 +209,7 @@ def resnet_model_fn(features, labels, mode, params):
       if 'batch_normalization' not in v.name
   ])
   host_call = None
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
 
     global_step = tf.train.get_global_step()
 
@@ -240,14 +240,14 @@ def resnet_model_fn(features, labels, mode, params):
     train_op = None
 
   eval_metrics = {}
-  if mode == tf.estimator.ModeKeys.EVAL:
+  if mode == tf_estimator.ModeKeys.EVAL:
     train_op = None
     predictions = tf.argmax(logits, axis=1)
     eval_metrics['top_1_accuracy'] = tf.metrics.accuracy(labels, predictions)
     in_top_5 = tf.cast(tf.nn.in_top_k(logits, labels, 5), tf.float32)
     eval_metrics['top_5_accuracy'] = tf.metrics.mean(in_top_5)
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       training_hooks=host_call,
       mode=mode,
       loss=loss,
@@ -340,10 +340,10 @@ def main(argv):
   num_train_steps = params['num_train_steps']
   eval_steps = params['num_eval_images'] // params['batch_size']
 
-  run_config = tf.estimator.RunConfig(
+  run_config = tf_estimator.RunConfig(
       model_dir=model_dir, save_checkpoints_steps=FLAGS.steps_per_checkpoint)
 
-  classifier = tf.estimator.Estimator(
+  classifier = tf_estimator.Estimator(
       model_fn=resnet_model_fn,
       model_dir=model_dir,
       params=params,

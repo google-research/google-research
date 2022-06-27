@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <utility>
 
-#include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -40,52 +40,14 @@
 namespace research_scann {
 namespace one_to_many_low_level {
 
-#ifdef __x86_64__
-
-namespace avx1 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx1
-
-namespace avx2 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx2Fma;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace avx2
-
-#endif
-
 template <typename ResultElemT, typename CallbackFunctor>
 SCANN_INLINE void DenseDotProductDistanceOneToManyInt8FloatDispatch(
     const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
     MutableSpan<ResultElemT> result, CallbackFunctor* __restrict__ callback) {
-  size_t j = 0;
-
-#ifdef __x86_64__
-  constexpr size_t kUnrollFactor = 3;
-  using DatasetView = DefaultDenseDatasetView<int8_t>;
-  auto view = DatasetView(database);
-  if (RuntimeSupportsAvx2()) {
-    avx2::DenseDotProductDistanceOneToManyInt8Float<DatasetView, false,
-                                                    DatapointIndex>(
-        query.values(), &view, nullptr, result, callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  } else if (RuntimeSupportsAvx1()) {
-    avx1::DenseDotProductDistanceOneToManyInt8Float<DatasetView, false,
-                                                    DatapointIndex>(
-        query.values(), &view, nullptr, result, callback);
-    j = result.size() / kUnrollFactor * kUnrollFactor;
-  }
-#endif
-
-  for (; j < result.size(); ++j) {
-    const size_t idx = GetDatapointIndex(result, j);
-    const float dist = -DenseDotProduct(query, database[idx]);
-    callback->invoke(j, dist);
-  }
+  auto view = DefaultDenseDatasetView<int8_t>(database);
+  DenseDotProductDistanceOneToManyInt8FloatLowLevel<
+      DefaultDenseDatasetView<int8_t>, false, DatapointIndex, ResultElemT,
+      CallbackFunctor>(query.values(), &view, nullptr, result, callback);
 }
 
 using NeighborResult = std::pair<DatapointIndex, float>;
@@ -363,21 +325,23 @@ FixedPointFloatDenseDotProductReorderingHelper::
         float fixed_point_multiplier_quantile) {
   ScalarQuantizationResults quantization_results = ScalarQuantizeFloatDataset(
       exact_reordering_dataset, fixed_point_multiplier_quantile);
-  fixed_point_dataset_ = std::move(quantization_results.quantized_dataset);
+  fixed_point_dataset_ = std::make_shared<DenseDataset<int8_t>>(
+      std::move(quantization_results.quantized_dataset));
   inverse_multipliers_ =
       std::move(quantization_results.inverse_multiplier_by_dimension);
 }
 
 FixedPointFloatDenseDotProductReorderingHelper::
     FixedPointFloatDenseDotProductReorderingHelper(
-        DenseDataset<int8_t> fixed_point_dataset,
-        const shared_ptr<const vector<float>>& multiplier_by_dimension)
+        shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
+        const std::vector<float>& multiplier_by_dimension)
     : fixed_point_dataset_(std::move(fixed_point_dataset)) {
-  DCHECK_EQ(multiplier_by_dimension->size(),
-            fixed_point_dataset_.dimensionality());
-  inverse_multipliers_.resize(multiplier_by_dimension->size());
-  for (size_t i = 0; i < multiplier_by_dimension->size(); ++i) {
-    inverse_multipliers_[i] = 1.0f / (*multiplier_by_dimension)[i];
+  DCHECK(fixed_point_dataset_ != nullptr);
+  DCHECK_EQ(multiplier_by_dimension.size(),
+            fixed_point_dataset_->dimensionality());
+  inverse_multipliers_.resize(multiplier_by_dimension.size());
+  for (size_t i = 0; i < multiplier_by_dimension.size(); ++i) {
+    inverse_multipliers_[i] = 1.0f / multiplier_by_dimension[i];
   }
 }
 
@@ -391,7 +355,7 @@ FixedPointFloatDenseDotProductReorderingHelper::ComputeDistancesForReordering(
       query, inverse_multipliers_);
   DenseDotProductDistanceOneToManyInt8Float(
       MakeDatapointPtr(preprocessed.get(), query.nonzero_entries()),
-      fixed_point_dataset_, MakeMutableSpan(*result));
+      *fixed_point_dataset_, MakeMutableSpan(*result));
 
   return OkStatus();
 }
@@ -405,7 +369,7 @@ FixedPointFloatDenseDotProductReorderingHelper::ComputeDistancesForReordering(
       query, inverse_multipliers_);
   one_to_many_low_level::DenseDotProductDistanceOneToManyInt8FloatDispatch(
       MakeDatapointPtr(preprocessed.get(), query.nonzero_entries()),
-      fixed_point_dataset_, MakeMutableSpan(*result), callback);
+      *fixed_point_dataset_, MakeMutableSpan(*result), callback);
   return OkStatus();
 }
 
@@ -421,12 +385,12 @@ FixedPointFloatDenseDotProductReorderingHelper::ComputeTop1ReorderingDistance(
 
 Status FixedPointFloatDenseDotProductReorderingHelper::Reconstruct(
     DatapointIndex i, MutableSpan<float> output) const {
-  if (i >= fixed_point_dataset_.size())
+  if (i >= fixed_point_dataset_->size())
     return InvalidArgumentError(
         "The datapoint index %d is >= the dataset size %d", i,
-        fixed_point_dataset_.size());
+        fixed_point_dataset_->size());
 
-  const auto* dp_start = fixed_point_dataset_[i].values();
+  const auto* dp_start = (*fixed_point_dataset_)[i].values();
   std::transform(dp_start, dp_start + dimensionality(),
                  inverse_multipliers_.begin(), output.begin(),
                  std::multiplies<float>());
@@ -444,8 +408,8 @@ FixedPointFloatDenseCosineReorderingHelper::
 
 FixedPointFloatDenseCosineReorderingHelper::
     FixedPointFloatDenseCosineReorderingHelper(
-        DenseDataset<int8_t> fixed_point_dataset,
-        shared_ptr<const vector<float>> multiplier_by_dimension)
+        shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
+        const vector<float>& multiplier_by_dimension)
     : dot_product_helper_(std::move(fixed_point_dataset),
                           multiplier_by_dimension) {}
 
@@ -488,14 +452,14 @@ FixedPointFloatDenseSquaredL2ReorderingHelper::
 
 FixedPointFloatDenseSquaredL2ReorderingHelper::
     FixedPointFloatDenseSquaredL2ReorderingHelper(
-        DenseDataset<int8_t> fixed_point_dataset,
-        shared_ptr<const vector<float>> multiplier_by_dimension,
+        shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
+        const vector<float>& multiplier_by_dimension,
         shared_ptr<const vector<float>> squared_l2_norm_by_datapoint)
     : dot_product_helper_(std::move(fixed_point_dataset),
                           multiplier_by_dimension),
       database_squared_l2_norms_(std::move(squared_l2_norm_by_datapoint)) {
   DCHECK_EQ(database_squared_l2_norms_->size(),
-            dot_product_helper_.fixed_point_dataset_.size());
+            dot_product_helper_.fixed_point_dataset_->size());
 }
 
 Status

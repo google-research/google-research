@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Tests for rouge scorer.
 
 Tests for both correctness and for consistency with the official ROUGE-1.5.5
@@ -32,6 +31,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from rouge import rouge_scorer
 from rouge import test_util
+from rouge import tokenizers
 
 
 class RougeScorerTest(parameterized.TestCase):
@@ -61,6 +61,20 @@ class RougeScorerTest(parameterized.TestCase):
     self.assertAlmostEqual(1, result["rouge1"].precision)
     self.assertAlmostEqual(1 / 3, result["rouge1"].recall)
     self.assertAlmostEqual(1 / 2, result["rouge1"].fmeasure)
+
+  def testRouge1Multi(self):
+    scorer = rouge_scorer.RougeScorer(["rouge1"])
+    result = scorer.score_multi(["testing one two"], "testing")
+    self.assertAlmostEqual(1, result["rouge1"].precision)
+    self.assertAlmostEqual(1 / 3, result["rouge1"].recall)
+    self.assertAlmostEqual(1 / 2, result["rouge1"].fmeasure)
+
+  def testRougeAllMulti(self):
+    scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"])
+    result = scorer.score_multi(["first text", "first something"], "text first")
+    self.assertAlmostEqual(1, result["rouge1"].fmeasure)
+    self.assertAlmostEqual(0, result["rouge2"].fmeasure)
+    self.assertAlmostEqual(0.5, result["rougeL"].fmeasure)
 
   @parameterized.parameters(["rouge1", "rouge2", "rougeL", "rougeLsum"])
   def testRougeEmpty(self, rouge_type):
@@ -170,6 +184,33 @@ class RougeScorerTest(parameterized.TestCase):
     self.assertAlmostEqual(0.66667, result["rougeLsum"].precision, places=5)
     self.assertAlmostEqual(0.47205, result["rougeLsum"].fmeasure, places=5)
 
+  def testRougeLSumSentenceSplitting(self):
+    scorer = rouge_scorer.RougeScorer(["rougeLsum"], use_stemmer=True)
+
+    target = "First sentence.\nSecond Sentence."
+    prediction = "Second sentence.\nFirst Sentence."
+    result = scorer.score(target, prediction)
+    self.assertAlmostEqual(1.0, result["rougeLsum"].fmeasure, places=5)
+
+    scorer = rouge_scorer.RougeScorer(["rougeLsum"],
+                                      use_stemmer=True,
+                                      split_summaries=False)
+    result = scorer.score(target, prediction)
+
+    # Without newlines, summaries are treated as single sentences.
+    target = target.replace("\n", " ")
+    prediction = prediction.replace("\n", " ")
+    result = scorer.score(target, prediction)
+    self.assertAlmostEqual(0.50, result["rougeLsum"].fmeasure, places=5)
+
+    # Split summaries into sentences using nltk
+    scorer = rouge_scorer.RougeScorer(["rougeLsum"],
+                                      use_stemmer=True,
+                                      split_summaries=True)
+    result = scorer.score(target, prediction)
+
+    self.assertAlmostEqual(1.0, result["rougeLsum"].fmeasure, places=5)
+
   def testLcsTable(self):
     ref = [1, 2, 3, 4, 5]
     c1 = [2, 5, 3, 4]
@@ -259,6 +300,15 @@ class RougeScorerTest(parameterized.TestCase):
     scorer = rouge_scorer.RougeScorer(["rougeLsum"])
     result = scorer.score(target, prediction)
     self.assertAlmostEqual(0.533, result["rougeLsum"].fmeasure, places=3)
+
+  def testRougeTokenizerInit(self):
+    scorer = rouge_scorer.RougeScorer(["rouge1"],
+                                      tokenizer=tokenizers.DefaultTokenizer())
+
+    target = "this is a test"
+    prediction = target
+    result = scorer.score(target, prediction)
+    self.assertEqual(1.0, result["rouge1"].fmeasure)
 
 
 if __name__ == "__main__":

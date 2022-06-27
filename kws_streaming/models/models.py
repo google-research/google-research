@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 """Supported models."""
 import kws_streaming.models.att_mh_rnn as att_mh_rnn
 import kws_streaming.models.att_rnn as att_rnn
+import kws_streaming.models.bc_resnet as bc_resnet
 import kws_streaming.models.cnn as cnn
 import kws_streaming.models.crnn as crnn
 import kws_streaming.models.dnn as dnn
@@ -37,6 +38,7 @@ import kws_streaming.models.xception as xception
 MODELS = {
     'att_mh_rnn': att_mh_rnn.model,
     'att_rnn': att_rnn.model,
+    'bc_resnet': bc_resnet.model,
     'dnn': dnn.model,
     'dnn_raw': dnn_raw.model,
     'ds_cnn': ds_cnn.model,

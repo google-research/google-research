@@ -1,0 +1,6 @@
+# Multiple user representations (MUR) in Retrieval Models.
+
+This code implements Iterative density weighting to train retrieval models with
+multiple user representations.
+
+At the moment, the codebase is still work in progress.

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import os
 import functools
 import jax
 import flax
-from flax import nn
+from flax.deprecated import nn
 from jax import lax
 import jax.numpy as np
 import numpy as onp

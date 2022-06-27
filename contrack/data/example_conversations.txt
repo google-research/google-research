@@ -1,0 +1,105 @@
+conv:people_2019072903_3:aug_0:chat_0| jack ronald| [jack m 0-0][ronald m 1-1]
+jack| Hello| 
+ronald| Hello How are you today| [ronald m 3-3]
+jack| any plans for this week| 
+ronald| Well the game is coming up on Thursday Patrick and Steve want to go too| [ronald m 8-8][ronald m 10-10]
+jack| awesome they can tag along what game do you want to go see| [jack m 1-1][jack m 8-8]
+ronald| It will be great weather for baseball| 
+jack| which game have you decided on| [jack m 3-3]
+ronald| It will be the Sharks vs the Buffalos| 
+jack| so you will pick me up after the guys| [jack m 1-1][jack m 4-4]
+ronald| Patrick and Steve are free that night You re free to go Thursday too right| [ronald m 0-0][ronald m 2-2][ronald m 7-7]
+ronald| Yeah I can pick them up But I have to get up early the next morning for work Would you mind giving them a ride home after| [ronald m 1-1][ronald m 4-4][ronald m 7-7][ronald m 19-19][ronald m 22-22]
+jack| Sure pick me up last because i have some errands to run before i leave| [jack m 2-2][jack m 6-6][jack m 13-13]
+jack| No problem ill drop them off| [jack m 4-4]
+ronald| Awesome Can t wait| 
+jack| See you then| [jack m 1-1]
+ronald| I ll text you on Wednesday to double check everything with you Have a great day| [ronald m 0-0][ronald m 3-3][ronald m 11-11]
+
+conv:people_2019072903_16:aug_0:chat_0| barry emma| [barry m 0-0][emma f 1-1]
+barry| Hi do you know what we should bring for the dinner| [emma f 2-2][we g(barry:emma) 5-5]
+emma| Hey Barry what are you bringing to the Johnson s later| [barry m 1-1][barry m 4-4][johnson m 8-8]
+emma| I honestly don t want to bring anything at all but they invited us for dinner so I guess we have to I think I will bring some Pepsi| [emma f 0-0][they g() 11-11][we g(barry:emma) 13-13][emma f 17-17][we g(barry:emma) 19-19][emma f 22-22][emma f 24-24]
+barry| That is a great idea May be I can bring in some wine| [barry m 7-7]
+barry| So what kind of gift do you want to bring| [emma f 6-6]
+emma| It s not their birthday I m not bringing a gift The pepsi should be enough Maybe I ll get a babka for dessert but I assume they ve made something| [their g() 3-3][emma f 5-5][emma f 17-17][emma f 25-25][they g() 27-27]
+emma| Any idea what they re cooking I m really in the mood for seafood but I obviously can t tell them what to make at their own dinner party| [they g() 3-3][emma f 6-6][emma f 15-15][they g() 20-20][their g() 25-25]
+barry| I am not sure But I heard that recently they go out for fishing I think they may cook something they got when they are out of sea| [barry m 0-0][barry m 5-5][they g() 9-9][barry m 14-14][they g() 16-16][they g() 20-20][they g() 23-23]
+barry| I am thinking to bring a book of how to fish for them| [barry m 0-0][they g() 12-12]
+
+conv:people_2019072903_29:aug_0:chat_0| william stephanie| [stephanie f 0-0][william m 1-1]
+william| Hey Stephanie| [stephanie f 1-1]
+stephanie| Hi| 
+stephanie| Hi William| [william m 1-1]
+william| What are you planning to take next weekend| [stephanie f 2-2]
+stephanie| I guess I ll bring the pie Like I always do eye roll| [stephanie f 0-0][stephanie f 2-2][stephanie f 8-8]
+stephanie| Do you want to eat my pie next weekend| [william m 1-1][stephanie f 5-5]
+william| I wonder if there is anything special they would want us to bring| [william m 0-0][they g() 7-7][us g(william:stephanie) 10-10]
+stephanie| You could bring the sausage rihgt| [william m 0-0]
+william| Yes that and maybe some wine I will call and ask them| [william m 6-6][them g() 11-11]
+stephanie| Great| 
+william| It should be a fun time I will also ask if they know what everyone else I bring in so we don t duplicate| [william m 6-6][they g() 11-11][everyone g(william:stephanie) 14-14][william m 16-16][we g(william:stephanie) 20-20]
+stephanie| You sure are worried about food William| [william m 0-0][william m 6-6]
+william| Yes I love food and picnics Also wine| [william m 1-1]
+stephanie| Ok goodbye| 
+
+conv:people_2019072903_35:aug_0:chat_0| lauren eric| [eric m 0-0][lauren f 1-1]
+lauren| Hey it s Lauren we want to know how we can all get together| [lauren f 3-3][we g(lauren:eric) 4-4][we g(lauren:eric) 9-9]
+lauren| It s Shirley why don t I reach out to Anna and see when she is free| [shirley f 2-2][lauren f 6-6][anna f 10-10][anna f 14-14]
+eric| Yeah we don t know our way around Seattle so we need coordinate| [we g(lauren:eric) 1-1][our g(lauren:eric:shirley:anna) 5-5][we g(lauren:eric) 10-10]
+eric| There s also 5 of us| [us g(lauren:eric:shirley:anna) 5-5]
+lauren| Good point Eric we need a solid plan to not get lost and arrange a visit| [eric m 2-2][we g(lauren:eric) 3-3]
+eric| Maybe we could form a group chat with all 5 of us in it That d be convenient| [we g(lauren:eric) 1-1][us g(lauren:eric:shirley:anna) 11-11]
+eric| That way we could get everyone s opinion and reach everyone simultaneously| [we g(lauren:eric) 2-2][everyone g(lauren:eric:shirley:anna) 5-5][everyone g(lauren:eric:shirley:anna) 10-10]
+lauren| Great idea lets get started| 
+eric| What do you think Lauren| [lauren f 2-2][lauren f 4-4]
+lauren| I don t have everyone on my phone do you Eric| [lauren f 0-0][everyone g(lauren:eric:shirley:anna) 4-4][lauren f 6-6][eric m 9-9][eric m 10-10]
+eric| Great I can set up the chat I ll send you an invite in the next few minutes| [eric m 1-1][eric m 7-7][lauren f 10-10]
+eric| Yeah I definitely don t mind| [eric m 1-1]
+lauren| This is exciting Can t wait to see everyone| [everyone g(lauren:eric:shirley:anna) 8-8]
+eric| Yeah It s going to be a great trip Can t wait| 
+
+conv:people_2019072903_38:aug_0:chat_0| anthony chris| [anthony m 0-0][chris m 1-1]
+anthony| Hey Chris| [chris m 1-1]
+chris| Hey Anthony| [anthony m 1-1]
+anthony| How s it going| 
+chris| Alright here How about yourself| [anthony m 4-4]
+anthony| Pretty good hey I m planning to hang out with some colleagues later wanna join us| [anthony m 3-3][colleagues g() 11-11][colleagues g() 15-15]
+chris| Do I know your colleagues| [chris m 1-1][anthony m 3-3][colleagues g() 4-4]
+anthony| I believe you do I m hanging with Jason Gary and William| [anthony m 0-0][chris m 2-2][anthony m 4-4][jason m 8-8][gary m 9-9][william m 11-11]
+chris| Okay That sounds cool Just let me know when and where and I will be there Thanks for the invite| [chris m 6-6][chris m 12-12]
+anthony| You got it man I ll be in touch| [chris m 0-0][anthony m 4-4]
+
+conv:people_2019072903_44:aug_0:chat_0| samantha chris| [chris m 0-0][samantha f 1-1]
+samantha| Hello Chris i was thinking we should take our neighbors to lunch| [samantha f 1-1][samantha f 2-2][samantha f 5-5][samantha f 8-8][samantha f 9-9]
+chris| I think we should ask the Robinsons if they know what the Martins like to eat| [chris m 0-0][chris m 2-2][chris m 6-6][chris m 8-8][chris m 12-12]
+samantha| That s a great ideal We should probably bring something with us| [samantha f 5-5][samantha f 11-11]
+chris| I think that would be the neighborly thing to do| [chris m 0-0]
+samantha| I can t decide on what would be appropriate Hopefully the Robinson will give us an ideal of what they like| [samantha f 0-0][samantha f 11-11][samantha f 14-14][samantha f 19-19]
+chris| Me either but I m glad we re getting to know the neighbors| [chris m 0-0][chris m 3-3][chris m 6-6][chris m 12-12]
+chris| I think I| [chris m 0-0][chris m 2-2]
+samantha| Mr too i m so excited that we moved here and i really like the neighborhood and the neighbors| [samantha f 2-2][samantha f 7-7][samantha f 11-11][samantha f 18-18]
+
+conv:people_2019072903_65:aug_0:chat_0| debra angela| [angela f 0-0][debra f 1-1]
+debra| Hey what do you think the Murphys and Smiths would like when we go to visit them| [angela f 3-3][murphys g() 6-6][smiths g() 8-8][we g(debra:angela) 12-12][them g() 16-16]
+angela| I was thinking about giving some nice wine to both groups| [angela f 0-0][both g() 9-9]
+debra| That s a great idea you can t go wrong with wine| [angela f 5-5]
+angela| I know that the Smiths love chocolate so I may get that for them in addition to the wine| [angela f 0-0][smiths g() 4-4][angela f 8-8][smiths g() 13-13]
+debra| That sounds good Maybe once we get to Charlotte we can find a local store with good wine and chocolates| [we g(debra:angela) 5-5][we g(debra:angela) 9-9]
+angela| Do you know if the Murphys like chocolate as well| [debra f 1-1][murphys g() 5-5]
+debra| I am not too sure but who doesn t like chocolate| [debra f 0-0]
+angela| That is true How about I get the wine and chocolate for the Smiths You can buy the wine and chocolate for the Murphys| [angela f 5-5][smiths g() 13-13][debra f 14-14][murphys g() 23-23]
+debra| That sounds perfect I look forward to spending time with everyone| [debra f 3-3][we g(debra:angela) 10-10]
+
+conv:people_2019072903_67:aug_0:chat_0| melissa amanda| [amanda f 0-0][melissa f 1-1]
+melissa| Hi| 
+melissa| Should we ask Frank Catherine and Edward to go with us to Six Flags| [we g(melissa:amanda) 1-1][frank m 3-3][catherine f 4-4][edward m 6-6][we g(melissa:amanda) 10-10]
+amanda| Yes I think they d appreciate that| [amanda f 1-1][they g(frank:catherine:edward) 3-3]
+melissa| I m free this weekend are you| [melissa f 0-0][amanda f 6-6]
+amanda| I am| [amanda f 0-0]
+melissa| Great I will call them later today and see if their schedule is good to go too| [melissa f 1-1][they g(frank:catherine:edward) 4-4][they g(frank:catherine:edward) 10-10]
+amanda| Sounds great I hope they can make it| [amanda f 2-2][they g(frank:catherine:edward) 4-4]
+melissa| Me too they are a lot of fun| [melissa f 0-0][they g(frank:catherine:edward) 2-2]
+amanda| Yes and it s been a while since we ve seen them| [we g(melissa:amanda) 8-8][they g(frank:catherine:edward) 11-11]
+melissa| We will plan for this weekend and I will let you know later if the others can com Talk to you later| [we g(melissa:amanda) 0-0][melissa f 7-7][amanda f 10-10][they g(frank:catherine:edward) 15-15][amanda f 20-20]
+

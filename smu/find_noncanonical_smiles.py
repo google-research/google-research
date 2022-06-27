@@ -1,5 +1,33 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +52,6 @@ produces different SMILES strings.
 
 import copy
 import itertools
-from typing import Sequence
 
 from absl import app
 from absl import flags
@@ -32,6 +59,7 @@ from absl import logging
 import apache_beam as beam
 import numpy as np
 from rdkit import Chem
+from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.parser import smu_utils_lib
@@ -50,6 +78,13 @@ FLAGS = flags.FLAGS
 
 
 def generate_bond_topology_permutations(original_bt):
+  """Generates bond topology permutations.
+
+  Args:
+    original_bt: Original bond topology.
+  Yields:
+    Permutations of original bond topology.
+  """
   num_heavy = np.sum(
       [a != dataset_pb2.BondTopology.ATOM_H for a in original_bt.atoms])
   for perm in itertools.permutations(range(num_heavy)):
@@ -65,11 +100,19 @@ def generate_bond_topology_permutations(original_bt):
 
 
 def check_smiles_permutation_invariance(original_bt):
+  """Checks Smiles string permutation invariance.
+
+  Args:
+    original_bt: Original bond topology.
+
+  Yields:
+    Bond topology and two smiles variants, if found.
+  """
   logging.info('Checking %d', original_bt.bond_topology_id)
   smiles = None
   variance_found = False
   for bt in generate_bond_topology_permutations(original_bt):
-    mol = smu_utils_lib.bond_topology_to_molecule(bt)
+    mol = smu_utils_lib.bond_topology_to_rdkit_molecule(bt)
     this_smiles = Chem.MolToSmiles(
         Chem.RemoveHs(mol, sanitize=False),
         kekuleSmiles=True,
@@ -100,7 +143,7 @@ def pipeline(root):
       root
       | 'CreateTopologies' >> beam.Create(
           smu_utils_lib.generate_bond_topologies_from_csv(
-              FLAGS.input_bond_topology_csv))
+              gfile.GFile(FLAGS.input_bond_topology_csv, 'r')))
       | 'Reshuffle1' >> beam.Reshuffle()
       | 'CheckInvariance' >> beam.FlatMap(check_smiles_permutation_invariance)
       | 'Reshuffle2' >> beam.Reshuffle()
@@ -112,7 +155,6 @@ def pipeline(root):
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
-  runner.program_started()
   logging.info('Pipeline Starts.')
   # If you have custom beam options, add them here.
   beam_options = None

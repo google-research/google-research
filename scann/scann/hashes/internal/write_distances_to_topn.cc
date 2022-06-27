@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,7 +14,9 @@
 
 #include "scann/hashes/internal/write_distances_to_topn.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/utils/intrinsics/sse4.h"

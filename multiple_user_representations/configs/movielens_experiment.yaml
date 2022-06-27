@@ -1,0 +1,41 @@
+# The default configuration used for movielens experiments.
+# The following parameters can be overridden through the training script, when flags are passed:
+# `results_dir`, `dataset_path`, `num_representations`, `epochs`.
+
+
+root_dir: 'specify_root_dir'
+results_dir: 'results/train-test-split/'
+
+# Dataset params
+dataset_name: movielens
+dataset_path: 'movielens/100k'
+
+# Training params
+train_batch_size: 512
+test_batch_size: 512
+epochs: 10
+learning_rate: 0.001
+softmax_temperature: 0.01
+
+# model
+model_config:
+  # retrieval_model_type: 'density_smoothed_retrieval'
+  input_embedding_dimension: 4
+  output_dimension: 4
+  use_disagreement_loss: False
+  use_shared_input_embedding: False
+
+  # For item tower, only MLP supported.
+  item_model: mlp
+  item_model_config:
+    num_layers: 1
+    dropout: 0.0
+
+  user_model: parametric_attention_encoder
+  user_model_config:
+    num_mha_layers: 1
+    num_mha_heads: 1
+    mha_dropout: 0.0
+    num_representations: 3
+    use_positional_encoding: False
+    use_projection_layer: False

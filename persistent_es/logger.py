@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,22 +13,67 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""A simple CSV logger."""
+import os
 import csv
 
+import matplotlib
+
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
 class CSVLogger():
-    def __init__(self, fieldnames, filename='log.csv'):
 
-        self.filename = filename
-        self.csv_file = open(filename, 'w')
+  def __init__(self, fieldnames, filename='log.csv'):
 
-        self.writer = csv.DictWriter(self.csv_file, fieldnames=fieldnames)
-        self.writer.writeheader()
+    self.fieldnames = fieldnames
+    self.filename = filename
+    self.csv_file = open(filename, 'w')
 
-        self.csv_file.flush()
+    self.writer = csv.DictWriter(self.csv_file, fieldnames=fieldnames)
+    self.writer.writeheader()
 
-    def writerow(self, row):
-        self.writer.writerow(row)
-        self.csv_file.flush()
+    self.csv_file.flush()
 
-    def close(self):
-        self.csv_file.close()
+  def writerow(self, row):
+    self.writer.writerow(row)
+    self.csv_file.flush()
+
+  def close(self):
+    self.csv_file.close()
+
+
+def plot_csv(fpath, xkey='global_iteration'):
+  with open(fpath, 'r') as f:
+    reader = csv.reader(f)
+    dict_of_lists = {}
+    ks = None
+    for i, r in enumerate(reader):
+      if i == 0:
+        for k in r:
+          dict_of_lists[k] = []
+        ks = r
+      else:
+        for _i, v in enumerate(r):
+          dict_of_lists[ks[_i]].append(float(v))
+
+  for k in dict_of_lists:
+    if k == xkey:
+      continue
+
+    fig = plt.figure()
+    plt.plot(dict_of_lists[xkey], dict_of_lists[k], linewidth=2)
+    plt.title(k, fontsize=20)
+    plt.grid()
+    plt.xlabel(xkey, fontsize=18)
+    plt.ylabel(k, fontsize=18)
+    plt.xticks(fontsize=16)
+    plt.yticks(fontsize=16)
+    if 'loss' in k:
+      plt.yscale('log')
+    plt.savefig(
+        os.path.join(os.path.dirname(fpath), f'_{k}.png'),
+        bbox_inches='tight',
+        pad_inches=0)
+    plt.close(fig)

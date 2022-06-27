@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Miscellaneous JAX helper functions."""
 
 import functools
@@ -223,7 +222,7 @@ def register_dataclass_pytree(cls):
   return cls
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def flax_tag(arr):
   """Wraps a value in a flax module, to inspect intermediate values."""
   return arr
@@ -276,6 +275,9 @@ force_physical_layout_p.def_abstract_eval(
 jax.interpreters.xla.translations[
     force_physical_layout_p] = jax.interpreters.xla.lower_fun(
         _force_physical_layout_impl, multiple_results=False)
+jax.interpreters.mlir.register_lowering(
+    force_physical_layout_p, jax.interpreters.mlir.lower_fun(
+        _force_physical_layout_impl, multiple_results=False))
 jax.interpreters.ad.deflinear(force_physical_layout_p,
                               lambda ct: [force_physical_layout(ct)])
 jax.interpreters.batching.primitive_batchers[force_physical_layout_p] = (

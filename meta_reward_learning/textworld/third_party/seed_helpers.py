@@ -1,5 +1,4 @@
 # coding=utf-8
-# Lint as: python3
 """Seed Helpers copied from OpenAI Gym.
 
 https://github.com/openai/gym/blob/master/gym/utils/seeding.py

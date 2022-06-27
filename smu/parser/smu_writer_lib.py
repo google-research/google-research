@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Writes Small Molecule Universe (SMU) files in custom Uni Basel format.
 
 Used to write SMU entries from a protocol buffer to a SMU .dat file in Basel
@@ -80,80 +92,80 @@ class SmuWriter:
     """
     self.annotate = annotate
 
-  def _conformer_index_string(self, conformer):
-    if conformer.original_conformer_index == -1:
+  def _molecule_index_string(self, molecule):
+    if molecule.original_molecule_index == -1:
       return '*****'
     else:
-      return str(conformer.original_conformer_index).rjust(5)
+      return str(molecule.original_molecule_index).rjust(5)
 
-  def get_stage1_header(self, conformer, identifier):
+  def get_stage1_header(self, molecule):
     """Returns formatted header (separator and first line).
 
     This is for the stage1 format, which just contains the results of geometry
     optimization
 
     Args:
-      conformer: dataset_pb2.Conformer.
-      identifier: string like x07_c3n3oh7
+      molecule: dataset_pb2.Molecule.
 
     Returns:
       A multiline string representation of the header.
     """
-    num_atoms = len(conformer.bond_topologies[0].atoms)
+    num_atoms = len(molecule.bond_topologies[0].atoms)
     result = smu_parser_lib.SEPARATOR_LINE + '\n'
     if self.annotate:
-      result += ('# From original_conformer_index, topology, bond_topology_id, '
-                 'error_{nstat1, nstatc, nstatt, frequences} conformer_id\n')
-    errors = conformer.properties.errors
-    bond_topology_id = conformer.bond_topologies[-1].bond_topology_id
-    if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topology_id):
-      bond_topology_id = 0
-    result += '{:5s}{:5d}{:5d}{:5d}{:5d}{:5d}     {:s}.{:06d}.{:03d}\n'.format(
-        self._conformer_index_string(conformer), errors.error_nstat1,
+      result += ('# From original_molecule_index, topology, bond_topology_id, '
+                 'error_{nstat1, nstatc, nstatt, frequences} molecule_id\n')
+    errors = molecule.properties.errors
+    result += '{:5s}{:5d}{:5d}{:5d}{:5d}{:5d}     {:s}\n'.format(
+        self._molecule_index_string(molecule), errors.error_nstat1,
         errors.error_nstatc, errors.error_nstatt, errors.error_frequencies,
-        num_atoms, identifier, bond_topology_id, conformer.conformer_id % 1000)
+        num_atoms, smu_utils_lib.get_original_label(molecule))
     return result
 
-  def get_stage2_header(self, conformer, identifier):
+  def get_stage2_header(self, molecule):
     """Returns formatted header (separator and first line).
 
     This is for the stage2 format which is at the end of the pipeline.
 
     Args:
-      conformer: dataset_pb2.Conformer.
-      identifier: string like x07_c3n3oh7
+      molecule: dataset_pb2.Molecule.
 
     Returns:
       A multiline string representation of the header.
     """
-    num_atoms = len(conformer.bond_topologies[0].atoms)
+    num_atoms = len(molecule.bond_topologies[0].atoms)
     result = smu_parser_lib.SEPARATOR_LINE + '\n'
     if self.annotate:
-      result += ('# From original_conformer_index, topology, '
-                 'bond_topology_id, conformer_id\n')
-    bond_topology_id = conformer.bond_topologies[-1].bond_topology_id
-    if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topology_id):
-      bond_topology_id = 0
-    result += '%s%s     %s\n' % (
-        self._conformer_index_string(conformer), str(num_atoms).rjust(5),
-        '%s.%s.%s' % (identifier, str(bond_topology_id).rjust(
-            6, '0'), str(conformer.conformer_id % 1000).rjust(3, '0')))
+      result += ('# From original_molecule_index, topology, '
+                 'bond_topology_id, molecule_id\n')
+    result += '{:s}{:5d}     {:s}\n'.format(
+        self._molecule_index_string(molecule), num_atoms,
+        smu_utils_lib.get_original_label(molecule))
     return result
 
-  def get_database(self, conformer):
-    """Returns the line indicating which database this conformer goes to.
+  def get_database(self, molecule):
+    """Returns the line indicating which database this molecule goes to.
 
     Args:
-      conformer: A Conformer protocol buffer message.
+      molecule: A Molecule protocol buffer message.
 
     Returns:
       String
     """
-    if conformer.which_database == dataset_pb2.STANDARD:
+    if not molecule.properties.HasField('errors'):
+      # Standard database has the errors message filtered, so we assume this is
+      # standard
+      val = dataset_pb2.STANDARD
+    elif molecule.properties.errors.which_database != dataset_pb2.UNSPECIFIED:
+      val = molecule.properties.errors.which_database
+    else:
+      # The deprecated location
+      val = molecule.which_database_deprecated
+    if val == dataset_pb2.STANDARD:
       return 'Database   standard\n'
-    elif conformer.which_database == dataset_pb2.COMPLETE:
+    elif (val == dataset_pb2.COMPLETE or val == dataset_pb2.UNSPECIFIED):
       return 'Database   complete\n'
-    raise ValueError('Bad which_database: {}'.format(conformer.which_database))
+    raise ValueError('Bad which_database: {}'.format(val))
 
   def get_error_codes(self, properties):
     """Returns a section of error/warning codes (as defined by Uni Basel).
@@ -207,7 +219,7 @@ class SmuWriter:
         topology, adjacency_matrix)
     return result + ''.join(str(item) for item in num_bonded_hydrogens) + '\n'
 
-  def get_ids(self, conformer, identifier, stage):
+  def get_ids(self, molecule, stage, bt_idx):
     """Returns lines with identifiers.
 
     This include the smiles string, the file, and the ID line.
@@ -215,23 +227,27 @@ class SmuWriter:
     differently in the two stages.
 
     Args:
-      conformer: dataset_pb2.Conformer
-      identifier: string for the file/stoichiometry
+      molecule: dataset_pb2.Molecule
       stage: 'stage1' or 'stage2'
+      bt_idx: bond topology index
 
     Returns:
       A multiline string representation of id lines.
     """
     result = ''
     if self.annotate:
-      result += '# From smiles\n'
-    result += conformer.bond_topologies[0].smiles + '\n'
+      result += '# From smiles or properties.smiles_openbabel\n'
+    if molecule.properties.HasField('smiles_openbabel'):
+      result += molecule.properties.smiles_openbabel + '\n'
+    else:
+      result += molecule.bond_topologies[bt_idx].smiles + '\n'
     if self.annotate:
       result += '# From topology\n'
-    result += identifier + '\n'
+    result += smu_utils_lib.get_composition(
+        molecule.bond_topologies[bt_idx]) + '\n'
     if self.annotate:
-      result += '# From bond_topology_id, conformer_id\n'
-    bond_topology_id = conformer.bond_topologies[-1].bond_topology_id
+      result += '# From bond_topology_id, molecule_id\n'
+    bond_topology_id = molecule.bond_topologies[bt_idx].bond_topology_id
     # Special case SMU1. Fun.
     if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topology_id):
       if stage == 'stage1':
@@ -242,7 +258,7 @@ class SmuWriter:
       else:
         raise ValueError(f'Unknown stage {stage}')
     result += 'ID{:8d}{:8d}\n'.format(bond_topology_id,
-                                      conformer.conformer_id % 1000)
+                                      molecule.molecule_id % 1000)
     return result
 
   def get_system(self, properties):
@@ -364,86 +380,105 @@ class SmuWriter:
     result += ''.join(bonds)
     return result
 
-  _GRADIENT_NORMS_LABEL_FIELDS = [[
-      'E_ini/G_norm', 'initial_geometry_energy',
-      'initial_geometry_gradient_norm'
+  _DEPRECATED_ENERGY_FIELDS = [[
+      'E_ini/G_norm', 'initial_geometry_energy_deprecated',
+      'initial_geometry_gradient_norm_deprecated'
   ],
-                                  [
-                                      'E_opt/G_norm',
-                                      'optimized_geometry_energy',
-                                      'optimized_geometry_gradient_norm'
-                                  ]]
+                               [
+                                   'E_opt/G_norm',
+                                   'optimized_geometry_energy_deprecated',
+                                   'optimized_geometry_gradient_norm_deprecated'
+                               ]]
 
-  def get_gradient_norms(self, properties, spacer):
+  def get_gradient_norms(self, molecule, spacer):
     """Returns initial and optimized geometry energies and gradient norms.
 
     Args:
-      properties: A Properties protocol buffer message.
+      molecule: dataset_pb2.Molecule
       spacer: spacer after label (differs between stage1 and stage2)
 
     Returns:
       A multiline string representation of geometry energies and gradient norms.
     """
     result = ''
-    for label, field_energy, field_norm in self._GRADIENT_NORMS_LABEL_FIELDS:
-      if self.annotate:
-        result += '# From %s, %s\n' % (field_energy, field_norm)
-      result += '{}{}{:11.6f}{:12.6f}\n'.format(
-          label, spacer,
-          getattr(properties, field_energy).value,
-          getattr(properties, field_norm).value)
+    if molecule.optimized_geometry.HasField('energy'):
+      for label, geometry in [('E_ini/G_norm', molecule.initial_geometries[0]),
+                              ('E_opt/G_norm', molecule.optimized_geometry)]:
+        if self.annotate:
+          result += '# From energy, gnorm\n'
+        result += '{}{}{:11.6f}{:12.6f}\n'.format(label, spacer,
+                                                  geometry.energy.value,
+                                                  geometry.gnorm.value)
+    elif molecule.properties.HasField('optimized_geometry_energy_deprecated'):
+      for label, field_energy, field_norm in self._DEPRECATED_ENERGY_FIELDS:
+        if self.annotate:
+          result += '# From %s, %s\n' % (field_energy, field_norm)
+        result += '{}{}{:11.6f}{:12.6f}\n'.format(
+            label, spacer,
+            getattr(molecule.properties, field_energy).value,
+            getattr(molecule.properties, field_norm).value)
+    else:
+      raise ValueError('All molecules should have energies')
     return result
 
-  def get_coordinates(self, topology, conformer):
+  def get_coordinates(self, topology, molecule):
     """Returns a section with a molecule's initial and optimized geometries.
 
     Args:
       topology: A BondTopology protocol buffer message.
-      conformer: A Conformer protocol buffer message.
+      molecule: A Molecule protocol buffer message.
 
     Returns:
       A multiline string representation of geometries in Cartesian coordinates.
     """
     coordinates = ''
-    if conformer.initial_geometries:
+    if (molecule.initial_geometries and
+        molecule.initial_geometries[0].atom_positions):
       if self.annotate:
-        coordinates += '# From initial_geometry\n'
+        coordinates += '# From initial_geometry.atom_positions\n'
       for i, atom in enumerate(topology.atoms):
-        positions = conformer.initial_geometries[0].atom_positions[i]
+        positions = molecule.initial_geometries[0].atom_positions[i]
 
         coordinates += 'Initial Coords%s%s%s%s\n' % (
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(8),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
                 positions.y).rjust(12), '{:f}'.format(positions.z).rjust(12))
-    if conformer.HasField('optimized_geometry'):
+    if (molecule.HasField('optimized_geometry') and
+        molecule.optimized_geometry.atom_positions):
       if self.annotate:
-        coordinates += '# From optimized_geometry\n'
+        coordinates += '# From optimized_geometry.atom_positions\n'
       for i, atom in enumerate(topology.atoms):
-        positions = conformer.optimized_geometry.atom_positions[i]
+        positions = molecule.optimized_geometry.atom_positions[i]
         coordinates += 'Optimized Coords%s%s%s%s\n' % (
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(6),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
                 positions.y).rjust(12), '{:f}'.format(positions.z).rjust(12))
     return coordinates
 
-  def get_rotational_constants(self, properties):
+  def get_rotational_constants(self, molecule):
     """Returns rotational constants vector (MHz).
 
     Args:
-      properties: A Properties protocol buffer message.
+      molecule: dataset_pb2.Molecule
 
     Returns:
       A string representation of the rotational constants vector.
     """
-    if not properties.HasField('rotational_constants'):
-      return ''
     result = ''
+    if molecule.optimized_geometry.HasField('rotcon'):
+      # result += '# From optimized_geometry.rotcon\n'
+      vals = molecule.optimized_geometry.rotcon.value
+    elif molecule.properties.HasField('rotational_constants_deprecated'):
+      # result += '# From rotational_constants_deprecated\n'
+      constants = molecule.properties.rotational_constants_deprecated
+      vals = (constants.x, constants.y, constants.z)
+    else:
+      return ''
     if self.annotate:
-      result += '# From rotational_constants\n'
-    constants = properties.rotational_constants
+      result += '# From rotational_constants_deprecated\n'
     result += (
         'Rotational constants (MHz)  {:-20.3f}{:-20.3f}{:-20.3f}\n'.format(
-            constants.x, constants.y, constants.z))
+            vals[0], vals[1], vals[2]))
     return result
 
   def get_symmetry_used(self, properties):
@@ -550,15 +585,16 @@ class SmuWriter:
         result += '\n'
     return result
 
-  def get_properties(self, properties):
+  def get_properties(self, molecule):
     """Returns a variety of properties, in particular single point energies.
 
     Args:
-      properties: A Properties protocol buffer message.
+      molecule: dataset_pb2.Molecule
 
     Returns:
       A multiline string representation of the labeled properties.
     """
+    properties = molecule.properties
     float_line = '{:21s}{:-12.6f}\n'.format
     int_line = '{:21s}{:-5d}\n'.format
     result = ''
@@ -569,6 +605,21 @@ class SmuWriter:
         if self.annotate:
           result += '# From %s\n' % field
         result += int_line(label, getattr(properties, field))
+
+      elif label == 'NUCREP':
+        value = None
+        if molecule.optimized_geometry.HasField('enuc'):
+          if self.annotate:
+            result += '# From optimized_geometry.enuc\n'
+          value = molecule.optimized_geometry.enuc.value
+        elif properties.HasField('nuclear_repulsion_energy_deprecated'):
+          if self.annotate:
+            result += '# From nuclear_repulsion_energy_deprecated\n'
+          value = properties.nuclear_repulsion_energy_deprecated.value
+        if value is None:
+          continue
+        result += float_line(label, _FortranFloat(value))
+
       elif label == 'ZPE_unscaled':
         # This is just a special case because the number of significant digts is
         # different.
@@ -578,6 +629,7 @@ class SmuWriter:
           result += '# From zpe_unscaled\n'
         result += 'ZPE_unscaled {:-16.2f}\n'.format(
             properties.zpe_unscaled.value)
+
       else:
         if not properties.HasField(field):
           continue
@@ -700,7 +752,9 @@ class SmuWriter:
     return result
 
   def get_excitation_energies_and_oscillations(self, properties):
-    """Returns excitation energies and length rep. osc.
+    """Returns excitation energies and length rep.
+
+    osc.
 
     strengths at CC2/TZVP.
 
@@ -783,6 +837,47 @@ class SmuWriter:
 
     return result
 
+  def format_for_tensors(self, label, val):
+    return '   %s%s\n' % (label, '{:.5f}'.format(val).rjust(14))
+
+  def get_rank2(self, prop):
+    """Returns the output for a Rank2MolecularProperty.
+
+    Args:
+      prop: Rank2MolecularProperty
+
+    Returns:
+      string
+    """
+    out = ''
+    if prop.matrix_values_deprecated:
+      for label, val in zip(smu_parser_lib.RANK2_ENCODING_ORDER,
+                            prop.matrix_values_deprecated):
+        out += self.format_for_tensors(' ' + label, val)
+    else:
+      for label in smu_parser_lib.RANK2_ENCODING_ORDER:
+        out += self.format_for_tensors(' ' + label, getattr(prop, label))
+    return out
+
+  def get_rank3(self, prop):
+    """Returns the output for a Rank3MolecularProperty.
+
+    Args:
+      prop: Rank3MolecularProperty
+
+    Returns:
+      string
+    """
+    out = ''
+    if prop.tensor_values_deprecated:
+      for label, val in zip(smu_parser_lib.RANK3_ENCODING_ORDER,
+                            prop.tensor_values_deprecated):
+        out += self.format_for_tensors(label, val)
+    else:
+      for label in smu_parser_lib.RANK3_ENCODING_ORDER:
+        out += self.format_for_tensors(label, getattr(prop, label))
+    return out
+
   def get_polarizability(self, properties):
     """Returns dipole-dipole polarizability.
 
@@ -797,11 +892,8 @@ class SmuWriter:
     result = 'Polarizability (au):    PBE0/aug-pc-1\n'
     if self.annotate:
       result += '# From dipole_dipole_polarizability_pbe0_aug_pc_1\n'
-    labels = ['xx', 'yy', 'zz', 'xy', 'xz', 'yz']
-    dipole_dipole = properties.dipole_dipole_polarizability_pbe0_aug_pc_1
-    for i, label in enumerate(labels):
-      result += '    %s%s\n' % (label, '{:.5f}'.format(
-          dipole_dipole.matrix_values[i]).rjust(14))
+    result += self.get_rank2(
+        properties.dipole_dipole_polarizability_pbe0_aug_pc_1)
     return result
 
   def get_multipole_moments(self, properties):
@@ -814,159 +906,164 @@ class SmuWriter:
       A multiline string representation of the multipole moments.
     """
 
-    def segment(label, v):
-      return '   %s%s\n' % (label, '{:.5f}'.format(v).rjust(14))
-
     result = ''
 
     if properties.HasField('dipole_moment_pbe0_aug_pc_1'):
       result += 'Dipole moment (au):     PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From dipole_moment_pbe0_aug_pc_1\n'
-      result += segment('  x', properties.dipole_moment_pbe0_aug_pc_1.x)
-      result += segment('  y', properties.dipole_moment_pbe0_aug_pc_1.y)
-      result += segment('  z', properties.dipole_moment_pbe0_aug_pc_1.z)
+      result += self.format_for_tensors(
+          '  x', properties.dipole_moment_pbe0_aug_pc_1.x)
+      result += self.format_for_tensors(
+          '  y', properties.dipole_moment_pbe0_aug_pc_1.y)
+      result += self.format_for_tensors(
+          '  z', properties.dipole_moment_pbe0_aug_pc_1.z)
 
     if properties.HasField('quadrupole_moment_pbe0_aug_pc_1'):
       result += 'Quadrupole moment (au): PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From quadrupole_moment_pbe0_aug_pc_1\n'
-      for i, label in enumerate(smu_parser_lib.RANK2_ENCODING_ORDER):
-        result += segment(
-            ' ' + label,
-            properties.quadrupole_moment_pbe0_aug_pc_1.matrix_values[i])
+      result += self.get_rank2(properties.quadrupole_moment_pbe0_aug_pc_1)
 
     if properties.HasField('octopole_moment_pbe0_aug_pc_1'):
       result += 'Octopole moment (au):   PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From octopole_moment_pbe0_aug_pc_1\n'
-      for i, label in enumerate(smu_parser_lib.RANK3_ENCODING_ORDER):
-        result += segment(
-            label, properties.octopole_moment_pbe0_aug_pc_1.tensor_values[i])
+      result += self.get_rank3(properties.octopole_moment_pbe0_aug_pc_1)
 
     if properties.HasField('dipole_moment_hf_6_31gd'):
       result += 'Dipole moment (au):     HF/6-31Gd\n'
       if self.annotate:
         result += '# From dipole_moment_hf\n'
-      result += segment('  x', properties.dipole_moment_hf_6_31gd.x)
-      result += segment('  y', properties.dipole_moment_hf_6_31gd.y)
-      result += segment('  z', properties.dipole_moment_hf_6_31gd.z)
+      result += self.format_for_tensors('  x',
+                                        properties.dipole_moment_hf_6_31gd.x)
+      result += self.format_for_tensors('  y',
+                                        properties.dipole_moment_hf_6_31gd.y)
+      result += self.format_for_tensors('  z',
+                                        properties.dipole_moment_hf_6_31gd.z)
 
     if properties.HasField('quadrupole_moment_hf_6_31gd'):
       result += 'Quadrupole moment (au): HF/6-31Gd\n'
       if self.annotate:
         result += '# From quadrupole_moment_hf_6_31gd\n'
-      for i, label in enumerate(smu_parser_lib.RANK2_ENCODING_ORDER):
-        result += segment(
-            ' ' + label,
-            properties.quadrupole_moment_hf_6_31gd.matrix_values[i])
+      result += self.get_rank2(properties.quadrupole_moment_hf_6_31gd)
 
     if properties.HasField('octopole_moment_hf_6_31gd'):
       result += 'Octopole moment (au):   HF/6-31Gd\n'
       if self.annotate:
         result += '# From octopole_moment_hf_6_31gd\n'
-      for i, label in enumerate(smu_parser_lib.RANK3_ENCODING_ORDER):
-        result += segment(label,
-                          properties.octopole_moment_hf_6_31gd.tensor_values[i])
+      result += self.get_rank3(properties.octopole_moment_hf_6_31gd)
 
     return result
 
-  def process_stage1_proto(self, conformer):
-    """Return the contents of conformer as a string in SMU7 stage1 file format.
+  def process_stage1_proto(self, molecule):
+    """Return the contents of molecule as a string in SMU7 stage1 file format.
 
     This is for the stage1 format, which just contains the results of geometry
     optimization
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
 
     Returns:
       A string representation of the protocol buffer in Uni Basel's file format.
     """
     contents = []
 
-    identifier = smu_utils_lib.get_composition(conformer.bond_topologies[0])
-    properties = conformer.properties
-    contents.append(self.get_stage1_header(conformer, identifier))
+    properties = molecule.properties
+    bt_idx = smu_utils_lib.get_starting_bond_topology_index(molecule)
+
+    contents.append(self.get_stage1_header(molecule))
     contents.append(
-        self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
-    contents.append(self.get_ids(conformer, identifier, 'stage1'))
+        self.get_adjacency_code_and_hydrogens(molecule.bond_topologies[bt_idx]))
+    contents.append(self.get_ids(molecule, 'stage1', bt_idx))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage1_timings(properties))
-    contents.append(self.get_gradient_norms(properties, spacer=' '))
+    contents.append(self.get_gradient_norms(molecule, spacer=' '))
     contents.append(
-        self.get_coordinates(conformer.bond_topologies[0], conformer))
+        self.get_coordinates(molecule.bond_topologies[bt_idx], molecule))
     contents.append(
         self.get_frequencies_and_intensities(properties, header=False))
 
     return ''.join(contents)
 
-  def process_stage2_proto(self, conformer):
-    """Return the contents of conformer as a string in SMU7 stage2 file format.
+  def process_stage2_proto(self, molecule):
+    """Return the contents of molecule as a string in SMU7 stage2 file format.
 
     This is for the stage2 format which is at the end of the pipeline.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
 
     Returns:
       A string representation of the protocol buffer in Uni Basel's file format.
     """
     contents = []
 
-    identifier = smu_utils_lib.get_composition(conformer.bond_topologies[0])
-    properties = conformer.properties
-    contents.append(self.get_stage2_header(conformer, identifier))
-    contents.append(self.get_database(conformer))
+    properties = molecule.properties
+    bt_idx = smu_utils_lib.get_starting_bond_topology_index(molecule)
+
+    contents.append(self.get_stage2_header(molecule))
+    contents.append(self.get_database(molecule))
     contents.append(self.get_error_codes(properties))
     contents.append(
-        self.get_adjacency_code_and_hydrogens(conformer.bond_topologies[0]))
-    contents.append(self.get_ids(conformer, identifier, 'stage2'))
+        self.get_adjacency_code_and_hydrogens(molecule.bond_topologies[bt_idx]))
+    contents.append(self.get_ids(molecule, 'stage2', bt_idx))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage2_timings(properties))
-    contents.append(self.get_bonds(conformer.bond_topologies[0], properties))
-    contents.append(self.get_gradient_norms(properties, spacer='         '))
     contents.append(
-        self.get_coordinates(conformer.bond_topologies[0], conformer))
-    contents.append(self.get_rotational_constants(properties))
+        self.get_bonds(molecule.bond_topologies[bt_idx], properties))
+    contents.append(self.get_gradient_norms(molecule, spacer='         '))
+    contents.append(
+        self.get_coordinates(molecule.bond_topologies[bt_idx], molecule))
+    contents.append(self.get_rotational_constants(molecule))
     contents.append(self.get_symmetry_used(properties))
     contents.append(
         self.get_frequencies_and_intensities(properties, header=True))
     contents.append(self.get_gaussian_sanity_check(properties))
     contents.append(self.get_normal_modes(properties))
-    contents.append(self.get_properties(properties))
+    contents.append(self.get_properties(molecule))
     contents.append(self.get_diagnostics(properties))
     contents.append(self.get_atomic_block(properties))
     contents.append(self.get_homo_lumo(properties))
     contents.append(self.get_excitation_energies_and_oscillations(properties))
     contents.append(
-        self.get_nmr_isotropic_shieldings(conformer.bond_topologies[0],
+        self.get_nmr_isotropic_shieldings(molecule.bond_topologies[bt_idx],
                                           properties))
     contents.append(
-        self.get_partial_charges(conformer.bond_topologies[0], properties))
+        self.get_partial_charges(molecule.bond_topologies[bt_idx], properties))
     contents.append(self.get_polarizability(properties))
     contents.append(self.get_multipole_moments(properties))
 
     return ''.join(contents)
 
 
-class AtomicInputWriter:
-  """From conformer, produces the input file for the (fortran) atomic2 code."""
+class Atomic2InputWriter:
+  """From molecule, produces the input file for the (fortran) atomic2 code."""
 
   def __init__(self):
     pass
 
-  def get_filename_for_atomic_input(self, conformer):
+  def get_filename_for_atomic2_input(self, molecule, bond_topology_idx):
     """Returns the expected filename for an atomic input."""
-    return '{}.{:06d}.{:03d}.inp'.format(
-        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
-        conformer.conformer_id // 1000, conformer.conformer_id % 1000)
+    if bond_topology_idx:
+      return '{}.{:06d}.{:03d}.{:02d}.inp'.format(
+          smu_utils_lib.get_composition(
+              molecule.bond_topologies[bond_topology_idx]),
+          molecule.molecule_id // 1000, molecule.molecule_id % 1000,
+          bond_topology_idx)
+    else:
+      return '{}.{:06d}.{:03d}.inp'.format(
+          smu_utils_lib.get_composition(
+              molecule.bond_topologies[bond_topology_idx]),
+          molecule.molecule_id // 1000, molecule.molecule_id % 1000)
 
-  def get_mol_block(self, conformer):
+  def get_mol_block(self, molecule, bond_topology_idx):
     """Returns the MOL file block with atoms and bonds.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
+      bond_topology_idx: Bond topology index.
 
     Returns:
       list of strings
@@ -974,10 +1071,11 @@ class AtomicInputWriter:
     contents = []
     contents.append('\n')
     contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
-        len(conformer.bond_topologies[0].atoms),
-        len(conformer.bond_topologies[0].bonds)))
-    for atom_type, coords in zip(conformer.bond_topologies[0].atoms,
-                                 conformer.optimized_geometry.atom_positions):
+        len(molecule.bond_topologies[bond_topology_idx].atoms),
+        len(molecule.bond_topologies[bond_topology_idx].bonds)))
+    for atom_type, coords in zip(
+        molecule.bond_topologies[bond_topology_idx].atoms,
+        molecule.optimized_geometry.atom_positions):
       contents.append(
           '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
           .format(
@@ -985,18 +1083,18 @@ class AtomicInputWriter:
               smu_utils_lib.bohr_to_angstroms(coords.y),
               smu_utils_lib.bohr_to_angstroms(coords.z),
               smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
-    for bond in conformer.bond_topologies[0].bonds:
+    for bond in molecule.bond_topologies[bond_topology_idx].bonds:
       contents.append('{:3d}{:3d}{:3d}  0\n'.format(bond.atom_a + 1,
                                                     bond.atom_b + 1,
                                                     bond.bond_type))
 
     return contents
 
-  def get_energies(self, conformer):
+  def get_energies(self, molecule):
     """Returns the $energies block.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
 
     Returns:
       list of strings
@@ -1007,7 +1105,7 @@ class AtomicInputWriter:
                     'CCSD         CCSD(T)        T1 diag\n')
 
     def format_field(field_name):
-      return '{:15.7f}'.format(getattr(conformer.properties, field_name).value)
+      return '{:15.7f}'.format(getattr(molecule.properties, field_name).value)
 
     contents.append('{:7s}'.format('3') +
                     format_field('single_point_energy_hf_3') +
@@ -1039,15 +1137,15 @@ class AtomicInputWriter:
 
     return contents
 
-  def get_frequencies(self, conformer):
+  def get_frequencies(self, molecule):
     """Returns the $frequencies block.
 
     Note that the only non-zero frequencies are shown. Generally, each
-    conformer will have 6 zero frequencies for the euclidean degrees of freedom
+    molecule will have 6 zero frequencies for the euclidean degrees of freedom
     but some will only have 5. Any other number is considered an error.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
 
     Returns:
       list of strings
@@ -1058,7 +1156,7 @@ class AtomicInputWriter:
     contents = []
 
     trimmed_frequencies = [
-        v for v in conformer.properties.harmonic_frequencies.value if v != 0.0
+        v for v in molecule.properties.harmonic_frequencies.value if v != 0.0
     ]
 
     contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
@@ -1073,17 +1171,29 @@ class AtomicInputWriter:
       contents.append(line + '\n')
     return contents
 
-  def process(self, conformer):
-    """Creates the atomic input file for conformer."""
-    contents = []
-    contents.append(conformer.bond_topologies[0].smiles + '\n')
-    contents.append('{}.{:06d}.{:03d}\n'.format(
-        smu_utils_lib.get_composition(conformer.bond_topologies[0]),
-        conformer.conformer_id // 1000, conformer.conformer_id % 1000))
+  def process(self, molecule, bond_topology_idx):
+    """Creates the atomic input file for molecule."""
+    if (molecule.properties.errors.status < 0 or
+        molecule.properties.errors.status > 3 or
+        # While we should check all the fields, this is conveinient shortcut.
+        not molecule.properties.HasField('single_point_energy_hf_3') or
+        not molecule.properties.HasField('single_point_energy_mp2_3')):
+      raise ValueError(
+          f'Molecule {molecule.molecule_id} is lacking required info '
+          'for generating atomic2 input. Maybe you need to query the complete DB?'
+      )
 
-    contents.extend(self.get_mol_block(conformer))
-    contents.extend(self.get_energies(conformer))
-    contents.extend(self.get_frequencies(conformer))
+    contents = []
+    contents.append('SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
+        molecule.molecule_id,
+        molecule.bond_topologies[bond_topology_idx].smiles,
+        molecule.bond_topologies[bond_topology_idx].bond_topology_id,
+        bond_topology_idx + 1, len(molecule.bond_topologies)))
+    contents.append(smu_utils_lib.get_original_label(molecule) + '\n')
+
+    contents.extend(self.get_mol_block(molecule, bond_topology_idx))
+    contents.extend(self.get_energies(molecule))
+    contents.extend(self.get_frequencies(molecule))
     contents.append('$end\n')
 
     return ''.join(contents)
@@ -1112,6 +1222,7 @@ def check_dat_formats_match(original, generated):
     # The original file has several coordinates stored as -0.0, which creates
     # mismatches when compared with the corresponding 0.0 in generated files.
     lines = [NEGATIVE_ZERO_RE.sub(r' \1', s).rstrip() for s in lines]
+    # This code removes any blank lines at the very end.
     cnt = 0
     while not lines[-(cnt + 1)]:
       cnt += 1

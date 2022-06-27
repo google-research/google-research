@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ import collections
 import re
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from schema_guided_dst.baseline import data_utils
 from schema_guided_dst.baseline.bert import modeling
@@ -115,7 +116,7 @@ def model_fn_builder(bert_config, init_checkpoint, use_tpu,
         token_type_ids=input_type_ids,
         use_one_hot_embeddings=use_one_hot_embeddings)
 
-    if mode != tf.estimator.ModeKeys.PREDICT:
+    if mode != tf_estimator.ModeKeys.PREDICT:
       raise ValueError("Only PREDICT modes are supported: %s" % (mode))
 
     tvars = tf.trainable_variables()
@@ -143,7 +144,7 @@ def model_fn_builder(bert_config, init_checkpoint, use_tpu,
     # Use the embedding obtained from the final layer.
     predictions["final_layer"] = all_layers[-1]
 
-    output_spec = tf.contrib.tpu.TPUEstimatorSpec(
+    output_spec = tf_estimator.tpu.TPUEstimatorSpec(
         mode=mode, predictions=predictions, scaffold_fn=scaffold_fn)
     return output_spec
 

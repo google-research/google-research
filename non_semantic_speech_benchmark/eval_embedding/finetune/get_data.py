@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Get data."""
 
 import functools
 import tensorflow as tf
-from non_semantic_speech_benchmark import file_utils
 
 
 def get_data(
@@ -55,7 +53,7 @@ def get_data(
   Returns:
     A tf.data.Dataset of (samples, onehot labels).
   """
-  assert file_utils.Glob(file_pattern), file_pattern
+  assert tf.io.gfile.glob(file_pattern), file_pattern
 
   # Audio samples are variable length.
   features = {

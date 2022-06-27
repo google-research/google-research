@@ -1,0 +1,41 @@
+// Copyright 2022 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package ambient_sensing;
+
+message SubstringIdentifier {
+  // The label should contain all of the following substrings.
+  repeated string include_substrings = 1;
+  // The label should contain none of the following substrings.
+  repeated string exclude_substrings = 2;
+}
+
+message LabelClassMapEntry {
+  // Used to identify the label with the target class.
+  optional SubstringIdentifier identifier = 1;
+  // The target class.
+  optional string target_class_string = 2;
+}
+
+// Defines how a string label should be mapped.
+message StringLabelClassMap {
+  // Unique name for this mapping.
+  optional string name = 1;
+  // Mapping entry for each possible target class.
+  repeated LabelClassMapEntry entry = 2;
+  // Classes that are seen as implicit and will be omitted from the mappings.
+  repeated string implicit_target_classes = 3;
+}

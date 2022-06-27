@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utilities for loading data."""
 
 import enum
@@ -26,6 +25,7 @@ from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, TypeVar
 from absl import logging
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 
 from gfsa import jax_util
@@ -304,7 +304,7 @@ def batch_and_pad_to_prototype(
       element = np.asarray(element)
       dest_slice = (
           np.unravel_index(i, batch_dim_sizes) +
-          tuple(jax.ops.index[:n] for n in element.shape))
+          tuple(jnp.s_[:n] for n in element.shape))
       result[dest_slice] = element
     return result
 

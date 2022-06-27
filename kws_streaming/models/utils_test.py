@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -216,6 +216,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
       'gru',
       'lstm',
       'svdf',
+      'bc_resnet'
   )
   def test_external_streaming_shapes(self, model_name):
     model = utils.get_model_with_default_params(

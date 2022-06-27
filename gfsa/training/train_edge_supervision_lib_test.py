@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.training.train_edge_supervision_lib."""
 
 from absl.testing import absltest
@@ -91,7 +90,7 @@ class TrainEdgeSupervisionLibTest(absltest.TestCase):
                                       [0, 3], [0, 0], [0, 0]]),
             values=jnp.array([1, 1, 1, 1, 1, 1, 0, 0])))
 
-    @flax.nn.module
+    @flax.deprecated.nn.module
     def mock_model_def(example):
       del example
       side_outputs.SideOutput(
@@ -109,7 +108,7 @@ class TrainEdgeSupervisionLibTest(absltest.TestCase):
           ]))
 
     _, params = mock_model_def.init(jax.random.PRNGKey(0), example)
-    mock_model = flax.nn.Model(mock_model_def, params)
+    mock_model = flax.deprecated.nn.Model(mock_model_def, params)
 
     _, _, _, loss, metrics = train_edge_supervision_lib.sample_loss_fn(
         mock_model, (example, jax.random.PRNGKey(0)),

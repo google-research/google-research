@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "absl/types/optional.h"
 
 namespace research_scann {
+namespace tcmalloc {
 
 class MallocExtension {
  public:
@@ -34,6 +35,7 @@ class MallocExtension {
   static size_t GetAllocatedSize(const void* p) { return 0; }
 };
 
+}  // namespace tcmalloc
 }  // namespace research_scann
 
 #endif

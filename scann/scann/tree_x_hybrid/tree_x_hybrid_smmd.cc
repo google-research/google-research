@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <unordered_set>
+#include <utility>
 
 #include "absl/base/casts.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_map.h"
 #include "absl/memory/memory.h"
-#include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -43,6 +43,7 @@
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 
@@ -899,6 +900,27 @@ TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
       mult = 1 / mult;
   }
   return opts;
+}
+
+template <typename T>
+StatusOr<shared_ptr<const DenseDataset<float>>>
+TreeXHybridSMMD<T>::SharedFloatDatasetIfNeeded() {
+  vector<const DenseDataset<float>*> datasets(datapoints_by_token_.size());
+  for (int i = 0; i < datasets.size(); i++) {
+    auto ptr_or = leaf_searchers_[i]->SharedFloatDatasetIfNeeded();
+    SCANN_RETURN_IF_ERROR(ptr_or.status());
+    datasets[i] = ptr_or->get();
+  }
+  TF_ASSIGN_OR_RETURN(const int dataset_size,
+                      UntypedSingleMachineSearcherBase::DatasetSize());
+  const auto get_dataset = [&](int leaf_idx) { return datasets[leaf_idx]; };
+
+  TF_ASSIGN_OR_RETURN(
+      vector<float> storage,
+      CombineLeafDatasets<float>(dataset_size, "float32", datapoints_by_token_,
+                                 get_dataset));
+  if (storage.empty()) return shared_ptr<const DenseDataset<float>>(nullptr);
+  return std::make_shared<const DenseDataset<float>>(storage, dataset_size);
 }
 
 template <typename T>

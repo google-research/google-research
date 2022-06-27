@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ class CompressionOptions(enum.IntEnum):
   KMEANS_AND_PRUNING_MATRIX_COMPRESSION = 8
   INPUTOUTPUT_COMPRESSION = 9
   BLOCK_COMPRESSION = 10
+  MIXED_BLOCK_COMPRESSION = 12
 
 
 class UpdateOptions(enum.IntEnum):

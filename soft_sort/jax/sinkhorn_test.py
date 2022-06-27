@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for the sinkhorn module."""
 
 from __future__ import absolute_import
@@ -22,12 +21,11 @@ from __future__ import print_function
 
 from absl.testing import absltest
 import jax.numpy as np
-import jax.test_util
 
 from soft_sort.jax import sinkhorn
 
 
-class SinkhornTestCase(jax.test_util.JaxTestCase):
+class SinkhornTestCase(absltest.TestCase):
   """Test case for Sinkhorn1D."""
 
   def setUp(self):

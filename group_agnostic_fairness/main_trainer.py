@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Main model trainer from which a number of robust-learning models can be trained.
 
 Currently we support the following robust-learning approaches:
@@ -34,6 +33,7 @@ from absl import app
 from absl import flags
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from group_agnostic_fairness import adversarial_reweighting_model
 from group_agnostic_fairness import baseline_model
@@ -149,7 +149,7 @@ def get_estimator(model_dir,
   kwargs = {
       "feature_columns": feature_columns,
       "label_column_name": label_column_name,
-      "config": tf.estimator.RunConfig(
+      "config": tf_estimator.RunConfig(
           model_dir=model_dir,
           save_checkpoints_steps=FLAGS.min_eval_frequency),
       "model_dir": model_dir,
@@ -285,9 +285,9 @@ def run_model():
         FLAGS.dataset))
 
   train_input_fn = load_dataset.get_input_fn(
-      mode=tf.estimator.ModeKeys.TRAIN, batch_size=FLAGS.batch_size)
+      mode=tf_estimator.ModeKeys.TRAIN, batch_size=FLAGS.batch_size)
   test_input_fn = load_dataset.get_input_fn(
-      mode=tf.estimator.ModeKeys.EVAL, batch_size=FLAGS.batch_size)
+      mode=tf_estimator.ModeKeys.EVAL, batch_size=FLAGS.batch_size)
 
   feature_columns, _, protected_groups, label_column_name = (
       load_dataset.get_feature_columns(
@@ -316,16 +316,16 @@ def run_model():
       subgroups=subgroups,
       print_dir=print_dir)
   eval_metrics_fn = fairness_metrics.create_fairness_metrics_fn()
-  estimator = tf.estimator.add_metrics(estimator, eval_metrics_fn)
+  estimator = tf_estimator.add_metrics(estimator, eval_metrics_fn)
 
   # Creates training and evaluation specifications
   train_steps = int(FLAGS.total_train_steps / FLAGS.batch_size)
-  train_spec = tf.estimator.TrainSpec(
+  train_spec = tf_estimator.TrainSpec(
       input_fn=train_input_fn, max_steps=train_steps)
-  eval_spec = tf.estimator.EvalSpec(
+  eval_spec = tf_estimator.EvalSpec(
       input_fn=test_input_fn, steps=FLAGS.test_steps)
 
-  tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+  tf_estimator.train_and_evaluate(estimator, train_spec, eval_spec)
   tf.logging.info("Training completed.")
 
   eval_results = estimator.evaluate(

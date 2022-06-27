@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,14 @@
 
 from tensor2tensor import problems
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 def get_input(
     batch_size=50,
     augmented=False,
     data='cifar10',
-    mode=tf.estimator.ModeKeys.TRAIN,
+    mode=tf_estimator.ModeKeys.TRAIN,
     repeat_num=None,
     data_format='HWC'):
   """Returns a input function for the estimator framework.
@@ -45,7 +46,7 @@ def get_input(
   class_num = 10 if data == 'cifar10' else 100
   data = 'image_' + data
 
-  if mode != tf.estimator.ModeKeys.TRAIN:
+  if mode != tf_estimator.ModeKeys.TRAIN:
     repeat_num = 1
 
   problem_name = data

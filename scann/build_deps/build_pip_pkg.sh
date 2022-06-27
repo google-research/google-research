@@ -1,4 +1,4 @@
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2020 Google LLC
+# Copyright 2022 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,6 +44,12 @@ echo "from scann.scann_ops.py import scann_ops" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py import scann_ops_pybind" >> "${TMPDIR}"/scann/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/py/__init__.py
+touch "${TMPDIR}"/scann/data_format/__init__.py
+touch "${TMPDIR}"/scann/partitioning/__init__.py
+touch "${TMPDIR}"/scann/proto/__init__.py
+touch "${TMPDIR}"/scann/coscann/__init__.py
+touch "${TMPDIR}"/scann/trees/__init__.py
+touch "${TMPDIR}"/scann/trees/kmeans_tree/__init__.py
 
 cwd="$(pwd)"
 cd "$TMPDIR"

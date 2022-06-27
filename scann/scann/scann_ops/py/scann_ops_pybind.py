@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 import os
 import sys
 
-import numpy as np
-
 # needed because of C++ dependency on TF headers
 import tensorflow as _tf
 sys.path.append(
@@ -29,6 +27,7 @@ sys.path.append(
         "cc/python"))
 import scann_pybind
 from scann.scann_ops.py import scann_builder
+from scann.scann_ops.py import scann_ops_pybind_backcompat
 
 
 class ScannSearcher(object):
@@ -87,20 +86,20 @@ def create_searcher(db, scann_config, training_threads=0):
       scann_pybind.ScannNumpy(db, scann_config, training_threads))
 
 
-def load_searcher(artifacts_dir):
+def load_searcher(artifacts_dir, assets_backcompat_shim=True):
   """Loads searcher assets from artifacts_dir and returns a ScaNN searcher."""
+  is_dir = os.path.isdir(artifacts_dir)
+  if not is_dir:
+    raise ValueError(f"{artifacts_dir} is not a directory.")
 
-  def load_if_exists(filename):
-    path = os.path.join(artifacts_dir, filename)
-    return np.load(path) if os.path.isfile(path) else None
-
-  db = load_if_exists("dataset.npy")
-  tokenization = load_if_exists("datapoint_to_token.npy")
-  hashed_db = load_if_exists("hashed_dataset.npy")
-  int8_db = load_if_exists("int8_dataset.npy")
-  int8_multipliers = load_if_exists("int8_multipliers.npy")
-  db_norms = load_if_exists("dp_norms.npy")
-
-  return ScannSearcher(
-      scann_pybind.ScannNumpy(db, tokenization, hashed_db, int8_db,
-                              int8_multipliers, db_norms, artifacts_dir))
+  assets_pbtxt = os.path.join(artifacts_dir, "scann_assets.pbtxt")
+  if not scann_ops_pybind_backcompat.path_exists(assets_pbtxt):
+    if not assets_backcompat_shim:
+      raise ValueError("No scann_assets.pbtxt found.")
+    print("No scann_assets.pbtxt found. ScaNN assumes this searcher was from an"
+          " earlier release, and is calling `populate_and_save_assets_proto`"
+          "from `scann_ops_pybind_backcompat` to create a scann_assets.pbtxt. "
+          "Note this compatibility shim may be removed in the future.")
+    scann_ops_pybind_backcompat.populate_and_save_assets_proto(artifacts_dir)
+  with open(assets_pbtxt, "r") as f:
+    return ScannSearcher(scann_pybind.ScannNumpy(artifacts_dir, f.read()))

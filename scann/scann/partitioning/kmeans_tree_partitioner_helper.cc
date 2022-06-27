@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <string>
+#include <utility>
 
 #include "scann/base/single_machine_base.h"
 #include "scann/brute_force/brute_force.h"

@@ -1,0 +1,3 @@
+numpy>=1.16.0
+tensorflow>=2.4.0
+tensorflow_constrained_optimization

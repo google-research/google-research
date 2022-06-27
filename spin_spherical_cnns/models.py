@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ perfect reproduction is not yet achieved.
 """
 import functools
 import operator
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Type, Union
 from flax import linen as nn
 import jax.numpy as jnp
 import numpy as np
@@ -38,7 +38,7 @@ Array = Union[np.ndarray, jnp.ndarray]
 
 # All classifiers used for spherical MNIST in the original SWSCNN paper [1] have
 # the same resolution per layer.
-_SMALL_CLASSIFIER_RESOLUTIONS = [64, 64, 64, 32, 32, 16, 16]
+_SMALL_CLASSIFIER_RESOLUTIONS = (64, 64, 64, 32, 32, 16, 16)
 
 
 class SpinSphericalBlock(nn.Module):
@@ -51,6 +51,9 @@ class SpinSphericalBlock(nn.Module):
     downsampling_factor: How much to downsample before applying the
       convolution. Will not downsample when downsampling_factor==1.
     axis_name: Identifier for the mapped axis in parallel training.
+    after_conv_module: Module to apply after convolution. Usually a
+      non-linearity or batch norm + non-linearity. Must follow the
+      interface of `layers.SpinSphericalBatchNormMagnitudeNonlin`.
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of filter parameters in the convolutional layer.
   """
@@ -60,16 +63,23 @@ class SpinSphericalBlock(nn.Module):
   downsampling_factor: int
   axis_name: Any
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
+  after_conv_module: Type[
+      nn.Module] = layers.SpinSphericalBatchNormMagnitudeNonlin
   num_filter_params: Optional[int] = None
 
   @nn.compact
-  def __call__(self, inputs, train):
+  def __call__(self,
+               inputs,
+               train,
+               weights = None):
     """Apply block to `inputs`.
 
     Args:
       inputs: (batch_size, resolution, resolution, n_spins_in, n_channels_in)
         array of spin-weighted spherical functions with equiangular sampling.
       train: whether to run in training or inference mode.
+      weights: Weights per batch element used in batchnorm mean/std
+        computation.
     Returns:
       A (batch_size, resolution // downsampling_factor, resolution //
         downsampling_factor, n_spins_out, num_channels) complex64 array.
@@ -87,11 +97,11 @@ class SpinSphericalBlock(nn.Module):
         transformer=self.transformer,
         name='spherical_conv')(feature_maps)
 
-    return layers.SpinSphericalBatchNormalizationNonlinearity(
+    return self.after_conv_module(
         spins=self.spins_out,
         use_running_stats=not train,
         axis_name=self.axis_name,
-        name='batch_norm_nonlin')(feature_maps)
+        name='batch_norm_nonlin')(feature_maps, weights=weights)
 
 
 class SpinSphericalClassifier(nn.Module):
@@ -264,9 +274,9 @@ class CNNClassifier(nn.Module):
 def tiny_classifier(num_classes, axis_name=None, input_transformer=None):
   """Wrapper around SpinSphericalClassifier; builds tiny model for testing."""
   return SpinSphericalClassifier(num_classes,
-                                 resolutions=[8, 4],
-                                 spins=[[0], [0, 1]],
-                                 widths=[1, 3],
+                                 resolutions=(8, 4),
+                                 spins=((0,), (0, 1)),
+                                 widths=(1, 3),
                                  axis_name=axis_name,
                                  input_transformer=input_transformer)
 
@@ -277,9 +287,9 @@ def spin_classifier_6_layers(num_classes, axis_name):
   """Returns the SpinSphericalClassifier used for spherical MNIST."""
   # Input layer has only spin zero. All others have spins zero and one.
   num_layers = len(_SMALL_CLASSIFIER_RESOLUTIONS)
-  spins = [[0]] + [[0, 1]] * (num_layers - 1)
-  widths = [1, 16, 16, 20, 24, 28, 32]
-  num_filter_params_per_layer = [1, 6, 6, 4, 4, 3, 3]
+  spins = tuple([(0,)] + [(0, 1)] * (num_layers - 1))
+  widths = (1, 16, 16, 20, 24, 28, 32)
+  num_filter_params_per_layer = (1, 6, 6, 4, 4, 3, 3)
   return SpinSphericalClassifier(num_classes,
                                  resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                                  spins=spins,
@@ -291,11 +301,11 @@ def spin_classifier_6_layers(num_classes, axis_name):
 def spherical_classifier_6_layers(num_classes, axis_name):
   """Returns the Spherical CNN baseline used for spherical MNIST."""
   num_layers = len(_SMALL_CLASSIFIER_RESOLUTIONS)
-  widths = [1, 16, 16, 32, 32, 58, 58]
-  num_filter_params_per_layer = [8] * num_layers
+  widths = (1, 16, 16, 32, 32, 58, 58)
+  num_filter_params_per_layer = tuple([8] * num_layers)
   # The difference between spherical and spin-weighted models is that spins are
   # zero in every layer for the spherical.
-  spins = [[0]] * num_layers
+  spins = tuple([(0,)] * num_layers)
   return SpinSphericalClassifier(num_classes,
                                  resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                                  spins=spins,
@@ -306,7 +316,7 @@ def spherical_classifier_6_layers(num_classes, axis_name):
 
 def cnn_classifier_6_layers(num_classes, axis_name):
   """Returns the conventional CNN baseline used for spherical MNIST."""
-  widths = [1, 16, 16, 32, 32, 54, 54]
+  widths = (1, 16, 16, 32, 32, 54, 54)
   return CNNClassifier(num_classes,
                        resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                        widths=widths,

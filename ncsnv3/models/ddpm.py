@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ This code is the FLAX equivalent of:
 https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/models/unet.py
 """
 
-import flax.nn as nn
+import flax.deprecated.nn as nn
 import jax.numpy as jnp
 
 from . import utils, layers, normalization

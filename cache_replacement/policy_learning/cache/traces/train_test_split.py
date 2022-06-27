@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 #!/usr/bin/python3
-# Lint as: python3
 """Filters an access trace.
 
 Given a CSV file containing (pc, address) in hex, filters the file to only

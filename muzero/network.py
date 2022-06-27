@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 # pylint: disable=g-complex-comprehension
 """Encoder+LSTM network for use with MuZero."""
 
@@ -76,16 +75,18 @@ class AbstractEncoderandLSTM(tf.Module):
     elif rnn_cell_type in ('lstm', 'lstm_norm'):
       self.hidden_state_size = sum(rnn_sizes) * 2
 
-    self._to_hidden = tf.keras.Sequential([
-        # flattening the representation
-        tf.keras.layers.Flatten(),
-        # mapping it to the size and domain of the hidden state
-        tf.keras.layers.Dense(
-            self.hidden_state_size,
-            activation=(recurrent_activation
-                        if nonlinear_to_hidden else None),
-            name='final')
-    ], name='to_hidden')
+    self._to_hidden = tf.keras.Sequential(
+        [
+            # flattening the representation
+            tf.keras.layers.Flatten(),
+            # mapping it to the size and domain of the hidden state
+            tf.keras.layers.Dense(
+                self.hidden_state_size,
+                activation=(recurrent_activation
+                            if nonlinear_to_hidden else None),
+                name='final')
+        ],
+        name='to_hidden')
 
     self._embed_actions = embed_actions
     if self._embed_actions:
@@ -121,12 +122,14 @@ class AbstractEncoderandLSTM(tf.Module):
     # Note that value and reward are logits, because their values are binned.
     # See utils.ValueEncoder for details.
     self._value_head = tf.keras.Sequential(
-        self._head_hidden_layers() +
-        [tf.keras.layers.Dense(self.value_encoder.num_steps, name='output')],
+        self._head_hidden_layers() + [
+            tf.keras.layers.Dense(self.value_encoder.num_steps, name='output'),
+        ],
         name='value_logits')
     self._reward_head = tf.keras.Sequential(
-        self._head_hidden_layers() +
-        [tf.keras.layers.Dense(self.reward_encoder.num_steps, name='output')],
+        self._head_hidden_layers() + [
+            tf.keras.layers.Dense(self.reward_encoder.num_steps, name='output'),
+        ],
         name='reward_logits')
 
   # Each head can have its own hidden layers.
@@ -206,7 +209,7 @@ class AbstractEncoderandLSTM(tf.Module):
     hidden_state = self._to_hidden(encoded_observation, training=training)
 
     value_logits = self._value_head(hidden_state, training=training)
-    value = self.value_encoder.decode(value_logits)
+    value = self.value_encoder.decode(tf.nn.softmax(value_logits))
 
     # Rewards are only calculated in recurrent_inference.
     reward = tf.zeros_like(value)
@@ -250,10 +253,10 @@ class AbstractEncoderandLSTM(tf.Module):
     next_hidden_state = self._rnn_to_flat(next_rnn_state)
 
     value_logits = self._value_head(next_hidden_state, training=training)
-    value = self.value_encoder.decode(value_logits)
+    value = self.value_encoder.decode(tf.nn.softmax(value_logits))
 
     reward_logits = self._reward_head(rnn_output, training=training)
-    reward = self.reward_encoder.decode(reward_logits)
+    reward = self.reward_encoder.decode(tf.nn.softmax(reward_logits))
 
     policy_logits = self._policy_head(next_hidden_state, training=training)
 

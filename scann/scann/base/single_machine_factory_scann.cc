@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,9 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include <type_traits>
+#include <utility>
 
 #include "absl/base/casts.h"
 #include "absl/base/optimization.h"
@@ -429,9 +431,13 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
                             partitioner->TokenizeDatabase(
                                 *dataset, opts->parallelization_pool.get()));
       }
-      return PretrainedTreeSQFactoryFromAssets(
-          config, params, datapoints_by_token, std::move(partitioner),
-          fp_assets);
+      TF_ASSIGN_OR_RETURN(auto result, PretrainedTreeSQFactoryFromAssets(
+                                           config, params, datapoints_by_token,
+                                           std::move(partitioner), fp_assets));
+
+      result->ReleaseDatasetAndDocids();
+      SCANN_RETURN_IF_ERROR(result->set_docids(dense->docids()));
+      return result;
     }
   }
 
@@ -528,7 +534,6 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
       config.hash().has_parameters_filename()) {
     return InvalidArgumentError("Serialized hashers are not supported.");
   }
-
   if (result->hashed_dataset()) {
     if (opts->hashed_dataset) opts->hashed_dataset.reset();
     result->ReleaseHashedDataset();

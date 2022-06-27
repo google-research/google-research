@@ -1,4 +1,4 @@
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,5 +63,6 @@ python main_varlen.py \
     -learn_stop $learn_stop \
     -num_epochs 1001 \
     -epoch_save 50 \
+    -data_dir $gcloud/data/synthetic \
     -gpu 0 \
     $@

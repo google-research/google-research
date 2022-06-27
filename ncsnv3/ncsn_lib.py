@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,9 +32,9 @@ from . import utils
 from .models import utils as mutils
 from absl import logging
 import flax
+import flax.deprecated.nn as nn
 import flax.jax_utils as flax_utils
 from flax.metrics import tensorboard
-import flax.nn as nn
 from flax.training import checkpoints
 import jax
 import jax.numpy as jnp

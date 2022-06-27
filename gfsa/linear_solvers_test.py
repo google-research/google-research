@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.linear_solvers."""
 
 import functools
 from absl.testing import absltest
 import jax
-from jax import test_util as jtu
 import jax.numpy as jnp
 import numpy as np
 from gfsa import linear_solvers
@@ -41,23 +39,23 @@ class LinearSolversTest(absltest.TestCase):
           lambda x: matrix @ x, b, iterations=100)
 
     # Correct output
-    jtu.check_close(
+    np.testing.assert_allclose(
         iter_solve(matrix, b), jax.scipy.linalg.solve(matrix, b), rtol=1e-4)
 
     # Correct jvp
     dmatrix = jax.random.normal(jax.random.PRNGKey(2), (50, 50))
     db = jax.random.normal(jax.random.PRNGKey(3), (50,))
-    jtu.check_close(
+    np.testing.assert_allclose(
         jax.jvp(iter_solve, (matrix, b), (dmatrix, db)),
         jax.jvp(jax.scipy.linalg.solve, (matrix, b), (dmatrix, db)),
-        rtol=1e-4)
+        atol=1E-5, rtol=1e-4)
 
     # Correct vjp
     co_x = jax.random.normal(jax.random.PRNGKey(3), (50,))
-    jtu.check_close(
+    jax.tree_util.tree_map(
+        functools.partial(np.testing.assert_allclose, atol=1E-5, rtol=1E-4),
         jax.vjp(iter_solve, matrix, b)[1](co_x),
-        jax.vjp(jax.scipy.linalg.solve, matrix, b)[1](co_x),
-        rtol=1e-4)
+        jax.vjp(jax.scipy.linalg.solve, matrix, b)[1](co_x))
 
   def test_richardson_solve_structured(self):
     """Check that richardson_solve works on pytrees."""
@@ -97,7 +95,8 @@ class LinearSolversTest(absltest.TestCase):
         "foo": jax.random.normal(jax.random.PRNGKey(4), (50,)),
         "bar": jax.random.normal(jax.random.PRNGKey(5), (50,)),
     }
-    jtu.check_close(
+    jax.tree_util.tree_map(
+        functools.partial(np.testing.assert_allclose, atol=1E-5, rtol=1E-5),
         structured_iter_solve(m1, m2, m3, b1, b2),
         structured_direct_solve(m1, m2, m3, b1, b2))
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Dataset utils for the Learned Interpreters framework."""
 
 import collections
+import dataclasses
 
 from typing import Any, Optional
 
 from absl import logging
-import dataclasses
 import jax
 import jax.numpy as jnp
 import six
@@ -29,6 +28,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 import tree
 
+from ipagnn.datasets import datasets  # pylint: disable=unused-import
 
 
 @dataclasses.dataclass

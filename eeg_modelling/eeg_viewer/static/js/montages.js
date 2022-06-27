@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ const getChannelToIndexMap = googMemoize((indexToChannelMap) => {
   if (!indexToChannelMap) {
     return new Map();
   }
-  return new Map(indexToChannelMap.getEntryList().map(x => [x[1], x[0]]));
+  return new Map(Array.from(indexToChannelMap.entries(), x => [x[1], x[0]]));
 });
 
 

@@ -1,0 +1,35 @@
+# LLFF
+Config.data_dir = "/data/nerf_data/nerf_llff_data"
+Config.checkpoint_dir = "out/llff6_room"
+Config.dataset_loader = 'llff'
+Config.llff_scan = 'room'
+Config.white_background = False
+Config.factor = 8
+Config.render_factor = 8
+Config.near = 0
+Config.far = 1
+MipNerfModel.ray_shape = 'cylinder'
+MLP.density_noise = 1.
+
+Config.n_input_views = 6
+Config.max_steps = 139535
+
+Config.lr_init = 0.002
+Config.lr_final = 0.00002
+Config.lr_delay_steps = 512
+Config.lr_delay_mult = 0.01
+Config.grad_max_norm = 0.1
+Config.grad_max_val = 0.1
+
+Config.anneal_nearfar = True
+Config.anneal_nearfar_steps = 512
+Config.anneal_nearfar_perc = 0.0001
+Config.anneal_mid_perc = 1.0
+
+Config.depth_tvnorm_loss_mult = 0.1
+Config.depth_tvnorm_decay = True
+Config.depth_tvnorm_maxstep = 512
+Config.depth_tvnorm_loss_mult_start = 400.0
+Config.depth_tvnorm_loss_mult_end = 0.1
+
+Config.flow_loss_mult = 0.0

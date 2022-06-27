@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 
 #include <cstdint>
+#include <memory>
+#include <utility>
 
 #include "absl/memory/memory.h"
 #include "scann/base/restrict_allowlist.h"
@@ -128,7 +130,7 @@ ScalarQuantizedBruteForceSearcher::
                             quantized, inverse_multipliers));
   }
 
-  return absl::make_unique<ScalarQuantizedBruteForceSearcher>(
+  return std::make_unique<ScalarQuantizedBruteForceSearcher>(
       distance, std::move(squared_l2_norms), std::move(quantized),
       std::move(inverse_multipliers), default_num_neighbors, default_epsilon);
 }
@@ -164,7 +166,7 @@ ScalarQuantizedBruteForceSearcher::CreateWithFixedRange(
             quantization_results.inverse_multiplier_by_dimension));
   }
 
-  return absl::make_unique<ScalarQuantizedBruteForceSearcher>(
+  return std::make_unique<ScalarQuantizedBruteForceSearcher>(
       distance, std::move(squared_l2_norms),
       std::move(quantization_results.quantized_dataset),
       std::move(quantization_results.inverse_multiplier_by_dimension),
@@ -193,6 +195,12 @@ Status ScalarQuantizedBruteForceSearcher::FindNeighborsImpl(
   if (!query.IsDense()) {
     return InvalidArgumentError(
         "ScalarQuantizedBruteForceSearcher only works with dense data.");
+  }
+  if (query.dimensionality() != quantized_dataset_.dimensionality()) {
+    return FailedPreconditionError(absl::StrFormat(
+        "Query dimensionality (%d) does not match quantized database "
+        "dimensionality (%d)",
+        query.dimensionality(), quantized_dataset_.dimensionality()));
   }
   DatapointPtr<float> preprocessed;
   unique_ptr<float[]> preproc_buf;

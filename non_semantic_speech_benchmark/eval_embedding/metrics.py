@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Metrics for evaluation.
 
 1) Equal Error Rate (EER) metric.
@@ -24,8 +23,9 @@
 """
 
 import math
-from typing import Any, Iterable, Tuple, Optional, Text
+from typing import Any, Iterable, Tuple, Optional, Union
 
+from absl import logging
 import numpy as np
 import scipy.stats
 from sklearn import metrics as skmetrics
@@ -88,10 +88,41 @@ def calculate_det_curve(labels,
 
 def calculate_auc(labels,
                   predictions,
+                  binary_classification = True,
                   sample_weight = None,
-                  multi_class = None):
-  return skmetrics.roc_auc_score(
-      labels, predictions, sample_weight=sample_weight, multi_class=multi_class)
+                  multi_class = 'ovr'):
+  """Binary or multiclass AUC."""
+  if not isinstance(labels, np.ndarray):
+    labels = np.array(labels, np.float32)
+  if labels.ndim != 1:
+    raise ValueError(f'Labels must have shape 1: {labels.shape}')
+  if not isinstance(predictions, np.ndarray):
+    # For backwards compatibility.
+    assert binary_classification
+    class_zero_logits = np.array(predictions).reshape((-1, 1))
+    predictions = np.concatenate([class_zero_logits, 1 - class_zero_logits],
+                                 axis=0)
+  if predictions.ndim != 2:
+    raise ValueError(f'Predictions must have shape 2: {predictions.shape}')
+  if labels.shape[0] != predictions.shape[0]:
+    raise ValueError(
+        f'Num examples not the same: {labels.shape} vs {predictions.shape}')
+  np.testing.assert_almost_equal(np.sum(predictions, axis=1), 1.0, decimal=5)
+
+  logging.info('AUC: Labels shape: %s', labels.shape)
+  logging.info('AUC: Predictions shape: %s', predictions.shape)
+  if binary_classification:  # Binary case.
+    predictions = predictions[:, 1]  # Prob of class 1.
+    return skmetrics.roc_auc_score(
+        y_true=labels, y_score=predictions, sample_weight=sample_weight)
+  else:  # Multiclass case.
+    return skmetrics.roc_auc_score(
+        y_true=labels,
+        y_score=predictions,
+        average='macro',
+        sample_weight=sample_weight,
+        multi_class=multi_class,
+        labels=range(predictions.shape[1]))
 
 
 def dprime_from_auc(auc):

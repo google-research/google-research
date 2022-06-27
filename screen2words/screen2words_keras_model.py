@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,12 +26,12 @@ import tensorflow as tf
 from screen2words import screen2words_eval
 from screen2words import screen2words_experiment_config
 from screen2words import screen2words_keras_input as input_utils
+from tensorflow_models.official.legacy.transformer import model_params
+from tensorflow_models.official.legacy.transformer import model_utils
+from tensorflow_models.official.legacy.transformer import optimizer
+from tensorflow_models.official.legacy.transformer import transformer as nlp_transformer
 from tensorflow_models.official.nlp.modeling import layers
 from tensorflow_models.official.nlp.modeling import ops
-from tensorflow_models.official.nlp.transformer import model_params
-from tensorflow_models.official.nlp.transformer import model_utils
-from tensorflow_models.official.nlp.transformer import optimizer
-from tensorflow_models.official.nlp.transformer import transformer as nlp_transformer
 
 flags.DEFINE_string(
     'experiment', 'debug',

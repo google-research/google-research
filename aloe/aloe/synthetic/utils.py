@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from sympy.combinatorics.graycode import GrayCode
 import matplotlib.pyplot as plt
 from aloe.common.configs import cmd_args
 from aloe.common.synthetic.dataset import OnlineToyDataset
-from aloe.common.pytorch_util import logsumexp, hamming_mmd, MMD
+from aloe.common.pytorch_util import logsumexp, hamming_mmd, linear_mmd, MMD
 
 
 def compress(x):
@@ -162,7 +162,11 @@ def estimate_ll(score_func, samples, n_partition=None, rand_samples=None):
     return torch.mean(ll).item()
 
 
-def estimate_hamming(score_func, true_samples, rand_samples, gibbs_sampler):
+def estimate_hamming(score_func, true_samples, rand_samples, gibbs_sampler, mmd_func='linear'):
     with torch.no_grad():
         gibbs_samples = gibbs_sampler(score_func, 20, init_samples=rand_samples)
-        return hamming_mmd(true_samples, gibbs_samples)
+        if mmd_func == 'linear':
+            return linear_mmd(true_samples, gibbs_samples)
+        if mmd_func == 'hamming':
+            return hamming_mmd(true_samples, gibbs_samples)
+        raise ValueError('Unknown func %s' % mmd_func)

@@ -1,0 +1,105 @@
+// Copyright 2022 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package ambient_sensing;
+
+import "mediapipe/framework/calculator.proto";
+
+// Next id: 16.
+message FilterAnnotatedRecordingCollectionCalculatorOptions {
+  reserved 4, 8, 9;
+
+  extend mediapipe.CalculatorOptions {
+    optional FilterAnnotatedRecordingCollectionCalculatorOptions ext =
+        267421190;
+  }
+
+  // Each of the fields below specify a condition. All specified conditions are
+  // combined using logical AND operator. For example, if both
+  // at_least_one_annotation_with_substring and trace_length_less_or_equal are
+  // specified, then both conditions must evaluate to true for an incoming
+  // AnnotatedRecordingCollection message to be passed through the filter.
+  // If the field is not set, the corresponding condition is not evaluted and
+  // doesn't have an effect for whether or not a given message will pass through
+  // the filter.
+
+  // If an AnnotatedRecordingCollection has at least one annotation with at
+  // least one substring from this list, then
+  // at_least_one_annotation_with_substring condition is evaluated to true. In
+  // other words, for an AnnotatedRecordingCollection with annotation labels L1,
+  // L2, ..., Ln there should exist a pair <i, j> such that L[i] has substring
+  // at_least_one_annotation_with_substring[j]. If the same string is present in
+  // at_least_one_annotation_with_substring and no_annotations_with_substring,
+  // no incoming AnnotatedRecordingCollection messages will pass through the
+  // filter. Each element should only contain letters, digits and _. Other
+  // characters are not allowed.
+  repeated string at_least_one_annotation_with_substring = 1;
+
+  // If an AnnotatedRecordingCollection has at least one annotation that has any
+  // of the substrings from this list, then it doesn't pass through the filter.
+  // If the same string is present in at_least_one_annotation_with_substring and
+  // no_annotations_with_substring, no incoming AnnotatedRecordingCollection
+  // messages will pass through the filter. Each element should only contain
+  // letters, digits and _. Other characters are not allowed.
+  repeated string no_annotations_with_substring = 3;
+
+  // Trace length is the time between the earliest sample seen in any sequence
+  // and the latest sample seen in any sequence.
+  // trace_length_less_or_equal condition is evaluated to true if trace length
+  // is less than or equal to a set value, or if the trace is empty.
+  optional int64 trace_length_less_or_equal_millis = 2;
+  // trace_length_greater_or_equal condition is evaluated to true if trace
+  // length is greater than or equal to a set value.
+  optional int64 trace_length_greater_or_equal_millis = 13;
+
+  // Traces that have user ID corresponding to any of these are filtered out.
+  repeated string exclude_user_id = 15;
+
+  // The user IDs in exclude_user_id are emails (which are hashable).
+  optional bool user_id_is_email = 14;
+
+  // Traces that have session_activity corresponding to any of these activities
+  // are filtered out.
+  // If exclude_session_activity is used, include_session_activity must
+  // not be used.
+  repeated string exclude_session_activity = 5;
+
+  // Keeps traces that have session_activity corresponding to any of these
+  // activities and filters out all others.
+  // If include_session_activity is empty, it will not filter out anything.
+  // If include_session_activity is used, exclude_session_activity must
+  // not be used.
+  repeated string include_session_activity = 6;
+
+  // Keeps traces that have a non-empty sequence for each of the mentioned
+  // subtypes.
+  repeated string filter_if_sensor_not_present_or_empty = 7;
+
+  // Specifies the mapping to be used for filtering.
+  optional string filter_label_mapping_name = 10;
+  // Filters out traces for which the mapping specified by
+  // filter_label_mapping_name maps an AnnotatedRecordingCollection's label
+  // to one of the names in exclude_class_name. If exclude_class_name is used,
+  // include_class_name must not be used.
+  repeated string exclude_class_name = 11;
+  // Filters out traces for which  the mapping specified by
+  // filter_label_mapping_name does not map
+  // an AnnotatedRecordingCollection's label to one of the names in
+  // include_class_name. If include_class_name is empty, it will not filter out
+  // anything. If include_class_name is used, exclude_class_name must not be
+  // used.
+  repeated string include_class_name = 12;
+}

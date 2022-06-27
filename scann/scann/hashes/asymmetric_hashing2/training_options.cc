@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "scann/hashes/asymmetric_hashing2/training_options.h"
+
+#include <utility>
 
 #include "scann/projection/projection_factory.h"
 #include "scann/proto/projection.pb.h"
@@ -55,12 +57,6 @@ Status TrainingOptions<T>::Validate() const {
     return InvalidArgumentError(absl::StrCat(
         "clustering_convergence_tolerance must be strictly positive, not ",
         this->config().max_clustering_iterations(), "."));
-  }
-
-  if (this->config().min_cluster_size() < 1) {
-    return InvalidArgumentError(
-        absl::StrCat("min_cluster_size must be strictly positive, not ",
-                     this->config().min_cluster_size(), "."));
   }
 
   if (this->config().sampling_fraction() <= 0.0f ||

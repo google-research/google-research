@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Computes rouge scores between two text blobs.
 
 Implementation replicates the functionality in the original ROUGE package. See:
@@ -38,12 +37,14 @@ from __future__ import print_function
 import collections
 import re
 
-from nltk.stem import porter
+from absl import logging
+import nltk
+import numpy as np
 import six
 from six.moves import map
 from six.moves import range
 from rouge import scoring
-from rouge import tokenize
+from rouge import tokenizers
 
 
 class RougeScorer(scoring.BaseScorer):
@@ -55,7 +56,8 @@ class RougeScorer(scoring.BaseScorer):
                           'The quick brown dog jumps on the log.')
   """
 
-  def __init__(self, rouge_types, use_stemmer=False):
+  def __init__(self, rouge_types, use_stemmer=False, split_summaries=False,
+               tokenizer=None):
     """Initializes a new RougeScorer.
 
     Valid rouge types that can be computed are:
@@ -65,19 +67,52 @@ class RougeScorer(scoring.BaseScorer):
     Args:
       rouge_types: A list of rouge types to calculate.
       use_stemmer: Bool indicating whether Porter stemmer should be used to
-        strip word suffixes to improve matching.
+        strip word suffixes to improve matching. This arg is used in the
+        DefaultTokenizer, but other tokenizers might or might not choose to
+        use this.
+      split_summaries: whether to add newlines between sentences for rougeLsum
+      tokenizer: Tokenizer object which has a tokenize() method.
     Returns:
       A dict mapping rouge types to Score tuples.
     """
 
     self.rouge_types = rouge_types
-    self._stemmer = porter.PorterStemmer() if use_stemmer else None
+    if tokenizer:
+      self._tokenizer = tokenizer
+    else:
+      self._tokenizer = tokenizers.DefaultTokenizer(use_stemmer)
+      logging.info("Using default tokenizer.")
+
+    self._split_summaries = split_summaries
+
+  def score_multi(self, targets, prediction):
+    """Calculates rouge scores between targets and prediction.
+
+    The target with the maximum f-measure is used for the final score for
+    each score type..
+
+    Args:
+      targets: list of texts containing the targets
+      prediction: Text containing the predicted text.
+    Returns:
+      A dict mapping each rouge type to a Score object.
+    Raises:
+      ValueError: If an invalid rouge type is encountered.
+    """
+    score_dicts = [self.score(t, prediction) for t in targets]
+    max_score = {}
+    for k in self.rouge_types:
+      index = np.argmax([s[k].fmeasure for s in score_dicts])
+      max_score[k] = score_dicts[index][k]
+
+    return max_score
 
   def score(self, target, prediction):
     """Calculates rouge scores between the target and prediction.
 
     Args:
-      target: Text containing the target (ground truth) text.
+      target: Text containing the target (ground truth) text,
+      or if a list
       prediction: Text containing the predicted text.
     Returns:
       A dict mapping each rouge type to a Score object.
@@ -85,8 +120,14 @@ class RougeScorer(scoring.BaseScorer):
       ValueError: If an invalid rouge type is encountered.
     """
 
-    target_tokens = tokenize.tokenize(target, self._stemmer)
-    prediction_tokens = tokenize.tokenize(prediction, self._stemmer)
+    # Pre-compute target tokens and prediction tokens for use by different
+    # types, except if only "rougeLsum" is requested.
+    if len(self.rouge_types) == 1 and self.rouge_types[0] == "rougeLsum":
+      target_tokens = None
+      prediction_tokens = None
+    else:
+      target_tokens = self._tokenizer.tokenize(target)
+      prediction_tokens = self._tokenizer.tokenize(prediction)
     result = {}
 
     for rouge_type in self.rouge_types:
@@ -96,15 +137,19 @@ class RougeScorer(scoring.BaseScorer):
       elif rouge_type == "rougeLsum":
         # Note: Does not support multi-line text.
         def get_sents(text):
-          # Assume sentences are separated by newline.
-          sents = six.ensure_str(text).split("\n")
+          if self._split_summaries:
+            sents = nltk.sent_tokenize(text)
+          else:
+            # Assume sentences are separated by newline.
+            sents = six.ensure_str(text).split("\n")
           sents = [x for x in sents if len(x)]
           return sents
 
         target_tokens_list = [
-            tokenize.tokenize(s, self._stemmer) for s in get_sents(target)]
+            self._tokenizer.tokenize(s) for s in get_sents(target)]
         prediction_tokens_list = [
-            tokenize.tokenize(s, self._stemmer) for s in get_sents(prediction)]
+            self._tokenizer.tokenize(s) for s in get_sents(prediction)]
+
         scores = _summary_level_lcs(target_tokens_list,
                                     prediction_tokens_list)
       elif re.match(r"rouge[0-9]$", six.ensure_str(rouge_type)):

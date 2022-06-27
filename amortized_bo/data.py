@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Population class for keeping track of structures and rewards."""
 
 import collections
@@ -223,7 +222,7 @@ class Sample(object):
     metadata: (any type, optional) Additional meta-data.
   """
   structure: np.ndarray = attr.ib(factory=np.array,
-                                  converter=_to_immutable_array)
+                                  converter=_to_immutable_array)  # pytype: disable=wrong-arg-types  # attr-stubs
   reward: float = attr.ib(
       converter=_NumericConverter(float),
       default=None)

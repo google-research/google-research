@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -118,7 +118,6 @@ StatusOrSearcherUntyped SingleMachineFactoryUntypedImpl(
         searcher->EnableCrowding(std::move(opts.crowding_attributes)));
   }
 
-  searcher->set_creation_timestamp(opts.creation_timestamp);
   return {std::move(searcher)};
 }
 

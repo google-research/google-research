@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,9 +30,11 @@
 #include "scann/hashes/asymmetric_hashing2/serialization.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/oss_wrappers/scann_serialize.h"
+#include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
+#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
@@ -151,10 +153,28 @@ template <typename T>
 Searcher<T>::~Searcher() {}
 
 template <typename T>
+Status Searcher<T>::VerifyLimitedInnerProductNormsSize() const {
+  SCANN_RET_CHECK(limited_inner_product_);
+
+  if (lut16_) {
+    SCANN_RET_CHECK_EQ(norm_inv_.size(), packed_dataset_.num_datapoints)
+        << "Database size does not equal limited inner product norm size.";
+    return OkStatus();
+  }
+  const DenseDataset<uint8_t>* hashed_dataset = this->hashed_dataset();
+  SCANN_RET_CHECK(hashed_dataset)
+      << "Hashed dataset must be non-null if LUT16 is not enabled.";
+  SCANN_RET_CHECK_EQ(norm_inv_.size(), hashed_dataset->size())
+      << "Database size does not equal limited inner product norm size.";
+  return OkStatus();
+}
+
+template <typename T>
 Status Searcher<T>::FindNeighborsImpl(const DatapointPtr<T>& query,
                                       const SearchParameters& params,
                                       NNResultsVector* result) const {
   if (limited_inner_product_) {
+    SCANN_RETURN_IF_ERROR(VerifyLimitedInnerProductNormsSize());
     float query_norm = static_cast<float>(sqrt(SquaredL2Norm(query)));
     asymmetric_hashing_internal::LimitedInnerFunctor functor(query_norm,
                                                              norm_inv_);

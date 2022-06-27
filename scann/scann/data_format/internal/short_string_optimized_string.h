@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <optional>
 
 #include "absl/types/optional.h"
 #include "scann/oss_wrappers/scann_malloc_extension.h"
@@ -77,8 +78,8 @@ class ShortStringOptimizedString {
 
   size_t HeapStorageUsed() const {
     if (size() <= kMaxInline) return 0;
-    absl::optional<size_t> true_size =
-        MallocExtension::GetAllocatedSize(heap_string());
+    std::optional<size_t> true_size =
+        tcmalloc::MallocExtension::GetAllocatedSize(heap_string());
     return *true_size;
   }
 

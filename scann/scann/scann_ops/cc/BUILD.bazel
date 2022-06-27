@@ -72,13 +72,16 @@ cc_library(
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:scann_status",
         "//scann/partitioning:partitioner_cc_proto",
+        "//scann/proto:brute_force_cc_proto",
         "//scann/proto:centers_cc_proto",
+        "//scann/scann_ops:scann_assets_cc_proto",
         "//scann/tree_x_hybrid:tree_x_params",
         "//scann/utils:io_npy",
         "//scann/utils:io_oss_wrapper",
         "//scann/utils:scann_config_utils",
         "//scann/utils:threads",
         "@com_google_absl//absl/base",
+        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/container:node_hash_set",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/synchronization",
@@ -95,5 +98,6 @@ pybind_library(
     tags = ["local"],
     deps = [
         ":scann",
+        "//scann/utils:io_oss_wrapper",
     ],
 )

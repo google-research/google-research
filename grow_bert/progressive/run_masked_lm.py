@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ The ProgressiveMaskedLM class is a subclass of ProgressivePolicy. This means
 that a progressive trainer instead of a base trainer.
 """
 # pylint: enable=line-too-long
-# Lint as: python3
 
 import dataclasses
 from absl import app
@@ -31,10 +30,10 @@ import gin
 from grow_bert.progressive import masked_lm
 from grow_bert.progressive import utils
 from official.common import flags as tfm_flags
+from official.core import config_definitions as cfg
 from official.modeling import optimization
 from official.modeling.fast_training.progressive import train_lib
 from official.modeling.fast_training.progressive import trainer as prog_trainer_lib
-from official.modeling.hyperparams import config_definitions as cfg
 from official.nlp.data import pretrain_dataloader
 from official.utils.misc import distribution_utils
 

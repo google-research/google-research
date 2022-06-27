@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ The task here is to walk to the (max_x, max_y) position in a square grid.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import numpy as np
@@ -108,7 +107,7 @@ class GridWalk(object):
 
   @property
   def num_states(self):
-    return self._n_state
+    return self._n_state  # pytype: disable=bad-return-type  # bind-properties
 
   @property
   def num_actions(self):

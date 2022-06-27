@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Extract images from summaries.
 
 During training, we save image summaries. This extracts the images and dumps
@@ -32,7 +31,6 @@ combine the images together or do that in latex/generate latex code to do that
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 from absl import app

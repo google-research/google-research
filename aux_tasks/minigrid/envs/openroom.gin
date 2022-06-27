@@ -1,0 +1,19 @@
+# 10x10 open gridworld for simple experimentation.
+register_environment.env_id = 'MiniGrid-OpenRoom-v0'
+
+MonMiniGridEnv.directional = True
+MonMiniGridEnv.agent_pos = None
+MonMiniGridEnv.goal_pos = None
+MonMiniGridEnv.ascii_grid = """
+************
+*          *
+*          *
+*          *
+*          *
+*          *
+*          *
+*          *
+*          *
+*          *
+*          *
+************"""

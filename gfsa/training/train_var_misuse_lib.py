@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Training logic for variable misuse task."""
 
 import contextlib
@@ -71,7 +70,7 @@ def loss_fn(
 
   # Run the model.
   with side_outputs.collect_side_outputs() as collected_side_outputs:
-    with flax.nn.stochastic(rng):
+    with flax.deprecated.nn.stochastic(rng):
       joint_log_probs = model(padded_example, static_metadata)
 
   # Computing the loss:
@@ -396,7 +395,7 @@ def train(
         encoding_info=encoding_info)
 
     # Set up a dummy stochastic scope for random perturbations.
-    with flax.nn.stochastic(jax.random.PRNGKey(0)):
+    with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
       # Initialize parameters based on our seed.
       _, initial_params = model_def.init(
           jax.random.PRNGKey(parameter_seed),
@@ -405,7 +404,7 @@ def train(
               example_definition.zeros_like_padded_example(
                   TINY_PADDING_CONFIG)), TINY_PADDING_CONFIG)
 
-    model = flax.nn.Model(model_def, initial_params)
+    model = flax.deprecated.nn.Model(model_def, initial_params)
     del initial_params
     optimizer = flax.optim.Adam().create(model)
 

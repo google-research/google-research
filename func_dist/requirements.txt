@@ -1,0 +1,9 @@
+absl-py
+dm-acme[jax]
+dm-sonnet
+gym
+numpy
+jax
+flax
+tensorflow
+tensorflow_probability

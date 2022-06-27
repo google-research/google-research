@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Library for reading/writing input and score files."""
 
 from __future__ import absolute_import
@@ -49,6 +48,14 @@ def compute_scores_and_write_to_csv(target_filepattern,
 
   target_filenames = _glob(target_filepattern)
   prediction_filenames = _glob(prediction_filepattern)
+  if (len(target_filenames) < 1 or
+      len(target_filenames) != len(prediction_filenames)):
+    raise ValueError("Must have equal and positive number of target and "
+                     "prediction files. Found: %d target files (%s),"
+                     " %d prediction files (%s)." %
+                     (len(target_filenames), target_filepattern,
+                      len(prediction_filenames), prediction_filepattern))
+
   scores = _compute_scores(target_filenames, prediction_filenames, scorer,
                            delimiter)
   if aggregator:
@@ -89,18 +96,12 @@ def _compute_scores(target_filenames, prediction_filenames, scorer, delimiter):
     prediction_filenames: List of filenames from which to read prediction lines.
     scorer: A BaseScorer object to compute scores.
     delimiter: string delimiter between each record in input files
+
   Returns:
     A list of dicts mapping score_type to Score objects.
   Raises:
     ValueError: If invalid targets or predictions are provided.
   """
-
-  if (len(target_filenames) < 1 or
-      len(target_filenames) != len(prediction_filenames)):
-    raise ValueError("Must have equal and positive number of target and "
-                     "prediction files. Found: %d target files, %d prediction "
-                     "files." % (len(target_filenames),
-                                 len(prediction_filenames)))
 
   scores = []
   for target_filename, prediction_filename in zip(

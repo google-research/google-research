@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
@@ -65,6 +66,8 @@ class Dataset : public VirtualDestructor {
   virtual bool IsDense() const = 0;
 
   bool IsSparse() const { return !IsDense(); }
+
+  virtual void set_dimensionality(DimensionIndex dimensionality) = 0;
 
   virtual void Reserve(size_t n_points) {}
 
@@ -137,6 +140,9 @@ class Dataset : public VirtualDestructor {
 
   size_t DocidMemoryUsage() const { return docids_->MemoryUsage(); }
 
+  class Mutator;
+  virtual StatusOr<typename Dataset::Mutator*> GetUntypedMutator() const = 0;
+
  protected:
   void set_dimensionality_no_checks(DimensionIndex dim) {
     dimensionality_ = dim;
@@ -160,6 +166,18 @@ class Dataset : public VirtualDestructor {
   HashedItem::PackingStrategy packing_strategy_ = HashedItem::NONE;
 
   virtual void UnusedKeyMethod();
+};
+
+class Dataset::Mutator : public VirtualDestructor {
+ public:
+  virtual Status RemoveDatapoint(string_view docid) = 0;
+
+  virtual bool LookupDatapointIndex(string_view docid,
+                                    DatapointIndex* index) const = 0;
+
+  virtual void Reserve(size_t size) = 0;
+
+  virtual Status RemoveDatapoint(DatapointIndex index) = 0;
 };
 
 template <typename T>
@@ -187,8 +205,6 @@ class TypedDataset : public Dataset {
     return operator[](datapoint_index);
   }
 
-  virtual void set_dimensionality(DimensionIndex dimensionality) = 0;
-
   virtual Status Append(const DatapointPtr<T>& dptr, string_view docid) = 0;
   Status Append(const DatapointPtr<T>& dptr);
 
@@ -214,10 +230,14 @@ class TypedDataset : public Dataset {
 
   class Mutator;
   virtual StatusOr<typename TypedDataset::Mutator*> GetMutator() const = 0;
+  StatusOr<typename Dataset::Mutator*> GetUntypedMutator() const override {
+    TF_ASSIGN_OR_RETURN(Dataset::Mutator * result, GetMutator());
+    return result;
+  }
 };
 
 template <typename T>
-class TypedDataset<T>::Mutator : public VirtualDestructor {
+class TypedDataset<T>::Mutator : public Dataset::Mutator {
  public:
   virtual Status AddDatapoint(const DatapointPtr<T>& dptr,
                               string_view docid) = 0;
@@ -348,9 +368,13 @@ class DenseDatasetView : VirtualDestructor {
 
   virtual size_t size() const = 0;
 
+  virtual research_scann::TypeTag TypeTag() const { return TagForType<T>(); }
+
+  virtual bool IsConsecutiveStorage() const { return false; }
+
   virtual std::unique_ptr<DenseDatasetView<T>> subview(size_t offset,
                                                        size_t size) const {
-    return absl::make_unique<DenseDatasetSubView<T>>(this, offset, size);
+    return std::make_unique<DenseDatasetSubView<T>>(this, offset, size);
   }
 };
 
@@ -389,6 +413,8 @@ class DefaultDenseDatasetView : public DenseDatasetView<T> {
         new DefaultDenseDatasetView<T>(ptr_ + offset * dims_, dims_, size));
   }
 
+  bool IsConsecutiveStorage() const override { return true; }
+
  private:
   DefaultDenseDatasetView(const T* ptr, size_t dim, size_t size)
       : ptr_(ptr), dims_(dim), size_(size) {}
@@ -417,8 +443,12 @@ class DenseDatasetSubView : public DenseDatasetView<T> {
 
   std::unique_ptr<DenseDatasetView<T>> subview(size_t offset,
                                                size_t size) const final {
-    return absl::make_unique<DenseDatasetSubView<T>>(parent_view_,
-                                                     offset + offset_, size);
+    return std::make_unique<DenseDatasetSubView<T>>(parent_view_,
+                                                    offset + offset_, size);
+  }
+
+  bool IsConsecutiveStorage() const override {
+    return parent_view_->IsConsecutiveStorage();
   }
 
  private:

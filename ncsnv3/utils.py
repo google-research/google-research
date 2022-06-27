@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -296,9 +296,8 @@ def save_image(ndarray, fp, nrow=8, padding=2, pad_value=0.0, format=None):
     for x in range(xmaps):
       if k >= nmaps:
         break
-      grid = jax.ops.index_update(
-          grid, jax.ops.index[y * height + padding:(y + 1) * height,
-                              x * width + padding:(x + 1) * width], ndarray[k])
+      grid = grid.at[y * height + padding:(y + 1) * height,
+                     x * width + padding:(x + 1) * width].set(ndarray[k])
       k = k + 1
 
   # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer

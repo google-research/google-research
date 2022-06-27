@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ class CountDurationBeamTest(absltest.TestCase):
     dummy_fn = os.path.join(
         absltest.get_default_test_srcdir(), TESTDIR, 'test.tfrecord')
     mock_ds_dict.return_value = {
-        'dummy': ([[dummy_fn]], 'tfrecord')
+        'dummy': ([[dummy_fn]], 'tfrecord'),
     }
 
     # Run the beam pipeline, which writes to the output.

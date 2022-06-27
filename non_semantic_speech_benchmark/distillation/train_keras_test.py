@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for non_semantic_speech_benchmark.eval_embedding.keras.train_keras."""
 
 from absl import flags
@@ -40,17 +39,16 @@ def _get_data(*args, **kwargs):
 class TrainKerasTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      {'bottleneck_dimension': 3, 'alpha': 1.0},
-      {'bottleneck_dimension': 5, 'alpha': 0.5},
+      {'alpha': 1.0},
+      {'alpha': 0.5},
   )
-  def test_get_model(self, bottleneck_dimension, alpha):
+  def test_get_model(self, alpha):
     batched_samples = tf.zeros([3, 16000])
     output_dimension = 10
     targets = tf.ones([3, output_dimension])
 
     model = train_keras.models.get_keras_model(
         f'mobilenet_debug_{alpha}_False',
-        bottleneck_dimension=bottleneck_dimension,
         output_dimension=output_dimension)
 
     loss_obj = tf.keras.losses.MeanSquaredError()
@@ -72,10 +70,10 @@ class TrainKerasTest(parameterized.TestCase):
   @flagsaver.flagsaver
   def test_full_flow(self, mock_load):
     del mock_load
-    flags.FLAGS.file_pattern = 'dummy'
+    flags.FLAGS.model_type = 'mobilenet_debug_1.0_False'
+    flags.FLAGS.file_patterns = 'dummy'
     flags.FLAGS.teacher_model_hub = 'dummy'
     flags.FLAGS.output_key = 'dummmy'
-    flags.FLAGS.bottleneck_dimension = 2
     flags.FLAGS.output_dimension = 10
     flags.FLAGS.shuffle_buffer_size = 4
     flags.FLAGS.samples_key = 'audio'

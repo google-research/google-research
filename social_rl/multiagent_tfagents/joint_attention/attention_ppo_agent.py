@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -344,6 +344,9 @@ class AttentionPPOAgent(ppo_agent.PPOAgent):
     self._compute_value_and_advantage_in_train = (
         compute_value_and_advantage_in_train)
     self.update_normalizers_in_train = update_normalizers_in_train
+    # Using the default setup to aggregate losses across multiple cores using
+    # tf_agents.common.aggregate_losses.
+    self._aggregate_losses_across_replicas = True
     if not isinstance(self._optimizer, tf.keras.optimizers.Optimizer):
       logging.warning(
           'Only tf.keras.optimizers.Optimizers are well supported, got a '

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -846,7 +846,7 @@ class MutationPredictorSolver(base_solver.BaseSolver):
           population, self.cfg.elite_set_size)
 
       # Choose the samples to perturb with replacement
-      idx = np.random.choice(len(structures), self.batch_size, replace=True)
+      idx = np.random.choice(len(structures), self.batch_size, replace=True)  # pytype: disable=attribute-error  # trace-all-classes
       selected_structures = np.stack([structures[i] for i in idx])
       selected_rewards = np.stack([rewards[i] for i in idx])
       return selected_structures, selected_rewards
@@ -856,9 +856,9 @@ class MutationPredictorSolver(base_solver.BaseSolver):
       structures = np.array([x.structure for x in last_batch])
       rewards = np.array([x.reward for x in last_batch])
 
-      if len(last_batch) > self.batch_size:
+      if len(last_batch) > self.batch_size:  # pytype: disable=attribute-error  # trace-all-classes
         # Subsample the data
-        idx = np.random.choice(len(last_batch), self.batch_size, replace=False)
+        idx = np.random.choice(len(last_batch), self.batch_size, replace=False)  # pytype: disable=attribute-error  # trace-all-classes
         structures = np.stack([structures[i] for i in idx])
         rewards = np.stack([rewards[i] for i in idx])
       return structures, rewards

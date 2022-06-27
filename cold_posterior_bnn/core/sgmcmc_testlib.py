@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Shared test library between sgmcmc_test and diagnostics_test.
 
 This library implements test classes used by both the SG-MCMC tests and the
@@ -22,7 +21,6 @@ diagnostics module test cases.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 

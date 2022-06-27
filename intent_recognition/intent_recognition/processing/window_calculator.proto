@@ -1,0 +1,53 @@
+// Copyright 2022 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package ambient_sensing;
+
+import "mediapipe/framework/calculator.proto";
+
+message WindowCalculatorOptions {
+  extend mediapipe.CalculatorOptions {
+    optional WindowCalculatorOptions ext = 239242132;
+  }
+
+  // Window size (number of input samples that make a window). Must be >= 1.
+  // If each input sample is a 3d vector and window size is 10, then the
+  // produced windows are 30d vectors.
+  optional int64 window_size = 1;
+
+  // Required. Each input value must have this many dimensions. For example,
+  // for the accelerometer data stream enforce_input_dims == 3, and for the
+  // proximity data stream enforce_input_dims == 1.
+  // Must match the number of input streams, and enforce_input_dims[i]
+  // corresponds to i-th input stream.
+  repeated int64 enforce_input_dims = 2;
+
+  // Required. Number of samples to shift over to get to the beginning of the
+  // next window. Must be >= 1.
+  optional int64 window_stride = 3 [default = 1];
+
+  enum PaddingStrategy {
+    UNKNOWN = 0;
+    // Zero pad the window on the right with 0.
+    RIGHT_ZERO = 1;
+    // Pad the window on the right with the last seen value.
+    RIGHT_LAST_VALUE = 2;
+  }
+  optional PaddingStrategy padding_strategy = 4 [default = RIGHT_ZERO];
+
+  // Required. The minimum number of outputs to produce. Must be >= 0.
+  optional int64 minimum_windows = 5 [default = 1];
+}

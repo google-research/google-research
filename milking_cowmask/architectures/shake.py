@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Shake-shake and ShakeDrop utility functions."""
-import flax.nn
+import flax.deprecated.nn
 import jax
 import jax.numpy as jnp
 
@@ -35,7 +35,7 @@ def shake_shake_train(xa, xb, rng=None):
     Mix of input branches
   """
   if rng is None:
-    rng = flax.nn.make_rng()
+    rng = flax.deprecated.nn.make_rng()
   gate_forward_key, gate_backward_key = jax.random.split(rng, num=2)
   gate_shape = (len(xa), 1, 1, 1)
 
@@ -79,12 +79,12 @@ def shake_drop_train(x, mask_prob, alpha_min, alpha_max, beta_min, beta_max,
     alpha_max: alpha range upper
     beta_min: beta range lower
     beta_max: beta range upper
-    rng: PRNG key (if `None`, uses `flax.nn.make_rng`)
+    rng: PRNG key (if `None`, uses `flax.deprecated.nn.make_rng`)
 
   Returns:
   """
   if rng is None:
-    rng = flax.nn.make_rng()
+    rng = flax.deprecated.nn.make_rng()
   bern_key, alpha_key, beta_key = jax.random.split(rng, num=3)
   rnd_shape = (len(x), 1, 1, 1)
   # Bernoulli variable b_l in Eqn 6, https://arxiv.org/abs/1802.02375

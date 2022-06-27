@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""All functions and modules related to model definition.
-"""
+"""All functions and modules related to model definition."""
 from typing import Any
 
 import flax
@@ -27,7 +26,7 @@ class State:
   step: int
   optimizer: flax.optim.Optimizer
   lr: float
-  model_state: flax.nn.Collection
+  model_state: flax.deprecated.nn.Collection
   ema_rate: float
   params_ema: Any
   rng: Any
@@ -62,6 +61,7 @@ def get_sigmas(config):
 
   Args:
     config: A ConfigDict object parsed from the config file
+
   Returns:
     sigmas: a jax numpy arrary of noise levels
   """
@@ -126,5 +126,3 @@ def get_ddpm_params():
       'sqrt_alphas_cumprod': sqrt_alphas_cumprod,
       'sqrt_1m_alphas_cumprod': sqrt_1m_alphas_cumprod
   }
-
-

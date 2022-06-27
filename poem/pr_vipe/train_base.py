@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 """Pose embedding model training base code."""
 
+import functools
 import math
 
 from absl import flags
@@ -22,9 +23,11 @@ import tensorflow.compat.v1 as tf
 import tf_slim
 
 from poem.core import data_utils
+from poem.core import input_generator
 from poem.core import keypoint_utils
 from poem.core import loss_utils
 from poem.core import pipeline_utils
+from poem.core import visualization_utils
 
 FLAGS = flags.FLAGS
 
@@ -45,13 +48,59 @@ flags.DEFINE_string(
     ' 2D keypoints.')
 
 # See `common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES`.
-flags.DEFINE_string('model_input_keypoint_type', '2D_INPUT_AND_3D_PROJECTION',
-                    'Type of model input keypoints.')
+flags.DEFINE_list('model_input_keypoint_type', ['2D_INPUT_AND_3D_PROJECTION'],
+                  'CSV of types of model input keypoints to use for each input '
+                  'table. If only one type is given, then it will be used for '
+                  'all tables. Otherwise, the input types must have the same '
+                  'length as `input_table`.')
+
+flags.DEFINE_float(
+    'uniform_keypoint_jittering_max_offset_2d', 0.0,
+    'Maximum 2D keypoint jittering offset. Random jittering offset within '
+    '[-uniform_keypoint_jittering_max_offset_2d, '
+    'uniform_keypoint_jittering_max_offset_2d] is to be added to each keypoint '
+    '2D. Note that the jittering happens after the 2D normalization. Ignored if'
+    ' non-positive.')
+
+flags.DEFINE_float(
+    'gaussian_keypoint_jittering_offset_stddev_2d', 0.0,
+    'Standard deviation of Gaussian 2D keypoint jittering offset. Random '
+    'jittering offset sampled from N(0, '
+    'gaussian_keypoint_jittering_offset_stddev_2d) is to be added to each '
+    'keypoints. Note that the jittering happens after the 2D normalization. '
+    'Ignored if non-positive.')
+
+flags.DEFINE_string('model_input_keypoint_mask_type', 'NO_USE',
+                    'Usage type of model input keypoint masks.')
 
 flags.DEFINE_float(
     'min_input_keypoint_score_2d', -1.0,
     'Minimum threshold for input keypoint score binarization. Use negative '
     'value to ignore. Only used if 2D keypoint masks are used.')
+
+flags.DEFINE_list(
+    'keypoint_dropout_probs', ['0.0', '0.0'],
+    'CSV of 2-tuple probability (probability_to_apply, probability_to_drop) for'
+    ' performing stratified keypoint dropout.')
+
+flags.DEFINE_bool('set_on_mask_for_non_anchors', False,
+                  'Whether to always use on (1) masks for non-anchor samples.')
+
+flags.DEFINE_bool(
+    'mix_mask_sub_batches', False,
+    'Whether to apply sub-batch mixing to processed masks and all-one masks.')
+
+flags.DEFINE_list(
+    'forced_mask_on_part_names', None,
+    'CSV of standard names of parts of which the masks are forced on (setting '
+    'value to 1.0) during training. See '
+    '`KeypointProfile.get_standard_part_index` for standard part names.')
+
+flags.DEFINE_list(
+    'forced_mask_off_part_names', None,
+    'CSV of standard names of parts of which the masks are forced off (setting '
+    'value to 0.0) during training. See '
+    '`KeypointProfile.get_standard_part_index` for standard part names.')
 
 # See `common_module.SUPPORTED_EMBEDDING_TYPES`.
 flags.DEFINE_string('embedding_type', 'GAUSSIAN', 'Type of embeddings.')
@@ -191,19 +240,32 @@ flags.DEFINE_list(
     'CSV of training batch sizes to use from each input table. Must have the '
     'same length as `input_table`.')
 
-flags.DEFINE_enum('optimizer', 'ADAGRAD', ['ADAGRAD'], 'Optimizer to use.')
+flags.DEFINE_enum('optimizer', 'ADAGRAD', ['ADAGRAD', 'ADAM', 'ADAMW'],
+                  'Optimizer to use.')
 
 flags.DEFINE_float('learning_rate', 0.02, 'Initial learning rate.')
+
+flags.DEFINE_enum('learning_rate_schedule', '',
+                  ['', 'EXP_DECAY', 'LINEAR_DECAY'],
+                  'Learning rate schedule to use. Use empty to skip.')
 
 flags.DEFINE_integer(
     'num_steps', 5000000,
     'Number of training steps. Use None to train indefinitely.')
+
+flags.DEFINE_integer(
+    'num_warmup_steps', None,
+    'Number of linear warmup training steps. Use None to skip warmup.')
 
 flags.DEFINE_string('init_model_checkpoint', None,
                     'Path to checkpoint to initialize from.')
 
 flags.DEFINE_float('gradient_clip_norm', 0.0,
                    'Norm gradients are clipped to. Only used if positive.')
+
+flags.DEFINE_float(
+    'gradient_clip_global_norm', 0.0,
+    'Global norm gradients are clipped to. Only used if positive.')
 
 flags.DEFINE_bool('use_moving_average', True,
                   'Whether to use exponential moving average.')
@@ -234,29 +296,40 @@ flags.DEFINE_float(
     'sigmoid_a_max', -1.0,
     'Maximum value of sigmoid `a` parameter. Ignored if None or non-positive.')
 
+# TODO(longzh,liuti): Add support to specify the azimuth, elevation, and roll
+# ranges for each input table when handling sequential inputs.
 flags.DEFINE_list(
     'random_projection_azimuth_range', ['-180.0', '180.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random azimuth rotations on 3D poses before projection for '
-    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
-    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
-    'delta_upper_limit).')
+    'camera augmentation. For non-sequential inputs, if one tuple is given, '
+    'then it will be used for all tables; otherwise, the number of tuples must '
+    'have the same length as `input_table`. For sequential inputs, also '
+    'supports CSV of 4-tuple for (starting_lower_limit, starting_upper_limit, '
+    'delta_lower_limit, delta_upper_limit), but one tuple should be specified '
+    'for all input tables.')
 
 flags.DEFINE_list(
     'random_projection_elevation_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random elevation rotations on 3D poses before projection for '
-    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
-    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
-    'delta_upper_limit).')
+    'camera augmentation. For non-sequential inputs, if one tuple is given, '
+    'then it will be used for all tables; otherwise, the number of tuples must '
+    'have the same length as `input_table`. For sequential inputs, also '
+    'supports CSV of 4-tuple for (starting_lower_limit, starting_upper_limit, '
+    'delta_lower_limit, delta_upper_limit), but one tuple should be specified '
+    'for all input tables.')
 
 flags.DEFINE_list(
     'random_projection_roll_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random roll rotations on 3D poses before projection for camera '
-    'augmentation. For sequential inputs, also supports CSV of 4-tuple '
-    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
-    'delta_upper_limit).')
+    'camera augmentation. For non-sequential inputs, if one tuple is given, '
+    'then it will be used for all tables; otherwise, the number of tuples must '
+    'have the same length as `input_table`. For sequential inputs, also '
+    'supports CSV of 4-tuple for (starting_lower_limit, starting_upper_limit, '
+    'delta_lower_limit, delta_upper_limit), but one tuple should be specified '
+    'for all input tables.')
 
 flags.DEFINE_list(
     'random_projection_camera_depth_range', [],
@@ -286,6 +359,9 @@ flags.DEFINE_integer('log_every_n_steps', 100,
 flags.DEFINE_bool('summarize_gradients', False,
                   'Whether to summarize gradients.')
 
+flags.DEFINE_bool('summarize_inputs', False,
+                  'Whether to visualize input 2D poses.')
+
 flags.DEFINE_bool(
     'summarize_percentiles', True,
     'Whether to summarize percentiles of certain variables, e.g., embedding '
@@ -302,7 +378,8 @@ flags.DEFINE_integer('task', 0, 'Task replica identifier for training.')
 
 
 def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
-                        keypoint_distance_config_override, embedder_fn_kwargs):
+                        keypoint_distance_config_override,
+                        create_model_input_fn_kwargs, embedder_fn_kwargs):
   """Validates and sets up training configurations."""
   # Set default values for unspecified flags.
   if FLAGS.use_normalized_embeddings_for_triplet_mining is None:
@@ -324,8 +401,11 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
   # Validate flags.
   validate_flag = common_module.validate
-  validate_flag(FLAGS.model_input_keypoint_type,
-                common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES)
+  for model_input_keypoint_type in FLAGS.model_input_keypoint_type:
+    validate_flag(model_input_keypoint_type,
+                  common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES)
+  validate_flag(FLAGS.model_input_keypoint_mask_type,
+                common_module.SUPPORTED_MODEL_INPUT_KEYPOINT_MASK_TYPES)
   validate_flag(FLAGS.embedding_type, common_module.SUPPORTED_EMBEDDING_TYPES)
   validate_flag(FLAGS.base_model_type, common_module.SUPPORTED_BASE_MODEL_TYPES)
   validate_flag(FLAGS.keypoint_distance_type,
@@ -346,6 +426,11 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
                 common_module.SUPPORTED_PAIRWISE_DISTANCE_REDUCTIONS)
   validate_flag(FLAGS.positive_pairwise_componentwise_reduction,
                 common_module.SUPPORTED_COMPONENTWISE_DISTANCE_REDUCTIONS)
+
+  # Update `model_input_keypoint_type` if only one type is given but there are
+  # more than one input table.
+  if len(FLAGS.input_table) > 1 and len(FLAGS.model_input_keypoint_type) == 1:
+    FLAGS.model_input_keypoint_type *= len(FLAGS.input_table)
 
   if FLAGS.embedding_type == common_module.EMBEDDING_TYPE_POINT:
     if FLAGS.triplet_distance_type != common_module.DISTANCE_TYPE_CENTER:
@@ -392,6 +477,31 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
   keypoint_profile_2d = keypoint_profiles_module.create_keypoint_profile_or_die(
       FLAGS.input_keypoint_profile_name_2d)
 
+  def update_range(input_range):
+    """Updates the input range according to the number of input tables."""
+    input_range = [float(x) / 180.0 * math.pi for x in input_range]
+    if create_model_input_fn_kwargs.get('sequential_inputs', False):
+      tuple_size = len(input_range)
+      if tuple_size not in [2, 4]:
+        raise ValueError('For sequential inputs, the tuple size of random '
+                         'projection range must be 2 or 4.')
+    else:
+      tuple_size = 2
+
+    # Update `input_range` if only one type is given but there are more than one
+    # input table.
+    if len(FLAGS.input_table) > 1 and len(input_range) == tuple_size:
+      input_range *= len(FLAGS.input_table)
+    return [
+        tuple(input_range[i + j]
+              for j in range(tuple_size))
+        for i in range(0, len(input_range), tuple_size)
+    ]
+
+  azimuth_range = update_range(FLAGS.random_projection_azimuth_range)
+  elevation_range = update_range(FLAGS.random_projection_elevation_range)
+  roll_range = update_range(FLAGS.random_projection_roll_range)
+
   # Set up configurations.
   configs = {
       'keypoint_profile_3d':
@@ -399,6 +509,23 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               FLAGS.input_keypoint_profile_name_3d),
       'keypoint_profile_2d':
           keypoint_profile_2d,
+      'create_model_input_fn':
+          functools.partial(
+              input_generator.create_model_input,
+              model_input_keypoint_mask_type=(
+                  FLAGS.model_input_keypoint_mask_type),
+              uniform_keypoint_jittering_max_offset_2d=(
+                  FLAGS.uniform_keypoint_jittering_max_offset_2d),
+              gaussian_keypoint_jittering_offset_stddev_2d=(
+                  FLAGS.gaussian_keypoint_jittering_offset_stddev_2d),
+              keypoint_dropout_probs=[
+                  float(x) for x in FLAGS.keypoint_dropout_probs
+              ],
+              set_on_mask_for_non_anchors=FLAGS.set_on_mask_for_non_anchors,
+              mix_mask_sub_batches=FLAGS.mix_mask_sub_batches,
+              forced_mask_on_part_names=FLAGS.forced_mask_on_part_names,
+              forced_mask_off_part_names=FLAGS.forced_mask_off_part_names,
+              **create_model_input_fn_kwargs),
       'embedder_fn':
           models_module.get_embedder(
               base_model_type=FLAGS.base_model_type,
@@ -431,17 +558,9 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
               common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB
           ],
-      'random_projection_azimuth_range': [
-          float(x) / 180.0 * math.pi
-          for x in FLAGS.random_projection_azimuth_range
-      ],
-      'random_projection_elevation_range': [
-          float(x) / 180.0 * math.pi
-          for x in FLAGS.random_projection_elevation_range
-      ],
-      'random_projection_roll_range': [
-          float(x) / 180.0 * math.pi for x in FLAGS.random_projection_roll_range
-      ],
+      'random_projection_azimuth_range': azimuth_range,
+      'random_projection_elevation_range': elevation_range,
+      'random_projection_roll_range': roll_range,
       'random_projection_camera_depth_range': [
           float(x) for x in FLAGS.random_projection_camera_depth_range
       ],
@@ -523,7 +642,7 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
 def run(master, input_dataset_class, common_module, keypoint_profiles_module,
         models_module, input_example_parser_creator, keypoint_preprocessor_3d,
-        create_model_input_fn, keypoint_distance_config_override,
+        keypoint_distance_config_override, create_model_input_fn_kwargs,
         embedder_fn_kwargs):
   """Runs training pipeline.
 
@@ -537,9 +656,10 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
       function. If None, uses the default parser creator.
     keypoint_preprocessor_3d: A function handle for preprocessing raw 3D
       keypoints.
-    create_model_input_fn: A function handle for creating model inputs.
     keypoint_distance_config_override: A dictionary for keypoint distance
       configuration to override the defaults. Ignored if empty.
+    create_model_input_fn_kwargs: A dictionary of addition kwargs for create the
+      model input creator function.
     embedder_fn_kwargs: A dictionary of additional kwargs for creating the
       embedder function.
   """
@@ -551,10 +671,73 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
           keypoint_profiles_module=keypoint_profiles_module,
           models_module=models_module,
           keypoint_distance_config_override=keypoint_distance_config_override,
+          create_model_input_fn_kwargs=create_model_input_fn_kwargs,
           embedder_fn_kwargs=embedder_fn_kwargs)
+
+      def preprocess(inputs, input_keypoint_type, azimuth_range,
+                     elevation_range, roll_range):
+        """Preprocesses the input 2D and 3D keypoints."""
+        # Since we assume 2D keypoints from the input have been normalized by
+        # image size, we need to denormalize them to restore correct aspect
+        # ratio.
+        keypoints_2d = keypoint_utils.denormalize_points_by_image_size(
+            inputs[common_module.KEY_KEYPOINTS_2D],
+            image_sizes=inputs[common_module.KEY_IMAGE_SIZES])
+
+        keypoint_scores_2d = inputs[
+            common_module.KEY_KEYPOINT_SCORES_2D]
+        if FLAGS.min_input_keypoint_score_2d < 0.0:
+          keypoint_masks_2d = tf.ones_like(
+              keypoint_scores_2d, dtype=tf.float32)
+        else:
+          keypoint_masks_2d = tf.cast(
+              tf.math.greater_equal(keypoint_scores_2d,
+                                    FLAGS.min_input_keypoint_score_2d),
+              dtype=tf.float32)
+
+        inputs.update({
+            common_module.KEY_KEYPOINTS_2D: keypoints_2d,
+            common_module.KEY_KEYPOINT_MASKS_2D: keypoint_masks_2d
+        })
+
+        (inputs[common_module.KEY_KEYPOINTS_3D],
+         keypoint_preprocessor_side_outputs_3d) = keypoint_preprocessor_3d(
+             inputs[common_module.KEY_KEYPOINTS_3D],
+             keypoint_profile_3d=configs['keypoint_profile_3d'],
+             normalize_keypoints_3d=True)
+        inputs.update(keypoint_preprocessor_side_outputs_3d)
+
+        inputs['model_inputs'], side_inputs = configs['create_model_input_fn'](
+            inputs[common_module.KEY_KEYPOINTS_2D],
+            inputs[common_module.KEY_KEYPOINT_MASKS_2D],
+            inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_3D],
+            model_input_keypoint_type=input_keypoint_type,
+            normalize_keypoints_2d=True,
+            keypoint_profile_2d=configs['keypoint_profile_2d'],
+            keypoint_profile_3d=configs['keypoint_profile_3d'],
+            azimuth_range=azimuth_range,
+            elevation_range=elevation_range,
+            roll_range=roll_range,
+            normalized_camera_depth_range=(
+                configs['random_projection_camera_depth_range']))
+        data_utils.merge_dict(side_inputs, inputs)
+        return inputs
 
       def create_inputs():
         """Creates pipeline and model inputs."""
+        preprocess_fns = [
+            functools.partial(  # pylint:disable=g-complex-comprehension
+                preprocess,
+                input_keypoint_type=input_keypoint_type,
+                azimuth_range=azimuth_range,
+                elevation_range=elevation_range,
+                roll_range=roll_range)
+            for (
+                input_keypoint_type, azimuth_range, elevation_range,
+                roll_range) in zip(FLAGS.model_input_keypoint_type,
+                                   configs['random_projection_azimuth_range'],
+                                   configs['random_projection_elevation_range'],
+                                   configs['random_projection_roll_range'])]
         inputs = pipeline_utils.read_batch_from_dataset_tables(
             FLAGS.input_table,
             batch_sizes=[int(x) for x in FLAGS.batch_size],
@@ -567,29 +750,9 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
             shuffle_buffer_size=FLAGS.input_shuffle_buffer_size,
             common_module=common_module,
             dataset_class=input_dataset_class,
-            input_example_parser_creator=input_example_parser_creator)
-
-        (inputs[common_module.KEY_KEYPOINTS_3D],
-         keypoint_preprocessor_side_outputs_3d) = keypoint_preprocessor_3d(
-             inputs[common_module.KEY_KEYPOINTS_3D],
-             keypoint_profile_3d=configs['keypoint_profile_3d'],
-             normalize_keypoints_3d=True)
-        inputs.update(keypoint_preprocessor_side_outputs_3d)
-
-        inputs['model_inputs'], side_inputs = create_model_input_fn(
-            inputs[common_module.KEY_KEYPOINTS_2D],
-            inputs[common_module.KEY_KEYPOINT_MASKS_2D],
-            inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_3D],
-            model_input_keypoint_type=FLAGS.model_input_keypoint_type,
-            normalize_keypoints_2d=True,
-            keypoint_profile_2d=configs['keypoint_profile_2d'],
-            keypoint_profile_3d=configs['keypoint_profile_3d'],
-            azimuth_range=configs['random_projection_azimuth_range'],
-            elevation_range=configs['random_projection_elevation_range'],
-            roll_range=configs['random_projection_roll_range'],
-            normalized_camera_depth_range=(
-                configs['random_projection_camera_depth_range']))
-        data_utils.merge_dict(side_inputs, inputs)
+            input_example_parser_creator=input_example_parser_creator,
+            preprocess_fns=preprocess_fns,
+            denormalize_keypoints_2d=False)
         return inputs
 
       inputs = create_inputs()
@@ -730,23 +893,41 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
       if FLAGS.use_moving_average:
         pipeline_utils.add_moving_average(FLAGS.moving_average_decay)
 
-      learning_rate = FLAGS.learning_rate
+      learning_rate = pipeline_utils.get_learning_rate(
+          FLAGS.learning_rate_schedule,
+          FLAGS.learning_rate,
+          decay_steps=FLAGS.num_steps,
+          num_warmup_steps=FLAGS.num_warmup_steps)
       optimizer = pipeline_utils.get_optimizer(
           FLAGS.optimizer.upper(), learning_rate=learning_rate)
       init_fn = pipeline_utils.get_init_fn(
           train_dir=FLAGS.train_log_dir,
           model_checkpoint=FLAGS.init_model_checkpoint)
-      train_op = tf_slim.learning.create_train_op(
+      train_op = tf_slim.training.create_train_op(
           total_loss,
           optimizer,
-          clip_gradient_norm=FLAGS.gradient_clip_norm,
+          transform_grads_fn=pipeline_utils.get_clip_grads_fn(
+              max_norm=FLAGS.gradient_clip_norm,
+              max_global_norm=FLAGS.gradient_clip_global_norm),
           summarize_gradients=FLAGS.summarize_gradients)
       saver = tf.train.Saver(
           keep_checkpoint_every_n_hours=FLAGS.keep_checkpoint_every_n_hours,
           pad_step_number=True)
       summaries['train/learning_rate'] = learning_rate
 
-      pipeline_utils.add_summary(scalars_to_summarize=summaries)
+      image_summary = {}
+      if FLAGS.summarize_inputs:
+        image_summary.update({
+            'poses_2d/AnchorPositivePair':
+                visualization_utils.tf_draw_poses_2d(
+                    data_utils.flatten_first_dims(
+                        inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_2D],
+                        num_last_dims_to_keep=2),
+                    keypoint_profile_2d=configs['keypoint_profile_2d'],
+                    num_cols=2),
+        })
+      pipeline_utils.add_summary(
+          scalars_to_summarize=summaries, images_to_summarize=image_summary)
 
       if FLAGS.profile_only:
         pipeline_utils.profile()

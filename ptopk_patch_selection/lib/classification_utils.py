@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ from clu import metric_writers
 from clu import parameter_overview
 from clu import periodic_actions
 import flax
-from flax import nn
+from flax.deprecated import nn
 import jax
 import jax.numpy as jnp
 from lib import utils  # pytype: disable=import-error
@@ -169,7 +169,8 @@ def eval_step(
       key.
   """
   rng, new_rng = jax.random.split(rng)
-  with nn.stochastic(rng), flax.nn.stateful(state.model_state, mutable=False):
+  with nn.stochastic(rng), flax.deprecated.nn.stateful(
+      state.model_state, mutable=False):
     logits, stats = module.call(state.model_params, batch["image"], train=False)
   metrics = {m: fn(logits, batch["label"], stats)
              for (m, fn) in metrics_dict.items()}

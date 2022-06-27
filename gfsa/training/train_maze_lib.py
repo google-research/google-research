@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Models and helpers for gridworld maze task."""
 
 import contextlib
@@ -173,8 +172,7 @@ def soft_maze_values(
                     jnp.log(num_actions)) * temperature
     # Goal state is fixed to value 0 (episode terminates before the agent takes
     # any action).
-    new_v_values = jax.ops.index_update(new_v_values,
-                                        jax.ops.index[target_state_index], 0.0)
+    new_v_values = new_v_values.at[target_state_index].set(0.0)
     return new_v_values
 
   # Must iterate at least num_states to guarantee everything is reachable;
@@ -359,7 +357,7 @@ def train(
         graph_bundle.zeros_like_padded_example(padding_config).automaton_graph,
         dynamic_metadata=padding_config.static_max_metadata)
 
-    model = flax.nn.Model(model_def, initial_params)
+    model = flax.deprecated.nn.Model(model_def, initial_params)
     optimizer = flax.optim.Adam().create(model)
 
     extra_artifacts = {

@@ -1,5 +1,4 @@
-#!/bin/bash
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,19 +16,17 @@
 set -e
 
 SMUDIR=$(dirname $0)
-ROOTDIR=$(realpath ${SMUDIR}/..)
-VENV="${SMUDIR}/venv"
+ROOTDIR=$(cd ${SMUDIR}/..; pwd)
+VENV="${SMUDIR}/venv_smu_dev"
 
 if [ -z "${VIRTUAL_ENV}" -a -d "${VENV}" ]; then
     echo "Activating virtual environment in ${VENV}"
     source ${VENV}/bin/activate
 fi
 
-export PYTHONPATH=${PYTHONPATH}:${ROOTDIR}
-
 set -u
 
-for TESTFN in $(find $SMUDIR -name '*_test.py')
+for TESTFN in $(find $SMUDIR -maxdepth 3 -name '*_test.py')
 do
     if [[ $TESTFN == *"$VENV"* ]]; then
         continue

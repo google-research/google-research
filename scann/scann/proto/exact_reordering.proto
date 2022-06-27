@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,9 @@ message ExactReordering {
 
   optional FixedPoint fixed_point = 5;
 
+  optional NeighborSelectionOverrideHeuristics
+      neighbor_selection_override_heuristics = 6;
+
   optional bool use_fixed_point_if_possible = 4
       [default = false, deprecated = true];
 }
@@ -49,4 +52,10 @@ message FixedPoint {
   optional string offline_quantization_cell = 3;
 
   optional int32 num_machines = 4;
+}
+
+message NeighborSelectionOverrideHeuristics {
+  optional float approx_num_neighbors_multiplier = 1 [default = 2.0];
+
+  optional float approx_epsilon_distance_multiplier = 2 [default = 1.2];
 }

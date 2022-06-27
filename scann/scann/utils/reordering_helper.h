@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -131,9 +131,9 @@ class FixedPointFloatDenseDotProductReorderingHelper
       const DenseDataset<float>& exact_reordering_dataset,
       float fixed_point_multiplier_quantile = 1.0f);
 
-  FixedPointFloatDenseDotProductReorderingHelper(
-      DenseDataset<int8_t> fixed_point_dataset,
-      const shared_ptr<const std::vector<float>>& multiplier_by_dimension);
+  explicit FixedPointFloatDenseDotProductReorderingHelper(
+      shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
+      const std::vector<float>& multiplier_by_dimension);
 
   ~FixedPointFloatDenseDotProductReorderingHelper() override;
 
@@ -155,7 +155,7 @@ class FixedPointFloatDenseDotProductReorderingHelper
       const DatapointPtr<float>& query, NNResultsVector* result) const override;
 
   DimensionIndex dimensionality() const {
-    return fixed_point_dataset_.dimensionality();
+    return fixed_point_dataset_->dimensionality();
   }
 
   Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const;
@@ -164,11 +164,11 @@ class FixedPointFloatDenseDotProductReorderingHelper
       SingleMachineFactoryOptions* opts) const override {
     opts->pre_quantized_fixed_point =
         make_shared<PreQuantizedFixedPoint>(CreatePreQuantizedFixedPoint(
-            fixed_point_dataset_, inverse_multipliers_, {}, true));
+            *fixed_point_dataset_, inverse_multipliers_, {}, true));
   }
 
  private:
-  DenseDataset<int8_t> fixed_point_dataset_;
+  shared_ptr<DenseDataset<int8_t>> fixed_point_dataset_;
   std::vector<float> inverse_multipliers_;
 
   friend class FixedPointFloatDenseSquaredL2ReorderingHelper;
@@ -181,9 +181,9 @@ class FixedPointFloatDenseCosineReorderingHelper
       const DenseDataset<float>& exact_reordering_dataset,
       float fixed_point_multiplier_quantile = 1.0f);
 
-  FixedPointFloatDenseCosineReorderingHelper(
-      DenseDataset<int8_t> fixed_point_dataset,
-      shared_ptr<const std::vector<float>> multiplier_by_dimension);
+  explicit FixedPointFloatDenseCosineReorderingHelper(
+      shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
+      const std::vector<float>& multiplier_by_dimension);
 
   ~FixedPointFloatDenseCosineReorderingHelper() override;
 
@@ -216,8 +216,8 @@ class FixedPointFloatDenseSquaredL2ReorderingHelper
       float fixed_point_multiplier_quantile = 1.0f);
 
   FixedPointFloatDenseSquaredL2ReorderingHelper(
-      DenseDataset<int8_t> fixed_point_dataset,
-      shared_ptr<const std::vector<float>> multiplier_by_dimension,
+      shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
+      const std::vector<float>& multiplier_by_dimension,
       shared_ptr<const std::vector<float>> squared_l2_norm_by_datapoint);
 
   std::string name() const override {

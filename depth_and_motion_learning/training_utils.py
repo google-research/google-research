@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ summaries.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 
 import json
@@ -35,6 +34,7 @@ from absl import flags
 from absl import logging
 import six
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from depth_and_motion_learning import maybe_summary
 from depth_and_motion_learning.parameter_container import ParameterContainer
@@ -85,7 +85,7 @@ TRAINER_PARAMS = {
 }
 
 
-class InitFromCheckpointHook(tf.estimator.SessionRunHook):
+class InitFromCheckpointHook(tf_estimator.SessionRunHook):
   """A hook for initializing training from a checkpoint.
 
   Although the Estimator framework supports initialization from a checkpoint via
@@ -165,7 +165,7 @@ def _build_estimator_spec(losses, trainer_params, mode, use_tpu=False):
   Returns:
     A EstimatorSpec or a TPUEstimatorSpec object.
   """
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     total_loss = 0.0
     for loss_name, loss in six.iteritems(losses):
       if not use_tpu:
@@ -188,11 +188,11 @@ def _build_estimator_spec(losses, trainer_params, mode, use_tpu=False):
     train_op = None
 
   if use_tpu:
-    estimator_spec = tf.estimator.tpu.TPUEstimatorSpec(
-        mode=tf.estimator.ModeKeys.TRAIN, loss=total_loss, train_op=train_op)
+    estimator_spec = tf_estimator.tpu.TPUEstimatorSpec(
+        mode=tf_estimator.ModeKeys.TRAIN, loss=total_loss, train_op=train_op)
   else:
-    estimator_spec = tf.estimator.EstimatorSpec(
-        mode=tf.estimator.ModeKeys.TRAIN, loss=total_loss, train_op=train_op)
+    estimator_spec = tf_estimator.EstimatorSpec(
+        mode=tf_estimator.ModeKeys.TRAIN, loss=total_loss, train_op=train_op)
 
   return estimator_spec
 
@@ -236,7 +236,7 @@ def run_local_training(losses_fn,
   logging.info(
       'Estimators run config parameters:\n%s',
       json.dumps(run_config_params, indent=2, sort_keys=True, default=str))
-  run_config = tf.estimator.RunConfig(**run_config_params)
+  run_config = tf_estimator.RunConfig(**run_config_params)
 
   def estimator_spec_fn(features, labels, mode, params):
     del labels  # unused
@@ -250,7 +250,7 @@ def run_local_training(losses_fn,
                                      trainer_params.init_ckpt,
                                      vars_to_restore_fn)
 
-  estimator = tf.estimator.Estimator(
+  estimator = tf_estimator.Estimator(
       model_fn=estimator_spec_fn,
       config=run_config,
       params=model_params.as_dict())

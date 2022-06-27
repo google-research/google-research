@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -245,10 +245,8 @@ def flip_and_average(locations, grids, array):
   radius = min([left_index, len(grids) - right_index - 1])
   range_slice = slice(left_index - radius, right_index + radius + 1)
   array_to_flip = array[range_slice]
-  return jax.ops.index_update(
-      array,
-      idx=range_slice,
-      y=(array_to_flip + jnp.flip(array_to_flip)) / 2)
+  return array.at[range_slice].set(
+      (array_to_flip + jnp.flip(array_to_flip)) / 2)
 
 
 def location_center_at_grids_center_point(locations, grids):

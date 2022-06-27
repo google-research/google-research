@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ class SmurfEndToEndTest(absltest.TestCase):
     FLAGS.num_train_steps = 1
     FLAGS.epoch_length = 1
     FLAGS.evaluate_during_train = False
+    FLAGS.height = 296
+    FLAGS.width = 296
 
     f = io.StringIO()
     with contextlib.redirect_stdout(f):
@@ -55,6 +57,9 @@ class SmurfEndToEndTest(absltest.TestCase):
     FLAGS.check_data = False
     FLAGS.train_on = ''
     FLAGS.plot_dir = '/tmp/spoof_eval'
+    FLAGS.height = 296
+    FLAGS.width = 296
+
     FLAGS.num_train_steps = 1
     FLAGS.evaluate_during_train = True
     f = io.StringIO()

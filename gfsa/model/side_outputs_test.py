@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.model.side_outputs."""
 
 from absl.testing import absltest
@@ -25,14 +24,14 @@ import numpy as np
 from gfsa.model import side_outputs
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def simple_add_model(a, b):
   side_outputs.SideOutput(a, name="a")
   side_outputs.SideOutput(b, name="b")
   return a + b
 
 
-@flax.nn.module
+@flax.deprecated.nn.module
 def encourage_discrete_model(logits, **kwargs):
   return side_outputs.encourage_discrete_logits(logits, name="foo", **kwargs)
 
@@ -84,7 +83,7 @@ class SideOutputsTest(parameterized.TestCase):
         penalties["/foo_entropy"], expected_entropy, rtol=1e-6)
 
     # Perturbed only.
-    with flax.nn.stochastic(jax.random.PRNGKey(0)):
+    with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
       out, _ = encourage_discrete_model.init(
           jax.random.PRNGKey(0),
           logits,

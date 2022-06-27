@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,16 +14,13 @@
 
 #include "scann/scann_ops/cc/scann_npy.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <string>
+
+#include "scann/utils/io_oss_wrapper.h"
 
 namespace research_scann {
-
-template <typename T>
-inline pybind11::array_t<T> VectorToNumpy2D(const std::vector<T>& v,
-                                            size_t dim1) {
-  size_t dim2 = v.size() / dim1;
-  return pybind11::array_t<T>({dim1, dim2}, v.data());
-}
 
 void RuntimeErrorIfNotOk(const char* prefix, const Status& status) {
   if (!status.ok()) {
@@ -32,60 +29,15 @@ void RuntimeErrorIfNotOk(const char* prefix, const Status& status) {
   }
 }
 
-template <typename T>
-ConstSpan<T> NumpyToSpan(const np_row_major_arr<T> numpy, size_t expected_dim,
-                         const string_view name) {
-  if (numpy.ndim() != expected_dim)
-    throw std::invalid_argument(absl::StrFormat(
-        "%s should be %d-dimensional, but got %d-dimensional input", name,
-        expected_dim, numpy.ndim()));
-  return ConstSpan<T>(numpy.data(), numpy.size());
-}
-
-ScannNumpy::ScannNumpy(
-    std::optional<const np_row_major_arr<float>> np_dataset,
-    std::optional<const np_row_major_arr<int32_t>> datapoint_to_token,
-    std::optional<const np_row_major_arr<uint8_t>> hashed_dataset,
-    std::optional<const np_row_major_arr<int8_t>> int8_dataset,
-    std::optional<const np_row_major_arr<float>> int8_multipliers,
-    std::optional<const np_row_major_arr<float>> dp_norms,
-    const std::string& artifacts_dir) {
-  DatapointIndex n_points = kInvalidDatapointIndex;
-  ConstSpan<float> dataset;
-  if (np_dataset) {
-    dataset = NumpyToSpan(*np_dataset, 2, "Dataset");
-    n_points = np_dataset->shape()[0];
-  }
-
-  ConstSpan<int32_t> tokenization;
-  if (datapoint_to_token) {
-    tokenization =
-        NumpyToSpan(*datapoint_to_token, 1, "Datapoint tokenization");
-    n_points = datapoint_to_token->shape()[0];
-  }
-
-  ConstSpan<uint8_t> hashed_span;
-  if (hashed_dataset) {
-    hashed_span = NumpyToSpan(*hashed_dataset, 2, "Hashed dataset");
-    n_points = hashed_dataset->shape()[0];
-  }
-
-  ConstSpan<int8_t> int8_span;
-  ConstSpan<float> mult_span, norm_span;
-  if (int8_dataset) {
-    int8_span = NumpyToSpan(*int8_dataset, 2, "Int8-quantized dataset");
-    n_points = int8_dataset->shape()[0];
-  }
-  if (int8_multipliers)
-    mult_span =
-        NumpyToSpan(*int8_multipliers, 1, "Int8 quantization multipliers");
-  if (dp_norms)
-    norm_span = NumpyToSpan(*dp_norms, 1, "Datapoint squared L2 norms");
-
+ScannNumpy::ScannNumpy(const std::string& artifacts_dir,
+                       const std::string& scann_assets_pbtxt) {
+  ScannConfig config;
+  RuntimeErrorIfNotOk(
+      "Failed reading scann_config.pb: ",
+      ReadProtobufFromFile(artifacts_dir + "/scann_config.pb", &config));
   RuntimeErrorIfNotOk(
       "Error initializing searcher: ",
-      scann_.Initialize(dataset, tokenization, hashed_span, int8_span,
-                        mult_span, norm_span, n_points, artifacts_dir));
+      scann_.Initialize(config.DebugString(), scann_assets_pbtxt));
 }
 
 ScannNumpy::ScannNumpy(const np_row_major_arr<float>& np_dataset,
@@ -149,9 +101,12 @@ ScannNumpy::SearchBatched(const np_row_major_arr<float>& queries, int final_nn,
 }
 
 void ScannNumpy::Serialize(std::string path) {
-  Status status = scann_.Serialize(path);
+  StatusOr<ScannAssets> assets_or = scann_.Serialize(path);
   RuntimeErrorIfNotOk("Failed to extract SingleMachineFactoryOptions: ",
-                      status);
+                      assets_or.status());
+  RuntimeErrorIfNotOk("Failed to write ScannAssets proto: ",
+                      OpenSourceableFileWriter(path + "/scann_assets.pbtxt")
+                          .Write(assets_or->DebugString()));
 }
 
 }  // namespace research_scann

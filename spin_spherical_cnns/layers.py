@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -222,15 +222,20 @@ class MagnitudeNonlinearityLeakyRelu(nn.Module):
   @nn.compact
   def __call__(self, inputs):
     """Applies pointwise nonlinearity to 5D inputs."""
-    magnitude = MagnitudeNonlinearity(self.epsilon,
-                                      self.bias_initializer,
-                                      name="magnitude_nonlin")(inputs)
+    outputs = []
+    for i, spin in enumerate(self.spins):
+      inputs_spin = inputs[Ellipsis, [i], :]
+      if spin == 0:
+        # In [1], the spin0 inputs are cast to real at every
+        # layer. Here we merge this operation with the nonlinearity.
+        outputs_spin = nn.leaky_relu(inputs_spin.real)
+      else:
+        outputs_spin = MagnitudeNonlinearity(
+            self.epsilon, self.bias_initializer,
+            name=f"magnitude_nonlin_{i}")(inputs_spin)
+      outputs.append(outputs_spin)
 
-    # In [1], the spin0 inputs are cast to real at every layer. We choose to
-    # merge this operation with the nonlinearity.
-    relu = nn.leaky_relu(inputs.real)
-    spins = jnp.expand_dims(jnp.array(self.spins), [0, 1, 2, 4])
-    return jnp.where(spins == 0, relu, magnitude)
+    return jnp.concatenate(outputs, axis=-2)
 
 
 class SphericalPooling(nn.Module):
@@ -324,7 +329,8 @@ class SphericalBatchNormalization(nn.Module):
   @nn.compact
   def __call__(self,
                inputs,
-               use_running_stats = None):
+               use_running_stats = None,
+               weights = None):
     """Normalizes the input using batch (optional) means and variances.
 
     Stats are computed over the batch and spherical dimensions: (0, 1, 2).
@@ -334,6 +340,8 @@ class SphericalBatchNormalization(nn.Module):
         n_spins_in, n_channels_in).
       use_running_stats: if true, the statistics stored in batch_stats will be
         used instead of computing the batch statistics on the input.
+      weights: An array of dimensions (batch_size,) assigning weights for
+        each batch element. Useful for masking.
 
     Returns:
       Normalized inputs (the same shape as inputs).
@@ -366,14 +374,14 @@ class SphericalBatchNormalization(nn.Module):
       # conventional mean over the batch.
       if self.centered:
         mean = sphere_utils.spin_spherical_mean(inputs)
-        mean = jnp.mean(mean, axis=0)
+        mean = jnp.average(mean, axis=0, weights=weights)
       # Complex variance is E[x x*] - E[x]E[x*].
       # For spin != 0, E[x] should be zero, although due to discretization this
       # is not always true. We only use E[x x*] here.
       # E[x x*]:
       mean_abs_squared = sphere_utils.spin_spherical_mean(inputs *
                                                           inputs.conj())
-      mean_abs_squared = jnp.mean(mean_abs_squared, axis=0)
+      mean_abs_squared = jnp.average(mean_abs_squared, axis=0, weights=weights)
       # Aggregate means over devices.
       if self.axis_name is not None and not initializing:
         if self.centered:
@@ -439,7 +447,8 @@ class SpinSphericalBatchNormalization(nn.Module):
   @nn.compact
   def __call__(self,
                inputs,
-               use_running_stats = None):
+               use_running_stats = None,
+               weights = None):
     """Call appropriate version of SphericalBatchNormalization per spin."""
     use_running_stats = nn.module.merge_param(
         "use_running_stats", self.use_running_stats, use_running_stats)
@@ -448,19 +457,26 @@ class SpinSphericalBatchNormalization(nn.Module):
                    momentum=self.momentum,
                    epsilon=self.epsilon,
                    axis_name=self.axis_name)
-    centered = SphericalBatchNormalization(use_bias=True,
-                                           centered=True,
-                                           **options)(inputs)
-    uncentered = SphericalBatchNormalization(use_bias=False,
-                                             centered=False,
-                                             **options)(inputs)
 
-    spins = jnp.expand_dims(jnp.array(self.spins), [0, 1, 2, 4])
+    outputs = []
+    for i, spin in enumerate(self.spins):
+      inputs_spin = inputs[Ellipsis, [i], :]
+      if spin == 0:
+        outputs_spin = SphericalBatchNormalization(use_bias=True,
+                                                   centered=True,
+                                                   **options)(inputs_spin,
+                                                              weights=weights)
+      else:
+        outputs_spin = SphericalBatchNormalization(use_bias=False,
+                                                   centered=False,
+                                                   **options)(inputs_spin,
+                                                              weights=weights)
+      outputs.append(outputs_spin)
 
-    return jnp.where(spins == 0, centered, uncentered)
+    return jnp.concatenate(outputs, axis=-2)
 
 
-class SpinSphericalBatchNormalizationNonlinearity(nn.Module):
+class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):
   """Combine batch normalization and nonlinarity for spin-spherical functions.
 
 
@@ -490,7 +506,8 @@ class SpinSphericalBatchNormalizationNonlinearity(nn.Module):
   @nn.compact
   def __call__(self,
                inputs,
-               use_running_stats = None):
+               use_running_stats = None,
+               weights = None):
     """Calls appropriate batch normalization and nonlinearity per spin."""
     use_running_stats = nn.module.merge_param(
         "use_running_stats", self.use_running_stats, use_running_stats)
@@ -505,12 +522,14 @@ class SpinSphericalBatchNormalizationNonlinearity(nn.Module):
       if spin == 0:
         outputs_spin = SphericalBatchNormalization(use_bias=True,
                                                    centered=True,
-                                                   **options)(inputs_spin)
+                                                   **options)(inputs_spin,
+                                                              weights=weights)
         outputs_spin = nn.leaky_relu(outputs_spin.real)
       else:
         outputs_spin = SphericalBatchNormalization(use_bias=False,
                                                    centered=False,
-                                                   **options)(inputs_spin)
+                                                   **options)(inputs_spin,
+                                                              weights=weights)
         outputs_spin = MagnitudeNonlinearity(
             bias_initializer=self.bias_initializer,
             name=f"magnitude_nonlin_{i}")(outputs_spin)

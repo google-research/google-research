@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ class RingInferenceMachine(object):
                num_encoders=6,
                num_decoders=6,
                qkv_dim=512,
-               activation_fn=flax.nn.relu,
+               activation_fn=flax.deprecated.nn.relu,
                weight_init=jax.nn.initializers.xavier_uniform()):
     """Creates the model.
 

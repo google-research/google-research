@@ -255,10 +255,13 @@ def _get_python_include(repository_ctx, python_bin):
         repository_ctx,
         [
             python_bin,
+            "-Wignore",
             "-c",
-            "from __future__ import print_function;" +
-            "from distutils import sysconfig;" +
-            "print(sysconfig.get_python_inc())",
+            "import importlib; " +
+            "import importlib.util; " +
+            "print(importlib.import_module('distutils.sysconfig').get_python_inc() " +
+            "if importlib.util.find_spec('distutils.sysconfig') " +
+            "else importlib.import_module('sysconfig').get_path('include'))",
         ],
         error_msg = "Problem getting python include path.",
         error_details = ("Is the Python binary path set up right? " +

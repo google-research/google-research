@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """xc functional parameterized by neural network."""
 
 import functools
@@ -392,8 +391,8 @@ def linear_interpolation_transpose():
       # scale by 0.5 so downsampling preserves the average activation
       output = 0.5 * vjp_fun(x)[0]
       # need to add back in the edges to account for boundary conditions.
-      output = jax.ops.index_add(output, jax.ops.index[:1], 0.25 * x[:1])
-      output = jax.ops.index_add(output, jax.ops.index[-1:], 0.25 * x[-1:])
+      output = output.at[:1].add(0.25 * x[:1])
+      output = output.at[-1:].add(0.25 * x[-1:])
       return output
 
     return jax.vmap(jax.vmap(downsample, 0, 0), 2, 2)(inputs)

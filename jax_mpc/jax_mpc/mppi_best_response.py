@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,8 +79,8 @@ class MPPIBestResponse(MPC):
       da = self.a_std*jax.random.normal(rng_da, shape=(self.n_samples,
                                                        self.n_steps,
                                                        dim_a))
-      da = jax.ops.index_update(da, jax.ops.index[:, :, 0:2], 0.0)
-      da = jax.ops.index_update(da, jax.ops.index[:, :, 3], 0.0)
+      da = da.at[:, :, 0:2].set(0.0)
+      da = da.at[:, :, 3].set(0.0)
       # a: [n_samples, n_steps, dim_a]
       a = jnp.clip(jnp.expand_dims(a_opt, axis=0) + da, -1.0, 1.0)
 

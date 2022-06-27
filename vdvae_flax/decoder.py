@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2021 DeepMind Technologies Limited and the Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -348,7 +348,7 @@ class Decoder(nn.Module):
           encoder_outputs=encoder_outputs,
           temperature=temperature)
 
-      kl = jax.ops.index_update(kl, block_index, block_output.kl)
+      kl = kl.at[block_index].set(block_output.kl)
 
       inputs = block_output.outputs
 

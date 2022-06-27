@@ -1,0 +1,422 @@
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Implicit Quantile agent with incoherent / orthogonals loss."""
+
+import collections
+import functools
+import time
+
+from dopamine.jax.agents.implicit_quantile import implicit_quantile_agent
+from flax import linen as nn
+import gin
+import jax
+import jax.numpy as jnp
+import numpy as onp
+import optax
+import tensorflow as tf
+
+from generalization_representations_rl_aistats22.atari import coherence_utils
+
+NetworkType = collections.namedtuple(
+    'network', ['quantile_values', 'quantiles', 'representation'])
+
+
+def stable_scaled_log_softmax(x, tau, axis=-1):
+  max_x = jnp.amax(x, axis=axis, keepdims=True)
+  y = x - max_x
+  tau_lse = max_x + tau * jnp.log(
+      jnp.sum(jnp.exp(y / tau), axis=axis, keepdims=True))
+  return x - tau_lse
+
+
+def stable_softmax(x, tau, axis=-1):
+  max_x = jnp.amax(x, axis=axis, keepdims=True)
+  y = x - max_x
+  return jax.nn.softmax(y / tau, axis=axis)
+
+
+class JaxImplicitQuantileNetworkWithRepresentations(nn.Module):
+  """The Implicit Quantile Network (Dabney et al., 2018).."""
+  num_actions: int
+  quantile_embedding_dim: int
+
+  @nn.compact
+  def __call__(self, x, num_quantiles=32, rng=None):
+    initializer = nn.initializers.variance_scaling(
+        scale=1.0 / jnp.sqrt(3.0),
+        mode='fan_in',
+        distribution='uniform')
+    if rng is None:
+      seed = int(time.time() * 1e6)
+      rng = jax.random.PRNGKey(seed)
+    x = nn.Conv(features=32, kernel_size=(8, 8), strides=(4, 4),
+                kernel_init=initializer)(x)
+    x = nn.relu(x)
+    x = nn.Conv(features=64, kernel_size=(4, 4), strides=(2, 2),
+                kernel_init=initializer)(x)
+    x = nn.relu(x)
+    x = nn.Conv(features=64, kernel_size=(3, 3), strides=(1, 1),
+                kernel_init=initializer)(x)
+    x = nn.relu(x)
+    x = x.reshape((-1))  # flatten
+    state_vector_length = x.shape[-1]
+    state_net_tiled = jnp.tile(x, [num_quantiles, 1])
+    quantiles_shape = [num_quantiles, 1]
+    quantiles = jax.random.uniform(rng, shape=quantiles_shape)
+    quantile_net = jnp.tile(quantiles, [1, self.quantile_embedding_dim])
+    quantile_net = (
+        jnp.arange(1, self.quantile_embedding_dim + 1, 1).astype(jnp.float32)
+        * onp.pi
+        * quantile_net)
+    quantile_net = jnp.cos(quantile_net)
+    quantile_net = nn.Dense(features=state_vector_length,
+                            kernel_init=initializer)(quantile_net)
+    quantile_net = nn.relu(quantile_net)
+    x = state_net_tiled * quantile_net
+    x = nn.Dense(features=512, kernel_init=initializer)(x)
+    x = nn.relu(x)
+    representation = (jnp.mean(x, axis=0))
+    quantile_values = nn.Dense(features=self.num_actions,
+                               kernel_init=initializer)(x)
+    return NetworkType(quantile_values, quantiles, representation)
+
+
+@functools.partial(
+    jax.vmap,
+    in_axes=(None, None, 0, 0, 0, 0, 0, None, None, None, None, None,
+             None, None),
+    out_axes=(None, 0, 0, 0))
+def munchausen_target_quantile_values(network, target_params, states,
+                                      actions, next_states, rewards, terminals,
+                                      num_tau_prime_samples,
+                                      num_quantile_samples, cumulative_gamma,
+                                      rng, tau, alpha, clip_value_min):
+  """Build the munchausen target for return values at given quantiles."""
+  rng, rng1, rng2, rng3 = jax.random.split(rng, num=4)
+  target_action = network.apply(
+      target_params, states, num_quantiles=num_quantile_samples, rng=rng1)
+  curr_state_representation = target_action.representation
+  curr_state_representation = jnp.squeeze(curr_state_representation)
+  is_terminal_multiplier = 1. - terminals.astype(jnp.float32)
+  # Incorporate terminal state to discount factor.
+  gamma_with_terminal = cumulative_gamma * is_terminal_multiplier
+  gamma_with_terminal = jnp.tile(gamma_with_terminal, [num_tau_prime_samples])
+
+  replay_net_target_outputs = network.apply(
+      target_params, next_states, num_quantiles=num_tau_prime_samples,
+      rng=rng2)
+  replay_quantile_values = replay_net_target_outputs.quantile_values
+
+  target_next_action = network.apply(target_params,
+                                     next_states,
+                                     num_quantiles=num_quantile_samples,
+                                     rng=rng3)
+  target_next_quantile_values_action = target_next_action.quantile_values
+  replay_next_target_q_values = jnp.squeeze(
+      jnp.mean(target_next_quantile_values_action, axis=0))
+
+  q_state_values = target_action.quantile_values
+  replay_target_q_values = jnp.squeeze(jnp.mean(q_state_values, axis=0))
+
+  num_actions = q_state_values.shape[-1]
+  replay_action_one_hot = jax.nn.one_hot(actions, num_actions)
+  replay_next_log_policy = stable_scaled_log_softmax(
+      replay_next_target_q_values, tau, axis=0)
+  replay_next_policy = stable_softmax(
+      replay_next_target_q_values, tau, axis=0)
+  replay_log_policy = stable_scaled_log_softmax(replay_target_q_values,
+                                                tau, axis=0)
+
+  tau_log_pi_a = jnp.sum(replay_log_policy * replay_action_one_hot, axis=0)
+  tau_log_pi_a = jnp.clip(tau_log_pi_a, a_min=clip_value_min, a_max=1)
+  munchausen_term = alpha * tau_log_pi_a
+  weighted_logits = (
+      replay_next_policy * (replay_quantile_values -
+                            replay_next_log_policy))
+
+  target_quantile_vals = jnp.sum(weighted_logits, axis=1)
+  rewards += munchausen_term
+  rewards = jnp.tile(rewards, [num_tau_prime_samples])
+  target_quantile_vals = (
+      rewards + gamma_with_terminal * target_quantile_vals)
+  next_state_representation = target_next_action.representation
+  next_state_representation = jnp.squeeze(next_state_representation)
+
+  return (
+      rng,
+      jax.lax.stop_gradient(target_quantile_vals[:, None]),
+      jax.lax.stop_gradient(curr_state_representation),
+      jax.lax.stop_gradient(next_state_representation))
+
+
+@functools.partial(
+    jax.vmap,
+    in_axes=(None, None, None, 0, 0, 0, 0, None, None, None, None, None),
+    out_axes=(None, 0, 0, 0))
+def target_quantile_values(network, online_params, target_params, states,
+                           next_states, rewards, terminals,
+                           num_tau_prime_samples, num_quantile_samples,
+                           cumulative_gamma, double_dqn, rng):
+  """Build the target for return values at given quantiles."""
+  rng, rng1, rng2, rng3 = jax.random.split(rng, num=4)
+  curr_state_representation = network.apply(
+      target_params, states, num_quantiles=num_quantile_samples,
+      rng=rng3).representation
+  curr_state_representation = jnp.squeeze(curr_state_representation)
+  rewards = jnp.tile(rewards, [num_tau_prime_samples])
+  is_terminal_multiplier = 1. - terminals.astype(jnp.float32)
+  # Incorporate terminal state to discount factor.
+  gamma_with_terminal = cumulative_gamma * is_terminal_multiplier
+  gamma_with_terminal = jnp.tile(gamma_with_terminal, [num_tau_prime_samples])
+  # Compute Q-values which are used for action selection for the next states
+  # in the replay buffer. Compute the argmax over the Q-values.
+  if double_dqn:
+    outputs_action = network.apply(online_params,
+                                   next_states,
+                                   num_quantiles=num_quantile_samples,
+                                   rng=rng1)
+  else:
+    outputs_action = network.apply(target_params,
+                                   next_states,
+                                   num_quantiles=num_quantile_samples,
+                                   rng=rng1)
+  target_quantile_values_action = outputs_action.quantile_values
+  target_q_values = jnp.squeeze(
+      jnp.mean(target_quantile_values_action, axis=0))
+  # Shape: batch_size.
+  next_qt_argmax = jnp.argmax(target_q_values)
+  # Get the indices of the maximium Q-value across the action dimension.
+  # Shape of next_qt_argmax: (num_tau_prime_samples x batch_size).
+  next_state_target_outputs = network.apply(
+      target_params,
+      next_states,
+      num_quantiles=num_tau_prime_samples,
+      rng=rng2)
+  next_qt_argmax = jnp.tile(next_qt_argmax, [num_tau_prime_samples])
+  target_quantile_vals = (
+      jax.vmap(lambda x, y: x[y])(next_state_target_outputs.quantile_values,
+                                  next_qt_argmax))
+  target_quantile_vals = rewards + gamma_with_terminal * target_quantile_vals
+  # We return with an extra dimension, which is expected by train.
+  next_state_representation = next_state_target_outputs.representation
+  next_state_representation = jnp.squeeze(next_state_representation)
+  return (
+      rng,
+      jax.lax.stop_gradient(target_quantile_vals[:, None]),
+      jax.lax.stop_gradient(curr_state_representation),
+      jax.lax.stop_gradient(next_state_representation))
+
+
+@functools.partial(jax.jit, static_argnums=(0, 3, 10, 11, 12, 13, 14, 15, 17,
+                                            18, 19, 20, 21, 22, 23))
+def train(network, online_params, target_params, optimizer, optimizer_state,
+          states, actions, next_states, rewards, terminals, num_tau_samples,
+          num_tau_prime_samples, num_quantile_samples, cumulative_gamma,
+          double_dqn, kappa, rng, coherence_weight, option, use_ortho_loss,
+          use_cohe_loss, tau, alpha, clip_value_min):
+  """Run a training step."""
+  def loss_fn(params, rng_input, target_quantile_vals):
+    def online(state):
+      return network.apply(params, state, num_quantiles=num_tau_samples,
+                           rng=rng_input)
+
+    model_output = jax.vmap(online)(states)
+    quantile_values = model_output.quantile_values
+    quantiles = model_output.quantiles
+    representations = model_output.representation
+    representations = jnp.squeeze(representations)
+    chosen_action_quantile_values = jax.vmap(lambda x, y: x[:, y][:, None])(
+        quantile_values, actions)
+    # Shape of bellman_erors and huber_loss:
+    # batch_size x num_tau_prime_samples x num_tau_samples x 1.
+    bellman_errors = (target_quantile_vals[:, :, None, :] -
+                      chosen_action_quantile_values[:, None, :, :])
+    # The huber loss (see Section 2.3 of the paper) is defined via two cases:
+    # case_one: |bellman_errors| <= kappa
+    # case_two: |bellman_errors| > kappa
+    huber_loss_case_one = (
+        (jnp.abs(bellman_errors) <= kappa).astype(jnp.float32) *
+        0.5 * bellman_errors ** 2)
+    huber_loss_case_two = (
+        (jnp.abs(bellman_errors) > kappa).astype(jnp.float32) *
+        kappa * (jnp.abs(bellman_errors) - 0.5 * kappa))
+    huber_loss = huber_loss_case_one + huber_loss_case_two
+    # Tile by num_tau_prime_samples along a new dimension. Shape is now
+    # batch_size x num_tau_prime_samples x num_tau_samples x 1.
+    # These quantiles will be used for computation of the quantile huber loss
+    # below (see section 2.3 of the paper).
+    quantiles = jnp.tile(quantiles[:, None, :, :],
+                         [1, num_tau_prime_samples, 1, 1]).astype(jnp.float32)
+    # Shape: batch_size x num_tau_prime_samples x num_tau_samples x 1.
+    quantile_huber_loss = (jnp.abs(quantiles - jax.lax.stop_gradient(
+        (bellman_errors < 0).astype(jnp.float32))) * huber_loss) / kappa
+    # Sum over current quantile value (num_tau_samples) dimension,
+    # average over target quantile value (num_tau_prime_samples) dimension.
+    # Shape: batch_size x num_tau_prime_samples x 1.
+    quantile_huber_loss = jnp.sum(quantile_huber_loss, axis=2)
+    quantile_huber_loss = jnp.mean(quantile_huber_loss, axis=1)
+    if use_ortho_loss and use_cohe_loss:
+      coherence_loss = coherence_utils.orthogonal_features_coherence(
+          representations, option)
+      cosine_similarity = coherence_utils.orthogonality(representations)
+      orthogonality_loss = jnp.mean(
+          jnp.abs(cosine_similarity - jnp.eye(representations.shape[0])))
+    if use_ortho_loss and not use_cohe_loss:
+      coherence_loss = 0.
+      cosine_similarity = coherence_utils.orthogonality(representations)
+      orthogonality_loss = jnp.mean(
+          jnp.abs(cosine_similarity - jnp.eye(representations.shape[0])))
+    if use_cohe_loss and not use_ortho_loss:
+      coherence_loss = coherence_utils.orthogonal_features_coherence(
+          representations, option)
+      cosine_similarity = coherence_utils.orthogonality(representations)
+      orthogonality_loss = 0.
+    loss = ((1. - coherence_weight) * quantile_huber_loss + coherence_weight *
+            (coherence_loss + orthogonality_loss))
+    return jnp.mean(loss), (jnp.mean(quantile_huber_loss), coherence_loss,
+                            orthogonality_loss)
+
+  if tau is None:
+    rng, target_quantile_vals, _, _ = target_quantile_values(
+        network,
+        online_params,
+        target_params,
+        states,
+        next_states,
+        rewards,
+        terminals,
+        num_tau_prime_samples,
+        num_quantile_samples,
+        cumulative_gamma,
+        double_dqn,
+        rng)
+  else:
+    rng, target_quantile_vals, _, _ = (
+        munchausen_target_quantile_values(
+            network,
+            target_params,
+            states,
+            actions,
+            next_states,
+            rewards,
+            terminals,
+            num_tau_prime_samples,
+            num_quantile_samples,
+            cumulative_gamma,
+            rng,
+            tau,
+            alpha,
+            clip_value_min))
+  grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+  rng, rng_input = jax.random.split(rng)
+  all_losses, grad = grad_fn(online_params, rng_input, target_quantile_vals)
+  loss, component_losses = all_losses
+  quantile_loss, coherence_loss, orthogonality_loss = component_losses
+  updates, optimizer_state = optimizer.update(grad, optimizer_state)
+  online_params = optax.apply_updates(online_params, updates)
+  return (rng, optimizer_state, online_params, loss, quantile_loss,
+          coherence_loss, orthogonality_loss)
+
+
+@gin.configurable
+class IncoherentImplicitQuantileAgent(
+    implicit_quantile_agent.JaxImplicitQuantileAgent):
+  """Implicit Quantile Agent with the Coherence loss."""
+
+  def __init__(self, num_actions, summary_writer=None,
+               coherence_weight=0.5, option='logsumexp', use_ortho_loss=True,
+               use_cohe_loss=True, tau=None, alpha=0.9, clip_value_min=-1):
+    self._coherence_weight = coherence_weight
+    self._option = option
+    self._use_ortho_loss = use_ortho_loss
+    self._use_cohe_loss = use_cohe_loss
+    self._tau = tau
+    self._alpha = alpha
+    self._clip_value_min = clip_value_min
+    super().__init__(
+        num_actions,
+        network=JaxImplicitQuantileNetworkWithRepresentations,
+        summary_writer=summary_writer)
+
+  def _train_step(self):
+    """Runs a single training step."""
+    if self._replay.add_count > self.min_replay_history:
+      if self.training_steps % self.update_period == 0:
+        self._sample_from_replay_buffer()
+        (self._rng, self.optimizer_state, self.online_params,
+         loss, quantile_loss, coherence_loss, orthogonality_loss) = train(
+             self.network_def,
+             self.online_params,
+             self.target_network_params,
+             self.optimizer,
+             self.optimizer_state,
+             self.replay_elements['state'],
+             self.replay_elements['action'],
+             self.replay_elements['next_state'],
+             self.replay_elements['reward'],
+             self.replay_elements['terminal'],
+             self.num_tau_samples,
+             self.num_tau_prime_samples,
+             self.num_quantile_samples,
+             self.cumulative_gamma,
+             self.double_dqn,
+             self.kappa,
+             self._rng,
+             self._coherence_weight,
+             self._option,
+             self._use_ortho_loss,
+             self._use_cohe_loss,
+             self._tau,
+             self._alpha,
+             self._clip_value_min)
+        if (self.summary_writer is not None and
+            self.training_steps > 0 and
+            self.training_steps % self.summary_writing_frequency == 0):
+          if self._use_ortho_loss and self._use_cohe_loss:
+            summary = tf.compat.v1.Summary(value=[
+                tf.compat.v1.Summary.Value(
+                    tag='Losses/Combined', simple_value=loss),
+                tf.compat.v1.Summary.Value(
+                    tag='Losses/Quantile', simple_value=quantile_loss),
+                tf.compat.v1.Summary.Value(
+                    tag='Losses/Incoherence', simple_value=coherence_loss),
+                tf.compat.v1.Summary.Value(
+                    tag='Losses/Orthogonality',
+                    simple_value=orthogonality_loss),
+            ])
+        elif self._use_ortho_loss and not self._use_cohe_loss:
+          summary = tf.compat.v1.Summary(value=[
+              tf.compat.v1.Summary.Value(
+                  tag='Losses/Combined', simple_value=loss),
+              tf.compat.v1.Summary.Value(
+                  tag='Losses/Quantile', simple_value=quantile_loss),
+              tf.compat.v1.Summary.Value(
+                  tag='Losses/Orthogonality', simple_value=orthogonality_loss),
+          ])
+        elif self._use_cohe_loss and not self._use_ortho_loss:
+          summary = tf.compat.v1.Summary(value=[
+              tf.compat.v1.Summary.Value(
+                  tag='Losses/Combined', simple_value=loss),
+              tf.compat.v1.Summary.Value(
+                  tag='Losses/Quantile', simple_value=quantile_loss),
+              tf.compat.v1.Summary.Value(
+                  tag='Losses/Incoherence', simple_value=coherence_loss),
+          ])
+          self.summary_writer.add_summary(summary, self.training_steps)
+      if self.training_steps % self.target_update_period == 0:
+        self._sync_weights()
+
+    self.training_steps += 1

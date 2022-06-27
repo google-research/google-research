@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,14 @@
 
 #include <unordered_map>
 
+#include "absl/container/flat_hash_map.h"
 #include "sparse/ops/cc/common.h"
 
 namespace sgk {
 
 namespace {
 
-using HandleMap = std::unordered_map<cudaStream_t, cusparseHandle_t>;
+using HandleMap = absl::flat_hash_map<cudaStream_t, cusparseHandle_t>;
 
 // Get singleton map of cuda streams to cusparse handles.
 HandleMap* GetHandleMap() {

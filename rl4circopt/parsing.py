@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tool for parsing Gate types.
 
 This module currently contains two functions, parse_gates(...) and
@@ -75,7 +74,7 @@ def parse_gates(gates, *gate_types):
               0.5 * np.arctan2(pauli_transform[0, 1], pauli_transform[0, 0])
           )
         else:
-          rotation = scipy.spatial.transform.Rotation.from_dcm(pauli_transform)
+          rotation = scipy.spatial.transform.Rotation.from_matrix(pauli_transform)
           alpha, beta, gamma = rotation.as_euler('zxz')
           if np.isclose(alpha, -gamma):
             gate_out = circuit.PhasedXGate(beta, -alpha)

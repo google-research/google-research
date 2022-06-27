@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2021 DeepMind Technologies Limited and the Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,6 +64,7 @@ def create_eval_dataset(
   per_device_batch_size = batch_size // jax.device_count()
 
   dataset_builder = tfds.builder(task)
+  dataset_builder.download_and_prepare()
 
   eval_split = deterministic_data.get_read_instruction_for_host(
       subset, dataset_builder.info.splits[subset].num_examples)

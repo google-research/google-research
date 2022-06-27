@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #define SCANN_BASE_SINGLE_MACHINE_BASE_H_
 
 #include <cstdint>
+#include <functional>
 
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -36,8 +37,15 @@
 
 namespace research_scann {
 
+class UntypedSingleMachineSearcherBase;
+using StatusOrSearcherUntyped =
+    StatusOr<unique_ptr<UntypedSingleMachineSearcherBase>>;
+
 template <typename T>
 class SingleMachineSearcherBase;
+
+template <typename T>
+class BruteForceSearcher;
 
 class UntypedSingleMachineSearcherBase {
  public:
@@ -130,6 +138,9 @@ class UntypedSingleMachineSearcherBase {
   }
 
   virtual bool reordering_enabled() const = 0;
+
+  virtual bool exact_reordering_enabled() const = 0;
+  virtual bool fixed_point_reordering_enabled() const = 0;
 
   virtual DatapointIndex optimal_batch_size() const;
 
@@ -244,6 +255,9 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
     return OkStatus();
   }
 
+  virtual StatusOr<shared_ptr<const DenseDataset<float>>>
+  SharedFloatDatasetIfNeeded();
+
   Status GetNeighborProto(const pair<DatapointIndex, float> neighbor,
                           const DatapointPtr<T>& query,
                           NearestNeighbors::Neighbor* result) const;
@@ -295,12 +309,12 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
 
   void DisableExactReordering() { DisableReordering(); }
 
-  bool exact_reordering_enabled() const {
+  bool exact_reordering_enabled() const final {
     return (reordering_helper_ &&
             reordering_helper_->name() == "ExactReordering");
   }
 
-  bool fixed_point_reordering_enabled() const;
+  bool fixed_point_reordering_enabled() const final;
 
   const ReorderingInterface<T>& reordering_helper() const {
     return *reordering_helper_;

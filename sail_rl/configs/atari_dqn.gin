@@ -1,0 +1,68 @@
+import dopamine.discrete_domains.atari_lib
+import dopamine.discrete_domains.run_experiment
+import dopamine.agents.dqn.dqn_agent
+import dopamine.replay_memory.circular_replay_buffer
+import gin.tf.external_configurables
+
+# DQN
+DQNAgent.gamma = 0.99
+DQNAgent.update_horizon = 1
+DQNAgent.min_replay_history = 20000  # agent steps
+DQNAgent.update_period = 4
+DQNAgent.target_update_period = 8000  # agent steps
+DQNAgent.epsilon_train = 0.01
+DQNAgent.epsilon_eval = 0.001
+DQNAgent.epsilon_decay_period = 250000  # agent steps
+DQNAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+DQNAgent.optimizer = @tf.train.RMSPropOptimizer()
+
+# SAIL-DQN
+SAILDQNAgent.alpha = 0.9
+SAILDQNAgent.clip = 1.
+SAILDQNAgent.gamma = 0.99
+SAILDQNAgent.update_horizon = 1
+SAILDQNAgent.min_replay_history = 20000 # agent steps
+SAILDQNAgent.update_period = 4
+SAILDQNAgent.target_update_period = 8000 # agent steps
+SAILDQNAgent.epsilon_train = 0.01
+SAILDQNAgent.epsilon_eval = 0.001
+SAILDQNAgent.epsilon_decay_period = 250000  # agent steps
+SAILDQNAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+SAILDQNAgent.optimizer = @dqn/tf.train.RMSPropOptimizer()
+
+# AL-DQN
+ALDQNAgent.alpha = 0.9
+ALDQNAgent.clip = -1.
+ALDQNAgent.gamma = 0.99
+ALDQNAgent.update_horizon = 1
+ALDQNAgent.min_replay_history = 20000 # agent steps
+ALDQNAgent.update_period = 4
+ALDQNAgent.target_update_period = 8000 # agent steps
+ALDQNAgent.epsilon_train = 0.01
+ALDQNAgent.epsilon_eval = 0.001
+ALDQNAgent.epsilon_decay_period = 250000  # agent steps
+ALDQNAgent.tf_device = '/gpu:0'  # use '/cpu:*' for non-GPU version
+ALDQNAgent.optimizer = @dqn/tf.train.RMSPropOptimizer()
+
+# Replay buffers
+WrappedReplayBuffer.replay_capacity = 1000000
+WrappedReplayBuffer.batch_size = 32
+
+SAILWrappedReplayBuffer.replay_capacity = 1000000
+SAILWrappedReplayBuffer.batch_size = 32
+
+# Optimizer
+tf.train.RMSPropOptimizer.learning_rate = 0.00025
+tf.train.RMSPropOptimizer.decay = 0.95
+tf.train.RMSPropOptimizer.momentum = 0.0
+tf.train.RMSPropOptimizer.epsilon = 0.00001
+tf.train.RMSPropOptimizer.centered = True
+
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+
+# Runner
+Runner.num_iterations = 200
+Runner.training_steps = 250000  # agent steps
+Runner.evaluation_steps = 125000  # agent steps
+Runner.max_steps_per_episode = 27000  # agent steps

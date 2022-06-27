@@ -1,0 +1,4 @@
+jax
+flax
+numpy
+tensorflow

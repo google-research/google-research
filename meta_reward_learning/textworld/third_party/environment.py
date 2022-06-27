@@ -1,5 +1,4 @@
 # coding=utf-8
-# Lint as: python3
 """Environment Class.
 
 Code adapted from the github repository:

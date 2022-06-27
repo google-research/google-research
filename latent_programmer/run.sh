@@ -1,4 +1,4 @@
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,3 +23,4 @@ pip install tensorflow
 pip install -r latent_programmer/requirements.txt
 # Do some test here
 python -m latent_programmer.tasks.robust_fill.dsl_test
+python -m latent_programmer.train_test

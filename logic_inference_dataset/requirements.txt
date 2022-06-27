@@ -1,0 +1,2 @@
+absl_py>=0.13.0
+tensorflow>=2.6.0

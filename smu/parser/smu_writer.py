@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 r"""A command line tool to write a protocol buffer to a file in SMU file format.
 
 This tool is intended to faithfully reproduce the Basel University SMU file
@@ -53,21 +65,21 @@ FLAGS = flags.FLAGS
 def main(argv):
   del argv  # Unused.
 
-  smu_proto = dataset_pb2.MultipleConformers()
+  smu_proto = dataset_pb2.MultipleMolecules()
   with gfile.GFile(FLAGS.input_file) as f:
     raw_proto = f.read()
   text_format.Parse(raw_proto, smu_proto)
   smu_writer = SmuWriter(FLAGS.annotate)
   contents = ''.join(
-      smu_writer.process_stage2_proto(conformer)
-      for conformer in smu_proto.conformers
-  )
+      smu_writer.process_stage2_proto(molecule)
+      for molecule in smu_proto.molecules)
   if FLAGS.output_file:
-    logging.info('Writing smu7 conformers to .dat file %s.', FLAGS.output_file)
+    logging.info('Writing smu7 molecules to .dat file %s.', FLAGS.output_file)
     with open(FLAGS.output_file, 'w') as f:
       f.write(contents)
   else:
     print(contents, end='')
+
 
 if __name__ == '__main__':
   app.run(main)

@@ -1,4 +1,4 @@
-// Copyright 2021 The Google Research Authors.
+// Copyright 2022 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,8 +25,16 @@ using ::std::make_index_sequence;
 template <size_t... kInts>
 inline constexpr size_t index_sequence_sum_v = (kInts + ...);
 
+#ifdef __clang__
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+#endif
 template <size_t... kInts>
 inline constexpr size_t index_sequence_last_v = (kInts, ...);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 template <typename Seq0, typename Seq1>
 struct index_sequence_all_but_last_impl;

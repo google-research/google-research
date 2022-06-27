@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2021 The Google Research Authors.
+# Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -311,7 +311,7 @@ class MultiagentPPO(tf_agent.TFAgent):
       with tf.name_scope('agent' + str(a) + '_logging/'):
         agent_losses.append(self.agents[a].train(experience=agent_experience))
 
-    total_loss = np.sum([l.loss for l in agent_losses])
+    total_loss = tf.reduce_sum(tf.stack([l.loss for l in agent_losses]))
     loss_info = tf_agent.LossInfo(loss=total_loss, extra=agent_losses)
 
     return loss_info
