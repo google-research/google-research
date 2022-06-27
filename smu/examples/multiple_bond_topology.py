@@ -40,7 +40,7 @@ def print_bond_topologies(mol):
       print('        is_starting_topology: True')
 
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
 
 print('Each Molecule can have multiple bond topologies associated with it')
 

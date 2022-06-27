@@ -31,7 +31,7 @@
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
 
 print(
     'SMARTS patterns are convenient ways to select a subset of bond topologies')

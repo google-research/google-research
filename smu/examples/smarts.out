@@ -10,6 +10,6 @@ This typically takes 20-40 seconds
 In this case we find 1743 matching bond topologies
 
 You can then use find_by_bond_topology_id_list (just like indices.py) to get the molecules
-In this case we find 1163 matching molecules
+In this case we find 1164 matching molecules
 As you can see, not all bond topology ids in the standard database will find a matching molecule
 You can always find descriptions of all bond topologies in bond_topology.csv

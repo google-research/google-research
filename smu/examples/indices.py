@@ -31,7 +31,7 @@
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
 
 print('There are several ways to efficiently get specific sets of molecules')
 
@@ -51,7 +51,7 @@ print('Looking up by bond topology id will return zero or more molecules')
 bt_molecules = list(
     db.find_by_bond_topology_id_list(
         [7984], which_topologies=smu_utils_lib.WhichTopologies.ALL))
-print('Querying for bond topology id 8617 returned', len(bt_molecules),
+print('Querying for bond topology id 7984 returned', len(bt_molecules),
       'molecules')
 
 print('Note that the molecules returned may have multiple bond topologies,'
@@ -91,7 +91,5 @@ print('The first couple of molecule ids are:',
 print()
 print('You may note that there is a "find_by_expanded_stoichiometry" method',
       'in smu_sqlite')
-print('This is primarily intended to support the "topology queries" that are',
-      'documented in query_sqlite.py')
-print('Since these topology queries are more involved to set up, it is',
-      'recommended that you use query_sqlite.py for that kind of query')
+print('This is primarily intended to support "topology queries"')
+print('See topology_query.py')

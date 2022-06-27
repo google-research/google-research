@@ -28,11 +28,12 @@
 # limitations under the License.
 """Use the query by topology functionality."""
 
+from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
 smiles = '[O-]N=N[NH+]=[N+]([O-])F'
 
 print('Molecules can have multiple bond topologies that match the geometry')
@@ -40,9 +41,11 @@ print('(see multiple_bond_topology.py for some illustration)')
 
 print('This is what the "find_by_smiles" method is using and is very efficient')
 
+print('Note that we have multiple criteria for creating bond topologies.')
+print('For this example, we will focus on the ITC criteria (our initial bond ranges)')
 original_molecules = sorted(
     db.find_by_smiles_list([smiles],
-                           which_topologies=smu_utils_lib.WhichTopologies.ALL),
+                           which_topologies=smu_utils_lib.WhichTopologies.ITC),
     key=lambda c: c.molecule_id)
 print('find_by_smiles on', smiles, 'finds these molecule ids')
 print([c.molecule_id for c in original_molecules])
@@ -61,7 +64,7 @@ print()
 print('First you have to load the default bond lengths')
 bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
 bond_lengths.add_from_sparse_dataframe_file(
-    '20220128_bond_lengths.csv',
+    '20220621_bond_lengths.csv',
     bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
     bond_length_distribution.STANDARD_SIG_DIGITS)
 
@@ -99,7 +102,9 @@ print(
 def print_molecules_and_bond_topology_id(molecules):
   for mol in molecules:
     print('   ', mol.molecule_id, 'has bond topologies:',
-          [bt.bond_topology_id for bt in mol.bond_topologies])
+          [bt.bond_topology_id for bt in mol.bond_topologies
+           if bt.source & (dataset_pb2.BondTopology.SOURCE_ITC |
+                           dataset_pb2.BondTopology.SOURCE_CUSTOM)])
 
 
 print()

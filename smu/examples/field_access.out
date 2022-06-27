@@ -37,6 +37,12 @@ initial_geometries {
     y: -0.12472199648618698
     z: -0.0011340000201016665
   }
+  energy {
+    value: -213.600956
+  }
+  gnorm {
+    value: 0.114996
+  }
 }
 optimized_geometry {
   atom_positions {
@@ -58,6 +64,17 @@ optimized_geometry {
     x: 4.046177864074707
     y: -0.1956000030040741
     z: 0.0489640012383461
+  }
+  energy {
+    value: -213.607287
+  }
+  gnorm {
+    value: 6.7e-05
+  }
+  rotcon {
+    value: 10473.771
+    value: 11808.073
+    value: 92688.945
   }
 }
 properties {
@@ -149,12 +166,12 @@ properties {
     precision: 0.0001
   }
   dipole_dipole_polarizability_pbe0_aug_pc_1 {
-    matrix_values_deprecated: 18.44366
-    matrix_values_deprecated: 19.24036
-    matrix_values_deprecated: 16.25237
-    matrix_values_deprecated: -1.14202
-    matrix_values_deprecated: 0.80691
-    matrix_values_deprecated: -4.21845
+    xx: 18.44366
+    yy: 19.24036
+    zz: 16.25237
+    xy: -1.14202
+    xz: 0.80691
+    yz: -4.21845
   }
   dipole_moment_pbe0_aug_pc_1 {
     x: 0.76262
@@ -162,41 +179,24 @@ properties {
     z: 0.1717
   }
   quadrupole_moment_pbe0_aug_pc_1 {
-    matrix_values_deprecated: -8.99568
-    matrix_values_deprecated: -13.3491
-    matrix_values_deprecated: -12.44867
-    matrix_values_deprecated: -0.28195
-    matrix_values_deprecated: 0.1312
-    matrix_values_deprecated: 1.33611
+    xx: -8.99568
+    yy: -13.3491
+    zz: -12.44867
+    xy: -0.28195
+    xz: 0.1312
+    yz: 1.33611
   }
   octopole_moment_pbe0_aug_pc_1 {
-    tensor_values_deprecated: -36.61988
-    tensor_values_deprecated: 1.32409
-    tensor_values_deprecated: 2.19806
-    tensor_values_deprecated: -0.11857
-    tensor_values_deprecated: 0.88628
-    tensor_values_deprecated: -17.85217
-    tensor_values_deprecated: 1.13763
-    tensor_values_deprecated: -16.62721
-    tensor_values_deprecated: 0.11383
-    tensor_values_deprecated: 1.79615
-  }
-  initial_geometry_energy_deprecated {
-    value: -213.600956
-  }
-  initial_geometry_gradient_norm_deprecated {
-    value: 0.114996
-  }
-  optimized_geometry_energy_deprecated {
-    value: -213.607287
-  }
-  optimized_geometry_gradient_norm_deprecated {
-    value: 6.7e-05
-  }
-  rotational_constants_deprecated {
-    x: 10473.771
-    y: 11808.073
-    z: 92688.945
+    xxx: -36.61988
+    yyy: 1.32409
+    zzz: 2.19806
+    xxy: -0.11857
+    xxz: 0.88628
+    xyy: -17.85217
+    yyz: 1.13763
+    xzz: -16.62721
+    yzz: 0.11383
+    xyz: 1.79615
   }
   diagnostics_t1_ccsd_2sd {
     value: 0.0159
@@ -298,9 +298,7 @@ bond_topologies {
   }
   smiles: "O=CF"
   bond_topology_id: 57
-  is_starting_topology: true
   geometry_score: 3.1316471099853516
+  source: 15
 }
-fate: FATE_SUCCESS
-which_database_deprecated: STANDARD
 

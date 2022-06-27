@@ -51,7 +51,7 @@ from smu import smu_sqlite
 # on the status variable.
 #-----------------------------------------------------------------------------
 
-db = smu_sqlite.SMUSQLite('20220128_complete_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_complete.sqlite')
 
 print('# Output from c6h6.py, an example bringing together many concepts')
 print('# Please see that file for documentation')

@@ -36,7 +36,7 @@ from rdkit import Chem
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
 
 #-----------------------------------------------------------------------------
 # We will look at one molecule that illustrates the complexities of
@@ -80,7 +80,7 @@ print(
     'the first bond topology')
 print('Note that the title line start with "SMU" and the molecule id')
 print('Note the "geom=opt" indicating this is the optimized geometry')
-print('Note the bt=8240(1/2) indicating this is the first of 2 bond topologies')
+print('Note the bt=8240(1/3) indicating this is the first of 3 bond topologies')
 print('In this case, we only generated output for a single topology')
 writer.write(case0_mols[0])
 writer.flush()
@@ -106,11 +106,14 @@ case2_mols = list(
         molecule,
         include_initial_geometries=False,
         include_optimized_geometry=True,
-        which_topologies=smu_utils_lib.WhichTopologies.ALL))
+        which_topologies=smu_utils_lib.WhichTopologies.ITC))
 assert len(case2_mols) == 2
 
 print()
-print('When we ask for all bond topologies, we get 1 or more molecules')
+print('For more details on the complexity of multiple bond topologies per molecules')
+print('see multiple_bond_topology.py')
+print('Here, we will ask only for the topologies from our initial criteria')
+print('In this way, we can get 1 or more molecules')
 print('In this case, there are 2 bond topologies to describe this molecule')
 print('Note that the atoms are the same but the connection table is different')
 print('Note the "bt=8240(1/2)" and "bt=8237(2/2)" for the bond topology ids.')
@@ -124,11 +127,11 @@ case3_mols = list(
         molecule,
         include_initial_geometries=True,
         include_optimized_geometry=True,
-        which_topologies=smu_utils_lib.WhichTopologies.ALL))
+        which_topologies=smu_utils_lib.WhichTopologies.ITC))
 assert len(case3_mols) == 10
 
 print()
-print('If we ask for everything, we get 10 molecules')
+print('If we ask for both kinds of geometries and multiple bond topologies, we get 10 molecules')
 print('5 possible geometries (4 initial and 1 optimized)')
 print('times')
 print('2 possible bond topologies')

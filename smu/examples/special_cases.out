@@ -59,6 +59,12 @@ initial_geometries {
     y: -0.7277340292930603
     z: -3.940268039703369
   }
+  energy {
+    value: -261.898872
+  }
+  gnorm {
+    value: 0.16787
+  }
 }
 optimized_geometry {
   atom_positions {
@@ -101,22 +107,17 @@ optimized_geometry {
     y: -1.3328640460968018
     z: -1.610368013381958
   }
+  energy {
+    value: -262.052347
+  }
+  gnorm {
+    value: 0.00011
+  }
 }
 properties {
   errors {
     status: 590
-  }
-  initial_geometry_energy_deprecated {
-    value: -261.898872
-  }
-  initial_geometry_gradient_norm_deprecated {
-    value: 0.16787
-  }
-  optimized_geometry_energy_deprecated {
-    value: -262.052347
-  }
-  optimized_geometry_gradient_norm_deprecated {
-    value: 0.00011
+    fate: FATE_DISASSOCIATED
   }
   smiles_openbabel: "[O-][NH+]([NH3+])[O-]"
 }
@@ -162,8 +163,8 @@ bond_topologies {
   }
   smiles: "[NH3+][NH+]([O-])[O-]"
   bond_topology_id: 146
+  source: 1
 }
-fate: FATE_DISASSOCIATED
 
 You can see that there is very little information there
 Anything with status variable >=512 has nothing other than an attempted geometry optimization, which failed for some reason
