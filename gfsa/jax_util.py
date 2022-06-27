@@ -24,7 +24,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-jax.config.enable_omnistaging()
 
 # Type alias for functions that handle NDArrays
 NDArray = Union[np.ndarray, jnp.DeviceArray]
