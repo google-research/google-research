@@ -796,7 +796,7 @@ def iterate_bond_topologies(molecule, which):
     which: WhichTopologies  Yields index of topology, dataset_pb2.BondTopology
 
   Yields:
-    Bond topology.
+    int (index in bond_topologies), Bond topology.
   """
   if which == WhichTopologies.ALL:
     yield from enumerate(molecule.bond_topologies)

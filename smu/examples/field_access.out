@@ -1,6 +1,8 @@
 We will examine molecule with id 57001
 The computed properties are generally in the .properties field
+
 Scalar values are access by name (note the .value suffix), like this single point energy:  -213.76513
+
 Fields with repeated values like harmonic_intensities and excitation_energies_cc2) use an index with [] on the repeated values
 The 0th and 6th harmonic_intensities: 0.0 21.5
 Or you can iterate over all of them
@@ -10,10 +12,19 @@ Excitation energy: 0.35454
 Excitation energy: 0.3652
 Excitation energy: 0.39769
 Or just ask how many excitation_energies_cc2 there are: 5
+
 Some fields like dipole_moment_pbe0_aug_pc_1 have explicit x,y,z components
 0.76262 -0.24296 0.1717
+
+Some fields are higher order tensors, with similar named components
+polarizability is a rank 2 tensor
+18.44366 19.24036 16.25237 -1.14202 0.80691 -4.21845
+octopole moment is a rank 3 tensor
+-36.61988 1.32409 2.19806 -0.11857 0.88628 -17.85217 1.13763 -16.62721 0.11383 1.79615
+
 A couple of important fields are not inside "properties"
-The geometry has positions for 4 atoms and the first atom x-coordinate is 1.9872709512710571
+For example, the optimized geometry has an energy of -213.607287 and positions for 4 atoms and the first atom x-coordinate is 1.9872709512710571
+
 In addition to looking at dataset.proto for field documentation, you can just print a given molecule to see what fields are available
 molecule_id: 57001
 initial_geometries {
