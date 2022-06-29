@@ -288,6 +288,8 @@ class SmuWriter:
     Returns:
       A multiline string representation of timings for different computations.
     """
+    if len(properties.calculation_statistics) == 0:
+      return ''
     result = 'TIMINGS'
 
     def get_stat(s):
@@ -311,6 +313,8 @@ class SmuWriter:
     Returns:
       A multiline string representation of timings for different computations.
     """
+    if len(properties.calculation_statistics) == 0:
+      return ''
     labels = '       '
     values = 'TIMINGS'
     for statistic in properties.calculation_statistics:
