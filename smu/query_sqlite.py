@@ -301,7 +301,7 @@ class Atomic2InputOutputter:
     Args:
       molecule:
     """
-    for bt_idx, _ in smu_utils_lib.iterate_bond_topologies(
+    for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
         molecule, self.which_topologies):
       if self.output_path is None:
         sys.stdout.write(self.atomic2_writer.process(molecule, bt_idx))
@@ -312,6 +312,13 @@ class Atomic2InputOutputter:
                 self.atomic2_writer.get_filename_for_atomic2_input(
                     molecule, bt_idx)), 'w') as f:
           f.write(self.atomic2_writer.process(molecule, bt_idx))
+        if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING:
+          with open(
+              os.path.join(
+                self.output_path,
+                self.atomic2_writer.get_filename_for_atomic2_input(
+                  molecule, None)), 'w') as f:
+            f.write(self.atomic2_writer.process(molecule, bt_idx))
 
   def close(self):
     pass

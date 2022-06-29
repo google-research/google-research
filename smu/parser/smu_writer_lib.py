@@ -1045,17 +1045,19 @@ class Atomic2InputWriter:
     pass
 
   def get_filename_for_atomic2_input(self, molecule, bond_topology_idx):
-    """Returns the expected filename for an atomic input."""
-    if bond_topology_idx:
-      return '{}.{:06d}.{:03d}.{:02d}.inp'.format(
+    """Returns the expected filename for an atomic input.
+
+    bond_topology_idx can be None (for the starting topology)
+    """
+    if bond_topology_idx is not None:
+      return '{}.{:06d}.{:03d}.{:03d}.inp'.format(
           smu_utils_lib.get_composition(
               molecule.bond_topologies[bond_topology_idx]),
           molecule.molecule_id // 1000, molecule.molecule_id % 1000,
           bond_topology_idx)
     else:
       return '{}.{:06d}.{:03d}.inp'.format(
-          smu_utils_lib.get_composition(
-              molecule.bond_topologies[bond_topology_idx]),
+          smu_utils_lib.get_composition(molecule.bond_topologies[0]),
           molecule.molecule_id // 1000, molecule.molecule_id % 1000)
 
   def get_mol_block(self, molecule, bond_topology_idx):

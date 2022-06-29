@@ -75,7 +75,7 @@ def main(argv):
 
       actual_contents = atomic2_writer.process(molecule, 0)
 
-      expected_fn = atomic2_writer.get_filename_for_atomic2_input(molecule, 0)
+      expected_fn = atomic2_writer.get_filename_for_atomic2_input(molecule, None)
       with gfile.GFile(os.path.join(FLAGS.atomic2_input_dir,
                                     expected_fn)) as expected_f:
         expected_contents = expected_f.readlines()
