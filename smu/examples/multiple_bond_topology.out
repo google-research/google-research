@@ -57,3 +57,40 @@ Molecule 3177001 has 3 bond topologies
         Sources:  ITC 
     Topology with id 2805 and SMILES [O-][N+]12CN1N2
         Sources:  ITC 
+
+The easiest and most reliable way to select the desired topologies is the function
+iterate_bond_topologies. The "which" parameter controls which bond topologies are returned
+Molecule 8400001 has 3 bond topologies
+    Topology with id 8405 and SMILES O=[N+]1ON1O[O-]
+        Sources:  ITC MLCR 
+    Topology with id 8400 and SMILES [O-][N+]12OON1O2
+        Sources:  STARTING ITC MLCR 
+    Topology with id 8078 and SMILES [O-]O[N+]1=[N+]([O-])O1
+        Sources:  MLCR 
+
+Passing ALL as the which parameter gives
+    Got bond topology with position 0 and id 8405
+    Got bond topology with position 1 and id 8400
+    Got bond topology with position 2 and id 8078
+
+Passing BEST as the which parameter gives
+    Got bond topology with position 0 and id 8405
+Note that BEST always returns a single topology
+
+Passing STARTING as the which parameter gives
+    Got bond topology with position 1 and id 8400
+Note that STARTING deals correctly with special cases present in the complete database
+See special_cases.py for some details.
+This is one of the reasons this function is the recommended method
+
+The last 3 which values select topologies based on which methods produced them
+which of ITC gives
+    Got bond topology with position 0 and id 8405
+    Got bond topology with position 1 and id 8400
+which of MLCR gives
+    Got bond topology with position 0 and id 8405
+    Got bond topology with position 1 and id 8400
+    Got bond topology with position 2 and id 8078
+which of CSD gives
+    It is correct that nothing was printed here!
+    This topology has no topology matching the CSD criteria
