@@ -217,7 +217,7 @@ class SpinSphericalClassifierTest(tf.test.TestCase, parameterized.TestCase):
     # because the local pooling introduces equivariance errors.
     self.assertAllClose(rotated_output, output, atol=1e-1)
     self.assertLess(_normalized_mean_absolute_error(output, rotated_output),
-                    0.1)
+                    0.11)
 
 
 class CNNClassifierTest(tf.test.TestCase, parameterized.TestCase):

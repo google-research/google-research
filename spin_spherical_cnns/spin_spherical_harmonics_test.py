@@ -48,6 +48,17 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
     self.assertAllClose(
         coeffs_jax, spin_spherical_harmonics.coefficients_to_matrix(coeffs_np))
 
+  @parameterized.parameters(dict(resolution=8, spin=-1),
+                            dict(resolution=16, spin=0),
+                            dict(resolution=16, spin=1))
+  def test_swsft_forward_matches_with_symmetry(self, resolution, spin):
+    """Check whether the versions with and without symmetry match."""
+    transformer = _get_transformer()
+    sphere = (jnp.linspace(-1, 1, resolution**2)
+              .reshape((resolution, resolution)))
+    self.assertAllClose(transformer.swsft_forward(sphere, spin),
+                        transformer.swsft_forward_with_symmetry(sphere, spin))
+
   def test_swsft_forward_validate_raises(self):
     """Check that swsft_forward() raises exception if constants are invalid."""
     transformer = spin_spherical_harmonics.SpinSphericalFourierTransformer(
@@ -115,6 +126,20 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
                                            spin)
         self.assertAllClose(coefficients[Ellipsis, spin, channel], sliced)
 
+  def test_swsft_forward_spins_channels_matches_with_symmetry(self):
+    transformer = _get_transformer()
+    resolution = 16
+    n_channels = 2
+    spins = (0, 1)
+    shape = (resolution, resolution, len(spins), n_channels)
+    sphere_set = jnp.linspace(-1, 1, np.prod(shape)).reshape(shape)
+    coefficients = transformer.swsft_forward_spins_channels(
+        sphere_set, spins)
+    with_symmetry = transformer.swsft_forward_spins_channels_with_symmetry(
+        sphere_set, spins)
+
+    self.assertAllClose(coefficients, with_symmetry)
+
   def test_swsft_backward_spins_channels_matches_swsft_backward(self):
     transformer = _get_transformer()
     ell_max = 7
@@ -143,11 +168,8 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
   @parameterized.parameters(0, 1, 2, 4, 7)
   def test_SpinSphericalFourierTransformer_wigner_delta_matches_np(self, ell):
     transformer = _get_transformer()
-    ell_max = transformer.wigner_deltas.shape[0] - 1
-    # We take the bottom-right part of the Wigner Delta of degree ell.
-    wigner_delta = transformer.wigner_deltas[ell,
-                                             :ell+1,
-                                             ell_max:ell_max+ell+1]
+    wigner_delta = transformer._slice_wigner_deltas(
+        ell, include_negative_m=True)[ell]
     wigner_delta_np = sphere_utils.compute_wigner_delta(ell)
     self.assertAllClose(wigner_delta, wigner_delta_np)
 

@@ -65,7 +65,7 @@ class SpinSphericalFourierTransformer:
   >>> coefficients = transformer.swsft_forward(input, spin).
 
   Attributes:
-    wigner_deltas: Zero-padded (ell_max+1, ell_max+1, 2*ell_max+1) array
+    wigner_deltas: Zero-padded (ell_max+1, 2*ell_max+1, 2*ell_max+1) array
       with stacked Wigner Deltas. Element at (ell, n, m) corresponds to
       \Delta_{n,m}^\ell. See also: sphere_utils.compute_all_wigner_delta().
     quadrature_weights: dict mapping resolutions (int) to quadrature weights
@@ -125,11 +125,15 @@ class SpinSphericalFourierTransformer:
 
     return True
 
-  def _slice_wigner_deltas(self, ell_max):
+  def _slice_wigner_deltas(self, ell_max, include_negative_m=False):
     """Returns sliced wigner_deltas as if max degree were ell_max."""
     middle = self.wigner_deltas.shape[0] - 1
+    if include_negative_m:
+      m_indices = slice(middle-ell_max, middle+ell_max+1)
+    else:
+      m_indices = slice(middle, middle+ell_max+1)
     return self.wigner_deltas[:ell_max + 1,
-                              :ell_max + 1,
+                              m_indices,
                               (middle-ell_max):(middle+ell_max+1)]
 
   def _slice_forward_constants(self, ell_max, spin):
@@ -146,7 +150,7 @@ class SpinSphericalFourierTransformer:
     padded_deltas = []
     for ell, delta in enumerate(wigner_deltas):
       padded_deltas.append(jnp.pad(delta,
-                                   ((0, ell_max - ell),
+                                   ((ell_max - ell, ell_max - ell),
                                     (ell_max - ell, ell_max - ell))))
     self.wigner_deltas = jnp.stack(padded_deltas)
 
@@ -226,13 +230,32 @@ class SpinSphericalFourierTransformer:
       A (n//2, n-1) array of complex64 coefficients. The coefficient at degree
       ell and order m is at position [ell, ell_max+m].
     """
+    # This version uses more operations overall but is usually faster
+    # on TPU due to less overhead.
+    if not self.validate(resolution=sphere.shape[0], spin=spin):
+      raise ValueError("Constants are invalid for given input!")
+
+    ell_max = sphere_utils.ell_max_from_resolution(sphere.shape[0])
+    Inm = jnp.fft.fftshift(self._compute_Inm(sphere, spin))  # pylint: disable=invalid-name
+
+    deltas = self._slice_wigner_deltas(ell_max, include_negative_m=True)
+    deltas = deltas * deltas[Ellipsis, ell_max - spin][Ellipsis, None]
+    forward_constants = self._slice_forward_constants(ell_max, spin)
+
+    return jnp.einsum("ik,ijk,jk->ik", forward_constants, deltas, Inm)
+
+  def swsft_forward_with_symmetry(
+      self, sphere, spin):
+    """Same as swsft, but with the intermediate Jnm computation."""
+    # This version uses less operations overall but is usually slower
+    # on TPU due to more overhead.
     if not self.validate(resolution=sphere.shape[0], spin=spin):
       raise ValueError("Constants are invalid for given input!")
 
     ell_max = sphere_utils.ell_max_from_resolution(sphere.shape[0])
     Jnm = self._compute_Jnm(sphere, spin)  # pylint: disable=invalid-name
     Jnm = jnp.concatenate([Jnm[:, -ell_max:], Jnm[:, :ell_max+1]], axis=1)  # pylint: disable=invalid-name
-    deltas = self._slice_wigner_deltas(ell_max)
+    deltas = self._slice_wigner_deltas(ell_max, include_negative_m=False)
     deltas = deltas * deltas[Ellipsis, ell_max - spin][Ellipsis, None]
     forward_constants = self._slice_forward_constants(ell_max, spin)
 
@@ -315,7 +338,36 @@ class SpinSphericalFourierTransformer:
     Returns:
       An (n//2, n-1, n_spins, n_channels) complex64 array of coefficients.
     """
-    return jnp.stack([self.swsft_forward(sphere_set[Ellipsis, i], spin)
+    return self._swsft_forward_spins_base(sphere_set, spins, use_symmetry=False)
+
+  @functools.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
+  def swsft_forward_spins_channels_with_symmetry(
+      self, sphere_set, spins):
+    """Same as `swsft_forward_spins_channels`, but leveraging symmetry."""
+    return self._swsft_forward_spins_base(sphere_set, spins, use_symmetry=True)
+
+  def _swsft_forward_spins_base(
+      self,
+      sphere_set,
+      spins,
+      use_symmetry):
+    """Applies swsft_forward() to multiple stacked spins.
+
+    Args:
+      sphere_set: An (n, n, n_spins) array representing a spherical
+        functions. Equirectangular sampling, leading dimensions are lat, long.
+      spins: An (n_spins,) list of int spin weights.
+     use_symmetry: when True, exploit symmetry via the intermediate
+       matrix Jnm; this halves the number of operations, but is
+       usually slower on TPU due to overhead of slicing and
+       concatenating large arrays.
+
+    Returns:
+      An (n//2, n-1, n_spins) complex64 array of coefficients.
+    """
+    forward_fun = (self.swsft_forward_with_symmetry if use_symmetry
+                   else self.swsft_forward)
+    return jnp.stack([forward_fun(sphere_set[Ellipsis, i], spin)
                       for i, spin in enumerate(spins)], axis=-1)
 
   @functools.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)

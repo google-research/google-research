@@ -161,16 +161,15 @@ def compute_wigner_delta(ell):
     ell: Degree (int).
 
   Returns:
-    An (ell+1, ell+1) read-only float64 array with the bottom right part (0 <=
-    m, n <= ell) of the Wigner Delta. The rest of the matrix can be determined
-    by symmetry. Output is read-only to allow caching.
+    An (2*ell+1, 2*ell+1) read-only float64 array with the Wigner
+      Delta. Output is read-only to allow caching.
 
   Raises:
     ValueError: if ell larger than maximum allowed.
   """
   if ell > 32:
     raise ValueError("Only accurate for ell <= 32.")
-  wigner_delta = sympy.physics.wigner.wigner_d_small(ell, np.pi / 2)[ell:, ell:]
+  wigner_delta = sympy.physics.wigner.wigner_d_small(ell, np.pi / 2)
   wigner_delta_array = np.array(wigner_delta).astype(np.float64)
   wigner_delta_array.flags.writeable = False
   return wigner_delta_array
@@ -180,27 +179,15 @@ def compute_wigner_delta(ell):
 def compute_all_wigner_delta(ell_max):
   r"""Computes all Wigner \Delta for 0 <= ell <= ell_max.
 
-  This also expands each \Delta to include all columns: -ell <= m <= ell to
-  simplify the Gnm computations used in the backward SWSFT.
-
   Args:
     ell_max: Maximum degree (int).
 
   Returns:
-    List with ell_max+1 elements. Element at position ell is an (ell+1, 2*ell+1)
-    float64 array with the bottom half the Wigner \Delta of degree ell. The top
-    half can be obtained from symmetries (see H&W, Appendix A).
+    Tuple with ell_max+1 elements. Element at position ell is an
+    (2*ell+1, 2*ell+1) float64 array with the Wigner \Delta of degree
+    ell.
   """
-  deltas = []
-  for ell in range(ell_max+1):
-    delta_pos = compute_wigner_delta(ell)
-    delta_neg = delta_pos * ((-1)**(ell + np.arange(ell+1))[:, None])
-    delta_neg = delta_neg[:, 1:][:, ::-1]
-    delta_concat = np.concatenate([delta_neg, delta_pos], axis=1)
-    delta_concat.flags.writeable = False
-    deltas.append(delta_concat)
-
-  return tuple(deltas)
+  return tuple(compute_wigner_delta(ell) for ell in range(ell_max + 1))
 
 
 def swsft_forward_constant(spin, ell, m):
