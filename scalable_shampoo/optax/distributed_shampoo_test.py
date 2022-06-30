@@ -209,6 +209,23 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
     updates, state = pmap_fn(jnp.array([1.0]))
     chex.assert_tree_all_finite((params, updates, state))
 
+  @chex.all_variants(with_pmap=False)
+  def test_distributed_shampoo_no_pmap(self):
+    params = self.init_params
+
+    optim = distributed_shampoo.distributed_shampoo(
+        0.1,
+        32,
+        batch_axis_name=None,
+        preconditioning_compute_steps=2,
+    )
+    init_fn = self.variant(optim.init)
+    transform_fn = self.variant(optim.update)
+    state = init_fn(params)
+    chex.assert_tree_all_finite(state)
+    updates, state = transform_fn(self.per_step_updates, state, params)
+    chex.assert_tree_all_finite((params, updates, state))
+
   def test_matrix_inverse_root(self):
     """Test for matrix inverse pth root."""
 
