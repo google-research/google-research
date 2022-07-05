@@ -177,7 +177,7 @@ class SpinSphericalFourierTransformer:
     torus = jnp.concatenate([sphere, torus], axis=0)
     weights = self.quadrature_weights[n]
     torus = jnp.einsum("i,i...->i...", weights, torus)
-    coeffs = _fft2(torus) * 2 * jnp.pi / n
+    coeffs = _fourier_transform_2d(torus) * 2 * jnp.pi / n
 
     return coeffs
 
@@ -426,11 +426,16 @@ class SpinSphericalFourierTransformer:
     ft = jnp.pad(ft, [(ell_max+1, ell_max), (1, 0), (0, 0), (0, 0)])
     ft = jnp.fft.ifftshift(ft, axes=(0, 1))
 
+    # For the dimensions we typically have here, computing the naive
+    # FT by multiplying by the IDFT matrix is significantly faster
+    # than the FFT (at least on TPU).
+    idft_matrix = jnp.fft.ifft(jnp.eye(ft.shape[0]))
     # Since only half of the 2D IFFT is needed, it is faster to slice
     # after the first 1D IFFT.
+    rowwise = jnp.einsum("ij,j...->i...", idft_matrix, ft)[:2*(ell_max + 1)]
     num_elements = ft.shape[0] * ft.shape[1]
-    rowwise = jnp.fft.ifft(ft, axis=0)[:2*(ell_max + 1)]
-    return jnp.fft.ifft(rowwise, axis=1) * num_elements
+    idft_matrix = jnp.fft.ifft(jnp.eye(ft.shape[1]))
+    return jnp.einsum("ij,kj...->ki...", idft_matrix, rowwise) * num_elements
 
 # This makes SpinSphericalFourierTransformer a jit-able JAX type. See
 # https://github.com/google/jax/issues/806 for discussion.
@@ -464,7 +469,12 @@ def coefficients_to_matrix(coeffs):
   return jnp.stack(matrix)
 
 
-def _fft2(x):
-  """Computes the 2D FFT (because JAX does not have a 2D FFT TPU kernel)."""
-  rowwise = jnp.fft.fft(x, axis=0)
-  return jnp.fft.fft(rowwise, axis=1)
+def _fourier_transform_2d(x):
+  """Compute the 2D Fourier Transform for the first two dimensions."""
+  # For the dimensions we typically have here, computing the naive
+  # FT by multiplying by the DFT matrix is significantly faster than
+  # the FFT (at least on TPU).
+  dft_matrix = jnp.fft.fft(jnp.eye(x.shape[0]))
+  rowwise = jnp.einsum("ij,j...->i...", dft_matrix, x)
+  dft_matrix = jnp.fft.fft(jnp.eye(x.shape[1]))
+  return jnp.einsum("ij,kj...->ki...", dft_matrix, rowwise)
