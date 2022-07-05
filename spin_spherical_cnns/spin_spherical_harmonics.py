@@ -177,7 +177,7 @@ class SpinSphericalFourierTransformer:
     torus = (-1.0)**spin * jnp.roll(sphere[1:-1][::-1], n // 2, axis=1)
     torus = jnp.concatenate([sphere, torus], axis=0)
     weights = self.quadrature_weights[n]
-    torus = weights[:, None] * torus
+    torus = jnp.einsum("i,i...->i...", weights, torus)
     coeffs = _fft2(torus) * 2 * jnp.pi / n
 
     return coeffs
@@ -198,13 +198,20 @@ class SpinSphericalFourierTransformer:
 
   def _compute_Jnm(self, sphere, spin):  # pylint: disable=invalid-name
     """See np_spin_spherical_harmonics._compute_Jnm()."""
-    ell_max = sphere_utils.ell_max_from_resolution(sphere.shape[0])
-    Inm = self._compute_Inm(sphere, spin)  # pylint: disable=invalid-name
+    return self._compute_Jnm_spins_channels(jnp.expand_dims(sphere, [2, 3]),
+                                            [spin])[Ellipsis, 0, 0]
+
+  def _compute_Jnm_spins_channels(self, sphere_set, spins):  # pylint: disable=invalid-name
+    """Computes Jnm over different spins and channels."""
+    ell_max = sphere_utils.ell_max_from_resolution(sphere_set.shape[0])
+    expanded_spins = jnp.expand_dims(jnp.array(spins), [0, 1, 3])
+    Inm = self._compute_Inm(sphere_set, expanded_spins)  # pylint: disable=invalid-name
 
     # Make a matrix with (-1)^{m+s} columns.
     m = jnp.concatenate(
-        [jnp.arange(ell_max + 1), -jnp.arange(ell_max + 1)[1:][::-1]])[None]
-    signs = (-1.)**(m + spin)
+        [jnp.arange(ell_max + 1), -jnp.arange(ell_max + 1)[1:][::-1]])
+    signs = (-1.)**(jnp.expand_dims(m, (0, 2, 3)) +
+                    expanded_spins)
 
     # Jnm only contains positive n.
     Jnm = Inm[:ell_max + 1]  # pylint: disable=invalid-name
@@ -232,17 +239,9 @@ class SpinSphericalFourierTransformer:
     """
     # This version uses more operations overall but is usually faster
     # on TPU due to less overhead.
-    if not self.validate(resolution=sphere.shape[0], spin=spin):
-      raise ValueError("Constants are invalid for given input!")
-
-    ell_max = sphere_utils.ell_max_from_resolution(sphere.shape[0])
-    Inm = jnp.fft.fftshift(self._compute_Inm(sphere, spin))  # pylint: disable=invalid-name
-
-    deltas = self._slice_wigner_deltas(ell_max, include_negative_m=True)
-    deltas = deltas * deltas[Ellipsis, ell_max - spin][Ellipsis, None]
-    forward_constants = self._slice_forward_constants(ell_max, spin)
-
-    return jnp.einsum("ik,ijk,jk->ik", forward_constants, deltas, Inm)
+    coefficients = self.swsft_forward_spins_channels(
+        jnp.expand_dims(sphere, (2, 3)), [spin])
+    return coefficients[Ellipsis, 0, 0]
 
   def swsft_forward_with_symmetry(
       self, sphere, spin):
@@ -278,6 +277,20 @@ class SpinSphericalFourierTransformer:
     # Backward constants relates to forward via these signs.
     signs = (-1.)**(spin + jnp.arange(-ell_max, ell_max+1))[None, :]
     backward_constant = self._slice_forward_constants(ell_max, spin) * signs
+    deltas = self._slice_wigner_deltas(ell_max, include_negative_m=True)
+    deltas_s = deltas[Ellipsis, ell_max - spin]
+
+    return jnp.einsum("lm,lnm,ln->nm",
+                      backward_constant * coeffs,
+                      deltas,
+                      deltas_s)
+
+  def _compute_Gnm_with_symmetry(self, coeffs, spin):  # pylint: disable=invalid-name
+    """Same as `_compute_Gnm` but with fewer operations."""
+    ell_max = coeffs.shape[0] - 1
+    # Backward constants relates to forward via these signs.
+    signs = (-1.)**(spin + jnp.arange(-ell_max, ell_max+1))[None, :]
+    backward_constant = self._slice_forward_constants(ell_max, spin) * signs
     deltas = self._slice_wigner_deltas(ell_max)
     deltas_s = deltas[Ellipsis, ell_max - spin]
 
@@ -289,6 +302,34 @@ class SpinSphericalFourierTransformer:
     # Use symmetry to complete the top half.
     return jnp.concatenate([bottom_half[1:][::-1] * signs,
                             bottom_half])
+
+  def _swsft_backward_base(self,
+                           coeffs,
+                           spin,
+                           use_symmetry):
+    """Implements `swsft_backward` and `swsft_backward_with_symmetry`."""
+    ell_max = coeffs.shape[0] - 1
+    if not self.validate(resolution=2*(ell_max + 1), spin=spin):
+      raise ValueError("Constants are invalid for given input!")
+
+    # Gnm is related to the 2D Fourier transform of the ISWSFT.
+    if use_symmetry:
+      ft = self._compute_Gnm_with_symmetry(coeffs, spin)
+    else:
+      ft = self._compute_Gnm(coeffs, spin)
+    ft = jnp.fft.ifftshift(ft)
+
+    # Zero-pad to final dimension before FFT. This is the torus extension, so we
+    # only want the top half.
+    ft = jnp.concatenate([ft[:, :ell_max+1],
+                          jnp.zeros((2*ell_max+1, 1)),
+                          ft[:, ell_max+1:]], axis=1)
+    ft = jnp.concatenate([ft[:ell_max+1],
+                          jnp.zeros_like(ft),
+                          ft[ell_max+1:]])
+
+    # Return the top half.
+    return _ifft2(ft)[:2*(ell_max+1)] * ft.size
 
   def swsft_backward(self, coeffs, spin):
     """Inverse spin-weighted spherical harmonics transform (fast JAX version).
@@ -304,27 +345,13 @@ class SpinSphericalFourierTransformer:
       A (2*ell_max + 2, 2*ell_max + 2) complex64 array with equiangular sampling
       (H&W) of a spin-weighted spherical function.
     """
-    ell_max = coeffs.shape[0] - 1
-    if not self.validate(resolution=2*(ell_max + 1), spin=spin):
-      raise ValueError("Constants are invalid for given input!")
+    return self._swsft_backward_base(coeffs, spin, use_symmetry=False)
 
-    # Gnm is related to the 2D Fourier transform of the ISWSFT.
-    ft = self._compute_Gnm(coeffs, spin)
-    ft = jnp.fft.ifftshift(ft)
+  def swsft_backward_with_symmetry(
+      self, coeffs, spin):
+    """Same as `swsft_backward` but with fewer operations."""
+    return self._swsft_backward_base(coeffs, spin, use_symmetry=True)
 
-    # Zero-pad to final dimension before FFT. This is the torus extension, so we
-    # only want the top half.
-    ft = jnp.concatenate([ft[:, :ell_max+1],
-                          jnp.zeros((2*ell_max+1, 1)),
-                          ft[:, ell_max+1:]], axis=1)
-    ft = jnp.concatenate([ft[:ell_max+1],
-                          jnp.zeros_like(ft),
-                          ft[ell_max+1:]])
-
-    # Return the top half.
-    return _ifft2(ft)[:2*(ell_max+1)] * ft.size
-
-  @functools.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
   def swsft_forward_spins_channels(self,
                                    sphere_set,
                                    spins):
@@ -338,37 +365,44 @@ class SpinSphericalFourierTransformer:
     Returns:
       An (n//2, n-1, n_spins, n_channels) complex64 array of coefficients.
     """
-    return self._swsft_forward_spins_base(sphere_set, spins, use_symmetry=False)
+    for spin in spins:
+      if not self.validate(resolution=sphere_set.shape[0], spin=spin):
+        raise ValueError("Constants are invalid for given input!")
 
-  @functools.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
+    ell_max = sphere_utils.ell_max_from_resolution(sphere_set.shape[0])
+    expanded_spins = jnp.expand_dims(jnp.array(spins), [0, 1, 3])
+    Inm = jnp.fft.fftshift(  # pylint: disable=invalid-name
+        self._compute_Inm(sphere_set, expanded_spins),
+        axes=(0, 1))
+
+    deltas = self._slice_wigner_deltas(ell_max, include_negative_m=True)
+    deltas_s = jnp.stack([deltas[Ellipsis, ell_max - spin]
+                          for spin in spins], axis=-1)
+    forward_constants = jnp.stack([self._slice_forward_constants(ell_max, spin)
+                                   for spin in spins], axis=-1)
+
+    return jnp.einsum("lns,lmn,lms,mns...->lns...",
+                      forward_constants, deltas, deltas_s, Inm)
+
   def swsft_forward_spins_channels_with_symmetry(
       self, sphere_set, spins):
     """Same as `swsft_forward_spins_channels`, but leveraging symmetry."""
-    return self._swsft_forward_spins_base(sphere_set, spins, use_symmetry=True)
+    for spin in spins:
+      if not self.validate(resolution=sphere_set.shape[0], spin=spin):
+        raise ValueError("Constants are invalid for given input!")
 
-  def _swsft_forward_spins_base(
-      self,
-      sphere_set,
-      spins,
-      use_symmetry):
-    """Applies swsft_forward() to multiple stacked spins.
+    ell_max = sphere_utils.ell_max_from_resolution(sphere_set.shape[0])
+    Jnm = self._compute_Jnm_spins_channels(sphere_set, spins)  # pylint: disable=invalid-name
+    Jnm = jnp.concatenate([Jnm[:, -ell_max:], Jnm[:, :ell_max+1]], axis=1)  # pylint: disable=invalid-name
 
-    Args:
-      sphere_set: An (n, n, n_spins) array representing a spherical
-        functions. Equirectangular sampling, leading dimensions are lat, long.
-      spins: An (n_spins,) list of int spin weights.
-     use_symmetry: when True, exploit symmetry via the intermediate
-       matrix Jnm; this halves the number of operations, but is
-       usually slower on TPU due to overhead of slicing and
-       concatenating large arrays.
+    deltas = self._slice_wigner_deltas(ell_max, include_negative_m=False)
+    deltas_s = jnp.stack([deltas[Ellipsis, ell_max - spin]
+                          for spin in spins], axis=-1)
+    forward_constants = jnp.stack([self._slice_forward_constants(ell_max, spin)
+                                   for spin in spins], axis=-1)
 
-    Returns:
-      An (n//2, n-1, n_spins) complex64 array of coefficients.
-    """
-    forward_fun = (self.swsft_forward_with_symmetry if use_symmetry
-                   else self.swsft_forward)
-    return jnp.stack([forward_fun(sphere_set[Ellipsis, i], spin)
-                      for i, spin in enumerate(spins)], axis=-1)
+    return jnp.einsum("lms,lnm,lns,nms...->lms...",
+                      forward_constants, deltas, deltas_s, Jnm)
 
   @functools.partial(jax.vmap, in_axes=(None, -1, None), out_axes=-1)
   def swsft_backward_spins_channels(self,

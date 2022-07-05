@@ -92,6 +92,19 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
 
     self.assertAllClose(sphere_np, sphere_jax)
 
+  @parameterized.parameters(dict(num_coefficients=16, spin=1),
+                            dict(num_coefficients=16, spin=0),
+                            dict(num_coefficients=64, spin=-2))
+  def test_swsft_backward_matches_with_symmetry(self, num_coefficients, spin):
+    transformer = _get_transformer()
+    coeffs = (jnp.linspace(-1, 1, num_coefficients) +
+              1j*jnp.linspace(0, 1, num_coefficients))
+    coeffs = spin_spherical_harmonics.coefficients_to_matrix(coeffs)
+    sphere = transformer.swsft_backward(coeffs, spin)
+    with_symmetry = transformer.swsft_backward_with_symmetry(coeffs, spin)
+
+    self.assertAllClose(sphere, with_symmetry)
+
   def test_swsft_backward_validate_raises(self):
     """Check that swsft_backward() raises exception if constants are invalid."""
     transformer = spin_spherical_harmonics.SpinSphericalFourierTransformer(
