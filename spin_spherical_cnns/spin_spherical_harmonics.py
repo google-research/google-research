@@ -280,10 +280,9 @@ class SpinSphericalFourierTransformer:
     deltas = self._slice_wigner_deltas(ell_max, include_negative_m=True)
     deltas_s = deltas[Ellipsis, ell_max - spin]
 
-    return jnp.einsum("lm,lnm,ln->nm",
-                      backward_constant * coeffs,
-                      deltas,
-                      deltas_s)
+    factors = jnp.einsum("lm,lnm,ln->lnm",
+                         backward_constant, deltas, deltas_s)
+    return jnp.einsum("lnm,lm->nm", factors, coeffs)
 
   def _compute_Gnm_with_symmetry(self, coeffs, spin):  # pylint: disable=invalid-name
     """Same as `_compute_Gnm` but with fewer operations."""
@@ -317,19 +316,15 @@ class SpinSphericalFourierTransformer:
       ft = self._compute_Gnm_with_symmetry(coeffs, spin)
     else:
       ft = self._compute_Gnm(coeffs, spin)
+
+    # Padding then shifting seem more efficient than the converse here.
+    ft = jnp.pad(ft, [(ell_max+1, ell_max), (1, 0)])
     ft = jnp.fft.ifftshift(ft)
 
-    # Zero-pad to final dimension before FFT. This is the torus extension, so we
-    # only want the top half.
-    ft = jnp.concatenate([ft[:, :ell_max+1],
-                          jnp.zeros((2*ell_max+1, 1)),
-                          ft[:, ell_max+1:]], axis=1)
-    ft = jnp.concatenate([ft[:ell_max+1],
-                          jnp.zeros_like(ft),
-                          ft[ell_max+1:]])
-
-    # Return the top half.
-    return _ifft2(ft)[:2*(ell_max+1)] * ft.size
+    # Since only half of the 2D IFFT is needed, it is faster to slice
+    # after the first 1D IFFT.
+    rowwise = jnp.fft.ifft(ft, axis=0)[:2*(ell_max + 1)]
+    return jnp.fft.ifft(rowwise, axis=1) * ft.size
 
   def swsft_backward(self, coeffs, spin):
     """Inverse spin-weighted spherical harmonics transform (fast JAX version).
@@ -381,7 +376,7 @@ class SpinSphericalFourierTransformer:
     forward_constants = jnp.stack([self._slice_forward_constants(ell_max, spin)
                                    for spin in spins], axis=-1)
 
-    return jnp.einsum("lns,lmn,lms,mns...->lns...",
+    return jnp.einsum("lms,lnm,lns,nms...->lms...",
                       forward_constants, deltas, deltas_s, Inm)
 
   def swsft_forward_spins_channels_with_symmetry(
@@ -458,9 +453,3 @@ def _fft2(x):
   """Computes the 2D FFT (because JAX does not have a 2D FFT TPU kernel)."""
   rowwise = jnp.fft.fft(x, axis=0)
   return jnp.fft.fft(rowwise, axis=1)
-
-
-def _ifft2(x):
-  """Computes the 2D IFFT (because JAX does not have a 2D FFT TPU kernel)."""
-  rowwise = jnp.fft.ifft(x, axis=0)
-  return jnp.fft.ifft(rowwise, axis=1)
