@@ -78,7 +78,7 @@ class Autoencoder(nn.Module):
     x = nn.Dropout(rate=cfg.dropout_rate)(x, deterministic=cfg.deterministic)
 
     for lyr in range(cfg.num_layers):
-      x = models.EncoderBlock(   # Attend to inputs.
+      x, _ = models.EncoderBlock(   # Attend to inputs.
           config=cfg, name=f'encoderblock_{lyr}')(x, encoder_mask)
 
     y = x * targets_mask[Ellipsis, None]
