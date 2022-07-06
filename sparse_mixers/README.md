@@ -3,14 +3,14 @@
 
 ## Introduction
 
-Sparse Mixer combines the capacity of
-sparsely gated Mixture-of-Experts (MoE) with the speed and stability of linear,
-mixing transformations to form an efficient encoder architecture. Sparse Mixer
-slightly outperforms (<1%) BERT on GLUE and SuperGLUE, but more importantly
-trains 65% faster and runs inference 61% faster. We also include a faster
-variant, prosaically named Fast Sparse Mixer, that marginally underperforms
-(<0.2%) BERT on SuperGLUE, but trains and runs nearly twice as fast: 89% faster
-training and 98% faster inference.
+Sparse Mixer combines the capacity of sparsely gated Mixture-of-Experts (MoE)
+with the speed and stability of linear, mixing transformations to form an
+efficient encoder architecture.
+
+Sparse Mixer slightly outperforms BERT on GLUE and SuperGLUE, but more
+importantly runs >50% faster. We also include a faster variant, prosaically
+named Fast Sparse Mixer, that very marginally underperforms (<0.2%) BERT on
+SuperGLUE, but trains and runs nearly twice as fast.
 
 This repo contains the model libraries and model training code. Models are
 pre-trained on the [C4](https://www.tensorflow.org/datasets/catalog/c4) dataset
