@@ -1,6 +1,6 @@
 # Universal Embedding Challenge baseline model implementation.
 
-This folder contains the baseline model implementation for the [Kaggle universal embedding challenge](https://www.kaggle.com/competitions/google-universal-embedding-challenge/overview) based on
+This folder contains the baseline model implementation for the [Kaggle universal image embedding challenge](https://www.kaggle.com/competitions/google-universal-image-embedding/) based on
 
 - [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://arxiv.org/pdf/2010.11929.pdf).
 - [Training data-efficient image transformers & distillation through attention](https://arxiv.org/pdf/2012.12877.pdf).
@@ -28,3 +28,5 @@ python -m universal_embedding_challenge.train \
 ```
 
 The trained model checkpoints could be further converted to savedModel format using [export_saved_model.py](https://github.com/google-research/google-research/blob/master/universal_embedding_challenge/export_saved_model.py) for Kaggle submission.
+
+The code to compute metrics for Universal Embedding Challenge is implemented in [metrics.py](https://github.com/google-research/google-research/blob/master/universal_embedding_challenge/metrics.py) and the code to read the solution file is implemented in [read_retrieval_solution.py](https://github.com/google-research/google-research/blob/master/universal_embedding_challenge/read_retrieval_solution.py).

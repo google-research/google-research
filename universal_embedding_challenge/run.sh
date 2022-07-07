@@ -28,3 +28,7 @@ python -m universal_embedding_challenge.train \
   --mode=train_and_eval \
   --model_dir=/tmp/imagenet1k_test \
   --params_override="{'task': {'model': {'backbone': {'vit': {'model_name': 'vit-ti16'}}}, 'train_data': {'global_batch_size': 1}, 'validation_data': {'global_batch_size': 1}}}"
+
+pytest -v uec.metrics_test.py
+
+pytest -v uec.read_retrieval_solution_test.py
