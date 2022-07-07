@@ -20,11 +20,10 @@ from typing import Callable, Optional, Sequence
 
 from acme import specs
 from acme.jax import utils
-from acme.jax.layouts import distributed_layout
 from acme.utils import loggers
-
 from contrastive import builder
 from contrastive import config as contrastive_config
+from contrastive import distributed_layout
 from contrastive import networks
 from contrastive import utils as contrastive_utils
 

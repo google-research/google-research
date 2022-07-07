@@ -15,6 +15,7 @@
 
 """Utility for loading the AntMaze environments."""
 import d4rl
+import gym
 import numpy as np
 
 
@@ -68,8 +69,12 @@ class AntMaze(d4rl.locomotion.ant.AntMazeEnv):
                                   non_zero_reset=non_zero_reset,
                                   eval=True,
                                   maze_size_scaling=4.0,
-                                  high=np.full((58,), np.inf),
-                                  dtype=np.float32)
+                                  ref_min_score=0.0,
+                                  ref_max_score=1.0)
+    self.observation_space = gym.spaces.Box(
+        low=np.full((58,), -np.inf),
+        high=np.full((58,), np.inf),
+        dtype=np.float32)
 
   def reset(self):
     super(AntMaze, self).reset()
@@ -104,3 +109,43 @@ class AntMaze(d4rl.locomotion.ant.AntMazeEnv):
       return super(AntMaze, self)._get_reset_location()
     else:
       return self._goal_sampler(np.random)
+
+
+class OfflineAntWrapper(gym.ObservationWrapper):
+  """Wrapper for exposing the goals of the AntMaze environments."""
+
+  def __init__(self, env):
+    env.observation_space = gym.spaces.Box(
+        low=-1.0 * np.ones(58),
+        high=np.ones(58),
+        dtype=np.float32,
+    )
+    super(OfflineAntWrapper, self).__init__(env)
+
+  def observation(self, observation):
+    goal_obs = np.zeros_like(observation)
+    goal_obs[:2] = self.env.target_goal
+    return np.concatenate([observation, goal_obs])
+
+  @property
+  def max_episode_steps(self):
+    return self.env.max_episode_steps
+
+
+def make_offline_ant(env_name):
+  """Loads the D4RL AntMaze environments."""
+  if env_name == 'offline_ant_umaze':
+    env = gym.make('antmaze-umaze-v2')
+  elif env_name == 'offline_ant_umaze_diverse':
+    env = gym.make('antmaze-umaze-diverse-v2')
+  elif env_name == 'offline_ant_medium_play':
+    env = gym.make('antmaze-medium-play-v2')
+  elif env_name == 'offline_ant_medium_diverse':
+    env = gym.make('antmaze-medium-diverse-v2')
+  elif env_name == 'offline_ant_large_play':
+    env = gym.make('antmaze-large-play-v2')
+  elif env_name == 'offline_ant_large_diverse':
+    env = gym.make('antmaze-large-diverse-v2')
+  else:
+    raise NotImplementedError
+  return OfflineAntWrapper(env.env)

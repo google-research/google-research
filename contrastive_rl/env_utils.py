@@ -103,6 +103,12 @@ def load(env_name):
       max_episode_steps = 700
     else:
       max_episode_steps = 1000
+  elif env_name.startswith('offline_ant'):
+    CLASS = lambda: ant_env.make_offline_ant(env_name)
+    if 'umaze' in env_name:
+      max_episode_steps = 700
+    else:
+      max_episode_steps = 1000
   elif env_name.startswith('point_image'):
     CLASS = point_env.PointImage
     kwargs['walls'] = env_name.split('_')[-1]

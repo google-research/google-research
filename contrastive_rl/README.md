@@ -21,17 +21,18 @@ This repository contains the new algorithms, some of the baselines, and the asso
 
 ### Installation
 
-The dependencies can all be installed via Anaconda:
-```
-conda env create -f environment.yml
-```
+1. Create an Anaconda environment: `conda create -n contrastive_rl python=3.9
+   -y`
+2. Activate the environment: `conda activate contrastive_rl`
+3. Install the dependencies: `pip install -r requirements.txt --no-deps`
+4. Check that the installation worked: `./run.sh`
 
 ### Running the experiments
 
 To check that the installation has completed, run `./run.sh` to perform training for just a handful of steps. To replicate the results from the paper, please run:
 ```python lp_contrastive.py```
 
-Check out the `lp_contrastive.py` file for more information on how to select different algorithms and environments. One important note is that the image-based experiments should be run using multiprocessing, to avoid OpenGL context errors:
+Check out the `lp_contrastive.py` file for more information on how to select different algorithms and environments. For example, to try the offline RL experiments, set `env_name = 'offline_ant_umaze'`. One important note is that the image-based experiments should be run using multiprocessing, to avoid OpenGL context errors:
 ```python lp_contrastive.py --lp_launch_type=local_mp```
 
 

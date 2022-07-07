@@ -252,7 +252,7 @@ class ContrastiveLearner(acme.Learner):
             q_params, new_obs, action)
         if len(q_action.shape) == 3:  # twin q trick
           assert q_action.shape[2] == 2
-          q_action = jnp.mean(q_action, axis=-1)
+          q_action = jnp.min(q_action, axis=-1)
         actor_loss = alpha * log_prob - jnp.diag(q_action)
 
       return jnp.mean(actor_loss)
