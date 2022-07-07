@@ -1,0 +1,13 @@
+# This file may be used to create an environment using:
+# $ conda create --name stable_transfer python=3.9 
+# $ conda activate stable_transfer
+# $ pip install -r requirements.txt
+absl-py
+ml-collections
+numpy
+parameterized
+scipy
+six
+sklearn
+tensorflow
+tensorflow-datasets
