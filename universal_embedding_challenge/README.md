@@ -5,7 +5,7 @@ This folder contains the baseline model implementation for the [Kaggle universal
 - [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](https://arxiv.org/pdf/2010.11929.pdf).
 - [Training data-efficient image transformers & distillation through attention](https://arxiv.org/pdf/2012.12877.pdf).
 
-Following the above ideas, we also add a 64 projection layer on top of the Vision Transformer base model as the final embedding. Please find more details in [image_classification.py](https://github.com/google-research/google-research/blob/master/universal_embedding_challenge/image_classification.py).
+Following the above ideas, we also add a 64 projection layer on top of the Vision Transformer base model as the final embedding, since the competition requires embeddings of at most 64 dimensions. Please find more details in [image_classification.py](https://github.com/google-research/google-research/blob/master/universal_embedding_challenge/image_classification.py).
 
 
 To use the code, please firstly install the prerequisites
@@ -18,7 +18,9 @@ export PYTHONPATH=$PYTHONPATH:/tmp/models
 pip install --user -r /tmp/models/official/requirements.txt
 ```
 
-The trainer for the model is implemented in [train.py](https://github.com/google-research/google-research/blob/master/universal_embedding_challenge/train.py), and the following example launches the training on CPU
+Secondly, please download the imagenet1k data in TFRecord format from https://www.kaggle.com/datasets/hmendonca/imagenet-1k-tfrecords-ilsvrc2012-part-0 and https://www.kaggle.com/datasets/hmendonca/imagenet-1k-tfrecords-ilsvrc2012-part-1, and merge them together under folder `imagenet-2012-tfrecord/`. As a result, the paths to the training datasets and the validation datasets should be `imagenet-2012-tfrecord/train*` and `imagenet-2012-tfrecord/validation*`, respectively.
+
+The trainer for the model is implemented in [train.py](https://github.com/google-research/google-research/blob/master/universal_embedding_challenge/train.py), and the following example launches the training
 
 ```
 python -m universal_embedding_challenge.train \
