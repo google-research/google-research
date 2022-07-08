@@ -585,7 +585,7 @@ class FakePairsLoader:
     """Autoregressively samples PairHMM hidden state sequence."""
     states = tf.TensorArray(tf.int32, size=0, dynamic_size=True)
     key, subkey = split_key(key)
-    state = self.sample_state(subkey, 0)
+    state = self.sample_state(subkey, 0)  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
     len_x, len_y = 0, 0
     i = 0
     while state != self.END and tf.maximum(len_x, len_y) < self._max_len - 1:

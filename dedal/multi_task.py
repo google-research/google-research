@@ -56,8 +56,8 @@ class NamedLists(dict, Generic[T]):
     result = self.constant_copy(default_value)
     it = result.__iter__()
     for val in values:
-      next(it)
-      it._level[it._idx] = val  # pylint: disable=protected-access
+      next(it)  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
+      it._level[it._idx] = val  # pylint: disable=protected-access  # pytype: disable=unsupported-operands  # dynamic-method-lookup
     return result
 
   def flatten(self, empty_value=None):
