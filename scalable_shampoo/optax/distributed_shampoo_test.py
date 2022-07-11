@@ -16,6 +16,7 @@
 """Tests for distributed_shampoo."""
 
 import functools
+import itertools
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -131,6 +132,20 @@ class PaddingTest(parameterized.TestCase):
             mat=jnp.ones(shape=shape, dtype=jnp.float32),
             symmetric_block_size=2,
             max_num_blocks=6), jnp.asarray(result, dtype=jnp.float32))
+
+
+def _pth_root_difference_cases():
+  """Returns cases for _pth_root_difference() test."""
+  cases = []
+  # The test checks accuracy of
+  # (w + a)^(-1/p) - (w + b)^(-1/p)
+  # so generate corresponding parameters.
+  p_vals = [2, 4, 6, 8]
+  a_vals = b_vals = [1e-6, 1e-5, 0.0, 1.0]
+  w_vals = [1e-6, 1e-5, 1.0, 1e3]
+  for p, a, b, w in itertools.product(p_vals, a_vals, b_vals, w_vals):
+    cases.append({'p': p, 'a': a, 'b': b, 'w': w})
+  return cases
 
 
 class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
@@ -249,6 +264,75 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
       else:
         # No guarantee of success after e >= 7
         pass
+
+  def _make_pth_diff_message(self, w, alpha, beta, p):
+    left = f'({w} + {alpha})^(-1.0 / {p}) - '
+    right = f'({w} + {beta})^(-1.0 / {p})'
+    return left + right
+
+  @parameterized.parameters(_pth_root_difference_cases())
+  def test_pth_root_difference(self, p, a, b, w):
+    """Test stable difference computation."""
+    pth_rt_diff = jax.jit(
+        functools.partial(distributed_shampoo._pth_root_difference, p=p))
+    actual = pth_rt_diff(w, a, b)
+    # in float64
+    exp = (-1.0 / p)
+    expected = (w + a)**exp - (w + b)**exp
+
+    self.assertAlmostEqual(
+        actual,
+        expected,
+        msg=self._make_pth_diff_message(w, a, b, p),
+        delta=1e-2)
+
+  @parameterized.parameters([{'p': p} for p in [2, 4, 8]])
+  def test_lobpcg_preconditioning(self, p):
+    """Checks that root calculation is valid with top-k preconditioning."""
+    rng = np.random.RandomState(seed=42)
+    n = 11
+    epsilon = jnp.float32(1e-4)
+    a_asymm = jnp.array(rng.random((n, n)), jnp.float32)
+    a = jnp.matmul(a_asymm.T, a_asymm, precision=jax.lax.Precision.HIGHEST)
+    log2 = (p - 1).bit_length()
+    assert 2**log2 == p, (p, log2)
+
+    root = functools.partial(
+        distributed_shampoo.matrix_inverse_pth_root, ridge_epsilon=epsilon, p=p)
+    root_lobpcg = functools.partial(
+        root, lobpcg_topk_precondition=2, lobpcg_max_iter=10)
+
+    methods = {'default': root, 'precond': root_lobpcg}
+    spectrum_err, entry_err = {}, {}
+    for k, method in methods.items():
+      rt = jax.jit(method)(a)[0]
+
+      # Recover the inverse by repeated squaring of inverse p-th root.
+      inv = np.asarray(rt).astype(np.float64)
+      for _ in range(log2):
+        inv = inv.dot(inv)
+
+      approx_id = inv.dot(a)
+      spectrum = np.linalg.eigvalsh(approx_id)
+      spectrum_err[k] = np.abs(1 - spectrum)
+      entry_err[k] = np.mean(np.abs(approx_id - np.eye(n)))
+
+    with np.printoptions(precision=2):
+
+      def print_dict(d):
+        return '\n'.join(f'{k} {v}' for k, v in d.items())
+
+      err_msg = (f'p={p} log2(p)={log2}\n'
+                 f'spectrum error\n{print_dict(spectrum_err)}\n'
+                 f'entry_err\n{print_dict(entry_err)}')
+
+      self.assertLessEqual(
+          np.median(spectrum_err['precond']),
+          np.median(spectrum_err['default']),
+          msg=err_msg)
+
+      self.assertLessEqual(
+          entry_err['precond'], entry_err['default'] * 2, msg=err_msg)
 
 
 

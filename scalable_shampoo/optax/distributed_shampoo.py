@@ -32,7 +32,7 @@
 import enum
 import functools
 import itertools
-from typing import Any, Callable, List, NamedTuple, Optional, Tuple
+from typing import Any, Callable, List, NamedTuple, Optional, Tuple, Union
 
 from absl import logging
 import chex
@@ -40,6 +40,7 @@ from flax import struct
 import jax
 from jax import lax
 from jax.experimental import pjit
+from jax.experimental.sparse import linalg
 import jax.numpy as jnp
 import numpy as np
 import optax
@@ -223,6 +224,27 @@ def mat_power(
   return result
 
 
+def _pth_root_difference(w, alpha, beta,
+                         p):
+  """Computes (w+alpha)^(-1/p)-(w+beta)^(-1/p)."""
+
+  a = w + alpha
+  b = w + beta
+  a_minus_b = alpha - beta
+  exp = -1 / p
+
+  def _stable_subtract(b, a_minus_b):
+    # Mathematically identical to the target expression, with (w+beta)^(-1/p)
+    # term factored out and w cancellation in the subtraction.
+    return (b**exp) * jnp.expm1(exp * jnp.log1p(a_minus_b / b))
+
+  return jnp.where(
+      # Choose the branch with the best log1p approximation.
+      jnp.abs(a_minus_b / b) < jnp.abs(a_minus_b / a),
+      -_stable_subtract(a, -a_minus_b),
+      _stable_subtract(b, a_minus_b))
+
+
 def matrix_inverse_pth_root(
     matrix,
     p,
@@ -230,7 +252,9 @@ def matrix_inverse_pth_root(
     ridge_epsilon = 1e-6,
     error_tolerance = 1e-6,
     precision = lax.Precision.HIGHEST,
-    relative_matrix_epsilon = True):
+    relative_matrix_epsilon = True,
+    lobpcg_topk_precondition = 0,
+    lobpcg_max_iter = 0):
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
   This function uses the Coupled newton iterations algorithm for
@@ -254,6 +278,11 @@ def matrix_inverse_pth_root(
       (best possible precision, slowest)
     relative_matrix_epsilon: Whether to use relative epsilon to the max eigen
       value when computing inverse-pth root.
+    lobpcg_topk_precondition: If nonzero, specifies the number of top
+      eigenvectors to subtract out before performing LOBPCG. Note this makes
+      relative_matrix_epsilon essentially free.
+    lobpcg_max_iter: Maximum iteration count for LOBPCG, defaults to
+      `lobpcg_topk_precondition`.
 
   Returns:
     matrix^(-1/p) and the error
@@ -273,10 +302,39 @@ def matrix_inverse_pth_root(
   matrix = matrix.astype(_MAT_INV_PTH_ROOT_DTYPE)
   alpha = jnp.asarray(-1.0 / p, _MAT_INV_PTH_ROOT_DTYPE)
   identity = jnp.eye(matrix_size, dtype=_MAT_INV_PTH_ROOT_DTYPE)
-  max_ev = 1.0
-  if relative_matrix_epsilon:
+
+  if lobpcg_topk_precondition > 0:
+    # TODO(vladf): reuse previous top-k as the initial search directions
+    pad_shape = (matrix_size - lobpcg_topk_precondition,
+                 lobpcg_topk_precondition)
+    search_dirs = jnp.concatenate(
+        (jnp.eye(lobpcg_topk_precondition), jnp.zeros(pad_shape)), axis=0)
+    eigvals, eigvecs, actual_iters = linalg.lobpcg_standard(
+        matrix, search_dirs,
+        lobpcg_topk_precondition if lobpcg_max_iter == 0 else lobpcg_max_iter)
+    del actual_iters  # TODO(vladf): return diagnostics dictionary
+
+    # The minimal eigenvalue among top-k becomes the maximal one in the whole
+    # matrix after deflation.
+    max_ev = jnp.min(eigvals)
+    deflation = eigvals - max_ev
+    scaled_vecs = eigvecs * jnp.sqrt(deflation)
+
+    # Deflate out top eigenvectors to reduce matrix condition number.
+    matrix -= scaled_vecs.dot(
+        scaled_vecs.T, precision=jax.lax.Precision.HIGHEST)
+
+  # Only use power iteration if lobpcg wasn't already used to derive the
+  # top eigenvalue.
+  elif relative_matrix_epsilon:
     _, max_ev = power_iteration(
         matrix=matrix, num_iters=100, error_tolerance=1e-6, precision=precision)
+    eigvals, eigvecs = None, None  # Unused but required by pytype.
+
+  # Use absolute matrix epsilon scaling otherwise.
+  else:
+    max_ev = 1.0
+    eigvals, eigvecs = None, None  # Unused but required by pytype.
 
   ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, 1e-6)
 
@@ -314,6 +372,20 @@ def matrix_inverse_pth_root(
     is_converged = jnp.asarray(convergence, old_mat_h.dtype)
     resultant_mat_h = is_converged * mat_h + (1 - is_converged) * old_mat_h
     resultant_mat_h = jnp.asarray(resultant_mat_h, orig_dtype)
+
+  if lobpcg_topk_precondition > 0:
+    # Since we deflated the top eigenvectors prior to p-th root inverse,
+    # the resultant matrix has larger eigenvalues associated with those
+    # same eigenvectors, which we need to now re-deflate.
+    #
+    # Note that _pth_root_difference returns positive values for this
+    # particular argument ordering as min(eigvals) <= eigvals for the
+    # jnp.sqrt below.
+    pth_diff = _pth_root_difference(ridge_epsilon, jnp.min(eigvals), eigvals, p)
+    scaled_vecs = eigvecs * jnp.sqrt(pth_diff)
+    resultant_mat_h -= scaled_vecs.dot(
+        scaled_vecs.T, precision=jax.lax.Precision.HIGHEST)
+
   return resultant_mat_h, error
 
 
@@ -817,6 +889,8 @@ def distributed_shampoo(
     tensordot_precision = None,
     relative_matrix_epsilon=True,
     merge_small_dims_block_size=4096,
+    lobpcg_topk_precondition = 0,
+    lobpcg_max_iter = 0,
 ):
   """Distributed Shampoo optimizer.
 
@@ -890,6 +964,11 @@ def distributed_shampoo(
       value when computing inverse-pth root.
     merge_small_dims_block_size: Used as the maximum block size
       to merge the shapes.
+    lobpcg_topk_precondition: If nonzero, specifies the number of top
+      eigenvectors to subtract out before performing LOBPCG. Note this makes
+      relative_matrix_epsilon essentially free.
+    lobpcg_max_iter: Number of LOBPCG iterations, if zero defaults to
+      `lobpcg_topk_precondition`.
 
   Returns:
     a GradientTransformation.
@@ -1363,7 +1442,9 @@ def distributed_shampoo(
       matrix_inverse_pth_root,
       ridge_epsilon=matrix_epsilon,
       precision=precision,
-      relative_matrix_epsilon=relative_matrix_epsilon)
+      relative_matrix_epsilon=relative_matrix_epsilon,
+      lobpcg_topk_precondition=lobpcg_topk_precondition,
+      lobpcg_max_iter=lobpcg_max_iter)
 
 
   def _matrix_inverse_pth_root_vmap(xs, ps):
