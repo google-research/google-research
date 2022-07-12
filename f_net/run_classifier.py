@@ -459,7 +459,7 @@ def train_and_evaluate(config, workdir,
   logging.info("====================")
 
   for step in range(start_step, num_train_steps):
-    with jax.profiler.StepTraceContext("train", step_num=step):
+    with jax.profiler.StepTraceAnnotation("train", step_num=step):
       train_batch = next(train_iter)
       train_batch = common_utils.shard(train_batch)
 
