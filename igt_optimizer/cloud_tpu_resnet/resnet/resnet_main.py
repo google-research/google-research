@@ -54,9 +54,6 @@ from igt_optimizer.cloud_tpu_resnet.resnet import lars_util
 from igt_optimizer.cloud_tpu_resnet.resnet import resnet_model
 from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
 from tensorflow.contrib import summary
-# copybara:strip_begin
-from tensorflow.contrib.compiler import xla
-# copybara:strip_end
 from tensorflow.contrib.tpu.python.tpu import async_checkpoint
 from tensorflow.contrib.training.python.training import evaluation
 # pylint:disable=g-direct-tensorflow-import
@@ -146,18 +143,6 @@ flags.DEFINE_integer(
     default=None,
     help=('size parameter of DropBlock. Will not be used if dropblock_groups '
           'is empty.'))
-
-# copybara:strip_begin
-flags.DEFINE_boolean(
-    'xla_compile',
-    default=False,
-    help=('Compile computation with XLA, this flag has no effect when running '
-          'on TPU.'))
-flags.DEFINE_string(
-    'tpu_job_name', None,
-    'Name of TPU worker binary. Only necessary if job name is changed from'
-    ' default tpu_worker.')
-# copybara:strip_end
 
 flags.DEFINE_integer(
     'profile_every_n_steps',
@@ -733,9 +718,6 @@ def main(unused_argv):
       tpu_config=contrib_tpu.TPUConfig(
           iterations_per_loop=params['iterations_per_loop'],
           num_shards=params['num_cores'],
-          # copybara:strip_begin
-          tpu_job_name=FLAGS.tpu_job_name,
-          # copybara:strip_end
           per_host_input_for_training=contrib_tpu.InputPipelineConfig
           .PER_HOST_V2))  # pylint: disable=line-too-long
 
@@ -748,17 +730,6 @@ def main(unused_argv):
       eval_batch_size=params['eval_batch_size'],
       export_to_tpu=FLAGS.export_to_tpu)
 
-  # copybara:strip_begin
-  if FLAGS.xla_compile:
-    resnet_classifier = contrib_tpu.TPUEstimator(
-        use_tpu=params['use_tpu'],
-        model_fn=xla.estimator_model_fn(resnet_model_fn),
-        config=config,
-        params=params,
-        train_batch_size=params['train_batch_size'],
-        eval_batch_size=params['eval_batch_size'],
-        export_to_tpu=FLAGS.export_to_tpu)
-  # copybara:strip_end
   assert (params['precision'] == 'bfloat16' or
           params['precision'] == 'float32'), (
               'Invalid value for precision parameter; '

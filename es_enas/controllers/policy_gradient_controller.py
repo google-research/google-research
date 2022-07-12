@@ -15,11 +15,7 @@
 
 """Policy Gradient Controller from the original NAS paper."""
 
-# copybara:strip_begin
-import pyglove.google as pg
-# copybara:strip_end_and_replace
-# import pyglove as pg
-# copybara:strip_end
+import pyglove as pg
 from es_enas.controllers import base_controller
 
 
