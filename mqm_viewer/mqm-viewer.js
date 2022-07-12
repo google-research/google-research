@@ -121,6 +121,15 @@ const mqmWeights = JSON.parse(JSON.stringify(mqmDefaultWeights));
 let mqmCharScoring = false;
 
 /**
+ * The field and header ID to sort the table rows by. By default, sort by
+ * overall MQM score. `mqmSortReverse` indicates whether it is sorted in
+ * ascending order (false, default) or descending order (true).
+ */
+let mqmSortByField = 'score';
+let mqmSortByHeaderId = 'mqm-score-th';
+let mqmSortReverse = false;
+
+/**
  * Listener for changes to the input field that specifies the limit on
  * the number of rows shown.
  */
@@ -717,7 +726,10 @@ function mqmShowSegmentStats(id, title, stats) {
     aggregates[k] = a;
     ratings[k] = a.numRatings;
   }
-  keys.sort((k1, k2) => aggregates[k1].score - aggregates[k2].score);
+  keys.sort(
+      (k1, k2) =>
+          aggregates[k1][mqmSortByField] - aggregates[k2][mqmSortByField]);
+  if (mqmSortReverse) keys.reverse();
   for (let [rowIdx, k] of keys.entries()) {
     const segs = mqmGetSegStatsAsArray(stats[k]);
     const kDisp = (k == mqmTotal) ? 'Total' : k;
@@ -1091,10 +1103,26 @@ function mqmGetSegStatsAsArray(statsByDocAndDocSegId) {
 }
 
 /**
+ * Shows up or down arrow to show which field is used for sorting.
+ */
+function mqmShowSortArrow() {
+  // Remove existing active arrows first.
+  const active = document.querySelector('.mqm-arrow-active');
+  if (active) active.classList.remove('mqm-arrow-active');
+
+  // Highlight the appropriate arrow for the sorting field.
+  const className = mqmSortReverse ? 'mqm-arrow-down' : 'mqm-arrow-up';
+  const arrow = document.querySelector(`#${mqmSortByHeaderId} .${className}`);
+  arrow.classList.add('mqm-arrow-active');
+}
+
+/**
  * Updates the display to show the segment data and scores according to the
  * current filters.
  */
 function mqmShow() {
+  mqmShowSortArrow();
+
   document.body.style.cursor = 'wait';
 
   // Cancel existing CI computation when a new `mqmShow` is called.
@@ -1644,7 +1672,7 @@ function createMQMViewer(elt, tsvData=null) {
         </th>
         <th title="Number of segments"><b>#Segments</b></th>
         <th title="Number of ratings"><b>#Ratings</b></th>
-        <th title="${mqmHelpText}">${mqmScoreWithCI}</th>
+        <th id="mqm-score-th" title="${mqmHelpText}">${mqmScoreWithCI}</th>
         <th id="mqm-non-translation-th" class="mqm-score-th"
             title="Weight: ${mqmWeights['non-translation']}">
           <b>Non-trans.</b>
@@ -1931,6 +1959,41 @@ function createMQMViewer(elt, tsvData=null) {
   </table>
   `;
   elt.className = 'mqm';
+
+  /** Make columns clickable for sorting purposes. */
+
+  // A mapping from the infix of header ID to the field name to sort by.
+  const infixToPropMap = {
+    'score': 'score',
+    'non-translation': 'scoreNT',
+    'critical': 'scoreCritical',
+    'major': 'scoreMajor',
+    'minor': 'scoreMinor',
+    'trivial': 'scoreTrivial',
+    'accuracy': 'scoreAccuracy',
+    'fluency': 'scoreFluency',
+    'uncategorized': 'scoreUncat'
+  };
+  // SVG up/down arrow.
+  const upArrow = '<span class="mqm-arrow mqm-arrow-up">&#129041;</span>';
+  const downArrow = '<span class="mqm-arrow mqm-arrow-down">&#129043;</span>';
+  for (const [infix, prop] of Object.entries(infixToPropMap)) {
+    const headerId = `mqm-${infix}-th`;
+    const th = document.getElementById(headerId);
+    th.insertAdjacentHTML('beforeend', ` ${upArrow}${downArrow}`);
+    th.addEventListener('click', (e) => {
+      // Click again for reversing order. Otherwise sort in ascending order.
+      if (prop == mqmSortByField) {
+        mqmSortReverse = !mqmSortReverse;
+      } else {
+        mqmSortReverse = false;
+      }
+      mqmSortByField = prop;
+      mqmSortByHeaderId = headerId;
+      mqmShow();
+    });
+  }
+
   if (mqmTSVData) {
     mqmParseData(mqmTSVData);
   }

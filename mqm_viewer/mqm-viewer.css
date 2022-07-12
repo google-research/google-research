@@ -25,6 +25,15 @@
 #mqm-uncategorized-th {
   color: blue;
 }
+.mqm-arrow {
+  opacity: 50%;
+  color: gray;
+  cursor: pointer;
+}
+.mqm-arrow-active {
+  opacity: 100%;
+  color: black;
+}
 .mqm-ci {
   color: gray;
   font-size: x-small
@@ -124,7 +133,7 @@
 .mqm-table th {
   border-left: 1px solid gray;
   padding: 4px;
-  vertical-align: top;
+  vertical-align: text-top;
   word-wrap: break-word;
 }
 .mqm-table th {
