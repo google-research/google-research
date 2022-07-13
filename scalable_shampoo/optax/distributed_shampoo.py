@@ -302,6 +302,7 @@ def matrix_inverse_pth_root(
   matrix = matrix.astype(_MAT_INV_PTH_ROOT_DTYPE)
   alpha = jnp.asarray(-1.0 / p, _MAT_INV_PTH_ROOT_DTYPE)
   identity = jnp.eye(matrix_size, dtype=_MAT_INV_PTH_ROOT_DTYPE)
+  original_matrix = matrix
 
   if lobpcg_topk_precondition > 0:
     # TODO(vladf): reuse previous top-k as the initial search directions
@@ -383,8 +384,15 @@ def matrix_inverse_pth_root(
     # jnp.sqrt below.
     pth_diff = _pth_root_difference(ridge_epsilon, jnp.min(eigvals), eigvals, p)
     scaled_vecs = eigvecs * jnp.sqrt(pth_diff)
-    resultant_mat_h -= scaled_vecs.dot(
-        scaled_vecs.T, precision=jax.lax.Precision.HIGHEST)
+    resultant_mat_h = (
+        resultant_mat_h.astype(scaled_vecs.dtype) - scaled_vecs.dot(
+            scaled_vecs.T, precision=jax.lax.Precision.HIGHEST)
+    ).astype(orig_dtype)
+    mat_m = jnp.matmul(
+        mat_power(resultant_mat_h, p),
+        original_matrix,
+        precision=jax.lax.Precision.HIGHEST)
+    error = jnp.max(jnp.abs(mat_m - identity)).astype(jnp.float32)
 
   return resultant_mat_h, error
 
