@@ -280,7 +280,7 @@ class AutomatonTest(parameterized.TestCase):
     else:
       routing_aggregates = builder.routing_reduce(
           routing_params, reduction=reduction)
-      routing_aggregates = jax.tree_multimap(
+      routing_aggregates = jax.tree_map(
           lambda s, p: np.array(jnp.broadcast_to(s, p.shape)),
           routing_aggregates, routing_params)
 

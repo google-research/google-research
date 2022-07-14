@@ -91,7 +91,7 @@ class SparseOperatorTest(parameterized.TestCase):
         output_indices=jnp.zeros([5, 1], dtype=int),
         values=jnp.zeros([5], dtype=jnp.float32),
     )
-    jax.tree_multimap(np.testing.assert_allclose, op_with_zeros, expected)
+    jax.tree_map(np.testing.assert_allclose, op_with_zeros, expected)
 
   @parameterized.named_parameters(
       {
