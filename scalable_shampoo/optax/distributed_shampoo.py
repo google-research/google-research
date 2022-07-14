@@ -1299,11 +1299,11 @@ def distributed_shampoo(
         _convert_to_parameter_stats(global_stats, local_stat)
         for local_stat in local_stats_flat
     ]
-    new_stats_flat = jax.tree_multimap(
+    new_stats_flat = jax.tree_map(
         lambda g, s, p: _compute_stats(g, s, p, state.count), grads_flat,
         stats_flat, params_flat)
 
-    outputs = jax.tree_multimap(
+    outputs = jax.tree_map(
         lambda g, s, p: _transform_grad(g, s, p, state.count), grads_flat,
         new_stats_flat, params_flat)
     updates_flat, new_stats_flat = list(zip(*outputs)) if outputs else ((), ())
@@ -2105,12 +2105,12 @@ def distributed_shampoo(
     stats_flat = treedef.flatten_up_to(state.stats)
     grads_flat = treedef.flatten_up_to(grads)
 
-    new_stats_flat = jax.tree_multimap(
+    new_stats_flat = jax.tree_map(
         lambda g, s, p: _compute_stats(g, s, p, state.count), grads_flat,
         stats_flat, params_flat)
     new_stats_flat = _compute_preconditioners(new_stats_flat, params_flat,
                                               state.count)
-    outputs = jax.tree_multimap(
+    outputs = jax.tree_map(
         lambda g, s, p: _transform_grad(g, s, p, state.count), grads_flat,
         new_stats_flat, params_flat)
     updates_flat, new_stats_flat = list(zip(*outputs)) if outputs else ((), ())

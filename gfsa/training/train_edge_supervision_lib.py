@@ -406,7 +406,7 @@ def build_validation_fn(
       if accumulator is None:
         accumulator = new_values
       else:
-        accumulator = jax.tree_multimap(operator.add, accumulator, new_values)
+        accumulator = jax.tree_map(operator.add, accumulator, new_values)
 
     (
         loss_sum,

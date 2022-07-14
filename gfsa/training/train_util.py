@@ -321,7 +321,7 @@ def build_averaging_validator(
         if accumulated is None:
           accumulated = metrics
         else:
-          accumulated = jax.tree_multimap(operator.add, accumulated, metrics)
+          accumulated = jax.tree_map(operator.add, accumulated, metrics)
         example_count += jnp.count_nonzero(batch.mask)
 
       assert example_count > 0, "Validation iterator must be nonempty"

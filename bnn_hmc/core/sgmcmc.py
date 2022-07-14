@@ -95,8 +95,7 @@ def sgld_gradient_update(step_size_fn,
     def update_momentum(m, g, n):
       return momentum_decay * m + g * lr_sqrt + n * noise_std
 
-    momentum = jax.tree_multimap(update_momentum, state.momentum, gradient,
-                                 noise)
+    momentum = jax.tree_map(update_momentum, state.momentum, gradient, noise)
     updates = preconditioner.multiply_by_m_inv(momentum, preconditioner_state)
     updates = jax.tree_map(lambda m: m * lr_sqrt, updates)
     return updates, OptaxSGLDState(
@@ -128,7 +127,7 @@ def get_rmsprop_preconditioner(running_average_factor=0.99, eps=1.e-7):
         grad_moment_estimates=jax.tree_map(jnp.zeros_like, params))
 
   def update_preconditioner_fn(gradient, preconditioner_state):
-    grad_moment_estimates = jax.tree_multimap(
+    grad_moment_estimates = jax.tree_map(
         lambda e, g: e * running_average_factor + \
                      g**2 * (1 - running_average_factor),
         preconditioner_state.grad_moment_estimates, gradient)
@@ -136,16 +135,16 @@ def get_rmsprop_preconditioner(running_average_factor=0.99, eps=1.e-7):
         grad_moment_estimates=grad_moment_estimates)
 
   def multiply_by_m_inv_fn(vec, preconditioner_state):
-    return jax.tree_multimap(lambda e, v: v / (eps + jnp.sqrt(e)),
-                             preconditioner_state.grad_moment_estimates, vec)
+    return jax.tree_map(lambda e, v: v / (eps + jnp.sqrt(e)),
+                        preconditioner_state.grad_moment_estimates, vec)
 
   def multiply_by_m_sqrt_fn(vec, preconditioner_state):
-    return jax.tree_multimap(lambda e, v: v * jnp.sqrt(eps + jnp.sqrt(e)),
-                             preconditioner_state.grad_moment_estimates, vec)
+    return jax.tree_map(lambda e, v: v * jnp.sqrt(eps + jnp.sqrt(e)),
+                        preconditioner_state.grad_moment_estimates, vec)
 
   def multiply_by_m_sqrt_inv_fn(vec, preconditioner_state):
-    return jax.tree_multimap(lambda e, v: v / jnp.sqrt(eps + jnp.sqrt(e)),
-                             preconditioner_state.grad_moment_estimates, vec)
+    return jax.tree_map(lambda e, v: v / jnp.sqrt(eps + jnp.sqrt(e)),
+                        preconditioner_state.grad_moment_estimates, vec)
 
   return Preconditioner(
       init=init_fn,

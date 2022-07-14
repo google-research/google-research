@@ -129,7 +129,7 @@ def pad_classification_batch(batch, batch_size):
 
 def stack_forest(forest):
   stack_args = lambda *args: onp.stack(args)
-  return jax.tree_multimap(stack_args, *forest)
+  return jax.tree_map(stack_args, *forest)
 
 
 def get_metrics(device_metrics):

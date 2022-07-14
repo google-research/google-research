@@ -117,11 +117,9 @@ class StackedLSTMModel(nn.Module):
       def apply_encoder(carry, inp):
         i = carry[1]
         c1, o1 = encoder(carry[0], inp)
-        return jax.tree_multimap(
+        return jax.tree_map(
             lambda x_new, x_old: jnp.where(i < length, x_new, x_old),
-            ((c1, i+1), o1),
-            (carry, inp)
-        )
+            ((c1, i + 1), o1), (carry, inp))
 
       (encoder_state, unused_i), unused_outputs = (
           jax.lax.scan(
