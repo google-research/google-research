@@ -87,8 +87,161 @@ class GoogDOM {
   }
 }
 
-/** @const {!GoogDom} Helper object for DOM utils */
+/** @const {!GoogDOM} Helper object for DOM utils */
 const googdom = new GoogDOM;
+
+/**
+ * This is the data format for representing a document and its translation
+ * done by a particular system (or human). The "annotations" array stores
+ * any extra data provided beyond the mandatory 4 fields;
+ */
+class AntheaDocSys {
+  constructor() {
+    /** @public {string} */
+    this.doc = '';
+    /** @public {string} */
+    this.sys = '';
+    /** @public @const {!Array<string>} */
+    this.srcSentGroups = [];
+    /** @public @const {!Array<string>} */
+    this.tgtSentGroups = [];
+    /** @public @const {!Array<string>} */
+    this.annotations = [];
+    /** @public {number} */
+    this.numNonBlankSentGroups = 0;
+  }
+
+  /**
+   * Parse the passed contents of a TSV-formatted project file and return
+   * an array of AntheaDocSys objects. The input data format should have four
+   * tab-separated fields on each line:
+   *
+   *     source-sentence-group
+   *     target-sentence-group
+   *     document-name
+   *     system-name
+   *
+   * Any data in an extra field (beyond these four) is stored in the annotations
+   * array.
+   *
+   * Both source-sentence-group and target-sentence-group can together
+   * be empty (but not just one of the two), indicating a paragraph break.
+   * For convenience, a completely blank line (without the tabs
+   * and without document-name and system-name) can also be used to indicate
+   * a paragraph break.
+   *
+   * Lines beginning with # (without any leading spaces) are treated as comment
+   * lines. They are ignored. If you have actual source text that begins with #,
+   * please prepend a space to it in the file.
+   *
+   * The first line should contain a JSON object with the source and the target
+   * language codes. For instance:
+   *   {"source-language": "en", "target-langauge": "fr"}
+   *
+   * @param {string} projectFileContents TSV-formatted text data.
+   * @return {!Array<!AntheaDocSys>} An array of parsed AntheaDocSys objects.
+   */
+  static parseProjectFileContents(projectFileContents) {
+    const parsed = [];
+    const lines = projectFileContents.split('\n');
+    let metadata = {};
+    let parsingErr = null;
+    try {
+      metadata = JSON.parse(lines[0]);
+    } catch (err) {
+      metadata = {};
+      parsingErr = err;
+    }
+    if (!metadata['source-language'] || !metadata['target-language']) {
+      throw 'The first line must be a JSON object and contain source and ' +
+          'target language codes with keys "source-language" and ' +
+          '"target-language".' +
+          (parsingErr ? (' Parsing error: ' + parsingErr.toString() +
+                         ' — Stack: ' + parsingErr.stack) : '');
+    }
+    const srcLang = metadata['source-language'];
+    const tgtLang = metadata['target-language'];
+    let docsys = new AntheaDocSys();
+    for (let line of lines.slice(1)) {
+      if (line.startsWith('#')) {
+        continue;
+      }
+      line = line.trim();
+      if (!line) {
+        docsys.srcSentGroups.push('');
+        docsys.tgtSentGroups.push('');
+        docsys.annotations.push('');
+        continue;
+      }
+      const parts = line.split('\t', 5);
+      if (parts.length < 4) {
+        console.log('Skipping ill-formed text line: [' + line + ']');
+        continue;
+      }
+      const srcSentGroup = parts[0].trim();
+      const tgtSentGroup = parts[1].trim();
+      const doc = parts[2].trim() + ':' + srcLang + ':' + tgtLang;
+      const sys = parts[3].trim();
+      const annotation = parts.length > 4 ? parts[4].trim() : '';
+      if ((!srcSentGroup || !tgtSentGroup)  &&
+          (srcSentGroup || tgtSentGroup)) {
+        console.log('Skipping text line: only one of src/tgt is nonempty: [' +
+                    line + ']');
+        continue;
+      }
+      if (!doc || !sys) {
+        console.log('Skipping text line with empty doc/sys: [' + line + ']');
+        continue;
+      }
+      if (docsys.doc && (doc != docsys.doc || sys != docsys.sys)) {
+        if (docsys.numNonBlankSentGroups > 0) {
+          parsed.push(docsys);
+        } else {
+          console.log('Skipping docsys with no non-empty sentence groups: ' +
+                      JSON.stringify(docsys));
+        }
+        docsys = new AntheaDocSys();
+      }
+      docsys.doc = doc;
+      docsys.sys = sys;
+      docsys.srcSentGroups.push(srcSentGroup);
+      docsys.tgtSentGroups.push(tgtSentGroup);
+      docsys.annotations.push(annotation);
+      if (srcSentGroup) {
+        docsys.numNonBlankSentGroups++;
+      }
+    }
+    if (docsys.numNonBlankSentGroups > 0) {
+      parsed.push(docsys);
+    } else if (docsys.pragmas.length > 0 || docsys.doc) {
+      console.log('Skipping docsys with no non-empty sentence groups: ' +
+                  JSON.stringify(docsys));
+    }
+    /**
+     * Trim blank lines at the end.
+     */
+    for (const docsys of parsed) {
+      console.assert(docsys.numNonBlankSentGroups > 0, docsys);
+      console.assert(docsys.srcSentGroups.length == docsys.tgtSentGroups.length,
+                     docsys);
+      console.assert(docsys.srcSentGroups.length > 0, docsys);
+      console.assert(docsys.tgtSentGroups.length > 0, docsys);
+      let l = docsys.srcSentGroups.length - 1;
+      while (l > 0 && !docsys.srcSentGroups[l] && !docsys.tgtSentGroups[l]) {
+        docsys.srcSentGroups.pop();
+        docsys.tgtSentGroups.pop();
+        l--;
+      }
+    }
+    if (parsed.length == 0) {
+      throw 'Did not find any properly formatted text lines in file';
+    }
+    // Add language codes to the docsys array.
+    parsed.srcLang = srcLang;
+    parsed.tgtLang = tgtLang;
+    return parsed;
+  }
+}
 
 /**
  * An object that encapsulates one active evaluation.
@@ -1853,8 +2006,8 @@ displayError(errors, index) {
     }
     srcTD.style.lineHeight = 1.3;
     tgtTD.style.lineHeight = 1.3;
-    const srcLines = this.getApproxNumLines(srcTD, 'source-para');
-    const tgtLines = this.getApproxNumLines(tgtTD, 'target-para');
+    const srcLines = this.getApproxNumLines(srcTD, 'anthea-source-para');
+    const tgtLines = this.getApproxNumLines(tgtTD, 'anthea-target-para');
     let perc = 100;
     if (srcLines < tgtLines) {
       perc = Math.floor(100 * tgtLines / srcLines);
