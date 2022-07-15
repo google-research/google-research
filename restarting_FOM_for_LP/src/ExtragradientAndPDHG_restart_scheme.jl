@@ -1,18 +1,3 @@
-abstract type RestartScheme end
-struct NoRestarts <: RestartScheme
-
-end
-
-struct FixedFrequencyRestarts <: RestartScheme
-  restart_length::Int64
-  always_reset_to_average::Bool # do we alway reset to average?
-end
-
-struct AdaptiveRestarts <: RestartScheme
-  beta::Float64
-  always_reset_to_average::Bool # do we alway reset to average?
-end
-
 mutable struct RestartInfo
   last_restart_primal_solution::Vector{Float64}
   last_restart_dual_solution::Vector{Float64}
@@ -48,13 +33,6 @@ function compute_normalized_duality_gap(
     solve_approximately = false,
   )
   return FirstOrderLp.get_gap(local_duality_gap) / distance_travelled
-end
-
-mutable struct NormalizedDualityGaps
-  average_distance_travelled::Float64
-  average_gap::Float64
-  current_distance_travelled::Float64
-  current_gap::Float64
 end
 
 function compute_normalized_duality_gaps(

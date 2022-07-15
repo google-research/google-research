@@ -6,6 +6,9 @@ include("../src/PrimalDualMethods.jl")
 
 output_dir = ARGS[1]
 method = RecoverPrimalDualMethodFromString(ARGS[2])
+if method == ADMM
+  println("ADMM not supported for this example")
+end
 
 mkpath(output_dir)
 println("Creating 1D bilinear problem\n")

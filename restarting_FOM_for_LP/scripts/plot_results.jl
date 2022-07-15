@@ -1,7 +1,8 @@
 using Latexify, DataFrames
 import CSV, Plots
 
-include("../src/shared_variables.jl")
+include("../src/methods_enum.jl")
+include("scripts_parameters.jl")
 
 function standard_plot_setup()
   Plots.plot(
@@ -19,13 +20,6 @@ function get_residual(data::DataFrame)
   #return data.primal_delta_norms .+ data.dual_delta_norms
 end
 
-function select_data_before_iteration_limit(
-  data::DataFrame,
-  iteration_limit::Int64,
-)
-  indicies_before_iteration_limit = findall(data.iteration .<= iteration_limit)
-  return data[indicies_before_iteration_limit, :]
-end
 
 function generic_restart_plot(;
   data::DataFrame,
@@ -34,9 +28,7 @@ function generic_restart_plot(;
   label::String,
   linestyle::Symbol,
   y_min::Float64,
-  iteration_limit::Int64,
 )
-  data = select_data_before_iteration_limit(data, iteration_limit)
   residual = get_residual(data)
   # Plot the residuals
   Plots.plot!(
@@ -88,15 +80,9 @@ function generic_restart_plot(;
   return restart_plt
 end
 
-function plot_no_restart_and_adaptive(
-  results_directory::String,
-  y_min::Float64,
-  iteration_limit::Int64,
-)
+function plot_no_restart_and_adaptive(results_directory::String, y_min::Float64)
   no_restarts_df =
     CSV.read(joinpath(results_directory, "no_restarts.csv"), DataFrame)
-  no_restarts_df =
-    select_data_before_iteration_limit(no_restarts_df, iteration_limit)
   residual = no_restarts_df.current_normalized_gap
   Plots.plot!(
     no_restarts_df.iteration,
@@ -115,7 +101,6 @@ function plot_no_restart_and_adaptive(
     label = "Adaptive restarts",
     linestyle = :solid,
     y_min = y_min,
-    iteration_limit = iteration_limit,
   )
   return restarts_plt
 end
@@ -124,7 +109,6 @@ function plot_no_restart_adaptive_and_fixed_frequency_results(
   results_directory::String,
   restart_lengths::Vector{Int64},
   y_min::Float64,
-  iteration_limit::Int64,
 )
   # Figure out which restart lengths to plot
   df_restart_performance = DataFrame(
@@ -196,12 +180,10 @@ function plot_no_restart_adaptive_and_fixed_frequency_results(
       label = "Restart length = $restart_length",
       linestyle = :dot,
       y_min = y_min,
-      iteration_limit = iteration_limit,
     )
   end
 
-  restarts_plt =
-    plot_no_restart_and_adaptive(results_directory, y_min, iteration_limit)
+  restarts_plt = plot_no_restart_and_adaptive(results_directory, y_min)
   return restarts_plt
 end
 
@@ -209,10 +191,9 @@ function plot_dynamic_adaptive_and_no_restarts(
   results_directory::String,
   restart_lengths::Vector{Int64},
   y_min::Float64,
-  iteration_limit::Int64,
 )
   standard_plot_setup()
-  plot_no_restart_and_adaptive(results_directory, y_min, iteration_limit)
+  plot_no_restart_and_adaptive(results_directory, y_min)
 
   dynamic_adaptive_restarts_df = CSV.read(
     joinpath(results_directory, "dynamic_adaptive_restarts.csv"),
@@ -255,10 +236,6 @@ function create_dictionary_of_iterations_to_hit_tolerance(
 
   dictionary_hits = Dict()
   dictionary_hits["problem_name"] = problem_name
-  dictionary_hits["no_restarts"] = first_iteration_to_hit_tolerance(
-    CSV.read(joinpath(results_directory, "no_restarts.csv"), DataFrame),
-    target_tolerance,
-  )
   dictionary_hits["adaptive_restarts"] = first_iteration_to_hit_tolerance(
     CSV.read(joinpath(results_directory, "adaptive_restarts.csv"), DataFrame),
     target_tolerance,
@@ -293,13 +270,6 @@ results_directory = ARGS[1]
 
 function main()
   y_min = 1e-7
-  plot_iteration_limit_dict = Dict(
-    "qap10" => ITERATION_LIMIT,
-    "qap15" => ITERATION_LIMIT,
-    # manually make nug08-3rd shorter so the plot is interesting
-    "nug08-3rd" => 10000,
-    "nug20" => ITERATION_LIMIT,
-  )
 
   for problem_name in ALL_PROBLEM_NAMES
     subdirectory = joinpath(results_directory, problem_name)
@@ -307,7 +277,6 @@ function main()
       subdirectory,
       RESTART_LENGTHS_DICT[problem_name],
       y_min,
-      ITERATION_LIMIT,
     )
     Plots.savefig(
       restarts_plt,
@@ -317,7 +286,6 @@ function main()
       subdirectory,
       RESTART_LENGTHS_DICT[problem_name],
       y_min,
-      ITERATION_LIMIT,
     )
     Plots.savefig(
       flexible_plt,
@@ -328,10 +296,9 @@ function main()
   ####################
   # table of results #
   ####################
-  target_tolerance = 1e-6
+  TABLE_OF_RESULTS_KKT_ERROR = 1e-6
   df_hit_tolerance = DataFrames.DataFrame(
     problem_name = String[],
-    no_restarts = Float64[],
     best_fixed_frequency = Float64[],
     adaptive_restarts = Float64[],
     flexible_restarts = Float64[],
@@ -344,7 +311,7 @@ function main()
         problem_name,
         subdirectory,
         RESTART_LENGTHS_DICT[problem_name],
-        target_tolerance,
+        TABLE_OF_RESULTS_KKT_ERROR,
       ),
     )
   end
