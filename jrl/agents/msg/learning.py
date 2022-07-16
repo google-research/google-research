@@ -480,9 +480,9 @@ class MSGLearner(acme.Learner):
       critic_params = optax.apply_updates(critic_params, critic_update)
 
       if self._use_ema_target_critic_params:
-        target_critic_params = jax.tree_multimap(
-            lambda x, y: x * (1 - tau) + y * tau,
-            target_critic_params, critic_params)
+        target_critic_params = jax.tree_map(
+            lambda x, y: x * (1 - tau) + y * tau, target_critic_params,
+            critic_params)
 
       # if use_sass:
       #   encoder_update, optim_state = pretrain_optimizer.update(encoder_grad, encoder_optim_state)
@@ -748,9 +748,9 @@ class MSGLearner(acme.Learner):
       critic_params = optax.apply_updates(critic_params, critic_update)
 
       if self._use_ema_target_critic_params:
-        target_critic_params = jax.tree_multimap(
-            lambda x, y: x * (1 - tau) + y * tau,
-            target_critic_params, critic_params)
+        target_critic_params = jax.tree_map(
+            lambda x, y: x * (1 - tau) + y * tau, target_critic_params,
+            critic_params)
 
       sass_loss, sass_acc = 0., 0.
       return critic_params, target_critic_params, optim_state, encoder_params, encoder_optim_state, critic_loss, q_preds, behavior_reg_loss, fraction_active, sass_loss, sass_acc
@@ -1503,24 +1503,27 @@ class MSGLearner(acme.Learner):
         new_shape = [num_devices, num_models_per_device] + p_shape[1:]
         return jnp.reshape(p, new_shape)
 
-      all_q_params = jax.tree_multimap(stack_params, *all_q_params)
+      all_q_params = jax.tree_map(stack_params, *all_q_params)
       all_q_params = jax.tree_map(reshape_params, all_q_params)
       # all_q_params = [
       #     [all_q_params[i] for i in range(num_devices*j, num_devices*j + num_models_per_device)]
       #     for j in range(num_devices)
       # ]
 
-      all_q_optimizer_states = jax.tree_multimap(stack_params, *all_q_optimizer_states)
+      all_q_optimizer_states = jax.tree_map(stack_params,
+                                            *all_q_optimizer_states)
       all_q_optimizer_states = jax.tree_map(reshape_params, all_q_optimizer_states)
       # all_q_optimizer_states = [
       #     [all_q_optimizer_states[i] for i in range(num_devices*j, num_devices*j + num_models_per_device)]
       #     for j in range(num_devices)
       # ]
 
-      all_pretrain_encoder_params = jax.tree_multimap(stack_params, *all_pretrain_encoder_params)
+      all_pretrain_encoder_params = jax.tree_map(stack_params,
+                                                 *all_pretrain_encoder_params)
       all_pretrain_encoder_params = jax.tree_map(reshape_params, all_pretrain_encoder_params)
 
-      all_pretrain_encoder_optimizer_states = jax.tree_multimap(stack_params, *all_pretrain_encoder_optimizer_states)
+      all_pretrain_encoder_optimizer_states = jax.tree_map(
+          stack_params, *all_pretrain_encoder_optimizer_states)
       all_pretrain_encoder_optimizer_states = jax.tree_map(reshape_params, all_pretrain_encoder_optimizer_states)
 
       # policy stuff

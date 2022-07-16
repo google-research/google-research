@@ -301,7 +301,7 @@ class ContrastiveLearner(acme.Learner):
 
         q_params = optax.apply_updates(state.q_params, critic_update)
 
-        new_target_q_params = jax.tree_multimap(
+        new_target_q_params = jax.tree_map(
             lambda x, y: x * (1 - config.tau) + y * config.tau,
             state.target_q_params, q_params)
         metrics = critic_metrics

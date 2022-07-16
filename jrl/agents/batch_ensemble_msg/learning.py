@@ -197,9 +197,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
       ep_update, new_epos = q_optimizer.update(ep_grad, epos)
       new_ep = optax.apply_updates(ep, ep_update)
       # update ensemble member specific target params
-      new_tep = jax.tree_multimap(
-          lambda x, y: x * (1 - tau) + y * tau,
-          tep, new_ep)
+      new_tep = jax.tree_map(lambda x, y: x * (1 - tau) + y * tau, tep, new_ep)
 
       return sp_grad, new_ep, new_epos, new_tep, q_loss_val
 
@@ -252,9 +250,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
       sp_update, new_spos = q_optimizer.update(sp_grad, spos)
       new_sp = optax.apply_updates(sp, sp_update)
       # update ensemble target params
-      new_tsp = jax.tree_multimap(
-          lambda x, y: x * (1 - tau) + y * tau,
-          tsp, new_sp)
+      new_tsp = jax.tree_map(lambda x, y: x * (1 - tau) + y * tau, tsp, new_sp)
 
       return new_sp, new_spos, new_ep, new_epos, new_tsp, new_tep, q_loss_val
 
