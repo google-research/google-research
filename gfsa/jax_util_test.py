@@ -39,7 +39,7 @@ class JaxUtilTest(absltest.TestCase):
     @dataclasses.dataclass
     class Outer:
       a: str
-      b: Inner
+      b: Inner  # pytype: disable=invalid-annotation  # enable-bare-annotations
 
     synthesized = jax_util.synthesize_dataclass(Outer)
 
@@ -106,8 +106,8 @@ class JaxUtilTest(absltest.TestCase):
     @jax_util.register_dataclass_pytree
     @dataclasses.dataclass
     class Bar:
-      x: Foo
-      y: Foo
+      x: Foo  # pytype: disable=invalid-annotation  # enable-bare-annotations
+      y: Foo  # pytype: disable=invalid-annotation  # enable-bare-annotations
 
     bar = Bar(
         x=Foo(a=jnp.array([1, 2]), b=(jnp.array(3.), jnp.array(4.))),
