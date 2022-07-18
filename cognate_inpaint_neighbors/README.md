@@ -287,3 +287,24 @@ majority vote. Filepaths can be provided as a comma-separated list.
     --input_results_tsvs=/path/to/result-1.tsv,path/to/result-2.tsv \
     --output_results_tsv=/path/to/ensemble.tsv
 ```
+## Citation
+
+If you use this software in a publication, please cite the accompanying
+[paper](https://aclanthology.org/2022.sigtyp-1.9/) presented at
+[SIGTYP 2022](https://sigtyp.github.io/workshop.html):
+
+```bibtex
+@inproceedings{kirov-etal-2022-mockingbird,
+    title = "Mockingbird at the {SIGTYP} 2022 Shared Task: Two Types of Models forthe Prediction of Cognate Reflexes",
+    author = "Kirov, Christo  and
+      Sproat, Richard  and
+      Gutkin, Alexander",
+    booktitle = "Proceedings of the 4th Workshop on Research in Computational Linguistic Typology and Multilingual NLP",
+    month = jul,
+    year = "2022",
+    address = "Seattle, Washington",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.sigtyp-1.9",
+    pages = "70--79"
+}
+```
