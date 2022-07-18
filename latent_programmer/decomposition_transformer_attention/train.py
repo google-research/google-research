@@ -120,8 +120,6 @@ flags.DEFINE_integer('num_position_buckets', 32,
                      'Number of relative attention position buckets.')
 flags.DEFINE_integer('max_distance', 128,
                      'Max distance for relative attention positions.')
-flags.DEFINE_bool('bidirectional_program_attention', False,
-                  'Whether program self-attention is bidirectional.')
 
 flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'scan'],
@@ -705,8 +703,7 @@ def main(_):
       num_program_cross_embed_relative_position_buckets=(
           FLAGS.num_position_buckets),
       max_program_cross_embed_distance=min(
-          FLAGS.max_distance, default_config.max_program_cross_embed_distance),
-      bidirectional_program_attention=FLAGS.bidirectional_program_attention)
+          FLAGS.max_distance, default_config.max_program_cross_embed_distance))
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       attention_mask_type=FLAGS.attention_mask_type,

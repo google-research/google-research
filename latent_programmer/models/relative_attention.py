@@ -105,6 +105,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
     num_relative_position_buckets: number of buckets for relative positions
       for attention.
     max_distance: maximum value of relative position.
+    mod_position: if positive, distances will be computed mod this value.
   """
   num_heads: int
   dtype: Dtype = jnp.float32
@@ -122,6 +123,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
   bidirectional: bool = False
   num_relative_position_buckets: int = 32
   max_distance: int = 128
+  mod_position: int = -1
 
   @module.compact
   def __call__(self,
@@ -186,6 +188,10 @@ class RelativeMultiHeadDotProductAttention(module.Module):
       key_length = inputs_kv.shape[-2]
       context_position = jnp.arange(query_length, dtype=jnp.int32)[:, None]
       memory_position = jnp.arange(key_length, dtype=jnp.int32)[None, :]
+
+      if self.mod_position > 0:
+        memory_position %= self.mod_position
+        context_position %= self.mod_position
 
       relative_position = memory_position - context_position
       relative_position_bucket = make_relative_position_bucket(

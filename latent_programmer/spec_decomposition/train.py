@@ -15,9 +15,6 @@
 
 """Train seq-to-seq model on random supervised training tasks."""
 
-# pytype: disable=wrong-arg-count
-# pytype: disable=attribute-error
-
 import collections
 import functools
 import json
@@ -75,8 +72,6 @@ flags.DEFINE_integer('per_device_batch_size', 16,
                      'Number of program tasks in a batch.')
 flags.DEFINE_integer('num_strings_per_task', 4,
                      'Number of input/output strings per task.')
-flags.DEFINE_integer('max_program_length', 100,
-                     'Maximum number of tokens in program.')
 flags.DEFINE_integer('max_characters', 120,
                      'Maximum number of characters in input/output strings.')
 flags.DEFINE_integer('predict_max_characters', 200,
@@ -113,12 +108,17 @@ flags.DEFINE_integer('num_position_buckets', 32,
                      'Number of relative attention position buckets.')
 flags.DEFINE_integer('max_distance', 128,
                      'Max distance for relative attention positions.')
-flags.DEFINE_bool('bidirectional_program_attention', False,
-                  'Whether program self-attention is bidirectional.')
+flags.DEFINE_integer('max_program_cross_embed_distance', 128,
+                     'Max distance for relative attention positions.')
+flags.DEFINE_bool('flat_encoded_self_attention', True,
+                  'Whether to apply self-attention to flat encoded examples.')
 
 flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'scan'],
                   'The kind of dataset to use.')
+flags.DEFINE_enum('model_type', 'spec_decomposer_model',
+                  ['spec_decomposer_model', 'synthesizer_model'],
+                  'Which model to train.')
 
 
 _internal = False
@@ -391,6 +391,55 @@ def predict_step(params,
 # -----------------------------------------------------------------------------
 
 
+def eval_predicted_spec_decomposer_model(predicted, ground_truth, decode_spec):
+  """Evaluate predicted program beams."""
+  beams_target = [decode_spec(beam) for beam in predicted[::-1]]
+  success = ground_truth in beams_target
+  if success:
+    return ground_truth, 1
+  else:
+    return beams_target[0], 0
+
+
+def eval_predicted_synthesizer_model(predicted, inputs, outputs,
+                                     decode_program):
+  """Evaluate predicted program beams."""
+  best_program_str, best_score = None, -99
+
+  # predicted shape [beam_size, length]
+  for beam in predicted[::-1]:
+    program = decode_program(beam)
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+      try:
+        p_outs = [program(inp) for inp in inputs]
+        score = (np.sum([p_out == out for p_out, out in zip(p_outs, outputs)])
+                 / len(inputs))
+        program_str = program.to_string()
+      except:  # pylint: disable=bare-except
+        score = -1
+        program_str = 'did not compile'
+    elif FLAGS.dataset_type == 'scan':
+      assert len(inputs) == 1, 'inputs should have length 1: {}'.format(inputs)
+      assert len(outputs) == 1
+      input_tokens = inputs[0].split()
+      expected_tokens = translate_scan.translate(input_tokens,
+                                                 add_separators=False)
+      expected_str = ' '.join(expected_tokens)
+      score = int(program == expected_str)
+      program_str = program
+    else:
+      raise ValueError('Unhandled dataset_type {}'.format(FLAGS.dataset_type))
+
+    if score > best_score:
+      best_program_str, best_score = program_str, score
+
+    if best_score >= 1:  # Found solution.
+      break
+
+  # best_program_str could be None if no RobustFill program compiles.
+  return best_program_str, best_score
+
+
 def pad_examples(x, desired_batch_size):
   """Expand batch to desired size by repeating last slice."""
   batch_pad = desired_batch_size - x.shape[0]
@@ -426,7 +475,7 @@ def shorten(key):
 
 def load_data(batches):
   data_dict = common_utils.shard(batches)
-  return data_dict['inputs'], data_dict['outputs'], data_dict['spec_parts']
+  return data_dict['inputs'], data_dict['outputs'], data_dict['target']
 
 
 def main(_):
@@ -458,16 +507,13 @@ def main(_):
                       FLAGS.num_strings_per_task,
                       FLAGS.predict_max_characters)
   target_shape = (FLAGS.per_device_batch_size, FLAGS.max_target_length)
-  indices_shape = (FLAGS.per_device_batch_size,
-                   FLAGS.num_strings_per_task)
-  program_shape = (FLAGS.per_device_batch_size, FLAGS.max_program_length)  # pylint: disable=unused-variable
 
   # Setup DSL
   # ---------------------------------------------------------------------------
 
   # Build token tables.
   if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
-    spec_vocab = robust_fill_dsl.CHARACTER + '|'
+    spec_vocab = robust_fill_dsl.CHARACTER + input_pipeline.SEPARATOR_TOKEN
     spec_id_token_table = {i+3: token
                            for i, token in enumerate(spec_vocab)}
     bos_id = 1
@@ -477,9 +523,8 @@ def main(_):
     spec_token_id_table = {token: id
                            for id, token in spec_id_token_table.items()}
     spec_vocab_size = len(spec_token_id_table) + 1  # For padding.
-    program_id_token_table, program_token_id_table = (
-        dsl_tokens.build_token_tables())
-    program_vocab_size = len(program_id_token_table) + 1  # pylint: disable=unused-variable
+    program_id_token_table, _ = dsl_tokens.build_token_tables()
+    program_vocab_size = len(program_id_token_table) + 1
   elif FLAGS.dataset_type == 'scan':
     # TODO(jxihong): Scan is not handled yet.
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
@@ -488,7 +533,7 @@ def main(_):
 
   # Parse io and program token sequences (for eval).
   def decode_io(inputs, outputs):
-    """Decode io examples tokens."""
+    """Convert from int tensors to strings."""
     if FLAGS.dataset_type == 'robust_fill':
       def decode_str(s):
         """Decode string tokens."""
@@ -512,8 +557,8 @@ def main(_):
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  def decode_target(target):
-    """Decode program tokens."""
+  def decode_spec(target):
+    """Convert from int tensor to a string."""
     target = target[:np.argmax(target == eos_id)].astype(np.int32)
 
     if FLAGS.dataset_type == 'robust_fill':
@@ -526,7 +571,7 @@ def main(_):
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   def decode_program(program):
-    """Decode program tokens."""
+    """Decode program tokens into a program (program object or string)."""
     program = program[:np.argmax(program == eos_id) + 1].astype(np.int32)
 
     if FLAGS.dataset_type == 'robust_fill':
@@ -549,7 +594,7 @@ def main(_):
     decoded = decode_program(program)
     if FLAGS.dataset_type == 'robust_fill':
       try:
-        return decoded.to_string()
+        return decoded.to_string()  # pytype: disable=attribute-error
       except:  # pylint: disable=bare-except
         return 'did not compile'
     else:
@@ -567,25 +612,26 @@ def main(_):
   padded_shapes = {
       'inputs': io_shape[1:],
       'outputs': io_shape[1:],
-      'spec_parts': target_shape[1:],
-      'start_index': indices_shape[1:],
-      'end_index': indices_shape[1:],
-      # TODO(kshi): include programs.
-      # 'program': program_shape[1:],
+      'target': target_shape[1:],
   }
   logging.info('padded_shapes: %s', padded_shapes)
 
   if FLAGS.dataset_type == 'robust_fill':
-    create_dataset_fn = input_pipeline.create_robust_fill_dataset_from_tf_record
+    if FLAGS.model_type == 'spec_decomposer_model':
+      create_dataset_fn = input_pipeline.create_robust_fill_dataset_for_spec_decomposer_model
+    elif FLAGS.model_type == 'synthesizer_model':
+      create_dataset_fn = input_pipeline.create_robust_fill_dataset_for_synthesizer_model
+    else:
+      raise ValueError(f'Unhandled model_type: {FLAGS.model_type}')
+
   elif FLAGS.dataset_type == 'scan':
     raise NotImplementedError()  # TODO(kshi): Implement.
     # create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  dataset = create_dataset_fn(
-      FLAGS.dataset_filepattern, program_token_id_table, spec_token_id_table,
-      max_target_length=FLAGS.max_target_length)
+  dataset = create_dataset_fn(FLAGS.dataset_filepattern, spec_token_id_table,
+                              FLAGS.num_strings_per_task)
   dataset = dataset.padded_batch(
       batch_size,
       padded_shapes=padded_shapes,
@@ -606,8 +652,8 @@ def main(_):
   train_ds = train_ds.repeat()
 
   test_dataset = create_dataset_fn(
-      FLAGS.test_dataset_filepattern, program_token_id_table,
-      spec_token_id_table, max_target_length=FLAGS.max_target_length)
+      FLAGS.test_dataset_filepattern, spec_token_id_table,
+      FLAGS.num_strings_per_task)
   test_dataset = test_dataset.padded_batch(
       batch_size,
       padded_shapes=predict_padded_shapes,
@@ -625,16 +671,23 @@ def main(_):
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
+  if FLAGS.model_type == 'spec_decomposer_model':
+    output_vocab_size = spec_vocab_size
+  elif FLAGS.model_type == 'synthesizer_model':
+    output_vocab_size = program_vocab_size
+  else:
+    raise ValueError(f'Unhandled model_type: {FLAGS.model_type}')
+
   base_config = base_models.TransformerConfig(
       vocab_size=spec_vocab_size,
-      output_vocab_size=spec_vocab_size,
+      output_vocab_size=output_vocab_size,
       shift=True,
       emb_dim=FLAGS.embedding_dim,
       num_heads=FLAGS.num_heads,
       num_layers=FLAGS.num_layers,
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
+      max_len=max(FLAGS.max_characters, FLAGS.max_target_length),
       dropout_rate=FLAGS.dropout_rate,
       attention_dropout_rate=FLAGS.attention_dropout_rate,
       use_relative_attention=FLAGS.use_relative_attention,
@@ -652,20 +705,21 @@ def main(_):
       max_program_distance=FLAGS.max_distance,
       num_program_cross_embed_relative_position_buckets=(
           FLAGS.num_position_buckets),
-      max_program_cross_embed_distance=FLAGS.max_distance,
-      bidirectional_program_attention=FLAGS.bidirectional_program_attention)
+      max_program_cross_embed_distance=FLAGS.max_program_cross_embed_distance,
+      num_flat_encoding_relative_position_buckets=(
+          FLAGS.num_position_buckets),
+      max_flat_encoding_distance=FLAGS.max_distance)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
-      dataset_type=FLAGS.dataset_type)
-  eval_config = models.DecomposeAttentionTransformerConfig(
-      base_config=base_config.replace(deterministic=True),
-      dataset_type=FLAGS.dataset_type)
-  predict_config = models.DecomposeAttentionTransformerConfig(
+      dataset_type=FLAGS.dataset_type,
+      flat_encoded_self_attention=FLAGS.flat_encoded_self_attention)
+  eval_config = train_config.replace(
+      base_config=base_config.replace(deterministic=True))
+  predict_config = train_config.replace(
       base_config=base_config.replace(
           shift=False, deterministic=True,
           decode=not FLAGS.slow_decode,
-          max_len=max(FLAGS.predict_max_characters, FLAGS.max_target_length)),
-      dataset_type=FLAGS.dataset_type)
+          max_len=max(FLAGS.predict_max_characters, FLAGS.max_target_length)))
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
@@ -841,7 +895,8 @@ def main(_):
           total_successes = 0
           total_denominator = 0
 
-          ios, targets_list, predictions, top_of_beams = [], [], [], []
+          ios, targets_list, predictions, top_of_beams, scores = (
+              [], [], [], [], [])
           for batches in dataset.as_numpy_iterator():
             pred_batch = batches
             # Handle final odd-sized batch by padding instead of dropping it.
@@ -863,25 +918,37 @@ def main(_):
 
             for i, beams in enumerate(predicted):
               inps, outs = decode_io(inputs[i], outputs[i])
-              ground_truth = decode_target(targets[i])
-              beams_target = [decode_target(beam) for beam in beams]
-              predicted_target = beams_target[0]
-              for beam_target in beams_target:
-                if beam_target == ground_truth:
-                  predicted_target = beam_target
-                  total_successes += 1
-                  break
+
+              if FLAGS.model_type == 'spec_decomposer_model':
+                ground_truth = decode_spec(targets[i])
+                best_prediction, score = eval_predicted_spec_decomposer_model(
+                    beams, ground_truth, decode_spec)
+                decode_to_str_fn = decode_spec
+              elif FLAGS.model_type == 'synthesizer_model':
+                ground_truth = decode_program_str(targets[i])
+                best_prediction, score = eval_predicted_synthesizer_model(
+                    beams, inps, outs, decode_program)
+                decode_to_str_fn = decode_program_str
+              else:
+                raise ValueError(f'Unknown model type {FLAGS.model_type}')
+
+              if score > 0:
+                total_successes += 1
               total_denominator += 1
+
+              beams_target = [decode_to_str_fn(beam) for beam in beams]
 
               ios.append(' ; '.join(map(str, zip(inps, outs))))
               targets_list.append(ground_truth)
-              predictions.append(predicted_target)
+              predictions.append(best_prediction)
+              scores.append(score)
               logging.info('')
               logging.info('ios: %s', ios[-1])
               logging.info('targets[%s]: %s', i, targets[i])
               logging.info('ground_truth: %s', ground_truth)
               logging.info('predicted beam: %s', '\n'.join(beams_target))
-              logging.info('predicted_target: %s', predicted_target)
+              logging.info('best_prediction: %s', best_prediction)
+              logging.info('score: %s', score)
               logging.info('beams: %s', beams)
 
               if not ground_truth:
@@ -890,7 +957,7 @@ def main(_):
               top_of_beam = []
               for index, beam in enumerate(beams[:-5:-1]):
                 top_of_beam.append('index: {}, decoded: {}, tokens: {}'.format(
-                    index, decode_target(beam), beam))
+                    index, decode_to_str_fn(beam), beam))
               top_of_beams.append('\n\n'.join(top_of_beam))
 
           all_total_successes, all_total_denominator = per_host_sum_pmap(
@@ -901,6 +968,7 @@ def main(_):
           for n in np.random.choice(np.arange(len(predictions)), 8):
             text = (f'ios: {ios[n]}\n\ntarget: {targets_list[n]}\n\n'
                     f'predicted: {predictions[n]}\n\n'
+                    f'score: {scores[n]}\n\n'
                     f'top of beam:\n\n{top_of_beams[n]}\n\n')
             message.append(text)
 

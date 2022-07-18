@@ -15,17 +15,13 @@
 
 """Models for decomposition experiment."""
 
-# pylint: disable=attribute-defined-outside-init,g-bare-generic
-# pytype: disable=wrong-arg-count
-# pytype: disable=wrong-keyword-args
-# pytype: disable=attribute-error
-
 from typing import Any
 from flax import linen as nn
 from flax import struct
 import jax.numpy as jnp
 
 from latent_programmer.models import base_models
+from latent_programmer.models import relative_attention
 
 
 @struct.dataclass
@@ -39,6 +35,9 @@ class DecomposeAttentionTransformerConfig:
   bos_special_attention: bool = False
   # The kind of dataset: 'robust_fill' or 'scan'.
   dataset_type: str = 'robust_fill'
+  # Whether to do relative self-attention on the flat encoding of the I/O
+  # examples, where the positions are taken modulo the length of 1 example.
+  flat_encoded_self_attention: bool = True
 
 
 def shift_left(x):
@@ -116,6 +115,32 @@ class DecomposeAttentionTransformer(nn.Module):
 
     return self.encoder(inputs, outputs)
 
+  @nn.compact
+  def do_flat_encoded_self_attention(self, flat_encoded, mod_position):
+    """Does self-attention for the flat encoding."""
+    cfg = self.config.base_config
+    x = nn.LayerNorm(dtype=cfg.dtype)(flat_encoded)
+    x = relative_attention.RelativeSelfAttention(
+        num_heads=cfg.num_heads,
+        dtype=cfg.dtype,
+        qkv_features=cfg.qkv_dim,
+        kernel_init=cfg.kernel_init,
+        bias_init=cfg.bias_init,
+        use_bias=False,
+        broadcast_dropout=False,
+        dropout_rate=cfg.attention_dropout_rate,
+        deterministic=cfg.deterministic,
+        bidirectional=True,
+        num_relative_position_buckets=(
+            cfg.num_flat_encoding_relative_position_buckets),
+        max_distance=cfg.max_flat_encoding_distance,
+        mod_position=mod_position)(
+            x, None, None)
+    x = nn.Dropout(rate=cfg.dropout_rate)(
+        x, deterministic=cfg.deterministic)
+    x = x + flat_encoded
+    return x
+
   def decode(self,
              programs,
              encoded,
@@ -132,6 +157,11 @@ class DecomposeAttentionTransformer(nn.Module):
     flat_encoded = base_models.flatten_num_io_dim(encoded)
     flat_encoded_padding_mask = base_models.flatten_num_io_dim(
         encoded_padding_mask)
+
+    if self.config.flat_encoded_self_attention:
+      per_example_encoding_len = encoded.shape[2]
+      flat_encoded = self.do_flat_encoded_self_attention(
+          flat_encoded, mod_position=per_example_encoding_len)
 
     if cfg.shift:
       programs = base_models.shift_right(programs, cfg.bos_token)
