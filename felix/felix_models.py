@@ -18,7 +18,7 @@ from typing import Union
 
 import numpy as np
 from official.modeling import activations
-from official.nlp.bert import configs
+from official.nlp.legacy import configs
 from official.nlp.modeling import losses
 from official.nlp.modeling import models
 from official.nlp.modeling import networks

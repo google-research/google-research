@@ -16,7 +16,7 @@
 """Tests for felix.felix_models."""
 from absl.testing import absltest
 from absl.testing import parameterized
-from official.nlp.bert import configs as bert_configs
+from official.legacy.bert import configs as bert_configs
 from official.nlp.modeling import networks
 import tensorflow as tf
 

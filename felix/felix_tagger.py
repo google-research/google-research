@@ -19,8 +19,8 @@ import math
 from typing import List, Sequence, Union
 
 import numpy as np
+from official.legacy.bert import configs
 from official.modeling import activations
-from official.nlp.bert import configs
 from official.nlp.modeling import layers
 import tensorflow as tf
 

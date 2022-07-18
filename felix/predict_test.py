@@ -20,7 +20,7 @@ from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as np
-from official.nlp.bert import configs
+from official.nlp.legacy import configs
 
 from felix import predict
 

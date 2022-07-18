@@ -26,7 +26,7 @@ from typing import Mapping, Optional, Sequence, Tuple, cast
 
 from absl import logging
 import numpy as np
-from official.nlp.bert import configs
+from official.legacy.bert import configs
 import tensorflow as tf
 
 from felix import beam_search
