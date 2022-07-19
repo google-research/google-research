@@ -161,12 +161,7 @@ class Stream(tf.keras.layers.Layer):
                        'can produce multiple outputs in time dim, '
                        'so conv can be used with use_one_step = False or True')
 
-    if self.ring_buffer_size_in_time_dim is not None:
-      # it is a special case when ring_buffer_size_in_time_dim is specified
-      # outside of the layer in this case we just build a ring buffer
-      # and do not check what is the type of the cell
-      pass
-    elif isinstance(wrapped_cell, tf.keras.layers.Conv2DTranspose):
+    if isinstance(wrapped_cell, tf.keras.layers.Conv2DTranspose):
       padding = wrapped_cell.get_config()['padding']
       strides = wrapped_cell.get_config()['strides']
       self.stride = strides[0]
@@ -250,9 +245,17 @@ class Stream(tf.keras.layers.Layer):
       # effective kernel size in time dimension
       if self.state_shape:
         self.ring_buffer_size_in_time_dim = self.state_shape[1]
-
-    else:
+    elif ring_buffer_size_in_time_dim is None:
       raise ValueError('Cell is not supported ', wrapped_cell)
+
+    if ring_buffer_size_in_time_dim is not None:
+      # In a special case when `ring_buffer_size_in_time_dim` is specified
+      # outside of the layer, we overwrite the computed
+      # `self.ring_buffer_size_in_time_dim` with this specified value.
+      logging.warning(
+          'ring_buffer_size_in_time_dim overwritten by the '
+          'passed-in value: %d', ring_buffer_size_in_time_dim)
+      self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
 
     if self.ring_buffer_size_in_time_dim == 1:
       logging.warning('There is no need to use Stream on time dim with size 1')
