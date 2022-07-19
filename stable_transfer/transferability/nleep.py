@@ -23,8 +23,8 @@ https://openaccess.thecvf.com/content/CVPR2021/papers/Li_Ranking_Neural_Checkpoi
 from sklearn.mixture import GaussianMixture
 import tensorflow as tf
 
-from stable_transfer.classification import leep
-from stable_transfer.classification import transfer_experiment
+from stable_transfer.transferability import leep
+from stable_transfer.transferability import transfer_experiment
 
 
 def get_nleep_score(

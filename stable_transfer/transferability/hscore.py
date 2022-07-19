@@ -37,7 +37,7 @@ hscore = np.trace(np.dot(np.linalg.pinv(CovX, rcond=1e-15), CovY))
 
 import tensorflow as tf
 
-from stable_transfer.classification import transfer_experiment
+from stable_transfer.transferability import transfer_experiment
 
 
 def get_covariance(matrix):

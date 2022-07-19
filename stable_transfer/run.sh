@@ -13,11 +13,11 @@
 # limitations under the License.
 
 #!/bin/bash
-# Example run for the classification experiment.
+# Example run for the transferability experiment.
 # NOTE: run from parent directory
 # ./stable_transfer/run.sh
 
-# conda create --name stable_transfer python=3.9 
+# conda create --name stable_transfer python=3.9
 # conda activate stable_transfer
 # pip install -r requirements.txt
 
@@ -26,8 +26,8 @@ echo "1) Download and create the CIFAR10 dataset (using tfds);"
 echo "2) Evaluate the ResNet model on all images;"
 echo "3) Compute the LEEP score."
 echo "This might be slow when run on CPU (consider installing on CUDA & CUDNN)."
-python -m stable_transfer.classification.main
+python -m stable_transfer.transferability.main
 
 echo "The same experiment. But now the results should be loaded from disk."
 
-python -m stable_transfer.classification.main
+python -m stable_transfer.transferability.main

@@ -15,10 +15,10 @@
 
 """Config utils to run different experimental setups for evaluating transferability metrics."""
 
-from stable_transfer.classification import config_training_source_selection
-from stable_transfer.classification import config_training_target_selection
-from stable_transfer.classification import config_transferability_source_selection
-from stable_transfer.classification import config_transferability_target_selection
+from stable_transfer.transferability import config_training_source_selection
+from stable_transfer.transferability import config_training_target_selection
+from stable_transfer.transferability import config_transferability_source_selection
+from stable_transfer.transferability import config_transferability_target_selection
 
 
 DATASET_NUM_CLASSES = {

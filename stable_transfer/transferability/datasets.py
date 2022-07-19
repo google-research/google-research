@@ -21,7 +21,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
-from stable_transfer.classification import networks
+from stable_transfer.transferability import networks
 
 
 DATASETS_WITH_VALIDATION_AS_TEST = ['food101', 'imagenette']

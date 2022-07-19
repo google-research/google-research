@@ -17,7 +17,7 @@
 
 import tensorflow as tf
 
-from stable_transfer.classification import transfer_experiment
+from stable_transfer.transferability import transfer_experiment
 
 
 @transfer_experiment.load_or_compute

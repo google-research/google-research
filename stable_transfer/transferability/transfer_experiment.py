@@ -21,11 +21,11 @@ import numpy as np
 import tensorflow as tf
 import tqdm
 
-from stable_transfer.classification import config_transfer_experiment as config
-from stable_transfer.classification import datasets
-from stable_transfer.classification import features_targets_utils
-from stable_transfer.classification import networks
-from stable_transfer.classification import utils
+from stable_transfer.transferability import config_transfer_experiment as config
+from stable_transfer.transferability import datasets
+from stable_transfer.transferability import features_targets_utils
+from stable_transfer.transferability import networks
+from stable_transfer.transferability import utils
 
 
 @dataclasses.dataclass

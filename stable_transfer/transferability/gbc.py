@@ -21,7 +21,7 @@ Separability." https://arxiv.org/abs/2111.12780.
 
 import tensorflow as tf
 
-from stable_transfer.classification import transfer_experiment
+from stable_transfer.transferability import transfer_experiment
 
 
 def compute_bhattacharyya_distance(mu1, mu2, sigma1, sigma2):

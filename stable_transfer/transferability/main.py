@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Main file for Stable Transferability Classification Experiments.
+"""Main file for Stable Transferability Experiments.
 
 This file runs an stable transferability experiment, for example it computes
 the LEEP score for a target dataset, provided a source model or architecture.
@@ -31,20 +31,20 @@ from absl import logging
 from ml_collections.config_flags import config_flags
 
 
-from stable_transfer.classification import accuracy
-from stable_transfer.classification import gbc
-from stable_transfer.classification import hscore
-from stable_transfer.classification import leep
-from stable_transfer.classification import logme
-from stable_transfer.classification import nleep
-from stable_transfer.classification import transfer_experiment
+from stable_transfer.transferability import accuracy
+from stable_transfer.transferability import gbc
+from stable_transfer.transferability import hscore
+from stable_transfer.transferability import leep
+from stable_transfer.transferability import logme
+from stable_transfer.transferability import nleep
+from stable_transfer.transferability import transfer_experiment
 
 
 _CONFIG_DIR = './'
 
 _CONFIG = config_flags.DEFINE_config_file(
     'my_config',
-    f'{_CONFIG_DIR}/stable_transfer/classification/config_transfer_experiment.py',
+    f'{_CONFIG_DIR}/stable_transfer/transferability/config_transfer_experiment.py',
     )
 
 

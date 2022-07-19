@@ -18,12 +18,12 @@
 from parameterized import parameterized
 import tensorflow as tf
 
-from stable_transfer.classification import features_targets_utils
-from stable_transfer.classification import gbc
-from stable_transfer.classification import hscore
-from stable_transfer.classification import leep
-from stable_transfer.classification import logme
-from stable_transfer.classification import nleep
+from stable_transfer.transferability import features_targets_utils
+from stable_transfer.transferability import gbc
+from stable_transfer.transferability import hscore
+from stable_transfer.transferability import leep
+from stable_transfer.transferability import logme
+from stable_transfer.transferability import nleep
 
 
 class LeepTest(tf.test.TestCase):
