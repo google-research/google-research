@@ -15,13 +15,18 @@
 
 """Different matrix estimates."""
 
+from typing import Optional
+
 import jax.numpy as jnp
 import numpy as np
 
 from aux_tasks.synthetic import utils
 
 
-def naive_inverse_covariance_matrix(Phi, key, covariance_batch_size):  # pylint: disable=invalid-name
+def naive_inverse_covariance_matrix(
+    Phi,  # pylint: disable=invalid-name
+    key,
+    covariance_batch_size):
   """Estimates the covariance matrix naively.
 
   We want to return a covariance matrix whose norm is "equivalent" to a single
@@ -33,7 +38,7 @@ def naive_inverse_covariance_matrix(Phi, key, covariance_batch_size):  # pylint:
     covariance_batch_size: how many states to sample to estimate.
 
   Returns:
-    array: naive inverse covariance
+    A tuple of (naive inverse covariance matrix, rng key).
   """
   num_states, d = Phi.shape
 
@@ -44,12 +49,12 @@ def naive_inverse_covariance_matrix(Phi, key, covariance_batch_size):  # pylint:
   return matrix_estimate * covariance_batch_size, key
 
 
-def lissa_inverse_covariance_matrix(  # pylint: disable=invalid-name
-    Phi,
+def lissa_inverse_covariance_matrix(
+    Phi,  # pylint: disable=invalid-name
     key,
     lissa_iterations,
     lissa_kappa,
-    feature_norm=None):
+    feature_norm = None):
   """Estimates the covariance matrix by LISSA.
 
   By default this method returns a covariance matrix whose norm is equivalent
@@ -65,7 +70,7 @@ def lissa_inverse_covariance_matrix(  # pylint: disable=invalid-name
       estimated). If None, computed directly from the feature matrix Phi.
 
   Returns:
-    array: lissa estimate of inverse covariance
+    A tuple of (lissa estimate of inverse covariance matrix, rng key).
   """
   num_states, d = Phi.shape
 
@@ -84,7 +89,7 @@ def lissa_inverse_covariance_matrix(  # pylint: disable=invalid-name
 
   for t in range(lissa_iterations):
     # Construct a rank-one multiplier.
-    multiplier = I - kappa * sampled_Phis[t, :] @ sampled_Phis[t, :].T
+    multiplier = I - kappa * jnp.outer(sampled_Phis[t, :], sampled_Phis[t, :])
     # Add one more term to the LISSA sequence.
     estimate = kappa * I + multiplier @ estimate
 
