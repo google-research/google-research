@@ -51,7 +51,7 @@ def build_procgen_actor_fn(
   return _actor_fn
 
 
-class DeepAtariTorsoWithoutFC(base.Module):
+class DeepAtariTorsoWithoutFC(hk.Module):
   """Deep torso for Atari, from the IMPALA paper. Removes the FC + relu."""
 
   def __init__(self, name = 'deep_atari_torso_without_fc'):
@@ -70,7 +70,9 @@ class DeepAtariTorsoWithoutFC(base.Module):
 
       for j in range(num_blocks):
         block = atari.ResidualBlock(
-            num_channels, name='residual_{}_{}'.format(i, j))
+            make_inner_op=functools.partial(
+                hk.Conv2D, output_channels=num_channels, kernel_shape=3),
+            name='residual_{}_{}'.format(i, j))
         layers.append(block)
 
     layers.extend([
