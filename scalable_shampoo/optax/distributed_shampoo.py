@@ -144,6 +144,14 @@ class GraftingType(enum.IntEnum):
   ADAGRAD_NORMALIZED = 6
 
 
+class PreconditionerType(enum.IntEnum):
+  # Default, computes preconditioner for each dim
+  ALL = 1
+  # One sided Shampoo, in this cases only on input dim.
+  # Assumes last dim is always the output dim and everything else input dim.
+  INPUT = 2
+
+
 def power_iteration(
     matrix,
     num_iters = 100,
@@ -613,16 +621,10 @@ class BlockPartitioner:
         split_sizes.append(sizes)
       else:
         split_sizes.append(np.array([d], dtype=np.int32))
-    self._num_splits = len(split_sizes)
-    self._preconditioner_shapes = []
-    for t in itertools.product(*split_sizes):
-      self._preconditioner_shapes.extend([[d, d] for d in t])
+    self._split_sizes = split_sizes
 
-  def shapes_for_preconditioners(self):
-    return self._preconditioner_shapes
-
-  def num_splits(self):
-    return self._num_splits
+  def split_sizes(self):
+    return self._split_sizes
 
   def partition(self, tensor):
     """Partition tensor into blocks."""
@@ -690,9 +692,12 @@ def gram_weighted_update(
 class Preconditioner:
   """Compute statistics/shape from gradients for preconditioning."""
 
-  def __init__(self, param, block_size,
+  def __init__(self,
+               param,
+               block_size,
                merge_small_dims_block_size,
-               best_effort_shape_interpretation):
+               best_effort_shape_interpretation,
+               preconditioner_type=PreconditionerType.ALL):
     """Initializes the preconditioner.
 
     Args:
@@ -700,6 +705,7 @@ class Preconditioner:
       block_size: Block size used to split param.
       merge_small_dims_block_size: Block size for merging dims.
       best_effort_shape_interpretation: Whether to collapse/merge dims together.
+      preconditioner_type: Type of preconditioner to use.
     """
     self._original_shape = param.shape
     self._transformed_shape = param.shape
@@ -708,6 +714,7 @@ class Preconditioner:
           self._original_shape, merge_small_dims_block_size)
     reshaped_param = jnp.reshape(param, self._transformed_shape)
     self._partitioner = BlockPartitioner(reshaped_param, block_size)
+    self._preconditioner_type = preconditioner_type
 
   def updated_statistics_from_grad(
       self,
@@ -744,19 +751,41 @@ class Preconditioner:
     new_stats = []
     index = 0
     for g in partitioned_grads:
-      for axis in range(g.ndim):
+      should_preconditioned_dims = self.should_precondition_dims()
+      num_preconditioners = sum(should_preconditioned_dims)
+      for axis in range(num_preconditioners):
         new_stat = update(to_float(stats[index]), g, axis, w1, w2)
         new_stats.append(from_float(new_stat))
         index += 1
     return new_stats
 
+  def should_precondition_dims(self):
+    """A vector containing indicator indicating if the dim is preconditioned."""
+    split_sizes = self._partitioner.split_sizes()
+    rank = len(split_sizes)
+    if self._preconditioner_type == PreconditionerType.ALL or rank <= 1:
+      return [True] * rank
+    else:
+      return [True] * (rank - 1) + [False]
+
   def shapes_for_preconditioners(self):
     """Returns shape from statistics."""
-    return self._partitioner.shapes_for_preconditioners()
+    split_sizes = self._partitioner.split_sizes()
+    rank = len(split_sizes)
+    # We ignore preconditioner types if rank == 1
+    preconditioner_shapes = []
+    for t in itertools.product(*split_sizes):
+      if self._preconditioner_type == PreconditionerType.ALL or rank <= 1:
+        preconditioner_shapes.extend([[d, d] for d in t])
+      else:
+        preconditioner_shapes.extend([[d, d] for d in t[:-1]])
+    return preconditioner_shapes
 
   def exponent_for_preconditioner(self):
     """Returns exponent to use for inverse-pth root M^{-1/p}."""
-    return 2 * len(self._transformed_shape)
+    should_preconditioned_dims = self.should_precondition_dims()
+    num_preconditioners = sum(should_preconditioned_dims)
+    return 2 * num_preconditioners
 
   def preconditioned_grad(self, grad, preconditioners):
     """Precondition the gradient.
@@ -772,15 +801,20 @@ class Preconditioner:
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
     preconditioned_partitioned_grads = []
-    num_splits = self._partitioner.num_splits()
     for i, g in enumerate(partitioned_grads):
-      preconditioners_for_grad = preconditioners[i * num_splits:(i + 1) *
-                                                 num_splits]
-      rank = len(g.shape)
+      should_preconditioned_dims = self.should_precondition_dims()
+      num_preconditioners = sum(should_preconditioned_dims)
+      preconditioners_for_grad = preconditioners[i *
+                                                 num_preconditioners:(i + 1) *
+                                                 num_preconditioners]
       precond_g = g
-      for j in range(rank):
-        precond_g = jnp.tensordot(
-            precond_g, preconditioners_for_grad[j], axes=[[0], [0]])
+      rank = len(g.shape)
+      for j, precondition in enumerate(should_preconditioned_dims):
+        if precondition:
+          precond_g = jnp.tensordot(
+              precond_g, preconditioners_for_grad[j], axes=[[0], [0]])
+        else:
+          precond_g = jnp.transpose(precond_g, axes=(*range(1, rank), 0))
       preconditioned_partitioned_grads.append(precond_g)
     merged_grad = self._partitioner.merge_partitions(
         preconditioned_partitioned_grads)
@@ -899,6 +933,7 @@ def distributed_shampoo(
     merge_small_dims_block_size=4096,
     lobpcg_topk_precondition = 0,
     lobpcg_max_iter = 0,
+    precondtioner_type=PreconditionerType.ALL,
 ):
   """Distributed Shampoo optimizer.
 
@@ -977,6 +1012,8 @@ def distributed_shampoo(
       relative_matrix_epsilon essentially free.
     lobpcg_max_iter: Number of LOBPCG iterations, if zero defaults to
       `lobpcg_topk_precondition`.
+    precondtioner_type: Preconditioner type to select all, left only or right
+      only preconditioners.
 
   Returns:
     a GradientTransformation.
@@ -1044,6 +1081,11 @@ def distributed_shampoo(
         momentum_statistics,
         quantized_dtype_for_momentum_buffers(momentum_statistics))
 
+  def preconditioner_from_params(param):
+    """Returns a Preconditioner object for given param."""
+    return Preconditioner(param, block_size, merge_small_dims_block_size,
+                          best_effort_shape_interpretation, precondtioner_type)
+
   def sharded_init_fn(params):
     """Returns optimizer state (for PJIT mode).
 
@@ -1054,9 +1096,7 @@ def distributed_shampoo(
     # Find max size to pad to.
     max_size = 0
     for param in params_flat:
-      preconditioner = Preconditioner(
-          param, block_size, merge_small_dims_block_size,
-          best_effort_shape_interpretation)
+      preconditioner = preconditioner_from_params(param)
       if not _skip_preconditioning(param):
         shapes = preconditioner.shapes_for_preconditioners()
         sizes = [s[0] for s in shapes]
@@ -1067,9 +1107,7 @@ def distributed_shampoo(
     local_stats_flat = []
     exponents = []
     for param in params_flat:
-      preconditioner = Preconditioner(
-          param, block_size, merge_small_dims_block_size,
-          best_effort_shape_interpretation)
+      preconditioner = preconditioner_from_params(param)
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
@@ -1132,9 +1170,7 @@ def distributed_shampoo(
     max_size = 0
     for param in params:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(
-          param_clone, block_size, merge_small_dims_block_size,
-          best_effort_shape_interpretation)
+      preconditioner = preconditioner_from_params(param_clone)
       if not _skip_preconditioning(param):
         shapes = preconditioner.shapes_for_preconditioners()
         sizes = [s[0] for s in shapes]
@@ -1171,9 +1207,7 @@ def distributed_shampoo(
     num_statistics = 0
     for param, param_pspec in zip(params_flat, param_pspec_flat):
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(
-          param_clone, block_size, merge_small_dims_block_size,
-          best_effort_shape_interpretation)
+      preconditioner = preconditioner_from_params(param_clone)
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
@@ -1226,9 +1260,7 @@ def distributed_shampoo(
     num_statistics = 0
     for param in params_flat:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(
-          param_clone, block_size, merge_small_dims_block_size,
-          best_effort_shape_interpretation)
+      preconditioner = preconditioner_from_params(param_clone)
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
@@ -1380,9 +1412,7 @@ def distributed_shampoo(
     """Initialise the optimiser's state."""
 
     def _init(param):
-      preconditioner = Preconditioner(
-          param, block_size, merge_small_dims_block_size,
-          best_effort_shape_interpretation)
+      preconditioner = preconditioner_from_params(param)
       statistics = []
       preconditioners = []
       if not _skip_preconditioning(param):
@@ -1415,9 +1445,7 @@ def distributed_shampoo(
 
   def _compute_stats(grad, state, param, step):
     """Compute per-parameter statistics."""
-    preconditioner = Preconditioner(
-        param, block_size, merge_small_dims_block_size,
-        best_effort_shape_interpretation)
+    preconditioner = preconditioner_from_params(param)
     new_statistics = [[]] * len(state.statistics)
     w1 = beta2
     w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
@@ -1949,9 +1977,7 @@ def distributed_shampoo(
       num_statistics_per_state.append(num_statistics)
       original_shapes_for_state = []
       if num_statistics > 0:
-        preconditioner = Preconditioner(
-            param, block_size, merge_small_dims_block_size,
-            best_effort_shape_interpretation)
+        preconditioner = preconditioner_from_params(param)
         for statistic in state.statistics:
           exponents.append(preconditioner.exponent_for_preconditioner(
           ) if exponent_override == 0 else exponent_override)
@@ -1984,9 +2010,7 @@ def distributed_shampoo(
 
   def _transform_grad(grad, state, param, step):
     """Transform per-parameter gradients."""
-    preconditioner = Preconditioner(
-        param, block_size, merge_small_dims_block_size,
-        best_effort_shape_interpretation)
+    preconditioner = preconditioner_from_params(param)
     sgd_update = grad
     new_diagonal_statistics = state.diagonal_statistics.to_float()
     if (graft_type == GraftingType.ADAGRAD or
