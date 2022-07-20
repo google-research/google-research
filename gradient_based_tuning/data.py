@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
 # Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,14 +30,15 @@
 """GEC datasets for training in Jax."""
 
 import functools
-from typing import List, Mapping, Optional, Any, Tuple, MutableMapping
 
 import jax
 import tensorflow.compat.v2 as tf
-
-from gradient_based_tuning import input_pipeline
-from gradient_based_tuning import mlperf_encoder
-from gradient_based_tuning import utils
+# pylint: disable=g-import-not-at-top
+try:
+  import input_pipeline
+except ImportError:
+  from gradient_based_tuning import input_pipeline
+# pylint: enable=g-import-not-at-top
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
@@ -55,8 +57,7 @@ def get_unique_examples(batch):
     return 1
 
 
-def cast_dataset_types(ds,
-                       cast_dict):
+def cast_dataset_types(ds, cast_dict):
   """Casts the tf.data.Dataset types to those specified in the cast_dict."""
 
   def cast_fn(x):
@@ -69,86 +70,21 @@ def cast_dataset_types(ds,
   return ds
 
 
-def get_tsv_dataset(
-    data_path,
-    vocab_path,
-    deterministic = True,
-    random_seed = 1,
-    batch_size = 1,
-    pack = True,
-    max_length = 256,
-):
-  """Fetch a plaintext dataset from tsv."""
-
-  def generator():
-    encoder = mlperf_encoder.SubwordTextEncoder(vocab_path)
-    for example in tf.gfile.Open(data_path):
-      try:
-        source, target = example.strip().split("\t")
-        encoded_src = encoder.encode(source) + [utils.EOS_ID]
-        encoded_tgt = encoder.encode(target) + [utils.EOS_ID]
-        ret = {
-            "inputs": encoded_src,
-            "targets": encoded_tgt,
-        }
-        yield ret
-      except Exception:  # pylint: disable=broad-except
-        print("Failed to encode example %s" % example)
-        pass
-
-  input_types = {"inputs": tf.uint16, "targets": tf.uint16}
-  input_shapes = {
-      "inputs": tf.TensorShape([None]),
-      "targets": tf.TensorShape([None]),
-  }
-
-  dataset = tf.data.Dataset.from_generator(generator, input_types, input_shapes)
-  dataset = dataset.shard(jax.host_count(), jax.process_index())
-  dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
-  # Shuffle before repeat ensures all examples seen in an epoch.
-  # See https://www.tensorflow.org/guide/data_performance#repeat_and_shuffle.
-  # Shuffle before pack ensures the same batch of elements will not be repeated.
-  if not deterministic:
-    dataset = dataset.shuffle(
-        buffer_size=16384, seed=random_seed, reshuffle_each_iteration=True)
-  if pack:
-    input_types.update({"inputs_position": tf.uint8})
-    input_types.update({"inputs_segmentation": tf.uint8})
-    input_types.update({"targets_position": tf.uint8})
-    input_types.update({"targets_segmentation": tf.uint8})
-
-    dataset = input_pipeline.pack_dataset(dataset, max_length)
-    dataset = cast_dataset_types(dataset, input_types)  # Saves some memory.
-  if batch_size > 1:
-    if not pack:
-      # pad all fields to max_length size
-      pad_shapes = {k: [max_length] for k in input_types.keys()}
-      dataset = dataset.padded_batch(
-          batch_size, padded_shapes=pad_shapes, drop_remainder=True)
-    else:
-      # if pack is True, fields are already padded to max_length
-      dataset = dataset.batch(batch_size, drop_remainder=True)
-
-  return dataset
-
-
-def get_prepacked_examples(
-    file_pattern,
-    batch_size,
-    max_length,
-    repeat,
-    random_seed = 1,
-    compression_type = "",
-    deterministic = False,
-    drop_remainder = True,
-    vocab_path = None,
-    pack = None,
-    min_cutoff = None,
-    activated_vars = None,
-    guided_vars_dict = None,
-    shard_data = True,
-    additional_fields = None):
+def get_prepacked_examples(file_pattern,
+                           batch_size,
+                           max_length,
+                           repeat,
+                           random_seed=1,
+                           compression_type="",
+                           deterministic=False,
+                           drop_remainder=True,
+                           vocab_path=None,
+                           pack=None,
+                           min_cutoff=None,
+                           activated_vars=None,
+                           guided_vars_dict=None,
+                           shard_data=True,
+                           additional_fields=None):
   """Constructs a dataset from a precomputed tfrecord of packed tfexamples."""
   del vocab_path, pack, guided_vars_dict, min_cutoff, activated_vars
   name_to_features = {
@@ -214,9 +150,9 @@ def get_prepacked_examples(
 def pack_and_batch_ds(dataset,
                       batch_size,
                       max_length,
-                      extend_to_fill = False,
-                      drop_remainder = False,
-                      pack = True):
+                      extend_to_fill=False,
+                      drop_remainder=False,
+                      pack=True):
   """Packs and batches the provided dataset.
 
   Args:

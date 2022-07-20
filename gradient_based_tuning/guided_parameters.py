@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
 # Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,19 +32,18 @@ import copy
 import functools
 import os
 import pickle
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import tensorflow.compat.v2 as tf
+# pylint: disable=g-import-not-at-top
+try:
+  import guided_parameters_utils
+except ImportError:
+  from gradient_based_tuning import guided_parameters_utils
+# pylint: enable=g-import-not-at-top
 
-from gradient_based_tuning import guided_parameters_utils
-
-_DATA_PARAMETER_TYPES = [
-    'corpus', 'dppl_bucket', 'ex_index', 'bert_tgt_bucket', 'identity',
-    'edit_weight_scalar', 'errant_tag'
-]
 _HYPER_PARAMETER_TYPES = [
     'beta1',
     'decay_rate',
@@ -105,9 +105,7 @@ def get_raw_vars_and_act_fns(
   return raw_vars_dict, act_fn_dict
 
 
-def get_activated_hparams(
-    optimizer_dict,
-    guided_vars_dict):
+def get_activated_hparams(optimizer_dict, guided_vars_dict):
   """Gets dict of activated hparams from optimizer_dict and guided_vars_dict."""
   all_hparams = get_hyper_parameter_types()
   activated_hparams = {'hp-%s' % x: None for x in all_hparams}
@@ -129,11 +127,11 @@ def get_activated_hparams(
 def get_noninit_guided_config(
     guided_hparam_types,
     model_opt_type,
-    lr_activation_fn = 'exp',
-    activation_floor = 0,
-    guided_opt_type = 'adam',
-    init_dict = None,
-    learning_rate_scalar_override = None,
+    lr_activation_fn='exp',
+    activation_floor=0,
+    guided_opt_type='adam',
+    init_dict=None,
+    learning_rate_scalar_override=None,
 ):
   """Return non-initialized guided configs."""
   default_config = {
@@ -317,8 +315,7 @@ def get_noninit_guided_config(
   return ret
 
 
-def get_act_fn_from_vars_subdict(
-    dp_vars_type_subdict):
+def get_act_fn_from_vars_subdict(dp_vars_type_subdict):
   """Returns the specific activation function of the dp_var_type_subdict."""
   return functools.partial(
       guided_parameters_utils.get_activation_fn_by_name(
@@ -351,8 +348,7 @@ def create_raw_vars_array(init_dict):
   return inv_array
 
 
-def init_guided_vars(
-    guided_vars_dict):
+def init_guided_vars(guided_vars_dict):
   """Adds 'raw_guided_vars' field to all guided params in guided_vars_dict.
 
   For each dict in the guided_vars_dict, produce the initialized ndarray as
@@ -372,8 +368,7 @@ def init_guided_vars(
   return guided_vars_dict
 
 
-def reset_subdict_raw_vars(guided_vars_dict,
-                           var_type):
+def reset_subdict_raw_vars(guided_vars_dict, var_type):
   """Reset var_type of the guided_vars_dict, overriding current state."""
   old_subdict = guided_vars_dict[var_type]
   guided_vars_dict[var_type]['raw_guided_vars'] = create_raw_vars_array(
@@ -384,11 +379,11 @@ def reset_subdict_raw_vars(guided_vars_dict,
 def get_guided_vars_dict(
     guided_hparam_types,
     model_opt_type,
-    guided_opt_type = 'adam',
-    lr_activation_fn = 'exp',
-    activation_floor = 0,
-    init_dict = None,
-    learning_rate_scalar_override = None,
+    guided_opt_type='adam',
+    lr_activation_fn='exp',
+    activation_floor=0,
+    init_dict=None,
+    learning_rate_scalar_override=None,
 ):
   """Returns the initialized guided_vars_dict specified by guided_var_set.
 
@@ -399,8 +394,8 @@ def get_guided_vars_dict(
     lr_activation_fn: activation fn for learning rate, if LR is guided
     activation_floor: min value for guided activation fns
     init_dict: initialization values (post-activation) for guided hparams
-    learning_rate_scalar_override: dict overriding learning rate scalars,
-      keyed by guided_hparam_types
+    learning_rate_scalar_override: dict overriding learning rate scalars, keyed
+      by guided_hparam_types
 
   Returns:
     an initialized guided_vars_dict
@@ -422,8 +417,7 @@ def get_guided_vars_dict(
   return init_guided_vars(guided_vars_dict_noninit)
 
 
-def make_dict_json_safe(
-    vars_dict):
+def make_dict_json_safe(vars_dict):
   """Iterate through a pytree, turn DeviceArrays into pickle-able ndarrays."""
   for k in vars_dict:
     if isinstance(vars_dict[k], dict):
@@ -440,17 +434,17 @@ def save_guided_vars_dict(guided_vars_dict, model_dir):
   guided_vars_dict_local = copy.deepcopy(guided_vars_dict)
   guided_vars_dict_local = make_dict_json_safe(guided_vars_dict_local)
   json_file = os.path.join(model_dir, 'guided_vars_dict.pkl')
-  with tf.gfile.Open(json_file, 'wb') as f:
+  with tf.io.gfile.GFile(json_file, 'wb') as f:
     pickle.dump(guided_vars_dict_local, f)
   txt_file = os.path.join(model_dir, 'guided_vars_dict.txt')
-  with tf.gfile.Open(txt_file, 'wb') as f:
+  with tf.io.gfile.GFile(txt_file, 'wb') as f:
     f.write(str(guided_vars_dict_local))
 
 
 def load_guided_vars_dict(model_dir):
   """Load guided_vars_dict from a pickled dict saved."""
   json_file = os.path.join(model_dir, 'guided_vars_dict.pkl')
-  with tf.gfile.Open(json_file, 'rb') as f:
+  with tf.io.gfile.GFile(json_file, 'rb') as f:
     guided_vars_dict = pickle.load(f)
   return guided_vars_dict
 
@@ -458,7 +452,7 @@ def load_guided_vars_dict(model_dir):
 def save_epoch(epoch, model_dir):
   """Saves the current epoch in a text file."""
   epoch_file = os.path.join(model_dir, 'cur_epoch.txt')
-  with tf.gfile.Open(epoch_file, 'w') as f:
+  with tf.io.gfile.GFile(epoch_file, 'w') as f:
     f.write(str(epoch))
 
 
@@ -466,10 +460,10 @@ def load_epoch(model_dir):
   """Reads the current epoch from a text file, returns 0 if not found."""
   epoch_file = os.path.join(model_dir, 'cur_epoch.txt')
   try:
-    with tf.gfile.Open(epoch_file, 'r') as f:
+    with tf.io.gfile.GFile(epoch_file, 'r') as f:
       cur_epoch = int(f.read())
     return cur_epoch
-  except (tf.gfile.FileError, ValueError):
+  except (tf.errors.NotFoundError, ValueError):
     # If there is no cur_epoch saved, it is the start of training, so return 0.
     return 0
 
@@ -483,8 +477,8 @@ def save_guide_loop_metrics(
 ):
   """Save guide loop metrics and learned vars in a pickled dict."""
   output_dir = os.path.join(model_dir, 'guide_loop_analysis')
-  if not tf.gfile.Exists(output_dir):
-    tf.gfile.MakeDirs(output_dir)
+  if not tf.io.gfile.exists(output_dir):
+    tf.io.gfile.makedirs(output_dir)
 
   # aggregate metric data
   metrics_loop_dict = {}
@@ -507,5 +501,5 @@ def save_guide_loop_metrics(
   file_name = 'guide_loop_step_%s%s.pkl' % (current_step, '_tracked'
                                             if track_ex_guide_loop else '')
   pkl_file = os.path.join(output_dir, file_name)
-  with tf.gfile.Open(pkl_file, 'wb') as f:
+  with tf.io.gfile.GFile(pkl_file, 'wb') as f:
     pickle.dump(learned_vars_loop_dict, f)

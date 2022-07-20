@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
 # Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +27,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
 """Training script for gradient-based hyper-parameter tuning in JAX."""
 
 import functools
@@ -33,13 +36,11 @@ import json
 import os
 import textwrap
 import time
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Tuple
 
 from absl import app
 from absl import flags
 from absl import logging
 from flax import jax_utils
-from flax import optim
 from flax import serialization
 from flax.deprecated import nn
 from flax.metrics import tensorboard
@@ -49,14 +50,18 @@ import jax
 from jax import random
 import jax.nn
 import jax.numpy as jnp
-import numpy as np
+import models
+import sentencepiece as spm
 import tensorflow.compat.v2 as tf
-
-from gradient_based_tuning import data
-from gradient_based_tuning import guided_parameters
-from gradient_based_tuning import mlperf_encoder
-from gradient_based_tuning import models
-from gradient_based_tuning import utils
+import utils
+# pylint: disable=g-import-not-at-top
+try:
+  import data
+  import guided_parameters
+except ImportError:
+  from gradient_based_tuning import data
+  from gradient_based_tuning import guided_parameters
+# pylint: enable=g-import-not-at-top
 
 FLAGS = flags.FLAGS
 
@@ -605,10 +610,10 @@ def update_model_and_guidance_step(
     learning_rate_fn,
     learning_rate_fn_guided_vars,
     guide_batch,
-    grad_clip_limit = 0.0,
-    use_bfloat16 = False,
-    dropout_rng = None,
-    output_metrics = None,
+    grad_clip_limit=0.0,
+    use_bfloat16=False,
+    dropout_rng=None,
+    output_metrics=None,
 ):
   """Updates all guided optimizers and the model, with a single forward pass.
 
@@ -954,9 +959,9 @@ def update_model_step(
     optimizer_dict,
     train_batch,
     learning_rate_fn,
-    use_bfloat16 = False,
-    dropout_rng = None,
-    output_metrics = None,
+    use_bfloat16=False,
+    dropout_rng=None,
+    output_metrics=None,
 ):
   """Updates the model only, without using guided parameters.
 
@@ -1118,10 +1123,10 @@ def write_finished_training(model_dir):
     return
   logging.info('Writing to CNS that training is done.')
   try:
-    with tf.gfile.Open(os.path.join(model_dir, _TRAINING_DONE_FILENAME),
-                       'w') as f:
+    with tf.io.gfile.GFile(
+        os.path.join(model_dir, _TRAINING_DONE_FILENAME), 'w') as f:
       f.write('Training run is complete.')
-  except tf.gfile.FileError:
+  except tf.errors.NotFoundError:
     pass
 
 
@@ -1129,10 +1134,10 @@ def maybe_remove_finished_training(model_dir):
   """Remove (if present) the CNS file marking this training run as complete."""
   if jax.process_index() != 0:
     return
-  if tf.gfile.Exists(os.path.join(model_dir, _TRAINING_DONE_FILENAME)):
+  if tf.io.gfile.exists(os.path.join(model_dir, _TRAINING_DONE_FILENAME)):
     logging.info('Removing "%s" while current run ongoing.',
                  _TRAINING_DONE_FILENAME)
-    tf.gfile.Remove(os.path.join(model_dir, _TRAINING_DONE_FILENAME))
+    tf.io.gfile.remove(os.path.join(model_dir, _TRAINING_DONE_FILENAME))
 
 
 def save_all_checkpoints(
@@ -1158,7 +1163,7 @@ def save_all_checkpoints(
                                    '%s%s' % (prefix_string, step))
       # It may be necessary to overwrite hp-vars files if the training run
       # was interrupted and we had to go back to the last model ckpt.
-      if tf.gfile.Exists(write_to_file):
+      if tf.io.gfile.exists(write_to_file):
         logging.info('Skipping saving ckpt at %s because it already exists.',
                      write_to_file)
         print('Skipping saving ckpt at %s because it already exists.',
@@ -1215,14 +1220,14 @@ def maybe_save_ckpts(
     # it may be necessary to overwrite guided-vars files if the training run
     # was interrupted and we had to go back to the last model ckpt
     overwrite = False
-    if tf.gfile.Exists(write_to_file):
+    if tf.io.gfile.exists(write_to_file):
       if opt_dict_key == 'model':
         raise ValueError('trying to save model but already exists... '
                          'this can happen if two runs are writing to same dir?'
                          ' file: %s' % write_to_file)
       utils.log_message(
           t_start, 'Overwriting old guided vars checkpoint: %s' % write_to_file)
-      tf.gfile.Remove(write_to_file)
+      tf.io.gfile.remove(write_to_file)
       overwrite = True
     checkpoints.save_checkpoint(
         FLAGS.model_dir,
@@ -1239,8 +1244,8 @@ def write_flags_files(output_dir, guided_vars_dict):
   if jax.process_index() != 0:
     return
 
-  if not tf.gfile.Exists(output_dir):
-    tf.gfile.MakeDirs(output_dir)
+  if not tf.io.gfile.exists(output_dir):
+    tf.io.gfile.MakeDirs(output_dir)
 
   flag_dict = FLAGS.flags_by_module_dict()
   jax_module_names = [x for x in flag_dict.keys() if 'jax' in x or 'train' in x]
@@ -1261,9 +1266,9 @@ def write_flags_files(output_dir, guided_vars_dict):
 
   logging.info('writing flags into: %s', flags_txt)
   try:
-    with tf.gfile.Open(flags_txt, 'w') as f:
+    with tf.io.gfile.GFile(flags_txt, 'w') as f:
       f.write(jax_flags_str)
-  except tf.gfile.FileError:
+  except tf.errors.NotFoundError:
     logging.warn('Failed to write flags to CNS: %s', flags_txt)
 
   guided_flags_json = os.path.join(output_dir, 'train_run_hparams.json')
@@ -1280,14 +1285,22 @@ def write_flags_files(output_dir, guided_vars_dict):
         {'guided_vars.%s' % k: v for k, v in flattened_dict.items()})
     jax_train_dict = guided_parameters.make_dict_json_safe(jax_train_dict)
   try:
-    with tf.gfile.Open(guided_flags_json, 'w') as f:
+    with tf.io.gfile.GFile(guided_flags_json, 'w') as f:
       json.dump(jax_train_dict, f)
-  except tf.gfile.FileError:
+  except tf.errors.NotFoundError:
     pass
 
 
-def restore_or_init_model(
-    t_start):
+def _load_spm_tokenizer(model_path):
+  """Load a spm tokenizer from given model filepath."""
+  with tf.io.gfile.GFile(model_path, 'rb') as f:
+    spm_model = f.read()
+  sp_tokenizer = spm.SentencePieceProcessor()
+  sp_tokenizer.LoadFromSerializedProto(spm_model)
+  return sp_tokenizer
+
+
+def restore_or_init_model(t_start):
   """Initializes a model; restores from prior ckpt or init ckpt as needed.
 
   Randomly initialize a Transformer model with FLAGS-specified parameters.
@@ -1306,8 +1319,8 @@ def restore_or_init_model(
     rng: jax PRNG key, an np.ndarray of two ints
   """
   utils.log_message(t_start, 'Initializing model.')
-  encoder = mlperf_encoder.SubwordTextEncoder(FLAGS.vocab_path)
-  vocab_size = int(encoder.vocab_size)
+  encoder = _load_spm_tokenizer(FLAGS.vocab_path)
+  vocab_size = int(encoder.GetPieceSize())
   current_run_step = 0
 
   # Build Model and Optimizer
@@ -1340,9 +1353,9 @@ def restore_or_init_model(
 
   # Remove bad tmp files caused by preemption during save; avoids error on save.
   if jax.process_index() == 0:
-    for x in tf.gfile.Glob(os.path.join(FLAGS.model_dir, '*_tmp')):
-      tf.gfile.Remove(x)
-  glob_path = tf.gfile.Glob(os.path.join(FLAGS.model_dir, 'model_*'))
+    for x in tf.io.gfile.glob(os.path.join(FLAGS.model_dir, '*_tmp')):
+      tf.io.gfile.remove(x)
+  glob_path = tf.io.gfile.glob(os.path.join(FLAGS.model_dir, 'model_*'))
   if glob_path:
     # If training has already started, and checkpoints exist in the model_dir,
     # take the last checkpoint available (occurs if training job is preempted).
@@ -1373,7 +1386,7 @@ def restore_or_init_model(
                       'Init checkpoint from %s' % FLAGS.init_checkpoint)
     if FLAGS.print_for_colab:
       print(t_start, 'Init checkpoint from %s' % FLAGS.init_checkpoint)
-    with tf.gfile.GFile(FLAGS.init_checkpoint, 'rb') as fp:
+    with tf.io.gfile.GFile(FLAGS.init_checkpoint, 'rb') as fp:
       optimizer = serialization.from_bytes(optimizer, fp.read())
     optimizer_step = get_step_from_opt(optimizer)
     if FLAGS.take_current_run_step_from_init:
@@ -1384,7 +1397,7 @@ def restore_or_init_model(
 
 def remove_stale_guided_vars_ckpts(opt_key, restore_step):
   """Remove any stale checkpoints which may have been left by task failure."""
-  glob_paths = tf.gfile.Glob(os.path.join(FLAGS.model_dir, '%s*' % opt_key))
+  glob_paths = tf.io.gfile.glob(os.path.join(FLAGS.model_dir, '%s*' % opt_key))
   past_restore_path = os.path.join(FLAGS.model_dir,
                                    '%s_%s' % (opt_key, restore_step + 1))
   glob_paths.append(past_restore_path)
@@ -1392,10 +1405,10 @@ def remove_stale_guided_vars_ckpts(opt_key, restore_step):
   # was interrupted and we had to go back to the last model ckpt.
   sorted_ckpts = checkpoints.natural_sort(glob_paths)
   for x in sorted_ckpts[sorted_ckpts.index(past_restore_path):]:
-    if tf.gfile.Exists(x):
+    if tf.io.gfile.exists(x):
       logging.info(
           'Removing bad ckpt (got ahead of model due to task failure): %s', x)
-      tf.gfile.Remove(x)
+      tf.io.gfile.remove(x)
 
 
 def restore_or_init_guided_optimizers(
@@ -1419,10 +1432,10 @@ def restore_or_init_guided_optimizers(
   optimizer_dict = {}
   try:
     if jax.process_index() == 0:
-      for x in tf.gfile.Glob(os.path.join(FLAGS.model_dir, '*_tmp')):
-        tf.gfile.Remove(x)
-    glob_path = tf.gfile.Glob(os.path.join(FLAGS.model_dir, 'model_*'))
-  except tf.gfile.GOSError:
+      for x in tf.io.gfile.glob(os.path.join(FLAGS.model_dir, '*_tmp')):
+        tf.io.gfile.remove(x)
+    glob_path = tf.io.gfile.glob(os.path.join(FLAGS.model_dir, 'model_*'))
+  except tf.errors.NotFoundError:
     glob_path = None
   # If there are no models_* files, restore step is 0
   restore_step = -1
@@ -1497,10 +1510,7 @@ def set_up_summary_writers():
       os.path.join(FLAGS.model_dir, 'train-%s' % FLAGS.training_dataset))
 
   eval_sum_writers_dict = {}
-  # TODO(lichtarge): fix this
   for eval_ds_name in get_evalsets():
-    if FLAGS.print_for_colab:
-      print('running eval for: %s' % eval_ds_name)
     tb_summary_name = 'eval-%s' % eval_ds_name
     eval_sum_writers_dict[tb_summary_name] = tensorboard.SummaryWriter(
         os.path.join(FLAGS.model_dir, tb_summary_name))
@@ -1562,8 +1572,7 @@ def get_evalsets():
   return evalsets
 
 
-def get_learning_rate_fns(
-):
+def get_learning_rate_fns():
   """Get learning rate fns, specified by relevant FLAGS.
 
   Returns:
@@ -1597,7 +1606,7 @@ def maybe_reset_guidance_model(
     guided_vars_dict,
     optimizer_dict,
     frequency,
-    force_reset = False,
+    force_reset=False,
 ):
   """Reset guidance optimizers that are specified to be reset at <frequency>.
 
@@ -1678,8 +1687,8 @@ def output_train_metrics(
       try:
         summary[k] = train_step_metrics.pop(k).mean()
       except AttributeError as e:
-        logging.warning('Metrics key: %s causes error: %s. Overriding to 0.',
-                        k, e)
+        logging.warning('Metrics key: %s causes error: %s. Overriding to 0.', k,
+                        e)
         summary[k] = 0.0
       pass
   # Take the sums across batch for 'loss', 'accuracy', and 'denominator'.
@@ -1849,6 +1858,7 @@ def main(_):
   t_start = time.time()
 
   # Necessary to make it work on GPU without OOM.
+  # https://jax.readthedocs.io/en/latest/gpu_memory_allocation.html#common-causes-of-oom-failures
   tf.config.experimental.set_visible_devices([], 'GPU')
 
   # Number of local devices for this host.
@@ -1929,8 +1939,7 @@ def main(_):
   if FLAGS.print_for_colab:
     print('Initializing dataset.')
   if FLAGS.training_dataset_path:
-    logging.info('FLAGS.training_dataset_path  %s',
-                 FLAGS.training_dataset_path)
+    logging.info('FLAGS.training_dataset_path  %s', FLAGS.training_dataset_path)
 
     train_ds_kwargs = {
         'batch_size': FLAGS.batch_size,
@@ -1944,8 +1953,7 @@ def main(_):
     train_ds = data.get_prepacked_examples(
         file_pattern=FLAGS.training_dataset_path, **train_ds_kwargs)
   if FLAGS.guidance_dataset_path:
-    logging.info('FLAGS.guidance_dataset_path  %s',
-                 FLAGS.guidance_dataset_path)
+    logging.info('FLAGS.guidance_dataset_path  %s', FLAGS.guidance_dataset_path)
 
     eval_ds_dict = {}
     guide_ds_kwargs = {
@@ -2238,6 +2246,4 @@ def main(_):
 
 
 if __name__ == '__main__':
-  # pylint: disable=g-import-not-at-top
-  # pylint: enable=g-import-not-at-top
   app.run(main)

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
 # Copyright 2022 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +29,8 @@
 # limitations under the License.
 r"""A FlumePython program to generate tf.Examples with a sentencepiece model."""
 
-from typing import Any, Dict, Iterator, List, Tuple
+import difflib
+import os
 
 from absl import app
 from absl import flags
@@ -37,19 +39,17 @@ import apache_beam as beam
 from apache_beam import metrics
 from apache_beam.io import tfrecordio
 from apache_beam.options import pipeline_options
-import editdistance
 import sentencepiece as spm
 from tensor2tensor.data_generators.generator_utils import pack_examples
 from tensor2tensor.data_generators.generator_utils import to_example
 import tensorflow.compat.v2 as tf
 
-_PAD_ID = 0
-_DEFAULT_EOS_ID = 1  # Only used if spm_path is None.
+_PAD_ID = 1
+_DEFAULT_EOS_ID = 2  # Only used if spm_path is None.
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('input_path', None, 'Input RecordIO with TSV lines.')
-flags.DEFINE_string('output_path', None, 'Output TFRecords.')
 flags.DEFINE_integer('tsv_source_column', 0, 'Source sentence TSV column.')
 flags.DEFINE_integer(
     'tsv_target_column', 1, 'Target sentence TSV column. If '
@@ -60,6 +60,14 @@ flags.DEFINE_integer(
     'packing.')
 flags.DEFINE_integer('pad_length', 256,
                      'If positive, pad all features to this length.')
+flags.DEFINE_integer(
+    'num_guide_shards', 4,
+    'Number of shards for the output of the TFRecords for guide and dev splits.'
+)
+flags.DEFINE_integer(
+    'num_train_shards', 64,
+    'Number of shards for the output of the TFRecords for train split.')
+
 flags.DEFINE_float(
     'min_edit_distance', 0.3,
     'Minimum edit distance. Examples for which source and target are more similar will be omitted.'
@@ -69,7 +77,7 @@ flags.DEFINE_float(
 class SelectTSVColumns(beam.DoFn):
   """Selects two columns in TSV lines."""
 
-  def __init__(self, source_column = 0, target_column = 1):
+  def __init__(self, source_column=0, target_column=1):
     self._source_column = source_column
     self._target_column = target_column
 
@@ -94,10 +102,7 @@ class SelectTSVColumns(beam.DoFn):
 class PrepareTfExamples(beam.DoFn):
   """Prepare (packed) TFExamples from a list of source/target sentence pairs."""
 
-  def __init__(self,
-               spm_path,
-               packed_length = 256,
-               pad_length = 256):
+  def __init__(self, spm_path, packed_length=256, pad_length=256):
     self._spm_path = spm_path
     self._spm = None
     self._packed_length = packed_length
@@ -106,13 +111,12 @@ class PrepareTfExamples(beam.DoFn):
 
   def start_bundle(self):
     if self._spm_path:
-      with tf.gfile.GFile(self._spm_path, 'rb') as f:
+      with tf.io.gfile.GFile(self._spm_path, 'rb') as f:
         spm_model = f.read()
       self._spm = spm.SentencePieceProcessor()
       self._spm.LoadFromSerializedProto(spm_model)
 
-  def _make_spm_example_dict(self, source_text,
-                             target_text):
+  def _make_spm_example_dict(self, source_text, target_text):
     return {
         'inputs': self._encode_with_spm(source_text),
         'targets': self._encode_with_spm(target_text)
@@ -161,8 +165,7 @@ class ValidateSentencePair(beam.DoFn):
 
   def validate_similarity(self, source, target):
     """Discard sentence pair if their distance is less or equal than the threshold."""
-    distance = editdistance.eval(source, target)
-    distance = float(distance) / max(len(source), len(target))
+    distance = difflib.SequenceMatcher(None, source, target).ratio()
     return distance > self.min_distance
 
   def process(self, sequence_pair):
@@ -189,24 +192,30 @@ class ValidateSentencePair(beam.DoFn):
 
 def pipeline(root):
   """Method to pass into flume runner."""
-  _ = (
-      root
-      | 'Read RecordIO TSV' >> beam.io.ReadFromText(FLAGS.input_path)
-      | 'Validate sentence pair' >> beam.ParDo(
-          ValidateSentencePair(FLAGS.min_edit_distance))
-      | 'Select TSV columns' >> beam.ParDo(
-          SelectTSVColumns(
-              source_column=FLAGS.tsv_source_column,
-              target_column=FLAGS.tsv_target_column))
-      | 'Reshuffle' >> beam.Reshuffle()
-      | 'Batch elements' >> beam.BatchElements(
-          min_batch_size=1024, max_batch_size=1024)
-      | 'Make tf.Examples' >> beam.ParDo(
-          PrepareTfExamples(
-              spm_path=FLAGS.spm_path,
-              packed_length=FLAGS.packed_length,
-              pad_length=FLAGS.pad_length))
-      | 'Write to tf.Record' >> tfrecordio.WriteToTFRecord(FLAGS.output_path))
+  for i, tsv_in in enumerate(
+      tf.io.gfile.glob(os.path.join(FLAGS.input_path, '*.tsv'))):
+    print('Processing tsv input: %s' % tsv_in)
+    tfr_out = tsv_in.replace('.tsv', '.tfr')
+    num_output_shards = FLAGS.num_train_shards if 'train' in tsv_in else FLAGS.num_guide_shards
+    _ = (
+        root
+        | 'Read RecordIO TSV__%s' % i >> beam.io.ReadFromText(tsv_in)
+        | 'Validate sentence pair__%s' % i >> beam.ParDo(
+            ValidateSentencePair(FLAGS.min_edit_distance))
+        | 'Select TSV columns__%s' % i >> beam.ParDo(
+            SelectTSVColumns(
+                source_column=FLAGS.tsv_source_column,
+                target_column=FLAGS.tsv_target_column))
+        | 'Reshuffle__%s' % i >> beam.Reshuffle()
+        | 'Batch elements__%s' % i >> beam.BatchElements(
+            min_batch_size=1024, max_batch_size=1024)
+        | 'Make tf.Examples__%s' % i >> beam.ParDo(
+            PrepareTfExamples(
+                spm_path=FLAGS.spm_path,
+                packed_length=FLAGS.packed_length,
+                pad_length=FLAGS.pad_length))
+        | 'Write to tf.Record__%s' % i >> tfrecordio.WriteToTFRecord(
+            tfr_out, num_shards=num_output_shards))
 
 
 def main(unused_args):

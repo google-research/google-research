@@ -16,29 +16,26 @@ All dependencies are listed in requirements.txt. Models are implemented in flax.
 The WMT data is sourced from Tensorflow Datasets (https://www.tensorflow.org/datasets/api_docs/python/tfds).
 
 ### Python Environment
-We suggest installing the library in a vitual environment as our code requires older versions of libraries. We recommend creating a virtualenv (or conda).
+We suggest installing the library in a virtual environment as our code requires older versions of libraries. To do so, run the following on a path created to host this enviroment:
+
+`python3 -m venv .
+source bin/activate
+`
 
 To install libraries using pip, run: \
 `pip3 install -r requirements.txt`
 
-## Files
+To run on GPU, additionally run: \
+`pip3 install https://storage.googleapis.com/jax-releases/cuda11/jaxlib-0.1.75+cuda11.cudnn82-cp37-none-manylinux2010_x86_64.whl`
 
-The main runner is train.py. See example below.
+## Usage
 
-## Example
+To download and format data, then train a model, run: \
+`./run.sh`
 
-`python -m train.py \
---eval_dataset_path=/data/lt-en_dev.tfr \
---guidance_dataset_path=/data/lt-en_guide_1percent.tfr \
---guided_hparam_types=learning_rate \
---model_dir=/models/ \
---save_checkpoints=True \
---train_with_guided_parameters=1 \
---training_dataset=wmt_lt_en \
---training_dataset_path=/data/lt-en_train_99percent.tfr \
---vocab_path=/data/lt-en.32k.vocab`
+By default this will use language pair Lithuanian-English (lt-en), and train a tiny model for demonstration purposes, as larger models will likely OOM unless run on GPU or TPU hardware.
 
-
+## Citation
 
 If you use this code, please cite the paper:
 
