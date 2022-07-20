@@ -255,6 +255,16 @@ class ContrastiveLearner(acme.Learner):
           q_action = jnp.min(q_action, axis=-1)
         actor_loss = alpha * log_prob - jnp.diag(q_action)
 
+        assert 0.0 <= config.bc_coef <= 1.0
+        if config.bc_coef > 0:
+          orig_action = transitions.action
+          if config.random_goals == 0.5:
+            orig_action = jnp.concatenate([orig_action, orig_action], axis=0)
+
+          bc_loss = -1.0 * networks.log_prob(dist_params, orig_action)
+          actor_loss = (config.bc_coef * bc_loss
+                        + (1 - config.bc_coef) * actor_loss)
+
       return jnp.mean(actor_loss)
 
     alpha_grad = jax.value_and_grad(alpha_loss)

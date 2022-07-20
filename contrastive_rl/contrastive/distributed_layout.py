@@ -284,7 +284,11 @@ class DistributedLayout:
                                             logger, observers=self._observers)
 
   def coordinator(self, counter, max_actor_steps):
-    return lp_utils.StepsLimiter(counter, max_actor_steps)
+    if self._builder._config.env_name.startswith('offline_ant'):  # pytype: disable=attribute-error, pylint: disable=protected-access
+      steps_key = 'learner_steps'
+    else:
+      steps_key = 'actor_steps'
+    return lp_utils.StepsLimiter(counter, max_actor_steps, steps_key=steps_key)
 
   def build(self, name='agent', program = None):
     """Build the distributed agent topology."""

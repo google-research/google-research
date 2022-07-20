@@ -115,6 +115,9 @@ def main(_):
       'use_random_actor': True,
       'entropy_coefficient': None if 'image' in env_name else 0.0,
       'env_name': env_name,
+      # For online RL experiments, max_number_of_steps is the number of
+      # environment steps. For offline RL experiments, this is the number of
+      # gradient steps.
       'max_number_of_steps': 1_000_000,
       'use_image_obs': 'image' in env_name,
   }
@@ -162,14 +165,13 @@ def main(_):
   # use this mainly for debugging.
   if FLAGS.debug:
     params.update({
-        'min_replay_size': 10_000,
+        'min_replay_size': 2_000,
         'local': True,
         'num_sgd_steps_per_step': 1,
         'prefetch_size': 1,
         'num_actors': 1,
         'batch_size': 32,
         'max_number_of_steps': 10_000,
-        'samples_per_insert_tolerance_rate': 1.0,
         'hidden_layer_sizes': (32, 32),
     })
 
