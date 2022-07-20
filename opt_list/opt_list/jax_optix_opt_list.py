@@ -22,7 +22,7 @@ adding the ability to use parameter values to inform the updates.
 import collections
 import jax.numpy as jnp
 from jax.tree_util import tree_flatten
-from jax.tree_util import tree_multimap
+from jax.tree_util import tree_map
 from jax.tree_util import tree_unflatten
 
 from opt_list import common
@@ -52,7 +52,7 @@ def optimizer_for_idx(idx, training_steps):
   hyper_params = jax_common.NAdamWHyperParams(**config)
 
   def init(params):
-    zero_initial = tree_multimap(jnp.zeros_like, params)
+    zero_initial = tree_map(jnp.zeros_like, params)
     return zero_initial, zero_initial, 0
 
   def update_fn(grads, params, state):
@@ -86,8 +86,8 @@ def optimizer_for_idx(idx, training_steps):
     flat_s0, _ = tree_flatten(grad_acc)
     flat_s1, _ = tree_flatten(grad_sq_acc)
 
-    next_param_states = tree_multimap(update_one, flat_gs, flat_ps, flat_s0,
-                                      flat_s1)
+    next_param_states = tree_map(update_one, flat_gs, flat_ps, flat_s0,
+                                 flat_s1)
 
     flat_step, flat_next_ss = zip(*next_param_states)
     flat_next_grad_acc, flat_next_grad_sq_acc = zip(*flat_next_ss)

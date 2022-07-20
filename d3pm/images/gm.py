@@ -159,7 +159,7 @@ class TrainableModel:
                 jnp.all(jnp.isfinite(p)) for p in jax.tree_leaves(new_optimizer)
             ]))
         new_state_no_update = state.replace(step=step + 1)
-        state = jax.tree_multimap(lambda a, b: jnp.where(ok, a, b), new_state,
+        state = jax.tree_map(lambda a, b: jnp.where(ok, a, b), new_state,
                                   new_state_no_update)
       else:
         logging.info('Update skipping disabled')

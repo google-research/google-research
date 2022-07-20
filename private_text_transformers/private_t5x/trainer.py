@@ -258,7 +258,7 @@ def accumulate_grads_microbatched(
     ):
       (dropout_rng, grad_accum, prev_metrics) = state
       metrics, grad = metrics_and_grad(loop_cnt, dropout_rng)
-      grad_accum = jax.tree_multimap(jnp.add, grad_accum, grad)
+      grad_accum = jax.tree_map(jnp.add, grad_accum, grad)
       metrics = jax.lax.cond(
           loop_cnt == 0, lambda _: metrics,
           lambda _: t5x_trainer.merge_metrics(prev_metrics, metrics), None)

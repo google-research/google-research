@@ -160,7 +160,7 @@ def batch(
       stacked = jax_util.pad_to(stacked, batch_size)
       return stacked.reshape(batch_dim_sizes + stacked.shape[1:])
 
-    yield jax.tree_multimap(_batch_and_pad_elts, *to_batch)
+    yield jax.tree_map(_batch_and_pad_elts, *to_batch)
 
 
 def batch_bucketed(
@@ -209,7 +209,7 @@ def batch_bucketed(
       stacked = jax_util.pad_to(stacked, batch_sizes[key])
       return stacked.reshape(batch_dim_sizes[key] + stacked.shape[1:])
 
-    result = jax.tree_multimap(_batch_and_pad_elts, *partial_batches[key])
+    result = jax.tree_map(_batch_and_pad_elts, *partial_batches[key])
     partial_batches[key].clear()
     return (key, result)
 
@@ -329,7 +329,7 @@ def batch_and_pad_to_prototype(
       else:
         raise ValueError(f"Unknown remainder behavior {remainder_behavior}")
 
-    yield jax.tree_multimap(_batch_into_prototype, prototype, *to_batch)
+    yield jax.tree_map(_batch_into_prototype, prototype, *to_batch)
 
 
 class ThreadedPrefetcher:

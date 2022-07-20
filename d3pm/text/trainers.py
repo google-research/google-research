@@ -285,7 +285,7 @@ def standard_train_step(
       (1 - ema_decay_rate) * delta**2,
   )
 
-  new_state = jax.tree_multimap(
+  new_state = jax.tree_map(
       lambda a, b: jnp.where(should_replace, a, b),
       new_state,
       state,

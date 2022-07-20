@@ -37,11 +37,11 @@ def tree_get_types(tree):
 
 
 def tree_add(a, b):
-  return jax.tree_multimap(lambda e1, e2: e1+e2, a, b)
+  return jax.tree_map(lambda e1, e2: e1+e2, a, b)
 
 
 def tree_diff(a, b):
-  return jax.tree_multimap(lambda p_a, p_b: p_a - p_b, a, b)
+  return jax.tree_map(lambda p_a, p_b: p_a - p_b, a, b)
 
 
 def tree_dot(a, b):
@@ -71,6 +71,6 @@ def normal_like_tree(a, key):
   treedef = jax.tree_structure(a)
   num_vars = len(jax.tree_leaves(a))
   all_keys = jax.random.split(key, num=(num_vars + 1))
-  noise = jax.tree_multimap(lambda p, k: jax.random.normal(k, shape=p.shape), a,
+  noise = jax.tree_map(lambda p, k: jax.random.normal(k, shape=p.shape), a,
                             jax.tree_unflatten(treedef, all_keys[1:]))
   return noise, all_keys[0]

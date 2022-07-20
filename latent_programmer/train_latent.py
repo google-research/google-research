@@ -352,7 +352,7 @@ def train_step(state,
       optimizer.target, lp_optimizer.target)
   grads = jax.lax.pmean(grads, 'batch')
   new_optimizer = optimizer.apply_gradient(
-      jax.tree_multimap(jnp.add, grads[0], ae_grad), learning_rate=lr)
+      jax.tree_map(jnp.add, grads[0], ae_grad), learning_rate=lr)
   new_lp_optimizer = lp_optimizer.apply_gradient(grads[1], learning_rate=lr)
 
   metrics = compute_metrics(logits, programs, weights)
