@@ -99,4 +99,5 @@ class DistributedContrastive(distributed_layout.DistributedLayout):
         actor_logger_fn=distributed_layout.get_default_logger_fn(
             log_to_bigtable, log_every),
         observers=actor_observers,
-        checkpointing_config=distributed_layout.CheckpointingConfig())
+        checkpointing_config=distributed_layout.CheckpointingConfig(),
+        steps_key=config.steps_key)

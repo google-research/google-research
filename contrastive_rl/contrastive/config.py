@@ -29,6 +29,7 @@ class ContrastiveConfig:
   env_name: str = ''
   max_number_of_steps: int = 1_000_000
   num_actors: int = 4
+  steps_key: str = 'actor_steps'
 
   # Loss options
   batch_size: int = 256
