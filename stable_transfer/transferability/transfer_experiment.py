@@ -23,6 +23,7 @@ import tqdm
 
 from stable_transfer.transferability import config_transfer_experiment as config
 from stable_transfer.transferability import datasets
+from stable_transfer.transferability import datasets_info
 from stable_transfer.transferability import features_targets_utils
 from stable_transfer.transferability import networks
 from stable_transfer.transferability import utils
@@ -36,6 +37,8 @@ class TransferExperiment():
   @property
   def target_classes(self):
     """Returns (sorted) list of selected classes."""
+    if self.config.source.network_architecture == 'HRNet':
+      return None  # Not required for semantic segmentation experiments.
 
     selection_method = self.config.target.class_selection.method
     selection_experiment = self.config.target.class_selection.experiment_number
@@ -60,7 +63,10 @@ class TransferExperiment():
 
   @property
   def num_classes_in_target_dataset(self):
-    return self.config.target.dataset.num_classes
+    if self.config.target.dataset.name in datasets_info.DATASET_NUM_CLASSES:
+      return datasets_info.DATASET_NUM_CLASSES[self.config.target.dataset.name]
+    else:
+      return None
 
   @property
   def num_target_classes(self):
@@ -71,15 +77,28 @@ class TransferExperiment():
 
   @property
   def network_architecture(self):
-    na = networks.NETWORK_ARCHITECTURES[self.config.source.network_architecture]
-    na.set_weights(self.config.source.dataset.name)
+    if self.config.source.network_architecture == 'HRNet':
+      na = networks.HRNET48_TRAINED_MODELS[self.config.source.dataset.name]
+    else:
+      na = networks.NETWORK_ARCHITECTURES[
+          self.config.source.network_architecture]
+      na.set_weights(self.config.source.dataset.name)
     return na
 
   @property
   def target_train_dataset(self):
     """Get Target Train Dataset."""
-    ds_train = datasets.load_dataset(self.config.target.dataset.name,
-                                     split='train', with_info=False)
+
+    if 'num_examples' in self.config.target.dataset:
+      num_examples = self.config.target.dataset.num_examples
+    else:
+      num_examples = -1   # Use the entire dataset
+    ds_train = datasets.load_dataset(
+        self.config.target.dataset.name,
+        num_examples,
+        split='train',
+        with_info=False)
+
     batch_size = 64
     do_train_shuffle = False
     if self.config.experiment.metric == 'accuracy':
@@ -90,6 +109,7 @@ class TransferExperiment():
 
     return datasets.get_experiment_dataset(
         ds_train,
+        self.config.target.dataset.name,
         self.network_architecture,
         self.target_classes,
         do_shuffle=do_train_shuffle,
@@ -106,6 +126,7 @@ class TransferExperiment():
 
     return datasets.get_experiment_dataset(
         ds_test,
+        self.config.target.dataset.name,
         self.network_architecture,
         self.target_classes,
         do_shuffle=False,
@@ -123,14 +144,55 @@ class TransferExperiment():
           base_trainable=self.config.experiment.accuracy.base_trainable)
     raise ValueError(f'Model type {model_type} not recognized.')
 
-  def model_output_on_target_train_dataset(self, model_type):
-    """Return the models embeddings or predictions, and corresponding labels."""
-    model = self.source_model(model_type)
+  def _model_ouput_segmentation(self, model):
+    """Get model output for semantic segmentation."""
+
+    sampling_seed = 0
+    data_config = self.config.target.dataset
+    if data_config.class_balanced_sampling and data_config.pixels_per_image:
+      class_counts = features_targets_utils.compute_class_frequencies(
+          self.target_train_dataset)
+    else:
+      class_counts = None
+
     labels = []
     outputs = []
     for image, label in tqdm.tqdm(self.target_train_dataset):
-      outputs.extend(model.predict_on_batch(image))
+      output = model.predict(image)
+      if output.shape[1:3] != label.shape[1:3]:
+        # Downsample labels to match the size of the features
+        # HRNet based models produce features with resolution [H/4, W/4]
+        # Note: this should be done only when evaluating transferability metrics
+        label = tf.image.resize(label, output.shape[1:3], method='nearest')
+      if data_config.pixels_per_image:
+        num_samples = data_config.pixels_per_image * image.shape[0]
+      else:
+        num_samples = None  # It will use all the pixels without sampling
+      output, label = features_targets_utils.sample_from_image(
+          output, label, sampling_seed, class_counts, num_samples)
+      sampling_seed += 1  # For better sampling change seed over batches
+      outputs.extend(output)
       labels.extend(label)
+
+    return outputs, labels
+
+  def _model_ouput_classification(self, model):
+    """Get model output for classification."""
+    labels = []
+    outputs = []
+    for image, label in tqdm.tqdm(self.target_train_dataset):
+      output = model.predict_on_batch(image)
+      outputs.extend(output)
+      labels.extend(label)
+    return outputs, labels
+
+  def model_output_on_target_train_dataset(self, model_type):
+    """Return the models embeddings or predictions, and corresponding labels."""
+    model = self.source_model(model_type)
+    if self.config.source.network_architecture == 'HRNet':  # Segmentation
+      outputs, labels = self._model_ouput_segmentation(model)
+    else:  # Classification
+      outputs, labels = self._model_ouput_classification(model)
 
     outputs = tf.stack(outputs, axis=0)
     labels = tf.stack(labels, axis=0)
@@ -150,14 +212,25 @@ class TransferExperiment():
   @property
   def target_name(self):
     """Provide unique name for each class selection setting."""
-    class_selection_name = self.config.target.class_selection.method
-    if self.config.target.class_selection.method == 'fixed':
-      percentage = self.config.target.class_selection.fixed.percentage
-      class_selection_name += f'_{int(percentage*100):02d}P'
-    if self.config.target.class_selection.method in ['fixed', 'random']:
-      class_selection_name += (
-          f'_{self.config.target.class_selection.seed:04d}S'
-          f'_{self.config.target.class_selection.experiment_number:02d}E')
+    if self.config.source.network_architecture == 'HRNet':
+      num_examples = self.config.target.dataset.num_examples
+      cbs = self.config.target.dataset.class_balanced_sampling
+      sampling_desc = 'cb_sampling' if cbs else 'rnd_sampling'
+      pixels_per_image = self.config.target.dataset.pixels_per_image
+      if pixels_per_image:
+        sampling_desc += f'_{pixels_per_image}_pixels'
+      else:  # All pixels, no sampling
+        sampling_desc = 'no_sampling'
+      class_selection_name = f'{sampling_desc}_on_{num_examples}_imgs'
+    else:
+      class_selection_name = self.config.target.class_selection.method
+      if self.config.target.class_selection.method == 'fixed':
+        percentage = self.config.target.class_selection.fixed.percentage
+        class_selection_name += f'_{int(percentage*100):02d}P'
+      if self.config.target.class_selection.method in ['fixed', 'random']:
+        class_selection_name += (
+            f'_{self.config.target.class_selection.seed:04d}S'
+            f'_{self.config.target.class_selection.experiment_number:02d}E')
     return f'{self.config.target.dataset.name}/{class_selection_name}'
 
   @property

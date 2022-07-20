@@ -19,6 +19,51 @@ import dataclasses
 from typing import Callable, Optional, Text, Tuple
 
 import tensorflow as tf
+import tensorflow_hub as hub
+
+
+@dataclasses.dataclass
+class HRNetModel:
+  """Class for HRNet models trained on semantic segmentation source datasets."""
+  name: Text
+  path: Text
+
+  def load_model(self):
+    """Load trained model from tf hub."""
+    return hub.load(self.path)
+
+  def get_feature_model(self):
+    """Set default call function to extract features."""
+    model = self.load_model()
+    model.predict = model.get_features  # Override predict function
+    return model
+
+  def get_prediction_model(self):
+    """Set default call function to extract predictions."""
+    model = self.load_model()
+    return model
+
+  def get_target_model(self,
+                       num_classes = 0,
+                       base_trainable = False):
+    """Get target prediction model."""
+    # Not implemented, needed for finetuning a source model on a target dataset.
+    # However, we provide final test Mean IoU of 16 source models finetuned on
+    # 17 target models in results_analysis/source_datasets_table.csv
+    pass
+
+  def preprocessing(self, images, ds_info):
+    """Preprocess images for semantic segmentation."""
+    # Normalize pixel values
+    images = tf.cast(images, tf.float32)
+    images = (images/255.0 - ds_info['mean']) / ds_info['std']
+    # Reshape images with dataset specific crop sizes, maintaining same scale
+    initial_shape = tf.shape(images)[0:-1]
+    scale = min(ds_info['crop_size']) / tf.reduce_min(initial_shape)
+    new_shape = tf.cast(
+        tf.math.round(tf.cast(initial_shape, tf.float64) * scale), tf.int32)
+    images = tf.image.resize(images, size=new_shape)
+    return images
 
 
 @dataclasses.dataclass
@@ -144,4 +189,48 @@ NETWORK_ARCHITECTURES = [
 
 NETWORK_ARCHITECTURES = {
     na.name.lower(): na for na in NETWORK_ARCHITECTURES
+}
+
+
+HRNET_MODELS_PATH = './hrnet_tf_hub_models/'
+
+HRNET48_TRAINED_MODELS = [
+    HRNetModel('pvoc',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-pvoc/',),
+    HRNetModel('isprs',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-isprs/',),
+    HRNetModel('vkitti2',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-vkitti2/',),
+    HRNetModel('vgallery',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-vgallery/',),
+    HRNetModel('sunrgbd',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-sunrgbd/',),
+    HRNetModel('suim',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-suim/',),
+    HRNetModel('scannet',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-scannet/',),
+    HRNetModel('pcontext',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-msegpcontext/',),
+    HRNetModel('mapillary',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-mapillary/',),
+    HRNetModel('kitti',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-kitti/',),
+    HRNetModel('isaid',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-isaid/',),
+    HRNetModel('idd',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-idd/',),
+    HRNetModel('coco',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-coco/',),
+    HRNetModel('city',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-city/',),
+    HRNetModel('camvid',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-camvid/',),
+    HRNetModel('bdd',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-bdd/',),
+    HRNetModel('ade',
+               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-ade/',),
+]
+
+HRNET48_TRAINED_MODELS = {
+    na.name.lower(): na for na in HRNET48_TRAINED_MODELS
 }

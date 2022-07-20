@@ -54,7 +54,6 @@ class TransferExperimentConfig(ml_collections.ConfigDict):
     self.target = ml_collections.ConfigDict()
     self.target.dataset = ml_collections.ConfigDict()
     self.target.dataset.name = 'cifar100'
-    self.target.dataset.num_classes = 100
 
     # Class selection methods - implemented: all, random, fixed
     self.target.class_selection = ml_collections.ConfigDict()

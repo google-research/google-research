@@ -15,37 +15,48 @@
 
 """Dataset functions for Transferability Experiments."""
 
-from typing import List, Optional, Text
+from typing import List, Optional, Text, Dict, Any
 
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+from stable_transfer.transferability import datasets_info
 from stable_transfer.transferability import networks
 
 
-DATASETS_WITH_VALIDATION_AS_TEST = ['food101', 'imagenette']
-
-
 def load_dataset(dataset_name,
+                 num_examples = 0,
                  split = 'train',
                  with_info = False):
   """Wrapper around tfds load dataset to correct for test split name."""
-  if split == 'test' and dataset_name in DATASETS_WITH_VALIDATION_AS_TEST:
+  if dataset_name in datasets_info.SEGMENTATION_DATASET_INFO:  # Update ds name
+    dataset_name = datasets_info.SEGMENTATION_DATASET_INFO[dataset_name][
+        'dataset_name']
+  if split == 'test' and (dataset_name
+                          in datasets_info.DATASETS_WITH_VALIDATION_AS_TEST):
     split = 'validation'
+  if num_examples > 0:
+    split += f'[:{num_examples}]'
   return tfds.load(dataset_name, split=split, with_info=with_info)
 
 
-def ds_preprocess_input(ds, network_architecture):
+def ds_preprocess_input(ds,
+                        network_architecture,
+                        segmentation_info = None):
   """tf.data.Dataset preprocessing inputs based on the network architecture."""
-  image = tf.image.resize(ds['image'], network_architecture.target_shape)
-  ds['image'] = network_architecture.preprocessing(image)
+  if segmentation_info:  # Segmentation, using additional preprocessing ds info
+    ds['image'] = network_architecture.preprocessing(
+        ds['image'], segmentation_info)
+  else:  # Classification preprocessing
+    image = tf.image.resize(ds['image'], network_architecture.target_shape)
+    ds['image'] = network_architecture.preprocessing(image)
   return ds
 
 
-def ds_as_supervised(ds):
-  """tf.data.Dataset maps dict to (image, label) pairs."""
-  return ds['image'], ds['label']
+def ds_as_supervised(ds, gt_key = 'label'):
+  """tf.data.Dataset maps dict to (image, gt_key) pairs."""
+  return ds['image'], ds[gt_key]
 
 
 def ds_filter_target_classes(d, target_classes):
@@ -64,13 +75,14 @@ def ds_relabel_target_classes(d, target_classes):
 
 def get_experiment_dataset(
     ds,
+    dataset_name,
     network_architecture,
     target_classes = None,
     do_shuffle = True,
     as_supervised = True,
     shuffle_seed = 789,
     shuffle_reshuffle_each_iteration = True,
-    batch_size=64
+    batch_size = 64,
     ):
   """Get (preprocessed) target dataset."""
 
@@ -83,11 +95,18 @@ def get_experiment_dataset(
     ds_target = ds.map(lambda d: d)  # Otherwise it might change input ds.
 
   # Preprocess input
+  if dataset_name in datasets_info.SEGMENTATION_DATASET_INFO:  # Segmentation
+    segmentation_info = datasets_info.SEGMENTATION_DATASET_INFO[dataset_name]
+    gt_key = 'segmentation'
+  else:  # Classification
+    segmentation_info = None
+    gt_key = 'label'
+
   ds_target = ds_target.map(
-      lambda d: ds_preprocess_input(d, network_architecture))
+      lambda d: ds_preprocess_input(d, network_architecture, segmentation_info))
 
   if as_supervised:
-    ds_target = ds_target.map(ds_as_supervised)
+    ds_target = ds_target.map(lambda d: ds_as_supervised(d, gt_key))
 
   if do_shuffle:
     shuffle_buffer = 32 * batch_size  # 32 * 64 = 2048
@@ -95,7 +114,6 @@ def get_experiment_dataset(
         shuffle_buffer,
         seed=shuffle_seed,
         reshuffle_each_iteration=shuffle_reshuffle_each_iteration)
-  if batch_size != 1:
-    ds_target = ds_target.batch(batch_size)
+  ds_target = ds_target.batch(batch_size)
 
   return ds_target

@@ -18,20 +18,8 @@
 from stable_transfer.transferability import config_training_source_selection
 from stable_transfer.transferability import config_training_target_selection
 from stable_transfer.transferability import config_transferability_source_selection
+from stable_transfer.transferability import config_transferability_source_selection_segmentation as config_source_segmentation
 from stable_transfer.transferability import config_transferability_target_selection
-
-
-DATASET_NUM_CLASSES = {
-    'oxford_flowers102': 102,
-    'sun397': 397,
-    'stanford_dogs': 120,
-    'oxford_iiit_pet': 37,
-    'caltech_birds2011': 200,
-    'dtd': 47,
-    'cifar10': 10,
-    'imagenette': 10,
-    'cifar100': 100,
-}
 
 
 def get_config(config_string='training_source.oxford_flowers102'):
@@ -39,7 +27,7 @@ def get_config(config_string='training_source.oxford_flowers102'):
   experiment_config, dataset_name = config_string.split('.')
   assert (experiment_config in [
       'training_source', 'training_target', 'transferability_source',
-      'transferability_target'
+      'transferability_source_segmentation', 'transferability_target'
   ])
 
   if experiment_config == 'training_source':
@@ -48,6 +36,8 @@ def get_config(config_string='training_source.oxford_flowers102'):
     config = config_training_target_selection.TransferExperimentConfig()
   elif experiment_config == 'transferability_source':
     config = config_transferability_source_selection.TransferExperimentConfig()
+  elif experiment_config == 'transferability_source_segmentation':
+    config = config_source_segmentation.TransferExperimentConfig()
   else:
     config = config_transferability_target_selection.TransferExperimentConfig()
 
@@ -55,8 +45,6 @@ def get_config(config_string='training_source.oxford_flowers102'):
   config.config_name = config_string
   config.results.basedir = './official_results/'
 
-  assert dataset_name in DATASET_NUM_CLASSES
   config.target.dataset.name = dataset_name
-  config.target.dataset.num_classes = DATASET_NUM_CLASSES[dataset_name]
 
   return config
