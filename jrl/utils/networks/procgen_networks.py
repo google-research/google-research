@@ -69,7 +69,7 @@ class DeepAtariTorsoWithoutFC(hk.Module):
       layers.append(pooling)
 
       for j in range(num_blocks):
-        block = atari.ResidualBlock(
+        block = networks_lib.ResidualBlock(
             make_inner_op=functools.partial(
                 hk.Conv2D, output_channels=num_channels, kernel_shape=3),
             name='residual_{}_{}'.format(i, j))
