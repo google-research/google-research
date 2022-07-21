@@ -48,6 +48,7 @@ _config.method: str = 'explicit'
 _config.optimizer: str = 'sgd'
 _config.num_epochs: int = 200_000
 _config.rescale_psi = ''
+_config.use_mnist = False
 
 _config.S: int = 10  # Number of states
 _config.T: int = 10  # Number of aux. tasks
@@ -453,13 +454,17 @@ def main(_):
 
   key = jax.random.PRNGKey(config.seed)
   key, psi_key, phi_key = jax.random.split(key, 3)
-  Psi = jax.random.normal(psi_key, (config.S, config.T), dtype=jnp.float64)
-  if config.rescale_psi == 'linear':
-    Psi = utils.generate_psi_linear(Psi)
-  elif config.rescale_psi == 'exp':
-    Psi = utils.generate_psi_exp(Psi)
 
-  Phi = jax.random.normal(phi_key, (config.S, config.d), dtype=jnp.float64)
+  if config.use_mnist:
+    Psi = utils.get_mnist_data()
+  else:
+    Psi = jax.random.normal(psi_key, (config.S, config.T), dtype=jnp.float64)
+    if config.rescale_psi == 'linear':
+      Psi = utils.generate_psi_linear(Psi)
+    elif config.rescale_psi == 'exp':
+      Psi = utils.generate_psi_exp(Psi)
+
+  Phi = jax.random.normal(phi_key, (Psi.shape[0], config.d), dtype=jnp.float64)
 
   chkpt_manager = checkpoint.Checkpoint(base_directory=_WORKDIR.value)
 

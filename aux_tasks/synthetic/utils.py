@@ -17,6 +17,7 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
+import tensorflow_datasets as tfds
 
 
 def draw_states(
@@ -63,6 +64,16 @@ def generate_psi_exp(Psi):
   U, S, V = np.linalg.svd(Psi)
   S_new = np.logspace(0, 3, S.shape[0])
   return U @ np.diag(S_new) @ V
+
+
+def get_mnist_data(num_samples = 60000):
+  """Returns MNIST data as a matrix."""
+  ds = tfds.load('mnist:3.*.*', split='train')
+  ds = ds.batch(num_samples)
+  data = next(ds.as_numpy_iterator())
+  X = np.reshape(data['image'], (num_samples, -1)) / 255.
+  # Returns a matrix of size `784 x num_samples`
+  return X.T
 
 
 # pylint: enable=invalid-name
