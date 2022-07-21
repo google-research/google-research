@@ -156,6 +156,11 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
                                    [2., 4.]]), jnp.array([[3., 4.], [3., 4.]]))
     self.per_step_updates = (jnp.array([[500., 5.], [500., 5.]]),
                              jnp.array([[300., 3.], [300., 3.]]))
+    self.per_step_updates_custom_preconditioner = (self.per_step_updates,
+                                                   (jnp.array([[200., 4.],
+                                                               [200., 4.]]),
+                                                    jnp.array([[600., 2.],
+                                                               [600., 2.]])))
 
   @chex.all_variants(with_pmap=False)
   @parameterized.named_parameters(
@@ -215,7 +220,9 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
     transform_fn = self.variant(optim.update)
 
     def _update(unused_batch):
-      return transform_fn(self.per_step_updates, state, params)
+      return transform_fn(
+          self.per_step_updates_custom_preconditioner
+          if custom_preconditioner else self.per_step_updates, state, params)
 
     state = init_fn(params)
     chex.assert_tree_all_finite(state)

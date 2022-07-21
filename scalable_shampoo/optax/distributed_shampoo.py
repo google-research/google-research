@@ -2118,20 +2118,33 @@ def distributed_shampoo(
     """Transform the input gradient and update all statistics.
 
     Args:
-      grads: the gradient tensors for the parameters.
+      grads: the gradient tensors for the parameters and any custom gradients
+        for preconditioners.
       state: a named tuple containing the state of the optimizer
       params: the parameters that should be updated.
 
     Returns:
       A tuple containing the new parameters and the new optimizer state.
     """
+    # BEGIN GOOGLE INTERNAL
+    grads_custom = None
+    if custom_preconditioner and isinstance(grads, tuple):
+      grads, grads_custom = grads
+    # END GOOGLE INTERNAL
     params_flat, treedef = jax.tree_flatten(params)
     stats_flat = treedef.flatten_up_to(state.stats)
     grads_flat = treedef.flatten_up_to(grads)
+    stats_grads = grads_flat
+
+    # BEGIN GOOGLE INTERNAL
+    if custom_preconditioner and grads_custom is not None:
+      stats_grads = treedef.flatten_up_to(grads_custom)
+    # END GOOGLE INTERNAL
 
     new_stats_flat = jax.tree_map(
-        lambda g, s, p: _compute_stats(g, s, p, state.count), grads_flat,
+        lambda g, s, p: _compute_stats(g, s, p, state.count), stats_grads,
         stats_flat, params_flat)
+
     new_stats_flat = _compute_preconditioners(new_stats_flat, params_flat,
                                               state.count)
     outputs = jax.tree_map(
