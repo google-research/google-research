@@ -24,7 +24,7 @@ def draw_states(
     howmany,
     key,
     *,
-    replacement = True):
+    replacement = False):
   """Draws howmany state indices from 0 ... num_states."""
   key, subkey = jax.random.split(key)
   states = jax.random.choice(
@@ -55,13 +55,13 @@ def outer_objective_mc(Phi, Psi):
 
 def generate_psi_linear(Psi):
   U, S, V = np.linalg.svd(Psi)
-  S_new = np.linspace(1, 1000, S.shape[0])
+  S_new = np.linspace(1, 1_000, S.shape[0])
   return U @ np.diag(S_new) @ V
 
 
 def generate_psi_exp(Psi):
   U, S, V = np.linalg.svd(Psi)
-  S_new = np.logspace(1, 4, S.shape[0])
+  S_new = np.logspace(0, 3, S.shape[0])
   return U @ np.diag(S_new) @ V
 
 

@@ -37,6 +37,7 @@ import jax.numpy as jnp
 from ml_collections import config_dict
 from ml_collections import config_flags
 import numpy as np
+import optax
 
 from aux_tasks.synthetic import estimates
 from aux_tasks.synthetic import utils
@@ -155,6 +156,7 @@ def compute_metrics(
 
 
 @functools.partial(jax.jit, static_argnames=(
+    'optimizer',
     'method',
     'covariance_batch_size',
     'main_batch_size',
@@ -164,6 +166,8 @@ def _train_step(
     *,
     Phi,
     Psi,
+    optimizer,
+    optimizer_state,
     explicit_weight_matrix,
     estimated_feature_norm,
     learning_rate,
@@ -179,6 +183,8 @@ def _train_step(
   Args:
     Phi: The current feature matrix.
     Psi: The target matrix whose PCA is to be determined.
+    optimizer: An optax optimizer to use.
+    optimizer_state: The current state of the optimizer.
     explicit_weight_matrix: A weight matrix to use for the explicit method.
     estimated_feature_norm: The current estimated feature norm.
     learning_rate: The step size parameter for sgd.
@@ -194,8 +200,8 @@ def _train_step(
       norm rather than the real maximum.
 
   Returns:
-    A dict containing updated values for Phi, estimated_feature_norm, and key,
-      as well as the the computed gradient.
+    A dict containing updated values for Phi, estimated_feature_norm, key,
+      and optimizer_state, as well as the the computed gradient.
   """
   num_states, d = Phi.shape
   _, num_tasks = Psi.shape
@@ -284,12 +290,15 @@ def _train_step(
   expanded_estimated_error = jnp.expand_dims(estimated_error, axis=1)
   gradient = gradient * expanded_estimated_error
 
-  # Apply the gradient update (sgd).
-  # This will only work with numpy, but so much cleaner than the jax version
-  # Phi[source_states, :] -= learning_rate * gradient
-  # Jax version (untested):
-  Phi = Phi.at[source_states, :].set(
-      Phi[source_states, :] - learning_rate * gradient)
+  # Note: this doesn't work for duplicate indices. However, it shouldn't
+  # add any bias to the algorithm, and is faster than checking for
+  # duplicate indices. Most of the case we care about the case where our
+  # batch size is much smaller than the number of states, so duplicate
+  # indices should be rare.
+  full_gradient = jnp.zeros_like(Phi)
+  full_gradient = full_gradient.at[source_states, :].set(gradient)
+  updates, optimizer_state = optimizer.update(full_gradient, optimizer_state)
+  Phi = optax.apply_updates(Phi, updates)
 
   if method == 'explicit':
     # Also update the weight vector for this task.
@@ -301,6 +310,7 @@ def _train_step(
       'Phi': Phi,
       'estimated_feature_norm': estimated_feature_norm,
       'key': key,
+      'optimizer_state': optimizer_state,
       'gradient': gradient,
       }
 
@@ -371,7 +381,13 @@ def train(*,
   explicit_weight_matrix = jax.random.normal(
       weight_key, (d, num_tasks), dtype=jnp.float64)
 
-  assert optimizer == 'sgd', 'Non-sgd not yet supported.'
+  if optimizer == 'sgd':
+    optimizer = optax.sgd(learning_rate)
+  elif optimizer == 'adam':
+    optimizer = optax.adam(learning_rate)
+  else:
+    raise ValueError(f'Unknown optimizer {optimizer}.')
+  optimizer_state = optimizer.init(Phi)
 
   writer = metric_writers.create_default_writer(
       logdir=str(workdir),
@@ -379,12 +395,13 @@ def train(*,
 
   hooks = [
       periodic_actions.PeriodicCallback(
-          every_steps=5_000,
+          every_steps=100_000,
           callback_fn=lambda step, t: chkpt_manager.save((step, Phi)))
   ]
 
   fixed_train_kwargs = {
       'Psi': Psi,
+      'optimizer': optimizer,
       'explicit_weight_matrix': explicit_weight_matrix,
       'learning_rate': learning_rate,
       'method': method,
@@ -396,6 +413,7 @@ def train(*,
   }
   variable_kwargs = {
       'Phi': Phi,
+      'optimizer_state': optimizer_state,
       'estimated_feature_norm': estimated_feature_norm,
       'key': key,
   }
@@ -410,16 +428,19 @@ def train(*,
       variable_kwargs = _train_step(**fixed_train_kwargs, **variable_kwargs)
       gradient = variable_kwargs.pop('gradient')
 
-      Phi = variable_kwargs['Phi']
-      metrics = compute_metrics(Phi, optimal_subspace)
-      metrics |= {'grad_norm': jnp.linalg.norm(gradient)}
-      metrics |= {'frob_norm': utils.outer_objective_mc(Phi, Psi)}
-      writer.write_scalars(step, metrics)
+      if step % 1_000 == 0:
+        Phi = variable_kwargs['Phi']
+        Phis.append(jnp.copy(Phi))
 
-      Phis.append(jnp.copy(Phi))
+        metrics = compute_metrics(Phi, optimal_subspace)
+        metrics |= {'grad_norm': jnp.linalg.norm(gradient)}
+        metrics |= {'frob_norm': utils.outer_objective_mc(Phi, Psi)}
+        writer.write_scalars(step, metrics)
 
       for hook in hooks:
         hook(step)
+
+  writer.flush()
 
   return jnp.stack(Phis)
 
