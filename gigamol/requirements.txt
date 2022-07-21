@@ -1,0 +1,7 @@
+numpy
+rdkit
+tensorflow
+pandas
+scipy
+six
+protobuf
