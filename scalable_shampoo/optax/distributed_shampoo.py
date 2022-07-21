@@ -2118,8 +2118,8 @@ def distributed_shampoo(
     """Transform the input gradient and update all statistics.
 
     Args:
-      grads: the gradient tensors for the parameters and any custom gradients
-        for preconditioners.
+      grads: the gradient tensors for the parameters
+        and any custom gradients for preconditioners.
       state: a named tuple containing the state of the optimizer
       params: the parameters that should be updated.
 
