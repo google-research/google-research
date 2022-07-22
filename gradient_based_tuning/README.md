@@ -35,6 +35,12 @@ To download and format data, then train a model, run: \
 
 By default this will use language pair Lithuanian-English (lt-en), and train a tiny model for demonstration purposes, as larger models will likely OOM unless run on GPU or TPU hardware.
 
+## Demo
+
+To view a demonstration of the code, which will train models with various settings and display the results via Tensorboard, see demo_colab.ipynb.
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/gradient_based_tuning/demo_colab.ipynb)
+
+
 ## Citation
 
 If you use this code, please cite the paper:
