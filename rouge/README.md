@@ -70,7 +70,7 @@ python -m rouge.rouge \
 
 ## Using pip
 ```
-pip install rouge/requirements.txt
+pip install -r rouge/requirements.txt
 pip install rouge-score
 ```
 

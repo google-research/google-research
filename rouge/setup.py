@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Pip setup for https://pypi.org/project/rouge-score/."""
 import setuptools
 
 with open("README.md", "r") as fh:
@@ -20,9 +21,9 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="rouge_score",
-    version="0.0.4",
+    version="0.0.7",
     author="Google LLC",
-    author_email="no-reply@google.com",
+    author_email="rouge-opensource@google.com",
     description="Pure python implementation of ROUGE-1.5.5.",
     long_description=long_description,
     long_description_content_type="text/markdown",
