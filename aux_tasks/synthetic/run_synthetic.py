@@ -308,11 +308,13 @@ def _train_step(*,
     # Also update the weight vector for this task.
     weight_gradient = Phi[source_states, :].T @ estimated_error
     expanded_gradient = jnp.expand_dims(weight_gradient, axis=1)
-    explicit_weight_matrix[:, task] -= learning_rate * expanded_gradient
+    explicit_weight_matrix = explicit_weight_matrix.at[:, task].set(
+        explicit_weight_matrix[:, task] - learning_rate * expanded_gradient)
 
   return {
       'Phi': Phi,
       'estimated_feature_norm': estimated_feature_norm,
+      'explicit_weight_matrix': explicit_weight_matrix,
       'key': key,
       'optimizer_state': optimizer_state,
       'gradient': gradient,
@@ -408,7 +410,6 @@ def train(*,
   fixed_train_kwargs = {
       'Psi': Psi,
       'optimizer': optimizer,
-      'explicit_weight_matrix': explicit_weight_matrix,
       'learning_rate': learning_rate,
       'method': method,
       'lissa_kappa': lissa_kappa,
@@ -421,6 +422,7 @@ def train(*,
   variable_kwargs = {
       'Phi': Phi,
       'optimizer_state': optimizer_state,
+      'explicit_weight_matrix': explicit_weight_matrix,  # Used by explicit.
       'estimated_feature_norm': estimated_feature_norm,
       'key': key,
   }
