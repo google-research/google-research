@@ -25,7 +25,7 @@
 #include "mediapipe/framework/calculator_framework.h"
 #include "absl/status/status.h"
 #include "intent_recognition/processing/compute_sample_magnitude_variance_calculator.pb.h"
-#include "util/math/mathutil.h"
+
 
 namespace ambient_sensing {
 
@@ -98,7 +98,7 @@ class ComputeSampleMagnitudeVarianceCalculator
         for (int dim = 0; dim < n_dims; dim++) {
           const double current_value =
               static_cast<double>(input_vector[first_dim_at_timestep + dim]);
-          squared_magnitude += MathUtil::IPow(current_value, 2);
+          squared_magnitude += pow(current_value, 2);
         }
 
         double magnitude = sqrt(squared_magnitude);
@@ -111,7 +111,7 @@ class ComputeSampleMagnitudeVarianceCalculator
 
       // Calculate variance.
       for (double magnitude : magnitudes) {
-        double diff_squared = MathUtil::IPow(magnitude - mean, 2);
+        double diff_squared = pow(magnitude - mean, 2);
         variance += diff_squared;
       }
       variance /= magnitudes.size() - 1;

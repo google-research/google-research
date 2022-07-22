@@ -27,14 +27,6 @@ http_archive(
 )
 
 http_archive(
-    name = "snappy",
-    build_file = "@riegeli//third_party:snappy.BUILD",
-    sha256 = "38b4aabf88eb480131ed45bfb89c19ca3e2a62daeb081bdf001cfb17ec4cd303",
-    strip_prefix = "snappy-1.1.8",
-    urls = ["https://github.com/google/snappy/archive/1.1.8.zip"],  # 2020-01-14
-)
-
-http_archive(
     name = "crc32c",
     build_file = "@riegeli//third_party:crc32.BUILD",
     sha256 = "338f1d9d95753dc3cdd882dfb6e176bbb4b18353c29c411ebcb7b890f361722e",
@@ -103,8 +95,8 @@ http_archive(
 
 http_archive(
     name = "rules_cc",
-    strip_prefix = "rules_cc-main",
-    urls = ["https://github.com/bazelbuild/rules_cc/archive/main.zip"],
+    strip_prefix = "rules_cc-0.0.1",
+    urls = ["https://github.com/bazelbuild/rules_cc/archive/refs/tags/0.0.1.zip"],
 )
 
 http_archive(
@@ -132,10 +124,11 @@ http_archive(
 # Google Benchmark library.
 http_archive(
     name = "com_google_benchmark",
-    urls = ["https://github.com/google/benchmark/archive/main.zip"],
-    strip_prefix = "benchmark-main",
+    urls = ["https://github.com/google/benchmark/archive/refs/tags/v1.6.1.zip"],
+    strip_prefix = "benchmark-v1.6.1.zip",
     build_file = "@mediapipe//third_party:benchmark.BUILD",
 )
+
 
 # gflags needed by glog
 http_archive(

@@ -74,7 +74,6 @@ cc_library(
     srcs = ["compute_sample_magnitude_variance_calculator.cc"],
     deps = [
         ":compute_sample_magnitude_variance_calculator_cc_proto",
-        "//util/math:mathutil",
         "@com_github_glog_glog//:glog",
         "@com_google_absl//absl/status",
         "@mediapipe//mediapipe/framework:calculator_framework",
