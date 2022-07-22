@@ -49,6 +49,7 @@ _config.optimizer: str = 'sgd'
 _config.num_epochs: int = 200_000
 _config.rescale_psi = ''
 _config.use_mnist = False
+_config.sample_with_replacement = True
 
 _config.S: int = 10  # Number of states
 _config.T: int = 10  # Number of aux. tasks
@@ -96,14 +97,14 @@ def compute_cosine_similarity(Y1, Y2):
   return jnp.nan
 
 
-def compute_normalized_dot_product(
-    Y1, Y2):
+def compute_normalized_dot_product(Y1,
+                                   Y2):
   return jnp.abs(
       jnp.squeeze(Y1.T @ Y2 / (jnp.linalg.norm(Y1) * jnp.linalg.norm(Y2))))
 
 
-def eigengame_subspace_distance(
-    Phi, optimal_subspace):
+def eigengame_subspace_distance(Phi,
+                                optimal_subspace):
   """Compute subspace distance as per the eigengame paper."""
   try:
     d = Phi.shape[1]
@@ -118,8 +119,8 @@ def eigengame_subspace_distance(
     return jnp.nan
 
 
-def compute_metrics(
-    Phi, optimal_subspace):
+def compute_metrics(Phi,
+                    optimal_subspace):
   """Computes a variety of learning curve-type metrics for the given run.
 
   Args:
@@ -156,29 +157,33 @@ def compute_metrics(
   return metrics
 
 
-@functools.partial(jax.jit, static_argnames=(
-    'optimizer',
-    'method',
-    'covariance_batch_size',
-    'main_batch_size',
-    'weight_batch_size',
-    'estimate_feature_norm',))
-def _train_step(
-    *,
-    Phi,
-    Psi,
-    optimizer,
-    optimizer_state,
-    explicit_weight_matrix,
-    estimated_feature_norm,
-    learning_rate,
-    key,
-    method,
-    lissa_kappa,
-    covariance_batch_size,
-    main_batch_size,
-    weight_batch_size,
-    estimate_feature_norm = True):
+@functools.partial(
+    jax.jit,
+    static_argnames=(
+        'optimizer',
+        'method',
+        'covariance_batch_size',
+        'main_batch_size',
+        'weight_batch_size',
+        'estimate_feature_norm',
+        'sample_with_replacement',
+    ))
+def _train_step(*,
+                Phi,
+                Psi,
+                optimizer,
+                optimizer_state,
+                explicit_weight_matrix,
+                estimated_feature_norm,
+                learning_rate,
+                key,
+                method,
+                lissa_kappa,
+                covariance_batch_size,
+                main_batch_size,
+                weight_batch_size,
+                estimate_feature_norm = True,
+                sample_with_replacement = True):
   """Computes one training step.
 
   Args:
@@ -199,6 +204,7 @@ def _train_step(
     weight_batch_size: How many states to construct the weight vector.
     estimate_feature_norm: Whether to use a running average of the max feature
       norm rather than the real maximum.
+    sample_with_replacement: Whether to sample states with replacement.
 
   Returns:
     A dict containing updated values for Phi, estimated_feature_norm, key,
@@ -208,8 +214,10 @@ def _train_step(
   _, num_tasks = Psi.shape
 
   # Draw one or many source states to update, and its task.
-  source_states, key = utils.draw_states(num_states, main_batch_size, key)
-  task, key = utils.draw_states(num_tasks, 1, key)  # bad Marc!
+  draw_states = functools.partial(
+      utils.draw_states, replacement=sample_with_replacement)
+  source_states, key = draw_states(num_states, main_batch_size, key)
+  task, key = draw_states(num_tasks, 1, key)  # bad Marc!
 
   # Use the source states to update our estimate of the feature norm.
   # Do this pre-LISSA, avoid a bad first gradient.
@@ -243,8 +251,7 @@ def _train_step(
           Phi, key, covariance_batch_size)
       covariance_2 = covariance_1
 
-      weight_states_1, key = utils.draw_states(
-          num_states, weight_batch_size, key)
+      weight_states_1, key = draw_states(num_states, weight_batch_size, key)
       weight_states_2 = weight_states_1
     elif method == 'naive++':
       # The naive method uses one covariance matrix for both weight vectors.
@@ -253,10 +260,8 @@ def _train_step(
       covariance_2, key = estimates.naive_inverse_covariance_matrix(
           Phi, key, covariance_batch_size)
 
-      weight_states_1, key = utils.draw_states(
-          num_states, weight_batch_size, key)
-      weight_states_2, key = utils.draw_states(
-          num_states, weight_batch_size, key)
+      weight_states_1, key = draw_states(num_states, weight_batch_size, key)
+      weight_states_2, key = draw_states(num_states, weight_batch_size, key)
     elif method == 'lissa':
       # Compute two independent estimates of the inverse covariance matrix.
       covariance_1, key = estimates.lissa_inverse_covariance_matrix(
@@ -265,10 +270,8 @@ def _train_step(
           Phi, key, covariance_batch_size, lissa_kappa, None)
 
       # Draw two separate sets of states for the weight vectors (important!)
-      weight_states_1, key = utils.draw_states(
-          num_states, weight_batch_size, key)
-      weight_states_2, key = utils.draw_states(
-          num_states, weight_batch_size, key)
+      weight_states_1, key = draw_states(num_states, weight_batch_size, key)
+      weight_states_2, key = draw_states(num_states, weight_batch_size, key)
 
     # Compute the weight estimates by combining the inverse covariance
     # estimate and the sampled Phi & Psi's.
@@ -313,7 +316,7 @@ def _train_step(
       'key': key,
       'optimizer_state': optimizer_state,
       'gradient': gradient,
-      }
+  }
 
 
 def train(*,
@@ -332,7 +335,8 @@ def train(*,
           covariance_batch_size,
           main_batch_size,
           weight_batch_size,
-          estimate_feature_norm = True):
+          estimate_feature_norm = True,
+          sample_with_replacement = True):
   """Training function.
 
   For lissa, the total number of samples is
@@ -358,6 +362,7 @@ def train(*,
     weight_batch_size: How many states to construct the weight vector.
     estimate_feature_norm: Whether to use a running average of the max feature
       norm rather than the real maximum.
+    sample_with_replacement: Whether to draw states with replacement.
 
   Returns:
     A matrix of all Phis computed throughout training. This will be of shape
@@ -411,6 +416,7 @@ def train(*,
       'main_batch_size': main_batch_size,
       'weight_batch_size': weight_batch_size,
       'estimate_feature_norm': estimate_feature_norm,
+      'sample_with_replacement': sample_with_replacement,
   }
   variable_kwargs = {
       'Phi': Phi,
@@ -492,7 +498,8 @@ def main(_):
       covariance_batch_size=config.covariance_batch_size,
       main_batch_size=config.main_batch_size,
       weight_batch_size=config.weight_batch_size,
-      estimate_feature_norm=config.estimate_feature_norm)
+      estimate_feature_norm=config.estimate_feature_norm,
+      sample_with_replacement=config.sample_with_replacement)
 
   with (workdir / 'phis.pkl').open('wb') as fout:
     pickle.dump(Phis, fout, protocol=4)
