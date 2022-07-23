@@ -24,6 +24,7 @@ import acme
 from acme import specs
 from acme import wrappers
 from acme.agents.jax import sac
+from acme.agents.jax.sac import deprecated as deprecated_sac
 from acme.jax.types import PRNGKey
 from acme.utils import counting
 from acme.utils import loggers
@@ -294,8 +295,11 @@ def train_and_evaluate(distance_fn, rng):
       target_entropy=sac.target_entropy_from_env_spec(environment_spec),
       num_sgd_steps_per_step=FLAGS.num_sgd_steps_per_step,
       min_replay_size=FLAGS.min_replay_size)
-  agent = sac.SAC(
-      environment_spec, agent_networks, config=config, counter=counter,
+  agent = deprecated_sac.SAC(
+      environment_spec,
+      agent_networks,
+      config=config,
+      counter=counter,
       seed=FLAGS.seed)
 
   env_logger = loggers.CSVLogger(logdir, 'env_loop', flush_every=5)
