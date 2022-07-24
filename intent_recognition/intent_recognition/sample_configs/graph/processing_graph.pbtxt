@@ -107,9 +107,34 @@ node {
 }
 
 node {
+  calculator: "ComputeSampleMagnitudeVarianceCalculator"
+  input_stream: "INPUT_WINDOW:windowed_accel_data"
+  output_stream: "OUTPUT_VARIANCE:accel_variance"
+  options {
+    [ambient_sensing.ComputeSampleMagnitudeVarianceCalculatorOptions.ext] {
+      window_size: %window_size%
+    }
+  }
+}
+
+node {
+  calculator: "DropOnThresholdValueCalculator"
+  input_stream: "INPUT_REFERENCE_VALUE:accel_variance"
+  input_stream: "INPUT_DATA:0:windowed_accel_data"
+  output_stream: "OUTPUT_DATA:0:thresholded_accel_data"
+  options {
+    [ambient_sensing.DropOnThresholdValueCalculatorOptions.ext] {
+      threshold: %min_variance_threshold%
+      drop_below_threshold: %drop_below_threshold_comparator%
+      invert_threshold: %invert_threshold%
+    }
+  }
+}
+
+node {
   calculator: "MergeSensorDataIntoAnnotatedRecordingCollectionCalculator"
   input_stream: "INPUT_DATA_STREAM:0:resampled_accel_data"
-  input_stream: "INPUT_DATA_STREAM:1:windowed_accel_data"
+  input_stream: "INPUT_DATA_STREAM:1:thresholded_accel_data"
   output_stream: "OUTPUT_ANNOTATED_RECORDING_COLLECTION:merged_recording_collection"
   options {
     [ambient_sensing.MergeSensorDataIntoAnnotatedRecordingCollectionCalculatorOptions.ext] {
