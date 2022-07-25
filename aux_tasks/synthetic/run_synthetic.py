@@ -66,6 +66,9 @@ _config.weight_batch_size: int = 32
 _config.seed: int = 4753849
 _config.lr: float = 0.01
 
+# If the SVD has precomputed, supply the path here to avoid recomputing it.
+_config.svd_path: str = ''
+
 _WORKDIR = flags.DEFINE_string(
     'workdir', None, 'Base directory to store stats.', required=True)
 _CONFIG = config_flags.DEFINE_config_dict('config', _config, lock_config=True)
@@ -479,7 +482,13 @@ def main(_):
   initial_step = 0
   initial_step, Phi = chkpt_manager.restore_or_initialize((initial_step, Phi))
 
-  optimal_subspace = compute_optimal_subspace(Psi, config.d)
+  if config.svd_path:
+    logging.info('Loading SVD from %s', config.svd_path)
+    with epath.Path(config.svd_path).open('rb') as f:
+      left_svd = np.load(f)
+      optimal_subspace = left_svd[:, :config.d]
+  else:
+    optimal_subspace = compute_optimal_subspace(Psi, config.d)
 
   workdir = epath.Path(_WORKDIR.value)
   workdir.mkdir(exist_ok=True)
