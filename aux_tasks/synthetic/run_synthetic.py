@@ -57,7 +57,8 @@ _config.d: int = 1  # feature dimension
 
 _config.estimate_feature_norm: bool = True
 
-_config.kappa: float = 0.9  # Lissa kappa
+# The theoretical maximum for kappa is 2, and 1.9 works well.
+_config.kappa: float = 1.9  # Lissa kappa
 
 _config.covariance_batch_size: int = 32
 _config.main_batch_size: int = 32
@@ -251,7 +252,10 @@ def _train_step(*,
     if method == 'naive':
       # The naive method uses one covariance matrix for both weight vectors.
       covariance_1, key = estimates.naive_inverse_covariance_matrix(
-          Phi, key, covariance_batch_size)
+          Phi,
+          key,
+          covariance_batch_size,
+          sample_with_replacement=sample_with_replacement)
       covariance_2 = covariance_1
 
       weight_states_1, key = draw_states(num_states, weight_batch_size, key)
@@ -259,18 +263,34 @@ def _train_step(*,
     elif method == 'naive++':
       # The naive method uses one covariance matrix for both weight vectors.
       covariance_1, key = estimates.naive_inverse_covariance_matrix(
-          Phi, key, covariance_batch_size)
+          Phi,
+          key,
+          covariance_batch_size,
+          sample_with_replacement=sample_with_replacement)
       covariance_2, key = estimates.naive_inverse_covariance_matrix(
-          Phi, key, covariance_batch_size)
+          Phi,
+          key,
+          covariance_batch_size,
+          sample_with_replacement=sample_with_replacement)
 
       weight_states_1, key = draw_states(num_states, weight_batch_size, key)
       weight_states_2, key = draw_states(num_states, weight_batch_size, key)
     elif method == 'lissa':
       # Compute two independent estimates of the inverse covariance matrix.
       covariance_1, key = estimates.lissa_inverse_covariance_matrix(
-          Phi, key, covariance_batch_size, lissa_kappa, None)
+          Phi,
+          key,
+          covariance_batch_size,
+          lissa_kappa,
+          None,
+          sample_with_replacement=sample_with_replacement)
       covariance_2, key = estimates.lissa_inverse_covariance_matrix(
-          Phi, key, covariance_batch_size, lissa_kappa, None)
+          Phi,
+          key,
+          covariance_batch_size,
+          lissa_kappa,
+          None,
+          sample_with_replacement=sample_with_replacement)
 
       # Draw two separate sets of states for the weight vectors (important!)
       weight_states_1, key = draw_states(num_states, weight_batch_size, key)
