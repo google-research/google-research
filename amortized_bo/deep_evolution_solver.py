@@ -37,7 +37,7 @@ import functools
 from absl import logging
 import gin
 import jax
-from jax.experimental import stax
+from jax.example_libraries import stax
 from jax.experimental.optimizers import adam
 import jax.numpy as jnp
 import jax.random as jrand
