@@ -278,7 +278,9 @@ def to_streaming_inference(model_non_stream, flags, mode):
   input_data_shape = modes.get_input_data_shape(flags, mode)
 
   # get input data type and use it for input streaming type
-  dtype = model_non_stream.input.dtype
+  dtype = (
+      model_non_stream.input[0].dtype if isinstance(
+          model_non_stream.input, tuple) else model_non_stream.input.dtype)
   input_tensors = [
       tf.keras.layers.Input(
           shape=input_data_shape, batch_size=1, dtype=dtype, name='input_audio')
