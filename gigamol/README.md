@@ -4,7 +4,7 @@
 
 This package contains libraries and scripts for building the models
 described in [Machine learning on DNA-encoded libraries:
-A new paradigm for hit-finding](https://pubs.acs.org/doi/10.1021/acs.jmedchem.0c00452)
+A new paradigm for hit-finding](https://pubs.acs.org/doi/10.1021/acs.jmedchem.0c00452).
 
 ## Usage
 
