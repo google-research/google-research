@@ -1,6 +1,6 @@
 # Simple and Effective Gradient-Based Tuning of Sequence-to-Sequence Models
 
-This repository contains the code used in the paper "[Simple and Effective Gradient-Based Tuning of Sequence-to-Sequence Models](https://openreview.net/forum?id=RBTUKLfQ_pc)"
+This repository contains the code used in the paper "[Simple and Effective Gradient-Based Tuning of Sequence-to-Sequence Models](https://automl.cc/wp-content/uploads/2022/07/simple_and_effective_gradient_.pdf)"
 by Jared Lichtarge, Chris Alberti, and Shankar Kumar, to be presented at AutoML 2022.
 
 
