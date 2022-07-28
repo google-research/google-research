@@ -25,6 +25,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Uni
 from absl import logging
 import dataclasses
 import flax
+import flax.optim
 import gin
 import jax
 import jax.numpy as jnp

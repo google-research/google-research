@@ -19,6 +19,7 @@ import os
 from os import path
 from absl import flags
 import flax
+import flax.optim
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp

@@ -27,6 +27,7 @@ from clu import metrics
 from clu import parameter_overview
 from clu import periodic_actions
 import flax
+import flax.optim
 import flax.jax_utils as flax_utils
 import flax.linen as nn
 import jax

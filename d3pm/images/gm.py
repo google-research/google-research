@@ -23,6 +23,7 @@ from typing import Any, Dict, Tuple
 from absl import logging
 from clu import metric_writers
 import flax
+import flax.optim
 from flax.training import checkpoints
 import jax
 import jax.numpy as jnp
