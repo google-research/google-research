@@ -344,7 +344,7 @@ cc_binary(
         "@riegeli//riegeli/bytes:fd_reader",
         "@riegeli//riegeli/bytes:fd_writer",
         "@riegeli//riegeli/bytes:reader",
-        "@riegeli//riegeli/messages:message_parse",
+        "@riegeli//riegeli/messages:text_parse",
         "@riegeli//riegeli/records:record_reader",
         "@riegeli//riegeli/records:record_writer",
     ],
