@@ -934,6 +934,7 @@ def distributed_shampoo(
     lobpcg_topk_precondition = 0,
     lobpcg_max_iter = 0,
     precondtioner_type=PreconditionerType.ALL,
+    skip_preconditioning_rank_lt=1,
 ):
   """Distributed Shampoo optimizer.
 
@@ -1014,7 +1015,8 @@ def distributed_shampoo(
       `lobpcg_topk_precondition`.
     precondtioner_type: Preconditioner type to select all, left only or right
       only preconditioners.
-
+    skip_preconditioning_rank_lt: Skips preconditioning for parameters with
+      rank less than this value.
   Returns:
     a GradientTransformation.
   """
@@ -1361,8 +1363,14 @@ def distributed_shampoo(
     # TODO(rohananil): Relax to only the size of the mesh axis where the dim
     # is split on.
     to_pad = -len(new_padded_statistics) % num_devices_for_pjit
+    if not new_padded_statistics:
+      to_pad = num_devices_for_pjit
+      stat_dtype = jnp.float32
+    else:
+      stat_dtype = new_padded_statistics[0].dtype
+
     new_padded_statistics.extend([
-        jnp.eye(max_size, dtype=new_padded_statistics[0].dtype)
+        jnp.eye(max_size, dtype=stat_dtype)
         for _ in range(to_pad)
     ])
     new_stacked_padded_statistics = jnp.stack(new_padded_statistics)
@@ -1439,7 +1447,7 @@ def distributed_shampoo(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
 
   def _skip_preconditioning(param):
-    return len(param.shape) < 1 or any(
+    return len(param.shape) < skip_preconditioning_rank_lt or any(
         [s > skip_preconditioning_dim_size_gt for s in param.shape])
 
 
@@ -2101,6 +2109,7 @@ def distributed_shampoo(
     lr = learning_rate
     if callable(learning_rate):
       lr = learning_rate(step)
+
     transformed_update = -1.0 * lr * nesterov_momentum_update
 
     new_diagonal_momentum = grafting_update_with_wd_momentum
