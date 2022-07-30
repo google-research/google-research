@@ -2,8 +2,9 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "com_github_gflags_gflags",
-    strip_prefix = "gflags-master",
-    urls = ["https://github.com/gflags/gflags/archive/master.zip"],
+    sha256 = "19713a36c9f32b33df59d1c79b4958434cb005b5b47dc5400a7a4b078111d9b5",
+    strip_prefix = "gflags-2.2.2",
+    urls = ["https://github.com/gflags/gflags/archive/refs/tags/v2.2.2.zip"],
 )
 
 bind(
@@ -12,28 +13,31 @@ bind(
 )
 
 http_archive(
-    name = "com_google_absl",
-    strip_prefix = "abseil-cpp-master",
-    urls = ["https://github.com/abseil/abseil-cpp/archive/master.zip"],
+  name = "com_google_absl",
+  sha256 = "6622893ab117501fc23268a2936e0d46ee6cb0319dcf2275e33a708cd9634ea6",
+  urls = ["https://github.com/abseil/abseil-cpp/archive/refs/tags/20200923.3.zip"],
+  strip_prefix = "abseil-cpp-20200923.3",
 )
 
 http_archive(
     name = "com_google_googletest",
-    strip_prefix = "googletest-master",
-    urls = ["https://github.com/google/googletest/archive/master.zip"],
+    sha256 = "24564e3b712d3eb30ac9a85d92f7d720f60cc0173730ac166f27dda7fed76cb2",
+    strip_prefix = "googletest-release-1.12.1",
+    urls = ["https://github.com/google/googletest/archive/refs/tags/release-1.12.1.zip"],
 )
 
 http_archive(
     name = "rules_cc",
-    strip_prefix = "rules_cc-master",
-    urls = ["https://github.com/bazelbuild/rules_cc/archive/master.zip"],
+    sha256 = "d9f4686206d20d7c5513a39933aa1148d21d6ce16134ae4c4567c40bbac359bd",
+    strip_prefix = "rules_cc-0.0.1",
+    urls = ["https://github.com/bazelbuild/rules_cc/archive/refs/tags/0.0.1.zip"],
 )
 
 http_archive(
     name = "rules_proto",
-    strip_prefix = "rules_proto-master",
+    strip_prefix = "rules_proto-4.0.0-3.20.0",
     urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/master.zip",
+        "https://github.com/bazelbuild/rules_proto/archive/refs/tags/4.0.0-3.20.0.zip",
     ],
 )
 
@@ -78,6 +82,7 @@ http_archive(
 
 http_archive(
     name = "com_google_glog",
-    strip_prefix = "glog-master",
-    urls = ["https://github.com/google/glog/archive/master.zip"],
+    sha256 = "122fb6b712808ef43fbf80f75c52a21c9760683dae470154f02bddfc61135022",
+    strip_prefix = "glog-0.6.0",
+    urls = ["https://github.com/google/glog/archive/refs/tags/v0.6.0.zip"],
 )
