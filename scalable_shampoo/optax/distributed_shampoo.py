@@ -935,6 +935,8 @@ def distributed_shampoo(
     lobpcg_max_iter = 0,
     precondtioner_type=PreconditionerType.ALL,
     skip_preconditioning_rank_lt=1,
+    decoupled_learning_rate=True,
+    decoupled_weight_decay=False,
 ):
   """Distributed Shampoo optimizer.
 
@@ -1017,6 +1019,10 @@ def distributed_shampoo(
       only preconditioners.
     skip_preconditioning_rank_lt: Skips preconditioning for parameters with
       rank less than this value.
+    decoupled_learning_rate: If True, use decoupled learning rate, otherwise
+      couple it with preconditioned gradient computation. (Default True)
+    decoupled_weight_decay: If True, use decoupled weight decay, otherwise
+      couple with weight decay. (Default False)
   Returns:
     a GradientTransformation.
   """
@@ -2021,6 +2027,7 @@ def distributed_shampoo(
     preconditioner = preconditioner_from_params(param)
     sgd_update = grad
     new_diagonal_statistics = state.diagonal_statistics.to_float()
+
     if (graft_type == GraftingType.ADAGRAD or
         graft_type == GraftingType.ADAGRAD_NORMALIZED):
 
@@ -2062,6 +2069,13 @@ def distributed_shampoo(
     else:
       grafting_update = jnp.ones_like(sgd_update) * jnp.sign(sgd_update)
 
+    lr = learning_rate
+    if callable(learning_rate):
+      lr = learning_rate(step)
+
+    preconditioner_multiplier = lr if not decoupled_learning_rate else 1.0
+    grafting_update = grafting_update * preconditioner_multiplier
+
     precond_grad = grad
     if not _skip_preconditioning(param):
       precond_grad = preconditioner.preconditioned_grad(
@@ -2078,7 +2092,8 @@ def distributed_shampoo(
 
     shampoo_update_with_wd = shampoo_update
     grafting_update_with_wd = grafting_update
-    if weight_decay != 0:
+
+    if weight_decay != 0 and not decoupled_weight_decay:
       shampoo_update_with_wd = shampoo_update + weight_decay * param
       grafting_update_with_wd = grafting_update + weight_decay * param
 
@@ -2103,14 +2118,16 @@ def distributed_shampoo(
         (1.0 - run_shampoo) * grafting_update_with_wd)
 
     nesterov_momentum_update = momentum_update
+
     if nesterov:
       nesterov_momentum_update = w * wd_update + beta1 * momentum_update
 
-    lr = learning_rate
-    if callable(learning_rate):
-      lr = learning_rate(step)
+    if weight_decay != 0 and decoupled_weight_decay:
+      nesterov_momentum_update = (
+          nesterov_momentum_update + lr * weight_decay * param)
 
-    transformed_update = -1.0 * lr * nesterov_momentum_update
+    momentum_multiplier = lr if decoupled_learning_rate else 1.0
+    transformed_update = -1.0 * momentum_multiplier * nesterov_momentum_update
 
     new_diagonal_momentum = grafting_update_with_wd_momentum
     new_momentum = shampoo_update_with_wd_momentum
