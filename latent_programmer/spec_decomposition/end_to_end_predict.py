@@ -52,6 +52,7 @@ flags.DEFINE_integer('num_layers', 3, 'Number of Transformer heads.')
 flags.DEFINE_boolean('slow_decode', True, 'Use slow decoding for prediction?')
 flags.DEFINE_float('dropout_rate', 0.1, 'Dropout rate')
 flags.DEFINE_float('attention_dropout_rate', 0.1, 'Attention dropout rate')
+flags.DEFINE_integer('beam_size', 4, 'Beam size')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 flags.DEFINE_string('test_dataset_filepattern', None,
@@ -260,7 +261,7 @@ def main(_):
   # TODO(jxihong): end-to-end loop is not batched right now.
   batch_size = 1
   io_shape = (batch_size, FLAGS.num_strings_per_task, FLAGS.max_characters)
-  spec_target_shape = (batch_size, FLAGS.max_spec_target_length)
+  spec_target_shape = (batch_size, FLAGS.max_spec_part_length)
   program_shape = (batch_size, FLAGS.max_program_length)
 
   # Setup DSL
@@ -359,7 +360,7 @@ def main(_):
   # Load Dataset
   # ---------------------------------------------------------------------------
   logging.info('Initializing dataset.')
-  if not FLAGS.dataset_filepattern:
+  if not FLAGS.test_dataset_filepattern:
     raise ValueError('Must specify filepattern to dataset.')
 
   # Training dataset.
@@ -408,7 +409,7 @@ def main(_):
       num_layers=FLAGS.num_layers,
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_characters, FLAGS.max_spec_target_length),
+      max_len=max(FLAGS.max_characters, FLAGS.max_spec_part_length),
       dropout_rate=FLAGS.dropout_rate,
       attention_dropout_rate=FLAGS.attention_dropout_rate,
       use_relative_attention=FLAGS.use_relative_attention,
@@ -512,7 +513,7 @@ def main(_):
   spec_decomposer_pred_step = functools.partial(
       predict_step,
       eos_token=eos_id,
-      max_decode_len=FLAGS.max_spec_target_length,
+      max_decode_len=FLAGS.max_spec_part_length,
       config=spec_decomposer_predict_config,
       slow_decode=FLAGS.slow_decode)
   synthesizer_pred_step = functools.partial(
@@ -533,7 +534,7 @@ def main(_):
         [decode_spec(output) for output in outputs[0]]))
 
     predicted_program = []
-    predicted_spec_parts = ''
+    predicted_spec_parts_all = ''
     valid = True
     done = False
     remaining_outputs = np.copy(outputs)
@@ -548,9 +549,9 @@ def main(_):
       valid, done, current_outputs, remaining_outputs = split_spec(
           np.array(predicted_spec_parts)[0], remaining_outputs[0],
           max_target_length=FLAGS.max_characters)
-      predicted_spec_parts += ','.join(
+      predicted_spec_parts_all += ','.join(
           [decode_spec(output) for output in current_outputs])
-      predicted_spec_parts += ';'
+      predicted_spec_parts_all += ';'
       if not valid:
         break
 
@@ -570,10 +571,11 @@ def main(_):
     program, predicted_outputs, success = eval_predicted_program(
         predicted_program + [eos_id], inputs[0], outputs[0])
     results['predictions'].append(program)
-    results['predicted_spec_parts'].append(predicted_spec_parts)
+    results['predicted_spec_parts'].append(predicted_spec_parts_all)
     results['predicted_outputs'].append(','.join(predicted_outputs))
     ground_truth = process_predicted_program(batch['target'][0], add_eos=True)
-    results['ground_truths'].append(ground_truth)
+    results['ground_truths'].append(
+        robust_fill_dsl.decode_program(ground_truth, program_id_token_table))
     if success:
       num_success += 1
     total += 1
