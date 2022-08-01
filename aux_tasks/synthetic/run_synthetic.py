@@ -50,6 +50,7 @@ _config.num_epochs: int = 200_000
 _config.rescale_psi = ''
 _config.use_mnist = False
 _config.sample_with_replacement = True
+_config.use_tabular_gradient = True
 
 _config.S: int = 10  # Number of states
 _config.T: int = 10  # Number of aux. tasks
@@ -171,6 +172,7 @@ def compute_metrics(Phi,
         'weight_batch_size',
         'estimate_feature_norm',
         'sample_with_replacement',
+        'use_tabular_gradient',
     ))
 def _train_step(*,
                 Phi,
@@ -187,7 +189,8 @@ def _train_step(*,
                 main_batch_size,
                 weight_batch_size,
                 estimate_feature_norm = True,
-                sample_with_replacement = True):
+                sample_with_replacement = True,
+                use_tabular_gradient = True):
   """Computes one training step.
 
   Args:
@@ -209,6 +212,9 @@ def _train_step(*,
     estimate_feature_norm: Whether to use a running average of the max feature
       norm rather than the real maximum.
     sample_with_replacement: Whether to sample states with replacement.
+    use_tabular_gradient: If true, the train step will calculate the
+      gradient using the tabular calculation. Otherwise, it will use a
+      jax.vjp to backpropagate the gradient.
 
   Returns:
     A dict containing updated values for Phi, estimated_feature_norm, key,
@@ -307,24 +313,36 @@ def _train_step(*,
   estimated_error = (
       jnp.dot(Phi[source_states, :], weight_1) - Psi[source_states, task])
 
-  # We use the same weight vector to move all elements of our batch, but
-  # they have different errors.
-  gradient = jnp.reshape(
-      jnp.tile(weight_2, main_batch_size), (main_batch_size, d))
+  if use_tabular_gradient:
+    # We use the same weight vector to move all elements of our batch, but
+    # they have different errors.
+    partial_gradient = jnp.reshape(
+        jnp.tile(weight_2, main_batch_size), (main_batch_size, d))
 
-  # Line up the shapes of error and weight vectors so we can construct the
-  # gradient.
-  expanded_estimated_error = jnp.expand_dims(estimated_error, axis=1)
-  gradient = gradient * expanded_estimated_error
+    # Line up the shapes of error and weight vectors so we can construct the
+    # gradient.
+    expanded_estimated_error = jnp.expand_dims(estimated_error, axis=1)
+    partial_gradient = partial_gradient * expanded_estimated_error
 
-  # Note: this doesn't work for duplicate indices. However, it shouldn't
-  # add any bias to the algorithm, and is faster than checking for
-  # duplicate indices. Most of the case we care about the case where our
-  # batch size is much smaller than the number of states, so duplicate
-  # indices should be rare.
-  full_gradient = jnp.zeros_like(Phi)
-  full_gradient = full_gradient.at[source_states, :].set(gradient)
-  updates, optimizer_state = optimizer.update(full_gradient, optimizer_state)
+    # Note: this doesn't work for duplicate indices. However, it shouldn't
+    # add any bias to the algorithm, and is faster than checking for
+    # duplicate indices. Most of the case we care about the case where our
+    # batch size is much smaller than the number of states, so duplicate
+    # indices should be rare.
+    gradient = jnp.zeros_like(Phi)
+    gradient = gradient.at[source_states, :].set(partial_gradient)
+  else:
+    # TODO(joshgreaves): Account for batch size.
+    # Note: The argument passed to vjp should be a function of parameters
+    # to Phi. Currently we don't support neural networks, so we
+    # include a tabular version that just passes Phi through.
+    _, phi_vjp = jax.vjp(lambda Phi_: Phi_[source_states, :], Phi)
+    # Calculate implicit gradient (Phi @ w_1 - Psi) @ w_2.T
+    implicit_gradient = jnp.outer(estimated_error, weight_2)
+    # Pullback implicit gradient to get the full Phi gradient.
+    (gradient,) = phi_vjp(implicit_gradient)
+
+  updates, optimizer_state = optimizer.update(gradient, optimizer_state)
   Phi = optax.apply_updates(Phi, updates)
 
   if method == 'explicit':
@@ -361,7 +379,8 @@ def train(*,
           main_batch_size,
           weight_batch_size,
           estimate_feature_norm = True,
-          sample_with_replacement = True):
+          sample_with_replacement = True,
+          use_tabular_gradient = True):
   """Training function.
 
   For lissa, the total number of samples is
@@ -388,6 +407,9 @@ def train(*,
     estimate_feature_norm: Whether to use a running average of the max feature
       norm rather than the real maximum.
     sample_with_replacement: Whether to draw states with replacement.
+    use_tabular_gradient: If true, the train step will calculate the
+      gradient using the tabular calculation. Otherwise, it will use a
+      jax.vjp to backpropagate the gradient.
 
   Returns:
     A matrix of all Phis computed throughout training. This will be of shape
@@ -441,6 +463,7 @@ def train(*,
       'weight_batch_size': weight_batch_size,
       'estimate_feature_norm': estimate_feature_norm,
       'sample_with_replacement': sample_with_replacement,
+      'use_tabular_gradient': use_tabular_gradient,
   }
   variable_kwargs = {
       'Phi': Phi,
@@ -530,7 +553,8 @@ def main(_):
       main_batch_size=config.main_batch_size,
       weight_batch_size=config.weight_batch_size,
       estimate_feature_norm=config.estimate_feature_norm,
-      sample_with_replacement=config.sample_with_replacement)
+      sample_with_replacement=config.sample_with_replacement,
+      use_tabular_gradient=config.use_tabular_gradient)
 
   with (workdir / 'phis.pkl').open('wb') as fout:
     pickle.dump(Phis, fout, protocol=4)
