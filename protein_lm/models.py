@@ -33,7 +33,7 @@ import gin
 from gin import config
 import jax
 from jax import random as jrandom
-import jax.experimental.optimizers
+import jax.example_libraries.optimizers
 import jax.nn
 import jax.numpy as jnp
 import numpy as onp
@@ -200,7 +200,7 @@ def train_step(optimizer,
   if grad_clip is not None:
     # Clip gradients after pmean aggregation
     unclipped_grad = grad
-    grad = jax.experimental.optimizers.clip_grads(grad, grad_clip)
+    grad = jax.example_libraries.optimizers.clip_grads(grad, grad_clip)
 
   new_optimizer = optimizer.apply_gradient(grad, learning_rate=lr)
 

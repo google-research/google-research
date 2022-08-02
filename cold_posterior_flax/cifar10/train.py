@@ -41,7 +41,7 @@ import flax.deprecated.nn
 from flax.training import common_utils
 import jax
 from jax import random
-import jax.experimental.optimizers
+import jax.example_libraries.optimizers
 import jax.nn
 import jax.numpy as jnp
 import ml_collections
@@ -227,8 +227,8 @@ def make_training_steps(config, learning_rate_fn, l2_reg, train_size,
       opt_kwargs['learning_rate'] = lr
       metrics['learning_rate'] = lr
 
-    grad = jax.experimental.optimizers.clip_grads(grad,
-                                                  config.gradient_clipping)
+    grad = jax.example_libraries.optimizers.clip_grads(grad,
+                                                       config.gradient_clipping)
     with flax.deprecated.nn.stochastic(opt_rng):
       new_optimizer = optimizer.apply_gradient(grad, **opt_kwargs)
 

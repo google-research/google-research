@@ -38,7 +38,7 @@ from absl import logging
 import gin
 import jax
 from jax.example_libraries import stax
-from jax.experimental.optimizers import adam
+from jax.example_libraries.optimizers import adam
 import jax.numpy as jnp
 import jax.random as jrand
 from jax.scipy.special import logsumexp

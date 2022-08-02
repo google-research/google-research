@@ -18,8 +18,8 @@
 from absl import app
 import jax
 from jax import random
+from jax.example_libraries import optimizers  # pylint: disable=unused-import
 from jax.example_libraries import stax
-from jax.experimental import optimizers  # pylint: disable=unused-import
 import jax.numpy as jnp
 from opt_list import jax_optimizers_opt_list
 

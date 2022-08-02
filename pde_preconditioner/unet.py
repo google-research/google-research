@@ -19,7 +19,7 @@ from jax import random
 
 from jax.example_libraries import stax
 from jax.example_libraries.stax import Dense, MaxPool, Relu, Flatten, LogSoftmax
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 from flax import optim as flax_optim
 from . import equations
 from . import meshes

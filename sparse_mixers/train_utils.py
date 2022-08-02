@@ -24,7 +24,7 @@ from flax import traverse_util
 from flax.training import train_state as train_state_lib
 import jax
 from jax import random
-import jax.experimental.optimizers
+import jax.example_libraries.optimizers
 import jax.numpy as jnp
 import ml_collections
 import numpy as np

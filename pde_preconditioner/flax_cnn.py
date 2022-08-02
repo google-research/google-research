@@ -18,7 +18,7 @@ from absl import logging
 from jax import random
 from jax.example_libraries import stax
 from jax.example_libraries.stax import Dense, MaxPool, Relu, Flatten, LogSoftmax
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 from . import equations
 from . import meshes
 from . import gmres
