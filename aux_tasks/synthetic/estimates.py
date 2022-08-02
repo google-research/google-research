@@ -15,7 +15,7 @@
 
 """Different matrix estimates."""
 
-from typing import Optional
+from typing import Callable, Optional
 
 import jax.numpy as jnp
 import numpy as np
@@ -25,10 +25,9 @@ from aux_tasks.synthetic import utils
 
 def naive_inverse_covariance_matrix(
     Phi,  # pylint: disable=invalid-name
+    sample_states,
     key,
-    covariance_batch_size,
-    *,
-    sample_with_replacement = True):
+    covariance_batch_size):
   """Estimates the covariance matrix naively.
 
   We want to return a covariance matrix whose norm is "equivalent" to a single
@@ -36,20 +35,17 @@ def naive_inverse_covariance_matrix(
 
   Args:
     Phi: feature matrix.
+    sample_states: A function that takes an rng key and a number of states
+      to sample, and returns the sampled states.
     key: jax rng key.
     covariance_batch_size: how many states to sample to estimate.
-    sample_with_replacement: whether to sample with replacement.
 
   Returns:
-    A tuple of (naive inverse covariance matrix, rng key).
+    A tuple containing (the naive inverse covariance matrix, updated rng).
   """
-  num_states, d = Phi.shape
+  _, d = Phi.shape
 
-  states, key = utils.draw_states(
-      num_states,
-      covariance_batch_size,
-      key,
-      replacement=sample_with_replacement)
+  states, key = sample_states(key, covariance_batch_size)
   matrix_estimate = jnp.linalg.solve(Phi[states, :].T @ Phi[states, :],
                                      jnp.eye(d))
 
@@ -58,12 +54,11 @@ def naive_inverse_covariance_matrix(
 
 def lissa_inverse_covariance_matrix(
     Phi,  # pylint: disable=invalid-name
+    sample_states,
     key,
     lissa_iterations,
     lissa_kappa,
-    feature_norm = None,
-    *,
-    sample_with_replacement = True):
+    feature_norm = None):
   """Estimates the covariance matrix by LISSA.
 
   By default this method returns a covariance matrix whose norm is equivalent
@@ -71,18 +66,20 @@ def lissa_inverse_covariance_matrix(
 
   Args:
     Phi: feature matrix.
+    sample_states: A function that takes an rng key and a number of states
+      to sample, and returns the sampled states.
     key: jax rng key.
     lissa_iterations: how many states to sample to estimate.
     lissa_kappa: The lissa parameter (gets further divided by feature norm
       squared).
     feature_norm: The squared norm of the largest feature vector (possibly
       estimated). If None, computed directly from the feature matrix Phi.
-    sample_with_replacement: Whether to sample with replacement.
 
   Returns:
-    A tuple of (lissa estimate of inverse covariance matrix, rng key).
+    A tuple containing:
+      (the lissa esimate of the inverse covariance matrix, updated rng).
   """
-  num_states, d = Phi.shape
+  _, d = Phi.shape
 
   # Determine the largest feaure vector norm, square it.
   # TODO(bellemare): This uses the whole feature matrix; compare with just
@@ -94,8 +91,7 @@ def lissa_inverse_covariance_matrix(
   kappa = lissa_kappa / feature_norm
   estimate = kappa * I
 
-  states, key = utils.draw_states(
-      num_states, lissa_iterations, key, replacement=sample_with_replacement)
+  states, key = sample_states(key, lissa_iterations)
   sampled_Phis = Phi[states, :]  # pylint: disable=invalid-name
 
   for t in range(lissa_iterations):

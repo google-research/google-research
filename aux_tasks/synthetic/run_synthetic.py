@@ -23,6 +23,7 @@ python -m aux_tasks.synthetic.run_synthetic
 # pylint: disable=invalid-name
 import functools
 import pickle
+from typing import Callable
 
 from absl import app
 from absl import flags
@@ -169,9 +170,10 @@ def compute_metrics(Phi,
         'method',
         'covariance_batch_size',
         'main_batch_size',
+        'covariance_batch_size',
         'weight_batch_size',
         'estimate_feature_norm',
-        'sample_with_replacement',
+        'sample_states',
         'use_tabular_gradient',
     ))
 def _train_step(*,
@@ -189,7 +191,7 @@ def _train_step(*,
                 main_batch_size,
                 weight_batch_size,
                 estimate_feature_norm = True,
-                sample_with_replacement = True,
+                sample_states,
                 use_tabular_gradient = True):
   """Computes one training step.
 
@@ -211,7 +213,9 @@ def _train_step(*,
     weight_batch_size: How many states to construct the weight vector.
     estimate_feature_norm: Whether to use a running average of the max feature
       norm rather than the real maximum.
-    sample_with_replacement: Whether to sample states with replacement.
+    sample_states: A function that takes an rng key and a number of states
+      to sample, and returns a tuple containing
+      (a vector of sampled states, an updated rng key).
     use_tabular_gradient: If true, the train step will calculate the
       gradient using the tabular calculation. Otherwise, it will use a
       jax.vjp to backpropagate the gradient.
@@ -224,10 +228,9 @@ def _train_step(*,
   _, num_tasks = Psi.shape
 
   # Draw one or many source states to update, and its task.
-  draw_states = functools.partial(
-      utils.draw_states, replacement=sample_with_replacement)
-  source_states, key = draw_states(num_states, main_batch_size, key)
-  task, key = draw_states(num_tasks, 1, key)  # bad Marc!
+  source_states, key = sample_states(key, main_batch_size)
+  task_key, key = jax.random.split(key)
+  task = jax.random.choice(task_key, num_tasks, (1,))
 
   # Use the source states to update our estimate of the feature norm.
   # Do this pre-LISSA, avoid a bad first gradient.
@@ -259,48 +262,48 @@ def _train_step(*,
       # The naive method uses one covariance matrix for both weight vectors.
       covariance_1, key = estimates.naive_inverse_covariance_matrix(
           Phi,
+          sample_states,
           key,
-          covariance_batch_size,
-          sample_with_replacement=sample_with_replacement)
+          covariance_batch_size)
       covariance_2 = covariance_1
 
-      weight_states_1, key = draw_states(num_states, weight_batch_size, key)
+      weight_states_1, key = sample_states(key, weight_batch_size)
       weight_states_2 = weight_states_1
     elif method == 'naive++':
       # The naive method uses one covariance matrix for both weight vectors.
       covariance_1, key = estimates.naive_inverse_covariance_matrix(
           Phi,
+          sample_states,
           key,
-          covariance_batch_size,
-          sample_with_replacement=sample_with_replacement)
+          covariance_batch_size)
       covariance_2, key = estimates.naive_inverse_covariance_matrix(
           Phi,
+          sample_states,
           key,
-          covariance_batch_size,
-          sample_with_replacement=sample_with_replacement)
+          covariance_batch_size)
 
-      weight_states_1, key = draw_states(num_states, weight_batch_size, key)
-      weight_states_2, key = draw_states(num_states, weight_batch_size, key)
+      weight_states_1, key = sample_states(key, weight_batch_size)
+      weight_states_2, key = sample_states(key, weight_batch_size)
     elif method == 'lissa':
       # Compute two independent estimates of the inverse covariance matrix.
       covariance_1, key = estimates.lissa_inverse_covariance_matrix(
           Phi,
+          sample_states,
           key,
           covariance_batch_size,
           lissa_kappa,
-          None,
-          sample_with_replacement=sample_with_replacement)
+          None)
       covariance_2, key = estimates.lissa_inverse_covariance_matrix(
           Phi,
+          sample_states,
           key,
           covariance_batch_size,
           lissa_kappa,
-          None,
-          sample_with_replacement=sample_with_replacement)
+          None)
 
       # Draw two separate sets of states for the weight vectors (important!)
-      weight_states_1, key = draw_states(num_states, weight_batch_size, key)
-      weight_states_2, key = draw_states(num_states, weight_batch_size, key)
+      weight_states_1, key = sample_states(key, weight_batch_size)
+      weight_states_2, key = sample_states(key, weight_batch_size)
 
     # Compute the weight estimates by combining the inverse covariance
     # estimate and the sampled Phi & Psi's.
@@ -452,6 +455,12 @@ def train(*,
           callback_fn=lambda step, t: chkpt_manager.save((step, Phi)))
   ]
 
+  # TODO(joshgreaves): Pass in num_states.
+  sample_states = functools.partial(
+      utils.sample_discrete_states,
+      num_states=Phi.shape[0],
+      sample_with_replacement=sample_with_replacement)
+
   fixed_train_kwargs = {
       'Psi': Psi,
       'optimizer': optimizer,
@@ -462,7 +471,7 @@ def train(*,
       'main_batch_size': main_batch_size,
       'weight_batch_size': weight_batch_size,
       'estimate_feature_norm': estimate_feature_norm,
-      'sample_with_replacement': sample_with_replacement,
+      'sample_states': sample_states,
       'use_tabular_gradient': use_tabular_gradient,
   }
   variable_kwargs = {

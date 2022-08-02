@@ -20,16 +20,27 @@ import numpy as np
 import tensorflow_datasets as tfds
 
 
-def draw_states(
-    num_states,
-    howmany,
+def sample_discrete_states(
     key,
+    num_samples,
     *,
-    replacement = False):
-  """Draws howmany state indices from 0 ... num_states."""
-  key, subkey = jax.random.split(key)
+    num_states,
+    sample_with_replacement = False):
+  """Samples indices of discrete states.
+
+  Args:
+    key: the PRNGKey to use for sampling.
+    num_samples: how many samples to draw.
+    num_states: the number of states to sample from.
+    sample_with_replacement: whether to sample with replacement.
+
+  Returns:
+    A tuple of (sampled_state_indices, rng), where sampled_state_indices
+      has shape (num_samples,)
+  """
+  sample_key, key = jax.random.split(key)
   states = jax.random.choice(
-      subkey, num_states, (howmany,), replace=replacement)
+      sample_key, num_states, (num_samples,), replace=sample_with_replacement)
   return states, key
 
 
