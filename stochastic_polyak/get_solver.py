@@ -98,4 +98,4 @@ def get_solver(flags, config, loss_fun, losses):
   else:
     raise ValueError("Unknown solver: %s" % config.solver)
 
-  return solver, solver_param_name
+  return solver, solver_param_name  # pytype: disable=name-error  # py310-upgrade
