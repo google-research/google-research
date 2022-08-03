@@ -166,38 +166,45 @@ def compute_metrics(Phi,
 @functools.partial(
     jax.jit,
     static_argnames=(
+        'compute_psi',
         'optimizer',
         'method',
         'covariance_batch_size',
         'main_batch_size',
         'covariance_batch_size',
         'weight_batch_size',
+        'num_tasks',
         'estimate_feature_norm',
         'sample_states',
         'use_tabular_gradient',
     ))
-def _train_step(*,
-                Phi,
-                Psi,
-                optimizer,
-                optimizer_state,
-                explicit_weight_matrix,
-                estimated_feature_norm,
-                learning_rate,
-                key,
-                method,
-                lissa_kappa,
-                covariance_batch_size,
-                main_batch_size,
-                weight_batch_size,
-                estimate_feature_norm = True,
-                sample_states,
-                use_tabular_gradient = True):
+def _train_step(
+    *,
+    Phi,
+    compute_psi,
+    optimizer,
+    optimizer_state,
+    explicit_weight_matrix,
+    estimated_feature_norm,
+    learning_rate,
+    key,
+    method,
+    lissa_kappa,
+    main_batch_size,
+    covariance_batch_size,
+    weight_batch_size,
+    num_tasks,
+    estimate_feature_norm = True,
+    sample_states,
+    use_tabular_gradient = True):
   """Computes one training step.
 
   Args:
     Phi: The current feature matrix.
-    Psi: The target matrix whose PCA is to be determined.
+    compute_psi: A function implementing a mapping from (state, task) pairs
+      to real values. In the finite case, this can be implemented
+      as a function that indexes into a matrix. Note: the code does
+      not currently support an infinite number of tasks.
     optimizer: An optax optimizer to use.
     optimizer_state: The current state of the optimizer.
     explicit_weight_matrix: A weight matrix to use for the explicit method.
@@ -206,11 +213,12 @@ def _train_step(*,
     key: The jax prng key.
     method: 'naive', 'lissa', or 'oracle'.
     lissa_kappa: The parameter of the lissa method, if used.
+    main_batch_size: How many states to update at once.
     covariance_batch_size: the 'J' parameter. For the naive method, this is how
       many states we sample to construct the inverse. For the lissa method,
       ditto -- these are also "iterations".
-    main_batch_size: How many states to update at once.
     weight_batch_size: How many states to construct the weight vector.
+    num_tasks: The total number of tasks.
     estimate_feature_norm: Whether to use a running average of the max feature
       norm rather than the real maximum.
     sample_states: A function that takes an rng key and a number of states
@@ -225,7 +233,6 @@ def _train_step(*,
       and optimizer_state, as well as the the computed gradient.
   """
   num_states, d = Phi.shape
-  _, num_tasks = Psi.shape
 
   # Draw one or many source states to update, and its task.
   source_states, key = sample_states(key, main_batch_size)
@@ -308,13 +315,13 @@ def _train_step(*,
     # Compute the weight estimates by combining the inverse covariance
     # estimate and the sampled Phi & Psi's.
     weight_1 = (covariance_1 @ Phi[weight_states_1, :].T
-                @ Psi[weight_states_1, task]) / len(weight_states_1)
+                @ compute_psi(weight_states_1, task)) / len(weight_states_1)
     weight_2 = (covariance_2 @ Phi[weight_states_2, :].T
-                @ Psi[weight_states_2, task]) / len(weight_states_2)
+                @ compute_psi(weight_states_2, task)) / len(weight_states_2)
 
   # Compute the gradient at that source state.
-  estimated_error = (
-      jnp.dot(Phi[source_states, :], weight_1) - Psi[source_states, task])
+  prediction = jnp.dot(Phi[source_states, :], weight_1)
+  estimated_error = prediction - compute_psi(source_states, task)
 
   if use_tabular_gradient:
     # We use the same weight vector to move all elements of our batch, but
@@ -460,18 +467,21 @@ def train(*,
       utils.sample_discrete_states,
       num_states=Phi.shape[0],
       sample_with_replacement=sample_with_replacement)
+  # Implement the Psi mapping by indexing into the given matrix.
+  compute_psi = lambda states, tasks: Psi[states, tasks]
 
   fixed_train_kwargs = {
-      'Psi': Psi,
       'optimizer': optimizer,
       'learning_rate': learning_rate,
       'method': method,
       'lissa_kappa': lissa_kappa,
-      'covariance_batch_size': covariance_batch_size,
       'main_batch_size': main_batch_size,
+      'covariance_batch_size': covariance_batch_size,
       'weight_batch_size': weight_batch_size,
+      'num_tasks': Psi.shape[1],  # TODO(joshgreaves): Pass in num_tasks.
       'estimate_feature_norm': estimate_feature_norm,
       'sample_states': sample_states,
+      'compute_psi': compute_psi,
       'use_tabular_gradient': use_tabular_gradient,
   }
   variable_kwargs = {
