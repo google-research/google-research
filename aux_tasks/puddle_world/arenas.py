@@ -60,7 +60,7 @@ _ARENAS = frozendict.frozendict({
     'two_room': TWO_ROOM,
     'two_room_slow': TWO_ROOM_SLOW,
 })
-# LINT.ThenChange(xm_launch.py:arena_names)
+# LINT.ThenChange(../google/xm_compute_sr.py:arena_names)
 
 ARENA_NAMES = list(_ARENAS.keys())
 
