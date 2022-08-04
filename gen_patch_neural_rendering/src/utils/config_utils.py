@@ -31,8 +31,8 @@ class RenderParams:
   far: float
   white_bkgd: bool
   num_rgb_channels: int
-  rgb_activation: Callable[Any]
-  sigma_activation: Optional[Callable[Any]] = None
+  rgb_activation: Callable[Ellipsis, Any]
+  sigma_activation: Optional[Callable[Ellipsis, Any]] = None
 
 
 def get_render_params(config, rgb_activation, sigma_activation=None):
