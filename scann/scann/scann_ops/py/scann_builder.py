@@ -160,7 +160,6 @@ class ScannBuilder(object):
           }}
           noise_shaping_threshold: {anisotropic_quantization_threshold}
           expected_sample_size: {training_sample_size}
-          min_cluster_size: {min_cluster_size}
           max_clustering_iterations: {training_iterations}
         }}
       }} """
