@@ -50,6 +50,13 @@ from graph_compression.compression_lib import compression_op_utils as comp_op_ut
 from model_pruning.python import hparam as contrib_hparam
 
 
+def _get_var_name(var):
+  if tf.executing_eagerly_outside_functions():
+    return var.name.rsplit(':', 1)[0]
+  else:
+    return var.op.name
+
+
 class MatrixCompressorInferface(object):
   """Interface for any matrix compressor algorithm.
 
@@ -370,17 +377,18 @@ class CompressionOp(CompressionOpInterface):
     """Adds summaries of alpha value, new variables, and last update step."""
     with tf.compat.v1.name_scope(self._spec.name + '_summaries'):
       tf.compat.v2.summary.scalar(
-          self._last_alpha_update_step.op.name + '/last_alpha_update_step',
-          self._last_alpha_update_step)
-      tf.compat.v2.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
+          _get_var_name(self._last_alpha_update_step) +
+          '/last_alpha_update_step', self._last_alpha_update_step)
       tf.compat.v2.summary.scalar(
-          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+          _get_var_name(self.alpha) + '/alpha', self.alpha)
+      tf.compat.v2.summary.scalar(
+          _get_var_name(self.a_matrix_tfvar) + '/a_matrix_norm',
           tf.norm(tensor=self.a_matrix_tfvar))
       tf.compat.v2.summary.scalar(
-          self.b_matrix_tfvar.op.name + '/b_matrix_norm',
+          _get_var_name(self.b_matrix_tfvar) + '/b_matrix_norm',
           tf.norm(tensor=self.b_matrix_tfvar))
       tf.compat.v2.summary.scalar(
-          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+          _get_var_name(self.c_matrix_tfvar) + '/c_matrix_norm',
           tf.norm(tensor=self.c_matrix_tfvar))
 
   def _setup_last_alpha_update_step(self):
@@ -979,18 +987,18 @@ class InputOutputCompressionOp(CompressionOpInterface):
       logging.info('add_compression_summaries scope name is %s',
                    self._spec.name)
       tf.compat.v2.summary.scalar(
-          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+          _get_var_name(self.a_matrix_tfvar) + '/a_matrix_norm',
           tf.norm(self.a_matrix_tfvar))
       if self._spec.compress_input:
         tf.compat.v2.summary.scalar(
-            self.b_matrix_tfvar.op.name + '/b_matrix_norm',
+            _get_var_name(self.b_matrix_tfvar) + '/b_matrix_norm',
             tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
       if self._spec.compress_output:
         tf.compat.v2.summary.scalar(
-            self.d_matrix_tfvar.op.name + '/d_matrix_norm',
+            _get_var_name(self.d_matrix_tfvar) + '/d_matrix_norm',
             tf.norm(tf.reshape(self.d_matrix_tfvar, [-1]), ord=1))
       tf.compat.v2.summary.scalar(
-          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+          _get_var_name(self.c_matrix_tfvar) + '/c_matrix_norm',
           tf.norm(self.c_matrix_tfvar))
 
   def print_hparams(self):
@@ -1626,11 +1634,11 @@ class BlockCompressionOp(CompressionOpInterface):
                    self._spec.name)
       if self.a_matrix_tfvar is not None:
         tf.compat.v2.summary.scalar(
-            self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+            _get_var_name(self.a_matrix_tfvar) + '/a_matrix_norm',
             tf.norm(self.a_matrix_tfvar))
       if self.c_matrix_tfvar is not None:
         tf.compat.v2.summary.scalar(
-            self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+            _get_var_name(self.c_matrix_tfvar) + '/c_matrix_norm',
             tf.norm(self.c_matrix_tfvar))
 
   def get_apply_compression_op(self,
@@ -1977,10 +1985,10 @@ class MixedBlockCompressionOp(CompressionOp):
       logging.info('add_compression_summaries scope name is %s',
                    self._spec.name)
       tf.compat.v2.summary.scalar(
-          self.block_matrices.op.name + '/block_matrices_norm',
+          _get_var_name(self.block_matrices) + '/block_matrices_norm',
           tf.norm(self.block_matrices))
       tf.compat.v2.summary.scalar(
-          self.linear_mixer.op.name + '/linear_mixer_norm',
+          _get_var_name(self.linear_mixer) + '/linear_mixer_norm',
           tf.norm(self.linear_mixer))
 
   def get_apply_compression_op(self,
