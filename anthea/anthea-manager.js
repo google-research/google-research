@@ -127,7 +127,6 @@ class AntheaManager {
     /** @private @const {!Element} */
     this.antheaBellQuote_ = document.getElementById('anthea-bell-quote');
 
-    this.populateTemplateChoices();
     this.populateActiveChoices();
     this.setUpListeners();
 
@@ -248,28 +247,6 @@ class AntheaManager {
     this.closeMenu();
     this.openMenuItem_ = elt;
     this.openMenuItem_.style.display = 'block';
-  }
-
-  /**
-   * Populate template choices.
-   */
-  populateTemplateChoices() {
-    const templateNames = Object.keys(antheaTemplates);
-    this.newProjectTemplate_.innerHTML = '';
-    let numTemplates = 0;
-    for (let templateName of templateNames) {
-      if (!this.VALID_NAME_RE_.test(templateName)) {
-        this.log(this.WARNING, 'Template name is invalid: ' + templateName);
-        continue;
-      }
-      numTemplates++;
-      this.newProjectTemplate_.insertAdjacentHTML('beforeend', `
-          <option value="${templateName}">${templateName}</option>`);
-    }
-    if (numTemplates == 0) {
-      this.log(this.ERROR, 'Could not find any valid antheaTemplate entries');
-      throw 'Failed to initialize AntheaManager';
-    }
   }
 
   /**
@@ -631,14 +608,13 @@ class AntheaManager {
       const activeResultsKey = this.ACTIVE_RESULTS_KEY_PREFIX_ + activeName;
       const activeResultsJSON = window.localStorage.getItem(activeResultsKey);
       this.activeResults_ = JSON.parse(activeResultsJSON);
-      const template = antheaTemplates[this.activeData_.templateName];
 
       this.activeData_.parsedDocSys.srcLang = this.activeData_.srcLang;
       this.activeData_.parsedDocSys.tgtLang = this.activeData_.tgtLang;
 
       this.antheaBellQuote_.style.display = 'none';
       this.eval_ = new AntheaEval(this);
-      this.eval_.setUpEval(this.evalDiv_, template,
+      this.eval_.setUpEval(this.evalDiv_, this.activeData_.templateName,
                            this.activeData_.parsedDocSys, this.activeResults_,
                            this.activeData_.hotwPercent || 0);
     } catch (err) {

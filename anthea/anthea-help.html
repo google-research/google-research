@@ -150,6 +150,32 @@
     <dd>This is a "Scalar Quality Metric" template included as an
       illustrative example.</dd>
   </dl>
+  <p>
+    You can create a new template as follows. Use a new unique name for the template (say
+    <code>'My-Template-Name'</code>). Add this name to the list of template choices in
+    <code>anthea.html</code> like this (please keep the names sorted):
+  </p>
+  <blockquote>
+    <pre>
+      &lt;option value="MQM"&gt;MQM&lt;/option&gt;
+      ...
+      &lt;option value="MyTemplateName"&gt;MyTemplateName&lt;/option&gt;
+      ...
+      &lt;option value="SQM"&gt;SQM&lt;/option&gt;
+    </pre>
+  </blockquote>
+  <p>
+    Copy one of the existing template files (among <code>template-*.js</code>) into a new file
+    called <code>template-my-template-name.js</code>, and modify it so that it sets up the new
+    template like this:
+  </p>
+  <blockquote>
+    <pre>
+      antheaTemplates['My-Template-Name'] = {
+        ...
+      };
+    </pre>
+  </blockquote>
 
 </body>
 </html>

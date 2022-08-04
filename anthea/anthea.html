@@ -22,9 +22,11 @@
   <link rel="stylesheet" type="text/css" href="anthea-eval.css"/>
   <link rel="stylesheet" type="text/css" href="anthea-manager.css"/>
   <link rel="stylesheet" type="text/css" href="mqm-viewer.css"/>
+  <script src="anthea-eval.js"></script>
+  <script src="anthea-manager.js"></script>
+  <script src="mqm-viewer.js"></script>
   <script>
     let antheaManager = null;
-    let antheaTemplates = {};
     document.addEventListener('DOMContentLoaded', () => {
       antheaManager = new AntheaManager();
       const testScript = (new URLSearchParams(window.location.search)).get('test');
@@ -35,14 +37,6 @@
       }
     });
   </script>
-  <script src="template-mqm.js"></script>
-  <script src="template-mqm-cd.js"></script>
-  <script src="template-mqm-paragraph.js"></script>
-  <script src="template-mqm-webpage.js"></script>
-  <script src="template-sqm.js"></script>
-  <script src="anthea-eval.js"></script>
-  <script src="anthea-manager.js"></script>
-  <script src="mqm-viewer.js"></script>
 </head>
 
 <body>
@@ -60,8 +54,15 @@
             <table class="anthea-menu-table">
               <tr>
                 <td><b>New</b> evaluation project with template:</td>
-                <td><select class="anthea-select"
-                        id="anthea-new-project-template"></select></td>
+                <td>
+                  <select class="anthea-select" id="anthea-new-project-template">
+                    <option value="MQM">MQM</option>
+                    <option value="MQM-CD">MQM-CD</option>
+                    <option value="MQM-Paragraph">MQM-Paragraph</option>
+                    <option value="MQM-WebPage">MQM-WebPage</option>
+                    <option value="SQM">SQM</option>
+                  </select>
+                </td>
               </tr>
               <tr title="Project TSV file: lines with four fields: source-sentence-group \t target-sentence-group \t doc-name \t system-name">
                 <td>Project TSV file:</td>
