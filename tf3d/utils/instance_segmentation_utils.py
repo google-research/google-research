@@ -43,7 +43,7 @@ def map_labels_to_0_to_n(labels):
   label_map = tf.zeros([max_label + 1], tf.int32)
   unique_labels, _ = tf.unique(labels)
   label_map = tf.reduce_sum(
-      tf.one_hot(unique_labels, depth=max_label+1, dtype=tf.float32), axis=0)
+      tf.one_hot(unique_labels, depth=max_label + 1, dtype=tf.float32), axis=0)
   label_map = tf.cast((tf.cumsum(label_map) - 1.0) * label_map, dtype=tf.int32)
   labels = tf.map_fn(lambda l: label_map[l], labels, back_prop=False)
   labels = (labels * mask_no_ignore) - mask_ignore
@@ -57,11 +57,11 @@ def randomly_select_one_point_per_segment(labels, include_ignore_label=False):
 
   Args:
     labels: A tf.int32 tensor of [N] containing labels for pixels. labels start
-            at 0. It can be that some pixels have label (-1) which means this
-            function will ignore those pixels.
-    include_ignore_label: If this flag is true, the function will not ignore
-                          the pixels with ignore label (-1). It increases the
-                          labels by 1 and will sample from ignore label too.
+      at 0. It can be that some pixels have label (-1) which means this function
+      will ignore those pixels.
+    include_ignore_label: If this flag is true, the function will not ignore the
+      pixels with ignore label (-1). It increases the labels by 1 and will
+      sample from ignore label too.
 
   Returns:
     indices: Indices of randomly picked centers. A tensor of type tf.int32.
@@ -89,17 +89,18 @@ def randomly_select_one_point_per_segment(labels, include_ignore_label=False):
   return indices, labels_one_hot
 
 
-def randomly_select_n_points_per_segment(labels, num_points,
+def randomly_select_n_points_per_segment(labels,
+                                         num_points,
                                          include_ignore_label=False):
   """Randomly selects a point for each segment.
 
   Args:
     labels: A tf.int32 tensor of [N] containing labels for pixels. labels start
-            at 0.
+      at 0.
     num_points: Number of samples.
-    include_ignore_label: If this flag is true, the function will not ignore
-                          the pixels with ignore label (-1). It increases the
-                          labels by 1 and will sample from ignore label too.
+    include_ignore_label: If this flag is true, the function will not ignore the
+      pixels with ignore label (-1). It increases the labels by 1 and will
+      sample from ignore label too.
 
   Returns:
     indices: Indices of randomly picked centers. A tf.int32 tensor of size
@@ -114,7 +115,7 @@ def randomly_select_n_points_per_segment(labels, num_points,
 
   def body(i, indices):
     indices_local, _ = randomly_select_one_point_per_segment(labels)
-    pad0 = tf.stack([i, num_points-i-1])
+    pad0 = tf.stack([i, num_points - i - 1])
     pad1 = tf.constant([0, 0], dtype=tf.int32)
     padding = tf.stack([pad0, pad1])
     indices_local = tf.pad(tf.expand_dims(indices_local, 0), padding)
@@ -123,12 +124,12 @@ def randomly_select_n_points_per_segment(labels, num_points,
     i += 1
     return (i, indices)
 
-  (i, indices) = tf.while_loop(lambda i, indices: tf.less(i, num_points),
-                               body, [i, indices])
+  (i, indices) = tf.while_loop(lambda i, indices: tf.less(i, num_points), body,
+                               [i, indices])
   return indices
 
 
-def inputs_distances_to_centers(inputs, centers):
+def squared_distances_to_centers(inputs, centers):
   """Returns the distances between inputs and centers.
 
   Args:
@@ -140,18 +141,8 @@ def inputs_distances_to_centers(inputs, centers):
   Returns:
     A [N, K] tf.float32 tensor of distances.
   """
-  num_centers = tf.shape(centers)[0]
-  num_inputs = tf.shape(inputs)[0]
-  dotprod = tf.matmul(inputs, centers, transpose_b=True)
-  inputs_len2 = tf.tile(
-      tf.expand_dims(
-          tf.square(tf.norm(
-              inputs, axis=1)), axis=1), [1, num_centers])
-  centers_len2 = tf.tile(
-      tf.expand_dims(
-          tf.square(tf.norm(
-              centers, axis=1)), axis=0), [num_inputs, 1])
-  return inputs_len2 + centers_len2 - 2.0 * dotprod
+  return tf.reduce_sum(
+      tf.square(inputs[:, tf.newaxis, :] - centers[tf.newaxis, :, :]), axis=-1)
 
 
 def get_nearest_centers(inputs, centers):
@@ -166,7 +157,7 @@ def get_nearest_centers(inputs, centers):
   Returns:
     A [N] tf.int32 tensor of nearest center indices.
   """
-  input_distances = inputs_distances_to_centers(inputs, centers)
+  input_distances = squared_distances_to_centers(inputs, centers)
   return tf.cast(tf.math.argmin(input_distances, axis=1), dtype=tf.int32)
 
 
@@ -207,19 +198,24 @@ def kmeans_initialize_centers_plus_plus(inputs, num_centers):
   input_dims = tf.shape(inputs)[1]
   init_centers = tf.zeros(tf.stack([num_centers, input_dims]), dtype=tf.float32)
   indices = tf.zeros([num_centers], dtype=tf.int32)
-  rand_ind_0 = tf.random.uniform(
-      [1], minval=0, maxval=input_num, dtype=tf.int32)
-  rand_ind_0 = tf.minimum(rand_ind_0, input_num-1)
+  rand_ind_0 = tf.random.uniform([1],
+                                 minval=0,
+                                 maxval=input_num,
+                                 dtype=tf.int32)
+  rand_ind_0 = tf.minimum(rand_ind_0, input_num - 1)
   init_centers_0 = tf.gather(inputs, rand_ind_0)
-  inputs_min_distances = inputs_distances_to_centers(inputs, init_centers_0)
-  init_centers += tf.pad(init_centers_0,
-                         paddings=tf.stack([tf.stack([0, num_centers-1]),
-                                            tf.stack([0, 0])]))
-  indices += tf.pad(rand_ind_0, paddings=[[0, num_centers-1]])
+  inputs_min_distances = squared_distances_to_centers(inputs, init_centers_0)
+  init_centers += tf.pad(
+      init_centers_0,
+      paddings=tf.stack([tf.stack([0, num_centers - 1]),
+                         tf.stack([0, 0])]))
+  indices += tf.pad(rand_ind_0, paddings=[[0, num_centers - 1]])
   i = tf.constant(1, dtype=tf.int32)
 
   def body(i, init_centers, indices, inputs_min_distances):
-    """while loop body. Pick the next center given previously picked centers.
+    """while loop body.
+
+    Pick the next center given previously picked centers.
 
     Args:
       i: For loop index.
@@ -235,22 +231,23 @@ def kmeans_initialize_centers_plus_plus(inputs, num_centers):
             tf.math.log(
                 tf.transpose(inputs_min_distances) + sys.float_info.min), 1))
     best_new_center_ind = tf.cast(best_new_center_ind, dtype=tf.int32)
-    indices += tf.pad(tf.stack([best_new_center_ind]),
-                      paddings=[[i, num_centers-i-1]])
+    indices += tf.pad(
+        tf.stack([best_new_center_ind]), paddings=[[i, num_centers - i - 1]])
     init_centers_i = tf.expand_dims(tf.gather(inputs, best_new_center_ind), 0)
-    init_centers += tf.pad(init_centers_i,
-                           paddings=tf.stack([tf.stack([i, num_centers-i-1]),
-                                              tf.stack([0, 0])]))
+    init_centers += tf.pad(
+        init_centers_i,
+        paddings=tf.stack(
+            [tf.stack([i, num_centers - i - 1]),
+             tf.stack([0, 0])]))
     inputs_min_distances = tf.minimum(
-        inputs_distances_to_centers(inputs, init_centers_i),
+        squared_distances_to_centers(inputs, init_centers_i),
         inputs_min_distances)
     i += 1
     return i, init_centers, indices, inputs_min_distances
 
   (i, init_centers, indices, inputs_min_distances) = tf.while_loop(
       lambda i, init_centers, indices, inputs_min_distances: i < num_centers,
-      body,
-      [i, init_centers, indices, inputs_min_distances])
+      body, [i, init_centers, indices, inputs_min_distances])
   return init_centers, indices
 
 
@@ -259,9 +256,9 @@ def get_pairwise_iou_matrix(masks1, masks2):
 
   Args:
     masks1: A tf.float32 tensor of size [k1, height, width] where k1 is the
-            number of masks1.
+      number of masks1.
     masks2: A tf.float32 tensor of size [k2, height, width] where k2 is the
-            number of masks2.
+      number of masks2.
 
   Returns:
     A tf.float32 tensor of size [k1, k2] containing iou scores.
@@ -318,8 +315,11 @@ def instance_non_maximum_suppression_1d_scores(masks,
   ious = tf.greater_equal(ious, min_iou_thresh)
   b_mask = tf.fill(dims=tf.stack([k]), value=tf.constant(True, dtype=tf.bool))
   i = tf.constant(1, tf.int32)
+
   def body(i, b_mask):
-    """While loop body. Computes b_mask containing staying instances in nms.
+    """While loop body.
+
+    Computes b_mask containing staying instances in nms.
 
     Args:
       i: While loop counter.
@@ -328,28 +328,24 @@ def instance_non_maximum_suppression_1d_scores(masks,
     Returns:
       Updated i, b_mask.
     """
-    b_mask_sub1 = tf.slice(b_mask,
-                           begin=tf.stack([0]),
-                           size=tf.stack([i]))
-    b_mask_sub2 = tf.slice(b_mask,
-                           begin=tf.stack([i+1]),
-                           size=tf.stack([k-i-1]))
-    ious_sub = tf.squeeze(tf.slice(ious,
-                                   begin=tf.stack([0, i]),
-                                   size=tf.stack([i, 1])),
-                          axis=1)
+    b_mask_sub1 = tf.slice(b_mask, begin=tf.stack([0]), size=tf.stack([i]))
+    b_mask_sub2 = tf.slice(
+        b_mask, begin=tf.stack([i + 1]), size=tf.stack([k - i - 1]))
+    ious_sub = tf.squeeze(
+        tf.slice(ious, begin=tf.stack([0, i]), size=tf.stack([i, 1])), axis=1)
     b_mask_sub1_classes = b_mask_sub1
     if not is_class_agnostic:
-      classes_sub = tf.slice(classes,
-                             begin=tf.stack([0]),
-                             size=tf.stack([i]))
+      classes_sub = tf.slice(classes, begin=tf.stack([0]), size=tf.stack([i]))
       classes_sub = tf.equal(classes_sub, classes[i])
       b_mask_sub1_classes = tf.logical_and(b_mask_sub1, classes_sub)
-    should_add = tf.expand_dims(tf.logical_not(tf.reduce_any(
-        tf.logical_and(b_mask_sub1_classes, ious_sub))), axis=0)
+    should_add = tf.expand_dims(
+        tf.logical_not(
+            tf.reduce_any(tf.logical_and(b_mask_sub1_classes, ious_sub))),
+        axis=0)
     b_mask = tf.concat([b_mask_sub1, should_add, b_mask_sub2], axis=0)
     i += 1
     return i, b_mask
+
   (i, b_mask) = tf.while_loop(
       lambda i, b_mask: i < k,
       body,
@@ -372,13 +368,13 @@ def instance_non_maximum_suppression_2d_scores(masks,
 
   Args:
     masks: A tf.float32 tensor of size [k, height, width] where k is the number
-           of masks.
+      of masks.
     scores: A tf.float32 tensor of size [k, num_classes].
     num_classes: Number of classes.
     min_score_thresh: Minimum score threshold.
     min_iou_thresh: Minimum iou threshold.
     is_class_agnostic: If True, it will suppress two instances from different
-                       classes that have an iou larger than threshold.
+      classes that have an iou larger than threshold.
 
   Returns:
     Masks, scores and classes after non max suppression.
@@ -391,11 +387,9 @@ def instance_non_maximum_suppression_2d_scores(masks,
     for i in range(num_classes):
       scores_1d = tf.reshape(
           tf.slice(scores, begin=[0, i], size=tf.stack([k, 1])), [-1])
-      classes_1d = tf.fill(dims=tf.stack([k]),
-                           value=tf.constant(i, dtype=tf.int32))
-      (new_masks_i,
-       new_scores_i,
-       new_classes_i,
+      classes_1d = tf.fill(
+          dims=tf.stack([k]), value=tf.constant(i, dtype=tf.int32))
+      (new_masks_i, new_scores_i, new_classes_i,
        _) = instance_non_maximum_suppression_1d_scores(
            masks,
            scores_1d,
@@ -414,15 +408,14 @@ def instance_non_maximum_suppression_2d_scores(masks,
     scores, classes = tf.nn.top_k(scores, k=1)
     scores = tf.reshape(scores, [-1])
     classes = tf.reshape(classes, [-1])
-    (new_masks,
-     new_scores,
-     new_classes,
-     _) = instance_non_maximum_suppression_1d_scores(masks,
-                                                     scores,
-                                                     classes,
-                                                     min_score_thresh,
-                                                     min_iou_thresh,
-                                                     is_class_agnostic=True)
+    (new_masks, new_scores, new_classes,
+     _) = instance_non_maximum_suppression_1d_scores(
+         masks,
+         scores,
+         classes,
+         min_score_thresh,
+         min_iou_thresh,
+         is_class_agnostic=True)
     return new_masks, new_scores, new_classes
 
 
@@ -457,10 +450,10 @@ def points_mask_pairwise_iou(masks1, masks2):
   """Intersection over union between pairwise corresponding masks.
 
   Args:
-    masks1: A tensor of size [num_masks, num_points] with values ranging
-      between 0 and 1.
-    masks2: A tensor of size [num_masks, num_points] with values ranging
-      between 0 and 1.
+    masks1: A tensor of size [num_masks, num_points] with values ranging between
+      0 and 1.
+    masks2: A tensor of size [num_masks, num_points] with values ranging between
+      0 and 1.
 
   Returns:
     A tensor of size [num_masks].

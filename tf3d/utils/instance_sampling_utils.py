@@ -52,7 +52,7 @@ def sample_based_on_scores_and_distances(inputs,
       tf.cast(tf.math.argmax(scores, axis=0), dtype=tf.int32), axis=0)
   init_sample_0 = tf.gather(inputs, index_0)
   min_distances = tf.squeeze(
-      instance_segmentation_utils.inputs_distances_to_centers(
+      instance_segmentation_utils.squared_distances_to_centers(
           inputs, init_sample_0),
       axis=1)
   init_samples += tf.pad(
@@ -87,7 +87,7 @@ def sample_based_on_scores_and_distances(inputs,
                                               tf.stack([0, 0])]))
     min_distances = tf.minimum(
         tf.squeeze(
-            instance_segmentation_utils.inputs_distances_to_centers(
+            instance_segmentation_utils.squared_distances_to_centers(
                 inputs, init_samples_i),
             axis=1), min_distances)
     i += 1
