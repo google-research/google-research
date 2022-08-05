@@ -1,0 +1,4 @@
+"""
+Create a list of random animals and species
+"""
+animals  = [ {"name": "Chomper", "species": "Hamster"}, {"name":
