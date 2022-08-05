@@ -456,9 +456,15 @@ def train(*,
       logdir=str(workdir),
   )
 
+  # Checkpointing and logging too much can use a lot of disk space.
+  # Therefore, we don't want to checkpoint more than 10 times an experiment,
+  # or keep more than 1k Phis per experiment.
+  checkpoint_period = max(num_epochs // 10, 100_000)
+  log_period = max(1_000, num_epochs // 1_000)
+
   hooks = [
       periodic_actions.PeriodicCallback(
-          every_steps=100_000,
+          every_steps=checkpoint_period,
           callback_fn=lambda step, t: chkpt_manager.save((step, Phi)))
   ]
 
@@ -502,7 +508,7 @@ def train(*,
       variable_kwargs = _train_step(**fixed_train_kwargs, **variable_kwargs)
       gradient = variable_kwargs.pop('gradient')
 
-      if step % 1_000 == 0:
+      if step % log_period == 0:
         Phi = variable_kwargs['Phi']
         Phis.append(jnp.copy(Phi))
 
