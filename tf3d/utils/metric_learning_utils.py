@@ -130,7 +130,7 @@ def embedding_centers_to_soft_masks_by_distance(embedding, centers):
   Returns:
     A tf.float32 tensor of [k, N] that contains k soft masks.
   """
-  dists_to_centers = instance_segmentation_utils.squared_distances_to_centers(
+  dists_to_centers = instance_segmentation_utils.inputs_distances_to_centers(
       centers, embedding)
   return tf.nn.sigmoid(-dists_to_centers) * 2.0
 
@@ -146,7 +146,7 @@ def embedding_centers_to_soft_masks_by_distance2(embedding, centers):
     A tf.float32 tensor of [k, N] that contains k soft masks.
   """
   max_dist = 100.0
-  dists_to_centers = instance_segmentation_utils.squared_distances_to_centers(
+  dists_to_centers = instance_segmentation_utils.inputs_distances_to_centers(
       embedding, centers)
   return tf.transpose(tf.minimum(
       tf.maximum((max_dist - dists_to_centers) / max_dist, 0.0), 1.0))
@@ -200,7 +200,7 @@ def embedding_centers_to_logits(
   if similarity_strategy == 'dotproduct':
     logits = tf.matmul(centers, embedding, transpose_b=True)
   elif similarity_strategy == 'distance':
-    logits = -instance_segmentation_utils.squared_distances_to_centers(
+    logits = -instance_segmentation_utils.inputs_distances_to_centers(
         centers, embedding)
   else:
     raise ValueError('Similarity strategy is unknown')
