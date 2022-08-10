@@ -2152,20 +2152,11 @@ def distributed_shampoo(
     Returns:
       A tuple containing the new parameters and the new optimizer state.
     """
-    # BEGIN GOOGLE INTERNAL
-    grads_custom = None
-    if custom_preconditioner and isinstance(grads, tuple):
-      grads, grads_custom = grads
-    # END GOOGLE INTERNAL
     params_flat, treedef = jax.tree_flatten(params)
     stats_flat = treedef.flatten_up_to(state.stats)
     grads_flat = treedef.flatten_up_to(grads)
     stats_grads = grads_flat
 
-    # BEGIN GOOGLE INTERNAL
-    if custom_preconditioner and grads_custom is not None:
-      stats_grads = treedef.flatten_up_to(grads_custom)
-    # END GOOGLE INTERNAL
 
     new_stats_flat = jax.tree_map(
         lambda g, s, p: _compute_stats(g, s, p, state.count), stats_grads,
@@ -2189,6 +2180,13 @@ def distributed_shampoo(
     # Hijacks the init_fn signature so we can return an OptState with
     # appropriate init_fns.
     opt_init_fn = sharded_init_fn
+    def _init_fns(unused_params):
+      return InitFnState(
+          init_fn=opt_init_fn,
+          pspec_fn=sharded_init_partition_spec_fn,
+          shape_and_dtype_fn=sharded_init_shape_and_dtype_fn)
+
+    opt_update_fn = sharded_update_fn
     return optax.GradientTransformation(_init_fns, opt_update_fn)
   else:
     return optax.GradientTransformation(init_fn, update_fn)
