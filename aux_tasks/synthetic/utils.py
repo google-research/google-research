@@ -66,15 +66,15 @@ def outer_objective_mc(Phi, Psi):
 
 
 def generate_psi_linear(Psi):
-  U, S, V = np.linalg.svd(Psi)
-  S_new = np.linspace(1, 1_000, S.shape[0])
-  return U @ np.diag(S_new) @ V
+  U, S, V = jnp.linalg.svd(Psi)
+  S_new = jnp.linspace(1, 1_000, S.shape[0])
+  return U @ jnp.diag(S_new) @ V
 
 
 def generate_psi_exp(Psi):
-  U, S, V = np.linalg.svd(Psi)
-  S_new = np.logspace(0, 3, S.shape[0])
-  return U @ np.diag(S_new) @ V
+  U, S, V = jnp.linalg.svd(Psi)
+  S_new = jnp.logspace(0, 3, S.shape[0])
+  return U @ jnp.diag(S_new) @ V
 
 
 def get_mnist_data(num_samples = 60000):
@@ -84,7 +84,7 @@ def get_mnist_data(num_samples = 60000):
   data = next(ds.as_numpy_iterator())
   X = np.reshape(data['image'], (num_samples, -1)) / 255.
   # Returns a matrix of size `784 x num_samples`
-  return X.T
+  return jnp.asarray(X.T)
 
 
 # pylint: enable=invalid-name
