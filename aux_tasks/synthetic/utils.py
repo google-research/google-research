@@ -84,7 +84,10 @@ def get_mnist_data(num_samples = 60000):
   data = next(ds.as_numpy_iterator())
   X = np.reshape(data['image'], (num_samples, -1)) / 255.
   # Returns a matrix of size `784 x num_samples`
-  return jnp.asarray(X.T)
+  data = X.T
+  # Subtract the mean
+  data -= np.mean(data, axis=1, keepdims=True)
+  return jnp.asarray(data)
 
 
 # pylint: enable=invalid-name
