@@ -157,6 +157,7 @@ def power_iteration(
     num_iters = 100,
     error_tolerance = 1e-6,
     precision = lax.Precision.HIGHEST,
+    padding_start = None,
 ):
   r"""Power iteration algorithm.
 
@@ -175,6 +176,8 @@ def power_iteration(
       lax.Precision.DEFAULT (better step time, but not precise) b)
       lax.Precision.HIGH (increased precision, slower) c) lax.Precision.HIGHEST
       (best possible precision, slowest)
+    padding_start: if set, assumes rows and columns after padding_start are
+      zero.
 
   Returns:
     eigen vector, eigen value
@@ -198,6 +201,9 @@ def power_iteration(
   # Figure out how to use step as seed for random.
   v_0 = np.random.RandomState(1729).uniform(-1.0, 1.0,
                                             matrix_size).astype(matrix.dtype)
+  v_0 = jnp.array(v_0)
+  if padding_start is not None:
+    v_0 *= (jnp.arange(len(v_0), dtype=jnp.int32) < padding_start)
 
   init_state = tuple([0, v_0, jnp.zeros([], dtype=matrix.dtype), v_0, True])
   _, v_out, s_out, _, _ = lax.while_loop(_iter_condition, _iter_body,
@@ -262,7 +268,9 @@ def matrix_inverse_pth_root(
     precision = lax.Precision.HIGHEST,
     relative_matrix_epsilon = True,
     lobpcg_topk_precondition = 0,
-    lobpcg_max_iter = 0):
+    lobpcg_max_iter = 0,
+    padding_start = None,
+):
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
   This function uses the Coupled newton iterations algorithm for
@@ -291,9 +299,14 @@ def matrix_inverse_pth_root(
       relative_matrix_epsilon essentially free.
     lobpcg_max_iter: Maximum iteration count for LOBPCG, defaults to
       `lobpcg_topk_precondition`.
+    padding_start: If the input matrix was padded, then zeros out columns
+      and rows at the padding start.
 
   Returns:
-    matrix^(-1/p) and the error
+    `(matrix + eps)^(-1/p)` and the error; note `eps` is not added to zeroed out
+    padding rows and columns. `eps` is just `ridge_epsilon` if
+    `relative_matrix_epsilon` is set to `False`, otherwise, it is the ridge
+    epsilon value scaled by the derived maximum eigenvalue of the input matrix.
   """
 
   # If the input is not square, materialize it from the concatenated form.
@@ -310,6 +323,15 @@ def matrix_inverse_pth_root(
   matrix = matrix.astype(_MAT_INV_PTH_ROOT_DTYPE)
   alpha = jnp.asarray(-1.0 / p, _MAT_INV_PTH_ROOT_DTYPE)
   identity = jnp.eye(matrix_size, dtype=_MAT_INV_PTH_ROOT_DTYPE)
+
+  if padding_start is not None:
+    # Zero out padding in identity as well for convergence checks.
+    ix = (jnp.arange(matrix_size, dtype=jnp.int32) < padding_start).astype(
+        matrix.dtype)
+    matrix *= ix[jnp.newaxis, :]
+    matrix *= ix[:, jnp.newaxis]
+    identity *= ix
+
   original_matrix = matrix
 
   if lobpcg_topk_precondition > 0:
@@ -337,7 +359,11 @@ def matrix_inverse_pth_root(
   # top eigenvalue.
   elif relative_matrix_epsilon:
     _, max_ev = power_iteration(
-        matrix=matrix, num_iters=100, error_tolerance=1e-6, precision=precision)
+        matrix=matrix,
+        num_iters=100,
+        error_tolerance=1e-6,
+        precision=precision,
+        padding_start=padding_start)
     eigvals, eigvecs = None, None  # Unused but required by pytype.
 
   # Use absolute matrix epsilon scaling otherwise.
@@ -364,7 +390,7 @@ def matrix_inverse_pth_root(
             new_error < error * 1.2)
 
   if matrix_size == 1:
-    resultant_mat_h = (matrix + ridge_epsilon)**alpha
+    resultant_mat_h = (matrix + ridge_epsilon * identity)**alpha
     error = jnp.array(0, jnp.float32)
   else:
     damped_matrix = matrix + ridge_epsilon * identity
@@ -373,6 +399,7 @@ def matrix_inverse_pth_root(
     new_mat_m_0 = damped_matrix * z
     new_error = jnp.max(jnp.abs(new_mat_m_0 - identity))
     new_mat_h_0 = identity * jnp.power(z, 1.0 / p)
+    print(jnp.power(z, 1.0 / p))
     init_state = tuple(
         [0, new_mat_m_0, new_mat_h_0, new_mat_h_0, new_error, True])
     _, mat_m, mat_h, old_mat_h, error, convergence = lax.while_loop(
@@ -402,6 +429,12 @@ def matrix_inverse_pth_root(
         precision=jax.lax.Precision.HIGHEST)
     error = jnp.max(jnp.abs(mat_m - identity)).astype(jnp.float32)
 
+  if padding_start is not None:
+    # Occasionally, pure-padding matrices are handed to the inversion routine
+    # due to some TPU hosts not having the same number of preconditioning
+    # matrices.
+    resultant_mat_h = jnp.where(padding_start == 0, 0.0, resultant_mat_h)
+    error = jnp.where(padding_start == 0, 0.0, error)
   return resultant_mat_h, error
 
 
@@ -1497,24 +1530,29 @@ def distributed_shampoo(
       lobpcg_max_iter=lobpcg_max_iter)
 
 
-  def _matrix_inverse_pth_root_vmap(xs, ps):
-    return jax.vmap(mi_pth_root)(xs, ps)
+  def _matrix_inverse_pth_root_vmap(xs, ps, padding_starts):
+    return jax.vmap(mi_pth_root)(xs, ps, padding_start=padding_starts)
 
-  def _quantized_matrix_inverse_pth_root_vmap(qxs, qds, qbs, ps):
+  def _quantized_matrix_inverse_pth_root_vmap(qxs, qds, qbs, ps,
+                                              padding_starts):
 
     def _quantized_to_float(qx, qd, qb):
       qv = QuantizedValue(qx, qd, qb, qx.dtype, True, list(qx.shape))
       return qv.to_float()
 
-    def matrix_inverse_pth_root_wrapper(qx, qd, qb, p):
+    def matrix_inverse_pth_root_wrapper(qx, qd, qb, p, padding_start):
       v = _quantized_to_float(qx, qd, qb)
-      preconditioner, error = mi_pth_root(v, p)
+      preconditioner, error = mi_pth_root(v, p, padding_start=padding_start)
       qp = QuantizedValue.from_float_value(preconditioner, qx.dtype, True)
       return qp.quantized, qp.diagonal, qp.bucket_size, error
 
-    return jax.vmap(matrix_inverse_pth_root_wrapper)(qxs, qds, qbs, ps)
+    return jax.vmap(matrix_inverse_pth_root_wrapper)(qxs, qds, qbs, ps,
+                                                     padding_starts)
 
-  def _matrix_inverse_pth_root_pjit(xs, ps, statistics_partition_spec=None):
+  def _matrix_inverse_pth_root_pjit(xs,
+                                    ps,
+                                    padding_starts,
+                                    statistics_partition_spec=None):
     # Partition the concatenated statistics matrix across all cores.
     pspec_for_partition = preconditioner_partition_spec
     partitioned_xs = pjit.with_sharding_constraint(xs, pspec_for_partition)
@@ -1524,9 +1562,12 @@ def distributed_shampoo(
       partitioned_ps_spec = None
     partitioned_ps = pjit.with_sharding_constraint(
         ps, partitioned_ps_spec)
+    partitioned_padding_starts = pjit.with_sharding_constraint(
+        padding_starts, partitioned_ps_spec)  # paddings are scalars like ps.
     # Run matrix inverse pth root on each shard.
     partitioned_preconditioners, partitioned_errors = (
-        _matrix_inverse_pth_root_vmap(partitioned_xs, partitioned_ps))
+        _matrix_inverse_pth_root_vmap(partitioned_xs, partitioned_ps,
+                                      partitioned_padding_starts))
     # Reshard output to have the same PSpec as input. This is required to avoid
     # vmap seeing the full set of statistics.
     partitioned_preconditioners = pjit.with_sharding_constraint(
@@ -1572,25 +1613,28 @@ def distributed_shampoo(
         for _ in range(to_pad)
     ])
     exponents.extend([1 for _ in range(to_pad)])
+    paddings = [len(stat) for stat in statistics] + [0] * to_pad
 
     if not packed_statistics:
       return states
 
     all_statistics = batch(packed_statistics, num_devices)
     all_exponents = batch(exponents, num_devices)
+    all_paddings = batch(paddings, num_devices)
 
     def _internal_inverse_pth_root_all():
       if batch_axis_name:
         current_replica = lax.axis_index(batch_axis_name)
         preconditioners, errors = _matrix_inverse_pth_root_vmap(
-            all_statistics[current_replica], all_exponents[current_replica])
+            all_statistics[current_replica], all_exponents[current_replica],
+            all_paddings[current_replica])
         preconditioners = jax.lax.all_gather(preconditioners, batch_axis_name)
         errors = jax.lax.all_gather(errors, batch_axis_name)
         preconditioners_flat = unbatch(preconditioners)
         errors_flat = unbatch(errors)
       else:
         preconditioners, errors = _matrix_inverse_pth_root_vmap(
-            all_statistics[0], all_exponents[0])
+            all_statistics[0], all_exponents[0], all_paddings[0])
         preconditioners_flat = unbatch(jnp.stack([preconditioners]))
         errors_flat = unbatch(jnp.stack([errors]))
 
@@ -1720,6 +1764,7 @@ def distributed_shampoo(
     packed_quantized_bucket_sizes.extend(
         [quantized_eye.bucket_size for _ in range(to_pad)])
     exponents.extend([1 for _ in range(to_pad)])
+    paddings = [len(stat.quantized) for stat in statistics] + [0] * to_pad
 
     if not packed_quantized_statistics:
       return states
@@ -1729,6 +1774,7 @@ def distributed_shampoo(
     all_quantized_bucket_sizes = batch(packed_quantized_bucket_sizes,
                                        num_devices)
     all_exponents = batch(exponents, num_devices)
+    all_paddings = batch(paddings, num_devices)
 
     def _internal_inverse_pth_root_all():
       current_replica = lax.axis_index(batch_axis_name)
@@ -1738,7 +1784,7 @@ def distributed_shampoo(
                all_quantized_statistics[current_replica],
                all_quantized_diagonals[current_replica],
                all_quantized_bucket_sizes[current_replica],
-               all_exponents[current_replica]))
+               all_exponents[current_replica], all_paddings[current_replica]))
       quantized_preconditioners = jax.lax.all_gather(quantized_preconditioners,
                                                      batch_axis_name)
       quantized_diagonals = jax.lax.all_gather(quantized_diagonals,
@@ -1884,12 +1930,14 @@ def distributed_shampoo(
         for _ in range(to_pad)
     ])
     exponents.extend([1 for _ in range(to_pad)])
+    paddings = [len(stat) for stat in statistics] + [0] * to_pad
     all_statistics = jnp.stack(padded_statistics)
     all_exponents = jnp.stack(exponents)
+    all_paddings = jnp.stack(paddings)
 
     def _internal_inverse_pth_root_all():
       preconditioners, errors = _matrix_inverse_pth_root_pjit(
-          all_statistics, all_exponents)
+          all_statistics, all_exponents, all_paddings)
       b1 = preconditioners.shape[0]
 
       def split(batched_values):
