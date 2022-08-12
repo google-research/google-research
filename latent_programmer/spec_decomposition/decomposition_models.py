@@ -37,7 +37,10 @@ class DecomposeAttentionTransformerConfig:
   dataset_type: str = 'robust_fill'
   # Whether to do relative self-attention on the flat encoding of the I/O
   # examples, where the positions are taken modulo the length of 1 example.
-  flat_encoded_self_attention: bool = True
+  flat_encoded_self_attention: bool = False
+  # Whether to use an embedding for the I/O example index during relative cross
+  # attention between the prediction and the flat encoding of the examples.
+  io_index_embedding: bool = False
 
 
 def shift_left(x):
@@ -158,8 +161,8 @@ class DecomposeAttentionTransformer(nn.Module):
     flat_encoded_padding_mask = base_models.flatten_num_io_dim(
         encoded_padding_mask)
 
+    per_example_encoding_len = encoded.shape[2]  # Encoding length per-example.
     if self.config.flat_encoded_self_attention:
-      per_example_encoding_len = encoded.shape[2]
       flat_encoded = self.do_flat_encoded_self_attention(
           flat_encoded, mod_position=per_example_encoding_len)
 
@@ -251,7 +254,10 @@ class DecomposeAttentionTransformer(nn.Module):
 
     return self.decoder(
         programs, flat_encoded, decoder_mask, encoder_decoder_mask,
-        decoder_relative_position)
+        decoder_relative_position,
+        mod_position=(per_example_encoding_len if self.config.io_index_embedding
+                      else -1),
+        io_index_embedding=self.config.io_index_embedding)
 
   def __call__(self,
                inputs,
