@@ -110,12 +110,8 @@ flags.DEFINE_integer('max_distance', 128,
                      'Max distance for relative attention positions.')
 flags.DEFINE_integer('max_program_cross_embed_distance', 128,
                      'Max distance for relative attention positions.')
-flags.DEFINE_bool('flat_encoded_self_attention', False,
+flags.DEFINE_bool('flat_encoded_self_attention', True,
                   'Whether to apply self-attention to flat encoded examples.')
-flags.DEFINE_bool('io_index_embedding', False,
-                  'Whether to use an embedding for the I/O example index '
-                  'during relative cross attention between the prediction and '
-                  'the flat encoding of the examples.')
 
 flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'scan'],
@@ -716,8 +712,7 @@ def main(_):
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       dataset_type=FLAGS.dataset_type,
-      flat_encoded_self_attention=FLAGS.flat_encoded_self_attention,
-      io_index_embedding=FLAGS.io_index_embedding)
+      flat_encoded_self_attention=FLAGS.flat_encoded_self_attention)
   eval_config = train_config.replace(
       base_config=base_config.replace(deterministic=True))
   predict_config = train_config.replace(

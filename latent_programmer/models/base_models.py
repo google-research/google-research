@@ -295,9 +295,6 @@ class EncoderDecoderBlock(nn.Module):
   num_relative_position_buckets_cross_attention: int = 32
   max_distance_cross_attention: int = 128
 
-  mod_position: int = -1
-  io_index_embedding: bool = False  # Only used with `mod_position > 0`.
-
   @nn.compact
   def __call__(self,
                targets,
@@ -372,9 +369,7 @@ class EncoderDecoderBlock(nn.Module):
           bidirectional=self.bidirectional_cross_attention,
           num_relative_position_buckets=(
               self.num_relative_position_buckets_cross_attention),
-          max_distance=self.max_distance_cross_attention,
-          mod_position=self.mod_position,
-          io_index_embedding=self.io_index_embedding)(
+          max_distance=self.max_distance_cross_attention)(
               y, encoded, encoder_decoder_mask,
               encoder_decoder_relative_position)
     else:
@@ -415,9 +410,7 @@ class TransformerDecoder(nn.Module):
                decoder_mask = None,
                encoder_decoder_mask = None,
                decoder_relative_position = None,
-               encoder_decoder_relative_position = None,
-               mod_position = -1,
-               io_index_embedding = False):
+               encoder_decoder_relative_position = None):
     """Applies Transformer to decode the targets.
 
     Args:
@@ -429,10 +422,6 @@ class TransformerDecoder(nn.Module):
           `[batch_sizes..., length2, length2]'
       encoder_decoder_relative_position: encoder-decoder relative tensor
           `[batch_sizes..., length2, length]'
-      mod_position: If positive, how much to mod relative positions by during
-          cross-attention.
-      io_index_embedding: Whether to add an embedding for the index of an I/O
-          example during cross-attention.
 
     Returns:
       output of a transformer decoder.
@@ -473,8 +462,6 @@ class TransformerDecoder(nn.Module):
           num_relative_position_buckets_cross_attention=(
               cfg.num_program_cross_embed_relative_position_buckets),
           max_distance_cross_attention=cfg.max_program_cross_embed_distance,
-          mod_position=mod_position,
-          io_index_embedding=io_index_embedding,
           name=f'encoderdecoderblock_{lyr}')(
               y, encoded, decoder_mask, encoder_decoder_mask,
               decoder_relative_position, encoder_decoder_relative_position)

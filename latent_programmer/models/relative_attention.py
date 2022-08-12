@@ -124,7 +124,6 @@ class RelativeMultiHeadDotProductAttention(module.Module):
   num_relative_position_buckets: int = 32
   max_distance: int = 128
   mod_position: int = -1
-  io_index_embedding: bool = False  # Only used with `mod_position > 0`.
 
   @module.compact
   def __call__(self,
@@ -178,15 +177,6 @@ class RelativeMultiHeadDotProductAttention(module.Module):
         embedding_init=initializers.normal(stddev=1.0),
         dtype=self.dtype)
 
-    if self.io_index_embedding:
-      assert self.mod_position > 0
-      num_ios = inputs_kv.shape[-2] // self.mod_position
-      io_index_embed = linear.Embed(
-          num_embeddings=num_ios,
-          features=self.num_heads,
-          embedding_init=initializers.normal(stddev=0.02),
-          dtype=self.dtype)
-
     # project inputs_q to multi-headed q/k/v
     # dimensions are then [batch..., length, n_heads, n_features_per_head]
     query, key, value = (dense(dtype=self.dtype, name='query')(inputs_q),
@@ -203,7 +193,6 @@ class RelativeMultiHeadDotProductAttention(module.Module):
         memory_position %= self.mod_position
         context_position %= self.mod_position
 
-      # relative_position shape: [query_length, key_length]
       relative_position = memory_position - context_position
       relative_position_bucket = make_relative_position_bucket(
           relative_position,
@@ -212,14 +201,6 @@ class RelativeMultiHeadDotProductAttention(module.Module):
           max_distance=self.max_distance)
 
       bias = relative_attention_embed(relative_position_bucket)
-
-      if self.io_index_embedding:
-        io_index = (jnp.arange(key_length, dtype=jnp.int32)
-                    // self.mod_position)  # shape: [key_length]
-        io_index = io_index[None, :]  # shape: [1, key_length]
-        io_index_bias = io_index_embed(io_index)
-        bias += io_index_bias
-
       bias = bias.transpose((2, 0, 1))
       # Expand batch dimensions.
       bias = jnp.broadcast_to(
