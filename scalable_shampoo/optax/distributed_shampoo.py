@@ -1390,9 +1390,12 @@ def distributed_shampoo(
 
     max_size = global_stats.statistics.shape[1]
     new_padded_statistics = []
+    padding_starts = []
     for stat in new_stats_flat:
       new_padded_statistics.extend(
           [pad_square_matrix(stat, max_size) for stat in stat.statistics])
+      padding_starts.extend(
+          [len(stat) for stat in stat.statistics])
 
     # Create global stats
     # TODO(rohananil): Preconditioner is not updated every step, so cost of
@@ -1412,13 +1415,16 @@ def distributed_shampoo(
         jnp.eye(max_size, dtype=stat_dtype)
         for _ in range(to_pad)
     ])
+    padding_starts += [0] * to_pad
     new_stacked_padded_statistics = jnp.stack(new_padded_statistics)
     new_stacked_padded_statistics = pjit.with_sharding_constraint(
         new_stacked_padded_statistics, statistics_partition_spec)
+    stacked_padding_starts = jnp.array(padding_starts, jnp.int32)
 
     def _internal_inverse_pth_root_all():
       preconditioners, errors = _matrix_inverse_pth_root_pjit(
           new_stacked_padded_statistics, global_stats.exponents,
+          stacked_padding_starts,
           statistics_partition_spec)
       return preconditioners, errors
 
