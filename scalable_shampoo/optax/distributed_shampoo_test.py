@@ -266,8 +266,9 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
       self.assertLess(
           np.abs(np.linalg.cond(ms) - condition_number),
           condition_number * 0.01)
-      error = distributed_shampoo.matrix_inverse_pth_root(
+      metrics = distributed_shampoo.matrix_inverse_pth_root(
           ms.astype(np.float32), 4, ridge_epsilon=1e-12)[1]
+      error = metrics.inverse_pth_root_errors
       if e < 7:
         self.assertLess(error, 0.1)
       else:
@@ -288,11 +289,13 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
     # handling results in an error by increasing the condition number.
     ms = jnp.array(ms) * 1e-3
 
-    rt, err = distributed_shampoo.matrix_inverse_pth_root(
+    rt, metrics = distributed_shampoo.matrix_inverse_pth_root(
         ms, 4, ridge_epsilon=1e-3)
+    err = metrics.inverse_pth_root_errors
     pad_ms = distributed_shampoo.pad_square_matrix(ms, sz * 2)
-    pad_rt, pad_err = distributed_shampoo.matrix_inverse_pth_root(
+    pad_rt, metrics = distributed_shampoo.matrix_inverse_pth_root(
         pad_ms, 4, ridge_epsilon=1e-3, padding_start=sz)
+    pad_err = metrics.inverse_pth_root_errors
     pad_rt_principal = pad_rt[:sz, :sz]
     np.testing.assert_allclose(
         rt,
@@ -309,8 +312,9 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
     """Test full padding matrix."""
     empty = jnp.zeros([0, 0])
     padded = distributed_shampoo.pad_square_matrix(empty, 10)
-    rt, err = distributed_shampoo.matrix_inverse_pth_root(
+    rt, metrics = distributed_shampoo.matrix_inverse_pth_root(
         padded, 4, ridge_epsilon=1e-3, padding_start=0)
+    err = metrics.inverse_pth_root_errors
     self.assertEqual(np.abs(rt).sum(), 0.0)
     self.assertEqual(np.abs(err).sum(), 0.0)
 
