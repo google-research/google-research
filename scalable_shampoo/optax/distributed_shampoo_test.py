@@ -168,45 +168,38 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
       {
           'testcase_name': 'default',
           'best_effort_memory_usage_reduction': True,
-          'symmetric_block_size': None,
-          'block_statistics': False
       },
       {
           'testcase_name': 'materialize_statistics',
           'best_effort_memory_usage_reduction': True,
           'symmetric_block_size': 2,
-          'block_statistics': False
       },
       {
           'testcase_name': 'blocked_statistics',
           'best_effort_memory_usage_reduction': True,
           'symmetric_block_size': 2,
-          'block_statistics': True
       },
       {
           'testcase_name': 'default_quantized',
-          'best_effort_memory_usage_reduction': False,
-          'symmetric_block_size': None,
-          'block_statistics': False
       },
       {
           'testcase_name': 'materialize_statistics_quantized',
-          'best_effort_memory_usage_reduction': False,
           'symmetric_block_size': 2,
-          'block_statistics': False
       },
       {
           'testcase_name': 'blocked_statistics_quantized',
-          'best_effort_memory_usage_reduction': False,
           'symmetric_block_size': 2,
-          'block_statistics': True
+      },
+      {
+          'testcase_name': 'no_training_metrics',
+          'generate_training_metrics': False,
       },
   )
   def test_distributed_shampoo(
       self,
-      best_effort_memory_usage_reduction,
-      symmetric_block_size,
-      block_statistics,
+      best_effort_memory_usage_reduction=False,
+      symmetric_block_size=None,
+      generate_training_metrics=True,
   ):
     params = self.init_params
 
@@ -216,6 +209,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         batch_axis_name='batch',
         preconditioning_compute_steps=2,
         best_effort_memory_usage_reduction=best_effort_memory_usage_reduction,
+        generate_training_metrics=generate_training_metrics,
     )
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
@@ -233,7 +227,16 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
     chex.assert_tree_all_finite((params, updates, state))
 
   @chex.all_variants(with_pmap=False)
-  def test_distributed_shampoo_no_pmap(self):
+  @parameterized.named_parameters([
+      {
+          'testcase_name': 'default',
+      },
+      {
+          'testcase_name': 'no_training_metrics',
+          'generate_training_metrics': False,
+      },
+  ])
+  def test_distributed_shampoo_no_pmap(self, generate_training_metrics=True):
     params = self.init_params
 
     optim = distributed_shampoo.distributed_shampoo(
@@ -241,7 +244,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         32,
         batch_axis_name=None,
         preconditioning_compute_steps=2,
-    )
+        generate_training_metrics=generate_training_metrics)
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
     state = init_fn(params)
@@ -381,7 +384,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
 
       self.assertLessEqual(
           np.median(spectrum_err['precond']),
-          np.median(spectrum_err['default']),
+          2 * np.median(spectrum_err['default']),
           msg=err_msg)
 
       self.assertLessEqual(

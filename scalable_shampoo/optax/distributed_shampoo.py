@@ -32,8 +32,8 @@
 import enum
 import functools
 import itertools
-from typing import (Any, Callable, List, NamedTuple, Optional, Tuple, TypeVar,
-                    Union)
+from typing import (Any, Callable, cast, List, NamedTuple, Optional, Tuple,
+                    TypeVar, Union)
 
 from absl import logging
 import chex
@@ -182,7 +182,7 @@ class ParameterStats(NamedTuple):
   preconditioners: List[Any]  # Preconditioners (QuantizedValue, chex.Array)
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
-  training_metrics: TrainingMetrics  # Metrics (optional for training).
+  training_metrics: Union[TrainingMetrics, optax.MaskedNode]  # Optional.
 
 
 # For training extremely large model; We keep a global state with a concatenated
@@ -204,23 +204,33 @@ class LocalShardedParameterStats:
   diagonal_statistics: QuantizedValue  # Accumulator for diagonal preconditioner
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
-  training_metrics: TrainingMetrics  # Metrics (optional for training).
+  training_metrics: Union[TrainingMetrics, optax.MaskedNode]
   index_start: np.int32 = struct.field(
       pytree_node=False)  # Index into global statistics array
   sizes: Any = struct.field(pytree_node=False)  # Sizes of the statistics.
 
 
-def init_training_metrics(num_statistics):
+def init_training_metrics(
+    num_statistics, generate_training_metrics
+):
+  if not generate_training_metrics:
+    return optax.MaskedNode()
   return jax.tree_map(
       functools.partial(jnp.repeat, repeats=num_statistics), TrainingMetrics())
 
 
-def init_training_metrics_shapes(num_statistics):
-  return jax.tree_map(lambda arr: [list(arr.shape), arr.dtype],
-                      init_training_metrics(num_statistics))
+def init_training_metrics_shapes(
+    num_statistics, generate_training_metrics
+):
+  seed = init_training_metrics(num_statistics, generate_training_metrics)
+  return jax.tree_map(lambda arr: [list(arr.shape), arr.dtype], seed)
 
 
-def init_training_metrics_pspec():
+def init_training_metrics_pspec(
+    generate_training_metrics
+):
+  if not generate_training_metrics:
+    return optax.MaskedNode()
   return jax.tree_map(lambda _: pjit.PartitionSpec(), TrainingMetrics())
 
 
@@ -1108,6 +1118,7 @@ def distributed_shampoo(
     skip_preconditioning_rank_lt=1,
     decoupled_learning_rate=True,
     decoupled_weight_decay=False,
+    generate_training_metrics=True,
 ):
   """Distributed Shampoo optimizer.
 
@@ -1194,6 +1205,8 @@ def distributed_shampoo(
       couple it with preconditioned gradient computation. (Default True)
     decoupled_weight_decay: If True, use decoupled weight decay, otherwise
       couple with weight decay. (Default False)
+    generate_training_metrics: If True, gather training metrics, otherwise
+      avoid generating them (to reduce memory usage).
   Returns:
     a GradientTransformation.
   """
@@ -1315,9 +1328,8 @@ def distributed_shampoo(
 
       local_stats_flat.append(
           LocalShardedParameterStats(
-              diagonal_statistics,
-              diagonal_momentum,
-              momentum, init_training_metrics(len(sizes)),
+              diagonal_statistics, diagonal_momentum, momentum,
+              init_training_metrics(len(sizes), generate_training_metrics),
               index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
@@ -1412,7 +1424,8 @@ def distributed_shampoo(
               QuantizedValue(m1_pspec, [], m1_scale_pspec, qdtype, False,
                              list(param.shape)),
               QuantizedValue(m2_pspec, [], m2_scale_pspec, qdtype, False,
-                             list(param.shape)), init_training_metrics_pspec(),
+                             list(param.shape)),
+              init_training_metrics_pspec(generate_training_metrics),
               index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
@@ -1467,7 +1480,8 @@ def distributed_shampoo(
                              qdtype, False, list(param.shape)),
               QuantizedValue(m2_shape_and_dtype, [], m2_scale_shape_and_dtype,
                              qdtype, False, list(param.shape)),
-              init_training_metrics_shapes(len(sizes)),
+              init_training_metrics_shapes(
+                  len(sizes), generate_training_metrics),
               index_start,
               sizes,
           ))
@@ -1575,7 +1589,9 @@ def distributed_shampoo(
       # a large error value.
       preconditioners_init = new_stacked_padded_statistics
       n = new_stacked_padded_statistics.shape[0]
-      metrics_init = init_training_metrics(n)
+      metrics_init = cast(
+          TrainingMetrics,
+          init_training_metrics(n, generate_training_metrics=True))
       new_errors = jnp.ones_like(metrics_init.inverse_pth_root_errors) * (
           inverse_failure_threshold)
       metrics_init = metrics_init.replace(inverse_pth_root_errors=new_errors)
@@ -1583,8 +1599,9 @@ def distributed_shampoo(
       new_preconditioners, metrics = efficient_cond(
           perform_step, _internal_inverse_pth_root_all, init_state)
 
-    new_local_stats_flat = _add_metrics_into_local_stats(
-        new_local_stats_flat, metrics, ~perform_step)
+    if generate_training_metrics:
+      new_local_stats_flat = _add_metrics_into_local_stats(
+          new_local_stats_flat, metrics, ~perform_step)
     new_local_stats = jax.tree_unflatten(treedef, new_local_stats_flat)
     errors = metrics.inverse_pth_root_errors
     errors = errors.reshape((-1, 1, 1))
@@ -1628,7 +1645,8 @@ def distributed_shampoo(
           _quantize_diagonal_statistics(diagonal_statistics),
           _maybe_quantize_statistics(statistics),
           _maybe_quantize_preconditioners(preconditioners), diagonal_momentum,
-          momentum, init_training_metrics(len(statistics)))
+          momentum,
+          init_training_metrics(len(statistics), generate_training_metrics))
 
     return ShampooState(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
@@ -1836,26 +1854,30 @@ def distributed_shampoo(
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
-        metrics_for_states.append(init_training_metrics(0))
+        metrics_for_states.append(
+            init_training_metrics(0, generate_training_metrics))
       else:
         preconditioners_for_state = new_preconditioners_flat[idx:idx +
                                                              num_statistics]
         assert len(state.statistics) == len(preconditioners_for_state)
         preconditioners_for_states.append(preconditioners_for_state)
 
-        # pylint:disable=cell-var-from-loop Used immediately.
-        metrics_for_state = jax.tree_map(
-            lambda x: jnp.stack(x[idx:idx + num_statistics]),
-            metrics_flat,
-            is_leaf=lambda x: isinstance(x, list))
-        assert jax.tree_util.tree_all(
-            jax.tree_map(lambda x: len(state.statistics) == len(x),
-                         metrics_for_state))
-        # If we skipped preconditioner computation, record old metrics.
-        metrics_for_state = efficient_cond(perform_step,
-                                           lambda: [metrics_for_state],
-                                           [state.training_metrics])[0]
-        # pylint:enable=cell-var-from-loop
+        if generate_training_metrics:
+          # pylint:disable=cell-var-from-loop Used immediately.
+          metrics_for_state = jax.tree_map(
+              lambda x: jnp.stack(x[idx:idx + num_statistics]),
+              metrics_flat,
+              is_leaf=lambda x: isinstance(x, list))
+          assert jax.tree_util.tree_all(
+              jax.tree_map(lambda x: len(state.statistics) == len(x),
+                           metrics_for_state))
+          # If we skipped preconditioner computation, record old metrics.
+          metrics_for_state = efficient_cond(perform_step,
+                                             lambda: [metrics_for_state],
+                                             [state.training_metrics])[0]
+          # pylint:enable=cell-var-from-loop
+        else:
+          metrics_for_state = optax.MaskedNode()
         metrics_for_states.append(metrics_for_state)
 
         idx += num_statistics
@@ -2027,7 +2049,8 @@ def distributed_shampoo(
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
-        metrics_for_states.append(init_training_metrics(0))
+        metrics_for_states.append(
+            init_training_metrics(0, generate_training_metrics))
       else:
         quantized_preconditioners_for_state = new_quantized_preconditioners_flat[
             idx:idx + num_statistics]
@@ -2036,24 +2059,28 @@ def distributed_shampoo(
         quantized_bucket_sizes_for_state = new_quantized_bucket_sizes_flat[
             idx:idx + num_statistics]
 
-        # pylint:disable=cell-var-from-loop Used immediately.
-        metrics_for_state = jax.tree_map(
-            lambda x: jnp.stack(x[idx:idx + num_statistics]),
-            metrics_flat,
-            is_leaf=lambda x: isinstance(x, list))
+        if generate_training_metrics:
+          # pylint:disable=cell-var-from-loop Used immediately.
+          metrics_for_state = jax.tree_map(
+              lambda x: jnp.stack(x[idx:idx + num_statistics]),
+              metrics_flat,
+              is_leaf=lambda x: isinstance(x, list))
 
-        assert len(state.statistics) == len(quantized_preconditioners_for_state)
-        assert len(state.statistics) == len(quantized_diagonals_for_state)
-        assert len(state.statistics) == len(quantized_bucket_sizes_for_state)
-        assert jax.tree_util.tree_all(
-            jax.tree_map(lambda x: len(state.statistics) == len(x),
-                         metrics_for_state))
+          assert len(
+              state.statistics) == len(quantized_preconditioners_for_state)
+          assert len(state.statistics) == len(quantized_diagonals_for_state)
+          assert len(state.statistics) == len(quantized_bucket_sizes_for_state)
+          assert jax.tree_util.tree_all(
+              jax.tree_map(lambda x: len(state.statistics) == len(x),
+                           metrics_for_state))
 
-        # If we skipped preconditioner computation, record old metrics.
-        metrics_for_state = efficient_cond(perform_step,
-                                           lambda: [metrics_for_state],
-                                           [state.training_metrics])[0]
-        # pylint:enable=cell-var-from-loop
+          # If we skipped preconditioner computation, record old metrics.
+          metrics_for_state = efficient_cond(perform_step,
+                                             lambda: [metrics_for_state],
+                                             [state.training_metrics])[0]
+          # pylint:enable=cell-var-from-loop
+        else:
+          metrics_for_state = optax.MaskedNode()
 
         quantized_preconditioners = []
         for qv, qd, qb in zip(quantized_preconditioners_for_state,
@@ -2168,22 +2195,26 @@ def distributed_shampoo(
     for num_statistics, state in zip(num_statistics_per_state, states):
       if num_statistics == 0:
         preconditioners_for_states.append([])
-        metrics_for_states.append(init_training_metrics(0))
+        metrics_for_states.append(
+            init_training_metrics(0, generate_training_metrics))
       else:
         preconditioners_for_state = new_preconditioners_flat[idx:idx +
                                                              num_statistics]
         assert len(state.statistics) == len(preconditioners_for_state)
         preconditioners_for_states.append(preconditioners_for_state)
 
-        # pylint:disable=cell-var-from-loop Used immediately.
-        metrics_for_state = jax.tree_map(
-            lambda x: jnp.stack(x[idx:idx + num_statistics]),
-            metrics_flat,
-            is_leaf=functools.partial(isinstance, list))
-        assert jax.tree_util.tree_all(
-            jax.tree_map(lambda x: len(state.statistics) == len(x),
-                         metrics_for_state))
-        # pylint:enable=cell-var-from-loop
+        if generate_training_metrics:
+          # pylint:disable=cell-var-from-loop Used immediately.
+          metrics_for_state = jax.tree_map(
+              lambda x: jnp.stack(x[idx:idx + num_statistics]),
+              metrics_flat,
+              is_leaf=functools.partial(isinstance, list))
+          assert jax.tree_util.tree_all(
+              jax.tree_map(lambda x: len(state.statistics) == len(x),
+                           metrics_for_state))
+          # pylint:enable=cell-var-from-loop
+        else:
+          metrics_for_state = optax.MaskedNode()
         metrics_for_states.append(metrics_for_state)
         idx += num_statistics
 
