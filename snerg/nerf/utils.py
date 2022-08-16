@@ -239,7 +239,7 @@ def update_flags(args):
   """Update the flags in `args` with the contents of the config YAML file."""
   pth = path.join(BASE_DIR, args.config + ".yaml")
   with open_file(pth, "r") as fin:
-    configs = yaml.load(fin, Loader=yaml.FullLoader)
+    configs = yaml.load(fin, Loader=yaml.SafeLoader)
   # Only allow args to be updated if they already exist.
   invalid_args = list(set(configs.keys()) - set(dir(args)))
   if invalid_args:
