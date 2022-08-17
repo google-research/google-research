@@ -44,7 +44,7 @@ Initializer = Callable[[Any, Sequence[int], Any],
 
 
 def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
-                              spins_in, spins_out):
+                              spins_in, spins_out, spectral_pooling):
   r"""Spin-weighted spherical convolution; spatial input and spectral filters.
 
   This implements a multi-channel version of Eq. (13) in [1], where sphere_set
@@ -64,14 +64,20 @@ def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
       n_channels_in, n_channels_out) array of filter SWSH coefficients.
     spins_in: (n_spins_in,) Sequence of int containing the input spins.
     spins_out: (n_spins_out,) Sequence of int containing the output spins.
+    spectral_pooling: When True, halve input dimensions via spectral pooling.
 
   Returns:
     A (resolution, resolution, n_spins_out, n_channels_out) array of
     spin-weighted spherical functions with equiangular sampling.
   """
+  resolution = sphere_set.shape[0]
+  ell_max = (sphere_utils.ell_max_from_resolution(resolution // 2)
+             if spectral_pooling else None)
+
   # Convert input swsfs to the spectral domain.
   coefficients_in = transformer.swsft_forward_spins_channels(sphere_set,
-                                                             spins_in)
+                                                             spins_in,
+                                                             ell_max=ell_max)
   # Compute the convolution in the spectral domain.
   coefficients_out = jnp.einsum("lmic,liocd->lmod",
                                 coefficients_in,
@@ -98,6 +104,7 @@ class SpinSphericalConvolution(nn.Module):
     features: int, number of output features (channels).
     spins_in: (n_spins_in,) Sequence of int containing the input spins.
     spins_out: (n_spins_out,) Sequence of int containing the output spins.
+    spectral_pooling: When True, halve input dimensions via spectral pooling.
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of parameters per filter. Fewer parameters results
       in more localized filters.
@@ -106,6 +113,7 @@ class SpinSphericalConvolution(nn.Module):
   features: int
   spins_in: Sequence[int]
   spins_out: Sequence[int]
+  spectral_pooling: bool
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
   num_filter_params: Optional[int] = None
   initializer: Initializer = default_initializer
@@ -154,6 +162,9 @@ class SpinSphericalConvolution(nn.Module):
     if sphere_set.shape[3] != len(list(self.spins_in)):
       raise ValueError("Input axis 3 (spins_in) doesn't match layer's.")
 
+    if self.spectral_pooling:
+      resolution //= 2
+
     # Make sure constants contain all spins for input resolution.
     for spin in set(self.spins_in).union(self.spins_out):
       if not self.transformer.validate(resolution, spin):
@@ -168,11 +179,12 @@ class SpinSphericalConvolution(nn.Module):
 
     # Map over the batch dimension.
     vmap_convolution = jax.vmap(_swsconv_spatial_spectral,
-                                in_axes=(None, 0, None, None, None))
+                                in_axes=(None, 0, None, None, None, None))
     return vmap_convolution(self.transformer,
                             sphere_set, kernel,
                             self.spins_in,
-                            self.spins_out)
+                            self.spins_out,
+                            self.spectral_pooling)
 
 
 class MagnitudeNonlinearity(nn.Module):

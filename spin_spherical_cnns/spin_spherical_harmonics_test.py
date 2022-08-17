@@ -139,6 +139,26 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
                                            spin)
         self.assertAllClose(coefficients[Ellipsis, spin, channel], sliced)
 
+  def test_swsft_forward_spins_channels_ell_max(self):
+    """When given `ell_max`, coefficients must match the proper slice."""
+    transformer = _get_transformer()
+    resolution = 16
+    ell_max = 3
+    n_channels = 2
+    spins = (0, 1)
+    shape = (resolution, resolution, len(spins), n_channels)
+    sphere_set = jnp.linspace(-1, 1, np.prod(shape)).reshape(shape)
+    coefficients = transformer.swsft_forward_spins_channels(sphere_set,
+                                                            spins,
+                                                            ell_max=ell_max)
+
+    coefficients_full = transformer.swsft_forward_spins_channels(sphere_set,
+                                                                 spins)
+
+    num_ell = ell_max + 1
+    self.assertAllClose(coefficients,
+                        coefficients_full[:num_ell, num_ell:-num_ell])
+
   def test_swsft_forward_spins_channels_matches_with_symmetry(self):
     transformer = _get_transformer()
     resolution = 16
