@@ -21,7 +21,8 @@ from __future__ import print_function
 
 import re
 import sys
-import tensorflow.compat.v1 as tf
+import tensorflow
+tf = tensorflow.compat.v1
 
 gfile = tf.gfile
 

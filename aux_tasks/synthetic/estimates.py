@@ -24,9 +24,10 @@ from aux_tasks.synthetic import utils
 
 
 def naive_inverse_covariance_matrix(
-    Phi,  # pylint: disable=invalid-name
+    compute_phi,
     sample_states,
     key,
+    d,
     covariance_batch_size):
   """Estimates the covariance matrix naively.
 
@@ -34,28 +35,28 @@ def naive_inverse_covariance_matrix(
   data point, so we multiply by the covariance_batch_size.
 
   Args:
-    Phi: feature matrix.
+    compute_phi: A function that takes states and returns a matrix of phis.
     sample_states: A function that takes an rng key and a number of states
       to sample, and returns the sampled states.
     key: jax rng key.
+    d: The number of features in phi.
     covariance_batch_size: how many states to sample to estimate.
 
   Returns:
     A tuple containing (the naive inverse covariance matrix, updated rng).
   """
-  _, d = Phi.shape
-
   states, key = sample_states(key, covariance_batch_size)
-  matrix_estimate = jnp.linalg.solve(Phi[states, :].T @ Phi[states, :],
-                                     jnp.eye(d))
+  phi = compute_phi(states)
+  matrix_estimate = jnp.linalg.solve(phi.T @ phi, jnp.eye(d))
 
   return matrix_estimate * covariance_batch_size, key
 
 
 def lissa_inverse_covariance_matrix(
-    Phi,  # pylint: disable=invalid-name
+    compute_phi,
     sample_states,
     key,
+    d,
     lissa_iterations,
     lissa_kappa,
     feature_norm = None):
@@ -65,10 +66,11 @@ def lissa_inverse_covariance_matrix(
   to a single data point, no need to multiply.
 
   Args:
-    Phi: feature matrix.
+    compute_phi: A function that takes states and returns a matrix of phis.
     sample_states: A function that takes an rng key and a number of states
       to sample, and returns the sampled states.
     key: jax rng key.
+    d: The number of features in phi.
     lissa_iterations: how many states to sample to estimate.
     lissa_kappa: The lissa parameter (gets further divided by feature norm
       squared).
@@ -79,23 +81,18 @@ def lissa_inverse_covariance_matrix(
     A tuple containing:
       (the lissa esimate of the inverse covariance matrix, updated rng).
   """
-  _, d = Phi.shape
+  states, key = sample_states(key, lissa_iterations)
+  sampled_phis = compute_phi(states)
 
-  # Determine the largest feaure vector norm, square it.
-  # TODO(bellemare): This uses the whole feature matrix; compare with just
-  # batch.
   if feature_norm is None:
-    feature_norm = utils.compute_max_feature_norm(Phi)
+    feature_norm = utils.compute_max_feature_norm(sampled_phis)
 
   I = np.eye(d)  # pylint: disable=invalid-name
   kappa = lissa_kappa / feature_norm
   estimate = kappa * I
 
-  states, key = sample_states(key, lissa_iterations)
-  sampled_Phis = Phi[states, :]  # pylint: disable=invalid-name
-
   for t in range(lissa_iterations):
-    phi = sampled_Phis[t, :]
+    phi = sampled_phis[t, :]
 
     # Here we make some optimizations. The equation for updating the lissa
     # estimate is:

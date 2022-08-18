@@ -20,12 +20,12 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow
 
 from enas_lm.src import data_utils
 from enas_lm.src import utils
 
-
+tf = tensorflow.compat.v1
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 

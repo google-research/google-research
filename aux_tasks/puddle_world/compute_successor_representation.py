@@ -85,6 +85,9 @@ def _maybe_save_metadata(output_dir):
         'arena_name': _ARENA_NAME.value,
         'num_bins': _NUM_BINS.value,
         'num_shards': _NUM_SHARDS.value,
+        'gamma': _GAMMA.value,
+        'num_rollouts_per_start_state': _NUM_ROLLOUTS_PER_START_STATE.value,
+        'rollout_length': _ROLLOUT_LENGTH.value,
     }
 
     json_file_path = output_dir / 'metadata.json'
@@ -136,9 +139,11 @@ def _maybe_combine_shards(
   shard_results = []
   for i in range(num_shards):
     shard_results.append(_load_shard_data(output_dir, i, num_shards))
-
-  # Write all the results.
   all_data = np.concatenate(shard_results)
+
+  # Subtract the row average. This centers the data.
+  all_data = all_data - np.mean(all_data, axis=1, keepdims=True)
+
   with (output_dir / 'sr.np').open('wb') as f:
     np.save(f, all_data)
 

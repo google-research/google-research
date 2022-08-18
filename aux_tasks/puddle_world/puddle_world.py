@@ -29,6 +29,7 @@ import numpy as np
 from shapely import geometry
 
 
+
 def _clip(x, min_val, max_val):
   return min(max(x, min_val), max_val)
 
@@ -103,7 +104,7 @@ class SlowPuddle(Puddle):
     """
     super().__init__(shape)
 
-    # TODO(joshgreaves): Better name than multiplier.
+    # TODO: Better name than multiplier.
     if not 0 <= multiplier <= 1:
       raise ValueError(f'multiplier must be in [0, 1]. Got {multiplier}.')
     self.multiplier = multiplier
@@ -277,11 +278,11 @@ class PuddleWorld:
     for puddle in self.puddles:
       next_state = puddle.update_transition_end_point(state, next_state)
 
-    # TODO(joshgreaves): is_near_goal is slow, so have a separate function.
+    # TODO: is_near_goal is slow, so have a separate function.
     # is_terminal = self._is_near_goal(next_state)
     is_terminal = False
 
-    # TODO(joshgreaves): Update the reward function, if we need it.
+    # TODO: Update the reward function, if we need it.
     reward = -self.step_cost
     if is_terminal:
       reward = 1.0

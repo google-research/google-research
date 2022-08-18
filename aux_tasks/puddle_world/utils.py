@@ -69,8 +69,9 @@ class DiscretizedPuddleWorld:
     self.bin_idx_by_row_col = frozendict.frozendict(self.bin_idx_by_row_col)
     self.row_col_by_bin_idx = frozendict.frozendict(self.row_col_by_bin_idx)
 
-  def sample_state_in_bin(self, bin_idx):
-    """Samples a state from a specific bin."""
+  def get_bin_corners_by_bin_idx(
+      self, bin_idx):
+    """Gets the bottom left and top right points of a bin given its index."""
     row, col = self.row_col_by_bin_idx[bin_idx]
 
     left_x = col * self._bin_size
@@ -78,8 +79,15 @@ class DiscretizedPuddleWorld:
     bottom_y = row * self._bin_size
     top_y = bottom_y + self._bin_size
 
-    x = random.uniform(left_x, right_x)
-    y = random.uniform(bottom_y, top_y)
+    return geometry.Point((left_x, bottom_y)), geometry.Point((right_x, top_y))
+
+  def sample_state_in_bin(self, bin_idx):
+    """Samples a state from a specific bin."""
+    row, col = self.row_col_by_bin_idx[bin_idx]
+    bottom_left, top_right = self.get_bin_corners_by_bin_idx(bin_idx)
+
+    x = random.uniform(bottom_left.x, top_right.x)
+    y = random.uniform(bottom_left.y, top_right.y)
 
     return DiscreteState(
         true_state=geometry.Point((x, y)),
