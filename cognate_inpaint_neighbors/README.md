@@ -295,7 +295,7 @@ If you use this software in a publication, please cite the accompanying
 
 ```bibtex
 @inproceedings{kirov-etal-2022-mockingbird,
-    title = "Mockingbird at the {SIGTYP} 2022 Shared Task: Two Types of Models forthe Prediction of Cognate Reflexes",
+    title = "Mockingbird at the {SIGTYP} 2022 Shared Task: Two Types of Models for the Prediction of Cognate Reflexes",
     author = "Kirov, Christo  and
       Sproat, Richard  and
       Gutkin, Alexander",
@@ -305,6 +305,7 @@ If you use this software in a publication, please cite the accompanying
     address = "Seattle, Washington",
     publisher = "Association for Computational Linguistics",
     url = "https://aclanthology.org/2022.sigtyp-1.9",
+    doi = "10.18653/v1/2022.sigtyp-1.9",
     pages = "70--79"
 }
 ```
