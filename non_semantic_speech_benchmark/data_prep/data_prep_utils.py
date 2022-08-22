@@ -25,7 +25,7 @@ import copy
 import numbers
 import os
 import random
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 from absl import logging
 import apache_beam as beam
 import numpy as np
@@ -247,12 +247,9 @@ def add_embedding_to_tfexample(ex, embedding,
 
 
 def add_embeddings_to_tfex(
-    k_v,
-    original_example_key,
-    delete_audio_from_output,
-    pass_through_normalized_audio,
-    audio_key,
-    label_key,
+    k_v, original_example_key,
+    delete_audio_from_output, pass_through_normalized_audio,
+    audio_key, label_key,
     speaker_id_key):
   """Combine a dictionary of named embeddings with a tf.train.Example."""
   k, v_dict = k_v
@@ -260,12 +257,13 @@ def add_embeddings_to_tfex(
   if original_example_key not in v_dict:
     raise ValueError(
         f'Original key not found: {original_example_key} vs {v_dict.keys()}')
-  ex_l = v_dict[original_example_key]
+  ex_l = list(v_dict[original_example_key])
   assert len(ex_l) == 1, (len(ex_l), k_v[0], ex_l)
   ex = copy.deepcopy(ex_l[0])  # Beam does not allow modifying the input.
   assert isinstance(ex, tf.train.Example), type(ex)
 
-  for name, embedding_l in v_dict.items():
+  for name, embedding in v_dict.items():
+    embedding_l = list(embedding)
     if name == original_example_key:
       continue
     assert len(embedding_l) == 1, embedding_l
