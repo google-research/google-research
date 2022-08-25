@@ -27,7 +27,7 @@ channel), and for spectral coefficients, the dimensions are (batch, ell, m,
 spin, channel).
 """
 import functools
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 from flax import linen as nn
 import jax
 from jax import lax
@@ -433,6 +433,15 @@ class SphericalBatchNormalization(nn.Module):
     return outputs
 
 
+def get_zero_nonzero_idx(spins):
+  """Returns zero and nonzero indices from a list of spins."""
+  idx_zero = spins.index(0)
+  idx_nonzero = tuple([idx for idx, spin in enumerate(spins) if spin != 0])
+  if len(idx_nonzero) + 1 != len(spins):
+    raise ValueError("`spins` must contain exactly one zero.")
+  return idx_zero, idx_nonzero
+
+
 class SpinSphericalBatchNormalization(nn.Module):
   """Batch normalization for spin-spherical functions.
 
@@ -454,6 +463,8 @@ class SpinSphericalBatchNormalization(nn.Module):
   use_running_stats: Optional[bool] = None
   momentum: float = 0.99
   epsilon: float = 1e-5
+  scale_init: Initializer = _complex_ones_initializer
+  bias_init: Initializer = _complex_zeros_initializer
   axis_name: Optional[str] = None
 
   @nn.compact
@@ -468,24 +479,26 @@ class SpinSphericalBatchNormalization(nn.Module):
     options = dict(use_running_stats=use_running_stats,
                    momentum=self.momentum,
                    epsilon=self.epsilon,
+                   scale_init=self.scale_init,
+                   bias_init=self.bias_init,
                    axis_name=self.axis_name)
 
-    outputs = []
-    for i, spin in enumerate(self.spins):
-      inputs_spin = inputs[Ellipsis, [i], :]
-      if spin == 0:
-        outputs_spin = SphericalBatchNormalization(use_bias=True,
-                                                   centered=True,
-                                                   **options)(inputs_spin,
-                                                              weights=weights)
-      else:
-        outputs_spin = SphericalBatchNormalization(use_bias=False,
-                                                   centered=False,
-                                                   **options)(inputs_spin,
-                                                              weights=weights)
-      outputs.append(outputs_spin)
+    idx_zero, idx_nonzero = get_zero_nonzero_idx(self.spins)
+    outputs = inputs
+    outputs = outputs.at[Ellipsis, [idx_zero], :].set(
+        SphericalBatchNormalization(
+            use_bias=True,
+            centered=True,
+            **options)(outputs[Ellipsis, [idx_zero], :],
+                       weights=weights))
+    outputs = outputs.at[Ellipsis, idx_nonzero, :].set(
+        SphericalBatchNormalization(
+            use_bias=False,
+            centered=False,
+            **options)(outputs[Ellipsis, idx_nonzero, :],
+                       weights=weights))
 
-    return jnp.concatenate(outputs, axis=-2)
+    return outputs
 
 
 class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):
