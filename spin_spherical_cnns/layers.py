@@ -44,7 +44,8 @@ Initializer = Callable[[Any, Sequence[int], Any],
 
 
 def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
-                              spins_in, spins_out, spectral_pooling):
+                              spins_in, spins_out,
+                              spectral_pooling, output_representation):
   r"""Spin-weighted spherical convolution; spatial input and spectral filters.
 
   This implements a multi-channel version of Eq. (13) in [1], where sphere_set
@@ -65,6 +66,8 @@ def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
     spins_in: (n_spins_in,) Sequence of int containing the input spins.
     spins_out: (n_spins_out,) Sequence of int containing the output spins.
     spectral_pooling: When True, halve input dimensions via spectral pooling.
+    output_representation: Whether to return outputs in the 'spectral'
+      or 'spatial' domain.
 
   Returns:
     A (resolution, resolution, n_spins_out, n_channels_out) array of
@@ -82,8 +85,16 @@ def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
   coefficients_out = jnp.einsum("lmic,liocd->lmod",
                                 coefficients_in,
                                 filter_coefficients)
-  # Convert back to the spatial domain.
-  return transformer.swsft_backward_spins_channels(coefficients_out, spins_out)
+
+  if output_representation == "spectral":
+    return coefficients_out
+  elif output_representation == "spatial":
+    # Convert back to the spatial domain.
+    return transformer.swsft_backward_spins_channels(coefficients_out,
+                                                     spins_out)
+  else:
+    raise ValueError("`output_representation` must be either "
+                     "'spectral' or 'spatial'.")
 
 
 # Custom initializer, based on He et al, "Delving Deep into Rectifiers", but
@@ -108,6 +119,8 @@ class SpinSphericalConvolution(nn.Module):
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of parameters per filter. Fewer parameters results
       in more localized filters.
+    output_representation: Whether to return outputs in the 'spectral'
+      or 'spatial' domain.
     initializer: initializer for the filter spectrum.
   """
   features: int
@@ -116,6 +129,7 @@ class SpinSphericalConvolution(nn.Module):
   spectral_pooling: bool
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
   num_filter_params: Optional[int] = None
+  output_representation: str = "spatial"
   initializer: Initializer = default_initializer
 
   def _get_kernel(self, ell_max, num_channels_in):
@@ -179,12 +193,13 @@ class SpinSphericalConvolution(nn.Module):
 
     # Map over the batch dimension.
     vmap_convolution = jax.vmap(_swsconv_spatial_spectral,
-                                in_axes=(None, 0, None, None, None, None))
+                                in_axes=(None, 0, None, None, None, None, None))
     return vmap_convolution(self.transformer,
                             sphere_set, kernel,
                             self.spins_in,
                             self.spins_out,
-                            self.spectral_pooling)
+                            self.spectral_pooling,
+                            self.output_representation)
 
 
 class MagnitudeNonlinearity(nn.Module):
