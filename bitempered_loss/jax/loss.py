@@ -195,9 +195,9 @@ def tempered_sigmoid(activations, t, num_iters=5):
   return jnp.reshape(one_class_probabilities, input_shape)
 
 
-@jax.jit
+@jax.custom_vjp
 def tempered_softmax(activations, t, num_iters=5):
-  """Tempered softmax function.
+  """Tempered softmax function with custom gradient.
 
   Args:
     activations: A multi-dimensional array with last dimension `num_classes`.
@@ -207,9 +207,48 @@ def tempered_softmax(activations, t, num_iters=5):
   Returns:
     A probabilities array.
   """
+  probabilities, _ = tempered_softmax_fwd(activations, t, num_iters)
+  return probabilities
+
+
+@jax.jit
+def tempered_softmax_fwd(activations, t, num_iters=5):
+  """Forward pass function for tempered softmax function.
+
+  Args:
+    activations: A multi-dimensional array with last dimension `num_classes`.
+    t: Temperature array > 0.0.
+    num_iters: Number of iterations to run the method.
+
+  Returns:
+    A probabilities array, residuals.
+  """
   activations = jnp.asarray(activations, dtype=float)
   normalization_constants = compute_normalization(activations, t, num_iters)
-  return exp_t(activations - normalization_constants, t)
+  probabilities = exp_t(activations - normalization_constants, t)
+  return probabilities, (probabilities, t)
+
+
+@jax.jit
+def tempered_softmax_bwd(res, d_softmax):
+  """Backward pass function for tempered softmax function.
+
+  Args:
+    res: Residuals.
+    d_softmax: Differential.
+
+  Returns:
+    Derivatives.
+  """
+  probabilities, t = res
+  probabilities_pow_t = jnp.power(probabilities, t)
+  escorts = probabilities_pow_t / jnp.sum(
+      probabilities_pow_t, -1, keepdims=True)
+  derivative = probabilities_pow_t * (1. - escorts)
+  return (jnp.multiply(d_softmax, derivative), None, None)
+
+
+tempered_softmax.defvjp(tempered_softmax_fwd, tempered_softmax_bwd)
 
 
 def _internal_bi_tempered_logistic_loss(activations, labels, t1, t2):
