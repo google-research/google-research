@@ -88,9 +88,9 @@ def get_experiment_dataset(
 
   # Filter target classes
   if target_classes is not None:
-    ds_target = ds.filter(lambda d: ds_filter_target_classes(d, target_classes))
+    ds_target = ds.filter(lambda d: ds_filter_target_classes(d, target_classes))  # pytype: disable=wrong-arg-types
     ds_target = ds_target.map(
-        lambda d: ds_relabel_target_classes(d, target_classes))
+        lambda d: ds_relabel_target_classes(d, target_classes))  # pytype: disable=wrong-arg-types
   else:
     ds_target = ds.map(lambda d: d)  # Otherwise it might change input ds.
 

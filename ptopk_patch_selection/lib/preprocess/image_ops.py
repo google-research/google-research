@@ -126,7 +126,7 @@ def resize(features,
   return features
 
 
-def random_resize(features,
+def random_resize(features,  # pytype: disable=annotation-type-mismatch
                   scale = (0.5, 2.0),
                   ensure_small = None,
                   keys = ("image",),
@@ -333,7 +333,7 @@ def random_crop(features,
   return features
 
 
-def random_size_crop(features,
+def random_size_crop(features,  # pytype: disable=annotation-type-mismatch
                      resolution_min,
                      resolution_max = None,
                      keys = ("image",)):
@@ -391,7 +391,7 @@ def _gauss_filter(kernel_size, sigma):
   return x
 
 
-def gaussian_blur(image, kernel_size,
+def gaussian_blur(image, kernel_size,  # pytype: disable=annotation-type-mismatch
                   sigma = None):
   """Puts blur on the image."""
   fil_x = _gauss_filter(kernel_size[0], sigma=sigma[0] if sigma else None)
@@ -404,7 +404,7 @@ def gaussian_blur(image, kernel_size,
   return res
 
 
-def label_map(features,
+def label_map(features,  # pytype: disable=annotation-type-mismatch
               source_labels,
               target_labels = None,
               default_label = 0,
