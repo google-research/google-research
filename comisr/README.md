@@ -18,7 +18,7 @@ pip3 install -r requirements.txt
 python3 -m pip install -r requirements.txt
 ```
 
-####Pre-trained Model
+######Pre-trained Model
 
 To install the pre-trained model, you need to first install the [gcloud sdk](https://cloud.google.com/sdk/docs/install).
 
@@ -64,8 +64,8 @@ python inference_and_eval.py \
 --output_dir=output_dir/
 ```
 
-`--targets` is the folder containing the Ground Truth, this is used for evaluating the result
-`--output_dir` is the folder where the Upscaled image sequence goes
+- `--targets` is the folder containing the Ground Truth, this is used for evaluating the result
+- `--output_dir` is the folder where the Upscaled image sequence goes
 
 ## Citation
 If you find this code is useful for your publication, please cite the original paper:
