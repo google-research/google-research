@@ -15,10 +15,12 @@
 
 """Tests for joint."""
 
+import enum
 import operator
 
 from absl.testing import absltest
 import numpy as np
+from scipy import stats
 
 from dp_topk import joint
 from dp_topk.differential_privacy import NeighborType
@@ -138,20 +140,111 @@ class JointTest(absltest.TestCase):
         num_trials * (expected_sample_probs - expected_sample_widths),
         sampled_counts)
 
-  def test_sample_diff_idx_distribution_add_remove(self):
-    sorted_diffs = np.array(
-        [-1.9375, 0.125, 0.1875, 0.3125, 2.375, 2.4375, 4.25, 6.5])
+  def test_sample_max_expo_distribution(self):
+
+    # Directly samples the exponential distribution num_trials_per_sample times
+    # and returns the max sampled value.
+    def direct_sample_max_expo_distribution(expo_lambda, num_trials_per_sample):
+      return np.max(
+          np.random.exponential(
+              scale=1 / expo_lambda, size=num_trials_per_sample))
+
+    # Generate samples using the direct method as well as the more efficient
+    # inverse CDF method implemented in joint.sample_max_expo_distribution.
+    expo_lambda = 2.5
+    num_trials_per_sample1 = 2
+    num_trials_per_sample2 = 10
+    log_num_trials = np.log(
+        np.asarray([num_trials_per_sample1, num_trials_per_sample2]))
+    num_trials = 1000000
+    true_samples = np.empty([num_trials, 2])
+    test_samples = np.empty([num_trials, 2])
+    for i in range(num_trials):
+      true_samples[i, 0] = direct_sample_max_expo_distribution(
+          expo_lambda, num_trials_per_sample1)
+      true_samples[i, 1] = direct_sample_max_expo_distribution(
+          expo_lambda, num_trials_per_sample2)
+      test_samples[i, :] = joint.sample_max_expo_distribution(
+          expo_lambda, log_num_trials)
+
+    # Run a Kolmogorov-Smirnov test to compare the samples.
+    result = stats.kstest(true_samples[:, 0], test_samples[:, 0])
+    # The test statistic for Kolmogorov-Smirnov is in [0, 1], with smaller
+    # values indicating more similar distributions.
+    self.assertLess(result.statistic, 0.1)
+    # The null hypothesis in this case is that the two distributions passed to
+    # kstest are identical, so we expect this not to be rejected.
+    self.assertGreater(result.pvalue, 0.01)
+
+    # Compare the second set of samples in the same way.
+    result = stats.kstest(true_samples[:, 1], test_samples[:, 1])
+    self.assertLess(result.statistic, 0.1)
+    self.assertGreater(result.pvalue, 0.01)
+
+  class DiffIdxSamplerType(enum.Enum):
+    EXP_MECH = 1
+    RNM_EXPO = 2
+
+  def helper_test_sample_diff_idx_distribution(self, diff_idx_sampler_type,
+                                               neighbor_type):
+    sorted_diffs = np.array([0.0, 0.1, 1.7, 2.4, 4.2])
+    integer_diffs = np.array([0, 0, 1, 2, 4])
+    num_diffs = len(sorted_diffs)
+    diff_counts = np.array([8, 1, 5, 0, 15])
     with np.errstate(divide='ignore'):
-      log_diff_counts = np.log([0, 0, 1, 3, 4, 2, 15, 19])
-    sampled_counts = np.zeros(len(log_diff_counts))
-    eps = 1.
+      log_diff_counts = np.log(diff_counts)
+    eps = 2.5
+
+    if neighbor_type is NeighborType.SWAP:
+      scaling = 4
+    else:
+      scaling = 2
+
+    if diff_idx_sampler_type is self.DiffIdxSamplerType.EXP_MECH:
+      sample_diff_idx_func = joint.sample_diff_idx
+      # Explicitly compute expected distribution by exponentiating rather than
+      # calling racing_sample as sample_diff_idx does.
+      expected_sample_probs = diff_counts * np.exp(
+          -(eps / scaling) * integer_diffs)
+      # Set a relatively tight width since we are comparing with the exact
+      # probabilities of the expected distribution.
+      sample_width_scaling_factor = 1
+    else:
+      sample_diff_idx_func = joint.sample_diff_idx_via_pnf
+      # No closed-form expression for the distribution exists in this case.
+      # We will simply draw exponential noise diff_counts times and find which
+      # index has the largest value, then repeat this many times.
+      expo_lambda = eps / scaling
+      num_trials = 1000000
+      expected_sample_probs = np.zeros(num_diffs)
+      for _ in range(num_trials):
+        max_index = -1
+        max_val = -np.inf
+        for diff_count_num in range(num_diffs):
+          diff_count = diff_counts[diff_count_num]
+          if diff_count == 0:
+            continue
+          current_max_val = -integer_diffs[diff_count_num] + np.max(
+              np.random.exponential(scale=1 / expo_lambda, size=diff_count))
+          if current_max_val > max_val:
+            max_val = current_max_val
+            max_index = diff_count_num
+        expected_sample_probs[max_index] += 1
+
+      # Set a relatively loose width, since we are comparing only with samples
+      # from the expected distribution rather than exact probabilities.
+      sample_width_scaling_factor = 2
+
+    expected_sample_probs_norm = np.sum(expected_sample_probs)
+    expected_sample_probs /= expected_sample_probs_norm
+
     num_trials = 100000
+    sampled_counts = np.zeros(num_diffs)
     for _ in range(num_trials):
-      sampled_counts[joint.sample_diff_idx(log_diff_counts, sorted_diffs, eps,
-                                           NeighborType.ADD_REMOVE)] += 1
-    expected_sample_probs = np.array(
-        [0, 0, 0.109, 0.327, 0.160, 0.0801, 0.221, 0.103])
-    expected_sample_widths = 4 * np.sqrt(
+      sampled_counts[sample_diff_idx_func(log_diff_counts, sorted_diffs, eps,
+                                          neighbor_type)] += 1
+
+    expected_sample_widths = sample_width_scaling_factor * 4 * np.sqrt(
         expected_sample_probs * (1 - expected_sample_probs) / num_trials)
     assert_array_less_equal(
         sampled_counts,
@@ -160,27 +253,22 @@ class JointTest(absltest.TestCase):
         num_trials * (expected_sample_probs - expected_sample_widths),
         sampled_counts)
 
+  def test_sample_diff_idx_distribution_add_remove(self):
+    self.helper_test_sample_diff_idx_distribution(
+        self.DiffIdxSamplerType.EXP_MECH, NeighborType.ADD_REMOVE)
+
   def test_sample_diff_idx_distribution_swap(self):
-    sorted_diffs = np.array(
-        [-1.9375, 0.125, 0.1875, 0.3125, 2.375, 2.4375, 4.25, 6.5])
-    with np.errstate(divide='ignore'):
-      log_diff_counts = np.log([0, 0, 1, 3, 4, 2, 15, 19])
-    sampled_counts = np.zeros(len(log_diff_counts))
-    eps = 1.
-    num_trials = 10000
-    for _ in range(num_trials):
-      sampled_counts[joint.sample_diff_idx(log_diff_counts, sorted_diffs, eps,
-                                           NeighborType.SWAP)] += 1
-    expected_sample_probs = np.array(
-        [0, 0, 0.0575, 0.172, 0.139, 0.0697, 0.317, 0.244])
-    expected_sample_widths = 4 * np.sqrt(
-        expected_sample_probs * (1 - expected_sample_probs) / num_trials)
-    assert_array_less_equal(
-        sampled_counts,
-        num_trials * (expected_sample_probs + expected_sample_widths))
-    assert_array_less_equal(
-        num_trials * (expected_sample_probs - expected_sample_widths),
-        sampled_counts)
+    self.helper_test_sample_diff_idx_distribution(
+        self.DiffIdxSamplerType.EXP_MECH, NeighborType.SWAP)
+
+  def test_sample_diff_idx_distribution_via_rnm_with_expo_noise_add_remove(
+      self):
+    self.helper_test_sample_diff_idx_distribution(
+        self.DiffIdxSamplerType.RNM_EXPO, NeighborType.ADD_REMOVE)
+
+  def test_sample_diff_idx_distribution_via_rnm_with_expo_noise_swap(self):
+    self.helper_test_sample_diff_idx_distribution(
+        self.DiffIdxSamplerType.RNM_EXPO, NeighborType.SWAP)
 
   def test_sequence_from_diff_pick_first(self):
     diff_matrix = np.array([[
@@ -328,6 +416,7 @@ class JointTest(absltest.TestCase):
     assert_array_less_equal(
         num_trials * (expected_sequence_probs - expected_sequence_widths),
         sequence_counts)
+
 
 if __name__ == '__main__':
   absltest.main()
