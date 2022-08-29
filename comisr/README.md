@@ -18,7 +18,7 @@ pip3 install -r requirements.txt
 python3 -m pip install -r requirements.txt
 ```
 
-###### Pre-trained Model
+**Pre-trained Model**
 
 To install the pre-trained model, you need to first install the [gcloud sdk](https://cloud.google.com/sdk/docs/install).
 
