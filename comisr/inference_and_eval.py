@@ -31,11 +31,11 @@ import tensorflow.compat.v1 as tf
 import tensorflow.compat.v1.io.gfile as gfile
 import tensorflow_addons as tfa
 
-from comisr.lib.dataloader import inference_data_loader
-from comisr.lib.model import fnet
-from comisr.lib.model import generator_f
-import comisr.lib.ops as ops
-import comisr.metrics as metrics
+from lib.dataloader import inference_data_loader
+from lib.model import fnet
+from lib.model import generator_f
+import lib.ops as ops
+import metrics as metrics
 
 
 flags.DEFINE_string('input_lr_dir', None,
@@ -190,9 +190,10 @@ def inference(
   if not gfile.exists(output_dir):
     gfile.mkdir(output_dir)
   if not output_pre:
-    image_dir = output_dir
+    image_dir = FLAGS.output_dir
   else:
-    image_dir = os.path.join(output_dir, output_pre)
+    #image_dir = os.path.join(output_dir, output_pre)
+    image_dir = FLAGS.output_dir
   if not gfile.exists(image_dir):
     gfile.mkdir(image_dir)
 
@@ -363,7 +364,8 @@ def main(_):
   if FLAGS.checkpoint_path:
     folder_list = gfile.listdir(FLAGS.input_lr_dir)
     for folder_name in folder_list:
-      input_lr_dir = os.path.join(FLAGS.input_lr_dir, folder_name)
+      #input_lr_dir = os.path.join(FLAGS.input_lr_dir, folder_name)
+      input_lr_dir = FLAGS.input_lr_dir
       output_pre = folder_name
       inference(input_lr_dir, FLAGS.input_hr_dir, FLAGS.input_dir_len,
                 FLAGS.num_resblock, FLAGS.vsr_scale, FLAGS.checkpoint_path,
