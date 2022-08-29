@@ -13,6 +13,13 @@
 // limitations under the License.
 
 /**
+ * All templates are instantiated as properties of the antheaTemplates
+ * global object. By convention, template antheaTemplates['Some-TemplateName']
+ * is set in template-some-templatename.js.
+ */
+const /** !Object */ antheaTemplates = {};
+
+/**
  * GoogDOM is simplified and short derivative of goog.dom, used for
  *   convenience methods for creating HTML elements.
  */
@@ -261,6 +268,19 @@ class AntheaEval {
     /** const boolean */
     this.READ_ONLY = readOnly;
 
+    let scriptUrlPrefix = '';
+    const scriptTags = document.getElementsByTagName('script');
+    for (let i = 0; i < scriptTags.length; i++) {
+      const src = scriptTags[i].src;
+      const loc = src.lastIndexOf('/anthea-eval.js');
+      if (loc >= 0) {
+        scriptUrlPrefix = src.substring(0, loc + 1);
+        break;
+      }
+    }
+    /** @private @const {string} */
+    this.scriptUrlPrefix_ = scriptUrlPrefix;
+
     /** !Array<Element> */
     this.srcSpans = [];
     /** !Array<string> */
@@ -288,9 +308,11 @@ class AntheaEval {
     this.maxSentenceGroupShown_ = 0;
 
     /** @private @const {string} */
-    this.noBlurColor_ = 'black';
+    this.beforeColor_ = 'gray';
     /** @private @const {string} */
-    this.blurColor_ = 'lightgray';
+    this.currColor_ = 'black';
+    /** @private @const {string} */
+    this.afterColor_ = 'lightgray';
     /** @private @const {string} */
     this.buttonColor_ = 'azure';
 
@@ -539,7 +561,8 @@ class AntheaEval {
       }
     }
 
-    if (n == this.currSentenceGroup) {
+    const isCurr = n == this.currSentenceGroup;
+    if (isCurr) {
       this.evalPanel_.style.top = sg.top;
       if (!this.config.sqm) {
         this.evalPanelErrors_.innerHTML = '';
@@ -584,15 +607,12 @@ class AntheaEval {
       this.tgtSpans[n].addEventListener('click', sg.clickListener);
     }
 
-    const blurSrc = n > this.currSentenceGroup;
-    const blurTgt = n > this.currSentenceGroup;
-    const boldSrcTgt = n == this.currSentenceGroup;
-    this.srcSpans[n].style.color =
-      blurSrc ? this.blurColor_ : this.noBlurColor_;
-    this.tgtSpans[n].style.color =
-      blurTgt ? this.blurColor_ : this.noBlurColor_;
-    this.srcSpans[n].style.fontWeight = boldSrcTgt ? 'bold' : 'normal';
-    this.tgtSpans[n].style.fontWeight = boldSrcTgt ? 'bold' : 'normal';
+    const isBefore = n < this.currSentenceGroup;
+    this.srcSpans[n].style.color = this.tgtSpans[n].style.color =
+        (isCurr ? this.currColor_ :
+         (isBefore ? this.beforeColor_ : this.afterColor_));
+    this.srcSpans[n].style.fontWeight = this.tgtSpans[n].style.fontWeight =
+        isCurr ? 'bold' : 'normal';
 
     if (n <= this.maxSentenceGroupShown_) {
       this.updateProgressForSentenceGroup(n);
@@ -2205,13 +2225,44 @@ displayError(errors, index) {
    *     and is called when the HTML DOM is loaded.
    *
    * @param {!Element} evalDiv The DIV in which to create the eval.
-   * @param {!Object} config The template configuration object.
+   * @param {string} templateName The template name.
    * @param {!Array<!Object>} projectData Project data, including src/tgt
    *     sentences. The array also may have srcLang/tgtLang properties.
    * @param {?Array<!Object>} projectResults Previously saved partial results.
    * @param {number=} hotwPercent Percent rate for HOTW testing.
    */
-  setUpEval(evalDiv, config, projectData, projectResults, hotwPercent=0) {
+  setUpEval(evalDiv, templateName, projectData, projectResults, hotwPercent=0) {
+    if (antheaTemplates[templateName]) {
+      this.setUpEval_(evalDiv, antheaTemplates[templateName], projectData,
+                      projectResults, hotwPercent);
+      return;
+    }
+    /**
+     * We set the template to an empty object so that we do not keep retrying
+     * to load the template file.
+     */
+    antheaTemplates[templateName] = {};
+    googdom.setInnerHtml(evalDiv, 'Loading template ' + templateName + '...');
+    const scriptTag = document.createElement('script');
+    scriptTag.src = this.scriptUrlPrefix_ + 'template-' +
+                    templateName.toLowerCase() + '.js';
+    scriptTag.onload = this.setUpEval.bind(
+        this, evalDiv, templateName, projectData, projectResults, hotwPercent);
+    document.head.append(scriptTag);
+  }
+
+  /**
+   * Sets up the eval. This is the main internal starting point, called once
+   *     the template has been loaded.
+   *
+   * @param {!Element} evalDiv The DIV in which to create the eval.
+   * @param {!Object} config The template configuration object.
+   * @param {!Array<!Object>} projectData Project data, including src/tgt
+   *     sentences. The array also may have srcLang/tgtLang properties.
+   * @param {?Array<!Object>} projectResults Previously saved partial results.
+   * @param {number} hotwPercent Percent rate for HOTW testing.
+   */
+  setUpEval_(evalDiv, config, projectData, projectResults, hotwPercent) {
     evalDiv.innerHTML = '';
 
     const instructionsPanel = googdom.createDom('div',

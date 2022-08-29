@@ -16,6 +16,10 @@ the "Choose files" button to pick one or more MQM data files. MQM data spans
 several columns, so it's best to use a desktop or laptop computer with a wide
 screen.
 
+A simpler option may be to just download the `mqm-viewer-lite.html` file and
+open it in a web browser (it loads the needed JavaScript and CSS files from
+a Google-hosted server).
+
 This is not an officially supported Google product.
 
 ## Data file format
@@ -29,7 +33,8 @@ ten columns, one line per marked error:
   from several evaluations together.
 - **docSegId**: Id of segment (sentence or group of sentences) within the
   document.
-- **globalSegId**: Id of segment across all documents.
+- **globalSegId**: Id of segment across all documents. If you do not have
+  such numbering available, set this to a constant value, say 0.
 - **rater**: Rater who evaluated segment.
 - **source**: Source text for segment.
 - **target**: Translated text for segment.
@@ -37,7 +42,7 @@ ten columns, one line per marked error:
 - **severity**: MQM error severity (or "no-error").
 - **metadata**: JSON-formatted object that may contain a "timestamp" field,
   a "note" field, among others.
-  
+
 The "metadata" column used to be an optional "note" column, and MQM Viewer
 continues to support that legacy format. Going forward, the metadata object
 may be augmented to contain additional information about the rating.

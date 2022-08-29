@@ -16,14 +16,17 @@
 """Tests for general.py."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 import chex
 import jax
+from jax import random
 import jax.numpy as jnp
-import jax.random as random
+import numpy as np
+
 from robust_loss_jax import general
 
 
-class LossfunTest(chex.TestCase):
+class LossfunTest(chex.TestCase, parameterized.TestCase):
 
   def _precompute_lossfun_inputs(self):
     """Precompute a loss and its derivatives for random inputs and parameters.
@@ -87,14 +90,14 @@ class LossfunTest(chex.TestCase):
     d_x = jnp.where(jnp.isfinite(d_x), d_x, jnp.zeros_like(d_x))
     mask = jnp.isfinite(alpha) & (
         jnp.abs(d_x) > (300. * jnp.finfo(jnp.float32).eps))
-    chex.assert_tree_all_close(jnp.sign(d_x[mask]), jnp.sign(x[mask]))
+    chex.assert_trees_all_close(jnp.sign(d_x[mask]), jnp.sign(x[mask]))
 
   @chex.all_variants()
   def testLossIsNearZeroAtOrigin(self):
     # Check that the loss is near-zero when x is near-zero.
     _, loss, x, _, _, _, _, _ = self._precompute_lossfun_inputs()
     loss_near_zero = loss[jnp.abs(x) < 1e-5]
-    chex.assert_tree_all_close(
+    chex.assert_trees_all_close(
         loss_near_zero, jnp.zeros_like(loss_near_zero), atol=1e-5)
 
   @chex.all_variants()
@@ -104,7 +107,7 @@ class LossfunTest(chex.TestCase):
     _, loss, x, _, scale, _, _, _ = self._precompute_lossfun_inputs()
     mask = jnp.abs(x) < (0.5 * scale)
     loss_quad = 0.5 * jnp.square(x / scale)
-    chex.assert_tree_all_close(
+    chex.assert_trees_all_close(
         loss_quad[mask], loss[mask], rtol=1e-5, atol=1e-2)
 
   @chex.all_variants()
@@ -164,12 +167,12 @@ class LossfunTest(chex.TestCase):
 
     # Compute the scaled loss.
     loss_scaled = general.lossfun(mult * x, alpha, mult * scale)
-    chex.assert_tree_all_close(loss, loss_scaled, atol=1e-4, rtol=1e-4)
+    chex.assert_trees_all_close(loss, loss_scaled, atol=1e-4, rtol=1e-4)
 
   @chex.all_variants()
   def testAlphaEqualsNegativeInfinity(self):
     # Check that alpha == -Infinity reproduces Welsch aka Leclerc loss.
-    x = jnp.linspace(-20, 20, 1000)
+    x = np.linspace(-15, 15, 1000, dtype=np.float64)
     alpha = -float('inf')
     scale = 1.7
 
@@ -177,14 +180,14 @@ class LossfunTest(chex.TestCase):
     loss = self.variant(general.lossfun)(x, alpha, scale)
 
     # Welsch/Leclerc loss.
-    loss_true = (1. - jnp.exp(-0.5 * jnp.square(x / scale)))
+    loss_true = (1. - np.exp(-0.5 * np.square(x / scale)))
 
-    chex.assert_tree_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testAlphaEqualsNegativeTwo(self):
     # Check that alpha == -2 reproduces Geman-McClure loss.
-    x = jnp.linspace(-20, 20, 1000)
+    x = np.linspace(-15, 15, 1000, dtype=np.float64)
     alpha = -2.
     scale = 1.7
 
@@ -192,14 +195,14 @@ class LossfunTest(chex.TestCase):
     loss = self.variant(general.lossfun)(x, alpha, scale)
 
     # Geman-McClure loss.
-    loss_true = (2. * jnp.square(x / scale) / (jnp.square(x / scale) + 4.))
+    loss_true = (2. * np.square(x / scale) / (np.square(x / scale) + 4.))
 
-    chex.assert_tree_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testAlphaEqualsZero(self):
     # Check that alpha == 0 reproduces Cauchy aka Lorentzian loss.
-    x = jnp.linspace(-20, 20, 1000)
+    x = np.linspace(-15, 15, 1000, dtype=np.float64)
     alpha = 0.
     scale = 1.7
 
@@ -207,14 +210,14 @@ class LossfunTest(chex.TestCase):
     loss = self.variant(general.lossfun)(x, alpha, scale)
 
     # Cauchy/Lorentzian loss.
-    loss_true = (jnp.log(0.5 * jnp.square(x / scale) + 1.))
+    loss_true = (np.log(0.5 * np.square(x / scale) + 1))
 
-    chex.assert_tree_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testAlphaEqualsOne(self):
     # Check that alpha == 1 reproduces Charbonnier aka pseudo-Huber loss.
-    x = jnp.linspace(-20, 20, 1000)
+    x = np.linspace(-15, 15, 1000, dtype=np.float64)
     alpha = 1.
     scale = 1.7
 
@@ -222,14 +225,14 @@ class LossfunTest(chex.TestCase):
     loss = self.variant(general.lossfun)(x, alpha, scale)
 
     # Charbonnier loss.
-    loss_true = (jnp.sqrt(jnp.square(x / scale) + 1) - 1)
+    loss_true = (np.sqrt(np.square(x / scale) + 1) - 1)
 
-    chex.assert_tree_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testAlphaEqualsTwo(self):
     # Check that alpha == 2 reproduces L2 loss.
-    x = jnp.linspace(-20, 20, 1000)
+    x = np.linspace(-15, 15, 1000, dtype=np.float64)
     alpha = 2.
     scale = 1.7
 
@@ -237,14 +240,14 @@ class LossfunTest(chex.TestCase):
     loss = self.variant(general.lossfun)(x, alpha, scale)
 
     # L2 Loss.
-    loss_true = (0.5 * jnp.square(x / scale))
+    loss_true = 0.5 * np.square(x / scale)
 
-    chex.assert_tree_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testAlphaEqualsFour(self):
     # Check that alpha == 4 reproduces a quartic.
-    x = jnp.linspace(-20, 20, 1000)
+    x = np.linspace(-15, 15, 1000, dtype=np.float64)
     alpha = 4.
     scale = 1.7
 
@@ -252,15 +255,14 @@ class LossfunTest(chex.TestCase):
     loss = self.variant(general.lossfun)(x, alpha, scale)
 
     # The true loss.
-    loss_true = (
-        jnp.square(jnp.square(x / scale)) / 8. + jnp.square(x / scale) / 2.)
+    loss_true = np.square(np.square(x / scale)) / 8 + np.square(x / scale) / 2
 
-    chex.assert_tree_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testAlphaEqualsInfinity(self):
     # Check that alpha == Infinity takes the correct form.
-    x = jnp.linspace(-20, 20, 1000)
+    x = np.linspace(-15, 15, 1000, dtype=np.float64)
     alpha = float('inf')
     scale = 1.7
 
@@ -270,7 +272,7 @@ class LossfunTest(chex.TestCase):
     # The true loss.
     loss_true = (jnp.exp(0.5 * jnp.square(x / scale)) - 1.)
 
-    chex.assert_tree_all_close(loss, loss_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(loss, loss_true, atol=1e-4, rtol=1e-4)
 
   @chex.all_variants()
   def testLossAndGradientsAreFinite(self):
@@ -339,9 +341,25 @@ class LossfunTest(chex.TestCase):
     n_alpha = (fn(x, alpha + step_size, scale) - loss) / step_size
     n_scale = (fn(x, alpha, scale + step_size) - loss) / step_size
 
-    chex.assert_tree_all_close(n_x, d_x, atol=1e-2, rtol=1e-2)
-    chex.assert_tree_all_close(n_alpha, d_alpha, atol=1e-2, rtol=1e-2)
-    chex.assert_tree_all_close(n_scale, d_scale, atol=1e-2, rtol=1e-2)
+    chex.assert_trees_all_close(n_x, d_x, atol=1e-2, rtol=1e-2)
+    chex.assert_trees_all_close(n_alpha, d_alpha, atol=1e-2, rtol=1e-2)
+    chex.assert_trees_all_close(n_scale, d_scale, atol=1e-2, rtol=1e-2)
+
+  @chex.all_variants()
+  @parameterized.parameters((-2,), (-1,), (0,), (1,), (2,))
+  def testGradientsAreFiniteWithAllInputs(self, alpha):
+    x_half = jnp.concatenate(
+        [jnp.exp(jnp.linspace(-80, 80, 1001)),
+         jnp.array([jnp.inf])])
+    x = jnp.concatenate([-x_half[::-1], jnp.array([0.]), x_half])
+    scale = jnp.full_like(x, 1.)
+
+    fn = self.variant(lambda x, s: general.lossfun(x, alpha, s))
+    loss = fn(x, scale)
+    d_x, d_scale = jax.vmap(jax.grad(fn, [0, 1]))(x, scale)
+
+    for v in [loss, d_x, d_scale]:
+      chex.assert_tree_all_finite(v)
 
 
 if __name__ == '__main__':

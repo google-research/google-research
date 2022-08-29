@@ -20,7 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow
+tf = tensorflow.compat.v1
 
 
 def input_producer(raw_data, batch_size, num_steps, shuffle=False,

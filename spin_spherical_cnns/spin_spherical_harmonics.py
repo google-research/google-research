@@ -181,17 +181,22 @@ class SpinSphericalFourierTransformer:
 
     return coeffs
 
-  def _compute_Inm(self, sphere, spin):  # pylint: disable=invalid-name
+  def _compute_Inm(self, sphere, spin, ell_max=None):  # pylint: disable=invalid-name
     """See np_spin_spherical_harmonics._compute_Inm()."""
-    ell_max = sphere_utils.ell_max_from_resolution(sphere.shape[0])
+    if ell_max is None:
+      ell_max = sphere_utils.ell_max_from_resolution(sphere.shape[0])
     coeffs = self._extend_sphere_fft(sphere, spin)
 
+    # Disable the type check here due to bug in pylint
+    # (https://github.com/PyCQA/astroid/issues/791).
+    # pylint: disable=invalid-unary-operand-type
     rows1 = jnp.concatenate([coeffs[:ell_max + 1, :ell_max + 1],
                              coeffs[:ell_max + 1, -ell_max:]],
                             axis=1)
     rows2 = jnp.concatenate([coeffs[-ell_max:, :ell_max + 1],
                              coeffs[-ell_max:, -ell_max:]],
                             axis=1)
+    # pylint: enable=invalid-unary-operand-type
 
     return jnp.concatenate([rows1, rows2], axis=0)
 
@@ -359,27 +364,32 @@ class SpinSphericalFourierTransformer:
     """Same as `swsft_backward` but with fewer operations."""
     return self._swsft_backward_base(coeffs, spin, use_symmetry=True)
 
-  def swsft_forward_spins_channels(self,
-                                   sphere_set,
-                                   spins):
+  def swsft_forward_spins_channels(
+      self,
+      sphere_set,
+      spins,
+      ell_max = None):
     """Applies swsft_forward() to multiple stacked spins and channels.
 
     Args:
       sphere_set: An (n, n, n_spins, n_channels) array representing a spherical
         functions. Equirectangular sampling, leading dimensions are lat, long.
       spins: An (n_spins,) list of int spin weights.
+      ell_max: Maximum output frequency ell. If None, use `n//2 - 1`.
 
     Returns:
-      An (n//2, n-1, n_spins, n_channels) complex64 array of coefficients.
+      An (ell_max+1, n-1, n_spins, n_channels) complex64 array of coefficients.
     """
     for spin in spins:
       if not self.validate(resolution=sphere_set.shape[0], spin=spin):
         raise ValueError("Constants are invalid for given input!")
 
-    ell_max = sphere_utils.ell_max_from_resolution(sphere_set.shape[0])
+    if ell_max is None:
+      ell_max = sphere_utils.ell_max_from_resolution(sphere_set.shape[0])
+
     expanded_spins = jnp.expand_dims(jnp.array(spins), [0, 1, 3])
     Inm = jnp.fft.fftshift(  # pylint: disable=invalid-name
-        self._compute_Inm(sphere_set, expanded_spins),
+        self._compute_Inm(sphere_set, expanded_spins, ell_max=ell_max),
         axes=(0, 1))
 
     deltas = self._slice_wigner_deltas(ell_max, include_negative_m=True)

@@ -22,6 +22,7 @@ from shapely import geometry
 from aux_tasks.puddle_world import puddle_world
 
 
+
 def rectangle(p1, p2):
   p1, p2, p3, p4 = (p1.x, p1.y), (p2.x, p1.y), (p2.x, p2.y), (p1.x, p2.y)
   return geometry.Polygon([p1, p2, p3, p4])
@@ -246,8 +247,8 @@ class PuddleWorldTest(parameterized.TestCase):
     self.assertBetween(transition.next_state.x, 0.0, 1.0)
     self.assertBetween(transition.next_state.y, 0.0, 1.0)
 
-  # TODO(joshgreaves): Test for terminal calculation.
-  # TODO(joshgreaves): Test noise is applied correctly.
+  # TODO: Test for terminal calculation.
+  # TODO: Test noise is applied correctly.
 
 if __name__ == '__main__':
   absltest.main()

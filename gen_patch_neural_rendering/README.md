@@ -1,6 +1,7 @@
 # Generalizable Patch-Based Neural Rendering
 
 This is a JAX/Flax implementation of our ECCV-2022 oral paper "Generalizable Patch-Based Neural Rendering".
+### [Project Page](https://mohammedsuhail.net/gen_patch_neural_rendering/) | [Paper](https://arxiv.org/abs/2207.10662)
 
 ## Installation
 The following code snippet clones the repo and installs dependencies.
@@ -84,6 +85,5 @@ To render a video just run the evaluation script with
   author={Suhail, Mohammed and Esteves, Carlos and Sigal, Leonid and Makadia, Ameesh},
   booktitle={European Conference on Computer Vision},
   year={2022},
-  organization={Springer}
+  organization={Springer}}
 ```
-}

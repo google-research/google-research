@@ -50,6 +50,7 @@ class SpinSphericalBlock(nn.Module):
     spins_out: A sequence of output spin weights.
     downsampling_factor: How much to downsample before applying the
       convolution. Will not downsample when downsampling_factor==1.
+    spectral_pooling: When True, halve input dimensions via spectral pooling.
     axis_name: Identifier for the mapped axis in parallel training.
     after_conv_module: Module to apply after convolution. Usually a
       non-linearity or batch norm + non-linearity. Must follow the
@@ -61,6 +62,7 @@ class SpinSphericalBlock(nn.Module):
   spins_in: Sequence[int]
   spins_out: Sequence[int]
   downsampling_factor: int
+  spectral_pooling: bool
   axis_name: Any
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
   after_conv_module: Type[
@@ -85,7 +87,11 @@ class SpinSphericalBlock(nn.Module):
         downsampling_factor, n_spins_out, num_channels) complex64 array.
     """
     feature_maps = inputs
-    if self.downsampling_factor != 1:
+    apply_spatial_pooling = (self.downsampling_factor != 1 and
+                             not self.spectral_pooling)
+    apply_spectral_pooling = (self.downsampling_factor != 1 and
+                              self.spectral_pooling)
+    if apply_spatial_pooling:
       feature_maps = layers.SphericalPooling(
           stride=self.downsampling_factor, name='spherical_pool')(feature_maps)
 
@@ -94,6 +100,7 @@ class SpinSphericalBlock(nn.Module):
         spins_in=self.spins_in,
         spins_out=self.spins_out,
         num_filter_params=self.num_filter_params,
+        spectral_pooling=apply_spectral_pooling,
         transformer=self.transformer,
         name='spherical_conv')(feature_maps)
 
@@ -114,6 +121,7 @@ class SpinSphericalClassifier(nn.Module):
       triggers inclusion of a pooling layer.
     spins: A (n_layers,) list of (n_spins,) lists of spin weights per layer.
     widths: (n_layers,) list of width per layer (number of channels).
+    spectral_pooling: When True, use spectral instead of spatial pooling.
     axis_name: Identifier for the mapped axis in parallel training.
     num_filter_params: (n_layers,) the number of filter parameters per layer.
     input_transformer: None, or SpinSphericalFourierTransformer
@@ -123,6 +131,7 @@ class SpinSphericalClassifier(nn.Module):
   resolutions: Sequence[int]
   spins: Sequence[Sequence[int]]
   widths: Sequence[int]
+  spectral_pooling: bool
   axis_name: Any
   num_filter_params: Optional[Sequence[int]] = None
   input_transformer: Optional[
@@ -168,6 +177,7 @@ class SpinSphericalClassifier(nn.Module):
                              spins_in=spins_in,
                              spins_out=spins_out,
                              downsampling_factor=downsampling_factor,
+                             spectral_pooling=self.spectral_pooling,
                              num_filter_params=num_filter_params,
                              axis_name=self.axis_name,
                              transformer=self.transformer,
@@ -277,6 +287,7 @@ def tiny_classifier(num_classes, axis_name=None, input_transformer=None):
                                  resolutions=(8, 4),
                                  spins=((0,), (0, 1)),
                                  widths=(1, 3),
+                                 spectral_pooling=True,
                                  axis_name=axis_name,
                                  input_transformer=input_transformer)
 
@@ -294,6 +305,7 @@ def spin_classifier_6_layers(num_classes, axis_name):
                                  resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                                  spins=spins,
                                  widths=widths,
+                                 spectral_pooling=False,
                                  num_filter_params=num_filter_params_per_layer,
                                  axis_name=axis_name)
 
@@ -310,6 +322,7 @@ def spherical_classifier_6_layers(num_classes, axis_name):
                                  resolutions=_SMALL_CLASSIFIER_RESOLUTIONS,
                                  spins=spins,
                                  widths=widths,
+                                 spectral_pooling=False,
                                  num_filter_params=num_filter_params_per_layer,
                                  axis_name=axis_name)
 

@@ -147,9 +147,12 @@ class AquademBuilder(builders.ActorLearnerBuilder):
       replay_client):
     return self._rl_agent.make_dataset_iterator(replay_client)
 
-  def make_adder(self,
-                 replay_client):
-    return self._rl_agent.make_adder(replay_client)
+  def make_adder(
+      self, replay_client,
+      environment_spec,
+      policy
+  ):
+    return self._rl_agent.make_adder(replay_client, environment_spec, policy)
 
   def make_actor(
       self,

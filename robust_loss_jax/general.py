@@ -25,6 +25,18 @@ import jax
 import jax.numpy as jnp
 
 
+@jax.custom_jvp
+def fake_clip(a, a_min, a_max):
+  """jnp.clip() but the gradient doesn't get clipped on the backward pass."""
+  return jnp.clip(a, a_min, a_max)
+
+
+@fake_clip.defjvp
+def fake_clip_jvp(primals, tangents):
+  """Override fake_clip()'s gradient so that it's a no-op."""
+  return jnp.clip(*primals), tangents[0]
+
+
 @jax.jit
 def lossfun(x, alpha, scale):
   r"""Implements the general form of the loss.
@@ -56,30 +68,35 @@ def lossfun(x, alpha, scale):
     The losses for each element of x, in the same shape as x.
   """
   eps = jnp.finfo(jnp.float32).eps
+  maxval = 1e15
+
+  # A "safe" versions of expm1 that will not NaN-out on large inputs.
+  expm1_safe = lambda x: jnp.expm1(jnp.minimum(x, 43))
 
   # `scale` must be > 0.
   scale = jnp.maximum(eps, scale)
 
+  # Large values of |x| can cause non-finite gradients.
+  x = fake_clip(x, -maxval, maxval)
+
   # The loss when alpha == 2. This will get reused repeatedly.
   loss_two = 0.5 * (x / scale)**2
 
-  # "Safe" versions of log1p and expm1 that will not NaN-out.
-  log1p_safe = lambda x: jnp.log1p(jnp.minimum(x, 3e37))
-  expm1_safe = lambda x: jnp.expm1(jnp.minimum(x, 87.5))
-
-  # The loss when not in one of the special casess.
   # Clamp |alpha| to be >= machine epsilon so that it's safe to divide by.
   a = jnp.where(alpha >= 0, jnp.ones_like(alpha),
                 -jnp.ones_like(alpha)) * jnp.maximum(eps, jnp.abs(alpha))
+
   # Clamp |2-alpha| to be >= machine epsilon so that it's safe to divide by.
-  b = jnp.maximum(eps, jnp.abs(alpha - 2))
-  loss_ow = (b / a) * ((loss_two / (0.5 * b) + 1)**(0.5 * alpha) - 1)
+  b = jnp.maximum(eps, jnp.abs(a - 2))
+
+  # The loss when not in one of the special casess.
+  loss_ow = (b / a) * ((loss_two / (0.5 * b) + 1)**(0.5 * a) - 1)
 
   # Select which of the cases of the loss to return as a function of alpha.
   return jnp.where(
       alpha == -jnp.inf, -expm1_safe(-loss_two),
       jnp.where(
-          alpha == 0, log1p_safe(loss_two),
+          alpha == 0, jnp.log1p(loss_two),
           jnp.where(alpha == 2, loss_two,
                     jnp.where(alpha == jnp.inf, expm1_safe(loss_two),
                               loss_ow))))

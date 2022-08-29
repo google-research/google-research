@@ -1,0 +1,6 @@
+jax
+flax
+numpy
+absl-py
+chex
+ml_collections

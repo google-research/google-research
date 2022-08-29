@@ -6,6 +6,12 @@
 
 > In the era of deep learning, human pose estimation from multiple cameras with unknown calibration has received little attention to date. We show how to train a neural model to perform this task with high precision and minimal latency overhead. The proposed model takes into account joint location uncertainty due to occlusion from multiple views, and requires only 2D keypoint data for training. Our method outperforms both classical bundle adjustment and weakly-supervised monocular 3D baselines on the well-established Human3.6M dataset, as well as the more challenging in-the-wild Ski-Pose PTZ dataset.
 
+<img src="https://metapose.github.io/task.png" alt="metapose task" style="width:600px;"/>
+
+![MetaPose demo](https://storage.googleapis.com/gresearch/metapose/demo.gif)
+
+We provide more <a href="https://drive.google.com/drive/u/1/folders/1MrD9lvfz2keG58LoBx3X_pptBja-TQmY">[demo videos]</a> on Human36M, SkiPose and KTH Multiview Football II.
+
 If you use any of this code or its derivatives, please consider citing our work:
 
 ```
@@ -20,10 +26,21 @@ If you use any of this code or its derivatives, please consider citing our work:
 
 Contact: usmn@google.com
 
+### Checking out the code
+
+```
+svn export https://github.com/google-research/google-research/trunk/metapose
+```
+
 ### Data + checkpoints
 
-Will be released soon. Please reach out to usmn@google.com to get notified when
-the data is released.
+```
+wget http://storage.googleapis.com/gresearch/metapose/metapose.tar
+tar xvf metapose.tar
+export DATA_ROOT=$(pwd)/metapose
+```
+
+**Disclaimer**: the test split of Human3.6M (subjects 9+11) used by the majority of prior work to compare the performance of pose estimation models contains only male actors; in the future, this might promote work that fails silently on female subjects; we would like to encourage authors to explore more balanced testing setups in future research.
 
 ### Requirements
 

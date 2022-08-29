@@ -6,8 +6,7 @@ Work in progress:
 "Multi-Game Decision Transformers"
 Kuang-Huei Lee*, Ofir Nachum*, Mengjiao Yang, Lisa Lee, Daniel Freeman, Winnie Xu, Sergio Guadarrama, Ian Fischer, Eric Jang, Henryk Michalewski, Igor Mordatch*
 
-https://arxiv.org/abs/ [Coming soon]
-
+[Paper](https://arxiv.org/abs/2205.15241)
 
 ## Abstract
 
@@ -28,4 +27,5 @@ Videos and additional information can be seen at https://sites.google.com/view/m
 
 ## Colab
 
-We will release the pre-trained models and code to encourage further research in this direction. [Coming soon]
+The [colab](Multi_game_decision_transformers_public_colab.ipynb) loads a checkpoint
+and evaluates on a given Atari game.

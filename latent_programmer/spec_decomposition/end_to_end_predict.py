@@ -18,10 +18,11 @@
 # pytype: disable=wrong-arg-count
 # pytype: disable=attribute-error
 
-import collections
 import functools
 import os
+import statistics
 import sys
+import timeit
 
 from absl import app
 from absl import flags
@@ -57,6 +58,7 @@ flags.DEFINE_integer('beam_size', 4, 'Beam size')
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 flags.DEFINE_string('test_dataset_filepattern', None,
                     'Filepattern for TFRecord test dataset.')
+flags.DEFINE_integer('num_test_batches', 200, 'Number of test batches.')
 flags.DEFINE_integer('num_strings_per_task', 4,
                      'Number of input/output strings per task.')
 flags.DEFINE_integer('max_characters', 120,
@@ -385,6 +387,7 @@ def main(_):
                                    FLAGS.num_strings_per_task)
   test_dataset = test_dataset.padded_batch(
       batch_size, padded_shapes=padded_shapes, drop_remainder=False)
+  test_dataset = test_dataset.take(FLAGS.num_test_batches)
 
   # TODO(jxihong): Implement fast decoding.
   assert FLAGS.slow_decode, 'Fast decoding is not implemented yet.'
@@ -510,92 +513,291 @@ def main(_):
   # ---------------------------------------------------------------------------
 
   # TODO(jxihong): End-to-end loop needs to be batched.
-  spec_decomposer_pred_step = functools.partial(
-      predict_step,
-      eos_token=eos_id,
-      max_decode_len=FLAGS.max_spec_part_length,
-      config=spec_decomposer_predict_config,
-      slow_decode=FLAGS.slow_decode)
-  synthesizer_pred_step = functools.partial(
-      predict_step,
-      eos_token=eos_id,
-      max_decode_len=FLAGS.max_program_length,
-      config=synthesizer_predict_config,
-      slow_decode=FLAGS.slow_decode)
+  spec_decomposer_pred_step = jax.jit(
+      functools.partial(predict_step,
+                        eos_token=eos_id,
+                        max_decode_len=FLAGS.max_spec_part_length,
+                        config=spec_decomposer_predict_config,
+                        slow_decode=FLAGS.slow_decode),
+      static_argnums=(4,))
+  synthesizer_pred_step = jax.jit(
+      functools.partial(predict_step,
+                        eos_token=eos_id,
+                        max_decode_len=FLAGS.max_spec_part_length,
+                        config=synthesizer_predict_config,
+                        slow_decode=FLAGS.slow_decode),
+      static_argnums=(4,))
 
-  num_success = 0
-  total = 0
-  results = collections.defaultdict(list)
-  for batch in test_dataset.as_numpy_iterator():
+  # ----------------------------------------------------------------------------
+  # A discussion of metrics we collect.
+  #
+  # * Every test problem is either a success or failure at the end.
+  # * Every test problem either encounters no errors, or the first error is
+  #   caused by the SpecDecomposerModel or caused by the SynthesizerModel.
+  # * Thus, every test problem contributes to one cell in the below table, such
+  #   that A+B+C+D+E+F = (total number of test problems).
+  #
+  #                 |           | First error from    | First error from
+  #                 | No errors | SpecDecomposerModel | SynthesizerModel
+  # --------------------------------------------------------------------
+  # Overall success |     A     |          B          |        C
+  # Overall failure |   D = 0   |          E          |        F
+  #
+  # In the code we name these scenarios A-F.
+  #
+  # Metrics we send to TensorBoard:
+  # * All of A-F (except D=0) individually
+  # * Total success rate: (A + B + C) / (A + B + C + D + E + F)
+  # * Fraction of failures caused by SpecDecomposerModel: E / (E + F)
+  # * Fraction of failures caused by SynthesizerModel: F / (E + F)
+  # * Recovery rate when SpecDecomposerModel errors: B / (B + E)
+  # * Recovery rate when SynthesizerModel errors: C / (C + F)
+  # * Overall recovery rate when an error occurs: (B + C) / (B + C + E + F)
+  # * Fraction of recovered errors among successes: (B + C) / (A + B + C)
+  # * Additionally, other things unrelated to these numbers, like timing info.
+  # ----------------------------------------------------------------------------
+  metric_a = 0
+  metric_b = 0
+  metric_c = 0
+  metric_e = 0
+  metric_f = 0
+
+  successes = []
+  total_times = []
+  spec_part_times = []
+  synthesizer_times = []
+  copy_batch_times = []
+  num_steps = []
+  num_ground_truth_steps = []
+
+  for test_example_index, batch in enumerate(test_dataset.as_numpy_iterator()):
+    do_logging = test_example_index < 20
+    test_example_start_time = timeit.default_timer()
+
     inputs, outputs = batch['inputs'], batch['outputs']
-    results['inputs'].append(','.join(
-        [decode_spec(input) for input in inputs[0]]))
-    results['outputs'].append(','.join(
-        [decode_spec(output) for output in outputs[0]]))
+    decoded_inputs = [decode_spec(i) for i in inputs[0]]
+    ground_truth = robust_fill_dsl.decode_program(
+        process_predicted_program(batch['target'][0], add_eos=True),
+        program_id_token_table)
+    ground_truth_length = len(ground_truth.expressions)
 
-    predicted_program = []
-    predicted_spec_parts_all = ''
+    if do_logging:
+      inputs_str = '\n  '.join(decoded_inputs)
+      outputs_str = '\n  '.join([decode_spec(o) for o in outputs[0]])
+      logging.info('Starting test example #%s:\n'
+                   'inputs = %s\noutputs = %s',
+                   test_example_index, inputs_str, outputs_str)
+      tb_message = '```\n'
+      tb_message += f'inputs:\n  {inputs_str}\noutputs:\n  {outputs_str}\n\n'
+
+    predicted_program_tokens = []
     valid = True
     done = False
     remaining_outputs = np.copy(outputs)
+
     # End-to-end prediction loop.
+    step_index = 0
+    first_error = None
     while valid and not done:
+      start_time = timeit.default_timer()
       predicted_spec_parts = spec_decomposer_pred_step(
           spec_decomposer_optimizer.target,
           inputs,
           remaining_outputs,
           cache=None,
           beam_size=FLAGS.beam_size)
+      spec_part_times.append(timeit.default_timer() - start_time)
+
+      start_time = timeit.default_timer()
+      spec_parts_batch = np.array(predicted_spec_parts)
+      copy_batch_times.append(timeit.default_timer() - start_time)
+
       valid, done, current_outputs, remaining_outputs = split_spec(
-          np.array(predicted_spec_parts)[0], remaining_outputs[0],
+          spec_parts_batch[0], remaining_outputs[0],
           max_target_length=FLAGS.max_characters)
-      predicted_spec_parts_all += ','.join(
-          [decode_spec(output) for output in current_outputs])
-      predicted_spec_parts_all += ';'
+
+      ground_truth_program_part = (
+          ground_truth.expressions[step_index]
+          if step_index < ground_truth_length
+          else '[step index out of bounds]')
+      ground_truth_output_parts = (
+          [ground_truth_program_part(i) for i in decoded_inputs]
+          if step_index < ground_truth_length
+          else '[step index out of bounds]')
+      predicted_output_parts = [decode_spec(o) for o in current_outputs]
+      matches = predicted_output_parts == ground_truth_output_parts
+      if not matches and first_error is None:
+        first_error = f'SpecDecomposerModel at step #{step_index + 1}'
+
+      if do_logging:
+        logging.info('  SpecDecomposerModel prediction time: %.4f sec, '
+                     'beam_size = %s', spec_part_times[-1], FLAGS.beam_size)
+        logging.info('  Copy spec_parts_batch from JAX to numpy time: %.4f sec',
+                     copy_batch_times[-1])
+        tb_message += (
+            f'step #{step_index + 1}:\n'
+            f'  ground truth output parts:           {ground_truth_output_parts}\n'
+            f'  SpecDecomposerModel predicted parts: {predicted_output_parts}\n'
+            f'    matches: {matches}, valid: {valid}, done: {done}\n')
+
       if not valid:
+        step_index += 1  # Count this partial step in metrics.
         break
 
       # Add back batch dimension.
       current_outputs, remaining_outputs = (current_outputs[None, Ellipsis],
                                             remaining_outputs[None, Ellipsis])
-      predicted_program_parts = synthesizer_pred_step(
+
+      start_time = timeit.default_timer()
+      predicted_program_part_tokens_batch = synthesizer_pred_step(
           synthesizer_optimizer.target,
           inputs,
           current_outputs,
           cache=None,
           beam_size=FLAGS.beam_size)
-      predicted_program_parts = process_predicted_program(
-          np.array(predicted_program_parts)[0], add_eos=False)
-      predicted_program.extend(predicted_program_parts)
+      synthesizer_times.append(timeit.default_timer() - start_time)
 
-    program, predicted_outputs, success = eval_predicted_program(
-        predicted_program + [eos_id], inputs[0], outputs[0])
-    results['predictions'].append(program)
-    results['predicted_spec_parts'].append(predicted_spec_parts_all)
-    results['predicted_outputs'].append(','.join(predicted_outputs))
-    ground_truth = process_predicted_program(batch['target'][0], add_eos=True)
-    results['ground_truths'].append(
-        robust_fill_dsl.decode_program(ground_truth, program_id_token_table))
-    if success:
-      num_success += 1
-    total += 1
+      predicted_program_part_tokens = process_predicted_program(
+          np.array(predicted_program_part_tokens_batch)[0], add_eos=False)
+      predicted_program_tokens.extend(predicted_program_part_tokens)
 
-  # Record beam search results as text summaries.
-  message = []
-  for n in np.random.choice(np.arange(total), 20):
-    text = (f"inputs: {results['inputs'][n]}\n\n"
-            f"outputs: {results['outputs'][n]}\n\n"
-            f"ground_truth: {results['ground_truths'][n]}\n\n"
-            f"predicted: {results['predictions'][n]}\n\n"
-            f"predicted_spec_parts: {results['predicted_spec_parts'][n]}\n\n"
-            f"predicted_outputs: {results['predicted_outputs'][n]}\n\n")
-    message.append(text)
+      predicted_program_part = robust_fill_dsl.decode_program(
+          predicted_program_part_tokens + [eos_id], program_id_token_table)
+      program_outputs = [predicted_program_part(i) for i in decoded_inputs]
+      functionally_correct = program_outputs == predicted_output_parts
+      if not functionally_correct and first_error is None:
+        first_error = f'SynthesizerModel at step #{step_index + 1}'
 
-  # Write to tensorboard.
+      if do_logging:
+        logging.info('  synthesizer_pred_step: time = %.4f sec, '
+                     'beam_size = %s', synthesizer_times[-1], FLAGS.beam_size)
+        tb_message += (
+            f'  SynthesizerModel program outputs:    {program_outputs}\n'
+            f'    functionally correct: {functionally_correct}\n'
+            f'  ground truth program part:               {ground_truth_program_part}\n'
+            f'  SynthesizerModel predicted program part: {predicted_program_part}\n'
+        )
+
+      step_index += 1
+
+    program, _, success = eval_predicted_program(
+        predicted_program_tokens + [eos_id], inputs[0], outputs[0])
+
+    successes.append(success)
+    num_steps.append(step_index)
+    num_ground_truth_steps.append(ground_truth_length)
+    total_times.append(timeit.default_timer() - test_example_start_time)
+
+    if first_error is None:
+      if success:
+        metric_a += 1
+      else:
+        raise ValueError('Test problem was failure but first_error is None')
+    elif first_error.startswith('SpecDecomposerModel'):
+      if success:
+        metric_b += 1
+      else:
+        metric_e += 1
+    elif first_error.startswith('SynthesizerModel'):
+      if success:
+        metric_c += 1
+      else:
+        metric_f += 1
+    else:
+      raise ValueError(f'Unhandled first_error: {first_error}')
+
+    if do_logging:
+      logging.info('Total time for test example: %.2f sec\n',
+                   total_times[-1])
+      tb_message += (
+          f'\npredicted_program: {program}\n'
+          f'ground_truth:      {ground_truth}\n'
+          f'num steps taken:        {step_index}\n'
+          f'num ground truth steps: {ground_truth_length}\n\n'
+          f'overall success: {success}\n'
+          f'first error: {first_error}\n'
+      )
+      tb_message += 'total_time: {:.1f} sec\n'.format(total_times[-1])
+      tb_message += '```'
+      summary_writer.text(f'predictions_{test_example_index}',
+                          tb_message, 0)
+      summary_writer.flush()
+
+  # Compute overall metrics and write to tensorboard.
+  num_success = sum(successes)
+  total = len(successes)
+  num_failure = total - num_success
+  assert num_success == metric_a + metric_b + metric_c
+  assert num_failure == metric_e + metric_f
+  assert (len(total_times) == len(num_steps) == len(num_ground_truth_steps)
+          == total)
+
   if jax.host_id() == 0:
-    accuracy = 100 * num_success / total
-    summary_writer.scalar('accuracy', accuracy, 0)
-    summary_writer.text('predictions', '\n------\n'.join(message), 0)
+    summary_writer.scalar('raw/# success & no errors', metric_a, 0)
+    summary_writer.scalar('raw/# success & SpecDecomposerModel error', metric_b,
+                          0)
+    summary_writer.scalar('raw/# success & SynthesizerModel error', metric_c, 0)
+    summary_writer.scalar('raw/# failure & SpecDecomposerModel error', metric_e,
+                          0)
+    summary_writer.scalar('raw/# failure & SynthesizerModel error', metric_f, 0)
+
+    summary_writer.scalar('main/total success rate',
+                          100 * num_success / total, 0)
+    summary_writer.scalar(
+        'main/failures from SpecDecomposerModel, among all failures',
+        100 * metric_e / num_failure, 0)
+    summary_writer.scalar(
+        'main/failures from SynthesizerModel, among all failures',
+        100 * metric_f / num_failure, 0)
+
+    summary_writer.scalar(
+        'error_recovery/specDecomposerModel error recovery rate',
+        100 * metric_b / (metric_b + metric_e), 0)
+    summary_writer.scalar(
+        'error_recovery/synthesizerModel error recovery rate',
+        100 * metric_c / (metric_c + metric_f), 0)
+    summary_writer.scalar(
+        'error_recovery/error recovery rate',
+        100 * (metric_b + metric_c) / (
+            metric_b + metric_c + metric_e + metric_f), 0)
+    summary_writer.scalar(
+        'error_recovery/recovered errors among successes',
+        100 * (metric_b + metric_c) / num_success, 0)
+
+    summary_writer.scalar('steps/avg. steps taken',
+                          statistics.mean(num_steps), 0)
+    summary_writer.scalar('steps/avg. ground-truth steps',
+                          statistics.mean(num_ground_truth_steps), 0)
+    summary_writer.scalar(
+        'steps/success and (taken > ground truth steps), among all successes',
+        len([0 for taken, gt, success in zip(num_steps,
+                                             num_ground_truth_steps, successes)
+             if taken > gt and success]) / num_success * 100, 0)
+    summary_writer.scalar(
+        'steps/success and (taken < ground truth steps), among all successes',
+        len([0 for taken, gt, success in zip(num_steps,
+                                             num_ground_truth_steps, successes)
+             if taken < gt and success]) / num_success * 100, 0)
+    summary_writer.scalar(
+        'steps/failure and (taken > ground truth steps), among all failures',
+        len([0 for taken, gt, success in zip(num_steps,
+                                             num_ground_truth_steps, successes)
+             if taken > gt and not success]) / num_failure * 100, 0)
+    summary_writer.scalar(
+        'steps/failure and (taken < ground truth steps), among all failures',
+        len([0 for taken, gt, success in zip(num_steps,
+                                             num_ground_truth_steps, successes)
+             if taken < gt and not success]) / num_failure * 100, 0)
+
+    summary_writer.scalar('time/total time per problem',
+                          statistics.mean(total_times), 0)
+    summary_writer.scalar('time/per SpecDecomposerModel call',
+                          statistics.mean(spec_part_times), 0)
+    summary_writer.scalar('time/per SynthesisModel call',
+                          statistics.mean(synthesizer_times), 0)
+    summary_writer.scalar('time/per copy of batch of predicted spec parts',
+                          statistics.mean(copy_batch_times), 0)
+
     summary_writer.flush()
 
 if __name__ == '__main__':

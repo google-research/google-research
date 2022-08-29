@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Monte Carlo fisrt visit implementation."""
+"""Monte Carlo first visit implementation."""
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm import tqdm
+import tqdm
 
 
 def mc_first_visit(env,
@@ -24,7 +24,7 @@ def mc_first_visit(env,
                    num_episodes=100,
                    gamma_tasks=np.array([0.9, 0.99])):
   """Monte Carlo fisrt visit implementation."""
-  for _ in tqdm(range(num_epochs)):
+  for _ in tqdm.tqdm(range(num_epochs)):
     values = dict(
         zip(
             gamma_tasks,
@@ -38,7 +38,7 @@ def mc_first_visit(env,
         )
     )
 
-    for _ in tqdm(range(num_episodes)):
+    for _ in tqdm.tqdm(range(num_episodes)):
       transitions = []
 
       # Collect an episodes worth of data
@@ -78,8 +78,8 @@ def mc_first_visit(env,
 
       # Plot the value function for a sanity check
       grid = np.zeros((env.width, env.height))
-      for index, v in enumerate(V[:, index]):
-        pos = env.state_to_pos[id]
+      for index, v in enumerate(V[:, idx]):
+        pos = env.state_to_pos[index]
         grid[tuple(pos)] = v
 
       plt.matshow(grid.T)

@@ -265,7 +265,7 @@ def _get_coarse_value(input_img):
   total_pos_neg = tf.math.add(positives, negatives)
   return tf.cond(
       tf.equal(total_pos_neg, 0), lambda: tf.constant(-1.0, dtype=tf.float32),
-      lambda: tf.cast(tf.math.divide(positives, total_pos_neg)))
+      lambda: tf.cast(tf.math.divide(positives, total_pos_neg)))  # pytype: disable=missing-parameter
 
 
 def _get_coarse_label(input_img,

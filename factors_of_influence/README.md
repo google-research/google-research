@@ -6,6 +6,7 @@ Mapillary, Pascal VOC, Pascal context, ScanNet, SUNRGBD, WildDash, iSAID, ISPRS,
 Stanford Dogs, SUIM, Underwater Trash, vGallery, and vKITTI2.
 
 ![](imgs/fids_datasets_table.png)
+(Listing 19 out of 20 datasets, WildDash is omitted, see below for details.)
 
 In particular, our TFDS interfaces provides for each dataset standardized 
 features with standardized feature names to facilitate seamlessly running 
@@ -39,6 +40,12 @@ These datasets were used in our TPAMI paper:
 ```
 
 ![](imgs/fids_datasets.jpg)
+(Illustration of 19 out of 20 datasets, WildDash is omitted, see below for details.)
+
+### Notes
+
+1. While WildDash is in the released collection of datasets it is not used in our paper / experiments. The reason is that both the train and validation set are identical in the current implementation.
+2. MPII Human Pose is used in our paper / experiments, but not included in the current release. The reason is that for parsing the ground-truth internal tools are used. 
 
 # Download and Prepare
 In order to use the TFDS interface, all datasets needs to be downloaded and 

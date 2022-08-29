@@ -20,6 +20,7 @@ from absl import flags
 import acme
 from acme import specs
 from acme.agents.jax import dqn
+from acme.jax import networks as networks_lib
 from acme.jax.layouts import local_layout
 from acme.utils import loggers
 import jax
@@ -66,12 +67,15 @@ def main(_):
 
   # Create networks.
   q_network = aquadem_networks.make_q_network(spec=discretized_spec,)
+  dqn_networks = dqn.DQNNetworks(
+      policy_network=networks_lib.non_stochastic_network_to_typed(q_network))
   networks = aquadem_networks.make_action_candidates_network(
       spec=spec,
       num_actions=aqua_config.num_actions,
-      discrete_rl_networks=q_network)
+      discrete_rl_networks=dqn_networks)
   exploration_epsilon = 0.01
-  discrete_policy = dqn.default_behavior_policy(q_network, exploration_epsilon)
+  discrete_policy = dqn.default_behavior_policy(dqn_networks,
+                                                exploration_epsilon)
   behavior_policy = aquadem_builder.get_aquadem_policy(discrete_policy,
                                                        networks)
 
@@ -88,7 +92,7 @@ def main(_):
   train_loop = acme.EnvironmentLoop(environment, agent, logger=train_logger)
 
   # Create the evaluation actor and loop.
-  eval_policy = dqn.default_behavior_policy(q_network, 0.)
+  eval_policy = dqn.default_behavior_policy(dqn_networks, 0.)
   eval_policy = aquadem_builder.get_aquadem_policy(eval_policy, networks)
   eval_actor = builder.make_actor(
       random_key=jax.random.PRNGKey(FLAGS.seed),

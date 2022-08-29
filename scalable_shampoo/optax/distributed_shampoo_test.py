@@ -161,51 +161,45 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
                                                                [200., 4.]]),
                                                     jnp.array([[600., 2.],
                                                                [600., 2.]])))
+    self.rng = np.random.default_rng(1234)
 
   @chex.all_variants(with_pmap=False)
   @parameterized.named_parameters(
       {
           'testcase_name': 'default',
           'best_effort_memory_usage_reduction': True,
-          'symmetric_block_size': None,
-          'block_statistics': False
       },
       {
           'testcase_name': 'materialize_statistics',
           'best_effort_memory_usage_reduction': True,
           'symmetric_block_size': 2,
-          'block_statistics': False
       },
       {
           'testcase_name': 'blocked_statistics',
           'best_effort_memory_usage_reduction': True,
           'symmetric_block_size': 2,
-          'block_statistics': True
       },
       {
           'testcase_name': 'default_quantized',
-          'best_effort_memory_usage_reduction': False,
-          'symmetric_block_size': None,
-          'block_statistics': False
       },
       {
           'testcase_name': 'materialize_statistics_quantized',
-          'best_effort_memory_usage_reduction': False,
           'symmetric_block_size': 2,
-          'block_statistics': False
       },
       {
           'testcase_name': 'blocked_statistics_quantized',
-          'best_effort_memory_usage_reduction': False,
           'symmetric_block_size': 2,
-          'block_statistics': True
+      },
+      {
+          'testcase_name': 'no_training_metrics',
+          'generate_training_metrics': False,
       },
   )
   def test_distributed_shampoo(
       self,
-      best_effort_memory_usage_reduction,
-      symmetric_block_size,
-      block_statistics,
+      best_effort_memory_usage_reduction=False,
+      symmetric_block_size=None,
+      generate_training_metrics=True,
   ):
     params = self.init_params
 
@@ -215,6 +209,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         batch_axis_name='batch',
         preconditioning_compute_steps=2,
         best_effort_memory_usage_reduction=best_effort_memory_usage_reduction,
+        generate_training_metrics=generate_training_metrics,
     )
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
@@ -232,7 +227,16 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
     chex.assert_tree_all_finite((params, updates, state))
 
   @chex.all_variants(with_pmap=False)
-  def test_distributed_shampoo_no_pmap(self):
+  @parameterized.named_parameters([
+      {
+          'testcase_name': 'default',
+      },
+      {
+          'testcase_name': 'no_training_metrics',
+          'generate_training_metrics': False,
+      },
+  ])
+  def test_distributed_shampoo_no_pmap(self, generate_training_metrics=True):
     params = self.init_params
 
     optim = distributed_shampoo.distributed_shampoo(
@@ -240,7 +244,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         32,
         batch_axis_name=None,
         preconditioning_compute_steps=2,
-    )
+        generate_training_metrics=generate_training_metrics)
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
     state = init_fn(params)
@@ -248,29 +252,74 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
     updates, state = transform_fn(self.per_step_updates, state, params)
     chex.assert_tree_all_finite((params, updates, state))
 
+  def _gen_symmetrix_matrix(self, dim, condition_number):
+    u = scipy.stats.ortho_group.rvs(
+        dim=dim, random_state=self.rng).astype(np.float64)
+    v = u.T
+    diag = np.diag([condition_number**(-i / (dim - 1)) for i in range(dim)])
+    return u @ diag @ v
+
   def test_matrix_inverse_root(self):
     """Test for matrix inverse pth root."""
-
-    def _gen_symmetrix_matrix(dim, condition_number):
-      u = scipy.stats.ortho_group.rvs(dim=dim).astype(np.float64)
-      v = u.T
-      diag = np.diag([condition_number**(-i / (dim - 1)) for i in range(dim)])
-      return u @ diag @ v
 
     # Fails after it reaches a particular condition number.
     for e in range(2, 12):
       condition_number = 10**e
-      ms = _gen_symmetrix_matrix(16, condition_number)
+      ms = self._gen_symmetrix_matrix(16, condition_number)
       self.assertLess(
           np.abs(np.linalg.cond(ms) - condition_number),
           condition_number * 0.01)
-      error = distributed_shampoo.matrix_inverse_pth_root(
+      metrics = distributed_shampoo.matrix_inverse_pth_root(
           ms.astype(np.float32), 4, ridge_epsilon=1e-12)[1]
+      error = metrics.inverse_pth_root_errors
       if e < 7:
         self.assertLess(error, 0.1)
       else:
         # No guarantee of success after e >= 7
         pass
+
+  @parameterized.parameters([{'sz': sz} for sz in [4, 32]])
+  def test_matrix_inverse_root_padding(self, sz):
+    """Test padding does not affect result much."""
+
+    # Note sz == 1 case will not pass tests here b/c the method
+    # is exact for scalars (but padding triggers coupled iteration).
+
+    condition_number = 1e3
+    ms = self._gen_symmetrix_matrix(sz, condition_number).astype(np.float32)
+
+    # Shift matrix norm down by some large factor, so that improper padding
+    # handling results in an error by increasing the condition number.
+    ms = jnp.array(ms) * 1e-3
+
+    rt, metrics = distributed_shampoo.matrix_inverse_pth_root(
+        ms, 4, ridge_epsilon=1e-3)
+    err = metrics.inverse_pth_root_errors
+    pad_ms = distributed_shampoo.pad_square_matrix(ms, sz * 2)
+    pad_rt, metrics = distributed_shampoo.matrix_inverse_pth_root(
+        pad_ms, 4, ridge_epsilon=1e-3, padding_start=sz)
+    pad_err = metrics.inverse_pth_root_errors
+    pad_rt_principal = pad_rt[:sz, :sz]
+    np.testing.assert_allclose(
+        rt,
+        pad_rt_principal,
+        # The fact that this is so large keeps vladf up at night,
+        # but without padding_start argument it's even worse (>1).
+        rtol=1e-2,
+        err_msg=np.array2string(rt - pad_rt_principal))
+    self.assertLessEqual(pad_err, 4 * err)
+    self.assertEqual(np.abs(pad_rt[sz:]).sum(), 0)
+    self.assertEqual(np.abs(pad_rt[:, sz:]).sum(), 0)
+
+  def test_all_padding(self):
+    """Test full padding matrix."""
+    empty = jnp.zeros([0, 0])
+    padded = distributed_shampoo.pad_square_matrix(empty, 10)
+    rt, metrics = distributed_shampoo.matrix_inverse_pth_root(
+        padded, 4, ridge_epsilon=1e-3, padding_start=0)
+    err = metrics.inverse_pth_root_errors
+    self.assertEqual(np.abs(rt).sum(), 0.0)
+    self.assertEqual(np.abs(err).sum(), 0.0)
 
   def _make_pth_diff_message(self, w, alpha, beta, p):
     left = f'({w} + {alpha})^(-1.0 / {p}) - '
@@ -335,7 +384,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
 
       self.assertLessEqual(
           np.median(spectrum_err['precond']),
-          np.median(spectrum_err['default']),
+          2 * np.median(spectrum_err['default']),
           msg=err_msg)
 
       self.assertLessEqual(

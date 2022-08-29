@@ -1157,6 +1157,9 @@ class InvariantStageModel(tfk.Model):
         tfkl.Dense(n_joint*3)
     ])
 
+    print('Model parameter counts: ',
+          self.main_mlp.count_params(), self.pose_mlp.count_params())
+
   def call(self, inputs):
     # inputs: [B, x_shape + task_shape + fwd_shape + 2]
 

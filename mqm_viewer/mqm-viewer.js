@@ -26,7 +26,8 @@
  * The docSegId field is the 1-based index of the segment within the doc.
  *
  * The globalSegId field is an arbitrary, application-specific segment
- * identifier.
+ * identifier. If such an identifier is not needed or available, then set this
+ * field to some constant value, such as 0.
  *
  * The last field, "metadata", is an object that includes the timestamp of
  * the rating, any note the rater may have left, and other metadata.
@@ -121,7 +122,7 @@ const mqmWeights = JSON.parse(JSON.stringify(mqmDefaultWeights));
 let mqmCharScoring = false;
 
 /**
- * The field and header ID to sort the table rows by. By default, sort by
+ * The field and header ID to sort the score table rows by. By default, sort by
  * overall MQM score. `mqmSortReverse` indicates whether it is sorted in
  * ascending order (false, default) or descending order (true).
  */
@@ -147,10 +148,17 @@ function setMqmLimit() {
 /**
  * This sorts mqmData by fields in the order shown in the comments below.
  */
-function mqmSort() {
+function mqmSortData() {
   mqmData.sort((e1, e2) => {
-    let diff = e1[3] - e2[3]; /** globalSegId **/
-    if (diff == 0) {
+    let diff = 0;
+    /** globalSegId can be non-numeric */
+    const globalSegId1 = e1[3];
+    const globalSegId2 = e2[3];
+    if (globalSegId1 < globalSegId2) {
+      diff = -1;
+    } else if (globalSegId1 > globalSegId2) {
+      diff = 1;
+    } else {
       diff = e1[2] - e2[2]; /** docSegId **/
       if (diff == 0) {
         if (e1[1] < e2[1]) {  /** doc **/
@@ -1465,7 +1473,7 @@ function mqmParseData(tsvData) {
     parts[5] = mqmMarkSpan(parts[5], spanClass);
     mqmData.push(parts);
   }
-  mqmSort();
+  mqmSortData();
   mqmAddSegmentAggregations();
   mqmSetSelectOptions();
   mqmShow();
@@ -1671,7 +1679,7 @@ function createMQMViewer(elt, tsvData=null) {
           <b>#Source-chars</b>
         </th>
         <th title="Number of segments"><b>#Segments</b></th>
-        <th title="Number of ratings"><b>#Ratings</b></th>
+        <th title="Number of segment ratings"><b>#Ratings</b></th>
         <th id="mqm-score-th" title="${mqmHelpText}">${mqmScoreWithCI}</th>
         <th id="mqm-non-translation-th" class="mqm-score-th"
             title="Weight: ${mqmWeights['non-translation']}">
@@ -1974,7 +1982,6 @@ function createMQMViewer(elt, tsvData=null) {
     'fluency': 'scoreFluency',
     'uncategorized': 'scoreUncat'
   };
-  // SVG up/down arrow.
   const upArrow = '<span class="mqm-arrow mqm-arrow-up">&#129041;</span>';
   const downArrow = '<span class="mqm-arrow mqm-arrow-down">&#129043;</span>';
   for (const [infix, prop] of Object.entries(infixToPropMap)) {
