@@ -8,7 +8,7 @@
 
 <img src="https://metapose.github.io/task.png" alt="metapose task" style="width:600px;"/>
 
-![MetaPose demo](https://storage.googleapis.com/gresearch/metapose/demo.gif)
+![MetaPose demo](https://storage.googleapis.com/gresearch/metapose/demo2.gif)
 
 We provide more <a href="https://drive.google.com/drive/u/1/folders/1MrD9lvfz2keG58LoBx3X_pptBja-TQmY">[demo videos]</a> on Human36M, SkiPose and KTH Multiview Football II.
 
