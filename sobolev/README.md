@@ -14,7 +14,9 @@ The library can be installed with the command:
 
 Tests can be launched with the command
 
-   python -m sobolev.tests
+   python -m sobolev.$module_test
+
+where $module can be chebyshev or sobolev.
 
 
 ## Examples
