@@ -1661,7 +1661,7 @@ def distributed_shampoo(
     preconditioner = preconditioner_from_params(param)
     new_statistics = [[]] * len(state.statistics)
     w1 = beta2
-    w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
+    w2 = jnp.where(beta2 == 1.0, beta2, 1.0 - beta2)
     if not _skip_preconditioning(param):
 
       def compute_updated_statistics():
@@ -2308,7 +2308,7 @@ def distributed_shampoo(
         scaled_grad = grad / (jnp.linalg.norm(grad) + 1e-16)
 
       w1 = beta2
-      w2 = beta2 if beta2 == 1.0 else (1.0 - beta2)
+      w2 = jnp.where(beta2 == 1.0, beta2, 1.0 - beta2)
 
       new_diagonal_statistics = (
           w1 * state.diagonal_statistics.to_float() +
