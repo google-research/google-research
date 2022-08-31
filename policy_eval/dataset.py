@@ -263,7 +263,7 @@ class D4rlDataset(Dataset):
       new_trajectory = end_trajectory
 
     if noise_scale > 0.0:
-      dataset['trajectories'] = augment_data(dataset['trajectories'],
+      dataset['trajectories'] = augment_data(dataset['trajectories'],  # pytype: disable=wrong-arg-types  # dict-kwargs
                                              noise_scale)
 
     dataset['trajectories']['steps'] = [
