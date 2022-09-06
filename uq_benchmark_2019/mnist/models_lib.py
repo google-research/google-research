@@ -110,7 +110,7 @@ def build_and_train(opts, dataset_train, dataset_eval, output_dir):
   """
   model = build_model(opts)
   model.compile(
-      keras.optimizers.Adam(opts.learning_rate),
+      keras.optimizers.legacy.Adam(opts.learning_rate),
       loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
       metrics=['accuracy'],
   )
