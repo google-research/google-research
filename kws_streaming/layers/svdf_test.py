@@ -145,7 +145,7 @@ class SvdfTest(tu.TestBase):
 
     # compile and train model
     model.compile(
-        optimizer=tf.keras.optimizers.RMSprop(
+        optimizer=tf.keras.optimizers.legacy.RMSprop(
             lr=0.001, rho=0.9, epsilon=None, decay=0.0),
         loss="mse")
     model.summary()
