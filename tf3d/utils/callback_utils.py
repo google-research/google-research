@@ -171,9 +171,14 @@ class CustomTensorBoard(tf.keras.callbacks.Callback):
     """Optionally write scalar summaries of losses and learning rate at the end of each training batch."""
     with self._train_writer.as_default():
       with tf.summary.record_if(batch % self._batch_update_freq == 0):
+        if isinstance(self.model.optimizer,
+                      tf.keras.optimizers.experimental.Optimizer):
+          learning_rate = self.model.optimizer.learning_rate
+        else:
+          learning_rate = self.model.optimizer.learning_rate(self._train_step)
         tf.summary.scalar(
             'learning_rate',
-            self.model.optimizer.learning_rate(self._train_step),
+            learning_rate,
             step=self._train_step)
         for loss_name, loss_value in self.model.loss_names_to_losses.items():
           tf.summary.scalar(loss_name, loss_value, step=self._train_step)

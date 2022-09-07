@@ -144,9 +144,12 @@ class BaseModel(tf.keras.Model):
     with self._train_writer.as_default():
       with tf.summary.record_if(self._train_counter %
                                 self._batch_update_freq == 0):
+        if isinstance(self.optimizer,
+                      tf.keras.optimizers.experimental.Optimizer):
+          learning_rate = self.optimizer.learning_rate
+        else:
+          learning_rate = self.optimizer.learning_rate(self._train_counter)
         tf.summary.scalar(
-            'learning_rate',
-            self.optimizer.learning_rate(self._train_counter),
-            step=self._train_counter)
+            'learning_rate', learning_rate, step=self._train_counter)
         for loss_name, loss_value in self.loss_names_to_losses.items():
           tf.summary.scalar(loss_name, loss_value, step=self._train_counter)
