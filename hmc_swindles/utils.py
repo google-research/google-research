@@ -62,6 +62,7 @@ class PiecewiseConstantDecay(tf.optimizers.schedules.LearningRateSchedule):
     self.name = name
 
   def __call__(self, step):
+    step = tf.cast(step, dtype=tf.float32)
     with tf.name_scope(self.name):
       boundaries = tf.nest.map_structure(tf.convert_to_tensor, self.boundaries)
       values = tf.nest.map_structure(tf.convert_to_tensor, self.values)
