@@ -1,0 +1,6 @@
+absl-py
+matplotlib
+numpy==1.19.5
+pandas
+sklearn
+tensorflow==2.4.1

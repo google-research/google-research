@@ -1,0 +1,123 @@
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""A TFT forecast model that self-adapts and uses nowcast errors as features."""
+from models import base_saf
+
+import tensorflow as tf
+
+
+class ForecastModel(base_saf.ForecastModel):
+  """TFT that uses nowcast errors as feature."""
+
+  def __init__(self, loss_object, self_supervised_loss_object, hparams):
+    # For now we will include all of the errors as features.
+    self.num_error_features = hparams["num_features"]
+
+    self.use_nowcast_errors = hparams["use_nowcast_errors"]
+    if "num_historical_features" not in hparams:
+      hparams["num_historical_features"] = (
+          hparams["num_features"] + self.num_error_features)
+
+    super().__init__(loss_object, self_supervised_loss_object, hparams)
+
+  @tf.function
+  def _self_adaptation_step(self,
+                            input_sequence,
+                            input_static,
+                            is_training=False):
+    # We mask half of the input window, replacing the observed values with the
+    # repeatedly applied value of the first value after the mask. The
+    # objective for self-adaptation is proposed as reconstruction of the
+    # entire window. Without masking the reconstruction is trivial by copying
+    # the input, however, with masking, the model needs to learn the structure
+    # of the data for accurate backcasts.
+
+    repeated_mid_sequence = tf.tile(
+        tf.expand_dims(input_sequence[:, self.num_encode // 2, :], 1),
+        [1, self.num_encode // 2, 1])
+    input_sequence = tf.concat(
+        [repeated_mid_sequence, input_sequence[:, self.num_encode // 2:, :]],
+        axis=1)
+
+    if self.use_nowcast_errors:
+      augmented_input_sequence = tf.concat(
+          (input_sequence, tf.zeros_like(input_sequence)), axis=2)
+
+    with tf.GradientTape() as tape:
+      future_features = (
+          self.future_features_train
+          if is_training else self.future_features_eval)
+      if self.use_nowcast_errors:
+        nowcasts, _ = self.tft_model.call(
+            inputs=[augmented_input_sequence, future_features, input_static],
+            training=is_training)
+        # Remove the forecasts of the error features.
+        nowcasts = nowcasts[:, :, :-self.num_error_features]
+      else:
+        nowcasts, _ = self.tft_model.call(
+            inputs=[input_sequence, future_features, input_static],
+            training=is_training)
+
+      self_adaptation_loss = self.self_supervised_loss_object(
+          input_sequence, nowcasts)
+
+    adaptation_trainable_variables = self.tft_model.trainable_weights
+
+    gradients = tape.gradient(self_adaptation_loss,
+                              adaptation_trainable_variables)
+
+    self.optimizer_adaptation.apply_gradients(
+        zip(gradients, adaptation_trainable_variables))
+
+    updated_nowcasts, _ = self.tft_model.call(
+        inputs=[augmented_input_sequence, future_features, input_static],
+        training=is_training)
+    nowcast_errors = (
+        input_sequence - updated_nowcasts[:, :, :-self.num_error_features])
+
+    return self_adaptation_loss, nowcast_errors
+
+  @tf.function
+  def train_step(self, input_sequence, input_static, target):
+    self_adaptation_loss, nowcast_errors = self._self_adaptation_step(
+        input_sequence, input_static, is_training=True)
+
+    if self.use_nowcast_errors:
+      input_sequence = tf.concat((input_sequence, nowcast_errors), axis=2)
+
+    with tf.GradientTape() as tape:
+      _, predictions = self.tft_model.call(
+          inputs=[input_sequence, self.future_features_train, input_static],
+          training=True)
+      prediction_loss = self.loss_object(target, predictions[:, :, 0])
+
+    all_trainable_weights = self.tft_model.trainable_weights
+    gradients = tape.gradient(prediction_loss, all_trainable_weights)
+    self.optimizer.apply_gradients(zip(gradients, all_trainable_weights))
+    return prediction_loss, self_adaptation_loss
+
+  @tf.function
+  def test_step(self, input_sequence, input_static):
+    self_adaptation_loss, nowcast_errors = self._self_adaptation_step(
+        input_sequence, input_static, is_training=False)
+
+    if self.use_nowcast_errors:
+      input_sequence = tf.concat((input_sequence, nowcast_errors), axis=2)
+
+    _, predictions = self.tft_model.call(
+        inputs=[input_sequence, self.future_features_eval, input_static],
+        training=False)
+    return predictions[:, :, 0], self_adaptation_loss
