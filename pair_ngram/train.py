@@ -217,28 +217,28 @@ def _compile_fars(tsv: str, input_token_type: str,
   Returns:
     A tuple containing the input FAR path and output FAR path.
   """
-  with tempfile.NamedTemporaryFile(suffix=".i.txt", mode="w") as itxt:
-    with tempfile.NamedTemporaryFile(suffix=".o.txt", mode="w") as otxt:
-      with open(tsv, "r") as source:
-        for col1, col2 in csv.reader(source, delimiter="\t"):
-          print(col1, file=itxt)
-          print(col2, file=otxt)
-      ifar_path = _mktemp("i.far")
-      _log_check_call([
-          "farcompilestrings",
-          "--fst_type=compact",
-          f"--token_type={input_token_type}",
-          itxt.name,
-          ifar_path,
-      ])
-      ofar_path = _mktemp("o.far")
-      _log_check_call([
-          "farcompilestrings",
-          "--fst_type=compact",
-          f"--token_type={output_token_type}",
-          otxt.name,
-          ofar_path,
-      ])
+  with open(tsv, "r") as source, \
+        tempfile.NamedTemporaryFile(suffix=".i.txt", mode="w") as itxt, \
+        tempfile.NamedTemporaryFile(suffix=".o.txt", mode="w") as otxt:
+    for col1, col2 in csv.reader(source, delimiter="\t"):
+      print(col1, file=itxt)
+      print(col2, file=otxt)
+    ifar_path = _mktemp("i.far")
+    _log_check_call([
+        "farcompilestrings",
+        "--fst_type=compact",
+        f"--token_type={input_token_type}",
+        itxt.name,
+        ifar_path,
+    ])
+    ofar_path = _mktemp("o.far")
+    _log_check_call([
+        "farcompilestrings",
+        "--fst_type=compact",
+        f"--token_type={output_token_type}",
+        otxt.name,
+        ofar_path,
+    ])
   # Temporary text files are now deleted.
   return ifar_path, ofar_path
 
@@ -286,8 +286,8 @@ def _train_aligner(
     random_starts: int,
     processes: int,
     batch_size: Optional[int] = None,
-    delta: float = None,
-    alpha: float = None,
+    delta: Optional[float] = None,
+    alpha: Optional[float] = None,
     max_iters: Optional[int] = None,
 ) -> str:
   """Trains the aligner.
