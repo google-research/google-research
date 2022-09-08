@@ -1,0 +1,6 @@
+absl-py
+nltk
+numpy
+rouge-score
+sacrebleu
+six>=1.14
