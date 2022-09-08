@@ -90,6 +90,17 @@
   font-style: italic;
   cursor: default;
 }
+.mqm-numbers-table td:not(:first-child) {
+  padding-right: 4px;
+  text-align: right;
+}
+.mqm-numbers-table th {
+  min-width: 10ch;
+  max-width: 12ch;
+}
+.mqm-out-of-order {
+  background: lavender;
+}
 #mqm-reset-settings {
   cursor: pointer;
 }
