@@ -184,10 +184,10 @@ class SMURFNet(object):
     _ = self._flow_model(feature_dict)
 
     if self._optimizer_type == 'adam':
-      self._optimizer = tf.keras.optimizers.Adam(self._learning_rate,
+      self._optimizer = tf.keras.optimizers.legacy.Adam(self._learning_rate,
                                                  name='Optimizer')
     elif self._optimizer_type == 'sgd':
-      self._optimizer = tf.keras.optimizers.SGD(
+      self._optimizer = tf.keras.optimizers.legacy.SGD(
           self._learning_rate, name='Optimizer')
     else:
       raise ValueError('Optimizer "{}" not yet implemented.'.format(
