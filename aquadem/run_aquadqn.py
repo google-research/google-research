@@ -21,7 +21,7 @@ import acme
 from acme import specs
 from acme.agents.jax import dqn
 from acme.jax import networks as networks_lib
-from acme.jax.layouts import local_layout
+from acme.jax.deprecated import local_layout
 from acme.utils import loggers
 import jax
 
