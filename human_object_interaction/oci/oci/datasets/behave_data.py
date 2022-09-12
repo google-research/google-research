@@ -36,7 +36,7 @@
 ## sample points in the 3D vol of the object ## Sample points on the mesh (SMPL)
 ## Get correspondences between the SMPL model and 3D points.
 
-import collections
+from collections import abc
 import json
 import os
 import os.path as osp
@@ -598,9 +598,9 @@ def recursive_convert_to_torch(elem):
     return torch.LongTensor([elem])
   elif isinstance(elem, float):
     return torch.DoubleTensor([elem])
-  elif isinstance(elem, collections.Mapping):
+  elif isinstance(elem, abc.Mapping):
     return {key: recursive_convert_to_torch(elem[key]) for key in elem}
-  elif isinstance(elem, collections.Sequence):
+  elif isinstance(elem, abc.Sequence):
     return [recursive_convert_to_torch(samples) for samples in elem]
   elif elem is None:
     return elem
