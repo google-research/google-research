@@ -16,6 +16,7 @@
 """Training to forget nuisance variables."""
 
 import collections
+from collections import abc
 import os
 
 from absl import app
@@ -181,7 +182,7 @@ def _make_canonical_key(x):
   """
   if isinstance(x, list) and len(x) == 1:
     x = x[0]
-  if not isinstance(x, collections.Hashable):
+  if not isinstance(x, abc.Hashable):
     return tuple(x)
   else:
     return x
