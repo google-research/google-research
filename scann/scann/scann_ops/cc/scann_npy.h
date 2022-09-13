@@ -20,6 +20,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include "absl/types/span.h"
 #include "pybind11/numpy.h"

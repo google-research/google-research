@@ -1710,6 +1710,19 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
   }
 }
 
+template <typename T, typename ResultElem, typename DatasetView>
+void DenseDistanceOneToMany(const DistanceMeasure& dist,
+                            const DatapointPtr<T>& query,
+                            const DatasetView* __restrict__ database,
+                            MutableSpan<ResultElem> result, ThreadPool* pool) {
+  one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
+      result);
+  return DenseDistanceOneToMany<
+      T, ResultElem, DatasetView,
+      one_to_many_low_level::SetDistanceFunctor<ResultElem>>(
+      dist, query, database, result, &set_distance_functor, pool);
+}
+
 namespace one_to_many_low_level {
 
 #ifdef __x86_64__

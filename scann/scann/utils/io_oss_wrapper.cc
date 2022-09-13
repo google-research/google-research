@@ -14,6 +14,10 @@
 
 #include "scann/utils/io_oss_wrapper.h"
 
+#include <algorithm>
+#include <memory>
+#include <string>
+
 namespace research_scann {
 
 OpenSourceableFileWriter::OpenSourceableFileWriter(absl::string_view filename)

@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/projection/projection_base.h"

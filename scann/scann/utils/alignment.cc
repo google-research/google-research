@@ -14,7 +14,9 @@
 
 #include "scann/utils/alignment.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include "scann/utils/common.h"
 

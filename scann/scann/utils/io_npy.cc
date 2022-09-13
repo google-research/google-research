@@ -15,6 +15,8 @@
 #include "scann/utils/io_npy.h"
 
 #include <cstdint>
+#include <string>
+#include <type_traits>
 
 namespace research_scann {
 

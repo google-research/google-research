@@ -15,7 +15,9 @@
 #ifndef SCANN_UTILS_IO_NPY_H_
 #define SCANN_UTILS_IO_NPY_H_
 
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"

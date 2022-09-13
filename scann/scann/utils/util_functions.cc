@@ -16,8 +16,10 @@
 
 #include "scann/utils/util_functions.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <numeric>
+#include <string>
 
 #include "absl/base/internal/sysinfo.h"
 #include "absl/container/flat_hash_map.h"

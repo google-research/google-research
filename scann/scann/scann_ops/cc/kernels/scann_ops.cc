@@ -16,7 +16,9 @@
 
 #include <algorithm>
 #include <limits>
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
@@ -101,7 +103,7 @@ class ScannCreateSearcherOp : public ResourceOpKernel<ScannResource> {
   Status CreateResource(ScannResource** ret)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) override {
     *ret = new ScannResource();
-    return Status::OK();
+    return OkStatus();
   }
 };
 
@@ -378,7 +380,7 @@ class TensorsToScannOp : public ResourceOpKernel<ScannResource> {
   Status CreateResource(ScannResource** ret)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) override {
     *ret = new ScannResource();
-    return Status::OK();
+    return OkStatus();
   }
 };
 

@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <vector>
 
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/binary_distance_measure_base.h"

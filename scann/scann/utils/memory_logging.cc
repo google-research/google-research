@@ -14,6 +14,8 @@
 
 #include "scann/utils/memory_logging.h"
 
+#include <string>
+
 #include "absl/strings/str_cat.h"
 #include "scann/oss_wrappers/scann_malloc_extension.h"
 

@@ -188,6 +188,8 @@ class TopNeighbors final
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, TopNeighbors);
 
+extern template class TopNeighbors<DimensionIndex>;
+
 }  // namespace research_scann
 
 #endif

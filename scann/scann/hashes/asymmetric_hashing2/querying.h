@@ -22,8 +22,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/flags/flag.h"
 #include "scann/base/restrict_allowlist.h"

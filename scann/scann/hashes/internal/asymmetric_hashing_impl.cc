@@ -15,6 +15,7 @@
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <numeric>
 #include <utility>

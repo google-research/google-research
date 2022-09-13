@@ -344,6 +344,11 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
       if (restrict_whitelist_ptrs[j]) {
         push_mask &= restrict_whitelist_ptrs[j][k];
       }
+      if (args.batch_filter_predicate) {
+        push_mask =
+            args.batch_filter_predicate(first_dp_index + 32 * k, push_mask,
+                                        args.datapoint_translation_predicate);
+      }
 
       while (push_mask) {
         const int offset = bits::FindLSBSetNonZero(push_mask);
@@ -356,7 +361,6 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
         if (args.datapoint_translation_predicate) {
           dp_idx = args.datapoint_translation_predicate(dp_idx);
         }
-        if (args.final_predicate && !args.final_predicate(dp_idx)) continue;
 
         const bool needs_gc =
             topn_mutators[j].Push(dp_idx, distances_buffer[offset]);

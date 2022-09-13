@@ -17,7 +17,9 @@
 #include "scann/tree_x_hybrid/tree_x_hybrid_smmd.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <memory>
 #include <unordered_set>
 #include <utility>
 

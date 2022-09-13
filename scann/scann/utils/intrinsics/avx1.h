@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 
 #include "scann/utils/index_sequence.h"
 #include "scann/utils/intrinsics/attributes.h"

@@ -17,6 +17,7 @@
 #include "scann/partitioning/projecting_decorator.h"
 
 #include <cstdint>
+#include <vector>
 
 #include "scann/utils/datapoint_utils.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -164,11 +165,9 @@ KMeansTreeProjectingDecorator<T, ProjectionType>::ResidualizeToFloat(
 INSTANTIATE_PROJECTING_DECORATOR(int8_t);
 INSTANTIATE_PROJECTING_DECORATOR(uint8_t);
 INSTANTIATE_PROJECTING_DECORATOR(int16_t);
-INSTANTIATE_PROJECTING_DECORATOR(uint16_t);
 INSTANTIATE_PROJECTING_DECORATOR(int32_t);
 INSTANTIATE_PROJECTING_DECORATOR(uint32_t);
 INSTANTIATE_PROJECTING_DECORATOR(int64_t);
-INSTANTIATE_PROJECTING_DECORATOR(uint64_t);
 INSTANTIATE_PROJECTING_DECORATOR(float);
 INSTANTIATE_PROJECTING_DECORATOR(double);
 

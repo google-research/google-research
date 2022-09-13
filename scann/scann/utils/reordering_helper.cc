@@ -14,11 +14,14 @@
 
 #include "scann/utils/reordering_helper.h"
 
+#include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/str_format.h"
 #include "scann/data_format/datapoint.h"

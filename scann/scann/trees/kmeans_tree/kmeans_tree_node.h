@@ -16,10 +16,15 @@
 #define SCANN_TREES_KMEANS_TREE_KMEANS_TREE_NODE_H_
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
+#include <iterator>
+#include <limits>
 #include <type_traits>
+#include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
@@ -89,6 +94,8 @@ class KMeansTreeNode {
   const DenseDataset<Real>& GetCentersByTemplateType() const;
 
   void UnionIndicesImpl(absl::flat_hash_set<DatapointIndex>* union_hash) const;
+
+  void MaybeInitializeThreadSharding();
 
   DenseDataset<float> float_centers_;
 
@@ -229,9 +236,13 @@ Status FindChildrenWithSpilling(
 
   std::vector<float> distances(centers.size());
   DCHECK(centers.IsDense());
-  SCANN_RETURN_IF_ERROR(GetAllDistances(dist, query, centers,
-                                        center_sq_l2_norms,
-                                        inv_int8_multipliers, &distances));
+  bool thread_sharded_done = false;
+
+  if (!thread_sharded_done) {
+    SCANN_RETURN_IF_ERROR(GetAllDistances(dist, query, centers,
+                                          center_sq_l2_norms,
+                                          inv_int8_multipliers, &distances));
+  }
 
   float epsilon = std::numeric_limits<float>::infinity();
   if (spilling_type != QuerySpillingConfig::NO_SPILLING &&

@@ -54,7 +54,7 @@ Status PopulateDatapointFromTensor(const Tensor& tensor,
   int dims = tensor.NumElements();
   *datapoint =
       research_scann::DatapointPtr<T>(nullptr, tensor_flat.data(), dims, dims);
-  return Status::OK();
+  return OkStatus();
 }
 
 template <typename DstType, typename SrcType>
@@ -68,7 +68,7 @@ Status PopulateDenseDatasetFromTensor(
   int num_dim = tensor_t.dimension(1);
   int num_datapoint = tensor_t.dimension(0);
 
-  if (!num_dim) return Status::OK();
+  if (!num_dim) return OkStatus();
 
   dataset->clear();
   dataset->set_dimensionality(num_dim);
@@ -80,7 +80,7 @@ Status PopulateDenseDatasetFromTensor(
         num_dim);
     TF_RETURN_IF_ERROR(ConvertStatus(dataset->Append(dptr, "")));
   }
-  return Status::OK();
+  return OkStatus();
 }
 
 template <typename T>
@@ -95,7 +95,7 @@ Status TensorFromDenseDataset(OpKernelContext* context, absl::string_view name,
       &tensor));
   auto tensor_flat = tensor->flat<T>();
   std::copy(dataset->data().begin(), dataset->data().end(), tensor_flat.data());
-  return Status::OK();
+  return OkStatus();
 }
 
 template <typename T>
@@ -114,7 +114,7 @@ Status TensorFromSpan(OpKernelContext* context, absl::string_view name,
       name, TensorShape({static_cast<int64_t>(span.size())}), &tensor));
   auto tensor_flat = tensor->flat<T>();
   std::copy(span.begin(), span.end(), tensor_flat.data());
-  return Status::OK();
+  return OkStatus();
 }
 
 template <typename T>

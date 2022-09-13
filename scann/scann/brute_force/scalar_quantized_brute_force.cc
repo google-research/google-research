@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "scann/base/restrict_allowlist.h"

@@ -16,7 +16,10 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "scann/utils/io_oss_wrapper.h"
 

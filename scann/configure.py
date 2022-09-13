@@ -34,8 +34,6 @@
 #  --no-deps  Don't install Python dependencies
 """Configures ScaNN to be built from source."""
 
-from __future__ import print_function
-
 import argparse
 import logging
 import os

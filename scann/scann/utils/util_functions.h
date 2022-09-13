@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstdint>
 #include <stack>
+#include <string>
 #include <unordered_map>
 
 #include "absl/base/internal/sysinfo.h"
@@ -129,6 +130,13 @@ class DistanceComparator {
     if (a.distance() < b.distance()) return true;
     if (a.distance() > b.distance()) return false;
     return a.docid() < b.docid();
+  }
+
+  bool operator()(const NearestNeighbors::Neighbor* a,
+                  const NearestNeighbors::Neighbor* b) const {
+    DCHECK(a);
+    DCHECK(b);
+    return operator()(*a, *b);
   }
 };
 

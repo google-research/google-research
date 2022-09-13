@@ -15,6 +15,7 @@
 #ifndef SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 #define SCANN_UTILS_FAST_TOP_NEIGHBORS_H_
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <string>

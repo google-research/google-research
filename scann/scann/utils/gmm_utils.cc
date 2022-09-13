@@ -14,9 +14,16 @@
 
 #include "scann/utils/gmm_utils.h"
 
+#include <algorithm>
 #include <cfloat>
+#include <cmath>
 #include <cstdint>
+#include <functional>
 #include <limits>
+#include <numeric>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "Eigen/Dense"
 #include "absl/base/internal/endian.h"

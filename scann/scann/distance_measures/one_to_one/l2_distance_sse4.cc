@@ -15,6 +15,7 @@
 #include "scann/distance_measures/one_to_one/l2_distance_sse4.h"
 
 #include <cstdint>
+#include <utility>
 #ifdef __x86_64__
 
 #include "scann/utils/intrinsics/sse4.h"

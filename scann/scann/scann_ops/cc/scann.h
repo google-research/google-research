@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <string>
 
 #include "absl/memory/memory.h"
@@ -91,6 +92,8 @@ class ScannInterface {
   float result_multiplier_;
 
   size_t min_batch_size_;
+
+  std::unique_ptr<ThreadPool> parallel_query_pool_;
 };
 
 template <typename T_idx>

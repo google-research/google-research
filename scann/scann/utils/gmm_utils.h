@@ -21,6 +21,7 @@
 #include <functional>
 #include <limits>
 #include <utility>
+#include <vector>
 
 #include "absl/time/time.h"
 #include "scann/data_format/dataset.h"

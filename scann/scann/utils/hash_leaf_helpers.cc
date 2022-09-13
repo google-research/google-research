@@ -15,6 +15,8 @@
 #include "scann/utils/hash_leaf_helpers.h"
 
 #include <cstdint>
+#include <memory>
+#include <utility>
 
 #include "absl/synchronization/mutex.h"
 #include "scann/distance_measures/distance_measure_factory.h"

@@ -14,6 +14,11 @@
 
 #include "scann/utils/threads.h"
 
+#include <algorithm>
+#include <functional>
+#include <string>
+#include <utility>
+
 #include "absl/time/time.h"
 
 namespace research_scann {

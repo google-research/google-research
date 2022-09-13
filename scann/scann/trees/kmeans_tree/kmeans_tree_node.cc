@@ -19,12 +19,14 @@
 #include <math.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <hash_set>
 #include <string>
 #include <utility>
 
 #include "absl/container/flat_hash_set.h"
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/proto/partitioning.pb.h"
@@ -33,6 +35,7 @@
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
+#include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
 
@@ -88,6 +91,7 @@ void KMeansTreeNode::BuildFromProto(const SerializedKMeansTree::Node& proto) {
     float_centers_.AppendOrDie(dp.ToPtr(), "");
   }
 
+  MaybeInitializeThreadSharding();
   learned_spilling_threshold_ = proto.learned_spilling_threshold();
   leaf_id_ = proto.leaf_id();
 
@@ -226,7 +230,7 @@ Status KMeansTreeNode::Train(const Dataset& training_data,
   }
 
   centers.ConvertType(&float_centers_);
-
+  MaybeInitializeThreadSharding();
   return OkStatus();
 }
 
@@ -324,5 +328,7 @@ void KMeansTreeNode::UnionIndicesImpl(
     }
   }
 }
+
+void KMeansTreeNode::MaybeInitializeThreadSharding() {}
 
 }  // namespace research_scann

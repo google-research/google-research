@@ -14,6 +14,8 @@
 
 #include "scann/utils/common.h"
 
+#include <string>
+
 namespace research_scann {
 
 const std::string& EmptyString() {

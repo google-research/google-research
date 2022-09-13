@@ -15,8 +15,10 @@
 #include "scann/scann_ops/cc/scann.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -219,6 +221,7 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
     else
       min_batch_size_ = 256;
   }
+  parallel_query_pool_ = StartThreadPool("ScannQueryingPool", GetNumCPUs() - 1);
   return OkStatus();
 }
 
@@ -303,9 +306,9 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
 
   const size_t kBatchSize = std::min(
       std::max(min_batch_size_, DivRoundUp(numQueries, numCPUs)), 256ul);
-  auto pool = StartThreadPool("pool", numCPUs - 1);
   return ParallelForWithStatus<1>(
-      Seq(DivRoundUp(numQueries, kBatchSize)), pool.get(), [&](size_t i) {
+      Seq(DivRoundUp(numQueries, kBatchSize)), parallel_query_pool_.get(),
+      [&](size_t i) {
         size_t begin = kBatchSize * i;
         size_t curSize = std::min(numQueries - begin, kBatchSize);
         vector<float> queryCopy(

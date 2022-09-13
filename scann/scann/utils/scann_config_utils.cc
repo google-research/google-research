@@ -14,7 +14,9 @@
 
 #include "scann/utils/scann_config_utils.h"
 
+#include <cmath>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 #include "absl/strings/match.h"
@@ -307,9 +309,9 @@ Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config) {
       auto in_memory_type = in_memory_type_or_error.ValueOrDie();
       if (in_memory_type != InputOutputConfig::FLOAT &&
           in_memory_type != InputOutputConfig::DOUBLE) {
-        LOG(WARNING) << "Performing "
-                     << NormalizationString(expected_normalization)
-                     << " normalization with an integral type.";
+        return InvalidArgumentError(
+            StrCat("Performing ", NormalizationString(expected_normalization),
+                   " normalization with an integral type."));
       }
     }
   }

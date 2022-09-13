@@ -15,6 +15,7 @@
 #include "scann/oss_wrappers/scann_status_builder.h"
 
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
 

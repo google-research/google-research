@@ -18,6 +18,9 @@
 
 #include <cstdint>
 #include <limits>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/datapoint.h"

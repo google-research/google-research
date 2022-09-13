@@ -105,7 +105,9 @@ struct LUT16ArgsTopN<float, TopN> : public LUT16ArgsTopNBase<float, TopN> {
 
   std::function<DatapointIndex(DatapointIndex)> datapoint_translation_predicate;
 
-  std::function<bool(DatapointIndex)> final_predicate;
+  std::function<uint32_t(DatapointIndex, uint32_t,
+                         const std::function<DatapointIndex(DatapointIndex)>&)>
+      batch_filter_predicate;
 };
 
 #define SCANN_INSTANTIATE_CLASS_FOR_LUT16_BATCH_SIZES(EXTERN_KEYWORD,   \

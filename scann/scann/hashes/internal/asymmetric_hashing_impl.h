@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/datapoint.h"

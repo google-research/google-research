@@ -15,7 +15,9 @@
 #ifndef SCANN_UTILS_SCALAR_QUANTIZATION_HELPERS_H_
 #define SCANN_UTILS_SCALAR_QUANTIZATION_HELPERS_H_
 
+#include <cmath>
 #include <cstdint>
+#include <vector>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"

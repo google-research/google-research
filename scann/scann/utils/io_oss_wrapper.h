@@ -16,6 +16,7 @@
 #define SCANN_UTILS_IO_OSS_WRAPPER_H_
 
 #include <fstream>
+#include <memory>
 #include <string>
 
 #include "google/protobuf/message.h"

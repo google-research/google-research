@@ -53,7 +53,7 @@ touch "${TMPDIR}"/scann/trees/kmeans_tree/__init__.py
 
 cwd="$(pwd)"
 cd "$TMPDIR"
-"$PYTHON" setup.py bdist_wheel
+"$PYTHON" setup.py bdist_wheel "$@"
 cd "$cwd"
 
 cp "${TMPDIR}"/dist/*.whl ./

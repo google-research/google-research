@@ -16,7 +16,9 @@
 
 #include <cstdint>
 #include <string>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 #include "absl/base/optimization.h"
 #include "scann/data_format/datapoint.h"

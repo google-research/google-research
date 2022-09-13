@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"

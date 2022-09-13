@@ -17,8 +17,10 @@
 #include "scann/tree_x_hybrid/tree_ah_hybrid_residual.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <numeric>
 #include <unordered_set>
 #include <utility>
