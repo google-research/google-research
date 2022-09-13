@@ -19,6 +19,7 @@
 # pytype: disable=attribute-error
 
 import functools
+import itertools
 import os
 import statistics
 import sys
@@ -35,8 +36,8 @@ import jax.numpy as jnp
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-from latent_programmer import decode
 from latent_programmer import models as base_models
+from latent_programmer.spec_decomposition import decode
 from latent_programmer.spec_decomposition import decomposition_models as models
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
@@ -53,7 +54,7 @@ flags.DEFINE_integer('num_layers', 3, 'Number of Transformer heads.')
 flags.DEFINE_boolean('slow_decode', True, 'Use slow decoding for prediction?')
 flags.DEFINE_float('dropout_rate', 0.1, 'Dropout rate')
 flags.DEFINE_float('attention_dropout_rate', 0.1, 'Attention dropout rate')
-flags.DEFINE_integer('beam_size', 4, 'Beam size')
+flags.DEFINE_integer('beam_size', 10, 'Beam size')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 flags.DEFINE_string('test_dataset_filepattern', None,
@@ -102,6 +103,22 @@ flags.DEFINE_bool(
 flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'scan'],
                   'The kind of dataset to use.')
+
+flags.DEFINE_integer(
+    'num_examples_to_log', 10,
+    'Number of examples to log and save to TensorBoard text.')
+flags.DEFINE_integer(
+    'num_beam_elements_to_log', 4,
+    'Number of beam elements to log and save to TensorBoard text.')
+flags.DEFINE_bool(
+    'detect_invalid', True,
+    'Whether to detect invalid beam elements and mark them as finished.')
+flags.DEFINE_bool(
+    'change_invalid_scores', True,
+    'Whether to change scores of invalid beam elements to NEG_INF.')
+flags.DEFINE_bool(
+    'use_execution', True,
+    'Whether to guide beam search with program execution results.')
 
 
 _internal = False
@@ -178,33 +195,80 @@ def create_robust_fill_dataset(file_pattern, spec_token_id_table,
 # -----------------------------------------------------------------------------
 
 
-def predict_step(params,
-                 inputs,
-                 outputs,
-                 cache,
-                 beam_size,
-                 eos_token,
-                 max_decode_len,
-                 config,
-                 slow_decode=True):
+def end_to_end_beam_init(batch_size,
+                         beam_size,
+                         max_decode_len,
+                         encoded,  # Contains beam dimension.
+                         encoded_padding_mask,  # Contains beam dimension.
+                         cache,
+                         aux,
+                         bos_token=0):
+  """Initializes the beam search state data structure."""
+  cur_index0 = jnp.array(0)
+  # If the beam isn't entirely finished (which is checked before we call beam
+  # search anyway), make sure the last live score (>= NEG_INF / 2) is better
+  # than the worst finished score (NEG_INF) for the beam search loop condition.
+  live_logprobs0 = jnp.where(aux['finished'], decode.NEG_INF / 2, aux['scores'])
+  finished_scores0 = jnp.where(aux['finished'], aux['scores'], decode.NEG_INF)
+  live_seqs0 = jnp.concatenate(
+      [jnp.full((batch_size, beam_size, 1), bos_token, jnp.int32),
+       jnp.zeros((batch_size, beam_size, max_decode_len - 1), jnp.int32)],
+      axis=-1)
+  finished_seqs0 = jnp.concatenate(
+      [jnp.full((batch_size, beam_size, 1), bos_token, jnp.int32),
+       jnp.zeros((batch_size, beam_size, max_decode_len - 1), jnp.int32)],
+      axis=-1)
+  finished_flags0 = aux['finished']
+  finished_aux = aux
+  # add beam dimension to attention cache pytree elements
+  beam_cache0 = jax.tree_map(lambda x: decode.add_beam_dim(x, beam_size), cache)
+  return decode.BeamState(
+      cur_index=cur_index0,
+      cur_encoded=encoded,
+      cur_encoded_padding_mask=encoded_padding_mask,
+      live_logprobs=live_logprobs0,
+      finished_scores=finished_scores0,
+      live_seqs=live_seqs0,
+      finished_seqs=finished_seqs0,
+      finished_flags=finished_flags0,
+      cache=beam_cache0,
+      live_aux=aux,
+      finished_aux=finished_aux)
+
+
+def end_to_end_predict_step(params,
+                            inputs,  # Contains beam dimension.
+                            outputs,  # Contains beam dimension.
+                            cache,
+                            aux,
+                            beam_size,
+                            eos_token,
+                            max_decode_len,
+                            config,
+                            slow_decode=True):
   """Predict translation with fast decoding beam search on a batch."""
   # Prepare transformer fast-decoder call for beam search: for beam search, we
   # need to set up our decoder model to handle a batch size equal to
   # batch_size * beam_size, where each batch item's data is expanded in-place
   # rather than tiled.
-  flat_encoded = decode.flat_batch_beam_expand(
+  batch_size = inputs.shape[0]
+  encoded = decode.unflatten_beam_dim(
       models.DecomposeAttentionTransformer(config).apply(
           {'params': params},
-          inputs,
-          outputs,
+          decode.flatten_beam_dim(inputs),
+          decode.flatten_beam_dim(outputs),
           method=models.DecomposeAttentionTransformer.encode),
+      batch_size,
       beam_size)
-  encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
-  flat_encoded_padding_mask = decode.flat_batch_beam_expand(
-      encoded_padding_mask, beam_size)
+  encoded_padding_mask = jnp.where(
+      outputs > 0, 1, 0).astype(jnp.float32)
+
+  beam_init_state = end_to_end_beam_init(
+      batch_size, beam_size, max_decode_len, encoded, encoded_padding_mask,
+      cache, aux, bos_token=config.base_config.bos_token)
 
   if slow_decode:
-    def tokens_ids_to_logits(flat_ids):
+    def tokens_ids_to_logits(flat_ids, flat_encoded, flat_encoded_padding_mask):
       """Token slice to logits from decoder model."""
       # --> [batch * beam, 1, vocab]
       flat_logits = models.DecomposeAttentionTransformer(config=config).apply(
@@ -215,7 +279,8 @@ def predict_step(params,
           method=models.DecomposeAttentionTransformer.decode)
       return flat_logits
   else:
-    def tokens_ids_to_logits(flat_ids, flat_cache):
+    def tokens_ids_to_logits(flat_ids, flat_encoded, flat_encoded_padding_mask,
+                             flat_cache):
       """Token slice to logits from decoder model."""
       # --> [batch * beam, 1, vocab]
       flat_logits, new_vars = models.DecomposeAttentionTransformer(
@@ -234,24 +299,36 @@ def predict_step(params,
 
   # Using the above-defined single-step decoder function, run a
   # beam search over possible sequences given input encoding.
-  beam_seqs, _ = decode.beam_search(
+  return decode.beam_search(
       inputs,
+      encoded,
+      encoded_padding_mask,
       cache,
       tokens_ids_to_logits,
       beam_size=beam_size,
-      alpha=0.6,
+      alpha=0.0,  # If we use a brevity penalty, we'll adjust the running score
+                  # multiple times, once for each model call, which isn't good.
       bos_token=config.base_config.bos_token,
       eos_token=eos_token,
       max_decode_len=max_decode_len,
-      slow_decode=slow_decode)
-
-  # Beam search returns [n_batch, n_beam, n_length] with beam dimension
-  # sorted in increasing order of log-probability.
-  return beam_seqs[:, -1, :]
+      slow_decode=slow_decode,
+      beam_search_init_state=beam_init_state)
 
 
 def main(_):
   tf.enable_v2_behavior()
+
+  if FLAGS.change_invalid_scores and not FLAGS.detect_invalid:
+    raise ValueError(
+        'change_invalid_scores=True is incompatible with detect_invalid=False. '
+        'We cannot change scores of invalid beam elements without detecting '
+        'the invalid elements first.')
+  if FLAGS.use_execution and not FLAGS.detect_invalid:
+    raise ValueError(
+        "use_execution=True is incompatible with detect_invalid=False. "
+        "Using execution only makes sense if we are also checking for invalid "
+        "states, because otherwise we won't able to handle programs that don't "
+        "compile or don't run.")
 
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
@@ -297,6 +374,7 @@ def main(_):
     if FLAGS.dataset_type == 'robust_fill':
       target = target[np.all([target != 0, target != bos_id, target != eos_id],
                              axis=0)].astype(np.int32)
+      target = np.array(target)  # JAX arrays will fail dict lookups.
       return ''.join([spec_id_token_table[t_id] for t_id in target if t_id > 0])
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
@@ -310,54 +388,109 @@ def main(_):
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  def split_spec(spec_parts, outputs, max_target_length):
-    """Returns a tuple (valid, done, current_parts, remaining_parts)."""
-    spec_parts_str = decode_spec(spec_parts).strip('|').split('|')
-    outputs_str = [decode_spec(example_output) for example_output in outputs]
+  def split_spec(spec_parts, outputs, max_target_length, aux, i):
+    """Returns a tuple (valid, last_step, current_parts, remaining_parts)."""
+    num_examples = len(outputs)
+    assert num_examples == FLAGS.num_strings_per_task
 
-    current_parts_str = []
-    remaining_parts_str = []
-    for part, output in zip(spec_parts_str, outputs_str):
-      if not output.startswith(part):
-        return False, True, [], []
-      current_parts_str.append(part)
-      remaining_parts_str.append(output[len(part):])
-    # Check termination condition
-    remaining_is_empty = [not remaining for remaining in remaining_parts_str]
-    done = any(remaining_is_empty)
-    valid = all(remaining_is_empty) or not any(remaining_is_empty)
-    # Build arrays
+    if aux['finished'][0][i]:
+      # Do nothing if it's finished.
+      spec_parts_str = ['[finished]'] * num_examples
+      current_parts = [
+          encode_spec(spec_str, max_target_length=max_target_length,
+                      add_eos=False)
+          for spec_str in spec_parts_str]
+      return (aux['valid'][0][i], aux['last_step'][0][i],
+              np.array(current_parts), aux['remaining_outputs'][0][i])
+
+    # If we pass in an already-decoded list of strings, use them directly.
+    if isinstance(spec_parts, list) and isinstance(spec_parts[0], str):
+      spec_parts_str = spec_parts
+    else:
+      # Decode the SpecDecomposerModel prediction and separate examples.
+      spec_parts_str = decode_spec(spec_parts).strip('|').split('|')
+    if isinstance(outputs, list) and isinstance(outputs[0], str):
+      decoded_outputs = outputs
+    else:
+      decoded_outputs = [decode_spec(o) for o in outputs]
+
+    valid = True
+
+    if FLAGS.detect_invalid:
+      # The prediction is invalid if it has an incorrect number of | characters
+      # or all of the parts are empty. (Some but not all parts can be empty.)
+      if len(spec_parts_str) != num_examples or all(
+          [not part for part in spec_parts_str]):
+        spec_parts_str = ['[invalid]'] * num_examples
+        valid = False
+    else:
+      # Still need to handle an incorrect number of | characters.
+      spec_parts_str = spec_parts_str[:num_examples]
+      spec_parts_str += [''] * (num_examples - len(spec_parts_str))
+      assert len(spec_parts_str) == num_examples
+
     current_parts = [
         encode_spec(
             spec_str, max_target_length=max_target_length, add_eos=False)
-        for spec_str in current_parts_str
+        for spec_str in spec_parts_str
     ]
+
+    remaining_parts_str = []
+    for part, output in zip(spec_parts_str, decoded_outputs):
+      if FLAGS.detect_invalid and not output.startswith(part):
+        remaining_parts_str = ['[invalid]'] * num_examples
+        valid = False
+        break
+      remaining_parts_str.append(output[len(part):])
     remaining_parts = [
         encode_spec(
             spec_str, max_target_length=max_target_length, add_eos=True)
         for spec_str in remaining_parts_str
     ]
-    return valid, done, np.array(current_parts), np.array(remaining_parts)
+
+    last_step = all([not remaining for remaining in remaining_parts_str])
+    return valid, last_step, np.array(current_parts), np.array(remaining_parts)
 
   def process_predicted_program(program, add_eos=True):
     """Decode program tokens."""
-    program = program[:np.argmax(program == eos_id)].astype(np.int32)
-    program = program[program != bos_id].tolist()
-    return program + [eos_id] if add_eos else program
+    # Can have multiple EOS tokens, so need to take the latest appearence.
+    max_len = program.shape[0]
+    score = 1e4 * (program == eos_id) + np.arange(max_len)
+    program = program[:np.argmax(score)].astype(np.int32)
+    program = program[np.all([program != 0, program != bos_id,
+                              program != eos_id], axis=0)].tolist()
+    if add_eos:
+      program += [eos_id]
+    return program
 
-  def eval_predicted_program(program, inputs, outputs):
-    """Evaluate predicted program."""
-    inputs = [decode_spec(input) for input in inputs]
-    outputs = [decode_spec(output) for output in outputs]
+  def process_and_decode_program(program_tokens):
+    """Returns a pair (valid, program)."""
     try:
-      program = robust_fill_dsl.decode_program(program, program_id_token_table)
-      p_outs = [program(inp) for inp in inputs]
-      score = np.sum([p_out == out for p_out, out in zip(p_outs, outputs)])
+      program = robust_fill_dsl.decode_program(
+          process_predicted_program(program_tokens, add_eos=True),
+          program_id_token_table)
+      # If the program can't be converted to string, it's invalid.
+      str(program)
+      return True, program
     except:  # pylint: disable=bare-except
-      program = None
-      score = -1
-      p_outs = []
-    return program, p_outs, score == len(inputs)
+      return False, '[invalid program]'
+
+  def run_program(program, inputs):
+    """Returns a pair (valid, outputs)."""
+    outputs = []
+    valid = True
+    for i in inputs:
+      if program == '[invalid program]':
+        outputs.append('[invalid program]')
+        valid = False
+      else:
+        try:
+          outputs.append(program(i))
+        except:  # pylint: disable=bare-except
+          outputs.append('[program error]')
+          if FLAGS.use_execution:
+            valid = False
+    return valid, outputs
 
   # Load Dataset
   # ---------------------------------------------------------------------------
@@ -512,21 +645,20 @@ def main(_):
   # Main Prediction Loop
   # ---------------------------------------------------------------------------
 
-  # TODO(jxihong): End-to-end loop needs to be batched.
   spec_decomposer_pred_step = jax.jit(
-      functools.partial(predict_step,
+      functools.partial(end_to_end_predict_step,
                         eos_token=eos_id,
                         max_decode_len=FLAGS.max_spec_part_length,
                         config=spec_decomposer_predict_config,
                         slow_decode=FLAGS.slow_decode),
-      static_argnums=(4,))
+      static_argnums=(5,))
   synthesizer_pred_step = jax.jit(
-      functools.partial(predict_step,
+      functools.partial(end_to_end_predict_step,
                         eos_token=eos_id,
-                        max_decode_len=FLAGS.max_spec_part_length,
+                        max_decode_len=FLAGS.max_program_length,
                         config=synthesizer_predict_config,
                         slow_decode=FLAGS.slow_decode),
-      static_argnums=(4,))
+      static_argnums=(5,))
 
   # ----------------------------------------------------------------------------
   # A discussion of metrics we collect.
@@ -562,60 +694,122 @@ def main(_):
   metric_e = 0
   metric_f = 0
 
+  beam_size = FLAGS.beam_size
   successes = []
   total_times = []
-  spec_part_times = []
-  synthesizer_times = []
-  copy_batch_times = []
+  spec_prediction_times = []
+  spec_processing_times = []
+  spec_analysis_times = []
+  synthesis_prediction_times = []
+  synthesis_processing_times = []
+  synthesis_analysis_times = []
   num_steps = []
   num_ground_truth_steps = []
 
   for test_example_index, batch in enumerate(test_dataset.as_numpy_iterator()):
-    do_logging = test_example_index < 20
+    if test_example_index % 10 == 0:
+      logging.info('Processing test example #%s', test_example_index)
+    do_logging = test_example_index < FLAGS.num_examples_to_log
     test_example_start_time = timeit.default_timer()
 
     inputs, outputs = batch['inputs'], batch['outputs']
     decoded_inputs = [decode_spec(i) for i in inputs[0]]
-    ground_truth = robust_fill_dsl.decode_program(
-        process_predicted_program(batch['target'][0], add_eos=True),
-        program_id_token_table)
+    decoded_outputs = [decode_spec(o) for o in outputs[0]]
+    _, ground_truth = process_and_decode_program(batch['target'][0])
     ground_truth_length = len(ground_truth.expressions)
 
     if do_logging:
       inputs_str = '\n  '.join(decoded_inputs)
-      outputs_str = '\n  '.join([decode_spec(o) for o in outputs[0]])
-      logging.info('Starting test example #%s:\n'
-                   'inputs = %s\noutputs = %s',
-                   test_example_index, inputs_str, outputs_str)
-      tb_message = '```\n'
-      tb_message += f'inputs:\n  {inputs_str}\noutputs:\n  {outputs_str}\n\n'
+      outputs_str = '\n  '.join(decoded_outputs)
+      log_message = (
+          f'```\n'
+          f'Problem #{test_example_index}\n'
+          f'inputs:\n'
+          f'  {inputs_str}\n'
+          f'outputs:\n'
+          f'  {outputs_str}\n'
+          f'\n'
+      )
 
-    predicted_program_tokens = []
-    valid = True
-    done = False
-    remaining_outputs = np.copy(outputs)
-
-    # End-to-end prediction loop.
+    next_history_id = itertools.count().__next__
+    beam_inputs = decode.add_beam_dim(inputs, beam_size)
     step_index = 0
     first_error = None
-    while valid and not done:
-      start_time = timeit.default_timer()
-      predicted_spec_parts = spec_decomposer_pred_step(
-          spec_decomposer_optimizer.target,
-          inputs,
-          remaining_outputs,
-          cache=None,
-          beam_size=FLAGS.beam_size)
-      spec_part_times.append(timeit.default_timer() - start_time)
 
+    # `valid` means whether we are in an unrecoverable state (or the chance of
+    # recovering is so low that we'd rather allocate beam space to other
+    # things).We manually change the scores of invalid beam states to NEG_INF to
+    # make them drop out of the beam. The `use_execution` flag determines
+    # whether we are allowed to use predicted programs' executions to inform
+    # validity.
+
+    # `last_step` is set during the SpecDecomposer step to signal that the
+    # remaining_output is empty so there should be no further iterations. After
+    # the Synthesizer step, this beam element should be marked as `finished`. If
+    # `use_execution` is True, we use the predicted program's execution to see
+    # if the beam element is truly finished or not.
+
+    # `finished` means whether a beam element is completely done, i.e., its
+    # score is final and there should be no more predictions by either model.
+    # Invalid beam elements should also be marked as finished.
+    aux = {
+        'remaining_outputs': decode.add_beam_dim(outputs, beam_size),
+        'programs': jnp.full((1, beam_size, 1), bos_id, jnp.int32),
+        'scores': jnp.array([0.0] + [decode.NEG_INF] * (beam_size - 1))[None,
+                                                                        Ellipsis],
+        'valid': jnp.array([True] + [False] * (beam_size - 1))[None, Ellipsis],
+        'last_step': jnp.array([False] + [True] * (beam_size - 1))[None, Ellipsis],
+        'finished': jnp.array([False] + [True] * (beam_size - 1))[None, Ellipsis],
+        'history': jnp.array([[[next_history_id()] for _ in range(beam_size)]]),
+    }
+
+    # End-to-end prediction loop.
+    while jnp.any(~aux['finished']) and step_index < 20:
+
+      # Spec Decomposition Step.
+      ##########################
+
+      # Run the SpecDecomposerModel.
+      start_time = timeit.default_timer()
+      predicted_spec_parts, scores, aux = spec_decomposer_pred_step(
+          params=spec_decomposer_optimizer.target,
+          inputs=beam_inputs,
+          outputs=aux['remaining_outputs'],
+          cache=None,
+          aux=aux,
+          beam_size=beam_size)
+      spec_prediction_times.append(timeit.default_timer() - start_time)
+
+      # Process spec predictions.
       start_time = timeit.default_timer()
       spec_parts_batch = np.array(predicted_spec_parts)
-      copy_batch_times.append(timeit.default_timer() - start_time)
+      results = [
+          split_spec(beam, aux['remaining_outputs'][0][i],
+                     max_target_length=FLAGS.max_characters, aux=aux, i=i)
+          for i, beam in enumerate(spec_parts_batch[0])]
+      valids, last_steps, current_outputs, remaining_outputs = zip(*results)
 
-      valid, done, current_outputs, remaining_outputs = split_spec(
-          spec_parts_batch[0], remaining_outputs[0],
-          max_target_length=FLAGS.max_characters)
+      current_outputs = jnp.array(current_outputs)[None, Ellipsis]
+      aux['remaining_outputs'] = jnp.array(remaining_outputs)[None, Ellipsis]
+      aux['scores'] = scores
+      aux['valid'] = jnp.array(valids)[None, Ellipsis]
+      aux['last_step'] = jnp.array(last_steps)[None, Ellipsis]
+      current_history_ids = jnp.array(
+          [next_history_id() for _ in range(beam_size)])[None, Ellipsis, None]
+      aux['history'] = jnp.concatenate([aux['history'], current_history_ids],
+                                       axis=-1)
 
+      # Process invalid states.
+      if FLAGS.detect_invalid:
+        if FLAGS.change_invalid_scores:
+          aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
+        aux['finished'] |= ~aux['valid']
+      else:
+        assert np.all(aux['valid'])
+      spec_processing_times.append(timeit.default_timer() - start_time)
+
+      # Analysis and logging.
+      start_time = timeit.default_timer()
       ground_truth_program_part = (
           ground_truth.expressions[step_index]
           if step_index < ground_truth_length
@@ -624,64 +818,181 @@ def main(_):
           [ground_truth_program_part(i) for i in decoded_inputs]
           if step_index < ground_truth_length
           else '[step index out of bounds]')
-      predicted_output_parts = [decode_spec(o) for o in current_outputs]
-      matches = predicted_output_parts == ground_truth_output_parts
-      if not matches and first_error is None:
-        first_error = f'SpecDecomposerModel at step #{step_index + 1}'
+      assert len(current_outputs) == 1
+      best_spec_prediction = [decode_spec(o) for o in current_outputs[0][-1]]
+      if aux['finished'][0][-1] & aux['valid'][0][-1]:
+        matches = 'N/A'
+      else:
+        matches = best_spec_prediction == ground_truth_output_parts
+        if not matches and first_error is None:
+          first_error = f'SpecDecomposerModel at step #{step_index + 1}'
+      spec_analysis_times.append(timeit.default_timer() - start_time)
 
       if do_logging:
-        logging.info('  SpecDecomposerModel prediction time: %.4f sec, '
-                     'beam_size = %s', spec_part_times[-1], FLAGS.beam_size)
-        logging.info('  Copy spec_parts_batch from JAX to numpy time: %.4f sec',
-                     copy_batch_times[-1])
-        tb_message += (
-            f'step #{step_index + 1}:\n'
+        log_message += '\n' + ('=' * 80) + '\n'
+        log_message += (
+            f'Spec Decomposition Step #{step_index + 1}:\n'
             f'  ground truth output parts:           {ground_truth_output_parts}\n'
-            f'  SpecDecomposerModel predicted parts: {predicted_output_parts}\n'
-            f'    matches: {matches}, valid: {valid}, done: {done}\n')
+            f'  SpecDecomposerModel best prediction: {best_spec_prediction}\n'
+            f'    matches: {matches}\n'
+            f'---------- Full beam: ----------\n'
+        )
+        for i in range(beam_size - 1,
+                       max(-1, beam_size - FLAGS.num_beam_elements_to_log - 1),
+                       -1):
+          prediction_i = [decode_spec(o) for o in current_outputs[0][i]]
+          score_i = aux['scores'][0][i]
+          remaining_i = [decode_spec(o) for o in aux['remaining_outputs'][0][i]]
+          _, program_i = process_and_decode_program(aux['programs'][0][i])
+          valid_i = aux['valid'][0][i]
+          last_step_i = aux['last_step'][0][i]
+          finished_i = aux['finished'][0][i]
+          log_message += (
+              f'Beam item {i}:\n'
+              f'  prediction: {prediction_i}\n'
+              f'  score: {score_i:.4f}\n'
+              f'  remaining_outputs: {remaining_i}\n'
+              f'  program: {program_i}\n'
+              f'  valid: {valid_i}, last_step: {last_step_i}, finished: {finished_i}\n'
+              f'  history: {aux["history"][0][i]}\n'
+          )
 
-      if not valid:
-        step_index += 1  # Count this partial step in metrics.
+      # Elements can become newly finished if they are invalid.
+      if jnp.all(aux['finished']):
+        step_index += 1  # Count this half-step.
         break
 
-      # Add back batch dimension.
-      current_outputs, remaining_outputs = (current_outputs[None, Ellipsis],
-                                            remaining_outputs[None, Ellipsis])
+      # Synthesizer Step.
+      ###################
 
+      # Run the SynthesizerModel.
       start_time = timeit.default_timer()
-      predicted_program_part_tokens_batch = synthesizer_pred_step(
-          synthesizer_optimizer.target,
-          inputs,
-          current_outputs,
+      predicted_program_parts, scores, aux = synthesizer_pred_step(
+          params=synthesizer_optimizer.target,
+          inputs=beam_inputs,
+          outputs=current_outputs,
           cache=None,
-          beam_size=FLAGS.beam_size)
-      synthesizer_times.append(timeit.default_timer() - start_time)
+          aux=aux,
+          beam_size=beam_size)
+      synthesis_prediction_times.append(timeit.default_timer() - start_time)
 
-      predicted_program_part_tokens = process_predicted_program(
-          np.array(predicted_program_part_tokens_batch)[0], add_eos=False)
-      predicted_program_tokens.extend(predicted_program_part_tokens)
+      # Process program predictions.
+      start_time = timeit.default_timer()
+      program_parts = jnp.array([
+          np.zeros_like(beam) if aux['finished'][0][i] else beam
+          for i, beam in enumerate(np.array(predicted_program_parts)[0])
+      ])[None, Ellipsis]
+      aux['programs'] = jnp.concatenate([aux['programs'], program_parts],
+                                        axis=-1)
+      aux['scores'] = scores
+      current_history_ids = jnp.array(
+          [next_history_id() for _ in range(beam_size)])[None, Ellipsis, None]
+      aux['history'] = jnp.concatenate([aux['history'], current_history_ids],
+                                       axis=-1)
 
-      predicted_program_part = robust_fill_dsl.decode_program(
-          predicted_program_part_tokens + [eos_id], program_id_token_table)
-      program_outputs = [predicted_program_part(i) for i in decoded_inputs]
-      functionally_correct = program_outputs == predicted_output_parts
-      if not functionally_correct and first_error is None:
-        first_error = f'SynthesizerModel at step #{step_index + 1}'
+      # Process invalid states.
+      new_valids, new_last_steps, new_remaining = [], [], []
+      for i in range(beam_size):
+        valid_i = aux['valid'][0][i]
+        last_step_i = aux['last_step'][0][i]
+        remaining_i = aux['remaining_outputs'][0][i]
+        # Don't need to do any checking if the beam element is already finished,
+        # already invalid, or we're not detecting invalid beam elements.
+        if FLAGS.detect_invalid and not aux['finished'][0][i] and valid_i:
+          # This is just a syntax check.
+          valid_i, program_i = process_and_decode_program(aux['programs'][0][i])
+          if FLAGS.use_execution:
+            # Check for syntax, runtime errors, and output prefix matching.
+            valid_i, program_outputs_i = run_program(program_i, decoded_inputs)
+            if valid_i:
+              valid_i, last_step_i, _, remaining_i = split_spec(
+                  program_outputs_i, decoded_outputs,
+                  max_target_length=FLAGS.max_characters, aux=aux, i=i)
+        new_valids.append(valid_i)
+        new_last_steps.append(last_step_i)
+        new_remaining.append(remaining_i)
+      aux['valid'] = jnp.array(new_valids)[None, Ellipsis]
+      aux['last_step'] = jnp.array(new_last_steps)[None, Ellipsis]
+      aux['remaining_outputs'] = jnp.array(new_remaining)[None, Ellipsis]
+
+      already_finished = aux['finished'][0]
+      aux['finished'] |= aux['last_step']
+      if FLAGS.detect_invalid:
+        if FLAGS.change_invalid_scores:
+          aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
+        aux['finished'] |= ~aux['valid']
+      else:
+        assert np.all(aux['valid'])
+      synthesis_processing_times.append(timeit.default_timer() - start_time)
+
+      # Analysis and logging.
+      start_time = timeit.default_timer()
+      _, best_program_prediction = process_and_decode_program(
+          program_parts[0][-1])
+      _, program_outputs = run_program(best_program_prediction, decoded_inputs)
+      if already_finished[-1] & aux['valid'][0][-1]:
+        functionally_correct = 'N/A'
+      else:
+        # Compare to the ground truth, not the spec prediction. The best-scoring
+        # program didn't necessarily come from the best-scoring spec prediction.
+        functionally_correct = program_outputs == ground_truth_output_parts
+        if not functionally_correct and first_error is None:
+          first_error = f'SynthesizerModel at step #{step_index + 1}'
+      synthesis_analysis_times.append(timeit.default_timer() - start_time)
 
       if do_logging:
-        logging.info('  synthesizer_pred_step: time = %.4f sec, '
-                     'beam_size = %s', synthesizer_times[-1], FLAGS.beam_size)
-        tb_message += (
-            f'  SynthesizerModel program outputs:    {program_outputs}\n'
+        log_message += '\n' + ('=' * 80) + '\n'
+        log_message += (
+            f'Synthesizer Step #{step_index + 1}:\n'
+            f'  ground truth program part:        {ground_truth_program_part}\n'
+            f'  SynthesizerModel best prediction: {best_program_prediction}\n'
             f'    functionally correct: {functionally_correct}\n'
-            f'  ground truth program part:               {ground_truth_program_part}\n'
-            f'  SynthesizerModel predicted program part: {predicted_program_part}\n'
+            f'    ground truth output parts: {ground_truth_output_parts}\n'
+            f"    best prediction's outputs: {program_outputs}\n"
+            f'---------- Full beam: ----------\n'
         )
 
-      step_index += 1
+        for i in range(beam_size - 1,
+                       max(-1, beam_size - FLAGS.num_beam_elements_to_log - 1),
+                       -1):
+          _, prediction_i = process_and_decode_program(program_parts[0][i])
+          score_i = aux['scores'][0][i]
+          remaining_i = [decode_spec(o) for o in aux['remaining_outputs'][0][i]]
+          _, program_i = process_and_decode_program(aux['programs'][0][i])
+          valid_i = aux['valid'][0][i]
+          last_step_i = aux['last_step'][0][i]
+          finished_i = aux['finished'][0][i]
+          log_message += (
+              f'Beam item {i}:\n'
+              f'  prediction: {prediction_i}\n'
+              f'  score: {score_i:.4f}\n'
+              f'  remaining_outputs: {remaining_i}\n'
+              f'  program: {program_i}\n'
+              f'  valid: {valid_i}, last_step: {last_step_i}, finished: {finished_i}\n'
+              f'  history: {aux["history"][0][i]}\n'
+          )
 
-    program, _, success = eval_predicted_program(
-        predicted_program_tokens + [eos_id], inputs[0], outputs[0])
+      step_index += 1
+    # End of step-by-step loop.
+
+    if do_logging:
+      log_message += '\nFinal Evaluation:\n'
+    success = False
+    for i in reversed(range(beam_size)):
+      # The beam is ordered from worst to best score. Check the best scoring
+      # program first.
+      _, program_i = process_and_decode_program(aux['programs'][0][i])
+      _, program_outputs = run_program(program_i, decoded_inputs)
+      success_i = program_outputs == decoded_outputs
+      if do_logging:
+        log_message += (
+            f'Program {i}: {program_i}\n'
+            f'  success: {success_i}, score: {aux["scores"][0][i]:.4f}\n'
+        )
+      if success_i:
+        success = True
+        if not do_logging:  # Log all programs when desired.
+          break
 
     successes.append(success)
     num_steps.append(step_index)
@@ -707,20 +1018,19 @@ def main(_):
       raise ValueError(f'Unhandled first_error: {first_error}')
 
     if do_logging:
-      logging.info('Total time for test example: %.2f sec\n',
-                   total_times[-1])
-      tb_message += (
-          f'\npredicted_program: {program}\n'
-          f'ground_truth:      {ground_truth}\n'
+      log_message += (
+          f'\nground_truth: {ground_truth}\n'
           f'num steps taken:        {step_index}\n'
           f'num ground truth steps: {ground_truth_length}\n\n'
           f'overall success: {success}\n'
           f'first error: {first_error}\n'
+          f'total time: {total_times[-1]:.1f} sec\n'
+          f'```'
       )
-      tb_message += 'total_time: {:.1f} sec\n'.format(total_times[-1])
-      tb_message += '```'
+      print(log_message)
+
       summary_writer.text(f'predictions_{test_example_index}',
-                          tb_message, 0)
+                          log_message, 0)
       summary_writer.flush()
 
   # Compute overall metrics and write to tensorboard.
@@ -792,11 +1102,17 @@ def main(_):
     summary_writer.scalar('time/total time per problem',
                           statistics.mean(total_times), 0)
     summary_writer.scalar('time/per SpecDecomposerModel call',
-                          statistics.mean(spec_part_times), 0)
-    summary_writer.scalar('time/per SynthesisModel call',
-                          statistics.mean(synthesizer_times), 0)
-    summary_writer.scalar('time/per copy of batch of predicted spec parts',
-                          statistics.mean(copy_batch_times), 0)
+                          statistics.mean(spec_prediction_times), 0)
+    summary_writer.scalar('time/per spec processing',
+                          statistics.mean(spec_processing_times), 0)
+    summary_writer.scalar('time/per spec analysis',
+                          statistics.mean(spec_analysis_times), 0)
+    summary_writer.scalar('time/per SynthesizerModel call',
+                          statistics.mean(synthesis_prediction_times), 0)
+    summary_writer.scalar('time/per synthesis processing',
+                          statistics.mean(synthesis_processing_times), 0)
+    summary_writer.scalar('time/per synthesis analysis',
+                          statistics.mean(synthesis_analysis_times), 0)
 
     summary_writer.flush()
 
