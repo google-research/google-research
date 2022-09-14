@@ -53,12 +53,17 @@ class LayersTest(tf.test.TestCase, parameterized.TestCase):
                             dict(resolution=16,
                                  spins_in=[0, 1], spins_out=[0, 1],
                                  spectral_pooling=True),
-                            dict(resolution=16, spins_in=[0], spins_out=[0, 1]))
-  def test_swsconv_spatial_spectral_is_equivariant(self,
-                                                   resolution,
-                                                   spins_in,
-                                                   spins_out,
-                                                   spectral_pooling=False):
+                            dict(resolution=16, spins_in=[0], spins_out=[0, 1]),
+                            dict(resolution=8, spins_in=[1], spins_out=[1],
+                                 input_representation="spectral"),
+                            dict(resolution=16,
+                                 spins_in=[0, 1], spins_out=[0, 1],
+                                 spectral_pooling=True,
+                                 input_representation="spectral"),
+                            )
+  def test_spin_spherical_convolution_is_equivariant(
+      self, resolution, spins_in, spins_out,
+      spectral_pooling=False, input_representation="spatial"):
     """Tests the SO(3)-equivariance of _swsconv_spatial_spectral()."""
     transformer = _get_transformer()
     num_channels_in, num_channels_out = 2, 3
@@ -72,8 +77,12 @@ class LayersTest(tf.test.TestCase, parameterized.TestCase):
                                        beta=beta,
                                        gamma=gamma)
     # Get rid of the batch dimension.
-    sphere = pair.sphere[0]
-    rotated_sphere = pair.rotated_sphere[0]
+    if input_representation == "spectral":
+      inputs = pair.coefficients[0]
+      rotated_inputs = pair.rotated_coefficients[0]
+    else:
+      inputs = pair.sphere[0]
+      rotated_inputs = pair.rotated_sphere[0]
 
     # Filter is defined by its spectral coefficients.
     if spectral_pooling:
@@ -87,21 +96,23 @@ class LayersTest(tf.test.TestCase, parameterized.TestCase):
     filter_coefficients = jnp.linspace(-0.5 + 0.2j, 0.2,
                                        np.prod(shape)).reshape(shape)
 
-    sphere_out = layers._swsconv_spatial_spectral(
+    sphere_out = layers._spin_spherical_convolution(
         transformer,
-        sphere,
+        inputs,
         filter_coefficients,
         spins_in,
         spins_out,
         spectral_pooling=spectral_pooling,
+        input_representation=input_representation,
         output_representation="spatial")
 
-    rotated_sphere_out = layers._swsconv_spatial_spectral(
+    rotated_sphere_out = layers._spin_spherical_convolution(
         transformer,
-        rotated_sphere,
+        rotated_inputs,
         filter_coefficients,
         spins_in, spins_out,
         spectral_pooling=spectral_pooling,
+        input_representation=input_representation,
         output_representation="spatial")
 
     # Now since the convolution is SO(3)-equivariant, the same rotation that
@@ -143,7 +154,13 @@ class SpinSphericalConvolutionTest(tf.test.TestCase, parameterized.TestCase):
            spins_in=[0], spins_out=[0, 1],
            n_channels_in=2, n_channels_out=3,
            num_filter_params=4,
-           output_representation="spectral")
+           output_representation="spectral"),
+      dict(batch_size=2, resolution=16,
+           spins_in=[0, 1], spins_out=[0, 1],
+           n_channels_in=2, n_channels_out=3,
+           num_filter_params=4,
+           spectral_pooling=True,
+           input_representation="spectral"),
   )
   def test_shape(self,
                  batch_size,
@@ -152,10 +169,15 @@ class SpinSphericalConvolutionTest(tf.test.TestCase, parameterized.TestCase):
                  n_channels_in, n_channels_out,
                  num_filter_params,
                  spectral_pooling=False,
+                 input_representation="spatial",
                  output_representation="spatial"):
     """Checks that SpinSphericalConvolution outputs the right shape."""
     transformer = _get_transformer()
-    shape = (batch_size, resolution, resolution, len(spins_in), n_channels_in)
+    if input_representation == "spectral":
+      ell_max = sphere_utils.ell_max_from_resolution(resolution)
+      shape = (batch_size, ell_max+1, 2*ell_max+1, len(spins_in), n_channels_in)
+    else:
+      shape = (batch_size, resolution, resolution, len(spins_in), n_channels_in)
     inputs = (jnp.linspace(-0.5, 0.7 + 0.5j, np.prod(shape))
               .reshape(shape))
 
@@ -166,6 +188,7 @@ class SpinSphericalConvolutionTest(tf.test.TestCase, parameterized.TestCase):
         features=n_channels_out,
         num_filter_params=num_filter_params,
         spectral_pooling=spectral_pooling,
+        input_representation=input_representation,
         output_representation=output_representation)
     params = model.init(_JAX_RANDOM_KEY, inputs)
     out = model.apply(params, inputs)

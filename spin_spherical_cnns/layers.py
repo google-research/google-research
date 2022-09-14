@@ -43,44 +43,16 @@ Initializer = Callable[[Any, Sequence[int], Any],
                        Array]
 
 
-def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
-                              spins_in, spins_out,
-                              spectral_pooling, output_representation):
-  r"""Spin-weighted spherical convolution; spatial input and spectral filters.
+def _spin_spherical_convolution_from_spectral(
+    transformer, coefficients_in, filter_coefficients,
+    spins_out, spectral_pooling, output_representation):
+  """`_spin_spherical_convolution` with spectral inputs."""
+  if spectral_pooling:
+    ell_max = coefficients_in.shape[0] - 1
+    new_ell_max = (ell_max+1) // 2 - 1
+    coefficients_in = coefficients_in[
+        :new_ell_max + 1, (ell_max-new_ell_max):(ell_max+new_ell_max+1)]
 
-  This implements a multi-channel version of Eq. (13) in [1], where sphere_set
-  corresponds to F and filter_coefficients to \hat{K}. For convenience, the
-  inputs and outputs are in the spatial domain but the filter is defined by its
-  Fourier coefficients, since this is what is learned in [1].
-
-  The multi-channel behavior is the usual in CNNs: for a input with n_in
-  channels, we have n_in * n_out filters and n_out output channels, each of
-  which is the sum over n_in filter outputs.
-
-  Args:
-    transformer: SpinSphericalFourierTransformer instance.
-    sphere_set: A (resolution, resolution, n_spins_in, n_channels_in) array of
-      spin-weighted spherical functions with equiangular sampling.
-    filter_coefficients: (resolution // 2, n_spins_in, n_spins_out,
-      n_channels_in, n_channels_out) array of filter SWSH coefficients.
-    spins_in: (n_spins_in,) Sequence of int containing the input spins.
-    spins_out: (n_spins_out,) Sequence of int containing the output spins.
-    spectral_pooling: When True, halve input dimensions via spectral pooling.
-    output_representation: Whether to return outputs in the 'spectral'
-      or 'spatial' domain.
-
-  Returns:
-    A (resolution, resolution, n_spins_out, n_channels_out) array of
-    spin-weighted spherical functions with equiangular sampling.
-  """
-  resolution = sphere_set.shape[0]
-  ell_max = (sphere_utils.ell_max_from_resolution(resolution // 2)
-             if spectral_pooling else None)
-
-  # Convert input swsfs to the spectral domain.
-  coefficients_in = transformer.swsft_forward_spins_channels(sphere_set,
-                                                             spins_in,
-                                                             ell_max=ell_max)
   # Compute the convolution in the spectral domain.
   coefficients_out = jnp.einsum("lmic,liocd->lmod",
                                 coefficients_in,
@@ -95,6 +67,72 @@ def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
   else:
     raise ValueError("`output_representation` must be either "
                      "'spectral' or 'spatial'.")
+
+
+def _spin_spherical_convolution_from_spatial(
+    transformer, sphere, filter_coefficients,
+    spins_in, spins_out, spectral_pooling, output_representation):
+  """`_spin_spherical_convolution` with spatial inputs."""
+  resolution = sphere.shape[0]
+  ell_max = (sphere_utils.ell_max_from_resolution(resolution // 2)
+             if spectral_pooling else None)
+  # Convert to the spectral domain.
+  coefficients_in = transformer.swsft_forward_spins_channels(
+      sphere, spins_in, ell_max=ell_max)
+
+  # When `spectral_pooling` == True, pooling was already performed
+  # during the forward transform.
+  return _spin_spherical_convolution_from_spectral(
+      transformer, coefficients_in, filter_coefficients, spins_out,
+      spectral_pooling=False, output_representation=output_representation)
+
+
+def _spin_spherical_convolution(
+    transformer, sphere_or_coeffs, filter_coefficients,
+    spins_in, spins_out, spectral_pooling,
+    input_representation, output_representation):
+  r"""Spin-weighted spherical convolution; spatial input and spectral filters.
+
+  This implements a multi-channel version of Eq. (13) in [1], where sphere_set
+  corresponds to F and filter_coefficients to \hat{K}. For convenience, the
+  inputs and outputs are in the spatial domain but the filter is defined by its
+  Fourier coefficients, since this is what is learned in [1].
+
+  The multi-channel behavior is the usual in CNNs: for a input with n_in
+  channels, we have n_in * n_out filters and n_out output channels, each of
+  which is the sum over n_in filter outputs.
+
+  Args:
+    transformer: SpinSphericalFourierTransformer instance.
+    sphere_or_coeffs: A (resolution, resolution, n_spins_in,
+      n_channels_in) array of spin-weighted spherical functions with
+      equiangular sampling, or (ell_max+1, 2*ell_max+1, n_spins_in,
+      n_channels_in) array of coefficients.
+    filter_coefficients: (resolution // 2, n_spins_in, n_spins_out,
+      n_channels_in, n_channels_out) array of filter SWSH coefficients.
+    spins_in: (n_spins_in,) Sequence of int containing the input spins.
+    spins_out: (n_spins_out,) Sequence of int containing the output spins.
+    spectral_pooling: When True, halve input dimensions via spectral pooling.
+    input_representation: Whether inputs are in the 'spectral' or
+      'spatial' domain.
+    output_representation: Whether to return outputs in the 'spectral'
+      or 'spatial' domain.
+
+  Returns:
+    A (resolution, resolution, n_spins_out, n_channels_out) array of
+    spin-weighted spherical functions with equiangular sampling.
+  """
+  if input_representation == "spectral":
+    return _spin_spherical_convolution_from_spectral(
+        transformer, sphere_or_coeffs, filter_coefficients,
+        spins_out, spectral_pooling, output_representation)
+  elif input_representation == "spatial":
+    return _spin_spherical_convolution_from_spatial(
+        transformer, sphere_or_coeffs, filter_coefficients,
+        spins_in, spins_out, spectral_pooling, output_representation)
+  else:
+    raise ValueError("`input_representation` must be either "
+                     "`spectral` or `spatial`.")
 
 
 # Custom initializer, based on He et al, "Delving Deep into Rectifiers", but
@@ -119,6 +157,8 @@ class SpinSphericalConvolution(nn.Module):
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of parameters per filter. Fewer parameters results
       in more localized filters.
+    input_representation: Whether inputs are in the 'spectral' or
+      'spatial' domain.
     output_representation: Whether to return outputs in the 'spectral'
       or 'spatial' domain.
     initializer: initializer for the filter spectrum.
@@ -129,6 +169,7 @@ class SpinSphericalConvolution(nn.Module):
   spectral_pooling: bool
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
   num_filter_params: Optional[int] = None
+  input_representation: str = "spatial"
   output_representation: str = "spatial"
   initializer: Initializer = default_initializer
 
@@ -158,47 +199,63 @@ class SpinSphericalConvolution(nn.Module):
     return weights.transpose((4, 0, 1, 2, 3))
 
   @nn.compact
-  def __call__(self, sphere_set):
+  def __call__(self, sphere_or_coeffs):
     """Applies convolution to inputs.
 
     Args:
-      sphere_set: A (batch_size, resolution, resolution, n_spins_in,
-        n_channels_in) array of spin-weighted spherical functions (SWSF) with
-        equiangular sampling.
+      sphere_or_coeffs: A (batch_size, resolution, resolution,
+        n_spins_in, n_channels_in) array of spin-weighted spherical
+        functions (SWSF) with equiangular sampling, or a (batch_size,
+        ell_max+1, 2*ell_max+1, n_spins_in, n_channels_in) array of
+        spectral coefficients.
 
     Returns:
       A (batch_size, resolution, resolution, n_spins_out, n_channels_out)
       complex64 array of SWSF with equiangular H&W sampling.
     """
-    resolution = sphere_set.shape[1]
-    if sphere_set.shape[2] != resolution:
-      raise ValueError("Axes 1 and 2 must have the same dimensions!")
-    if sphere_set.shape[3] != len(list(self.spins_in)):
+    if self.input_representation == "spectral":
+      ell_max = sphere_or_coeffs.shape[1] - 1
+      resolution = 2 * (ell_max + 1)
+      if sphere_or_coeffs.shape[2] != 2*ell_max + 1:
+        raise ValueError("Axes 1 and 2 must have dimensions "
+                         "(ell_max+1, 2*ell_max+1).")
+    elif self.input_representation == "spatial":
+      resolution = sphere_or_coeffs.shape[1]
+      ell_max = sphere_utils.ell_max_from_resolution(resolution)
+      if sphere_or_coeffs.shape[2] != resolution:
+        raise ValueError("Axes 1 and 2 must have the same dimensions!")
+    else:
+      raise ValueError("`input_representation` must be either "
+                       "'spectral' or 'spatial'.")
+
+    if sphere_or_coeffs.shape[3] != len(list(self.spins_in)):
       raise ValueError("Input axis 3 (spins_in) doesn't match layer's.")
 
     if self.spectral_pooling:
       resolution //= 2
+      ell_max = sphere_utils.ell_max_from_resolution(resolution)
 
     # Make sure constants contain all spins for input resolution.
     for spin in set(self.spins_in).union(self.spins_out):
       if not self.transformer.validate(resolution, spin):
         raise ValueError("Constants are invalid for given input!")
 
-    ell_max = sphere_utils.ell_max_from_resolution(resolution)
-    num_channels_in = sphere_set.shape[-1]
+    num_channels_in = sphere_or_coeffs.shape[-1]
     if self.num_filter_params is None:
       kernel = self._get_kernel(ell_max, num_channels_in)
     else:
       kernel = self._get_localized_kernel(ell_max, num_channels_in)
 
     # Map over the batch dimension.
-    vmap_convolution = jax.vmap(_swsconv_spatial_spectral,
-                                in_axes=(None, 0, None, None, None, None, None))
+    vmap_convolution = jax.vmap(
+        _spin_spherical_convolution,
+        in_axes=(None, 0, None, None, None, None, None, None))
     return vmap_convolution(self.transformer,
-                            sphere_set, kernel,
+                            sphere_or_coeffs, kernel,
                             self.spins_in,
                             self.spins_out,
                             self.spectral_pooling,
+                            self.input_representation,
                             self.output_representation)
 
 
