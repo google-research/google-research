@@ -36,7 +36,7 @@ index 1bc9ac0..c525fee 100644
  cc_binary(
      name = "_scann_ops.so",
      copts = [
-@@ -87,13 +94,3 @@ cc_library(
+@@ -87,14 +94,3 @@ cc_library(
          "@com_google_protobuf//:protobuf",
      ],
  )
@@ -48,5 +48,6 @@ index 1bc9ac0..c525fee 100644
 -    tags = ["local"],
 -    deps = [
 -        ":scann",
+-        "//scann/utils:io_oss_wrapper",
 -    ],
 -)
