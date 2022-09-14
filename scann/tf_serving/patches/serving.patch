@@ -21,8 +21,8 @@ index d56b3bf7..35af97df 100644
 +
 +    http_archive(
 +        name = "com_google_scann",
-+        strip_prefix = "google-research-92db0b4243c94c4c3649e48f472e23a1d091e55b/scann",
-+        url = "https://github.com/google-research/google-research/archive/92db0b4243c94c4c3649e48f472e23a1d091e55b.zip",
++        strip_prefix = "google-research-1e56278fb708c8ac76e5e78a2d47c82dc7edf662/scann",
++        url = "https://github.com/google-research/google-research/archive/1e56278fb708c8ac76e5e78a2d47c82dc7edf662.zip",
 +        patches = ["@//third_party/scann:tf_serving.patch"],
 +        patch_args = ["-p1"],
 +    )
