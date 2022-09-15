@@ -18,7 +18,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <hash_set>
 #include <memory>
 #include <utility>
 
