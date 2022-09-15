@@ -24,7 +24,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
+from collections import abc
 from absl import logging
 
 import numpy as np
@@ -77,7 +77,7 @@ def _reshape_initial_state_for_mc(initial_state,
                                   num_samples):
   """Tile initial conditions to generate multiple scenarios."""
   if (not isinstance(initial_state, tf.Tensor)) and isinstance(
-      initial_state, collections.Iterable):
+      initial_state, abc.Iterable):
     return [_maybe_tile_tensor_for_mc(s, num_samples) for s in initial_state]
   else:
     return _maybe_tile_tensor_for_mc(initial_state, num_samples)
