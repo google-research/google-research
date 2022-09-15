@@ -15,6 +15,7 @@
 
 """Define all the core classes for an RL problem."""
 import collections
+from collections import abc
 import numpy as np
 
 
@@ -25,7 +26,7 @@ class Experience(
   pass
 
 
-class Episode(collections.MutableSequence):
+class Episode(abc.MutableSequence):
   """A list of Experiences."""
   __slots__ = ['_experiences']
   discount_negative_reward = False
