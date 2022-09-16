@@ -20,18 +20,16 @@
 antheaTemplates['MQM-Paragraph'] = {
   severities: {
     major: {
-      display: 'Major everity',
+      display: 'Major severity',
       shortcut: 'M',
       color: 'pink',
-      description: 'Major severity errors are those that may mislead or ' +
-                   'confuse the reader',
+      description: 'Major severity issues are those that may mislead or confuse the reader.',
     },
     minor: {
       display: 'Minor severity',
       shortcut: 'm',
       color: '#fbec5d',
-      description: 'Minor errors are those that don\'t lead to significant ' +
-                   'loss of meaning',
+      description: 'Minor severity issues are those that do not lead to significant confusion or loss of meaning.',
     },
   },
 
@@ -98,6 +96,10 @@ antheaTemplates['MQM-Paragraph'] = {
       display: 'Accuracy',
       description: 'The target text does not accurately reflect the source text.',
       subtypes: {
+        reinterpretation: {
+          display: 'Creative Reinterpretation',
+          description: 'The target text reinterprets the source, but preserves its intent within its broader context (the document and its purpose, and the target locale). This can be because the translation adds, removes, or modifies text in accordance with the target locale, or simply makes creative changes that fully preserve the intent of the source text.',
+        },
         mistranslation: {
           display: 'Mistranslation',
           description: 'The target text does not accurately represent the source text.',
@@ -213,7 +215,7 @@ antheaTemplates['MQM-Paragraph'] = {
       forced_severity: 'major',
     },
     source_error: {
-      display: 'Source error',
+      display: 'Source issue',
       description: 'Any issue in the source.',
       source_side_only: true,
     },
@@ -251,21 +253,15 @@ antheaTemplates['MQM-Paragraph'] = {
     <h2>Overview</h2>
     <p>
       In this project, you will be shown translations of different documents
-      that you will review and annotate for errors. You will annotate by
-      selecting spans of words affected by errors, then labeling them with the
-      severities and error types. The goal of this project is to evaluate the
-      quality of various human and machine translation outputs.
+      that you will review and annotate for errors and issues. You will annotate
+      by selecting spans of words affected by errors, then labeling them with
+      the severities and issue types. The goal of this project is to evaluate
+      the quality of various human and machine translation outputs.
     </p>
     <p>
-      The content for annotation comes in tasks, which are broken down into
-      segments (typically consisting of one sentence per segment, but can also
-      consist of multiple sentences). In most cases, a single task will
-      correspond to a single document taken from a single source (a web page,
-      article). In some project types, though, there may be multiple documents
-      in a task. The first segment shown may be from the middle of the source
-      document, not necessarily from the beginning. In that case, you can
-      expand the preceding segment to make sure the translation is contextually
-      correct.
+      The content for annotation comes in tasks that are broken down into
+      segments (a segment may have one or more sentences, and is often a
+      whole paragraph).
     </p>
 
     <h2>General Guidelines</h2>
@@ -285,7 +281,7 @@ antheaTemplates['MQM-Paragraph'] = {
       <li>Faithful in tone and register to the source</li>
       <li>Cultural references or humor should be substituted with equivalents in
           the target language where appropriate (e.g. it's raining cats and
-          dogs \u2192 it's pouring)</li>
+          dogs \u2192 it's pouring).</li>
     </ul>
     <p>
       Please be mindful of the following:
@@ -293,24 +289,38 @@ antheaTemplates['MQM-Paragraph'] = {
     <ol>
       <li>
         Before you start annotating, please read carefully the definitions
-        for severities and error types. Be sure to follow these
+        for severities and error/issue types. Be sure to follow these
         definitions so we can have consistency between annotators and
         reliable results. In particular, it is important to understand the
-        difference between “major” and “minor” error severities and how to
-        label error spans.
-      </li>
-      <li>Please take document context into account when annotating:
-        <ol>
-          <li>If a translation might be questionable on its own but is
-              acceptable in the context of the document, then it should not be
-              considered as an error.</li>
-          <li>Similarly, if a translation might be acceptable in some
-              contexts, but not within the current document, then it should be
-              considered as an error.</li>
-        </ol>
+        difference between “Major” and “Minor” severities and how to
+        label text spans that cover the issue identified.
       </li>
       <li>
-        When identifying errors, please be as fine-grained as possible. If a
+        We deliberately use the terms "error" and "issue" interchangeably in
+        these instructions. Most issues with translations are also errors,
+        but sometimes, an issue may or may not be an error, depending upon the
+        application. The most important issue category where this difference
+        is present is the "Accuracy / Creative Reinterpretation" category, which
+        is meant to annotate translation issues where the intent is fully
+        preserved but the translation takes some creative liberties.
+      </li>
+      <li>Please take document context into account when annotating:
+        <ul>
+          <li>If a translation might be questionable on its own but is
+              acceptable in the context of the document, then it should not be
+              considered as an error. For example, a noun may get replaced
+              by a pronoun in the target even though a noun was used in the
+              source, and unless this change makes the target awkward to read,
+              it should not be marked as an error.</li>
+          <li>Similarly, it is OK for the translation to make use of the
+              context to omit some part of the source text that is obvious
+              from the context (even if it is not omitted in the source text).
+              For example, an adjective may not have to be repeated in the
+              target text, if it is naturally obvious from the context.</li>
+        </ul>
+      </li>
+      <li>
+        When identifying issues, please be as fine-grained as possible. If a
         segment contains multiple words that are independently mistranslated,
         separate errors should be recorded. For example, if “boathouses” is
         translated to “hangar de bateaux” in French, mark separate errors for
@@ -332,64 +342,64 @@ antheaTemplates['MQM-Paragraph'] = {
         “Major” severity and pick the error type “Non-translation!”.
       </li>
     </ol>
-  
+
     <h2>Annotation Process</h2>
     <ol>
       <li>Review the translation of each segment against the source, following
           the general guidelines above.</li>
       <li>
-        Select the <b>span</b> of words affected by the error by clicking on
-        the word/particle where the error “begins”, then clicking on the
-        word/particle where the error “ends”. If it is only one word, then you
-        have to click on it twice.
+        Select the <b>span</b> of words affected by the issue by clicking on
+        the word/particle where the identified issue “begins”, then clicking on
+        the word/particle where the issue “ends”. If it is only one word, then
+        you have to click on it twice.
         <ul>
-          <li>The error span should be the minimal contiguous sequence such
-              that modifying the word(s) within the error span, deleting the
-              error span or moving the word(s) somewhere else in the
-              segment will correct the error. The error span should not include
-              adjoining words that are not directly affected by the error and do
-              not need to be modified in order for the error to be fixed.</li>
-          <li>The shorter the error span, the more useful it is.</li>
+          <li>The marked span should be the minimal contiguous sequence such
+              that modifying the word(s) within the span, deleting the span, or
+              moving the word(s) somewhere else in the segment will remove the
+              identified issue. The span should not include adjoining words that
+              are not directly affected by the identified issue and do
+              not need to be modified in order for the issue to be fixed.</li>
+          <li>The shorter the span, the more useful it is.</li>
           <li>When it comes to Style/Awkwardness errors, please pinpoint the
               error rather than extend the span to an entire clause.</li>
-          <li>If a single error affects words that do not directly follow each
+          <li>If a single issue affects words that do not directly follow each
               other, as is the case with split verbs in German
               (“teilte die Feuerwehr auf”) or phrasal verbs in English
-              (“called Mary and her brother up”), log the error only for the
+              (“called Mary and her brother up”), log the issue only for the
               first part (“teilte”, “called”) and do not log anything for the
               latter part (“auf”, “up”). The text between “teilte” and “auf”,
-              or between “called” and “up”, should not be included in the error
-              span if the issue is with the verb only (“aufteilen”, “call up”).
+              or between “called” and “up”, should not be included in the span
+              if the issue is with the verb only (“aufteilen”, “call up”).
           </li>
-          <li>Note: errors can appear either on the translation side, or
-              rarely, for the "Source error" type, on the source side. When the
+          <li>Note: issues can appear either on the translation side, or
+              rarely, for the "Source issue" type, on the source side. When the
               error is an omission, the error span must be selected on the
               source side.</li>
         </ul>
       </li>
       <li>
-        Select the <b>severity</b> of the error using the buttons in the
-        rightmost column ("Evaluations"):
+        Select the <b>severity</b> of the issue using the buttons in the
+        rightmost column ("Evaluations") or their keyboard shortcuts:
         <ul>
-          <li>Major severity</li>
-          <li>Minor severity</li>
+          <li>Major severity (M)</li>
+          <li>Minor severity (m)</li>
         </ul>
       </li>
       <li>Select the <b>category</b> (also called <b>type</b>) and
-          <b>subcategory</b> (also called <b>subtype</b>) of the error found.
-          For example: Accuracy &gt; Mistranslation.</li>
-      <li>After annotating all errors in a segment, use the <b>right arrow
-          key</b> (or the <b>button</b>) to go to the next segment.</li>
+          <b>subcategory</b> (also called <b>subtype</b>) of the error/issue
+          found. For example: Accuracy &gt; Mistranslation.</li>
+      <li>After annotating all identified issues in a segment, use the <b>right
+          arrow key</b> (or the <b>button</b>) to go to the next segment.</li>
     </ol>
-  
+
     <details>
       <summary>
         <span class="summary-heading">Annotation Tips</span>
       </summary>
       <ol>
         <li>To change the rating for a previous segment in the current
-            document, you can click on it. You can delete any individual error
-            you might have mistakenly added.</li>
+            document, you can click on it. You can delete any individual issue
+            that you might have mistakenly added.</li>
         <li>
           Occasionally, the translated segment would have been altered to
           include an artificially injected error. Evaluating translation quality
@@ -401,16 +411,17 @@ antheaTemplates['MQM-Paragraph'] = {
           the unaltered version is revealed, you have to proceed to rate its
           quality just like all the other segment.
         </li>
-      </ol>    
+      </ol>
     </details>
-  
+
     <h2>Severities defined</h2>
-    <p>We define the error severity levels in this section.</p>
+    <p>We define error/issue severity levels in this section.</p>
     <ul>
       <li>
         <b>Major severity</b>:
-        Major severity errors are those that may mislead or confuse the reader.
-        Typically, accuracy and terminology errors fall here (but not always).
+        Major severity errors/issues are those that may mislead or confuse the
+        reader. Typically, accuracy and terminology errors fall here (but not
+        always).
         <ul>
           <li>
             Utter mistranslations: the source and the target mean totally
@@ -422,7 +433,7 @@ antheaTemplates['MQM-Paragraph'] = {
                   <th>Language pair</th>
                   <th>Source</th>
                   <th>Target</th>
-                  <th>Comments</th>              
+                  <th>Comments</th>
                 </tr>
                 <tr>
                   <td>EN_DE</td>
@@ -493,8 +504,8 @@ antheaTemplates['MQM-Paragraph'] = {
                   <th>Language pair</th>
                   <th>Source</th>
                   <th>Target</th>
-                  <th>Comments</th>              
-                </tr>      
+                  <th>Comments</th>
+                </tr>
                 <tr>
                   <td>EN_DE</td>
                   <td>music video<span class="span-major">-inspired</span>
@@ -527,14 +538,16 @@ antheaTemplates['MQM-Paragraph'] = {
           </li>
           <li>
             A part of the segment was not translated (either kept in the source
-            language or omitted altogether from the translation).
+            language or omitted altogether from the translation) and it needed
+            to be translated even when the document context is taken into
+            account.
           </li>
           <li>
             Words or meaning added to the target for which there is no basis in
-            the source.
+            the source, even after taking the document context into account.
           </li>
           <li>
-            An error in any other category that can be judged to require a
+            An error in any other category that can be judged to require a
             <i>significant</i> effort from the reader in order to avoid getting
             misled or confused. For example, extremely poor style and grammar.
           </li>
@@ -542,11 +555,12 @@ antheaTemplates['MQM-Paragraph'] = {
       </li>
       <li>
         <b>Minor severity</b>:
-        Minor severity errors are those that don't lead to a loss of meaning and
-        that wouldn't confuse or mislead the user but would be noticed; they are
-        errors that decrease stylistic quality, fluency or clarity and make the
-        content less appealing. Typically, grammar, spelling, style,
-        capitalization, punctuation and locale convention errors fall here. 
+        Minor severity errors/issues are those that don't lead to a loss of
+        meaning and that wouldn't confuse or mislead the user, but would be
+        noticed; they are issues that decrease stylistic quality, fluency, or
+        clarity, or make the content less appealing. Typically, grammar,
+        spelling, style, capitalization, punctuation, creative reinterpretation,
+        and locale convention errors fall here.
         <details>
           <summary><b>Examples</b></summary>
           <table>
@@ -554,8 +568,8 @@ antheaTemplates['MQM-Paragraph'] = {
               <th>Language pair</th>
               <th>Source</th>
               <th>Target</th>
-              <th>Comments</th>              
-            </tr> 
+              <th>Comments</th>
+            </tr>
             <tr>
               <td>EN_DE</td>
               <td>When cooking for a crowd, Eunsook Pai sears the dumplings a
@@ -671,7 +685,38 @@ antheaTemplates['MQM-Paragraph'] = {
         <details>
           <summary>Subtypes of Accuracy:</summary>
           <ul>
-            <li>              
+            <li>
+              <b>Creative Reinterpretation</b>.
+              The target text <i>reinterprets the source, but preserves its
+              intent</i>. These issues would only be considered problematic when
+              the translation application rigidly prohibits creative or
+              localized reinterpretations of the source text. Note that if the
+              translation reinterprets the source text to such a great degree
+              that it <i>changes</i> the intent, then it should be marked as
+              using Mistranslation, Addition, or Omission subtypes, as
+              appropriate.
+              <ul>
+                <li>
+                  Mark Creative Reinterpretation if the translation includes
+                  additional text or omits some text that provides explanations
+                  or context that may be obvious in the source (target) locale,
+                  but not in the target (source) locale. For example, an added
+                  short introduction of an entity not well known in the target
+                  locale, or an omitted introduction of an entity well known in
+                  the target locale.
+                </li>
+                <li>
+                  The translation edits the source creatively, perhaps to make
+                  the target text more fluent or expressive or localized. For
+                  example, a reordering of sentences or an addition of text that
+                  is supported by the overall passage being translated and does
+                  not change the intent of the source text. Another example
+                  would be that of the name of an exemplifying entity being
+                  changed to a better local equivalent.
+                </li>
+              </ul>
+            </li>
+            <li>
               <b>Mistranslation</b>.
               The target text does not accurately represent the source text.
               Examples: (1) The source text talks about a person A knowing
@@ -681,24 +726,26 @@ antheaTemplates['MQM-Paragraph'] = {
               "rarely." (3) Incorrectly gendered pronouns not warranted by the
               context, such as "Mary slammed the door as he left."
             </li>
-            <li>              
+            <li>
               <b>Source language fragment</b>.
               Content that should have been translated has been left
               untranslated. Example: A word, phrase or sentence in a German
               document has been copied verbatim into the English translation,
               but a natural translation is possible.
             </li>
-            <li>              
+            <li>
               <b>Addition</b>.
               The target text includes information not present in the source.
               Example: A translated sentence that includes adverbs or adjectives
-              without equivalents in the original text.
+              without equivalents in the original text, even after taking
+              context into account.
             </li>
-            <li>              
+            <li>
               <b>Omission</b>.
               Content is missing from the translation that is present in the
-              source. Example: A phrase has been dropped from the translation.
-              This error type needs to be annotated on the source side.
+              source. Example: A phrase has been dropped from the translation
+              and it is not already implied by context. This error type needs
+              to be annotated on the source side.
             </li>
           </ul>
         </details>
@@ -711,7 +758,7 @@ antheaTemplates['MQM-Paragraph'] = {
         <details>
           <summary>Subtypes of Fluency:</summary>
           <ul>
-            <li>              
+            <li>
               <b>Inconsistency</b>.
               The text shows internal inconsistency (not related to
               terminology). Examples: (1) A person is referred to with a
@@ -719,32 +766,32 @@ antheaTemplates['MQM-Paragraph'] = {
               next sentence. (2) An entity is referred to as "Secretary of
               State" in one paragraph but as "Minister of State" in the next.
             </li>
-            <li>              
+            <li>
               <b>Grammar</b>.
               Issues related to the grammar or syntax of the text, other than
               spelling and orthography. Example: An English text reads "They
               goes together," or "He could of fixed it."
             </li>
-            <li>              
+            <li>
               <b>Register</b>.
               The content uses the wrong grammatical register, such as using
               informal pronouns or verb forms when their formal counterparts are
               required. Example: A formal invitation uses the German informal
               pronoun "du" instead of "Sie."
             </li>
-            <li>              
+            <li>
               <b>Spelling</b>.
               Issues related to spelling or capitalization of words. Example:
               The French word "mer" (sea) is used instead of the identically
               pronounced "maire" (mayor).
             </li>
-            <li>              
+            <li>
               <b>Punctuation</b>.
               Punctuation is used incorrectly (for the locale or style).
               Example: An English compound adjective appearing before a noun is
               not hyphenated, as in "dog friendly hotel."
             </li>
-            <li>              
+            <li>
               <b>Character encoding</b>.
               Characters are garbled due to incorrect application of an
               encoding. Examples: "ﾊｸｻ�ｽ､ｱ" and "瓣в眏." See
@@ -760,7 +807,7 @@ antheaTemplates['MQM-Paragraph'] = {
         <details>
           <summary>Subtypes of Style:</summary>
           <ul>
-            <li>              
+            <li>
               <b>Unnatural or awkward</b>.
               The text is literal, written in an awkward style, unidiomatic or
               inappropriate in the context. Examples: (1) The English metaphor
@@ -780,13 +827,13 @@ antheaTemplates['MQM-Paragraph'] = {
         <details>
           <summary>Subtypes of Terminology:</summary>
           <ul>
-            <li>              
+            <li>
               <b>Inappropriate for context</b>.
               Translation does not adhere to appropriate or contains terminology
               that does not fit the context. Example: "acide sulfurique" is
               translated to "acid of sulfur" instead of "sulfuric acid."
             </li>
-            <li>              
+            <li>
               <b>Inconsistent</b>.
               Terminology is used in an inconsistent manner within the text. 
               Example: The translation of a phone manual alternates between the
@@ -803,36 +850,36 @@ antheaTemplates['MQM-Paragraph'] = {
         <details>
           <summary>Subtypes of Locale convention:</summary>
           <ul>
-            <li>              
+            <li>
               <b>Address format</b>.
               Content uses the wrong format for addresses. A part of the address
               was translated that should be kept in English. Examples:
               "1600 Pennsylvania Ave" is translated to Russian as
               "1600 Пенсильвания авеню" instead of "Пенсильвания авеню 1600."
             </li>
-            <li>              
+            <li>
               <b>Date format</b>.
               A text uses a date format inappropriate for its locale. Example:
               The date is shown as "13-1-1969" in U.S. English.
             </li>
-            <li>              
+            <li>
               <b>Currency format</b>.
               Content uses the wrong format for currency. Example: The dollar
               symbol is used as a suffix, as in "100$."
             </li>
-            <li>              
+            <li>
               <b>Telephone format</b>.
               Content uses the wrong form for telephone numbers. Example: An
               Indian phone number such as "xxxx-nnnnnn" is formatted as
               "(xxx) xnn-nnnn".
             </li>
-            <li>              
+            <li>
               <b>Time format</b>.
               Content uses the wrong form for time. Example: Time is shown as
               "11.0" instead of "11:00" in a language where the former is a
               mistake.
             </li>
-            <li>              
+            <li>
               <b>Name format</b>.
               Content uses the wrong form for name. Example: The Chinese name
               (which lists surname first) "马琳" is translated as "Lin Ma"
@@ -855,16 +902,16 @@ antheaTemplates['MQM-Paragraph'] = {
         source that has been retained.
       </li>
       <li>
-        <b>Source error</b>.
+        <b>Source issue</b>.
         Any issue in the source. Examples: The source has meaning-altering typos
         or omissions ("The was blue.") or is nonsensical ("Th,jad jakh ;ih").
-        Note that even in the presence of source errors, translation errors
+        Note that even in the presence of source issues, translation errors
         should be annotated when possible. If some part of the source is
         completely garbled, then the corresponding translation need only be
         checked for Fluency/Style errors.
       </li>
     </ul>
- 
+
     <details>
       <summary>
         <span class="summary-heading">Annotations exemplified in detail</span>
@@ -875,7 +922,54 @@ antheaTemplates['MQM-Paragraph'] = {
           <th>Source</th>
           <th>Target</th>
           <th>Correct annotations</th>
-          <th>Comments</th>              
+          <th>Comments</th>
+        </tr>
+        <tr>
+          <td>EN_DE</td>
+          <td>Ten years later, then
+              <span class="span-minor">FC Bayern Munich general
+              manager</span> Uli Hoeness said ...</td>
+          <td>Uli Hoeneß sagte zehn Jahre später, ...</td>
+          <td>Accuracy - Creative Reinterpretation - Minor</td>
+          <td>Everyone in Germany knows who Uli Hoeness is, so this omission
+              is a reinterpretation that simply localizes the text into the
+              German context.</td>
+        </tr>
+        <tr>
+          <td>DE_EN</td>
+          <td>... das in Hannover oder Cuxhaven auf den Teller kommt.</td>
+          <td>... that ends up on plates in Hannover or
+              <span class="span-minor">Hamburg</span>.</td>
+          <td>Accuracy - Creative Reinterpretation - Minor</td>
+          <td>This changes the name of a city that is purely used as an
+              example, from Cuxhaven (not a widely known name outside
+              Germany) to Hamburg (a widely known metropolitan area that
+              Cuxhaven belongs to). Note that if, instead of using
+              Cuxhaven as an example to make a larger point, the
+              source text were talking about some specific issues
+              related to that city, then that would have been an Accuracy
+              error.</td>
+        </tr>
+        <tr>
+          <td>DE_EN</td>
+          <td>... das in Hannover oder Cuxhaven auf den Teller kommt.</td>
+          <td>... that ends up on plates in Hannover or Cuxhaven
+              <span class="span-minor">(a part of Hamburg)</span>.</td>
+          <td>Accuracy - Creative Reinterpretation - Minor</td>
+          <td>Here, the translator added some explanatory text to make
+              the text more comprehensible in a non-German setting.</td>
+        </tr>
+        <tr>
+          <td>EN_DE</td>
+          <td>[Preceding text about COVID issues in restaurants.]
+              Parties are another situation when ...</td>
+          <td><span class="span-minor">Ähnlich wie im Restaurant</span> ist es
+              auch auf Partys wahrscheinlicher, dass ...</td>
+          <td>Accuracy - Creative Reinterpretation - Minor</td>
+          <td>Here, the translator took the liberty to add some introductory
+              text to a sentence, that is not present in the source, but is
+              supported by the whole passage getting translated, in order to
+              make the translation more natural.</td>
         </tr>
         <tr>
           <td>EN_DE</td>
@@ -967,7 +1061,7 @@ antheaTemplates['MQM-Paragraph'] = {
         </tr>
         <tr>
           <td>ZH_EN</td>
-          <td>在盛 唐诗 人中， 王维 、 孟浩然 长于五绝，王昌龄等七绝写得很好，兼长五绝与七绝而且同臻极境的，只有李白一人。</td>
+          <td>在盛唐诗人中，王维、孟浩然长于五绝，王昌龄等七绝写得很好，兼长五绝与七绝而且同臻极境的，只有李白一人。</td>
           <td>Among the poets in the prosperous Tang Dynasty, Wang Wei and Meng
               Haoran <span class="span-major">were better than Wujue</span>,
               and Wang Changling and <span class="span-minor">other</span>
@@ -1037,7 +1131,7 @@ antheaTemplates['MQM-Paragraph'] = {
             version. Conversely, if the untranslated version is more common, a
             target version has not been established or the abbreviation or
             acronym constitutes a registered name or trademark, the abbreviation
-            or acronym should be kept in the source language.</li>       
+            or acronym should be kept in the source language.</li>
         <li><b>Books, movies, songs, games, research papers, academic journal
             titles, legal or official documents (foreign acts and regulations,
             international agreements, treaties, conventions, resolutions)</b>:

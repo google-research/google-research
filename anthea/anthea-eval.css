@@ -120,7 +120,7 @@
   border: 1px solid black;
   border-collapse: collapse;
   table-layout: fixed;
-  width: 100%;
+  max-width: 300ch;
 }
 .anthea-document-text-table > tr,
 .anthea-document-text-table > tr > td {
@@ -143,6 +143,7 @@
   border-top: 0 solid;
 }
 .anthea-error-button {
+  background-color: lightblue;
   text-align: left;
 }
 .anthea-error-button,
@@ -212,8 +213,8 @@
   min-height: 6ex;
 }
 .anthea-eval-panel-subtypes {
-  background: lightblue;
   background-clip: border-box;
+  background-color: aliceblue;
 }
 .anthea-eval-panel-table {
   border: 1px solid black;
@@ -236,7 +237,7 @@
   width: 100%;
 }
 .anthea-eval-panel-unflattened {
-  padding: 0 12px;
+  padding: 0 0 0 32px;
 }
 .anthea-expander-row {
   cursor: pointer;

@@ -759,7 +759,7 @@ displayError(errors, index) {
         (!this.config.MARK_SPAN_FIRST && !this.markedPhrase_);
     const location = this.markedPhrase_ ? this.markedPhrase_.location : '';
     for (let type in this.config.errors) {
-      const errorInfo = this.config.errors[type]
+      const errorInfo = this.config.errors[type];
       errorInfo.button.disabled = disableErrors;
       if (!disableErrors) {
         if (errorInfo.source_side_only && location && location != 'source') {
@@ -1186,7 +1186,6 @@ displayError(errors, index) {
             googdom.createDom('tr', null, errorCell));
       }
       if (errorInfo.subtypes) {
-        errorButton.style.background = 'lightblue';
         const subtypesDiv = googdom.createDom('div',
                                               'anthea-eval-panel-subtypes');
         errorCell.appendChild(subtypesDiv);
@@ -2233,8 +2232,9 @@ displayError(errors, index) {
    */
   setUpEval(evalDiv, templateName, projectData, projectResults, hotwPercent=0) {
     if (antheaTemplates[templateName]) {
-      this.setUpEval_(evalDiv, antheaTemplates[templateName], projectData,
-                      projectResults, hotwPercent);
+      this.setUpEvalWithConfig(
+          evalDiv, antheaTemplates[templateName], projectData,
+          projectResults, hotwPercent);
       return;
     }
     /**
@@ -2252,8 +2252,8 @@ displayError(errors, index) {
   }
 
   /**
-   * Sets up the eval. This is the main internal starting point, called once
-   *     the template has been loaded.
+   * Sets up the eval. This is the starting point called once the template has
+   *     been loaded.
    *
    * @param {!Element} evalDiv The DIV in which to create the eval.
    * @param {!Object} config The template configuration object.
@@ -2262,7 +2262,8 @@ displayError(errors, index) {
    * @param {?Array<!Object>} projectResults Previously saved partial results.
    * @param {number} hotwPercent Percent rate for HOTW testing.
    */
-  setUpEval_(evalDiv, config, projectData, projectResults, hotwPercent) {
+  setUpEvalWithConfig(
+      evalDiv, config, projectData, projectResults, hotwPercent) {
     evalDiv.innerHTML = '';
 
     const instructionsPanel = googdom.createDom('div',

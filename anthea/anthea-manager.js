@@ -653,8 +653,9 @@ class AntheaManager {
     this.clearEval();
     this.antheaBellQuote_.style.display = 'none';
     this.eval_ = new AntheaEval(this, true /* readOnly */);
-    this.eval_.setUpEval(this.evalDiv_, evalData.template,
-                         evalData.parsedDocSys, evalData.results);
+    this.eval_.setUpEvalWithConfig(
+        this.evalDiv_, evalData.template, evalData.parsedDocSys,
+        evalData.results);
     this.log(this.INFO, 'Viewing evaluation for ' + evalData.projectName +
              ' with template ' + evalData.templateName + ' done by ' +
              evalData.raterId);
