@@ -85,6 +85,7 @@ class Params(object):
     self.quantize = 0
     self.use_one_step = True
     self.data_stride = 1
+    self.cond_shape = ()
 
     # will be updated by update_flags()
     self.window_stride_samples = None

@@ -52,6 +52,8 @@ class Params(object):
     self.desired_samples = (
         self.desired_samples // self.data_shape[0]) * self.data_shape[0]
 
+    self.cond_shape = ()
+
 
 def get_test_batch_features_and_labels_numpy(input_shape=None,
                                              output_shape=None):
