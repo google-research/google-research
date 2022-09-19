@@ -57,12 +57,12 @@ flags.DEFINE_float('attention_dropout_rate', 0.1, 'Attention dropout rate')
 flags.DEFINE_integer('beam_size', 10, 'Beam size')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
-flags.DEFINE_string('test_dataset_filepattern', None,
+flags.DEFINE_string('test_dataset', None,
                     'Filepattern for TFRecord test dataset.')
 flags.DEFINE_integer('num_test_batches', 200, 'Number of test batches.')
-flags.DEFINE_integer('num_strings_per_task', 4,
+flags.DEFINE_integer('num_examples', 4,
                      'Number of input/output strings per task.')
-flags.DEFINE_integer('max_characters', 120,
+flags.DEFINE_integer('max_io_length', 120,
                      'Maximum number of characters in input/output strings.')
 flags.DEFINE_integer('max_program_length', 100,
                      'Maximum number of tokens in program.')
@@ -131,7 +131,7 @@ if not _internal:
 
 
 def create_robust_fill_dataset(file_pattern, spec_token_id_table,
-                               num_strings_per_task):
+                               num_examples):
   """Returns an instance of tf.data.Dataset."""
   filenames = tf.io.gfile.glob(file_pattern)
   raw_dataset = tf.data.TFRecordDataset(filenames)
@@ -148,16 +148,16 @@ def create_robust_fill_dataset(file_pattern, spec_token_id_table,
 
   def _parse_fn(record):
     """Parses a record into a feature_dict."""
-    empty_default = [''] * num_strings_per_task
+    empty_default = [''] * num_examples
     feature_values = tf.io.parse_single_example(
         serialized=record,
         features={
             'inputs':
-                tf.io.FixedLenFeature([num_strings_per_task],
+                tf.io.FixedLenFeature([num_examples],
                                       tf.string,
                                       default_value=empty_default),
             'outputs':
-                tf.io.FixedLenFeature([num_strings_per_task],
+                tf.io.FixedLenFeature([num_examples],
                                       tf.string,
                                       default_value=empty_default),
             'program_encoding':
@@ -333,13 +333,18 @@ def main(_):
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
 
+  xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
+  work_unit = xm_client.get_current_work_unit()
+  hparam_dict = work_unit.parameters['args']
+  hparam_str = ','.join([f'{k}={v}' for k, v in hparam_dict.items()])
+
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(
-        os.path.join(FLAGS.save_dir, 'tb'))
+        os.path.join(FLAGS.save_dir, 'tb', hparam_str))
 
   # TODO(jxihong): end-to-end loop is not batched right now.
   batch_size = 1
-  io_shape = (batch_size, FLAGS.num_strings_per_task, FLAGS.max_characters)
+  io_shape = (batch_size, FLAGS.num_examples, FLAGS.max_io_length)
   spec_target_shape = (batch_size, FLAGS.max_spec_part_length)
   program_shape = (batch_size, FLAGS.max_program_length)
 
@@ -391,7 +396,7 @@ def main(_):
   def split_spec(spec_parts, outputs, max_target_length, aux, i):
     """Returns a tuple (valid, last_step, current_parts, remaining_parts)."""
     num_examples = len(outputs)
-    assert num_examples == FLAGS.num_strings_per_task
+    assert num_examples == FLAGS.num_examples
 
     if aux['finished'][0][i]:
       # Do nothing if it's finished.
@@ -495,11 +500,11 @@ def main(_):
   # Load Dataset
   # ---------------------------------------------------------------------------
   logging.info('Initializing dataset.')
-  if not FLAGS.test_dataset_filepattern:
+  if not FLAGS.test_dataset:
     raise ValueError('Must specify filepattern to dataset.')
 
   # Training dataset.
-  logging.info('Loading dataset from %s', FLAGS.test_dataset_filepattern)
+  logging.info('Loading dataset from %s', FLAGS.test_dataset)
   padded_shapes = {
       'inputs': io_shape[1:],
       'outputs': io_shape[1:],
@@ -515,9 +520,9 @@ def main(_):
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  test_dataset = create_dataset_fn(FLAGS.test_dataset_filepattern,
+  test_dataset = create_dataset_fn(FLAGS.test_dataset,
                                    spec_token_id_table,
-                                   FLAGS.num_strings_per_task)
+                                   FLAGS.num_examples)
   test_dataset = test_dataset.padded_batch(
       batch_size, padded_shapes=padded_shapes, drop_remainder=False)
   test_dataset = test_dataset.take(FLAGS.num_test_batches)
@@ -545,7 +550,7 @@ def main(_):
       num_layers=FLAGS.num_layers,
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_characters, FLAGS.max_spec_part_length),
+      max_len=max(FLAGS.max_io_length, FLAGS.max_spec_part_length),
       dropout_rate=FLAGS.dropout_rate,
       attention_dropout_rate=FLAGS.attention_dropout_rate,
       use_relative_attention=FLAGS.use_relative_attention,
@@ -602,7 +607,7 @@ def main(_):
       num_layers=FLAGS.num_layers,
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_characters, FLAGS.max_program_length),
+      max_len=max(FLAGS.max_io_length, FLAGS.max_program_length),
       dropout_rate=FLAGS.dropout_rate,
       attention_dropout_rate=FLAGS.attention_dropout_rate,
       use_relative_attention=FLAGS.use_relative_attention,
@@ -785,7 +790,7 @@ def main(_):
       spec_parts_batch = np.array(predicted_spec_parts)
       results = [
           split_spec(beam, aux['remaining_outputs'][0][i],
-                     max_target_length=FLAGS.max_characters, aux=aux, i=i)
+                     max_target_length=FLAGS.max_io_length, aux=aux, i=i)
           for i, beam in enumerate(spec_parts_batch[0])]
       valids, last_steps, current_outputs, remaining_outputs = zip(*results)
 
@@ -907,7 +912,7 @@ def main(_):
             if valid_i:
               valid_i, last_step_i, _, remaining_i = split_spec(
                   program_outputs_i, decoded_outputs,
-                  max_target_length=FLAGS.max_characters, aux=aux, i=i)
+                  max_target_length=FLAGS.max_io_length, aux=aux, i=i)
         new_valids.append(valid_i)
         new_last_steps.append(last_step_i)
         new_remaining.append(remaining_i)

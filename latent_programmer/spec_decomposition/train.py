@@ -17,7 +17,6 @@
 
 import collections
 import functools
-import json
 import os
 import random
 import sys
@@ -52,7 +51,6 @@ gfile = tf.io.gfile
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer('seed', 0, 'Fixed random seed for training.')
-flags.DEFINE_integer('repeat', 0, 'An ID for this repetition of the same seed.')
 flags.DEFINE_float('lr', 1e-3, 'Learning rate.')
 flags.DEFINE_float('weight_decay', 1e-1,
                    'Decay factor for AdamW-style weight decay.')
@@ -64,17 +62,17 @@ flags.DEFINE_boolean('slow_decode', True, 'Use slow decoding for prediction?')
 flags.DEFINE_float('dropout_rate', 0.1, 'Dropout rate')
 flags.DEFINE_float('attention_dropout_rate', 0.1, 'Attention dropout rate')
 
-flags.DEFINE_string('dataset_filepattern', None,
-                    'Filepattern for TFRecord dataset.')
-flags.DEFINE_string('test_dataset_filepattern', None,
+flags.DEFINE_string('train_dataset', None,
+                    'Filepattern for TFRecord training dataset.')
+flags.DEFINE_string('test_dataset', None,
                     'Filepattern for TFRecord test dataset.')
 flags.DEFINE_integer('per_device_batch_size', 16,
                      'Number of program tasks in a batch.')
-flags.DEFINE_integer('num_strings_per_task', 4,
+flags.DEFINE_integer('num_examples', 4,
                      'Number of input/output strings per task.')
-flags.DEFINE_integer('max_characters', 120,
+flags.DEFINE_integer('max_input_length', 120,
                      'Maximum number of characters in input/output strings.')
-flags.DEFINE_integer('predict_max_characters', 200,
+flags.DEFINE_integer('predict_max_input_length', 200,
                      'Maximum number of characters in input/output strings for '
                      'prediction.')
 flags.DEFINE_integer('max_target_length', 200,
@@ -488,9 +486,11 @@ def main(_):
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
 
-  hparam_str_dict = json.loads(FLAGS.xm_parameters)
-  hparam_str = ','.join(['%s=%s' % (shorten(k), str(hparam_str_dict[k]))
-                         for k in hparam_str_dict.keys()])
+  xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
+  work_unit = xm_client.get_current_work_unit()
+  hparam_dict = work_unit.parameters['args']
+  hparam_str = ','.join(['%s=%s' % (shorten(k), str(v))
+                         for k, v in hparam_dict.items()])
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
@@ -501,11 +501,11 @@ def main(_):
 
   batch_size = FLAGS.per_device_batch_size * n_devices
   io_shape = (FLAGS.per_device_batch_size,
-              FLAGS.num_strings_per_task,
-              FLAGS.max_characters)
+              FLAGS.num_examples,
+              FLAGS.max_input_length)
   predict_io_shape = (FLAGS.per_device_batch_size,
-                      FLAGS.num_strings_per_task,
-                      FLAGS.predict_max_characters)
+                      FLAGS.num_examples,
+                      FLAGS.predict_max_input_length)
   target_shape = (FLAGS.per_device_batch_size, FLAGS.max_target_length)
 
   # Setup DSL
@@ -604,11 +604,11 @@ def main(_):
   # Load Dataset
   # ---------------------------------------------------------------------------
   logging.info('Initializing dataset.')
-  if not FLAGS.dataset_filepattern:
+  if not FLAGS.train_dataset:
     raise ValueError('Must specify filepattern to dataset.')
 
   # Training dataset.
-  logging.info('Loading dataset from %s', FLAGS.dataset_filepattern)
+  logging.info('Loading dataset from %s', FLAGS.train_dataset)
   padded_shapes = {
       'inputs': io_shape[1:],
       'outputs': io_shape[1:],
@@ -630,8 +630,8 @@ def main(_):
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  dataset = create_dataset_fn(FLAGS.dataset_filepattern, spec_token_id_table,
-                              FLAGS.num_strings_per_task)
+  dataset = create_dataset_fn(FLAGS.train_dataset, spec_token_id_table,
+                              FLAGS.num_examples)
   dataset = dataset.padded_batch(
       batch_size,
       padded_shapes=padded_shapes,
@@ -652,8 +652,8 @@ def main(_):
   train_ds = train_ds.repeat()
 
   test_dataset = create_dataset_fn(
-      FLAGS.test_dataset_filepattern, spec_token_id_table,
-      FLAGS.num_strings_per_task)
+      FLAGS.test_dataset, spec_token_id_table,
+      FLAGS.num_examples)
   test_dataset = test_dataset.padded_batch(
       batch_size,
       padded_shapes=predict_padded_shapes,
@@ -687,7 +687,7 @@ def main(_):
       num_layers=FLAGS.num_layers,
       qkv_dim=FLAGS.embedding_dim,
       mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_characters, FLAGS.max_target_length),
+      max_len=max(FLAGS.max_input_length, FLAGS.max_target_length),
       dropout_rate=FLAGS.dropout_rate,
       attention_dropout_rate=FLAGS.attention_dropout_rate,
       use_relative_attention=FLAGS.use_relative_attention,
@@ -719,7 +719,7 @@ def main(_):
       base_config=base_config.replace(
           shift=False, deterministic=True,
           decode=not FLAGS.slow_decode,
-          max_len=max(FLAGS.predict_max_characters, FLAGS.max_target_length)))
+          max_len=max(FLAGS.predict_max_input_length, FLAGS.max_target_length)))
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
