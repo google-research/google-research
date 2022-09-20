@@ -185,9 +185,9 @@ def paths_to_state_indicators(
       the alignment path, by having a one along the taken edges, with nine
       possible edges for each i,j.
     states: A Python list of integers in [0, 9), representing an arbitrary
-      subset of (encoded) edge types. Can also be set to 'match', 'gap_open' or
-      'gap_extend' to query the set of edge types associated with each of those
-      conditions.
+      subset of (encoded) edge types. This can also be set to 'match',
+      'gap_open' or 'gap_extend' to query the set of edge types associated with
+      each of those conditions.
 
   Returns:
     A tf.Tensor `state_indicators` of type tf.float32 and shape (batch_size,
