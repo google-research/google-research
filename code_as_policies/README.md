@@ -9,4 +9,5 @@ Project website: https://code-as-policies.github.io/
 We provide a list of self-contained colabs:
 
 * LMP Examples - Follows the examples given in the Method section
-* Experiment*: - These colabs reproduce experiment results in the paper
+* Experiment* - These colabs reproduce experiment results in the paper
+* Interactive Demo - Interactive simulated tabletop manipulation domain
