@@ -266,11 +266,11 @@ antheaTemplates['MQM-Paragraph'] = {
 
     <h2>General Guidelines</h2>
     <p>
-      The standard you should be reviewing the translations against is human
-      translation quality. Report every occurrence where the translation falls
-      short of that standard. Remember that the content you are reviewing may 
-      be a human translation or a machine translation. Apply the same standard
-      regardless. The translation should be:
+      The standard you should be reviewing the translations against is <b>human
+      translation quality</b>. Report every occurrence where the translation
+      falls short of that standard. Remember that the content you are reviewing
+      may be a human translation or a machine translation. <b><i>Apply the same
+      standard regardless</i></b>. The translation should be:
     </p>
     <ul>
       <li>Linguistically correct</li>
@@ -298,11 +298,8 @@ antheaTemplates['MQM-Paragraph'] = {
       <li>
         We deliberately use the terms "error" and "issue" interchangeably in
         these instructions. Most issues with translations are also errors,
-        but sometimes, an issue may or may not be an error, depending upon the
-        application. The most important issue category where this difference
-        is present is the "Accuracy / Creative Reinterpretation" category, which
-        is meant to annotate translation issues where the intent is fully
-        preserved but the translation takes some creative liberties.
+        but occasionally, an issue may or may not be perceived as an error,
+        depending upon the application, domain, and/or subjective preferences.
       </li>
       <li>Please take document context into account when annotating:
         <ul>
@@ -688,13 +685,10 @@ antheaTemplates['MQM-Paragraph'] = {
             <li>
               <b>Creative Reinterpretation</b>.
               The target text <i>reinterprets the source, but preserves its
-              intent</i>. These issues would only be considered problematic when
-              the translation application rigidly prohibits creative or
-              localized reinterpretations of the source text. Note that if the
-              translation reinterprets the source text to such a great degree
-              that it <i>changes</i> the intent, then it should be marked as
-              using Mistranslation, Addition, or Omission subtypes, as
-              appropriate.
+              intent</i>. Note that if the translation reinterprets the source
+              text to such a great degree that it <i>changes</i> the intent,
+              then it should be marked as using Mistranslation, Addition, or
+              Omission subtypes, as appropriate.
               <ul>
                 <li>
                   Mark Creative Reinterpretation if the translation includes
