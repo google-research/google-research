@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
   cumsum = [0] + list(cumsum)
 
-  if not tf.io.gfile.exists.exists(output_path):
+  if not tf.io.gfile.exists(output_path):
     tf.io.gfile.mkdir(output_path)
   for l, i, j in zip(lens, cumsum, cumsum[1:]):
     fname = os.path.join(output_path, "prompts_%d.npy" % l)

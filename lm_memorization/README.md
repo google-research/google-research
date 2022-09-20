@@ -41,6 +41,10 @@ For a few rows, parsing of the original Pile data may have failed.
 If `counts[b, i] == 0`, the corresponding example should be ommitted from
 analysis.
 
+**Update (9/20): Our collaborator has run this step and made the
+prompts available for download
+[here](https://github.com/ethz-privsec/lm_memorization_data).**
+
 ### Generations
 Each row below corresponds to 10,000 generations produced using prompts
 extracted from sequences of the specified sequence length using the
