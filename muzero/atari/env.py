@@ -25,6 +25,7 @@ import tempfile
 from absl import flags
 from absl import logging
 import atari_py  # pylint: disable=unused-import
+import cv2
 import gym
 from gym.spaces import box
 import gym.wrappers
@@ -34,7 +35,6 @@ import tensorflow as tf
 from tf_agents.environments import suite_atari
 
 from muzero import core as mzcore
-import cv2
 
 flags.DEFINE_string('game_name', 'Pong', 'Name of the Atari game.')
 flags.DEFINE_string(
@@ -45,22 +45,25 @@ flags.DEFINE_string('game_version', 'v4',
 flags.DEFINE_integer('screen_size', 84, 'Screen size of the Atari env.')
 flags.DEFINE_integer(
     'full_action_space', 0,
-    'If yes (1) then use the full action space of 18 actions, otherwise (0) use the minimal action set for the given game.'
+    'If yes (1) then use the full action space of 18 actions, otherwise (0) '
+    'use the minimal action set for the given game.'
 )
 flags.DEFINE_integer(
     'n_history_frames', 16,
     'Number of historic frames to encode for the observation.')
 flags.DEFINE_integer(
     'encode_actions', 1,
-    'Whether the actions should be encoded as part of the observation (1) or not (0).'
+    'Whether the actions should be encoded as part of the observation (1) or '
+    'not (0).'
 )
 flags.DEFINE_integer(
     'quit_on_invalid_action', 0,
-    'If yes (1) then game is terminated after invalid action with score of -value_range - 1'
-)
+    'If yes (1) then game is terminated after invalid action with score of '
+    '-value_range - 1')
 flags.DEFINE_integer(
     'terminal_on_life_lost', 0,
-    'If yes (1) then game is terminated after first lost life. Otherwise (0), the game is played unitl the environment returns game over.'
+    'If yes (1) then game is terminated after first lost life. Otherwise (0), '
+    'the game is played unitl the environment returns game over.'
 )
 flags.DEFINE_integer('grayscale', 1, 'Use grayscale observation.')
 flags.DEFINE_integer('pretrain_buffer_size', 100,
