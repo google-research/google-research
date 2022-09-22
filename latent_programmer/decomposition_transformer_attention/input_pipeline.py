@@ -23,7 +23,7 @@ from latent_programmer.tasks.scan import scan_vocab
 gfile = tf.io.gfile
 
 
-def create_robust_fill_dataset_from_tf_record(
+def create_robust_fill_dataset_from_old_tf_record(
     file_pattern, token_id_table, char_id_table, use_bos_separators, split_ios):
   """Returns an instance of tf.data.Dataset."""
 
@@ -99,6 +99,78 @@ def create_robust_fill_dataset_from_tf_record(
     program_encoding = tf.strings.to_number(
         program_encoding, out_type=tf.int32)
 
+    return inputs, outputs, program_encoding
+
+  dataset = raw_dataset.map(_parse_fn)
+  return dataset
+
+
+def create_robust_fill_dataset(file_pattern, spec_token_id_table,
+                               num_strings_per_task, use_bos_separators):
+  """Returns an instance of tf.data.Dataset."""
+  filenames = tf.io.gfile.glob(file_pattern)
+  raw_dataset = tf.data.TFRecordDataset(filenames)
+
+  spec_vocab_table = tf.lookup.StaticVocabularyTable(
+      tf.lookup.KeyValueTensorInitializer(
+          # Add padding.
+          [''] + list(spec_token_id_table.keys()),
+          [0] + list(spec_token_id_table.values()),
+          key_dtype=tf.string,
+          value_dtype=tf.int64),
+      len(spec_token_id_table) + 1)
+  bos_id = spec_token_id_table[robust_fill_dsl.BOS]
+  eos_id = spec_token_id_table[robust_fill_dsl.EOS]
+
+  def _parse_fn(record):
+    """Parses a record into a feature_dict."""
+    empty_default = [''] * num_strings_per_task
+    feature_values = tf.io.parse_single_example(
+        serialized=record,
+        features={
+            'inputs':
+                tf.io.FixedLenFeature([num_strings_per_task],
+                                      tf.string,
+                                      default_value=empty_default),
+            'outputs':
+                tf.io.FixedLenFeature([num_strings_per_task],
+                                      tf.string,
+                                      default_value=empty_default),
+            'program_encoding':
+                tf.io.FixedLenFeature([], tf.string, default_value=''),
+        })
+
+    # Map characters to tokens.
+    inputs = tf.strings.unicode_split(feature_values['inputs'],
+                                      'UTF-8').to_tensor()
+    inputs = spec_vocab_table.lookup(inputs)
+
+    outputs = tf.strings.unicode_split(feature_values['outputs'],
+                                       'UTF-8').to_tensor()
+    outputs = spec_vocab_table.lookup(outputs)
+
+    program_encoding = feature_values['program_encoding']
+    if use_bos_separators:
+      # Add BOS between every partial program, then add BOS followed by EOS.
+      # `program_encoding` has a | between partial programs (not at the
+      # beginning or end of the sequence, and no spaces around |).
+      program_encoding = tf.strings.join([
+          tf.strings.regex_replace(program_encoding, r'\|',
+                                   ' {} '.format(bos_id)),
+          ' {} {}'.format(bos_id, eos_id),
+      ])
+    else:
+      program_encoding = tf.strings.join([
+          tf.strings.regex_replace(program_encoding, r'\|', ' '),
+          ' {}'.format(eos_id),
+      ])
+    # Parse numbers.
+    program_encoding = tf.strings.split(program_encoding, sep=' ')
+    program_encoding = tf.strings.to_number(
+        program_encoding, out_type=tf.int32)
+
+    # inputs: [num_strings, max_length_of_input]
+    # outputs: [num_strings, max_length_of_output]
     return inputs, outputs, program_encoding
 
   dataset = raw_dataset.map(_parse_fn)
