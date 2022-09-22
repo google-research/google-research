@@ -130,9 +130,13 @@ def model(flags):
             net)
     net = quantize.quantize_layer(
         tf.keras.layers.BatchNormalization(),
-        default_8bit_quantize_configs.NoOpQuantizeConfig())(
-            net)
-    net = quantize.quantize_layer(tf.keras.layers.Activation(activation))(net)
+        apply_quantization=flags.quantize,
+        quantize_config=default_8bit_quantize_configs.NoOpQuantizeConfig(),
+        )(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Activation(activation),
+        apply_quantization=flags.quantize,
+        )(net)
 
   net = stream.Stream(
       cell=quantize.quantize_layer(

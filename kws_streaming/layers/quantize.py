@@ -18,6 +18,7 @@
 from absl import logging
 import tensorflow_model_optimization as tfmot
 from tensorflow_model_optimization.python.core.quantization.keras import quantize_wrapper
+from tensorflow_model_optimization.python.core.quantization.keras.default_8bit import default_8bit_quantize_configs
 from tensorflow_model_optimization.python.core.quantization.keras.default_8bit import default_8bit_quantize_registry
 
 
@@ -44,17 +45,25 @@ def quantize_layer(layer, apply_quantization=True, quantize_config=None):
     layer: input layer to quantize
     apply_quantization: if True layer is quantized, otherwise not
     quantize_config: quantization config for special cases such as
-      sequence of convolution and batch normalization
+      sequence of convolution and batch normalization (e.g.:NoOpQuantizeConfig).
 
   Returns:
     quantized layer
+
+  Raise:
+    ValueError if BatchNormalization quantize_config is not NoOpQuantizeConfig.
   """
   if apply_quantization:
     scheme = tfmot.quantization.keras.default_8bit.Default8BitQuantizeScheme()
 
     quantize_registry = scheme.get_quantize_registry()
 
-    if not quantize_registry.supports(layer):
+    if layer.__class__.__name__ == 'BatchNormalization':
+      if not isinstance(quantize_config,
+                        default_8bit_quantize_configs.NoOpQuantizeConfig):
+        raise ValueError('Unexpected quantize_config for batchnorm: %s' %
+                         quantize_config.__class__.__name__)
+    elif not quantize_registry.supports(layer):
       logging.info('layer is not supported: %s', str(layer))
       return layer
 
