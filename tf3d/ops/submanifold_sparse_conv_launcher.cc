@@ -84,7 +84,7 @@ Status RunSubmanifoldSparseConvolution(
       }
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 template <>
