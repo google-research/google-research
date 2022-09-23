@@ -42,7 +42,7 @@ optax==0.0.9
 packaging==21.0
 Pillow==8.3.2
 promise==2.3
-protobuf==3.18.1
+protobuf==3.18.3
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pyparsing==2.4.7
