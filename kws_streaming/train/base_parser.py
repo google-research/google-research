@@ -413,9 +413,9 @@ def base_parser():
       '--return_softmax',
       type=int,
       default=0,
-      help='Use softmax in the model: '
-      ' 0 for SparseCategoricalCrossentropy '
-      ' 1 for CategoricalCrossentropy '
+      help='Use softmax layer in the model: '
+      ' 0 for SparseCategoricalCrossentropy(from_logits=True) '
+      ' 1 for SparseCategoricalCrossentropy(from_logits=False) '
   )
   parser.add_argument(
       '--novograd_beta_1',
