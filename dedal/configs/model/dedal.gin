@@ -1,0 +1,105 @@
+from __gin__ import dynamic_registration
+
+import tensorflow as tf
+
+from dedal import smith_waterman
+from dedal.models import activations
+from dedal.models import aligners
+from dedal.models import dedal
+from dedal.models import encoders
+from dedal.models import initializers
+
+
+# Maximum sequence length (for absolute positional embeddings).
+MAX_SEQUENCE_LENGTH = 1_024
+
+# -----------------------------------------------------------------------------
+# Top-level model config.
+# -----------------------------------------------------------------------------
+
+dedal.Dedal:
+  encoder_cls = @encoders.TransformerEncoder
+  aligner_cls = @aligners.SoftAligner
+
+# -----------------------------------------------------------------------------
+# Transformer encoder-only config.
+# -----------------------------------------------------------------------------
+
+encoders.TransformerEncoder:
+  emb_dim = 768
+  num_layers = 6
+  num_heads = 12
+  mlp_dim = 3_072
+  output_dropout = 0.1
+  attention_dropout = 0.1
+  mlp_dropout = 0.1
+  norm_input = False
+  aaemb_init = @aaemb_init/tf.keras.initializers.RandomNormal()
+  kernel_init = @tf.keras.initializers.GlorotUniform()
+  max_len = %MAX_SEQUENCE_LENGTH
+
+aaemb_init/tf.keras.initializers.RandomNormal:
+  stddev = 1.0
+
+# -----------------------------------------------------------------------------
+# SoftAligner config.
+# -----------------------------------------------------------------------------
+
+aligners.SoftAligner:
+  similarity_cls = @aligners.PairwiseBilinearDense
+  gap_pen_cls = @aligners.ContextualGapPenalties
+  align_fn = @smith_waterman.perturbed_alignment_score
+  eval_align_fn = @smith_waterman.unperturbed_alignment_score
+
+smith_waterman.perturbed_alignment_score:
+  sigma = 0.1
+
+smith_waterman.soft_sw_affine:
+  temp = 0.1
+
+aligners.PairwiseBilinearDense:
+  kernel_init = @initializers.SymmetricKernelInitializer()
+
+# -----------------------------------------------------------------------------
+# Default config for ContextualGapPenalties.
+# -----------------------------------------------------------------------------
+
+aligners.ContextualGapPenalties:
+  gap_open_cls = @gap_open/aligners.PairwiseBilinearDense
+  gap_extend_cls = @gap_extend/aligners.PairwiseBilinearDense
+
+gap_open/aligners.PairwiseBilinearDense:
+  bias_init = @gap_open/tf.keras.initializers.Constant()
+  activation = @tf.keras.activations.softplus
+  mask_penalty = 1e9
+
+gap_extend/aligners.PairwiseBilinearDense:
+  bias_init = @gap_extend/tf.keras.initializers.Constant()
+  activation = @tf.keras.activations.softplus
+  mask_penalty = 1e9
+
+gap_open/tf.keras.initializers.Constant:
+  value = 11.0
+
+gap_extend/tf.keras.initializers.Constant:
+  value = 0.0
+
+# -----------------------------------------------------------------------------
+# Default config for ContextualSharedGapPenalties.
+# -----------------------------------------------------------------------------
+
+aligners.ContextualSharedGapPenalties:
+  gap_cls = @gap_pen/aligners.PairwiseBilinearDense
+  gap_open_bias_init = @gap_pen/bias/tf.keras.initializers.Constant()
+  gap_open_bias_trainable = False
+
+gap_pen/aligners.PairwiseBilinearDense:
+  bias_init = @gap_pen/tf.keras.initializers.Constant()
+  activation = @tf.keras.activations.softplus
+  mask_penalty = 1e9
+
+gap_pen/tf.keras.initializers.Constant:
+  value = 11.0
+
+gap_pen/bias/tf.keras.initializers.Constant:
+  value = 0.0

@@ -1,0 +1,143 @@
+from __gin__ import dynamic_registration
+
+import tensorflow as tf
+
+from dedal import multi_task
+from dedal import vocabulary
+from dedal.data import builder
+from dedal.train import checkpoint
+from dedal.train import learning_rate_schedules
+from dedal.train import logger
+from dedal.train import losses
+from dedal.train import metrics
+from dedal.train import training_loop
+from dedal.models import dedal
+from dedal.models import nlp as nlp_layers
+
+
+# -----------------------------------------------------------------------------
+# REQUIRED GIN BINDINGS.
+# -----------------------------------------------------------------------------
+
+# Path to the SeqIO SentencePiece vocabulary to tokenize protein sequences.
+MAIN_VOCAB_PATH = %gin.REQUIRED
+# Path to the SeqIO SentencePiece vocabulary describing the subset of tokens in
+# the main vocab that can be randomly replaced as part of the masked language
+# modelling task.
+TOKEN_REPLACE_VOCAB_PATH = %gin.REQUIRED
+
+
+# -----------------------------------------------------------------------------
+# TOP-LEVEL TRAINING LOOP CONFIG.
+# -----------------------------------------------------------------------------
+
+PERIOD = 2_000
+MAX_TO_KEEP = 10
+
+vocabulary.get_default:
+  vocab = %vocabulary.seqio_vocab
+
+training_loop.TrainingLoop:
+  dataset_builder = @builder.MultiDatasetBuilder()
+  logger_cls = @logger.Logger
+  model_cls = @dedal.Dedal
+  loss_fn = @losses.MultiTaskLoss()
+  optimizer_cls = @tf.keras.optimizers.Adam
+  batch_size = 128
+  num_steps = 2_000_000
+  num_eval_steps = 100
+  num_steps_per_train_iteration = 16
+
+# -----------------------------------------------------------------------------
+# DATA PIPELINE.
+# -----------------------------------------------------------------------------
+
+# "Activates" multi-input mode in model.
+dedal.Dedal:
+  switch = @multi_task.SwitchBackbone()
+
+builder.MultiDatasetBuilder:
+  builders = [
+      @masked_lm/builder.DatasetBuilder(),
+  ]
+  switch = @multi_task.SwitchBackbone()
+  split = (
+      ('validation',),
+      ('test',),
+  )
+
+multi_task.SwitchBackbone:
+  embeddings = [0]
+  alignments = []
+
+# -----------------------------------------------------------------------------
+# OUTPUT HEADS AND FINETUNING.
+# -----------------------------------------------------------------------------
+
+dedal.Dedal:
+  aligner_cls = None
+  heads_cls = @model/heads/multi_task.Backbone()
+  backprop = @model/backprop/multi_task.Backbone()
+
+model/heads/multi_task.Backbone:
+  embeddings = [@nlp_layers.DensePerTokenOutputHead]
+
+model/backprop/multi_task.Backbone:
+  embeddings = [True]
+
+# -----------------------------------------------------------------------------
+# MULTI-TASK LOSS.
+# -----------------------------------------------------------------------------
+
+losses.MultiTaskLoss:
+  losses = @loss/multi_task.Backbone()
+
+loss/multi_task.Backbone:
+  embeddings = [@tf.keras.losses.SparseCategoricalCrossentropy()]
+  alignments = []
+
+tf.keras.losses.SparseCategoricalCrossentropy:
+  name = 'masked_lm_loss'
+  from_logits = True
+  reduction = 'none'
+
+# -----------------------------------------------------------------------------
+# OPTIMIZER.
+# -----------------------------------------------------------------------------
+
+tf.keras.optimizers.Adam:
+  learning_rate = @learning_rate_schedules.InverseSquareRootDecayWithWarmup()
+  epsilon = 1e-08
+  clipnorm = 1.0
+
+learning_rate_schedules.InverseSquareRootDecayWithWarmup:
+  lr_max = 1e-3
+  warmup_steps = 8_000
+
+# -----------------------------------------------------------------------------
+# METRICS.
+# -----------------------------------------------------------------------------
+
+logger.Logger:
+  scalars = @scalars/multi_task.Backbone()
+  every = %PERIOD
+
+scalars/multi_task.Backbone:
+  embeddings = [
+      [
+        @tf.keras.metrics.SparseCategoricalAccuracy,
+        @tf.keras.metrics.SparseCategoricalCrossentropy,
+        @metrics.Perplexity,
+      ],
+  ]
+
+tf.keras.metrics.SparseCategoricalCrossentropy:
+  from_logits = True
+
+# -----------------------------------------------------------------------------
+# CHECKPOINTING.
+# -----------------------------------------------------------------------------
+
+checkpoint.Checkpointer:
+  save_every = %PERIOD
+  max_to_keep = %MAX_TO_KEEP

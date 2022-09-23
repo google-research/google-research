@@ -46,13 +46,12 @@ def wavefrontify(tensor):
     of t[n, :, :, a].
   """
   b = tf.shape(tensor)[0]
-  # l1, l2 = tf.shape(tensor)[1], tf.shape(tensor)[2]
-  l1, l2 = tensor.shape[1], tensor.shape[2]
+  l1, l2 = tf.shape(tensor)[1], tf.shape(tensor)[2]
   s = tf.shape(tensor)[3]
   n_pad, padded_len = l1 - 1, l1 + l2 - 1
 
   ta = tf.TensorArray(tensor.dtype, size=l1, clear_after_read=True)
-  for i in range(l1):
+  for i in tf.range(l1):
     row_i = tf.squeeze(tf.slice(tensor, [0, i, 0, 0], [b, 1, l2, s]), axis=1)
     row_i = tf.pad(row_i, [[0, 0], [n_pad, n_pad], [0, 0]])
     row_i = tf.slice(row_i, [0, n_pad - i, 0], [b, padded_len, s])
@@ -121,7 +120,7 @@ def hard_sw_affine(
 
   ### FORWARD
 
-  # Auxiliary functions + syntatic sugar.
+  # Auxiliary functions + syntactic sugar.
   def slice_lead_dims(
       t,
       k,
@@ -154,7 +153,7 @@ def hard_sw_affine(
   d_all = tf.TensorArray(tf.int32, size=padded_len, clear_after_read=True)
 
   # Runs forward Smith-Waterman recursion.
-  for k in range(padded_len):
+  for k in tf.range(padded_len):
     # NOTE(fllinares): shape information along the batch dimension seems to get
     # lost in the edge-case b=1
     tf.autograph.experimental.set_loop_options(
@@ -201,7 +200,7 @@ def hard_sw_affine(
   paths_sp = tf.TensorArray(tf.int32, size=padded_len, clear_after_read=True)
 
   # Runs Smith-Waterman backtracking.
-  for k in range(padded_len - 1, -1, -1):
+  for k in tf.range(padded_len - 1, -1, -1):
     # NOTE(fllinares): shape information along the batch dimension seems to get
     # lost in the edge-case b=1
     tf.autograph.experimental.set_loop_options(

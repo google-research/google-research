@@ -34,35 +34,61 @@ import tensorflow as tf
 
 from dedal.train import training_loop
 
-flags.DEFINE_string('base_dir', None, 'Directory to save trained model in.')
+
 flags.DEFINE_string(
-    'reference_dir',
-    None,
+    'base_dir', None,
+    'Directory to save trained model in.')
+flags.DEFINE_string(
+    'reference_dir', None,
     'Directory where to read the reference model from (if exists).')
+flags.DEFINE_boolean(
+    'eval_in_train_job', True,
+    'Whether to also run eval in a train job. Ignored for other tasks.')
 flags.DEFINE_enum(
     'task', 'train', ['train', 'eval', 'downstream'],
     'Whether this is a train, eval or downstream task.')
+
 flags.DEFINE_multi_string(
-    'gin_config', [], 'List of paths to the config files.')
+    'gin_config', [],
+    'List of paths to the config files.')
 flags.DEFINE_multi_string(
-    'gin_bindings', [], 'Newline separated list of Gin parameter bindings.')
+    'gin_bindings', [],
+    'Newline separated list of Gin parameter bindings.')
 flags.DEFINE_string(
-    'config_path', 'dedal/configs', 'Where to find the gin configurations.')
+    'config_path', 'dedal/configs',
+    'Where to find the gin configurations.')
+
+
 FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
   filenames = [os.path.join(FLAGS.config_path, p) for p in FLAGS.gin_config]
   gin.parse_config_files_and_bindings(filenames, FLAGS.gin_bindings)
+  logging.info('Gin Configuration:\n%s', gin.config_str())
 
-  strategy = training_loop.get_strategy()
-  logging.info('Distribution strategy: %s', strategy)
-  logging.info('Devices: %s', tf.config.list_physical_devices())
+  strategy_kwargs = {}
 
-  reference = FLAGS.reference_dir
-  kwargs = {} if reference is None else {'reference_workdir': reference}
-  loop = training_loop.TrainingLoop(FLAGS.base_dir, strategy, **kwargs)
-  loop.run(FLAGS.task)
+  # Worker preemption handling.
+  keep_running = True
+  preempted_count = 0
+  while keep_running:
+    strategy = training_loop.get_strategy(**strategy_kwargs)
+    logging.info('Distribution strategy: %s', strategy)
+    logging.info('Devices: %s', tf.config.list_physical_devices())
+    logging.info('We have been preempted %d times so far.', preempted_count)
+
+    kwargs = {'reference_workdir': FLAGS.reference_dir,
+              'eval_in_train_job': FLAGS.eval_in_train_job}
+    loop = training_loop.TrainingLoop(FLAGS.base_dir, strategy, **kwargs)
+
+    try:
+      loop.run(FLAGS.task)
+      keep_running = False  # Finished training successfully.
+    except tf.errors.UnavailableError as error:
+      logging.warning('Job is likely being preempted: %s', error)
+      logging.warning('Trying to recover...')
+      preempted_count += 1
 
 
 if __name__ == '__main__':

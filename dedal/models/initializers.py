@@ -109,28 +109,28 @@ class SubsMatInitializer(tf.initializers.Initializer):
   def __init__(
       self,
       vocab = None,
-      matrix_str = BLOSUM_62,
+      filename = None,
       pad_penalty = -1e9,
       **kwargs):
     super().__init__(**kwargs)
     self._vocab = vocabulary.get_default() if vocab is None else vocab
-    self._matrix_str = matrix_str
+    self._filename = filename
     self._pad_penalty = pad_penalty
 
   def _load_subs_mat(self):
     """Loads FASTA36's substitution matrix file into Python dict format."""
     subs_mat = {}
-    tokens = None
-    for line in self._matrix_str.split('\n'):
-      line = line.strip()
-      if not line or line.startswith('#'):
-        continue
-      if tokens is None:  # Processes header.
-        tokens = line.split()
-        continue
-
-      token, vals = line.split(maxsplit=1)  # Processes row.
-      subs_mat[token] = {k: float(v) for k, v in zip(tokens, vals.split())}
+    with tf.io.gfile.GFile(self._filename, 'r') as f:
+      line = f.readline()
+      while line.startswith('#'):
+        line = f.readline()
+      tokens = line.strip().split()  # Process header
+      for line in f:
+        line = line.strip()
+        if not line:
+          continue
+        token, vals = line.split(maxsplit=1)
+        subs_mat[token] = {k: float(v) for k, v in zip(tokens, vals.split())}
     return subs_mat
 
   def _fill_gaps(self, weights):
@@ -172,7 +172,7 @@ class SubsMatInitializer(tf.initializers.Initializer):
     if len(shape) != 2 or shape[0] != shape[1] or shape[0] != n_tokens:
       raise ValueError(f'Shape {shape}. incompatibility with vocabulary.')
 
-    return (self._random_sample(dtype) if self._matrix_str is None
+    return (self._random_sample(dtype) if self._filename is None
             else self._from_file(dtype))
 
 

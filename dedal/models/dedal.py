@@ -142,7 +142,8 @@ class Dedal(tf.keras.Model):
       return inputs
     else:
       if not backprop:
-        inputs = tf.nest.map_structure(tf.stop_gradient, inputs)
+        safe_stop_grad = lambda t: None if t is None else tf.stop_gradient(t)
+        inputs = tf.nest.map_structure(safe_stop_grad, inputs)
       return head(inputs, mask=mask, training=training)
 
   def forward(self,

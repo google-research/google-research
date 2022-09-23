@@ -1,0 +1,131 @@
+from __gin__ import dynamic_registration
+
+import tensorflow as tf
+import tensorflow_addons as tfa
+
+from dedal import multi_task
+from dedal import vocabulary
+from dedal.data import align_transforms
+from dedal.data import builder
+from dedal.data import loaders
+from dedal.data import specs
+from dedal.data import transforms
+from dedal.train import checkpoint
+from dedal.train import learning_rate_schedules
+from dedal.train import logger
+from dedal.train import losses
+from dedal.train import metrics
+from dedal.train import training_loop
+from dedal.models import dedal
+from dedal.models import lenses
+
+
+# -----------------------------------------------------------------------------
+# REQUIRED GIN BINDINGS.
+# -----------------------------------------------------------------------------
+
+# Path to directory containing data for all five TAPE tasks. Must contain
+# subdirectories named secondary_structure, remote_homology, proteinnet,
+# fluorescence and stability.
+TAPE_DATA_DIR = %gin.REQUIRED
+
+
+# -----------------------------------------------------------------------------
+# TOP-LEVEL TRAINING LOOP CONFIG.
+# -----------------------------------------------------------------------------
+
+NUM_CLASSES = 3
+
+PERIOD = 64
+MAX_TO_KEEP = 25
+
+vocabulary.get_default:
+  vocab = %vocabulary.seqio_vocab
+
+training_loop.TrainingLoop:
+  dataset_builder = @specs.make_tape_builder()
+  logger_cls = @logger.Logger
+  model_cls = @dedal.Dedal
+  loss_fn = @losses.MultiTaskLoss()
+  optimizer_cls = @tfa.optimizers.AdamW
+  batch_size = 128
+  num_steps = 30_000
+  num_eval_steps = 32
+  num_steps_per_train_iteration = 16
+
+# -----------------------------------------------------------------------------
+# DATA PIPELINE.
+# -----------------------------------------------------------------------------
+
+specs.make_tape_builder:
+  root_dir = %TAPE_DATA_DIR
+  task = 'secondary_structure'
+  target = 'ss3'
+  weights = 'valid_mask'
+  max_len = 512
+
+# -----------------------------------------------------------------------------
+# OUTPUT HEADS AND FINETUNING.
+# -----------------------------------------------------------------------------
+
+dedal.Dedal:
+  aligner_cls = None
+  heads_cls = @model/heads/multi_task.Backbone()
+  
+model/heads/multi_task.Backbone:
+  embeddings = [@lenses.NetSurfP2]
+
+lenses.NetSurfP2:
+  output_size = %NUM_CLASSES
+  cnn_filters = [256, 128]
+  cnn_kernel_sizes = [10, 10]
+  cnn_dropout = 0.1
+
+# -----------------------------------------------------------------------------
+# MULTI-TASK LOSS.
+# -----------------------------------------------------------------------------
+
+losses.MultiTaskLoss:
+  losses = @loss/multi_task.Backbone()
+
+loss/multi_task.Backbone:
+  embeddings = [@tf.keras.losses.CategoricalCrossentropy()]
+
+tf.keras.losses.CategoricalCrossentropy:
+  name = 'bce_loss'
+  from_logits = True
+  label_smoothing = 0.0
+  reduction = 'none'
+
+# -----------------------------------------------------------------------------
+# OPTIMIZER.
+# -----------------------------------------------------------------------------
+
+tfa.optimizers.AdamW:
+  learning_rate = 1e-4
+  weight_decay = 0.0
+  epsilon = 1e-08
+  clipnorm = 1.0
+
+# -----------------------------------------------------------------------------
+# METRICS.
+# -----------------------------------------------------------------------------
+
+logger.Logger:
+  scalars = @scalars/multi_task.Backbone()
+  every = %PERIOD
+
+scalars/multi_task.Backbone:
+  embeddings = [
+      [
+          @tf.keras.metrics.CategoricalAccuracy,
+      ]
+  ]
+
+# -----------------------------------------------------------------------------
+# CHECKPOINTING.
+# -----------------------------------------------------------------------------
+
+checkpoint.Checkpointer:
+  save_every = %PERIOD
+  max_to_keep = %MAX_TO_KEEP

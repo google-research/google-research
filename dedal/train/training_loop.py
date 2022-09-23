@@ -25,9 +25,11 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 from dedal import multi_task
+from dedal.data import builder
 from dedal.train import checkpoint
 from dedal.train import logger
 
+Builder = Union[builder.DatasetBuilder, builder.MultiDatasetBuilder]
 Example = Mapping[str, tf.Tensor]
 
 
@@ -82,17 +84,17 @@ class TrainingLoop:
   def __init__(self,
                workdir,
                strategy,
-               dataset_builder=None,
-               logger_cls=logger.Logger,
+               dataset_builder,
+               logger_cls = logger.Logger,
                model_cls = None,
                loss_fn = None,
                optimizer_cls = None,
                batch_size = 128,
-               num_steps = 10000,
+               num_steps = 10_000,
                num_eval_steps = None,
                num_steps_per_train_iteration = 10,
                graph_mode = True,
-               separate_eval = True,
+               eval_in_train_job = True,
                reference_workdir = None,
                num_reference_steps = None):
     self._workdir = workdir
@@ -109,7 +111,7 @@ class TrainingLoop:
     self._num_eval_steps = num_eval_steps
     self._num_steps_per_train_iteration = num_steps_per_train_iteration
     self._graph_mode = graph_mode
-    self._separate_eval = separate_eval
+    self._eval_in_train_job = eval_in_train_job
 
     with self.strategy.scope():
       self.model = self._model_cls()
@@ -214,6 +216,7 @@ class TrainingLoop:
     splits = (split,) if isinstance(split, str) else tuple(split)
     if verbose:
       for i, split in enumerate(splits):
+        split = (split,) if isinstance(split, str) else tuple(split)
         logging.info(
             'Eval splits (%d / %d): %s.', i + 1, len(splits), ', '.join(split))
     return splits
@@ -237,25 +240,27 @@ class TrainingLoop:
     train_examples = iter(self.make_ds(train_split))
     logging.info('train: train dataset ready.')
     eval_ds = None
-    if not self._separate_eval:
+    if self._eval_in_train_job:
       eval_splits = self.parse_eval_splits()
       eval_ds = [self.make_ds(split) for split in eval_splits]
+      logging.info('train: eval dataset(s) ready.')
+      eval_logs = [self.make_logger(split, 'evaluate') for split in eval_splits]
 
-    log = self.make_logger(train_split, 'train', dummy=silent)
+    train_log = self.make_logger(train_split, 'train', dummy=silent)
 
     first_inputs, _, _, _ = next(train_examples)
     self.may_transfer(first_inputs, freeze=freeze)
     self._checkpointer.restore()
 
     while self._step.numpy() < self._num_steps:
-      train_step_fn(train_examples, log=log)
+      train_step_fn(train_examples, log=train_log)
       step = self._step.numpy()
-      logged = log.log_and_reset(step, step >= self._num_steps)
+      logged = train_log.log_and_reset(step, step >= self._num_steps)
       self._checkpointer.may_save(step >= self._num_steps)
       if logged and eval_ds is not None:
-        # TODO(fllinares): should we use one logger per ds instead?
-        for ds in eval_ds:
+        for ds, log in zip(eval_ds, eval_logs):
           self.evaluate_once(ds, log)
+        train_log.restart_clock()
 
       # Just for debug.
       if step < 10:

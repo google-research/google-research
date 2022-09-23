@@ -1,0 +1,220 @@
+from __gin__ import dynamic_registration
+
+import tensorflow as tf
+
+from dedal import multi_task
+from dedal import vocabulary
+from dedal.data import builder
+from dedal.train import align_metrics
+from dedal.train import checkpoint
+from dedal.train import learning_rate_schedules
+from dedal.train import logger
+from dedal.train import losses
+from dedal.train import metrics
+from dedal.train import training_loop
+from dedal.models import dedal
+from dedal.models import homology
+from dedal.models import nlp as nlp_layers
+
+
+# -----------------------------------------------------------------------------
+# REQUIRED GIN BINDINGS.
+# -----------------------------------------------------------------------------
+
+# Path to the SeqIO SentencePiece vocabulary to tokenize protein sequences.
+MAIN_VOCAB_PATH = %gin.REQUIRED
+# Path to the SeqIO SentencePiece vocabulary describing the subset of tokens in
+# the main vocab that can be randomly replaced as part of the masked language
+# modelling task.
+TOKEN_REPLACE_VOCAB_PATH = %gin.REQUIRED
+# Path to the SeqIO SentencePiece vocabulary describing the tokens for alignment
+# state sequences.
+ALIGNMENT_PATH_VOCAB_PATH = %gin.REQUIRED
+
+
+# -----------------------------------------------------------------------------
+# TOP-LEVEL TRAINING LOOP CONFIG.
+# -----------------------------------------------------------------------------
+
+PERIOD = 2_000
+MAX_TO_KEEP = 10
+
+vocabulary.get_default:
+  vocab = %vocabulary.seqio_vocab
+
+training_loop.TrainingLoop:
+  dataset_builder = @builder.MultiDatasetBuilder()
+  logger_cls = @logger.Logger
+  model_cls = @dedal.Dedal
+  loss_fn = @losses.MultiTaskLoss()
+  optimizer_cls = @tf.keras.optimizers.Adam
+  batch_size = (128, 128, 256)
+  num_steps = 1_000_000
+  num_eval_steps = 100
+  num_steps_per_train_iteration = 16
+
+# -----------------------------------------------------------------------------
+# DATA PIPELINE.
+# -----------------------------------------------------------------------------
+
+# "Activates" multi-input mode in model.
+dedal.Dedal:
+  switch = @multi_task.SwitchBackbone()
+
+builder.MultiDatasetBuilder:
+  builders = [
+      @masked_lm/builder.DatasetBuilder(),
+      @alignment/builder.DatasetBuilder(),
+      @homology/builder.DatasetBuilder(),
+  ]
+  switch = @multi_task.SwitchBackbone()
+  split = (
+      ('validation', 'iid_test', 'iid_test'),
+      ('test', 'ood_test', 'ood_test'),
+  )
+
+multi_task.SwitchBackbone:
+  embeddings = [0]
+  alignments = [1, 2]
+
+# -----------------------------------------------------------------------------
+# OUTPUT HEADS AND FINETUNING.
+# -----------------------------------------------------------------------------
+
+dedal.Dedal:
+  heads_cls = @model/heads/multi_task.Backbone()
+  backprop = @model/backprop/multi_task.Backbone()
+  process_negatives = False
+
+model/heads/multi_task.Backbone:
+  embeddings = [@nlp_layers.DensePerTokenOutputHead]
+  alignments = [@dedal.Selector, @homology.LogCorrectedLogits]
+
+model/backprop/multi_task.Backbone:
+  embeddings = [True]
+  alignments = [True, True]
+
+# -----------------------------------------------------------------------------
+# MULTI-TASK LOSS.
+# -----------------------------------------------------------------------------
+
+losses.MultiTaskLoss:
+  losses = @loss/multi_task.Backbone()
+
+loss/multi_task.Backbone:
+  embeddings = [@masked_lm/losses.WeightedLoss()]
+  alignments = [
+      @alignment/losses.WeightedLoss(),
+      @homology/losses.WeightedLoss(),
+  ]
+
+masked_lm/losses.WeightedLoss:
+  weight = 20.0
+  loss = @tf.keras.losses.SparseCategoricalCrossentropy()
+
+alignment/losses.WeightedLoss:
+  weight = 1.0
+  loss = @losses.SmithWatermanLoss()
+
+homology/losses.WeightedLoss:
+  weight = 20.0
+  loss = @tf.keras.losses.BinaryCrossentropy()
+
+tf.keras.losses.SparseCategoricalCrossentropy:
+  name = 'masked_lm_loss'
+  from_logits = True
+  reduction = 'none'
+
+losses.SmithWatermanLoss:
+  reduction = 'none'
+
+tf.keras.losses.BinaryCrossentropy:
+  from_logits = True
+  name = 'homology_detection_loss'
+  reduction = 'none'
+
+# -----------------------------------------------------------------------------
+# OPTIMIZER.
+# -----------------------------------------------------------------------------
+
+tf.keras.optimizers.Adam:
+  learning_rate = @learning_rate_schedules.InverseSquareRootDecayWithWarmup()
+  epsilon = 1e-08
+  clipnorm = 1.0
+
+learning_rate_schedules.InverseSquareRootDecayWithWarmup:
+  lr_max = 1e-4
+  warmup_steps = 8_000
+
+# -----------------------------------------------------------------------------
+# METRICS.
+# -----------------------------------------------------------------------------
+
+logger.Logger:
+  scalars = @scalars/multi_task.Backbone()
+  every = %PERIOD
+
+scalars/multi_task.Backbone:
+  embeddings = [
+      [
+        @tf.keras.metrics.SparseCategoricalAccuracy,
+        @tf.keras.metrics.SparseCategoricalCrossentropy,
+        @metrics.Perplexity,
+      ],
+  ]
+  alignments = [
+      [
+          @align_metrics.AlignmentPrecisionRecall,
+          (
+              @alignment_pr/align_metrics.StratifyByPID,
+              'alignment/percent_identity',
+          ),
+          @align_metrics.AlignmentMSE,
+          @align_metrics.AlignmentStats,
+          @align_metrics.AlignmentScore,
+          @align_metrics.SWParamsStats,
+      ],
+      [
+          @tf.keras.metrics.BinaryAccuracy,
+          @auroc/tf.keras.metrics.AUC,
+          @aupr/tf.keras.metrics.AUC,
+      ],
+  ]
+
+tf.keras.metrics.SparseCategoricalAccuracy:
+  name = 'masked_lm_accuracy'
+
+tf.keras.metrics.SparseCategoricalCrossentropy:
+  name = 'masked_lm_crossentropy'
+  from_logits = True
+
+tf.keras.metrics.BinaryAccuracy:
+  threshold = 0.0
+  name = 'homology_detection_accuracy'
+
+tf.keras.metrics.AUC:
+  from_logits = True
+  num_thresholds = 2_500
+
+auroc/tf.keras.metrics.AUC:
+  name = 'homology_detection_auroc'
+  curve = 'ROC'
+
+aupr/tf.keras.metrics.AUC:
+  name = 'homology_detection_aupr'
+  curve = 'PR'
+
+align_metrics.StratifyByPID:
+  step = [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.3]
+
+alignment_pr/align_metrics.StratifyByPID:
+  metric_cls = @align_metrics.AlignmentPrecisionRecall
+  pid_definition = '1'
+
+# -----------------------------------------------------------------------------
+# CHECKPOINTING.
+# -----------------------------------------------------------------------------
+
+checkpoint.Checkpointer:
+  save_every = %PERIOD
+  max_to_keep = %MAX_TO_KEEP

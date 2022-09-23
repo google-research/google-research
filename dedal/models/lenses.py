@@ -220,3 +220,159 @@ class NetSurfP2(tf.keras.Model):
       x = self._output_layer_norm(x)
     x = x * float_mask[Ellipsis, None] if masked else embeddings
     return self._output_dense(x, training=training)
+
+
+@gin.configurable
+class PaddedConv(tf.keras.layers.Layer):
+  """A generic 2D ResNet conv layer."""
+
+  def __init__(self,
+               filters,
+               kernel_size,
+               dilation_rate,
+               activation = 'relu',
+               dropout = None,
+               name = 'PaddedConv',
+               **kwargs):
+
+    super().__init__(name=name, **kwargs)
+    self.filters = filters
+    self.kernel_size = kernel_size
+    self.dilation_rate = dilation_rate
+    self.activation = activation
+    self.dropout = dropout
+
+    self._layers = []
+    self._layers.append(tf.keras.layers.BatchNormalization())
+    self._layers.append(tf.keras.layers.Conv2D(
+        filters=filters,
+        kernel_size=kernel_size,
+        dilation_rate=dilation_rate,
+        activation=activation,
+        padding='same'))
+    self._layers.append(tf.keras.layers.Dropout(
+        rate=dropout))
+
+  def call(self, inputs, mask=None):
+    x = inputs
+    for layer in self._layers:
+      x = x if mask is None else x * mask
+      x = layer(x)
+    return x if mask is None else x * mask
+
+
+@gin.configurable
+class ResNetBlock(tf.keras.layers.Layer):
+  """A generic 2D ResNet."""
+
+  def __init__(self,
+               filters,
+               kernel_size,
+               dilation_rate,
+               activation = 'relu',
+               dropout = None,
+               layer_norm = False,
+               name = 'ResNetBlock',
+               **kwargs):
+
+    super().__init__(name=name, **kwargs)
+    self.filters = filters
+    self.kernel_size = kernel_size
+    self.dilation_rate = dilation_rate
+    self.activation = activation
+    self.dropout = dropout
+    self.layer_norm = layer_norm
+
+    self._layers = []
+    if layer_norm:
+      self._layers.append(tf.keras.layers.LayerNormalization())
+    self._layers.append(PaddedConv(
+        filters=filters,
+        kernel_size=kernel_size,
+        dilation_rate=dilation_rate,
+        activation=activation,
+        dropout=dropout))
+    self._layers.append(PaddedConv(
+        filters=filters,
+        kernel_size=kernel_size,
+        dilation_rate=dilation_rate,
+        activation=activation,
+        dropout=dropout))
+
+  def call(self, inputs, mask=None):
+    x = inputs
+    for layer in self._layers:
+      x = layer(x, mask)
+      # make sure that number of filters in last padded conv = dim of embeddings
+    return x + inputs
+
+
+@gin.configurable
+class ContactPredictor(tf.keras.Model):
+  """A simplified output head for contact map prediction."""
+
+  def __init__(self,
+               init_proj = 384,
+               filters = 64,
+               kernel_size = 3,
+               number_blocks = 6,
+               dilation_rate = 1,
+               activation = 'relu',
+               dropout = 0.1,
+               name = 'ContactPredictor',
+               **kwargs):
+
+    super().__init__(name=name, **kwargs)
+    self.init_proj = init_proj
+    self.filters = filters
+    self.kernel_size = kernel_size
+    self.number_blocks = number_blocks
+    self.dilation_rate = dilation_rate
+    self.activation = activation
+    self.dropout = dropout
+
+    self._layers = []
+    self._layers.append(tf.keras.layers.Dense(init_proj))  # DEBUG
+    self._layers.append(PaddedConv(
+        filters=filters,
+        kernel_size=kernel_size,
+        dilation_rate=dilation_rate,
+        activation=activation,
+        dropout=dropout))
+    for _ in range(number_blocks):
+      self._layers.append(ResNetBlock(
+          filters=filters,
+          kernel_size=kernel_size,
+          dilation_rate=dilation_rate,
+          activation=activation,
+          dropout=dropout))
+    self._layers.append(tf.keras.layers.Dense(1))
+
+  @staticmethod
+  def concat_pairs(seq_embs):
+    len_seq = tf.shape(seq_embs)[1]
+    return tf.concat([tf.tile(seq_embs[:, :, None], [1, 1, len_seq, 1]),
+                      tf.tile(seq_embs[:, None, :], [1, len_seq, 1, 1])],
+                     axis=-1)
+
+  def call(self, embs, mask=None):
+    x = self.concat_pairs(embs)
+    if mask is not None:
+      mask = tf.cast(mask, dtype=embs.dtype)
+      mask_2d = mask[:, None, :] * mask[:, :, None]
+      mask_2d = tf.expand_dims(mask_2d, -1)
+
+    # Reduce dim. of sequence encoder's embeddings.
+    x = self._layers[0](x)
+    # Initial PaddedConv.
+    x = self._layers[1](x)
+    if mask is not None:
+      x *= mask_2d
+    # ResNet.
+    for layer in self._layers[2:-1]:
+      x = layer(x, mask=mask_2d)
+    # Output dense layer.
+    x = self._layers[-1](x)
+    if mask is not None:
+      x *= mask_2d
+    return (x + tf.transpose(x, [0, 2, 1, 3]))/2

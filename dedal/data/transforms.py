@@ -89,6 +89,37 @@ class Pop(Transform):
 
 
 @gin.configurable
+class ReKey(Transform):
+
+  def single_call(self, arg):
+    return arg
+
+
+@gin.configurable
+class Cast(Transform):
+  """Casts a tensor to a particular dtype."""
+
+  def __init__(self, dtype, **kwargs):
+    super().__init__(**kwargs)
+    self._dtype = tf.dtypes.as_dtype(dtype)
+
+  def single_call(self, arg):
+    return tf.cast(arg, self._dtype)
+
+
+@gin.configurable
+class Concat(Transform):
+  """Concatenates tensors of compatible shapes."""
+
+  def __init__(self, axis = 0, **kwargs):
+    super().__init__(**kwargs)
+    self._axis = axis
+
+  def call(self, *args):
+    return tf.concat(args, axis=self._axis)
+
+
+@gin.configurable
 class Reshape(Transform):
   """Reshapes a tensor to a compatible target shape."""
 
@@ -96,8 +127,8 @@ class Reshape(Transform):
     super().__init__(**kwargs)
     self._shape = shape
 
-  def single_call(self, tensor):
-    return tf.reshape(tensor, self._shape)
+  def single_call(self, arg):
+    return tf.reshape(arg, self._shape)
 
 
 @gin.configurable
@@ -123,8 +154,8 @@ class Encode(Transform):
         values=tf.constant(list(self._vocab._indices.values()), dtype=tf.int64))
     self._lookup = tf.lookup.StaticVocabularyTable(init, num_oov_buckets=1)
 
-  def single_call(self, sequence):
-    return tf.cast(self._lookup[tf.strings.bytes_split(sequence)], tf.int32)
+  def single_call(self, arg):
+    return tf.cast(self._lookup[tf.strings.bytes_split(arg)], tf.int32)
 
 
 @gin.configurable
@@ -135,8 +166,22 @@ class Recode(Transform):
     super().__init__(**kwargs)
     self._vocab_map = self._vocab.translate(target)
 
-  def single_call(self, sequence):
-    return tf.gather(self._vocab_map, sequence)
+  def single_call(self, arg):
+    return tf.gather(self._vocab_map, arg)
+
+
+@gin.configurable
+class ComputeSequenceLength(Transform):
+  """Computes the length of a sequence."""
+
+  def single_call(self, arg):
+    if arg.dtype == tf.string:
+      arg = tf.reshape(arg, ())
+      return tf.strings.length(arg)
+    else:
+      mask = tf.logical_and(self._vocab.padding_mask(arg),
+                            self._vocab.special_token_mask(arg))
+      return tf.reduce_sum(tf.cast(mask, tf.int32))
 
 
 @gin.configurable
@@ -157,18 +202,18 @@ class CropOrPad(Transform):
     self._token = self._vocab.get(token, self._vocab.padding_code)
     self._seed = seed
 
-  def single_call(self, sequence):
-    seq_len = tf.shape(sequence)[0]
+  def single_call(self, arg):
+    seq_len = tf.shape(arg)[0]
     if seq_len < self._size:
       to_pad = self._size - seq_len
       pattern = [0, to_pad] if self._right else [to_pad, 0]
-      sequence = tf.pad(sequence, [pattern], constant_values=self._token)
+      arg = tf.pad(arg, [pattern], constant_values=self._token)
     elif seq_len > self._size:
-      sequence = (
-          tf.image.random_crop(sequence, [self._size], seed=self._seed)
-          if self._random else sequence[:self._size])
-    sequence.set_shape([self._size])
-    return sequence
+      arg = (
+          tf.image.random_crop(arg, [self._size], seed=self._seed)
+          if self._random else arg[:self._size])
+    arg.set_shape([self._size])
+    return arg
 
 
 @gin.configurable
@@ -180,9 +225,9 @@ class AppendToken(Transform):
     self._token = self._vocab.get(token, self._vocab.padding_code)
     self._right = right
 
-  def single_call(self, sequence):
+  def single_call(self, arg):
     pattern = [0, 1] if self._right else [1, 0]
-    return tf.pad(sequence, [pattern], constant_values=self._token)
+    return tf.pad(arg, [pattern], constant_values=self._token)
 
 
 @gin.configurable
@@ -225,17 +270,17 @@ class CropOrPadND(Transform):
     self._axis = axis
     self._value = value
 
-  def single_call(self, tensor):
-    length = tf.shape(tensor)[self._axis]
-    shape = tensor.shape.as_list()
+  def single_call(self, arg):
+    length = tf.shape(arg)[self._axis]
+    shape = arg.shape.as_list()
     shape[self._axis] = self._size
     if length < self._size:
       to_pad = self._size - length
-      pattern = int(tensor.shape.rank) * [[0, 0]]
+      pattern = int(arg.shape.rank) * [[0, 0]]
       pattern[self._axis] = [0, to_pad] if self._right else [to_pad, 0]
-      result = tf.pad(tensor, pattern, constant_values=self._value)
+      result = tf.pad(arg, pattern, constant_values=self._value)
     else:
-      result = tf.image.random_crop(tensor, shape)
+      result = tf.image.random_crop(arg, shape)
     result.set_shape(shape)
     return result
 
@@ -248,10 +293,10 @@ class RemoveTokens(Transform):
     super().__init__(**kwargs)
     self._tokens = (tokens,) if isinstance(tokens, str) else tokens
 
-  def single_call(self, sequence):
-    mask = self._vocab.compute_mask(sequence, self._tokens)
+  def single_call(self, arg):
+    mask = self._vocab.compute_mask(arg, self._tokens)
     keep_indices = tf.reshape(tf.where(mask), [-1])
-    return tf.gather(sequence, keep_indices)
+    return tf.gather(arg, keep_indices)
 
 
 @gin.configurable
@@ -262,8 +307,8 @@ class OneHot(Transform):
     super().__init__(**kwargs)
     self._depth = depth if depth is not None else len(self._vocab)
 
-  def single_call(self, sequence):
-    return tf.one_hot(sequence, self._depth, dtype=tf.float32)
+  def single_call(self, arg):
+    return tf.one_hot(arg, self._depth, dtype=tf.float32)
 
 
 @gin.configurable
@@ -274,20 +319,36 @@ class ContactMatrix(Transform):
     super().__init__(**kwargs)
     self._threshold = threshold
 
-  def single_call(self, positions):
+  def single_call(self, arg):
     """Expects positions to be a tf.Tensor<float>[n, 3]."""
     # Makes a batch of size 1 to be compatible with pairwise_square_dist.
-    pos = tf.expand_dims(positions, 0)
+    pos = tf.expand_dims(arg, 0)
     sq_dist = pairs.square_distances(pos, pos)[0]
     return tf.cast(sq_dist < self._threshold ** 2, dtype=tf.float32)
+
+
+@gin.configurable
+class ContactMask(Transform):
+  """Process the masks and turn them into a contact matrix."""
+
+  def __init__(self, shape, **kwargs):
+    super().__init__(**kwargs)
+    self._shape = shape
+
+  def single_call(self, arg):
+    """For later."""
+    # Makes a batch of size 1 to be compatible with pairwise_square_dist.
+    arg = tf.cast(arg[None, :] * arg[:, None], dtype=tf.float32)
+    arg.set_shape(self._shape)
+    return arg
 
 
 @gin.configurable
 class BackboneAngleTransform(Transform):
   """Maps tf.Tensor<float>[len, 1] of angles to [len, 2] tensor of sin/cos."""
 
-  def single_call(self, angles):
-    sin, cos = tf.sin(angles), tf.cos(angles)
+  def single_call(self, arg):
+    sin, cos = tf.sin(arg), tf.cos(arg)
     return tf.concat([sin, cos], -1)
 
 

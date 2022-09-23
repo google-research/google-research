@@ -1,0 +1,129 @@
+from __gin__ import dynamic_registration
+
+import tensorflow as tf
+
+from dedal import multi_task
+from dedal import smith_waterman
+from dedal import vocabulary
+from dedal.data import builder
+from dedal.data import loaders
+from dedal.data import nlp
+from dedal.data import specs
+from dedal.data import transforms
+from dedal.models import aligners
+from dedal.models import encoders
+from dedal.models import dedal
+from dedal.models import homology
+from dedal.models import nlp as nlp_layers
+from dedal.train import checkpoint
+from dedal.train import logger
+from dedal.train import losses
+from dedal.train import metrics
+from dedal.train import training_loop
+
+
+SEQUENCE_LENGTH = 128
+SEQUENCE_KEY = 'sequence'
+PERIOD = 5
+
+vocabulary.get_default:
+  vocab = %vocabulary.alternative
+
+training_loop.TrainingLoop:
+  dataset_builder = @builder.DatasetBuilder()
+  logger_cls = @logger.Logger
+  model_cls = @dedal.Dedal
+  loss_fn = @losses.MultiTaskLoss()
+  optimizer_cls = @tf.keras.optimizers.Adam
+  batch_size = 32
+  num_steps = 10
+  num_eval_steps = 12
+  num_steps_per_train_iteration = 5
+
+builder.DatasetBuilder:
+  data_loader = @loaders.TFDSLoader()
+  sequence_key = %SEQUENCE_KEY
+  transformations = [
+      @transforms.EOS(),
+      @transforms.CropOrPad(),
+      @nlp.DynamicLanguageModelMasker()
+  ]
+  labels = @labels/multi_task.Backbone()
+
+loaders.TFDSLoader:
+  name = 'fake'
+
+loaders.TFRecordsLoader:
+  output_sequence_key = %SEQUENCE_KEY
+
+transforms.CropOrPad:
+  size = %SEQUENCE_LENGTH
+  random = True
+
+nlp.DynamicLanguageModelMasker:
+  on = %SEQUENCE_KEY
+  out = [%SEQUENCE_KEY, 'target', 'weights']
+  
+labels/multi_task.Backbone:
+  embeddings = [('target', 'weights')]
+
+dedal.Dedal:
+  encoder_cls = @encoders.TransformerEncoder
+  aligner_cls = @aligners.SoftAligner
+  heads_cls = @model/multi_task.Backbone()
+
+encoders.TransformerEncoder:
+  emb_dim = 48
+  num_layers = 1
+  num_heads = 2
+  mlp_dim = 384
+  max_len = 128
+
+model/multi_task.Backbone:
+  embeddings = [@nlp_layers.DensePerTokenOutputHead]
+
+aligners.SoftAligner:
+  similarity_cls = @aligners.PairwiseBilinearDense
+  gap_pen_cls = @aligners.ConstantGapPenalties
+  align_fn = @smith_waterman.perturbed_alignment_score
+
+smith_waterman.perturbed_alignment_score:
+  noise = 'normal'
+  sigma = 1.0
+  num_samples = 1
+  stop_paths_gradient = True
+
+losses.MultiTaskLoss:
+  losses = @loss/multi_task.Backbone()
+
+loss/multi_task.Backbone:
+  embeddings = [@tf.keras.losses.SparseCategoricalCrossentropy()]
+
+tf.keras.losses.SparseCategoricalCrossentropy:
+  from_logits = True
+  reduction = 'none'
+
+# Training parameters
+tf.keras.optimizers.Adam:
+  learning_rate = 1e-4
+
+# Evaluation
+logger.Logger:
+  scalars = @scalars/multi_task.Backbone()
+  every = %PERIOD
+
+scalars/multi_task.Backbone:
+  embeddings = [
+      [
+        @tf.keras.metrics.SparseCategoricalAccuracy,
+        @tf.keras.metrics.SparseCategoricalCrossentropy,
+      ],
+  ]
+
+tf.keras.metrics.SparseCategoricalCrossentropy:
+  from_logits = True
+
+# Checkpointing
+checkpoint.Checkpointer:
+  save_every = %PERIOD
+  max_to_keep = 5

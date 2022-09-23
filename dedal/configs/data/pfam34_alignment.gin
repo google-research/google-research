@@ -1,0 +1,124 @@
+from __gin__ import dynamic_registration
+
+import seqio
+
+from dedal import multi_task
+from dedal.data import builder
+from dedal.data import feature_converters
+from dedal.data import loaders
+from dedal.data import tasks
+from dedal.data import transforms
+
+
+# -----------------------------------------------------------------------------
+# REQUIRED GIN BINDINGS
+# -----------------------------------------------------------------------------
+
+# Path to directory containing Pfam 34.0 pairwise alignment data. The directory
+# must contain five subdirectories, called train, iid_validation, iid_test,
+# ood_validation and ood_test. Inside each directory, TSV files (with header)
+# describe the samples in each split.
+PFAM34_ALIGNMENT_DATA_DIR = %gin.REQUIRED
+
+# -----------------------------------------------------------------------------
+# PAIRWISE ALIGNMENT ON PFAM34
+# -----------------------------------------------------------------------------
+
+ALIGNMENT_SEQUENCE_LENGTH = 512
+ALIGNMENT_STATES_LENGTH = 1_025
+ALIGNMENT_SEQUENCE_KEY = 'alignment/sequence'
+
+alignment/builder.DatasetBuilder:
+  data_loader = @alignment/loaders.SeqIOLoader()
+  transformations = [
+      @alignment/stack_seqs/transforms.Stack(),
+      @alignment/pop_seqs/transforms.Pop(),
+      @alignment/stack_target/transforms.Stack(),
+      @alignment/pop_paths/transforms.Stack(),
+      @alignment/concat_keys/transforms.Concat(),
+      @alignment/pop_keys/transforms.Pop(),
+      @alignment/rekey/transforms.ReKey(),
+  ]
+  batched_transformations = [
+    @alignment/flatten_seqs/transforms.Reshape(),
+    @alignment/flatten_pid/transforms.Reshape(),
+  ]
+  labels = @alignment/labels/multi_task.Backbone()
+  metadata = ('alignment/percent_identity', 'alignment/extended_keys')
+  sequence_key = %ALIGNMENT_SEQUENCE_KEY
+  shuffle_buffer = 32_768
+
+alignment/loaders.SeqIOLoader:
+  mixture_or_task_name = @alignment/tasks.register_task()
+  task_feature_lengths = {
+        'sequence_x': %ALIGNMENT_SEQUENCE_LENGTH,
+        'sequence_y': %ALIGNMENT_SEQUENCE_LENGTH,
+        'states': %ALIGNMENT_STATES_LENGTH,
+  }
+  feature_converter_factory = @feature_converters.AlignmentFeatureConverter
+
+alignment/stack_seqs/transforms.Stack:
+  on = ('sequence_x', 'sequence_y')
+  out = %ALIGNMENT_SEQUENCE_KEY
+  axis = 0
+
+alignment/pop_seqs/transforms.Pop:
+  on = ('sequence_x', 'sequence_y')
+
+alignment/stack_target/transforms.Stack:
+  on = ('align_path_x', 'align_path_y', 'align_path_s')
+  out = 'alignment/target'
+  axis = 0
+
+alignment/pop_paths/transforms.Stack:
+  on = ('align_path_x', 'align_path_y', 'align_path_s')
+
+alignment/concat_keys/transforms.Concat:
+  on = ('extended_key_x', 'extended_key_y')
+  out = 'alignment/extended_keys'
+  axis = 0
+
+alignment/pop_keys/transforms.Pop:
+  on = ('extended_key_x', 'extended_key_y')
+
+alignment/rekey/transforms.ReKey:
+  on = 'percent_identity'
+  out = 'alignment/percent_identity'
+
+alignment/flatten_seqs/transforms.Reshape:
+  on = %ALIGNMENT_SEQUENCE_KEY
+  shape = [-1, %ALIGNMENT_SEQUENCE_LENGTH]
+
+alignment/flatten_pid/transforms.Reshape:
+  on = 'alignment/percent_identity'
+  shape = [-1]
+
+alignment/labels/multi_task.Backbone:
+  embeddings = []
+  alignments = ['alignment/target']
+
+alignment/tasks.register_task:
+  task = @tasks.get_dedal_alignment_task()
+
+feature_converters.AlignmentFeatureConverter:
+  vocab = @alignment/align_path_vocab/seqio.SentencePieceVocabulary()
+  encode_by_transition_type = True
+  include_metadata_features = True
+
+tasks.get_dedal_alignment_task:
+  task_name = 'pfam34_extended_alignment'
+  source_fn = @alignment/loaders.DedalLoaderDataSource
+  main_vocab_path = %MAIN_VOCAB_PATH
+  align_path_vocab_path = %ALIGNMENT_PATH_VOCAB_PATH
+
+alignment/align_path_vocab/seqio.SentencePieceVocabulary:
+  sentencepiece_model_file = %ALIGNMENT_PATH_VOCAB_PATH
+
+alignment/loaders.DedalLoaderDataSource:
+  loader_cls = @alignment/loaders.TSVLoader
+  splits = ('train', 'iid_validation', 'iid_test', 'ood_validation', 'ood_test')
+
+alignment/loaders.TSVLoader:
+  folder = %PFAM34_ALIGNMENT_DATA_DIR
+  file_pattern = '*.tsv'
+  field_delim = '\t'
