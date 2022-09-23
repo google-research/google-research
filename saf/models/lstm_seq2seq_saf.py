@@ -32,14 +32,14 @@ class ForecastModel(base_saf.ForecastModel):
         learning_rate=hparams["learning_rate_adaptation"])
 
     # Model layers
-    self.use_nowcast_errors = hparams["use_nowcast_errors"]
+    self.use_backcast_errors = hparams["use_backcast_errors"]
     self.encoder_architecture = architectures.LSTMEncoder(
         hparams, return_state=True)
-    self.nowcast_architecture = architectures.LSTMNowcast(hparams)
+    self.backcast_architecture = architectures.LSTMBackcast(hparams)
     self.forecast_architecture = architectures.LSTMDecoder(hparams)
 
     self._keras_layers = [
-        self.nowcast_architecture,
+        self.backcast_architecture,
         self.forecast_architecture,
         self.encoder_architecture,
     ]
@@ -62,29 +62,26 @@ class ForecastModel(base_saf.ForecastModel):
       repeated_mid_sequence = tf.tile(
           tf.expand_dims(input_sequence[:, self.num_encode // 2, :], 1),
           [1, self.num_encode // 2, 1])
-      input_sequence = tf.concat(
+      padded_input_sequence = tf.concat(
           [repeated_mid_sequence, input_sequence[:, self.num_encode // 2:, :]],
           axis=1)
 
-      if self.use_nowcast_errors:
+      if self.use_backcast_errors:
         augmented_input_sequence = tf.concat(
-            (input_sequence, tf.zeros_like(input_sequence)), axis=2)
-        encoded_representation, encoder_states = self.encoder_architecture.forward(
-            augmented_input_sequence, input_static)
-        reconstructed = self.nowcast_architecture.forward(
-            encoded_representation, input_static, tf.zeros_like(input_sequence),
-            encoder_states)
+            (padded_input_sequence, tf.zeros_like(input_sequence)), axis=2)
       else:
-        encoded_representation, encoder_states = self.encoder_architecture.forward(
-            input_sequence, input_static)
-        reconstructed = self.nowcast_architecture.forward(
-            encoded_representation, input_static, tf.zeros_like(input_sequence),
-            encoder_states)
+        augmented_input_sequence = padded_input_sequence
+
+      encoded_representation, encoder_states = self.encoder_architecture.forward(
+          augmented_input_sequence, input_static)
+      reconstructed = self.backcast_architecture.forward(
+          encoded_representation, input_static, tf.zeros_like(input_sequence),
+          encoder_states)
 
       loss = self.self_supervised_loss_object(input_sequence, reconstructed)
 
     adaptation_trainable_variables = (
-        self.encoder_architecture.weights + self.nowcast_architecture.weights)
+        self.encoder_architecture.weights + self.backcast_architecture.weights)
 
     gradients = tape.gradient(loss, adaptation_trainable_variables)
 
@@ -93,24 +90,24 @@ class ForecastModel(base_saf.ForecastModel):
 
     encoded_representation, encoder_states = self.encoder_architecture.forward(
         augmented_input_sequence, input_static)
-    reconstructed = self.nowcast_architecture.forward(
+    reconstructed = self.backcast_architecture.forward(
         encoded_representation, input_static, tf.zeros_like(input_sequence),
         encoder_states)
 
     self_adaptation_loss = self.self_supervised_loss_object(
         input_sequence, reconstructed)
 
-    nowcast_errors = (input_sequence - reconstructed)
+    backcast_errors = (input_sequence - reconstructed)
 
-    return self_adaptation_loss, nowcast_errors
+    return self_adaptation_loss, backcast_errors
 
   @tf.function
   def train_step(self, input_sequence, input_static, target):
-    self_adaptation_loss, nowcast_errors = self._self_adaptation_step(
+    self_adaptation_loss, backcast_errors = self._self_adaptation_step(
         input_sequence, input_static, is_training=False)
 
-    if self.use_nowcast_errors:
-      input_sequence = tf.concat((input_sequence, nowcast_errors), axis=2)
+    if self.use_backcast_errors:
+      input_sequence = tf.concat((input_sequence, backcast_errors), axis=2)
 
     with tf.GradientTape() as tape:
       encoded_representation, encoder_states = self.encoder_architecture.forward(
@@ -129,11 +126,11 @@ class ForecastModel(base_saf.ForecastModel):
 
   @tf.function
   def test_step(self, input_sequence, input_static):
-    self_adaptation_loss, nowcast_errors = self._self_adaptation_step(
+    self_adaptation_loss, backcast_errors = self._self_adaptation_step(
         input_sequence, input_static, is_training=False)
 
-    if self.use_nowcast_errors:
-      input_sequence = tf.concat((input_sequence, nowcast_errors), axis=2)
+    if self.use_backcast_errors:
+      input_sequence = tf.concat((input_sequence, backcast_errors), axis=2)
 
     encoded_representation, encoder_states = self.encoder_architecture.forward(
         input_sequence, input_static)

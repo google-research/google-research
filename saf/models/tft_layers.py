@@ -571,14 +571,14 @@ class TFTModel(object):
         self.output_size, time_distributed=True)(
             transformer_layer[:, -self.forecast_horizon:, :])
 
-    # Get the nowcasts from encoded attention representations.
-    nowcasts = _dense_layer(
+    # Get the backcasts from encoded attention representations.
+    backcasts = _dense_layer(
         self.num_historical_features, time_distributed=True)(
             transformer_layer[:, :self.num_encode, :])
 
     # Define the Keras model.
     tft_model = tf.keras.Model(
         inputs=[past_features, future_features, static_features],
-        outputs=[nowcasts, predictions])
+        outputs=[backcasts, predictions])
 
     return tft_model

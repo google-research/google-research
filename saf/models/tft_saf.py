@@ -13,20 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A TFT forecast model that self-adapts and uses nowcast errors as features."""
+"""A TFT forecast model that self-adapts and uses backcast errors as features."""
 from models import base_saf
 
 import tensorflow as tf
 
 
 class ForecastModel(base_saf.ForecastModel):
-  """TFT that uses nowcast errors as feature."""
+  """TFT that uses backcast errors as feature."""
 
   def __init__(self, loss_object, self_supervised_loss_object, hparams):
     # For now we will include all of the errors as features.
     self.num_error_features = hparams["num_features"]
 
-    self.use_nowcast_errors = hparams["use_nowcast_errors"]
+    self.use_backcast_errors = hparams["use_backcast_errors"]
     if "num_historical_features" not in hparams:
       hparams["num_historical_features"] = (
           hparams["num_features"] + self.num_error_features)
@@ -48,31 +48,28 @@ class ForecastModel(base_saf.ForecastModel):
     repeated_mid_sequence = tf.tile(
         tf.expand_dims(input_sequence[:, self.num_encode // 2, :], 1),
         [1, self.num_encode // 2, 1])
-    input_sequence = tf.concat(
+    padded_input_sequence = tf.concat(
         [repeated_mid_sequence, input_sequence[:, self.num_encode // 2:, :]],
         axis=1)
-
-    if self.use_nowcast_errors:
-      augmented_input_sequence = tf.concat(
-          (input_sequence, tf.zeros_like(input_sequence)), axis=2)
 
     with tf.GradientTape() as tape:
       future_features = (
           self.future_features_train
           if is_training else self.future_features_eval)
-      if self.use_nowcast_errors:
-        nowcasts, _ = self.tft_model.call(
-            inputs=[augmented_input_sequence, future_features, input_static],
-            training=is_training)
-        # Remove the forecasts of the error features.
-        nowcasts = nowcasts[:, :, :-self.num_error_features]
+
+      if self.use_backcast_errors:
+        augmented_input_sequence = tf.concat(
+            (padded_input_sequence, tf.zeros_like(input_sequence)), axis=2)
       else:
-        nowcasts, _ = self.tft_model.call(
-            inputs=[input_sequence, future_features, input_static],
-            training=is_training)
+        augmented_input_sequence = padded_input_sequence
+      backcasts, _ = self.tft_model.call(
+          inputs=[augmented_input_sequence, future_features, input_static],
+          training=is_training)
+      # Remove the forecasts of the error features.
+      backcasts = backcasts[:, :, :-self.num_error_features]
 
       self_adaptation_loss = self.self_supervised_loss_object(
-          input_sequence, nowcasts)
+          input_sequence, backcasts)
 
     adaptation_trainable_variables = self.tft_model.trainable_weights
 
@@ -82,21 +79,21 @@ class ForecastModel(base_saf.ForecastModel):
     self.optimizer_adaptation.apply_gradients(
         zip(gradients, adaptation_trainable_variables))
 
-    updated_nowcasts, _ = self.tft_model.call(
+    updated_backcasts, _ = self.tft_model.call(
         inputs=[augmented_input_sequence, future_features, input_static],
         training=is_training)
-    nowcast_errors = (
-        input_sequence - updated_nowcasts[:, :, :-self.num_error_features])
+    backcast_errors = (
+        input_sequence - updated_backcasts[:, :, :-self.num_error_features])
 
-    return self_adaptation_loss, nowcast_errors
+    return self_adaptation_loss, backcast_errors
 
   @tf.function
   def train_step(self, input_sequence, input_static, target):
-    self_adaptation_loss, nowcast_errors = self._self_adaptation_step(
+    self_adaptation_loss, backcast_errors = self._self_adaptation_step(
         input_sequence, input_static, is_training=True)
 
-    if self.use_nowcast_errors:
-      input_sequence = tf.concat((input_sequence, nowcast_errors), axis=2)
+    if self.use_backcast_errors:
+      input_sequence = tf.concat((input_sequence, backcast_errors), axis=2)
 
     with tf.GradientTape() as tape:
       _, predictions = self.tft_model.call(
@@ -111,11 +108,11 @@ class ForecastModel(base_saf.ForecastModel):
 
   @tf.function
   def test_step(self, input_sequence, input_static):
-    self_adaptation_loss, nowcast_errors = self._self_adaptation_step(
+    self_adaptation_loss, backcast_errors = self._self_adaptation_step(
         input_sequence, input_static, is_training=False)
 
-    if self.use_nowcast_errors:
-      input_sequence = tf.concat((input_sequence, nowcast_errors), axis=2)
+    if self.use_backcast_errors:
+      input_sequence = tf.concat((input_sequence, backcast_errors), axis=2)
 
     _, predictions = self.tft_model.call(
         inputs=[input_sequence, self.future_features_eval, input_static],

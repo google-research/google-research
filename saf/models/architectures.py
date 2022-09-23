@@ -104,12 +104,12 @@ class MLPDecoderWithState(tf.keras.Model):
     return tf.reshape(output, [-1, self.forecast_horizon])
 
 
-class MLPNowcast(tf.keras.Model):
-  """MLP nowcast architecture."""
+class MLPbackcast(tf.keras.Model):
+  """MLP backcast architecture."""
 
   def __init__(self, hparams):
 
-    super(MLPNowcast, self).__init__()
+    super(MLPbackcast, self).__init__()
 
     # Model hyperparameters
     self.num_encode = hparams["num_encode"]
@@ -117,18 +117,18 @@ class MLPNowcast(tf.keras.Model):
     self.representation_combination = hparams["representation_combination"]
 
     # Model layers
-    self.nowcast_static_input_mapper = tf.keras.layers.Dense(
+    self.backcast_static_input_mapper = tf.keras.layers.Dense(
         units=hparams["num_units"], activation="relu")
-    self.mlp_nowcast_n1 = tf.keras.layers.Dense(
+    self.mlp_backcast_n1 = tf.keras.layers.Dense(
         units=hparams["num_units"], activation="relu")
-    self.mlp_nowcast_n2 = tf.keras.layers.Dense(
+    self.mlp_backcast_n2 = tf.keras.layers.Dense(
         units=hparams["num_units"], activation="relu")
-    self.mlp_nowcast_f = tf.keras.layers.Dense(
+    self.mlp_backcast_f = tf.keras.layers.Dense(
         units=hparams["num_encode"] * self.num_features, activation="linear")
 
   def forward(self, representation, static):
 
-    static_mapped = self.nowcast_static_input_mapper(static)
+    static_mapped = self.backcast_static_input_mapper(static)
     static_mapped = tf.nn.relu(static_mapped)
 
     if self.representation_combination == "multiplication":
@@ -138,8 +138,8 @@ class MLPNowcast(tf.keras.Model):
     else:
       representation *= static_mapped
 
-    output = self.mlp_nowcast_f(
-        self.mlp_nowcast_n2(self.mlp_nowcast_n1(representation)))
+    output = self.mlp_backcast_f(
+        self.mlp_backcast_n2(self.mlp_backcast_n1(representation)))
     return tf.reshape(output, [-1, self.num_encode, self.num_features])
 
 
@@ -396,12 +396,12 @@ class LSTMDecoderWithState(tf.keras.Model):
     return output
 
 
-class LSTMNowcast(tf.keras.Model):
-  """LSTM nowcast architecture."""
+class LSTMBackcast(tf.keras.Model):
+  """LSTM backcast architecture."""
 
   def __init__(self, hparams):
 
-    super(LSTMNowcast, self).__init__()
+    super(LSTMBackcast, self).__init__()
 
     # Model hyperparameters
     self.num_encode = hparams["num_encode"]
