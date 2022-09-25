@@ -3,4 +3,4 @@ matplotlib
 numpy==1.19.5
 pandas
 sklearn
-tensorflow==2.4.1
+tensorflow==2.7.2
