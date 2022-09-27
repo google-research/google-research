@@ -191,46 +191,11 @@ NETWORK_ARCHITECTURES = {
     na.name.lower(): na for na in NETWORK_ARCHITECTURES
 }
 
-
-HRNET_MODELS_PATH = './hrnet_tf_hub_models/'
-
-HRNET48_TRAINED_MODELS = [
-    HRNetModel('pvoc',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-pvoc/',),
-    HRNetModel('isprs',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-isprs/',),
-    HRNetModel('vkitti2',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-vkitti2/',),
-    HRNetModel('vgallery',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-vgallery/',),
-    HRNetModel('sunrgbd',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-sunrgbd/',),
-    HRNetModel('suim',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-suim/',),
-    HRNetModel('scannet',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-scannet/',),
-    HRNetModel('pcontext',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-msegpcontext/',),
-    HRNetModel('mapillary',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-mapillary/',),
-    HRNetModel('kitti',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-kitti/',),
-    HRNetModel('isaid',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-isaid/',),
-    HRNetModel('idd',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-idd/',),
-    HRNetModel('coco',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-coco/',),
-    HRNetModel('city',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-city/',),
-    HRNetModel('camvid',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-camvid/',),
-    HRNetModel('bdd',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-bdd/',),
-    HRNetModel('ade',
-               HRNET_MODELS_PATH + 'HRNetV2-W48-ILSVRC-ade/',),
-]
+SEGMENTATION_DATASETS = [
+    'pvoc', 'isprs', 'vkitti2', 'vgallery', 'sunrgbd', 'suim', 'scannet',
+    'msegpcontext', 'mapillary', 'kitti', 'isaid', 'idd', 'coco', 'city',
+    'camvid', 'bdd', 'ade20k']
 
 HRNET48_TRAINED_MODELS = {
-    na.name.lower(): na for na in HRNET48_TRAINED_MODELS
-}
+    ds: HRNetModel(ds, f'https://tfhub.dev/google/HRNet/{ds}-hrnetv2-w48/1')
+    for ds in SEGMENTATION_DATASETS}

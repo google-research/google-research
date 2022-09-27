@@ -43,8 +43,8 @@ class TransferExperimentConfig(ml_collections.ConfigDict):
     self.source.dataset.name = 'coco'
     self.source.dataset.name_range = [
         'pvoc', 'isprs', 'vkitti2', 'vgallery', 'sunrgbd', 'suim', 'scannet',
-        'pcontext', 'mapillary', 'kitti', 'isaid', 'idd', 'coco', 'city',
-        'camvid', 'bdd', 'ade',]
+        'msegpcontext', 'mapillary', 'kitti', 'isaid', 'idd', 'coco', 'city',
+        'camvid', 'bdd', 'ade20k']
 
     # Target dataset configuration:
     self.target = ml_collections.ConfigDict()

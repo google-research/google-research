@@ -23,8 +23,8 @@
 
 
 DATASETS_WITH_VALIDATION_AS_TEST = [
-    'food101', 'imagenette', 'ade', 'bdd', 'camvid', 'city', 'coco', 'idd',
-    'isaid', 'isprs', 'kitti', 'mapillary', 'pcontext', 'pvoc', 'scannet',
+    'food101', 'imagenette', 'ade20k', 'bdd', 'camvid', 'city', 'coco', 'idd',
+    'isaid', 'isprs', 'kitti', 'mapillary', 'msegpcontext', 'pvoc', 'scannet',
     'sunrgbd',]
 
 
@@ -42,7 +42,7 @@ DATASET_NUM_CLASSES = {
 
 
 SEGMENTATION_DATASET_INFO = {
-    'ade': {
+    'ade20k': {
         'mean': [0.48456758055327015, 0.4656688196674575, 0.4243525517918916],
         'std': [0.2588946676768578, 0.25576863261712585, 0.2749972024401641],
         'dataset_name': 'fids_ade20k',
@@ -102,7 +102,7 @@ SEGMENTATION_DATASET_INFO = {
         'dataset_name': 'fids_mapillary_public',
         'crop_size': (768, 1024),
     },
-    'pcontext': {
+    'msegpcontext': {
         'mean': [0.4534070723894893, 0.43937956556585933, 0.4024208506613706],
         'std': [0.27541526304174974, 0.27232753256708553, 0.28574396423927684],
         'dataset_name': 'fids_pascal_context',
