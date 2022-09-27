@@ -40,8 +40,16 @@ ten columns, one line per marked error:
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
 - **severity**: MQM error severity (or "no-error").
-- **metadata**: JSON-formatted object that may contain a "timestamp" field,
-  a "note" field, among others.
+- **metadata**: JSON-formatted object that may contain the following fields, among others:
+  - **timestamp**: Time at which this annotation was obtained (milliseconds
+    since Unix epoch)
+  - **note**: Free-form text note provided by the rater with some annotations
+    (notably, with the "Other" error category)
+  - **references**: A mapping from names of references to the references
+  themselves (e.g., {"ref_A": "The reference", "ref_B": "..."})
+  - **primary_reference**: The name of the primary reference, which is
+    a key in the "references" mapping (e.g., "ref_A"). This field is
+    required if "references" is present.
 
 The "metadata" column used to be an optional "note" column, and MQM Viewer
 continues to support that legacy format. Going forward, the metadata object
@@ -89,3 +97,17 @@ filters.
   - **Example**: target.indexOf('thethe') >= 0
   - **Example**: segment.sevsBySystem['System-42'].includes('Major')
   - **Example**: JSON.stringify(segment.sevcatsBySystem).includes('Major/Fl')
+
+## Data Notes
+There are some nuances to the data format which are useful to be aware of:
+
+  - Error spans are marked in the source/target text using `<v>...</v>` tags
+    to enclose them. For example: `The error is <v>here</v>.`
+  - Severity and category names come directly from annotation tools and may
+    have subtle variations (such as lowercase/uppercase differences or
+    space-underscore changes).
+  - Error spans may include leading/trailing whitespace if the annotation tool
+    allows for this, which may or may not be part of the actual errors.
+    For example, `The error is<v> here</v>.`
+    The error spans themselves can also be entirely whitespace.
+
