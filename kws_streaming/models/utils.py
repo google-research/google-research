@@ -21,13 +21,13 @@ from keras import models as models_utils
 from keras.engine import functional
 import numpy as np
 from kws_streaming.layers import modes
+from kws_streaming.layers import quantize
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
 from kws_streaming.models import model_utils
 from kws_streaming.models import models as kws_models
-from tensorflow_model_optimization.python.core.quantization.keras import quantize
 
 
 def save_model_summary(model, path, file_name='model_summary.txt'):
@@ -368,15 +368,17 @@ def model_to_tflite(
   if save_model_path:
     save_model_summary(model_stream, save_model_path)
 
-  if sess:
-    # convert Keras inference model to tflite inference model
-    converter = tf1.lite.TFLiteConverter.from_session(
-        sess, model_stream.inputs, model_stream.outputs)
-  else:
-    if not save_model_path:
-      save_model_path = tempfile.mkdtemp()
-    tf.saved_model.save(model_stream, save_model_path)
-    converter = tf.lite.TFLiteConverter.from_saved_model(save_model_path)
+  # Identify custom objects.
+  with quantize.quantize_scope():
+    if sess:
+      # convert Keras inference model to tflite inference model
+      converter = tf1.lite.TFLiteConverter.from_session(
+          sess, model_stream.inputs, model_stream.outputs)
+    else:
+      if not save_model_path:
+        save_model_path = tempfile.mkdtemp()
+      tf.saved_model.save(model_stream, save_model_path)
+      converter = tf.lite.TFLiteConverter.from_saved_model(save_model_path)
 
   converter.inference_type = inference_type
   converter.experimental_new_quantizer = experimental_new_quantizer
@@ -575,8 +577,10 @@ def saved_model_to_tflite(saved_model_path,
     tflite model
   """
 
-  converter = tf.compat.v2.lite.TFLiteConverter.from_saved_model(
-      saved_model_path)
+  # Identify custom objects.
+  with quantize.quantize_scope():
+    converter = tf.compat.v2.lite.TFLiteConverter.from_saved_model(
+        saved_model_path)
 
   converter.inference_type = inference_type
   converter.experimental_new_quantizer = experimental_new_quantizer

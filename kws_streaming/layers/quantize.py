@@ -72,3 +72,10 @@ def quantize_layer(layer, apply_quantization=True, quantize_config=None):
     return quantize_wrapper.QuantizeWrapper(layer, quantize_config)
   else:
     return layer
+
+
+def quantize_scope():
+  """Returns quantize scope with custom objects."""
+  return tfmot.quantization.keras.quantize_scope({
+      'NoOpActivationConfig': NoOpActivationConfig,
+  })
