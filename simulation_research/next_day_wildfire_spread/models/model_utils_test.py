@@ -20,6 +20,9 @@ import tensorflow as tf
 
 from simulation_research.next_day_wildfire_spread.models import model_utils
 
+# TODO(b/237700589): Remove this once the global flag is on.
+tf.compat.v2.keras.backend.experimental.enable_tf_random_generator()
+
 
 class UtilsTest(tf.test.TestCase, parameterized.TestCase):
 
@@ -126,8 +129,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
     result = model_utils.res_block(
         input_tensor, filters=(2, 2), strides=(2, 1), pool_size=2)
     expected = tf.constant(
-        [[[[-0.7451613, 1.2439988], [-0.85067844, 0.77005655]],
-          [[-0.40002766, 0.9165071], [-0.4105755, 1.0389955]]]],
+        [[[[-1.6231261, -0.41469464], [-1.0504293, 0.2297965]],
+          [[-1.294716, -1.0198706], [-0.90404123, 0.06797227]]]],
         dtype=tf.float32)
     self.assertAllClose(result, expected)
 
@@ -138,8 +141,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
         input_tensor, filters=(2, 2), strides=(2, 1), pool_size=2)
     self.assertEqual(result.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.7451613, 1.2439988], [-0.85067844, 0.77005655]],
-          [[-0.40002766, 0.9165071], [-0.4105755, 1.0389955]]]],
+        [[[[-1.6231261, -0.41469464], [-1.0504293, 0.2297965]],
+          [[-1.294716, -1.0198706], [-0.90404123, 0.06797227]]]],
         dtype=tf.float32)
     self.assertAllClose(result, expected)
 
@@ -150,8 +153,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
         input_tensor, filters=(2, 2), strides=(2, 1), pool_size=2, dropout=0.5)
     self.assertEqual(result.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.7451613, 1.2439988], [-0.85067844, 0.77005655]],
-          [[-0.40002766, 0.9165071], [-0.4105755, 1.0389955]]]],
+        [[[[-1.6231261, -0.41469464], [-1.0504293, 0.2297965]],
+          [[-1.294716, -1.0198706], [-0.90404123, 0.06797227]]]],
         dtype=tf.float32)
     self.assertAllClose(result, expected)
 
@@ -166,8 +169,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
         batch_norm='all')
     self.assertEqual(result.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.7443915, 1.2431827], [-0.84980315, 0.7697139]],
-          [[-0.39960262, 0.9160182], [-0.41013992, 1.0383842]]]],
+        [[[[-1.622118, -0.41433296], [-1.0499933, 0.22951439]],
+          [[-1.2940359, -1.0189044], [-0.9037515, 0.06785183]]]],
         dtype=tf.float32)
     self.assertAllClose(result, expected)
 
@@ -182,8 +185,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
         batch_norm='some')
     self.assertEqual(result.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.7447636, 1.243804], [-0.85022795, 0.7700986]],
-          [[-0.3998024, 0.9164761], [-0.41034493, 1.0389032]]]],
+        [[[[-1.6229289, -0.41454008], [-1.0505182, 0.2296291]],
+          [[-1.2946827, -1.0194137], [-0.90420324, 0.06788576]]]],
         dtype=tf.float32)
     self.assertAllClose(result, expected)
 
@@ -198,8 +201,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
         l1_regularization=1e-6)
     self.assertEqual(result.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.7451613, 1.2439988], [-0.85067844, 0.77005655]],
-          [[-0.40002766, 0.9165071], [-0.4105755, 1.0389955]]]],
+        [[[[-1.6231261, -0.41469464], [-1.0504293, 0.2297965]],
+          [[-1.294716, -1.0198706], [-0.90404123, 0.06797227]]]],
         dtype=tf.float32)
     self.assertAllClose(result, expected)
 
@@ -214,8 +217,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
         l2_regularization=1e-5)
     self.assertEqual(result.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.7451613, 1.2439988], [-0.85067844, 0.77005655]],
-          [[-0.40002766, 0.9165071], [-0.4105755, 1.0389955]]]],
+        [[[[-1.6231261, -0.41469464], [-1.0504293, 0.2297965]],
+          [[-1.294716, -1.0198706], [-0.90404123, 0.06797227]]]],
         dtype=tf.float32)
     self.assertAllClose(result, expected)
 

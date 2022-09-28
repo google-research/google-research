@@ -21,6 +21,9 @@ from tensorflow.compat.v2 import keras
 
 from simulation_research.next_day_wildfire_spread.models import cnn_autoencoder_model
 
+# TODO(b/237700589): Remove this once the global flag is on.
+tf.compat.v2.keras.backend.experimental.enable_tf_random_generator()
+
 
 class CNNAutoencoderModelTest(tf.test.TestCase, parameterized.TestCase):
 
@@ -31,8 +34,8 @@ class CNNAutoencoderModelTest(tf.test.TestCase, parameterized.TestCase):
         input_tensor, layers_list=(64, 2), pool_list=(2, 2))
     self.assertAllEqual(output_tensor.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.5621548, 0.03140555], [-0.3432806, -0.02706416]],
-          [[-0.69838655, -0.03843682], [-0.44883716, 0.06833281]]]],
+        [[[[-0.02436768, -0.27847868], [-0.0774256, -0.5111736]],
+          [[0.50436425, -0.1713084], [0.2803106, -0.5315974]]]],
         dtype=tf.float32)
     self.assertAllClose(output_tensor, expected)
 
@@ -43,10 +46,10 @@ class CNNAutoencoderModelTest(tf.test.TestCase, parameterized.TestCase):
         input_tensor, layers_list=(64, 2, 4), pool_list=(2, 1, 2))
     self.assertAllEqual(output_tensor.shape, [1, 2, 2, 4])
     expected = tf.constant(
-        [[[[-0.27563018, 0.21537381, 0.12684153, 0.51073045],
-           [-0.09281676, -0.03188085, 0.09975646, 0.6291511]],
-          [[-0.13426782, 0.40684095, 0.18982321, 1.0110271],
-           [-0.07621399, 0.06954233, 0.14125276, 0.53451514]]]],
+        [[[[0.04343234, 0.3203296, 0.2921386, -0.39414376],
+           [0.21853307, 0.6474583, 0.18453243, 0.08784209]],
+          [[0.13576293, 0.43033206, 0.05750746, -0.06081235],
+           [0.46124727, 0.45607585, -0.2642231, 0.03700671]]]],
         dtype=tf.float32)
     self.assertAllClose(output_tensor, expected)
 
@@ -57,8 +60,8 @@ class CNNAutoencoderModelTest(tf.test.TestCase, parameterized.TestCase):
         input_tensor, layers_list=(64, 2), pool_list=(2, 2), batch_norm='all')
     self.assertAllEqual(output_tensor.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.5613096, 0.03130081], [-0.34280664, -0.02703769]],
-          [[-0.69741255, -0.03835764], [-0.44824386, 0.06827085]]]],
+        [[[[-0.02436293, -0.2781912], [-0.07729936, -0.5105717]],
+          [[0.5036894, -0.17111939], [0.27998263, -0.5309998]]]],
         dtype=tf.float32)
     self.assertAllClose(output_tensor, expected)
 
@@ -69,8 +72,8 @@ class CNNAutoencoderModelTest(tf.test.TestCase, parameterized.TestCase):
         input_tensor, layers_list=(64, 2), pool_list=(2, 2), batch_norm='some')
     self.assertAllEqual(output_tensor.shape, [1, 2, 2, 2])
     expected = tf.constant(
-        [[[[-0.56187105, 0.03133199], [-0.34314963, -0.02706492]],
-          [[-0.69811, -0.03839603], [-0.4486921, 0.0683391]]]],
+        [[[[-0.02438722, -0.27846932], [-0.07737678, -0.5110824]],
+          [[0.50419325, -0.17129041], [0.2802627, -0.53153074]]]],
         dtype=tf.float32)
     self.assertAllClose(output_tensor, expected)
 
