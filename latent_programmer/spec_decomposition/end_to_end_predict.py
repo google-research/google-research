@@ -743,8 +743,8 @@ def main(_):
 
     # `valid` means whether we are in an unrecoverable state (or the chance of
     # recovering is so low that we'd rather allocate beam space to other
-    # things).We manually change the scores of invalid beam states to NEG_INF to
-    # make them drop out of the beam. The `use_execution` flag determines
+    # things). We manually change the scores of invalid beam states to NEG_INF
+    # to make them drop out of the beam. The `use_execution` flag determines
     # whether we are allowed to use predicted programs' executions to inform
     # validity.
 
