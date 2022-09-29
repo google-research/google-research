@@ -119,11 +119,12 @@ def multinomial_logistic_loss(params, embeddings, labels, mask,
 
 
 @functools.partial(
-    jax.pmap, axis_name='batch', in_axes=(0, 0, 0, None, None, None),
-    static_broadcasted_argnums=(4, 5))
+    jax.pmap, axis_name='batch', in_axes=(0, 0, 0, None, None, None, None),
+    static_broadcasted_argnums=(4, 6))
 def _lbfgs_minimize(embeddings, labels, mask, initial_position, loss,
-                    lbfgs_args):
+                    loss_args, lbfgs_args):
   """Function to be pmapped to minimize LBFGS loss."""
+  loss = functools.partial(loss, **loss_args)
   loss_and_grad_fn = jax.value_and_grad(loss)
   def total_loss_and_grad_fn(params):
     loss, grad = loss_and_grad_fn(params, embeddings, labels, mask)
@@ -168,9 +169,9 @@ def train(embeddings, labels, mask, l2_regularization=0.0,
   lbfgs_args['max_line_search_iterations'] = lbfgs_args.get(
       'max_line_search_iterations', 100)
   lbfgs_args['max_iterations'] = lbfgs_args.get('max_iterations', 1000)
+  loss_args = dict(num_replicas=jax.local_device_count())
   if l2_regularization is not None:
-    loss = functools.partial(loss, l2_regularization=l2_regularization)
-  loss = functools.partial(loss, num_replicas=jax.local_device_count())
+    loss_args['l2_regularization'] = l2_regularization
 
   # Handle converting inital_weights to flat format.
   embed_dim = embeddings.shape[-1]
@@ -184,7 +185,7 @@ def train(embeddings, labels, mask, l2_regularization=0.0,
 
   res = _lbfgs_minimize(
       embeddings, labels, mask, initial_position, loss,
-      frozendict.frozendict(lbfgs_args))
+      loss_args, frozendict.frozendict(lbfgs_args))
   res = jax.tree_util.tree_map(lambda x: x[0], res)
   weights, biases = params_to_weights_and_biases(res.position, embed_dim)
   return weights, biases, res
