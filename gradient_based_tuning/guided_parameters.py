@@ -422,7 +422,7 @@ def make_dict_json_safe(vars_dict):
   for k in vars_dict:
     if isinstance(vars_dict[k], dict):
       vars_dict[k] = make_dict_json_safe(vars_dict[k])
-    elif isinstance(vars_dict[k], jax.interpreters.xla.DeviceArray):
+    elif isinstance(vars_dict[k], jax.Array):
       vars_dict[k] = jnp.asarray(vars_dict[k])
     elif isinstance(vars_dict[k], np.ndarray):
       vars_dict[k] = vars_dict[k].tolist()
