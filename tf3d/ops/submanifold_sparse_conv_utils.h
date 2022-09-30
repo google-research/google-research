@@ -118,7 +118,7 @@ struct FilterSpatialDims : public Coordinates<dims> {
       }
       out->v[i] = d;
     }
-    return Status::OK();
+    return OkStatus();
   }
 
   EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE int Size() const {
