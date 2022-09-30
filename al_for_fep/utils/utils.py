@@ -29,7 +29,6 @@ from al_for_fep.selection import acquisition_functions
 QUERY_STRATEGIES = {
     'greedy': acquisition_functions.greedy,
     'half_sample': acquisition_functions.half_sample,
-    'thompson': acquisition_functions.thompson_sampling,
     'EI': acquisition.max_EI,
     'PI': acquisition.max_PI,
     'UCB': acquisition.max_UCB,

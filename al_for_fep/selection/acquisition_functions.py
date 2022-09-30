@@ -89,22 +89,3 @@ def half_sample(optimizer,
     big_h = np.matmul(big_h, update)
 
   return np.array(picked_indices)
-
-
-def thompson_sampling(optimizer,
-                      features,
-                      n_instances = 1):
-  """Thompson Sampling acquisition function.
-
-  Args:
-    optimizer: BaseLearner. Model to use to score instances.
-    features: modALinput. Featurization of the instances to choose from.
-    n_instances: Integer. The number of instances to select.
-
-  Returns:
-    Indices of the instances chosen.
-  """
-  means, stds = optimizer.predict(features, return_std=True)
-
-  return np.argpartition(-1 * np.random.normal(means, stds),
-                         n_instances)[:n_instances]
