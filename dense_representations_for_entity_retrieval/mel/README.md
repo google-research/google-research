@@ -70,20 +70,20 @@ zero-shot entity retrieval and accessibility.
 
 ### Comparison
 
-                                                                                       | **Mewsli-9**                                                               | **Mewsli-X**
--------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------
-**Salient features**                                                                   | Large-scale task. Special focus on entities absent from English Wikipedia. | Scaled down task for improved accessibility. Special focus on zero-shot.
-**Mention languages**                                                                  | (9) ar, de, en, es, fa, ja, *sr*, ta, tr                                   | (11) ar, de, en, es, fa, ja, *pl*, *ro*, ta, tr, *uk*
-**WikiNews evaluation instances**                                                      | 289,087 (no predefined splits)                                             | 17,615 (2,991 dev + 14,624 test)
-**Other released data**                                                                | None                                                                       | Candidate set (multilingual Wikipedia descriptions);<br> Fine-tuning train & dev (English Wikipedia mentions)
-***Attributes***                                                                       |                                                                            |
-**Text tokenization**                                                                  | Not released                                                               | Sentence boundaries are released for the raw text, in support of token-free modeling research.
-**Noise filtering**                                                                    | Minimal                                                                    | Extensive
-**Controlled sampling**                                                                | None                                                                       | WikiNews instances approx. balanced by language and global entity frequency
-***Entity candidate set***                                                             |                                                                            |
-**Description languages**                                                              | (104) All mBERT-languages                                                  | (50) All XTREME-R languages
-**Size**                                                                               | 20M                                                                        | 1M
-**Has nuisance entities associated with Wikipedia 'list' and 'disambiguation' pages?** | yes                                                                        | no
+|                                                                                        | **Mewsli-9**                                                               | **Mewsli-X**
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------
+| **Salient features**                                                                   | Large-scale task. Special focus on entities absent from English Wikipedia. | Scaled down task for improved accessibility. Special focus on zero-shot.
+| **Mention languages**                                                                  | (9) ar, de, en, es, fa, ja, *sr*, ta, tr                                   | (11) ar, de, en, es, fa, ja, *pl*, *ro*, ta, tr, *uk*
+| **WikiNews evaluation instances**                                                      | 289,087 (no predefined splits)                                             | 17,615 (2,991 dev + 14,624 test)
+| **Other released data**                                                                | None                                                                       | Candidate set (multilingual Wikipedia descriptions);<br> Fine-tuning train & dev (English Wikipedia mentions)
+| ***Attributes***                                                                       |                                                                            |
+| **Text tokenization**                                                                  | Not released                                                               | Sentence boundaries are released for the raw text, in support of token-free modeling research.
+| **Noise filtering**                                                                    | Minimal                                                                    | Extensive
+| **Controlled sampling**                                                                | None                                                                       | WikiNews instances approx. balanced by language and global entity frequency
+| ***Entity candidate set***                                                             |                                                                            |
+| **Description languages**                                                              | (104) All mBERT-languages                                                  | (50) All XTREME-R languages
+| **Size**                                                                               | 20M                                                                        | 1M
+| **Has nuisance entities associated with Wikipedia 'list' and 'disambiguation' pages?** | yes                                                                        | no
 
 ## Disclaimer
 
