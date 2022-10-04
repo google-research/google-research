@@ -19,6 +19,17 @@ Vision Transformer with topological attention based on 2-level block Toeplitz
 masking mechanism introduced in https://arxiv.org/abs/2107.07999. The regular
 attention is modulated by the learnable function of the L1-distance between the
 patches in the original 2d-grid rather than its flattened 1d-representation.
+
+TopViT is built on the regular ViT Transformer from the scenic Library:
+https://github.com/google-research/scenic. It changes its attention mechanism.
+They key addition is the aforementioned attention modulation. Furthermore, in
+the current TopViT implementation we replace softmax-kernel in attention with
+the ReLU-kernel. That choice makes the attention mechanism numerically
+equivalent (not just approximately) to its implicit (sub-quadratic) attention
+variation obtained via
+(a) the Performer method (https://arxiv.org/abs/2009.14794) and
+(b) implicit masking methods from https://arxiv.org/abs/2107.07999.
+The currently implemented variant is the explicit one.
 """
 
 from typing import Any, Callable, Iterable, Optional
