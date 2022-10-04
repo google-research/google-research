@@ -56,11 +56,18 @@ Number of sentences in the dataset (paired with English):
 
 ## Citation
 
-If you use or discuss FRMT in your work, please cite [our paper](TODO: Add
-arXiv link):
+If you use or discuss FRMT in your work, please cite [our
+paper](https://arxiv.org/abs/2210.00193):
 
 ```
-TODO: Add bibtex here.
+@misc{riley2022frmt,
+  doi = {10.48550/ARXIV.2210.00193},
+  url = {https://arxiv.org/abs/2210.00193},
+  author = {Riley, Parker and Dozat, Timothy and Botha, Jan A. and Garcia, Xavier and Garrette, Dan and Riesa, Jason and Firat, Orhan and Constant, Noah},
+  title = {{FRMT}: A Benchmark for Few-Shot Region-Aware Machine Translation},
+  publisher = {arXiv},
+  year = {2022},
+}
 ```
 
 ## Support
