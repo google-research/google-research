@@ -28,8 +28,7 @@
   </h3>
   <ul>
     <li>Projects are created by opening "Project TSV files" that have
-      four fields: source and target sentence groups, document name,
-      system name.</li>
+      four fields: source and target segments, document name, system name.</li>
     <li>MQM and SQM templates (with a few variants) are supported.</li>
     <li>State is automatically saved in the browser's local storage.</li>
     <li>After evaluating, projects can be saved as "Evaluation JSON files".</li>
@@ -64,15 +63,20 @@
     The TSV file must contain four fields in the following order:
   </p>
   <ul>
-    <li>source sentence group</li>
-    <li>target sentence group</li>
+    <li>source segment</li>
+    <li>target segment</li>
     <li>document name</li>
     <li>system name</li>
   </ul>
   <p>
-    A fifth field is optional and contains any additional annotations.
-    A <b>sentence group</b> (also referred to as a "segment") is a group of sentences that will be
-    incrementally shown for evaluation. Typically, a sentence group consists of only one sentence.
+    A fifth field is optional and contains any additional annotations in the
+    form of a JSON-encoded object. The object may carry certain specific keyed
+    information, including <b>references</b> (a mapping from names of reference
+    translations to reference translations) and <b>primary_reference</b> (the
+    name of the primary reference, required if "references" is present).
+    A <b>segment</b> (also referred to as a "sentence group") is a group of
+    sentences that will be incrementally shown for evaluation. Typically, a
+    segment consists of one sentence or one paragraph.
   </p>
 
   <p>

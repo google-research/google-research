@@ -45,15 +45,36 @@ ten columns, one line per marked error:
     since Unix epoch)
   - **note**: Free-form text note provided by the rater with some annotations
     (notably, with the "Other" error category)
-  - **references**: A mapping from names of references to the references
-  themselves (e.g., {"ref_A": "The reference", "ref_B": "..."})
-  - **primary_reference**: The name of the primary reference, which is
-    a key in the "references" mapping (e.g., "ref_A"). This field is
-    required if "references" is present.
+  - **corrected_translation**: If the rater provided a corrected translation,
+    for the segment, it will be included here.
+  - **source_spans**: Array of pairs of 0-based indices (usually just one)
+    identifying the indices of the first and last source tokens in the marked
+    span. These indices refer to the source_tokens array in the segment
+    object.
+  - **target_spans**: Array of pairs of 0-based indices (usually just one)
+    identifying the indices of the first and last target tokens in the marked
+    span. These indices refer to the target_tokens array in the segment
+    object.
+  - **segment**: An object that has information about the segment that is not
+    specific to any particular annotation/rating. This object may not
+    necessarily be repeated across multiple ratings for the same segment. The
+    segment object may contain the following fields:
+      - **references**: A mapping from names of references to the references
+        themselves (e.g., {"ref_A": "The reference", "ref_B": "..."})
+      - **primary_reference**: The name of the primary reference, which is
+        a key in the "references" mapping (e.g., "ref_A"). This field is
+        required if "references" is present.
+      - **source_tokens**: An array of source text tokens.
+      - **target_tokens**: An array of target text tokens.
+      - **starts_paragraph**: A boolean that is true if this segment is the
+        start of a new paragraph.
+      - In addition, any text annotation fields present in the input data are
+        copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
+        this would be all the fields present in the optional last column.
 
 The "metadata" column used to be an optional "note" column, and MQM Viewer
 continues to support that legacy format. Going forward, the metadata object
-may be augmented to contain additional information about the rating.
+may be augmented to contain additional information about the rating/segment.
 
 An optional header line in the data file will be ignored (identified by the
 presence of the text "system\tdoc").
