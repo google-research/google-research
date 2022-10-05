@@ -42,6 +42,7 @@ class ForecastModel(base_saf.ForecastModel):
         self.backcast_architecture,
         self.forecast_architecture,
         self.encoder_architecture,
+        self.optimizer_adaptation,
     ]
 
   @tf.function

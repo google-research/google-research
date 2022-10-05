@@ -14,7 +14,9 @@
 # limitations under the License.
 
 """A TFT forecast model that self-adapts and uses backcast errors as features."""
+
 from models import base_saf
+from models import tft_layers
 
 import tensorflow as tf
 
@@ -22,7 +24,11 @@ import tensorflow as tf
 class ForecastModel(base_saf.ForecastModel):
   """TFT that uses backcast errors as feature."""
 
-  def __init__(self, loss_object, self_supervised_loss_object, hparams):
+  def __init__(self,
+               loss_object,
+               self_supervised_loss_object,
+               hparams,
+               quantile_targets=(0.5,)):
     # For now we will include all of the errors as features.
     self.num_error_features = hparams["num_features"]
 
@@ -32,6 +38,12 @@ class ForecastModel(base_saf.ForecastModel):
           hparams["num_features"] + self.num_error_features)
 
     super().__init__(loss_object, self_supervised_loss_object, hparams)
+
+    # Model layers
+    self.quantile_targets = list(quantile_targets)
+    tft_architecture = tft_layers.TFTModel(hparams, self.quantile_targets)
+    self.tft_model = tft_architecture.return_self_adapting_model()
+    self._keras_layers = [self.tft_model, self.optimizer_adaptation]
 
   @tf.function
   def _self_adaptation_step(self,
