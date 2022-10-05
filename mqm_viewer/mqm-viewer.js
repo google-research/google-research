@@ -18,7 +18,9 @@
 
 /**
  * Raw data read from the data file. Each entry is an array with 10 entries,
- * in this order (slightly different from the original order in the TSV data):
+ * in this order (slightly different from the original order in the TSV data,
+ * as we keep the fields in their more natural presentation order, as used in
+ * the HTML table we display):
  *
  *     0: system, 1: doc, 2: docSegId, 3: globalSegId, 4: source, 5: target,
  *     6: rater, 7: category, 8: severity, 9: metadata
@@ -118,16 +120,91 @@ let mqmSampledScores = {};
 let mqmCIComputation = null;
 
 /**
- * Scoring weights.
+ * Scoring weights. Each weight has a name and a regular expression pattern
+ * for matching <severity>:<category>[/<subcategory>] (case-insensitively).
+ * The weights are tried out in the sequence shown and for a given annotation,
+ * the first matching weight is used. While you can interactively change these
+ * for experimentation, you should set this default array to values suitable
+ * for your application. The best place to do this is in your own version of
+ * mqm-viewer.html.
+ *
+ * The "name" fields should be unique, short (<= 10 characters), and composed
+ * only of [a-zA-Z.-].
  */
-const mqmDefaultWeights = {
-  'trivial': 0.1,
-  'minor': 1,
-  'major': 5,
-  'critical': 5,
-  'non-translation': 25,
-};
-const mqmWeights = JSON.parse(JSON.stringify(mqmDefaultWeights));
+let mqmDefaultWeights = [
+  {
+    'name': 'Trivial',
+    'weight': 0.1,
+    'pattern': 'minor:.*punctuation|trivial:',
+  },
+  {
+    'name': 'Non-trans.',
+    'weight': 25,
+    'pattern': 'non.translation',
+  },
+  {
+    'name': 'Minor',
+    'weight': 1,
+    'pattern': 'minor:',
+  },
+  {
+    'name': 'Major',
+    'weight': 5,
+    'pattern': 'major:',
+  },
+  {
+    'name': 'Critical',
+    'weight': 5,
+    'pattern': 'critical:',
+  },
+];
+
+/**
+ * MQM Scores can be sliced along a second dimension, which is typically
+ * Accuracy/Fluency, but can be customized in any desired manner. The
+ * slicing is done by matching the pattern regular expressions
+ * case-insensitively in order to find the first matching slice. Similarly
+ * as with mqmDefaultWeights, you may want to override these defaults in
+ * your own application.
+ *
+ * See comment above mqmDefaultWeights for requirements on the "name" field.
+ */
+let mqmDefaultSlices = [
+  {
+    'name': 'Accuracy',
+    'pattern': 'accuracy|terminology|non.translation',
+  },
+  {
+    'name': 'Fluency',
+    'pattern': 'fluency|style|locale',
+  },
+  {
+    'name': 'Other',
+    'pattern': '.*',
+  },
+];
+
+/**
+ * mqmWeights and mqmSlices are set from current settings in
+ * mqmParseScoreSettings() and mqmResetSettings().
+ */
+let mqmWeights = [];
+let mqmSlices = [];
+
+/**
+ * Score aggregates include 'weighted-" and "slice-" prefixed scores. The names
+ * beyond the prefixes are taken from the "name" field in mqmWeights and
+ * mqmSlices.
+ */
+const MQM_SCORE_WEIGHTED_PREFIX = 'weighted-';
+const MQM_SCORE_SLICE_PREFIX = 'slice-';
+
+/**
+ * Arrays of names of currently being displayed score components, sorted in
+ * decreasing score order.
+ */
+let mqmScoreWeightedFields = [];
+let mqmScoreSliceFields = [];
 
 /**
  * Scoring unit. If false, segments are used for scoring. If true, scores
@@ -462,44 +539,173 @@ function mqmFilterExprPasses(filterExpr, parts) {
 }
 
 /**
- * Initializes and returns a rater object.
+ * In the weights/slices settings table with the given element id, add a row.
+ * @param {string} id
+ * @param {number} cols The number of columns to use.
+ */
+function mqmSettingsAddRow(id, cols) {
+  let html = '<tr>';
+  for (let i = 0; i < cols; i++) {
+    html += `
+        <td><span contenteditable="true"
+                 class="mqm-settings-editable"></span></td>`;
+  }
+  html += '</tr>';
+  const elt = document.getElementById(id);
+  const rowNum = document.getElementById(id + '-add-row').value ?? 1;
+  /** The new row needs to be the 1-based position "rowNum" */
+  const rows = elt.getElementsByTagName('tr');
+  if (rows.length == 0 || rowNum <= 1) {
+    elt.insertAdjacentHTML('afterbegin', html);
+  } else {
+    if (rowNum > rows.length) {
+      rows[rows.length - 1].insertAdjacentHTML('afterend', html);
+    } else {
+      rows[rowNum - 1].insertAdjacentHTML('beforebegin', html);
+    }
+  }
+}
+
+/**
+ * Displays settings tables for score weights and slices.
+ */
+function mqmSetUpScoreSettings() {
+  const weightSettings = document.getElementById('mqm-settings-weights');
+  weightSettings.innerHTML = '';
+  for (let sc of mqmWeights) {
+    sc.regex = new RegExp(sc.pattern, 'i');
+    weightSettings.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td><span contenteditable="true"
+                   class="mqm-settings-editable">${sc.name}</span></td>
+          <td><span contenteditable="true"
+                   class="mqm-settings-editable">${sc.pattern}</span></td>
+          <td><span contenteditable="true"
+                   class="mqm-settings-editable">${sc.weight}</span></td>
+        </tr>`);
+  }
+  const sliceSettings = document.getElementById('mqm-settings-slices');
+  sliceSettings.innerHTML = '';
+  for (let sc of mqmSlices) {
+    sc.regex = new RegExp(sc.pattern, 'i');
+    sliceSettings.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td><span contenteditable="true"
+                   class="mqm-settings-editable">${sc.name}</span></td>
+          <td><span contenteditable="true"
+                   class="mqm-settings-editable">${sc.pattern}</span></td>
+        </tr>`);
+  }
+}
+
+/**
+ * Parses score weights/slices from the user-edited table identified by id.
+ * If there are errors in parsing then they are displayed to the user in the
+ * mqm-errors element and null is returned.
+ * @param {string} id
+ * @param {boolean} hasWeight True if this is the weights table.
+ * @return {?Array<!Object>} Array of parsed weights/slices, or null if errors.
+ */
+function mqmParseScoreSettingsInner(id, hasWeight) {
+  const nameChecker = new RegExp(/^[a-z0-9\.-]+$/i);
+  const errorsFound = [];
+  const rows = document.getElementById(id).getElementsByTagName('tr');
+  const parsed = [];
+  const names = {};
+  for (let i = 0; i < rows.length; i++) {
+    if (!rows[i].textContent.trim()) {
+      /* Allow skipping blank lines */
+      continue;
+    }
+    const parsedRow = {};
+    const spans = rows[i].getElementsByTagName('span');
+    console.assert(spans.length == 2 + (hasWeight ? 1 : 0), spans);
+    parsedRow.name = spans[0].textContent.trim();
+    if (parsedRow.name.length > 10) {
+      errorsFound.push(
+          'The name [' + parsedRow.name + '] is longer than 10 chars');
+      continue;
+    }
+    if (!nameChecker.test(parsedRow.name)) {
+      errorsFound.push(
+          'The name [' + parsedRow.name +
+          '] cannot be empty, must use characters [a-zA-Z0-9.-]');
+      continue;
+    }
+    if (names[parsedRow.name]) {
+      errorsFound.push('The name [' + parsedRow.name + '] is a duplicate');
+      continue;
+    }
+    parsedRow.pattern = spans[1].textContent.trim();
+    try {
+      parsedRow.regex = new RegExp(parsedRow.pattern, 'i');
+    } catch (err) {
+      console.log(err);
+      parsedRow.pattern = '';
+    }
+    if (!parsedRow.pattern) {
+      errorsFound.push(
+          'The pattern in row [' + parsedRow.name + '] is empty/invalid');
+      continue;
+    }
+    if (hasWeight) {
+      parsedRow.weight = parseFloat(spans[2].textContent.trim());
+      if (isNaN(parsedRow.weight) || parsedRow.weight < 0) {
+        errorsFound.push(
+            'The weight in row [' + parsedRow.name + '] is invalid');
+        continue;
+      }
+    }
+    /* All good! */
+    names[parsedRow.name] = true;
+    parsed.push(parsedRow);
+  }
+  const errorsElt = document.getElementById('mqm-errors');
+  for (let error of errorsFound) {
+    errorsElt.insertAdjacentHTML('beforeend', `<div>${error}</div>\n`);
+  }
+  return (errorsFound.length == 0) ? parsed : null;
+}
+
+/**
+ * Parses score weights and slices from the user-edited settings tables. Sets
+ * mqmWeights and mqmSlices if successful.
+ * @return {boolean} True if the parsing was successful.
+ */
+function mqmParseScoreSettings() {
+  const errors = document.getElementById('mqm-errors');
+  errors.innerHTML = '';
+  const newWeights = mqmParseScoreSettingsInner('mqm-settings-weights', true);
+  const newSlices = mqmParseScoreSettingsInner('mqm-settings-slices', false);
+  if (!newWeights || !newSlices) {
+    return false;
+  }
+  mqmWeights = newWeights;
+  mqmSlices = newSlices;
+  return true;
+}
+
+/**
+ * This checks if the annotation matches the pattern in the score weight/slice
+ * component.
+ * @param {!Object} sc Score component, with a regex property.
+ * @param {string} sev Severity of the annotation.
+ * @param {string} cat Category (and optional "/" + subcat.) of the annotation.
+ * @return {boolean}
+ */
+function mqmMatchesScoreSplit(sc, sev, cat) {
+  return sc.regex.test(sev + ':' + cat);
+}
+
+/**
+ * Initializes and returns a rater stats object.
  * @param {string} rater
  * @return {!Object}
  */
 function mqmInitRaterStats(rater) {
   return {
     'rater': rater,
-    'critical': 0,
-    'criticalA': 0,
-    'criticalF': 0,
-    'criticalUncat': 0,
-    'major': 0,
-    'majorA': 0,
-    'majorF': 0,
-    'majorUncat': 0,
-    'minor': 0,
-    'minorA': 0,
-    'minorF': 0,
-    'minorUncat': 0,
-    'trivial': 0,
-    'nonTrans': 0,
-    'unrateable': 0,
     'score': 0,
-    'scoreCritical': 0,
-    'scoreMajor': 0,
-    'scoreMinor': 0,
-    'scoreAccuracy': 0,
-    'scoreFluency': 0,
-    'scoreUncat': 0,
-    /**
-     * scoreCritical + scoreMajor + scoreMinor
-     * = scoreAccuracy + scoreFluency + scoreUncat
-     */
-    'scoreNT': 0,
-    'scoreTrivial': 0,
-    /**
-     * score = scoreCritical + scoreMajor + scoreMinor + scoreNT + scoreTrivial
-     */
 
     'errorSpans': 0,
     'numWithErrors': 0,
@@ -510,46 +716,53 @@ function mqmInitRaterStats(rater) {
 }
 
 /**
+ * Creates the key for a score weighted component or slices.
+ * @param {string} name
+ * @param {boolean=} isSlice
+ * @return {string}
+ */
+function mqmScoreKey(name, isSlice = false) {
+  return (isSlice ? MQM_SCORE_SLICE_PREFIX : MQM_SCORE_WEIGHTED_PREFIX) + name;
+}
+
+/**
+ * Strips the prefix from a key for a score component (previously assembled by
+ * mqmScoreKey).
+ * @param {string} key
+ * @return {string}
+ */
+function mqmScoreKeyToName(key) {
+  if (key.startsWith(MQM_SCORE_WEIGHTED_PREFIX)) {
+    return key.substr(MQM_SCORE_WEIGHTED_PREFIX.length);
+  } else if (key.startsWith(MQM_SCORE_SLICE_PREFIX)) {
+    return key.substr(MQM_SCORE_SLICE_PREFIX.length);
+  }
+  return key;
+}
+
+/**
  * Appends stats from delta into raterStats.
  * @param {!Object} raterStats
  * @param {!Object} delta
  */
 function mqmAddRaterStats(raterStats, delta) {
-  raterStats.critical += delta.critical;
-  raterStats.criticalA += delta.criticalA;
-  raterStats.criticalF += delta.criticalF;
-  raterStats.criticalUncat += delta.criticalUncat;
-
-  raterStats.major += delta.major;
-  raterStats.majorA += delta.majorA;
-  raterStats.majorF += delta.majorF;
-  raterStats.majorUncat += delta.majorUncat;
-
-  raterStats.minor += delta.minor;
-  raterStats.minorA += delta.minorA;
-  raterStats.minorF += delta.minorF;
-  raterStats.minorUncat += delta.minorUncat;
-
-  raterStats.trivial += delta.trivial;
-  raterStats.nonTrans += delta.nonTrans;
-  raterStats.unrateable += delta.unrateable;
-
+  raterStats.score += delta.score;
+  for (sc of mqmWeights) {
+    const key = mqmScoreKey(sc.name);
+    if (delta[key]) {
+      raterStats[key] = (raterStats[key] ?? 0) + delta[key];
+    }
+  }
+  for (sc of mqmSlices) {
+    const key = mqmScoreKey(sc.name, true);
+    if (delta[key]) {
+      raterStats[key] = (raterStats[key] ?? 0) + delta[key];
+    }
+  }
   raterStats.errorSpans += delta.errorSpans;
   raterStats.numWithErrors += delta.numWithErrors;
-
   raterStats.hotwFound += delta.hotwFound;
   raterStats.hotwMissed += delta.hotwMissed;
-
-  raterStats.score += delta.score;
-  raterStats.scoreCritical += delta.scoreCritical;
-  raterStats.scoreMajor += delta.scoreMajor;
-  raterStats.scoreMinor += delta.scoreMinor;
-  raterStats.scoreAccuracy += delta.scoreAccuracy;
-  raterStats.scoreFluency += delta.scoreFluency;
-  raterStats.scoreUncat += delta.scoreUncat;
-
-  raterStats.scoreNT += delta.scoreNT;
-  raterStats.scoreTrivial += delta.scoreTrivial;
 }
 
 /**
@@ -560,14 +773,18 @@ function mqmAddRaterStats(raterStats, delta) {
 function mqmAvgRaterStats(raterStats, num) {
   if (!num) return;
   raterStats.score /= num;
-  raterStats.scoreCritical /= num;
-  raterStats.scoreMajor /= num;
-  raterStats.scoreMinor /= num;
-  raterStats.scoreAccuracy /= num;
-  raterStats.scoreFluency /= num;
-  raterStats.scoreUncat /= num;
-  raterStats.scoreNT /= num;
-  raterStats.scoreTrivial /= num;
+  for (sc of mqmWeights) {
+    const key = mqmScoreKey(sc.name);
+    if (raterStats[key]) {
+      raterStats[key] /= num;
+    }
+  }
+  for (sc of mqmSlices) {
+    const key = mqmScoreKey(sc.name, true);
+    if (raterStats[key]) {
+      raterStats[key] /= num;
+    }
+  }
 }
 
 /**
@@ -596,21 +813,6 @@ function mqmAggregateSegStats(segs) {
     totalSrcLen += raterStats.srcLen;
     const allRaterStats = mqmInitRaterStats('');
     for (let r of raterStats) {
-      r.scoreCritical = r.critical * mqmWeights['critical'];
-      r.scoreMajor = r.major * mqmWeights['major'];
-      r.scoreMinor = r.minor * mqmWeights['minor'];
-
-      r.scoreNT = r.nonTrans * mqmWeights['non-translation'];
-      r.scoreTrivial = r.trivial * mqmWeights['trivial'];
-      r.score = r.scoreCritical + r.scoreMajor + r.scoreMinor + r.scoreNT +
-          r.scoreTrivial;
-      r.scoreAccuracy = (r.criticalA * mqmWeights['critical']) +
-          (r.majorA * mqmWeights['major']) + (r.minorA * mqmWeights['minor']);
-      r.scoreFluency = (r.criticalF * mqmWeights['critical']) +
-          (r.majorF * mqmWeights['major']) + (r.minorF * mqmWeights['minor']);
-      r.scoreUncat = (r.criticalUncat * mqmWeights['critical']) +
-          (r.majorUncat * mqmWeights['major']) +
-          (r.minorUncat * mqmWeights['minor']);
       mqmAddRaterStats(allRaterStats, r);
     }
     mqmAvgRaterStats(allRaterStats, raterStats.length);
@@ -729,13 +931,84 @@ function mqmClearCIComputation() {
 }
 
 /**
+ * Shows the table header for the MQM scores table. The score weighted
+ * components and slices to display should be available in
+ * mqmScoreWeightedFields and mqmScoreSliceFields.
+ */
+function mqmShowScoresHeader() {
+  const mqmHelpText = `MQM score. When there are at least 5 documents after ` +
+      `filtering, 95% confidence intervals for each system are also shown. ` +
+      `Confidence intervals are estimated through bootstrap sampling ` +
+      `for 1000 times on the document level. ` +
+      `If there are less than 5 documents, N/A is shown instead.`;
+  const mqmScoreWithCI = '<span id="mqm-score-heading">MQM score' +
+      '<sup class="mqm-help-icon">?</sup>' +
+      ' per ' +
+      '<span id="mqm-scoring-unit-display">' +
+      (mqmCharScoring ? '100 source chars' : 'segment') + '</span></span>';
+  const header = document.getElementById('mqm-stats-thead');
+  let html = `
+      <tr>
+        <th></th>
+        <th title="Number of source characters">
+          <b>#Source-chars</b>
+        </th>
+        <th title="Number of segments"><b>#Segments</b></th>
+        <th title="Number of segment ratings"><b>#Ratings</b></th>
+        <th id="mqm-score-th" title="${mqmHelpText}">${mqmScoreWithCI}</th>`;
+  const scoreFields =
+      mqmScoreWeightedFields.map(x => MQM_SCORE_WEIGHTED_PREFIX + x)
+          .concat(mqmScoreSliceFields.map(x => MQM_SCORE_SLICE_PREFIX + x));
+  for (let i = 0; i < scoreFields.length; i++) {
+    const scoreKey = scoreFields[i];
+    const scoreName = mqmScoreKeyToName(scoreKey);
+    const partType = (i < mqmScoreWeightedFields.length) ? 'weighted' : 'slice';
+    const cls = 'mqm-stats-' + partType;
+    const tooltip = 'Score part: ' + scoreName + '-' + partType;
+    html += `
+        <th id="mqm-${scoreKey}-th" class="mqm-score-th ${cls}"
+            title="${tooltip}">
+          <b>${scoreName}</b>
+        </th>`;
+  }
+  html += `
+        <th title="Average length of error span"><b>Err span</b></th>
+        <th title="Hands-on-the-wheel test"><b>HOTW Test</b></th>
+      </tr>`;
+  header.innerHTML = html;
+
+  /** Make columns clickable for sorting purposes. */
+
+  const upArrow = '<span class="mqm-arrow mqm-arrow-up">&#129041;</span>';
+  const downArrow = '<span class="mqm-arrow mqm-arrow-down">&#129043;</span>';
+  for (const field of ['score'].concat(scoreFields)) {
+    const headerId = `mqm-${field}-th`;
+    const th = document.getElementById(headerId);
+    th.insertAdjacentHTML('beforeend', ` ${upArrow}${downArrow}`);
+    th.addEventListener('click', (e) => {
+      // Click again for reversing order. Otherwise sort in ascending order.
+      if (field == mqmSortByField) {
+        mqmSortReverse = !mqmSortReverse;
+      } else {
+        mqmSortReverse = false;
+      }
+      mqmSortByField = field;
+      mqmSortByHeaderId = headerId;
+      mqmShow();
+    });
+  }
+  mqmShowSortArrow();
+}
+
+/**
  * Appends MQM score details from the stats object to the table with the given
  * id.
  * @param {string} id
  * @param {string} title
  * @param {!Object} stats
+ * @param {?Object=} aggregates
  */
-function mqmShowSegmentStats(id, title, stats) {
+function mqmShowScores(id, title, stats, aggregates = null) {
   const tbody = document.getElementById(id);
   if (title) {
     tbody.insertAdjacentHTML(
@@ -744,35 +1017,39 @@ function mqmShowSegmentStats(id, title, stats) {
             `<tr><td colspan="15"><b>${title}</b></td></tr>\n`);
   }
   const keys = Object.keys(stats);
-  const aggregates = {};
-  const ratings = {};
-  for (let k of keys) {
-    const segs = mqmGetSegStatsAsArray(stats[k]);
-    let a = mqmAggregateSegStats(segs);
-    aggregates[k] = a;
-    ratings[k] = a.numRatings;
+  if (!aggregates) {
+    aggregates = {};
+    for (let k of keys) {
+      const segs = mqmGetSegStatsAsArray(stats[k]);
+      aggregates[k] = mqmAggregateSegStats(segs);
+    }
   }
   keys.sort(
-      (k1, k2) =>
-          aggregates[k1][mqmSortByField] - aggregates[k2][mqmSortByField]);
-  if (mqmSortReverse) keys.reverse();
+      (k1, k2) => (aggregates[k1][mqmSortByField] ?? 0) -
+              (aggregates[k2][mqmSortByField]) ??
+          0);
+  if (mqmSortReverse) {
+    keys.reverse();
+  }
+  const scoreFields =
+      [
+        'score'
+      ].concat(mqmScoreWeightedFields.map(x => MQM_SCORE_WEIGHTED_PREFIX + x))
+          .concat(mqmScoreSliceFields.map(x => MQM_SCORE_SLICE_PREFIX + x));
   for (let [rowIdx, k] of keys.entries()) {
-    const segs = mqmGetSegStatsAsArray(stats[k]);
     const kDisp = (k == mqmTotal) ? 'Total' : k;
     let rowHTML = `<tr><td>${kDisp}</td>` +
         `<td>${aggregates[k].numSrcChars}</td>` +
-        `<td>${segs.length}</td>` +
-        `<td>${ratings[k]}</td>`;
-    if (!segs || !segs.length || !ratings[k]) {
+        `<td>${aggregates[k].numSegments}</td>` +
+        `<td>${aggregates[k].numRatings}</td>`;
+    if (!aggregates[k].numSegments || !aggregates[k].numRatings) {
       for (let i = 0; i < 12; i++) {
         rowHTML += '<td>-</td>';
       }
     } else {
-      for (let s
-               of ['score', 'scoreNT', 'scoreCritical', 'scoreMajor',
-                   'scoreMinor', 'scoreTrivial', 'scoreAccuracy',
-                   'scoreFluency', 'scoreUncat']) {
-        let content = aggregates[k][s].toFixed(3);
+      for (let s of scoreFields) {
+        let content =
+            aggregates[k].hasOwnProperty(s) ? aggregates[k][s].toFixed(3) : '-';
         if (title == 'By system' && s == 'score') {
           /**
            * Obtain and show confidence intervals for each system MQM score
@@ -791,7 +1068,11 @@ function mqmShowSegmentStats(id, title, stats) {
             content += `<span class="mqm-ci"> (N/A)</span>`;
           }
         }
-        rowHTML += `<td>${content}</td>`;
+        const nameParts = s.split('-', 2);
+        const cls = (nameParts.length == 2) ?
+            ' class="mqm-stats-' + nameParts[0] + '"' :
+            '';
+        rowHTML += `<td${cls}>${content}</td>`;
       }
       let errorSpan = 0;
       if (aggregates[k].numWithErrors > 0) {
@@ -999,9 +1280,43 @@ function mqmShowEvents() {
  * Shows all the stats.
  */
 function mqmShowStats() {
-  mqmShowSegmentStats('mqm-stats-tbody', '', mqmStats);
-  mqmShowSegmentStats('mqm-stats-tbody', 'By system', mqmStatsBySystem);
-  mqmShowSegmentStats('mqm-stats-tbody', 'By rater', mqmStatsByRater);
+  /**
+   * Get aggregates for the overall stats. This lets us decide which score
+   * splits have non-zero values and we show score columns for only those
+   * splits.
+   */
+  const keys = Object.keys(mqmStats);
+  const mqmStatsAggregates = {};
+  for (let k of keys) {
+    const segs = mqmGetSegStatsAsArray(mqmStats[k]);
+    mqmStatsAggregates[k] = mqmAggregateSegStats(segs);
+  }
+  const overallStats = mqmStatsAggregates[mqmTotal];
+  mqmScoreWeightedFields = [];
+  mqmScoreSliceFields = [];
+  for (let key in overallStats) {
+    if (!overallStats[key]) continue;
+    if (key.startsWith(MQM_SCORE_WEIGHTED_PREFIX)) {
+      mqmScoreWeightedFields.push(mqmScoreKeyToName(key));
+    } else if (key.startsWith(MQM_SCORE_SLICE_PREFIX)) {
+      mqmScoreSliceFields.push(mqmScoreKeyToName(key));
+    }
+  }
+  mqmScoreWeightedFields.sort(
+      (k1, k2) => (overallStats[MQM_SCORE_WEIGHTED_PREFIX + k2] ?? 0) -
+          (overallStats[MQM_SCORE_WEIGHTED_PREFIX + k1] ?? 0));
+  mqmScoreSliceFields.sort(
+      (k1, k2) => (overallStats[MQM_SCORE_SLICE_PREFIX + k2] ?? 0) -
+          (overallStats[MQM_SCORE_SLICE_PREFIX + k1] ?? 0));
+  /**
+   * First show the scores table header with the sorted columns from
+   * mqmScoreWeightedFields and mqmScoreSliceFields. Then add scores rows to
+   * the table, for overall scores, then by system, and then by rater.
+   */
+  mqmShowScoresHeader();
+  mqmShowScores('mqm-stats-tbody', '', mqmStats, mqmStatsAggregates);
+  mqmShowScores('mqm-stats-tbody', 'By system', mqmStatsBySystem);
+  mqmShowScores('mqm-stats-tbody', 'By rater', mqmStatsByRater);
   mqmShowSystemRaterStats();
   mqmShowSevCatStats();
   mqmShowEvents();
@@ -1100,7 +1415,9 @@ function mqmSpanLength(s) {
 }
 
 /**
- * Updates stats with an error of (category, severity).
+ * Updates stats with an error of (category, severity). The weighted score
+ * component to use is the first matching one in mqmWeights[]. Similarly, the
+ * slice to attribute the score to is the first matching one in mqmSlices[].
  * @param {!Object} stats
  * @param {string} category
  * @param {string} severity
@@ -1135,41 +1452,23 @@ function mqmAddErrorStats(stats, category, severity, span) {
     stats.errorSpans += span;
   }
 
-  if (mqmIsNonTrans(lsev, lcat)) {
-    stats.nonTrans++;
-    return;
-  }
-  if (lsev == 'trivial' ||
-      (lsev == 'minor' && lcat.startsWith('fluency/punctuation'))) {
-    stats.trivial++;
-    return;
-  }
-  if (lsev == 'critical') {
-    stats.critical++;
-    if (!lcat || lcat == 'other') {
-      stats.criticalUncat++;
-    } else if (mqmIsAccuracy(lcat)) {
-      stats.criticalA++;
-    } else {
-      stats.criticalF++;
+  let score = 0;
+  for (let sc of mqmWeights) {
+    if (mqmMatchesScoreSplit(sc, lsev, lcat)) {
+      score = sc.weight;
+      stats.score += score;
+      const key = mqmScoreKey(sc.name);
+      stats[key] = (stats[key] ?? 0) + score;
+      break;
     }
-  } else if (lsev == 'major') {
-    stats.major++;
-    if (!lcat || lcat == 'other') {
-      stats.majorUncat++;
-    } else if (mqmIsAccuracy(lcat)) {
-      stats.majorA++;
-    } else {
-      stats.majorF++;
-    }
-  } else if (lsev == 'minor') {
-    stats.minor++;
-    if (!lcat || lcat == 'other') {
-      stats.minorUncat++;
-    } else if (mqmIsAccuracy(lcat)) {
-      stats.minorA++;
-    } else {
-      stats.minorF++;
+  }
+  if (score > 0) {
+    for (let sc of mqmSlices) {
+      if (mqmMatchesScoreSplit(sc, lsev, lcat)) {
+        const key = mqmScoreKey(sc.name, true);
+        stats[key] = (stats[key] ?? 0) + score;
+        break;
+      }
     }
   }
 }
@@ -1237,8 +1536,6 @@ function mqmShowSortArrow() {
  * current filters.
  */
 function mqmShow() {
-  mqmShowSortArrow();
-
   document.body.style.cursor = 'wait';
 
   // Cancel existing CI computation when a new `mqmShow` is called.
@@ -1379,7 +1676,8 @@ function mqmShow() {
       }
       if (i == MQM_DATA_CATEGORY && parts[MQM_DATA_METADATA].note) {
         /* There is a note */
-        val += '<br><span class="mqm-note">' + parts[MQM_DATA_METADATA].note + '</span>';
+        val += '<br><span class="mqm-note">' + parts[MQM_DATA_METADATA].note +
+            '</span>';
       }
       rowHTML += `<td ${cls} id="mqm-val-${shown}-${i}">` + val + '</td>\n';
     }
@@ -1525,15 +1823,33 @@ function mqmSetSelectOptions() {
 }
 
 /**
- * Parses the passed TSV data into mqmData.
- * @param {string} tsvData
+ * Sets mqmTSVData from the passed TSV data string or array of strings, and
+ * parses it into mqmData.
+ * @param {string|!Array<string>} tsvData
  */
-function mqmParseData(tsvData) {
-  mqmClearFilters();
+function mqmSetData(tsvData) {
   const errors = document.getElementById('mqm-errors');
   errors.innerHTML = '';
+  if (Array.isArray(tsvData)) {
+    let allTsvData = '';
+    for (let tsvDataItem of tsvData) {
+      if (!tsvDataItem) continue;
+      if (allTsvData && !allTsvData.endsWith('\n')) {
+        allTsvData += '\n';
+      }
+      allTsvData += tsvDataItem;
+    }
+    tsvData = allTsvData;
+  }
+  if (!tsvData) {
+    errors.innerHTML = 'Empty data passed to mqmSetData()';
+    return;
+  }
+  mqmTSVData = tsvData;
+  document.getElementById('mqm-save-file').disabled = false;
+  mqmClearFilters();
   mqmData = [];
-  const data = tsvData.split('\n');
+  const data = mqmTSVData.split('\n');
   let firstLine = true;
   for (let line of data) {
     if (!line.trim()) {
@@ -1610,7 +1926,7 @@ function mqmParseData(tsvData) {
 }
 
 /**
- * Opens the data file(s) picked by the user and loads the data into mqmData[].
+ * Opens and reads the data file(s) picked by the user and calls mqmSetData().
  */
 function mqmOpenFiles() {
   document.body.style.cursor = 'wait';
@@ -1637,7 +1953,7 @@ function mqmOpenFiles() {
         filesData[i] = fr.result;
         filesRead++;
         if (filesRead == numFiles) {
-          mqmParseData(filesData.join('\n'));
+          mqmSetData(filesData);
         }
       };
       fr.readAsText(f);
@@ -1647,6 +1963,49 @@ function mqmOpenFiles() {
         (errnoeousFile ? ' (file with error: ' + erroneousFile + ')' : '');
     errors.innerHTML = errString;
     filesElt.value = '';
+  }
+}
+
+/**
+ * Fetches MQM data from the given URLs and calls mqmSetData().
+ * @param {!Array<string>} urls
+ */
+function mqmFetchUrls(urls) {
+  const errors = document.getElementById('mqm-errors');
+  errors.innerHTML = 'Loading MQM data from ' + urls.length + ' URL(s)...';
+  const cleanUrls = [];
+  for (let url of urls) {
+    const trimmedUrl = url.trim();
+    if (trimmedUrl) cleanUrls.push(trimmedUrl);
+  }
+  if (cleanUrls.length == 0) {
+    errors.innerHTML = 'No non-empty URLs found';
+    return;
+  }
+  let numResponses = 0;
+  const tsvData = [];
+  const finisher = () => {
+    if (numResponses == cleanUrls.length) {
+      mqmSetData(tsvData);
+    }
+  };
+  for (let url of cleanUrls) {
+    fetch(url, {
+      mode: 'cors',
+      credentials: 'include',
+    })
+        .then(response => response.text())
+        .then(result => {
+          tsvData.push(result);
+          numResponses++;
+          finisher();
+        })
+        .catch(error => {
+          errors.insertAdjacentHTML('beforeend', error);
+          console.log(error);
+          numResponses++;
+          finisher();
+        });
   }
 }
 
@@ -1672,20 +2031,13 @@ function mqmSaveData() {
 function mqmUpdateSettings() {
   const unit = document.getElementById('mqm-scoring-unit').value;
   mqmCharScoring = (unit == 'characters');
-  document.getElementById('mqm-scoring-unit-display').innerHTML =
-      (mqmCharScoring ? '100 source chars' : 'segment');
+  const unitDisplay = document.getElementById('mqm-scoring-unit-display');
+  if (unitDisplay) {
+    unitDisplay.innerHTML = (mqmCharScoring ? '100 source chars' : 'segment');
+  }
 
-  for (let weight of Object.keys(mqmWeights)) {
-    const elt = document.getElementById('mqm-weight-' + weight);
-    let w = elt.value;
-    if (!w || isNaN(w) || w < 0) {
-      w = mqmWeights[weight];
-      elt.value = w;
-    } else {
-      mqmWeights[weight] = w;
-      const th = document.getElementById('mqm-' + weight + '-th');
-      th.title = 'Weight: ' + w;
-    }
+  if (mqmParseScoreSettings()) {
+    mqmSetUpScoreSettings();
   }
   mqmShow();
 }
@@ -1695,154 +2047,113 @@ function mqmUpdateSettings() {
  */
 function mqmResetSettings() {
   document.getElementById('mqm-scoring-unit').value = 'segments';
-  for (let weight of Object.keys(mqmDefaultWeights)) {
-    document.getElementById('mqm-weight-' + weight).value =
-        mqmDefaultWeights[weight];
-  }
+  mqmWeights = JSON.parse(JSON.stringify(mqmDefaultWeights));
+  mqmSlices = JSON.parse(JSON.stringify(mqmDefaultSlices));
+  mqmSortByField = 'score';
+  mqmSortByHeaderId = 'mqm-score-th';
+  mqmSortReverse = false;
+  mqmSetUpScoreSettings();
   mqmUpdateSettings();
 }
 
 /**
  * Replaces the HTML contents of elt with the HTML needed to render the
- *     MQM Viewer. If tsvData is not null, then this data is loaded, and instead
- *     of a file-open button there is a "download TSV data" button.
+ *     MQM Viewer. If tsvDataOrUrls is not null, then it can be MQM TSV-data,
+ *     or a CSV list of URLs from which to fetch MQM TSV-data.
  * @param {!Element} elt
- * @param {?string=} tsvData
+ * @param {string=} tsvDataOrCsvUrls
+ * @param {boolean=} showFileOpener
  */
-function createMQMViewer(elt, tsvData=null) {
-  mqmTSVData = tsvData;
-
-  const settings = `
-    <details class="mqm-settings" title="Change scoring weights, units, etc.">
+function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
+  const tooltip = 'Regular expressions are used case-insensitively. ' +
+      'Click on the Apply button after making changes.';
+  let settings = `
+    <details class="mqm-settings"
+        title="Change scoring weights, slices, units.">
       <summary>Settings</summary>
-      <table class="mqm-settings-table">
-        <tr>
-          <td>Scoring units:</td>
-          <td>
-            <select id="mqm-scoring-unit" onchange="mqmUpdateSettings()">
-              <option value="segments">Segments</option>
-              <option value="characters">100 source characters</option>
-            </select>
-          </td>
-        </tr>
-        <tr>
-          <td>Weight for Trivial errors:</td>
-          <td><input class="mqm-input" onchange="mqmUpdateSettings()"
-                  type="text" value="${mqmWeights['trivial']}" size="4"
-                  id="mqm-weight-trivial"></input></td>
-        </tr>
-        <tr>
-          <td>Weight for Minor errors:</td>
-          <td><input class="mqm-input" onchange="mqmUpdateSettings()"
-                  type="text" value="${mqmWeights['minor']}"
-                  size="4" id="mqm-weight-minor"></input></td>
-        </tr>
-        <tr>
-          <td>Weight for Major errors:</td>
-          <td><input class="mqm-input" onchange="mqmUpdateSettings()"
-                  type="text" value="${mqmWeights['major']}"
-                  size="4" id="mqm-weight-major"></input></td>
-        </tr>
-        <tr>
-          <td>Weight for Critical errors:</td>
-          <td><input class="mqm-input" onchange="mqmUpdateSettings()"
-                  type="text" value="${mqmWeights['critical']}"
-                  size="4" id="mqm-weight-critical"></input></td>
-        </tr>
-        <tr>
-          <td>Weight for Non-Translation:</td>
-          <td><input class="mqm-input" onchange="mqmUpdateSettings()"
-                  type="text" value="${mqmWeights['non-translation']}"
-                  size="4" id="mqm-weight-non-translation"></input></td>
-        </tr>
-        <tr>
-          <td colspan=2>
-            <button id="mqm-reset-settings" title="Restore all default settings"
-                onclick="mqmResetSettings()">Restore defaults</button>
-          </td>
-        </tr>
-      </table>
+      <div class="mqm-settings-panel">
+        <div class="mqm-settings-row">
+          Scoring units:
+          <select id="mqm-scoring-unit" onchange="mqmUpdateSettings()">
+            <option value="segments">Segments</option>
+            <option value="characters">100 source characters</option>
+          </select>
+        </div>
+        <div class="mqm-settings-row">
+           Note: Changes to the following tables of weights and slices only
+           take effect after clicking on <b>Apply!</b>
+        </div>
+        <div class="mqm-settings-row" title="${tooltip}">
+          Ordered list of <i>weights</i> to apply to error patterns:
+          <button onclick="mqmSettingsAddRow('mqm-settings-weights', 3)"
+              >Add new row</button> as row <input type="text" maxlength="2"
+              class="mqm-input"
+              id="mqm-settings-weights-add-row" size=2 placeholder="1"/>
+          <table class="mqm-table mqm-settings-panel">
+            <thead>
+              <tr>
+                <th>Weight name</th>
+                <th>Regular expression to match
+                    <i>severity:category[/subcategory]</i></th>
+                <th>Weight</th>
+              </tr>
+            </thead>
+            <tbody id="mqm-settings-weights">
+            </tbody>
+          </table>
+        </div>
+        <div class="mqm-settings-row" title="${tooltip}">
+          Ordered list of interesting <i>slices</i> of error patterns:
+          <button onclick="mqmSettingsAddRow('mqm-settings-slices', 2)"
+              >Add new row</button> as row <input type="text" maxlength="2"
+              class="mqm-input"
+              id="mqm-settings-slices-add-row" size=2 placeholder="1"/>
+          <table class="mqm-table mqm-settings-panel">
+            <thead>
+              <tr>
+                <th>Slice name</th>
+                <th>Regular expression to match
+                    <i>severity:category[/subcategory]</i></th>
+              </tr>
+            </thead>
+            <tbody id="mqm-settings-slices">
+            </tbody>
+          </table>
+        </div>
+        <div class="mqm-settings-row">
+          <button id="mqm-reset-settings" title="Restore default settings"
+              onclick="mqmResetSettings()">Restore defaults</button>
+          <button id="mqm-apply-setttings" title="Apply weight/slice settings"
+              onclick="mqmUpdateSettings()">Apply!</button>
+        </div>
+      </div>
     </details>`;
 
-  const header = mqmTSVData ? `
+  let header = `
   <div class="mqm-header">
     <span class="mqm-title">MQM Scores</span>
     ${settings}
-    <span class="mqm-header-right">
-      <button id="mqm-save-file" onclick="mqmSaveData()">
+    <span class="mqm-header-right">`;
+  if (showFileOpener) {
+    header += `
+      <b>Open MQM data file(s) (9-column TSV format):</b>
+      <input id="mqm-file" accept=".tsv" onchange="mqmOpenFiles()"
+          type="file" multiple></input>`;
+  }
+  header += `
+      <button id="mqm-save-file" disabled onclick="mqmSaveData()">
       Save MQM data to file "mqm-data.tsv"
       </button>
     </span>
-  </div>` :
-                              `
-  <div class="mqm-header">
-    <span class="mqm-title">MQM Scores</span>
-    ${settings}
-    <span class="mqm-header-right">
-      <b>Open MQM data file(s) (9-column TSV format):</b>
-      <input id="mqm-file" accept=".tsv" onchange="mqmOpenFiles()"
-          type="file" multiple></input>
-    </span>
-  </div>
-  `;
+  </div>`;
 
-  const mqmHelpText = `MQM score. When there are at least 5 documents after ` +
-      `filtering, 95% confidence intervals for each system are also shown. ` +
-      `Confidence intervals are estimated through bootstrap sampling ` +
-      `for 1000 times on the document level. ` +
-      `If there are less than 5 documents, N/A is shown instead.`;
-  const mqmScoreWithCI = '<span id="mqm-score-heading">MQM score' +
-      '<sup class="mqm-help-icon">?</sup>' +
-      ' per ' +
-      '<span id="mqm-scoring-unit-display">' +
-      (mqmCharScoring ? '100 source chars' : 'segment') + '</span></span>';
   elt.innerHTML = `
   ${header}
   <div id="mqm-errors"></div>
   <hr>
 
   <table class="mqm-table mqm-numbers-table" id="mqm-stats">
-    <thead>
-      <tr>
-        <th></th>
-        <th title="Number of source characters">
-          <b>#Source-chars</b>
-        </th>
-        <th title="Number of segments"><b>#Segments</b></th>
-        <th title="Number of segment ratings"><b>#Ratings</b></th>
-        <th id="mqm-score-th" title="${mqmHelpText}">${mqmScoreWithCI}</th>
-        <th id="mqm-non-translation-th" class="mqm-score-th"
-            title="Weight: ${mqmWeights['non-translation']}">
-          <b>Non-trans.</b>
-        </th>
-        <th id="mqm-critical-th" class="mqm-score-th"
-            title="Weight: ${mqmWeights['critical']}">
-          <b>Critical</b>
-        </th>
-        <th id="mqm-major-th" class="mqm-score-th"
-            title="Weight: ${mqmWeights['major']}">
-          <b>Major</b>
-        </th>
-        <th id="mqm-minor-th" class="mqm-score-th"
-            title="Weight: ${mqmWeights['minor']}">
-          <b>Minor</b></th>
-        <th id="mqm-trivial-th" class="mqm-score-th"
-            title="Weight: ${mqmWeights['trivial']}">
-          <b>Trivial</b></th>
-        <th id="mqm-accuracy-th" class="mqm-score-th"
-            title="Accuracy part of MQM Critical+Major+Minor score">
-          <b>Accuracy</b>
-        </th>
-        <th id="mqm-fluency-th" class="mqm-score-th"
-            title="Fluency part of MQM Critical+Major+Minor score">
-          <b>Fluency</b></th>
-        <th id="mqm-uncategorized-th" class="mqm-score-th"
-            title="Any uncategorized part of MQM Critical+Major+Minor score">
-          <b>Uncat.</b>
-        </th>
-        <th title="Average length of error span"><b>Err span</b></th>
-        <th title="Hands-on-the-wheel test"><b>HOTW Test</b></th>
-      </tr>
+    <thead id=mqm-stats-thead>
     </thead>
     <tbody id="mqm-stats-tbody">
     </tbody>
@@ -2113,40 +2424,13 @@ function createMQMViewer(elt, tsvData=null) {
   `;
   elt.className = 'mqm';
 
-  /** Make columns clickable for sorting purposes. */
+  mqmResetSettings();
 
-  // A mapping from the infix of header ID to the field name to sort by.
-  const infixToPropMap = {
-    'score': 'score',
-    'non-translation': 'scoreNT',
-    'critical': 'scoreCritical',
-    'major': 'scoreMajor',
-    'minor': 'scoreMinor',
-    'trivial': 'scoreTrivial',
-    'accuracy': 'scoreAccuracy',
-    'fluency': 'scoreFluency',
-    'uncategorized': 'scoreUncat'
-  };
-  const upArrow = '<span class="mqm-arrow mqm-arrow-up">&#129041;</span>';
-  const downArrow = '<span class="mqm-arrow mqm-arrow-down">&#129043;</span>';
-  for (const [infix, prop] of Object.entries(infixToPropMap)) {
-    const headerId = `mqm-${infix}-th`;
-    const th = document.getElementById(headerId);
-    th.insertAdjacentHTML('beforeend', ` ${upArrow}${downArrow}`);
-    th.addEventListener('click', (e) => {
-      // Click again for reversing order. Otherwise sort in ascending order.
-      if (prop == mqmSortByField) {
-        mqmSortReverse = !mqmSortReverse;
-      } else {
-        mqmSortReverse = false;
-      }
-      mqmSortByField = prop;
-      mqmSortByHeaderId = headerId;
-      mqmShow();
-    });
-  }
-
-  if (mqmTSVData) {
-    mqmParseData(mqmTSVData);
+  if (tsvDataOrCsvUrls) {
+    if (tsvDataOrCsvUrls.indexOf('\t') >= 0) {
+      mqmSetData(tsvData);
+    } else {
+      mqmFetchUrls(tsvDataOrCsvUrls.split(','));
+    }
   }
 }

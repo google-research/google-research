@@ -123,15 +123,30 @@
   max-width: 100px;
   min-width: 50px;
 }
-.mqm-settings-table {
-  margin: 6px 0 4px 20px;
-}
 .mqm-settings {
   margin: 6px 0 4px;
+  padding: 0 0 10px 0;
 }
 .mqm-settings summary {
   cursor: pointer;
   color: blue;
+}
+.mqm-settings-editable {
+  border-bottom: 1px solid blue;
+  display: inline-block;
+  min-width: 10ch;
+}
+.mqm-settings-panel {
+  margin: 6px 0 4px 20px;
+}
+.mqm-settings-row {
+  margin: 6px 0;
+}
+.mqm-stats-slice {
+  background-color: #F0F0F0;
+}
+.mqm-stats-weighted {
+  background-color: #F8F8F8;
 }
 .mqm-table {
   border: none;

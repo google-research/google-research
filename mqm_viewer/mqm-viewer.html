@@ -18,30 +18,22 @@
 This is a web app that loads a translation quality evaluation data file from a
 Multidimensional Quality Metrics (MQM) evaluation and provides various computed
 scores from the data. The interface allows the user to slice and dice the data
-by applying various filters. A data file can be loaded by using the
-"Choose file" button.
+by applying various filters. One or more data files can be loaded by using the
+"Choose file(s)" button, replacing any previously loaded data.
 
 To use this, you need to serve the files mqm-viewer.{html,js,css} (either from
 a web server, or just locally using file:// URLs).
 
-The data file should have tab-separated UTF-8-encoded data with the following
-nine columns, one line per marked error:
+This web app can be optionally invoked with a "dataurls" parameter, whose value
+is a set of comma-separated URLs for data files. The URLs should be on the same
+host as mqm-viewer itself, or should be fetch()able via Cross-Origin Resource
+Sharing (CORS).
 
-  system: Name of the translation system.
-  doc: Name of the document.
-  doc_id: Id of segment (sentence or group of sentences) within the document.
-  seg_id: Id of segment across all documents.
-  rater: Rater who evaluated segment.
-  source: Source text for segment.
-  target: Translated text for segment.
-  category: MQM error category (or "no-error").
-  severity: MQM error severity (or "no-error").
+The data files should have tab-separated UTF-8-encoded data. You can find its
+format details in the README.md file.
 
-Optionally, some rows may have a tenth entry, which is a note left by the rater.
-  note: Note left by rater, typically in 'Other' category.
-
-An optional header line in the data file will be ignored (identified by the
-presence of the text "system\tdoc").
+An optional header line in the first data file will be ignored (identified by
+the presence of the text "system\tdoc").
 
 Example data files and details on score computations can be found here:
 https://github.com/google/wmt-mqm-human-evaluation
@@ -53,13 +45,22 @@ https://github.com/google/wmt-mqm-human-evaluation
 <title>MQM Viewer</title>
 <link rel="stylesheet" type="text/css" href="mqm-viewer.css"/>
 <script src="mqm-viewer.js"></script>
+<!--
+  Set mqmDefaultWeights and mqmSlices as per your needs here, if needed, in a
+  script tag.
+-->
 </head>
 <body>
 
   <div id="mqm">
   </div>
   <script>
-    createMQMViewer(document.getElementById('mqm'));
+    function startMqmViewer() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dataUrls = urlParams ? (urlParams.get('dataurls') || '') : '';
+      createMQMViewer(document.getElementById('mqm'), dataUrls);
+    }
+    startMqmViewer();
   </script>
 
 </body>
