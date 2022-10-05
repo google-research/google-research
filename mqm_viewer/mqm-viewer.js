@@ -2428,7 +2428,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
 
   if (tsvDataOrCsvUrls) {
     if (tsvDataOrCsvUrls.indexOf('\t') >= 0) {
-      mqmSetData(tsvData);
+      mqmSetData(tsvDataOrCsvUrls);
     } else {
       mqmFetchUrls(tsvDataOrCsvUrls.split(','));
     }
