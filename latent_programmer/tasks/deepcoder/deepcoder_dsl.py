@@ -63,6 +63,13 @@ import functools
 import re
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
+from absl import flags
+
+_DEEPCODER_MOD = flags.DEFINE_integer(
+    'deepcoder_mod', 10,
+    'The modulo we use for DeepCoder arithmetic, or 0 to not apply any mod.')
+
+
 # Types for type specifications, e.g., `([int], bool)` has type LambdaType and
 # specifies a lambda that takes 1 int and returns a bool.
 InputsType = List[Union[Type[Any], 'LambdaType']]
@@ -112,13 +119,23 @@ def join_token_lists(token_lists,
 
 def mod_result(result):
   """If desired, apply mod to ints."""
-  # TODO(kshi): implement
+  if result is None:
+    return result
+  if _DEEPCODER_MOD.value > 0:
+    result_type = type(result)
+    if result_type == int:
+      return result % _DEEPCODER_MOD.value
+    elif result_type == list:
+      return [x % _DEEPCODER_MOD.value for x in result]
+    else:
+      raise DeepCoderError(f'Unhandled result in mod_result: {result}')
   return result
 
 
 def validate_int(i):
   """Checks that the integer is in range."""
-  # TODO(kshi): implement considering mod
+  if _DEEPCODER_MOD.value > 0:
+    return 0 <= i < _DEEPCODER_MOD.value
   return MIN_INT <= i <= MAX_INT
 
 
@@ -397,27 +414,77 @@ class Program(object):
     return cls.from_tokens(string.split(' '))
 
 
+def _scanl1(f, xs):
+  ys = []
+  for i, x in enumerate(xs):
+    if i == 0:
+      ys.append(x)
+    else:
+      ys.append(f(ys[-1], x))
+  return ys
+
+# Use the Python code from Appendix F in the DeepCoder paper.
+# pylint: disable=g-explicit-length-test, unnecessary-lambda
 LAMBDAS = [
     Lambda('+1', lambda x: x + 1, [int], int),
-    Lambda('+', lambda x, y: x + y, [int, int], int),
+    Lambda('-1', lambda x: x - 1, [int], int),
+    Lambda('*2', lambda x: x * 2, [int], int),
+    Lambda('/2', lambda x: x // 2, [int], int),
+    Lambda('*(-1)', lambda x: -x, [int], int),
     Lambda('**2', lambda x: x ** 2, [int], int),
-    # TODO(kshi): Add the rest.
+    Lambda('*3', lambda x: x * 3, [int], int),
+    Lambda('/3', lambda x: x // 3, [int], int),
+    Lambda('*4', lambda x: x * 4, [int], int),
+    Lambda('/4', lambda x: x // 4, [int], int),
+    Lambda('>0', lambda x: x > 0, [int], bool),
+    Lambda('<0', lambda x: x < 0, [int], bool),
+    Lambda('even', lambda x: x % 2 == 0, [int], bool),
+    Lambda('odd', lambda x: x % 2 == 1, [int], bool),
+    Lambda('+', lambda x, y: x + y, [int, int], int),
+    Lambda('-', lambda x, y: x - y, [int, int], int),
+    Lambda('*', lambda x, y: x * y, [int, int], int),
+    Lambda('min', lambda x, y: min(x, y), [int, int], int),
+    Lambda('max', lambda x, y: max(x, y), [int, int], int),
 ]
 
 OPERATIONS = [
     FirstOrderOperation(
-        'Head', lambda xs: xs[0] if len(xs) > 0 else None, [list], int),  # pylint: disable=g-explicit-length-test
+        'Head', lambda xs: xs[0] if len(xs) > 0 else None, [list], int),
+    FirstOrderOperation(
+        'Last', lambda xs: xs[-1] if len(xs) > 0 else None, [list], int),
+    FirstOrderOperation(
+        'Take', lambda n, xs: xs[:n], [int, list], list),
+    FirstOrderOperation(
+        'Drop', lambda n, xs: xs[n:], [int, list], list),
+    FirstOrderOperation(
+        'Access', lambda n, xs: xs[n] if 0 <= n < len(xs) else None,
+        [int, list], int),
+    FirstOrderOperation(
+        'Minimum', lambda xs: min(xs) if len(xs) > 0 else None, [list], int),
+    FirstOrderOperation(
+        'Maximum', lambda xs: max(xs) if len(xs) > 0 else None, [list], int),
     FirstOrderOperation(
         'Reverse', lambda xs: list(reversed(xs)), [list], list),
-    # TODO(kshi): Add the rest.
+    FirstOrderOperation(
+        'Sort', lambda xs: sorted(xs), [list], list),
+    FirstOrderOperation(
+        'Sum', lambda xs: sum(xs), [list], int),
 
     HigherOrderOperation(
         'Map', lambda f, xs: [f(x) for x in xs], [([int], int), list], list),
     HigherOrderOperation(
+        'Filter', lambda f, xs: [x for x in xs if f(x)],
+        [([int], bool), list], list),
+    HigherOrderOperation(
+        'Count', lambda f, xs: len([x for x in xs if f(x)]),
+        [([int], bool), list], int),
+    HigherOrderOperation(
         'ZipWith', lambda f, xs, ys: [f(x, y) for (x, y) in zip(xs, ys)],
         [([int, int], int), list, list], list),
-    # TODO(kshi): Add the rest.
+    HigherOrderOperation(
+        'Scanl1', _scanl1, [([int, int], int), list], list),
 ]
+# pylint: enable=g-explicit-length-test, unnecessary-lambda
 
 TOKEN_TO_LAMBDA = {l.token: l for l in LAMBDAS}
 TOKEN_TO_OPERATION = {op.token: op for op in OPERATIONS}

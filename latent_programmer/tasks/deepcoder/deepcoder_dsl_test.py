@@ -15,11 +15,14 @@
 
 """Tests for deepcoder_dsl."""
 
+from absl import flags
 from absl.testing import absltest
+from absl.testing import flagsaver
 from absl.testing import parameterized
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
-# import deepcoder_dsl
+
+FLAGS = flags.FLAGS
 
 
 class DeepcoderDslTest(parameterized.TestCase):
@@ -30,6 +33,13 @@ class DeepcoderDslTest(parameterized.TestCase):
     self.map_op = deepcoder_dsl.TOKEN_TO_OPERATION['Map']
     self.plus_one_lambda = deepcoder_dsl.TOKEN_TO_LAMBDA['+1']
     self.square_lambda = deepcoder_dsl.TOKEN_TO_LAMBDA['**2']
+    self.times_3_lambda = deepcoder_dsl.TOKEN_TO_LAMBDA['*3']
+    self._saved_flags = flagsaver.save_flag_values()
+    FLAGS.deepcoder_mod = 0  # Tests don't use mod unless otherwise specified.
+
+  def tearDown(self):
+    flagsaver.restore_flag_values(self._saved_flags)
+    super(DeepcoderDslTest, self).tearDown()
 
   @parameterized.named_parameters(
       ('single_list', [['a', 'b']], ['a', 'b']),
@@ -80,7 +90,6 @@ class DeepcoderDslTest(parameterized.TestCase):
     state = deepcoder_dsl.ProgramState([2, [6, 7]])
     self.assertLen(state, 2)
     self.assertEqual(state[0], 2)
-    self.assertLen(state, 2)  # Original is unaffected.
     with self.assertRaises(deepcoder_dsl.RunError):
       _ = state[-1]
     with self.assertRaises(deepcoder_dsl.RunError):
@@ -91,6 +100,7 @@ class DeepcoderDslTest(parameterized.TestCase):
     self.assertIsNot(state, state_copy)
     state_copy.add_result(0)
     self.assertLen(state_copy, 3)
+    self.assertLen(state, 2)  # Original is unaffected.
 
     self.assertEqual(state.get_output(), [6, 7])
     self.assertEqual(state.tokenize(),
@@ -201,6 +211,100 @@ class DeepcoderDslTest(parameterized.TestCase):
     program = deepcoder_dsl.Program.from_str('x0 = INPUT | x1 = Head x0')
     with self.assertRaises(deepcoder_dsl.RunError):
       program.run([[4], 7])
+
+  @parameterized.parameters(
+      ('Head', [[5, 6, 7]], 5),
+      ('Head', [[]], None),
+      ('Last', [[5, 6, 7]], 7),
+      ('Last', [[]], None),
+      ('Take', [2, [3, 5, 8, 4]], [3, 5]),
+      ('Take', [0, [3, 5, 8, 4]], []),
+      ('Take', [-3, [3, 5, 8, 4]], [3]),
+      ('Take', [5, [3, 5, 8, 4]], [3, 5, 8, 4]),
+      ('Drop', [2, [6, 1, 3]], [3]),
+      ('Drop', [0, [6, 1, 3]], [6, 1, 3]),
+      ('Drop', [-2, [6, 1, 3]], [1, 3]),
+      ('Drop', [4, [6, 1, 3]], []),
+      ('Access', [-1, [7, 8, 9]], None),
+      ('Access', [0, [7, 8, 9]], 7),
+      ('Access', [2, [7, 8, 9]], 9),
+      ('Access', [3, [7, 8, 9]], None),
+      ('Maximum', [[6, 8, 4]], 8),
+      ('Maximum', [[]], None),
+      ('Minimum', [[6, 2, 4]], 2),
+      ('Minimum', [[]], None),
+      ('Reverse', [[3, 7, 2]], [2, 7, 3]),
+      ('Reverse', [[]], []),
+      ('Sort', [[3, 6, 3, 1, 5]], [1, 3, 3, 5, 6]),
+      ('Sort', [[]], []),
+      ('Sum', [[3, 5, 1]], 9),
+      ('Sum', [[]], 0),
+  )
+  def test_first_order_operations(self, token, inputs, expected):
+    op = deepcoder_dsl.TOKEN_TO_OPERATION[token]
+    self.assertIsInstance(op, deepcoder_dsl.FirstOrderOperation)
+    self.assertLen(inputs, op.arity)
+    self.assertLen(op.inputs_type, op.arity)
+    for inp, inp_type in zip(inputs, op.inputs_type):
+      self.assertEqual(type(inp), inp_type)
+    result = op.run(inputs)
+    self.assertEqual(result, expected)
+    if result is not None:
+      self.assertEqual(type(result), op.output_type)
+
+  @parameterized.parameters(
+      ('Map', '+1', [[5, 2, 7]], [6, 3, 8]),
+      ('Map', '+1', [[-4]], [-3]),
+      ('Map', '+1', [[]], []),
+      ('Map', '-1', [[5, 2, 7]], [4, 1, 6]),
+      ('Map', '*2', [[2, 0, 3, 1]], [4, 0, 6, 2]),
+      ('Map', '/2', [[4, 3, 0, 7, 6, -3]], [2, 1, 0, 3, 3, -2]),
+      ('Map', '*(-1)', [[4, -6, 0]], [-4, 6, 0]),
+      ('Map', '**2', [[0, -3, 2]], [0, 9, 4]),
+      ('Map', '*3', [[1, 3, 0]], [3, 9, 0]),
+      ('Map', '/3', [[-6, -5, 0, 3, 4, 7]], [-2, -2, 0, 1, 1, 2]),
+      ('Map', '*4', [[2]], [8]),
+      ('Map', '/4', [[8, 1, 0, -1]], [2, 0, 0, -1]),
+      ('Filter', '>0', [[4, -1, 0, 2, -4]], [4, 2]),
+      ('Filter', 'even', [[4, -1, 0, 2, -4]], [4, 0, 2, -4]),
+      ('Count', '<0', [[4, -1, 0, 2, -4]], 2),
+      ('Count', 'odd', [[4, -1, 0, 2, -4]], 1),
+      ('ZipWith', '-', [[3, 2, 5], [-2, 4, 1]], [5, -2, 4]),
+      ('ZipWith', '*', [[3, 2, 5], [-2, 4, 1, 3]], [-6, 8, 5]),
+      ('ZipWith', 'min', [[3, 2, 5, 0], [-2, 4, 1]], [-2, 2, 1]),
+      ('ZipWith', '+', [[], [1]], []),
+      ('Scanl1', '+', [[]], []),
+      ('Scanl1', '+', [[6]], [6]),
+      ('Scanl1', '+', [[6, -2, -5, 3]], [6, 4, -1, 2]),
+      ('Scanl1', 'max', [[-3, 2, -1, 3, 2, 5]], [-3, 2, 2, 3, 3, 5]),
+  )
+  def test_higher_order_operations(self, op_token, lambda_token, inputs,
+                                   expected):
+    op = deepcoder_dsl.TOKEN_TO_OPERATION[op_token]
+    self.assertIsInstance(op, deepcoder_dsl.HigherOrderOperation)
+    lambda_object = deepcoder_dsl.TOKEN_TO_LAMBDA[lambda_token]
+    self.assertEqual((lambda_object.inputs_type, lambda_object.output_type),
+                     op.inputs_type[0])
+    # Here `inputs` excludes the lambda which is normally the first input.
+    self.assertLen(inputs, op.arity - 1)
+    self.assertLen(op.inputs_type, op.arity)
+    for inp, inp_type in zip(inputs, op.inputs_type[1:]):
+      self.assertEqual(type(inp), inp_type)
+    result = op.run([lambda_object.func] + inputs)
+    self.assertEqual(result, expected)
+    if result is not None:
+      self.assertEqual(type(result), op.output_type)
+
+  @parameterized.named_parameters(
+      ('0', 0, [6, 18, -24, 21, -15]),
+      ('10', 10, [6, 8, 6, 1, 5]),
+      ('20', 20, [6, 18, 16, 1, 5]),
+  )
+  def test_with_mod(self, mod, expected):
+    with flagsaver.flagsaver(deepcoder_mod=mod):
+      self.assertEqual(
+          self.map_op.run([self.times_3_lambda.func, [2, 6, -8, 7, -5]]),
+          expected)
 
 
 if __name__ == '__main__':
