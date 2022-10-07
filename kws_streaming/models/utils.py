@@ -402,10 +402,12 @@ def model_to_tflite(
       # pylint: disable=protected-access
       converter.target_spec._experimental_supported_accumulation_type = (
           tf.dtypes.float16)
-  if flags.quantize and flags.use_quantize_nbit:
-    # pylint: disable=protected-access
-    converter._experimental_low_bit_qat = True
-    # pylint: enable=protected-access
+
+  if hasattr(flags, 'quantize') and hasattr(flags, 'use_quantize_nbit'):
+    if flags.quantize and flags.use_quantize_nbit:
+      # pylint: disable=protected-access
+      converter._experimental_low_bit_qat = True
+      # pylint: enable=protected-access
 
   tflite_model = converter.convert()
   return tflite_model
