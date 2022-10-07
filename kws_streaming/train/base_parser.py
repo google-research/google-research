@@ -467,6 +467,25 @@ def base_parser():
       help='Apply quantization aware training',
   )
   parser.add_argument(
+      '--use_quantize_nbit',
+      type=int,
+      default=0,
+      help=('Apply default_n_bit quantization aware training.'),
+  )
+  parser.add_argument(
+      '--nbit_activation_bits',
+      type=int,
+      default=8,
+      help=('Sets default_n_bit model layer activation bits. Operator fusion '
+            'and TFLite conversion is not guaranteed for values other than 8.'),
+  )
+  parser.add_argument(
+      '--nbit_weight_bits',
+      type=int,
+      default=8,
+      help=('Sets default_n_bit model layer weight bits.'),
+  )
+  parser.add_argument(
       '--data_stride',
       type=int,
       default=1,

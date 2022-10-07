@@ -40,6 +40,8 @@ class Params(object):
   sample_rate: int = 16000  # sample rate of the data
   data_stride: int = 1  # strides for data
   batch_size: int = 1  # batch size
+  quantize: bool = False  # quantization
+  use_quantize_nbit: bool = False  # quantization uses nbit scheme.
 
   def __post_init__(self):
     # defines the step of feeding input data

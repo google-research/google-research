@@ -402,7 +402,10 @@ def model_to_tflite(
       # pylint: disable=protected-access
       converter.target_spec._experimental_supported_accumulation_type = (
           tf.dtypes.float16)
-      # pylint: enable=protected-access
+  if flags.quantize and flags.use_quantize_nbit:
+    # pylint: disable=protected-access
+    converter._experimental_low_bit_qat = True
+    # pylint: enable=protected-access
 
   tflite_model = converter.convert()
   return tflite_model
@@ -560,7 +563,8 @@ def saved_model_to_tflite(saved_model_path,
                           experimental_new_quantizer=True,
                           representative_dataset=None,
                           inference_input_type=tf.float32,
-                          inference_output_type=tf.float32):
+                          inference_output_type=tf.float32,
+                          use_quantize_nbit=0):
   """Convert saved_model to tflite.
 
   Args:
@@ -572,6 +576,7 @@ def saved_model_to_tflite(saved_model_path,
       for calibation post training quantizer
     inference_input_type: it can be used to quantize input data e.g. tf.int8
     inference_output_type: it can be used to quantize output data e.g. tf.int8
+    use_quantize_nbit: adds experimental flag for default_n_bit precision.
 
   Returns:
     tflite model
@@ -599,5 +604,9 @@ def saved_model_to_tflite(saved_model_path,
   converter.inference_output_type = inference_output_type
   if optimizations:
     converter.optimizations = optimizations
+  if use_quantize_nbit:
+    # pylint: disable=protected-access
+    converter._experimental_low_bit_qat = True
+    # pylint: enable=protected-access
   tflite_model = converter.convert()
   return tflite_model

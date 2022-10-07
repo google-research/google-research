@@ -58,10 +58,10 @@ def prepare_calibration_data(stream_model, total_stride, input_data):
   return calibration_data
 
 
-class CNNTest(tf.test.TestCase):
+class CnnNBitTest(tf.test.TestCase):
   """End to end test for CNN model.
 
-  The model is streaming and quantization aware.
+  The model is streaming and quantization aware using n-bit scheme.
   It will be trained quantized and tested in streaming and non streaming modes.
   """
 
@@ -93,7 +93,9 @@ class CNNTest(tf.test.TestCase):
     params.label_count = 2
     params.return_softmax = True
     params.quantize = 1  # apply quantization aware training
-    params.use_quantize_nbit = 0
+    params.use_quantize_nbit = 1  # apply nbit scheme
+    params.nbit_weight_bits = 4  # lower value requires increased atol value
+    params.nbit_activation_bits = 8
 
     params.data_shape = (num_time_bins, feature_size)
     params.preprocess = 'custom'
@@ -174,7 +176,7 @@ class CNNTest(tf.test.TestCase):
       input_states.append(np.zeros(detail['shape'], dtype=np.float32))
     stream_out_tflite = inference.run_stream_inference_classification_tflite(
         params, interpreter, train_image, input_states)
-    self.assertAllClose(stream_out_tflite, non_stream_output_tf, atol=0.001)
+    self.assertAllClose(stream_out_tflite, non_stream_output_tf, atol=0.002)
 
 
 if __name__ == '__main__':
