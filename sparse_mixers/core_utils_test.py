@@ -95,12 +95,12 @@ class TreeTest(absltest.TestCase):
     replicated_tree = core_utils.tree_replicate_by_name(
         tree, filter_fn=lambda x: x == "a")
 
-    self.assertIsInstance(replicated_tree["a"], jax.pxla.ShardedDeviceArray)
+    self.assertIsInstance(replicated_tree["a"], jax.Array)
     self.assertIsInstance(replicated_tree["b"], int)
     self.assertEqual(replicated_tree["a"].shape, (n, 4))
 
     expected_sharding = (jax.pxla.Unstacked(n), jax.pxla.NoSharding())
-    self.assertEqual(replicated_tree["a"].sharding_spec.sharding,
+    self.assertEqual(replicated_tree["a"].sharding.sharding_spec.sharding,
                      expected_sharding)
 
   def test_tree_shard_by_name(self):
@@ -108,12 +108,12 @@ class TreeTest(absltest.TestCase):
     tree = dict(a=jnp.ones((n, 4)), b=25)
     sharded_tree = core_utils.tree_shard_by_name(tree, lambda n: n == "a")
 
-    self.assertIsInstance(sharded_tree["a"], jax.pxla.ShardedDeviceArray)
+    self.assertIsInstance(sharded_tree["a"], jax.Array)
     self.assertIsInstance(sharded_tree["b"], int)
 
     self.assertEqual(sharded_tree["a"].shape, (n, 4))
     expected_sharding = (jax.pxla.Unstacked(n), jax.pxla.NoSharding())
-    self.assertEqual(sharded_tree["a"].sharding_spec.sharding,
+    self.assertEqual(sharded_tree["a"].sharding.sharding_spec.sharding,
                      expected_sharding)
 
   def test_tree_unreplicate_by_name(self):
