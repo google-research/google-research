@@ -104,6 +104,11 @@ flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'scan'],
                   'The kind of dataset to use.')
 
+flags.DEFINE_enum(
+    'prediction_type', 'separate',
+    ['separate', 'joint'],
+    'Whether to use separate models (SpecDecomposerModel and then '
+    'SynthesizerModel) or one joint prediction model.')
 flags.DEFINE_integer(
     'num_examples_to_log', 10,
     'Number of examples to log and save to TensorBoard text.')
@@ -119,6 +124,19 @@ flags.DEFINE_bool(
 flags.DEFINE_bool(
     'use_execution', True,
     'Whether to guide beam search with program execution results.')
+# Note: if detect_invalid=False, a prediction could be wrong but we must do our
+# best to continue anyway. Specifically:
+#   * If the current output is "abcde" and the next step prediction is "xy"
+#     which isn't a prefix, future steps use the remaining output "cde",
+#     obtained by remaining_output=current_output[len(next_step_output):].
+#   * Similarly, when using execution to compute the remaining output but the
+#     program's output isn't a prefix, we do the same as above.
+#   * If the SpecDecomposerModel produces something malformed (wrong number of
+#     strings compared to the number of examples), we'll trim or pad with empty
+#     strings (which are actually valid outputs of certain partial programs).
+#   * Similarly, when using execution to compute the remaining output but the
+#     predicted program doesn't run, we pretend that the predicted program
+#     produced an empty string.
 
 
 _internal = False
@@ -315,6 +333,136 @@ def end_to_end_predict_step(params,
       beam_search_init_state=beam_init_state)
 
 
+def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
+                               spec_target_shape, bos_id, eos_id):
+  """Loads SpecDecomposerModel."""
+  num_position_buckets = FLAGS.spec_decomposer_num_position_buckets
+  max_distance = FLAGS.spec_decomposer_max_distance
+  max_program_cross_embed_distance = (
+      FLAGS.spec_decomposer_max_program_cross_embed_distance)
+  spec_decomposer_base_config = base_models.TransformerConfig(
+      vocab_size=spec_vocab_size,
+      output_vocab_size=spec_vocab_size,
+      shift=False,
+      emb_dim=FLAGS.embedding_dim,
+      num_heads=FLAGS.num_heads,
+      num_layers=FLAGS.num_layers,
+      qkv_dim=FLAGS.embedding_dim,
+      mlp_dim=FLAGS.hidden_dim,
+      max_len=max(FLAGS.max_io_length, FLAGS.max_spec_part_length),
+      dropout_rate=FLAGS.dropout_rate,
+      attention_dropout_rate=FLAGS.attention_dropout_rate,
+      use_relative_attention=FLAGS.use_relative_attention,
+      deterministic=True,
+      decode=not FLAGS.slow_decode,
+      bos_token=bos_id,
+      num_input_relative_position_buckets=num_position_buckets,
+      max_input_distance=max_distance,
+      num_output_relative_position_buckets=num_position_buckets,
+      max_output_distance=max_distance,
+      num_input_cross_output_relative_position_buckets=num_position_buckets,
+      max_input_cross_output_distance=max_distance,
+      num_program_relative_position_buckets=num_position_buckets,
+      max_program_distance=max_distance,
+      num_program_cross_embed_relative_position_buckets=num_position_buckets,
+      max_program_cross_embed_distance=max_program_cross_embed_distance,
+      num_flat_encoding_relative_position_buckets=num_position_buckets,
+      max_flat_encoding_distance=max_distance)
+  spec_decomposer_predict_config = models.DecomposeAttentionTransformerConfig(
+      base_config=spec_decomposer_base_config,
+      flat_encoded_self_attention=FLAGS.spec_decomposer_encoded_self_attention,
+      dataset_type=FLAGS.dataset_type)
+
+  m = models.DecomposeAttentionTransformer(spec_decomposer_predict_config)
+  initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
+                                      jnp.ones(io_shape, jnp.float32),
+                                      jnp.ones(spec_target_shape, jnp.float32))
+
+  optimizer_def = optim.Adam(
+      1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
+  spec_decomposer_optimizer = optimizer_def.create(initial_variables['params'])
+  spec_decomposer_optimizer = checkpoints.restore_checkpoint(
+      FLAGS.spec_decomposer_path, spec_decomposer_optimizer)
+  logging.info('Found spec decomposer checkpointed at step %d.',
+               int(spec_decomposer_optimizer.state.step))
+
+  spec_decomposer_pred_step = jax.jit(
+      functools.partial(end_to_end_predict_step,
+                        eos_token=eos_id,
+                        max_decode_len=FLAGS.max_spec_part_length,
+                        config=spec_decomposer_predict_config,
+                        slow_decode=FLAGS.slow_decode),
+      static_argnums=(5,),  # The `beam_size` argument.
+  )
+
+  return spec_decomposer_optimizer, spec_decomposer_pred_step
+
+
+def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
+                           io_shape, program_shape, bos_id, eos_id):
+  """Loads synthesizer or joint model."""
+  num_position_buckets = FLAGS.synthesizer_num_position_buckets
+  max_distance = FLAGS.synthesizer_max_distance
+  max_program_cross_embed_distance = (
+      FLAGS.synthesizer_max_program_cross_embed_distance)
+  synthesizer_base_config = base_models.TransformerConfig(
+      vocab_size=spec_vocab_size,
+      output_vocab_size=program_vocab_size,
+      shift=False,
+      emb_dim=FLAGS.embedding_dim,
+      num_heads=FLAGS.num_heads,
+      num_layers=FLAGS.num_layers,
+      qkv_dim=FLAGS.embedding_dim,
+      mlp_dim=FLAGS.hidden_dim,
+      max_len=max(FLAGS.max_io_length, FLAGS.max_program_length),
+      dropout_rate=FLAGS.dropout_rate,
+      attention_dropout_rate=FLAGS.attention_dropout_rate,
+      use_relative_attention=FLAGS.use_relative_attention,
+      deterministic=True,
+      decode=not FLAGS.slow_decode,
+      bos_token=bos_id,
+      num_input_relative_position_buckets=num_position_buckets,
+      max_input_distance=max_distance,
+      num_output_relative_position_buckets=num_position_buckets,
+      max_output_distance=max_distance,
+      num_input_cross_output_relative_position_buckets=num_position_buckets,
+      max_input_cross_output_distance=max_distance,
+      num_program_relative_position_buckets=num_position_buckets,
+      max_program_distance=max_distance,
+      num_program_cross_embed_relative_position_buckets=num_position_buckets,
+      max_program_cross_embed_distance=max_program_cross_embed_distance,
+      num_flat_encoding_relative_position_buckets=num_position_buckets,
+      max_flat_encoding_distance=max_distance)
+  synthesizer_predict_config = models.DecomposeAttentionTransformerConfig(
+      base_config=synthesizer_base_config,
+      flat_encoded_self_attention=FLAGS.synthesizer_encoded_self_attention,
+      dataset_type=FLAGS.dataset_type)
+
+  m = models.DecomposeAttentionTransformer(synthesizer_predict_config)
+  initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
+                                      jnp.ones(io_shape, jnp.float32),
+                                      jnp.ones(program_shape, jnp.float32))
+
+  optimizer_def = optim.Adam(
+      1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
+  synthesizer_optimizer = optimizer_def.create(initial_variables['params'])
+  synthesizer_optimizer = checkpoints.restore_checkpoint(
+      FLAGS.synthesizer_path, synthesizer_optimizer)
+  logging.info('Found synthesizer checkpointed at step %d.',
+               int(synthesizer_optimizer.state.step))
+
+  synthesizer_pred_step = jax.jit(
+      functools.partial(end_to_end_predict_step,
+                        eos_token=eos_id,
+                        max_decode_len=FLAGS.max_program_length,
+                        config=synthesizer_predict_config,
+                        slow_decode=FLAGS.slow_decode),
+      static_argnums=(5,),  # The `beam_size` argument.
+  )
+
+  return synthesizer_optimizer, synthesizer_pred_step
+
+
 def main(_):
   tf.enable_v2_behavior()
 
@@ -323,12 +471,10 @@ def main(_):
         'change_invalid_scores=True is incompatible with detect_invalid=False. '
         'We cannot change scores of invalid beam elements without detecting '
         'the invalid elements first.')
-  if FLAGS.use_execution and not FLAGS.detect_invalid:
+  if FLAGS.prediction_type == 'joint' and not FLAGS.use_execution:
     raise ValueError(
-        "use_execution=True is incompatible with detect_invalid=False. "
-        "Using execution only makes sense if we are also checking for invalid "
-        "states, because otherwise we won't able to handle programs that don't "
-        "compile or don't run.")
+        'Joint prediction requires using execution to compute the remaining '
+        'output.')
 
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
@@ -429,7 +575,8 @@ def main(_):
         spec_parts_str = ['[invalid]'] * num_examples
         valid = False
     else:
-      # Still need to handle an incorrect number of | characters.
+      # Still need to handle an incorrect number of | characters. Do our best to
+      # continue even if the prediction is malformed.
       spec_parts_str = spec_parts_str[:num_examples]
       spec_parts_str += [''] * (num_examples - len(spec_parts_str))
       assert len(spec_parts_str) == num_examples
@@ -478,22 +625,26 @@ def main(_):
       str(program)
       return True, program
     except:  # pylint: disable=bare-except
-      return False, '[invalid program]'
+      # It's not valid, but maybe we have to ignore that fact.
+      valid = not FLAGS.detect_invalid
+      return valid, '[invalid program]'
 
   def run_program(program, inputs):
     """Returns a pair (valid, outputs)."""
+    # If the program cannot be run, we treat it as outputting an empty string.
     outputs = []
     valid = True
     for i in inputs:
       if program == '[invalid program]':
-        outputs.append('[invalid program]')
-        valid = False
+        outputs.append('')
+        if FLAGS.detect_invalid:
+          valid = False
       else:
         try:
           outputs.append(program(i))
         except:  # pylint: disable=bare-except
-          outputs.append('[program error]')
-          if FLAGS.use_execution:
+          outputs.append('')
+          if FLAGS.use_execution and FLAGS.detect_invalid:
             valid = False
     return valid, outputs
 
@@ -533,137 +684,26 @@ def main(_):
   rng = jax.random.PRNGKey(0)
   rng, init_rng = jax.random.split(rng)
 
-  # Load SpecDecomposer Model and Optimizer
-  # ---------------------------------------------------------------------------
-
-  # Custom hyper-parameters for SpecDecomposer
-  num_position_buckets = FLAGS.spec_decomposer_num_position_buckets
-  max_distance = FLAGS.spec_decomposer_max_distance
-  max_program_cross_embed_distance = (
-      FLAGS.spec_decomposer_max_program_cross_embed_distance)
-  spec_decomposer_base_config = base_models.TransformerConfig(
-      vocab_size=spec_vocab_size,
-      output_vocab_size=spec_vocab_size,
-      shift=False,
-      emb_dim=FLAGS.embedding_dim,
-      num_heads=FLAGS.num_heads,
-      num_layers=FLAGS.num_layers,
-      qkv_dim=FLAGS.embedding_dim,
-      mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_io_length, FLAGS.max_spec_part_length),
-      dropout_rate=FLAGS.dropout_rate,
-      attention_dropout_rate=FLAGS.attention_dropout_rate,
-      use_relative_attention=FLAGS.use_relative_attention,
-      deterministic=True,
-      decode=not FLAGS.slow_decode,
-      bos_token=bos_id,
-      num_input_relative_position_buckets=num_position_buckets,
-      max_input_distance=max_distance,
-      num_output_relative_position_buckets=num_position_buckets,
-      max_output_distance=max_distance,
-      num_input_cross_output_relative_position_buckets=num_position_buckets,
-      max_input_cross_output_distance=max_distance,
-      num_program_relative_position_buckets=num_position_buckets,
-      max_program_distance=max_distance,
-      num_program_cross_embed_relative_position_buckets=num_position_buckets,
-      max_program_cross_embed_distance=max_program_cross_embed_distance,
-      num_flat_encoding_relative_position_buckets=num_position_buckets,
-      max_flat_encoding_distance=max_distance)
-  spec_decomposer_predict_config = models.DecomposeAttentionTransformerConfig(
-      base_config=spec_decomposer_base_config,
-      flat_encoded_self_attention=FLAGS.spec_decomposer_encoded_self_attention,
-      dataset_type=FLAGS.dataset_type)
-
-  m = models.DecomposeAttentionTransformer(spec_decomposer_predict_config)
-  initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
-                                      jnp.ones(io_shape, jnp.float32),
-                                      jnp.ones(spec_target_shape, jnp.float32))
-
-  optimizer_def = optim.Adam(
-      1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
-  spec_decomposer_optimizer = optimizer_def.create(initial_variables['params'])
-
-  del initial_variables  # Don't keep a copy of the initial model.
-
-  spec_decomposer_optimizer = checkpoints.restore_checkpoint(
-      FLAGS.spec_decomposer_path, spec_decomposer_optimizer)
-  logging.info('Found spec decomposer checkpointed at step %d.',
-               int(spec_decomposer_optimizer.state.step))
-
-  # Load Synthesizer Model and Optimizer
-  # ---------------------------------------------------------------------------
-
-  # Custom hyper-parameters for Synthesizer
-  num_position_buckets = FLAGS.synthesizer_num_position_buckets
-  max_distance = FLAGS.synthesizer_max_distance
-  max_program_cross_embed_distance = (
-      FLAGS.synthesizer_max_program_cross_embed_distance)
-  synthesizer_base_config = base_models.TransformerConfig(
-      vocab_size=spec_vocab_size,
-      output_vocab_size=program_vocab_size,
-      shift=False,
-      emb_dim=FLAGS.embedding_dim,
-      num_heads=FLAGS.num_heads,
-      num_layers=FLAGS.num_layers,
-      qkv_dim=FLAGS.embedding_dim,
-      mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_io_length, FLAGS.max_program_length),
-      dropout_rate=FLAGS.dropout_rate,
-      attention_dropout_rate=FLAGS.attention_dropout_rate,
-      use_relative_attention=FLAGS.use_relative_attention,
-      deterministic=True,
-      decode=not FLAGS.slow_decode,
-      bos_token=bos_id,
-      num_input_relative_position_buckets=num_position_buckets,
-      max_input_distance=max_distance,
-      num_output_relative_position_buckets=num_position_buckets,
-      max_output_distance=max_distance,
-      num_input_cross_output_relative_position_buckets=num_position_buckets,
-      max_input_cross_output_distance=max_distance,
-      num_program_relative_position_buckets=num_position_buckets,
-      max_program_distance=max_distance,
-      num_program_cross_embed_relative_position_buckets=num_position_buckets,
-      max_program_cross_embed_distance=max_program_cross_embed_distance,
-      num_flat_encoding_relative_position_buckets=num_position_buckets,
-      max_flat_encoding_distance=max_distance)
-  synthesizer_predict_config = models.DecomposeAttentionTransformerConfig(
-      base_config=synthesizer_base_config,
-      flat_encoded_self_attention=FLAGS.synthesizer_encoded_self_attention,
-      dataset_type=FLAGS.dataset_type)
-
-  m = models.DecomposeAttentionTransformer(synthesizer_predict_config)
-  initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
-                                      jnp.ones(io_shape, jnp.float32),
-                                      jnp.ones(program_shape, jnp.float32))
-
-  optimizer_def = optim.Adam(
-      1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
-  synthesizer_optimizer = optimizer_def.create(initial_variables['params'])
-
-  del initial_variables  # Don't keep a copy of the initial model.
-
-  synthesizer_optimizer = checkpoints.restore_checkpoint(
-      FLAGS.synthesizer_path, synthesizer_optimizer)
-  logging.info('Found synthesizer checkpointed at step %d.',
-               int(synthesizer_optimizer.state.step))
-
   # Main Prediction Loop
   # ---------------------------------------------------------------------------
 
-  spec_decomposer_pred_step = jax.jit(
-      functools.partial(end_to_end_predict_step,
-                        eos_token=eos_id,
-                        max_decode_len=FLAGS.max_spec_part_length,
-                        config=spec_decomposer_predict_config,
-                        slow_decode=FLAGS.slow_decode),
-      static_argnums=(5,))
-  synthesizer_pred_step = jax.jit(
-      functools.partial(end_to_end_predict_step,
-                        eos_token=eos_id,
-                        max_decode_len=FLAGS.max_program_length,
-                        config=synthesizer_predict_config,
-                        slow_decode=FLAGS.slow_decode),
-      static_argnums=(5,))
+  if FLAGS.prediction_type == 'separate':
+    spec_decomposer_optimizer, spec_decomposer_pred_step = (
+        load_spec_decomposer_model(
+            init_rng=init_rng,
+            spec_vocab_size=spec_vocab_size,
+            io_shape=io_shape,
+            spec_target_shape=spec_target_shape,
+            bos_id=bos_id,
+            eos_id=eos_id))
+  synthesizer_optimizer, synthesizer_pred_step = load_synthesizer_model(
+      init_rng=init_rng,
+      spec_vocab_size=spec_vocab_size,
+      program_vocab_size=program_vocab_size,
+      io_shape=io_shape,
+      program_shape=program_shape,
+      bos_id=bos_id,
+      eos_id=eos_id)
 
   # ----------------------------------------------------------------------------
   # A discussion of metrics we collect.
@@ -770,51 +810,6 @@ def main(_):
 
     # End-to-end prediction loop.
     while jnp.any(~aux['finished']) and step_index < 20:
-
-      # Spec Decomposition Step.
-      ##########################
-
-      # Run the SpecDecomposerModel.
-      start_time = timeit.default_timer()
-      predicted_spec_parts, scores, aux = spec_decomposer_pred_step(
-          params=spec_decomposer_optimizer.target,
-          inputs=beam_inputs,
-          outputs=aux['remaining_outputs'],
-          cache=None,
-          aux=aux,
-          beam_size=beam_size)
-      spec_prediction_times.append(timeit.default_timer() - start_time)
-
-      # Process spec predictions.
-      start_time = timeit.default_timer()
-      spec_parts_batch = np.array(predicted_spec_parts)
-      results = [
-          split_spec(beam, aux['remaining_outputs'][0][i],
-                     max_target_length=FLAGS.max_io_length, aux=aux, i=i)
-          for i, beam in enumerate(spec_parts_batch[0])]
-      valids, last_steps, current_outputs, remaining_outputs = zip(*results)
-
-      current_outputs = jnp.array(current_outputs)[None, Ellipsis]
-      aux['remaining_outputs'] = jnp.array(remaining_outputs)[None, Ellipsis]
-      aux['scores'] = scores
-      aux['valid'] = jnp.array(valids)[None, Ellipsis]
-      aux['last_step'] = jnp.array(last_steps)[None, Ellipsis]
-      current_history_ids = jnp.array(
-          [next_history_id() for _ in range(beam_size)])[None, Ellipsis, None]
-      aux['history'] = jnp.concatenate([aux['history'], current_history_ids],
-                                       axis=-1)
-
-      # Process invalid states.
-      if FLAGS.detect_invalid:
-        if FLAGS.change_invalid_scores:
-          aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
-        aux['finished'] |= ~aux['valid']
-      else:
-        assert np.all(aux['valid'])
-      spec_processing_times.append(timeit.default_timer() - start_time)
-
-      # Analysis and logging.
-      start_time = timeit.default_timer()
       ground_truth_program_part = (
           ground_truth.expressions[step_index]
           if step_index < ground_truth_length
@@ -823,59 +818,115 @@ def main(_):
           [ground_truth_program_part(i) for i in decoded_inputs]
           if step_index < ground_truth_length
           else '[step index out of bounds]')
-      assert len(current_outputs) == 1
-      best_spec_prediction = [decode_spec(o) for o in current_outputs[0][-1]]
-      if aux['finished'][0][-1] & aux['valid'][0][-1]:
-        matches = 'N/A'
-      else:
-        matches = best_spec_prediction == ground_truth_output_parts
-        if not matches and first_error is None:
-          first_error = f'SpecDecomposerModel at step #{step_index + 1}'
-      spec_analysis_times.append(timeit.default_timer() - start_time)
 
-      if do_logging:
-        log_message += '\n' + ('=' * 80) + '\n'
-        log_message += (
-            f'Spec Decomposition Step #{step_index + 1}:\n'
-            f'  ground truth output parts:           {ground_truth_output_parts}\n'
-            f'  SpecDecomposerModel best prediction: {best_spec_prediction}\n'
-            f'    matches: {matches}\n'
-            f'---------- Full beam: ----------\n'
-        )
-        for i in range(beam_size - 1,
-                       max(-1, beam_size - FLAGS.num_beam_elements_to_log - 1),
-                       -1):
-          prediction_i = [decode_spec(o) for o in current_outputs[0][i]]
-          score_i = aux['scores'][0][i]
-          remaining_i = [decode_spec(o) for o in aux['remaining_outputs'][0][i]]
-          _, program_i = process_and_decode_program(aux['programs'][0][i])
-          valid_i = aux['valid'][0][i]
-          last_step_i = aux['last_step'][0][i]
-          finished_i = aux['finished'][0][i]
+      # Use the spec decomposition step when predicting with separate models,
+      # but not when doing joint prediction.
+      if FLAGS.prediction_type == 'separate':
+        # Spec Decomposition Step.
+        ##########################
+
+        # Run the SpecDecomposerModel.
+        start_time = timeit.default_timer()
+        predicted_spec_parts, scores, aux = spec_decomposer_pred_step(
+            params=spec_decomposer_optimizer.target,
+            inputs=beam_inputs,
+            outputs=aux['remaining_outputs'],
+            cache=None,
+            aux=aux,
+            beam_size=beam_size)
+        spec_prediction_times.append(timeit.default_timer() - start_time)
+
+        # Process spec predictions.
+        start_time = timeit.default_timer()
+        spec_parts_batch = np.array(predicted_spec_parts)
+        results = [
+            split_spec(beam, aux['remaining_outputs'][0][i],
+                       max_target_length=FLAGS.max_io_length, aux=aux, i=i)
+            for i, beam in enumerate(spec_parts_batch[0])]
+        valids, last_steps, current_outputs, remaining_outputs = zip(*results)
+
+        current_outputs = jnp.array(current_outputs)[None, Ellipsis]
+        aux['remaining_outputs'] = jnp.array(remaining_outputs)[None, Ellipsis]
+        aux['scores'] = scores
+        aux['valid'] = jnp.array(valids)[None, Ellipsis]
+        aux['last_step'] = jnp.array(last_steps)[None, Ellipsis]
+        current_history_ids = jnp.array(
+            [next_history_id() for _ in range(beam_size)])[None, Ellipsis, None]
+        aux['history'] = jnp.concatenate([aux['history'], current_history_ids],
+                                         axis=-1)
+
+        # Process invalid states.
+        if FLAGS.detect_invalid:
+          if FLAGS.change_invalid_scores:
+            aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
+          aux['finished'] |= ~aux['valid']
+        else:
+          assert np.all(aux['valid'])
+        spec_processing_times.append(timeit.default_timer() - start_time)
+
+        # Analysis and logging.
+        start_time = timeit.default_timer()
+        assert len(current_outputs) == 1
+        best_spec_prediction = [decode_spec(o) for o in current_outputs[0][-1]]
+        if aux['finished'][0][-1] & aux['valid'][0][-1]:
+          matches = 'N/A'
+        else:
+          matches = best_spec_prediction == ground_truth_output_parts
+          if not matches and first_error is None:
+            first_error = f'SpecDecomposerModel at step #{step_index + 1}'
+        spec_analysis_times.append(timeit.default_timer() - start_time)
+
+        if do_logging:
+          log_message += '\n' + ('=' * 80) + '\n'
           log_message += (
-              f'Beam item {i}:\n'
-              f'  prediction: {prediction_i}\n'
-              f'  score: {score_i:.4f}\n'
-              f'  remaining_outputs: {remaining_i}\n'
-              f'  program: {program_i}\n'
-              f'  valid: {valid_i}, last_step: {last_step_i}, finished: {finished_i}\n'
-              f'  history: {aux["history"][0][i]}\n'
+              f'Spec Decomposition Step #{step_index + 1}:\n'
+              f'  ground truth output parts:           {ground_truth_output_parts}\n'
+              f'  SpecDecomposerModel best prediction: {best_spec_prediction}\n'
+              f'    matches: {matches}\n'
+              f'---------- Full beam: ----------\n'
           )
+          for i in range(beam_size)[::-1][:FLAGS.num_beam_elements_to_log]:
+            prediction_i = [decode_spec(o) for o in current_outputs[0][i]]
+            score_i = aux['scores'][0][i]
+            remaining_i = [decode_spec(o)
+                           for o in aux['remaining_outputs'][0][i]]
+            _, program_i = process_and_decode_program(aux['programs'][0][i])
+            valid_i = aux['valid'][0][i]
+            last_step_i = aux['last_step'][0][i]
+            finished_i = aux['finished'][0][i]
+            log_message += (
+                f'Beam item {i}:\n'
+                f'  prediction: {prediction_i}\n'
+                f'  score: {score_i:.4f}\n'
+                f'  remaining_outputs: {remaining_i}\n'
+                f'  program: {program_i}\n'
+                f'  valid: {valid_i}, last_step: {last_step_i}, finished: {finished_i}\n'
+                f'  history: {aux["history"][0][i]}\n'
+            )
 
-      # Elements can become newly finished if they are invalid.
-      if jnp.all(aux['finished']):
-        step_index += 1  # Count this half-step.
-        break
+        # Elements can become newly finished if they are invalid.
+        if jnp.all(aux['finished']):
+          step_index += 1  # Count this half-step.
+          break
 
       # Synthesizer Step.
       ###################
+      # (Used in both separate and joint prediction)
 
       # Run the SynthesizerModel.
       start_time = timeit.default_timer()
+      if FLAGS.prediction_type == 'separate':
+        # Use next output part as predicted by the SpecDecomposerModel.
+        synthesizer_step_outputs = current_outputs
+      elif FLAGS.prediction_type == 'joint':
+        # Use the entire remaining output from the previous step.
+        synthesizer_step_outputs = aux['remaining_outputs']
+      else:
+        raise ValueError(f'Unhandled prediction_type: {FLAGS.prediction_type}')
       predicted_program_parts, scores, aux = synthesizer_pred_step(
           params=synthesizer_optimizer.target,
           inputs=beam_inputs,
-          outputs=current_outputs,
+          outputs=synthesizer_step_outputs,
           cache=None,
           aux=aux,
           beam_size=beam_size)
@@ -898,21 +949,26 @@ def main(_):
       # Process invalid states.
       new_valids, new_last_steps, new_remaining = [], [], []
       for i in range(beam_size):
-        valid_i = aux['valid'][0][i]
+        valid_i = bool(aux['valid'][0][i])
         last_step_i = aux['last_step'][0][i]
         remaining_i = aux['remaining_outputs'][0][i]
-        # Don't need to do any checking if the beam element is already finished,
-        # already invalid, or we're not detecting invalid beam elements.
-        if FLAGS.detect_invalid and not aux['finished'][0][i] and valid_i:
+        # Don't need to do any checking if the beam element is already finished
+        # or already invalid.
+        if not aux['finished'][0][i] and valid_i:
           # This is just a syntax check.
           valid_i, program_i = process_and_decode_program(aux['programs'][0][i])
           if FLAGS.use_execution:
             # Check for syntax, runtime errors, and output prefix matching.
             valid_i, program_outputs_i = run_program(program_i, decoded_inputs)
-            if valid_i:
+            # Must use execution (even if invalid) for joint prediction.
+            if valid_i or FLAGS.prediction_type == 'joint':
               valid_i, last_step_i, _, remaining_i = split_spec(
                   program_outputs_i, decoded_outputs,
                   max_target_length=FLAGS.max_io_length, aux=aux, i=i)
+        if not FLAGS.detect_invalid:
+          # Even though we updated valid_i above, those helper functions should
+          # not claim something is invalid if detect_invalid=False.
+          assert valid_i
         new_valids.append(valid_i)
         new_last_steps.append(last_step_i)
         new_remaining.append(remaining_i)
@@ -957,9 +1013,7 @@ def main(_):
             f'---------- Full beam: ----------\n'
         )
 
-        for i in range(beam_size - 1,
-                       max(-1, beam_size - FLAGS.num_beam_elements_to_log - 1),
-                       -1):
+        for i in range(beam_size)[::-1][:FLAGS.num_beam_elements_to_log]:
           _, prediction_i = process_and_decode_program(program_parts[0][i])
           score_i = aux['scores'][0][i]
           remaining_i = [decode_spec(o) for o in aux['remaining_outputs'][0][i]]
@@ -1008,7 +1062,17 @@ def main(_):
       if success:
         metric_a += 1
       else:
-        raise ValueError('Test problem was failure but first_error is None')
+        if beam_size > 1:
+          # We only check for errors in the best-scoring beam element. It's
+          # possible that, for every step, the current predicted program part of
+          # the best-scoring beam element is correct, but the best-scoring beam
+          # elements are changing and no single beam element was correct at
+          # every step. In this case... let's just say it's the SynthesizerModel
+          # error? These metrics don't mean much if beam_size > 1 anyway.
+          metric_f += 1
+        else:
+          # This shouldn't happen if beam_size == 1.
+          raise ValueError('Test problem was failure but first_error is None')
     elif first_error.startswith('SpecDecomposerModel'):
       if success:
         metric_b += 1
@@ -1065,9 +1129,10 @@ def main(_):
         'main/failures from SynthesizerModel, among all failures',
         100 * metric_f / num_failure, 0)
 
-    summary_writer.scalar(
-        'error_recovery/specDecomposerModel error recovery rate',
-        100 * metric_b / (metric_b + metric_e), 0)
+    if metric_b + metric_e > 0:
+      summary_writer.scalar(
+          'error_recovery/specDecomposerModel error recovery rate',
+          100 * metric_b / (metric_b + metric_e), 0)
     summary_writer.scalar(
         'error_recovery/synthesizerModel error recovery rate',
         100 * metric_c / (metric_c + metric_f), 0)
@@ -1106,12 +1171,13 @@ def main(_):
 
     summary_writer.scalar('time/total time per problem',
                           statistics.mean(total_times), 0)
-    summary_writer.scalar('time/per SpecDecomposerModel call',
-                          statistics.mean(spec_prediction_times), 0)
-    summary_writer.scalar('time/per spec processing',
-                          statistics.mean(spec_processing_times), 0)
-    summary_writer.scalar('time/per spec analysis',
-                          statistics.mean(spec_analysis_times), 0)
+    if spec_prediction_times:
+      summary_writer.scalar('time/per SpecDecomposerModel call',
+                            statistics.mean(spec_prediction_times), 0)
+      summary_writer.scalar('time/per spec processing',
+                            statistics.mean(spec_processing_times), 0)
+      summary_writer.scalar('time/per spec analysis',
+                            statistics.mean(spec_analysis_times), 0)
     summary_writer.scalar('time/per SynthesizerModel call',
                           statistics.mean(synthesis_prediction_times), 0)
     summary_writer.scalar('time/per synthesis processing',

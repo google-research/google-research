@@ -115,7 +115,7 @@ flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'scan'],
                   'The kind of dataset to use.')
 flags.DEFINE_enum('model_type', 'spec_decomposer_model',
-                  ['spec_decomposer_model', 'synthesizer_model'],
+                  ['spec_decomposer_model', 'synthesizer_model', 'joint_model'],
                   'Which model to train.')
 
 
@@ -618,9 +618,29 @@ def main(_):
 
   if FLAGS.dataset_type == 'robust_fill':
     if FLAGS.model_type == 'spec_decomposer_model':
-      create_dataset_fn = input_pipeline.create_robust_fill_dataset_for_spec_decomposer_model
+      create_dataset_fn = functools.partial(
+          input_pipeline.create_robust_fill_dataset,
+          renaming_dict={
+              'inputs': 'inputs',
+              'outputs': 'outputs',
+              'target': 'joined_next_part',
+          })
     elif FLAGS.model_type == 'synthesizer_model':
-      create_dataset_fn = input_pipeline.create_robust_fill_dataset_for_synthesizer_model
+      create_dataset_fn = functools.partial(
+          input_pipeline.create_robust_fill_dataset,
+          renaming_dict={
+              'inputs': 'inputs',
+              'outputs': 'next_part',
+              'target': 'program_part',
+          })
+    elif FLAGS.model_type == 'joint_model':
+      create_dataset_fn = functools.partial(
+          input_pipeline.create_robust_fill_dataset,
+          renaming_dict={
+              'inputs': 'inputs',
+              'outputs': 'outputs',
+              'target': 'program_part',
+          })
     else:
       raise ValueError(f'Unhandled model_type: {FLAGS.model_type}')
 
@@ -673,7 +693,7 @@ def main(_):
   # ---------------------------------------------------------------------------
   if FLAGS.model_type == 'spec_decomposer_model':
     output_vocab_size = spec_vocab_size
-  elif FLAGS.model_type == 'synthesizer_model':
+  elif FLAGS.model_type in ['synthesizer_model', 'joint_model']:
     output_vocab_size = program_vocab_size
   else:
     raise ValueError(f'Unhandled model_type: {FLAGS.model_type}')
@@ -928,6 +948,13 @@ def main(_):
                 ground_truth = decode_program_str(targets[i])
                 best_prediction, score = eval_predicted_synthesizer_model(
                     beams, inps, outs, decode_program)
+                decode_to_str_fn = decode_program_str
+              elif FLAGS.model_type == 'joint_model':
+                ground_truth = decode_program_str(targets[i])
+                ground_truth_program = decode_program(targets[i])
+                ground_truth_outs = [ground_truth_program(i) for i in inps]
+                best_prediction, score = eval_predicted_synthesizer_model(
+                    beams, inps, ground_truth_outs, decode_program)
                 decode_to_str_fn = decode_program_str
               else:
                 raise ValueError(f'Unknown model type {FLAGS.model_type}')

@@ -25,9 +25,22 @@ gfile = tf.io.gfile
 SEPARATOR_TOKEN = '|'
 
 
-def create_robust_fill_dataset_for_spec_decomposer_model(
-    file_pattern, spec_token_id_table, num_strings_per_task):
-  """Returns an instance of tf.data.Dataset."""
+def create_robust_fill_dataset(
+    file_pattern, spec_token_id_table, num_examples, renaming_dict):
+  """Loads a RobustFill step-by-step dataset.
+
+  Args:
+    file_pattern: A file pattern for the TFRecord files to read.
+    spec_token_id_table: Mapping from characters (tokens) to token IDs for the
+      I/O specification vocabulary.
+    num_examples: The number of examples in an I/O specification.
+    renaming_dict: A dict mapping from the new name of fields in this dataset to
+      the old name as in the original TFRecord files.
+
+  Returns:
+    A tf.data.Dataset containing dictionaries where the keys are the same as in
+    `renaming_dict`.
+  """
   filenames = gfile.glob(file_pattern)
   raw_dataset = tf.data.TFRecordDataset(filenames)
 
@@ -43,19 +56,21 @@ def create_robust_fill_dataset_for_spec_decomposer_model(
 
   def _parse_fn(record):
     """Parses a record into a feature_dict."""
-    empty_default = [''] * num_strings_per_task
+    empty_default = [''] * num_examples
     feature_values = tf.io.parse_single_example(
         serialized=record,
         features={
             'inputs':
-                tf.io.FixedLenFeature([num_strings_per_task], tf.string,
+                tf.io.FixedLenFeature([num_examples], tf.string,
                                       default_value=empty_default),
             'outputs':
-                tf.io.FixedLenFeature([num_strings_per_task], tf.string,
+                tf.io.FixedLenFeature([num_examples], tf.string,
                                       default_value=empty_default),
             'next_part':
-                tf.io.FixedLenFeature([num_strings_per_task], tf.string,
+                tf.io.FixedLenFeature([num_examples], tf.string,
                                       default_value=empty_default),
+            'program_part':
+                tf.io.FixedLenFeature([], tf.string, default_value=''),
         })
 
     # Map characters to tokens.
@@ -67,77 +82,36 @@ def create_robust_fill_dataset_for_spec_decomposer_model(
         feature_values['outputs'], 'UTF-8').to_tensor()
     outputs = spec_vocab_table.lookup(outputs)
 
+    next_part = tf.strings.unicode_split(
+        feature_values['next_part'], 'UTF-8').to_tensor()
+    next_part = spec_vocab_table.lookup(next_part)
+
     joined_next_part = tf.strings.reduce_join(feature_values['next_part'],
                                               separator=SEPARATOR_TOKEN)
     joined_next_part = tf.strings.unicode_split(joined_next_part, 'UTF-8')
     joined_next_part = spec_vocab_table.lookup(joined_next_part)
     joined_next_part = tf.concat([joined_next_part, [eos_id]], axis=-1)
 
-    # inputs: [num_strings, max_length_of_input]
-    # outputs: [num_strings, max_length_of_output]
-    # joined_next_part: [num_strings * (max_length_of_part + 1)]
-    return {
-        'inputs': inputs,
-        'outputs': outputs,
-        'target': joined_next_part,
-    }
-
-  dataset = raw_dataset.map(_parse_fn)
-  return dataset
-
-
-def create_robust_fill_dataset_for_synthesizer_model(
-    file_pattern, spec_token_id_table, num_strings_per_task):
-  """Returns an instance of tf.data.Dataset."""
-  filenames = gfile.glob(file_pattern)
-  raw_dataset = tf.data.TFRecordDataset(filenames)
-
-  spec_vocab_table = tf.lookup.StaticVocabularyTable(
-      tf.lookup.KeyValueTensorInitializer(
-          # Add padding.
-          [''] + list(spec_token_id_table.keys()),
-          [0] + list(spec_token_id_table.values()),
-          key_dtype=tf.string,
-          value_dtype=tf.int64),
-      len(spec_token_id_table) + 1)
-  eos_id = spec_token_id_table[robust_fill_dsl.EOS]
-
-  def _parse_fn(record):
-    """Parses a record into a feature_dict."""
-    empty_default = [''] * num_strings_per_task
-    feature_values = tf.io.parse_single_example(
-        serialized=record,
-        features={
-            'inputs':
-                tf.io.FixedLenFeature([num_strings_per_task], tf.string,
-                                      default_value=empty_default),
-            'next_part':
-                tf.io.FixedLenFeature([num_strings_per_task], tf.string,
-                                      default_value=empty_default),
-            'program_part':
-                tf.io.FixedLenFeature([], tf.string, default_value=''),
-        })
-
-    # Map characters to tokens.
-    inputs = tf.strings.unicode_split(
-        feature_values['inputs'], 'UTF-8').to_tensor()
-    inputs = spec_vocab_table.lookup(inputs)
-
-    next_part = tf.strings.unicode_split(
-        feature_values['next_part'], 'UTF-8').to_tensor()
-    next_part = spec_vocab_table.lookup(next_part)
-
     program_part = tf.strings.split(feature_values['program_part'], sep=' ')
     program_part = tf.strings.to_number(program_part, out_type=tf.int32)
     program_part = tf.concat([program_part, [eos_id]], axis=-1)
 
     # inputs: [num_strings, max_length_of_input]
+    # outputs: [num_strings, max_length_of_output]
     # next_part: [num_strings, max_length_of_output_part]
+    # joined_next_part: [num_strings * (max_length_of_part + 1)]
     # program_part: [max_length_of_program_part]
-    return {
+    all_data_dict = {
         'inputs': inputs,
-        'outputs': next_part,
-        'target': program_part,
+        'outputs': outputs,
+        'next_part': next_part,
+        'joined_next_part': joined_next_part,
+        'program_part': program_part,
+    }
+
+    return {
+        new_name: all_data_dict[old_name]
+        for new_name, old_name in renaming_dict.items()
     }
 
   dataset = raw_dataset.map(_parse_fn)
