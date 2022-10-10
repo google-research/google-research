@@ -1,11 +1,12 @@
 # Sparse Mixers: Combining MoE and Mixing to build a more efficient BERT
 
+James Lee-Thorp and Joshua Ainslie.
 
 ## Introduction
 
-Sparse Mixer combines the capacity of sparsely gated Mixture-of-Experts (MoE)
-with the speed and stability of linear, mixing transformations to form an
-efficient encoder architecture.
+[Sparse Mixer](https://arxiv.org/abs/2205.12399) combines the capacity of
+sparsely gated Mixture-of-Experts (MoE) with the speed and stability of linear,
+mixing transformations to form an efficient encoder architecture.
 
 Sparse Mixer slightly outperforms BERT on GLUE and SuperGLUE, but more
 importantly runs >50% faster. We also include a faster variant, prosaically
@@ -68,6 +69,85 @@ the checkpoint).
 
 ## Pre-trained models
 
-Pre-trained models will be made available soon.
+Pre-trained model checkpoints can be downloaded and then used in training by
+updating the relevant training config file. All pre-trained models use
+`max_seq_length=512` and a `type_vocab_size=4`, which allows for up to 4 input
+segments (the number of input segments is automatically configured for most
+tasks).
 
+### Base models
 
+[Sparse Mixer](https://storage.googleapis.com/gresearch/sparse_mixers/checkpoints/base/sparse_mixer/sm_base.zip).
+The default config matches the Sparse Mixer Base model:
+
+```
+config.arch = 'linear'
+config.d_emb = 512
+config.d_model = 512
+config.d_ff = 2048
+config.num_heads = 8
+config.num_layers = 14
+config.num_attention_layers = 4
+config.moe_layers = 4
+config.num_experts = 16
+```
+
+[Fast Sparse Mixer](https://storage.googleapis.com/gresearch/sparse_mixers/checkpoints/base/fast_sparse_mixer/fsm_base.zip).
+Same as Sparse Mixer Base but with:
+
+```
+config.train_capacity_factor = 0.5
+config.eval_capacity_factor = 0.5
+```
+
+[BERT](https://storage.googleapis.com/gresearch/sparse_mixers/checkpoints/base/bert/replicated_checkpoint_990000).
+BERT Base uses:
+
+```
+config.arch = 'bert'
+config.d_emb = 768
+config.d_model = 768
+config.d_ff = 3072
+config.num_heads = 12
+config.num_layers = 12
+config.moe_layers = 0
+config.num_experts = 0
+```
+
+### Small models
+
+[Sparse Mixer](https://storage.googleapis.com/gresearch/sparse_mixers/oss/checkpoints/small/sparse_mixer/sm_small.zip).
+Sparse Mixer Small uses (8 layers instead of 14):
+
+```
+config.arch = 'linear'
+config.d_emb = 512
+config.d_model = 512
+config.d_ff = 2048
+config.num_heads = 8
+config.num_layers = 8
+config.num_attention_layers = 4
+config.moe_layers = 4
+config.num_experts = 16
+```
+
+[Fast Sparse Mixer](https://storage.googleapis.com/gresearch/sparse_mixers/oss/checkpoints/small/fast_sparse_mixer/fsm_small.zip).
+Same as Sparse Mixer Small but with:
+
+```
+config.train_capacity_factor = 0.5
+config.eval_capacity_factor = 0.5
+```
+
+## Bibtex
+
+To cite this work, please use:
+
+```
+@article{lee2022sparse,
+  title={Sparse Mixers: Combining MoE and Mixing to build a more efficient BERT},
+  author={Lee-Thorp, James and Ainslie, Joshua},
+  journal={arXiv preprint arXiv:2205.12399},
+  year={2022}
+}
+```
