@@ -24,7 +24,7 @@ DEFAULT_OUTDIR="$(dirname $0)/wikiextractor_repo"
 OUTDIR="${1:-${DEFAULT_OUTDIR}}"
 
 if [[ ! -f "${OUTDIR}/WikiExtractor.py" ]]; then
-  PATCH="$(readlink -e $(dirname $0))/wikiextractor.patch"
+  PATCH="$(cd "$(dirname "$0")" && pwd)/wikiextractor.patch"
   if [[ ! -f "${PATCH}" ]]; then
     echo "! Failed to locate the patch file expected at ${PATCH}"
     exit 1

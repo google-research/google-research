@@ -30,8 +30,11 @@ LANG_LIST=(ar de en es fa ja pl ro ta tr uk)
 
 MODULE="dense_representations_for_entity_retrieval.mel.wikinews_extractor.parse_wikinews_i18n"
 
-# Point PYTHONPATH to the google_research/ directory.
-export PYTHONPATH="${PYTHONPATH}:$(dirname $0)/../../../"
+# Point PYTHONPATH to parent of dense_representations_for_entity_retrieval/.
+# Reference for shell parameter expansions:
+# www.gnu.org/software/bash/manual/html_node/Shell-Parameter-Expansion.html.
+REPO_DIR="$(dirname $0)/../../../"
+UPDATED_PYTHONPATH="${REPO_DIR}${PYTHONPATH+":"}${PYTHONPATH-}"
 
 for lang in ${LANG_LIST[@]}; do
   date
@@ -41,7 +44,7 @@ for lang in ${LANG_LIST[@]}; do
   mkdir -p ${output_dir}
 
   # Run each language's process in background.
-  python -m ${MODULE} \
+  PYTHONPATH="${UPDATED_PYTHONPATH}" python -m ${MODULE} \
       --mode=dataset \
       --wikinews_archive="${INPUT_BASE_DIR}/${lang}/*/wiki_*.bz2" \
       --language=${lang} \

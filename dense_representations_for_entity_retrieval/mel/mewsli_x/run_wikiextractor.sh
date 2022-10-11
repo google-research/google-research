@@ -57,7 +57,7 @@ for lang in ${LANG_LIST[@]}; do
 
   input="${INPUT_DUMP_DIR}/${lang}wikinews-20190101-pages-articles.xml.bz2"
   mkdir -p ${output_dir}
-  python3 ${WIKIEXTRACTOR} \
+  python ${WIKIEXTRACTOR} \
       --templates "${templates}" \
       --revision \
       --links \
