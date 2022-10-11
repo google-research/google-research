@@ -166,6 +166,11 @@ def quantize_layer(layer, apply_quantization=None, quantize_config=None,
 
     if quantize_config is None:
       quantize_config = quantize_registry.get_quantize_config(layer)
+
+    quantize_config_str = (f'{layer.name:>30} '
+                           f'{quantize_config.__class__.__name__}')
+    logging.info(quantize_config_str)
+
     return quantize_wrapper.QuantizeWrapperV2(layer, quantize_config)
   else:
     return layer

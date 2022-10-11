@@ -258,7 +258,9 @@ class Stream(tf.keras.layers.Layer):
       self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
 
     if self.ring_buffer_size_in_time_dim == 1:
-      logging.warning('There is no need to use Stream on time dim with size 1')
+      logging.warning(
+          'There is no need to use Stream on time dim with size 1: %s',
+          self.cell.name if hasattr(self.cell, 'name') else self.cell)
 
   def get_core_layer(self):
     """Get core layer which can be wrapped by quantizer."""
