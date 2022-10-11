@@ -56,17 +56,21 @@ Towards More Challenging and Nuanced Multilingual Evaluation (Ruder et al.,
 
 ## Getting Started
 
-You can obtain the Mewsli-X dataset by following these steps:
+You can obtain the Mewsli-X dataset by following these steps, which have been
+verified on Linux and MacOS:
 
 **1. Satisfy dependencies**
 
-Ensure that the following tools are available on your system, as they are used
-by the data downloader scripts.
+Environment specifications are provided for [`anaconda`](https://www.anaconda.com/).
+To use them, first install `anaconda` yourself.
 
--   Python 3
+Alternatively, if you do not want to use `anaconda`, ensure that your system has
+the following programs installed:
+
+-   Python 3 (tested with 3.9.6)
 -   bzip2
 -   git
--   md5sum
+-   md5sum/md5
 -   pip
 -   virtualenv
 -   wget
@@ -99,7 +103,23 @@ Then change into the `mel/` subdirectory:
 cd dense_representations_for_entity_retrieval/mel
 ```
 
-**3. Run the shell script**
+**3. Create virtual environment and install dependencies**
+
+*Option 1 (safer): Let `anaconda` handle all dependencies:*
+
+```
+bash create-env.sh conda
+conda activate mewsli_env
+```
+
+*Option 2: Only install pip-packages into a new `virtualenv`:*
+
+```
+bash create-env.sh
+# Then run the activation command printed to the console
+```
+
+**4. Run the shell script**
 
 ```
 bash get-mewsli-x.sh
@@ -109,8 +129,6 @@ This script runs in 5-10 minutes. It
 
 -   downloads the dataset archive (`mewsli-x_20220518_6.zip`, 291 MB) and public
     dumps of WikiNews (107MB);
--   installs the few Python libraries listed in
-    `wikinews_extractor/requirements.txt` into a new virtual environment.
 -   extracts article text from the WikiNews dumps using a patched version of the
     third-party [`wikiextractor`](https://github.com/attardi/wikiextractor)
     tool;

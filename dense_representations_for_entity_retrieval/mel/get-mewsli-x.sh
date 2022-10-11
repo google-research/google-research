@@ -17,8 +17,6 @@
 
 # Run this from the mel/ directory:
 #   bash get-mewsli-x.sh
-# or as follows to refrain from creating a new virtualenv:
-#   bash get-mewsli-x.sh no_new_virtualenv
 
 set -eux
 
@@ -42,18 +40,6 @@ bash tools/get_wikiextractor.sh
 
 # Process the WikiNews dumps into lightly marked-up JSON format.
 bash mewsli_x/run_wikiextractor.sh
-
-# Install dependencies into a virtual environment.
-if [[ $# -eq 1 && "$1" == "no_new_virtualenv" ]]; then
-  echo 'Installing dependencies into current environment.'
-else
-  echo 'Installing dependencies into new virtual environment.'
-  virtualenv -p python3 ./env
-  set +u
-  source ./env/bin/activate
-  set -u
-fi
-pip install -r wikinews_extractor/requirements.txt
 
 # Parse clean text from the processed dumps according to the Mewsli-X dataset
 # descriptors.

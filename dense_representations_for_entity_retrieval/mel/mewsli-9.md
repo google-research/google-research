@@ -111,6 +111,23 @@ script below.
 
 ### Get Mewsli-9 Dataset
 
+**Satisfy dependencies**
+
+Environment specifications are provided for [`anaconda`](https://www.anaconda.com/).
+To use them, first install `anaconda` yourself.
+
+Alternatively, if you do not want to use `anaconda`, ensure that your system has
+the following programs installed:
+
+-   Python 3 (tested with 3.9.6)
+-   bzip2
+-   git
+-   md5sum/md5
+-   pip
+-   virtualenv
+-   wget
+-   zip
+
 **Export the relevant part of the code repository:**
 
 ```
@@ -122,6 +139,22 @@ svn export https://github.com/google-research/google-research/trunk/$SUBDIR
 
 ```
 cd dense_representations_for_entity_retrieval/mel
+```
+
+**Set up virtual environment:**
+
+*Option 1: Let `anaconda` handle all dependencies:*
+
+```
+bash create-env.sh conda
+conda activate mewsli_env
+```
+
+*Option 2: Only install pip-packages into a new `virtualenv`:*
+
+```
+bash create-env.sh
+# Then run the activation command printed to the console
 ```
 
 **Run the end-to-end script:**
@@ -152,12 +185,11 @@ The helper scripts assume the following tools are installed:
 - git
 - md5sum
 - pip
-- virtualenv
+- virtualenv / conda
 - wget
 - zip
 
-See `wikinews_extractor/requirements.txt` for dependencies that will be
-installed to a new virtual environment.
+See `wikinews_extractor/requirements.txt` for Python dependencies.
 
 ## Disclaimer
 
