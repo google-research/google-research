@@ -109,13 +109,13 @@ class AntheaDocSys {
     /** @public {string} */
     this.sys = '';
     /** @public @const {!Array<string>} */
-    this.srcSentGroups = [];
+    this.srcSegments = [];
     /** @public @const {!Array<string>} */
-    this.tgtSentGroups = [];
+    this.tgtSegments = [];
     /** @public @const {!Array<string>} */
     this.annotations = [];
     /** @public {number} */
-    this.numNonBlankSentGroups = 0;
+    this.numNonBlankSegments = 0;
   }
 
   /**
@@ -123,15 +123,15 @@ class AntheaDocSys {
    * an array of AntheaDocSys objects. The input data format should have four
    * tab-separated fields on each line:
    *
-   *     source-sentence-group
-   *     target-sentence-group
+   *     source-segment
+   *     target-segment
    *     document-name
    *     system-name
    *
    * Any data in an extra field (beyond these four) is stored in the annotations
    * array.
    *
-   * Both source-sentence-group and target-sentence-group can together
+   * Both source-segment and target-segment can together
    * be empty (but not just one of the two), indicating a paragraph break.
    * For convenience, a completely blank line (without the tabs
    * and without document-name and system-name) can also be used to indicate
@@ -175,8 +175,8 @@ class AntheaDocSys {
       }
       line = line.trim();
       if (!line) {
-        docsys.srcSentGroups.push('');
-        docsys.tgtSentGroups.push('');
+        docsys.srcSegments.push('');
+        docsys.tgtSegments.push('');
         docsys.annotations.push('');
         continue;
       }
@@ -185,13 +185,12 @@ class AntheaDocSys {
         console.log('Skipping ill-formed text line: [' + line + ']');
         continue;
       }
-      const srcSentGroup = parts[0].trim();
-      const tgtSentGroup = parts[1].trim();
+      const srcSegment = parts[0].trim();
+      const tgtSegment = parts[1].trim();
       const doc = parts[2].trim() + ':' + srcLang + ':' + tgtLang;
       const sys = parts[3].trim();
       const annotation = parts.length > 4 ? parts[4].trim() : '';
-      if ((!srcSentGroup || !tgtSentGroup)  &&
-          (srcSentGroup || tgtSentGroup)) {
+      if ((!srcSegment || !tgtSegment) && (srcSegment || tgtSegment)) {
         console.log('Skipping text line: only one of src/tgt is nonempty: [' +
                     line + ']');
         continue;
@@ -201,42 +200,44 @@ class AntheaDocSys {
         continue;
       }
       if (docsys.doc && (doc != docsys.doc || sys != docsys.sys)) {
-        if (docsys.numNonBlankSentGroups > 0) {
+        if (docsys.numNonBlankSegments > 0) {
           parsed.push(docsys);
         } else {
-          console.log('Skipping docsys with no non-empty sentence groups: ' +
-                      JSON.stringify(docsys));
+          console.log(
+              'Skipping docsys with no non-empty segments: ' +
+              JSON.stringify(docsys));
         }
         docsys = new AntheaDocSys();
       }
       docsys.doc = doc;
       docsys.sys = sys;
-      docsys.srcSentGroups.push(srcSentGroup);
-      docsys.tgtSentGroups.push(tgtSentGroup);
+      docsys.srcSegments.push(srcSegment);
+      docsys.tgtSegments.push(tgtSegment);
       docsys.annotations.push(annotation);
-      if (srcSentGroup) {
-        docsys.numNonBlankSentGroups++;
+      if (srcSegment) {
+        docsys.numNonBlankSegments++;
       }
     }
-    if (docsys.numNonBlankSentGroups > 0) {
+    if (docsys.numNonBlankSegments > 0) {
       parsed.push(docsys);
     } else if (docsys.pragmas.length > 0 || docsys.doc) {
-      console.log('Skipping docsys with no non-empty sentence groups: ' +
-                  JSON.stringify(docsys));
+      console.log(
+          'Skipping docsys with no non-empty segments: ' +
+          JSON.stringify(docsys));
     }
     /**
      * Trim blank lines at the end.
      */
     for (const docsys of parsed) {
-      console.assert(docsys.numNonBlankSentGroups > 0, docsys);
-      console.assert(docsys.srcSentGroups.length == docsys.tgtSentGroups.length,
-                     docsys);
-      console.assert(docsys.srcSentGroups.length > 0, docsys);
-      console.assert(docsys.tgtSentGroups.length > 0, docsys);
-      let l = docsys.srcSentGroups.length - 1;
-      while (l > 0 && !docsys.srcSentGroups[l] && !docsys.tgtSentGroups[l]) {
-        docsys.srcSentGroups.pop();
-        docsys.tgtSentGroups.pop();
+      console.assert(docsys.numNonBlankSegments > 0, docsys);
+      console.assert(
+          docsys.srcSegments.length == docsys.tgtSegments.length, docsys);
+      console.assert(docsys.srcSegments.length > 0, docsys);
+      console.assert(docsys.tgtSegments.length > 0, docsys);
+      let l = docsys.srcSegments.length - 1;
+      while (l > 0 && !docsys.srcSegments[l] && !docsys.tgtSegments[l]) {
+        docsys.srcSegments.pop();
+        docsys.tgtSegments.pop();
         l--;
       }
     }
@@ -293,7 +294,7 @@ class AntheaEval {
     this.tgtRealSpansHTML = [];
 
     /** number */
-    this.currSentenceGroup = 0;
+    this.currSegment = 0;
 
     /** ?Object */
     this.config = null;
@@ -302,10 +303,8 @@ class AntheaEval {
     this.hotwPercent_ = 0;
     /** @private {!Array<!Object>} */
     this.evalResults_ = [];
-    /** @private {!Object} */
-    this.evalCounters_ = {};
     /** @private {number} */
-    this.maxSentenceGroupShown_ = 0;
+    this.maxSegmentShown_ = 0;
 
     /** @private @const {string} */
     this.beforeColor_ = 'gray';
@@ -331,15 +330,9 @@ class AntheaEval {
 
     /** @private {?Element} */
     this.contextRow_ = null;
-    /** @private {?Element} */
-    this.expanderRow_ = null;
-    /** @private {?Element} */
-    this.expanderText_ = null;
-    /** @private {number} */
-    this.numPrecedingVisible_ = 0;
 
-    /** @private {!Array<!Object>} stored details for sentence groups */
-    this.sentGroups_ = [];
+    /** @private {!Array<!Object>} stored details for segments */
+    this.segments_ = [];
 
     /**
      * @private {!Array<{eval: !Element, row: !Element,
@@ -357,7 +350,9 @@ class AntheaEval {
     /** @private {number} */
     this.numWordsEvaluated_ = 0;
     /** @private {number} */
-    this.numTgtWords_ = 0;
+    this.numTgtWordsTotal_ = 0;
+    /** @private {!Array<number>} */
+    this.numTgtWords_ = [];
     /** @private {?Element} */
     this.displayedProgress_ = null;
 
@@ -416,29 +411,28 @@ class AntheaEval {
       this.manager_.log(
           this.manager_.ERROR,
           'Not restoring previous results as they are for ' +
-          projectResults.length +
-          ' sentence groups, but the current project has ' +
-          this.evalResults_.length);
+              projectResults.length +
+              ' segments, but the current project has ' +
+              this.evalResults_.length);
       return;
     }
     this.docs_[this.currDoc_].row.style.display = 'none';
-    this.expanderRow_.style.display = 'none';
 
     this.evalResults_ = projectResults;
-    this.currSentenceGroup = 0;
+    this.currSegment = 0;
     this.numWordsEvaluated_ = this.numTgtWords_[0];
-    while (this.currSentenceGroup + 1 < this.evalResults_.length &&
-           (this.READ_ONLY ||
-            this.evalResults_[this.currSentenceGroup + 1].visited)) {
-      this.currSentenceGroup++;
-      this.numWordsEvaluated_ += this.numTgtWords_[this.currSentenceGroup];
+    while (
+        this.currSegment + 1 < this.evalResults_.length &&
+        (this.READ_ONLY || this.evalResults_[this.currSegment + 1].visited)) {
+      this.currSegment++;
+      this.numWordsEvaluated_ += this.numTgtWords_[this.currSegment];
     }
-    this.maxSentenceGroupShown_ = this.currSentenceGroup;
+    this.maxSegmentShown_ = this.currSegment;
 
     if (this.READ_ONLY) {
-      this.currSentenceGroup = 0;
+      this.currSegment = 0;
     }
-    this.currDoc_ = this.evalResults_[this.currSentenceGroup].doc;
+    this.currDoc_ = this.evalResults_[this.currSegment].doc;
 
     this.docs_[this.currDoc_].row.style.display = '';
     this.displayedDocNum_.innerHTML = '' + (this.currDoc_ + 1);
@@ -446,20 +440,20 @@ class AntheaEval {
     docEvalCell.appendChild(this.evalPanel_);
     this.displayedProgress_.innerHTML = this.getPercentEvaluated();
     this.showPageContextIfPresent();
-    this.redrawAllSentenceGroups();
+    this.redrawAllSegments();
     this.recomputeTops();
-    this.showCurrSentenceGroup();
+    this.showCurrSegment();
 
     this.manager_.log(this.manager_.INFO,
                       'Restored previous evaluation results');
   }
 
   /**
-   * Returns the evalResults_[] entry for the current sentence group.
+   * Returns the evalResults_[] entry for the current segment.
    * @return {!Object}
    */
   currSentenceEval() {
-    return this.evalResults_[this.currSentenceGroup];
+    return this.evalResults_[this.currSegment];
   }
 
   /**
@@ -492,16 +486,16 @@ class AntheaEval {
   }
 
   /**
-   * Shows the sentence group at index currSentenceGroup and enables buttons.
+   * Shows the segment at index currSegment and enables buttons.
    */
-  showCurrSentenceGroup() {
-    this.redrawSentenceGroup(this.currSentenceGroup);
+  showCurrSegment() {
+    this.redrawSegment(this.currSegment);
     this.setEvalButtonsAvailability();
   }
 
   /**
-   * Returns true iff n is the current document's sentence group range.
-   * @param {number} n The sentence group index to be tested.
+   * Returns true iff n is the current document's segment range.
+   * @param {number} n The segment index to be tested.
    * @return {boolean}
    */
   inCurrDoc(n) {
@@ -511,17 +505,17 @@ class AntheaEval {
   }
 
   /**
-   * Shows the sentence group at index n. How the sentence group gets shown
-   *     depends on whether it is before, at, or after this.currSentenceGroup.
+   * Shows the segment at index n. How the segment gets shown
+   *     depends on whether it is before, at, or after this.currSegment.
    * @param {number} n
    */
-  redrawSentenceGroup(n) {
+  redrawSegment(n) {
     if (!this.inCurrDoc(n)) {
       return;
     }
 
     /* Get rid of any old highlighting or listeners */
-    const sg = this.sentGroups_[n];
+    const sg = this.segments_[n];
     if (sg.clickListener) {
       this.srcSpans[n].removeEventListener('click', sg.clickListener);
       this.tgtSpans[n].removeEventListener('click', sg.clickListener);
@@ -531,7 +525,7 @@ class AntheaEval {
     const evalResult = this.evalResults_[n];
 
     googdom.setInnerHtml(this.srcSpans[n], this.srcSpansHTML[n]);
-    this.srcSpans[n].className = 'anthea-source-sent-group';
+    this.srcSpans[n].className = 'anthea-source-segment';
 
     let tgtHTML = this.tgtSpansHTML[n];
     if (!this.READ_ONLY &&
@@ -539,7 +533,7 @@ class AntheaEval {
       tgtHTML = this.tgtRealSpansHTML[n];
     }
     googdom.setInnerHtml(this.tgtSpans[n], tgtHTML);
-    this.tgtSpans[n].className = 'anthea-target-sent-group';
+    this.tgtSpans[n].className = 'anthea-target-segment';
 
     const srcWordSpans = this.srcSpans[n].getElementsByTagName('SPAN');
     const tgtWordSpans = this.tgtSpans[n].getElementsByTagName('SPAN');
@@ -561,7 +555,7 @@ class AntheaEval {
       }
     }
 
-    const isCurr = n == this.currSentenceGroup;
+    const isCurr = n == this.currSegment;
     if (isCurr) {
       this.evalPanel_.style.top = sg.top;
       if (!this.config.sqm) {
@@ -595,36 +589,36 @@ class AntheaEval {
       this.noteTiming('visited-or-redrawn');
     }
 
-    if ((n <= this.maxSentenceGroupShown_) && (n != this.currSentenceGroup) &&
+    if ((n <= this.maxSegmentShown_) && (n != this.currSegment) &&
         !this.startedMarking_) {
-      // anthea-sent-group-nav class makes the mouse a pointer on hover.
-      this.srcSpans[n].classList.add('anthea-sent-group-nav');
-      this.tgtSpans[n].classList.add('anthea-sent-group-nav');
+      // anthea-segment-nav class makes the mouse a pointer on hover.
+      this.srcSpans[n].classList.add('anthea-segment-nav');
+      this.tgtSpans[n].classList.add('anthea-segment-nav');
       sg.clickListener = () => {
-        this.revisitSentenceGroup(n);
+        this.revisitSegment(n);
       };
       this.srcSpans[n].addEventListener('click', sg.clickListener);
       this.tgtSpans[n].addEventListener('click', sg.clickListener);
     }
 
-    const isBefore = n < this.currSentenceGroup;
+    const isBefore = n < this.currSegment;
     this.srcSpans[n].style.color = this.tgtSpans[n].style.color =
         (isCurr ? this.currColor_ :
          (isBefore ? this.beforeColor_ : this.afterColor_));
     this.srcSpans[n].style.fontWeight = this.tgtSpans[n].style.fontWeight =
         isCurr ? 'bold' : 'normal';
 
-    if (n <= this.maxSentenceGroupShown_) {
-      this.updateProgressForSentenceGroup(n);
+    if (n <= this.maxSegmentShown_) {
+      this.updateProgressForSegment(n);
     }
   }
 
   /**
-   * Redraws all sentence groups and calls setEvalButtonsAvailability().
+   * Redraws all segments and calls setEvalButtonsAvailability().
    */
-  redrawAllSentenceGroups() {
+  redrawAllSegments() {
     for (let n = 0; n < this.srcSpans.length; n++) {
-      this.redrawSentenceGroup(n);
+      this.redrawSegment(n);
     }
     this.setEvalButtonsAvailability();
     this.lastTimestampMS_ = Date.now();
@@ -647,13 +641,12 @@ class AntheaEval {
       html += '<p class="anthea-hotw-found">You successfully found an error ' +
               'in this ';
     }
-    html +=
-        '<span class="anthea-hotw-def" title="A small fraction of ' +
+    html += '<span class="anthea-hotw-def" title="A small fraction of ' +
         'sentences that are initially shown with some deliberately injected ' +
         'error(s). Evaluating translation quality is a difficult and ' +
         'demanding task, and these test sentences are simply meant to ' +
         'help you maintain the high level of attention the task needs.">' +
-        'test sentence group that had been artificially altered</span>.</p> ';
+        'test segment that had been artificially altered</span>.</p> ';
     html += '<p>The injected error (now <b>reverted</b>) was: ' + span + '</p>';
     html += '<p><b>Please continue to rate the translation as now shown ' +
             'without alterations, thanks!</b></p></td>';
@@ -662,7 +655,7 @@ class AntheaEval {
 
 /**
  * Displays the previously marked error in errors[index], alongside the
- *     current sentence group. The displayed error also includes an "x" button
+ *     current segment. The displayed error also includes an "x" button
  *     for deleting it.
  * @param {!Array<!Object>} errors
  * @param {number} index
@@ -709,7 +702,7 @@ displayError(errors, index) {
     delButton.addEventListener('click', (e) => {
       e.preventDefault();
       errors.splice(index, 1);
-      this.showCurrSentenceGroup();
+      this.showCurrSegment();
     });
   }
   }
@@ -791,11 +784,10 @@ displayError(errors, index) {
         }
       }
     }
-    this.expanderRow_.className = 'anthea-expander-row';
     const start = this.docs_[this.currDoc_].startSG;
     const num = this.docs_[this.currDoc_].numSG;
-    this.prevButton_.disabled = (this.currSentenceGroup <= start);
-    this.nextButton_.disabled = (this.currSentenceGroup >= start + num - 1);
+    this.prevButton_.disabled = (this.currSegment <= start);
+    this.nextButton_.disabled = (this.currSegment >= start + num - 1);
     if (this.config.sqm && !evalResult.hasOwnProperty('sqm') &&
         !this.READ_ONLY) {
       this.nextButton_.disabled = true;
@@ -858,28 +850,26 @@ displayError(errors, index) {
     this.nextButton_.disabled = true;
     this.prevDocButton_.disabled = true;
     this.nextDocButton_.disabled = true;
-    this.expanderRow_.className = 'anthea-expander-row-disabled';
   }
 
   /**
-   * Decrements currSentenceGroup within the current doc.
+   * Decrements currSegment within the current doc.
    */
-  decrCurrSentenceGroup() {
+  decrCurrSegment() {
     const start = this.docs_[this.currDoc_].startSG;
     const num = this.docs_[this.currDoc_].numSG;
-    if (this.currSentenceGroup <= start ||
-        this.currSentenceGroup > start + num - 1) {
+    if (this.currSegment <= start || this.currSegment > start + num - 1) {
       return;
     }
-    this.currSentenceGroup--;
+    this.currSegment--;
   }
 
   /**
-   * Updates displayed progress when sentence group n is visited for the first
+   * Updates displayed progress when segment n is visited for the first
    * time.
    * @param {number} n
    */
-  updateProgressForSentenceGroup(n) {
+  updateProgressForSegment(n) {
     if (this.evalResults_[n].visited) {
       return;
     }
@@ -890,14 +880,14 @@ displayError(errors, index) {
   }
 
   /**
-   * Called after a sentence group should be done with. Returns false in
-   *     the (rare) case that the sentence group was a HOTW sentence with
+   * Called after a segment should be done with. Returns false in
+   *     the (rare) case that the segment was a HOTW sentence with
    *     injected errors shown, which leads to the end of the HOTW check
    *     but makes the rater continue to rate the sentence.
    * @return {boolean}
    */
-  finishCurrSentenceGroup() {
-    const evalResult = this.evalResults_[this.currSentenceGroup];
+  finishCurrSegment() {
+    const evalResult = this.evalResults_[this.currSegment];
     if (!this.READ_ONLY &&
         evalResult.hotw && !evalResult.hotw.done) {
       this.noteTiming('missed-hands-on-the-wheel-error');
@@ -905,54 +895,53 @@ displayError(errors, index) {
       evalResult.hotw.timestamp = evalResult.timestamp;
       evalResult.hotw.timing = evalResult.timing;
       evalResult.timing = {};
-      this.redrawAllSentenceGroups();
+      this.redrawAllSegments();
       return false;
     }
     return true;
   }
 
   /**
-   * Increments currSentenceGroup within the current doc, keeping track of its
+   * Increments currSegment within the current doc, keeping track of its
    *     max value so far.
    */
-  incrCurrSentenceGroup() {
+  incrCurrSegment() {
     const start = this.docs_[this.currDoc_].startSG;
     const num = this.docs_[this.currDoc_].numSG;
-    if (this.currSentenceGroup < start ||
-        this.currSentenceGroup >= start + num - 1) {
+    if (this.currSegment < start || this.currSegment >= start + num - 1) {
       return;
     }
-    if (!this.finishCurrSentenceGroup()) {
+    if (!this.finishCurrSegment()) {
       return;
     }
-    this.currSentenceGroup++;
-    if (this.currSentenceGroup > this.maxSentenceGroupShown_) {
-      this.maxSentenceGroupShown_ = this.currSentenceGroup;
+    this.currSegment++;
+    if (this.currSegment > this.maxSegmentShown_) {
+      this.maxSegmentShown_ = this.currSegment;
     }
   }
 
   /**
-   * Returns true if the current sentence group is the farthest one seen.
+   * Returns true if the current segment is the farthest one seen.
    * @return {boolean}
    */
-  isFarthestSentenceGroup() {
-    return this.currSentenceGroup == this.maxSentenceGroupShown_;
+  isFarthestSegment() {
+    return this.currSegment == this.maxSegmentShown_;
   }
 
   /**
-   * Navigates to the previous sentence group.
+   * Navigates to the previous segment.
    */
   handlePrev() {
-    this.decrCurrSentenceGroup();
-    this.redrawAllSentenceGroups();
+    this.decrCurrSegment();
+    this.redrawAllSegments();
   }
 
   /**
-   * Navigates to the next sentence group.
+   * Navigates to the next segment.
    */
   handleNext() {
-    this.incrCurrSentenceGroup();
-    this.redrawAllSentenceGroups();
+    this.incrCurrSegment();
+    this.redrawAllSegments();
   }
 
   /**
@@ -960,10 +949,12 @@ displayError(errors, index) {
    * @return {string}
    */
   getPercentEvaluated() {
-    return '' + Math.min(
-      100,
-      Math.floor(100 * this.numWordsEvaluated_ / this.evalCounters_.numWords)) +
-      '%';
+    return '' +
+        Math.min(
+            100,
+            Math.floor(
+                100 * this.numWordsEvaluated_ / this.numTgtWordsTotal_)) +
+        '%';
   }
 
   /**
@@ -974,9 +965,10 @@ displayError(errors, index) {
    */
   maybeAugmentError(markedError) {
     if (markedError.override_all_errors) {
-      if (!confirm('This error category will remove all other marked errors ' +
-                   'from this sentence group and will set the error span to ' +
-                   'be the whole sentence group. Please confirm!')) {
+      if (!confirm(
+              'This error category will remove all other marked errors ' +
+              'from this segment and will set the error span to ' +
+              'be the whole segment. Please confirm!')) {
         this.noteTiming('cancelled-override-all-errors');
         return false;
       }
@@ -984,7 +976,7 @@ displayError(errors, index) {
       markedError.location = 'translation';
       markedError.prefix = '';
       const spanArray =
-          this.tgtSpans[this.currSentenceGroup].getElementsByTagName('SPAN');
+          this.tgtSpans[this.currSegment].getElementsByTagName('SPAN');
       markedError.selected = '';
       for (let x = 0; x < spanArray.length; x++) {
         markedError.selected += spanArray[x].innerText;
@@ -1009,8 +1001,7 @@ displayError(errors, index) {
   }
 
   /**
-   * Calling this marks the end of an error-marking in the current sentence
-   *     group.
+   * Calling this marks the end of an error-marking in the current segment.
    * @param {?Object} markedError Object with error details and location,
    *     or null, if no error is to be marked.
    */
@@ -1032,7 +1023,7 @@ displayError(errors, index) {
     this.resetMQMRating();
 
     this.saveResults();
-    this.redrawAllSentenceGroups();
+    this.redrawAllSegments();
   }
 
   /**
@@ -1257,7 +1248,7 @@ displayError(errors, index) {
    */
   maybeSetMQMRating() {
     this.startedMarking_ = true;
-    this.redrawAllSentenceGroups();
+    this.redrawAllSegments();
     if (!this.severity_ ||
         (!this.errorType_ && !this.severity_.forced_error) ||
         !this.markedPhrase_) {
@@ -1358,10 +1349,10 @@ displayError(errors, index) {
     const evalResult = this.currSentenceEval();
     evalResult.sqm = sqm;
     this.saveResults();
-    if (this.isFarthestSentenceGroup()) {
-      this.incrCurrSentenceGroup();
+    if (this.isFarthestSegment()) {
+      this.incrCurrSegment();
     }
-    this.redrawAllSentenceGroups();
+    this.redrawAllSegments();
   }
 
   /**
@@ -1394,27 +1385,26 @@ displayError(errors, index) {
   }
 
   /**
-   * Navigates to the specified sentence group and opens highlighting UI.
+   * Navigates to the specified segment and opens highlighting UI.
    * @param {number} n
    */
-  revisitSentenceGroup(n) {
-    if (n > this.maxSentenceGroupShown_ || n < 0 || !this.inCurrDoc(n) ||
+  revisitSegment(n) {
+    if (n > this.maxSegmentShown_ || n < 0 || !this.inCurrDoc(n) ||
         this.startedMarking_) {
       return;
     }
     this.noteTiming('revisited');
-    this.evalCounters_.numRevisits++;
-    let old = this.currSentenceGroup;
-    this.currSentenceGroup = n;
+    let old = this.currSegment;
+    this.currSegment = n;
     let incr = 1;
     if (old > n) {
       incr = -1;
     }
     while (old != n) {
-      this.redrawSentenceGroup(old);
+      this.redrawSegment(old);
       old = old + incr;
     }
-    this.showCurrSentenceGroup();
+    this.showCurrSegment();
   }
 
   /**
@@ -1480,84 +1470,59 @@ displayError(errors, index) {
   }
 
   /**
-   * Wraps each space-separated word in text in a SPAN of class
-   *   "anthea-word" and each space too in a SPAN of class
-   *   "anthea-space".
+   * Tokenizes text, splitting on space and on zero-width space. The zero-width
+   * space character is not included in the returned tokens, but space is. Empty
+   * strings are not emitted as tokens.
+   * @param {string} text
+   * @return {!Array<string>}
+   */
+  static tokenize(text) {
+    const tokens = [];
+    const textParts = text.split(' ');
+    for (let index = 0; index < textParts.length; index++) {
+      const part = textParts[index];
+      // Segment further by any 0-width space characters present.
+      const subParts = part.split('\u200b');
+      for (let subPart of subParts) {
+        if (subPart) {
+          tokens.push(subPart);
+        }
+      }
+      if (index < textParts.length - 1) {
+        tokens.push(' ');
+      }
+    }
+    return tokens;
+  }
+
+  /**
+   * Wraps each non-space token in text in a SPAN of class "anthea-word" and
+   * each space in a SPAN of class "anthea-space". Adds a trailing space.
    * @param {string} text
    * @return {{numWords: number, spannified: string}}
    */
   static spannifyWords(text) {
-    const words = text.split(' ');
     const ret = {
       numWords: 0,
+      spannified: '',
     };
-    for (let i = 0; i < words.length; i++) {
-      // Segment further by any 0-width space characters present.
-      const cjkWords = words[i].split('\u200b');
-      words[i] = '';
-      for (let w of cjkWords) {
-        words[i] += '<span class="anthea-word">' + w + '</span>';
-      }
-      ret.numWords += cjkWords.length;
-    }
+    const tokens = this.tokenize(text);
     const SEP = '<span class="anthea-space"> </span>';
-    ret.spannified = words.join(SEP) + SEP;
+    for (let token of tokens) {
+      if (token == ' ') {
+        ret.spannified += SEP;
+      } else {
+        ret.spannified += '<span class="anthea-word">' + token + '</span>';
+        ret.numWords++;
+      }
+    }
+    /** We always emit a trailing space */
+    ret.spannified += SEP;
     return ret;
   }
 
   /**
-   * Show k sentences of preceding context.
-   * @param {number} k
-   */
-  showPrecedingContext(k) {
-    const srcPrec = document.getElementsByClassName("prec-src-group");
-    const tgtPrec = document.getElementsByClassName("prec-tgt-group");
-    this.numPrecedingVisible_ = 0;
-    for (let i = 1; i <= srcPrec.length; i++) {
-      const index = srcPrec.length - i;
-      if (i <= k) {
-        srcPrec[index].style.display = '';
-        tgtPrec[index].style.display = '';
-        this.numPrecedingVisible_++;
-      } else {
-        srcPrec[index].style.display = 'none';
-        tgtPrec[index].style.display = 'none';
-      }
-    }
-  }
-
-  /**
-   * If the first doc has more preceding context available, then this
-   *     function toggles its display.
-   */
-  toggleExpansion() {
-    if (this.startedMarking_ || this.expanderRow_.style.display == 'none') {
-      return;
-    }
-    const extra =
-        this.evalCounters_.numPreceding - this.config.NUM_PRECEDING_VISIBLE;
-    if (extra <= 0) {
-      return;
-    }
-    if (this.numPrecedingVisible_ > this.config.NUM_PRECEDING_VISIBLE) {
-      this.showPrecedingContext(this.config.NUM_PRECEDING_VISIBLE);
-      this.expanderText_.innerHTML =
-          'Click here to expand ' + extra +
-          ' more preceding context sentence group(s)';
-    } else {
-      this.showPrecedingContext(this.evalCounters_.numPreceding);
-      this.expanderText_.innerHTML =
-          'Click here to collapse ' + extra +
-          ' preceding context sentence group(s)';
-    }
-    this.isExpanded_ = !this.isExpanded_;
-    this.recomputeTops();
-    this.noteTiming('toggled-context');
-    this.evalCounters_.numFullContextToggles++;
-  }
-
-  /**
-   * This function recomputes the tops of sentence groups.
+   * This function recomputes the tops of segments.
    */
   recomputeTops() {
     const start = this.docs_[this.currDoc_].startSG;
@@ -1569,9 +1534,9 @@ displayError(errors, index) {
       const tgtRect = this.tgtSpans[s].getBoundingClientRect();
       pos = Math.min(srcRect.top - docRowRect.top,
                      tgtRect.top - docRowRect.top);
-      const sg = this.sentGroups_[s];
+      const sg = this.segments_[s];
       sg.top = '' + pos + 'px';
-      if (s == this.currSentenceGroup && this.evalPanel_) {
+      if (s == this.currSegment && this.evalPanel_) {
         this.evalPanel_.style.top = sg.top;
       }
     }
@@ -1581,7 +1546,7 @@ displayError(errors, index) {
   }
 
   /**
-   * Returns true if all sentence groups in the current doc have been evaluated.
+   * Returns true if all segments in the current doc have been evaluated.
    *
    * @return {boolean} Whether the current doc has been fully evaluated.
    */
@@ -1603,21 +1568,20 @@ displayError(errors, index) {
     if (!this.READ_ONLY && (this.startedMarking_ || this.currDoc_ == 0)) {
       return;
     }
-    if (!this.finishCurrSentenceGroup()) {
+    if (!this.finishCurrSegment()) {
       return;
     }
     this.docs_[this.currDoc_].row.style.display = 'none';
-    this.expanderRow_.style.display = 'none';
     this.currDoc_--;
     this.displayedDocNum_.innerHTML = '' + (this.currDoc_ + 1);
-    this.currSentenceGroup = this.docs_[this.currDoc_].startSG;
+    this.currSegment = this.docs_[this.currDoc_].startSG;
     this.docs_[this.currDoc_].row.style.display = '';
     const docEvalCell = this.docs_[this.currDoc_].eval;
     docEvalCell.appendChild(this.evalPanel_);
     this.showPageContextIfPresent();
-    this.redrawAllSentenceGroups();
+    this.redrawAllSegments();
     this.recomputeTops();
-    this.showCurrSentenceGroup();
+    this.showCurrSegment();
   }
 
   /**
@@ -1629,24 +1593,23 @@ displayError(errors, index) {
          !this.currDocFullyEvaluated())) {
       return;
     }
-    if (!this.finishCurrSentenceGroup()) {
+    if (!this.finishCurrSegment()) {
       return;
     }
     this.docs_[this.currDoc_].row.style.display = 'none';
-    this.expanderRow_.style.display = 'none';
     this.currDoc_++;
     this.displayedDocNum_.innerHTML = '' + (this.currDoc_ + 1);
-    this.currSentenceGroup = this.docs_[this.currDoc_].startSG;
-    if (this.currSentenceGroup > this.maxSentenceGroupShown_) {
-      this.maxSentenceGroupShown_ = this.currSentenceGroup;
+    this.currSegment = this.docs_[this.currDoc_].startSG;
+    if (this.currSegment > this.maxSegmentShown_) {
+      this.maxSegmentShown_ = this.currSegment;
     }
     this.docs_[this.currDoc_].row.style.display = '';
     const docEvalCell = this.docs_[this.currDoc_].eval;
     docEvalCell.appendChild(this.evalPanel_);
     this.showPageContextIfPresent();
-    this.redrawAllSentenceGroups();
+    this.redrawAllSegments();
     this.recomputeTops();
-    this.showCurrSentenceGroup();
+    this.showCurrSegment();
   }
 
   /**
@@ -1825,18 +1788,6 @@ displayError(errors, index) {
     }
     this.keydownListeners = [];
 
-    /* Show preceding sentences, if any */
-    this.showPrecedingContext(config.NUM_PRECEDING_VISIBLE);
-    if (this.numPrecedingVisible_ < this.evalCounters_.numPreceding) {
-      this.expanderText_.innerHTML =
-          'Click here to expand ' +
-          (this.evalCounters_.numPreceding - this.numPrecedingVisible_)  +
-          ' more preceding context sentence group(s)';
-      this.expanderRow_.style = '';
-    } else {
-      this.expanderRow_.style.display = 'none';
-    }
-
     const docEvalCell = this.docs_[this.currDoc_].eval;
     docEvalCell.innerHTML = '';
     this.evalPanel_ = googdom.createDom(
@@ -1867,11 +1818,13 @@ displayError(errors, index) {
       googdom.createDom('table', 'anthea-eval-panel-table', buttonsRow));
 
     this.prevButton_ = googdom.createDom(
-      'button', { id: 'anthea-prev-button',
-                  class: 'anthea-stretchy-button anthea-eval-panel-tall',
-                  title: 'Go back to the previous sentence group ' +
-                         '(shortcut: left-arrow key)' },
-      '←');
+        'button', {
+          id: 'anthea-prev-button',
+          class: 'anthea-stretchy-button anthea-eval-panel-tall',
+          title: 'Go back to the previous segment ' +
+              '(shortcut: left-arrow key)'
+        },
+        '←');
     const prevListener = (e) => {
       if (e.type == 'click' ||
           (!this.prevButton_.disabled && e.key && e.key === "ArrowLeft")) {
@@ -1920,15 +1873,17 @@ displayError(errors, index) {
       // SQM.
       buttonsRow.appendChild(googdom.createDom(
           'td', 'anthea-eval-panel-text anthea-bold',
-          'Rating for translation of current sentence group:'));
+          'Rating for translation of current segment:'));
     }
 
     this.nextButton_ = googdom.createDom(
-      'button', { id: 'anthea-next-button',
-                  class: 'anthea-stretchy-button anthea-eval-panel-tall',
-                  title: 'Go to the next sentence group ' +
-                         '(shortcut: right-arrow key)' },
-      '→');
+        'button', {
+          id: 'anthea-next-button',
+          class: 'anthea-stretchy-button anthea-eval-panel-tall',
+          title: 'Go to the next segment ' +
+              '(shortcut: right-arrow key)'
+        },
+        '→');
     const nextListener = (e) => {
       if (e.type == 'click' ||
           (!this.nextButton_.disabled && e.key && e.key === "ArrowRight")) {
@@ -2118,14 +2073,14 @@ displayError(errors, index) {
       }
       try {
         const pageContext = JSON.parse(thisDoc.docsys.annotations[0]);
-        if (!pageContext.source || !pageContext.target) {
+        if (!pageContext.source_context || !pageContext.target_context) {
           this.manager_.log(
               this.manager_.ERROR,
-              'Incomplete page context in the annotation for doc ' + i);
+              'Incomplete/missing page context in the annotation for doc ' + i);
           continue;
         }
-        thisDoc.srcContext = pageContext.source;
-        thisDoc.tgtContext = pageContext.target;
+        thisDoc.srcContext = pageContext.source_context;
+        thisDoc.tgtContext = pageContext.target_context;
       } catch (err) {
         this.manager_.log(
             this.manager_.ERROR,
@@ -2273,31 +2228,15 @@ displayError(errors, index) {
 
     this.hotwPercent_ = hotwPercent;
 
-    this.evalCounters_ = {
-      numSentenceGroups: 0,
-      numPreceding: 0,
-      numParagraphBreaks: 0,
-      numDocuments: 0,
-      numWords: 0,
-      numRevisits: 0,
-      numFullContextToggles: 0,
-    };
     this.lastTimestampMS_ = Date.now();
     this.evalResults_ = [];
-    this.sentGroups_ = [];
+    this.segments_ = [];
     this.numTgtWords_ = [];
     this.docs_ = [];
     this.currDoc_ = 0;
 
     this.contextRow_ = googdom.createDom('tr', 'anthea-context-row');
     this.contextRow_.style.display = 'none';
-
-    this.expanderText_ = googdom.createDom(
-      'td', { colspan: 3, class: 'anthea-expander-text' }, 'Expand');
-    this.expanderRow_ = googdom.createDom(
-      'tr', 'anthea-expander-row', this.expanderText_);
-    this.expanderRow_.addEventListener(
-      'click', () => { this.toggleExpansion(); });
 
     const evalHeading = this.READ_ONLY ?
         'Evaluations (view-only)' : 'Evaluations';
@@ -2312,8 +2251,7 @@ displayError(errors, index) {
             googdom.createDom('td', 'anthea-text-heading', srcHeading),
             googdom.createDom('td', 'anthea-text-heading', tgtHeading),
             googdom.createDom('td', 'anthea-text-heading', evalHeading)),
-            this.contextRow_,
-            this.expanderRow_);
+        this.contextRow_);
     evalDiv.appendChild(docTextTable);
 
     for (let docsys of projectData) {
@@ -2337,35 +2275,33 @@ displayError(errors, index) {
 
       docTextTable.appendChild(doc.row);
 
-      const srcSentGroups = docsys.srcSentGroups;
-      const tgtSentGroups = docsys.tgtSentGroups;
+      const srcSegments = docsys.srcSegments;
+      const tgtSegments = docsys.tgtSegments;
       let srcSpannified = '<p class="anthea-source-para">';
       let tgtSpannified = '<p class="anthea-target-para">';
-      for (let i = 0; i < srcSentGroups.length; i++) {
-        if (srcSentGroups[i].length == 0) {
+      for (let i = 0; i < srcSegments.length; i++) {
+        if (srcSegments[i].length == 0) {
           /* New paragraph. */
           srcSpannified = srcSpannified + '</p><p class="anthea-source-para">';
           tgtSpannified = tgtSpannified + '</p><p class="anthea-target-para">';
-          this.evalCounters_.numParagraphBreaks++;
           continue;
         }
 
         const srcWordSpans =
-            AntheaEval.spannifyWords(srcSentGroups[i]).spannified;
+            AntheaEval.spannifyWords(srcSegments[i]).spannified;
         this.srcSpansHTML.push(srcWordSpans);
 
-        const tgtSpannifyRet = AntheaEval.spannifyWords(tgtSentGroups[i]);
-        this.evalCounters_.numWords += tgtSpannifyRet.numWords;
+        const tgtSpannifyRet = AntheaEval.spannifyWords(tgtSegments[i]);
+        this.numTgtWordsTotal_ += tgtSpannifyRet.numWords;
         this.numTgtWords_.push(tgtSpannifyRet.numWords);
         let tgtWordSpans = tgtSpannifyRet.spannified;
         this.tgtSpansHTML.push(tgtWordSpans);
 
         let injectedError = '';
-        if (!config.sqm && !this.READ_ONLY &&
-            this.hotwPercent_ > 0 &&
-            i < srcSentGroups.length - 1 &&
+        if (!config.sqm && !this.READ_ONLY && this.hotwPercent_ > 0 &&
+            i < srcSegments.length - 1 &&
             (100 * Math.random()) < this.hotwPercent_) {
-          let ret = AntheaEval.injectErrors(tgtSentGroups[i]);
+          let ret = AntheaEval.injectErrors(tgtSegments[i]);
           if (!ret.corrupted) {
             this.tgtRealSpansHTML.push('');
           } else {
@@ -2378,11 +2314,11 @@ displayError(errors, index) {
         }
 
         srcSpannified = srcSpannified +
-            "<span class='anthea-source-sent-group'>" +
-            srcWordSpans + " </span>";
+            '<span class=\'anthea-source-segment\'>' + srcWordSpans +
+            ' </span>';
         tgtSpannified = tgtSpannified +
-            "<span class='anthea-target-sent-group'>" +
-            tgtWordSpans + " </span>";
+            '<span class=\'anthea-target-segment\'>' + tgtWordSpans +
+            ' </span>';
         const evalResult = {
           'errors': [],
           'doc': this.docs_.length - 1,
@@ -2401,20 +2337,20 @@ displayError(errors, index) {
         this.evalResults_.push(evalResult);
         doc.numSG++;
 
-        this.sentGroups_.push({
-            doc: this.docs_.length - 1, clickListener: null, top: '0', });
+        this.segments_.push({
+          doc: this.docs_.length - 1,
+          clickListener: null,
+          top: '0',
+        });
       }
-      this.evalCounters_.numDocuments++;
 
       googdom.setInnerHtml(docTextSrcRow, srcSpannified + '</p>');
       googdom.setInnerHtml(docTextTgtRow, tgtSpannified + '</p>');
       this.adjustHeight(docTextSrcRow, docTextTgtRow);
     }
 
-    this.evalCounters_.numSentenceGroups = this.evalResults_.length;
-
-    this.srcSpans = document.getElementsByClassName("anthea-source-sent-group");
-    this.tgtSpans = document.getElementsByClassName("anthea-target-sent-group");
+    this.srcSpans = document.getElementsByClassName('anthea-source-segment');
+    this.tgtSpans = document.getElementsByClassName('anthea-target-segment');
 
     const controlPanel = document.createElement('div');
     controlPanel.id = 'anthea-control-panel';
@@ -2443,7 +2379,7 @@ displayError(errors, index) {
       }
     }
 
-    this.currSentenceGroup = 0;
+    this.currSegment = 0;
     this.createUIFromConfig(config, projectResults,
                             instructionsPanel, controlPanel);
 
@@ -2457,13 +2393,13 @@ displayError(errors, index) {
     this.resizeListener_ = () => { this.recomputeTops(); };
     window.addEventListener('resize', this.resizeListener_);
 
-    this.redrawAllSentenceGroups();
+    this.redrawAllSegments();
   }
 }
 
 /**
  * The PhraseMarker class is used to collect highlighted phrases for the current
- *     sentence group (currSentenceGroup).
+ *     segment (currSegment).
  * @final
  */
 class PhraseMarker {
@@ -2503,19 +2439,19 @@ class PhraseMarker {
   }
 
   /**
-   * Resets the word spans in the current sentence groups, getting rid of any
+   * Resets the word spans in the current segments, getting rid of any
    *     event listeners from spannification done in the previous state. Sets
    *     element class to 'anthea-word-active' or
    *     'anthea-space-active'.
    */
   resetWordSpans() {
     const ce = this.contextedEval_;
-    ce.redrawSentenceGroup(ce.currSentenceGroup);
+    ce.redrawSegment(ce.currSegment);
 
     this.srcWordSpans_ =
-      ce.srcSpans[ce.currSentenceGroup].getElementsByTagName('SPAN');
+        ce.srcSpans[ce.currSegment].getElementsByTagName('SPAN');
     this.tgtWordSpans_ =
-      ce.tgtSpans[ce.currSentenceGroup].getElementsByTagName('SPAN');
+        ce.tgtSpans[ce.currSegment].getElementsByTagName('SPAN');
 
     const allowSpaceStart = ce.config.ALLOW_SPANS_STARTING_ON_SPACE || false;
 
@@ -2677,7 +2613,7 @@ class PhraseMarker {
 
   /**
    * The public entrypoint in the PhraseMarker object. Sets up the UI to
-   *     collect a highlighted phrase from currSentenceGroup.
+   *     collect a highlighted phrase from currSegment.
    *     When phrase-marking is done, the contextedEval_ object's
    *     setMQMPhrase() function will get called.
    * @param {string} color The color to use for highlighting.

@@ -455,8 +455,8 @@ class AntheaManager {
       return;
     }
     let numVisited = 0;
-    for (let sentRes of this.activeResults_) {
-      if (sentRes.visited) {
+    for (let segmentRes of this.activeResults_) {
+      if (segmentRes.visited) {
         numVisited++;
       }
     }
@@ -534,7 +534,7 @@ class AntheaManager {
         numRead++;
         if (numRead == numToRead) {
           if (this.viewingMQMData_) {
-            createMQMViewer(this.mqmViewer_, this.viewingMQMData_);
+            createMQMViewer(this.mqmViewer_, this.viewingMQMData_, false);
             this.viewingMQMTab_.style.display = '';
             this.handleViewingMQMTab();
           }
@@ -712,40 +712,25 @@ class AntheaManager {
    * @return {string} The text after marking the error span.
    */
   markMQMSpan(text, error) {
+    const tokens = AntheaEval.tokenize(text);
     const start = error['start'];
     const end = error['end'];
     if (start < 0 || end < start) {
       return text;
     }
-    const textParts = text.trim().split(' ');
-    const partsWithSpace = [];
-    let isFirst = !text.startsWith(' ');
-    for (let part of textParts) {
-      if (isFirst) {
-        isFirst = false;
-      } else {
-        partsWithSpace.push(' ');
-      }
-      const subParts = part.split('\u200b');
-      let isFirstSub = true;
-      for (let subPart of subParts) {
-        if (isFirstSub) {
-          partsWithSpace.push(subPart);
-          isFirstSub = false;
-        } else {
-          partsWithSpace.push('\u200b' + subPart);
-        }
-      }
-    }
-    if (text.endsWith(' ')) {
-      partsWithSpace.push(' ');
+    if (end == tokens.length) {
+      /**
+       * Since segments are shown with a trailing space at the end, start/end
+       * may point just beyond tokens[].
+       */
+      tokens.push(' ');
     }
     let out = '';
-    for (let index = 0; index < partsWithSpace.length; index++) {
+    for (let index = 0; index < tokens.length; index++) {
       if (index == start) {
         out += '<v>';
       }
-      out += partsWithSpace[index];
+      out += tokens[index];
       if (index == end) {
         out += '</v>';
       }
@@ -765,8 +750,10 @@ class AntheaManager {
    */
   getMQMSegData(parsedData, docsys, segIndex, src, tgt, error) {
     if (error.location == 'source') {
+      error.metadata.source_spans = [[error['start'], error['end']]];
       src = this.markMQMSpan(src, error);
     } else if (error.location == 'translation') {
+      error.metadata.target_spans = [[error['start'], error['end']]];
       tgt = this.markMQMSpan(tgt, error);
     }
     src = this.cleanText(src);
@@ -835,14 +822,16 @@ class AntheaManager {
     let resultIndex = 0;
     for (let docsys of parsedData.parsedDocSys) {
       let segIndex = 0;
-      for (let l = 0; l < docsys.srcSentGroups.length; l++) {
-        console.assert(l < docsys.tgtSentGroups.length,
-                       l, docsys.tgtSentGroups.length);
-        const src = docsys.srcSentGroups[l];
+      for (let l = 0; l < docsys.srcSegments.length; l++) {
+        console.assert(l < docsys.tgtSegments.length,
+                       l, docsys.tgtSegments.length);
+        const src = docsys.srcSegments[l];
         if (!src) {
           continue;
         }
-        const tgt = docsys.tgtSentGroups[l];
+        const tgt = docsys.tgtSegments[l];
+        const anno = docsys.annotations[l];
+        const startsPara = (l == 0) || !docsys.srcSegments[l - 1];
         console.assert(resultIndex < parsedData.results.length,
                        resultIndex, parsedData.results.length);
         const segResult = parsedData.results[resultIndex++];
@@ -887,6 +876,7 @@ class AntheaManager {
             },
           });
         }
+        let isFirst = true;
         for (let error of errors) {
           if (!error.metadata) {
             error.metadata = {};
@@ -899,6 +889,26 @@ class AntheaManager {
           }
           if (error.note && !error.metadata.note) {
             error.metadata.note = error.note;
+          }
+          if (isFirst) {
+            error.metadata.segment = {
+              source_tokens: AntheaEval.tokenize(src),
+              target_tokens: AntheaEval.tokenize(tgt),
+            };
+            if (startsPara) {
+              error.metadata.segment.starts_paragraph = true;
+            }
+            if (anno) {
+              try {
+                const parsedAnno = JSON.parse(anno);
+                for (let k in parsedAnno) {
+                  error.metadata.segment[k] = parsedAnno[k];
+                }
+              } catch (err) {
+                console.log('Ignoring json-parsing error: ' + err);
+              }
+            }
+            isFirst = false;
           }
           mqmData += this.getMQMSegData(parsedData, docsys,
                                         segIndex, src, tgt, error);
@@ -926,6 +936,21 @@ class AntheaManager {
           !parsedData.results || !parsedData.createdAt || !parsedData.savedAt ||
           !parsedData.srcLang || !parsedData.tgtLang) {
         throw 'Invalid evaluation data file: ' + evaluationFileName;
+      }
+      /**
+       * Convert some legacy field names.
+       */
+      for (let docsys of parsedData.parsedDocSys) {
+        if (docsys.srcSentGroups && !docsys.srcSegments) {
+          docsys.srcSegments = docsys.srcSentGroups;
+        }
+        if (docsys.tgtSentGroups && !docsys.tgtSegments) {
+          docsys.tgtSegments = docsys.tgtSentGroups;
+        }
+        if (docsys.hasOwnProperty('numNonBlankSentGroups') &&
+            !docsys.hasOwnProperty('numNonBlankSegments')) {
+          docsys.numNonBlankSegments = docsys.numNonBlankSentGroups;
+        }
       }
       parsedData.parsedDocSys.srcLang = parsedData.srcLang;
       parsedData.parsedDocSys.tgtLang = parsedData.tgtLang;

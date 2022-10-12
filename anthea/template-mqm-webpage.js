@@ -106,11 +106,11 @@ antheaTemplates['MQM-WebPage'] = {
    *     first segment. The annotation should be a JSON string that looks like
    *     this (exccept that it should not have newlines):
    * {
-   *   "source": {
+   *   "source_context": {
    *     "url": "http://screenshot-image-url-for-source",
    *     "w": 100, "h": 120, "box": {"x": 5, "y": 7, "w": 90, "h": 30}
    *   },"
-   *   "target": {
+   *   "target_context": {
    *     "url": "http://screenshot-image-url-for-target",
    *     "w": 100, "h": 120, " "box": {"x": 5, "y": 7, "w": 90, "h": 30}
    *   },
