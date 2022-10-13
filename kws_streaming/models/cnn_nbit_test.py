@@ -94,7 +94,8 @@ class CnnNBitTest(tf.test.TestCase):
     params.return_softmax = True
     params.quantize = 1  # apply quantization aware training
     params.use_quantize_nbit = 1  # apply nbit scheme
-    params.nbit_weight_bits = 4  # lower value requires increased atol value
+    # TODO(guynich) revert to 4 when TFLite conversion works.
+    params.nbit_weight_bits = 6  # lower value requires increased atol value
     params.nbit_activation_bits = 8
 
     params.data_shape = (num_time_bins, feature_size)
