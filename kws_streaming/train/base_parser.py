@@ -317,6 +317,34 @@ def base_parser():
       help='The desired top edge of the highest frequency band',
   )
   parser.add_argument(
+      '--micro_enable_pcan',
+      type=bool,
+      default=1,
+      help='If 1 then micro preprocessing uses PCAN auto gain control',
+  )
+  parser.add_argument(
+      '--micro_features_scale',
+      type=float,
+      default=(10. / 256.0),
+      help='Scalar multiplier value applied to micro features.  Note feature '
+           'values are directly proportional to this value and inversely '
+           'proportional to out_scale value.',
+  )
+  parser.add_argument(
+      '--micro_min_signal_remaining',
+      type=float,
+      default=0.05,
+      help='Fraction of signal to preserve when smoothing, set to 1.0 for no '
+           'spectral subtraction smoothing',
+  )
+  parser.add_argument(
+      '--micro_out_scale',
+      type=int,
+      default=1,
+      help='Divides all filterbanks in micro preprocessing by this number',
+  )
+
+  parser.add_argument(
       '--log_epsilon',
       type=float,
       default=1e-12,

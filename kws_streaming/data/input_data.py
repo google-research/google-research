@@ -525,10 +525,12 @@ class AudioProcessor(object):
             num_channels=flags.mel_num_bins,
             upper_band_limit=flags.mel_upper_edge_hertz,
             lower_band_limit=flags.mel_lower_edge_hertz,
-            out_scale=1,
+            enable_pcan=flags.micro_enable_pcan,
+            min_signal_remaining=flags.micro_min_signal_remaining,
+            out_scale=flags.micro_out_scale,
             out_type=tf.float32)
         # int16_input dims: [frames, num_channels]
-        self.output_ = tf.multiply(micro_frontend, (10.0 / 256.0))
+        self.output_ = tf.multiply(micro_frontend, flags.micro_features_scale)
       else:
         raise ValueError('Unknown preprocess mode "%s" (should be "raw", '
                          ' "mfcc", or "micro")' % (flags.preprocess))
