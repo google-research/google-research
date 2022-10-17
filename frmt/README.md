@@ -54,6 +54,57 @@ Number of sentences in the dataset (paired with English):
 |              | Dev      | 2527       | 2151
 |              | Test     | 2616       | 2227
 
+## Evaluation Code
+
+### Setup
+
+The FRMT evaluation code released here requires Python 3 and the packages
+specified in `requirements.txt`. We recommend using an environment manager
+like `virtualenv`, e.g.:
+
+```
+# From the parent directory of frmt/:
+virtualenv -p python3 frmt_env
+source frmt_env/bin/activate
+pip install -r frmt/requirements.txt
+```
+
+Optionally execute `bash frmt/run.sh` to run the tests, which should print
+"Success!" if everything is in good order. (`run.sh` depends on `virtualenv`.)
+
+### BLEU, BLEURT, chrF
+
+_Check back soon._ We are in the process of releasing the official evaluation
+script for measuring translation quality with BLEU, BLEURT and chrF.
+
+### Lexical Accuracy
+
+`lexical_accuracy_eval.py` computes the lexical accuracy metric, as defined in
+the paper.
+
+Below are the commands to reproduce the lexical accuracy numbers reported in the
+paper, for the 'test' split of the lexical bucket.
+
+```
+BUCKET_DIR=frmt/dataset/lexical_bucket
+
+# Chinese.
+# Grab the second column of the TSV file, which contains the gold translations.
+cut -f2 ${BUCKET_DIR}/zh_lexical_test_en_zh-CN.tsv > /tmp/zh-cn.txt
+cut -f2 ${BUCKET_DIR}/zh_lexical_test_en_zh-TW.tsv > /tmp/zh-tw.txt
+python -m frmt.lexical_accuracy_eval --corpus_cn=/tmp/zh-cn.txt --corpus_tw=/tmp/zh-tw.txt
+# Expected output: 0.9444
+
+# Portuguese
+cut -f2 ${BUCKET_DIR}/pt_lexical_test_en_pt-BR.tsv > /tmp/pt-br.txt
+cut -f2 ${BUCKET_DIR}/pt_lexical_test_en_pt-PT.tsv > /tmp/pt-pt.txt
+python -m frmt.lexical_accuracy_eval --corpus_br=/tmp/pt-br.txt --corpus_pt=/tmp/pt-pt.txt
+# Expected output: 0.9858
+```
+
+For more options, see `python -m frmt.lexical_accuracy_eval --help`.
+
+
 ## Citation
 
 If you use or discuss FRMT in your work, please cite [our
