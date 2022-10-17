@@ -54,7 +54,7 @@ flags.DEFINE_integer('min_expressions', 1,
 flags.DEFINE_integer('max_inputs', 2,
                      'Maximum number of inputs.')
 
-flags.DEFINE_string('save_dir', '/tmp/decomposition/robust_fill',
+flags.DEFINE_string('save_dir', '/tmp/decomposition/deepcoder',
                     'Directory to save results to.')
 
 flags.DEFINE_boolean('split_program', False,
@@ -126,16 +126,23 @@ def serialize_decomposition_examples(task, token_id_table):
 
 def generate_task_for_experiment(experiment, is_train):
   """Generates a random task for a given experiment and dataset split."""
+  # Generate random inputs (must all by same length and types).
   num_inputs = np.random.randint(1, FLAGS.max_inputs + 1)
   inputs = sample_random.random_inputs(num_inputs)
+  all_inputs = [inputs]
+  for _ in range(FLAGS.num_concurrent_inputs - 1):
+    all_inputs.append(sample_random.random_inputs_like(inputs))
   
+  # Generate program.
   if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER.name:
     num_statements = np.random.randint(1, 5)
     # Handle this case separately because it's the most different from the rest.
-    return inputs, sample_random.random_program_switch_concept_order(
-        inputs,
+    program = sample_random.random_program_switch_concept_order(
+        all_inputs,
         num_statements,
         is_train=is_train)
+    all_outputs = [program.run(inputs)[-1] for inputs in all_inputs]
+    return dsl.ProgramTask(program, all_inputs, all_outputs)
 
   if experiment == exp_module.Experiment.LENGTH_1_4_TO_5.name:
     num_statements = np.random.randint(1, 5) if is_train else 5
@@ -146,9 +153,10 @@ def generate_task_for_experiment(experiment, is_train):
     if is_train:
         num_statements = 4
     else:
-        num_statements = np.random.randint(1, 5)
-        while num_statements == 4:
-            num_statements = np.random.randint(1, 5)
+        while True:
+          num_statements = np.random.randint(1, 5)
+          if num_statements != 4:
+            break
     operations_pool = dsl.OPERATIONS
     lambdas_pool = dsl.LAMBDAS
 
@@ -176,16 +184,20 @@ def generate_task_for_experiment(experiment, is_train):
   elif experiment == exp_module.Experiment.EXTEND_OP_FUNCTIONALITY.name:
     num_statements = np.random.randint(1, 5)
     if is_train:
-        return inputs, sample_random.random_program_extend_op_functionality(
-            inputs, num_statements)
+      program = sample_random.random_program_extend_op_functionality(
+          all_inputs, num_statements)
+      all_outputs = [program.run(inputs)[-1] for inputs in all_inputs]
+      return dsl.ProgramTask(program, all_inputs, all_outputs)
     else:
         operations_pool = dsl.OPERATIONS
         lambdas_pool = dsl.LAMBDAS
   else:
     raise ValueError('Unhandled experiment name: {}'.format(experiment))
 
-  return inputs, samepl_random.random_program(
-      inputs, num_statements, operations=operations_pool, lambdas=lambdas_pool)
+  program = sample_random.random_program(
+    all_inputs, num_statements, operations=operations_pool, lambdas=lambdas_pool)
+  all_outputs = [program.run(inputs)[-1] for inputs in all_inputs]
+  return dsl.ProgramTask(program, all_inputs, all_outputs)
 
 
 def main(_):
