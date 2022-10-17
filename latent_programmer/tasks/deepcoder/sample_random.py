@@ -26,20 +26,25 @@ from absl import logging
 from latent_programmer.tasks.deepcoder import deepcoder_dsl as dsl
 
 
+
+def random_list():
+  random_length = np.random.randint(1, dsl.MAX_LENGTH)  # Random length.
+  return np.random.randint(
+    dsl.MIN_INT, dsl.MAX_INT + 1, size=random_length).tolist()
+
+
 def random_inputs(num_inputs):
   """Randomly sample inputs."""
   inputs = []
   # At least one of inputs has to be a list.
-  random_length = np.random.randint(1, 20)  # Random length.
-  inputs.append(
-      np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1, size=random_length).tolist())
+  random_length = np.random.randint(1, dsl.MAX_LENGTH)  # Random length.
+  inputs.append(random_list())
   for _ in range(num_inputs - 1):
     if np.random.rand() < 0.5:
       inputs.append(np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1))
     else:
-      random_length = np.random.randint(1, dsl.MAX_LENGTH)
-      inputs.append(
-          np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1, size=random_length).tolist())
+      inputs.append(random_list())
+  # TODO(jxihong): Shuffle inputs.
   return inputs
 
 
@@ -47,14 +52,10 @@ def random_inputs_like(inputs):
   inputs = []
   for inp in inputs:
     if isinstance(inp, list):
-      random_length = np.random.randint(1, 20)  # Random length.
-      inputs.append(
-          np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1, size=random_length).tolist())
+      inputs.append(random_list())
     else:
-      assert isinstance(inp, int)
-      random_length = np.random.randint(1, dsl.MAX_LENGTH)
-      inputs.append(
-          np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1, size=random_length).tolist())
+      assert type(inp) == int
+      inputs.append(np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1))
   return inputs
 
 
@@ -64,21 +65,20 @@ def is_valid_operation(operation, var_dict):
   start_idx = (
       0 if isinstance(operation, dsl.FirstOrderOperation) else 1)
   return np.all(
-      [len(var_dict[str(t)]) > 0 for t in operation.inputs_type[start_idx:]])
+      [len(var_dict[t]) > 0 for t in operation.inputs_type[start_idx:]])
 
 
-def random_statement(
-    program_state, operations=dsl.OPERATIONS, lambdas=dsl.LAMBDAS):
+def random_statement(program_state, operations, lambdas):
   """Randomly sample new Statement given existing ProgramState."""
   idx = len(program_state.state)  # Variable index should be line of program. 
 
   var_dict = defaultdict(list)
   for i, v in enumerate(program_state.state):
     if isinstance(v, list):
-      var_dict[str(list)].append(i)
+      var_dict[list].append(i)
     else:
-      assert isinstance(v, int)
-      var_dict[str(int)].append(i)
+      assert type(v) == int
+      var_dict[int].append(i)
   
   valid_operations = [op for op in operations if 
                       is_valid_operation(op, var_dict)]
@@ -94,27 +94,30 @@ def random_statement(
       args.append(random_lambda)
     else:
       # Argument is either an int or list.
-      weights = (np.array(var_dict[str(t)]) + 1)  # More likely to sample recent.
-      args.append(random.choices(var_dict[str(t)], weights=weights)[0])
+      weights = (np.array(var_dict[t]) + 1)  # More likely to sample recent.
+      args.append(random.choices(var_dict[t], weights=weights)[0])
   return dsl.Statement(idx, random_op, args)
 
 
 def random_program(
-    inputs, num_statements, operations=dsl.OPERATIONS, lambdas=dsl.LAMBDAS):
+    all_inputs, num_statements, operations=None, lambdas=None):
   """Randomly sample a new program."""
-  state = dsl.ProgramState(inputs)
+  if operations is None:
+    operations = dsl.OPERATIONS
+  if lambdas is None:
+    lambas = dsl.LAMBAS
+
+  states = [dsl.ProgramState(inputs) for inputs in all_inputs]
   statements = []
   for _ in range(num_statements):
-    statement = random_statement(state, operations=operations, lambdas=lambdas)
-    next_state = statement.run(state)
-    # Make sure statement performs a valid computation (no empty lists, etc.). 
-    while not isinstance(
-        next_state.state[-1], statement.operation.output_type):
-      statement = random_statement(state)
-      next_state =  statement.run(state)
+    while True:
+      statement = random_statement(states[0], operations=operations, lambdas=lambdas)
+      next_states = [statement.run(state) for state in states]
+      if all([next_state is not None for next_state in next_states]):
+        break
     statements.append(statement)
-    state = next_state
-  return dsl.Program(len(inputs), statements)
+    states = next_states
+  return dsl.Program(len(all_inputs[0]), statements)
 
 
 def random_statement_extend_op_functionality(program_state):
@@ -124,10 +127,10 @@ def random_statement_extend_op_functionality(program_state):
   var_dict = defaultdict(list)
   for i, v in enumerate(program_state.state):
     if isinstance(v, list):
-      var_dict[str(list)].append(i)
+      var_dict[list].append(i)
     else:
-      assert isinstance(v, int)
-      var_dict[str(int)].append(i)
+      assert type(v) == int
+      var_dict[int].append(i)
   
   valid_operations = [op for op in dsl.OPERATIONS if 
                       is_valid_operation(op, var_dict)]
@@ -147,44 +150,41 @@ def random_statement_extend_op_functionality(program_state):
       args.append(random_lambda)
     else:
       # Argument is either an int or list.
-      weights = (np.array(var_dict[str(t)]) + 1)  # More likely to sample recent.
-      args.append(random.choices(var_dict[str(t)], weights=weights)[0])
+      weights = (np.array(var_dict[t]) + 1)  # More likely to sample recent.
+      args.append(random.choices(var_dict[t], weights=weights)[0])
   return dsl.Statement(idx, random_op, args)
 
 
-def random_program_extend_op_functionality(inputs, num_statements):
-  state = dsl.ProgramState(inputs)
+def random_program_extend_op_functionality(all_inputs, num_statements):
+  states = [dsl.ProgramState(inputs) for inputs in all_inputs]
   statements = []
   for _ in range(num_statements):
-    statement = random_statement_extend_op_functionality(state)
-    next_state = statement.run(state)
-    # Make sure statement performs a valid computation (no empty lists, etc.). 
-    while not isinstance(
-        next_state.state[-1], statement.operation.output_type):
-      statement = random_statement(state)
-      next_state =  statement.run(state)
+    while True:
+      statement = random_statement_extend_op_functionality(states[0])
+      next_states = [statement.run(state) for state in states]
+      if all([next_state is not None for next_state in next_states]):
+        break
     statements.append(statement)
-    state = next_state
-  return dsl.Program(len(inputs), statements)
+    states = next_states
+  return dsl.Program(len(all_inputs[0]), statements)
 
 
 def random_program_switch_concept_order(inputs, num_statements, is_train=True):
-  state = dsl.ProgramState(inputs)
+  states = [dsl.ProgramState(inputs) for inputs in all_inputs]
   statements = []
-  random_switch = np.random.randint(1, num_statements - 1)
   for i in range(num_statements):
     if is_train:
-      operations = dsl.FIRST_ORDER_OPERATIONS if i < random_switch else dsl.HIGHER_ORDER_OPERATIONS
+      operations = (dsl.FIRST_ORDER_OPERATIONS if i < num_statements // 2 else
+                    dsl.HIGHER_ORDER_OPERATIONS)
     else:
-      operations = dsl.FIRST_ORDER_OPERATIONS if i >= random_switch else dsl.HIGHER_ORDER_OPERATIONS
-      
-    statement = random_statement(state, operations=operations, lambdas=dsl.LAMBDAS)
-    next_state = statement.run(state)
-    # Make sure statement performs a valid computation (no empty lists, etc.). 
-    while not isinstance(
-        next_state.state[-1], statement.operation.output_type):
-      statement = random_statement(state)
-      next_state =  statement.run(state)
+      operations = (dsl.FIRST_ORDER_OPERATIONS if i >= num_statements // 2 else
+                    dsl.HIGHER_ORDER_OPERATIONS)
+
+    while True:
+      statement = random_statement_extend_op_functionality(states[0])
+      next_states = [statement.run(state) for state in states]
+      if all([next_state is not None for next_state in next_states]):
+        break
     statements.append(statement)
-    state = next_state
-  return dsl.Program(len(inputs), statements)
+    states = next_states
+  return dsl.Program(len(all_inputs[0]), statements)

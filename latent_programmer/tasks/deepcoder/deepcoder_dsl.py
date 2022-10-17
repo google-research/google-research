@@ -59,11 +59,16 @@ Helpful properties to know:
 """
 
 import ast
+import collections
 import functools
 import re
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 from absl import flags
+
+
+ProgramTask = collections.namedtuple('ProgramTask',
+                                     ['program', 'inputs', 'outputs'])
 
 _DEEPCODER_MOD = flags.DEFINE_integer(
     'deepcoder_mod', 10,
