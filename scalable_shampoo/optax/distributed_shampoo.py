@@ -2316,13 +2316,15 @@ def distributed_shampoo(
       rmsprop_update = scaled_grad / (
           jnp.sqrt(new_diagonal_statistics) + diagonal_epsilon)
 
-      if clip_by_scaled_gradient_norm:
+      def scale_update():
         scaled_grad_norm = jnp.linalg.norm(rmsprop_update) / (
             jnp.sqrt(float(rmsprop_update.size)))
         clipping_denom = jnp.maximum(
             1., scaled_grad_norm / clip_by_scaled_gradient_norm)
-        rmsprop_update /= clipping_denom
-
+        return rmsprop_update / clipping_denom
+      rmsprop_update = jax.lax.cond(clip_by_scaled_gradient_norm,
+                                    scale_update,
+                                    lambda: rmsprop_update)
       grafting_update = rmsprop_update
     elif graft_type == GraftingType.SGD:
       grafting_update = sgd_update
