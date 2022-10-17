@@ -19,9 +19,9 @@ import os
 from official.core import config_definitions as cfg
 from official.core import exp_factory
 from official.modeling import optimization
-from official.projects.vit.configs import backbones
-from official.projects.vit.configs import image_classification
+from official.vision.configs import backbones
 from official.vision.configs import common
+from official.vision.configs import image_classification
 
 
 @exp_factory.register_config_factory('vit_with_bottleneck_imagenet_pretrain')

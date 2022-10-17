@@ -37,7 +37,7 @@ from absl import app
 from absl import flags
 
 # pylint: disable=unused-import
-from official.projects.vit.modeling import vit  # pylint: disable=g-bad-import-order
+from official.vision.modeling.backbones import vit  # pylint: disable=g-bad-import-order
 from universal_embedding_challenge import image_classification
 # pylint: enable=unused-import
 

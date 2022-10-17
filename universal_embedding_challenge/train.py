@@ -27,7 +27,7 @@ from official.core import train_utils
 from official.modeling import performance
 
 # pylint: disable=unused-import
-from official.projects.vit.modeling import vit
+from official.vision.modeling.backbones import vit
 from universal_embedding_challenge import image_classification  # pylint: disable=g-bad-import-order
 # pylint: enable=unused-import
 
