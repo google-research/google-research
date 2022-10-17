@@ -2322,7 +2322,7 @@ def distributed_shampoo(
         clipping_denom = jnp.maximum(
             1., scaled_grad_norm / clip_by_scaled_gradient_norm)
         return rmsprop_update / clipping_denom
-      rmsprop_update = jax.lax.cond(clip_by_scaled_gradient_norm,
+      rmsprop_update = jax.lax.cond(clip_by_scaled_gradient_norm is not None,
                                     scale_update,
                                     lambda: rmsprop_update)
       grafting_update = rmsprop_update
