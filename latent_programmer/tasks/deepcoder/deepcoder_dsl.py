@@ -81,7 +81,7 @@ ResultType = Union[int, List[int]]
 
 MIN_INT = -256
 MAX_INT = 255
-
+MAX_LENGTH = 20  # Maximum length for list input.
 
 class ParseError(Exception):
   """Could not parse from a string or tokens, similar to a syntax error."""
@@ -423,6 +423,7 @@ def _scanl1(f, xs):
       ys.append(f(ys[-1], x))
   return ys
 
+
 # Use the Python code from Appendix F in the DeepCoder paper.
 # pylint: disable=g-explicit-length-test, unnecessary-lambda
 LAMBDAS = [
@@ -447,7 +448,14 @@ LAMBDAS = [
     Lambda('max', lambda x, y: max(x, y), [int, int], int),
 ]
 
-OPERATIONS = [
+
+LAMBDAS_ONLY_MINUS_MIN = [
+    Lambda('-', lambda x, y: x - y, [int, int], int),
+    Lambda('min', lambda x, y: min(x, y), [int, int], int),
+]
+
+
+FIRST_ORDER_OPERATIONS = [
     FirstOrderOperation(
         'Head', lambda xs: xs[0] if len(xs) > 0 else None, [list], int),
     FirstOrderOperation(
@@ -469,7 +477,9 @@ OPERATIONS = [
         'Sort', lambda xs: sorted(xs), [list], list),
     FirstOrderOperation(
         'Sum', lambda xs: sum(xs), [list], int),
+]
 
+HIGHER_ORDER_OPERATIONS = [
     HigherOrderOperation(
         'Map', lambda f, xs: [f(x) for x in xs], [([int], int), list], list),
     HigherOrderOperation(
@@ -484,7 +494,55 @@ OPERATIONS = [
     HigherOrderOperation(
         'Scanl1', _scanl1, [([int, int], int), list], list),
 ]
+
+
+OPERATIONS = FIRST_ORDER_OPERATIONS + HIGHER_ORDER_OPERATIONS
+
+
+OPERATIONS_ONLY_SCAN = [
+    HigherOrderOperation(
+        'Scanl1', _scanl1, [([int, int], int), list], list),
+]
+
+
+OPERATIONS_NO_SCAN = [
+    FirstOrderOperation(
+        'Head', lambda xs: xs[0] if len(xs) > 0 else None, [list], int),
+    FirstOrderOperation(
+        'Last', lambda xs: xs[-1] if len(xs) > 0 else None, [list], int),
+    FirstOrderOperation(
+        'Take', lambda n, xs: xs[:n], [int, list], list),
+    FirstOrderOperation(
+        'Drop', lambda n, xs: xs[n:], [int, list], list),
+    FirstOrderOperation(
+        'Access', lambda n, xs: xs[n] if 0 <= n < len(xs) else None,
+        [int, list], int),
+    FirstOrderOperation(
+        'Minimum', lambda xs: min(xs) if len(xs) > 0 else None, [list], int),
+    FirstOrderOperation(
+        'Maximum', lambda xs: max(xs) if len(xs) > 0 else None, [list], int),
+    FirstOrderOperation(
+        'Reverse', lambda xs: list(reversed(xs)), [list], list),
+    FirstOrderOperation(
+        'Sort', lambda xs: sorted(xs), [list], list),
+    FirstOrderOperation(
+        'Sum', lambda xs: sum(xs), [list], int),
+    HigherOrderOperation(
+        'Map', lambda f, xs: [f(x) for x in xs], [([int], int), list], list),
+    HigherOrderOperation(
+        'Filter', lambda f, xs: [x for x in xs if f(x)],
+        [([int], bool), list], list),
+    HigherOrderOperation(
+        'Count', lambda f, xs: len([x for x in xs if f(x)]),
+        [([int], bool), list], int),
+    HigherOrderOperation(
+        'ZipWith', lambda f, xs, ys: [f(x, y) for (x, y) in zip(xs, ys)],
+        [([int, int], int), list, list], list),
+]
+
+
 # pylint: enable=g-explicit-length-test, unnecessary-lambda
+
 
 TOKEN_TO_LAMBDA = {l.token: l for l in LAMBDAS}
 TOKEN_TO_OPERATION = {op.token: op for op in OPERATIONS}
