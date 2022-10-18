@@ -144,7 +144,7 @@ def np_or_jnp(arr):
   """Return either numpy or jax.numpy based on the type of arr."""
   # See also https://numpy.org/neps/nep-0037-array-module.html
   if isinstance(arr,
-                (jnp.DeviceArray, jax.core.UnshapedArray, jax.core.Tracer)):
+                (jax.Array, jax.core.UnshapedArray, jax.core.Tracer)):
     return jnp
   else:
     return np
