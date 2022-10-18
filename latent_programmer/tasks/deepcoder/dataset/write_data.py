@@ -30,10 +30,9 @@ from absl import flags
 import numpy as np
 import tensorflow.compat.v2 as tf
 
-from latent_programmer.tasks.robust_fill import dsl
-from latent_programmer.tasks.robust_fill import sample_random
-from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
-from latent_programmer.tasks.robust_fill.dataset import experiment as exp_module
+from latent_programmer.tasks.deepcoder import deepcoder_dsl as dsl
+from latent_programmer.tasks.deepcoder import sample_random
+from latent_programmer.tasks.deepcoder.dataset import experiment as exp_module
 
 
 sys.path.append('../../../../')
@@ -89,7 +88,17 @@ def serialize_entire_program_example(task):
 
 
 def serialize_decomposition_examples(task):
-  """Creates tf.Example messages for decomposition."""
+  """
+  Creates tf.Example messages for decomposition.
+
+  The current features correspond to the following values:
+    inputs: string representation of program state (including inputs and intermediate
+      variables)
+    outputs: string representation of desired outputs
+    next_part: string representation of desired next intermediate outputs
+    program_part: string representation of next statement in program that generates 
+      next intermediate outputs
+  """
   example_outputs_strs = [
     ' '.join(dsl.tokenize_result(out)) for out in task.example_outputs]
 
@@ -97,7 +106,7 @@ def serialize_decomposition_examples(task):
 
   results = []
   for i, statement in enumerate(task.program.statements):
-    example_inputs_strs = [str(states) for state in states]
+    example_inputs_strs = [str(state) for state in states]
     next_states = [statement.run(state) for state in states]
     next_part = [
       ' '.join(dsl.tokenize_result(next_state.state[-1])) for next_state in next_states]
