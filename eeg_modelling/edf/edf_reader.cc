@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <tuple>
 
 #include "absl/container/node_hash_map.h"
@@ -186,7 +187,7 @@ void EdfReader::SeekToDataRecord(int index, const EdfHeader& edf_header) {
 
 StatusOr<std::unique_ptr<EdfReader>> EdfReader::Create(const string& edf_path,
                                                        EdfFile* edf_file) {
-  auto edf_header = absl::make_unique<EdfHeader>();
+  auto edf_header = std::make_unique<EdfHeader>();
   RETURN_IF_ERROR(ParseEdfHeader(edf_file, edf_header.get()));
 
   std::vector<EdfHeader::SignalHeader> signal_headers;
@@ -204,9 +205,9 @@ StatusOr<std::unique_ptr<EdfReader>> EdfReader::Create(const string& edf_path,
   google::protobuf::Timestamp start_timestamp;
   ASSIGN_OR_RETURN(start_timestamp, EncodeGoogleApiProto(absolute_start_time));
 
-  return absl::make_unique<EdfReader>(edf_path, edf_file, std::move(edf_header),
-                                      num_seconds_per_data_record,
-                                      start_timestamp);
+  return std::make_unique<EdfReader>(edf_path, edf_file, std::move(edf_header),
+                                     num_seconds_per_data_record,
+                                     start_timestamp);
 }
 
 EdfReader::EdfReader(const string& edf_path, EdfFile* edf_file,

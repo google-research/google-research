@@ -36,7 +36,7 @@ absl::Status GbbsGraph::Import(AdjacencyList adjacency_list) {
   // nodes_ and edges_ need to double in size, instead of every time
   // a node id is increased.
   auto outgoing_edges_size = adjacency_list.outgoing_edges.size();
-  auto out_neighbors = absl::make_unique<GbbsEdge[]>(outgoing_edges_size);
+  auto out_neighbors = std::make_unique<GbbsEdge[]>(outgoing_edges_size);
   gbbs::parallel_for(0, outgoing_edges_size, [&](size_t i) {
     out_neighbors[i] = std::make_tuple(
         static_cast<gbbs::uintE>(adjacency_list.outgoing_edges[i].first),
@@ -74,7 +74,7 @@ absl::Status GbbsGraph::FinishImport() {
   // The GBBS graph takes no ownership of nodes / edges
   auto g = gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>(
       nodes_.size(), num_edges, nodes_.data(), []() {});  // noop deletion_fn
-  graph_ = absl::make_unique<
+  graph_ = std::make_unique<
       gbbs::symmetric_ptr_graph<gbbs::symmetric_vertex, float>>(g);
   return absl::OkStatus();
 }

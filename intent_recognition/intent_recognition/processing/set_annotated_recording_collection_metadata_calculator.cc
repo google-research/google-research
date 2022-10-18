@@ -34,6 +34,7 @@
 // given as an input.
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "google/protobuf/duration.pb.h"
@@ -139,7 +140,7 @@ class SetAnnotatedRecordingCollectionMetadataCalculator
               .Tag(kOriginalAnnotatedRecordingCollectionTag)
               .Get<AnnotatedRecordingCollection>();
     }
-    auto result = absl::make_unique<AnnotatedRecordingCollection>(
+    auto result = std::make_unique<AnnotatedRecordingCollection>(
         cc->Inputs()
             .Tag(kProcessedAnnotatedRecordingCollectionTag)
             .Get<AnnotatedRecordingCollection>());

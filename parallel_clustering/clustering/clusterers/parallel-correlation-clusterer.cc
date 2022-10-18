@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -25,8 +26,8 @@
 #include "clustering/config.pb.h"
 #include "clustering/gbbs-graph.h"
 #include "clustering/in-memory-clusterer.h"
-#include "parallel/parallel-graph-utils.h"
 #include "clustering/status_macros.h"
+#include "parallel/parallel-graph-utils.h"
 
 namespace research_graph {
 namespace in_memory {
@@ -186,7 +187,7 @@ absl::Status ParallelCorrelationClusterer::RefineClusters(
   }
 
   // Initialize clustering helper
-  auto helper = absl::make_unique<ClusteringHelper>(
+  auto helper = std::make_unique<ClusteringHelper>(
       graph_.Graph()->n, clusterer_config, *initial_clustering);
   // The max objective is the maximum objective given by the inner iterations
   // of best moves rounds
@@ -254,7 +255,7 @@ absl::Status ParallelCorrelationClusterer::RefineClusters(
     compressed_graph.swap(new_compressed_graph.graph);
     if (new_compressed_graph.graph) new_compressed_graph.graph->del();
 
-    helper = absl::make_unique<ClusteringHelper>(
+    helper = std::make_unique<ClusteringHelper>(
         compressed_graph->n, clusterer_config,
         new_compressed_graph.node_weights, InMemoryClusterer::Clustering{});
 

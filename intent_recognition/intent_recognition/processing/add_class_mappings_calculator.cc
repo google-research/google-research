@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+
 #include "mediapipe/framework/calculator_framework.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
@@ -77,7 +79,7 @@ class AddClassMappingsCalculator : public mediapipe::CalculatorBase {
   }
 
   absl::Status Process(CalculatorContext* cc) override {
-    auto result_arc = absl::make_unique<AnnotatedRecordingCollection>(
+    auto result_arc = std::make_unique<AnnotatedRecordingCollection>(
         cc->Inputs()
             .Tag(kInputAnnotatedRecordingCollectionTag)
             .Get<AnnotatedRecordingCollection>());

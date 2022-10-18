@@ -50,6 +50,7 @@
 #include <deque>
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <vector>
 
 #include "mediapipe/framework/calculator_framework.h"
@@ -243,7 +244,7 @@ class WindowCalculator : public mediapipe::CalculatorBase {
           0) {
         return absl::OkStatus();
       }
-      auto result = absl::make_unique<std::vector<float>>();
+      auto result = std::make_unique<std::vector<float>>();
       for (const auto& r : buffer) {
         absl::c_copy(r, std::back_inserter(*result));
       }

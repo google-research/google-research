@@ -14,6 +14,7 @@
 
 #include <fstream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -162,7 +163,7 @@ ClassMappingsProvider::NewStringLabelProvider(
         << "Cannot use the same label class map twice";
   }
 
-  return absl::make_unique<StringLabelClassMappingsProvider>(
+  return std::make_unique<StringLabelClassMappingsProvider>(
       mapping_name_to_info);
 }
 
