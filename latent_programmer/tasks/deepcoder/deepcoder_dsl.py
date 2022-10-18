@@ -68,7 +68,7 @@ from absl import flags
 
 
 ProgramTask = collections.namedtuple('ProgramTask',
-                                     ['program', 'inputs', 'outputs'])
+                                     ['program', 'example_inputs', 'example_outputs'])
 
 _DEEPCODER_MOD = flags.DEFINE_integer(
     'deepcoder_mod', 10,

@@ -45,13 +45,13 @@ flags.DEFINE_integer('num_work_units', 1, 'Total number of work units.')
 flags.DEFINE_integer('seed', None, 'Fixed random seed.')
 
 flags.DEFINE_integer('num_tasks', 100000, 'Number of tasks to write.')
-flags.DEFINE_integer('num_concurrent_inputs', 4,
-                     'Number of concurrent inputs per task.')
+flags.DEFINE_integer('num_examples', 4,
+                     'Number of examples per task.')
 flags.DEFINE_integer('max_expressions', 4,
                      'Maximum number of expressions in program.')
 flags.DEFINE_integer('min_expressions', 1,
                      'Maximum number of expressions in program.')
-flags.DEFINE_integer('max_inputs', 2,
+flags.DEFINE_integer('max_program_arity', 2,
                      'Maximum number of inputs.')
 
 flags.DEFINE_string('save_dir', '/tmp/decomposition/deepcoder',
@@ -68,26 +68,19 @@ flags.DEFINE_enum('experiment', 'NONE', [e.name for e in exp_module.Experiment],
 
 def _bytes_feature(strs):
   """Returns a bytes_list Feature from a list of strings."""
-  return tf.train.Feature(bytes_list=tf.train.BytesList(
-      value=[str.encode(s) for s in strs]))
+  return tf.train.Feature(bytes_list=tf.train.BytesList(value=strs))
 
 
-def serialize_entire_program_example(task, token_id_table):
+def serialize_entire_program_example(task):
   """Creates a tf.Example message for the entire program."""
-  program_string = ''
-  if FLAGS.split_program:
-    for expr in task.program.expressions:
-      program_string += ' '.join(map(str, expr.encode(token_id_table)))
-      program_string += '|'
-    program_string = program_string[:-1]
-  else:
-    program_string = ' '.join(
-        map(str, task.program.encode(token_id_table)[:-1]))
-
+  example_inputs_strs = [
+    str(dsl.ProgramState(inputs)) for inputs in task.example_inputs]
+  example_outputs_strs = [
+    ' '.join(dsl.tokenize_result(out)) for out in task.example_outputs]
   feature = {
-      'inputs': _bytes_feature(task.inputs),
-      'outputs': _bytes_feature(task.outputs),
-      'program_encoding': _bytes_feature([program_string]),
+      'example_inputs': _bytes_feature(example_inputs_strs),
+      'example_outputs': _bytes_feature(example_outputs_strs),
+      'program_encoding': _bytes_feature([str(task.program)]),
   }
 
   # Create a Features message using tf.train.Example.
@@ -95,40 +88,40 @@ def serialize_entire_program_example(task, token_id_table):
   return example_proto.SerializeToString()
 
 
-def serialize_decomposition_examples(task, token_id_table):
+def serialize_decomposition_examples(task):
   """Creates tf.Example messages for decomposition."""
-  # TODO(kshi): If we want to include length-2 programs in the subprogram
-  # synthesizer's training data, we'll need to create a separate dataset for
-  # that, since we don't want such data in the spec decomposer model's training
-  # data.
-  output_parts = [[expr(inp) for expr in task.program.expressions]
-                  for inp in task.inputs]
-  assert all(''.join(parts) == out
-             for parts, out in zip(output_parts, task.outputs))
+  example_outputs_strs = [
+    ' '.join(dsl.tokenize_result(out)) for out in task.example_outputs]
+
+  states = [dsl.ProgramState(inputs) for inputs in task.example_inputs]
 
   results = []
-  for i, expr in enumerate(task.program.expressions):
-    outputs = [''.join(parts[i:]) for parts in output_parts]
-    next_part = [parts[i] for parts in output_parts]
-    program_part_string = ' '.join(map(str, expr.encode(token_id_table)))
+  for i, statement in enumerate(task.program.statements):
+    example_inputs_strs = [str(states) for state in states]
+    next_states = [statement.run(state) for state in states]
+    next_part = [
+      ' '.join(dsl.tokenize_result(next_state.state[-1])) for next_state in next_states]
+    program_part_string = str(statement)
     feature = {
-        'inputs': _bytes_feature(task.inputs),
-        'outputs': _bytes_feature(outputs),
+        'inputs': _bytes_feature(example_inputs_strs),
+        'outputs': _bytes_feature(example_outputs_strs),
         'next_part': _bytes_feature(next_part),
         'program_part': _bytes_feature([program_part_string]),
     }
     example_proto = tf.train.Example(
         features=tf.train.Features(feature=feature))
     results.append(example_proto.SerializeToString())
+    states = next_states
 
   return results
 
 
 def generate_task_for_experiment(experiment, is_train):
   """Generates a random task for a given experiment and dataset split."""
-  # Generate random inputs (must all by same length and types).
-  num_inputs = np.random.randint(1, FLAGS.max_inputs + 1)
+  # Generate random inputs.
+  num_inputs = np.random.randint(1, FLAGS.max_program_arity + 1)
   inputs = sample_random.random_inputs(num_inputs)
+  # Generate more input examples (must all by same length and types).
   all_inputs = [inputs]
   for _ in range(FLAGS.num_concurrent_inputs - 1):
     all_inputs.append(sample_random.random_inputs_like(inputs))
@@ -141,7 +134,7 @@ def generate_task_for_experiment(experiment, is_train):
         all_inputs,
         num_statements,
         is_train=is_train)
-    all_outputs = [program.run(inputs)[-1] for inputs in all_inputs]
+    all_outputs = [program.run(inputs).state[-1] for inputs in all_inputs]
     return dsl.ProgramTask(program, all_inputs, all_outputs)
 
   if experiment == exp_module.Experiment.LENGTH_1_4_TO_5.name:
@@ -186,7 +179,7 @@ def generate_task_for_experiment(experiment, is_train):
     if is_train:
       program = sample_random.random_program_extend_op_functionality(
           all_inputs, num_statements)
-      all_outputs = [program.run(inputs)[-1] for inputs in all_inputs]
+      all_outputs = [program.run(inputs).state[-1] for inputs in all_inputs]
       return dsl.ProgramTask(program, all_inputs, all_outputs)
     else:
         operations_pool = dsl.OPERATIONS
@@ -196,7 +189,7 @@ def generate_task_for_experiment(experiment, is_train):
 
   program = sample_random.random_program(
     all_inputs, num_statements, operations=operations_pool, lambdas=lambdas_pool)
-  all_outputs = [program.run(inputs)[-1] for inputs in all_inputs]
+  all_outputs = [program.run(inputs).state[-1] for inputs in all_inputs]
   return dsl.ProgramTask(program, all_inputs, all_outputs)
 
 
@@ -240,9 +233,8 @@ def main(_):
           raise ValueError('Unhandled split: {}'.format(FLAGS.split))
         task = generate_task_for_experiment(FLAGS.experiment, is_train)
 
-      entire_programs_writer.write(
-          serialize_entire_program_example(task, token_id_table))
-      for example in serialize_decomposition_examples(task, token_id_table):
+      entire_programs_writer.write(serialize_entire_program_example(task))
+      for example in serialize_decomposition_examples(task):
         decomposition_data_writer.write(example)
 
 if __name__ == '__main__':

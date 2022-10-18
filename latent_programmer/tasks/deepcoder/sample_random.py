@@ -18,6 +18,7 @@
 
 import collections
 import random
+import numpy as np
 import string
 from typing import Dict, List, Optional, Tuple
 
@@ -26,25 +27,34 @@ from absl import logging
 from latent_programmer.tasks.deepcoder import deepcoder_dsl as dsl
 
 
+def random_int():
+  if dsl._DEEPCODER_MOD == 0:
+    min_int, max_int = dsl.MIN_INT, dsl.MAX_INT
+  else:
+    min_int, max_int = 0, dsl._DEEPCODER_MOD - 1
+  return random.randint(min_int, max_int)
+
 
 def random_list():
+  if dsl._DEEPCODER_MOD == 0:
+    min_int, max_int = dsl.MIN_INT, dsl.MAX_INT
+  else:
+    min_int, max_int = 0, dsl._DEEPCODER_MOD - 1
   random_length = np.random.randint(1, dsl.MAX_LENGTH)  # Random length.
-  return np.random.randint(
-    dsl.MIN_INT, dsl.MAX_INT + 1, size=random_length).tolist()
+  return random.sample(range(min_int, max_int + 1), k=random_length)
 
 
 def random_inputs(num_inputs):
   """Randomly sample inputs."""
   inputs = []
   # At least one of inputs has to be a list.
-  random_length = np.random.randint(1, dsl.MAX_LENGTH)  # Random length.
   inputs.append(random_list())
   for _ in range(num_inputs - 1):
     if np.random.rand() < 0.5:
-      inputs.append(np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1))
+      inputs.append(random_int())
     else:
       inputs.append(random_list())
-  # TODO(jxihong): Shuffle inputs.
+  random.shuffle(inputs)
   return inputs
 
 
@@ -55,7 +65,7 @@ def random_inputs_like(inputs):
       inputs.append(random_list())
     else:
       assert type(inp) == int
-      inputs.append(np.random.randint(dsl.MIN_INT, dsl.MAX_INT + 1))
+      inputs.append(random_int())
   return inputs
 
 
@@ -120,6 +130,7 @@ def random_program(
   return dsl.Program(len(all_inputs[0]), statements)
 
 
+# TODO(jxihong): Can be collapsed into random_statement() function.
 def random_statement_extend_op_functionality(program_state):
   """Randomly sample new Statement given existing ProgramState."""
   idx = len(program_state.state)  # Variable index should be line of program. 
@@ -155,6 +166,7 @@ def random_statement_extend_op_functionality(program_state):
   return dsl.Statement(idx, random_op, args)
 
 
+# TODO(jxihong): Can be collapsed into random_program() function.
 def random_program_extend_op_functionality(all_inputs, num_statements):
   states = [dsl.ProgramState(inputs) for inputs in all_inputs]
   statements = []
@@ -169,6 +181,7 @@ def random_program_extend_op_functionality(all_inputs, num_statements):
   return dsl.Program(len(all_inputs[0]), statements)
 
 
+# TODO(jxihong): Can be collapsed into random_program() function.
 def random_program_switch_concept_order(inputs, num_statements, is_train=True):
   states = [dsl.ProgramState(inputs) for inputs in all_inputs]
   statements = []
