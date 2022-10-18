@@ -1,11 +1,13 @@
 # VCT: A Video Compression Transformer
 
-Fabian Mentzer, George Toderici, David Minnen, Sung-Jin Wang, Sergi Caelles, Mario Lucic, Eirikur Agustsson
+Fabian Mentzer, George Toderici, David Minnen, Sung Jin Hwang, Sergi Caelles,
+Mario Lucic, Eirikur Agustsson
+
+https://goo.gle/vct-paper
 
 https://arxiv.org/abs/2206.07307
 
 To appear at NeurIPS'22.
-
 
 
 ## Abstract
@@ -25,7 +27,55 @@ to facilitate future research.
 
 ## Code
 
-**Work In Progress, Code Coming Soon**
+The code shows how each component is constructed. We are currently not
+providing a `trainer` but there is a `train_step` function in `models.py`.
+See `models_test.py` for an example of how to use the model to train and
+evaluate.
+
+We verified that the code outperforms the model in the paper when trained from
+scratch, see App. A.2 in the [PDF](https://arxiv.org/abs/2206.07307).
+
+<p align='center'>
+  <img src='https://storage.googleapis.com/vct-paper/public_code.png'
+       width='440'/>
+</p>
+
+#### Using the code
+
+```sh
+python -m venv vct_env
+source ./vct_env/bin/activate
+pip install requirements.txt
+python -m vct.src.models_test
+```
+
+This should not throw any errors (but might print some warnings from the
+restore ops).
+
+
+#### Structure
+
+- `auxiliary_layers.py`: Transformer layers
+- `bottlenecks.py`: Bottleneck to calculate entropy and do range coding.
+- `elic.py`: Encoder/Decoder, see App. A.2.
+- `entropy_model.py`: The actual VCT Transformer.
+- `extract_patches.py`: Extracting overlapping/non-overlapping patches.
+- `metric_collection.py`: Helper to collect metrics.
+- `models.py`: The main model file that glues all the components together
+- `patcher.py`: Extract patches.
+- `schedule.py`: Helper for LR schedules.
+- `tf_memoize.py`: Helper for doing efficient training by caching encode steps.
+- `transformer_layers.py`: Underlying transformer layers.
+- `video_tensors.py`: Video tensor types.
+
+
+## Checkpoint
+
+**Checkpoint coming soon!**
+
+## Synthetic Dataset
+
+**Code to generate our synthetic datasets coming soon!**
 
 
 ## Data from Fig. 4
