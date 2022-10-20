@@ -21,11 +21,11 @@ import random
 
 from absl import app
 from absl import flags
-from evolving_timeseries import datasets
-from evolving_timeseries import model_library
-from evolving_timeseries.models import model_utils
-from evolving_timeseries.scripts import analyze_experiments
+import analyze_experiments
+import datasets
 import matplotlib.pyplot as plt
+import model_library
+from models import model_utils
 import numpy as np
 import tensorflow as tf
 
@@ -79,10 +79,6 @@ def main(args):
        len_total=FLAGS.len_total)
 
   # Hyperparameter search
-
-  # This should be num_items or smaller to avoid multiple time-steps within a
-  # batch. Unfortunately this is currently 1 which will likely have a large
-  # performance impact.
   temporal_batch_size_eval = dataset_params["num_items"]
   batch_size_candidates = [64, 128, 256, 512]
   learning_rate_candidates = [0.00003, 0.0001, 0.0003, 0.001, 0.003]
@@ -168,7 +164,7 @@ def main(args):
     }
 
     model = model_library.get_model_type(
-        FLAGS.model_type, chosen_hparams, loss_form="MAE")
+        FLAGS.model_type, chosen_hparams, loss_form="MSE")
 
     batched_train_dataset = iter(
         train_dataset.shuffle(1000).repeat(100000000).batch(
@@ -182,12 +178,12 @@ def main(args):
                                                  batched_valid_dataset,
                                                  batched_test_dataset)
 
-    if FLAGS.display_all_models and not np.isnan(eval_metrics["val_mae"][-1]):
+    if FLAGS.display_all_models and not np.isnan(eval_metrics["val_mse"][-1]):
       print("Best hyperparameter combination: ", flush=True)
       print(best_hparams, flush=True)
 
       # Select the model iteration based on the validation performance
-      model_selection_index = np.argmin(eval_metrics["val_mae"])
+      model_selection_index = np.argmin(eval_metrics["val_mse"])
 
       all_val_mae.append(eval_metrics["val_mae"][model_selection_index])
       all_test_mae.append(eval_metrics["test_mae"][model_selection_index])
@@ -199,8 +195,8 @@ def main(args):
       all_test_mse.append(eval_metrics["test_mse"][model_selection_index])
 
       analyze_experiments.display_metrics(
-          all_val_mae, all_test_mae, "MAE", 100,
-          "figures/" + FLAGS.filename + "_all_hparam_runs_MAE.png")
+          all_val_mse, all_test_mse, "MSE", 100,
+          "figures/" + FLAGS.filename + "_all_hparam_runs_MSE.png")
 
       print("Best test mae: ", flush=True)
       print(all_test_mae[np.argmin(all_val_mae)], flush=True)
@@ -222,7 +218,7 @@ def main(args):
           np.mean(np.asarray(all_val_mae) / np.asarray(all_test_mae)),
           flush=True)
 
-    current_valid_metric = eval_metrics["val_mae"][model_selection_index]
+    current_valid_metric = eval_metrics["val_mse"][model_selection_index]
     if current_valid_metric < best_valid_metric:
 
       best_hparams = chosen_hparams

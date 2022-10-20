@@ -15,8 +15,8 @@
 
 """Datasets for use in time series modeling."""
 
-from evolving_timeseries.data_utils import prepare_datasets_from_tables
-from evolving_timeseries.data_utils import tabular_functions
+from data_utils import prepare_datasets_from_tables
+from data_utils import tabular_functions
 import numpy as np
 
 
