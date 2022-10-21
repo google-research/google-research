@@ -47,17 +47,24 @@ def save_model_summary(model, path, file_name='model_summary.txt'):
 
 def _set_mode(model, mode):
   """Set model's inference type and disable training."""
-  for i in range(len(model.layers)):
-    config = model.layers[i].get_config()
+
+  def _recursive_set_layer_mode(layer, mode):
+    if isinstance(layer, tf.keras.layers.Wrapper):
+      _recursive_set_layer_mode(layer.layer, mode)
+
+    config = layer.get_config()
     # for every layer set mode, if it has it
     if 'mode' in config:
-      model.layers[i].mode = mode
+      layer.mode = mode
       # with any mode of inference - training is False
     if 'training' in config:
-      model.layers[i].training = False
+      layer.training = False
     if mode == modes.Modes.NON_STREAM_INFERENCE:
       if 'unroll' in config:
-        model.layers[i].unroll = True
+        layer.unroll = True
+
+  for layer in model.layers:
+    _recursive_set_layer_mode(layer, mode)
   return model
 
 
