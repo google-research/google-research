@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# To run this script, please make sure you have virtualenv and bazel installed.
+# Follow the instructions https://docs.bazel.build/versions/4.0.0/install.html
+# to install bazel, and run "pip install virtualenv" to install virtualenv.
+
 #!/bin/bash
 set -e
 set -x
@@ -29,3 +33,8 @@ pip install -r gigamol/requirements.txt
 protoc --experimental_allow_proto3_optional gigamol/molecule_graph_proto/molecule_graph.proto --python_out=.
 
 python3 -m gigamol.molecule_graph_proto.molecule_graph_test
+cd gigamol
+python3 configure.py
+bazel build molecule_graph_parsing_ops/cc:molecule_graph_parsing_ops.so --experimental_repo_remote_exec
+cd ..
+python3 -m gigamol.molecule_graph_parsing_ops.py.molecule_graph_parsing_ops_test

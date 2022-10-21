@@ -1,6 +1,6 @@
 numpy
 rdkit
-tensorflow
+tensorflow==2.9.1
 pandas
 scipy
 six
