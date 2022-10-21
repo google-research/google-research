@@ -589,7 +589,7 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
         streamable_layer.get_config())
 
     with tf.Graph().as_default(), self.session() as sess:
-      test_input = np.ones([1] + [5] * dims + [2])
+      test_input = np.ones([1] + [5] * dims + [2], dtype=np.float32)
       output = streamable_layer(test_input)
       output_cloned = streamable_layer_cloned(test_input)
 

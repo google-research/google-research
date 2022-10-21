@@ -279,6 +279,20 @@ class Stream(tf.keras.layers.Layer):
     super(Stream, self).build(input_shape)
 
     wrapped_cell = self.get_core_layer()
+    if isinstance(wrapped_cell,
+                  tf.keras.layers.Layer) and not wrapped_cell.built:
+      # Sometimes it's necessary to rebuild the inner layer e.g. when
+      # deserializing models for the TF Lite converter.
+
+      # NOTE: input_shape may correspond to an input matching a single streaming
+      # stride passed into the model. This can cause wrapped layers to fail --
+      # e.g. convolutions due to mismatch between kernel size and streaming
+      # dimension, as the implicit state concatenations are not simulated during
+      # construction. Solution is to set the streaming dimension as unspecified
+      faked_stream_dim_shape = input_shape.as_list()
+      faked_stream_dim_shape[1] = None
+      wrapped_cell.build(tf.TensorShape(faked_stream_dim_shape))
+
     if isinstance(wrapped_cell, tf.keras.layers.Conv2DTranspose):
       strides = wrapped_cell.get_config()['strides']
       kernel_size = wrapped_cell.get_config()['kernel_size']
