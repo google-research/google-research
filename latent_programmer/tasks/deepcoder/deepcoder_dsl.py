@@ -81,6 +81,11 @@ ResultType = Union[int, List[int]]
 
 MIN_INT = -256
 MAX_INT = 255
+MAX_LIST_LENGTH = 20  # Maximum length for list input.
+
+
+def deepcoder_mod():
+  return _DEEPCODER_MOD.value
 
 
 class ParseError(Exception):
@@ -112,6 +117,14 @@ class Example(object):
     self.output = output
 
 
+class ProgramTask(object):
+  """A DeepCoder program with I/O examples."""
+
+  def __init__(self, program, examples):
+    self.program = program
+    self.examples = examples
+
+
 def join_token_lists(token_lists,
                      separator_token):
   return functools.reduce(lambda a, b: a + [separator_token] + b, token_lists)
@@ -121,12 +134,12 @@ def mod_result(result):
   """If desired, apply mod to ints."""
   if result is None:
     return result
-  if _DEEPCODER_MOD.value > 0:
+  if deepcoder_mod() > 0:
     result_type = type(result)
     if result_type == int:
-      return result % _DEEPCODER_MOD.value
+      return result % deepcoder_mod()
     elif result_type == list:
-      return [x % _DEEPCODER_MOD.value for x in result]
+      return [x % deepcoder_mod() for x in result]
     else:
       raise DeepCoderError(f'Unhandled result in mod_result: {result}')
   return result
@@ -134,8 +147,8 @@ def mod_result(result):
 
 def validate_int(i):
   """Checks that the integer is in range."""
-  if _DEEPCODER_MOD.value > 0:
-    return 0 <= i < _DEEPCODER_MOD.value
+  if deepcoder_mod() > 0:
+    return 0 <= i < deepcoder_mod()
   return MIN_INT <= i <= MAX_INT
 
 
@@ -171,6 +184,10 @@ def tokenize_result(result):
                                     separator_token=',') + [']']
   else:
     raise DeepCoderError(f'Unhandled type in tokenize_result({result})')
+
+
+def result_to_str(result):
+  return ' '.join(tokenize_result(result))
 
 
 class ProgramState(object):
@@ -369,6 +386,9 @@ class Program(object):
         return None
     return state
 
+  def __len__(self):
+    return len(self.statements)
+
   def tokenize(self):
     lines = []
     for i in range(self.num_inputs):
@@ -447,7 +467,7 @@ LAMBDAS = [
     Lambda('max', lambda x, y: max(x, y), [int, int], int),
 ]
 
-OPERATIONS = [
+FIRST_ORDER_OPERATIONS = [
     FirstOrderOperation(
         'Head', lambda xs: xs[0] if len(xs) > 0 else None, [list], int),
     FirstOrderOperation(
@@ -469,7 +489,8 @@ OPERATIONS = [
         'Sort', lambda xs: sorted(xs), [list], list),
     FirstOrderOperation(
         'Sum', lambda xs: sum(xs), [list], int),
-
+]
+HIGHER_ORDER_OPERATIONS = [
     HigherOrderOperation(
         'Map', lambda f, xs: [f(x) for x in xs], [([int], int), list], list),
     HigherOrderOperation(
@@ -484,7 +505,15 @@ OPERATIONS = [
     HigherOrderOperation(
         'Scanl1', _scanl1, [([int, int], int), list], list),
 ]
+OPERATIONS = FIRST_ORDER_OPERATIONS + HIGHER_ORDER_OPERATIONS
 # pylint: enable=g-explicit-length-test, unnecessary-lambda
 
+# Maps from tokens to lambdas/operations.
 TOKEN_TO_LAMBDA = {l.token: l for l in LAMBDAS}
 TOKEN_TO_OPERATION = {op.token: op for op in OPERATIONS}
+
+# Subsets of DSL functionality for generating compositional generalization
+# datasets.
+LAMBDAS_ONLY_MINUS_MIN = [TOKEN_TO_LAMBDA['-'], TOKEN_TO_LAMBDA['min']]
+OPERATIONS_ONLY_SCAN = [TOKEN_TO_OPERATION['Scanl1']]
+OPERATIONS_NO_SCAN = [op for op in OPERATIONS if op.token != 'Scanl1']
