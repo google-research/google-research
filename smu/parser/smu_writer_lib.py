@@ -1205,6 +1205,16 @@ class Atomic2InputWriter:
     return ''.join(contents)
 
 
+class CleanTextWriter:
+  """From molecule, produces a clean text format intended for human consumption."""
+
+  def __init__(self):
+    pass
+
+  def process(self, molecule):
+    return 'I am not implemented\n'
+
+
 NEGATIVE_ZERO_RE = re.compile(r'-(0\.0+)\b')
 
 
