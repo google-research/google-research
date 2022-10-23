@@ -32,6 +32,7 @@ Used to write SMU entries from a protocol buffer to a SMU .dat file in Basel
 format.
 """
 
+import array
 import re
 
 from smu import dataset_pb2
@@ -79,6 +80,16 @@ class _FortranFloat(float):
     return (super(_FortranFloat, self).__format__(format_spec)  # pytype: disable=attribute-error
             .replace('nan', 'NaN').replace('     -inf', '-Infinity').replace(
                 '     inf', 'Infinity'))
+
+
+def get_long_molecule_name(molecule):
+  return '{}.{}'.format(
+    smu_utils_lib.get_composition(molecule.bond_topologies[0]),
+    get_long_molecule_id(molecule.molecule_id))
+
+
+def get_long_molecule_id(molecule_id):
+  return '{:06d}.{:03d}'.format(molecule_id // 1000, molecule_id % 1000)
 
 
 class SmuWriter:
@@ -1054,15 +1065,14 @@ class Atomic2InputWriter:
     bond_topology_idx can be None (for the starting topology)
     """
     if bond_topology_idx is not None:
-      return '{}.{:06d}.{:03d}.{:03d}.inp'.format(
+      return '{}.{}.{:03d}.inp'.format(
           smu_utils_lib.get_composition(
               molecule.bond_topologies[bond_topology_idx]),
-          molecule.molecule_id // 1000, molecule.molecule_id % 1000,
+          get_long_molecule_id(molecule.molecule_id),
           bond_topology_idx)
     else:
-      return '{}.{:06d}.{:03d}.inp'.format(
-          smu_utils_lib.get_composition(molecule.bond_topologies[0]),
-          molecule.molecule_id // 1000, molecule.molecule_id % 1000)
+      return '{}.inp'.format(
+          get_long_molecule_name(molecule))
 
   def get_mol_block(self, molecule, bond_topology_idx):
     """Returns the MOL file block with atoms and bonds.
@@ -1211,8 +1221,242 @@ class CleanTextWriter:
   def __init__(self):
     pass
 
+  def _fw_line(self, vals):
+    """Create a fixed width line.
+
+    Args:
+      vals: sequence of tuples (position, string)
+
+    Returns
+      Newline terminated line
+    """
+    largest_val = max(vals, key=lambda v: v[0] + len(v[1]))
+    out = array.array('u', ' ' * (largest_val[0] + len(largest_val[1])))
+    out.append('\n')
+    for pos, val in vals:
+      out[pos:pos+len(val)] = array.array('u', val)
+    return out.tounicode()
+
+  def _compact_adj_matrix(self, adjacency_matrix):
+    out = []
+    side_length = len(adjacency_matrix)
+    for i in range(0, side_length - 1):
+      out.append(''.join(str(adjacency_matrix[i][j]) for j in range(i + 1, side_length)))
+    return '.'.join(out)
+
+  def _heavy_atom_list(self, topology):
+    return ''.join([smu_utils_lib.ATOM_TYPE_TO_RDKIT[a][0]
+                    for a in topology.atoms
+                    if a != dataset_pb2.BondTopology.ATOM_H])
+
+  def get_mol_id_block(self, molecule, long_name):
+    out = []
+    out.append('#\n')
+    out.append('#mol_id    \n')
+    out.append(self._fw_line([(1, 'mol_id'),
+                              (31, get_long_molecule_id(molecule.molecule_id)),
+                              (84, long_name),
+                              ]))
+
+    return out
+
+  def get_mol_spec_block(self, molecule, long_name):
+    out = []
+    out.append('#\n')
+    out.append('#mol_spec  \n')
+    topology = molecule.bond_topologies[0]
+    base_vals = [(1, 'mol_spec'), (84, long_name)]
+    out.append(self._fw_line(base_vals +
+                             [(17, 'label'),
+                              (31, long_name),
+                              ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'topo_id'),
+                              (31, str(molecule.molecule_id // 1000)),
+                              ]))
+    if molecule.properties.HasField('smiles_openbabel'):
+      out.append(self._fw_line(base_vals +
+                               [(17, 'smiles_obabel'),
+                                (31, molecule.properties.smiles_openbabel),
+                                ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'x_atoms'),
+                              (31, self._heavy_atom_list(topology)),
+                              ]))
+    adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(topology)
+    num_bonded_hydrogens = smu_utils_lib.compute_bonded_hydrogens(
+        topology, adjacency_matrix)
+    out.append(self._fw_line(base_vals +
+                             [(17, 'h_atoms'),
+                              (31, ''.join(str(h) for h in num_bonded_hydrogens)),
+                              ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'x_atpair_mat'),
+                              (31, self._compact_adj_matrix(adjacency_matrix)),
+                              ]))
+
+    return out
+
+  def get_calc_block(self, molecule, long_name):
+    out = []
+    if not molecule.properties.HasField('errors'):
+      return out
+    out.append('#\n')
+    out.append('#calc      \n')
+    base_vals = [(1, 'calc'), (84, long_name)]
+    out.append(self._fw_line(base_vals +
+                             [(17, 'status'),
+                              (31, f'{molecule.properties.errors.status:3d}'),
+                              ]))
+    error_level = smu_utils_lib.molecule_calculation_error_level(molecule)
+    if error_level <= 2:
+
+      out.append(self._fw_line(base_vals +
+                               [(17, 'warn_level'),
+                                (31, '  ' + 'ABC'[error_level]),
+                                ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'fate'),
+                              # The 5: strips the FATE_ prefix
+                              (31, dataset_pb2.Properties.FateCategory.Name(
+                                molecule.properties.errors.fate)[5:]),
+                              ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'database'),
+                              (31, 'standard'
+                               if molecule.properties.errors.which_database == dataset_pb2.STANDARD
+                               else 'complete'),
+                              ]))
+
+    out.append('#\n')
+    out.append(self._fw_line([(0, '#'),
+                              (1, 'calc'),
+                              (17, 'warn 1 :'),
+                              (31, 't1'),
+                              (44, 'delta_t1'),
+                              (57, 'bse_b6'),
+                              (70, '{:13s}'.format('bse_eccsd')),
+                              ]))
+    out.append(self._fw_line([(0, '#'),
+                              (1, 'calc'),
+                              (17, 'warn 2 :'),
+                              (31, 'exc_ene'),
+                              (44, 'exc_osmin'),
+                              (57, '{:26s}'.format('exc_osmax')),
+                              ]))
+    out.append(self._fw_line([(0, '#'),
+                              (1, 'calc'),
+                              (17, 'warn 3 :'),
+                              (31, 'vib_linear'),
+                              (44, 'vib_imag'),
+                              (57, '{:26s}'.format('bsr_neg')),
+                              ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'warn 1'),
+                              (31, str(molecule.properties.errors.warn_t1)),
+                              (44, str(molecule.properties.errors.warn_t1_excess)),
+                              (57, str(molecule.properties.errors.warn_bse_b5_b6)),
+                              (70, str(molecule.properties.errors.warn_bse_cccsd_b5)),
+                              ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'warn 2'),
+                              (31, str(molecule.properties.errors.warn_exc_lowest_excitation)),
+                              (44, str(molecule.properties.errors.warn_exc_smallest_oscillator)),
+                              (57, str(molecule.properties.errors.warn_exc_largest_oscillator)),
+                              ]))
+    out.append(self._fw_line(base_vals +
+                             [(17, 'warn 3'),
+                              (31, str(molecule.properties.errors.warn_vib_linearity)),
+                              (44, str(molecule.properties.errors.warn_vib_imaginary)),
+                              (57, str(molecule.properties.errors.warn_num_neg)),
+                              ]))
+
+
+    return out
+
+  def get_duplicates_block(self, molecule, long_name):
+    out = []
+    out.append('#\n')
+    out.append('#duplicate_found            \n')
+    if len(molecule.duplicate_of) == 0:
+      out.append(self._fw_line([(1, 'duplicate_found'),
+                                (31, 'none'),
+                                (84, long_name)]))
+    else:
+      for dup_id in molecule.duplicate_of:
+        out.append(self._fw_line([(1, 'duplicate_found'),
+                                  (31, get_long_molecule_id(dup_id)),
+                                  (84, long_name)]))
+
+    out.append('#\n')
+    out.append('#duplicate_of               \n')
+    if molecule.duplicated_by:
+      dup_string = get_long_molecule_id(molecule.duplicated_by)
+    else:
+      dup_string = 'none'
+    out.append(self._fw_line([(1, 'duplicate_of'),
+                              (31, dup_string),
+                              (84, long_name)]))
+
+    return out
+
+  def get_bond_topologies_block(self, molecule, long_name):
+    out = []
+    out.append('#\n')
+    for bt_idx, bt in enumerate(molecule.bond_topologies):
+      base_vals = [(1, 'bond_topo'),
+                   (11, f'{bt_idx+1:2d}')]
+
+      out.append(self._fw_line(base_vals +
+                               [(0, '#'),
+                                (14, 'of'),
+                                (17, f'{len(molecule.bond_topologies):2d}')]))
+      base_vals.append((84, long_name))
+      out.append(self._fw_line(base_vals +
+                               [(17, 'topo_id'),
+                                (31, f'{bt.bond_topology_id:<d}')]))
+      info = (('i' if bt.source & dataset_pb2.BondTopology.SOURCE_ITC else '.') +
+              ('c' if bt.source & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
+              ('m' if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
+              '.' +
+              ('S' if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
+      out.append(self._fw_line(base_vals +
+                               [(17, 'info'),
+                                (31, info)]))
+      out.append(self._fw_line(base_vals +
+                               [(17, 'smiles_rdkit'),
+                                (31, bt.smiles)]))
+      out.append(self._fw_line(base_vals +
+                               [(17, 'x_atoms'),
+                                (31, self._heavy_atom_list(bt))]))
+      adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(bt)
+      num_bonded_hydrogens = smu_utils_lib.compute_bonded_hydrogens(
+        bt, adjacency_matrix)
+      out.append(self._fw_line(base_vals +
+                               [(17, 'h_atoms'),
+                                (31, ''.join(str(h) for h in num_bonded_hydrogens)),
+                                ]))
+      out.append(self._fw_line(
+        base_vals +
+        [(17, 'x_atpair_mat'),
+         (31,
+          ('Cm:' if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING else 'Rm:') +
+          self._compact_adj_matrix(adjacency_matrix)),
+         ]))
+
+
+    return out
+
   def process(self, molecule):
-    return 'I am not implemented\n'
+    long_name = get_long_molecule_name(molecule)
+    contents = ['#===============================================================================\n']
+    contents.extend(self.get_mol_id_block(molecule, long_name))
+    contents.extend(self.get_mol_spec_block(molecule, long_name))
+    contents.extend(self.get_calc_block(molecule, long_name))
+    contents.extend(self.get_duplicates_block(molecule, long_name))
+    contents.extend(self.get_bond_topologies_block(molecule, long_name))
+
+    return ''.join(contents)
 
 
 NEGATIVE_ZERO_RE = re.compile(r'-(0\.0+)\b')
