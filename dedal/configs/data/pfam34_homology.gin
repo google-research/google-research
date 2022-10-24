@@ -2,12 +2,12 @@ from __gin__ import dynamic_registration
 
 import seqio
 
+from dedal import multi_task
 from dedal.data import builder
 from dedal.data import feature_converters
 from dedal.data import loaders
 from dedal.data import tasks
 from dedal.data import transforms
-from dedal import multi_task
 
 
 # -----------------------------------------------------------------------------
