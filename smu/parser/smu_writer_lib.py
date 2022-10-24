@@ -1237,6 +1237,9 @@ class CleanTextWriter:
       out[pos:pos+len(val)] = array.array('u', val)
     return out.tounicode()
 
+  def _align_dec_point(self, pos, val):
+    return (pos - val.index('.'), val)
+
   def _compact_adj_matrix(self, adjacency_matrix):
     out = []
     side_length = len(adjacency_matrix)
@@ -1248,6 +1251,11 @@ class CleanTextWriter:
     return ''.join([smu_utils_lib.ATOM_TYPE_TO_RDKIT[a][0]
                     for a in topology.atoms
                     if a != dataset_pb2.BondTopology.ATOM_H])
+
+  def _atom_generator(self, topology):
+    for atom_idx, atom in enumerate(topology.atoms):
+      yield atom_idx, [(20, f'{atom_idx+1:2d}'),
+                       (23, smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom][0])]
 
   def get_mol_id_block(self, molecule, long_name):
     out = []
@@ -1418,7 +1426,7 @@ class CleanTextWriter:
       info = (('i' if bt.source & dataset_pb2.BondTopology.SOURCE_ITC else '.') +
               ('c' if bt.source & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
               ('m' if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
-              '.' +
+              ('u' if bt.source & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +
               ('S' if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
       out.append(self._fw_line(base_vals +
                                [(17, 'info'),
@@ -1444,8 +1452,243 @@ class CleanTextWriter:
           self._compact_adj_matrix(adjacency_matrix)),
          ]))
 
+    return out
+
+  def get_geometries_block(self, molecule, long_name):
+    out = []
+
+    def write_geometry(prefix, geom):
+      out.append('#\n')
+      out.append(self._fw_line([(0, '#'),
+                                (1, prefix),
+                                (9, 'atompos'),
+                                (43, 'x'),
+                                (55, 'y'),
+                                (67, 'z'),
+                                (84, '(au)'),
+                                ]))
+      base_vals = [(1, prefix), (9, 'atompos'), (84, long_name)]
+      for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+        out.append(self._fw_line(
+          base_vals + atom_vals +
+          [self._align_dec_point(37, f'{geom.atom_positions[atom_idx].x:.6f}'),
+           self._align_dec_point(49, f'{geom.atom_positions[atom_idx].y:.6f}'),
+           self._align_dec_point(61, f'{geom.atom_positions[atom_idx].z:.6f}'),
+           ]))
+
+      out.append('#\n')
+      out.append(self._fw_line([(0, '#'),
+                                (1, prefix),
+                                (84, '(au; brot: MHz)' if geom.HasField('rotcon') else '(au)'),
+                                ]))
+      base_vals = [(1, prefix), (84, long_name)]
+      if geom.HasField('energy'):
+        out.append(self._fw_line(base_vals +
+                                 [(9, 'energy'),
+                                  self._align_dec_point(49, f'{geom.energy.value:.6f}'),
+                                  ]))
+      if geom.HasField('gnorm'):
+        out.append(self._fw_line(base_vals +
+                                 [(9, 'gnorm'),
+                                  self._align_dec_point(49, f'{geom.gnorm.value:.6f}'),
+                                  ]))
+      if geom.HasField('enuc'):
+        out.append(self._fw_line(base_vals +
+                                 [(9, 'enuc'),
+                                  self._align_dec_point(49, f'{geom.enuc.value:.4f}'),
+                                  ]))
+      if geom.HasField('rotcon'):
+        for idx, val in enumerate(geom.rotcon.value):
+          if val < 10_000:
+            val_str = f'{val:.3f}'
+          elif val < 100_000:
+            val_str = f'{val:.2f}'
+          elif val < 1_000_000:
+            val_str = f'{val:.1f}'
+          else:
+            val_str = f'{val:.0f}' + '.'
+          out.append(self._fw_line(base_vals +
+                                   [(9, 'brot'),
+                                    (21, str(idx + 1)),
+                                    self._align_dec_point(49, val_str),
+                                  ]))
+
+    write_geometry('ini_geo', molecule.initial_geometries[0])
+    if molecule.HasField('optimized_geometry'):
+      write_geometry('opt_geo', molecule.optimized_geometry)
 
     return out
+
+  def get_vib_block(self, molecule, long_name):
+    out = []
+
+    if molecule.properties.HasField('zpe_unscaled'):
+      out.append('#\n')
+      out.append(self._fw_line([(0, '#vib zpe'),
+                                (84, '(unscaled, kcal/mol)'),
+                                ]))
+      out.append(self._fw_line([
+        (1, 'vib zpe'),
+        (self._align_dec_point(37, f'{molecule.properties.zpe_unscaled.value:.2f}')),
+        (84, long_name),
+      ]))
+
+    if molecule.properties.HasField('harmonic_frequencies'):
+      # Note that we assume if you have frequencies, you have intensities.
+      out.append('#\n')
+      out.append(self._fw_line([(0, '#vib freq'),
+                                (35, 'freq'),
+                                (45, 'intens'),
+                                (84, '(cm-1, km/mol)'),
+                                ]))
+      for idx, (freq, intens) in enumerate(zip(molecule.properties.harmonic_frequencies.value,
+                                               molecule.properties.harmonic_intensities.value)):
+        out.append(self._fw_line([
+          (1, 'vib freq'),
+          (10, f'{idx+1:>2d}'),
+          (self._align_dec_point(37, f'{freq:.1f}')),
+          (self._align_dec_point(49, f'{intens:.1f}')),
+          (84, long_name),
+        ]))
+
+    if len(molecule.properties.normal_modes):
+      for mode_idx, mode in enumerate(molecule.properties.normal_modes):
+        out.append('#\n')
+        freq = molecule.properties.harmonic_frequencies.value[mode_idx]
+        out.append(self._fw_line([(0, '#vib mode'),
+                                  (10, f'{mode_idx+1:>2d}'),
+                                  (41, 'x'),
+                                  (53, 'y'),
+                                  (65, 'z'),
+                                  (84, f'(f={freq:8.1f} cm-1)'),
+                                  ]))
+        for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+          disp = mode.displacements[atom_idx]
+          out.append(self._fw_line(atom_vals +
+                                   [(1, 'vib mode'),
+                                    (10, f'{mode_idx+1:>2d}'),
+                                    (self._align_dec_point(37, f'{disp.x:.4f}')),
+                                    (self._align_dec_point(49, f'{disp.y:.4f}')),
+                                    (self._align_dec_point(61, f'{disp.z:.4f}')),
+                                    (84, long_name),
+                                    ]))
+
+    return out
+
+  _SPE_CHECK_PAIRS = [
+    ('tmol', 'single_point_energy_pbe0_6_311gd'),
+    ('mrcc', 'single_point_energy_pbe0_6_311gd_mrcc'),
+    ('orca', 'single_point_energy_pbe0_6_311gd_orca'),
+  ]
+  _SPE_CATION_PAIRS = [
+    ('tmol', 'single_point_energy_pbe0_6_311gd_cat'),
+    ('mrcc', 'single_point_energy_pbe0_6_311gd_cat_mrcc'),
+    ('orca', 'single_point_energy_pbe0_6_311gd_cat_orca'),
+  ]
+  _SPE_STD_PAIRS = [
+    ('hf_2sp', 'single_point_energy_hf_2sp'),
+    ('hf_2sd', 'single_point_energy_hf_2sd'),
+    ('hf_3psd', 'single_point_energy_hf_3psd'),
+    ('hf_3', 'single_point_energy_hf_3'),
+    ('hf_4', 'single_point_energy_hf_4'),
+    ('hf_34', 'single_point_energy_hf_34'),
+    ('hf_631gd', 'single_point_energy_hf_6_31gd'),
+    ('hf_tzvp', 'single_point_energy_hf_tzvp'),
+    ('hf_cvtz', 'single_point_energy_hf_cvtz'),
+    ('mp2_2sp', 'single_point_energy_mp2_2sp'),
+    ('mp2_2sd', 'single_point_energy_mp2_2sd'),
+    ('mp2_3psd', 'single_point_energy_mp2_3psd'),
+    ('mp2_3', 'single_point_energy_mp2_3'),
+    ('mp2_4', 'single_point_energy_mp2_4'),
+    ('mp2_34', 'single_point_energy_mp2_34'),
+    ('mp2_tzvp', 'single_point_energy_mp2_tzvp'),
+    ('mp2full_cvtz', 'single_point_energy_mp2ful_cvtz'),
+    ('cc2_tzvp', 'single_point_energy_cc2_tzvp'),
+    ('ccsd_2sp', 'single_point_energy_ccsd_2sp'),
+    ('ccsd_2sd', 'single_point_energy_ccsd_2sd'),
+    ('ccsd_3psd', 'single_point_energy_ccsd_3psd'),
+    ('ccsd_t_2sp', 'single_point_energy_ccsd_t_2sp'),
+    ('ccsd_t_2sd', 'single_point_energy_ccsd_t_2sd'),
+    ('b3lyp_631ppgdp', 'single_point_energy_b3lyp_6_31ppgdp'),
+    ('b3lyp_augpcs1', 'single_point_energy_b3lyp_aug_pcs_1'),
+    ('pbe0_631ppgdp', 'single_point_energy_pbe0_6_31ppgdp'),
+    ('pbe0_augpc1', 'single_point_energy_pbe0_aug_pc_1'),
+    ('pbe0_augpcs1', 'single_point_energy_pbe0_aug_pcs_1'),
+    ('pbe0d3_6311gd', 'single_point_energy_pbe0d3_6_311gd'),
+  ]
+  _SPE_COMP_PAIRS = [
+    ('b5', 'single_point_energy_atomic_b5'),
+    ('b6', 'single_point_energy_atomic_b6'),
+    ('eccsd', 'single_point_energy_eccsd'),
+  ]
+
+  def get_spe_block(self, molecule, long_name):
+    out = []
+
+    def process_pairs(prefix, header_vals, pairs):
+      this_out = []
+      for short_name, field_name in pairs:
+        if not molecule.properties.HasField(field_name):
+          continue
+        val = getattr(molecule.properties, field_name).value
+        this_out.append(self._fw_line([(1, prefix),
+                                       (17, short_name),
+                                       self._align_dec_point(37, f'{val:.6f}'),
+                                       (84, long_name),
+                                       ]))
+      if this_out:
+        out.append('#\n')
+        out.append(self._fw_line(header_vals))
+        out.extend(this_out)
+
+    process_pairs('spe check',
+                  [(0, '#spe check'),
+                   (33, 'pbe0_6311gd'),
+                   (84, '(au)'),
+                   ],
+                  self._SPE_CHECK_PAIRS)
+    process_pairs('spe cation',
+                  [(0, '#spe cation'),
+                   (33, 'pbe0_6311gd'),
+                   (84, '(au)'),
+                   ],
+                  self._SPE_CATION_PAIRS)
+    process_pairs('spe std',
+                  [(0, '#spe std'),
+                   (84, '(au)'),
+                   ],
+                  self._SPE_STD_PAIRS)
+    process_pairs('spe comp',
+                  [(0, '#spe comp'),
+                   (84, '(au)'),
+                   ],
+                  self._SPE_COMP_PAIRS)
+
+    return out
+
+  _DIAGNOSTICS_PAIRS = [
+    ('d1_2sp', 'diagnostics_d1_ccsd_2sp'),
+    ('t1_2sp', 'diagnostics_t1_ccsd_2sp'),
+    ('t1_2sd', 'diagnostics_t1_ccsd_2sd'),
+    ('t1_3psd', 'diagnostics_t1_ccsd_3psd'),
+    ]
+  def get_diagnostics_block(self, molecule, long_name):
+    out = []
+
+    for short_name, field_name in self._DIAGNOSTICS_PAIRS:
+      if not molecule.properties.HasField(field_name):
+        continue
+      val = getattr(molecule.properties, field_name).value
+      out.append(self._fw_line([(1, 'wf_diag'),
+                                (17, short_name),
+                                self._align_dec_point(37, f'{val:.4f}'),
+                                (84, long_name),
+                                ]))
+
+    if out:
+      return ['#\n', '#wf_diag   \n'] + out
+    else:
+      return out;
 
   def process(self, molecule):
     long_name = get_long_molecule_name(molecule)
@@ -1455,6 +1698,10 @@ class CleanTextWriter:
     contents.extend(self.get_calc_block(molecule, long_name))
     contents.extend(self.get_duplicates_block(molecule, long_name))
     contents.extend(self.get_bond_topologies_block(molecule, long_name))
+    contents.extend(self.get_geometries_block(molecule, long_name))
+    contents.extend(self.get_vib_block(molecule, long_name))
+    contents.extend(self.get_spe_block(molecule, long_name))
+    contents.extend(self.get_diagnostics_block(molecule, long_name))
 
     return ''.join(contents)
 
