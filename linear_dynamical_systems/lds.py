@@ -94,16 +94,16 @@ class LinearDynamicalSystemSequence(object):
       for i in xrange(self.input_dim):
         c = input_colors[i] if input_colors else None
         sns.lineplot(
-            np.arange(self.seq_len),
-            self.inputs[:, i],
+            x=np.arange(self.seq_len),
+            y=self.inputs[:, i],
             label='input_' + str(i),
             alpha=0.5,
             color=c)
     for i in xrange(self.output_dim):
       c = output_colors[i] if output_colors else None
       sns.lineplot(
-          np.arange(self.seq_len),
-          self.outputs[:, i],
+          x=np.arange(self.seq_len),
+          y=self.outputs[:, i],
           label='output_' + str(i),
           color=c)
     plt.title('Generated Sequence')
@@ -136,14 +136,14 @@ class LinearDynamicalSystemSequence(object):
     for i in xrange(self.output_dim):
       c = pred_colors[i] if pred_colors else None
       sns.lineplot(
-          np.arange(num_warm_start_steps, self.seq_len),
-          predictions[:, i],
+          x=np.arange(num_warm_start_steps, self.seq_len),
+          y=predictions[:, i],
           label='pred_' + str(i),
           color=c)
       if plot_error:
         sns.lineplot(
-            np.arange(num_warm_start_steps, self.seq_len),
-            predictions[:, i] - self.outputs[num_warm_start_steps:, i],
+            x=np.arange(num_warm_start_steps, self.seq_len),
+            y=predictions[:, i] - self.outputs[num_warm_start_steps:, i],
             label='error_' + str(i),
             color='black')
     plt.title('Predictions, relative error: ' +
