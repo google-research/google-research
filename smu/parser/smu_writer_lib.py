@@ -1257,6 +1257,16 @@ class CleanTextWriter:
       yield atom_idx, [(20, f'{atom_idx+1:2d}'),
                        (23, smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom][0])]
 
+  def _fate_string(self, molecule):
+    # Probably a temporary hack. I'm adjusting our fate outputs to match what this format
+    # expects rather than changin the fate values quite yet because that seems up in the air.
+    fate = molecule.properties.errors.fate
+    if fate == dataset_pb2.Properties.FATE_SUCCESS:
+      return 'SUCCESS_ALL'
+    else:
+      # The 5: strips the FATE_ prefix
+      return dataset_pb2.Properties.FateCategory.Name(fate)[5:]
+
   def get_mol_id_block(self, molecule, long_name):
     out = []
     out.append('#\n')
@@ -1325,9 +1335,7 @@ class CleanTextWriter:
                                 ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'fate'),
-                              # The 5: strips the FATE_ prefix
-                              (31, dataset_pb2.Properties.FateCategory.Name(
-                                molecule.properties.errors.fate)[5:]),
+                              (31, self._fate_string(molecule)),
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'database'),
@@ -1690,6 +1698,139 @@ class CleanTextWriter:
     else:
       return out;
 
+  def get_atomic2_gen_block(self, molecule, long_name):
+    out = []
+
+    base_vals = [(1, 'at2_gen'), (84, long_name)]
+    for short_name, field_name in [('bsr_left', 'bond_separation_reaction_left'),
+                                   ('bsr_right', 'bond_separation_reaction_right')]:
+      if molecule.properties.HasField(field_name):
+        out.append(self._fw_line(base_vals +
+                                 [(17, short_name),
+                                  (52, getattr(molecule.properties, field_name).value)
+                                  ]))
+
+
+    if molecule.properties.HasField('diagnostics_t1_ccsd_2sd'):
+      val = molecule.properties.diagnostics_t1_ccsd_2sd.value
+      out.append(self._fw_line(base_vals +
+                               [(17, 't1'),
+                                self._align_dec_point(37, f'{val:.4f}'),
+                                ]))
+
+    if molecule.properties.HasField('diagnostics_t1_ccsd_2sp_excess'):
+      val = molecule.properties.diagnostics_t1_ccsd_2sp_excess.value
+      out.append(self._fw_line(base_vals +
+                               [(17, 't1exc'),
+                                self._align_dec_point(37, f'{val:.4f}'),
+                                ]))
+
+    if out:
+      return ['#\n', '#at2_gen         \n'] + out
+    else:
+      return out;
+
+  _ATOMIC2_PAIRS = [
+    ('ereac', 'bond_separation_energy'),
+    ('eae', 'atomization_energy_excluding_zpe'),
+    ('ea0', 'atomization_energy_including_zpe'),
+    ('hf0', 'enthalpy_of_formation_0k'),
+    ('hf298', 'enthalpy_of_formation_298k'),
+    ]
+  def get_atomic2_um_block(self, molecule, long_name):
+    out = []
+
+    header_vals = [(0, '#at2_um'),
+                   (37, 'val'),
+                   (49, 'unc'),
+                   (84, '(kcal/mol)'),
+                   ]
+    base_vals = [(1, "at2_um"), (84, long_name)]
+    if molecule.properties.HasField('zpe_atomic_um'):
+      out.append('#\n')
+      out.append(self._fw_line(header_vals))
+      out.append(self._fw_line(
+        base_vals +
+        [(9, 'zpe'),
+         self._align_dec_point(37, f'{molecule.properties.zpe_atomic_um.value:.2f}'),
+         self._align_dec_point(49, f'{molecule.properties.zpe_atomic_um_ci.value:.2f}'),
+         ]))
+
+    # This might be a terrible idea, but since there are so many fields with regular
+    # naming, I'm going to construct the field name from pieces
+    for method in ['b5', 'b6', 'eccsd']:
+      this_out = []
+      for short_name, field_prefix in self._ATOMIC2_PAIRS:
+        field = field_prefix + '_'
+        # HACK until I do field rnames
+        if method != 'eccsd':
+          field += 'atomic_'
+        field += method
+
+        if not molecule.properties.HasField(field + '_um'):
+          continue
+
+        this_out.append(self._fw_line(base_vals +
+          [(9, short_name),
+           (17, method),
+           self._align_dec_point(37, '{:.2f}'.format(
+             getattr(molecule.properties, field + '_um').value)),
+           self._align_dec_point(49, '{:.2f}'.format(
+             getattr(molecule.properties, field + '_um_ci').value)),
+           ]))
+
+      if this_out:
+        out.append('#\n')
+        out.append(self._fw_line(header_vals + [(17, method)]))
+        out.extend(this_out)
+
+    return out
+
+  def get_atomic2_std_block(self, molecule, long_name):
+    out = []
+
+    header_vals = [(0, '#at2_std'),
+                   (84, '(kcal/mol)'),
+                   ]
+    base_vals = [(1, "at2_std"),
+                 (84, long_name)]
+    if molecule.properties.HasField('zpe_atomic'):
+      out.append('#\n')
+      out.append(self._fw_line(header_vals))
+      out.append(self._fw_line(
+        base_vals +
+        [(9, 'zpe'),
+         self._align_dec_point(37, f'{molecule.properties.zpe_atomic.value:.2f}'),
+         ]))
+
+    # This might be a terrible idea, but since there are so many fields with regular
+    # naming, I'm going to construct the field name from pieces
+    for method in ['b5', 'b6', 'eccsd']:
+      this_out = []
+      for short_name, field_prefix in self._ATOMIC2_PAIRS:
+        field = field_prefix + '_'
+        # HACK until I do field rnames
+        if method != 'eccsd':
+          field += 'atomic_'
+        field += method
+
+        if not molecule.properties.HasField(field):
+          continue
+
+        this_out.append(self._fw_line(base_vals +
+          [(9, short_name),
+           (17, method),
+           self._align_dec_point(37, '{:.2f}'.format(
+             getattr(molecule.properties, field).value)),
+           ]))
+
+      if this_out:
+        out.append('#\n')
+        out.append(self._fw_line(header_vals + [(17, method)]))
+        out.extend(this_out)
+
+    return out
+
   def process(self, molecule):
     long_name = get_long_molecule_name(molecule)
     contents = ['#===============================================================================\n']
@@ -1702,6 +1843,9 @@ class CleanTextWriter:
     contents.extend(self.get_vib_block(molecule, long_name))
     contents.extend(self.get_spe_block(molecule, long_name))
     contents.extend(self.get_diagnostics_block(molecule, long_name))
+    contents.extend(self.get_atomic2_gen_block(molecule, long_name))
+    contents.extend(self.get_atomic2_um_block(molecule, long_name))
+    contents.extend(self.get_atomic2_std_block(molecule, long_name))
 
     return ''.join(contents)
 
