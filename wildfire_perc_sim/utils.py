@@ -174,11 +174,8 @@ def get_stencil(neighborhood_size):
   """Generate an array of indices of neighbors for a given neighborhood size."""
 
   x_arr, y_arr = _get_xy_stencil(neighborhood_size)
-  xy_norm = jnp.array(list(map(jnp.linalg.norm, zip(x_arr, y_arr))))[:, None]
-  x_arr = x_arr[:, None]
-  y_arr = y_arr[:, None]
-
-  dist_array = jnp.concatenate([x_arr, y_arr, xy_norm], axis=1)
+  xy_norm = jnp.linalg.norm(jnp.stack([x_arr, y_arr]), axis=0)
+  dist_array = jnp.column_stack([x_arr, y_arr, xy_norm])
 
   # Sort by distance to origin
   dist_array_sorted = dist_array[dist_array[:, 2].argsort()]
