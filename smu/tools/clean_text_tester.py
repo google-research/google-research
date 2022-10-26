@@ -154,6 +154,8 @@ def process_one_expected(samples_fn, db, is_standard):
         if diff:
           result.cnt_complete_error += 1
 
+      expected_idx += 1
+
   return result
 
 

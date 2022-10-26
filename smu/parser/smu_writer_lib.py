@@ -36,8 +36,6 @@ import array
 import copy
 import re
 
-from absl import logging
-
 from smu import dataset_pb2
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
@@ -1713,13 +1711,11 @@ class CleanTextWriter:
     # We'll add all the components afer the 0th first (which creates all the lines)
     # then go back and add the 0th term to the first line. It's less special
     # casing in this loop to do it this way.
-    logging.info(f'BSR START: {bsr_val}')
     components = [re.sub(r'\s+', ' ', s.strip()) for s in self._BSR_SPLIT_RE.split(bsr_val)]
     for comp_idx, comp in enumerate(components[1:]):
       if comp_idx % 2 == 0:
         out_vals.append(copy.copy(base_vals))
       pos = self._BSR_POSITIONS[comp_idx % 2]
-      logging.info(f'   BSR: writing {comp_idx}, "{comp}" to {len(out_vals)},{pos}')
       out_vals[-1].extend([(pos, '+'),
                            (pos + 3, comp)])
 
