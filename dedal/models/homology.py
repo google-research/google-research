@@ -15,7 +15,7 @@
 
 """Keras Layers for homology detection from local sequence alignments."""
 
-from typing import Iterator, Mapping, Tuple, Type
+from typing import Any, Iterator, Mapping, Tuple, Type
 
 import gin
 import numpy as np
@@ -245,13 +245,15 @@ def finetune_homology_head(loop,
 
 
 @gin.configurable
-def finetune_homology_head_eval(loop,
-                                train_ds,
-                                head_cls,
-                                x0,
-                                n_steps = 500,
-                                alignment_idx = 0,
-                                homology_idx = 1):
+def finetune_homology_head_eval(
+    loop,
+    train_ds,
+    head_cls,
+    x0,
+    n_steps = 500,
+    alignment_idx = 0,
+    homology_idx = 1,
+):
   """(Re)-fits homology head using SciPy's minimize method prior to eval."""
   dummy_head = head_cls()
   loss = tf.losses.BinaryCrossentropy(from_logits=True)
@@ -307,3 +309,4 @@ def finetune_homology_head_eval(loop,
 
   res = optimize.minimize(value_and_grad_fn, x0, jac=True)
   set_head_params(loop.model.heads['alignments'][homology_idx], res.x)
+  return res

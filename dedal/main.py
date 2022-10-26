@@ -13,15 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Trains a keras model on a tf.Dataset.
+r"""Trains a DEDAL model.
 
-Instructions.
+Example usage:
 
 python3 -m dedal.main -- \
---base_dir /tmp/example/1/ \
---gin_config dedal.gin \
---task train \
---alsologtostderr
+  --base_dir /tmp/example/1 \
+  --gin_config data/uniref50.gin \
+  --gin_config data/pfam34_alignment.gin \
+  --gin_config data/pfam34_homology.gin \
+  --gin_config model/dedal.gin \
+  --gin_config task/task.gin \
+  --gin_bindings UNIREF50_DATA_DIR=/path/to/masked_lm/data \
+  --gin_bindings PFAM34_ALIGNMENT_DATA_DIR=/path/to/alignment/data \
+  --gin_bindings PFAM34_HOMOLOGY_DATA_DIR=/path/to/homology/data \
+  --gin_bindings MAIN_VOCAB_PATH=/path/to/main/vocab \
+  --gin_bindings TOKEN_REPLACE_VOCAB_PATH=/path/to/token_replace/vocab \
+  --gin_bindings ALIGNMENT_PATH_VOCAB_PATH=/path/to/alignment_path/vocab \
+  --task train \
+  --alsologtostderr
 """
 
 import os.path
