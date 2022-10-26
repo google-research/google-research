@@ -33,7 +33,10 @@ format.
 """
 
 import array
+import copy
 import re
+
+from absl import logging
 
 from smu import dataset_pb2
 from smu.parser import smu_parser_lib
@@ -1282,7 +1285,7 @@ class CleanTextWriter:
     out = []
     out.append('#\n')
     out.append('#mol_spec  \n')
-    topology = molecule.bond_topologies[0]
+    topology = molecule.bond_topologies[smu_utils_lib.get_starting_bond_topology_index(molecule)]
     base_vals = [(1, 'mol_spec'), (84, long_name)]
     out.append(self._fw_line(base_vals +
                              [(17, 'label'),
@@ -1399,7 +1402,7 @@ class CleanTextWriter:
                                 (31, 'none'),
                                 (84, long_name)]))
     else:
-      for dup_id in molecule.duplicate_of:
+      for dup_id in sorted(molecule.duplicate_of):
         out.append(self._fw_line([(1, 'duplicate_found'),
                                   (31, get_long_molecule_id(dup_id)),
                                   (84, long_name)]))
@@ -1698,18 +1701,47 @@ class CleanTextWriter:
     else:
       return out;
 
+  _BSR_SPLIT_RE = re.compile(r'[\s\+]\+\s')
+  _BSR_POSITIONS = [51, 66]
+
+  def _get_bsr_lines(self, base_vals, bsr_val):
+    if not bsr_val:
+      return []
+
+    out_vals = []
+
+    # We'll add all the components afer the 0th first (which creates all the lines)
+    # then go back and add the 0th term to the first line. It's less special
+    # casing in this loop to do it this way.
+    logging.info(f'BSR START: {bsr_val}')
+    components = [re.sub(r'\s+', ' ', s.strip()) for s in self._BSR_SPLIT_RE.split(bsr_val)]
+    for comp_idx, comp in enumerate(components[1:]):
+      if comp_idx % 2 == 0:
+        out_vals.append(copy.copy(base_vals))
+      pos = self._BSR_POSITIONS[comp_idx % 2]
+      logging.info(f'   BSR: writing {comp_idx}, "{comp}" to {len(out_vals)},{pos}')
+      out_vals[-1].extend([(pos, '+'),
+                           (pos + 3, comp)])
+
+    # Some bsr strings are a single term.
+    if not out_vals:
+      out_vals.append(copy.copy(base_vals))
+
+    if components[0] == 'molecule':
+      out_vals[0].append((41, 'molecule'))
+    else:
+      out_vals[0].append((39, components[0]))
+
+    return [self._fw_line(vals) for vals in out_vals]
+
   def get_atomic2_gen_block(self, molecule, long_name):
     out = []
 
     base_vals = [(1, 'at2_gen'), (84, long_name)]
-    for short_name, field_name in [('bsr_left', 'bond_separation_reaction_left'),
-                                   ('bsr_right', 'bond_separation_reaction_right')]:
-      if molecule.properties.HasField(field_name):
-        out.append(self._fw_line(base_vals +
-                                 [(17, short_name),
-                                  (52, getattr(molecule.properties, field_name).value)
-                                  ]))
-
+    out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_left')],
+                                   molecule.properties.bond_separation_reaction_left.value))
+    out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_right')],
+                                   molecule.properties.bond_separation_reaction_right.value))
 
     if molecule.properties.HasField('diagnostics_t1_ccsd_2sd'):
       val = molecule.properties.diagnostics_t1_ccsd_2sd.value
@@ -1831,6 +1863,220 @@ class CleanTextWriter:
 
     return out
 
+  _ORB_PAIRS = [
+    ('hf_3', 'hf_3'),
+    ('hf_4', 'hf_4'),
+    ('hf_631gd', 'hf_6_31gd'),
+    ('hf_cvtz', 'hf_cvtz'),
+    ('hf_tzvp', 'hf_tzvp'),
+    ('b3lyp_631ppgdp', 'b3lyp_6_31ppgdp'),
+    ('b3lyp_augpcs1', 'b3lyp_aug_pcs_1'),
+    ('pbe0_631ppgdp', 'pbe0_6_31ppgdp'),
+    ('pbe0_6311gd', 'pbe0_6_311gd'),
+    ('pbe0_augpc1', 'pbe0_aug_pc_1'),
+    ('pbe0_augpcs1', 'pbe0_aug_pcs_1'),
+    ]
+
+  def get_orb_block(self, molecule, long_name):
+    out = []
+
+    for short_name, partial_field in self._ORB_PAIRS:
+      homo_field = 'homo_' + partial_field
+      lumo_field = 'lumo_' + partial_field
+      if not molecule.properties.HasField(homo_field):
+        continue
+      out.append(self._fw_line([
+        (1, 'orb'),
+        (17, short_name),
+        self._align_dec_point(37, '{:.5f}'.format(getattr(molecule.properties, homo_field).value)),
+        self._align_dec_point(49, '{:.5f}'.format(getattr(molecule.properties, lumo_field).value)),
+        (84, long_name),
+        ]))
+
+    if not out:
+      return []
+
+    return ['#\n', self._fw_line([(0, '#orb'),
+                                  (38, 'ehomo'),
+                                  (50, 'elumo'),
+                                  (84, '(au)'),
+                                  ])] + out
+
+  def get_exc_block(self, molecule, long_name):
+    out = []
+
+    if not molecule.properties.HasField('excitation_energies_cc2'):
+      return []
+
+    out.append('#\n')
+    out.append(self._fw_line([(0, '#exc'),
+                              (40, 'ene'),
+                              (53, 'os'),
+                              (84, '(au)'),
+                              ]))
+
+    for idx, (exc, os) in enumerate(zip(
+        molecule.properties.excitation_energies_cc2.value,
+        molecule.properties.excitation_oscillator_strengths_cc2.value)):
+      out.append(self._fw_line([(1, 'exc'),
+                                (21, str(idx+1)),
+                                self._align_dec_point(37, f'{exc:.5f}'),
+                                self._align_dec_point(49, f'{os:.5f}'),
+                                (84, long_name),
+                                ]))
+
+    return out
+
+  _NMR_FIELDS = [
+    ('b3lyp_', '631ppgdp', 'nmr_isotropic_shielding_b3lyp_6_31ppgdp'),
+    ('b3lyp_', 'augpcs1', 'nmr_isotropic_shielding_b3lyp_aug_pcs_1'),
+    ('pbe0_', '631ppgdp', 'nmr_isotropic_shielding_pbe0_6_31ppgdp'),
+    ('pbe0_', 'augpcs1', 'nmr_isotropic_shielding_pbe0_aug_pcs_1'),
+    ]
+  _DEC_POINT_POSITIONS = [37, 49, 61, 73]
+
+  def get_nmr_block(self, molecule, long_name):
+    # This block is annoyingly differnt than the others because
+    # * the header row is two lines long
+    # * Values are not in a fixed place, but migrate based on what is available.
+    # So in this one, we will build up the vals and make all teh strings at the ends
+    lines_vals = [[] for _ in range(len(molecule.bond_topologies[0].atoms) + 2)]
+    num_values_present = 0
+    for line0_str, line1_str, field in self._NMR_FIELDS:
+      if not molecule.properties.HasField(field):
+        continue;
+      pos = self._DEC_POINT_POSITIONS[num_values_present]
+      lines_vals[0].append((pos - 5, f'{line0_str:>8s}'))
+      lines_vals[1].append((pos - 5, f'{line1_str:>8s}'))
+      for idx, val in enumerate(getattr(molecule.properties, field).values, start=2):
+        lines_vals[idx].append(self._align_dec_point(pos, f'{val:.2f}'))
+      num_values_present += 1
+
+    if not num_values_present:
+      return []
+
+    lines_vals[0].extend([(0, '#nmr'), (84, '(ppm)')])
+    lines_vals[1].append((0, '#nmr'))
+    for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+      lines_vals[atom_idx + 2].extend(atom_vals)
+      lines_vals[atom_idx + 2].extend([(1, 'nmr'), (84, long_name)])
+
+    return ['#\n'] + [self._fw_line(vals) for vals in lines_vals]
+
+  _CHARGE_PAIRS = [
+    ('esp', 'esp_fit'),
+    ('mul', 'mulliken'),
+    ('loe', 'loewdin'),
+    ('nat', 'natural_nbo'),
+    ]
+  def get_charge_block(self, molecule, long_name):
+    out = []
+
+    # TODO: probalby can remove the dup here when I rename field
+    for method_idx, (method, method_for_field) in enumerate(
+        [('pbe0_augpc1', 'pbe0_aug_pc_1'),
+         ('hf_631gd', 'hf_6_31gd')]):
+      lines_vals = [[] for _ in range(len(molecule.bond_topologies[0].atoms) + 1)]
+      num_values_present = 0
+
+      for pos, (short_name, partial_field) in zip(self._DEC_POINT_POSITIONS,
+                                                  self._CHARGE_PAIRS):
+        field = f'partial_charges_{partial_field}_{method_for_field}'
+        if not molecule.properties.HasField(field):
+          continue
+
+        lines_vals[0].append((pos + 2, short_name))
+        for idx, val in enumerate(getattr(molecule.properties, field).values, start=1):
+          lines_vals[idx].append(self._align_dec_point(pos, f'{val:.4f}'))
+        num_values_present += 1
+
+      if not num_values_present:
+        continue
+
+      lines_vals[0].extend([(0, '#chg'),
+                            (5, str(method_idx + 1)),
+                            (7, ':'),
+                            (17, method),
+                            (84, '(au)'),
+                            ])
+      for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+        lines_vals[atom_idx + 1].extend(atom_vals)
+        lines_vals[atom_idx + 1].extend([(1, 'chg'),
+                                         (5, str(method_idx + 1)),
+                                         (84, long_name),
+                                         ])
+      out.append('#\n')
+      out.extend(self._fw_line(vals) for vals in lines_vals)
+
+    return out
+
+  def get_elec_block(self, molecule, long_name):
+    out = []
+
+    if molecule.properties.HasField('dipole_dipole_polarizability_pbe0_aug_pc_1'):
+      out.append('#\n')
+      out.append(self._fw_line([(0, '#elec pol'),
+                                (32, 'pbe0_augpc1'),
+                                (84, '(au)'),
+                                ]))
+      for comp in smu_parser_lib.RANK2_ENCODING_ORDER:
+        out.append(self._fw_line([
+          (1, 'elec pol'),
+          (21, f'{comp:>3s}'),
+          self._align_dec_point(37, '{:.3f}'.format(getattr(
+            molecule.properties.dipole_dipole_polarizability_pbe0_aug_pc_1, comp))),
+          (84, long_name),
+        ]))
+
+    def write_two_col(short_name, pbe0_field, hf_field, components):
+      pbe0_val = None
+      hf_val = None
+      if molecule.properties.HasField(pbe0_field):
+        pbe0_val = getattr(molecule.properties, pbe0_field)
+      if molecule.properties.HasField(hf_field):
+        hf_val = getattr(molecule.properties, hf_field)
+      if pbe0_val or hf_val:
+        out.append('#\n')
+        header_vals = [(0, '#elec'),
+                       (6, short_name),
+                       (84, '(au)'),
+                       ]
+        if pbe0_val:
+          header_vals.append((32, 'pbe0_augpc1'))
+        if hf_val:
+          header_vals.append((59, 'hf_631gd'))
+        out.append(self._fw_line(header_vals))
+
+        for comp in components:
+          line_vals = [(1, 'elec'),
+                       (6, short_name),
+                       (21, f'{comp:>3s}'),
+                       (84, long_name),
+                       ]
+          if pbe0_val:
+            line_vals.append(self._align_dec_point(37, '{:.3f}'.format(
+              getattr(pbe0_val, comp))))
+          if hf_val:
+            line_vals.append(self._align_dec_point(61, '{:.3f}'.format(
+              getattr(hf_val, comp))))
+
+          out.append(self._fw_line(line_vals))
+
+    write_two_col('dip',
+                  'dipole_moment_pbe0_aug_pc_1',
+                  'dipole_moment_hf_6_31gd',
+                  ['x', 'y', 'z'])
+    write_two_col('qua',
+                  'quadrupole_moment_pbe0_aug_pc_1',
+                  'quadrupole_moment_hf_6_31gd',
+                  smu_parser_lib.RANK2_ENCODING_ORDER)
+    write_two_col('oct',
+                  'octopole_moment_pbe0_aug_pc_1',
+                  'octopole_moment_hf_6_31gd',
+                  smu_parser_lib.RANK3_ENCODING_ORDER)
+
+    return out
+
   def process(self, molecule):
     long_name = get_long_molecule_name(molecule)
     contents = ['#===============================================================================\n']
@@ -1846,6 +2092,11 @@ class CleanTextWriter:
     contents.extend(self.get_atomic2_gen_block(molecule, long_name))
     contents.extend(self.get_atomic2_um_block(molecule, long_name))
     contents.extend(self.get_atomic2_std_block(molecule, long_name))
+    contents.extend(self.get_orb_block(molecule, long_name))
+    contents.extend(self.get_exc_block(molecule, long_name))
+    contents.extend(self.get_nmr_block(molecule, long_name))
+    contents.extend(self.get_charge_block(molecule, long_name))
+    contents.extend(self.get_elec_block(molecule, long_name))
 
     return ''.join(contents)
 
