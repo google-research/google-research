@@ -148,6 +148,12 @@
 .mqm-stats-weighted {
   background-color: #F8F8F8;
 }
+.mqm-sys-v-sys {
+  margin: 8px;
+}
+.mqm-sys-v-sys-hist {
+  cursor: pointer;
+}
 .mqm-table {
   border: none;
   border-collapse: collapse;
@@ -217,4 +223,8 @@
 }
 .mqm-val:hover {
   cursor: pointer;
+}
+#mqm-viewing-constraints {
+  cursor: pointer;
+  font-style: italic;
 }

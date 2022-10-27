@@ -61,12 +61,25 @@ const MQM_DATA_NUM_PARTS = 10;
  */
 let mqmTSVData = '';
 
-/** Stats/Events computed for current filtered data. **/
+/**
+ * The following mqmStats* objects are all keyed by something from:
+ * ({mqmTotal} or {system} or {rater}). Each keyed object is itself an object
+ * mapping from doc and docSegId to an entry representing
+ * the information for that segment. For instance, let `x` be the keyed
+ * object, then `x["doc1"]["2"]` is the entry for the segment with
+ * doc == "doc1" and docSegId == "2". Each entry for a segment is itself an
+ * array, one entry per rater. Each entry for a rater is an object tracking
+ * scores, errors, and their breakdowns.
+ *
+ * Each object is recomputed for any filtering applied to the data.
+ */
 let mqmStats = {};
 let mqmStatsBySystem = {};
 let mqmStatsByRater = {};
 let mqmStatsBySystemRater = {};
 let mqmStatsBySevCat = {};
+
+/** Events timing info for current filtered data. **/
 let mqmEvents = {};
 
 /** Max number of segments to show. **/
@@ -75,13 +88,17 @@ let mqmLimit = 200;
 /** Clause built by helper menus, for appending to the filter expression **/
 let mqmClause = '';
 
-/** UI elements for clause-builder.  **/
+/** UI elements for clause-builder. */
 let mqmClauseKey;
 let mqmClauseInclExcl;
 let mqmClauseSev;
 let mqmClauseCat;
 let mqmClauseAddAnd;
 let mqmClauseAddOr;
+
+/** Selected system names for system-v-system comparison. */
+let mqmSysVSys1;
+let mqmSysVSys2;
 
 /** A distinctive name used as the key for aggregate stats. */
 const mqmTotal = '_MQM_TOTAL_';
@@ -237,43 +254,58 @@ function setMqmLimit() {
 }
 
 /**
- * This sorts mqmData by fields in the order shown in the comments below.
+ * This function returns an integer if s is an integer, otherwise returns s.
+ * @param {string} s
+ * @return {number|string}
+ */
+function mqmMaybeParseInt(s) {
+  const temp = parseInt(s);
+  if (!isNaN(temp) && ('' + temp == s)) {
+    return temp;
+  }
+  return s;
+}
+
+/**
+ * This sorts mqmData by fields in the order globalSegId, doc, docSegId, system,
+ * rater, severity, category.
  */
 function mqmSortData() {
   mqmData.sort((e1, e2) => {
     let diff = 0;
-    /** globalSegId can be non-numeric */
-    const globalSegId1 = e1[MQM_DATA_GLOBAL_SEG_ID];
-    const globalSegId2 = e2[MQM_DATA_GLOBAL_SEG_ID];
+    /** globalSegId/docSegId can be non-numeric */
+    const globalSegId1 = mqmMaybeParseInt(e1[MQM_DATA_GLOBAL_SEG_ID]);
+    const globalSegId2 = mqmMaybeParseInt(e2[MQM_DATA_GLOBAL_SEG_ID]);
+    const docSegId1 = mqmMaybeParseInt(e1[MQM_DATA_DOC_SEG_ID]);
+    const docSegId2 = mqmMaybeParseInt(e2[MQM_DATA_DOC_SEG_ID]);
     if (globalSegId1 < globalSegId2) {
       diff = -1;
     } else if (globalSegId1 > globalSegId2) {
       diff = 1;
-    } else {
-      diff = e1[MQM_DATA_DOC_SEG_ID] - e2[MQM_DATA_DOC_SEG_ID]; /** docSegId **/
-      if (diff == 0) {
-        if (e1[MQM_DATA_DOC] < e2[MQM_DATA_DOC]) {
-          diff = -1;
-        } else if (e1[MQM_DATA_DOC] > e2[MQM_DATA_DOC]) {
-          diff = 1;
-        } else if (e1[MQM_DATA_SYSTEM] < e2[MQM_DATA_SYSTEM]) {
-          diff = -1;
-        } else if (e1[MQM_DATA_SYSTEM] > e2[MQM_DATA_SYSTEM]) {
-          diff = 1;
-        } else if (e1[MQM_DATA_RATER] < e2[MQM_DATA_RATER]) {
-          diff = -1;
-        } else if (e1[MQM_DATA_RATER] > e2[MQM_DATA_RATER]) {
-          diff = 1;
-        } else if (e1[MQM_DATA_SEVERITY] < e2[MQM_DATA_SEVERITY]) {
-          diff = -1;
-        } else if (e1[MQM_DATA_SEVERITY] > e2[MQM_DATA_SEVERITY]) {
-          diff = 1;
-        } else if (e1[MQM_DATA_CATEGORY] < e2[MQM_DATA_CATEGORY]) {
-          diff = -1;
-        } else if (e1[MQM_DATA_CATEGORY] > e2[MQM_DATA_CATEGORY]) {
-          diff = 1;
-        }
-      }
+    } else if (e1[MQM_DATA_DOC] < e2[MQM_DATA_DOC]) {
+      diff = -1;
+    } else if (e1[MQM_DATA_DOC] > e2[MQM_DATA_DOC]) {
+      diff = 1;
+    } else if (docSegId1 < docSegId2) {
+      diff = -1;
+    } else if (docSegId1 > docSegId2) {
+      diff = 1;
+    } else if (e1[MQM_DATA_SYSTEM] < e2[MQM_DATA_SYSTEM]) {
+      diff = -1;
+    } else if (e1[MQM_DATA_SYSTEM] > e2[MQM_DATA_SYSTEM]) {
+      diff = 1;
+    } else if (e1[MQM_DATA_RATER] < e2[MQM_DATA_RATER]) {
+      diff = -1;
+    } else if (e1[MQM_DATA_RATER] > e2[MQM_DATA_RATER]) {
+      diff = 1;
+    } else if (e1[MQM_DATA_SEVERITY] < e2[MQM_DATA_SEVERITY]) {
+      diff = -1;
+    } else if (e1[MQM_DATA_SEVERITY] > e2[MQM_DATA_SEVERITY]) {
+      diff = 1;
+    } else if (e1[MQM_DATA_CATEGORY] < e2[MQM_DATA_CATEGORY]) {
+      diff = -1;
+    } else if (e1[MQM_DATA_CATEGORY] > e2[MQM_DATA_CATEGORY]) {
+      diff = 1;
     }
     return diff;
   });
@@ -914,7 +946,7 @@ function mqmShowCI(systems) {
       const spanId = `mqm-ci-${rowIdx}`;
       const ciSpan = document.getElementById(spanId);
       if (ciSpan) {
-        ciSpan.insertAdjacentHTML('beforeend', ` (${ci})`);
+        ciSpan.innerHTML = ` (${ci})`;
       }
     }
     mqmClearCIComputation();
@@ -1063,7 +1095,8 @@ function mqmShowScores(id, title, stats, aggregates = null) {
              * are sorted by MQM score.
              */
             const spanId = `mqm-ci-${rowIdx}`;
-            content += `<span class="mqm-ci" id=${spanId}></span>`;
+            content +=
+                `<span class="mqm-ci" id=${spanId}> (-.--- - -.---)</span>`;
           } else {
             content += `<span class="mqm-ci"> (N/A)</span>`;
           }
@@ -1184,6 +1217,427 @@ function mqmShowSystemRaterStats() {
   html += `
     </tbody>`;
   table.innerHTML = html;
+}
+
+/**
+ * Sorter function where a & b are both a [doc, seg] pair.
+ * @param {!Array<string|number>} a
+ * @param {!Array<string|number>} b
+ * @return {number} Comparison for sorting a & b.
+ */
+function mqmDocSegsSorter(a, b) {
+  if (a[0] < b[0]) return -1;
+  if (a[0] > b[0]) return 1;
+  seg1 = mqmMaybeParseInt(a[1]);
+  seg2 = mqmMaybeParseInt(b[1]);
+  if (seg1 < seg2) return -1;
+  if (seg1 > seg2) return 1;
+  return 0;
+}
+
+/**
+ * From a stats object that's keyed on doc and then on segs, extracts all
+ * [doc, seg] pairs into an array, sorts the array, and returns it.
+ * @param {!Object} stats
+ * @return {!Array}
+ */
+function mqmGetDocSegs(stats) {
+  const segs = [];
+  for (let doc in stats) {
+    const docstats = stats[doc];
+    for (let docSeg in docstats) {
+      segs.push([doc, docSeg]);
+    }
+  }
+  return segs.sort(mqmDocSegsSorter);
+}
+
+/**
+ * Makes a convenient key that captures a doc name and a docSegId.
+ * @param {string} doc
+ * @param {string|number} seg
+ * @return {string}
+ */
+function mqmDocSegKey(doc, seg) {
+  return doc + ':' + seg;
+}
+
+/**
+ * Helper class for building a system-vs-system segment score differences
+ * histogram. Call addSegment() on it multiple times to record segment
+ * scores. Then call display().
+ */
+function MQMSysVSysHistBuilder() {
+  /** @const {number} Width of a histogram bin, in MQM score units */
+  this.BIN_WIDTH = 0.5;
+  /** @const {number} Width of a histogram bin, in pixels */
+  this.BIN_WIDTH_PIXELS = 15;
+  /** @const {number} Width of half of the central "zero" bin, in pixels */
+  this.ZERO_BIN_HALF_WIDTH_PIXELS = 3.5;
+
+  this.LOG_MULTIPLIER = 1.0 / Math.LN2;
+  this.LOG_UNIT_HEIGHT_PIXELS = 25;
+  this.TOP_OFFSET_PIXELS = 49;
+  this.BOTTOM_OFFSET_PIXELS = 50;
+
+  this.COLORS = ['lightgreen', 'lightblue'];
+  this.COLOR_EQUAL = 'lightgray';
+  this.COLOR_OUTLINE = 'black';
+  this.COLOR_LEGEND = 'black';
+  this.COLOR_LABELS = 'gray';
+  this.COLOR_LINES = 'lightgray';
+
+  /**
+   * @const {!Array<string>} Array of doc-seg keys for which both systems have
+   *     the same segment score.
+   */
+  this.equals = [];
+  /**
+   * @const {!Array<!Object>} Pair of objects, each keyed by bin number. The
+   *     0th object has bins where system 1 is better and the 1st object
+   *     has bins where system 2 is better. Each bin has an array of doc-seg
+   *     keys.
+   */
+  this.systemComp = [{}, {}];
+
+  /**
+   * @const {number} The largest (positive or negative) bin visible on the
+   *     X-axis
+   */
+  this.maxBin = 1;
+  /** @const {number} The largest count visible on the Y-axis */
+  this.maxCount = 8;
+}
+
+/**
+ * Adds a segment to the histogram, updating the appropriate bin.
+ * @param {string} doc
+ * @param {string|number} docSegId
+ * @param {number} score1 The score for the first system
+ * @param {number} score2 The score for the second system
+ */
+MQMSysVSysHistBuilder.prototype.addSegment = function(
+    doc, docSegId, score1, score2) {
+  if (score1 == score2) {
+    this.equals.push(mqmDocSegKey(doc, docSegId));
+    if (this.equals.length > this.maxCount) {
+      this.maxCount = this.equals.length;
+    }
+    return;
+  }
+  const diff = Math.abs(score1 - score2);
+  const diffBin = Math.floor(diff / this.BIN_WIDTH);
+  const which = (score1 < score2) ? this.systemComp[0] : this.systemComp[1];
+  if (!which.hasOwnProperty(diffBin)) {
+    which[diffBin] = [];
+  }
+  which[diffBin].push(mqmDocSegKey(doc, docSegId));
+  if (diffBin > this.maxBin) {
+    this.maxBin = diffBin;
+  }
+  if (which[diffBin].length > this.maxCount) {
+    this.maxCount = which[diffBin].length;
+  }
+};
+
+/**
+ * Creates and returns an SVG rect.
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @param {string} color
+ * @return {!Element}
+ */
+MQMSysVSysHistBuilder.prototype.getRect = function(x, y, w, h, color) {
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttributeNS(null, 'x', x);
+  rect.setAttributeNS(null, 'y', y + this.TOP_OFFSET_PIXELS);
+  rect.setAttributeNS(null, 'width', w);
+  rect.setAttributeNS(null, 'height', h);
+  rect.style.fill = color;
+  rect.style.stroke = this.COLOR_OUTLINE;
+  return rect;
+};
+
+/**
+ * Creates a histogram bar with a given description, makes it clickable to
+ * constrain the view to the docsegs passed.
+ * @param {!Element} plot
+ * @param {number} x
+ * @param {number} y
+ * @param {number} w
+ * @param {number} h
+ * @param {string} color
+ * @param {string} desc
+ * @param {!Array<string>} docsegs
+ */
+MQMSysVSysHistBuilder.prototype.makeHistBar = function(
+    plot, x, y, w, h, color, desc, docsegs) {
+  /**
+   * Need to wrap the rect in a g (group) element to be able to show
+   * the description when hovering ("title" attribute does not work with SVG
+   * elements).
+   */
+  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  g.setAttributeNS(null, 'class', 'mqm-sys-v-sys-hist');
+  g.insertAdjacentHTML('beforeend',
+                       `<title>Click to see examples of ${desc}</title>`);
+  const rect = this.getRect(x, y, w, h, color);
+  g.appendChild(rect);
+  const viewingConstraints = {};
+  for (let ds of docsegs) {
+    viewingConstraints[ds] = true;
+  }
+  viewingConstraints.description = desc;
+  viewingConstraints.color = color;
+  g.addEventListener('click', (e) => {
+    mqmShow(viewingConstraints);
+  });
+  plot.appendChild(g);
+};
+
+/**
+ * Creates a line on the plot.
+ * @param {!Element} plot
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} x2
+ * @param {number} y2
+ * @param {string} color
+ */
+MQMSysVSysHistBuilder.prototype.makeLine = function(
+    plot, x1, y1, x2, y2, color) {
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttributeNS(null, 'x1', x1);
+  line.setAttributeNS(null, 'y1', y1 + this.TOP_OFFSET_PIXELS);
+  line.setAttributeNS(null, 'x2', x2);
+  line.setAttributeNS(null, 'y2', y2 + this.TOP_OFFSET_PIXELS);
+  line.style.stroke = color;
+  plot.appendChild(line);
+};
+
+/**
+ * Writes some text on the plot.
+ * @param {!Element} plot
+ * @param {number} x
+ * @param {number} y
+ * @param {string} s
+ * @param {string} color
+ */
+MQMSysVSysHistBuilder.prototype.makeText = function(plot, x, y, s, color) {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttributeNS(null, 'x', x);
+  text.setAttributeNS(null, 'y', y + this.TOP_OFFSET_PIXELS);
+  text.innerHTML = s;
+  text.style.fill = color;
+  plot.appendChild(text);
+};
+
+/**
+ * Returns height in pixels for a histogram bar with the given count.
+ * @param {number} count
+ * @return {number}
+ */
+MQMSysVSysHistBuilder.prototype.heightInPixels = function(count) {
+  if (count == 0) return 0;
+  return this.LOG_UNIT_HEIGHT_PIXELS *
+         ((Math.log(count) * this.LOG_MULTIPLIER) + 1);
+};
+
+/**
+ * Displays the histogram using the data collected through prior addSegment()
+ * calls.
+ */
+MQMSysVSysHistBuilder.prototype.display = function() {
+  /** Create some buffer space around the plot. */
+  this.maxBin += 5;
+  this.maxCount += 10;
+
+  const plotHalfWidth = (this.maxBin * this.BIN_WIDTH_PIXELS) +
+                        this.ZERO_BIN_HALF_WIDTH_PIXELS;
+  const plotWidth = 2 * plotHalfWidth;
+  const plotHeight = this.heightInPixels(this.maxCount);
+  const svgWidth = plotWidth;
+  const svgHeight = plotHeight +
+                    (this.TOP_OFFSET_PIXELS + this.BOTTOM_OFFSET_PIXELS);
+  const plot = document.getElementById('mqm-sys-v-sys-plot');
+  plot.innerHTML = '';
+  plot.setAttributeNS(null, 'viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+  plot.setAttributeNS(null, 'width', svgWidth);
+  plot.setAttributeNS(null, 'height', svgHeight);
+  if (this.equals.length > 0) {
+    /** Draw the middle "zero" bin */
+    const h = this.heightInPixels(this.equals.length);
+    this.makeHistBar(
+        plot,
+        plotHalfWidth - this.ZERO_BIN_HALF_WIDTH_PIXELS, plotHeight - h,
+        2 * this.ZERO_BIN_HALF_WIDTH_PIXELS, h, this.COLOR_EQUAL,
+        `${this.equals.length} segment(s) ` +
+        `where both ${mqmSysVSys1} and ${mqmSysVSys2} have equal scores.`,
+        this.equals);
+  }
+  for (let s = 0; s < 2; s++) {
+    const systemComp = this.systemComp[s];
+    const betterSystem = (s == 0) ? mqmSysVSys1 : mqmSysVSys2;
+    const worseSystem = (s == 0) ? mqmSysVSys2 : mqmSysVSys1;
+    let totalSegs = 0;
+    for (let binStr in systemComp) {
+      const segs = systemComp[binStr];
+      if (segs.length == 0) continue;
+      const bin = parseInt(binStr);
+      const h = this.heightInPixels(segs.length);
+      let x = this.ZERO_BIN_HALF_WIDTH_PIXELS + (bin * this.BIN_WIDTH_PIXELS);
+      if (s == 1) {
+        x += plotHalfWidth;
+      } else {
+        x = plotHalfWidth - x - this.BIN_WIDTH_PIXELS;
+      }
+      const desc = `${segs.length} segment(s) ` +
+          `where ${betterSystem} is better than ${worseSystem} by a ` +
+          'score difference in the range ' +
+          `(${bin * this.BIN_WIDTH}, ${(bin + 1) * this.BIN_WIDTH}].`;
+      this.makeHistBar(
+          plot, x, plotHeight - h, this.BIN_WIDTH_PIXELS, h,
+          this.COLORS[s], desc, segs);
+      totalSegs += segs.length;
+    }
+    if (totalSegs > 0) {
+      /* legend, shown in the area above the plot */
+      const y = -38 + (s * (this.BIN_WIDTH_PIXELS + 5));
+      const x = 50;
+      plot.appendChild(this.getRect(
+          x, y, this.BIN_WIDTH_PIXELS, this.BIN_WIDTH_PIXELS, this.COLORS[s]));
+      this.makeText(plot, x + this.BIN_WIDTH_PIXELS + 5, y + 14,
+          `${totalSegs}: ${betterSystem} better`, this.COLOR_LEGEND);
+    }
+  }
+  /* y axis labels */
+  this.makeLine(plot, 0, plotHeight, plotWidth, plotHeight, this.COLOR_LINES);
+  this.makeText(plot, 5, plotHeight - 2, '0', this.COLOR_LABELS);
+  for (let l = 1; l <= this.maxCount; l *= 2) {
+    const h = this.heightInPixels(l);
+    this.makeLine(plot, 0, plotHeight - h, plotWidth, plotHeight - h,
+                  this.COLOR_LINES);
+    this.makeText(plot, 5, plotHeight - h - 2, '' + l, this.COLOR_LABELS);
+  }
+  /* x axis labels */
+  this.makeLine(plot, plotHalfWidth, plotHeight, plotHalfWidth, plotHeight + 8,
+                this.COLOR_LABELS);
+  this.makeText(plot, plotHalfWidth - 5, plotHeight + 20, '0',
+                this.COLOR_LABELS);
+  for (let s = 0; s < 2; s++) {
+    const bMax = this.maxBin * this.BIN_WIDTH;
+    for (let b = 1; b < bMax; b++) {
+      let x = this.ZERO_BIN_HALF_WIDTH_PIXELS +
+              (b * this.BIN_WIDTH_PIXELS / this.BIN_WIDTH);
+      if (s == 1) {
+        x += plotHalfWidth;
+      } else {
+        x = plotHalfWidth - x;
+      }
+      this.makeLine(plot, x, plotHeight, x, plotHeight + 8, this.COLOR_LABELS);
+      const xval = (s == 0) ? (0 - b) : b;
+      const xdelta = (s == 0) ? 9 : 3;
+      this.makeText(plot, x - xdelta, plotHeight + 20, '' + xval,
+                    this.COLOR_LABELS);
+    }
+  }
+  /* X-axis name */
+  this.makeText(plot, plotHalfWidth - 80, plotHeight + 35,
+                'MQM score difference', this.COLOR_LEGEND);
+};
+
+/**
+ * Shows the system v system histogram of segment score differences.
+ * @param {boolean=} refreshChoices Set to false when used for only changing the
+ *     values picked for system1 or system2.
+ */
+function mqmShowSysVSys(refreshChoices=false) {
+  const selectSys1 = document.getElementById('mqm-sys-v-sys-1');
+  const selectSys2 = document.getElementById('mqm-sys-v-sys-2');
+  if (refreshChoices) {
+    /** We are showing the plot for new (or newly filtered) data. */
+    selectSys1.innerHTML = '';
+    selectSys2.innerHTML = '';
+    const systems = Object.keys(mqmStatsBySystem);
+    /**
+     * If possible, use the previously set values. If possible, keep
+     * system1 and system2 distinct from each other.
+     */
+    if (mqmSysVSys1 && !mqmStatsBySystem.hasOwnProperty(mqmSysVSys1)) {
+      mqmSysVSys1 = '';
+    }
+    if (mqmSysVSys2 && !mqmStatsBySystem.hasOwnProperty(mqmSysVSys2)) {
+      mqmSysVSys2 = '';
+    }
+    if (mqmSysVSys1 == mqmSysVSys2) {
+      mqmSysVSys2 = '';
+    }
+    for (let system of systems) {
+      if (!mqmSysVSys1) {
+        mqmSysVSys1 = system;
+      }
+      if (!mqmSysVSys2 && system != mqmSysVSys1) {
+        mqmSysVSys2 = system;
+      }
+      const option1 = document.createElement('option');
+      option1.value = system;
+      option1.innerHTML = system;
+      if (system == mqmSysVSys1) {
+        option1.selected = true;
+      }
+      selectSys1.insertAdjacentElement('beforeend', option1);
+      const option2 = document.createElement('option');
+      option2.value = system;
+      option2.innerHTML = system;
+      if (system == mqmSysVSys2) {
+        option2.selected = true;
+      }
+      selectSys2.insertAdjacentElement('beforeend', option2);
+    }
+  }
+
+  mqmSysVSys1 = selectSys1.value;
+  mqmSysVSys2 = selectSys2.value;
+  const docsegs1 = mqmGetDocSegs(mqmStatsBySystem[mqmSysVSys1] || {});
+  const docsegs2 = mqmGetDocSegs(mqmStatsBySystem[mqmSysVSys2] || {});
+  /**
+   * Find common segments.
+   */
+  let i1 = 0;
+  let i2 = 0;
+  const docsegs12 = [];
+  while (i1 < docsegs1.length && i2 < docsegs2.length) {
+    const ds1 = docsegs1[i1];
+    const ds2 = docsegs2[i2];
+    const sort = mqmDocSegsSorter(ds1, ds2);
+    if (sort < 0) {
+      i1++;
+    } else if (sort > 0) {
+      i2++;
+    } else {
+      docsegs12.push(ds1);
+      i1++;
+      i2++;
+    }
+  }
+
+  document.getElementById('mqm-sys-v-sys-xsegs').innerHTML = docsegs12.length;
+  document.getElementById('mqm-sys-v-sys-1-segs').innerHTML = docsegs1.length;
+  document.getElementById('mqm-sys-v-sys-2-segs').innerHTML = docsegs2.length;
+
+  const histBuilder = new MQMSysVSysHistBuilder();
+  for (let i = 0; i < docsegs12.length; i++) {
+    const doc = docsegs12[i][0];
+    const docSegId = docsegs12[i][1];
+    const aggregate1 = mqmAggregateSegStats(
+        [mqmStatsBySystem[mqmSysVSys1][doc][docSegId]]);
+    const aggregate2 = mqmAggregateSegStats(
+        [mqmStatsBySystem[mqmSysVSys2][doc][docSegId]]);
+    histBuilder.addSegment(doc, docSegId, aggregate1.score, aggregate2.score);
+  }
+  histBuilder.display();
 }
 
 /**
@@ -1318,6 +1772,7 @@ function mqmShowStats() {
   mqmShowScores('mqm-stats-tbody', 'By system', mqmStatsBySystem);
   mqmShowScores('mqm-stats-tbody', 'By rater', mqmStatsByRater);
   mqmShowSystemRaterStats();
+  mqmShowSysVSys(true);
   mqmShowSevCatStats();
   mqmShowEvents();
 }
@@ -1534,8 +1989,13 @@ function mqmShowSortArrow() {
 /**
  * Updates the display to show the segment data and scores according to the
  * current filters.
+ * @param {?Object=} viewingConstraints Optional dict of doc:seg to view. When
+ *     not null, only these segments are shown. When not null, this parameter
+ *     object should have two additional properties:
+ *       description: Shown to the user, describing the constrained view.
+ *       color: A useful identifying color that highlights the description.
  */
-function mqmShow() {
+function mqmShow(viewingConstraints=null) {
   document.body.style.cursor = 'wait';
 
   // Cancel existing CI computation when a new `mqmShow` is called.
@@ -1550,16 +2010,6 @@ function mqmShow() {
   document.getElementById('mqm-sevcat-stats-tbody').innerHTML = '';
   document.getElementById('mqm-events-tbody').innerHTML = '';
 
-  /**
-   * The following mqmStats* objects are all keyed by something from:
-   * ({mqmTotal} or {system} or {rater}). Each keyed object is itself an object
-   * mapping from doc and docSegId to an entry representing
-   * the information for that segment. For instance, let `x` be the keyed
-   * object, then `x["1"]["2"]` is the entry for the segment with doc == "1" and
-   * docSegId == "2". Each entry for a segment is itself an array, one
-   * entry per rater. Each  entry for a rater is an object tracking scores,
-   * errors, and their breakdowns.
-   */
   mqmStats = {};
   mqmStats[mqmTotal] = {};
   mqmStatsBySystem = {};
@@ -1579,6 +2029,20 @@ function mqmShow() {
   let currSegStatsBySys = [];
   let currSegStatsByRater = [];
   let currSegStatsBySysRater = [];
+
+  const viewingConstraintsDesc = document.getElementById(
+      'mqm-viewing-constraints');
+  if (viewingConstraints) {
+    viewingConstraintsDesc.innerHTML = 'View limited to ' +
+        viewingConstraints.description +
+        ' Click on this text to remove this constraint.';
+    viewingConstraintsDesc.style.backgroundColor = viewingConstraints.color;
+    viewingConstraintsDesc.style.display = '';
+  } else {
+    viewingConstraintsDesc.innerHTML = '';
+    viewingConstraintsDesc.style.display = 'none';
+  }
+
   for (let rowId = 0; rowId < mqmData.length; rowId++) {
     const parts = mqmData[rowId];
     let match = true;
@@ -1655,6 +2119,10 @@ function mqmShow() {
 
     lastRow = parts;
 
+    if (viewingConstraints &&
+        !viewingConstraints[mqmDocSegKey(doc, docSegId)]) {
+      continue;
+    }
     if (shown >= mqmLimit) {
       continue;
     }
@@ -1694,9 +2162,7 @@ function mqmShow() {
     }
     shown++;
   }
-  if (shown > 0) {
-    mqmShowStats();
-  }
+  mqmShowStats();
   document.body.style.cursor = 'auto';
 }
 
@@ -2177,6 +2643,36 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
   <br>
 
   <details>
+    <summary
+        title="Click to see a System vs System histogram of segment score differences">
+      <span class="mqm-section">
+        System vs System segment score differences histogram
+      </span>
+    </summary>
+    <div class="mqm-sys-v-sys" id="mqm-sys-v-sys">
+      <div class="mqm-sys-v-sys-header">
+        <label>
+          <b>System 1:</b>
+          <select id="mqm-sys-v-sys-1" onchange="mqmShowSysVSys()"></select>
+        </label>
+        <span id="mqm-sys-v-sys-1-segs"></span> segment(s).
+        <label>
+          <b>System 2:</b>
+          <select id="mqm-sys-v-sys-2" onchange="mqmShowSysVSys()"></select>
+        </label>
+        <span id="mqm-sys-v-sys-2-segs"></span> segment(s)
+        (<span id="mqm-sys-v-sys-xsegs"></span> common).
+        The Y-axis uses a log scale.
+      </div>
+      <svg class="mqm-sys-v-sys-plot" zoomAndPan="disable"
+          id="mqm-sys-v-sys-plot">
+      </svg>
+    </div>
+  </details>
+
+  <br>
+
+  <details>
     <summary title="Click to see error severity / category counts">
       <span class="mqm-section">
         Error severities and categories
@@ -2318,6 +2814,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
   <br>
 
   <span class="mqm-section">Rated Segments</span>
+  <span id="mqm-viewing-constraints" onclick="mqmShow()"></span>
   <table class="mqm-table" id="mqm-table">
     <thead id="mqm-thead">
       <tr id="mqm-head-row">
@@ -2423,6 +2920,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
   </table>
   `;
   elt.className = 'mqm';
+  elt.scrollIntoView();
 
   mqmResetSettings();
 
