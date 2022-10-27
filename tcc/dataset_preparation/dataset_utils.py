@@ -26,12 +26,11 @@ import math
 import os
 
 from absl import logging
+import cv2
 import numpy as np
 from PIL import Image
 from PIL import ImageFile
 import tensorflow.compat.v2 as tf
-
-import cv2
 
 gfile = tf.io.gfile
 

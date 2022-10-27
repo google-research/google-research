@@ -26,27 +26,25 @@ import os
 from absl import app
 from absl import flags
 from absl import logging
-
+import cv2
 import scipy.io as sio
 
 from tcc.dataset_preparation.dataset_utils import label_timestamps
 from tcc.dataset_preparation.dataset_utils import merge_annotations
 from tcc.dataset_preparation.dataset_utils import write_seqs_to_tfrecords
 
-import cv2
-
 flags.DEFINE_string('dir', None, 'Path to videos.')
 flags.DEFINE_string('name', None, 'Name of the dataset being created. This will'
-                    'be used as a prefix.')
+                    ' be used as a prefix.')
 flags.DEFINE_string('vid_list', None, 'Path to list of folders with frames of '
                     'videos.')
 flags.DEFINE_string('extension', 'jpg', 'Extension of images.')
 flags.DEFINE_string(
-    'label_file', None, 'Provide a corresponding labels file'
+    'label_file', None, 'Provide a corresponding labels file '
     'that stores per-frame or per-sequence labels.')
-flags.DEFINE_string('output_dir', '/tmp/tfrecords/', 'Output directory where'
+flags.DEFINE_string('output_dir', '/tmp/tfrecords/', 'Output directory where '
                     'tfrecords will be stored.')
-flags.DEFINE_integer('vids_per_shard', 1, 'Number of videos to store in a'
+flags.DEFINE_integer('vids_per_shard', 1, 'Number of videos to store in a '
                      'shard.')
 flags.DEFINE_list(
     'frame_labels', '', 'Comma separated list of descriptions '
