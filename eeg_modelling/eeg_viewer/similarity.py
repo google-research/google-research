@@ -36,10 +36,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import cv2
 from six.moves import range
 
 from eeg_modelling.pyprotos import similarity_pb2
-import cv2
 
 
 def _GetPatternsDistance(pattern_a, pattern_b):
