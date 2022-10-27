@@ -85,7 +85,7 @@ class Encoder(tf.keras.Model):
         input_dim=vocab_size + 1, output_dim=embedding_dim, mask_zero=True)
     self.gru = gru(self.enc_units, return_state=False, use_cudnn=False)
 
-  @contrib_eager.defun
+  @tf.function
   def call(self, x, initial_state=None):
     x = self.embedding(x)
     output = self.gru(x, initial_state=initial_state)
@@ -113,7 +113,7 @@ class Decoder(tf.keras.Model):
     self.w2 = tf.keras.layers.Dense(self.dec_units)
     self.w3 = tf.keras.layers.Dense(1)
 
-  @contrib_eager.defun(input_signature=[
+  @tf.function(input_signature=[
       contrib_eager.TensorSpec(shape=[None, 16], dtype=tf.float32),
       contrib_eager.TensorSpec(shape=[None, None, 16], dtype=tf.float32),
   ])
@@ -214,7 +214,7 @@ class SimpleLinearNN(tf.keras.Model):
     self.dense = tf.keras.layers.Dense(
         1, use_bias=True, bias_initializer=tf.initializers.ones())
 
-  @contrib_eager.defun
+  @tf.function
   def call(self, inputs):
     out = tf.squeeze(self.dense(inputs), axis=-1)
     return out
@@ -268,7 +268,7 @@ class LinearNN(tf.keras.Model):
     super(LinearNN, self).__init__()
     self._linear = Linear(**kwargs)
 
-  @contrib_eager.defun(input_signature=[
+  @tf.function(input_signature=[
       contrib_eager.TensorSpec(shape=[None, 16 * 17], dtype=tf.float32)
   ])
   def call(self, inputs):
