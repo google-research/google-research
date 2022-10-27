@@ -109,6 +109,7 @@ def process_one_samples_file(samples_fn, db_standard, db_complete):
 
 
 def process_one_expected(samples_fn, db, is_standard):
+  logging.info(f'Processing {samples_fn} is_standard={is_standard}')
   writer = smu_writer_lib.CleanTextWriter()
   result = MatchResult(0, 0, 0, 0)
 

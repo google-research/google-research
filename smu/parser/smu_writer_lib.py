@@ -1262,11 +1262,41 @@ class CleanTextWriter:
     # Probably a temporary hack. I'm adjusting our fate outputs to match what this format
     # expects rather than changin the fate values quite yet because that seems up in the air.
     fate = molecule.properties.errors.fate
-    if fate == dataset_pb2.Properties.FATE_SUCCESS:
+    status = molecule.properties.errors.status
+
+    if fate == dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY:
+      return 'DUPLICATE_SAME_TOPOLOGY'
+    elif fate == dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
+      return 'DUPLICATE_DIFFERENT_TOPOLOGY'
+    elif fate == dataset_pb2.Properties.FATE_GEOMETRY_OPTIMIZATION_PROBLEM:
+      return 'FAILURE_GEO_OPT'
+    elif fate == dataset_pb2.Properties.FATE_DISASSOCIATED:
+      return 'FAILURE_TOPOLOGY_CHECK'
+    elif fate == dataset_pb2.Properties.FATE_DISCARDED_OTHER:
+      return 'FAILURE_STAGE2'
+    elif fate == dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS:
+      return 'FAILURE_NO_RESULTS'
+    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR:
+      return 'ERROR_SERIOUS'
+    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MAJOR_ERROR:
+      return 'ERROR_MAJOR'
+    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR:
+      return 'ERROR_MODERATE'
+    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS:
+      if status > 0:
+        return 'SUCCESS_NEUTRAL_WARNING_SERIOUS'
+      return 'SUCCESS_ALL_WARNING_SERIOUS'
+    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL:
+      if status > 0:
+        return 'SUCCESS_NEUTRAL_WARNING_VIBRATIONAL'
+      return 'SUCCESS_ALL_WARNING_VIBRATIONAL'
+    elif fate == dataset_pb2.Properties.FATE_SUCCESS:
+      if status > 0:
+        return 'SUCCESS_NEUTRAL'
       return 'SUCCESS_ALL'
     else:
-      # The 5: strips the FATE_ prefix
-      return dataset_pb2.Properties.FateCategory.Name(fate)[5:]
+      raise ValueError(f'Unhandled fate {fate}')
+
 
   def get_mol_id_block(self, molecule, long_name):
     out = []
@@ -1419,11 +1449,11 @@ class CleanTextWriter:
 
   def get_bond_topologies_block(self, molecule, long_name):
     out = []
-    out.append('#\n')
     for bt_idx, bt in enumerate(molecule.bond_topologies):
       base_vals = [(1, 'bond_topo'),
                    (11, f'{bt_idx+1:2d}')]
 
+      out.append('#\n')
       out.append(self._fw_line(base_vals +
                                [(0, '#'),
                                 (14, 'of'),
@@ -1699,8 +1729,16 @@ class CleanTextWriter:
     else:
       return out;
 
-  _BSR_SPLIT_RE = re.compile(r'[\s\+]\+\s')
+  _BSR_SPLIT_RE = re.compile(r'\s\+\s')
   _BSR_POSITIONS = [51, 66]
+
+  def _num_leading_digits(self, val):
+    cnt = 0
+    for c in val:
+      if not c.isdigit():
+        return cnt
+      cnt += 1
+    return cnt
 
   def _get_bsr_lines(self, base_vals, bsr_val):
     if not bsr_val:
@@ -1716,8 +1754,15 @@ class CleanTextWriter:
       if comp_idx % 2 == 0:
         out_vals.append(copy.copy(base_vals))
       pos = self._BSR_POSITIONS[comp_idx % 2]
+      num_digits = self._num_leading_digits(comp)
+      if num_digits == 0 or num_digits == 2:
+        offset = 2
+      elif num_digits == 1:
+        offset = 3
+      else:
+        raise ValueError(f'bsr component {comp} has unexpected number of leading digits')
       out_vals[-1].extend([(pos, '+'),
-                           (pos + 3, comp)])
+                           (pos + offset, comp)])
 
     # Some bsr strings are a single term.
     if not out_vals:

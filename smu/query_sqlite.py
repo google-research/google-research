@@ -73,6 +73,7 @@ class OutputFormat(enum.Enum):
   SDF_INIT_OPT = 4
   ATOMIC2_INPUT = 5
   DAT = 6
+  CLEAN_TEXT = 7
 
 
 flags.DEFINE_string(
@@ -351,6 +352,33 @@ class DatOutputter:
     self.outfile.close()
 
 
+class CleanTextOutputter:
+  """Internal class to write output as the the clean, human readable text."""
+
+  def __init__(self, output_path):
+    """Creates CleanTextOutputter.
+
+    Args:
+      output_path: file to write to
+    """
+    self.writer = smu_writer_lib.CleanTextWriter()
+    if output_path:
+      self.outfile = open(output_path, 'w')
+    else:
+      self.outfile = sys.stdout
+
+  def output(self, molecule):
+    """Writes a molecule.
+
+    Args:
+      molecule: dataset_pb2.Molecule
+    """
+    self.outfile.write(self.writer.process(molecule))
+
+  def close(self):
+    self.outfile.close()
+
+
 class ReDetectTopologiesOutputter:
   """Reruns topology detection before handing to another outputter."""
 
@@ -423,6 +451,8 @@ def main(argv):
     outputter = Atomic2InputOutputter(FLAGS.output_path, FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.DAT:
     outputter = DatOutputter(FLAGS.output_path)
+  elif FLAGS.output_format == OutputFormat.CLEAN_TEXT:
+    outputter = CleanTextOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
