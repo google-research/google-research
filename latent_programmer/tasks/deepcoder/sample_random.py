@@ -133,7 +133,7 @@ def random_program(
                       else dsl.FIRST_ORDER_OPERATIONS)
 
     # Sample a statement that executes successfully for all examples.
-    next_states = []
+    next_states = [None] * len(states)
     while not all(next_states):
       statement = random_statement(states[0], is_train, experiment=experiment,
                                    operations=operations, lambdas=lambdas)

@@ -51,7 +51,8 @@ flags.DEFINE_enum('experiment', 'NONE', [e.name for e in exp_module.Experiment],
 
 def _bytes_feature(strs):
   """Returns a bytes_list Feature from a list of strings."""
-  return tf.train.Feature(bytes_list=tf.train.BytesList(value=strs))
+  return tf.train.Feature(bytes_list=tf.train.BytesList(
+      value=[str.encode(s) for s in strs]))
 
 
 def serialize_entire_program_example(task):
