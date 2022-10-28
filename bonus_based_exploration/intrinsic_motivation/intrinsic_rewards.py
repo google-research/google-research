@@ -23,6 +23,7 @@ from __future__ import print_function
 import collections
 import math
 
+import cv2
 from dopamine.discrete_domains import atari_lib
 import gin
 import numpy as np
