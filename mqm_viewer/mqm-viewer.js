@@ -155,6 +155,11 @@ let mqmDefaultWeights = [
     'pattern': 'minor:.*punctuation|trivial:',
   },
   {
+    'name': 'Creative',
+    'weight': 0,
+    'pattern': ':.*reinterpretation',
+  },
+  {
     'name': 'Non-trans.',
     'weight': 25,
     'pattern': 'non.translation',
@@ -267,11 +272,12 @@ function mqmMaybeParseInt(s) {
 }
 
 /**
- * This sorts mqmData by fields in the order globalSegId, doc, docSegId, system,
- * rater, severity, category.
+ * This sorts 10-column MQM data by fields in the order globalSegId, doc,
+ *     docSegId, system, rater, severity, category.
+ * @param {!Array<!Array>} data The MQM-10-column data to be sorted.
  */
-function mqmSortData() {
-  mqmData.sort((e1, e2) => {
+function mqmSortData(data) {
+  data.sort((e1, e2) => {
     let diff = 0;
     /** globalSegId/docSegId can be non-numeric */
     const globalSegId1 = mqmMaybeParseInt(e1[MQM_DATA_GLOBAL_SEG_ID]);
@@ -2313,20 +2319,20 @@ function mqmSetData(tsvData) {
   }
   mqmTSVData = tsvData;
   document.getElementById('mqm-save-file').disabled = false;
+  document.getElementById('mqm-save-file-type').disabled = false;
   mqmClearFilters();
   mqmData = [];
   const data = mqmTSVData.split('\n');
-  let firstLine = true;
   for (let line of data) {
     if (!line.trim()) {
       continue;
     }
-    if (firstLine) {
-      firstLine = false;
-      if (line.toLowerCase().indexOf('system\tdoc') >= 0) {
-        /** Skip header line **/
-        continue;
-      }
+    if (line.toLowerCase().indexOf('system\tdoc\t') >= 0) {
+      /**
+       * Skip header line. It may be present anywhere, as we may be looking
+       * at data concatenated from multiple files.
+       */
+      continue;
     }
     const parts = line.split('\t');
 
@@ -2356,7 +2362,7 @@ function mqmSetData(tsvData) {
       }
       parts[MQM_DATA_METADATA] = metadata;
     }
-    /** Move "Rater" up from its position in the TSV data. */
+    /** Move "Rater" down from its position in the TSV data. */
     const temp = parts[4];
     parts[MQM_DATA_SOURCE] = parts[5];
     parts[MQM_DATA_TARGET] = parts[6];
@@ -2385,7 +2391,7 @@ function mqmSetData(tsvData) {
     parts[MQM_DATA_TARGET] = mqmMarkSpan(parts[MQM_DATA_TARGET], spanClass);
     mqmData.push(parts);
   }
-  mqmSortData();
+  mqmSortData(mqmData);
   mqmAddSegmentAggregations();
   mqmSetSelectOptions();
   mqmShow();
@@ -2476,19 +2482,160 @@ function mqmFetchUrls(urls) {
 }
 
 /**
- * Saves mqmTSVData to the file mqm-data.tsv.
+ * Returns currently filtered scores data aggregated as specified, in TSV
+ * format, with aggregation-dependent fields as follows.
+ *     aggregation='system': system, score.
+ *     aggregation='document': system, doc, score.
+ *     aggregation='segment': system, doc, docSegId, score.
+ *     aggregation='rater': system, doc, docSegId, rater, score.
+ * @param {string} aggregation Should be one of:
+ *     'rater', 'segment', 'document', 'system'.
+ * @return {string}
  */
-function mqmSaveData() {
+function mqmGetScoresTSVData(aggregation) {
+  /**
+   * We use a fake 10-column mqm-data array (with score kept in the last
+   * column) to sort the data in the right order using mqmSortData().
+   */
+  const data = [];
+  const FAKE_FIELD = '--MQM-FAKE-FIELD--';
+  if (aggregation == 'system') {
+    for (let system in mqmStatsBySystem) {
+      const segs = mqmGetSegStatsAsArray(mqmStatsBySystem[system]);
+      aggregate = mqmAggregateSegStats(segs);
+      dataRow = Array(10).fill(FAKE_FIELD);
+      dataRow[MQM_DATA_SYSTEM] = system;
+      dataRow[MQM_DATA_METADATA] = aggregate.score;
+      data.push(dataRow);
+    }
+  } else if (aggregation == 'document') {
+    for (let system in mqmStatsBySystem) {
+      const stats = mqmStatsBySystem[system];
+      for (let doc in stats) {
+        const docStats = stats[doc];
+        const segs = mqmGetSegStatsAsArray({doc: docStats});
+        aggregate = mqmAggregateSegStats(segs);
+        dataRow = Array(10).fill(FAKE_FIELD);
+        dataRow[MQM_DATA_SYSTEM] = system;
+        dataRow[MQM_DATA_DOC] = doc;
+        dataRow[MQM_DATA_METADATA] = aggregate.score;
+        data.push(dataRow);
+      }
+    }
+  } else if (aggregation == 'segment') {
+    for (let system in mqmStatsBySystem) {
+      const stats = mqmStatsBySystem[system];
+      for (let doc in stats) {
+        const docStats = stats[doc];
+        for (let seg in docStats) {
+          const docSegStats = docStats[seg];
+          const segs = mqmGetSegStatsAsArray({doc: {seg: docSegStats}});
+          aggregate = mqmAggregateSegStats(segs);
+          dataRow = Array(10).fill(FAKE_FIELD);
+          dataRow[MQM_DATA_SYSTEM] = system;
+          dataRow[MQM_DATA_DOC] = doc;
+          dataRow[MQM_DATA_DOC_SEG_ID] = seg;
+          dataRow[MQM_DATA_METADATA] = aggregate.score;
+          data.push(dataRow);
+        }
+      }
+    }
+  } else /* (aggregation == 'rater') */ {
+    for (let system in mqmStatsBySystemRater) {
+      for (let rater in mqmStatsBySystemRater[system]) {
+        const stats = mqmStatsBySystemRater[system][rater];
+        for (let doc in stats) {
+          const docStats = stats[doc];
+          for (let seg in docStats) {
+            const docSegStats = docStats[seg];
+            const segs = mqmGetSegStatsAsArray({doc: {seg: docSegStats}});
+            aggregate = mqmAggregateSegStats(segs);
+            dataRow = Array(10).fill(FAKE_FIELD);
+            dataRow[MQM_DATA_SYSTEM] = system;
+            dataRow[MQM_DATA_DOC] = doc;
+            dataRow[MQM_DATA_DOC_SEG_ID] = seg;
+            dataRow[MQM_DATA_RATER] = rater;
+            dataRow[MQM_DATA_METADATA] = aggregate.score;
+            data.push(dataRow);
+          }
+        }
+      }
+    }
+  }
+  mqmSortData(data);
+  /** remove FAKE_FIELD columns */
+  let tsvData = '';
+  for (let i = 0; i < data.length; i++) {
+    const trimmedRow = [];
+    for (let entry of data[i]) {
+      if (entry != FAKE_FIELD) {
+        trimmedRow.push(entry);
+      }
+    }
+    tsvData += trimmedRow.join('\t') + '\n';
+  }
+  return tsvData;
+}
+
+/**
+ * Saves the passed data to the passed file name.
+ * @param {string} tsvData
+ * @param {string} fileName
+ */
+function mqmSaveDataInner(tsvData, fileName) {
   const a = document.createElement("a");
   a.style.display = "none";
   document.body.appendChild(a);
   a.href = window.URL.createObjectURL(
-    new Blob([mqmTSVData], {type: "text/tab-separated-values;charset=UTF-8"})
+    new Blob([tsvData], {type: "text/tab-separated-values;charset=UTF-8"})
   );
-  a.setAttribute("download", "mqm-data.tsv");
+  a.setAttribute("download", fileName);
   a.click();
   window.URL.revokeObjectURL(a.href);
   document.body.removeChild(a);
+}
+
+/**
+ * Returns a suitable label for the "save" button, depending on aggregation.
+ * @param {string} aggregation One of 'system', 'document', 'segment', 'rater'
+ * @return {string}
+ */
+function mqmSaveLabel(aggregation) {
+  if (!aggregation) {
+    return 'Save MQM data to file "mqm-data.tsv"';
+  }
+  return 'Save filtered scores to file ' +
+         `"mqm-scores-by-${aggregation}.tsv"`;
+}
+
+/**
+ * Updates the label of the "save" button, depending upon the currenly selected
+ * option in the aggregation drop-down.
+ */
+function mqmUpdateSaveLabel() {
+  const aggregation = document.getElementById('mqm-save-file-type').value;
+  const saveButton = document.getElementById('mqm-save-file');
+  saveButton.innerHTML = mqmSaveLabel(aggregation);
+}
+
+/**
+ * Saves mqmTSVData or aggregated data to the file mqm-data.tsv.
+ */
+function mqmSaveData() {
+  const aggregation = document.getElementById('mqm-save-file-type').value;
+  let tsvData = '';
+  let fileName = 'mqm-data.tsv';
+  if (!aggregation) {
+    tsvData = mqmTSVData;
+  } else {
+    tsvData = mqmGetScoresTSVData(aggregation);
+    fileName = `mqm-scores-by-${aggregation}.tsv`;
+  }
+  if (!tsvData) {
+    alert('There is no data to be saved!');
+    return;
+  }
+  mqmSaveDataInner(tsvData, fileName);
 }
 
 /**
@@ -2608,8 +2755,25 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
   }
   header += `
       <button id="mqm-save-file" disabled onclick="mqmSaveData()">
-      Save MQM data to file "mqm-data.tsv"
+      ${mqmSaveLabel('')}
       </button>
+      <select disabled id="mqm-save-file-type" onchange="mqmUpdateSaveLabel()">
+        <option value="" title="Save full 10-column MQM annotations TSV data">
+          Save all data
+        </option>
+        <option value="rater" title="Save sys-doc-docseg-rater-score TSV">
+          Filtered seg scores by rater
+        </option>
+        <option value="segment" title="Save sys-doc-docseg-score TSV">
+          Filtered scores by seg
+        </option>
+        <option value="document" title="Save sys-doc-score TSV">
+          Filtered scores by doc
+        </option>
+        <option value="system" title="Save sys-score TSV">
+          Filtered scores by sys
+        </option>
+      </select>
     </span>
   </div>`;
 
