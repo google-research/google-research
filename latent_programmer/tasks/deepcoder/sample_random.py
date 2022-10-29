@@ -17,6 +17,7 @@
 
 import collections
 import random
+from typing import Any, Dict, List, Optional, Type, Union
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl as dsl
 from latent_programmer.tasks.deepcoder import experiment as exp_module
@@ -36,7 +37,7 @@ def random_list():
   else:
     min_int, max_int = dsl.MIN_INT, dsl.MAX_INT
   random_length = random.randint(1, dsl.MAX_LIST_LENGTH)
-  return random.sample(range(min_int, max_int + 1), k=random_length)
+  return random.choices(range(min_int, max_int + 1), k=random_length)
 
 
 def random_inputs(num_inputs):
@@ -52,7 +53,8 @@ def random_inputs(num_inputs):
   return inputs
 
 
-def random_inputs_like(inputs):
+def random_inputs_like(
+    inputs):
   new_inputs = []
   for inp in inputs:
     if isinstance(inp, list):
@@ -63,7 +65,12 @@ def random_inputs_like(inputs):
   return new_inputs
 
 
-def is_valid_operation(operation, var_dict):
+def random_new_variable(existing_variables):
+  return random.choice(list(dsl.ALL_VARIABLES - set(existing_variables)))
+
+
+def is_valid_operation(operation,
+                       var_dict):
   """Check is operation is valid given the current variable types."""
   # First index is for Lambda if operation is higher-order.
   if isinstance(operation, dsl.FirstOrderOperation):
@@ -75,17 +82,19 @@ def is_valid_operation(operation, var_dict):
   return all(var_dict[t] for t in operation.inputs_type[start_idx:])
 
 
-def random_statement(program_state, is_train, experiment, operations, lambdas):
+def random_statement(program_state,
+                     is_train,
+                     experiment,
+                     operations,
+                     lambdas):
   """Randomly sample new Statement given existing ProgramState."""
-  idx = len(program_state.state)  # Variable index should be line of program.
+  variable = random_new_variable(program_state.variables)
 
+  # Maps from type to a list of indices of variables of that type.
   var_dict = collections.defaultdict(list)
   for i, v in enumerate(program_state.state):
-    if isinstance(v, list):
-      var_dict[list].append(i)
-    else:
-      assert type(v) is int  # pylint: disable=unidiomatic-typecheck
-      var_dict[int].append(i)
+    assert type(v) in (int, list)
+    var_dict[type(v)].append(i)
 
   valid_operations = [op for op in operations if
                       is_valid_operation(op, var_dict)]
@@ -105,13 +114,18 @@ def random_statement(program_state, is_train, experiment, operations, lambdas):
     else:  # Argument is either an int or list.
       # Make it more likely to sample a recent variable.
       weights = [index + 1 for index in var_dict[t]]
-      args.append(random.choices(var_dict[t], weights=weights)[0])
-  return dsl.Statement(idx, random_op, args)
+      variable_index = random.choices(var_dict[t], weights=weights)[0]
+      args.append(program_state.variables[variable_index])
+  return dsl.Statement(variable, random_op, args)
 
 
 def random_program(
-    example_inputs, num_statements, is_train, experiment=None,
-    operations=None, lambdas=None):
+    example_inputs,
+    num_statements,
+    is_train,
+    experiment = None,
+    operations = None,
+    lambdas = None):
   """Randomly sample a new program."""
   if operations is None:
     operations = dsl.OPERATIONS.copy()
@@ -119,9 +133,15 @@ def random_program(
     lambdas = dsl.LAMBDAS.copy()
 
   # All examples should have the same number of inputs.
-  assert len(set(len(inputs) for inputs in example_inputs)) == 1
+  num_inputs = len(example_inputs[0])
+  assert all(len(inputs) == num_inputs for inputs in example_inputs)
 
-  states = [dsl.ProgramState(inputs) for inputs in example_inputs]
+  input_variables = []
+  while len(input_variables) < num_inputs:
+    input_variables.append(random_new_variable(input_variables))
+
+  states = [dsl.ProgramState(inputs, input_variables)
+            for inputs in example_inputs]
   statements = []
   for i in range(num_statements):
     if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER:
@@ -141,6 +161,6 @@ def random_program(
     statements.append(statement)
     states = next_states
 
-  program = dsl.Program(len(example_inputs[0]), statements)
+  program = dsl.Program(input_variables, statements)
   assert len(program) == num_statements
   return program

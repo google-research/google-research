@@ -41,7 +41,7 @@ Helpful properties to know:
   * A program state is given as a string in the following form, which does not
     distinguish between inputs and previously-computed local variables:
 
-    x0 = [ 3 , 1 , 2 ] | x1 = [ 4 , 2 , 3 ] | x2 = 9
+    x0 = [ 3 1 2 ] | x1 = [ 4 2 3 ] | x2 = 9
 
   * A program is given as a string in the following form:
 
@@ -56,6 +56,8 @@ Helpful properties to know:
     functions may have types such as `int -> bool` or `(int, int) -> int`, but
     lambdas are only used as arguments to higher-order functions and can't be
     program variables themselves.
+
+  * If desired, variables can be used in an order different from x0, x1, etc.
 """
 
 import ast
@@ -68,6 +70,11 @@ from absl import flags
 _DEEPCODER_MOD = flags.DEFINE_integer(
     'deepcoder_mod', 10,
     'The modulo we use for DeepCoder arithmetic, or 0 to not apply any mod.')
+
+
+def deepcoder_mod():
+  # Just to hide the internal flag from code outside this module.
+  return _DEEPCODER_MOD.value
 
 
 # Types for type specifications, e.g., `([int], bool)` has type LambdaType and
@@ -84,8 +91,21 @@ MAX_INT = 255
 MAX_LIST_LENGTH = 20  # Maximum length for list input.
 
 
-def deepcoder_mod():
-  return _DEEPCODER_MOD.value
+def variable_token(index):
+  return f'x{index}'
+
+MAX_NUM_VARIABLES = 10  # How many variables are available to use.
+ALL_VARIABLES = frozenset(variable_token(index)
+                          for index in range(MAX_NUM_VARIABLES))
+
+
+def variable_index_from_token(token):
+  if not re.fullmatch(r'x\d+', token):
+    raise ParseError(f'Invalid variable token: {token}')
+  index = int(token[1:])
+  if index < 0 or index >= MAX_NUM_VARIABLES:
+    raise ParseError(f'Variable token has out-of-bounds index: {token}')
+  return index
 
 
 class ParseError(Exception):
@@ -165,23 +185,12 @@ def validate_result(result):
   # pylint: enable=unidiomatic-typecheck
 
 
-def variable_token(index):
-  return f'x{index}'
-
-
-def variable_index_from_token(token):
-  if not re.fullmatch(r'x\d+', token):
-    raise ParseError(f'Invalid variable token: {token}')
-  return int(token[1:])
-
-
 def tokenize_result(result):
   """Returns a list of tokens for the result of an operation."""
   if isinstance(result, int):
     return [str(result)]
   elif isinstance(result, list):
-    return ['['] + join_token_lists([tokenize_result(x) for x in result],
-                                    separator_token=',') + [']']
+    return ['['] + sum([tokenize_result(x) for x in result], []) + [']']
   else:
     raise DeepCoderError(f'Unhandled type in tokenize_result({result})')
 
@@ -193,32 +202,54 @@ def result_to_str(result):
 class ProgramState(object):
   """Holds a program state (for one example)."""
 
-  def __init__(self, state):
-    self.state = state
+  def __init__(self, state, variables):
+    self.state = list(state)
+    self.variables = list(variables)
+    if len(state) != len(variables):
+      raise DeepCoderError(
+          f'`state` has length {len(state)} but `variables` has length '
+          f'{len(variables)}')
+    self._variable_to_result = {token: result
+                                for token, result in zip(variables, state)}
 
   def __len__(self):
     return len(self.state)
 
-  def __getitem__(self, index):
+  def get_index(self, index):
     if index < 0 or index >= len(self.state):
       raise RunError(f'Invalid index: {index}')
     return self.state[index]
 
+  def get_variable(self, token):
+    if token not in self._variable_to_result:
+      raise RunError(f'Invalid variable token: {token}')
+    return self._variable_to_result[token]
+
   def __eq__(self, other):
-    return isinstance(other, ProgramState) and self.state == other.state
+    return (isinstance(other, ProgramState) and
+            self.state == other.state and
+            self.variables == other.variables)
 
   def copy(self):
-    return ProgramState(list(self.state))
+    return ProgramState(list(self.state), list(self.variables))
 
-  def add_result(self, result):
+  def add_result(self, result, variable):
+    if variable in self._variable_to_result:
+      raise RunError(f'Cannot add new result for variable {variable} that '
+                     f'already exists in state: {self}')
     self.state.append(result)
+    self.variables.append(variable)
+    self._variable_to_result[variable] = result
 
   def get_output(self):
     return self.state[-1]
 
+  def get_output_variable(self):
+    return self.variables[-1]
+
   def tokenize(self):
-    lines = [[variable_token(i), '='] + tokenize_result(result)
-             for i, result in enumerate(self.state)]
+    lines = [[token, '='] + tokenize_result(result)
+             for token, result in zip(self.variables, self.state)]
     return join_token_lists(lines, separator_token='|')
 
   def __str__(self):
@@ -233,18 +264,22 @@ class ProgramState(object):
     """Creates a ProgramState from its string representation."""
     lines = [line.strip() for line in string.split('|')]
     state = []
-    for i, line in enumerate(lines):
+    variables = []
+    for line in lines:
       splitted = line.split('=')
       if len(splitted) != 2:
         raise ParseError(f"Expected exactly one '=': {line}")
       lhs, rhs = [part.strip() for part in splitted]
-      if lhs != variable_token(i):
-        raise ParseError(f'Found {lhs} but expected {variable_token(i)}')
+      _ = variable_index_from_token(lhs)  # Make sure lhs has the right format.
+      variable = lhs
+      if variable in variables:
+        raise ParseError(f'Found duplicate variable: {variable}')
       result = ast.literal_eval(rhs)
       if not validate_result(result):
         raise ParseError(f'Found invalid result: {result}')
       state.append(result)
-    return cls(state)
+      variables.append(variable)
+    return cls(state, variables)
 
 
 class Function(object):
@@ -292,38 +327,40 @@ class HigherOrderOperation(Operation):
 class Statement(object):
   """One statement in a program."""
 
-  def __init__(self, variable_index, operation,
+  def __init__(self, variable, operation,
                args):
-    self.variable_index = variable_index
+    self.variable = variable
     self.operation = operation
-    self.args = args
+    self.args = list(args)
 
   def run(self, initial_state):
     """Runs the operation and assigns it to a variable."""
-    if self.variable_index != len(initial_state):
+    if self.variable in initial_state.variables:
       raise RunError(
-          f'Statement has variable_index {self.variable_index} and cannot be '
-          f'run on an initial state of length {len(initial_state)}')
+          f'Statement has variable {self.variable} which already exists in the '
+          f'initial state: {initial_state}')
     arg_values = []
     for arg in self.args:
-      if isinstance(arg, int):
-        arg_values.append(initial_state[arg])
+      if isinstance(arg, str):
+        arg_values.append(initial_state.get_variable(arg))
       elif isinstance(arg, Lambda):
         arg_values.append(arg.func)
       else:
-        raise DeepCoderError(f'Unhandled argument: {arg}')
+        raise DeepCoderError(
+            f'Unhandled argument {arg} for statement {self} and initial_state '
+            f'{initial_state}')
     result = self.operation.run(arg_values)
     if result is None:
       return None
     result_state = initial_state.copy()
-    result_state.add_result(result)
+    result_state.add_result(result, self.variable)
     return result_state
 
   def tokenize(self):
-    tokens = [variable_token(self.variable_index), '=', self.operation.token]
+    tokens = [self.variable, '=', self.operation.token]
     for arg in self.args:
-      if isinstance(arg, int):
-        tokens.append(variable_token(arg))
+      if isinstance(arg, str):
+        tokens.append(arg)
       elif isinstance(arg, Lambda):
         tokens.append(arg.token)
       else:
@@ -339,7 +376,8 @@ class Statement(object):
     # Parse LHS variable, =, and the operation.
     if len(tokens) < 4:
       raise ParseError(f'Too few tokens: {tokens}')
-    variable_index = variable_index_from_token(tokens[0])
+    variable = tokens[0]
+    _ = variable_index_from_token(variable)  # Check its format.
     if tokens[1] != '=':
       raise ParseError(f"Second token must be '=': {tokens}")
     operation_token = tokens[2]
@@ -357,12 +395,15 @@ class Statement(object):
       else:
         if isinstance(operation, HigherOrderOperation) and i == 0:
           raise ParseError(f'Expected lambda for token {i}: {tokens}')
-        arg = variable_index_from_token(token)
+        arg = token
+        if arg == variable:
+          raise ParseError(f'Cannot use LHS variable as arg: {tokens}')
+        _ = variable_index_from_token(arg)  # Check its format.
       args.append(arg)
     if len(args) != operation.arity:
       raise ParseError(
           f'Statement tokens have wrong arity for operation: {tokens}')
-    return cls(variable_index, operation, args)
+    return cls(variable, operation, args)
 
   @classmethod
   def from_str(cls, string):
@@ -372,14 +413,24 @@ class Statement(object):
 class Program(object):
   """A full DeepCoder program including input handling."""
 
-  def __init__(self, num_inputs, statements):
-    self.num_inputs = num_inputs
-    self.statements = statements
+  def __init__(self, input_variables, statements):
+    self.input_variables = list(input_variables)
+    self.statements = list(statements)
+    self.num_inputs = len(input_variables)
+
+    if (len(set(self.get_variables()))
+        != len(statements) + len(input_variables)):
+      raise RunError(
+          f'A variable token is duplicated in the program with '
+          f'input_variables={input_variables} and statements={statements}.')
+
+  def get_variables(self):
+    return self.input_variables + [s.variable for s in self.statements]
 
   def run(self, inputs):
     if len(inputs) != self.num_inputs:
       raise RunError(f'Got {len(inputs)} inputs but expected {self.num_inputs}')
-    state = ProgramState(inputs)
+    state = ProgramState(inputs, self.input_variables)
     for statement in self.statements:
       state = statement.run(state)
       if state is None:
@@ -391,8 +442,8 @@ class Program(object):
 
   def tokenize(self):
     lines = []
-    for i in range(self.num_inputs):
-      lines.append([variable_token(i), '=', 'INPUT'])
+    for input_variable in self.input_variables:
+      lines.append([input_variable, '=', 'INPUT'])
     for statement in self.statements:
       lines.append(statement.tokenize())
     return join_token_lists(lines, separator_token='|')
@@ -416,18 +467,22 @@ class Program(object):
       lines.append(current_line)
 
     # Parse statements.
-    num_inputs = 0
+    found_non_input = False
+    input_variables = []
     statements = []
-    for i, line in enumerate(lines):
+    for line in lines:
       if line[-1] == 'INPUT':
-        if i != num_inputs:
-          raise ParseError(f'Misplaced INPUT on line {i}: {lines}')
-        if line != [variable_token(i), '=', 'INPUT']:
+        if found_non_input:
+          raise ParseError(f'Found INPUT after a statement: {lines}')
+        variable = line[0]
+        _ = variable_index_from_token(variable)  # Check its format.
+        if line != [variable, '=', 'INPUT']:
           raise ParseError(f'Error while parsing INPUT statement: {line}')
-        num_inputs += 1
+        input_variables.append(variable)
       else:
+        found_non_input = True
         statements.append(Statement.from_tokens(line))
-    return cls(num_inputs, statements)
+    return cls(input_variables, statements)
 
   @classmethod
   def from_str(cls, string):
