@@ -35,6 +35,7 @@ from absl import logging
 
 import tensorflow as tf
 from tensorflow.io import gfile
+from smu import dataset_pb2
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
@@ -43,8 +44,39 @@ flags.DEFINE_string('output_sqlite', None, 'Path of sqlite file to generate')
 flags.DEFINE_string(
     'bond_topology_csv', None,
     '(optional) Path of bond_topology.csv for smiles to btid mapping')
+flags.DEFINE_boolean('mutate', False,
+                     'Whether to modify the records with our last second changes')
 
 FLAGS = flags.FLAGS
+
+
+def mutate_conformer(encoded_molecule):
+  """Make some small modifications to molecule.
+
+  We made some last second (month?) changes to the records.
+  Rather then rerunning the whole pipeline, we just hacked these
+  changes into this step that creates the final database.
+  Is that a pretty solution? No, but it's functional.
+  """
+  molecule = dataset_pb2.Molecule.FromString(encoded_molecule)
+
+  # We change the fate categories, so we just recompute them.
+  if molecule.properties.HasField('errors'):
+    molecule.properties.errors.fate = smu_utils_lib.determine_fate(molecule)
+
+  # We decided to remove the topology and geometry scores and sort the bond
+  # topologies by a simple key instead.
+  if len(molecule.bond_topologies):
+    new_bts = sorted(
+      molecule.bond_topologies, key=smu_utils_lib.bond_topology_sorting_key)
+    del molecule.bond_topologies[:]
+    molecule.bond_topologies.extend(new_bts)
+
+  for bt in molecule.bond_topologies:
+    bt.ClearField('topology_score')
+    bt.ClearField('geometry_score')
+
+  return molecule.SerializeToString()
 
 
 def main(argv):
@@ -67,7 +99,11 @@ def main(argv):
 
   logging.info('Starting main inserts')
   dataset = tf.data.TFRecordDataset(gfile.glob(FLAGS.input_tfrecord))
-  db.bulk_insert((raw.numpy() for raw in dataset), batch_size=10000)
+  if FLAGS.mutate:
+    db.bulk_insert((mutate_conformer(raw.numpy()) for raw in dataset),
+                   batch_size=10000)
+  else:
+    db.bulk_insert((raw.numpy() for raw in dataset), batch_size=10000)
 
   logging.info('Starting vacuuming')
   db.vacuum()
