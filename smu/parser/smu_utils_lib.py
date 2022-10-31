@@ -529,6 +529,25 @@ def compute_adjacency_matrix(topology):
   return adjacency_matrix
 
 
+def compact_adjacency_matrix_string(adjacency_matrix, join_str):
+  """Gets adjacency matrix as one line string.
+
+  This is the upper triangular part of the matrix.
+
+  Args:
+    adjacency_matrix: as returned by compute_adjacency_matrix
+    join_str: characters to put between lines of the maxtrix
+
+  Returns:
+    string
+  """
+  out = []
+  side_length = len(adjacency_matrix)
+  for i in range(0, side_length - 1):
+    out.append(''.join(str(adjacency_matrix[i][j]) for j in range(i + 1, side_length)))
+  return join_str.join(out)
+
+
 def compute_bonded_hydrogens(topology, adjacency_matrix):
   """Helper function to compute number of bonded hydrogens per heavy atom.
 
@@ -767,6 +786,24 @@ def get_bond_type(bond_topology, atom_idx0, atom_idx1):
         (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
       return bond.bond_type
   return dataset_pb2.BondTopology.BondType.BOND_UNDEFINED
+
+
+def bond_topology_sorting_key(bond_topology):
+  """Returns tuple to use as sorting key.
+
+  We eventually decided to sort bond topologies not be our estimated
+  goodness of fit, but just from some simple parameters of the topology.
+  This function shoudl be passed to a key parameter of a sorting function.
+
+  Args:
+    bond_topology: dataset_pb2.BondTopology
+
+  Returns:
+    tuple
+  """
+  return (bond_topology.bond_topology_id,
+          compact_adjacency_matrix_string(
+            compute_adjacency_matrix(bond_topology), '.'))
 
 
 # These are lower case so they can be used in a command line argument

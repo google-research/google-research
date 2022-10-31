@@ -93,6 +93,7 @@ def get_long_molecule_id(molecule_id):
   return '{:06d}.{:03d}'.format(molecule_id // 1000, molecule_id % 1000)
 
 
+
 class SmuWriter:
   """A class to gather a SMU protocol buffer into a Basel-formatted string."""
 
@@ -218,14 +219,11 @@ class SmuWriter:
       A multiline string representation of adjacency code and hydrogen numbers.
     """
     adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(topology)
-    side_length = len(adjacency_matrix)
     result = ''
     if self.annotate:
       result += '# From topology\n'
     result += '     '
-    for i in range(0, side_length):
-      for j in range(i + 1, side_length):
-        result += str(adjacency_matrix[i][j])
+    result += smu_utils_lib.compact_adjacency_matrix_string(adjacency_matrix, '')
     result += '\n     '
     num_bonded_hydrogens = smu_utils_lib.compute_bonded_hydrogens(
         topology, adjacency_matrix)
@@ -1241,12 +1239,19 @@ class CleanTextWriter:
   def _align_dec_point(self, pos, val):
     return (pos - val.index('.'), val)
 
-  def _compact_adj_matrix(self, adjacency_matrix):
-    out = []
-    side_length = len(adjacency_matrix)
-    for i in range(0, side_length - 1):
-      out.append(''.join(str(adjacency_matrix[i][j]) for j in range(i + 1, side_length)))
-    return '.'.join(out)
+  def _align_float_with_prec(self, pos, float_val, prec):
+    if prec < 0.00015:
+      val = '{:.4f}'.format(float_val)
+    elif prec < 0.00150:
+      val = '{:.3f}'.format(float_val)
+    elif prec < 0.01500:
+      val = '{:.2f}'.format(float_val)
+    elif prec < 0.15000:
+      val = '{:.1f}'.format(float_val)
+    else:
+      val = '{:.0f}.'.format(float_val)
+
+    return self._align_dec_point(pos, val)
 
   def _heavy_atom_list(self, topology):
     return ''.join([smu_utils_lib.ATOM_TYPE_TO_RDKIT[a][0]
@@ -1323,10 +1328,19 @@ class CleanTextWriter:
                              [(17, 'topo_id'),
                               (31, str(molecule.molecule_id // 1000)),
                               ]))
-    if molecule.properties.HasField('smiles_openbabel'):
+    # Hello huge hack! smiles_obabel is only filled in for the complete database and
+    # if it differs from smiles_rdkit. But we always want to show this field if we have
+    # the compelte record. But whether this is the complete or standard record is not
+    # written explicitly! SO instead we check for the presence of the error field
+    # which shoudl always be present in compelte and never for standard.
+    if molecule.properties.HasField('errors'):
+      if molecule.properties.HasField('smiles_openbabel'):
+        smiles = molecule.properties.smiles_openbabel
+      else:
+        smiles = topology.smiles
       out.append(self._fw_line(base_vals +
                                [(17, 'smiles_obabel'),
-                                (31, molecule.properties.smiles_openbabel),
+                                (31, smiles),
                                 ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'x_atoms'),
@@ -1341,7 +1355,8 @@ class CleanTextWriter:
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'x_atpair_mat'),
-                              (31, self._compact_adj_matrix(adjacency_matrix)),
+                              (31, smu_utils_lib.compact_adjacency_matrix_string(
+                                adjacency_matrix, '.')),
                               ]))
 
     return out
@@ -1358,8 +1373,13 @@ class CleanTextWriter:
                               (31, f'{molecule.properties.errors.status:3d}'),
                               ]))
     error_level = smu_utils_lib.molecule_calculation_error_level(molecule)
-    if error_level <= 2:
-
+    if (molecule.properties.errors.status < 0 or
+        molecule.properties.errors.status > 4):
+      out.append(self._fw_line(base_vals +
+                               [(17, 'warn_level'),
+                                (31, '  -'),
+                                ]))
+    elif error_level <= 2:
       out.append(self._fw_line(base_vals +
                                [(17, 'warn_level'),
                                 (31, '  ' + 'ABC'[error_level]),
@@ -1449,7 +1469,9 @@ class CleanTextWriter:
 
   def get_bond_topologies_block(self, molecule, long_name):
     out = []
-    for bt_idx, bt in enumerate(molecule.bond_topologies):
+    # HACK: Need to remove the sorting once DB is fixed
+    for bt_idx, bt in enumerate(sorted(molecule.bond_topologies,
+                                       key=smu_utils_lib.bond_topology_sorting_key)):
       base_vals = [(1, 'bond_topo'),
                    (11, f'{bt_idx+1:2d}')]
 
@@ -1462,11 +1484,15 @@ class CleanTextWriter:
       out.append(self._fw_line(base_vals +
                                [(17, 'topo_id'),
                                 (31, f'{bt.bond_topology_id:<d}')]))
-      info = (('i' if bt.source & dataset_pb2.BondTopology.SOURCE_ITC else '.') +
-              ('c' if bt.source & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
-              ('m' if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
-              ('u' if bt.source & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +
-              ('S' if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
+      if bt.source == dataset_pb2.BondTopology.SOURCE_STARTING:
+        # This indicates topology detection was not performed at all.
+        info = '    S'
+      else:
+        info = (('i' if bt.source & dataset_pb2.BondTopology.SOURCE_ITC else '.') +
+                ('c' if bt.source & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
+                ('m' if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
+                ('u' if bt.source & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +
+                ('S' if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
       out.append(self._fw_line(base_vals +
                                [(17, 'info'),
                                 (31, info)]))
@@ -1486,9 +1512,7 @@ class CleanTextWriter:
       out.append(self._fw_line(
         base_vals +
         [(17, 'x_atpair_mat'),
-         (31,
-          ('Cm:' if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING else 'Rm:') +
-          self._compact_adj_matrix(adjacency_matrix)),
+         (31, smu_utils_lib.compact_adjacency_matrix_string(adjacency_matrix, '.')),
          ]))
 
     return out
@@ -1496,7 +1520,7 @@ class CleanTextWriter:
   def get_geometries_block(self, molecule, long_name):
     out = []
 
-    def write_geometry(prefix, geom):
+    def write_geometry(prefix, units_comment, geom):
       out.append('#\n')
       out.append(self._fw_line([(0, '#'),
                                 (1, prefix),
@@ -1518,7 +1542,7 @@ class CleanTextWriter:
       out.append('#\n')
       out.append(self._fw_line([(0, '#'),
                                 (1, prefix),
-                                (84, '(au; brot: MHz)' if geom.HasField('rotcon') else '(au)'),
+                                (84, units_comment),
                                 ]))
       base_vals = [(1, prefix), (84, long_name)]
       if geom.HasField('energy'):
@@ -1552,9 +1576,10 @@ class CleanTextWriter:
                                     self._align_dec_point(49, val_str),
                                   ]))
 
-    write_geometry('ini_geo', molecule.initial_geometries[0])
+
+    write_geometry('ini_geo', '(au)', molecule.initial_geometries[0])
     if molecule.HasField('optimized_geometry'):
-      write_geometry('opt_geo', molecule.optimized_geometry)
+      write_geometry('opt_geo', '(au; brot: MHz)', molecule.optimized_geometry)
 
     return out
 
@@ -1724,10 +1749,12 @@ class CleanTextWriter:
                                 (84, long_name),
                                 ]))
 
-    if out:
+    #HACK! Working around a bug in the comparison files where wf_diag is not included
+    #if out:
+    if len(out) > 1:
       return ['#\n', '#wf_diag   \n'] + out
     else:
-      return out;
+      return []
 
   _BSR_SPLIT_RE = re.compile(r'\s\+\s')
   _BSR_POSITIONS = [51, 66]
@@ -1768,10 +1795,15 @@ class CleanTextWriter:
     if not out_vals:
       out_vals.append(copy.copy(base_vals))
 
-    if components[0] == 'molecule':
-      out_vals[0].append((41, 'molecule'))
-    else:
+    num_digits = self._num_leading_digits(components[0])
+    if num_digits == 0:
+      out_vals[0].append((41, components[0]))
+    elif num_digits == 1:
       out_vals[0].append((39, components[0]))
+    elif num_digits == 2:
+      out_vals[0].append((38, components[0]))
+    else:
+      raise ValuError(f'0th component {components[0]} has unexpected number of digits')
 
     return [self._fw_line(vals) for vals in out_vals]
 
@@ -1989,8 +2021,11 @@ class CleanTextWriter:
       pos = self._DEC_POINT_POSITIONS[num_values_present]
       lines_vals[0].append((pos - 5, f'{line0_str:>8s}'))
       lines_vals[1].append((pos - 5, f'{line1_str:>8s}'))
-      for idx, val in enumerate(getattr(molecule.properties, field).values, start=2):
-        lines_vals[idx].append(self._align_dec_point(pos, f'{val:.2f}'))
+      for idx, (float_val, prec) in enumerate(zip(getattr(molecule.properties, field).values,
+                                                  getattr(molecule.properties, field).precision),
+                                              start=2):
+        lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))
+
       num_values_present += 1
 
     if not num_values_present:
@@ -2027,8 +2062,10 @@ class CleanTextWriter:
           continue
 
         lines_vals[0].append((pos + 2, short_name))
-        for idx, val in enumerate(getattr(molecule.properties, field).values, start=1):
-          lines_vals[idx].append(self._align_dec_point(pos, f'{val:.4f}'))
+        for idx, (float_val, prec) in enumerate(zip(getattr(molecule.properties, field).values,
+                                                    getattr(molecule.properties, field).precision),
+                                                start=1):
+          lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))
         num_values_present += 1
 
       if not num_values_present:
