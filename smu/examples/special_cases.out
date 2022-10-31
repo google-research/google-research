@@ -117,7 +117,7 @@ optimized_geometry {
 properties {
   errors {
     status: 590
-    fate: FATE_DISASSOCIATED
+    fate: FATE_FAILURE_TOPOLOGY_CHECK
   }
   smiles_openbabel: "[O-][NH+]([NH3+])[O-]"
 }

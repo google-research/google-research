@@ -1372,12 +1372,15 @@ def molecule_calculation_error_level(molecule):
 
   Returns:
     integer, higher values are more srious errors
-      5: serious problems
-      4: major problems
-      3: moderate problems
-      2: minor problems, serious warning
-      1: minor problems, vibrational analysis warning
-      0: minor or no problem
+      8: serious problems
+      7: major problems
+      6: moderate problems
+      5: cations problems, minor problems, serious warning
+      4: cations problems, minor problems, vibrational analysis warning
+      3: cations problems, otherwise sucess
+      2: cations success, minor problems, serious warning
+      1: cations success, minor problems, vibrational analysis warning
+      0: cations success, no problems
   """
   source = _molecule_source(molecule)
   errors = molecule.properties.errors
@@ -1386,35 +1389,39 @@ def molecule_calculation_error_level(molecule):
   # We'll call all errors serious
   if source == _MoleculeSource.STAGE1:
     if errors.error_nstat1 != 1 and errors.error_nstat1 != 3:
-      return 5
+      return 8
 
     if (errors.error_nstatc != 1 or errors.error_nstatt != 1 or
         errors.error_frequencies != 1):
-      return 5
+      return 8
 
     return 0
 
   # Now logic for stage2 files.
   if errors.status >= 64:
-    return 5
+    return 8
   elif errors.status >= 8:
-    return 4
+    return 7
   elif errors.status >= 4:
-    return 3
+    return 6
 
+  warn_offset = 0
   # This is warning level 'C' from Bazel documentation.
   if (errors.warn_t1 > 1 or errors.warn_t1_excess > 1 or
       errors.warn_bse_b5_b6 > 1 or errors.warn_bse_cccsd_b5 > 1 or
       errors.warn_exc_lowest_excitation > 1 or
       errors.warn_exc_smallest_oscillator > 0 or
       errors.warn_exc_largest_oscillator > 0):
-    return 2
+    warn_offset = 2
 
   # This is warning level 'B" from Bazel documentation.
   if (errors.warn_vib_linearity > 0 or errors.warn_vib_imaginary > 1):
-    return 1
+    warn_offset = 1
 
-  return 0
+  if errors.status == 0:
+    return warn_offset
+  else:
+    return 3 + warn_offset
 
 
 def filter_molecule_by_availability(molecule, allowed):
@@ -1717,30 +1724,36 @@ def determine_fate(molecule):
 
     status = molecule.properties.errors.status
     if status == 600:
-      return dataset_pb2.Properties.FATE_GEOMETRY_OPTIMIZATION_PROBLEM
+      return dataset_pb2.Properties.FATE_FAILURE_GEO_OPT
     elif status == 590:
-      return dataset_pb2.Properties.FATE_DISASSOCIATED
+      return dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK
     elif status == 570 or status == 580:
-      return dataset_pb2.Properties.FATE_DISCARDED_OTHER
+      return dataset_pb2.Properties.FATE_FAILURE_STAGE2
     else:
       # This means that we can find no reason this shouldn't have gone on to
       # stage2.
-      return dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS
+      return dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS
 
   elif source == _MoleculeSource.STAGE2:
     error_level = molecule_calculation_error_level(molecule)
-    if error_level == 5:
-      return dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR
+    if error_level == 8:
+      return dataset_pb2.Properties.FATE_ERROR_SERIOUS
+    elif error_level == 7:
+      return dataset_pb2.Properties.FATE_ERROR_MAJOR
+    elif error_level == 6:
+      return dataset_pb2.Properties.FATE_ERROR_MODERATE
+    elif error_level == 5:
+      return dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS
     elif error_level == 4:
-      return dataset_pb2.Properties.FATE_CALCULATION_WITH_MAJOR_ERROR
+      return dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB
     elif error_level == 3:
-      return dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR
+      return dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW
     elif error_level == 2:
-      return dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS
+      return dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS
     elif error_level == 1:
-      return dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL
+      return dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB
     elif error_level == 0:
-      return dataset_pb2.Properties.FATE_SUCCESS
+      return dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     else:
       raise ValueError(f'Bad error_level {error_level}')
 
@@ -1821,19 +1834,19 @@ def molecule_to_bond_topology_summaries(molecule):
   elif fate == dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
     summary.count_duplicates_different_topology = 1
 
-  elif (fate == dataset_pb2.Properties.FATE_GEOMETRY_OPTIMIZATION_PROBLEM or
-        fate == dataset_pb2.Properties.FATE_DISASSOCIATED or
+  elif (fate == dataset_pb2.Properties.FATE_FAILURE_GEO_OPT or
+        fate == dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK or
         fate == dataset_pb2.Properties.FATE_FORCE_CONSTANT_FAILURE or
-        fate == dataset_pb2.Properties.FATE_DISCARDED_OTHER):
+        fate == dataset_pb2.Properties.FATE_FAILURE_STAGE2):
     summary.count_failed_geometry_optimization = 1
 
-  elif fate == dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS:
+  elif fate == dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS:
     summary.count_kept_geometry = 1
     summary.count_missing_calculation = 1
 
-  elif (fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR or
-        fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MAJOR_ERROR or
-        fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR):
+  elif (fate == dataset_pb2.Properties.FATE_ERROR_SERIOUS or
+        fate == dataset_pb2.Properties.FATE_ERROR_MAJOR or
+        fate == dataset_pb2.Properties.FATE_ERROR_MODERATE):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
     for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
@@ -1849,8 +1862,8 @@ def molecule_to_bond_topology_summaries(molecule):
         yield other_summary
 
   elif (
-      fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS or
-      fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL):
+      fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS or
+      fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
     for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
@@ -1865,7 +1878,7 @@ def molecule_to_bond_topology_summaries(molecule):
         setattr(other_summary, field, 1)
         yield other_summary
 
-  elif fate == dataset_pb2.Properties.FATE_SUCCESS:
+  elif fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW:
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
     for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,

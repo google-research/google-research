@@ -258,29 +258,36 @@ message Properties {
     FATE_DUPLICATE_DIFFERENT_TOPOLOGY = 2;
     // Errors were encountered during geometry optimization. This
     // Molecule will not have most properties fields.
-    FATE_GEOMETRY_OPTIMIZATION_PROBLEM = 3;
+    FATE_FAILURE_GEO_OPT = 3;
     // After geometry optimization, the expected bonding pattern was no longer
     // consistent with the geometry. This Molecule will not have most
     // properties fields.
-    FATE_DISASSOCIATED = 4;
+    FATE_FAILURE_TOPOLOGY_CHECK = 4;
     // During geometry optimization, problems were encountered converging to a
     // local minima. This Molecule will not have most properties fields.
     // TODO(pfr): check documentation
     FATE_FORCE_CONSTANT_FAILURE = 5;
     // Other problems were encountered during geometry optimization. This
     // Molecule will not have most properties fields.
-    FATE_DISCARDED_OTHER = 6;
+    FATE_FAILURE_STAGE2 = 6;
     // Calculation results are missing. Should not be present in final dataset.
-    FATE_NO_CALCULATION_RESULTS = 7;
+    FATE_FAILURE_NO_RESULTS = 7;
     // Some calculation results had serious/major/moderate errors.
-    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
-    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
-    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
+    FATE_ERROR_SERIOUS = 8;
+    FATE_ERROR_MAJOR = 10;
+    FATE_ERROR_MODERATE = 11;
+    // Some calculations had only minor errors with some warnings, with the
+    // exception of cation energies.
+    FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS = 14;
+    FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB = 15;
+    // Calculations were successful with only minor errors/warnings, with the
+    // exception of cation energies
+    FATE_SUCCESS_NEUTRAL_WARNING_LOW = 16;
     // Some calculations had only minor errors with some warnings.
-    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
-    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
+    FATE_SUCCESS_ALL_WARNING_SERIOUS = 12;
+    FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB = 13;
     // Calculations were successful with only minor errors/warnings
-    FATE_SUCCESS = 9;
+    FATE_SUCCESS_ALL_WARNING_LOW = 9;
   }
 
   // Errors captures information about how the computation on this molecule

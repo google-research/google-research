@@ -255,7 +255,7 @@ class IntegrationTest(absltest.TestCase):
       stats_lines = f.readlines()
       self.assertIn('errors.status,0,2\n', stats_lines)
       self.assertIn('errors.warn_t1,0,4\n', stats_lines)
-      self.assertIn('fate,FATE_SUCCESS,2\n', stats_lines)
+      self.assertIn('fate,FATE_SUCCESS_ALL_WARNING_LOW,2\n', stats_lines)
       self.assertIn('fate,FATE_DUPLICATE_DIFFERENT_TOPOLOGY,1\n', stats_lines)
       self.assertIn('num_initial_geometries,1,4\n', stats_lines)
       self.assertIn('num_duplicates,1,1\n', stats_lines)

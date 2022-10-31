@@ -1246,7 +1246,7 @@ class MoleculeErrorTest(absltest.TestCase):
   def test_stage1_error(self):
     molecule = get_stage1_molecule()
     molecule.properties.errors.error_frequencies = 123
-    self.assertEqual(5,
+    self.assertEqual(8,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_no_error(self):
@@ -1254,32 +1254,61 @@ class MoleculeErrorTest(absltest.TestCase):
     self.assertEqual(0,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
-  def test_stage2_error_status_5(self):
+  def test_stage2_error_status_8(self):
     molecule = get_stage2_molecule()
     molecule.properties.errors.status = 256
+    self.assertEqual(8,
+                     smu_utils_lib.molecule_calculation_error_level(molecule))
+
+  def test_stage2_error_status_7(self):
+    molecule = get_stage2_molecule()
+    molecule.properties.errors.status = 50
+    self.assertEqual(7,
+                     smu_utils_lib.molecule_calculation_error_level(molecule))
+
+  def test_stage2_error_status_6(self):
+    molecule = get_stage2_molecule()
+    molecule.properties.errors.status = 4
+    self.assertEqual(6,
+                     smu_utils_lib.molecule_calculation_error_level(molecule))
+
+  def test_stage2_error_level_5(self):
+    molecule = get_stage2_molecule()
+    molecule.properties.errors.status = 1
+    molecule.properties.errors.warn_t1_excess = 2
     self.assertEqual(5,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
-  def test_stage2_error_status_4(self):
+  def test_stage2_error_level_5(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 50
+    molecule.properties.errors.status = 1
+    molecule.properties.errors.warn_t1_excess = 2
+    self.assertEqual(5,
+                     smu_utils_lib.molecule_calculation_error_level(molecule))
+
+  def test_stage2_error_level_4(self):
+    molecule = get_stage2_molecule()
+    molecule.properties.errors.status = 1
+    molecule.properties.errors.warn_vib_linearity = 1
     self.assertEqual(4,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
-  def test_stage2_error_status_3(self):
+  def test_stage2_error_level_3(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 4
+    molecule.properties.errors.status = 2
     self.assertEqual(3,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_2(self):
     molecule = get_stage2_molecule()
+    molecule.properties.errors.status = 0
     molecule.properties.errors.warn_t1_excess = 2
     self.assertEqual(2,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_1(self):
     molecule = get_stage2_molecule()
+    molecule.properties.errors.status = 0
     molecule.properties.errors.warn_vib_linearity = 1
     self.assertEqual(1,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
@@ -1460,9 +1489,9 @@ class DetermineFateTest(parameterized.TestCase):
                      smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(
-      (2, dataset_pb2.Properties.FATE_GEOMETRY_OPTIMIZATION_PROBLEM),
-      (5, dataset_pb2.Properties.FATE_DISASSOCIATED),
-      (6, dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS))
+      (2, dataset_pb2.Properties.FATE_FAILURE_GEO_OPT),
+      (5, dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK),
+      (6, dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS))
   def test_geometry_failures(self, nstat1, expected_fate):
     molecule = get_stage1_molecule()
     molecule.properties.errors.error_nstat1 = nstat1
@@ -1472,7 +1501,7 @@ class DetermineFateTest(parameterized.TestCase):
   def test_no_result(self):
     molecule = get_stage1_molecule()
     smu_utils_lib.clean_up_error_codes(molecule)
-    self.assertEqual(dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS,
+    self.assertEqual(dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS,
                      smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(570, 580)
@@ -1480,35 +1509,56 @@ class DetermineFateTest(parameterized.TestCase):
     molecule = get_stage1_molecule()
     molecule.properties.errors.status = status
     smu_utils_lib.clean_up_error_codes(molecule)
-    self.assertEqual(dataset_pb2.Properties.FATE_DISCARDED_OTHER,
+    self.assertEqual(dataset_pb2.Properties.FATE_FAILURE_STAGE2,
                      smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(
-      (256, dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR),
-      (50, dataset_pb2.Properties.FATE_CALCULATION_WITH_MAJOR_ERROR),
-      (4, dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR))
+      (256, dataset_pb2.Properties.FATE_ERROR_SERIOUS),
+      (50, dataset_pb2.Properties.FATE_ERROR_MAJOR),
+      (4, dataset_pb2.Properties.FATE_ERROR_MODERATE))
   def test_calculation_errors(self, status, expected):
     molecule = get_stage2_molecule()
     molecule.properties.errors.status = status
     self.assertEqual(expected, smu_utils_lib.determine_fate(molecule))
 
-  def test_calculation_warnings_serious(self):
+  @parameterized.parameters(
+    (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS),
+    (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
+    (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
+    (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
+    )
+  def test_calculation_warnings_serious(self, status, expected):
     molecule = get_stage2_molecule()
+    molecule.properties.errors.status = status
     molecule.properties.errors.warn_t1_excess = 1234
     self.assertEqual(
-        dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS,
+        expected,
         smu_utils_lib.determine_fate(molecule))
 
-  def test_calculation_warnings_vibrational(self):
+  @parameterized.parameters(
+    (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB),
+    (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
+    (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
+    (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
+    )
+  def test_calculation_warnings_vibrational(self, status, expected):
     molecule = get_stage2_molecule()
+    molecule.properties.errors.status = status
     molecule.properties.errors.warn_vib_linearity = 1234
     self.assertEqual(
-        dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL,
+        expected,
         smu_utils_lib.determine_fate(molecule))
 
-  def test_success(self):
+  @parameterized.parameters(
+    (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW),
+    (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
+    (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
+    (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
+    )
+  def test_success(self, status, expected):
     molecule = get_stage2_molecule()
-    self.assertEqual(dataset_pb2.Properties.FATE_SUCCESS,
+    molecule.properties.errors.status = status
+    self.assertEqual(expected,
                      smu_utils_lib.determine_fate(molecule))
 
 
@@ -1548,7 +1598,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   def test_geometry_failed(self):
     self._molecule.properties.errors.fate = (
-        dataset_pb2.Properties.FATE_DISCARDED_OTHER)
+        dataset_pb2.Properties.FATE_FAILURE_STAGE2)
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
     self.assertLen(got, 1)
@@ -1556,7 +1606,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[0].count_failed_geometry_optimization, 1)
 
   def test_missing_calculation(self):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS
+    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
     self.assertLen(got, 1)
@@ -1574,7 +1624,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
   @parameterized.parameters(False, True)
   def test_calculation_with_error(self, swap_order):
     self._molecule.properties.errors.fate = (
-        dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR)
+        dataset_pb2.Properties.FATE_ERROR_SERIOUS)
     self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
     self._molecule.bond_topologies[-1].bond_topology_id = 123
     self._molecule.bond_topologies[-1].source = (
@@ -1619,7 +1669,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
   @parameterized.parameters(False, True)
   def test_calculation_with_warning(self, swap_order):
     self._molecule.properties.errors.fate = (
-        dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS)
+        dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS)
     self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
     self._molecule.bond_topologies[-1].bond_topology_id = 123
     self._molecule.bond_topologies[-1].source = (
@@ -1667,7 +1717,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def test_calculation_success_itc(self, swap_order):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS
+    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
     self._molecule.bond_topologies[-1].bond_topology_id = 123
     self._molecule.bond_topologies[-1].source = (
@@ -1712,7 +1762,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(one_out.count_calculation_with_error, 0)
 
   def test_success_varied_sources(self):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS
+    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
     self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
     self._molecule.bond_topologies[0].bond_topology_id = 123
@@ -1761,7 +1811,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(one_out.count_calculation_success, 0)
 
   def test_no_starting_topology(self):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS
+    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
     self._molecule.bond_topologies[-1].bond_topology_id = 123
     self._molecule.bond_topologies[-1].source = (
@@ -1783,7 +1833,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   @parameterized.parameters(0, 1, 2)
   def test_multiple_detection(self, starting_idx):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS
+    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     # Even with 3 detections, we only want to output one multiple detection
     # record.
     self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])

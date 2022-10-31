@@ -1263,45 +1263,6 @@ class CleanTextWriter:
       yield atom_idx, [(20, f'{atom_idx+1:2d}'),
                        (23, smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom][0])]
 
-  def _fate_string(self, molecule):
-    # Probably a temporary hack. I'm adjusting our fate outputs to match what this format
-    # expects rather than changin the fate values quite yet because that seems up in the air.
-    fate = molecule.properties.errors.fate
-    status = molecule.properties.errors.status
-
-    if fate == dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY:
-      return 'DUPLICATE_SAME_TOPOLOGY'
-    elif fate == dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY:
-      return 'DUPLICATE_DIFFERENT_TOPOLOGY'
-    elif fate == dataset_pb2.Properties.FATE_GEOMETRY_OPTIMIZATION_PROBLEM:
-      return 'FAILURE_GEO_OPT'
-    elif fate == dataset_pb2.Properties.FATE_DISASSOCIATED:
-      return 'FAILURE_TOPOLOGY_CHECK'
-    elif fate == dataset_pb2.Properties.FATE_DISCARDED_OTHER:
-      return 'FAILURE_STAGE2'
-    elif fate == dataset_pb2.Properties.FATE_NO_CALCULATION_RESULTS:
-      return 'FAILURE_NO_RESULTS'
-    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_SERIOUS_ERROR:
-      return 'ERROR_SERIOUS'
-    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MAJOR_ERROR:
-      return 'ERROR_MAJOR'
-    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_MODERATE_ERROR:
-      return 'ERROR_MODERATE'
-    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_SERIOUS:
-      if status > 0:
-        return 'SUCCESS_NEUTRAL_WARNING_SERIOUS'
-      return 'SUCCESS_ALL_WARNING_SERIOUS'
-    elif fate == dataset_pb2.Properties.FATE_CALCULATION_WITH_WARNING_VIBRATIONAL:
-      if status > 0:
-        return 'SUCCESS_NEUTRAL_WARNING_VIBRATIONAL'
-      return 'SUCCESS_ALL_WARNING_VIBRATIONAL'
-    elif fate == dataset_pb2.Properties.FATE_SUCCESS:
-      if status > 0:
-        return 'SUCCESS_NEUTRAL'
-      return 'SUCCESS_ALL'
-    else:
-      raise ValueError(f'Unhandled fate {fate}')
-
 
   def get_mol_id_block(self, molecule, long_name):
     out = []
@@ -1365,33 +1326,41 @@ class CleanTextWriter:
     out = []
     if not molecule.properties.HasField('errors'):
       return out
+    errors = molecule.properties.errors
     out.append('#\n')
     out.append('#calc      \n')
     base_vals = [(1, 'calc'), (84, long_name)]
     out.append(self._fw_line(base_vals +
                              [(17, 'status'),
-                              (31, f'{molecule.properties.errors.status:3d}'),
+                              (31, f'{errors.status:3d}'),
                               ]))
-    error_level = smu_utils_lib.molecule_calculation_error_level(molecule)
-    if (molecule.properties.errors.status < 0 or
-        molecule.properties.errors.status > 4):
-      out.append(self._fw_line(base_vals +
-                               [(17, 'warn_level'),
-                                (31, '  -'),
-                                ]))
-    elif error_level <= 2:
-      out.append(self._fw_line(base_vals +
-                               [(17, 'warn_level'),
-                                (31, '  ' + 'ABC'[error_level]),
-                                ]))
+    if (errors.fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS
+        or errors.fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS):
+      warn_level = 'C'
+    elif (errors.fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB
+          or errors.fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
+      warn_level = 'B'
+    elif (errors.fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW
+          or errors.fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW):
+      warn_level = 'A'
+    else:
+      warn_level = '-'
+
     out.append(self._fw_line(base_vals +
-                             [(17, 'fate'),
-                              (31, self._fate_string(molecule)),
+                             [(17, 'warn_level'),
+                              (33, warn_level),
                               ]))
+    # HACK: Recomputing fate until we update the DB
+    fate = smu_utils_lib.determine_fate(molecule)
+    out.append(self._fw_line(
+      base_vals +
+      [(17, 'fate'),
+       (31, dataset_pb2.Properties.FateCategory.Name(fate)[5:]),
+       ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'database'),
                               (31, 'standard'
-                               if molecule.properties.errors.which_database == dataset_pb2.STANDARD
+                               if errors.which_database == dataset_pb2.STANDARD
                                else 'complete'),
                               ]))
 
@@ -1420,22 +1389,22 @@ class CleanTextWriter:
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'warn 1'),
-                              (31, str(molecule.properties.errors.warn_t1)),
-                              (44, str(molecule.properties.errors.warn_t1_excess)),
-                              (57, str(molecule.properties.errors.warn_bse_b5_b6)),
-                              (70, str(molecule.properties.errors.warn_bse_cccsd_b5)),
+                              (31, str(errors.warn_t1)),
+                              (44, str(errors.warn_t1_excess)),
+                              (57, str(errors.warn_bse_b5_b6)),
+                              (70, str(errors.warn_bse_cccsd_b5)),
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'warn 2'),
-                              (31, str(molecule.properties.errors.warn_exc_lowest_excitation)),
-                              (44, str(molecule.properties.errors.warn_exc_smallest_oscillator)),
-                              (57, str(molecule.properties.errors.warn_exc_largest_oscillator)),
+                              (31, str(errors.warn_exc_lowest_excitation)),
+                              (44, str(errors.warn_exc_smallest_oscillator)),
+                              (57, str(errors.warn_exc_largest_oscillator)),
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'warn 3'),
-                              (31, str(molecule.properties.errors.warn_vib_linearity)),
-                              (44, str(molecule.properties.errors.warn_vib_imaginary)),
-                              (57, str(molecule.properties.errors.warn_num_neg)),
+                              (31, str(errors.warn_vib_linearity)),
+                              (44, str(errors.warn_vib_imaginary)),
+                              (57, str(errors.warn_num_neg)),
                               ]))
 
 
