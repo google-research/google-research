@@ -1862,7 +1862,9 @@ def molecule_to_bond_topology_summaries(molecule):
         yield other_summary
 
   elif (
+      fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS or
       fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS or
+      fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB or
       fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
@@ -1878,7 +1880,8 @@ def molecule_to_bond_topology_summaries(molecule):
         setattr(other_summary, field, 1)
         yield other_summary
 
-  elif fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW:
+  elif (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW or
+        fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW):
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
     for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
