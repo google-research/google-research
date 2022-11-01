@@ -119,6 +119,19 @@ def random_statement(program_state,
   return dsl.Statement(variable, random_op, args)
 
 
+def is_redundant(states):
+  """Checks if the last result equals the same previous result for all examples."""
+  common = set(range(len(states[0]) - 1))
+  for program_state in states:
+    latest_result = program_state.get_output()
+    common_i = [i for i in range(len(program_state) - 1)
+                if program_state.get_index(i) == latest_result]
+    common = common.intersection(common_i)
+    if not common:
+      return False
+  return bool(common)
+
+
 def random_program(
     example_inputs,
     num_statements,
@@ -153,11 +166,14 @@ def random_program(
                       else dsl.FIRST_ORDER_OPERATIONS)
 
     # Sample a statement that executes successfully for all examples.
-    next_states = [None] * len(states)
-    while not all(next_states):
+    while True:
       statement = random_statement(states[0], is_train, experiment=experiment,
                                    operations=operations, lambdas=lambdas)
       next_states = [statement.run(state) for state in states]
+      if not all(next_states):
+        continue
+      elif not is_redundant(next_states):
+        break
     statements.append(statement)
     states = next_states
 

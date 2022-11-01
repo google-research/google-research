@@ -116,7 +116,7 @@ class DeepcoderDslTest(parameterized.TestCase):
     self.assertEqual(state_copy.get_output_variable(), 'x1')
 
   def test_program_state_from_str(self):
-    state_str = 'x3 = 2 | x5 = [6, 7]'
+    state_str = 'x3 = 2 | x5 = [6 7]'
     state = dsl.ProgramState.from_str(state_str)
     # str(state) has different whitespace than state_str.
     self.assertEqual(str(state), 'x3 = 2 | x5 = [ 6 7 ]')

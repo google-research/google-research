@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for deepcoder_dsl."""
+"""Tests for sample_random."""
 
 from absl import flags
+from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
-
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
 from latent_programmer.tasks.deepcoder import experiment as exp_module
@@ -77,6 +77,21 @@ class DatasetTest(parameterized.TestCase):
     self.assertEqual(sample_random.is_valid_operation(op, var_dict), expected)
 
   @parameterized.parameters(
+      (['x3 = 2 | x4 = [ 6 7 ] | x5 = [ 6 7 ]',
+        'x3 = 1 | x4 = [ 5 6 ] | x5 = [ 5 6 ]'], True),
+      (['x3 = 2 | x4 = [ 6 7 ] | x5 = [ 6 7 ]',
+        'x3 = [ 5 7 ] | x4 = [ 5 7 ] | x5 = [ 5 7 ]'], True),
+      (['x3 = 2 | x4 = [ 6 7 ] | x5 = [ 6 7 ]',
+        'x3 = [ 5 6 ] | x4 = 1 | x5 = [ 5 6 ]'], False),
+      (['x3 = 2 | x4 = [ 6 7 ] | x5 = [ 6 7 ]',
+        'x3 = 1 | x4 = [ 5 6 ] | x5 = [ 6 7 ]'], False),
+  )
+  def test_is_redundant(self, states, expected):
+    program_states = [deepcoder_dsl.ProgramState.from_str(state)
+                      for state in states]
+    self.assertEqual(sample_random.is_redundant(program_states), expected)
+
+  @parameterized.parameters(
       ([[[1, 2, 3], 2], [[4, 5, 6], 2]], 1, exp_module.Experiment.NONE),
       ([[10, [1, 10, 100]]], 2, exp_module.Experiment.SWITCH_CONCEPT_ORDER),
       ([[[1, 2, 3], [1, 10]], [[1, 2], [3, 4]]], 1,
@@ -94,3 +109,7 @@ class DatasetTest(parameterized.TestCase):
         self.assertLen(random_program, num_statements)
         for inputs in example_inputs:
           self.assertIsNotNone(random_program.run(inputs))
+
+
+if __name__ == '__main__':
+  absltest.main()

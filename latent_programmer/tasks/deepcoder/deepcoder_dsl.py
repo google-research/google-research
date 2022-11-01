@@ -274,6 +274,9 @@ class ProgramState(object):
       variable = lhs
       if variable in variables:
         raise ParseError(f'Found duplicate variable: {variable}')
+      # If we find spaces surrounded by digits, place a comma there. This
+      # converts comma-less "[ 6 7 8 ]" into something parseable, "[ 6, 7, 8 ]".
+      rhs = re.sub(r'(?<=\d) +(?=\d)', ', ', rhs)
       result = ast.literal_eval(rhs)
       if not validate_result(result):
         raise ParseError(f'Found invalid result: {result}')
