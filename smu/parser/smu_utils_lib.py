@@ -1133,10 +1133,27 @@ def _molecule_source(mol):
       raise ValueError(
           'Unknown molecule source, no properties or duplicates: ' + str(mol))
     return _MoleculeSource.DUPLICATE
-  # Kind of a dumb hack, but the easiest thing to look for to distinguish stage1
-  # and stage 2 is that stage 1 only has timings for two computation steps.
+  # We want this function to work for both internal pipeline and to be able to
+  # call this with our final completed records. Unfortunatley, it's a little hacky
+  # to tell the difference cleanly.
+
+  # calculation_statistics is an internal only field, but it's it's present and
+  # and has the right size (stage1 only has 2 computation steps),
+  # it's got to be a stage 1 file.
   if len(mol.properties.calculation_statistics) == 2:
     return _MoleculeSource.STAGE1
+  # If we are looking at a standard record from the end of the pipeline,
+  # it won't have the errors field at all.
+  if not mol.properties.HasField('errors'):
+    return _MoleculeSource.STAGE2
+
+  # If we have a complete record at the end of the pipeline, status will have a value.
+  # Now you may note that we can't tell the difference between a missing status value
+  # and a value of 0, but we lucked out that status 0 is always stage 2.
+  if len(mol.properties.calculation_statistics) == 0 and (
+      mol.properties.errors.status < 0 or mol.properties.errors.status >= 512):
+    return _MoleculeSource.STAGE1
+
   return _MoleculeSource.STAGE2
 
 

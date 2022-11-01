@@ -1561,6 +1561,56 @@ class DetermineFateTest(parameterized.TestCase):
     self.assertEqual(expected,
                      smu_utils_lib.determine_fate(molecule))
 
+  def test_completed_molecule(self):
+    molecule = get_stage2_molecule()
+    smu_utils_lib.filter_molecule_by_availability(
+      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+    self.assertEqual(dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW,
+                     smu_utils_lib.determine_fate(molecule))
+
+  def test_completed_standard(self):
+    molecule = get_stage2_molecule()
+    smu_utils_lib.filter_molecule_by_availability(
+      molecule, [dataset_pb2.STANDARD])
+    # This is a weird test. This function really just does not do anything
+    # for a standard record because we've filtered out all the status/error
+    # variables we woudl need to do it. But it's here to make sure nothing
+    # explodes and we default to the best version.
+    self.assertEqual(dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW,
+                     smu_utils_lib.determine_fate(molecule))
+
+  def test_completed_duplicate_same(self):
+    molecule = get_stage2_molecule()
+    smu_utils_lib.filter_molecule_by_availability(
+      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+    molecule.duplicated_by = 618451999
+    molecule.properties.errors.status = -1
+    self.assertEqual(dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY,
+                     smu_utils_lib.determine_fate(molecule))
+
+  def test_completed_duplicate_different(self):
+    molecule = get_stage2_molecule()
+    smu_utils_lib.filter_molecule_by_availability(
+      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+    molecule.duplicated_by = 12345999
+    molecule.properties.errors.status = -1
+    self.assertEqual(dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY,
+                     smu_utils_lib.determine_fate(molecule))
+
+  @parameterized.parameters(
+    (570, dataset_pb2.Properties.FATE_FAILURE_STAGE2),
+    (580, dataset_pb2.Properties.FATE_FAILURE_STAGE2),
+    (590, dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK),
+    (600, dataset_pb2.Properties.FATE_FAILURE_GEO_OPT),
+  )
+  def test_completed_stage1_error(self, status, expected):
+    molecule = get_stage2_molecule()
+    smu_utils_lib.filter_molecule_by_availability(
+      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+    molecule.properties.errors.status = status
+    self.assertEqual(expected,
+                     smu_utils_lib.determine_fate(molecule))
+
 
 class ToBondTopologySummaryTest(parameterized.TestCase):
 

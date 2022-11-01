@@ -1334,14 +1334,16 @@ class CleanTextWriter:
                              [(17, 'status'),
                               (31, f'{errors.status:3d}'),
                               ]))
-    if (errors.fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS
-        or errors.fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS):
+    # HACK: remove this once I update the DB. Again.
+    fate = smu_utils_lib.determine_fate(molecule)
+    if (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS
+        or fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS):
       warn_level = 'C'
-    elif (errors.fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB
-          or errors.fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
+    elif (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB
+          or fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
       warn_level = 'B'
-    elif (errors.fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW
-          or errors.fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW):
+    elif (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW
+          or fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW):
       warn_level = 'A'
     else:
       warn_level = '-'
@@ -1350,8 +1352,6 @@ class CleanTextWriter:
                              [(17, 'warn_level'),
                               (33, warn_level),
                               ]))
-    # HACK: Recomputing fate until we update the DB
-    fate = smu_utils_lib.determine_fate(molecule)
     out.append(self._fw_line(
       base_vals +
       [(17, 'fate'),
@@ -1438,9 +1438,7 @@ class CleanTextWriter:
 
   def get_bond_topologies_block(self, molecule, long_name):
     out = []
-    # HACK: Need to remove the sorting once DB is fixed
-    for bt_idx, bt in enumerate(sorted(molecule.bond_topologies,
-                                       key=smu_utils_lib.bond_topology_sorting_key)):
+    for bt_idx, bt in enumerate(molecule.bond_topologies):
       base_vals = [(1, 'bond_topo'),
                    (11, f'{bt_idx+1:2d}')]
 
