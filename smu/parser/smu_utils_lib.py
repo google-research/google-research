@@ -1422,7 +1422,6 @@ def molecule_calculation_error_level(molecule):
   elif errors.status >= 4:
     return 6
 
-  warn_offset = 0
   # This is warning level 'C' from Bazel documentation.
   if (errors.warn_t1 > 1 or errors.warn_t1_excess > 1 or
       errors.warn_bse_b5_b6 > 1 or errors.warn_bse_cccsd_b5 > 1 or
@@ -1430,10 +1429,11 @@ def molecule_calculation_error_level(molecule):
       errors.warn_exc_smallest_oscillator > 0 or
       errors.warn_exc_largest_oscillator > 0):
     warn_offset = 2
-
   # This is warning level 'B" from Bazel documentation.
-  if (errors.warn_vib_linearity > 0 or errors.warn_vib_imaginary > 1):
+  elif (errors.warn_vib_linearity > 0 or errors.warn_vib_imaginary > 1):
     warn_offset = 1
+  else:
+    warn_offset = 0
 
   if errors.status == 0:
     return warn_offset

@@ -1561,6 +1561,15 @@ class DetermineFateTest(parameterized.TestCase):
     self.assertEqual(expected,
                      smu_utils_lib.determine_fate(molecule))
 
+  def test_multiple_warnings(self):
+    # Checks that when we have both serious and medium warnings, serious wins
+    molecule = get_stage2_molecule()
+    molecule.properties.errors.status = 1
+    molecule.properties.errors.warn_t1_excess = 1234
+    molecule.properties.errors.warn_vib_linearity = 1234
+    self.assertEqual(dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS,
+                     smu_utils_lib.determine_fate(molecule))
+
   def test_completed_molecule(self):
     molecule = get_stage2_molecule()
     smu_utils_lib.filter_molecule_by_availability(

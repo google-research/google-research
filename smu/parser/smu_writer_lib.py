@@ -1506,27 +1506,26 @@ class CleanTextWriter:
            self._align_dec_point(61, f'{geom.atom_positions[atom_idx].z:.6f}'),
            ]))
 
-      out.append('#\n')
-      out.append(self._fw_line([(0, '#'),
-                                (1, prefix),
-                                (84, units_comment),
-                                ]))
+      second_block = []
       base_vals = [(1, prefix), (84, long_name)]
       if geom.HasField('energy'):
-        out.append(self._fw_line(base_vals +
-                                 [(9, 'energy'),
-                                  self._align_dec_point(49, f'{geom.energy.value:.6f}'),
-                                  ]))
+        second_block.append(self._fw_line(
+          base_vals +
+          [(9, 'energy'),
+           self._align_dec_point(49, f'{geom.energy.value:.6f}'),
+           ]))
       if geom.HasField('gnorm'):
-        out.append(self._fw_line(base_vals +
-                                 [(9, 'gnorm'),
-                                  self._align_dec_point(49, f'{geom.gnorm.value:.6f}'),
-                                  ]))
+        second_block.append(
+          self._fw_line(base_vals +
+                        [(9, 'gnorm'),
+                         self._align_dec_point(49, f'{geom.gnorm.value:.6f}'),
+                         ]))
       if geom.HasField('enuc'):
-        out.append(self._fw_line(base_vals +
-                                 [(9, 'enuc'),
-                                  self._align_dec_point(49, f'{geom.enuc.value:.4f}'),
-                                  ]))
+        second_block.append(
+          self._fw_line(base_vals +
+                        [(9, 'enuc'),
+                         self._align_dec_point(49, f'{geom.enuc.value:.4f}'),
+                         ]))
       if geom.HasField('rotcon'):
         for idx, val in enumerate(geom.rotcon.value):
           if val < 10_000:
@@ -1537,11 +1536,19 @@ class CleanTextWriter:
             val_str = f'{val:.1f}'
           else:
             val_str = f'{val:.0f}' + '.'
-          out.append(self._fw_line(base_vals +
-                                   [(9, 'brot'),
-                                    (21, str(idx + 1)),
-                                    self._align_dec_point(49, val_str),
+          second_block.append(
+            self._fw_line(base_vals +
+                          [(9, 'brot'),
+                           (21, str(idx + 1)),
+                           self._align_dec_point(49, val_str),
+                           ]))
+      if second_block:
+        out.append('#\n')
+        out.append(self._fw_line([(0, '#'),
+                                  (1, prefix),
+                                  (84, units_comment),
                                   ]))
+        out.extend(second_block)
 
 
     write_geometry('ini_geo', '(au)', molecule.initial_geometries[0])
@@ -1716,9 +1723,7 @@ class CleanTextWriter:
                                 (84, long_name),
                                 ]))
 
-    #HACK! Working around a bug in the comparison files where wf_diag is not included
-    #if out:
-    if len(out) > 1:
+    if out:
       return ['#\n', '#wf_diag   \n'] + out
     else:
       return []
