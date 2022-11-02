@@ -120,7 +120,10 @@
   border: 1px solid black;
   border-collapse: collapse;
   table-layout: fixed;
-  max-width: 300ch;
+}
+.anthea-document-text-table p {
+  max-width: 100ch;
+  overflow-wrap: anywhere;
 }
 .anthea-document-text-table > tr,
 .anthea-document-text-table > tr > td {

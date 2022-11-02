@@ -319,6 +319,17 @@ class AntheaManager {
   }
 
   /**
+   * Sets the eval metadata. A no-op here as all the data is already stored
+   * in the Anthea project data, but other AntheaManager classes may need to
+   * save this metadata separately.
+   *
+   * @param {!Object} metadata The metadata object that includes details
+   *    such as template name, error categories and severities. etc.
+   */
+  setMetadata(metadata) {
+  }
+
+  /**
    * Create a new active project:template with the data in projectFilePath. The
    * project will be named by the basename of the file.
    *
@@ -654,8 +665,8 @@ class AntheaManager {
     this.antheaBellQuote_.style.display = 'none';
     this.eval_ = new AntheaEval(this, true /* readOnly */);
     this.eval_.setUpEvalWithConfig(
-        this.evalDiv_, evalData.template, evalData.parsedDocSys,
-        evalData.results);
+        this.evalDiv_, evalData.templateName, evalData.template,
+        evalData.parsedDocSys, evalData.results);
     this.log(this.INFO, 'Viewing evaluation for ' + evalData.projectName +
              ' with template ' + evalData.templateName + ' done by ' +
              evalData.raterId);
@@ -786,33 +797,6 @@ class AntheaManager {
   }
 
   /**
-   * Return non-zero if e is an actual MQM error (as opposed to neutral etc.)
-   * @param {!Object} e the error object.
-   * @return {number}
-   */
-  mqmErrorGrade(e) {
-    let grade = 1;
-    const lsev = e['severity'].toLowerCase().replaceAll('-', '_');
-    const lcat = e['type'].toLowerCase().replaceAll('-', '_');
-    if (lsev.startsWith('non_translation') ||
-        lcat.startsWith('non_translation')) {
-      grade = 250;
-    } else if (lsev == 'critical') {
-      grade = 200;
-    } else if (lsev == 'major') {
-      grade = 50;
-    } else if (lsev == 'minor') {
-      grade = 10;
-    } else if (lsev == 'trivial') {
-      grade = 1;
-    } else if (lsev == 'no_error' || lsev == 'unrateable' ||
-               lsev == 'neutral' || lsev == 'hotw_test') {
-      grade = 0;
-    }
-    return grade;
-  }
-
-  /**
    * Return TSV-formatted MQM data from the parsed evaluation data.
    * @param {!Object} parsedData The parsed evaluation data.
    * @return {string}
@@ -820,6 +804,7 @@ class AntheaManager {
   getMQMData(parsedData) {
     let mqmData = '';
     let resultIndex = 0;
+    let evalMetadataAdded = false;
     for (let docsys of parsedData.parsedDocSys) {
       let segIndex = 0;
       for (let l = 0; l < docsys.srcSegments.length; l++) {
@@ -840,14 +825,14 @@ class AntheaManager {
           continue;
         }
         const errors = segResult.errors.slice();
-        let noError = true;
+        let needNoError = true;
         for (let e of errors) {
-          if (this.mqmErrorGrade(e) > 0) {
-            noError = false;
+          if (e.severity && e.severity != 'HOTW-test') {
+            needNoError = false;
             break;
           }
         }
-        if (noError) {
+        if (needNoError) {
           errors.push({
             'severity': 'No-error',
             'type': 'No-error',
@@ -907,6 +892,34 @@ class AntheaManager {
               } catch (err) {
                 console.log('Ignoring json-parsing error: ' + err);
               }
+            }
+            if (!evalMetadataAdded) {
+              error.metadata.evaluation = {
+                template: parsedData.templateName,
+                config: JSON.parse(JSON.stringify(parsedData.template)),
+              };
+              /**
+               * Remove bulky properties from config.
+               */
+              const config = error.metadata.evaluation.config;
+              delete config.instructions;
+              if (config.errors) {
+                for (let cat in config.errors) {
+                  const catData = config.errors[cat];
+                  delete catData.description;
+                  if (catData.subtypes) {
+                    for (let subcat in catData.subtypes) {
+                      delete catData.subtypes[subcat].description;
+                    }
+                  }
+                }
+              }
+              if (config.severities) {
+                for (let sev in config.severities) {
+                  delete config.severities[sev].description;
+                }
+              }
+              evalMetadataAdded = true;
             }
             isFirst = false;
           }

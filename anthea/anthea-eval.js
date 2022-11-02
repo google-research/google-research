@@ -356,6 +356,9 @@ class AntheaEval {
     /** @private {?Element} */
     this.displayedProgress_ = null;
 
+    /** @const @private {!Object} Dict of severity/category/sqm-value buttons */
+    this.buttons_ = {};
+
     /** {!Array<!Object>} */
     this.keydownListeners = [];
 
@@ -582,8 +585,9 @@ class AntheaEval {
         const selected = evalResult.hasOwnProperty('sqm') ?
             evalResult.sqm : Infinity;
         for (let ratingInfo of this.config.sqm) {
-          ratingInfo.button.style.color = (selected == ratingInfo.value) ?
-            'blue' : 'black';
+          const button = this.buttons_[ratingInfo.value];
+          button.style.color = (selected == ratingInfo.value) ?
+              'blue' : 'black';
         }
       }
       this.noteTiming('visited-or-redrawn');
@@ -729,6 +733,19 @@ displayError(errors, index) {
   }
 
   /**
+   * Returns a distinctive key in this.buttons_[] for the button corresponding
+   * to this error type and subtype.
+   * @param {string} type
+   * @param {string=} subtype
+   * @return {string}
+   */
+  errorButtonKey(type, subtype='') {
+    let key = 'error:' + type;
+    if (subtype) key += '/' + subtype;
+    return key;
+  }
+
+  /**
    * Sets the disabled/display state of all evaluation buttons appropriately.
    *    This is a critical function, as it determines, based upon the current
    *    state, which UI controls/buttons get shown and enabled.
@@ -744,8 +761,7 @@ displayError(errors, index) {
         disableMarking || (this.config.MARK_SPAN_FIRST && !this.markedPhrase_);
     const disableSeverity = disableSevErr || this.severity_;
     for (let s in this.config.severities) {
-      const severity = this.config.severities[s];
-      severity.button.disabled = disableSeverity;
+      this.buttons_[s].disabled = disableSeverity;
     }
 
     const disableErrors = disableSevErr || this.errorType_ ||
@@ -753,33 +769,35 @@ displayError(errors, index) {
     const location = this.markedPhrase_ ? this.markedPhrase_.location : '';
     for (let type in this.config.errors) {
       const errorInfo = this.config.errors[type];
-      errorInfo.button.disabled = disableErrors;
+      const errorButton = this.buttons_[this.errorButtonKey(type)];
+      errorButton.disabled = disableErrors;
       if (!disableErrors) {
         if (errorInfo.source_side_only && location && location != 'source') {
-          errorInfo.button.disabled = true;
+          errorButton.disabled = true;
         }
         if (!errorInfo.source_side_ok && location && location == 'source') {
-          errorInfo.button.disabled = true;
+          errorButton.disabled = true;
         }
         if (errorInfo.override_all_errors &&
             this.severityId_ && this.severityId_ != 'major') {
-          errorInfo.button.disabled = true;
+          errorButton.disabled = true;
         }
         if (errorInfo.forced_severity && this.severityId_ &&
             this.severityId_ != errorInfo.forced_severity) {
-          errorInfo.button.disabled = true;
+          errorButton.disabled = true;
         }
       }
       for (let subtype in errorInfo.subtypes) {
         const subtypeInfo = errorInfo.subtypes[subtype];
-        subtypeInfo.button.disabled = disableErrors;
+        const subtypeButton = this.buttons_[this.errorButtonKey(type, subtype)];
+        subtypeButton.disabled = disableErrors;
         if (!disableErrors) {
           if (subtypeInfo.source_side_only &&
               location && location != 'source') {
-            subtypeInfo.button.disabled = true;
+            subtypeButton.disabled = true;
           }
           if (!subtypeInfo.source_side_ok && location && location == 'source') {
-            subtypeInfo.button.disabled = true;
+            subtypeButton.disabled = true;
           }
         }
       }
@@ -1126,7 +1144,7 @@ displayError(errors, index) {
       } else {
         ratingButton.classList.add('anthea-rating-button-disabled');
       }
-      ratingInfo.button = ratingButton;
+      this.buttons_[ratingInfo.value] = ratingButton;
     }
   }
 
@@ -1197,7 +1215,7 @@ displayError(errors, index) {
             e.preventDefault();
             this.setMQMType(type, subtype);
           });
-          subtypeInfo.button = subtypeButton;
+          this.buttons_[this.errorButtonKey(type, subtype)] = subtypeButton;
           if (!subtypeInfo.hidden) {
             // We add the button to the DOM only if not hidden.
             subtypes.appendChild(googdom.createDom(
@@ -1224,7 +1242,7 @@ displayError(errors, index) {
         });
       }
       errorButton.disabled = true;
-      errorInfo.button = errorButton;
+      this.buttons_[this.errorButtonKey(type)] = errorButton;
     }
   }
 
@@ -1371,10 +1389,10 @@ displayError(errors, index) {
    * @param {string} severityId
    */
   handleSeverityClick(severityId) {
-    const severity = this.config.severities[severityId];
-    if (severity.button.disabled) {
+    if (this.buttons_[severityId].disabled) {
       return;
     }
+    const severity = this.config.severities[severityId];
     this.noteTiming('chose-severity-' + severityId);
     if (severity.full_span_error) {
       // Just mark the full-span error directly.
@@ -1846,7 +1864,7 @@ displayError(errors, index) {
         const action = severity.action || severity.display;
         const buttonText =
             action + (severity.shortcut ? ' [' + severity.shortcut + ']' : '');
-        severity.button = googdom.createDom(
+        const severityButton = googdom.createDom(
             'button', {
               class: 'anthea-stretchy-button anthea-eval-panel-tall',
               style: 'background-color:' + severity.color,
@@ -1863,11 +1881,12 @@ displayError(errors, index) {
           this.keydownListeners.push(listener);
           document.addEventListener('keydown', listener);
         }
-        severity.button.addEventListener('click', listener);
+        severityButton.addEventListener('click', listener);
         if (!severity.hidden) {
           buttonsRow.appendChild(googdom.createDom(
-              'td', 'anthea-eval-panel-cell', severity.button));
+              'td', 'anthea-eval-panel-cell', severityButton));
         }
+        this.buttons_[s] = severityButton;
       }
     } else {
       // SQM.
@@ -2188,7 +2207,7 @@ displayError(errors, index) {
   setUpEval(evalDiv, templateName, projectData, projectResults, hotwPercent=0) {
     if (antheaTemplates[templateName]) {
       this.setUpEvalWithConfig(
-          evalDiv, antheaTemplates[templateName], projectData,
+          evalDiv, templateName, antheaTemplates[templateName], projectData,
           projectResults, hotwPercent);
       return;
     }
@@ -2211,6 +2230,7 @@ displayError(errors, index) {
    *     been loaded.
    *
    * @param {!Element} evalDiv The DIV in which to create the eval.
+   * @param {string} templateName The template name.
    * @param {!Object} config The template configuration object.
    * @param {!Array<!Object>} projectData Project data, including src/tgt
    *     sentences. The array also may have srcLang/tgtLang properties.
@@ -2218,7 +2238,7 @@ displayError(errors, index) {
    * @param {number} hotwPercent Percent rate for HOTW testing.
    */
   setUpEvalWithConfig(
-      evalDiv, config, projectData, projectResults, hotwPercent) {
+      evalDiv, templateName, config, projectData, projectResults, hotwPercent) {
     evalDiv.innerHTML = '';
 
     const instructionsPanel = googdom.createDom('div',
@@ -2382,6 +2402,18 @@ displayError(errors, index) {
     this.currSegment = 0;
     this.createUIFromConfig(config, projectResults,
                             instructionsPanel, controlPanel);
+    const metadata = {
+      template: templateName,
+      config: config,
+      hotw_percent: hotwPercent,
+    };
+    if (projectData.srcLang) {
+      metadata.source_language = projectData.srcLang;
+    }
+    if (projectData.tgtLang) {
+      metadata.target_language = projectData.tgtLang;
+    }
+    this.manager_.setMetadata(metadata);
 
     // Extract page contexts if the config expects them.
     if (config.USE_PAGE_CONTEXT) {

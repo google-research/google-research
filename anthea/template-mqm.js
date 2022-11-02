@@ -20,7 +20,7 @@
 antheaTemplates['MQM'] = {
   severities: {
     major: {
-      display: 'Major everity',
+      display: 'Major severity',
       shortcut: 'M',
       color: 'pink',
       description: 'Major severity errors are those that may mislead or ' +

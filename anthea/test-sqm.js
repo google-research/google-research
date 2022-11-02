@@ -14,7 +14,7 @@
 
 /**
  * To run this test, visit the URL:
- *     http://.../anthea.html?test=test-mqm.js
+ *     http://.../anthea.html?test=test-sqm.js
  * and then click around through the rating process.
  */
 const testProjectTSVData = `{"source-language":"en","target-language":"en"}
@@ -31,8 +31,8 @@ The 2nd sentence in the second document​.	The translation of the doosra senten
 The third and final document​.	The translation​, of the opening sentence in the third document​.	doc-1531	system-DL
 The last line​. The last word​. Waiting for whom​?	Given the existence as uttered forth in the public works of Puncher and Wattmann of a personal God quaquaquaqua with white beard quaquaquaqua outside time without extension who from the heights of divine apathia divine athambia divine aphasia loves us dearly with some exceptions for reasons unknown but time will tell and suffers like the divine Miranda with those who for reasons unknown .​.​.	doc-1531	system-DL
       `;
-const testProjectName = 'Google-MQM-Test-Dev-Only-42';
-const testTemplateName = 'MQM';
+const testProjectName = 'Google-SQM-Test-Dev-Only-42';
+const testTemplateName = 'SQM';
 const activeName = antheaManager.activeName(testProjectName, testTemplateName);
 try {
   const activeDataKey = antheaManager.ACTIVE_KEY_PREFIX_ + activeName;
@@ -44,5 +44,4 @@ try {
   console.log('Caught exception (harmless if for "no such item": ' + err);
 }
 antheaManager.createActive(
-    testTemplateName, testProjectName, testProjectTSVData,
-    50 /* High HOTW rate, for testing */);
+    testTemplateName, testProjectName, testProjectTSVData, 0);
