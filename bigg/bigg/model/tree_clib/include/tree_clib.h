@@ -37,6 +37,14 @@ extern "C" int SetRowEmbedIds(int lr, int level, void* _bot_from,
 
 extern "C" int MaxTreeDepth();
 
+extern "C" int NumBaseNodes();
+
+extern "C" int NumBaseEdges();
+
+extern "C" int NumEdgesAtLevel(int depth);
+
+extern "C" int NumTrivialNodes(int lr);
+
 extern "C" int NumBottomDep(int depth, int lr);
 
 extern "C" int NumPrevDep(int depth, int lr);
@@ -65,6 +73,16 @@ extern "C" int SetRowSumLast(void* _last_idx);
 extern "C" int HasChild(void* _has_child);
 
 extern "C" int NumCurNodes(int depth);
+
+extern "C" int GetTrivialNodes(int lr, void* _tree_trivial);
+
+extern "C" int TreeTrivial(void* _tree_trivial);
+
+extern "C" int GetIsEdgeRch(int depth, void* _edge_is_rch);
+
+extern "C" int GetEdgesOfLevel(int depth, void* _edge_indices);
+
+extern "C" int GetBaseNodeEdge(void* _base_nodes, void* _base_edges);
 
 extern "C" int GetInternalMask(int depth, void* _internal_mask);
 

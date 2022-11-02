@@ -53,6 +53,10 @@ class _tree_lib(object):
         self.lib.AddGraph.restype = ctypes.c_int
         self.lib.TotalTreeNodes.restype = ctypes.c_int
         self.lib.MaxTreeDepth.restype = ctypes.c_int
+        self.lib.NumEdgesAtLevel.restype = ctypes.c_int
+        self.lib.NumTrivialNodes.restype = ctypes.c_int
+        self.lib.NumBaseNodes.restype = ctypes.c_int
+        self.lib.NumBaseEdges.restype = ctypes.c_int
         self.lib.NumPrevDep.restype = ctypes.c_int
         self.lib.NumBottomDep.restype = ctypes.c_int
         self.lib.NumRowBottomDep.restype = ctypes.c_int
@@ -267,6 +271,30 @@ class _tree_lib(object):
         self.lib.GetInternalMask(depth, ctypes.c_void_p(is_internal.ctypes.data))
         return is_internal.astype(np.bool)
 
+    def GetEdgeOf(self, lv):
+        n = self.lib.NumEdgesAtLevel(lv)
+        if n == 0:
+            return None
+        edge_idx = np.empty((n,), dtype=np.int32)
+        self.lib.GetEdgesOfLevel(lv, ctypes.c_void_p(edge_idx.ctypes.data))
+        return edge_idx
+
+    def GetEdgeAndLR(self, lv):
+        n = self.lib.NumEdgesAtLevel(lv)
+        lr = np.empty((n,), dtype=np.int32)
+        self.lib.GetIsEdgeRch(lv, ctypes.c_void_p(lr.ctypes.data))
+        edge_idx = self.GetEdgeOf(lv)
+        return edge_idx, lr.astype(np.bool)
+
+    def GetTrivialNodes(self):
+        res = []
+        for lr in range(2):
+            n = self.lib.NumTrivialNodes(lr)
+            nodes = np.empty((n,), dtype=np.int32)
+            self.lib.GetTrivialNodes(lr, ctypes.c_void_p(nodes.ctypes.data))
+            res.append(nodes)
+        return res
+
     def GetLeftRootStates(self, depth):
         n = self.lib.NumInternalNodes(depth)
         left_bot = self.lib.NumLeftBot(depth)
@@ -299,6 +327,21 @@ class _tree_lib(object):
                                  ctypes.c_void_p(right_tos.ctypes.data))
         return left_froms, left_tos, right_froms, right_tos
 
+    def GetIsTreeTrivial(self):
+        total_nodes = np.sum(self.list_nnodes)
+        tree_trivial = np.empty((total_nodes,), dtype=np.int32)
+        self.lib.TreeTrivial(ctypes.c_void_p(tree_trivial.ctypes.data))
+        return tree_trivial.astype(np.bool)
+
+    def GetFenwickBase(self):
+        num_nodes = self.lib.NumBaseNodes()
+        nodes = np.empty((num_nodes,), dtype=np.int32)
+        num_edges = self.lib.NumBaseEdges()
+        edges = np.empty((num_edges,), dtype=np.int32)
+        assert num_edges == 0  # code not tested when this > 0
+        self.lib.GetBaseNodeEdge(ctypes.c_void_p(nodes.ctypes.data),
+                                 ctypes.c_void_p(edges.ctypes.data))
+        return nodes, edges
 
 TreeLib = _tree_lib()
 

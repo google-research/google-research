@@ -50,7 +50,7 @@ class GraphStruct
                 void* _edge_pairs = nullptr, int n_left = -1, int n_right = -1);
 
     void realize_nodes(int node_start, int node_end,
-                       int col_start, int col_end);
+                       int col_start, int col_end, int edge_offset);
     GraphStruct* permute();
     std::map<int, std::vector<int> > edge_list;
     std::vector<AdjRow*> active_rows;
@@ -80,13 +80,14 @@ class JobCollect
     std::vector< std::vector<int> > is_internal;
     std::vector<int> n_cell_job_per_level, n_bin_job_per_level;
     std::vector< std::vector<int> > bot_froms[2], bot_tos[2], prev_froms[2], prev_tos[2]; // NOLINT
+    std::vector< std::vector<int> > edge_per_lv, edge_is_rch;
     std::vector< std::vector<AdjNode*> > binary_feat_nodes;
-    std::vector<int> row_bot_froms[2], row_bot_tos[2];
+    std::vector<int> row_bot_froms[2], row_bot_tos[2], trivial_nodes[2];
     std::vector< std::vector<int> > row_top_froms[2], row_top_tos[2], row_prev_froms[2], row_prev_tos[2];  // NOLINT
-    std::vector<int> layer_sizes;
+    std::vector<int> layer_sizes, edge_lv0, is_tree_trivial;
     std::vector< std::unordered_map<int, int> > tree_idx_map;
 
-    std::vector<int> next_state_froms;
+    std::vector<int> next_state_froms, base_node_idx, base_edge_idx;
     std::vector< std::vector<int> > bot_left_froms, bot_left_tos, next_left_froms, next_left_tos;  // NOLINT
     std::vector< std::vector<int> > step_inputs, step_nexts, step_froms, step_tos, step_indices;  // NOLINT
     int max_rowsum_steps, max_tree_depth, max_row_merge_steps;
@@ -97,7 +98,7 @@ extern JobCollect job_collect;
 class ColAutomata
 {
  public:
-    ColAutomata(std::vector<int>& indices);
+    ColAutomata(std::vector<int>& indices, int edge_offset);
 
     void add_edge(int col_idx);
     int next_edge();
@@ -105,7 +106,7 @@ class ColAutomata
     bool has_edge(int range_start, int range_end);
 
     int* indices;
-    int pos, num_indices;
+    int pos, num_indices, edge_offset;
 };
 
 class AdjNode;

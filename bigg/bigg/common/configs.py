@@ -74,6 +74,9 @@ cmd_opt.add_argument('-self_loop', default=False, type=eval, help='has self-loop
 cmd_opt.add_argument('-bfs_permute', default=False, type=eval, help='random permute with bfs?')
 cmd_opt.add_argument('-display', default=False, type=eval, help='display progress?')
 
+cmd_opt.add_argument('-has_edge_feats', default=False, type=eval, help='has edge features?')
+cmd_opt.add_argument('-has_node_feats', default=False, type=eval, help='has node features?')
+
 cmd_args, _ = cmd_opt.parse_known_args()
 
 if cmd_args.save_dir is not None:

@@ -192,7 +192,7 @@ GraphStruct* GraphStruct::permute()
 
 
 void GraphStruct::realize_nodes(int node_start, int node_end, int col_start,
-                                int col_end)
+                                int col_end, int edge_offset)
 {
     active_rows.clear();
     for (int i = node_start; i < node_end; ++i)
@@ -201,17 +201,21 @@ void GraphStruct::realize_nodes(int node_start, int node_end, int col_start,
     for (int i = node_start; i < node_end; ++i)
     {
         auto* row = active_rows[i - node_start];
-        row->insert_edges(edge_list[i]);
+        row->insert_edges(edge_list[i], edge_offset);
+        job_collect.is_tree_trivial.push_back(
+            (!row->root->has_edge || row->root->is_leaf));
+        edge_offset += edge_list[i].size();
     }
     this->node_start = node_start;
     this->node_end = node_end;
 }
 
 
-ColAutomata::ColAutomata(std::vector<int>& _indices)
+ColAutomata::ColAutomata(std::vector<int>& _indices, int edge_offset)
 {
     this->indices = _indices.data();
     this->pos = 0;
+    this->edge_offset = edge_offset;
     this->num_indices = (int)_indices.size();
 }
 
@@ -291,6 +295,10 @@ void JobCollect::reset()
     num_left.clear();
     num_right.clear();
     is_internal.clear();
+    edge_per_lv.clear();
+    edge_is_rch.clear();
+    edge_lv0.clear();
+    is_tree_trivial.clear();
     bot_left_froms.clear();
     bot_left_tos.clear();
     next_left_froms.clear();
@@ -374,6 +382,7 @@ void JobCollect::build_row_indices()
         row_top_tos[i].clear();
         row_prev_froms[i].clear();
         row_prev_tos[i].clear();
+        trivial_nodes[i].clear();
         row_top_froms[i].push_back(std::vector<int>());
         row_top_tos[i].push_back(std::vector<int>());
         row_prev_froms[i].push_back(std::vector<int>());
@@ -387,6 +396,7 @@ void JobCollect::build_row_indices()
     bool has_next = false;
     std::vector<int> used_cnts;
     used_cnts.clear();
+    int trivial_cnt = 0;
     for (size_t i = 0; i < active_graphs.size(); ++i)
     {
         used_cnts.push_back(0);
@@ -411,8 +421,12 @@ void JobCollect::build_row_indices()
                     row_top_tos[k][0].push_back(j + offset);
                 } else {
                     int bid = root->has_edge ? 1 : 0;
+                    if (root->has_edge && root->is_leaf)
+                        edge_lv0.push_back(k);
                     if (root->has_edge && !root->is_leaf)
                         bid = 2 + job_position[root->job_idx];
+                    trivial_nodes[k].push_back(trivial_cnt);
+                    trivial_cnt += 1;
                     row_bot_froms[k].push_back(bid);
                     row_bot_tos[k].push_back(j + offset);
                 }
@@ -478,6 +492,8 @@ void JobCollect::build_row_summary()
     step_indices.clear();
     step_froms.clear();
     step_nexts.clear();
+    base_node_idx.clear();
+    base_edge_idx.clear();
     int tot_past = 0;
     std::vector<int> used_cnts, past_cnts;
     used_cnts.clear();
@@ -552,6 +568,7 @@ void JobCollect::build_row_summary()
 
     global_offset = 0;
     max_rowsum_steps = 0;
+    int edge_offset = 0;
     next_state_froms.clear();
     for (size_t i = 0; i < active_graphs.size(); ++i)
     {
@@ -566,6 +583,7 @@ void JobCollect::build_row_summary()
                 step_indices[0].push_back(global_offset);
                 if (max_rowsum_steps == 0)
                     max_rowsum_steps = 1;
+                edge_offset += g->edge_list[k].size();
                 continue;
             }
             int layer = 0, cur_bit, src, step = 0;
@@ -584,6 +602,11 @@ void JobCollect::build_row_summary()
                     {
                         assert(step < (int)step_inputs.size());
                         step_inputs[step].push_back(src);
+                        if (step == 0 && src < 3) {
+                            base_node_idx.push_back(j - 1 + global_offset);
+                            if (src == 2)
+                                base_edge_idx.push_back(edge_offset);
+                        }
                         step_indices[step].push_back(global_offset + j);
                         step += 1;
                     } else {
@@ -594,6 +617,7 @@ void JobCollect::build_row_summary()
             }
             if (step > max_rowsum_steps)
                 max_rowsum_steps = step;
+            edge_offset += g->edge_list[k].size();
         }
         global_offset += num_nodes;
     }
