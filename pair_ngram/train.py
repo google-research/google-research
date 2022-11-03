@@ -224,21 +224,25 @@ def _compile_fars(tsv: str, input_token_type: str,
       print(col1, file=itxt)
       print(col2, file=otxt)
     ifar_path = _mktemp("i.far")
-    _log_check_call([
-        "farcompilestrings",
-        "--fst_type=compact",
-        f"--token_type={input_token_type}",
-        itxt.name,
-        ifar_path,
-    ])
+    args = ["farcompilestrings", "--fst_type=compact"]
+    if input_token_type in ["byte", "utf8"]:
+      args.append(f"--token_type={input_token_type}")
+    else:
+      args.append("--token_type=symbol")
+      args.append(f"--symbols={input_token_type}")
+    args.append(itxt.name)
+    args.append(ifar_path)
+    _log_check_call(args)
     ofar_path = _mktemp("o.far")
-    _log_check_call([
-        "farcompilestrings",
-        "--fst_type=compact",
-        f"--token_type={output_token_type}",
-        otxt.name,
-        ofar_path,
-    ])
+    args = ["farcompilestrings", "--fst_type=compact"]
+    if output_token_type in ["byte", "utf8"]:
+      args.append(f"--token_type={output_token_type}")
+    else:
+      args.append("--token_type=symbol")
+      args.append(f"--symbols={output_token_type}")
+    args.append(otxt.name)
+    args.append(ofar_path)
+    _log_check_call(args)
   # Temporary text files are now deleted.
   return ifar_path, ofar_path
 
