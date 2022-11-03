@@ -45,7 +45,7 @@ class ForecastModel(base.ForecastModel):
 
     self.optimizer = tf.keras.optimizers.Adam(
         learning_rate=hparams["learning_rate"])
-    self.optimizer_adaptation = tf.keras.optimizers.Adam(
+    self.optimizer_adaptation = tf.keras.optimizers.SGD(
         learning_rate=hparams["learning_rate_adaptation"])
 
     # We must reset the layers so we need to record them all here.
