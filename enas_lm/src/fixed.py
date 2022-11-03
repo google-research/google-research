@@ -25,13 +25,13 @@ import sys
 import time
 
 import numpy as np
-import tensorflow.compat.v1 as tf
+import tensorflow
 
 from enas_lm.src import fixed_lib
 from enas_lm.src import utils
 from tensorflow.contrib import training as contrib_training
 
-
+tf = tensorflow.compat.v1
 flags = tf.app.flags
 gfile = tf.gfile
 FLAGS = flags.FLAGS

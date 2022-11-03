@@ -15,6 +15,7 @@
 
 """Implements custom losses."""
 
+import functools
 from typing import NamedTuple, Optional, Tuple, Union
 
 import gin
@@ -22,7 +23,6 @@ import tensorflow as tf
 
 from dedal import alignment
 from dedal import multi_task
-from dedal import pairs
 
 
 @gin.configurable
@@ -178,76 +178,107 @@ class ProcrustesLoss(tf.losses.Loss):
         tf.matmul(embs_true_bar, rotation_opt) - embs_pred_bar, axis=(1, 2))
 
 
+def pairwise_square_dist(embs_1, embs_2):
+  """Returns the matrix of square distances.
+
+  Args:
+    embs_1: tf.Tensor<float>[batch, len, dim].
+    embs_2: tf.Tensor<float>[batch, len, dim].
+
+  Returns:
+    A tf.Tensor<float>[batch, len, len] containing the square distances.
+  """
+  gram_embs = tf.matmul(embs_1, embs_2, transpose_b=True)
+  sq_norm_embs_1 = tf.linalg.norm(embs_1, axis=-1, keepdims=True)**2
+  sq_norm_embs_2 = tf.linalg.norm(embs_2, axis=-1)**2
+  return sq_norm_embs_1 + sq_norm_embs_2[:, tf.newaxis, :] - 2 * gram_embs
+
+
 @gin.configurable
 class ContactLoss(tf.losses.Loss):
   """Implements a loss for contact matrices."""
 
   def __init__(self,
-               name = 'contact',
-               reduction = tf.losses.Reduction.AUTO,
-               no_contact_fun=lambda x: tf.math.exp(-x),
-               contact_fun=tf.math.sqrt,
+               name = 'contact_loss',
+               reduction = tf.losses.Reduction.NONE,
                weights_fun=tf.identity,
-               from_embs=False):
+               dist_to_prob=None,
+               prob_loss=None,
+               from_embs=False,
+               threshold=8.,
+               n_low=16,
+               n_high=23):
     """Loss for predicted positions, based on ground truth contact information.
 
     Args:
       name: the name of the loss
       reduction: how the loss is computed from element-wise losses.
-      no_contact_fun: function used in the loss when there is no contact in the
-        ground truth. (see below)
-      contact_fun: function used in the loss when there is contact in the ground
-        truth. (see below)
       weights_fun: a weight function, applied on |i-j|, where i, j are the
-        matrix indices. (see below)
+        matrix indices. (see below).
+      dist_to_prob: a function linking predicted pairwise square distance to
+        predicted probability.
+      prob_loss: a function comparing the predicted probability to ground truth.
       from_embs: whether the loss is computed from predicted embeddings (True)
         or directly a predicted pairwise distance matrix (False, by default).
+      threshold: a scaling parameter for the contact functions.
+      n_low: int for the weight function
+      n_high: int for the weight function
 
     Returns:
       A loss function
     """
-    self._no_contact_fun = no_contact_fun
-    self._contact_fun = contact_fun
     self._weights_fun = weights_fun
+    self._dist_to_prob = dist_to_prob
+    self._prob_loss = prob_loss
+    if prob_loss is None:
+      self._prob_loss = functools.partial(
+          tf.keras.losses.binary_crossentropy, from_logits=True)
     self._from_embs = from_embs
+    self._threshold = threshold
+    self._n_low = n_low
+    self._n_high = n_high
     super().__init__(name=name, reduction=reduction)
 
   def call(self, contact_true, pred):
     """Computes the Contact loss between contact / distance matrices.
 
     Args:
-      contact_true: a tf.Tensor<float>[batch_size, num_embs, num_embs], a batch
-        of binary contact matrices for 'num_embs' embeddings.
-      pred: a tf.Tensor<float> of shape either + [batch_size, num_embs, dims] if
-        'from_embs' is True (embeddings case) a batch of 'num_embs' embeddings
-        in dimension 'dim'. + [batch_size, num_embs, num_embs] if 'from_embs' is
-        False (matrix case) a batch of pairwise distances for 'num_embs'
+      contact_true: a tf.Tensor<float>[batch_size, num_embs, num_embs, 1], a
+        batch of binary contact matrices for 'num_embs' embeddings.
+      pred: a tf.Tensor<float> of shape either
+        + [batch_size, num_embs, dims] if 'from_embs' is True (embeddings case)
+         a batch of 'num_embs' embeddings in dimension 'dim'.
+        + [batch_size, num_embs, num_embs, 1] if 'from_embs' is False (matrix
+         case) a batch of pairwise distances for 'num_embs'
         embeddings.
 
     Returns:
       The contact loss values between the contact matrices and predictions
       in the batch. This is computed for an instance matrix in the batch as:
-        loss(y, p) = sum_ij w_|i-j| fun(y_ij, p_ij),
+        loss(y, p) = sum_ij w_|i-j| prob_loss(y_ij, p_ij),
       where y is the ground truth contact matrix and p is the predicted
-      pairwise distance matrix.
-        + fun(y_ij, _) is no_contact_fun if y_ij = 0, contact_fun if y_ij = 1.
+      contact probability matrix.
+        + prob_loss(y, p) is a function comparing y in {0,1} to p in [0,1]
         + w_|i-j| is weights_fun(|i-j|), and just |i-j| if None.
       If from_embs is true, the predicted matrix is the pairwise distance of the
       predicted embeddings.
     """
-    if self._from_embs:
-      pairw_dist_pred = pairs.square_distances(embs_1=pred, embs_2=pred)
+    if self._from_embs:  # not yet checked
+      pairw_dist_pred = pairwise_square_dist(embs_1=pred, embs_2=pred)
     else:
       pairw_dist_pred = pred
     num_embs = tf.shape(pairw_dist_pred)[1]
     weights_range = tf.range(num_embs, dtype=tf.float32)
     weights_range_square = tf.abs(weights_range[tf.newaxis, :, tf.newaxis] -
                                   weights_range[tf.newaxis, tf.newaxis, :])
-    weights_batch_square = self._weights_fun(weights_range_square)
+    weights_square = self._weights_fun(weights_range_square)
     contact_true = tf.cast(contact_true, dtype=pred.dtype)
-    mat_losses = contact_true * self._contact_fun(pairw_dist_pred) + (
-        1 - contact_true) * self._no_contact_fun(pairw_dist_pred)
-    return weights_batch_square * mat_losses
+    if self._dist_to_prob is not None:  # double-check the dummy [1] trail dim.
+      pairw_dist_pred = self._dist_to_prob(
+          -pairw_dist_pred / self._threshold**2)
+
+    mat_losses = self._prob_loss(contact_true, pairw_dist_pred)
+    return weights_square * mat_losses
 
 
 @gin.configurable

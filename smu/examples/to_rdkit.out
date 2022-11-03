@@ -1,9 +1,9 @@
 A single molecule comes from asking for only the optimized geometry and only the first bond topology
-Note that the title line starts with "SMU" and the conformer id
+Note that the title line start with "SMU" and the molecule id
 Note the "geom=opt" indicating this is the optimized geometry
 Note the bt=8240(1/2) indicating this is the first of 2 bond topologies
 In this case, we only generated output for a single topology
-SMU 8240001 bt=8240(1/2) geom=opt fate=9
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(1/2), geom opt
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -27,7 +27,7 @@ $$$$
 When we ask for the initial gemetries only, we get 1 or more molecules
 In this case we get 4 molecules because there are 4 initial_geometries
 Note the "geom=init(X/4)" inidicating which geometry this is
-SMU 8240001 bt=8240(1/2) geom=init(1/4) fate=9
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(1/2), geom init(1/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -47,7 +47,7 @@ SMU 8240001 bt=8240(1/2) geom=init(1/4) fate=9
 M  CHG  2   2   1   5  -1
 M  END
 $$$$
-SMU 8240001 bt=8240(1/2) geom=init(2/4) fate=9
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(1/2), geom init(2/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -67,7 +67,7 @@ SMU 8240001 bt=8240(1/2) geom=init(2/4) fate=9
 M  CHG  2   2   1   5  -1
 M  END
 $$$$
-SMU 8240001 bt=8240(1/2) geom=init(3/4) fate=9
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(1/2), geom init(3/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -87,7 +87,7 @@ SMU 8240001 bt=8240(1/2) geom=init(3/4) fate=9
 M  CHG  2   2   1   5  -1
 M  END
 $$$$
-SMU 8240001 bt=8240(1/2) geom=init(4/4) fate=9
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(1/2), geom init(4/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -113,7 +113,7 @@ In this case, there are 2 bond topologies to describe this molecule
 Note that the atoms are the same but the connection table is different
 Note the "bt=8240(1/2)" and "bt=8237(2/2)" for the bond topology ids.
 All the available bond topologies are listed in bond_topology.csv
-SMU 8240001 bt=8240(1/2) geom=opt fate=9
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(1/2), geom opt
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -133,7 +133,7 @@ SMU 8240001 bt=8240(1/2) geom=opt fate=9
 M  CHG  2   2   1   5  -1
 M  END
 $$$$
-SMU 8240001 bt=8237(2/2) geom=opt fate=9
+SMU 8240001, RDKIT [O-][NH+]1OON1F, bt 8237(2/2), geom opt
      RDKit          3D
 
   7  7  0  0  0  0  0  0  0  0999 V2000

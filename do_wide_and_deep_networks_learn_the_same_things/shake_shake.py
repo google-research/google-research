@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Builds the Keras Shake-Shake Model.
 
 This is the model described in https://arxiv.org/abs/1705.07485.

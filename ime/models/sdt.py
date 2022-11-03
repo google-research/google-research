@@ -33,7 +33,7 @@ class SDT(nn.Module):
         The depth of the soft decision tree. Since the soft decision tree is
         a full binary tree, setting `depth` to a large value will drastically
         increases the training and evaluating cost.
-      lamda : float, default=1e-3
+      lambda_coeff : float, default=1e-3
         The coefficient of the regularization term in the training loss. Please
         refer to the paper on the formulation of the regularization term.
       use_cuda : bool, default=False
@@ -56,14 +56,19 @@ class SDT(nn.Module):
         A `nn.Linear` module that simulates all leaf nodes in the tree.
   """
 
-  def __init__(self, input_dim, output_dim, depth=5, lamda=1e-3, device="cpu"):
+  def __init__(self,
+               input_dim,
+               output_dim,
+               depth=5,
+               lambda_coeff=1e-3,
+               device="cpu"):
     super(SDT, self).__init__()
 
     self.input_dim = input_dim
     self.output_dim = output_dim
 
     self.depth = depth
-    self.lamda = lamda
+    self.lambda_coeff = lambda_coeff
     self.device = device
 
     self._validate_parameters()
@@ -73,7 +78,7 @@ class SDT(nn.Module):
 
     # Different penalty coefficients for nodes in different layers
     self.penalty_list = [
-        self.lamda * (2 ** (-depth)) for depth in range(0, self.depth)
+        self.lambda_coeff * (2**(-depth)) for depth in range(0, self.depth)
     ]
 
     # Initialize internal nodes and leaf nodes, the input dimension on
@@ -167,9 +172,9 @@ class SDT(nn.Module):
              "instead.")
       raise ValueError(msg.format(self.depth))
 
-    if not self.lamda >= 0:
+    if not self.lambda_coeff >= 0:
       msg = (
           "The coefficient of the regularization term should not be"
           " negative, but got {} instead."
       )
-      raise ValueError(msg.format(self.lamda))
+      raise ValueError(msg.format(self.lambda_coeff))

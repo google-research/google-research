@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Test seq-to-seq training."""
 
 # pytype: disable=wrong-arg-count

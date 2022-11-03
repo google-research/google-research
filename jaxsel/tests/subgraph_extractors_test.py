@@ -35,7 +35,7 @@ def check_sparse_against_dense(sparse, dense):
 
 
 def diff_norm(tree, other_tree):
-  tree_diff = jax.tree_multimap(lambda x, y: x - y, tree, other_tree)
+  tree_diff = jax.tree_map(lambda x, y: x - y, tree, other_tree)
   return jax.tree_map(jnp.linalg.norm, tree_diff).sum()
 
 
@@ -142,7 +142,7 @@ class ISTASubgraphExtractorsTest(base_graph_test.BaseGraphTest):
                                 delta_params).tree
 
     # Directional derivative given by jax
-    deriv_jax = tm.Vector(jax.tree_multimap(jnp.vdot, delta_params, grad)).sum()
+    deriv_jax = tm.Vector(jax.tree_map(jnp.vdot, delta_params, grad)).sum()
 
     # Directional derivative given by finite differences
     agent_plus_eps = (tm.Vector(params) + eps * tm.Vector(delta_params)).tree
@@ -152,7 +152,7 @@ class ISTASubgraphExtractorsTest(base_graph_test.BaseGraphTest):
 
     err = diff_norm(deriv_jax, deriv_diff)
     assert jax.tree_util.tree_all(
-        jax.tree_multimap(
+        jax.tree_map(
             functools.partial(jnp.allclose, atol=1e-3), deriv_jax,
             deriv_diff)), f"Difference between FDM and autograd is {err}"
 

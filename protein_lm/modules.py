@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Flax Modules."""
 from flax.deprecated import nn
 from jax import lax

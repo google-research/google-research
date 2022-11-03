@@ -1,8 +1,29 @@
+diff --git a/WORKSPACE b/WORKSPACE
+index 24482296..a0b2342e 100644
+--- a/WORKSPACE
++++ b/WORKSPACE
+@@ -13,6 +13,7 @@ workspace(name = "tf_serving")
+ # 3. Request the new archive to be mirrored on mirror.bazel.build for more
+ #    reliable downloads.
+ load("//tensorflow_serving:repo.bzl", "tensorflow_http_archive")
++load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+ tensorflow_http_archive(
+     name = "org_tensorflow",
+     sha256 = "bc4e9bbeb0136163f283ab8b695bec747cad738963e153ce3b7e414ebffe408f",
+@@ -52,3 +53,8 @@ load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_
+ rules_proto_dependencies()
+ rules_proto_toolchains()
+ 
++git_repository(
++    name = "cnpy",
++    commit = "57184ee0db37cac383fc29175950747a46a8b512",
++    remote = "https://github.com/sammymax/cnpy.git",
++)
 diff --git a/tensorflow_serving/model_servers/BUILD b/tensorflow_serving/model_servers/BUILD
-index 0b9ecadc..6eebf094 100644
+index 65dd9955..3cde1a38 100644
 --- a/tensorflow_serving/model_servers/BUILD
 +++ b/tensorflow_serving/model_servers/BUILD
-@@ -319,6 +319,7 @@ SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
+@@ -351,6 +351,7 @@ SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
      "@org_tensorflow//tensorflow/contrib:contrib_ops_op_lib",
  ]) + [
      "@org_tensorflow_text//tensorflow_text:ops_lib",
@@ -11,7 +32,7 @@ index 0b9ecadc..6eebf094 100644
  
  cc_library(
 diff --git a/tensorflow_serving/workspace.bzl b/tensorflow_serving/workspace.bzl
-index d56b3bf7..35af97df 100644
+index cc93fe81..30b5863c 100644
 --- a/tensorflow_serving/workspace.bzl
 +++ b/tensorflow_serving/workspace.bzl
 @@ -80,3 +80,11 @@ def tf_serving_workspace():
@@ -21,8 +42,8 @@ index d56b3bf7..35af97df 100644
 +
 +    http_archive(
 +        name = "com_google_scann",
-+        strip_prefix = "google-research-44b3b38cbe61ea6ad5ff262f3a5eaebb52ee69a8/scann",
-+        url = "https://github.com/google-research/google-research/archive/44b3b38cbe61ea6ad5ff262f3a5eaebb52ee69a8.zip",
++        strip_prefix = "google-research-1e56278fb708c8ac76e5e78a2d47c82dc7edf662/scann",
++        url = "https://github.com/google-research/google-research/archive/1e56278fb708c8ac76e5e78a2d47c82dc7edf662.zip",
 +        patches = ["@//third_party/scann:tf_serving.patch"],
 +        patch_args = ["-p1"],
 +    )

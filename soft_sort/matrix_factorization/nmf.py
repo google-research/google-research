@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Functions use to solve Non-Negative Matrix Factorization."""
 
 from typing import Optional, Tuple

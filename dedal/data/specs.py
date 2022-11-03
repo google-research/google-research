@@ -82,6 +82,7 @@ TAPE_NUM_OUTPUTS = {
         'phi': 2,
         'psi': 2,
     },
+    'proteinnet': {},
     'remote_homology': {
         'fold_label': 1195,
         'superfamily_label': 1462,
@@ -96,6 +97,7 @@ TAPE_MULTI_CL_TASKS = ('ss3', 'ss8', 'fold_label', 'superfamily_label',
                        'family_label')
 TAPE_BACKBONE_ANGLE_TASKS = ('phi', 'psi')
 TAPE_PROT_ENGINEERING_TASKS = ('log_fluorescence', 'stability_score')
+TAPE_CONTACT_TASKS = ('tertiary',)
 
 
 @gin.configurable
@@ -170,74 +172,6 @@ def make_tape_loader(root_dir, task = 'proteinnet'):
   if specs is None:
     raise ValueError(f'Unknown TAPE task {task}')
   return make_sequence_coded_loader(specs, root_dir, task)
-
-
-@gin.configurable
-class PfamLoader(loaders.CSVLoader):
-  """Loader for Pfam-A seed 32.0 data."""
-
-  def __init__(self,
-               root_dir,
-               extra_keys = ('fam_key',),
-               task = 'random_split',
-               output_sequence_key = 'sequence'):
-    self._output_sequence_key = output_sequence_key
-    fields = {
-        'seq_key': tf.int32,
-        'ci_100': tf.int32,
-        'fam_key': tf.int32,
-        'cla_key': tf.int32,
-        'seq_len': tf.int32,
-        self._output_sequence_key: tf.string,
-    }
-
-    super().__init__(
-        folder=os.path.join(root_dir, 'pfam', task),
-        fields=fields,
-        fields_to_use=tuple(extra_keys) + (self._output_sequence_key,),
-    )
-
-  def load(self, split):
-    """Creates CSVDataset for split, encoding the sequence."""
-    ds = super().load(split)
-    return ds.map(
-        transforms.Encode(on=self._output_sequence_key),
-        num_parallel_calls=tf.data.AUTOTUNE)
-
-
-@gin.configurable
-class ScopLoader(loaders.CSVLoader):
-  """Loader for ASTRAL SCOPe v2.07 data."""
-
-  def __init__(self,
-               root_dir,
-               extra_keys = ('sf_key',),
-               pid = 40,
-               output_sequence_key = 'sequence'):
-    self._output_sequence_key = output_sequence_key
-    fields = {
-        'seq_key': tf.int32,
-        'seq_len': tf.int32,
-        'id': tf.string,
-        'cl_key': tf.int32,
-        'cf_key': tf.int32,
-        'sf_key': tf.int32,
-        'fa_key': tf.int32,
-        self._output_sequence_key: tf.string,
-    }
-
-    super().__init__(
-        folder=os.path.join(root_dir, f'astral{pid}'),
-        fields=fields,
-        fields_to_use=tuple(extra_keys) + (self._output_sequence_key,),
-    )
-
-  def load(self, split):
-    """Creates CSVDataset for split, encoding the sequence."""
-    ds = super().load(split)
-    return ds.map(
-        transforms.Encode(on=self._output_sequence_key),
-        num_parallel_calls=tf.data.AUTOTUNE)
 
 
 @gin.configurable
@@ -485,6 +419,7 @@ def make_tape_builder(root_dir,
 
   transformations = [
       transforms.Pop(on=unused_keys),
+      transforms.ComputeSequenceLength(on=output_sequence_key, out='seq_len'),
       transforms.Reshape(on=output_sequence_key, shape=[]),
       transforms.Encode(on=output_sequence_key),
       transforms.EOS(on=output_sequence_key),
@@ -497,6 +432,14 @@ def make_tape_builder(root_dir,
     transformations.append(transforms.BackboneAngleTransform(on=target))
   elif target in TAPE_PROT_ENGINEERING_TASKS:
     transformations.append(transforms.Reshape(on=target, shape=[-1]))
+  elif target in TAPE_CONTACT_TASKS:
+    # Tertiary structure represented as 3D coordinates.
+    transformations.extend([
+        transforms.Reshape(on=target, shape=[-1, 3]),
+        transforms.CropOrPadND(on=target, size=max_len, axis=0),
+        transforms.ContactMatrix(on=target, threshold=8.0),
+        transforms.Reshape(on=target, shape=[max_len, max_len, 1])
+    ])
 
   if target in TAPE_SEQ2SEQ_TASKS:
     transformations.extend([
@@ -509,6 +452,9 @@ def make_tape_builder(root_dir,
         transforms.Reshape(on=weights, shape=[-1]),
         transforms.CropOrPadND(on=weights, size=max_len),
     ])
+    if target in TAPE_CONTACT_TASKS:
+      transformations.append(
+          transforms.ContactMask(on=weights, shape=(max_len, max_len)))
 
   embeddings_labels = [target] if weights is None else [(target, weights)]
   return builder.DatasetBuilder(
@@ -585,7 +531,7 @@ class FakePairsLoader:
     """Autoregressively samples PairHMM hidden state sequence."""
     states = tf.TensorArray(tf.int32, size=0, dynamic_size=True)
     key, subkey = split_key(key)
-    state = self.sample_state(subkey, 0)
+    state = self.sample_state(subkey, 0)  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
     len_x, len_y = 0, 0
     i = 0
     while state != self.END and tf.maximum(len_x, len_y) < self._max_len - 1:

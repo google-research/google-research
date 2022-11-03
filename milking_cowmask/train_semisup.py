@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """CIFAR-10 example.
 
 This script trains a ResNet-50 on the CIFAR-10 dataset.
@@ -516,14 +515,12 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
 
   tea_alpha = teacher_alpha_fn(step)
 
-  model_tea_params = jax.tree_multimap(
+  model_tea_params = jax.tree_map(
       lambda p_tea, p_stu: p_tea * tea_alpha + p_stu * (1.0 - tea_alpha),
-      model_tea.params, new_optimizer_stu.target.params
-  )
-  new_state_tea = jax.tree_multimap(
+      model_tea.params, new_optimizer_stu.target.params)
+  new_state_tea = jax.tree_map(
       lambda p_tea, p_stu: p_tea * tea_alpha + p_stu * (1.0 - tea_alpha),
-      state_tea, new_state_stu
-  )
+      state_tea, new_state_stu)
 
   model_tea = model_tea.replace(params=model_tea_params)
 

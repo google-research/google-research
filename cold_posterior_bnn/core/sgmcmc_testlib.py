@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Shared test library between sgmcmc_test and diagnostics_test.
 
 This library implements test classes used by both the SG-MCMC tests and the

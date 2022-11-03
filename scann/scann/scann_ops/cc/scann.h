@@ -17,6 +17,8 @@
 
 #include <cstdint>
 #include <limits>
+#include <memory>
+#include <string>
 
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
@@ -28,19 +30,15 @@
 #include "scann/base/single_machine_factory_scann.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_status.h"
+#include "scann/scann_ops/scann_assets.pb.h"
 #include "scann/utils/threads.h"
 
 namespace research_scann {
 
 class ScannInterface {
  public:
-  Status Initialize(ConstSpan<float> dataset,
-                    ConstSpan<int32_t> datapoint_to_token,
-                    ConstSpan<uint8_t> hashed_dataset,
-                    ConstSpan<int8_t> int8_dataset,
-                    ConstSpan<float> int8_multipliers,
-                    ConstSpan<float> dp_norms, DatapointIndex n_points,
-                    const std::string& artifacts_dir);
+  Status Initialize(const std::string& config_pbtxt,
+                    const std::string& scann_assets_pbtxt);
   Status Initialize(ScannConfig config, SingleMachineFactoryOptions opts,
                     ConstSpan<float> dataset,
                     ConstSpan<int32_t> datapoint_to_token,
@@ -62,7 +60,7 @@ class ScannInterface {
   Status SearchBatchedParallel(const DenseDataset<float>& queries,
                                MutableSpan<NNResultsVector> res, int final_nn,
                                int pre_reorder_nn, int leaves) const;
-  Status Serialize(std::string path);
+  StatusOr<ScannAssets> Serialize(std::string path);
   StatusOr<SingleMachineFactoryOptions> ExtractOptions();
 
   template <typename T_idx>
@@ -94,6 +92,8 @@ class ScannInterface {
   float result_multiplier_;
 
   size_t min_batch_size_;
+
+  std::unique_ptr<ThreadPool> parallel_query_pool_;
 };
 
 template <typename T_idx>

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Collection of model functions implementing different multihop variants."""
 
 from language.labs.drkit import model_fns as model_utils

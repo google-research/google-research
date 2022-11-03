@@ -14,7 +14,6 @@
 # limitations under the License.
 
 #!/usr/bin/python3
-# Lint as: python3
 """Filters an access trace.
 
 Given a CSV file containing (pc, address) in hex, filters the file to only

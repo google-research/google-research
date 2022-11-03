@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Learned optimizer search spaces in Jax using Flax style optimizers!"""
-from jax.experimental import optimizers
+from jax.example_libraries import optimizers
 import jax.numpy as jnp
 from opt_list import common
 from opt_list import jax_common

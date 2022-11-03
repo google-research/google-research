@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Provides a simple feed forward neural net class for regression tasks.
 
 The FeedForward class constructs a tensorflow model. The constructor takes a

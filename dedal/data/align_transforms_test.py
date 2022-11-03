@@ -28,7 +28,7 @@ class AlignTransformsTest(tf.test.TestCase):
     super().setUp()
     gin.clear_config()
     tf.random.set_seed(0)
-    self.vocab = vocabulary.alternative
+    self.vocab = vocabulary.get_default()
     self.sampler = vocabulary.Sampler(vocab=self.vocab)
 
   def test_project_msa_rows(self):

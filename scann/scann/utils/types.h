@@ -19,7 +19,10 @@
 
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "absl/base/thread_annotations.h"
 #include "scann/proto/input_output.pb.h"
@@ -259,16 +262,12 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
         return function<uint8_t>(__VA_ARGS__);                         \
       case ::research_scann::InputOutputConfig::INT16:                 \
         return function<int16_t>(__VA_ARGS__);                         \
-      case ::research_scann::InputOutputConfig::UINT16:                \
-        return function<uint16_t>(__VA_ARGS__);                        \
       case ::research_scann::InputOutputConfig::INT32:                 \
         return function<int32_t>(__VA_ARGS__);                         \
       case ::research_scann::InputOutputConfig::UINT32:                \
         return function<uint32_t>(__VA_ARGS__);                        \
       case ::research_scann::InputOutputConfig::INT64:                 \
         return function<int64_t>(__VA_ARGS__);                         \
-      case ::research_scann::InputOutputConfig::UINT64:                \
-        return function<uint64_t>(__VA_ARGS__);                        \
       case ::research_scann::InputOutputConfig::FLOAT:                 \
         return function<float>(__VA_ARGS__);                           \
       case ::research_scann::InputOutputConfig::DOUBLE:                \
@@ -291,16 +290,12 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
         return function<uint8_t>(__VA_ARGS__);                         \
       case ::research_scann::InputOutputConfig::INT16:                 \
         return function<int16_t>(__VA_ARGS__);                         \
-      case ::research_scann::InputOutputConfig::UINT16:                \
-        return function<uint16_t>(__VA_ARGS__);                        \
       case ::research_scann::InputOutputConfig::INT32:                 \
         return function<int32_t>(__VA_ARGS__);                         \
       case ::research_scann::InputOutputConfig::UINT32:                \
         return function<uint32_t>(__VA_ARGS__);                        \
       case ::research_scann::InputOutputConfig::INT64:                 \
         return function<int64_t>(__VA_ARGS__);                         \
-      case ::research_scann::InputOutputConfig::UINT64:                \
-        return function<uint64_t>(__VA_ARGS__);                        \
       case ::research_scann::InputOutputConfig::FLOAT:                 \
         return function<float>(__VA_ARGS__);                           \
       case ::research_scann::InputOutputConfig::DOUBLE:                \
@@ -372,7 +367,6 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
       case ::research_scann::InputOutputConfig::INT16:                 \
         return function<int16_t>(__VA_ARGS__);                         \
       case ::research_scann::InputOutputConfig::UINT16:                \
-        return function<uint16_t>(__VA_ARGS__);                        \
       case ::research_scann::InputOutputConfig::INT32:                 \
       case ::research_scann::InputOutputConfig::UINT32:                \
       case ::research_scann::InputOutputConfig::INT64:                 \
@@ -398,11 +392,9 @@ inline size_t SizeFromTag(InputOutputConfig::InMemoryTypes tag) {
   EXTERN_KEYWORD template class ClassName<int8_t>;               \
   EXTERN_KEYWORD template class ClassName<uint8_t>;              \
   EXTERN_KEYWORD template class ClassName<int16_t>;              \
-  EXTERN_KEYWORD template class ClassName<uint16_t>;             \
   EXTERN_KEYWORD template class ClassName<int32_t>;              \
   EXTERN_KEYWORD template class ClassName<uint32_t>;             \
   EXTERN_KEYWORD template class ClassName<int64_t>;              \
-  EXTERN_KEYWORD template class ClassName<uint64_t>;             \
   EXTERN_KEYWORD template class ClassName<float>;                \
   EXTERN_KEYWORD template class ClassName<double>;
 

@@ -1,0 +1,107 @@
+from __gin__ import dynamic_registration
+
+import seqio
+
+from dedal import multi_task
+from dedal.data import builder
+from dedal.data import feature_converters
+from dedal.data import loaders
+from dedal.data import tasks
+from dedal.data import transforms
+
+
+# -----------------------------------------------------------------------------
+# REQUIRED GIN BINDINGS
+# -----------------------------------------------------------------------------
+
+# Path to directory containing Pfam 34.0 homology detection data. The directory
+# must contain five subdirectories, called train, iid_validation, iid_test,
+# ood_validation and ood_test. Inside each directory, TSV files (with header)
+# describe the samples in each split.
+PFAM34_HOMOLOGY_DATA_DIR = %gin.REQUIRED
+
+# -----------------------------------------------------------------------------
+# HOMOLOGY DETECTION ON PFAM34
+# -----------------------------------------------------------------------------
+
+HOMOLOGY_SEQUENCE_LENGTH = 512
+HOMOLOGY_SEQUENCE_KEY = 'homology/sequence'
+
+homology/builder.DatasetBuilder:
+  data_loader = @homology/loaders.SeqIOLoader()
+  transformations = [
+      @homology/stack_seqs/transforms.Stack(),
+      @homology/pop_seqs/transforms.Pop(),
+      @homology/concat_keys/transforms.Concat(),
+      @homology/pop_keys/transforms.Pop(),
+      @homology/rekey/transforms.ReKey(),
+  ]
+  batched_transformations = [
+    @homology/flatten_seqs/transforms.Reshape(),
+    @homology/flatten_pid/transforms.Reshape(),
+  ]
+  labels = @homology/labels/multi_task.Backbone()
+  metadata = ('homology/percent_identity', 'homology/extended_keys')
+  sequence_key = %HOMOLOGY_SEQUENCE_KEY
+  shuffle_buffer = 32_768
+
+homology/loaders.SeqIOLoader:
+  mixture_or_task_name = @homology/tasks.register_task()
+  task_feature_lengths = {
+        'sequence_x': %HOMOLOGY_SEQUENCE_LENGTH,
+        'sequence_y': %HOMOLOGY_SEQUENCE_LENGTH,
+  }
+  feature_converter_factory = @feature_converters.HomologyFeatureConverter
+
+homology/stack_seqs/transforms.Stack:
+  on = ('sequence_x', 'sequence_y')
+  out = %HOMOLOGY_SEQUENCE_KEY
+  axis = 0
+
+homology/pop_seqs/transforms.Pop:
+  on = ('sequence_x', 'sequence_y')
+
+homology/concat_keys/transforms.Concat:
+  on = ('extended_key_x', 'extended_key_y')
+  out = 'homology/extended_keys'
+  axis = 0
+
+homology/pop_keys/transforms.Pop:
+  on = ('extended_key_x', 'extended_key_y')
+
+homology/rekey/transforms.ReKey:
+  on = ('homology_label', 'percent_identity')
+  out = ('homology/target', 'homology/percent_identity')
+
+homology/flatten_seqs/transforms.Reshape:
+  on = %HOMOLOGY_SEQUENCE_KEY
+  shape = [-1, %HOMOLOGY_SEQUENCE_LENGTH]
+
+homology/flatten_pid/transforms.Reshape:
+  on = 'homology/percent_identity'
+  shape = [-1]
+
+homology/labels/multi_task.Backbone:
+  embeddings = []
+  alignments = ['homology/target']
+
+homology/tasks.register_task:
+  task = @tasks.get_dedal_homology_task()
+
+feature_converters.HomologyFeatureConverter:
+  fine_grained_labels = False
+  include_metadata_features = True
+
+tasks.get_dedal_homology_task:
+  task_name = 'pfam34_extended_homology'
+  source_fn = @homology/loaders.DedalLoaderDataSource
+  main_vocab_path = %MAIN_VOCAB_PATH
+
+homology/loaders.DedalLoaderDataSource:
+  loader_cls = @homology/loaders.TSVLoader
+  splits = ('train', 'iid_validation', 'iid_test', 'ood_validation', 'ood_test')
+
+homology/loaders.TSVLoader:
+  folder = %PFAM34_HOMOLOGY_DATA_DIR
+  file_pattern = '*.tsv'
+  field_delim = '\t'

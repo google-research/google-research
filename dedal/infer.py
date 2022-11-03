@@ -32,10 +32,10 @@ def preprocess(left, right, max_length = 512):
   seqs = {k: v.strip().upper() for k, v in seqs.items()}
   keys = list(seqs.keys())
   transformations = [
-      transforms.Encode(vocab=vocabulary.alternative, on=keys),
-      transforms.EOS(vocab=vocabulary.alternative, on=keys),
+      transforms.Encode(vocab=vocabulary.seqio_vocab, on=keys),
+      transforms.EOS(vocab=vocabulary.seqio_vocab, on=keys),
       transforms.CropOrPad(
-          size=max_length, vocab=vocabulary.alternative, on=keys)]
+          size=max_length, vocab=vocabulary.seqio_vocab, on=keys)]
   for t in transformations:
     seqs = t(seqs)
   return tf.stack([seqs['left'], seqs['right']], axis=0)

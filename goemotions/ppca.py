@@ -28,7 +28,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Script for running PPCA on the emotion dataset and generating plots.
 
 The goal of this analysis is to understand which dimensions of the emotion label

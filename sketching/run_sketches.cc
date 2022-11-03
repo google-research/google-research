@@ -163,7 +163,7 @@ void TestCounts() {
       });
   std::cout << "CM params: hash_size " << cm_hash_size << std::endl;
   sketches.emplace_back(
-      "CM", absl::make_unique<CountMin>(
+      "CM", std::make_unique<CountMin>(
                 CountMin(absl::GetFlag(FLAGS_hash_count), cm_hash_size)));
 
   const uint cmcu_hash_size = DetermineSketchParam(
@@ -172,7 +172,7 @@ void TestCounts() {
       });
   std::cout << "CM_CU params: hash_size " << cmcu_hash_size << std::endl;
   sketches.emplace_back("CM_CU",
-                        absl::make_unique<CountMinCU>(CountMinCU(
+                        std::make_unique<CountMinCU>(CountMinCU(
                             absl::GetFlag(FLAGS_hash_count), cmcu_hash_size)));
 
   const uint cmh_hash_size = DetermineSketchParam(
@@ -183,7 +183,7 @@ void TestCounts() {
       });
   std::cout << "CMH params: hash_size " << cmh_hash_size << std::endl;
   sketches.emplace_back(
-      "CMH", absl::make_unique<CountMinHierarchical>(CountMinHierarchical(
+      "CMH", std::make_unique<CountMinHierarchical>(CountMinHierarchical(
                  absl::GetFlag(FLAGS_hash_count), cmh_hash_size,
                  absl::GetFlag(FLAGS_lg_stream_range))));
 
@@ -195,10 +195,9 @@ void TestCounts() {
       });
   std::cout << "CMH_CU params: hash_size " << cmhcu_hash_size << std::endl;
   sketches.emplace_back(
-      "CMH_CU",
-      absl::make_unique<CountMinHierarchicalCU>(CountMinHierarchicalCU(
-          absl::GetFlag(FLAGS_hash_count), cmhcu_hash_size,
-          absl::GetFlag(FLAGS_lg_stream_range))));
+      "CMH_CU", std::make_unique<CountMinHierarchicalCU>(CountMinHierarchicalCU(
+                    absl::GetFlag(FLAGS_hash_count), cmhcu_hash_size,
+                    absl::GetFlag(FLAGS_lg_stream_range))));
 
   const uint fb_hash_size = DetermineSketchParam(
       static_cast<uint>(absl::GetFlag(FLAGS_sketch_size) *
@@ -211,8 +210,8 @@ void TestCounts() {
       absl::GetFlag(FLAGS_sketch_size),
       [](uint val) -> uint { return LossyCount(val).Size(); });
   std::cout << "LC params: window_size " << lc_window << std::endl;
-  sketches.emplace_back(
-      "LC", absl::make_unique<LossyCount>(LossyCount(lc_window)));
+  sketches.emplace_back("LC",
+                        std::make_unique<LossyCount>(LossyCount(lc_window)));
 
   const uint lcfb_window = DetermineSketchParam(
       absl::GetFlag(FLAGS_sketch_size), [fb_hash_size](uint val) -> uint {
@@ -224,7 +223,7 @@ void TestCounts() {
             << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
       "LC_FB",
-      absl::make_unique<LossyCountFallback>(LossyCountFallback(
+      std::make_unique<LossyCountFallback>(LossyCountFallback(
           lcfb_window, absl::GetFlag(FLAGS_hash_count), fb_hash_size)));
 
   const uint lw_size = DetermineSketchParam(
@@ -235,15 +234,15 @@ void TestCounts() {
   std::cout << "LW params: storage_size " << lw_size
             << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
-      "LW", absl::make_unique<LossyWeight>(LossyWeight(
+      "LW", std::make_unique<LossyWeight>(LossyWeight(
                 lw_size, absl::GetFlag(FLAGS_hash_count), fb_hash_size)));
 
   const uint freq_size = DetermineSketchParam(
       absl::GetFlag(FLAGS_sketch_size),
       [](uint val) -> uint { return Frequent(val).Size(); });
   std::cout << "Freq params: store_size " << freq_size << std::endl;
-  sketches.emplace_back(
-      "Freq", absl::make_unique<Frequent>(Frequent(freq_size)));
+  sketches.emplace_back("Freq",
+                        std::make_unique<Frequent>(Frequent(freq_size)));
 
   const uint freqfb_size = DetermineSketchParam(
       absl::GetFlag(FLAGS_sketch_size), [fb_hash_size](uint val) -> uint {
@@ -255,7 +254,7 @@ void TestCounts() {
             << " fallback_hashsize " << fb_hash_size << std::endl;
   sketches.emplace_back(
       "Freq_FB",
-      absl::make_unique<FrequentFallback>(FrequentFallback(
+      std::make_unique<FrequentFallback>(FrequentFallback(
           freqfb_size, absl::GetFlag(FLAGS_hash_count), fb_hash_size)));
 
   std::cout << std::endl;

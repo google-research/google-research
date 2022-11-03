@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """For creating files from {target,prediction}.txt that can be processed
 by pyrouge to compare with scores in scoring_test.py.
 

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Evaluation script for the R methods run on GCP.
 
 This script takes in an embedding of the cells in Loom format, as well as the

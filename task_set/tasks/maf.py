@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Masked autoregressive flows models.
 
 Paper: https://arxiv.org/abs/1705.07057

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.datasets.graph_bundle."""
 
 import textwrap
@@ -205,7 +204,7 @@ class GraphBundleTest(absltest.TestCase):
       self.assertEqual(x.shape, y.shape)
       self.assertEqual(x.dtype, y.dtype)
 
-    jax.tree_multimap(_check, generated, padded_example)
+    jax.tree_map(_check, generated, padded_example)
 
 
 if __name__ == "__main__":

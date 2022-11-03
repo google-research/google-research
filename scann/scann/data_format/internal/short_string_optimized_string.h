@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <optional>
 
 #include "absl/types/optional.h"
 #include "scann/oss_wrappers/scann_malloc_extension.h"
@@ -77,7 +78,7 @@ class ShortStringOptimizedString {
 
   size_t HeapStorageUsed() const {
     if (size() <= kMaxInline) return 0;
-    absl::optional<size_t> true_size =
+    std::optional<size_t> true_size =
         tcmalloc::MallocExtension::GetAllocatedSize(heap_string());
     return *true_size;
   }

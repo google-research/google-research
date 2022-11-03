@@ -60,6 +60,7 @@ class SpinSphericalBlockTest(tf.test.TestCase, parameterized.TestCase):
                                       spins_in=spins_in,
                                       spins_out=spins_out,
                                       downsampling_factor=downsampling_factor,
+                                      spectral_pooling=False,
                                       axis_name=None,
                                       transformer=transformer)
 
@@ -74,12 +75,16 @@ class SpinSphericalBlockTest(tf.test.TestCase, parameterized.TestCase):
 
     self.assertEqual(outputs.shape, shape_out)
 
-  @parameterized.parameters(dict(shift=1, train=False),
-                            dict(shift=5, train=True, num_filter_params=2),
-                            dict(shift=2, train=True, downsampling_factor=2))
+  @parameterized.parameters(
+      dict(shift=1, train=False),
+      dict(shift=5, train=True, num_filter_params=2),
+      dict(shift=2, train=True, downsampling_factor=2),
+      dict(shift=2, train=True, downsampling_factor=2, spectral_pooling=True),
+  )
   def test_azimuthal_equivariance(self, shift, train,
                                   downsampling_factor=1,
-                                  num_filter_params=None):
+                                  num_filter_params=None,
+                                  spectral_pooling=False):
     resolution = 8
     transformer = _get_transformer()
     spins = (0, 1, 2)
@@ -92,6 +97,7 @@ class SpinSphericalBlockTest(tf.test.TestCase, parameterized.TestCase):
                                       spins_in=spins,
                                       spins_out=spins,
                                       downsampling_factor=downsampling_factor,
+                                      spectral_pooling=spectral_pooling,
                                       num_filter_params=num_filter_params,
                                       axis_name=None,
                                       transformer=transformer)
@@ -120,6 +126,7 @@ class SpinSphericalBlockTest(tf.test.TestCase, parameterized.TestCase):
                                       spins_in=spins,
                                       spins_out=spins,
                                       downsampling_factor=1,
+                                      spectral_pooling=False,
                                       axis_name=None,
                                       transformer=transformer)
 
@@ -146,11 +153,13 @@ class SpinSphericalClassifierTest(tf.test.TestCase, parameterized.TestCase):
     resolutions = [8, 4]
     spins = [[0], [0, 1]]
     channels = [1, 2]
+    spectral_pooling = False
     batch_size = 2
     model = models.SpinSphericalClassifier(num_classes,
                                            resolutions,
                                            spins,
                                            channels,
+                                           spectral_pooling,
                                            num_filter_params=num_filter_params,
                                            axis_name=None,
                                            input_transformer=transformer)
@@ -177,6 +186,7 @@ class SpinSphericalClassifierTest(tf.test.TestCase, parameterized.TestCase):
                                            resolutions=resolutions,
                                            spins=spins,
                                            widths=channels,
+                                           spectral_pooling=False,
                                            axis_name=None,
                                            input_transformer=transformer)
     params = model.init(_JAX_RANDOM_KEY, sphere, train=False)
@@ -203,6 +213,7 @@ class SpinSphericalClassifierTest(tf.test.TestCase, parameterized.TestCase):
                                            resolutions=resolutions,
                                            spins=spins,
                                            widths=channels,
+                                           spectral_pooling=True,
                                            axis_name=None,
                                            input_transformer=transformer)
 
@@ -217,7 +228,7 @@ class SpinSphericalClassifierTest(tf.test.TestCase, parameterized.TestCase):
     # because the local pooling introduces equivariance errors.
     self.assertAllClose(rotated_output, output, atol=1e-1)
     self.assertLess(_normalized_mean_absolute_error(output, rotated_output),
-                    0.1)
+                    0.05)
 
 
 class CNNClassifierTest(tf.test.TestCase, parameterized.TestCase):

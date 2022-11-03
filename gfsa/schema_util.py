@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# lint as: python3
 """Helpers for working with node and graph schemas.
 
 See graph_types.py for descriptions of node and graph schemas, which represent

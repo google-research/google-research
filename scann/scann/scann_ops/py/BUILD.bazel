@@ -55,6 +55,7 @@ py_library(
     tags = ["local"],
     deps = [
         ":scann_builder",
+        ":scann_ops_pybind_backcompat",
     ],
 )
 
@@ -67,5 +68,14 @@ py_test(
     tags = ["local"],
     deps = [
         ":scann_ops_pybind",
+    ],
+)
+
+py_library(
+    name = "scann_ops_pybind_backcompat",
+    srcs = ["scann_ops_pybind_backcompat.py"],
+    tags = ["local"],
+    deps = [
+        "//scann/scann_ops:scann_assets_py_pb2",
     ],
 )

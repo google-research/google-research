@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 # pylint: disable=invalid-name,g-bad-import-order,missing-docstring,logging-not-lazy
 from __future__ import absolute_import
 from __future__ import division

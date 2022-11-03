@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Swedish Trafic Signs dataset.
 
 This is a subset of the data from the Swedish Traffic Sign dataset at

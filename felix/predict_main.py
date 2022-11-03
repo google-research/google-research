@@ -19,7 +19,7 @@ from absl import app
 from absl import flags
 from absl import logging
 from official.common import distribute_utils
-from official.nlp.bert import configs
+from official.legacy.bert import configs
 import tensorflow as tf
 
 from felix import felix_flags  # pylint: disable=unused-import

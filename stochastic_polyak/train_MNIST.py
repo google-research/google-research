@@ -176,7 +176,7 @@ def train_and_evaluate(config, workdir):
   rng, init_rng = jax.random.split(rng)
 
   init_params = CNN().init(init_rng, jnp.ones([1, 28, 28, 1]))["params"]
-  params, state = solver.init(init_params)
+  params, state = solver.init(init_params)  # pytype: disable=attribute-error
 
   # Full path to dump resultss
   dumpath = create_dumpfile(config, solver_param_name, workdir, "mnist")

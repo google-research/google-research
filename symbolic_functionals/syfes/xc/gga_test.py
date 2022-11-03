@@ -75,8 +75,8 @@ class XCGGATest(parameterized.TestCase):
        utils.function_sum(gga.e_x_b97_unpolarized, gga.e_c_b97_unpolarized)),
       )
   def test_gga_xc_unpolarized_against_libxc(self, xc_name, xc_fun):
-    eps_xc_ref, (vrho_ref, vsigma_ref, _, _), _, _ = libxc.eval_xc(
-        xc_name, self.rho, spin=0, relativity=0, deriv=1)
+    eps_xc_ref, (vrho_ref, vsigma_ref, *_), _, _ = libxc.eval_xc(
+        xc_name, self.rho_and_derivs, spin=0, relativity=0, deriv=1)
     e_xc_ref = eps_xc_ref * self.rho
 
     e_xc, (vrho, vsigma) = jax.vmap(jax.value_and_grad(xc_fun, argnums=(0, 1)))(
@@ -95,7 +95,7 @@ class XCGGATest(parameterized.TestCase):
        utils.function_sum(gga.e_x_b97_polarized, gga.e_c_b97_polarized)),
       )
   def test_gga_xc_polarized_against_libxc(self, xc_name, xc_fun):
-    eps_xc_ref, (vrho_ref, vsigma_ref, _, _), _, _ = libxc.eval_xc(
+    eps_xc_ref, (vrho_ref, vsigma_ref, *_), _, _ = libxc.eval_xc(
         xc_name,
         (self.rho_and_derivs_a, self.rho_and_derivs_b),
         spin=1,
@@ -125,8 +125,8 @@ class XCGGATest(parameterized.TestCase):
       ('hyb_gga_xc_wb97x_v', gga.e_xc_wb97xv_unpolarized)
       )
   def test_wb97xv_unpolarized_against_libxc(self, xc_name, xc_fun):
-    eps_xc_ref, (vrho_ref, vsigma_ref, _, _), _, _ = libxc.eval_xc(
-        xc_name, self.rho, spin=0, relativity=0, deriv=1)
+    eps_xc_ref, (vrho_ref, vsigma_ref, *_), _, _ = libxc.eval_xc(
+        xc_name, self.rho_and_derivs, spin=0, relativity=0, deriv=1)
     e_xc_ref = eps_xc_ref * self.rho
 
     e_xc, (vrho, vsigma) = jax.vmap(jax.value_and_grad(xc_fun, argnums=(0, 1)))(
@@ -140,7 +140,7 @@ class XCGGATest(parameterized.TestCase):
       ('hyb_gga_xc_wb97x_v', gga.e_xc_wb97xv_polarized)
       )
   def test_wb97xv_polarized_against_libxc(self, xc_name, xc_fun):
-    eps_xc_ref, (vrho_ref, vsigma_ref, _, _), _, _ = libxc.eval_xc(
+    eps_xc_ref, (vrho_ref, vsigma_ref, *_), _, _ = libxc.eval_xc(
         xc_name,
         (self.rho_and_derivs_a, self.rho_and_derivs_b),
         spin=1,

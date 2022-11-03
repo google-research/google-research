@@ -15,6 +15,7 @@
 #include "clustering/clusterers/parallel-correlation-clusterer-internal.h"
 
 #include <algorithm>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -24,6 +25,7 @@
 #include "absl/types/optional.h"
 #include "clustering/clusterers/correlation-clusterer-util.h"
 #include "clustering/config.pb.h"
+#include "clustering/in-memory-clusterer.h"
 #include "external/gbbs/gbbs/bridge.h"
 #include "external/gbbs/gbbs/gbbs.h"
 #include "external/gbbs/gbbs/macros.h"
@@ -32,7 +34,6 @@
 #include "external/gbbs/pbbslib/seq.h"
 #include "external/gbbs/pbbslib/sequence_ops.h"
 #include "external/gbbs/pbbslib/utilities.h"
-#include "clustering/in-memory-clusterer.h"
 #include "parallel/parallel-graph-utils.h"
 #include "parallel/parallel-sequence-ops.h"
 
@@ -100,7 +101,7 @@ double ClusteringHelper::ComputeObjective(
 
 std::unique_ptr<bool[]> ClusteringHelper::MoveNodesToCluster(
     const std::vector<absl::optional<ClusterId>>& moves) {
-  auto modified_cluster = absl::make_unique<bool[]>(num_nodes_);
+  auto modified_cluster = std::make_unique<bool[]>(num_nodes_);
   pbbs::parallel_for(0, num_nodes_,
                      [&](std::size_t i) { modified_cluster[i] = false; });
 

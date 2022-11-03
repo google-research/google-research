@@ -23,6 +23,7 @@ from typing import Any, Dict, Tuple
 from absl import logging
 from clu import metric_writers
 import flax
+import flax.optim
 from flax.training import checkpoints
 import jax
 import jax.numpy as jnp
@@ -159,7 +160,7 @@ class TrainableModel:
                 jnp.all(jnp.isfinite(p)) for p in jax.tree_leaves(new_optimizer)
             ]))
         new_state_no_update = state.replace(step=step + 1)
-        state = jax.tree_multimap(lambda a, b: jnp.where(ok, a, b), new_state,
+        state = jax.tree_map(lambda a, b: jnp.where(ok, a, b), new_state,
                                   new_state_no_update)
       else:
         logging.info('Update skipping disabled')

@@ -106,7 +106,7 @@ def get_u_v_o(params1, params2, params3):
   u_params = tree_utils.tree_scalarmul(u_params, 1 / u_norm)
   v_params = tree_utils.tree_diff(params3, params1)
   uv_dot = tree_utils.tree_dot(u_params, v_params)
-  v_params = jax.tree_multimap(lambda v, u: v - uv_dot * u, v_params, u_params)
+  v_params = jax.tree_map(lambda v, u: v - uv_dot * u, v_params, u_params)
   v_norm = tree_utils.tree_norm(v_params)
   v_params = tree_utils.tree_scalarmul(v_params, 1 / v_norm)
 
@@ -171,7 +171,7 @@ def run_visualization():
   def eval_row_of_plot(u_t_, dataset):
 
     def loop_body(_, v_t_):
-      params = jax.tree_multimap(
+      params = jax.tree_map(
           lambda u, v, o: o + u * u_t_ * u_norm + v * v_t_ * v_norm, u_vec,
           v_vec, origin)
       logprob, likelihood, prior = eval(params, net_state, dataset)

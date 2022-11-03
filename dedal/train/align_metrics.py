@@ -63,7 +63,7 @@ AlignmentOutput = Tuple[tf.Tensor, Optional[PredictedPaths], SWParams]
 NaiveAlignmentOutput = Tuple[tf.Tensor, tf.Tensor, SWParams]
 
 
-def _confusion_matrix(
+def confusion_matrix(
     alignments_true,
     sol_paths_pred):
   """Computes true, predicted and actual positives for a batch of alignments."""
@@ -119,7 +119,7 @@ class AlignmentPrecisionRecall(tf.metrics.Metric):
     if self._threshold is not None:  # Otherwise, we assume already binarized.
       sol_paths_pred = tf.cast(sol_paths_pred >= self._threshold, tf.float32)
 
-    true_positives, pred_positives, cond_positives = _confusion_matrix(
+    true_positives, pred_positives, cond_positives = confusion_matrix(
         alignments_true, sol_paths_pred)
 
     self._true_positives.update_state(true_positives, sample_weight)
@@ -230,17 +230,19 @@ class MeanList(tf.metrics.Metric):
   """Means over ground-truth and predictions for positive and negative pairs."""
 
   def __init__(self,
-               positive_keys=('true', 'pred_pos'),
-               negative_keys=('pred_neg',),
+               positive_keys = ('true', 'pred_pos'),
+               negative_keys = ('pred_neg',),
                **kwargs):
     super().__init__(**kwargs)
-    self._keys = positive_keys + negative_keys
+    self._keys = tuple(positive_keys) + tuple(negative_keys)
     self._process_negatives = bool(len(negative_keys))
     self._means = {}
 
-  def _split(self,
-             inputs,
-             return_neg = True):
+  def _split(
+      self,
+      inputs,
+      return_neg = True,
+  ):
     if not self._process_negatives:
       return (inputs,)
     pos = tf.nest.map_structure(lambda t: t[:tf.shape(t)[0] // 2], inputs)

@@ -17,6 +17,8 @@
 #ifndef SCANN_METADATA_METADATA_GETTER_H_
 #define SCANN_METADATA_METADATA_GETTER_H_
 
+#include <string>
+
 #include "absl/synchronization/mutex.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"

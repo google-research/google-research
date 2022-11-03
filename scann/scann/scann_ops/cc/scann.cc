@@ -14,9 +14,14 @@
 
 #include "scann/scann_ops/cc/scann.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <limits>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/base/internal/sysinfo.h"
 #include "absl/container/flat_hash_set.h"
@@ -46,33 +51,100 @@ unique_ptr<DenseDataset<float>> InitDataset(ConstSpan<float> dataset,
   if (dataset.empty()) return nullptr;
 
   vector<float> dataset_vec(dataset.data(), dataset.data() + dataset.size());
-  return absl::make_unique<DenseDataset<float>>(dataset_vec, n_points);
+  return std::make_unique<DenseDataset<float>>(dataset_vec, n_points);
+}
+
+Status AddTokenizationToOptions(SingleMachineFactoryOptions& opts,
+                                ConstSpan<int32_t> tokenization) {
+  if (tokenization.empty()) return OkStatus();
+  if (opts.serialized_partitioner == nullptr)
+    return FailedPreconditionError(
+        "Non-empty tokenization but no serialized partitioner is present.");
+  opts.datapoints_by_token =
+      std::make_shared<vector<std::vector<DatapointIndex>>>(
+          opts.serialized_partitioner->n_tokens());
+  for (auto [dp_idx, token] : Enumerate(tokenization))
+    opts.datapoints_by_token->at(token).push_back(dp_idx);
+  return OkStatus();
 }
 
 }  // namespace
 
-Status ScannInterface::Initialize(
-    ConstSpan<float> dataset, ConstSpan<int32_t> datapoint_to_token,
-    ConstSpan<uint8_t> hashed_dataset, ConstSpan<int8_t> int8_dataset,
-    ConstSpan<float> int8_multipliers, ConstSpan<float> dp_norms,
-    DatapointIndex n_points, const std::string& artifacts_dir) {
-  ScannConfig config;
-  SCANN_RETURN_IF_ERROR(
-      ReadProtobufFromFile(artifacts_dir + "/scann_config.pb", &config));
+Status ScannInterface::Initialize(const std::string& config_pbtxt,
+                                  const std::string& scann_assets_pbtxt) {
+  SCANN_RETURN_IF_ERROR(ParseTextProto(&config_, config_pbtxt));
+
   SingleMachineFactoryOptions opts;
-  if (!hashed_dataset.empty()) {
-    opts.ah_codebook = std::make_shared<CentersForAllSubspaces>();
-    SCANN_RETURN_IF_ERROR(ReadProtobufFromFile(
-        artifacts_dir + "/ah_codebook.pb", opts.ah_codebook.get()));
+  ScannAssets assets;
+  SCANN_RETURN_IF_ERROR(ParseTextProto(&assets, scann_assets_pbtxt));
+
+  shared_ptr<DenseDataset<float>> dataset;
+  auto fp = make_shared<PreQuantizedFixedPoint>();
+  for (const ScannAsset& asset : assets.assets()) {
+    const string_view asset_path = asset.asset_path();
+    switch (asset.asset_type()) {
+      case ScannAsset::AH_CENTERS:
+        opts.ah_codebook = std::make_shared<CentersForAllSubspaces>();
+        SCANN_RETURN_IF_ERROR(
+            ReadProtobufFromFile(asset_path, opts.ah_codebook.get()));
+        break;
+      case ScannAsset::PARTITIONER:
+        opts.serialized_partitioner = std::make_shared<SerializedPartitioner>();
+        SCANN_RETURN_IF_ERROR(ReadProtobufFromFile(
+            asset_path, opts.serialized_partitioner.get()));
+        break;
+      case ScannAsset::TOKENIZATION_NPY: {
+        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
+                            NumpyToVectorAndShape<int32_t>(asset_path));
+        SCANN_RETURN_IF_ERROR(
+            AddTokenizationToOptions(opts, vector_and_shape.first));
+        break;
+      }
+      case ScannAsset::AH_DATASET_NPY: {
+        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
+                            NumpyToVectorAndShape<uint8_t>(asset_path));
+        opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
+            std::move(vector_and_shape.first), vector_and_shape.second[0]);
+        break;
+      }
+      case ScannAsset::DATASET_NPY: {
+        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
+                            NumpyToVectorAndShape<float>(asset_path));
+        dataset = make_shared<DenseDataset<float>>(
+            std::move(vector_and_shape.first), vector_and_shape.second[0]);
+        break;
+      }
+      case ScannAsset::INT8_DATASET_NPY: {
+        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
+                            NumpyToVectorAndShape<int8_t>(asset_path));
+        fp->fixed_point_dataset = make_shared<DenseDataset<int8_t>>(
+            std::move(vector_and_shape.first), vector_and_shape.second[0]);
+        break;
+      }
+      case ScannAsset::INT8_MULTIPLIERS_NPY: {
+        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
+                            NumpyToVectorAndShape<float>(asset_path));
+        fp->multiplier_by_dimension =
+            make_shared<vector<float>>(std::move(vector_and_shape.first));
+        break;
+      }
+      case ScannAsset::INT8_NORMS_NPY: {
+        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
+                            NumpyToVectorAndShape<float>(asset_path));
+        fp->squared_l2_norm_by_datapoint =
+            make_shared<vector<float>>(std::move(vector_and_shape.first));
+        break;
+      }
+      default:
+        break;
+    }
   }
-  if (!datapoint_to_token.empty()) {
-    opts.serialized_partitioner = std::make_shared<SerializedPartitioner>();
-    SCANN_RETURN_IF_ERROR(
-        ReadProtobufFromFile(artifacts_dir + "/serialized_partitioner.pb",
-                             opts.serialized_partitioner.get()));
+  if (fp->fixed_point_dataset != nullptr) {
+    if (fp->squared_l2_norm_by_datapoint == nullptr)
+      fp->squared_l2_norm_by_datapoint = make_shared<vector<float>>();
+    opts.pre_quantized_fixed_point = fp;
   }
-  return Initialize(config, opts, dataset, datapoint_to_token, hashed_dataset,
-                    int8_dataset, int8_multipliers, dp_norms, n_points);
+  return Initialize(dataset, opts);
 }
 
 Status ScannInterface::Initialize(
@@ -88,17 +160,7 @@ Status ScannInterface::Initialize(
     opts.hashed_dataset =
         std::make_shared<DenseDataset<uint8_t>>(hashed_db, n_points);
   }
-  if (opts.serialized_partitioner != nullptr) {
-    if (datapoint_to_token.size() != n_points)
-      return InvalidArgumentError(
-          absl::StrFormat("datapoint_to_token length=%d but expected %d",
-                          datapoint_to_token.size(), n_points));
-    opts.datapoints_by_token =
-        std::make_shared<vector<std::vector<DatapointIndex>>>(
-            opts.serialized_partitioner->n_tokens());
-    for (auto [dp_idx, token] : Enumerate(datapoint_to_token))
-      opts.datapoints_by_token->at(token).push_back(dp_idx);
-  }
+  SCANN_RETURN_IF_ERROR(AddTokenizationToOptions(opts, datapoint_to_token));
   if (!int8_dataset.empty()) {
     auto int8_data = std::make_shared<PreQuantizedFixedPoint>();
     vector<int8_t> int8_vec(int8_dataset.data(),
@@ -159,6 +221,7 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
     else
       min_batch_size_ = 256;
   }
+  parallel_query_pool_ = StartThreadPool("ScannQueryingPool", GetNumCPUs() - 1);
   return OkStatus();
 }
 
@@ -243,9 +306,9 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
 
   const size_t kBatchSize = std::min(
       std::max(min_batch_size_, DivRoundUp(numQueries, numCPUs)), 256ul);
-  auto pool = StartThreadPool("pool", numCPUs - 1);
   return ParallelForWithStatus<1>(
-      Seq(DivRoundUp(numQueries, kBatchSize)), pool.get(), [&](size_t i) {
+      Seq(DivRoundUp(numQueries, kBatchSize)), parallel_query_pool_.get(),
+      [&](size_t i) {
         size_t begin = kBatchSize * i;
         size_t curSize = std::min(numQueries - begin, kBatchSize);
         vector<float> queryCopy(
@@ -257,50 +320,70 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
       });
 }
 
-Status ScannInterface::Serialize(std::string path) {
+StatusOr<ScannAssets> ScannInterface::Serialize(std::string path) {
   TF_ASSIGN_OR_RETURN(auto opts, scann_->ExtractSingleMachineFactoryOptions());
+  ScannAssets assets;
+  const auto add_asset = [&assets](const std::string& fpath,
+                                   ScannAsset::AssetType type) {
+    ScannAsset* asset = assets.add_assets();
+    asset->set_asset_type(type);
+    asset->set_asset_path(fpath);
+  };
 
   SCANN_RETURN_IF_ERROR(
       WriteProtobufToFile(path + "/scann_config.pb", &config_));
-  if (opts.ah_codebook != nullptr)
+  if (opts.ah_codebook != nullptr) {
+    std::string fpath = path + "/ah_codebook.pb";
+    add_asset(fpath, ScannAsset::AH_CENTERS);
+    SCANN_RETURN_IF_ERROR(WriteProtobufToFile(fpath, opts.ah_codebook.get()));
+  }
+  if (opts.serialized_partitioner != nullptr) {
+    std::string fpath = path + "/serialized_partitioner.pb";
+    add_asset(fpath, ScannAsset::PARTITIONER);
     SCANN_RETURN_IF_ERROR(
-        WriteProtobufToFile(path + "/ah_codebook.pb", opts.ah_codebook.get()));
-  if (opts.serialized_partitioner != nullptr)
-    SCANN_RETURN_IF_ERROR(
-        WriteProtobufToFile(path + "/serialized_partitioner.pb",
-                            opts.serialized_partitioner.get()));
+        WriteProtobufToFile(fpath, opts.serialized_partitioner.get()));
+  }
   if (opts.datapoints_by_token != nullptr) {
     vector<int32_t> datapoint_to_token(n_points_);
     for (const auto& [token_idx, dps] : Enumerate(*opts.datapoints_by_token))
       for (auto dp_idx : dps) datapoint_to_token[dp_idx] = token_idx;
-    SCANN_RETURN_IF_ERROR(
-        VectorToNumpy(path + "/datapoint_to_token.npy", datapoint_to_token));
+    std::string fpath = path + "/datapoint_to_token.npy";
+    add_asset(fpath, ScannAsset::TOKENIZATION_NPY);
+    SCANN_RETURN_IF_ERROR(VectorToNumpy(fpath, datapoint_to_token));
   }
   if (opts.hashed_dataset != nullptr) {
-    SCANN_RETURN_IF_ERROR(
-        DatasetToNumpy(path + "/hashed_dataset.npy", *(opts.hashed_dataset)));
+    std::string fpath = path + "/hashed_dataset.npy";
+    add_asset(fpath, ScannAsset::AH_DATASET_NPY);
+    SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *(opts.hashed_dataset)));
   }
   if (opts.pre_quantized_fixed_point != nullptr) {
     auto fixed_point = opts.pre_quantized_fixed_point;
     auto dataset = fixed_point->fixed_point_dataset;
     if (dataset != nullptr) {
-      SCANN_RETURN_IF_ERROR(
-          DatasetToNumpy(path + "/int8_dataset.npy", *dataset));
+      std::string fpath = path + "/int8_dataset.npy";
+      add_asset(fpath, ScannAsset::INT8_DATASET_NPY);
+      SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *dataset));
     }
     auto multipliers = fixed_point->multiplier_by_dimension;
     if (multipliers != nullptr) {
-      SCANN_RETURN_IF_ERROR(
-          VectorToNumpy(path + "/int8_multipliers.npy", *multipliers));
+      std::string fpath = path + "/int8_multipliers.npy";
+      add_asset(fpath, ScannAsset::INT8_MULTIPLIERS_NPY);
+      SCANN_RETURN_IF_ERROR(VectorToNumpy(fpath, *multipliers));
     }
     auto norms = fixed_point->squared_l2_norm_by_datapoint;
     if (norms != nullptr) {
-      SCANN_RETURN_IF_ERROR(VectorToNumpy(path + "/dp_norms.npy", *norms));
+      std::string fpath = path + "/dp_norms.npy";
+      add_asset(fpath, ScannAsset::INT8_NORMS_NPY);
+      SCANN_RETURN_IF_ERROR(VectorToNumpy(fpath, *norms));
     }
   }
   TF_ASSIGN_OR_RETURN(auto dataset, Float32DatasetIfNeeded());
-  if (dataset != nullptr)
-    SCANN_RETURN_IF_ERROR(DatasetToNumpy(path + "/dataset.npy", *dataset));
-  return OkStatus();
+  if (dataset != nullptr) {
+    std::string fpath = path + "/dataset.npy";
+    add_asset(fpath, ScannAsset::DATASET_NPY);
+    SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *dataset));
+  }
+  return assets;
 }
 
 StatusOr<SingleMachineFactoryOptions> ScannInterface::ExtractOptions() {

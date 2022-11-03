@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Model components for an end-to-end-trainable graph/automaton hybrid.
 
 The components defined in this module share a common interface

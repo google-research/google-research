@@ -88,6 +88,9 @@ class ColAutomata(object):
         if indices is None:
             self.indices = []
 
+    def __len__(self):
+        return len(self.indices)
+
     @property
     def next_edge(self):
         if self.pos < len(self.indices):

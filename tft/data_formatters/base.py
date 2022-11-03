@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Default data formatting functions for experiments.
 
 For new datasets, inherit form GenericDataFormatter and implement

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Filter Response Normalization (FRN) layer for Keras.
 
 Filter Response Normalization is a recently published method that serves as a

@@ -18,6 +18,7 @@
 #define SCANN_HASHES_INTERNAL_ASYMMETRIC_HASHING_LUT16_H_
 
 #include <cstdint>
+#include <vector>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/dataset.h"

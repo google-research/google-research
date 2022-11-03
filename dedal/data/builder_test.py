@@ -134,10 +134,8 @@ uniref/labels/multi_task.Backbone.embeddings = [('target', 'weights')]
 uniref/DatasetBuilder.metadata = ('seq_key',)
 
 # Configures second `DatasetBuilder`.
-pfam/DatasetBuilder.data_loader = @CSVLoader()
-CSVLoader.folder = 'fake_folder'
-CSVLoader.fields = {}
-CSVLoader.fields_to_use = []
+pfam/DatasetBuilder.data_loader = @TSVLoader()
+TSVLoader.folder = 'fake_folder'
 pfam/DatasetBuilder.transformations = [
     @pfam/Encode(),
     @pfam/EOS(),
@@ -176,7 +174,7 @@ class MultiDatasetBuilderTest(tf.test.TestCase):
     self.mock_load1 = mock.patch.object(
         loaders.TFDSLoader, 'load', autospec=True).start()
     self.mock_load2 = mock.patch.object(
-        loaders.CSVLoader, 'load', autospec=True).start()
+        loaders.TSVLoader, 'load', autospec=True).start()
 
     self.batch = (32, 16)
     self.lengths = (1024, 512)  # from GIN_CONFIG_MULTI.

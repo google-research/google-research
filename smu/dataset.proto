@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Copyright 2022 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Protocol buffers for the Small Molecule Universe Project
 //
 // TODO(pfr): add link to paper when available
@@ -32,8 +46,8 @@ import "google/protobuf/descriptor.proto";
 
 ///////////// Custom options
 // The dataset is released in two forms
-// 1. COMPLETE: Has all conformers and almost all fields
-// 2. STANDARD: Has conformers where calculations did not encounter serious
+// 1. COMPLETE: Has all molecules and almost all fields
+// 2. STANDARD: Has molecules where calculations did not encounter serious
 //    errors and a limited set of the most interesting fields.
 //
 // We use protobuf field options for marking the availability of fields in
@@ -90,6 +104,35 @@ message BondTopology {
     BondType bond_type = 3;
   }
 
+  // These values are for the source bitfield below
+  enum SourceType {
+    SOURCE_UNSET = 0;
+    // Indicates taht this was the topology used during the geometry creation
+    // process itself. It will always co-occur with SOURCE_ITC
+    SOURCE_STARTING = 1;
+    // Indicates that this is a topology that matches the bond ranges used for
+    // the the Initial Topology Checks in the geometry search procedure.
+    SOURCE_ITC = 2;
+    // Indicates that this topology matches bond lengths determined by covalent
+    // radii plus a tolerance factor.
+    // Follows the procedure from:
+    // Meng, E. C. & Lewis, R. A. Determination of molecular topology and atomic
+    // hybridization states from heavy atom coordinates. J. Comput. Chem. 12,
+    // 891–898 (1991)
+    SOURCE_MLCR = 4;
+    // Indicates that this topology matches bond lengths extracted from
+    // the Cambridge Structural Database as complied by :
+    // Allen, F. H. et al. Tables of bond lengths determined by X-ray and neutron
+    // diffraction. Part 1. Bond lengths in organic compounds.
+    // J. Chem. Soc. Perkin Trans. 2 S1–S19 (1987)
+    // with a 3 sigma cutoff.
+    SOURCE_CSD = 8;
+    // This value will never appear in the published database, but if bond
+    // lengths are modified for geometry based queries to the database, then this
+    // value will be used.
+    SOURCE_CUSTOM = 16;
+  }
+
   // Note that this order of atoms will be used throughout the specification of
   // geometries below.
   repeated AtomType atoms = 1;
@@ -103,23 +146,10 @@ message BondTopology {
   // A unique 1 indexed dense id for this topology.
   int32 bond_topology_id = 4;
 
-  // INTERNAL ONLY: This will not be available in the external database.
-  //
-  // If this has been discerned from geometry, the associated score.
-  // Now, prefer topology_score and geometry_score to reflect the different
-  // kinds of scores available.
-  // This is still used in smu_molecule as a generic score value accumulator -
-  // smu_molecule does not know what kind of score it is accumulating.
-  float score = 5;
+  // Bitfield of values from SourceType indicating where this bond topology came from.
+  int32 source = 10;
 
-  // If this has been discerned from geometry, is it the same as the
-  // starting BondTopology.
-  bool is_starting_topology = 6;
-
-  // Number of atoms that are in a ring.
-  int32 ring_atom_count = 7;
-
-  // An estimate of log(P(topology|geometry))
+  // An estimate of ln(P(topology|geometry))
   //
   // This is a discrete distribution among all matching topologies
   // from this geometry. Since we are in log space, a value of 0 means
@@ -128,7 +158,7 @@ message BondTopology {
   // exp(topology_score) will sum to 1.
   float topology_score = 8;
 
-  // An estimate of log(p(geometry|topology)).
+  // An estimate of ln(p(geometry|topology)).
   //
   // This reflects how suprising this particular geometry is given the
   // topology. Note that this is a probability *density* not a
@@ -140,6 +170,24 @@ message BondTopology {
   //
   // Note that only bonds between heavy atoms are used in computing this.
   float geometry_score = 9;
+
+  // INTERNAL ONLY: This will not be available in the external database.
+  //
+  // If this has been discerned from geometry, the associated score.
+  // Now, prefer topology_score and geometry_score to reflect the different
+  // kinds of scores available.
+  // This is still used in topology_molecule as a generic score value accumulator -
+  // topology_molecule does not know what kind of score it is accumulating.
+  float score = 5 [(availability) = INTERNAL_ONLY];
+
+  // If this has been discerned from geometry, is it the same as the
+  // starting BondTopology.
+  // DEPRECATED: will not be set in final database.
+  bool is_starting_topology = 6;
+
+  // Number of atoms that are in a ring.
+  // INTERNAL ONLY: This will not be available in the external database.
+  int32 ring_atom_count = 7 [(availability) = INTERNAL_ONLY];
 }
 
 // When doing topology from geometry matching, the results are returned
@@ -150,11 +198,11 @@ message TopologyMatches {
   // It is convenient to have the starting smiles.
   string starting_smiles = 2;
 
-  // And the conformer_id
-  int32 conformer_id = 3;
+  // And the molecule_id
+  int32 molecule_id = 3;
 
   // To avoid having to join results later, store the fate.
-  Conformer.FateCategory fate = 4;
+  Properties.FateCategory fate = 4;
 }
 
 // Geometry captures the 3D locations of the atoms. The atom types are left
@@ -166,19 +214,84 @@ message Geometry {
     float y = 2;
     float z = 3;
   }
-  repeated AtomPos atom_positions = 1;
+  repeated AtomPos atom_positions = 1
+      [(availability) = STANDARD];
+
+  // Energy and and overall gradient norm (gnorm) for the geometty.
+  // The energy is computed by Turbomole with PBE0-D3/6-311G(d)
+  // Units: atomic units (Hartrees)
+  Properties.ScalarMolecularProperty energy = 2
+      [(availability) = STANDARD];
+  Properties.ScalarMolecularProperty gnorm = 3
+      [(availability) = STANDARD];
+
+  // Just the nuclear repulsion energy term for the energy.
+  // Will only be available for the optimized geometry.
+  // Units: atomic units (Hartree)
+  Properties.ScalarMolecularProperty enuc = 4
+      [(availability) = COMPLETE];
+
+  // The eigenvalues of the moment of inertia tensor.
+  // Will only be available for the optimized geometry.
+  // Units: Mhz
+  Properties.MultiScalarMolecularProperty rotcon = 5
+      [(availability) = STANDARD];
 }
 
 // All the properties that are computed for a molecule.
 message Properties {
-  // These values capture all of the possible error states during computations.
-  // TODO(pfr): this proto will undergo a major revision with next round of
-  // data.
+  // Fate is a simple categorical summary of how this molecule progressed
+  // through the whole pipeline of computations.
+  enum FateCategory {
+    // FATE_UNDEFINED should not be present in the final data
+    FATE_UNDEFINED = 0;
+    // Duplicated to another Molecule with the same bond topology. This
+    // Molecule will not have most properties fields.
+    FATE_DUPLICATE_SAME_TOPOLOGY = 1;
+    // Duplicated to another Molecule with a different bond topology. This
+    // Molecule will not have most properties fields.
+    FATE_DUPLICATE_DIFFERENT_TOPOLOGY = 2;
+    // Errors were encountered during geometry optimization. This
+    // Molecule will not have most properties fields.
+    FATE_GEOMETRY_OPTIMIZATION_PROBLEM = 3;
+    // After geometry optimization, the expected bonding pattern was no longer
+    // consistent with the geometry. This Molecule will not have most
+    // properties fields.
+    FATE_DISASSOCIATED = 4;
+    // During geometry optimization, problems were encountered converging to a
+    // local minima. This Molecule will not have most properties fields.
+    // TODO(pfr): check documentation
+    FATE_FORCE_CONSTANT_FAILURE = 5;
+    // Other problems were encountered during geometry optimization. This
+    // Molecule will not have most properties fields.
+    FATE_DISCARDED_OTHER = 6;
+    // Calculation results are missing. Should not be present in final dataset.
+    FATE_NO_CALCULATION_RESULTS = 7;
+    // Some calculation results had serious/major/moderate errors.
+    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
+    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
+    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
+    // Some calculations had only minor errors with some warnings.
+    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
+    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
+    // Calculations were successful with only minor errors/warnings
+    FATE_SUCCESS = 9;
+  }
+
+  // Errors captures information about how the computation on this molecule
+  // progressed.
   message Errors {
+    // A simple categorical summary of the outcome.
+    FateCategory fate = 40;
+
     // status is a summary of all the error conditions encountered.
     // 0 indicates no errors and larger values indicate increasingly serious
     // errors.
     int32 status = 29;
+
+    // Specifies which database (STANDARD or COMPLETE) this Molecule
+    // will be in. Note that everything in STANDARD is also included in COMPLETE.
+    AvailabilityEnum which_database = 41;
 
     // All of the warn_ fields are categories of errors encountered.
     // 0 means no errors and larger values are increasingly serious.
@@ -347,14 +460,27 @@ message Properties {
 
   // A rank 2 tensor property.
   message Rank2MolecularProperty {
-    // TODO(pfr): Document the encoding order.
-    repeated double matrix_values = 1;
+    repeated double matrix_values_deprecated = 1 [deprecated = true];
+    double xx = 2;
+    double yy = 3;
+    double zz = 4;
+    double xy = 5;
+    double xz = 6;
+    double yz = 7;
   }
   // A rank 3 tensor property
   message Rank3MolecularProperty {
-    // TODO(pfr): Document the encoding order.
-
-    repeated double tensor_values = 1;
+    repeated double tensor_values_deprecated = 1 [deprecated = true];
+    double xxx = 2;
+    double yyy = 3;
+    double zzz = 4;
+    double xxy = 5;
+    double xxz = 6;
+    double xyy = 7;
+    double yyz = 8;
+    double xzz = 9;
+    double yzz = 10;
+    double xyz = 11;
   }
   // Normal modes with atomic displacements.
   message NormalMode {
@@ -669,20 +795,20 @@ message Properties {
   // optimization and at the end of the final geometry optimization.
   // Units: atomic units (Hartrees)
   // TODO(pfr): shoudl match single_point_energy_pbe0d3_6_311gd
-  ScalarMolecularProperty initial_geometry_energy = 95
+  ScalarMolecularProperty initial_geometry_energy_deprecated = 95
       [(availability) = STANDARD];
-  ScalarMolecularProperty initial_geometry_gradient_norm = 96
+  ScalarMolecularProperty initial_geometry_gradient_norm_deprecated = 96
       [(availability) = STANDARD];
   // The energy is computed by Turbomole with PBE0-D3/6-311G(d)
   // Units: atomic units (Hartrees)
-  ScalarMolecularProperty optimized_geometry_energy = 97
+  ScalarMolecularProperty optimized_geometry_energy_deprecated = 97
       [(availability) = STANDARD];
-  ScalarMolecularProperty optimized_geometry_gradient_norm = 98
+  ScalarMolecularProperty optimized_geometry_gradient_norm_deprecated = 98
       [(availability) = STANDARD];
 
   // The eigenvalues of the moment of inertia tensor.
   // Units: Mhz
-  Vector3DMolecularProperty rotational_constants = 99
+  Vector3DMolecularProperty rotational_constants_deprecated = 99
       [(availability) = STANDARD];
 
   // Strings describing the bond separation reaction used by ATOMIC2 analysis.
@@ -819,7 +945,7 @@ message Properties {
 
   // For the optimized geoemtry, energy just for the nuclei.
   // Units: atomic units (Hartree)
-  ScalarMolecularProperty nuclear_repulsion_energy = 112
+  ScalarMolecularProperty nuclear_repulsion_energy_deprecated = 112
       [(availability) = COMPLETE];
 
   // Diagnostics D1(CCSD/2sp).
@@ -879,24 +1005,24 @@ message Properties {
   reserved 2, 3, 5, 100 to 109, 44 to 46;
 }
 
-// Conformer is the primary protocol buffer for the dataset.
+// Molecule is the primary protocol buffer for the dataset.
 //
-// A Conformer represents a particular optimized geometry (that might derive
+// A Molecule represents a particular optimized geometry (that might derive
 // from several different initial geometries) and be associated with several
 // BondTopology.
-message Conformer {
-  // The conformer ID is unique across all conformers. It is constructed with
+message Molecule {
+  // The molecule ID is unique across all molecules. It is constructed with
   // the bond_topology_id of one of the bond topologies that generated this
   // geometry plus a unique id (<1000): bond_topology_id * 1000 + unique id
-  int32 conformer_id = 1;
+  int32 molecule_id = 1;
 
   // INTERNAL_ONLY In the original .dat format, we kept the 1-based dense index
-  // of this conformer for the bond_topology and we store the index to ensure
+  // of this molecule for the bond_topology and we store the index to ensure
   // perfect production of the .dat file.
-  int32 original_conformer_index = 2 [(availability) = INTERNAL_ONLY];
+  int32 original_molecule_index = 2 [(availability) = INTERNAL_ONLY];
 
   // Geometry produced by minimization by with an empirical force
-  // field. This is repeated because Conformers are deduplicated by
+  // field. This is repeated because Molecules are deduplicated by
   // their optimized_geometry and multiple initial_geometry can
   // converge to the same optimized_geometry.  Although duplicates can
   // be found across bond topologies, *only* the duplicates produced
@@ -913,12 +1039,12 @@ message Conformer {
 
   // After geometry optimization, duplicate geometries were identified and one
   // of the geometries was kept through a series of heuristics.
-  // If this Conformer was discarded:
+  // If this Molecule was discarded:
   // * It will only be present in the COMPLETE dataset, not the STANDARD.
-  // * duplicated_by is set with the conformer_id that this Conformer was
+  // * duplicated_by is set with the molecule_id that this Molecule was
   //   discarded in favor of.
-  // If this Conformer was kept over other duplicates:
-  // * duplicate_of is set with all the conformer_id of the discarded Conformer.
+  // If this Molecule was kept over other duplicates:
+  // * duplicate_of is set with all the molecule_id of the discarded Molecule.
   int32 duplicated_by = 5;
   repeated int32 duplicate_of = 6;
 
@@ -927,84 +1053,46 @@ message Conformer {
 
   // All of the bond topologies that describe this geometry.
   // These are ordered by how well the bond topology describes this geometry.
-  // The geometry that was originally used in the geometry optimization phase
-  // is marked by the field is_starting_topology.
   // TODO(pfr): double check the field name.
   // TODO(pfr): add a reference to the paper describing this
   repeated BondTopology bond_topologies = 8;
 
-  // Fate is a simple categorical summary of how this conformer progressed
-  // through the whole pipeline of computations.
-  enum FateCategory {
-    // FATE_UNDEFINED should not be present in the final data
-    FATE_UNDEFINED = 0;
-    // Duplicated to another Conformer with the same bond topology. This
-    // Conformer will not have most properties fields.
-    FATE_DUPLICATE_SAME_TOPOLOGY = 1;
-    // Duplicated to another Conformer with a different bond topology. This
-    // Conformer will not have most properties fields.
-    FATE_DUPLICATE_DIFFERENT_TOPOLOGY = 2;
-    // Errors were encountered during geometry optimization. This
-    // Conformer will not have most properties fields.
-    FATE_GEOMETRY_OPTIMIZATION_PROBLEM = 3;
-    // After geometry optimization, the expected bonding pattern was no longer
-    // consistent with the geometry. This Conformer will not have most
-    // properties fields.
-    FATE_DISASSOCIATED = 4;
-    // During geometry optimization, problems were encountered converging to a
-    // local minima. This Conformer will not have most properties fields.
-    // TODO(pfr): check documentation
-    FATE_FORCE_CONSTANT_FAILURE = 5;
-    // Other problems were encountered during geometry optimization. This
-    // Conformer will not have most properties fields.
-    FATE_DISCARDED_OTHER = 6;
-    // Calculation results are missing. Should not be present in final dataset.
-    FATE_NO_CALCULATION_RESULTS = 7;
-    // Some calculation results had serious/major/moderate errors.
-    FATE_CALCULATION_WITH_SERIOUS_ERROR = 8;
-    FATE_CALCULATION_WITH_MAJOR_ERROR = 10;
-    FATE_CALCULATION_WITH_MODERATE_ERROR = 11;
-    // Some calculations had only minor errors with some warnings.
-    FATE_CALCULATION_WITH_WARNING_SERIOUS = 12;
-    FATE_CALCULATION_WITH_WARNING_VIBRATIONAL = 13;
-    // Calculations were successful with only minor errors/warnings
-    FATE_SUCCESS = 9;
-  }
-  FateCategory fate = 9;
+  // DEPRECATED: old location for this value
+  Properties.FateCategory fate_deprecated = 9;
 
-  // Specifies which database (STANDARD or COMPLETE) this Conformer
+  // Specifies which database (STANDARD or COMPLETE) this Molecule
   // will be in. Note that everything in STANDARD is also included in COMPLETE.
-  AvailabilityEnum which_database = 10;
+  AvailabilityEnum which_database_deprecated = 10;
 }
 
-///////////// MultipleConformers
+///////////// MultipleMolecules
 
-// Bundles a number of conformers. This message is just needed to simplify
+// Bundles a number of molecules. This message is just needed to simplify
 // testing. It will not be present in the main dataset.
-// multiple Conformer entries.
-message MultipleConformers {
-  repeated Conformer conformers = 1;
+// multiple Molecule entries.
+message MultipleMolecules {
+  repeated Molecule molecules = 1;
 }
 
 ///////////// BondTopologySummary
 
 // BondTopologySummary is a summarized form with a very small amount of
 // information about each bond topology that was considered. Note the close
-// alignment to the "fate" field in Conformer.
+// alignment to the "fate" field in Molecule.
 message BondTopologySummary {
   BondTopology bond_topology = 1;
 
-  // Attempted conformers are ones that were attempted to be minimized with
+  // Attempted molecules are ones that were attempted to be minimized with
   // PBE0D3. These resulted from potentially many attempts to create 3D
   // coordinates and minimze with MMFF.
-  int32 count_attempted_conformers = 2;
+  int32 count_attempted_molecules = 2;
 
-  // Next set of fields track the result of each attempted conformer. The sum of
+  // Next set of fields track the result of each attempted molecule. The sum of
   // count_duplicates_same_topology
   // count_duplicates_different_topology
   // count_failed_geometry_optimization
   // count_non_duplicate_kept_geometry
-  // should be equal to count_attempted_conformers
+  // should be equal to count_attempted_molecules
   // These fields count duplicates after the PBE0D3 geometry minimization.
   int32 count_duplicates_same_topology = 3;
   int32 count_duplicates_different_topology = 4;
@@ -1028,18 +1116,28 @@ message BondTopologySummary {
   int32 count_calculation_with_warning = 12;
   int32 count_calculation_success = 9;
 
-  // After all calculations were done, we detected all bond topologies which are
-  // consistent with a conformer's geometry. These fields count the results of
-  // these "detected" geometries. Note that the geometries counted in the
-  // "duplicate" fields above will probably be counted here.
-  int32 count_detected_match_with_error = 10;
-  int32 count_detected_match_with_warning = 13;
-  int32 count_detected_match_success = 11;
+  // After all calculations were done, we detected all bond topologies
+  // which are consistent with a molecule's geometry, with several
+  // different criteria (ITC, MLCR, CSD (see Source above for
+  // details)). These fields count the results of these "detected"
+  // geometries. Note that the geometries counted in the "duplicate"
+  // fields above will probably be counted here.
+  int32 count_detected_match_itc_with_error = 10;
+  int32 count_detected_match_itc_with_warning = 13;
+  int32 count_detected_match_itc_success = 11;
 
-  // The same topology can be detected multiple times for a single conformer.
+  int32 count_detected_match_mlcr_with_error = 15;
+  int32 count_detected_match_mlcr_with_warning = 16;
+  int32 count_detected_match_mlcr_success = 17;
+
+  int32 count_detected_match_csd_with_error = 18;
+  int32 count_detected_match_csd_with_warning = 19;
+  int32 count_detected_match_csd_success = 20;
+
+  // The same topology can be detected multiple times for a single molecule.
   // Typically this would be for kekulized forms that results in an isomorphic
   // graph. When this happens, the bond topology id is only counted once per
-  // conformer by the other fields and counted once per conformer here.
+  // molecule by the other fields and counted once per molecule here.
   int32 count_multiple_detections = 14;
 }
 

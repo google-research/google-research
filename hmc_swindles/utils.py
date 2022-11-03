@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+from collections import abc
 import contextlib
 import functools
 import json
@@ -62,6 +63,7 @@ class PiecewiseConstantDecay(tf.optimizers.schedules.LearningRateSchedule):
     self.name = name
 
   def __call__(self, step):
+    step = tf.cast(step, dtype=tf.float32)
     with tf.name_scope(self.name):
       boundaries = tf.nest.map_structure(tf.convert_to_tensor, self.boundaries)
       values = tf.nest.map_structure(tf.convert_to_tensor, self.values)
@@ -748,9 +750,9 @@ def encode_tree(tree):
     ret["__type__"] = type(tree).__name__
     return ret
   if isinstance(tree,
-                collections.Sequence) and not isinstance(tree, (str, bytes)):
+                abc.Sequence) and not isinstance(tree, (str, bytes)):
     return [encode_tree(v) for v in tree]
-  if isinstance(tree, collections.Mapping):
+  if isinstance(tree, abc.Mapping):
     return {k: encode_tree(v) for k, v in tree.items()}
   return tree
 
@@ -766,7 +768,7 @@ def decode_tree(tree):
   Returns:
     encoded_tree: Encoded tree.
   """
-  if isinstance(tree, collections.Mapping):
+  if isinstance(tree, abc.Mapping):
     if tree.get("__type__") == "ndarray":
       return np.array(tree["data"]).astype(np.dtype(tree["dtype"]))
     if tree.get("__type__") in _NAMEDTUPLE_REGISTRY:
@@ -776,7 +778,7 @@ def decode_tree(tree):
       return _NAMEDTUPLE_REGISTRY[name](**tree)
     return {k: decode_tree(v) for k, v in tree.items()}
   if isinstance(tree,
-                collections.Sequence) and not isinstance(tree, (str, bytes)):
+                abc.Sequence) and not isinstance(tree, (str, bytes)):
     return [decode_tree(v) for v in tree]
   return tree
 

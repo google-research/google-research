@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Split images and labels into train and validation. Then pickle the data."""
 from __future__ import absolute_import
 from __future__ import division

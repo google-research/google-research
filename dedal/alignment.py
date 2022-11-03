@@ -185,9 +185,9 @@ def paths_to_state_indicators(
       the alignment path, by having a one along the taken edges, with nine
       possible edges for each i,j.
     states: A Python list of integers in [0, 9), representing an arbitrary
-      subset of (encoded) edge types. Can also be set to 'match', 'gap_open' or
-      'gap_extend' to query the set of edge types associated with each of those
-      conditions.
+      subset of (encoded) edge types. This can also be set to 'match',
+      'gap_open' or 'gap_extend' to query the set of edge types associated with
+      each of those conditions.
 
   Returns:
     A tf.Tensor `state_indicators` of type tf.float32 and shape (batch_size,
@@ -332,8 +332,8 @@ def broadcast_to_rank(t, rank, axis = -1):
 
 def broadcast_to_shape(
     t,
-    shape
-    ):
+    shape,
+):
   """Appends dimensions to and tiles tf.Tensor t to match desired shape."""
   rank = len(shape)
   t = broadcast_to_rank(t, rank, axis=-1)
@@ -373,18 +373,11 @@ def weights_from_sim_mat(
       transitions (match, gap_in_y) and (gap_in_x, gap_in_y) and, finally,
       (gap_in_y, gap_in_y), respectively.
   """
-  l1, l2 = sim_mat.shape[1:3]
+  b, l1, l2 = tf.shape(sim_mat)[0], tf.shape(sim_mat)[1], tf.shape(sim_mat)[2]
 
-  sim_mat = sim_mat[Ellipsis, None]
-  sim_mat = tf.tile(sim_mat, [1, 1, 1, 4])
-  if gap_open.shape.rank == 3:
-    gap_open = gap_open[Ellipsis, None]
-    gap_extend = gap_extend[Ellipsis, None]
-  else:
-    gap_open = gap_open[Ellipsis, None, None, None]
-    gap_open = tf.tile(gap_open, [1, l1, l2, 1])
-    gap_extend = gap_extend[Ellipsis, None, None, None]
-    gap_extend = tf.tile(gap_extend, [1, l1, l2, 1])
+  sim_mat = broadcast_to_shape(sim_mat, [b, l1, l2, 4])
+  gap_open = broadcast_to_shape(gap_open, [b, l1, l2, 1])
+  gap_extend = broadcast_to_shape(gap_extend, [b, l1, l2, 1])
 
   weights_m = sim_mat
   weights_x = tf.concat([-gap_open, -gap_extend], axis=-1)

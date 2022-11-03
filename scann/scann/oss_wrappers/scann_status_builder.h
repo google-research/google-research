@@ -15,6 +15,7 @@
 #ifndef SCANN_OSS_WRAPPERS_SCANN_STATUS_BUILDER_H_
 #define SCANN_OSS_WRAPPERS_SCANN_STATUS_BUILDER_H_
 
+#include <memory>
 #include <sstream>
 
 #include "absl/memory/memory.h"
@@ -44,7 +45,7 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
   StatusBuilder& operator<<(const T& value) & {
     if (status_.ok()) return *this;
     if (streamptr_ == nullptr)
-      streamptr_ = absl::make_unique<std::ostringstream>();
+      streamptr_ = std::make_unique<std::ostringstream>();
     *streamptr_ << value;
     return *this;
   }

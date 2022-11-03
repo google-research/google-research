@@ -75,6 +75,12 @@ RGB and disparity nature images. Note that if you modify the code to run on your
 
 will run 100 steps of Infinite Nature using autocruise to control the pose and save the frames to `autocruise/`.
 
+### Community Contributions
+
+These are related codebases. We don't maintain these repositories but want to share them.
+
+[yshen47](https://github.com/yshen47) has created a PyTorch implementation of the model code including loading the TF checkpoint: [github.com/yshen47/InfiniteNature-PyTorch](https://github.com/yshen47/InfiniteNature-PyTorch)
+
 ### Bibtex
 ```
 @InProceedings{infinite_nature_2020,

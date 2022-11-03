@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Language-agnostic AST representation and schema utilities.
 
 This module provides a dataclass for defining an AST structure, and then allows

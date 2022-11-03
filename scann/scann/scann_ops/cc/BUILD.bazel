@@ -74,6 +74,7 @@ cc_library(
         "//scann/partitioning:partitioner_cc_proto",
         "//scann/proto:brute_force_cc_proto",
         "//scann/proto:centers_cc_proto",
+        "//scann/scann_ops:scann_assets_cc_proto",
         "//scann/tree_x_hybrid:tree_x_params",
         "//scann/utils:io_npy",
         "//scann/utils:io_oss_wrapper",
@@ -97,5 +98,6 @@ pybind_library(
     tags = ["local"],
     deps = [
         ":scann",
+        "//scann/utils:io_oss_wrapper",
     ],
 )

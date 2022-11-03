@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Tests for rouge scorer.
 
 Tests for both correctness and for consistency with the official ROUGE-1.5.5
@@ -62,6 +61,20 @@ class RougeScorerTest(parameterized.TestCase):
     self.assertAlmostEqual(1, result["rouge1"].precision)
     self.assertAlmostEqual(1 / 3, result["rouge1"].recall)
     self.assertAlmostEqual(1 / 2, result["rouge1"].fmeasure)
+
+  def testRouge1Multi(self):
+    scorer = rouge_scorer.RougeScorer(["rouge1"])
+    result = scorer.score_multi(["testing one two"], "testing")
+    self.assertAlmostEqual(1, result["rouge1"].precision)
+    self.assertAlmostEqual(1 / 3, result["rouge1"].recall)
+    self.assertAlmostEqual(1 / 2, result["rouge1"].fmeasure)
+
+  def testRougeAllMulti(self):
+    scorer = rouge_scorer.RougeScorer(["rouge1", "rouge2", "rougeL"])
+    result = scorer.score_multi(["first text", "first something"], "text first")
+    self.assertAlmostEqual(1, result["rouge1"].fmeasure)
+    self.assertAlmostEqual(0, result["rouge2"].fmeasure)
+    self.assertAlmostEqual(0.5, result["rougeL"].fmeasure)
 
   @parameterized.parameters(["rouge1", "rouge2", "rougeL", "rougeLsum"])
   def testRougeEmpty(self, rouge_type):

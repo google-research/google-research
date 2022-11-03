@@ -54,7 +54,7 @@ def load_billiard(split, label_fn):
       "left-color-min-max": (left_color_min_max, 9),
   }[label_fn]
 
-  dataset = _generator_billiard_dataset(directory,
+  dataset = _generator_billiard_dataset(directory,  # pytype: disable=wrong-arg-types
                                         label_fn,
                                         cache=True)
 

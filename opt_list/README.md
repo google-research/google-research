@@ -103,7 +103,7 @@ for i in range(training_steps):
 ```
 
 
-### Jax: Optimizers (jax.experimental.optimizers)
+### Jax: Optimizers (jax.example_libraries.optimizers)
 Full example: `python3 -m opt_list.examples.jax_optimizers`
 
 ```python

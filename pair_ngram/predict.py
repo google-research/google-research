@@ -94,7 +94,8 @@ if __name__ == "__main__":
   parser.add_argument("--input", required=True, help="path to the input data")
   parser.add_argument(
       "--output", required=True, help="path for the output data")
-  parser.add_argument("--rule", help="path to the input FST rule")
+  parser.add_argument(
+      "--rule", required=True, help="path to the input FST rule")
   parser.add_argument(
       "--input_token_type",
       default="utf8",

@@ -15,6 +15,7 @@
 
 """Apache Beam utilities."""
 import collections
+from collections import abc
 import copy
 import math
 from typing import (Any, Iterable, Iterator, List, Mapping, MutableSequence,
@@ -142,7 +143,7 @@ class SummaryStatistics(object):
     Returns:
       The `SummaryStatistics` instance.
     """
-    if isinstance(dictionary['quantiles'], collections.Mapping):
+    if isinstance(dictionary['quantiles'], abc.Mapping):
       # Handles dictionaries made via `to_dict_for_json`.
       quantiles = [
           (float(key), value) for key, value in dictionary['quantiles'].items()

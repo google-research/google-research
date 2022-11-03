@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Custom formatting functions for Electricity dataset.
 
 Defines dataset specific column definitions and data transformations. Uses

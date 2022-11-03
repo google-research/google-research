@@ -15,10 +15,13 @@
 
 """Model based on 1D depthwise and 1x1 convolutions in time + residual."""
 from kws_streaming.layers import modes
+from kws_streaming.layers import quantize
 from kws_streaming.layers import speech_features
 from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
 import kws_streaming.models.model_utils as utils
+from tensorflow_model_optimization.python.core.quantization.keras import quantize_layer
+from tensorflow_model_optimization.python.core.quantization.keras.quantizers import AllValuesQuantizer
 
 
 def model_parameters(parser_nn):
@@ -103,6 +106,19 @@ def model_parameters(parser_nn):
       default=1,
       help='apply scaling in batch normalization layer'
   )
+  parser_nn.add_argument(
+      '--nbit_8bit_until_block',
+      type=int,
+      default=1,
+      help=('Specifies n-bit uses 8-bit weights in the first blocks up '
+            'until the specified block number, 0-based index'),
+  )
+  parser_nn.add_argument(
+      '--nbit_8bit_last',
+      type=int,
+      default=1,
+      help=('Specifies n-bit uses 8-bit weights in the last layer.'),
+  )
 
 
 def resnet_block(inputs,
@@ -112,12 +128,11 @@ def resnet_block(inputs,
                  dilation,
                  stride,
                  filter_separable,
+                 block_id,
+                 flags,
                  residual=False,
                  padding='same',
-                 dropout=0.0,
-                 activation='relu',
-                 scale=True,
-                 use_one_step=True):
+                 ):
   """Residual block.
 
   It is based on paper
@@ -132,12 +147,10 @@ def resnet_block(inputs,
     dilation: dilation in time dim for DepthwiseConv1D
     stride: stride in time dim for DepthwiseConv1D
     filter_separable: use separable conv or standard conv
+    block_id: number of this block for nbit quantization
+    flags: model parameters
     residual: if True residual connection is added
     padding: can be 'same' or 'causal'
-    dropout: dropout value
-    activation: type of activation function (string)
-    scale: apply scaling in batchnormalization layer
-    use_one_step: this parameter will be used for streaming only
 
   Returns:
     output tensor
@@ -148,87 +161,175 @@ def resnet_block(inputs,
   if residual and (padding not in ('same', 'causal')):
     raise ValueError('padding should be same or causal')
 
+  dropout = flags.dropout
+  activation = flags.activation
+  scale = flags.ds_scale  # apply scaling in batchnormalization layer
+  use_one_step = flags.data_stride <= 1   # used for streaming only
+
   net = inputs
   for _ in range(repeat-1):
     if filter_separable:  # apply separable conv
       if kernel_size > 0:
         # DepthwiseConv1D
         net = stream.Stream(
-            cell=tf.keras.layers.DepthwiseConv2D(
-                kernel_size=(kernel_size, 1),
-                strides=(stride, stride),
-                padding='valid',
-                dilation_rate=(dilation, 1),
-                use_bias=False),
+            cell=quantize.quantize_layer(
+                tf.keras.layers.DepthwiseConv2D(
+                    kernel_size=(kernel_size, 1),
+                    strides=(stride, stride),
+                    padding='valid',
+                    dilation_rate=(dilation, 1),
+                    use_bias=False),
+                flags=flags,
+                nbit_weight_8bit=block_id < flags.nbit_8bit_until_block,
+                ),
             use_one_step=use_one_step,
             pad_time_dim=padding)(
                 net)
 
       # Conv1D 1x1 - streamable by default
-      net = tf.keras.layers.Conv2D(
-          filters=filters, kernel_size=1, use_bias=False, padding='valid')(
+      net = quantize.quantize_layer(
+          tf.keras.layers.Conv2D(
+              filters=filters, kernel_size=1, use_bias=False, padding='valid'),
+          flags=flags,
+          quantize_config=quantize.get_conv_bn_quantize_config(
+              flags=flags,
+              nbit_weight_8bit=block_id < flags.nbit_8bit_until_block),
+          )(
               net)
     else:  # apply 1D conv in time
       net = stream.Stream(
-          cell=tf.keras.layers.Conv2D(
-              filters=filters,
-              kernel_size=(kernel_size, 1),
-              dilation_rate=(dilation, 1),
-              padding='valid',
-              activation='linear',
-              use_bias=False),
+          cell=quantize.quantize_layer(
+              tf.keras.layers.Conv2D(
+                  filters=filters,
+                  kernel_size=(kernel_size, 1),
+                  dilation_rate=(dilation, 1),
+                  padding='valid',
+                  activation='linear',
+                  use_bias=False),
+              flags=flags,
+              quantize_config=quantize.get_conv_bn_quantize_config(
+                  flags=flags,
+                  nbit_weight_8bit=block_id < flags.nbit_8bit_until_block),
+              ),
           use_one_step=use_one_step,
           pad_time_dim=padding)(
               net)
 
-    net = tf.keras.layers.BatchNormalization(scale=scale)(net)
-    net = tf.keras.layers.Activation(activation)(net)
-    net = tf.keras.layers.Dropout(rate=dropout)(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.BatchNormalization(scale=scale),
+        flags=flags,
+        quantize_config=quantize.get_no_op_quantize_config(flags=flags),
+        )(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Activation(activation), flags=flags)(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Dropout(rate=dropout), flags=flags)(net)
 
   if filter_separable:  # apply separable conv
     if kernel_size > 0:
       # DepthwiseConv1D
       net = stream.Stream(
-          cell=tf.keras.layers.DepthwiseConv2D(
-              kernel_size=(kernel_size, 1),
-              strides=(stride, stride),
-              padding='valid',
-              dilation_rate=(dilation, 1),
-              use_bias=False),
+          cell=quantize.quantize_layer(
+              tf.keras.layers.DepthwiseConv2D(
+                  kernel_size=(kernel_size, 1),
+                  strides=(stride, stride),
+                  padding='valid',
+                  dilation_rate=(dilation, 1),
+                  use_bias=False),
+              flags=flags,
+              nbit_weight_8bit=block_id < flags.nbit_8bit_until_block,
+              ),
           use_one_step=use_one_step,
           pad_time_dim=padding)(
               net)
 
     # Conv1D 1x1 - streamable by default
-    net = tf.keras.layers.Conv2D(
-        filters=filters, kernel_size=1, use_bias=False, padding='valid')(
-            net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Conv2D(
+            filters=filters, kernel_size=1, use_bias=False, padding='valid'),
+        flags=flags,
+        quantize_config=quantize.get_conv_bn_quantize_config(
+            flags=flags,
+            nbit_weight_8bit=block_id < flags.nbit_8bit_until_block),
+        )(net)
   else:  # apply 1D conv in time
     net = stream.Stream(
-        cell=tf.keras.layers.Conv2D(
-            filters=filters,
-            kernel_size=(kernel_size, 1),
-            dilation_rate=(dilation, 1),
-            padding='valid',
-            activation='linear',
-            use_bias=False),
+        cell=quantize.quantize_layer(
+            tf.keras.layers.Conv2D(
+                filters=filters,
+                kernel_size=(kernel_size, 1),
+                dilation_rate=(dilation, 1),
+                padding='valid',
+                activation='linear',
+                use_bias=False),
+            flags=flags,
+            quantize_config=quantize.get_conv_bn_quantize_config(
+                flags=flags,
+                nbit_weight_8bit=block_id < flags.nbit_8bit_until_block),
+            ),
         use_one_step=use_one_step,
         pad_time_dim=padding)(
             net)
 
-  net = tf.keras.layers.BatchNormalization(scale=scale)(net)
+  net = quantize.quantize_layer(
+      tf.keras.layers.BatchNormalization(scale=scale),
+      flags=flags,
+      quantize_config=quantize.get_no_op_quantize_config(flags=flags),
+      )(net)
 
   if residual:
     # Conv1D 1x1 - streamable by default
-    net_res = tf.keras.layers.Conv2D(
-        filters=filters, kernel_size=1, use_bias=False, padding='valid')(
-            inputs)
-    net_res = tf.keras.layers.BatchNormalization(scale=scale)(net_res)
+    net_res = quantize.quantize_layer(
+        tf.keras.layers.Conv2D(
+            filters=filters, kernel_size=1, use_bias=False, padding='valid'),
+        flags=flags,
+        quantize_config=quantize.get_conv_bn_quantize_config(
+            flags=flags,
+            nbit_weight_8bit=block_id < flags.nbit_8bit_until_block),
+        )(inputs)
 
-    net = tf.keras.layers.Add()([net, net_res])
+    net_res = quantize.quantize_layer(
+        tf.keras.layers.BatchNormalization(scale=scale),
+        flags=flags,
+        quantize_config=quantize.get_no_op_quantize_config(flags=flags),
+        )(net_res)
 
-  net = tf.keras.layers.Activation(activation)(net)
-  net = tf.keras.layers.Dropout(rate=dropout)(net)
+    if flags.quantize:
+      # mitigates unexpected TFLite dequantize before previous Conv2D
+      net = quantize_layer.QuantizeLayer(
+          AllValuesQuantizer(
+              num_bits=8
+              if not flags.use_quantize_nbit
+              else flags.nbit_activation_bits,
+              per_axis=False,
+              symmetric=False,
+              narrow_range=False),
+          )(net)
+
+      # mitigates unexpected TFLite dequantize before previous Conv2D
+      net_res = quantize_layer.QuantizeLayer(
+          AllValuesQuantizer(
+              num_bits=8
+              if not flags.use_quantize_nbit
+              else flags.nbit_activation_bits,
+              per_axis=False,
+              symmetric=False,
+              narrow_range=False),
+          )(net_res)
+
+    net = quantize.quantize_layer(
+        tf.keras.layers.Add(),
+        flags=flags,
+        )([net, net_res])
+
+  net = quantize.quantize_layer(
+      tf.keras.layers.Activation(activation),
+      flags=flags,
+      )(net)
+  net = quantize.quantize_layer(
+      tf.keras.layers.Dropout(rate=dropout),
+      flags=flags,
+      )(net)
   return net
 
 
@@ -261,6 +362,12 @@ def model(flags):
   ds_padding = utils.parse(flags.ds_padding)
   ds_filter_separable = utils.parse(flags.ds_filter_separable)
 
+  if not hasattr(flags, 'nbit_8bit_until_block'):
+    flags.nbit_8bit_until_block = 1
+
+  if not hasattr(flags, 'nbit_8bit_last'):
+    flags.nbit_8bit_last = 1
+
   for l in (ds_repeat, ds_kernel_size, ds_stride, ds_dilation, ds_residual,
             ds_pool, ds_padding, ds_filter_separable):
     if len(ds_filters) != len(l):
@@ -277,35 +384,64 @@ def model(flags):
         speech_features.SpeechFeatures.get_params(flags))(
             net)
 
+  if flags.quantize:
+    net = quantize_layer.QuantizeLayer(
+        AllValuesQuantizer(
+            num_bits=8
+            if not flags.use_quantize_nbit
+            else flags.nbit_activation_bits,
+            per_axis=False,
+            symmetric=False,
+            narrow_range=False),
+        )(net)
+
   # make it [batch, time, 1, feature]
   net = tf.keras.backend.expand_dims(net, axis=2)
 
   # encoder
-  for filters, repeat, ksize, stride, sep, dilation, res, pool, pad in zip(
-      ds_filters, ds_repeat, ds_kernel_size, ds_stride, ds_filter_separable,
-      ds_dilation, ds_residual, ds_pool, ds_padding):
+  for (filters, repeat, ksize, stride, sep, dilation, res, pool, pad, block_id
+       ) in zip(ds_filters, ds_repeat, ds_kernel_size, ds_stride,
+                ds_filter_separable, ds_dilation, ds_residual, ds_pool,
+                ds_padding, range(len(ds_filters))):
     net = resnet_block(net, repeat, ksize, filters, dilation, stride,
-                       sep, res, pad, flags.dropout,
-                       flags.activation, flags.ds_scale, flags.data_stride <= 1)
+                       sep, block_id, flags, res, pad)
+
     if pool > 1:
       if flags.ds_max_pool:
-        net = tf.keras.layers.MaxPooling2D(
-            pool_size=(pool, 1),
-            strides=(pool, 1)
+        net = quantize.quantize_layer(
+            tf.keras.layers.MaxPooling2D(
+                pool_size=(pool, 1),
+                strides=(pool, 1)),
+            flags=flags,
             )(net)
       else:
-        net = tf.keras.layers.AveragePooling2D(
-            pool_size=(pool, 1),
-            strides=(pool, 1)
+        net = quantize.quantize_layer(
+            tf.keras.layers.AveragePooling2D(
+                pool_size=(pool, 1),
+                strides=(pool, 1)),
+            flags=flags,
             )(net)
 
   # decoder
-  net = stream.Stream(cell=tf.keras.layers.GlobalAveragePooling2D())(net)
+  net = stream.Stream(
+      cell=quantize.quantize_layer(
+          tf.keras.layers.GlobalAveragePooling2D(),
+          flags=flags))(net)
 
-  net = tf.keras.layers.Flatten()(net)
+  net = quantize.quantize_layer(
+      tf.keras.layers.Flatten(),
+      flags=flags,
+      )(net)
 
-  net = tf.keras.layers.Dense(units=flags.label_count)(net)
+  net = quantize.quantize_layer(
+      tf.keras.layers.Dense(units=flags.label_count),
+      flags=flags,
+      nbit_weight_8bit=flags.nbit_8bit_last,
+      )(net)
 
   if flags.return_softmax:
-    net = tf.keras.layers.Activation('softmax')(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Activation('softmax'),
+        flags=flags,
+        )(net)
   return tf.keras.Model(input_audio, net)

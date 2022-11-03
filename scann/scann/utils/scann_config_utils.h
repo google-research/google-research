@@ -16,6 +16,7 @@
 #define SCANN_UTILS_SCANN_CONFIG_UTILS_H_
 
 #include <cstdint>
+#include <string>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/features.pb.h"

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Code for training a VAE using our adaptive loss on the Celeb-A dataset.
 
 This code is a fork of TensorFlow Probability's example code at

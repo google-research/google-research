@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Library for scoring and evaluation of text samples.
 
 Aggregation functions use bootstrap resampling to compute confidence intervals

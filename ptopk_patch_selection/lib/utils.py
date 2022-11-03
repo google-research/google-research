@@ -112,7 +112,7 @@ def to_tree_arrays(list_of_trees):
       jax.tree_structure([0] * len(list_of_trees)),
       jax.tree_structure(list_of_trees[0]), list_of_trees)
 
-  trees_array = jax.tree_multimap(lambda _, ls: jnp.stack(ls), list_of_trees[0],
+  trees_array = jax.tree_map(lambda _, ls: jnp.stack(ls), list_of_trees[0],
                                   trees_list)
 
   return trees_array
@@ -247,7 +247,7 @@ def decoupled_weight_decay(decay,
 
   def update_fn(updates, state, params=None):
     step_size = step_size_fn(state.count) * decay
-    updates = jax.tree_multimap(lambda u, p: u - step_size * p, updates, params)
+    updates = jax.tree_map(lambda u, p: u - step_size * p, updates, params)
 
     # does a _safe_int32_increment
     max_int32_value = jnp.iinfo(jnp.int32).max
@@ -527,7 +527,7 @@ def scale_selected_parameters(regex, multiplier):
 
   def update_fn(updates, state, params=None):
     del params
-    multiplied_updates = jax.tree_multimap(
+    multiplied_updates = jax.tree_map(
         lambda m, update: jax.tree_map(lambda u: u * m, update),
         state.multipliers, updates)
     return multiplied_updates, state

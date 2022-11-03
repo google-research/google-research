@@ -15,7 +15,6 @@
 
 """This file contains the utilities for saving videos."""
 # pylint: disable=g-inconsistent-quotes
-# pylint: disable=g-bad-import-order
 # pylint: disable=g-import-not-at-top
 # pylint: disable=unused-import
 from __future__ import absolute_import
@@ -27,13 +26,9 @@ import math
 import os
 
 from absl import logging
+import cv2
 import numpy as np
 
-
-try:
-  import cv2
-except ImportError as e:
-  print(e)
 
 
 font = cv2.FONT_HERSHEY_SIMPLEX

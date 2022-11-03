@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Fixed tasks containing text classification using RNN."""
 import sonnet as snt
 

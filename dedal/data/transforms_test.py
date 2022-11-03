@@ -142,13 +142,15 @@ class TransformsTest(tf.test.TestCase):
     self.assertLen(set(out.keys()), 7)
 
   def test_eos(self):
-    eos_fn = transforms.EOS()
+    vocab = vocabulary.get_default()
+    eos_fn = transforms.EOS(vocab=vocab, token='>')
     output = eos_fn.call(self.seq)
     self.assertAllEqual(output[:-1], self.seq)
     self.assertEqual(output[-1], eos_fn._vocab.get('>'))
 
   def test_prepend_cls(self):
-    cls_fn = transforms.PrependClass()
+    vocab = vocabulary.get_default()
+    cls_fn = transforms.PrependClass(vocab=vocab, token='<')
     output = cls_fn.call(self.seq)
     self.assertAllEqual(output[1:], self.seq)
     self.assertEqual(output[0], cls_fn._vocab.get('<'))

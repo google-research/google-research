@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """xc functional parameterized by neural network."""
 
 import functools
@@ -21,7 +20,7 @@ import functools
 import jax
 from jax import lax
 from jax import nn
-from jax.experimental import stax
+from jax.example_libraries import stax
 import jax.numpy as jnp
 from jax.scipy import ndimage
 

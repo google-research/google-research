@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Implements functionalities associated with Atari."""
 
 from dopamine.discrete_domains import atari_lib

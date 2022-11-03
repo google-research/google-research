@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """CQL learner implementation."""
 
 from collections import OrderedDict
@@ -235,8 +234,8 @@ class CQLLearner(acme.Learner):
           critic_grads, optim_state)
       q_params = optax.apply_updates(q_params, critic_update)
 
-      target_q_params = jax.tree_multimap(
-          lambda x, y: x * (1 - tau) + y * tau, target_q_params, q_params)
+      target_q_params = jax.tree_map(lambda x, y: x * (1 - tau) + y * tau,
+                                     target_q_params, q_params)
 
       return total_critic_loss_and_aux, q_params, target_q_params, optim_state
 

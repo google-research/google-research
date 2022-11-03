@@ -19,9 +19,25 @@ from jax import numpy as jnp
 from sobolev import chebyshev
 
 
-def eval_sobolev_chebyt(n, x, low,
-                        high):
-  """Evaluate the Sobolev-Chebyshev polynomial of the first kind."""
+def eval_schebyt(n, x, low,
+                 high):
+  """Evaluate the Sobolev-Chebyshev polynomial of the first kind.
+
+  Args:
+    n : positive integer.
+      Degree of the polynomial, must be an integer.
+    x : array_like,
+      Points at which to evaluate the Chebyshev polynomial.
+    low: float.
+      Lower bound for the interval of orthogonality, which is (low, high).
+    high: float.
+      Upper bound for the interval of orthogonality, which is (low, high).
+
+
+  Returns:
+    T : ndarray
+      Values of the polynomial
+  """
   if not isinstance(n, int):
     raise NotImplementedError(
         "This function is currently implemented only for " +
@@ -43,5 +59,5 @@ def eval_sobolev_chebyt(n, x, low,
   P_n = chebyshev.eval_chebyt(n, s_x) / chebyshev.eval_chebyt(n, s_0)
   P_n2 = chebyshev.eval_chebyt(n - 2, s_x) / chebyshev.eval_chebyt(n - 2, s_0)
   beta = (1 - alpha + xi * alpha)
-  S_n2 = eval_sobolev_chebyt(n - 2, x, low, high)
+  S_n2 = eval_schebyt(n - 2, x, low, high)
   return beta * S_n2 + alpha * P_n - xi * alpha * P_n2

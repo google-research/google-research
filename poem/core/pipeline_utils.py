@@ -43,6 +43,8 @@ def read_batch_from_dataset_tables(input_table_patterns,
                                    common_module=common,
                                    dataset_class=tf.data.TFRecordDataset,
                                    input_example_parser_creator=None,
+                                   preprocess_fns=None,
+                                   denormalize_keypoints_2d=True,
                                    seed=None):
   """Reads data from dataset table.
 
@@ -87,6 +89,9 @@ def read_batch_from_dataset_tables(input_table_patterns,
     dataset_class: A dataset class to use. Must match input table type.
     input_example_parser_creator: A function handle for creating parser
       function. If None, uses the default parser creator.
+    preprocess_fns: A list of preprocess function handles for input tables.
+    denormalize_keypoints_2d: A boolean for whether to denormalize 2D keypoints
+      at the end.
     seed: An integer for random seed.
 
   Returns:
@@ -113,7 +118,6 @@ def read_batch_from_dataset_tables(input_table_patterns,
   parser_fn = input_example_parser_creator(
       common_module=common_module, **parser_kwargs)
 
-  # TODO(lzyuan): consider to refactor read_batch_from_batches into other file.
   outputs = tfe_input_layer.read_batch_from_tables(
       input_table_patterns,
       batch_sizes=batch_sizes,
@@ -125,10 +129,11 @@ def read_batch_from_dataset_tables(input_table_patterns,
       shuffle_buffer_size=shuffle_buffer_size,
       dataset_class=dataset_class,
       parser_fn=parser_fn,
+      preprocess_fns=preprocess_fns,
       seed=seed)
   outputs = tf.data.make_one_shot_iterator(outputs).get_next()
 
-  if keypoint_names_2d:
+  if keypoint_names_2d and denormalize_keypoints_2d:
     # Since we assume 2D keypoints from the input have been normalized by image
     # size, so we need to denormalize them to restore correctly aspect ratio.
     keypoints_2d = keypoint_utils.denormalize_points_by_image_size(

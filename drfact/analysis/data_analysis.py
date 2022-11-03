@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Analyzes the linked QA data with indexed corpus."""
 
 import collections

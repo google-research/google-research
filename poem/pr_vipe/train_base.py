@@ -48,8 +48,11 @@ flags.DEFINE_string(
     ' 2D keypoints.')
 
 # See `common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES`.
-flags.DEFINE_string('model_input_keypoint_type', '2D_INPUT_AND_3D_PROJECTION',
-                    'Type of model input keypoints.')
+flags.DEFINE_list('model_input_keypoint_type', ['2D_INPUT_AND_3D_PROJECTION'],
+                  'CSV of types of model input keypoints to use for each input '
+                  'table. If only one type is given, then it will be used for '
+                  'all tables. Otherwise, the input types must have the same '
+                  'length as `input_table`.')
 
 flags.DEFINE_float(
     'uniform_keypoint_jittering_max_offset_2d', 0.0,
@@ -293,29 +296,40 @@ flags.DEFINE_float(
     'sigmoid_a_max', -1.0,
     'Maximum value of sigmoid `a` parameter. Ignored if None or non-positive.')
 
+# TODO(longzh,liuti): Add support to specify the azimuth, elevation, and roll
+# ranges for each input table when handling sequential inputs.
 flags.DEFINE_list(
     'random_projection_azimuth_range', ['-180.0', '180.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random azimuth rotations on 3D poses before projection for '
-    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
-    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
-    'delta_upper_limit).')
+    'camera augmentation. For non-sequential inputs, if one tuple is given, '
+    'then it will be used for all tables; otherwise, the number of tuples must '
+    'have the same length as `input_table`. For sequential inputs, also '
+    'supports CSV of 4-tuple for (starting_lower_limit, starting_upper_limit, '
+    'delta_lower_limit, delta_upper_limit), but one tuple should be specified '
+    'for all input tables.')
 
 flags.DEFINE_list(
     'random_projection_elevation_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random elevation rotations on 3D poses before projection for '
-    'camera augmentation. For sequential inputs, also supports CSV of 4-tuple '
-    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
-    'delta_upper_limit).')
+    'camera augmentation. For non-sequential inputs, if one tuple is given, '
+    'then it will be used for all tables; otherwise, the number of tuples must '
+    'have the same length as `input_table`. For sequential inputs, also '
+    'supports CSV of 4-tuple for (starting_lower_limit, starting_upper_limit, '
+    'delta_lower_limit, delta_upper_limit), but one tuple should be specified '
+    'for all input tables.')
 
 flags.DEFINE_list(
     'random_projection_roll_range', ['-30.0', '30.0'],
     'CSV of 2-tuple rotation angle limit (lower_limit, upper_limit) for '
     'performing random roll rotations on 3D poses before projection for camera '
-    'augmentation. For sequential inputs, also supports CSV of 4-tuple '
-    'for (starting_lower_limit, starting_upper_limit, delta_lower_limit, '
-    'delta_upper_limit).')
+    'camera augmentation. For non-sequential inputs, if one tuple is given, '
+    'then it will be used for all tables; otherwise, the number of tuples must '
+    'have the same length as `input_table`. For sequential inputs, also '
+    'supports CSV of 4-tuple for (starting_lower_limit, starting_upper_limit, '
+    'delta_lower_limit, delta_upper_limit), but one tuple should be specified '
+    'for all input tables.')
 
 flags.DEFINE_list(
     'random_projection_camera_depth_range', [],
@@ -387,8 +401,9 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
   # Validate flags.
   validate_flag = common_module.validate
-  validate_flag(FLAGS.model_input_keypoint_type,
-                common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES)
+  for model_input_keypoint_type in FLAGS.model_input_keypoint_type:
+    validate_flag(model_input_keypoint_type,
+                  common_module.SUPPORTED_TRAINING_MODEL_INPUT_KEYPOINT_TYPES)
   validate_flag(FLAGS.model_input_keypoint_mask_type,
                 common_module.SUPPORTED_MODEL_INPUT_KEYPOINT_MASK_TYPES)
   validate_flag(FLAGS.embedding_type, common_module.SUPPORTED_EMBEDDING_TYPES)
@@ -411,6 +426,11 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
                 common_module.SUPPORTED_PAIRWISE_DISTANCE_REDUCTIONS)
   validate_flag(FLAGS.positive_pairwise_componentwise_reduction,
                 common_module.SUPPORTED_COMPONENTWISE_DISTANCE_REDUCTIONS)
+
+  # Update `model_input_keypoint_type` if only one type is given but there are
+  # more than one input table.
+  if len(FLAGS.input_table) > 1 and len(FLAGS.model_input_keypoint_type) == 1:
+    FLAGS.model_input_keypoint_type *= len(FLAGS.input_table)
 
   if FLAGS.embedding_type == common_module.EMBEDDING_TYPE_POINT:
     if FLAGS.triplet_distance_type != common_module.DISTANCE_TYPE_CENTER:
@@ -456,6 +476,31 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
 
   keypoint_profile_2d = keypoint_profiles_module.create_keypoint_profile_or_die(
       FLAGS.input_keypoint_profile_name_2d)
+
+  def update_range(input_range):
+    """Updates the input range according to the number of input tables."""
+    input_range = [float(x) / 180.0 * math.pi for x in input_range]
+    if create_model_input_fn_kwargs.get('sequential_inputs', False):
+      tuple_size = len(input_range)
+      if tuple_size not in [2, 4]:
+        raise ValueError('For sequential inputs, the tuple size of random '
+                         'projection range must be 2 or 4.')
+    else:
+      tuple_size = 2
+
+    # Update `input_range` if only one type is given but there are more than one
+    # input table.
+    if len(FLAGS.input_table) > 1 and len(input_range) == tuple_size:
+      input_range *= len(FLAGS.input_table)
+    return [
+        tuple(input_range[i + j]
+              for j in range(tuple_size))
+        for i in range(0, len(input_range), tuple_size)
+    ]
+
+  azimuth_range = update_range(FLAGS.random_projection_azimuth_range)
+  elevation_range = update_range(FLAGS.random_projection_elevation_range)
+  roll_range = update_range(FLAGS.random_projection_roll_range)
 
   # Set up configurations.
   configs = {
@@ -513,17 +558,9 @@ def _validate_and_setup(common_module, keypoint_profiles_module, models_module,
               common_module.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB,
               common_module.DISTANCE_KERNEL_SQUARED_L2_SIGMOID_MATCHING_PROB
           ],
-      'random_projection_azimuth_range': [
-          float(x) / 180.0 * math.pi
-          for x in FLAGS.random_projection_azimuth_range
-      ],
-      'random_projection_elevation_range': [
-          float(x) / 180.0 * math.pi
-          for x in FLAGS.random_projection_elevation_range
-      ],
-      'random_projection_roll_range': [
-          float(x) / 180.0 * math.pi for x in FLAGS.random_projection_roll_range
-      ],
+      'random_projection_azimuth_range': azimuth_range,
+      'random_projection_elevation_range': elevation_range,
+      'random_projection_roll_range': roll_range,
       'random_projection_camera_depth_range': [
           float(x) for x in FLAGS.random_projection_camera_depth_range
       ],
@@ -637,21 +674,31 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
           create_model_input_fn_kwargs=create_model_input_fn_kwargs,
           embedder_fn_kwargs=embedder_fn_kwargs)
 
-      def create_inputs():
-        """Creates pipeline and model inputs."""
-        inputs = pipeline_utils.read_batch_from_dataset_tables(
-            FLAGS.input_table,
-            batch_sizes=[int(x) for x in FLAGS.batch_size],
-            num_instances_per_record=2,
-            shuffle=True,
-            num_epochs=None,
-            keypoint_names_3d=configs['keypoint_profile_3d'].keypoint_names,
-            keypoint_names_2d=configs['keypoint_profile_2d'].keypoint_names,
-            min_keypoint_score_2d=FLAGS.min_input_keypoint_score_2d,
-            shuffle_buffer_size=FLAGS.input_shuffle_buffer_size,
-            common_module=common_module,
-            dataset_class=input_dataset_class,
-            input_example_parser_creator=input_example_parser_creator)
+      def preprocess(inputs, input_keypoint_type, azimuth_range,
+                     elevation_range, roll_range):
+        """Preprocesses the input 2D and 3D keypoints."""
+        # Since we assume 2D keypoints from the input have been normalized by
+        # image size, we need to denormalize them to restore correct aspect
+        # ratio.
+        keypoints_2d = keypoint_utils.denormalize_points_by_image_size(
+            inputs[common_module.KEY_KEYPOINTS_2D],
+            image_sizes=inputs[common_module.KEY_IMAGE_SIZES])
+
+        keypoint_scores_2d = inputs[
+            common_module.KEY_KEYPOINT_SCORES_2D]
+        if FLAGS.min_input_keypoint_score_2d < 0.0:
+          keypoint_masks_2d = tf.ones_like(
+              keypoint_scores_2d, dtype=tf.float32)
+        else:
+          keypoint_masks_2d = tf.cast(
+              tf.math.greater_equal(keypoint_scores_2d,
+                                    FLAGS.min_input_keypoint_score_2d),
+              dtype=tf.float32)
+
+        inputs.update({
+            common_module.KEY_KEYPOINTS_2D: keypoints_2d,
+            common_module.KEY_KEYPOINT_MASKS_2D: keypoint_masks_2d
+        })
 
         (inputs[common_module.KEY_KEYPOINTS_3D],
          keypoint_preprocessor_side_outputs_3d) = keypoint_preprocessor_3d(
@@ -664,16 +711,48 @@ def run(master, input_dataset_class, common_module, keypoint_profiles_module,
             inputs[common_module.KEY_KEYPOINTS_2D],
             inputs[common_module.KEY_KEYPOINT_MASKS_2D],
             inputs[common_module.KEY_PREPROCESSED_KEYPOINTS_3D],
-            model_input_keypoint_type=FLAGS.model_input_keypoint_type,
+            model_input_keypoint_type=input_keypoint_type,
             normalize_keypoints_2d=True,
             keypoint_profile_2d=configs['keypoint_profile_2d'],
             keypoint_profile_3d=configs['keypoint_profile_3d'],
-            azimuth_range=configs['random_projection_azimuth_range'],
-            elevation_range=configs['random_projection_elevation_range'],
-            roll_range=configs['random_projection_roll_range'],
+            azimuth_range=azimuth_range,
+            elevation_range=elevation_range,
+            roll_range=roll_range,
             normalized_camera_depth_range=(
                 configs['random_projection_camera_depth_range']))
         data_utils.merge_dict(side_inputs, inputs)
+        return inputs
+
+      def create_inputs():
+        """Creates pipeline and model inputs."""
+        preprocess_fns = [
+            functools.partial(  # pylint:disable=g-complex-comprehension
+                preprocess,
+                input_keypoint_type=input_keypoint_type,
+                azimuth_range=azimuth_range,
+                elevation_range=elevation_range,
+                roll_range=roll_range)
+            for (
+                input_keypoint_type, azimuth_range, elevation_range,
+                roll_range) in zip(FLAGS.model_input_keypoint_type,
+                                   configs['random_projection_azimuth_range'],
+                                   configs['random_projection_elevation_range'],
+                                   configs['random_projection_roll_range'])]
+        inputs = pipeline_utils.read_batch_from_dataset_tables(
+            FLAGS.input_table,
+            batch_sizes=[int(x) for x in FLAGS.batch_size],
+            num_instances_per_record=2,
+            shuffle=True,
+            num_epochs=None,
+            keypoint_names_3d=configs['keypoint_profile_3d'].keypoint_names,
+            keypoint_names_2d=configs['keypoint_profile_2d'].keypoint_names,
+            min_keypoint_score_2d=FLAGS.min_input_keypoint_score_2d,
+            shuffle_buffer_size=FLAGS.input_shuffle_buffer_size,
+            common_module=common_module,
+            dataset_class=input_dataset_class,
+            input_example_parser_creator=input_example_parser_creator,
+            preprocess_fns=preprocess_fns,
+            denormalize_keypoints_2d=False)
         return inputs
 
       inputs = create_inputs()

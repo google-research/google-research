@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 #include "absl/synchronization/mutex.h"
 #include "scann/base/single_machine_base.h"

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Helper functions for training baseline seq-to-seq model."""
 
 # pytype: disable=wrong-arg-count

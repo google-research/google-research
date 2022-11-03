@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"

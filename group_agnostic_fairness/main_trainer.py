@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Main model trainer from which a number of robust-learning models can be trained.
 
 Currently we support the following robust-learning approaches:

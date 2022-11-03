@@ -172,8 +172,7 @@ class MPPIBestResponse(MPC):
         (env_state, ampc_state), output = rollout_step((env_state, ampc_state),
                                                        actions[t, :])
         scan_output.append(output)
-      a, s, r = jax.tree_util.tree_multimap(lambda *x: jnp.stack(x),
-                                            *scan_output)
+      a, s, r = jax.tree_util.tree_map(lambda *x: jnp.stack(x), *scan_output)
     else:
       _, (a, s, r) = jax.lax.scan(rollout_step, (env_state, ampc_state),
                                   actions)

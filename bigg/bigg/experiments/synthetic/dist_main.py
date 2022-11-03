@@ -116,7 +116,7 @@ def main(rank):
                 if local_num <= 0:
                     break
                 with torch.no_grad():
-                    fn_hc_bot, h_buf_list, c_buf_list = model.forward_row_trees(graph_ids,
+                    hc_bot, _, h_buf_list, c_buf_list = model.forward_row_trees(graph_ids,
                                                                                 list_node_starts=[local_st],
                                                                                 num_nodes=local_num)
                     if stage and rank == 0:
@@ -124,7 +124,7 @@ def main(rank):
                     if rank:
                         num_recv = num_expect(local_st)
                         states_prev = recv_states(num_recv, rank - 1)
-                    _, next_states = model.row_tree.forward_train(*(fn_hc_bot(0)), h_buf_list[0], c_buf_list[0], *states_prev)
+                    _, next_states = model.row_tree.forward_train(*hc_bot, h_buf_list[0], c_buf_list[0], *states_prev)
                     list_caches.append(states_prev)
                     if rank != rank_last:
                         send_states(next_states, rank + 1)

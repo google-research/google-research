@@ -1,15 +1,17 @@
-ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:2.8.0-devel
+ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:2.10.0-devel
 FROM ${TF_SERVING_DEVEL_IMAGE} AS base_build
 LABEL maintainer="sunphil@google.com"
 
 RUN apt-get update && apt-get install -y dirmngr && \
-    echo 'deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu bionic main' >> /etc/apt/sources.list && \
-    echo 'deb-src http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu bionic main' >> /etc/apt/sources.list && \
-    apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F && \
-    apt-get update && apt-get install -y --no-install-recommends g++-9 clang-8 && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 && \
+    add-apt-repository ppa:ubuntu-toolchain-r/test && \
+    wget --no-check-certificate -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
+    apt-add-repository 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-15 main' && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 2 && \
+    apt-get update && apt-get install -y --no-install-recommends g++-9 clang-15 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ARG SCANN_COMMIT=dcc7dbef5cdfac1fb15264348e5ce695678348a5
+ARG SCANN_COMMIT=40cc99bd3bf28e9bd997231a37cce7d54e08d260
 WORKDIR /
 RUN mkdir scann && cd scann && \
     curl -sSL --retry 5 https://github.com/google-research/google-research/tarball/${SCANN_COMMIT} | \
@@ -23,12 +25,12 @@ RUN git apply serving.patch && rm serving.patch
 
 FROM base_build as binary_build
 # Build, and install TensorFlow Serving
-ARG TF_SERVING_BUILD_OPTIONS="--config=release --copt=-mavx2 --copt=-mfma --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" --cxxopt="-std=c++17" --copt=-fsized-deallocation"
+ARG TF_SERVING_BUILD_OPTIONS="--config=release --copt=-mavx --copt=-mfma --cxxopt=-std=c++17 --copt=-fsized-deallocation --copt=-w"
 RUN echo "Building with build options: ${TF_SERVING_BUILD_OPTIONS}"
-ARG TF_SERVING_BAZEL_OPTIONS=""
+ARG TF_SERVING_BAZEL_OPTIONS="--spawn_strategy=sandboxed"
 RUN echo "Building with Bazel options: ${TF_SERVING_BAZEL_OPTIONS}"
 
-RUN CC=clang-8 bazel build --color=yes --curses=yes \
+RUN CC=clang-15 bazel build --color=yes --curses=yes \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \
@@ -38,7 +40,7 @@ RUN CC=clang-8 bazel build --color=yes --curses=yes \
     /usr/local/bin/
 
 # Build and install TensorFlow Serving API
-RUN CC=clang-8 bazel build --color=yes --curses=yes \
+RUN CC=clang-15 bazel build --color=yes --curses=yes \
     ${TF_SERVING_BAZEL_OPTIONS} \
     --verbose_failures \
     --output_filter=DONT_MATCH_ANYTHING \

@@ -487,9 +487,9 @@ class DBCAgent(sac_agent.SACAgent):
       return (self.target_smoothing_coefficient * online_p +
               (1 - self.target_smoothing_coefficient) * target_p)
 
-    self.target_params = jax.tree_multimap(_sync_weights, self.target_params,
+    self.target_params = jax.tree_map(_sync_weights, self.target_params,
                                            self.network_params)
-    self.encoder_target_params = jax.tree_multimap(_sync_weights,
+    self.encoder_target_params = jax.tree_map(_sync_weights,
                                                    self.encoder_target_params,
                                                    self.encoder_params)
 

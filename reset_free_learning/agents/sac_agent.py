@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """A Soft Actor-Critic Agent.
 
 Implements the Soft Actor-Critic (SAC) algorithm from

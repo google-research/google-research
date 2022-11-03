@@ -48,16 +48,18 @@ for lang in ${LANG_LIST[@]}; do
   date
   echo ${lang};
 
-  # Filename for templates. Storing them allows faster reruns later if
-  # necessary.
+  # Filename to cache templates. The pinned version of WikiExtractor does not
+  # reliably reuse the cache if it already exists from a previous run, so we
+  # always first remove the file.
   templates="${TEMPLATES_DIR}/${lang}"
+  rm -f "${templates}"
 
   # Output directory for this language.
   output_dir="${OUTPUT_BASE_DIR}/${lang}"
 
   input="${INPUT_DUMP_DIR}/${lang}wikinews-20190101-pages-articles.xml.bz2"
   mkdir -p ${output_dir}
-  python3 ${WIKIEXTRACTOR} \
+  python ${WIKIEXTRACTOR} \
       --templates "${templates}" \
       --revision \
       --links \

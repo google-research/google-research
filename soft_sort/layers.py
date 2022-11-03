@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Implements keras layers producing ranks and sorted values."""
 
 from typing import Tuple

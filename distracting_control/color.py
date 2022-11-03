@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """A wrapper for dm_control environments which applies color distractions."""
 
 from dm_control.rl import control

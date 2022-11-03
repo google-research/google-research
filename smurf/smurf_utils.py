@@ -676,12 +676,6 @@ def unsupervised_loss(images,
   num_pairs = sum(
       [1.0 for (i, j, c) in flows if c in compute_loss_for_these_flows])
 
-  # Ensure that smoothness_at_level is feasible, i.e. set smoothness_at_level
-  # to be as close as possible to the chosen parameter. This means the current
-  # default value of 2 will be modifed to 0 for raft with convex upsampling.
-  smoothness_at_level = min(smoothness_at_level,
-                            len(flows[(0, 1, 'augmented-student')]) - 1)
-
   # Ensure that smoothness_at_level is feasible, i.e. set
   # to be as close as possible to the chosen parameter. This means the
   # current default value of 2 will be modifed to 0 for raft with convex

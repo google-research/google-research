@@ -26,7 +26,6 @@ fair_survival_analysis.fair_survival_analysis
 """
 
 from coupled_deep_cph_utils import partial_ll_loss
-from coupled_deep_cph_utils import train_breslow
 
 import lifelines
 import numpy as np
@@ -290,10 +289,9 @@ def train(model,
       patience_ += 1
 
     if patience_ >= patience:
-      return (model, train_breslow(model, xt, tt, et, at, xv, tv, ev, av,
-                                   groups))
+      return model
 
     valc = valcn
 
-  return (model, train_breslow(model, xt, tt, et, at, xv, tv, ev, av, groups))
+  return model
 

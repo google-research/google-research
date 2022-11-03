@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Build and train MNIST models for UQ experiments."""
 
 from __future__ import absolute_import
@@ -111,7 +110,7 @@ def build_and_train(opts, dataset_train, dataset_eval, output_dir):
   """
   model = build_model(opts)
   model.compile(
-      keras.optimizers.Adam(opts.learning_rate),
+      keras.optimizers.legacy.Adam(opts.learning_rate),
       loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
       metrics=['accuracy'],
   )

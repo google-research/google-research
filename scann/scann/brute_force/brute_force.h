@@ -18,6 +18,7 @@
 #define SCANN_BRUTE_FORCE_BRUTE_FORCE_H_
 
 #include <cstdint>
+#include <memory>
 #include <utility>
 
 #include "scann/base/search_parameters.h"

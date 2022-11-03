@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Tests for task_set.tasks.mlp."""
 from task_set.tasks import family_test_utils
 from task_set.tasks import mlp

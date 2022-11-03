@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Utils."""
-# Lint as: python3
 
 import pprint
 from absl import logging

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Spectral Norm Regularization (SNR) learner implementation.
 
 Almost like a vanilla actor-critic method with SNR ideas added on top.
@@ -382,7 +381,7 @@ class SNRLearner(acme.Learner):
           critic_grads, state.q_optimizer_state)
       q_params = optax.apply_updates(state.q_params, critic_update)
 
-      # new_target_q_params = jax.tree_multimap(
+      # new_target_q_params = jax.tree_map(
       #     lambda x, y: x * (1 - tau) + y * tau, state.target_q_params, q_params)
       new_target_q_params = q_params
 

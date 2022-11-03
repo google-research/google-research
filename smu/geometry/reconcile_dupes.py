@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Parse output of topology_from_geom.
 
 Process records with dupl.
@@ -21,7 +35,7 @@ topologies.
 
 Input looks like:
 
-Smiles,StartSmi,conformer_id,NBts,IsStart
+Smiles,StartSmi,molecule_id,NBts,IsStart
 CCC1=NNNN1,CCC1=NNNN1,6104990001,1,True
 CC(N)C(N)NN,CC(N)C(N)NN,6103750002,1,True
 
@@ -93,7 +107,7 @@ def reconcile_dupes(unused_argv):
   del df_list
   logging.info(data.shape)
 
-  # Convert conformer_ids to bond_topology_id by dividing by 1000
+  # Convert molecule_ids to bond_topology_id by dividing by 1000
   # Expect many dupes to be overwritten here.
   smiles_to_id = {k: v for k, v in zip(data["StartSmi"], data["id"] // 1000)}
 

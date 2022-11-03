@@ -26,11 +26,11 @@ import time
 from absl import app
 from absl import flags
 from absl import logging
+import cv2
 import numpy as np
 import tensorflow.compat.v1 as tf
 
 from depth_from_video_in_the_wild import model
-import cv2
 
 
 WAIT_TIME = 20  # Wait time in seconds before checking for new checkpoint.
@@ -179,4 +179,3 @@ def main(_):
 
 if __name__ == '__main__':
   app.run(main)
-

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Script to evaluate model predictions against the ground truth."""
 import glob
 import os

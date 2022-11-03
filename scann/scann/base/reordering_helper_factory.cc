@@ -15,6 +15,7 @@
 #include "scann/base/reordering_helper_factory.h"
 
 #include <memory>
+#include <utility>
 
 #include "scann/hashes/asymmetric_hashing2/training_model.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
@@ -23,8 +24,6 @@
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/reordering_helper.h"
 #include "scann/utils/types.h"
-
-using std::move;
 
 namespace research_scann {
 
@@ -53,26 +52,28 @@ StatusOrHelper<float> BuildFixedPointReorderingHelper<float>(
   const auto& distance_type = typeid(*reordering_dist);
 
   if (opts->pre_quantized_fixed_point) {
-    auto fixed_point_dataset =
-        move(*opts->pre_quantized_fixed_point->fixed_point_dataset);
-    auto multiplier_by_dimension =
-        move(opts->pre_quantized_fixed_point->multiplier_by_dimension);
-    SCANN_RET_CHECK(multiplier_by_dimension);
-    SCANN_RET_CHECK_EQ(fixed_point_dataset.dimensionality(),
-                       multiplier_by_dimension->size())
+    SCANN_RET_CHECK(opts->pre_quantized_fixed_point->fixed_point_dataset);
+    SCANN_RET_CHECK(opts->pre_quantized_fixed_point->multiplier_by_dimension);
+    SCANN_RET_CHECK_EQ(
+        opts->pre_quantized_fixed_point->fixed_point_dataset->dimensionality(),
+        opts->pre_quantized_fixed_point->multiplier_by_dimension->size())
             .SetErrorCode(error::INVALID_ARGUMENT)
         << "Multipliers for pre-quantized FP8 reordering must be of the same "
            "dimensionality as the pre-quantized dataset.";
     if (distance_type == typeid(const DotProductDistance)) {
       return {make_unique<FixedPointFloatDenseDotProductReorderingHelper>(
-          move(fixed_point_dataset), move(multiplier_by_dimension))};
+          std::move(opts->pre_quantized_fixed_point->fixed_point_dataset),
+          *opts->pre_quantized_fixed_point->multiplier_by_dimension)};
     } else if (distance_type == typeid(const CosineDistance)) {
       return {make_unique<FixedPointFloatDenseCosineReorderingHelper>(
-          move(fixed_point_dataset), move(multiplier_by_dimension))};
+          std::move(opts->pre_quantized_fixed_point->fixed_point_dataset),
+          *opts->pre_quantized_fixed_point->multiplier_by_dimension)};
     } else if (distance_type == typeid(const SquaredL2Distance)) {
       return {make_unique<FixedPointFloatDenseSquaredL2ReorderingHelper>(
-          move(fixed_point_dataset), move(multiplier_by_dimension),
-          move(opts->pre_quantized_fixed_point->squared_l2_norm_by_datapoint))};
+          std::move(opts->pre_quantized_fixed_point->fixed_point_dataset),
+          *opts->pre_quantized_fixed_point->multiplier_by_dimension,
+          std::move(
+              opts->pre_quantized_fixed_point->squared_l2_norm_by_datapoint))};
     } else {
       return InvalidArgumentError(
           "Fixed-point reordering is supported only for dot product, cosine "

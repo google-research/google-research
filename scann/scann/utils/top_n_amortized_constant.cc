@@ -30,5 +30,6 @@ void TopNeighbors<Distance>::PartitionElements(vector<Neighbor>* elements,
 }
 
 SCANN_INSTANTIATE_TYPED_CLASS(, TopNeighbors);
+template class TopNeighbors<DimensionIndex>;
 
 }  // namespace research_scann

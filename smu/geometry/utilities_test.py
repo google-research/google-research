@@ -13,6 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Tester for SMU utilities functions.
 
 from absl.testing import absltest
@@ -64,39 +78,6 @@ class TestUtilities(absltest.TestCase):
     coords.atom_positions[1].z = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
-  def test_connected(self):
-    pass
-
-
-#  @parameterized.expand(
-#  [
-#    ["[H]", 0, dataset_pb2.BondTopology.ATOM_H],
-#    ["C", 0, dataset_pb2.BondTopology.ATOM_C],
-#    ["N", 0, dataset_pb2.BondTopology.ATOM_N],
-#    ["[N+]", 1, dataset_pb2.BondTopology.ATOM_NPOS],
-#    ["O", 0, dataset_pb2.BondTopology.ATOM_O],
-#    ["[O-]", -1, dataset_pb2.BondTopology.ATOM_ONEG],
-#    ["F", 0, dataset_pb2.BondTopology.ATOM_F]
-#  ]
-#  )
-#  def test_molecule_to_bond_topology_geom(self, smiles, charge, expected):
-#    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-#    bt,geom = utilities.molecule_to_bond_topology_geom(mol)
-#    self.assertEqual(len(bt.atoms), mol.GetNumAtoms())
-#    self.assertEqual(bt.atoms[0], expected)
-#
-#  @parameterized.expand(
-#  [
-#    ["CC", dataset_pb2.BondTopology.BOND_SINGLE],
-#    ["C=C", dataset_pb2.BondTopology.BOND_DOUBLE],
-#    ["C#C", dataset_pb2.BondTopology.BOND_TRIPLE]
-#  ]
-#  )
-#  def test_bonds(self, smiles, expected):
-#    mol = Chem.MolFromSmiles(smiles, sanitize=False)
-#    bt,geom = utilities.molecule_to_bond_topology_geom(mol)
-#    self.assertEqual(len(bt.atoms), mol.GetNumAtoms())
-
   def test_canonical(self):
     bt = text_format.Parse(
         """
@@ -131,7 +112,7 @@ class TestUtilities(absltest.TestCase):
     }
 """, dataset_pb2.BondTopology())
 
-    utilities.canonical_bond_topology(bt)
+    utilities.canonicalize_bond_topology(bt)
     self.assertEqual(
         text_format.MessageToString(bt), text_format.MessageToString(expected))
 
@@ -170,7 +151,7 @@ class TestUtilities(absltest.TestCase):
 """, dataset_pb2.BondTopology())
 
     self.assertFalse(utilities.same_bond_topology(bt1, bt2))
-    utilities.canonical_bond_topology(bt1)
+    utilities.canonicalize_bond_topology(bt1)
     self.assertTrue(utilities.same_bond_topology(bt1, bt2))
 
   def test_single_fragment_single_atom(self):
@@ -310,11 +291,11 @@ class TestUtilities(absltest.TestCase):
   ])
   def test_with_smiles(self, smiles, expected):
     mol = Chem.MolFromSmiles(smiles, sanitize=False)
-    bt = utilities.molecule_to_bond_topology(mol)
+    bt = smu_utils_lib.rdkit_molecule_to_bond_topology(mol)
     self.assertEqual(utilities.is_single_fragment(bt), expected)
     Chem.SanitizeMol(mol, Chem.rdmolops.SanitizeFlags.SANITIZE_ADJUSTHS)
     mol_h = Chem.AddHs(mol)
-    bt_h = utilities.molecule_to_bond_topology(mol_h)
+    bt_h = smu_utils_lib.rdkit_molecule_to_bond_topology(mol_h)
     self.assertEqual(utilities.is_single_fragment(bt_h), expected)
 
   @parameterized.expand([["C", 0], ["CC", 0], ["CCC", 0], ["C1CC1", 3],

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.datasets.mazes.maze_task."""
 
 from absl.testing import absltest

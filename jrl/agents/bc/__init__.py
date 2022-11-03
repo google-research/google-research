@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """BC agent."""
 
 from jrl.agents.bc import config
@@ -25,8 +24,8 @@ from jrl.utils.agent_utils import RLComponents
 
 
 class BCRLComponents(RLComponents):
-  def __init__(self, logger_fn, spec, create_data_iter_fn):
-    self._logger_fn = logger_fn
+  def __init__(self, spec, create_data_iter_fn):
+
     self._spec = spec
     self._config = config.BCConfig()
     self._create_data_iter_fn = create_data_iter_fn
@@ -34,8 +33,7 @@ class BCRLComponents(RLComponents):
   def make_builder(self):
     return BCBuilder(
         config=self._config,
-        make_demonstrations=self._create_data_iter_fn,
-        logger_fn=self._logger_fn)
+        make_demonstrations=self._create_data_iter_fn)
 
   def make_networks(self):
     return networks.make_networks(

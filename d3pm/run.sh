@@ -24,3 +24,4 @@ pip install --upgrade pip
 pip install -r d3pm/requirements.txt
 
 python -m d3pm.images.main_test
+python -m d3pm.text.main_test

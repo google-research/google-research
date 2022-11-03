@@ -18,7 +18,7 @@
 from absl.testing import absltest
 from flax import optim
 import numpy as np
-import scipy
+import scipy.stats
 
 from scalable_shampoo.jax import shampoo
 

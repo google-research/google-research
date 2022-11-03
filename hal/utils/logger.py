@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Object for logging training stats.
 
 Logger is for Tensorflow 1.0 and Logger2 is for Tensorflow 2.0.

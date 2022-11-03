@@ -359,13 +359,13 @@ class HotPotQAInputFeatures:
           self.input_config.long_seq_length - self.num_long_tokens)
       assert num_long_paddings >= 0, "Too many long tokens added."
       for field_name, padding_id in _LONG_FEATURE_NAMES_TO_PADDINGS.items():
-        self.__dict__[field_name].extend([padding_id] * num_long_paddings)
+        self.__dict__[field_name].extend([padding_id] * num_long_paddings)  # pytype: disable=attribute-error  # dict-kwargs
     if self.input_config.global_seq_length is not None:
       num_global_paddings = (
           self.input_config.global_seq_length - self.num_global_tokens)
       assert num_global_paddings >= 0, "Too many global tokens added."
       for field_name, padding_id in _GLOBAL_FEATURE_NAMES_TO_PADDINGS.items():
-        self.__dict__[field_name].extend([padding_id] * num_global_paddings)
+        self.__dict__[field_name].extend([padding_id] * num_global_paddings)  # pytype: disable=attribute-error  # dict-kwargs
 
   def add_answer_bio_ids(self, answer_spans: Sequence[Tuple[int, int]]) -> None:
     """Adds answer BIO encoding ids. 0 for B, 1 for I, 2 for O."""

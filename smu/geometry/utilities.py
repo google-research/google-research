@@ -26,6 +26,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Utility functions for SMU."""
 
 import math
@@ -135,78 +149,7 @@ def distances(geometry):
   return result
 
 
-def rdkit_atom_to_atom_type(atom):
-  """Atom to atom type.
-
-  Args:
-    atom:
-
-  Returns:
-    AtomType
-  """
-  if atom.GetAtomicNum() == 1:
-    return dataset_pb2.BondTopology.ATOM_H
-  if atom.GetAtomicNum() == 6:
-    return dataset_pb2.BondTopology.ATOM_C
-  if atom.GetAtomicNum() == 7:
-    if atom.GetFormalCharge() == 0:
-      return dataset_pb2.BondTopology.ATOM_N
-    else:
-      return dataset_pb2.BondTopology.ATOM_NPOS
-  if atom.GetAtomicNum() == 8:
-    if atom.GetFormalCharge() == 0:
-      return dataset_pb2.BondTopology.ATOM_O
-    else:
-      return dataset_pb2.BondTopology.ATOM_ONEG
-  if atom.GetAtomicNum() == 9:
-    return dataset_pb2.BondTopology.ATOM_F
-
-  raise ValueError(f"Unrecognized atom type {atom.GetAtomicNum()}")
-
-
-def rdkit_bond_type_to_btype(bond_type):
-  """Converts bond type.
-
-  Args:
-    bond_type:
-
-  Returns:
-  """
-  if bond_type == Chem.rdchem.BondType.SINGLE:
-    return dataset_pb2.BondTopology.BondType.BOND_SINGLE
-  if bond_type == Chem.rdchem.BondType.DOUBLE:
-    return dataset_pb2.BondTopology.BondType.BOND_DOUBLE
-  if bond_type == Chem.rdchem.BondType.TRIPLE:
-    return dataset_pb2.BondTopology.BondType.BOND_TRIPLE
-
-  raise ValueError(f"Unrecognized bond type #{bond_type}")
-
-
-def molecule_to_bond_topology(mol):
-  """Molecule to bond topology.
-
-  Args:
-    mol:
-
-  Returns:
-    Bond topology.
-  """
-  bond_topology = dataset_pb2.BondTopology()
-  for atom in mol.GetAtoms():
-    bond_topology.atoms.append(rdkit_atom_to_atom_type(atom))
-
-  for bond in mol.GetBonds():
-    btype = rdkit_bond_type_to_btype(bond.GetBondType())
-    bt_bond = dataset_pb2.BondTopology.Bond()
-    bt_bond.atom_a = bond.GetBeginAtom().GetIdx()
-    bt_bond.atom_b = bond.GetEndAtom().GetIdx()
-    bt_bond.bond_type = btype
-    bond_topology.bonds.append(bt_bond)
-
-  return bond_topology
-
-
-def canonical_bond_topology(bond_topology):
+def canonicalize_bond_topology(bond_topology):
   """Transform the bonds attribute of `bond_topology` to a canonical form.
 
   Args:
@@ -368,7 +311,7 @@ def ring_atom_count_bt(bt):
   Returns:
     Integer
   """
-  mol = smu_utils_lib.bond_topology_to_molecule(bt)
+  mol = smu_utils_lib.bond_topology_to_rdkit_molecule(bt)
 
   return ring_atom_count_mol(mol)
 

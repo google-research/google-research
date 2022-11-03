@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests trained models on transfer environments to generate videos and scores.
 
 Note that this code assumes it will be provided with a .csv file indicating

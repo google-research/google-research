@@ -84,7 +84,7 @@ Status RunSubmanifoldSparseConvBackpropFilter(
       }
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 template <>

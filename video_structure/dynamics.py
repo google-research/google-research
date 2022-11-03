@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Dynamics-related components of the structured video representation model.
 
 These components model the dynamics of the keypoints extracted by the vision

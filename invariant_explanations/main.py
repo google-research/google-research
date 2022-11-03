@@ -15,7 +15,6 @@
 
 """Main file used for approxNN project."""
 
-from typing import Sequence
 import warnings
 
 from absl import app

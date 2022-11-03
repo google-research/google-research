@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Adam optimizer with nesterov momentum and AdamW style weight decay."""
 
 from typing import Callable

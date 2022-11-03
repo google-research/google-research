@@ -17,17 +17,18 @@
 
 #include <array>
 #include <fstream>
+#include <memory>
 #include <random>
 #include <type_traits>
 
-#include "task.h"
-#include "task.pb.h"
+#include "absl/strings/str_cat.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
 #include "memory.h"
 #include "random_generator.h"
-#include "absl/strings/str_cat.h"
+#include "task.h"
+#include "task.pb.h"
 
 namespace automl_zero {
 
@@ -532,9 +533,9 @@ std::unique_ptr<Task<F>> CreateTask(const IntegerT task_index,
   CHECK_EQ(buffer.valid_labels_.size(), task_spec.num_valid_examples());
 
   CHECK(task_spec.has_eval_type());
-  return absl::make_unique<Task<F>>(
-      task_index, task_spec.eval_type(),
-      task_spec.num_train_epochs(), &data_bit_gen, &buffer);
+  return std::make_unique<Task<F>>(task_index, task_spec.eval_type(),
+                                   task_spec.num_train_epochs(), &data_bit_gen,
+                                   &buffer);
 }
 
 // Randomizes all the seeds given a base seed. See "internal workflow" comment

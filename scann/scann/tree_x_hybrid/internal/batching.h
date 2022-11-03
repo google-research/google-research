@@ -17,6 +17,8 @@
 #ifndef SCANN_TREE_X_HYBRID_INTERNAL_BATCHING_H_
 #define SCANN_TREE_X_HYBRID_INTERNAL_BATCHING_H_
 
+#include <utility>
+
 #include "scann/base/search_parameters.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/fast_top_neighbors.h"

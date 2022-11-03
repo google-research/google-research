@@ -23,7 +23,7 @@ import clip
 import mediapy as media
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 import torch.nn.functional as F
 import torchvision
 import tqdm

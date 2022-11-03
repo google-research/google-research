@@ -27,7 +27,7 @@ Status TensorFromProto(OpKernelContext* context, absl::string_view name,
   if (!SerializeToTString(*proto, &tensor->scalar<tstring>()()))
     return errors::Internal(
         absl::StrCat("Failed to create string tensor ", name));
-  return Status::OK();
+  return OkStatus();
 }
 
 void TensorFromProtoRequireOk(OpKernelContext* context, absl::string_view name,

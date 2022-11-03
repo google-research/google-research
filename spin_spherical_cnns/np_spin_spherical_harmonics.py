@@ -146,7 +146,9 @@ def _swsft_forward_single(sphere, spin, ell, m):
     A complex128 coefficient.
 
   """
-  delta = sphere_utils.compute_wigner_delta(ell)
+  # TODO(machc): The following could be simplified. See comment in
+  # `_compute_Gnm_naive`.
+  delta = sphere_utils.compute_wigner_delta(ell)[ell:, ell:]
   Jnm = _compute_Jnm(sphere, spin)  # pylint: disable=invalid-name
   coeff = 0
   for n in range(ell + 1):  # n here is sometimes called m'
@@ -229,6 +231,12 @@ def _compute_Gnm_naive(coeffs, spin):  # pylint: disable=invalid-name
   """
   ell_max = sphere_utils.ell_max_from_n_coeffs(len(coeffs))
   deltas = sphere_utils.compute_all_wigner_delta(ell_max)
+  # TODO(machc): This could be simplified. Previously we only stored
+  # non-negative n in the Wigner Deltas, and used symmetries to
+  # complete the result. Now that the complete Deltas are stored, we
+  # could simplify the code below, but for now we just revert `deltas`
+  # to what was stored before and keep using the prior implementation.
+  deltas = tuple([delta[ell:] for ell, delta in enumerate(deltas)])
   Gnm = np.zeros((ell_max+1, 2*ell_max+1), dtype=np.complex128)  # pylint: disable=invalid-name
   for ell in range(abs(spin), ell_max+1):
     factor = np.sqrt((2*ell+1)/4/np.pi)

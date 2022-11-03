@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """A Sinkhorn implementation for 1D Optimal Transport.
 
 Sinkhorn algorithm was introduced in 1967 by R. Sinkhorn in the article

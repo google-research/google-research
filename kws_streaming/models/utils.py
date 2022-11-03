@@ -13,22 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utility functions for operations on Model."""
 import os.path
 import tempfile
-from typing import Sequence
+from typing import Sequence, Optional, List
 from keras import models as models_utils
 from keras.engine import functional
 import numpy as np
 from kws_streaming.layers import modes
+from kws_streaming.layers import quantize
 from kws_streaming.layers.compat import tf
 from kws_streaming.layers.compat import tf1
 from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
 from kws_streaming.models import model_utils
 from kws_streaming.models import models as kws_models
-from tensorflow_model_optimization.python.core.quantization.keras import quantize
 
 
 def save_model_summary(model, path, file_name='model_summary.txt'):
@@ -48,17 +47,24 @@ def save_model_summary(model, path, file_name='model_summary.txt'):
 
 def _set_mode(model, mode):
   """Set model's inference type and disable training."""
-  for i in range(len(model.layers)):
-    config = model.layers[i].get_config()
+
+  def _recursive_set_layer_mode(layer, mode):
+    if isinstance(layer, tf.keras.layers.Wrapper):
+      _recursive_set_layer_mode(layer.layer, mode)
+
+    config = layer.get_config()
     # for every layer set mode, if it has it
     if 'mode' in config:
-      model.layers[i].mode = mode
+      layer.mode = mode
       # with any mode of inference - training is False
     if 'training' in config:
-      model.layers[i].training = False
+      layer.training = False
     if mode == modes.Modes.NON_STREAM_INFERENCE:
       if 'unroll' in config:
-        model.layers[i].unroll = True
+        layer.unroll = True
+
+  for layer in model.layers:
+    _recursive_set_layer_mode(layer, mode)
   return model
 
 
@@ -279,11 +285,29 @@ def to_streaming_inference(model_non_stream, flags, mode):
   input_data_shape = modes.get_input_data_shape(flags, mode)
 
   # get input data type and use it for input streaming type
-  dtype = model_non_stream.input.dtype
+  if isinstance(model_non_stream.input, (tuple, list)):
+    dtype = model_non_stream.input[0].dtype
+  else:
+    dtype = model_non_stream.input.dtype
+
   input_tensors = [
       tf.keras.layers.Input(
           shape=input_data_shape, batch_size=1, dtype=dtype, name='input_audio')
   ]
+
+  if (isinstance(model_non_stream.input, (tuple, list)) and
+      len(model_non_stream.input) > 1):
+    if len(model_non_stream.input) > 2:
+      raise ValueError(
+          'Maximum number of inputs supported is 2 (input_audio and '
+          'cond_features), but got %d inputs' % len(model_non_stream.input))
+    input_tensors.append(
+        tf.keras.layers.Input(
+            shape=flags.cond_shape,
+            batch_size=1,
+            dtype=model_non_stream.input[1].dtype,
+            name='cond_features'))
+
   quantize_stream_scope = quantize.quantize_scope()
   with quantize_stream_scope:
     model_inference = convert_to_inference_model(model_non_stream,
@@ -291,17 +315,21 @@ def to_streaming_inference(model_non_stream, flags, mode):
   return model_inference
 
 
-def model_to_tflite(sess,
-                    model_non_stream,
-                    flags,
-                    mode=modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
-                    save_model_path=None,
-                    optimizations=None,
-                    inference_type=tf1.lite.constants.FLOAT,
-                    experimental_new_quantizer=True,
-                    representative_dataset=None,
-                    inference_input_type=tf.float32,
-                    inference_output_type=tf.float32):
+def model_to_tflite(
+    sess,
+    model_non_stream,
+    flags,
+    mode=modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE,
+    save_model_path=None,
+    optimizations=None,
+    use_fp16=False,
+    inference_type=tf1.lite.constants.FLOAT,
+    experimental_new_quantizer=True,
+    representative_dataset=None,
+    inference_input_type=tf.float32,
+    inference_output_type=tf.float32,
+    supported_ops_override = None,
+    allow_custom_ops = True):
   """Convert non streaming model to tflite inference model.
 
   If mode==modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE then inference graph
@@ -320,12 +348,16 @@ def model_to_tflite(sess,
       streaming
     save_model_path: path to save intermediate model summary
     optimizations: list of optimization options
+    use_fp16: uses float16 post-training quantization in place for float.
+      Only effective when `optimizations` is not None.
     inference_type: inference type, can be float or int8
     experimental_new_quantizer: enable new quantizer
     representative_dataset: function generating representative data sets
-      for calibation post training quantizer
+      for calibration post training quantizer
     inference_input_type: it can be used to quantize input data e.g. tf.int8
     inference_output_type: it can be used to quantize output data e.g. tf.int8
+    supported_ops_override: explicitly set supported ops in converter.
+    allow_custom_ops: explicitly set custom op usage.
 
   Returns:
     tflite model
@@ -345,32 +377,47 @@ def model_to_tflite(sess,
   if save_model_path:
     save_model_summary(model_stream, save_model_path)
 
-  if sess:
-    # convert Keras inference model to tflite inference model
-    converter = tf1.lite.TFLiteConverter.from_session(
-        sess, model_stream.inputs, model_stream.outputs)
-  else:
-    if not save_model_path:
-      save_model_path = tempfile.mkdtemp()
-    tf.saved_model.save(model_stream, save_model_path)
-    converter = tf.lite.TFLiteConverter.from_saved_model(save_model_path)
+  # Identify custom objects.
+  with quantize.quantize_scope():
+    if sess:
+      # convert Keras inference model to tflite inference model
+      converter = tf1.lite.TFLiteConverter.from_session(
+          sess, model_stream.inputs, model_stream.outputs)
+    else:
+      if not save_model_path:
+        save_model_path = tempfile.mkdtemp()
+      tf.saved_model.save(model_stream, save_model_path)
+      converter = tf.lite.TFLiteConverter.from_saved_model(save_model_path)
 
   converter.inference_type = inference_type
   converter.experimental_new_quantizer = experimental_new_quantizer
   converter.experimental_enable_resource_variables = True
   if representative_dataset is not None:
     converter.representative_dataset = representative_dataset
-
-  # this will enable audio_spectrogram and mfcc in TFLite
-  converter.target_spec.supported_ops = [
-      tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
-  ]
-  converter.allow_custom_ops = True
-
+  if not supported_ops_override:
+    # this will enable audio_spectrogram and mfcc in TFLite
+    converter.target_spec.supported_ops = [
+        tf.lite.OpsSet.TFLITE_BUILTINS, tf.lite.OpsSet.SELECT_TF_OPS
+    ]
+  else:
+    converter.target_spec.supported_ops = supported_ops_override
+  converter.allow_custom_ops = allow_custom_ops
   converter.inference_input_type = inference_input_type
   converter.inference_output_type = inference_output_type
   if optimizations:
     converter.optimizations = optimizations
+    if use_fp16:
+      converter.target_spec.supported_types = [tf.float16]
+      # pylint: disable=protected-access
+      converter.target_spec._experimental_supported_accumulation_type = (
+          tf.dtypes.float16)
+
+  if hasattr(flags, 'quantize') and hasattr(flags, 'use_quantize_nbit'):
+    if flags.quantize and flags.use_quantize_nbit:
+      # pylint: disable=protected-access
+      converter._experimental_low_bit_qat = True
+      # pylint: enable=protected-access
+
   tflite_model = converter.convert()
   return tflite_model
 
@@ -527,7 +574,8 @@ def saved_model_to_tflite(saved_model_path,
                           experimental_new_quantizer=True,
                           representative_dataset=None,
                           inference_input_type=tf.float32,
-                          inference_output_type=tf.float32):
+                          inference_output_type=tf.float32,
+                          use_quantize_nbit=0):
   """Convert saved_model to tflite.
 
   Args:
@@ -539,13 +587,16 @@ def saved_model_to_tflite(saved_model_path,
       for calibation post training quantizer
     inference_input_type: it can be used to quantize input data e.g. tf.int8
     inference_output_type: it can be used to quantize output data e.g. tf.int8
+    use_quantize_nbit: adds experimental flag for default_n_bit precision.
 
   Returns:
     tflite model
   """
 
-  converter = tf.compat.v2.lite.TFLiteConverter.from_saved_model(
-      saved_model_path)
+  # Identify custom objects.
+  with quantize.quantize_scope():
+    converter = tf.compat.v2.lite.TFLiteConverter.from_saved_model(
+        saved_model_path)
 
   converter.inference_type = inference_type
   converter.experimental_new_quantizer = experimental_new_quantizer
@@ -564,5 +615,9 @@ def saved_model_to_tflite(saved_model_path,
   converter.inference_output_type = inference_output_type
   if optimizations:
     converter.optimizations = optimizations
+  if use_quantize_nbit:
+    # pylint: disable=protected-access
+    converter._experimental_low_bit_qat = True
+    # pylint: enable=protected-access
   tflite_model = converter.convert()
   return tflite_model

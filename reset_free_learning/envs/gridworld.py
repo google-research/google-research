@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Continuous version of the frozen lake environment.
 
 Everytime the agent hits the goal or the hole, the agent resets to the start

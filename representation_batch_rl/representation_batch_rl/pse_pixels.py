@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Implementation of PSEs (based on https://github.com/google-research/google-research/blob/master/pse/dm_control/agents/pse_drq_agent.py)."""
 
 import typing

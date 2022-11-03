@@ -1,0 +1,4 @@
+numpy>=1.21.5
+scipy>=1.2.1
+matplotlib>=3.3.4
+tqdm

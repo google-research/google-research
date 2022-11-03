@@ -1,0 +1,10 @@
+numpy
+matplotlib
+tensorflow
+tensorflow_datasets
+jax
+jaxlib
+pillow
+flax
+ml_collections
+clu

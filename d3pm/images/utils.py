@@ -176,7 +176,7 @@ def clip_by_global_norm(pytree, clip_norm, use_norm=None):
 
 
 def apply_ema(decay, avg, new):
-  return jax.tree_multimap(lambda a, b: decay * a + (1. - decay) * b, avg, new)
+  return jax.tree_map(lambda a, b: decay * a + (1. - decay) * b, avg, new)
 
 
 def count_params(pytree):
@@ -241,7 +241,7 @@ def numpy_iter(tf_dataset):
 @functools.partial(jax.pmap, axis_name='batch')
 def _check_synced(pytree):
   mins = jax.lax.pmin(pytree, axis_name='batch')
-  equals = jax.tree_multimap(jnp.array_equal, pytree, mins)
+  equals = jax.tree_map(jnp.array_equal, pytree, mins)
   return jnp.all(jnp.asarray(jax.tree_leaves(equals)))
 
 

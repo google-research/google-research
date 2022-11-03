@@ -50,6 +50,13 @@ from graph_compression.compression_lib import compression_op_utils as comp_op_ut
 from model_pruning.python import hparam as contrib_hparam
 
 
+def _get_var_name(var):
+  if tf.executing_eagerly_outside_functions():
+    return var.name.rsplit(':', 1)[0]
+  else:
+    return var.op.name
+
+
 class MatrixCompressorInferface(object):
   """Interface for any matrix compressor algorithm.
 
@@ -370,17 +377,18 @@ class CompressionOp(CompressionOpInterface):
     """Adds summaries of alpha value, new variables, and last update step."""
     with tf.compat.v1.name_scope(self._spec.name + '_summaries'):
       tf.compat.v2.summary.scalar(
-          self._last_alpha_update_step.op.name + '/last_alpha_update_step',
-          self._last_alpha_update_step)
-      tf.compat.v2.summary.scalar(self.alpha.op.name + '/alpha', self.alpha)
+          _get_var_name(self._last_alpha_update_step) +
+          '/last_alpha_update_step', self._last_alpha_update_step)
       tf.compat.v2.summary.scalar(
-          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+          _get_var_name(self.alpha) + '/alpha', self.alpha)
+      tf.compat.v2.summary.scalar(
+          _get_var_name(self.a_matrix_tfvar) + '/a_matrix_norm',
           tf.norm(tensor=self.a_matrix_tfvar))
       tf.compat.v2.summary.scalar(
-          self.b_matrix_tfvar.op.name + '/b_matrix_norm',
+          _get_var_name(self.b_matrix_tfvar) + '/b_matrix_norm',
           tf.norm(tensor=self.b_matrix_tfvar))
       tf.compat.v2.summary.scalar(
-          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+          _get_var_name(self.c_matrix_tfvar) + '/c_matrix_norm',
           tf.norm(tensor=self.c_matrix_tfvar))
 
   def _setup_last_alpha_update_step(self):
@@ -633,7 +641,7 @@ class CompressionOp(CompressionOpInterface):
       self.add_compression_summaries()
     return [self.final_op, self.update_op]
 
-  def get_mix_operator(self, theta, concat):
+  def get_mix_operator(self, theta, concat, layer_obj=None):
     """Performs matrix multiplication for customized layer.
 
     This performs the compressed equivalent of tf.matmul(concat, theta.wm).
@@ -641,11 +649,13 @@ class CompressionOp(CompressionOpInterface):
     Args:
       theta: object in customized layer that contains weight tensors, etc.
       concat: the left operand of the matmul operation.
+      layer_obj: reference to the customized layer object. default is None.
 
     Returns:
       A TensorFlow node that has compressed version of
       tf.matmul(concat, theta.wm).
     """
+    del layer_obj  # Unused by get_mix_operator here
     return (theta.alpha * tf.matmul(concat, theta.wm) +
             (1 - theta.alpha) * tf.matmul(
                 tf.matmul(concat, theta.b_matrix_tfvar), theta.c_matrix_tfvar))
@@ -977,18 +987,18 @@ class InputOutputCompressionOp(CompressionOpInterface):
       logging.info('add_compression_summaries scope name is %s',
                    self._spec.name)
       tf.compat.v2.summary.scalar(
-          self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+          _get_var_name(self.a_matrix_tfvar) + '/a_matrix_norm',
           tf.norm(self.a_matrix_tfvar))
       if self._spec.compress_input:
         tf.compat.v2.summary.scalar(
-            self.b_matrix_tfvar.op.name + '/b_matrix_norm',
+            _get_var_name(self.b_matrix_tfvar) + '/b_matrix_norm',
             tf.norm(tf.reshape(self.b_matrix_tfvar, [-1]), ord=1))
       if self._spec.compress_output:
         tf.compat.v2.summary.scalar(
-            self.d_matrix_tfvar.op.name + '/d_matrix_norm',
+            _get_var_name(self.d_matrix_tfvar) + '/d_matrix_norm',
             tf.norm(tf.reshape(self.d_matrix_tfvar, [-1]), ord=1))
       tf.compat.v2.summary.scalar(
-          self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+          _get_var_name(self.c_matrix_tfvar) + '/c_matrix_norm',
           tf.norm(self.c_matrix_tfvar))
 
   def print_hparams(self):
@@ -1295,7 +1305,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
       compressed_result = intermediate_result
     return compressed_result
 
-  def get_mix_operator(self, theta, concat):
+  def get_mix_operator(self, theta, concat, layer_obj=None):
     """Performs matrix multiplication on compressed input for Babelfish LSTM layers.
 
     This performs the input (and/or) output compressed equivalent of
@@ -1304,6 +1314,7 @@ class InputOutputCompressionOp(CompressionOpInterface):
     Args:
       theta: object in customized layer that contains weight tensors, etc.
       concat: the left operand of the matmul operation. a rank 2 tensor.
+      layer_obj: reference to the customized layer object. default is None.
 
     Returns:
       A TensorFlow node that has compressed version of
@@ -1320,7 +1331,12 @@ class InputOutputCompressionOp(CompressionOpInterface):
           ],
                     axis=0))
       # project blocked_left_operand down using b.
-      projected_blocked_concat = tf.matmul(blocked_concat, theta.b_matrix_tfvar)
+      if layer_obj is not None:
+        b_matrix_tfvar = layer_obj.QWeight(theta.b_matrix_tfvar,
+                                           'b_compression')
+      else:
+        b_matrix_tfvar = theta.b_matrix_tfvar
+      projected_blocked_concat = tf.matmul(blocked_concat, b_matrix_tfvar)
       # flatten the block dimension in projected_blocked_concat.
       compressed_concat = tf.reshape(
           projected_blocked_concat,
@@ -1332,7 +1348,11 @@ class InputOutputCompressionOp(CompressionOpInterface):
       compressed_concat = concat
 
     # multiply compressed concat with c.
-    intermediate_result = tf.matmul(compressed_concat, theta.c_matrix_tfvar)
+    if layer_obj is not None:
+      c_matrix_tfvar = layer_obj.QWeight(theta.c_matrix_tfvar, 'c_compression')
+    else:
+      c_matrix_tfvar = theta.c_matrix_tfvar
+    intermediate_result = tf.matmul(compressed_concat, c_matrix_tfvar)
 
     if self._spec.compress_output:
       # block intermediate_result into blocks
@@ -1345,8 +1365,13 @@ class InputOutputCompressionOp(CompressionOpInterface):
           ],
                     axis=0))
       # project blocked_intermediate_result up using d.
+      if layer_obj is not None:
+        d_matrix_tfvar = layer_obj.QWeight(theta.d_matrix_tfvar,
+                                           'd_compression')
+      else:
+        d_matrix_tfvar = theta.d_matrix_tfvar
       projected_intermediate_result = tf.matmul(blocked_intermediate_result,
-                                                theta.d_matrix_tfvar)
+                                                d_matrix_tfvar)
       # flatten the block dimension
       compressed_result = tf.reshape(
           projected_intermediate_result,
@@ -1396,7 +1421,12 @@ class InputOutputCompressionOp(CompressionOpInterface):
           self._spec.input_block_size
       ])
       # project blocked_inputs down using b.
-      projected_blocked_inputs = tf.matmul(blocked_inputs, theta.b_matrix_tfvar)
+      if layer_obj is not None:
+        b_matrix_tfvar = layer_obj.QWeight(theta.b_matrix_tfvar,
+                                           'b_compression')
+      else:
+        b_matrix_tfvar = theta.b_matrix_tfvar
+      projected_blocked_inputs = tf.matmul(blocked_inputs, b_matrix_tfvar)
       # flatten the block dimension in projected_blocked_inputs.
       compressed_inputs = tf.reshape(
           projected_blocked_inputs,
@@ -1405,7 +1435,11 @@ class InputOutputCompressionOp(CompressionOpInterface):
       compressed_inputs = inputs
 
     # multiply compressed inputs with c.
-    intermediate_result = tf.matmul(compressed_inputs, theta.c_matrix_tfvar)
+    if layer_obj is not None:
+      c_matrix_tfvar = layer_obj.QWeight(theta.c_matrix_tfvar, 'c_compression')
+    else:
+      c_matrix_tfvar = theta.c_matrix_tfvar
+    intermediate_result = tf.matmul(compressed_inputs, c_matrix_tfvar)
 
     if self._spec.compress_output:
       # block intermediate_result into blocks
@@ -1414,8 +1448,13 @@ class InputOutputCompressionOp(CompressionOpInterface):
           intermediate_result,
           [tf.shape(intermediate_result)[0], -1, block_size])
       # project blocked_intermediate_result up using d.
+      if layer_obj is not None:
+        d_matrix_tfvar = layer_obj.QWeight(theta.d_matrix_tfvar,
+                                           'd_compression')
+      else:
+        d_matrix_tfvar = theta.d_matrix_tfvar
       projected_intermediate_result = tf.matmul(blocked_intermediate_result,
-                                                theta.d_matrix_tfvar)
+                                                d_matrix_tfvar)
       # flatten the block dimension
       compressed_result = tf.reshape(
           projected_intermediate_result,
@@ -1595,11 +1634,11 @@ class BlockCompressionOp(CompressionOpInterface):
                    self._spec.name)
       if self.a_matrix_tfvar is not None:
         tf.compat.v2.summary.scalar(
-            self.a_matrix_tfvar.op.name + '/a_matrix_norm',
+            _get_var_name(self.a_matrix_tfvar) + '/a_matrix_norm',
             tf.norm(self.a_matrix_tfvar))
       if self.c_matrix_tfvar is not None:
         tf.compat.v2.summary.scalar(
-            self.c_matrix_tfvar.op.name + '/c_matrix_norm',
+            _get_var_name(self.c_matrix_tfvar) + '/c_matrix_norm',
             tf.norm(self.c_matrix_tfvar))
 
   def get_apply_compression_op(self,
@@ -1765,7 +1804,7 @@ class BlockCompressionOp(CompressionOpInterface):
         output_splitted.append(tf.matmul(input_i, self.c_matrix_tfvar[i, :, :]))
       return tf.concat(output_splitted, axis=-1)
 
-  def get_mix_operator(self, theta, concat):
+  def get_mix_operator(self, theta, concat, layer_obj=None):
     """Performs matrix multiplication on customized LSTM layers.
 
     This performs the block diagonal compressed equivalent of
@@ -1774,11 +1813,13 @@ class BlockCompressionOp(CompressionOpInterface):
     Args:
       theta: object in customized layer that contains weight tensors, etc.
       concat: the left operand of the matmul operation. a rank 2 tensor.
+      layer_obj: reference to the customized layer object. default is None.
 
     Returns:
       A TensorFlow node that has compressed version of
       tf.matmul(concat, theta.wm).
     """
+    del layer_obj  # Unused within get_mix_operator here.
     if self._spec.block_method == 'mask':
       return tf.matmul(concat,
                        tf.multiply(theta.c_matrix_tfvar, theta.c_mask_tfvar))
@@ -1944,10 +1985,10 @@ class MixedBlockCompressionOp(CompressionOp):
       logging.info('add_compression_summaries scope name is %s',
                    self._spec.name)
       tf.compat.v2.summary.scalar(
-          self.block_matrices.op.name + '/block_matrices_norm',
+          _get_var_name(self.block_matrices) + '/block_matrices_norm',
           tf.norm(self.block_matrices))
       tf.compat.v2.summary.scalar(
-          self.linear_mixer.op.name + '/linear_mixer_norm',
+          _get_var_name(self.linear_mixer) + '/linear_mixer_norm',
           tf.norm(self.linear_mixer))
 
   def get_apply_compression_op(self,
@@ -2126,7 +2167,7 @@ class MixedBlockCompressionOp(CompressionOp):
     output = tf.concat(reduced_output_splitted, axis=-1)
     return output
 
-  def get_mix_operator(self, theta, concat):
+  def get_mix_operator(self, theta, concat, layer_obj=None):
     """Performs matrix multiplication on customized LSTM layers.
 
     This performs the block diagonal compressed equivalent of
@@ -2135,6 +2176,7 @@ class MixedBlockCompressionOp(CompressionOp):
     Args:
       theta: object in customized layer that contains weight tensors, etc.
       concat: the left operand of the matmul operation. a rank 2 tensor.
+      layer_obj: reference to the customized layer object. default is None.
 
     Returns:
       A TensorFlow node that has compressed version of

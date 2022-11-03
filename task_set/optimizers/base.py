@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Base class for optimizers.
 
 This is a simplified interface modeled off of Tensorflow's v1 optimizers.

@@ -15,6 +15,10 @@
 #ifndef SCANN_UTILS_THREADS_H_
 #define SCANN_UTILS_THREADS_H_
 
+#include <functional>
+#include <string>
+#include <utility>
+
 #include "absl/strings/string_view.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/types.h"

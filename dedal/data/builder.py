@@ -62,7 +62,7 @@ class DatasetBuilder(abc.ABC):
                drop_remainder = True,
                split = None,
                debug_mode = False):
-    self._data_loader = data_loader
+    self.data_loader = data_loader
     self._ds_transform = functools.partial(
         transform, transformations=ds_transformations)
     self._transform = functools.partial(
@@ -109,7 +109,7 @@ class DatasetBuilder(abc.ABC):
     # specified by `self.split`, default to first one.
     split = self.split if split is None else split
     split = split if isinstance(split, str) else split[0]
-    ds = self._data_loader.load(split)
+    ds = self.data_loader.load(split)
     logging.info('%s dataset loaded.', split)
     ds = ds.apply(self._ds_transform)
     ds = ds.map(self._transform, num_parallel_calls=tf.data.AUTOTUNE)
@@ -123,6 +123,12 @@ class DatasetBuilder(abc.ABC):
             for_train = True):
     """Builds (optionally distributed) `tf.data.Dataset` for `split`."""
     ds = self.prepare(split)
+
+    if input_ctx is not None:
+      shard_index = input_ctx.input_pipeline_id
+      num_shards = input_ctx.num_input_pipelines
+      ds = ds.shard(num_shards, shard_index)
+      logging.info('Sharding examples: %d of %d', shard_index + 1, num_shards)
 
     ds = ds.repeat(self._repeat)
     if self._shuffle_buffer is not None and self._shuffle_buffer > 0:
@@ -253,8 +259,9 @@ class MultiDatasetBuilder:
           when taking the union.
     """
     inputs, targets, weights, metadata = tuple(zip(*finalized_examples))
-    targets = self.switch.merge_flattened(targets)
-    weights = self.switch.merge_flattened(weights)
+    dummy = tf.constant([])
+    targets = self.switch.merge_flattened(targets, empty_value=dummy)
+    weights = self.switch.merge_flattened(weights, empty_value=dummy)
     # NOTE(fllinares): could also add a prefix to prevent collisions, but then
     # configs for metrics should account for this behavior which would be less
     # modular.

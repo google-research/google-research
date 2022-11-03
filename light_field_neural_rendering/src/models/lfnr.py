@@ -77,7 +77,7 @@ class LFNR(vanilla_nlf.VanillaNLF):
           max_length=self.epipolar_config.num_train_views,)
 
     if self.epipolar_config.use_conv_features:
-      self.conv_layer1 = efficient_conv.SplitConvModel(
+      self.conv_layer1 = efficient_conv.SplitConvModel(  # pytype: disable=wrong-arg-types
           features=self.epipolar_config.conv_feature_dim,
           kernel_size=self.epipolar_config.ksize1,
       )

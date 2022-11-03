@@ -1,0 +1,70 @@
+from __gin__ import dynamic_registration
+
+from dedal import multi_task
+from dedal.data import builder
+from dedal.data import feature_converters
+from dedal.data import loaders
+from dedal.data import tasks
+from dedal.data import transforms
+
+
+# -----------------------------------------------------------------------------
+# REQUIRED GIN BINDINGS
+# -----------------------------------------------------------------------------
+
+# Path to directory containing UniRef50 data. The directory must contain three
+# subdirectories, called train, validation and test. Inside each directory, CSV
+# files (with header) describe the samples in each split.
+UNIREF50_DATA_DIR = %gin.REQUIRED
+
+# -----------------------------------------------------------------------------
+# MASKED LANGUAGE MODELLING ON UNIREF50
+# -----------------------------------------------------------------------------
+
+MASKED_LM_SEQUENCE_LENGTH = 1_024
+MASKED_LM_SEQUENCE_KEY = 'encoder_input_tokens'
+
+masked_lm/builder.DatasetBuilder:
+  data_loader = @masked_lm/loaders.SeqIOLoader()
+  transformations = [@masked_lm/transforms.Cast()]
+  labels = @masked_lm/labels/multi_task.Backbone()
+  metadata = ()
+  sequence_key = %MASKED_LM_SEQUENCE_KEY
+  shuffle_buffer = 32_768
+
+masked_lm/loaders.SeqIOLoader:
+  mixture_or_task_name = @uniref50/tasks.register_task()
+  task_feature_lengths = {
+      'inputs': %MASKED_LM_SEQUENCE_LENGTH,
+      'targets': %MASKED_LM_SEQUENCE_LENGTH,
+      'noise_mask': %MASKED_LM_SEQUENCE_LENGTH,
+  }
+  feature_converter_factory = @feature_converters.DEDALMaskedLMFeatureConverter
+
+masked_lm/transforms.Cast:
+  on = 'encoder_loss_weights'
+  dtype = 'float32'
+
+masked_lm/labels/multi_task.Backbone:
+  embeddings = [('encoder_target_tokens', 'encoder_loss_weights')]
+  alignments = []
+
+uniref50/tasks.register_task:
+  task = @tasks.get_masked_lm_pretraining_task()
+
+feature_converters.DEDALMaskedLMFeatureConverter:
+  pack = False
+
+tasks.get_masked_lm_pretraining_task:
+  task_name = 'uniref50_masked_lm_pretraining'
+  source_fn = @uniref50/loaders.DedalLoaderDataSource
+  main_vocab_path = %MAIN_VOCAB_PATH
+  token_replace_vocab_path = %TOKEN_REPLACE_VOCAB_PATH
+
+uniref50/loaders.DedalLoaderDataSource:
+  loader_cls = @uniref50/loaders.TSVLoader
+
+uniref50/loaders.TSVLoader:
+  folder = %UNIREF50_DATA_DIR
+  file_pattern = '*.csv'
+  field_delim = ','

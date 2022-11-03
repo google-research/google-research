@@ -1,6 +1,8 @@
 # This package defines the in-memory representation of ScaNN datasets and
 # datapoints.
 
+load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -25,6 +27,17 @@ cc_proto_library(
     name = "features_cc_proto",
     tags = ["local"],
     deps = [":features_proto"],
+)
+
+scann_py_proto_library(
+    name = "features_py_pb2",
+    srcs = ["features.proto"],
+    proto_deps = [":features_proto"],
+    py_proto_deps = [
+        "//scann/coscann:v2_restricts_py_pb2",
+        "//scann/proto:restricts_py_pb2",
+    ],
+    tags = ["local"],
 )
 
 # Libraries

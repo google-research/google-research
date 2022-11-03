@@ -1,23 +1,23 @@
-When processing the complete database, there are a few special kinds of conformers to look out for
+When processing the complete database, there are a few special kinds of molecules to look out for
 
 The first are duplicate records
 Consider 253949008
 It has status -1 and duplicated_by 253949007
-This means this conformer was considered a duplciated of another
-That other conformer proceeded to full calculation and this conformer did not
-A conformer should have status=-1 if and only if duplicated_by is not 0
-Note that this conformer started with bond topology 253949 which is the same as the duplicate 253949
+This means this molecule was considered a duplciated of another
+That other molecule proceeded to full calculation and this molecule did not
+A molecule should have status=-1 if and only if duplicated_by is not 0
+Note that this molecule started with bond topology 253949 which is the same as the duplicate 253949
 Therefore, the initial_geometry from 253949008 was copied to the list of initial_geometries for 253949007 which has 2 initial_geometries
-Compare this to conformer 95603043
-It is duplicated to 96501032 which has bond topology 96501 which is different than the bond topology for this conformer 95603
+Compare this to molecule 95603043
+It is duplicated to 96501032 which has bond topology 96501 which is different than the bond topology for this molecule 95603
 Therefore, the initial geometry from 95603043 is NOT copied to 96501032 which has only 1 inital_geometries
 We do this because it is not obvious what the atom matching across the duplicates should be in this case
 If you have a good idea how to do that, you will need these records
 
 The other important cases to watch for are status >= 512
-Consider conformer 146002
+Consider molecule 146002
 The status is 590 and the full record is:
-conformer_id: 146002
+molecule_id: 146002
 initial_geometries {
   atom_positions {
     x: 1.9942280054092407
@@ -106,16 +106,16 @@ properties {
   errors {
     status: 590
   }
-  initial_geometry_energy {
+  initial_geometry_energy_deprecated {
     value: -261.898872
   }
-  initial_geometry_gradient_norm {
+  initial_geometry_gradient_norm_deprecated {
     value: 0.16787
   }
-  optimized_geometry_energy {
+  optimized_geometry_energy_deprecated {
     value: -262.052347
   }
-  optimized_geometry_gradient_norm {
+  optimized_geometry_gradient_norm_deprecated {
     value: 0.00011
   }
   smiles_openbabel: "[O-][NH+]([NH3+])[O-]"

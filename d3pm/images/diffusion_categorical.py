@@ -20,7 +20,7 @@ import jax
 from jax import lax
 import jax.numpy as jnp
 import numpy as onp
-import scipy
+import scipy.special
 
 
 def make_diffusion(hps, num_bits):

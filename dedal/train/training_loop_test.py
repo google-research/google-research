@@ -41,7 +41,7 @@ open_fn = open
 
 
 def parse_gin_config():
-  filename = os.path.join(CONFIG_FOLDER, 'debug.gin')
+  filename = os.path.join(CONFIG_FOLDER, 'debug/debug.gin')
   with open_fn(filename, 'rt') as file_handle:
     gin.parse_config(file_handle)
 
@@ -73,8 +73,8 @@ def make_fake_homology_dataset(num_examples = 1000, seq_len = 128):
   sampler = vocabulary.Sampler(voc)
   return tf.data.Dataset.from_tensor_slices({
       'sequence': sampler.sample((num_examples, seq_len)),
-      'target': tf.random.uniform(shape=(num_examples,)) > 0.8,
-      'weights': tf.ones(shape=(num_examples, seq_len), dtype=tf.float32),
+      'target': tf.random.uniform(shape=(num_examples, 1)) > 0.8,
+      'weights': tf.ones(shape=(num_examples,), dtype=tf.float32),
   })
 
 
@@ -92,7 +92,10 @@ class TrainingLoopTest(tf.test.TestCase):
     workdir = tempfile.mkdtemp()
     strategy = get_strategy()
     self._loop = training_loop.TrainingLoop(
-        workdir=workdir, strategy=strategy, graph_mode=True)
+        workdir=workdir,
+        strategy=strategy,
+        graph_mode=True,
+        eval_in_train_job=False)
 
   def _make_loop_with_reference(self):
     """Creates a training loop for alignments with self._loop as reference."""
@@ -131,7 +134,8 @@ class TrainingLoopTest(tf.test.TestCase):
         model_cls=model_cls,
         num_steps=self._loop._num_steps,
         reference_workdir=self._loop._workdir,
-        num_reference_steps=self._loop._num_steps)
+        num_reference_steps=self._loop._num_steps,
+        eval_in_train_job=False)
 
   def test_train_step(self):
     # First trains the model as defined in debug.gin for language model.
@@ -223,7 +227,8 @@ class TrainingLoopTest(tf.test.TestCase):
         num_steps=self._loop._num_steps,
         graph_mode=self._loop._graph_mode,
         reference_workdir=self._loop._workdir,  # reads model from here.
-        num_reference_steps=self._loop._num_steps)
+        num_reference_steps=self._loop._num_steps,
+        eval_in_train_job=True)
     loop.evaluate()
 
     events = tf.io.gfile.glob(os.path.join(workdir, 'test', '*.tfevent*'))

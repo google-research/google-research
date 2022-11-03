@@ -24,7 +24,9 @@ OUTDIR="${1:-${DEFAULT_OUTDIR}}"
 # Snapshot date and languages to target.
 DATE="20190101"
 LANG_LIST=(ar de en es fa ja pl ro ta tr uk)
-CHECKSUMS="$(readlink -e $(dirname $0))/dump_checksums.txt"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CHECKSUMS="${SCRIPT_DIR}/dump_checksums.txt"
+CHECKSUM_TOOL="${SCRIPT_DIR}/../tools/md5_check.sh"
 
 mkdir -p "${OUTDIR}"
 
@@ -36,16 +38,9 @@ for lang in ${LANG_LIST[@]}; do
 done
 
 echo ">Verify..."
-
-if [[ ! -f "${CHECKSUMS}" ]]; then
-  echo "! Failed to locate the checksums expected at ${CHECKSUMS}"
-  exit 1
-fi
-
-OLDPWD="${PWD}"
-cd "${OUTDIR}"
-md5sum -c ${CHECKSUMS}
-cd "${OLDPWD}"
+pushd "${OUTDIR}"
+bash "${CHECKSUM_TOOL}" "${CHECKSUMS}"
+popd
 
 echo
 echo ">Done: ${OUTDIR}"

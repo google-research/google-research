@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Functions for self-consistent field calculation."""
 
 import functools
@@ -509,7 +508,7 @@ def kohn_sham(
     states.append(state)
     alpha *= alpha_decay
 
-  return tree_util.tree_multimap(lambda *x: jnp.stack(x), *states)
+  return tree_util.tree_map(lambda *x: jnp.stack(x), *states)
 
 
 def get_final_state(state):

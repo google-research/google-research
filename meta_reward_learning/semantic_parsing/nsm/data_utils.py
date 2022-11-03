@@ -17,6 +17,7 @@
 """Utility fuctions to preprocess data."""
 
 import collections
+from collections import abc
 import random
 import numpy as np
 import six
@@ -33,7 +34,7 @@ END_TK = '<END>'
 def namedtuple_with_defaults(typename, field_names, default_values=()):
   T = collections.namedtuple(typename, field_names)
   T.__new__.__defaults__ = (None,) * len(T._fields)
-  if isinstance(default_values, collections.Mapping):
+  if isinstance(default_values, abc.Mapping):
     prototype = T(**default_values)
   else:
     prototype = T(*default_values)
@@ -501,7 +502,7 @@ def is_sequence(seq):
   Returns:
     True if the sequence is a not a string and is a collections.Sequence.
   """
-  return (isinstance(seq, collections.Sequence) and
+  return (isinstance(seq, abc.Sequence) and
           not isinstance(seq, six.string_types))
 
 
@@ -609,7 +610,7 @@ def _sequence_like(instance, args):
     `args` with the type of `instance`.
   """
   if (isinstance(instance, tuple) and hasattr(instance, '_fields') and
-      isinstance(instance._fields, collections.Sequence) and
+      isinstance(instance._fields, abc.Sequence) and
       all(isinstance(f, six.string_types) for f in instance._fields)):
     # This is a namedtuple
     return type(instance)(*args)

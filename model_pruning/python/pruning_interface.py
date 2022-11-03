@@ -369,6 +369,13 @@ class PruningOp(object):
   _pruning_hparams = None
 
   @classmethod
+  def Reset(cls):
+    cls._pruning_hparams_dict = {}
+    cls._global_step = None
+    cls._pruning_obj = None
+    cls._pruning_hparams = None
+
+  @classmethod
   def Setup(cls, pruning_hparams_dict, global_step):  # pylint:disable=invalid-name
     """Set up the pruning op with pruning hyperparameters and global step.
 
@@ -428,7 +435,7 @@ class PruningOp(object):
           concat,
           lstmobj.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weight')))
     elif cls._pruning_obj:
-      return lstmobj.compression_op.get_mix_operator(theta, concat)
+      return lstmobj.compression_op.get_mix_operator(theta, concat, lstmobj)
     else:
       raise NotImplementedError()
 

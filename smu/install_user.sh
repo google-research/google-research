@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 #!/bin/sh
 
 set -e
@@ -43,10 +57,11 @@ python -m smu.smu_sqlite_test
 python -m smu.geometry.topology_from_geom_test
 python -m smu.geometry.bond_length_distribution_test
 python -m smu.geometry.utilities_test
-python -m smu.geometry.smu_molecule_test
+python -m smu.geometry.topology_molecule_test
 
 echo "============================================================="
-echo "Success! Before running query_sqlite, please make sure to do:"
+echo "Before running query_sqlite, please make sure to do:"
 echo "source ${VENV}/bin/activate"
 echo "Example command line:"
 echo "python -m smu.query_sqlite --input_sqlite <path to standard.sqlite> --smiles NN"
+echo "SUCCESS"

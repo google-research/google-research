@@ -63,7 +63,7 @@ class XCLDATest(parameterized.TestCase):
       ('lda_c_pw', lda.e_c_lda_unpolarized),
       )
   def test_lda_xc_unpolarized_against_libxc(self, xc_name, xc_fun):
-    eps_xc_ref, (vrho_ref, _, _, _), _, _ = libxc.eval_xc(
+    eps_xc_ref, (vrho_ref, *_), _, _ = libxc.eval_xc(
         xc_name, self.rho, spin=0, relativity=0, deriv=1)
     e_xc_ref = eps_xc_ref * self.rho
 
@@ -77,7 +77,7 @@ class XCLDATest(parameterized.TestCase):
       ('lda_c_pw', lda.e_c_lda_polarized),
       )
   def test_lda_xc_polarized_against_libxc(self, xc_name, xc_fun):
-    eps_xc_ref, (vrho_ref, _, _, _), _, _ = libxc.eval_xc(
+    eps_xc_ref, (vrho_ref, *_), _, _ = libxc.eval_xc(
         xc_name, (self.rhoa, self.rhob), spin=1, relativity=0, deriv=1)
     e_xc_ref = eps_xc_ref * self.rho
     vrhoa_ref, vrhob_ref = vrho_ref[:, 0], vrho_ref[:, 1]

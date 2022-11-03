@@ -1,0 +1,47 @@
+from __gin__ import dynamic_registration
+
+import tensorflow as tf
+
+from dedal import smith_waterman
+from dedal.models import aligners
+from dedal.models import dedal
+from dedal.models import encoders
+from dedal.models import initializers
+
+
+# Path to the substitution matrix of choice (in FASTA36-compatible .mat format).
+SUBSTITUTION_MATRIX_PATH = %gin.REQUIRED
+
+dedal.Dedal:
+  aligner_cls = @aligners.SoftAligner
+  encoder_cls = @encoders.OneHotEncoder
+
+aligners.SoftAligner:
+  similarity_cls = @aligners.PairwiseBilinearDense
+  gap_pen_cls = @aligners.ConstantGapPenalties
+  align_fn = @smith_waterman.perturbed_alignment_score
+  eval_align_fn = @smith_waterman.unperturbed_alignment_score
+
+smith_waterman.perturbed_alignment_score:
+  sigma = 0.1
+
+aligners.PairwiseBilinearDense:
+  use_bias = False
+  trainable_kernel = True
+  kernel_init = @initializers.SubsMatInitializer()
+  sqrt_norm = False
+
+initializers.SubsMatInitializer:
+  filename = %SUBSTITUTION_MATRIX_PATH
+
+aligners.ConstantGapPenalties:
+  trainable_gap_open = True
+  trainable_gap_extend = True
+  gap_open_init = @gap_open/tf.keras.initializers.Constant()
+  gap_extend_init = @gap_extend/tf.keras.initializers.Constant()
+
+gap_open/tf.keras.initializers.Constant:
+  value = 12.0
+
+gap_extend/tf.keras.initializers.Constant:
+  value = 1.0

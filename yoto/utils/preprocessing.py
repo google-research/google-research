@@ -22,14 +22,14 @@ field "image" being modified. Potentially, other fields can also be modified
 or added.
 """
 
-import collections
+from collections import abc
 from absl import logging
 import tensorflow.compat.v1 as tf
 import tensorflow.compat.v2 as tf2
 
 
 def maybe_repeat(arg, n_reps):
-  if not isinstance(arg, collections.Sequence):
+  if not isinstance(arg, abc.Sequence):
     arg = (arg,) * n_reps
   return arg
 

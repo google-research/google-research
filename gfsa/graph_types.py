@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# lint as: python3
 """Python object types for graphs and their corresponding POMDPs.
 
 Section 3.1 of the paper describes a transformation from ordinary directed

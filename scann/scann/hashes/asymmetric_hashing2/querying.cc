@@ -15,6 +15,7 @@
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 
 #include <cstdint>
+#include <utility>
 
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/flags.h"

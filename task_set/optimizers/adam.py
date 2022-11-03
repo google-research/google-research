@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Adam with fixed hyper parameter configurations."""
 import numpy as np
 from task_set import registry

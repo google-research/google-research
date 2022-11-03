@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Train seq-to-seq model on random supervised training tasks."""
 
 # pytype: disable=wrong-arg-count
@@ -21,7 +20,6 @@
 
 import collections
 import functools
-import json
 import os
 import random
 import sys
@@ -121,8 +119,6 @@ flags.DEFINE_integer('num_position_buckets', 32,
                      'Number of relative attention position buckets.')
 flags.DEFINE_integer('max_distance', 128,
                      'Max distance for relative attention positions.')
-flags.DEFINE_bool('bidirectional_program_attention', False,
-                  'Whether program self-attention is bidirectional.')
 
 flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'scan'],
@@ -488,9 +484,11 @@ def main(_):
   if not gfile.isdir(FLAGS.save_dir):
     gfile.makedirs(FLAGS.save_dir)
 
-  hparam_str_dict = json.loads(FLAGS.xm_parameters)
-  hparam_str = ','.join(['%s=%s' % (shorten(k), str(hparam_str_dict[k]))
-                         for k in hparam_str_dict.keys()])
+  xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
+  work_unit = xm_client.get_current_work_unit()
+  hparam_dict = work_unit.parameters['args']
+  hparam_str = ','.join(['%s=%s' % (shorten(k), str(v))
+                         for k, v in hparam_dict.items()])
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
@@ -513,23 +511,27 @@ def main(_):
 
   # Build token tables.
   if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
-    characters = robust_fill_dsl.CHARACTER + '<>'
-    id_char_table = {i+1: char
-                     for i, char in enumerate(characters)}
-    char_id_table = {char: id for id, char in id_char_table.items()}
-    id_token_table, token_id_table = dsl_tokens.build_token_tables()
-    bos_token = token_id_table[robust_fill_dsl.BOS]
-    eos_token = token_id_table[robust_fill_dsl.EOS]
-    io_vocab_size = len(char_id_table) + 1  # For padding.
-    program_vocab_size = len(token_id_table) + 1
+    spec_vocab = robust_fill_dsl.CHARACTER + '|'
+    spec_id_token_table = {i + 3: token for i, token in enumerate(spec_vocab)}
+    bos_id = 1
+    eos_id = 2
+    spec_id_token_table[bos_id] = robust_fill_dsl.BOS
+    spec_id_token_table[eos_id] = robust_fill_dsl.EOS
+    spec_token_id_table = {
+        token: id for id, token in spec_id_token_table.items()
+    }
+    spec_vocab_size = len(spec_token_id_table) + 1  # For padding.
+    program_id_token_table, _ = dsl_tokens.build_token_tables()
+    program_vocab_size = len(program_id_token_table) + 1
   elif FLAGS.dataset_type == 'scan':
-    id_char_table = {}
-    char_id_table = {}
-    id_token_table, token_id_table = scan_vocab.build_token_tables()
-    bos_token = token_id_table[scan_vocab.BOS]
-    eos_token = token_id_table[scan_vocab.EOS]
-    io_vocab_size = len(id_token_table) + 1  # For padding.
-    program_vocab_size = io_vocab_size
+    raise ValueError('Not implemented yet')
+    # id_char_table = {}
+    # char_id_table = {}
+    # id_token_table, token_id_table = scan_vocab.build_token_tables()
+    # bos_token = token_id_table[scan_vocab.BOS]
+    # eos_token = token_id_table[scan_vocab.EOS]
+    # io_vocab_size = len(id_token_table) + 1  # For padding.
+    # program_vocab_size = io_vocab_size
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
@@ -539,7 +541,7 @@ def main(_):
     if FLAGS.dataset_type == 'robust_fill':
       def decode_str(s):
         """Decode string tokens."""
-        return ''.join([id_char_table[c_id] for c_id in s if c_id > 0])
+        return ''.join([spec_id_token_table[c_id] for c_id in s if c_id > 0])
 
       inps, outs = [], []
       for inp, out in zip(inputs, outputs):
@@ -550,7 +552,7 @@ def main(_):
     elif FLAGS.dataset_type == 'robust_fill_base':
       def decode_str(s):
         """Decode string tokens."""
-        return ''.join([id_char_table[c_id] for c_id in s if c_id > 0])
+        return ''.join([spec_id_token_table[c_id] for c_id in s if c_id > 0])
 
       inps = [decode_str(inp) for inp in inputs]
       assert len(inps) == 1
@@ -566,7 +568,8 @@ def main(_):
     elif FLAGS.dataset_type == 'scan':
       def decode_str(s):
         """Decode string tokens."""
-        return ' '.join([id_token_table[t_id] for t_id in s if t_id > 0])
+        return ' '.join([program_id_token_table[t_id]
+                         for t_id in s if t_id > 0])
 
       inps = [decode_str(inp) for inp in inputs]
       dummy_outs = [''] * len(inps)
@@ -577,20 +580,20 @@ def main(_):
 
   def decode_program(program):
     """Decode program tokens."""
-    program = program[:np.argmax(program == eos_token) + 1].astype(np.int32)
+    program = program[:np.argmax(program == eos_id) + 1].astype(np.int32)
 
     if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
       # Returns either a Concat program object, or None.
-      program = program[program != bos_token].tolist()
+      program = program[program != bos_id].tolist()
       try:
-        return robust_fill_dsl.decode_program(program, id_token_table)
+        return robust_fill_dsl.decode_program(program, program_id_token_table)
       except:  # pylint: disable=bare-except
         return None  # Program does not compile.
     elif FLAGS.dataset_type == 'scan':
       # Returns a string.
-      program = program[jnp.logical_and(program != bos_token,
-                                        program != eos_token)].tolist()
-      return ' '.join(scan_vocab.decode(program, id_token_table))
+      program = program[jnp.logical_and(program != bos_id,
+                                        program != eos_id)].tolist()
+      return ' '.join(scan_vocab.decode(program, program_id_token_table))
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
@@ -619,11 +622,11 @@ def main(_):
 
   if FLAGS.dataset_type == 'robust_fill':
     create_dataset_fn = functools.partial(
-        input_pipeline.create_robust_fill_dataset_from_tf_record,
-        split_ios=True)
+        input_pipeline.create_robust_fill_dataset,
+        num_strings_per_task=FLAGS.num_strings_per_task)
   elif FLAGS.dataset_type == 'robust_fill_base':
     create_dataset_fn = functools.partial(
-        input_pipeline.create_robust_fill_dataset_from_tf_record,
+        input_pipeline.create_robust_fill_dataset_from_old_tf_record,
         split_ios=False)
   elif FLAGS.dataset_type == 'scan':
     create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
@@ -631,7 +634,7 @@ def main(_):
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   dataset = create_dataset_fn(
-      FLAGS.dataset_filepattern, token_id_table, char_id_table,
+      FLAGS.dataset_filepattern, spec_token_id_table,
       use_bos_separators=FLAGS.use_bos_separators)
   dataset = dataset.padded_batch(
       batch_size,
@@ -653,7 +656,7 @@ def main(_):
   train_ds = train_ds.repeat()
 
   test_dataset = create_dataset_fn(
-      FLAGS.test_dataset_filepattern, token_id_table, char_id_table,
+      FLAGS.test_dataset_filepattern, spec_token_id_table,
       use_bos_separators=FLAGS.use_bos_separators)
   test_dataset = test_dataset.padded_batch(
       batch_size,
@@ -673,9 +676,9 @@ def main(_):
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
   default_config = base_models.TransformerConfig(
-      vocab_size=io_vocab_size, output_vocab_size=program_vocab_size)
+      vocab_size=spec_vocab_size, output_vocab_size=program_vocab_size)
   base_config = base_models.TransformerConfig(
-      vocab_size=io_vocab_size,
+      vocab_size=spec_vocab_size,
       output_vocab_size=program_vocab_size,
       shift=True,
       emb_dim=FLAGS.embedding_dim,
@@ -689,7 +692,7 @@ def main(_):
       use_relative_attention=FLAGS.use_relative_attention,
       deterministic=False,
       decode=False,
-      bos_token=bos_token,
+      bos_token=bos_id,
       num_input_relative_position_buckets=FLAGS.num_position_buckets,
       max_input_distance=min(
           FLAGS.max_distance, default_config.max_input_distance),
@@ -706,8 +709,7 @@ def main(_):
       num_program_cross_embed_relative_position_buckets=(
           FLAGS.num_position_buckets),
       max_program_cross_embed_distance=min(
-          FLAGS.max_distance, default_config.max_program_cross_embed_distance),
-      bidirectional_program_attention=FLAGS.bidirectional_program_attention)
+          FLAGS.max_distance, default_config.max_program_cross_embed_distance))
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       attention_mask_type=FLAGS.attention_mask_type,
@@ -802,7 +804,7 @@ def main(_):
       axis_name='batch')
   p_eval_step = jax.pmap(
       functools.partial(eval_step,
-                        eos_token=eos_token,
+                        eos_token=eos_id,
                         config=eval_config),
       axis_name='batch')
   p_init_cache = jax.pmap(
@@ -814,7 +816,7 @@ def main(_):
   p_pred_step = jax.pmap(
       functools.partial(
           predict_step,
-          eos_token=eos_token,
+          eos_token=eos_id,
           max_decode_len=FLAGS.max_program_length,
           config=predict_config,
           slow_decode=FLAGS.slow_decode),
@@ -935,7 +937,7 @@ def main(_):
               # Split by length of program.
               if FLAGS.use_bos_separators:
                 # There is a BOS token between parts and at the end.
-                num_expressions = int(jnp.sum(ground_truth_tokens == bos_token))
+                num_expressions = int(jnp.sum(ground_truth_tokens == bos_id))
               else:
                 # TODO(kshi): Fix this if we care about it enough.
                 num_expressions = -1

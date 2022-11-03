@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Learned Interpreters IPA-GNN model.
 
 This file contains just the IPA-GNN architecture. For the NoControl, NoExecute,
@@ -215,8 +214,10 @@ class IPAGNN(nn.Module):
       # to avoid "executing" the exit node.
       def mask_h(h_contribution, h):
         return h_contribution.at[exit_index, :].set(h[exit_index, :])
-      hidden_state_contributions = jax.tree_multimap(
-          mask_h, hidden_state_contributions, hidden_states)
+
+      hidden_state_contributions = jax.tree_map(mask_h,
+                                                hidden_state_contributions,
+                                                hidden_states)
 
       # Branch decisions (e.g. Dense layer)
       branch_decision_logits = branch_decide(hidden_state_contributions)
@@ -255,7 +256,7 @@ class IPAGNN(nn.Module):
                 node_embeddings, true_indexes, false_indexes,
                 exit_index)
         )
-        carry = jax.tree_multimap(
+        carry = jax.tree_map(
             lambda new, old, index=index: jnp.where(index < steps, new, old),
             (hidden_states_new, instruction_pointer_new, index + 1),
             (hidden_states, instruction_pointer, index + 1),

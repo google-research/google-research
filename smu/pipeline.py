@@ -26,6 +26,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Beam pipeline for converting basel files to final output.
 
 We get horrible fortran formatted text files from Basel. This pipeline
@@ -48,7 +62,6 @@ from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
-from smu.geometry import smu_molecule
 from smu.geometry import topology_from_geom
 from smu.parser import smu_parser_lib
 from smu.parser import smu_utils_lib
@@ -63,7 +76,7 @@ flags.DEFINE_string('input_bond_topology_csv', None,
 flags.DEFINE_string(
     'input_equivalent_glob', None,
     'Glob of files containing list of equivalent structure (usually '
-    'list.equivalent_isomers.dat and list.equivalent_confomers.dat)')
+    'list.equivalent_isomers.dat and list.equivalent_molomers.dat)')
 flags.DEFINE_string('output_stem', None, 'Filestem for output files')
 flags.DEFINE_integer('output_shards', 10,
                      'Number of output shards for our primary outputs')
@@ -71,37 +84,35 @@ flags.DEFINE_integer('output_shards', 10,
 FLAGS = flags.FLAGS
 
 _METRICS_NAMESPACE = 'SMU'
-_BOND_LENGTHS_SIG_DIGITS = 3
 _BOND_LENGTHS_UNBONDED_MAX = 2.0
-_BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
 
 def parse_equivalent_file(filename):
   """Parses the .dat of equivalent structure.
 
   The file is just pairs of entries where the first was kept over the second.
-  Yields one entry per line keyed by the discarded conformer id.
+  Yields one entry per line keyed by the discarded molecule id.
   See merge_duplicate_information for how information is transferred to the kept
-  conformer.
+  molecule.
 
   Args:
     filename: string
 
   Yields:
-    dataset_pb2.Conformer
+    dataset_pb2.Molecule
   """
   with gfile.GFile(filename) as f:
     for line in f:
       kept_str, discard_str = line.split()
-      _, _, kept_btid, kept_cid = smu_parser_lib.parse_long_identifier(kept_str)
-      _, _, discard_btid, discard_cid = smu_parser_lib.parse_long_identifier(
+      _, _, kept_btid, kept_mid = smu_parser_lib.parse_long_identifier(kept_str)
+      _, _, discard_btid, discard_mid = smu_parser_lib.parse_long_identifier(
           discard_str)
-      # Convert to our conformer ids which include the btid
-      kept_cid = kept_btid * 1000 + kept_cid
-      discard_cid = discard_btid * 1000 + discard_cid
+      # Convert to our molecule ids which include the btid
+      kept_mid = kept_btid * 1000 + kept_mid
+      discard_mid = discard_btid * 1000 + discard_mid
 
-      yield dataset_pb2.Conformer(
-          conformer_id=discard_cid, duplicated_by=kept_cid)
+      yield dataset_pb2.Molecule(
+          molecule_id=discard_mid, duplicated_by=kept_mid)
 
 
 def parse_dat_file(filename, stage):
@@ -112,28 +123,28 @@ def parse_dat_file(filename, stage):
     stage: string 'stage1' or 'stage2'
 
   Yields:
-    Pair of string (original dat), conformer
-    conformer can be an Exception or a dataset_pb2.Conformer
+    Pair of string (original dat), molecule
+    molecule can be an Exception or a dataset_pb2.Molecule
   """
   smu_parser = smu_parser_lib.SmuParser(filename)
   if stage == 'stage1':
     process_fn = smu_parser.process_stage1
   else:
     process_fn = smu_parser.process_stage2
-  for conformer, orig_dat_list in process_fn():
+  for molecule, orig_dat_list in process_fn():
     orig_dat = '\n'.join(orig_dat_list) + '\n'
 
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                  stage + '_dat_entry_read').inc()
 
-    yield orig_dat, conformer
+    yield orig_dat, molecule
 
 
 def partition_parse_success(input_tuple, num_partitions, stage):
   """Function to beam.Partition parsed inputs based on parse success.
 
   Args:
-    input_tuple: pair of orig_contents, conformer (see parse_dat_file)
+    input_tuple: pair of orig_contents, molecule (see parse_dat_file)
     num_partitions: (should always be 3)
     stage: string 'stage1' or 'stage2'
 
@@ -141,13 +152,13 @@ def partition_parse_success(input_tuple, num_partitions, stage):
     int (0 for success, 1, for known error, 2 for unknown error)
   """
   assert num_partitions == 3
-  _, conformer = input_tuple
-  if not isinstance(conformer, Exception):
+  _, molecule = input_tuple
+  if not isinstance(molecule, Exception):
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                  stage + '_parse_success').inc()
     return 0  # Parse success
   else:
-    if isinstance(conformer, smu_parser_lib.SmuKnownError):
+    if isinstance(molecule, smu_parser_lib.SmuKnownError):
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    stage + '_parse_known_error').inc()
       return 1  # Parse known error
@@ -158,41 +169,41 @@ def partition_parse_success(input_tuple, num_partitions, stage):
 
 
 def regenerate_dat(input_tuple, stage):
-  """Regenerates the original dat from conformer and compares it to original.
+  """Regenerates the original dat from molecule and compares it to original.
 
   Args:
-    input_tuple: tuple of string (original contents), dataset_pb2.Conformer
+    input_tuple: tuple of string (original contents), dataset_pb2.Molecule
     stage: string 'stage1' or 'stage2'
 
   Returns:
-    original_dat, conformer, regenerated dat, int (0=mismatch, 1=match)
+    original_dat, molecule, regenerated dat, int (0=mismatch, 1=match)
   """
-  original_dat, conformer = input_tuple
+  original_dat, molecule = input_tuple
   smu_writer = smu_writer_lib.SmuWriter(annotate=False)
   if stage == 'stage1':
-    regen_dat = smu_writer.process_stage1_proto(conformer)
+    regen_dat = smu_writer.process_stage1_proto(molecule)
   else:
-    regen_dat = smu_writer.process_stage2_proto(conformer)
+    regen_dat = smu_writer.process_stage2_proto(molecule)
   try:
     smu_writer_lib.check_dat_formats_match(original_dat.splitlines(),
                                            regen_dat.splitlines())
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                  stage + '_dat_format_matched').inc()
-    return original_dat, conformer, regen_dat, 1
+    return original_dat, molecule, regen_dat, 1
   except smu_writer_lib.DatFormatMismatchError:
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                  stage + '_dat_format_mismatched').inc()
-    return original_dat, conformer, regen_dat, 0
+    return original_dat, molecule, regen_dat, 0
 
 
-def conformer_to_stat_values(conformer):
+def molecule_to_stat_values(molecule):
   """Beam transform to produce stats values for later aggregation.
 
   Each output will be a tuple of primary_key, secondary_key and these will be
   aggregated as counts.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Yields:
     primary_key, secondary_key
@@ -205,17 +216,36 @@ def conformer_to_stat_values(conformer):
       'warn_vib_linearity', 'warn_vib_imaginary', 'warn_num_neg',
       'error_nstat1', 'error_nstatc', 'error_nstatt', 'error_frequencies'
   ]:
-    yield 'errors.' + field, getattr(conformer.properties.errors, field)
+    yield 'errors.' + field, getattr(molecule.properties.errors, field)
 
-  yield 'fate', dataset_pb2.Conformer.FateCategory.Name(conformer.fate)
+  yield 'fate', dataset_pb2.Properties.FateCategory.Name(
+      molecule.properties.errors.fate)
 
-  yield 'num_initial_geometries', len(conformer.initial_geometries)
-  yield 'num_duplicates', len(conformer.duplicate_of)
-  if not conformer.duplicated_by:
-    yield 'num_topologies', len(conformer.bond_topologies)
+  yield 'num_initial_geometries', len(
+      [g for g in molecule.initial_geometries if g.atom_positions])
+  yield 'num_duplicates', len(molecule.duplicate_of)
 
-  for field in smu_utils_lib.find_zero_values(conformer):
+  for field in smu_utils_lib.find_zero_values(molecule):
     yield 'zero_field', field
+
+  if not molecule.duplicated_by and molecule.properties.errors.status < 512:
+    yield 'num_topologies', len(molecule.bond_topologies)
+
+    yield 'num_topologies_itc', len([
+        None for bt in molecule.bond_topologies
+        if bt.source & dataset_pb2.BondTopology.SOURCE_ITC
+    ])
+    yield 'num_topologies_mlcr', len([
+        None for bt in molecule.bond_topologies
+        if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR
+    ])
+    yield 'num_topologies_csd', len([
+        None for bt in molecule.bond_topologies
+        if bt.source & dataset_pb2.BondTopology.SOURCE_CSD
+    ])
+
+    for bt in molecule.bond_topologies:
+      yield 'bt_source', bt.source
 
 
 def bond_topology_summaries_from_csv(filename):
@@ -235,67 +265,67 @@ def bond_topology_summaries_from_csv(filename):
       yield bt.bond_topology_id, summary
 
 
-class MergeConformersFn(beam.DoFn):
-  """Merges conformers with the same id.
+class MergeMoleculesFn(beam.DoFn):
+  """Merges molecules with the same id.
 
   Because of the stage1, stage2, and duplicate information, we can end up with
-  multiple conformers with the same id. This merges them.
+  multiple molecules with the same id. This merges them.
   """
   OUTPUT_TAG_MERGE_CONFLICT = 'conflict'
 
   def process(self, args):
-    """"Merges conformers.
+    """"Merges molecules.
 
     Args:
-      args: tuple of conformer_id(should match the id in all conformers) and
-        conformers(iterable of dataset_pb2.Conformer)
+      args: tuple of molecule_id(should match the id in all molecules) and
+        molecules(iterable of dataset_pb2.Molecule)
 
     Yields:
-      dataset_pb2.Conformer and tagged output (OUTPUT_TAG_MERGE_CONFLICT) with
-      conflict output from smu_utils_lib.merge_conformer
+      dataset_pb2.Molecule and tagged output (OUTPUT_TAG_MERGE_CONFLICT) with
+      conflict output from smu_utils_lib.merge_molecule
     """
-    conformer_id, conformers = args
+    molecule_id, molecules = args
 
-    for c in conformers:
-      if c.conformer_id != conformer_id:
+    for c in molecules:
+      if c.molecule_id != molecule_id:
         raise ValueError(
-            f'In merged CID {conformer_id}, found CID {c.conformer_id} instead')
+            f'In merged CID {molecule_id}, found CID {c.molecule_id} instead')
 
     # For signalling the first merging.
     sentinel = object()
 
     conflicts = []
 
-    def _merge_two_conformers(conf0, conf1):
-      if conf0 is sentinel:
-        return conf1
+    def _merge_two_molecules(mol0, mol1):
+      if mol0 is sentinel:
+        return mol1
 
-      merged_conf, merge_conflict = smu_utils_lib.merge_conformer(conf0, conf1)
+      merged_mol, merge_conflict = smu_utils_lib.merge_molecule(mol0, mol1)
       if merge_conflict:
         beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
-                                     'conformer_merge_error').inc()
+                                     'molecule_merge_error').inc()
         conflicts.append(merge_conflict)
-      return merged_conf
+      return merged_mol
 
-    beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'merged_conformers').inc()
+    beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'merged_molecules').inc()
 
     # Note that we convert the iterable to a list and do a deepcopy. We can't
-    # modify the input and smu_utils_lib.merge_conformer wants to reserve the
+    # modify the input and smu_utils_lib.merge_molecule wants to reserve the
     # right to modify either input so it's simplest to just copy it once right
     # off the bat.
-    yield functools.reduce(_merge_two_conformers,
-                           copy.deepcopy(list(conformers)), sentinel)
+    yield functools.reduce(_merge_two_molecules, copy.deepcopy(list(molecules)),
+                           sentinel)
 
     for c in conflicts:
-      yield beam.pvalue.TaggedOutput(
-          MergeConformersFn.OUTPUT_TAG_MERGE_CONFLICT, c)
+      yield beam.pvalue.TaggedOutput(MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT,
+                                     c)
 
 
-def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
+def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
   """Yields quantized bond lengths.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
     dist_sig_digits: number of digits after decimal point to keep
     unbonded_max: maximum distance to report for unbonded pairs  output atom
       types are single charecters, sorted lexographically. bond_type is
@@ -306,10 +336,10 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
     (atom type 1, atom type 2, bond type, quantized dist)
   """
   # These are considered "major" or worse errors
-  if (conformer.properties.errors.status >= 8 or conformer.duplicated_by > 0):
+  if (molecule.properties.errors.status >= 8 or molecule.duplicated_by > 0):
     return
 
-  bt = conformer.bond_topologies[0]
+  bt = molecule.bond_topologies[0]
   format_str = '{:.%df}' % dist_sig_digits
 
   for atom_idx0, atom_idx1 in itertools.combinations(range(len(bt.atoms)), r=2):
@@ -319,16 +349,16 @@ def extract_bond_lengths(conformer, dist_sig_digits, unbonded_max):
       continue
 
     # Hello huge hack. F-F creates problems for us because there is
-    # exactly one conformer that has an F-F bond. We can't create an
+    # exactly one molecule that has an F-F bond. We can't create an
     # empirical distribution out of 1 value. So we'll just drop that
-    # one and let the FF conformer have no detected geometries.
+    # one and let the FF molecule have no detected geometries.
     if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_F and
         bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
       continue
 
     bond_type = smu_utils_lib.get_bond_type(bt, atom_idx0, atom_idx1)
 
-    geom = conformer.optimized_geometry
+    geom = molecule.optimized_geometry
     atom_pos0 = np.array([
         geom.atom_positions[atom_idx0].x, geom.atom_positions[atom_idx0].y,
         geom.atom_positions[atom_idx0].z
@@ -394,26 +424,26 @@ def smiles_to_id(bond_topology_filename):
       yield smiles, int(bt_id)
 
 
-def clean_up_conformer(conformer):
-  conformer = copy.deepcopy(conformer)
+def clean_up_molecule(molecule):
+  molecule = copy.deepcopy(molecule)
 
-  smu_utils_lib.clean_up_error_codes(conformer)
-  smu_utils_lib.clean_up_sentinel_values(conformer)
+  smu_utils_lib.clean_up_error_codes(molecule)
+  smu_utils_lib.clean_up_sentinel_values(molecule)
 
-  return conformer
+  return molecule
 
 
-class UpdateConformerFn(beam.DoFn):
-  """DoFn that performs several updates to fields in Conformer.
+class UpdateMoleculeFn(beam.DoFn):
+  """DoFn that performs several updates to fields in Molecule.
 
   * Updates the smiles string (with a tagged output to record the mismatches.
   * Adds Fate field
   * Adds additional bond topologies that match the geometry
   * various cleanup steps
 
-  main output is dataset_pb2.Conformer
+  main output is dataset_pb2.Molecule
   smiles output is a tuple of
-    conformer_id,
+    molecule_id,
     SmilesCompareResult,
     original smiles,
     smiles_with_h,
@@ -424,69 +454,49 @@ class UpdateConformerFn(beam.DoFn):
   def setup(self):
     self._cached_bond_lengths = None
 
-  def _compare_smiles(self, conformer):
-    if len(conformer.bond_topologies) != 1:
+  def _compare_smiles(self, molecule):
+    if len(molecule.bond_topologies) != 1:
       raise ValueError(
           'compare_smiles expects 1 bond topology; for CID {} got {}'.format(
-              conformer.conformer_id, len(conformer.bond_topologies)))
+              molecule.molecule_id, len(molecule.bond_topologies)))
 
     result, smiles_with_h, smiles_without_h = (
         smu_utils_lib.bond_topology_smiles_comparison(
-            conformer.bond_topologies[0]))
+            molecule.bond_topologies[0]))
     if result != smu_utils_lib.SmilesCompareResult.MATCH:
       yield beam.pvalue.TaggedOutput(
-          UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH,
-          (conformer.conformer_id, result, conformer.bond_topologies[0].smiles,
+          UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH,
+          (molecule.molecule_id, result, molecule.bond_topologies[0].smiles,
            smiles_with_h, smiles_without_h))
-      conformer.properties.smiles_openbabel = (
-          conformer.bond_topologies[0].smiles)
-      conformer.bond_topologies[0].smiles = smiles_without_h
+      molecule.properties.smiles_openbabel = (
+          molecule.bond_topologies[0].smiles)
+      molecule.bond_topologies[0].smiles = smiles_without_h
 
-  def _add_alternative_bond_topologies(self, conformer, smiles_id_dict):
+  def _add_alternative_bond_topologies(self, molecule, smiles_id_dict):
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                  'attempted_topology_matches').inc()
 
-    matching_parameters = smu_molecule.MatchingParameters()
-    matching_parameters.must_match_all_bonds = True
-    matching_parameters.smiles_with_h = False
-    matching_parameters.smiles_with_labels = False
-    matching_parameters.neutral_forms_during_bond_matching = True
-    matching_parameters.consider_not_bonded = True
-    matching_parameters.ring_atom_count_cannot_decrease = False
-
-    matches = topology_from_geom.bond_topologies_from_geom(
-        bond_lengths=self._cached_bond_lengths,
-        conformer_id=conformer.conformer_id,
-        fate=conformer.fate,
-        bond_topology=conformer.bond_topologies[0],
-        geometry=conformer.optimized_geometry,
-        matching_parameters=matching_parameters)
-
-    if not matches.bond_topology:
+    if not topology_from_geom.standard_topology_sensing(
+        molecule, self._cached_bond_lengths, smiles_id_dict):
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'no_topology_matches').inc()
-      return
 
-    del conformer.bond_topologies[:]
-    conformer.bond_topologies.extend(matches.bond_topology)
-    for bt in conformer.bond_topologies:
-      try:
-        bt.bond_topology_id = smiles_id_dict[bt.smiles]
-      except KeyError:
+    for bt in molecule.bond_topologies:
+      if not bt.bond_topology_id:
         beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                      'topology_match_smiles_failure').inc()
 
-  def process(self, conformer, bond_length_records, smiles_id_dict):
-    """Per conformer updates.
+  def process(self, molecule, bond_length_records, smiles_id_dict):
+    """Per molecule updates.
 
     Args:
-      conformer: dataset_pb2.Conformer
+      molecule: dataset_pb2.Molecule
       bond_length_records: tuples to go to
         bond_length_distribution.AllAtomPairLengthDistributions
       smiles_id_dict: dict from SMILES to bond topology id
 
     Yields:
-      Conformer.
+      Molecule.
     """
     # There is probably a better way to do this.
     # We get the side input with each call to process. We'll assume that it's
@@ -500,84 +510,85 @@ class UpdateConformerFn(beam.DoFn):
       try:
         self._cached_bond_lengths.add_from_sparse_dataframe(
             bond_length_distribution.sparse_dataframe_from_records(
-                bond_length_records), _BOND_LENGTHS_UNBONDED_RIGHT_TAIL_MASS,
-            _BOND_LENGTHS_SIG_DIGITS)
+                bond_length_records),
+            bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
+            bond_length_distribution.STANDARD_SIG_DIGITS)
       except ValueError as err:
         raise ValueError(
-            'Invalid sparse dataframe for conformer {0} org. ValueError: {1}'
-            .format(str(conformer.conformer_id), err)) from err
+            'Invalid sparse dataframe for molecule {0} org. ValueError: {1}'
+            .format(str(molecule.molecule_id), err)) from err
 
-    conformer = copy.deepcopy(conformer)
+    molecule = copy.deepcopy(molecule)
 
-    conformer.fate = smu_utils_lib.determine_fate(conformer)
+    molecule.properties.errors.fate = smu_utils_lib.determine_fate(molecule)
 
-    yield from self._compare_smiles(conformer)
+    yield from self._compare_smiles(molecule)
 
-    if smu_utils_lib.conformer_eligible_for_topology_detection(conformer):
-      self._add_alternative_bond_topologies(conformer, smiles_id_dict)
+    if smu_utils_lib.molecule_eligible_for_topology_detection(molecule):
+      self._add_alternative_bond_topologies(molecule, smiles_id_dict)
     else:
+      molecule.bond_topologies[
+          0].source = dataset_pb2.BondTopology.SOURCE_STARTING
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'skipped_topology_matches').inc()
 
-    yield conformer
+    yield molecule
 
 
-def generate_keyed_conformers_for_duplicates(conformer):
-  """Generates keyed conformers for duplicate merging.
+def generate_keyed_molecules_for_duplicates(molecule):
+  """Generates keyed molecules for duplicate merging.
 
-  Every conformer yields itself keyed by its conformer_id
-  Additonally, if duplicated_by is set, the conformer is yielded keyed by
+  Every molecule yields itself keyed by its molecule_id
+  Additonally, if duplicated_by is set, the molecule is yielded keyed by
   duplicated_by.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Yields:
-    conformer_id, dataset_pb2.Conformer
+    molecule_id, dataset_pb2.Molecule
   """
-  yield conformer.conformer_id, conformer
-  if conformer.duplicated_by > 0:
-    yield conformer.duplicated_by, conformer
+  yield molecule.molecule_id, molecule
+  if molecule.duplicated_by > 0:
+    yield molecule.duplicated_by, molecule
 
 
-def merge_duplicate_information(conformer_id, conformers):
-  """Merges duplicate information into one conformer.
+def merge_duplicate_information(molecule_id, molecules):
+  """Merges duplicate information into one molecule.
 
-  One entry in conformers should have the given conformer_id
-  (call this the "main" conformer)
-  Every other entry should have a duplicated_by set to conformer_id
-  (call this an "other" conformer)
+  One entry in molecules should have the given molecule_id
+  (call this the "main" molecule)
+  Every other entry should have a duplicated_by set to molecule_id
+  (call this an "other" molecule)
 
   The initial_geometry from other will copied to main.
   If the bond topology id is the same, this is trivial
   TODO(pfr, ianwatson): implement this copying with unequal bond topologies.
 
   Args:
-    conformer_id: integer
-    conformers: iterable of dataset_pb2.Conformer
+    molecule_id: integer
+    molecules: iterable of dataset_pb2.Molecule
 
   Returns:
-    dataset_pb2.Conformer
+    dataset_pb2.Molecule
   """
-  matching_conformers = [
-      c for c in conformers if c.conformer_id == conformer_id
-  ]
-  if len(matching_conformers) != 1:
-    raise ValueError('Expected 1 conformers with id {}, got {}'.format(
-        conformer_id, len(matching_conformers)))
-  main_conformer = copy.deepcopy(matching_conformers[0])
+  matching_molecules = [c for c in molecules if c.molecule_id == molecule_id]
+  if len(matching_molecules) != 1:
+    raise ValueError('Expected 1 molecules with id {}, got {}'.format(
+        molecule_id, len(matching_molecules)))
+  main_molecule = copy.deepcopy(matching_molecules[0])
 
-  for conf in conformers:
-    if conf.conformer_id == conformer_id:
+  for mol in molecules:
+    if mol.molecule_id == molecule_id:
       continue
-    if conf.duplicated_by != conformer_id:
+    if mol.duplicated_by != molecule_id:
       raise ValueError(
-          'Conformer {} should have duplicated_by {} but has {}'.format(
-              conf.conformer_id, conformer_id, conf.duplicated_by))
-    main_conformer.duplicate_of.append(conf.conformer_id)
-    if conformer_id // 1000 == conf.conformer_id // 1000:
+          'Molecule {} should have duplicated_by {} but has {}'.format(
+              mol.molecule_id, molecule_id, mol.duplicated_by))
+    main_molecule.duplicate_of.append(mol.molecule_id)
+    if molecule_id // 1000 == mol.molecule_id // 1000:
       # easy case! Bond topologies are the same, just copy over
-      main_conformer.initial_geometries.append(conf.initial_geometries[0])
+      main_molecule.initial_geometries.append(mol.initial_geometries[0])
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'dup_same_topology').inc()
     else:
@@ -588,24 +599,24 @@ def merge_duplicate_information(conformer_id, conformers):
                                    'dup_diff_topology_unmatched').inc()
       pass
 
-  return main_conformer
+  return main_molecule
 
 
-def to_keyed_bond_topology_summary(conformer):
-  """Outputs BondTopologySummary for conformer.
+def to_keyed_bond_topology_summary(molecule):
+  """Outputs BondTopologySummary for molecule.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Yields:
     bond topology id, BondTopologySummary
   """
-  for summary in smu_utils_lib.conformer_to_bond_topology_summaries(conformer):
+  for summary in smu_utils_lib.molecule_to_bond_topology_summaries(molecule):
     yield summary.bond_topology.bond_topology_id, summary
 
 
 def merge_bond_topology_summaries(summaries, field_names):
-  """Merges BondToplogySummary protos.
+  """Merges BondTopologySummary protos.
 
   See CombineAndWriteBondTopologySummary for context.
 
@@ -639,7 +650,7 @@ def merge_bond_topology_summaries(summaries, field_names):
 
 
 def csv_format_bond_topology_summary(summary, field_names):
-  """Formats BondToplogySummary protos as csv line.
+  """Formats BondTopologySummary protos as csv line.
 
   See CombineAndWriteBondTopologySummary for context.
 
@@ -682,40 +693,40 @@ class CombineAndWriteBondTopologySummary(beam.PTransform):
                 file_name_suffix='.csv'))
 
 
-def make_complete_conformer(conformer):
-  """Turns a Conformer into the complete form from the internal only.
+def make_complete_molecule(molecule):
+  """Turns a Molecule into the complete form from the internal only.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Returns:
-    dataset_pb2.Conformer
+    dataset_pb2.Molecule
   """
-  out = copy.deepcopy(conformer)
-  smu_utils_lib.filter_conformer_by_availability(
+  out = copy.deepcopy(molecule)
+  smu_utils_lib.filter_molecule_by_availability(
       out, [dataset_pb2.STANDARD, dataset_pb2.COMPLETE])
 
-  beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'complete_conformers').inc()
+  beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'complete_molecules').inc()
 
   return out
 
 
-def make_standard_conformer(conformer):
-  """Turns a Conformer into the standard form from the internal only.
+def make_standard_molecule(molecule):
+  """Turns a Molecule into the standard form from the internal only.
 
-  This must go through a FlatMap because some conformers are filtered.
+  This must go through a FlatMap because some molecules are filtered.
 
   Args:
-    conformer: dataset_pb2.Conformer
+    molecule: dataset_pb2.Molecule
 
   Yields:
-    at most one dataset_pb2.Conformer
+    at most one dataset_pb2.Molecule
   """
-  out = copy.deepcopy(conformer)
-  if not smu_utils_lib.conformer_to_standard(out):
+  out = copy.deepcopy(molecule)
+  if not smu_utils_lib.molecule_to_standard(out):
     return
 
-  beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'standard_conformers').inc()
+  beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'standard_molecules').inc()
 
   yield out
 
@@ -739,7 +750,7 @@ def dat_input_and_parsing_pipeline(root, stage):
     stage: string that is either "stage1" or "stage2"
 
   Returns:
-    PCollection of dataset_pb2.Conformer that are valid and matched
+    PCollection of dataset_pb2.Molecule that are valid and matched
   """
   assert stage in ['stage1', 'stage2']
 
@@ -786,7 +797,7 @@ def dat_input_and_parsing_pipeline(root, stage):
       | 'RegenerateDat' + label >> beam.Map(regenerate_dat, stage)
       | 'PartitionByMatch' + label >> beam.Partition(lambda x, _: x[3], 2))
 
-  # Write out the mismatched conformers, original and regenerated
+  # Write out the mismatched molecules, original and regenerated
   # Reshuffle before the forced write of a single shard
   reshuffled_mismatched = (
       mismatched
@@ -806,11 +817,11 @@ def dat_input_and_parsing_pipeline(root, stage):
           num_shards=1,
           file_name_suffix='.dat'))
 
-  matched_conformers = (
+  matched_molecules = (
       matched
-      | 'ExtractMatchedConformer' + label >> beam.Map(lambda x: x[1]))
+      | 'ExtractMatchedMolecule' + label >> beam.Map(lambda x: x[1]))
 
-  return matched_conformers
+  return matched_molecules
 
 
 def pipeline(root):
@@ -819,29 +830,28 @@ def pipeline(root):
   Args:
     root: the root of the pipeline.
   """
-  stage1_matched_conformers = dat_input_and_parsing_pipeline(root, 'stage1')
-  stage2_matched_conformers = dat_input_and_parsing_pipeline(root, 'stage2')
+  stage1_matched_molecules = dat_input_and_parsing_pipeline(root, 'stage1')
+  stage2_matched_molecules = dat_input_and_parsing_pipeline(root, 'stage2')
 
-  # Create a collection of conformers with duplicate information
+  # Create a collection of molecules with duplicate information
   equivalent_files = gfile.glob(FLAGS.input_equivalent_glob)
-  equivalent_conformers = (
+  equivalent_molecules = (
       root
       | 'CreateEquivInputs' >> beam.Create(equivalent_files)
       | 'ParseEquiv' >> beam.FlatMap(parse_equivalent_file))
 
   # Merge by bond_topology_id
   merged_results = (
-      (stage1_matched_conformers, stage2_matched_conformers,
-       equivalent_conformers)
-      | 'FlattenAllConformers' >> beam.Flatten()
-      | 'GroupByCID' >> beam.GroupBy(lambda c: c.conformer_id)
-      | 'MergeConformers' >> beam.ParDo(MergeConformersFn()).with_outputs(
-          MergeConformersFn.OUTPUT_TAG_MERGE_CONFLICT, main='conformers'))
-  merged_conformers = merged_results['conformers']
+      (stage1_matched_molecules, stage2_matched_molecules, equivalent_molecules)
+      | 'FlattenAllMolecules' >> beam.Flatten()
+      | 'GroupByCID' >> beam.GroupBy(lambda c: c.molecule_id)
+      | 'MergeMolecules' >> beam.ParDo(MergeMoleculesFn()).with_outputs(
+          MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT, main='molecules'))
+  merged_molecules = merged_results['molecules']
 
   # Write out the merge conflicts
   _ = (
-      merged_results[MergeConformersFn.OUTPUT_TAG_MERGE_CONFLICT]
+      merged_results[MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT]
       | 'ConflictsCSVFormat' >> beam.Map(csv_format)
       | 'ConflictsReshuffle' >> beam.Reshuffle()
       | 'WriteConflictsCSV' >> beam.io.WriteToText(
@@ -850,16 +860,16 @@ def pipeline(root):
           num_shards=1,
           file_name_suffix='.csv'))
 
-  cleaned_conformers = (
-      merged_conformers
-      | 'CleanUpConformers' >> beam.Map(clean_up_conformer))
+  cleaned_molecules = (
+      merged_molecules
+      | 'CleanUpMolecules' >> beam.Map(clean_up_molecule))
 
   # Get the bond length distributions
   bond_length_dists_pcoll = (
-      cleaned_conformers
+      cleaned_molecules
       | 'ExtractBondLengths' >> beam.FlatMap(
           extract_bond_lengths,
-          dist_sig_digits=_BOND_LENGTHS_SIG_DIGITS,
+          dist_sig_digits=bond_length_distribution.STANDARD_SIG_DIGITS,
           unbonded_max=_BOND_LENGTHS_UNBONDED_MAX)
       | 'CountBondLengths' >> beam.combiners.Count.PerElement()
       | 'ToListBondLengths' >> beam.combiners.ToList())
@@ -868,45 +878,45 @@ def pipeline(root):
       | 'WriteBondLengths' >> beam.ParDo(
           write_bond_lengths, filename=f'{FLAGS.output_stem}_bond_lengths.csv'))
 
-  # Get the SMILES to id mapping needed for UpdateConformerFn
+  # Get the SMILES to id mapping needed for UpdateMoleculeFn
   smiles_id_pcoll = (
       root
       | 'BTInputForSmiles' >> beam.Create([FLAGS.input_bond_topology_csv])
       | 'GenerateSmilesToID' >> beam.FlatMap(smiles_to_id))
   smiles_id_dict = beam.pvalue.AsDict(smiles_id_pcoll)
 
-  # Various per conformer processing
+  # Various per molecule processing
   update_results = (
-      cleaned_conformers
-      | 'UpdateConformers' >> beam.ParDo(
-          UpdateConformerFn(), beam.pvalue.AsSingleton(bond_length_dists_pcoll),
+      cleaned_molecules
+      | 'UpdateMolecules' >> beam.ParDo(
+          UpdateMoleculeFn(), beam.pvalue.AsSingleton(bond_length_dists_pcoll),
           smiles_id_dict).with_outputs(
-              UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH, main='conformers'))
-  updated_conformers = update_results['conformers']
+              UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH, main='molecules'))
+  updated_molecules = update_results['molecules']
 
   # Output SMILES mismatches
   _ = (
-      update_results[UpdateConformerFn.OUTPUT_TAG_SMILES_MISMATCH]
+      update_results[UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH]
       | 'ReshuffleSmilesOutput' >> beam.Reshuffle()
       | 'SmilesCSVFormat' >> beam.Map(csv_format)
       | 'WriteSmilesCSV' >> beam.io.WriteToText(
           FLAGS.output_stem + '_smiles_compare',
-          header='conformer_id,compare,smiles_given,smiles_with_h,smiles_without_h',
+          header='molecule_id,compare,smiles_given,smiles_with_h,smiles_without_h',
           num_shards=1,
           file_name_suffix='.csv'))
 
   # Process duplicate information
-  final_conformers = (
-      updated_conformers
+  final_molecules = (
+      updated_molecules
       | 'KeyedForDuplicates' >>
-      beam.FlatMap(generate_keyed_conformers_for_duplicates)
+      beam.FlatMap(generate_keyed_molecules_for_duplicates)
       | 'DupGroupByKey' >> beam.GroupByKey()
       | 'MergeDupInfo' >> beam.MapTuple(merge_duplicate_information))
 
   # Pull the stats of various sorts write to a file
   _ = (
-      final_conformers
-      | 'ExtractStats' >> beam.FlatMap(conformer_to_stat_values)
+      final_molecules
+      | 'ExtractStats' >> beam.FlatMap(molecule_to_stat_values)
       | 'CountStats' >> beam.combiners.Count.PerElement()
       | 'StatsCSVFormat' >> beam.MapTuple(lambda x, c: f'{x[0]},{x[1]},{c}')
       | 'WriteStatsCSV' >> beam.io.WriteToText(
@@ -922,30 +932,30 @@ def pipeline(root):
       | 'GenerateBareBTSummaries' >>
       beam.FlatMap(bond_topology_summaries_from_csv))
   real_bt_summaries = (
-      final_conformers
+      final_molecules
       | 'GenerateBTSummaries' >> beam.FlatMap(to_keyed_bond_topology_summary))
   _ = ((bare_bt_summaries, real_bt_summaries)
        | 'FlattenAllBTSummaries' >> beam.Flatten()
        | 'FinishBTSummary' >> CombineAndWriteBondTopologySummary())
 
   # Make the filtered versions of the dataset
-  complete_conformers = (
-      final_conformers
-      | 'MakeComplete' >> beam.Map(make_complete_conformer))
+  complete_molecules = (
+      final_molecules
+      | 'MakeComplete' >> beam.Map(make_complete_molecule))
 
-  standard_conformers = (
-      final_conformers
-      | 'MakeStandard' >> beam.FlatMap(make_standard_conformer))
+  standard_molecules = (
+      final_molecules
+      | 'MakeStandard' >> beam.FlatMap(make_standard_molecule))
 
-  # Write the complete and standard conformers as binary protobuf in TFRecord.
-  for id_str, collection in [['complete', complete_conformers],
-                             ['standard', standard_conformers]]:
+  # Write the complete and standard molecules as binary protobuf in TFRecord.
+  for id_str, collection in [['complete', complete_molecules],
+                             ['standard', standard_molecules]]:
     _ = (
         collection
         | ('TFRecordReshuffle_' + id_str) >> beam.Reshuffle()
         | ('WriteTFRecord_' + id_str) >> beam.io.tfrecordio.WriteToTFRecord(
             f'{FLAGS.output_stem}_{id_str}_tfrecord',
-            coder=beam.coders.ProtoCoder(dataset_pb2.Conformer),
+            coder=beam.coders.ProtoCoder(dataset_pb2.Molecule),
             num_shards=FLAGS.output_shards))
 
 

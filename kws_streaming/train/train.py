@@ -87,7 +87,9 @@ def train(flags):
   with open(os.path.join(flags.train_dir, 'flags.txt'), 'wt') as f:
     pprint.pprint(flags, stream=f)
 
-  loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+  loss = tf.keras.losses.SparseCategoricalCrossentropy(
+      from_logits=not flags.return_softmax)
+
   optimizer = tf.keras.optimizers.Adam(epsilon=flags.optimizer_epsilon)
 
   if flags.optimizer == 'adam':

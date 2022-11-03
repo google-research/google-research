@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """End-to-end test for ImageNet.
 
 Tests for imagenet.resnet50_train, run_predict, run_temp_scaling, and

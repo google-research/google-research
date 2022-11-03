@@ -17,6 +17,7 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_H_
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -1707,6 +1708,19 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
                        dim)));
       });
   }
+}
+
+template <typename T, typename ResultElem, typename DatasetView>
+void DenseDistanceOneToMany(const DistanceMeasure& dist,
+                            const DatapointPtr<T>& query,
+                            const DatasetView* __restrict__ database,
+                            MutableSpan<ResultElem> result, ThreadPool* pool) {
+  one_to_many_low_level::SetDistanceFunctor<ResultElem> set_distance_functor(
+      result);
+  return DenseDistanceOneToMany<
+      T, ResultElem, DatasetView,
+      one_to_many_low_level::SetDistanceFunctor<ResultElem>>(
+      dist, query, database, result, &set_distance_functor, pool);
 }
 
 namespace one_to_many_low_level {

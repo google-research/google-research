@@ -37,19 +37,6 @@ import abc
 from collections import namedtuple
 import functools
 import os
-# copybara:strip_begin
-from absl import flags
-import tensorflow.compat.v1 as tf
-from tensorflow.compat.v1 import estimator as tf_estimator
-from igt_optimizer.cloud_tpu_resnet.resnet import resnet_preprocessing
-from tensorflow.contrib import cloud as contrib_cloud
-from tensorflow.contrib import data as contrib_data
-from tensorflow.python.ops import control_flow_util
-
-flags.DEFINE_boolean(
-    'condv2', default=False, help='Use CondV2 as part of the input pipeline.')
-
-# copybara:strip_end
 
 
 def image_serving_input_fn():
@@ -168,10 +155,6 @@ class ImageNetTFExampleInput(object):
     Returns:
       A `tf.data.Dataset` object.
     """
-    # copybara:strip_begin
-    cond_v2_pre_value = control_flow_util.ENABLE_CONTROL_FLOW_V2
-    control_flow_util.ENABLE_CONTROL_FLOW_V2 = flags.FLAGS.condv2
-    # copybara:strip_end
 
     # Retrieves the batch size for the current shard. The # of shards is
     # computed according to the input pipeline deployment. See
@@ -216,9 +199,6 @@ class ImageNetTFExampleInput(object):
 
     # Prefetch overlaps in-feed with training
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-    # copybara:strip_begin
-    control_flow_util.ENABLE_CONTROL_FLOW_V2 = cond_v2_pre_value
-    # copybara:strip_end
     return dataset
 
 

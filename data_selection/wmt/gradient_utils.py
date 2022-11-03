@@ -20,8 +20,8 @@ import jax.numpy as jnp
 
 
 def tree_dot(tree_x, tree_y):
-  a = jax.tree_util.tree_multimap(
-      lambda x, y: jax.lax.dot(x.ravel(), y.ravel()), tree_x, (tree_y))
+  a = jax.tree_util.tree_map(lambda x, y: jax.lax.dot(x.ravel(), y.ravel()),
+                             tree_x, (tree_y))
   return jnp.sum(jnp.array(jax.tree_util.tree_flatten(a)[0]))
 
 
@@ -36,8 +36,8 @@ def tree_div(tree_x, val_y):
 
 
 def tree_diff(tree_x, tree_y):
-  return jax.tree_util.tree_multimap(
-      lambda x, y: x.ravel() - y.ravel(), tree_x, (tree_y))
+  return jax.tree_util.tree_map(lambda x, y: x.ravel() - y.ravel(), tree_x,
+                                (tree_y))
 
 
 def tree_norm(tree_x):

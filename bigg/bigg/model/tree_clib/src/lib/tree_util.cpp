@@ -93,9 +93,9 @@ void AdjRow::init(int row, int col_start, int col_end)
 }
 
 
-void AdjRow::insert_edges(std::vector<int>& col_indices)
+void AdjRow::insert_edges(std::vector<int>& col_indices, int edge_offset)
 {
-    auto* col_sm = new ColAutomata(col_indices);
+    auto* col_sm = new ColAutomata(col_indices, edge_offset);
     this->add_edges(this->root, col_sm);
     delete col_sm;
 }
@@ -114,6 +114,11 @@ void AdjRow::add_edges(AdjNode* node, ColAutomata* col_sm)
     job_collect.append_bool(job_collect.is_internal, node->depth,
                             !(node->is_leaf));
     if (node->is_leaf) {
+        job_collect.append_bool(job_collect.edge_per_lv, node->depth,
+                                col_sm->edge_offset + col_sm->pos);
+        if (!node->is_root)
+            job_collect.append_bool(job_collect.edge_is_rch, node->depth,
+                                    node->col_end == node->parent->col_end);
         col_sm->add_edge(node->col_begin);
         node->update_bits();
     } else {

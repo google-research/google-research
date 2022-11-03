@@ -16,7 +16,9 @@
 
 #include "scann/partitioning/partitioner_base.h"
 
+#include <array>
 #include <cstdint>
+#include <utility>
 
 #include "absl/base/internal/spinlock.h"
 #include "scann/utils/types.h"

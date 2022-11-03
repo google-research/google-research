@@ -17,8 +17,11 @@
 #ifndef SCANN_TREES_KMEANS_TREE_KMEANS_TREE_H_
 #define SCANN_TREES_KMEANS_TREE_KMEANS_TREE_H_
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <utility>
+#include <vector>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -422,6 +425,7 @@ Status KMeansTree::TokenizeWithSpillingImpl(
   std::vector<pair<DatapointIndex, float>> children_to_search;
   const DenseDataset<CentersType>& current_node_centers =
       current_node->GetCentersByTemplateType<CentersType>();
+
   Status status =
       kmeans_tree_internal::FindChildrenWithSpilling<float, CentersType>(
           query, spilling_type, possibly_learned_spilling_threshold,

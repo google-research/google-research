@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 
 """UFlow models.
 
@@ -26,7 +25,6 @@ before computing a cost volume. We found these changes to improve the
 performance.
 """
 
-# Lint as: python3
 
 import collections
 

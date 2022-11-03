@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Default priors for Bayesian neural networks.
 
 Prior factories can create suitable priors given Keras layers as input.

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """BBB for MAML, on encoder_w.
 
 Based on code by Chelsea Finn (https://github.com/cbfinn/maml).

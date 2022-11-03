@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """A exponential any time implicit gradient transport (IGT) optimizer.
 
 An implicit gradient transport (IGT) optimizer centers on the idea of deriving

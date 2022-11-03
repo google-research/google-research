@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Implementation of Ising models. Try to find maximum energy configuration."""
 
 import gin

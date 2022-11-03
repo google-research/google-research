@@ -14,10 +14,12 @@
 
 #include "scann/hashes/internal/stacked_quantizers.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <numeric>
+#include <utility>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
@@ -349,8 +351,8 @@ StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
   for (auto _ : Seq(num_codebooks)) {
     DenseDataset<double> centers;
     vector<vector<DatapointIndex>> labels;
-    SCANN_RETURN_IF_ERROR(
-        gmm.GenericKmeans(residual, num_centers, &centers, &labels));
+    SCANN_RETURN_IF_ERROR(gmm.ComputeKmeansClustering(
+        residual, num_centers, &centers, {.final_partitions = &labels}));
     DCHECK_EQ(labels.size(), num_centers);
 
     DenseDataset<double> buffer;

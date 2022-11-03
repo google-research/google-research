@@ -1,0 +1,5 @@
+# A configuration file for JuliaFormatter.
+# See https://domluna.github.io/JuliaFormatter.jl/stable/config/.
+indent = 2
+margin = 80
+always_for_in = true

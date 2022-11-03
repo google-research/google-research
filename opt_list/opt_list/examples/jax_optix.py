@@ -13,15 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Example using opt_list with Jax and optix style optimizers."""
 
 from absl import app
 
 import jax
 from jax import random
+from jax.example_libraries import stax
 from jax.experimental import optix
-from jax.experimental import stax
 import jax.numpy as jnp
 
 from opt_list import jax_optix_opt_list

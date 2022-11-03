@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Example usage of the methods described in our paper.
 
 Computes approximation error of NetLSD and VNGE for the Karate club graph.

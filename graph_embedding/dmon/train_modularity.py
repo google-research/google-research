@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """TODO(tsitsulin): add headers, tests, and improve style."""
 import collections
 

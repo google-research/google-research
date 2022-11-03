@@ -19,11 +19,6 @@
 Adapts transformer code from: flax/examples
 """
 
-# pylint: disable=attribute-defined-outside-init,g-bare-generic
-# pytype: disable=wrong-arg-count
-# pytype: disable=wrong-keyword-args
-# pytype: disable=attribute-error
-
 from typing import Optional, Any, Callable
 
 from flax import linen as nn
@@ -63,15 +58,18 @@ class TransformerConfig:
   max_program_distance: int = 100
   num_program_cross_embed_relative_position_buckets: int = 128
   max_program_cross_embed_distance: int = 800
-  bidirectional_program_attention: bool = False
+  num_flat_encoding_relative_position_buckets: int = 81
+  max_flat_encoding_distance: int = 200
 
   deterministic: bool = False
   decode: bool = False
   bos_token: int = 1
   output_head: Optional[str] = 'logits'
+  # pylint: disable=g-bare-generic
   kernel_init: Callable = nn.initializers.xavier_uniform()
   bias_init: Callable = nn.initializers.normal(stddev=1e-6)
   posemb_init: Optional[Callable] = None
+  # pylint: enable=g-bare-generic
 
 
 # Utility functions to handle multi-i/o examples.
@@ -455,7 +453,7 @@ class TransformerDecoder(nn.Module):
     for lyr in range(cfg.num_layers):
       y = EncoderDecoderBlock(
           config=cfg,
-          bidirectional_attention=cfg.bidirectional_program_attention,
+          bidirectional_attention=False,  # For self-attention of predictions.
           num_relative_position_buckets=(
               cfg.num_program_relative_position_buckets),
           max_distance=cfg.max_program_distance,

@@ -19,6 +19,7 @@
 
 #include <array>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -60,7 +61,7 @@ using ::std::vector;
 
 using std::vector;
 
-using ::absl::make_unique;
+using ::std::make_unique;
 
 using ::absl::flat_hash_map;
 using ::absl::flat_hash_set;
@@ -392,6 +393,15 @@ inline Status VerifyAllFinite(ConstSpan<float> span) {
 inline Status VerifyAllFinite(ConstSpan<double> span) {
   return VerifyAllFiniteImpl<double>(span);
 }
+
+inline Status VerifyAllFinite(ConstSpan<int8_t>) { return OkStatus(); }
+inline Status VerifyAllFinite(ConstSpan<uint8_t>) { return OkStatus(); }
+inline Status VerifyAllFinite(ConstSpan<int16_t>) { return OkStatus(); }
+inline Status VerifyAllFinite(ConstSpan<uint16_t>) { return OkStatus(); }
+inline Status VerifyAllFinite(ConstSpan<int32_t>) { return OkStatus(); }
+inline Status VerifyAllFinite(ConstSpan<uint32_t>) { return OkStatus(); }
+inline Status VerifyAllFinite(ConstSpan<int64_t>) { return OkStatus(); }
+inline Status VerifyAllFinite(ConstSpan<uint64_t>) { return OkStatus(); }
 
 struct VirtualDestructor {
   virtual ~VirtualDestructor() {}

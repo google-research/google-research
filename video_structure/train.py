@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Minimal example for training a video_structure model.
 
 See README.md for installation instructions. To run on GPU device 0:

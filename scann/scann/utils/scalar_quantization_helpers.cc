@@ -20,7 +20,9 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <numeric>
 #include <utility>
+#include <vector>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/common.h"

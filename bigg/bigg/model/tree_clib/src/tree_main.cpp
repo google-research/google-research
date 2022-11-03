@@ -88,6 +88,21 @@ int MaxTreeDepth()
     return depth;
 }
 
+int NumBaseNodes()
+{
+    return job_collect.base_node_idx.size();
+}
+
+int NumBaseEdges()
+{
+    return job_collect.base_edge_idx.size();
+}
+
+int NumEdgesAtLevel(int depth)
+{
+    return (int)job_collect.edge_per_lv[depth].size();
+}
+
 int NumBottomDep(int depth, int lr)
 {
     return (int)job_collect.bot_froms[lr][depth].size();
@@ -101,6 +116,11 @@ int NumPrevDep(int depth, int lr)
 int NumRowBottomDep(int lr)
 {
     return (int)job_collect.row_bot_froms[lr].size();
+}
+
+int NumTrivialNodes(int lr)
+{
+    return (int)job_collect.trivial_nodes[lr].size();
 }
 
 int NumRowPastDep(int lv, int lr)
@@ -159,6 +179,54 @@ int NumCurNodes(int depth)
     if (depth >= (int)job_collect.is_internal.size())
         return 0;
     return (int)job_collect.is_internal[depth].size();
+}
+
+int GetTrivialNodes(int lr, void* _tree_trivial)
+{
+    int* tree_trivial = static_cast<int*>(_tree_trivial);
+    std::memcpy(tree_trivial, job_collect.trivial_nodes[lr].data(),
+                job_collect.trivial_nodes[lr].size() * sizeof(int));
+    return 0;
+}
+
+int GetBaseNodeEdge(void* _base_nodes, void* _base_edges)
+{
+    int* base_nodes = static_cast<int*>(_base_nodes);
+    std::memcpy(base_nodes, job_collect.base_node_idx.data(),
+                job_collect.base_node_idx.size() * sizeof(int));
+    int* base_edges = static_cast<int*>(_base_edges);
+    std::memcpy(base_edges, job_collect.base_edge_idx.data(),
+                job_collect.base_edge_idx.size() * sizeof(int));
+    return 0;
+}
+
+int TreeTrivial(void* _tree_trivial)
+{
+    int* tree_trivial = static_cast<int*>(_tree_trivial);
+    std::memcpy(tree_trivial, job_collect.is_tree_trivial.data(),
+                job_collect.is_tree_trivial.size() * sizeof(int));
+    return 0;
+}
+
+int GetIsEdgeRch(int depth, void* _edge_is_rch)
+{
+    int* edge_is_rch = static_cast<int*>(_edge_is_rch);
+    if (depth) {
+        std::memcpy(edge_is_rch, job_collect.edge_is_rch[depth].data(),
+                    job_collect.edge_is_rch[depth].size() * sizeof(int));
+    } else {
+        std::memcpy(edge_is_rch, job_collect.edge_lv0.data(),
+                    job_collect.edge_lv0.size() * sizeof(int));
+    }
+    return 0;
+}
+
+int GetEdgesOfLevel(int depth, void* _edge_indices)
+{
+    int* edge_indices = static_cast<int*>(_edge_indices);
+    std::memcpy(edge_indices, job_collect.edge_per_lv[depth].data(),
+                job_collect.edge_per_lv[depth].size() * sizeof(int));
+    return 0;
 }
 
 int GetInternalMask(int depth, void* _internal_mask)
@@ -358,6 +426,7 @@ int PrepareTrain(int num_graphs, void* _list_ids, void* _list_start_node,
         active_graphs.clear();
     }
     int gid, node_start, node_end;
+    int edge_offset = 0;
     for (int i = 0; i < num_graphs; ++i)
     {
         gid = list_ids[i];
@@ -375,7 +444,9 @@ int PrepareTrain(int num_graphs, void* _list_ids, void* _list_start_node,
         node_end = (num_nodes < 0) ? g->num_nodes : node_start + num_nodes;
         assert(node_start >= 0 && node_end <= g->num_nodes);
         g->realize_nodes(node_start, node_end,
-                         list_col_start[i], list_col_end[i]);
+                         list_col_start[i], list_col_end[i], edge_offset);
+        for (int cur_node = node_start; cur_node < node_end; ++cur_node)
+            edge_offset += g->edge_list[cur_node].size();
     }
     job_collect.build_row_indices();
     job_collect.build_row_summary();

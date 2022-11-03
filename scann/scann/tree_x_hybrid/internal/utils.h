@@ -16,6 +16,8 @@
 #define SCANN_TREE_X_HYBRID_INTERNAL_UTILS_H_
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"

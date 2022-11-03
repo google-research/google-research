@@ -17,6 +17,8 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <memory>
+#include <utility>
 
 #include "absl/synchronization/mutex.h"
 #include "scann/base/restrict_allowlist.h"

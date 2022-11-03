@@ -21,7 +21,6 @@ The ProgressiveMaskedLM class is a subclass of ProgressivePolicy. This means
 that a progressive trainer instead of a base trainer.
 """
 # pylint: enable=line-too-long
-# Lint as: python3
 
 import dataclasses
 from absl import app

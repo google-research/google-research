@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """This is the main file to create the toy dataset and clusters."""
-#  lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

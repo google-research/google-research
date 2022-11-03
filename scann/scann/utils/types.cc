@@ -14,6 +14,8 @@
 
 #include "scann/utils/types.h"
 
+#include <string>
+
 #include "absl/flags/flag.h"
 
 ABSL_RETIRED_FLAG(

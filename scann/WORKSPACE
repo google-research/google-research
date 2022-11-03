@@ -6,12 +6,21 @@ load("//build_deps/tf_dependency:tf_configure.bzl", "tf_configure")
 # Needed for highway's config_setting_group
 http_archive(
     name = "bazel_skylib",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/0.9.0/bazel_skylib-0.9.0.tar.gz"],
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz"],
 )
 
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
 
 bazel_skylib_workspace()
+
+http_archive(
+    name = "platforms",
+    sha256 = "5308fc1d8865406a49427ba24a9ab53087f17f5266a7aabbfc28823f3916e1ca",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/platforms/releases/download/0.0.6/platforms-0.0.6.tar.gz",
+        "https://github.com/bazelbuild/platforms/releases/download/0.0.6/platforms-0.0.6.tar.gz",
+    ],
+)
 
 tf_configure(
     name = "local_config_tf",
@@ -36,13 +45,11 @@ http_archive(
 
 http_archive(
     name = "com_google_absl",
-    patch_args = ["-p1"],
-    patches = ["//build_deps/patches:absl-cpp17.patch"],
-    sha256 = "35f22ef5cb286f09954b7cc4c85b5a3f6221c9d4df6b8c4a1e9d399555b366ee",
-    strip_prefix = "abseil-cpp-997aaf3a28308eba1b9156aa35ab7bca9688e9f6",
+    sha256 = "94aef187f688665dc299d09286bfa0d22c4ecb86a80b156dff6aabadc5a5c26d",
+    strip_prefix = "abseil-cpp-273292d1cfc0a94a65082ee350509af1d113344d",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/997aaf3a28308eba1b9156aa35ab7bca9688e9f6.tar.gz",
-        "https://github.com/abseil/abseil-cpp/archive/997aaf3a28308eba1b9156aa35ab7bca9688e9f6.tar.gz",
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/273292d1cfc0a94a65082ee350509af1d113344d.tar.gz",
+        "https://github.com/abseil/abseil-cpp/archive/273292d1cfc0a94a65082ee350509af1d113344d.tar.gz",
     ],
 )
 
@@ -62,8 +69,21 @@ rules_proto_dependencies()
 
 rules_proto_toolchains()
 
+bind(
+    name = "python_headers",
+    actual = "@local_config_python//:python_headers",
+)
+
+http_archive(
+    name = "six_archive",
+    build_file = "//build_deps/patches:six.BUILD",
+    sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
+    urls = ["https://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz#md5=34eed507548117b2ab523ab14b2f8b55"],
+)
+
 git_repository(
     name = "com_google_protobuf",
+    patches = ["//build_deps/patches:protobuf.patch"],
     remote = "https://github.com/protocolbuffers/protobuf.git",
     tag = "v3.9.2",
 )
@@ -82,6 +102,12 @@ git_repository(
     name = "com_google_highway",
     commit = "c5db74e8881e81dbbfd9030f9a6fcbc3c7a9504a",
     remote = "https://github.com/google/highway.git",
+)
+
+git_repository(
+    name = "cnpy",
+    commit = "57184ee0db37cac383fc29175950747a46a8b512",
+    remote = "https://github.com/sammymax/cnpy.git",
 )
 
 # rules_cc defines rules for generating C++ code from Protocol Buffers.

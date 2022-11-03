@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Helper file to run the discover concept algorithm in the AwA dataset."""
-# lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

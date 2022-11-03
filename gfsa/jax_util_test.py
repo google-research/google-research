@@ -13,17 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for gfsa.jax_util."""
 
+import dataclasses
 import pickle
 from typing import Any, Tuple, Union
 from absl.testing import absltest
-import dataclasses
 import flax
 import jax
 import jax.numpy as jnp
-import jax.test_util
 import numpy as np
 from gfsa import jax_util
 
@@ -41,7 +39,7 @@ class JaxUtilTest(absltest.TestCase):
     @dataclasses.dataclass
     class Outer:
       a: str
-      b: Inner
+      b: Inner  # pytype: disable=invalid-annotation  # enable-bare-annotations
 
     synthesized = jax_util.synthesize_dataclass(Outer)
 
@@ -108,8 +106,8 @@ class JaxUtilTest(absltest.TestCase):
     @jax_util.register_dataclass_pytree
     @dataclasses.dataclass
     class Bar:
-      x: Foo
-      y: Foo
+      x: Foo  # pytype: disable=invalid-annotation  # enable-bare-annotations
+      y: Foo  # pytype: disable=invalid-annotation  # enable-bare-annotations
 
     bar = Bar(
         x=Foo(a=jnp.array([1, 2]), b=(jnp.array(3.), jnp.array(4.))),
@@ -122,13 +120,14 @@ class JaxUtilTest(absltest.TestCase):
         y=Foo(a=jnp.array([15, 16]), b=(jnp.array(17.), jnp.array(18.))),
     )
 
-    jax.test_util.check_close(bar_plus_ten, expected)
+    jax.tree_util.tree_map(np.testing.assert_allclose, bar_plus_ten, expected)
     self.assertIsInstance(bar_plus_ten, Bar)
     self.assertIsInstance(bar_plus_ten.x, Foo)
     self.assertIsInstance(bar_plus_ten.y, Foo)
 
     bar_dict = flax.serialization.to_state_dict(bar)
-    jax.test_util.check_close(
+    jax.tree_util.tree_map(
+        np.testing.assert_allclose,
         flax.serialization.from_state_dict(bar_plus_ten, bar_dict), bar)
 
 

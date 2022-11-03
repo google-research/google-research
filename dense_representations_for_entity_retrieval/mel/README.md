@@ -1,162 +1,93 @@
-# Entity Linking in 100 Languages
+# Mewsli Datasets
 
-Resources accompanying the paper
-_[Entity Linking in 100 Languages](https://www.aclweb.org/anthology/2020.emnlp-main.630)_
-by
-[Jan A. Botha](https://research.google/people/JanBotha/),
-[Zifei Shan](http://www.zifeishan.org/) and
-[Daniel Gillick](https://research.google/people/DanGillick/).
+Welcome to the landing page of Mewsli! The name is short for *Multilingual
+Entities in News, linked*.
 
-**To get the data, see section [Get Mewsli-9 Dataset](#get-mewsli-9-dataset).**
+This is a suite of publicly available datasets for academic research into
+multilingual entity linking.
 
-If you use the code/resources or discuss this topic in your work, please cite our paper:
+The basic task is to link an entity mention in the context of a WikiNews article
+to a single correct entity in the WikiData knowledge base, typically by doing
+retrieval over canonical textual representations of candidate entities. These
+entity representations are short descriptions from the beginning of an entity's
+Wikipedia page in a randomly chosen language, making for a highly cross-lingual
+task.
 
-```
-@inproceedings{botha-etal-2020-entity,
-    title = "{E}ntity {L}inking in 100 {L}anguages",
-    author = "Botha, Jan A. and Shan, Zifei  and Gillick, Daniel",
-    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)",
-    month = nov,
-    year = "2020",
-    address = "Online",
-    publisher = "Association for Computational Linguistics",
-    url = "https://www.aclweb.org/anthology/2020.emnlp-main.630",
-    pages = "7833--7845",
-}
-```
+Ground truth entity annotations are automatically derived from cross-wiki
+hyperlink anchor text and their targets, as placed in WikiNews and Wikipedia
+articles by human editors in the normal course of writing and editing.
 
-## Mewsli-9 Dataset
+### Example 1
 
-Mewsli-9 is a dataset of entity mentions linked to
-[WikiData](https://www.wikidata.org/), extracted from
-[WikiNews](https://www.wikinews.org/) articles.
-(The name is short for "**M**ultilingual Entities in N**ews**, **li**nked".)
+-   **Snippet in an English article:**
 
-The dataset covers 9 diverse languages, 5 language families and 6 writing
-systems. It features many WikiData entities that do not appear in English
-Wikipedia, thereby incentivizing research into multilingual entity linking
-against WikiData at-large.
+    At a brief ceremony, Prime Minister Girija Prasad Koirala hoisted the
+    **national flag** where previously only the royal flag had flown, and
+    unveiled a plaque reading "Narayanhity National Museum".
 
-The dataset is released in the form of "dataset descriptors", plus code to
-reproduce the article text from publicly available data sources.
+-   **Entity description to retrieve (Ukrainian):**
 
-### Statistics
+    Прапор Непалу — один з офіційних символів Непалу. <br>
+    *(translation: The flag of Nepal is one of the official symbols of Nepal.)*
 
-| Language | Code | Docs  | Mentions | Unique Entities | Entities outside En-Wiki |
-|----------|------|-------|----------|-----------------|--------------------------|
-| Japanese | ja   | 3410  | 34463    | 13663           | 3384                     |
-| German   | de   | 13703 | 65592    | 23086           | 3054                     |
-| Spanish  | es   | 10284 | 56716    | 22077           | 1805                     |
-| Arabic   | ar   | 1468  | 7367     | 2232            | 141                      |
-| Serbian  | sr   | 15011 | 35669    | 4332            | 269                      |
-| Turkish  | tr   | 997   | 5811     | 2630            | 157                      |
-| Persian  | fa   | 165   | 535      | 385             | 12                       |
-| Tamil    | ta   | 1000  | 2692     | 1041            | 20                       |
-| English  | en   | 12679 | 80242    | 38697           | 14                       |
-| Total    |      | 58717 | 289087   | 82162           | 8807                     |
+-   **WikiData identifier**: Q159741
 
-### Schema
+### Example 2
 
-The dataset descriptor archive is available for download from:
+-   **Snippet in an Arabic article:**
 
-- https://storage.googleapis.com/gresearch/mewsli/mewsli-9.zip (9.7 MB)
+    .الأربعاء، 12 أغسطس 2009 ثلاثة عشر شخصًا توفوا بعد تحطم طائرة خطوط بيه إن جى الجوية في **بابوا غينيا الجديدة**  <br>
+    *(translation: Wednesday, August 12, 2009 Thirteen people have died after a PNG Airlines plane crashed in **Papua New Guinea**.)*
 
-The script below will take care of downloading this.
+-   **Entity description to retrieve (Korean):**
 
-The archive contains two TSV files per language (`docs.tsv` and `mentions.tsv`).
-They can be joined on the `docid` column and have the structure shown below.
+    파푸아뉴기니 독립국, 약칭 파푸아뉴기니는 오세아니아의 나라이다. <br>
+    *(translation: Independent State of Papua New Guinea, abbreviated as Papua New Guinea, is a country in Oceania.)*
 
-#### docs.tsv
+-   **WikiData identifier**: Q691
 
-|  Column  | Description                                          |
-|----------|------------------------------------------------------|
-| docid    | Internal unique identifier for the WikiNews article. |
-| title    | Title of the WikiNews article.                       |
-| curid    | Stable page ID used in WikiNews.                     |
-| revid    | The version (revision) of the article that was used. |
-| url      | Original URL of the article                          |
-| text_md5 | MD5 hash of the expected clean text.                 |
+## Editions
 
-#### mentions.tsv
+👉
+**[Mewsli-9](https://github.com/google-research/google-research/blob/master/dense_representations_for_entity_retrieval/mel/mewsli-9.md)**
+accompanies
+*[Entity Linking in 100 Languages (Botha et al., 2020)](https://www.aclweb.org/anthology/2020.emnlp-main.630)*.
+This edition provides for large-scale evaluation, with an emphasis on WikiData
+entities that do not have English Wikipedia pages.
 
-| Column      | Description                                                                                |
-|-------------|--------------------------------------------------------------------------------------------|
-| docid       | Internal unique identifier for the WikiNews article where mention appears.                 |
-| position    | 0-indexed starting position of the mention in cleaned article text, in Unicode characters. |
-| length      | Length of the mention, in Unicode characters.                                              |
-| mention     | Mention string.                                                                            |
-| url         | Original hyperlink taken as evidence for an entity mention.                                |
-| lang        | Language of the article where mention appears (ISO-639-1 code).                            |
-| qid         | WikiData QID of the mentioned entity.                                                      |
-| qid_in_refs | Whether the entity had an entry in English Wikipedia ("True" or "False")                   |
-| freq_bin    | Frequency bin index (0, ..., 5) for the entity                                             |
+👉
+**[Mewsli-X](https://github.com/google-research/google-research/blob/master/dense_representations_for_entity_retrieval/mel/mewsli-x.md)**
+accompanies *[XTREME-R: Towards More Challenging and Nuanced Multilingual
+Evaluation (Ruder et al.,
+2021)](https://aclanthology.org/2021.emnlp-main.802.pdf)*. This edition includes
+a full set of resources for reproducibly training and evaluating models. The
+scale of evaluation is smaller, emphasizing zero-shot cross-lingual transfer,
+zero-shot entity retrieval and accessibility.
 
-Frequency bin index (`freq_bin`) refers to how many times an entity appeared in
-the particular training set used for the paper:
+-   Mewsli-X is one of the tasks in the
+    **[XTREME-R benchmark suite & leaderboard](https://sites.research.google/xtremer)**
+    &mdash; new submissions welcome!
 
-- 0 -> 0 times (zero-shot)
-- 1 -> 1 to 9 times
-- 2 -> 10 to 99 times
-- 3 -> 100 to 999 times
-- 4 -> 1000 to 9,999 times
-- 5 -> 10,000 or more times
+### Comparison
 
-#### Cleaned Article Text
-
-For replication purposes, clean article text is extracted from the 2019-01-01
-dump of WikiNews, which is available from archive.org, and pre-configured in the
-script below.
-
-### Get Mewsli-9 Dataset
-
-**Export the relevant part of the code repository:**
-
-```
-SUBDIR=dense_representations_for_entity_retrieval
-svn export https://github.com/google-research/google-research/trunk/$SUBDIR
-```
-
-**Change into the `mel/` subdirectory:**
-
-```
-cd dense_representations_for_entity_retrieval/mel
-```
-
-**Run the end-to-end script:**
-
-```
-bash get-mewsli-9.sh
-```
-
-This script runs in about 5 minutes, depending on the computing environment. It
-downloads about 125MB of input data, installs a few dependencies and extracts
-the clean article text that serve as mention contexts.
-
-**Look for output under `./mewsli-9/output/dataset`.**
-
-For example, the cleaned text for a Spanish article with docid `es-44` would be
-in the file `./mewsli-9/output/dataset/es/text/es-44`.
-
-### Using the dataset
-
-TODO: add example.
-
-### Dependencies
-
-The helper scripts assume the following tools are installed:
-
-- Python 3
-- bzip2
-- git
-- md5sum
-- pip
-- virtualenv
-- wget
-- zip
-
-See `wikinews_extractor/requirements.txt` for dependencies that will be
-installed to a new virtual environment.
+|                                                                                        | **Mewsli-9**                                                               | **Mewsli-X**
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------
+| **Salient features**                                                                   | Large-scale task. Special focus on entities absent from English Wikipedia. | Scaled down task for improved accessibility. Special focus on zero-shot.
+| **Mention languages**                                                                  | (9) ar, de, en, es, fa, ja, *sr*, ta, tr                                   | (11) ar, de, en, es, fa, ja, *pl*, *ro*, ta, tr, *uk*
+| **WikiNews evaluation instances**                                                      | 289,087 (no predefined splits)                                             | 17,615 (2,991 dev + 14,624 test)
+| **Other released data**                                                                | None                                                                       | Candidate set (multilingual Wikipedia descriptions);<br> Fine-tuning train & dev (English Wikipedia mentions)
+| ***Attributes***                                                                       |                                                                            |
+| **Text tokenization**                                                                  | Not released                                                               | Sentence boundaries are released for the raw text, in support of token-free modeling research.
+| **Noise filtering**                                                                    | Minimal                                                                    | Extensive
+| **Controlled sampling**                                                                | None                                                                       | WikiNews instances approx. balanced by language and global entity frequency
+| ***Entity candidate set***                                                             |                                                                            |
+| **Description languages**                                                              | (104) All mBERT-languages                                                  | (50) All XTREME-R languages
+| **Size**                                                                               | 20M                                                                        | 1M
+| **Has nuisance entities associated with Wikipedia 'list' and 'disambiguation' pages?** | yes                                                                        | no
 
 ## Disclaimer
 
 This is not an official Google product.
+
+<!--
+--->

@@ -108,7 +108,7 @@ class CouplingExperimentConfig:
     new_params = optax.apply_updates(params, updates)
     any_was_nan = jax.tree_util.tree_reduce(
         jnp.logical_or, jax.tree_map(lambda v: jnp.any(jnp.isnan(v)), grads))
-    new_opt_state, new_params = jax.tree_multimap(
+    new_opt_state, new_params = jax.tree_map(
         lambda a, b: jnp.where(any_was_nan, a, b), (opt_state, params),
         (new_opt_state, new_params))
     return new_opt_state, new_params, metrics, grads, any_was_nan

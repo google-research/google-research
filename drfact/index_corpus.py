@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Script to pre-process a commonsense knowledge corpus (e.g., GenericsKB).
 
 Example usage:

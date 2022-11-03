@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Flax module for various layers on graphs.
 
 To allow shared implementations and compositionality, the separate components

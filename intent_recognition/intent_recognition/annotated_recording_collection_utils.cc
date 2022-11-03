@@ -147,6 +147,14 @@ void PopulateProcessingOptions(const ProcessingOptions& processing_options,
   AddNumArg("window_padding_strategy",
             static_cast<int>(processing_options.padding_strategy()), arguments);
   AddNumArg("minimum_windows", processing_options.minimum_windows(), arguments);
+  AddNumArg("min_variance_threshold",
+            processing_options.min_variance_threshold(), arguments);
+  AddNumArg(
+      "drop_below_threshold_comparator",
+      static_cast<int>(processing_options.drop_below_threshold_comparator()),
+      arguments);
+  AddNumArg("invert_threshold", processing_options.invert_threshold(),
+            arguments);
 }
 
 mediapipe::CalculatorGraphConfig BuildDrishtiGraphWithProcessingOptions(

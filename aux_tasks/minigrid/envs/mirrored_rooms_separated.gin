@@ -1,0 +1,16 @@
+# Similar to mirrored rooms environment from Castro (2020), but wall is closed.
+register_environment.env_id = 'MiniGrid-MirroredRoomsSeparated-v0'
+
+MonMiniGridEnv.directional = True
+MonMiniGridEnv.agent_pos = None
+MonMiniGridEnv.goal_pos = None
+MonMiniGridEnv.ascii_grid = """
+*******
+*    g*
+*     *
+*     *
+*******
+*    g*
+*     *
+*     *
+*******"""

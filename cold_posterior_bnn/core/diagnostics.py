@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Diagnostics helpful in characterising deep neural network behavior.
 
 This module implements statistics that characterise neural network behavior.

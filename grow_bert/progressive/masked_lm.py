@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Masked language task with progressive training."""
-# Lint as: python3
 import copy
 import dataclasses
 import os

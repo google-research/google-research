@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """DeepQNetwork models for molecule generation."""
 
 from __future__ import absolute_import
@@ -367,12 +366,12 @@ class DeepQNetwork(object):
     Returns:
       Integer. which action to be performed.
     """
-    return np.asscalar(tf.get_default_session().run(
+    return tf.get_default_session().run(
         self.action,
         feed_dict={
             self.observations: observations,
             self.head: head
-        }))
+        }).item()
 
   def get_action(self,
                  observations,
@@ -594,8 +593,7 @@ class MultiObjectiveDeepQNetwork(DeepQNetwork):
     for i, reward_value in enumerate(reward):
       feed_dict[self.rewards[i]] = reward_value
     # calculated the weighted sum of the rewards.
-    feed_dict[self.weighted_reward] = np.asscalar(
-        np.array([reward]).dot(self.objective_weight))
+    feed_dict[self.weighted_reward] = np.array([reward]).dot(self.objective_weight).item()
     return tf.get_default_session().run(
         self.episode_summary, feed_dict=feed_dict)
 
@@ -610,13 +608,13 @@ class MultiObjectiveDeepQNetwork(DeepQNetwork):
     Returns:
       Integer. which action to be performed.
     """
-    return np.asscalar(tf.get_default_session().run(
+    return tf.get_default_session().run(
         self.action,
         feed_dict={
             self.observations: observations,
             self.objective_weight_input: self.objective_weight,
             self.head: head
-        }))
+        }).item()
 
 
 def multi_layer_model(inputs, hparams, reuse=None):

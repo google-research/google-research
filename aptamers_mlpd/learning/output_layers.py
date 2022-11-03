@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Output layers (including loss functions and predictions) for aptamer models.
 
 Note that throughout this module, 'target' refers to the target output, i.e.

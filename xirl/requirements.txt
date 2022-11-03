@@ -12,6 +12,8 @@ torchvision==0.8.2
 absl-py
 numpy
 scipy
-gdown==3.13.1
+pandas
+gdown==4.4.0
+protobuf~=3.19.0
 git+https://github.com/kevinzakka/torchkit.git@v0.0.2
 git+https://github.com/kevinzakka/x-magical.git@v0.0.2

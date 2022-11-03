@@ -14,6 +14,8 @@
 
 #include "scann/oss_wrappers/scann_status.h"
 
+#include <string>
+
 #include "absl/strings/str_cat.h"
 
 namespace research_scann {

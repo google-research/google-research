@@ -1,0 +1,5 @@
+python>=3.7
+pytorch>=1.12.0
+numpy>=1.21.6
+absl-py==1.2.0
+cudatoolkit==11.3

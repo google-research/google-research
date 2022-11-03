@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """DCA run and evaluation.
 
 Runs DCA with the specified input parameters and evaluates it.

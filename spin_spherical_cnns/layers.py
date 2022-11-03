@@ -27,7 +27,7 @@ channel), and for spectral coefficients, the dimensions are (batch, ell, m,
 spin, channel).
 """
 import functools
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Tuple, Union
 from flax import linen as nn
 import jax
 from jax import lax
@@ -43,8 +43,54 @@ Initializer = Callable[[Any, Sequence[int], Any],
                        Array]
 
 
-def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
-                              spins_in, spins_out):
+def _spin_spherical_convolution_from_spectral(
+    transformer, coefficients_in, filter_coefficients,
+    spins_out, spectral_pooling, output_representation):
+  """`_spin_spherical_convolution` with spectral inputs."""
+  if spectral_pooling:
+    ell_max = coefficients_in.shape[0] - 1
+    new_ell_max = (ell_max+1) // 2 - 1
+    coefficients_in = coefficients_in[
+        :new_ell_max + 1, (ell_max-new_ell_max):(ell_max+new_ell_max+1)]
+
+  # Compute the convolution in the spectral domain.
+  coefficients_out = jnp.einsum("lmic,liocd->lmod",
+                                coefficients_in,
+                                filter_coefficients)
+
+  if output_representation == "spectral":
+    return coefficients_out
+  elif output_representation == "spatial":
+    # Convert back to the spatial domain.
+    return transformer.swsft_backward_spins_channels(coefficients_out,
+                                                     spins_out)
+  else:
+    raise ValueError("`output_representation` must be either "
+                     "'spectral' or 'spatial'.")
+
+
+def _spin_spherical_convolution_from_spatial(
+    transformer, sphere, filter_coefficients,
+    spins_in, spins_out, spectral_pooling, output_representation):
+  """`_spin_spherical_convolution` with spatial inputs."""
+  resolution = sphere.shape[0]
+  ell_max = (sphere_utils.ell_max_from_resolution(resolution // 2)
+             if spectral_pooling else None)
+  # Convert to the spectral domain.
+  coefficients_in = transformer.swsft_forward_spins_channels(
+      sphere, spins_in, ell_max=ell_max)
+
+  # When `spectral_pooling` == True, pooling was already performed
+  # during the forward transform.
+  return _spin_spherical_convolution_from_spectral(
+      transformer, coefficients_in, filter_coefficients, spins_out,
+      spectral_pooling=False, output_representation=output_representation)
+
+
+def _spin_spherical_convolution(
+    transformer, sphere_or_coeffs, filter_coefficients,
+    spins_in, spins_out, spectral_pooling,
+    input_representation, output_representation):
   r"""Spin-weighted spherical convolution; spatial input and spectral filters.
 
   This implements a multi-channel version of Eq. (13) in [1], where sphere_set
@@ -58,26 +104,35 @@ def _swsconv_spatial_spectral(transformer, sphere_set, filter_coefficients,
 
   Args:
     transformer: SpinSphericalFourierTransformer instance.
-    sphere_set: A (resolution, resolution, n_spins_in, n_channels_in) array of
-      spin-weighted spherical functions with equiangular sampling.
+    sphere_or_coeffs: A (resolution, resolution, n_spins_in,
+      n_channels_in) array of spin-weighted spherical functions with
+      equiangular sampling, or (ell_max+1, 2*ell_max+1, n_spins_in,
+      n_channels_in) array of coefficients.
     filter_coefficients: (resolution // 2, n_spins_in, n_spins_out,
       n_channels_in, n_channels_out) array of filter SWSH coefficients.
     spins_in: (n_spins_in,) Sequence of int containing the input spins.
     spins_out: (n_spins_out,) Sequence of int containing the output spins.
+    spectral_pooling: When True, halve input dimensions via spectral pooling.
+    input_representation: Whether inputs are in the 'spectral' or
+      'spatial' domain.
+    output_representation: Whether to return outputs in the 'spectral'
+      or 'spatial' domain.
 
   Returns:
     A (resolution, resolution, n_spins_out, n_channels_out) array of
     spin-weighted spherical functions with equiangular sampling.
   """
-  # Convert input swsfs to the spectral domain.
-  coefficients_in = transformer.swsft_forward_spins_channels(sphere_set,
-                                                             spins_in)
-  # Compute the convolution in the spectral domain.
-  coefficients_out = jnp.einsum("lmic,liocd->lmod",
-                                coefficients_in,
-                                filter_coefficients)
-  # Convert back to the spatial domain.
-  return transformer.swsft_backward_spins_channels(coefficients_out, spins_out)
+  if input_representation == "spectral":
+    return _spin_spherical_convolution_from_spectral(
+        transformer, sphere_or_coeffs, filter_coefficients,
+        spins_out, spectral_pooling, output_representation)
+  elif input_representation == "spatial":
+    return _spin_spherical_convolution_from_spatial(
+        transformer, sphere_or_coeffs, filter_coefficients,
+        spins_in, spins_out, spectral_pooling, output_representation)
+  else:
+    raise ValueError("`input_representation` must be either "
+                     "`spectral` or `spatial`.")
 
 
 # Custom initializer, based on He et al, "Delving Deep into Rectifiers", but
@@ -98,16 +153,24 @@ class SpinSphericalConvolution(nn.Module):
     features: int, number of output features (channels).
     spins_in: (n_spins_in,) Sequence of int containing the input spins.
     spins_out: (n_spins_out,) Sequence of int containing the output spins.
+    spectral_pooling: When True, halve input dimensions via spectral pooling.
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of parameters per filter. Fewer parameters results
       in more localized filters.
+    input_representation: Whether inputs are in the 'spectral' or
+      'spatial' domain.
+    output_representation: Whether to return outputs in the 'spectral'
+      or 'spatial' domain.
     initializer: initializer for the filter spectrum.
   """
   features: int
   spins_in: Sequence[int]
   spins_out: Sequence[int]
+  spectral_pooling: bool
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
   num_filter_params: Optional[int] = None
+  input_representation: str = "spatial"
+  output_representation: str = "spatial"
   initializer: Initializer = default_initializer
 
   def _get_kernel(self, ell_max, num_channels_in):
@@ -136,43 +199,64 @@ class SpinSphericalConvolution(nn.Module):
     return weights.transpose((4, 0, 1, 2, 3))
 
   @nn.compact
-  def __call__(self, sphere_set):
+  def __call__(self, sphere_or_coeffs):
     """Applies convolution to inputs.
 
     Args:
-      sphere_set: A (batch_size, resolution, resolution, n_spins_in,
-        n_channels_in) array of spin-weighted spherical functions (SWSF) with
-        equiangular sampling.
+      sphere_or_coeffs: A (batch_size, resolution, resolution,
+        n_spins_in, n_channels_in) array of spin-weighted spherical
+        functions (SWSF) with equiangular sampling, or a (batch_size,
+        ell_max+1, 2*ell_max+1, n_spins_in, n_channels_in) array of
+        spectral coefficients.
 
     Returns:
       A (batch_size, resolution, resolution, n_spins_out, n_channels_out)
       complex64 array of SWSF with equiangular H&W sampling.
     """
-    resolution = sphere_set.shape[1]
-    if sphere_set.shape[2] != resolution:
-      raise ValueError("Axes 1 and 2 must have the same dimensions!")
-    if sphere_set.shape[3] != len(list(self.spins_in)):
+    if self.input_representation == "spectral":
+      ell_max = sphere_or_coeffs.shape[1] - 1
+      resolution = 2 * (ell_max + 1)
+      if sphere_or_coeffs.shape[2] != 2*ell_max + 1:
+        raise ValueError("Axes 1 and 2 must have dimensions "
+                         "(ell_max+1, 2*ell_max+1).")
+    elif self.input_representation == "spatial":
+      resolution = sphere_or_coeffs.shape[1]
+      ell_max = sphere_utils.ell_max_from_resolution(resolution)
+      if sphere_or_coeffs.shape[2] != resolution:
+        raise ValueError("Axes 1 and 2 must have the same dimensions!")
+    else:
+      raise ValueError("`input_representation` must be either "
+                       "'spectral' or 'spatial'.")
+
+    if sphere_or_coeffs.shape[3] != len(list(self.spins_in)):
       raise ValueError("Input axis 3 (spins_in) doesn't match layer's.")
+
+    if self.spectral_pooling:
+      resolution //= 2
+      ell_max = sphere_utils.ell_max_from_resolution(resolution)
 
     # Make sure constants contain all spins for input resolution.
     for spin in set(self.spins_in).union(self.spins_out):
       if not self.transformer.validate(resolution, spin):
         raise ValueError("Constants are invalid for given input!")
 
-    ell_max = sphere_utils.ell_max_from_resolution(resolution)
-    num_channels_in = sphere_set.shape[-1]
+    num_channels_in = sphere_or_coeffs.shape[-1]
     if self.num_filter_params is None:
       kernel = self._get_kernel(ell_max, num_channels_in)
     else:
       kernel = self._get_localized_kernel(ell_max, num_channels_in)
 
     # Map over the batch dimension.
-    vmap_convolution = jax.vmap(_swsconv_spatial_spectral,
-                                in_axes=(None, 0, None, None, None))
+    vmap_convolution = jax.vmap(
+        _spin_spherical_convolution,
+        in_axes=(None, 0, None, None, None, None, None, None))
     return vmap_convolution(self.transformer,
-                            sphere_set, kernel,
+                            sphere_or_coeffs, kernel,
                             self.spins_in,
-                            self.spins_out)
+                            self.spins_out,
+                            self.spectral_pooling,
+                            self.input_representation,
+                            self.output_representation)
 
 
 class MagnitudeNonlinearity(nn.Module):
@@ -421,6 +505,15 @@ class SphericalBatchNormalization(nn.Module):
     return outputs
 
 
+def get_zero_nonzero_idx(spins):
+  """Returns zero and nonzero indices from a list of spins."""
+  idx_zero = spins.index(0)
+  idx_nonzero = tuple([idx for idx, spin in enumerate(spins) if spin != 0])
+  if len(idx_nonzero) + 1 != len(spins):
+    raise ValueError("`spins` must contain exactly one zero.")
+  return idx_zero, idx_nonzero
+
+
 class SpinSphericalBatchNormalization(nn.Module):
   """Batch normalization for spin-spherical functions.
 
@@ -442,6 +535,8 @@ class SpinSphericalBatchNormalization(nn.Module):
   use_running_stats: Optional[bool] = None
   momentum: float = 0.99
   epsilon: float = 1e-5
+  scale_init: Initializer = _complex_ones_initializer
+  bias_init: Initializer = _complex_zeros_initializer
   axis_name: Optional[str] = None
 
   @nn.compact
@@ -456,24 +551,26 @@ class SpinSphericalBatchNormalization(nn.Module):
     options = dict(use_running_stats=use_running_stats,
                    momentum=self.momentum,
                    epsilon=self.epsilon,
+                   scale_init=self.scale_init,
+                   bias_init=self.bias_init,
                    axis_name=self.axis_name)
 
-    outputs = []
-    for i, spin in enumerate(self.spins):
-      inputs_spin = inputs[Ellipsis, [i], :]
-      if spin == 0:
-        outputs_spin = SphericalBatchNormalization(use_bias=True,
-                                                   centered=True,
-                                                   **options)(inputs_spin,
-                                                              weights=weights)
-      else:
-        outputs_spin = SphericalBatchNormalization(use_bias=False,
-                                                   centered=False,
-                                                   **options)(inputs_spin,
-                                                              weights=weights)
-      outputs.append(outputs_spin)
+    idx_zero, idx_nonzero = get_zero_nonzero_idx(self.spins)
+    outputs = inputs
+    outputs = outputs.at[Ellipsis, [idx_zero], :].set(
+        SphericalBatchNormalization(
+            use_bias=True,
+            centered=True,
+            **options)(outputs[Ellipsis, [idx_zero], :],
+                       weights=weights))
+    outputs = outputs.at[Ellipsis, idx_nonzero, :].set(
+        SphericalBatchNormalization(
+            use_bias=False,
+            centered=False,
+            **options)(outputs[Ellipsis, idx_nonzero, :],
+                       weights=weights))
 
-    return jnp.concatenate(outputs, axis=-2)
+    return outputs
 
 
 class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):

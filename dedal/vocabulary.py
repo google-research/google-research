@@ -139,6 +139,42 @@ class Vocabulary:
     return [target.get(token, target.padding_code) for token in self._voc]
 
 
+@tf.keras.utils.register_keras_serializable()
+@gin.configurable
+class SeqIOVocabulary(Vocabulary):
+  """Vocabulary compatible with the SeqIO data pipelines."""
+
+  def __init__(  # pylint: disable=super-init-not-called
+      self,
+      tokens,
+      control_specials,
+      user_specials,
+      extra_ids = 95,
+  ):
+    extra_id_specials = tuple(
+        f'▁<extra_id_{i}>' for i in reversed(range(1, extra_ids)))
+    mask = (self.MASK,)
+    self._voc = list(itertools.chain.from_iterable(
+        [control_specials, tokens, user_specials, extra_id_specials, mask]))
+    self._indices = {t: i for i, t in enumerate(self._voc)}
+
+    self.tokens = tokens
+    self.specials = tuple(itertools.chain.from_iterable(
+        [control_specials, user_specials, extra_id_specials]))
+    self._control_specials = control_specials
+    self._user_specials = user_specials
+    self._extra_ids = extra_ids
+    self._padding = control_specials[0]
+    self._order = None
+
+  def get_config(self):
+    """For keras serialization compatibility."""
+    return dict(tokens=self.tokens,
+                control_specials=self._control_specials,
+                user_specials=self._user_specials,
+                extra_ids=self._extra_ids)
+
+
 proteins = Vocabulary(
     tokens='LAVGESIRDTKPFNQYHMWCUOBZX',
     specials=('<', '>'),
@@ -157,8 +193,17 @@ alternative = Vocabulary(
 gin.constant('vocabulary.alternative', alternative)
 
 
+seqio_vocab = SeqIOVocabulary(
+    tokens='ARNDCEQGHILKMFPSTWYVBZXJOU',
+    control_specials=('_', '>', '?', '<', '▁'),
+    user_specials=('.', '-'),
+    extra_ids=95,
+)
+gin.constant('vocabulary.seqio_vocab', seqio_vocab)
+
+
 @gin.configurable
-def get_default(vocab = alternative):
+def get_default(vocab = seqio_vocab):
   """A convenient function to gin configure the default vocabulary."""
   return vocab
 

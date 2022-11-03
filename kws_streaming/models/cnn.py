@@ -21,7 +21,6 @@ from kws_streaming.layers import stream
 from kws_streaming.layers.compat import tf
 import kws_streaming.models.model_utils as utils
 from tensorflow_model_optimization.python.core.quantization.keras import quantize_layer
-from tensorflow_model_optimization.python.core.quantization.keras.default_8bit import default_8bit_quantize_configs
 from tensorflow_model_optimization.python.core.quantization.keras.quantizers import AllValuesQuantizer
 
 
@@ -87,6 +86,9 @@ def model(flags):
   Model topology is similar with "Hello Edge: Keyword Spotting on
   Microcontrollers" https://arxiv.org/pdf/1711.07128.pdf
 
+  Supports quantization aware training with TF Model Optimization Toolkit
+  including the experimental n-bit scheme.
+
   Args:
     flags: data/model parameters
 
@@ -123,20 +125,27 @@ def model(flags):
                 kernel_size=kernel_size,
                 dilation_rate=dilation_rate,
                 activation='linear',
-                strides=strides), flags.quantize,
-            quantize.NoOpActivationConfig(['kernel'], ['activation'], False)),
+                strides=strides),
+            flags=flags,
+            quantize_config=quantize.get_conv_bn_quantize_config(flags=flags)),
         pad_time_dim='causal',
         use_one_step=False)(
             net)
     net = quantize.quantize_layer(
         tf.keras.layers.BatchNormalization(),
-        default_8bit_quantize_configs.NoOpQuantizeConfig())(
-            net)
-    net = quantize.quantize_layer(tf.keras.layers.Activation(activation))(net)
+        flags=flags,
+        quantize_config=quantize.get_no_op_quantize_config(flags=flags)
+        )(net)
+    net = quantize.quantize_layer(
+        tf.keras.layers.Activation(activation),
+        flags=flags,
+        )(net)
 
   net = stream.Stream(
       cell=quantize.quantize_layer(
-          tf.keras.layers.Flatten(), apply_quantization=flags.quantize))(
+          tf.keras.layers.Flatten(),
+          flags=flags,
+          ))(
               net)
 
   net = tf.keras.layers.Dropout(rate=flags.dropout1)(net)
@@ -145,16 +154,19 @@ def model(flags):
       utils.parse(flags.units2), utils.parse(flags.act2)):
     net = quantize.quantize_layer(
         tf.keras.layers.Dense(units=units, activation=activation),
-        apply_quantization=flags.quantize)(
+        flags=flags,
+        )(
             net)
 
   net = quantize.quantize_layer(
       tf.keras.layers.Dense(units=flags.label_count),
-      apply_quantization=flags.quantize)(
+      flags=flags,
+      )(
           net)
   if flags.return_softmax:
     net = quantize.quantize_layer(
         tf.keras.layers.Activation('softmax'),
-        apply_quantization=flags.quantize)(
+        flags=flags,
+        )(
             net)
   return tf.keras.Model(input_audio, net)

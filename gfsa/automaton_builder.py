@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Finite-state automaton builder and parameter logic.
 
 This module contains functions and objects to handle conversion of graphs into
@@ -524,12 +523,12 @@ class AutomatonBuilder:
         jax.lax.stop_gradient(log_rparams), "max")
 
     # Subtract the stability constants and then exponentiate.
-    unnorm_rparams = jax.tree_multimap(lambda v, m: jnp.exp(v - m), log_rparams,
-                                       max_log_rparams)
+    unnorm_rparams = jax.tree_map(lambda v, m: jnp.exp(v - m), log_rparams,
+                                  max_log_rparams)
 
     # Normalize the result.
-    return jax.tree_multimap(jax.lax.div, unnorm_rparams,
-                             self.routing_reduce(unnorm_rparams, "sum"))
+    return jax.tree_map(jax.lax.div, unnorm_rparams,
+                        self.routing_reduce(unnorm_rparams, "sum"))
 
   def initialize_routing_params(self,
                                 key,
@@ -627,8 +626,8 @@ class AutomatonBuilder:
       unnorm_routing_params = RoutingParams(
           move=move_params, special=special_params)
       normalizer = self.routing_reduce(unnorm_routing_params, "sum")
-      routing_params = jax.tree_multimap(jax.lax.div, unnorm_routing_params,
-                                         normalizer)
+      routing_params = jax.tree_map(jax.lax.div, unnorm_routing_params,
+                                    normalizer)
 
     return routing_params
 
@@ -678,8 +677,8 @@ class AutomatonBuilder:
             accept_gate_probs[Ellipsis, None], [(0, 0), (0, 0), (0, 0), (0, 2)],
             mode="constant",
             constant_values=0))
-    norm_by_divide = jax.tree_multimap(jax.lax.div, norm_by_divide,
-                                       move_or_accept_totals)
+    norm_by_divide = jax.tree_map(jax.lax.div, norm_by_divide,
+                                  move_or_accept_totals)
 
     # If sum <= 1, assign remaining mass to backtracking or failing.
     special_left_over = 1 - jnp.squeeze(move_or_accept_totals.special, -1)
@@ -693,7 +692,7 @@ class AutomatonBuilder:
             ],
             axis=-1))
 
-    result = jax.tree_multimap(
+    result = jax.tree_map(
         lambda total, nbd, nbs: jnp.where(total >= 1, nbd, nbs),
         move_or_accept_totals, norm_by_divide, norm_by_stop)
 

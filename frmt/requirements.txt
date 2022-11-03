@@ -1,0 +1,3 @@
+absl-py
+immutabledict>=2.0.0
+sacrebleu==1.3.1

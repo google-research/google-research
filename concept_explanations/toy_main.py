@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """This is the code to run the discover concept algorithm in the toy dataset."""
-#  lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

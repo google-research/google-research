@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Main multimodal components of vatt, e.g. Loss Functions, Models, etc.."""
 
 import tensorflow as tf

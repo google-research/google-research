@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Definition of architecture-specific aspects of the circuit optimization.
 
 Currently, only the Xmon architecture is implemented.
@@ -184,7 +183,7 @@ class XmonArchitecture:
       beta = np.pi
       alpha = -gamma
     else:
-      rot = scipy.spatial.transform.Rotation.from_dcm(pauli_transform)
+      rot = scipy.spatial.transform.Rotation.from_matrix(pauli_transform)
       alpha, beta, gamma = rot.as_euler('zxz')
 
     gates = []

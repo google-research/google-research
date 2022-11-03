@@ -16,6 +16,7 @@
 #define SCANN_HASHES_INTERNAL_LUT16_INTERFACE_H_
 
 #include <cstdint>
+#include <utility>
 
 #include "scann/hashes/internal/lut16_args.h"
 #include "scann/hashes/internal/lut16_avx2.h"

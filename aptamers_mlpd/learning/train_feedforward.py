@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Train a simple feedforward net to predict aptamer read counts.
 
 Sample usage:

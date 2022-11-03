@@ -16,7 +16,7 @@
 """Generic Multi task architecture."""
 
 import copy
-from typing import Any, Dict, List, Mapping, Sequence, Tuple, TypeVar, Generic
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, TypeVar, Generic
 
 import gin
 
@@ -56,8 +56,8 @@ class NamedLists(dict, Generic[T]):
     result = self.constant_copy(default_value)
     it = result.__iter__()
     for val in values:
-      next(it)
-      it._level[it._idx] = val  # pylint: disable=protected-access
+      next(it)  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
+      it._level[it._idx] = val  # pylint: disable=protected-access  # pytype: disable=unsupported-operands  # dynamic-method-lookup
     return result
 
   def flatten(self, empty_value=None):
@@ -188,7 +188,10 @@ class SwitchNamedLists(NamedLists[int]):
     return self.pack(outputs)
 
   def merge_flattened(
-      self, inputs):
+      self,
+      inputs,
+      empty_value = None,
+  ):
     """Merges a sequence of N compatible, flattened `NamedLists`.
 
     Args:
@@ -196,13 +199,15 @@ class SwitchNamedLists(NamedLists[int]):
         that have been flattened. These must have the same keys as `self` and
         satisfy
           `self.size == sum(unflatten(inputs_i).size for inputs_i in inputs)`.
+      empty_value: if provided, substitute `None`s by this value.
 
     Returns:
       a `NamedLists` instance such that
         `output.key[l] = inputs[self.key[l]].key[l]`
       for each key in `self`, flattened to `Mapping[str, T]`.
     """
-    return self.merge([Backbone.unflatten(m_i) for m_i in inputs]).flatten()
+    return self.merge([Backbone.unflatten(m_i) for m_i in inputs]).flatten(
+        empty_value=empty_value)
 
   def get_selector(self, i):
     """Returns `NamedLists` of bools flagging elements from i-th input.

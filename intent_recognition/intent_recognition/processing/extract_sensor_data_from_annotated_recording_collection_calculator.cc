@@ -29,6 +29,7 @@
 // set based on the data within the annotated timeseries message.
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 #include "mediapipe/framework/calculator_framework.h"
@@ -182,7 +183,7 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
   absl::Status OutputDefault(
       const RecordingCollectionSensorOptions& sensor_options, int output_index,
       CalculatorContext* cc) {
-    auto sensor_data = absl::make_unique<std::vector<float>>(
+    auto sensor_data = std::make_unique<std::vector<float>>(
         sensor_options.default_value().cbegin(),
         sensor_options.default_value().cend());
     cc->Outputs()
@@ -206,7 +207,7 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
           " - size ", datapoint.double_value().value_size(), ", but required ",
           sensor_options.required_dims()));
     }
-    auto sensor_data = absl::make_unique<std::vector<float>>(
+    auto sensor_data = std::make_unique<std::vector<float>>(
         datapoint.double_value().value().cbegin(),
         datapoint.double_value().value().cend());
     cc->Outputs()

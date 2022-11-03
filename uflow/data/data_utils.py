@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Data loading and evaluation utilities shared across multiple datasets.
 
 Some datasets are very similar, so to prevent code duplication, shared utilities

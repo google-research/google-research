@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Creates new train/dev/test splits for SentEval data by bootstrap resampling.
 
 Bootstrap resampling is a standard method to create a new sample by randomly

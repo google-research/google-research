@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Class level test-set accuracy for all ImageNet classes."""
 from absl import flags
 import tensorflow.compat.v1 as tf

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Trains TFT based on a defined set of parameters.
 
 Uses default parameters supplied from the configs file to train a TFT model from

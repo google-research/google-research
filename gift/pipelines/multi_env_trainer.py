@@ -21,7 +21,7 @@ import time
 from flax.deprecated import nn
 from flax.training import common_utils
 import jax
-from jax.experimental.optimizers import clip_grads
+from jax.example_libraries.optimizers import clip_grads
 import jax.numpy as jnp
 import numpy as np
 

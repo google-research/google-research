@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Helper functions to pre-process data inputs for training.
 
 This script modifies raw input images according to the feature importance

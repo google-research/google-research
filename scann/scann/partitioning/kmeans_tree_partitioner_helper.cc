@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
 
 #include "scann/base/single_machine_base.h"
 #include "scann/brute_force/brute_force.h"

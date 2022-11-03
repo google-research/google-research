@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Implements the multi-agent version of minigrid doorkey environments.
 
 These have a goal on the other side of a door that must be opened with a key.

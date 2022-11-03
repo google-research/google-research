@@ -78,7 +78,7 @@ class InstanceSegmentUtilsTest(tf.test.TestCase):
                         expected_selected_instances.numpy())
     self.assertAllClose(masks.numpy(), expected_masks.numpy())
 
-  def test_inputs_Distances_to_centers(self):
+  def test_inputs_distances_to_centers(self):
     inputs = tf.random.uniform(
         [100, 8], minval=-10, maxval=10.0, dtype=tf.float32)
     centers = tf.random.uniform(

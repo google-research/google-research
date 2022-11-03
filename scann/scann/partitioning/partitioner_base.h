@@ -19,7 +19,7 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <hash_set>
+#include <vector>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"

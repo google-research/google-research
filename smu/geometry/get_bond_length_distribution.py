@@ -13,7 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Extracts bond length distributions from existing Conformer protos."""
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Extracts bond length distributions from existing Molecule protos."""
 
 from absl import app
 from absl import flags
@@ -26,7 +40,7 @@ from smu import dataset_pb2
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("input", None,
-                    "TFDataRecord file containg Conformer protos")
+                    "TFDataRecord file containg Molecule protos")
 flags.DEFINE_string("output", None, "Output file")
 
 
@@ -51,7 +65,7 @@ def get_bond_length_distribution_inner(input_fname, output_fname):
   """Generate bond length distibutions.
 
   Args:
-    input_fname: An existing TFRecord file containing Conformer protos.
+    input_fname: An existing TFRecord file containing Molecule protos.
     output_fname: An output file that will be created that contains all bond
       length distributions - all bond types, all atom types. Requires
       post-processing to generate bond length distribution files.
@@ -65,7 +79,7 @@ def get_bond_length_distribution_inner(input_fname, output_fname):
         p
         | beam.io.tfrecordio.ReadFromTFRecord(
             input_fname,
-            coder=beam.coders.ProtoCoder(dataset_pb2.Conformer().__class__))
+            coder=beam.coders.ProtoCoder(dataset_pb2.Molecule().__class__))
         | beam.ParDo(bond_lengths.GetBondLengthDistribution())
         | beam.CombinePerKey(sum)
         #     | beam.ParDo(GroupBondTypes())
@@ -76,7 +90,7 @@ def get_bond_length_distribution_inner(input_fname, output_fname):
 
 
 def get_bond_length_distribution(unused_argv):
-  """Scan Conformer protos to extract bond length distributions."""
+  """Scan Molecule protos to extract bond length distributions."""
   del unused_argv
 
   get_bond_length_distribution_inner(FLAGS.input, FLAGS.output)

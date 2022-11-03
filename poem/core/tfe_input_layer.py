@@ -258,6 +258,8 @@ def process_decoded_features(decoded_tensors, common_module=common):
 def generate_class_targets(label_ids,
                            label_confidences,
                            num_classes,
+                           use_label_confidence_as_class_target=False,
+                           default_label_confidence=0.0,
                            positive_label_confidence_threshold=0.5):
   """Generates class targets and weights from label ids and confidences.
 
@@ -265,26 +267,46 @@ def generate_class_targets(label_ids,
   negative, and use `class_weights` to represent if a label exists in the input
   or not.
 
-  Example usage:
+  Example usage 1:
     num_classes = 5
     label_ids = [0, 1, 3]
     label_confidences = [0.9, 0.3, 0.7]
+    use_label_confidence_as_class_target = False
     positive_label_confidence_threshold = 0.5
     -->
     class_targets = [1, 0, 0, 1, 0]
+    class_weights = [1.0, 1.0, 0.0, 1.0, 0.0]
+
+  Example usage 2:
+    num_classes = 5
+    label_ids = [0, 1, 3]
+    label_confidences = [0.9, 0.3, 0.7]
+    use_label_confidence_as_class_target = True
+    default_label_confidence = 0.05
+    -->
+    class_targets = [0.9, 0.3, 0.05, 0.7, 0.05]
     class_weights = [1.0, 1.0, 0.0, 1.0, 0.0]
 
   Args:
     label_ids: A tensor for label ids. Shape = [num_classes].
     label_confidences: A tensor for label confidences. Shape = [num_classes].
     num_classes: An integer for total number of classes.
+    use_label_confidence_as_class_target: A boolean for whether to use the label
+      confidences as class targets. If True, the output `class_targets` will
+      have float input label confidences (with `default_label_confidence` for
+      missing labels); otherwise, the output `class_targets` will have the
+      binary int64 values from applying `positive_label_confidence_threshold` to
+      label confidences.
+    default_label_confidence: A float for the default confidence for missing
+      labels.
     positive_label_confidence_threshold: A float for the threshold to determine
       class target for label ids. If the confidence of a label id is greater
       than this value, it has positive class target (1), otherwise negative
       target (0).
 
   Returns:
-    class_targets: A int64 tensor for class targets. Shape = [num_classes].
+    class_targets: A int64 (if `use_label_confidence_as_class_target` is True)
+      or float (otherwise) tensor for class targets. Shape = [num_classes].
     class_weights: A float32 tensor for class weights. Shape = [num_classes].
 
   Raises:
@@ -301,18 +323,39 @@ def generate_class_targets(label_ids,
     label_ids = tf.sparse.to_dense(label_ids)
   if isinstance(label_confidences, tf.SparseTensor):
     label_confidences = tf.sparse.to_dense(label_confidences)
-  positive_label_id_masks = tf.math.greater(
-      label_confidences, positive_label_confidence_threshold)
-  positive_label_ids = tf.boolean_mask(label_ids, mask=positive_label_id_masks)
-  class_targets = tf.math.reduce_sum(
-      tf.one_hot(positive_label_ids, num_classes, dtype=tf.int64), axis=0)
+
+  if use_label_confidence_as_class_target:
+    class_targets_shape = tf.constant([num_classes], dtype=tf.int64)
+    fg_indices = tf.cast(tf.reshape(label_ids, [-1, 1]), dtype=tf.int64)
+    fg_mask = tf.scatter_nd(
+        fg_indices,
+        updates=tf.ones_like(label_confidences),
+        shape=class_targets_shape)
+    fg_class_targets = tf.scatter_nd(
+        fg_indices, updates=label_confidences, shape=class_targets_shape)
+    default_class_targets = tf.cast(
+        tf.fill(class_targets_shape, default_label_confidence),
+        dtype=label_confidences.dtype)
+    class_targets = (
+        fg_class_targets +
+        (tf.ones_like(fg_mask) - fg_mask) * default_class_targets)
+  else:
+    positive_label_id_masks = tf.math.greater(
+        label_confidences, positive_label_confidence_threshold)
+    positive_label_ids = tf.boolean_mask(
+        label_ids, mask=positive_label_id_masks)
+    class_targets = tf.math.reduce_sum(
+        tf.one_hot(positive_label_ids, num_classes, dtype=tf.int64), axis=0)
+
   class_weights = tf.math.reduce_sum(
       tf.one_hot(label_ids, num_classes, dtype=tf.float32), axis=0)
+
   return class_targets, class_weights
 
 
 def process_class_labels(decoded_tensors,
                          num_classes,
+                         use_label_confidence_as_class_target,
                          num_objects,
                          common_module=common):
   """Processes decoded class labels and confidences into targets and weights.
@@ -324,17 +367,19 @@ def process_class_labels(decoded_tensors,
     decoded_tensors: A dictionary for decoded tensors.
     num_classes: An integer for total number of classification label classes to
       read labels for.
+    use_label_confidence_as_class_target: A boolean for whether to use the label
+      confidences as class targets. Only used if `num_classes` is specified.
     num_objects: An integer for the number of objects each example has.
     common_module: A Python module that defines common constants.
 
   Returns:
     outputs: A dictionary for processed 2D keypoint tensors.
   """
-  class_targets, class_weights = (
-      generate_class_targets(
-          decoded_tensors[common_module.TFE_KEY_CLASS_LABEL_ID],
-          decoded_tensors[common_module.TFE_KEY_CLASS_LABEL_CONFIDENCE],
-          num_classes=num_classes))
+  class_targets, class_weights = generate_class_targets(
+      decoded_tensors[common_module.TFE_KEY_CLASS_LABEL_ID],
+      decoded_tensors[common_module.TFE_KEY_CLASS_LABEL_CONFIDENCE],
+      num_classes=num_classes,
+      use_label_confidence_as_class_target=use_label_confidence_as_class_target)
 
   # Stack the same class targets and weights for multiple objects.
   class_targets = tf.stack([class_targets for i in range(num_objects)], axis=0)
@@ -376,6 +421,7 @@ def create_tfe_parser(keypoint_names_2d=None,
                       include_keypoint_scores_3d=False,
                       feature_dim=None,
                       num_classes=None,
+                      use_label_confidence_as_class_target=False,
                       num_objects=1,
                       sequence_length=None,
                       common_module=common):
@@ -398,6 +444,8 @@ def create_tfe_parser(keypoint_names_2d=None,
       features if specified.
     num_classes: An integer for the number of classification label classes to
       read labels for. Only reads labels if specified.
+    use_label_confidence_as_class_target: A boolean for whether to use the label
+      confidences as class targets. Only used if `num_classes` is specified.
     num_objects: An integer for the number of objects each example has.
     sequence_length: An integer for the length of sequence per object each
       example has. Skips adding the sequence dimension if None.
@@ -468,6 +516,8 @@ def create_tfe_parser(keypoint_names_2d=None,
           process_class_labels(
               decoded_tensors,
               num_classes=num_classes,
+              use_label_confidence_as_class_target=(
+                  use_label_confidence_as_class_target),
               num_objects=num_objects,
               common_module=common_module))
 
@@ -536,6 +586,7 @@ def read_from_table(table_pattern,
 def read_batch_from_tables(table_patterns,
                            batch_sizes,
                            drop_remainder,
+                           preprocess_fns=None,
                            seed=None,
                            **reader_kwargs):
   """Reads and batches inputs from tf.Example tables.
@@ -546,6 +597,7 @@ def read_batch_from_tables(table_patterns,
     drop_remainder: A boolean for whether to drop remaining elements that cannot
       make up a full batch at the end of an epoch. Usually set to True for
       evaluation.
+    preprocess_fns: A list of preprocess function handles for input tables.
     seed: An integer for random seed.
     **reader_kwargs: A dictionary of additional arguments passed to
       `read_from_table`.
@@ -567,13 +619,30 @@ def read_batch_from_tables(table_patterns,
         'Number of table patterns is different than that of batch sizes: %d vs.'
         ' %d.' % (len(table_patterns), len(batch_sizes)))
 
+  if preprocess_fns and len(table_patterns) != len(preprocess_fns):
+    raise ValueError(
+        'Number of table patterns is different than that of function handles: '
+        '%d vs. %d.' % (len(table_patterns), len(preprocess_fns)))
+
+  def create_dataset(table_index):
+    """Creates the dataset with its preprocess function handle if provided."""
+    dataset = read_from_table(
+        table_patterns[table_index], seed=seed, **reader_kwargs)
+
+    # TODO(longzh): find a better way to avoid the `unbatch` operation.
+    if preprocess_fns:
+      dataset = dataset.batch(batch_sizes[table_index], drop_remainder=False)
+      dataset = dataset.map(
+          preprocess_fns[table_index],
+          num_parallel_calls=tf.data.experimental.AUTOTUNE)
+      dataset = dataset.unbatch()
+    return dataset
+
   if len(table_patterns) == 1:
-    dataset = read_from_table(table_patterns[0], seed=seed, **reader_kwargs)
+    dataset = create_dataset(0)
   else:
-    datasets = [
-        read_from_table(table_pattern, seed=seed, **reader_kwargs)
-        for table_pattern in table_patterns
-    ]
+    datasets = [create_dataset(i) for i in range(len(table_patterns))]
     dataset = tf.data.experimental.sample_from_datasets(
         datasets, weights=[float(x) for x in batch_sizes], seed=seed)
+
   return dataset.batch(sum(batch_sizes), drop_remainder=drop_remainder)

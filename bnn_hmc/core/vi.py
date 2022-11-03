@@ -69,8 +69,7 @@ def get_mfvi_model_fn(net_fn, params, net_state, seed=0, sigma_init=0.):
     mean = params["mean"]
     std = jax.tree_map(jax.nn.softplus, params["inv_softplus_std"])
     noise, new_key = tree_utils.normal_like_tree(mean, state["mfvi_key"])
-    params_sampled = jax.tree_multimap(lambda m, s, n: m + n * s, mean, std,
-                                       noise)
+    params_sampled = jax.tree_map(lambda m, s, n: m + n * s, mean, std, noise)
     new_mfvi_state = {
         "net_state": copy.deepcopy(state["net_state"]),
         "mfvi_key": new_key
@@ -124,7 +123,7 @@ def make_kl_with_gaussian_prior(weight_decay, temperature=1.):
       return (jnp.log(sigma_prior / sigma_vi) +
               (sigma_vi**2 + mu_vi**2) / 2 / sigma_prior**2 - 1 / 2)
 
-    kl_tree = jax.tree_multimap(get_parameter_kl, mu_vi_tree, sigma_vi_tree)
+    kl_tree = jax.tree_map(get_parameter_kl, mu_vi_tree, sigma_vi_tree)
     kl = sum([p_kl.sum() for p_kl in jax.tree_leaves(kl_tree)])
 
     return -kl * temperature

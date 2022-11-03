@@ -1,0 +1,5 @@
+binary_cifar10_data
+bazel-automl_zero
+bazel-bin
+bazel-out
+bazel-testlogs

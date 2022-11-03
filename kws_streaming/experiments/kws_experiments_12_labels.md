@@ -95,27 +95,31 @@ There are two options of running python script. One with bazel and another by ca
 CMD_TRAIN="python -m kws_streaming.train.model_train_eval"
 ```
 
-### bc_resnet - based on [Broadcasted Residual Learning for Efficient Keyword Spotting](https://arxiv.org/pdf/2106.04140.pdf)
+### bc_resnet_1
+It is based on [Broadcasted Residual Learning for Efficient Keyword Spotting](https://arxiv.org/pdf/2106.04140.pdf)
+
 We did not run much hyperparameter optimization, so accuracy can be optimized futher.
 
+BC-ResNet-1
 parameters: 10K \
-float accuracy 95.8 (need more HPO, in paper it is 96.9) \
+float accuracy 96.4 (need more HPO, in paper it is 96.9) \
 ```shell
 $CMD_TRAIN \
 --data_url '' \
 --data_dir $DATA_PATH/ \
---train_dir $MODELS_PATH/bc_resnet_06/ \
---mel_upper_edge_hertz 7600 \
---how_many_training_steps 40000,40000,40000,40000,40000 \
---learning_rate 0.001,0.0005,0.0002,0.0001,0.0001 \
+--train_dir $MODELS_PATH/bc_resnet_1/ \
+--mel_upper_edge_hertz 7500 \
+--mel_lower_edge_hertz 125 \
+--how_many_training_steps 100,100,100,100,30000,30000,20000,10000,5000,5000 \
+--learning_rate 0.001,0.002,0.003,0.004,0.005,0.002,0.0005,1e-5,1e-6,1e-7 \
 --window_size_ms 30.0 \
 --window_stride_ms 10.0 \
---mel_num_bins 80 \
---dct_num_features 40 \
---resample 0.15 \
+--mel_num_bins 40 \
+--dct_num_features 0 \
+--resample 0.1 \
 --alsologtostderr \
 --train 1 \
---use_spec_augment 1 \
+--use_spec_augment 0 \
 --time_masks_number 2 \
 --time_mask_max_size 25 \
 --frequency_masks_number 2 \
@@ -126,11 +130,52 @@ bc_resnet \
 --last_filters 32 \
 --first_filters 16 \
 --paddings 'same' \
---dilations '(1,1), (2,1), (3,1), (3,1)' \
---strides '(1,1),(1,1),(1,1),(1,1)' \
+--dilations '(1,1),(2,1),(4,1),(8,1)' \
+--strides '(1,1),(1,2),(1,2),(1,1)' \
 --blocks_n '2, 2, 4, 4' \
 --filters '8, 12, 16, 20' \
---dropouts '0.0, 0.0, 0.0, 0.0' \
+--dropouts '0.1, 0.1, 0.1, 0.1' \
+--pools '1, 1, 1, 1' \
+--max_pool 0
+```
+
+### bc_resnet_2
+It is based on [Broadcasted Residual Learning for Efficient Keyword Spotting](https://arxiv.org/pdf/2106.04140.pdf)
+bc_resnet_2 is improved version of bc_resnet_1: more accurate with more parameters.
+parameters: 30K \
+float accuracy 97.6 \
+```shell
+$CMD_TRAIN \
+--data_url '' \
+--data_dir $DATA_PATH/ \
+--train_dir $MODELS_PATH/bc_resnet_2/ \
+--mel_upper_edge_hertz 7500 \
+--mel_lower_edge_hertz 125 \
+--how_many_training_steps 100,100,100,100,30000,20000,15000,5000,5000,5000 \
+--learning_rate 0.001,0.002,0.003,0.004,0.005,0.002,0.0005,1e-5,1e-6,1e-7 \
+--window_size_ms 30.0 \
+--window_stride_ms 10.0 \
+--mel_num_bins 40 \
+--dct_num_features 0 \
+--resample 0.1 \
+--alsologtostderr \
+--train 1 \
+--use_spec_augment 1 \
+--time_masks_number 2 \
+--time_mask_max_size 20 \
+--frequency_masks_number 2 \
+--frequency_mask_max_size 3 \
+--pick_deterministically 1 \
+bc_resnet \
+--sub_groups 5 \
+--last_filters 32 \
+--first_filters 16 \
+--paddings 'same' \
+--dilations '(1,1),(2,1),(4,1),(8,1)' \
+--strides '(1,1),(1,2),(1,2),(1,1)' \
+--blocks_n '2, 2, 4, 4' \
+--filters '16, 24, 32, 40' \
+--dropouts '0.1, 0.1, 0.1, 0.1' \
 --pools '1, 1, 1, 1' \
 --max_pool 0
 ```

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Builds datasets for edge-supervised Python AST tasks.
 
 This module is designed for tasks where we are given a dataset of ASTs, and a

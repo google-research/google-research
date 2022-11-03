@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <limits>
 #include <type_traits>
+#include <vector>
 
 #include "scann/data_format/features.pb.h"
 #include "scann/data_format/gfv_properties.h"

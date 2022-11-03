@@ -125,7 +125,7 @@ Status ValidateConvInputs(bool is_grad_op, int dims, OpKernelContext* ctx) {
           "channels of the filter.");
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 }  // namespace tf3d

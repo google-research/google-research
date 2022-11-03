@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/features.pb.h"

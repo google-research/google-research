@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """A collection of retrieval functions for negative mining.
 
 Retrieval functions take in a matrix of scores and return a batch x `k` set of

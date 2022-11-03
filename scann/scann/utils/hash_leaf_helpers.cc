@@ -15,6 +15,8 @@
 #include "scann/utils/hash_leaf_helpers.h"
 
 #include <cstdint>
+#include <memory>
+#include <utility>
 
 #include "absl/synchronization/mutex.h"
 #include "scann/distance_measures/distance_measure_factory.h"
@@ -136,7 +138,8 @@ StatusOrSearcher<T> HashLeafHelpers<T>::AsymmetricHasherFactory(
           *dataset,
           [&](const DatapointPtr<T>& dptr, Datapoint<uint8_t>* dp) {
             return training_results.indexer->HashWithNoiseShaping(
-                dptr, dp, training_results.noise_shaping_threshold);
+                dptr, dp,
+                {.threshold = training_results.noise_shaping_threshold});
           },
           pool);
     }

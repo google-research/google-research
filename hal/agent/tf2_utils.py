@@ -18,7 +18,6 @@
 Partially adapted from:
 https://www.tensorflow.org/tutorials/text/image_captioning
 """
-# Lint as: python3
 # pylint: disable=invalid-name
 
 from __future__ import absolute_import

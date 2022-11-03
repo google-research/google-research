@@ -93,6 +93,7 @@ class CNNTest(tf.test.TestCase):
     params.label_count = 2
     params.return_softmax = True
     params.quantize = 1  # apply quantization aware training
+    params.use_quantize_nbit = 0
 
     params.data_shape = (num_time_bins, feature_size)
     params.preprocess = 'custom'

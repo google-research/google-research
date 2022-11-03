@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """No padding inception FCN base network for a 911x911 receptive field.
 
 This is a variant of inception v3 FCN that takes a larger receptive field and

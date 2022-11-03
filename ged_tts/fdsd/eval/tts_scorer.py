@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Scorer for speech data based on DeepSpeech2."""
 
 from . import scorer

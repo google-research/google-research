@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
@@ -65,6 +66,8 @@ class Dataset : public VirtualDestructor {
   virtual bool IsDense() const = 0;
 
   bool IsSparse() const { return !IsDense(); }
+
+  virtual void set_dimensionality(DimensionIndex dimensionality) = 0;
 
   virtual void Reserve(size_t n_points) {}
 
@@ -201,8 +204,6 @@ class TypedDataset : public Dataset {
     CHECK_LT(datapoint_index, size());
     return operator[](datapoint_index);
   }
-
-  virtual void set_dimensionality(DimensionIndex dimensionality) = 0;
 
   virtual Status Append(const DatapointPtr<T>& dptr, string_view docid) = 0;
   Status Append(const DatapointPtr<T>& dptr);
@@ -373,7 +374,7 @@ class DenseDatasetView : VirtualDestructor {
 
   virtual std::unique_ptr<DenseDatasetView<T>> subview(size_t offset,
                                                        size_t size) const {
-    return absl::make_unique<DenseDatasetSubView<T>>(this, offset, size);
+    return std::make_unique<DenseDatasetSubView<T>>(this, offset, size);
   }
 };
 
@@ -442,8 +443,8 @@ class DenseDatasetSubView : public DenseDatasetView<T> {
 
   std::unique_ptr<DenseDatasetView<T>> subview(size_t offset,
                                                size_t size) const final {
-    return absl::make_unique<DenseDatasetSubView<T>>(parent_view_,
-                                                     offset + offset_, size);
+    return std::make_unique<DenseDatasetSubView<T>>(parent_view_,
+                                                    offset + offset_, size);
   }
 
   bool IsConsecutiveStorage() const override {

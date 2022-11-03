@@ -13,11 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """CQL Builder."""
 
-import dataclasses
-from typing import Callable, Iterator, List, Optional
+from typing import Iterator, List, Optional
 import acme
 from acme import adders
 from acme import core
@@ -28,9 +26,8 @@ from acme.jax import networks as networks_lib
 from acme.jax import variable_utils
 from acme.utils import counting
 from acme.utils import loggers
-import optax
 import reverb
-from jrl.agents.cql import config
+from jrl.agents.cql import config as cql_config
 from jrl.agents.cql import learning
 from jrl.agents.cql import networks as cql_networks
 
@@ -43,9 +40,8 @@ class CQLBuilder(builders.ActorLearnerBuilder):
       config,
       # make_demonstrations: Callable[[int], Iterator[types.Transition]],
       make_demonstrations,
-      logger_fn = lambda: None,):
+      ):
     self._config = config
-    self._logger_fn = logger_fn
     self._make_demonstrations = make_demonstrations
 
   def make_learner(
@@ -53,11 +49,12 @@ class CQLBuilder(builders.ActorLearnerBuilder):
       random_key,
       networks,
       dataset,
+      logger_fn,
       replay_client = None,
       counter = None,
       checkpoint = False,
   ):
-    del dataset # Offline RL
+    del dataset  # Offline RL
 
     data_iter = self._make_demonstrations()
 
@@ -75,7 +72,7 @@ class CQLBuilder(builders.ActorLearnerBuilder):
         policy_lr=self._config.policy_lr,
         q_lr=self._config.q_lr,
         counter=counter,
-        logger=self._logger_fn(),
+        logger=logger_fn('learner'),
         num_sgd_steps_per_step=self._config.num_sgd_steps_per_step,)
 
   def make_actor(
@@ -91,7 +88,7 @@ class CQLBuilder(builders.ActorLearnerBuilder):
       return actors.GenericActor(
           actor=policy_network,
           random_key=random_key,
-          # Inference happens on CPU, so it's better to move variables there too.
+          # Inference happens on CPU, so it's better to move variables there.
           variable_client=variable_utils.VariableClient(
               variable_source, params_to_get, device='cpu'),
           adder=adder,
@@ -100,7 +97,7 @@ class CQLBuilder(builders.ActorLearnerBuilder):
       return actors.GenericActor(
           actor=policy_network,
           random_key=random_key,
-          # Inference happens on CPU, so it's better to move variables there too.
+          # Inference happens on CPU, so it's better to move variables there.
           variable_client=variable_utils.VariableClient(
               variable_source, 'policy', device='cpu'),
           adder=adder,
@@ -109,6 +106,7 @@ class CQLBuilder(builders.ActorLearnerBuilder):
   def make_replay_tables(
       self,
       environment_spec,
+      policy
   ):
     """Create tables to insert data into."""
     return []

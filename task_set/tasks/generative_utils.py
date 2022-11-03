@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# python3
 """Utilities for working with generative models."""
 from typing import Callable, Tuple
 from absl import logging

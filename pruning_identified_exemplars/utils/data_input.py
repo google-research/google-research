@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Helper functions to pre-process data inputs and create data iterator.
 
 Predictions must be stored in the same sequence for each checkpoint.

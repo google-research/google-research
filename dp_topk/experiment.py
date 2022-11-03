@@ -28,14 +28,16 @@ from dp_topk import joint
 
 class TopKEstimationMethod(enum.Enum):
   JOINT = 1
-  CDP_PEEL = 2
-  PNF_PEEL = 3
-  LAP = 4
-  GAMMA = 5
+  PNF_JOINT = 2
+  CDP_PEEL = 3
+  PNF_PEEL = 4
+  LAP = 5
+  GAMMA = 6
 
 
 _PARTIAL_METHODS = {
     TopKEstimationMethod.JOINT: joint.joint,
+    TopKEstimationMethod.PNF_JOINT: joint.pnf_joint,
     TopKEstimationMethod.CDP_PEEL: baseline_mechanisms.cdp_peeling_mechanism,
     TopKEstimationMethod.PNF_PEEL: baseline_mechanisms.pnf_peeling_mechanism,
     TopKEstimationMethod.LAP: baseline_mechanisms.laplace_mechanism,
@@ -43,23 +45,35 @@ _PARTIAL_METHODS = {
 }
 
 _PLOT_LABELS = {
-    TopKEstimationMethod.JOINT: "joint",
-    TopKEstimationMethod.CDP_PEEL: "cdp peel",
-    TopKEstimationMethod.PNF_PEEL: "pnf peel",
-    TopKEstimationMethod.LAP: "laplace",
-    TopKEstimationMethod.GAMMA: "gamma"
+    TopKEstimationMethod.JOINT: "Joint",
+    TopKEstimationMethod.PNF_JOINT: "PNF Joint",
+    TopKEstimationMethod.CDP_PEEL: "CDP Peel",
+    TopKEstimationMethod.PNF_PEEL: "PNF Peel",
+    TopKEstimationMethod.LAP: "Laplace",
+    TopKEstimationMethod.GAMMA: "Gamma"
 }
 
 _PLOT_LINESTYLES = {
     TopKEstimationMethod.JOINT: "-",
+    TopKEstimationMethod.PNF_JOINT: "-",
     TopKEstimationMethod.CDP_PEEL: "--",
     TopKEstimationMethod.PNF_PEEL: ":",
     TopKEstimationMethod.LAP: "-.",
     TopKEstimationMethod.GAMMA: "-."
 }
 
+_PLOT_MARKERS = {
+    TopKEstimationMethod.JOINT: "o",
+    TopKEstimationMethod.PNF_JOINT: "s",
+    TopKEstimationMethod.CDP_PEEL: "v",
+    TopKEstimationMethod.PNF_PEEL: "^",
+    TopKEstimationMethod.LAP: "<",
+    TopKEstimationMethod.GAMMA: ">"
+}
+
 _PLOT_COLORS = {
     TopKEstimationMethod.JOINT: "palevioletred",
+    TopKEstimationMethod.PNF_JOINT: "sienna",
     TopKEstimationMethod.CDP_PEEL: "deepskyblue",
     TopKEstimationMethod.PNF_PEEL: "rebeccapurple",
     TopKEstimationMethod.LAP: "darkgreen",
@@ -68,6 +82,7 @@ _PLOT_COLORS = {
 
 _PLOT_FILL_COLORS = {
     TopKEstimationMethod.JOINT: "lightpink",
+    TopKEstimationMethod.PNF_JOINT: "chocolate",
     TopKEstimationMethod.CDP_PEEL: "powderblue",
     TopKEstimationMethod.PNF_PEEL: "mediumpurple",
     TopKEstimationMethod.LAP: "mediumseagreen",
@@ -192,7 +207,7 @@ def compare(item_counts, methods, d, k_range, epsilon, delta, num_trials,
   method_fns = []
   for method in methods:
     method_fn = functools.partial(_PARTIAL_METHODS[method], epsilon=epsilon)
-    if method == TopKEstimationMethod.JOINT:
+    if method == TopKEstimationMethod.JOINT or method == TopKEstimationMethod.PNF_JOINT:
       method_fn = functools.partial(method_fn, neighbor_type=neighbor_type)
     elif method == TopKEstimationMethod.CDP_PEEL:
       method_fn = functools.partial(method_fn, delta=delta)
@@ -259,6 +274,7 @@ def plot(data_source, methods, results, k_range, log_y_axis, legend):
           k_range,
           results[_ERROR_LABELS[metric]][method_idx, :, 1] + 1,
           linestyle=_PLOT_LINESTYLES[method],
+          marker=_PLOT_MARKERS[method],
           label=_PLOT_LABELS[method],
           color=_PLOT_COLORS[method],
           linewidth=3)
@@ -291,6 +307,7 @@ def plot(data_source, methods, results, k_range, log_y_axis, legend):
         k_range,
         results["time (s)"][method_idx, :, 1],
         linestyle=_PLOT_LINESTYLES[method],
+        marker=_PLOT_MARKERS[method],
         label=_PLOT_LABELS[method],
         color=_PLOT_COLORS[method],
         linewidth=3)

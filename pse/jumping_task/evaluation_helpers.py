@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Helpers for evaluating an agent on Jumpy World."""
 
 import io

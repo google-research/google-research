@@ -69,7 +69,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
                rl_agent,
                config,
                make_demonstrations,
-               logger_fn = lambda: None,):
+               ):
     """Builds an Aquadem agent.
 
     Args:
@@ -78,18 +78,18 @@ class AquademBuilder(builders.ActorLearnerBuilder):
         offline learner.
       make_demonstrations: A function that returns a dataset of
         acme.types.Transition.
-      logger_fn: a logger factory for the learner.
     """
     self._rl_agent = rl_agent
     self._config = config
     self._make_demonstrations = make_demonstrations
-    self._logger_fn = logger_fn
 
   def make_learner(
       self,
       random_key,
       networks,
       dataset,
+      logger_fn,
+      environment_spec = None,
       replay_client = None,
       counter = None,
   ):
@@ -105,6 +105,8 @@ class AquademBuilder(builders.ActorLearnerBuilder):
           discrete_rl_learner_key,
           networks,
           dataset,
+          logger_fn=logger_fn,
+          environment_spec=environment_spec,
           replay_client=replay_client,
           counter=discrete_rl_counter)
 
@@ -130,38 +132,46 @@ class AquademBuilder(builders.ActorLearnerBuilder):
         demonstration_ratio=self._config.demonstration_ratio,
         min_demo_reward=self._config.min_demo_reward,
         counter=counter,
-        logger=self._logger_fn())
+        logger=logger_fn('learner'))
 
   def make_replay_tables(
-      self, environment_spec):
+      self, environment_spec,
+      policy):
     discretized_spec = discretize_spec(environment_spec,
                                        self._config.num_actions)
-    return self._rl_agent.make_replay_tables(discretized_spec)
+    return self._rl_agent.make_replay_tables(discretized_spec,
+                                             policy.discrete_policy)
 
   def make_dataset_iterator(
       self,
       replay_client):
     return self._rl_agent.make_dataset_iterator(replay_client)
 
-  def make_adder(self,
-                 replay_client):
-    return self._rl_agent.make_adder(replay_client)
+  def make_adder(
+      self, replay_client,
+      environment_spec,
+      policy
+  ):
+    return self._rl_agent.make_adder(replay_client, environment_spec, policy)
 
   def make_actor(
       self,
       random_key,
-      policy_network,
-      adder = None,
+      policy,
+      environment_spec,
       variable_source = None,
+      adder = None,
   ):
     assert variable_source is not None
+
     wrapped_actor = self._rl_agent.make_actor(random_key,
-                                              policy_network.discrete_policy,
+                                              policy.discrete_policy,
+                                              environment_spec,
                                               adder,
                                               variable_source)
     return actor.AquademActor(
         wrapped_actor=wrapped_actor,
-        policy=policy_network.aquadem_policy,
+        policy=policy.aquadem_policy,
         # Inference happens on CPU, so it's better to move variables there too.
         variable_client=variable_utils.VariableClient(
             variable_source,

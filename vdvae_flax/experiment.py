@@ -256,7 +256,7 @@ class Experiment:
 
     # Update ema params
     ema_rate = self.config.evaluation.ema_rate
-    new_ema_params = jax.tree_multimap(
+    new_ema_params = jax.tree_map(
         lambda x, y: x + (1 - ema_rate) * (y - x),
         state.ema_params,
         new_params,
@@ -392,8 +392,8 @@ class Experiment:
         summed_scalars = scalars
         concat_images = images
       else:
-        summed_scalars = jax.tree_multimap(jnp.add, summed_scalars, scalars)
-        concat_images = jax.tree_multimap(
+        summed_scalars = jax.tree_map(jnp.add, summed_scalars, scalars)
+        concat_images = jax.tree_map(
             lambda x, y: jnp.concatenate((x, y), axis=1), concat_images, images)
 
     mean_scalars = jax.tree_map(lambda x: x / (i + 1),

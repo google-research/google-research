@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """An implementation of Munchausen DQN in Dopamine style.
 
 The class MunchausenDQNAgent inherits from Dopamine's DQNAgent.

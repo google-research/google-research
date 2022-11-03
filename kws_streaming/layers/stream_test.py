@@ -17,6 +17,7 @@
 
 from absl.testing import parameterized
 import numpy as np
+from kws_streaming.layers import average_pooling2d
 from kws_streaming.layers import delay
 from kws_streaming.layers import modes
 from kws_streaming.layers import stream
@@ -555,6 +556,47 @@ class StreamTest(tf.test.TestCase, parameterized.TestCase):
 
     with self.subTest(name='non_stream_vs_native'):
       self.assertAllClose(non_stream_out, native_out)
+
+  CONV_PARAMS = {'filters': 1, 'kernel_size': 4, 'strides': 2}
+  CONV_PARAMS_NO_FILTERS = {'kernel_size': 4, 'strides': 2}
+  AVERAGE_POOLING_2D_PARAMS = {'kernel_size': (4, 4)}
+  ONE_STEP_PARAMS = {'use_one_step': True, 'state_shape': (1, 6, 2)}
+
+  @parameterized.named_parameters(
+      ('conv1d', tf.keras.layers.Conv1D, CONV_PARAMS, 1, {}),
+      ('conv2d', tf.keras.layers.Conv2D, CONV_PARAMS, 2, {}),
+      ('depthwise_conv1d', tf.keras.layers.DepthwiseConv1D,
+       CONV_PARAMS_NO_FILTERS, 1, {}),
+      ('depthwise_conv2d', tf.keras.layers.DepthwiseConv2D,
+       CONV_PARAMS_NO_FILTERS, 2, {}),
+      ('seprable_conv1d', tf.keras.layers.SeparableConv1D, CONV_PARAMS, 1, {}),
+      ('separable_conv2d', tf.keras.layers.SeparableConv2D, CONV_PARAMS, 2, {}),
+      ('conv2d_transpose', tf.keras.layers.Conv2DTranspose, CONV_PARAMS, 2, {}),
+      ('global_average_pooling2d', tf.keras.layers.GlobalAveragePooling2D, {},
+       2, ONE_STEP_PARAMS),
+      ('global_max_pool2d', tf.keras.layers.GlobalMaxPool2D, {}, 2,
+       ONE_STEP_PARAMS),
+      ('flatten', tf.keras.layers.Flatten, {}, 2, ONE_STEP_PARAMS),
+      ('tf_average_pooling2d', tf.keras.layers.AveragePooling2D, {}, 2, {}),
+      ('streaming_average_pooling2d', average_pooling2d.AveragePooling2D,
+       AVERAGE_POOLING_2D_PARAMS, 2, {}),
+  )
+  def test_from_get_config_idempotent(self, cell_cls, cell_kwargs, dims,
+                                      stream_kwargs):
+    streamable_layer = stream.Stream(
+        cell=cell_cls(**cell_kwargs), **stream_kwargs)
+    streamable_layer_cloned = stream.Stream.from_config(
+        streamable_layer.get_config())
+
+    with tf.Graph().as_default(), self.session() as sess:
+      test_input = np.ones([1] + [5] * dims + [2], dtype=np.float32)
+      output = streamable_layer(test_input)
+      output_cloned = streamable_layer_cloned(test_input)
+
+      sess.run(tf1.global_variables_initializer())
+      sess.run(tf1.local_variables_initializer())
+      got, got_cloned = sess.run([output, output_cloned])
+      self.assertAllClose(got, got_cloned)
 
   def test_transposed_conv(self):
     """Test transposed and standard conv model with 'same' padding."""

@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Specifications for different types of input/output domains."""
 
 import abc
 import collections
+from collections.abc import Iterable
 
 import gin
 import numpy as np
@@ -70,7 +70,7 @@ class Vocabulary(object):
       mask_token: A special token than marks MASKED positions for e.g. BERT.
         Ignored if `include_mask == False`.
     """
-    if not isinstance(tokens, collections.Iterable):
+    if not isinstance(tokens, Iterable):
       tokens = range(tokens)
     tokens = [str(token) for token in tokens]
     if include_bos:

@@ -112,7 +112,7 @@ def compute_symsol_symmetries(num_steps_around_continuous=360):
   # The syms are specific to the object coordinate axes used during rendering,
   # and for the tet the canonical frames were 45 deg from corners of a cube
   correction_rot = Rotation.from_euler('xyz',
-                                       np.float32([0, 0, np.pi / 4.0])).as_dcm()
+                                       np.float32([0, 0, np.pi / 4.0])).as_matrix()
   # So we rotate to the cube frame, where the computed syms (above) are valid
   # and then rotate back
   tet_syms = correction_rot @ tet_syms @ correction_rot.T
@@ -157,8 +157,8 @@ def compute_symsol_symmetries(num_steps_around_continuous=360):
       for angle1 in np.arange(3) * 2 * np.pi / 5:
         for angle2 in np.arange(1, 3) * 2 * np.pi / 5:
           rot = Rotation.from_rotvec(
-              angle1 * icosa_vert1).as_dcm() @ Rotation.from_rotvec(
-                  angle2 * icosa_vert2).as_dcm()
+              angle1 * icosa_vert1).as_matrix() @ Rotation.from_rotvec(
+                  angle2 * icosa_vert2).as_matrix()
           icosa_syms.append(rot)
 
   # Remove duplicates
@@ -180,7 +180,7 @@ def compute_symsol_symmetries(num_steps_around_continuous=360):
   # Cone
   cone_syms = []
   for sym_val in np.linspace(0, 2*np.pi, num_steps_around_continuous):
-    sym_rot = Rotation.from_euler('xyz', np.float32([0, 0, sym_val])).as_dcm()
+    sym_rot = Rotation.from_euler('xyz', np.float32([0, 0, sym_val])).as_matrix()
     cone_syms.append(sym_rot)
   cone_syms = np.stack(cone_syms, 0)
 
@@ -189,7 +189,7 @@ def compute_symsol_symmetries(num_steps_around_continuous=360):
   for sym_val in np.linspace(0, 2*np.pi, num_steps_around_continuous):
     for x_rot in [0., np.pi]:
       sym_rot = Rotation.from_euler('xyz', np.float32([x_rot, 0,
-                                                       sym_val])).as_dcm()
+                                                       sym_val])).as_matrix()
       cyl_syms.append(sym_rot)
   cyl_syms = np.stack(cyl_syms, 0)
 

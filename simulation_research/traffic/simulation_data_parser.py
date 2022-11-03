@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Extracts various types of data from the simulation results."""
 
 from __future__ import absolute_import

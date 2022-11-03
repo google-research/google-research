@@ -50,7 +50,7 @@ of these loanwords are multi-word expressions in English.
 3.  Randomly split the data using [`split`](split.py).
 
     ```bash
-    python split.py \
+    python -m split \
         --seed 10037 \
         --input "${TEMPDATA}/pairs.tsv" \
         --train "${TEMPDATA}/train.tsv" \
@@ -64,7 +64,7 @@ of these loanwords are multi-word expressions in English.
 4.  Train the pair LM using [`train`](train.py).
 
     ```bash
-    python train.py \
+    python -m train \
         --seed 10037 \
         --batch-size 128
         --max-iters 10 \
@@ -97,7 +97,7 @@ of these loanwords are multi-word expressions in English.
     [`predict`](predict.py):
 
     ```bash
-    python predict.py \
+    python -m predict \
         --rule "${TEMPDATA}/plm.fst" \
         --input <(cut -f1 "${TEMPDATA}/dev.tsv") \
         --output "${TEMPDATA}/hypo.txt"
@@ -106,7 +106,7 @@ of these loanwords are multi-word expressions in English.
 6.  Score the model using `cut` and [`error`](error.py):
 
     ```bash
-    python error.py \
+    python -m error \
         --gold <(cut -f2 "${TEMPDATA}/dev.tsv") \
         --hypo "${TEMPDATA}/hypo.txt"
     ```

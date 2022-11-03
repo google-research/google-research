@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Color and spatial upsamplers of the Colorization Transformer.
 
 1. Color Upsampler upsamples a coarsely colored image with 512 possible

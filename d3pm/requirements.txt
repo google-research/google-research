@@ -8,3 +8,9 @@ numpy
 scipy
 tensorflow
 tensorflow-datasets
+gin-config
+chex
+seqio
+sklearn
+git+https://github.com/google/flaxformer
+aqtp

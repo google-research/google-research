@@ -155,7 +155,7 @@ def ncsn_loss(rng,
       (loss, new_model_state), grad = grad_fn(state.optimizer.target)
     grad = jax.lax.pmean(grad, axis_name=pmap_axis_name)
     new_optimizer = optimize_fn(state, grad)
-    new_params_ema = jax.tree_multimap(
+    new_params_ema = jax.tree_map(
         lambda p_ema, p: p_ema * state.ema_rate + p * (1. - state.ema_rate),
         state.params_ema, new_optimizer.target.params)
     step = state.step + 1
@@ -251,7 +251,7 @@ def ddpm_loss(rng,
     ## original DDPM implementation, and seem to be more reasonable.
     ## The impact of this difference on performance is negligible.
     new_optimizer = optimize_fn(state, grad)
-    new_params_ema = jax.tree_multimap(
+    new_params_ema = jax.tree_map(
         lambda p_ema, p: p_ema * state.ema_rate + p * (1. - state.ema_rate),
         state.params_ema, new_optimizer.target.params)
     step = state.step + 1

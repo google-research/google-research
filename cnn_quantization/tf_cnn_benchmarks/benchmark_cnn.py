@@ -1751,7 +1751,7 @@ class BenchmarkCNN(object):
     model_benchmark_logger = None
     if self.params.benchmark_log_dir is not None:
       try:
-        from tensorflow_models.official.utils.logs import logger as models_logger  # pylint: disable=g-import-not-at-top
+        from official.utils.logs import logger as models_logger  # pylint: disable=g-import-not-at-top
       except ImportError:
         tf.logging.fatal('Please include tensorflow/models to the PYTHONPATH '
                          'in order to use BenchmarkLogger. Configured '

@@ -41,7 +41,7 @@ import tensorflow.compat.v1 as tf
 from meta_pseudo_labels import common_utils
 from meta_pseudo_labels import data_utils
 
-from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
+from tensorflow.python.compiler.xla.experimental import xla_sharding
 from tensorflow.python.tpu import tpu_feed
 
 

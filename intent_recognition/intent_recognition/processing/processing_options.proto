@@ -17,6 +17,7 @@ syntax = "proto2";
 
 package ambient_sensing;
 
+import "intent_recognition/processing/drop_on_threshold_value_calculator.proto";
 import "intent_recognition/processing/window_calculator.proto";
 
 
@@ -107,5 +108,21 @@ message ProcessingOptions {
   // anything. If include_class_name is used, exclude_class_name must not be
   // used.
   repeated string include_class_name = 33;
+
+  // If drop_on_threshold_value_calculator is added to the graph, each window
+  // with a variance below min_variance_threhold will be dropped. As a result
+  // the AnnotatedTimeseries may have unequally spaced windows.
+  optional float min_variance_threshold = 22;
+  // Aggregator to select how decision on multiple reference streams should be
+  // handled. Can either be ALL: drop only if all values are below the threshold
+  // or ANY: drop if any value is below it's threshold.
+  optional DropOnThresholdValueCalculatorOptions.Comparator
+      drop_below_threshold_comparator = 35;
+
+  // If invert_threshold is set, the data will be dropped if the reference value
+  // is equal or greater than min_variance_threshold.
+  optional bool invert_threshold = 27;
+  // New session activity name assigned to trace. If "" the label will not be
+  // changed.
 
 }

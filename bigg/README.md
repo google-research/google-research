@@ -14,6 +14,14 @@ Upon using this codebase, please cite the paper:
 }
 ```
 
+### ==== UPDATE (Nov 2, 2022) ==== 
+
+New feature enabled: now BiGG is able to generate graphs with node/edge features, fully in an autoregressive way.
+
+Please refer to `bigg/extension/customized_models.py` for an illustration of how to customize your own model with graph node/edge features.
+One can directly run the script `bigg/extension/run_featured.sh` once the graph data (list of networkx graphs stored in a pickle file) is provided.
+### ========================== 
+
 ## Install
 
 Navigate to the root of project, and perform:
@@ -76,7 +84,7 @@ To use these models, please download and put the folders under `results/`.
 
 ## Experiments on GRAN graphs
 
-1. ### Data preprataion 
+1. ### Data preparation 
 
 First let's cook the data using following steps
 ```
@@ -109,7 +117,7 @@ You can specify the EPOCH number to load to continue training.
 
 ## Experiments on SAT graphs
 
-1. ### Data preprataion 
+1. ### Data preparation 
 
 First follow the instruction in https://github.com/JiaxuanYou/G2SAT to process the formulas into edge_list. 
 You are supposed to get the set of edge list under the data folder:

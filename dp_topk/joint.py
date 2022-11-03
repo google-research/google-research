@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Joint exponential mechanism for differentially private top-k selection.
+"""Joint mechanisms for differentially private top-k selection.
 
-This file implements a joint exponential mechanism for eps-differentially
-private top-k selection.
+This file implements a joint exponential mechanism and a joint permute-and-flip
+mechanism for eps-differentially private top-k selection.
 """
 
 import itertools
@@ -91,7 +91,7 @@ def brute_compute_log_diff_counts(diff_matrix, sorted_diffs):
     diff_idx = np.searchsorted(sorted_diffs, diff)
     diffs_to_counts[diff_idx] += 1
   # Ignore warnings from taking log(0). This produces -np.inf as intended.
-  with np.errstate(divide='ignore'):
+  with np.errstate(divide="ignore"):
     return np.log(diffs_to_counts)
 
 
@@ -119,8 +119,8 @@ def compute_log_diff_counts(diff_matrix, diffs_to_positions):
   last_diff_idx_processed = -1
   # Ignore warnings from, respectively, taking logs of 0 or negative numbers.
   # log(0) becomes -np.inf as intended, and log(<0) becomes nan and is ignored.
-  with np.errstate(divide='ignore'):
-    with np.errstate(invalid='ignore'):
+  with np.errstate(divide="ignore"):
+    with np.errstate(invalid="ignore"):
       updates = np.log((diffs_to_positions[1] + 1) - diffs_to_positions[0])
   for (diff_idx, i, u) in zip(range(num_diffs), diffs_to_positions[0], updates):
     if np.isnan(u):
@@ -131,7 +131,7 @@ def compute_log_diff_counts(diff_matrix, diffs_to_positions):
       last_diff_idx_processed = diff_idx
       break
   if last_diff_idx_processed == -1:
-    raise RuntimeError('ns vector never filled')
+    raise RuntimeError("ns vector never filled")
   log_diff_counts[:last_diff_idx_processed] = -np.inf
   log_ns_sum = np.sum(log_ns)
   for (diff_idx, i, u) in zip(
@@ -156,9 +156,18 @@ def racing_sample(log_terms):
     Utility Function Family for the Exponential Mechanism"
     (https://arxiv.org/pdf/2010.04235.pdf) for details; each element of terms is
     analogous to a single log(lambda(A_k)) - (eps * k/2) in their algorithm.
+
+  Raises:
+    RuntimeError: encountered inf or nan min time.
   """
-  return np.argmin(
-      np.log(np.log(1.0 / np.random.uniform(size=log_terms.shape))) - log_terms)
+  race_times = np.log(np.log(
+      1.0 / np.random.uniform(size=log_terms.shape))) - log_terms
+  winner = np.argmin(race_times)
+  min_time = race_times[winner]
+  if np.isnan(min_time) or np.isinf(min_time):
+    raise RuntimeError(
+        "Racing sample encountered inf or nan min time: {}".format(min_time))
+  return winner
 
 
 def sample_diff_idx(log_diff_counts, sorted_diffs, epsilon, neighbor_type):
@@ -184,6 +193,88 @@ def sample_diff_idx(log_diff_counts, sorted_diffs, epsilon, neighbor_type):
                                           (2 * sensitivity)))
 
 
+def sample_max_expo_distribution(expo_lambda, log_num_trials):
+  """Computes max values from (simulated) draws from the expo distribution.
+
+  Args:
+    expo_lambda: Exponential distribution parameter; PDF of the distribution is
+      p(x) = expo_lambda * exp(-expo_lambda * x).
+    log_num_trials: Array where each entry is the log of the number of
+      (simulated) draws from the exponential distribution to use in producing a
+      max value.
+
+  Returns:
+    An array where entry i represents the max over exp(log_num_trials[i]) draws
+    from the exponenttial distribution with parameter expo_lambda.
+
+  Raises:
+    RuntimeError: result contains inf or nan.
+  """
+  # Rather than actually sampling from the exponential distribution num_trials
+  # times and taking the max (an O(num_trials) operation), we can simply draw
+  # from a distribution that directly represents this max (an O(1) operation).
+  # The probability that num_trials independent draws from a distribution are
+  # all <= x is the CDF of that distribution raised to the n-th power.  Hence,
+  # the CDF for the max that we need is the exponential distribution CDF raised
+  # to the n-th power.  Inverting this CDF and plugging in a sample from the
+  # uniform distribution on [0, 1] gives the desired max.
+  num_results = len(log_num_trials)
+  # The below line is more numerically stable than 1 / np.exp(log_num_trials).
+  inverse_num_trials = np.exp(-log_num_trials)
+  log_uniform_draws = np.log(np.random.uniform(size=num_results))
+  results = -np.log(-np.expm1(
+      np.multiply(inverse_num_trials, log_uniform_draws))) / expo_lambda
+  if np.any(np.isnan(results)) or np.any(np.isinf(results)):
+    raise RuntimeError(
+        "Max expo sampler result contains inf or nan: {}".format(results))
+  return results
+
+
+def sample_diff_idx_via_pnf(log_diff_counts, sorted_diffs, epsilon,
+                            neighbor_type):
+  """Samples an index of sorted_diffs according to permute-and-flip (PNF).
+
+  Args:
+    log_diff_counts: Array of log(# sequences with diff) for each diff in
+      sorted_diffs.
+    sorted_diffs: Increasing array of possible diffs.
+    epsilon: Privacy parameter epsilon.
+    neighbor_type: Available neighbor types are defined in the NeighborType
+      enum.
+
+  Returns:
+    Index idx into sorted_diffs, sampled according to the permute-and-flip
+    mechanism.
+
+  Raises:
+    RuntimeError: No noised value exceeded -infinity.
+  """
+  if neighbor_type is NeighborType.SWAP:
+    sensitivity = 2
+  else:
+    sensitivity = 1
+  expo_lambda = epsilon / (2 * sensitivity)
+
+  # Exclude entries with a count of zero.
+  nonzero_count_indicator = ~np.isneginf(log_diff_counts)
+
+  # Permute-and-flip is identical to report-noisy-max with exponential noise;
+  # see the paper "The Permute-and-Flip Mechanism Is Identical to
+  # Report-Noisy-Max with Exponential Noise"
+  # (https://arxiv.org/pdf/2105.07260.pdf) for details.  The latter formulation
+  # is simpler to implement efficiently, so that is what we use internally here.
+  # Specifically, we draw a max noise value for each of the utility values (the
+  # diffs), and add this max to the utility.  We then return the index where
+  # this results in the largest noisy utility value.
+  utilities = -np.floor(sorted_diffs[nonzero_count_indicator])
+  noisy_utilities = utilities + sample_max_expo_distribution(
+      expo_lambda, log_diff_counts[nonzero_count_indicator])
+  if np.all(np.isneginf(noisy_utilities)):
+    raise RuntimeError("No noised value exceeded -infinity")
+  nonzero_count_indices = np.flatnonzero(nonzero_count_indicator)
+  return nonzero_count_indices[np.argmax(noisy_utilities)]
+
+
 def sequence_from_diff(diff,
                        diff_row,
                        diff_col,
@@ -205,7 +296,7 @@ def sequence_from_diff(diff,
   k = len(diff_matrix)
   sequence = np.full(k, diff_col)
   ts = [
-      np.searchsorted(diff_matrix[row, :], diff, side='right')
+      np.searchsorted(diff_matrix[row, :], diff, side="right")
       for row in range(k)
   ]
   for row in range(k):
@@ -220,7 +311,11 @@ def sequence_from_diff(diff,
   return sequence
 
 
-def joint(item_counts, k, epsilon, neighbor_type):
+def joint(item_counts,
+          k,
+          epsilon,
+          neighbor_type,
+          sample_diff_idx_func=sample_diff_idx):
   """Applies joint exponential mechanism to return sequence of top-k items.
 
   Args:
@@ -229,6 +324,7 @@ def joint(item_counts, k, epsilon, neighbor_type):
     epsilon: Privacy parameter epsilon.
     neighbor_type: Available neighbor types are defined in the NeighborType
       enum.
+    sample_diff_idx_func: Function to call for sampling a utility value.
 
   Returns:
     Array of k item indices as estimated by the joint exponential mechanism.
@@ -243,11 +339,31 @@ def joint(item_counts, k, epsilon, neighbor_type):
   diffs_to_positions = get_diffs_to_positions(diff_matrix)
   log_diff_counts = compute_log_diff_counts(diff_matrix, diffs_to_positions)
   sorted_diffs = diff_matrix[diffs_to_positions]
-  diff_idx = sample_diff_idx(log_diff_counts, sorted_diffs, epsilon,
-                             neighbor_type)
+  diff_idx = sample_diff_idx_func(log_diff_counts, sorted_diffs, epsilon,
+                                  neighbor_type)
   diff_row, diff_col = diffs_to_positions[0][diff_idx], diffs_to_positions[1][
       diff_idx]
   sequence = sequence_from_diff(sorted_diffs[diff_idx], diff_row, diff_col,
                                 diff_matrix)
   # Convert the indices returned by sequence_from_diff to the original item ids.
   return sort_indices[sequence]
+
+
+def pnf_joint(item_counts, k, epsilon, neighbor_type):
+  """Applies joint permute-and-flip mechanism to return sequence of top-k items.
+
+     Internals are identical to the exponential mechanism version of joint,
+     except for the sample_diff_idx method.
+
+  Args:
+    item_counts: Array of item counts.
+    k: Number of items with top counts to return.
+    epsilon: Privacy parameter epsilon.
+    neighbor_type: Available neighbor types are defined in the NeighborType
+      enum.
+
+  Returns:
+    Array of k item indices as estimated by the joint permute-and-flip
+    mechanism.
+  """
+  return joint(item_counts, k, epsilon, neighbor_type, sample_diff_idx_via_pnf)

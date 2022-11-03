@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utility functions."""
 import collections
 import os
 from os import path
 from absl import flags
 import flax
+import flax.optim
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp

@@ -14,7 +14,12 @@
 
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <iterator>
+#include <memory>
+#include <utility>
 
 #include "absl/base/internal/spinlock.h"
 #include "absl/memory/memory.h"
@@ -784,7 +789,7 @@ KMeansTreePartitioner<T>::CreateAsymmetricHashingSearcherForQueryTokenization(
   }
 
   const auto& original_centers = kmeans_tree_->root()->Centers();
-  auto centers = absl::make_unique<DenseDataset<float>>();
+  auto centers = std::make_unique<DenseDataset<float>>();
   original_centers.ConvertType(centers.get());
 
   TF_ASSIGN_OR_RETURN(
@@ -815,7 +820,7 @@ Status KMeansTreePartitioner<
   }
 
   const auto& original_centers = kmeans_tree_->root()->Centers();
-  auto centers = absl::make_unique<DenseDataset<float>>();
+  auto centers = std::make_unique<DenseDataset<float>>();
   original_centers.ConvertType(centers.get());
 
   TF_ASSIGN_OR_RETURN(database_tokenization_searcher_,

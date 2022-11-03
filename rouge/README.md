@@ -5,6 +5,8 @@
 This is a native python implementation of ROUGE, designed to replicate results
 from the original perl package.
 
+Maintainers may be contacted at rouge-opensource@google.com.
+
 ROUGE was originally introduced in the paper:
 
 Lin, Chin-Yew. ROUGE: a Package for Automatic Evaluation of Summaries. In
@@ -70,7 +72,7 @@ python -m rouge.rouge \
 
 ## Using pip
 ```
-pip install rouge/requirements.txt
+pip install -r rouge/requirements.txt
 pip install rouge-score
 ```
 

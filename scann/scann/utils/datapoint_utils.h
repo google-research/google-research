@@ -17,6 +17,7 @@
 #ifndef SCANN_UTILS_DATAPOINT_UTILS_H_
 #define SCANN_UTILS_DATAPOINT_UTILS_H_
 
+#include <cmath>
 #include <cstdint>
 
 #include "scann/data_format/datapoint.h"

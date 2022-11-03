@@ -15,7 +15,7 @@
 
 """Keras Layers for homology detection from local sequence alignments."""
 
-from typing import Tuple, Type
+from typing import Any, Iterator, Mapping, Tuple, Type
 
 import gin
 import numpy as np
@@ -26,6 +26,7 @@ import tensorflow_datasets as tfds
 from dedal import pairs as pairs_lib
 from dedal.data import builder
 from dedal.models import aligners
+from dedal.train import training_loop
 
 
 @gin.configurable
@@ -193,7 +194,9 @@ def finetune_homology_head(loop,
     return seq_lens
 
   @tf.function
-  def step_fn(iterator):
+  def step_fn(
+      iterator,
+  ):
 
     def fwd_fn(x, y_true):
       """Optimizes execution in multi-input mode ignoring unneeded heads."""
@@ -239,3 +242,71 @@ def finetune_homology_head(loop,
 
   res = optimize.minimize(value_and_grad_fn, x0, jac=True)
   set_head_params(loop.model.heads['alignments'][homology_idx], res.x)
+
+
+@gin.configurable
+def finetune_homology_head_eval(
+    loop,
+    train_ds,
+    head_cls,
+    x0,
+    n_steps = 500,
+    alignment_idx = 0,
+    homology_idx = 1,
+):
+  """(Re)-fits homology head using SciPy's minimize method prior to eval."""
+  dummy_head = head_cls()
+  loss = tf.losses.BinaryCrossentropy(from_logits=True)
+
+  def set_head_params(head, x):
+    for var, value in zip(head.trainable_variables, x):
+      var.assign(value)
+
+  def length_fn(x):
+    masks = loop.model.encoder.compute_mask(x)
+    seq_lens = tf.reduce_sum(tf.cast(masks, tf.int32), 1)
+    pos_indices = pairs_lib.consecutive_indices(x)
+    return tf.gather(seq_lens, pos_indices)
+
+  @tf.function
+  def step_fn(
+      iterator,
+  ):
+    def fwd_fn(x, y_true):
+      model_output = loop.model(x, training=False)
+      y_true = y_true['alignments/0']
+      y_pred = model_output.flatten()[f'alignments/{alignment_idx}'][0]
+      seq_lens = length_fn(x)
+      return y_true, y_pred, seq_lens
+    x, y_true, _, _ = next(iterator)
+    return loop.strategy.run(fwd_fn, args=(x, y_true))
+
+  # Builds a "dataset" of (homology labels, similarity scores, sequence lengths)
+  # triplets.
+  iterator = iter(train_ds)
+  y_true, y_pred, seq_lens = [], [], []
+  for _ in range(n_steps):
+    y_true_i, y_pred_i, seq_lens_i = tf.nest.map_structure(
+        lambda x: loop.strategy.gather(x, 0), step_fn(iterator))
+    y_true.append(y_true_i)
+    y_pred.append(y_pred_i)
+    seq_lens.append(seq_lens_i)
+  y_true = tf.concat(y_true, 0)
+  y_pred = tf.squeeze(tf.concat(y_pred, 0))
+  seq_lens = tf.concat(seq_lens, 0)
+
+  @tf.function
+  def tf_value_and_grad_fn():
+    with tf.GradientTape() as tape:
+      logits = dummy_head((y_pred,), seq_lens[Ellipsis, tf.newaxis])
+      loss_val = loss(y_true, logits)
+    grads = tape.gradient(loss_val, dummy_head.trainable_variables)
+    return loss_val, tf.stack(grads)
+
+  def value_and_grad_fn(x):
+    set_head_params(dummy_head, x)
+    return tf.nest.map_structure(lambda t: t.numpy(), tf_value_and_grad_fn())
+
+  res = optimize.minimize(value_and_grad_fn, x0, jac=True)
+  set_head_params(loop.model.heads['alignments'][homology_idx], res.x)
+  return res

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Implementation of Last Layer Bayes.
 
 We apply a preconditioning version, see the article for more details.

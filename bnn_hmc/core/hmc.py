@@ -45,14 +45,13 @@ def make_leapfrog(log_prob_and_grad):
 
     def _leapfrog_body(_, carry):
       params, net_state, momentum, grad, _, _ = carry
-      momentum = jax.tree_multimap(lambda m, g: m + 0.5 * step_size * g,
-                                   momentum, grad)
-      params = jax.tree_multimap(lambda s, m: s + m * step_size, params,
-                                 momentum)
+      momentum = jax.tree_map(lambda m, g: m + 0.5 * step_size * g, momentum,
+                              grad)
+      params = jax.tree_map(lambda s, m: s + m * step_size, params, momentum)
       log_prob, grad, log_likelihood, net_state = log_prob_and_grad(
           dataset, params, net_state)
-      momentum = jax.tree_multimap(lambda m, g: m + 0.5 * step_size * g,
-                                   momentum, grad)
+      momentum = jax.tree_map(lambda m, g: m + 0.5 * step_size * g, momentum,
+                              grad)
       return params, net_state, momentum, grad, log_prob, log_likelihood
 
     init_vals = (init_params, init_net_state, init_momentum, init_grad, 0., 0.)

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """T5 CBQA preprocessors."""
 import tensorflow.compat.v1 as tf
 

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Training helper functions that are shared across tasks."""
 
 import contextlib
@@ -26,6 +25,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Uni
 from absl import logging
 import dataclasses
 import flax
+import flax.optim
 import gin
 import jax
 import jax.numpy as jnp
@@ -322,7 +322,7 @@ def build_averaging_validator(
         if accumulated is None:
           accumulated = metrics
         else:
-          accumulated = jax.tree_multimap(operator.add, accumulated, metrics)
+          accumulated = jax.tree_map(operator.add, accumulated, metrics)
         example_count += jnp.count_nonzero(batch.mask)
 
       assert example_count > 0, "Validation iterator must be nonempty"

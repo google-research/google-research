@@ -24,6 +24,7 @@ import acme
 from acme import specs
 from acme import wrappers
 from acme.agents.jax import sac
+from acme.agents.jax.sac import deprecated as deprecated_sac
 from acme.jax.types import PRNGKey
 from acme.utils import counting
 from acme.utils import loggers
@@ -42,7 +43,7 @@ import numpy as np
 from scenic.model_lib.base_models import base_model
 from scenic.projects.func_dist import pretrain_utils as scenic_pretrain_utils
 from scenic.projects.func_dist import train_utils as scenic_train_utils
-from scenic.train_lib import train_utils as train_lib_utils
+from scenic.train_lib_deprecated import train_utils as train_lib_utils
 import tensorflow as tf
 
 from func_dist.data_utils import pickle_datasets
@@ -294,8 +295,11 @@ def train_and_evaluate(distance_fn, rng):
       target_entropy=sac.target_entropy_from_env_spec(environment_spec),
       num_sgd_steps_per_step=FLAGS.num_sgd_steps_per_step,
       min_replay_size=FLAGS.min_replay_size)
-  agent = sac.SAC(
-      environment_spec, agent_networks, config=config, counter=counter,
+  agent = deprecated_sac.SAC(
+      environment_spec,
+      agent_networks,
+      config=config,
+      counter=counter,
       seed=FLAGS.seed)
 
   env_logger = loggers.CSVLogger(logdir, 'env_loop', flush_every=5)
@@ -306,8 +310,8 @@ def train_and_evaluate(distance_fn, rng):
 
   eval_actor = agent.builder.make_actor(
       random_key=rng,
-      policy_network=sac.apply_policy_and_sample(
-          agent_networks, eval_mode=True),
+      policy=sac.apply_policy_and_sample(agent_networks, eval_mode=True),
+      environment_spec=environment_spec,
       variable_source=agent)
 
   eval_video_dir = paths.process_path(logdir, 'eval_videos')

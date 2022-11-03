@@ -148,7 +148,7 @@ def roll_out_transitions(
       return next_step_probs, in_tagged_dests[state.itn_state_index, :]
 
     # Figure out which to do, and sample from the appropriate probabilities
-    step_probs, step_dests = jax.tree_multimap(
+    step_probs, step_dests = jax.tree_map(
         functools.partial(jnp.where, state.at_initial), at_initial_info(),
         at_normal_info())
 
@@ -186,8 +186,8 @@ def roll_out_transitions(
       return jnp.where(state.succeeded | state.failed, done,
                        jnp.where(did_special, special, move))
 
-    new_state = jax.tree_multimap(choose, state_after_move, state_after_special,
-                                  state)
+    new_state = jax.tree_map(choose, state_after_move, state_after_special,
+                             state)
 
     return new_state, None
 

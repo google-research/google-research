@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Helper to interactively calibrate the size of randomly-generated examples."""
 
 from typing import Any, Callable, Iterable, Optional, Tuple

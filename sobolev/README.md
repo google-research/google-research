@@ -7,14 +7,16 @@ polynomials.
 
 The library can be installed with the command:
 
-    pip install -e git+https://github.com/google-research/google-research.git#subdirectory=sobolev
+    pip install git+https://github.com/google-research/google-research.git#subdirectory=sobolev
 
 
 ## Tests
 
 Tests can be launched with the command
 
-   python -m sobolev.tests
+   python -m sobolev.$module_test
+
+where $module can be chebyshev or sobolev.
 
 
 ## Examples

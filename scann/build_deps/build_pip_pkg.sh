@@ -44,10 +44,16 @@ echo "from scann.scann_ops.py import scann_ops" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py import scann_ops_pybind" >> "${TMPDIR}"/scann/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/py/__init__.py
+touch "${TMPDIR}"/scann/data_format/__init__.py
+touch "${TMPDIR}"/scann/partitioning/__init__.py
+touch "${TMPDIR}"/scann/proto/__init__.py
+touch "${TMPDIR}"/scann/coscann/__init__.py
+touch "${TMPDIR}"/scann/trees/__init__.py
+touch "${TMPDIR}"/scann/trees/kmeans_tree/__init__.py
 
 cwd="$(pwd)"
 cd "$TMPDIR"
-"$PYTHON" setup.py bdist_wheel
+"$PYTHON" setup.py bdist_wheel "$@"
 cd "$cwd"
 
 cp "${TMPDIR}"/dist/*.whl ./

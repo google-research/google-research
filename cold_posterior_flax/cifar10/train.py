@@ -41,7 +41,7 @@ import flax.deprecated.nn
 from flax.training import common_utils
 import jax
 from jax import random
-import jax.experimental.optimizers
+import jax.example_libraries.optimizers
 import jax.nn
 import jax.numpy as jnp
 import ml_collections
@@ -227,8 +227,8 @@ def make_training_steps(config, learning_rate_fn, l2_reg, train_size,
       opt_kwargs['learning_rate'] = lr
       metrics['learning_rate'] = lr
 
-    grad = jax.experimental.optimizers.clip_grads(grad,
-                                                  config.gradient_clipping)
+    grad = jax.example_libraries.optimizers.clip_grads(grad,
+                                                       config.gradient_clipping)
     with flax.deprecated.nn.stochastic(opt_rng):
       new_optimizer = optimizer.apply_gradient(grad, **opt_kwargs)
 
@@ -248,7 +248,7 @@ def make_training_steps(config, learning_rate_fn, l2_reg, train_size,
     _, grad = grad_fn(optimizer.target)
     grad = train_functions.pmean(grad, config, 'batch')
 
-    values = jax.tree_multimap(lambda v, g: v + jnp.square(g), values, grad)
+    values = jax.tree_map(lambda v, g: v + jnp.square(g), values, grad)
     return values
 
   return train_step, update_grad_vars
@@ -478,8 +478,8 @@ def update_preconditioner(config, optimizer, p_update_grad_vars, rng, state,
                       values)
   std_min = jnp.min(jnp.asarray(jax.tree_leaves(stds)))
   # TODO(basv): verify preconditioner estimate.
-  new_precon = jax.tree_multimap(lambda s, x: jnp.ones_like(x) * (s / std_min),
-                                 stds, optimizer.target)
+  new_precon = jax.tree_map(lambda s, x: jnp.ones_like(x) * (s / std_min), stds,
+                            optimizer.target)
 
   def convert_momentum(
       new_precon,
@@ -496,8 +496,8 @@ def update_preconditioner(config, optimizer, p_update_grad_vars, rng, state,
     return m
 
   # TODO(basv): verify momentum convert.
-  new_momentum = jax.tree_multimap(convert_momentum, new_precon,
-                                   optimizer.state.param_states)
+  new_momentum = jax.tree_map(convert_momentum, new_precon,
+                              optimizer.state.param_states)
   # TODO(basv): verify this is replaced correctly, check replicated.
   optimizer = replace_param_state(
       config, optimizer, preconditioner=new_precon, momentum=new_momentum)

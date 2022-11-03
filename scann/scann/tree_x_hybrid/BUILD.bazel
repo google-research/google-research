@@ -96,11 +96,11 @@ cc_library(
         "//scann/tree_x_hybrid/internal:batching",
         "//scann/tree_x_hybrid/internal:utils",
         "//scann/trees/kmeans_tree",
+        "//scann/utils:common",
         "//scann/utils:fast_top_neighbors",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
     ],
 )

@@ -135,14 +135,14 @@ class TransitionBlock(tf.keras.layers.Layer):
 
     self.frequency_dw_conv = tf.keras.layers.DepthwiseConv2D(
         kernel_size=(1, 3),
-        strides=self.stride,
+        strides=(1, 1),
         dilation_rate=self.dilation,
         padding='same',
         use_bias=False)
     if self.padding == 'same':
       self.temporal_dw_conv = tf.keras.layers.DepthwiseConv2D(
           kernel_size=(3, 1),
-          strides=self.stride,
+          strides=(1, 1),
           dilation_rate=self.dilation,
           padding='same',
           use_bias=False)
@@ -150,7 +150,7 @@ class TransitionBlock(tf.keras.layers.Layer):
       self.temporal_dw_conv = stream.Stream(
           cell=tf.keras.layers.DepthwiseConv2D(
               kernel_size=(3, 1),
-              strides=self.stride,
+              strides=(1, 1),
               dilation_rate=self.dilation,
               padding='valid',
               use_bias=False),
@@ -162,7 +162,7 @@ class TransitionBlock(tf.keras.layers.Layer):
     self.conv1x1_1 = tf.keras.layers.Conv2D(
         filters=self.filters,
         kernel_size=1,
-        strides=1,
+        strides=self.stride,
         padding='valid',
         use_bias=False)
     self.conv1x1_2 = tf.keras.layers.Conv2D(
