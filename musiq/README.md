@@ -9,6 +9,13 @@ by Junjie Ke, Qifei Wang, Yilin Wang, Peyman Milanfar, Feng Yang.
 
 ![Model overview](images/overview.png)
 
+## Using the models
+
+The MUSIQ models are available on [TensorFlow Hub](https://tfhub.dev/s?q=musiq)
+with documentation and a sample notebook for you to try.
+
+But if you want to go deeper in the code, follow the instructions below.
+
 ## Pre-requisite
 
 Install dependencies:
