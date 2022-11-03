@@ -27,7 +27,6 @@ readonly SEED=10037  # For reproducibility.
 readonly BATCH_SIZE=128
 readonly MAX_ITERS=10
 readonly ORDER=6
-readonly SIZE=100000
 
 # File paths; none exist yet.
 readonly PAIRS="${TEMPDATA}/pairs.tsv"
