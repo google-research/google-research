@@ -43,9 +43,13 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
 
   Attributes:
     mode: Training or inference modes: non streaming, streaming.
-    inference_batch_size: batch size in inference mode.
-    state_shape: shape of remainder state.
-    crop_output: if True output will be cropped: aligned by stride.
+    inference_batch_size: Batch size in inference mode.
+    pad_time_dim: Padding type in time dimension. Input tensor has shape:
+      [batch, time, feature1, feature2]
+    pad_freq_dim: Padding type in the first feature dimension 'feature1'.
+    state_shape: Shape of remainder state.
+    crop_output: If True output will be cropped: aligned by stride.
+      in time dimension.
     **kwargs: additional layer arguments
   """
 
@@ -53,6 +57,7 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
                mode=modes.Modes.TRAINING,
                inference_batch_size=1,
                pad_time_dim='causal',
+               pad_freq_dim='valid',
                state_shape=None,
                crop_output=True,
                **kwargs):
@@ -72,15 +77,23 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
     self.mode = mode
     self.inference_batch_size = inference_batch_size
     self.pad_time_dim = pad_time_dim
+    self.pad_freq_dim = pad_freq_dim
     self.state_shape = state_shape
     self.crop_output = crop_output
 
     self.overlap = self.kernel_size[0] - self.strides[0]
     self.overlap = max(self.overlap, 0)
+    self.overlap_feature = self.kernel_size[1] - self.strides[1]
+    self.overlap_feature = max(self.overlap_feature, 0)
 
     if pad_time_dim not in ['same', 'causal']:
       raise ValueError(
           'pad_time_dim (\'%s\') must be either \'same\' or \'causal\'' %
+          pad_time_dim)
+
+    if pad_freq_dim not in ['same', 'valid']:
+      raise ValueError(
+          'pad_time_dim (\'%s\') must be either \'same\' or \'valid\'' %
           pad_time_dim)
 
     if 'padding' in kwargs and kwargs['padding'] != 'valid':
@@ -104,11 +117,14 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
                          'should not be dynamic: TFLite limitation')
 
       self.output_time_dim = input_shape.as_list()[1] * self.strides[0]
+      self.output_feature_dim = input_shape.as_list()[2] * self.strides[1]
 
-      # here we do not take into account padding, because it is always valid
-      # only pad_time_dim can be applied and it does not impact feature dim
-      output_feature_size = (input_shape[2] -
-                             1) * self.strides[1] + self.kernel_size[1]
+      if self.pad_freq_dim == 'same':
+        output_feature_size = self.output_feature_dim
+      else:
+        # here we assume that padding is valid
+        output_feature_size = (input_shape[2] -
+                               1) * self.strides[1] + self.kernel_size[1]
 
       # [batch, time dim(streaming dim), output_feature_size, channels/filters]
       self.state_shape = [
@@ -162,18 +178,33 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
         'mode': self.mode,
         'inference_batch_size': self.inference_batch_size,
         'pad_time_dim': self.pad_time_dim,
+        'pad_freq_dim': self.pad_freq_dim,
         'state_shape': self.state_shape,
         'crop_output': self.crop_output,
     })
     return config
 
+  def _process_frequence_padding(self, inputs):
+    if self.pad_freq_dim == 'same':
+      crop_left = self.overlap_feature // 2
+      return inputs[:, :,
+                    crop_left:crop_left + self.output_feature_dim, :]
+    else:
+      return inputs
+
+  def _crop_time_dim(self, inputs):
+    if self.crop_output:
+      return inputs[:, 0:self.output_time_dim]
+    else:
+      return inputs
+
   def _streaming_internal_state(self, inputs):
     outputs = super(Conv2DTranspose, self).call(inputs)
 
+    outputs = self._process_frequence_padding(outputs)
+
     if self.overlap == 0:
-      if self.crop_output:
-        outputs = outputs[:, 0:self.output_time_dim]
-      return outputs
+      return self._crop_time_dim(outputs)
 
     output_shape = outputs.shape.as_list()
 
@@ -197,16 +228,18 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
 
     with tf.control_dependencies([assign_states]):
       if self.crop_output:
-        return tf.identity(outputs[:, 0:self.output_time_dim, :])
+        return tf.identity(self._crop_time_dim(outputs))
       else:
         return tf.identity(outputs)
 
   def _streaming_external_state(self, inputs, states):
     outputs = super(Conv2DTranspose, self).call(inputs)
 
+    outputs = self._process_frequence_padding(outputs)
+
     if self.overlap == 0:
       if self.crop_output:
-        outputs = outputs[:, 0:self.output_time_dim, :]
+        outputs = self._crop_time_dim(outputs)
       return outputs, []
 
     output_shape = outputs.shape.as_list()
@@ -222,21 +255,24 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
       new_state = outputs[:, -self.overlap:, :]
 
     if self.crop_output:
-      outputs = outputs[:, 0:self.output_time_dim, :]
+      outputs = self._crop_time_dim(outputs)
     return outputs, new_state
 
   def _non_streaming(self, inputs):
     outputs = super(Conv2DTranspose, self).call(inputs)
     # during training or non streaming inference, input shape can be dynamic
     output_time_dim = tf.shape(inputs)[1] * self.strides[0]
+    self.output_feature_dim = tf.shape(inputs)[2] * self.strides[1]
     if self.crop_output:
+
       if self.pad_time_dim == 'same':
         crop_left = self.overlap // 2
-        return outputs[:, crop_left:crop_left + output_time_dim, :]
+        outputs = outputs[:, crop_left:crop_left + output_time_dim, :]
       else:
-        return outputs[:, 0:output_time_dim, :]
-    else:
-      return outputs
+        outputs = outputs[:, 0:output_time_dim, :]
+
+    outputs = self._process_frequence_padding(outputs)
+    return outputs
 
   def get_input_state(self):
     # input state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode

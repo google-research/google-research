@@ -226,6 +226,67 @@ class Conv2DTransposeTest(tf.test.TestCase, parameterized.TestCase):
       utils.to_streaming_inference(
           model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
 
+  @parameterized.parameters(
+      ('same', (1, 2)),
+      ('valid', (1, 2)),
+      ('same', (2, 2)),
+      ('valid', (2, 2)))
+  def test_streaming_with_padding(self, padding, strides):
+    # model and data parameters
+    input_features = 4
+    input_channels = 8
+    desired_samples = 2
+    batch_size = 1
+    inputs = np.random.rand(batch_size, desired_samples, input_features,
+                            input_channels)
+    kernel_size = (1, 2)
+
+    # prepare non stream model
+    input_audio = tf.keras.layers.Input(
+        shape=(desired_samples, input_features, input_channels),
+        batch_size=batch_size)
+    net = conv2d_transpose.Conv2DTranspose(
+        filters=input_channels,
+        kernel_size=kernel_size,
+        strides=strides,
+        padding='valid',
+        use_bias=False,
+        crop_output=True,
+        pad_time_dim='causal',
+        pad_freq_dim=padding
+        )(input_audio)
+    non_stream_model = tf.keras.Model(input_audio, net)
+
+    input_audio = tf.keras.layers.Input(
+        shape=(desired_samples, input_features, input_channels),
+        batch_size=batch_size)
+    net = tf.keras.layers.Conv2DTranspose(
+        filters=input_channels,
+        kernel_size=kernel_size,
+        strides=strides,
+        use_bias=False,
+        padding=padding)(input_audio)
+    model = tf.keras.Model(input_audio, net)
+
+    outputs = model.predict(inputs)
+    weights = model.get_weights()
+    non_stream_model.set_weights(weights)
+    non_stream_outputs = non_stream_model.predict(inputs)
+
+    # prepare streaming model
+    params = test_utils.Params([1], 1)
+    params.data_shape = (1, input_features, input_channels)
+    model_stream = utils.to_streaming_inference(
+        non_stream_model, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
+    model_stream.summary()
+
+    # run inference
+    stream_outputs = inference.run_stream_inference(params, model_stream,
+                                                    inputs)
+
+    self.assertAllClose(outputs, non_stream_outputs)
+    self.assertAllClose(stream_outputs, non_stream_outputs)
+
 
 if __name__ == '__main__':
   tf1.disable_eager_execution()
