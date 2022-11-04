@@ -71,6 +71,15 @@ ten columns, one line per marked error:
       - In addition, any text annotation fields present in the input data are
         copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
         this would be all the fields present in the optional last column.
+  - **evaluation**: An object that has information about the evaluation used.
+    This field is typically only present in the very first data row, and is
+    not repeated, in order to save space. This object may contain the following
+    fields:
+      - **template**: The name of the template used ("MQM", or "MQM-WebPage",             etc.)
+      - **config**: The configuration parameters that define the template. This
+        includes "errors" and "severities". Some bulky fields, notably
+        "instructions" and "description" may have been stripped out from this
+        object.
 
 The "metadata" column used to be an optional "note" column, and MQM Viewer
 continues to support that legacy format. Going forward, the metadata object
