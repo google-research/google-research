@@ -351,6 +351,16 @@ class Stream(tf.keras.layers.Layer):
       # Create a state varaible for streaming inference mode (internal state).
       # Where states become a weight in the layer
       if self.ring_buffer_size_in_time_dim:
+
+        if self.pad_freq_dim == 'same':
+          # Additional padding value in frequency dimension
+          # defined by above function: frequeny_pad().
+          kernel_size = (self.kernel_size_freq - 1) * self.dilation_freq + 1
+          total_pad = kernel_size - self.stride_freq
+          output_feature_size = self.state_shape[2] + total_pad
+          # Note: override first feature dimension with padded value.
+          self.state_shape[2] = output_feature_size
+
         self.states = self.add_weight(
             name='states',
             shape=self.state_shape,
