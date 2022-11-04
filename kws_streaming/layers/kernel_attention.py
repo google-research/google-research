@@ -72,16 +72,11 @@ class KernelAttention(nlp_layers.kernel_attention.KernelAttention):
   def call(self, inputs, training=None):
     if len(inputs) != 2:
       raise ValueError('inputs has to have 2 elements')
-    if inputs[0].shape != inputs[1].shape:
-      raise ValueError(f'Input tensors must have the same shape but get'
+    if inputs[0].shape.rank != inputs[1].shape.rank:
+      raise ValueError(f'Input tensors must have the same rank, but get'
                        f' inputs[0].shape: {inputs[0].shape} and '
                        f' inputs[1].shape: {inputs[1].shape}')
 
-    # Input dimension is [batch, time, feature, key_dim]:
-    if inputs[0].shape[3] != self._key_dim:
-      raise ValueError(f'Third dimension of the inputs[0].shape[3]: '
-                       f'{inputs[0].shape[3]} must be equal to self._key_dim: '
-                       f' {self._key_dim}')
     if inputs[0].shape.rank != 4:
       raise ValueError(f'Input has to have rank 4, but get {inputs[0].shape}')
 
