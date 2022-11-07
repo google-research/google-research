@@ -1053,7 +1053,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
   def test_stage2_stage1_conflict_energy(self):
-    self.stage2_molecule.ini_geo[0].energy.value = -1.23
+    self.stage2_molecule.ini_geo[0].energy.val = -1.23
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
@@ -1063,7 +1063,7 @@ class MergeMoleculesTest(absltest.TestCase):
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_mol.prop.vib_mode)
     # This stage1 value should be returned
-    self.assertEqual(got_mol.ini_geo[0].energy.value, -406.51179)
+    self.assertEqual(got_mol.ini_geo[0].energy.val, -406.51179)
 
   def test_stage2_stage1_conflict_missing_iniital_geometry_field(self):
     del self.stage2_molecule.ini_geo[:]
@@ -1111,15 +1111,15 @@ class MergeMoleculesTest(absltest.TestCase):
 
   def test_stage2_stage1_no_conflict_minus1(self):
     # If stage2 contains a -1, we keep that (stricter error checking later on)
-    self.stage2_molecule.ini_geo[0].energy.value = -1.0
+    self.stage2_molecule.ini_geo[0].energy.val = -1.0
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
     # This stage1 value should be returned
-    self.assertEqual(got_mol.ini_geo[0].energy.value, -406.51179)
+    self.assertEqual(got_mol.ini_geo[0].energy.val, -406.51179)
 
   def test_stage2_stage1_no_conflict_approx_equal(self):
-    self.stage2_molecule.ini_geo[0].energy.value += 1e-7
+    self.stage2_molecule.ini_geo[0].energy.val += 1e-7
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
@@ -1129,34 +1129,34 @@ class MergeMoleculesTest(absltest.TestCase):
   def test_status_800(self):
     self.stage2_molecule.prop.calc.status = 800
     # Set a value so that we make sure we use the stage1 data
-    self.stage2_molecule.ini_geo[0].energy.value += 12345
+    self.stage2_molecule.ini_geo[0].energy.val += 12345
     expected_init_energy = (
-        self.stage1_molecule.ini_geo[0].energy.value)
+        self.stage1_molecule.ini_geo[0].energy.val)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 580)
-    self.assertEqual(got_mol.ini_geo[0].energy.value,
+    self.assertEqual(got_mol.ini_geo[0].energy.val,
                      expected_init_energy)
     self.assertEqual(got_mol.prop.calc.warn_vib_imag, 0)
 
   def test_status_700(self):
     self.stage2_molecule.prop.calc.status = 700
     # Set a value so that we make sure we use the stage1 data
-    self.stage2_molecule.ini_geo[0].energy.value += 12345
+    self.stage2_molecule.ini_geo[0].energy.val += 12345
     expected_init_energy = (
-        self.stage1_molecule.ini_geo[0].energy.value)
+        self.stage1_molecule.ini_geo[0].energy.val)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 570)
-    self.assertEqual(got_mol.ini_geo[0].energy.value,
+    self.assertEqual(got_mol.ini_geo[0].energy.val,
                      expected_init_energy)
     self.assertEqual(got_mol.prop.calc.warn_vib_imag, 0)
 
   def test_status_800_warn_vib_2(self):
     self.stage2_molecule.prop.calc.status = 800
     # We set two values because 1 is any negative and 2 is for a large negative
-    self.stage1_molecule.prop.vib_freq.value[3] = -123
-    self.stage1_molecule.prop.vib_freq.value[4] = -1
+    self.stage1_molecule.prop.vib_freq.val[3] = -123
+    self.stage1_molecule.prop.vib_freq.val[4] = -1
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 580)
@@ -1164,7 +1164,7 @@ class MergeMoleculesTest(absltest.TestCase):
 
   def test_status_800_warn_vib_1(self):
     self.stage2_molecule.prop.calc.status = 800
-    self.stage1_molecule.prop.vib_freq.value[4] = -1
+    self.stage1_molecule.prop.vib_freq.val[4] = -1
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 580)
@@ -1321,9 +1321,9 @@ class FilterMoleculeByAvailabilityTest(absltest.TestCase):
     self._molecule = dataset_pb2.Molecule()
     properties = self._molecule.prop
     # A STANDARD field
-    properties.spe_comp_b5.value = 1.23
+    properties.spe_comp_b5.val = 1.23
     # A COMPLETE field
-    properties.vib_zpe.value = 1.23
+    properties.vib_zpe.val = 1.23
     # An INTERNAL_ONLY field
     properties.compute_cluster_info = 'not set'
 
@@ -1437,8 +1437,8 @@ class CleanUpSentinelValuestest(parameterized.TestCase):
   @parameterized.parameters('energy', 'gnorm')
   def test_one_field(self, field):
     molecule = get_stage2_molecule()
-    getattr(molecule.ini_geo[0], field).value = -1.0
-    getattr(molecule.opt_geo, field).value = -1.0
+    getattr(molecule.ini_geo[0], field).val = -1.0
+    getattr(molecule.opt_geo, field).val = -1.0
     smu_utils_lib.clean_up_sentinel_values(molecule)
     self.assertFalse(molecule.ini_geo[0].HasField(field))
     self.assertFalse(molecule.opt_geo.HasField(field))
@@ -1453,19 +1453,19 @@ class FindZeroValuesTest(parameterized.TestCase):
 
   def test_scalar(self):
     molecule = get_stage2_molecule()
-    molecule.prop.orb_elumo_b3lyp_631ppgdp.value = 0.0
+    molecule.prop.orb_elumo_b3lyp_631ppgdp.val = 0.0
     got = list(smu_utils_lib.find_zero_values(molecule))
     self.assertEqual(got, ['orb_elumo_b3lyp_631ppgdp'])
 
   def test_excitation(self):
     molecule = get_stage2_molecule()
-    molecule.prop.exc_ene_cc2_tzvp.value[2] = 0.0
+    molecule.prop.exc_ene_cc2_tzvp.val[2] = 0.0
     got = list(smu_utils_lib.find_zero_values(molecule))
     self.assertEqual(got, ['exc_ene_cc2_tzvp'])
 
   def test_atomic(self):
     molecule = get_stage2_molecule()
-    molecule.prop.chg_esp_hf_631gd.values[3] = 0.0
+    molecule.prop.chg_esp_hf_631gd.val[3] = 0.0
     got = list(smu_utils_lib.find_zero_values(molecule))
     self.assertEqual(got, ['chg_esp_hf_631gd'])
 

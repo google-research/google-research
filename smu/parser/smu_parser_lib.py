@@ -691,11 +691,11 @@ class SmuParser:
         ), 'Unable to parse section for gradient norm: %s.' % section
     items = str(section[0]).split()
     self._molecule.ini_geo.add()
-    self._molecule.ini_geo[0].energy.value = float(items[1])
-    self._molecule.ini_geo[0].gnorm.value = float(items[2])
+    self._molecule.ini_geo[0].energy.val = float(items[1])
+    self._molecule.ini_geo[0].gnorm.val = float(items[2])
     items = str(section[1]).split()
-    self._molecule.opt_geo.energy.value = float(items[1])
-    self._molecule.opt_geo.gnorm.value = float(items[2])
+    self._molecule.opt_geo.energy.val = float(items[1])
+    self._molecule.opt_geo.gnorm.val = float(items[2])
 
   def parse_coordinates(self, label, num_atoms):
     """Parses a section defining a molecule's geometry in Cartesian coordinates.
@@ -734,7 +734,7 @@ class SmuParser:
       return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
-    self._molecule.opt_geo.brot.value.extend(
+    self._molecule.opt_geo.brot.val.extend(
         float(x) for x in values)
 
   def parse_symmetry_used(self):
@@ -774,7 +774,7 @@ class SmuParser:
     section = ' '.join(section).split()
     vib_freq = self._molecule.prop.vib_freq
     for value in section:
-      vib_freq.value.append(float(value))
+      vib_freq.val.append(float(value))
 
     section = self.parse(
         ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
@@ -782,7 +782,7 @@ class SmuParser:
     section = ' '.join(section).split()
     vib_intens = self._molecule.prop.vib_intens
     for value in section:
-      vib_intens.value.append(float(value))
+      vib_intens.val.append(float(value))
 
   def parse_gaussian_sanity_check(self):
     """Parses the gaussian sanity check section (present in SMU1-6)."""
@@ -852,10 +852,10 @@ class SmuParser:
                 int(labels_and_values[label]))
       elif label == 'NUCREP':
         value = float(labels_and_values[label])
-        self._molecule.opt_geo.enuc.value = value
+        self._molecule.opt_geo.enuc.val = value
       else:
         value = float(labels_and_values[label])
-        getattr(properties, PROPERTIES_LABEL_FIELDS[label]).value = value
+        getattr(properties, PROPERTIES_LABEL_FIELDS[label]).val = value
 
   def parse_diagnostics(self):
     """Parses D1 and T1 diagnostics."""
@@ -864,14 +864,14 @@ class SmuParser:
     if self._next_line_startswith('D1DIAG'):
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
       items = str(line).strip().split()
-      properties.wf_diag_d1_2sp.value = float(items[2])
+      properties.wf_diag_d1_2sp.val = float(items[2])
 
     if self._next_line_startswith('T1DIAG'):
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
       items = str(line).strip().split()
-      properties.wf_diag_t1_2sp.value = float(items[2])
-      properties.wf_diag_t1_2sd.value = float(items[4])
-      properties.wf_diag_t1_3psd.value = float(items[6])
+      properties.wf_diag_t1_2sp.val = float(items[2])
+      properties.wf_diag_t1_2sd.val = float(items[4])
+      properties.wf_diag_t1_3psd.val = float(items[6])
 
   def parse_homo_lumo(self):
     """Parses HOMO and LUMO values (at different levels of theory).
@@ -887,38 +887,38 @@ class SmuParser:
     for line in homo_lumo_data:
       items = str(line).strip().split()
       if items[1] == 'PBE0/6-311Gd':
-        properties.orb_ehomo_pbe0_6311gd.value = float(items[2])
-        properties.orb_elumo_pbe0_6311gd.value = float(items[3])
+        properties.orb_ehomo_pbe0_6311gd.val = float(items[2])
+        properties.orb_elumo_pbe0_6311gd.val = float(items[3])
       elif items[1] == 'PBE0/aug-pc-1':
-        properties.orb_ehomo_pbe0_augpc1.value = float(items[2])
-        properties.orb_elumo_pbe0_augpc1.value = float(items[3])
+        properties.orb_ehomo_pbe0_augpc1.val = float(items[2])
+        properties.orb_elumo_pbe0_augpc1.val = float(items[3])
       elif items[1] == 'PBE0/6-31++Gdp':
-        properties.orb_ehomo_pbe0_631ppgdp.value = float(items[2])
-        properties.orb_elumo_pbe0_631ppgdp.value = float(items[3])
+        properties.orb_ehomo_pbe0_631ppgdp.val = float(items[2])
+        properties.orb_elumo_pbe0_631ppgdp.val = float(items[3])
       elif items[1] == 'PBE0/aug-pcS-1':
-        properties.orb_ehomo_pbe0_augpcs1.value = float(items[2])
-        properties.orb_elumo_pbe0_augpcs1.value = float(items[3])
+        properties.orb_ehomo_pbe0_augpcs1.val = float(items[2])
+        properties.orb_elumo_pbe0_augpcs1.val = float(items[3])
       elif items[1] == 'HF/6-31Gd':
-        properties.orb_ehomo_hf_631gd.value = float(items[2])
-        properties.orb_elumo_hf_631gd.value = float(items[3])
+        properties.orb_ehomo_hf_631gd.val = float(items[2])
+        properties.orb_elumo_hf_631gd.val = float(items[3])
       elif items[1] == 'HF/TZVP':
-        properties.orb_ehomo_hf_tzvp.value = float(items[2])
-        properties.orb_elumo_hf_tzvp.value = float(items[3])
+        properties.orb_ehomo_hf_tzvp.val = float(items[2])
+        properties.orb_elumo_hf_tzvp.val = float(items[3])
       elif items[1] == 'HF/3':
-        properties.orb_ehomo_hf_3.value = float(items[2])
-        properties.orb_elumo_hf_3.value = float(items[3])
+        properties.orb_ehomo_hf_3.val = float(items[2])
+        properties.orb_elumo_hf_3.val = float(items[3])
       elif items[1] == 'HF/4':
-        properties.orb_ehomo_hf_4.value = float(items[2])
-        properties.orb_elumo_hf_4.value = float(items[3])
+        properties.orb_ehomo_hf_4.val = float(items[2])
+        properties.orb_elumo_hf_4.val = float(items[3])
       elif items[1] == 'HF/CVTZ':
-        properties.orb_ehomo_hf_cvtz.value = float(items[2])
-        properties.orb_elumo_hf_cvtz.value = float(items[3])
+        properties.orb_ehomo_hf_cvtz.val = float(items[2])
+        properties.orb_elumo_hf_cvtz.val = float(items[3])
       elif items[1] == 'B3LYP/6-31++Gdp':
-        properties.orb_ehomo_b3lyp_631ppgdp.value = float(items[2])
-        properties.orb_elumo_b3lyp_631ppgdp.value = float(items[3])
+        properties.orb_ehomo_b3lyp_631ppgdp.val = float(items[2])
+        properties.orb_elumo_b3lyp_631ppgdp.val = float(items[3])
       elif items[1] == 'B3LYP/aug-pcS-1':
-        properties.orb_ehomo_b3lyp_augpcs1.value = float(items[2])
-        properties.orb_elumo_b3lyp_augpcs1.value = float(items[3])
+        properties.orb_ehomo_b3lyp_augpcs1.val = float(items[2])
+        properties.orb_elumo_b3lyp_augpcs1.val = float(items[3])
       else:
         raise ValueError('Invalid level of theory: %s.' % items[1])
 
@@ -943,22 +943,22 @@ class SmuParser:
           'wf_diag_t1_2sd'):
         new_val = float(rest)
         if not np.isclose(
-            new_val, properties.wf_diag_t1_2sd.value, atol=.00015):
+            new_val, properties.wf_diag_t1_2sd.val, atol=.00015):
           raise ValueError(
               'ATOMIC-2 block AT2_T1mol ({:f}) differs from current value ({:f})'
-              .format(new_val, properties.wf_diag_t1_2sd.value))
+              .format(new_val, properties.wf_diag_t1_2sd.val))
 
       if field_type == Atomic2FieldTypes.STRING:
-        getattr(properties, field_name).value = str(rest)
+        getattr(properties, field_name).val = str(rest)
       elif field_type == Atomic2FieldTypes.SCALAR:
-        getattr(properties, field_name).value = float(rest)
+        getattr(properties, field_name).val = float(rest)
       elif field_type == Atomic2FieldTypes.TRIPLE:
         triple_vals = [float(v) for v in str(rest).split()]
         if len(triple_vals) != 3:
           raise ValueError(f'Unexpected vals in line {line}')
-        getattr(properties, field_name).value = triple_vals[0]
-        getattr(properties, field_name.replace('at2_std', 'at2_um')).value = triple_vals[1]
-        getattr(properties, field_name.replace('at2_std', 'at2_um') + '_unc').value = triple_vals[2]
+        getattr(properties, field_name).val = triple_vals[0]
+        getattr(properties, field_name.replace('at2_std', 'at2_um')).val = triple_vals[1]
+        getattr(properties, field_name.replace('at2_std', 'at2_um') + '_unc').val = triple_vals[2]
       else:
         raise ValueError(
             'Atomic block unknown field types {}'.format(field_type))
@@ -971,8 +971,8 @@ class SmuParser:
     for line in segment[1:]:
       items = str(line).strip().split()
       properties = self._molecule.prop
-      properties.exc_ene_cc2_tzvp.value.append(float(items[-2]))
-      properties.exc_os_cc2_tzvp.value.append(
+      properties.exc_ene_cc2_tzvp.val.append(float(items[-2]))
+      properties.exc_os_cc2_tzvp.val.append(
           float(items[-1]))
 
   def parse_nmr_isotropic_shieldings(self):
@@ -997,7 +997,7 @@ class SmuParser:
         # An error check that the line appears to be formatted correctly.
         if pm_str != '+/-':
           raise ValueError('Could not parse nmr line: "{}"'.format(line))
-        field.values.append(float(value_str))
+        field.val.append(float(value_str))
         field.prec.append(float(prec_str))
 
   def parse_partial_charges(self):
@@ -1011,7 +1011,7 @@ class SmuParser:
       field = getattr(properties, PARTIAL_CHARGES_LABEL_FIELDS[theory_basis])
       for line in partial_charges_data[1:]:
         items = str(line).strip().split()
-        field.values.append(float(items[2]))
+        field.val.append(float(items[2]))
         field.prec.append(float(items[-1]))
 
   def parse_polarizability(self):

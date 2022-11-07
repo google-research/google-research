@@ -64,15 +64,15 @@ print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.vib_freq)
 
 print()
 print('But if you ask for vib_zpe, the second gives a 0')
-print(PARTIAL_MOLECULE_ID, partial_molecule.prop.vib_zpe.value)
-print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.vib_zpe.value)
+print(PARTIAL_MOLECULE_ID, partial_molecule.prop.vib_zpe.val)
+print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.vib_zpe.val)
 
 print()
 print('And if you ask for at2_std_b6_hf298, both give 0')
 print(PARTIAL_MOLECULE_ID,
-      partial_molecule.prop.at2_std_b6_hf298.value)
+      partial_molecule.prop.at2_std_b6_hf298.val)
 print(MINIMAL_MOLECULE_ID,
-      minimal_molecule.prop.at2_std_b6_hf298.value)
+      minimal_molecule.prop.at2_std_b6_hf298.val)
 
 print()
 print('These are cases of missing values.')

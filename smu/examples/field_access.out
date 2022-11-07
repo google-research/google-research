@@ -1,7 +1,7 @@
 We will examine molecule with id 57001
 The computed properties are generally in the .prop field
 
-Scalar values are access by name (note the .value suffix), like this single point energy:  -213.76513
+Scalar values are access by name (note the .val suffix), like this single point energy:  -213.76513
 
 Fields with repeated values like vib_intens and exc_ene_cc2_tzvp) use an index with [] on the repeated values
 The 0th and 6th vib_intens: 0.0 21.5

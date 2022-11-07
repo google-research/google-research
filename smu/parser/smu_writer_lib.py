@@ -421,16 +421,16 @@ class SmuWriter:
         if self.annotate:
           result += '# From energy, gnorm\n'
         result += '{}{}{:11.6f}{:12.6f}\n'.format(label, spacer,
-                                                  geometry.energy.value,
-                                                  geometry.gnorm.value)
+                                                  geometry.energy.val,
+                                                  geometry.gnorm.val)
     elif molecule.prop.HasField('optimized_geometry_energy_deprecated'):
       for label, field_energy, field_norm in self._DEPRECATED_ENERGY_FIELDS:
         if self.annotate:
           result += '# From %s, %s\n' % (field_energy, field_norm)
         result += '{}{}{:11.6f}{:12.6f}\n'.format(
             label, spacer,
-            getattr(molecule.prop, field_energy).value,
-            getattr(molecule.prop, field_norm).value)
+            getattr(molecule.prop, field_energy).val,
+            getattr(molecule.prop, field_norm).val)
     else:
       raise ValueError('All molecules should have energies')
     return result
@@ -481,7 +481,7 @@ class SmuWriter:
     result = ''
     if molecule.opt_geo.HasField('brot'):
       # result += '# From opt_geo.brot\n'
-      vals = molecule.opt_geo.brot.value
+      vals = molecule.opt_geo.brot.val
     elif molecule.prop.HasField('rotational_constants_deprecated'):
       # result += '# From rotational_constants_deprecated\n'
       constants = molecule.prop.rotational_constants_deprecated
@@ -524,7 +524,7 @@ class SmuWriter:
     Returns:
       A multiline string representation of harmonic frequencies and intensities.
     """
-    if len(prop.vib_freq.value) == 0:  # pylint: disable=g-explicit-length-test
+    if len(prop.vib_freq.val) == 0:  # pylint: disable=g-explicit-length-test
       return ''
     result = ''
     if header:
@@ -532,14 +532,14 @@ class SmuWriter:
     if self.annotate:
       result += '# From vib_freq, '
       result += 'magnitude/harmonic intensity/normal mode order\n'
-    frequencies = prop.vib_freq.value
+    frequencies = prop.vib_freq.val
     for i in range(0, len(frequencies), 10):
       result += ''.join(
           '{:7.1f}'.format(value).rjust(7) for value in frequencies[i:i + 10])
       result += '\n'
     if self.annotate:
       result += '# From vib_intens\n'
-    intensities = prop.vib_intens.value
+    intensities = prop.vib_intens.val
     for i in range(0, len(intensities), 10):
       result += ''.join(
           '{:7.1f}'.format(value).rjust(7) for value in intensities[i:i + 10])
@@ -625,11 +625,11 @@ class SmuWriter:
         if molecule.opt_geo.HasField('enuc'):
           if self.annotate:
             result += '# From opt_geo.enuc\n'
-          value = molecule.opt_geo.enuc.value
+          value = molecule.opt_geo.enuc.val
         elif prop.HasField('nuclear_repulsion_energy_deprecated'):
           if self.annotate:
             result += '# From nuclear_repulsion_energy_deprecated\n'
-          value = prop.nuclear_repulsion_energy_deprecated.value
+          value = prop.nuclear_repulsion_energy_deprecated.val
         if value is None:
           continue
         result += float_line(label, _FortranFloat(value))
@@ -642,7 +642,7 @@ class SmuWriter:
         if self.annotate:
           result += '# From vib_zpe\n'
         result += 'ZPE_unscaled {:-16.2f}\n'.format(
-            prop.vib_zpe.value)
+            prop.vib_zpe.val)
 
       else:
         if not prop.HasField(field):
@@ -650,7 +650,7 @@ class SmuWriter:
         if self.annotate:
           result += '# From %s\n' % field
         result += float_line(label,
-                             _FortranFloat(getattr(prop, field).value))
+                             _FortranFloat(getattr(prop, field).val))
 
     return result
 
@@ -674,14 +674,14 @@ class SmuWriter:
       if self.annotate:
         result += '# From wf_diag_d1_2sp\n'
       result += ('D1DIAG    D1(CCSD/2sp) {:10.6f}\n'.format(
-          prop.wf_diag_d1_2sp.value))
+          prop.wf_diag_d1_2sp.val))
 
     if prop.HasField(self._T1_DIAGNOSTICS_FIELDS[0]):
       if self.annotate:
         result += '# From %s\n' % ', '.join(self._T1_DIAGNOSTICS_FIELDS)
       result += (
           'T1DIAG    T1(CCSD/2sp) %s  T1(CCSD/2sd) %s  T1(CCSD/3Psd)%s\n' %
-          tuple('{:.6f}'.format(getattr(prop, field).value).rjust(10)
+          tuple('{:.6f}'.format(getattr(prop, field).val).rjust(10)
                 for field in self._T1_DIAGNOSTICS_FIELDS))
 
     return result
@@ -703,24 +703,24 @@ class SmuWriter:
       if field_type == smu_parser_lib.Atomic2FieldTypes.STRING:
         if self.annotate:
           result += '# From %s\n' % field
-        result += '{:20s}{:s}\n'.format(label, getattr(prop, field).value)
+        result += '{:20s}{:s}\n'.format(label, getattr(prop, field).val)
       elif field_type == smu_parser_lib.Atomic2FieldTypes.SCALAR:
         if self.annotate:
           result += '# From %s\n' % field
         # Different significant digits for some fields. Fun.
         if '_ENE_' in label:
           result += '{:16s}{:-17.6f}\n'.format(
-              label, _FortranFloat(getattr(prop, field).value))
+              label, _FortranFloat(getattr(prop, field).val))
         else:
           result += '{:16s}{:-15.4f}\n'.format(
-              label, _FortranFloat(getattr(prop, field).value))
+              label, _FortranFloat(getattr(prop, field).val))
       elif field_type == smu_parser_lib.Atomic2FieldTypes.TRIPLE:
         if self.annotate:
           result += '# From %s (with _um _unc)\n' % field
         result += '{:17s}{:-12.2f}{:-12.2f}{:-12.2f}\n'.format(
-            label, _FortranFloat(getattr(prop, field).value),
-            _FortranFloat(getattr(prop, field.replace('at2_std', 'at2_um')).value),
-            _FortranFloat(getattr(prop, field.replace('at2_std', 'at2_um') + '_unc').value))
+            label, _FortranFloat(getattr(prop, field).val),
+            _FortranFloat(getattr(prop, field.replace('at2_std', 'at2_um')).val),
+            _FortranFloat(getattr(prop, field.replace('at2_std', 'at2_um') + '_unc').val))
       else:
         raise ValueError(
             'Atomic block unknown field types {}'.format(field_type))
@@ -758,8 +758,8 @@ class SmuWriter:
       if self.annotate:
         result += '# From %s, %s\n' % (homo_field, lumo_field)
       result += 'HOMO/LUMO  %s%s%s\n' % (label.ljust(15), '{:.5f}'.format(
-          getattr(prop, homo_field).value).rjust(11), '{:.5f}'.format(
-              getattr(prop, lumo_field).value).rjust(11))
+          getattr(prop, homo_field).val).rjust(11), '{:.5f}'.format(
+              getattr(prop, lumo_field).val).rjust(11))
 
     return result
 
@@ -782,15 +782,15 @@ class SmuWriter:
     if self.annotate:
       result += ('# From exc_ene_cc2_tzvp, '
                  'exc_os_cc2_tzvp\n')
-    if len(prop.exc_ene_cc2_tzvp.value) != len(
-        prop.exc_os_cc2_tzvp.value):
+    if len(prop.exc_ene_cc2_tzvp.val) != len(
+        prop.exc_os_cc2_tzvp.val):
       raise ValueError(
           'Unequal lengths for excitation energies (%d) and oscillations (%d)' %
-          (len(prop.exc_ene_cc2_tzvp.value),
-           len(prop.exc_os_cc2_tzvp.value)))
+          (len(prop.exc_ene_cc2_tzvp.val),
+           len(prop.exc_os_cc2_tzvp.val)))
     for i, (energy, oscillator_strength) in enumerate(
-        zip(prop.exc_ene_cc2_tzvp.value,
-            prop.exc_os_cc2_tzvp.value)):
+        zip(prop.exc_ene_cc2_tzvp.val,
+            prop.exc_os_cc2_tzvp.val)):
       result += '%s%s%s\n' % (str(i + 1).rjust(5),
                               '{:.5f}'.format(energy).rjust(18),
                               '{:.5f}'.format(oscillator_strength).rjust(16))
@@ -818,7 +818,7 @@ class SmuWriter:
         result += '%s%s%s   +/-%s\n' % (
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
-            '{:12.4f}'.format(getattr(prop, field).values[i]),
+            '{:12.4f}'.format(getattr(prop, field).val[i]),
             '{:10.4f}'.format(getattr(prop, field).prec[i]))
 
     return result
@@ -844,7 +844,7 @@ class SmuWriter:
         result += '%s%s%s   +/-%s\n' % (
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
-            '{:12.4f}'.format(getattr(prop, field).values[i]),
+            '{:12.4f}'.format(getattr(prop, field).val[i]),
             '{:10.4f}'.format(getattr(prop, field).prec[i]))
 
     return result
@@ -1118,7 +1118,7 @@ class Atomic2InputWriter:
                     'CCSD         CCSD(T)        T1 diag\n')
 
     def format_field(field_name):
-      return '{:15.7f}'.format(getattr(molecule.prop, field_name).value)
+      return '{:15.7f}'.format(getattr(molecule.prop, field_name).val)
 
     contents.append('{:7s}'.format('3') +
                     format_field('spe_std_hf_3') +
@@ -1169,7 +1169,7 @@ class Atomic2InputWriter:
     contents = []
 
     trimmed_frequencies = [
-        v for v in molecule.prop.vib_freq.value if v != 0.0
+        v for v in molecule.prop.vib_freq.val if v != 0.0
     ]
 
     contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
@@ -1510,22 +1510,22 @@ class CleanTextWriter:
         second_block.append(self._fw_line(
           base_vals +
           [(9, 'energy'),
-           self._align_dec_point(49, f'{geom.energy.value:.6f}'),
+           self._align_dec_point(49, f'{geom.energy.val:.6f}'),
            ]))
       if geom.HasField('gnorm'):
         second_block.append(
           self._fw_line(base_vals +
                         [(9, 'gnorm'),
-                         self._align_dec_point(49, f'{geom.gnorm.value:.6f}'),
+                         self._align_dec_point(49, f'{geom.gnorm.val:.6f}'),
                          ]))
       if geom.HasField('enuc'):
         second_block.append(
           self._fw_line(base_vals +
                         [(9, 'enuc'),
-                         self._align_dec_point(49, f'{geom.enuc.value:.4f}'),
+                         self._align_dec_point(49, f'{geom.enuc.val:.4f}'),
                          ]))
       if geom.HasField('brot'):
-        for idx, val in enumerate(geom.brot.value):
+        for idx, val in enumerate(geom.brot.val):
           if val < 10_000:
             val_str = f'{val:.3f}'
           elif val < 100_000:
@@ -1565,7 +1565,7 @@ class CleanTextWriter:
                                 ]))
       out.append(self._fw_line([
         (1, 'vib zpe'),
-        (self._align_dec_point(37, f'{molecule.prop.vib_zpe.value:.2f}')),
+        (self._align_dec_point(37, f'{molecule.prop.vib_zpe.val:.2f}')),
         (84, long_name),
       ]))
 
@@ -1577,8 +1577,8 @@ class CleanTextWriter:
                                 (45, 'intens'),
                                 (84, '(cm-1, km/mol)'),
                                 ]))
-      for idx, (freq, intens) in enumerate(zip(molecule.prop.vib_freq.value,
-                                               molecule.prop.vib_intens.value)):
+      for idx, (freq, intens) in enumerate(zip(molecule.prop.vib_freq.val,
+                                               molecule.prop.vib_intens.val)):
         out.append(self._fw_line([
           (1, 'vib freq'),
           (10, f'{idx+1:>2d}'),
@@ -1590,7 +1590,7 @@ class CleanTextWriter:
     if len(molecule.prop.vib_mode):
       for mode_idx, mode in enumerate(molecule.prop.vib_mode):
         out.append('#\n')
-        freq = molecule.prop.vib_freq.value[mode_idx]
+        freq = molecule.prop.vib_freq.val[mode_idx]
         out.append(self._fw_line([(0, '#vib mode'),
                                   (10, f'{mode_idx+1:>2d}'),
                                   (41, 'x'),
@@ -1666,7 +1666,7 @@ class CleanTextWriter:
       for short_name, field_name in pairs:
         if not molecule.prop.HasField(field_name):
           continue
-        val = getattr(molecule.prop, field_name).value
+        val = getattr(molecule.prop, field_name).val
         this_out.append(self._fw_line([(1, prefix),
                                        (17, short_name),
                                        self._align_dec_point(37, f'{val:.6f}'),
@@ -1714,7 +1714,7 @@ class CleanTextWriter:
     for short_name, field_name in self._DIAGNOSTICS_PAIRS:
       if not molecule.prop.HasField(field_name):
         continue
-      val = getattr(molecule.prop, field_name).value
+      val = getattr(molecule.prop, field_name).val
       out.append(self._fw_line([(1, 'wf_diag'),
                                 (17, short_name),
                                 self._align_dec_point(37, f'{val:.4f}'),
@@ -1782,19 +1782,19 @@ class CleanTextWriter:
 
     base_vals = [(1, 'at2_gen'), (84, long_name)]
     out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_left')],
-                                   molecule.prop.at2_gen_bsr_left.value))
+                                   molecule.prop.at2_gen_bsr_left.val))
     out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_right')],
-                                   molecule.prop.at2_gen_bsr_right.value))
+                                   molecule.prop.at2_gen_bsr_right.val))
 
     if molecule.prop.HasField('wf_diag_t1_2sd'):
-      val = molecule.prop.wf_diag_t1_2sd.value
+      val = molecule.prop.wf_diag_t1_2sd.val
       out.append(self._fw_line(base_vals +
                                [(17, 't1'),
                                 self._align_dec_point(37, f'{val:.4f}'),
                                 ]))
 
     if molecule.prop.HasField('at2_gen_t1_exc'):
-      val = molecule.prop.at2_gen_t1_exc.value
+      val = molecule.prop.at2_gen_t1_exc.val
       out.append(self._fw_line(base_vals +
                                [(17, 't1exc'),
                                 self._align_dec_point(37, f'{val:.4f}'),
@@ -1827,8 +1827,8 @@ class CleanTextWriter:
       out.append(self._fw_line(
         base_vals +
         [(9, 'zpe'),
-         self._align_dec_point(37, f'{molecule.prop.at2_um_zpe.value:.2f}'),
-         self._align_dec_point(49, f'{molecule.prop.at2_um_zpe_unc.value:.2f}'),
+         self._align_dec_point(37, f'{molecule.prop.at2_um_zpe.val:.2f}'),
+         self._align_dec_point(49, f'{molecule.prop.at2_um_zpe_unc.val:.2f}'),
          ]))
 
     # This might be a terrible idea, but since there are so many fields with regular
@@ -1849,9 +1849,9 @@ class CleanTextWriter:
           [(9, short_name),
            (17, method),
            self._align_dec_point(37, '{:.2f}'.format(
-             getattr(molecule.prop, field + '_um').value)),
+             getattr(molecule.prop, field + '_um').val)),
            self._align_dec_point(49, '{:.2f}'.format(
-             getattr(molecule.prop, field + '_um_ci').value)),
+             getattr(molecule.prop, field + '_um_ci').val)),
            ]))
 
       if this_out:
@@ -1875,7 +1875,7 @@ class CleanTextWriter:
       out.append(self._fw_line(
         base_vals +
         [(9, 'zpe'),
-         self._align_dec_point(37, f'{molecule.prop.at2_std_zpe.value:.2f}'),
+         self._align_dec_point(37, f'{molecule.prop.at2_std_zpe.val:.2f}'),
          ]))
 
     # This might be a terrible idea, but since there are so many fields with regular
@@ -1896,7 +1896,7 @@ class CleanTextWriter:
           [(9, short_name),
            (17, method),
            self._align_dec_point(37, '{:.2f}'.format(
-             getattr(molecule.prop, field).value)),
+             getattr(molecule.prop, field).val)),
            ]))
 
       if this_out:
@@ -1931,8 +1931,8 @@ class CleanTextWriter:
       out.append(self._fw_line([
         (1, 'orb'),
         (17, short_name),
-        self._align_dec_point(37, '{:.5f}'.format(getattr(molecule.prop, homo_field).value)),
-        self._align_dec_point(49, '{:.5f}'.format(getattr(molecule.prop, lumo_field).value)),
+        self._align_dec_point(37, '{:.5f}'.format(getattr(molecule.prop, homo_field).val)),
+        self._align_dec_point(49, '{:.5f}'.format(getattr(molecule.prop, lumo_field).val)),
         (84, long_name),
         ]))
 
@@ -1959,8 +1959,8 @@ class CleanTextWriter:
                               ]))
 
     for idx, (exc, os) in enumerate(zip(
-        molecule.prop.exc_ene_cc2_tzvp.value,
-        molecule.prop.exc_os_cc2_tzvp.value)):
+        molecule.prop.exc_ene_cc2_tzvp.val,
+        molecule.prop.exc_os_cc2_tzvp.val)):
       out.append(self._fw_line([(1, 'exc'),
                                 (21, str(idx+1)),
                                 self._align_dec_point(37, f'{exc:.5f}'),
@@ -1991,7 +1991,7 @@ class CleanTextWriter:
       pos = self._DEC_POINT_POSITIONS[num_values_present]
       lines_vals[0].append((pos - 5, f'{line0_str:>8s}'))
       lines_vals[1].append((pos - 5, f'{line1_str:>8s}'))
-      for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).values,
+      for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).val,
                                                   getattr(molecule.prop, field).prec),
                                               start=2):
         lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))
@@ -2032,7 +2032,7 @@ class CleanTextWriter:
           continue
 
         lines_vals[0].append((pos + 2, short_name))
-        for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).values,
+        for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).val,
                                                     getattr(molecule.prop, field).prec),
                                                 start=1):
           lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))

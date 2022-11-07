@@ -442,22 +442,22 @@ message Properties {
 
   // A single string for the molecule.
   message StringMolecularProperty {
-    string value = 1;
+    string val = 1;
   }
 
   // A single value for the whole molecule.
   message ScalarMolecularProperty {
-    double value = 1;
+    double val = 1;
   }
   // Multiple values associated with the whole molecule. Use
   // AtomicMoleculeProperty for one value per atom.
   message MultiScalarMolecularProperty {
-    repeated double value = 1;
+    repeated double val = 1;
   }
   // One value for each atom. values and prec should be exactly the same
   // length as atoms in the BondTopology.
   message AtomicMolecularProperty {
-    repeated double values = 1;
+    repeated double val = 1;
     // Note that this is just a prec with which the value is stored and is
     // NOT an estimate of the confidence/accuracy of the value compared to
     // reality.

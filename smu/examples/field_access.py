@@ -42,9 +42,9 @@ print('We will examine molecule with id', molecule.mol_id)
 print('The computed properties are generally in the .prop field')
 
 print()
-print('Scalar values are access by name (note the .value suffix),',
+print('Scalar values are access by name (note the .val suffix),',
       'like this single point energy: ',
-      molecule.prop.spe_comp_b5.value)
+      molecule.prop.spe_comp_b5.val)
 
 print()
 print('Fields with repeated values',
@@ -52,15 +52,15 @@ print('Fields with repeated values',
       'use an index with [] on the repeated values')
 
 print('The 0th and 6th vib_intens:',
-      molecule.prop.vib_intens.value[0],
-      molecule.prop.vib_intens.value[6])
+      molecule.prop.vib_intens.val[0],
+      molecule.prop.vib_intens.val[6])
 
 print('Or you can iterate over all of them')
-for value in molecule.prop.exc_ene_cc2_tzvp.value:
+for value in molecule.prop.exc_ene_cc2_tzvp.val:
   print('Excitation energy:', value)
 
 print('Or just ask how many exc_ene_cc2_tzvp there are:',
-      len(molecule.prop.exc_ene_cc2_tzvp.value))
+      len(molecule.prop.exc_ene_cc2_tzvp.val))
 
 print()
 print(
@@ -99,7 +99,7 @@ print('A couple of important fields are not inside "properties"')
 
 geometry = molecule.opt_geo
 print('For example, the optimized geometry has an energy of',
-      geometry.energy.value,
+      geometry.energy.val,
       'and positions for',
       len(geometry.atom_positions),
       'atoms and the first atom x-coordinate is',

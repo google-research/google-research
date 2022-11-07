@@ -1268,12 +1268,12 @@ def merge_molecule(mol1, mol2):
   conflict_info.append(mol1.prop.calc.error_nstatt)
   for c in [mol1, mol2]:
     if c.ini_geo:
-      conflict_info.append(c.ini_geo[0].energy.value)
-      conflict_info.append(c.ini_geo[0].gnorm.value)
+      conflict_info.append(c.ini_geo[0].energy.val)
+      conflict_info.append(c.ini_geo[0].gnorm.val)
     else:
       conflict_info.extend([0.0, 0.0])
-    conflict_info.append(c.opt_geo.energy.value)
-    conflict_info.append(c.opt_geo.gnorm.value)
+    conflict_info.append(c.opt_geo.energy.val)
+    conflict_info.append(c.opt_geo.gnorm.val)
     conflict_info.append(
         bool(c.ini_geo) and
         bool(c.ini_geo[0].atom_positions))
@@ -1314,11 +1314,11 @@ def merge_molecule(mol1, mol2):
         (lambda c: c.opt_geo.gnorm, 1e-6),
     ]:
       try:
-        val1 = field_fn(mol1).value
+        val1 = field_fn(mol1).val
       except IndexError:
         val1 = 0.0
       try:
-        val2 = field_fn(mol2).value
+        val2 = field_fn(mol2).val
       except IndexError:
         val2 = 0.0
       # In some cases, stage2 files have -1 for these fields where stage1
@@ -1361,9 +1361,9 @@ def merge_molecule(mol1, mol2):
       mol2.prop.calc.status = (500 +
                                        mol1.prop.calc.status // 10)
       mol2.prop.calc.which_database = dataset_pb2.COMPLETE
-      if np.any(np.asarray(mol2.prop.vib_freq.value) < -30):
+      if np.any(np.asarray(mol2.prop.vib_freq.val) < -30):
         mol2.prop.calc.warn_vib_imag = 2
-      elif np.any(np.asarray(mol2.prop.vib_freq.value) < 0):
+      elif np.any(np.asarray(mol2.prop.vib_freq.val) < 0):
         mol2.prop.calc.warn_vib_imag = 1
 
   # Move over all duplicate info.
@@ -1574,7 +1574,7 @@ def clean_up_sentinel_values(molecule):
   for geometry in itertools.chain([molecule.opt_geo],
                                   molecule.ini_geo):
     for field in ['energy', 'gnorm']:
-      if getattr(geometry, field).value == -1.0:
+      if getattr(geometry, field).val == -1.0:
         geometry.ClearField(field)
 
 
@@ -1700,17 +1700,17 @@ def find_zero_values(molecule):
 
   # excitation is different because it's a MultiScalar
   if properties.HasField('exc_ene_cc2_tzvp'):
-    for value in properties.exc_ene_cc2_tzvp.value:
+    for value in properties.exc_ene_cc2_tzvp.val:
       if value == 0.0:
         yield 'exc_ene_cc2_tzvp'
 
   for field in _ZERO_FIELD_CHECK_SCALAR:
-    if properties.HasField(field) and getattr(properties, field).value == 0.0:
+    if properties.HasField(field) and getattr(properties, field).val == 0.0:
       yield field
 
   for field in _ZERO_FIELD_CHECK_ATOMIC:
     if properties.HasField(field):
-      for value in getattr(properties, field).values:
+      for value in getattr(properties, field).val:
         if value == 0.0:
           yield field
 

@@ -131,7 +131,7 @@ writer.writerow([
 
 for smiles in smiles_to_molecules:
   energies = [
-      mol.prop.at2_std_b5_hf298.value
+      mol.prop.at2_std_b5_hf298.val
       for mol in smiles_to_molecules[smiles]
   ]
   #---------------------------------------------------------------------------

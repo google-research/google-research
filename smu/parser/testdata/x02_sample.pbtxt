@@ -25,10 +25,10 @@ molecules {
       z: -0.027023
     }
     energy {
-      value: -77.240567
+      val: -77.240567
     }
     gnorm {
-      value: 3e-06
+      val: 3e-06
     }
   }
   opt_geo {
@@ -45,17 +45,17 @@ molecules {
       z: -3.147236
     }
     energy {
-      value: -77.240567
+      val: -77.240567
     }
     gnorm {
     }
     enuc {
-      value: 24.805948
+      val: 24.805948
     }
     brot {
-      value: 0.0
-      value: 35519.086
-      value: 35519.086
+      val: 0.0
+      val: 35519.086
+      val: 35519.086
     }
   }
   prop {
@@ -63,348 +63,348 @@ molecules {
       which_database: STANDARD
     }
     vib_intens {
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 102.9
-      value: 102.9
-      value: 0.0
-      value: 72.7
-      value: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 102.9
+      val: 102.9
+      val: 0.0
+      val: 72.7
+      val: 0.0
     }
     spe_std_pbe0d3_6311gd {
-      value: -77.240567
+      val: -77.240567
     }
     spe_check_pbe0_6311gd_tmol {
-      value: -77.240381
+      val: -77.240381
     }
     spe_check_pbe0_6311gd_tmol_mrcc {
-      value: -77.240383
+      val: -77.240383
     }
     spe_check_pbe0_6311gd_tmol_orca {
-      value: -77.240406
+      val: -77.240406
     }
     spe_check_pbe0_6311gd_tmol_cat {
-      value: -76.826347
+      val: -76.826347
     }
     spe_check_pbe0_6311gd_tmol_cat_mrcc {
-      value: -76.826349
+      val: -76.826349
     }
     spe_check_pbe0_6311gd_tmol_cat_orca {
-      value: -76.826369
+      val: -76.826369
     }
     spe_std_pbe0_augpc1 {
-      value: -77.214243
+      val: -77.214243
     }
     spe_std_hf_631gd {
-      value: -76.816771
+      val: -76.816771
     }
     spe_std_b3lyp_631ppgdp {
-      value: -77.33537
+      val: -77.33537
     }
     spe_std_b3lyp_augpcs1 {
-      value: -77.318288
+      val: -77.318288
     }
     spe_std_pbe0_631ppgdp {
-      value: -77.230045
+      val: -77.230045
     }
     spe_std_pbe0_augpcs1 {
-      value: -77.210928
+      val: -77.210928
     }
     spe_std_hf_tzvp {
-      value: -76.848336
+      val: -76.848336
     }
     spe_std_mp2_tzvp {
-      value: -77.116989
+      val: -77.116989
     }
     spe_std_cc2_tzvp {
-      value: -77.121727
+      val: -77.121727
     }
     spe_std_hf_3 {
-      value: -76.849605
+      val: -76.849605
     }
     spe_std_mp2_3 {
-      value: -77.158885
+      val: -77.158885
     }
     spe_std_hf_4 {
-      value: -76.854631
+      val: -76.854631
     }
     spe_std_mp2_4 {
-      value: -77.183272
+      val: -77.183272
     }
     spe_std_hf_34 {
-      value: -76.855856
+      val: -76.855856
     }
     spe_std_mp2_34 {
-      value: -77.200552
+      val: -77.200552
     }
     spe_std_hf_cvtz {
-      value: -76.850294
+      val: -76.850294
     }
     spe_std_mp2full_cvtz {
-      value: -77.256863
+      val: -77.256863
     }
     spe_std_hf_2sp {
-      value: -76.797184
+      val: -76.797184
     }
     spe_std_mp2_2sp {
-      value: -76.978537
+      val: -76.978537
     }
     spe_std_ccsd_2sp {
-      value: -76.992779
+      val: -76.992779
     }
     spe_std_ccsd_t_2sp {
-      value: -76.998762
+      val: -76.998762
     }
     spe_std_hf_2sd {
-      value: -76.818314
+      val: -76.818314
     }
     spe_std_mp2_2sd {
-      value: -77.063771
+      val: -77.063771
     }
     spe_std_ccsd_2sd {
-      value: -77.080489
+      val: -77.080489
     }
     spe_std_ccsd_t_2sd {
-      value: -77.09089
+      val: -77.09089
     }
     spe_std_hf_3psd {
-      value: -76.832088
+      val: -76.832088
     }
     spe_std_mp2_3psd {
-      value: -77.107773
+      val: -77.107773
     }
     spe_std_ccsd_3psd {
-      value: -77.120977
+      val: -77.120977
     }
     spe_comp_b5 {
-      value: -77.321445
+      val: -77.321445
     }
     spe_comp_b6 {
-      value: -77.320541
+      val: -77.320541
     }
     vib_zpe {
-      value: 16.78
+      val: 16.78
     }
     orb_ehomo_pbe0_6311gd {
-      value: -0.30522
+      val: -0.30522
     }
     orb_elumo_pbe0_6311gd {
-      value: 0.04568
+      val: 0.04568
     }
     orb_ehomo_pbe0_augpc1 {
-      value: -0.31149
+      val: -0.31149
     }
     orb_elumo_pbe0_augpc1 {
-      value: 0.00855
+      val: 0.00855
     }
     orb_ehomo_pbe0_631ppgdp {
-      value: -0.30783
+      val: -0.30783
     }
     orb_elumo_pbe0_631ppgdp {
-      value: 0.0128
+      val: 0.0128
     }
     orb_ehomo_pbe0_augpcs1 {
-      value: -0.31136
+      val: -0.31136
     }
     orb_elumo_pbe0_augpcs1 {
-      value: 0.00849
+      val: 0.00849
     }
     orb_ehomo_b3lyp_631ppgdp {
-      value: -0.29821
+      val: -0.29821
     }
     orb_elumo_b3lyp_631ppgdp {
-      value: 0.00469
+      val: 0.00469
     }
     orb_ehomo_b3lyp_augpcs1 {
-      value: -0.30232
+      val: -0.30232
     }
     orb_elumo_b3lyp_augpcs1 {
-      value: 0.00096
+      val: 0.00096
     }
     orb_ehomo_hf_631gd {
-      value: -0.40116
+      val: -0.40116
     }
     orb_elumo_hf_631gd {
-      value: 0.21804
+      val: 0.21804
     }
     orb_ehomo_hf_tzvp {
-      value: -0.41163
+      val: -0.41163
     }
     orb_elumo_hf_tzvp {
-      value: 0.15655
+      val: 0.15655
     }
     orb_ehomo_hf_3 {
-      value: -0.41042
+      val: -0.41042
     }
     orb_elumo_hf_3 {
-      value: 0.15097
+      val: 0.15097
     }
     orb_ehomo_hf_4 {
-      value: -0.41143
+      val: -0.41143
     }
     orb_elumo_hf_4 {
-      value: 0.12938
+      val: 0.12938
     }
     orb_ehomo_hf_cvtz {
-      value: -0.41049
+      val: -0.41049
     }
     orb_elumo_hf_cvtz {
-      value: 0.15049
+      val: 0.15049
     }
     exc_ene_cc2_tzvp {
-      value: 0.27967
-      value: 0.2925
-      value: 0.2925
-      value: 0.35517
-      value: 0.35517
+      val: 0.27967
+      val: 0.2925
+      val: 0.2925
+      val: 0.35517
+      val: 0.35517
     }
     exc_os_cc2_tzvp {
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
     }
     nmr_pbe0_631ppgdp {
-      values: 130.8096
-      values: 130.8096
-      values: 30.2304
-      values: 30.2304
+      val: 130.8096
+      val: 130.8096
+      val: 30.2304
+      val: 30.2304
       prec: 0.0064
       prec: 0.0064
       prec: 0.0016
       prec: 0.0016
     }
     nmr_pbe0_augpcs1 {
-      values: 110.2848
-      values: 110.2848
-      values: 30.1856
-      values: 30.1856
+      val: 110.2848
+      val: 110.2848
+      val: 30.1856
+      val: 30.1856
       prec: 0.0064
       prec: 0.0064
       prec: 0.0016
       prec: 0.0016
     }
     nmr_b3lyp_631ppgdp {
-      values: 130.2528
-      values: 130.2528
-      values: 30.3504
-      values: 30.3504
+      val: 130.2528
+      val: 130.2528
+      val: 30.3504
+      val: 30.3504
       prec: 0.0064
       prec: 0.0064
       prec: 0.0016
       prec: 0.0016
     }
     nmr_b3lyp_augpcs1 {
-      values: 107.5648
-      values: 107.5648
-      values: 30.3392
-      values: 30.3392
+      val: 107.5648
+      val: 107.5648
+      val: 30.3392
+      val: 30.3392
       prec: 0.0064
       prec: 0.0064
       prec: 0.0016
       prec: 0.0016
     }
     chg_mul_pbe0_augpc1 {
-      values: -0.2548
-      values: -0.2548
-      values: 0.2548
-      values: 0.2548
+      val: -0.2548
+      val: -0.2548
+      val: 0.2548
+      val: 0.2548
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     chg_mul_hf_631gd {
-      values: -0.2816
-      values: -0.2816
-      values: 0.2816
-      values: 0.2816
+      val: -0.2816
+      val: -0.2816
+      val: 0.2816
+      val: 0.2816
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     chg_loe_pbe0_augpc1 {
-      values: -0.0028
-      values: -0.0028
-      values: 0.0028
-      values: 0.0028
+      val: -0.0028
+      val: -0.0028
+      val: 0.0028
+      val: 0.0028
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     chg_loe_hf_631gd {
-      values: -0.1779
-      values: -0.1779
-      values: 0.1779
-      values: 0.1779
+      val: -0.1779
+      val: -0.1779
+      val: 0.1779
+      val: 0.1779
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     chg_nat_pbe0_augpc1 {
-      values: -0.2355
-      values: -0.2355
-      values: 0.2355
-      values: 0.2355
+      val: -0.2355
+      val: -0.2355
+      val: 0.2355
+      val: 0.2355
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     chg_nat_hf_631gd {
-      values: -0.2429
-      values: -0.2429
-      values: 0.2429
-      values: 0.2429
+      val: -0.2429
+      val: -0.2429
+      val: 0.2429
+      val: 0.2429
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     partial_charges_paboon_pbe0_aug_pc_1 {
-      values: -0.0185
-      values: -0.0185
-      values: 0.0185
-      values: 0.0185
+      val: -0.0185
+      val: -0.0185
+      val: 0.0185
+      val: 0.0185
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     partial_charges_paboon_hf_6_31gd {
-      values: -0.1275
-      values: -0.1275
-      values: 0.1275
-      values: 0.1275
+      val: -0.1275
+      val: -0.1275
+      val: 0.1275
+      val: 0.1275
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     chg_esp_pbe0_augpc1 {
-      values: -0.287
-      values: -0.287
-      values: 0.287
-      values: 0.287
+      val: -0.287
+      val: -0.287
+      val: 0.287
+      val: 0.287
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
     }
     chg_esp_hf_631gd {
-      values: -0.2984
-      values: -0.2984
-      values: 0.2984
-      values: 0.2984
+      val: -0.2984
+      val: -0.2984
+      val: 0.2984
+      val: 0.2984
       prec: 0.0001
       prec: 0.0001
       prec: 0.0001
@@ -461,16 +461,16 @@ molecules {
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
     wf_diag_d1_2sp {
-      value: 0.0249
+      val: 0.0249
     }
     wf_diag_t1_2sp {
-      value: 0.0123
+      val: 0.0123
     }
     wf_diag_t1_2sd {
-      value: 0.0122
+      val: 0.0122
     }
     wf_diag_t1_3psd {
-      value: 0.0129
+      val: 0.0129
     }
     calculation_statistics {
       computing_location: "Geo"
@@ -513,170 +513,170 @@ molecules {
       timings: "2"
     }
     spe_comp_eccsd {
-      value: -77.20887
+      val: -77.20887
     }
     at2_gen_t1_exc {
     }
     at2_gen_bsr_left {
-      value: " molecule"
+      val: " molecule"
     }
     at2_gen_bsr_right {
-      value: " 1  HC#CH"
+      val: " 1  HC#CH"
     }
     at2_std_b5_ereac {
-      value: -0.01
+      val: -0.01
     }
     at2_um_b5_ereac {
-      value: -0.01
+      val: -0.01
     }
     at2_um_b5_ereac_unc {
     }
     at2_std_b6_ereac {
-      value: -0.01
+      val: -0.01
     }
     at2_um_b6_ereac {
-      value: -0.01
+      val: -0.01
     }
     at2_um_b6_ereac_unc {
     }
     at2_std_eccsd_ereac {
-      value: -0.0
+      val: -0.0
     }
     at2_um_eccsd_ereac {
-      value: -0.0
+      val: -0.0
     }
     at2_um_eccsd_ereac_unc {
     }
     at2_std_b5_eae {
-      value: 404.95
+      val: 404.95
     }
     at2_um_b5_eae {
-      value: 405.03
+      val: 405.03
     }
     at2_um_b5_eae_unc {
-      value: 0.17
+      val: 0.17
     }
     at2_std_b6_eae {
-      value: 404.95
+      val: 404.95
     }
     at2_um_b6_eae {
-      value: 405.03
+      val: 405.03
     }
     at2_um_b6_eae_unc {
-      value: 0.17
+      val: 0.17
     }
     at2_std_eccsd_eae {
-      value: 404.96
+      val: 404.96
     }
     at2_um_eccsd_eae {
-      value: 405.04
+      val: 405.04
     }
     at2_um_eccsd_eae_unc {
-      value: 0.17
+      val: 0.17
     }
     at2_std_b5_ea0 {
-      value: 388.52
+      val: 388.52
     }
     at2_um_b5_ea0 {
-      value: 388.55
+      val: 388.55
     }
     at2_um_b5_ea0_unc {
-      value: 0.21
+      val: 0.21
     }
     at2_std_b6_ea0 {
-      value: 388.52
+      val: 388.52
     }
     at2_um_b6_ea0 {
-      value: 388.55
+      val: 388.55
     }
     at2_um_b6_ea0_unc {
-      value: 0.21
+      val: 0.21
     }
     at2_std_eccsd_ea0 {
-      value: 388.53
+      val: 388.53
     }
     at2_um_eccsd_ea0 {
-      value: 388.56
+      val: 388.56
     }
     at2_um_eccsd_ea0_unc {
-      value: 0.21
+      val: 0.21
     }
     at2_std_b5_hf0 {
-      value: 54.8
+      val: 54.8
     }
     at2_um_b5_hf0 {
-      value: 54.77
+      val: 54.77
     }
     at2_um_b5_hf0_unc {
-      value: 0.21
+      val: 0.21
     }
     at2_std_b6_hf0 {
-      value: 54.8
+      val: 54.8
     }
     at2_um_b6_hf0 {
-      value: 54.77
+      val: 54.77
     }
     at2_um_b6_hf0_unc {
-      value: 0.21
+      val: 0.21
     }
     at2_std_eccsd_hf0 {
-      value: 54.79
+      val: 54.79
     }
     at2_um_eccsd_hf0 {
-      value: 54.77
+      val: 54.77
     }
     at2_um_eccsd_hf0_unc {
-      value: 0.21
+      val: 0.21
     }
     at2_std_b5_hf298 {
-      value: 54.69
+      val: 54.69
     }
     at2_um_b5_hf298 {
-      value: 54.66
+      val: 54.66
     }
     at2_um_b5_hf298_unc {
-      value: 0.25
+      val: 0.25
     }
     at2_std_b6_hf298 {
-      value: 54.69
+      val: 54.69
     }
     at2_um_b6_hf298 {
-      value: 54.66
+      val: 54.66
     }
     at2_um_b6_hf298_unc {
-      value: 0.25
+      val: 0.25
     }
     at2_std_eccsd_hf298 {
-      value: 54.68
+      val: 54.68
     }
     at2_um_eccsd_hf298 {
-      value: 54.65
+      val: 54.65
     }
     at2_um_eccsd_hf298_unc {
-      value: 0.25
+      val: 0.25
     }
     at2_std_zpe {
-      value: 16.43
+      val: 16.43
     }
     at2_um_zpe {
-      value: 16.48
+      val: 16.48
     }
     at2_um_zpe_unc {
-      value: 0.13
+      val: 0.13
     }
     vib_freq {
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 0.0
-      value: 586.0
-      value: 586.0
-      value: 764.4
-      value: 764.4
-      value: 2080.1
-      value: 3426.7
-      value: 3532.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 0.0
+      val: 586.0
+      val: 586.0
+      val: 764.4
+      val: 764.4
+      val: 2080.1
+      val: 3426.7
+      val: 3532.0
     }
     vib_mode {
       disp {
