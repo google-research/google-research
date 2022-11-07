@@ -54,11 +54,11 @@ for molecule in db:
 
   data_dict['mol_id'].append(molecule.mol_id)
   data_dict['energy'].append(
-      molecule.properties.spe_comp_b5.value)
-  data_dict['homo'].append(molecule.properties.orb_ehomo_pbe0_6311gd.value)
-  data_dict['lumo'].append(molecule.properties.orb_elumo_pbe0_6311gd.value)
+      molecule.prop.spe_comp_b5.value)
+  data_dict['homo'].append(molecule.prop.orb_ehomo_pbe0_6311gd.value)
+  data_dict['lumo'].append(molecule.prop.orb_elumo_pbe0_6311gd.value)
   data_dict['first important frequency'].append(
-      molecule.properties.vib_freq.value[6])
+      molecule.prop.vib_freq.value[6])
 
   #---------------------------------------------------------------------------
   # This breaks out of the loop after a couple of records just so this

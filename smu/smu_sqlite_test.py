@@ -424,7 +424,7 @@ class SmuSqliteTest(absltest.TestCase):
     # topologies should be found.
 
     molecule = dataset_pb2.Molecule(mol_id=9999)
-    molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    molecule.prop.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
 
     bt = molecule.bond_topo.add(smiles='N1NO1', topo_id=100)
     geom = molecule.optimized_geometry.atom_positions

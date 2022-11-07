@@ -100,7 +100,7 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths(self):
     # This molecule does not obey valence rules, but it's fine for this test.
     mol = dataset_pb2.Molecule(mol_id=123000)
-    mol.properties.calc.status = 4
+    mol.prop.calc.status = 4
     bt = mol.bond_topo.add()
     bt.atom.extend([
         dataset_pb2.BondTopology.ATOM_ONEG, dataset_pb2.BondTopology.ATOM_NPOS,
@@ -134,7 +134,7 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths_max_unbonded(self):
     # This molecule does not obery valence rules, but it's fine for this test.
     mol = dataset_pb2.Molecule(mol_id=123000)
-    mol.properties.calc.status = 4
+    mol.prop.calc.status = 4
     bt = mol.bond_topo.add()
     bt.atom.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
@@ -175,14 +175,14 @@ class FunctionalTest(absltest.TestCase):
 
   def test_extract_bond_lengths_has_errors(self):
     mol = self._create_dummy_molecule()
-    mol.properties.calc.status = 8
+    mol.prop.calc.status = 8
     got = list(
         pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
     self.assertEqual([], got)
 
   def test_extract_bond_lengths_is_dup(self):
     mol = self._create_dummy_molecule()
-    mol.properties.calc.status = 0
+    mol.prop.calc.status = 0
     mol.duplicate_of = 456000
     got = list(
         pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
@@ -321,11 +321,11 @@ class IntegrationTest(absltest.TestCase):
                           [618451001, 618451123])
     # Check that fields are filtered the way we expect
     self.assertFalse(
-        standard_output[0].properties.HasField('compute_cluster_info'))
+        standard_output[0].prop.HasField('compute_cluster_info'))
     self.assertFalse(
-        standard_output[0].properties.HasField('orb_ehomo_pbe0_augpc1'))
+        standard_output[0].prop.HasField('orb_ehomo_pbe0_augpc1'))
     self.assertTrue(
-        standard_output[0].properties.HasField('vib_freq'))
+        standard_output[0].prop.HasField('vib_freq'))
 
     complete_dataset = tf.data.TFRecordDataset(
         output_stem + '_complete_tfrecord-00000-of-00001')
@@ -340,14 +340,14 @@ class IntegrationTest(absltest.TestCase):
     # that we get a full record.
     complete_entry = [c for c in complete_output if c.mol_id == 618451001
                      ][0]
-    self.assertFalse(complete_entry.properties.HasField('compute_cluster_info'))
-    self.assertTrue(complete_entry.properties.HasField('orb_ehomo_pbe0_augpc1'))
-    self.assertTrue(complete_entry.properties.HasField('vib_freq'))
+    self.assertFalse(complete_entry.prop.HasField('compute_cluster_info'))
+    self.assertTrue(complete_entry.prop.HasField('orb_ehomo_pbe0_augpc1'))
+    self.assertTrue(complete_entry.prop.HasField('vib_freq'))
 
     complete_entry_for_smiles = [
         c for c in complete_output if c.mol_id == 620517002
     ][0]
-    self.assertEqual(complete_entry_for_smiles.properties.smiles_openbabel,
+    self.assertEqual(complete_entry_for_smiles.prop.smiles_openbabel,
                      'NotAValidSmilesString')
 
 

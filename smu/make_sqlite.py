@@ -61,8 +61,8 @@ def mutate_conformer(encoded_molecule):
   molecule = dataset_pb2.Molecule.FromString(encoded_molecule)
 
   # We change the fate categories, so we just recompute them.
-  if molecule.properties.HasField('calc'):
-    molecule.properties.calc.fate = smu_utils_lib.determine_fate(molecule)
+  if molecule.prop.HasField('calc'):
+    molecule.prop.calc.fate = smu_utils_lib.determine_fate(molecule)
 
   # We decided to remove the topology and geometry scores and sort the bond
   # topologies by a simple key instead.

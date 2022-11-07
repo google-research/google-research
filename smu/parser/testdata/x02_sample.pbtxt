@@ -58,7 +58,7 @@ molecules {
       value: 35519.086
     }
   }
-  properties {
+  prop {
     calc {
       which_database: STANDARD
     }

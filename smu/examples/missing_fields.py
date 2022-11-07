@@ -59,20 +59,20 @@ print(
 
 print(
     'If you ask for the vib_freq for both you get sensible values')
-print(PARTIAL_MOLECULE_ID, partial_molecule.properties.vib_freq)
-print(MINIMAL_MOLECULE_ID, minimal_molecule.properties.vib_freq)
+print(PARTIAL_MOLECULE_ID, partial_molecule.prop.vib_freq)
+print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.vib_freq)
 
 print()
 print('But if you ask for vib_zpe, the second gives a 0')
-print(PARTIAL_MOLECULE_ID, partial_molecule.properties.vib_zpe.value)
-print(MINIMAL_MOLECULE_ID, minimal_molecule.properties.vib_zpe.value)
+print(PARTIAL_MOLECULE_ID, partial_molecule.prop.vib_zpe.value)
+print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.vib_zpe.value)
 
 print()
 print('And if you ask for at2_std_b6_hf298, both give 0')
 print(PARTIAL_MOLECULE_ID,
-      partial_molecule.properties.at2_std_b6_hf298.value)
+      partial_molecule.prop.at2_std_b6_hf298.value)
 print(MINIMAL_MOLECULE_ID,
-      minimal_molecule.properties.at2_std_b6_hf298.value)
+      minimal_molecule.prop.at2_std_b6_hf298.value)
 
 print()
 print('These are cases of missing values.')
@@ -85,20 +85,20 @@ print(
 print('check whether a Molecule has a value with the HasField method')
 print('Calling HasField for vib_freq:')
 print(PARTIAL_MOLECULE_ID,
-      partial_molecule.properties.HasField('vib_freq'))
+      partial_molecule.prop.HasField('vib_freq'))
 print(MINIMAL_MOLECULE_ID,
-      minimal_molecule.properties.HasField('vib_freq'))
+      minimal_molecule.prop.HasField('vib_freq'))
 print('Calling HasField for vib_zpe:')
-print(PARTIAL_MOLECULE_ID, partial_molecule.properties.HasField('vib_zpe'))
-print(MINIMAL_MOLECULE_ID, minimal_molecule.properties.HasField('vib_zpe'))
+print(PARTIAL_MOLECULE_ID, partial_molecule.prop.HasField('vib_zpe'))
+print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.HasField('vib_zpe'))
 print('Calling HasField for at2_std_b6_hf298:')
 print(
     PARTIAL_MOLECULE_ID,
-    partial_molecule.properties.HasField(
+    partial_molecule.prop.HasField(
         'at2_std_b6_hf298'))
 print(
     MINIMAL_MOLECULE_ID,
-    minimal_molecule.properties.HasField(
+    minimal_molecule.prop.HasField(
         'at2_std_b6_hf298'))
 
 print()
@@ -108,8 +108,8 @@ print(
 )
 print('You cannot call HasField on vib_mode')
 print('The length of vib_mode in our two molecules are:')
-print(PARTIAL_MOLECULE_ID, len(partial_molecule.properties.vib_mode))
-print(MINIMAL_MOLECULE_ID, len(minimal_molecule.properties.vib_mode))
+print(PARTIAL_MOLECULE_ID, len(partial_molecule.prop.vib_mode))
+print(MINIMAL_MOLECULE_ID, len(minimal_molecule.prop.vib_mode))
 
 print()
 print('In summary, when processing the complete database:')

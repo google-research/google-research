@@ -39,12 +39,12 @@ molecule = db.find_by_mol_id(57001)
 
 print('We will examine molecule with id', molecule.mol_id)
 
-print('The computed properties are generally in the .properties field')
+print('The computed properties are generally in the .prop field')
 
 print()
 print('Scalar values are access by name (note the .value suffix),',
       'like this single point energy: ',
-      molecule.properties.spe_comp_b5.value)
+      molecule.prop.spe_comp_b5.value)
 
 print()
 print('Fields with repeated values',
@@ -52,47 +52,47 @@ print('Fields with repeated values',
       'use an index with [] on the repeated values')
 
 print('The 0th and 6th vib_intens:',
-      molecule.properties.vib_intens.value[0],
-      molecule.properties.vib_intens.value[6])
+      molecule.prop.vib_intens.value[0],
+      molecule.prop.vib_intens.value[6])
 
 print('Or you can iterate over all of them')
-for value in molecule.properties.exc_ene_cc2_tzvp.value:
+for value in molecule.prop.exc_ene_cc2_tzvp.value:
   print('Excitation energy:', value)
 
 print('Or just ask how many exc_ene_cc2_tzvp there are:',
-      len(molecule.properties.exc_ene_cc2_tzvp.value))
+      len(molecule.prop.exc_ene_cc2_tzvp.value))
 
 print()
 print(
     'Some fields like elec_dip_pbe0_augpc1 have explicit x,y,z components'
 )
 
-print(molecule.properties.elec_dip_pbe0_augpc1.x,
-      molecule.properties.elec_dip_pbe0_augpc1.y,
-      molecule.properties.elec_dip_pbe0_augpc1.z)
+print(molecule.prop.elec_dip_pbe0_augpc1.x,
+      molecule.prop.elec_dip_pbe0_augpc1.y,
+      molecule.prop.elec_dip_pbe0_augpc1.z)
 
 print()
 print('Some fields are higher order tensors, with similar named components')
 
 print('polarizability is a rank 2 tensor')
-print(molecule.properties.elec_pol_pbe0_augpc1.xx,
-      molecule.properties.elec_pol_pbe0_augpc1.yy,
-      molecule.properties.elec_pol_pbe0_augpc1.zz,
-      molecule.properties.elec_pol_pbe0_augpc1.xy,
-      molecule.properties.elec_pol_pbe0_augpc1.xz,
-      molecule.properties.elec_pol_pbe0_augpc1.yz)
+print(molecule.prop.elec_pol_pbe0_augpc1.xx,
+      molecule.prop.elec_pol_pbe0_augpc1.yy,
+      molecule.prop.elec_pol_pbe0_augpc1.zz,
+      molecule.prop.elec_pol_pbe0_augpc1.xy,
+      molecule.prop.elec_pol_pbe0_augpc1.xz,
+      molecule.prop.elec_pol_pbe0_augpc1.yz)
 
 print('octopole moment is a rank 3 tensor')
-print(molecule.properties.elec_oct_pbe0_augpc1.xxx,
-      molecule.properties.elec_oct_pbe0_augpc1.yyy,
-      molecule.properties.elec_oct_pbe0_augpc1.zzz,
-      molecule.properties.elec_oct_pbe0_augpc1.xxy,
-      molecule.properties.elec_oct_pbe0_augpc1.xxz,
-      molecule.properties.elec_oct_pbe0_augpc1.xyy,
-      molecule.properties.elec_oct_pbe0_augpc1.yyz,
-      molecule.properties.elec_oct_pbe0_augpc1.xzz,
-      molecule.properties.elec_oct_pbe0_augpc1.yzz,
-      molecule.properties.elec_oct_pbe0_augpc1.xyz)
+print(molecule.prop.elec_oct_pbe0_augpc1.xxx,
+      molecule.prop.elec_oct_pbe0_augpc1.yyy,
+      molecule.prop.elec_oct_pbe0_augpc1.zzz,
+      molecule.prop.elec_oct_pbe0_augpc1.xxy,
+      molecule.prop.elec_oct_pbe0_augpc1.xxz,
+      molecule.prop.elec_oct_pbe0_augpc1.xyy,
+      molecule.prop.elec_oct_pbe0_augpc1.yyz,
+      molecule.prop.elec_oct_pbe0_augpc1.xzz,
+      molecule.prop.elec_oct_pbe0_augpc1.yzz,
+      molecule.prop.elec_oct_pbe0_augpc1.xyz)
 
 print()
 print('A couple of important fields are not inside "properties"')

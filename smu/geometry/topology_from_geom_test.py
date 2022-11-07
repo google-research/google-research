@@ -141,7 +141,7 @@ atom_positions {
 
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    molecule.prop.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     molecule.mol_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
         molecule, all_distributions, matching_parameters)
@@ -178,7 +178,7 @@ atom_positions {
     # individual bonds have switched single/double.
     # We set it so the bond lengths favor one of the two arrangements
     molecule = dataset_pb2.Molecule(mol_id=123)
-    molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    molecule.prop.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
 
     molecule.bond_topo.add(topo_id=123, smiles='N1=NN=N1')
     molecule.bond_topo[0].atom.extend([

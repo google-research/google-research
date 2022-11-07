@@ -50,7 +50,7 @@ class GetBondLengthDistribution(beam.DoFn):
 
     natoms = len(bt.atom)
 
-    if molecule.properties.calc.fate != dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW:
+    if molecule.prop.calc.fate != dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW:
       return
 
     for a1 in range(0, natoms):

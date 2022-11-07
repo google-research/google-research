@@ -1061,7 +1061,7 @@ message Molecule {
   repeated int32 duplicates_found = 6;
 
   // All of the calculated properties.
-  Properties properties = 7;
+  Properties prop = 7;
 
   // All of the bond topologies that describe this geometry.
   // These are ordered by how well the bond topology describes this geometry.

@@ -117,7 +117,7 @@ def main(unused_argv):
 
     for molecule in db:
       # for molecule in [db.find_by_mol_id(375986006)]:
-      if molecule.properties.calc.fate != dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK:
+      if molecule.prop.calc.fate != dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK:
         continue
 
       count_processed += 1

@@ -1,5 +1,5 @@
 We will examine molecule with id 57001
-The computed properties are generally in the .properties field
+The computed properties are generally in the .prop field
 
 Scalar values are access by name (note the .value suffix), like this single point energy:  -213.76513
 

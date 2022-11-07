@@ -256,22 +256,22 @@ class Atomic2InputTest(absltest.TestCase):
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.calc.status = -1
+      molecule.prop.calc.status = -1
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.calc.status = 19
+      molecule.prop.calc.status = 19
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.ClearField('spe_std_hf_3')
+      molecule.prop.ClearField('spe_std_hf_3')
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.ClearField('spe_std_mp2_3')
+      molecule.prop.ClearField('spe_std_mp2_3')
       writer.process(molecule, 0)
 
 

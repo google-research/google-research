@@ -46,7 +46,7 @@ print()
 print('The first are duplicate records')
 molecule_dup_same = db.find_by_mol_id(DUPLICATE_MOLECULE_SAME_ID)
 print('Consider', molecule_dup_same.mol_id)
-print('It has status', molecule_dup_same.properties.calc.status,
+print('It has status', molecule_dup_same.prop.calc.status,
       'and duplicate_of', molecule_dup_same.duplicate_of)
 print('This means this molecule was considered a duplciated of another')
 print('That other molecule proceeded to full calculation',
@@ -87,7 +87,7 @@ print()
 print('The other important cases to watch for are status >= 512')
 molecule_stage1 = db.find_by_mol_id(146002)
 print('Consider molecule', molecule_stage1.mol_id)
-print('The status is', molecule_stage1.properties.calc.status,
+print('The status is', molecule_stage1.prop.calc.status,
       'and the full record is:')
 print(molecule_stage1)
 print('You can see that there is very little information there')

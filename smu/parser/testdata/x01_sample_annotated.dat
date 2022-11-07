@@ -12,7 +12,7 @@ Warn_NEG      0
 # From topology
      
      3
-# From smiles or properties.smiles_openbabel
+# From smiles or prop.smiles_openbabel
 N
 # From topology
 x01_nh3

@@ -238,9 +238,13 @@ bond_topologies bond_topo
 bond_topo_id topo_id
 """
 
-THIS_REPLACE="${COMPLEX_FIELDS}"
-ARGS="-i"
-#ARGS=""
+PROP_RENAME="""
+.properties .prop
+"""
+
+THIS_REPLACE="${PROP_RENAME}"
+#ARGS="-i"
+ARGS=""
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 FILES=$(find ${SCRIPT_DIR}/.. -type f -maxdepth 4 | grep -v venv | grep -v dataset_pb2.py | grep -v rename.sh | egrep -v '\.(cc|h|pyc)$' | grep -v '~$')

@@ -81,7 +81,7 @@ for mol in molecules:
   # See special_cases.py for a description of the duplicate_of field
   #---------------------------------------------------------------------------
 
-  if (mol.properties.calc.status >= 4 or mol.duplicate_of != 0):
+  if (mol.prop.calc.status >= 4 or mol.duplicate_of != 0):
     continue
 
   #---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ for mol in molecules:
   # reminder/example. See missing_fields.py for details.
   #---------------------------------------------------------------------------
 
-  if not mol.properties.HasField('elec_dip_pbe0_augpc1'):
+  if not mol.prop.HasField('elec_dip_pbe0_augpc1'):
     continue
 
   #---------------------------------------------------------------------------
@@ -131,7 +131,7 @@ writer.writerow([
 
 for smiles in smiles_to_molecules:
   energies = [
-      mol.properties.at2_std_b5_hf298.value
+      mol.prop.at2_std_b5_hf298.value
       for mol in smiles_to_molecules[smiles]
   ]
   #---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ for smiles in smiles_to_molecules:
   # fields
   #---------------------------------------------------------------------------
 
-  dipole = mol.properties.elec_dip_pbe0_augpc1
+  dipole = mol.prop.elec_dip_pbe0_augpc1
   writer.writerow([
       mol.mol_id, smiles,
       len(smiles_to_molecules[smiles]), dipole.x, dipole.y, dipole.z,

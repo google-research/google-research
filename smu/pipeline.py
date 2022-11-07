@@ -217,10 +217,10 @@ def molecule_to_stat_values(molecule):
       'warn_vib_linear', 'warn_vib_imag', 'warn_bsr_neg',
       'error_nstat1', 'error_nstatc', 'error_nstatt', 'error_frequencies'
   ]:
-    yield 'errors.' + field, getattr(molecule.properties.calc, field)
+    yield 'errors.' + field, getattr(molecule.prop.calc, field)
 
   yield 'fate', dataset_pb2.Properties.FateCategory.Name(
-      molecule.properties.calc.fate)
+      molecule.prop.calc.fate)
 
   yield 'num_initial_geometries', len(
       [g for g in molecule.initial_geometries if g.atom_positions])
@@ -229,7 +229,7 @@ def molecule_to_stat_values(molecule):
   for field in smu_utils_lib.find_zero_values(molecule):
     yield 'zero_field', field
 
-  if not molecule.duplicate_of and molecule.properties.calc.status < 512:
+  if not molecule.duplicate_of and molecule.prop.calc.status < 512:
     yield 'num_topologies', len(molecule.bond_topo)
 
     yield 'num_topologies_itc', len([
@@ -337,7 +337,7 @@ def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
     (atom type 1, atom type 2, bond type, quantized dist)
   """
   # These are considered "major" or worse errors
-  if (molecule.properties.calc.status >= 8 or molecule.duplicate_of > 0):
+  if (molecule.prop.calc.status >= 8 or molecule.duplicate_of > 0):
     return
 
   bt = molecule.bond_topo[0]
@@ -469,7 +469,7 @@ class UpdateMoleculeFn(beam.DoFn):
           UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH,
           (molecule.mol_id, result, molecule.bond_topo[0].smiles,
            smiles_with_h, smiles_without_h))
-      molecule.properties.smiles_openbabel = (
+      molecule.prop.smiles_openbabel = (
           molecule.bond_topo[0].smiles)
       molecule.bond_topo[0].smiles = smiles_without_h
 
@@ -521,7 +521,7 @@ class UpdateMoleculeFn(beam.DoFn):
 
     molecule = copy.deepcopy(molecule)
 
-    molecule.properties.calc.fate = smu_utils_lib.determine_fate(molecule)
+    molecule.prop.calc.fate = smu_utils_lib.determine_fate(molecule)
 
     yield from self._compare_smiles(molecule)
 

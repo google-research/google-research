@@ -842,7 +842,7 @@ def iterate_bond_topologies(molecule, which):
     yield 0, molecule.bond_topo[0]
 
   if which == WhichTopologies.STARTING:
-    if (molecule.properties.calc.status >= 512 or molecule.duplicate_of > 0):
+    if (molecule.prop.calc.status >= 512 or molecule.duplicate_of > 0):
       yield 0, molecule.bond_topo[0]
     for bt_idx, bt in enumerate(molecule.bond_topo):
       if (bt.is_starting_topology or
@@ -1128,7 +1128,7 @@ class _MoleculeSource(enum.Enum):
 
 def _molecule_source(mol):
   """Determines source of given molecule."""
-  if not mol.HasField('properties'):
+  if not mol.HasField('prop'):
     if mol.duplicate_of == 0 and not mol.duplicates_found:
       raise ValueError(
           'Unknown molecule source, no properties or duplicates: ' + str(mol))
@@ -1140,18 +1140,18 @@ def _molecule_source(mol):
   # calculation_statistics is an internal only field, but it's it's present and
   # and has the right size (stage1 only has 2 computation steps),
   # it's got to be a stage 1 file.
-  if len(mol.properties.calculation_statistics) == 2:
+  if len(mol.prop.calculation_statistics) == 2:
     return _MoleculeSource.STAGE1
   # If we are looking at a standard record from the end of the pipeline,
   # it won't have the errors field at all.
-  if not mol.properties.HasField('calc'):
+  if not mol.prop.HasField('calc'):
     return _MoleculeSource.STAGE2
 
   # If we have a complete record at the end of the pipeline, status will have a value.
   # Now you may note that we can't tell the difference between a missing status value
   # and a value of 0, but we lucked out that status 0 is always stage 2.
-  if len(mol.properties.calculation_statistics) == 0 and (
-      mol.properties.calc.status < 0 or mol.properties.calc.status >= 512):
+  if len(mol.prop.calculation_statistics) == 0 and (
+      mol.prop.calc.status < 0 or mol.prop.calc.status >= 512):
     return _MoleculeSource.STAGE1
 
   return _MoleculeSource.STAGE2
@@ -1262,10 +1262,10 @@ def merge_molecule(mol1, mol2):
   # We set the conflict info here because we'll be messing around with fields
   # below. We may not need this if we don't actually find a conflict.
   conflict_info = [mol1.mol_id]
-  conflict_info.append(mol1.properties.calc.error_nstat1)
-  conflict_info.append(mol1.properties.calc.error_nstatc)
-  conflict_info.append(mol1.properties.calc.error_frequencies)  # nstatv
-  conflict_info.append(mol1.properties.calc.error_nstatt)
+  conflict_info.append(mol1.prop.calc.error_nstat1)
+  conflict_info.append(mol1.prop.calc.error_nstatc)
+  conflict_info.append(mol1.prop.calc.error_frequencies)  # nstatv
+  conflict_info.append(mol1.prop.calc.error_nstatt)
   for c in [mol1, mol2]:
     if c.initial_geometries:
       conflict_info.append(c.initial_geometries[0].energy.value)
@@ -1304,8 +1304,8 @@ def merge_molecule(mol1, mol2):
     for field in STAGE1_ERROR_FIELDS:
       # Only stage1 uses these old style error fields, so we just copy them
       # over
-      setattr(mol2.properties.calc, field,
-              getattr(mol1.properties.calc, field))
+      setattr(mol2.prop.calc, field,
+              getattr(mol1.prop.calc, field))
 
     for field_fn, atol in [
         (lambda c: c.initial_geometries[0].energy, 2e-6),
@@ -1331,11 +1331,11 @@ def merge_molecule(mol1, mol2):
 
     # This isn't actually a conflict per-se, but we want to find anything that
     # is not an allowed set of combinations of error values.
-    error_codes = (mol1.properties.calc.error_nstat1,
-                   mol1.properties.calc.error_nstatc,
-                   mol1.properties.calc.error_frequencies,
-                   mol1.properties.calc.error_nstatt)
-    if mol1.properties.calc.error_frequencies == 101:
+    error_codes = (mol1.prop.calc.error_nstat1,
+                   mol1.prop.calc.error_nstatc,
+                   mol1.prop.calc.error_frequencies,
+                   mol1.prop.calc.error_nstatt)
+    if mol1.prop.calc.error_frequencies == 101:
       # This happens for exactly one molecule. If anything else shows up
       # here we will mark it as a conflict so it comes out in that output
       if mol2.mol_id != 795795001:
@@ -1352,19 +1352,19 @@ def merge_molecule(mol1, mol2):
       mol2.initial_geometries.append(mol1.initial_geometries[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
-    if (mol2.properties.calc.status == 800 or
-        mol2.properties.calc.status == 700):
+    if (mol2.prop.calc.status == 800 or
+        mol2.prop.calc.status == 700):
       # Flip back because we will base everything on the stage1 file
       mol1, mol2 = mol2, mol1
       source1, source2 = source2, source1
 
-      mol2.properties.calc.status = (500 +
-                                       mol1.properties.calc.status // 10)
-      mol2.properties.calc.which_database = dataset_pb2.COMPLETE
-      if np.any(np.asarray(mol2.properties.vib_freq.value) < -30):
-        mol2.properties.calc.warn_vib_imag = 2
-      elif np.any(np.asarray(mol2.properties.vib_freq.value) < 0):
-        mol2.properties.calc.warn_vib_imag = 1
+      mol2.prop.calc.status = (500 +
+                                       mol1.prop.calc.status // 10)
+      mol2.prop.calc.which_database = dataset_pb2.COMPLETE
+      if np.any(np.asarray(mol2.prop.vib_freq.value) < -30):
+        mol2.prop.calc.warn_vib_imag = 2
+      elif np.any(np.asarray(mol2.prop.vib_freq.value) < 0):
+        mol2.prop.calc.warn_vib_imag = 1
 
   # Move over all duplicate info.
   if (mol1.duplicate_of != 0 and mol2.duplicate_of != 0 and
@@ -1400,7 +1400,7 @@ def molecule_calculation_error_level(molecule):
       0: cations success, no problems
   """
   source = _molecule_source(molecule)
-  errors = molecule.properties.calc
+  errors = molecule.prop.calc
 
   # The levels aren't very well defined for STAGE1.
   # We'll call all errors serious
@@ -1454,10 +1454,10 @@ def filter_molecule_by_availability(molecule, allowed):
   # filter in the molecule not in the properties subfield.
   if dataset_pb2.INTERNAL_ONLY not in allowed:
     molecule.ClearField('original_molecule_index')
-  for descriptor, _ in molecule.properties.ListFields():
+  for descriptor, _ in molecule.prop.ListFields():
     if (descriptor.GetOptions().Extensions[dataset_pb2.availability]
         not in allowed):
-      molecule.properties.ClearField(descriptor.name)
+      molecule.prop.ClearField(descriptor.name)
   for geometry in itertools.chain([molecule.optimized_geometry],
                                   molecule.initial_geometries):
     for descriptor, _ in geometry.ListFields():
@@ -1480,9 +1480,9 @@ def should_include_in_standard(molecule):
   """
   if molecule.duplicate_of > 0:
     return False
-  if molecule.properties.calc.which_database == dataset_pb2.COMPLETE:
+  if molecule.prop.calc.which_database == dataset_pb2.COMPLETE:
     return False
-  elif molecule.properties.calc.which_database == dataset_pb2.STANDARD:
+  elif molecule.prop.calc.which_database == dataset_pb2.STANDARD:
     return True
   else:
     # This should only happen with stage1 only files.
@@ -1530,23 +1530,23 @@ def clean_up_error_codes(molecule):
   """
   source = _molecule_source(molecule)
   if source == _MoleculeSource.STAGE1:
-    if molecule.properties.calc.status:
+    if molecule.prop.calc.status:
       # This is a special case where the stage1 molecule was already put
       # together as a final entry during the merging process. Everything
       # has already been set up.
       pass
-    elif (molecule.properties.calc.error_nstat1 == 1 or
-          molecule.properties.calc.error_nstat1 == 3):
+    elif (molecule.prop.calc.error_nstat1 == 1 or
+          molecule.prop.calc.error_nstat1 == 3):
       # This should be a duplciate. If we have no record of a dup, we'll
       # leaves is as stauts 0 and let it be caught by fate below
       if molecule.duplicate_of:
-        molecule.properties.calc.status = -1
-    elif molecule.properties.calc.error_nstat1 == 5:
+        molecule.prop.calc.status = -1
+    elif molecule.prop.calc.error_nstat1 == 5:
       # optimization was successful, but optimized to different topology
-      molecule.properties.calc.status = 590
-    elif molecule.properties.calc.error_nstat1 == 2:
+      molecule.prop.calc.status = 590
+    elif molecule.prop.calc.error_nstat1 == 2:
       # optimization failed. Clean up the error codes and remove some info
-      molecule.properties.calc.status = 600
+      molecule.prop.calc.status = 600
       molecule.initial_geometries[0].ClearField('energy')
       molecule.initial_geometries[0].ClearField('gnorm')
       molecule.ClearField('optimized_geometry')
@@ -1560,7 +1560,7 @@ def clean_up_error_codes(molecule):
         f'Clean up can only handle Stage1 or 2 molecules, got {molecule}')
 
   for field in STAGE1_ERROR_FIELDS:
-    molecule.properties.calc.ClearField(field)
+    molecule.prop.calc.ClearField(field)
 
 
 def clean_up_sentinel_values(molecule):
@@ -1696,7 +1696,7 @@ def find_zero_values(molecule):
   Yields:
     string of field name
   """
-  properties = molecule.properties
+  properties = molecule.prop
 
   # excitation is different because it's a MultiScalar
   if properties.HasField('exc_ene_cc2_tzvp'):
@@ -1739,7 +1739,7 @@ def determine_fate(molecule):
       else:
         return dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY
 
-    status = molecule.properties.calc.status
+    status = molecule.prop.calc.status
     if status == 600:
       return dataset_pb2.Properties.FATE_FAILURE_GEO_OPT
     elif status == 590:
@@ -1840,7 +1840,7 @@ def molecule_to_bond_topology_summaries(molecule):
       yield bt
       observed_bt_id.add(bt.topo_id)
 
-  fate = molecule.properties.calc.fate
+  fate = molecule.prop.calc.fate
 
   if fate == dataset_pb2.Properties.FATE_UNDEFINED:
     raise ValueError(f'Molecule {molecule.mol_id} has undefined fate')
@@ -1947,5 +1947,5 @@ def molecule_eligible_for_topology_detection(molecule):
     bool
   """
   return (molecule.duplicate_of == 0 and
-          molecule.properties.calc.status >= 0 and
-          molecule.properties.calc.status < 512)
+          molecule.prop.calc.status >= 0 and
+          molecule.prop.calc.status < 512)

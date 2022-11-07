@@ -474,7 +474,7 @@ class SmuParser:
       self._molecule.original_molecule_index = -1
     else:
       self._molecule.original_molecule_index = int(vals[0])
-    errors = self._molecule.properties.calc
+    errors = self._molecule.prop.calc
     for field, val in zip(smu_utils_lib.STAGE1_ERROR_FIELDS, vals[1:5]):
       setattr(errors, field, int(val))
     # Note that vals[6] is the molecule identifier which we ignore in favor of
@@ -511,16 +511,16 @@ class SmuParser:
     if parts[0] != 'Database':
       raise ValueError('Bad keyword on database line, got: {}'.format(parts[0]))
     if parts[1] == 'standard':
-      self._molecule.properties.calc.which_database = dataset_pb2.STANDARD
+      self._molecule.prop.calc.which_database = dataset_pb2.STANDARD
     elif parts[1] == 'complete':
-      self._molecule.properties.calc.which_database = dataset_pb2.COMPLETE
+      self._molecule.prop.calc.which_database = dataset_pb2.COMPLETE
     else:
       raise ValueError('Expected database indicator, got: {}'.format(parts[1]))
 
   def parse_error_codes(self):
     """Parses the error section with the warning flags."""
     lines = iter(self.parse(ParseModes.RAW, num_lines=6))
-    errors = self._molecule.properties.calc
+    errors = self._molecule.prop.calc
 
     parts = str(next(lines)).split()
     assert (len(parts) == 2 and parts[0]
@@ -636,7 +636,7 @@ class SmuParser:
   def parse_cluster_info(self, num_lines):
     """Stores a string describing the compute cluster used for computations."""
     cluster_info = self.parse(ParseModes.RAW, num_lines=num_lines)
-    self._molecule.properties.compute_cluster_info = '\n'.join(
+    self._molecule.prop.compute_cluster_info = '\n'.join(
         cluster_info) + '\n'
 
   def parse_stage1_timings(self):
@@ -657,7 +657,7 @@ class SmuParser:
         raise ValueError(
             'Expected all trailing timing to be -1, got {}'.format(v))
 
-    calculation_statistics = self._molecule.properties.calculation_statistics
+    calculation_statistics = self._molecule.prop.calculation_statistics
     calculation_statistics.add(computing_location='Geo', timings=values[1])
     calculation_statistics.add(computing_location='Force', timings=values[2])
 
@@ -669,7 +669,7 @@ class SmuParser:
     assert len(labels) == len(
         values), 'Length mismatch between values %s and %s labels.' % (values,
                                                                        labels)
-    calculation_statistics = self._molecule.properties.calculation_statistics
+    calculation_statistics = self._molecule.prop.calculation_statistics
     for label, value in zip(labels, values):
       calculation_statistics.add()
       calculation_statistics[-1].computing_location = label
@@ -742,7 +742,7 @@ class SmuParser:
     if not self._next_line_startswith('Symmetry used in calculation'):
       return
     symmetry = self.parse(ParseModes.RAW, num_lines=1)[0]
-    self._molecule.properties.symmetry_used_in_calculation = str(
+    self._molecule.prop.symmetry_used_in_calculation = str(
         symmetry).strip().split()[-1] != 'no'
 
   def parse_frequencies_and_intensities(self, num_atoms, header):
@@ -772,7 +772,7 @@ class SmuParser:
         ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
     section = [str(line).strip() for line in section]
     section = ' '.join(section).split()
-    vib_freq = self._molecule.properties.vib_freq
+    vib_freq = self._molecule.prop.vib_freq
     for value in section:
       vib_freq.value.append(float(value))
 
@@ -780,7 +780,7 @@ class SmuParser:
         ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
     section = [str(line).strip() for line in section]
     section = ' '.join(section).split()
-    vib_intens = self._molecule.properties.vib_intens
+    vib_intens = self._molecule.prop.vib_intens
     for value in section:
       vib_intens.value.append(float(value))
 
@@ -797,12 +797,12 @@ class SmuParser:
       assert str(line).startswith(prefix)
       parts = line.split()
       if len(fields) == 1:
-        setattr(self._molecule.properties.gaussian_sanity_check, fields[0],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],
                 float(parts[-1]))
       elif len(fields) == 2:
-        setattr(self._molecule.properties.gaussian_sanity_check, fields[0],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],
                 float(parts[-2]))
-        setattr(self._molecule.properties.gaussian_sanity_check, fields[1],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[1],
                 float(parts[-1]))
       else:
         raise ValueError(f'Bad fields length {len(fields)}')
@@ -819,7 +819,7 @@ class SmuParser:
     # Skip the header line
     self.parse(ParseModes.SKIP, num_lines=1)
 
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for _ in range(3 * num_atoms):
       if not self._next_line_startswith('Mode'):
         raise ValueError(
@@ -845,7 +845,7 @@ class SmuParser:
         ParseModes.KEYVALUE,
         num_lines=50,
         allowed_keys=PROPERTIES_LABEL_FIELDS.keys())
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for label in labels_and_values:
       if label in ['NIMAG', 'NUM_OPT']:
         setattr(properties, PROPERTIES_LABEL_FIELDS[label],
@@ -859,7 +859,7 @@ class SmuParser:
 
   def parse_diagnostics(self):
     """Parses D1 and T1 diagnostics."""
-    properties = self._molecule.properties
+    properties = self._molecule.prop
 
     if self._next_line_startswith('D1DIAG'):
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
@@ -883,7 +883,7 @@ class SmuParser:
       return
 
     homo_lumo_data = self.parse(ParseModes.BYLABEL, label='HOMO/LUMO')
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for line in homo_lumo_data:
       items = str(line).strip().split()
       if items[1] == 'PBE0/6-311Gd':
@@ -931,7 +931,7 @@ class SmuParser:
     if not self._next_line_startswith('AT2_'):
       return
     section = self.parse(ParseModes.BYLABEL, label='AT2_')
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for line in section:
       label, rest = str(line[:20]).strip(), line[20:]
       field_name, field_type = ATOMIC_LABEL_FIELDS[label]
@@ -970,7 +970,7 @@ class SmuParser:
     segment = self.parse(ParseModes.RAW, num_lines=6)
     for line in segment[1:]:
       items = str(line).strip().split()
-      properties = self._molecule.properties
+      properties = self._molecule.prop
       properties.exc_ene_cc2_tzvp.value.append(float(items[-2]))
       properties.exc_os_cc2_tzvp.value.append(
           float(items[-1]))
@@ -981,7 +981,7 @@ class SmuParser:
     Raises:
       ValueError: if line could not be parsed.
     """
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     while self._next_line_startswith('NMR isotropic shieldings'):
       shieldings_data = self.parse(
           ParseModes.RAW,
@@ -1002,7 +1002,7 @@ class SmuParser:
 
   def parse_partial_charges(self):
     """Parses partial charges (e) for different levels of theory."""
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     while self._next_line_startswith('Partial charges'):
       partial_charges_data = self.parse(
           ParseModes.RAW,
@@ -1018,7 +1018,7 @@ class SmuParser:
     """Parses dipole-dipole polarizability."""
     if not self._next_line_startswith('Polarizability (au)'):
       return
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     header = self.parse(ParseModes.RAW, num_lines=1)  # Polarizability (au).
     items = str(header).strip().split()
     rank2_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
@@ -1033,7 +1033,7 @@ class SmuParser:
 
   def parse_multipole_moments(self):
     """Parses Di-, Quadru-, and Octopole moments in (au)."""
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     # PBE0 section.
     if self._next_line_startswith('Dipole moment (au):     PBE0/aug-pc-1'):
       self.parse(ParseModes.SKIP, num_lines=1)  # Dipole moment (au).

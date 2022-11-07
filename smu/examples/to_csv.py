@@ -73,10 +73,10 @@ for molecule in db:
   #---------------------------------------------------------------------------
   writer.writerow([
       molecule.mol_id,
-      molecule.properties.spe_comp_b5.value,
-      molecule.properties.orb_ehomo_pbe0_6311gd.value,
-      molecule.properties.orb_elumo_pbe0_6311gd.value,
-      molecule.properties.vib_freq.value[6],
+      molecule.prop.spe_comp_b5.value,
+      molecule.prop.orb_ehomo_pbe0_6311gd.value,
+      molecule.prop.orb_elumo_pbe0_6311gd.value,
+      molecule.prop.vib_freq.value[6],
   ])
 
   #---------------------------------------------------------------------------
