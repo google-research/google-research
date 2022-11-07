@@ -728,17 +728,17 @@ class SmuWriter:
     return result
 
   _HOMO_LUMO_LABEL_FIELDS = [
-      ['PBE0/6-311Gd', 'pbe0_6_311gd'],
-      ['PBE0/aug-pc-1', 'pbe0_aug_pc_1'],
-      ['HF/6-31Gd', 'hf_6_31gd'],
-      ['B3LYP/6-31++Gdp', 'b3lyp_6_31ppgdp'],
-      ['B3LYP/aug-pcS-1', 'b3lyp_aug_pcs_1'],
-      ['PBE0/6-31++Gdp', 'pbe0_6_31ppgdp'],
-      ['PBE0/aug-pcS-1', 'pbe0_aug_pcs_1'],
-      ['HF/TZVP', 'hf_tzvp'],
-      ['HF/3', 'hf_3'],
-      ['HF/4', 'hf_4'],
-      ['HF/CVTZ', 'hf_cvtz'],
+      ['PBE0/6-311Gd', 'homo_pbe0_6_311gd', 'lumo_pbe0_6_311gd'],
+      ['PBE0/aug-pc-1', 'homo_pbe0_aug_pc_1', 'lumo_pbe0_aug_pc_1'],
+      ['HF/6-31Gd', 'homo_hf_6_31gd', 'lumo_hf_6_31gd'],
+      ['B3LYP/6-31++Gdp', 'homo_b3lyp_6_31ppgdp', 'lumo_b3lyp_6_31ppgdp'],
+      ['B3LYP/aug-pcS-1', 'homo_b3lyp_aug_pcs_1', 'lumo_b3lyp_aug_pcs_1'],
+      ['PBE0/6-31++Gdp', 'homo_pbe0_6_31ppgdp', 'lumo_pbe0_6_31ppgdp'],
+      ['PBE0/aug-pcS-1', 'homo_pbe0_aug_pcs_1', 'lumo_pbe0_aug_pcs_1'],
+      ['HF/TZVP', 'homo_hf_tzvp', 'lumo_hf_tzvp'],
+      ['HF/3', 'homo_hf_3', 'lumo_hf_3'],
+      ['HF/4', 'homo_hf_4', 'lumo_hf_4'],
+      ['HF/CVTZ', 'homo_hf_cvtz', 'lumo_hf_cvtz'],
   ]
 
   def get_homo_lumo(self, properties):
@@ -751,9 +751,7 @@ class SmuWriter:
       A multiline string representation of the HOMO/LUMO.
     """
     result = ''
-    for label, field_stem in self._HOMO_LUMO_LABEL_FIELDS:
-      homo_field = 'homo_' + field_stem
-      lumo_field = 'lumo_' + field_stem
+    for label, homo_field, lumo_field in self._HOMO_LUMO_LABEL_FIELDS:
       if (not properties.HasField(homo_field) or
           not properties.HasField(lumo_field)):
         continue
