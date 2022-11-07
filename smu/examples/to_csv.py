@@ -52,7 +52,7 @@ writer = csv.writer(sys.stdout)
 # you like.
 #-----------------------------------------------------------------------------
 writer.writerow(
-    ['molecule_id', 'energy', 'homo', 'lumo', 'first important frequency'])
+    ['mol_id', 'energy', 'homo', 'lumo', 'first important frequency'])
 
 count = 0
 #-----------------------------------------------------------------------------
@@ -72,11 +72,11 @@ for molecule in db:
   # See field_access.py for more examples of accessing fields.
   #---------------------------------------------------------------------------
   writer.writerow([
-      molecule.molecule_id,
-      molecule.properties.single_point_energy_atomic_b5.value,
-      molecule.properties.homo_pbe0_6_311gd.value,
-      molecule.properties.lumo_pbe0_6_311gd.value,
-      molecule.properties.harmonic_frequencies.value[6],
+      molecule.mol_id,
+      molecule.properties.spe_comp_b5.value,
+      molecule.properties.orb_ehomo_pbe0_6311gd.value,
+      molecule.properties.orb_elumo_pbe0_6311gd.value,
+      molecule.properties.vib_freq.value[6],
   ])
 
   #---------------------------------------------------------------------------

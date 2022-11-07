@@ -129,7 +129,7 @@ def process_one_expected(samples_fn, db, is_standard):
         open(os.path.join(this_output_dir, f'{file_keyword}.diff'), 'w') as diff_file):
     for mol_id in parse_samples_file(samples_fn):
       try:
-        mol = db.find_by_molecule_id(mol_id)
+        mol = db.find_by_mol_id(mol_id)
         actual = writer.process(mol)
       except KeyError:
         if is_standard:

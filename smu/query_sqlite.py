@@ -172,7 +172,7 @@ def smarts_query(db, smarts, which_topologies, outputter):
     return
 
   logging.info('Starting SMARTS query "%s"', smarts)
-  bt_ids = list(db.find_bond_topology_id_by_smarts(smarts))
+  bt_ids = list(db.find_bond_topo_id_by_smarts(smarts))
 
   logging.info('SMARTS query "%s" produced bond topology %d results', smarts,
                len(bt_ids))
@@ -192,7 +192,7 @@ def smarts_query(db, smarts, which_topologies, outputter):
   for batch_idx in range(len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1):
     logging.info('Starting batch %d / %d', batch_idx,
                  len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1)
-    for c in db.find_by_bond_topology_id_list(
+    for c in db.find_by_bond_topo_id_list(
         bt_ids[batch_idx * _SMARTS_BT_BATCH_SIZE:(batch_idx + 1) *
                _SMARTS_BT_BATCH_SIZE], which_topologies):
       count += 1
@@ -400,14 +400,14 @@ class ReDetectTopologiesOutputter:
         matching_parameters=self._matching_parameters)
 
     if not matches.bond_topology:
-      logging.error('No bond topology matched for %s', molecule.molecule_id)
+      logging.error('No bond topology matched for %s', molecule.mol_id)
     else:
       del molecule.bond_topologies[:]
       molecule.bond_topologies.extend(matches.bond_topology)
       for bt in molecule.bond_topologies:
         bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
         try:
-          bt.bond_topology_id = self._db.find_bond_topology_id_for_smiles(
+          bt.bond_topo_id = self._db.find_bond_topo_id_for_smiles(
               bt.smiles)
         except KeyError:
           logging.error('Did not find bond topology id for smiles %s',
@@ -461,10 +461,10 @@ def main(argv):
 
   with contextlib.closing(outputter):
     for mid in (int(x) for x in FLAGS.mids):
-      molecule = db.find_by_molecule_id(mid)
+      molecule = db.find_by_mol_id(mid)
       outputter.output(molecule)
 
-    for c in db.find_by_bond_topology_id_list([int(x) for x in FLAGS.btids],
+    for c in db.find_by_bond_topo_id_list([int(x) for x in FLAGS.btids],
                                               FLAGS.which_topologies):
       outputter.output(c)
 

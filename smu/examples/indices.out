@@ -7,11 +7,11 @@ Looking up a molecule id not in the DB raises a KeyError
 Looking up by bond topology id will return zero or more molecules
 Querying for bond topology id 7984 returned 2 molecules
 Note that the molecules returned may have multiple bond topologies,and may or may not have the requested bond topology first
-    Result with molecule_id 7984002
+    Result with mol_id 7984002
         has bond topology with id 7986 and SMILES O=[N+](O)OO[O-]
         has bond topology with id 7986 and SMILES O=[N+](O)OO[O-]
         has bond topology with id 7984 and SMILES [O-][N+]1(O)OOO1
-    Result with molecule_id 7984001
+    Result with mol_id 7984001
         has bond topology with id 7986 and SMILES O=[N+](O)OO[O-]
         has bond topology with id 7986 and SMILES O=[N+](O)OO[O-]
         has bond topology with id 7984 and SMILES [O-][N+]1(O)OOO1

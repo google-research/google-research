@@ -162,7 +162,7 @@ ERROR_CODES = collections.OrderedDict([
     ('nsveca', 'error_single_point_energies'),
     ('nsvmr1', 'error_inconsistent_molecule_energy_turbomole_mrcc'),
     ('nsvmr2', 'error_inconsistent_cation_energy_turbomole_mrcc'),
-    ('nsvvib', 'error_normal_modes'),
+    ('nsvvib', 'error_vib_mode'),
     ('nsvor1', 'error_inconsistent_molecule_energy_turbomole_orca'),
     ('nsvor2', 'error_inconsistent_cation_energy_turbomole_orca'),
     ('nsvrot', 'error_rotational_modes'),
@@ -304,12 +304,12 @@ def get_original_label(molecule):
   Returns:
     string
   """
-  bt_id = molecule.molecule_id // 1000
+  bt_id = molecule.mol_id // 1000
   if special_case_dat_id_from_bt_id(bt_id):
     bt_id = 0
   return '{:s}.{:06d}.{:03d}'.format(
       get_composition(molecule.bond_topologies[0]), bt_id,
-      molecule.molecule_id % 1000)
+      molecule.mol_id % 1000)
 
 
 _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
@@ -724,7 +724,7 @@ def generate_bond_topologies_from_csv(fileobj):
     # (just a string like 'CNNOO') so the [::2] skips those.
     bond_topology = create_bond_topology(atoms[::2], connectivity, hydrogens)
     bond_topology.smiles = smiles
-    bond_topology.bond_topology_id = int(bt_id)
+    bond_topology.bond_topo_id = int(bt_id)
     yield bond_topology
 
 
@@ -801,7 +801,7 @@ def bond_topology_sorting_key(bond_topology):
   Returns:
     tuple
   """
-  return (bond_topology.bond_topology_id,
+  return (bond_topology.bond_topo_id,
           compact_adjacency_matrix_string(
             compute_adjacency_matrix(bond_topology), '.'))
 
@@ -842,7 +842,7 @@ def iterate_bond_topologies(molecule, which):
     yield 0, molecule.bond_topologies[0]
 
   if which == WhichTopologies.STARTING:
-    if (molecule.properties.errors.status >= 512 or molecule.duplicated_by > 0):
+    if (molecule.properties.errors.status >= 512 or molecule.duplicate_of > 0):
       yield 0, molecule.bond_topologies[0]
     for bt_idx, bt in enumerate(molecule.bond_topologies):
       if (bt.is_starting_topology or
@@ -879,8 +879,8 @@ def molecule_to_rdkit_molecules(molecule,
   bt=<bt_id>(<bt_idx>/<bt_count>)
   geom=[opt|init(<init_idx>/<init_count>)]
   where
-    molid: molecule_id
-    bt_id: bond_topology_id
+    molid: mol_id
+    bt_id: bond_topo_id
     bt_idx: index in bond_topologies
     bt_count: size of bond_topologies
     init_idx: index in initial_geometries
@@ -897,7 +897,7 @@ def molecule_to_rdkit_molecules(molecule,
   """
   bt_count = len(molecule.bond_topologies)
   requested_bond_topologies = [
-      (bt, f'{bt.bond_topology_id}({i+1}/{bt_count})')
+      (bt, f'{bt.bond_topo_id}({i+1}/{bt_count})')
       for i, bt in iterate_bond_topologies(molecule, which_topologies)
   ]
 
@@ -923,7 +923,7 @@ def molecule_to_rdkit_molecules(molecule,
       mol = bond_topology_to_rdkit_molecule(bt)
       mol.SetProp(
           '_Name',
-          f'SMU {molecule.molecule_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
+          f'SMU {molecule.mol_id}, RDKIT {bt.smiles}, bt {bt_label}, geom {geom_label}'
       )
 
       # Add in the coordinates
@@ -1129,7 +1129,7 @@ class _MoleculeSource(enum.Enum):
 def _molecule_source(mol):
   """Determines source of given molecule."""
   if not mol.HasField('properties'):
-    if mol.duplicated_by == 0 and not mol.duplicate_of:
+    if mol.duplicate_of == 0 and not mol.duplicates_found:
       raise ValueError(
           'Unknown molecule source, no properties or duplicates: ' + str(mol))
     return _MoleculeSource.DUPLICATE
@@ -1161,7 +1161,7 @@ def _molecule_source(mol):
 # The fields for the STAGE1 molecule are first, then fields for the STAGE2
 # molecule.
 MERGE_CONFLICT_FIELDS = [
-    'molecule_id',
+    'mol_id',
     'error_nstat1',
     'error_nstatc',
     'error_nstatv',
@@ -1187,7 +1187,7 @@ def merge_molecule(mol1, mol2):
   During the pipeline, we have partial information about molecules that we
   need to merge. This is the workhorse function for merging these.
 
-  Only molecules with the same molecule_id should be merged.
+  Only molecules with the same mol_id should be merged.
 
   The key concept is to identify a source of each molecule:
   * STAGE2: From end of pipeline, with mostly complete info
@@ -1195,8 +1195,8 @@ def merge_molecule(mol1, mol2):
     which may have been merged, mostly contains duplicate information to
     STAGE2. However, in some cases it's expected that stage2 will differ
     because of reruns in STAGE2.
-  * DUPLICATE: An almost bare molecule with just duplicated_by and/or
-    duplicate_of fields
+  * DUPLICATE: An almost bare molecule with just duplicate_of and/or
+    duplicates_found fields
 
   May modify one of the inputs.
 
@@ -1222,7 +1222,7 @@ def merge_molecule(mol1, mol2):
 
   Raises:
     ValueError: if len(initial_geometries) != 1, len(bond_topologies) != 1,
-      bond_topologies differ, or incompatible duplicated_by fields
+      bond_topologies differ, or incompatible duplicate_of fields
   """
   source1 = _molecule_source(mol1)
   source2 = _molecule_source(mol2)
@@ -1256,12 +1256,12 @@ def merge_molecule(mol1, mol2):
     if mol1.bond_topologies[0] != mol2.bond_topologies[0]:
       raise ValueError(
           'All bond topologies must be the same, got ids {} and {}'.format(
-              mol1.bond_topologies[0].bond_topology_id,
-              mol2.bond_topologies[0].bond_topology_id))
+              mol1.bond_topologies[0].bond_topo_id,
+              mol2.bond_topologies[0].bond_topo_id))
 
   # We set the conflict info here because we'll be messing around with fields
   # below. We may not need this if we don't actually find a conflict.
-  conflict_info = [mol1.molecule_id]
+  conflict_info = [mol1.mol_id]
   conflict_info.append(mol1.properties.errors.error_nstat1)
   conflict_info.append(mol1.properties.errors.error_nstatc)
   conflict_info.append(mol1.properties.errors.error_frequencies)  # nstatv
@@ -1338,7 +1338,7 @@ def merge_molecule(mol1, mol2):
     if mol1.properties.errors.error_frequencies == 101:
       # This happens for exactly one molecule. If anything else shows up
       # here we will mark it as a conflict so it comes out in that output
-      if mol2.molecule_id != 795795001:
+      if mol2.mol_id != 795795001:
         has_conflict = True
     elif error_codes not in [(1, 1, 1, 1), (3, 1, 1, 1), (2, 3, 2, 1),
                              (5, 1, 3, 1), (1, 1, 101, 1)]:
@@ -1361,19 +1361,19 @@ def merge_molecule(mol1, mol2):
       mol2.properties.errors.status = (500 +
                                        mol1.properties.errors.status // 10)
       mol2.properties.errors.which_database = dataset_pb2.COMPLETE
-      if np.any(np.asarray(mol2.properties.harmonic_frequencies.value) < -30):
-        mol2.properties.errors.warn_vib_imaginary = 2
-      elif np.any(np.asarray(mol2.properties.harmonic_frequencies.value) < 0):
-        mol2.properties.errors.warn_vib_imaginary = 1
+      if np.any(np.asarray(mol2.properties.vib_freq.value) < -30):
+        mol2.properties.errors.warn_vib_imag = 2
+      elif np.any(np.asarray(mol2.properties.vib_freq.value) < 0):
+        mol2.properties.errors.warn_vib_imag = 1
 
   # Move over all duplicate info.
-  if (mol1.duplicated_by != 0 and mol2.duplicated_by != 0 and
-      mol1.duplicated_by != mol2.duplicated_by):
-    raise ValueError('Incompatible duplicated_by {} {}'.format(
-        mol1.duplicated_by, mol2.duplicated_by))
+  if (mol1.duplicate_of != 0 and mol2.duplicate_of != 0 and
+      mol1.duplicate_of != mol2.duplicate_of):
+    raise ValueError('Incompatible duplicate_of {} {}'.format(
+        mol1.duplicate_of, mol2.duplicate_of))
   # max is just to get the non-zero one
-  mol2.duplicated_by = max(mol1.duplicated_by, mol2.duplicated_by)
-  mol2.duplicate_of.extend(mol1.duplicate_of)
+  mol2.duplicate_of = max(mol1.duplicate_of, mol2.duplicate_of)
+  mol2.duplicates_found.extend(mol1.duplicates_found)
 
   if not has_conflict:
     return mol2, None
@@ -1423,14 +1423,14 @@ def molecule_calculation_error_level(molecule):
     return 6
 
   # This is warning level 'C' from Bazel documentation.
-  if (errors.warn_t1 > 1 or errors.warn_t1_excess > 1 or
-      errors.warn_bse_b5_b6 > 1 or errors.warn_bse_cccsd_b5 > 1 or
-      errors.warn_exc_lowest_excitation > 1 or
-      errors.warn_exc_smallest_oscillator > 0 or
-      errors.warn_exc_largest_oscillator > 0):
+  if (errors.warn_t1 > 1 or errors.warn_delta_t1 > 1 or
+      errors.warn_bse_b6 > 1 or errors.warn_bse_eccsd > 1 or
+      errors.warn_exc_ene > 1 or
+      errors.warn_exc_osmin > 0 or
+      errors.warn_exc_osmax > 0):
     warn_offset = 2
   # This is warning level 'B" from Bazel documentation.
-  elif (errors.warn_vib_linearity > 0 or errors.warn_vib_imaginary > 1):
+  elif (errors.warn_vib_linear > 0 or errors.warn_vib_imag > 1):
     warn_offset = 1
   else:
     warn_offset = 0
@@ -1478,7 +1478,7 @@ def should_include_in_standard(molecule):
   Returns:
     boolean
   """
-  if molecule.duplicated_by > 0:
+  if molecule.duplicate_of > 0:
     return False
   if molecule.properties.errors.which_database == dataset_pb2.COMPLETE:
     return False
@@ -1539,7 +1539,7 @@ def clean_up_error_codes(molecule):
           molecule.properties.errors.error_nstat1 == 3):
       # This should be a duplciate. If we have no record of a dup, we'll
       # leaves is as stauts 0 and let it be caught by fate below
-      if molecule.duplicated_by:
+      if molecule.duplicate_of:
         molecule.properties.errors.status = -1
     elif molecule.properties.errors.error_nstat1 == 5:
       # optimization was successful, but optimized to different topology
@@ -1579,105 +1579,105 @@ def clean_up_sentinel_values(molecule):
 
 
 _ZERO_FIELD_CHECK_SCALAR = [
-    'single_point_energy_atomic_b5',
-    'single_point_energy_atomic_b6',
-    'single_point_energy_b3lyp_6_31ppgdp',
-    'single_point_energy_b3lyp_aug_pcs_1',
-    'single_point_energy_cc2_tzvp',
-    'single_point_energy_ccsd_2sd',
-    'single_point_energy_ccsd_2sp',
-    'single_point_energy_ccsd_3psd',
-    'single_point_energy_ccsd_t_2sd',
-    'single_point_energy_ccsd_t_2sp',
-    'single_point_energy_eccsd',
-    'single_point_energy_hf_2sd',
-    'single_point_energy_hf_2sp',
-    'single_point_energy_hf_3',
-    'single_point_energy_hf_34',
-    'single_point_energy_hf_3psd',
-    'single_point_energy_hf_4',
-    'single_point_energy_hf_6_31gd',
-    'single_point_energy_hf_cvtz',
-    'single_point_energy_hf_tzvp',
-    'single_point_energy_mp2_2sd',
-    'single_point_energy_mp2_2sp',
-    'single_point_energy_mp2_3',
-    'single_point_energy_mp2_34',
-    'single_point_energy_mp2_3psd',
-    'single_point_energy_mp2_4',
-    'single_point_energy_mp2_tzvp',
-    'single_point_energy_mp2ful_cvtz',
-    'single_point_energy_pbe0_6_311gd',
-    'single_point_energy_pbe0_6_311gd_cat',
-    'single_point_energy_pbe0_6_311gd_cat_mrcc',
-    'single_point_energy_pbe0_6_311gd_cat_orca',
-    'single_point_energy_pbe0_6_311gd_mrcc',
-    'single_point_energy_pbe0_6_311gd_orca',
-    'single_point_energy_pbe0_6_31ppgdp',
-    'single_point_energy_pbe0_aug_pc_1',
-    'single_point_energy_pbe0_aug_pcs_1',
-    'single_point_energy_pbe0d3_6_311gd',
-    'homo_b3lyp_6_31ppgdp',
-    'homo_b3lyp_aug_pcs_1',
-    'homo_hf_3',
-    'homo_hf_4',
-    'homo_hf_6_31gd',
-    'homo_hf_cvtz',
-    'homo_hf_tzvp',
-    'homo_pbe0_6_311gd',
-    'homo_pbe0_6_31ppgdp',
-    'homo_pbe0_aug_pc_1',
-    'homo_pbe0_aug_pcs_1',
-    'lumo_b3lyp_6_31ppgdp',
-    'lumo_b3lyp_aug_pcs_1',
-    'lumo_hf_3',
-    'lumo_hf_4',
-    'lumo_hf_6_31gd',
-    'lumo_hf_cvtz',
-    'lumo_hf_tzvp',
-    'lumo_pbe0_6_311gd',
-    'lumo_pbe0_6_31ppgdp',
-    'lumo_pbe0_aug_pc_1',
-    'lumo_pbe0_aug_pcs_1',
-    'atomization_energy_excluding_zpe_atomic_b5',
-    'atomization_energy_excluding_zpe_atomic_b5_um',
-    'atomization_energy_excluding_zpe_atomic_b6',
-    'atomization_energy_excluding_zpe_atomic_b6_um',
-    'atomization_energy_excluding_zpe_eccsd',
-    'atomization_energy_excluding_zpe_eccsd_um',
-    'atomization_energy_including_zpe_atomic_b5',
-    'atomization_energy_including_zpe_atomic_b5_um',
-    'atomization_energy_including_zpe_atomic_b6',
-    'atomization_energy_including_zpe_atomic_b6_um',
-    'atomization_energy_including_zpe_eccsd',
-    'atomization_energy_including_zpe_eccsd_um',
-    'enthalpy_of_formation_0k_atomic_b5',
-    'enthalpy_of_formation_0k_atomic_b5_um',
-    'enthalpy_of_formation_0k_atomic_b6',
-    'enthalpy_of_formation_0k_atomic_b6_um',
-    'enthalpy_of_formation_0k_eccsd',
-    'enthalpy_of_formation_0k_eccsd_um',
-    'enthalpy_of_formation_298k_atomic_b5',
-    'enthalpy_of_formation_298k_atomic_b5_um',
-    'enthalpy_of_formation_298k_atomic_b6',
-    'enthalpy_of_formation_298k_atomic_b6_um',
-    'enthalpy_of_formation_298k_eccsd',
-    'enthalpy_of_formation_298k_eccsd_um',
+    'spe_comp_b5',
+    'spe_comp_b6',
+    'spe_std_b3lyp_631ppgdp',
+    'spe_std_b3lyp_augpcs1',
+    'spe_std_cc2_tzvp',
+    'spe_std_ccsd_2sd',
+    'spe_std_ccsd_2sp',
+    'spe_std_ccsd_3psd',
+    'spe_std_ccsd_t_2sd',
+    'spe_std_ccsd_t_2sp',
+    'spe_comp_eccsd',
+    'spe_std_hf_2sd',
+    'spe_std_hf_2sp',
+    'spe_std_hf_3',
+    'spe_std_hf_34',
+    'spe_std_hf_3psd',
+    'spe_std_hf_4',
+    'spe_std_hf_631gd',
+    'spe_std_hf_cvtz',
+    'spe_std_hf_tzvp',
+    'spe_std_mp2_2sd',
+    'spe_std_mp2_2sp',
+    'spe_std_mp2_3',
+    'spe_std_mp2_34',
+    'spe_std_mp2_3psd',
+    'spe_std_mp2_4',
+    'spe_std_mp2_tzvp',
+    'spe_std_mp2full_cvtz',
+    'spe_check_pbe0_6311gd_tmol',
+    'spe_check_pbe0_6311gd_tmol_cat',
+    'spe_check_pbe0_6311gd_tmol_cat_mrcc',
+    'spe_check_pbe0_6311gd_tmol_cat_orca',
+    'spe_check_pbe0_6311gd_tmol_mrcc',
+    'spe_check_pbe0_6311gd_tmol_orca',
+    'spe_std_pbe0_631ppgdp',
+    'spe_std_pbe0_augpc1',
+    'spe_std_pbe0_augpcs1',
+    'spe_std_pbe0d3_6311gd',
+    'orb_ehomo_b3lyp_631ppgdp',
+    'orb_ehomo_b3lyp_augpcs1',
+    'orb_ehomo_hf_3',
+    'orb_ehomo_hf_4',
+    'orb_ehomo_hf_631gd',
+    'orb_ehomo_hf_cvtz',
+    'orb_ehomo_hf_tzvp',
+    'orb_ehomo_pbe0_6311gd',
+    'orb_ehomo_pbe0_631ppgdp',
+    'orb_ehomo_pbe0_augpc1',
+    'orb_ehomo_pbe0_augpcs1',
+    'orb_elumo_b3lyp_631ppgdp',
+    'orb_elumo_b3lyp_augpcs1',
+    'orb_elumo_hf_3',
+    'orb_elumo_hf_4',
+    'orb_elumo_hf_631gd',
+    'orb_elumo_hf_cvtz',
+    'orb_elumo_hf_tzvp',
+    'orb_elumo_pbe0_6311gd',
+    'orb_elumo_pbe0_631ppgdp',
+    'orb_elumo_pbe0_augpc1',
+    'orb_elumo_pbe0_augpcs1',
+    'at2_std_b5_eae',
+    'at2_um_b5_eae',
+    'at2_std_b6_eae',
+    'at2_um_b6_eae',
+    'at2_std_eccsd_eae',
+    'at2_um_eccsd_eae',
+    'at2_std_b5_ea0',
+    'at2_um_b5_ea0',
+    'at2_std_b6_ea0',
+    'at2_um_b6_ea0',
+    'at2_std_eccsd_ea0',
+    'at2_um_eccsd_ea0',
+    'at2_std_b5_hf0',
+    'at2_um_b5_hf0',
+    'at2_std_b6_hf0',
+    'at2_um_b6_hf0',
+    'at2_std_eccsd_hf0',
+    'at2_um_eccsd_hf0',
+    'at2_std_b5_hf298',
+    'at2_um_b5_hf298',
+    'at2_std_b6_hf298',
+    'at2_um_b6_hf298',
+    'at2_std_eccsd_hf298',
+    'at2_um_eccsd_hf298',
 ]
 
 _ZERO_FIELD_CHECK_ATOMIC = [
-    'nmr_isotropic_shielding_b3lyp_6_31ppgdp',
-    'nmr_isotropic_shielding_b3lyp_aug_pcs_1',
-    'nmr_isotropic_shielding_pbe0_6_31ppgdp',
-    'nmr_isotropic_shielding_pbe0_aug_pcs_1',
-    'partial_charges_esp_fit_hf_6_31gd',
-    'partial_charges_esp_fit_pbe0_aug_pc_1',
-    'partial_charges_loewdin_hf_6_31gd',
-    'partial_charges_loewdin_pbe0_aug_pc_1',
-    'partial_charges_mulliken_hf_6_31gd',
-    'partial_charges_mulliken_pbe0_aug_pc_1',
-    'partial_charges_natural_nbo_hf_6_31gd',
-    'partial_charges_natural_nbo_pbe0_aug_pc_1',
+    'nmr_b3lyp_631ppgdp',
+    'nmr_b3lyp_augpcs1',
+    'nmr_pbe0_631ppgdp',
+    'nmr_pbe0_augpcs1',
+    'chg_esp_hf_631gd',
+    'chg_esp_pbe0_augpc1',
+    'chg_loe_hf_631gd',
+    'chg_loe_pbe0_augpc1',
+    'chg_mul_hf_631gd',
+    'chg_mul_pbe0_augpc1',
+    'chg_nat_hf_631gd',
+    'chg_nat_pbe0_augpc1',
     'partial_charges_paboon_hf_6_31gd',
     'partial_charges_paboon_pbe0_aug_pc_1',
 ]
@@ -1699,10 +1699,10 @@ def find_zero_values(molecule):
   properties = molecule.properties
 
   # excitation is different because it's a MultiScalar
-  if properties.HasField('excitation_energies_cc2'):
-    for value in properties.excitation_energies_cc2.value:
+  if properties.HasField('exc_ene_cc2_tzvp'):
+    for value in properties.exc_ene_cc2_tzvp.value:
       if value == 0.0:
-        yield 'excitation_energies_cc2'
+        yield 'exc_ene_cc2_tzvp'
 
   for field in _ZERO_FIELD_CHECK_SCALAR:
     if properties.HasField(field) and getattr(properties, field).value == 0.0:
@@ -1731,9 +1731,9 @@ def determine_fate(molecule):
     return dataset_pb2.Properties.FATE_UNDEFINED
 
   elif source == _MoleculeSource.STAGE1:
-    if molecule.duplicated_by > 0:
-      this_btid = molecule.molecule_id // 1000
-      other_btid = molecule.duplicated_by // 1000
+    if molecule.duplicate_of > 0:
+      this_btid = molecule.mol_id // 1000
+      other_btid = molecule.duplicate_of // 1000
       if this_btid == other_btid:
         return dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY
       else:
@@ -1798,7 +1798,7 @@ def get_starting_bond_topology_index(molecule):
     return bt_idx
   except StopIteration:
     raise ValueError(
-        f'For molecule {molecule.molecule_id}, no starting topology'
+        f'For molecule {molecule.mol_id}, no starting topology'
     ) from StopIteration
 
 
@@ -1831,19 +1831,19 @@ def molecule_to_bond_topology_summaries(molecule):
     if (starting_idx is not None and
         source == dataset_pb2.BondTopology.SOURCE_ITC):
       observed_bt_id.add(
-          molecule.bond_topologies[starting_idx].bond_topology_id)
+          molecule.bond_topologies[starting_idx].bond_topo_id)
     for bt in molecule.bond_topologies:
       if not source & bt.source:
         continue
-      if bt.bond_topology_id in observed_bt_id:
+      if bt.bond_topo_id in observed_bt_id:
         continue
       yield bt
-      observed_bt_id.add(bt.bond_topology_id)
+      observed_bt_id.add(bt.bond_topo_id)
 
   fate = molecule.properties.errors.fate
 
   if fate == dataset_pb2.Properties.FATE_UNDEFINED:
-    raise ValueError(f'Molecule {molecule.molecule_id} has undefined fate')
+    raise ValueError(f'Molecule {molecule.mol_id} has undefined fate')
 
   elif fate == dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY:
     summary.count_duplicates_same_topology = 1
@@ -1923,15 +1923,15 @@ def molecule_to_bond_topology_summaries(molecule):
   observed_bt_id = set()
   yielded_multi_detect = set()
   for bt in molecule.bond_topologies:
-    if bt.bond_topology_id not in observed_bt_id:
-      observed_bt_id.add(bt.bond_topology_id)
+    if bt.bond_topo_id not in observed_bt_id:
+      observed_bt_id.add(bt.bond_topo_id)
       continue
-    if bt.bond_topology_id not in yielded_multi_detect:
+    if bt.bond_topo_id not in yielded_multi_detect:
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_multiple_detections = 1
       yield other_summary
-      yielded_multi_detect.add(bt.bond_topology_id)
+      yielded_multi_detect.add(bt.bond_topo_id)
 
 
 def molecule_eligible_for_topology_detection(molecule):
@@ -1946,6 +1946,6 @@ def molecule_eligible_for_topology_detection(molecule):
   Returns:
     bool
   """
-  return (molecule.duplicated_by == 0 and
+  return (molecule.duplicate_of == 0 and
           molecule.properties.errors.status >= 0 and
           molecule.properties.errors.status < 512)

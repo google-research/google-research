@@ -108,7 +108,7 @@ def check_smiles_permutation_invariance(original_bt):
   Yields:
     Bond topology and two smiles variants, if found.
   """
-  logging.info('Checking %d', original_bt.bond_topology_id)
+  logging.info('Checking %d', original_bt.bond_topo_id)
   smiles = None
   variance_found = False
   for bt in generate_bond_topology_permutations(original_bt):
@@ -125,7 +125,7 @@ def check_smiles_permutation_invariance(original_bt):
     else:
       if this_smiles != smiles:
         variance_found = True
-        yield (original_bt.bond_topology_id, smiles, this_smiles)
+        yield (original_bt.bond_topo_id, smiles, this_smiles)
 
   if variance_found:
     beam.metrics.Metrics.counter('smu', 'bt_variant').inc()

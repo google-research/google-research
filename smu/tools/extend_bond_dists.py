@@ -108,7 +108,7 @@ def main(unused_argv):
   count_matched = 0
 
   with open('extend_bond_dists.csv', 'w') as outf:
-    fields = ['molecule_id']
+    fields = ['mol_id']
     for buf in buffers:
       fields.append(f'is_matched_{buf}')
       fields.append(f'num_matched_{buf}')
@@ -116,7 +116,7 @@ def main(unused_argv):
     writer.writeheader()
 
     for molecule in db:
-      # for molecule in [db.find_by_molecule_id(375986006)]:
+      # for molecule in [db.find_by_mol_id(375986006)]:
       if molecule.properties.errors.fate != dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK:
         continue
 
@@ -124,7 +124,7 @@ def main(unused_argv):
       if count_processed % 25000 == 0:
         logging.info('Processed %d, matched %d', count_processed, count_matched)
 
-      row = {'molecule_id': molecule.molecule_id}
+      row = {'mol_id': molecule.mol_id}
       any_match = False
 
       for buf in buffers:
@@ -138,12 +138,12 @@ def main(unused_argv):
             smiles_id_dict[bt.smiles] for bt in matches.bond_topology
         ]
         is_matched = (
-            molecule.bond_topologies[0].bond_topology_id in matching_bt)
+            molecule.bond_topologies[0].bond_topo_id in matching_bt)
 
         # if matches.bond_topology:
         #   logging.info('For %d, bt %d, got %s',
-        #                molecule.molecule_id,
-        #                molecule.bond_topologies[0].bond_topology_id,
+        #                molecule.mol_id,
+        #                molecule.bond_topologies[0].bond_topo_id,
         #                str(matching_bt))
 
         row[f'is_matched_{buf}'] = is_matched

@@ -86,11 +86,11 @@ class _FortranFloat(float):
 def get_long_molecule_name(molecule):
   return '{}.{}'.format(
     smu_utils_lib.get_composition(molecule.bond_topologies[0]),
-    get_long_molecule_id(molecule.molecule_id))
+    get_long_mol_id(molecule.mol_id))
 
 
-def get_long_molecule_id(molecule_id):
-  return '{:06d}.{:03d}'.format(molecule_id // 1000, molecule_id % 1000)
+def get_long_mol_id(mol_id):
+  return '{:06d}.{:03d}'.format(mol_id // 1000, mol_id % 1000)
 
 
 
@@ -126,8 +126,8 @@ class SmuWriter:
     num_atoms = len(molecule.bond_topologies[0].atoms)
     result = smu_parser_lib.SEPARATOR_LINE + '\n'
     if self.annotate:
-      result += ('# From original_molecule_index, topology, bond_topology_id, '
-                 'error_{nstat1, nstatc, nstatt, frequences} molecule_id\n')
+      result += ('# From original_molecule_index, topology, bond_topo_id, '
+                 'error_{nstat1, nstatc, nstatt, frequences} mol_id\n')
     errors = molecule.properties.errors
     result += '{:5s}{:5d}{:5d}{:5d}{:5d}{:5d}     {:s}\n'.format(
         self._molecule_index_string(molecule), errors.error_nstat1,
@@ -150,7 +150,7 @@ class SmuWriter:
     result = smu_parser_lib.SEPARATOR_LINE + '\n'
     if self.annotate:
       result += ('# From original_molecule_index, topology, '
-                 'bond_topology_id, molecule_id\n')
+                 'bond_topo_id, mol_id\n')
     result += '{:s}{:5d}     {:s}\n'.format(
         self._molecule_index_string(molecule), num_atoms,
         smu_utils_lib.get_original_label(molecule))
@@ -195,17 +195,17 @@ class SmuWriter:
 
     result += 'Status     {:4d}\n'.format(properties.errors.status)
     result += 'Warn_T1    {:4d}{:4d}\n'.format(properties.errors.warn_t1,
-                                               properties.errors.warn_t1_excess)
+                                               properties.errors.warn_delta_t1)
     result += 'Warn_BSE   {:4d}{:4d}\n'.format(
-        properties.errors.warn_bse_b5_b6, properties.errors.warn_bse_cccsd_b5)
+        properties.errors.warn_bse_b6, properties.errors.warn_bse_eccsd)
     result += 'Warn_EXC   {:4d}{:4d}{:4d}\n'.format(
-        properties.errors.warn_exc_lowest_excitation,
-        properties.errors.warn_exc_smallest_oscillator,
-        properties.errors.warn_exc_largest_oscillator)
+        properties.errors.warn_exc_ene,
+        properties.errors.warn_exc_osmin,
+        properties.errors.warn_exc_osmax)
     result += 'Warn_VIB   {:4d}{:4d}\n'.format(
-        properties.errors.warn_vib_linearity,
-        properties.errors.warn_vib_imaginary)
-    result += 'Warn_NEG   {:4d}\n'.format(properties.errors.warn_num_neg)
+        properties.errors.warn_vib_linear,
+        properties.errors.warn_vib_imag)
+    result += 'Warn_NEG   {:4d}\n'.format(properties.errors.warn_bsr_neg)
 
     return result
 
@@ -256,19 +256,19 @@ class SmuWriter:
     result += smu_utils_lib.get_composition(
         molecule.bond_topologies[bt_idx]) + '\n'
     if self.annotate:
-      result += '# From bond_topology_id, molecule_id\n'
-    bond_topology_id = molecule.bond_topologies[bt_idx].bond_topology_id
+      result += '# From bond_topo_id, mol_id\n'
+    bond_topo_id = molecule.bond_topologies[bt_idx].bond_topo_id
     # Special case SMU1. Fun.
-    if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topology_id):
+    if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topo_id):
       if stage == 'stage1':
-        bond_topology_id = 0
+        bond_topo_id = 0
       elif stage == 'stage2':
-        bond_topology_id = smu_utils_lib.special_case_dat_id_from_bt_id(
-            bond_topology_id)
+        bond_topo_id = smu_utils_lib.special_case_dat_id_from_bt_id(
+            bond_topo_id)
       else:
         raise ValueError(f'Unknown stage {stage}')
-    result += 'ID{:8d}{:8d}\n'.format(bond_topology_id,
-                                      molecule.molecule_id % 1000)
+    result += 'ID{:8d}{:8d}\n'.format(bond_topo_id,
+                                      molecule.mol_id % 1000)
     return result
 
   def get_system(self, properties):
@@ -479,9 +479,9 @@ class SmuWriter:
       A string representation of the rotational constants vector.
     """
     result = ''
-    if molecule.optimized_geometry.HasField('rotcon'):
-      # result += '# From optimized_geometry.rotcon\n'
-      vals = molecule.optimized_geometry.rotcon.value
+    if molecule.optimized_geometry.HasField('brot'):
+      # result += '# From optimized_geometry.brot\n'
+      vals = molecule.optimized_geometry.brot.value
     elif molecule.properties.HasField('rotational_constants_deprecated'):
       # result += '# From rotational_constants_deprecated\n'
       constants = molecule.properties.rotational_constants_deprecated
@@ -524,22 +524,22 @@ class SmuWriter:
     Returns:
       A multiline string representation of harmonic frequencies and intensities.
     """
-    if len(properties.harmonic_frequencies.value) == 0:  # pylint: disable=g-explicit-length-test
+    if len(properties.vib_freq.value) == 0:  # pylint: disable=g-explicit-length-test
       return ''
     result = ''
     if header:
       result += 'Frequencies and intensities\n'
     if self.annotate:
-      result += '# From harmonic_frequencies, '
+      result += '# From vib_freq, '
       result += 'magnitude/harmonic intensity/normal mode order\n'
-    frequencies = properties.harmonic_frequencies.value
+    frequencies = properties.vib_freq.value
     for i in range(0, len(frequencies), 10):
       result += ''.join(
           '{:7.1f}'.format(value).rjust(7) for value in frequencies[i:i + 10])
       result += '\n'
     if self.annotate:
-      result += '# From harmonic_intensities\n'
-    intensities = properties.harmonic_intensities.value
+      result += '# From vib_intens\n'
+    intensities = properties.vib_intens.value
     for i in range(0, len(intensities), 10):
       result += ''.join(
           '{:7.1f}'.format(value).rjust(7) for value in intensities[i:i + 10])
@@ -574,7 +574,7 @@ class SmuWriter:
 
     return ''.join(output_lines)
 
-  def get_normal_modes(self, properties):
+  def get_vib_mode(self, properties):
     """Returns a repeated section containing a number of normal modes.
 
     Args:
@@ -583,15 +583,15 @@ class SmuWriter:
     Returns:
       A multiline string representation of the normal modes.
     """
-    if len(properties.normal_modes) == 0:  # pylint: disable=g-explicit-length-test
+    if len(properties.vib_mode) == 0:  # pylint: disable=g-explicit-length-test
       return ''
     result = 'Normal modes\n'
     if self.annotate:
-      result += '# From normal_modes\n'
-    for i, normal_modes in enumerate(properties.normal_modes):
+      result += '# From vib_mode\n'
+    for i, vib_mode in enumerate(properties.vib_mode):
       result += 'Mode%s\n' % str(i + 1).rjust(4)
       displacements = []
-      for displacement in normal_modes.displacements:
+      for displacement in vib_mode.displacements:
         displacements += [displacement.x, displacement.y, displacement.z]
       for j in range(0, len(displacements), 10):
         result += ''.join('{:8.4f}'.format(value).rjust(8)
@@ -640,9 +640,9 @@ class SmuWriter:
         if not properties.HasField(field):
           continue
         if self.annotate:
-          result += '# From zpe_unscaled\n'
+          result += '# From vib_zpe\n'
         result += 'ZPE_unscaled {:-16.2f}\n'.format(
-            properties.zpe_unscaled.value)
+            properties.vib_zpe.value)
 
       else:
         if not properties.HasField(field):
@@ -655,8 +655,8 @@ class SmuWriter:
     return result
 
   _T1_DIAGNOSTICS_FIELDS = [
-      'diagnostics_t1_ccsd_2sp', 'diagnostics_t1_ccsd_2sd',
-      'diagnostics_t1_ccsd_3psd'
+      'wf_diag_t1_2sp', 'wf_diag_t1_2sd',
+      'wf_diag_t1_3psd'
   ]
 
   def get_diagnostics(self, properties):
@@ -670,11 +670,11 @@ class SmuWriter:
     """
     result = ''
 
-    if properties.HasField('diagnostics_d1_ccsd_2sp'):
+    if properties.HasField('wf_diag_d1_2sp'):
       if self.annotate:
-        result += '# From diagnostics_d1_ccsd_2sp\n'
+        result += '# From wf_diag_d1_2sp\n'
       result += ('D1DIAG    D1(CCSD/2sp) {:10.6f}\n'.format(
-          properties.diagnostics_d1_ccsd_2sp.value))
+          properties.wf_diag_d1_2sp.value))
 
     if properties.HasField(self._T1_DIAGNOSTICS_FIELDS[0]):
       if self.annotate:
@@ -716,11 +716,11 @@ class SmuWriter:
               label, _FortranFloat(getattr(properties, field).value))
       elif field_type == smu_parser_lib.Atomic2FieldTypes.TRIPLE:
         if self.annotate:
-          result += '# From %s{,_um,_um_ci}\n' % field
+          result += '# From %s (with _um _unc)\n' % field
         result += '{:17s}{:-12.2f}{:-12.2f}{:-12.2f}\n'.format(
             label, _FortranFloat(getattr(properties, field).value),
-            _FortranFloat(getattr(properties, field + '_um').value),
-            _FortranFloat(getattr(properties, field + '_um_ci').value))
+            _FortranFloat(getattr(properties, field.replace('at2_std', 'at2_um')).value),
+            _FortranFloat(getattr(properties, field.replace('at2_std', 'at2_um') + '_unc').value))
       else:
         raise ValueError(
             'Atomic block unknown field types {}'.format(field_type))
@@ -728,17 +728,17 @@ class SmuWriter:
     return result
 
   _HOMO_LUMO_LABEL_FIELDS = [
-      ['PBE0/6-311Gd', 'homo_pbe0_6_311gd', 'lumo_pbe0_6_311gd'],
-      ['PBE0/aug-pc-1', 'homo_pbe0_aug_pc_1', 'lumo_pbe0_aug_pc_1'],
-      ['HF/6-31Gd', 'homo_hf_6_31gd', 'lumo_hf_6_31gd'],
-      ['B3LYP/6-31++Gdp', 'homo_b3lyp_6_31ppgdp', 'lumo_b3lyp_6_31ppgdp'],
-      ['B3LYP/aug-pcS-1', 'homo_b3lyp_aug_pcs_1', 'lumo_b3lyp_aug_pcs_1'],
-      ['PBE0/6-31++Gdp', 'homo_pbe0_6_31ppgdp', 'lumo_pbe0_6_31ppgdp'],
-      ['PBE0/aug-pcS-1', 'homo_pbe0_aug_pcs_1', 'lumo_pbe0_aug_pcs_1'],
-      ['HF/TZVP', 'homo_hf_tzvp', 'lumo_hf_tzvp'],
-      ['HF/3', 'homo_hf_3', 'lumo_hf_3'],
-      ['HF/4', 'homo_hf_4', 'lumo_hf_4'],
-      ['HF/CVTZ', 'homo_hf_cvtz', 'lumo_hf_cvtz'],
+      ['PBE0/6-311Gd', 'orb_ehomo_pbe0_6311gd', 'orb_elumo_pbe0_6311gd'],
+      ['PBE0/aug-pc-1', 'orb_ehomo_pbe0_augpc1', 'orb_elumo_pbe0_augpc1'],
+      ['HF/6-31Gd', 'orb_ehomo_hf_631gd', 'orb_elumo_hf_631gd'],
+      ['B3LYP/6-31++Gdp', 'orb_ehomo_b3lyp_631ppgdp', 'orb_elumo_b3lyp_631ppgdp'],
+      ['B3LYP/aug-pcS-1', 'orb_ehomo_b3lyp_augpcs1', 'orb_elumo_b3lyp_augpcs1'],
+      ['PBE0/6-31++Gdp', 'orb_ehomo_pbe0_631ppgdp', 'orb_elumo_pbe0_631ppgdp'],
+      ['PBE0/aug-pcS-1', 'orb_ehomo_pbe0_augpcs1', 'orb_elumo_pbe0_augpcs1'],
+      ['HF/TZVP', 'orb_ehomo_hf_tzvp', 'orb_elumo_hf_tzvp'],
+      ['HF/3', 'orb_ehomo_hf_3', 'orb_elumo_hf_3'],
+      ['HF/4', 'orb_ehomo_hf_4', 'orb_elumo_hf_4'],
+      ['HF/CVTZ', 'orb_ehomo_hf_cvtz', 'orb_elumo_hf_cvtz'],
   ]
 
   def get_homo_lumo(self, properties):
@@ -776,21 +776,21 @@ class SmuWriter:
     Returns:
       A multiline string representation of the energies and oscillations.
     """
-    if not properties.HasField('excitation_energies_cc2'):
+    if not properties.HasField('exc_ene_cc2_tzvp'):
       return ''
     result = smu_parser_lib.EXCITATION_HEADER + '\n'
     if self.annotate:
-      result += ('# From excitation_energies_cc2, '
-                 'excitation_oscillator_strengths_cc2\n')
-    if len(properties.excitation_energies_cc2.value) != len(
-        properties.excitation_oscillator_strengths_cc2.value):
+      result += ('# From exc_ene_cc2_tzvp, '
+                 'exc_os_cc2_tzvp\n')
+    if len(properties.exc_ene_cc2_tzvp.value) != len(
+        properties.exc_os_cc2_tzvp.value):
       raise ValueError(
           'Unequal lengths for excitation energies (%d) and oscillations (%d)' %
-          (len(properties.excitation_energies_cc2.value),
-           len(properties.excitation_oscillator_strengths_cc2.value)))
+          (len(properties.exc_ene_cc2_tzvp.value),
+           len(properties.exc_os_cc2_tzvp.value)))
     for i, (energy, oscillator_strength) in enumerate(
-        zip(properties.excitation_energies_cc2.value,
-            properties.excitation_oscillator_strengths_cc2.value)):
+        zip(properties.exc_ene_cc2_tzvp.value,
+            properties.exc_os_cc2_tzvp.value)):
       result += '%s%s%s\n' % (str(i + 1).rjust(5),
                               '{:.5f}'.format(energy).rjust(18),
                               '{:.5f}'.format(oscillator_strength).rjust(16))
@@ -899,13 +899,13 @@ class SmuWriter:
     Returns:
       A multiline string representation of dipole-dipole polarizability.
     """
-    if not properties.HasField('dipole_dipole_polarizability_pbe0_aug_pc_1'):
+    if not properties.HasField('elec_pol_pbe0_augpc1'):
       return ''
     result = 'Polarizability (au):    PBE0/aug-pc-1\n'
     if self.annotate:
-      result += '# From dipole_dipole_polarizability_pbe0_aug_pc_1\n'
+      result += '# From elec_pol_pbe0_augpc1\n'
     result += self.get_rank2(
-        properties.dipole_dipole_polarizability_pbe0_aug_pc_1)
+        properties.elec_pol_pbe0_augpc1)
     return result
 
   def get_multipole_moments(self, properties):
@@ -920,51 +920,51 @@ class SmuWriter:
 
     result = ''
 
-    if properties.HasField('dipole_moment_pbe0_aug_pc_1'):
+    if properties.HasField('elec_dip_pbe0_augpc1'):
       result += 'Dipole moment (au):     PBE0/aug-pc-1\n'
       if self.annotate:
-        result += '# From dipole_moment_pbe0_aug_pc_1\n'
+        result += '# From elec_dip_pbe0_augpc1\n'
       result += self.format_for_tensors(
-          '  x', properties.dipole_moment_pbe0_aug_pc_1.x)
+          '  x', properties.elec_dip_pbe0_augpc1.x)
       result += self.format_for_tensors(
-          '  y', properties.dipole_moment_pbe0_aug_pc_1.y)
+          '  y', properties.elec_dip_pbe0_augpc1.y)
       result += self.format_for_tensors(
-          '  z', properties.dipole_moment_pbe0_aug_pc_1.z)
+          '  z', properties.elec_dip_pbe0_augpc1.z)
 
-    if properties.HasField('quadrupole_moment_pbe0_aug_pc_1'):
+    if properties.HasField('elec_qua_pbe0_augpc1'):
       result += 'Quadrupole moment (au): PBE0/aug-pc-1\n'
       if self.annotate:
-        result += '# From quadrupole_moment_pbe0_aug_pc_1\n'
-      result += self.get_rank2(properties.quadrupole_moment_pbe0_aug_pc_1)
+        result += '# From elec_qua_pbe0_augpc1\n'
+      result += self.get_rank2(properties.elec_qua_pbe0_augpc1)
 
-    if properties.HasField('octopole_moment_pbe0_aug_pc_1'):
+    if properties.HasField('elec_oct_pbe0_augpc1'):
       result += 'Octopole moment (au):   PBE0/aug-pc-1\n'
       if self.annotate:
-        result += '# From octopole_moment_pbe0_aug_pc_1\n'
-      result += self.get_rank3(properties.octopole_moment_pbe0_aug_pc_1)
+        result += '# From elec_oct_pbe0_augpc1\n'
+      result += self.get_rank3(properties.elec_oct_pbe0_augpc1)
 
-    if properties.HasField('dipole_moment_hf_6_31gd'):
+    if properties.HasField('elec_dip_hf_631gd'):
       result += 'Dipole moment (au):     HF/6-31Gd\n'
       if self.annotate:
         result += '# From dipole_moment_hf\n'
       result += self.format_for_tensors('  x',
-                                        properties.dipole_moment_hf_6_31gd.x)
+                                        properties.elec_dip_hf_631gd.x)
       result += self.format_for_tensors('  y',
-                                        properties.dipole_moment_hf_6_31gd.y)
+                                        properties.elec_dip_hf_631gd.y)
       result += self.format_for_tensors('  z',
-                                        properties.dipole_moment_hf_6_31gd.z)
+                                        properties.elec_dip_hf_631gd.z)
 
-    if properties.HasField('quadrupole_moment_hf_6_31gd'):
+    if properties.HasField('elec_qua_hf_631gd'):
       result += 'Quadrupole moment (au): HF/6-31Gd\n'
       if self.annotate:
-        result += '# From quadrupole_moment_hf_6_31gd\n'
-      result += self.get_rank2(properties.quadrupole_moment_hf_6_31gd)
+        result += '# From elec_qua_hf_631gd\n'
+      result += self.get_rank2(properties.elec_qua_hf_631gd)
 
-    if properties.HasField('octopole_moment_hf_6_31gd'):
+    if properties.HasField('elec_oct_hf_631gd'):
       result += 'Octopole moment (au):   HF/6-31Gd\n'
       if self.annotate:
-        result += '# From octopole_moment_hf_6_31gd\n'
-      result += self.get_rank3(properties.octopole_moment_hf_6_31gd)
+        result += '# From elec_oct_hf_631gd\n'
+      result += self.get_rank3(properties.elec_oct_hf_631gd)
 
     return result
 
@@ -1033,7 +1033,7 @@ class SmuWriter:
     contents.append(
         self.get_frequencies_and_intensities(properties, header=True))
     contents.append(self.get_gaussian_sanity_check(properties))
-    contents.append(self.get_normal_modes(properties))
+    contents.append(self.get_vib_mode(properties))
     contents.append(self.get_properties(molecule))
     contents.append(self.get_diagnostics(properties))
     contents.append(self.get_atomic_block(properties))
@@ -1056,27 +1056,27 @@ class Atomic2InputWriter:
   def __init__(self):
     pass
 
-  def get_filename_for_atomic2_input(self, molecule, bond_topology_idx):
+  def get_filename_for_atomic2_input(self, molecule, bond_topo_idx):
     """Returns the expected filename for an atomic input.
 
-    bond_topology_idx can be None (for the starting topology)
+    bond_topo_idx can be None (for the starting topology)
     """
-    if bond_topology_idx is not None:
+    if bond_topo_idx is not None:
       return '{}.{}.{:03d}.inp'.format(
           smu_utils_lib.get_composition(
-              molecule.bond_topologies[bond_topology_idx]),
-          get_long_molecule_id(molecule.molecule_id),
-          bond_topology_idx)
+              molecule.bond_topologies[bond_topo_idx]),
+          get_long_mol_id(molecule.mol_id),
+          bond_topo_idx)
     else:
       return '{}.inp'.format(
           get_long_molecule_name(molecule))
 
-  def get_mol_block(self, molecule, bond_topology_idx):
+  def get_mol_block(self, molecule, bond_topo_idx):
     """Returns the MOL file block with atoms and bonds.
 
     Args:
       molecule: dataset_pb2.Molecule
-      bond_topology_idx: Bond topology index.
+      bond_topo_idx: Bond topology index.
 
     Returns:
       list of strings
@@ -1084,10 +1084,10 @@ class Atomic2InputWriter:
     contents = []
     contents.append('\n')
     contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
-        len(molecule.bond_topologies[bond_topology_idx].atoms),
-        len(molecule.bond_topologies[bond_topology_idx].bonds)))
+        len(molecule.bond_topologies[bond_topo_idx].atoms),
+        len(molecule.bond_topologies[bond_topo_idx].bonds)))
     for atom_type, coords in zip(
-        molecule.bond_topologies[bond_topology_idx].atoms,
+        molecule.bond_topologies[bond_topo_idx].atoms,
         molecule.optimized_geometry.atom_positions):
       contents.append(
           '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
@@ -1096,7 +1096,7 @@ class Atomic2InputWriter:
               smu_utils_lib.bohr_to_angstroms(coords.y),
               smu_utils_lib.bohr_to_angstroms(coords.z),
               smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
-    for bond in molecule.bond_topologies[bond_topology_idx].bonds:
+    for bond in molecule.bond_topologies[bond_topo_idx].bonds:
       contents.append('{:3d}{:3d}{:3d}  0\n'.format(bond.atom_a + 1,
                                                     bond.atom_b + 1,
                                                     bond.bond_type))
@@ -1121,32 +1121,32 @@ class Atomic2InputWriter:
       return '{:15.7f}'.format(getattr(molecule.properties, field_name).value)
 
     contents.append('{:7s}'.format('3') +
-                    format_field('single_point_energy_hf_3') +
-                    format_field('single_point_energy_mp2_3') + '\n')
+                    format_field('spe_std_hf_3') +
+                    format_field('spe_std_mp2_3') + '\n')
     contents.append('{:7s}'.format('4') +
-                    format_field('single_point_energy_hf_4') +
-                    format_field('single_point_energy_mp2_4') + '\n')
+                    format_field('spe_std_hf_4') +
+                    format_field('spe_std_mp2_4') + '\n')
     contents.append('{:7s}'.format('2sp') +
-                    format_field('single_point_energy_hf_2sp') +
-                    format_field('single_point_energy_mp2_2sp') +
-                    format_field('single_point_energy_ccsd_2sp') +
-                    format_field('single_point_energy_ccsd_t_2sp') + '\n')
+                    format_field('spe_std_hf_2sp') +
+                    format_field('spe_std_mp2_2sp') +
+                    format_field('spe_std_ccsd_2sp') +
+                    format_field('spe_std_ccsd_t_2sp') + '\n')
     contents.append('{:7s}'.format('2sd') +
-                    format_field('single_point_energy_hf_2sd') +
-                    format_field('single_point_energy_mp2_2sd') +
-                    format_field('single_point_energy_ccsd_2sd') +
-                    format_field('single_point_energy_ccsd_t_2sd') +
-                    format_field('diagnostics_t1_ccsd_2sd') + '\n')
+                    format_field('spe_std_hf_2sd') +
+                    format_field('spe_std_mp2_2sd') +
+                    format_field('spe_std_ccsd_2sd') +
+                    format_field('spe_std_ccsd_t_2sd') +
+                    format_field('wf_diag_t1_2sd') + '\n')
     contents.append('{:7s}'.format('3Psd') +
-                    format_field('single_point_energy_hf_3psd') +
-                    format_field('single_point_energy_mp2_3psd') +
-                    format_field('single_point_energy_ccsd_3psd') + '\n')
+                    format_field('spe_std_hf_3psd') +
+                    format_field('spe_std_mp2_3psd') +
+                    format_field('spe_std_ccsd_3psd') + '\n')
     contents.append('{:7s}'.format('C3') +
-                    format_field('single_point_energy_hf_cvtz') +
-                    format_field('single_point_energy_mp2ful_cvtz') + '\n')
+                    format_field('spe_std_hf_cvtz') +
+                    format_field('spe_std_mp2full_cvtz') + '\n')
     contents.append('{:7s}'.format('(34)') +
-                    format_field('single_point_energy_hf_34') +
-                    format_field('single_point_energy_mp2_34') + '\n')
+                    format_field('spe_std_hf_34') +
+                    format_field('spe_std_mp2_34') + '\n')
 
     return contents
 
@@ -1169,7 +1169,7 @@ class Atomic2InputWriter:
     contents = []
 
     trimmed_frequencies = [
-        v for v in molecule.properties.harmonic_frequencies.value if v != 0.0
+        v for v in molecule.properties.vib_freq.value if v != 0.0
     ]
 
     contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
@@ -1184,27 +1184,27 @@ class Atomic2InputWriter:
       contents.append(line + '\n')
     return contents
 
-  def process(self, molecule, bond_topology_idx):
+  def process(self, molecule, bond_topo_idx):
     """Creates the atomic input file for molecule."""
     if (molecule.properties.errors.status < 0 or
         molecule.properties.errors.status > 3 or
         # While we should check all the fields, this is conveinient shortcut.
-        not molecule.properties.HasField('single_point_energy_hf_3') or
-        not molecule.properties.HasField('single_point_energy_mp2_3')):
+        not molecule.properties.HasField('spe_std_hf_3') or
+        not molecule.properties.HasField('spe_std_mp2_3')):
       raise ValueError(
-          f'Molecule {molecule.molecule_id} is lacking required info '
+          f'Molecule {molecule.mol_id} is lacking required info '
           'for generating atomic2 input. Maybe you need to query the complete DB?'
       )
 
     contents = []
     contents.append('SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
-        molecule.molecule_id,
-        molecule.bond_topologies[bond_topology_idx].smiles,
-        molecule.bond_topologies[bond_topology_idx].bond_topology_id,
-        bond_topology_idx + 1, len(molecule.bond_topologies)))
+        molecule.mol_id,
+        molecule.bond_topologies[bond_topo_idx].smiles,
+        molecule.bond_topologies[bond_topo_idx].bond_topo_id,
+        bond_topo_idx + 1, len(molecule.bond_topologies)))
     contents.append(smu_utils_lib.get_original_label(molecule) + '\n')
 
-    contents.extend(self.get_mol_block(molecule, bond_topology_idx))
+    contents.extend(self.get_mol_block(molecule, bond_topo_idx))
     contents.extend(self.get_energies(molecule))
     contents.extend(self.get_frequencies(molecule))
     contents.append('$end\n')
@@ -1267,7 +1267,7 @@ class CleanTextWriter:
     out.append('#\n')
     out.append('#mol_id    \n')
     out.append(self._fw_line([(1, 'mol_id'),
-                              (31, get_long_molecule_id(molecule.molecule_id)),
+                              (31, get_long_mol_id(molecule.mol_id)),
                               (84, long_name),
                               ]))
 
@@ -1285,7 +1285,7 @@ class CleanTextWriter:
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'topo_id'),
-                              (31, str(molecule.molecule_id // 1000)),
+                              (31, str(molecule.mol_id // 1000)),
                               ]))
     # Hello huge hack! smiles_obabel is only filled in for the complete database and
     # if it differs from smiles_rdkit. But we always want to show this field if we have
@@ -1388,21 +1388,21 @@ class CleanTextWriter:
     out.append(self._fw_line(base_vals +
                              [(17, 'warn 1'),
                               (31, str(errors.warn_t1)),
-                              (44, str(errors.warn_t1_excess)),
-                              (57, str(errors.warn_bse_b5_b6)),
-                              (70, str(errors.warn_bse_cccsd_b5)),
+                              (44, str(errors.warn_delta_t1)),
+                              (57, str(errors.warn_bse_b6)),
+                              (70, str(errors.warn_bse_eccsd)),
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'warn 2'),
-                              (31, str(errors.warn_exc_lowest_excitation)),
-                              (44, str(errors.warn_exc_smallest_oscillator)),
-                              (57, str(errors.warn_exc_largest_oscillator)),
+                              (31, str(errors.warn_exc_ene)),
+                              (44, str(errors.warn_exc_osmin)),
+                              (57, str(errors.warn_exc_osmax)),
                               ]))
     out.append(self._fw_line(base_vals +
                              [(17, 'warn 3'),
-                              (31, str(errors.warn_vib_linearity)),
-                              (44, str(errors.warn_vib_imaginary)),
-                              (57, str(errors.warn_num_neg)),
+                              (31, str(errors.warn_vib_linear)),
+                              (44, str(errors.warn_vib_imag)),
+                              (57, str(errors.warn_bsr_neg)),
                               ]))
 
 
@@ -1412,23 +1412,23 @@ class CleanTextWriter:
     out = []
     out.append('#\n')
     out.append('#duplicate_found            \n')
-    if len(molecule.duplicate_of) == 0:
+    if len(molecule.duplicates_found) == 0:
       out.append(self._fw_line([(1, 'duplicate_found'),
                                 (31, 'none'),
                                 (84, long_name)]))
     else:
-      for dup_id in sorted(molecule.duplicate_of):
+      for dup_id in sorted(molecule.duplicates_found):
         out.append(self._fw_line([(1, 'duplicate_found'),
-                                  (31, get_long_molecule_id(dup_id)),
+                                  (31, get_long_mol_id(dup_id)),
                                   (84, long_name)]))
 
     out.append('#\n')
-    out.append('#duplicate_of               \n')
-    if molecule.duplicated_by:
-      dup_string = get_long_molecule_id(molecule.duplicated_by)
+    out.append('#duplicates_found               \n')
+    if molecule.duplicate_of:
+      dup_string = get_long_mol_id(molecule.duplicate_of)
     else:
       dup_string = 'none'
-    out.append(self._fw_line([(1, 'duplicate_of'),
+    out.append(self._fw_line([(1, 'duplicates_found'),
                               (31, dup_string),
                               (84, long_name)]))
 
@@ -1448,7 +1448,7 @@ class CleanTextWriter:
       base_vals.append((84, long_name))
       out.append(self._fw_line(base_vals +
                                [(17, 'topo_id'),
-                                (31, f'{bt.bond_topology_id:<d}')]))
+                                (31, f'{bt.bond_topo_id:<d}')]))
       if bt.source == dataset_pb2.BondTopology.SOURCE_STARTING:
         # This indicates topology detection was not performed at all.
         info = '    S'
@@ -1524,8 +1524,8 @@ class CleanTextWriter:
                         [(9, 'enuc'),
                          self._align_dec_point(49, f'{geom.enuc.value:.4f}'),
                          ]))
-      if geom.HasField('rotcon'):
-        for idx, val in enumerate(geom.rotcon.value):
+      if geom.HasField('brot'):
+        for idx, val in enumerate(geom.brot.value):
           if val < 10_000:
             val_str = f'{val:.3f}'
           elif val < 100_000:
@@ -1558,18 +1558,18 @@ class CleanTextWriter:
   def get_vib_block(self, molecule, long_name):
     out = []
 
-    if molecule.properties.HasField('zpe_unscaled'):
+    if molecule.properties.HasField('vib_zpe'):
       out.append('#\n')
       out.append(self._fw_line([(0, '#vib zpe'),
                                 (84, '(unscaled, kcal/mol)'),
                                 ]))
       out.append(self._fw_line([
         (1, 'vib zpe'),
-        (self._align_dec_point(37, f'{molecule.properties.zpe_unscaled.value:.2f}')),
+        (self._align_dec_point(37, f'{molecule.properties.vib_zpe.value:.2f}')),
         (84, long_name),
       ]))
 
-    if molecule.properties.HasField('harmonic_frequencies'):
+    if molecule.properties.HasField('vib_freq'):
       # Note that we assume if you have frequencies, you have intensities.
       out.append('#\n')
       out.append(self._fw_line([(0, '#vib freq'),
@@ -1577,8 +1577,8 @@ class CleanTextWriter:
                                 (45, 'intens'),
                                 (84, '(cm-1, km/mol)'),
                                 ]))
-      for idx, (freq, intens) in enumerate(zip(molecule.properties.harmonic_frequencies.value,
-                                               molecule.properties.harmonic_intensities.value)):
+      for idx, (freq, intens) in enumerate(zip(molecule.properties.vib_freq.value,
+                                               molecule.properties.vib_intens.value)):
         out.append(self._fw_line([
           (1, 'vib freq'),
           (10, f'{idx+1:>2d}'),
@@ -1587,10 +1587,10 @@ class CleanTextWriter:
           (84, long_name),
         ]))
 
-    if len(molecule.properties.normal_modes):
-      for mode_idx, mode in enumerate(molecule.properties.normal_modes):
+    if len(molecule.properties.vib_mode):
+      for mode_idx, mode in enumerate(molecule.properties.vib_mode):
         out.append('#\n')
-        freq = molecule.properties.harmonic_frequencies.value[mode_idx]
+        freq = molecule.properties.vib_freq.value[mode_idx]
         out.append(self._fw_line([(0, '#vib mode'),
                                   (10, f'{mode_idx+1:>2d}'),
                                   (41, 'x'),
@@ -1612,50 +1612,50 @@ class CleanTextWriter:
     return out
 
   _SPE_CHECK_PAIRS = [
-    ('tmol', 'single_point_energy_pbe0_6_311gd'),
-    ('mrcc', 'single_point_energy_pbe0_6_311gd_mrcc'),
-    ('orca', 'single_point_energy_pbe0_6_311gd_orca'),
+    ('tmol', 'spe_check_pbe0_6311gd_tmol'),
+    ('mrcc', 'spe_check_pbe0_6311gd_tmol_mrcc'),
+    ('orca', 'spe_check_pbe0_6311gd_tmol_orca'),
   ]
   _SPE_CATION_PAIRS = [
-    ('tmol', 'single_point_energy_pbe0_6_311gd_cat'),
-    ('mrcc', 'single_point_energy_pbe0_6_311gd_cat_mrcc'),
-    ('orca', 'single_point_energy_pbe0_6_311gd_cat_orca'),
+    ('tmol', 'spe_check_pbe0_6311gd_tmol_cat'),
+    ('mrcc', 'spe_check_pbe0_6311gd_tmol_cat_mrcc'),
+    ('orca', 'spe_check_pbe0_6311gd_tmol_cat_orca'),
   ]
   _SPE_STD_PAIRS = [
-    ('hf_2sp', 'single_point_energy_hf_2sp'),
-    ('hf_2sd', 'single_point_energy_hf_2sd'),
-    ('hf_3psd', 'single_point_energy_hf_3psd'),
-    ('hf_3', 'single_point_energy_hf_3'),
-    ('hf_4', 'single_point_energy_hf_4'),
-    ('hf_34', 'single_point_energy_hf_34'),
-    ('hf_631gd', 'single_point_energy_hf_6_31gd'),
-    ('hf_tzvp', 'single_point_energy_hf_tzvp'),
-    ('hf_cvtz', 'single_point_energy_hf_cvtz'),
-    ('mp2_2sp', 'single_point_energy_mp2_2sp'),
-    ('mp2_2sd', 'single_point_energy_mp2_2sd'),
-    ('mp2_3psd', 'single_point_energy_mp2_3psd'),
-    ('mp2_3', 'single_point_energy_mp2_3'),
-    ('mp2_4', 'single_point_energy_mp2_4'),
-    ('mp2_34', 'single_point_energy_mp2_34'),
-    ('mp2_tzvp', 'single_point_energy_mp2_tzvp'),
-    ('mp2full_cvtz', 'single_point_energy_mp2ful_cvtz'),
-    ('cc2_tzvp', 'single_point_energy_cc2_tzvp'),
-    ('ccsd_2sp', 'single_point_energy_ccsd_2sp'),
-    ('ccsd_2sd', 'single_point_energy_ccsd_2sd'),
-    ('ccsd_3psd', 'single_point_energy_ccsd_3psd'),
-    ('ccsd_t_2sp', 'single_point_energy_ccsd_t_2sp'),
-    ('ccsd_t_2sd', 'single_point_energy_ccsd_t_2sd'),
-    ('b3lyp_631ppgdp', 'single_point_energy_b3lyp_6_31ppgdp'),
-    ('b3lyp_augpcs1', 'single_point_energy_b3lyp_aug_pcs_1'),
-    ('pbe0_631ppgdp', 'single_point_energy_pbe0_6_31ppgdp'),
-    ('pbe0_augpc1', 'single_point_energy_pbe0_aug_pc_1'),
-    ('pbe0_augpcs1', 'single_point_energy_pbe0_aug_pcs_1'),
-    ('pbe0d3_6311gd', 'single_point_energy_pbe0d3_6_311gd'),
+    ('hf_2sp', 'spe_std_hf_2sp'),
+    ('hf_2sd', 'spe_std_hf_2sd'),
+    ('hf_3psd', 'spe_std_hf_3psd'),
+    ('hf_3', 'spe_std_hf_3'),
+    ('hf_4', 'spe_std_hf_4'),
+    ('hf_34', 'spe_std_hf_34'),
+    ('hf_631gd', 'spe_std_hf_631gd'),
+    ('hf_tzvp', 'spe_std_hf_tzvp'),
+    ('hf_cvtz', 'spe_std_hf_cvtz'),
+    ('mp2_2sp', 'spe_std_mp2_2sp'),
+    ('mp2_2sd', 'spe_std_mp2_2sd'),
+    ('mp2_3psd', 'spe_std_mp2_3psd'),
+    ('mp2_3', 'spe_std_mp2_3'),
+    ('mp2_4', 'spe_std_mp2_4'),
+    ('mp2_34', 'spe_std_mp2_34'),
+    ('mp2_tzvp', 'spe_std_mp2_tzvp'),
+    ('mp2full_cvtz', 'spe_std_mp2full_cvtz'),
+    ('cc2_tzvp', 'spe_std_cc2_tzvp'),
+    ('ccsd_2sp', 'spe_std_ccsd_2sp'),
+    ('ccsd_2sd', 'spe_std_ccsd_2sd'),
+    ('ccsd_3psd', 'spe_std_ccsd_3psd'),
+    ('ccsd_t_2sp', 'spe_std_ccsd_t_2sp'),
+    ('ccsd_t_2sd', 'spe_std_ccsd_t_2sd'),
+    ('b3lyp_631ppgdp', 'spe_std_b3lyp_631ppgdp'),
+    ('b3lyp_augpcs1', 'spe_std_b3lyp_augpcs1'),
+    ('pbe0_631ppgdp', 'spe_std_pbe0_631ppgdp'),
+    ('pbe0_augpc1', 'spe_std_pbe0_augpc1'),
+    ('pbe0_augpcs1', 'spe_std_pbe0_augpcs1'),
+    ('pbe0d3_6311gd', 'spe_std_pbe0d3_6311gd'),
   ]
   _SPE_COMP_PAIRS = [
-    ('b5', 'single_point_energy_atomic_b5'),
-    ('b6', 'single_point_energy_atomic_b6'),
-    ('eccsd', 'single_point_energy_eccsd'),
+    ('b5', 'spe_comp_b5'),
+    ('b6', 'spe_comp_b6'),
+    ('eccsd', 'spe_comp_eccsd'),
   ]
 
   def get_spe_block(self, molecule, long_name):
@@ -1703,10 +1703,10 @@ class CleanTextWriter:
     return out
 
   _DIAGNOSTICS_PAIRS = [
-    ('d1_2sp', 'diagnostics_d1_ccsd_2sp'),
-    ('t1_2sp', 'diagnostics_t1_ccsd_2sp'),
-    ('t1_2sd', 'diagnostics_t1_ccsd_2sd'),
-    ('t1_3psd', 'diagnostics_t1_ccsd_3psd'),
+    ('d1_2sp', 'wf_diag_d1_2sp'),
+    ('t1_2sp', 'wf_diag_t1_2sp'),
+    ('t1_2sd', 'wf_diag_t1_2sd'),
+    ('t1_3psd', 'wf_diag_t1_3psd'),
     ]
   def get_diagnostics_block(self, molecule, long_name):
     out = []
@@ -1782,19 +1782,19 @@ class CleanTextWriter:
 
     base_vals = [(1, 'at2_gen'), (84, long_name)]
     out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_left')],
-                                   molecule.properties.bond_separation_reaction_left.value))
+                                   molecule.properties.at2_gen_bsr_left.value))
     out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_right')],
-                                   molecule.properties.bond_separation_reaction_right.value))
+                                   molecule.properties.at2_gen_bsr_right.value))
 
-    if molecule.properties.HasField('diagnostics_t1_ccsd_2sd'):
-      val = molecule.properties.diagnostics_t1_ccsd_2sd.value
+    if molecule.properties.HasField('wf_diag_t1_2sd'):
+      val = molecule.properties.wf_diag_t1_2sd.value
       out.append(self._fw_line(base_vals +
                                [(17, 't1'),
                                 self._align_dec_point(37, f'{val:.4f}'),
                                 ]))
 
-    if molecule.properties.HasField('diagnostics_t1_ccsd_2sp_excess'):
-      val = molecule.properties.diagnostics_t1_ccsd_2sp_excess.value
+    if molecule.properties.HasField('at2_gen_t1_exc'):
+      val = molecule.properties.at2_gen_t1_exc.value
       out.append(self._fw_line(base_vals +
                                [(17, 't1exc'),
                                 self._align_dec_point(37, f'{val:.4f}'),
@@ -1821,14 +1821,14 @@ class CleanTextWriter:
                    (84, '(kcal/mol)'),
                    ]
     base_vals = [(1, "at2_um"), (84, long_name)]
-    if molecule.properties.HasField('zpe_atomic_um'):
+    if molecule.properties.HasField('at2_um_zpe'):
       out.append('#\n')
       out.append(self._fw_line(header_vals))
       out.append(self._fw_line(
         base_vals +
         [(9, 'zpe'),
-         self._align_dec_point(37, f'{molecule.properties.zpe_atomic_um.value:.2f}'),
-         self._align_dec_point(49, f'{molecule.properties.zpe_atomic_um_ci.value:.2f}'),
+         self._align_dec_point(37, f'{molecule.properties.at2_um_zpe.value:.2f}'),
+         self._align_dec_point(49, f'{molecule.properties.at2_um_zpe_unc.value:.2f}'),
          ]))
 
     # This might be a terrible idea, but since there are so many fields with regular
@@ -1869,13 +1869,13 @@ class CleanTextWriter:
                    ]
     base_vals = [(1, "at2_std"),
                  (84, long_name)]
-    if molecule.properties.HasField('zpe_atomic'):
+    if molecule.properties.HasField('at2_std_zpe'):
       out.append('#\n')
       out.append(self._fw_line(header_vals))
       out.append(self._fw_line(
         base_vals +
         [(9, 'zpe'),
-         self._align_dec_point(37, f'{molecule.properties.zpe_atomic.value:.2f}'),
+         self._align_dec_point(37, f'{molecule.properties.at2_std_zpe.value:.2f}'),
          ]))
 
     # This might be a terrible idea, but since there are so many fields with regular
@@ -1948,7 +1948,7 @@ class CleanTextWriter:
   def get_exc_block(self, molecule, long_name):
     out = []
 
-    if not molecule.properties.HasField('excitation_energies_cc2'):
+    if not molecule.properties.HasField('exc_ene_cc2_tzvp'):
       return []
 
     out.append('#\n')
@@ -1959,8 +1959,8 @@ class CleanTextWriter:
                               ]))
 
     for idx, (exc, os) in enumerate(zip(
-        molecule.properties.excitation_energies_cc2.value,
-        molecule.properties.excitation_oscillator_strengths_cc2.value)):
+        molecule.properties.exc_ene_cc2_tzvp.value,
+        molecule.properties.exc_os_cc2_tzvp.value)):
       out.append(self._fw_line([(1, 'exc'),
                                 (21, str(idx+1)),
                                 self._align_dec_point(37, f'{exc:.5f}'),
@@ -1971,10 +1971,10 @@ class CleanTextWriter:
     return out
 
   _NMR_FIELDS = [
-    ('b3lyp_', '631ppgdp', 'nmr_isotropic_shielding_b3lyp_6_31ppgdp'),
-    ('b3lyp_', 'augpcs1', 'nmr_isotropic_shielding_b3lyp_aug_pcs_1'),
-    ('pbe0_', '631ppgdp', 'nmr_isotropic_shielding_pbe0_6_31ppgdp'),
-    ('pbe0_', 'augpcs1', 'nmr_isotropic_shielding_pbe0_aug_pcs_1'),
+    ('b3lyp_', '631ppgdp', 'nmr_b3lyp_631ppgdp'),
+    ('b3lyp_', 'augpcs1', 'nmr_b3lyp_augpcs1'),
+    ('pbe0_', '631ppgdp', 'nmr_pbe0_631ppgdp'),
+    ('pbe0_', 'augpcs1', 'nmr_pbe0_augpcs1'),
     ]
   _DEC_POINT_POSITIONS = [37, 49, 61, 73]
 
@@ -2061,7 +2061,7 @@ class CleanTextWriter:
   def get_elec_block(self, molecule, long_name):
     out = []
 
-    if molecule.properties.HasField('dipole_dipole_polarizability_pbe0_aug_pc_1'):
+    if molecule.properties.HasField('elec_pol_pbe0_augpc1'):
       out.append('#\n')
       out.append(self._fw_line([(0, '#elec pol'),
                                 (32, 'pbe0_augpc1'),
@@ -2072,7 +2072,7 @@ class CleanTextWriter:
           (1, 'elec pol'),
           (21, f'{comp:>3s}'),
           self._align_dec_point(37, '{:.3f}'.format(getattr(
-            molecule.properties.dipole_dipole_polarizability_pbe0_aug_pc_1, comp))),
+            molecule.properties.elec_pol_pbe0_augpc1, comp))),
           (84, long_name),
         ]))
 
@@ -2111,16 +2111,16 @@ class CleanTextWriter:
           out.append(self._fw_line(line_vals))
 
     write_two_col('dip',
-                  'dipole_moment_pbe0_aug_pc_1',
-                  'dipole_moment_hf_6_31gd',
+                  'elec_dip_pbe0_augpc1',
+                  'elec_dip_hf_631gd',
                   ['x', 'y', 'z'])
     write_two_col('qua',
-                  'quadrupole_moment_pbe0_aug_pc_1',
-                  'quadrupole_moment_hf_6_31gd',
+                  'elec_qua_pbe0_augpc1',
+                  'elec_qua_hf_631gd',
                   smu_parser_lib.RANK2_ENCODING_ORDER)
     write_two_col('oct',
-                  'octopole_moment_pbe0_aug_pc_1',
-                  'octopole_moment_hf_6_31gd',
+                  'elec_oct_pbe0_augpc1',
+                  'elec_oct_hf_631gd',
                   smu_parser_lib.RANK3_ENCODING_ORDER)
 
     return out

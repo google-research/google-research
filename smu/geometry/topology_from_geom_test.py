@@ -142,7 +142,7 @@ atom_positions {
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
     molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
-    molecule.molecule_id = 1001
+    molecule.mol_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
         molecule, all_distributions, matching_parameters)
     self.assertIsNotNone(result)
@@ -177,10 +177,10 @@ atom_positions {
     # double bonds can be rotated such that it's the same topology but
     # individual bonds have switched single/double.
     # We set it so the bond lengths favor one of the two arrangements
-    molecule = dataset_pb2.Molecule(molecule_id=123)
+    molecule = dataset_pb2.Molecule(mol_id=123)
     molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
 
-    molecule.bond_topologies.add(bond_topology_id=123, smiles='N1=NN=N1')
+    molecule.bond_topologies.add(bond_topo_id=123, smiles='N1=NN=N1')
     molecule.bond_topologies[0].atoms.extend([
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
@@ -253,7 +253,7 @@ class TestStandardTopologySensing(absltest.TestCase):
     return bld
 
   def get_molecule(self, oc_dist, cn_dist):
-    molecule = dataset_pb2.Molecule(molecule_id=12345)
+    molecule = dataset_pb2.Molecule(mol_id=12345)
     molecule.bond_topologies.append(dataset_pb2.BondTopology(smiles='N=C=O'))
     molecule.bond_topologies[0].atoms.extend([
         dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_C,
@@ -307,7 +307,7 @@ class TestStandardTopologySensing(absltest.TestCase):
         | dataset_pb2.BondTopology.SOURCE_STARTING
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
-    self.assertEqual(mol.bond_topologies[0].bond_topology_id, 111)
+    self.assertEqual(mol.bond_topologies[0].bond_topo_id, 111)
     self.assertEqual(mol.bond_topologies[0].topology_score, 0)
     self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
 
@@ -315,7 +315,7 @@ class TestStandardTopologySensing(absltest.TestCase):
         mol.bond_topologies[1].source, dataset_pb2.BondTopology.SOURCE_MLCR
         | dataset_pb2.BondTopology.SOURCE_CSD)
     self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
-    self.assertEqual(mol.bond_topologies[1].bond_topology_id, 222)
+    self.assertEqual(mol.bond_topologies[1].bond_topo_id, 222)
     self.assertTrue(np.isnan(mol.bond_topologies[1].topology_score))
     self.assertTrue(np.isnan(mol.bond_topologies[1].geometry_score))
 
@@ -333,7 +333,7 @@ class TestStandardTopologySensing(absltest.TestCase):
         | dataset_pb2.BondTopology.SOURCE_MLCR
         | dataset_pb2.BondTopology.SOURCE_CSD)
     self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
-    self.assertEqual(mol.bond_topologies[0].bond_topology_id, 111)
+    self.assertEqual(mol.bond_topologies[0].bond_topo_id, 111)
     self.assertLess(mol.bond_topologies[0].topology_score, 0)
     self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
 
@@ -341,7 +341,7 @@ class TestStandardTopologySensing(absltest.TestCase):
         mol.bond_topologies[1].source, dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
-    self.assertEqual(mol.bond_topologies[1].bond_topology_id, 222)
+    self.assertEqual(mol.bond_topologies[1].bond_topo_id, 222)
     self.assertLess(mol.bond_topologies[1].topology_score, 0)
     self.assertNotEqual(mol.bond_topologies[1].geometry_score, 0)
 

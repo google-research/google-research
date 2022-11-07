@@ -3,17 +3,17 @@ The computed properties are generally in the .properties field
 
 Scalar values are access by name (note the .value suffix), like this single point energy:  -213.76513
 
-Fields with repeated values like harmonic_intensities and excitation_energies_cc2) use an index with [] on the repeated values
-The 0th and 6th harmonic_intensities: 0.0 21.5
+Fields with repeated values like vib_intens and exc_ene_cc2_tzvp) use an index with [] on the repeated values
+The 0th and 6th vib_intens: 0.0 21.5
 Or you can iterate over all of them
 Excitation energy: 0.23229
 Excitation energy: 0.34252
 Excitation energy: 0.35454
 Excitation energy: 0.3652
 Excitation energy: 0.39769
-Or just ask how many excitation_energies_cc2 there are: 5
+Or just ask how many exc_ene_cc2_tzvp there are: 5
 
-Some fields like dipole_moment_pbe0_aug_pc_1 have explicit x,y,z components
+Some fields like elec_dip_pbe0_augpc1 have explicit x,y,z components
 0.76262 -0.24296 0.1717
 
 Some fields are higher order tensors, with similar named components
@@ -26,7 +26,7 @@ A couple of important fields are not inside "properties"
 For example, the optimized geometry has an energy of -213.607287 and positions for 4 atoms and the first atom x-coordinate is 1.9872709512710571
 
 In addition to looking at dataset.proto for field documentation, you can just print a given molecule to see what fields are available
-molecule_id: 57001
+mol_id: 57001
 initial_geometries {
   atom_positions {
     x: 2.046005964279175
@@ -82,14 +82,14 @@ optimized_geometry {
   gnorm {
     value: 6.7e-05
   }
-  rotcon {
+  brot {
     value: 10473.771
     value: 11808.073
     value: 92688.945
   }
 }
 properties {
-  harmonic_intensities {
+  vib_intens {
     value: 0.0
     value: 0.0
     value: 0.0
@@ -103,30 +103,30 @@ properties {
     value: 290.8
     value: 43.7
   }
-  single_point_energy_atomic_b5 {
+  spe_comp_b5 {
     value: -213.76513
   }
-  homo_pbe0_6_311gd {
+  orb_ehomo_pbe0_6311gd {
     value: -0.34427
   }
-  lumo_pbe0_6_311gd {
+  orb_elumo_pbe0_6311gd {
     value: -0.02321
   }
-  excitation_energies_cc2 {
+  exc_ene_cc2_tzvp {
     value: 0.23229
     value: 0.34252
     value: 0.35454
     value: 0.3652
     value: 0.39769
   }
-  excitation_oscillator_strengths_cc2 {
+  exc_os_cc2_tzvp {
     value: 0.00237
     value: 1e-05
     value: 0.10047
     value: 0.06747
     value: 0.15779
   }
-  nmr_isotropic_shielding_pbe0_aug_pcs_1 {
+  nmr_pbe0_augpcs1 {
     values: 28.0736
     values: -126.0672
     values: 119.1424
@@ -136,7 +136,7 @@ properties {
     precision: 0.0064
     precision: 0.0008
   }
-  partial_charges_mulliken_pbe0_aug_pc_1 {
+  chg_mul_pbe0_augpc1 {
     values: 1.1429
     values: -0.8308
     values: -0.5849
@@ -146,7 +146,7 @@ properties {
     precision: 0.0001
     precision: 0.0001
   }
-  partial_charges_loewdin_pbe0_aug_pc_1 {
+  chg_loe_pbe0_augpc1 {
     values: 0.2448
     values: -0.1433
     values: -0.1816
@@ -156,7 +156,7 @@ properties {
     precision: 0.0001
     precision: 0.0001
   }
-  partial_charges_natural_nbo_pbe0_aug_pc_1 {
+  chg_nat_pbe0_augpc1 {
     values: 0.8086
     values: -0.5495
     values: -0.3837
@@ -166,7 +166,7 @@ properties {
     precision: 0.0001
     precision: 0.0001
   }
-  partial_charges_esp_fit_pbe0_aug_pc_1 {
+  chg_esp_pbe0_augpc1 {
     values: 0.5444
     values: -0.3912
     values: -0.2043
@@ -176,7 +176,7 @@ properties {
     precision: 0.0001
     precision: 0.0001
   }
-  dipole_dipole_polarizability_pbe0_aug_pc_1 {
+  elec_pol_pbe0_augpc1 {
     xx: 18.44366
     yy: 19.24036
     zz: 16.25237
@@ -184,12 +184,12 @@ properties {
     xz: 0.80691
     yz: -4.21845
   }
-  dipole_moment_pbe0_aug_pc_1 {
+  elec_dip_pbe0_augpc1 {
     x: 0.76262
     y: -0.24296
     z: 0.1717
   }
-  quadrupole_moment_pbe0_aug_pc_1 {
+  elec_qua_pbe0_augpc1 {
     xx: -8.99568
     yy: -13.3491
     zz: -12.44867
@@ -197,7 +197,7 @@ properties {
     xz: 0.1312
     yz: 1.33611
   }
-  octopole_moment_pbe0_aug_pc_1 {
+  elec_oct_pbe0_augpc1 {
     xxx: -36.61988
     yyy: 1.32409
     zzz: 2.19806
@@ -209,73 +209,73 @@ properties {
     yzz: 0.11383
     xyz: 1.79615
   }
-  diagnostics_t1_ccsd_2sd {
+  wf_diag_t1_2sd {
     value: 0.0159
   }
-  diagnostics_t1_ccsd_2sp_excess {
+  at2_gen_t1_exc {
     value: 0.0036
   }
-  bond_separation_reaction_left {
+  at2_gen_bsr_left {
     value: " molecule +  1 CH4"
   }
-  bond_separation_reaction_right {
+  at2_gen_bsr_right {
     value: " 1 H2C=O +  1 H3C-F"
   }
-  bond_separation_energy_atomic_b5 {
+  at2_std_b5_ereac {
     value: 26.52
   }
-  bond_separation_energy_atomic_b5_um {
+  at2_um_b5_ereac {
     value: 26.54
   }
-  bond_separation_energy_atomic_b5_um_ci {
+  at2_um_b5_ereac_unc {
     value: 0.34
   }
-  atomization_energy_excluding_zpe_atomic_b5 {
+  at2_std_b5_eae {
     value: 402.33
   }
-  atomization_energy_excluding_zpe_atomic_b5_um {
+  at2_um_b5_eae {
     value: 402.64
   }
-  atomization_energy_excluding_zpe_atomic_b5_um_ci {
+  at2_um_b5_eae_unc {
     value: 0.53
   }
-  atomization_energy_including_zpe_atomic_b5 {
+  at2_std_b5_ea0 {
     value: 389.33
   }
-  atomization_energy_including_zpe_atomic_b5_um {
+  at2_um_b5_ea0 {
     value: 389.83
   }
-  atomization_energy_including_zpe_atomic_b5_um_ci {
+  at2_um_b5_ea0_unc {
     value: 0.67
   }
-  enthalpy_of_formation_0k_atomic_b5 {
+  at2_std_b5_hf0 {
     value: -90.21
   }
-  enthalpy_of_formation_0k_atomic_b5_um {
+  at2_um_b5_hf0 {
     value: -90.7
   }
-  enthalpy_of_formation_0k_atomic_b5_um_ci {
+  at2_um_b5_hf0_unc {
     value: 0.67
   }
-  enthalpy_of_formation_298k_atomic_b5 {
+  at2_std_b5_hf298 {
     value: -91.07
   }
-  enthalpy_of_formation_298k_atomic_b5_um {
+  at2_um_b5_hf298 {
     value: -91.57
   }
-  enthalpy_of_formation_298k_atomic_b5_um_ci {
+  at2_um_b5_hf298_unc {
     value: 0.69
   }
-  zpe_atomic {
+  at2_std_zpe {
     value: 12.99
   }
-  zpe_atomic_um {
+  at2_um_zpe {
     value: 12.81
   }
-  zpe_atomic_um_ci {
+  at2_um_zpe_unc {
     value: 0.41
   }
-  harmonic_frequencies {
+  vib_freq {
     value: 0.0
     value: 0.0
     value: 0.0
@@ -308,7 +308,7 @@ bond_topologies {
     bond_type: BOND_SINGLE
   }
   smiles: "O=CF"
-  bond_topology_id: 57
+  bond_topo_id: 57
   geometry_score: 3.1316471099853516
   source: 15
 }

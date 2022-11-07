@@ -40,7 +40,7 @@ db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
 #-----------------------------------------------------------------------------
 count = 0
 data_dict = {
-    'molecule_id': [],
+    'mol_id': [],
     'energy': [],
     'homo': [],
     'lumo': [],
@@ -52,13 +52,13 @@ data_dict = {
 #-----------------------------------------------------------------------------
 for molecule in db:
 
-  data_dict['molecule_id'].append(molecule.molecule_id)
+  data_dict['mol_id'].append(molecule.mol_id)
   data_dict['energy'].append(
-      molecule.properties.single_point_energy_atomic_b5.value)
-  data_dict['homo'].append(molecule.properties.homo_pbe0_6_311gd.value)
-  data_dict['lumo'].append(molecule.properties.lumo_pbe0_6_311gd.value)
+      molecule.properties.spe_comp_b5.value)
+  data_dict['homo'].append(molecule.properties.orb_ehomo_pbe0_6311gd.value)
+  data_dict['lumo'].append(molecule.properties.orb_elumo_pbe0_6311gd.value)
   data_dict['first important frequency'].append(
-      molecule.properties.harmonic_frequencies.value[6])
+      molecule.properties.vib_freq.value[6])
 
   #---------------------------------------------------------------------------
   # This breaks out of the loop after a couple of records just so this

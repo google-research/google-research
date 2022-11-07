@@ -49,9 +49,9 @@ def main(unused_argv):
       bond_length_distribution.STANDARD_SIG_DIGITS)
   fake_smiles_id_dict = collections.defaultdict(lambda: -1)
 
-  print('molecule_id, count_all, count_smu, count_covalent, count_allen')
+  print('mol_id, count_all, count_smu, count_covalent, count_allen')
   for molecule in db:
-    if abs(hash(str(molecule.molecule_id))) % 1000 != 1:
+    if abs(hash(str(molecule.mol_id))) % 1000 != 1:
       continue
 
     topology_from_geom.standard_topology_sensing(molecule, bond_lengths,
@@ -66,7 +66,7 @@ def main(unused_argv):
                       for bt in molecule.bond_topologies)
 
     print(
-        f'{molecule.molecule_id}, {count_all}, {count_smu}, {count_covalent}, {count_allen}'
+        f'{molecule.mol_id}, {count_all}, {count_smu}, {count_covalent}, {count_allen}'
     )
 
 

@@ -34,10 +34,10 @@ from smu.parser import smu_utils_lib
 
 
 def print_bond_topologies(mol):
-  print('Molecule', mol.molecule_id, 'has', len(mol.bond_topologies),
+  print('Molecule', mol.mol_id, 'has', len(mol.bond_topologies),
         'bond topologies')
   for bt in mol.bond_topologies:
-    print('    Topology with id', bt.bond_topology_id, 'and SMILES', bt.smiles)
+    print('    Topology with id', bt.bond_topo_id, 'and SMILES', bt.smiles)
     source_string = ''
     if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING:
       source_string += 'STARTING '
@@ -56,11 +56,11 @@ print('Each Molecule can have multiple bond topologies associated with it')
 
 print()
 print('Most Molecules (~96%) have exactly one bond topology like this one')
-print_bond_topologies(db.find_by_molecule_id(57429002))
+print_bond_topologies(db.find_by_mol_id(57429002))
 
 print()
 print('Some Molecules have multiple bond topologies like this one')
-print_bond_topologies(db.find_by_molecule_id(8400001))
+print_bond_topologies(db.find_by_mol_id(8400001))
 
 print()
 print('The "source" field gives information about these multiple topologies')
@@ -85,7 +85,7 @@ print('Cambridge Structural Database: dataset_pb2.BondTopology.SOURCE_CSD')
 print()
 print('One further note, the same topology id can be present multiple times')
 print('For example, consider good old benzene')
-benzene = db.find_by_molecule_id(79488001)
+benzene = db.find_by_mol_id(79488001)
 print_bond_topologies(benzene)
 print('These are the two kekulized forms of benzene')
 print(
@@ -99,33 +99,33 @@ print(benzene.bond_topologies[1].bonds[3], end='')
 print()
 print(
     'There are also some cases with a mix of same and different ids, like this')
-print_bond_topologies(db.find_by_molecule_id(3177001))
+print_bond_topologies(db.find_by_mol_id(3177001))
 
 print()
 print('The easiest and most reliable way to select the desired topologies is the function')
 print('iterate_bond_topologies. The "which" parameter controls which bond topologies are returned')
 
-molecule = db.find_by_molecule_id(8400001)
+molecule = db.find_by_mol_id(8400001)
 print_bond_topologies(molecule)
 
 print()
 print('Passing ALL as the which parameter gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.ALL):
-  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topology_id)
+  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topo_id)
 
 print()
 print('Passing BEST as the which parameter gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.BEST):
-  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topology_id)
+  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topo_id)
 print('Note that BEST always returns a single topology')
 
 print()
 print('Passing STARTING as the which parameter gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.STARTING):
-  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topology_id)
+  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topo_id)
 print('Note that STARTING deals correctly with special cases present in the complete database')
 print('See special_cases.py for some details.')
 print('This is one of the reasons this function is the recommended method')
@@ -135,14 +135,14 @@ print('The last 3 which values select topologies based on which methods produced
 print('which of ITC gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.ITC):
-  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topology_id)
+  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topo_id)
 print('which of MLCR gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.MLCR):
-  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topology_id)
+  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topo_id)
 print('which of CSD gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.CSD):
-  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topology_id)
+  print('    Got bond topology with position', bt_idx, 'and id', bt.bond_topo_id)
 print('    It is correct that nothing was printed here!')
 print('    This topology has no topology matching the CSD criteria')

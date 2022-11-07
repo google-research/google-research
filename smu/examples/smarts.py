@@ -50,17 +50,17 @@ print(
 print(smarts)
 
 print()
-print('We use find_bond_topology_id_by_smarts to get the bt_ids')
+print('We use find_bond_topo_id_by_smarts to get the bt_ids')
 print('This typically takes 20-40 seconds')
-bt_ids = list(db.find_bond_topology_id_by_smarts(smarts))
+bt_ids = list(db.find_bond_topo_id_by_smarts(smarts))
 print('In this case we find', len(bt_ids), 'matching bond topologies')
 
 print()
 print(
-    'You can then use find_by_bond_topology_id_list (just like indices.py) to get the molecules'
+    'You can then use find_by_bond_topo_id_list (just like indices.py) to get the molecules'
 )
 molecules = list(
-    db.find_by_bond_topology_id_list(
+    db.find_by_bond_topo_id_list(
         bt_ids, which_topologies=smu_utils_lib.WhichTopologies.ALL))
 print('In this case we find', len(molecules), 'matching molecules')
 print(

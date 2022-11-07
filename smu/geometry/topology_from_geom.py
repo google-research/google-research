@@ -146,7 +146,7 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
 
   result = dataset_pb2.TopologyMatches()  # To be returned.
   result.starting_smiles = starting_topology.smiles
-  result.molecule_id = molecule.molecule_id
+  result.mol_id = molecule.mol_id
   result.fate = molecule.properties.errors.fate
 
   natoms = len(starting_topology.atoms)
@@ -342,7 +342,7 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   # canonicalized.
   for bt in smu_matches.bond_topology:
     try:
-      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      bt.bond_topo_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
     bt.source = dataset_pb2.BondTopology.SOURCE_ITC
@@ -359,7 +359,7 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   # print('COV: ', [bt.smiles for bt in cov_matches.bond_topology])
   for bt in cov_matches.bond_topology:
     try:
-      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      bt.bond_topo_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
     bt.source = dataset_pb2.BondTopology.SOURCE_MLCR
@@ -373,7 +373,7 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   # print('ALLEN: ', [bt.smiles for bt in allen_matches.bond_topology])
   for bt in allen_matches.bond_topology:
     try:
-      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      bt.bond_topo_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
     bt.source = dataset_pb2.BondTopology.SOURCE_CSD

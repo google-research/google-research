@@ -1,7 +1,7 @@
 # proto-file: third_party/google_research/google_research/smu/dataset.proto
 # proto-message: MultipleMolecules
 molecules {
-  molecule_id: 20001
+  mol_id: 20001
   original_molecule_index: 1
   initial_geometries {
     atom_positions {
@@ -52,7 +52,7 @@ molecules {
     enuc {
       value: 24.805948
     }
-    rotcon {
+    brot {
       value: 0.0
       value: 35519.086
       value: 35519.086
@@ -62,7 +62,7 @@ molecules {
     errors {
       which_database: STANDARD
     }
-    harmonic_intensities {
+    vib_intens {
       value: 0.0
       value: 0.0
       value: 0.0
@@ -76,201 +76,201 @@ molecules {
       value: 72.7
       value: 0.0
     }
-    single_point_energy_pbe0d3_6_311gd {
+    spe_std_pbe0d3_6311gd {
       value: -77.240567
     }
-    single_point_energy_pbe0_6_311gd {
+    spe_check_pbe0_6311gd_tmol {
       value: -77.240381
     }
-    single_point_energy_pbe0_6_311gd_mrcc {
+    spe_check_pbe0_6311gd_tmol_mrcc {
       value: -77.240383
     }
-    single_point_energy_pbe0_6_311gd_orca {
+    spe_check_pbe0_6311gd_tmol_orca {
       value: -77.240406
     }
-    single_point_energy_pbe0_6_311gd_cat {
+    spe_check_pbe0_6311gd_tmol_cat {
       value: -76.826347
     }
-    single_point_energy_pbe0_6_311gd_cat_mrcc {
+    spe_check_pbe0_6311gd_tmol_cat_mrcc {
       value: -76.826349
     }
-    single_point_energy_pbe0_6_311gd_cat_orca {
+    spe_check_pbe0_6311gd_tmol_cat_orca {
       value: -76.826369
     }
-    single_point_energy_pbe0_aug_pc_1 {
+    spe_std_pbe0_augpc1 {
       value: -77.214243
     }
-    single_point_energy_hf_6_31gd {
+    spe_std_hf_631gd {
       value: -76.816771
     }
-    single_point_energy_b3lyp_6_31ppgdp {
+    spe_std_b3lyp_631ppgdp {
       value: -77.33537
     }
-    single_point_energy_b3lyp_aug_pcs_1 {
+    spe_std_b3lyp_augpcs1 {
       value: -77.318288
     }
-    single_point_energy_pbe0_6_31ppgdp {
+    spe_std_pbe0_631ppgdp {
       value: -77.230045
     }
-    single_point_energy_pbe0_aug_pcs_1 {
+    spe_std_pbe0_augpcs1 {
       value: -77.210928
     }
-    single_point_energy_hf_tzvp {
+    spe_std_hf_tzvp {
       value: -76.848336
     }
-    single_point_energy_mp2_tzvp {
+    spe_std_mp2_tzvp {
       value: -77.116989
     }
-    single_point_energy_cc2_tzvp {
+    spe_std_cc2_tzvp {
       value: -77.121727
     }
-    single_point_energy_hf_3 {
+    spe_std_hf_3 {
       value: -76.849605
     }
-    single_point_energy_mp2_3 {
+    spe_std_mp2_3 {
       value: -77.158885
     }
-    single_point_energy_hf_4 {
+    spe_std_hf_4 {
       value: -76.854631
     }
-    single_point_energy_mp2_4 {
+    spe_std_mp2_4 {
       value: -77.183272
     }
-    single_point_energy_hf_34 {
+    spe_std_hf_34 {
       value: -76.855856
     }
-    single_point_energy_mp2_34 {
+    spe_std_mp2_34 {
       value: -77.200552
     }
-    single_point_energy_hf_cvtz {
+    spe_std_hf_cvtz {
       value: -76.850294
     }
-    single_point_energy_mp2ful_cvtz {
+    spe_std_mp2full_cvtz {
       value: -77.256863
     }
-    single_point_energy_hf_2sp {
+    spe_std_hf_2sp {
       value: -76.797184
     }
-    single_point_energy_mp2_2sp {
+    spe_std_mp2_2sp {
       value: -76.978537
     }
-    single_point_energy_ccsd_2sp {
+    spe_std_ccsd_2sp {
       value: -76.992779
     }
-    single_point_energy_ccsd_t_2sp {
+    spe_std_ccsd_t_2sp {
       value: -76.998762
     }
-    single_point_energy_hf_2sd {
+    spe_std_hf_2sd {
       value: -76.818314
     }
-    single_point_energy_mp2_2sd {
+    spe_std_mp2_2sd {
       value: -77.063771
     }
-    single_point_energy_ccsd_2sd {
+    spe_std_ccsd_2sd {
       value: -77.080489
     }
-    single_point_energy_ccsd_t_2sd {
+    spe_std_ccsd_t_2sd {
       value: -77.09089
     }
-    single_point_energy_hf_3psd {
+    spe_std_hf_3psd {
       value: -76.832088
     }
-    single_point_energy_mp2_3psd {
+    spe_std_mp2_3psd {
       value: -77.107773
     }
-    single_point_energy_ccsd_3psd {
+    spe_std_ccsd_3psd {
       value: -77.120977
     }
-    single_point_energy_atomic_b5 {
+    spe_comp_b5 {
       value: -77.321445
     }
-    single_point_energy_atomic_b6 {
+    spe_comp_b6 {
       value: -77.320541
     }
-    zpe_unscaled {
+    vib_zpe {
       value: 16.78
     }
-    homo_pbe0_6_311gd {
+    orb_ehomo_pbe0_6311gd {
       value: -0.30522
     }
-    lumo_pbe0_6_311gd {
+    orb_elumo_pbe0_6311gd {
       value: 0.04568
     }
-    homo_pbe0_aug_pc_1 {
+    orb_ehomo_pbe0_augpc1 {
       value: -0.31149
     }
-    lumo_pbe0_aug_pc_1 {
+    orb_elumo_pbe0_augpc1 {
       value: 0.00855
     }
-    homo_pbe0_6_31ppgdp {
+    orb_ehomo_pbe0_631ppgdp {
       value: -0.30783
     }
-    lumo_pbe0_6_31ppgdp {
+    orb_elumo_pbe0_631ppgdp {
       value: 0.0128
     }
-    homo_pbe0_aug_pcs_1 {
+    orb_ehomo_pbe0_augpcs1 {
       value: -0.31136
     }
-    lumo_pbe0_aug_pcs_1 {
+    orb_elumo_pbe0_augpcs1 {
       value: 0.00849
     }
-    homo_b3lyp_6_31ppgdp {
+    orb_ehomo_b3lyp_631ppgdp {
       value: -0.29821
     }
-    lumo_b3lyp_6_31ppgdp {
+    orb_elumo_b3lyp_631ppgdp {
       value: 0.00469
     }
-    homo_b3lyp_aug_pcs_1 {
+    orb_ehomo_b3lyp_augpcs1 {
       value: -0.30232
     }
-    lumo_b3lyp_aug_pcs_1 {
+    orb_elumo_b3lyp_augpcs1 {
       value: 0.00096
     }
-    homo_hf_6_31gd {
+    orb_ehomo_hf_631gd {
       value: -0.40116
     }
-    lumo_hf_6_31gd {
+    orb_elumo_hf_631gd {
       value: 0.21804
     }
-    homo_hf_tzvp {
+    orb_ehomo_hf_tzvp {
       value: -0.41163
     }
-    lumo_hf_tzvp {
+    orb_elumo_hf_tzvp {
       value: 0.15655
     }
-    homo_hf_3 {
+    orb_ehomo_hf_3 {
       value: -0.41042
     }
-    lumo_hf_3 {
+    orb_elumo_hf_3 {
       value: 0.15097
     }
-    homo_hf_4 {
+    orb_ehomo_hf_4 {
       value: -0.41143
     }
-    lumo_hf_4 {
+    orb_elumo_hf_4 {
       value: 0.12938
     }
-    homo_hf_cvtz {
+    orb_ehomo_hf_cvtz {
       value: -0.41049
     }
-    lumo_hf_cvtz {
+    orb_elumo_hf_cvtz {
       value: 0.15049
     }
-    excitation_energies_cc2 {
+    exc_ene_cc2_tzvp {
       value: 0.27967
       value: 0.2925
       value: 0.2925
       value: 0.35517
       value: 0.35517
     }
-    excitation_oscillator_strengths_cc2 {
+    exc_os_cc2_tzvp {
       value: 0.0
       value: 0.0
       value: 0.0
       value: 0.0
       value: 0.0
     }
-    nmr_isotropic_shielding_pbe0_6_31ppgdp {
+    nmr_pbe0_631ppgdp {
       values: 130.8096
       values: 130.8096
       values: 30.2304
@@ -280,7 +280,7 @@ molecules {
       precision: 0.0016
       precision: 0.0016
     }
-    nmr_isotropic_shielding_pbe0_aug_pcs_1 {
+    nmr_pbe0_augpcs1 {
       values: 110.2848
       values: 110.2848
       values: 30.1856
@@ -290,7 +290,7 @@ molecules {
       precision: 0.0016
       precision: 0.0016
     }
-    nmr_isotropic_shielding_b3lyp_6_31ppgdp {
+    nmr_b3lyp_631ppgdp {
       values: 130.2528
       values: 130.2528
       values: 30.3504
@@ -300,7 +300,7 @@ molecules {
       precision: 0.0016
       precision: 0.0016
     }
-    nmr_isotropic_shielding_b3lyp_aug_pcs_1 {
+    nmr_b3lyp_augpcs1 {
       values: 107.5648
       values: 107.5648
       values: 30.3392
@@ -310,7 +310,7 @@ molecules {
       precision: 0.0016
       precision: 0.0016
     }
-    partial_charges_mulliken_pbe0_aug_pc_1 {
+    chg_mul_pbe0_augpc1 {
       values: -0.2548
       values: -0.2548
       values: 0.2548
@@ -320,7 +320,7 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    partial_charges_mulliken_hf_6_31gd {
+    chg_mul_hf_631gd {
       values: -0.2816
       values: -0.2816
       values: 0.2816
@@ -330,7 +330,7 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    partial_charges_loewdin_pbe0_aug_pc_1 {
+    chg_loe_pbe0_augpc1 {
       values: -0.0028
       values: -0.0028
       values: 0.0028
@@ -340,7 +340,7 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    partial_charges_loewdin_hf_6_31gd {
+    chg_loe_hf_631gd {
       values: -0.1779
       values: -0.1779
       values: 0.1779
@@ -350,7 +350,7 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    partial_charges_natural_nbo_pbe0_aug_pc_1 {
+    chg_nat_pbe0_augpc1 {
       values: -0.2355
       values: -0.2355
       values: 0.2355
@@ -360,7 +360,7 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    partial_charges_natural_nbo_hf_6_31gd {
+    chg_nat_hf_631gd {
       values: -0.2429
       values: -0.2429
       values: 0.2429
@@ -390,7 +390,7 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    partial_charges_esp_fit_pbe0_aug_pc_1 {
+    chg_esp_pbe0_augpc1 {
       values: -0.287
       values: -0.287
       values: 0.287
@@ -400,7 +400,7 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    partial_charges_esp_fit_hf_6_31gd {
+    chg_esp_hf_631gd {
       values: -0.2984
       values: -0.2984
       values: 0.2984
@@ -410,33 +410,33 @@ molecules {
       precision: 0.0001
       precision: 0.0001
     }
-    dipole_dipole_polarizability_pbe0_aug_pc_1 {
+    elec_pol_pbe0_augpc1 {
       xx: 19.22399
       yy: 19.22399
       zz: 30.9373
       xy: -0.0
     }
-    dipole_moment_pbe0_aug_pc_1 {
+    elec_dip_pbe0_augpc1 {
       x: -0.0
     }
-    dipole_moment_hf_6_31gd {
+    elec_dip_hf_631gd {
       x: -0.0
       y: -0.0
       z: -0.0
     }
-    quadrupole_moment_pbe0_aug_pc_1 {
+    elec_qua_pbe0_augpc1 {
       xx: -10.25411
       yy: -10.25411
       zz: -5.22335
     }
-    quadrupole_moment_hf_6_31gd {
+    elec_qua_hf_631gd {
       xx: -9.97016
       yy: -9.97016
       zz: -4.83733
       xz: -0.0
       yz: -0.0
     }
-    octopole_moment_pbe0_aug_pc_1 {
+    elec_oct_pbe0_augpc1 {
       xxx: -0.0
       yyy: -0.0
       zzz: -0.0
@@ -445,7 +445,7 @@ molecules {
       xyy: -0.0
       xyz: -0.0
     }
-    octopole_moment_hf_6_31gd {
+    elec_oct_hf_631gd {
       xxx: -0.0
       yyy: -0.0
       zzz: -0.0
@@ -460,16 +460,16 @@ molecules {
     symmetry_used_in_calculation: true
     number_imaginary_frequencies: 0
     number_of_optimization_runs: 1
-    diagnostics_d1_ccsd_2sp {
+    wf_diag_d1_2sp {
       value: 0.0249
     }
-    diagnostics_t1_ccsd_2sp {
+    wf_diag_t1_2sp {
       value: 0.0123
     }
-    diagnostics_t1_ccsd_2sd {
+    wf_diag_t1_2sd {
       value: 0.0122
     }
-    diagnostics_t1_ccsd_3psd {
+    wf_diag_t1_3psd {
       value: 0.0129
     }
     calculation_statistics {
@@ -512,159 +512,159 @@ molecules {
       computing_location: "IP"
       timings: "2"
     }
-    single_point_energy_eccsd {
+    spe_comp_eccsd {
       value: -77.20887
     }
-    diagnostics_t1_ccsd_2sp_excess {
+    at2_gen_t1_exc {
     }
-    bond_separation_reaction_left {
+    at2_gen_bsr_left {
       value: " molecule"
     }
-    bond_separation_reaction_right {
+    at2_gen_bsr_right {
       value: " 1  HC#CH"
     }
-    bond_separation_energy_atomic_b5 {
+    at2_std_b5_ereac {
       value: -0.01
     }
-    bond_separation_energy_atomic_b5_um {
+    at2_um_b5_ereac {
       value: -0.01
     }
-    bond_separation_energy_atomic_b5_um_ci {
+    at2_um_b5_ereac_unc {
     }
-    bond_separation_energy_atomic_b6 {
+    at2_std_b6_ereac {
       value: -0.01
     }
-    bond_separation_energy_atomic_b6_um {
+    at2_um_b6_ereac {
       value: -0.01
     }
-    bond_separation_energy_atomic_b6_um_ci {
+    at2_um_b6_ereac_unc {
     }
-    bond_separation_energy_eccsd {
+    at2_std_eccsd_ereac {
       value: -0.0
     }
-    bond_separation_energy_eccsd_um {
+    at2_um_eccsd_ereac {
       value: -0.0
     }
-    bond_separation_energy_eccsd_um_ci {
+    at2_um_eccsd_ereac_unc {
     }
-    atomization_energy_excluding_zpe_atomic_b5 {
+    at2_std_b5_eae {
       value: 404.95
     }
-    atomization_energy_excluding_zpe_atomic_b5_um {
+    at2_um_b5_eae {
       value: 405.03
     }
-    atomization_energy_excluding_zpe_atomic_b5_um_ci {
+    at2_um_b5_eae_unc {
       value: 0.17
     }
-    atomization_energy_excluding_zpe_atomic_b6 {
+    at2_std_b6_eae {
       value: 404.95
     }
-    atomization_energy_excluding_zpe_atomic_b6_um {
+    at2_um_b6_eae {
       value: 405.03
     }
-    atomization_energy_excluding_zpe_atomic_b6_um_ci {
+    at2_um_b6_eae_unc {
       value: 0.17
     }
-    atomization_energy_excluding_zpe_eccsd {
+    at2_std_eccsd_eae {
       value: 404.96
     }
-    atomization_energy_excluding_zpe_eccsd_um {
+    at2_um_eccsd_eae {
       value: 405.04
     }
-    atomization_energy_excluding_zpe_eccsd_um_ci {
+    at2_um_eccsd_eae_unc {
       value: 0.17
     }
-    atomization_energy_including_zpe_atomic_b5 {
+    at2_std_b5_ea0 {
       value: 388.52
     }
-    atomization_energy_including_zpe_atomic_b5_um {
+    at2_um_b5_ea0 {
       value: 388.55
     }
-    atomization_energy_including_zpe_atomic_b5_um_ci {
+    at2_um_b5_ea0_unc {
       value: 0.21
     }
-    atomization_energy_including_zpe_atomic_b6 {
+    at2_std_b6_ea0 {
       value: 388.52
     }
-    atomization_energy_including_zpe_atomic_b6_um {
+    at2_um_b6_ea0 {
       value: 388.55
     }
-    atomization_energy_including_zpe_atomic_b6_um_ci {
+    at2_um_b6_ea0_unc {
       value: 0.21
     }
-    atomization_energy_including_zpe_eccsd {
+    at2_std_eccsd_ea0 {
       value: 388.53
     }
-    atomization_energy_including_zpe_eccsd_um {
+    at2_um_eccsd_ea0 {
       value: 388.56
     }
-    atomization_energy_including_zpe_eccsd_um_ci {
+    at2_um_eccsd_ea0_unc {
       value: 0.21
     }
-    enthalpy_of_formation_0k_atomic_b5 {
+    at2_std_b5_hf0 {
       value: 54.8
     }
-    enthalpy_of_formation_0k_atomic_b5_um {
+    at2_um_b5_hf0 {
       value: 54.77
     }
-    enthalpy_of_formation_0k_atomic_b5_um_ci {
+    at2_um_b5_hf0_unc {
       value: 0.21
     }
-    enthalpy_of_formation_0k_atomic_b6 {
+    at2_std_b6_hf0 {
       value: 54.8
     }
-    enthalpy_of_formation_0k_atomic_b6_um {
+    at2_um_b6_hf0 {
       value: 54.77
     }
-    enthalpy_of_formation_0k_atomic_b6_um_ci {
+    at2_um_b6_hf0_unc {
       value: 0.21
     }
-    enthalpy_of_formation_0k_eccsd {
+    at2_std_eccsd_hf0 {
       value: 54.79
     }
-    enthalpy_of_formation_0k_eccsd_um {
+    at2_um_eccsd_hf0 {
       value: 54.77
     }
-    enthalpy_of_formation_0k_eccsd_um_ci {
+    at2_um_eccsd_hf0_unc {
       value: 0.21
     }
-    enthalpy_of_formation_298k_atomic_b5 {
+    at2_std_b5_hf298 {
       value: 54.69
     }
-    enthalpy_of_formation_298k_atomic_b5_um {
+    at2_um_b5_hf298 {
       value: 54.66
     }
-    enthalpy_of_formation_298k_atomic_b5_um_ci {
+    at2_um_b5_hf298_unc {
       value: 0.25
     }
-    enthalpy_of_formation_298k_atomic_b6 {
+    at2_std_b6_hf298 {
       value: 54.69
     }
-    enthalpy_of_formation_298k_atomic_b6_um {
+    at2_um_b6_hf298 {
       value: 54.66
     }
-    enthalpy_of_formation_298k_atomic_b6_um_ci {
+    at2_um_b6_hf298_unc {
       value: 0.25
     }
-    enthalpy_of_formation_298k_eccsd {
+    at2_std_eccsd_hf298 {
       value: 54.68
     }
-    enthalpy_of_formation_298k_eccsd_um {
+    at2_um_eccsd_hf298 {
       value: 54.65
     }
-    enthalpy_of_formation_298k_eccsd_um_ci {
+    at2_um_eccsd_hf298_unc {
       value: 0.25
     }
-    zpe_atomic {
+    at2_std_zpe {
       value: 16.43
     }
-    zpe_atomic_um {
+    at2_um_zpe {
       value: 16.48
     }
-    zpe_atomic_um_ci {
+    at2_um_zpe_unc {
       value: 0.13
     }
-    harmonic_frequencies {
+    vib_freq {
       value: 0.0
       value: 0.0
       value: 0.0
@@ -678,7 +678,7 @@ molecules {
       value: 3426.7
       value: 3532.0
     }
-    normal_modes {
+    vib_mode {
       displacements {
         x: -0.1212
         y: 0.0162
@@ -695,7 +695,7 @@ molecules {
         y: 0.0508
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         x: 0.5476
         y: -0.0245
@@ -712,7 +712,7 @@ molecules {
         y: -0.0765
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         x: 0.065
         y: 0.2517
@@ -729,7 +729,7 @@ molecules {
         y: 0.7866
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         y: -0.3585
       }
@@ -743,7 +743,7 @@ molecules {
         y: 0.5168
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         z: 0.5
       }
@@ -757,7 +757,7 @@ molecules {
         z: 0.5
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         y: -0.1605
       }
@@ -771,7 +771,7 @@ molecules {
         y: -0.6886
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         x: -0.1605
       }
@@ -785,7 +785,7 @@ molecules {
         x: -0.6886
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         y: 0.0591
       }
@@ -799,7 +799,7 @@ molecules {
         y: -0.7046
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         x: 0.0591
       }
@@ -813,7 +813,7 @@ molecules {
         x: -0.7046
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         z: 0.3537
       }
@@ -827,7 +827,7 @@ molecules {
         z: -0.6123
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         z: 0.0591
       }
@@ -841,7 +841,7 @@ molecules {
         z: -0.7046
       }
     }
-    normal_modes {
+    vib_mode {
       displacements {
         z: 0.1017
       }
@@ -875,7 +875,7 @@ molecules {
       bond_type: BOND_SINGLE
     }
     smiles: "C#C"
-    bond_topology_id: 20
+    bond_topo_id: 20
     source: 1
   }
 }

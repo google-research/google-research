@@ -93,7 +93,7 @@ class SmuParserTest(absltest.TestCase):
       molecule.bond_topologies[1].source = dataset_pb2.BondTopology.SOURCE_CSD
       for bt in molecule.bond_topologies[0:2]:
         bt.bonds[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE
-        bt.bond_topology_id += 9999
+        bt.bond_topo_id += 9999
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
           smu_writer.process_stage2_proto(molecule).splitlines())
@@ -118,7 +118,7 @@ class RoundtripTest(absltest.TestCase):
     for maybe_molecule, orig_contents in process_fn():
       if isinstance(maybe_molecule, Exception):
         raise maybe_molecule
-      self.assertGreater(maybe_molecule.bond_topologies[0].bond_topology_id, 0)
+      self.assertGreater(maybe_molecule.bond_topologies[0].bond_topo_id, 0)
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
           writer_fn(maybe_molecule).splitlines())
@@ -266,12 +266,12 @@ class Atomic2InputTest(absltest.TestCase):
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.ClearField('single_point_energy_hf_3')
+      molecule.properties.ClearField('spe_std_hf_3')
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.ClearField('single_point_energy_mp2_3')
+      molecule.properties.ClearField('spe_std_mp2_3')
       writer.process(molecule, 0)
 
 

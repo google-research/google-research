@@ -43,7 +43,7 @@ db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
 # converting a molecule to molecules(s). Not all molecules will have
 # this level of complexity.
 #-----------------------------------------------------------------------------
-molecule = db.find_by_molecule_id(8240001)
+molecule = db.find_by_mol_id(8240001)
 
 #-----------------------------------------------------------------------------
 # This RDKit object "writer" will be used to write SDF files to stdout to

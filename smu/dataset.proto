@@ -144,7 +144,7 @@ message BondTopology {
   string smiles = 3;
 
   // A unique 1 indexed dense id for this topology.
-  int32 bond_topology_id = 4;
+  int32 bond_topo_id = 4;
 
   // Bitfield of values from SourceType indicating where this bond topology came from.
   int32 source = 10;
@@ -203,8 +203,8 @@ message TopologyMatches {
   // It is convenient to have the starting smiles.
   string starting_smiles = 2;
 
-  // And the molecule_id
-  int32 molecule_id = 3;
+  // And the mol_id
+  int32 mol_id = 3;
 
   // To avoid having to join results later, store the fate.
   Properties.FateCategory fate = 4;
@@ -239,7 +239,7 @@ message Geometry {
   // The eigenvalues of the moment of inertia tensor.
   // Will only be available for the optimized geometry.
   // Units: Mhz
-  Properties.MultiScalarMolecularProperty rotcon = 5
+  Properties.MultiScalarMolecularProperty brot = 5
       [(availability) = STANDARD];
 }
 
@@ -311,24 +311,24 @@ message Properties {
     // T1(2sd) diagnostics 1: > 0.02, 2: > 0.04, 3: > 0.06, 4: > 0.08
     int32 warn_t1 = 30;
     // Excess T1(2sd) diagnostics 1: > 0.015, 2: > 0.03, 3: > 0.05, 4: > 0.07
-    int32 warn_t1_excess = 31;
+    int32 warn_delta_t1 = 31;
     // Ratio between
     // a) usigned difference in B6 and B5 BSEs
     // b) given uncertainty of B6 BSEs
     // 1: > 0.5, 2: > 1, 3: > 1.5, 4: > 2.0
-    int32 warn_bse_b5_b6 = 32;
+    int32 warn_bse_b6 = 32;
     // Ratio between
     // a) unsigned difference in E_CCSD and B5 BSEs
     // b) given uncertainty of E_CCSD BSEs
     // 1: > 0.5, 2: > 1,
-    int32 warn_bse_cccsd_b5 = 33;
+    int32 warn_bse_eccsd = 33;
     // Lowest excitation energy 1: < 1.0, 2: < 0.5, 3: < 0.0, 4: < -0.5 (eV)
-    int32 warn_exc_lowest_excitation = 34;
+    int32 warn_exc_ene = 34;
     // Smallest oscillator strength 1: < -0.001
     // (i.e. negative value, certain to be not due to numerical inaccuracy)
-    int32 warn_exc_smallest_oscillator = 35;
+    int32 warn_exc_osmin = 35;
     // Largest unsigned oscillator strength 1: > 1.0, 2: > 2.0
-    int32 warn_exc_largest_oscillator = 36;
+    int32 warn_exc_osmax = 36;
     // Disagreement between geometry analysis and QM program claim about
     // linearity of the molecule.
     // 1: QM claims non-linear, molecule seems to be linear
@@ -336,7 +336,7 @@ message Properties {
     // (note: value of 2 apparently not found for SMU1-7)
     // Warning indicates that computed heats of formation for 298.15 K
     // may be wrong)
-    int32 warn_vib_linearity = 37;
+    int32 warn_vib_linear = 37;
     // Imaginary frequencies found.
     // 1: At least one imaginary frequency found, all imaginary
     // frequencies are between 0 and 30i cm-1. In this case any
@@ -349,12 +349,12 @@ message Properties {
     // higher-order saddle point. Imaginary frequencies are skipped in
     // the calculation of ZPEs and enthalpies of formation for 298 K
     // are left out.
-    int32 warn_vib_imaginary = 38;
+    int32 warn_vib_imag = 38;
     // This is simply information about how many of the bonds are
     // classified as those that need an empirical correction in the
     // thermochemical analysis to correct for the occurrence of
     // negatively charged BSR prototype molecules.
-    int32 warn_num_neg = 39;
+    int32 warn_bsr_neg = 39;
 
     // These four errors (nstat1, nstatc, nstatt, frequencies) are only from
     // the stage1 files and are only useful for internal debugging.
@@ -416,7 +416,7 @@ message Properties {
     int32 error_inconsistent_cation_energy_turbomole_orca = 17;
     // Normal mode calculations failed.
     // Original error code: nsvvib
-    int32 error_normal_modes = 18;
+    int32 error_vib_mode = 18;
     // TODO(pfr): Document this with Dirk.
     // Original error code: nsvrot
     int32 error_rotational_modes = 19;
@@ -527,226 +527,226 @@ message Properties {
 
   // 3 * num_atoms.
   // Units: km/mol
-  MultiScalarMolecularProperty harmonic_intensities = 4
+  MultiScalarMolecularProperty vib_intens = 4
       [(availability) = STANDARD];
 
   // Values that are negative are imaginary. Frequencies should be exactly
   // the same length as atoms in the BondTopology.
   // Units: wave numbers, cm^-1
-  MultiScalarMolecularProperty harmonic_frequencies = 173
+  MultiScalarMolecularProperty vib_freq = 173
       [(availability) = STANDARD];
   // TODO(pfr): document better
   // 3 * num_atoms normal modes with num_atoms x-, y-, and z- displacements
   // each. Each normal mode corresponds to a particular harmonic_intensity.
-  repeated NormalMode normal_modes = 174 [(availability) = COMPLETE];
+  repeated NormalMode vib_mode = 174 [(availability) = COMPLETE];
 
   // Single point energies are all in atomic units (Hartrees).
   // Single point energy PBE0D3/6-311Gd.
-  ScalarMolecularProperty single_point_energy_pbe0d3_6_311gd = 6
+  ScalarMolecularProperty spe_std_pbe0d3_6311gd = 6
       [(availability) = COMPLETE];
   // Single point energy PBE0/6-311Gd.
-  ScalarMolecularProperty single_point_energy_pbe0_6_311gd = 7
+  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol = 7
       [(availability) = COMPLETE];
   // Single point energy PBE0D3/6-311Gd computed with MRCC.
-  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_mrcc = 8
+  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_mrcc = 8
       [(availability) = COMPLETE];
   // Single point energy PBE0D3/6-311Gd computed with ORCA.
-  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_orca = 9
+  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_orca = 9
       [(availability) = COMPLETE];
   // Single point cation energy PBE0/6-311Gd(CAT) computed with Turbomole.
-  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat = 10
+  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_cat = 10
       [(availability) = COMPLETE];
   // Single point cation energy PBE0/6-311Gd(CAT) computed with MRCC.
-  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_mrcc = 11
+  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_cat_mrcc = 11
       [(availability) = COMPLETE];
   // Single point cation energy PBE0/6-311Gd(CAT) computed with ORCA.
-  ScalarMolecularProperty single_point_energy_pbe0_6_311gd_cat_orca = 12
+  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_cat_orca = 12
       [(availability) = COMPLETE];
   // Single point energy PBE0/aug-pc-1.
-  ScalarMolecularProperty single_point_energy_pbe0_aug_pc_1 = 13
+  ScalarMolecularProperty spe_std_pbe0_augpc1 = 13
       [(availability) = COMPLETE];
   // Single point energy HF/6-31Gd.
-  ScalarMolecularProperty single_point_energy_hf_6_31gd = 14
+  ScalarMolecularProperty spe_std_hf_631gd = 14
       [(availability) = COMPLETE];
   // Single point energy B3LYP/6-31++Gdp.
-  ScalarMolecularProperty single_point_energy_b3lyp_6_31ppgdp = 15
+  ScalarMolecularProperty spe_std_b3lyp_631ppgdp = 15
       [(availability) = COMPLETE];
   // Single point energy B3LYP/aug-pcS-1.
-  ScalarMolecularProperty single_point_energy_b3lyp_aug_pcs_1 = 16
+  ScalarMolecularProperty spe_std_b3lyp_augpcs1 = 16
       [(availability) = COMPLETE];
   // Single point energy PBE0/6-31++Gdp.
-  ScalarMolecularProperty single_point_energy_pbe0_6_31ppgdp = 17
+  ScalarMolecularProperty spe_std_pbe0_631ppgdp = 17
       [(availability) = COMPLETE];
   // Single point energy PBE0/aug-pcS-1.
-  ScalarMolecularProperty single_point_energy_pbe0_aug_pcs_1 = 18
+  ScalarMolecularProperty spe_std_pbe0_augpcs1 = 18
       [(availability) = COMPLETE];
   // Single point energy HF/TZVP.
-  ScalarMolecularProperty single_point_energy_hf_tzvp = 19
+  ScalarMolecularProperty spe_std_hf_tzvp = 19
       [(availability) = COMPLETE];
   // Single point energy MP2/TZVP.
-  ScalarMolecularProperty single_point_energy_mp2_tzvp = 20
+  ScalarMolecularProperty spe_std_mp2_tzvp = 20
       [(availability) = COMPLETE];
   // Single point energy CC2/TZVP.
-  ScalarMolecularProperty single_point_energy_cc2_tzvp = 21
+  ScalarMolecularProperty spe_std_cc2_tzvp = 21
       [(availability) = COMPLETE];
   // Single point energy HF/3.
-  ScalarMolecularProperty single_point_energy_hf_3 = 22
+  ScalarMolecularProperty spe_std_hf_3 = 22
       [(availability) = COMPLETE];
   // Single point energy MP2/3.
-  ScalarMolecularProperty single_point_energy_mp2_3 = 23
+  ScalarMolecularProperty spe_std_mp2_3 = 23
       [(availability) = COMPLETE];
   // Single point energy HF/4.
-  ScalarMolecularProperty single_point_energy_hf_4 = 24
+  ScalarMolecularProperty spe_std_hf_4 = 24
       [(availability) = COMPLETE];
   // Single point energy MP2/4.
-  ScalarMolecularProperty single_point_energy_mp2_4 = 25
+  ScalarMolecularProperty spe_std_mp2_4 = 25
       [(availability) = COMPLETE];
   // Single point energy HF/(34).
-  ScalarMolecularProperty single_point_energy_hf_34 = 26
+  ScalarMolecularProperty spe_std_hf_34 = 26
       [(availability) = COMPLETE];
   // Single point energy MP2/(34).
-  ScalarMolecularProperty single_point_energy_mp2_34 = 27
+  ScalarMolecularProperty spe_std_mp2_34 = 27
       [(availability) = COMPLETE];
   // Single point energy HF/CVTZ.
-  ScalarMolecularProperty single_point_energy_hf_cvtz = 28
+  ScalarMolecularProperty spe_std_hf_cvtz = 28
       [(availability) = COMPLETE];
   // Single point energy MP2ful/CVTZ.
-  ScalarMolecularProperty single_point_energy_mp2ful_cvtz = 29
+  ScalarMolecularProperty spe_std_mp2full_cvtz = 29
       [(availability) = COMPLETE];
   // Single point energy HF/2sp.
-  ScalarMolecularProperty single_point_energy_hf_2sp = 30
+  ScalarMolecularProperty spe_std_hf_2sp = 30
       [(availability) = COMPLETE];
   // Single point energy MP2/2sp.
-  ScalarMolecularProperty single_point_energy_mp2_2sp = 31
+  ScalarMolecularProperty spe_std_mp2_2sp = 31
       [(availability) = COMPLETE];
   // Single point energy CCSD/2sp.
-  ScalarMolecularProperty single_point_energy_ccsd_2sp = 32
+  ScalarMolecularProperty spe_std_ccsd_2sp = 32
       [(availability) = COMPLETE];
   // Single point energy CCSD(T)/2sp.
-  ScalarMolecularProperty single_point_energy_ccsd_t_2sp = 33
+  ScalarMolecularProperty spe_std_ccsd_t_2sp = 33
       [(availability) = COMPLETE];
   // Single point energy HF/2sd.
-  ScalarMolecularProperty single_point_energy_hf_2sd = 34
+  ScalarMolecularProperty spe_std_hf_2sd = 34
       [(availability) = COMPLETE];
   // Single point energy MP2/2sd.
-  ScalarMolecularProperty single_point_energy_mp2_2sd = 35
+  ScalarMolecularProperty spe_std_mp2_2sd = 35
       [(availability) = COMPLETE];
   // Single point energy CCSD/2sd.
-  ScalarMolecularProperty single_point_energy_ccsd_2sd = 36
+  ScalarMolecularProperty spe_std_ccsd_2sd = 36
       [(availability) = COMPLETE];
   // Single point energy CCSD(T)/2sd.
-  ScalarMolecularProperty single_point_energy_ccsd_t_2sd = 37
+  ScalarMolecularProperty spe_std_ccsd_t_2sd = 37
       [(availability) = COMPLETE];
   // Single point energy HF/3Psd.
-  ScalarMolecularProperty single_point_energy_hf_3psd = 38
+  ScalarMolecularProperty spe_std_hf_3psd = 38
       [(availability) = COMPLETE];
   // Single point energy MP2/3Psd.
-  ScalarMolecularProperty single_point_energy_mp2_3psd = 39
+  ScalarMolecularProperty spe_std_mp2_3psd = 39
       [(availability) = COMPLETE];
   // Single point energy CCSD/3Psd.
-  ScalarMolecularProperty single_point_energy_ccsd_3psd = 40
+  ScalarMolecularProperty spe_std_ccsd_3psd = 40
       [(availability) = COMPLETE];
   // Single point energy ATOMIC/B5.
-  ScalarMolecularProperty single_point_energy_atomic_b5 = 41
+  ScalarMolecularProperty spe_comp_b5 = 41
       [(availability) = STANDARD];
   // Single point energy ATOMIC/B6.
-  ScalarMolecularProperty single_point_energy_atomic_b6 = 42
+  ScalarMolecularProperty spe_comp_b6 = 42
       [(availability) = COMPLETE];
   // Single point energy for E_{CCSD}.
-  ScalarMolecularProperty single_point_energy_eccsd = 120
+  ScalarMolecularProperty spe_comp_eccsd = 120
       [(availability) = COMPLETE];
   // TODO(pfr, dirk): double check that atomic_b5 is still reported even when
   // other thermochemistry fails.
 
   // Zero point energy, unscaled.
   // Units: kcal/mol
-  ScalarMolecularProperty zpe_unscaled = 43 [(availability) = COMPLETE];
+  ScalarMolecularProperty vib_zpe = 43 [(availability) = COMPLETE];
 
   // Units: atomic units (Hartrees)
   // HOMO PBE0/6-311Gd.
-  ScalarMolecularProperty homo_pbe0_6_311gd = 47 [(availability) = STANDARD];
+  ScalarMolecularProperty orb_ehomo_pbe0_6311gd = 47 [(availability) = STANDARD];
   // LUMO PBE0/6-311Gd.
-  ScalarMolecularProperty lumo_pbe0_6_311gd = 48 [(availability) = STANDARD];
+  ScalarMolecularProperty orb_elumo_pbe0_6311gd = 48 [(availability) = STANDARD];
   // HOMO PBE0/aug-pc-1.
-  ScalarMolecularProperty homo_pbe0_aug_pc_1 = 49 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_pbe0_augpc1 = 49 [(availability) = COMPLETE];
   // LUMO PBE0/aug-pc-1.
-  ScalarMolecularProperty lumo_pbe0_aug_pc_1 = 50 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_pbe0_augpc1 = 50 [(availability) = COMPLETE];
   // HOMO PBE0/6-31++Gdp.
-  ScalarMolecularProperty homo_pbe0_6_31ppgdp = 51 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_pbe0_631ppgdp = 51 [(availability) = COMPLETE];
   // LUMO PBE0/6-31++Gdp.
-  ScalarMolecularProperty lumo_pbe0_6_31ppgdp = 52 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_pbe0_631ppgdp = 52 [(availability) = COMPLETE];
   // HOMO PBE0/aug-pcS-1.
-  ScalarMolecularProperty homo_pbe0_aug_pcs_1 = 53 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_pbe0_augpcs1 = 53 [(availability) = COMPLETE];
   // LUMO PBE0/aug-pcS-1.
-  ScalarMolecularProperty lumo_pbe0_aug_pcs_1 = 54 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_pbe0_augpcs1 = 54 [(availability) = COMPLETE];
   // HOMO B3LYP/6-31++Gdp.
-  ScalarMolecularProperty homo_b3lyp_6_31ppgdp = 55 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_b3lyp_631ppgdp = 55 [(availability) = COMPLETE];
   // LUMO B3LYP/6-31++Gdp.
-  ScalarMolecularProperty lumo_b3lyp_6_31ppgdp = 56 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_b3lyp_631ppgdp = 56 [(availability) = COMPLETE];
   // HOMO B3LYP/aug-pcS-1.
-  ScalarMolecularProperty homo_b3lyp_aug_pcs_1 = 57 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_b3lyp_augpcs1 = 57 [(availability) = COMPLETE];
   // LUMO B3LYP/aug-pcS-1.
-  ScalarMolecularProperty lumo_b3lyp_aug_pcs_1 = 58 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_b3lyp_augpcs1 = 58 [(availability) = COMPLETE];
   // HOMO HF/6-31Gd.
-  ScalarMolecularProperty homo_hf_6_31gd = 59 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_hf_631gd = 59 [(availability) = COMPLETE];
   // LUMO HF/6-31Gd.
-  ScalarMolecularProperty lumo_hf_6_31gd = 60 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_hf_631gd = 60 [(availability) = COMPLETE];
   // HOMO HF/TZVP.
-  ScalarMolecularProperty homo_hf_tzvp = 61 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_hf_tzvp = 61 [(availability) = COMPLETE];
   // LUMO HF/TZVP.
-  ScalarMolecularProperty lumo_hf_tzvp = 62 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_hf_tzvp = 62 [(availability) = COMPLETE];
   // HOMO HF/3.
-  ScalarMolecularProperty homo_hf_3 = 63 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_hf_3 = 63 [(availability) = COMPLETE];
   // LUMO HF/3.
-  ScalarMolecularProperty lumo_hf_3 = 64 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_hf_3 = 64 [(availability) = COMPLETE];
   // HOMO HF/4.
-  ScalarMolecularProperty homo_hf_4 = 65 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_hf_4 = 65 [(availability) = COMPLETE];
   // LUMO HF/4.
-  ScalarMolecularProperty lumo_hf_4 = 66 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_hf_4 = 66 [(availability) = COMPLETE];
   // HOMO HF/CVTZ.
-  ScalarMolecularProperty homo_hf_cvtz = 67 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_ehomo_hf_cvtz = 67 [(availability) = COMPLETE];
   // LUMO HF/CVTZ.
-  ScalarMolecularProperty lumo_hf_cvtz = 68 [(availability) = COMPLETE];
+  ScalarMolecularProperty orb_elumo_hf_cvtz = 68 [(availability) = COMPLETE];
 
   // The 5 smallest excitation energies and oscillator strengths.
   // Units: atomic units
-  MultiScalarMolecularProperty excitation_energies_cc2 = 69
+  MultiScalarMolecularProperty exc_ene_cc2_tzvp = 69
       [(availability) = STANDARD];
-  MultiScalarMolecularProperty excitation_oscillator_strengths_cc2 = 70
+  MultiScalarMolecularProperty exc_os_cc2_tzvp = 70
       [(availability) = STANDARD];
 
   // NMR isotropic shielding are in ppm
   // NMR isotropic shielding PBE0/6-31++Gdp.
-  AtomicMolecularProperty nmr_isotropic_shielding_pbe0_6_31ppgdp = 71
+  AtomicMolecularProperty nmr_pbe0_631ppgdp = 71
       [(availability) = COMPLETE];
   // NMR isotropic shielding PBE0/aug-pcS-1.
-  AtomicMolecularProperty nmr_isotropic_shielding_pbe0_aug_pcs_1 = 72
+  AtomicMolecularProperty nmr_pbe0_augpcs1 = 72
       [(availability) = STANDARD];
   // NMR isotropic shielding B3LYP/6-31++Gdp.
-  AtomicMolecularProperty nmr_isotropic_shielding_b3lyp_6_31ppgdp = 73
+  AtomicMolecularProperty nmr_b3lyp_631ppgdp = 73
       [(availability) = COMPLETE];
   // NMR isotropic shielding B3LYP/aug-pcS-1.
-  AtomicMolecularProperty nmr_isotropic_shielding_b3lyp_aug_pcs_1 = 74
+  AtomicMolecularProperty nmr_b3lyp_augpcs1 = 74
       [(availability) = COMPLETE];
 
   // All partial charges are in electron units
   // Partial charges MUL-PBE0/aug-pc-1.
-  AtomicMolecularProperty partial_charges_mulliken_pbe0_aug_pc_1 = 75
+  AtomicMolecularProperty chg_mul_pbe0_augpc1 = 75
       [(availability) = STANDARD];
   // Partial charges MUL-HF/6-31Gd.
-  AtomicMolecularProperty partial_charges_mulliken_hf_6_31gd = 76
+  AtomicMolecularProperty chg_mul_hf_631gd = 76
       [(availability) = COMPLETE];
   // Partial charges LOE-PBE0/aug-pc-1.
-  AtomicMolecularProperty partial_charges_loewdin_pbe0_aug_pc_1 = 77
+  AtomicMolecularProperty chg_loe_pbe0_augpc1 = 77
       [(availability) = STANDARD];
   // Partial charges LOE-HF/6-31Gd.
-  AtomicMolecularProperty partial_charges_loewdin_hf_6_31gd = 78
+  AtomicMolecularProperty chg_loe_hf_631gd = 78
       [(availability) = COMPLETE];
   // Partial charges NAT-PBE0/aug-pc-1.
-  AtomicMolecularProperty partial_charges_natural_nbo_pbe0_aug_pc_1 = 79
+  AtomicMolecularProperty chg_nat_pbe0_augpc1 = 79
       [(availability) = STANDARD];
   // Partial charges NAT-HF/6-31Gd.
-  AtomicMolecularProperty partial_charges_natural_nbo_hf_6_31gd = 80
+  AtomicMolecularProperty chg_nat_hf_631gd = 80
       [(availability) = COMPLETE];
   // Partial charges PON-PBE0/aug-pc-1.
   AtomicMolecularProperty partial_charges_paboon_pbe0_aug_pc_1 = 81
@@ -755,15 +755,15 @@ message Properties {
   AtomicMolecularProperty partial_charges_paboon_hf_6_31gd = 82
       [(availability) = INTERNAL_ONLY];
   // Partial charges ESP-PBE0/aug-pc-1.
-  AtomicMolecularProperty partial_charges_esp_fit_pbe0_aug_pc_1 = 83
+  AtomicMolecularProperty chg_esp_pbe0_augpc1 = 83
       [(availability) = STANDARD];
   // Partial charges ESP-HF/6-31Gd.
-  AtomicMolecularProperty partial_charges_esp_fit_hf_6_31gd = 84
+  AtomicMolecularProperty chg_esp_hf_631gd = 84
       [(availability) = COMPLETE];
 
   // Dipole-dipole polarizability PBE0/aug-pc-1.
   // Units: atomic units
-  Rank2MolecularProperty dipole_dipole_polarizability_pbe0_aug_pc_1 = 85
+  Rank2MolecularProperty elec_pol_pbe0_augpc1 = 85
       [(availability) = STANDARD];
   // Dipole-dipole polarizability HF/6-31Gd.
   // Units: atomic units
@@ -773,27 +773,27 @@ message Properties {
 
   // Dipole moment PBE0/aug-pc-1.
   // Units: Debye
-  Vector3DMolecularProperty dipole_moment_pbe0_aug_pc_1 = 87
+  Vector3DMolecularProperty elec_dip_pbe0_augpc1 = 87
       [(availability) = STANDARD];
   // Dipole moment HF/6-31Gd.
   // Units: Debye
-  Vector3DMolecularProperty dipole_moment_hf_6_31gd = 88
+  Vector3DMolecularProperty elec_dip_hf_631gd = 88
       [(availability) = COMPLETE];
 
   // Units: atomic units (bohr^2 * electron)
   // Quadrupole moment PBE0/aug-pc-1.
-  Rank2MolecularProperty quadrupole_moment_pbe0_aug_pc_1 = 89
+  Rank2MolecularProperty elec_qua_pbe0_augpc1 = 89
       [(availability) = STANDARD];
   // Quardupole moment HF/6-31Gd.
-  Rank2MolecularProperty quadrupole_moment_hf_6_31gd = 90
+  Rank2MolecularProperty elec_qua_hf_631gd = 90
       [(availability) = COMPLETE];
 
   // Units: atomic units (bohr^3 * electron)
   // Octopole moment PBE0/aug-pc-1.
-  Rank3MolecularProperty octopole_moment_pbe0_aug_pc_1 = 91
+  Rank3MolecularProperty elec_oct_pbe0_augpc1 = 91
       [(availability) = STANDARD];
   // Octopole moment HF/6-31Gd.
-  Rank3MolecularProperty octopole_moment_hf_6_31gd = 92
+  Rank3MolecularProperty elec_oct_hf_631gd = 92
       [(availability) = COMPLETE];
 
   // INTERNAL_ONLY
@@ -806,7 +806,7 @@ message Properties {
   // Energies and and overall gradient norm at the end of the intial geometry
   // optimization and at the end of the final geometry optimization.
   // Units: atomic units (Hartrees)
-  // TODO(pfr): shoudl match single_point_energy_pbe0d3_6_311gd
+  // TODO(pfr): shoudl match spe_std_pbe0d3_6311gd
   ScalarMolecularProperty initial_geometry_energy_deprecated = 95
       [(availability) = STANDARD];
   ScalarMolecularProperty initial_geometry_gradient_norm_deprecated = 96
@@ -825,9 +825,9 @@ message Properties {
 
   // Strings describing the bond separation reaction used by ATOMIC2 analysis.
   // TODO(pfr): example would be helpful.
-  StringMolecularProperty bond_separation_reaction_left = 122
+  StringMolecularProperty at2_gen_bsr_left = 122
       [(availability) = STANDARD];
-  StringMolecularProperty bond_separation_reaction_right = 123
+  StringMolecularProperty at2_gen_bsr_right = 123
       [(availability) = STANDARD];
 
   // Notes on field naming below
@@ -841,112 +841,112 @@ message Properties {
   //   interval.
 
   // Bond separation energies, in kcal/mol.
-  ScalarMolecularProperty bond_separation_energy_atomic_b5 = 124
+  ScalarMolecularProperty at2_std_b5_ereac = 124
       [(availability) = STANDARD];
-  ScalarMolecularProperty bond_separation_energy_atomic_b5_um = 125
+  ScalarMolecularProperty at2_um_b5_ereac = 125
       [(availability) = STANDARD];
-  ScalarMolecularProperty bond_separation_energy_atomic_b5_um_ci = 126
+  ScalarMolecularProperty at2_um_b5_ereac_unc = 126
       [(availability) = STANDARD];
-  ScalarMolecularProperty bond_separation_energy_atomic_b6 = 127
+  ScalarMolecularProperty at2_std_b6_ereac = 127
       [(availability) = COMPLETE];
-  ScalarMolecularProperty bond_separation_energy_atomic_b6_um = 128
+  ScalarMolecularProperty at2_um_b6_ereac = 128
       [(availability) = COMPLETE];
-  ScalarMolecularProperty bond_separation_energy_atomic_b6_um_ci = 129
+  ScalarMolecularProperty at2_um_b6_ereac_unc = 129
       [(availability) = COMPLETE];
-  ScalarMolecularProperty bond_separation_energy_eccsd = 130
+  ScalarMolecularProperty at2_std_eccsd_ereac = 130
       [(availability) = COMPLETE];
-  ScalarMolecularProperty bond_separation_energy_eccsd_um = 131
+  ScalarMolecularProperty at2_um_eccsd_ereac = 131
       [(availability) = COMPLETE];
-  ScalarMolecularProperty bond_separation_energy_eccsd_um_ci = 132
+  ScalarMolecularProperty at2_um_eccsd_ereac_unc = 132
       [(availability) = COMPLETE];
 
   // ZPE-exclusive atomization energy in kcal/mol.
-  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b5 = 133
+  ScalarMolecularProperty at2_std_b5_eae = 133
       [(availability) = STANDARD];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b5_um = 134
+  ScalarMolecularProperty at2_um_b5_eae = 134
       [(availability) = STANDARD];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b5_um_ci = 135
+  ScalarMolecularProperty at2_um_b5_eae_unc = 135
       [(availability) = STANDARD];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b6 = 136
+  ScalarMolecularProperty at2_std_b6_eae = 136
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b6_um = 137
+  ScalarMolecularProperty at2_um_b6_eae = 137
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_atomic_b6_um_ci = 138
+  ScalarMolecularProperty at2_um_b6_eae_unc = 138
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_eccsd = 139
+  ScalarMolecularProperty at2_std_eccsd_eae = 139
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_eccsd_um = 140
+  ScalarMolecularProperty at2_um_eccsd_eae = 140
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_excluding_zpe_eccsd_um_ci = 141
+  ScalarMolecularProperty at2_um_eccsd_eae_unc = 141
       [(availability) = COMPLETE];
 
   // ZPE-inclusive atomization energy in kcal/mol.
-  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b5 = 142
+  ScalarMolecularProperty at2_std_b5_ea0 = 142
       [(availability) = STANDARD];
-  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b5_um = 143
+  ScalarMolecularProperty at2_um_b5_ea0 = 143
       [(availability) = STANDARD];
-  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b5_um_ci = 144
+  ScalarMolecularProperty at2_um_b5_ea0_unc = 144
       [(availability) = STANDARD];
-  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b6 = 145
+  ScalarMolecularProperty at2_std_b6_ea0 = 145
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b6_um = 146
+  ScalarMolecularProperty at2_um_b6_ea0 = 146
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_including_zpe_atomic_b6_um_ci = 147
+  ScalarMolecularProperty at2_um_b6_ea0_unc = 147
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_including_zpe_eccsd = 148
+  ScalarMolecularProperty at2_std_eccsd_ea0 = 148
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_including_zpe_eccsd_um = 149
+  ScalarMolecularProperty at2_um_eccsd_ea0 = 149
       [(availability) = COMPLETE];
-  ScalarMolecularProperty atomization_energy_including_zpe_eccsd_um_ci = 150
+  ScalarMolecularProperty at2_um_eccsd_ea0_unc = 150
       [(availability) = COMPLETE];
 
   // Enthalpy of formation for T = 0K
   // Units: kcal/mol
-  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5 = 151
+  ScalarMolecularProperty at2_std_b5_hf0 = 151
       [(availability) = STANDARD];
-  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5_um = 152
+  ScalarMolecularProperty at2_um_b5_hf0 = 152
       [(availability) = STANDARD];
-  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b5_um_ci = 153
+  ScalarMolecularProperty at2_um_b5_hf0_unc = 153
       [(availability) = STANDARD];
-  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b6 = 154
+  ScalarMolecularProperty at2_std_b6_hf0 = 154
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b6_um = 155
+  ScalarMolecularProperty at2_um_b6_hf0 = 155
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_0k_atomic_b6_um_ci = 156
+  ScalarMolecularProperty at2_um_b6_hf0_unc = 156
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_0k_eccsd = 157
+  ScalarMolecularProperty at2_std_eccsd_hf0 = 157
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_0k_eccsd_um = 158
+  ScalarMolecularProperty at2_um_eccsd_hf0 = 158
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_0k_eccsd_um_ci = 159
+  ScalarMolecularProperty at2_um_eccsd_hf0_unc = 159
       [(availability) = COMPLETE];
 
   // Enthalpy of formation for T = 298.15K.
   // Units: kcal/mol
-  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5 = 160
+  ScalarMolecularProperty at2_std_b5_hf298 = 160
       [(availability) = STANDARD];
-  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5_um = 161
+  ScalarMolecularProperty at2_um_b5_hf298 = 161
       [(availability) = STANDARD];
-  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b5_um_ci = 162
+  ScalarMolecularProperty at2_um_b5_hf298_unc = 162
       [(availability) = STANDARD];
-  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b6 = 163
+  ScalarMolecularProperty at2_std_b6_hf298 = 163
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b6_um = 164
+  ScalarMolecularProperty at2_um_b6_hf298 = 164
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_298k_atomic_b6_um_ci = 165
+  ScalarMolecularProperty at2_um_b6_hf298_unc = 165
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_298k_eccsd = 166
+  ScalarMolecularProperty at2_std_eccsd_hf298 = 166
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_298k_eccsd_um = 167
+  ScalarMolecularProperty at2_um_eccsd_hf298 = 167
       [(availability) = COMPLETE];
-  ScalarMolecularProperty enthalpy_of_formation_298k_eccsd_um_ci = 168
+  ScalarMolecularProperty at2_um_eccsd_hf298_unc = 168
       [(availability) = COMPLETE];
 
   // Zero point energy, scaled.
   // Units: kcal/mol
-  ScalarMolecularProperty zpe_atomic = 169 [(availability) = STANDARD];
-  ScalarMolecularProperty zpe_atomic_um = 170 [(availability) = STANDARD];
-  ScalarMolecularProperty zpe_atomic_um_ci = 171 [(availability) = STANDARD];
+  ScalarMolecularProperty at2_std_zpe = 169 [(availability) = STANDARD];
+  ScalarMolecularProperty at2_um_zpe = 170 [(availability) = STANDARD];
+  ScalarMolecularProperty at2_um_zpe_unc = 171 [(availability) = STANDARD];
 
   // Number of imaginary frequencies.
   optional int32 number_imaginary_frequencies = 110
@@ -961,7 +961,7 @@ message Properties {
       [(availability) = COMPLETE];
 
   // Diagnostics D1(CCSD/2sp).
-  ScalarMolecularProperty diagnostics_d1_ccsd_2sp = 113
+  ScalarMolecularProperty wf_diag_d1_2sp = 113
       [(availability) = COMPLETE];
   // DEPRECATED
   // Diagnostics D1(CCSD/2sd).
@@ -972,16 +972,16 @@ message Properties {
   ScalarMolecularProperty diagnostics_d1_ccsd_3psd = 115
       [(availability) = INTERNAL_ONLY];
   // Diagnostics T1(CCSD/2sp).
-  ScalarMolecularProperty diagnostics_t1_ccsd_2sp = 116
+  ScalarMolecularProperty wf_diag_t1_2sp = 116
       [(availability) = COMPLETE];
   // Diagnostics T1(CCSD/2sd).
-  ScalarMolecularProperty diagnostics_t1_ccsd_2sd = 117
+  ScalarMolecularProperty wf_diag_t1_2sd = 117
       [(availability) = STANDARD];
   // Diagnostics T1(CCSD/3Psd).
-  ScalarMolecularProperty diagnostics_t1_ccsd_3psd = 118
+  ScalarMolecularProperty wf_diag_t1_3psd = 118
       [(availability) = COMPLETE];
   // Diagnostics T1(CCSD/2sp) excess.
-  ScalarMolecularProperty diagnostics_t1_ccsd_2sp_excess = 121
+  ScalarMolecularProperty at2_gen_t1_exc = 121
       [(availability) = STANDARD];
 
   // INTERNAL_ONLY
@@ -1024,9 +1024,9 @@ message Properties {
 // BondTopology.
 message Molecule {
   // The molecule ID is unique across all molecules. It is constructed with
-  // the bond_topology_id of one of the bond topologies that generated this
-  // geometry plus a unique id (<1000): bond_topology_id * 1000 + unique id
-  int32 molecule_id = 1;
+  // the bond_topo_id of one of the bond topologies that generated this
+  // geometry plus a unique id (<1000): bond_topo_id * 1000 + unique id
+  int32 mol_id = 1;
 
   // INTERNAL_ONLY In the original .dat format, we kept the 1-based dense index
   // of this molecule for the bond_topology and we store the index to ensure
@@ -1053,12 +1053,12 @@ message Molecule {
   // of the geometries was kept through a series of heuristics.
   // If this Molecule was discarded:
   // * It will only be present in the COMPLETE dataset, not the STANDARD.
-  // * duplicated_by is set with the molecule_id that this Molecule was
+  // * duplicate_of is set with the mol_id that this Molecule was
   //   discarded in favor of.
   // If this Molecule was kept over other duplicates:
-  // * duplicate_of is set with all the molecule_id of the discarded Molecule.
-  int32 duplicated_by = 5;
-  repeated int32 duplicate_of = 6;
+  // * duplicates_found is set with all the mol_id of the discarded Molecule.
+  int32 duplicate_of = 5;
+  repeated int32 duplicates_found = 6;
 
   // All of the calculated properties.
   Properties properties = 7;

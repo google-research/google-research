@@ -46,9 +46,9 @@ print('For this example, we will focus on the ITC criteria (our initial bond ran
 original_molecules = sorted(
     db.find_by_smiles_list([smiles],
                            which_topologies=smu_utils_lib.WhichTopologies.ITC),
-    key=lambda c: c.molecule_id)
+    key=lambda c: c.mol_id)
 print('find_by_smiles on', smiles, 'finds these molecule ids')
-print([c.molecule_id for c in original_molecules])
+print([c.mol_id for c in original_molecules])
 
 print()
 print('But you can modify the allowed distances for each type of bond')
@@ -74,9 +74,9 @@ print(
     'The topology query without modifying bond lengths, finds the same result')
 unmodified_molecules = sorted(
     list(db.find_by_topology(smiles, bond_lengths)),
-    key=lambda c: c.molecule_id)
+    key=lambda c: c.mol_id)
 print('Unmodified find_by_topology finds these molecule ids')
-print([c.molecule_id for c in unmodified_molecules])
+print([c.mol_id for c in unmodified_molecules])
 
 print()
 print('We now modify the bond lengths by allowing N to N bonds of any order')
@@ -84,9 +84,9 @@ print('to be between 1A and 2A with the string "N~N:1.0-2.0"')
 bond_lengths.add_from_string_spec('N~N:1.0-2.0')
 modified_molecules = sorted(
     list(db.find_by_topology(smiles, bond_lengths)),
-    key=lambda c: c.molecule_id)
+    key=lambda c: c.mol_id)
 print('We now find these molecule ids')
-print([c.molecule_id for c in modified_molecules])
+print([c.mol_id for c in modified_molecules])
 
 print()
 print('Also note that the bond_topologies field of all molecules returned')
@@ -99,17 +99,17 @@ print(
 # This is a utility function we will use below to print summary information
 # about the bnd topologies found
 #-----------------------------------------------------------------------------
-def print_molecules_and_bond_topology_id(molecules):
+def print_molecules_and_bond_topo_id(molecules):
   for mol in molecules:
-    print('   ', mol.molecule_id, 'has bond topologies:',
-          [bt.bond_topology_id for bt in mol.bond_topologies
+    print('   ', mol.mol_id, 'has bond topologies:',
+          [bt.bond_topo_id for bt in mol.bond_topologies
            if bt.source & (dataset_pb2.BondTopology.SOURCE_ITC |
                            dataset_pb2.BondTopology.SOURCE_CUSTOM)])
 
 
 print()
 print('Compare the bond topologies from the orignal query:')
-print_molecules_and_bond_topology_id(original_molecules)
+print_molecules_and_bond_topo_id(original_molecules)
 print()
 print('With the topologies from the query with modified bond distances:')
-print_molecules_and_bond_topology_id(modified_molecules)
+print_molecules_and_bond_topo_id(modified_molecules)

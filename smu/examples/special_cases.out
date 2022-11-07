@@ -2,10 +2,10 @@ When processing the complete database, there are a few special kinds of molecule
 
 The first are duplicate records
 Consider 253949008
-It has status -1 and duplicated_by 253949007
+It has status -1 and duplicate_of 253949007
 This means this molecule was considered a duplciated of another
 That other molecule proceeded to full calculation and this molecule did not
-A molecule should have status=-1 if and only if duplicated_by is not 0
+A molecule should have status=-1 if and only if duplicate_of is not 0
 Note that this molecule started with bond topology 253949 which is the same as the duplicate 253949
 Therefore, the initial_geometry from 253949008 was copied to the list of initial_geometries for 253949007 which has 2 initial_geometries
 Compare this to molecule 95603043
@@ -17,7 +17,7 @@ If you have a good idea how to do that, you will need these records
 The other important cases to watch for are status >= 512
 Consider molecule 146002
 The status is 590 and the full record is:
-molecule_id: 146002
+mol_id: 146002
 initial_geometries {
   atom_positions {
     x: 1.9942280054092407
@@ -162,7 +162,7 @@ bond_topologies {
     bond_type: BOND_SINGLE
   }
   smiles: "[NH3+][NH+]([O-])[O-]"
-  bond_topology_id: 146
+  bond_topo_id: 146
   source: 1
 }
 

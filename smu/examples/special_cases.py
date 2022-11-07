@@ -44,40 +44,40 @@ DUPLICATE_MOLECULE_DIFF_ID = 95603043
 
 print()
 print('The first are duplicate records')
-molecule_dup_same = db.find_by_molecule_id(DUPLICATE_MOLECULE_SAME_ID)
-print('Consider', molecule_dup_same.molecule_id)
+molecule_dup_same = db.find_by_mol_id(DUPLICATE_MOLECULE_SAME_ID)
+print('Consider', molecule_dup_same.mol_id)
 print('It has status', molecule_dup_same.properties.errors.status,
-      'and duplicated_by', molecule_dup_same.duplicated_by)
+      'and duplicate_of', molecule_dup_same.duplicate_of)
 print('This means this molecule was considered a duplciated of another')
 print('That other molecule proceeded to full calculation',
       'and this molecule did not')
 print('A molecule should have status=-1 if and only if',
-      'duplicated_by is not 0')
+      'duplicate_of is not 0')
 print('Note that this molecule started with bond topology',
-      molecule_dup_same.molecule_id // 1000,
+      molecule_dup_same.mol_id // 1000,
       'which is the same as the duplicate',
-      molecule_dup_same.duplicated_by // 1000)
+      molecule_dup_same.duplicate_of // 1000)
 print(
-    'Therefore, the initial_geometry from', molecule_dup_same.molecule_id,
+    'Therefore, the initial_geometry from', molecule_dup_same.mol_id,
     'was copied to the list of initial_geometries for',
-    molecule_dup_same.duplicated_by, 'which has',
+    molecule_dup_same.duplicate_of, 'which has',
     len(
-        db.find_by_molecule_id(
-            molecule_dup_same.duplicated_by).initial_geometries),
+        db.find_by_mol_id(
+            molecule_dup_same.duplicate_of).initial_geometries),
     'initial_geometries')
 
-molecule_dup_diff = db.find_by_molecule_id(DUPLICATE_MOLECULE_DIFF_ID)
-print('Compare this to molecule', molecule_dup_diff.molecule_id)
-print('It is duplicated to', molecule_dup_diff.duplicated_by,
-      'which has bond topology', molecule_dup_diff.duplicated_by // 1000,
+molecule_dup_diff = db.find_by_mol_id(DUPLICATE_MOLECULE_DIFF_ID)
+print('Compare this to molecule', molecule_dup_diff.mol_id)
+print('It is duplicated to', molecule_dup_diff.duplicate_of,
+      'which has bond topology', molecule_dup_diff.duplicate_of // 1000,
       'which is different than the bond topology for this molecule',
-      molecule_dup_diff.molecule_id // 1000)
+      molecule_dup_diff.mol_id // 1000)
 print(
-    'Therefore, the initial geometry from', molecule_dup_diff.molecule_id,
-    'is NOT copied to', molecule_dup_diff.duplicated_by, 'which has only',
+    'Therefore, the initial geometry from', molecule_dup_diff.mol_id,
+    'is NOT copied to', molecule_dup_diff.duplicate_of, 'which has only',
     len(
-        db.find_by_molecule_id(
-            molecule_dup_diff.duplicated_by).initial_geometries),
+        db.find_by_mol_id(
+            molecule_dup_diff.duplicate_of).initial_geometries),
     'inital_geometries')
 print('We do this because it is not obvious what the atom matching across',
       'the duplicates should be in this case')
@@ -85,8 +85,8 @@ print('If you have a good idea how to do that, you will need these records')
 
 print()
 print('The other important cases to watch for are status >= 512')
-molecule_stage1 = db.find_by_molecule_id(146002)
-print('Consider molecule', molecule_stage1.molecule_id)
+molecule_stage1 = db.find_by_mol_id(146002)
+print('Consider molecule', molecule_stage1.mol_id)
 print('The status is', molecule_stage1.properties.errors.status,
       'and the full record is:')
 print(molecule_stage1)
