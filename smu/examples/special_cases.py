@@ -59,12 +59,12 @@ print('Note that this molecule started with bond topology',
       molecule_dup_same.duplicate_of // 1000)
 print(
     'Therefore, the initial_geometry from', molecule_dup_same.mol_id,
-    'was copied to the list of initial_geometries for',
+    'was copied to the list of ini_geo for',
     molecule_dup_same.duplicate_of, 'which has',
     len(
         db.find_by_mol_id(
-            molecule_dup_same.duplicate_of).initial_geometries),
-    'initial_geometries')
+            molecule_dup_same.duplicate_of).ini_geo),
+    'ini_geo')
 
 molecule_dup_diff = db.find_by_mol_id(DUPLICATE_MOLECULE_DIFF_ID)
 print('Compare this to molecule', molecule_dup_diff.mol_id)
@@ -77,7 +77,7 @@ print(
     'is NOT copied to', molecule_dup_diff.duplicate_of, 'which has only',
     len(
         db.find_by_mol_id(
-            molecule_dup_diff.duplicate_of).initial_geometries),
+            molecule_dup_diff.duplicate_of).ini_geo),
     'inital_geometries')
 print('We do this because it is not obvious what the atom matching across',
       'the duplicates should be in this case')
@@ -93,6 +93,6 @@ print(molecule_stage1)
 print('You can see that there is very little information there')
 print('Anything with status variable >=512 has nothing other than an',
       'attempted geometry optimization, which failed for some reason')
-print('There may not even be an optimized_geometry stored')
+print('There may not even be an opt_geo stored')
 print('Unless you are interested in the geometry optimization process,',
       'you probably want to ignore these records')

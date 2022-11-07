@@ -95,7 +95,7 @@ assert len(case1_mols) == 4
 
 print()
 print('When we ask for the initial gemetries only, we get 1 or more molecules')
-print('In this case we get 4 molecules because there are 4 initial_geometries')
+print('In this case we get 4 molecules because there are 4 ini_geo')
 print('Note the "geom=init(X/4)" inidicating which geometry this is')
 for mol in case1_mols:
   writer.write(mol)

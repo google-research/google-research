@@ -85,7 +85,7 @@ def ReadMolecule(bond_lengths, input_string, output):
   #   class GetAtoms(beam.DoFn):
 
   #     def process(self, item):
-  #       yield item.optimized_geometry.atom_positions[0].x
+  #       yield item.opt_geo.atom_positions[0].x
 
   options = PipelineOptions(
       direct_num_workers=6, direct_running_mode="multi_processing")

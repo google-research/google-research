@@ -883,12 +883,12 @@ def molecule_to_rdkit_molecules(molecule,
     bt_id: topo_id
     bt_idx: index in bond_topo
     bt_count: size of bond_topo
-    init_idx: index in initial_geometries
-    init_count: size of initial_geometries
+    init_idx: index in ini_geo
+    init_count: size of ini_geo
 
   Args:
     molecule: dataset_pb2.Molecule
-    include_initial_geometries: output molecule for each initial_geometries
+    include_ini_geo: output molecule for each ini_geo
     include_optimized_geometry: output molecule for optimized_geometry
     which_topologies: WhichTopologies
 
@@ -907,15 +907,15 @@ def molecule_to_rdkit_molecules(molecule,
   requested_geometries = []
   if include_initial_geometries:
     valid_init_geometries = [
-        g for g in molecule.initial_geometries if g.atom_positions
+        g for g in molecule.ini_geo if g.atom_positions
     ]
     init_count = len(valid_init_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
         for i, geom in enumerate(valid_init_geometries, start=1)
     ])
-  if include_optimized_geometry and molecule.optimized_geometry.atom_positions:
-    requested_geometries.append((molecule.optimized_geometry, 'opt'))
+  if include_optimized_geometry and molecule.opt_geo.atom_positions:
+    requested_geometries.append((molecule.opt_geo, 'opt'))
 
   for bt, bt_label in requested_bond_topo:
     for geom, geom_label in requested_geometries:
@@ -1168,16 +1168,16 @@ MERGE_CONFLICT_FIELDS = [
     'error_nstatt',
     'initial_geometry_energy_1',
     'initial_geometry_gradient_norm_1',
-    'optimized_geometry_energy_1',
-    'optimized_geometry_gradient_norm_1',
+    'opt_geo_energy_1',
+    'opt_geo_gradient_norm_1',
     'has_initial_geometry_1',
-    'has_optimized_geometry_1',
+    'has_opt_geo_1',
     'initial_geometry_energy_2',
     'initial_geometry_gradient_norm_2',
-    'optimized_geometry_energy_2',
-    'optimized_geometry_gradient_norm_2',
+    'opt_geo_energy_2',
+    'opt_geo_gradient_norm_2',
     'has_initial_geometry_2',
-    'has_optimized_geometry_2',
+    'has_opt_geo_2',
 ]
 
 
@@ -1201,7 +1201,7 @@ def merge_molecule(mol1, mol2):
   May modify one of the inputs.
 
   Note that this is not the most general merge that the format suggests. In
-  particular, it's expected that there is at most 1 initial_geometries and
+  particular, it's expected that there is at most 1 ini_geo and
   1 bond_topo (and it's the same for all molecules). The final data won't
   be like this but it handles what's in the pipeline at this point we use this.
 
@@ -1221,7 +1221,7 @@ def merge_molecule(mol1, mol2):
     dataset_pb2.Molecule, None or list of field values (see above)
 
   Raises:
-    ValueError: if len(initial_geometries) != 1, len(bond_topo) != 1,
+    ValueError: if len(ini_geo) != 1, len(bond_topo) != 1,
       bond_topo differ, or incompatible duplicate_of fields
   """
   source1 = _molecule_source(mol1)
@@ -1238,19 +1238,19 @@ def merge_molecule(mol1, mol2):
     mol1, mol2 = mol2, mol1
     source1, source2 = source2, source1
 
-  if len(mol1.initial_geometries) > 1:
-    raise ValueError('At most 1 initial_geometries allowed, got {}'.format(
-        len(mol1.initial_geometries)))
-  if len(mol2.initial_geometries) > 1:
-    raise ValueError('At most 1 initial_geometries allowed, got {}'.format(
-        len(mol2.initial_geometries)))
+  if len(mol1.ini_geo) > 1:
+    raise ValueError('At most 1 ini_geo allowed, got {}'.format(
+        len(mol1.ini_geo)))
+  if len(mol2.ini_geo) > 1:
+    raise ValueError('At most 1 ini_geo allowed, got {}'.format(
+        len(mol2.ini_geo)))
 
   if len(mol1.bond_topo) > 1:
     raise ValueError('At most 1 bond_topo allowed, got {}'.format(
-        len(mol1.initial_geometries)))
+        len(mol1.ini_geo)))
   if len(mol2.bond_topo) > 1:
     raise ValueError('At most 1 bond_topo allowed, got {}'.format(
-        len(mol2.initial_geometries)))
+        len(mol2.ini_geo)))
 
   if mol1.bond_topo and mol2.bond_topo:
     if mol1.bond_topo[0] != mol2.bond_topo[0]:
@@ -1267,17 +1267,17 @@ def merge_molecule(mol1, mol2):
   conflict_info.append(mol1.prop.calc.error_frequencies)  # nstatv
   conflict_info.append(mol1.prop.calc.error_nstatt)
   for c in [mol1, mol2]:
-    if c.initial_geometries:
-      conflict_info.append(c.initial_geometries[0].energy.value)
-      conflict_info.append(c.initial_geometries[0].gnorm.value)
+    if c.ini_geo:
+      conflict_info.append(c.ini_geo[0].energy.value)
+      conflict_info.append(c.ini_geo[0].gnorm.value)
     else:
       conflict_info.extend([0.0, 0.0])
-    conflict_info.append(c.optimized_geometry.energy.value)
-    conflict_info.append(c.optimized_geometry.gnorm.value)
+    conflict_info.append(c.opt_geo.energy.value)
+    conflict_info.append(c.opt_geo.gnorm.value)
     conflict_info.append(
-        bool(c.initial_geometries) and
-        bool(c.initial_geometries[0].atom_positions))
-    conflict_info.append(bool(len(c.optimized_geometry.atom_positions)))
+        bool(c.ini_geo) and
+        bool(c.ini_geo[0].atom_positions))
+    conflict_info.append(bool(len(c.opt_geo.atom_positions)))
 
   # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
   # merge. We look for conflicts between them and then a few special cases.
@@ -1286,19 +1286,19 @@ def merge_molecule(mol1, mol2):
     if len(mol1.bond_topo) != 1 or len(mol2.bond_topo) != 1:
       has_conflict = True
 
-    if len(mol1.initial_geometries) != len(mol2.initial_geometries):
+    if len(mol1.ini_geo) != len(mol2.ini_geo):
       has_conflict = True
-    elif len(mol1.initial_geometries) == 1:
-      if (len(mol1.initial_geometries[0].atom_positions) != len(
-          mol2.initial_geometries[0].atom_positions)):
+    elif len(mol1.ini_geo) == 1:
+      if (len(mol1.ini_geo[0].atom_positions) != len(
+          mol2.ini_geo[0].atom_positions)):
         has_conflict = True
 
-    if (mol1.HasField('optimized_geometry') !=
-        mol2.HasField('optimized_geometry')):
+    if (mol1.HasField('opt_geo') !=
+        mol2.HasField('opt_geo')):
       has_conflict = True
 
-    if (len(mol1.optimized_geometry.atom_positions) != len(
-        mol2.optimized_geometry.atom_positions)):
+    if (len(mol1.opt_geo.atom_positions) != len(
+        mol2.opt_geo.atom_positions)):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
@@ -1308,10 +1308,10 @@ def merge_molecule(mol1, mol2):
               getattr(mol1.prop.calc, field))
 
     for field_fn, atol in [
-        (lambda c: c.initial_geometries[0].energy, 2e-6),
-        (lambda c: c.initial_geometries[0].gnorm, 1e-6),
-        (lambda c: c.optimized_geometry.energy, 2e-6),
-        (lambda c: c.optimized_geometry.gnorm, 1e-6),
+        (lambda c: c.ini_geo[0].energy, 2e-6),
+        (lambda c: c.ini_geo[0].gnorm, 1e-6),
+        (lambda c: c.opt_geo.energy, 2e-6),
+        (lambda c: c.opt_geo.gnorm, 1e-6),
     ]:
       try:
         val1 = field_fn(mol1).value
@@ -1346,10 +1346,10 @@ def merge_molecule(mol1, mol2):
 
     # After all of that, we always take the stage1 initial energy,
     # gradient norm, and positions.
-    if mol2.initial_geometries:
-      mol2.initial_geometries[0].CopyFrom(mol1.initial_geometries[0])
+    if mol2.ini_geo:
+      mol2.ini_geo[0].CopyFrom(mol1.ini_geo[0])
     else:
-      mol2.initial_geometries.append(mol1.initial_geometries[0])
+      mol2.ini_geo.append(mol1.ini_geo[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
     if (mol2.prop.calc.status == 800 or
@@ -1458,8 +1458,8 @@ def filter_molecule_by_availability(molecule, allowed):
     if (descriptor.GetOptions().Extensions[dataset_pb2.availability]
         not in allowed):
       molecule.prop.ClearField(descriptor.name)
-  for geometry in itertools.chain([molecule.optimized_geometry],
-                                  molecule.initial_geometries):
+  for geometry in itertools.chain([molecule.opt_geo],
+                                  molecule.ini_geo):
     for descriptor, _ in geometry.ListFields():
       if descriptor.name == 'atom_positions':
         # We never filter atom positions and we can't call ClearField on it
@@ -1547,9 +1547,9 @@ def clean_up_error_codes(molecule):
     elif molecule.prop.calc.error_nstat1 == 2:
       # optimization failed. Clean up the error codes and remove some info
       molecule.prop.calc.status = 600
-      molecule.initial_geometries[0].ClearField('energy')
-      molecule.initial_geometries[0].ClearField('gnorm')
-      molecule.ClearField('optimized_geometry')
+      molecule.ini_geo[0].ClearField('energy')
+      molecule.ini_geo[0].ClearField('gnorm')
+      molecule.ClearField('opt_geo')
 
     # If something isn't caught there, we'll let it go through with
     # status still unset. This will be categorized later in determine_fate
@@ -1571,8 +1571,8 @@ def clean_up_sentinel_values(molecule):
   Args:
     molecule: dataset_pb2.Molecule
   """
-  for geometry in itertools.chain([molecule.optimized_geometry],
-                                  molecule.initial_geometries):
+  for geometry in itertools.chain([molecule.opt_geo],
+                                  molecule.ini_geo):
     for field in ['energy', 'gnorm']:
       if getattr(geometry, field).value == -1.0:
         geometry.ClearField(field)

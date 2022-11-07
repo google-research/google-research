@@ -27,7 +27,7 @@ For example, the optimized geometry has an energy of -213.607287 and positions f
 
 In addition to looking at dataset.proto for field documentation, you can just print a given molecule to see what fields are available
 mol_id: 57001
-initial_geometries {
+ini_geo {
   atom_positions {
     x: 2.046005964279175
     y: -0.05990400165319443
@@ -55,7 +55,7 @@ initial_geometries {
     value: 0.114996
   }
 }
-optimized_geometry {
+opt_geo {
   atom_positions {
     x: 1.9872709512710571
     y: 0.001541999983601272
@@ -131,50 +131,50 @@ properties {
     values: -126.0672
     values: 119.1424
     values: 23.4408
-    precision: 0.0016
-    precision: 0.0064
-    precision: 0.0064
-    precision: 0.0008
+    prec: 0.0016
+    prec: 0.0064
+    prec: 0.0064
+    prec: 0.0008
   }
   chg_mul_pbe0_augpc1 {
     values: 1.1429
     values: -0.8308
     values: -0.5849
     values: 0.2728
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
   }
   chg_loe_pbe0_augpc1 {
     values: 0.2448
     values: -0.1433
     values: -0.1816
     values: 0.0801
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
   }
   chg_nat_pbe0_augpc1 {
     values: 0.8086
     values: -0.5495
     values: -0.3837
     values: 0.1246
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
   }
   chg_esp_pbe0_augpc1 {
     values: 0.5444
     values: -0.3912
     values: -0.2043
     values: 0.0512
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
-    precision: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
+    prec: 0.0001
   }
   elec_pol_pbe0_augpc1 {
     xx: 18.44366

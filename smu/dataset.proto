@@ -341,7 +341,7 @@ message Properties {
     // 1: At least one imaginary frequency found, all imaginary
     // frequencies are between 0 and 30i cm-1. In this case any
     // imaginary frequency is assumed to be due to numerical
-    // imprecision, and we set it to a small real value (1 cm-1) for
+    // imprec, and we set it to a small real value (1 cm-1) for
     // thermochemical analysis.
     // 2: At least one imaginary frequency found, at least one of
     // which is larger than 30i cm-1. In this case we assume that the
@@ -454,14 +454,14 @@ message Properties {
   message MultiScalarMolecularProperty {
     repeated double value = 1;
   }
-  // One value for each atom. values and precision should be exactly the same
+  // One value for each atom. values and prec should be exactly the same
   // length as atoms in the BondTopology.
   message AtomicMolecularProperty {
     repeated double values = 1;
-    // Note that this is just a precision with which the value is stored and is
+    // Note that this is just a prec with which the value is stored and is
     // NOT an estimate of the confidence/accuracy of the value compared to
     // reality.
-    repeated double precision = 2;
+    repeated double prec = 2;
   }
   // A vector property.
   message Vector3DMolecularProperty {
@@ -494,7 +494,7 @@ message Properties {
     double yzz = 10;
     double xyz = 11;
   }
-  // Normal modes with atomic displacements.
+  // Normal modes with atomic disp.
   message NormalMode {
     // Units: unitless, vector norm is scaled to 1.
     message AtomicDisplacement {
@@ -503,7 +503,7 @@ message Properties {
       double z = 3;
     }
     // Should be the same length as the number of atoms in BondTopology.
-    repeated AtomicDisplacement displacements = 1;
+    repeated AtomicDisplacement disp = 1;
   }
 
   // Record of errors encountered during the computations.
@@ -1035,19 +1035,19 @@ message Molecule {
 
   // Geometry produced by minimization by with an empirical force
   // field. This is repeated because Molecules are deduplicated by
-  // their optimized_geometry and multiple initial_geometry can
-  // converge to the same optimized_geometry.  Although duplicates can
+  // their opt_geo and multiple initial_geometry can
+  // converge to the same opt_geo.  Although duplicates can
   // be found across bond topologies, *only* the duplicates produced
   // with two different geometry optimizations starting from the same
   // bond topology are included. This is to avoid the complex and
   // potentially ambiguous matching of corresponding atoms across bond
   // topologies.
-  repeated Geometry initial_geometries = 3;
+  repeated Geometry ini_geo = 3;
   // Geometry produced by PBE0D3 minimization from the initial_geometry. Some
-  // entries in the COMPLETE dataset will be missing optimized_geometry if the
+  // entries in the COMPLETE dataset will be missing opt_geo if the
   // geometry did not converge. All entries in the STANDARD dataset will include
-  // optimized_geometry.
-  Geometry optimized_geometry = 4;
+  // opt_geo.
+  Geometry opt_geo = 4;
 
   // After geometry optimization, duplicate geometries were identified and one
   // of the geometries was kept through a series of heuristics.

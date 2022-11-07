@@ -249,8 +249,8 @@ class SDFOutputter:
 
     Args:
       output_path: file path to write to
-      init_geometry: bool, whether to write with initial_geometries
-      opt_geometry: bool, whether to write with optimized_geometry
+      init_geometry: bool, whether to write with ini_geo
+      opt_geometry: bool, whether to write with opt_geo
       which_topologies: string, which topologies to return
     """
     self.init_geometry = init_geometry

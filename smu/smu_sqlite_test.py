@@ -427,7 +427,7 @@ class SmuSqliteTest(absltest.TestCase):
     molecule.prop.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
 
     bt = molecule.bond_topo.add(smiles='N1NO1', topo_id=100)
-    geom = molecule.optimized_geometry.atom_positions
+    geom = molecule.opt_geo.atom_positions
 
     bt.atom.append(dataset_pb2.BondTopology.ATOM_O)
     geom.append(dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0))

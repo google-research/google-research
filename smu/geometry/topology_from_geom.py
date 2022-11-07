@@ -153,9 +153,9 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
   if natoms == 1:
     return result  # empty.
 
-  if len(molecule.optimized_geometry.atom_positions) != natoms:
+  if len(molecule.opt_geo.atom_positions) != natoms:
     return result  # empty
-  distances = utilities.distances(molecule.optimized_geometry)
+  distances = utilities.distances(molecule.opt_geo)
 
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a minimal BondTopology from which all others can grow

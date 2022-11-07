@@ -44,7 +44,7 @@ class GetBondLengthDistribution(beam.DoFn):
 
   def process(self, molecule):
     bt = molecule.bond_topo[0]
-    geom = molecule.optimized_geometry
+    geom = molecule.opt_geo
 
     bonded = utilities.bonded(bt)
 

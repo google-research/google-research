@@ -113,7 +113,7 @@ PROPERTIES_LABEL_FIELDS = collections.OrderedDict([
     ['HF/3Psd', 'spe_std_hf_3psd'],
     ['MP2/3Psd', 'spe_std_mp2_3psd'],
     ['CCSD/3Psd', 'spe_std_ccsd_3psd'],
-    ['NUCREP', 'enuc'],  # special cased to refer to optimized_geometry
+    ['NUCREP', 'enuc'],  # special cased to refer to opt_geo
     ['NUM_OPT', 'number_of_optimization_runs'],
     ['NIMAG', 'number_imaginary_frequencies'],
     ['ZPE_unscaled', 'vib_zpe'],
@@ -690,12 +690,12 @@ class SmuParser:
             'E_opt/G_norm'
         ), 'Unable to parse section for gradient norm: %s.' % section
     items = str(section[0]).split()
-    self._molecule.initial_geometries.add()
-    self._molecule.initial_geometries[0].energy.value = float(items[1])
-    self._molecule.initial_geometries[0].gnorm.value = float(items[2])
+    self._molecule.ini_geo.add()
+    self._molecule.ini_geo[0].energy.value = float(items[1])
+    self._molecule.ini_geo[0].gnorm.value = float(items[2])
     items = str(section[1]).split()
-    self._molecule.optimized_geometry.energy.value = float(items[1])
-    self._molecule.optimized_geometry.gnorm.value = float(items[2])
+    self._molecule.opt_geo.energy.value = float(items[1])
+    self._molecule.opt_geo.gnorm.value = float(items[2])
 
   def parse_coordinates(self, label, num_atoms):
     """Parses a section defining a molecule's geometry in Cartesian coordinates.
@@ -712,11 +712,11 @@ class SmuParser:
     assert label in VALID_COORDINATE_LABELS, 'Unknown label %s.' % label
     molecule = self._molecule
     if label == 'Initial Coords':
-      if not molecule.initial_geometries:
-        molecule.initial_geometries.add()
-      geometry = molecule.initial_geometries[0]
+      if not molecule.ini_geo:
+        molecule.ini_geo.add()
+      geometry = molecule.ini_geo[0]
     else:
-      geometry = molecule.optimized_geometry
+      geometry = molecule.opt_geo
     for line in coordinate_section:
       label1, label2, unused_atomic_number, x, y, z = str(line).strip().split()
       assert '%s %s' % (
@@ -734,7 +734,7 @@ class SmuParser:
       return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
-    self._molecule.optimized_geometry.brot.value.extend(
+    self._molecule.opt_geo.brot.value.extend(
         float(x) for x in values)
 
   def parse_symmetry_used(self):
@@ -834,10 +834,10 @@ class SmuParser:
       section = ' '.join(section).split()
       properties.vib_mode.add()
       for triplet in zip(section[::3], section[1::3], section[2::3]):
-        properties.vib_mode[-1].displacements.add()
-        properties.vib_mode[-1].displacements[-1].x = float(triplet[0])
-        properties.vib_mode[-1].displacements[-1].y = float(triplet[1])
-        properties.vib_mode[-1].displacements[-1].z = float(triplet[2])
+        properties.vib_mode[-1].disp.add()
+        properties.vib_mode[-1].disp[-1].x = float(triplet[0])
+        properties.vib_mode[-1].disp[-1].y = float(triplet[1])
+        properties.vib_mode[-1].disp[-1].z = float(triplet[2])
 
   def parse_property_list(self):
     """Parses a section of properties stored as key-value pairs."""
@@ -852,7 +852,7 @@ class SmuParser:
                 int(labels_and_values[label]))
       elif label == 'NUCREP':
         value = float(labels_and_values[label])
-        self._molecule.optimized_geometry.enuc.value = value
+        self._molecule.opt_geo.enuc.value = value
       else:
         value = float(labels_and_values[label])
         getattr(properties, PROPERTIES_LABEL_FIELDS[label]).value = value
@@ -993,12 +993,12 @@ class SmuParser:
         line = str(line)  # for type checking
         # Example line: '    1    6    141.2736   +/-    0.0064'
         # with offsets:  01234567890123456789012345678901234567
-        value_str, pm_str, precision_str = line[10:25], line[25:28], line[28:]
+        value_str, pm_str, prec_str = line[10:25], line[25:28], line[28:]
         # An error check that the line appears to be formatted correctly.
         if pm_str != '+/-':
           raise ValueError('Could not parse nmr line: "{}"'.format(line))
         field.values.append(float(value_str))
-        field.precision.append(float(precision_str))
+        field.prec.append(float(prec_str))
 
   def parse_partial_charges(self):
     """Parses partial charges (e) for different levels of theory."""
@@ -1012,7 +1012,7 @@ class SmuParser:
       for line in partial_charges_data[1:]:
         items = str(line).strip().split()
         field.values.append(float(items[2]))
-        field.precision.append(float(items[-1]))
+        field.prec.append(float(items[-1]))
 
   def parse_polarizability(self):
     """Parses dipole-dipole polarizability."""

@@ -97,7 +97,7 @@ print(molecule.prop.elec_oct_pbe0_augpc1.xxx,
 print()
 print('A couple of important fields are not inside "properties"')
 
-geometry = molecule.optimized_geometry
+geometry = molecule.opt_geo
 print('For example, the optimized geometry has an energy of',
       geometry.energy.value,
       'and positions for',

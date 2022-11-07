@@ -223,7 +223,7 @@ def molecule_to_stat_values(molecule):
       molecule.prop.calc.fate)
 
   yield 'num_initial_geometries', len(
-      [g for g in molecule.initial_geometries if g.atom_positions])
+      [g for g in molecule.ini_geo if g.atom_positions])
   yield 'num_duplicates', len(molecule.duplicates_found)
 
   for field in smu_utils_lib.find_zero_values(molecule):
@@ -359,7 +359,7 @@ def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
 
     bond_type = smu_utils_lib.get_bond_type(bt, atom_idx0, atom_idx1)
 
-    geom = molecule.optimized_geometry
+    geom = molecule.opt_geo
     atom_pos0 = np.array([
         geom.atom_positions[atom_idx0].x, geom.atom_positions[atom_idx0].y,
         geom.atom_positions[atom_idx0].z
@@ -589,7 +589,7 @@ def merge_duplicate_information(mol_id, molecules):
     main_molecule.duplicates_found.append(mol.mol_id)
     if mol_id // 1000 == mol.mol_id // 1000:
       # easy case! Bond topologies are the same, just copy over
-      main_molecule.initial_geometries.append(mol.initial_geometries[0])
+      main_molecule.ini_geo.append(mol.ini_geo[0])
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'dup_same_topology').inc()
     else:

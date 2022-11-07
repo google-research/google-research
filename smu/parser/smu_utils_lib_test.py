@@ -760,9 +760,9 @@ class MoleculeToRDKitMoleculeTest(absltest.TestCase):
 
     # We'll make a new initial_geometry which is just the current one with all
     # coordinates multiplied by 1000
-    self._molecule.initial_geometries.append(
-        self._molecule.initial_geometries[0])
-    new_geom = self._molecule.initial_geometries[1]
+    self._molecule.ini_geo.append(
+        self._molecule.ini_geo[0])
+    new_geom = self._molecule.ini_geo[1]
     for atom_pos in new_geom.atom_positions:
       atom_pos.x = atom_pos.x * 1000
       atom_pos.y = atom_pos.y * 1000
@@ -1053,7 +1053,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
   def test_stage2_stage1_conflict_energy(self):
-    self.stage2_molecule.initial_geometries[0].energy.value = -1.23
+    self.stage2_molecule.ini_geo[0].energy.value = -1.23
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
@@ -1063,10 +1063,10 @@ class MergeMoleculesTest(absltest.TestCase):
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_mol.prop.vib_mode)
     # This stage1 value should be returned
-    self.assertEqual(got_mol.initial_geometries[0].energy.value, -406.51179)
+    self.assertEqual(got_mol.ini_geo[0].energy.value, -406.51179)
 
   def test_stage2_stage1_conflict_missing_iniital_geometry_field(self):
-    del self.stage2_molecule.initial_geometries[:]
+    del self.stage2_molecule.ini_geo[:]
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
@@ -1077,7 +1077,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
   def test_stage2_stage1_conflict_missing_iniital_geometry(self):
-    del self.stage2_molecule.initial_geometries[0].atom_positions[:]
+    del self.stage2_molecule.ini_geo[0].atom_positions[:]
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
@@ -1088,7 +1088,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
   def test_stage2_stage1_conflict_missing_optimized_geometry_field(self):
-    self.stage2_molecule.ClearField('optimized_geometry')
+    self.stage2_molecule.ClearField('opt_geo')
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
@@ -1099,7 +1099,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
   def test_stage2_stage1_conflict_missing_optimized_geometry(self):
-    del self.stage2_molecule.optimized_geometry.atom_positions[:]
+    del self.stage2_molecule.opt_geo.atom_positions[:]
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
@@ -1111,15 +1111,15 @@ class MergeMoleculesTest(absltest.TestCase):
 
   def test_stage2_stage1_no_conflict_minus1(self):
     # If stage2 contains a -1, we keep that (stricter error checking later on)
-    self.stage2_molecule.initial_geometries[0].energy.value = -1.0
+    self.stage2_molecule.ini_geo[0].energy.value = -1.0
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
     # This stage1 value should be returned
-    self.assertEqual(got_mol.initial_geometries[0].energy.value, -406.51179)
+    self.assertEqual(got_mol.ini_geo[0].energy.value, -406.51179)
 
   def test_stage2_stage1_no_conflict_approx_equal(self):
-    self.stage2_molecule.initial_geometries[0].energy.value += 1e-7
+    self.stage2_molecule.ini_geo[0].energy.value += 1e-7
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
@@ -1129,26 +1129,26 @@ class MergeMoleculesTest(absltest.TestCase):
   def test_status_800(self):
     self.stage2_molecule.prop.calc.status = 800
     # Set a value so that we make sure we use the stage1 data
-    self.stage2_molecule.initial_geometries[0].energy.value += 12345
+    self.stage2_molecule.ini_geo[0].energy.value += 12345
     expected_init_energy = (
-        self.stage1_molecule.initial_geometries[0].energy.value)
+        self.stage1_molecule.ini_geo[0].energy.value)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 580)
-    self.assertEqual(got_mol.initial_geometries[0].energy.value,
+    self.assertEqual(got_mol.ini_geo[0].energy.value,
                      expected_init_energy)
     self.assertEqual(got_mol.prop.calc.warn_vib_imag, 0)
 
   def test_status_700(self):
     self.stage2_molecule.prop.calc.status = 700
     # Set a value so that we make sure we use the stage1 data
-    self.stage2_molecule.initial_geometries[0].energy.value += 12345
+    self.stage2_molecule.ini_geo[0].energy.value += 12345
     expected_init_energy = (
-        self.stage1_molecule.initial_geometries[0].energy.value)
+        self.stage1_molecule.ini_geo[0].energy.value)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 570)
-    self.assertEqual(got_mol.initial_geometries[0].energy.value,
+    self.assertEqual(got_mol.ini_geo[0].energy.value,
                      expected_init_energy)
     self.assertEqual(got_mol.prop.calc.warn_vib_imag, 0)
 
@@ -1213,7 +1213,7 @@ class MergeMoleculesTest(absltest.TestCase):
 
   def test_multiple_initial_geometries(self):
     bad_molecule = copy.deepcopy(self.stage1_molecule)
-    bad_molecule.initial_geometries.append(bad_molecule.initial_geometries[0])
+    bad_molecule.ini_geo.append(bad_molecule.ini_geo[0])
     with self.assertRaises(ValueError):
       smu_utils_lib.merge_molecule(bad_molecule, self.stage2_molecule)
     with self.assertRaises(ValueError):
@@ -1353,17 +1353,17 @@ class MoleculeToStandardTest(absltest.TestCase):
 
   def test_field_filtering(self):
     # Check that all fields start out set
-    self.assertTrue(self._molecule.initial_geometries[0].HasField('energy'))
-    self.assertTrue(self._molecule.optimized_geometry.HasField('energy'))
-    self.assertTrue(self._molecule.optimized_geometry.HasField('enuc'))
+    self.assertTrue(self._molecule.ini_geo[0].HasField('energy'))
+    self.assertTrue(self._molecule.opt_geo.HasField('energy'))
+    self.assertTrue(self._molecule.opt_geo.HasField('enuc'))
     self.assertTrue(self._molecule.prop.HasField('vib_freq'))
     self.assertTrue(self._molecule.prop.HasField('vib_zpe'))
 
     _ = smu_utils_lib.molecule_to_standard(self._molecule)
 
-    self.assertTrue(self._molecule.initial_geometries[0].HasField('energy'))
-    self.assertTrue(self._molecule.optimized_geometry.HasField('energy'))
-    self.assertFalse(self._molecule.optimized_geometry.HasField('enuc'))
+    self.assertTrue(self._molecule.ini_geo[0].HasField('energy'))
+    self.assertTrue(self._molecule.opt_geo.HasField('energy'))
+    self.assertFalse(self._molecule.opt_geo.HasField('enuc'))
     self.assertTrue(self._molecule.prop.HasField('vib_freq'))
     self.assertFalse(self._molecule.prop.HasField('vib_zpe'))
 
@@ -1419,9 +1419,9 @@ class CleanUpErrorCodesTest(parameterized.TestCase):
     smu_utils_lib.clean_up_error_codes(molecule)
     self.assertEqual(molecule.prop.calc.status, 600)
     self.assertEqual(molecule.prop.calc.error_nstat1, 0)
-    self.assertFalse(molecule.initial_geometries[0].HasField('energy'))
-    self.assertFalse(molecule.initial_geometries[0].HasField('gnorm'))
-    self.assertFalse(molecule.HasField('optimized_geometry'))
+    self.assertFalse(molecule.ini_geo[0].HasField('energy'))
+    self.assertFalse(molecule.ini_geo[0].HasField('gnorm'))
+    self.assertFalse(molecule.HasField('opt_geo'))
 
 
 class CleanUpSentinelValuestest(parameterized.TestCase):
@@ -1429,19 +1429,19 @@ class CleanUpSentinelValuestest(parameterized.TestCase):
   def test_no_change(self):
     molecule = get_stage2_molecule()
     smu_utils_lib.clean_up_sentinel_values(molecule)
-    self.assertTrue(molecule.initial_geometries[0].HasField('energy'))
-    self.assertTrue(molecule.initial_geometries[0].HasField('gnorm'))
-    self.assertTrue(molecule.optimized_geometry.HasField('energy'))
-    self.assertTrue(molecule.optimized_geometry.HasField('gnorm'))
+    self.assertTrue(molecule.ini_geo[0].HasField('energy'))
+    self.assertTrue(molecule.ini_geo[0].HasField('gnorm'))
+    self.assertTrue(molecule.opt_geo.HasField('energy'))
+    self.assertTrue(molecule.opt_geo.HasField('gnorm'))
 
   @parameterized.parameters('energy', 'gnorm')
   def test_one_field(self, field):
     molecule = get_stage2_molecule()
-    getattr(molecule.initial_geometries[0], field).value = -1.0
-    getattr(molecule.optimized_geometry, field).value = -1.0
+    getattr(molecule.ini_geo[0], field).value = -1.0
+    getattr(molecule.opt_geo, field).value = -1.0
     smu_utils_lib.clean_up_sentinel_values(molecule)
-    self.assertFalse(molecule.initial_geometries[0].HasField(field))
-    self.assertFalse(molecule.optimized_geometry.HasField(field))
+    self.assertFalse(molecule.ini_geo[0].HasField(field))
+    self.assertFalse(molecule.opt_geo.HasField(field))
 
 
 class FindZeroValuesTest(parameterized.TestCase):

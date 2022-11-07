@@ -415,9 +415,9 @@ class SmuWriter:
       A multiline string representation of geometry energies and gradient norms.
     """
     result = ''
-    if molecule.optimized_geometry.HasField('energy'):
-      for label, geometry in [('E_ini/G_norm', molecule.initial_geometries[0]),
-                              ('E_opt/G_norm', molecule.optimized_geometry)]:
+    if molecule.opt_geo.HasField('energy'):
+      for label, geometry in [('E_ini/G_norm', molecule.ini_geo[0]),
+                              ('E_opt/G_norm', molecule.opt_geo)]:
         if self.annotate:
           result += '# From energy, gnorm\n'
         result += '{}{}{:11.6f}{:12.6f}\n'.format(label, spacer,
@@ -446,23 +446,23 @@ class SmuWriter:
       A multiline string representation of geometries in Cartesian coordinates.
     """
     coordinates = ''
-    if (molecule.initial_geometries and
-        molecule.initial_geometries[0].atom_positions):
+    if (molecule.ini_geo and
+        molecule.ini_geo[0].atom_positions):
       if self.annotate:
         coordinates += '# From initial_geometry.atom_positions\n'
       for i, atom in enumerate(topology.atom):
-        positions = molecule.initial_geometries[0].atom_positions[i]
+        positions = molecule.ini_geo[0].atom_positions[i]
 
         coordinates += 'Initial Coords%s%s%s%s\n' % (
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(8),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
                 positions.y).rjust(12), '{:f}'.format(positions.z).rjust(12))
-    if (molecule.HasField('optimized_geometry') and
-        molecule.optimized_geometry.atom_positions):
+    if (molecule.HasField('opt_geo') and
+        molecule.opt_geo.atom_positions):
       if self.annotate:
-        coordinates += '# From optimized_geometry.atom_positions\n'
+        coordinates += '# From opt_geo.atom_positions\n'
       for i, atom in enumerate(topology.atom):
-        positions = molecule.optimized_geometry.atom_positions[i]
+        positions = molecule.opt_geo.atom_positions[i]
         coordinates += 'Optimized Coords%s%s%s%s\n' % (
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(6),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
@@ -479,9 +479,9 @@ class SmuWriter:
       A string representation of the rotational constants vector.
     """
     result = ''
-    if molecule.optimized_geometry.HasField('brot'):
-      # result += '# From optimized_geometry.brot\n'
-      vals = molecule.optimized_geometry.brot.value
+    if molecule.opt_geo.HasField('brot'):
+      # result += '# From opt_geo.brot\n'
+      vals = molecule.opt_geo.brot.value
     elif molecule.prop.HasField('rotational_constants_deprecated'):
       # result += '# From rotational_constants_deprecated\n'
       constants = molecule.prop.rotational_constants_deprecated
@@ -590,12 +590,12 @@ class SmuWriter:
       result += '# From vib_mode\n'
     for i, vib_mode in enumerate(prop.vib_mode):
       result += 'Mode%s\n' % str(i + 1).rjust(4)
-      displacements = []
-      for displacement in vib_mode.displacements:
-        displacements += [displacement.x, displacement.y, displacement.z]
-      for j in range(0, len(displacements), 10):
+      disp = []
+      for displacement in vib_mode.disp:
+        disp += [displacement.x, displacement.y, displacement.z]
+      for j in range(0, len(disp), 10):
         result += ''.join('{:8.4f}'.format(value).rjust(8)
-                          for value in displacements[j:j + 10])
+                          for value in disp[j:j + 10])
         result += '\n'
     return result
 
@@ -622,10 +622,10 @@ class SmuWriter:
 
       elif label == 'NUCREP':
         value = None
-        if molecule.optimized_geometry.HasField('enuc'):
+        if molecule.opt_geo.HasField('enuc'):
           if self.annotate:
-            result += '# From optimized_geometry.enuc\n'
-          value = molecule.optimized_geometry.enuc.value
+            result += '# From opt_geo.enuc\n'
+          value = molecule.opt_geo.enuc.value
         elif prop.HasField('nuclear_repulsion_energy_deprecated'):
           if self.annotate:
             result += '# From nuclear_repulsion_energy_deprecated\n'
@@ -819,7 +819,7 @@ class SmuWriter:
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
             '{:12.4f}'.format(getattr(prop, field).values[i]),
-            '{:10.4f}'.format(getattr(prop, field).precision[i]))
+            '{:10.4f}'.format(getattr(prop, field).prec[i]))
 
     return result
 
@@ -845,7 +845,7 @@ class SmuWriter:
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
             '{:12.4f}'.format(getattr(prop, field).values[i]),
-            '{:10.4f}'.format(getattr(prop, field).precision[i]))
+            '{:10.4f}'.format(getattr(prop, field).prec[i]))
 
     return result
 
@@ -1088,7 +1088,7 @@ class Atomic2InputWriter:
         len(molecule.bond_topo[topo_idx].bond)))
     for atom_type, coords in zip(
         molecule.bond_topo[topo_idx].atom,
-        molecule.optimized_geometry.atom_positions):
+        molecule.opt_geo.atom_positions):
       contents.append(
           '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
           .format(
@@ -1549,9 +1549,9 @@ class CleanTextWriter:
         out.extend(second_block)
 
 
-    write_geometry('ini_geo', '(au)', molecule.initial_geometries[0])
-    if molecule.HasField('optimized_geometry'):
-      write_geometry('opt_geo', '(au; brot: MHz)', molecule.optimized_geometry)
+    write_geometry('ini_geo', '(au)', molecule.ini_geo[0])
+    if molecule.HasField('opt_geo'):
+      write_geometry('opt_geo', '(au; brot: MHz)', molecule.opt_geo)
 
     return out
 
@@ -1599,7 +1599,7 @@ class CleanTextWriter:
                                   (84, f'(f={freq:8.1f} cm-1)'),
                                   ]))
         for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
-          disp = mode.displacements[atom_idx]
+          disp = mode.disp[atom_idx]
           out.append(self._fw_line(atom_vals +
                                    [(1, 'vib mode'),
                                     (10, f'{mode_idx+1:>2d}'),
@@ -1992,7 +1992,7 @@ class CleanTextWriter:
       lines_vals[0].append((pos - 5, f'{line0_str:>8s}'))
       lines_vals[1].append((pos - 5, f'{line1_str:>8s}'))
       for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).values,
-                                                  getattr(molecule.prop, field).precision),
+                                                  getattr(molecule.prop, field).prec),
                                               start=2):
         lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))
 
@@ -2033,7 +2033,7 @@ class CleanTextWriter:
 
         lines_vals[0].append((pos + 2, short_name))
         for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).values,
-                                                    getattr(molecule.prop, field).precision),
+                                                    getattr(molecule.prop, field).prec),
                                                 start=1):
           lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))
         num_values_present += 1

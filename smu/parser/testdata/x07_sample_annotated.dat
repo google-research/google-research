@@ -63,7 +63,7 @@ Initial Coords       1    0.506447   -8.014329    5.306351
 Initial Coords       1    3.297194   -6.761062    6.830604
 Initial Coords       1    0.358859   -6.807549    8.416462
 Initial Coords       1    3.727296   -4.095603    0.019653
-# From optimized_geometry.atom_positions
+# From opt_geo.atom_positions
 Optimized Coords     6   -0.313382    0.356520    4.266687
 Optimized Coords     6    1.020933   -6.548927    6.532749
 Optimized Coords     6    3.098166   -4.521578    1.879570
@@ -419,7 +419,7 @@ HF/3Psd               -404.744205
 MP2/3Psd              -405.957647
 # From spe_std_ccsd_3psd
 CCSD/3Psd             -405.993585
-# From optimized_geometry.enuc
+# From opt_geo.enuc
 NUCREP                 324.344177
 # From number_of_optimization_runs
 NUM_OPT                  1
@@ -853,7 +853,7 @@ Initial Coords       1    0.850944   -3.622983    8.717685
 Initial Coords       1   -1.931489   -4.872470    7.197967
 Initial Coords       1    0.137005   -6.887863    8.888894
 Initial Coords       1    3.145827   -2.846117    0.056692
-# From optimized_geometry.atom_positions
+# From opt_geo.atom_positions
 Optimized Coords     6    0.524953    0.526935    2.606700
 Optimized Coords     6   -0.012035   -5.313864    7.483931
 Optimized Coords     6    2.591535   -4.200191    1.667437
@@ -1209,7 +1209,7 @@ HF/3Psd               -404.744191
 MP2/3Psd              -405.957365
 # From spe_std_ccsd_3psd
 CCSD/3Psd             -405.993129
-# From optimized_geometry.enuc
+# From opt_geo.enuc
 NUCREP                 322.821625
 # From number_of_optimization_runs
 NUM_OPT                  1

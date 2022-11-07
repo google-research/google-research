@@ -3,7 +3,7 @@
 molecules {
   mol_id: 20001
   original_molecule_index: 1
-  initial_geometries {
+  ini_geo {
     atom_positions {
       x: 1.795729
       y: 0.186894
@@ -31,7 +31,7 @@ molecules {
       value: 3e-06
     }
   }
-  optimized_geometry {
+  opt_geo {
     atom_positions {
       z: 1.133096
     }
@@ -275,140 +275,140 @@ molecules {
       values: 130.8096
       values: 30.2304
       values: 30.2304
-      precision: 0.0064
-      precision: 0.0064
-      precision: 0.0016
-      precision: 0.0016
+      prec: 0.0064
+      prec: 0.0064
+      prec: 0.0016
+      prec: 0.0016
     }
     nmr_pbe0_augpcs1 {
       values: 110.2848
       values: 110.2848
       values: 30.1856
       values: 30.1856
-      precision: 0.0064
-      precision: 0.0064
-      precision: 0.0016
-      precision: 0.0016
+      prec: 0.0064
+      prec: 0.0064
+      prec: 0.0016
+      prec: 0.0016
     }
     nmr_b3lyp_631ppgdp {
       values: 130.2528
       values: 130.2528
       values: 30.3504
       values: 30.3504
-      precision: 0.0064
-      precision: 0.0064
-      precision: 0.0016
-      precision: 0.0016
+      prec: 0.0064
+      prec: 0.0064
+      prec: 0.0016
+      prec: 0.0016
     }
     nmr_b3lyp_augpcs1 {
       values: 107.5648
       values: 107.5648
       values: 30.3392
       values: 30.3392
-      precision: 0.0064
-      precision: 0.0064
-      precision: 0.0016
-      precision: 0.0016
+      prec: 0.0064
+      prec: 0.0064
+      prec: 0.0016
+      prec: 0.0016
     }
     chg_mul_pbe0_augpc1 {
       values: -0.2548
       values: -0.2548
       values: 0.2548
       values: 0.2548
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     chg_mul_hf_631gd {
       values: -0.2816
       values: -0.2816
       values: 0.2816
       values: 0.2816
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     chg_loe_pbe0_augpc1 {
       values: -0.0028
       values: -0.0028
       values: 0.0028
       values: 0.0028
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     chg_loe_hf_631gd {
       values: -0.1779
       values: -0.1779
       values: 0.1779
       values: 0.1779
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     chg_nat_pbe0_augpc1 {
       values: -0.2355
       values: -0.2355
       values: 0.2355
       values: 0.2355
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     chg_nat_hf_631gd {
       values: -0.2429
       values: -0.2429
       values: 0.2429
       values: 0.2429
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     partial_charges_paboon_pbe0_aug_pc_1 {
       values: -0.0185
       values: -0.0185
       values: 0.0185
       values: 0.0185
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     partial_charges_paboon_hf_6_31gd {
       values: -0.1275
       values: -0.1275
       values: 0.1275
       values: 0.1275
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     chg_esp_pbe0_augpc1 {
       values: -0.287
       values: -0.287
       values: 0.287
       values: 0.287
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     chg_esp_hf_631gd {
       values: -0.2984
       values: -0.2984
       values: 0.2984
       values: 0.2984
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
-      precision: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
+      prec: 0.0001
     }
     elec_pol_pbe0_augpc1 {
       xx: 19.22399
@@ -679,179 +679,179 @@ molecules {
       value: 3532.0
     }
     vib_mode {
-      displacements {
+      disp {
         x: -0.1212
         y: 0.0162
       }
-      displacements {
+      disp {
         x: 0.3447
         y: 0.0345
       }
-      displacements {
+      disp {
         x: -0.5354
       }
-      displacements {
+      disp {
         x: 0.7588
         y: 0.0508
       }
     }
     vib_mode {
-      displacements {
+      disp {
         x: 0.5476
         y: -0.0245
       }
-      displacements {
+      disp {
         x: 0.2899
         y: -0.0521
       }
-      displacements {
+      disp {
         x: 0.7767
       }
-      displacements {
+      disp {
         x: 0.0609
         y: -0.0765
       }
     }
     vib_mode {
-      displacements {
+      disp {
         x: 0.065
         y: 0.2517
       }
-      displacements {
+      disp {
         x: -0.0175
         y: 0.5349
       }
-      displacements {
+      disp {
         x: 0.1383
       }
-      displacements {
+      disp {
         x: -0.0908
         y: 0.7866
       }
     }
     vib_mode {
-      displacements {
+      disp {
         y: -0.3585
       }
-      displacements {
+      disp {
         y: 0.1049
       }
-      displacements {
+      disp {
         y: -0.7703
       }
-      displacements {
+      disp {
         y: 0.5168
       }
     }
     vib_mode {
-      displacements {
+      disp {
         z: 0.5
       }
-      displacements {
+      disp {
         z: 0.5
       }
-      displacements {
+      disp {
         z: 0.5
       }
-      displacements {
+      disp {
         z: 0.5
       }
     }
     vib_mode {
-      displacements {
+      disp {
         y: -0.1605
       }
-      displacements {
+      disp {
         y: 0.1605
       }
-      displacements {
+      disp {
         y: 0.6886
       }
-      displacements {
+      disp {
         y: -0.6886
       }
     }
     vib_mode {
-      displacements {
+      disp {
         x: -0.1605
       }
-      displacements {
+      disp {
         x: 0.1605
       }
-      displacements {
+      disp {
         x: 0.6886
       }
-      displacements {
+      disp {
         x: -0.6886
       }
     }
     vib_mode {
-      displacements {
+      disp {
         y: 0.0591
       }
-      displacements {
+      disp {
         y: 0.0591
       }
-      displacements {
+      disp {
         y: -0.7046
       }
-      displacements {
+      disp {
         y: -0.7046
       }
     }
     vib_mode {
-      displacements {
+      disp {
         x: 0.0591
       }
-      displacements {
+      disp {
         x: 0.0591
       }
-      displacements {
+      disp {
         x: -0.7046
       }
-      displacements {
+      disp {
         x: -0.7046
       }
     }
     vib_mode {
-      displacements {
+      disp {
         z: 0.3537
       }
-      displacements {
+      disp {
         z: -0.3537
       }
-      displacements {
+      disp {
         z: 0.6123
       }
-      displacements {
+      disp {
         z: -0.6123
       }
     }
     vib_mode {
-      displacements {
+      disp {
         z: 0.0591
       }
-      displacements {
+      disp {
         z: 0.0591
       }
-      displacements {
+      disp {
         z: -0.7046
       }
-      displacements {
+      disp {
         z: -0.7046
       }
     }
     vib_mode {
-      displacements {
+      disp {
         z: 0.1017
       }
-      displacements {
+      disp {
         z: -0.1017
       }
-      displacements {
+      disp {
         z: -0.6998
       }
-      displacements {
+      disp {
         z: 0.6998
       }
     }

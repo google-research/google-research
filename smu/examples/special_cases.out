@@ -7,7 +7,7 @@ This means this molecule was considered a duplciated of another
 That other molecule proceeded to full calculation and this molecule did not
 A molecule should have status=-1 if and only if duplicate_of is not 0
 Note that this molecule started with bond topology 253949 which is the same as the duplicate 253949
-Therefore, the initial_geometry from 253949008 was copied to the list of initial_geometries for 253949007 which has 2 initial_geometries
+Therefore, the initial_geometry from 253949008 was copied to the list of ini_geo for 253949007 which has 2 ini_geo
 Compare this to molecule 95603043
 It is duplicated to 96501032 which has bond topology 96501 which is different than the bond topology for this molecule 95603
 Therefore, the initial geometry from 95603043 is NOT copied to 96501032 which has only 1 inital_geometries
@@ -18,7 +18,7 @@ The other important cases to watch for are status >= 512
 Consider molecule 146002
 The status is 590 and the full record is:
 mol_id: 146002
-initial_geometries {
+ini_geo {
   atom_positions {
     x: 1.9942280054092407
     y: 0.13587099313735962
@@ -66,7 +66,7 @@ initial_geometries {
     value: 0.16787
   }
 }
-optimized_geometry {
+opt_geo {
   atom_positions {
     x: 2.4682629108428955
     y: 0.8800740242004395
@@ -168,5 +168,5 @@ bond_topo {
 
 You can see that there is very little information there
 Anything with status variable >=512 has nothing other than an attempted geometry optimization, which failed for some reason
-There may not even be an optimized_geometry stored
+There may not even be an opt_geo stored
 Unless you are interested in the geometry optimization process, you probably want to ignore these records
