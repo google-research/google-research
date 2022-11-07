@@ -290,7 +290,7 @@ properties {
     value: 3111.8
   }
 }
-bond_topologies {
+bond_topo {
   atoms: ATOM_C
   atoms: ATOM_O
   atoms: ATOM_F
@@ -308,7 +308,7 @@ bond_topologies {
     bond_type: BOND_SINGLE
   }
   smiles: "O=CF"
-  bond_topo_id: 57
+  topo_id: 57
   geometry_score: 3.1316471099853516
   source: 15
 }

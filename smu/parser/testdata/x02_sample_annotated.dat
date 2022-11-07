@@ -1,8 +1,8 @@
 ================================================================================
-# From original_molecule_index, topology, bond_topo_id, mol_id
+# From original_molecule_index, topology, topo_id, mol_id
     1    4     x02_c2h2.000020.001
 Database   standard
-# From errors
+# From calc
 Status        0
 Warn_T1       0   0
 Warn_BSE      0   0
@@ -16,7 +16,7 @@ Warn_NEG      0
 C#C
 # From topology
 x02_c2h2
-# From bond_topo_id, mol_id
+# From topo_id, mol_id
 ID      20       1
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.200.108

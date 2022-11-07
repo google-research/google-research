@@ -59,7 +59,7 @@ molecules {
     }
   }
   properties {
-    errors {
+    calc {
       which_database: STANDARD
     }
     vib_intens {
@@ -856,26 +856,26 @@ molecules {
       }
     }
   }
-  bond_topologies {
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_H
-    atoms: ATOM_H
-    bonds {
+  bond_topo {
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_H
+    atom: ATOM_H
+    bond {
       atom_b: 1
       bond_type: BOND_TRIPLE
     }
-    bonds {
+    bond {
       atom_b: 2
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 3
       bond_type: BOND_SINGLE
     }
     smiles: "C#C"
-    bond_topo_id: 20
-    source: 1
+    topo_id: 20
+    info: 1
   }
 }

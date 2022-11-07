@@ -474,7 +474,7 @@ class SmuParser:
       self._molecule.original_molecule_index = -1
     else:
       self._molecule.original_molecule_index = int(vals[0])
-    errors = self._molecule.properties.errors
+    errors = self._molecule.properties.calc
     for field, val in zip(smu_utils_lib.STAGE1_ERROR_FIELDS, vals[1:5]):
       setattr(errors, field, int(val))
     # Note that vals[6] is the molecule identifier which we ignore in favor of
@@ -511,16 +511,16 @@ class SmuParser:
     if parts[0] != 'Database':
       raise ValueError('Bad keyword on database line, got: {}'.format(parts[0]))
     if parts[1] == 'standard':
-      self._molecule.properties.errors.which_database = dataset_pb2.STANDARD
+      self._molecule.properties.calc.which_database = dataset_pb2.STANDARD
     elif parts[1] == 'complete':
-      self._molecule.properties.errors.which_database = dataset_pb2.COMPLETE
+      self._molecule.properties.calc.which_database = dataset_pb2.COMPLETE
     else:
       raise ValueError('Expected database indicator, got: {}'.format(parts[1]))
 
   def parse_error_codes(self):
     """Parses the error section with the warning flags."""
     lines = iter(self.parse(ParseModes.RAW, num_lines=6))
-    errors = self._molecule.properties.errors
+    errors = self._molecule.properties.calc
 
     parts = str(next(lines)).split()
     assert (len(parts) == 2 and parts[0]
@@ -571,16 +571,16 @@ class SmuParser:
     assert entry_id.startswith('x'), 'Expected line like x02_c2h2'
     atom_types = entry_id[4:].lower()
     expanded_atom_types = self.expand_atom_types(atom_types)
-    self._molecule.bond_topologies.add()
-    self._molecule.bond_topologies[-1].CopyFrom(
+    self._molecule.bond_topo.add()
+    self._molecule.bond_topo[-1].CopyFrom(
         smu_utils_lib.create_bond_topology(expanded_atom_types, adjacency_code,
                                            hydrogen_counts))
-    self._molecule.bond_topologies[-1].smiles = str(smiles).replace('\'',
+    self._molecule.bond_topo[-1].smiles = str(smiles).replace('\'',
                                                                     '').strip()
     # Note that we only set source to STARTING and not ITC. This is because this
     # geometry may not actually pass the ITC criteria. We let the later geometry
     # detection take care of this.
-    self._molecule.bond_topologies[-1].source = (
+    self._molecule.bond_topo[-1].info = (
         dataset_pb2.BondTopology.SOURCE_STARTING)
 
   def expand_atom_types(self, atom_types):
@@ -619,19 +619,19 @@ class SmuParser:
   def parse_identifier(self):
     """Extracts and sets the bond topology and molecule identifier."""
     line = str(self.parse(ParseModes.RAW, num_lines=1)[0])
-    id_str, bond_topo_id_str, mol_id_str = line.split()
+    id_str, topo_id_str, mol_id_str = line.split()
     assert id_str == 'ID', ('Identifier line should start with "ID", got %s.' %
                             line)
-    bond_topo_id = int(bond_topo_id_str)
+    topo_id = int(topo_id_str)
     # Special casing for SMU1. Fun.
     if smu_utils_lib.special_case_bt_id_from_dat_id(
-        bond_topo_id, self._molecule.bond_topologies[-1].smiles):
-      bond_topo_id = smu_utils_lib.special_case_bt_id_from_dat_id(
-          bond_topo_id, self._molecule.bond_topologies[-1].smiles)
+        topo_id, self._molecule.bond_topo[-1].smiles):
+      topo_id = smu_utils_lib.special_case_bt_id_from_dat_id(
+          topo_id, self._molecule.bond_topo[-1].smiles)
 
-    self._molecule.bond_topologies[-1].bond_topo_id = bond_topo_id
+    self._molecule.bond_topo[-1].topo_id = topo_id
     self._molecule.mol_id = (
-        bond_topo_id * 1000 + int(mol_id_str))
+        topo_id * 1000 + int(mol_id_str))
 
   def parse_cluster_info(self, num_lines):
     """Stores a string describing the compute cluster used for computations."""
@@ -985,7 +985,7 @@ class SmuParser:
     while self._next_line_startswith('NMR isotropic shieldings'):
       shieldings_data = self.parse(
           ParseModes.RAW,
-          num_lines=(len(self._molecule.bond_topologies[-1].atoms) + 1))
+          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))
       theory_basis = str(shieldings_data[0]).split()[-1]
       field = getattr(properties,
                       NMR_ISOTROPIC_SHIELDINGS_LABEL_FIELDS[theory_basis])
@@ -1006,7 +1006,7 @@ class SmuParser:
     while self._next_line_startswith('Partial charges'):
       partial_charges_data = self.parse(
           ParseModes.RAW,
-          num_lines=(len(self._molecule.bond_topologies[-1].atoms) + 1))
+          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))
       theory_basis = str(partial_charges_data[0]).strip().split()[-1]
       field = getattr(properties, PARTIAL_CHARGES_LABEL_FIELDS[theory_basis])
       for line in partial_charges_data[1:]:

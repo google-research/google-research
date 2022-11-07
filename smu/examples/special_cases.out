@@ -121,7 +121,7 @@ properties {
   }
   smiles_openbabel: "[O-][NH+]([NH3+])[O-]"
 }
-bond_topologies {
+bond_topo {
   atoms: ATOM_NPOS
   atoms: ATOM_NPOS
   atoms: ATOM_ONEG
@@ -162,7 +162,7 @@ bond_topologies {
     bond_type: BOND_SINGLE
   }
   smiles: "[NH3+][NH+]([O-])[O-]"
-  bond_topo_id: 146
+  topo_id: 146
   source: 1
 }
 

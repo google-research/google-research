@@ -57,13 +57,13 @@ def main(unused_argv):
     topology_from_geom.standard_topology_sensing(molecule, bond_lengths,
                                                  fake_smiles_id_dict)
 
-    count_all = len(molecule.bond_topologies)
-    count_smu = sum(bt.source & dataset_pb2.BondTopology.SOURCE_ITC != 0
-                    for bt in molecule.bond_topologies)
-    count_covalent = sum(bt.source & dataset_pb2.BondTopology.SOURCE_MLCR != 0
-                         for bt in molecule.bond_topologies)
-    count_allen = sum(bt.source & dataset_pb2.BondTopology.SOURCE_CSD != 0
-                      for bt in molecule.bond_topologies)
+    count_all = len(molecule.bond_topo)
+    count_smu = sum(bt.info & dataset_pb2.BondTopology.SOURCE_ITC != 0
+                    for bt in molecule.bond_topo)
+    count_covalent = sum(bt.info & dataset_pb2.BondTopology.SOURCE_MLCR != 0
+                         for bt in molecule.bond_topo)
+    count_allen = sum(bt.info & dataset_pb2.BondTopology.SOURCE_CSD != 0
+                      for bt in molecule.bond_topo)
 
     print(
         f'{molecule.mol_id}, {count_all}, {count_smu}, {count_covalent}, {count_allen}'

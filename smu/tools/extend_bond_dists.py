@@ -117,7 +117,7 @@ def main(unused_argv):
 
     for molecule in db:
       # for molecule in [db.find_by_mol_id(375986006)]:
-      if molecule.properties.errors.fate != dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK:
+      if molecule.properties.calc.fate != dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK:
         continue
 
       count_processed += 1
@@ -138,12 +138,12 @@ def main(unused_argv):
             smiles_id_dict[bt.smiles] for bt in matches.bond_topology
         ]
         is_matched = (
-            molecule.bond_topologies[0].bond_topo_id in matching_bt)
+            molecule.bond_topo[0].topo_id in matching_bt)
 
         # if matches.bond_topology:
         #   logging.info('For %d, bt %d, got %s',
         #                molecule.mol_id,
-        #                molecule.bond_topologies[0].bond_topo_id,
+        #                molecule.bond_topo[0].topo_id,
         #                str(matching_bt))
 
         row[f'is_matched_{buf}'] = is_matched

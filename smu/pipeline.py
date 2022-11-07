@@ -217,10 +217,10 @@ def molecule_to_stat_values(molecule):
       'warn_vib_linear', 'warn_vib_imag', 'warn_bsr_neg',
       'error_nstat1', 'error_nstatc', 'error_nstatt', 'error_frequencies'
   ]:
-    yield 'errors.' + field, getattr(molecule.properties.errors, field)
+    yield 'errors.' + field, getattr(molecule.properties.calc, field)
 
   yield 'fate', dataset_pb2.Properties.FateCategory.Name(
-      molecule.properties.errors.fate)
+      molecule.properties.calc.fate)
 
   yield 'num_initial_geometries', len(
       [g for g in molecule.initial_geometries if g.atom_positions])
@@ -229,24 +229,24 @@ def molecule_to_stat_values(molecule):
   for field in smu_utils_lib.find_zero_values(molecule):
     yield 'zero_field', field
 
-  if not molecule.duplicate_of and molecule.properties.errors.status < 512:
-    yield 'num_topologies', len(molecule.bond_topologies)
+  if not molecule.duplicate_of and molecule.properties.calc.status < 512:
+    yield 'num_topologies', len(molecule.bond_topo)
 
     yield 'num_topologies_itc', len([
-        None for bt in molecule.bond_topologies
-        if bt.source & dataset_pb2.BondTopology.SOURCE_ITC
+        None for bt in molecule.bond_topo
+        if bt.info & dataset_pb2.BondTopology.SOURCE_ITC
     ])
     yield 'num_topologies_mlcr', len([
-        None for bt in molecule.bond_topologies
-        if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR
+        None for bt in molecule.bond_topo
+        if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR
     ])
     yield 'num_topologies_csd', len([
-        None for bt in molecule.bond_topologies
-        if bt.source & dataset_pb2.BondTopology.SOURCE_CSD
+        None for bt in molecule.bond_topo
+        if bt.info & dataset_pb2.BondTopology.SOURCE_CSD
     ])
 
-    for bt in molecule.bond_topologies:
-      yield 'bt_source', bt.source
+    for bt in molecule.bond_topo:
+      yield 'bt_source', bt.info
 
 
 def bond_topology_summaries_from_csv(filename):
@@ -263,7 +263,7 @@ def bond_topology_summaries_from_csv(filename):
       summary = dataset_pb2.BondTopologySummary()
       summary.bond_topology.CopyFrom(bt)
       # Note that we leave all the counts as 0.
-      yield bt.bond_topo_id, summary
+      yield bt.topo_id, summary
 
 
 class MergeMoleculesFn(beam.DoFn):
@@ -337,24 +337,24 @@ def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
     (atom type 1, atom type 2, bond type, quantized dist)
   """
   # These are considered "major" or worse errors
-  if (molecule.properties.errors.status >= 8 or molecule.duplicate_of > 0):
+  if (molecule.properties.calc.status >= 8 or molecule.duplicate_of > 0):
     return
 
-  bt = molecule.bond_topologies[0]
+  bt = molecule.bond_topo[0]
   format_str = '{:.%df}' % dist_sig_digits
 
-  for atom_idx0, atom_idx1 in itertools.combinations(range(len(bt.atoms)), r=2):
+  for atom_idx0, atom_idx1 in itertools.combinations(range(len(bt.atom)), r=2):
 
-    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
-        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
+    if (bt.atom[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
+        bt.atom[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
       continue
 
     # Hello huge hack. F-F creates problems for us because there is
     # exactly one molecule that has an F-F bond. We can't create an
     # empirical distribution out of 1 value. So we'll just drop that
     # one and let the FF molecule have no detected geometries.
-    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_F and
-        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
+    if (bt.atom[atom_idx0] == dataset_pb2.BondTopology.ATOM_F and
+        bt.atom[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
       continue
 
     bond_type = smu_utils_lib.get_bond_type(bt, atom_idx0, atom_idx1)
@@ -380,8 +380,8 @@ def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
         dist > unbonded_max):
       continue
 
-    atom_char0 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx0]]
-    atom_char1 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx1]]
+    atom_char0 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atom[atom_idx0]]
+    atom_char1 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atom[atom_idx1]]
     if atom_char0 > atom_char1:
       atom_char0, atom_char1 = atom_char1, atom_char0
 
@@ -415,7 +415,7 @@ def smiles_to_id(bond_topology_filename):
     bond_topology_filename: see FLAGS.input_bond_topology_csv
 
   Yields:
-    smiles, bond_topo_id
+    smiles, topo_id
   """
   with gfile.GFile(bond_topology_filename, 'r') as infile:
     reader = csv.reader(iter(infile))
@@ -456,22 +456,22 @@ class UpdateMoleculeFn(beam.DoFn):
     self._cached_bond_lengths = None
 
   def _compare_smiles(self, molecule):
-    if len(molecule.bond_topologies) != 1:
+    if len(molecule.bond_topo) != 1:
       raise ValueError(
           'compare_smiles expects 1 bond topology; for CID {} got {}'.format(
-              molecule.mol_id, len(molecule.bond_topologies)))
+              molecule.mol_id, len(molecule.bond_topo)))
 
     result, smiles_with_h, smiles_without_h = (
         smu_utils_lib.bond_topology_smiles_comparison(
-            molecule.bond_topologies[0]))
+            molecule.bond_topo[0]))
     if result != smu_utils_lib.SmilesCompareResult.MATCH:
       yield beam.pvalue.TaggedOutput(
           UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH,
-          (molecule.mol_id, result, molecule.bond_topologies[0].smiles,
+          (molecule.mol_id, result, molecule.bond_topo[0].smiles,
            smiles_with_h, smiles_without_h))
       molecule.properties.smiles_openbabel = (
-          molecule.bond_topologies[0].smiles)
-      molecule.bond_topologies[0].smiles = smiles_without_h
+          molecule.bond_topo[0].smiles)
+      molecule.bond_topo[0].smiles = smiles_without_h
 
   def _add_alternative_bond_topologies(self, molecule, smiles_id_dict):
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
@@ -482,8 +482,8 @@ class UpdateMoleculeFn(beam.DoFn):
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'no_topology_matches').inc()
 
-    for bt in molecule.bond_topologies:
-      if not bt.bond_topo_id:
+    for bt in molecule.bond_topo:
+      if not bt.topo_id:
         beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                      'topology_match_smiles_failure').inc()
 
@@ -521,15 +521,15 @@ class UpdateMoleculeFn(beam.DoFn):
 
     molecule = copy.deepcopy(molecule)
 
-    molecule.properties.errors.fate = smu_utils_lib.determine_fate(molecule)
+    molecule.properties.calc.fate = smu_utils_lib.determine_fate(molecule)
 
     yield from self._compare_smiles(molecule)
 
     if smu_utils_lib.molecule_eligible_for_topology_detection(molecule):
       self._add_alternative_bond_topologies(molecule, smiles_id_dict)
     else:
-      molecule.bond_topologies[
-          0].source = dataset_pb2.BondTopology.SOURCE_STARTING
+      molecule.bond_topo[
+          0].info = dataset_pb2.BondTopology.SOURCE_STARTING
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'skipped_topology_matches').inc()
 
@@ -613,7 +613,7 @@ def to_keyed_bond_topology_summary(molecule):
     bond topology id, BondTopologySummary
   """
   for summary in smu_utils_lib.molecule_to_bond_topology_summaries(molecule):
-    yield summary.bond_topology.bond_topo_id, summary
+    yield summary.bond_topology.topo_id, summary
 
 
 def merge_bond_topology_summaries(summaries, field_names):
@@ -637,8 +637,8 @@ def merge_bond_topology_summaries(summaries, field_names):
       # that
       return copy.deepcopy(summary1)
 
-    assert (summary0.bond_topology.bond_topo_id ==
-            summary1.bond_topology.bond_topo_id)
+    assert (summary0.bond_topology.topo_id ==
+            summary1.bond_topology.topo_id)
 
     for name in field_names:
       setattr(summary0, name, getattr(summary0, name) + getattr(summary1, name))
@@ -662,7 +662,7 @@ def csv_format_bond_topology_summary(summary, field_names):
   Returns:
     BondTopologySummary
   """
-  return ','.join([str(summary.bond_topology.bond_topo_id)] +
+  return ','.join([str(summary.bond_topology.topo_id)] +
                   [str(getattr(summary, name)) for name in field_names])
 
 
@@ -841,7 +841,7 @@ def pipeline(root):
       | 'CreateEquivInputs' >> beam.Create(equivalent_files)
       | 'ParseEquiv' >> beam.FlatMap(parse_equivalent_file))
 
-  # Merge by bond_topo_id
+  # Merge by topo_id
   merged_results = (
       (stage1_matched_molecules, stage2_matched_molecules, equivalent_molecules)
       | 'FlattenAllMolecules' >> beam.Flatten()

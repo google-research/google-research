@@ -230,16 +230,17 @@ single_point_energy_pbe0d3_6_311gd spe_std_pbe0d3_6311gd
 """
 
 COMPLEX_FIELDS="""
-errors calc
-atoms atom
-bonds bond
-source info
+.errors .calc
+.atoms .atom
+.bonds .bond
+.source .info
 bond_topologies bond_topo
+bond_topo_id topo_id
 """
 
-THIS_REPLACE="${SIMPLE_FIELDS}"
-#ARGS="-i"
-ARGS=""
+THIS_REPLACE="${COMPLEX_FIELDS}"
+ARGS="-i"
+#ARGS=""
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 FILES=$(find ${SCRIPT_DIR}/.. -type f -maxdepth 4 | grep -v venv | grep -v dataset_pb2.py | grep -v rename.sh | egrep -v '\.(cc|h|pyc)$' | grep -v '~$')

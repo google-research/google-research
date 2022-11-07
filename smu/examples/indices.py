@@ -39,7 +39,7 @@ print()
 print('First is a lookup by molecule id')
 mid_molecule = db.find_by_mol_id(57001)
 print('Looking up 57001 returns molecule with id', mid_molecule.mol_id,
-      'and bond topology with SMILES', mid_molecule.bond_topologies[0].smiles)
+      'and bond topology with SMILES', mid_molecule.bond_topo[0].smiles)
 
 try:
   db.find_by_mol_id(999999)
@@ -49,7 +49,7 @@ except KeyError:
 print()
 print('Looking up by bond topology id will return zero or more molecules')
 bt_molecules = list(
-    db.find_by_bond_topo_id_list(
+    db.find_by_topo_id_list(
         [7984], which_topologies=smu_utils_lib.WhichTopologies.ALL))
 print('Querying for bond topology id 7984 returned', len(bt_molecules),
       'molecules')
@@ -58,8 +58,8 @@ print('Note that the molecules returned may have multiple bond topologies,'
       'and may or may not have the requested bond topology first')
 for mol in bt_molecules:
   print('    Result with mol_id', mol.mol_id)
-  for bt in mol.bond_topologies:
-    print('        has bond topology with id', bt.bond_topo_id,
+  for bt in mol.bond_topo:
+    print('        has bond topology with id', bt.topo_id,
           'and SMILES', bt.smiles)
 
 print()

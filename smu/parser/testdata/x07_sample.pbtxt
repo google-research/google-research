@@ -168,7 +168,7 @@ molecules {
     }
   }
   properties {
-    errors {
+    calc {
       which_database: STANDARD
     }
     vib_intens {
@@ -4143,85 +4143,85 @@ molecules {
       }
     }
   }
-  bond_topologies {
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_O
-    atoms: ATOM_O
-    atoms: ATOM_F
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    bonds {
+  bond_topo {
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_O
+    atom: ATOM_O
+    atom: ATOM_F
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    bond {
       atom_b: 5
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 4
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 3
       bond_type: BOND_DOUBLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 6
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 3
       atom_b: 4
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 3
       atom_b: 5
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_b: 7
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_b: 8
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_b: 9
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 10
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 11
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 12
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 13
       bond_type: BOND_SINGLE
     }
     smiles: "COC(=CF)OC"
-    bond_topo_id: 618451
-    source: 1
+    topo_id: 618451
+    info: 1
   }
 }
 molecules {
@@ -4392,7 +4392,7 @@ molecules {
     }
   }
   properties {
-    errors {
+    calc {
       which_database: STANDARD
     }
     vib_intens {
@@ -8364,84 +8364,84 @@ molecules {
       }
     }
   }
-  bond_topologies {
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_O
-    atoms: ATOM_O
-    atoms: ATOM_F
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    atoms: ATOM_H
-    bonds {
+  bond_topo {
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_O
+    atom: ATOM_O
+    atom: ATOM_F
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    atom: ATOM_H
+    bond {
       atom_b: 5
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 4
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 3
       bond_type: BOND_DOUBLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 6
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 3
       atom_b: 4
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 3
       atom_b: 5
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_b: 7
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_b: 8
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_b: 9
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 10
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 11
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 12
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 13
       bond_type: BOND_SINGLE
     }
     smiles: "COC(=CF)OC"
-    bond_topo_id: 618451
-    source: 1
+    topo_id: 618451
+    info: 1
   }
 }

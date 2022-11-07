@@ -21,7 +21,7 @@ dataset_pb2.BondTopology.SourceType
 The most important bit to check is SOURCE_STARTING
 This bit is set on the topology used during initial geometry generation
 You check this bit with code like
-bt.source & dataset_pb2.BondTopology.SOURCE_STARTING
+bt.info & dataset_pb2.BondTopology.SOURCE_STARTING
 
 The other three bits are related to the three methods we have for 
 matching a topology to the geometry of the Molecule.
@@ -59,7 +59,7 @@ Molecule 3177001 has 3 bond topologies
         Sources:  ITC 
 
 The easiest and most reliable way to select the desired topologies is the function
-iterate_bond_topologies. The "which" parameter controls which bond topologies are returned
+iterate_bond_topo. The "which" parameter controls which bond topologies are returned
 Molecule 8400001 has 3 bond topologies
     Topology with id 8405 and SMILES O=[N+]1ON1O[O-]
         Sources:  ITC MLCR 

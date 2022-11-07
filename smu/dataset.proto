@@ -135,19 +135,19 @@ message BondTopology {
 
   // Note that this order of atoms will be used throughout the specification of
   // geometries below.
-  repeated AtomType atoms = 1;
+  repeated AtomType atom = 1;
 
-  repeated Bond bonds = 2;
+  repeated Bond bond = 2;
   // The SMILES that are stored are canonical SMILES computed by RDKit. However
   // since we are not using aromatic bonds, there is one case that must be
   // special cased. See smu_utils_lib.py:compute_smiles_for_bond_topology
   string smiles = 3;
 
   // A unique 1 indexed dense id for this topology.
-  int32 bond_topo_id = 4;
+  int32 topo_id = 4;
 
   // Bitfield of values from SourceType indicating where this bond topology came from.
-  int32 source = 10;
+  int32 info = 10;
 
   // An estimate of ln(P(topology|geometry))
   //
@@ -507,7 +507,7 @@ message Properties {
   }
 
   // Record of errors encountered during the computations.
-  Errors errors = 1 [(availability) = COMPLETE];
+  Errors calc = 1 [(availability) = COMPLETE];
 
   // The original pipeline used SMILES from OpenBabel which were sometimes
   // unintnetionally aromatic SMILES. or simplified lookup in the database
@@ -1024,8 +1024,8 @@ message Properties {
 // BondTopology.
 message Molecule {
   // The molecule ID is unique across all molecules. It is constructed with
-  // the bond_topo_id of one of the bond topologies that generated this
-  // geometry plus a unique id (<1000): bond_topo_id * 1000 + unique id
+  // the topo_id of one of the bond topologies that generated this
+  // geometry plus a unique id (<1000): topo_id * 1000 + unique id
   int32 mol_id = 1;
 
   // INTERNAL_ONLY In the original .dat format, we kept the 1-based dense index
@@ -1067,7 +1067,7 @@ message Molecule {
   // These are ordered by how well the bond topology describes this geometry.
   // TODO(pfr): double check the field name.
   // TODO(pfr): add a reference to the paper describing this
-  repeated BondTopology bond_topologies = 8;
+  repeated BondTopology bond_topo = 8;
 
   // DEPRECATED: old location for this value
   Properties.FateCategory fate_deprecated = 9;

@@ -81,7 +81,7 @@ for mol in molecules:
   # See special_cases.py for a description of the duplicate_of field
   #---------------------------------------------------------------------------
 
-  if (mol.properties.errors.status >= 4 or mol.duplicate_of != 0):
+  if (mol.properties.calc.status >= 4 or mol.duplicate_of != 0):
     continue
 
   #---------------------------------------------------------------------------
@@ -112,8 +112,8 @@ for mol in molecules:
   # If you want this, jsut uncomment the if statement below
   #---------------------------------------------------------------------------
 
-  for bt in mol.bond_topologies:
-    # if not bt.source & dataset_pb2.BondTopology.SOURCE_STARTING:
+  for bt in mol.bond_topo:
+    # if not bt.info & dataset_pb2.BondTopology.SOURCE_STARTING:
     #   continue
     smiles_to_molecules[bt.smiles].append(mol)
 

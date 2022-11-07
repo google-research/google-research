@@ -87,13 +87,13 @@ class SmuParserTest(absltest.TestCase):
       # We're going to mess with the molecule by perturbing the bond_toplogies.
       # The .dat format shoudl only ever use the starting topology, so we are
       # going to add some wrong bond topologies to make sure they are ignored.
-      molecule.bond_topologies.append(molecule.bond_topologies[0])
-      molecule.bond_topologies.append(molecule.bond_topologies[0])
-      molecule.bond_topologies[0].source = dataset_pb2.BondTopology.SOURCE_ITC
-      molecule.bond_topologies[1].source = dataset_pb2.BondTopology.SOURCE_CSD
-      for bt in molecule.bond_topologies[0:2]:
-        bt.bonds[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE
-        bt.bond_topo_id += 9999
+      molecule.bond_topo.append(molecule.bond_topo[0])
+      molecule.bond_topo.append(molecule.bond_topo[0])
+      molecule.bond_topo[0].info = dataset_pb2.BondTopology.SOURCE_ITC
+      molecule.bond_topo[1].info = dataset_pb2.BondTopology.SOURCE_CSD
+      for bt in molecule.bond_topo[0:2]:
+        bt.bond[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE
+        bt.topo_id += 9999
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
           smu_writer.process_stage2_proto(molecule).splitlines())
@@ -118,7 +118,7 @@ class RoundtripTest(absltest.TestCase):
     for maybe_molecule, orig_contents in process_fn():
       if isinstance(maybe_molecule, Exception):
         raise maybe_molecule
-      self.assertGreater(maybe_molecule.bond_topologies[0].bond_topo_id, 0)
+      self.assertGreater(maybe_molecule.bond_topo[0].topo_id, 0)
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
           writer_fn(maybe_molecule).splitlines())
@@ -256,12 +256,12 @@ class Atomic2InputTest(absltest.TestCase):
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.errors.status = -1
+      molecule.properties.calc.status = -1
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.errors.status = 19
+      molecule.properties.calc.status = 19
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):

@@ -276,7 +276,7 @@ def get_composition(topology):
   """
   counts = {char: 0 for char in ATOM_CHARS}
   heavy_atom_count = 0
-  for atom in topology.atoms:
+  for atom in topology.atom:
     counts[ATOM_TYPE_TO_CHAR[atom]] += 1
     if atom != dataset_pb2.BondTopology.AtomType.ATOM_H:
       heavy_atom_count += 1
@@ -308,7 +308,7 @@ def get_original_label(molecule):
   if special_case_dat_id_from_bt_id(bt_id):
     bt_id = 0
   return '{:s}.{:06d}.{:03d}'.format(
-      get_composition(molecule.bond_topologies[0]), bt_id,
+      get_composition(molecule.bond_topo[0]), bt_id,
       molecule.mol_id % 1000)
 
 
@@ -375,7 +375,7 @@ def expanded_stoichiometry_from_topology(topology):
   """
   hydrogen_counts = compute_bonded_hydrogens(topology,
                                              compute_adjacency_matrix(topology))
-  return _expanded_stoichiometry_from_h_counts(topology.atoms, hydrogen_counts)
+  return _expanded_stoichiometry_from_h_counts(topology.atom, hydrogen_counts)
 
 
 def _generate_hydrogen_assignments(heavy_atoms, total_h):
@@ -508,14 +508,14 @@ def compute_adjacency_matrix(topology):
     An NxN matrix, where N equals the number of heavy atoms in a molecule.
   """
   side_length = len([
-      atom for atom in topology.atoms
+      atom for atom in topology.atom
       if atom != dataset_pb2.BondTopology.AtomType.ATOM_H
   ])
   adjacency_matrix = [[0] * side_length for _ in range(side_length)]
-  for bond in topology.bonds:
-    if topology.atoms[bond.atom_a] == dataset_pb2.BondTopology.AtomType.ATOM_H:
+  for bond in topology.bond:
+    if topology.atom[bond.atom_a] == dataset_pb2.BondTopology.AtomType.ATOM_H:
       continue
-    if topology.atoms[bond.atom_b] == dataset_pb2.BondTopology.AtomType.ATOM_H:
+    if topology.atom[bond.atom_b] == dataset_pb2.BondTopology.AtomType.ATOM_H:
       continue
     if bond.bond_type == dataset_pb2.BondTopology.BondType.BOND_SINGLE:
       adjacency_matrix[bond.atom_a][bond.atom_b] = 1
@@ -563,7 +563,7 @@ def compute_bonded_hydrogens(topology, adjacency_matrix):
   # Only the first len(adjacency_matrix) atoms in the ordered topology are heavy
   # atoms capable of # binding protons.
   num_bonded_hydrogens = [
-      ATOM_TYPE_TO_MAX_BONDS[atom] for atom in topology.atoms[:side_length]
+      ATOM_TYPE_TO_MAX_BONDS[atom] for atom in topology.atom[:side_length]
   ]
   # Subtract paired bonds (to other heavy atoms).
   for i in range(side_length):
@@ -624,11 +624,11 @@ def create_bond_topology(atoms, connectivity_matrix_string, hydrogens_string):
     if atom_type == 'h':
       continue
     try:
-      bond_topology.atoms.append(ATOM_CHAR_TO_TYPE[atom_type])
+      bond_topology.atom.append(ATOM_CHAR_TO_TYPE[atom_type])
     except KeyError as key_error:
       raise ValueError('Unknown atom type: {}'.format(atom_type)) from key_error
 
-  num_heavy_atoms = len(bond_topology.atoms)
+  num_heavy_atoms = len(bond_topology.atom)
 
   # Now add the bonds between the heavy atoms
   if num_heavy_atoms > 1:
@@ -637,7 +637,7 @@ def create_bond_topology(atoms, connectivity_matrix_string, hydrogens_string):
         connectivity_matrix_string):
       if bond_order == '0':
         continue
-      bond = bond_topology.bonds.add()
+      bond = bond_topology.bond.add()
       bond.atom_a = int(i)
       bond.atom_b = int(j)
       if bond_order == '1':
@@ -657,21 +657,21 @@ def create_bond_topology(atoms, connectivity_matrix_string, hydrogens_string):
       zip(hydrogens_string, expected_hydrogens)):
     actual_h = int(actual_h)
     diff = expected_h - actual_h
-    atom_type = bond_topology.atoms[atom_idx]
+    atom_type = bond_topology.atom[atom_idx]
     if diff == -1 and atom_type == dataset_pb2.BondTopology.AtomType.ATOM_N:
-      bond_topology.atoms[
+      bond_topology.atom[
           atom_idx] = dataset_pb2.BondTopology.AtomType.ATOM_NPOS
     elif diff == 1 and atom_type == dataset_pb2.BondTopology.AtomType.ATOM_O:
-      bond_topology.atoms[
+      bond_topology.atom[
           atom_idx] = dataset_pb2.BondTopology.AtomType.ATOM_ONEG
     elif diff:
       raise ValueError(
           f'Bad hydrogen count (actual={actual_h}, expected={expected_h} '
           f'for {atom_type}, index {atom_idx}')
     for _ in range(actual_h):
-      bond_topology.atoms.append(dataset_pb2.BondTopology.AtomType.ATOM_H)
-      h_idx = len(bond_topology.atoms) - 1
-      bond = bond_topology.bonds.add()
+      bond_topology.atom.append(dataset_pb2.BondTopology.AtomType.ATOM_H)
+      h_idx = len(bond_topology.atom) - 1
+      bond = bond_topology.bond.add()
       bond.atom_a = atom_idx
       bond.atom_b = h_idx
       bond.bond_type = dataset_pb2.BondTopology.BondType.BOND_SINGLE
@@ -724,7 +724,7 @@ def generate_bond_topologies_from_csv(fileobj):
     # (just a string like 'CNNOO') so the [::2] skips those.
     bond_topology = create_bond_topology(atoms[::2], connectivity, hydrogens)
     bond_topology.smiles = smiles
-    bond_topology.bond_topo_id = int(bt_id)
+    bond_topology.topo_id = int(bt_id)
     yield bond_topology
 
 
@@ -756,14 +756,14 @@ def bond_topology_to_rdkit_molecule(bond_topology):
     rdkit.Chem.rdchem.RWMol
   """
   mol = Chem.rdchem.RWMol()
-  for pb_atom_idx, pb_atom in enumerate(bond_topology.atoms):
+  for pb_atom_idx, pb_atom in enumerate(bond_topology.atom):
     symbol, charge = ATOM_TYPE_TO_RDKIT[pb_atom]
     atom = Chem.Atom(symbol)
     atom.SetFormalCharge(charge)
     atom_idx = mol.AddAtom(atom)
     assert atom_idx == pb_atom_idx
 
-  for pb_bond in bond_topology.bonds:
+  for pb_bond in bond_topology.bond:
     mol.AddBond(pb_bond.atom_a, pb_bond.atom_b,
                 BOND_TYPE_TO_RDKIT[pb_bond.bond_type])
 
@@ -781,7 +781,7 @@ def get_bond_type(bond_topology, atom_idx0, atom_idx1):
   Returns:
     dataset_pb2.BondTopology.BondType
   """
-  for bond in bond_topology.bonds:
+  for bond in bond_topology.bond:
     if ((bond.atom_a == atom_idx0 and bond.atom_b == atom_idx1) or
         (bond.atom_a == atom_idx1 and bond.atom_b == atom_idx0)):
       return bond.bond_type
@@ -801,7 +801,7 @@ def bond_topology_sorting_key(bond_topology):
   Returns:
     tuple
   """
-  return (bond_topology.bond_topo_id,
+  return (bond_topology.topo_id,
           compact_adjacency_matrix_string(
             compute_adjacency_matrix(bond_topology), '.'))
 
@@ -833,35 +833,35 @@ def iterate_bond_topologies(molecule, which):
     which: WhichTopologies  Yields index of topology, dataset_pb2.BondTopology
 
   Yields:
-    int (index in bond_topologies), Bond topology.
+    int (index in bond_topo), Bond topology.
   """
   if which == WhichTopologies.ALL:
-    yield from enumerate(molecule.bond_topologies)
+    yield from enumerate(molecule.bond_topo)
 
   if which == WhichTopologies.BEST:
-    yield 0, molecule.bond_topologies[0]
+    yield 0, molecule.bond_topo[0]
 
   if which == WhichTopologies.STARTING:
-    if (molecule.properties.errors.status >= 512 or molecule.duplicate_of > 0):
-      yield 0, molecule.bond_topologies[0]
-    for bt_idx, bt in enumerate(molecule.bond_topologies):
+    if (molecule.properties.calc.status >= 512 or molecule.duplicate_of > 0):
+      yield 0, molecule.bond_topo[0]
+    for bt_idx, bt in enumerate(molecule.bond_topo):
       if (bt.is_starting_topology or
-          bt.source & dataset_pb2.BondTopology.SOURCE_STARTING):
+          bt.info & dataset_pb2.BondTopology.SOURCE_STARTING):
         yield bt_idx, bt
 
   if which == WhichTopologies.ITC:
-    for bt_idx, bt in enumerate(molecule.bond_topologies):
-      if not bt.source or bt.source & dataset_pb2.BondTopology.SOURCE_ITC:
+    for bt_idx, bt in enumerate(molecule.bond_topo):
+      if not bt.info or bt.info & dataset_pb2.BondTopology.SOURCE_ITC:
         yield bt_idx, bt
 
   if which == WhichTopologies.MLCR:
-    for bt_idx, bt in enumerate(molecule.bond_topologies):
-      if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR:
+    for bt_idx, bt in enumerate(molecule.bond_topo):
+      if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR:
         yield bt_idx, bt
 
   if which == WhichTopologies.CSD:
-    for bt_idx, bt in enumerate(molecule.bond_topologies):
-      if bt.source & dataset_pb2.BondTopology.SOURCE_CSD:
+    for bt_idx, bt in enumerate(molecule.bond_topo):
+      if bt.info & dataset_pb2.BondTopology.SOURCE_CSD:
         yield bt_idx, bt
 
 
@@ -880,9 +880,9 @@ def molecule_to_rdkit_molecules(molecule,
   geom=[opt|init(<init_idx>/<init_count>)]
   where
     molid: mol_id
-    bt_id: bond_topo_id
-    bt_idx: index in bond_topologies
-    bt_count: size of bond_topologies
+    bt_id: topo_id
+    bt_idx: index in bond_topo
+    bt_count: size of bond_topo
     init_idx: index in initial_geometries
     init_count: size of initial_geometries
 
@@ -895,9 +895,9 @@ def molecule_to_rdkit_molecules(molecule,
   Yields:
     rdkit.Chem.rdchem.RWMol
   """
-  bt_count = len(molecule.bond_topologies)
-  requested_bond_topologies = [
-      (bt, f'{bt.bond_topo_id}({i+1}/{bt_count})')
+  bt_count = len(molecule.bond_topo)
+  requested_bond_topo = [
+      (bt, f'{bt.topo_id}({i+1}/{bt_count})')
       for i, bt in iterate_bond_topologies(molecule, which_topologies)
   ]
 
@@ -917,7 +917,7 @@ def molecule_to_rdkit_molecules(molecule,
   if include_optimized_geometry and molecule.optimized_geometry.atom_positions:
     requested_geometries.append((molecule.optimized_geometry, 'opt'))
 
-  for bt, bt_label in requested_bond_topologies:
+  for bt, bt_label in requested_bond_topo:
     for geom, geom_label in requested_geometries:
 
       mol = bond_topology_to_rdkit_molecule(bt)
@@ -927,7 +927,7 @@ def molecule_to_rdkit_molecules(molecule,
       )
 
       # Add in the coordinates
-      conf = Chem.Conformer(len(bt.atoms))
+      conf = Chem.Conformer(len(bt.atom))
       conf.Set3D(True)
       for atom_idx, pos in enumerate(geom.atom_positions):
         conf.SetAtomPosition(
@@ -1047,14 +1047,14 @@ def rdkit_molecule_to_bond_topology(mol):
   """
   bond_topology = dataset_pb2.BondTopology()
   for atom in mol.GetAtoms():
-    bond_topology.atoms.append(rdkit_atom_to_atom_type(atom))
+    bond_topology.atom.append(rdkit_atom_to_atom_type(atom))
 
   for bond in mol.GetBonds():
     bt_bond = dataset_pb2.BondTopology.Bond()
     bt_bond.atom_a = bond.GetBeginAtom().GetIdx()
     bt_bond.atom_b = bond.GetEndAtom().GetIdx()
     bt_bond.bond_type = RDKIT_TO_BOND_TYPE[bond.GetBondType()]
-    bond_topology.bonds.append(bt_bond)
+    bond_topology.bond.append(bt_bond)
 
   return bond_topology
 
@@ -1144,14 +1144,14 @@ def _molecule_source(mol):
     return _MoleculeSource.STAGE1
   # If we are looking at a standard record from the end of the pipeline,
   # it won't have the errors field at all.
-  if not mol.properties.HasField('errors'):
+  if not mol.properties.HasField('calc'):
     return _MoleculeSource.STAGE2
 
   # If we have a complete record at the end of the pipeline, status will have a value.
   # Now you may note that we can't tell the difference between a missing status value
   # and a value of 0, but we lucked out that status 0 is always stage 2.
   if len(mol.properties.calculation_statistics) == 0 and (
-      mol.properties.errors.status < 0 or mol.properties.errors.status >= 512):
+      mol.properties.calc.status < 0 or mol.properties.calc.status >= 512):
     return _MoleculeSource.STAGE1
 
   return _MoleculeSource.STAGE2
@@ -1202,7 +1202,7 @@ def merge_molecule(mol1, mol2):
 
   Note that this is not the most general merge that the format suggests. In
   particular, it's expected that there is at most 1 initial_geometries and
-  1 bond_topologies (and it's the same for all molecules). The final data won't
+  1 bond_topo (and it's the same for all molecules). The final data won't
   be like this but it handles what's in the pipeline at this point we use this.
 
   While merging STAGE1 and STAGE2, conflicting values of some fields may be
@@ -1221,8 +1221,8 @@ def merge_molecule(mol1, mol2):
     dataset_pb2.Molecule, None or list of field values (see above)
 
   Raises:
-    ValueError: if len(initial_geometries) != 1, len(bond_topologies) != 1,
-      bond_topologies differ, or incompatible duplicate_of fields
+    ValueError: if len(initial_geometries) != 1, len(bond_topo) != 1,
+      bond_topo differ, or incompatible duplicate_of fields
   """
   source1 = _molecule_source(mol1)
   source2 = _molecule_source(mol2)
@@ -1245,27 +1245,27 @@ def merge_molecule(mol1, mol2):
     raise ValueError('At most 1 initial_geometries allowed, got {}'.format(
         len(mol2.initial_geometries)))
 
-  if len(mol1.bond_topologies) > 1:
-    raise ValueError('At most 1 bond_topologies allowed, got {}'.format(
+  if len(mol1.bond_topo) > 1:
+    raise ValueError('At most 1 bond_topo allowed, got {}'.format(
         len(mol1.initial_geometries)))
-  if len(mol2.bond_topologies) > 1:
-    raise ValueError('At most 1 bond_topologies allowed, got {}'.format(
+  if len(mol2.bond_topo) > 1:
+    raise ValueError('At most 1 bond_topo allowed, got {}'.format(
         len(mol2.initial_geometries)))
 
-  if mol1.bond_topologies and mol2.bond_topologies:
-    if mol1.bond_topologies[0] != mol2.bond_topologies[0]:
+  if mol1.bond_topo and mol2.bond_topo:
+    if mol1.bond_topo[0] != mol2.bond_topo[0]:
       raise ValueError(
           'All bond topologies must be the same, got ids {} and {}'.format(
-              mol1.bond_topologies[0].bond_topo_id,
-              mol2.bond_topologies[0].bond_topo_id))
+              mol1.bond_topo[0].topo_id,
+              mol2.bond_topo[0].topo_id))
 
   # We set the conflict info here because we'll be messing around with fields
   # below. We may not need this if we don't actually find a conflict.
   conflict_info = [mol1.mol_id]
-  conflict_info.append(mol1.properties.errors.error_nstat1)
-  conflict_info.append(mol1.properties.errors.error_nstatc)
-  conflict_info.append(mol1.properties.errors.error_frequencies)  # nstatv
-  conflict_info.append(mol1.properties.errors.error_nstatt)
+  conflict_info.append(mol1.properties.calc.error_nstat1)
+  conflict_info.append(mol1.properties.calc.error_nstatc)
+  conflict_info.append(mol1.properties.calc.error_frequencies)  # nstatv
+  conflict_info.append(mol1.properties.calc.error_nstatt)
   for c in [mol1, mol2]:
     if c.initial_geometries:
       conflict_info.append(c.initial_geometries[0].energy.value)
@@ -1283,7 +1283,7 @@ def merge_molecule(mol1, mol2):
   # merge. We look for conflicts between them and then a few special cases.
   has_conflict = False
   if source1 == _MoleculeSource.STAGE1 and source2 == _MoleculeSource.STAGE2:
-    if len(mol1.bond_topologies) != 1 or len(mol2.bond_topologies) != 1:
+    if len(mol1.bond_topo) != 1 or len(mol2.bond_topo) != 1:
       has_conflict = True
 
     if len(mol1.initial_geometries) != len(mol2.initial_geometries):
@@ -1304,8 +1304,8 @@ def merge_molecule(mol1, mol2):
     for field in STAGE1_ERROR_FIELDS:
       # Only stage1 uses these old style error fields, so we just copy them
       # over
-      setattr(mol2.properties.errors, field,
-              getattr(mol1.properties.errors, field))
+      setattr(mol2.properties.calc, field,
+              getattr(mol1.properties.calc, field))
 
     for field_fn, atol in [
         (lambda c: c.initial_geometries[0].energy, 2e-6),
@@ -1331,11 +1331,11 @@ def merge_molecule(mol1, mol2):
 
     # This isn't actually a conflict per-se, but we want to find anything that
     # is not an allowed set of combinations of error values.
-    error_codes = (mol1.properties.errors.error_nstat1,
-                   mol1.properties.errors.error_nstatc,
-                   mol1.properties.errors.error_frequencies,
-                   mol1.properties.errors.error_nstatt)
-    if mol1.properties.errors.error_frequencies == 101:
+    error_codes = (mol1.properties.calc.error_nstat1,
+                   mol1.properties.calc.error_nstatc,
+                   mol1.properties.calc.error_frequencies,
+                   mol1.properties.calc.error_nstatt)
+    if mol1.properties.calc.error_frequencies == 101:
       # This happens for exactly one molecule. If anything else shows up
       # here we will mark it as a conflict so it comes out in that output
       if mol2.mol_id != 795795001:
@@ -1352,19 +1352,19 @@ def merge_molecule(mol1, mol2):
       mol2.initial_geometries.append(mol1.initial_geometries[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
-    if (mol2.properties.errors.status == 800 or
-        mol2.properties.errors.status == 700):
+    if (mol2.properties.calc.status == 800 or
+        mol2.properties.calc.status == 700):
       # Flip back because we will base everything on the stage1 file
       mol1, mol2 = mol2, mol1
       source1, source2 = source2, source1
 
-      mol2.properties.errors.status = (500 +
-                                       mol1.properties.errors.status // 10)
-      mol2.properties.errors.which_database = dataset_pb2.COMPLETE
+      mol2.properties.calc.status = (500 +
+                                       mol1.properties.calc.status // 10)
+      mol2.properties.calc.which_database = dataset_pb2.COMPLETE
       if np.any(np.asarray(mol2.properties.vib_freq.value) < -30):
-        mol2.properties.errors.warn_vib_imag = 2
+        mol2.properties.calc.warn_vib_imag = 2
       elif np.any(np.asarray(mol2.properties.vib_freq.value) < 0):
-        mol2.properties.errors.warn_vib_imag = 1
+        mol2.properties.calc.warn_vib_imag = 1
 
   # Move over all duplicate info.
   if (mol1.duplicate_of != 0 and mol2.duplicate_of != 0 and
@@ -1400,7 +1400,7 @@ def molecule_calculation_error_level(molecule):
       0: cations success, no problems
   """
   source = _molecule_source(molecule)
-  errors = molecule.properties.errors
+  errors = molecule.properties.calc
 
   # The levels aren't very well defined for STAGE1.
   # We'll call all errors serious
@@ -1480,9 +1480,9 @@ def should_include_in_standard(molecule):
   """
   if molecule.duplicate_of > 0:
     return False
-  if molecule.properties.errors.which_database == dataset_pb2.COMPLETE:
+  if molecule.properties.calc.which_database == dataset_pb2.COMPLETE:
     return False
-  elif molecule.properties.errors.which_database == dataset_pb2.STANDARD:
+  elif molecule.properties.calc.which_database == dataset_pb2.STANDARD:
     return True
   else:
     # This should only happen with stage1 only files.
@@ -1530,23 +1530,23 @@ def clean_up_error_codes(molecule):
   """
   source = _molecule_source(molecule)
   if source == _MoleculeSource.STAGE1:
-    if molecule.properties.errors.status:
+    if molecule.properties.calc.status:
       # This is a special case where the stage1 molecule was already put
       # together as a final entry during the merging process. Everything
       # has already been set up.
       pass
-    elif (molecule.properties.errors.error_nstat1 == 1 or
-          molecule.properties.errors.error_nstat1 == 3):
+    elif (molecule.properties.calc.error_nstat1 == 1 or
+          molecule.properties.calc.error_nstat1 == 3):
       # This should be a duplciate. If we have no record of a dup, we'll
       # leaves is as stauts 0 and let it be caught by fate below
       if molecule.duplicate_of:
-        molecule.properties.errors.status = -1
-    elif molecule.properties.errors.error_nstat1 == 5:
+        molecule.properties.calc.status = -1
+    elif molecule.properties.calc.error_nstat1 == 5:
       # optimization was successful, but optimized to different topology
-      molecule.properties.errors.status = 590
-    elif molecule.properties.errors.error_nstat1 == 2:
+      molecule.properties.calc.status = 590
+    elif molecule.properties.calc.error_nstat1 == 2:
       # optimization failed. Clean up the error codes and remove some info
-      molecule.properties.errors.status = 600
+      molecule.properties.calc.status = 600
       molecule.initial_geometries[0].ClearField('energy')
       molecule.initial_geometries[0].ClearField('gnorm')
       molecule.ClearField('optimized_geometry')
@@ -1560,7 +1560,7 @@ def clean_up_error_codes(molecule):
         f'Clean up can only handle Stage1 or 2 molecules, got {molecule}')
 
   for field in STAGE1_ERROR_FIELDS:
-    molecule.properties.errors.ClearField(field)
+    molecule.properties.calc.ClearField(field)
 
 
 def clean_up_sentinel_values(molecule):
@@ -1739,7 +1739,7 @@ def determine_fate(molecule):
       else:
         return dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY
 
-    status = molecule.properties.errors.status
+    status = molecule.properties.calc.status
     if status == 600:
       return dataset_pb2.Properties.FATE_FAILURE_GEO_OPT
     elif status == 590:
@@ -1817,7 +1817,7 @@ def molecule_to_bond_topology_summaries(molecule):
   summary = dataset_pb2.BondTopologySummary()
   try:
     starting_idx = get_starting_bond_topology_index(molecule)
-    summary.bond_topology.CopyFrom(molecule.bond_topologies[starting_idx])
+    summary.bond_topology.CopyFrom(molecule.bond_topo[starting_idx])
     summary.count_attempted_molecules = 1
   except ValueError:
     starting_idx = None
@@ -1831,16 +1831,16 @@ def molecule_to_bond_topology_summaries(molecule):
     if (starting_idx is not None and
         source == dataset_pb2.BondTopology.SOURCE_ITC):
       observed_bt_id.add(
-          molecule.bond_topologies[starting_idx].bond_topo_id)
-    for bt in molecule.bond_topologies:
-      if not source & bt.source:
+          molecule.bond_topo[starting_idx].topo_id)
+    for bt in molecule.bond_topo:
+      if not source & bt.info:
         continue
-      if bt.bond_topo_id in observed_bt_id:
+      if bt.topo_id in observed_bt_id:
         continue
       yield bt
-      observed_bt_id.add(bt.bond_topo_id)
+      observed_bt_id.add(bt.topo_id)
 
-  fate = molecule.properties.errors.fate
+  fate = molecule.properties.calc.fate
 
   if fate == dataset_pb2.Properties.FATE_UNDEFINED:
     raise ValueError(f'Molecule {molecule.mol_id} has undefined fate')
@@ -1922,16 +1922,16 @@ def molecule_to_bond_topology_summaries(molecule):
   # Now emit our multiple detection records
   observed_bt_id = set()
   yielded_multi_detect = set()
-  for bt in molecule.bond_topologies:
-    if bt.bond_topo_id not in observed_bt_id:
-      observed_bt_id.add(bt.bond_topo_id)
+  for bt in molecule.bond_topo:
+    if bt.topo_id not in observed_bt_id:
+      observed_bt_id.add(bt.topo_id)
       continue
-    if bt.bond_topo_id not in yielded_multi_detect:
+    if bt.topo_id not in yielded_multi_detect:
       other_summary = dataset_pb2.BondTopologySummary()
       other_summary.bond_topology.CopyFrom(bt)
       other_summary.count_multiple_detections = 1
       yield other_summary
-      yielded_multi_detect.add(bt.bond_topo_id)
+      yielded_multi_detect.add(bt.topo_id)
 
 
 def molecule_eligible_for_topology_detection(molecule):
@@ -1947,5 +1947,5 @@ def molecule_eligible_for_topology_detection(molecule):
     bool
   """
   return (molecule.duplicate_of == 0 and
-          molecule.properties.errors.status >= 0 and
-          molecule.properties.errors.status < 512)
+          molecule.properties.calc.status >= 0 and
+          molecule.properties.calc.status < 512)

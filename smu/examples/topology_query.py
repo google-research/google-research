@@ -89,7 +89,7 @@ print('We now find these molecule ids')
 print([c.mol_id for c in modified_molecules])
 
 print()
-print('Also note that the bond_topologies field of all molecules returned')
+print('Also note that the bond_topo field of all molecules returned')
 print(
     'from a topology query have been modified with the new allowed bond distances'
 )
@@ -99,17 +99,17 @@ print(
 # This is a utility function we will use below to print summary information
 # about the bnd topologies found
 #-----------------------------------------------------------------------------
-def print_molecules_and_bond_topo_id(molecules):
+def print_molecules_and_topo_id(molecules):
   for mol in molecules:
     print('   ', mol.mol_id, 'has bond topologies:',
-          [bt.bond_topo_id for bt in mol.bond_topologies
-           if bt.source & (dataset_pb2.BondTopology.SOURCE_ITC |
+          [bt.topo_id for bt in mol.bond_topo
+           if bt.info & (dataset_pb2.BondTopology.SOURCE_ITC |
                            dataset_pb2.BondTopology.SOURCE_CUSTOM)])
 
 
 print()
 print('Compare the bond topologies from the orignal query:')
-print_molecules_and_bond_topo_id(original_molecules)
+print_molecules_and_topo_id(original_molecules)
 print()
 print('With the topologies from the query with modified bond distances:')
-print_molecules_and_bond_topo_id(modified_molecules)
+print_molecules_and_topo_id(modified_molecules)

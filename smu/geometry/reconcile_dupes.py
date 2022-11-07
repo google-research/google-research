@@ -107,7 +107,7 @@ def reconcile_dupes(unused_argv):
   del df_list
   logging.info(data.shape)
 
-  # Convert mol_ids to bond_topo_id by dividing by 1000
+  # Convert mol_ids to topo_id by dividing by 1000
   # Expect many dupes to be overwritten here.
   smiles_to_id = {k: v for k, v in zip(data["StartSmi"], data["id"] // 1000)}
 

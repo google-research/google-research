@@ -119,7 +119,7 @@ class TopologyFromGeom(beam.DoFn):
       dataset_pb2.TopologyMatches
     """
     # Adjust as needed...
-    # if molecule.properties.errors.fate != dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW:
+    # if molecule.properties.calc.fate != dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW:
     #   return
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.neutral_forms_during_bond_matching = True

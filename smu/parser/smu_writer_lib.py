@@ -85,7 +85,7 @@ class _FortranFloat(float):
 
 def get_long_molecule_name(molecule):
   return '{}.{}'.format(
-    smu_utils_lib.get_composition(molecule.bond_topologies[0]),
+    smu_utils_lib.get_composition(molecule.bond_topo[0]),
     get_long_mol_id(molecule.mol_id))
 
 
@@ -123,12 +123,12 @@ class SmuWriter:
     Returns:
       A multiline string representation of the header.
     """
-    num_atoms = len(molecule.bond_topologies[0].atoms)
+    num_atoms = len(molecule.bond_topo[0].atom)
     result = smu_parser_lib.SEPARATOR_LINE + '\n'
     if self.annotate:
-      result += ('# From original_molecule_index, topology, bond_topo_id, '
+      result += ('# From original_molecule_index, topology, topo_id, '
                  'error_{nstat1, nstatc, nstatt, frequences} mol_id\n')
-    errors = molecule.properties.errors
+    errors = molecule.properties.calc
     result += '{:5s}{:5d}{:5d}{:5d}{:5d}{:5d}     {:s}\n'.format(
         self._molecule_index_string(molecule), errors.error_nstat1,
         errors.error_nstatc, errors.error_nstatt, errors.error_frequencies,
@@ -146,11 +146,11 @@ class SmuWriter:
     Returns:
       A multiline string representation of the header.
     """
-    num_atoms = len(molecule.bond_topologies[0].atoms)
+    num_atoms = len(molecule.bond_topo[0].atom)
     result = smu_parser_lib.SEPARATOR_LINE + '\n'
     if self.annotate:
       result += ('# From original_molecule_index, topology, '
-                 'bond_topo_id, mol_id\n')
+                 'topo_id, mol_id\n')
     result += '{:s}{:5d}     {:s}\n'.format(
         self._molecule_index_string(molecule), num_atoms,
         smu_utils_lib.get_original_label(molecule))
@@ -165,12 +165,12 @@ class SmuWriter:
     Returns:
       String
     """
-    if not molecule.properties.HasField('errors'):
+    if not molecule.properties.HasField('calc'):
       # Standard database has the errors message filtered, so we assume this is
       # standard
       val = dataset_pb2.STANDARD
-    elif molecule.properties.errors.which_database != dataset_pb2.UNSPECIFIED:
-      val = molecule.properties.errors.which_database
+    elif molecule.properties.calc.which_database != dataset_pb2.UNSPECIFIED:
+      val = molecule.properties.calc.which_database
     else:
       # The deprecated location
       val = molecule.which_database_deprecated
@@ -191,21 +191,21 @@ class SmuWriter:
     """
     result = ''
     if self.annotate:
-      result += '# From errors\n'
+      result += '# From calc\n'
 
-    result += 'Status     {:4d}\n'.format(properties.errors.status)
-    result += 'Warn_T1    {:4d}{:4d}\n'.format(properties.errors.warn_t1,
-                                               properties.errors.warn_delta_t1)
+    result += 'Status     {:4d}\n'.format(properties.calc.status)
+    result += 'Warn_T1    {:4d}{:4d}\n'.format(properties.calc.warn_t1,
+                                               properties.calc.warn_delta_t1)
     result += 'Warn_BSE   {:4d}{:4d}\n'.format(
-        properties.errors.warn_bse_b6, properties.errors.warn_bse_eccsd)
+        properties.calc.warn_bse_b6, properties.calc.warn_bse_eccsd)
     result += 'Warn_EXC   {:4d}{:4d}{:4d}\n'.format(
-        properties.errors.warn_exc_ene,
-        properties.errors.warn_exc_osmin,
-        properties.errors.warn_exc_osmax)
+        properties.calc.warn_exc_ene,
+        properties.calc.warn_exc_osmin,
+        properties.calc.warn_exc_osmax)
     result += 'Warn_VIB   {:4d}{:4d}\n'.format(
-        properties.errors.warn_vib_linear,
-        properties.errors.warn_vib_imag)
-    result += 'Warn_NEG   {:4d}\n'.format(properties.errors.warn_bsr_neg)
+        properties.calc.warn_vib_linear,
+        properties.calc.warn_vib_imag)
+    result += 'Warn_NEG   {:4d}\n'.format(properties.calc.warn_bsr_neg)
 
     return result
 
@@ -250,24 +250,24 @@ class SmuWriter:
     if molecule.properties.HasField('smiles_openbabel'):
       result += molecule.properties.smiles_openbabel + '\n'
     else:
-      result += molecule.bond_topologies[bt_idx].smiles + '\n'
+      result += molecule.bond_topo[bt_idx].smiles + '\n'
     if self.annotate:
       result += '# From topology\n'
     result += smu_utils_lib.get_composition(
-        molecule.bond_topologies[bt_idx]) + '\n'
+        molecule.bond_topo[bt_idx]) + '\n'
     if self.annotate:
-      result += '# From bond_topo_id, mol_id\n'
-    bond_topo_id = molecule.bond_topologies[bt_idx].bond_topo_id
+      result += '# From topo_id, mol_id\n'
+    topo_id = molecule.bond_topo[bt_idx].topo_id
     # Special case SMU1. Fun.
-    if smu_utils_lib.special_case_dat_id_from_bt_id(bond_topo_id):
+    if smu_utils_lib.special_case_dat_id_from_bt_id(topo_id):
       if stage == 'stage1':
-        bond_topo_id = 0
+        topo_id = 0
       elif stage == 'stage2':
-        bond_topo_id = smu_utils_lib.special_case_dat_id_from_bt_id(
-            bond_topo_id)
+        topo_id = smu_utils_lib.special_case_dat_id_from_bt_id(
+            topo_id)
       else:
         raise ValueError(f'Unknown stage {stage}')
-    result += 'ID{:8d}{:8d}\n'.format(bond_topo_id,
+    result += 'ID{:8d}{:8d}\n'.format(topo_id,
                                       molecule.mol_id % 1000)
     return result
 
@@ -351,15 +351,15 @@ class SmuWriter:
     Returns:
       A multiline string representation of bond atom pairs and bond types.
     """
-    if properties.errors.status >= 4:
+    if properties.calc.status >= 4:
       return ''
     adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(topology)
     bonds = []
-    for bond in topology.bonds:
+    for bond in topology.bond:
       # Bond type is a six-digit integer ABCDEF, where A and B are the atomic
       # numbers of the two atoms forming the bond, C is the bond order, D and E
       # are the free valencies on the two atoms, and F encodes the charge.
-      atom_types = [topology.atoms[bond.atom_a], topology.atoms[bond.atom_b]]
+      atom_types = [topology.atom[bond.atom_a], topology.atom[bond.atom_b]]
       bond_type = '%d%d' % (
           smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_types[0]],
           smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_types[1]])
@@ -450,7 +450,7 @@ class SmuWriter:
         molecule.initial_geometries[0].atom_positions):
       if self.annotate:
         coordinates += '# From initial_geometry.atom_positions\n'
-      for i, atom in enumerate(topology.atoms):
+      for i, atom in enumerate(topology.atom):
         positions = molecule.initial_geometries[0].atom_positions[i]
 
         coordinates += 'Initial Coords%s%s%s%s\n' % (
@@ -461,7 +461,7 @@ class SmuWriter:
         molecule.optimized_geometry.atom_positions):
       if self.annotate:
         coordinates += '# From optimized_geometry.atom_positions\n'
-      for i, atom in enumerate(topology.atoms):
+      for i, atom in enumerate(topology.atom):
         positions = molecule.optimized_geometry.atom_positions[i]
         coordinates += 'Optimized Coords%s%s%s%s\n' % (
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(6),
@@ -814,7 +814,7 @@ class SmuWriter:
       if self.annotate:
         result += '# From %s\n' % field
       result += 'NMR isotropic shieldings (ppm): %s\n' % label
-      for i, atom in enumerate(topology.atoms):
+      for i, atom in enumerate(topology.atom):
         result += '%s%s%s   +/-%s\n' % (
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
@@ -840,7 +840,7 @@ class SmuWriter:
       result += 'Partial charges (e): %s\n' % label
       if self.annotate:
         result += '# From %s\n' % field
-      for i, atom in enumerate(topology.atoms):
+      for i, atom in enumerate(topology.atom):
         result += '%s%s%s   +/-%s\n' % (
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
@@ -987,13 +987,13 @@ class SmuWriter:
 
     contents.append(self.get_stage1_header(molecule))
     contents.append(
-        self.get_adjacency_code_and_hydrogens(molecule.bond_topologies[bt_idx]))
+        self.get_adjacency_code_and_hydrogens(molecule.bond_topo[bt_idx]))
     contents.append(self.get_ids(molecule, 'stage1', bt_idx))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage1_timings(properties))
     contents.append(self.get_gradient_norms(molecule, spacer=' '))
     contents.append(
-        self.get_coordinates(molecule.bond_topologies[bt_idx], molecule))
+        self.get_coordinates(molecule.bond_topo[bt_idx], molecule))
     contents.append(
         self.get_frequencies_and_intensities(properties, header=False))
 
@@ -1019,15 +1019,15 @@ class SmuWriter:
     contents.append(self.get_database(molecule))
     contents.append(self.get_error_codes(properties))
     contents.append(
-        self.get_adjacency_code_and_hydrogens(molecule.bond_topologies[bt_idx]))
+        self.get_adjacency_code_and_hydrogens(molecule.bond_topo[bt_idx]))
     contents.append(self.get_ids(molecule, 'stage2', bt_idx))
     contents.append(self.get_system(properties))
     contents.append(self.get_stage2_timings(properties))
     contents.append(
-        self.get_bonds(molecule.bond_topologies[bt_idx], properties))
+        self.get_bonds(molecule.bond_topo[bt_idx], properties))
     contents.append(self.get_gradient_norms(molecule, spacer='         '))
     contents.append(
-        self.get_coordinates(molecule.bond_topologies[bt_idx], molecule))
+        self.get_coordinates(molecule.bond_topo[bt_idx], molecule))
     contents.append(self.get_rotational_constants(molecule))
     contents.append(self.get_symmetry_used(properties))
     contents.append(
@@ -1040,10 +1040,10 @@ class SmuWriter:
     contents.append(self.get_homo_lumo(properties))
     contents.append(self.get_excitation_energies_and_oscillations(properties))
     contents.append(
-        self.get_nmr_isotropic_shieldings(molecule.bond_topologies[bt_idx],
+        self.get_nmr_isotropic_shieldings(molecule.bond_topo[bt_idx],
                                           properties))
     contents.append(
-        self.get_partial_charges(molecule.bond_topologies[bt_idx], properties))
+        self.get_partial_charges(molecule.bond_topo[bt_idx], properties))
     contents.append(self.get_polarizability(properties))
     contents.append(self.get_multipole_moments(properties))
 
@@ -1056,27 +1056,27 @@ class Atomic2InputWriter:
   def __init__(self):
     pass
 
-  def get_filename_for_atomic2_input(self, molecule, bond_topo_idx):
+  def get_filename_for_atomic2_input(self, molecule, topo_idx):
     """Returns the expected filename for an atomic input.
 
-    bond_topo_idx can be None (for the starting topology)
+    topo_idx can be None (for the starting topology)
     """
-    if bond_topo_idx is not None:
+    if topo_idx is not None:
       return '{}.{}.{:03d}.inp'.format(
           smu_utils_lib.get_composition(
-              molecule.bond_topologies[bond_topo_idx]),
+              molecule.bond_topo[topo_idx]),
           get_long_mol_id(molecule.mol_id),
-          bond_topo_idx)
+          topo_idx)
     else:
       return '{}.inp'.format(
           get_long_molecule_name(molecule))
 
-  def get_mol_block(self, molecule, bond_topo_idx):
+  def get_mol_block(self, molecule, topo_idx):
     """Returns the MOL file block with atoms and bonds.
 
     Args:
       molecule: dataset_pb2.Molecule
-      bond_topo_idx: Bond topology index.
+      topo_idx: Bond topology index.
 
     Returns:
       list of strings
@@ -1084,10 +1084,10 @@ class Atomic2InputWriter:
     contents = []
     contents.append('\n')
     contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
-        len(molecule.bond_topologies[bond_topo_idx].atoms),
-        len(molecule.bond_topologies[bond_topo_idx].bonds)))
+        len(molecule.bond_topo[topo_idx].atom),
+        len(molecule.bond_topo[topo_idx].bond)))
     for atom_type, coords in zip(
-        molecule.bond_topologies[bond_topo_idx].atoms,
+        molecule.bond_topo[topo_idx].atom,
         molecule.optimized_geometry.atom_positions):
       contents.append(
           '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
@@ -1096,7 +1096,7 @@ class Atomic2InputWriter:
               smu_utils_lib.bohr_to_angstroms(coords.y),
               smu_utils_lib.bohr_to_angstroms(coords.z),
               smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom_type][0]))
-    for bond in molecule.bond_topologies[bond_topo_idx].bonds:
+    for bond in molecule.bond_topo[topo_idx].bond:
       contents.append('{:3d}{:3d}{:3d}  0\n'.format(bond.atom_a + 1,
                                                     bond.atom_b + 1,
                                                     bond.bond_type))
@@ -1184,10 +1184,10 @@ class Atomic2InputWriter:
       contents.append(line + '\n')
     return contents
 
-  def process(self, molecule, bond_topo_idx):
+  def process(self, molecule, topo_idx):
     """Creates the atomic input file for molecule."""
-    if (molecule.properties.errors.status < 0 or
-        molecule.properties.errors.status > 3 or
+    if (molecule.properties.calc.status < 0 or
+        molecule.properties.calc.status > 3 or
         # While we should check all the fields, this is conveinient shortcut.
         not molecule.properties.HasField('spe_std_hf_3') or
         not molecule.properties.HasField('spe_std_mp2_3')):
@@ -1199,12 +1199,12 @@ class Atomic2InputWriter:
     contents = []
     contents.append('SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
         molecule.mol_id,
-        molecule.bond_topologies[bond_topo_idx].smiles,
-        molecule.bond_topologies[bond_topo_idx].bond_topo_id,
-        bond_topo_idx + 1, len(molecule.bond_topologies)))
+        molecule.bond_topo[topo_idx].smiles,
+        molecule.bond_topo[topo_idx].topo_id,
+        topo_idx + 1, len(molecule.bond_topo)))
     contents.append(smu_utils_lib.get_original_label(molecule) + '\n')
 
-    contents.extend(self.get_mol_block(molecule, bond_topo_idx))
+    contents.extend(self.get_mol_block(molecule, topo_idx))
     contents.extend(self.get_energies(molecule))
     contents.extend(self.get_frequencies(molecule))
     contents.append('$end\n')
@@ -1253,11 +1253,11 @@ class CleanTextWriter:
 
   def _heavy_atom_list(self, topology):
     return ''.join([smu_utils_lib.ATOM_TYPE_TO_RDKIT[a][0]
-                    for a in topology.atoms
+                    for a in topology.atom
                     if a != dataset_pb2.BondTopology.ATOM_H])
 
   def _atom_generator(self, topology):
-    for atom_idx, atom in enumerate(topology.atoms):
+    for atom_idx, atom in enumerate(topology.atom):
       yield atom_idx, [(20, f'{atom_idx+1:2d}'),
                        (23, smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom][0])]
 
@@ -1292,7 +1292,7 @@ class CleanTextWriter:
     # the compelte record. But whether this is the complete or standard record is not
     # written explicitly! SO instead we check for the presence of the error field
     # which shoudl always be present in compelte and never for standard.
-    if molecule.properties.HasField('errors'):
+    if molecule.properties.HasField('calc'):
       if molecule.properties.HasField('smiles_openbabel'):
         smiles = molecule.properties.smiles_openbabel
       else:
@@ -1322,9 +1322,9 @@ class CleanTextWriter:
 
   def get_calc_block(self, molecule, long_name):
     out = []
-    if not molecule.properties.HasField('errors'):
+    if not molecule.properties.HasField('calc'):
       return out
-    errors = molecule.properties.errors
+    errors = molecule.properties.calc
     out.append('#\n')
     out.append('#calc      \n')
     base_vals = [(1, 'calc'), (84, long_name)]
@@ -1434,9 +1434,9 @@ class CleanTextWriter:
 
     return out
 
-  def get_bond_topologies_block(self, molecule, long_name):
+  def get_bond_topo_block(self, molecule, long_name):
     out = []
-    for bt_idx, bt in enumerate(molecule.bond_topologies):
+    for bt_idx, bt in enumerate(molecule.bond_topo):
       base_vals = [(1, 'bond_topo'),
                    (11, f'{bt_idx+1:2d}')]
 
@@ -1444,20 +1444,20 @@ class CleanTextWriter:
       out.append(self._fw_line(base_vals +
                                [(0, '#'),
                                 (14, 'of'),
-                                (17, f'{len(molecule.bond_topologies):2d}')]))
+                                (17, f'{len(molecule.bond_topo):2d}')]))
       base_vals.append((84, long_name))
       out.append(self._fw_line(base_vals +
                                [(17, 'topo_id'),
-                                (31, f'{bt.bond_topo_id:<d}')]))
-      if bt.source == dataset_pb2.BondTopology.SOURCE_STARTING:
+                                (31, f'{bt.topo_id:<d}')]))
+      if bt.info == dataset_pb2.BondTopology.SOURCE_STARTING:
         # This indicates topology detection was not performed at all.
         info = '    S'
       else:
-        info = (('i' if bt.source & dataset_pb2.BondTopology.SOURCE_ITC else '.') +
-                ('c' if bt.source & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
-                ('m' if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
-                ('u' if bt.source & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +
-                ('S' if bt.source & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
+        info = (('i' if bt.info & dataset_pb2.BondTopology.SOURCE_ITC else '.') +
+                ('c' if bt.info & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
+                ('m' if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
+                ('u' if bt.info & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +
+                ('S' if bt.info & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
       out.append(self._fw_line(base_vals +
                                [(17, 'info'),
                                 (31, info)]))
@@ -1496,7 +1496,7 @@ class CleanTextWriter:
                                 (84, '(au)'),
                                 ]))
       base_vals = [(1, prefix), (9, 'atompos'), (84, long_name)]
-      for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+      for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
         out.append(self._fw_line(
           base_vals + atom_vals +
           [self._align_dec_point(37, f'{geom.atom_positions[atom_idx].x:.6f}'),
@@ -1598,7 +1598,7 @@ class CleanTextWriter:
                                   (65, 'z'),
                                   (84, f'(f={freq:8.1f} cm-1)'),
                                   ]))
-        for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+        for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
           disp = mode.displacements[atom_idx]
           out.append(self._fw_line(atom_vals +
                                    [(1, 'vib mode'),
@@ -1983,7 +1983,7 @@ class CleanTextWriter:
     # * the header row is two lines long
     # * Values are not in a fixed place, but migrate based on what is available.
     # So in this one, we will build up the vals and make all teh strings at the ends
-    lines_vals = [[] for _ in range(len(molecule.bond_topologies[0].atoms) + 2)]
+    lines_vals = [[] for _ in range(len(molecule.bond_topo[0].atom) + 2)]
     num_values_present = 0
     for line0_str, line1_str, field in self._NMR_FIELDS:
       if not molecule.properties.HasField(field):
@@ -2003,7 +2003,7 @@ class CleanTextWriter:
 
     lines_vals[0].extend([(0, '#nmr'), (84, '(ppm)')])
     lines_vals[1].append((0, '#nmr'))
-    for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+    for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
       lines_vals[atom_idx + 2].extend(atom_vals)
       lines_vals[atom_idx + 2].extend([(1, 'nmr'), (84, long_name)])
 
@@ -2022,7 +2022,7 @@ class CleanTextWriter:
     for method_idx, (method, method_for_field) in enumerate(
         [('pbe0_augpc1', 'pbe0_aug_pc_1'),
          ('hf_631gd', 'hf_6_31gd')]):
-      lines_vals = [[] for _ in range(len(molecule.bond_topologies[0].atoms) + 1)]
+      lines_vals = [[] for _ in range(len(molecule.bond_topo[0].atom) + 1)]
       num_values_present = 0
 
       for pos, (short_name, partial_field) in zip(self._DEC_POINT_POSITIONS,
@@ -2047,7 +2047,7 @@ class CleanTextWriter:
                             (17, method),
                             (84, '(au)'),
                             ])
-      for atom_idx, atom_vals in self._atom_generator(molecule.bond_topologies[0]):
+      for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
         lines_vals[atom_idx + 1].extend(atom_vals)
         lines_vals[atom_idx + 1].extend([(1, 'chg'),
                                          (5, str(method_idx + 1)),
@@ -2132,7 +2132,7 @@ class CleanTextWriter:
     contents.extend(self.get_mol_spec_block(molecule, long_name))
     contents.extend(self.get_calc_block(molecule, long_name))
     contents.extend(self.get_duplicates_block(molecule, long_name))
-    contents.extend(self.get_bond_topologies_block(molecule, long_name))
+    contents.extend(self.get_bond_topo_block(molecule, long_name))
     contents.extend(self.get_geometries_block(molecule, long_name))
     contents.extend(self.get_vib_block(molecule, long_name))
     contents.extend(self.get_spe_block(molecule, long_name))

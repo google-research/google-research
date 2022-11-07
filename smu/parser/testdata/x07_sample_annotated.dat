@@ -1,8 +1,8 @@
 ================================================================================
-# From original_molecule_index, topology, bond_topo_id, mol_id
+# From original_molecule_index, topology, topo_id, mol_id
     3   14     x07_c4o2fh7.618451.001
 Database   standard
-# From errors
+# From calc
 Status        0
 Warn_T1       0   0
 Warn_BSE      0   0
@@ -16,7 +16,7 @@ Warn_NEG      0
 COC(=CF)OC
 # From topology
 x07_c4o2fh7
-# From bond_topo_id, mol_id
+# From topo_id, mol_id
 ID  618451       1
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.128.000
@@ -789,10 +789,10 @@ Octopole moment (au):   HF/6-31Gd
    yzz      80.41479
    xyz      -3.30141
 ================================================================================
-# From original_molecule_index, topology, bond_topo_id, mol_id
+# From original_molecule_index, topology, topo_id, mol_id
     4   14     x07_c4o2fh7.618451.123
 Database   standard
-# From errors
+# From calc
 Status        0
 Warn_T1       0   0
 Warn_BSE      0   0
@@ -806,7 +806,7 @@ Warn_NEG      0
 COC(=CF)OC
 # From topology
 x07_c4o2fh7
-# From bond_topo_id, mol_id
+# From topo_id, mol_id
 ID  618451     123
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.128.000

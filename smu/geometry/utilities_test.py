@@ -81,15 +81,15 @@ class TestUtilities(absltest.TestCase):
   def test_canonical(self):
     bt = text_format.Parse(
         """
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 2
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 0
       bond_type: BOND_SINGLE
@@ -97,15 +97,15 @@ class TestUtilities(absltest.TestCase):
 """, dataset_pb2.BondTopology())
 
     expected = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -119,15 +119,15 @@ class TestUtilities(absltest.TestCase):
   def test_equality(self):
     bt1 = text_format.Parse(
         """
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 2
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 0
       bond_type: BOND_SINGLE
@@ -135,15 +135,15 @@ class TestUtilities(absltest.TestCase):
 """, dataset_pb2.BondTopology())
 
     bt2 = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -155,21 +155,21 @@ class TestUtilities(absltest.TestCase):
     self.assertTrue(utilities.same_bond_topology(bt1, bt2))
 
   def test_single_fragment_single_atom(self):
-    bt = text_format.Parse(""" atoms: ATOM_C
+    bt = text_format.Parse(""" atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertTrue(utilities.is_single_fragment(bt))
 
   def test_single_fragment_two_disconnected_atoms(self):
-    bt = text_format.Parse(""" atoms: ATOM_C
-    atoms: ATOM_C
+    bt = text_format.Parse(""" atom: ATOM_C
+    atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertFalse(utilities.is_single_fragment(bt))
 
   def test_single_fragment_two_connected_atoms(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
@@ -179,18 +179,18 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_3_atoms_0_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertFalse(utilities.is_single_fragment(bt))
 
   def test_single_fragment_3_atoms_1_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
@@ -200,15 +200,15 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_3_atoms_2_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -218,30 +218,30 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_4_atoms_0_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertFalse(utilities.is_single_fragment(bt))
 
   def test_single_fragment_4_atoms_3_bonds_ring(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 0
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -251,21 +251,21 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_4_atoms_3_bonds_no_ring(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 3
       bond_type: BOND_SINGLE

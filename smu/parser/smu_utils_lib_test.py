@@ -102,7 +102,7 @@ class GetOriginalLabelsTest(absltest.TestCase):
 
   def test_get_composition(self):
     bt = dataset_pb2.BondTopology()
-    bt.atoms.extend([
+    bt.atom.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
         dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_H,
         dataset_pb2.BondTopology.ATOM_H, dataset_pb2.BondTopology.ATOM_H
@@ -111,8 +111,8 @@ class GetOriginalLabelsTest(absltest.TestCase):
 
   def test_get_original_label(self):
     molecule = dataset_pb2.Molecule()
-    molecule.bond_topologies.add()
-    molecule.bond_topologies[0].atoms.extend([
+    molecule.bond_topo.add()
+    molecule.bond_topo[0].atom.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C,
         dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_H,
         dataset_pb2.BondTopology.ATOM_H, dataset_pb2.BondTopology.ATOM_H
@@ -123,8 +123,8 @@ class GetOriginalLabelsTest(absltest.TestCase):
 
   def test_get_original_label_special_case(self):
     molecule = dataset_pb2.Molecule()
-    molecule.bond_topologies.add()
-    molecule.bond_topologies[0].atoms.extend([
+    molecule.bond_topo.add()
+    molecule.bond_topo[0].atom.extend([
         dataset_pb2.BondTopology.ATOM_O,
         dataset_pb2.BondTopology.ATOM_H,
         dataset_pb2.BondTopology.ATOM_H,
@@ -269,9 +269,9 @@ class ComputeBondedHydrogensTest(absltest.TestCase):
   def test_c2_single(self):
     bt = text_format.Parse(
         """
-      atoms: ATOM_C
-      atoms: ATOM_C
-      bonds {
+      atom: ATOM_C
+      atom: ATOM_C
+      bond {
         atom_b: 1
         bond_type: BOND_SINGLE
       }
@@ -283,9 +283,9 @@ class ComputeBondedHydrogensTest(absltest.TestCase):
   def test_cn_double(self):
     bt = text_format.Parse(
         """
-      atoms: ATOM_C
-      atoms: ATOM_N
-      bonds {
+      atom: ATOM_C
+      atom: ATOM_N
+      bond {
         atom_b: 1
         bond_type: BOND_DOUBLE
       }
@@ -297,9 +297,9 @@ class ComputeBondedHydrogensTest(absltest.TestCase):
   def test_cn_double_opposite_bond_order(self):
     bt = text_format.Parse(
         """
-      atoms: ATOM_C
-      atoms: ATOM_N
-      bonds {
+      atom: ATOM_C
+      atom: ATOM_N
+      bond {
         atom_a: 1
         bond_type: BOND_DOUBLE
       }
@@ -311,9 +311,9 @@ class ComputeBondedHydrogensTest(absltest.TestCase):
   def test_charged(self):
     bt = text_format.Parse(
         """
-      atoms: ATOM_NPOS
-      atoms: ATOM_ONEG
-      bonds {
+      atom: ATOM_NPOS
+      atom: ATOM_ONEG
+      bond {
         atom_b: 1
         bond_type: BOND_SINGLE
       }
@@ -325,19 +325,19 @@ class ComputeBondedHydrogensTest(absltest.TestCase):
   def test_explicit_hs(self):
     bt = text_format.Parse(
         """
-      atoms: ATOM_C
-      atoms: ATOM_O
-      atoms: ATOM_H
-      atoms: ATOM_H
-      bonds {
+      atom: ATOM_C
+      atom: ATOM_O
+      atom: ATOM_H
+      atom: ATOM_H
+      bond {
         atom_b: 1
         bond_type: BOND_DOUBLE
       }
-      bonds {
+      bond {
         atom_b: 2
         bond_type: BOND_SINGLE
       }
-      bonds {
+      bond {
         atom_b: 3
         bond_type: BOND_SINGLE
       }
@@ -349,19 +349,19 @@ class ComputeBondedHydrogensTest(absltest.TestCase):
   def test_explicit_hs_opposite_bond_oder(self):
     bt = text_format.Parse(
         """
-      atoms: ATOM_C
-      atoms: ATOM_O
-      atoms: ATOM_H
-      atoms: ATOM_H
-      bonds {
+      atom: ATOM_C
+      atom: ATOM_O
+      atom: ATOM_H
+      atom: ATOM_H
+      bond {
         atom_a: 1
         bond_type: BOND_DOUBLE
       }
-      bonds {
+      bond {
         atom_a: 2
         bond_type: BOND_SINGLE
       }
-      bonds {
+      bond {
         atom_a: 3
         bond_type: BOND_SINGLE
       }
@@ -395,35 +395,35 @@ class CreateBondTopologyTest(absltest.TestCase):
   def test_no_charged(self):
     got = smu_utils_lib.create_bond_topology('CNFF', '111000', '1200')
     expected_str = """
-atoms: ATOM_C
-atoms: ATOM_N
-atoms: ATOM_F
-atoms: ATOM_F
-atoms: ATOM_H
-atoms: ATOM_H
-atoms: ATOM_H
-bonds {
+atom: ATOM_C
+atom: ATOM_N
+atom: ATOM_F
+atom: ATOM_F
+atom: ATOM_H
+atom: ATOM_H
+atom: ATOM_H
+bond {
   atom_b: 1
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 2
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 4
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 5
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 6
   bond_type: BOND_SINGLE
@@ -436,42 +436,42 @@ bonds {
     # This is actually C N N+O-
     got = smu_utils_lib.create_bond_topology('CNNO', '200101', '2020')
     expected_str = """
-atoms: ATOM_C
-atoms: ATOM_N
-atoms: ATOM_NPOS
-atoms: ATOM_ONEG
-atoms: ATOM_H
-atoms: ATOM_H
-atoms: ATOM_H
-atoms: ATOM_H
-bonds {
+atom: ATOM_C
+atom: ATOM_N
+atom: ATOM_NPOS
+atom: ATOM_ONEG
+atom: ATOM_H
+atom: ATOM_H
+atom: ATOM_H
+atom: ATOM_H
+bond {
   atom_b: 1
   bond_type: BOND_DOUBLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 2
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 2
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 4
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 5
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 2
   atom_b: 6
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 2
   atom_b: 7
   bond_type: BOND_SINGLE
@@ -483,24 +483,24 @@ bonds {
   def test_one_heavy(self):
     got = smu_utils_lib.create_bond_topology('C', '', '4')
     expected_str = """
-atoms: ATOM_C
-atoms: ATOM_H
-atoms: ATOM_H
-atoms: ATOM_H
-atoms: ATOM_H
-bonds {
+atom: ATOM_C
+atom: ATOM_H
+atom: ATOM_H
+atom: ATOM_H
+atom: ATOM_H
+bond {
   atom_b: 1
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 2
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 4
   bond_type: BOND_SINGLE
 }
@@ -523,13 +523,13 @@ class FromCSVTest(absltest.TestCase):
       out = smu_utils_lib.generate_bond_topologies_from_csv(fobj)
 
     bt = next(out)
-    self.assertEqual(68, bt.bond_topo_id)
-    self.assertLen(bt.atoms, 4)
+    self.assertEqual(68, bt.topo_id)
+    self.assertLen(bt.atom, 4)
     self.assertEqual(bt.smiles, '[NH+]#C[O-]')
 
     bt = next(out)
-    self.assertEqual(134, bt.bond_topo_id)
-    self.assertLen(bt.atoms, 5)
+    self.assertEqual(134, bt.topo_id)
+    self.assertLen(bt.atom, 5)
     self.assertEqual(bt.smiles, '[O-][NH+](F)F')
 
 
@@ -537,9 +537,9 @@ class BondTopologyToRDKitMoleculeTest(absltest.TestCase):
 
   def test_o2(self):
     bond_topology = str_to_bond_topology("""
-atoms: ATOM_O
-atoms: ATOM_O
-bonds {
+atom: ATOM_O
+atom: ATOM_O
+bond {
   atom_b: 1
   bond_type: BOND_DOUBLE
 }
@@ -549,24 +549,24 @@ bonds {
 
   def test_methane(self):
     bond_topology = str_to_bond_topology("""
-atoms: ATOM_C
-atoms: ATOM_H
-atoms: ATOM_H
-atoms: ATOM_H
-atoms: ATOM_H
-bonds {
+atom: ATOM_C
+atom: ATOM_H
+atom: ATOM_H
+atom: ATOM_H
+atom: ATOM_H
+bond {
   atom_b: 1
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 2
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 4
   bond_type: BOND_SINGLE
 }
@@ -577,20 +577,20 @@ bonds {
   # This molecule is an N+ central atom, bonded to C (triply), O-, and F
   def test_charged_molecule(self):
     bond_topology = str_to_bond_topology("""
-atoms: ATOM_C
-atoms: ATOM_NPOS
-atoms: ATOM_ONEG
-atoms: ATOM_F
-bonds {
+atom: ATOM_C
+atom: ATOM_NPOS
+atom: ATOM_ONEG
+atom: ATOM_F
+bond {
   atom_b: 1
   bond_type: BOND_TRIPLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 2
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 3
   bond_type: BOND_SINGLE
@@ -607,16 +607,16 @@ class IterateBondTopologiesTest(parameterized.TestCase):
 
   def make_old_fake_molecule(self, mol_id, num_bts):
     molecule = dataset_pb2.Molecule(mol_id=mol_id)
-    molecule.properties.errors.status = 1
+    molecule.properties.calc.status = 1
     for bt_id in range(num_bts):
-      molecule.bond_topologies.add(bond_topo_id=100 + bt_id)
+      molecule.bond_topo.add(topo_id=100 + bt_id)
     return molecule
 
   def make_new_fake_molecule(self, mol_id, sources):
     molecule = dataset_pb2.Molecule(mol_id=mol_id)
-    molecule.properties.errors.status = 1
+    molecule.properties.calc.status = 1
     for bt_id, source in enumerate(sources):
-      molecule.bond_topologies.add(bond_topo_id=100 + bt_id, source=source)
+      molecule.bond_topo.add(topo_id=100 + bt_id, info=source)
     return molecule
 
   def test_old_all(self):
@@ -625,7 +625,7 @@ class IterateBondTopologiesTest(parameterized.TestCase):
             self.make_old_fake_molecule(123, 3),
             smu_utils_lib.WhichTopologies.ALL))
     self.assertEqual([(0, 100), (1, 101), (2, 102)],
-                     [(bt_idx, bt.bond_topo_id) for bt_idx, bt in got])
+                     [(bt_idx, bt.topo_id) for bt_idx, bt in got])
 
   def test_new_all(self):
     molecule = self.make_new_fake_molecule(123, [
@@ -637,17 +637,17 @@ class IterateBondTopologiesTest(parameterized.TestCase):
         smu_utils_lib.iterate_bond_topologies(
             molecule, smu_utils_lib.WhichTopologies.ALL))
     self.assertEqual([(0, 100), (1, 101), (2, 102)],
-                     [(bt_idx, bt.bond_topo_id) for bt_idx, bt in got])
+                     [(bt_idx, bt.topo_id) for bt_idx, bt in got])
 
   def test_old_best(self):
     molecule = self.make_old_fake_molecule(123, 3)
-    molecule.bond_topologies[1].is_starting_topology = True
+    molecule.bond_topo[1].is_starting_topology = True
     got = list(
         smu_utils_lib.iterate_bond_topologies(
             molecule, smu_utils_lib.WhichTopologies.BEST))
     self.assertLen(got, 1)
     self.assertEqual(0, got[0][0])
-    self.assertEqual(100, got[0][1].bond_topo_id)
+    self.assertEqual(100, got[0][1].topo_id)
 
   def test_new_best(self):
     molecule = self.make_new_fake_molecule(123, [
@@ -659,18 +659,18 @@ class IterateBondTopologiesTest(parameterized.TestCase):
             molecule, smu_utils_lib.WhichTopologies.BEST))
     self.assertLen(got, 1)
     self.assertEqual(0, got[0][0])
-    self.assertEqual(100, got[0][1].bond_topo_id)
+    self.assertEqual(100, got[0][1].topo_id)
 
   @parameterized.parameters([0, 1, 2])
   def test_old_starting(self, starting_idx):
     molecule = self.make_old_fake_molecule(123, 3)
-    molecule.bond_topologies[starting_idx].is_starting_topology = True
+    molecule.bond_topo[starting_idx].is_starting_topology = True
     got = list(
         smu_utils_lib.iterate_bond_topologies(
             molecule, smu_utils_lib.WhichTopologies.STARTING))
     self.assertLen(got, 1)
     self.assertEqual(starting_idx, got[0][0])
-    self.assertEqual(100 + starting_idx, got[0][1].bond_topo_id)
+    self.assertEqual(100 + starting_idx, got[0][1].topo_id)
 
   @parameterized.parameters([0, 1, 2])
   def test_new_starting(self, starting_idx):
@@ -679,14 +679,14 @@ class IterateBondTopologiesTest(parameterized.TestCase):
         dataset_pb2.BondTopology.SOURCE_ITC, dataset_pb2.BondTopology.SOURCE_ITC
     ])
 
-    molecule.bond_topologies[starting_idx].source |= (
+    molecule.bond_topo[starting_idx].info |= (
         dataset_pb2.BondTopology.SOURCE_STARTING)
     got = list(
         smu_utils_lib.iterate_bond_topologies(
             molecule, smu_utils_lib.WhichTopologies.STARTING))
     self.assertLen(got, 1)
     self.assertEqual(starting_idx, got[0][0])
-    self.assertEqual(100 + starting_idx, got[0][1].bond_topo_id)
+    self.assertEqual(100 + starting_idx, got[0][1].topo_id)
 
   def test_old_no_starting(self):
     molecule = self.make_old_fake_molecule(123, 3)
@@ -732,24 +732,24 @@ class IterateBondTopologiesTest(parameterized.TestCase):
 
   def test_stage1(self):
     molecule = self.make_old_fake_molecule(123, 1)
-    molecule.properties.errors.status = 600
+    molecule.properties.calc.status = 600
     got = list(
         smu_utils_lib.iterate_bond_topologies(
             molecule, smu_utils_lib.WhichTopologies.STARTING))
     self.assertLen(got, 1)
     self.assertEqual(0, got[0][0])
-    self.assertEqual(100, got[0][1].bond_topo_id)
+    self.assertEqual(100, got[0][1].topo_id)
 
   def test_duplicated(self):
     molecule = self.make_old_fake_molecule(123, 1)
-    molecule.properties.errors.status = -1
+    molecule.properties.calc.status = -1
     molecule.duplicate_of = 456
     got = list(
         smu_utils_lib.iterate_bond_topologies(
             molecule, smu_utils_lib.WhichTopologies.STARTING))
     self.assertLen(got, 1)
     self.assertEqual(0, got[0][0])
-    self.assertEqual(100, got[0][1].bond_topo_id)
+    self.assertEqual(100, got[0][1].topo_id)
 
 
 class MoleculeToRDKitMoleculeTest(absltest.TestCase):
@@ -772,8 +772,8 @@ class MoleculeToRDKitMoleculeTest(absltest.TestCase):
     # the id. Through the dumb luck of the molecule we picked there's not a
     # simple way to make this a new bond topology and still have it look valid
     # to RDKit
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies[1].bond_topo_id = 99999
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo[1].topo_id = 99999
 
   def test_all_outputs(self):
     mols = list(smu_utils_lib.molecule_to_rdkit_molecules(self._molecule))
@@ -861,7 +861,7 @@ class SmilesToBondTopologyTest(parameterized.TestCase):
     bt = smu_utils_lib.rdkit_molecule_to_bond_topology(
         smu_utils_lib.smiles_to_rdkit_molecule(smiles))
     got = None
-    for atom in bt.atoms:
+    for atom in bt.atom:
       if atom != dataset_pb2.BondTopology.ATOM_H:
         got = atom
     self.assertEqual(got, expected)
@@ -873,9 +873,9 @@ class SmilesToBondTopologyTest(parameterized.TestCase):
     bt = smu_utils_lib.rdkit_molecule_to_bond_topology(
         smu_utils_lib.smiles_to_rdkit_molecule(smiles))
     got = None
-    for bond in bt.bonds:
-      if (bt.atoms[bond.atom_a] == dataset_pb2.BondTopology.ATOM_C and
-          bt.atoms[bond.atom_b] == dataset_pb2.BondTopology.ATOM_C):
+    for bond in bt.bond:
+      if (bt.atom[bond.atom_a] == dataset_pb2.BondTopology.ATOM_C and
+          bt.atom[bond.atom_b] == dataset_pb2.BondTopology.ATOM_C):
         got = bond.bond_type
     self.assertEqual(got, expected)
 
@@ -891,9 +891,9 @@ class SmilesCompareTest(absltest.TestCase):
 
   def test_missing(self):
     bond_topology = str_to_bond_topology("""
-atoms: ATOM_O
-atoms: ATOM_O
-bonds {
+atom: ATOM_O
+atom: ATOM_O
+bond {
   atom_b: 1
   bond_type: BOND_DOUBLE
 }
@@ -912,9 +912,9 @@ bonds {
 
   def test_mismatch(self):
     bond_topology = str_to_bond_topology("""
-atoms: ATOM_O
-atoms: ATOM_O
-bonds {
+atom: ATOM_O
+atom: ATOM_O
+bond {
   atom_b: 1
   bond_type: BOND_DOUBLE
 }
@@ -928,14 +928,14 @@ smiles: "BlahBlahBlah"
 
   def test_matched_and_h_stripping(self):
     bond_topology = str_to_bond_topology("""
-atoms: ATOM_O
-atoms: ATOM_H
-atoms: ATOM_H
-bonds {
+atom: ATOM_O
+atom: ATOM_H
+atom: ATOM_H
+bond {
   atom_b: 1
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 2
   bond_type: BOND_SINGLE
 }
@@ -1127,51 +1127,51 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.properties.vib_mode)
 
   def test_status_800(self):
-    self.stage2_molecule.properties.errors.status = 800
+    self.stage2_molecule.properties.calc.status = 800
     # Set a value so that we make sure we use the stage1 data
     self.stage2_molecule.initial_geometries[0].energy.value += 12345
     expected_init_energy = (
         self.stage1_molecule.initial_geometries[0].energy.value)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
-    self.assertEqual(got_mol.properties.errors.status, 580)
+    self.assertEqual(got_mol.properties.calc.status, 580)
     self.assertEqual(got_mol.initial_geometries[0].energy.value,
                      expected_init_energy)
-    self.assertEqual(got_mol.properties.errors.warn_vib_imag, 0)
+    self.assertEqual(got_mol.properties.calc.warn_vib_imag, 0)
 
   def test_status_700(self):
-    self.stage2_molecule.properties.errors.status = 700
+    self.stage2_molecule.properties.calc.status = 700
     # Set a value so that we make sure we use the stage1 data
     self.stage2_molecule.initial_geometries[0].energy.value += 12345
     expected_init_energy = (
         self.stage1_molecule.initial_geometries[0].energy.value)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
-    self.assertEqual(got_mol.properties.errors.status, 570)
+    self.assertEqual(got_mol.properties.calc.status, 570)
     self.assertEqual(got_mol.initial_geometries[0].energy.value,
                      expected_init_energy)
-    self.assertEqual(got_mol.properties.errors.warn_vib_imag, 0)
+    self.assertEqual(got_mol.properties.calc.warn_vib_imag, 0)
 
   def test_status_800_warn_vib_2(self):
-    self.stage2_molecule.properties.errors.status = 800
+    self.stage2_molecule.properties.calc.status = 800
     # We set two values because 1 is any negative and 2 is for a large negative
     self.stage1_molecule.properties.vib_freq.value[3] = -123
     self.stage1_molecule.properties.vib_freq.value[4] = -1
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
-    self.assertEqual(got_mol.properties.errors.status, 580)
-    self.assertEqual(got_mol.properties.errors.warn_vib_imag, 2)
+    self.assertEqual(got_mol.properties.calc.status, 580)
+    self.assertEqual(got_mol.properties.calc.warn_vib_imag, 2)
 
   def test_status_800_warn_vib_1(self):
-    self.stage2_molecule.properties.errors.status = 800
+    self.stage2_molecule.properties.calc.status = 800
     self.stage1_molecule.properties.vib_freq.value[4] = -1
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
-    self.assertEqual(got_mol.properties.errors.status, 580)
-    self.assertEqual(got_mol.properties.errors.warn_vib_imag, 1)
+    self.assertEqual(got_mol.properties.calc.status, 580)
+    self.assertEqual(got_mol.properties.calc.warn_vib_imag, 1)
 
   def test_error_frequencies_101(self):
-    self.stage1_molecule.properties.errors.error_frequencies = 101
+    self.stage1_molecule.properties.calc.error_frequencies = 101
     unused_got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.stage2_molecule)
     self.assertIsNotNone(got_conflict)
@@ -1179,16 +1179,16 @@ class MergeMoleculesTest(absltest.TestCase):
   def test_error_frequencies_101_for_allowed_mol(self):
     self.stage1_molecule.mol_id = 795795001
     self.stage2_molecule.mol_id = 795795001
-    self.stage1_molecule.properties.errors.error_frequencies = 101
+    self.stage1_molecule.properties.calc.error_frequencies = 101
     unused_got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.stage2_molecule)
     self.assertIsNone(got_conflict)
 
   def test_disallowed_error_flags(self):
     # each of these is allowed separately, but not together
-    self.stage1_molecule.properties.errors.error_nstat1 = 3
-    self.stage1_molecule.properties.errors.error_nstatc = 3
-    self.stage1_molecule.properties.errors.error_frequencies = 3
+    self.stage1_molecule.properties.calc.error_nstat1 = 3
+    self.stage1_molecule.properties.calc.error_nstatc = 3
+    self.stage1_molecule.properties.calc.error_frequencies = 3
     unused_got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.stage2_molecule)
     self.assertIsNotNone(got_conflict)
@@ -1221,14 +1221,14 @@ class MergeMoleculesTest(absltest.TestCase):
 
   def test_multiple_bond_topologies(self):
     bad_molecule = copy.deepcopy(self.stage1_molecule)
-    bad_molecule.bond_topologies.append(bad_molecule.bond_topologies[0])
+    bad_molecule.bond_topo.append(bad_molecule.bond_topo[0])
     with self.assertRaises(ValueError):
       smu_utils_lib.merge_molecule(bad_molecule, self.stage2_molecule)
     with self.assertRaises(ValueError):
       smu_utils_lib.merge_molecule(self.stage2_molecule, bad_molecule)
 
   def test_different_bond_topologies(self):
-    self.stage1_molecule.bond_topologies[0].atoms[0] = (
+    self.stage1_molecule.bond_topo[0].atom[0] = (
         dataset_pb2.BondTopology.ATOM_H)
     with self.assertRaises(ValueError):
       smu_utils_lib.merge_molecule(self.stage1_molecule, self.stage2_molecule)
@@ -1245,7 +1245,7 @@ class MoleculeErrorTest(absltest.TestCase):
 
   def test_stage1_error(self):
     molecule = get_stage1_molecule()
-    molecule.properties.errors.error_frequencies = 123
+    molecule.properties.calc.error_frequencies = 123
     self.assertEqual(8,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
@@ -1256,60 +1256,60 @@ class MoleculeErrorTest(absltest.TestCase):
 
   def test_stage2_error_status_8(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 256
+    molecule.properties.calc.status = 256
     self.assertEqual(8,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_status_7(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 50
+    molecule.properties.calc.status = 50
     self.assertEqual(7,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_status_6(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 4
+    molecule.properties.calc.status = 4
     self.assertEqual(6,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_5(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 1
-    molecule.properties.errors.warn_delta_t1 = 2
+    molecule.properties.calc.status = 1
+    molecule.properties.calc.warn_delta_t1 = 2
     self.assertEqual(5,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_5(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 1
-    molecule.properties.errors.warn_delta_t1 = 2
+    molecule.properties.calc.status = 1
+    molecule.properties.calc.warn_delta_t1 = 2
     self.assertEqual(5,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_4(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 1
-    molecule.properties.errors.warn_vib_linear = 1
+    molecule.properties.calc.status = 1
+    molecule.properties.calc.warn_vib_linear = 1
     self.assertEqual(4,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_3(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 2
+    molecule.properties.calc.status = 2
     self.assertEqual(3,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_2(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 0
-    molecule.properties.errors.warn_delta_t1 = 2
+    molecule.properties.calc.status = 0
+    molecule.properties.calc.warn_delta_t1 = 2
     self.assertEqual(2,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
   def test_stage2_error_level_1(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 0
-    molecule.properties.errors.warn_vib_linear = 1
+    molecule.properties.calc.status = 0
+    molecule.properties.calc.warn_vib_linear = 1
     self.assertEqual(1,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
@@ -1368,19 +1368,19 @@ class MoleculeToStandardTest(absltest.TestCase):
     self.assertFalse(self._molecule.properties.HasField('vib_zpe'))
 
   def test_remove_error_molecule(self):
-    self._molecule.properties.errors.which_database = dataset_pb2.UNSPECIFIED
-    self._molecule.properties.errors.status = 256
+    self._molecule.properties.calc.which_database = dataset_pb2.UNSPECIFIED
+    self._molecule.properties.calc.status = 256
 
     self.assertIsNone(smu_utils_lib.molecule_to_standard(self._molecule))
 
   def test_remove_duplicate(self):
-    self._molecule.properties.errors.which_database = dataset_pb2.UNSPECIFIED
+    self._molecule.properties.calc.which_database = dataset_pb2.UNSPECIFIED
     self._molecule.duplicate_of = 123
 
     self.assertIsNone(smu_utils_lib.molecule_to_standard(self._molecule))
 
   def test_remove_complete(self):
-    self._molecule.properties.errors.which_database = dataset_pb2.COMPLETE
+    self._molecule.properties.calc.which_database = dataset_pb2.COMPLETE
 
     self.assertIsNone(smu_utils_lib.molecule_to_standard(self._molecule))
 
@@ -1389,36 +1389,36 @@ class CleanUpErrorCodesTest(parameterized.TestCase):
 
   def test_stage2(self):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.error_nstat1 = 123
+    molecule.properties.calc.error_nstat1 = 123
     smu_utils_lib.clean_up_error_codes(molecule)
-    self.assertEqual(molecule.properties.errors.error_nstat1, 0)
+    self.assertEqual(molecule.properties.calc.error_nstat1, 0)
 
   def test_stage1_dup(self):
     molecule = get_stage1_molecule()
     molecule.duplicate_of = 123
     smu_utils_lib.clean_up_error_codes(molecule)
-    self.assertEqual(molecule.properties.errors.status, -1)
-    self.assertEqual(molecule.properties.errors.error_nstat1, 0)
+    self.assertEqual(molecule.properties.calc.status, -1)
+    self.assertEqual(molecule.properties.calc.error_nstat1, 0)
 
   def test_stage1_dup_with_no_record(self):
     molecule = get_stage1_molecule()
     smu_utils_lib.clean_up_error_codes(molecule)
-    self.assertEqual(molecule.properties.errors.status, 0)
-    self.assertEqual(molecule.properties.errors.error_nstat1, 0)
+    self.assertEqual(molecule.properties.calc.status, 0)
+    self.assertEqual(molecule.properties.calc.error_nstat1, 0)
 
   def test_stage1_590(self):
     molecule = get_stage1_molecule()
-    molecule.properties.errors.error_nstat1 = 5
+    molecule.properties.calc.error_nstat1 = 5
     smu_utils_lib.clean_up_error_codes(molecule)
-    self.assertEqual(molecule.properties.errors.status, 590)
-    self.assertEqual(molecule.properties.errors.error_nstat1, 0)
+    self.assertEqual(molecule.properties.calc.status, 590)
+    self.assertEqual(molecule.properties.calc.error_nstat1, 0)
 
   def test_stage1_600(self):
     molecule = get_stage1_molecule()
-    molecule.properties.errors.error_nstat1 = 2
+    molecule.properties.calc.error_nstat1 = 2
     smu_utils_lib.clean_up_error_codes(molecule)
-    self.assertEqual(molecule.properties.errors.status, 600)
-    self.assertEqual(molecule.properties.errors.error_nstat1, 0)
+    self.assertEqual(molecule.properties.calc.status, 600)
+    self.assertEqual(molecule.properties.calc.error_nstat1, 0)
     self.assertFalse(molecule.initial_geometries[0].HasField('energy'))
     self.assertFalse(molecule.initial_geometries[0].HasField('gnorm'))
     self.assertFalse(molecule.HasField('optimized_geometry'))
@@ -1494,7 +1494,7 @@ class DetermineFateTest(parameterized.TestCase):
       (6, dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS))
   def test_geometry_failures(self, nstat1, expected_fate):
     molecule = get_stage1_molecule()
-    molecule.properties.errors.error_nstat1 = nstat1
+    molecule.properties.calc.error_nstat1 = nstat1
     smu_utils_lib.clean_up_error_codes(molecule)
     self.assertEqual(expected_fate, smu_utils_lib.determine_fate(molecule))
 
@@ -1507,7 +1507,7 @@ class DetermineFateTest(parameterized.TestCase):
   @parameterized.parameters(570, 580)
   def test_discarded_other(self, status):
     molecule = get_stage1_molecule()
-    molecule.properties.errors.status = status
+    molecule.properties.calc.status = status
     smu_utils_lib.clean_up_error_codes(molecule)
     self.assertEqual(dataset_pb2.Properties.FATE_FAILURE_STAGE2,
                      smu_utils_lib.determine_fate(molecule))
@@ -1518,7 +1518,7 @@ class DetermineFateTest(parameterized.TestCase):
       (4, dataset_pb2.Properties.FATE_ERROR_MODERATE))
   def test_calculation_errors(self, status, expected):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = status
+    molecule.properties.calc.status = status
     self.assertEqual(expected, smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(
@@ -1529,8 +1529,8 @@ class DetermineFateTest(parameterized.TestCase):
     )
   def test_calculation_warnings_serious(self, status, expected):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = status
-    molecule.properties.errors.warn_delta_t1 = 1234
+    molecule.properties.calc.status = status
+    molecule.properties.calc.warn_delta_t1 = 1234
     self.assertEqual(
         expected,
         smu_utils_lib.determine_fate(molecule))
@@ -1543,8 +1543,8 @@ class DetermineFateTest(parameterized.TestCase):
     )
   def test_calculation_warnings_vibrational(self, status, expected):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = status
-    molecule.properties.errors.warn_vib_linear = 1234
+    molecule.properties.calc.status = status
+    molecule.properties.calc.warn_vib_linear = 1234
     self.assertEqual(
         expected,
         smu_utils_lib.determine_fate(molecule))
@@ -1557,16 +1557,16 @@ class DetermineFateTest(parameterized.TestCase):
     )
   def test_success(self, status, expected):
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = status
+    molecule.properties.calc.status = status
     self.assertEqual(expected,
                      smu_utils_lib.determine_fate(molecule))
 
   def test_multiple_warnings(self):
     # Checks that when we have both serious and medium warnings, serious wins
     molecule = get_stage2_molecule()
-    molecule.properties.errors.status = 1
-    molecule.properties.errors.warn_delta_t1 = 1234
-    molecule.properties.errors.warn_vib_linear = 1234
+    molecule.properties.calc.status = 1
+    molecule.properties.calc.warn_delta_t1 = 1234
+    molecule.properties.calc.warn_vib_linear = 1234
     self.assertEqual(dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS,
                      smu_utils_lib.determine_fate(molecule))
 
@@ -1593,7 +1593,7 @@ class DetermineFateTest(parameterized.TestCase):
     smu_utils_lib.filter_molecule_by_availability(
       molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
     molecule.duplicate_of = 618451999
-    molecule.properties.errors.status = -1
+    molecule.properties.calc.status = -1
     self.assertEqual(dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY,
                      smu_utils_lib.determine_fate(molecule))
 
@@ -1602,7 +1602,7 @@ class DetermineFateTest(parameterized.TestCase):
     smu_utils_lib.filter_molecule_by_availability(
       molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
     molecule.duplicate_of = 12345999
-    molecule.properties.errors.status = -1
+    molecule.properties.calc.status = -1
     self.assertEqual(dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY,
                      smu_utils_lib.determine_fate(molecule))
 
@@ -1616,7 +1616,7 @@ class DetermineFateTest(parameterized.TestCase):
     molecule = get_stage2_molecule()
     smu_utils_lib.filter_molecule_by_availability(
       molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
-    molecule.properties.errors.status = status
+    molecule.properties.calc.status = status
     self.assertEqual(expected,
                      smu_utils_lib.determine_fate(molecule))
 
@@ -1630,24 +1630,24 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
   def get_output_with(self, got, bt_id, field):
     out = None
     for summary in got:
-      if (summary.bond_topology.bond_topo_id == bt_id and
+      if (summary.bond_topology.topo_id == bt_id and
           getattr(summary, field) > 0):
         assert out is None
         out = summary
     return out
 
   def test_dup_same(self):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY
+    self._molecule.properties.calc.fate = dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
     self.assertLen(got, 1)
-    self.assertEqual(got[0].bond_topology.bond_topo_id,
-                     self._molecule.bond_topologies[0].bond_topo_id)
+    self.assertEqual(got[0].bond_topology.topo_id,
+                     self._molecule.bond_topo[0].topo_id)
     self.assertEqual(got[0].count_attempted_molecules, 1)
     self.assertEqual(got[0].count_duplicates_same_topology, 1)
 
   def test_dup_diff(self):
-    self._molecule.properties.errors.fate = (
+    self._molecule.properties.calc.fate = (
         dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY)
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
@@ -1656,7 +1656,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[0].count_duplicates_different_topology, 1)
 
   def test_geometry_failed(self):
-    self._molecule.properties.errors.fate = (
+    self._molecule.properties.calc.fate = (
         dataset_pb2.Properties.FATE_FAILURE_STAGE2)
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
@@ -1665,7 +1665,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[0].count_failed_geometry_optimization, 1)
 
   def test_missing_calculation(self):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS
+    self._molecule.properties.calc.fate = dataset_pb2.Properties.FATE_FAILURE_NO_RESULTS
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
     self.assertLen(got, 1)
@@ -1675,21 +1675,21 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   def _swap_bond_topologies(self):
     """Swaps the order of the first two topologies."""
-    bt0 = self._molecule.bond_topologies[0]
-    bt1 = self._molecule.bond_topologies[1]
-    del self._molecule.bond_topologies[:]
-    self._molecule.bond_topologies.extend([bt1, bt0])
+    bt0 = self._molecule.bond_topo[0]
+    bt1 = self._molecule.bond_topo[1]
+    del self._molecule.bond_topo[:]
+    self._molecule.bond_topo.extend([bt1, bt0])
 
   @parameterized.parameters(False, True)
   def test_calculation_with_error(self, swap_order):
-    self._molecule.properties.errors.fate = (
+    self._molecule.properties.calc.fate = (
         dataset_pb2.Properties.FATE_ERROR_SERIOUS)
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies[-1].bond_topo_id = 123
-    self._molecule.bond_topologies[-1].source = (
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo[-1].topo_id = 123
+    self._molecule.bond_topo[-1].info = (
         dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_MLCR)
-    self._molecule.bond_topologies[0].source = (
+    self._molecule.bond_topo[0].info = (
         dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_STARTING)
@@ -1727,14 +1727,14 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def test_calculation_with_warning(self, swap_order):
-    self._molecule.properties.errors.fate = (
+    self._molecule.properties.calc.fate = (
         dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS)
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies[-1].bond_topo_id = 123
-    self._molecule.bond_topologies[-1].source = (
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo[-1].topo_id = 123
+    self._molecule.bond_topo[-1].info = (
         dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_MLCR)
-    self._molecule.bond_topologies[0].source = (
+    self._molecule.bond_topo[0].info = (
         dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_STARTING)
@@ -1776,13 +1776,13 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def test_calculation_success_itc(self, swap_order):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies[-1].bond_topo_id = 123
-    self._molecule.bond_topologies[-1].source = (
+    self._molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo[-1].topo_id = 123
+    self._molecule.bond_topo[-1].info = (
         dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_MLCR)
-    self._molecule.bond_topologies[0].source = (
+    self._molecule.bond_topo[0].info = (
         dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_STARTING)
@@ -1821,19 +1821,19 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(one_out.count_calculation_with_error, 0)
 
   def test_success_varied_sources(self):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies[0].bond_topo_id = 123
-    self._molecule.bond_topologies[0].source = (
+    self._molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo[0].topo_id = 123
+    self._molecule.bond_topo[0].info = (
         dataset_pb2.BondTopology.SOURCE_STARTING
         | dataset_pb2.BondTopology.SOURCE_ITC)
-    self._molecule.bond_topologies[1].bond_topo_id = 456
-    self._molecule.bond_topologies[1].source = (
+    self._molecule.bond_topo[1].topo_id = 456
+    self._molecule.bond_topo[1].info = (
         dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_MLCR)
-    self._molecule.bond_topologies[2].bond_topo_id = 789
-    self._molecule.bond_topologies[2].source = (
+    self._molecule.bond_topo[2].topo_id = 789
+    self._molecule.bond_topo[2].info = (
         dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_MLCR)
 
@@ -1870,12 +1870,12 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(one_out.count_calculation_success, 0)
 
   def test_no_starting_topology(self):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies[-1].bond_topo_id = 123
-    self._molecule.bond_topologies[-1].source = (
+    self._molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo[-1].topo_id = 123
+    self._molecule.bond_topo[-1].info = (
         dataset_pb2.BondTopology.SOURCE_ITC)
-    self._molecule.bond_topologies[0].source = (
+    self._molecule.bond_topo[0].info = (
         dataset_pb2.BondTopology.SOURCE_ITC)
 
     got = list(
@@ -1884,23 +1884,23 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertLen(got, 2)
     # We don't actually care about the order, but this is what comes out right
     # now.
-    self.assertEqual(got[0].bond_topology.bond_topo_id, 618451)
+    self.assertEqual(got[0].bond_topology.topo_id, 618451)
     self.assertEqual(got[0].count_detected_match_itc_success, 1)
 
-    self.assertEqual(got[1].bond_topology.bond_topo_id, 123)
+    self.assertEqual(got[1].bond_topology.topo_id, 123)
     self.assertEqual(got[1].count_detected_match_itc_success, 1)
 
   @parameterized.parameters(0, 1, 2)
   def test_multiple_detection(self, starting_idx):
-    self._molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    self._molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     # Even with 3 detections, we only want to output one multiple detection
     # record.
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
-    self._molecule.bond_topologies.append(self._molecule.bond_topologies[0])
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
+    self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     for _ in range(3):
-      self._molecule.bond_topologies[starting_idx].source = (
+      self._molecule.bond_topo[starting_idx].info = (
           dataset_pb2.BondTopology.SOURCE_ITC)
-    self._molecule.bond_topologies[starting_idx].source |= (
+    self._molecule.bond_topo[starting_idx].info |= (
         dataset_pb2.BondTopology.SOURCE_STARTING)
 
     got = list(
@@ -1909,11 +1909,11 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
     # We don't actually care about the order, but this is what comes out right
     # now.
-    self.assertEqual(got[0].bond_topology.bond_topo_id, 618451)
+    self.assertEqual(got[0].bond_topology.topo_id, 618451)
     self.assertEqual(got[0].count_calculation_success, 1)
     self.assertEqual(got[0].count_multiple_detections, 0)
 
-    self.assertEqual(got[1].bond_topology.bond_topo_id, 618451)
+    self.assertEqual(got[1].bond_topology.topo_id, 618451)
     self.assertEqual(got[1].count_calculation_success, 0)
     self.assertEqual(got[1].count_multiple_detections, 1)
 
@@ -1942,47 +1942,47 @@ class AtomSwapVariantTester(absltest.TestCase):
       C([C:3]1=[C:2]2[C:1]1=[NH+:5]2)=[N:4][O-:6]
     """
     topo1 = """
-atoms: ATOM_C
-atoms: ATOM_C
-atoms: ATOM_C
-atoms: ATOM_C
-atoms: ATOM_N
-atoms: ATOM_N
-atoms: ATOM_O
-bonds {
+atom: ATOM_C
+atom: ATOM_C
+atom: ATOM_C
+atom: ATOM_C
+atom: ATOM_N
+atom: ATOM_N
+atom: ATOM_O
+bond {
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_b: 4
   bond_type: BOND_DOUBLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 2
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 3
   bond_type: BOND_DOUBLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 5
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 2
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 2
   atom_b: 5
   bond_type: BOND_DOUBLE
 }
-bonds {
+bond {
   atom_a: 4
   atom_b: 6
   bond_type: BOND_SINGLE
@@ -1991,49 +1991,49 @@ bonds {
     bt1 = str_to_bond_topology(topo1)
 
     topo2 = """
-atoms: ATOM_C
-atoms: ATOM_C
-atoms: ATOM_C
-atoms: ATOM_C
-atoms: ATOM_N
-atoms: ATOM_N
-atoms: ATOM_O
-bonds {
+atom: ATOM_C
+atom: ATOM_C
+atom: ATOM_C
+atom: ATOM_C
+atom: ATOM_N
+atom: ATOM_N
+atom: ATOM_O
+bond {
   atom_a: 0
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 0
   atom_b: 4
   bond_type: BOND_DOUBLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 2
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 3
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 1
   atom_b: 5
   bond_type: BOND_DOUBLE
 }
-bonds {
+bond {
   atom_a: 2
   atom_b: 3
   bond_type: BOND_DOUBLE
 }
-bonds {
+bond {
   atom_a: 2
   atom_b: 5
   bond_type: BOND_SINGLE
 }
-bonds {
+bond {
   atom_a: 4
   atom_b: 6
   bond_type: BOND_SINGLE
@@ -2041,8 +2041,8 @@ bonds {
 """
     bt2 = str_to_bond_topology(topo2)
 
-    self.assertEqual(len(bt1.atoms), len(bt2.atoms))
-    self.assertEqual(len(bt1.bonds), len(bt2.bonds))
+    self.assertEqual(len(bt1.atom), len(bt2.atom))
+    self.assertEqual(len(bt1.bond), len(bt2.bond))
     s1 = smu_utils_lib.compute_smiles_for_bond_topology(bt1, True)
     s2 = smu_utils_lib.compute_smiles_for_bond_topology(bt2, True)
     self.assertEqual(s1, s2)

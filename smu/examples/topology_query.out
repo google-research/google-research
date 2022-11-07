@@ -22,7 +22,7 @@ to be between 1A and 2A with the string "N~N:1.0-2.0"
 We now find these molecule ids
 [85532001, 88595001, 88595005, 89158002, 89158006, 89347002, 89347004, 89351001, 89351002]
 
-Also note that the bond_topologies field of all molecules returned
+Also note that the bond_topo field of all molecules returned
 from a topology query have been modified with the new allowed bond distances
 
 Compare the bond topologies from the orignal query:

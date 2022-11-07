@@ -110,12 +110,12 @@ class TestTopoFromGeom(absltest.TestCase):
 
     molecule = dataset_pb2.Molecule()
 
-    molecule.bond_topologies.append(
+    molecule.bond_topo.append(
         text_format.Parse(
             """
-atoms: ATOM_C
-atoms: ATOM_C
-bonds: {
+atom: ATOM_C
+atom: ATOM_C
+bond: {
   atom_a: 0
   atom_b: 1
   bond_type: BOND_SINGLE
@@ -141,16 +141,16 @@ atom_positions {
 
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
-    molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     molecule.mol_id = 1001
     result = topology_from_geom.bond_topologies_from_geom(
         molecule, all_distributions, matching_parameters)
     self.assertIsNotNone(result)
     self.assertLen(result.bond_topology, 2)
-    self.assertLen(result.bond_topology[0].bonds, 1)
-    self.assertLen(result.bond_topology[1].bonds, 1)
-    self.assertEqual(result.bond_topology[0].bonds[0].bond_type, single_bond)
-    self.assertEqual(result.bond_topology[1].bonds[0].bond_type, double_bond)
+    self.assertLen(result.bond_topology[0].bond, 1)
+    self.assertLen(result.bond_topology[1].bond, 1)
+    self.assertEqual(result.bond_topology[0].bond[0].bond_type, single_bond)
+    self.assertEqual(result.bond_topology[1].bond[0].bond_type, double_bond)
     self.assertGreater(result.bond_topology[0].topology_score,
                        result.bond_topology[1].topology_score)
     self.assertAlmostEqual(
@@ -178,16 +178,16 @@ atom_positions {
     # individual bonds have switched single/double.
     # We set it so the bond lengths favor one of the two arrangements
     molecule = dataset_pb2.Molecule(mol_id=123)
-    molecule.properties.errors.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
+    molecule.properties.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
 
-    molecule.bond_topologies.add(bond_topo_id=123, smiles='N1=NN=N1')
-    molecule.bond_topologies[0].atoms.extend([
+    molecule.bond_topo.add(topo_id=123, smiles='N1=NN=N1')
+    molecule.bond_topo[0].atom.extend([
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_N,
     ])
-    molecule.bond_topologies[0].bonds.extend([
+    molecule.bond_topo[0].bond.extend([
         dataset_pb2.BondTopology.Bond(atom_a=0, atom_b=1, bond_type=single),
         dataset_pb2.BondTopology.Bond(atom_a=1, atom_b=2, bond_type=double),
         dataset_pb2.BondTopology.Bond(atom_a=2, atom_b=3, bond_type=single),
@@ -254,22 +254,22 @@ class TestStandardTopologySensing(absltest.TestCase):
 
   def get_molecule(self, oc_dist, cn_dist):
     molecule = dataset_pb2.Molecule(mol_id=12345)
-    molecule.bond_topologies.append(dataset_pb2.BondTopology(smiles='N=C=O'))
-    molecule.bond_topologies[0].atoms.extend([
+    molecule.bond_topo.append(dataset_pb2.BondTopology(smiles='N=C=O'))
+    molecule.bond_topo[0].atom.extend([
         dataset_pb2.BondTopology.ATOM_O, dataset_pb2.BondTopology.ATOM_C,
         dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_H
     ])
-    molecule.bond_topologies[0].bonds.append(
+    molecule.bond_topo[0].bond.append(
         dataset_pb2.BondTopology.Bond(
             atom_a=0,
             atom_b=1,
             bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
-    molecule.bond_topologies[0].bonds.append(
+    molecule.bond_topo[0].bond.append(
         dataset_pb2.BondTopology.Bond(
             atom_a=1,
             atom_b=2,
             bond_type=dataset_pb2.BondTopology.BondType.BOND_DOUBLE))
-    molecule.bond_topologies[0].bonds.append(
+    molecule.bond_topo[0].bond.append(
         dataset_pb2.BondTopology.Bond(
             atom_a=2,
             atom_b=3,
@@ -300,24 +300,24 @@ class TestStandardTopologySensing(absltest.TestCase):
         topology_from_geom.standard_topology_sensing(mol, self.get_smu_dists(),
                                                      self.get_smiles_id_dict()))
 
-    self.assertLen(mol.bond_topologies, 2)
+    self.assertLen(mol.bond_topo, 2)
 
     self.assertEqual(
-        mol.bond_topologies[0].source, dataset_pb2.BondTopology.SOURCE_ITC
+        mol.bond_topo[0].info, dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_STARTING
         | dataset_pb2.BondTopology.SOURCE_MLCR)
-    self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
-    self.assertEqual(mol.bond_topologies[0].bond_topo_id, 111)
-    self.assertEqual(mol.bond_topologies[0].topology_score, 0)
-    self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
+    self.assertEqual(mol.bond_topo[0].smiles, 'N=C=O')
+    self.assertEqual(mol.bond_topo[0].topo_id, 111)
+    self.assertEqual(mol.bond_topo[0].topology_score, 0)
+    self.assertNotEqual(mol.bond_topo[0].geometry_score, 0)
 
     self.assertEqual(
-        mol.bond_topologies[1].source, dataset_pb2.BondTopology.SOURCE_MLCR
+        mol.bond_topo[1].info, dataset_pb2.BondTopology.SOURCE_MLCR
         | dataset_pb2.BondTopology.SOURCE_CSD)
-    self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
-    self.assertEqual(mol.bond_topologies[1].bond_topo_id, 222)
-    self.assertTrue(np.isnan(mol.bond_topologies[1].topology_score))
-    self.assertTrue(np.isnan(mol.bond_topologies[1].geometry_score))
+    self.assertEqual(mol.bond_topo[1].smiles, '[NH+]#C[O-]')
+    self.assertEqual(mol.bond_topo[1].topo_id, 222)
+    self.assertTrue(np.isnan(mol.bond_topo[1].topology_score))
+    self.assertTrue(np.isnan(mol.bond_topo[1].geometry_score))
 
   def test_smu_and_covalent(self):
     mol = self.get_molecule(1.25, 1.25)
@@ -325,25 +325,25 @@ class TestStandardTopologySensing(absltest.TestCase):
         topology_from_geom.standard_topology_sensing(mol, self.get_smu_dists(),
                                                      self.get_smiles_id_dict()))
 
-    self.assertLen(mol.bond_topologies, 2)
+    self.assertLen(mol.bond_topo, 2)
 
     self.assertEqual(
-        mol.bond_topologies[0].source, dataset_pb2.BondTopology.SOURCE_ITC
+        mol.bond_topo[0].info, dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_STARTING
         | dataset_pb2.BondTopology.SOURCE_MLCR
         | dataset_pb2.BondTopology.SOURCE_CSD)
-    self.assertEqual(mol.bond_topologies[0].smiles, 'N=C=O')
-    self.assertEqual(mol.bond_topologies[0].bond_topo_id, 111)
-    self.assertLess(mol.bond_topologies[0].topology_score, 0)
-    self.assertNotEqual(mol.bond_topologies[0].geometry_score, 0)
+    self.assertEqual(mol.bond_topo[0].smiles, 'N=C=O')
+    self.assertEqual(mol.bond_topo[0].topo_id, 111)
+    self.assertLess(mol.bond_topo[0].topology_score, 0)
+    self.assertNotEqual(mol.bond_topo[0].geometry_score, 0)
 
     self.assertEqual(
-        mol.bond_topologies[1].source, dataset_pb2.BondTopology.SOURCE_ITC
+        mol.bond_topo[1].info, dataset_pb2.BondTopology.SOURCE_ITC
         | dataset_pb2.BondTopology.SOURCE_MLCR)
-    self.assertEqual(mol.bond_topologies[1].smiles, '[NH+]#C[O-]')
-    self.assertEqual(mol.bond_topologies[1].bond_topo_id, 222)
-    self.assertLess(mol.bond_topologies[1].topology_score, 0)
-    self.assertNotEqual(mol.bond_topologies[1].geometry_score, 0)
+    self.assertEqual(mol.bond_topo[1].smiles, '[NH+]#C[O-]')
+    self.assertEqual(mol.bond_topo[1].topo_id, 222)
+    self.assertLess(mol.bond_topo[1].topology_score, 0)
+    self.assertNotEqual(mol.bond_topo[1].geometry_score, 0)
 
 
 if __name__ == '__main__':

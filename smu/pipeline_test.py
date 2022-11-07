@@ -100,17 +100,17 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths(self):
     # This molecule does not obey valence rules, but it's fine for this test.
     mol = dataset_pb2.Molecule(mol_id=123000)
-    mol.properties.errors.status = 4
-    bt = mol.bond_topologies.add()
-    bt.atoms.extend([
+    mol.properties.calc.status = 4
+    bt = mol.bond_topo.add()
+    bt.atom.extend([
         dataset_pb2.BondTopology.ATOM_ONEG, dataset_pb2.BondTopology.ATOM_NPOS,
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_H
     ])
-    bt.bonds.add(
+    bt.bond.add(
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    bt.bonds.add(
+    bt.bond.add(
         atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_DOUBLE)
-    bt.bonds.add(
+    bt.bond.add(
         atom_a=0, atom_b=3, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
     mol.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
     mol.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
@@ -134,15 +134,15 @@ class FunctionalTest(absltest.TestCase):
   def test_extract_bond_lengths_max_unbonded(self):
     # This molecule does not obery valence rules, but it's fine for this test.
     mol = dataset_pb2.Molecule(mol_id=123000)
-    mol.properties.errors.status = 4
-    bt = mol.bond_topologies.add()
-    bt.atoms.extend([
+    mol.properties.calc.status = 4
+    bt = mol.bond_topo.add()
+    bt.atom.extend([
         dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_N,
         dataset_pb2.BondTopology.ATOM_O
     ])
-    bt.bonds.add(
+    bt.bond.add(
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    bt.bonds.add(
+    bt.bond.add(
         atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
     mol.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
     mol.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
@@ -164,10 +164,10 @@ class FunctionalTest(absltest.TestCase):
 
   def _create_dummy_molecule(self):
     mol = dataset_pb2.Molecule(mol_id=123000)
-    bt = mol.bond_topologies.add()
-    bt.atoms.extend(
+    bt = mol.bond_topo.add()
+    bt.atom.extend(
         [dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C])
-    bt.bonds.add(
+    bt.bond.add(
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
     mol.optimized_geometry.atom_positions.add(x=0, y=0, z=0)
     mol.optimized_geometry.atom_positions.add(x=1, y=0, z=0)
@@ -175,14 +175,14 @@ class FunctionalTest(absltest.TestCase):
 
   def test_extract_bond_lengths_has_errors(self):
     mol = self._create_dummy_molecule()
-    mol.properties.errors.status = 8
+    mol.properties.calc.status = 8
     got = list(
         pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
     self.assertEqual([], got)
 
   def test_extract_bond_lengths_is_dup(self):
     mol = self._create_dummy_molecule()
-    mol.properties.errors.status = 0
+    mol.properties.calc.status = 0
     mol.duplicate_of = 456000
     got = list(
         pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))

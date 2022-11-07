@@ -61,18 +61,18 @@ def mutate_conformer(encoded_molecule):
   molecule = dataset_pb2.Molecule.FromString(encoded_molecule)
 
   # We change the fate categories, so we just recompute them.
-  if molecule.properties.HasField('errors'):
-    molecule.properties.errors.fate = smu_utils_lib.determine_fate(molecule)
+  if molecule.properties.HasField('calc'):
+    molecule.properties.calc.fate = smu_utils_lib.determine_fate(molecule)
 
   # We decided to remove the topology and geometry scores and sort the bond
   # topologies by a simple key instead.
-  if len(molecule.bond_topologies):
+  if len(molecule.bond_topo):
     new_bts = sorted(
-      molecule.bond_topologies, key=smu_utils_lib.bond_topology_sorting_key)
-    del molecule.bond_topologies[:]
-    molecule.bond_topologies.extend(new_bts)
+      molecule.bond_topo, key=smu_utils_lib.bond_topology_sorting_key)
+    del molecule.bond_topo[:]
+    molecule.bond_topo.extend(new_bts)
 
-  for bt in molecule.bond_topologies:
+  for bt in molecule.bond_topo:
     bt.ClearField('topology_score')
     bt.ClearField('geometry_score')
 
