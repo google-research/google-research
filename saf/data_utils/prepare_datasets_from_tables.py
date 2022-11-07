@@ -178,8 +178,6 @@ def return_datasets(
         1000, seed=42, reshuffle_each_iteration=True)
 
   windowed_dataset_num_items = num_items if cycle_items_first else 1
-  # TODO(nyoder): Explore different ways to structure the data and it's impact
-  #   on performance.
   train_dataset = create_windowed_dataset(
       train_dataset,
       len_max_lookback=len_max_lookback,

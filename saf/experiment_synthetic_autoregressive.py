@@ -79,22 +79,18 @@ def main(args):
        len_total=FLAGS.len_total)
 
   # Hyperparameter search
-  temporal_batch_size_eval = dataset_params["num_items"]
-  batch_size_candidates = [64, 128, 256, 512]
-  learning_rate_candidates = [0.00003, 0.0001, 0.0003, 0.001, 0.003]
-  learning_rate_adaptation_candidates = [
-      0.00001, 0.00003, 0.0001, 0.0003, 0.001
-  ]
-  num_units_candidates = [32, 64, 128]
-  iterations_candidates = [500, 1000, 2000, 5000]
-  num_encode_candidates = [50, 75, 100]
-  keep_prob_candidates = [0.5, 0.8, 0.9, 1.0]
-  num_heads_candidates = [1, 2, 4]
-  representation_combination_candidates = ["concatenation", "addition"]
   use_nowcast_errors_candidates = [True, False]
+  temporal_batch_size_eval = dataset_params["num_items"]
+  batch_size_candidates = [32, 64, 128, 256]
+  learning_rate_candidates = [0.0001, 0.0003, 0.001, 0.003]
+  learning_rate_adaptation_candidates = [0.0003, 0.001, 0.003, 0.01]
+  num_units_candidates = [16, 32, 64]
+  iterations_candidates = [3000]
+  num_encode_candidates = [10, 30, 50]
+  keep_prob_candidates = [0.5, 0.8, 1.0]
+  num_heads_candidates = [1, 2]
+  representation_combination_candidates = ["concatenation", "addition"]
   reset_weights_each_eval_step_candidates = [True]
-  num_transform_filter_steps_candidates = [5]
-  mapping_type_candidates = ["linear_filtering"]
 
   best_valid_metric = 1e128
   best_hparams = []
@@ -137,10 +133,6 @@ def main(args):
             random.sample(reset_weights_each_eval_step_candidates, 1)[0],
         "use_nowcast_errors":
             random.sample(use_nowcast_errors_candidates, 1)[0],
-        "num_transform_filter_steps":
-            random.sample(num_transform_filter_steps_candidates, 1)[0],
-        "mapping_type":
-            random.sample(mapping_type_candidates, 1)[0],
         "target_index":
             dataset_params["target_index"],
         "static_index_cutoff":
