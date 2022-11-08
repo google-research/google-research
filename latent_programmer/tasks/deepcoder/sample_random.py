@@ -22,6 +22,9 @@ from typing import Any, Dict, List, Optional, Type, Union
 from latent_programmer.tasks.deepcoder import deepcoder_dsl as dsl
 from latent_programmer.tasks.deepcoder import experiment as exp_module
 
+# Multiple inputs for one example.
+InputsList = List[Union[int, List[int]]]
+
 
 def random_int():
   if dsl.deepcoder_mod() > 0:
@@ -54,15 +57,25 @@ def random_inputs(num_inputs):
 
 
 def random_inputs_like(
-    inputs):
-  new_inputs = []
-  for inp in inputs:
-    if isinstance(inp, list):
-      new_inputs.append(random_list())
-    else:
-      assert type(inp) is int  # pylint: disable=unidiomatic-typecheck
-      new_inputs.append(random_int())
-  return new_inputs
+    existing_inputs):
+  """Returns new random inputs like existing ones, but different."""
+  if not existing_inputs:
+    raise dsl.DeepCoderError('Should have some existing inputs.')
+
+  # Note: it is possible that this is an infinite loop, if there is only 1 int
+  # input, and deepcoder_mod is smaller than the number of examples. That
+  # shouldn't happen in our experiments.
+  while True:
+    new_inputs = []
+    for inp in existing_inputs[0]:
+      if isinstance(inp, list):
+        new_inputs.append(random_list())
+      else:
+        assert type(inp) is int  # pylint: disable=unidiomatic-typecheck
+        new_inputs.append(random_int())
+
+    if new_inputs not in existing_inputs:
+      return new_inputs
 
 
 def random_new_variable(existing_variables):
@@ -132,13 +145,46 @@ def is_redundant(states):
   return bool(common)
 
 
+def has_dead_code(program):
+  """Checks whether a program has dead code, ignoring dead inputs."""
+  # If a variable appears at all in a program, it must appear exactly once as
+  # the LHS of an assignment. A variable is "dead" if it is never used again,
+  # with the exception of the final "output" variable.
+
+  # Dead inputs are ok, since the model can learn to ignore it, and it doesn't
+  # cause the model to *learn* to predict dead code.
+
+  program_tokens = program.tokenize()
+  for statement in program.statements[:-1]:  # Ignoring the output statement.
+    if program_tokens.count(statement.variable) == 1:
+      return True
+  return False
+
+
+def has_constant_output(program,
+                        example_inputs):
+  """Checks if the program always produces the same output across examples."""
+  if len(example_inputs) == 1:
+    # If there's only one example, the output will always be "constant" but
+    # that's ok.
+    return False
+  states = [program.run(inputs) for inputs in example_inputs]
+  outputs = [state.get_output() for state in states if state is not None]
+  if len(outputs) != len(example_inputs):
+    raise dsl.DeepCoderError('Random program should execute on all inputs.')
+  return all(output == outputs[0] for output in outputs)
+
+
 def random_program(
     example_inputs,
     num_statements,
     is_train,
     experiment = None,
     operations = None,
-    lambdas = None):
+    lambdas = None,
+    reject_dead_code = True,
+    reject_redundant_code = True,
+    reject_constant_output = True):
   """Randomly sample a new program."""
   if operations is None:
     operations = dsl.OPERATIONS.copy()
@@ -153,30 +199,42 @@ def random_program(
   while len(input_variables) < num_inputs:
     input_variables.append(random_new_variable(input_variables))
 
-  states = [dsl.ProgramState(inputs, input_variables)
-            for inputs in example_inputs]
-  statements = []
-  for i in range(num_statements):
-    if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER:
-      if is_train:
-        operations = (dsl.FIRST_ORDER_OPERATIONS if i < num_statements // 2
-                      else dsl.HIGHER_ORDER_OPERATIONS)
-      else:
-        operations = (dsl.HIGHER_ORDER_OPERATIONS if i < num_statements // 2
-                      else dsl.FIRST_ORDER_OPERATIONS)
+  while True:
+    states = [dsl.ProgramState(inputs, input_variables)
+              for inputs in example_inputs]
+    statements = []
+    for i in range(num_statements):
+      if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER:
+        if is_train:
+          operations = (dsl.FIRST_ORDER_OPERATIONS if i < num_statements // 2
+                        else dsl.HIGHER_ORDER_OPERATIONS)
+        else:
+          operations = (dsl.HIGHER_ORDER_OPERATIONS if i < num_statements // 2
+                        else dsl.FIRST_ORDER_OPERATIONS)
 
-    # Sample a statement that executes successfully for all examples.
-    while True:
-      statement = random_statement(states[0], is_train, experiment=experiment,
-                                   operations=operations, lambdas=lambdas)
-      next_states = [statement.run(state) for state in states]
-      if not all(next_states):
-        continue
-      elif not is_redundant(next_states):
+      # Sample a statement that executes successfully for all examples.
+      while True:
+        statement = random_statement(states[0], is_train, experiment=experiment,
+                                     operations=operations, lambdas=lambdas)
+        next_states = [statement.run(state) for state in states]
+        if not all(next_states):
+          continue
+        if reject_redundant_code and is_redundant(next_states):
+          continue
         break
-    statements.append(statement)
-    states = next_states
+      statements.append(statement)
+      states = next_states
 
-  program = dsl.Program(input_variables, statements)
-  assert len(program) == num_statements
+    program = dsl.Program(input_variables, statements)
+    assert len(program) == num_statements
+
+    should_reject_program = False
+    if reject_dead_code and has_dead_code(program):
+      should_reject_program = True
+    if reject_constant_output and has_constant_output(program, example_inputs):
+      should_reject_program = True
+
+    if not should_reject_program:
+      break
+
   return program

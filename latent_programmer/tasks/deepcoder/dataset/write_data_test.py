@@ -35,7 +35,7 @@ class WriteDataTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self._saved_flags = flagsaver.save_flag_values()
-    FLAGS.deepcoder_mod = 0  # Tests don't use mod unless otherwise specified.
+    FLAGS.deepcoder_mod = 20  # Tests use mod 20 unless otherwise specified.
 
   def tearDown(self):
     flagsaver.restore_flag_values(self._saved_flags)
@@ -44,7 +44,7 @@ class WriteDataTest(parameterized.TestCase):
   def test_serialize_decomposition_examples(self):
     # Checks that task is serialized correctly using a hard-coded example.
     program = deepcoder_dsl.Program.from_str(
-        'x5 = INPUT | x1 = INPUT | x2 = Map +1 x5 | x7 = Take x1 x2')
+        'x5 = INPUT | x1 = INPUT | x2 = Map (+1) x5 | x7 = Take x1 x2')
     examples = [deepcoder_dsl.Example([[4, 1, 3], 2], [5, 2]),
                 deepcoder_dsl.Example([[2, 5, 8, 7], 3], [3, 6, 9])]
     task = deepcoder_dsl.ProgramTask(program, examples)
@@ -61,7 +61,7 @@ class WriteDataTest(parameterized.TestCase):
                 'next_part':
                     write_data._bytes_feature(['[ 5 2 4 ]', '[ 3 6 9 8 ]']),
                 'program_part':
-                    write_data._bytes_feature(['x2 = Map +1 x5']),
+                    write_data._bytes_feature(['x2 = Map (+1) x5']),
             }))
     expected_result_1 = tf.train.Example(
         features=tf.train.Features(
@@ -84,7 +84,7 @@ class WriteDataTest(parameterized.TestCase):
   def test_serialize_entire_program_example(self):
     # Checks that task is serialized correctly using a hard-coded example.
     program = deepcoder_dsl.Program.from_str(
-        'x5 = INPUT | x1 = INPUT | x2 = Map +1 x5 | x7 = Take x1 x2')
+        'x5 = INPUT | x1 = INPUT | x2 = Map (+1) x5 | x7 = Take x1 x2')
     examples = [deepcoder_dsl.Example([[4, 1, 3], 2], [5, 2]),
                 deepcoder_dsl.Example([[2, 5, 8, 7], 3], [3, 6, 9])]
     task = deepcoder_dsl.ProgramTask(program, examples)

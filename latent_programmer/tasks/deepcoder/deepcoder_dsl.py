@@ -45,7 +45,7 @@ Helpful properties to know:
 
   * A program is given as a string in the following form:
 
-    x0 = INPUT | x1 = Map +1 x0 | x2 = Sum x1
+    x0 = INPUT | x1 = Map (+1) x0 | x2 = Sum x1
 
   * In the context of running an entire program (e.g., to see if it satisfies
     the I/O examples), the program "output" is the result of its last line. In
@@ -63,12 +63,12 @@ Helpful properties to know:
 import ast
 import functools
 import re
-from typing import Any, Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from absl import flags
 
 _DEEPCODER_MOD = flags.DEFINE_integer(
-    'deepcoder_mod', 10,
+    'deepcoder_mod', 20,
     'The modulo we use for DeepCoder arithmetic, or 0 to not apply any mod.')
 
 
@@ -374,13 +374,15 @@ class Statement(object):
     return ' '.join(self.tokenize())
 
   @classmethod
-  def from_tokens(cls, tokens):
+  def from_tokens(cls, tokens,
+                  check_variable_name = True):
     """Parses a Statement from a list of tokens."""
     # Parse LHS variable, =, and the operation.
     if len(tokens) < 4:
       raise ParseError(f'Too few tokens: {tokens}')
     variable = tokens[0]
-    _ = variable_index_from_token(variable)  # Check its format.
+    if check_variable_name:
+      _ = variable_index_from_token(variable)  # Check its format.
     if tokens[1] != '=':
       raise ParseError(f"Second token must be '=': {tokens}")
     operation_token = tokens[2]
@@ -409,8 +411,9 @@ class Statement(object):
     return cls(variable, operation, args)
 
   @classmethod
-  def from_str(cls, string):
-    return cls.from_tokens(string.split(' '))
+  def from_str(cls, string,
+               check_variable_name = True):
+    return cls.from_tokens(string.split(' '), check_variable_name)
 
 
 class Program(object):
@@ -504,25 +507,25 @@ def _scanl1(f, xs):
 # Use the Python code from Appendix F in the DeepCoder paper.
 # pylint: disable=g-explicit-length-test, unnecessary-lambda
 LAMBDAS = [
-    Lambda('+1', lambda x: x + 1, [int], int),
-    Lambda('-1', lambda x: x - 1, [int], int),
-    Lambda('*2', lambda x: x * 2, [int], int),
-    Lambda('/2', lambda x: x // 2, [int], int),
-    Lambda('*(-1)', lambda x: -x, [int], int),
-    Lambda('**2', lambda x: x ** 2, [int], int),
-    Lambda('*3', lambda x: x * 3, [int], int),
-    Lambda('/3', lambda x: x // 3, [int], int),
-    Lambda('*4', lambda x: x * 4, [int], int),
-    Lambda('/4', lambda x: x // 4, [int], int),
-    Lambda('>0', lambda x: x > 0, [int], bool),
-    Lambda('<0', lambda x: x < 0, [int], bool),
-    Lambda('even', lambda x: x % 2 == 0, [int], bool),
-    Lambda('odd', lambda x: x % 2 == 1, [int], bool),
-    Lambda('+', lambda x, y: x + y, [int, int], int),
-    Lambda('-', lambda x, y: x - y, [int, int], int),
-    Lambda('*', lambda x, y: x * y, [int, int], int),
-    Lambda('min', lambda x, y: min(x, y), [int, int], int),
-    Lambda('max', lambda x, y: max(x, y), [int, int], int),
+    Lambda('(+1)', lambda x: x + 1, [int], int),
+    Lambda('(-1)', lambda x: x - 1, [int], int),
+    Lambda('(*2)', lambda x: x * 2, [int], int),
+    Lambda('(/2)', lambda x: x // 2, [int], int),
+    Lambda('(*(-1))', lambda x: -x, [int], int),
+    Lambda('(**2)', lambda x: x ** 2, [int], int),
+    Lambda('(*3)', lambda x: x * 3, [int], int),
+    Lambda('(/3)', lambda x: x // 3, [int], int),
+    Lambda('(*4)', lambda x: x * 4, [int], int),
+    Lambda('(/4)', lambda x: x // 4, [int], int),
+    Lambda('(>0)', lambda x: x > 0, [int], bool),
+    Lambda('(<0)', lambda x: x < 0, [int], bool),
+    Lambda('(%2==0)', lambda x: x % 2 == 0, [int], bool),
+    Lambda('(%2==1)', lambda x: x % 2 == 1, [int], bool),
+    Lambda('(+)', lambda x, y: x + y, [int, int], int),
+    Lambda('(-)', lambda x, y: x - y, [int, int], int),
+    Lambda('(*)', lambda x, y: x * y, [int, int], int),
+    Lambda('(min)', lambda x, y: min(x, y), [int, int], int),
+    Lambda('(max)', lambda x, y: max(x, y), [int, int], int),
 ]
 
 FIRST_ORDER_OPERATIONS = [
@@ -572,6 +575,35 @@ TOKEN_TO_OPERATION = {op.token: op for op in OPERATIONS}
 
 # Subsets of DSL functionality for generating compositional generalization
 # datasets.
-LAMBDAS_ONLY_MINUS_MIN = [TOKEN_TO_LAMBDA['-'], TOKEN_TO_LAMBDA['min']]
+LAMBDAS_ONLY_MINUS_MIN = [TOKEN_TO_LAMBDA['(-)'], TOKEN_TO_LAMBDA['(min)']]
 OPERATIONS_ONLY_SCAN = [TOKEN_TO_OPERATION['Scanl1']]
 OPERATIONS_NO_SCAN = [op for op in OPERATIONS if op.token != 'Scanl1']
+
+
+PAD, BOS, EOS = '', '<BOS>', '<EOS>'
+PAD_ID, BOS_ID, EOS_ID = 0, 1, 2
+
+
+def vocab_tables():
+  """Returns id-to-token and token-to-id vocabulary mappings."""
+  # These tokens should be constant unless we change the DSL.
+  tokens = [PAD, BOS, EOS]
+  tokens.extend(['|', '=', 'INPUT', '[', ']'])
+  tokens.extend(op.token for op in OPERATIONS)
+  tokens.extend(l.token for l in LAMBDAS)
+
+  # These tokens may change based on flags or other settings.
+  tokens.extend(variable_token(index) for index in range(MAX_NUM_VARIABLES))
+  if deepcoder_mod() > 0:
+    min_int = 0
+    max_int = deepcoder_mod() - 1
+  else:
+    min_int, max_int = MIN_INT, MAX_INT
+  tokens.extend(str(i) for i in range(min_int, max_int + 1))
+
+  # Construct mappings between tokens and ids.
+  id_to_token = {i: token for i, token in enumerate(tokens)}
+  token_to_id = {token: i for i, token in enumerate(tokens)}
+  assert len(id_to_token) == len(token_to_id)
+
+  return id_to_token, token_to_id

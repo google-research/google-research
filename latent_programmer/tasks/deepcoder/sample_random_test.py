@@ -61,6 +61,39 @@ class DatasetTest(parameterized.TestCase):
       for elem in random_list:
         self.assertBetween(elem, deepcoder_dsl.MIN_INT, deepcoder_dsl.MAX_INT)
 
+  @parameterized.named_parameters(
+      ('1', 1),
+      ('2', 2),
+      ('3', 3),
+  )
+  def test_random_inputs(self, num_inputs):
+    for _ in range(10):
+      inputs = sample_random.random_inputs(num_inputs)
+      self.assertLen(inputs, num_inputs)
+      self.assertTrue(all(type(x) in [int, list] for x in inputs))
+
+  @parameterized.named_parameters(
+      ('single_int', [[1], [5]]),
+      ('single_list', [[[6, 2, 5]]]),
+      ('int_and_list', [[4, [8, 4, 3, 5]], [1, [6, 3]], [9, [5]]]),
+  )
+  def test_random_inputs_like(self, existing_inputs):
+    first = existing_inputs[0]
+    for _ in range(10):
+      new_inputs = sample_random.random_inputs_like(existing_inputs)
+      total_inputs = existing_inputs + [new_inputs]
+      self.assertLen(new_inputs, len(first))
+      self.assertTrue(all(type(x) == type(y)  # pylint: disable=unidiomatic-typecheck
+                          for x, y in zip(new_inputs, first)))
+      self.assertLen(set(str(inputs) for inputs in total_inputs),
+                     len(total_inputs))
+
+  def test_random_inputs_like_no_repeats(self):
+    with flagsaver.flagsaver(deepcoder_mod=5):
+      existing_inputs = [[4], [2], [0], [1]]
+      new_inputs = sample_random.random_inputs_like(existing_inputs)
+      self.assertEqual(new_inputs, [3])  # Only non-duplicate choice.
+
   @parameterized.parameters(
       ('Head', {int: [], list: [1]}, True),
       ('Head', {int: [1, 2], list: []}, False),
@@ -90,6 +123,43 @@ class DatasetTest(parameterized.TestCase):
     program_states = [deepcoder_dsl.ProgramState.from_str(state)
                       for state in states]
     self.assertEqual(sample_random.is_redundant(program_states), expected)
+
+  @parameterized.named_parameters(
+      ('no_dead_code',
+       ('x3 = INPUT | x1 = INPUT | x2 = Sum x3 | x5 = Head x1 | '
+        'x7 = Take x5 x2 | x6 = Sort x7'),
+       False),
+      ('dead_input',
+       ('x3 = INPUT | x1 = INPUT | x2 = Sum x3 | x5 = Head x3 | '
+        'x7 = Take x5 x2 | x6 = Sort x7'),
+       False),
+      ('dead_x5',
+       ('x3 = INPUT | x1 = INPUT | x2 = Sum x3 | x5 = Head x3 | '
+        'x7 = Take x1 x2 | x6 = Sort x7'),
+       True),
+  )
+  def test_has_dead_code(self, program_str, expected):
+    program = deepcoder_dsl.Program.from_str(program_str)
+    self.assertEqual(sample_random.has_dead_code(program), expected)
+
+  @parameterized.named_parameters(
+      ('sort_min_always_2',
+       'x3 = INPUT | x4 = Sort x3 | x6 = Minimum x4', True),
+      ('sort_max_different',
+       'x3 = INPUT | x4 = Sort x3 | x6 = Maximum x4', False),
+      ('sum_always_9',
+       'x3 = INPUT | x8 = Sum x3', True),
+      ('head_different',
+       'x3 = INPUT | x8 = Head x3', False),
+      ('always_all_zeros',
+       'x3 = INPUT | x8 = ZipWith (-) x3 x3 | x5 = Minimum x3 | x4 = Take x5 x8',
+       True),
+  )
+  def test_has_constant_output(self, program_str, expected):
+    program = deepcoder_dsl.Program.from_str(program_str)
+    example_inputs = [[[4, 2, 3]], [[2, 7]]]
+    self.assertEqual(sample_random.has_constant_output(program, example_inputs),
+                     expected)
 
   @parameterized.parameters(
       ([[[1, 2, 3], 2], [[4, 5, 6], 2]], 1, exp_module.Experiment.NONE),

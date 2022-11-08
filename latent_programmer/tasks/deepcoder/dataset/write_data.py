@@ -129,7 +129,7 @@ def generate_task_for_experiment(experiment,
   # Generate more input examples (must all be the same length and types).
   example_inputs = [inputs]
   for _ in range(_NUM_EXAMPLES.value - 1):
-    example_inputs.append(sample_random.random_inputs_like(inputs))
+    example_inputs.append(sample_random.random_inputs_like(example_inputs))
 
   # Some tasks require a rejection sampling step to enforce some constraints.
   keep_fn = None
@@ -196,7 +196,7 @@ def generate_task_for_experiment(experiment,
     if not is_train:
       keep_fn = lambda program: (  # pylint: disable=g-long-lambda
           any(f'Scanl1 {lambda_token}' in str(program)
-              for lambda_token in ['+', '*', 'max']))
+              for lambda_token in ['(+)', '(*)', '(max)']))
   else:
     raise ValueError(f'Unhandled experiment: {experiment}')
 

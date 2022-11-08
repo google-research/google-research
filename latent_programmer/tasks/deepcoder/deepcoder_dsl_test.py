@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for dsl."""
+"""Tests for deepcoder_dsl."""
 
 from absl import flags
 from absl.testing import absltest
@@ -31,9 +31,9 @@ class DeepcoderDslTest(parameterized.TestCase):
     super(DeepcoderDslTest, self).setUp()
     self.head_op = dsl.TOKEN_TO_OPERATION['Head']
     self.map_op = dsl.TOKEN_TO_OPERATION['Map']
-    self.plus_one_lambda = dsl.TOKEN_TO_LAMBDA['+1']
-    self.square_lambda = dsl.TOKEN_TO_LAMBDA['**2']
-    self.times_3_lambda = dsl.TOKEN_TO_LAMBDA['*3']
+    self.plus_one_lambda = dsl.TOKEN_TO_LAMBDA['(+1)']
+    self.square_lambda = dsl.TOKEN_TO_LAMBDA['(**2)']
+    self.times_3_lambda = dsl.TOKEN_TO_LAMBDA['(*3)']
     self._saved_flags = flagsaver.save_flag_values()
     FLAGS.deepcoder_mod = 0  # Tests don't use mod unless otherwise specified.
 
@@ -160,8 +160,8 @@ class DeepcoderDslTest(parameterized.TestCase):
     result_state_1 = dsl.ProgramState([[3, 6], 3], ['x3', 'x1'])
     self.assertEqual(statement_1.run(initial_state_1), result_state_1)
 
-    statement_2 = dsl.Statement.from_str('x0 = Map +1 x1')
-    self.assertEqual(statement_2.tokenize(), ['x0', '=', 'Map', '+1', 'x1'])
+    statement_2 = dsl.Statement.from_str('x0 = Map (+1) x1')
+    self.assertEqual(statement_2.tokenize(), ['x0', '=', 'Map', '(+1)', 'x1'])
     initial_state_2 = dsl.ProgramState([[3], [5, 2, 8], 4], ['x4', 'x1', 'x3'])
     result_state_2 = dsl.ProgramState([[3], [5, 2, 8], 4, [6, 3, 9]],
                                       ['x4', 'x1', 'x3', 'x0'])
@@ -169,15 +169,15 @@ class DeepcoderDslTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('too_few_tokens', 'x1 = INPUT'),
-      ('bad_lhs_variable', 'y1 = Map +1 x0'),
+      ('bad_lhs_variable', 'y1 = Map (+1) x0'),
       ('bad_equals', 'x1 == Head x0'),
       ('unknown_operation', 'x1 = NotAnOp x0'),
-      ('unexpected_lambda_head', 'x1 = Head +1'),
-      ('unexpected_lambda_map', 'x1 = Map +1 +1'),
+      ('unexpected_lambda_head', 'x1 = Head (+1)'),
+      ('unexpected_lambda_map', 'x1 = Map (+1) (+1)'),
       ('needs_lambda_got_variable', 'x2 = Map x1 x0'),
       ('needs_lambda_got_operation', 'x1 = Map Map x0'),
-      ('lhs_as_arg', 'x1 = Map +1 x1'),
-      ('bad_arg_variable', 'x1 = Map +1 y0'),
+      ('lhs_as_arg', 'x1 = Map (+1) x1'),
+      ('bad_arg_variable', 'x1 = Map (+1) y0'),
       ('wrong_arity', 'x2 = Head x0 x1'),
   )
   def test_statement_from_string_raises(self, statement_str):
@@ -207,7 +207,7 @@ class DeepcoderDslTest(parameterized.TestCase):
     self.assertLen(program_1, 1)
 
     program_2 = dsl.Program.from_str(
-        'x0 = INPUT | x1 = INPUT | x2 = Reverse x1 | x3 = ZipWith + x0 x2')
+        'x0 = INPUT | x1 = INPUT | x2 = Reverse x1 | x3 = ZipWith (+) x0 x2')
     self.assertEqual(program_2.run([[3, 2], [1, 4]]),
                      dsl.ProgramState([[3, 2], [1, 4], [4, 1], [7, 3]],
                                       ['x0', 'x1', 'x2', 'x3']))
@@ -224,7 +224,7 @@ class DeepcoderDslTest(parameterized.TestCase):
       ('inputs_not_at_beginning', 'x0 = INPUT | x1 = Head x0 | x2 = INPUT'),
       ('bad_variable', 'y0 = INPUT | x1 = Head x0'),
       ('bad_input_line', 'x0 = Head INPUT | x1 = Head x0'),
-      ('bad_statement', 'x0 = INPUT | x1 = Head +1 x0'),
+      ('bad_statement', 'x0 = INPUT | x1 = Head (+1) x0'),
   )
   def test_program_from_string_raises(self, program_str):
     with self.assertRaises(dsl.ParseError):
@@ -277,30 +277,30 @@ class DeepcoderDslTest(parameterized.TestCase):
       self.assertEqual(type(result), op.output_type)
 
   @parameterized.parameters(
-      ('Map', '+1', [[5, 2, 7]], [6, 3, 8]),
-      ('Map', '+1', [[-4]], [-3]),
-      ('Map', '+1', [[]], []),
-      ('Map', '-1', [[5, 2, 7]], [4, 1, 6]),
-      ('Map', '*2', [[2, 0, 3, 1]], [4, 0, 6, 2]),
-      ('Map', '/2', [[4, 3, 0, 7, 6, -3]], [2, 1, 0, 3, 3, -2]),
-      ('Map', '*(-1)', [[4, -6, 0]], [-4, 6, 0]),
-      ('Map', '**2', [[0, -3, 2]], [0, 9, 4]),
-      ('Map', '*3', [[1, 3, 0]], [3, 9, 0]),
-      ('Map', '/3', [[-6, -5, 0, 3, 4, 7]], [-2, -2, 0, 1, 1, 2]),
-      ('Map', '*4', [[2]], [8]),
-      ('Map', '/4', [[8, 1, 0, -1]], [2, 0, 0, -1]),
-      ('Filter', '>0', [[4, -1, 0, 2, -4]], [4, 2]),
-      ('Filter', 'even', [[4, -1, 0, 2, -4]], [4, 0, 2, -4]),
-      ('Count', '<0', [[4, -1, 0, 2, -4]], 2),
-      ('Count', 'odd', [[4, -1, 0, 2, -4]], 1),
-      ('ZipWith', '-', [[3, 2, 5], [-2, 4, 1]], [5, -2, 4]),
-      ('ZipWith', '*', [[3, 2, 5], [-2, 4, 1, 3]], [-6, 8, 5]),
-      ('ZipWith', 'min', [[3, 2, 5, 0], [-2, 4, 1]], [-2, 2, 1]),
-      ('ZipWith', '+', [[], [1]], []),
-      ('Scanl1', '+', [[]], []),
-      ('Scanl1', '+', [[6]], [6]),
-      ('Scanl1', '+', [[6, -2, -5, 3]], [6, 4, -1, 2]),
-      ('Scanl1', 'max', [[-3, 2, -1, 3, 2, 5]], [-3, 2, 2, 3, 3, 5]),
+      ('Map', '(+1)', [[5, 2, 7]], [6, 3, 8]),
+      ('Map', '(+1)', [[-4]], [-3]),
+      ('Map', '(+1)', [[]], []),
+      ('Map', '(-1)', [[5, 2, 7]], [4, 1, 6]),
+      ('Map', '(*2)', [[2, 0, 3, 1]], [4, 0, 6, 2]),
+      ('Map', '(/2)', [[4, 3, 0, 7, 6, -3]], [2, 1, 0, 3, 3, -2]),
+      ('Map', '(*(-1))', [[4, -6, 0]], [-4, 6, 0]),
+      ('Map', '(**2)', [[0, -3, 2]], [0, 9, 4]),
+      ('Map', '(*3)', [[1, 3, 0]], [3, 9, 0]),
+      ('Map', '(/3)', [[-6, -5, 0, 3, 4, 7]], [-2, -2, 0, 1, 1, 2]),
+      ('Map', '(*4)', [[2]], [8]),
+      ('Map', '(/4)', [[8, 1, 0, -1]], [2, 0, 0, -1]),
+      ('Filter', '(>0)', [[4, -1, 0, 2, -4]], [4, 2]),
+      ('Filter', '(%2==0)', [[4, -1, 0, 2, -4]], [4, 0, 2, -4]),
+      ('Count', '(<0)', [[4, -1, 0, 2, -4]], 2),
+      ('Count', '(%2==1)', [[4, -1, 0, 2, -4]], 1),
+      ('ZipWith', '(-)', [[3, 2, 5], [-2, 4, 1]], [5, -2, 4]),
+      ('ZipWith', '(*)', [[3, 2, 5], [-2, 4, 1, 3]], [-6, 8, 5]),
+      ('ZipWith', '(min)', [[3, 2, 5, 0], [-2, 4, 1]], [-2, 2, 1]),
+      ('ZipWith', '(+)', [[], [1]], []),
+      ('Scanl1', '(+)', [[]], []),
+      ('Scanl1', '(+)', [[6]], [6]),
+      ('Scanl1', '(+)', [[6, -2, -5, 3]], [6, 4, -1, 2]),
+      ('Scanl1', '(max)', [[-3, 2, -1, 3, 2, 5]], [-3, 2, 2, 3, 3, 5]),
   )
   def test_higher_order_operations(self, op_token, lambda_token, inputs,
                                    expected):
@@ -329,6 +329,30 @@ class DeepcoderDslTest(parameterized.TestCase):
       self.assertEqual(
           self.map_op.run([self.times_3_lambda.func, [2, 6, -8, 7, -5]]),
           expected)
+
+  def test_vocab_tables(self):
+    id_to_token, token_to_id = dsl.vocab_tables()
+
+    tokens = list(id_to_token.values())
+    for token in tokens:
+      if tokens.count(token) > 1:
+        indices = [i for i in range(len(tokens)) if tokens[i] == token]
+        self.assertIsNone(f'Token {token} duplicated at indices {indices}.')
+      self.assertNotIn(' ', token)  # No token should have spaces in it.
+
+    self.assertLen(id_to_token, len(token_to_id))
+    for i in range(len(id_to_token)):
+      self.assertEqual(i, token_to_id[id_to_token[i]])
+
+    program = dsl.Program.from_str(
+        'x0 = INPUT | x9 = INPUT | x2 = Reverse x9 | x5 = ZipWith (+) x0 x2')
+    for token in program.tokenize():
+      self.assertIn(token, token_to_id)
+
+    state = program.run([[5, 2, 6, 8], [9, 1, 3, 4]])
+    self.assertEqual(state.get_output(), [9, 5, 7, 17])
+    for token in state.tokenize():
+      self.assertIn(token, token_to_id)
 
 
 if __name__ == '__main__':
