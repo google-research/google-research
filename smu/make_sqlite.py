@@ -71,10 +71,27 @@ def mutate_conformer(encoded_molecule):
       molecule.bond_topo, key=smu_utils_lib.bond_topology_sorting_key)
     del molecule.bond_topo[:]
     molecule.bond_topo.extend(new_bts)
-
   for bt in molecule.bond_topo:
     bt.ClearField('topology_score')
     bt.ClearField('geometry_score')
+
+  # The duplciates_found field is in an arbitrary order, so we sort it
+  if len(molecule.duplicates_found) > 1:
+    new_dups = sorted(molecule.duplicates_found)
+    del molecule.duplicates_found[:]
+    molecule.duplicates_found.extend(new_dups)
+
+  # We didn't do topology detection on a handful of topologies and left
+  # The SOURCE_ITC and SOURCE_STARTING bits only set where it should really
+  # be all the bits. So we just fix it here.
+  # These are the mids for C N O F FF
+  if molecule.mol_id in [899649001, 899650001, 899651001, 899652001, 1001]:
+    assert(len(molecule.bond_topo) == 1)
+    molecule.bond_topo[0].info = (
+      dataset_pb2.BondTopology.SOURCE_STARTING |
+      dataset_pb2.BondTopology.SOURCE_ITC |
+      dataset_pb2.BondTopology.SOURCE_MLCR |
+      dataset_pb2.BondTopology.SOURCE_CSD)
 
   return molecule.SerializeToString()
 
