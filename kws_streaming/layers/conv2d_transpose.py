@@ -184,7 +184,7 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
     })
     return config
 
-  def _process_frequence_padding(self, inputs):
+  def _process_frequency_padding(self, inputs):
     if self.pad_freq_dim == 'same':
       crop_left = self.overlap_feature // 2
       return inputs[:, :,
@@ -201,7 +201,7 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
   def _streaming_internal_state(self, inputs):
     outputs = super(Conv2DTranspose, self).call(inputs)
 
-    outputs = self._process_frequence_padding(outputs)
+    outputs = self._process_frequency_padding(outputs)
 
     if self.overlap == 0:
       return self._crop_time_dim(outputs)
@@ -235,7 +235,7 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
   def _streaming_external_state(self, inputs, states):
     outputs = super(Conv2DTranspose, self).call(inputs)
 
-    outputs = self._process_frequence_padding(outputs)
+    outputs = self._process_frequency_padding(outputs)
 
     if self.overlap == 0:
       if self.crop_output:
@@ -271,7 +271,7 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
       else:
         outputs = outputs[:, 0:output_time_dim, :]
 
-    outputs = self._process_frequence_padding(outputs)
+    outputs = self._process_frequency_padding(outputs)
     return outputs
 
   def get_input_state(self):
