@@ -423,4 +423,4 @@ def static_plot_coordinates_in_phase_space(
   ax.set_xticks([])
   ax.set_yticks([])
   plt.close()
-  return fig
+  return fig  # pytype: disable=bad-return-type

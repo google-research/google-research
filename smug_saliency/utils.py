@@ -1034,6 +1034,6 @@ def visualize_saliency_map(saliency_map, title=''):
     title: str, title of the saliency map.
   """
   _verify_saliency_map_shape(saliency_map)
-  plt.imshow(saliency_map, cmap=plt.cm.gray, vmin=0, vmax=1)
+  plt.imshow(saliency_map, cmap=plt.cm.gray, vmin=0, vmax=1)  # pytype: disable=module-attr
   plt.title(title)
   remove_ticks()
