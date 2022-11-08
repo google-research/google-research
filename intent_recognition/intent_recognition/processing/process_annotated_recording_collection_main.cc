@@ -35,7 +35,7 @@
 #include "intent_recognition/processing/window_calculator.pb.h"
 #include "riegeli/bytes/fd_reader.h"
 #include "riegeli/bytes/fd_writer.h"
-#include "riegeli/bytes/reader.h"
+#include "riegeli/bytes/read_all.h"
 #include "riegeli/messages/text_parse.h"
 #include "riegeli/records/record_reader.h"
 #include "riegeli/records/record_writer.h"
