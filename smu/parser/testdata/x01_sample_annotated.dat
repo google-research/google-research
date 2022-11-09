@@ -101,9 +101,9 @@ Mode  12
 PBE0D3/6-311Gd         -56.494403
 # From spe_check_pbe0_6311gd_tmol
 PBE0/6-311Gd           -56.494382
-# From spe_check_pbe0_6311gd_tmol_mrcc
+# From spe_check_pbe0_6311gd_mrcc
 PBE0/6-311GdMRCC       -56.494401
-# From spe_check_pbe0_6311gd_tmol_orca
+# From spe_check_pbe0_6311gd_orca
 PBE0/6-311GdORCA       -56.494392
 # From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)      -56.103871

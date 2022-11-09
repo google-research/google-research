@@ -80,8 +80,8 @@ EXCITATION_HEADER = ('Excitation energies and length rep. osc. strengths at '
 PROPERTIES_LABEL_FIELDS = collections.OrderedDict([
     ['PBE0D3/6-311Gd', 'spe_std_pbe0d3_6311gd'],
     ['PBE0/6-311Gd', 'spe_check_pbe0_6311gd_tmol'],
-    ['PBE0/6-311GdMRCC', 'spe_check_pbe0_6311gd_tmol_mrcc'],
-    ['PBE0/6-311GdORCA', 'spe_check_pbe0_6311gd_tmol_orca'],
+    ['PBE0/6-311GdMRCC', 'spe_check_pbe0_6311gd_mrcc'],
+    ['PBE0/6-311GdORCA', 'spe_check_pbe0_6311gd_orca'],
     ['PBE0/6-311Gd(CAT)', 'spe_stdcat_pbe0_6311gd_tmol'],
     ['PBE0/6-311Gd(CAT)MRCC', 'spe_stdcat_pbe0_6311gd_mrcc'],
     ['PBE0/6-311Gd(CAT)ORCA', 'spe_stdcat_pbe0_6311gd_orca'],

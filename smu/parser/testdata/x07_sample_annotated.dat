@@ -353,9 +353,9 @@ Mode  42
 PBE0D3/6-311Gd        -406.522079
 # From spe_check_pbe0_6311gd_tmol
 PBE0/6-311Gd          -406.516515
-# From spe_check_pbe0_6311gd_tmol_mrcc
+# From spe_check_pbe0_6311gd_mrcc
 PBE0/6-311GdMRCC      -406.516542
-# From spe_check_pbe0_6311gd_tmol_orca
+# From spe_check_pbe0_6311gd_orca
 PBE0/6-311GdORCA      -406.516610
 # From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)     -406.208948
@@ -1143,9 +1143,9 @@ Mode  42
 PBE0D3/6-311Gd        -406.520886
 # From spe_check_pbe0_6311gd_tmol
 PBE0/6-311Gd          -406.515688
-# From spe_check_pbe0_6311gd_tmol_mrcc
+# From spe_check_pbe0_6311gd_mrcc
 PBE0/6-311GdMRCC      -406.515719
-# From spe_check_pbe0_6311gd_tmol_orca
+# From spe_check_pbe0_6311gd_orca
 PBE0/6-311GdORCA      -406.515783
 # From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)     -406.209062

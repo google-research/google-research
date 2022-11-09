@@ -221,10 +221,10 @@ molecules {
     spe_check_pbe0_6311gd_tmol {
       val: -406.516515
     }
-    spe_check_pbe0_6311gd_tmol_mrcc {
+    spe_check_pbe0_6311gd_mrcc {
       val: -406.516542
     }
-    spe_check_pbe0_6311gd_tmol_orca {
+    spe_check_pbe0_6311gd_orca {
       val: -406.51661
     }
     spe_stdcat_pbe0_6311gd_tmol {
@@ -4445,10 +4445,10 @@ molecules {
     spe_check_pbe0_6311gd_tmol {
       val: -406.515688
     }
-    spe_check_pbe0_6311gd_tmol_mrcc {
+    spe_check_pbe0_6311gd_mrcc {
       val: -406.515719
     }
-    spe_check_pbe0_6311gd_tmol_orca {
+    spe_check_pbe0_6311gd_orca {
       val: -406.515783
     }
     spe_stdcat_pbe0_6311gd_tmol {

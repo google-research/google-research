@@ -548,10 +548,10 @@ message Properties {
   ScalarMolecularProperty spe_check_pbe0_6311gd_tmol = 7
       [(availability) = COMPLETE];
   // Single point energy PBE0D3/6-311Gd computed with MRCC.
-  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_mrcc = 8
+  ScalarMolecularProperty spe_check_pbe0_6311gd_mrcc = 8
       [(availability) = COMPLETE];
   // Single point energy PBE0D3/6-311Gd computed with ORCA.
-  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_orca = 9
+  ScalarMolecularProperty spe_check_pbe0_6311gd_orca = 9
       [(availability) = COMPLETE];
   // Single point cation energy PBE0/6-311Gd(CAT) computed with Turbomole.
   ScalarMolecularProperty spe_stdcat_pbe0_6311gd_tmol = 10

@@ -219,10 +219,10 @@ prop {
   spe_check_pbe0_6311gd_tmol {
     val: -235.620086
   }
-  spe_check_pbe0_6311gd_tmol_mrcc {
+  spe_check_pbe0_6311gd_mrcc {
     val: -235.620085
   }
-  spe_check_pbe0_6311gd_tmol_orca {
+  spe_check_pbe0_6311gd_orca {
     val: -235.620186
   }
   spe_stdcat_pbe0_6311gd_tmol {

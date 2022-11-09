@@ -82,10 +82,10 @@ molecules {
     spe_check_pbe0_6311gd_tmol {
       val: -77.240381
     }
-    spe_check_pbe0_6311gd_tmol_mrcc {
+    spe_check_pbe0_6311gd_mrcc {
       val: -77.240383
     }
-    spe_check_pbe0_6311gd_tmol_orca {
+    spe_check_pbe0_6311gd_orca {
       val: -77.240406
     }
     spe_stdcat_pbe0_6311gd_tmol {

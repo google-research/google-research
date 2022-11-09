@@ -1613,8 +1613,8 @@ class CleanTextWriter:
 
   _SPE_CHECK_PAIRS = [
     ('tmol', 'spe_check_pbe0_6311gd_tmol'),
-    ('mrcc', 'spe_check_pbe0_6311gd_tmol_mrcc'),
-    ('orca', 'spe_check_pbe0_6311gd_tmol_orca'),
+    ('mrcc', 'spe_check_pbe0_6311gd_mrcc'),
+    ('orca', 'spe_check_pbe0_6311gd_orca'),
   ]
   _SPE_CATION_PAIRS = [
     ('tmol', 'spe_stdcat_pbe0_6311gd_tmol'),
