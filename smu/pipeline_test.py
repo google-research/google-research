@@ -75,7 +75,7 @@ class FunctionalTest(absltest.TestCase):
     got = pipeline.merge_duplicate_information(123000, [dup_mol, main_mol])
     self.assertEqual(got.mol_id, 123000)
     self.assertEqual(got.duplicate_of, 0)
-    self.assertEqual(got.duplicates_found, [123456])
+    self.assertEqual(got.duplicate_found, [123456])
     self.assertLen(got.ini_geo, 2)
     self.assertEqual(got.ini_geo[0].atom_positions[0].x, 1)
     self.assertEqual(got.ini_geo[1].atom_positions[0].x, 4)
@@ -92,7 +92,7 @@ class FunctionalTest(absltest.TestCase):
     got = pipeline.merge_duplicate_information(123000, [dup_mol, main_mol])
     self.assertEqual(got.mol_id, 123000)
     self.assertEqual(got.duplicate_of, 0)
-    self.assertEqual(got.duplicates_found, [456000])
+    self.assertEqual(got.duplicate_found, [456000])
     # TODO(pfr, ianwatson): implement correct copying of initial geometry
     self.assertLen(got.ini_geo, 1)
     self.assertEqual(got.ini_geo[0].atom_positions[0].x, 1)

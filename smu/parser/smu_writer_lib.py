@@ -1412,12 +1412,12 @@ class CleanTextWriter:
     out = []
     out.append('#\n')
     out.append('#duplicate_found            \n')
-    if len(molecule.duplicates_found) == 0:
+    if len(molecule.duplicate_found) == 0:
       out.append(self._fw_line([(1, 'duplicate_found'),
                                 (31, 'none'),
                                 (84, long_name)]))
     else:
-      for dup_id in sorted(molecule.duplicates_found):
+      for dup_id in sorted(molecule.duplicate_found):
         out.append(self._fw_line([(1, 'duplicate_found'),
                                   (31, get_long_mol_id(dup_id)),
                                   (84, long_name)]))
@@ -1617,9 +1617,9 @@ class CleanTextWriter:
     ('orca', 'spe_check_pbe0_6311gd_tmol_orca'),
   ]
   _SPE_CATION_PAIRS = [
-    ('tmol', 'spe_check_pbe0_6311gd_tmol_cat'),
-    ('mrcc', 'spe_check_pbe0_6311gd_tmol_cat_mrcc'),
-    ('orca', 'spe_check_pbe0_6311gd_tmol_cat_orca'),
+    ('tmol', 'spe_stdcat_pbe0_6311gd_tmol'),
+    ('mrcc', 'spe_stdcat_pbe0_6311gd_mrcc'),
+    ('orca', 'spe_stdcat_pbe0_6311gd_orca'),
   ]
   _SPE_STD_PAIRS = [
     ('hf_2sp', 'spe_std_hf_2sp'),

@@ -105,11 +105,11 @@ PBE0/6-311Gd           -77.240381
 PBE0/6-311GdMRCC       -77.240383
 # From spe_check_pbe0_6311gd_tmol_orca
 PBE0/6-311GdORCA       -77.240406
-# From spe_check_pbe0_6311gd_tmol_cat
+# From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)      -76.826347
-# From spe_check_pbe0_6311gd_tmol_cat_mrcc
+# From spe_stdcat_pbe0_6311gd_mrcc
 PBE0/6-311Gd(CAT)MRCC  -76.826349
-# From spe_check_pbe0_6311gd_tmol_cat_orca
+# From spe_stdcat_pbe0_6311gd_orca
 PBE0/6-311Gd(CAT)ORCA  -76.826369
 # From spe_std_pbe0_augpc1
 PBE0/aug-pc-1          -77.214243

@@ -224,7 +224,7 @@ def molecule_to_stat_values(molecule):
 
   yield 'num_initial_geometries', len(
       [g for g in molecule.ini_geo if g.atom_positions])
-  yield 'num_duplicates', len(molecule.duplicates_found)
+  yield 'num_duplicates', len(molecule.duplicate_found)
 
   for field in smu_utils_lib.find_zero_values(molecule):
     yield 'zero_field', field
@@ -586,7 +586,7 @@ def merge_duplicate_information(mol_id, molecules):
       raise ValueError(
           'Molecule {} should have duplicate_of {} but has {}'.format(
               mol.mol_id, mol_id, mol.duplicate_of))
-    main_molecule.duplicates_found.append(mol.mol_id)
+    main_molecule.duplicate_found.append(mol.mol_id)
     if mol_id // 1000 == mol.mol_id // 1000:
       # easy case! Bond topologies are the same, just copy over
       main_molecule.ini_geo.append(mol.ini_geo[0])

@@ -1022,7 +1022,7 @@ class MergeMoleculesTest(absltest.TestCase):
     # A real duplicate molecule wouldn't have both of these fields filled in,
     # but it's fine for the test to make sure everything is copied.
     self.duplicate_molecule.duplicate_of = 123
-    self.duplicate_molecule.duplicates_found.extend([111, 222])
+    self.duplicate_molecule.duplicate_found.extend([111, 222])
 
   def test_two_stage2(self):
     with self.assertRaises(ValueError):
@@ -1034,21 +1034,21 @@ class MergeMoleculesTest(absltest.TestCase):
 
   def test_two_duplicates(self):
     duplicate_molecule2 = copy.deepcopy(self.duplicate_molecule)
-    duplicate_molecule2.duplicates_found[:] = [333, 444]
+    duplicate_molecule2.duplicate_found[:] = [333, 444]
 
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.duplicate_molecule, duplicate_molecule2)
     self.assertIsNone(got_conflict)
     self.assertEqual(123, got_mol.duplicate_of)
-    self.assertCountEqual([111, 222, 333, 444], got_mol.duplicates_found)
+    self.assertCountEqual([111, 222, 333, 444], got_mol.duplicate_found)
 
   def test_stage2_stage1(self):
     # Add a duplicate to stage1 to make sure it is copied
-    self.stage1_molecule.duplicates_found.append(999)
+    self.stage1_molecule.duplicate_found.append(999)
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_mol.duplicates_found, [999])
+    self.assertEqual(got_mol.duplicate_found, [999])
     # Just check a random field that is in stage2 but not stage1
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
@@ -1197,7 +1197,7 @@ class MergeMoleculesTest(absltest.TestCase):
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.duplicate_molecule)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_mol.duplicates_found, [111, 222])
+    self.assertEqual(got_mol.duplicate_found, [111, 222])
     self.assertEqual(got_mol.duplicate_of, 123)
     # Just check a random field from stage2
     self.assertNotEmpty(got_mol.prop.vib_mode)
@@ -1206,7 +1206,7 @@ class MergeMoleculesTest(absltest.TestCase):
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage1_molecule, self.duplicate_molecule)
     self.assertIsNone(got_conflict)
-    self.assertEqual(got_mol.duplicates_found, [111, 222])
+    self.assertEqual(got_mol.duplicate_found, [111, 222])
     self.assertEqual(got_mol.duplicate_of, 123)
     # Just check a random field from stage1
     self.assertTrue(got_mol.prop.HasField('vib_freq'))

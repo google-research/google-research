@@ -97,13 +97,13 @@ molecules {
     spe_check_pbe0_6311gd_tmol_orca {
       val: -56.494392
     }
-    spe_check_pbe0_6311gd_tmol_cat {
+    spe_stdcat_pbe0_6311gd_tmol {
       val: -56.103871
     }
-    spe_check_pbe0_6311gd_tmol_cat_mrcc {
+    spe_stdcat_pbe0_6311gd_mrcc {
       val: -56.103869
     }
-    spe_check_pbe0_6311gd_tmol_cat_orca {
+    spe_stdcat_pbe0_6311gd_orca {
       val: -56.103882
     }
     spe_std_pbe0_augpc1 {

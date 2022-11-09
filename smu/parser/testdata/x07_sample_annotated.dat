@@ -357,11 +357,11 @@ PBE0/6-311Gd          -406.516515
 PBE0/6-311GdMRCC      -406.516542
 # From spe_check_pbe0_6311gd_tmol_orca
 PBE0/6-311GdORCA      -406.516610
-# From spe_check_pbe0_6311gd_tmol_cat
+# From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)     -406.208948
-# From spe_check_pbe0_6311gd_tmol_cat_mrcc
+# From spe_stdcat_pbe0_6311gd_mrcc
 PBE0/6-311Gd(CAT)MRCC -406.208975
-# From spe_check_pbe0_6311gd_tmol_cat_orca
+# From spe_stdcat_pbe0_6311gd_orca
 PBE0/6-311Gd(CAT)ORCA -406.209039
 # From spe_std_pbe0_augpc1
 PBE0/aug-pc-1         -406.367773
@@ -1147,11 +1147,11 @@ PBE0/6-311Gd          -406.515688
 PBE0/6-311GdMRCC      -406.515719
 # From spe_check_pbe0_6311gd_tmol_orca
 PBE0/6-311GdORCA      -406.515783
-# From spe_check_pbe0_6311gd_tmol_cat
+# From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)     -406.209062
-# From spe_check_pbe0_6311gd_tmol_cat_mrcc
+# From spe_stdcat_pbe0_6311gd_mrcc
 PBE0/6-311Gd(CAT)MRCC -406.209090
-# From spe_check_pbe0_6311gd_tmol_cat_orca
+# From spe_stdcat_pbe0_6311gd_orca
 PBE0/6-311Gd(CAT)ORCA -406.209152
 # From spe_std_pbe0_augpc1
 PBE0/aug-pc-1         -406.367850

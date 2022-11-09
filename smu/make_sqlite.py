@@ -76,10 +76,10 @@ def mutate_conformer(encoded_molecule):
     bt.ClearField('geometry_score')
 
   # The duplciates_found field is in an arbitrary order, so we sort it
-  if len(molecule.duplicates_found) > 1:
-    new_dups = sorted(molecule.duplicates_found)
-    del molecule.duplicates_found[:]
-    molecule.duplicates_found.extend(new_dups)
+  if len(molecule.duplicate_found) > 1:
+    new_dups = sorted(molecule.duplicate_found)
+    del molecule.duplicate_found[:]
+    molecule.duplicate_found.extend(new_dups)
 
   # We didn't do topology detection on a handful of topologies and left
   # The SOURCE_ITC and SOURCE_STARTING bits only set where it should really

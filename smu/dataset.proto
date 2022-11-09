@@ -554,13 +554,13 @@ message Properties {
   ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_orca = 9
       [(availability) = COMPLETE];
   // Single point cation energy PBE0/6-311Gd(CAT) computed with Turbomole.
-  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_cat = 10
+  ScalarMolecularProperty spe_stdcat_pbe0_6311gd_tmol = 10
       [(availability) = COMPLETE];
   // Single point cation energy PBE0/6-311Gd(CAT) computed with MRCC.
-  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_cat_mrcc = 11
+  ScalarMolecularProperty spe_stdcat_pbe0_6311gd_mrcc = 11
       [(availability) = COMPLETE];
   // Single point cation energy PBE0/6-311Gd(CAT) computed with ORCA.
-  ScalarMolecularProperty spe_check_pbe0_6311gd_tmol_cat_orca = 12
+  ScalarMolecularProperty spe_stdcat_pbe0_6311gd_orca = 12
       [(availability) = COMPLETE];
   // Single point energy PBE0/aug-pc-1.
   ScalarMolecularProperty spe_std_pbe0_augpc1 = 13
@@ -1056,9 +1056,9 @@ message Molecule {
   // * duplicate_of is set with the mol_id that this Molecule was
   //   discarded in favor of.
   // If this Molecule was kept over other duplicates:
-  // * duplicates_found is set with all the mol_id of the discarded Molecule.
+  // * duplicate_found is set with all the mol_id of the discarded Molecule.
   int32 duplicate_of = 5;
-  repeated int32 duplicates_found = 6;
+  repeated int32 duplicate_found = 6;
 
   // All of the calculated properties.
   Properties prop = 7;

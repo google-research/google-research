@@ -227,13 +227,13 @@ molecules {
     spe_check_pbe0_6311gd_tmol_orca {
       val: -406.51661
     }
-    spe_check_pbe0_6311gd_tmol_cat {
+    spe_stdcat_pbe0_6311gd_tmol {
       val: -406.208948
     }
-    spe_check_pbe0_6311gd_tmol_cat_mrcc {
+    spe_stdcat_pbe0_6311gd_mrcc {
       val: -406.208975
     }
-    spe_check_pbe0_6311gd_tmol_cat_orca {
+    spe_stdcat_pbe0_6311gd_orca {
       val: -406.209039
     }
     spe_std_pbe0_augpc1 {
@@ -4451,13 +4451,13 @@ molecules {
     spe_check_pbe0_6311gd_tmol_orca {
       val: -406.515783
     }
-    spe_check_pbe0_6311gd_tmol_cat {
+    spe_stdcat_pbe0_6311gd_tmol {
       val: -406.209062
     }
-    spe_check_pbe0_6311gd_tmol_cat_mrcc {
+    spe_stdcat_pbe0_6311gd_mrcc {
       val: -406.20909
     }
-    spe_check_pbe0_6311gd_tmol_cat_orca {
+    spe_stdcat_pbe0_6311gd_orca {
       val: -406.209152
     }
     spe_std_pbe0_augpc1 {

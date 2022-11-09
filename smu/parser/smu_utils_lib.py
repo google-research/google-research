@@ -1129,7 +1129,7 @@ class _MoleculeSource(enum.Enum):
 def _molecule_source(mol):
   """Determines source of given molecule."""
   if not mol.HasField('prop'):
-    if mol.duplicate_of == 0 and not mol.duplicates_found:
+    if mol.duplicate_of == 0 and not mol.duplicate_found:
       raise ValueError(
           'Unknown molecule source, no properties or duplicates: ' + str(mol))
     return _MoleculeSource.DUPLICATE
@@ -1196,7 +1196,7 @@ def merge_molecule(mol1, mol2):
     STAGE2. However, in some cases it's expected that stage2 will differ
     because of reruns in STAGE2.
   * DUPLICATE: An almost bare molecule with just duplicate_of and/or
-    duplicates_found fields
+    duplicate_found fields
 
   May modify one of the inputs.
 
@@ -1373,7 +1373,7 @@ def merge_molecule(mol1, mol2):
         mol1.duplicate_of, mol2.duplicate_of))
   # max is just to get the non-zero one
   mol2.duplicate_of = max(mol1.duplicate_of, mol2.duplicate_of)
-  mol2.duplicates_found.extend(mol1.duplicates_found)
+  mol2.duplicate_found.extend(mol1.duplicate_found)
 
   if not has_conflict:
     return mol2, None
@@ -1608,9 +1608,9 @@ _ZERO_FIELD_CHECK_SCALAR = [
     'spe_std_mp2_tzvp',
     'spe_std_mp2full_cvtz',
     'spe_check_pbe0_6311gd_tmol',
-    'spe_check_pbe0_6311gd_tmol_cat',
-    'spe_check_pbe0_6311gd_tmol_cat_mrcc',
-    'spe_check_pbe0_6311gd_tmol_cat_orca',
+    'spe_stdcat_pbe0_6311gd_tmol',
+    'spe_stdcat_pbe0_6311gd_mrcc',
+    'spe_stdcat_pbe0_6311gd_orca',
     'spe_check_pbe0_6311gd_tmol_mrcc',
     'spe_check_pbe0_6311gd_tmol_orca',
     'spe_std_pbe0_631ppgdp',

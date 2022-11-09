@@ -254,9 +254,16 @@ VALUES="""
 .value .val
 """
 
-THIS_REPLACE="${VALUES}"
-#ARGS="-i"
-ARGS=""
+FIXING_FIELDS="""
+spe_check_pbe0_6311gd_tmol_cat_mrcc spe_stdcat_pbe0_6311gd_mrcc
+spe_check_pbe0_6311gd_tmol_cat_orca spe_stdcat_pbe0_6311gd_orca
+spe_check_pbe0_6311gd_tmol_cat spe_stdcat_pbe0_6311gd_tmol
+duplicates_found duplicate_found
+"""
+
+THIS_REPLACE="${FIXING_FIELDS}"
+ARGS="-i"
+#ARGS=""
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 FILES=$(find ${SCRIPT_DIR}/.. -type f -maxdepth 4 | grep -v venv | grep -v dataset_pb2.py | grep -v rename.sh | egrep -v '\.(cc|h|pyc)$' | grep -v '~$')
