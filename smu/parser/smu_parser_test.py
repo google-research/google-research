@@ -49,6 +49,7 @@ SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
 ATOMIC_INPUT = 'x07_first_atomic2_input.inp'
+FINAL_MOL_STEM = 'final_mol'
 TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
@@ -273,6 +274,26 @@ class Atomic2InputTest(absltest.TestCase):
       molecule = copy.deepcopy(orig_molecule)
       molecule.prop.ClearField('spe_std_mp2_3')
       writer.process(molecule, 0)
+
+
+class CleanTextTest(absltest.TestCase):
+
+  def test_final_mol(self):
+    proto_fn = os.path.join(TESTDATA_PATH, FINAL_MOL_STEM + '.pbtxt')
+    clean_text_fn = os.path.join(TESTDATA_PATH, FINAL_MOL_STEM + '.txt')
+
+    smu_proto = dataset_pb2.MultipleMolecules()
+    raw_proto = '\n'.join(get_file_contents(proto_fn))
+    text_format.Parse(raw_proto, smu_proto)
+    self.assertEqual(1, len(smu_proto.molecules))
+
+    expected = get_file_contents(clean_text_fn)
+
+    writer = smu_writer_lib.CleanTextWriter()
+    got = writer.process(smu_proto.molecules[0])
+
+    self.assertEqual([l.rstrip('\n') for l in expected], got.splitlines())
+
 
 
 if __name__ == '__main__':

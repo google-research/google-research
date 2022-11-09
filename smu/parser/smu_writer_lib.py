@@ -1277,7 +1277,7 @@ class CleanTextWriter:
     out = []
     out.append('#\n')
     out.append('#mol_spec  \n')
-    topology = molecule.bond_topologies[smu_utils_lib.get_starting_bond_topology_index(molecule)]
+    topology = molecule.bond_topo[smu_utils_lib.get_starting_bond_topology_index(molecule)]
     base_vals = [(1, 'mol_spec'), (84, long_name)]
     out.append(self._fw_line(base_vals +
                              [(17, 'label'),
@@ -1423,12 +1423,12 @@ class CleanTextWriter:
                                   (84, long_name)]))
 
     out.append('#\n')
-    out.append('#duplicates_found               \n')
+    out.append('#duplicate_of               \n')
     if molecule.duplicate_of:
       dup_string = get_long_mol_id(molecule.duplicate_of)
     else:
       dup_string = 'none'
-    out.append(self._fw_line([(1, 'duplicates_found'),
+    out.append(self._fw_line([(1, 'duplicate_of'),
                               (31, dup_string),
                               (84, long_name)]))
 
@@ -1805,12 +1805,12 @@ class CleanTextWriter:
     else:
       return out;
 
-  _ATOMIC2_PAIRS = [
-    ('ereac', 'bond_separation_energy'),
-    ('eae', 'atomization_energy_excluding_zpe'),
-    ('ea0', 'atomization_energy_including_zpe'),
-    ('hf0', 'enthalpy_of_formation_0k'),
-    ('hf298', 'enthalpy_of_formation_298k'),
+  _ATOMIC2_SHORT_NAMES = [
+    'ereac',
+    'eae',
+    'ea0',
+    'hf0',
+    'hf298',
     ]
   def get_atomic2_um_block(self, molecule, long_name):
     out = []
@@ -1835,23 +1835,19 @@ class CleanTextWriter:
     # naming, I'm going to construct the field name from pieces
     for method in ['b5', 'b6', 'eccsd']:
       this_out = []
-      for short_name, field_prefix in self._ATOMIC2_PAIRS:
-        field = field_prefix + '_'
-        # HACK until I do field rnames
-        if method != 'eccsd':
-          field += 'atomic_'
-        field += method
+      for short_name in self._ATOMIC2_SHORT_NAMES:
+        field = 'at2_um_' + method + '_' + short_name
 
-        if not molecule.prop.HasField(field + '_um'):
+        if not molecule.prop.HasField(field):
           continue
 
         this_out.append(self._fw_line(base_vals +
           [(9, short_name),
            (17, method),
            self._align_dec_point(37, '{:.2f}'.format(
-             getattr(molecule.prop, field + '_um').val)),
+             getattr(molecule.prop, field).val)),
            self._align_dec_point(49, '{:.2f}'.format(
-             getattr(molecule.prop, field + '_um_ci').val)),
+             getattr(molecule.prop, field + '_unc').val)),
            ]))
 
       if this_out:
@@ -1882,12 +1878,8 @@ class CleanTextWriter:
     # naming, I'm going to construct the field name from pieces
     for method in ['b5', 'b6', 'eccsd']:
       this_out = []
-      for short_name, field_prefix in self._ATOMIC2_PAIRS:
-        field = field_prefix + '_'
-        # HACK until I do field rnames
-        if method != 'eccsd':
-          field += 'atomic_'
-        field += method
+      for short_name in self._ATOMIC2_SHORT_NAMES:
+        field = 'at2_std_' + method + '_' + short_name
 
         if not molecule.prop.HasField(field):
           continue
@@ -1906,26 +1898,26 @@ class CleanTextWriter:
 
     return out
 
-  _ORB_PAIRS = [
-    ('hf_3', 'hf_3'),
-    ('hf_4', 'hf_4'),
-    ('hf_631gd', 'hf_6_31gd'),
-    ('hf_cvtz', 'hf_cvtz'),
-    ('hf_tzvp', 'hf_tzvp'),
-    ('b3lyp_631ppgdp', 'b3lyp_6_31ppgdp'),
-    ('b3lyp_augpcs1', 'b3lyp_aug_pcs_1'),
-    ('pbe0_631ppgdp', 'pbe0_6_31ppgdp'),
-    ('pbe0_6311gd', 'pbe0_6_311gd'),
-    ('pbe0_augpc1', 'pbe0_aug_pc_1'),
-    ('pbe0_augpcs1', 'pbe0_aug_pcs_1'),
+  _ORB_SHORT_NAMES = [
+    'hf_3',
+    'hf_4',
+    'hf_631gd',
+    'hf_cvtz',
+    'hf_tzvp',
+    'b3lyp_631ppgdp',
+    'b3lyp_augpcs1',
+    'pbe0_631ppgdp',
+    'pbe0_6311gd',
+    'pbe0_augpc1',
+    'pbe0_augpcs1',
     ]
 
   def get_orb_block(self, molecule, long_name):
     out = []
 
-    for short_name, partial_field in self._ORB_PAIRS:
-      homo_field = 'homo_' + partial_field
-      lumo_field = 'lumo_' + partial_field
+    for short_name in self._ORB_SHORT_NAMES:
+      homo_field = 'orb_ehomo_' + short_name
+      lumo_field = 'orb_elumo_' + short_name
       if not molecule.prop.HasField(homo_field):
         continue
       out.append(self._fw_line([
@@ -2009,29 +2001,26 @@ class CleanTextWriter:
 
     return ['#\n'] + [self._fw_line(vals) for vals in lines_vals]
 
-  _CHARGE_PAIRS = [
-    ('esp', 'esp_fit'),
-    ('mul', 'mulliken'),
-    ('loe', 'loewdin'),
-    ('nat', 'natural_nbo'),
+  _CHARGE_ALGORITHMS = [
+    'esp',
+    'mul',
+    'loe',
+    'nat',
     ]
   def get_charge_block(self, molecule, long_name):
     out = []
 
     # TODO: probalby can remove the dup here when I rename field
-    for method_idx, (method, method_for_field) in enumerate(
-        [('pbe0_augpc1', 'pbe0_aug_pc_1'),
-         ('hf_631gd', 'hf_6_31gd')]):
+    for method_idx, method in enumerate(['pbe0_augpc1', 'hf_631gd']):
       lines_vals = [[] for _ in range(len(molecule.bond_topo[0].atom) + 1)]
       num_values_present = 0
 
-      for pos, (short_name, partial_field) in zip(self._DEC_POINT_POSITIONS,
-                                                  self._CHARGE_PAIRS):
-        field = f'partial_charges_{partial_field}_{method_for_field}'
+      for pos, alg in zip(self._DEC_POINT_POSITIONS, self._CHARGE_ALGORITHMS):
+        field = f'chg_{alg}_{method}'
         if not molecule.prop.HasField(field):
           continue
 
-        lines_vals[0].append((pos + 2, short_name))
+        lines_vals[0].append((pos + 2, alg))
         for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).val,
                                                     getattr(molecule.prop, field).prec),
                                                 start=1):
