@@ -1218,6 +1218,8 @@ class CleanTextWriter:
   def __init__(self):
     pass
 
+  _DEC_POINT_POSITIONS = [37, 49, 61, 73]
+
   def _fw_line(self, vals):
     """Create a fixed width line.
 
@@ -1611,59 +1613,47 @@ class CleanTextWriter:
 
     return out
 
-  _SPE_CHECK_PAIRS = [
-    ('tmol', 'spe_check_pbe0_6311gd_tmol'),
-    ('mrcc', 'spe_check_pbe0_6311gd_mrcc'),
-    ('orca', 'spe_check_pbe0_6311gd_orca'),
+  _SPE_TOOLS = ['tmol', 'mrcc', 'orca']
+  _SPE_STD_SHORT_NAMES = [
+    'hf_2sp',
+    'hf_2sd',
+    'hf_3psd',
+    'hf_3',
+    'hf_4',
+    'hf_34',
+    'hf_631gd',
+    'hf_tzvp',
+    'hf_cvtz',
+    'mp2_2sp',
+    'mp2_2sd',
+    'mp2_3psd',
+    'mp2_3',
+    'mp2_4',
+    'mp2_34',
+    'mp2_tzvp',
+    'mp2full_cvtz',
+    'cc2_tzvp',
+    'ccsd_2sp',
+    'ccsd_2sd',
+    'ccsd_3psd',
+    'ccsd_t_2sp',
+    'ccsd_t_2sd',
+    'b3lyp_631ppgdp',
+    'b3lyp_augpcs1',
+    'pbe0_631ppgdp',
+    'pbe0_augpc1',
+    'pbe0_augpcs1',
+    'pbe0d3_6311gd',
   ]
-  _SPE_CATION_PAIRS = [
-    ('tmol', 'spe_stdcat_pbe0_6311gd_tmol'),
-    ('mrcc', 'spe_stdcat_pbe0_6311gd_mrcc'),
-    ('orca', 'spe_stdcat_pbe0_6311gd_orca'),
-  ]
-  _SPE_STD_PAIRS = [
-    ('hf_2sp', 'spe_std_hf_2sp'),
-    ('hf_2sd', 'spe_std_hf_2sd'),
-    ('hf_3psd', 'spe_std_hf_3psd'),
-    ('hf_3', 'spe_std_hf_3'),
-    ('hf_4', 'spe_std_hf_4'),
-    ('hf_34', 'spe_std_hf_34'),
-    ('hf_631gd', 'spe_std_hf_631gd'),
-    ('hf_tzvp', 'spe_std_hf_tzvp'),
-    ('hf_cvtz', 'spe_std_hf_cvtz'),
-    ('mp2_2sp', 'spe_std_mp2_2sp'),
-    ('mp2_2sd', 'spe_std_mp2_2sd'),
-    ('mp2_3psd', 'spe_std_mp2_3psd'),
-    ('mp2_3', 'spe_std_mp2_3'),
-    ('mp2_4', 'spe_std_mp2_4'),
-    ('mp2_34', 'spe_std_mp2_34'),
-    ('mp2_tzvp', 'spe_std_mp2_tzvp'),
-    ('mp2full_cvtz', 'spe_std_mp2full_cvtz'),
-    ('cc2_tzvp', 'spe_std_cc2_tzvp'),
-    ('ccsd_2sp', 'spe_std_ccsd_2sp'),
-    ('ccsd_2sd', 'spe_std_ccsd_2sd'),
-    ('ccsd_3psd', 'spe_std_ccsd_3psd'),
-    ('ccsd_t_2sp', 'spe_std_ccsd_t_2sp'),
-    ('ccsd_t_2sd', 'spe_std_ccsd_t_2sd'),
-    ('b3lyp_631ppgdp', 'spe_std_b3lyp_631ppgdp'),
-    ('b3lyp_augpcs1', 'spe_std_b3lyp_augpcs1'),
-    ('pbe0_631ppgdp', 'spe_std_pbe0_631ppgdp'),
-    ('pbe0_augpc1', 'spe_std_pbe0_augpc1'),
-    ('pbe0_augpcs1', 'spe_std_pbe0_augpcs1'),
-    ('pbe0d3_6311gd', 'spe_std_pbe0d3_6311gd'),
-  ]
-  _SPE_COMP_PAIRS = [
-    ('b5', 'spe_comp_b5'),
-    ('b6', 'spe_comp_b6'),
-    ('eccsd', 'spe_comp_eccsd'),
-  ]
+  _SPE_COMP_SHORT_NAMES = ['b5', 'b6', 'eccsd']
 
   def get_spe_block(self, molecule, long_name):
     out = []
 
-    def process_pairs(prefix, header_vals, pairs):
+    def process_fields(prefix, header_vals, short_names, field_spec):
       this_out = []
-      for short_name, field_name in pairs:
+      for short_name in short_names:
+        field_name = field_spec.format(short_name)
         if not molecule.prop.HasField(field_name):
           continue
         val = getattr(molecule.prop, field_name).val
@@ -1677,41 +1667,46 @@ class CleanTextWriter:
         out.append(self._fw_line(header_vals))
         out.extend(this_out)
 
-    process_pairs('spe check',
-                  [(0, '#spe check'),
-                   (33, 'pbe0_6311gd'),
-                   (84, '(au)'),
-                   ],
-                  self._SPE_CHECK_PAIRS)
-    process_pairs('spe cation',
-                  [(0, '#spe cation'),
-                   (33, 'pbe0_6311gd'),
-                   (84, '(au)'),
-                   ],
-                  self._SPE_CATION_PAIRS)
-    process_pairs('spe std',
-                  [(0, '#spe std'),
-                   (84, '(au)'),
-                   ],
-                  self._SPE_STD_PAIRS)
-    process_pairs('spe comp',
-                  [(0, '#spe comp'),
-                   (84, '(au)'),
-                   ],
-                  self._SPE_COMP_PAIRS)
+    process_fields('spe check',
+                   [(0, '#spe check'),
+                    (33, 'pbe0_6311gd'),
+                    (84, '(au)'),
+                    ],
+                   self._SPE_TOOLS,
+                   'spe_check_pbe0_6311gd_{}')
+    process_fields('spe cation',
+                   [(0, '#spe cation'),
+                    (33, 'pbe0_6311gd'),
+                    (84, '(au)'),
+                    ],
+                   self._SPE_TOOLS,
+                   'spe_stdcat_pbe0_6311gd_{}')
+    process_fields('spe std',
+                   [(0, '#spe std'),
+                    (84, '(au)'),
+                    ],
+                   self._SPE_STD_SHORT_NAMES,
+                   'spe_std_{}')
+    process_fields('spe comp',
+                   [(0, '#spe comp'),
+                    (84, '(au)'),
+                    ],
+                   self._SPE_COMP_SHORT_NAMES,
+                   'spe_comp_{}')
 
     return out
 
-  _DIAGNOSTICS_PAIRS = [
-    ('d1_2sp', 'wf_diag_d1_2sp'),
-    ('t1_2sp', 'wf_diag_t1_2sp'),
-    ('t1_2sd', 'wf_diag_t1_2sd'),
-    ('t1_3psd', 'wf_diag_t1_3psd'),
+  _DIAGNOSTICS_SHORT_NAMES = [
+    'd1_2sp',
+    't1_2sp',
+    't1_2sd',
+    't1_3psd',
     ]
   def get_diagnostics_block(self, molecule, long_name):
     out = []
 
-    for short_name, field_name in self._DIAGNOSTICS_PAIRS:
+    for short_name in self._DIAGNOSTICS_SHORT_NAMES:
+      field_name = 'wf_diag_' + short_name
       if not molecule.prop.HasField(field_name):
         continue
       val = getattr(molecule.prop, field_name).val
@@ -1831,8 +1826,6 @@ class CleanTextWriter:
          self._align_dec_point(49, f'{molecule.prop.at2_um_zpe_unc.val:.2f}'),
          ]))
 
-    # This might be a terrible idea, but since there are so many fields with regular
-    # naming, I'm going to construct the field name from pieces
     for method in ['b5', 'b6', 'eccsd']:
       this_out = []
       for short_name in self._ATOMIC2_SHORT_NAMES:
@@ -1962,27 +1955,27 @@ class CleanTextWriter:
 
     return out
 
-  _NMR_FIELDS = [
-    ('b3lyp_', '631ppgdp', 'nmr_b3lyp_631ppgdp'),
-    ('b3lyp_', 'augpcs1', 'nmr_b3lyp_augpcs1'),
-    ('pbe0_', '631ppgdp', 'nmr_pbe0_631ppgdp'),
-    ('pbe0_', 'augpcs1', 'nmr_pbe0_augpcs1'),
+  _NMR_COMPONENTS = [
+    ('b3lyp', '631ppgdp'),
+    ('b3lyp', 'augpcs1'),
+    ('pbe0', '631ppgdp'),
+    ('pbe0', 'augpcs1'),
     ]
-  _DEC_POINT_POSITIONS = [37, 49, 61, 73]
 
   def get_nmr_block(self, molecule, long_name):
     # This block is annoyingly differnt than the others because
     # * the header row is two lines long
     # * Values are not in a fixed place, but migrate based on what is available.
-    # So in this one, we will build up the vals and make all teh strings at the ends
+    # So in this one, we will build up the vals and make all the strings at the ends
     lines_vals = [[] for _ in range(len(molecule.bond_topo[0].atom) + 2)]
     num_values_present = 0
-    for line0_str, line1_str, field in self._NMR_FIELDS:
+    for functional, basis_set in self._NMR_COMPONENTS:
+      field = f'nmr_{functional}_{basis_set}'
       if not molecule.prop.HasField(field):
         continue;
       pos = self._DEC_POINT_POSITIONS[num_values_present]
-      lines_vals[0].append((pos - 5, f'{line0_str:>8s}'))
-      lines_vals[1].append((pos - 5, f'{line1_str:>8s}'))
+      lines_vals[0].append((pos - 5, f'{functional:>7s}_'))
+      lines_vals[1].append((pos - 5, f'{basis_set:>8s}'))
       for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).val,
                                                   getattr(molecule.prop, field).prec),
                                               start=2):
