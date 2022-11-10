@@ -15,7 +15,8 @@
 
 """One Transformer layer, in hard xmap."""
 
-from typing import Sequence, Tuple, Enum
+from enum import Enum  # pylint: disable = g-importing-member
+from typing import Sequence, Tuple
 
 import jax
 from jax import lax

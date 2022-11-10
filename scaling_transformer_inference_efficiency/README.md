@@ -14,9 +14,9 @@ python3 run_benchmark.py
 
 This generates the latency and MFU numbers for the PALM and MT-NLG implementations in the following plot from the paper. The FastertTransformer baseline numbers are drawn from NVIDIA's repo.
 
-<p align="center">
+<!-- <p align="center">
 <img src="./assets/fasterformer_comparison_v2.pdf" alt="fastertransformer_comparison" width="600"/>
-</p>
+</p> -->
 
 
 ## To generate text
