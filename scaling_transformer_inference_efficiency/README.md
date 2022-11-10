@@ -1,7 +1,7 @@
-# Efficiently scaling transformer inference
+# Scaling Transformer Inference Efficiency
 This repo includes
 
-* Benchmarks to replicate the results in the paper
+* Benchmarks to replicate the results in the paper - [Scaling Transformer Inference Efficiency](http://arxiv.org/abs/2211.05102)
 * A complete implementation of text generation with a transformer using the techniques in the paper
 
 ## To replicate the head-to-head benchmarks from the paper at 540B scale
