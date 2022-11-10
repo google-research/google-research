@@ -266,6 +266,9 @@ class ApplyCompression(object):
     if compression_op_spec.compression_option in COMP_OP_MAP:
       c = COMP_OP_MAP[compression_op_spec.compression_option](
           scope=scope, spec=compression_op_spec, global_step=self._global_step)
+      if isinstance(c, comp_op.CompressionOp):
+        self.last_alpha_update_step = getattr(
+            c, '_last_alpha_update_step', None)
     else:
       c = None
 

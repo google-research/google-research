@@ -413,6 +413,13 @@ class PruningOp(object):
                                                compression_op_spec)
 
   @classmethod
+  def GetLastAlphaUpdateStep(cls):
+    if not cls._pruning_obj:
+      raise NotImplementedError()
+    else:
+      return getattr(cls._pruning_obj, 'last_alpha_update_step', None)
+
+  @classmethod
   def GetMixResult(cls, theta, concat, lstmobj):  # pylint:disable=invalid-name
     """Compute the mix result.
 
