@@ -31,6 +31,7 @@
 from dataclasses import dataclass
 import difflib
 import glob
+import math
 import os
 import re
 
@@ -65,6 +66,88 @@ class MatchResult:
       this.cnt_complete + other.cnt_complete,
       this.cnt_standard_error + other.cnt_standard_error,
       this.cnt_complete_error + other.cnt_complete_error)
+
+
+
+class SmuLineForDiff(str):
+
+  def __hash__(self):
+    return super().__hash__()
+
+  def _tokenize(self):
+    out = []
+    parts = self.__str__().split()
+    curr_idx = 0
+    for part in parts:
+      loc = self.__str__().index(part, curr_idx)
+      out.append((loc, part))
+      curr_idx = loc + len(part)
+    return out
+
+  def _num_sig(self, float_str):
+    try:
+      return len(float_str) - float_str.index('.') - 1
+    except ValueError:
+      return 0
+
+  def __eq__(self, other):
+    if not isinstance(other, SmuLineForDiff):
+      return False
+
+    if self.__str__() == other.__str__():
+      return True
+
+    if len(self.__str__()) != len(other.__str__()):
+      return False
+
+    tokens = self._tokenize()
+    other_tokens = other._tokenize()
+
+    if len(tokens) != len(other_tokens):
+      return False
+
+    for tok, other_tok in zip(tokens, other_tokens):
+      try:
+        val = float(tok[1])
+        other_val = float(other_tok[1])
+
+        # We have floating point values! First let's check for the -0 case
+        if val == other_val:
+          if val != 0.0 and tok[0] == other_tok[0]:
+            continue
+          # They aren't in the same position, let's check the -0 case
+          new_tok_pos = tok[0]
+          new_other_tok_pos = other_tok[0]
+          if math.copysign(1.0, val) == -1.0:
+            new_tok_pos += 1
+          if math.copysign(1.0, other_val) == -1.0:
+            new_other_tok_pos += 1
+          if new_tok_pos != new_other_tok_pos:
+            return False
+        else:
+          # Note that we are not going to handle the case where the adjustment in the
+          # last digit causes the string tobe longer.
+          if tok[0] != other_tok[0] or len(tok[1]) != len(other_tok[1]):
+            return False
+
+          num_sig = self._num_sig(tok[1])
+          if num_sig != self._num_sig(other_tok[1]):
+            return False
+          format_spec = '{:.' + str(num_sig) + 'f}'
+          delta = 10**(-num_sig)
+          if (format_spec.format(val + delta) == format_spec.format(other_val) or
+              format_spec.format(val - delta) == format_spec,format(other_val)):
+            continue
+
+          return False
+
+      except ValueError:
+        # These are not floating point, just check equality.
+        if tok != other_tok:
+          return False
+
+
+    return True
 
 
 SEPARATOR_LINE = "#==============================================================================="
@@ -138,8 +221,8 @@ def process_one_expected(samples_fn, db, is_standard):
 
       out_file.write(actual)
 
-      diff_lines = difflib.unified_diff(expected[expected_idx],
-                                        actual.splitlines(keepends=True),
+      diff_lines = difflib.unified_diff([SmuLineForDiff(s) for s in expected[expected_idx]],
+                                        [SmuLineForDiff(s) for s in actual.splitlines(keepends=True)],
                                         fromfile='expected',
                                         tofile='actual')
       diff = False
