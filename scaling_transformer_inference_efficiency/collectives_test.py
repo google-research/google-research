@@ -15,6 +15,7 @@
 
 """Tests for collective einsum implementations."""
 
+import functools
 from absl.testing import absltest
 import jax
 from jax.experimental.maps import Mesh
@@ -27,6 +28,8 @@ from scaling_transformer_inference_efficiency import collectives
 X_SIZE = 4
 NUM_LAYERS = 2
 LAYER = 1
+
+# pylint:disable = invalid-name
 
 
 def mesh4():
@@ -75,6 +78,453 @@ class CollectivesTest(absltest.TestCase):
           axis_resources={'x': 'x'})(lhs, rhs)
       y = jax.device_get(y)
       np.testing.assert_allclose(expected, y)
+
+  def test_allgather_matmul_one_way(self):
+
+    L = 1  # num-layers
+    B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
+    X, Y, Z = 4, 1, 1  # slice sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    lhs = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
+    rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
+    lhs = lhs.reshape((X, Y, Z, B, T, H//(X*Y*Z), D))
+    rhs = rhs.reshape((X, Y, Z, L, H//(Y*Z), D, E//X))
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+    def matmul_allgather_no_collective(lhs, rhs):
+      return collectives.matmul_allgather_no_collective(
+          'bthd,hde->bte',
+          lhs, rhs,
+          (2, None),
+          'x',
+          layer=0,
+          layer_axis=0)
+
+    with mesh:
+      expected = matmul_allgather_no_collective(lhs, rhs)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def async_matmul_allgather_one_way(lhs, rhs):
+      return collectives.async_matmul_allgather_one_way(
+          'bthd,hde->bte',
+          lhs, rhs,
+          gather_dimension=(0, None),
+          axis_name='x',
+          layer=0,
+          layer_axis=0)
+
+    with mesh:
+      result = async_matmul_allgather_one_way(lhs, rhs)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
+
+  def async_matmul_allgather_throughput(self):
+    L = 1  # num-layers
+    B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
+    X, Y, Z = 4, 1, 1  # slice sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    lhs = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
+    rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
+    lhs = lhs.reshape((X, Y, Z, B, T, H//(X*Y*Z), D))
+    rhs = rhs.reshape((X, Y, Z, L, H//(Y*Z), D, E//X))
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+    def matmul_allgather_no_collective(lhs, rhs):
+      return collectives.matmul_allgather_no_collective(
+          'bthd,hde->bte',
+          lhs, rhs,
+          (2, None),
+          'x',
+          layer=0,
+          layer_axis=0)
+
+    with mesh:
+      expected = matmul_allgather_no_collective(lhs, rhs)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def async_matmul_allgather_throughput(lhs, rhs):
+      return collectives.async_matmul_allgather_throughput(
+          'bthd,hde->bte', lhs, rhs,
+          (0, None),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=2)
+
+    preshuffled_rhs = collectives.prepare_allgather_weights(
+        rhs, shuffle_axis=4, shard_axis=0, mode='throughput')
+
+    with mesh:
+      result = async_matmul_allgather_throughput(lhs, preshuffled_rhs)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
+
+  def test_async_matmul_allgather_latency(self):
+    L = 1  # num-layers
+    B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
+    X, Y, Z = 4, 1, 1  # slice sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    lhs = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
+    rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
+    lhs = lhs.reshape((X, Y, Z, B, T, H//(X*Y*Z), D))
+    rhs = rhs.reshape((X, Y, Z, L, H//(Y*Z), D, E//X))
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+    def matmul_allgather_no_collective(lhs, rhs):
+      return collectives.matmul_allgather_no_collective(
+          'bthd,hde->bte',
+          lhs, rhs,
+          (2, None),
+          'x',
+          layer=0,
+          layer_axis=0)
+
+    with mesh:
+      expected = matmul_allgather_no_collective(lhs, rhs)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def async_matmul_allgather_latency(lhs, rhs):
+      return collectives.async_matmul_allgather_latency(
+          'bthd,hde->bte',
+          lhs, rhs,
+          (0, None),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=2)
+
+    preshuffled_rhs = collectives.prepare_allgather_weights(
+        rhs, shuffle_axis=4, shard_axis=0, mode='latency')
+
+    with mesh:
+      result = async_matmul_allgather_latency(lhs, preshuffled_rhs)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
+
+  def test_matmul_reducescatter_oneway(self):
+    L = 1  # num-layers
+    B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
+    X, Y, Z = 4, 1, 1  # slice sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    lhs = jax.random.normal(key0, (B, T, D), dtype=jnp.float32)
+    rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
+    lhs = lhs.reshape((X, B, T, D // X))
+    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D // X, E))
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def matmul_reducescatter_no_collective(lhs, rhs):
+      return collectives.matmul_reducescatter_no_collective(
+          'btd,hde->bthe',
+          lhs, rhs,
+          (None, 2),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=None)
+
+    with mesh:
+      expected = matmul_reducescatter_no_collective(lhs, rhs)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def matmul_reducescatter_oneway(lhs, rhs):
+      return collectives.matmul_reducescatter_oneway(
+          'btd,hde->bthe',
+          lhs, rhs,
+          (0, None),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=None)
+
+    with mesh:
+      result = matmul_reducescatter_oneway(lhs, rhs)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
+
+  def test_matmul_reducescatter_bidirectional_throughput(self):
+    L = 1  # num-layers
+    B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
+    X, Y, Z = 4, 1, 1  # slice sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    lhs = jax.random.normal(key0, (B, T, D), dtype=jnp.float32)
+    rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
+    lhs = lhs.reshape((X, B, T, D // X))
+    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D // X, E))
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def matmul_reducescatter_no_collective(lhs, rhs):
+      return collectives.matmul_reducescatter_no_collective(
+          'btd,hde->bthe',
+          lhs, rhs,
+          (None, 2),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=None)
+
+    with mesh:
+      expected = matmul_reducescatter_no_collective(lhs, rhs)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def matmul_reducescatter_bidirectional_throughput(lhs, rhs):
+      return collectives.matmul_reducescatter_bidirectional_throughput(
+          'btd,hde->bthe',
+          lhs, rhs,
+          (0, 2),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=3)
+
+    preshuffled_rhs = (
+        collectives.preshuffle_for_reducescatter_bidirectional_throughput(
+            rhs, 0, 4, 6))
+    with mesh:
+      result = matmul_reducescatter_bidirectional_throughput(
+          lhs, preshuffled_rhs)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
+
+  def test_matmul_reducescatter_bidirectional_latency(self):
+    L = 1  # num-layers
+    B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
+    X, Y, Z = 4, 1, 1  # slice sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    lhs = jax.random.normal(key0, (B, T, D), dtype=jnp.float32)
+    rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
+    lhs = lhs.reshape((X, B, T, D // X))
+    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D // X, E))
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def matmul_reducescatter_no_collective(lhs, rhs):
+      return collectives.matmul_reducescatter_no_collective(
+          'btd,hde->bthe',
+          lhs, rhs,
+          (None, 2),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=None)
+
+    with mesh:
+      expected = matmul_reducescatter_no_collective(lhs, rhs)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
+    def matmul_reducescatter_bidirectional_latency(lhs, rhs):
+      return collectives.matmul_reducescatter_bidirectional_latency(
+          'btd,hde->bthe',
+          lhs, rhs,
+          (0, 2),
+          'x',
+          layer=0,
+          layer_axis=0,
+          subsplit_axis=3)
+
+    preshuffled_rhs = (
+        collectives.preshuffle_for_reducescatter_bidirectional_latency(
+            rhs, 0, 4))
+    with mesh:
+      result = matmul_reducescatter_bidirectional_latency(
+          lhs, preshuffled_rhs)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
+
+  def test_matmul_collective_weights_gather_q_wi(self):
+    # L = 1  # num-layers
+    # B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
+    B, T, E, H, D = 4, 1, 64, 16, 64  # dim sizes
+    X, Y, Z = 1, 2, 2  # slice sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    x_norm = jax.random.normal(key0, (B, T, E), dtype=jnp.float32)
+    q_wi = jax.random.normal(key1, (H, E, D), dtype=jnp.float32)
+    x_norm = x_norm.reshape((X, Y, Z, B//(X*Y*Z), T, D))
+    q_wi = q_wi.reshape((X, Y, Z, H // (Y * Z), E // X, D))
+
+    # [batch.XYZ, t, e] @ [heads.YZ, e.X, q_wi_per_head]
+    #  -> [batch.XYZ, t, h, q_wi_per_head]
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+    def baseline_q_wi(x_norm, q_wi):
+      gathered_weights = jax.lax.all_gather(
+          q_wi, 'x', axis=1, tiled=True)
+      gathered_weights = jax.lax.all_gather(
+          gathered_weights, ('y', 'z'), axis=0, tiled=True)
+      q_wi = jnp.einsum('bte,hed->bthd', x_norm, gathered_weights)
+      return q_wi
+
+    with mesh:
+      expected = baseline_q_wi(x_norm, q_wi)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+    def test_q_wi(x_norm, q_wi):
+      y = collectives.matmul_collective_weights_gather_q_wi(
+          'bte,hed->bthd',
+          x_norm,
+          q_wi,
+          scatter_dimension=(2, None),
+          axis_name='x',
+          layer=0,  # no-op!
+          subsplit_axis=3  # no-op!
+      )
+      return y
+
+    with mesh:
+      result = test_q_wi(x_norm, q_wi)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
+
+  def test_matmul_collective_weights_gather_o_wo(self):
+    X, Y, Z = 1, 2, 2  # slice sizes
+    B, T, E, H, D = 4, 1, 64, 16, 64  # dim sizes
+    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
+    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
+    x_norm = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
+    o_wo = jax.random.normal(key1, (H, D, E), dtype=jnp.float32)
+    x_norm = x_norm.reshape((X, Y, Z, B//(X*Y*Z), T, H, D))
+    o_wo = o_wo.reshape((X, Y, Z, H // (Y * Z), D, E // X))
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+    def baseline_o_wo(x_norm, o_wo):
+      gathered_weights = jax.lax.all_gather(
+          o_wo, 'x', axis=2, tiled=True)
+      gathered_weights = jax.lax.all_gather(
+          gathered_weights, ('y', 'z'), axis=0, tiled=True)
+      o_wo = jnp.einsum('bthd,hde->bte', x_norm, gathered_weights)
+      return o_wo
+
+    with mesh:
+      expected = baseline_o_wo(x_norm, o_wo)
+
+    @functools.partial(
+        xmap,
+        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
+        out_axes=['x', 'y', 'z', Ellipsis],
+        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+    def test_o_wo(x_norm, o_wo):
+      result = collectives.matmul_collective_weights_gather_o_wo(
+          'bthd,hde->bte',
+          x_norm,
+          o_wo,
+          scatter_dimension=(2, None),
+          axis_name='x',  # no-op!
+          layer=0,  # no-op!
+          subsplit_axis=3)  # no-op!
+      return result
+
+    with mesh:
+      result = test_o_wo(x_norm, o_wo)
+
+    np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
 
 
 if __name__ == '__main__':
