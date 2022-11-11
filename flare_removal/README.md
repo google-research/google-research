@@ -16,7 +16,10 @@ This repository contains code that accompanies the following paper:
 
 ## Announcements
 
--   **1/30/2022:** It has been brought to our attention that there might be an
+-   We have made a small fix to the VGG loss in an attempt to fix the issue 
+    below. We thank the reader for reporting this issue.
+
+-   ~~**1/30/2022:** It has been brought to our attention that there might be an
     issue with the training code that causes the trained model to perform worse
     than what we show on the
     [test images](https://drive.google.com/corp/drive/folders/1_gi3W8fOEusfmglJdiKCUwk3IA7B2jfQ).
@@ -25,7 +28,7 @@ This repository contains code that accompanies the following paper:
     patch to this repository as soon as possible. The issue does not affect the
     testing script (`remove_flare.py`). We can also confirm that our published
     results (both quantitative and qualitative) are accurate and reproducible
-    using an older (internal) version of the code.
+    using an older (internal) version of the code.~~
 
 ## Dataset
 

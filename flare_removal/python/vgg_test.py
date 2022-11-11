@@ -22,11 +22,6 @@ from flare_removal.python import vgg
 
 class Vgg19Test(tf.test.TestCase):
 
-  def test_tap_out_layers_populated(self):
-    vgg_19 = vgg.Vgg19(
-        tap_out_layers=['block1_conv2', 'block2_pool'], weights=None)
-    self.assertAllEqual(vgg_19.tap_out_layers, ['block1_conv2', 'block2_pool'])
-
   def test_duplicate_layers(self):
     with self.assertRaises(ValueError):
       vgg.Vgg19(tap_out_layers=['block1_conv1', 'block1_conv1'], weights=None)
@@ -37,13 +32,13 @@ class Vgg19Test(tf.test.TestCase):
 
   def test_output_shape(self):
     vgg_19 = vgg.Vgg19(
-        tap_out_layers=['block1_conv2', 'block4_conv2', 'block5_pool'],
+        tap_out_layers=['block1_conv2', 'block4_conv2', 'block5_conv2'],
         weights=None)
     images = tf.ones((4, 384, 512, 3)) * 0.5
     features = vgg_19(images)
     self.assertAllEqual(features[0].shape, [4, 384, 512, 64])
     self.assertAllEqual(features[1].shape, [4, 48, 64, 512])
-    self.assertAllEqual(features[2].shape, [4, 12, 16, 512])
+    self.assertAllEqual(features[2].shape, [4, 24, 32, 512])
 
 
 class IdentityInitializerTest(tf.test.TestCase):

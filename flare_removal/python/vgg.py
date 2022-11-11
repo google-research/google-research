@@ -15,7 +15,6 @@
 
 """Wrappers and extensions for a pre-trained VGG-19 network."""
 
-import collections
 from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -23,7 +22,10 @@ import tensorflow as tf
 
 
 class Vgg19(tf.keras.Model):
-  """A pre-trained VGG-19 network with configurable tap-outs.
+  """A modified VGG-19 network with configurable tap-outs.
+
+  The network is modified such that all max pooling are replaced by average
+  pooling.
 
   Supported layers and their output shapes are:
   - block1_conv1 .. 2: [B,    H,    W,  64]
@@ -37,16 +39,13 @@ class Vgg19(tf.keras.Model):
   - block5_conv1 .. 4: [B, H/16, W/16, 512]
   - block5_pool:       [B, H/32, W/32, 512]
   where [B, H, W, 3] is the batched input image tensor.
-
-  Attributes:
-    tap_out_layers: A list of names of the layers configured for tap-out.
   """
 
   def __init__(self,
                tap_out_layers,
                trainable = False,
                weights = 'imagenet'):
-    """Initializes a pre-trained VGG-19 network.
+    """Initializes a modified VGG-19 network, with optional pre-trained weights.
 
     Args:
       tap_out_layers: Names of the layers used as tap-out points. The output
@@ -66,24 +65,22 @@ class Vgg19(tf.keras.Model):
 
     # Load pre-trained weights.
     model = tf.keras.applications.VGG19(include_top=False, weights=weights)
+
+    # Replace max pooling by average pooling according to the following paper:
+    #   Zhang et al., Single Image Reflection Removal with Perceptual Losses,
+    #   CVPR 2018.
+    model = self._replace_max_by_average_pool(model)
     model.trainable = trainable
+
+    # Configure tap-out layers. Note that we need `layer.get_output_at(1)` below
+    # to use the modified graph (at node 1) with average pooling. The
+    # `layer.output` attribute will default to node 0, which is the unmodified
+    # model.
     invalid_layers = set(tap_out_layers) - set(l.name for l in model.layers)
     if invalid_layers:
       raise ValueError(f'Unrecognized layers: {invalid_layers}')
-    self.tap_out_layers = tap_out_layers
-
-    # Divide the feed-forward network into a series of segments, each of which
-    # ends with a requested layer.
-    # Implementation note: the default dictionary (dict) keeps insertion order
-    # as of Python 3.7, making it equivalent to OrderedDict. However, we still
-    # use OrderedDict here for greater compatibility and readability.
-    self._ordered_segments = collections.OrderedDict()
-    segment = tf.keras.Sequential()
-    for layer in model.layers:
-      segment.add(layer)
-      if layer.name in tap_out_layers:
-        self._ordered_segments[layer.name] = segment
-        segment = tf.keras.Sequential()
+    tap_outs = [model.get_layer(l).get_output_at(1) for l in tap_out_layers]
+    self._model = tf.keras.Model(inputs=model.inputs, outputs=tap_outs)
 
   def call(self, images, **kwargs):
     """Invokes the model on batched images.
@@ -96,15 +93,30 @@ class Vgg19(tf.keras.Model):
       Output tensors of the tap-out layers, in the same order as
       `self.tap_out_layers`.
     """
-    features = {}
     # Scale from [0, 1] to [0, 255], convert to BGR channel order, and subtract
     # channel means.
     x = tf.keras.applications.vgg19.preprocess_input(images * 255.0)
-    for layer, segment in self._ordered_segments.items():
-      x = segment(x)
-      features[layer] = x
-    # Reorder according to given `tap_out_layers`.
-    return [features[layer] for layer in self.tap_out_layers]
+    return self._model(x)
+
+  @staticmethod
+  def _replace_max_by_average_pool(model):
+    """Replaces MaxPooling2D layers in a model with AveragePooling2D."""
+    input_layer, *other_layers = model.layers
+    if not isinstance(input_layer, tf.keras.layers.InputLayer):
+      raise ValueError('The first layer should be InputLayer, but is:',
+                       input_layer)
+    x = input_layer.output
+    for layer in other_layers:
+      if isinstance(layer, tf.keras.layers.MaxPooling2D):
+        layer = tf.keras.layers.AveragePooling2D(
+            pool_size=layer.pool_size,
+            strides=layer.strides,
+            padding=layer.padding,
+            data_format=layer.data_format,
+            name=layer.name,
+        )
+      x = layer(x)
+    return tf.keras.models.Model(inputs=input_layer.input, outputs=x)
 
 
 class IdentityInitializer(tf.keras.initializers.Initializer):

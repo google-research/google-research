@@ -47,7 +47,10 @@ def get_loss(name):
   elif name in ['percep', 'perceptual']:
     loss_fn = CompositeLoss()
     loss_fn.add_loss(PerceptualLoss(), weight=1.0)
-    loss_fn.add_loss('L1', weight=1.0)
+    # Note that `PerceptualLoss` uses [0, 255] range internally. Since our API
+    # assumes [0, 1] range for input images, we actually need to scale the L1
+    # loss by 255 to achieve a true 1:1 weighting.
+    loss_fn.add_loss('L1', weight=255.0)
     return loss_fn
   else:
     raise ValueError(f'Unrecognized loss function name: {name}')
