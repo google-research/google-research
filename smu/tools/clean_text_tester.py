@@ -131,12 +131,12 @@ class SmuLineForDiff(str):
             return False
 
           num_sig = self._num_sig(tok[1])
-          if num_sig != self._num_sig(other_tok[1]):
+          if num_sig == 0 or num_sig != self._num_sig(other_tok[1]):
             return False
           format_spec = '{:.' + str(num_sig) + 'f}'
           delta = 10**(-num_sig)
           if (format_spec.format(val + delta) == format_spec.format(other_val) or
-              format_spec.format(val - delta) == format_spec,format(other_val)):
+              format_spec.format(val - delta) == format_spec.format(other_val)):
             continue
 
           return False
@@ -146,9 +146,10 @@ class SmuLineForDiff(str):
         if tok != other_tok:
           return False
 
-
     return True
 
+  def __ne__(self, other):
+    return not self.__eq__(other)
 
 SEPARATOR_LINE = "#==============================================================================="
 
@@ -221,10 +222,11 @@ def process_one_expected(samples_fn, db, is_standard):
 
       out_file.write(actual)
 
-      diff_lines = difflib.unified_diff([SmuLineForDiff(s) for s in expected[expected_idx]],
-                                        [SmuLineForDiff(s) for s in actual.splitlines(keepends=True)],
-                                        fromfile='expected',
-                                        tofile='actual')
+      diff_lines = list(difflib.unified_diff(
+        [SmuLineForDiff(s) for s in expected[expected_idx]],
+        [SmuLineForDiff(s) for s in actual.splitlines(keepends=True)],
+        fromfile='expected',
+        tofile='actual'))
       diff = False
       for line in diff_lines:
         diff = True
