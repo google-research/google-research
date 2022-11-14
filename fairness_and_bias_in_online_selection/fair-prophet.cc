@@ -14,6 +14,8 @@
 
 #include "fair-prophet.h"
 
+#include <functional>
+
 namespace fair_secretary {
 
 using std::vector;
