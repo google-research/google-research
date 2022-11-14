@@ -22,12 +22,14 @@ from those observed during fine-tuning.
 
 👉 Consider submitting to the
 **[XTREME-R leaderboard](https://sites.research.google/xtremer)**. The XTREME-R
-repository includes code for getting started with training and evaluating a
-baseline model in PyTorch.
+[repository](https://github.com/google-research/xtreme) includes code for
+getting started with training and evaluating a baseline model in PyTorch.
 
 👉 Please cite this paper if you use the data/code in your work: *[XTREME-R:
 Towards More Challenging and Nuanced Multilingual Evaluation (Ruder et al.,
 2021)](https://aclanthology.org/2021.emnlp-main.802.pdf)*.
+
+>> _**NOTE:** New evaluation results on Mewsli-X are **not** directly comparable to those reported in the paper because the dataset required further updates, as detailed [below](#updated-dataset). This does not affect the overall findings of the paper._
 
 ```
 @inproceedings{ruder-etal-2021-xtreme,
@@ -470,6 +472,58 @@ position   | 0-indexed starting position of the mention in cleaned article text,
 length     | Length of the mention, in Unicode characters.
 entity_qid | WikiData QID of the mentioned entity.
 url        | Original hyperlink taken as evidence for an entity mention.
+
+## Updated Dataset
+
+>>_**NOTE:** New evaluation results on Mewsli-X are **not** directly comparable to those reported in the paper because the dataset required further updates. This does not affect the overall findings of the paper._
+
+While preparing the dataset for release, we found previously undetected quality
+issues in the version that was used in the experiments for the XTREME-R paper.
+
+For Mewsli-X evaluations to serve as a useful guide for research, we opted to
+fix the issues by re-extracting and refiltering the dataset, accepting that new
+results would not be directly comparable to the published numbers.
+
+The improvements include:
+- preserving the original text (rather than using legacy pre-tokenization);
+- mitigating artefacts from imperfect sentence breaking: the updated version
+  provides improved annotations that rely on an in-house sentence breaking model
+  or [Spacy](https://spacy.io/), depending on the language and based on manual
+  quality assessments;
+- fully deduplicating entity descriptions in the candidate set (whereas the old
+  version had a few entities with the same description);
+- more extensive filtering heuristics to remove lists and tables, and to exclude
+  entity mentions appearing in WikiNews
+  [datelines](https://en.wikipedia.org/wiki/Dateline).
+- more naturally distributed fine-tuning data, by allowing overlap between the
+  _Wikipedia examples_ and the candidate set. (In the old
+  version, these were defined as disjoint, but we found it heavily biased the
+  Wikipedia examples toward rare entities while excluding the majority of common
+  entities.) Note that the _WikiNews queries_ remain disjoint from the Wikipedia
+  training examples in terms of entity IDs.
+
+
+### Official Mewsli-X Baselines
+
+The following table has the official evaluation results on the released dataset.
+Please see the [XTREME-R codebase](https://github.com/google-research/xtreme)
+for evaluation code and scripts for fine-tuning PyTorch implementations of mBERT and XLM-Roberta.
+
+|  | **mBERT** |  | **XLM-R Large** |  |
+|:---:|:---:|:---:|:---:|:---:|
+| **Language** | **_dev_** | **_test_** | **_dev_** | **_test_** |
+| **ar** | 14.00 | 18.46 | 29.96 | 34.46 |
+| **de** | 66.32 | 63.97 | 72.70 | 71.42 |
+| **en** | 59.27 | 55.21 | 66.97 | 62.67 |
+| **es** | 57.01 | 62.33 | 63.77 | 67.39 |
+| **fa** | 9.84 | 13.22 | 26.98 | 33.91 |
+| **ja** | 47.37 | 48.63 | 50.78 | 52.99 |
+| **pl** | 57.62 | 57.50 | 70.89 | 66.83 |
+| **ro** | 40.83 | 37.74 | 49.88 | 46.56 |
+| **ta** | 7.24 | 5.06 | 26.02 | 24.37 |
+| **tr** | 51.01 | 50.17 | 59.63 | 59.92 |
+| **uk** | 38.74 | 43.61 | 51.32 | 57.05 |
+| **_Macro-average_** | **40.84** | **41.45** | **51.72** | **52.51** |
 
 ## Disclaimer
 
