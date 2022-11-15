@@ -23,6 +23,7 @@ import jax.numpy as jnp
 import jax.scipy
 import numpy as np
 
+# pylint:disable = unused-argument
 
 # scatter_dimension decoder ring:
 #   matmul_reducescatter:
@@ -37,40 +38,40 @@ import numpy as np
 #     * gather_dimension[1] is unused
 
 
-# pylint:disable = unused-argument
-def matmul_reducescatter_no_collective(einsum_spec,
-                                       lhs,
-                                       rhs,
-                                       scatter_dimension,
-                                       axis_name,
-                                       layer,
-                                       subsplit_axis,
-                                       layer_axis=0):
-  """Non overlapped matmul reduce scatter using default psum_scatter."""
-  del subsplit_axis  # Only for bidirectional_throughput
-  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
-  tmp = jnp.einsum(einsum_spec, lhs, rhs)
-
-  result = lax.psum_scatter(
-      tmp, axis_name, scatter_dimension=scatter_dimension[1], tiled=True)
-
-  return result
+# numpy helper functions for weight pre-shuffling routines
 
 
-def matmul_allgather_no_collective(
-    einsum_spec,
-    lhs,
-    rhs,
-    gather_dimension,
-    axis_name,
-    layer,
-    layer_axis=0,
-    subsplit_axis=None):
-  """Non overlapped allgather matmul using default allgather."""
-  del subsplit_axis
-  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
-  lhs = lax.all_gather(lhs, axis_name, axis=gather_dimension[0], tiled=True)
-  return jnp.einsum(einsum_spec, lhs, rhs)
+def interleave(a, b):
+  return np.dstack((a, b)).flatten()
+
+
+def split_apart_axis(x, num_splits, axis):
+  return x.reshape(
+      x.shape[:axis] +
+      (num_splits, x.shape[axis] // num_splits) +
+      x.shape[axis + 1:])
+
+
+def reflatten_axis(x, axis):
+  return x.reshape(x.shape[:axis] +
+                   (x.shape[axis] * x.shape[axis + 1],) +
+                   x.shape[axis+2:])
+
+
+def update_slice_in_place(x, update, index, axis):
+  indices = [slice(None) for _ in range(x.ndim)]
+  indices[axis] = index
+  x[tuple(indices)] = update
+  return x
+
+
+def gather_axis(x, index, axis):
+  indices = [slice(None) for _ in range(x.ndim)]
+  indices[axis] = index
+  return x[tuple(indices)]
+
+
+# dynamic slice helper
 
 
 def dynamic_index_and_slice(index_axis, index, slice_axis,
@@ -89,236 +90,23 @@ def dynamic_index_and_slice(index_axis, index, slice_axis,
   return x
 
 
-def matmul_reducescatter_oneway(einsum_spec,
-                                lhs,
-                                rhs,
-                                scatter_dimension,
-                                axis_name,
-                                layer,
-                                subsplit_axis,
-                                layer_axis=0):
-  """Uses a single ICI direction, overlapped weight stationary reduce scatter.
-
-  Args:
-    einsum_spec: Spec for the einsum
-    lhs: Typically activations
-    rhs: Typically weights
-    scatter_dimension: The first argument denotes the logical axis along which
-      the output will be scattered, the second is unused. TODO(sholto): Make
-      string parse
-    axis_name: The hardware axis along which we are reducing
-    layer: Weights are stored with layer as the first dimension, index of the
-      layer
-    subsplit_axis: Unused, for easy compatibility with other layerdefs
-    layer_axis: Which axis is the layer dimension
-
-  Returns:
-    Result of a matmul and reduce_scatter
-  """
-  del subsplit_axis  # Only for bidirectional_throughput
-  # [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
-  # -> (matmul)
-  # -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
-  # -> (reducescatter over X into heads)
-  # -> [batch, maxlen, heads.YZX, q_wi_per_head]
-  # we want to maintain an accumulator, then permute and add to said accumulator
-  axis_size = lax.psum(1, axis_name)
-  axis_index = lax.axis_index(axis_name)
-  rhs_scatter_axis = scatter_dimension[0]
-  if rhs_scatter_axis >= layer_axis:
-    rhs_scatter_axis += 1
-
-  permutes_remaining = axis_size - 1
-
-  chunk_index = (axis_index + permutes_remaining) % axis_size
-  chunk_size = rhs.shape[rhs_scatter_axis] // axis_size
-  first_chunk = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
-                                        chunk_index * chunk_size, chunk_size,
-                                        rhs)
-
-  p = jnp.einsum(einsum_spec, lhs, first_chunk)
-  accum = jnp.zeros(p.shape, dtype=lhs.dtype)
-
-  # collective_matmul reduce scatter is as follows:
-  # you chunk along a different dimension to the partitioned one you
-  # are multiplying along
-  # to reduce, you sum chunk partial sums per index, therefore you get
-  # chunk sized full sums partitioned along the scatter axis
-  def collective_matmul(i, carrys):
-    permutes_remaining_after_einsum = (axis_size - 1) - i
-    chunk_index = (axis_index + permutes_remaining_after_einsum) % axis_size
-    # matmul
-    accum, p = carrys
-    accum = accum + p
-    c = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
-                                chunk_index * chunk_size, chunk_size, rhs)
-    p = jnp.einsum(einsum_spec, lhs, c)
-    accum = lax.ppermute(
-        accum,
-        axis_name,
-        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
-
-    return accum, p
-
-  accum, p = jax.lax.fori_loop(1, axis_size, collective_matmul, (accum, p))
-
-  return accum + p
+# allgather-matmul fusion routines
 
 
-def plain_reducescatter(val,
-                        scatter_dimension,
-                        axis_name,
-                        subsplit_axis=None):
-  return lax.psum_scatter(
-      val, axis_name, scatter_dimension=scatter_dimension, tiled=True)
-
-
-def reducescatter_oneway(val,
-                         scatter_dimension,
-                         axis_name,
-                         subsplit_axis=None):
-  """Uses one ICI direction, overlapped weight stationary reduce scatter."""
-  # [A, B, C] -> [A, B, C.X]
-  axis_size = lax.psum(1, axis_name)
-  axis_index = lax.axis_index(axis_name)
-  scatter_axis = scatter_dimension
-
-  permutes_remaining = axis_size - 1
-
-  chunk_size = val.shape[scatter_axis] // axis_size
-  p = lax.dynamic_slice_in_dim(val,
-                               (axis_index + permutes_remaining) % axis_size,
-                               chunk_size, scatter_axis)
-
-  accum = jnp.zeros(p.shape, dtype=val.dtype)
-
-  def collective(i, carrys):
-    permutes_remaining_after = (axis_size - 1) - i
-    chunk_index = (axis_index + permutes_remaining_after) % axis_size
-
-    accum, p = carrys
-    accum = accum + p
-
-    p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
-                                 scatter_axis)
-    accum = lax.ppermute(
-        accum,
-        axis_name,
-        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
-
-    return accum, p
-
-  accum, p = jax.lax.fori_loop(1, axis_size, collective, (accum, p))
-
-  return accum + p
-
-
-def reducescatter_bidirectional_throughput(val, scatter_dimension,
-                                           axis_name,
-                                           subsplit_axis):
-  """Using two ICI directions, manual reduce scatter."""
-  axis_size = lax.psum(1, axis_name)
-
-  chunk_size = val.shape[scatter_dimension] // axis_size
-
-  chunk_index = 0
-
-  p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
-                               scatter_dimension)
-
-  accum_shape = list(p.shape)
-  accum_shape[subsplit_axis] = accum_shape[subsplit_axis] // 2
-  accum_pos = jnp.zeros(accum_shape, dtype=val.dtype)
-  accum_neg = jnp.zeros(accum_shape, dtype=val.dtype)
-
-  # collective_matmul reduce scatter is as follows:
-  # you chunk along a different dimension to the partitioned one you
-  # are multiplying along
-  # to reduce, you sum chunk partial sums per index, therefore you get
-  # chunk sized full sums partitioned along the scatter axis
-  def collective(i, carrys):
-    # matmul
-    accum_pos, accum_neg, p = carrys
-    p_pos, p_neg = jnp.split(p, 2, subsplit_axis)
-    accum_pos += p_pos
-    accum_neg += p_neg
-
-    p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
-                                 scatter_dimension)
-
-    accum_pos = lax.ppermute(
-        accum_pos,
-        axis_name,
-        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
-    accum_neg = lax.ppermute(
-        accum_neg,
-        axis_name,
-        perm=[(j, (j - 1) % axis_size) for j in range(axis_size)])
-
-    return accum_pos, accum_neg, p
-
-  with jax.disable_jit():
-    accum_pos, accum_neg, p = jax.lax.fori_loop(1, axis_size, collective,
-                                                (accum_pos, accum_neg, p))
-
-  return jnp.concatenate((accum_pos, accum_neg), subsplit_axis) + p
-
-
-def reducescatter_bidirectional_latency(val,
-                                        scatter_dimension,
-                                        axis_name,
-                                        subsplit_axis=None):
-  """Using two ICI directions, manual reduce scatter."""
-
-  axis_size = lax.psum(1, axis_name)  # two for both directions
-
-  matmul_steps = axis_size // 2
-  chunk_size = val.shape[scatter_dimension] // matmul_steps
-  chunk_index = 0
-  p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
-                               scatter_dimension)
-
-  p_pos, p_neg = jnp.split(p, 2, scatter_dimension)
-  accum_size = p_pos.shape
-  accum_pos = jnp.zeros(accum_size, dtype=val.dtype)
-  accum_neg = jnp.zeros(accum_size, dtype=val.dtype)
-
-  # collective_matmul reduce scatter is as follows:
-  # you chunk along a different dimension to the partitioned one you
-  # are multiplying along
-  # to reduce, you sum chunk partial sums per index, therefore you get
-  # chunk sized full sums partitioned along the scatter axis
-  def collective_matmul(i, carrys):
-    # matmul
-    accum_pos, accum_neg, p = carrys
-    p_pos, p_neg = jnp.split(p, 2, scatter_dimension)
-    accum_pos += p_pos
-    accum_neg += p_neg
-
-    p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
-                                 scatter_dimension)
-    accum_pos = lax.ppermute(
-        accum_pos,
-        axis_name,
-        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
-    accum_neg = lax.ppermute(
-        accum_neg,
-        axis_name,
-        perm=[(j, (j - 1) % axis_size) for j in range(axis_size)])
-
-    return accum_pos, accum_neg, p
-
-  accum_pos, accum_neg, p = jax.lax.fori_loop(1, matmul_steps,
-                                              collective_matmul,
-                                              (accum_pos, accum_neg, p))
-
-  p_pos, p_neg = jnp.split(p, 2, scatter_dimension)
-  accum_pos = lax.ppermute(
-      accum_pos + p_pos,
-      axis_name,
-      perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
-
-  return accum_pos + accum_neg + p_neg
+def matmul_allgather_no_collective(
+    einsum_spec,
+    lhs,
+    rhs,
+    gather_dimension,
+    axis_name,
+    layer,
+    layer_axis=0,
+    subsplit_axis=None):
+  """Non overlapped allgather matmul using default allgather."""
+  del subsplit_axis
+  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
+  lhs = lax.all_gather(lhs, axis_name, axis=gather_dimension[0], tiled=True)
+  return jnp.einsum(einsum_spec, lhs, rhs)
 
 
 def async_matmul_allgather_one_way(einsum_spec,
@@ -392,55 +180,29 @@ def async_matmul_allgather_one_way(einsum_spec,
   return accum + p
 
 
-# Bidirectional Allgather-matmul weight pre-shuffling utilities.
-
-
-def weight_permutation_func_throughput(axis_size, i):
-  """1D weight permutation pattern for chunks for throughput optimized."""
-  iota = np.arange(axis_size, dtype=np.int32)
-  rolled_evens = np.roll(iota * 2 + 1, -i)
-  rolled_odds = np.roll(iota * 2, -i)
-  flipped_odds = np.roll(np.flip(rolled_odds), 1)
-  return np.dstack((flipped_odds, rolled_evens)).reshape(2 * axis_size)
-
-
-def weight_permutation_func_latency(axis_size, i):
-  """1D weight permutation pattern for chunks for latency optimized."""
-  iota = np.arange(axis_size, dtype=np.int32)
-  iota_pairs = np.array(
-      np.split(np.arange(2 * axis_size, dtype=np.int32), axis_size))
-  pairs = []
-  for j in range(axis_size//2):
-    p = np.dstack((np.roll(iota, j+1), np.roll(iota, -j))).reshape(-1)
-    pairs.append(iota_pairs[p][2*i:2*(i+1)])
-  return np.concatenate(pairs).reshape(-1)
-
-
-def split_apart_axis(x, axis, n):
-  new_shape = x.shape[:axis] + (n, x.shape[axis] // n) + x.shape[axis+1:]
-  return x.reshape(new_shape)
-
-
-def prepare_allgather_weights(x, shuffle_axis, shard_axis, mode):
-  """Pre-shuffle weights for bidirectional allgather-matmul routines."""
-  shard_axis_size = x.shape[shard_axis]
+def preshuffle_for_async_matmul_allgather_throughput(
+    x, shuffle_axis, shard_axis):
+  """Pre-shuffle weights for async_matmul_allgather_throughput."""
+  axis_size = x.shape[shard_axis]
   y = np.zeros_like(x)
-  for i in range(shard_axis_size):
-    shard = lax.dynamic_index_in_dim(x, i, shard_axis, keepdims=True)
-    shard_shape = shard.shape
-    shard = split_apart_axis(shard, shuffle_axis, 2*shard_axis_size)
-    slices = [slice(None) for _ in range(shard.ndim)]
-    if mode == 'throughput':
-      slices[shuffle_axis] = weight_permutation_func_throughput(
-          shard_axis_size, i)
-    elif mode == 'latency':
-      slices[shuffle_axis] = weight_permutation_func_latency(shard_axis_size, i)
-    else:
-      raise ValueError('mode must be one of `throughput` or `latency`')
-    shard = shard[tuple(slices)].reshape(shard_shape)
-    dest_slices = [slice(None) for _ in range(y.ndim)]
-    dest_slices[shard_axis] = i
-    y[tuple(dest_slices)] = shard
+
+  def permutation_fn(i):
+    iota = np.arange(axis_size, dtype=np.int32)
+    flipped_evens = np.flip(np.roll(2 * iota, -i-1))
+    rolled_odds = np.roll(2 * iota + 1, -i)
+    return interleave(flipped_evens, rolled_odds)
+
+  for i in range(axis_size):
+    shard = gather_axis(x, index=slice(i, i+1), axis=shard_axis)
+    shard = split_apart_axis(shard,
+                             num_splits=2 * axis_size,
+                             axis=shuffle_axis)
+    shard = gather_axis(shard,
+                        index=permutation_fn(i),
+                        axis=shuffle_axis)
+    shard = reflatten_axis(shard, axis=shuffle_axis)
+    update_slice_in_place(y, shard, index=i, axis=shard_axis)
+
   return y
 
 
@@ -519,6 +281,31 @@ def async_matmul_allgather_throughput(
   p = indexed_computation(i, lhs)
 
   return accum + p
+
+
+def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis, shard_axis):
+  """Pre-shuffle weights for async_matmul_allgather_latency."""
+  axis_size = x.shape[shard_axis]
+  y = np.zeros_like(x)
+
+  def permutation_fn(i):
+    evens = [(i-j-1)%axis_size for j in range(axis_size//2)]
+    odds = [(i+j)%axis_size for j in range(axis_size//2)]
+    block_perm = interleave(evens, odds)
+    return interleave(2*block_perm, 2*block_perm+1)
+
+  for i in range(axis_size):
+    shard = gather_axis(x, index=slice(i, i+1), axis=shard_axis)
+    shard = split_apart_axis(shard,
+                             num_splits=2 * axis_size,
+                             axis=shuffle_axis)
+    shard = gather_axis(shard,
+                        index=permutation_fn(i),
+                        axis=shuffle_axis)
+    shard = reflatten_axis(shard, axis=shuffle_axis)
+    update_slice_in_place(y, shard, index=i, axis=shard_axis)
+
+  return y
 
 
 # subsplit_axis: lhs contracting dimension, along which we concatenate + and -
@@ -607,18 +394,105 @@ def async_matmul_allgather_latency(
   return accum + p
 
 
-def roll_chunks(x, roll_dim, axis_size, axis_index, direction='positive'):
-  """Rolls chunks along axis."""
-  # chunk_size = x.shape[roll_dim] // axis_size
-  chunked_x = split_apart_axis(x, roll_dim, axis_size)
-  slices = [slice(None) for _ in range(chunked_x.ndim)]
-  if direction == 'positive':
-    slices[roll_dim] = jnp.roll(jnp.flip(np.arange(axis_size)), axis_index)
-  elif direction == 'negative':
-    slices[roll_dim] = jnp.roll(np.arange(axis_size), -axis_index - 1)
-  else:
-    raise ValueError('Invalid roll direction argument.')
-  return chunked_x[tuple(slices)].reshape(x.shape)
+# overlapped matmul-reducescatter routines
+
+
+def matmul_reducescatter_no_collective(einsum_spec,
+                                       lhs,
+                                       rhs,
+                                       scatter_dimension,
+                                       axis_name,
+                                       layer,
+                                       subsplit_axis,
+                                       layer_axis=0):
+  """Non overlapped matmul reduce scatter using default psum_scatter."""
+  del subsplit_axis  # Only for bidirectional_throughput
+  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
+  tmp = jnp.einsum(einsum_spec, lhs, rhs)
+
+  result = lax.psum_scatter(
+      tmp, axis_name, scatter_dimension=scatter_dimension[1], tiled=True)
+
+  return result
+
+
+def matmul_reducescatter_oneway(einsum_spec,
+                                lhs,
+                                rhs,
+                                scatter_dimension,
+                                axis_name,
+                                layer,
+                                subsplit_axis,
+                                layer_axis=0):
+  """Uses a single ICI direction, overlapped weight stationary reduce scatter.
+
+  Args:
+    einsum_spec: Spec for the einsum
+    lhs: Typically activations
+    rhs: Typically weights
+    scatter_dimension: The first argument denotes the logical axis along which
+      the output will be scattered, the second is unused. TODO(sholto): Make
+      string parse
+    axis_name: The hardware axis along which we are reducing
+    layer: Weights are stored with layer as the first dimension, index of the
+      layer
+    subsplit_axis: Unused, for easy compatibility with other layerdefs
+    layer_axis: Which axis is the layer dimension
+
+  Returns:
+    Result of a matmul and reduce_scatter
+  """
+  del subsplit_axis  # Only for bidirectional_throughput
+  # [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
+  # -> (matmul)
+  # -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
+  # -> (reducescatter over X into heads)
+  # -> [batch, maxlen, heads.YZX, q_wi_per_head]
+  # we want to maintain an accumulator, then permute and add to said accumulator
+  axis_size = lax.psum(1, axis_name)
+  axis_index = lax.axis_index(axis_name)
+  rhs_scatter_axis = scatter_dimension[0]
+  if rhs_scatter_axis >= layer_axis:
+    rhs_scatter_axis += 1
+
+  permutes_remaining = axis_size - 1
+
+  chunk_index = (axis_index + permutes_remaining) % axis_size
+  chunk_size = rhs.shape[rhs_scatter_axis] // axis_size
+  first_chunk = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
+                                        chunk_index * chunk_size, chunk_size,
+                                        rhs)
+
+  p = jnp.einsum(einsum_spec, lhs, first_chunk)
+  accum = jnp.zeros(p.shape, dtype=lhs.dtype)
+
+  # collective_matmul reduce scatter is as follows:
+  # you chunk along a different dimension to the partitioned one you
+  # are multiplying along
+  # to reduce, you sum chunk partial sums per index, therefore you get
+  # chunk sized full sums partitioned along the scatter axis
+  def collective_matmul(i, carrys):
+    permutes_remaining_after_einsum = (axis_size - 1) - i
+    chunk_index = (axis_index + permutes_remaining_after_einsum) % axis_size
+    # matmul
+    accum, p = carrys
+    accum = accum + p
+    c = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
+                                chunk_index * chunk_size, chunk_size, rhs)
+    p = jnp.einsum(einsum_spec, lhs, c)
+    accum = lax.ppermute(
+        accum,
+        axis_name,
+        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
+
+    return accum, p
+
+  accum, p = jax.lax.fori_loop(1, axis_size, collective_matmul, (accum, p))
+
+  return accum + p
+
+
+# bidirectional forms
 
 
 def preshuffle_for_reducescatter_bidirectional_throughput(
@@ -637,74 +511,28 @@ def preshuffle_for_reducescatter_bidirectional_throughput(
     `reducescatter_bidirectional_throughput`.
   """
   axis_size = x.shape[sharded_dim]  # materialized shard dim
-  subsplit_dim_size = x.shape[subsplit_dim]
-  new_x = jnp.zeros_like(x)
+  half = x.shape[subsplit_dim] // 2
+  pos_perm = lambda idx: np.roll(jnp.flip(np.arange(axis_size)), idx)
+  neg_perm = lambda idx: np.roll(np.arange(axis_size), -idx - 1)
+  new_x = np.zeros_like(x)
   for axis_index in range(axis_size):
-    sliced = lax.dynamic_slice_in_dim(x, axis_index, 1, sharded_dim)
-    new_sliced = jnp.zeros_like(sliced)
-    pos_split = lax.dynamic_slice_in_dim(
-        sliced, 0, subsplit_dim_size // 2, axis=subsplit_dim)
-    neg_split = lax.dynamic_slice_in_dim(
-        sliced, subsplit_dim_size // 2, subsplit_dim_size // 2,
-        axis=subsplit_dim)
-    pos_rolled = roll_chunks(
-        pos_split, scatter_dim, axis_size, axis_index, 'positive')
-    neg_rolled = roll_chunks(
-        neg_split, scatter_dim, axis_size, axis_index, 'negative')
-    new_sliced = lax.dynamic_update_slice_in_dim(
-        new_sliced, pos_rolled, 0, axis=subsplit_dim)
-    new_sliced = lax.dynamic_update_slice_in_dim(
-        new_sliced, neg_rolled, subsplit_dim_size // 2, axis=subsplit_dim)
-    new_x = lax.dynamic_update_slice_in_dim(
-        new_x, new_sliced, axis_index, axis=sharded_dim)
-    new_sliced = lax.dynamic_update_slice_in_dim(
-        new_sliced, neg_rolled, subsplit_dim_size // 2, axis=subsplit_dim)
-    new_x = lax.dynamic_update_slice_in_dim(
-        new_x, new_sliced, axis_index, axis=sharded_dim)
+    shard = gather_axis(x, slice(axis_index, axis_index+1), axis=sharded_dim)
+    new_shard = np.zeros_like(shard)
+    # Handle shifts in each half of the subsplits:
+    for pos, perm_fn in ((0, pos_perm), (half, neg_perm)):
+      split = gather_axis(shard, index=slice(pos, pos+half), axis=subsplit_dim)
+      chunked_split = split_apart_axis(split, axis_size, axis=scatter_dim)
+      rolled = gather_axis(chunked_split,
+                           index=perm_fn(axis_index),
+                           axis=scatter_dim)
+      rolled = reflatten_axis(rolled, scatter_dim)
+      update_slice_in_place(
+          new_shard, rolled, slice(pos, pos+half), axis=subsplit_dim)
+    update_slice_in_place(
+        new_x, new_shard, slice(axis_index, axis_index+1), axis=sharded_dim)
   return new_x
 
 
-def latency_twizzler(n, i):
-  # closed form for modelling the data movement of
-  # each nth chunk over n iterations of the latency-optimized
-  # pincer data movement.
-  return [(i + (-1)**j * (n//2 - 1 - j//2) + ((j+1)%2)) % n
-          for j in range(n)]
-
-
-def twizzle_chunks(x, scatter_dim, axis_size, axis_index):
-  # chunk_size = x.shape[scatter_dim] // axis_size
-  chunked_x = split_apart_axis(x, scatter_dim, axis_size)
-  slices = [slice(None) for _ in range(chunked_x.ndim)]
-  slices[scatter_dim] = latency_twizzler(axis_size, axis_index)
-  return chunked_x[tuple(slices)].reshape(x.shape)
-
-
-def preshuffle_for_reducescatter_bidirectional_latency(
-    x, sharded_dim, scatter_dim):
-  """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
-
-  Args:
-    x: array to preshuffle. Assumes the array has already been reshaped
-      appropriately as an input for xmap, with materialized sharding dims.
-    sharded_dim: materialized sharding dim.
-    scatter_dim: array dim to scatter into.
-
-  Returns:
-    Weight array pre-shuffled for use with
-    `reducescatter_bidirectional_latency`.
-  """
-  axis_size = x.shape[sharded_dim]  # materialized shard dim
-  new_x = jnp.zeros_like(x)
-  for axis_index in range(axis_size):
-    sliced = lax.dynamic_slice_in_dim(x, axis_index, 1, sharded_dim)
-    twizzled = twizzle_chunks(sliced, scatter_dim, axis_size, axis_index)
-    new_x = lax.dynamic_update_slice_in_dim(
-        new_x, twizzled, axis_index, axis=sharded_dim)
-  return new_x
-
-
-# bidirectional form
 def matmul_reducescatter_bidirectional_throughput(einsum_spec,
                                                   lhs,
                                                   rhs,
@@ -781,6 +609,43 @@ def matmul_reducescatter_bidirectional_throughput(einsum_spec,
 
   result = jnp.concatenate((accum_pos, accum_neg), subsplit_axis) + p
   return result
+
+
+def preshuffle_for_reducescatter_bidirectional_latency(
+    x, sharded_dim, scatter_dim):
+  """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
+
+  Args:
+    x: array to preshuffle. Assumes the array has already been reshaped
+      appropriately as an input for xmap, with materialized sharding dims.
+    sharded_dim: materialized sharding dim.
+    scatter_dim: array dim to scatter into.
+
+  Returns:
+    Weight array pre-shuffled for use with
+    `reducescatter_bidirectional_latency`.
+  """
+  axis_size = x.shape[sharded_dim]
+  new_x = np.zeros_like(x)
+
+  def twizzler(idx):
+    # closed form for modelling the data movement of
+    # each nth chunk over n iterations of the latency-optimized
+    # pincer data movement.
+    return [
+        (idx + (-1)**j * (axis_size//2 - 1 - j//2) + ((j + 1) % 2)) % axis_size
+        for j in range(axis_size)]
+
+  for axis_index in range(axis_size):
+    shard = gather_axis(x, slice(axis_index, axis_index+1), axis=sharded_dim)
+    chunked_shard = split_apart_axis(shard, axis_size, axis=scatter_dim)
+    twizzled = gather_axis(chunked_shard,
+                           twizzler(axis_index),
+                           axis=scatter_dim)
+    twizzled = reflatten_axis(twizzled, scatter_dim)
+    update_slice_in_place(
+        new_x, twizzled, slice(axis_index, axis_index+1), axis=sharded_dim)
+  return new_x
 
 
 def matmul_reducescatter_bidirectional_latency(einsum_spec,
@@ -876,6 +741,9 @@ def matmul_reducescatter_bidirectional_latency(einsum_spec,
   return accum_pos + accum_neg + p_neg
 
 
+# non-weight-stationary fused matmul routines
+
+
 def matmul_collective_weights_gather_q_wi(
     einsum_spec,
     lhs,
@@ -905,10 +773,6 @@ def matmul_collective_weights_gather_q_wi(
 
   # chunking specific
   chunk_size = lhs.shape[split_axis] // axis_size
-
-  # print(rhs.shape, split_axis, axis_size)
-
-  # print(lhs.shape, rhs.shape, x_size, y_size, z_size, chunk_size)
 
   # slice into the weights along the axis we will scatter along
   # all others are just in a chain as parititoned
@@ -1071,11 +935,6 @@ def matmul_collective_weights_gather_o_wo(
   # chunking specific - should be nh dim on lhs
   chunk_size = lhs.shape[split_axis] // axis_size
 
-  # print('------OWO---------')
-  # print('rhs', rhs.shape, 'split', split_axis, 'axis_size', axis_size)
-
-  # print('lhs', lhs.shape, x_size, y_size, z_size, chunk_size)
-
   def derive_permutation(y, z, ya, za, head_chunk_size):
     # to derive the appropriate head to index into given the sequence of
     # collective permutes, imagine the original partition index along the head
@@ -1187,3 +1046,164 @@ def matmul_collective_weights_gather_o_wo(
   # do we need a final x? No?
 
   return final_accum
+
+
+# raw reduce-scatter collectives
+# unused in paper, but presented here as isolated lowerings
+# of reduce-scatter to collective permutes.
+
+
+def plain_reducescatter(val,
+                        scatter_dimension,
+                        axis_name,
+                        subsplit_axis=None):
+  return lax.psum_scatter(
+      val, axis_name, scatter_dimension=scatter_dimension, tiled=True)
+
+
+def reducescatter_oneway(val,
+                         scatter_dimension,
+                         axis_name,
+                         subsplit_axis=None):
+  """Uses one ICI direction, overlapped weight stationary reduce scatter."""
+  # [A, B, C] -> [A, B, C.X]
+  axis_size = lax.psum(1, axis_name)
+  axis_index = lax.axis_index(axis_name)
+  scatter_axis = scatter_dimension
+
+  permutes_remaining = axis_size - 1
+
+  chunk_size = val.shape[scatter_axis] // axis_size
+  p = lax.dynamic_slice_in_dim(val,
+                               (axis_index + permutes_remaining) % axis_size,
+                               chunk_size, scatter_axis)
+
+  accum = jnp.zeros(p.shape, dtype=val.dtype)
+
+  def collective(i, carrys):
+    permutes_remaining_after = (axis_size - 1) - i
+    chunk_index = (axis_index + permutes_remaining_after) % axis_size
+
+    accum, p = carrys
+    accum = accum + p
+
+    p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
+                                 scatter_axis)
+    accum = lax.ppermute(
+        accum,
+        axis_name,
+        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
+
+    return accum, p
+
+  accum, p = jax.lax.fori_loop(1, axis_size, collective, (accum, p))
+
+  return accum + p
+
+
+def reducescatter_bidirectional_throughput(val, scatter_dimension,
+                                           axis_name,
+                                           subsplit_axis):
+  """Using two ICI directions, manual reduce scatter."""
+  axis_size = lax.psum(1, axis_name)
+
+  chunk_size = val.shape[scatter_dimension] // axis_size
+
+  chunk_index = 0
+
+  p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
+                               scatter_dimension)
+
+  accum_shape = list(p.shape)
+  accum_shape[subsplit_axis] = accum_shape[subsplit_axis] // 2
+  accum_pos = jnp.zeros(accum_shape, dtype=val.dtype)
+  accum_neg = jnp.zeros(accum_shape, dtype=val.dtype)
+
+  # collective_matmul reduce scatter is as follows:
+  # you chunk along a different dimension to the partitioned one you
+  # are multiplying along
+  # to reduce, you sum chunk partial sums per index, therefore you get
+  # chunk sized full sums partitioned along the scatter axis
+  def collective(i, carrys):
+    # matmul
+    accum_pos, accum_neg, p = carrys
+    p_pos, p_neg = jnp.split(p, 2, subsplit_axis)
+    accum_pos += p_pos
+    accum_neg += p_neg
+
+    p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
+                                 scatter_dimension)
+
+    accum_pos = lax.ppermute(
+        accum_pos,
+        axis_name,
+        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
+    accum_neg = lax.ppermute(
+        accum_neg,
+        axis_name,
+        perm=[(j, (j - 1) % axis_size) for j in range(axis_size)])
+
+    return accum_pos, accum_neg, p
+
+  with jax.disable_jit():
+    accum_pos, accum_neg, p = jax.lax.fori_loop(1, axis_size, collective,
+                                                (accum_pos, accum_neg, p))
+
+  return jnp.concatenate((accum_pos, accum_neg), subsplit_axis) + p
+
+
+def reducescatter_bidirectional_latency(val,
+                                        scatter_dimension,
+                                        axis_name,
+                                        subsplit_axis=None):
+  """Using two ICI directions, manual reduce scatter."""
+
+  axis_size = lax.psum(1, axis_name)  # two for both directions
+
+  matmul_steps = axis_size // 2
+  chunk_size = val.shape[scatter_dimension] // matmul_steps
+  chunk_index = 0
+  p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
+                               scatter_dimension)
+
+  p_pos, p_neg = jnp.split(p, 2, scatter_dimension)
+  accum_size = p_pos.shape
+  accum_pos = jnp.zeros(accum_size, dtype=val.dtype)
+  accum_neg = jnp.zeros(accum_size, dtype=val.dtype)
+
+  # collective_matmul reduce scatter is as follows:
+  # you chunk along a different dimension to the partitioned one you
+  # are multiplying along
+  # to reduce, you sum chunk partial sums per index, therefore you get
+  # chunk sized full sums partitioned along the scatter axis
+  def collective_matmul(i, carrys):
+    # matmul
+    accum_pos, accum_neg, p = carrys
+    p_pos, p_neg = jnp.split(p, 2, scatter_dimension)
+    accum_pos += p_pos
+    accum_neg += p_neg
+
+    p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
+                                 scatter_dimension)
+    accum_pos = lax.ppermute(
+        accum_pos,
+        axis_name,
+        perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
+    accum_neg = lax.ppermute(
+        accum_neg,
+        axis_name,
+        perm=[(j, (j - 1) % axis_size) for j in range(axis_size)])
+
+    return accum_pos, accum_neg, p
+
+  accum_pos, accum_neg, p = jax.lax.fori_loop(1, matmul_steps,
+                                              collective_matmul,
+                                              (accum_pos, accum_neg, p))
+
+  p_pos, p_neg = jnp.split(p, 2, scatter_dimension)
+  accum_pos = lax.ppermute(
+      accum_pos + p_pos,
+      axis_name,
+      perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
+
+  return accum_pos + accum_neg + p_neg

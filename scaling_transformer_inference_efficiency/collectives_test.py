@@ -179,8 +179,9 @@ class CollectivesTest(absltest.TestCase):
           layer_axis=0,
           subsplit_axis=2)
 
-    preshuffled_rhs = collectives.prepare_allgather_weights(
-        rhs, shuffle_axis=4, shard_axis=0, mode='throughput')
+    preshuffled_rhs = (
+        collectives.preshuffle_for_async_matmul_allgather_throughput(
+            rhs, shuffle_axis=4, shard_axis=0))
 
     with mesh:
       result = async_matmul_allgather_throughput(lhs, preshuffled_rhs)
@@ -235,8 +236,8 @@ class CollectivesTest(absltest.TestCase):
           layer_axis=0,
           subsplit_axis=2)
 
-    preshuffled_rhs = collectives.prepare_allgather_weights(
-        rhs, shuffle_axis=4, shard_axis=0, mode='latency')
+    preshuffled_rhs = collectives.preshuffle_for_async_matmul_allgather_latency(
+        rhs, shuffle_axis=4, shard_axis=0)
 
     with mesh:
       result = async_matmul_allgather_latency(lhs, preshuffled_rhs)
