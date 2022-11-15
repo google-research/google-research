@@ -23,28 +23,32 @@ antheaTemplates['MQM-Paragraph'] = {
       display: 'Major severity',
       shortcut: 'M',
       color: 'pink',
-      description: 'Major severity issues are those that may mislead or confuse the reader.',
+      description: 'Major severity errors significantly alter the meaning of ' +
+                   'the source text, or significantly confuse the reader, or ' +
+                   'significantly degrade the fluency of the text.',
     },
     minor: {
       display: 'Minor severity',
       shortcut: 'm',
       color: '#fbec5d',
-      description: 'Minor severity issues are those that do not lead to significant confusion or loss of meaning.',
+      description: 'Minor severity errors are noticeable but minor flaws in ' +
+                   'the translated text. They do not significantly alter the ' +
+                   'meaning of the source text, they do not significantly ' +
+                   'confuse the reader, and they do not significantly ' +
+                   'degrade the fluency of the text.',
     },
   },
+
+  /**
+   * @const {boolean} Only rate the target side, i.e., the translated text.
+   */
+  TARGET_SIDE_ONLY: false,
 
   /**
    * @const {number} Allow marking at most these many errors per segment. If
    *     set to 0, then no limit is imposed.
    */
   MAX_ERRORS: 0,
-
-  /**
-   * @const {number} If there are preceding sentence groups at the beginning
-   *     of the first document, we show these many of them, making the
-   *     others accessible with a click on an expansion widget.
-   */
-  NUM_PRECEDING_VISIBLE: 0,
 
   /**
    * @const {boolean} Set this to true if the template instructions already
@@ -121,7 +125,7 @@ antheaTemplates['MQM-Paragraph'] = {
     },
     fluency: {
       display: 'Fluency',
-      description: 'Issues related to the form or content of translated text, independent of its relation to the source text; errors in the translated text that prevent it from being understood.',
+      description: 'Issues related to the form or content of translated text, independent of its relation to the source text; errors in the translated text that prevent it from being understood clearly.',
       subtypes: {
         inconsistency: {
           display: 'Inconsistency',
@@ -161,7 +165,7 @@ antheaTemplates['MQM-Paragraph'] = {
     },
     terminology: {
       display: 'Terminology',
-      description: 'A term (domain-specific word) is translated with a term other than the one expected for the domain or otherwise specified.',
+      description: 'A term (domain-specific word) is translated with a term other than the one expected for the domain implied by the context.',
       subtypes: {
         inappropriate: {
           display: 'Inappropriate for context',
@@ -255,13 +259,17 @@ antheaTemplates['MQM-Paragraph'] = {
       In this project, you will be shown translations of different documents
       that you will review and annotate for errors and issues. You will annotate
       by selecting spans of words affected by errors, then labeling them with
-      the severities and issue types. The goal of this project is to evaluate
+      severities and issue types. The goal of this project is to evaluate
       the quality of various human and machine translation outputs.
     </p>
     <p>
       The content for annotation comes in tasks that are broken down into
       segments (a segment may have one or more sentences, and is often a
-      whole paragraph).
+      whole paragraph). In most cases, a single task will
+      correspond to a single document taken from a single source (a web page,
+      article). In some project types, though, there may be multiple documents
+      in a task. The first segment shown may be from the middle of the
+      document, not necessarily from the beginning.
     </p>
 
     <h2>General Guidelines</h2>
@@ -290,7 +298,7 @@ antheaTemplates['MQM-Paragraph'] = {
       <li>
         Before you start annotating, please read carefully the definitions
         for severities and error/issue types. Be sure to follow these
-        definitions so we can have consistency between annotators and
+        definitions so that we can have consistency between annotators, and
         reliable results. In particular, it is important to understand the
         difference between “Major” and “Minor” severities and how to
         label text spans that cover the issue identified.
@@ -398,7 +406,7 @@ antheaTemplates['MQM-Paragraph'] = {
             document, you can click on it. You can delete any individual issue
             that you might have mistakenly added.</li>
         <li>
-          Occasionally, the translated segment would have been altered to
+          Occasionally, the translated segment will be altered to
           include an artificially injected error. Evaluating translation quality
           is a difficult and demanding task, and such "test segments" are used
           to help you maintain the high level of attention the task needs. Once
@@ -406,7 +414,7 @@ antheaTemplates['MQM-Paragraph'] = {
           will be shown. If you miss marking any error in a test segment, you
           will be shown a cautionary reminder about that. In either case, once
           the unaltered version is revealed, you have to proceed to rate its
-          quality just like all the other segment.
+          quality just like all the other segments.
         </li>
       </ol>
     </details>
@@ -416,13 +424,23 @@ antheaTemplates['MQM-Paragraph'] = {
     <ul>
       <li>
         <b>Major severity</b>:
-        Major severity errors/issues are those that may mislead or confuse the
-        reader. Typically, accuracy and terminology errors fall here (but not
-        always).
+        Major severity errors significantly alter the meaning of the source
+        text, or significantly confuse the reader, or significantly degrade the
+        fluency of the text. The translated text says something different from
+        the intent of the source text, or is substantially difficult to
+        understand, or has some very jarring linguistic flaw.
         <ul>
           <li>
-            Utter mistranslations: the source and the target mean totally
-            different things. The translation is misleading or incomprehensible.
+            Typically, accuracy and terminology errors fall here, as well as
+            egregious style or grammar errors.
+          </li>
+          <li>
+            The context of the document is sometimes the key in determining
+            whether an error is major or minor. For example, changing the tense
+            of a standalone sentence may be a minor error, but doing so in the
+            middle of a narrative would be a major error.
+          </li>
+          <li>
             <details>
               <summary><b>Examples</b></summary>
               <table>
@@ -440,14 +458,6 @@ antheaTemplates['MQM-Paragraph'] = {
                   <td>"Make light of something" means "to treat something as
                       unimportant". The phrase was translated literally and the
                       translation makes no sense.</td>
-                </tr>
-                <tr>
-                  <td>EN_DE</td>
-                  <td>The chorus continues: "Pump it out, pump it out, I'm
-                      feeding them babies</td>
-                  <td>Der Refrain fährt fort: <span class="span-major">"Pump it
-                      out, pump it out, I'm feeding them babys</span></td>
-                  <td>A part of the sentence was left untranslated</td>
                 </tr>
                 <tr>
                   <td>EN_DE</td>
@@ -481,7 +491,7 @@ antheaTemplates['MQM-Paragraph'] = {
                       Yong: The greatness of a university lies in cultivating
                       <span class="span-major">capitalized people</span></td>
                   <td>"Capitalized people" makes no sense. It should be
-                      "upright people". </td>
+                      "upstanding people". </td>
                 </tr>
                 <tr>
                   <td>EN_ZH</td>
@@ -489,11 +499,59 @@ antheaTemplates['MQM-Paragraph'] = {
                   <td>请你<span class="span-major">闭麦</span></td>
                   <td>Mistranslated as "mute yourself". </td>
                 </tr>
+                <tr>
+                  <td>ZH_EN</td>
+                  <td>帕梅拉的意识，待在贝塔的灵魂世界，透过他的双眼，看到了眼前的景像。</td>
+                  <td>
+                    Pamela's consciousness stayed in Beta's spiritual world.
+                    She saw the scene in front of
+                    <span class="span-major">her</span> through his eyes.
+                  </td>
+                  <td>
+                    This  should read "him". The meaning is substantially
+                    altered, since the source text means that "she sees the
+                    scene that he is seeing".
+                  </td>
+                </tr>
+                <tr>
+                  <td>DE_EN</td>
+                  <td>
+                    Koch-Ottes Haare sind kurz, streng gescheitelt und gekämmt,
+                    der Blick energisch.
+                  </td>
+                  <td>
+                    Koch-Otte's hair is short, severely parted and combed;
+                    <span class="span-major">his</span> look spirited.
+                  </td>
+                  <td>
+                    The choice of pronoun is incorrect for Benita Koch-Ottes,
+                    a German female textile designer.
+                  </td>
+                </tr>
               </table>
             </details>
           </li>
+        </ul>
+      </li>
+      <li>
+        <b>Minor severity</b>:
+        Minor severity errors are noticeable but minor flaws in the translated
+        text. They do not significantly alter the meaning of the source text,
+        they do not significantly confuse the reader, and they do not
+        significantly degrade the fluency of the text. They might add, drop, or
+        modify minor details, or they may slightly decrease the stylistic
+        quality of the text.
+        <ul>
           <li>
-            The translation is comprehensible but very imprecise.
+            Typically, the kinds of errors that fall under this severity level
+            are grammar, spelling, style, capitalization,  punctuation, locale
+            convention, and creative reinterpretation.
+          </li>
+          <li>
+            As mentioned earlier, the context of the document is sometimes the
+            key in determining whether an error is major or minor.
+          </li>
+          <li>
             <details>
               <summary><b>Examples</b></summary>
               <table>
@@ -505,172 +563,94 @@ antheaTemplates['MQM-Paragraph'] = {
                 </tr>
                 <tr>
                   <td>EN_DE</td>
-                  <td>music video<span class="span-major">-inspired</span>
-                      advert</td>
-                  <td>Musikvideo-Anzeige</td>
-                  <td>The part "inspired" was not accounted for. The advert may
-                      not even be in video format; it may be a print ad, just
-                      inspired by music videos. As this is an omission, the
-                      error span must be logged on the source side. </td>
+                  <td>
+                    When cooking for a crowd, Eunsook Pai sears the dumplings a
+                    couple of hours in advance and then steams them just before
+                    serving.
+                  </td>
+                  <td>
+                    Beim Kochen für eine
+                    <span class="span-minor">Menschenmenge</span> braten Eunsook
+                    Pai die Teigtaschen ein paar Stunden im Voraus an und dampft
+                    sie dann kurz vor dem Servieren.
+                  </td>
+                  <td>
+                    A minor word choice error (a contextually incorrect
+                    expression but still understandable).
+                  </td>
+                </tr>
+                <tr>
+                  <td>EN_DE</td>
+                  <td>Heat another tablespoon vegetable oil, and saute onion,
+                      stirring occasionally, until just softened, 2 to 3
+                      minutes.</td>
+                  <td>
+                    Erhitzen Sie einen weiteren Esslöffel Pflanzenöl und braten
+                    Sie die Zwiebel unter gelegentlichem Rühren 2 bis 3 Minuten
+                    an, bis sie <span class="span-minor">gerade weich</span>
+                    ist.
+                  </td>
+                  <td>
+                    Literal, unidiomatic, but still understandable. The
+                    expression "just softened" means "at the point of becoming
+                    soft."
+                  </td>
+                </tr>
+                <tr>
+                  <td>EN_DE</td>
+                  <td>In an exclusive interview with Fast Company, Berners-Lee
+                      joked that the intent behind Inrupt is
+                      "world domination."</td>
+                  <td>In einem exklusiven Interview mit Fast Company scherzte
+                      Berners-Lee, dass die Absicht hinter Inrupt die
+                      <span class="span-minor">"</span>Weltherrschaft<span
+                      class="span-minor">"</span> sei.</td>
+                  <td>German uses curly quotes, opening down, closing up. The
+                      translation uses the same quote style as the source
+                      English, so both of these wrong quotes are minor
+                      punctuation errors.</td>
+                </tr>
+                <tr>
+                  <td>EN_DE</td>
+                  <td>
+                    The limited-time Taste of Knott's food, beer and wine event
+                    runs through Sept. 13 without rides, coasters or other theme
+                    park attractions.
+                  </td>
+                  <td>
+                    Die zeitlich begrenzte Veranstaltung
+                    <span class="span-minor">Taste of Knotts Essen, Bier und
+                    Wein</span> läuft bis zum 13. September ohne Fahrgeschäfte,
+                    Achterbahnen oder andere Attraktionen des Themenparks.
+                  </td>
+                  <td>Awkward syntax.</td>
+                </tr>
+                <tr>
+                  <td>ZH_EN</td>
+                  <td>因为其中大多数都被抛弃了， 希望包含在花粉中的生殖细胞， 雄性生殖细胞</td>
+                  <td>
+                    Because most of them are released, the hope is that there is
+                    a <span class="span-minor">reproduction</span> cell
+                    contained in the pollen.
+                  </td>
+                  <td>A minor terminological error. It should read
+                      "reproductive cell."</td>
                 </tr>
                 <tr>
                   <td>EN_ZH</td>
-                  <td>However, Pierre Broué was not just an intellectual,
-                      somebody who wrote books for universities and commented
-                      on events from the comfort of his study.</td>
-                  <td>然而，皮埃尔·勃鲁埃不仅是个知识分子<span class="span-major">他还</span>为大学撰写书籍并在舒适的书房里对事件发表评论。</td>
-                  <td>Pierre Broué was not just an intellectual, [not just]
-                      somebody who wrote books and commented on events. He was
-                      more than all this. This meaning is not captured in the
-                      translation.</td>
-                </tr>
-                <tr>
-                  <td>EN_ZH</td>
-                  <td>I attend Roman Catholic Church</td>
-                  <td>我去<span class="span-major">了</span>罗马天主教教堂</td>
-                  <td>A meaning error. This is not a past tense sentence. </td>
+                  <td>
+                    This is also explained on the flip side of the widget.
+                  </td>
+                  <td>这在该<span class="span-minor">插件</span>的<span class="span-minor">另一方面</span>也有解释。</td>
+                  <td>Inaccurate translation of "widget" and "flip side". Widget
+                      usually refers to a small gadget or mechanical device,
+                      especially one whose name is unknown or unspecified.
+                      "flip side" means the opposite side.</td>
                 </tr>
               </table>
             </details>
           </li>
-          <li>
-            A part of the segment was not translated (either kept in the source
-            language or omitted altogether from the translation) and it needed
-            to be translated even when the document context is taken into
-            account.
-          </li>
-          <li>
-            Words or meaning added to the target for which there is no basis in
-            the source, even after taking the document context into account.
-          </li>
-          <li>
-            An error in any other category that can be judged to require a
-            <i>significant</i> effort from the reader in order to avoid getting
-            misled or confused. For example, extremely poor style and grammar.
-          </li>
         </ul>
-      </li>
-      <li>
-        <b>Minor severity</b>:
-        Minor severity errors/issues are those that don't lead to a loss of
-        meaning and that wouldn't confuse or mislead the user, but would be
-        noticed; they are issues that decrease stylistic quality, fluency, or
-        clarity, or make the content less appealing. Typically, grammar,
-        spelling, style, capitalization, punctuation, creative reinterpretation,
-        and locale convention errors fall here.
-        <details>
-          <summary><b>Examples</b></summary>
-          <table>
-            <tr>
-              <th>Language pair</th>
-              <th>Source</th>
-              <th>Target</th>
-              <th>Comments</th>
-            </tr>
-            <tr>
-              <td>EN_DE</td>
-              <td>When cooking for a crowd, Eunsook Pai sears the dumplings a
-                  couple of hours in advance and then steams them just before
-                  serving.</td>
-              <td>Beim Kochen für eine
-                  <span class="span-minor">Menschenmenge</span> braten Eunsook
-                  Pai die Teigtaschen ein paar Stunden im Voraus an und dampft
-                  sie dann kurz vor dem Servieren.</td>
-              <td>A minor word choice error (a contextually incorrect expression
-                  but still understandable)</td>
-            </tr>
-            <tr>
-              <td>EN_DE</td>
-              <td>Heat another tablespoon vegetable oil, and saute onion,
-                  stirring occasionally, until just softened, 2 to 3
-                  minutes.</td>
-              <td>Erhitzen Sie einen weiteren Esslöffel Pflanzenöl und braten
-                  Sie die Zwiebel unter gelegentlichem Rühren 2 bis 3 Minuten
-                  an, bis sie <span class="span-minor">gerade weich</span>
-                  ist.</td>
-              <td>Literal, unidiomatic but still somewhat understandable. The
-                  expression "just softened" means "at the point of becoming
-                  soft".</td>
-            </tr>
-            <tr>
-              <td>EN_DE</td>
-              <td>In an exclusive interview with Fast Company, Berners-Lee
-                  joked that the intent behind Inrupt is
-                  "world domination."</td>
-              <td>In einem exklusiven Interview mit Fast Company scherzte
-                  Berners-Lee, dass die Absicht hinter Inrupt die
-                  <span class="span-minor">"</span>Weltherrschaft<span
-                  class="span-minor">"</span> sei.</td>
-              <td>German uses curly quotes, opening down, closing up. The
-                  translation uses the same quote style as the source English,
-                  so both of these wrong quotes are minor punctuation
-                  errors.</td>
-            </tr>
-            <tr>
-              <td>EN_DE</td>
-              <td>The limited-time Taste of Knott's food, beer and wine event
-                  runs through Sept. 13 without rides, coasters or other theme
-                  park attractions.</td>
-              <td>Die zeitlich begrenzte Veranstaltung
-                  <span class="span-minor">Taste of Knotts Essen, Bier und
-                  Wein</span> läuft bis zum 13. September ohne Fahrgeschäfte,
-                  Achterbahnen oder andere Attraktionen des Themenparks.</td>
-              <td>Awkward syntax</td>
-            </tr>
-            <tr>
-              <td>ZH_EN</td>
-              <td>因为其中大多数都被抛弃了， 希望包含在花粉中的生殖细胞， 雄性生殖细胞</td>
-              <td>Because most of them are released, the hope is that there is
-                  a <span class="span-minor">reproduction</span> cell contained
-                  in the pollen</td>
-              <td>A minor terminological error. It should read
-                  "reproductive cell"</td>
-            </tr>
-            <tr>
-              <td>ZH_EN</td>
-              <td>击打在昆虫背部</td>
-              <td>hit <span class="span-minor">on</span> the back of the insect</td>
-              <td>A minor grammatical error. It should read
-                  "hit the back of the insect". The verb "hit" does not go with
-                  a preposition.</td>
-            </tr>
-            <tr>
-              <td>ZH_EN</td>
-              <td>它浮出水面大约有120英尺高或者40米高。</td>
-              <td>It <span class="span-minor">surfaced above water</span> about
-                 120 feet high or 40 meters high.</td>
-              <td>A minor style and grammar error. It should read "rose above
-                  the water".</td>
-            </tr>
-            <tr>
-              <td>ZH_EN</td>
-              <td>这是一个非常难得的机会大家实际上得以见证一个冰山翻滚。</td>
-              <td>This is a rare opportunity that all of you really get to
-                  witness <span class="span-minor">an iceberg
-                  rolling</span>.</td>
-              <td>A minor style and word choice error. It should read
-                  "witness a tumbling iceberg". Icebergs do not roll.</td>
-            </tr>
-            <tr>
-              <td>EN_ZH</td>
-              <td>This is also explained on the flip side of the widget.</td>
-              <td><span class="span-minor">这在该插件的另一方</span>面也有解释。</td>
-              <td>Inaccurate translation of "widget" and "flip side". Widget
-                  usually refers to a small gadget or mechanical device,
-                  especially one whose name is unknown or unspecified.
-                  "flip side" means the opposite side.</td>
-            </tr>
-            <tr>
-              <td>EN_ZH</td>
-              <td>George was one of the first to alert the world to the dangers
-                  facing these sites and the National Museum itself brought on
-                  by the invasion. He is well regarded in the international
-                  heritage and archaeological communities.</td>
-              <td>乔治是首先向世界警告遗址与国家博物馆因入侵面临着危险的<span class="span-minor">警钟</span>人之一。他在国际遗址与考古社区备受尊敬。</td>
-              <td>A minor readability error.  警告 警钟 is repeated.</td>
-            </tr>
-          </table>
-        </details>
       </li>
     </ul>
 
@@ -718,14 +698,20 @@ antheaTemplates['MQM-Paragraph'] = {
               intimate with B." (2) The source text states that something never
               happens, whereas the translation says it happens "often" or
               "rarely." (3) Incorrectly gendered pronouns not warranted by the
-              context, such as "Mary slammed the door as he left."
+              context, such as "Mary slammed the door as he left." Misgendering
+              errors typically have a major severity as they significantly alter
+              the meaning of the source text.
             </li>
             <li>
               <b>Source language fragment</b>.
               Content that should have been translated has been left
               untranslated. Example: A word, phrase or sentence in a German
               document has been copied verbatim into the English translation,
-              but a natural translation is possible.
+              but a natural translation is possible. Note that if only a short
+              phrase or term is left untranslated, and that phrase or term
+              is commonly used in the target language (for example, the French
+              phrase "c'est la vie" used in English), then it's not an
+              error (or is, at best, a minor error).
             </li>
             <li>
               <b>Addition</b>.
@@ -748,7 +734,7 @@ antheaTemplates['MQM-Paragraph'] = {
         <b>Fluency</b>.
         Issues related to the form or content of translated text, independent of
         its relation to the source text; errors in the translated text that
-        prevent it from being understood.
+        make it harder to understand.
         <details>
           <summary>Subtypes of Fluency:</summary>
           <ul>
@@ -757,40 +743,54 @@ antheaTemplates['MQM-Paragraph'] = {
               The text shows internal inconsistency (not related to
               terminology). Examples: (1) A person is referred to with a
               masculine pronoun in one sentence and a feminine pronoun in the
-              next sentence. (2) An entity is referred to as "Secretary of
-              State" in one paragraph but as "Minister of State" in the next.
+              next sentence. This would be a major error. (2) An entity is
+              referred to as "Secretary of State" in one paragraph but as
+              "Minister of State" in the next. This would be a minor error.
             </li>
             <li>
               <b>Grammar</b>.
               Issues related to the grammar or syntax of the text, other than
               spelling and orthography. Example: An English text reads "They
-              goes together," or "He could of fixed it."
+              goes together," or "He could of fixed it." Both of these examples
+              have jarring flaws that significantly degrade the fluency of
+              the text and would justify a major severity. However, it's
+              possible that these sentence constructs are present in a context
+              where such colloquial usage would not be out of place, and in
+              such contexts they may not be errors.
             </li>
             <li>
               <b>Register</b>.
               The content uses the wrong grammatical register, such as using
               informal pronouns or verb forms when their formal counterparts are
               required. Example: A formal invitation uses the German informal
-              pronoun "du" instead of "Sie."
+              pronoun "du" instead of "Sie." The annotator has to judge how
+              egregious such a mistake is, in the context of the document,
+              to decide the severity level of such an error. The use of an
+              informal pronoun instead of a formal pronoun, in the context of
+              a formal invitation may merit a major severity level, for example.
             </li>
             <li>
               <b>Spelling</b>.
               Issues related to spelling or capitalization of words. Example:
               The French word "mer" (sea) is used instead of the identically
-              pronounced "maire" (mayor).
+              pronounced "maire" (mayor). This example would merit a major
+              severity, as the meaning is substantially altered.
             </li>
             <li>
               <b>Punctuation</b>.
               Punctuation is used incorrectly (for the locale or style).
               Example: An English compound adjective appearing before a noun is
-              not hyphenated, as in "dog friendly hotel."
+              not hyphenated, as in "dog friendly hotel." The reader can
+              still grasp the intent quite easily in this case, so this example
+              would have a minor severity.
             </li>
             <li>
               <b>Character encoding</b>.
               Characters are garbled due to incorrect application of an
               encoding. Examples: "ﾊｸｻ�ｽ､ｱ" and "瓣в眏." See
               <a href="https://en.wikipedia.org/wiki/Mojibake">en.wikipedia.org/wiki/Mojibake</a>
-              for more.
+              for more. If such garbling is limited in scope and the overall
+              text can still be understood, the severity level would be minor.
             </li>
           </ul>
         </details>
@@ -806,10 +806,13 @@ antheaTemplates['MQM-Paragraph'] = {
               The text is literal, written in an awkward style, unidiomatic or
               inappropriate in the context. Examples: (1) The English metaphor
               "putting the cart before the horse" is literally translated into
-              Japanese. (2) A sentence is unnecessarily convoluted or long,
-              such as "The people transporting mechanism went skywards." (3)
-              Grammatically correct but slightly unnatural sounding sentences
-              such as “From where did he come?”
+              Japanese. This would significantly confuse the reader and
+              hence this particular example would have a major severity. (2) A
+              sentence is unnecessarily convoluted or long, such as, "The lift
+              traveled away from the ground floor." This would be a minor error.
+              (3) Grammatically correct but slightly unnatural sounding
+              sentences such as “From where did he come?” This would also be a
+              minor error.
             </li>
           </ul>
         </details>
@@ -826,12 +829,14 @@ antheaTemplates['MQM-Paragraph'] = {
               Translation does not adhere to appropriate or contains terminology
               that does not fit the context. Example: "acide sulfurique" is
               translated to "acid of sulfur" instead of "sulfuric acid."
+              This example would have a minor severity level.
             </li>
             <li>
               <b>Inconsistent</b>.
-              Terminology is used in an inconsistent manner within the text. 
+              Terminology is used in an inconsistent manner within the text.
               Example: The translation of a phone manual alternates between the
-              terms "front camera" and "front lens."
+              terms "front camera" and "front lens." This example would
+              have a minor severity level.
             </li>
           </ul>
         </details>
@@ -850,34 +855,42 @@ antheaTemplates['MQM-Paragraph'] = {
               was translated that should be kept in English. Examples:
               "1600 Pennsylvania Ave" is translated to Russian as
               "1600 Пенсильвания авеню" instead of "Пенсильвания авеню 1600."
+              This example would have a minor severity level.
             </li>
             <li>
               <b>Date format</b>.
               A text uses a date format inappropriate for its locale. Example:
-              The date is shown as "13-1-1969" in U.S. English.
+              The date "1969年1月6日" is shown as "6/1/1969" (instead of
+              "1/6/1969") and the target locale can be clearly inferred to be
+              U.S. English. For this example, the severity level would be
+              major as it might significantly confuse the reader or alter the
+              meaning of the date.
             </li>
             <li>
               <b>Currency format</b>.
               Content uses the wrong format for currency. Example: The dollar
-              symbol is used as a suffix, as in "100$."
+              symbol is used as a suffix, as in "100$." This example would
+              have a minor severity level.
             </li>
             <li>
               <b>Telephone format</b>.
               Content uses the wrong form for telephone numbers. Example: An
               Indian phone number such as "xxxx-nnnnnn" is formatted as
-              "(xxx) xnn-nnnn".
+              "(xxx) xnn-nnnn". This example would have a minor severity level.
             </li>
             <li>
               <b>Time format</b>.
               Content uses the wrong form for time. Example: Time is shown as
               "11.0" instead of "11:00" in a language where the former is a
-              mistake.
+              mistake. This example would have a minor severity level.
             </li>
             <li>
               <b>Name format</b>.
               Content uses the wrong form for name. Example: The Chinese name
               (which lists surname first) "马琳" is translated as "Lin Ma"
-              instead of "Ma Lin".
+              instead of "Ma Lin". This example would also have a minor
+              severity level as it the reader can make out the true intent
+              quite easily.
             </li>
           </ul>
         </details>
@@ -978,7 +991,7 @@ antheaTemplates['MQM-Paragraph'] = {
           <td>Accuracy - Omission - Major</td>
           <td>"Still Bombay" is the name of the book; the word "Still" was
               omitted in the translation. The severity in this case must be
-              Major. As the error is an omission, the error span is selected
+              major. As the error is an omission, the error span is selected
               on the source side to show which part of the source was
               omitted.</td>
         </tr>
@@ -996,10 +1009,10 @@ antheaTemplates['MQM-Paragraph'] = {
           </td>
           <td>
             1. "Pent House" should be spelled as "Penthouse" in German; this is
-               a Minor spelling issue
+               a minor spelling issue
             <br>
             2. The abbreviation "1BR" means "one bedroom" in English and is not
-              used in German. This is a Major error because the translation is
+              used in German. This is a major error because the translation is
               not understandable.
           </td>
         </tr>
@@ -1095,11 +1108,11 @@ antheaTemplates['MQM-Paragraph'] = {
             6. The original text means the poet wrote both genres incredibly
                well. The translated text "is at the same level" missed the
                information that the poet is very good at the genres.</td>
-        </tr>   
+        </tr>
       </table>
     </details>
     <br>
-  
+
     <details>
       <summary>
         <span class="summary-heading">Style &amp; Convention Guidelines</span>
