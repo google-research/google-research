@@ -637,7 +637,7 @@ class AntheaEval {
   displayHOTWMessage(found, span) {
     const tr = document.createElement('tr');
     this.evalPanelErrors_.appendChild(tr);
-    let html = '<td class="anthea-eval-panel-text" colspan="2">';
+    let html = '<td class="anthea-eval-panel-text" dir="auto" colspan="2">';
     if (!found) {
       html += '<p class="anthea-hotw-missed">You missed some injected ' +
               'error(s) in this ';
@@ -695,6 +695,7 @@ displayError(errors, index) {
       'td', 'anthea-eval-panel-text', desc,
       googdom.createDom(
           'span', {
+            dir: 'auto',
             style: 'background-color:' + severity.color,
           },
           '\u200b' + error.selected + '\u200b')));
@@ -1153,7 +1154,8 @@ displayError(errors, index) {
    */
   makeEvalPanelMQM() {
     this.guidancePanel_ = googdom.createDom('div', 'anthea-guidance-panel');
-    this.evalPanelHead_.appendChild(this.guidancePanel_);
+    this.evalPanelHead_.insertAdjacentElement(
+        'afterbegin', this.guidancePanel_);
 
     this.guidance_ = googdom.createDom('div', 'anthea-eval-guidance');
     this.guidance_.style.display = 'none';
@@ -2297,13 +2299,15 @@ displayError(errors, index) {
 
       const srcSegments = docsys.srcSegments;
       const tgtSegments = docsys.tgtSegments;
-      let srcSpannified = '<p class="anthea-source-para">';
-      let tgtSpannified = '<p class="anthea-target-para">';
+      let srcSpannified = '<p class="anthea-source-para" dir="auto">';
+      let tgtSpannified = '<p class="anthea-target-para" dir="auto">';
       for (let i = 0; i < srcSegments.length; i++) {
         if (srcSegments[i].length == 0) {
           /* New paragraph. */
-          srcSpannified = srcSpannified + '</p><p class="anthea-source-para">';
-          tgtSpannified = tgtSpannified + '</p><p class="anthea-target-para">';
+          srcSpannified = srcSpannified +
+                          '</p><p class="anthea-source-para" dir="auto">';
+          tgtSpannified = tgtSpannified +
+                          '</p><p class="anthea-target-para" dir="auto">';
           continue;
         }
 
