@@ -325,7 +325,10 @@ class TrainableModel:
     # Set up model and training state
     state = jax.device_get(self.make_init_state())
     checkpoint_dir = os.path.join(work_unit_dir, 'checkpoints')
-    state = checkpoints.restore_checkpoint(checkpoint_dir, state)
+    try:
+      state = checkpoints.restore_checkpoint(checkpoint_dir, state)
+    except ValueError:
+      pass
     initial_step = int(state.step)
     state = flax.jax_utils.replicate(state)
 
