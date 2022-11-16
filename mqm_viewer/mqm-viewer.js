@@ -42,6 +42,12 @@
  */
 let mqmData = [];
 
+/**
+ * mqmDataFiltered has exactly the same format as mqmData, except that it
+ * is limited to the current filters in place.
+ */
+let mqmDataFiltered = [];
+
 /** Array indices in each mqmData */
 const MQM_DATA_SYSTEM = 0;
 const MQM_DATA_DOC = 1;
@@ -158,6 +164,11 @@ let mqmDefaultWeights = [
     'name': 'Creative',
     'weight': 0,
     'pattern': ':.*reinterpretation',
+  },
+  {
+    'name': 'Source',
+    'weight': 0,
+    'pattern': ':source',
   },
   {
     'name': 'Non-trans.',
@@ -2021,6 +2032,7 @@ function mqmShow(viewingConstraints=null) {
   mqmStatsBySystem = {};
   mqmStatsByRater = {};
   mqmStatsBySystemRater = {};
+  mqmDataFiltered = [];
 
   mqmStatsBySevCat = {};
   mqmEvents = {};
@@ -2064,6 +2076,9 @@ function mqmShow(viewingConstraints=null) {
     if (!mqmFilterExprPasses(filterExpr, parts)) {
       continue;
     }
+
+    mqmDataFiltered.push(parts);
+
     const system = parts[MQM_DATA_SYSTEM];
     const rater = parts[MQM_DATA_RATER];
     const doc = parts[MQM_DATA_DOC];
@@ -2482,6 +2497,29 @@ function mqmFetchUrls(urls) {
 }
 
 /**
+ * Returns the currently filtered MQM data in TSV format. The filtered
+ * data is available in the mqmDataFiltered array. This function reorders
+ * the columns (from "source, target, rater" to "rater, source, target")
+ * before splicing them into TSV format.
+ * @return {string}
+ */
+function mqmGetFilteredTSVData() {
+  let tsvData = '';
+  for (let row of mqmDataFiltered) {
+    const tsvOrderedRow = [];
+    for (let i = 0; i < MQM_DATA_NUM_PARTS; i++) {
+      tsvOrderedRow[i] = row[i];
+    }
+    /** Move "Rater" up from its position in mqmDataFiltered. */
+    tsvOrderedRow[4] = row[MQM_DATA_RATER];
+    tsvOrderedRow[5] = row[MQM_DATA_SOURCE];
+    tsvOrderedRow[6] = row[MQM_DATA_TARGET];
+    tsvData += tsvOrderedRow.join('\t') + '\n';
+  }
+  return tsvData;
+}
+
+/**
  * Returns currently filtered scores data aggregated as specified, in TSV
  * format, with aggregation-dependent fields as follows.
  *     aggregation='system': system, score.
@@ -2596,16 +2634,20 @@ function mqmSaveDataInner(tsvData, fileName) {
 }
 
 /**
- * Returns a suitable label for the "save" button, depending on aggregation.
- * @param {string} aggregation One of 'system', 'document', 'segment', 'rater'
+ * Returns a suitable label for the "save" button, depending on saveType.
+ * @param {string} saveType One of '', 'filtered', 'system', 'document',
+ *     'segment', 'rater'
  * @return {string}
  */
-function mqmSaveLabel(aggregation) {
-  if (!aggregation) {
+function mqmSaveLabel(saveType) {
+  if (!saveType) {
     return 'Save MQM data to file "mqm-data.tsv"';
   }
+  if (saveType == 'filtered') {
+    return 'Save filtered MQM data to file "mqm-data-filtered.tsv"';
+  }
   return 'Save filtered scores to file ' +
-         `"mqm-scores-by-${aggregation}.tsv"`;
+         `"mqm-scores-by-${saveType}.tsv"`;
 }
 
 /**
@@ -2613,23 +2655,27 @@ function mqmSaveLabel(aggregation) {
  * option in the aggregation drop-down.
  */
 function mqmUpdateSaveLabel() {
-  const aggregation = document.getElementById('mqm-save-file-type').value;
+  const saveType = document.getElementById('mqm-save-file-type').value;
   const saveButton = document.getElementById('mqm-save-file');
-  saveButton.innerHTML = mqmSaveLabel(aggregation);
+  saveButton.innerHTML = mqmSaveLabel(saveType);
 }
 
 /**
- * Saves mqmTSVData or aggregated data to the file mqm-data.tsv.
+ * Saves mqmTSVData or filtered or filtered+aggregated data to the file
+ *     mqm-data.tsv.
  */
 function mqmSaveData() {
-  const aggregation = document.getElementById('mqm-save-file-type').value;
+  const saveType = document.getElementById('mqm-save-file-type').value;
   let tsvData = '';
   let fileName = 'mqm-data.tsv';
-  if (!aggregation) {
+  if (!saveType) {
     tsvData = mqmTSVData;
+  } else if (saveType == 'filtered') {
+    tsvData = mqmGetFilteredTSVData();
+    fileName = `mqm-data-filtered.tsv`;
   } else {
-    tsvData = mqmGetScoresTSVData(aggregation);
-    fileName = `mqm-scores-by-${aggregation}.tsv`;
+    tsvData = mqmGetScoresTSVData(saveType);
+    fileName = `mqm-scores-by-${saveType}.tsv`;
   }
   if (!tsvData) {
     alert('There is no data to be saved!');
@@ -2760,6 +2806,10 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
       <select disabled id="mqm-save-file-type" onchange="mqmUpdateSaveLabel()">
         <option value="" title="Save full 10-column MQM annotations TSV data">
           Save all data
+        </option>
+        <option value="filtered"
+            title="Save currently filtered 10-column MQM annotations TSV data">
+          Save filtered data
         </option>
         <option value="rater" title="Save sys-doc-docseg-rater-score TSV">
           Filtered seg scores by rater
