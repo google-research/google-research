@@ -52,7 +52,7 @@ CheckpointSpec = checkpoint.CheckpointSpec
 # cache this until the cpp pathway is built
 @lru_cache
 def create_mesh_pspec_sharding(mesh, pspec):
-  return sharding.MeshPspecSharding(mesh, pspec)
+  return sharding.NamedSharding(mesh, pspec)
 
 
 def contracting_dims_from_einsum_spec(spec):

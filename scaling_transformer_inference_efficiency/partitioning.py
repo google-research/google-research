@@ -26,7 +26,7 @@ from jax.experimental.global_device_array import GlobalDeviceArray
 from jax.experimental.maps import Mesh
 from jax.experimental.pjit import PartitionSpec as P
 import jax.numpy as jnp
-from jax.sharding import MeshPspecSharding
+from jax.sharding import NamedSharding
 import numpy as np
 import tensorstore
 
