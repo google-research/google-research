@@ -68,13 +68,22 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 from absl import flags
 
 _DEEPCODER_MOD = flags.DEFINE_integer(
-    'deepcoder_mod', 20,
+    'deepcoder_mod', 0,
     'The modulo we use for DeepCoder arithmetic, or 0 to not apply any mod.')
+
+_DEEPCODER_MAX_LIST_LENGTH = flags.DEFINE_integer(
+    'deepcoder_max_list_length', 20,
+    'The maximum length of a DeepCoder list input.')
 
 
 def deepcoder_mod():
-  # Just to hide the internal flag from code outside this module.
+  """Hides the internal flag from code outside this module."""
   return _DEEPCODER_MOD.value
+
+
+def deepcoder_max_list_length():
+  """Hides the internal flag from code outside this module."""
+  return _DEEPCODER_MAX_LIST_LENGTH.value
 
 
 # Types for type specifications, e.g., `([int], bool)` has type LambdaType and
@@ -88,7 +97,6 @@ ResultType = Union[int, List[int]]
 
 MIN_INT = -256
 MAX_INT = 255
-MAX_LIST_LENGTH = 20  # Maximum length for list input.
 
 
 def variable_token(index):

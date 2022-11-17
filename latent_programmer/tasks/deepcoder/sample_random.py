@@ -16,8 +16,9 @@
 """Generates random programs in Deepcoder DSL."""
 
 import collections
+import functools
 import random
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl as dsl
 from latent_programmer.tasks.deepcoder import experiment as exp_module
@@ -25,66 +26,107 @@ from latent_programmer.tasks.deepcoder import experiment as exp_module
 # Multiple inputs for one example.
 InputsList = List[Union[int, List[int]]]
 
+# When not using mod, these are potential ranges to draw integers from, to fill
+# a random input list. For a particular input, all examples will use the same
+# range. These ranges include both endpoints.
+# (Integer inputs don't use this. Instead they are constrained to
+# [0, max_list_length] because int inputs are only useful as arguments to Take,
+# Drop, and Access.)
+LIST_INT_RANGES = [
+    (0, 4),
+    (0, 9),
+    (-9, 9),
+    (-49, 49),
+    (dsl.MIN_INT, dsl.MAX_INT),
+]
+assert all(dsl.MIN_INT <= min_int < max_int <= dsl.MAX_INT
+           for min_int, max_int in LIST_INT_RANGES)
 
-def random_int():
-  if dsl.deepcoder_mod() > 0:
-    min_int, max_int = 0, dsl.deepcoder_mod() - 1
-  else:
-    min_int, max_int = dsl.MIN_INT, dsl.MAX_INT
-  return random.randint(min_int, max_int)
+# When not using mod, we need short lists with small numbers to use Scanl1 (*).
+# Note that the result must only contain integers in range, for all examples,
+# which is unlikely unless we choose short lists with small-magnitude integers.
+LENGTH_RANGES = [
+    (1, 3),
+    (0, 5),
+    (0, 10),
+    (0, 20),
+]
 
 
-def random_list():
-  if dsl.deepcoder_mod() > 0:
-    min_int, max_int = 0, dsl.deepcoder_mod() - 1
-  else:
-    min_int, max_int = dsl.MIN_INT, dsl.MAX_INT
-  random_length = random.randint(1, dsl.MAX_LIST_LENGTH)
-  return random.choices(range(min_int, max_int + 1), k=random_length)
+@functools.cache
+def _get_length_range_options(upper_bound):
+  """Choose options for list length range, respecting a length upper bound."""
+  length_range_options = [
+      (min_length, max_length)
+      for min_length, max_length in LENGTH_RANGES
+      if max_length <= upper_bound]
+  if (0, upper_bound) not in length_range_options:
+    length_range_options.append((0, upper_bound))
+  return length_range_options
 
 
-def random_inputs(num_inputs):
-  """Randomly sample inputs."""
+def random_inputs(num_examples, num_inputs):
+  """Randomly sample inputs for multiple examples."""
   # At least one of inputs has to be a list.
-  inputs = [random_list()]
-  for _ in range(num_inputs - 1):
-    if random.random() < 0.5:
-      inputs.append(random_int())
-    else:
-      inputs.append(random_list())
-  random.shuffle(inputs)
-  return inputs
+  types = [list] + random.choices([int, list], k=num_inputs - 1)
+  random.shuffle(types)
 
+  # Choose some constraints on input lists that will be used for all examples.
+  # Ranges are inclusive.
+  if dsl.deepcoder_mod() > 0:
+    list_int_ranges = [(0, dsl.deepcoder_mod() - 1)] * num_inputs
+  else:
+    list_int_ranges = random.choices(LIST_INT_RANGES, k=num_inputs)
+  length_range_options = _get_length_range_options(
+      dsl.deepcoder_max_list_length())
+  length_ranges = random.choices(length_range_options, k=num_inputs)
 
-def random_inputs_like(
-    existing_inputs):
-  """Returns new random inputs like existing ones, but different."""
-  if not existing_inputs:
-    raise dsl.DeepCoderError('Should have some existing inputs.')
-
-  # Note: it is possible that this is an infinite loop, if there is only 1 int
-  # input, and deepcoder_mod is smaller than the number of examples. That
-  # shouldn't happen in our experiments.
-  while True:
-    new_inputs = []
-    for inp in existing_inputs[0]:
-      if isinstance(inp, list):
-        new_inputs.append(random_list())
+  # Create input lists for each example, making sure no two examples have
+  # identical input lists.
+  all_examples = []
+  while len(all_examples) < num_examples:
+    inputs_list = []
+    for i, type_, in enumerate(types):
+      if type_ == int:
+        # Integer inputs are constrained to the range [0, max_list_length]
+        # because int inputs are only useful as arguments to Take, Drop, and
+        # Access. No other operation takes an integer input.
+        max_int = dsl.deepcoder_max_list_length()
+        if dsl.deepcoder_mod() > 0:
+          max_int = min(max_int, dsl.deepcoder_mod() - 1)
+        random_input = random.randint(0, max_int)
       else:
-        assert type(inp) is int  # pylint: disable=unidiomatic-typecheck
-        new_inputs.append(random_int())
+        assert type_ == list
+        min_int, max_int = list_int_ranges[i]
+        min_length, max_length = length_ranges[i]
+        random_input = random.choices(range(min_int, max_int + 1),
+                                      k=random.randint(min_length, max_length))
+      inputs_list.append(random_input)
+    if inputs_list not in all_examples:
+      all_examples.append(inputs_list)
 
-    if new_inputs not in existing_inputs:
-      return new_inputs
+  return all_examples
 
 
-def random_new_variable(existing_variables):
-  return random.choice(list(dsl.ALL_VARIABLES - set(existing_variables)))
+def random_new_variable(existing_variables,
+                        ordered):
+  """Returns a new variable token different from those in existing_variables."""
+  if ordered:
+    for i in range(dsl.MAX_NUM_VARIABLES):
+      v = dsl.variable_token(i)
+      if v not in existing_variables:
+        return v
+    raise ValueError('All variables were already used.')
+  else:
+    choices = list(dsl.ALL_VARIABLES - set(existing_variables))
+    if not choices:
+      raise ValueError('All variables were already used.')
+    return random.choice(choices)
 
 
 def is_valid_operation(operation,
                        var_dict):
-  """Check is operation is valid given the current variable types."""
+  """Checks if the operation is usable given the current variable types."""
   # First index is for Lambda if operation is higher-order.
   if isinstance(operation, dsl.FirstOrderOperation):
     start_idx = 0
@@ -96,23 +138,62 @@ def is_valid_operation(operation,
 
 
 def random_statement(program_state,
+                     unused_variables,
                      is_train,
                      experiment,
                      operations,
-                     lambdas):
+                     lambdas,
+                     last_statement = False):
   """Randomly sample new Statement given existing ProgramState."""
-  variable = random_new_variable(program_state.variables)
+  variable = random_new_variable(program_state.variables, ordered=not is_train)
 
-  # Maps from type to a list of indices of variables of that type.
+  # Maps from type to a list of variable names of that type.
   var_dict = collections.defaultdict(list)
   for i, v in enumerate(program_state.state):
     assert type(v) in (int, list)
-    var_dict[type(v)].append(i)
+    var_dict[type(v)].append(program_state.variables[i])
 
   valid_operations = [op for op in operations if
                       is_valid_operation(op, var_dict)]
-  random_op = random.choice(valid_operations)
 
+  # If it's the last statement: force using all unused variables
+  # If there is 1 unused variable:
+  #   * 50% probability: force using that variable if possible
+  #   * otherwise: do whatever
+  # If there are 2 unused variables:
+  #   * 50% probability: force using both of them if possible
+  #   * otherwise: force using one of them if possible
+  required_variables = []
+  unused_variables_copy = list(unused_variables)
+  if last_statement:
+    # This could have length > 2, if it wasn't possible to use enough variables
+    # in previous statements.
+    required_variables = unused_variables_copy
+  elif len(unused_variables) == 1:
+    if random.random() < 0.5:
+      required_variables = unused_variables_copy
+  elif len(unused_variables) >= 2:
+    required_variables = random.sample(unused_variables_copy,
+                                       k=random.choice([1, 2]))
+
+  # Find operations which make it possible to use the required variables.
+  # In any situation where it isn't possible, try using one fewer variable,
+  # until it becomes possible.
+  while True:
+    required_variable_types = [type(program_state.get_variable(v))
+                               for v in required_variables]
+    new_valid_operations = [
+        op for op in valid_operations
+        if all(required_variable_types.count(t) <= op.inputs_type.count(t)
+               for t in required_variable_types)]
+    if new_valid_operations:
+      break
+    else:
+      required_variables.pop(random.choice(range(len(required_variables))))
+
+  # Create a random statement, initially without constraints on which variables
+  # are used.
+  random_op = random.choice(new_valid_operations)
   args = []
   for t in random_op.inputs_type:
     if isinstance(t, tuple):  # Argument is a lambda.
@@ -125,10 +206,20 @@ def random_statement(program_state,
       random_lambda = random.choice(valid_lambdas)
       args.append(random_lambda)
     else:  # Argument is either an int or list.
-      # Make it more likely to sample a recent variable.
-      weights = [index + 1 for index in var_dict[t]]
-      variable_index = random.choices(var_dict[t], weights=weights)[0]
-      args.append(program_state.variables[variable_index])
+      random_arg = random.choice(var_dict[t])
+      args.append(random_arg)
+
+  # Override arguments to use required variables.
+  used_indices = set()
+  for required_variable, required_type in zip(required_variables,
+                                              required_variable_types):
+    required_index = random.choice([
+        arg_index for arg_index, arg_type in enumerate(random_op.inputs_type)
+        if arg_type == required_type and arg_index not in used_indices
+    ])
+    args[required_index] = required_variable
+    used_indices.add(required_index)
+
   return dsl.Statement(variable, random_op, args)
 
 
@@ -175,8 +266,65 @@ def has_constant_output(program,
   return all(output == outputs[0] for output in outputs)
 
 
-def random_program(
+def _sample_program(
     example_inputs,
+    num_statements,
+    is_train,
+    experiment,
+    operations,
+    lambdas,
+    reject_redundant_code,
+    input_variables,
+):
+  """Sample a new program that could be rejected later."""
+  states = [dsl.ProgramState(inputs, input_variables)
+            for inputs in example_inputs]
+  statements = []
+  unused_variables = []  # Track which variables have not been used yet.
+  for i in range(num_statements):
+    if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER:
+      assert num_statements >= 2
+      if is_train:
+        operations = (dsl.HIGHER_ORDER_OPERATIONS if i < num_statements // 2
+                      else dsl.FIRST_ORDER_OPERATIONS)
+      else:
+        operations = (dsl.FIRST_ORDER_OPERATIONS if i < num_statements // 2
+                      else dsl.HIGHER_ORDER_OPERATIONS)
+
+    # Sample a statement that executes successfully for all examples.
+    num_statement_attempts = 0
+    while True:
+      if num_statement_attempts > 20:
+        return None  # Reject the entire program.
+      num_statement_attempts += 1
+      statement = random_statement(
+          states[0], unused_variables, is_train,
+          experiment=experiment,
+          operations=operations,
+          lambdas=lambdas,
+          last_statement=len(statements) + 1 == num_statements)
+      next_states = [statement.run(state) for state in states]
+      if not all(next_states):
+        continue  # The statement failed to run for at least 1 example.
+      if reject_redundant_code and is_redundant(next_states):
+        continue
+      break
+    statements.append(statement)
+    states = next_states
+    # Update unused variables.
+    unused_variables.append(statement.variable)
+    for arg in statement.args:
+      if isinstance(arg, str) and arg in unused_variables:
+        unused_variables.remove(arg)
+
+  program = dsl.Program(input_variables, statements)
+  assert len(program) == num_statements
+  return program
+
+
+def random_task(
+    num_examples,
+    num_inputs,
     num_statements,
     is_train,
     experiment = None,
@@ -191,50 +339,42 @@ def random_program(
   if lambdas is None:
     lambdas = dsl.LAMBDAS.copy()
 
-  # All examples should have the same number of inputs.
-  num_inputs = len(example_inputs[0])
-  assert all(len(inputs) == num_inputs for inputs in example_inputs)
-
   input_variables = []
   while len(input_variables) < num_inputs:
-    input_variables.append(random_new_variable(input_variables))
+    # During training, generate unordered variables to teach the model about all
+    # variable names. During test, generate variables in order (x0, x1, ...) to
+    # simplify how statements combine to form programs in the end-to-end loop
+    # (individual models only predict the RHS of statements, so we need to add
+    # a variable name ourselves).
+    input_variables.append(random_new_variable(input_variables,
+                                               ordered=not is_train))
 
   while True:
-    states = [dsl.ProgramState(inputs, input_variables)
-              for inputs in example_inputs]
-    statements = []
-    for i in range(num_statements):
-      if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER:
-        if is_train:
-          operations = (dsl.FIRST_ORDER_OPERATIONS if i < num_statements // 2
-                        else dsl.HIGHER_ORDER_OPERATIONS)
-        else:
-          operations = (dsl.HIGHER_ORDER_OPERATIONS if i < num_statements // 2
-                        else dsl.FIRST_ORDER_OPERATIONS)
+    example_inputs = random_inputs(num_examples=num_examples,
+                                   num_inputs=num_inputs)
+    program = _sample_program(
+        example_inputs=example_inputs,
+        num_statements=num_statements,
+        is_train=is_train,
+        experiment=experiment,
+        operations=operations,
+        lambdas=lambdas,
+        reject_redundant_code=reject_redundant_code,
+        input_variables=input_variables,
+    )
 
-      # Sample a statement that executes successfully for all examples.
-      while True:
-        statement = random_statement(states[0], is_train, experiment=experiment,
-                                     operations=operations, lambdas=lambdas)
-        next_states = [statement.run(state) for state in states]
-        if not all(next_states):
-          continue
-        if reject_redundant_code and is_redundant(next_states):
-          continue
-        break
-      statements.append(statement)
-      states = next_states
-
-    program = dsl.Program(input_variables, statements)
-    assert len(program) == num_statements
-
-    should_reject_program = False
-    if reject_dead_code and has_dead_code(program):
-      should_reject_program = True
-    if reject_constant_output and has_constant_output(program, example_inputs):
-      should_reject_program = True
-
+    should_reject_program = (
+        program is None or
+        (reject_dead_code and has_dead_code(program)) or
+        (reject_constant_output and has_constant_output(program,
+                                                        example_inputs)))
     if not should_reject_program:
       break
 
-  return program
+  # `program` can't be None here.
+  example_outputs = [
+      program.run(inputs).get_output()  # pytype: disable=attribute-error
+      for inputs in example_inputs]
+  examples = [dsl.Example(inputs, output)
+              for inputs, output in zip(example_inputs, example_outputs)]
+  return dsl.ProgramTask(program, examples)

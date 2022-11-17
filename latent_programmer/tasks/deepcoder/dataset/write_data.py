@@ -15,6 +15,7 @@
 
 """Write supervised training tasks to TFRecord dataset."""
 
+import hashlib
 import os
 import random
 from typing import List, Union
@@ -31,10 +32,14 @@ from latent_programmer.tasks.deepcoder import sample_random
 
 gfile = tf.io.gfile
 
-_NUM_WORK_UNITS = flags.DEFINE_integer(
-    'num_work_units', 1, 'Total number of work units.')
 _SEED = flags.DEFINE_integer(
-    'seed', None, 'Fixed random seed.')
+    'seed', None, 'Base random seed.')
+_SAVE_DIR = flags.DEFINE_string(
+    'save_dir', '/tmp/decomposition/deepcoder', 'Directory to save results to.')
+_NUM_SHARDS = flags.DEFINE_integer(
+    'num_shards', 1, 'Total number of shards for this TFRecords file.')
+_SHARD_ID = flags.DEFINE_integer(
+    'shard_id', 0, 'An index number for this shard.')
 
 _EXPERIMENT = flags.DEFINE_enum(
     'experiment', 'NONE', [e.name for e in exp_module.Experiment],
@@ -42,15 +47,12 @@ _EXPERIMENT = flags.DEFINE_enum(
 _SPLIT = flags.DEFINE_enum(
     'split', None, ['train', 'valid', 'test', 'finetune'],
     'Which split of the dataset to generate.')
-_NUM_TASKS = flags.DEFINE_integer(
-    'num_tasks', 100000, 'Number of tasks to write.')
+_NUM_PROGRAMS = flags.DEFINE_integer(
+    'num_programs', 100000, 'Number of programs to generate.')
 _NUM_EXAMPLES = flags.DEFINE_integer(
     'num_examples', 5, 'Number of examples per task.')
 _MAX_PROGRAM_ARITY = flags.DEFINE_integer(
     'max_program_arity', 2, 'Maximum number of inputs.')
-
-_SAVE_DIR = flags.DEFINE_string(
-    'save_dir', '/tmp/decomposition/deepcoder', 'Directory to save results to.')
 
 
 def _bytes_feature(strs):
@@ -123,14 +125,6 @@ def generate_task_for_experiment(experiment,
   if isinstance(experiment, str):
     experiment = exp_module.Experiment[experiment]
 
-  # Generate random inputs.
-  num_inputs = random.randint(1, _MAX_PROGRAM_ARITY.value)
-  inputs = sample_random.random_inputs(num_inputs)
-  # Generate more input examples (must all be the same length and types).
-  example_inputs = [inputs]
-  for _ in range(_NUM_EXAMPLES.value - 1):
-    example_inputs.append(sample_random.random_inputs_like(example_inputs))
-
   # Some tasks require a rejection sampling step to enforce some constraints.
   keep_fn = None
 
@@ -201,41 +195,49 @@ def generate_task_for_experiment(experiment,
     raise ValueError(f'Unhandled experiment: {experiment}')
 
   program = None
+  task = None
   while program is None or (keep_fn and not keep_fn(program)):
-    program = sample_random.random_program(
-        example_inputs, num_statements, is_train, experiment,
-        operations=operations_pool, lambdas=lambdas_pool)
+    task = sample_random.random_task(
+        num_examples=_NUM_EXAMPLES.value,
+        num_inputs=random.randint(1, _MAX_PROGRAM_ARITY.value),
+        num_statements=num_statements,
+        is_train=is_train,
+        experiment=experiment,
+        operations=operations_pool,
+        lambdas=lambdas_pool)
+    program = task.program
 
-  example_outputs = [program.run(inputs).get_output()
-                     for inputs in example_inputs]
-  examples = [dsl.Example(inputs, output)
-              for inputs, output in zip(example_inputs, example_outputs)]
-  return dsl.ProgramTask(program, examples)
+  return task
 
 
 def main(_):
   if _SEED.value is not None:
-    random.seed(_SEED.value)
+    # By setting seeds this way, they are not dependent on the order jobs are
+    # run in. This allows the flexibility to generate a part of the data without
+    # affecting other parts.
+    seed_phrase = (f'{_EXPERIMENT.value}-{_SPLIT.value}-{_SHARD_ID.value}-'
+                   f'{_SEED.value}')  # Distinguishes this worker from others.
+    seed = int(hashlib.md5(seed_phrase.encode('utf-8')).hexdigest()[:8], 16)
+    random.seed(seed)
 
-  if not gfile.isdir(_SAVE_DIR.value):
-    gfile.makedirs(_SAVE_DIR.value)
-
-  shard_id = 0
-  total_shards = 1
+  experiment_save_dir = os.path.join(_SAVE_DIR.value,
+                                     f'{_EXPERIMENT.value}_data')
+  if not gfile.isdir(experiment_save_dir):
+    gfile.makedirs(experiment_save_dir)
 
   entire_programs_fname = os.path.join(
-      _SAVE_DIR.value,
+      experiment_save_dir,
       'entire_programs_{}.tf_records-{:05d}-of-{:05d}'.format(
-          _SPLIT.value, shard_id, total_shards))
+          _SPLIT.value, _SHARD_ID.value, _NUM_SHARDS.value))
   decomposition_data_fname = os.path.join(
-      _SAVE_DIR.value,
+      experiment_save_dir,
       'decomposition_data_{}.tf_records-{:05d}-of-{:05d}'.format(
-          _SPLIT.value, shard_id, total_shards))
+          _SPLIT.value, _SHARD_ID.value, _NUM_SHARDS.value))
 
   # Write the `tf.Example` observations to the file.
   with tf.io.TFRecordWriter(entire_programs_fname) as entire_programs_writer, \
       tf.io.TFRecordWriter(decomposition_data_fname) as decomposition_data_writer:
-    for i in range(_NUM_TASKS.value):
+    for i in range(_NUM_PROGRAMS.value):
       if _SPLIT.value in ['train', 'valid']:
         is_train = True
       elif _SPLIT.value == 'test':

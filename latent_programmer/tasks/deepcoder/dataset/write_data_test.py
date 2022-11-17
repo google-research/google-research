@@ -15,8 +15,6 @@
 
 """Tests for sample_random."""
 
-import itertools
-
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
@@ -31,15 +29,6 @@ FLAGS = flags.FLAGS
 
 
 class WriteDataTest(parameterized.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    self._saved_flags = flagsaver.save_flag_values()
-    FLAGS.deepcoder_mod = 20  # Tests use mod 20 unless otherwise specified.
-
-  def tearDown(self):
-    flagsaver.restore_flag_values(self._saved_flags)
-    super().tearDown()
 
   def test_serialize_decomposition_examples(self):
     # Checks that task is serialized correctly using a hard-coded example.
@@ -103,16 +92,24 @@ class WriteDataTest(parameterized.TestCase):
             }))
     self.assertEqual(tf.train.Example.FromString(result), expected_result)
 
-  @parameterized.named_parameters(
-      *[(f'{e}_{"train" if t else "test"}', e, t)
-        for e, t in itertools.product(exp_module.Experiment, [True, False])]
+  @parameterized.product(
+      experiment=list(exp_module.Experiment),
+      is_train=[True, False],
+      num_examples=[2, 5],
+      mod=[0, 20],
+      max_length=[5, 20],
   )
-  def test_generate_task_for_experiment(self, experiment, is_train):
-    for _ in range(10):
-      task = write_data.generate_task_for_experiment(experiment.name, is_train)
-      for example in task.examples:
-        self.assertEqual(task.program.run(example.inputs).get_output(),
-                         example.output)
+  def test_generate_task_for_experiment(self, experiment, is_train,
+                                        num_examples, mod, max_length):
+    with flagsaver.flagsaver(num_examples=num_examples,
+                             deepcoder_mod=mod,
+                             deepcoder_max_list_length=max_length):
+      for _ in range(10):
+        task = write_data.generate_task_for_experiment(experiment.name,
+                                                       is_train)
+        for example in task.examples:
+          self.assertEqual(task.program.run(example.inputs).get_output(),
+                           example.output)
 
 
 if __name__ == '__main__':

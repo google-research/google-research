@@ -38,61 +38,45 @@ class DatasetTest(parameterized.TestCase):
     flagsaver.restore_flag_values(self._saved_flags)
     super().tearDown()
 
-  def test_random_int(self):
-    for _ in range(100):
-      random_int = sample_random.random_int()
-      self.assertBetween(
-          random_int, deepcoder_dsl.MIN_INT, deepcoder_dsl.MAX_INT)
-
-  @parameterized.named_parameters(
-      ('10', 10),
-      ('20', 20),
+  @parameterized.product(
+      mod=[0, 10, 20],
+      max_length=[5, 20],
+      num_inputs=[1, 2],
+      num_examples=[1, 3, 5],
   )
-  def test_random_int_with_mod(self, mod):
-    with flagsaver.flagsaver(deepcoder_mod=mod):
-      for _ in range(100):
-        random_int = sample_random.random_int()
-        self.assertBetween(random_int, 0, mod - 1)
+  def test_random_inputs(self, mod, max_length, num_inputs, num_examples):
+    with flagsaver.flagsaver(deepcoder_mod=mod,
+                             deepcoder_max_list_length=max_length):
+      example_inputs = sample_random.random_inputs(num_examples, num_inputs)
+      # Shape is (num_examples, num_inputs).
+      self.assertLen(example_inputs, num_examples)
+      self.assertTrue(all(len(inputs) == num_inputs
+                          for inputs in example_inputs))
+      # Every individual input is ok.
+      for inputs in example_inputs:
+        self.assertTrue(all(type(x) in [int, list] for x in inputs))
+        self.assertTrue(all(deepcoder_dsl.validate_result(x) for x in inputs))
+      # Input types are consistent across examples.
+      for i in range(num_inputs):
+        self.assertTrue(all(type(inputs[i]) == type(example_inputs[0][i])  # pylint: disable=unidiomatic-typecheck
+                            for inputs in example_inputs))
 
-  def test_random_list(self):
-    for _ in range(100):
-      random_list = sample_random.random_list()
-      self.assertLessEqual(len(random_list), deepcoder_dsl.MAX_LIST_LENGTH)
-      for elem in random_list:
-        self.assertBetween(elem, deepcoder_dsl.MIN_INT, deepcoder_dsl.MAX_INT)
+  def test_random_new_variable(self):
+    x4 = deepcoder_dsl.variable_token(4)
+    existing_variables = list(deepcoder_dsl.ALL_VARIABLES)
+    existing_variables.remove(x4)
+    self.assertEqual(sample_random.random_new_variable(existing_variables,
+                                                       ordered=False), x4)
 
-  @parameterized.named_parameters(
-      ('1', 1),
-      ('2', 2),
-      ('3', 3),
-  )
-  def test_random_inputs(self, num_inputs):
-    for _ in range(10):
-      inputs = sample_random.random_inputs(num_inputs)
-      self.assertLen(inputs, num_inputs)
-      self.assertTrue(all(type(x) in [int, list] for x in inputs))
+    existing_variables = ['x0', 'x1', 'x2']
+    self.assertEqual(sample_random.random_new_variable(existing_variables,
+                                                       ordered=True), 'x3')
 
-  @parameterized.named_parameters(
-      ('single_int', [[1], [5]]),
-      ('single_list', [[[6, 2, 5]]]),
-      ('int_and_list', [[4, [8, 4, 3, 5]], [1, [6, 3]], [9, [5]]]),
-  )
-  def test_random_inputs_like(self, existing_inputs):
-    first = existing_inputs[0]
-    for _ in range(10):
-      new_inputs = sample_random.random_inputs_like(existing_inputs)
-      total_inputs = existing_inputs + [new_inputs]
-      self.assertLen(new_inputs, len(first))
-      self.assertTrue(all(type(x) == type(y)  # pylint: disable=unidiomatic-typecheck
-                          for x, y in zip(new_inputs, first)))
-      self.assertLen(set(str(inputs) for inputs in total_inputs),
-                     len(total_inputs))
-
-  def test_random_inputs_like_no_repeats(self):
-    with flagsaver.flagsaver(deepcoder_mod=5):
-      existing_inputs = [[4], [2], [0], [1]]
-      new_inputs = sample_random.random_inputs_like(existing_inputs)
-      self.assertEqual(new_inputs, [3])  # Only non-duplicate choice.
+  def test_random_new_variable_raises(self):
+    for ordered in [True, False]:
+      with self.assertRaises(ValueError):
+        sample_random.random_new_variable(deepcoder_dsl.ALL_VARIABLES,
+                                          ordered=ordered)
 
   @parameterized.parameters(
       ('Head', {int: [], list: [1]}, True),
@@ -161,24 +145,34 @@ class DatasetTest(parameterized.TestCase):
     self.assertEqual(sample_random.has_constant_output(program, example_inputs),
                      expected)
 
-  @parameterized.parameters(
-      ([[[1, 2, 3], 2], [[4, 5, 6], 2]], 1, exp_module.Experiment.NONE),
-      ([[10, [1, 10, 100]]], 2, exp_module.Experiment.SWITCH_CONCEPT_ORDER),
-      ([[[1, 2, 3], [1, 10]], [[1, 2], [3, 4]]], 1,
-       exp_module.Experiment.EXTEND_OP_FUNCTIONALITY),
-      ([[[1, 2, 3], 2], [[4, 5, 6], 2]], 5, exp_module.Experiment.NONE),
-      ([[10, [1, 10, 100]]], 5, exp_module.Experiment.SWITCH_CONCEPT_ORDER),
-      ([[[1, 2, 3], [1, 10]], [[1, 2], [3, 4]]], 5,
-       exp_module.Experiment.EXTEND_OP_FUNCTIONALITY),
+  @parameterized.product(
+      num_inputs=[1, 2],
+      num_statements=[2, 4],  # All generalization tasks should support these.
+      experiment=list(exp_module.Experiment),
+      is_train=[True, False],
+      mod=[0, 20],
+      max_length=[5, 20],
   )
-  def test_random_program(self, example_inputs, num_statements, experiment):
+  def test_random_task(self, num_inputs, num_statements, experiment, is_train,
+                       mod, max_length):
     for _ in range(10):
-      for is_train in [True, False]:
-        random_program = sample_random.random_program(
-            example_inputs, num_statements, is_train, experiment)
-        self.assertLen(random_program, num_statements)
-        for inputs in example_inputs:
-          self.assertIsNotNone(random_program.run(inputs))
+      with flagsaver.flagsaver(deepcoder_mod=mod,
+                               deepcoder_max_list_length=max_length):
+        task = sample_random.random_task(
+            num_examples=5,
+            num_inputs=num_inputs,
+            num_statements=num_statements,
+            is_train=is_train,
+            experiment=experiment)
+        program = task.program
+        self.assertLen(program, num_statements)
+        self.assertLen(task.examples, 5)
+        for example in task.examples:
+          self.assertEqual(program.run(example.inputs).get_output(),
+                           example.output)
+        if not is_train:
+          # Test programs should have variable names in order.
+          self.assertStartsWith(str(task.program), 'x0 = INPUT | x1 = ')
 
 
 if __name__ == '__main__':
