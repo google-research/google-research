@@ -1,7 +1,7 @@
-# $\alpha$NAS: Neural Architecture Search using Property Guided Synthesis
+# αNAS: Neural Architecture Search using Property Guided Synthesis
 
 This repository contains the code to reproduce the results for the paper
-$\alpha$NAS: Neural Architecture Search using Property Guided Synthesis
+αNAS: Neural Architecture Search using Property Guided Synthesis
 
 Link to paper https://arxiv.org/abs/2205.03960
 
@@ -23,3 +23,9 @@ python -m unittest discover -s abstract_nas -p "*_test.py" -v
 ```
 
 The tests should take about an hour to complete.
+
+## Inquiry
+
+If you have questions about this particular project, please contact
+`ccj[at]csail.mit.edu` instead of using GitHub issues (as we don't get
+notifications).
