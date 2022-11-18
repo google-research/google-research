@@ -56,6 +56,7 @@ def copy_to_device_with_mesh(mesh, x, spec, expected):
   s = create_mesh_pspec_sharding(mesh, spec)
   return partitioning.copy_to_device(x, s, expected)
 
+
 def _generate_fixed_pos_embedding(features,
                                   length,
                                   min_timescale=1.0,
@@ -153,7 +154,7 @@ class Weights:
     o_wo = P('layers', 'heads.YZ', 'query', 'embed.X')
     sin = P(None, None)
     cos = P(None, None)
-    embedding = P('table_vocab.YZ', 'table_embed.X')
+    embedding = P('table_vocab.YZ', 'embed.X')
 
     return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
 

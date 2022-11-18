@@ -57,6 +57,7 @@ def assert_equal(x, y):
 
 
 def allgather_layernorm(x, shard_seqlen_vs_batch):
+  """All gathers around layernorm, minimises comms by first doing per-chip."""
   with jax.named_scope('allgather_layernorm'):
     # allgather xnorm: [batch.Z, maxlen, dmodel.XY]
     # -> [batch.Z, maxlen, dmodel.X]    (xnorm_z)
@@ -95,6 +96,7 @@ def transformer_layer_weight_stationary(
     attn_all_to_all,
     latency_collectives,
     shard_seqlen_vs_batch = False,
+    intermediate_dtype = jnp.bfloat16,
 ):
   """Forward pass through a single layer, returning output, K, V.
 
@@ -133,6 +135,9 @@ def transformer_layer_weight_stationary(
       matmul_reducescatter = collectives.matmul_reducescatter_oneway
       reducescatter = collectives.reducescatter_oneway
       matmul_allgather = collectives.async_matmul_allgather_one_way
+      # matmul_reducescatter = collectives.matmul_reducescatter_no_collective
+      # reducescatter = collectives.plain_reducescatter
+      # matmul_allgather = collectives.matmul_allgather_no_collective
     else:
       matmul_reducescatter = collectives.matmul_reducescatter_bidirectional_throughput
       reducescatter = collectives.reducescatter_bidirectional_throughput
@@ -196,6 +201,7 @@ def transformer_layer_weight_stationary(
 
   with jax.named_scope('q_wi'):
     if B == 1:
+      xnorm = intermediate_dtype(xnorm)
       q_wi = matmul_reducescatter(
           'bte,hed->bthd',
           xnorm,
@@ -228,7 +234,7 @@ def transformer_layer_weight_stationary(
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = q_wi.shape
-      q_wi = jnp.bfloat16(q_wi * jnp.squeeze(my_layer(params.q_wi_scale)))
+      q_wi = intermediate_dtype(q_wi * jnp.squeeze(my_layer(params.q_wi_scale)))
       assert_equal(prev_shape, q_wi.shape)
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
@@ -279,7 +285,7 @@ def transformer_layer_weight_stationary(
         # --AGZ-->   [batch.B, maxlen, 1, 2*qkv]
         kv = lax.psum(kv_unreduced, 'x')
         # TODO(sholto) - confirm we no longer need
-        # kv = lax.dynamic_slice_in_dim(kv, b_index * batch_zb, batch_zb, axis=0)
+        # kv = lax.dynamic_slice_in_dim(kv, b_index*batch_zb, batch_zb, axis=0)
         kv = lax.all_gather(kv, 'z', axis=0, tiled=True)
     elif attn_all_to_all == AttnAllToAll.AXIS_Z:
       # [batch.Z, maxlen, 1, 2*qkv]{x_unreduced}
@@ -302,7 +308,7 @@ def transformer_layer_weight_stationary(
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = kv.shape
-      kv = jnp.bfloat16(kv * jnp.squeeze(my_layer(params.kv_scale)))
+      kv = intermediate_dtype(kv * jnp.squeeze(my_layer(params.kv_scale)))
       assert_equal(prev_shape, kv.shape)
 
     k = kv[:, :, 0, :hparams.qkv]
@@ -340,7 +346,7 @@ def transformer_layer_weight_stationary(
 
     q = _rope(sin, cos, q)
 
-    y_att = jnp.bfloat16(attention.attend(q, k, v, kv_caches, layer))
+    y_att = intermediate_dtype(attention.attend(q, k, v, kv_caches, layer))
     # y_att:
     #    { NONE:                   [batch.B, maxlen, heads.YZX, qkv]
     #    { AXIS_Z:                 [batch.ZB, maxlen, heads.YX, qkv]
@@ -441,17 +447,18 @@ def transformer_layer_weight_stationary(
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = y_out.shape
-      y_out = jnp.bfloat16(y_out * jnp.squeeze(my_layer(params.o_wo_scale)))
+      y_out = intermediate_dtype(y_out *
+                                 jnp.squeeze(my_layer(params.o_wo_scale)))
       assert_equal(y_out.shape, prev_shape)
 
   with jax.named_scope('residual'):
-    z = jnp.bfloat16(y_out + x)
+    z = intermediate_dtype(y_out + x)
 
   # if shard_seqlen_vs_batch:
   #   return z, k, v
   # else:
-  print(k.shape, v.shape, batch_xyz)
   # TODO(sholto): Test correctness
+  k, v = k.astype(intermediate_dtype), v.astype(intermediate_dtype)
   if attn_all_to_all == AttnAllToAll.NONE:
     if shard_seqlen_vs_batch:
       return z, k, v
@@ -465,7 +472,6 @@ def transformer_layer_weight_stationary(
     return z, k[:batch_xyz], v[:batch_xyz]
   else:
     return z, k, v
-
 
 
 def transformer_layer_weight_gathered(

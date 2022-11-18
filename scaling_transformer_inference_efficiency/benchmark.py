@@ -624,9 +624,9 @@ def get_3d_mesh():
 def benchmark_generate(name, hparams, batch, seqlen,
                        num_samples):
   """Benchmarks a few steps of `generate`."""
-  model, weights = init_model(hparams)
+  model, params = init_model(hparams)
   benchmark_generate_with_model(name, hparams, batch, seqlen, num_samples,
-                                model, weights)
+                                model, params)
 
 
 def init_model(hparams):
@@ -650,18 +650,18 @@ def init_model(hparams):
       return jax.tree_map(lambda array: jnp.zeros(array.shape, array.dtype),
                           weights.Weights.make_shaped_arrays(hparams))
 
-    weights = pjit.pjit(
+    params = pjit.pjit(
         init_weights,
         in_axis_resources=(),
         out_axis_resources=weights.Weights.physical_axes())()
-  return model, weights
+  return model, params
 
 
 def sweep_context_length(hparams):
   """Runs a sweep over context length on the specified model shape."""
   print(f'hparams: q_wi_per_head: {hparams.q_wi_per_head}, '
         f'o_wo_per_head: {hparams.o_wo_per_head}, num_layers: {hparams.layers}')
-  model, weights = init_model(hparams)
+  model, params = init_model(hparams)
   batch = 256
   num_samples = 1
   # for seqlen in [64, 128, 256, 512, 1024, 2048, 4096, 8192]:
@@ -669,12 +669,12 @@ def sweep_context_length(hparams):
     name = f'sweep_context_length[batch={batch}, len={seqlen}]'
     print(f'starting {name}...')
     benchmark_generate_with_model(name, hparams, batch, seqlen, num_samples,
-                                  model, weights)
+                                  model, params)
 
 
 def benchmark_generate_with_model(
     name, hparams, batch, seqlen, num_samples,
-    model, weights):
+    model, params):
   """Benchmarks a few steps of `generate`."""
   steps = 4  # All steps are the same. Run just enough to get a few samples
   sampling = Sampling(temperature=0.7)
@@ -688,7 +688,7 @@ def benchmark_generate_with_model(
         static_argnums=(0, 1, 2))(hparams, batch, seqlen)
 
   def run():
-    model.generate(steps, weights, sampling, [context],
+    model.generate(steps, params, sampling, [context],
                    np.arange(batch *
                              num_samples))[0].tokens.block_until_ready()
 

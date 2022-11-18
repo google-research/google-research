@@ -19,6 +19,7 @@ import functools
 from typing import Union, Sequence, Optional
 
 import jax
+from jax import pxla
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
 from jax.experimental.gda_serialization import serialization as jax_gda_serialization
@@ -29,16 +30,15 @@ import jax.numpy as jnp
 from jax.sharding import NamedSharding
 import numpy as np
 import tensorstore
-from jax import pxla
 
 
 jax.config.update('jax_parallel_functions_output_gda', True)
 
 
-
 def logical_to_physical(logical_axes):
   """Converts logical to physical axes for a layer using rule priority."""
   # Priority order of logical to physical axes mapping
+  # TODO(sholto): Parse string to produce hardware
   rules = [
       ('heads.YZ', ('y', 'z')),
       ('heads.YZX', ('y', 'z', 'x')),
@@ -48,6 +48,7 @@ def logical_to_physical(logical_axes):
       ('batch.X', 'x'),
       ('batch.YZ', ('y', 'z')),
       ('table_vocab.XYZ', ('x', 'y', 'z')),
+      ('table_vocab.YZ', ('y', 'z')),
   ]
   result = [None] * len(logical_axes)
   for logical_axis, physical_axis in rules:
@@ -89,7 +90,6 @@ def make_mesh():
     raise NotImplementedError
 
   return Mesh(mesh_utils.create_device_mesh((x, y, z)), ('x', 'y', 'z'))
-
 
 
 def copy_to_device(x, sharding,

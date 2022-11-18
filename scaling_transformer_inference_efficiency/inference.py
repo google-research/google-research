@@ -22,25 +22,20 @@ ways that would require significant changes to how t5x's APIs are structured.
 Test this with :inference_test
 """
 
-from functools import lru_cache  # pylint: disable=g-importing-member
-from typing import Callable, Optional, Sequence, Tuple
+
+from typing import Callable, Sequence
 
 import jax
 from jax import lax
-
-from jax import sharding
-from jax.experimental import pjit
 import jax.numpy as jnp
 import jax.scipy
-import numpy as np
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
-
+from scaling_transformer_inference_efficiency import layers_parallel
+from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import FullChunkResult
-from scaling_transformer_inference_efficiency import weights
-from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency.partitioning import _with_sharding_constraint
 
 CheckpointSpec = checkpoint.CheckpointSpec
@@ -63,7 +58,8 @@ def infer(
     _transformer_layer_fn,
     params,  # pylint: disable=g-bare-generic, invalid-name
     kv_caches,
-    chunk):
+    chunk,
+    intermediate_dtype = jnp.bfloat16):
   """Forward pass through model, returning per-token logits."""
 
   # flaxformer/architectures/t5/t5_architecture.py;l=1516;
@@ -98,6 +94,8 @@ def infer(
 
     x, layer_k, layer_v = _transformer_layer_fn(h, layer, params.layer, sin,
                                                 cos, kv_caches, x)
+    x, layer_k, layer_v = intermediate_dtype(x), intermediate_dtype(
+        layer_k), intermediate_dtype(layer_v)
     k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
                                         0)
     v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,
@@ -106,17 +104,16 @@ def infer(
     return x, k, v
 
   # Initialize output KV cache.
-  k = jnp.zeros((h.layers, max_length, batch, h.qkv), jnp.bfloat16)
+  k = jnp.zeros((h.layers, max_length, batch, h.qkv), intermediate_dtype)
   k = _with_sharding_constraint(k, ('layers', 'time', 'batch', None))
-  v = jnp.zeros((h.layers, max_length, batch, h.qkv), jnp.bfloat16)
+  v = jnp.zeros((h.layers, max_length, batch, h.qkv), intermediate_dtype)
   v = _with_sharding_constraint(v, ('layers', 'time', 'batch', None))
-
   x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x, k, v))
 
   k = jnp.swapaxes(k, 0, 1)
   v = jnp.swapaxes(v, 0, 1)
 
-  x = layers_parallel._layernorm(x)
+  x = layers_parallel._layernorm(x)  # pylint: disable = protected-access
 
   x = _with_sharding_constraint(x, (None, None, None))
   x = _with_sharding_constraint(x, (None, None, 'table_embed'))
@@ -141,12 +138,9 @@ def infer_xmap(
     kv_caches,
     chunk,
     attn_all_to_all,
-    shard_seqlen_vs_batch):
-  """Forward pass through model, returning per-token logits.
-
-    Uses xmap code path. This requires the dimensions of 'params' to be
-    'folded out'.
-  """
+    shard_seqlen_vs_batch,
+    intermediate_dtype = jnp.bfloat16):
+  """Forward pass through xmap path, returning per-token logits."""
 
   # flaxformer/architectures/t5/t5_architecture.py;l=1516;
   x_axis = lax.psum(1, 'x')
@@ -211,7 +205,8 @@ def infer_xmap(
         z_axis,
         attn_all_to_all,
         latency_collectives=False,
-        shard_seqlen_vs_batch=shard_seqlen_vs_batch)
+        shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+        intermediate_dtype=intermediate_dtype)
     print(layer_k.shape, layer_v.shape, k.shape, v.shape)
     k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
                                         0)
@@ -232,12 +227,10 @@ def infer_xmap(
   # Initialize output KV cache.
   k = jnp.zeros(
       (max_length, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
-      jnp.bfloat16)
+      intermediate_dtype)
   v = jnp.zeros(
       (max_length, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
-      jnp.bfloat16)
-
-
+      intermediate_dtype)
   x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x, k, v))
 
   k = jnp.swapaxes(k, 0, 1)

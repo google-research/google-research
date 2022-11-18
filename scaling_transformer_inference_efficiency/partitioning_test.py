@@ -46,7 +46,7 @@ class PartitioningTest(absltest.TestCase):
     shape = jax.ShapedArray((4, 4), dtype=jnp.bfloat16)
     mesh = partitioning.make_mesh()
     x = partitioning.copy_to_device(shape,
-                                    NamedSharding(mesh, P('short', 'long')),
+                                    NamedSharding(mesh, P('x', ('y', 'z'))),
                                     shape)
     self.assertEqual(x.shape, shape.shape)
     self.assertEqual(x.dtype, shape.dtype)
@@ -56,7 +56,7 @@ class PartitioningTest(absltest.TestCase):
     shape = jax.ShapedArray((4, 4), dtype=jnp.bfloat16)
     mesh = partitioning.make_mesh()
     x = partitioning.copy_to_device(array,
-                                    NamedSharding(mesh, P('short', 'long')),
+                                    NamedSharding(mesh, P('x', ('y', 'z'))),
                                     shape)
     self.assertEqual(x.shape, array.shape)
     self.assertEqual(x.dtype, array.dtype)
