@@ -27,12 +27,16 @@ import numpy as np
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import collectives
-from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import special2
-from scaling_transformer_inference_efficiency.inference import Layer
+from scaling_transformer_inference_efficiency import weights
+from scaling_transformer_inference_efficiency.partitioning import _with_sharding_constraint
+from scaling_transformer_inference_efficiency.weights import Layer
 
 HParams = checkpoint.HParams
 CheckpointSpec = checkpoint.CheckpointSpec
+Layer = weights.Layer
+QuantizedLayer = weights.QuantizedLayer
+Weights = weights.Weights
 
 ATTN_3D_SHARDING_THRESHOLD_PER_CHIP = 2
 
@@ -50,6 +54,28 @@ class AttnAllToAll(Enum):
 
 def assert_equal(x, y):
   assert x == y, f'{x} != {y}'
+
+
+def allgather_layernorm(x, shard_seqlen_vs_batch):
+  with jax.named_scope('allgather_layernorm'):
+    # allgather xnorm: [batch.Z, maxlen, dmodel.XY]
+    # -> [batch.Z, maxlen, dmodel.X]    (xnorm_z)
+    # -> [batch, maxlen, dmodel.X]
+    xgather = x
+    xgather = lax.all_gather(xgather, 'y', axis=2, tiled=True)
+
+    epsilon = 1e-6
+    xgather = jnp.float32(xgather)
+    mean2 = lax.pmean(
+        jnp.mean(lax.square(xgather), axis=-1, keepdims=True), axis_name='x')
+    xnorm_z = jnp.bfloat16(xgather * lax.rsqrt(mean2 + epsilon))
+    # when attention_all_to_all is None we can partition over sequence len not
+    # batch
+    if shard_seqlen_vs_batch:
+      xnorm = lax.all_gather(xnorm_z, 'z', axis=1, tiled=True)
+    else:
+      xnorm = lax.all_gather(xnorm_z, 'z', axis=0, tiled=True)
+  return xnorm, xnorm_z
 
 
 # pylint: disable = g-doc-return-or-yield
@@ -165,24 +191,8 @@ def transformer_layer_weight_stationary(
   # -> (reducescatter over x into X heads, B batches)
   # -> [batch.B, maxlen, heads.YZX, q_wi_per_head]
   # TODO(reinerp): For chips>64, need to reducescatter over batch instead.
-  with jax.named_scope('allgather_layernorm'):
-    # allgather xnorm: [batch.Z, maxlen, dmodel.XY]
-    # -> [batch.Z, maxlen, dmodel.X]    (xnorm_z)
-    # -> [batch, maxlen, dmodel.X]
-    xgather = x
-    xgather = lax.all_gather(xgather, 'y', axis=2, tiled=True)
 
-    epsilon = 1e-6
-    xgather = jnp.float32(xgather)
-    mean2 = lax.pmean(
-        jnp.mean(lax.square(xgather), axis=-1, keepdims=True), axis_name='x')
-    xnorm_z = jnp.bfloat16(xgather * lax.rsqrt(mean2 + epsilon))
-    # when attention_all_to_all is None we can partition over sequence len not
-    # batch
-    if shard_seqlen_vs_batch:
-      xnorm = lax.all_gather(xnorm_z, 'z', axis=1, tiled=True)
-    else:
-      xnorm = lax.all_gather(xnorm_z, 'z', axis=0, tiled=True)
+  xnorm, xnorm_z = allgather_layernorm(x, shard_seqlen_vs_batch)
 
   with jax.named_scope('q_wi'):
     if B == 1:
@@ -216,7 +226,7 @@ def transformer_layer_weight_stationary(
       assert_equal(q_wi.shape,
                    (batch // B, max_len, heads_yz // X, hparams.q_wi_per_head))
 
-    if isinstance(params, inference.QuantizedLayer):
+    if isinstance(params, weights.QuantizedLayer):
       prev_shape = q_wi.shape
       q_wi = jnp.bfloat16(q_wi * jnp.squeeze(my_layer(params.q_wi_scale)))
       assert_equal(prev_shape, q_wi.shape)
@@ -268,7 +278,8 @@ def transformer_layer_weight_stationary(
         # --slice--> [batch.ZB, maxlen, 1, 2*qkv]
         # --AGZ-->   [batch.B, maxlen, 1, 2*qkv]
         kv = lax.psum(kv_unreduced, 'x')
-        kv = lax.dynamic_slice_in_dim(kv, b_index * batch_zb, batch_zb, axis=0)
+        # TODO(sholto) - confirm we no longer need
+        # kv = lax.dynamic_slice_in_dim(kv, b_index * batch_zb, batch_zb, axis=0)
         kv = lax.all_gather(kv, 'z', axis=0, tiled=True)
     elif attn_all_to_all == AttnAllToAll.AXIS_Z:
       # [batch.Z, maxlen, 1, 2*qkv]{x_unreduced}
@@ -289,16 +300,17 @@ def transformer_layer_weight_stationary(
                               'count')
       kv = lax.psum_scatter(kv_unreduced, 'x', scatter_dimension=0, tiled=True)
 
-    if isinstance(params, inference.QuantizedLayer):
+    if isinstance(params, weights.QuantizedLayer):
       prev_shape = kv.shape
       kv = jnp.bfloat16(kv * jnp.squeeze(my_layer(params.kv_scale)))
       assert_equal(prev_shape, kv.shape)
 
     k = kv[:, :, 0, :hparams.qkv]
     v = kv[:, :, 0, hparams.qkv:]
+    print(k.shape, v.shape)
 
   with jax.named_scope('attn'):
-    k = inference._rope(sin, cos, k)
+    k = _rope(sin, cos, k)
 
     # print(f'batch_yzb: {batch_yzb}')
     # q: [batch.B, maxlen, heads.YZX, qkv]
@@ -326,7 +338,7 @@ def transformer_layer_weight_stationary(
       q = lax.all_to_all(
           q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
 
-    q = inference._rope(sin, cos, q)
+    q = _rope(sin, cos, q)
 
     y_att = jnp.bfloat16(attention.attend(q, k, v, kv_caches, layer))
     # y_att:
@@ -384,8 +396,10 @@ def transformer_layer_weight_stationary(
           axis_name='x',
           layer=layer,
           subsplit_axis=2)
-      y_out = reducescatter(
-          y_out, scatter_dimension=2, axis_name='y', subsplit_axis=2)
+      # y_out = reducescatter(
+      #     y_out, scatter_dimension=2, axis_name='y', subsplit_axis=2)
+      # TODO(sholto): Test if manual faster, update
+      y_out = lax.psum_scatter(y_out, 'y', scatter_dimension=2, tiled=True)
     else:
       # y_fused: [batch.B, maxlen, heads.YZX, o_wo_per_head]
       # -> (allgather)
@@ -417,11 +431,15 @@ def transformer_layer_weight_stationary(
     if shard_seqlen_vs_batch:
       y_out = reducescatter(
           y_out, scatter_dimension=1, axis_name='z', subsplit_axis=0)
+      # TODO(sholto): Test if manual faster, update
+      y_out = lax.psum_scatter(y_out, 'z', scatter_dimension=1, tiled=True)
     else:
-      y_out = reducescatter(
-          y_out, scatter_dimension=0, axis_name='z', subsplit_axis=0)
+      # y_out = reducescatter(
+      #     y_out, scatter_dimension=0, axis_name='z', subsplit_axis=0)
+      # TODO(sholto): Test if manual faster, update
+      y_out = lax.psum_scatter(y_out, 'z', scatter_dimension=0, tiled=True)
 
-    if isinstance(params, inference.QuantizedLayer):
+    if isinstance(params, weights.QuantizedLayer):
       prev_shape = y_out.shape
       y_out = jnp.bfloat16(y_out * jnp.squeeze(my_layer(params.o_wo_scale)))
       assert_equal(y_out.shape, prev_shape)
@@ -432,7 +450,22 @@ def transformer_layer_weight_stationary(
   # if shard_seqlen_vs_batch:
   #   return z, k, v
   # else:
-  return z, k[:batch_xyz], v[:batch_xyz]
+  print(k.shape, v.shape, batch_xyz)
+  # TODO(sholto): Test correctness
+  if attn_all_to_all == AttnAllToAll.NONE:
+    if shard_seqlen_vs_batch:
+      return z, k, v
+    else:
+      return z, k, v  # TODO(sholto), does this need to be updated for .B?
+  elif attn_all_to_all == AttnAllToAll.AXIS_Z:
+    return z, k[:batch_zb], v[:batch_zb]
+  elif attn_all_to_all == AttnAllToAll.AXES_YZ:
+    return z, k[:batch_yzb], v[:batch_yzb]
+  elif attn_all_to_all == AttnAllToAll.AXES_YZX:
+    return z, k[:batch_xyz], v[:batch_xyz]
+  else:
+    return z, k, v
+
 
 
 def transformer_layer_weight_gathered(
@@ -443,7 +476,7 @@ def transformer_layer_weight_gathered(
   """Weight gathered parallel layer. Typically prefill."""
 
   # x: [batch.XYZ, t, e]
-
+  print(f'x {x.shape} , hparams {hparams}, {params.q_wi.shape}')
   with jax.named_scope('allgather_layernorm'):
     # No need to communicate across batch, so everything is local
     x_prec = jnp.float32(x)
@@ -478,7 +511,7 @@ def transformer_layer_weight_gathered(
         layer=layer,
         subsplit_axis=None)  #   -> [batch.XYZ, t, h, q_wi_per_head]
 
-    if isinstance(params, inference.QuantizedLayer):
+    if isinstance(params, weights.QuantizedLayer):
       prev_shape = q_wi.shape
       q_wi = jnp.bfloat16(q_wi * jnp.squeeze(my_layer(params.q_wi_scale)))
       assert_equal(prev_shape, q_wi.shape)
@@ -497,7 +530,7 @@ def transformer_layer_weight_gathered(
       # b) We fully replicate kv
       kv = jnp.einsum('bte,ezd->btzd', xnorm, my_layer(params.kv))
 
-      if isinstance(params, inference.QuantizedLayer):
+      if isinstance(params, weights.QuantizedLayer):
         prev_shape = kv.shape
         kv = jnp.bfloat16(kv * jnp.squeeze(my_layer(params.kv_scale)))
         assert_equal(prev_shape, kv.shape)
@@ -506,9 +539,9 @@ def transformer_layer_weight_gathered(
       v = kv[:, :, 0, hparams.qkv:]  # [batch.XYZ, t, qkv]
 
     with jax.named_scope('attn'):
-      k = inference._rope(sin, cos, k)  # [batch.XYZ, t, qkv]
+      k = _rope(sin, cos, k)  # [batch.XYZ, t, qkv]
       q = q_wi[:, :, :, :hparams.qkv]
-      q = inference._rope(sin, cos, q)  # [batch.XYZ, t, h, qkv]
+      q = _rope(sin, cos, q)  # [batch.XYZ, t, h, qkv]
 
       # [batch.XYZ, t, h, qkv]
       y_att = jnp.bfloat16(attention.attend(q, k, v, kv_caches, layer))
@@ -540,7 +573,7 @@ def transformer_layer_weight_gathered(
           subsplit_axis=None,
           layer=layer)  # -> [batch.XYZ, t, e]
 
-    if isinstance(params, inference.QuantizedLayer):
+    if isinstance(params, weights.QuantizedLayer):
       prev_shape = y_out.shape
       y_out = jnp.bfloat16(y_out * jnp.squeeze(my_layer(params.o_wo_scale)))
       assert_equal(y_out.shape, prev_shape)
@@ -619,3 +652,205 @@ def embed_unembed_topp(h, x, embed,
     # sample: int32[batch.XYZ, maxlen]
     sample = lax.all_gather(sample, ('x', 'y', 'z'), axis=0, tiled=True)
     return sample
+
+
+def contracting_dims_from_einsum_spec(spec):
+  """Gets lax.dot_general contracting dims from an einsum spec - easier to read.
+  """
+  with jax.named_scope(spec):
+    lhs, rhs = spec.split('->')  # e.g. ['bte,hed', 'bthd']
+    a1, a2 = lhs.split(',')  # e.g. ['bte', 'hed']
+    contracted = [
+        c for c in set(lhs) if (c not in rhs and c in a1 and c in a2)
+    ]  # e.g. ['e']
+    a1_contact, a2_contract = [], []
+    for c in contracted:
+      a1_contact.append(a1.index(c))
+      a2_contract.append(a2.index(c))
+    return (tuple(a1_contact), tuple(a2_contract))
+
+
+def _layernorm(x):
+  """Computes t5 layer norm on the input."""
+  # flaxformer/components/layer_norm.py
+  # 'scale' factor is folded into downstream matrix in 'preprocess'.
+  epsilon = 1e-6
+  x = jnp.float32(x)
+  mean2 = jnp.mean(lax.square(x), axis=-1, keepdims=True)
+  return jnp.bfloat16(x * lax.rsqrt(mean2 + epsilon))
+
+
+def _rope(sin, cos, x):
+  """Applies RoPE position encoding to the tensor. Multiquery attention only."""
+  # Compare
+  # flaxformer/components/embedding.py;l=546
+  #
+  # Unlike flaxformer rope:
+  # * we only process one tensor (x) at a time, not two (k and v)
+  # * the decode=True support is different, and unconditionally enabled here.
+  #   In Flaxformer, decode=True allows for different batch elements being at
+  #   different indices in the sequence. In this codebase, we assume that's
+  #   unconditionally true, although beams of the same batch are assumed to
+  #   share the same index within the sequence. Additionally, the Gather from
+  #   the precalculated sin/cos tables is done once at the beginning of the
+  #   entire inference, rather than redundantly once per layer.
+  prefix_batch, seqlen, f2 = sin.shape  # f2 = features // 2
+  seqlen = x.shape[1]
+  x1, x2 = jnp.split(x, 2, axis=-1)
+  if x.ndim == 4:
+    batch, seqlen, heads, f2 = x1.shape
+    shape = (prefix_batch, batch // prefix_batch, seqlen, heads, f2)
+    sin = sin[:, np.newaxis, :, np.newaxis, :]
+    cos = cos[:, np.newaxis, :, np.newaxis, :]
+  else:
+    batch, seqlen, f2 = x1.shape
+    shape = (prefix_batch, batch // prefix_batch, seqlen, f2)
+    sin = sin[:, np.newaxis, :, :]
+    cos = cos[:, np.newaxis, :, :]
+  x1 = jnp.reshape(x1, shape)
+  x2 = jnp.reshape(x2, shape)
+
+  result1 = (x1 * cos) - (x2 * sin)
+  result2 = (x2 * cos) + (x1 * sin)
+  return jnp.reshape(
+      jnp.concatenate(
+          [jnp.bfloat16(result1), jnp.bfloat16(result2)], axis=-1), x.shape)
+
+
+def pjit_transformer_layer(
+    hparams, layer, params, sin,
+    cos, kv_caches,
+    x):
+  """Forward pass through a single layer, returning output, K, V."""
+
+  def my_layer(t, axis=0):
+    """Gets the parameters corresponding to a given layer."""
+    return lax.dynamic_index_in_dim(t, layer, axis=axis, keepdims=False)
+
+  # Compare
+  # flaxformer/architectures/t5/parallel_fused_decoder.py
+  # flaxformer/components/attention/dense_attention.py;l=1147;
+  # flaxformer/components/attention/dense_attention.py;l=252;
+
+  # prefix_batch = sin.shape[0]
+  batch, max_len, _ = x.shape
+  # beam = batch // prefix_batch # TODO(reinerp): Do we need this
+
+  if batch == 1 and max_len == 1:
+    raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
+
+  x = _with_sharding_constraint(x, ('batch.Z', 'time', 'embed.XY'))
+  xnorm = _layernorm(x)
+  xnorm = _with_sharding_constraint(xnorm, ('batch', 'time', 'embed.X'))
+  # in PaLM, ff and attn are parallel so we can compute q and wi together
+  q_wi = jnp.einsum('bte,hed->bthd', xnorm, my_layer(params.q_wi))
+  q_wi = _with_sharding_constraint(q_wi, ('batch', 'time', 'heads.YZX', None))
+  q = q_wi[:, :, :, :hparams.qkv]
+  q = _rope(sin, cos, q)
+  # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
+  # swiGLU with full d_ff dimension, rather than 2/3 scaled
+  wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
+  wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // hparams.heads):]
+  kv = jnp.einsum('bte,ezd->btzd', xnorm, my_layer(params.kv))
+  k = kv[:, :, 0, :hparams.qkv]
+  v = kv[:, :, 0, hparams.qkv:]
+  k = _rope(sin, cos, k)
+
+  y_att = jnp.bfloat16(attention.attend(q, k, v, kv_caches, layer))
+
+  y_mlp = special2.swish2(wi0) * wi1
+  y_mlp = _with_sharding_constraint(y_mlp, ('batch', 'time', 'heads.YZX', None))
+
+  y_fused = jnp.concatenate([y_att, y_mlp], axis=-1)
+  # do the second half of the mlp and the self-attn projection in parallel
+  y_out = jnp.einsum('bthd,hde->bte', y_fused, my_layer(params.o_wo))
+  y_out = _with_sharding_constraint(y_out, ('batch.Z', 'time', 'embed.XY'))
+  z = y_out + x
+  z = _with_sharding_constraint(z, ('batch.Z', 'time', 'embed.XY'))
+  return jnp.bfloat16(z), k, v
+
+
+################################################################################
+################# Quantized weights and layer fprop ############################
+################################################################################
+
+
+def _scaled_layernorm(x, scale):
+  """Computes t5 layer norm on the input."""
+  # flaxformer/components/layer_norm.py
+  # 'scale' factor is folded into downstream matrix in 'preprocess'.
+  epsilon = 1e-6
+  x = jnp.float32(x)
+  mean2 = jnp.mean(lax.square(x), axis=-1, keepdims=True)
+  # dbg('mean2', layer, jnp.mean(mean2))
+  y = x * lax.rsqrt(mean2 + epsilon)
+  scale += 1.0  # 'center_scale_at_zero' option in T5X
+  return jnp.bfloat16(y * scale)
+
+
+def quantized_dot_general(spec,
+                          a,
+                          w,
+                          w_scale,
+                          input_dtype=jnp.bfloat16,
+                          accum_dtype=jnp.bfloat16):
+  """Performs a @ w_quantized and scales by w_scale terms."""
+
+  a, w = a.astype(input_dtype), w.astype(input_dtype)
+  dimension_numbers = (contracting_dims_from_einsum_spec(spec), ((), ()))
+  # TODO(sholto): Remove once cl/476805949 is submitted.
+  a = jax.lax.dot_general(
+      a, w, dimension_numbers, preferred_element_type=accum_dtype)
+  return a * w_scale.squeeze()
+
+
+def quantized_pjit_transformer_layer(
+    hparams, layer, params, sin,
+    cos, kv_caches,
+    x):
+  """Forward pass through a single layer, returning output, K, V."""
+
+  def my_layer(t, axis=0):
+    """Gets the parameters corresponding to a given layer."""
+    return lax.dynamic_index_in_dim(t, layer, axis=axis, keepdims=False)
+
+  # Compare
+
+  # prefix_batch = sin.shape[0]
+  batch, max_len, _ = x.shape
+
+  if batch == 1 and max_len == 1:
+    raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
+
+  x = _with_sharding_constraint(x, ('batch.Z', 'time', 'embed.XY'))
+  # When quantized, we do not fold in layernorm scale to the weights
+  xnorm = _scaled_layernorm(x, my_layer(params.layernorm_scale))
+  xnorm = _with_sharding_constraint(xnorm, ('batch.Z', 'time', 'embed.XY'))
+
+  q_wi = quantized_dot_general('bte,hed->bthd', xnorm, my_layer(params.q_wi),
+                               my_layer(params.q_wi_scale))
+  q_wi = _with_sharding_constraint(q_wi, ('batch', 'time', 'heads.YZX', None))
+  q = q_wi[:, :, :, :hparams.qkv]
+  q = _rope(sin, cos, q)
+  wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
+  wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // hparams.heads):]
+
+  kv = quantized_dot_general('bte,ezd->btzd', xnorm, my_layer(params.kv),
+                             my_layer(params.kv_scale))
+  k = kv[:, :, 0, :hparams.qkv]
+  v = kv[:, :, 0, hparams.qkv:]
+  k = _rope(sin, cos, k)
+
+  y_att = attention.attend(q, k, v, kv_caches, layer)
+
+  y_mlp = special2.swish2(wi0) * wi1
+  y_mlp = _with_sharding_constraint(y_mlp, ('batch', 'time', 'heads.YZX', None))
+
+  y_fused = jnp.concatenate([y_att, y_mlp], axis=-1)
+  y_out = quantized_dot_general('bthd,hde->bte', y_fused, my_layer(params.o_wo),
+                                my_layer(params.o_wo_scale))
+  y_out = _with_sharding_constraint(y_out, ('batch.Z', 'time', 'embed.XY'))
+  z = y_out + x
+  z = _with_sharding_constraint(z, ('batch.Z', 'time', 'embed.XY'))
+
+  return jnp.bfloat16(z), k, v

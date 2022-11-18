@@ -30,7 +30,7 @@ from scaling_transformer_inference_efficiency import collectives
 from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import special2
-from scaling_transformer_inference_efficiency.inference import Layer
+from scaling_transformer_inference_efficiency.weights import Layer
 
 HParams = checkpoint.HParams
 CheckpointSpec = checkpoint.CheckpointSpec
@@ -66,7 +66,7 @@ def transformer_layer_weight_stationary_serial(
 ):
   """Serial transformer layer block."""
 
-  if isinstance(params, inference.QuantizedLayer):
+  if isinstance(params, weights.QuantizedLayer):
     raise NotImplementedError
 
   def my_layer(t, axis=0):

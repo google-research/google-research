@@ -16,7 +16,7 @@
 """Parallel partitioning functions."""
 
 import functools
-from typing import Union
+from typing import Union, Sequence, Optional
 
 import jax
 from jax.experimental import mesh_utils
@@ -29,21 +29,25 @@ import jax.numpy as jnp
 from jax.sharding import NamedSharding
 import numpy as np
 import tensorstore
+from jax import pxla
 
 
 jax.config.update('jax_parallel_functions_output_gda', True)
 
 
+
 def logical_to_physical(logical_axes):
   """Converts logical to physical axes for a layer using rule priority."""
   # Priority order of logical to physical axes mapping
-  # TODO(reinerp): Are Flax rules sufficient for this?
   rules = [
-      ('heads', 'long'),
-      ('ff', 'long'),
-      ('embed', 'short'),
-      ('batch', 'long'),
-      ('table_vocab', ('long', 'short')),
+      ('heads.YZ', ('y', 'z')),
+      ('heads.YZX', ('y', 'z', 'x')),
+      ('embed.X', 'x'),
+      ('embed.XY', ('x', 'y')),
+      ('batch.Z', 'z'),
+      ('batch.X', 'x'),
+      ('batch.YZ', ('y', 'z')),
+      ('table_vocab.XYZ', ('x', 'y', 'z')),
   ]
   result = [None] * len(logical_axes)
   for logical_axis, physical_axis in rules:
@@ -58,20 +62,34 @@ def logical_to_physical(logical_axes):
 
 @functools.cache
 def make_mesh():
-  """Creates a device mesh for use with pjit."""
+  """Creates a device mesh for use with xmap over x/y/z axes."""
   devices = jax.devices()
-  if len(devices) == 4:
-    long, short = 2, 2
+  if len(devices) == 1:
+    x, y, z = 1, 1, 1  # TODO(sholto): test
+  elif len(devices) == 4:
+    x, y, z = 2, 1, 2  # TODO(sholto): test
   elif len(devices) == 8:
-    long, short = 4, 2
-  elif len(devices) == 1:
-    long, short = 1, 1
+    x, y, z = 2, 2, 2  # TODO(sholto): test - always appropriate for B=1?
+  elif len(devices) == 16:
+    # 2,4,2 or 4,2,2 is good
+    x, y, z = 2, 4, 2
+  elif len(devices) == 32:
+    x, y, z = 4, 2, 4
   elif len(devices) == 64:
-    long, short = 16, 4
+    x, y, z = 4, 4, 4
+  elif len(devices) == 128:
+    x, y, z = 8, 4, 4
+    # x, y, z = 4, 4, 8
+  elif len(devices) == 256:
+    # x, y, z = 8, 4, 8
+    x, y, z = 4, 8, 8
+  elif len(devices) == 512:
+    x, y, z = 8, 8, 8
   else:
     raise NotImplementedError
 
-  return Mesh(mesh_utils.create_device_mesh((long, short)), ('long', 'short'))
+  return Mesh(mesh_utils.create_device_mesh((x, y, z)), ('x', 'y', 'z'))
+
 
 
 def copy_to_device(x, sharding,
@@ -135,3 +153,26 @@ def copy_to_device(x, sharding,
       return tensor
   else:
     raise ValueError(f'Unsupported type: {type(x)}')
+
+
+_ALLOW_UNEVEN_SHARDING = True
+
+
+def _with_sharding_constraint(t,
+                              spec):
+  """Applies a logical sharding constraint to a tensor."""
+  axes = logical_to_physical(spec)
+
+  # First check that the sharding is equally sized on all chips. While the SPMD
+  # partitioner is _designed_ to support unequal sharding on chips, in practice
+  # this seems to be a fertile ground for XLA bugs such as b/245966065 and
+  # possibly the underlying bug for cr/455700040. So we just ban it, and push
+  # the padding complexity on the caller.
+  mesh = pxla.thread_resources.env.physical_mesh
+  name_to_size = dict(zip(mesh.axis_names, mesh.devices.shape))
+  for size, axis in zip(t.shape, axes):
+    if axis is None or axis not in name_to_size:
+      continue
+    axis_size = name_to_size[axis]
+    assert size % axis_size == 0 or _ALLOW_UNEVEN_SHARDING, f'Uneven sharding. Shape: {t.shape}, spec: {spec}, axis: {axis}, axis size: {axis_size}'
+  return pjit.with_sharding_constraint(t, axes)

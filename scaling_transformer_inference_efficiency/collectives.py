@@ -1073,10 +1073,11 @@ def reducescatter_oneway(val,
 
   permutes_remaining = axis_size - 1
 
+  chunk_index = (axis_index + permutes_remaining) % axis_size
   chunk_size = val.shape[scatter_axis] // axis_size
-  p = lax.dynamic_slice_in_dim(val,
-                               (axis_index + permutes_remaining) % axis_size,
-                               chunk_size, scatter_axis)
+
+  p = lax.dynamic_slice_in_dim(val, chunk_index * chunk_size, chunk_size,
+                               scatter_axis)
 
   accum = jnp.zeros(p.shape, dtype=val.dtype)
 

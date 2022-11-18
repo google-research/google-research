@@ -34,13 +34,13 @@ from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import partitioning
+from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.ablations import layers_serial
 from scaling_transformer_inference_efficiency.ablations import partitioning_schemes
 from scaling_transformer_inference_efficiency.attention import KVCache
 from scaling_transformer_inference_efficiency.checkpoint import HParams
 from scaling_transformer_inference_efficiency.chunk import ChunkResult
 from scaling_transformer_inference_efficiency.incremental import JittedModel
-from scaling_transformer_inference_efficiency.inference import Weights
 from scaling_transformer_inference_efficiency.layers_parallel import AttnAllToAll
 from scaling_transformer_inference_efficiency.sampling import Sampling
  import humanize
@@ -399,10 +399,10 @@ def run_weight_stationary_layer(name,
     q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale, sin, cos, lengths, k, v, x = make_inputs(
         jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
     if quantized:
-      params = inference.QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo,
-                                        o_wo_scale, layernorm_scale)
+      params = weights.QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo,
+                                      o_wo_scale, layernorm_scale)
     else:
-      params = inference.Layer(q_wi, kv, o_wo)
+      params = weights.Layer(q_wi, kv, o_wo)
     kv_caches = KVCache(lengths, k, v)
 
     def run():
@@ -515,10 +515,10 @@ def run_weight_gathered_xmap_layer(name,
     q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale, sin, cos, lengths, k, v, x = make_inputs(
         jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
     if quantized:
-      params = inference.QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo,
-                                        o_wo_scale, layernorm_scale)
+      params = weights.QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo,
+                                      o_wo_scale, layernorm_scale)
     else:
-      params = inference.Layer(q_wi, kv, o_wo)
+      params = weights.Layer(q_wi, kv, o_wo)
     kv_caches = KVCache(lengths, k, v)
 
     def run():
@@ -558,7 +558,7 @@ def run_embed_unembed_topp(h,
   @functools.partial(
       xmap,
       in_axes=(['x', Ellipsis], ['y', Ellipsis], ['z', Ellipsis]),
-      out_axes=['x', 'y', 'z', Ellipsis],
+      out_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis], [None, Ellipsis]),
       axis_resources={
           'x': 'x',
           'y': 'y',
@@ -574,7 +574,7 @@ def run_embed_unembed_topp(h,
 
   @functools.partial(
       xmap,
-      in_axes=['x', 'y', 'z', Ellipsis],
+      in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis], [None, Ellipsis]),
       out_axes=['x', 'y', 'z', Ellipsis],
       axis_resources={
           'x': 'x',
@@ -641,18 +641,19 @@ def init_model(hparams):
   eos_id = 1
   model = JittedModel(
       hparams, eos_id,
-      functools.partial(inference.infer, hparams, inference.transformer_layer),
-      inference.Weights.physical_axes())
+      functools.partial(inference.infer, hparams,
+                        layers_parallel.pjit_transformer_layer),
+      weights.Weights.physical_axes())
   with model.mesh:
 
     def init_weights():
       return jax.tree_map(lambda array: jnp.zeros(array.shape, array.dtype),
-                          Weights.make_shaped_arrays(hparams))
+                          weights.Weights.make_shaped_arrays(hparams))
 
     weights = pjit.pjit(
         init_weights,
         in_axis_resources=(),
-        out_axis_resources=Weights.physical_axes())()
+        out_axis_resources=weights.Weights.physical_axes())()
   return model, weights
 
 

@@ -24,6 +24,7 @@ import numpy as np
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import incremental
 from scaling_transformer_inference_efficiency import inference
+from scaling_transformer_inference_efficiency import weights
 
 jax.config.update('jax_array', True)  # required for jax<0.4.0
 
@@ -34,7 +35,7 @@ def run(model, quantized):
 
   if quantized:
     ckpt = checkpoint.QuantizedCheckpoint
-    weights = inference.QuantizedWeights
+    weights = weights.QuantizedWeights
     if model == '8b':
       cs = checkpoint.CheckpointSpec.PALM_8B_QUANTIZED
     elif model == '62b':
@@ -44,7 +45,7 @@ def run(model, quantized):
       raise NotImplementedError
   else:
     ckpt = checkpoint.Checkpoint
-    weights = inference.Weights
+    weights = weights.Weights
     if model == '8b':
       cs = checkpoint.CheckpointSpec.PALM_8B
     elif model == '62b':
@@ -58,7 +59,8 @@ def run(model, quantized):
   the_model = incremental.JittedModel(
       cs.hparams, the_vocab.eos_id,
       functools.partial(inference.infer, cs.hparams,
-                        inference.transformer_layer), weights.physical_axes())
+                        layers_parallel.pjit_transformer_layer),
+      weights.physical_axes())
   with the_model.mesh:
     the_weights = weights.from_checkpoint(cs.hparams, the_model.mesh, loaded_cs)
 

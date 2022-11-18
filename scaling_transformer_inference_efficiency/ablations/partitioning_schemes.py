@@ -28,7 +28,8 @@ from scaling_transformer_inference_efficiency import collectives
 from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import special2
-from scaling_transformer_inference_efficiency.inference import Layer
+from scaling_transformer_inference_efficiency import weights
+from scaling_transformer_inference_efficiency.weights import Layer
 
 HParams = checkpoint.HParams
 CheckpointSpec = checkpoint.CheckpointSpec
@@ -113,7 +114,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
         q_wi.shape, (batch, max_len, hparams.heads //
                      (x_axis * y_axis * z_axis), hparams.q_wi_per_head))
 
-    if isinstance(params, inference.QuantizedLayer):
+    if isinstance(params, weights.QuantizedLayer):
       prev_shape = q_wi.shape
       q_wi = jnp.bfloat16(q_wi * jnp.squeeze(my_layer(params.q_wi_scale)))
       layers_parallel.assert_equal(prev_shape, q_wi.shape)

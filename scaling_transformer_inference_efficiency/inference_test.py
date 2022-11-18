@@ -27,6 +27,8 @@ import numpy as np
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import incremental
 from scaling_transformer_inference_efficiency import inference
+from scaling_transformer_inference_efficiency import weights
+from scaling_transformer_inference_efficiency import layers_parallel
 
 
 _TOY_HPARAMS = checkpoint.HParams(
@@ -42,4 +44,4 @@ _TOY_HPARAMS = checkpoint.HParams(
 _LOADED_MODEL = None
 
 
-# Test relies on internal checkpoints
+# PaLM correctness test relies on internal checkpoints
