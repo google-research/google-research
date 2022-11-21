@@ -23,19 +23,18 @@ antheaTemplates['MQM'] = {
       display: 'Major severity',
       shortcut: 'M',
       color: 'pink',
-      description: 'Major severity errors significantly alter the meaning of ' +
-                   'the source text, or significantly confuse the reader, or ' +
-                   'significantly degrade the fluency of the text.',
+      description: 'Major severity errors significantly alter the meaning ' +
+                   'of the source text, or significantly degrade the quality ' +
+                   'of the text.',
     },
     minor: {
       display: 'Minor severity',
       shortcut: 'm',
       color: '#fbec5d',
-      description: 'Minor severity errors are noticeable but minor flaws in ' +
-                   'the translated text. They do not significantly alter the ' +
-                   'meaning of the source text, they do not significantly ' +
-                   'confuse the reader, and they do not significantly ' +
-                   'degrade the fluency of the text.',
+      description: 'Minor severity errors are noticeable minor flaws in the ' +
+                   'translated text. They do not significantly alter the ' +
+                   'meaning of the source text, and they do not ' +
+                   'significantly degrade the quality of the text.',
     },
   },
 
@@ -428,11 +427,13 @@ antheaTemplates['MQM'] = {
       <li>
         <b>Major severity</b>:
         Major severity errors significantly alter the meaning of the source
-        text, or significantly confuse the reader, or significantly degrade the
-        fluency of the text. The translated text says something different from
-        the intent of the source text, or is substantially difficult to
-        understand, or has some very jarring linguistic flaw.
+        text, or significantly degrade the quality of the text.
         <ul>
+          <li>
+            The translated text says something different from the intent of the
+            source text, or is substantially difficult to understand, or has
+            some very jarring linguistic flaw.
+          </li>
           <li>
             Typically, accuracy and terminology errors fall here, as well as
             egregious style or grammar errors.
@@ -540,11 +541,12 @@ antheaTemplates['MQM'] = {
         <b>Minor severity</b>:
         Minor severity errors are noticeable but minor flaws in the translated
         text. They do not significantly alter the meaning of the source text,
-        they do not significantly confuse the reader, and they do not
-        significantly degrade the fluency of the text. They might add, drop, or
-        modify minor details, or they may slightly decrease the stylistic
-        quality of the text.
+        and they do not significantly degrade the quality of the text.
         <ul>
+          <li>
+            Minor severity errors might add, drop, or modify minor details, or
+            they may slightly decrease the stylistic quality of the text.
+          </li>
           <li>
             Typically, the kinds of errors that fall under this severity level
             are grammar, spelling, style, capitalization,  punctuation, locale
@@ -748,7 +750,10 @@ antheaTemplates['MQM'] = {
               masculine pronoun in one sentence and a feminine pronoun in the
               next sentence. This would be a major error. (2) An entity is
               referred to as "Secretary of State" in one paragraph but as
-              "Minister of State" in the next. This would be a minor error.
+              "Minister of State" in the next. This would be a minor error,
+              unless the context is one where both "Minister of State" and
+              "Secretary of State" are valid technical terms with different
+              meanings, in which case it would be a major error.
             </li>
             <li>
               <b>Grammar</b>.
@@ -807,15 +812,15 @@ antheaTemplates['MQM'] = {
             <li>
               <b>Unnatural or awkward</b>.
               The text is literal, written in an awkward style, unidiomatic or
-              inappropriate in the context. Examples: (1) The English metaphor
-              "putting the cart before the horse" is literally translated into
-              Japanese. This would significantly confuse the reader and
-              hence this particular example would have a major severity. (2) A
-              sentence is unnecessarily convoluted or long, such as, "The lift
-              traveled away from the ground floor." This would be a minor error.
-              (3) Grammatically correct but slightly unnatural sounding
-              sentences such as “From where did he come?” This would also be a
-              minor error.
+              inappropriate in the context. Examples: (1) A sentence is
+              translated literally, which copies a style that is not used in
+              the target language. For example, “कौन कौन आया था?” in Hindi is
+              translated into English as “Who who had come?” This would be a
+              minor severity error. (2) A sentence is unnecessarily convoluted
+              or long, such as, "The lift traveled away from the ground floor."
+              This would be a minor error. (3) Grammatically correct but
+              slightly unnatural sounding sentences such as “From where did he
+              come?” This would also be a minor error.
             </li>
           </ul>
         </details>
@@ -866,8 +871,7 @@ antheaTemplates['MQM'] = {
               The date "1969年1月6日" is shown as "6/1/1969" (instead of
               "1/6/1969") and the target locale can be clearly inferred to be
               U.S. English. For this example, the severity level would be
-              major as it might significantly confuse the reader or alter the
-              meaning of the date.
+              major as the meaning of the date has been significantly altered.
             </li>
             <li>
               <b>Currency format</b>.
@@ -1066,9 +1070,11 @@ antheaTemplates['MQM'] = {
               the 110th anniversary of the founding of Tsinghua University
               in the New Tsinghua Academy.</td>
           <td>Accuracy - Mistranslation - Minor</td>
-          <td>In this example, the correct expression is "Tsinghua Garden."
-              This error should be rated as a minor accuracy
-              mistake because the reader is not misled or confused.</td>
+          <td>
+            In this example, the correct expression is "Tsinghua Garden." This
+            error should be rated as a minor accuracy mistake because it does
+            not represent a severe alteration of the meaning.
+          </td>
         </tr>
         <tr>
           <td>ZH_EN</td>
