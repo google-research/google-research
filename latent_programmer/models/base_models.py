@@ -60,7 +60,6 @@ class TransformerConfig:
   max_program_cross_embed_distance: int = 800
   num_flat_encoding_relative_position_buckets: int = 81
   max_flat_encoding_distance: int = 200
-
   deterministic: bool = False
   decode: bool = False
   bos_token: int = 1

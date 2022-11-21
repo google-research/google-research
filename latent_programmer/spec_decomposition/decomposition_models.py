@@ -19,6 +19,7 @@ from typing import Any
 from flax import linen as nn
 from flax import struct
 import jax.numpy as jnp
+import jax
 
 from latent_programmer.models import base_models
 from latent_programmer.models import relative_attention
@@ -38,11 +39,15 @@ class DecomposeAttentionTransformerConfig:
   # Whether to do relative self-attention on the flat encoding of the I/O
   # examples, where the positions are taken modulo the length of 1 example.
   flat_encoded_self_attention: bool = True
+  # Whether to use special relative dot-product attention position between
+  # program and I/O using separator tokens in program. 
+  separator_special_attention: bool = False
+  separator_token: int = 1
 
 
 def shift_left(x):
   """Shift the input to the left."""
-  pad_widths = [(0, 0)] * len(x.shape)
+  pad_width = [(0, 0)] * len(x.shape)
   pad_widths[-1] = (0, 1)  # Padding on axis=-1
   padded = jnp.pad(
       x, pad_widths, mode='constant', constant_values=x.dtype.type(0))
@@ -81,6 +86,25 @@ def make_partial_program_relative_position(programs,
   bos_relative_position = (program_partial_position[Ellipsis, None, :] -
                            program_partial_position[Ellipsis, None])
   return bos_relative_position.astype(dtype)
+
+
+def make_separator_relative_position(programs,
+                                     encoded,
+                                     max_input_length,
+                                     separator_token,
+                                     dtype=jnp.int32):
+  program_position = jnp.arange(programs.shape[-1], dtype=jnp.int32)
+
+  separator_position = jnp.cumsum(
+    jnp.where(programs == separator_token, 1, 0), axis=-1)
+  
+  separator_locs = jnp.diff(separator_position, axis=-1)
+  shift = jax.lax.cummax(
+    jnp.where(
+      separator_locs > 0, jnp.zeros_like(program_position), program_position)
+  )
+
+  return max_input_length * separator_position + (program_position - shift)
 
 
 class DecomposeAttentionTransformer(nn.Module):
@@ -233,6 +257,9 @@ class DecomposeAttentionTransformer(nn.Module):
                 programs > 0, programs > 0, dtype=cfg.dtype),
             jnp.logical_or(decoder_bos_mask, decoder_partial_mask))
 
+        encoder_decoder_mask = nn.make_attention_mask(
+          programs > 0, flat_encoded_padding_mask, dtype=cfg.dtype)
+
         if self.config.bos_special_attention:
           # Make custom relative positions where BOS are separately indexed.
           decoder_relative_position = make_relative_position(programs)
@@ -246,12 +273,16 @@ class DecomposeAttentionTransformer(nn.Module):
         else:
           decoder_relative_position = None
 
-      encoder_decoder_mask = nn.make_attention_mask(
-          programs > 0, flat_encoded_padding_mask, dtype=cfg.dtype)
+        if self.config.separator_special_attention:
+          encoder_decoder_relative_positoon = make_separator_relative_position(
+            programs, flat_encoded, encoded.shape[-1], self.config.separator_token,
+          )
+        else:
+          encoder_decoder_relative_position = None
 
     return self.decoder(
         programs, flat_encoded, decoder_mask, encoder_decoder_mask,
-        decoder_relative_position)
+        decoder_relative_position, encoder_decoder_relative_position)
 
   def __call__(self,
                inputs,
