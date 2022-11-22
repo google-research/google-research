@@ -629,7 +629,7 @@ antheaTemplates['MQM-Paragraph'] = {
                 </tr>
                 <tr>
                   <td>ZH_EN</td>
-                  <td>因为其中大多数都被抛弃了， 希望包含在花粉中的生殖细胞， 雄性生殖细胞</td>
+                  <td>因为其中大多数都被抛弃了，希望包含在花粉中的生殖细胞，雄性生殖细胞</td>
                   <td>
                     Because most of them are released, the hope is that there is
                     a <span class="span-minor">reproduction</span> cell
