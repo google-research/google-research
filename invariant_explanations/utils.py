@@ -14,7 +14,9 @@
 # limitations under the License.
 
 """Utilities used for approxNN project."""
+# pylint: skip-file
 
+import time
 import gc
 import itertools
 import os
@@ -23,10 +25,13 @@ import sys
 
 from absl import flags
 from absl import logging
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import psutil
+import scipy.stats
+from scipy.spatial.distance import pdist, squareform
 import seaborn as sns
 from sklearn.metrics.pairwise import pairwise_kernels
 import tensorflow.compat.v2 as tf
@@ -37,6 +42,7 @@ from tqdm import tqdm
 from invariant_explanations import config
 from invariant_explanations import explanation_utils
 from invariant_explanations import other
+from invariant_explanations import plotting
 
 logging.set_verbosity(logging.INFO)
 
@@ -46,16 +52,6 @@ FLAGS = flags.FLAGS
 SMALL_SIZE = 8
 MEDIUM_SIZE = 10
 BIGGER_SIZE = 12
-
-
-def update_matplotlib_defaults():
-  plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-  plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-  plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-  plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-  plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-  plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-  plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
 def create_experimental_folders():
@@ -87,6 +83,94 @@ def file_handler(dir_path, file_name, stream_flags):
   """
   file_opener = gfile.GFile
   return file_opener(os.path.join(dir_path, file_name), stream_flags)
+
+
+def load_processed_data_files(data_file_dict, explainer, chkpt=86):
+  """Load the corresponding data files from the appropriate folder.
+
+  Args:
+    data_file_dict: a dictionary of {'data file': Boolean}
+                    pairs specifying the data file to load.
+    explainer: name of explanation method for which to load data.
+    chkpt: the checkpoint at which to load data files; default=86.
+  """
+
+  start_time = time.time()
+  if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA and not data_file_dict['metrics']:
+    raise ValueError('Metrics must always be loaded so to filter min accuracy.')
+
+  for key in data_file_dict.keys():
+    if key not in config.ALLOWABLE_DATA_FILES:
+      raise ValueError('Unrecognized data file of type `%s`.' % key)
+
+  # Determine read path from which to load files.
+  f_suffix = get_file_suffix(chkpt)
+  if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA:
+    read_path = (
+        f'{config.MERGED_DATA_PATH}/'
+        f'{config.cfg.DATASET}_'
+        f'{explainer}_'
+        f'{config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
+    )
+  else:
+    read_path = config.cfg.EXP_DIR_PATH
+
+  # Determine the data files to be loaded.
+  keys_for_which_to_load_data = [
+      key for key in data_file_dict.keys() if data_file_dict[key] is not False
+  ]
+  all_loaded_data_files = dict.fromkeys(keys_for_which_to_load_data, None)
+
+  # For each data file marked above, load the file, check it is of correct
+  # instance type, and mark is as the value of the appropriate key in the
+  # output dictionary.
+  for key in all_loaded_data_files.keys():
+
+    with file_handler(read_path, f'{key}{f_suffix}', 'rb') as f:
+      loaded_data_file = pickle.load(f)
+
+    if key in {'hparams', 'metrics'}:
+      assert isinstance(loaded_data_file, pd.core.frame.DataFrame)
+    else:
+      assert isinstance(loaded_data_file, np.ndarray)
+
+    all_loaded_data_files[key] = loaded_data_file
+
+  # Confirm that all loaded data files share the same length (.shape[0]).
+  all_data_file_lens = np.array([
+      data_file.shape[0] for data_file in all_loaded_data_files.values()
+  ])
+  assert np.all(all_data_file_lens == all_data_file_lens[0]), 'One or more loaded file sizes not consistent.'
+
+  # When loading merged batch data from GCP (which was run using min acc > 0),
+  # make sure to filter to the right stratum here before further analysis.
+  if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA:
+    filtered_indices = np.where(
+        (
+            all_loaded_data_files['metrics']['test_accuracy'] >
+            config.cfg.MIN_BASE_MODEL_ACCURACY
+        ) &
+        (
+            all_loaded_data_files['metrics']['test_accuracy'] <
+            config.cfg.MAX_BASE_MODEL_ACCURACY
+        )
+    )[0]
+    for key, value in all_loaded_data_files.items():
+      loaded_data_file = value
+      if isinstance(loaded_data_file, np.ndarray):
+        all_loaded_data_files[key] = loaded_data_file[filtered_indices]
+      elif isinstance(loaded_data_file, pd.core.frame.DataFrame):
+        all_loaded_data_files[key] = loaded_data_file.iloc[filtered_indices]
+
+  type_of_data = 'preprocessed' if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA else 'generated'
+  logging.info(
+      '%sElapsed time (loading `%s` data): `%f`.%s',
+      Bcolors.HEADER,
+      type_of_data,
+      time.time() - start_time,
+      Bcolors.ENDC,
+  )
+  return all_loaded_data_files
 
 
 # Inspired by: https://stackoverflow.com/a/287944
@@ -137,7 +221,7 @@ def reset_model_using_weights(model_wireframe, weights):
 
 
 def rounder(values, markers, use_log_rounding=False):
-  """Round values in a list to the closest market from a list markers.
+  """Round values in a list to the closest marker from a list markers.
 
   Args:
     values: list of values to be rounded.
@@ -174,6 +258,8 @@ def process_hparams(hparams, round_num, cat_to_code):
     processed according to the input arguemnts, e.g., (log-)rounded to the
     nearest market values as set out in config.py.
   """
+
+  start_time = time.time()
   assert isinstance(hparams, pd.core.frame.DataFrame)
 
   # Convert numerical columns to numerical values (s/dtype=Object/dtype=float32)
@@ -201,146 +287,16 @@ def process_hparams(hparams, round_num, cat_to_code):
 
       rounded_values = rounder(values, markers, use_log_rounding)
       hparams[col] = rounded_values.astype('float32')
-    return hparams
   else:
-    return hparams.to_numpy().astype('float32')
+    hparams = hparams.to_numpy().astype('float32')
 
-
-def plot_treatment_effect_values():
-  """A method to plot individual and average treatment effects."""
-
-  if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
-    raise ValueError('Expected use of identical samples for base models.')
-
-  chkpt = 86
-  f_suffix = get_file_suffix(chkpt)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
-    samples = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
-    y_preds = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'y_trues{f_suffix}', 'rb') as f:
-    y_trues = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
-    hparams = pickle.load(f)
-
-  # Reorder columns for easier readability when debugging.
-  hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
-
-  assert (
-      samples.shape[0] ==
-      y_trues.shape[0] ==
-      y_preds.shape[0] ==
-      hparams.shape[0]
+  logging.info(
+      '%sElapsed time (processing hparams): `%f`.%s',
+      Bcolors.HEADER,
+      time.time() - start_time,
+      Bcolors.ENDC,
   )
-  # If NUM_BASE_MODELS < NUM_MODELS_WITH_TEST_ACC_<THRESH, the line below may be
-  # diff from config.cfg.NUM_BASE_MODELS * config.cfg.NUM_SAMPLES_PER_BASE_MODEL
-  num_base_models_times_samples = samples.shape[0]
-
-  hparams = process_hparams(hparams, round_num=True, cat_to_code=False)
-
-  # For each of the desired hparams
-  for col in config.ALL_HPARAMS:
-
-    logging.info('Plotting ITE and ATE for hparam `%s`...', col)
-
-    ite_tracker = pd.DataFrame({
-        'sample_str': [],
-        'x_y_trues': [],
-        'x_y_preds': [],
-        'hparam_col': [],
-        'hparam_val': [],
-    })
-
-    tmp_y_trues = []  # Keep track for plotting; easier than indexing later.
-    for x_offset_idx in range(min(
-        config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR,
-        config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
-    )):
-
-      # x_* prefix is used for variables that correspond to instance x.
-      x_indices = range(
-          x_offset_idx,
-          num_base_models_times_samples,
-          config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
-      )
-      x_y_preds = np.argmax(y_preds[x_indices, :], axis=1)
-      x_y_trues = np.argmax(y_trues[x_indices, :], axis=1)
-      x_hparams = hparams.iloc[x_indices]
-
-      # Sanity check: irrespective of the base model,
-      # X_i is shared and so should share y_true value.
-      assert np.all(x_y_trues == x_y_trues[0])
-      sample_str = f'x{x_offset_idx}'  # _y={x_y_trues[0]}'
-      tmp_y_trues.append(x_y_trues[0])
-
-      # For each of the unique values of this hparam
-      for val in x_hparams[col].unique():
-
-        # Filter to those samples that were predicted
-        # on models trained using this unique hparam.
-        condition = x_hparams[col] == val
-        matching_count = condition.sum()
-
-        # Add to ite_tracker.
-        ite_tracker = ite_tracker.append(
-            pd.DataFrame({
-                'sample_str': [sample_str] * matching_count,
-                'x_y_trues': list(x_y_trues[condition]),
-                'x_y_preds': list(x_y_preds[condition]),
-                'hparam_col': [col] * matching_count,
-                'hparam_val': [val] * matching_count,
-            }),
-            ignore_index=True,
-        )
-
-    catplot = sns.catplot(
-        x='sample_str',
-        y='x_y_preds',
-        hue='hparam_val',
-        data=ite_tracker,
-        kind='violin',
-    )
-    fig = catplot.fig
-    fig.set_size_inches(18, 6)
-    # For every X_i (count: config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR),
-    # put a star on the plot close to where the true label is.
-    # Inspired by https://stackoverflow.com/a/37518947
-    for tmp_x in range(config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR):
-      tmp_y = tmp_y_trues[tmp_x]
-      plt.plot(tmp_x, tmp_y, color='black', marker='*', markersize=14)
-    fig.suptitle(
-        f'Averaged over models with '
-        f'test acc > %{100 * config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
-    )
-    fig.savefig(
-        gfile.GFile(
-            os.path.join(
-                config.cfg.PLOTS_DIR_PATH,
-                f'ite_{col}.png'
-            ),
-            'wb',
-        ),
-        dpi=400,
-    )
-
-    catplot = sns.catplot(
-        x='hparam_val',
-        y='x_y_preds',
-        data=ite_tracker,
-        kind='violin',
-    )
-    fig = catplot.fig
-    fig.set_size_inches(18, 6)
-    fig.savefig(
-        gfile.GFile(
-            os.path.join(
-                config.cfg.PLOTS_DIR_PATH,
-                f'ate_{col}.png'
-            ),
-            'wb',
-        ),
-        dpi=400,
-    )
+  return hparams
 
 
 def load_base_model_weights_and_metrics():
@@ -456,14 +412,10 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
 
   assert base_model_weights.shape[0] == base_model_metrics.shape[0]
   if not config.cfg.RUN_ON_TEST_DATA:
-    if config.cfg.DATASET == 'mnist':
-      assert base_model_weights.shape[0] == 269973
-    elif config.cfg.DATASET == 'fashion_mnist':
-      assert base_model_weights.shape[0] == 270000
-    elif config.cfg.DATASET == 'cifar10':
-      assert base_model_weights.shape[0] == 270000
-    elif config.cfg.DATASET == 'svhn_cropped':
-      assert base_model_weights.shape[0] == 269892
+    assert (
+        base_model_weights.shape[0] ==
+        config.NUM_MODELS_PER_DATASET[config.cfg.DATASET]
+    )
 
   logging.info('\tConstructing new dataset...')
 
@@ -512,8 +464,14 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   # Further filter the weights to those that yield good accuracy
   # and limit selection to only NUM_BASE_MODELS models.
   filtered_indices = np.where(
-      base_model_metrics['test_accuracy'] >
-      config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY
+      (
+          base_model_metrics['test_accuracy'] >
+          config.cfg.MIN_BASE_MODEL_ACCURACY
+      ) &
+      (
+          base_model_metrics['test_accuracy'] <
+          config.cfg.MAX_BASE_MODEL_ACCURACY
+      )
   )[0][:config.cfg.NUM_BASE_MODELS]
   # For faster processing, select a batch of models to process.
   filtered_indices = np.array_split(
@@ -722,6 +680,13 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
                          extract data from the saved weights/metrics in the zoo.
   """
 
+  if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA:
+    logging.info(
+        'Data files already processed on GCP and merged locally; '
+        'do not reprocess.'
+    )
+    return
+
   base_model_weights, base_model_metrics = load_base_model_weights_and_metrics()
 
   for covariates_setting in covariates_settings:
@@ -729,9 +694,11 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
     chkpt = int(covariates_setting['chkpt'])
     f_suffix = get_file_suffix(chkpt)
     logging.info(
-        'Extracting new covariates and targets for chkpt %s @ test acc > %.2f',
+        'Extracting new covariates and targets for '
+        'chkpt %s @ test acc in [%.2f, %.2f]',
         covariates_setting['chkpt'],
-        config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY,
+        config.cfg.MIN_BASE_MODEL_ACCURACY,
+        config.cfg.MAX_BASE_MODEL_ACCURACY,
     )
 
     samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics = extract_new_covariates_and_targets(
@@ -855,7 +822,8 @@ def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
   logging.info('Saving model.')
   model_file_name = (
       'model_weights'
-      f'_min_acc_{config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY}'
+      f'_min_acc_{config.cfg.MIN_BASE_MODEL_ACCURACY}'
+      f'_max_acc_{config.cfg.MAX_BASE_MODEL_ACCURACY}'
       f'_chkpt_{chkpt}'
       f'_train_fraction_{train_fraction}'
   )
@@ -939,15 +907,22 @@ def train_meta_model_over_different_setups(random_seed):
   #   H_@_-1: hparams (epoch -1 means before training; hparams remain constant).
   # Target:
   #   Y_@_86: targets at epoch 86.
-  chkpt = 86
-  f_suffix = get_file_suffix(chkpt)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
-    samples = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
-    y_preds = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
-    hparams = pickle.load(f)
+  all_loaded_data_files = load_processed_data_files({
+      'samples': True,
+      'y_preds': True,
+      'y_trues': False,
+      'w_chkpt': False,
+      'w_final': False,
+      'explans': False,
+      'hparams': True,
+      'metrics': True,
+  }, explainer=config.cfg.EXPLANATION_TYPE)
+  samples = all_loaded_data_files['samples']
+  y_preds = all_loaded_data_files['y_preds']
+  hparams = all_loaded_data_files['hparams']
 
+  # Reorder columns for easier readability when debugging.
+  hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
   hparams = process_hparams(hparams, round_num=False, cat_to_code=True)
 
   for train_fraction in config.cfg.TRAIN_FRACTIONS:
@@ -988,15 +963,20 @@ def train_meta_model_over_different_setups(random_seed):
   for covariates_setting in config.cfg.COVARIATES_SETTINGS:
 
     chkpt = int(covariates_setting['chkpt'])
-    f_suffix = get_file_suffix(chkpt)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
-      samples = pickle.load(f)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
-      y_preds = pickle.load(f)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'w_chkpt{f_suffix}', 'rb') as f:
-      w_chkpt = pickle.load(f)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'w_final{f_suffix}', 'rb') as f:
-      w_final = pickle.load(f)
+    all_loaded_data_files = load_processed_data_files({
+        'samples': True,
+        'y_preds': True,
+        'y_trues': False,
+        'w_chkpt': True,
+        'w_final': True,
+        'explans': False,
+        'hparams': False,
+        'metrics': True,
+    }, explainer=config.cfg.EXPLANATION_TYPE, chkpt=chkpt)
+    samples = all_loaded_data_files['samples']
+    y_preds = all_loaded_data_files['y_preds']
+    w_chkpt = all_loaded_data_files['w_chkpt']
+    w_final = all_loaded_data_files['w_final']
 
     # Sanity check: make sure the random permutations
     # performed on the various saved files are similar.
@@ -1156,8 +1136,7 @@ def project_using_spca(samples, targets, n_components=2,
     samples_reco = matrix_u.dot(samples_proj)
 
   channel_1_and_2_dim = (
-      other.get_dataset_info(config.cfg.DATASET)['data_shape'][0],
-      other.get_dataset_info(config.cfg.DATASET)['data_shape'][1],
+      other.get_dataset_info(config.cfg.DATASET)['data_shape'][:2]
   )
   data_dim = np.prod(channel_1_and_2_dim)
   if samples_orig.shape[0] == data_dim:  # IMPORTANT: only works for samples
@@ -1212,20 +1191,22 @@ def process_per_class_explanations(random_seed):
 
   np.random.RandomState(random_seed)
 
-  chkpt = 86
-  f_suffix = get_file_suffix(chkpt)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
-    samples = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
-    y_preds = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'explans{f_suffix}', 'rb') as f:
-    explans = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
-    hparams = pickle.load(f)
+  all_loaded_data_files = load_processed_data_files({
+      'samples': True,
+      'y_preds': True,
+      'y_trues': False,
+      'w_chkpt': False,
+      'w_final': False,
+      'explans': True,
+      'hparams': True,
+      'metrics': True,
+  }, explainer=config.cfg.EXPLANATION_TYPE)
+  samples = all_loaded_data_files['samples']
+  y_preds = all_loaded_data_files['y_preds']
+  hparams = all_loaded_data_files['hparams']
 
-  assert isinstance(samples, np.ndarray)
-  assert isinstance(y_preds, np.ndarray)
-  assert isinstance(explans, np.ndarray)
+  # Reorder columns for easier readability when debugging.
+  hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
   hparams = process_hparams(hparams, round_num=False, cat_to_code=True)
 
   _, samples_proj, samples_targets = project_using_spca(
@@ -1309,6 +1290,22 @@ def process_per_class_explanations(random_seed):
   )
 
 
+def measure_prediction_explanation_variance_all(random_seed):
+  for treatment_kernel in config.ALLOWABLE_TREATMENT_KERNELS:
+    if (  # Should only use non-rbf kernels with 0-1 accuracy range.
+        not (
+            np.isclose(float(config.cfg.MIN_BASE_MODEL_ACCURACY), 0) and
+            np.isclose(float(config.cfg.MAX_BASE_MODEL_ACCURACY), 1)
+        ) and treatment_kernel != 'rbf'
+    ):
+      continue
+    for explanation_type in config.ALLOWABLE_EXPLANATION_METHODS:
+      # Overwrite values of config.cfg which were set by FLAGS.
+      config.cfg.EXPLANATION_TYPE = explanation_type
+      config.cfg.TREATMENT_KERNEL = treatment_kernel
+      measure_prediction_explanation_variance(random_seed)
+
+
 def measure_prediction_explanation_variance(random_seed):
   """Measure and compare the change in predictions with that of explanations.
 
@@ -1341,51 +1338,92 @@ def measure_prediction_explanation_variance(random_seed):
 
   random_state = np.random.RandomState(random_seed)
 
-  chkpt = 86
-  f_suffix = get_file_suffix(chkpt)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'rb') as f:
-    samples = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'rb') as f:
-    y_preds = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'y_trues{f_suffix}', 'rb') as f:
-    y_trues = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'explans{f_suffix}', 'rb') as f:
-    explans = pickle.load(f)
-  with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'rb') as f:
-    hparams = pickle.load(f)
+  all_loaded_data_files = load_processed_data_files({
+      'samples': False,
+      'y_preds': True,
+      'y_trues': True,
+      'w_chkpt': False,
+      'w_final': False,
+      'explans': True,
+      'hparams': True,
+      'metrics': True,
+  }, explainer=config.cfg.EXPLANATION_TYPE)
+  # samples = all_loaded_data_files['samples']
+  y_preds = all_loaded_data_files['y_preds']
+  y_trues = all_loaded_data_files['y_trues']
+  explans = all_loaded_data_files['explans']
+  hparams = all_loaded_data_files['hparams']
+  metrics = all_loaded_data_files['metrics']
 
   # Reorder columns for easier readability when debugging.
   hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
   hparams = process_hparams(hparams, round_num=True, cat_to_code=False)
 
-  assert (
-      samples.shape[0] ==
-      y_preds.shape[0] ==
-      y_trues.shape[0] ==
-      explans.shape[0] ==
-      hparams.shape[0]
-  )
   num_base_models_times_samples = y_preds.shape[0]
-  num_rows = min(
-      config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR,
-      config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
-  )
-  num_cols = len(config.ALL_HPARAMS) + 1  # +1 to also plot the image instance.
-  update_matplotlib_defaults()
-  fig, axes = plt.subplots(
-      num_rows,
-      num_cols,
-      figsize=(num_cols*6, num_rows*6),
-      sharex='col',
-      sharey='col',
-  )
-  if num_rows == 1:
-    axes = np.expand_dims(axes, 0)
+
+  # # Compare all performance brackets with ref_* bracket
+  # config.cfg.MIN_BASE_MODEL_ACCURACY = config.cfg.MIN_BASE_MODEL_ACCURACY
+  # config.cfg.MAX_BASE_MODEL_ACCURACY = config.cfg.MAX_BASE_MODEL_ACCURACY
+
+  # # config.cfg.MIN_BASE_MODEL_ACCURACY = 0.056
+  # # config.cfg.MAX_BASE_MODEL_ACCURACY = 0.154
+
+  # # config.cfg.MIN_BASE_MODEL_ACCURACY = 0.385
+  # # config.cfg.MAX_BASE_MODEL_ACCURACY = 0.574
+
+  # all_loaded_data_files = load_processed_data_files({
+  #     'samples': False,
+  #     'y_preds': True,
+  #     'y_trues': True,
+  #     'w_chkpt': False,
+  #     'w_final': False,
+  #     'explans': True,
+  #     'hparams': True,
+  #     'metrics': True,
+  # }, explainer=config.cfg.EXPLANATION_TYPE)
+  # # ref_samples = all_loaded_data_files['samples']
+  # ref_y_preds = all_loaded_data_files['y_preds']
+  # ref_y_trues = all_loaded_data_files['y_trues']
+  # ref_explans = all_loaded_data_files['explans']
+  # ref_hparams = all_loaded_data_files['hparams']
+  # ref_metrics = all_loaded_data_files['metrics']
+
+  # # Reorder columns for easier readability when debugging.
+  # ref_hparams = ref_hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
+  # ref_hparams = process_hparams(ref_hparams, round_num=True, cat_to_code=False)
+
+  # ref_num_base_models_times_samples = ref_y_preds.shape[0]
+
+  treatment_effect_tracker = pd.DataFrame({
+      'x_offset_idx': [],
+      'col_type': [],
+      'h1_h2_str': [],
+      'y_pred_ite': [],
+      'explan_ite': [],
+      'y_pred_ite_var': [],
+      'explan_ite_var': [],
+      'pred_correctness': [],
+  })
+
+  treatment_effect_tracker_all = pd.DataFrame({
+      'x_offset_idx': [],
+      'col_type': [],
+      'h1_h2_str': [],
+      'd_y_preds': [],
+      'd_explans': [],
+  })
 
   # Iterate over different samples, X.
-  for row_idx, x_offset_idx in enumerate(range(num_rows)):
+  for row_idx, x_offset_idx in enumerate(
+      range(config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR)):
 
-    logging.info('Processing instance w/ index `%d`...', x_offset_idx)
+    start_time = time.time()
+    logging.info(
+        '%sProcessing instance w/ index `%d`...%s',
+        Bcolors.HEADER,
+        x_offset_idx,
+        Bcolors.ENDC,
+    )
 
     # x_* prefix is used for variables that correspond to instance x.
     x_indices = range(
@@ -1396,12 +1434,60 @@ def measure_prediction_explanation_variance(random_seed):
     # The processing below is rather expensive, and need not be done for all
     # samples in order to get a trend. Therefore, only limit samples to some
     # (arbitrary) random subset of samples.
-    x_indices = random_state.permutation(x_indices)[:100]
-    x_samples = samples[x_indices, :]
+    x_indices = random_state.permutation(
+        x_indices)[:config.cfg.NUM_BASE_MODELS_FOR_KERNEL]
+    # x_samples = samples[x_indices, :]
     x_y_preds = y_preds[x_indices, :]
     x_y_trues = y_trues[x_indices, :]
     x_explans = explans[x_indices, :]
     x_hparams = hparams.iloc[x_indices]
+
+    # Normalize x_explans accordingly (faster compute when running on subsample)
+    start_time = time.time()
+    image_shape = other.get_dataset_info(config.cfg.DATASET)['data_shape'][:2]
+    x_explans = explanation_utils.normalize_explans(x_explans, image_shape)
+    logging.info(
+        '%sElapsed time (processing x_explans): `%f`.%s',
+        Bcolors.HEADER,
+        time.time() - start_time,
+        Bcolors.ENDC,
+    )
+
+    # # ref_x_* prefix is used for variables that correspond to instance x.
+    # ref_x_indices = range(
+    #     x_offset_idx,
+    #     ref_num_base_models_times_samples,
+    #     config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
+    # )
+    # # The processing below is rather expensive, and need not be done for all
+    # # samples in order to get a trend. Therefore, only limit samples to some
+    # # (arbitrary) random subset of samples.
+    # ref_x_indices = random_state.permutation(
+    #     ref_x_indices)[:config.cfg.NUM_BASE_MODELS_FOR_KERNEL]
+    # # ref_x_samples = ref_samples[ref_x_indices, :]
+    # ref_x_y_preds = ref_y_preds[ref_x_indices, :]
+    # ref_x_y_trues = ref_y_trues[ref_x_indices, :]
+    # ref_x_explans = ref_explans[ref_x_indices, :]
+    # ref_x_hparams = ref_hparams.iloc[ref_x_indices]
+
+    # # Normalize x_explans accordingly (faster compute if running on subsample)
+    # start_time = time.time()
+    # image_shape = other.get_dataset_info(config.cfg.DATASET)['data_shape'][:2]
+    # ref_x_explans = explanation_utils.normalize_explans(
+    #    ref_x_explans, image_shape)
+    # logging.info(
+    #     '%sElapsed time (processing ref_x_explans): `%f`.%s',
+    #     Bcolors.HEADER,
+    #     time.time() - start_time,
+    #     Bcolors.ENDC,
+    # )
+
+    # For now, compare treatment/control within same group.
+    # To save memory, comment out the ref_* code above.
+    ref_x_y_preds = x_y_preds
+    ref_x_y_trues = x_y_trues
+    ref_x_explans = x_explans
+    ref_x_hparams = x_hparams
 
     # Sanity check: irrespective of the base model,
     # X_i is shared and so should share y_true value.
@@ -1409,12 +1495,18 @@ def measure_prediction_explanation_variance(random_seed):
         np.argmax(x_y_trues, axis=1) ==
         np.argmax(x_y_trues, axis=1)[0]
     )
+    assert np.all(
+        np.argmax(ref_x_y_trues, axis=1) ==
+        np.argmax(ref_x_y_trues, axis=1)[0]
+    )
+    assert np.argmax(x_y_trues, axis=1)[0] == np.argmax(
+        ref_x_y_trues, axis=1)[0]
 
     def get_y_preds_and_y_trues_and_explans_for_hparams_of_type(x_y_preds,
                                                                 x_y_trues,
                                                                 x_explans,
                                                                 x_hparams,
-                                                                col, hi):
+                                                                col, hi, eq):
       """Get y_preds and explans when hparam of type col is hi (i.e., h_i).
 
       Args:
@@ -1424,6 +1516,7 @@ def measure_prediction_explanation_variance(random_seed):
         x_hparams: the hparams of instance `x` over multiple base models.
         col: the particular hparam column which is the be filtered over.
         hi: the unique value of the hparam to filter over.
+        eq: flag stating whether or not the hparams should be equal to hi.
 
       Returns:
         x_hi_y_preds: y_preds for when hparam of type col is hi.
@@ -1433,7 +1526,10 @@ def measure_prediction_explanation_variance(random_seed):
 
       # Get list of indices where hparam of type col is hi,
       # then filter the y_preds and explans matrices accordingly.
-      x_hi_indices = x_hparams.index[x_hparams[col] == hi].to_list()
+      if eq:
+        x_hi_indices = x_hparams.index[x_hparams[col] == hi].to_list()
+      else:
+        x_hi_indices = x_hparams.index[x_hparams[col] != hi].to_list()
       x_hi_y_preds = x_y_preds[x_hi_indices, :]
       x_hi_y_trues = x_y_trues[x_hi_indices, :]
       x_hi_explans = x_explans[x_hi_indices, :]
@@ -1456,18 +1552,9 @@ def measure_prediction_explanation_variance(random_seed):
 
       return x_hi_y_preds, x_hi_y_trues, x_hi_explans
 
-    # Show the instance being processed.
-    ax = axes[row_idx, 0]
-    ax.imshow(
-        x_samples[0].reshape((
-            other.get_dataset_info(config.cfg.DATASET)['data_shape'][0],
-            other.get_dataset_info(config.cfg.DATASET)['data_shape'][1],
-        ))
-    )  # Samples at all indices are identical; just take the first.
-    ax.axis('off')
-
     # Reset index of hparams df as they will be used to filter np arrays.
     x_hparams = x_hparams.reset_index()
+    ref_x_hparams = ref_x_hparams.reset_index()
 
     # Iterate over different hparams, H.
     for col_idx, col in enumerate(config.ALL_HPARAMS):
@@ -1482,7 +1569,8 @@ def measure_prediction_explanation_variance(random_seed):
       })
 
       # Iterate over all pairs (h1, h2) of unique values of this hparam type...
-      for h1, h2 in itertools.permutations(x_hparams[col].unique(), 2):
+      # for h1, h2 in itertools.permutations(x_hparams[col].unique(), 2):
+      for hi in x_hparams[col].unique():
 
         x_h1_y_preds, x_h1_y_trues, x_h1_explans = get_y_preds_and_y_trues_and_explans_for_hparams_of_type(
             x_y_preds,
@@ -1490,35 +1578,132 @@ def measure_prediction_explanation_variance(random_seed):
             x_explans,
             x_hparams,
             col,
-            h1,
+            hi,
+            True,
         )
         x_h2_y_preds, x_h2_y_trues, x_h2_explans = get_y_preds_and_y_trues_and_explans_for_hparams_of_type(
-            x_y_preds,
-            x_y_trues,
-            x_explans,
-            x_hparams,
+            ref_x_y_preds,
+            ref_x_y_trues,
+            ref_x_explans,
+            ref_x_hparams,
             col,
-            h2,
+            hi,
+            False,
         )
 
-        # Compute kernel of going from y_preds (explans) resulting from models
-        # trained under h1 to y_preds (explans) of models trained under h2.
-        # Important: to make the dissimilarity comparable for y_preds \in 10D
-        #            and explans in 784D, the kernel is chosen s.t. the result
-        #            \in [0, 1].
-        x_h1_h2_kernel_y_preds = pairwise_kernels(
-            x_h1_y_preds,
-            x_h2_y_preds,
-            metric='rbf',
-            n_jobs=-1,
-        )
-        x_h1_h2_kernel_explans = pairwise_kernels(
-            x_h1_explans,
-            x_h2_explans,
-            metric='rbf',
-            n_jobs=-1,
-        )
+        if (
+            len(x_h1_y_preds) == 0 or
+            len(x_h2_y_preds) == 0 or
+            len(x_h1_explans) == 0 or
+            len(x_h2_explans) == 0
+        ):
+          continue  # Skip to next combination of h1 h2 when kernels empty.
+
+        def get_dissimilarity(X, Y):
+          k = config.cfg.TREATMENT_KERNEL
+          k_XX = pairwise_kernels(X, X, metric=k, n_jobs=-1)
+          k_XY = pairwise_kernels(X, Y, metric=k, n_jobs=-1)
+          k_YY = pairwise_kernels(Y, Y, metric=k, n_jobs=-1)
+
+          return (
+              (- 2 * k_XY + np.expand_dims(np.diag(k_XX), axis=1)).T +
+              np.expand_dims(np.diag(k_YY), axis=1)
+          ).T
+
+          # kernel_X_Y = np.zeros((X.shape[0], Y.shape[0]))
+          # # ITE: || \phi(x) - \phi(y) ||^2 = k(x, x) - 2 k(x, y) + k(y, y)
+          # for idx_1 in range(len(X)):
+          #   for idx_2 in range(len(Y)):
+          #     kernel_X_Y[idx_1, idx_2] = (
+          #         k_XX[idx_1, idx_1] -
+          #         2 * k_XY[idx_1, idx_2] +
+          #         k_YY[idx_2, idx_2]
+          #     )
+          # return kernel_X_Y
+
+        x_h1_h2_kernel_y_preds = get_dissimilarity(x_h1_y_preds, x_h2_y_preds)
+        x_h1_h2_kernel_explans = get_dissimilarity(x_h1_explans, x_h2_explans)
+
         assert x_h1_h2_kernel_y_preds.shape == x_h1_h2_kernel_explans.shape
+
+        if False:
+          num_samples = 10
+          fig, axes = plt.subplots(1, 3)
+          color_norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
+          im = axes[0].imshow(
+              x_h1_h2_kernel_y_preds[:num_samples,:num_samples],
+              norm=color_norm)
+          axes[0].axis('off')
+          im = axes[1].imshow(x_h1_y_preds[:num_samples], norm=color_norm)
+          axes[1].set_title(r'$Y_{h_i} \in R^{10}$')
+          axes[1].axis('off')
+          im = axes[2].imshow(x_h2_y_preds[:num_samples], norm=color_norm)
+          axes[2].set_title(r'$Y_{h_{not-i}} \in R^{10}$')
+          axes[2].axis('off')
+          tmp_col = config.HPARAM_NAME_CONVERTER[col]
+          if '$' in tmp_col:
+            tmp_col = tmp_col[1:-1]
+          tmp_range = config.RANGE_ACCURACY_CONVERTER[
+              '%s_%s' %
+              (
+                  config.cfg.MIN_BASE_MODEL_ACCURACY,
+                  config.cfg.MAX_BASE_MODEL_ACCURACY,
+              )
+          ]
+          tmp_hi = hi if isinstance(hi, str) else f'{float(hi):.4f}'
+
+          def highlight_cell(x, y, ax=None, **kwargs):
+            rect = matplotlib.patches.Rectangle(
+                (x - 0.5, y - 0.5), 1, 1, fill=False, **kwargs)
+            ax.add_patch(rect)
+            return rect
+
+          assert np.all(
+              np.argmax(x_h2_y_trues[:num_samples], axis=1) ==
+              np.argmax(x_h2_y_trues[:num_samples], axis=1)[0]
+          )
+          true_label = np.argmax(x_h2_y_trues[:num_samples], axis=1)[0]
+          for idx in range(len(x_h1_y_preds[:num_samples])):
+            highlight_cell(
+                true_label, idx, ax=axes[1], color="red", linewidth=2)
+          for idx in range(len(x_h2_y_preds[:num_samples])):
+            highlight_cell(
+                true_label, idx, ax=axes[2], color="red", linewidth=2)
+
+          axes[0].set_title((
+            r'kernel ($\mu$: %.3f)' %
+            np.mean(x_h1_h2_kernel_y_preds[:num_samples,:num_samples])
+          ), fontsize=8)
+          axes[1].set_title((
+              r'$Y_{h_'
+              '{'
+              f'{tmp_col}'
+              r'} ='
+              f' {tmp_hi}'
+              r'} \in R^{10}$'
+          ), fontsize=8)
+          axes[2].set_title((
+              r'$Y_{h_'
+              '{'
+              f'{tmp_col}'
+              r'} \neq'
+              f' {tmp_hi}'
+              r'} \in R^{10}$'
+          ), fontsize=8)
+
+          # fig.suptitle('%s - %s (%s)' % (tmp_col, hi, tmp_range))
+          fig.colorbar(im, ax=axes.ravel().tolist(), location='bottom')
+          plt.tight_layout(rect=[0, 0.95, 1, 0.95])
+          fig.savefig(
+              gfile.GFile(
+                  os.path.join(
+                      config.cfg.PLOTS_DIR_PATH,
+                      '%s - %s - %s.png' % (x_offset_idx, col, hi),
+                  ),
+                  'wb',
+              ),
+              dpi=400,
+          )
 
         # Depending on the type of kernel function used, the kernel matrix
         # may or may not be symmetric (consider, e.g., k(x,y) = x - y is not
@@ -1539,64 +1724,249 @@ def measure_prediction_explanation_variance(random_seed):
         pred_correctness = np.add.outer(
             h1_pred_correctness,
             h2_pred_correctness,
-        ).flatten()
+        ).flatten().astype(int)
 
         scatter_tracker = scatter_tracker.append(
             pd.DataFrame({
                 'd_y_preds': d_y_preds,
                 'd_explans': d_explans,
-                'h1_h2_str': ['%s - others' % h1] * len(d_explans),
+                'h1_h2_str': ['%s: %s vs not' % (col[7:], hi)] * len(d_explans),
                 'pred_correctness': pred_correctness,
             }),
             ignore_index=True,
         )
 
-      # Scatter the y_preds against explans for all (h1, h2) pairs
-      # of this hparam and this sample.
-      ax = axes[row_idx, col_idx + 1]
-      sns.scatterplot(
-          data=scatter_tracker,
-          x='d_y_preds',
-          y='d_explans',
-          hue='h1_h2_str',
-          style='pred_correctness',
-          ax=ax,
-          alpha=0.3,
-      )
-      ax.legend()
-      ax.get_legend().set_title(col)
-      ax.set_xlabel('y_preds')
-      ax.set_ylabel('explans')
+      # Compute averages (this is the ITE value).
+      for h1_h2_str in scatter_tracker['h1_h2_str'].unique():
+        for pred_correctness in scatter_tracker['pred_correctness'].unique():
+          filtered = scatter_tracker.where(
+              (scatter_tracker['h1_h2_str'] == h1_h2_str) &
+              (scatter_tracker['pred_correctness'] == pred_correctness)
+          ).dropna()
+          y_pred_ite = np.mean(filtered['d_y_preds'])
+          explan_ite = np.mean(filtered['d_explans'])
+          y_pred_ite_var = np.var(filtered['d_y_preds'])
+          explan_ite_var = np.var(filtered['d_explans'])
+          treatment_effect_tracker = treatment_effect_tracker.append(
+              pd.DataFrame({
+                  'x_offset_idx': [f'x_{x_offset_idx}'],
+                  'col_type': [col],
+                  'h1_h2_str': [h1_h2_str],
+                  'y_pred_ite': [y_pred_ite],
+                  'explan_ite': [explan_ite],
+                  'y_pred_ite_var': [y_pred_ite_var],
+                  'explan_ite_var': [explan_ite_var],
+                  'pred_correctness': [pred_correctness],
+              }),
+              ignore_index=True,
+          )
+          treatment_effect_tracker_all = treatment_effect_tracker_all.append(
+              pd.DataFrame({
+                  'x_offset_idx': [f'x_{x_offset_idx}'] * len(filtered),
+                  'col_type': [col] * len(filtered),
+                  'h1_h2_str': [h1_h2_str] * len(filtered),
+                  'd_y_preds': filtered['d_y_preds'],
+                  'd_explans': filtered['d_explans'],
+              }),
+              ignore_index=True,
+          )
+    logging.info(
+        '%sElapsed time: `%f`.%s',
+        Bcolors.HEADER,
+        time.time() - start_time,
+        Bcolors.ENDC,
+    )
 
-  # Add the x=y line to all plots & adjust aspect ratios per hparam type (col).
-  for col_idx in range(1, len(config.ALL_HPARAMS) + 1):
-    # Axes (limits) are shared in each column.
-    for row_idx in range(num_rows):
-      ax = axes[row_idx, col_idx]
-      lims = [  # Getting limits on last ax is OK, since they are shared.
-          np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
-          np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
-      ]
-      ax.plot(lims, lims, 'k--', alpha=0.3)
-      ax.set_aspect('equal')
+  suffix = f'{config.cfg.TREATMENT_KERNEL}_{config.cfg.EXPLANATION_TYPE}'
+
+  with file_handler(
+      config.cfg.EXP_DIR_PATH,
+      f'treatment_effect_tracker_{suffix}.npy',
+      'wb',
+  ) as f:
+    pickle.dump(treatment_effect_tracker, f, protocol=4)
+
+  with file_handler(
+      config.cfg.EXP_DIR_PATH,
+      f'treatment_effect_tracker_all_{suffix}.npy',
+      'wb',
+  ) as f:
+    pickle.dump(treatment_effect_tracker_all, f, protocol=4)
+
+  del y_preds, y_trues, explans, hparams, metrics
+
+
+def measure_equivalence_class_of_explanations(random_seed):
+  """Measure and compare relative changes in hparams, y_preds, and explans.
+
+  TODO(amirhkarimi): add description.
+
+  Args:
+    random_seed: the random seed used for reproducibility of results.
+  """
+
+  if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
+    raise ValueError('Expected use of identical samples for base models.')
+
+  random_state = np.random.RandomState(random_seed)
+
+  num_rows = 3
+  num_cols = len(config.ALLOWABLE_EXPLANATION_METHODS)
+  plotting.update_matplotlib_defaults()
+  fig, axes = plt.subplots(
+      num_rows,
+      num_cols,
+      figsize=(num_cols*6, num_rows*6),
+      sharex='col',
+      sharey='col',
+  )
+
+  for col_idx, explainer in enumerate(config.ALLOWABLE_EXPLANATION_METHODS):
+
+    all_loaded_data_files = load_processed_data_files({
+        'samples': True,
+        'y_preds': True,
+        'y_trues': True,
+        'w_chkpt': False,
+        'w_final': False,
+        'explans': True,
+        'hparams': True,
+        'metrics': True,
+    }, explainer=explainer)
+    samples = all_loaded_data_files['samples']
+    y_preds = all_loaded_data_files['y_preds']
+    y_trues = all_loaded_data_files['y_trues']
+    explans = all_loaded_data_files['explans']
+    hparams = all_loaded_data_files['hparams']
+    metrics = all_loaded_data_files['metrics']
+
+    # Reorder columns for easier readability when debugging.
+    hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
+    hparams = process_hparams(hparams, round_num=True, cat_to_code=True)
+
+    num_base_models_times_samples = y_preds.shape[0]
+
+    num_hparam_settings = min(
+        100,
+        int(
+            num_base_models_times_samples /
+            config.cfg.NUM_SAMPLES_PER_BASE_MODEL
+        )
+    )
+    avg_kernel_hparams = np.zeros((num_hparam_settings, num_hparam_settings))
+    avg_kernel_y_preds = np.zeros((num_hparam_settings, num_hparam_settings))
+    avg_kernel_explans = np.zeros((num_hparam_settings, num_hparam_settings))
+
+    # Iterate over different samples, X.
+    for x_offset_idx in range(config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR):
+
+      logging.info('='*80)
+      logging.info('Processing instance w/ index `%d`...', x_offset_idx)
+
+      # x_* prefix is used for variables that correspond to instance x.
+      x_indices = range(
+          x_offset_idx,
+          num_base_models_times_samples,
+          config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
+      )
+      # The processing below is rather expensive, and need not be done for all
+      # samples in order to get a trend. Therefore, only limit samples to some
+      # (arbitrary) random subset of samples.
+      x_indices = random_state.permutation(
+          x_indices)[:config.cfg.NUM_BASE_MODELS_FOR_KERNEL]
+      x_samples = samples[x_indices, :]
+      x_y_preds = y_preds[x_indices, :]
+      x_y_trues = y_trues[x_indices, :]
+      x_explans = explans[x_indices, :]
+      x_hparams = hparams.iloc[x_indices]
+
+      plotting.plot_and_save_samples_and_explans(
+          x_samples,
+          x_explans,
+          8,
+          f'{explainer}_x{x_offset_idx}',
+      )
+
+      # Sanity check: irrespective of the base model,
+      # X_i is shared and so should share y_true value.
+      assert np.all(
+          np.argmax(x_y_trues, axis=1) ==
+          np.argmax(x_y_trues, axis=1)[0]
+      )
+
+      # Define custom function to handle mixed num/cat distance for hparams.
+      assert np.all([
+          col in config.CAT_HPARAMS for col in x_hparams.columns[:4]
+      ])
+      assert x_hparams.columns[4] == 'config.l2reg'
+      assert x_hparams.columns[5] == 'config.dropout'
+      assert x_hparams.columns[6] == 'config.init_std'
+      assert x_hparams.columns[7] == 'config.learning_rate'
+      assert x_hparams.columns[8] == 'config.train_fraction'
+
+      range_4 = (
+          config.ALL_HPARAM_RANGES['config.l2reg'][-1] -
+          config.ALL_HPARAM_RANGES['config.l2reg'][0]
+      )
+      range_5 = (
+          config.ALL_HPARAM_RANGES['config.dropout'][-1] -
+          config.ALL_HPARAM_RANGES['config.dropout'][0]
+      )
+      range_6 = (
+          config.ALL_HPARAM_RANGES['config.init_std'][-1] -
+          config.ALL_HPARAM_RANGES['config.init_std'][0]
+      )
+      range_7 = (
+          config.ALL_HPARAM_RANGES['config.learning_rate'][-1] -
+          config.ALL_HPARAM_RANGES['config.learning_rate'][0]
+      )
+      range_8 = (
+          config.ALL_HPARAM_RANGES['config.train_fraction'][-1] -
+          config.ALL_HPARAM_RANGES['config.train_fraction'][0]
+      )
+      def custom_distance(u,v):
+        const = 0 if u[2] == v[2] else 10
+        return np.sqrt(
+            (0 if u[0] == v[0] else 1) ** 2 +
+            (0 if u[1] == v[1] else 1) ** 2 +
+            (0 if u[2] == v[2] else 1) ** 2 +
+            (0 if u[3] == v[3] else 1) ** 2 +
+            ((u[4] - v[4]) / range_4) ** 2 +
+            ((u[5] - v[5]) / range_5) ** 2 +
+            ((u[6] - v[6]) / range_6) ** 2 +
+            ((u[7] - v[7]) / range_7) ** 2 +
+            ((u[8] - v[8]) / range_8) ** 2
+        )
+
+      x_kernel_hparams = squareform(pdist(x_hparams.values, custom_distance))
+      x_kernel_y_preds = squareform(pdist(x_y_preds, 'euclidean'))
+      x_kernel_explans = squareform(pdist(x_explans, 'euclidean'))
+
+      avg_kernel_hparams += x_kernel_hparams
+      avg_kernel_y_preds += x_kernel_y_preds
+      avg_kernel_explans += x_kernel_explans
+
+    avg_kernel_hparams /= config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR
+    avg_kernel_y_preds /= config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR
+    avg_kernel_explans /= config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR
+
+    axes[0, col_idx].imshow(avg_kernel_hparams)
+    axes[0, col_idx].set_title(f'hparams_{explainer}')
+    axes[1, col_idx].imshow(avg_kernel_y_preds)
+    axes[1, col_idx].set_title(f'y_preds_{explainer}')
+    axes[2, col_idx].imshow(avg_kernel_explans)
+    axes[2, col_idx].set_title(f'explans_{explainer}')
 
   # Save figure.
-  plt.suptitle(
-      r'$d(y_{h_{ij}}(x), y_{h_{ik}}(x)) ~ vs. ~ $'
-      r'$d(e_{h_{ij}}(x), e_{h_{ik}}(x))$'
-      r'$~ \forall ~ j != k \in |unique(hi)| ~ \forall ~ i \in |hparams|$'
-      r'$~ s.t. ~ acc(f_{h_{ij}}), acc(f_{h_{ik}}) > $'
-      '%%%.2f' % (100 * config.cfg.KEEP_MODELS_ABOVE_TEST_ACCURACY)
-  )
+  plt.suptitle('Comparison of pdist() over hparams, y_preds, and explans')
   plt.tight_layout()
   fig.savefig(
       gfile.GFile(
           os.path.join(
               config.cfg.PLOTS_DIR_PATH,
-              'scatter_d(y)_d(e).png',
+              'pdist_comparison.png',
           ),
           'wb',
       ),
       dpi=150,
   )
-

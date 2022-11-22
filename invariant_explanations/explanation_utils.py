@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Methods to generate explanations for batches of samples and predictions."""
+# pylint: skip-file
 
 from concurrent import futures
 import multiprocessing
@@ -28,6 +29,57 @@ import tensorflow.compat.v2 as tf
 from tensorflow.io import gfile
 
 from invariant_explanations import config
+
+
+def normalize_explans(explans, image_shape):
+  """Returns normalized explans for multiple explanations."""
+
+  # Define a local variable for normalization type; DO NOT overwrite the attr in
+  # config.cfg.EXPLANATION_TYPE; this may need to be reverted for other methods.
+  normalization_type = config.cfg.EXPLAN_NORM_TYPE
+  if config.cfg.EXPLANATION_TYPE in {'grad', 'smooth_grad', 'ig', 'guided_ig'}:
+    if config.cfg.EXPLAN_NORM_TYPE == '01':
+      normalization_type = '-11_clip_01'
+  else:
+    if config.cfg.EXPLAN_NORM_TYPE == '-11':
+      logging.warning('Do not use -11 norm on %s.', config.cfg.EXPLANATION_TYPE)
+
+  output = np.zeros(explans.shape)
+  for idx, explan in enumerate(explans):
+    # Prep as input for saliency.core.* methods; process; put back in place.
+    explan = np.expand_dims(np.reshape(explan, image_shape), axis=2)
+    explan = normalize_image(explan, normalization_type)
+    explan = np.reshape(np.squeeze(explan), -1)
+    explans[idx] = explan
+
+  return explans
+
+
+def normalize_image(img, normalization_type):
+    """Returns normalized image according to normalization_type.
+    Inspired by: https://github.com/adebayoj/sanity_checks_saliency/blob/
+                 master/notebooks/inceptionv3_cascading_randomization.ipynb
+    """
+    assert isinstance(img, np.ndarray), "Input img should be a numpy array."
+    if len(img.shape) == 2:
+      img = np.expand_dims(np.reshape(img, image_shape), axis=2)
+    elif len(img.shape) != 3:
+      raise ValueError("Array should have 2 or 3 dims.")
+    if normalization_type == '01':
+      img = saliency.core.VisualizeImageGrayscale(img)
+    elif normalization_type == '-11':
+      img = saliency.core.VisualizeImageDiverging(img)
+    elif normalization_type == '-11_clip_01':
+      img = saliency.core.VisualizeImageDiverging(img)
+      img = np.clip(img, 0, 1)
+    elif normalization_type == '01_no_percentile':
+      img = np.array(img).astype(np.float32)
+      img_min = img.min()
+      img_max = img.max()
+      img = (img - img_min) / (img_max - img_min)
+    elif normalization_type == 'l21':
+      img /= np.linalg.norm(img)
+    return img
 
 
 def get_model_explanations_for_instances(model, samples, y_preds,
@@ -157,12 +209,13 @@ def get_model_explanations_for_instances(model, samples, y_preds,
 
     assert explan.ndim == 2, 'Expected grayscale explans.'
 
-    # Perform percentile clipping to remove outliers, then return explan.
-    # To not repeat code, you may use the saliency library as below, but
-    # first construct a 3D copy of the explan by tiling across all 3 channels.
-    explan = np.expand_dims(explan, axis=2)
-    explan = np.tile(explan, [1, 1, 3])
-    return saliency.core.VisualizeImageGrayscale(explan)
+    # # Perform percentile clipping to remove outliers, then return explan.
+    # # To not repeat code, you may use the saliency library as below, but
+    # # first construct a 3D copy of the explan by tiling across all 3 channels.
+    # explan = np.expand_dims(explan, axis=2)
+    # explan = np.tile(explan, [1, 1, 3])
+    # return saliency.core.VisualizeImageGrayscale(explan)
+    return explan
 
   # Process explans in parallel. Code below inspired by:
   # https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor
