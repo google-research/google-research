@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "unfair-prophet.h"
-
+#include <functional>
 namespace fair_secretary {
 
 using std::vector;
