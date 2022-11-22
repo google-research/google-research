@@ -42,7 +42,16 @@ class DecomposeAttentionTransformerConfig:
   # Whether to use special relative dot-product attention position between
   # program and I/O using separator tokens in program. 
   separator_special_attention: bool = False
-  separator_token: int = 1
+  separator_token: int = -1
+
+
+def shift_right(x):
+  """Shift the input to the right."""
+  pad_widths = [(0, 0)] * len(x.shape)
+  pad_widths[-1] = (1, 0)  # Padding on axis=-1
+  padded = jnp.pad(
+      x, pad_widths, mode='constant', constant_values=x.dtype.type(0))
+  return padded[Ellipsis, :-1]
 
 
 def shift_left(x):
@@ -95,16 +104,21 @@ def make_separator_relative_position(programs,
                                      dtype=jnp.int32):
   program_position = jnp.arange(programs.shape[-1], dtype=jnp.int32)
 
-  separator_position = jnp.cumsum(
-    jnp.where(programs == separator_token, 1, 0), axis=-1)
-  
-  separator_locs = jnp.diff(separator_position, axis=-1)
+  separator_locs = shift_right(programs == separator_token)
   shift = jax.lax.cummax(
     jnp.where(
-      separator_locs > 0, jnp.zeros_like(program_position), program_position)
+      separator_locs == 0, jnp.zeros_like(program_position), program_position)
   )
+  separator_position = jnp.cumsum(
+    jnp.where(programs == separator_token, 1, 0), axis=-1)
+  separator_program_position =  (
+    max_input_length * separator_position + program_position - shift)
 
-  return max_input_length * separator_position + (program_position - shift)
+  encoded_position = jnp.arange(encoded.shape[-1], dtype=jnp.int32)
+  relative_position = program_position[None, :] - encoded_position[:, None]
+  relative_position = jnp.broadcast_to(
+      relative_position, programs.shape[:-1] + relative_position.shape)
+  return relative_position.astype(dtype)
 
 
 class DecomposeAttentionTransformer(nn.Module):
@@ -275,7 +289,10 @@ class DecomposeAttentionTransformer(nn.Module):
 
         if self.config.separator_special_attention:
           encoder_decoder_relative_positoon = make_separator_relative_position(
-            programs, flat_encoded, encoded.shape[-1], self.config.separator_token,
+            programs,
+            flat_encoded,
+            encoded.shape[-1],
+            self.config.separator_token,
           )
         else:
           encoder_decoder_relative_position = None
