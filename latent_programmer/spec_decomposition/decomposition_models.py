@@ -44,6 +44,15 @@ class DecomposeAttentionTransformerConfig:
   separator_token: int = -1
 
 
+def shift_right(x):
+  """Shift the input to the right."""
+  pad_widths = [(0, 0)] * len(x.shape)
+  pad_widths[-1] = (1, 0)  # Padding on axis=-1
+  padded = jnp.pad(
+      x, pad_widths, mode='constant', constant_values=x.dtype.type(0))
+  return padded[Ellipsis, :-1]
+
+
 def shift_left(x):
   """Shift the input to the left."""
   pad_widths = [(0, 0)] * len(x.shape)
@@ -95,14 +104,14 @@ def make_separator_relative_position(programs,
   program_position = jnp.arange(programs.shape[-1], dtype=jnp.int32)
 
   # Reset the program positions after every separator token.
-  separator_locs = shift_right(programs == separator_token)
+  separator_locs = shift_right(jnp.where(programs == separator_token, 1, 0))
   shift = jax.lax.cummax(
     jnp.where(
-      separator_locs == 0, jnp.zeros_like(program_position), program_position)
+      separator_locs == 0, jnp.zeros_like(program_position), program_position),
+    axis=-1
   )
   # Track the number of separator tokens that have been seen.
-  separator_counts = jnp.cumsum(
-    jnp.where(programs == separator_token, 1, 0), axis=-1)
+  separator_counts = jnp.cumsum(jnp.where(separator_locs == 1, 1, 0), axis=-1)
   separator_program_position =  (
     max_input_length * separator_counts + program_position - shift)
 
@@ -284,7 +293,7 @@ class DecomposeAttentionTransformer(nn.Module):
           encoder_decoder_relative_positoon = make_separator_relative_position(
             programs,
             flat_encoded,
-            encoded.shape[-1],
+            encoded.shape[-2],  # encoded shape == (batch_size, num_io, length, dim)
             self.config.separator_token)
         else:
           encoder_decoder_relative_position = None
