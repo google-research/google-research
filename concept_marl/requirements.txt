@@ -1,0 +1,9 @@
+absl-py
+numpy
+jax
+ml_collections
+immutabledict
+rx
+chex
+dm-env
+Pillow
