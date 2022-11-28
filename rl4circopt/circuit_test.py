@@ -16,6 +16,7 @@
 """Tests for circuit."""
 
 import itertools
+import sys
 from absl.testing import absltest
 from absl.testing import parameterized
 
@@ -25,6 +26,12 @@ from scipy import stats
 from scipy.spatial import transform
 
 from rl4circopt import circuit
+
+
+if sys.version_info >= (3, 10):
+  _FLOAT_TO_COMPLEX_ERROR_MSG = r"float\(\) argument must be .*, not 'complex'"
+else:
+  _FLOAT_TO_COMPLEX_ERROR_MSG = r"can't convert complex to float"
 
 
 def _check_boolean(test_case, found, expected):
@@ -1601,11 +1608,11 @@ class PhasedXGateTest(parameterized.TestCase):
     )
 
   def test_initializer_rotation_angle_type_error(self):
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       circuit.PhasedXGate(42.0 + 47.11j, 0.815)
 
   def test_initializer_phase_angle_type_error(self):
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       circuit.PhasedXGate(0.815, 42.0 + 47.11j)
 
   @parameterized.parameters(itertools.product(_testing_angles(), repeat=2))
@@ -1670,7 +1677,7 @@ class PhasedXGateTest(parameterized.TestCase):
     )
 
   def test_rot_x_rotation_angle_type_error(self):
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       circuit.PhasedXGate.rot_x(42.0 + 47.11j)
 
   @parameterized.parameters(_testing_angles())
@@ -1689,7 +1696,7 @@ class PhasedXGateTest(parameterized.TestCase):
     )
 
   def test_rot_y_rotation_angle_type_error(self):
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       circuit.PhasedXGate.rot_y(42.0 + 47.11j)
 
   def test_shift_rotation_angle(self):
@@ -1717,7 +1724,7 @@ class PhasedXGateTest(parameterized.TestCase):
   def test_shift_rotation_angle_type_error(self):
     gate = circuit.PhasedXGate(0.815, 0.137)
 
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       gate.shift_rotation_angle(42.0 + 47.11j)
 
   def test_shift_phase_angle(self):
@@ -1745,7 +1752,7 @@ class PhasedXGateTest(parameterized.TestCase):
   def test_shift_phase_angle_type_error(self):
     gate = circuit.PhasedXGate(0.815, 0.137)
 
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       gate.shift_phase_angle(42.0 + 47.11j)
 
   @parameterized.parameters(itertools.product(_testing_angles(), repeat=2))
@@ -1868,7 +1875,7 @@ class RotZGateTest(parameterized.TestCase):
     ))
 
   def test_initializer_rotation_angle_type_error(self):
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       circuit.RotZGate(42.0 + 47.11j)
 
   @parameterized.parameters(_testing_angles())
@@ -1907,7 +1914,7 @@ class RotZGateTest(parameterized.TestCase):
   def test_shift_rotation_angle_type_error(self):
     gate = circuit.RotZGate(0.815)
 
-    with self.assertRaisesRegex(TypeError, r'can\'t convert complex to float'):
+    with self.assertRaisesRegex(TypeError, _FLOAT_TO_COMPLEX_ERROR_MSG):
       gate.shift_rotation_angle(42.0 + 47.11j)
 
   @parameterized.parameters(_testing_angles())
