@@ -7,6 +7,20 @@ This repository is the official supporting codebase of [A Machine Learning Data 
 - Dataset
   - A partial dataset containing paired input remote sensing and geo-physical sources along with soil moisture readings for a few sensor networks. ISMN based sensor networks do not allow for data redistribution and hence we have not included in-situ readings from ISMN and a few other networks that don't allow re-distribution in the data set (hence the term "partial").
   - A script (combine_ismn_data.py) to combine ISMN soil moisture readings with the dataset we provide. This allows the user to create a "full" dataset by merging data we provide along with ISMN data which can be downloaded from https://ismn.geo.tuwien.ac.at/
+  - If you use our dataset, please cite us using
+
+  ```
+  @misc{batchu2022-dk,
+    doi = {10.48550/ARXIV.2206.09649},
+    url = {https://arxiv.org/abs/2206.09649},
+    author = {Batchu, Vishal and Nearing, Grey and Gulshan, Varun},
+    title = {A Machine Learning Data Fusion Model for Soil Moisture Retrieval},
+    publisher = {arXiv},
+    year = {2022},
+    copyright = {arXiv.org perpetual, non-exclusive license}
+  }
+
+  ```
 - Model
   - A tensorflow (TF-1) frozen graph based pre-trained model corresponding to the best performing soil moisture model we train in the paper is provided.
   - A script (run_sample_inference.py) to run sample inference on the trained model using either the "partial" dataset or the "full" dataset users can create by using the "combine_ismn_data.py" script.
