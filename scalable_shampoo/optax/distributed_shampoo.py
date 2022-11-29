@@ -1115,6 +1115,7 @@ def distributed_shampoo(
     lobpcg_topk_precondition = 0,
     lobpcg_max_iter = 0,
     precondtioner_type=PreconditionerType.ALL,
+    custom_preconditioner=False,
     skip_preconditioning_rank_lt=1,
     decoupled_learning_rate=True,
     decoupled_weight_decay=False,
