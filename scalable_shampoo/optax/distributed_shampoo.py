@@ -2412,11 +2412,17 @@ def distributed_shampoo(
     Returns:
       A tuple containing the new parameters and the new optimizer state.
     """
+    grads_custom = None
+    if custom_preconditioner and isinstance(grads, tuple):
+      grads, grads_custom = grads
+
     params_flat, treedef = jax.tree_flatten(params)
     stats_flat = treedef.flatten_up_to(state.stats)
     grads_flat = treedef.flatten_up_to(grads)
     stats_grads = grads_flat
 
+    if custom_preconditioner and grads_custom is not None:
+      stats_grads = treedef.flatten_up_to(grads_custom)
 
     new_stats_flat = jax.tree_map(
         lambda g, s, p: _compute_stats(g, s, p, state.count), stats_grads,
