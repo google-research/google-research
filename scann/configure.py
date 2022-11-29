@@ -66,7 +66,10 @@ def get_input(question):
 def generate_shared_lib_name(namespec):
   """Converts the linkflag namespec to the full shared library name."""
   # Assume Linux for now
-  return namespec[1][3:]
+  if sys.platform in ["linux", "linux2"]:
+      return namespec[1][3:]
+  elif sys.platform == "darwin":
+      return 'libtensorflow_framework.2.dylib'
 
 
 def create_build_configuration():
@@ -117,12 +120,17 @@ def create_build_configuration():
   _TF_SHARED_LIBRARY_NAME = generate_shared_lib_name(_TF_LFLAGS)
   _TF_HEADER_DIR = _TF_CFLAGS[0][2:]
   _TF_SHARED_LIBRARY_DIR = _TF_LFLAGS[0][2:]
+  _PYTHON_LIB = python_path.replace("bin/python", "lib")
   # pylint: enable=invalid-name
 
   write_action_env("TF_HEADER_DIR", _TF_HEADER_DIR)
   write_action_env("TF_SHARED_LIBRARY_DIR", _TF_SHARED_LIBRARY_DIR)
   write_action_env("TF_SHARED_LIBRARY_NAME", _TF_SHARED_LIBRARY_NAME)
   write_action_env("TF_CXX11_ABI_FLAG", _TF_CXX11_ABI_FLAG)
+  # Note: Adding following env vars to avoid pybind11 get python confused, i.e. build using
+  # python2.7, then when we build wheel, use python3.
+  write_action_env("PYTHON_BIN_PATH", python_path)
+  write_action_env("PYTHON_LIB_PATH", _PYTHON_LIB)
 
   write_to_bazelrc("build --spawn_strategy=standalone")
   write_to_bazelrc("build --strategy=Genrule=standalone")

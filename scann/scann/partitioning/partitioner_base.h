@@ -21,6 +21,11 @@
 #include <cstdint>
 #include <vector>
 
+#if defined __GNUC__ || defined __APPLE__
+  #include <ext/hash_set>
+#else
+  #include <hash_set>
+#endif
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
