@@ -68,6 +68,35 @@ class LinearEvalTest(absltest.TestCase):
     self.assertAlmostEqual(accuracy, onp.mean(sklearn_y_pred == test_labels),
                            places=3)
 
+  def testTune(self):
+    iris = datasets.load_iris()
+
+    (train_embeddings, test_embeddings,
+     train_labels, test_labels) = model_selection.train_test_split(
+         iris.data[:, :2].astype(onp.float32), iris.target, test_size=0.25,
+         random_state=0xdeadbeef)
+    (train_embeddings, val_embeddings,
+     train_labels, val_labels) = model_selection.train_test_split(
+         train_embeddings, train_labels, test_size=0.25,
+         random_state=0xdeadbeef)
+
+    results = linear_eval.tune_hparams_and_compute_test_accuracy(
+        train_embeddings, train_labels, val_embeddings, val_labels,
+        test_embeddings, test_labels)
+
+    self.assertAlmostEqual(results['test_accuracy'], 0.8947, places=3)
+
+  def testEvaluatePerClass(self):
+    labels = jnp.array([0, 1, 1, 2, 2, 2, 3, 3, 3, 3])
+    embeddings = jax.nn.one_hot([0, 0, 1, 0, 1, 2, 3, 0, 0, 0], 4)
+    target_accuracy = (1 + 1/2 + 1/3 + 1/4) / 4
+    ((embeddings, labels), mask) = linear_eval.reshape_and_pad_data_for_devices(
+        (embeddings, labels))
+    accuracy = linear_eval.evaluate_per_class(
+        embeddings, labels, mask, jnp.eye(4), jnp.zeros((4,)))
+
+    self.assertAlmostEqual(accuracy, target_accuracy, places=6)
+
   def testLossFunction(self):
     rng = onp.random.RandomState(1337)
     weights = rng.randn(10, 20)

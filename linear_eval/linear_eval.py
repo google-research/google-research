@@ -15,6 +15,7 @@
 
 """Linear eval using L-BFGS."""
 import functools
+from typing import Any, Dict
 
 from absl import logging
 import frozendict
@@ -135,7 +136,7 @@ def _lbfgs_minimize(embeddings, labels, mask, initial_position, loss,
 
 def train(embeddings, labels, mask, l2_regularization=0.0,
           initial_weights=None, initial_biases=None,
-          loss=multinomial_logistic_loss, **lbfgs_args):
+          loss_fn=multinomial_logistic_loss, **lbfgs_args):
   """Train logistic regression with L-BFGS on distributed embeddings.
 
   Args:
@@ -152,7 +153,8 @@ def train(embeddings, labels, mask, l2_regularization=0.0,
       given, initialized to zeros.
     initial_biases: Vector of length `num_classes` of biases. If not
       given, initialized to zeros.
-    loss: Loss function to use. See `multinomial_logistic_loss` for arguments.
+    loss_fn: Loss function to use. See `multinomial_logistic_loss` for
+      arguments.
     **lbfgs_args: Additional arguments to pass to
       `tfp.optimizer.lbfgs_minimize`.
 
@@ -184,7 +186,7 @@ def train(embeddings, labels, mask, l2_regularization=0.0,
       initial_weights, initial_biases)
 
   res = _lbfgs_minimize(
-      embeddings, labels, mask, initial_position, loss,
+      embeddings, labels, mask, initial_position, loss_fn,
       loss_args, frozendict.frozendict(lbfgs_args))
   res = jax.tree_util.tree_map(lambda x: x[0], res)
   weights, biases = params_to_weights_and_biases(res.position, embed_dim)
@@ -224,14 +226,40 @@ def evaluate(embeddings, labels, mask, weights, biases):
   return jnp.sum(correct) / jnp.sum(total)
 
 
+def evaluate_per_class(embeddings, labels, mask, weights, biases):
+  """Computes mean per-class accuracy.
+
+  Args:
+    embeddings: Array of embeddings of shape
+      `[num_devices, examples_per_device, embed_dim]`. See
+      `reshape_and_pad_data_for_devices` for an easy way to get data into this
+      format.
+    labels: Array of integer labels of shape
+      `[num_devices, examples_per_device]`.
+    mask: Array of indicating which embeddings should be used to compute the
+      loss, of shape `[num_devices, examples_per_device]`.
+    weights: `embed_dim x num_classes` matrix of weights.
+    biases: Vector of length `num_classes` of biases.
+
+  Returns:
+    Mean per-class accuracy in [0, 1].
+  """
+  label_count = onp.bincount(labels.ravel()[mask.ravel() == 1])
+  mask *= jnp.sum(mask) / (label_count[labels] * len(label_count))
+  correct, total = _evaluate(embeddings, labels, mask, weights, biases)
+  return jnp.sum(correct) / jnp.sum(total)
+
+
 DEFAULT_HPARAMS = 10.0 ** onp.arange(-6, 7, 2)
 
 
 def tune_l2_regularization(train_embeddings, train_labels, train_mask,
                            val_embeddings, val_labels, val_mask,
-                           loss=multinomial_logistic_loss,
-                           initial_range=DEFAULT_HPARAMS, num_steps=4):
-  """Tune L2 regularization, following a procedure something like the CLIP.
+                           loss_fn=multinomial_logistic_loss,
+                           eval_fn=evaluate,
+                           initial_range=DEFAULT_HPARAMS, num_steps=4,
+                           verbose=False):
+  """Tunes L2 regularization, following a procedure something like the CLIP.
 
   This procedure first searches over the initial range, and then iteratively
   searches to the left and right of the best hyperparameter value, halving the
@@ -247,10 +275,13 @@ def tune_l2_regularization(train_embeddings, train_labels, train_mask,
     val_embeddings: Embeddings of validation set.
     val_labels: Labels for validation set.
     val_mask: Mask for validation set.
-    loss: Loss function to use. See `multinomial_logistic_loss` for arguments.
+    loss_fn: Loss function to use. See `multinomial_logistic_loss` for
+      arguments.
+    eval_fn: Eval function to use. See `evaluate` for arguments.
     initial_range: Initial L2 regularization parameter range. Assumed to be
       logarithmically spaced.
     num_steps: Number of halvings to perform for binary search.
+    verbose: If true, print and log results.
 
   Returns:
     l2_regularization: Optimal amount of L2 regularization.
@@ -263,14 +294,16 @@ def tune_l2_regularization(train_embeddings, train_labels, train_mask,
   accuracies = []
   weights_and_biases = []
   for l2 in initial_range:
-    print(l2)
+    if verbose:
+      print(l2)
     weights, biases, _ = train(
         train_embeddings, train_labels, train_mask, l2, weights, biases,
-        loss=loss)
-    accuracy = evaluate(
+        loss_fn=loss_fn)
+    accuracy = eval_fn(
         val_embeddings, val_labels, val_mask, weights, biases)
-    print(f'  {accuracy}')
-    logging.info('Initial range: l2 %s, accuracy %s', l2, accuracy)
+    if verbose:
+      print(f'  {accuracy}')
+      logging.info('Initial range: l2 %s, accuracy %s', l2, accuracy)
     accuracies.append(accuracy)
     weights_and_biases.append((weights, biases))
 
@@ -287,14 +320,16 @@ def tune_l2_regularization(train_embeddings, train_labels, train_mask,
   for _ in range(num_steps):
     delta = onp.sqrt(delta)
     l2 = best_l2 / delta
-    print(l2)
+    if verbose:
+      print(l2)
     weights, biases, _ = train(
         train_embeddings, train_labels, train_mask,
-        l2, best_weights, best_biases, loss=loss)
-    accuracy = evaluate(
+        l2, best_weights, best_biases, loss_fn=loss_fn)
+    accuracy = eval_fn(
         val_embeddings, val_labels, val_mask, weights, biases)
-    print(f'  {accuracy}')
-    logging.info('Fine range: l2 %s, accuracy %s', l2, accuracy)
+    if verbose:
+      print(f'  {accuracy}')
+      logging.info('Fine range: l2 %s, accuracy %s', l2, accuracy)
 
     if accuracy > best_accuracy:
       best_l2, best_weights, best_biases, best_accuracy = (
@@ -302,17 +337,95 @@ def tune_l2_regularization(train_embeddings, train_labels, train_mask,
       continue
 
     l2 = best_l2 * delta
-    print(l2)
+    if verbose:
+      print(l2)
     weights, biases, _ = train(
         train_embeddings, train_labels, train_mask,
-        l2, best_weights, best_biases, loss=loss)
-    accuracy = evaluate(
+        l2, best_weights, best_biases, loss_fn=loss_fn)
+    accuracy = eval_fn(
         val_embeddings, val_labels, val_mask, weights, biases)
-    print(f'  {accuracy}')
-    logging.info('Fine range: l2 %s, accuracy %s', l2, accuracy)
+    if verbose:
+      print(f'  {accuracy}')
+      logging.info('Fine range: l2 %s, accuracy %s', l2, accuracy)
 
     if accuracy > best_accuracy:
       best_l2, best_weights, best_biases, best_accuracy = (
           l2, weights, biases, accuracy)
 
   return best_l2, best_weights, best_biases, best_accuracy
+
+
+def tune_hparams_and_compute_test_accuracy(
+    train_embeddings, train_labels,
+    val_embeddings, val_labels,
+    test_embeddings, test_labels,
+    loss_fn=multinomial_logistic_loss, eval_fn=evaluate,
+    initial_range=DEFAULT_HPARAMS, num_steps=4,
+    verbose=False):
+  """Tunes hyperparameters for linear eval and compute linear eval accuracy.
+
+  After finding the optimal hyperparameters on the train set, this function
+  retrains on the combined train + val sets and evaluates on the test set.
+
+  Args:
+    train_embeddings: `n x p` matrix of train embeddings.
+    train_labels: Vector of length `n` containing integer labels for train set.
+    val_embeddings: `n x p` matrix of train embeddings.
+    val_labels: Vector of length `n` containing integer labels for val set.
+    test_embeddings: `n x p` matrix of test embeddings.
+    test_labels: Vector of length `n` containing integer labels for test set.
+    loss_fn: Loss function to use. See `multinomial_logistic_loss` for
+      arguments.
+    eval_fn: Eval function to use. See `evaluate` for arguments.
+    initial_range: Initial L2 regularization parameter range. Assumed to be
+      logarithmically spaced.
+    num_steps: Number of halvings to perform for binary search.
+    verbose: If true, print and log hyperparameter tuning results.
+
+  Returns:
+    A Dict containing:
+      test_accuracy: Accuracy on test set.
+      val_accuracy: Accuracy of best model on val set.
+      optimal_l2_reg: Optimal value of L2 regularization.
+      weights: Linear classifier weights.
+      biases: Linear classifier biases.
+  """
+
+  # Put the embeddings on the host and perform tuning.
+  ((tune_train_embeddings, tune_train_labels),
+   tune_train_mask) = reshape_and_pad_data_for_devices(
+       (train_embeddings, train_labels))
+  ((tune_val_embeddings, tune_val_labels),
+   tune_val_mask) = reshape_and_pad_data_for_devices(
+       (val_embeddings, val_labels))
+  optimal_l2_reg, _, _, val_accuracy = tune_l2_regularization(
+      tune_train_embeddings, tune_train_labels, tune_train_mask,
+      tune_val_embeddings, tune_val_labels, tune_val_mask,
+      loss_fn=loss_fn, eval_fn=eval_fn,
+      initial_range=initial_range, num_steps=num_steps,
+      verbose=verbose)
+  del tune_train_embeddings, tune_train_labels, tune_train_mask
+  del tune_val_embeddings, tune_val_labels, tune_val_mask
+
+  # Train model on full train set.
+  ((train_embeddings, train_labels),
+   train_mask) = reshape_and_pad_data_for_devices(
+       (onp.concatenate((train_embeddings, val_embeddings)),
+        onp.concatenate((train_labels, val_labels))))
+  weights, biases, _ = train(
+      train_embeddings, train_labels, train_mask,
+      loss_fn=loss_fn, l2_regularization=optimal_l2_reg)
+  del train_embeddings, train_labels, train_mask
+  ((test_embeddings, test_labels),
+   test_mask) = reshape_and_pad_data_for_devices(
+       (test_embeddings, test_labels))
+  test_accuracy = eval_fn(
+      test_embeddings, test_labels, test_mask, weights, biases)
+
+  return {
+      'test_accuracy': float(test_accuracy),
+      'val_accuracy': float(val_accuracy),
+      'optimal_l2_reg': optimal_l2_reg,
+      'weights': onp.array(weights),
+      'biases': onp.array(biases)
+  }
