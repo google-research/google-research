@@ -8,6 +8,8 @@ bottleneck architecture are provided in `helpers.py`.
 This repo also includes custom implementations of the following environments
 from [DeepMind Melting Pot](https://github.com/deepmind/meltingpot):
 1. Collaborative Cooking
+2. Clean Up
+2. Capture the Flag
 
 Each environment is extended to support concept extraction, and miniature
 versions of the original collaborative cooking environments are also provided.
@@ -23,17 +25,31 @@ environment observations using a common prefix. Concept values parsed here are
 used to compute the concept loss term in `concept_ppo/learning.py`.
 3.`meltingpot_cooking_dense_rewards_wrapper.py`: Implements pseudo-rewards
 specific to the collaborative cooking task.
+4.`meltingpot_pixels_wrapper.py`: Implements RGB resizing and grayscaling
+(similar to Acme's Atari wrapper).
 
 ## Training
-To train Concept PPO agents in the Melting Pot collaborative cooking environment, run:
+To train Concept PPO agents in the Collaborative Cooking environment, run:
 ```
 python -m experiments/run_meltingpot.py --env_name='cooking_basic' \
 --checkpoint_dir=/tmp/cooking_basic
 ```
 
+To train Concept PPO agents in the Clean Up environment, run:
+```
+python -m experiments/run_meltingpot.py --env_name='clean_up_mod' \
+--checkpoint_dir=/tmp/clean_up_mod
+```
+
+To train Concept PPO agents in the Capture the Flag environment, run:
+```
+python -m experiments/run_meltingpot.py --env_name='capture_the_flag_mod' \
+--checkpoint_dir=/tmp/capture_the_flag_mod
+```
+
 ## Other Notes
 This project requires manual installation of DeepMind Melting Pot. Installation
-instructions can be found [here](https://github.com/deepmind/meltingpot).
+instructions can be found [here](https://github.com/deepmind/meltingpot) (and also in run.sh).
 
 ## References
 [1] N. Grupen, N. Jaques, B. Kim, S. Omidshafiei, "Concept-based Understanding of
