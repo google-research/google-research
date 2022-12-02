@@ -1,0 +1,4 @@
+pillow
+tensorflow
+tensorflow-addons
+numpy
