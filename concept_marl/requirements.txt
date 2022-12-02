@@ -7,3 +7,4 @@ rx
 chex
 dm-env
 Pillow
+opencv-python

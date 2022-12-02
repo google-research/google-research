@@ -18,19 +18,37 @@
 from typing import AbstractSet, Any, Dict, Tuple
 from ml_collections import config_dict
 
-from concept_marl.experiments.meltingpot.substrates import cooking_basics as base_config
+from concept_marl.experiments.meltingpot.substrates import capture_the_flag_mod as capture_config
+from concept_marl.experiments.meltingpot.substrates import clean_up_mod as cleaning_config
+from concept_marl.experiments.meltingpot.substrates import cooking_basics as cooking_config
 
 
 def get_config(
     substrate_name):
-  if substrate_name not in AVAILABLE_SUBSTRATES:
+  """Load config for substrate.
+
+  Args:
+    substrate_name: Name of substrate for which to load config.
+
+  Returns:
+    Substrate config and concept spec.
+
+  Raises:
+    ValueError: Incorrect substrate name.
+  """
+  if substrate_name in AVAILABLE_COOKING_SUBSTRATES:
+    config, concept_spec = cooking_config.get_config(substrate_name)
+  elif substrate_name in AVAILABLE_CLEANING_SUBSTRATES:
+    config, concept_spec = cleaning_config.get_config(substrate_name)
+  elif substrate_name in AVAILABLE_CTF_SUBSTRATES:
+    config, concept_spec = capture_config.get_config(substrate_name)
+  else:
     raise ValueError(f'Unknown substrate {substrate_name!r}.')
 
-  config, concept_spec = base_config.get_config(substrate_name)
   return config.lock(), concept_spec
 
 
-AVAILABLE_SUBSTRATES: AbstractSet[str] = frozenset({
+AVAILABLE_COOKING_SUBSTRATES: AbstractSet[str] = frozenset({
     # keep-sorted start
     'cooking_asym',
     'cooking_asym_mini',
@@ -41,5 +59,19 @@ AVAILABLE_SUBSTRATES: AbstractSet[str] = frozenset({
     'cooking_nav',
     'cooking_passable',
     'cooking_passable_mini',
+    # keep-sorted end
+})
+
+AVAILABLE_CLEANING_SUBSTRATES: AbstractSet[str] = frozenset({
+    # keep-sorted start
+    'clean_up_mod',
+    'clean_up_mod_mini',
+    # keep-sorted end
+})
+
+AVAILABLE_CTF_SUBSTRATES: AbstractSet[str] = frozenset({
+    # keep-sorted start
+    'capture_the_flag_mod',
+    'capture_the_flag_mod_mini',
     # keep-sorted end
 })

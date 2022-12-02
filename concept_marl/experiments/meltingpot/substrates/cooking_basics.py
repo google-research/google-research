@@ -1088,42 +1088,42 @@ def create_scene(num_players,
                       {
                           "name": "CONCEPT_AGENT_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_players, 2),
+                          "shape": (num_players, num_players, 2),
                           "component": "GlobalStateTracker",
                           "variable": "playerPositions",
                       },
                       {
                           "name": "CONCEPT_AGENT_ORIENTATIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_players,),
+                          "shape": (num_players, num_players,),
                           "component": "GlobalStateTracker",
                           "variable": "playerOrientations",
                       },
                       {
                           "name": "CONCEPT_TOMATO_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_tomatoes, 2),
+                          "shape": (num_players, num_tomatoes, 2),
                           "component": "GlobalStateTracker",
                           "variable": "tomatoPositions",
                       },
                       {
                           "name": "CONCEPT_DISH_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_dishes, 2),
+                          "shape": (num_players, num_dishes, 2),
                           "component": "GlobalStateTracker",
                           "variable": "dishPositions",
                       },
                       {
                           "name": "CONCEPT_COOKING_POT_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_cooking_pots, 2),
+                          "shape": (num_players, num_cooking_pots, 2),
                           "component": "GlobalStateTracker",
                           "variable": "potPositions",
                       },
                       {
                           "name": "CONCEPT_DELIVERY_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_delivery_locations, 2),
+                          "shape": (num_players, num_delivery_locations, 2),
                           "component": "GlobalStateTracker",
                           "variable": "deliveryPositions",
                       },
@@ -1137,77 +1137,77 @@ def create_scene(num_players,
                       {
                           "name": "CONCEPT_AGENT_HAS_TOMATO",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_players,),
+                          "shape": (num_players, num_players,),
                           "component": "GlobalStateTracker",
                           "variable": "playerHasTomatos",
                       },
                       {
                           "name": "CONCEPT_AGENT_HAS_DISH",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_players,),
+                          "shape": (num_players, num_players,),
                           "component": "GlobalStateTracker",
                           "variable": "playerHasDishes",
                       },
                       {
                           "name": "CONCEPT_AGENT_HAS_SOUP",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_players,),
+                          "shape": (num_players, num_players,),
                           "component": "GlobalStateTracker",
                           "variable": "playerHasSoups",
                       },
                       {
                           "name": "CONCEPT_COOKING_POT_TOMATO_COUNTS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_cooking_pots,),
+                          "shape": (num_players, num_cooking_pots,),
                           "component": "GlobalStateTracker",
                           "variable": "potTomatoCounts",
                       },
                       {
                           "name": "CONCEPT_COOKING_POT_PROGRESS",
                           "type": "tensor.DoubleTensor",
-                          "shape": (num_cooking_pots,),
+                          "shape": (num_players, num_cooking_pots,),
                           "component": "GlobalStateTracker",
                           "variable": "potCookingProgress",
                       },
                       {
                           "name": "CONCEPT_LOOSE_TOMATO_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_loose_objs, 2),
+                          "shape": (num_players, num_loose_objs, 2),
                           "component": "GlobalStateTracker",
                           "variable": "looseTomatoPositions",
                       },
                       {
                           "name": "CONCEPT_LOOSE_DISH_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_loose_objs, 2),
+                          "shape": (num_players, num_loose_objs, 2),
                           "component": "GlobalStateTracker",
                           "variable": "looseDishPositions",
                       },
                       {
                           "name": "CONCEPT_LOOSE_SOUP_POSITIONS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_loose_objs, 2),
+                          "shape": (num_players, num_loose_objs, 2),
                           "component": "GlobalStateTracker",
                           "variable": "looseSoupPositions",
                       },
                       {
                           "name": "CONCEPT_COUNTER_TOMATOES",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_counters,),
+                          "shape": (num_players, num_counters,),
                           "component": "GlobalStateTracker",
                           "variable": "counterTomatoes",
                       },
                       {
                           "name": "CONCEPT_COUNTER_DISHES",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_counters,),
+                          "shape": (num_players, num_counters,),
                           "component": "GlobalStateTracker",
                           "variable": "counterDishes",
                       },
                       {
                           "name": "CONCEPT_COUNTER_SOUPS",
                           "type": "tensor.Int32Tensor",
-                          "shape": (num_counters,),
+                          "shape": (num_players, num_counters,),
                           "component": "GlobalStateTracker",
                           "variable": "counterSoups",
                       },
@@ -1425,46 +1425,68 @@ def get_config(ascii_map):
       "WORLD.RGB":
           specs.rgb(*world_size),
       "WORLD.CONCEPT_AGENT_POSITIONS":
-          concept_specs.position_concept(config.num_players, is_agent=True),
+          concept_specs.position_concept(
+              config.num_players, config.num_players, is_agent=True),
       "WORLD.CONCEPT_AGENT_ORIENTATIONS":
           concept_specs.categorical_concept(
-              config.num_players, num_values=4, is_agent=True),
+              config.num_players,
+              config.num_players,
+              num_values=4,
+              is_agent=True),
       "WORLD.CONCEPT_TOMATO_POSITIONS":
-          concept_specs.position_concept(config.num_tomatoes, is_agent=False),
+          concept_specs.position_concept(
+              config.num_players, config.num_tomatoes, is_agent=False),
       "WORLD.CONCEPT_DISH_POSITIONS":
-          concept_specs.position_concept(config.num_dishes, is_agent=False),
+          concept_specs.position_concept(
+              config.num_players, config.num_dishes, is_agent=False),
       "WORLD.CONCEPT_COOKING_POT_POSITIONS":
           concept_specs.position_concept(
-              config.num_cooking_pots, is_agent=False),
+              config.num_players, config.num_cooking_pots, is_agent=False),
       "WORLD.CONCEPT_DELIVERY_POSITIONS":
           concept_specs.position_concept(
-              config.num_delivery_locations, is_agent=False),
+              config.num_players, config.num_delivery_locations,
+              is_agent=False),
       "WORLD.CONCEPT_NAVIGATION_POSITIONS":
           concept_specs.position_concept(
-              config.num_navigation_locations, is_agent=False),
+              config.num_players,
+              config.num_navigation_locations,
+              is_agent=False),
       "WORLD.CONCEPT_AGENT_HAS_TOMATO":
-          concept_specs.binary_concept(config.num_players, is_agent=True),
+          concept_specs.binary_concept(
+              config.num_players, config.num_players, is_agent=True),
       "WORLD.CONCEPT_AGENT_HAS_DISH":
-          concept_specs.binary_concept(config.num_players, is_agent=True),
+          concept_specs.binary_concept(
+              config.num_players, config.num_players, is_agent=True),
       "WORLD.CONCEPT_AGENT_HAS_SOUP":
-          concept_specs.binary_concept(config.num_players, is_agent=True),
+          concept_specs.binary_concept(
+              config.num_players, config.num_players, is_agent=True),
       "WORLD.CONCEPT_COOKING_POT_TOMATO_COUNTS":
           concept_specs.categorical_concept(
-              config.num_cooking_pots, num_values=4, is_agent=False),
+              config.num_players,
+              config.num_cooking_pots,
+              num_values=4,
+              is_agent=False),
       "WORLD.CONCEPT_COOKING_POT_PROGRESS":
-          concept_specs.scalar_concept(config.num_cooking_pots, is_agent=False),
+          concept_specs.scalar_concept(
+              config.num_players, config.num_cooking_pots, is_agent=False),
       "WORLD.CONCEPT_LOOSE_TOMATO_POSITIONS":
-          concept_specs.position_concept(config.num_loose_objs, is_agent=False),
+          concept_specs.position_concept(
+              config.num_players, config.num_loose_objs, is_agent=False),
       "WORLD.CONCEPT_LOOSE_DISH_POSITIONS":
-          concept_specs.position_concept(config.num_loose_objs, is_agent=False),
+          concept_specs.position_concept(
+              config.num_players, config.num_loose_objs, is_agent=False),
       "WORLD.CONCEPT_LOOSE_SOUP_POSITIONS":
-          concept_specs.position_concept(config.num_loose_objs, is_agent=False),
+          concept_specs.position_concept(
+              config.num_players, config.num_loose_objs, is_agent=False),
       "WORLD.CONCEPT_COUNTER_TOMATOES":
-          concept_specs.binary_concept(config.num_counters, is_agent=False),
+          concept_specs.binary_concept(
+              config.num_players, config.num_counters, is_agent=False),
       "WORLD.CONCEPT_COUNTER_DISHES":
-          concept_specs.binary_concept(config.num_counters, is_agent=False),
+          concept_specs.binary_concept(
+              config.num_players, config.num_counters, is_agent=False),
       "WORLD.CONCEPT_COUNTER_SOUPS":
-          concept_specs.binary_concept(config.num_counters, is_agent=False),
+          concept_specs.binary_concept(
+              config.num_players, config.num_counters, is_agent=False),
   }
   config.timestep_spec = specs.timestep(timestep_spec)
   concept_spec = create_concept_spec(timestep_spec, concept_prefix)

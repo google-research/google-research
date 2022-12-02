@@ -29,49 +29,6 @@ from meltingpot.python.utils.substrates import builder as meltingpot_builder
 
 V = TypeVar("V")
 
-UNFLATTEN_ACTION = {
-    0: {
-        "move": 0,
-        "turn": 0,
-        "interact": 0
-    },
-    1: {
-        "move": 1,
-        "turn": 0,
-        "interact": 0
-    },
-    2: {
-        "move": 2,
-        "turn": 0,
-        "interact": 0
-    },
-    3: {
-        "move": 3,
-        "turn": 0,
-        "interact": 0
-    },
-    4: {
-        "move": 4,
-        "turn": 0,
-        "interact": 0
-    },
-    5: {
-        "move": 0,
-        "turn": -1,
-        "interact": 0
-    },
-    6: {
-        "move": 0,
-        "turn": 1,
-        "interact": 0
-    },
-    7: {
-        "move": 0,
-        "turn": 0,
-        "interact": 1
-    },
-}
-
 
 class MeltingPotWrapper(base.EnvironmentWrapper):
 
@@ -103,14 +60,16 @@ class MeltingPotWrapper(base.EnvironmentWrapper):
     as part of observation space.
   """
 
-  # def __init__(self, environment: dmlab2d.Environment, action_type: str,
-  def __init__(self, environment, action_type,
+  def __init__(self, environment,
+               action_set,
+               action_type,
                local_observation_types,
                global_observation_types):
     """Constructor.
 
     Args:
       environment: Environment to wrap.
+      action_set: Default action set for this meltingpot environment.
       action_type: Type of action to use (nested or flat).
       local_observation_types: Observation types for agent's local observations.
       global_observation_types: Observation types for global observations.
@@ -120,6 +79,7 @@ class MeltingPotWrapper(base.EnvironmentWrapper):
     self.num_agents = self._num_players
     self.local_observation_types = local_observation_types
     self.global_observation_types = global_observation_types
+    self.unflattened_action = {i: z for i, z in enumerate(action_set)}
     self._action_type = action_type
 
     if self._action_type == "flat":
@@ -215,7 +175,7 @@ class MeltingPotWrapper(base.EnvironmentWrapper):
     for player_index, action in source.items():
       if self._action_type == "flat":
         # map flat actions to meltingpot Dict
-        action = UNFLATTEN_ACTION[action.item()]
+        action = self.unflattened_action[action.item()]
 
       for key, value in action.items():
         dmlab2d_actions[f"{int(player_index) + 1}.{key}"] = value
@@ -267,7 +227,6 @@ class MeltingPotWrapper(base.EnvironmentWrapper):
         observation=self._convert_obs_to_spec(source.observation))
 
   @property
-  # def environment(self) -> dmlab2d.Environment:
   def environment(self):
     """Returns the wrapped environment."""
     return self._environment
@@ -329,6 +288,7 @@ def make_and_wrap_meltingpot_environment(
   global_obs_types = [ot for ot in observation_types if "WORLD" in ot]
   environment = MeltingPotWrapper(
       environment=environment,
+      action_set=substrate_config.action_set,
       local_observation_types=local_obs_types,
       global_observation_types=global_obs_types,
       action_type=action_type)

@@ -62,38 +62,36 @@ _MAX_GRAD_NORM = flags.DEFINE_float('max_gradient_norm', 0.5,
 # concept related flags
 _CONCEPT_COST = flags.DEFINE_float('concept_cost', 0.1,
                                    'Concept cost weight for PPO.')
+# clean up flags
+_EAT_REWARD = flags.DEFINE_float('eat_reward', 0.1,
+                                 'Local reward for eating an apple.')
+_CLEAN_REWARD = flags.DEFINE_float('clean_reward', 0.005,
+                                   'Local reward for cleaning river.')
 
 
 def get_env(env_name, seed, episode_length):
   """Initializes and returns meltingpot environment."""
   env_config = dict(
       env_name=env_name,
-      observation_types=[
-          'RGB',
-          'POSITION',
-          'ORIENTATION',
-          'WORLD.CONCEPT_AGENT_POSITIONS',
-          'WORLD.CONCEPT_AGENT_ORIENTATIONS',
-          'WORLD.CONCEPT_TOMATO_POSITIONS',
-          'WORLD.CONCEPT_DISH_POSITIONS',
-          'WORLD.CONCEPT_COOKING_POT_POSITIONS',
-          'WORLD.CONCEPT_DELIVERY_POSITIONS',
-          'WORLD.CONCEPT_AGENT_HAS_TOMATO',
-          'WORLD.CONCEPT_AGENT_HAS_DISH',
-          'WORLD.CONCEPT_AGENT_HAS_SOUP',
-          'WORLD.CONCEPT_COOKING_POT_TOMATO_COUNTS',
-          'WORLD.CONCEPT_COOKING_POT_PROGRESS',
-          'WORLD.CONCEPT_LOOSE_TOMATO_POSITIONS',
-          'WORLD.CONCEPT_LOOSE_DISH_POSITIONS',
-          'WORLD.CONCEPT_LOOSE_SOUP_POSITIONS'
-      ],
       action_type='flat',
-      dense_rewards=True,
+      grayscale=False,
+      scale_dims=(40, 40),
       episode_length=episode_length,
       seed=seed)
 
   # standard melting pot wrapper
-  env = wrapper_utils.make_and_wrap_cooking_environment(**env_config)
+  if 'cooking' in env_name:
+    env_config['dense_rewards'] = True
+    env = wrapper_utils.make_and_wrap_cooking_environment(**env_config)
+  elif 'clean' in env_name:
+    env_config['dense_rewards'] = True
+    env_config['clean_reward'] = _CLEAN_REWARD.value
+    env_config['eat_reward'] = _EAT_REWARD.value
+    env = wrapper_utils.make_and_wrap_cleanup_environment(**env_config)
+  elif 'capture' in env_name:
+    env = wrapper_utils.make_and_wrap_capture_environment(**env_config)
+  else:
+    raise ValueError('Invalid environment choice!')
 
   # envlogger book-keeping
   env_config['env_name_for_get_env'] = env_name

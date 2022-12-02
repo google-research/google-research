@@ -530,217 +530,231 @@ end
 
 function GlobalStateTracker:reset()
   -- avatar positions/orientations
-  self.playerPositions = tensor.Int32Tensor(self._config.numPlayers, 2):fill(0)
-  self.playerOrientations = tensor.Int32Tensor(self._config.numPlayers):fill(0)
-  self.playerHasTomatos = tensor.Int32Tensor(self._config.numPlayers):fill(0)
-  self.playerHasDishes = tensor.Int32Tensor(self._config.numPlayers):fill(0)
-  self.playerHasSoups = tensor.Int32Tensor(self._config.numPlayers):fill(0)
+  self.playerPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numPlayers, 2):fill(0)
+  self.playerOrientations = tensor.Int32Tensor(self._config.numPlayers, self._config.numPlayers):fill(0)
+  self.playerHasTomatos = tensor.Int32Tensor(self._config.numPlayers, self._config.numPlayers):fill(0)
+  self.playerHasDishes = tensor.Int32Tensor(self._config.numPlayers, self._config.numPlayers):fill(0)
+  self.playerHasSoups = tensor.Int32Tensor(self._config.numPlayers, self._config.numPlayers):fill(0)
 
   -- tomato positions
-  self.tomatoPositions = tensor.Int32Tensor(self._config.numTomatoes, 2):fill(0)
+  self.tomatoPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numTomatoes, 2):fill(0)
 
   -- dish positions
-  self.dishPositions = tensor.Int32Tensor(self._config.numDishes, 2):fill(0)
+  self.dishPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numDishes, 2):fill(0)
 
   -- cooking pot positions
-  self.potPositions = tensor.Int32Tensor(self._config.numCookingPots, 2):fill(0)
-  self.potTomatoCounts = tensor.Int32Tensor(self._config.numCookingPots):fill(0)
-  self.potCookingProgress = tensor.DoubleTensor(self._config.numCookingPots):fill(0.0)
+  self.potPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numCookingPots, 2):fill(0)
+  self.potTomatoCounts = tensor.Int32Tensor(self._config.numPlayers, self._config.numCookingPots):fill(0)
+  self.potCookingProgress = tensor.DoubleTensor(self._config.numPlayers, self._config.numCookingPots):fill(0.0)
 
   -- delivery locations
-  self.deliveryPositions = tensor.Int32Tensor(self._config.numDeliveryLocations, 2):fill(0)
+  self.deliveryPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numDeliveryLocations, 2):fill(0)
 
   -- navigation locations
-  self.navigationPositions = tensor.Int32Tensor(self._config.numNavigationLocations, 2):fill(0)
+  self.navigationPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numNavigationLocations, 2):fill(0)
 
   -- loose objects (tomatoes, dishes, soups)
-  self.looseTomatoPositions = tensor.Int32Tensor(self._config.numLooseObjects, 2):fill(-1)
-  self.looseDishPositions = tensor.Int32Tensor(self._config.numLooseObjects, 2):fill(-1)
-  self.looseSoupPositions = tensor.Int32Tensor(self._config.numLooseObjects, 2):fill(-1)
-  self.counterTomatoes = tensor.Int32Tensor(self._config.numCounters):fill(0)
-  self.counterDishes = tensor.Int32Tensor(self._config.numCounters):fill(0)
-  self.counterSoups = tensor.Int32Tensor(self._config.numCounters):fill(0)
+  -- keeps track of up to numLooseObjects of each object type
+  -- (-1, -1) is placeholder value if no loose objects exist this time-step
+  self.looseTomatoPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numLooseObjects, 2):fill(-1)
+  self.looseDishPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numLooseObjects, 2):fill(-1)
+  self.looseSoupPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numLooseObjects, 2):fill(-1)
+  
+  -- objects on counters (total # of each object type on counters)
+  -- binary and not size limited like loose objects 
+  self.counterTomatoes = tensor.Int32Tensor(self._config.numPlayers, self._config.numCounters):fill(0)
+  self.counterDishes = tensor.Int32Tensor(self._config.numPlayers, self._config.numCounters):fill(0)
+  self.counterSoups = tensor.Int32Tensor(self._config.numPlayers, self._config.numCounters):fill(0)
 end
 
 function GlobalStateTracker:postStart()
   -- init avatar positions/orientations
-  for idx = 1, self._config.numPlayers do
-    local avatarObject = self.gameObject.simulation:getAvatarFromIndex(idx)
-    local playerPosition = avatarObject:getPosition()
-    self.playerPositions(idx):val(playerPosition)
-    local playerOrientation = avatarObject:getOrientation()
-    self.playerOrientations(idx):val(self._config.orientationMap[playerOrientation])
-  end
+  for agentIdx = 1, self._config.numPlayers do
+    -- process this agent's observations of other agents.
+    -- e.g. could extract agent's position here and use in loop below
+    -- to compute relative positions.
+    for otherIdx = 1, self._config.numPlayers do
+      local otherAvatarObj = self.gameObject.simulation:getAvatarFromIndex(otherIdx)
+      local otherPlayerPosition = otherAvatarObj:getPosition()
+      local otherPlayerOrientation = otherAvatarObj:getOrientation()
+      self.playerPositions(agentIdx, otherIdx):val(otherPlayerPosition)
+      self.playerOrientations(agentIdx, otherIdx):val(self._config.orientationMap[otherPlayerOrientation])
+    end
 
-  -- init tomato positions
-  local tomatoObjs = self.gameObject.simulation:getGameObjectsByName('tomato_dispenser')
-  for idx, tomatoObj in pairs(tomatoObjs) do
-    local tomatoPosition = tomatoObj:getPosition()
-    self.tomatoPositions(idx):val(tomatoPosition)
-  end
+    -- init tomato positions
+    local tomatoObjs = self.gameObject.simulation:getGameObjectsByName('tomato_dispenser')
+    for tomatoIdx, tomatoObj in pairs(tomatoObjs) do
+      local tomatoPosition = tomatoObj:getPosition()
+      self.tomatoPositions(agentIdx, tomatoIdx):val(tomatoPosition)
+    end
 
-  -- init dish positions
-  local dishObjs = self.gameObject.simulation:getGameObjectsByName('dish_dispenser')
-  for idx, dishObj in pairs(dishObjs) do
-    local dishPosition = dishObj:getPosition()
-    self.dishPositions(idx):val(dishPosition)
-  end
+    -- init dish positions
+    local dishObjs = self.gameObject.simulation:getGameObjectsByName('dish_dispenser')
+    for dishIdx, dishObj in pairs(dishObjs) do
+      local dishPosition = dishObj:getPosition()
+      self.dishPositions(agentIdx, dishIdx):val(dishPosition)
+    end
 
-  -- init cooking pot positions
-  local potObjs = self.gameObject.simulation:getGameObjectsByName('cooking_pot')
-  for idx, potObj in pairs(potObjs) do
-    local potPosition = potObj:getPosition()
-    self.potPositions(idx):val(potPosition)
-  end
+    -- init cooking pot positions
+    local potObjs = self.gameObject.simulation:getGameObjectsByName('cooking_pot')
+    for potIdx, potObj in pairs(potObjs) do
+      local potPosition = potObj:getPosition()
+      self.potPositions(agentIdx, potIdx):val(potPosition)
+    end
 
-  -- init delivery location positions
-  local deliveryObjs = self.gameObject.simulation:getGameObjectsByName('delivery_location')
-  for idx, deliveryObj in pairs(deliveryObjs) do
-    local deliveryPosition = deliveryObj:getPosition()
-    self.deliveryPositions(idx):val(deliveryPosition)
-  end
+    -- init delivery location positions
+    local deliveryObjs = self.gameObject.simulation:getGameObjectsByName('delivery_location')
+    for deliveryIdx, deliveryObj in pairs(deliveryObjs) do
+      local deliveryPosition = deliveryObj:getPosition()
+      self.deliveryPositions(agentIdx, deliveryIdx):val(deliveryPosition)
+    end
 
-  -- init navigation location positions
-  local navigationObjs = self.gameObject.simulation:getGameObjectsByName('navigation_location')
-  for idx, navigationObj in pairs(navigationObjs) do
-    local navigationPosition = navigationObj:getPosition()
-    self.navigationPositions(idx):val(navigationPosition)
+    -- init navigation location positions
+    local navigationObjs = self.gameObject.simulation:getGameObjectsByName('navigation_location')
+    for navIdx, navigationObj in pairs(navigationObjs) do
+      local navigationPosition = navigationObj:getPosition()
+      self.navigationPositions(agentIdx, navIdx):val(navigationPosition)
+    end
   end
-
 end
 
 function GlobalStateTracker:registerUpdaters(updaterRegistry)
   local updateStateInfo = function()
+    self.looseTomatoPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numLooseObjects, 2):fill(-1)
+    self.looseDishPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numLooseObjects, 2):fill(-1)
+    self.looseSoupPositions = tensor.Int32Tensor(self._config.numPlayers, self._config.numLooseObjects, 2):fill(-1)
+
     -- update avatar
-    for idx = 1, self._config.numPlayers do
-      local avatarObject = self.gameObject.simulation:getAvatarFromIndex(idx)
+    for agentIdx = 1, self._config.numPlayers do
+      local avatarObject = self.gameObject.simulation:getAvatarFromIndex(agentIdx)
 
       -- position/orientation
-      local playerPosition = avatarObject:getPosition()
-      self.playerPositions(idx):val(playerPosition)
-      local playerOrientation = avatarObject:getOrientation()
-      self.playerOrientations(idx):val(self._config.orientationMap[playerOrientation])
+      for otherIdx = 1, self._config.numPlayers do
+        -- position/orientation of other agents
+        local otherAvatarObj = self.gameObject.simulation:getAvatarFromIndex(otherIdx)
+        local otherPlayerPosition = otherAvatarObj:getPosition()
+        local otherPlayerOrientation = otherAvatarObj:getOrientation()
+        self.playerPositions(agentIdx, otherIdx):val(otherPlayerPosition)
+        self.playerOrientations(agentIdx, otherIdx):val(self._config.orientationMap[otherPlayerOrientation])
 
-      -- inventory
-      local comps = avatarObject:getComponent('Avatar'):getConnectedObjects()
-      local inventoryItem = nil
-      for _, comp in pairs(comps) do
-        if comp.name == 'inventory' then
-          inventoryItem = comp:getComponent('Inventory'):getHeldItem()
+        -- inventory of other agents
+        local comps = otherAvatarObj:getComponent('Avatar'):getConnectedObjects()
+        local inventoryItem = nil
+        for _, comp in pairs(comps) do
+          if comp.name == 'inventory' then
+            inventoryItem = comp:getComponent('Inventory'):getHeldItem()
+          end
         end
-      end
 
-      if inventoryItem == 'tomato' then
-        self.playerHasTomatos(idx):val(1)
-      else
-        self.playerHasTomatos(idx):val(0)
-      end
-
-      if inventoryItem == 'dish' then
-        self.playerHasDishes(idx):val(1)
-      else
-        self.playerHasDishes(idx):val(0)
-      end
-
-      if inventoryItem == 'soup' then
-        self.playerHasSoups(idx):val(1)
-      else
-        self.playerHasSoups(idx):val(0)
-      end
-    end
-
-    -- update tomato positions
-    local tomatoObjs = self.gameObject.simulation:getGameObjectsByName('tomato_dispenser')
-    for idx, tomatoObj in pairs(tomatoObjs) do
-      local tomatoPosition = tomatoObj:getPosition()
-      self.tomatoPositions(idx):val(tomatoPosition)
-    end
-
-    -- update dish positions
-    local dishObjs = self.gameObject.simulation:getGameObjectsByName('dish_dispenser')
-    for idx, dishObj in pairs(dishObjs) do
-      local dishPosition = dishObj:getPosition()
-      self.dishPositions(idx):val(dishPosition)
-    end
-
-    -- update cooking pot positions
-    local potObjs = self.gameObject.simulation:getGameObjectsByName('cooking_pot')
-    for idx, potObj in pairs(potObjs) do
-      -- position
-      local potPosition = potObj:getPosition()
-      self.potPositions(idx):val(potPosition)
-
-      -- number of tomatoes in pot
-      self.potTomatoCounts(idx):val(#potObj:getComponent('CookingPot')._containedItems)
-
-      -- cooking progress
-      local cookingTime = potObj:getComponent('CookingPot'):getCookingTime()
-      local cookingProgress = math.max(0.0, (cookingTime-1)/20)
-      self.potCookingProgress(idx):val(cookingProgress)
-    end
-
-    -- update delivery location positions
-    local deliveryObjs = self.gameObject.simulation:getGameObjectsByName('delivery_location')
-    for idx, deliveryObj in pairs(deliveryObjs) do
-      local deliveryPosition = deliveryObj:getPosition()
-      self.deliveryPositions(idx):val(deliveryPosition)
-    end
-
-    -- update navigation location positions
-    local navigationObjs = self.gameObject.simulation:getGameObjectsByName('navigation_location')
-    for idx, navigationObj in pairs(navigationObjs) do
-      local navigationPosition = navigationObj:getPosition()
-      self.navigationPositions(idx):val(navigationPosition)
-    end
-
-    -- update loose tomatoes/dishes/soups
-    local counterObjs = self.gameObject.simulation:getGameObjectsByName('counter')
-    local tomatoIdx = 1
-    local dishIdx = 1
-    local soupIdx = 1
-    self.looseTomatoPositions = tensor.Int32Tensor(self._config.numLooseObjects, 2):fill(-1)
-    self.looseDishPositions = tensor.Int32Tensor(self._config.numLooseObjects, 2):fill(-1)
-    self.looseSoupPositions = tensor.Int32Tensor(self._config.numLooseObjects, 2):fill(-1)
-    for idx, counterObj in pairs(counterObjs) do
-      local inventory = counterObj:getComponent('Container')._inventory
-      local inventoryItem = inventory:getHeldItem()
-
-      local counterPos = counterObj:getPosition()
-
-      if inventoryItem == 'tomato' then
-        self.counterTomatoes(idx):val(1)
-
-        -- add to tomato slot (if available)
-        if tomatoIdx < self._config.numLooseObjects + 1 then
-          self.looseTomatoPositions(tomatoIdx):val(counterPos)
-          tomatoIdx = tomatoIdx + 1
+        if inventoryItem == 'tomato' then
+          self.playerHasTomatos(agentIdx, otherIdx):val(1)
+        else
+          self.playerHasTomatos(agentIdx, otherIdx):val(0)
         end
-      else
-        self.counterTomatoes(idx):val(0)
+
+        if inventoryItem == 'dish' then
+          self.playerHasDishes(agentIdx, otherIdx):val(1)
+        else
+          self.playerHasDishes(agentIdx, otherIdx):val(0)
+        end
+        
+        if inventoryItem == 'soup' then
+          self.playerHasSoups(agentIdx, otherIdx):val(1)
+        else
+          self.playerHasSoups(agentIdx, otherIdx):val(0)
+        end
+
       end
 
-      if inventoryItem == 'dish' then
-        self.counterDishes(idx):val(1)
-
-        -- add to dish slot (if available)
-        if dishIdx < self._config.numLooseObjects + 1 then
-          self.looseDishPositions(dishIdx):val(counterPos)
-          dishIdx = dishIdx + 1
-        end
-      else
-        self.counterDishes(idx):val(0)
+      -- update tomato positions
+      local tomatoObjs = self.gameObject.simulation:getGameObjectsByName('tomato_dispenser')
+      for tomatoIdx, tomatoObj in pairs(tomatoObjs) do
+        local tomatoPosition = tomatoObj:getPosition()
+        self.tomatoPositions(agentIdx, tomatoIdx):val(tomatoPosition)
       end
 
-      if inventoryItem == 'soup' then
-        self.counterSoups(idx):val(1)
+      -- update dish positions
+      local dishObjs = self.gameObject.simulation:getGameObjectsByName('dish_dispenser')
+      for dishIdx, dishObj in pairs(dishObjs) do
+        local dishPosition = dishObj:getPosition()
+        self.dishPositions(agentIdx, dishIdx):val(dishPosition)
+      end
 
-        -- add to soup slot (if available)
-        if soupIdx < self._config.numLooseObjects + 1 then
-          self.looseSoupPositions(soupIdx):val(counterPos)
-          soupIdx = soupIdx + 1
+      -- update cooking pot positions
+      local potObjs = self.gameObject.simulation:getGameObjectsByName('cooking_pot')
+      for potIdx, potObj in pairs(potObjs) do
+        -- position
+        local potPosition = potObj:getPosition()
+        self.potPositions(agentIdx, potIdx):val(potPosition)
+
+        -- number of tomatoes in pot
+        self.potTomatoCounts(agentIdx, potIdx):val(#potObj:getComponent('CookingPot')._containedItems)
+
+        -- cooking progress
+        local cookingTime = potObj:getComponent('CookingPot'):getCookingTime()
+        local cookingProgress = math.max(0.0, (cookingTime-1)/20)
+        self.potCookingProgress(agentIdx, potIdx):val(cookingProgress)
+      end
+
+      -- update delivery location positions
+      local deliveryObjs = self.gameObject.simulation:getGameObjectsByName('delivery_location')
+      for deliveryIdx, deliveryObj in pairs(deliveryObjs) do
+        local deliveryPosition = deliveryObj:getPosition()
+        self.deliveryPositions(agentIdx, deliveryIdx):val(deliveryPosition)
+      end
+
+      -- update navigation location positions
+      local navigationObjs = self.gameObject.simulation:getGameObjectsByName('navigation_location')
+      for navIdx, navigationObj in pairs(navigationObjs) do
+        local navigationPosition = navigationObj:getPosition()
+        self.navigationPositions(agentIdx, navIdx):val(navigationPosition)
+      end
+
+      -- update loose tomatoes/dishes/soups
+      local counterObjs = self.gameObject.simulation:getGameObjectsByName('counter')
+      local tomatoIdx = 1
+      local dishIdx = 1
+      local soupIdx = 1
+      for counterIdx, counterObj in pairs(counterObjs) do
+        local inventory = counterObj:getComponent('Container')._inventory
+        local inventoryItem = inventory:getHeldItem()
+        local counterPos = counterObj:getPosition()
+
+        if inventoryItem == 'tomato' then
+          self.counterTomatoes(agentIdx, counterIdx):val(1)
+
+          -- add to tomato slot (if available)
+          if tomatoIdx < self._config.numLooseObjects + 1 then
+            self.looseTomatoPositions(agentIdx, tomatoIdx):val(counterPos)
+            tomatoIdx = tomatoIdx + 1
+          end
+        else
+          self.counterTomatoes(agentIdx, counterIdx):val(0)
         end
-      else
-        self.counterSoups(idx):val(0)
+
+        if inventoryItem == 'dish' then
+          self.counterDishes(agentIdx, counterIdx):val(1)
+
+          -- add to dish slot (if available)
+          if dishIdx < self._config.numLooseObjects + 1 then
+            self.looseDishPositions(agentIdx, dishIdx):val(counterPos)
+            dishIdx = dishIdx + 1
+          end
+        else
+          self.counterDishes(agentIdx, counterIdx):val(0)
+        end
+        
+        if inventoryItem == 'soup' then
+          self.counterSoups(agentIdx, counterIdx):val(1)
+
+          -- add to soup slot (if available)
+          if soupIdx < self._config.numLooseObjects + 1 then
+            self.looseSoupPositions(agentIdx, soupIdx):val(counterPos)
+            soupIdx = soupIdx + 1
+          end
+        else
+          self.counterSoups(agentIdx, counterIdx):val(0)
+        end
       end
     end
   end

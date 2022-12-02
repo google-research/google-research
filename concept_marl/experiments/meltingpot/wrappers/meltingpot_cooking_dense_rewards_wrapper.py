@@ -41,15 +41,21 @@ class MPCookingDenseRewardsWrapper(base.EnvironmentWrapper):
   are available.
   """
 
-  def __init__(self, environment, num_agents):
+  def __init__(self,
+               environment,
+               num_agents,
+               agent_idx = 0):
     """Constructor.
 
     Args:
       environment: Environment to wrap.
       num_agents: Number of agents in the environment.
+      agent_idx: agent idx to use for concept extraction (concepts are in same
+        order for all agents).
     """
     self._environment = environment
     self.num_agents = num_agents
+    self.agent_idx = agent_idx
 
     self._observation_spec = self._environment.observation_spec()
     self._action_spec = self._environment.action_spec()
@@ -68,19 +74,26 @@ class MPCookingDenseRewardsWrapper(base.EnvironmentWrapper):
     if self.previous_observation is not None:
       # 1) tomato picking
       # positive reward if tomato added to pot
-      # Here we extract agent/pot positions, has_tomato, and tomato counts
-      # from Agent 0's observation (concepts are in same order for all agents).
-      agent_positions = source_observation['0']['WORLD.CONCEPT_AGENT_POSITIONS']
-      pot_positions = source_observation['0'][
-          'WORLD.CONCEPT_COOKING_POT_POSITIONS']
-      prev_has_tomatos = self.previous_observation['0'][
-          'WORLD.CONCEPT_AGENT_HAS_TOMATO']
-      current_has_tomatos = source_observation['0'][
-          'WORLD.CONCEPT_AGENT_HAS_TOMATO']
-      prev_tomato_counts = self.previous_observation['0'][
-          'WORLD.CONCEPT_COOKING_POT_TOMATO_COUNTS']
-      current_tomato_counts = source_observation['0'][
-          'WORLD.CONCEPT_COOKING_POT_TOMATO_COUNTS']
+      # We extract agent/pot positions, has_tomato, and tomato counts from
+      # agent_idx's observation (concepts are in same order for all agents).
+
+      # current agent/pot positions
+      agent_positions = self._extract_concept_from_observation(
+          source_observation, 'WORLD.CONCEPT_AGENT_POSITIONS')
+      pot_positions = self._extract_concept_from_observation(
+          source_observation, 'WORLD.CONCEPT_COOKING_POT_POSITIONS')
+
+      # has tomatos concepts (previous and current observations)
+      prev_has_tomatos = self._extract_concept_from_observation(
+          self.previous_observation, 'WORLD.CONCEPT_AGENT_HAS_TOMATO')
+      current_has_tomatos = self._extract_concept_from_observation(
+          source_observation, 'WORLD.CONCEPT_AGENT_HAS_TOMATO')
+
+      # tomato count concepts (previous and current observations)
+      prev_tomato_counts = self._extract_concept_from_observation(
+          self.previous_observation, 'WORLD.CONCEPT_COOKING_POT_TOMATO_COUNTS')
+      current_tomato_counts = self._extract_concept_from_observation(
+          source_observation, 'WORLD.CONCEPT_COOKING_POT_TOMATO_COUNTS')
 
       # make sure agent is next to the pot that increased in tomato count
       distances = np.sum(
@@ -98,13 +111,14 @@ class MPCookingDenseRewardsWrapper(base.EnvironmentWrapper):
       # positive reward if dish picked up while soup is cooking
       # we again extract from agent 0's concepts (concepts are in
       # same order for all agents)
-      prev_has_dish = self.previous_observation['0'][
-          'WORLD.CONCEPT_AGENT_HAS_DISH']
-      current_has_dish = source_observation['0']['WORLD.CONCEPT_AGENT_HAS_DISH']
-      prev_cooking_progress = self.previous_observation['0'][
-          'WORLD.CONCEPT_COOKING_POT_PROGRESS']
-      current_cooking_progress = source_observation['0'][
-          'WORLD.CONCEPT_COOKING_POT_PROGRESS']
+      prev_has_dish = self._extract_concept_from_observation(
+          self.previous_observation, 'WORLD.CONCEPT_AGENT_HAS_DISH')
+      current_has_dish = self._extract_concept_from_observation(
+          source_observation, 'WORLD.CONCEPT_AGENT_HAS_DISH')
+      prev_cooking_progress = self._extract_concept_from_observation(
+          self.previous_observation, 'WORLD.CONCEPT_COOKING_POT_PROGRESS')
+      current_cooking_progress = self._extract_concept_from_observation(
+          source_observation, 'WORLD.CONCEPT_COOKING_POT_PROGRESS')
 
       # check if new dish is available (i.e. pot recently started cooking)
       # pot cooks for 20 time-steps, so current_pot_is_cooking will be true
@@ -148,10 +162,10 @@ class MPCookingDenseRewardsWrapper(base.EnvironmentWrapper):
       # we again extract from agent 0's concepts (concepts are in
       # same order for all agents)
       if self.num_soups_available > 0:
-        prev_has_soup = self.previous_observation['0'][
-            'WORLD.CONCEPT_AGENT_HAS_SOUP']
-        current_has_soup = source_observation['0'][
-            'WORLD.CONCEPT_AGENT_HAS_SOUP']
+        prev_has_soup = self._extract_concept_from_observation(
+            self.previous_observation, 'WORLD.CONCEPT_AGENT_HAS_SOUP')
+        current_has_soup = self._extract_concept_from_observation(
+            source_observation, 'WORLD.CONCEPT_AGENT_HAS_SOUP')
         soup_pickup_reward = dense_reward * np.asarray([
             current and not prev
             for current, prev in zip(current_has_soup, prev_has_soup)
@@ -179,6 +193,9 @@ class MPCookingDenseRewardsWrapper(base.EnvironmentWrapper):
         reward=self._densify_rewards(source.observation, source.reward),
         discount=source.discount,
         observation=source.observation)
+
+  def _extract_concept_from_observation(self, observation, concept_key):
+    return observation[str(self.agent_idx)][concept_key][self.agent_idx]
 
   @property
   def environment(self):

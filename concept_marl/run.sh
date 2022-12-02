@@ -64,9 +64,26 @@ install_meltingpot
 install_concept_marl
 
 # hit it!
+# cooking challenge
 python3 -m concept_marl.experiments.run_meltingpot \
---env_name='cooking_basic' \
+--env_name='cooking_basic_mini' \
 --episode_length=100 \
 --num_steps=5 \
 --eval_every=5 \
---batch_size=16 \
+--batch_size=16
+
+# clean up
+python3 -m concept_marl.experiments.run_meltingpot \
+--env_name='clean_up_mod_mini' \
+--episode_length=100 \
+--num_steps=5 \
+--eval_every=5 \
+--batch_size=16
+
+# CTF
+python3 -m concept_marl.experiments.run_meltingpot \
+--env_name='capture_the_flag_mod_mini' \
+--episode_length=100 \
+--num_steps=5 \
+--eval_every=5 \
+--batch_size=16

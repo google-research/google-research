@@ -139,7 +139,8 @@ class CategoricalConceptArray(dm_env.specs.BoundedArray):
     return type(self)(**all_kwargs)
 
 
-def binary_concept(num_objects,
+def binary_concept(num_agents,
+                   num_objects,
                    is_agent,
                    name = None):
   """Returns the spec for a binary (i.e.
@@ -147,6 +148,7 @@ def binary_concept(num_objects,
   np.int32 tensor with 0/1 values).
 
   Args:
+    num_agents: Number of agents to which these objects pertain.
     num_objects: number of objects this concept holds (determines the shape of
       the tensor).
     is_agent: Whether or not this concept pertains to an agent (vs. env object)
@@ -154,14 +156,15 @@ def binary_concept(num_objects,
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
   return ConceptArray(
-      shape=(num_objects,),
+      shape=(num_agents, num_objects,),
       dtype=np.int32,
       concept_type=ConceptType.BINARY,
       object_type=obj_type,
       name=name)
 
 
-def scalar_concept(num_objects,
+def scalar_concept(num_agents,
+                   num_objects,
                    is_agent,
                    name = None):
   """Returns the spec for a scalar (i.e.
@@ -169,6 +172,7 @@ def scalar_concept(num_objects,
   np.float32 tensor).
 
   Args:
+    num_agents: Number of agents to which these objects pertain.
     num_objects: number of objects this concept holds (determines the shape of
       the tensor).
     is_agent: Whether or not this concept pertains to an agent (vs. env object)
@@ -176,20 +180,22 @@ def scalar_concept(num_objects,
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
   return ConceptArray(
-      shape=(num_objects,),
+      shape=(num_agents, num_objects,),
       dtype=np.float32,
       concept_type=ConceptType.SCALAR,
       object_type=obj_type,
       name=name)
 
 
-def categorical_concept(num_objects,
+def categorical_concept(num_agents,
+                        num_objects,
                         num_values,
                         is_agent,
                         name = None):
   """Returns the spec for categorical concepts.
 
   Args:
+    num_agents: Number of agents to which these objects pertain.
     num_objects: number of objects this concept holds (determines the shape of
       the tensor).
     num_values: number of objects this concept holds (determines the shape of
@@ -199,14 +205,15 @@ def categorical_concept(num_objects,
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
   return CategoricalConceptArray(
-      shape=(num_objects, 2),
+      shape=(num_agents, num_objects,),
       num_categories=num_values,
       object_type=obj_type,
       dtype=np.int32,
       name=name)
 
 
-def position_concept(num_objects,
+def position_concept(num_agents,
+                     num_objects,
                      is_agent,
                      name = None):
   """Returns the spec for a position (i.e.
@@ -214,6 +221,7 @@ def position_concept(num_objects,
   np.int32 tensor with 2 coordinates).
 
   Args:
+    num_agents: Number of agents to which these objects pertain.
     num_objects: number of object positions this concept holds (determines the
       shape of the tensor).
     is_agent: Whether or not this concept pertains to an agent (vs. env object)
@@ -221,7 +229,7 @@ def position_concept(num_objects,
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
   return ConceptArray(
-      shape=(num_objects, 2),
+      shape=(num_agents, num_objects, 2),
       dtype=np.int32,
       concept_type=ConceptType.POSITION,
       object_type=obj_type,

@@ -181,9 +181,9 @@ class MAConceptExtractionWrapper(base.EnvironmentWrapper):
         base_name = '_'.join(concept_key.split('_')[1:])
 
         # extract concept shape
-        shape = concept.shape
-        num_objs = concept.shape[0]
-        c_shape = np.prod(shape)
+        concept_shape = concept.shape[1:]
+        num_objs = concept_shape[0]
+        c_shape = np.prod(concept_shape)
 
         # parse concept name and assign a concept ID
         # int IDs are used to avoid passing strings through reverb
@@ -342,6 +342,9 @@ class MAConceptExtractionWrapper(base.EnvironmentWrapper):
           scalar_intervention_masks, cat_intervention_masks = list(), list()
           for concept_key, concept_value in all_concepts.items():
             concept_obj = self._concept_map[agent_key][concept_key]
+
+            # get concept value for current agent
+            concept_value = concept_value[int(agent_key)]
 
             if concept_obj.concept_type == ConceptType.CATEGORICAL:
               # categorical concepts have shape (num_categories,)
