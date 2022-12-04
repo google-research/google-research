@@ -1066,7 +1066,13 @@ def make_csd_dists():
               _COVALENT_RADIUS[atom_a] + _COVALENT_RADIUS[atom_b] +
               _COVALENT_RADII_TOLERANCE)
         dists.add(atom_a, atom_b, bond, FixedWindow(mn, mx, None))
-        max_dist = max(max_dist, mx)
+        # Weird special case! The CSD dist doesn't have a O=O
+        # But we want the unbonded distance to start from the single bond max
+        # So we just exclude that one case.
+        if (not (atom_a == dataset_pb2.BondTopology.ATOM_O and
+                 atom_b == dataset_pb2.BondTopology.ATOM_O and
+                 bond == dataset_pb2.BondTopology.BOND_DOUBLE)):
+          max_dist = max(max_dist, mx)
 
     assert np.isfinite(max_dist)
     # We are creating unbonded distances that don't overlap at all with the
