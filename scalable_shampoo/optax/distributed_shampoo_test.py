@@ -162,12 +162,44 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
                                                     jnp.array([[600., 2.],
                                                                [600., 2.]])))
     self.rng = np.random.default_rng(1234)
+    shape = ([2, 5], [6, 3])
+    dt = self.init_params[0].dtype
+
+    def make_shape(bigger_first_entry):
+      x = tuple(self.rng.standard_normal(size=s) for s in shape)
+      if bigger_first_entry:
+        for xx in x:
+          xx[Ellipsis, 0] *= 100
+      return tuple(jnp.array(xx).astype(dt) for xx in x)
+
+    self.init_params_larger = make_shape(False)
+    self.per_step_updates_larger = make_shape(True)
 
   @chex.all_variants(with_pmap=False)
   @parameterized.named_parameters(
       {
           'testcase_name': 'default',
           'best_effort_memory_usage_reduction': True,
+          'expected_value': -0.57,
+      },
+      {
+          'testcase_name': 'default_nomerge',
+          'best_effort_memory_usage_reduction': True,
+          'merge_small_dims_block_size': 1,
+          'expected_value': -0.57,
+      },
+      {
+          'testcase_name': 'default_larger',
+          'best_effort_memory_usage_reduction': True,
+          'slightly_larger': True,
+          'expected_value': -0.17019942,
+      },
+      {
+          'testcase_name': 'default_larger_nomerge',
+          'best_effort_memory_usage_reduction': True,
+          'slightly_larger': True,
+          'merge_small_dims_block_size': 1,
+          'expected_value': -0.17019942,
       },
       {
           'testcase_name': 'materialize_statistics',
@@ -199,9 +231,12 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
       self,
       best_effort_memory_usage_reduction=False,
       symmetric_block_size=None,
+      merge_small_dims_block_size=4096,
       generate_training_metrics=True,
+      slightly_larger=False,
+      expected_value=None,
   ):
-    params = self.init_params
+    params = self.init_params_larger if slightly_larger else self.init_params
 
     optim = distributed_shampoo.distributed_shampoo(
         0.1,
@@ -209,15 +244,19 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         batch_axis_name='batch',
         preconditioning_compute_steps=2,
         best_effort_memory_usage_reduction=best_effort_memory_usage_reduction,
+        merge_small_dims_block_size=merge_small_dims_block_size,
         generate_training_metrics=generate_training_metrics,
     )
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
 
+    if slightly_larger:
+      updates = self.per_step_updates_larger
+    else:
+      updates = self.per_step_updates
+
     def _update(unused_batch):
-      return transform_fn(
-          self.per_step_updates_custom_preconditioner
-          if custom_preconditioner else self.per_step_updates, state, params)
+      return transform_fn(updates, state, params)
 
     state = init_fn(params)
     chex.assert_tree_all_finite(state)
@@ -225,6 +264,15 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
 
     updates, state = pmap_fn(jnp.array([1.0]))
     chex.assert_tree_all_finite((params, updates, state))
+    if expected_value is not None:
+      last_entry = updates[1][-1, -1, -1]
+      self.assertLess(
+          abs(last_entry - expected_value),
+          1e-4,
+          msg=f'{last_entry=}, {expected_value=}')
+    for _ in range(5):
+      updates, state = pmap_fn(jnp.array([1.0]))
+      chex.assert_tree_all_finite((params, updates, state))
 
   @chex.all_variants(with_pmap=False)
   @parameterized.named_parameters([
@@ -389,8 +437,6 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
 
       self.assertLessEqual(
           entry_err['precond'], entry_err['default'] * 2, msg=err_msg)
-
-
 
 
 if __name__ == '__main__':
