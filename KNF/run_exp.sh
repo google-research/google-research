@@ -13,8 +13,8 @@
 # limitations under the License.
 
 #!/bin/bash
-# M4-Weekly
-CUDA_VISIBLE_DEVICES=0 python3 run_koopman.py --seed=84 --data_freq="Weekly" --dataset="M4" --data_dir="data/M4/" --train_output_length=10 --test_output_length=13 --input_dim=5 --input_length=45 --hidden_dim=256 --num_layers=5 --latent_dim=64 --learning_rate=0.005 --batch_size=128 --jumps=3 & 
+# M4-Weekly. To reproduce results in the paper, ensemble five KNF models with best hyperparameters trained with random seeds, e.g. 12, 20, 151, 155, 1312.
+CUDA_VISIBLE_DEVICES=0 python3 run_koopman.py --seed=84 --data_freq="Weekly" --dataset="M4" --data_dir="data/M4/" --train_output_length=10 --test_output_length=13 --input_dim=5 --input_length=45 --hidden_dim=256 --num_layers=5 --latent_dim=64 --learning_rate=0.005 --batch_size=128 --jumps=3 &
 # Cryptos
 CUDA_VISIBLE_DEVICES=0 python3 run_koopman.py --seed=3 --dataset="Cryptos" --data_dir="data/Cryptos/" --num_feats=8 --train_output_length=14 --test_output_length=15 --input_dim=7 --input_length=63 --hidden_dim=256 --num_layers=5 --latent_dim=32 --transformer_num_layers=3 --transformer_dim=256 --control_num_layers=3 --control_hidden_dim=128 --learning_rate=0.005 --batch_size=512 --jumps=100 --num_sins=9 --num_steps=7 &
 # NBA Player Trajectory
