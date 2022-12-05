@@ -96,10 +96,10 @@ def interpolate_zeros(values):
   """For each zero value in `values` replace with an interpolated value.
 
   Args:
-   values: an array that may contain zeros.
+    values: an array that may contain zeros.
 
   Returns:
-   An array that contains no zeros.
+    An array that contains no zeros.
   """
   xvals = np.nonzero(values)[0]
   yvals = values[xvals]
@@ -359,6 +359,9 @@ class Empirical(LengthDistribution):
 
     Returns:
       Empirical
+
+    Raises:
+      ValueError: on bad input
     """
     bucket_size = np.float_power(10, -sig_digits)
     input_lengths = df_input['length_str'].astype(np.double)

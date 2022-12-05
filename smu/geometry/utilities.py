@@ -115,6 +115,7 @@ def number_bonds(bt):
   """For each atom in `bt` return the number of bonds.
 
   single bonds count 1, double 2, triple 3.
+
   Args:
     bt: BondTopology
 
@@ -255,7 +256,7 @@ def is_single_fragment(bond_topology):
     attached.append(np.ravel(np.argwhere(connection_matrix[i,])))
 
 
-# neighbours = np.argwhere(connection_matrix > 0)
+  # neighbours = np.argwhere(connection_matrix > 0)
 
   visited = np.zeros(natoms, dtype=np.int32)
   # Mark anything with a single connection as visited.

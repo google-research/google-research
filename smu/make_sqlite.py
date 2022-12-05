@@ -56,6 +56,7 @@ flags.DEFINE_boolean('mutate', False,
 FLAGS = flags.FLAGS
 
 
+# see tools/find_oo_bonds.py for the source of this
 _REDETECT_TOPOLOGY_LIST = [
   9906006, 10909013, 15809002, 15833001, 15833005, 16145004, 16256005,
   16313011, 16390001, 20457007, 20457008, 20488013, 20687001, 20819015,
@@ -141,14 +142,14 @@ _REDETECT_TOPOLOGY_LIST = [
 def mutate_conformer(encoded_molecule, bond_lengths, smiles_id_dict):
   """Make some small modifications to molecule.
 
-  We made some last second (month?) changes to the records.
+  We made some last second (months?) changes to the records.
   Rather then rerunning the whole pipeline, we just hacked these
   changes into this step that creates the final database.
-  Is that a pretty solution? No, but it's functional.
+  Is that a pretty solution? No, but it works.
   """
   molecule = dataset_pb2.Molecule.FromString(encoded_molecule)
 
-  # We change the fate categories, so we just recompute them.
+  # We changed the fate categories, so we just recompute them.
   if molecule.prop.HasField('calc'):
     molecule.prop.calc.fate = smu_utils_lib.determine_fate(molecule)
 
@@ -163,7 +164,7 @@ def mutate_conformer(encoded_molecule, bond_lengths, smiles_id_dict):
     bt.ClearField('topology_score')
     bt.ClearField('geometry_score')
 
-  # The duplciates_found field is in an arbitrary order, so we sort it
+  # The duplicates_found field is in an arbitrary order, so we sort it
   if len(molecule.duplicate_found) > 1:
     new_dups = sorted(molecule.duplicate_found)
     del molecule.duplicate_found[:]
@@ -172,8 +173,8 @@ def mutate_conformer(encoded_molecule, bond_lengths, smiles_id_dict):
   # We didn't do topology detection on a handful of topologies and left
   # The SOURCE_ITC and SOURCE_STARTING bits only set where it should really
   # be all the bits. So we just fix it here.
-  # These are the mids for C N O F FF
-  if molecule.mol_id in [899649001, 899650001, 899651001, 899652001, 1001]:
+  # These are the mids for C N O F FF O=O
+  if molecule.mol_id in [899649001, 899650001, 899651001, 899652001, 1001, 4001]:
     assert(len(molecule.bond_topo) == 1)
     molecule.bond_topo[0].info = (
       dataset_pb2.BondTopology.SOURCE_STARTING |

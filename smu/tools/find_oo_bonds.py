@@ -47,7 +47,7 @@ def main(argv):
 
   count_processed = 0
   count_single_o = 0
-  count_multuple_o = 0
+  count_multiple_o = 0
   count_right_len = 0
   count_matching = 0
 
@@ -80,7 +80,7 @@ def main(argv):
       count_single_o += 1
       continue
 
-    count_multuple_o += 1
+    count_multiple_o += 1
 
     if (mol.prop.calc.status < 0 or
         mol.prop.calc.status >= 512 or
@@ -110,7 +110,7 @@ def main(argv):
 
   logging.info(f'Read {count_processed}, '
                f'found {count_single_o} single, '
-               f'{count_multuple_o} multiple, '
+               f'{count_multiple_o} multiple, '
                f'{count_right_len} matching length, '
                f'{count_matching} with valid topo')
 

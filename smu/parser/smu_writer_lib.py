@@ -1291,9 +1291,9 @@ class CleanTextWriter:
                               ]))
     # Hello huge hack! smiles_obabel is only filled in for the complete database and
     # if it differs from smiles_rdkit. But we always want to show this field if we have
-    # the compelte record. But whether this is the complete or standard record is not
-    # written explicitly! SO instead we check for the presence of the error field
-    # which shoudl always be present in compelte and never for standard.
+    # the complete record. But whether this is the complete or standard record is not
+    # written explicitly! So instead we check for the presence of the error field
+    # which should always be present in complete and never for standard.
     if molecule.prop.HasField('calc'):
       if molecule.prop.HasField('smiles_openbabel'):
         smiles = molecule.prop.smiles_openbabel
