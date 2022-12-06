@@ -82,9 +82,9 @@ class InversePthRootDiagnostics:
   p: chex.Array = _default_zero_field()
 
   @classmethod
-  def create(cls,
-             pth_inverse_root, matrix,
-             p):
+  def create(cls: type[InversePthRootDiagnosticsSubtype],
+             pth_inverse_root: jnp.ndarray, matrix: jnp.ndarray,
+             p: Union[jnp.ndarray, int]) -> InversePthRootDiagnosticsSubtype:
     """Generates a diagnostics struct from (-1/p) root result."""
     mat_m = jnp.matmul(
         mat_power(pth_inverse_root, p),
@@ -126,9 +126,9 @@ class LOBPCGDiagnostics:
   num_topk_eigenvectors: chex.Array = _default_zero_field()
 
   @classmethod
-  def create(cls, matrix,
-             eigvals, eigvecs,
-             lobpcg_iters):
+  def create(cls: type[LOBPCGDiagnosticsSubtype], matrix: jnp.ndarray,
+             eigvals: jnp.ndarray, eigvecs: jnp.ndarray,
+             lobpcg_iters: jnp.ndarray) -> LOBPCGDiagnosticsSubtype:
     """Generates LOBPCG diagnostics from the result of the routine."""
     num_topk = len(eigvals)
     num_off_diag = num_topk * (num_topk - 1)
@@ -186,7 +186,7 @@ class TrainingMetrics:
 class ParameterStats(NamedTuple):
   """State associated to each parameter of the model being trained."""
   diagonal_statistics: QuantizedValue  # Accumulator for diagonal preconditioner
-  statistics: List[Any]  # Statistics (QuantizedValue, chex.Array)
+  statistics: Optional[List[Any]]  # Statistics (QuantizedValue, chex.Array)
   preconditioners: List[Any]  # Preconditioners (QuantizedValue, chex.Array)
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
@@ -219,8 +219,8 @@ class LocalShardedParameterStats:
 
 
 def init_training_metrics(
-    num_statistics, generate_training_metrics
-):
+    num_statistics: int, generate_training_metrics: bool
+) -> Union[TrainingMetrics, optax.MaskedNode]:
   if not generate_training_metrics:
     return optax.MaskedNode()
   return jax.tree_map(
@@ -228,15 +228,15 @@ def init_training_metrics(
 
 
 def init_training_metrics_shapes(
-    num_statistics, generate_training_metrics
-):
+    num_statistics: int, generate_training_metrics: bool
+) -> Union[TrainingMetrics, optax.MaskedNode]:
   seed = init_training_metrics(num_statistics, generate_training_metrics)
   return jax.tree_map(lambda arr: [list(arr.shape), arr.dtype], seed)
 
 
 def init_training_metrics_pspec(
-    generate_training_metrics
-):
+    generate_training_metrics: bool
+) -> Union[TrainingMetrics, optax.MaskedNode]:
   if not generate_training_metrics:
     return optax.MaskedNode()
   return jax.tree_map(lambda _: pjit.PartitionSpec(), TrainingMetrics())
@@ -277,12 +277,12 @@ class PreconditionerType(enum.IntEnum):
 
 
 def power_iteration(
-    matrix,
-    num_iters = 100,
-    error_tolerance = 1e-6,
-    precision = lax.Precision.HIGHEST,
-    padding_start = None,
-):
+    matrix: jnp.ndarray,
+    num_iters: int = 100,
+    error_tolerance: float = 1e-6,
+    precision: lax.Precision = lax.Precision.HIGHEST,
+    padding_start: Union[int, jnp.ndarray, None] = None,
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
   r"""Power iteration algorithm.
 
   The power iteration algorithm takes a symmetric PSD matrix `A`, and produces
@@ -337,10 +337,10 @@ def power_iteration(
 
 
 def mat_power(
-    mat_m,
-    p,
-    precision = lax.Precision.HIGHEST,
-):
+    mat_m: jnp.ndarray,
+    p: Union[int, jnp.ndarray],
+    precision: lax.Precision = lax.Precision.HIGHEST,
+) -> jnp.ndarray:
   """A simple matrix power method. M^p where p can be TracedValue."""
   power = jnp.eye(mat_m.shape[0], dtype=_MAT_INV_PTH_ROOT_DTYPE)
 
@@ -362,8 +362,8 @@ def mat_power(
   return result
 
 
-def _pth_root_difference(w, alpha, beta,
-                         p):
+def _pth_root_difference(w: jnp.ndarray, alpha: jnp.ndarray, beta: jnp.ndarray,
+                         p: Union[int, jnp.ndarray]) -> jnp.ndarray:
   """Computes (w+alpha)^(-1/p)-(w+beta)^(-1/p)."""
 
   a = w + alpha
@@ -384,17 +384,17 @@ def _pth_root_difference(w, alpha, beta,
 
 
 def matrix_inverse_pth_root(
-    matrix,
-    p,
-    num_iters = 100,
-    ridge_epsilon = 1e-6,
-    error_tolerance = 1e-6,
-    precision = lax.Precision.HIGHEST,
-    relative_matrix_epsilon = True,
-    lobpcg_topk_precondition = 0,
-    lobpcg_max_iter = 0,
-    padding_start = None,
-):
+    matrix: jnp.ndarray,
+    p: Union[int, jnp.ndarray],
+    num_iters: int = 100,
+    ridge_epsilon: float = 1e-6,
+    error_tolerance: float = 1e-6,
+    precision: lax.Precision = lax.Precision.HIGHEST,
+    relative_matrix_epsilon: bool = True,
+    lobpcg_topk_precondition: int = 0,
+    lobpcg_max_iter: int = 0,
+    padding_start: Union[int, jnp.ndarray, None] = None,
+) -> Tuple[jnp.ndarray, TrainingMetrics]:
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
   This function uses the Coupled newton iterations algorithm for
@@ -650,7 +650,7 @@ def merge_small_dims(shape_to_merge, max_dim):
   return resulting_shape
 
 
-def pad_square_matrix(mat, max_size):
+def pad_square_matrix(mat: jnp.ndarray, max_size: int) -> jnp.ndarray:
   """Pad a square matrix up to max_size.
 
   Args:
@@ -680,11 +680,11 @@ def pad_square_matrix(mat, max_size):
 
 
 def make_sliced_padding(
-    symmetric_block_size,
-    num_blocks,
-    starting_block,
-    dtype,
-):
+    symmetric_block_size: int,
+    num_blocks: int,
+    starting_block: int,
+    dtype: ...,
+) -> jnp.ndarray:
   """Returns padding for symmetric block matrix.
 
   Specifically, the padding is given concatenated rectangular matrices
@@ -725,10 +725,10 @@ def make_sliced_padding(
 
 
 def pad_block_symmetric_matrix(
-    mat,
-    symmetric_block_size,
-    max_num_blocks,
-):
+    mat: jnp.ndarray,
+    symmetric_block_size: int,
+    max_num_blocks: int,
+) -> jnp.ndarray:
   """Returns the padded blocked symmetric matrix.
 
   The size of the padded matrix will be:
@@ -779,7 +779,7 @@ def pad_block_symmetric_matrix(
   return jnp.concatenate([mat, padding_blocks], axis=-1)
 
 
-def pad_vector(vec, max_size):
+def pad_vector(vec: jnp.ndarray, max_size: int) -> jnp.ndarray:
   """Pad a vector to a max_size.
 
   Args:
@@ -867,12 +867,12 @@ class BlockPartitioner:
 
 
 def gram_weighted_update(
-    old_stats,
-    g,
-    axis,
-    w1,
-    w2,
-    precision = None):
+    old_stats: chex.Array,
+    g: chex.Array,
+    axis: int,
+    w1: float,
+    w2: float,
+    precision: Optional[lax.Precision] = None) -> chex.Array:
   """Updated statistics via weighted average with new Gram matrix.
 
     Returns w₁ R + w₂ Gᵀ G where R is `old_stats` and G is the matrix whose
@@ -904,12 +904,14 @@ def gram_weighted_update(
 class Preconditioner:
   """Compute statistics/shape from gradients for preconditioning."""
 
-  def __init__(self,
-               param,
-               block_size,
-               merge_small_dims_block_size,
-               best_effort_shape_interpretation,
-               preconditioner_type=PreconditionerType.ALL):
+  def __init__(
+      self,
+      param,
+      block_size,
+      merge_small_dims_block_size,
+      best_effort_shape_interpretation,
+      preconditioner_type=PreconditionerType.ALL,
+  ):
     """Initializes the preconditioner.
 
     Args:
@@ -930,14 +932,14 @@ class Preconditioner:
 
   def updated_statistics_from_grad(
       self,
-      stats,
-      grad,
-      w1,
-      w2,
-      to_float = None,
-      from_float = None,
-      precision = None,
-  ):
+      stats: List[chex.Array],
+      grad: chex.Array,
+      w1: float,
+      w2: float,
+      to_float: Optional[Callable[[chex.Array], chex.Array]] = None,
+      from_float: Optional[Callable[[chex.Array], chex.Array]] = None,
+      precision: Optional[lax.Precision] = None,
+  ) -> List[chex.Array]:
     """Update statistics from gradients.
 
     Args:
@@ -980,6 +982,10 @@ class Preconditioner:
     else:
       return [True] * (rank - 1) + [False]
 
+  def _preconditioner_shape(self, dim):
+    """Returns possibly rank-compressed preconditioner shape."""
+    return [dim, dim]
+
   def shapes_for_preconditioners(self):
     """Returns shape from statistics."""
     split_sizes = self._partitioner.split_sizes()
@@ -988,9 +994,9 @@ class Preconditioner:
     preconditioner_shapes = []
     for t in itertools.product(*split_sizes):
       if self._preconditioner_type == PreconditionerType.ALL or rank <= 1:
-        preconditioner_shapes.extend([[d, d] for d in t])
+        preconditioner_shapes.extend(map(self._preconditioner_shape, t))
       else:
-        preconditioner_shapes.extend([[d, d] for d in t[:-1]])
+        preconditioner_shapes.extend(map(self._preconditioner_shape, t[:-1]))
     return preconditioner_shapes
 
   def exponent_for_preconditioner(self):
@@ -1009,7 +1015,6 @@ class Preconditioner:
     Returns:
       A preconditioned gradient.
     """
-
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
     preconditioned_partitioned_grads = []
@@ -1019,23 +1024,33 @@ class Preconditioner:
       preconditioners_for_grad = preconditioners[i *
                                                  num_preconditioners:(i + 1) *
                                                  num_preconditioners]
-      precond_g = g
-      rank = len(g.shape)
-      for j, precondition in enumerate(should_preconditioned_dims):
-        if precondition:
-          precond_g = jnp.tensordot(
-              precond_g, preconditioners_for_grad[j], axes=[[0], [0]])
-        else:
-          precond_g = jnp.transpose(precond_g, axes=(*range(1, rank), 0))
+      precond_g = self._precondition_block(g, should_preconditioned_dims,
+                                           preconditioners_for_grad)
       preconditioned_partitioned_grads.append(precond_g)
     merged_grad = self._partitioner.merge_partitions(
         preconditioned_partitioned_grads)
     return jnp.reshape(merged_grad, self._original_shape)
 
+  def _precondition_block(self, g, should_precondition_dim, preconditioners):
+    """Perform a preconditioning op on a single gradient block."""
+    for j, should_precondition in enumerate(should_precondition_dim):
+      # Loop invariant: the dimension to be preconditioned is first; we keep
+      # all axes in the same cyclic order they were originally.
+      # Case: skip preconditioning this dimension.
+      rank = len(g.shape)
+      roll = tuple(range(1, rank)) + (0,)
+      if not should_precondition:
+        g = jnp.transpose(g, axes=roll)
+        continue
+      # Case: full Shampoo matrix precondition this dimension
+      g = jnp.tensordot(g, preconditioners[j], axes=[[0], [0]])
+    return g
 
-def _convert_to_parameter_stats(global_stats,
-                                local_stat,
-                                convert_statistics=True):
+
+def _convert_to_parameter_stats(
+    global_stats,
+    local_stat,
+    convert_statistics=True):
   """Creates parameter stats from sharded stats."""
   index_start = int(local_stat.index_start)
   index_end = int(len(local_stat.sizes)) + index_start
@@ -1045,7 +1060,8 @@ def _convert_to_parameter_stats(global_stats,
   new_preconditioners = []
   for i, size in enumerate(local_stat.sizes):
     new_statistics.append(statistics[i][:size, :size])
-    new_preconditioners.append(preconditioners[i][:size, :size])
+    pd = size
+    new_preconditioners.append(preconditioners[i][:size, :pd])
   if not convert_statistics:
     new_statistics = None
   return ParameterStats(local_stat.diagonal_statistics, new_statistics,
@@ -1137,11 +1153,11 @@ def distributed_shampoo(
     skip_preconditioning_dim_size_gt=4096,
     clip_by_scaled_gradient_norm=None,
     precision=lax.Precision.HIGHEST,
-    tensordot_precision = None,
+    tensordot_precision: Optional[lax.Precision] = None,
     relative_matrix_epsilon=True,
     merge_small_dims_block_size=4096,
-    lobpcg_topk_precondition = 0,
-    lobpcg_max_iter = 0,
+    lobpcg_topk_precondition: int = 0,
+    lobpcg_max_iter: int = 0,
     precondtioner_type=PreconditionerType.ALL,
     custom_preconditioner=False,
     skip_preconditioning_rank_lt=1,
@@ -1248,15 +1264,19 @@ def distributed_shampoo(
     return jnp.int8 if best_effort_memory_usage_reduction and len(
         var.shape) > 1 else jnp.float32
 
+  quantize_second_moment = (
+      best_effort_memory_usage_reduction and
+      batch_axis_name)
+
   # Preconditioner and statistics are both stores as int16 in this mode.
   # We take out the diagonal to make quantization easier.
   def quantized_dtype_for_second_moment_statistics_buffers():
-    return jnp.int16 if best_effort_memory_usage_reduction and batch_axis_name else jnp.float32
+    return jnp.int16 if quantize_second_moment else jnp.float32
 
   # Preconditioner and statistics are both stores as int16 in this mode.
   # We take out the diagonal to make quantization easier.
   def quantized_dtype_for_second_moment_preconditioner_buffers():
-    return jnp.int16 if best_effort_memory_usage_reduction and batch_axis_name else jnp.float32
+    return jnp.int16 if quantize_second_moment else jnp.float32
 
   def _to_float(maybe_quantized):
     if isinstance(maybe_quantized, QuantizedValue):
@@ -1304,8 +1324,17 @@ def distributed_shampoo(
 
   def preconditioner_from_params(param):
     """Returns a Preconditioner object for given param."""
-    return Preconditioner(param, block_size, merge_small_dims_block_size,
-                          best_effort_shape_interpretation, precondtioner_type)
+    return Preconditioner(
+        param,
+        block_size,
+        merge_small_dims_block_size,
+        best_effort_shape_interpretation,
+        precondtioner_type,
+    )
+
+  def precond_dim(max_size):
+    """Derives largest preconditioner dimension."""
+    return max_size
 
   def sharded_init_fn(params):
     """Returns optimizer state (for PJIT mode).
@@ -1342,7 +1371,10 @@ def distributed_shampoo(
             matrix_epsilon * jnp.eye(max_size, dtype=jnp.float32)
             for s in shapes
         ]
-        preconditioners = [jnp.eye(max_size, dtype=jnp.float32) for s in shapes]
+        preconditioners = [
+            jnp.eye(max_size, precond_dim(max_size), dtype=jnp.float32)
+            for s in shapes
+        ]
         padded_statistics.extend(statistics)
         padded_preconditioners.extend(preconditioners)
         exponent = (
@@ -1375,8 +1407,10 @@ def distributed_shampoo(
     # is split on.
     padded_statistics.extend(
         [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])
-    padded_preconditioners.extend(
-        [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])
+    padded_preconditioners.extend([
+        jnp.eye(max_size, precond_dim(max_size), dtype=stat_dtype)
+        for _ in range(to_pad)
+    ])
     exponents.extend([1 for _ in range(to_pad)])
     global_stats = GlobalShardedParameterStats(
         jnp.stack(padded_statistics), jnp.stack(padded_preconditioners),
@@ -1525,12 +1559,85 @@ def distributed_shampoo(
     statistics_shape = [
         num_statistics, max_statistics_size, max_statistics_size
     ]
-    global_stats = GlobalShardedParameterStats([statistics_shape, jnp.float32],
-                                               [statistics_shape, jnp.float32],
-                                               [[num_statistics], jnp.int32])
+    preconditioners_shape = [
+        num_statistics, max_statistics_size,
+        precond_dim(max_statistics_size)
+    ]
+    global_stats = GlobalShardedParameterStats(
+        [statistics_shape, jnp.float32], [preconditioners_shape, jnp.float32],
+        [[num_statistics], jnp.int32])
     return ShampooState(
         count=[[], jnp.float32],
         stats=ShardedShampooStats(global_stats, local_stats))
+
+              convert_statistics=False,
+          ))
+
+    # Step 4. Compute the gradient updates using the preconditioners; and also
+    # updates to the local stats.
+    # Note: _transform grad doesn't actually use or update the statistics.
+    outputs = jax.tree_map(
+        lambda g, s, p: _transform_grad(g, s, p, state.count), grads_flat,
+        param_stats_flat, params_flat)
+    updates_flat, new_param_stats_flat = (
+        list(zip(*outputs)) if outputs else ((), ()))
+    updates = jax.tree_unflatten(treedef, updates_flat)
+
+    # Create new local_stats.
+    new_local_stats_flat = [
+        _convert_from_parameter_stats(new_stat, local_stat)
+        for new_stat, local_stat in zip(new_param_stats_flat, local_stats_flat)
+    ]
+    new_local_stats = jax.tree_unflatten(treedef, new_local_stats_flat)
+
+    # Step 5. Compute preconditioners from the stats.
+    perform_step = state.count % preconditioning_compute_steps == 0
+
+    def _internal_inverse_pth_root_all():
+      preconditioners, errors = _matrix_inverse_pth_root_pjit(
+          new_statistics, global_stats.exponents, padding_starts,
+          statistics_partition_spec)
+      return preconditioners, errors
+
+    if preconditioning_compute_steps == 1:
+      new_preconditioners, metrics = _internal_inverse_pth_root_all()
+    else:
+      # Passing statistics instead of preconditioners as they are similarly
+      # shaped tensors. Note statistics will be ignored as we are passing in
+      # a large error value.
+      pd = precond_dim(new_statistics.shape[2])
+      preconditioners_init = new_statistics[:, :, :pd]
+      n = new_statistics.shape[0]
+      metrics_init = cast(
+          TrainingMetrics,
+          init_training_metrics(n, generate_training_metrics=True))
+      new_errors = jnp.ones_like(metrics_init.inverse_pth_root_errors) * (
+          inverse_failure_threshold)
+      metrics_init = metrics_init.replace(inverse_pth_root_errors=new_errors)
+      init_state = [preconditioners_init, metrics_init]
+      new_preconditioners, metrics = efficient_cond(
+          perform_step, _internal_inverse_pth_root_all, init_state)
+
+    if generate_training_metrics:
+      new_local_stats_flat = _add_metrics_into_local_stats(
+          new_local_stats_flat, metrics, ~perform_step)
+    new_local_stats = jax.tree_unflatten(treedef, new_local_stats_flat)
+    errors = metrics.inverse_pth_root_errors
+    errors = errors.reshape((-1, 1, 1))
+    predicate = jnp.logical_or(
+        jnp.isnan(errors),
+        errors >= inverse_failure_threshold).astype(new_preconditioners.dtype)
+
+    # Assemble global_stats and ShampooState.
+    new_conditional_preconditioners = (
+        predicate * global_stats.preconditioners +
+        (1.0 - predicate) * new_preconditioners)
+    new_global_stats = GlobalShardedParameterStats(
+        new_statistics, new_conditional_preconditioners, global_stats.exponents)
+    new_shampoo_state = ShampooState(
+        count=state.count + 1,
+        stats=ShardedShampooStats(new_global_stats, new_local_stats))
+    return updates, new_shampoo_state
 
 
   def sharded_update_fn(grads, state, params):
@@ -1549,10 +1656,14 @@ def distributed_shampoo(
 
     global_stats = state.stats.global_stats
     local_stats_flat = treedef.flatten_up_to(state.stats.local_stats)
-    stats_flat = [
-        _convert_to_parameter_stats(global_stats, local_stat)
-        for local_stat in local_stats_flat
-    ]
+    stats_flat = []
+    for local_stat in local_stats_flat:
+      stats_flat.append(
+          _convert_to_parameter_stats(
+              global_stats,
+              local_stat,
+          ))
+
     new_stats_flat = jax.tree_map(
         lambda g, s, p: _compute_stats(g, s, p, state.count), grads_flat,
         stats_flat, params_flat)
@@ -1563,11 +1674,13 @@ def distributed_shampoo(
     updates_flat, new_stats_flat = list(zip(*outputs)) if outputs else ((), ())
 
     updates = jax.tree_unflatten(treedef, updates_flat)
-    # Create new local_stats
-    new_local_stats_flat = [
-        _convert_from_parameter_stats(new_stat, local_stat)
-        for new_stat, local_stat in zip(new_stats_flat, local_stats_flat)
-    ]
+    new_local_stats_flat = []
+    for new_stat, local_stat in zip(new_stats_flat, local_stats_flat):
+      new_local_stats_flat.append(
+          _convert_from_parameter_stats(
+              new_stat,
+              local_stat,
+          ))
 
     max_size = global_stats.statistics.shape[1]
     new_padded_statistics = []
@@ -1616,7 +1729,8 @@ def distributed_shampoo(
       # Passing statistics instead of preconditioners as they are similarly
       # shaped tensors. Note statistics will be ignored as we are passing in
       # a large error value.
-      preconditioners_init = new_stacked_padded_statistics
+      pd = precond_dim(new_stacked_padded_statistics.shape[2])
+      preconditioners_init = new_stacked_padded_statistics[:, :, :pd]
       n = new_stacked_padded_statistics.shape[0]
       metrics_init = cast(
           TrainingMetrics,
@@ -1661,7 +1775,9 @@ def distributed_shampoo(
         statistics = [
             matrix_epsilon * jnp.eye(s[0], dtype=jnp.float32) for s in shapes
         ]
-        preconditioners = [jnp.eye(s[0], dtype=jnp.float32) for s in shapes]
+        preconditioners = [
+            jnp.eye(s[0], s[1], dtype=jnp.float32) for s in shapes
+        ]
 
       diagonal_statistics = []
       if _graft_type_has_diagonal_statistics():
@@ -1844,7 +1960,9 @@ def distributed_shampoo(
       # Passing statistics instead of preconditioners as they are similarly
       # shaped tensors. Note statistics will be ignored as we are passing in
       # a large error value.
-      preconditioners_init = packed_statistics
+      preconditioners_init = [
+          s[:, :precond_dim(s.shape[0])] for s in packed_statistics
+      ]
       n = len(packed_statistics)
       metrics_init = jax.tree_map(
           lambda x: [x] * n,
@@ -2023,7 +2141,9 @@ def distributed_shampoo(
       # Passing statistics instead of preconditioners as they are similarly
       # shaped tensors. Note statistics will be ignored as we are passing in
       # a large error value.
-      quantized_preconditioners_init = packed_quantized_statistics
+      pd = precond_dim(max_size)
+      quantized_preconditioners_init = [
+          s[:, :pd] for s in packed_quantized_statistics]
       quantized_diagonals_init = packed_quantized_diagonals
       quantized_bucket_sizes_init = packed_quantized_bucket_sizes
       n = len(quantized_preconditioners_init)
@@ -2187,7 +2307,10 @@ def distributed_shampoo(
       # Passing statistics instead of preconditioners as they are similarly
       # shaped tensors. Note statistics will be ignored as we are passing in
       # a large init value for error.
-      preconditioners_init = padded_statistics
+      pd = precond_dim(max_size)
+      preconditioners_init = [
+          s[:, :pd] for s in padded_statistics
+      ]
       n = len(padded_statistics)
       metrics_init = jax.tree_map(
           lambda x: [x] * n,
