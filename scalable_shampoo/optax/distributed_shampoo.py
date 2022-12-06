@@ -54,6 +54,9 @@ from scalable_shampoo.optax.symmetric_matrices import symmetric_matrices
 # jax_enable_x64 for this to work, otherwise it will default to float32.
 _MAT_INV_PTH_ROOT_DTYPE = jnp.float64
 
+# Small epsilon to avoid divide by zero.
+_EPSILON = 1e-25
+
 
 def _default_zero_field():
   return struct.field(
@@ -162,6 +165,11 @@ class TrainingMetrics:
   # If final iteration error increases sufficiently, iteration terminates early.
   # This field records the ratio of the final iteration error.
   final_error_ratio: chex.Array = _default_zero_field()
+  # Max eigen value from either the power iteration or from LOBPCG.
+  max_eigen_value: chex.Array = _default_zero_field()
+  # Total retries of inverse pth root iterative method.
+  total_retries: chex.Array = _default_zero_field()
+
   lobpcg_diagnostics: LOBPCGDiagnostics = struct.field(
       default_factory=LOBPCGDiagnostics)
   # Rich matrix entrywise error diagnostics, if enabled.
@@ -496,7 +504,8 @@ def matrix_inverse_pth_root(
     # Use absolute matrix epsilon scaling otherwise.
     max_ev = 1.0
 
-  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, 1e-6)
+  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, _EPSILON)
+
   # Sometimes error increases after an iteration before decreasing and
   # converging. 1.2 factor is used to bound the maximal allowed increase.
   max_error_ratio = 1.2
@@ -522,19 +531,35 @@ def matrix_inverse_pth_root(
     iters = 0
     error_ratio = 0.0
   else:
-    damped_matrix = matrix + ridge_epsilon * identity
 
-    z = (1 + p) / (2 * jnp.linalg.norm(damped_matrix))
-    new_mat_m_0 = damped_matrix * z
-    new_error = jnp.max(jnp.abs(new_mat_m_0 - identity))
-    new_mat_h_0 = identity * jnp.power(z, 1.0 / p)
-    init_state = tuple(
-        [0, new_mat_m_0, new_mat_h_0, new_mat_h_0, new_error, True])
-    iters, mat_m, mat_h, old_mat_h, error, error_ratio = lax.while_loop(
-        _iter_condition, _iter_body, init_state)
-    error = jnp.max(jnp.abs(mat_m - identity)).astype(jnp.float32)
-    is_converged = jnp.asarray(error_ratio < max_error_ratio, old_mat_h.dtype)
-    resultant_mat_h = is_converged * mat_h + (1 - is_converged) * old_mat_h
+    retry_loop_error_threshold = 0.05
+    num_tries = 6
+    init_outer_state = tuple([0, identity, 1000.0, 100, 1.0, True])
+
+    def _outer_iter_condition_fn(state):
+      i, _, _, _, _, iter_failed = state
+      return jnp.logical_and(iter_failed, i < num_tries)
+
+    def _outer_body_fn(state):
+      i, _, _, _, _, _ = state
+      # Update the epsilon based on the loop iteration.
+      damped_matrix = matrix + (ridge_epsilon * (10**i) * identity)
+      z = (1 + p) / (2 * jnp.linalg.norm(damped_matrix))
+      new_mat_m_0 = damped_matrix * z
+      new_error = jnp.max(jnp.abs(new_mat_m_0 - identity))
+      new_mat_h_0 = identity * jnp.power(z, 1.0 / p)
+      init_state = tuple(
+          [0, new_mat_m_0, new_mat_h_0, new_mat_h_0, new_error, True])
+      iters, mat_m, mat_h, old_mat_h, error, error_ratio = lax.while_loop(
+          _iter_condition, _iter_body, init_state)
+      error = jnp.max(jnp.abs(mat_m - identity)).astype(jnp.float32)
+      is_converged = jnp.asarray(error_ratio < max_error_ratio, old_mat_h.dtype)
+      resultant_mat_h = is_converged * mat_h + (1 - is_converged) * old_mat_h
+      return (i + 1, resultant_mat_h, error, iters, error_ratio,
+              error > retry_loop_error_threshold)
+
+    total_retries, resultant_mat_h, error, iters, error_ratio, _ = jax.lax.while_loop(
+        _outer_iter_condition_fn, _outer_body_fn, init_outer_state)
 
   conditioned_resultant_mat = resultant_mat_h
 
@@ -554,9 +579,12 @@ def matrix_inverse_pth_root(
   error_metrics = TrainingMetrics(
       inverse_pth_root_errors=jnp.array(error, jnp.float32),
       inverse_pth_root_iters=jnp.array(iters, jnp.float32),
-      final_error_ratio=jnp.array(error_ratio, jnp.float32))
+      final_error_ratio=jnp.array(error_ratio, jnp.float32),
+      max_eigen_value=jnp.array(max_ev, jnp.float32),
+      total_retries=jnp.array(total_retries, jnp.float32))
 
   if lobpcg_topk_precondition > 0:
+    damped_matrix = matrix + (ridge_epsilon * (10**total_retries) * identity)
     conditioned_diagnostics = InversePthRootDiagnostics.create(
         conditioned_resultant_mat, damped_matrix, p)
     unconditioned_damped_matrix = original_matrix + ridge_epsilon * identity
@@ -2294,7 +2322,7 @@ def distributed_shampoo(
 
       scaled_grad = grad
       if graft_type == GraftingType.ADAGRAD_NORMALIZED:
-        scaled_grad = grad / (jnp.linalg.norm(grad) + 1e-16)
+        scaled_grad = grad / (jnp.linalg.norm(grad) + _EPSILON)
 
       new_diagonal_statistics = (
           state.diagonal_statistics.to_float() + jnp.square(scaled_grad))
@@ -2306,7 +2334,7 @@ def distributed_shampoo(
 
       scaled_grad = grad
       if graft_type == GraftingType.RMSPROP_NORMALIZED:
-        scaled_grad = grad / (jnp.linalg.norm(grad) + 1e-16)
+        scaled_grad = grad / (jnp.linalg.norm(grad) + _EPSILON)
 
       w1 = beta2
       w2 = jnp.where(beta2 == 1.0, beta2, 1.0 - beta2)
@@ -2348,7 +2376,7 @@ def distributed_shampoo(
     grafting_update_norm = jnp.linalg.norm(grafting_update)
     precond_grad_norm = jnp.linalg.norm(precond_grad)
 
-    multiplier = (grafting_update_norm / (precond_grad_norm + 1e-16))
+    multiplier = (grafting_update_norm / (precond_grad_norm + _EPSILON))
     shampoo_update = precond_grad * multiplier
 
     shampoo_update_with_wd = shampoo_update
