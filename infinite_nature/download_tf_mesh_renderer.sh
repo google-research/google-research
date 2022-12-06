@@ -30,7 +30,7 @@ TF_LINKFLAGS=$(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.g
 TF_LIB=$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
 export LD_LIBRARY_PATH=$TF_LIB:$LD_LIBRARY_PATH
 
-g++ -std=c++11 -shared \
+g++ -shared \
   rasterize_triangles_grad.cc rasterize_triangles_op.cc rasterize_triangles_impl.cc rasterize_triangles_impl.h  \
   -o rasterize_triangles_kernel.so -fPIC $TF_COMPILEFLAGS $TF_LINKFLAGS -O2
 
