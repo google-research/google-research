@@ -41,6 +41,7 @@ from latent_programmer.spec_decomposition import decode
 from latent_programmer.spec_decomposition import decomposition_models as models
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
+from latent_programmer.tasks.deepcoder import deepcoder_dsl
 
 sys.path.append('../../')
 gfile = tf.io.gfile
@@ -101,7 +102,7 @@ flags.DEFINE_bool(
     'Whether to apply self-attention to encoded I/O in Synthesizer.')
 
 flags.DEFINE_enum('dataset_type', 'robust_fill',
-                  ['robust_fill', 'robust_fill_base', 'scan'],
+                  ['robust_fill', 'robust_fill_base', 'deepcoder', 'scan'],
                   'The kind of dataset to use.')
 
 flags.DEFINE_enum(
@@ -511,6 +512,9 @@ def main(_):
     spec_vocab_size = len(spec_token_id_table) + 1  # For padding.
     program_id_token_table, _ = dsl_tokens.build_token_tables()
     program_vocab_size = len(program_id_token_table) + 1
+  elif FLAGS.dataset_type == 'deepcoder':
+    # TODO(jxihong): generate tables for deepcoder
+    pass
   elif FLAGS.dataset_type == 'scan':
     # TODO(jxihong): Scan is not handled yet.
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
@@ -522,7 +526,7 @@ def main(_):
 
   def decode_spec(target):
     """Convert from int tensor to a string."""
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base', 'deepcoder']:
       target = target[np.all([target != 0, target != bos_id, target != eos_id],
                              axis=0)].astype(np.int32)
       target = np.array(target)  # JAX arrays will fail dict lookups.
@@ -531,7 +535,7 @@ def main(_):
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   def encode_spec(target, max_target_length, add_eos=True):
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base', 'deepcoder']:
       tokens = [spec_token_id_table[t] for t in target]
       if add_eos:
         tokens += [eos_id]
@@ -539,8 +543,8 @@ def main(_):
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  def split_spec(spec_parts, outputs, max_target_length, aux, i):
-    """Returns a tuple (valid, last_step, current_parts, remaining_parts)."""
+  def split_outputs(output_parts, outputs, max_target_length, aux, i):
+    """Returns a tuple (valid, last_step, step_outputs, current_outputs)."""
     num_examples = len(outputs)
     assert num_examples == FLAGS.num_examples
 
@@ -552,14 +556,14 @@ def main(_):
                       add_eos=False)
           for spec_str in spec_parts_str]
       return (aux['valid'][0][i], aux['last_step'][0][i],
-              np.array(current_parts), aux['remaining_outputs'][0][i])
+              np.array(output_parts), aux['current_outputs'][0][i])
 
     # If we pass in an already-decoded list of strings, use them directly.
-    if isinstance(spec_parts, list) and isinstance(spec_parts[0], str):
-      spec_parts_str = spec_parts
+    if isinstance(output_parts, list) and isinstance(output_parts[0], str):
+      output_parts_str = output_parts
     else:
       # Decode the SpecDecomposerModel prediction and separate examples.
-      spec_parts_str = decode_spec(spec_parts).strip('|').split('|')
+      output_parts_str = decode_spec(output_parts).strip('|').split('|')
     if isinstance(outputs, list) and isinstance(outputs[0], str):
       decoded_outputs = outputs
     else:
@@ -567,41 +571,45 @@ def main(_):
 
     valid = True
 
-    if FLAGS.detect_invalid:
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base'] and FLAGS.detect_invalid:
       # The prediction is invalid if it has an incorrect number of | characters
       # or all of the parts are empty. (Some but not all parts can be empty.)
-      if len(spec_parts_str) != num_examples or all(
-          [not part for part in spec_parts_str]):
-        spec_parts_str = ['[invalid]'] * num_examples
+      if len(output_parts_str) != num_examples or all(
+          [not part for part in output_parts_str]):
+        output_parts_str = ['[invalid]'] * num_examples
         valid = False
     else:
       # Still need to handle an incorrect number of | characters. Do our best to
       # continue even if the prediction is malformed.
-      spec_parts_str = spec_parts_str[:num_examples]
-      spec_parts_str += [''] * (num_examples - len(spec_parts_str))
-      assert len(spec_parts_str) == num_examples
+      output_parts_str = output_parts_str[:num_examples]
+      output_parts_str += [''] * (num_examples - len(output_parts_str))
+      assert len(output_parts_str) == num_examples
 
-    current_parts = [
+    step_outputs = [
         encode_spec(
-            spec_str, max_target_length=max_target_length, add_eos=False)
-        for spec_str in spec_parts_str
+            output_part_str, max_target_length=max_target_length, add_eos=False)
+        for output_part_str in output_parts_str
     ]
 
-    remaining_parts_str = []
-    for part, output in zip(spec_parts_str, decoded_outputs):
-      if FLAGS.detect_invalid and not output.startswith(part):
-        remaining_parts_str = ['[invalid]'] * num_examples
-        valid = False
-        break
-      remaining_parts_str.append(output[len(part):])
-    remaining_parts = [
-        encode_spec(
-            spec_str, max_target_length=max_target_length, add_eos=True)
-        for spec_str in remaining_parts_str
-    ]
+    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+      current_outputs_str = []
+      for part, output in zip(output_parts_str, decoded_outputs):
+        if FLAGS.detect_invalid and not output.startswith(part):
+          current_outputs_str = ['[invalid]'] * num_examples
+          valid = False
+          break
+        current_outputs_str.append(output[len(part):])
+      current_outputs = [
+          encode_spec(
+              current_output_str, max_target_length=max_target_length, add_eos=True)
+          for current_output_str in current_outputs_str
+      ]
+      last_step = all([not current_output_str for current_output_str in current_outputs_str])
+    elif FLAGS.dataset_type == 'deepcoder':
+      current_outputs = outputs
+      last_step = (output_parts == outputs)
 
-    last_step = all([not remaining for remaining in remaining_parts_str])
-    return valid, last_step, np.array(current_parts), np.array(remaining_parts)
+    return valid, last_step, np.array(step_outputs), np.array(current_outputs)
 
   def process_predicted_program(program, add_eos=True):
     """Decode program tokens."""
@@ -618,9 +626,15 @@ def main(_):
   def process_and_decode_program(program_tokens):
     """Returns a pair (valid, program)."""
     try:
-      program = robust_fill_dsl.decode_program(
-          process_predicted_program(program_tokens, add_eos=True),
-          program_id_token_table)
+      if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+        program = robust_fill_dsl.decode_program(
+            process_predicted_program(program_tokens, add_eos=True),
+            program_id_token_table)
+      elif FLAGS.dataset_type == 'deepcoder':
+        program = deepcoder_dsl.Program.from_tokens(
+          [program_id_token_table[p_id] for p_id in program_tokens if p_id > 0])
+      else:
+        raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
       # If the program can't be converted to string, it's invalid.
       str(program)
       return True, program
@@ -641,7 +655,15 @@ def main(_):
           valid = False
       else:
         try:
-          outputs.append(program(i))
+          if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+            outputs.append(program(i))
+          elif FLAGS.dataset_type == 'deepcoder':
+            initial_state = deepcoder_dsl.ProgramState.from_str(i)
+            final_state = program.run(initial_state.state)
+            outputs.append(deepcoder_dsl.result_to_str(final_state.state[-1]))
+          else:
+            raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+            
         except:  # pylint: disable=bare-except
           outputs.append('')
           if FLAGS.use_execution and FLAGS.detect_invalid:
@@ -798,6 +820,8 @@ def main(_):
     # score is final and there should be no more predictions by either model.
     # Invalid beam elements should also be marked as finished.
     aux = {
+        # current_inputs
+        # current_outputs
         'remaining_outputs': decode.add_beam_dim(outputs, beam_size),
         'programs': jnp.full((1, beam_size, 1), bos_id, jnp.int32),
         'scores': jnp.array([0.0] + [decode.NEG_INF] * (beam_size - 1))[None,
@@ -829,8 +853,8 @@ def main(_):
         start_time = timeit.default_timer()
         predicted_spec_parts, scores, aux = spec_decomposer_pred_step(
             params=spec_decomposer_optimizer.target,
-            inputs=beam_inputs,
-            outputs=aux['remaining_outputs'],
+            inputs=beam_inputs #aux['current_inputs'],
+            outputs=aux['remaining_outputs'], #aux['current_outputs']
             cache=None,
             aux=aux,
             beam_size=beam_size)
@@ -843,6 +867,8 @@ def main(_):
             split_spec(beam, aux['remaining_outputs'][0][i],
                        max_target_length=FLAGS.max_io_length, aux=aux, i=i)
             for i, beam in enumerate(spec_parts_batch[0])]
+        # current_outputs = step_outputs
+        # split_spec returns valids, last_steps, step_outputs, current_outputs
         valids, last_steps, current_outputs, remaining_outputs = zip(*results)
 
         current_outputs = jnp.array(current_outputs)[None, Ellipsis]
@@ -933,6 +959,7 @@ def main(_):
       synthesis_prediction_times.append(timeit.default_timer() - start_time)
 
       # Process program predictions.
+      # Make into helper function join_program
       start_time = timeit.default_timer()
       program_parts = jnp.array([
           np.zeros_like(beam) if aux['finished'][0][i] else beam
@@ -940,6 +967,7 @@ def main(_):
       ])[None, Ellipsis]
       aux['programs'] = jnp.concatenate([aux['programs'], program_parts],
                                         axis=-1)
+      # for deepcoder, program_parts = ['x{step_index}=' + predicted_program_parts]
       aux['scores'] = scores
       current_history_ids = jnp.array(
           [next_history_id() for _ in range(beam_size)])[None, Ellipsis, None]
@@ -952,6 +980,8 @@ def main(_):
         valid_i = bool(aux['valid'][0][i])
         last_step_i = aux['last_step'][0][i]
         remaining_i = aux['remaining_outputs'][0][i]
+        # current_input_i = join_input(aux['current_inputs'][0][i], step_outputs)
+
         # Don't need to do any checking if the beam element is already finished
         # or already invalid.
         if not aux['finished'][0][i] and valid_i:
@@ -965,6 +995,7 @@ def main(_):
               valid_i, last_step_i, _, remaining_i = split_spec(
                   program_outputs_i, decoded_outputs,
                   max_target_length=FLAGS.max_io_length, aux=aux, i=i)
+            # valid_i, last_step_i, _, current_input_i = join_input() 
         if not FLAGS.detect_invalid:
           # Even though we updated valid_i above, those helper functions should
           # not claim something is invalid if detect_invalid=False.
@@ -972,6 +1003,7 @@ def main(_):
         new_valids.append(valid_i)
         new_last_steps.append(last_step_i)
         new_remaining.append(remaining_i)
+        # new current_inputs.append(current_input_i)
       aux['valid'] = jnp.array(new_valids)[None, Ellipsis]
       aux['last_step'] = jnp.array(new_last_steps)[None, Ellipsis]
       aux['remaining_outputs'] = jnp.array(new_remaining)[None, Ellipsis]
