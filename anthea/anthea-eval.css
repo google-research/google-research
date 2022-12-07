@@ -119,6 +119,7 @@
 .anthea-document-text-table {
   border: 1px solid black;
   border-collapse: collapse;
+  max-width: 300ch;
   table-layout: fixed;
 }
 .anthea-document-text-table p {
@@ -132,6 +133,7 @@
 }
 .anthea-document-text-table > tr > td:nth-of-type(1),
 .anthea-document-text-table > tr > td:nth-of-type(2) {
+  max-width: 100ch;
   width: 40%;
 }
 .anthea-document-text-table > tr:nth-of-type(2),
@@ -139,7 +141,8 @@
   border-bottom: 0 solid;
 }
 .anthea-document-text-table > tr > td:nth-of-type(3) {
-  width: 300px;
+  max-width: 320px;
+  width: 20%;
 }
 .anthea-document-text-table > tr:nth-of-type(3),
 .anthea-document-text-table > tr:nth-of-type(3) > td {

@@ -174,13 +174,14 @@ class AntheaDocSys {
         continue;
       }
       line = line.trim();
-      if (!line) {
+      const parts = line.split('\t', 5);
+      if (!line || parts.length == 2) {
+        /** The line may be blank or may have just doc+sys */
         docsys.srcSegments.push('');
         docsys.tgtSegments.push('');
         docsys.annotations.push('');
         continue;
       }
-      const parts = line.split('\t', 5);
       if (parts.length < 4) {
         console.log('Skipping ill-formed text line: [' + line + ']');
         continue;
@@ -538,8 +539,8 @@ class AntheaEval {
     googdom.setInnerHtml(this.tgtSpans[n], tgtHTML);
     this.tgtSpans[n].className = 'anthea-target-segment';
 
-    const srcWordSpans = this.srcSpans[n].getElementsByTagName('SPAN');
-    const tgtWordSpans = this.tgtSpans[n].getElementsByTagName('SPAN');
+    const srcWordSpans = this.srcSpans[n].getElementsByTagName('span');
+    const tgtWordSpans = this.tgtSpans[n].getElementsByTagName('span');
 
     for (let error of evalResult.errors) {
       const severity = this.config.severities[error.severity];
@@ -995,7 +996,7 @@ displayError(errors, index) {
       markedError.location = 'translation';
       markedError.prefix = '';
       const spanArray =
-          this.tgtSpans[this.currSegment].getElementsByTagName('SPAN');
+          this.tgtSpans[this.currSegment].getElementsByTagName('span');
       markedError.selected = '';
       for (let x = 0; x < spanArray.length; x++) {
         markedError.selected += spanArray[x].innerText;
@@ -1550,8 +1551,9 @@ displayError(errors, index) {
     let docRowRect = this.docs_[this.currDoc_].row.getBoundingClientRect();
     let pos = 0;
     for (let s = start; s < start + num; s++) {
-      const srcRect = this.srcSpans[s].getBoundingClientRect();
       const tgtRect = this.tgtSpans[s].getBoundingClientRect();
+      const srcRect = this.config.TARGET_SIDE_ONLY ? tgtRect :
+          this.srcSpans[s].getBoundingClientRect();
       pos = Math.min(srcRect.top - docRowRect.top,
                      tgtRect.top - docRowRect.top);
       const sg = this.segments_[s];
@@ -2260,20 +2262,30 @@ displayError(errors, index) {
     this.contextRow_ = googdom.createDom('tr', 'anthea-context-row');
     this.contextRow_.style.display = 'none';
 
-    const evalHeading = this.READ_ONLY ?
-        'Evaluations (view-only)' : 'Evaluations';
     const srcHeading = projectData.srcLang ?
         ('Source (' + projectData.srcLang + ')') : 'Source';
+    const srcHeadingTD = googdom.createDom(
+        'td', 'anthea-text-heading',
+        googdom.createDom('div', null, srcHeading));
+    const targetLabel = config.TARGET_SIDE_ONLY ? 'Text' : 'Target';
     const tgtHeading = projectData.tgtLang ?
-        ('Target (' + projectData.tgtLang + ')') : 'Target';
+        (targetLabel + ' (' + projectData.tgtLang + ')') : targetLabel;
+    const tgtHeadingTD = googdom.createDom(
+        'td', 'anthea-text-heading',
+        googdom.createDom('div', null, tgtHeading));
+    const evalHeading = this.READ_ONLY ?
+        'Evaluations (view-only)' : 'Evaluations';
+    const evalHeadingTD = googdom.createDom(
+        'td', 'anthea-text-heading',
+        googdom.createDom('div', null, evalHeading));
     const docTextTable = googdom.createDom(
         'table', 'anthea-document-text-table',
         googdom.createDom(
-            'tr', null,
-            googdom.createDom('td', 'anthea-text-heading', srcHeading),
-            googdom.createDom('td', 'anthea-text-heading', tgtHeading),
-            googdom.createDom('td', 'anthea-text-heading', evalHeading)),
+            'tr', null, srcHeadingTD, tgtHeadingTD, evalHeadingTD),
         this.contextRow_);
+    if (config.TARGET_SIDE_ONLY) {
+      srcHeadingTD.style.display = 'none';
+    }
     evalDiv.appendChild(docTextTable);
 
     for (let docsys of projectData) {
@@ -2291,6 +2303,9 @@ displayError(errors, index) {
           googdom.createDom('td', 'anthea-document-eval-cell', doc.eval));
       if (this.docs_.length > 1) {
         doc.row.style.display = 'none';
+      }
+      if (config.TARGET_SIDE_ONLY) {
+        docTextSrcRow.style.display = 'none';
       }
       doc.startSG = this.evalResults_.length;
       doc.numSG = 0;
@@ -2485,9 +2500,9 @@ class PhraseMarker {
     ce.redrawSegment(ce.currSegment);
 
     this.srcWordSpans_ =
-        ce.srcSpans[ce.currSegment].getElementsByTagName('SPAN');
+        ce.srcSpans[ce.currSegment].getElementsByTagName('span');
     this.tgtWordSpans_ =
-        ce.tgtSpans[ce.currSegment].getElementsByTagName('SPAN');
+        ce.tgtSpans[ce.currSegment].getElementsByTagName('span');
 
     const allowSpaceStart = ce.config.ALLOW_SPANS_STARTING_ON_SPACE || false;
 

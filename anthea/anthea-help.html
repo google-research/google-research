@@ -60,7 +60,19 @@
   </p>
 
   <p>
-    The TSV file must contain four fields in the following order:
+    The TSV file must have a header line. The header line should be the JSON encoding of an
+    object that identifies the "source-language" and "target-language". It may include other
+    metadata fields as needed. Example:
+    <blockquote>
+      <code>
+      {"source-language": "[language-code-BCP47]", "target-language": "[language-code-BCP47]"}
+      </code>
+    </blockquote>
+  </p>
+  
+  <p>
+    After the header line, the TSV file must contain these four fields in the following order, on
+    every subsequent line:
   </p>
   <ul>
     <li>source segment</li>
@@ -80,15 +92,20 @@
   </p>
 
   <p>
-    In addition, the format of the TSV file is slightly modified in the following ways:
+    In addition, the data in the TSV file is interpreted in these special ways:
   </p>
   <ul>
-    <li>The first line must declare the language information in a JSON object:
-      {"source-language": "[source-language-code-BCP47]",
-      "target-language":"[target-language-code-BCP47]"}</li>
-    <li>Blank lines indicate paragraph breaks.</li>
-    <li>Lines whose first character is "#" are ignored as comments. Source text that actually
-      starts with "#" should be prepended with a space.</li>
+    <li>
+      Blank lines indicate paragraph breaks. Lines containing blank source text are also treated
+      as paragraph breaks (these should not contain any target text, but if they do, such
+      target text is ignored and is not displayed during the evaluation). Lines containing
+      just two fields (presumably document name and system name) are also treated the same
+      as having empty source text (i.e., as paragraph breaks).
+    </li>
+    <li>
+      Lines whose first character is "#" are ignored as comments. Source text that actually starts
+      with "#" should be prepended with a space.
+    </li>
   </ul>
 
   <h5>

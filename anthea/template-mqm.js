@@ -31,7 +31,7 @@ antheaTemplates['MQM'] = {
       display: 'Minor severity',
       shortcut: 'm',
       color: '#fbec5d',
-      description: 'Minor severity errors are noticeable minor flaws in the ' +
+      description: 'Minor severity errors are noticeable but minor flaws in the ' +
                    'translated text. They do not significantly alter the ' +
                    'meaning of the source text, and they do not ' +
                    'significantly degrade the quality of the text.',
@@ -140,7 +140,7 @@ antheaTemplates['MQM'] = {
         },
         spelling: {
           display: 'Spelling',
-          description: 'Issues related to spelling or capitalization of words.',
+          description: 'Issues related to spelling or capitalization of words, and incorrect omission/addition of whitespace.',
         },
         punctuation: {
           display: 'Punctuation',
@@ -549,8 +549,9 @@ antheaTemplates['MQM'] = {
           </li>
           <li>
             Typically, the kinds of errors that fall under this severity level
-            are grammar, spelling, style, capitalization,  punctuation, locale
-            convention, and creative reinterpretation.
+            are grammar, spelling (including capitalization and whitespace),
+            style, punctuation, locale convention, and creative
+            reinterpretation.
           </li>
           <li>
             As mentioned earlier, the context of the document is sometimes the
@@ -779,10 +780,14 @@ antheaTemplates['MQM'] = {
             </li>
             <li>
               <b>Spelling</b>.
-              Issues related to spelling or capitalization of words. Example:
-              The French word "mer" (sea) is used instead of the identically
-              pronounced "maire" (mayor). This example would merit a major
-              severity, as the meaning is substantially altered.
+              Issues related to spelling or capitalization of words, and
+              whitespace. Example: The French word "mer" (sea) is used instead
+              of the identically pronounced "maire" (mayor). This example would
+              merit a major severity, as the meaning is substantially altered.
+              Example: "Nobody in arizona expected snow." The word "Arizona"
+              should start with an upper case letter, and this would be a minor
+              error. Example: "Theyreached safely." This is a minor severity
+              Spelling error because of the missing whitespace.
             </li>
             <li>
               <b>Punctuation</b>.
