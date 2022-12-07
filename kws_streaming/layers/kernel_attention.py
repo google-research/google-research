@@ -133,7 +133,7 @@ class KernelAttention(nlp_layers.kernel_attention.KernelAttention):
           cache=cache,
           training=training)
 
-      residual_step = tf.reshape(step_residual1d, query_step_shape)
+      residual_step = self._reshape_output(step_residual1d, query_step_shape)
       stream_output.append(residual_step)
 
     stream_output = tf.concat(stream_output, axis=1)
@@ -159,8 +159,13 @@ class KernelAttention(nlp_layers.kernel_attention.KernelAttention):
     value_1d = tf.reshape(value, (value_shape[0], -1, value_shape[3]))
 
     output_1d = super().call(query=query_1d, value=value_1d, training=training)
-    output_1d = tf.reshape(output_1d, query_shape)
-    return output_1d
+    output = self._reshape_output(output_1d, query_shape)
+    return output
+
+  def _reshape_output(self, output_1d, query_shape):
+    output_shape = tf.concat([query_shape[:-1], output_1d.shape[2:]], axis=0)
+    output = tf.reshape(output_1d, output_shape)
+    return output
 
   def get_input_state(self):
     raise ValueError('Streaming with external states is not implemented.')
