@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"

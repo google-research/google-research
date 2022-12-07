@@ -87,11 +87,11 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
     if (j + 4 <= dims) {
       __m128 q = _mm_loadu_ps(query + j);
       __m128i v0 = _mm_cvtepi8_epi32(
-          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i0 + j)));
+          _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(i0 + j)));
       __m128i v1 = _mm_cvtepi8_epi32(
-          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i1 + j)));
+          _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(i1 + j)));
       __m128i v2 = _mm_cvtepi8_epi32(
-          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i2 + j)));
+          _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(i2 + j)));
       a0 = _mm256_sub_ps(
           a0, AvxFuncs::SseToAvx(_mm_mul_ps(q, _mm_cvtepi32_ps(v0))));
       a1 = _mm256_sub_ps(
@@ -234,11 +234,11 @@ SCANN_SIMD_INLINE void DenseDotProductDistanceOneToManyInt8FloatImpl(
     if (j + 4 <= dims) {
       __m128 q = _mm_loadu_ps(query + j);
       __m128i v0 = _mm_cvtepi8_epi32(
-          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i0 + j)));
+          _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(i0 + j)));
       __m128i v1 = _mm_cvtepi8_epi32(
-          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i1 + j)));
+          _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(i1 + j)));
       __m128i v2 = _mm_cvtepi8_epi32(
-          _mm_cvtsi32_si128(*reinterpret_cast<const int*>(i2 + j)));
+          _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(i2 + j)));
       a0 = _mm_sub_ps(a0, _mm_mul_ps(q, _mm_cvtepi32_ps(v0)));
       a1 = _mm_sub_ps(a1, _mm_mul_ps(q, _mm_cvtepi32_ps(v1)));
       a2 = _mm_sub_ps(a2, _mm_mul_ps(q, _mm_cvtepi32_ps(v2)));

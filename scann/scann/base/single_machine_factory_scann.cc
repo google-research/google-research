@@ -20,6 +20,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/base/casts.h"
 #include "absl/base/optimization.h"

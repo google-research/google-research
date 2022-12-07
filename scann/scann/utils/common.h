@@ -85,7 +85,7 @@ using ::absl::ReaderMutexLock;
 
 using ::tensorflow::Status;
 using OkStatus = Status;
-using internal::StatusOr;
+using ::tensorflow::StatusOr;
 
 #define MAKE_TF_ERROR_FORWARDER(ERRNAME)                                      \
   ABSL_MUST_USE_RESULT inline Status ERRNAME##Error(absl::string_view s) {    \

@@ -386,13 +386,9 @@ cc_library(
     tags = ["local"],
     deps = [
         ":types",
-        "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/oss_wrappers:tf_dependency",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/functional:function_ref",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",

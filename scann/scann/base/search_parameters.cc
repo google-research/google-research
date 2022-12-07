@@ -14,6 +14,8 @@
 
 #include "scann/base/search_parameters.h"
 
+#include <cmath>
+
 #include "scann/base/restrict_allowlist.h"
 
 namespace research_scann {

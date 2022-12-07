@@ -19,6 +19,8 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
+#include <vector>
 
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_factory_options.h"

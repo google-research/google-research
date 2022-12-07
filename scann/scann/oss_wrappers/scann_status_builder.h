@@ -21,14 +21,9 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/stream_executor/lib/statusor.h"
+#include "tensorflow/core/platform/statusor.h"
 
 namespace research_scann {
-namespace internal {
-
-using ::stream_executor::port::StatusOr;
-
-}
 
 using tensorflow::Status;
 namespace error = tensorflow::error;
@@ -62,15 +57,15 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
   operator Status() &&;
 
   template <typename T>
-  inline operator internal::StatusOr<T>() const& {
-    if (streamptr_ == nullptr) return internal::StatusOr<T>(status_);
-    return internal::StatusOr<T>(StatusBuilder(*this).CreateStatus());
+  inline operator tensorflow::StatusOr<T>() const& {
+    if (streamptr_ == nullptr) return tensorflow::StatusOr<T>(status_);
+    return tensorflow::StatusOr<T>(StatusBuilder(*this).CreateStatus());
   }
 
   template <typename T>
-  inline operator internal::StatusOr<T>() && {
-    if (streamptr_ == nullptr) return internal::StatusOr<T>(status_);
-    return internal::StatusOr<T>(StatusBuilder(*this).CreateStatus());
+  inline operator tensorflow::StatusOr<T>() && {
+    if (streamptr_ == nullptr) return tensorflow::StatusOr<T>(status_);
+    return tensorflow::StatusOr<T>(StatusBuilder(*this).CreateStatus());
   }
 
   template <typename Enum>

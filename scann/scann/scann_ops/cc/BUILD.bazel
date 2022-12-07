@@ -98,6 +98,9 @@ pybind_library(
     tags = ["local"],
     deps = [
         ":scann",
+        "//scann/base:single_machine_factory_options",
+        "//scann/data_format:dataset",
         "//scann/utils:io_oss_wrapper",
+        "@com_google_absl//absl/types:span",
     ],
 )

@@ -375,9 +375,11 @@ Status KMeansTree::TokenizeWithoutSpillingImpl(
   const DenseDataset<CentersType>& centers =
       root->GetCentersByTemplateType<CentersType>();
   std::vector<double> distances(centers.size());
-  SCANN_RETURN_IF_ERROR(kmeans_tree_internal::GetAllDistances(
-      dist, query, centers, root->center_squared_l2_norms_,
-      root->inv_int8_multipliers_, &distances));
+  if (std::is_same_v<CentersType, int8_t>) {
+    SCANN_RETURN_IF_ERROR(root->GetAllDistancesInt8(dist, query, &distances));
+  } else {
+    root->GetAllDistancesFloatingPoint(dist, query, &distances);
+  }
   auto min_it = std::min_element(distances.begin(), distances.end());
   nearest_center_distance = *min_it;
   nearest_center_index = min_it - distances.begin();
@@ -423,15 +425,9 @@ Status KMeansTree::TokenizeWithSpillingImpl(
           : spilling_threshold;
 
   std::vector<pair<DatapointIndex, float>> children_to_search;
-  const DenseDataset<CentersType>& current_node_centers =
-      current_node->GetCentersByTemplateType<CentersType>();
-
-  Status status =
-      kmeans_tree_internal::FindChildrenWithSpilling<float, CentersType>(
-          query, spilling_type, possibly_learned_spilling_threshold,
-          max_centers, dist, current_node_centers,
-          current_node->center_squared_l2_norms_,
-          current_node->inv_int8_multipliers_, &children_to_search);
+  Status status = current_node->FindChildrenWithSpilling<float, CentersType>(
+      query, spilling_type, possibly_learned_spilling_threshold, max_centers,
+      dist, &children_to_search);
   if (!status.ok()) return status;
   for (const auto& elem : children_to_search) {
     const int32_t child_index = elem.first;

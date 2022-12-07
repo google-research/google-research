@@ -203,7 +203,6 @@ def _get_python_lib(repository_ctx, python_bin):
     if python_lib != None:
         return python_lib
     print_lib = ("<<END\n" +
-                 "from __future__ import print_function\n" +
                  "import site\n" +
                  "import os\n" +
                  "\n" +
@@ -294,7 +293,6 @@ def _get_numpy_include(repository_ctx, python_bin):
         [
             python_bin,
             "-c",
-            "from __future__ import print_function;" +
             "import numpy;" +
             " print(numpy.get_include());",
         ],

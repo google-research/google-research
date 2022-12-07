@@ -78,6 +78,23 @@ class KMeansTreeNode {
                const DistanceMeasure& training_distance, int32_t k_per_level,
                int32_t current_level, KMeansTreeTrainingOptions* opts);
 
+  template <typename Real, typename DataType>
+  Status FindChildrenWithSpilling(
+      const DatapointPtr<Real>& query,
+      QuerySpillingConfig::SpillingType spilling_type,
+      double spilling_threshold, int32_t max_centers,
+      const DistanceMeasure& dist,
+      std::vector<pair<DatapointIndex, float>>* child_centers) const;
+
+  template <typename Real, typename OutT = double>
+  void GetAllDistancesFloatingPoint(const DistanceMeasure& dist,
+                                    const DatapointPtr<Real>& query,
+                                    std::vector<OutT>* distances) const;
+  template <typename OutT = double>
+  Status GetAllDistancesInt8(const DistanceMeasure& dist,
+                             const DatapointPtr<float>& query,
+                             std::vector<OutT>* distances) const;
+
   void CreateFixedPointCenters();
 
   void BuildFromProto(const SerializedKMeansTree::Node& proto);
@@ -132,65 +149,21 @@ KMeansTreeNode::GetCentersByTemplateType<int8_t>() const {
 
 namespace kmeans_tree_internal {
 
-template <typename Real, typename OutT = double>
-inline Status GetAllDistances(const DistanceMeasure& dist,
-                              const DatapointPtr<Real>& query,
-                              const DenseDataset<Real>& centers,
-                              ConstSpan<float> center_sq_l2_norms,
-                              ConstSpan<float> inv_int8_multipliers,
-                              std::vector<OutT>* distances) {
+template <typename Real, typename OutT>
+void GetAllDistancesFloatingPointNoThreadSharding(
+    const DistanceMeasure& dist, const DatapointPtr<Real>& query,
+    const DenseDataset<Real>& centers, MutableSpan<OutT> distances) {
   if (query.IsDense()) {
-    DenseDistanceOneToMany<Real, OutT>(dist, query, centers,
-                                       MakeMutableSpan(*distances));
+    DenseDistanceOneToMany<Real, OutT>(dist, query, centers, distances);
   } else {
     for (size_t i = 0; i < centers.size(); ++i) {
-      (*distances)[i] = dist.GetDistance(query, centers[i]);
+      distances[i] = dist.GetDistance(query, centers[i]);
     }
   }
-
-  return OkStatus();
-}
-
-template <typename OutT = double>
-inline Status GetAllDistances(const DistanceMeasure& dist,
-                              const DatapointPtr<float>& query,
-                              const DenseDataset<int8_t>& centers,
-                              ConstSpan<float> center_sq_l2_norms,
-                              ConstSpan<float> inv_int8_multipliers,
-                              std::vector<OutT>* distances) {
-  const bool is_sq_l2 =
-      dist.specially_optimized_distance_tag() == DistanceMeasure::SQUARED_L2;
-  if (dist.specially_optimized_distance_tag() != DistanceMeasure::DOT_PRODUCT &&
-      !is_sq_l2) {
-    return InvalidArgumentError(
-        "Fixed-point tokenization in K-Means trees currently works only for "
-        "dot-product distance and squared L2 distance.");
-  }
-
-  Datapoint<float> inv_adjusted;
-  CopyToDatapoint(query, &inv_adjusted);
-
-  if (is_sq_l2) {
-    for (const auto& [i, inv_mult] : Enumerate(inv_int8_multipliers))
-      inv_adjusted.mutable_values_slice()[i] *= inv_mult * 2;
-  } else {
-    for (const auto& [i, inv_mult] : Enumerate(inv_int8_multipliers))
-      inv_adjusted.mutable_values_slice()[i] *= inv_mult;
-  }
-
-  DenseDotProductDistanceOneToManyInt8Float(inv_adjusted.ToPtr(), centers,
-                                            MakeMutableSpan(*distances));
-  if (is_sq_l2) {
-    DCHECK_EQ(center_sq_l2_norms.size(), distances->size());
-    float query_norm = SquaredL2Norm(query);
-    for (const auto [i, center_norm] : Enumerate(center_sq_l2_norms))
-      distances->at(i) += query_norm + center_norm;
-  }
-  return OkStatus();
 }
 
 template <typename Real>
-inline StatusOr<Real> ComputeThreshold(
+StatusOr<Real> ComputeThreshold(
     const Real nearest_center_distance, const Real spilling_threshold,
     QuerySpillingConfig::SpillingType spilling_type) {
   Real max_dist_to_consider;
@@ -222,56 +195,84 @@ inline StatusOr<Real> ComputeThreshold(
   return max_dist_to_consider;
 }
 
+Status PostprocessDistancesForSpilling(
+    ConstSpan<float> distances, QuerySpillingConfig::SpillingType spilling_type,
+    double spilling_threshold, int32_t max_centers,
+    std::vector<pair<DatapointIndex, float>>* child_centers);
+
+}  // namespace kmeans_tree_internal
+
+template <typename Real, typename OutT>
+void KMeansTreeNode::GetAllDistancesFloatingPoint(
+    const DistanceMeasure& dist, const DatapointPtr<Real>& query,
+    std::vector<OutT>* distances) const {
+  const auto& centers = float_centers_;
+
+  return kmeans_tree_internal::GetAllDistancesFloatingPointNoThreadSharding(
+      dist, query, centers, MakeMutableSpan(*distances));
+}
+
+template <typename OutT>
+Status KMeansTreeNode::GetAllDistancesInt8(const DistanceMeasure& dist,
+                                           const DatapointPtr<float>& query,
+                                           std::vector<OutT>* distances) const {
+  const auto& centers = fixed_point_centers_;
+  const bool is_sq_l2 =
+      dist.specially_optimized_distance_tag() == DistanceMeasure::SQUARED_L2;
+  if (dist.specially_optimized_distance_tag() != DistanceMeasure::DOT_PRODUCT &&
+      !is_sq_l2) {
+    return InvalidArgumentError(
+        "Fixed-point tokenization in K-Means trees currently works only for "
+        "dot-product distance and squared L2 distance.");
+  }
+
+  Datapoint<float> inv_adjusted;
+  CopyToDatapoint(query, &inv_adjusted);
+
+  if (is_sq_l2) {
+    for (const auto& [i, inv_mult] : Enumerate(inv_int8_multipliers_))
+      inv_adjusted.mutable_values_slice()[i] *= inv_mult * 2;
+  } else {
+    for (const auto& [i, inv_mult] : Enumerate(inv_int8_multipliers_))
+      inv_adjusted.mutable_values_slice()[i] *= inv_mult;
+  }
+
+  DenseDotProductDistanceOneToManyInt8Float(inv_adjusted.ToPtr(), centers,
+                                            MakeMutableSpan(*distances));
+  if (is_sq_l2) {
+    DCHECK_EQ(center_squared_l2_norms_.size(), distances->size());
+    float query_norm = SquaredL2Norm(query);
+    for (const auto [i, center_norm] : Enumerate(center_squared_l2_norms_))
+      distances->at(i) += query_norm + center_norm;
+  }
+  return OkStatus();
+}
+
 template <typename Real, typename DataType>
-Status FindChildrenWithSpilling(
+Status KMeansTreeNode::FindChildrenWithSpilling(
     const DatapointPtr<Real>& query,
     QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
     int32_t max_centers, const DistanceMeasure& dist,
-    const DenseDataset<DataType>& centers, ConstSpan<float> center_sq_l2_norms,
-    ConstSpan<float> inv_int8_multipliers,
-    std::vector<pair<DatapointIndex, float>>* child_centers) {
+    std::vector<pair<DatapointIndex, float>>* child_centers) const {
+  const auto& centers = this->GetCentersByTemplateType<DataType>();
   DCHECK_GT(centers.size(), 0);
   DCHECK(child_centers);
   SCANN_RET_CHECK(query.IsFinite());
 
   std::vector<float> distances(centers.size());
   DCHECK(centers.IsDense());
-  bool thread_sharded_done = false;
 
-  if (!thread_sharded_done) {
-    SCANN_RETURN_IF_ERROR(GetAllDistances(dist, query, centers,
-                                          center_sq_l2_norms,
-                                          inv_int8_multipliers, &distances));
+  if constexpr (std::is_floating_point_v<DataType>) {
+    this->GetAllDistancesFloatingPoint(dist, query, &distances);
+  } else {
+    static_assert(std::is_same_v<DataType, int8_t>);
+    SCANN_RETURN_IF_ERROR(this->GetAllDistancesInt8(dist, query, &distances));
   }
 
-  float epsilon = std::numeric_limits<float>::infinity();
-  if (spilling_type != QuerySpillingConfig::NO_SPILLING &&
-      spilling_type != QuerySpillingConfig::FIXED_NUMBER_OF_CENTERS) {
-    const size_t nearest_center_index =
-        std::distance(distances.begin(),
-                      std::min_element(distances.begin(), distances.end()));
-    const float nearest_center_distance = distances[nearest_center_index];
-
-    using cast_ops::DoubleToFloat;
-
-    float spill_thresh = std::nextafter(DoubleToFloat(spilling_threshold),
-                                        std::numeric_limits<float>::infinity());
-    TF_ASSIGN_OR_RETURN(
-        float max_dist_to_consider,
-        ComputeThreshold(nearest_center_distance, spill_thresh, spilling_type));
-    epsilon = std::nextafter(max_dist_to_consider,
-                             std::numeric_limits<float>::infinity());
-  }
-  const int32_t max_results =
-      (spilling_type == QuerySpillingConfig::NO_SPILLING) ? 1 : max_centers;
-  FastTopNeighbors<float> top_n(max_results, epsilon);
-  top_n.PushBlock(MakeConstSpan(distances), 0);
-  top_n.FinishUnsorted(child_centers);
-
-  return OkStatus();
+  return kmeans_tree_internal::PostprocessDistancesForSpilling(
+      MakeMutableSpan(distances), spilling_type, spilling_threshold,
+      max_centers, child_centers);
 }
-
-}  // namespace kmeans_tree_internal
 
 }  // namespace research_scann
 

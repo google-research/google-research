@@ -6,7 +6,7 @@ load("//build_deps/tf_dependency:tf_configure.bzl", "tf_configure")
 # Needed for highway's config_setting_group
 http_archive(
     name = "bazel_skylib",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.2.1/bazel-skylib-1.2.1.tar.gz"],
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz"],
 )
 
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
@@ -30,16 +30,16 @@ python_configure(name = "local_config_python")
 
 git_repository(
     name = "pybind11_bazel",
-    commit = "f22df0e57ba664c2d3cf439ddfb7f8804e3f36c1",
+    commit = "9a24c33cbdc510fa60ab7f5ffb7d80ab89272799",
     remote = "https://github.com/pybind/pybind11_bazel.git",
 )
 
 http_archive(
     name = "pybind11",
     build_file = "@pybind11_bazel//:pybind11.BUILD",
-    strip_prefix = "pybind11-2.7.1",
+    strip_prefix = "pybind11-2.10.1",
     urls = [
-        "https://github.com/pybind/pybind11/archive/v2.7.1.tar.gz",
+        "https://github.com/pybind/pybind11/archive/v2.10.1.tar.gz",
     ],
 )
 
@@ -100,8 +100,8 @@ git_repository(
 
 git_repository(
     name = "com_google_highway",
-    commit = "c5db74e8881e81dbbfd9030f9a6fcbc3c7a9504a",
     remote = "https://github.com/google/highway.git",
+    tag = "1.0.1",
 )
 
 git_repository(

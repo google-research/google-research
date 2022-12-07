@@ -16,7 +16,9 @@
 
 #include "scann/base/single_machine_base.h"
 
+#include <cmath>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <typeinfo>
 #include <utility>

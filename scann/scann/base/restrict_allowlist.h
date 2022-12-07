@@ -21,6 +21,7 @@
 #include <functional>
 #include <limits>
 #include <utility>
+#include <vector>
 
 #include "gtest/gtest_prod.h"
 #include "scann/oss_wrappers/scann_bits.h"

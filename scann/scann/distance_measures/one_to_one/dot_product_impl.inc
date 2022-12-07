@@ -32,7 +32,7 @@ SCANN_SIMD_INLINE double DenseDotProductInt8FloatAvxImpl(const int8_t* aptr,
   }
 
   if (aptr + 4 <= aend) {
-    __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
+    __m128i avals = _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(aptr));
     __m128 avals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(avals));
     __m128 bvals0 = _mm_loadu_ps(bptr);
     __m128 prod = _mm_mul_ps(avals0, bvals0);
@@ -92,7 +92,7 @@ SCANN_SIMD_INLINE double DenseDotProductInt8FloatFloatAvxImpl(
   }
 
   if (aptr + 4 <= aend) {
-    __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
+    __m128i avals = _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(aptr));
     __m128 avals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(avals));
     __m128 bvals0 = _mm_loadu_ps(bptr);
     __m128 cvals0 = _mm_loadu_ps(cptr);
@@ -158,9 +158,9 @@ SCANN_SIMD_INLINE double DenseDotProductInt8Int8FloatAvxImpl(const int8_t* aptr,
   }
 
   if (aptr + 4 <= aend) {
-    __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
+    __m128i avals = _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(aptr));
     __m128 avals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(avals));
-    __m128i bvals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(bptr));
+    __m128i bvals = _mm_cvtsi32_si128(ABSL_INTERNAL_UNALIGNED_LOAD32(bptr));
     __m128 bvals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(bvals));
     __m128 cvals0 = _mm_loadu_ps(cptr);
     __m128 prod = _mm_mul_ps(_mm_mul_ps(avals0, bvals0), cvals0);
