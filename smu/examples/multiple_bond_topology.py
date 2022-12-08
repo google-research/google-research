@@ -41,7 +41,7 @@ def print_bond_topo(mol):
     source_string = ''
     if bt.info & dataset_pb2.BondTopology.SOURCE_STARTING:
       source_string += 'STARTING '
-    if bt.info & dataset_pb2.BondTopology.SOURCE_ITC:
+    if bt.info & dataset_pb2.BondTopology.SOURCE_DDT:
       source_string += 'ITC '
     if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR:
       source_string += 'MLCR '
@@ -78,7 +78,7 @@ print('The other three bits are related to the three methods we have for ')
 print('matching a topology to the geometry of the Molecule.')
 print('Please see the manuscript for details on these methods.')
 print('The three bits are:')
-print('Initial Topology Criteria: dataset_pb2.BondTopology.SOURCE_ITC')
+print('Initial Topology Criteria: dataset_pb2.BondTopology.SOURCE_DDT')
 print('Meng Lewis Covalent Radii: dataset_pb2.BondTopology.SOURCE_MLCR')
 print('Cambridge Structural Database: dataset_pb2.BondTopology.SOURCE_CSD')
 

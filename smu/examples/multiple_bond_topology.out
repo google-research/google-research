@@ -27,7 +27,7 @@ The other three bits are related to the three methods we have for
 matching a topology to the geometry of the Molecule.
 Please see the manuscript for details on these methods.
 The three bits are:
-Initial Topology Criteria: dataset_pb2.BondTopology.SOURCE_ITC
+Initial Topology Criteria: dataset_pb2.BondTopology.SOURCE_DDT
 Meng Lewis Covalent Radii: dataset_pb2.BondTopology.SOURCE_MLCR
 Cambridge Structural Database: dataset_pb2.BondTopology.SOURCE_CSD
 

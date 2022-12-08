@@ -103,7 +103,7 @@ def print_molecules_and_topo_id(molecules):
   for mol in molecules:
     print('   ', mol.mol_id, 'has bond topologies:',
           [bt.topo_id for bt in mol.bond_topo
-           if bt.info & (dataset_pb2.BondTopology.SOURCE_ITC |
+           if bt.info & (dataset_pb2.BondTopology.SOURCE_DDT |
                            dataset_pb2.BondTopology.SOURCE_CUSTOM)])
 
 

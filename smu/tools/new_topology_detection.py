@@ -58,7 +58,7 @@ def main(unused_argv):
                                                  fake_smiles_id_dict)
 
     count_all = len(molecule.bond_topo)
-    count_smu = sum(bt.info & dataset_pb2.BondTopology.SOURCE_ITC != 0
+    count_smu = sum(bt.info & dataset_pb2.BondTopology.SOURCE_DDT != 0
                     for bt in molecule.bond_topo)
     count_covalent = sum(bt.info & dataset_pb2.BondTopology.SOURCE_MLCR != 0
                          for bt in molecule.bond_topo)

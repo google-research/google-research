@@ -1455,7 +1455,7 @@ class CleanTextWriter:
         # This indicates topology detection was not performed at all.
         info = '    S'
       else:
-        info = (('i' if bt.info & dataset_pb2.BondTopology.SOURCE_ITC else '.') +
+        info = (('i' if bt.info & dataset_pb2.BondTopology.SOURCE_DDT else '.') +
                 ('c' if bt.info & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
                 ('m' if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
                 ('u' if bt.info & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +

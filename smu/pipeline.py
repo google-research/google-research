@@ -234,7 +234,7 @@ def molecule_to_stat_values(molecule):
 
     yield 'num_topologies_itc', len([
         None for bt in molecule.bond_topo
-        if bt.info & dataset_pb2.BondTopology.SOURCE_ITC
+        if bt.info & dataset_pb2.BondTopology.SOURCE_DDT
     ])
     yield 'num_topologies_mlcr', len([
         None for bt in molecule.bond_topo

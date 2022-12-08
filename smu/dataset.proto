@@ -108,11 +108,13 @@ message BondTopology {
   enum SourceType {
     SOURCE_UNSET = 0;
     // Indicates that this was the topology used during the geometry creation
-    // process itself. It will always co-occur with SOURCE_ITC
+    // process itself. It will always co-occur with SOURCE_DDT
     SOURCE_STARTING = 1;
-    // Indicates that this is a topology that matches the bond ranges used for
-    // the the Initial Topology Checks in the geometry search procedure.
-    SOURCE_ITC = 2;
+    // Indicates that this is a topology that matches the bond ranges used
+    // derived from the observed distribution of bond lenths for molecules
+    // with mostly successful calculations.
+    // DDT means Distribution Derived Thresholds
+    SOURCE_DDT = 2;
     // Indicates that this topology matches bond lengths determined by covalent
     // radii plus a tolerance factor.
     // Follows the procedure from:
@@ -156,8 +158,8 @@ message BondTopology {
   // a probability of 1.0 and smaller negative values are smaller
   // probabilities.
   // Note that this score is *only* available for topologies with source
-  // including SOURCE_ITC.
-  // Across the SOURCE_ITC topologies, exp(topology_score) will sum to 1.
+  // including SOURCE_DDT.
+  // Across the SOURCE_DDT topologies, exp(topology_score) will sum to 1.
   float topology_score = 8;
 
   // An estimate of ln(p(geometry|topology)).
@@ -171,7 +173,7 @@ message BondTopology {
   // compare different geometries.
   //
   // Note that this score is *only* available for topologies with source
-  // including SOURCE_ITC.
+  // including SOURCE_DDT.
   //
   // Note that only bonds between heavy atoms are used in computing this.
   float geometry_score = 9;

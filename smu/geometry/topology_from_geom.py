@@ -291,7 +291,7 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   Special case: Some SMU1 and SMU2 will fail detection because they
   have no bonds or unique bonds (like F-F). In that case, we still
   set
-  source = SOURCE_ITC | SOURCE_STARTING_TOPOLOGY
+  source = SOURCE_DDT | SOURCE_STARTING_TOPOLOGY
   and return False
 
   Args:
@@ -329,7 +329,7 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
     # This means the SMU matching failed. We're gong to set the first bond
     # topology as starting and notify the caller
     molecule.bond_topo[0].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_STARTING)
     return False
 
@@ -345,7 +345,7 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
       bt.topo_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
-    bt.info = dataset_pb2.BondTopology.SOURCE_ITC
+    bt.info = dataset_pb2.BondTopology.SOURCE_DDT
     if bt.bond == starting_topology.bond:
       bt.info |= dataset_pb2.BondTopology.SOURCE_STARTING
 

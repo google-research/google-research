@@ -266,9 +266,13 @@ spe_check_pbe0_6311gd_tmol_mrcc spe_check_pbe0_6311gd_mrcc
 spe_check_pbe0_6311gd_tmol_orca spe_check_pbe0_6311gd_orca
 """
 
-THIS_REPLACE="${FIXING_FIELDS2}"
-#ARGS="-i"
-ARGS=""
+DDT="""
+SOURCE_ITC SOURCE_DDT
+"""
+
+THIS_REPLACE="${DDT}"
+ARGS="-i"
+#ARGS=""
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)
 FILES=$(find ${SCRIPT_DIR}/.. -type f -maxdepth 4 | grep -v venv | grep -v dataset_pb2.py | grep -v rename.sh | egrep -v '\.(cc|h|pyc)$' | grep -v '~$')

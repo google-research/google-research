@@ -92,7 +92,7 @@ class SmuSqliteTest(absltest.TestCase):
     molecule = dataset_pb2.Molecule()
     molecule.mol_id = mid
     self.add_bond_topology_to_molecule(molecule, mid // 1000,
-                                       dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_DDT)
     return molecule
 
   def encode_molecules(self, molecules):
@@ -113,13 +113,13 @@ class SmuSqliteTest(absltest.TestCase):
     mol1 = self.make_fake_molecule(1000)
     mol2 = self.make_fake_molecule(2000)
     self.add_bond_topology_to_molecule(mol2, 1,
-                                       dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_DDT)
 
     mol3 = self.make_fake_molecule(3000)
     self.add_bond_topology_to_molecule(mol3, 1,
-                                       dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_DDT)
     self.add_bond_topology_to_molecule(mol3, 2,
-                                       dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_DDT)
 
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     db.bulk_insert(self.encode_molecules([mol1, mol2, mol3]))
@@ -261,7 +261,7 @@ class SmuSqliteTest(absltest.TestCase):
 
     mol = self.make_fake_molecule(55000)
     self.add_bond_topology_to_molecule(mol, 55,
-                                       dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_DDT)
     db.bulk_insert(self.encode_molecules([mol]))
 
     got_mids = [
@@ -281,15 +281,15 @@ class SmuSqliteTest(absltest.TestCase):
     molecules.append(dataset_pb2.Molecule(mol_id=2001))
     self.add_bond_topology_to_molecule(
         molecules[-1], 10, dataset_pb2.BondTopology.SOURCE_STARTING
-        | dataset_pb2.BondTopology.SOURCE_ITC)
+        | dataset_pb2.BondTopology.SOURCE_DDT)
     self.add_bond_topology_to_molecule(molecules[-1], 11,
                                        dataset_pb2.BondTopology.SOURCE_MLCR)
     molecules.append(dataset_pb2.Molecule(mol_id=4001))
     self.add_bond_topology_to_molecule(molecules[-1], 10,
-                                       dataset_pb2.BondTopology.SOURCE_ITC)
+                                       dataset_pb2.BondTopology.SOURCE_DDT)
     self.add_bond_topology_to_molecule(
         molecules[-1], 11, dataset_pb2.BondTopology.SOURCE_STARTING
-        | dataset_pb2.BondTopology.SOURCE_ITC)
+        | dataset_pb2.BondTopology.SOURCE_DDT)
     self.add_bond_topology_to_molecule(molecules[-1], 12,
                                        dataset_pb2.BondTopology.SOURCE_CSD)
     molecules.append(dataset_pb2.Molecule(mol_id=6001))

@@ -90,7 +90,7 @@ class SmuParserTest(absltest.TestCase):
       # going to add some wrong bond topologies to make sure they are ignored.
       molecule.bond_topo.append(molecule.bond_topo[0])
       molecule.bond_topo.append(molecule.bond_topo[0])
-      molecule.bond_topo[0].info = dataset_pb2.BondTopology.SOURCE_ITC
+      molecule.bond_topo[0].info = dataset_pb2.BondTopology.SOURCE_DDT
       molecule.bond_topo[1].info = dataset_pb2.BondTopology.SOURCE_CSD
       for bt in molecule.bond_topo[0:2]:
         bt.bond[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE

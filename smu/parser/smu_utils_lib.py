@@ -851,7 +851,7 @@ def iterate_bond_topologies(molecule, which):
 
   if which == WhichTopologies.ITC:
     for bt_idx, bt in enumerate(molecule.bond_topo):
-      if not bt.info or bt.info & dataset_pb2.BondTopology.SOURCE_ITC:
+      if not bt.info or bt.info & dataset_pb2.BondTopology.SOURCE_DDT:
         yield bt_idx, bt
 
   if which == WhichTopologies.MLCR:
@@ -1829,7 +1829,7 @@ def molecule_to_bond_topology_summaries(molecule):
     # Special case ITC: We only want to filter the starting topology for the ITC
     # source.
     if (starting_idx is not None and
-        source == dataset_pb2.BondTopology.SOURCE_ITC):
+        source == dataset_pb2.BondTopology.SOURCE_DDT):
       observed_bt_id.add(
           molecule.bond_topo[starting_idx].topo_id)
     for bt in molecule.bond_topo:
@@ -1866,7 +1866,7 @@ def molecule_to_bond_topology_summaries(molecule):
         fate == dataset_pb2.Properties.FATE_ERROR_MODERATE):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_error = 1
-    for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
+    for source, field in [(dataset_pb2.BondTopology.SOURCE_DDT,
                            'count_detected_match_itc_with_error'),
                           (dataset_pb2.BondTopology.SOURCE_MLCR,
                            'count_detected_match_mlcr_with_error'),
@@ -1885,7 +1885,7 @@ def molecule_to_bond_topology_summaries(molecule):
       fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
     summary.count_kept_geometry = 1
     summary.count_calculation_with_warning = 1
-    for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
+    for source, field in [(dataset_pb2.BondTopology.SOURCE_DDT,
                            'count_detected_match_itc_with_warning'),
                           (dataset_pb2.BondTopology.SOURCE_MLCR,
                            'count_detected_match_mlcr_with_warning'),
@@ -1901,7 +1901,7 @@ def molecule_to_bond_topology_summaries(molecule):
         fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW):
     summary.count_kept_geometry = 1
     summary.count_calculation_success = 1
-    for source, field in [(dataset_pb2.BondTopology.SOURCE_ITC,
+    for source, field in [(dataset_pb2.BondTopology.SOURCE_DDT,
                            'count_detected_match_itc_success'),
                           (dataset_pb2.BondTopology.SOURCE_MLCR,
                            'count_detected_match_mlcr_success'),

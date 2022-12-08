@@ -303,7 +303,7 @@ class TestStandardTopologySensing(absltest.TestCase):
     self.assertLen(mol.bond_topo, 2)
 
     self.assertEqual(
-        mol.bond_topo[0].info, dataset_pb2.BondTopology.SOURCE_ITC
+        mol.bond_topo[0].info, dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_STARTING
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(mol.bond_topo[0].smiles, 'N=C=O')
@@ -328,7 +328,7 @@ class TestStandardTopologySensing(absltest.TestCase):
     self.assertLen(mol.bond_topo, 2)
 
     self.assertEqual(
-        mol.bond_topo[0].info, dataset_pb2.BondTopology.SOURCE_ITC
+        mol.bond_topo[0].info, dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_STARTING
         | dataset_pb2.BondTopology.SOURCE_MLCR
         | dataset_pb2.BondTopology.SOURCE_CSD)
@@ -338,7 +338,7 @@ class TestStandardTopologySensing(absltest.TestCase):
     self.assertNotEqual(mol.bond_topo[0].geometry_score, 0)
 
     self.assertEqual(
-        mol.bond_topo[1].info, dataset_pb2.BondTopology.SOURCE_ITC
+        mol.bond_topo[1].info, dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self.assertEqual(mol.bond_topo[1].smiles, '[NH+]#C[O-]')
     self.assertEqual(mol.bond_topo[1].topo_id, 222)

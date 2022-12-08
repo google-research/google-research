@@ -629,7 +629,7 @@ class IterateBondTopologiesTest(parameterized.TestCase):
 
   def test_new_all(self):
     molecule = self.make_new_fake_molecule(123, [
-        dataset_pb2.BondTopology.SOURCE_ITC,
+        dataset_pb2.BondTopology.SOURCE_DDT,
         dataset_pb2.BondTopology.SOURCE_MLCR,
         dataset_pb2.BondTopology.SOURCE_CSD
     ])
@@ -651,7 +651,7 @@ class IterateBondTopologiesTest(parameterized.TestCase):
 
   def test_new_best(self):
     molecule = self.make_new_fake_molecule(123, [
-        dataset_pb2.BondTopology.SOURCE_ITC, dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT, dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_STARTING
     ])
     got = list(
@@ -675,8 +675,8 @@ class IterateBondTopologiesTest(parameterized.TestCase):
   @parameterized.parameters([0, 1, 2])
   def test_new_starting(self, starting_idx):
     molecule = self.make_new_fake_molecule(123, [
-        dataset_pb2.BondTopology.SOURCE_ITC,
-        dataset_pb2.BondTopology.SOURCE_ITC, dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT,
+        dataset_pb2.BondTopology.SOURCE_DDT, dataset_pb2.BondTopology.SOURCE_DDT
     ])
 
     molecule.bond_topo[starting_idx].info |= (
@@ -697,7 +697,7 @@ class IterateBondTopologiesTest(parameterized.TestCase):
 
   def test_new_no_starting(self):
     molecule = self.make_new_fake_molecule(123, [
-        dataset_pb2.BondTopology.SOURCE_ITC,
+        dataset_pb2.BondTopology.SOURCE_DDT,
         dataset_pb2.BondTopology.SOURCE_MLCR
     ])
     got = list(
@@ -720,8 +720,8 @@ class IterateBondTopologiesTest(parameterized.TestCase):
   ])
   def test_subsets(self, which, expected):
     molecule = self.make_new_fake_molecule(123, [
-        dataset_pb2.BondTopology.SOURCE_ITC,
-        dataset_pb2.BondTopology.SOURCE_ITC,
+        dataset_pb2.BondTopology.SOURCE_DDT,
+        dataset_pb2.BondTopology.SOURCE_DDT,
         dataset_pb2.BondTopology.SOURCE_CSD,
         dataset_pb2.BondTopology.SOURCE_CSD,
         dataset_pb2.BondTopology.SOURCE_MLCR,
@@ -1687,10 +1687,10 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     self._molecule.bond_topo[-1].topo_id = 123
     self._molecule.bond_topo[-1].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self._molecule.bond_topo[0].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_STARTING)
 
@@ -1732,10 +1732,10 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     self._molecule.bond_topo[-1].topo_id = 123
     self._molecule.bond_topo[-1].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self._molecule.bond_topo[0].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_STARTING)
 
@@ -1780,10 +1780,10 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     self._molecule.bond_topo[-1].topo_id = 123
     self._molecule.bond_topo[-1].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self._molecule.bond_topo[0].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_STARTING)
     if swap_order:
@@ -1827,14 +1827,14 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._molecule.bond_topo[0].topo_id = 123
     self._molecule.bond_topo[0].info = (
         dataset_pb2.BondTopology.SOURCE_STARTING
-        | dataset_pb2.BondTopology.SOURCE_ITC)
+        | dataset_pb2.BondTopology.SOURCE_DDT)
     self._molecule.bond_topo[1].topo_id = 456
     self._molecule.bond_topo[1].info = (
         dataset_pb2.BondTopology.SOURCE_CSD
         | dataset_pb2.BondTopology.SOURCE_MLCR)
     self._molecule.bond_topo[2].topo_id = 789
     self._molecule.bond_topo[2].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_MLCR)
 
     got = list(
@@ -1874,9 +1874,9 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     self._molecule.bond_topo[-1].topo_id = 123
     self._molecule.bond_topo[-1].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC)
+        dataset_pb2.BondTopology.SOURCE_DDT)
     self._molecule.bond_topo[0].info = (
-        dataset_pb2.BondTopology.SOURCE_ITC)
+        dataset_pb2.BondTopology.SOURCE_DDT)
 
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
@@ -1899,7 +1899,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     for _ in range(3):
       self._molecule.bond_topo[starting_idx].info = (
-          dataset_pb2.BondTopology.SOURCE_ITC)
+          dataset_pb2.BondTopology.SOURCE_DDT)
     self._molecule.bond_topo[starting_idx].info |= (
         dataset_pb2.BondTopology.SOURCE_STARTING)
 
