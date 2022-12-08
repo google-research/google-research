@@ -709,12 +709,12 @@ class IterateBondTopologiesTest(parameterized.TestCase):
     molecule = self.make_old_fake_molecule(123, 2)
     got = [
         i for i, _ in smu_utils_lib.iterate_bond_topologies(
-            molecule, smu_utils_lib.WhichTopologies.ITC)
+            molecule, smu_utils_lib.WhichTopologies.DDT)
     ]
     self.assertEqual(got, [0, 1])
 
   @parameterized.parameters([
-      (smu_utils_lib.WhichTopologies.ITC, [0, 1]),
+      (smu_utils_lib.WhichTopologies.DDT, [0, 1]),
       (smu_utils_lib.WhichTopologies.CSD, [2, 3]),
       (smu_utils_lib.WhichTopologies.MLCR, [4, 5]),
   ])

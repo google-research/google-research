@@ -106,7 +106,7 @@ case2_mols = list(
         molecule,
         include_initial_geometries=False,
         include_optimized_geometry=True,
-        which_topologies=smu_utils_lib.WhichTopologies.ITC))
+        which_topologies=smu_utils_lib.WhichTopologies.DDT))
 assert len(case2_mols) == 2
 
 print()
@@ -127,7 +127,7 @@ case3_mols = list(
         molecule,
         include_initial_geometries=True,
         include_optimized_geometry=True,
-        which_topologies=smu_utils_lib.WhichTopologies.ITC))
+        which_topologies=smu_utils_lib.WhichTopologies.DDT))
 assert len(case3_mols) == 10
 
 print()

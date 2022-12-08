@@ -921,7 +921,7 @@ def is_valid_bond(atom_a, atom_b, bond):
           bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_b])
 
 
-_ITC_H_BOND_MIN_MAX = {
+_DDT_H_BOND_MIN_MAX = {
     dataset_pb2.BondTopology.ATOM_H: (0.54, 0.94),
     dataset_pb2.BondTopology.ATOM_C: (0.89, 1.29),
     dataset_pb2.BondTopology.ATOM_N: (0.81, 1.21),
@@ -936,7 +936,7 @@ def add_itc_h_lengths(dists):
   Args:
     dists: AllAtomPairLengthDistributions
   """
-  for atom, (mn, mx) in _ITC_H_BOND_MIN_MAX.items():
+  for atom, (mn, mx) in _DDT_H_BOND_MIN_MAX.items():
     dists.add(atom, dataset_pb2.BondTopology.ATOM_H,
               dataset_pb2.BondTopology.BOND_SINGLE, FixedWindow(mn, mx, None))
 

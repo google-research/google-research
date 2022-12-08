@@ -134,7 +134,7 @@ print()
 print('The last 3 which values select topologies based on which methods produced them')
 print('which of DDT gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
-    molecule, smu_utils_lib.WhichTopologies.ITC):
+    molecule, smu_utils_lib.WhichTopologies.DDT):
   print('    Got bond topology with position', bt_idx, 'and id', bt.topo_id)
 print('which of MLCR gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(

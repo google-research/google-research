@@ -274,8 +274,8 @@ class SmuSqliteTest(absltest.TestCase):
   def test_find_by_topo_id_source_filtering(self):
     db = smu_sqlite.SMUSQLite(self.db_filename, 'c')
     # We'll make 2 molecules
-    # 2001 with bt id 10 (ITC, STARTING) and bt id 11 (MLCR)
-    # 4001 with bt id 10 (ITC), bt id 11 (ITC, STARTING), bt id 12 (CSD)
+    # 2001 with bt id 10 (DDT, STARTING) and bt id 11 (MLCR)
+    # 4001 with bt id 10 (DDT), bt id 11 (DDT, STARTING), bt id 12 (CSD)
     # 6001 with bt id 12 (MLCR)
     molecules = []
     molecules.append(dataset_pb2.Molecule(mol_id=2001))
@@ -315,7 +315,7 @@ class SmuSqliteTest(absltest.TestCase):
     self.assertEqual(ids_for(11, smu_utils_lib.WhichTopologies.MLCR), [2001])
     self.assertEqual(ids_for(12, smu_utils_lib.WhichTopologies.CSD), [4001])
 
-    self.assertEmpty(ids_for(12, smu_utils_lib.WhichTopologies.ITC))
+    self.assertEmpty(ids_for(12, smu_utils_lib.WhichTopologies.DDT))
     self.assertEmpty(ids_for(11, smu_utils_lib.WhichTopologies.CSD))
 
   def test_find_by_smiles_list(self):

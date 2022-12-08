@@ -268,6 +268,7 @@ spe_check_pbe0_6311gd_tmol_orca spe_check_pbe0_6311gd_orca
 
 DDT="""
 SOURCE_ITC SOURCE_DDT
+ITC DDT
 """
 
 THIS_REPLACE="${DDT}"

@@ -816,7 +816,7 @@ class WhichTopologies(enum.Enum):
   # The topology used during geometry finding
   STARTING = 3
   # All topologies matching the bond length ranges used in SMU
-  ITC = 4
+  DDT = 4
   # All topologies maatching a covalent bond length criteria from Meng and Lewis
   # (see dataset.proto for SourceType for details)
   MLCR = 5
@@ -849,7 +849,7 @@ def iterate_bond_topologies(molecule, which):
           bt.info & dataset_pb2.BondTopology.SOURCE_STARTING):
         yield bt_idx, bt
 
-  if which == WhichTopologies.ITC:
+  if which == WhichTopologies.DDT:
     for bt_idx, bt in enumerate(molecule.bond_topo):
       if not bt.info or bt.info & dataset_pb2.BondTopology.SOURCE_DDT:
         yield bt_idx, bt
@@ -1826,7 +1826,7 @@ def molecule_to_bond_topology_summaries(molecule):
 
   def filtered_topologies(source):
     observed_bt_id = set()
-    # Special case ITC: We only want to filter the starting topology for the ITC
+    # Special case DDT: We only want to filter the starting topology for the DDT
     # source.
     if (starting_idx is not None and
         source == dataset_pb2.BondTopology.SOURCE_DDT):

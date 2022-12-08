@@ -42,10 +42,10 @@ print('(see multiple_bond_topology.py for some illustration)')
 print('This is what the "find_by_smiles" method is using and is very efficient')
 
 print('Note that we have multiple criteria for creating bond topologies.')
-print('For this example, we will focus on the ITC criteria (our initial bond ranges)')
+print('For this example, we will focus on the DDT criteria (our initial bond ranges)')
 original_molecules = sorted(
     db.find_by_smiles_list([smiles],
-                           which_topologies=smu_utils_lib.WhichTopologies.ITC),
+                           which_topologies=smu_utils_lib.WhichTopologies.DDT),
     key=lambda c: c.mol_id)
 print('find_by_smiles on', smiles, 'finds these molecule ids')
 print([c.mol_id for c in original_molecules])

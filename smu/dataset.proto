@@ -1132,7 +1132,7 @@ message BondTopologySummary {
 
   // After all calculations were done, we detected all bond topologies
   // which are consistent with a molecule's geometry, with several
-  // different criteria (ITC, MLCR, CSD (see Source above for
+  // different criteria (DDT, MLCR, CSD (see Source above for
   // details)). These fields count the results of these "detected"
   // geometries. Note that the geometries counted in the "duplicate"
   // fields above will probably be counted here.

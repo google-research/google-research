@@ -577,8 +577,8 @@ class SmuParser:
                                            hydrogen_counts))
     self._molecule.bond_topo[-1].smiles = str(smiles).replace('\'',
                                                                     '').strip()
-    # Note that we only set source to STARTING and not ITC. This is because this
-    # geometry may not actually pass the ITC criteria. We let the later geometry
+    # Note that we only set source to STARTING and not DDT. This is because this
+    # geometry may not actually pass the DDT criteria. We let the later geometry
     # detection take care of this.
     self._molecule.bond_topo[-1].info = (
         dataset_pb2.BondTopology.SOURCE_STARTING)

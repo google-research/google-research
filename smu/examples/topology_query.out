@@ -2,7 +2,7 @@ Molecules can have multiple bond topologies that match the geometry
 (see multiple_bond_topology.py for some illustration)
 This is what the "find_by_smiles" method is using and is very efficient
 Note that we have multiple criteria for creating bond topologies.
-For this example, we will focus on the ITC criteria (our initial bond ranges)
+For this example, we will focus on the DDT criteria (our initial bond ranges)
 find_by_smiles on [O-]N=N[NH+]=[N+]([O-])F finds these molecule ids
 [85532001, 88595001, 89347002]
 
