@@ -20,7 +20,7 @@ index 24482296..a0b2342e 100644
 +    remote = "https://github.com/sammymax/cnpy.git",
 +)
 diff --git a/tensorflow_serving/model_servers/BUILD b/tensorflow_serving/model_servers/BUILD
-index 65dd9955..3cde1a38 100644
+index e9e9c590..240500b0 100644
 --- a/tensorflow_serving/model_servers/BUILD
 +++ b/tensorflow_serving/model_servers/BUILD
 @@ -351,6 +351,7 @@ SUPPORTED_TENSORFLOW_OPS = if_v2([]) + if_not_v2([
@@ -28,9 +28,9 @@ index 65dd9955..3cde1a38 100644
  ]) + [
      "@org_tensorflow_text//tensorflow_text:ops_lib",
 +    "@com_google_scann//scann/scann_ops/cc:scann_ops_static",
- ]
- 
- cc_library(
+     # Support for TensorFlow Decision Forests inference ops.
+     # [September 2022] This dependency adds 3 MB to the model server (352 MB -> 355 MB i.e. +0.8%).
+     "@org_tensorflow_decision_forests//tensorflow_decision_forests/tensorflow/ops/inference:kernel_and_op",
 diff --git a/tensorflow_serving/workspace.bzl b/tensorflow_serving/workspace.bzl
 index cc93fe81..30b5863c 100644
 --- a/tensorflow_serving/workspace.bzl
@@ -42,8 +42,8 @@ index cc93fe81..30b5863c 100644
 +
 +    http_archive(
 +        name = "com_google_scann",
-+        strip_prefix = "google-research-1e56278fb708c8ac76e5e78a2d47c82dc7edf662/scann",
-+        url = "https://github.com/google-research/google-research/archive/1e56278fb708c8ac76e5e78a2d47c82dc7edf662.zip",
++        strip_prefix = "google-research-d170ac58ce1d071614b2813b056afa292f5e490c/scann",
++        url = "https://github.com/google-research/google-research/archive/d170ac58ce1d071614b2813b056afa292f5e490c.zip",
 +        patches = ["@//third_party/scann:tf_serving.patch"],
 +        patch_args = ["-p1"],
 +    )

@@ -13,14 +13,10 @@ index 834e80b..ac0d048 100644
  )
  
 diff --git a/scann/scann_ops/cc/BUILD.bazel b/scann/scann_ops/cc/BUILD.bazel
-index 1bc9ac0..c525fee 100644
+index c6ace2c6..46ebfeca 100644
 --- a/scann/scann_ops/cc/BUILD.bazel
 +++ b/scann/scann_ops/cc/BUILD.bazel
-@@ -1,10 +1,17 @@
--load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
--
- package(
-     default_visibility = ["//visibility:public"],
+@@ -5,6 +5,15 @@ package(
      licenses = ["notice"],
  )
  
@@ -36,7 +32,7 @@ index 1bc9ac0..c525fee 100644
  cc_binary(
      name = "_scann_ops.so",
      copts = [
-@@ -87,14 +94,3 @@ cc_library(
+@@ -90,17 +99,3 @@ cc_library(
          "@com_google_protobuf//:protobuf",
      ],
  )
@@ -48,6 +44,9 @@ index 1bc9ac0..c525fee 100644
 -    tags = ["local"],
 -    deps = [
 -        ":scann",
+-        "//scann/base:single_machine_factory_options",
+-        "//scann/data_format:dataset",
 -        "//scann/utils:io_oss_wrapper",
+-        "@com_google_absl//absl/types:span",
 -    ],
 -)
