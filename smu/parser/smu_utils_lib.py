@@ -215,6 +215,9 @@ def special_case_bt_id_from_dat_id(dat_id, smiles):
 
   Returns:
     None if this is not a special case, bond topology id otherwise
+
+  Raises:
+    ValueError: if ID is 0 and not a known special case
   """
   if dat_id == 0:
     # Note that the smiles string for these special SMU1 cases is just the atom
@@ -616,6 +619,9 @@ def create_bond_topology(atoms, connectivity_matrix_string, hydrogens_string):
 
   Returns:
     BondTopology
+
+  Raises:
+    ValueError: on unknown atom type
   """
   bond_topology = dataset_pb2.BondTopology()
 
@@ -693,6 +699,9 @@ def parse_bond_topology_line(line):
     atoms str (like 'N+O O O-')
     connectivity matrix str (e.g. '010110')
     hydrogen count str (e.g. '3000')
+
+  Raises:
+    ValueError: on unexpected line format
   """
   line = line.rstrip()
   num_atoms = int(line[0:2])
@@ -883,7 +892,7 @@ def molecule_to_rdkit_molecules(molecule,
 
   Args:
     molecule: dataset_pb2.Molecule
-    include_ini_geo: output molecule for each ini_geo
+    include_initial_geometries: output molecule for each ini_geo
     include_optimized_geometry: output molecule for optimized_geometry
     which_topologies: WhichTopologies
 
@@ -1010,6 +1019,9 @@ def rdkit_atom_to_atom_type(atom):
 
   Returns:
     dataset_pb2.AtomType
+
+  Raises:
+    ValueError: on unrecognized atom type
   """
   if atom.GetAtomicNum() == 1:
     return dataset_pb2.BondTopology.ATOM_H
@@ -1522,6 +1534,9 @@ def clean_up_error_codes(molecule):
 
   Args:
     molecule: dataset_pb2.Molecule
+
+  Raises:
+    ValueError: on unexpected molecule format
   """
   source = _molecule_source(molecule)
   if source == _MoleculeSource.STAGE1:
@@ -1718,6 +1733,9 @@ def determine_fate(molecule):
 
   Returns:
     dataset_pb2.Properties.FateCategory
+
+  Raises:
+    ValueError: on unrecognized error level or source
   """
   source = _molecule_source(molecule)
   if source == _MoleculeSource.DUPLICATE:
@@ -1808,6 +1826,9 @@ def molecule_to_bond_topology_summaries(molecule):
 
   Yields:
     dataset_pb2.BondTopologySummary
+
+  Raises:
+    ValueError: on undefeined fate
   """
   summary = dataset_pb2.BondTopologySummary()
   try:

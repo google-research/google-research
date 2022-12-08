@@ -84,14 +84,29 @@ class _FortranFloat(float):
 
 
 def get_long_molecule_name(molecule):
+  """Gets string form of molecule name like x07_c6o.123456.001.
+
+  Args:
+    molecule: dataset_pb2.Molecule
+
+  Returns:
+    string
+  """
   return '{}.{}'.format(
     smu_utils_lib.get_composition(molecule.bond_topo[0]),
     get_long_mol_id(molecule.mol_id))
 
 
 def get_long_mol_id(mol_id):
-  return '{:06d}.{:03d}'.format(mol_id // 1000, mol_id % 1000)
+  """Gets string form of molecule id like 123456.011.
 
+  Args:
+    mol_id: integer molecule id
+
+  Returns:
+    string
+  """
+  return '{:06d}.{:03d}'.format(mol_id // 1000, mol_id % 1000)
 
 
 class SmuWriter:
@@ -164,6 +179,9 @@ class SmuWriter:
 
     Returns:
       String
+
+    Raises:
+      ValueError: on unexpected input
     """
     if not molecule.prop.HasField('calc'):
       # Standard database has the errors message filtered, so we assume this is
@@ -243,6 +261,9 @@ class SmuWriter:
 
     Returns:
       A multiline string representation of id lines.
+
+    Raises:
+      ValueError: on unexpected input
     """
     result = ''
     if self.annotate:
@@ -297,6 +318,9 @@ class SmuWriter:
 
     Returns:
       A multiline string representation of timings for different computations.
+
+    Raises:
+      ValueError: on missing statistics
     """
     if len(prop.calculation_statistics) == 0:
       return ''
@@ -306,6 +330,7 @@ class SmuWriter:
       for statistic in prop.calculation_statistics:
         if statistic.computing_location == s:
           return statistic.timings
+      raise ValueError(f'Did not find statistic {s}')
 
     result += '{:>6s}{:>6s}'.format(get_stat('Geo'), get_stat('Force'))
     result += '    -1' * 8
@@ -413,6 +438,9 @@ class SmuWriter:
 
     Returns:
       A multiline string representation of geometry energies and gradient norms.
+
+    Raises:
+      ValueError: on missing energies
     """
     result = ''
     if molecule.opt_geo.HasField('energy'):
@@ -554,6 +582,9 @@ class SmuWriter:
 
     Returns:
       A multiline string representation
+
+    Raises:
+      ValueError: on bad values in fields
     """
     if not prop.HasField('gaussian_sanity_check'):
       return ''
@@ -694,6 +725,9 @@ class SmuWriter:
 
     Returns:
       A string representation of the ATOMIC2 related prop.
+
+    Raises:
+      ValueError: on unexpectd field types
     """
     result = ''
     for label, (field,
@@ -775,6 +809,9 @@ class SmuWriter:
 
     Returns:
       A multiline string representation of the energies and oscillations.
+
+    Raises:
+      ValueError: energies and oscillator_strength different length
     """
     if not prop.HasField('exc_ene_cc2_tzvp'):
       return ''
@@ -849,7 +886,7 @@ class SmuWriter:
 
     return result
 
-  def format_for_tensors(self, label, val):
+  def _format_for_tensors(self, label, val):
     return '   %s%s\n' % (label, '{:.5f}'.format(val).rjust(14))
 
   def get_rank2(self, prop):
@@ -865,10 +902,10 @@ class SmuWriter:
     if prop.matrix_values_deprecated:
       for label, val in zip(smu_parser_lib.RANK2_ENCODING_ORDER,
                             prop.matrix_values_deprecated):
-        out += self.format_for_tensors(' ' + label, val)
+        out += self._format_for_tensors(' ' + label, val)
     else:
       for label in smu_parser_lib.RANK2_ENCODING_ORDER:
-        out += self.format_for_tensors(' ' + label, getattr(prop, label))
+        out += self._format_for_tensors(' ' + label, getattr(prop, label))
     return out
 
   def get_rank3(self, prop):
@@ -884,10 +921,10 @@ class SmuWriter:
     if prop.tensor_values_deprecated:
       for label, val in zip(smu_parser_lib.RANK3_ENCODING_ORDER,
                             prop.tensor_values_deprecated):
-        out += self.format_for_tensors(label, val)
+        out += self._format_for_tensors(label, val)
     else:
       for label in smu_parser_lib.RANK3_ENCODING_ORDER:
-        out += self.format_for_tensors(label, getattr(prop, label))
+        out += self._format_for_tensors(label, getattr(prop, label))
     return out
 
   def get_polarizability(self, prop):
@@ -924,11 +961,11 @@ class SmuWriter:
       result += 'Dipole moment (au):     PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From elec_dip_pbe0_augpc1\n'
-      result += self.format_for_tensors(
+      result += self._format_for_tensors(
           '  x', prop.elec_dip_pbe0_augpc1.x)
-      result += self.format_for_tensors(
+      result += self._format_for_tensors(
           '  y', prop.elec_dip_pbe0_augpc1.y)
-      result += self.format_for_tensors(
+      result += self._format_for_tensors(
           '  z', prop.elec_dip_pbe0_augpc1.z)
 
     if prop.HasField('elec_qua_pbe0_augpc1'):
@@ -947,11 +984,11 @@ class SmuWriter:
       result += 'Dipole moment (au):     HF/6-31Gd\n'
       if self.annotate:
         result += '# From dipole_moment_hf\n'
-      result += self.format_for_tensors('  x',
+      result += self._format_for_tensors('  x',
                                         prop.elec_dip_hf_631gd.x)
-      result += self.format_for_tensors('  y',
+      result += self._format_for_tensors('  y',
                                         prop.elec_dip_hf_631gd.y)
-      result += self.format_for_tensors('  z',
+      result += self._format_for_tensors('  z',
                                         prop.elec_dip_hf_631gd.z)
 
     if prop.HasField('elec_qua_hf_631gd'):
@@ -1264,7 +1301,7 @@ class CleanTextWriter:
                        (23, smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom][0])]
 
 
-  def get_mol_id_block(self, molecule, long_name):
+  def _get_mol_id_block(self, molecule, long_name):
     out = []
     out.append('#\n')
     out.append('#mol_id    \n')
@@ -1275,7 +1312,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_mol_spec_block(self, molecule, long_name):
+  def _get_mol_spec_block(self, molecule, long_name):
     out = []
     out.append('#\n')
     out.append('#mol_spec  \n')
@@ -1322,7 +1359,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_calc_block(self, molecule, long_name):
+  def _get_calc_block(self, molecule, long_name):
     out = []
     if not molecule.prop.HasField('calc'):
       return out
@@ -1410,7 +1447,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_duplicates_block(self, molecule, long_name):
+  def _get_duplicates_block(self, molecule, long_name):
     out = []
     out.append('#\n')
     out.append('#duplicate_found            \n')
@@ -1436,7 +1473,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_bond_topo_block(self, molecule, long_name):
+  def _get_bond_topo_block(self, molecule, long_name):
     out = []
     for bt_idx, bt in enumerate(molecule.bond_topo):
       base_vals = [(1, 'bond_topo'),
@@ -1484,7 +1521,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_geometries_block(self, molecule, long_name):
+  def _get_geometries_block(self, molecule, long_name):
     out = []
 
     def write_geometry(prefix, units_comment, geom):
@@ -1557,7 +1594,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_vib_block(self, molecule, long_name):
+  def _get_vib_block(self, molecule, long_name):
     out = []
 
     if molecule.prop.HasField('vib_zpe'):
@@ -1647,7 +1684,7 @@ class CleanTextWriter:
   ]
   _SPE_COMP_SHORT_NAMES = ['b5', 'b6', 'eccsd']
 
-  def get_spe_block(self, molecule, long_name):
+  def _get_spe_block(self, molecule, long_name):
     out = []
 
     def process_fields(prefix, header_vals, short_names, field_spec):
@@ -1702,7 +1739,7 @@ class CleanTextWriter:
     't1_2sd',
     't1_3psd',
     ]
-  def get_diagnostics_block(self, molecule, long_name):
+  def _get_diagnostics_block(self, molecule, long_name):
     out = []
 
     for short_name in self._DIAGNOSTICS_SHORT_NAMES:
@@ -1768,11 +1805,11 @@ class CleanTextWriter:
     elif num_digits == 2:
       out_vals[0].append((38, components[0]))
     else:
-      raise ValuError(f'0th component {components[0]} has unexpected number of digits')
+      raise ValueError(f'0th component {components[0]} has unexpected number of digits')
 
     return [self._fw_line(vals) for vals in out_vals]
 
-  def get_atomic2_gen_block(self, molecule, long_name):
+  def _get_atomic2_gen_block(self, molecule, long_name):
     out = []
 
     base_vals = [(1, 'at2_gen'), (84, long_name)]
@@ -1798,7 +1835,7 @@ class CleanTextWriter:
     if out:
       return ['#\n', '#at2_gen         \n'] + out
     else:
-      return out;
+      return out
 
   _ATOMIC2_SHORT_NAMES = [
     'ereac',
@@ -1807,7 +1844,7 @@ class CleanTextWriter:
     'hf0',
     'hf298',
     ]
-  def get_atomic2_um_block(self, molecule, long_name):
+  def _get_atomic2_um_block(self, molecule, long_name):
     out = []
 
     header_vals = [(0, '#at2_um'),
@@ -1850,7 +1887,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_atomic2_std_block(self, molecule, long_name):
+  def _get_atomic2_std_block(self, molecule, long_name):
     out = []
 
     header_vals = [(0, '#at2_std'),
@@ -1905,7 +1942,7 @@ class CleanTextWriter:
     'pbe0_augpcs1',
     ]
 
-  def get_orb_block(self, molecule, long_name):
+  def _get_orb_block(self, molecule, long_name):
     out = []
 
     for short_name in self._ORB_SHORT_NAMES:
@@ -1930,7 +1967,7 @@ class CleanTextWriter:
                                   (84, '(au)'),
                                   ])] + out
 
-  def get_exc_block(self, molecule, long_name):
+  def _get_exc_block(self, molecule, long_name):
     out = []
 
     if not molecule.prop.HasField('exc_ene_cc2_tzvp'):
@@ -1962,7 +1999,7 @@ class CleanTextWriter:
     ('pbe0', 'augpcs1'),
     ]
 
-  def get_nmr_block(self, molecule, long_name):
+  def _get_nmr_block(self, molecule, long_name):
     # This block is annoyingly differnt than the others because
     # * the header row is two lines long
     # * Values are not in a fixed place, but migrate based on what is available.
@@ -1972,7 +2009,7 @@ class CleanTextWriter:
     for functional, basis_set in self._NMR_COMPONENTS:
       field = f'nmr_{functional}_{basis_set}'
       if not molecule.prop.HasField(field):
-        continue;
+        continue
       pos = self._DEC_POINT_POSITIONS[num_values_present]
       lines_vals[0].append((pos - 5, f'{functional:>7s}_'))
       lines_vals[1].append((pos - 5, f'{basis_set:>8s}'))
@@ -2000,10 +2037,9 @@ class CleanTextWriter:
     'loe',
     'nat',
     ]
-  def get_charge_block(self, molecule, long_name):
+  def _get_charge_block(self, molecule, long_name):
     out = []
 
-    # TODO: probalby can remove the dup here when I rename field
     for method_idx, method in enumerate(['pbe0_augpc1', 'hf_631gd']):
       lines_vals = [[] for _ in range(len(molecule.bond_topo[0].atom) + 1)]
       num_values_present = 0
@@ -2040,7 +2076,7 @@ class CleanTextWriter:
 
     return out
 
-  def get_elec_block(self, molecule, long_name):
+  def _get_elec_block(self, molecule, long_name):
     out = []
 
     if molecule.prop.HasField('elec_pol_pbe0_augpc1'):
@@ -2109,24 +2145,25 @@ class CleanTextWriter:
 
   def process(self, molecule):
     long_name = get_long_molecule_name(molecule)
-    contents = ['#===============================================================================\n']
-    contents.extend(self.get_mol_id_block(molecule, long_name))
-    contents.extend(self.get_mol_spec_block(molecule, long_name))
-    contents.extend(self.get_calc_block(molecule, long_name))
-    contents.extend(self.get_duplicates_block(molecule, long_name))
-    contents.extend(self.get_bond_topo_block(molecule, long_name))
-    contents.extend(self.get_geometries_block(molecule, long_name))
-    contents.extend(self.get_vib_block(molecule, long_name))
-    contents.extend(self.get_spe_block(molecule, long_name))
-    contents.extend(self.get_diagnostics_block(molecule, long_name))
-    contents.extend(self.get_atomic2_gen_block(molecule, long_name))
-    contents.extend(self.get_atomic2_um_block(molecule, long_name))
-    contents.extend(self.get_atomic2_std_block(molecule, long_name))
-    contents.extend(self.get_orb_block(molecule, long_name))
-    contents.extend(self.get_exc_block(molecule, long_name))
-    contents.extend(self.get_nmr_block(molecule, long_name))
-    contents.extend(self.get_charge_block(molecule, long_name))
-    contents.extend(self.get_elec_block(molecule, long_name))
+    contents = [
+      '#===============================================================================\n']
+    contents.extend(self._get_mol_id_block(molecule, long_name))
+    contents.extend(self._get_mol_spec_block(molecule, long_name))
+    contents.extend(self._get_calc_block(molecule, long_name))
+    contents.extend(self._get_duplicates_block(molecule, long_name))
+    contents.extend(self._get_bond_topo_block(molecule, long_name))
+    contents.extend(self._get_geometries_block(molecule, long_name))
+    contents.extend(self._get_vib_block(molecule, long_name))
+    contents.extend(self._get_spe_block(molecule, long_name))
+    contents.extend(self._get_diagnostics_block(molecule, long_name))
+    contents.extend(self._get_atomic2_gen_block(molecule, long_name))
+    contents.extend(self._get_atomic2_um_block(molecule, long_name))
+    contents.extend(self._get_atomic2_std_block(molecule, long_name))
+    contents.extend(self._get_orb_block(molecule, long_name))
+    contents.extend(self._get_exc_block(molecule, long_name))
+    contents.extend(self._get_nmr_block(molecule, long_name))
+    contents.extend(self._get_charge_block(molecule, long_name))
+    contents.extend(self._get_elec_block(molecule, long_name))
 
     return ''.join(contents)
 

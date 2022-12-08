@@ -812,6 +812,9 @@ class SmuParser:
 
     Args:
       num_atoms: Number of atoms in the molecule.
+
+    Raises:
+      ValueError: if line format is unexpected
     """
     if not self._next_line_startswith('Normal modes'):
       return
