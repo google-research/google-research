@@ -33,7 +33,7 @@ from smu import smu_sqlite
 #-----------------------------------------------------------------------------
 # Note that we are loading the *complete* database
 #-----------------------------------------------------------------------------
-db = smu_sqlite.SMUSQLite('20220621_complete.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_complete_v4.sqlite')
 
 print(
     'When processing the complete database, there are a few special kinds of molecules to look out for'

@@ -49,10 +49,10 @@ ini_geo {
     z: -0.0011340000201016665
   }
   energy {
-    value: -213.600956
+    val: -213.600956
   }
   gnorm {
-    value: 0.114996
+    val: 0.114996
   }
 }
 opt_geo {
@@ -77,100 +77,100 @@ opt_geo {
     z: 0.0489640012383461
   }
   energy {
-    value: -213.607287
+    val: -213.607287
   }
   gnorm {
-    value: 6.7e-05
+    val: 6.7e-05
   }
   brot {
-    value: 10473.771
-    value: 11808.073
-    value: 92688.945
+    val: 10473.771
+    val: 11808.073
+    val: 92688.945
   }
 }
-properties {
+prop {
   vib_intens {
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 21.5
-    value: 0.2
-    value: 259.5
-    value: 2.5
-    value: 290.8
-    value: 43.7
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 21.5
+    val: 0.2
+    val: 259.5
+    val: 2.5
+    val: 290.8
+    val: 43.7
   }
   spe_comp_b5 {
-    value: -213.76513
+    val: -213.76513
   }
   orb_ehomo_pbe0_6311gd {
-    value: -0.34427
+    val: -0.34427
   }
   orb_elumo_pbe0_6311gd {
-    value: -0.02321
+    val: -0.02321
   }
   exc_ene_cc2_tzvp {
-    value: 0.23229
-    value: 0.34252
-    value: 0.35454
-    value: 0.3652
-    value: 0.39769
+    val: 0.23229
+    val: 0.34252
+    val: 0.35454
+    val: 0.3652
+    val: 0.39769
   }
   exc_os_cc2_tzvp {
-    value: 0.00237
-    value: 1e-05
-    value: 0.10047
-    value: 0.06747
-    value: 0.15779
+    val: 0.00237
+    val: 1e-05
+    val: 0.10047
+    val: 0.06747
+    val: 0.15779
   }
   nmr_pbe0_augpcs1 {
-    values: 28.0736
-    values: -126.0672
-    values: 119.1424
-    values: 23.4408
+    val: 28.0736
+    val: -126.0672
+    val: 119.1424
+    val: 23.4408
     prec: 0.0016
     prec: 0.0064
     prec: 0.0064
     prec: 0.0008
   }
   chg_mul_pbe0_augpc1 {
-    values: 1.1429
-    values: -0.8308
-    values: -0.5849
-    values: 0.2728
+    val: 1.1429
+    val: -0.8308
+    val: -0.5849
+    val: 0.2728
     prec: 0.0001
     prec: 0.0001
     prec: 0.0001
     prec: 0.0001
   }
   chg_loe_pbe0_augpc1 {
-    values: 0.2448
-    values: -0.1433
-    values: -0.1816
-    values: 0.0801
+    val: 0.2448
+    val: -0.1433
+    val: -0.1816
+    val: 0.0801
     prec: 0.0001
     prec: 0.0001
     prec: 0.0001
     prec: 0.0001
   }
   chg_nat_pbe0_augpc1 {
-    values: 0.8086
-    values: -0.5495
-    values: -0.3837
-    values: 0.1246
+    val: 0.8086
+    val: -0.5495
+    val: -0.3837
+    val: 0.1246
     prec: 0.0001
     prec: 0.0001
     prec: 0.0001
     prec: 0.0001
   }
   chg_esp_pbe0_augpc1 {
-    values: 0.5444
-    values: -0.3912
-    values: -0.2043
-    values: 0.0512
+    val: 0.5444
+    val: -0.3912
+    val: -0.2043
+    val: 0.0512
     prec: 0.0001
     prec: 0.0001
     prec: 0.0001
@@ -210,106 +210,105 @@ properties {
     xyz: 1.79615
   }
   wf_diag_t1_2sd {
-    value: 0.0159
+    val: 0.0159
   }
   at2_gen_t1_exc {
-    value: 0.0036
+    val: 0.0036
   }
   at2_gen_bsr_left {
-    value: " molecule +  1 CH4"
+    val: " molecule +  1 CH4"
   }
   at2_gen_bsr_right {
-    value: " 1 H2C=O +  1 H3C-F"
+    val: " 1 H2C=O +  1 H3C-F"
   }
   at2_std_b5_ereac {
-    value: 26.52
+    val: 26.52
   }
   at2_um_b5_ereac {
-    value: 26.54
+    val: 26.54
   }
   at2_um_b5_ereac_unc {
-    value: 0.34
+    val: 0.34
   }
   at2_std_b5_eae {
-    value: 402.33
+    val: 402.33
   }
   at2_um_b5_eae {
-    value: 402.64
+    val: 402.64
   }
   at2_um_b5_eae_unc {
-    value: 0.53
+    val: 0.53
   }
   at2_std_b5_ea0 {
-    value: 389.33
+    val: 389.33
   }
   at2_um_b5_ea0 {
-    value: 389.83
+    val: 389.83
   }
   at2_um_b5_ea0_unc {
-    value: 0.67
+    val: 0.67
   }
   at2_std_b5_hf0 {
-    value: -90.21
+    val: -90.21
   }
   at2_um_b5_hf0 {
-    value: -90.7
+    val: -90.7
   }
   at2_um_b5_hf0_unc {
-    value: 0.67
+    val: 0.67
   }
   at2_std_b5_hf298 {
-    value: -91.07
+    val: -91.07
   }
   at2_um_b5_hf298 {
-    value: -91.57
+    val: -91.57
   }
   at2_um_b5_hf298_unc {
-    value: 0.69
+    val: 0.69
   }
   at2_std_zpe {
-    value: 12.99
+    val: 12.99
   }
   at2_um_zpe {
-    value: 12.81
+    val: 12.81
   }
   at2_um_zpe_unc {
-    value: 0.41
+    val: 0.41
   }
   vib_freq {
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 0.0
-    value: 680.9
-    value: 1043.4
-    value: 1109.9
-    value: 1395.5
-    value: 1941.9
-    value: 3111.8
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 0.0
+    val: 680.9
+    val: 1043.4
+    val: 1109.9
+    val: 1395.5
+    val: 1941.9
+    val: 3111.8
   }
 }
 bond_topo {
-  atoms: ATOM_C
-  atoms: ATOM_O
-  atoms: ATOM_F
-  atoms: ATOM_H
-  bonds {
+  atom: ATOM_C
+  atom: ATOM_O
+  atom: ATOM_F
+  atom: ATOM_H
+  bond {
     atom_b: 1
     bond_type: BOND_DOUBLE
   }
-  bonds {
+  bond {
     atom_b: 2
     bond_type: BOND_SINGLE
   }
-  bonds {
+  bond {
     atom_b: 3
     bond_type: BOND_SINGLE
   }
   smiles: "O=CF"
   topo_id: 57
-  geometry_score: 3.1316471099853516
-  source: 15
+  info: 15
 }
 

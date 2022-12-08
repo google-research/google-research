@@ -7,12 +7,12 @@ Molecule 57429002 has 1 bond topologies
 
 Some Molecules have multiple bond topologies like this one
 Molecule 8400001 has 3 bond topologies
-    Topology with id 8405 and SMILES O=[N+]1ON1O[O-]
-        Sources:  ITC MLCR 
-    Topology with id 8400 and SMILES [O-][N+]12OON1O2
-        Sources:  STARTING ITC MLCR 
     Topology with id 8078 and SMILES [O-]O[N+]1=[N+]([O-])O1
         Sources:  MLCR 
+    Topology with id 8400 and SMILES [O-][N+]12OON1O2
+        Sources:  STARTING ITC MLCR 
+    Topology with id 8405 and SMILES O=[N+]1ON1O[O-]
+        Sources:  ITC MLCR 
 
 The "source" field gives information about these multiple topologies
 "source" is an integer which is a bit field of several values from
@@ -35,46 +35,46 @@ One further note, the same topology id can be present multiple times
 For example, consider good old benzene
 Molecule 79488001 has 2 bond topologies
     Topology with id 79488 and SMILES C1=CC=CC=C1
-        Sources:  ITC MLCR CSD 
-    Topology with id 79488 and SMILES C1=CC=CC=C1
         Sources:  STARTING ITC MLCR CSD 
+    Topology with id 79488 and SMILES C1=CC=CC=C1
+        Sources:  ITC MLCR CSD 
 These are the two kekulized forms of benzene
 While the final graphs are isomorphic, for a given pair of carbons, the bond types are switched
 The first bond topology has
 atom_a: 1
 atom_b: 3
-bond_type: BOND_DOUBLE
+bond_type: BOND_SINGLE
 and the second bond topology has
 atom_a: 1
 atom_b: 3
-bond_type: BOND_SINGLE
+bond_type: BOND_DOUBLE
 
 There are also some cases with a mix of same and different ids, like this
 Molecule 3177001 has 3 bond topologies
+    Topology with id 2805 and SMILES [O-][N+]12CN1N2
+        Sources:  ITC 
+    Topology with id 2805 and SMILES [O-][N+]12CN1N2
+        Sources:  ITC 
     Topology with id 3177 and SMILES C1N2NN1O2
         Sources:  STARTING ITC MLCR 
-    Topology with id 2805 and SMILES [O-][N+]12CN1N2
-        Sources:  ITC 
-    Topology with id 2805 and SMILES [O-][N+]12CN1N2
-        Sources:  ITC 
 
 The easiest and most reliable way to select the desired topologies is the function
-iterate_bond_topo. The "which" parameter controls which bond topologies are returned
+iterate_bond_topologies. The "which" parameter controls which bond topologies are returned
 Molecule 8400001 has 3 bond topologies
-    Topology with id 8405 and SMILES O=[N+]1ON1O[O-]
-        Sources:  ITC MLCR 
-    Topology with id 8400 and SMILES [O-][N+]12OON1O2
-        Sources:  STARTING ITC MLCR 
     Topology with id 8078 and SMILES [O-]O[N+]1=[N+]([O-])O1
         Sources:  MLCR 
+    Topology with id 8400 and SMILES [O-][N+]12OON1O2
+        Sources:  STARTING ITC MLCR 
+    Topology with id 8405 and SMILES O=[N+]1ON1O[O-]
+        Sources:  ITC MLCR 
 
 Passing ALL as the which parameter gives
-    Got bond topology with position 0 and id 8405
+    Got bond topology with position 0 and id 8078
     Got bond topology with position 1 and id 8400
-    Got bond topology with position 2 and id 8078
+    Got bond topology with position 2 and id 8405
 
 Passing BEST as the which parameter gives
-    Got bond topology with position 0 and id 8405
+    Got bond topology with position 0 and id 8078
 Note that BEST always returns a single topology
 
 Passing STARTING as the which parameter gives
@@ -85,12 +85,12 @@ This is one of the reasons this function is the recommended method
 
 The last 3 which values select topologies based on which methods produced them
 which of ITC gives
-    Got bond topology with position 0 and id 8405
     Got bond topology with position 1 and id 8400
+    Got bond topology with position 2 and id 8405
 which of MLCR gives
-    Got bond topology with position 0 and id 8405
+    Got bond topology with position 0 and id 8078
     Got bond topology with position 1 and id 8400
-    Got bond topology with position 2 and id 8078
+    Got bond topology with position 2 and id 8405
 which of CSD gives
     It is correct that nothing was printed here!
     This topology has no topology matching the CSD criteria

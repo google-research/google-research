@@ -36,7 +36,7 @@ from rdkit import Chem
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard_v4.sqlite')
 
 #-----------------------------------------------------------------------------
 # We will look at one molecule that illustrates the complexities of

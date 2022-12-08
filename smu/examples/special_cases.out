@@ -60,10 +60,10 @@ ini_geo {
     z: -3.940268039703369
   }
   energy {
-    value: -261.898872
+    val: -261.898872
   }
   gnorm {
-    value: 0.16787
+    val: 0.16787
   }
 }
 opt_geo {
@@ -108,62 +108,62 @@ opt_geo {
     z: -1.610368013381958
   }
   energy {
-    value: -262.052347
+    val: -262.052347
   }
   gnorm {
-    value: 0.00011
+    val: 0.00011
   }
 }
-properties {
-  errors {
+prop {
+  calc {
     status: 590
     fate: FATE_FAILURE_TOPOLOGY_CHECK
   }
   smiles_openbabel: "[O-][NH+]([NH3+])[O-]"
 }
 bond_topo {
-  atoms: ATOM_NPOS
-  atoms: ATOM_NPOS
-  atoms: ATOM_ONEG
-  atoms: ATOM_ONEG
-  atoms: ATOM_H
-  atoms: ATOM_H
-  atoms: ATOM_H
-  atoms: ATOM_H
-  bonds {
+  atom: ATOM_NPOS
+  atom: ATOM_NPOS
+  atom: ATOM_ONEG
+  atom: ATOM_ONEG
+  atom: ATOM_H
+  atom: ATOM_H
+  atom: ATOM_H
+  atom: ATOM_H
+  bond {
     atom_b: 1
     bond_type: BOND_SINGLE
   }
-  bonds {
+  bond {
     atom_a: 1
     atom_b: 2
     bond_type: BOND_SINGLE
   }
-  bonds {
+  bond {
     atom_a: 1
     atom_b: 3
     bond_type: BOND_SINGLE
   }
-  bonds {
+  bond {
     atom_b: 4
     bond_type: BOND_SINGLE
   }
-  bonds {
+  bond {
     atom_b: 5
     bond_type: BOND_SINGLE
   }
-  bonds {
+  bond {
     atom_b: 6
     bond_type: BOND_SINGLE
   }
-  bonds {
+  bond {
     atom_a: 1
     atom_b: 7
     bond_type: BOND_SINGLE
   }
   smiles: "[NH3+][NH+]([O-])[O-]"
   topo_id: 146
-  source: 1
+  info: 1
 }
 
 You can see that there is very little information there

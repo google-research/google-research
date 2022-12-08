@@ -33,7 +33,7 @@ from smu import smu_sqlite
 from smu.geometry import bond_length_distribution
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard_v4.sqlite')
 smiles = '[O-]N=N[NH+]=[N+]([O-])F'
 
 print('Molecules can have multiple bond topologies that match the geometry')

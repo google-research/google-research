@@ -33,7 +33,7 @@ from smu import smu_sqlite
 #-----------------------------------------------------------------------------
 # Note that we are loading the *complete* database
 #-----------------------------------------------------------------------------
-db = smu_sqlite.SMUSQLite('20220621_complete.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_complete_v4.sqlite')
 
 #-----------------------------------------------------------------------------
 # We'll grab a couple of molecules with different amount of information

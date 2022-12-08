@@ -32,7 +32,7 @@ import pandas as pd
 
 from smu import smu_sqlite
 
-db = smu_sqlite.SMUSQLite('20220621_standard.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard_v4.sqlite')
 
 #-----------------------------------------------------------------------------
 # This sets up a variable to store the data in an intermediate form before
