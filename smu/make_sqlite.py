@@ -153,6 +153,20 @@ def mutate_conformer(encoded_molecule, bond_lengths, smiles_id_dict):
   if molecule.prop.HasField('calc'):
     molecule.prop.calc.fate = smu_utils_lib.determine_fate(molecule)
 
+  # This is sad and ugly. Due to a bug in the CSD lengths, a few molecules did
+  # not get the correct bond topologies assigned. So we just rerun detection
+  # for this handful of topologies.
+  if molecule.mol_id in _REDETECT_TOPOLOGY_LIST:
+    old_bt_count = len(molecule.bond_topo)
+    start_topo = molecule.bond_topo[smu_utils_lib.get_starting_bond_topology_index(molecule)]
+    del molecule.bond_topo[:]
+    molecule.bond_topo.append(start_topo)
+    assert(topology_from_geom.standard_topology_sensing(
+      molecule, bond_lengths, smiles_id_dict))
+    new_bt_count = len(molecule.bond_topo)
+    logging.info(f'Ran topology detection on {molecule.mol_id}, '
+                 f'topo count {old_bt_count} to {new_bt_count}')
+
   # We decided to remove the topology and geometry scores and sort the bond
   # topologies by a simple key instead.
   if len(molecule.bond_topo):
@@ -181,20 +195,6 @@ def mutate_conformer(encoded_molecule, bond_lengths, smiles_id_dict):
       dataset_pb2.BondTopology.SOURCE_ITC |
       dataset_pb2.BondTopology.SOURCE_MLCR |
       dataset_pb2.BondTopology.SOURCE_CSD)
-
-  # This is sad and ugly. Due to a bug in the CSD lengths, a few molecules did
-  # not get the correct bond topologies assigned. So we just rerun detection
-  # for this handful of topologies.
-  if molecule.mol_id in _REDETECT_TOPOLOGY_LIST:
-    old_bt_count = len(molecule.bond_topo)
-    start_topo = molecule.bond_topo[smu_utils_lib.get_starting_bond_topology_index(molecule)]
-    del molecule.bond_topo[:]
-    molecule.bond_topo.append(start_topo)
-    assert(topology_from_geom.standard_topology_sensing(
-      molecule, bond_lengths, smiles_id_dict))
-    new_bt_count = len(molecule.bond_topo)
-    logging.info(f'Ran topology detection on {molecule.mol_id}, '
-                 f'topo count {old_bt_count} to {new_bt_count}')
 
   return molecule.SerializeToString()
 
