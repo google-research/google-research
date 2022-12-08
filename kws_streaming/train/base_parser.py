@@ -319,8 +319,8 @@ def base_parser():
   parser.add_argument(
       '--micro_enable_pcan',
       type=bool,
-      default=1,
-      help='If 1 then micro preprocessing uses PCAN auto gain control',
+      default=True,
+      help='If True then micro preprocessing uses PCAN auto gain control',
   )
   parser.add_argument(
       '--micro_features_scale',
