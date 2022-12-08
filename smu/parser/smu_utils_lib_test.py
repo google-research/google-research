@@ -639,28 +639,6 @@ class IterateBondTopologiesTest(parameterized.TestCase):
     self.assertEqual([(0, 100), (1, 101), (2, 102)],
                      [(bt_idx, bt.topo_id) for bt_idx, bt in got])
 
-  def test_old_best(self):
-    molecule = self.make_old_fake_molecule(123, 3)
-    molecule.bond_topo[1].is_starting_topology = True
-    got = list(
-        smu_utils_lib.iterate_bond_topologies(
-            molecule, smu_utils_lib.WhichTopologies.BEST))
-    self.assertLen(got, 1)
-    self.assertEqual(0, got[0][0])
-    self.assertEqual(100, got[0][1].topo_id)
-
-  def test_new_best(self):
-    molecule = self.make_new_fake_molecule(123, [
-        dataset_pb2.BondTopology.SOURCE_DDT, dataset_pb2.BondTopology.SOURCE_DDT
-        | dataset_pb2.BondTopology.SOURCE_STARTING
-    ])
-    got = list(
-        smu_utils_lib.iterate_bond_topologies(
-            molecule, smu_utils_lib.WhichTopologies.BEST))
-    self.assertLen(got, 1)
-    self.assertEqual(0, got[0][0])
-    self.assertEqual(100, got[0][1].topo_id)
-
   @parameterized.parameters([0, 1, 2])
   def test_old_starting(self, starting_idx):
     molecule = self.make_old_fake_molecule(123, 3)
@@ -774,6 +752,7 @@ class MoleculeToRDKitMoleculeTest(absltest.TestCase):
     # to RDKit
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     self._molecule.bond_topo[1].topo_id = 99999
+    self._molecule.bond_topo[1].info = dataset_pb2.BondTopology.SOURCE_DDT
 
   def test_all_outputs(self):
     mols = list(smu_utils_lib.molecule_to_rdkit_molecules(self._molecule))
@@ -799,7 +778,7 @@ class MoleculeToRDKitMoleculeTest(absltest.TestCase):
             self._molecule,
             include_initial_geometries=True,
             include_optimized_geometry=False,
-            which_topologies=smu_utils_lib.WhichTopologies.BEST))
+            which_topologies=smu_utils_lib.WhichTopologies.STARTING))
     self.assertLen(mols, 2)
     self.assertEqual([m.GetProp('_Name') for m in mols], [
         'SMU 618451001, RDKIT COC(=CF)OC, bt 618451(1/2), geom init(1/2)',
@@ -823,7 +802,7 @@ class MoleculeToRDKitMoleculeTest(absltest.TestCase):
             self._molecule,
             include_initial_geometries=False,
             include_optimized_geometry=True,
-            which_topologies=smu_utils_lib.WhichTopologies.BEST))
+            which_topologies=smu_utils_lib.WhichTopologies.STARTING))
     self.assertLen(mols, 1)
     self.assertEqual(
         mols[0].GetProp('_Name'),

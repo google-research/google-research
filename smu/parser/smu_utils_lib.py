@@ -811,8 +811,6 @@ class WhichTopologies(enum.Enum):
   """Enum of topology types."""
   # All topologies
   ALL = 1
-  # Single "best" topology from SMU lengths
-  BEST = 2
   # The topology used during geometry finding
   STARTING = 3
   # All topologies matching the bond length ranges used in SMU
@@ -837,9 +835,6 @@ def iterate_bond_topologies(molecule, which):
   """
   if which == WhichTopologies.ALL:
     yield from enumerate(molecule.bond_topo)
-
-  if which == WhichTopologies.BEST:
-    yield 0, molecule.bond_topo[0]
 
   if which == WhichTopologies.STARTING:
     if (molecule.prop.calc.status >= 512 or molecule.duplicate_of > 0):

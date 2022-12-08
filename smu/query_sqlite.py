@@ -109,7 +109,6 @@ flags.DEFINE_enum_class(
     'to match. For sdf and atomic2_input output formats, it specifies which bond '
     'topologies should be returned:\n '
     '"all" means all topologies,\n '
-    '"best" means a single best topology,\n '
     '"starting" means the single topology used for the calculations,\n '
     '"itc" means all topologies detected with our original bond lengths,\n '
     '"mlcr" means all topologies using very permissive covalent radii\n '
