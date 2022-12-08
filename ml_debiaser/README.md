@@ -3,8 +3,8 @@
 [*Near-optimal algorithm for debiasing machine learning models*](https://arxiv.org/abs/2106.12887).
 Ibrahim Alabdulmohsin and Mario Lucic, NeurIPS 2021.
 
-*A Reduction to Binary Approach for Debiasing Multiclass Datasets*
-Ibrahim Alabdulmohsin, Jessica Schrouff, and Oluwasanmi Koyejo, 2022 (under reivew)
+[*A Reduction to Binary Approach for Debiasing Multiclass Datasets*](https://arxiv.org/abs/2205.15860)
+Ibrahim Alabdulmohsin, Jessica Schrouff, and Oluwasanmi Koyejo, 2022 (NeurIPS 2022).
 
 This is the directory for algorithms that we develop to debias machine learing
 models while treating them as black-box classifiers. We develop a near-optimal
