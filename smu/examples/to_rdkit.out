@@ -1,9 +1,9 @@
-A single molecule comes from asking for only the optimized geometry and only the first bond topology
+A single molecule comes from asking for only the optimized geometry and only the starting bond topology
 Note that the title line start with "SMU" and the molecule id
 Note the "geom=opt" indicating this is the optimized geometry
 Note the bt=8240(1/3) indicating this is the first of 3 bond topologies
 In this case, we only generated output for a single topology
-SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom opt
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(3/3), geom opt
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -14,20 +14,20 @@ SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom opt
     0.9052   -0.8266   -0.6392 O   0  0  0  0  0  0  0  0  0  0  0  0
    -0.0409    1.6774   -0.4376 F   0  0  0  0  0  0  0  0  0  0  0  0
    -1.0898   -0.0782   -0.7029 H   0  0  0  0  0  0  0  0  0  0  0  0
-  1  2  2  3
+  1  2  1  0
   1  4  1  0
   1  6  1  0
-  2  3  1  0
+  2  3  2  0
   2  7  1  0
   4  5  1  0
-M  CHG  4   1   1   2   1   3  -1   5  -1
+M  CHG  2   2   1   5  -1
 M  END
 $$$$
 
 When we ask for the initial gemetries only, we get 1 or more molecules
 In this case we get 4 molecules because there are 4 ini_geo
 Note the "geom=init(X/4)" inidicating which geometry this is
-SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(1/4)
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(3/3), geom init(1/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -38,16 +38,16 @@ SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(1/4)
     2.3132   -0.5079    0.0131 O   0  0  0  0  0  0  0  0  0  0  0  0
    -0.0353    1.5320    0.2189 F   0  0  0  0  0  0  0  0  0  0  0  0
    -1.3755    0.0553   -0.7954 H   0  0  0  0  0  0  0  0  0  0  0  0
-  1  2  2  3
+  1  2  1  0
   1  4  1  0
   1  6  1  0
-  2  3  1  0
+  2  3  2  0
   2  7  1  0
   4  5  1  0
-M  CHG  4   1   1   2   1   3  -1   5  -1
+M  CHG  2   2   1   5  -1
 M  END
 $$$$
-SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(2/4)
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(3/3), geom init(2/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -58,16 +58,16 @@ SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(2/4)
     2.1368   -0.2890    0.1015 O   0  0  0  0  0  0  0  0  0  0  0  0
     0.2581    1.4202    0.5064 F   0  0  0  0  0  0  0  0  0  0  0  0
    -0.1368   -0.5002    1.5858 H   0  0  0  0  0  0  0  0  0  0  0  0
-  1  2  2  3
+  1  2  1  0
   1  4  1  0
   1  6  1  0
-  2  3  1  0
+  2  3  2  0
   2  7  1  0
   4  5  1  0
-M  CHG  4   1   1   2   1   3  -1   5  -1
+M  CHG  2   2   1   5  -1
 M  END
 $$$$
-SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(3/4)
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(3/3), geom init(3/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -78,16 +78,16 @@ SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(3/4)
     2.0092   -0.3703    0.1651 O   0  0  0  0  0  0  0  0  0  0  0  0
     0.4044    1.6232    0.2693 F   0  0  0  0  0  0  0  0  0  0  0  0
    -1.0614    0.3751    1.4931 H   0  0  0  0  0  0  0  0  0  0  0  0
-  1  2  2  3
+  1  2  1  0
   1  4  1  0
   1  6  1  0
-  2  3  1  0
+  2  3  2  0
   2  7  1  0
   4  5  1  0
-M  CHG  4   1   1   2   1   3  -1   5  -1
+M  CHG  2   2   1   5  -1
 M  END
 $$$$
-SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(4/4)
+SMU 8240001, RDKIT O=[NH+]N(F)O[O-], bt 8240(3/3), geom init(4/4)
      RDKit          3D
 
   7  6  0  0  0  0  0  0  0  0999 V2000
@@ -98,19 +98,19 @@ SMU 8240001, RDKIT [O-][NH+]=[N+](F)O[O-], bt 8016(1/3), geom init(4/4)
     1.8733   -0.2347   -0.8495 O   0  0  0  0  0  0  0  0  0  0  0  0
     0.1046    1.4522   -0.0496 F   0  0  0  0  0  0  0  0  0  0  0  0
    -0.8465   -0.3525   -0.9692 H   0  0  0  0  0  0  0  0  0  0  0  0
-  1  2  2  3
+  1  2  1  0
   1  4  1  0
   1  6  1  0
-  2  3  1  0
+  2  3  2  0
   2  7  1  0
   4  5  1  0
-M  CHG  4   1   1   2   1   3  -1   5  -1
+M  CHG  2   2   1   5  -1
 M  END
 $$$$
 
 For more details on the complexity of multiple bond topologies per molecules
 see multiple_bond_topology.py
-Here, we will ask only for the topologies from our initial criteria
+Here, we will ask only for the topologies from our main DDT criteria
 In this way, we can get 1 or more molecules
 In this case, there are 2 bond topologies to describe this molecule
 Note that the atoms are the same but the connection table is different

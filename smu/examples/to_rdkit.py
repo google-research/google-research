@@ -71,13 +71,13 @@ case0_mols = list(
         molecule,
         include_initial_geometries=False,
         include_optimized_geometry=True,
-        which_topologies=smu_utils_lib.WhichTopologies.BEST))
+        which_topologies=smu_utils_lib.WhichTopologies.STARTING))
 assert len(case0_mols) == 1
 
 
 print(
     'A single molecule comes from asking for only the optimized geometry and only',
-    'the first bond topology')
+    'the starting bond topology')
 print('Note that the title line start with "SMU" and the molecule id')
 print('Note the "geom=opt" indicating this is the optimized geometry')
 print('Note the bt=8240(1/3) indicating this is the first of 3 bond topologies')
@@ -90,7 +90,7 @@ case1_mols = list(
         molecule,
         include_initial_geometries=True,
         include_optimized_geometry=False,
-        which_topologies=smu_utils_lib.WhichTopologies.BEST))
+        which_topologies=smu_utils_lib.WhichTopologies.STARTING))
 assert len(case1_mols) == 4
 
 print()
@@ -112,7 +112,7 @@ assert len(case2_mols) == 2
 print()
 print('For more details on the complexity of multiple bond topologies per molecules')
 print('see multiple_bond_topology.py')
-print('Here, we will ask only for the topologies from our initial criteria')
+print('Here, we will ask only for the topologies from our main DDT criteria')
 print('In this way, we can get 1 or more molecules')
 print('In this case, there are 2 bond topologies to describe this molecule')
 print('Note that the atoms are the same but the connection table is different')

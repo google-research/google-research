@@ -73,10 +73,6 @@ Passing ALL as the which parameter gives
     Got bond topology with position 1 and id 8400
     Got bond topology with position 2 and id 8405
 
-Passing BEST as the which parameter gives
-    Got bond topology with position 0 and id 8078
-Note that BEST always returns a single topology
-
 Passing STARTING as the which parameter gives
     Got bond topology with position 1 and id 8400
 Note that STARTING deals correctly with special cases present in the complete database

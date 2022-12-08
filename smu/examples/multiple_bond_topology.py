@@ -115,13 +115,6 @@ for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
   print('    Got bond topology with position', bt_idx, 'and id', bt.topo_id)
 
 print()
-print('Passing BEST as the which parameter gives')
-for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
-    molecule, smu_utils_lib.WhichTopologies.BEST):
-  print('    Got bond topology with position', bt_idx, 'and id', bt.topo_id)
-print('Note that BEST always returns a single topology')
-
-print()
 print('Passing STARTING as the which parameter gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.STARTING):
