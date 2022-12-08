@@ -16,7 +16,6 @@
 """Manual collectives which use bidirectional ICI and fully overlap compute."""
 
 from typing import Optional, Tuple
-
 import jax
 from jax import lax
 import jax.numpy as jnp
@@ -42,7 +41,7 @@ import numpy as np
 
 
 def interleave(a, b):
-  return np.dstack((a, b)).flatten()
+  return jnp.dstack((a, b)).flatten()
 
 
 def split_apart_axis(x, num_splits, axis):
@@ -58,11 +57,10 @@ def reflatten_axis(x, axis):
                    x.shape[axis+2:])
 
 
-def update_slice_in_place(x, update, index, axis):
+def update_slice(x, update, index, axis):
   indices = [slice(None) for _ in range(x.ndim)]
   indices[axis] = index
-  x[tuple(indices)] = update
-  return x
+  return x.at[tuple(indices)].set(update)
 
 
 def gather_axis(x, index, axis):
@@ -184,12 +182,12 @@ def preshuffle_for_async_matmul_allgather_throughput(
     x, shuffle_axis, shard_axis):
   """Pre-shuffle weights for async_matmul_allgather_throughput."""
   axis_size = x.shape[shard_axis]
-  y = np.zeros_like(x)
+  y = jnp.zeros_like(x)
 
   def permutation_fn(i):
-    iota = np.arange(axis_size, dtype=np.int32)
-    flipped_evens = np.flip(np.roll(2 * iota, -i-1))
-    rolled_odds = np.roll(2 * iota + 1, -i)
+    iota = jnp.arange(axis_size, dtype=np.int32)
+    flipped_evens = jnp.flip(np.roll(2 * iota, -i-1))
+    rolled_odds = jnp.roll(2 * iota + 1, -i)
     return interleave(flipped_evens, rolled_odds)
 
   for i in range(axis_size):
@@ -201,7 +199,7 @@ def preshuffle_for_async_matmul_allgather_throughput(
                         index=permutation_fn(i),
                         axis=shuffle_axis)
     shard = reflatten_axis(shard, axis=shuffle_axis)
-    update_slice_in_place(y, shard, index=i, axis=shard_axis)
+    y = update_slice(y, shard, index=slice(i, i+1), axis=shard_axis)
 
   return y
 
@@ -286,13 +284,13 @@ def async_matmul_allgather_throughput(
 def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis, shard_axis):
   """Pre-shuffle weights for async_matmul_allgather_latency."""
   axis_size = x.shape[shard_axis]
-  y = np.zeros_like(x)
+  y = jnp.zeros_like(x)
 
   def permutation_fn(i):
-    evens = [(i-j-1)%axis_size for j in range(axis_size//2)]
-    odds = [(i+j)%axis_size for j in range(axis_size//2)]
+    evens = [(i - j - 1) % axis_size for j in range(axis_size//2)]
+    odds = [(i + j) % axis_size for j in range(axis_size//2)]
     block_perm = interleave(evens, odds)
-    return interleave(2*block_perm, 2*block_perm+1)
+    return interleave(2 * block_perm, 2 * block_perm + 1)
 
   for i in range(axis_size):
     shard = gather_axis(x, index=slice(i, i+1), axis=shard_axis)
@@ -303,7 +301,7 @@ def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis, shard_axis):
                         index=permutation_fn(i),
                         axis=shuffle_axis)
     shard = reflatten_axis(shard, axis=shuffle_axis)
-    update_slice_in_place(y, shard, index=i, axis=shard_axis)
+    y = update_slice(y, shard, index=slice(i, i+1), axis=shard_axis)
 
   return y
 
@@ -512,12 +510,12 @@ def preshuffle_for_reducescatter_bidirectional_throughput(
   """
   axis_size = x.shape[sharded_dim]  # materialized shard dim
   half = x.shape[subsplit_dim] // 2
-  pos_perm = lambda idx: np.roll(jnp.flip(np.arange(axis_size)), idx)
-  neg_perm = lambda idx: np.roll(np.arange(axis_size), -idx - 1)
-  new_x = np.zeros_like(x)
+  pos_perm = lambda idx: jnp.roll(jnp.flip(np.arange(axis_size)), idx)
+  neg_perm = lambda idx: jnp.roll(np.arange(axis_size), -idx - 1)
+  new_x = jnp.zeros_like(x)
   for axis_index in range(axis_size):
     shard = gather_axis(x, slice(axis_index, axis_index+1), axis=sharded_dim)
-    new_shard = np.zeros_like(shard)
+    new_shard = jnp.zeros_like(shard)
     # Handle shifts in each half of the subsplits:
     for pos, perm_fn in ((0, pos_perm), (half, neg_perm)):
       split = gather_axis(shard, index=slice(pos, pos+half), axis=subsplit_dim)
@@ -526,9 +524,9 @@ def preshuffle_for_reducescatter_bidirectional_throughput(
                            index=perm_fn(axis_index),
                            axis=scatter_dim)
       rolled = reflatten_axis(rolled, scatter_dim)
-      update_slice_in_place(
+      new_shard = update_slice(
           new_shard, rolled, slice(pos, pos+half), axis=subsplit_dim)
-    update_slice_in_place(
+    new_x = update_slice(
         new_x, new_shard, slice(axis_index, axis_index+1), axis=sharded_dim)
   return new_x
 
@@ -626,25 +624,26 @@ def preshuffle_for_reducescatter_bidirectional_latency(
     `reducescatter_bidirectional_latency`.
   """
   axis_size = x.shape[sharded_dim]
-  new_x = np.zeros_like(x)
+  new_x = jnp.zeros_like(x)
 
-  def twizzler(idx):
-    # closed form for modelling the data movement of
-    # each nth chunk over n iterations of the latency-optimized
-    # pincer data movement.
-    return [
-        (idx + (-1)**j * (axis_size//2 - 1 - j//2) + ((j + 1) % 2)) % axis_size
-        for j in range(axis_size)]
+  # closed form for modelling the data movement of
+  # each nth chunk over n iterations of the latency-optimized
+  # pincer data movement.
+  def permutation_fn(idx):
+    iota = jnp.arange(axis_size//2) + axis_size//2
+    evens = (idx - iota) % axis_size
+    odds = (idx + iota + 1) % axis_size
+    return interleave(evens, odds)
 
   for axis_index in range(axis_size):
     shard = gather_axis(x, slice(axis_index, axis_index+1), axis=sharded_dim)
     chunked_shard = split_apart_axis(shard, axis_size, axis=scatter_dim)
-    twizzled = gather_axis(chunked_shard,
-                           twizzler(axis_index),
+    permuted = gather_axis(chunked_shard,
+                           permutation_fn(axis_index),
                            axis=scatter_dim)
-    twizzled = reflatten_axis(twizzled, scatter_dim)
-    update_slice_in_place(
-        new_x, twizzled, slice(axis_index, axis_index+1), axis=sharded_dim)
+    permuted = reflatten_axis(permuted, scatter_dim)
+    new_x = update_slice(
+        new_x, permuted, slice(axis_index, axis_index+1), axis=sharded_dim)
   return new_x
 
 
