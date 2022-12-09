@@ -162,7 +162,7 @@ def compare_slot_values(slot_values_ref, slot_values_hyp, service,
         value_ref_list = slot_values_ref[slot_name]
         value_hyp = slot_values_hyp[slot_name][0]
         if slot["is_categorical"]:
-          cor = float(value_ref_list[0] == value_hyp)
+          cor = float(value_ref_list[0].lower() == value_hyp.lower())
         else:
           cor = noncat_slot_value_match(value_ref_list, value_hyp,
                                         use_fuzzy_match)
@@ -193,8 +193,8 @@ def get_active_intent_accuracy(frame_ref, frame_hyp):
   Returns:
     1.0 if the intent prediction is correct, otherwise 0.0.
   """
-  return float(frame_ref["state"]["active_intent"] == frame_hyp["state"]
-               ["active_intent"])
+  return float(frame_ref["state"]["active_intent"].lower() == frame_hyp["state"]
+               ["active_intent"].lower())
 
 
 def get_slot_tagging_f1(frame_ref, frame_hyp, utt, service):
