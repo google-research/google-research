@@ -253,4 +253,4 @@ def get_imagenet(
       cache='batched')
 
   datasets = get_datasets(config.dataset)
-  return datasets[mode], tfds.as_numpy(datasets[mode])
+  return datasets[mode], datasets[mode]

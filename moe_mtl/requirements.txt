@@ -1,0 +1,10 @@
+numpy
+ml_collections
+tensorflow
+tensorflow_datasets
+seqio
+clu
+flax
+optax
+jax
+vmoe
