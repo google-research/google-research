@@ -20,6 +20,7 @@ from typing import Any, Callable, Optional, Tuple
 import jax
 from jax import flatten_util
 from jax import numpy as jnp
+from jax.experimental.sparse import linalg as experimental_splinalg
 from jaxopt import tree_util
 import numpy as np
 from numpy.typing import ArrayLike
@@ -66,6 +67,7 @@ def second_order_defense(loss,
                          target_loss,
                          data_keep = None,
                          l2reg = 1e-1,
+                         lobpcg_maxiter = 20,
                          ls_maxiter = 20):
   """Defense based on a second-order expansion of objective function.
 
@@ -83,6 +85,8 @@ def second_order_defense(loss,
       Tuple or list (X, y) with the data to keep (i.e., not obliterate)
     l2reg: float, optional
       Regularization term for the generalized eigenvalue problem.
+    lobpcg_maxiter: int, optional
+      Maximum number of iterations in the lobpcg eigenvalue solver.
     ls_maxiter: int, optional
       Maximum number of iterations in the line-search routine to compute
       the magnitude of the update.
@@ -96,17 +100,17 @@ def second_order_defense(loss,
   n_features = len(flat_params)
 
   def _loss_obliterate(x):
-    pytree_params = unflatten(x)
-    return jnp.mean(loss(pytree_params, data_obliterate))
+    pytree_x = unflatten(x)
+    return jnp.mean(loss(pytree_x, data_obliterate))
 
   def _hessian_obliterate_matvec(x):
     # forward-over-reverse differentiation
     return jax.jvp(jax.grad(_loss_obliterate), (flat_params,), (x,))[1]
 
-  hessian_obliterate = splinalg.LinearOperator(
-      (n_features, n_features), matvec=_hessian_obliterate_matvec)
-
-  eigenvalues, eigenvectors = splinalg.eigsh(hessian_obliterate, k=1)
+  eigenvalues, eigenvectors, _ = experimental_splinalg.lobpcg_standard(
+      jax.vmap(_hessian_obliterate_matvec, in_axes=1, out_axes=1),
+      flat_params.reshape((-1, 1)),
+      m=lobpcg_maxiter)
   normalized_l2_reg = l2reg * eigenvalues[0]
 
   if data_keep is None:
@@ -121,6 +125,8 @@ def second_order_defense(loss,
       # forward-over-reverse differentiation
       return jax.jvp(jax.grad(_loss_keep), (flat_params,), (x,))[1]
 
+    hessian_obliterate = splinalg.LinearOperator(
+        (n_features, n_features), matvec=_hessian_obliterate_matvec)
     hessian_keep = splinalg.LinearOperator(
         (n_features, n_features), matvec=_hessian_keep_matvec)
     _, generalized_eigenvectors = splinalg.eigsh(
