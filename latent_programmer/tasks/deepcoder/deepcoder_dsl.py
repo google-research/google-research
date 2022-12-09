@@ -284,10 +284,15 @@ class ProgramState(object):
         raise ParseError(f'Found duplicate variable: {variable}')
       # If we find spaces surrounded by digits, place a comma there. This
       # converts comma-less "[ 6 7 8 ]" into something parseable, "[ 6, 7, 8 ]".
-      rhs = re.sub(r'(?<=\d) +(?=\d)', ', ', rhs)
-      result = ast.literal_eval(rhs)
-      if not validate_result(result):
-        raise ParseError(f'Found invalid result: {result}')
+      rhs = re.sub(r'(?<=\d) +(?=-|\d)', ', ', rhs)
+      try:
+        result = ast.literal_eval(rhs)
+        result_is_valid = validate_result(result)
+      except (ValueError, SyntaxError):
+        result = None
+        result_is_valid = False
+      if not result_is_valid:
+        raise ParseError(f'Found invalid result `{result}` from RHS {rhs!r}')
       state.append(result)
       variables.append(variable)
     return cls(state, variables)
@@ -588,15 +593,15 @@ OPERATIONS_ONLY_SCAN = [TOKEN_TO_OPERATION['Scanl1']]
 OPERATIONS_NO_SCAN = [op for op in OPERATIONS if op.token != 'Scanl1']
 
 
-PAD, BOS, EOS = '', '<BOS>', '<EOS>'
-PAD_ID, BOS_ID, EOS_ID = 0, 1, 2
+PAD, BOS, EOS, SEP = '', '<BOS>', '<EOS>', '|'
+PAD_ID, BOS_ID, EOS_ID, SEP_ID = 0, 1, 2, 3
 
 
 def vocab_tables():
   """Returns id-to-token and token-to-id vocabulary mappings."""
   # These tokens should be constant unless we change the DSL.
-  tokens = [PAD, BOS, EOS]
-  tokens.extend(['|', '=', 'INPUT', '[', ']'])
+  tokens = [PAD, BOS, EOS, SEP]
+  tokens.extend(['=', 'INPUT', '[', ']'])
   tokens.extend(op.token for op in OPERATIONS)
   tokens.extend(l.token for l in LAMBDAS)
 

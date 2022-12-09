@@ -15,8 +15,9 @@
 
 """Input pipeline for Robust-fill dataset."""
 
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 
+from latent_programmer.tasks.deepcoder import deepcoder_dsl
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
 from latent_programmer.tasks.scan import scan_vocab
 
@@ -107,6 +108,100 @@ def create_robust_fill_dataset(
         'next_part': next_part,
         'joined_next_part': joined_next_part,
         'program_part': program_part,
+    }
+
+    return {
+        new_name: all_data_dict[old_name]
+        for new_name, old_name in renaming_dict.items()
+    }
+
+  dataset = raw_dataset.map(_parse_fn)
+  return dataset
+
+
+def create_deepcoder_dataset(
+    file_pattern, token_to_id, num_examples, renaming_dict):
+  """Loads a DeepCoder step-by-step dataset.
+
+  Args:
+    file_pattern: A file pattern for the TFRecord files to read.
+    token_to_id: Mapping from tokens to token IDs for the DeepCoder vocabulary.
+    num_examples: The number of examples in an I/O specification.
+    renaming_dict: A dict mapping from the new name of fields in this dataset to
+      the old name as in the original TFRecord files.
+
+  Returns:
+    A tf.data.Dataset containing dictionaries where the keys are the same as in
+    `renaming_dict`.
+  """
+  filenames = gfile.glob(file_pattern)
+  raw_dataset = tf.data.TFRecordDataset(filenames)
+
+  vocab_table = tf.lookup.StaticVocabularyTable(
+      tf.lookup.KeyValueTensorInitializer(
+          list(token_to_id.keys()),
+          list(token_to_id.values()),
+          key_dtype=tf.string,
+          value_dtype=tf.int64),
+      len(token_to_id))
+  eos_id = deepcoder_dsl.EOS_ID
+
+  def _parse_fn(record):
+    """Parses a record into a feature_dict."""
+    empty_default = [''] * num_examples
+    feature_values = tf.io.parse_single_example(
+        serialized=record,
+        features={
+            'inputs':
+                tf.io.FixedLenFeature([num_examples], tf.string,
+                                      default_value=empty_default),
+            'outputs':
+                tf.io.FixedLenFeature([num_examples], tf.string,
+                                      default_value=empty_default),
+            'next_part':
+                tf.io.FixedLenFeature([num_examples], tf.string,
+                                      default_value=empty_default),
+            'program_part':
+                tf.io.FixedLenFeature([], tf.string, default_value=''),
+        })
+
+    # Map tokens to ids.
+    inputs = tf.strings.split(feature_values['inputs'], sep=' ').to_tensor()
+    inputs = vocab_table.lookup(inputs)
+
+    outputs = tf.strings.split(feature_values['outputs'], sep=' ').to_tensor()
+    outputs = vocab_table.lookup(outputs)
+
+    next_part = tf.strings.split(
+        feature_values['next_part'], sep=' ').to_tensor()
+    next_part = vocab_table.lookup(next_part)
+
+    joined_next_part = tf.strings.reduce_join(feature_values['next_part'],
+                                              separator=' | ')
+    joined_next_part = tf.strings.split(joined_next_part, sep=' ')
+    joined_next_part = vocab_table.lookup(joined_next_part)
+    joined_next_part = tf.concat([joined_next_part, [eos_id]], axis=-1)
+
+    program_part = tf.strings.split(feature_values['program_part'], sep=' ')
+    program_part = vocab_table.lookup(program_part)
+    program_part = tf.concat([program_part, [eos_id]], axis=-1)
+
+    # Remove the part like 'x0 =' and keep only the RHS of the assignment.
+    program_part_rhs = program_part[2:]
+
+    # inputs: [num_examples, max_length_of_input]
+    # outputs: [num_examples, max_length_of_output]
+    # next_part: [num_examples, max_length_of_output_part]
+    # joined_next_part: [num_examples * (max_length_of_part + 1)]
+    # program_part: [max_length_of_program_part + 1]
+    # program_part_rhs: [max_length_of_program_part - 1]
+    all_data_dict = {
+        'inputs': inputs,
+        'outputs': outputs,
+        'next_part': next_part,
+        'joined_next_part': joined_next_part,
+        'program_part': program_part,
+        'program_part_rhs': program_part_rhs,
     }
 
     return {
