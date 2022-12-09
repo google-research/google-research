@@ -5,6 +5,7 @@ This repository provides some new task specifications for the self-tuning-follow
 
   - `put-in-bowl`: This task test the ability to pick a block of a known or an unknown color and put in a blue bowl.
   - `put-block-in-bowl`: The task instructs the robot to pick a block of any color, and put in a bowl of any color.
+  - `put-in-zone`: The task instructs the robot to pick a block of any color, and put it in zone.
   
 
 ## Setup

@@ -23,21 +23,18 @@ import random
 
 from cliport.utils import utils
 import numpy as np
-from tasks.put_in_bowl import PutInBowl
-from tasks.put_in_bowl import SPATIAL_RELATIONS
+from tasks.pick_and_place import PickAndPlaceTask
+from tasks.pick_and_place import SPATIAL_RELATIONS
 
 
-class PutBlockInBowlUnseenColors(PutInBowl):
+class PutBlockInBowlUnseenColors(PickAndPlaceTask):
   """Put Blocks in Bowl base class and task."""
 
-  def __init__(self, bowl_color=None):
+  def __init__(self):
     super().__init__()
-    self.max_steps = 10
-    self.pos_eps = 0.05
-    self.bowl_color = bowl_color
     self.lang_template = "put the {pick} block in the {place} bowl"
     self.task_completed_desc = "done placing blocks in bowls."
-    self.n_distractors = 10
+    self.bowl_color = None
 
   def build_language_goal(self, reward):
     bowl_obj_info, block_obj_info = reward["all_object_ids"][-2:]
@@ -58,7 +55,7 @@ class PutBlockInBowlUnseenColors(PutInBowl):
 
     # Pick color for the block and the bowl.
     block_color, bowl_color = selected_color_names
-
+    self.bowl_color = bowl_color
     bowl_obj_info = self.add_bowl(env, bowl_color, width, height)
     block_obj_info = self.add_block(env, block_color, width, height)
 
@@ -82,9 +79,18 @@ class PutBlockInBowlUnseenColors(PutInBowl):
     # Get goal pose based on the spatial relationship
     spat_rel = np.random.choice(list(SPATIAL_RELATIONS.keys()))
 
+    bowl_color = bowl_obj_info["color"]
+    block_color = block_obj_info["color"]
+    distractor_bowl_colors = [c for c in utils.COLORS if c != bowl_color]
+    distractor_block_colors = [c for c in utils.COLORS if c != block_color]
+
+    def select_colors(is_block):
+      colors = distractor_block_colors if is_block else distractor_bowl_colors
+      return colors
+
     # Add distractors.
     distractor_obj_info = self.add_distractor_objects(
-        env, block_obj_info, bowl_obj_info, width, height)
+        env, block_obj_info, bowl_obj_info, select_colors, width, height)
 
     reward_params = {
         "spat_rel":
@@ -119,9 +125,6 @@ class PutBlockInBowlUnseenColors(PutInBowl):
 
     # Only one mistake allowed.
     self.max_steps = len(self.blocks) + 1
-
-  def get_colors(self):
-    return utils.TRAIN_COLORS if self.mode == "train" else utils.EVAL_COLORS
 
 
 class PutBlockInBowlSeenColors(PutBlockInBowlUnseenColors):

@@ -24,6 +24,10 @@ from tasks.put_in_bowl import PutInBowlFullColor
 from tasks.put_in_bowl import PutInBowlSeenColor
 from tasks.put_in_bowl import PutInBowlSimple
 from tasks.put_in_bowl import PutInBowlUnseenColor
+from tasks.put_in_zone import PutInZone
+from tasks.put_in_zone import PutInZoneFullColor
+from tasks.put_in_zone import PutInZoneSeenColor
+from tasks.put_in_zone import PutInZoneUnseenColor
 
 
 names.update({
@@ -34,4 +38,8 @@ names.update({
     'put-block-in-bowl-full': PutBlockInBowlFullColors,
     'put-block-in-bowl-seen': PutBlockInBowlSeenColors,
     'put-block-in-blue-bowl-unseen': PutBlockInBowlUnseenColors,
+    'put-in-zone-seen': PutInZoneSeenColor,
+    'put-in-zone-unseen': PutInZoneUnseenColor,
+    'put-in-zone-full': PutInZoneFullColor,
+    'put-in-zone': PutInZone,
 })
