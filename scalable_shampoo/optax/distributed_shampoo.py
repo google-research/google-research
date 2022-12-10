@@ -32,8 +32,8 @@
 import enum
 import functools
 import itertools
-from typing import (Any, Callable, cast, List, NamedTuple, Optional, Tuple,
-                    TypeVar, Union)
+from typing import (Any, Callable, cast, List, NamedTuple, Optional, Sequence,
+                    Tuple, TypeVar, Union)
 
 import chex
 from flax import struct
@@ -60,6 +60,27 @@ _EPSILON = 1e-25
 def _default_zero_field():
   return struct.field(
       default_factory=functools.partial(jnp.array, 0, jnp.float32))
+
+
+T = TypeVar("T")
+
+
+def _maybe_ix(ls, ix):
+  """Return ls[ix] if not None else None."""
+  if ls is None:
+    return None
+  return ls[ix]
+
+
+def _maybe(f):
+  """Lifts f to Maybe monad; ie return None if first arg is."""
+
+  def wrap_f(x, *args, **kwargs):
+    if x is None:
+      return None
+    return f(x, *args, **kwargs)
+
+  return wrap_f
 
 
 InversePthRootDiagnosticsSubtype = TypeVar(
@@ -393,6 +414,7 @@ def matrix_inverse_pth_root(
     lobpcg_topk_precondition = 0,
     lobpcg_max_iter = 0,
     padding_start = None,
+    prev = None,
 ):
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
@@ -424,6 +446,7 @@ def matrix_inverse_pth_root(
       `lobpcg_topk_precondition`.
     padding_start: If the input matrix was padded, then zeros out columns
       and rows at the padding start.
+    prev: previous iteration's solution, zero-padded (unused)
 
   Returns:
     `(matrix + eps)^(-1/p)` and error metrics.
@@ -434,6 +457,7 @@ def matrix_inverse_pth_root(
     ridge epsilon value scaled by the derived maximum eigenvalue of
     the input matrix.
   """
+  del prev
 
   # If the input is not square, materialize it from the concatenated form.
   if matrix.shape[0] != matrix.shape[1]:
@@ -1163,6 +1187,7 @@ def distributed_shampoo(
     decoupled_learning_rate=True,
     decoupled_weight_decay=False,
     generate_training_metrics=True,
+    reuse_preconditioner=False,
 ):
   """Distributed Shampoo optimizer.
 
@@ -1251,6 +1276,8 @@ def distributed_shampoo(
       couple with weight decay. (Default False)
     generate_training_metrics: If True, gather training metrics, otherwise
       avoid generating them (to reduce memory usage).
+    reuse_preconditioner: If True, pass the previous derived preconditioner
+      as a warm start to the next iteratin's inverse pth root computation.
   Returns:
     a GradientTransformation.
   """
@@ -1276,6 +1303,12 @@ def distributed_shampoo(
   # We take out the diagonal to make quantization easier.
   def quantized_dtype_for_second_moment_preconditioner_buffers():
     return jnp.int16 if quantize_second_moment else jnp.float32
+
+  # _quantized_matrix_inverse_pth_root_vmap implementation assumes
+  # that preconditioner is quantized if and only if stats is quantized.
+  qdt_precond = quantized_dtype_for_second_moment_preconditioner_buffers()
+  qdt_stat = quantized_dtype_for_second_moment_statistics_buffers()
+  assert qdt_precond == qdt_stat
 
   def _to_float(maybe_quantized):
     if isinstance(maybe_quantized, QuantizedValue):
@@ -1334,6 +1367,26 @@ def distributed_shampoo(
   def precond_dim(max_size):
     """Derives largest preconditioner dimension."""
     return max_size
+
+  def pad_preconditioners(preconditioners, total, max_size):
+    """Pad preconditioners up to total x max_size x precond_dim(max_size)."""
+    pd = precond_dim(max_size)
+
+    def _pad_preconditioner(preconditioner):
+      assert preconditioner.ndim == 2
+      r, c = preconditioner.shape
+      assert r <= max_size
+      assert c <= pd
+      pad_rows = [(0, max_size - r)]
+      pad_cols = [(0, pd - c)]
+      padding = pad_rows + pad_cols
+      return jnp.pad(preconditioner, padding)
+
+    last_dims_padded = [_pad_preconditioner(p) for p in preconditioners]
+    dt = preconditioners[0].dtype if preconditioners else jnp.float32
+    num_extra = total - len(last_dims_padded)
+    extra = [jnp.zeros([max_size, pd], dtype=dt)] * num_extra
+    return last_dims_padded + extra
 
   def sharded_init_fn(params):
     """Returns optimizer state (for PJIT mode).
@@ -1638,15 +1691,33 @@ def distributed_shampoo(
         for _ in range(to_pad)
     ])
     padding_starts += [0] * to_pad
+
+    if reuse_preconditioner:
+      prev_preconditioners = []
+      for stat in new_stats_flat:
+        prev_preconditioners.extend(stat.preconditioners)
+      prev_padded_preconditioners = pad_preconditioners(
+          prev_preconditioners, len(new_padded_statistics), max_size)
+    else:
+      prev_padded_preconditioners = None
+
     new_stacked_padded_statistics = jnp.stack(new_padded_statistics)
     new_stacked_padded_statistics = pjit.with_sharding_constraint(
         new_stacked_padded_statistics, statistics_partition_spec)
     stacked_padding_starts = jnp.array(padding_starts, jnp.int32)
+    prev_stacked_padded_preconditioners = _maybe(jnp.stack)(
+        prev_padded_preconditioners)
+    prev_stacked_padded_preconditioners = _maybe(pjit.with_sharding_constraint)(
+        prev_padded_preconditioners, statistics_partition_spec)
 
     def _internal_inverse_pth_root_all():
       preconditioners, metrics = _matrix_inverse_pth_root_pjit(
-          new_stacked_padded_statistics, global_stats.exponents,
-          stacked_padding_starts, statistics_partition_spec)
+          new_stacked_padded_statistics,
+          global_stats.exponents,
+          stacked_padding_starts,
+          prev_stacked_padded_preconditioners,
+          statistics_partition_spec,
+      )
       return preconditioners, metrics
 
     perform_step = state.count % preconditioning_compute_steps == 0
@@ -1768,28 +1839,42 @@ def distributed_shampoo(
       lobpcg_max_iter=lobpcg_max_iter)
 
 
-  def _matrix_inverse_pth_root_vmap(xs, ps, padding_starts):
-    return jax.vmap(mi_pth_root)(xs, ps, padding_start=padding_starts)
+  def _matrix_inverse_pth_root_vmap(xs, ps, padding_starts, prev):
+    return jax.vmap(mi_pth_root)(
+        xs, ps, padding_start=padding_starts, prev=prev)
 
-  def _quantized_matrix_inverse_pth_root_vmap(qxs, qds, qbs, ps,
-                                              padding_starts):
+  def _quantized_matrix_inverse_pth_root_vmap(qxs,
+                                              qds,
+                                              qbs,
+                                              ps,
+                                              padding_starts,
+                                              qpxs=None,
+                                              qpds=None,
+                                              qpbs=None):
+    assert (qpxs is None) == (qpds is None) == (qpbs is None)
+    assert (qpxs is None) == (not reuse_preconditioner)
 
     def _quantized_to_float(qx, qd, qb):
       qv = QuantizedValue(qx, qd, qb, qx.dtype, True, list(qx.shape))
       return qv.to_float()
 
-    def matrix_inverse_pth_root_wrapper(qx, qd, qb, p, padding_start):
+    def matrix_inverse_pth_root_wrapper(qx, qd, qb, p, padding_start, qpx, qpd,
+                                        qpb):
       v = _quantized_to_float(qx, qd, qb)
-      preconditioner, metrics = mi_pth_root(v, p, padding_start=padding_start)
+      prev = _maybe(_quantized_to_float)(qpx, qpd, qpb)
+      preconditioner, metrics = mi_pth_root(
+          v, p, padding_start=padding_start, prev=prev)
       qp = QuantizedValue.from_float_value(preconditioner, qx.dtype, True)
       return qp.quantized, qp.diagonal, qp.bucket_size, metrics
 
     return jax.vmap(matrix_inverse_pth_root_wrapper)(qxs, qds, qbs, ps,
-                                                     padding_starts)
+                                                     padding_starts, qpxs, qpds,
+                                                     qpbs)
 
   def _matrix_inverse_pth_root_pjit(xs,
                                     ps,
                                     padding_starts,
+                                    prev_preconds=None,
                                     statistics_partition_spec=None):
     # Partition the concatenated statistics matrix across all cores.
     pspec_for_partition = preconditioner_partition_spec
@@ -1800,12 +1885,17 @@ def distributed_shampoo(
       partitioned_ps_spec = None
     partitioned_ps = pjit.with_sharding_constraint(
         ps, partitioned_ps_spec)
+    partitioned_prev_preconds = _maybe(pjit.with_sharding_constraint)(
+        prev_preconds, preconditioner_partition_spec)
     partitioned_padding_starts = pjit.with_sharding_constraint(
         padding_starts, partitioned_ps_spec)  # paddings are scalars like ps.
     # Run matrix inverse pth root on each shard.
     partitioned_preconditioners, partitioned_metrics = (
-        _matrix_inverse_pth_root_vmap(partitioned_xs, partitioned_ps,
-                                      partitioned_padding_starts))
+        _matrix_inverse_pth_root_vmap(
+            partitioned_xs,
+            partitioned_ps,
+            partitioned_padding_starts,
+            prev=partitioned_prev_preconds))
     # Reshard output to have the same PSpec as input. This is required to avoid
     # vmap seeing the full set of statistics.
     partitioned_preconditioners = pjit.with_sharding_constraint(
@@ -1856,23 +1946,39 @@ def distributed_shampoo(
     if not packed_statistics:
       return states
 
+    if reuse_preconditioner:
+      assert len(prev_preconditioners) == num_statistics
+      packed_preconditioners = pad_preconditioners(prev_preconditioners,
+                                                   len(packed_statistics),
+                                                   max_size)
+    else:
+      packed_preconditioners = None
+
     all_statistics = batch(packed_statistics, num_devices)
     all_exponents = batch(exponents, num_devices)
     all_paddings = batch(paddings, num_devices)
+    all_preconditioners = _maybe(batch)(packed_preconditioners, num_devices)
 
     def _internal_inverse_pth_root_all():
       if batch_axis_name:
         current_replica = lax.axis_index(batch_axis_name)
         preconditioners, metrics = _matrix_inverse_pth_root_vmap(
-            all_statistics[current_replica], all_exponents[current_replica],
-            all_paddings[current_replica])
+            all_statistics[current_replica],
+            all_exponents[current_replica],
+            all_paddings[current_replica],
+            _maybe_ix(all_preconditioners, current_replica),
+        )
         preconditioners = jax.lax.all_gather(preconditioners, batch_axis_name)
         metrics = jax.lax.all_gather(metrics, batch_axis_name)
         preconditioners_flat = unbatch(preconditioners)
         metrics_flat = jax.tree_map(unbatch, metrics)
       else:
         preconditioners, metrics = _matrix_inverse_pth_root_vmap(
-            all_statistics[0], all_exponents[0], all_paddings[0])
+            all_statistics[0],
+            all_exponents[0],
+            all_paddings[0],
+            _maybe_ix(all_preconditioners, 0),
+        )
         preconditioners_flat = unbatch(jnp.stack([preconditioners]))
         metrics = jax.tree_map(
             functools.partial(jnp.expand_dims, axis=0), metrics)
@@ -2029,22 +2135,49 @@ def distributed_shampoo(
     if not packed_quantized_statistics:
       return states
 
+    if reuse_preconditioner:
+      total = len(packed_quantized_statistics)
+      packed_quantized_precond_mats = pad_preconditioners(
+          [p.quantized for p in prev_preconditioners],
+          total,
+          max_size,
+      )
+      packed_quantized_precond_diagonals = [
+          pad_vector(p.diagonal, max_size) for p in prev_preconditioners
+      ] + packed_quantized_diagonals[total - to_pad:]
+      packed_quantized_precond_bucket_sizes = [
+          pad_vector(p.bucket_size, max_size) for p in prev_preconditioners
+      ] + packed_quantized_bucket_sizes[total - to_pad:]
+    else:
+      (packed_quantized_precond_mats, packed_quantized_precond_diagonals,
+       packed_quantized_precond_bucket_sizes) = (None, None, None)
+
     all_quantized_statistics = batch(packed_quantized_statistics, num_devices)
     all_quantized_diagonals = batch(packed_quantized_diagonals, num_devices)
     all_quantized_bucket_sizes = batch(packed_quantized_bucket_sizes,
                                        num_devices)
     all_exponents = batch(exponents, num_devices)
     all_paddings = batch(paddings, num_devices)
+    all_quantized_precond_mats = _maybe(batch)(packed_quantized_precond_mats,
+                                               num_devices)
+    all_quantized_precond_diagonals = _maybe(batch)(
+        packed_quantized_precond_diagonals, num_devices)
+    all_quantized_precond_bucket_sizes = _maybe(batch)(
+        packed_quantized_precond_bucket_sizes, num_devices)
 
     def _internal_inverse_pth_root_all():
       current_replica = lax.axis_index(batch_axis_name)
       (quantized_preconditioners, quantized_diagonals, quantized_bucket_sizes,
-       metrics) = (
-           _quantized_matrix_inverse_pth_root_vmap(
-               all_quantized_statistics[current_replica],
-               all_quantized_diagonals[current_replica],
-               all_quantized_bucket_sizes[current_replica],
-               all_exponents[current_replica], all_paddings[current_replica]))
+       metrics) = _quantized_matrix_inverse_pth_root_vmap(
+           all_quantized_statistics[current_replica],
+           all_quantized_diagonals[current_replica],
+           all_quantized_bucket_sizes[current_replica],
+           all_exponents[current_replica],
+           all_paddings[current_replica],
+           _maybe_ix(all_quantized_precond_mats, current_replica),
+           _maybe_ix(all_quantized_precond_diagonals, current_replica),
+           _maybe_ix(all_quantized_precond_bucket_sizes, current_replica),
+       )
       quantized_preconditioners = jax.lax.all_gather(quantized_preconditioners,
                                                      batch_axis_name)
       quantized_diagonals = jax.lax.all_gather(quantized_diagonals,
@@ -2211,13 +2344,22 @@ def distributed_shampoo(
     ])
     exponents.extend([1 for _ in range(to_pad)])
     paddings = [len(stat) for stat in statistics] + [0] * to_pad
+
+    if reuse_preconditioner:
+      padded_preconditioners = pad_preconditioners(prev_preconditioners,
+                                                   len(padded_statistics),
+                                                   max_size)
+    else:
+      padded_preconditioners = None
+
     all_statistics = jnp.stack(padded_statistics)
     all_exponents = jnp.stack(exponents)
     all_paddings = jnp.stack(paddings)
+    all_preconditioners = _maybe(jnp.stack)(padded_preconditioners)
 
     def _internal_inverse_pth_root_all():
       preconditioners, metrics = _matrix_inverse_pth_root_pjit(
-          all_statistics, all_exponents, all_paddings)
+          all_statistics, all_exponents, all_paddings, all_preconditioners)
       b1 = preconditioners.shape[0]
 
       def split(batched_values):

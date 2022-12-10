@@ -226,6 +226,28 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
           'testcase_name': 'no_training_metrics',
           'generate_training_metrics': False,
       },
+      {
+          'testcase_name': 'larger_reuse',
+          'best_effort_memory_usage_reduction': True,
+          'reuse_preconditioner': True,
+          'slightly_larger': True,
+          'expected_value': -0.17019942,
+      },
+      {
+          'testcase_name': 'larger_reuse_highmem',
+          'best_effort_memory_usage_reduction': False,
+          'reuse_preconditioner': True,
+          'slightly_larger': True,
+          'expected_value': -0.17019942,
+      },
+      {
+          'testcase_name': 'larger_reuse_highmem_nomerge',
+          'best_effort_memory_usage_reduction': False,
+          'merge_small_dims_block_size': 1,
+          'reuse_preconditioner': True,
+          'slightly_larger': True,
+          'expected_value': -0.17019942,
+      },
   )
   def test_distributed_shampoo(
       self,
@@ -235,6 +257,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
       generate_training_metrics=True,
       slightly_larger=False,
       expected_value=None,
+      reuse_preconditioner=False,
   ):
     params = self.init_params_larger if slightly_larger else self.init_params
 
@@ -246,6 +269,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         best_effort_memory_usage_reduction=best_effort_memory_usage_reduction,
         merge_small_dims_block_size=merge_small_dims_block_size,
         generate_training_metrics=generate_training_metrics,
+        reuse_preconditioner=reuse_preconditioner,
     )
     init_fn = self.variant(optim.init)
     transform_fn = self.variant(optim.update)
