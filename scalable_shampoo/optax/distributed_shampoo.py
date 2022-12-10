@@ -35,7 +35,6 @@ import itertools
 from typing import (Any, Callable, cast, List, NamedTuple, Optional, Tuple,
                     TypeVar, Union)
 
-from absl import logging
 import chex
 from flax import struct
 import jax
@@ -1419,7 +1418,6 @@ def distributed_shampoo(
         count=jnp.zeros([], jnp.int32),
         stats=ShardedShampooStats(global_stats, local_stats))
 
-
   def _max_statistics_size_from_params(params):
     max_size = 0
     for param in params:
@@ -1569,7 +1567,6 @@ def distributed_shampoo(
     return ShampooState(
         count=[[], jnp.float32],
         stats=ShardedShampooStats(global_stats, local_stats))
-
 
   def sharded_update_fn(grads, state, params):
     """Transform the input gradient and update all statistics in sharded mode.
@@ -1730,7 +1727,6 @@ def distributed_shampoo(
   def _skip_preconditioning(param):
     return len(param.shape) < skip_preconditioning_rank_lt or any(
         [s > skip_preconditioning_dim_size_gt for s in param.shape])
-
 
   def _compute_stats(grad, state, param, step):
     """Compute per-parameter statistics."""
@@ -2534,7 +2530,6 @@ def distributed_shampoo(
           init_fn=opt_init_fn,
           pspec_fn=sharded_init_partition_spec_fn,
           shape_and_dtype_fn=sharded_init_shape_and_dtype_fn)
-
     opt_update_fn = sharded_update_fn
     return optax.GradientTransformation(_init_fns, opt_update_fn)
   else:
