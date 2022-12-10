@@ -716,7 +716,7 @@ def compile(fn):  # pylint: disable=redefined-builtin
 
   @tf.function(autograph=False)
   def _wrapper(*args, **kwargs):
-    use_xla_val = kwargs.pop("_use_xla")
+    use_xla_val = kwargs.pop("use_xla")
 
     if use_xla_val:
       logging.info("%s using XLA", fn.__name__)
@@ -728,7 +728,7 @@ def compile(fn):  # pylint: disable=redefined-builtin
         autograph=False,
         experimental_compile=use_xla_val)()
 
-  ret = lambda *args, **kwargs: _wrapper(*args, _use_xla=_USE_XLA, **kwargs)  # pylint: disable=unnecessary-lambda
+  ret = lambda *args, **kwargs: _wrapper(*args, use_xla=_USE_XLA, **kwargs)  # pylint: disable=unnecessary-lambda
   ret = functools.wraps(fn)(ret)
   return ret
 
