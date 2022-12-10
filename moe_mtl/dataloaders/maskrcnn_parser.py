@@ -22,7 +22,6 @@ import tensorflow.compat.v1 as tf
 
 Parser = maskrcnn_parser.Parser
 # gin.external_configurable(Parser, name='maskrcnn_map_fn')
-DatasetType = dataset_utils.DatasetType
 
 
 @gin.configurable
