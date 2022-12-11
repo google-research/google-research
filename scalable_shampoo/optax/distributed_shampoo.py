@@ -415,10 +415,11 @@ def matrix_inverse_pth_root(
     lobpcg_max_iter = 0,
     padding_start = None,
     prev = None,
+    eigh=False,
 ):
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
-  This function uses the Coupled newton iterations algorithm for
+  This function uses the Eigh or Coupled newton iterations algorithm for
   the computation of a matrix's inverse pth root.
 
 
@@ -447,6 +448,7 @@ def matrix_inverse_pth_root(
     padding_start: If the input matrix was padded, then zeros out columns
       and rows at the padding start.
     prev: previous iteration's solution, zero-padded (unused)
+    eigh: If True, uses eigh for inverse-pth root computation.
 
   Returns:
     `(matrix + eps)^(-1/p)` and error metrics.
@@ -457,6 +459,12 @@ def matrix_inverse_pth_root(
     ridge epsilon value scaled by the derived maximum eigenvalue of
     the input matrix.
   """
+
+  if eigh:
+    return matrix_inverse_pth_root_eigh(matrix, p, ridge_epsilon,
+                                        error_tolerance, precision,
+                                        relative_matrix_epsilon, padding_start,
+                                        prev)
   del prev
 
   # If the input is not square, materialize it from the concatenated form.
@@ -638,6 +646,99 @@ def matrix_inverse_pth_root(
 
   resultant_mat_h = jnp.asarray(resultant_mat_h, orig_dtype)
   return resultant_mat_h, error_metrics
+
+
+def matrix_inverse_pth_root_eigh(
+    matrix,
+    p,
+    ridge_epsilon = 1e-6,
+    error_tolerance = 1e-6,
+    precision = lax.Precision.HIGHEST,
+    relative_matrix_epsilon = True,
+    padding_start = None,
+    prev = None,
+):
+  """Computes `matrix^(-1/p)`, where `p` is a positive integer.
+
+  This function uses eigh for the computation of a matrix's inverse pth
+  root.
+
+  Args:
+    matrix: the symmetric PSD matrix whose power it to be computed
+    p: exponent, for p a positive integer.
+    ridge_epsilon: Ridge epsilon added to make the matrix positive definite.
+    error_tolerance: Error indicator, useful for early termination.
+    precision: precision XLA related flag, the available options are: a)
+      lax.Precision.DEFAULT (better step time, but not precise) b)
+      lax.Precision.HIGH (increased precision, slower) c) lax.Precision.HIGHEST
+      (best possible precision, slowest)
+    relative_matrix_epsilon: Whether to use relative epsilon to the max eigen
+      value when computing inverse-pth root.
+    padding_start: If the input matrix was padded, then zeros out columns and
+      rows at the padding start.
+    prev: previous iteration's solution, zero-padded (unused)
+
+  Returns:
+    `(matrix + eps)^(-1/p)` and error metrics.
+
+    Note `eps` is not added to zeroed out padding rows and
+    columns. `eps` is just `ridge_epsilon` if
+    `relative_matrix_epsilon` is set to `False`, otherwise, it is the
+    ridge epsilon value scaled by the derived maximum eigenvalue of
+    the input matrix.
+  """
+  del prev
+  # Perform the same preamble as in the usual matrix inverse root.
+  if matrix.shape[0] != matrix.shape[1]:
+    matrix = symmetric_matrices.materialize_matrix_from_concat(matrix)
+  assert matrix.shape[0] == matrix.shape[1]
+  matrix_size = matrix.shape[0]
+  orig_dtype = matrix.dtype
+  matrix = matrix.astype(_MAT_INV_PTH_ROOT_DTYPE)
+  alpha = jnp.asarray(-1.0 / p, _MAT_INV_PTH_ROOT_DTYPE)
+  identity = jnp.eye(matrix_size, dtype=_MAT_INV_PTH_ROOT_DTYPE)
+  if padding_start is not None:
+    ix = (jnp.arange(matrix_size, dtype=jnp.int32) < padding_start).astype(
+        matrix.dtype)
+    matrix *= ix[jnp.newaxis, :]
+    matrix *= ix[:, jnp.newaxis]
+    identity *= ix
+  if relative_matrix_epsilon:
+    _, max_ev = power_iteration(
+        matrix=matrix,
+        num_iters=100,
+        error_tolerance=error_tolerance,
+        precision=precision,
+        padding_start=padding_start)
+  else:
+    # Use absolute matrix epsilon scaling otherwise.
+    max_ev = 1.0
+  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, error_tolerance)
+  regularized_input = matrix + ridge_epsilon * identity
+  e, u = jnp.linalg.eigh(regularized_input)
+  # Due to padding, we may have to zero out eigenvalues.
+  if padding_start is not None:
+    e *= jnp.flip(ix)
+  mm = functools.partial(jnp.matmul, precision=precision)
+  inv_e = jnp.where(e == 0.0, 0.0,
+                    jnp.power(jnp.maximum(e, ridge_epsilon), alpha))
+  val = mm(mm(u, jnp.diag(inv_e)), u.T)
+  root = u * jnp.sqrt(inv_e)
+  val = mm(root, root.T)
+  recovered_e = mm(u.T, mm(regularized_input, u))
+  eig_error = recovered_e - jnp.diag(e)
+  if padding_start is not None:
+    eig_error *= jnp.flip(ix)
+  error = jnp.max(jnp.abs(eig_error))
+  error_metrics = TrainingMetrics(
+      inverse_pth_root_errors=jnp.array(error, jnp.float32))
+  if padding_start is not None:
+    val = jnp.where(padding_start == 0, 0.0, val)
+    error = jnp.where(padding_start == 0, 0.0,
+                      error_metrics.inverse_pth_root_errors)
+    error_metrics = error_metrics.replace(inverse_pth_root_errors=error)
+  val = jnp.asarray(val, orig_dtype)
+  return val, error_metrics
 
 
 
@@ -1188,6 +1289,7 @@ def distributed_shampoo(
     decoupled_weight_decay=False,
     generate_training_metrics=True,
     reuse_preconditioner=False,
+    eigh=False,
 ):
   """Distributed Shampoo optimizer.
 
@@ -1278,6 +1380,8 @@ def distributed_shampoo(
       avoid generating them (to reduce memory usage).
     reuse_preconditioner: If True, pass the previous derived preconditioner
       as a warm start to the next iteratin's inverse pth root computation.
+    eigh: If True, and uses eigen decomposition for inverse-pth root.
+
   Returns:
     a GradientTransformation.
   """
@@ -1836,7 +1940,8 @@ def distributed_shampoo(
       precision=precision,
       relative_matrix_epsilon=relative_matrix_epsilon,
       lobpcg_topk_precondition=lobpcg_topk_precondition,
-      lobpcg_max_iter=lobpcg_max_iter)
+      lobpcg_max_iter=lobpcg_max_iter,
+      eigh=eigh)
 
 
   def _matrix_inverse_pth_root_vmap(xs, ps, padding_starts, prev):
