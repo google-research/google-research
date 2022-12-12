@@ -23,7 +23,6 @@ import json
 import os.path
 
 from absl import logging
-
 import numpy as np
 import scipy.special
 from six.moves import range

@@ -16,10 +16,10 @@
 """Spectrogram augmentation for model regularization."""
 from typing import Any, Dict
 
+from keras.utils import control_flow_util
 import tensorflow_model_optimization as tfmot
 
 from kws_streaming.layers.compat import tf
-from tensorflow.python.keras.utils import control_flow_util  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
 
 

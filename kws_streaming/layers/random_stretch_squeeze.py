@@ -14,8 +14,9 @@
 # limitations under the License.
 
 """Augment audio data with random stretchs and squeeze."""
+from keras.utils import control_flow_util
+
 from kws_streaming.layers.compat import tf
-from tensorflow.python.keras.utils import control_flow_util  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
 
 

@@ -22,11 +22,11 @@ from __future__ import print_function
 from absl import logging
 import attr
 import tensorflow.compat.v2 as tf
+from tensorflow.compat.v2.keras.optimizers import SGD
 import tensorflow_probability as tfp
 
 from uq_benchmark_2019.imagenet import learning_rate_lib
 from uq_benchmark_2019.imagenet import resnet50_model
-from tensorflow.python.keras.optimizer_v2 import gradient_descent  # pylint: disable=g-direct-tensorflow-import
 
 keras = tf.keras
 tfd = tfp.distributions
@@ -85,7 +85,7 @@ def build_and_train(opts, dataset_train, dataset_eval, output_dir, metrics):
   model = build_model(opts)
   logging.info('Compiling model.')
   model.compile(
-      optimizer=gradient_descent.SGD(
+      optimizer=SGD(
           learning_rate=learning_rate_lib.BASE_LEARNING_RATE,
           momentum=0.9, nesterov=True),
       loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
