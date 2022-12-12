@@ -973,9 +973,7 @@ class AntheaManager {
               Evaluated by: ${parsedData.raterId}
           </option>`);
       this.viewingListData_.push(parsedData);
-      if (!parsedData.template.sqm) {
-        this.viewingMQMData_ += this.getMQMData(parsedData);
-      }
+      this.viewingMQMData_ += this.getMQMData(parsedData);
     } catch (err) {
       this.clear();
       this.log(this.ERROR, 'Failed to open evaluation data file ' +

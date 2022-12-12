@@ -282,34 +282,6 @@
 #anthea-mqm-list-of-severities {
   line-height: 2;
 }
-.anthea-rating-button {
-  box-sizing: border-box;
-  cursor: pointer;
-  outline: 1px solid gray;
-}
-.anthea-rating-button-disabled {
-  cursor: not-allowed;
-}
-.anthea-rating-button:hover:not(.anthea-rating-button-disabled) {
-  background: gainsboro;
-  filter: brightness(105%);
-  outline: 1px solid blue;
-}
-.anthea-rating-display,
-.anthea-rating-value {
-  font-size: 125%;
-  font-weight: bold;
-  margin: 0;
-  min-height: 4ex;
-  text-align: left;
-}
-.anthea-rating-display {
-  padding: 4px;
-  text-decoration: underline;
-}
-.anthea-rating-value {
-  padding: 4px 8px 4px 8px;
-}
 .anthea-segment-nav {
   cursor: pointer;
 }

@@ -357,7 +357,7 @@ class AntheaEval {
     /** @private {?Element} */
     this.displayedProgress_ = null;
 
-    /** @const @private {!Object} Dict of severity/category/sqm-value buttons */
+    /** @const @private {!Object} Dict of severity/category buttons */
     this.buttons_ = {};
 
     /** {!Array<!Object>} */
@@ -551,44 +551,27 @@ class AntheaEval {
         spanArray[x].style.backgroundColor = color;
       }
     }
-    if (this.config.sqm) {
-      const ratingInfo = this.config.sqm[evalResult.sqm];
-      if (ratingInfo) {
-        this.tgtSpans[n].style.textDecoration = 'underline';
-        this.tgtSpans[n].style.textDecorationColor = ratingInfo.color;
-      }
-    }
 
     const isCurr = n == this.currSegment;
     if (isCurr) {
       this.evalPanel_.style.top = sg.top;
-      if (!this.config.sqm) {
-        this.evalPanelErrors_.innerHTML = '';
-        if (evalResult.hotw && evalResult.hotw.done) {
-          this.displayHOTWMessage(evalResult.hotw.found,
-                                  evalResult.hotw.injected_error);
-        }
-        for (let i = 0; i < evalResult.errors.length; i++) {
-          this.displayError(evalResult.errors, i);
-        }
-        if (this.markedPhrase_) {
-          const color =
-              this.severity_ ? this.severity_.color : this.markedPhrase_.color;
-          const spanArray = (this.markedPhrase_.location == 'source') ?
-              srcWordSpans :
-              tgtWordSpans;
-          for (let x = this.markedPhrase_.start; x <= this.markedPhrase_.end;
-               x++) {
-            spanArray[x].style.backgroundColor = color;
-          }
-        }
-      } else {
-        const selected = evalResult.hasOwnProperty('sqm') ?
-            evalResult.sqm : Infinity;
-        for (let ratingInfo of this.config.sqm) {
-          const button = this.buttons_[ratingInfo.value];
-          button.style.color = (selected == ratingInfo.value) ?
-              'blue' : 'black';
+      this.evalPanelErrors_.innerHTML = '';
+      if (evalResult.hotw && evalResult.hotw.done) {
+        this.displayHOTWMessage(evalResult.hotw.found,
+                                evalResult.hotw.injected_error);
+      }
+      for (let i = 0; i < evalResult.errors.length; i++) {
+        this.displayError(evalResult.errors, i);
+      }
+      if (this.markedPhrase_) {
+        const color =
+            this.severity_ ? this.severity_.color : this.markedPhrase_.color;
+        const spanArray = (this.markedPhrase_.location == 'source') ?
+            srcWordSpans :
+            tgtWordSpans;
+        for (let x = this.markedPhrase_.start; x <= this.markedPhrase_.end;
+             x++) {
+          spanArray[x].style.backgroundColor = color;
         }
       }
       this.noteTiming('visited-or-redrawn');
@@ -808,10 +791,6 @@ displayError(errors, index) {
     const num = this.docs_[this.currDoc_].numSG;
     this.prevButton_.disabled = (this.currSegment <= start);
     this.nextButton_.disabled = (this.currSegment >= start + num - 1);
-    if (this.config.sqm && !evalResult.hasOwnProperty('sqm') &&
-        !this.READ_ONLY) {
-      this.nextButton_.disabled = true;
-    }
     this.prevDocButton_.style.display = (this.currDoc_ == 0) ? 'none' : '';
     this.prevDocButton_.disabled = false;
     if (this.currDoc_ == this.docs_.length - 1) {
@@ -821,11 +800,7 @@ displayError(errors, index) {
       this.nextDocButton_.disabled = !this.READ_ONLY &&
           !this.currDocFullyEvaluated();
     }
-    if (this.config.sqm) {
-      return;
-    }
 
-    // MQM-specific:
     this.guidancePanel_.style.backgroundColor =
         (this.severity_ ? this.severity_.color : 'whitesmoke');
     this.guidance_.style.display = 'none';
@@ -1099,61 +1074,9 @@ displayError(errors, index) {
   }
 
   /**
-   * Creates the eval panel shown in the evaluation column.
-   */
-  makeEvalPanel() {
-    if (this.config.sqm) {
-      this.makeEvalPanelSQM();
-    } else {
-      this.makeEvalPanelMQM();
-    }
-  }
-
-  /**
-   * Creates the SQM eval panel shown in the evaluation column.
-   */
-  makeEvalPanelSQM() {
-    const ratingsButtons = googdom.createDom('table',
-                                             'anthea-eval-panel-table');
-    this.evalPanelBody_.appendChild(ratingsButtons);
-
-    for (let ratingInfo of this.config.sqm) {
-      const ratingValue =
-          googdom.createDom('div',
-                            'anthea-rating-value', '' + ratingInfo.value);
-      const ratingDisplay =
-          googdom.createDom('div',
-                            'anthea-rating-display', ratingInfo.display || '');
-      ratingDisplay.style.textDecorationColor = ratingInfo.color;
-      const ratingButton = googdom.createDom(
-          'tr', 'anthea-rating-button',
-          googdom.createDom('td', null, ratingValue),
-          googdom.createDom('td', null, ratingDisplay));
-      if (ratingInfo.description) {
-        ratingButton.title = ratingInfo.description;
-      }
-      ratingsButtons.appendChild(ratingButton);
-      if (!this.READ_ONLY) {
-        const listener = (e) => {
-          if (e.type == 'click' || (e.key && e.key == ratingInfo.shortcut)) {
-            e.preventDefault();
-            this.setSQMRating(ratingInfo.value);
-          }
-        };
-        ratingButton.addEventListener('click', listener);
-        this.keydownListeners.push(listener);
-        document.addEventListener('keydown', listener);
-      } else {
-        ratingButton.classList.add('anthea-rating-button-disabled');
-      }
-      this.buttons_[ratingInfo.value] = ratingButton;
-    }
-  }
-
-  /**
    * Creates the MQM eval panel shown in the evaluation column.
    */
-  makeEvalPanelMQM() {
+  makeEvalPanel() {
     this.guidancePanel_ = googdom.createDom('div', 'anthea-guidance-panel');
     this.evalPanelHead_.insertAdjacentElement(
         'afterbegin', this.guidancePanel_);
@@ -1363,26 +1286,9 @@ displayError(errors, index) {
   }
 
   /**
-   * Set the SQM rating for this sentence.
-   * @param {string} sqm rating (typically numeric, but need not be).
-   */
-  setSQMRating(sqm) {
-    const evalResult = this.currSentenceEval();
-    evalResult.sqm = sqm;
-    this.saveResults();
-    if (this.isFarthestSegment()) {
-      this.incrCurrSegment();
-    }
-    this.redrawAllSegments();
-  }
-
-  /**
    * Handles cancellation of the current error-marking.
    */
   handleCancel() {
-    if (this.config.sqm) {
-      return;
-    }
     this.noteTiming('cancelled-marking-error');
     this.concludeMarkingPhrase(null);
   }
@@ -1710,41 +1616,6 @@ displayError(errors, index) {
   }
 
   /**
-   * Populates an instructions panel with list of ratings for SQM.
-   * @param {!Element} panel The DIV element to populate.
-   */
-  populateSQMLabelsDescPanel(panel) {
-    panel.innerHTML = (this.config.instructions || '') +
-        (!this.config.SKIP_RATINGS_TABLES ? `
-      <p>
-        <details open>
-          <summary>
-            <b>Table of ratings:</b>
-            <br><br>
-          </summary>
-          <table id="anthea-sqm-errors-table" class="anthea-errors-table">
-          </table>
-        </details>
-      </p>` : '');
-
-    if (this.config.SKIP_RATINGS_TABLES) {
-      return;
-    }
-    const ratingsTable = document.getElementById('anthea-sqm-errors-table');
-    for (let ratingInfo of this.config.sqm) {
-      const ratingValue = googdom.createDom(
-          'td', 'anthea-error-label', '' + ratingInfo.value);
-      ratingValue.style.background = ratingInfo.color;
-      const ratingDisplay = googdom.createDom(
-          'td', 'anthea-error-label', ratingInfo.display);
-      const ratingDesc = googdom.createDom(
-          'td', null, ratingInfo.description);
-      ratingsTable.appendChild(googdom.createDom(
-          'tr', null, ratingValue, ratingDisplay, ratingDesc));
-    }
-  }
-
-  /**
    * Modifies the config object, applying overrides.
    * @param {!Object} config The configuration object.
    * @param {string} overrides
@@ -1816,11 +1687,7 @@ displayError(errors, index) {
       'div', {id: 'anthea-eval-panel', class: 'anthea-eval-panel'});
     docEvalCell.appendChild(this.evalPanel_);
 
-    if (!config.sqm) {
-      this.populateMQMInstructions(instructionsPanel);
-    } else {
-      this.populateSQMLabelsDescPanel(instructionsPanel);
-    }
+    this.populateMQMInstructions(instructionsPanel);
 
     this.evalPanelHead_ = googdom.createDom('div', 'anthea-eval-panel-head');
     this.evalPanel_.appendChild(this.evalPanelHead_);
@@ -1861,42 +1728,34 @@ displayError(errors, index) {
       'td', 'anthea-eval-panel-nav',
       googdom.createDom('div', 'anthea-eval-panel-nav', this.prevButton_)));
 
-    if (!config.sqm) {
-      // MQM.
-      for (let s in config.severities) {
-        const severity = config.severities[s];
-        const action = severity.action || severity.display;
-        const buttonText =
-            action + (severity.shortcut ? ' [' + severity.shortcut + ']' : '');
-        const severityButton = googdom.createDom(
-            'button', {
-              class: 'anthea-stretchy-button anthea-eval-panel-tall',
-              style: 'background-color:' + severity.color,
-              title: severity.description
-            },
-            buttonText);
-        const listener = (e) => {
-          if (e.type == 'click' || (e.key && e.key == severity.shortcut)) {
-            e.preventDefault();
-            this.handleSeverityClick(s);
-          }
-        };
-        if (severity.shortcut) {
-          this.keydownListeners.push(listener);
-          document.addEventListener('keydown', listener);
+    for (let s in config.severities) {
+      const severity = config.severities[s];
+      const action = severity.action || severity.display;
+      const buttonText =
+          action + (severity.shortcut ? ' [' + severity.shortcut + ']' : '');
+      const severityButton = googdom.createDom(
+          'button', {
+            class: 'anthea-stretchy-button anthea-eval-panel-tall',
+            style: 'background-color:' + severity.color,
+            title: severity.description
+          },
+          buttonText);
+      const listener = (e) => {
+        if (e.type == 'click' || (e.key && e.key == severity.shortcut)) {
+          e.preventDefault();
+          this.handleSeverityClick(s);
         }
-        severityButton.addEventListener('click', listener);
-        if (!severity.hidden) {
-          buttonsRow.appendChild(googdom.createDom(
-              'td', 'anthea-eval-panel-cell', severityButton));
-        }
-        this.buttons_[s] = severityButton;
+      };
+      if (severity.shortcut) {
+        this.keydownListeners.push(listener);
+        document.addEventListener('keydown', listener);
       }
-    } else {
-      // SQM.
-      buttonsRow.appendChild(googdom.createDom(
-          'td', 'anthea-eval-panel-text anthea-bold',
-          'Rating for translation of current segment:'));
+      severityButton.addEventListener('click', listener);
+      if (!severity.hidden) {
+        buttonsRow.appendChild(googdom.createDom(
+            'td', 'anthea-eval-panel-cell', severityButton));
+      }
+      this.buttons_[s] = severityButton;
     }
 
     this.nextButton_ = googdom.createDom(
@@ -1962,16 +1821,8 @@ displayError(errors, index) {
           this.prevDocButton_, this.nextDocButton_, progressMessage));
 
     this.makeEvalPanel();
-    if (!config.sqm) {
-      // For MQM:
-      this.phraseMarker_ = new PhraseMarker(this);
-    }
+    this.phraseMarker_ = new PhraseMarker(this);
 
-    if (config.sqm) {
-      // For SQM, sentence rating UI is always shown (does not require a
-      // "severity" button click).
-      this.evalPanelBody_.style.display = '';
-    }
     this.restoreResults(projectResults);
     this.saveResults();
   }
@@ -2337,7 +2188,7 @@ displayError(errors, index) {
         this.tgtSpansHTML.push(tgtWordSpans);
 
         let injectedError = '';
-        if (!config.sqm && !this.READ_ONLY && this.hotwPercent_ > 0 &&
+        if (!this.READ_ONLY && this.hotwPercent_ > 0 &&
             i < srcSegments.length - 1 &&
             (100 * Math.random()) < this.hotwPercent_) {
           let ret = AntheaEval.injectErrors(tgtSegments[i]);
