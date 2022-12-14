@@ -18,7 +18,7 @@
 """Latent graph forecaster model that integrates."""
 import sys
 
-from typing import Any
+from typing import Any, Dict, Tuple
 
 import numpy as np
 sys.path.insert(0, '../src/')
@@ -302,8 +302,7 @@ class LGF(LightningModule, Seq2SeqAttrs):
     self.log('val_loss', loss)
     return {'val_loss': loss, 'log': {'val_loss': loss.detach()}}
 
-  def test_step(self, batch,
-                batch_idx):
+  def test_step(self, batch, batch_idx):
     x, y = batch
     loss = self.loss(self(x, None), y)
     self.log('test_loss', loss)

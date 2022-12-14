@@ -14,8 +14,8 @@
 # limitations under the License.
 
 """Latent graph forecaster cell with different graph convolution filter rules."""
-
-from typing import Any
+import argparse
+from typing import Sequence
 
 import numpy as np
 from pytorch_lightning import LightningModule
