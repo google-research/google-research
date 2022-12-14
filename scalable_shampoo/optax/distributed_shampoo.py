@@ -46,7 +46,6 @@ import numpy as np
 import optax
 
 from scalable_shampoo.optax.quantization_utils import QuantizedValue
-from scalable_shampoo.optax.symmetric_matrices import symmetric_matrices
 
 # Dtype for inverse-pth root routine
 # Switch to f64 if you have hardware that supports it. Enable the jax flag
@@ -467,10 +466,6 @@ def matrix_inverse_pth_root(
                                         prev)
   del prev
 
-  # If the input is not square, materialize it from the concatenated form.
-  if matrix.shape[0] != matrix.shape[1]:
-    matrix = symmetric_matrices.materialize_matrix_from_concat(matrix)
-
   assert matrix.shape[0] == matrix.shape[1]
 
   # We use _MAT_INV_PTH_ROOT_DTYPE for the matrix inverse pth root.
@@ -688,9 +683,6 @@ def matrix_inverse_pth_root_eigh(
     the input matrix.
   """
   del prev
-  # Perform the same preamble as in the usual matrix inverse root.
-  if matrix.shape[0] != matrix.shape[1]:
-    matrix = symmetric_matrices.materialize_matrix_from_concat(matrix)
   assert matrix.shape[0] == matrix.shape[1]
   matrix_size = matrix.shape[0]
   orig_dtype = matrix.dtype
@@ -801,106 +793,6 @@ def pad_square_matrix(mat, max_size):
   mat = jnp.concatenate([mat, zs1], 1)
   mat = jnp.concatenate([mat, jnp.concatenate([zs2, eye], 1)], 0)
   return mat
-
-
-def make_sliced_padding(
-    symmetric_block_size,
-    num_blocks,
-    starting_block,
-    dtype,
-):
-  """Returns padding for symmetric block matrix.
-
-  Specifically, the padding is given concatenated rectangular matrices
-  representing the lower-triangular rows below the starting block. For example,
-  if we want to pad the symmetric matrix
-
-  M = [[A, B^T]
-       [B, C]],
-
-  the desired output (in terms of the full matrix) with num_blocks = 4 is
-
-  M_padded = [[A, B^T, 0, 0]
-              [B, C,   0, 0]
-              [0, 0,   I, 0]
-               0, 0,   0, I].
-
-  We would represent M as the block matrix mat = [A, B, C]. In this form, the
-  additional padding to provide has form [0, 0, I, 0, 0, 0, I] (only the lower
-  triangular parts in the third and fourth rows).
-
-  Args:
-    symmetric_block_size: The size of each block.
-    num_blocks: The total number of blocks.
-    starting_block: The block where to start the padding.
-    dtype: The type to use for the blocks.
-  """
-  if starting_block == num_blocks:
-    return jnp.zeros(shape=(symmetric_block_size, 0), dtype=dtype)
-
-  blocks = []
-  for i in range(starting_block, num_blocks):
-    blocks.append(
-        jnp.zeros(
-            shape=(symmetric_block_size, symmetric_block_size * i),
-            dtype=dtype))
-    blocks.append(jnp.eye(symmetric_block_size, dtype=dtype))
-  return jnp.concatenate(blocks, axis=-1)
-
-
-def pad_block_symmetric_matrix(
-    mat,
-    symmetric_block_size,
-    max_num_blocks,
-):
-  """Returns the padded blocked symmetric matrix.
-
-  The size of the padded matrix will be:
-    [symmetric_block_size, symmetric_block_size * max_num_blocks]
-
-  The input matrix can either:
-    - Be square with size less or equal to symmetric_block_size. In this case,
-      mat will first be padded to a square matrix of size symmetric_block_size,
-      and then be padded again up to the full size of the blocked matrix.
-    - Be a rectangle with number of rows equal to block size.
-      In this case, number of columns must be a multiple of number of rows, and
-      the ratio must correspond to a block representation of a symmetric matrix.
-      That is, the ratio must have form x * (x + 1) / 2. Here, x represents the
-      number of block rows represented by the matrix.
-
-  Args:
-    mat: The input block matrix.
-    symmetric_block_size: The size of blocks.
-    max_num_blocks: The largest number of blocks to pad to.
-  """
-  rows, cols = mat.shape
-  if rows > symmetric_block_size:
-    raise ValueError(
-        "Must have rows <= symmetric_block_size. Instead got "
-        f"rows={rows}, symmetric_block_size={symmetric_block_size}.")
-  if rows > cols:
-    raise ValueError("Must have rows <= cols, instead got "
-                     f"rows={rows}, cols={cols}.")
-  if cols > symmetric_block_size * max_num_blocks:
-    raise ValueError("Must have cols <= symmetric_block_size * max_num_blocks "
-                     f"Instead got cols={cols}, "
-                     f"symmetric_block_size={symmetric_block_size}, "
-                     f"max_num_blocks={max_num_blocks}.")
-  if rows < symmetric_block_size:
-    mat = pad_square_matrix(mat, max_size=symmetric_block_size)
-  # Update rows and cols after possibly padding in pad_square_matrix.
-  rows, cols = mat.shape
-  assert rows == symmetric_block_size
-  assert cols % rows == 0
-  filled_blocks = cols // rows
-  padding_blocks = make_sliced_padding(
-      symmetric_block_size=symmetric_block_size,
-      num_blocks=symmetric_matrices.num_blocks_from_total_blocks(
-          max_num_blocks),
-      starting_block=symmetric_matrices.num_blocks_from_total_blocks(
-          filled_blocks),
-      dtype=mat.dtype)
-  return jnp.concatenate([mat, padding_blocks], axis=-1)
 
 
 def pad_vector(vec, max_size):

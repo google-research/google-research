@@ -73,66 +73,6 @@ class PaddingTest(parameterized.TestCase):
       distributed_shampoo.pad_square_matrix(
           mat=jnp.ones(shape=shape), max_size=max_size)
 
-  @parameterized.named_parameters(
-      {
-          'testcase_name':
-              'LastTwoBlockRows',
-          'starting_block':
-              2,
-          'result': [[0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0.],
-                     [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 1.]]
-      },
-      {
-          'testcase_name':
-              'LastBlockRow',
-          'starting_block':
-              3,
-          'result': [[0., 0., 0., 0., 0., 0., 1., 0.],
-                     [0., 0., 0., 0., 0., 0., 0., 1.]]
-      },
-      {
-          'testcase_name': 'Empty',
-          'starting_block': 4,
-          'result': [[], []],
-      },
-  )
-  def test_make_sliced_padding(self, starting_block, result):
-    self.assertAllClose(
-        distributed_shampoo.make_sliced_padding(
-            symmetric_block_size=2,
-            num_blocks=4,
-            starting_block=starting_block,
-            dtype=jnp.float32), jnp.asarray(result, dtype=jnp.float32))
-
-  @parameterized.parameters(
-      {
-          'shape': (0, 0),
-          'result': [[1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0.],
-                     [0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1.]]
-      },
-      {
-          'shape': (2, 2),
-          'result': [[1., 1., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0.],
-                     [1., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1.]]
-      },
-      {
-          'shape': (2, 2 * 3),
-          'result': [[1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 1., 0.],
-                     [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 1.]]
-      },
-      {
-          'shape': (2, 2 * 6),
-          'result': [[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
-                     [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]]
-      },
-  )
-  def test_pad_block_symmetric_matrix(self, shape, result):
-    self.assertAllClose(
-        distributed_shampoo.pad_block_symmetric_matrix(
-            mat=jnp.ones(shape=shape, dtype=jnp.float32),
-            symmetric_block_size=2,
-            max_num_blocks=6), jnp.asarray(result, dtype=jnp.float32))
-
 
 def _pth_root_difference_cases():
   """Returns cases for _pth_root_difference() test."""
@@ -204,23 +144,19 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
       {
           'testcase_name': 'materialize_statistics',
           'best_effort_memory_usage_reduction': True,
-          'symmetric_block_size': 2,
       },
       {
           'testcase_name': 'blocked_statistics',
           'best_effort_memory_usage_reduction': True,
-          'symmetric_block_size': 2,
       },
       {
           'testcase_name': 'default_quantized',
       },
       {
           'testcase_name': 'materialize_statistics_quantized',
-          'symmetric_block_size': 2,
       },
       {
           'testcase_name': 'blocked_statistics_quantized',
-          'symmetric_block_size': 2,
       },
       {
           'testcase_name': 'no_training_metrics',
@@ -252,7 +188,6 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
   def test_distributed_shampoo(
       self,
       best_effort_memory_usage_reduction=False,
-      symmetric_block_size=None,
       merge_small_dims_block_size=4096,
       generate_training_metrics=True,
       slightly_larger=False,
