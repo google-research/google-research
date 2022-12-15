@@ -90,7 +90,7 @@ contrast, when processing `chunks`, the first `infer` call processes the
 processing is shared across both batch elements "2 legs." and "3 legs.".
 """
 
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence, Tuple, Union
 
 from flax import struct
 import jax
@@ -114,8 +114,15 @@ _BOS_ID = 0
 @struct.dataclass
 class Chunk:
   """A chunk of token IDs. These are typically used as the input to a model."""
-  tokens: np.ndarray  # int32[batch, max_len]
-  lengths: np.ndarray  # int32[batch]
+  tokens: Union[np.ndarray, jnp.ndarray]  # int32[batch, max_len]
+  lengths: Union[np.ndarray, jnp.ndarray]  # int32[batch]
+
+  @classmethod
+  def logical_axes(cls):
+    return Chunk(
+        tokens=P('batch', 'time'),
+        lengths=P('batch'),
+    )
 
   @classmethod
   def zeros(cls, batch, seqlen):
@@ -133,8 +140,8 @@ class Chunk:
       A Chunk with zeros in all locations.
     """
     return Chunk(
-        tokens=np.zeros((batch, seqlen), np.int32),
-        lengths=np.zeros((batch,), np.int32),
+        tokens=jnp.zeros((batch, seqlen), jnp.int32),
+        lengths=jnp.zeros((batch,), jnp.int32),
     )
 
   @classmethod
@@ -333,7 +340,7 @@ class ChunkResult:
         per_token_scores=P('batch', 'time'),
         top_token_ids=P('batch', 'time', 'top_k'),
         top_token_probs=P('batch', 'time', 'top_k'),
-        next_token_logits=P('batch', 'vocab_size'),
+        next_token_logits=P('logit_batch', 'vocab'),
         kv_cache=attention.KVCache.logical_axes(),
     )
 
@@ -405,6 +412,15 @@ class FullChunkResult:
   """Result produced by an 'infer' call."""
   logits: jnp.ndarray  # float32[batch, seqlen, vocab_size]
   kv_cache: attention.KVCache
+
+  @classmethod
+  def logical_axes(cls):
+    return FullChunkResult(
+        logits=P('logit_batch', 'time', 'vocab'),
+        kv_cache=attention.KVCache(
+            lengths=P(None),
+            k=P('length', 'layers', 'attn_batch', 'qkv'),
+            v=P('length', 'layers', 'attn_batch', 'qkv')))
 
   def to_chunk_result(self, prev_logits,
                       chunk):

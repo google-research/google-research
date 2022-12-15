@@ -38,18 +38,26 @@ jax.config.update('jax_parallel_functions_output_gda', True)
 def logical_to_physical(logical_axes):
   """Converts logical to physical axes for a layer using rule priority."""
   # Priority order of logical to physical axes mapping
-  # TODO(sholto): Parse string to produce hardware
-  rules = [
-      ('heads.YZ', ('y', 'z')),
-      ('heads.YZX', ('y', 'z', 'x')),
-      ('embed.X', 'x'),
-      ('embed.XY', ('x', 'y')),
-      ('batch.Z', 'z'),
-      ('batch.X', 'x'),
-      ('batch.YZ', ('y', 'z')),
-      ('table_vocab.XYZ', ('x', 'y', 'z')),
-      ('table_vocab.YZ', ('y', 'z')),
+  rules_twod = [
+      ('prefix_time', None),
+      ('prefix_layers', None),
+      ('prefix_batch', None),
+      ('prefix_qkv', None),
+      ('batch', None),
+      ('residual_batch', ('z',)),
+      ('logit_batch', 'x'),   # for vocab
+      ('residual_embed', ('x', 'y')),
+      ('post_norm_batch', None),
+      ('post_norm_embed', 'x'),
+      ('heads', ('y', 'z', 'x')),
+      ('qkv', None),
+      ('params_heads', ('y', 'z')),
+      ('params_embed', 'x'),
+      ('vocab', ('y', 'z')),
+      ('attn_batch', None),  # This needs to be updated depending on size
   ]
+
+  rules = rules_twod  # TODO(sholto) factor out a config.py
   result = [None] * len(logical_axes)
   for logical_axis, physical_axis in rules:
     if logical_axis in logical_axes:

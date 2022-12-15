@@ -454,9 +454,6 @@ def transformer_layer_weight_stationary(
   with jax.named_scope('residual'):
     z = intermediate_dtype(y_out + x)
 
-  # if shard_seqlen_vs_batch:
-  #   return z, k, v
-  # else:
   # TODO(sholto): Test correctness
   k, v = k.astype(intermediate_dtype), v.astype(intermediate_dtype)
   if attn_all_to_all == AttnAllToAll.NONE:
@@ -745,12 +742,17 @@ def pjit_transformer_layer(
   if batch == 1 and max_len == 1:
     raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
 
-  x = _with_sharding_constraint(x, ('batch.Z', 'time', 'embed.XY'))
+  # 2D: [batch.Z, time, embed.XY]
+  x = _with_sharding_constraint(x, ('batch', 'time', 'residual_embed'))
   xnorm = _layernorm(x)
-  xnorm = _with_sharding_constraint(xnorm, ('batch', 'time', 'embed.X'))
+  # 2D: [batch, time, embed.X]
+  xnorm = _with_sharding_constraint(xnorm, ('post_norm_batch',
+                                            'time', 'post_norm_embed'))
   # in PaLM, ff and attn are parallel so we can compute q and wi together
   q_wi = jnp.einsum('bte,hed->bthd', xnorm, my_layer(params.q_wi))
-  q_wi = _with_sharding_constraint(q_wi, ('batch', 'time', 'heads.YZX', None))
+  # 2D: [batch, time, heads.YZX, None]
+  q_wi = _with_sharding_constraint(q_wi, ('post_norm_batch',
+                                          'time', 'heads', 'qkv'))
   q = q_wi[:, :, :, :hparams.qkv]
   q = _rope(sin, cos, q)
   # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
@@ -765,14 +767,18 @@ def pjit_transformer_layer(
   y_att = jnp.bfloat16(attention.attend(q, k, v, kv_caches, layer))
 
   y_mlp = special2.swish2(wi0) * wi1
-  y_mlp = _with_sharding_constraint(y_mlp, ('batch', 'time', 'heads.YZX', None))
+  # 2D: [batch, time, heads.YZX, None]
+  y_mlp = _with_sharding_constraint(y_mlp, ('post_norm_batch',
+                                            'time', 'heads', None))
 
   y_fused = jnp.concatenate([y_att, y_mlp], axis=-1)
   # do the second half of the mlp and the self-attn projection in parallel
   y_out = jnp.einsum('bthd,hde->bte', y_fused, my_layer(params.o_wo))
-  y_out = _with_sharding_constraint(y_out, ('batch.Z', 'time', 'embed.XY'))
+  # 2D: [batch.Z, time, embed.XY]
+  y_out = _with_sharding_constraint(y_out, ('batch',
+                                            'time', 'residual_embed'))
   z = y_out + x
-  z = _with_sharding_constraint(z, ('batch.Z', 'time', 'embed.XY'))
+  z = _with_sharding_constraint(z, ('batch', 'time', 'residual_embed'))
   return jnp.bfloat16(z), k, v
 
 
@@ -828,14 +834,17 @@ def quantized_pjit_transformer_layer(
   if batch == 1 and max_len == 1:
     raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
 
-  x = _with_sharding_constraint(x, ('batch.Z', 'time', 'embed.XY'))
+  x = _with_sharding_constraint(x, ('residual_batch', 'time', 'residual_embed'))
   # When quantized, we do not fold in layernorm scale to the weights
   xnorm = _scaled_layernorm(x, my_layer(params.layernorm_scale))
-  xnorm = _with_sharding_constraint(xnorm, ('batch.Z', 'time', 'embed.XY'))
+  xnorm = _with_sharding_constraint(xnorm, ('post_norm_batch',
+                                            'time', 'post_norm_embed'))
 
   q_wi = quantized_dot_general('bte,hed->bthd', xnorm, my_layer(params.q_wi),
                                my_layer(params.q_wi_scale))
-  q_wi = _with_sharding_constraint(q_wi, ('batch', 'time', 'heads.YZX', None))
+  # 2D: [batch, time, heads.YZX, None]
+  q_wi = _with_sharding_constraint(q_wi, ('post_norm_batch',
+                                          'time', 'residual_heads', 'qkv'))
   q = q_wi[:, :, :, :hparams.qkv]
   q = _rope(sin, cos, q)
   wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
@@ -850,13 +859,16 @@ def quantized_pjit_transformer_layer(
   y_att = attention.attend(q, k, v, kv_caches, layer)
 
   y_mlp = special2.swish2(wi0) * wi1
-  y_mlp = _with_sharding_constraint(y_mlp, ('batch', 'time', 'heads.YZX', None))
+  y_mlp = _with_sharding_constraint(y_mlp, ('post_norm_batch',
+                                            'time', 'heads', None))
 
   y_fused = jnp.concatenate([y_att, y_mlp], axis=-1)
   y_out = quantized_dot_general('bthd,hde->bte', y_fused, my_layer(params.o_wo),
                                 my_layer(params.o_wo_scale))
-  y_out = _with_sharding_constraint(y_out, ('batch.Z', 'time', 'embed.XY'))
+  # 2D: [batch.Z, time, embed.XY]
+  y_out = _with_sharding_constraint(y_out, ('residual_batch',
+                                            'time', 'residual_embed'))
   z = y_out + x
-  z = _with_sharding_constraint(z, ('batch.Z', 'time', 'embed.XY'))
+  z = _with_sharding_constraint(z, ('residual_batch', 'time', 'residual_embed'))
 
   return jnp.bfloat16(z), k, v

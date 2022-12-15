@@ -104,10 +104,11 @@ def infer(
     return x, k, v
 
   # Initialize output KV cache.
+  # TODO(sholto): attn_batch should be contingent
   k = jnp.zeros((h.layers, max_length, batch, h.qkv), intermediate_dtype)
-  k = _with_sharding_constraint(k, ('layers', 'time', 'batch', None))
+  k = _with_sharding_constraint(k, ('layers', 'time', 'attn_batch', None))
   v = jnp.zeros((h.layers, max_length, batch, h.qkv), intermediate_dtype)
-  v = _with_sharding_constraint(v, ('layers', 'time', 'batch', None))
+  v = _with_sharding_constraint(v, ('layers', 'time', 'attn_batch', None))
   x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x, k, v))
 
   k = jnp.swapaxes(k, 0, 1)
@@ -116,10 +117,13 @@ def infer(
   x = layers_parallel._layernorm(x)  # pylint: disable = protected-access
 
   x = _with_sharding_constraint(x, (None, None, None))
-  x = _with_sharding_constraint(x, (None, None, 'table_embed'))
+  x = _with_sharding_constraint(x, (None, None, 'params_embed'))
   logits = jnp.einsum('bte,ve->btv', jnp.float32(x),
                       jnp.float32(params.embedding))
-  logits = _with_sharding_constraint(logits, (None, None, 'table_vocab.XYZ'))
+
+  # TODO(sholto): Vocab may need to go xyz on 62B VL.
+  # END GOOGLE-INTERAL
+  logits = _with_sharding_constraint(logits, (None, None, 'vocab'))
 
   return FullChunkResult(
       logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v))
@@ -169,7 +173,6 @@ def infer_xmap(
   # x: int32[batch, maxlen]
   # embed: bfloat16[vocab.YZ, dmodel.X]
   x = chunk.tokens
-  print('chunk', x.shape, 'embed', params.embedding.shape)
   vocab_yz, _ = params.embedding.shape
 
   yz_index = lax.axis_index('y') * z_axis + lax.axis_index('z')
@@ -226,10 +229,10 @@ def infer_xmap(
     attn_batch_sharding = y_axis * z_axis * x_axis
   # Initialize output KV cache.
   k = jnp.zeros(
-      (max_length, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
+      (h.layers, max_length, div_up(batch, attn_batch_sharding), h.qkv),
       intermediate_dtype)
   v = jnp.zeros(
-      (max_length, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
+      (h.layers, max_length, div_up(batch, attn_batch_sharding), h.qkv),
       intermediate_dtype)
   x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x, k, v))
 
