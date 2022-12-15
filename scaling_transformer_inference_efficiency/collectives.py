@@ -36,7 +36,6 @@ import numpy as np
 #       axis, must be an input channel
 #     * gather_dimension[1] is unused
 
-
 # numpy helper functions for weight pre-shuffling routines
 
 
@@ -45,16 +44,13 @@ def interleave(a, b):
 
 
 def split_apart_axis(x, num_splits, axis):
-  return x.reshape(
-      x.shape[:axis] +
-      (num_splits, x.shape[axis] // num_splits) +
-      x.shape[axis + 1:])
+  return x.reshape(x.shape[:axis] + (num_splits, x.shape[axis] // num_splits) +
+                   x.shape[axis + 1:])
 
 
 def reflatten_axis(x, axis):
-  return x.reshape(x.shape[:axis] +
-                   (x.shape[axis] * x.shape[axis + 1],) +
-                   x.shape[axis+2:])
+  return x.reshape(x.shape[:axis] + (x.shape[axis] * x.shape[axis + 1],) +
+                   x.shape[axis + 2:])
 
 
 def update_slice(x, update, index, axis):
@@ -91,15 +87,14 @@ def dynamic_index_and_slice(index_axis, index, slice_axis,
 # allgather-matmul fusion routines
 
 
-def matmul_allgather_no_collective(
-    einsum_spec,
-    lhs,
-    rhs,
-    gather_dimension,
-    axis_name,
-    layer,
-    layer_axis=0,
-    subsplit_axis=None):
+def matmul_allgather_no_collective(einsum_spec,
+                                   lhs,
+                                   rhs,
+                                   gather_dimension,
+                                   axis_name,
+                                   layer,
+                                   layer_axis=0,
+                                   subsplit_axis=None):
   """Non overlapped allgather matmul using default allgather."""
   del subsplit_axis
   rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
@@ -178,28 +173,24 @@ def async_matmul_allgather_one_way(einsum_spec,
   return accum + p
 
 
-def preshuffle_for_async_matmul_allgather_throughput(
-    x, shuffle_axis, shard_axis):
+def preshuffle_for_async_matmul_allgather_throughput(x, shuffle_axis,
+                                                     shard_axis):
   """Pre-shuffle weights for async_matmul_allgather_throughput."""
   axis_size = x.shape[shard_axis]
   y = jnp.zeros_like(x)
 
   def permutation_fn(i):
     iota = jnp.arange(axis_size, dtype=np.int32)
-    flipped_evens = jnp.flip(np.roll(2 * iota, -i-1))
+    flipped_evens = jnp.flip(np.roll(2 * iota, -i - 1))
     rolled_odds = jnp.roll(2 * iota + 1, -i)
     return interleave(flipped_evens, rolled_odds)
 
   for i in range(axis_size):
-    shard = gather_axis(x, index=slice(i, i+1), axis=shard_axis)
-    shard = split_apart_axis(shard,
-                             num_splits=2 * axis_size,
-                             axis=shuffle_axis)
-    shard = gather_axis(shard,
-                        index=permutation_fn(i),
-                        axis=shuffle_axis)
+    shard = gather_axis(x, index=slice(i, i + 1), axis=shard_axis)
+    shard = split_apart_axis(shard, num_splits=2 * axis_size, axis=shuffle_axis)
+    shard = gather_axis(shard, index=permutation_fn(i), axis=shuffle_axis)
     shard = reflatten_axis(shard, axis=shuffle_axis)
-    y = update_slice(y, shard, index=slice(i, i+1), axis=shard_axis)
+    y = update_slice(y, shard, index=slice(i, i + 1), axis=shard_axis)
 
   return y
 
@@ -287,21 +278,17 @@ def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis, shard_axis):
   y = jnp.zeros_like(x)
 
   def permutation_fn(i):
-    evens = [(i - j - 1) % axis_size for j in range(axis_size//2)]
-    odds = [(i + j) % axis_size for j in range(axis_size//2)]
+    evens = [(i - j - 1) % axis_size for j in range(axis_size // 2)]
+    odds = [(i + j) % axis_size for j in range(axis_size // 2)]
     block_perm = interleave(evens, odds)
     return interleave(2 * block_perm, 2 * block_perm + 1)
 
   for i in range(axis_size):
-    shard = gather_axis(x, index=slice(i, i+1), axis=shard_axis)
-    shard = split_apart_axis(shard,
-                             num_splits=2 * axis_size,
-                             axis=shuffle_axis)
-    shard = gather_axis(shard,
-                        index=permutation_fn(i),
-                        axis=shuffle_axis)
+    shard = gather_axis(x, index=slice(i, i + 1), axis=shard_axis)
+    shard = split_apart_axis(shard, num_splits=2 * axis_size, axis=shuffle_axis)
+    shard = gather_axis(shard, index=permutation_fn(i), axis=shuffle_axis)
     shard = reflatten_axis(shard, axis=shuffle_axis)
-    y = update_slice(y, shard, index=slice(i, i+1), axis=shard_axis)
+    y = update_slice(y, shard, index=slice(i, i + 1), axis=shard_axis)
 
   return y
 
@@ -514,20 +501,20 @@ def preshuffle_for_reducescatter_bidirectional_throughput(
   neg_perm = lambda idx: jnp.roll(np.arange(axis_size), -idx - 1)
   new_x = jnp.zeros_like(x)
   for axis_index in range(axis_size):
-    shard = gather_axis(x, slice(axis_index, axis_index+1), axis=sharded_dim)
+    shard = gather_axis(x, slice(axis_index, axis_index + 1), axis=sharded_dim)
     new_shard = jnp.zeros_like(shard)
     # Handle shifts in each half of the subsplits:
     for pos, perm_fn in ((0, pos_perm), (half, neg_perm)):
-      split = gather_axis(shard, index=slice(pos, pos+half), axis=subsplit_dim)
+      split = gather_axis(
+          shard, index=slice(pos, pos + half), axis=subsplit_dim)
       chunked_split = split_apart_axis(split, axis_size, axis=scatter_dim)
-      rolled = gather_axis(chunked_split,
-                           index=perm_fn(axis_index),
-                           axis=scatter_dim)
+      rolled = gather_axis(
+          chunked_split, index=perm_fn(axis_index), axis=scatter_dim)
       rolled = reflatten_axis(rolled, scatter_dim)
       new_shard = update_slice(
-          new_shard, rolled, slice(pos, pos+half), axis=subsplit_dim)
+          new_shard, rolled, slice(pos, pos + half), axis=subsplit_dim)
     new_x = update_slice(
-        new_x, new_shard, slice(axis_index, axis_index+1), axis=sharded_dim)
+        new_x, new_shard, slice(axis_index, axis_index + 1), axis=sharded_dim)
   return new_x
 
 
@@ -609,8 +596,8 @@ def matmul_reducescatter_bidirectional_throughput(einsum_spec,
   return result
 
 
-def preshuffle_for_reducescatter_bidirectional_latency(
-    x, sharded_dim, scatter_dim):
+def preshuffle_for_reducescatter_bidirectional_latency(x, sharded_dim,
+                                                       scatter_dim):
   """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
 
   Args:
@@ -630,20 +617,20 @@ def preshuffle_for_reducescatter_bidirectional_latency(
   # each nth chunk over n iterations of the latency-optimized
   # pincer data movement.
   def permutation_fn(idx):
-    iota = jnp.arange(axis_size//2) + axis_size//2
+    iota = jnp.arange(axis_size // 2) + axis_size // 2
     evens = (idx - iota) % axis_size
     odds = (idx + iota + 1) % axis_size
-    return interleave(evens, odds)
+    return interleave(evens,
+                      odds)  #  jnp.stack((evens, odds), axis=1).reshape((-1,))
 
   for axis_index in range(axis_size):
-    shard = gather_axis(x, slice(axis_index, axis_index+1), axis=sharded_dim)
+    shard = gather_axis(x, slice(axis_index, axis_index + 1), axis=sharded_dim)
     chunked_shard = split_apart_axis(shard, axis_size, axis=scatter_dim)
-    permuted = gather_axis(chunked_shard,
-                           permutation_fn(axis_index),
-                           axis=scatter_dim)
+    permuted = gather_axis(
+        chunked_shard, permutation_fn(axis_index), axis=scatter_dim)
     permuted = reflatten_axis(permuted, scatter_dim)
     new_x = update_slice(
-        new_x, permuted, slice(axis_index, axis_index+1), axis=sharded_dim)
+        new_x, permuted, slice(axis_index, axis_index + 1), axis=sharded_dim)
   return new_x
 
 
@@ -818,7 +805,7 @@ def matmul_collective_weights_gather_q_wi(
     #   return tmp[ya, za] * head_chunk_size
 
     # this is equivalent to the closed-form 2d indexing logic:
-    zidx = (za - (y * (z_size-1) + z)) % z_size
+    zidx = (za - (y * (z_size - 1) + z)) % z_size
     yidx = (ya - y) % y_size
     return (yidx * z_size + zidx) * head_chunk_size
 
@@ -826,9 +813,9 @@ def matmul_collective_weights_gather_q_wi(
     """Stacks alongs the dimension sharded by yz."""
     # print(final_accum.shape, update.shape, final_heads_dim)
     indices = [0] * len(final_accum.shape)
-    indices[head_idx] = derive_permutation(
-        y, z, lax.axis_index('y'), lax.axis_index('z'),
-        update.shape[head_idx])
+    indices[head_idx] = derive_permutation(y, z, lax.axis_index('y'),
+                                           lax.axis_index('z'),
+                                           update.shape[head_idx])
     return jax.lax.dynamic_update_slice(final_accum, update, indices)
 
   # overlap chunk computation with x
@@ -939,7 +926,7 @@ def matmul_collective_weights_gather_o_wo(
     # collective permutes, imagine the original partition index along the head
     # dimension and model the sequence of rolls in y and z dimensions to
     # determine the appropriate chunk dimension to index into
-    zidx = (za - (y * (z_size-1) + z)) % z_size
+    zidx = (za - (y * (z_size - 1) + z)) % z_size
     yidx = (ya - y) % y_size
     return (yidx * z_size + zidx) * head_chunk_size
 

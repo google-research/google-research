@@ -60,8 +60,13 @@ class CollectivesTest(absltest.TestCase):
 
     def fn(lhs, rhs):
       result = collectives.matmul_reducescatter_no_collective(
-          'ab,bCc->aCc', lhs, rhs, scatter_dimension=(1, 1),
-          axis_name='x', layer=LAYER, subsplit_axis=-1)
+          'ab,bCc->aCc',
+          lhs,
+          rhs,
+          scatter_dimension=(1, 1),
+          axis_name='x',
+          layer=LAYER,
+          subsplit_axis=-1)
       # Squeeze out C.X dim, which is now 1 on each device.
       result = jax.lax.squeeze(result, (1,))
       return result
@@ -89,22 +94,21 @@ class CollectivesTest(absltest.TestCase):
     key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
     lhs = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
     rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
-    lhs = lhs.reshape((X, Y, Z, B, T, H//(X*Y*Z), D))
-    rhs = rhs.reshape((X, Y, Z, L, H//(Y*Z), D, E//X))
+    lhs = lhs.reshape((X, Y, Z, B, T, H // (X * Y * Z), D))
+    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D, E // X))
 
     @functools.partial(
         xmap,
         in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
         out_axes=['x', 'y', 'z', Ellipsis],
-        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
     def matmul_allgather_no_collective(lhs, rhs):
       return collectives.matmul_allgather_no_collective(
-          'bthd,hde->bte',
-          lhs, rhs,
-          (2, None),
-          'x',
-          layer=0,
-          layer_axis=0)
+          'bthd,hde->bte', lhs, rhs, (2, None), 'x', layer=0, layer_axis=0)
 
     with mesh:
       expected = matmul_allgather_no_collective(lhs, rhs)
@@ -121,7 +125,8 @@ class CollectivesTest(absltest.TestCase):
     def async_matmul_allgather_one_way(lhs, rhs):
       return collectives.async_matmul_allgather_one_way(
           'bthd,hde->bte',
-          lhs, rhs,
+          lhs,
+          rhs,
           gather_dimension=(0, None),
           axis_name='x',
           layer=0,
@@ -141,22 +146,21 @@ class CollectivesTest(absltest.TestCase):
     key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
     lhs = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
     rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
-    lhs = lhs.reshape((X, Y, Z, B, T, H//(X*Y*Z), D))
-    rhs = rhs.reshape((X, Y, Z, L, H//(Y*Z), D, E//X))
+    lhs = lhs.reshape((X, Y, Z, B, T, H // (X * Y * Z), D))
+    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D, E // X))
 
     @functools.partial(
         xmap,
         in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
         out_axes=['x', 'y', 'z', Ellipsis],
-        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
     def matmul_allgather_no_collective(lhs, rhs):
       return collectives.matmul_allgather_no_collective(
-          'bthd,hde->bte',
-          lhs, rhs,
-          (2, None),
-          'x',
-          layer=0,
-          layer_axis=0)
+          'bthd,hde->bte', lhs, rhs, (2, None), 'x', layer=0, layer_axis=0)
 
     with mesh:
       expected = matmul_allgather_no_collective(lhs, rhs)
@@ -172,8 +176,9 @@ class CollectivesTest(absltest.TestCase):
         })
     def async_matmul_allgather_throughput(lhs, rhs):
       return collectives.async_matmul_allgather_throughput(
-          'bthd,hde->bte', lhs, rhs,
-          (0, None),
+          'bthd,hde->bte',
+          lhs,
+          rhs, (0, None),
           'x',
           layer=0,
           layer_axis=0,
@@ -197,22 +202,21 @@ class CollectivesTest(absltest.TestCase):
     key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
     lhs = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
     rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
-    lhs = lhs.reshape((X, Y, Z, B, T, H//(X*Y*Z), D))
-    rhs = rhs.reshape((X, Y, Z, L, H//(Y*Z), D, E//X))
+    lhs = lhs.reshape((X, Y, Z, B, T, H // (X * Y * Z), D))
+    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D, E // X))
 
     @functools.partial(
         xmap,
         in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
         out_axes=['x', 'y', 'z', Ellipsis],
-        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
     def matmul_allgather_no_collective(lhs, rhs):
       return collectives.matmul_allgather_no_collective(
-          'bthd,hde->bte',
-          lhs, rhs,
-          (2, None),
-          'x',
-          layer=0,
-          layer_axis=0)
+          'bthd,hde->bte', lhs, rhs, (2, None), 'x', layer=0, layer_axis=0)
 
     with mesh:
       expected = matmul_allgather_no_collective(lhs, rhs)
@@ -229,8 +233,8 @@ class CollectivesTest(absltest.TestCase):
     def async_matmul_allgather_latency(lhs, rhs):
       return collectives.async_matmul_allgather_latency(
           'bthd,hde->bte',
-          lhs, rhs,
-          (0, None),
+          lhs,
+          rhs, (0, None),
           'x',
           layer=0,
           layer_axis=0,
@@ -268,8 +272,8 @@ class CollectivesTest(absltest.TestCase):
     def matmul_reducescatter_no_collective(lhs, rhs):
       return collectives.matmul_reducescatter_no_collective(
           'btd,hde->bthe',
-          lhs, rhs,
-          (None, 2),
+          lhs,
+          rhs, (None, 2),
           'x',
           layer=0,
           layer_axis=0,
@@ -290,8 +294,8 @@ class CollectivesTest(absltest.TestCase):
     def matmul_reducescatter_oneway(lhs, rhs):
       return collectives.matmul_reducescatter_oneway(
           'btd,hde->bthe',
-          lhs, rhs,
-          (0, None),
+          lhs,
+          rhs, (0, None),
           'x',
           layer=0,
           layer_axis=0,
@@ -326,8 +330,8 @@ class CollectivesTest(absltest.TestCase):
     def matmul_reducescatter_no_collective(lhs, rhs):
       return collectives.matmul_reducescatter_no_collective(
           'btd,hde->bthe',
-          lhs, rhs,
-          (None, 2),
+          lhs,
+          rhs, (None, 2),
           'x',
           layer=0,
           layer_axis=0,
@@ -348,8 +352,8 @@ class CollectivesTest(absltest.TestCase):
     def matmul_reducescatter_bidirectional_throughput(lhs, rhs):
       return collectives.matmul_reducescatter_bidirectional_throughput(
           'btd,hde->bthe',
-          lhs, rhs,
-          (0, 2),
+          lhs,
+          rhs, (0, 2),
           'x',
           layer=0,
           layer_axis=0,
@@ -388,8 +392,8 @@ class CollectivesTest(absltest.TestCase):
     def matmul_reducescatter_no_collective(lhs, rhs):
       return collectives.matmul_reducescatter_no_collective(
           'btd,hde->bthe',
-          lhs, rhs,
-          (None, 2),
+          lhs,
+          rhs, (None, 2),
           'x',
           layer=0,
           layer_axis=0,
@@ -410,8 +414,8 @@ class CollectivesTest(absltest.TestCase):
     def matmul_reducescatter_bidirectional_latency(lhs, rhs):
       return collectives.matmul_reducescatter_bidirectional_latency(
           'btd,hde->bthe',
-          lhs, rhs,
-          (0, 2),
+          lhs,
+          rhs, (0, 2),
           'x',
           layer=0,
           layer_axis=0,
@@ -421,8 +425,7 @@ class CollectivesTest(absltest.TestCase):
         collectives.preshuffle_for_reducescatter_bidirectional_latency(
             rhs, 0, 4))
     with mesh:
-      result = matmul_reducescatter_bidirectional_latency(
-          lhs, preshuffled_rhs)
+      result = matmul_reducescatter_bidirectional_latency(lhs, preshuffled_rhs)
 
     np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
 
@@ -436,7 +439,7 @@ class CollectivesTest(absltest.TestCase):
     key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
     x_norm = jax.random.normal(key0, (B, T, E), dtype=jnp.float32)
     q_wi = jax.random.normal(key1, (H, E, D), dtype=jnp.float32)
-    x_norm = x_norm.reshape((X, Y, Z, B//(X*Y*Z), T, D))
+    x_norm = x_norm.reshape((X, Y, Z, B // (X * Y * Z), T, D))
     q_wi = q_wi.reshape((X, Y, Z, H // (Y * Z), E // X, D))
 
     # [batch.XYZ, t, e] @ [heads.YZ, e.X, q_wi_per_head]
@@ -445,10 +448,13 @@ class CollectivesTest(absltest.TestCase):
         xmap,
         in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
         out_axes=['x', 'y', 'z', Ellipsis],
-        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
     def baseline_q_wi(x_norm, q_wi):
-      gathered_weights = jax.lax.all_gather(
-          q_wi, 'x', axis=1, tiled=True)
+      gathered_weights = jax.lax.all_gather(q_wi, 'x', axis=1, tiled=True)
       gathered_weights = jax.lax.all_gather(
           gathered_weights, ('y', 'z'), axis=0, tiled=True)
       q_wi = jnp.einsum('bte,hed->bthd', x_norm, gathered_weights)
@@ -461,7 +467,11 @@ class CollectivesTest(absltest.TestCase):
         xmap,
         in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
         out_axes=['x', 'y', 'z', Ellipsis],
-        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
     def test_q_wi(x_norm, q_wi):
       y = collectives.matmul_collective_weights_gather_q_wi(
           'bte,hed->bthd',
@@ -487,17 +497,20 @@ class CollectivesTest(absltest.TestCase):
     key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
     x_norm = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
     o_wo = jax.random.normal(key1, (H, D, E), dtype=jnp.float32)
-    x_norm = x_norm.reshape((X, Y, Z, B//(X*Y*Z), T, H, D))
+    x_norm = x_norm.reshape((X, Y, Z, B // (X * Y * Z), T, H, D))
     o_wo = o_wo.reshape((X, Y, Z, H // (Y * Z), D, E // X))
 
     @functools.partial(
         xmap,
         in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
         out_axes=['x', 'y', 'z', Ellipsis],
-        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
     def baseline_o_wo(x_norm, o_wo):
-      gathered_weights = jax.lax.all_gather(
-          o_wo, 'x', axis=2, tiled=True)
+      gathered_weights = jax.lax.all_gather(o_wo, 'x', axis=2, tiled=True)
       gathered_weights = jax.lax.all_gather(
           gathered_weights, ('y', 'z'), axis=0, tiled=True)
       o_wo = jnp.einsum('bthd,hde->bte', x_norm, gathered_weights)
@@ -510,7 +523,11 @@ class CollectivesTest(absltest.TestCase):
         xmap,
         in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
         out_axes=['x', 'y', 'z', Ellipsis],
-        axis_resources={'x': 'x', 'y': 'y', 'z': 'z'})
+        axis_resources={
+            'x': 'x',
+            'y': 'y',
+            'z': 'z'
+        })
     def test_o_wo(x_norm, o_wo):
       result = collectives.matmul_collective_weights_gather_o_wo(
           'bthd,hde->bte',
