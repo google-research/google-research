@@ -22,7 +22,6 @@ ways that would require significant changes to how t5x's APIs are structured.
 Test this with :inference_test
 """
 
-
 from typing import Callable, Sequence
 
 import jax
@@ -124,7 +123,7 @@ def infer(
   # TODO(sholto): Vocab may need to go xyz on 62B VL.
   # END GOOGLE-INTERAL
   logits = _with_sharding_constraint(logits, (None, None, 'vocab'))
-
+  k, v = jnp.bfloat16(k), jnp.bfloat16(v)
   return FullChunkResult(
       logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v))
 
@@ -163,7 +162,6 @@ def infer_xmap(
     return lax.dynamic_slice_in_dim(table, index, max_length)
 
   def slices_at(indices, table):
-    # print(f'table: {table.shape}')
     return jax.vmap(slice_at, in_axes=(0, None))(indices, table)
 
   sin = slices_at(start_indices, params.sin)
@@ -210,7 +208,6 @@ def infer_xmap(
         latency_collectives=False,
         shard_seqlen_vs_batch=shard_seqlen_vs_batch,
         intermediate_dtype=intermediate_dtype)
-    print(layer_k.shape, layer_v.shape, k.shape, v.shape)
     k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
                                         0)
     v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,
@@ -241,7 +238,6 @@ def infer_xmap(
 
   # [batch, maxlen, embed.X]
   xnorm, _ = layers_parallel.allgather_layernorm(x, shard_seqlen_vs_batch)
-
   # x: bfloat16[batch, maxlen, dmodel.X] # [vocab.YZ, embed.X]
   with jax.named_scope('unembed'):
     logits_unreduced = jnp.einsum('bte,ve->btv', jnp.float32(xnorm),
@@ -249,7 +245,38 @@ def infer_xmap(
     logits = lax.psum_scatter(
         logits_unreduced, 'x', scatter_dimension=0, tiled=True)
   # logits: float32[batch.X, maxlen, vocab.YZ]
-  # print(logits.shape)
-  # return logits, x_postloop, xnorm
+  k, v = jnp.bfloat16(k), jnp.bfloat16(v)
+
+  # We need to get only the part of lengths which corresponds to that
+  # shard of the kv cache, which can be sharded across batch
+  # NOTE: This will not currently support MHA being sharded over heads
+  #  -only multiquery attention but neither will any of the code above
+  # where k and v are sliced into.
+  # A MHA kv cache would require a heads dimension!
+  # That being said, we don't have any parallel-layers MHA models.
+
+  # chunk.lengths: [batch] -> [batch.attn_batch_sharding]
+  # TODO(sholto): Make this simpler
+  if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+    cache_lengths = chunk.lengths
+  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+    slice_size = batch // attn_batch_sharding
+    z_index = lax.axis_index('z') * slice_size
+    cache_lengths = lax.dynamic_slice_in_dim(chunk.lengths, z_index, slice_size)
+  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+    slice_size = batch // attn_batch_sharding
+    yz_index = (lax.axis_index('y') * z_axis + lax.axis_index('z')) * slice_size
+    cache_lengths = lax.dynamic_slice_in_dim(chunk.lengths, yz_index,
+                                             slice_size)
+  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+    slice_size = batch // attn_batch_sharding
+    yzx_index = (lax.axis_index('y') *
+                 (z_axis * x_axis) + lax.axis_index('z') * x_axis +
+                 lax.axis_index('x')) * slice_size
+    cache_lengths = lax.dynamic_slice_in_dim(chunk.lengths, yzx_index,
+                                             slice_size)
+  # should equal batch dim as sharded for kv cache
+  assert cache_lengths.shape[0] == batch // attn_batch_sharding
+  assert cache_lengths.shape[0] == k.shape[2]
   return FullChunkResult(
-      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v))
+      logits=logits, kv_cache=attention.KVCache(cache_lengths, k, v))

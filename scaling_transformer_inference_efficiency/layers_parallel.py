@@ -313,7 +313,6 @@ def transformer_layer_weight_stationary(
 
     k = kv[:, :, 0, :hparams.qkv]
     v = kv[:, :, 0, hparams.qkv:]
-    print(k.shape, v.shape)
 
   with jax.named_scope('attn'):
     k = _rope(sin, cos, k)

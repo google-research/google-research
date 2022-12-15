@@ -184,3 +184,14 @@ def _with_sharding_constraint(t,
     axis_size = name_to_size[axis]
     assert size % axis_size == 0 or _ALLOW_UNEVEN_SHARDING, f'Uneven sharding. Shape: {t.shape}, spec: {spec}, axis: {axis}, axis size: {axis_size}'
   return pjit.with_sharding_constraint(t, axes)
+
+
+def get_sharding_divisor(logical):
+  """Returns how many shards will be along a given logical axis."""
+  sharding_axis = logical_to_physical(logical)
+  if sharding_axis is None:
+    sharding_axis_size = 1
+  else:
+    sharding_axis_size = np.prod([
+        jax.lax.psum(1, a) for a in sharding_axis])
+  return sharding_axis_size

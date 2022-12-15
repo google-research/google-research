@@ -19,7 +19,6 @@ import functools
 
 from absl.testing import absltest
 import jax
-from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
 from jax.experimental.pjit import PartitionSpec as P
 from jax.experimental.pjit import pjit
@@ -37,13 +36,16 @@ from scaling_transformer_inference_efficiency.global_to_per_device import shard_
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
 
+# jax.config.update('experimental_xmap_spmd_lowering', True)
+# jax.config.update('experimental_xmap_spmd_lowering_manual', True)
+
 
 def setup(batch_size=4, tokens=24):
   """Sets up necessary inputs."""
   X, Y, Z = 2, 2, 2  # slice sizes pylint: disable = invalid-name
   assert len(jax.devices()) == X * Y * Z
-  devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
-  mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
+
+  mesh = partitioning.make_mesh()
   fold_out_for_mesh = functools.partial(global_to_per_device.fold_out, mesh)
 
   key = jax.random.PRNGKey(0)
@@ -68,7 +70,7 @@ def setup(batch_size=4, tokens=24):
                                            params_logical)
 
   # create the token inputs
-  l = tokens//batch_size
+  l = tokens // batch_size
   token_chunk = chunk.Chunk(
       tokens=jnp.reshape(jnp.arange(tokens), (batch_size, -1)),
       lengths=jnp.array([l, l, l, l]))
@@ -168,7 +170,8 @@ class InferenceTest(absltest.TestCase):
     """Tests shard map. Currently fails due to all-gather."""
     # Within this function, we device put the relevant arrays ahead of time
     (dtype, h, mesh, params, kv_caches, token_chunk, _, _, _, _, _,
-     chunk_sharding, param_sharding, result_sharding) = setup()
+     chunk_sharding, param_sharding, result_sharding) = setup(
+         batch_size=4, tokens=24)
 
     @functools.partial(pjit)
     def fwd_pjit(token_chunk, params):

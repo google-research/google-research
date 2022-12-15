@@ -84,7 +84,7 @@ class KVCache:
   def logical_axes(cls):
     """Returns the logical axis spec for the KV cache."""
     return KVCache(
-        lengths=P(None),
+        lengths=P('prefix_batch'),
         k=P('prefix_time', 'prefix_layers', 'prefix_batch', 'prefix_qkv'),
         v=P('prefix_time', 'prefix_layers', 'prefix_batch', 'prefix_qkv'),
     )  # pytype: disable=wrong-arg-types

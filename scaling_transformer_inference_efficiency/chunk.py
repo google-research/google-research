@@ -104,6 +104,7 @@ import typing_extensions
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
+from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
 
 Weights = Any
@@ -359,8 +360,11 @@ class ChunkResult:
         next_token_logits=jnp.zeros((batch, hparams.vocab), jnp.float32),
     )
 
-  def update(self, token_i, token_chunk,
-             token_full_result):
+  def update(self,
+             token_i,
+             token_chunk,
+             token_full_result,
+             per_device = False):
     """Writes a single-token FullChunkResult to the specified index of this.
 
     The index token_i is assumed to be the last token written to this
@@ -370,7 +374,7 @@ class ChunkResult:
       token_i: The seqlen index to write to.
       token_chunk: The input tokens with which to write. Shape Chunk[batch, 1].
       token_full_result: The results to write. Shape FullChunkResult[batch, 1].
-
+      per_device: Whether this is used in a per device or global context.
     Returns:
       This, but with token written at index token_i.
     """
@@ -381,7 +385,7 @@ class ChunkResult:
     assert token_vocab == vocab
 
     token_small = token_full_result.to_chunk_result(self.next_token_logits,
-                                                    token_chunk)
+                                                    token_chunk, per_device)
 
     return ChunkResult(
         kv_cache=self.kv_cache.write_token(token_i, token_full_result.kv_cache),
@@ -422,15 +426,18 @@ class FullChunkResult:
             k=P('length', 'layers', 'attn_batch', 'qkv'),
             v=P('length', 'layers', 'attn_batch', 'qkv')))
 
-  def to_chunk_result(self, prev_logits,
-                      chunk):
+  def to_chunk_result(self,
+                      prev_logits,
+                      chunk,
+                      per_device = False):
     """Converts this to its more minimal form, ChunkResult.
 
     Args:
       prev_logits: The `next_token_logits` of the previous chunk in the
         sequence, or None if this is the first chunk in the sequence.
-        float32[batch, vocab_size]
+        float32[batch, vocab_size]. In 2D [batch.x, time, vocab.yz]
       chunk: Input token IDs for this chunk.
+      per_device: Whether this is used in a per device or global context.
 
     Returns:
       This, but in its minimized form.
@@ -488,6 +495,22 @@ class FullChunkResult:
 
     batch, seqlen, vocab_size = self.logits.shape
 
+    # we need to slice into lengths because logits is sharded
+    if per_device:
+      logit_sharding_axis = partitioning.get_sharding_divisor(P('logit_batch'))
+      # TODO(sholto): This assumes logit batch is only ever sharded along x
+      #               or is unsharded
+      physical_logit_batch = partitioning.logical_to_physical(P('logit_batch'))
+      if 'y' in physical_logit_batch or 'z' in physical_logit_batch:
+        raise NotImplementedError('Only one sampling partitioning implemented.')
+      x_index = lax.axis_index('x') * logit_sharding_axis
+      lengths = lax.dynamic_slice_in_dim(
+          chunk.lengths,
+          x_index * batch,  # batch is per device
+          batch)
+    else:
+      lengths = chunk.lengths
+
     # First figure out what logits to use for the first token.
     if prev_logits is None:
       # Use beginning-of-sequence marker as the logits.
@@ -502,9 +525,9 @@ class FullChunkResult:
     shifted_logits = jnp.concatenate(
         [prev_logits[:, np.newaxis, :], self.logits[:, :-1, :]], axis=1)
     batch_iota = lax.broadcasted_iota(jnp.int32, (batch,), 0)
-    next_token_logits = self.logits[batch_iota, chunk.lengths - 1, :]
+    next_token_logits = self.logits[batch_iota, lengths - 1, :]
     # ^ next_token_logits: f32[batch, vocab]
-    length_is_zero = chunk.lengths == 0
+    length_is_zero = lengths == 0
     # ^ length_is_zero: f32[batch]
     length_is_zero = length_is_zero[:, np.newaxis]
     # length_is_zero: bool[batch, 1]
@@ -513,20 +536,32 @@ class FullChunkResult:
     next_token_logits = jnp.where(length_is_zero, prev_logits,
                                   next_token_logits)
 
-    # Now compute the compressed representation of shifted_logits, extracting
-    # per-token scores, and per-token top token IDs.
-    batch_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 0)
-    token_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 1)
-    logits_max = jnp.max(shifted_logits, axis=-1)
-    logits_sumexp = jnp.sum(
-        special2.exp2(shifted_logits - logits_max[:, :, np.newaxis]), axis=-1)
-    logits_sum = jnp.log2(logits_sumexp) + logits_max
-    per_token_scores = (shifted_logits[batch_iota, token_iota, chunk.tokens] -
-                        logits_sum) * special2.LN_2
-    top_logits, top_ids = lax.top_k(shifted_logits, k=_TOP_K)
+    if per_device:
+      # To do this we'd need to do some collective ops,
+      # these are unnecessary auxiliary outputs for the moment, so
+      # just zero them out.
+      # TODO(sholto): Ideally put these somewhere in sampling,
+      #       where we have the fully materialised vocab dim
+      global_batch = batch * logit_sharding_axis
+      per_token_scores = jnp.zeros((global_batch, seqlen), jnp.float32)
+      top_ids = jnp.zeros((global_batch, seqlen, _TOP_K), jnp.int32)
+      top_probs = jnp.zeros((global_batch, seqlen, _TOP_K), jnp.float32)
 
-    top_probs = special2.exp2(top_logits - logits_max[:, :, np.newaxis]) * (
-        1.0 / logits_sumexp[:, :, np.newaxis])
+    else:
+      # Now compute the compressed representation of shifted_logits, extracting
+      # per-token scores, and per-token top token IDs.
+      batch_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 0)
+      token_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 1)
+      logits_max = jnp.max(shifted_logits, axis=-1)
+      logits_sumexp = jnp.sum(
+          special2.exp2(shifted_logits - logits_max[:, :, np.newaxis]), axis=-1)
+      logits_sum = jnp.log2(logits_sumexp) + logits_max
+      per_token_scores = (shifted_logits[batch_iota, token_iota, chunk.tokens] -
+                          logits_sum) * special2.LN_2
+      top_logits, top_ids = lax.top_k(shifted_logits, k=_TOP_K)
+
+      top_probs = special2.exp2(top_logits - logits_max[:, :, np.newaxis]) * (
+          1.0 / logits_sumexp[:, :, np.newaxis])
 
     return ChunkResult(
         per_token_scores=per_token_scores,

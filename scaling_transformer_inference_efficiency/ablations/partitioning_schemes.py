@@ -260,6 +260,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
         layer=layer,
         subsplit_axis=2)
 
+    # TODO(sholto): Explore psum-scatter?
     y_out = lax.psum(y_out, axis_name=('y', 'z'))
 
     if isinstance(params, inference.QuantizedLayer):
