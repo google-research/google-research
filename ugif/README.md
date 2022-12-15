@@ -44,6 +44,14 @@ simple rules that look for ordered lists under a header since all the help pages
 in the support site have the same structure. How-to instructions that require
 physical actions outside the UI such as plugging in a HDMI cable are excluded.
 
+We used the TaskMate platform for crowdsourcing annotations from taskers in
+India, Kenya, and Mexico. The task description explained the purpose of this
+data collection effort and how it would be used for research. To protect the
+privacy of the taskers, the random TaskMate ID associated with each tasker is
+not included in this dataset release. The task design was reviewed by
+privacy, ethics, and legal committees. The price set for each task was based on
+historical precedent on the TaskMate platform and in compliance with local laws.
+
 For the valid queries, annotators were asked to translate the English how-to
 query to one of 7 languages (Kannada, Marathi, Gujarati, Hindi, Bengali,
 Swahili, Spanish) they are familiar with and to speak out loud the query.
@@ -72,24 +80,21 @@ For each how-to task, annotators are asked to operate a virtual Android device t
 - noting the completion of the task
 - noting an error in the how-to instruction text and ending the recording before completion.
 
-Although we can automate the extraction of how-tos from support sites, the manual annotation process for collecting UI screens from the Android emulator is difficult to scale. In particular, the data collection effort would scale linearly with the number of UI languages. To mitigate this, we collect UI screens from annotators only in English and search for each UI string in the resources directory of the app's APK and replace it with the translation provided by the developer in the APK wherever it is available. Note that not all strings in the UI have translations provided by the developer, so wherever a translation is unavailable, we default to English. A typical UI screen has a mixture of strings in English and other languages, but this is distinct from code mixing where two languages are used in a single sentence.  
+Although we can automate the extraction of how-tos from support sites, the manual annotation process for collecting UI screens from the Android emulator is difficult to scale. In particular, the data collection effort would scale linearly with the number of UI languages. To mitigate this, we collect UI screens from annotators only in English and search for each UI string in the resources directory of the app's APK and replace it with the translation provided by the developer in the APK wherever it is available. Note that not all strings in the UI have translations provided by the developer, so wherever a translation is unavailable, we default to English. A typical UI screen has a mixture of strings in English and other languages, but this is distinct from code mixing where two languages are used in a single sentence.
 
 ## Dataset statistics
 
-Number of how-tos, number of languages, number of taskers, validation taskers,
-how many screens per how-to, how many UI elements per screen on average, pct
-of tasks with errors due to UI version drift.
-
-| Dataset characteristic                                         | Value    |
-| -------------------------------------------------------------- | -------- |
-| Total Number of how-to queries                                 | 523      |
-| Number of train samples                                        | 152      |
-| Number of dev samples                                          | 106      |
-| Number of test samples                                         | 265      |
-| Number of languages                                            | 8        |
-| Total number of UI screens in the dataset                      | 3312     |
-| Average number of UI screens per how-to                        | 6.3      |
-| Percentage of how-tos with errors due to UI drift              | 29.9%    |
+| Dataset characteristic                                         | Value      |
+| -------------------------------------------------------------- | ---------- |
+| Total Number of how-to queries                                 | 523        |
+| Number of train samples                                        | 152        |
+| Number of dev samples                                          | 106        |
+| Number of test samples                                         | 265        |
+| Number of languages                                            | 8          |
+| Total number of UI screens in the dataset                      | 3312       |
+| Average number of UI screens per how-to                        | 6.3        |
+| Percentage of how-tos with errors due to UI drift              | 29.9%      |
+| Maximum number of tasks per tasker                             | 50         |
 
 ## Citing UGIF
 Please use the following bibtex entry:
