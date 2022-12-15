@@ -243,7 +243,7 @@ def _get_ui_object_attributes(view_hierarchy_leaf_nodes, lower_case=False):
       'cord_x_seq': np.array(cord_x_sequence),
       'cord_y_seq': np.array(cord_y_sequence),
       'dom_location_seq': np.array(dom_location_sequence),
-      'obj_str_seq': np.array(obj_str_sequence, dtype=np.str),
+      'obj_str_seq': np.array(obj_str_sequence, dtype=str),
   }
   return ui_feature
 

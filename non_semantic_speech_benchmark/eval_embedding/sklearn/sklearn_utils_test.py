@@ -95,7 +95,7 @@ class SklearnUtilsTest(tf.test.TestCase, parameterized.TestCase):
             'id2',
             'id1',
         ],
-        np.str)
+        str)
     expected_normalized_embeddings = np.array(
         [
             [1.0, 0.0],

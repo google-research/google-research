@@ -127,7 +127,7 @@ def tfexamples_to_nps(
 
   # Perform speaker normalization, if appropriate.
   if speaker_name:
-    speaker_ids = np.array(speaker_ids, np.str)
+    speaker_ids = np.array(speaker_ids, str)
     embeddings = _speaker_normalization(embeddings, speaker_ids)
 
   if not key_field:

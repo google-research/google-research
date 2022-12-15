@@ -121,7 +121,7 @@ def deserialize_population_frame(frame, inplace=False):
   frame['structure'] = deserialize_structures(frame['structure'])
   if 'decoded_structure' in frame.columns:
     frame['decoded_structure'] = deserialize_structures(
-        frame['decoded_structure'], dtype=np.str)
+        frame['decoded_structure'], dtype=str)
   return frame
 
 
