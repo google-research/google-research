@@ -110,15 +110,30 @@ def async_matmul_allgather_one_way(einsum_spec,
                                    layer,
                                    layer_axis=0,
                                    subsplit_axis=None):
-  """Uses a single ICI direction, overlapped all gather -> matmul."""
-  # [batch, maxlen, heads.YZX, o_wo_per_head]
-  #         @ [heads.YZ, o_wo_per_head, dmodel.X]
-  # allgather LHS over X: List([batch, maxlen, heads.YZ/X, o_wo_per_head] * X)
-  # split RHS over heads by X: List([heads.YZ/X, o_wo_per_head, dmodel.X ]) * X
-  # -> (matmul) X times, overlap with compute
-  # -> X partial sums [batch, maxlen, dmodel.X]{YZ unreduced} -> sum
-  # -> Later on: (unfused reducescatter)
-  # -> [batch, maxlen, dmodel.XYZ]
+  """Uses a single ICI direction, overlapped all gather -> matmul.
+
+  Example usage:
+    [batch, maxlen, heads.YZX, o_wo_per_head]
+            @ [heads.YZ, o_wo_per_head, dmodel.X]
+    allgather LHS over X: List([batch, maxlen, heads.YZ/X, o_wo_per_head] * X)
+    split RHS over heads by X: List([heads.YZ/X, o_wo_per_head, dmodel.X ]) * X
+    -> (matmul) X times, overlap with compute
+    -> X partial sums [batch, maxlen, dmodel.X]{YZ unreduced} -> sum
+    -> Follow this function with: ( lax.reducescatter(Y,Z))
+    -> [batch, maxlen, dmodel.XYZ]
+
+  Args:
+    einsum_spec: matmul specification
+    lhs: activations: [batch, maxlen, heads.YZX, o_wo_per_head]
+    rhs: weights: [layer, heads.YZ, o_wo_per_head, dmodel.X]
+    gather_dimension: First dimension represents the axis of the rhs to split
+    axis_name: Which axis is being gathered along
+    layer: Which layer on the rhs to use (integer index in)
+    layer_axis: The dimension on the rhs which represents layers
+    subsplit_axis: Unused, maintained to match function signatures
+  Returns:
+    activations: new activations
+  """
   axis_size = lax.psum(1, axis_name)  # along X
   axis_index = lax.axis_index(axis_name)
   split_axis = gather_dimension[0]

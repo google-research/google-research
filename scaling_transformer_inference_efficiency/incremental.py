@@ -382,7 +382,7 @@ class XmapModel:
     o_wo: [layers, heads.YZ, owo_per_head, dmodel.X]
 
     Args:
-      params: unmodified paramaters
+      params: unmodified
       latency: Whether to do latency collectives
 
     Returns:
@@ -647,7 +647,6 @@ class XmapModel:
         (params_xmap, cache_xmap, prev_chunk_next_token_logits,
          sample_ids_xmap) = self.prepare_inputs(params, prefix, sample_ids)
 
-        print('kv_cacheextern', jax.tree_map(jnp.shape, cache_xmap))
         return xmap(
             generate_fn,
             in_axes=(params_layouts, cache_layout, prev_chunk_next_token_layout,

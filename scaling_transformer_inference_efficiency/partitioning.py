@@ -97,7 +97,6 @@ class PartitioningRules(contextlib.ContextDecorator):
         partitioning.make_rules_two_d(attn_sharding))
   with rules:
     x = logical_to_physical(y)  # no need thread rules everywhere
-
   """
 
   def __init__(self, rules):
