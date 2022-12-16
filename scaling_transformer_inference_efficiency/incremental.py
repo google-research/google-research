@@ -132,7 +132,6 @@ from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import ChunkResult
-from scaling_transformer_inference_efficiency.chunk import FullChunkResult
 from scaling_transformer_inference_efficiency.chunk import InferFn
 from scaling_transformer_inference_efficiency.global_to_per_device import shard_map
 from scaling_transformer_inference_efficiency.sampling import Sampling
@@ -445,26 +444,15 @@ class XmapModel:
                                                        Chunk.logical_axes())
     return chunk_xmap
 
-  @partial(jax.jit, static_argnums=(0,))
-  def to_chunk_result(self, full_chunk_result,
-                      prev_logits,
-                      chunk):
-    """Maps to only the info we need for future processing."""
-
-    full_chunk_result = jax.tree_util.tree_map(global_to_per_device.fold_in,
-                                               full_chunk_result,
-                                               FullChunkResult.logical_axes())
-    prev_logits = jax.tree_util.tree_map(
-        global_to_per_device.fold_in, prev_logits,
-        ChunkResult.logical_axes().next_token_logits)
-
-    res = full_chunk_result.to_chunk_result(prev_logits, chunk)
-
-    result_axes = jax.tree_map(partitioning.logical_to_physical,
-                               ChunkResult.logical_axes())
-    result_named_sharding = jax.tree_map(
-        partial(jax.sharding.NamedSharding, self._mesh), result_axes)
-    return jax.tree_util.tree_map(jax.device_put, res, result_named_sharding)
+  # pylint: disable = g-bare-generic
+  @staticmethod
+  def prefill_impl(infer_fn, params_xmap,
+                   cache_xmap, chunk_xmap,
+                   prev_logits):
+    full_chunk_result = infer_fn(params_xmap, cache_xmap, chunk_xmap)
+    chunk_result = full_chunk_result.to_chunk_result(
+        prev_logits, chunk_xmap, per_device=True)
+    return chunk_result
 
   def prefill(self, params, prefix,
               chunk):
@@ -484,10 +472,12 @@ class XmapModel:
       params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
                                     params.logical_axes())
       result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
-                                   FullChunkResult.logical_axes())
+                                   ChunkResult.logical_axes())
       cache_layout = jax.tree_map(
           global_to_per_device.logical_to_layout,
           [attention.KVCache.logical_axes() for _ in prefix])
+
+      prev_logits_layout = result_layout.next_token_logits
 
       with self._mesh:
         # TODO(sholto): We may need to pull this out with real size weights
@@ -498,17 +488,19 @@ class XmapModel:
         chunk_xmap = self.prepare_chunk(chunk)
         # 2D: logits: [batch.x, time, vocab.YZ]
         #     kv_cache: [.., ..., prefixbatch, ...]
-        full_chunk_result = xmap(
-            self._infer,
-            in_axes=(params_layouts, cache_layout, chunk_layout),
+        chunk_result = xmap(
+            partial(self.prefill_impl, self._infer),
+            in_axes=(params_layouts, cache_layout, chunk_layout,
+                     prev_logits_layout),
             out_axes=result_layout,
             axis_resources={
                 'x': 'x',
                 'y': 'y',
                 'z': 'z'
-            })(params_xmap, cache_xmap, chunk_xmap)
+            })(params_xmap, cache_xmap, chunk_xmap, prev_logits)
 
-        return self.to_chunk_result(full_chunk_result, prev_logits, chunk)
+        return jax.tree_util.tree_map(global_to_per_device.fold_in,
+                                      chunk_result, ChunkResult.logical_axes())
 
   # pylint: disable = protected-access
   @staticmethod
@@ -628,8 +620,6 @@ class XmapModel:
           P('logit_batch'))
 
       with self._mesh:
-        # TODO(sholto): We may need to pull this out with real size weights
-        # Or just get shardmap / xmap in pjit actually working.
         (params_xmap, cache_xmap, prev_chunk_next_token_logits,
          sample_ids_xmap) = self.prepare_inputs(params, prefix, sample_ids)
 

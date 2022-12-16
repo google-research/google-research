@@ -201,7 +201,6 @@ def infer_xmap(
     embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=0, tiled=True)
 
   x = embeds
-  print(x.shape)
 
   def loop_body(layer, carry):
     x, k, v = carry
