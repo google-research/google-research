@@ -322,7 +322,8 @@ class SparseConvBlock3D(tf.keras.layers.Layer):
                use_batch_norm=True,
                dropout_prob=0.0,
                apply_relu_to_last_conv=True,
-               normalize_sparse_conv=True):
+               normalize_sparse_conv=True,
+               use_rule_based_op=True):
     """3D sparse conv block constructor.
 
     The block contains a sequence of 3d sparse convolutions.
@@ -339,6 +340,7 @@ class SparseConvBlock3D(tf.keras.layers.Layer):
         of the block.
       normalize_sparse_conv: If True, performs a convolution on the 0-1 voxel
         occupancy grid and normalizes the sparse conv output with that.
+      use_rule_based_op: If True, use rule base op.
     """
     super().__init__()
 
@@ -359,6 +361,7 @@ class SparseConvBlock3D(tf.keras.layers.Layer):
         tf.keras.layers.InputSpec(shape=(None, None, 3), dtype=tf.int32),
         tf.keras.layers.InputSpec(shape=(None,), dtype=tf.int32)
     ]
+    self._use_rule_based_op = use_rule_based_op
 
   def build(self, input_shapes):
     """Building layer weights."""

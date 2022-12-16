@@ -46,7 +46,8 @@ class SparseConvUNet(tf.keras.layers.Layer):
                dropout_prob=0.0,
                use_batch_norm=True,
                network_pooling_segment_func=tf.math.unsorted_segment_max,
-               normalize_sparse_conv=True):
+               normalize_sparse_conv=True,
+               use_rule_based_op=True):
     """3D UNet sparse voxel network.
 
     Args:
@@ -75,6 +76,7 @@ class SparseConvUNet(tf.keras.layers.Layer):
       network_pooling_segment_func: Function used to pool voxel features in the
         network.
       normalize_sparse_conv: If True, applies normalization to 3d sparse convs.
+      use_rule_based_op: If True, use rule base op.
 
     Returns:
       A dictionary containing a predicted tensor per task. The predicted tensors
@@ -139,7 +141,8 @@ class SparseConvUNet(tf.keras.layers.Layer):
           use_batch_norm=use_batch_norm,
           dropout_prob=dropout_prob,
           apply_relu_to_last_conv=True,
-          normalize_sparse_conv=normalize_sparse_conv)
+          normalize_sparse_conv=normalize_sparse_conv,
+          use_rule_based_op=use_rule_based_op)
       setattr(self, 'decoder_' + str(level), conv_block_i)
 
     for task_name in sorted(task_names_to_num_output_channels):
@@ -151,7 +154,8 @@ class SparseConvUNet(tf.keras.layers.Layer):
           use_batch_norm=True,
           dropout_prob=dropout_prob,
           apply_relu_to_last_conv=True,
-          normalize_sparse_conv=normalize_sparse_conv)
+          normalize_sparse_conv=normalize_sparse_conv,
+          use_rule_based_op=use_rule_based_op)
       setattr(self, f'{task_name}/final_conv1_block', conv_block_task_1)
 
       conv_block_task_2 = sparse_voxel_net_utils.SparseConvBlock3D(
@@ -160,7 +164,8 @@ class SparseConvUNet(tf.keras.layers.Layer):
           use_batch_norm=task_names_to_use_batch_norm_in_last_layer[task_name],
           dropout_prob=0.0,
           apply_relu_to_last_conv=task_names_to_use_relu_last_conv[task_name],
-          normalize_sparse_conv=normalize_sparse_conv)
+          normalize_sparse_conv=normalize_sparse_conv,
+          use_rule_based_op=use_rule_based_op)
       setattr(self, f'{task_name}/final_conv2_block', conv_block_task_2)
 
   def call(self, inputs, training=True):
