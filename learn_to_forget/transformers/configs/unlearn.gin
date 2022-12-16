@@ -12,6 +12,7 @@ from t5x.examples.t5 import network
 
 from learn_to_forget.transformers import prior_unlearn 
 from learn_to_forget.transformers import tasks
+from learn_to_forget.transformers import wmt_tasks
 
 include 'third_party/py/t5x/examples/t5/t5_1_1/base.gin'
 include 'third_party/py/t5x/configs/runs/finetune.gin'
