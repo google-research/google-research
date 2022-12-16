@@ -175,6 +175,8 @@ class CollectivesTest(absltest.TestCase):
             'z': 'z'
         })
     def async_matmul_allgather_throughput(lhs, rhs):
+      rhs = collectives.preshuffle_for_async_matmul_allgather_throughput(
+          rhs, shuffle_axis=1, shard_axis='x')
       return collectives.async_matmul_allgather_throughput(
           'bthd,hde->bte',
           lhs,
@@ -184,12 +186,8 @@ class CollectivesTest(absltest.TestCase):
           layer_axis=0,
           subsplit_axis=2)
 
-    preshuffled_rhs = (
-        collectives.preshuffle_for_async_matmul_allgather_throughput(
-            rhs, shuffle_axis=4, shard_axis=0))
-
     with mesh:
-      result = async_matmul_allgather_throughput(lhs, preshuffled_rhs)
+      result = async_matmul_allgather_throughput(lhs, rhs)
 
     np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
 
@@ -203,12 +201,12 @@ class CollectivesTest(absltest.TestCase):
     lhs = jax.random.normal(key0, (B, T, H, D), dtype=jnp.float32)
     rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
     lhs = lhs.reshape((X, Y, Z, B, T, H // (X * Y * Z), D))
-    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D, E // X))
+    rhs = rhs.reshape((L, Y, Z, H // (Y * Z), D, X, E // X))
 
     @functools.partial(
         xmap,
-        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
-        out_axes=['x', 'y', 'z', Ellipsis],
+        in_axes=(['x', 'y', 'z', Ellipsis], [None, 'y', 'z', None, None, 'x', None]),
+        out_axes=['y', 'z', None, None, 'x', None],
         axis_resources={
             'x': 'x',
             'y': 'y',
@@ -223,14 +221,22 @@ class CollectivesTest(absltest.TestCase):
 
     @functools.partial(
         xmap,
-        in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis]),
-        out_axes=['x', 'y', 'z', Ellipsis],
+        in_axes=(['x', 'y', 'z', Ellipsis], [None, 'y', 'z', None, None, 'x', None]),
+        out_axes=['y', 'z', None, None, 'x', None],
         axis_resources={
             'x': 'x',
             'y': 'y',
             'z': 'z'
         })
     def async_matmul_allgather_latency(lhs, rhs):
+      # In normal operation, you would do the shuffle in a separate
+      # proprocessing call instead of with the weights
+      # lhs: [B,T, H.YZX, D]
+      # ag(lhs, x) -> [B, T, H.YZX, D]
+      # rhs: [H.YZ, D, E.X]
+      # lhs @ rhs -> [B, T, E.X] {yz unreduced}
+      rhs = collectives.preshuffle_for_async_matmul_allgather_latency(
+          rhs, shuffle_axis=1, shard_axis='x')
       return collectives.async_matmul_allgather_latency(
           'bthd,hde->bte',
           lhs,
@@ -240,11 +246,8 @@ class CollectivesTest(absltest.TestCase):
           layer_axis=0,
           subsplit_axis=2)
 
-    preshuffled_rhs = collectives.preshuffle_for_async_matmul_allgather_latency(
-        rhs, shuffle_axis=4, shard_axis=0)
-
     with mesh:
-      result = async_matmul_allgather_latency(lhs, preshuffled_rhs)
+      result = async_matmul_allgather_latency(lhs, rhs)
 
     np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
 
@@ -350,6 +353,9 @@ class CollectivesTest(absltest.TestCase):
             'z': 'z'
         })
     def matmul_reducescatter_bidirectional_throughput(lhs, rhs):
+      # scatter along heads, subsplit along embed
+      rhs = collectives.preshuffle_for_reducescatter_bidirectional_throughput(
+          rhs, 'x', 1, 3)
       return collectives.matmul_reducescatter_bidirectional_throughput(
           'btd,hde->bthe',
           lhs,
@@ -359,12 +365,8 @@ class CollectivesTest(absltest.TestCase):
           layer_axis=0,
           subsplit_axis=3)
 
-    preshuffled_rhs = (
-        collectives.preshuffle_for_reducescatter_bidirectional_throughput(
-            rhs, 0, 4, 6))
     with mesh:
-      result = matmul_reducescatter_bidirectional_throughput(
-          lhs, preshuffled_rhs)
+      result = matmul_reducescatter_bidirectional_throughput(lhs, rhs)
 
     np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
 
@@ -378,12 +380,12 @@ class CollectivesTest(absltest.TestCase):
     lhs = jax.random.normal(key0, (B, T, D), dtype=jnp.float32)
     rhs = jax.random.normal(key1, (L, H, D, E), dtype=jnp.float32)
     lhs = lhs.reshape((X, B, T, D // X))
-    rhs = rhs.reshape((X, Y, Z, L, H // (Y * Z), D // X, E))
+    rhs = rhs.reshape((L, Y, Z, H // (Y * Z), X, D // X, E))
 
     @functools.partial(
         xmap,
-        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
-        out_axes=['x', 'y', 'z', Ellipsis],
+        in_axes=(['x', Ellipsis], [None, 'y', 'z', None, 'x', None, None]),
+        out_axes=[None, 'y', 'z', None, 'x', None, None],
         axis_resources={
             'x': 'x',
             'y': 'y',
@@ -402,16 +404,24 @@ class CollectivesTest(absltest.TestCase):
     with mesh:
       expected = matmul_reducescatter_no_collective(lhs, rhs)
 
+    def shuffle(rhs):
+      return collectives.preshuffle_for_reducescatter_bidirectional_latency(
+          rhs, 'x', 1)
+
     @functools.partial(
         xmap,
-        in_axes=(['x', Ellipsis], ['x', 'y', 'z', Ellipsis]),
-        out_axes=['x', 'y', 'z', Ellipsis],
+        in_axes=(['x', Ellipsis], [None, 'y', 'z', None, 'x', None, None]),
+        out_axes=[None, 'y', 'z', None, 'x', None, None],
         axis_resources={
             'x': 'x',
             'y': 'y',
             'z': 'z'
         })
     def matmul_reducescatter_bidirectional_latency(lhs, rhs):
+      # you can do this beforehand, but this saves us doing two
+      # different xmaps in the same test. In real operation, you
+      # would want to separate shuffling from calling the matmul.
+      rhs = shuffle(rhs)
       return collectives.matmul_reducescatter_bidirectional_latency(
           'btd,hde->bthe',
           lhs,
@@ -421,11 +431,8 @@ class CollectivesTest(absltest.TestCase):
           layer_axis=0,
           subsplit_axis=3)
 
-    preshuffled_rhs = (
-        collectives.preshuffle_for_reducescatter_bidirectional_latency(
-            rhs, 0, 4))
     with mesh:
-      result = matmul_reducescatter_bidirectional_latency(lhs, preshuffled_rhs)
+      result = matmul_reducescatter_bidirectional_latency(lhs, rhs)
 
     np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
 

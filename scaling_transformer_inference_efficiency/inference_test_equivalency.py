@@ -108,6 +108,7 @@ def setup(batch_size, seq_len, latency_collectives):
 
     Args:
       params: parameters
+
     Returns:
       params: rortated parameters
     """
@@ -122,22 +123,19 @@ def setup(batch_size, seq_len, latency_collectives):
 
   if latency_collectives:
     with mesh:
-      params_to_xmap = jax.jit(
-          shard_map(
-              rotate_weights,
-              mesh,
-              in_pspecs=(params_sharding,),
-              out_pspecs=params_sharding))(
-                  params_pjit)
+      params_to_xmap = shard_map(
+          rotate_weights,
+          mesh,
+          in_pspecs=(params_sharding,),
+          out_pspecs=params_sharding)(
+              params_pjit)
   else:
     params_to_xmap = params_pjit
     # xmap sharding
   folded_out = jax.tree_map(fold_out_for_mesh, params_to_xmap, params_logical)
   params_xmap, params_layouts = global_to_per_device.unzip_tree(
-      params_pjit, folded_out)
-  if latency_collectives:
-    with mesh:
-      params_xmap = rotate_weights(params_xmap)
+      params_to_xmap, folded_out)
+
   folded_out = jax.tree_map(fold_out_for_mesh, token_chunk, chunk_logical)
 
   chunk_xmap, chunk_layout = global_to_per_device.unzip_tree(
@@ -232,11 +230,11 @@ class InferenceTest(absltest.TestCase):
     xmap_pjit_equivalency(
         batch_size=8, attn_sharding=partitioning.AttnAllToAll.AXES_YZX)
 
-  # def test_none_sharding_with_latency(self):
-  #   xmap_pjit_equivalency(
-  #       batch_size=2,
-  #       attn_sharding=partitioning.AttnAllToAll.NONE,
-  #       latency_collectives=True)
+  def test_none_sharding_with_latency(self):
+    xmap_pjit_equivalency(
+        batch_size=2,
+        attn_sharding=partitioning.AttnAllToAll.NONE,
+        latency_collectives=True)
 
   def test_shard_map_fwd(self,
                          batch_size=4,

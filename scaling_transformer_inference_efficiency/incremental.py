@@ -126,6 +126,7 @@ import numpy as np
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
+from scaling_transformer_inference_efficiency import collectives
 from scaling_transformer_inference_efficiency import global_to_per_device
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
@@ -133,6 +134,7 @@ from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import ChunkResult
 from scaling_transformer_inference_efficiency.chunk import FullChunkResult
 from scaling_transformer_inference_efficiency.chunk import InferFn
+from scaling_transformer_inference_efficiency.global_to_per_device import shard_map
 from scaling_transformer_inference_efficiency.sampling import Sampling
 
 Weights = weights.Weights
@@ -371,6 +373,52 @@ class XmapModel:
   def mesh(self):
     """Gets the mesh used for this model."""
     return self._mesh
+
+  def rotate_weights(self, params, latency = True):
+    """Rotate the weights for the collectives.
+
+    Assumed to occur in a per device form. Assumes 2D partitioning.
+    q_wi: [layers, heads.YZ, dmodel.X, q_wi_per_head]
+    o_wo: [layers, heads.YZ, owo_per_head, dmodel.X]
+
+    Args:
+      params: unmodified paramaters
+      latency: Whether to do latency collectives
+
+    Returns:
+      params: new parameters, rotated for a given collective
+    """
+
+    def rotate(params):
+      new_layer = params.layer
+      if latency:
+        new_layer = new_layer.replace(
+            q_wi=collectives.preshuffle_for_reducescatter_bidirectional_latency(
+                new_layer.q_wi, sharded_dim='x', scatter_dim=1))
+        new_layer = new_layer.replace(
+            o_wo=collectives.preshuffle_for_async_matmul_allgather_latency(
+                new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
+      else:
+        new_layer = new_layer.replace(
+            q_wi=collectives
+            .preshuffle_for_reducescatter_bidirectional_throughput(
+                new_layer.q_wi, 'x', scatter_dim=1, subsplit_dim=3))
+        new_layer = new_layer.replace(
+            o_wo=collectives.preshuffle_for_async_matmul_allgather_throughput(
+                new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
+
+      return params.replace(layer=new_layer)
+
+    with self._mesh, self.rules:
+      params = jax.jit(
+          shard_map(
+              rotate,
+              self._mesh,
+              in_pspecs=(self._weights_axes,),
+              out_pspecs=self._weights_axes))(
+                  params)
+
+    return params
 
   @partial(jax.jit, static_argnums=(0,))
   def prepare_inputs(

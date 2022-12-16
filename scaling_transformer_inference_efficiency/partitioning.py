@@ -247,7 +247,7 @@ def _with_sharding_constraint(t,
 def get_sharding_divisor(logical):
   """Returns how many shards will be along a given logical axis."""
   sharding_axis = logical_to_physical(logical)
-  if sharding_axis is None:
+  if sharding_axis == P(None,):
     sharding_axis_size = 1
   else:
     sharding_axis_size = np.prod([

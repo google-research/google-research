@@ -176,8 +176,8 @@ def async_matmul_allgather_one_way(einsum_spec,
 def preshuffle_for_async_matmul_allgather_throughput(x, shuffle_axis,
                                                      shard_axis):
   """Pre-shuffle weights for async_matmul_allgather_throughput."""
-  axis_size = x.shape[shard_axis]
-  y = jnp.zeros_like(x)
+  axis_size = lax.psum(1, shard_axis)
+  axis_index = lax.axis_index(shard_axis)
 
   def permutation_fn(i):
     iota = jnp.arange(axis_size, dtype=np.int32)
@@ -185,14 +185,12 @@ def preshuffle_for_async_matmul_allgather_throughput(x, shuffle_axis,
     rolled_odds = jnp.roll(2 * iota + 1, -i)
     return interleave(flipped_evens, rolled_odds)
 
-  for i in range(axis_size):
-    shard = gather_axis(x, index=slice(i, i + 1), axis=shard_axis)
-    shard = split_apart_axis(shard, num_splits=2 * axis_size, axis=shuffle_axis)
-    shard = gather_axis(shard, index=permutation_fn(i), axis=shuffle_axis)
-    shard = reflatten_axis(shard, axis=shuffle_axis)
-    y = update_slice(y, shard, index=slice(i, i + 1), axis=shard_axis)
+  shard = split_apart_axis(x, num_splits=2 * axis_size, axis=shuffle_axis)
+  shard = gather_axis(
+      shard, index=permutation_fn(axis_index), axis=shuffle_axis)
+  shard = reflatten_axis(shard, axis=shuffle_axis)
 
-  return y
+  return shard
 
 
 def async_matmul_allgather_throughput(
@@ -272,10 +270,21 @@ def async_matmul_allgather_throughput(
   return accum + p
 
 
-def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis, shard_axis):
-  """Pre-shuffle weights for async_matmul_allgather_latency."""
-  axis_size = x.shape[shard_axis]
-  y = jnp.zeros_like(x)
+def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis,
+                                                  shard_axis):
+  """Pre-shuffle weights for async_matmul_allgather_latency.
+
+    Function acts at a per-device view.
+  Args:
+    x: array to preshuffle. Intended to be used within shard map (or hardxmap).
+    shuffle_axis: int axis along which to shuffle
+    shard_axis: string for sharded dim
+
+  Returns:
+    Weight array pre-shuffled for use with
+    `reducescatter_bidirectional_latency`.
+  """
+  axis_size = lax.psum(1, shard_axis)
 
   def permutation_fn(i):
     evens = [(i - j - 1) % axis_size for j in range(axis_size // 2)]
@@ -283,14 +292,14 @@ def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis, shard_axis):
     block_perm = interleave(evens, odds)
     return interleave(2 * block_perm, 2 * block_perm + 1)
 
-  for i in range(axis_size):
-    shard = gather_axis(x, index=slice(i, i + 1), axis=shard_axis)
-    shard = split_apart_axis(shard, num_splits=2 * axis_size, axis=shuffle_axis)
-    shard = gather_axis(shard, index=permutation_fn(i), axis=shuffle_axis)
-    shard = reflatten_axis(shard, axis=shuffle_axis)
-    y = update_slice(y, shard, index=slice(i, i + 1), axis=shard_axis)
+  shard = split_apart_axis(x, num_splits=2 * axis_size, axis=shuffle_axis)
+  shard = gather_axis(
+      shard,
+      index=permutation_fn(lax.axis_index(shard_axis)),
+      axis=shuffle_axis)
+  shard = reflatten_axis(shard, axis=shuffle_axis)
 
-  return y
+  return shard
 
 
 # subsplit_axis: lhs contracting dimension, along which we concatenate + and -
@@ -495,26 +504,23 @@ def preshuffle_for_reducescatter_bidirectional_throughput(
     Weight array pre-shuffled for use with
     `reducescatter_bidirectional_throughput`.
   """
-  axis_size = x.shape[sharded_dim]  # materialized shard dim
+  axis_size = lax.psum(1, sharded_dim)
+  axis_index = lax.axis_index(sharded_dim)
+
   half = x.shape[subsplit_dim] // 2
   pos_perm = lambda idx: jnp.roll(jnp.flip(np.arange(axis_size)), idx)
   neg_perm = lambda idx: jnp.roll(np.arange(axis_size), -idx - 1)
   new_x = jnp.zeros_like(x)
-  for axis_index in range(axis_size):
-    shard = gather_axis(x, slice(axis_index, axis_index + 1), axis=sharded_dim)
-    new_shard = jnp.zeros_like(shard)
-    # Handle shifts in each half of the subsplits:
-    for pos, perm_fn in ((0, pos_perm), (half, neg_perm)):
-      split = gather_axis(
-          shard, index=slice(pos, pos + half), axis=subsplit_dim)
-      chunked_split = split_apart_axis(split, axis_size, axis=scatter_dim)
-      rolled = gather_axis(
-          chunked_split, index=perm_fn(axis_index), axis=scatter_dim)
-      rolled = reflatten_axis(rolled, scatter_dim)
-      new_shard = update_slice(
-          new_shard, rolled, slice(pos, pos + half), axis=subsplit_dim)
+
+  # Handle shifts in each half of the subsplits:
+  for pos, perm_fn in ((0, pos_perm), (half, neg_perm)):
+    split = gather_axis(x, index=slice(pos, pos + half), axis=subsplit_dim)
+    chunked_split = split_apart_axis(split, axis_size, axis=scatter_dim)
+    rolled = gather_axis(
+        chunked_split, index=perm_fn(axis_index), axis=scatter_dim)
+    rolled = reflatten_axis(rolled, scatter_dim)
     new_x = update_slice(
-        new_x, new_shard, slice(axis_index, axis_index + 1), axis=sharded_dim)
+        new_x, rolled, slice(pos, pos + half), axis=subsplit_dim)
   return new_x
 
 
@@ -600,18 +606,18 @@ def preshuffle_for_reducescatter_bidirectional_latency(x, sharded_dim,
                                                        scatter_dim):
   """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
 
+  Function acts at a per-device view.
   Args:
-    x: array to preshuffle. Assumes the array has already been reshaped
-      appropriately as an input for xmap, with materialized sharding dims.
-    sharded_dim: materialized sharding dim.
+    x: array to preshuffle. Intended to be used within shard map (or hardxmap).
+    sharded_dim: string for sharding dim.
     scatter_dim: array dim to scatter into.
 
   Returns:
     Weight array pre-shuffled for use with
     `reducescatter_bidirectional_latency`.
   """
-  axis_size = x.shape[sharded_dim]
-  new_x = jnp.zeros_like(x)
+  axis_size = lax.psum(1, sharded_dim)
+  axis_index = lax.axis_index(sharded_dim)
 
   # closed form for modelling the data movement of
   # each nth chunk over n iterations of the latency-optimized
@@ -623,15 +629,12 @@ def preshuffle_for_reducescatter_bidirectional_latency(x, sharded_dim,
     return interleave(evens,
                       odds)  #  jnp.stack((evens, odds), axis=1).reshape((-1,))
 
-  for axis_index in range(axis_size):
-    shard = gather_axis(x, slice(axis_index, axis_index + 1), axis=sharded_dim)
-    chunked_shard = split_apart_axis(shard, axis_size, axis=scatter_dim)
-    permuted = gather_axis(
-        chunked_shard, permutation_fn(axis_index), axis=scatter_dim)
-    permuted = reflatten_axis(permuted, scatter_dim)
-    new_x = update_slice(
-        new_x, permuted, slice(axis_index, axis_index + 1), axis=sharded_dim)
-  return new_x
+  chunked_shard = split_apart_axis(x, axis_size, axis=scatter_dim)
+  permuted = gather_axis(
+      chunked_shard, permutation_fn(axis_index), axis=scatter_dim)
+  permuted = reflatten_axis(permuted, scatter_dim)
+
+  return permuted
 
 
 def matmul_reducescatter_bidirectional_latency(einsum_spec,
