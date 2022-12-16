@@ -208,14 +208,8 @@ class JittedModel:
       else:
         prev_logits = None
 
-      result_axes = jax.tree_map(partitioning.logical_to_physical,
-                                 ChunkResult.logical_axes())
       prefix = [p.kv_cache for p in prefix]
-      return pjit.pjit(
-          self._prefill_impl,
-          in_axis_resources=(self._weights_axes, self.prefix_axes(prefix), None,
-                             pjit.FROM_GDA),
-          out_axis_resources=result_axes)(params, prefix, chunk, prev_logits)
+      return jax.jit(self._prefill_impl,)(params, prefix, chunk, prev_logits)
 
   @partial(jax.jit, static_argnums=(0, 1))
   def _generate_impl(self, steps, params, sampling,
@@ -332,19 +326,11 @@ class JittedModel:
         prev_chunk_next_token_logits = None
 
       prefix = [p.kv_cache for p in prefix]
-      result_axes = jax.tree_map(partitioning.logical_to_physical,
-                                 ChunkResult.logical_axes())
-      return pjit.pjit(
+
+      return jax.jit(
           self._generate_impl,
-          static_argnums=0,
-          in_axis_resources=(self._weights_axes, None, self.prefix_axes(prefix),
-                             pjit.FROM_GDA,
-                             partitioning.logical_to_physical(
-                                 P('logit_batch'))),
-          out_axis_resources=(None, result_axes))(steps, params, sampling,
-                                                  prefix,
-                                                  prev_chunk_next_token_logits,
-                                                  sample_ids)
+          static_argnums=0)(steps, params, sampling, prefix,
+                            prev_chunk_next_token_logits, sample_ids)
 
 
 ########################### Xmap version ######################################
@@ -546,7 +532,7 @@ class XmapModel:
     sample_rngs = jax.vmap(
         jax.random.fold_in, in_axes=(None, 0))(jax.random.PRNGKey(0),
                                                sample_ids)
-    # jax.debug.breakpoint()
+
     token_indexes_start = attention.prefix_lengths(prefix)
     token_indexes_start = attention.flat_broadcast(token_indexes_start,
                                                    logit_sharded_batch)

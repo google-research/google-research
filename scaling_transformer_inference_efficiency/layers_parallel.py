@@ -48,7 +48,7 @@ def assert_equal(x, y):
   assert x == y, f'{x} != {y}'
 
 
-def allgather_layernorm(x, shard_seqlen_vs_batch):
+def allgather_layernorm(x, shard_seqlen_vs_batch, scale=None):
   """All gathers around layernorm, minimises comms by first doing per-chip."""
   with jax.named_scope('allgather_layernorm'):
     # allgather xnorm: [batch.Z, maxlen, dmodel.XY]
@@ -62,6 +62,9 @@ def allgather_layernorm(x, shard_seqlen_vs_batch):
     mean2 = lax.pmean(
         jnp.mean(lax.square(xgather), axis=-1, keepdims=True), axis_name='x')
     xnorm_z = jnp.bfloat16(xgather * lax.rsqrt(mean2 + epsilon))
+    if scale is not None:
+      scale += 1.0  # 'center_scale_at_zero' option in T5X
+      xnorm_z = jnp.bfloat16(xnorm_z * scale)
     # when attention_all_to_all is None we can partition over sequence len not
     # batch
     if shard_seqlen_vs_batch:
@@ -164,8 +167,11 @@ def transformer_layer_weight_stationary(
   # -> [batch, maxlen, heads.YZ, q_wi_per_head]{x unreduced}
   # -> (reducescatter over x into X heads, B batches)
   # -> [batch, maxlen, heads.YZX, q_wi_per_head]
-
-  xnorm, xnorm_z = allgather_layernorm(x, shard_seqlen_vs_batch)
+  if isinstance(params, weights.QuantizedLayer):
+    xnorm, xnorm_z = allgather_layernorm(
+        x, shard_seqlen_vs_batch, scale=my_layer(params.layernorm_scale))
+  else:
+    xnorm, xnorm_z = allgather_layernorm(x, shard_seqlen_vs_batch)
 
   with jax.named_scope('q_wi'):
     xnorm = intermediate_dtype(xnorm)
@@ -730,8 +736,8 @@ def quantized_pjit_transformer_layer(
   q_wi = quantized_dot_general('bte,hed->bthd', xnorm, my_layer(params.q_wi),
                                my_layer(params.q_wi_scale))
   # 2D: [batch, time, heads.YZX, None]
-  q_wi = _with_sharding_constraint(
-      q_wi, ('post_norm_batch', 'time', 'residual_heads', 'qkv'))
+  q_wi = _with_sharding_constraint(q_wi,
+                                   ('post_norm_batch', 'time', 'heads', 'qkv'))
   q = q_wi[:, :, :, :hparams.qkv]
   q = _rope(sin, cos, q)
   wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
@@ -878,7 +884,11 @@ def transformer_layer_weight_stationary_oversharded(
   # -> [batch.B, maxlen, heads.YZX, q_wi_per_head]
   # TODO(reinerp): For chips>64, need to reducescatter over batch instead.
 
-  xnorm, xnorm_z = allgather_layernorm(x, shard_seqlen_vs_batch)
+  if isinstance(params, weights.QuantizedLayer):
+    xnorm, xnorm_z = allgather_layernorm(
+        x, shard_seqlen_vs_batch, scale=my_layer(params.layernorm_scale))
+  else:
+    xnorm, xnorm_z = allgather_layernorm(x, shard_seqlen_vs_batch)
 
   with jax.named_scope('q_wi'):
     if B == 1:
@@ -915,7 +925,7 @@ def transformer_layer_weight_stationary_oversharded(
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = q_wi.shape
-      q_wi = intermediate_dtype(q_wi * jnp.squeeze(my_layer(params.q_wi_scale)))
+      q_wi = q_wi * jnp.squeeze(my_layer(params.q_wi_scale))
       assert_equal(prev_shape, q_wi.shape)
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
@@ -991,7 +1001,7 @@ def transformer_layer_weight_stationary_oversharded(
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = kv.shape
-      kv = intermediate_dtype(kv * jnp.squeeze(my_layer(params.kv_scale)))
+      kv = kv * jnp.squeeze(my_layer(params.kv_scale))
       assert_equal(prev_shape, kv.shape)
 
     k = kv[:, :, 0, :hparams.qkv]

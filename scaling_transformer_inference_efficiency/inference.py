@@ -114,6 +114,7 @@ def infer(
   k = jnp.swapaxes(k, 0, 1)
   v = jnp.swapaxes(v, 0, 1)
 
+  # TODO(sholto): Should this ever be scaled when quantised?
   x = layers_parallel._layernorm(x)  # pylint: disable = protected-access
 
   x = _with_sharding_constraint(x, (None, None, None))
@@ -200,6 +201,7 @@ def infer_xmap(
     embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=0, tiled=True)
 
   x = embeds
+  print(x.shape)
 
   def loop_body(layer, carry):
     x, k, v = carry

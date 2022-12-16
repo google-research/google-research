@@ -366,16 +366,16 @@ class QuantizedWeights:
     """Returns the partition specs for the weights in their logical axes."""
     q_wi = P('layers', 'params_heads', 'params_embed', 'qkv')
     # Scale Axes can not shard along a singleton dimension
-    q_wi_scale = P('layers', 'params_heads', None, 'qkv')
+    q_wi_scale = P('layers', 'heads', None, 'qkv')
     kv = P('layers', 'params_embed', None, 'qkv')
     kv_scale = P('layers', None, None, 'qkv')
-    o_wo = P('layers', 'params_heads', 'qkv', 'embed')
-    o_wo_scale = P('layers', None, None, 'params_embed')
+    o_wo = P('layers', 'params_heads', 'qkv', 'params_embed')
+    o_wo_scale = P('layers', None, None, 'residual_embed')
     sin = P(None, None)
     cos = P(None, None)
     # Embedding table wants different sharding than Transformer layers, to work
     # around b/244232479.
-    embedding = P('vocab', 'table_params_embed')
+    embedding = P('vocab', 'params_embed')
     layernorm_scale = P('layers', 'params_embed')
 
     return QuantizedWeights(
@@ -461,7 +461,7 @@ class QuantizedWeights:
     cos = copy_to_device(cos, axes.cos, expected_shapes.cos)
 
     q_wi_input_axes = P('layers', 'params_embed', 'params_heads', 'qkv')
-    q_wi_scale_input_axes = P('layers', None, 'params_heads', 'qkv')
+    q_wi_scale_input_axes = P('layers', None, 'heads', 'qkv')
     q_wi = copy_to_device(
         c.q_wi, q_wi_input_axes,
         jax.ShapedArray((h.layers, h.embed, h.heads, h.q_wi_per_head),
