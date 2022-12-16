@@ -430,7 +430,7 @@ class XmapModel:
     """Prepares inputs for hard xmap pass by pulling out axes to be mapped."""
 
     params_xmap, _ = global_to_per_device.fold_out_tree(self._mesh, params,
-                                                        Weights.logical_axes())
+                                                        params.logical_axes())
 
     cache = [p.kv_cache for p in prefix]
     if prefix:
@@ -496,7 +496,7 @@ class XmapModel:
       chunk_layout = jax.tree_map(global_to_per_device.logical_to_layout,
                                   Chunk.logical_axes())
       params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
-                                    Weights.logical_axes())
+                                    params.logical_axes())
       result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
                                    FullChunkResult.logical_axes())
       cache_layout = jax.tree_map(
@@ -626,7 +626,7 @@ class XmapModel:
 
     with self.rules:
       params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
-                                    Weights.logical_axes())
+                                    params.logical_axes())
       result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
                                    ChunkResult.logical_axes())
       cache_layout = jax.tree_map(

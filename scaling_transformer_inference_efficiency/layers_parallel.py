@@ -662,7 +662,8 @@ def pjit_transformer_layer(
   # do the second half of the mlp and the self-attn projection in parallel
   y_out = jnp.einsum('bthd,hde->bte', y_fused, my_layer(params.o_wo))
   # 2D: [batch.Z, time, embed.XY]
-  y_out = _with_sharding_constraint(y_out, ('batch', 'time', 'residual_embed'))
+  y_out = _with_sharding_constraint(
+      y_out, ('residual_batch', 'time', 'residual_embed'))
   z = y_out + x
   z = _with_sharding_constraint(z, ('residual_batch', 'time', 'residual_embed'))
   return jnp.bfloat16(z), k, v
@@ -999,7 +1000,6 @@ def transformer_layer_weight_stationary_oversharded(
   with jax.named_scope('attn'):
     k = _rope(sin, cos, k)
 
-    # print(f'batch_yzb: {batch_yzb}')
     # q: [batch.B, maxlen, heads.YZX, qkv]
     # -> { NONE:                   [batch.B, maxlen, heads.YZX, qkv]
     #    { AXIS_Z:                 [batch.ZB, maxlen, heads.YX, qkv]
@@ -1074,7 +1074,6 @@ def transformer_layer_weight_stationary_oversharded(
     if True and B == 1:
       # We don't have a B=2 collective allgather/matmul implementation yet, so
       # we use the collective matmul/reducescatter instead
-      # print(f'o_wo: {params.o_wo.shape}')
       y_out = matmul_allgather(
           'bthd,hde->bte',
           y_fused,

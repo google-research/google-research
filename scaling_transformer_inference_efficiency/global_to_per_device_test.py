@@ -35,6 +35,8 @@ from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
+# jax.config.update('experimental_xmap_spmd_lowering', True)
+# jax.config.update('experimental_xmap_spmd_lowering_manual', True)
 
 
 # pylint: disable = line-too-long
@@ -167,8 +169,12 @@ class GlobalToPerDeviceTest(absltest.TestCase):
     with rules:
       mesh, x_pjit, x_sharding, params_pjit, params_sharding = create_test_weights(
           dtype=jnp.float32)
-      x_xmap, x_layout, params_xmap, params_layouts = fold_out_to_per_device(
-          mesh, x_pjit, x_sharding, params_pjit, params_sharding)
+      (x_sharding,
+       params_sharding) = jax.tree_map(partitioning.logical_to_physical,
+                                       (x_sharding, params_sharding))
+      out_sharding = jax.tree_map(partitioning.logical_to_physical,
+                                  (P('batch', 'time', 'post_norm_embed'),
+                                   P('batch', 'time', 'heads', 'qkv')))
 
       @functools.partial(pjit)
       def matmul_pjit(x, params):
@@ -187,53 +193,37 @@ class GlobalToPerDeviceTest(absltest.TestCase):
                  'heads', 'qkv'))
         return x, y
 
-      @functools.partial(
-          xmap,
-          in_axes=(x_layout, params_layouts),
-          out_axes=(global_to_per_device.logical_to_layout(
-              P('batch', 'time', 'post_norm_embed')),
-                    global_to_per_device.logical_to_layout(
-                        P('batch', 'time', 'heads', 'qkv'))),
-          axis_resources={
-              'x': 'x',
-              'y': 'y',
-              'z': 'z'
-          })
       def matmul_xmap(x, params):
         # x: ['batch.Z', 'time', 'embed.XY']
         # ['heads.YZ', 'embed.X', 'qkv']
-        q_wi_1 = params.layer.q_wi
-        print(x.shape)
+        q_wi_1 = params.layer.q_wi[0]
 
         x = lax.all_gather(
             x, 'y', axis=2, tiled=True)  # ['batch.Z', 'time', 'embed.X']
         x = lax.all_gather(
             x, 'z', axis=0, tiled=True)  # ['batch', 'time', 'embed.X']
 
-        print(x.shape, q_wi_1.shape)
         # ['batch', 'time', 'embed.X'] @ ['heads.YZ', 'embed.X', 'qkv']
         #  ----> ['batch', 'time', 'heads.YZ', 'qkv'] {unreduced.X}
 
-        y = jnp.einsum('bte,hed->bthd', x, q_wi_1[0])
+        y = jnp.einsum('bte,hed->bthd', x, q_wi_1)
         # print(y.shape)
         # -----> ['batch', 'time', 'heads.YZX', 'qkv']
         y = lax.psum_scatter(y, 'x', scatter_dimension=2, tiled=True)
 
         return x, y
 
+      matmul_shardmap = global_to_per_device.shard_map(
+          matmul_xmap,
+          mesh=mesh,
+          in_pspecs=(x_sharding, params_sharding),
+          out_pspecs=out_sharding)
       with mesh:
         x1, y1 = matmul_pjit(x_pjit, params_pjit)
+        x2, y2 = matmul_shardmap(x_pjit, params_pjit)
 
-      with mesh:
-        x2, y2 = matmul_xmap(x_xmap, params_xmap)
-
-      x2_folded = global_to_per_device.fold_in(
-          x2, P('batch', 'time', 'post_norm_embed'))
-      y2_folded = global_to_per_device.fold_in(
-          y2, P('batch', 'time', 'heads', 'qkv'))
-
-      np.testing.assert_allclose(x1, x2_folded, rtol=1e-04, atol=1e-04)
-      np.testing.assert_allclose(y1, y2_folded, rtol=1e-04, atol=1e-04)
+      np.testing.assert_allclose(x1, x2, rtol=1e-04, atol=1e-04)
+      np.testing.assert_allclose(y1, y2, rtol=1e-04, atol=1e-04)
 
 
 if __name__ == '__main__':
