@@ -15,14 +15,15 @@
 
 """Constants for paths."""
 
+import os.path
+
 import immutabledict
 import seqio
 
-# Use the T5 public vocabulary
-VOCABULARY = seqio.SentencePieceVocabulary(
-    'gs://t5-data/vocabs/cc_all.32000.100extra/sentencepiece.model'
-)
 
+# Use the T5 public vocabulary
+_VOCABULARY_PATH = 'gs://t5-data/vocabs/cc_all.32000.100extra/sentencepiece.model'
+VOCABULARY = seqio.SentencePieceVocabulary(_VOCABULARY_PATH)
 
 OUTPUT_FEATURES = immutabledict.immutabledict({
     'inputs': seqio.Feature(vocabulary=VOCABULARY),
@@ -31,18 +32,17 @@ OUTPUT_FEATURES = immutabledict.immutabledict({
 
 CANARY_TFDS_PATH = ('')
 WMT_VAL_TFDS_PATH = ('')
-
-CANARY_TFDS_DATA_PATTERN = (''
-                            'train_data-{}_{}.tfrecord')
-
-CANARY_TFDS_TEST_DATA_PATTERN = (''
-                                 'test_data-{}_{}.tfrecord')
-
-WMT_TFDS_DATA_PATTERN = (''
-                         'train_data-wmt_{}.tfrecord')
-# Using the training examples to measure the sequence accuracy
-WMT_TFDS_TEST_DATA_PATTERN = (''
-                              'train_data-wmt_{}.tfrecord')
-
 TFDS_DATA_DIR = ('')
 
+
+CANARY_TFDS_DATA_PATTERN = os.path.join(
+        CANARY_TFDS_PATH, 'train_data-{}_{}.tfrecord')
+
+CANARY_TFDS_TEST_DATA_PATTERN = os.path.join(
+        CANARY_TFDS_PATH, 'test_data-{}_{}.tfrecord')
+
+WMT_TFDS_DATA_PATTERN = os.path.join(
+        WMT_VAL_TFDS_PATH, 'train_data-wmt_{}.tfrecord')
+# Using the training examples to measure the sequence accuracy
+WMT_TFDS_TEST_DATA_PATTERN = os.path.join(
+        WMT_VAL_TFDS_PATH, 'train_data-wmt_{}.tfrecord')
