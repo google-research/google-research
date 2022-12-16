@@ -206,12 +206,13 @@ def transformer_layer_weight_stationary(
   #    { Attn.AXES_YZ:   [batch.YZB, maxlen, 1, 2*qkv]
   #    { Attn.AXES_YZX:  [batch.YZXB, maxlen, 1, 2*qkv]
   with jax.named_scope('kv'):
-    y_index = lax.axis_index('y')
+    # TODO(sholto): update this in oversharded
+    yz_index = lax.axis_index('y') * z_axis + lax.axis_index('z')
     # TODO(reinerp): Consider using xnorm instead of xnorm_z in NONE case?
     # I don't know yet if that's better.
     if attn_all_to_all.value >= AttnAllToAll.AXES_YZ.value:
       xnorm_sliced = lax.dynamic_slice_in_dim(
-          xnorm_z, y_index * batch_yz, batch_yz, axis=0)
+          xnorm, yz_index * batch_yz, batch_yz, axis=0)
     else:
       xnorm_sliced = xnorm_z
 
@@ -308,11 +309,11 @@ def transformer_layer_weight_stationary(
   # [batch, maxlen, heads.YZ, o_wo_per_head] @
   #       [heads.YZ, o_wo_per_head, dmodel.x]
   # -> (matmul)
-  # -> [batch, maxlen, dmodel.x]{YZ unreduced}
+  # -> [batch, maxlen, dmodel.X]{YZ unreduced}
   # -> (fused reducescatter)
-  # -> [batch, maxlen, dmodel.xY]
+  # -> [batch, maxlen, dmodel.XY]
   # -> (non-fused reducescatter)
-  # -> [batch.Z, maxlen, dmodel.xY]
+  # -> [batch.Z, maxlen, dmodel.XY]
   with jax.named_scope('o_wo'):
     y_fused = jnp.concatenate([y_att, y_mlp], axis=-1)
 
@@ -629,7 +630,7 @@ def pjit_transformer_layer(
     raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
 
   # 2D: [batch.Z, time, embed.XY]
-  x = _with_sharding_constraint(x, ('batch', 'time', 'residual_embed'))
+  x = _with_sharding_constraint(x, ('residual_batch', 'time', 'residual_embed'))
   xnorm = _layernorm(x)
   # 2D: [batch, time, embed.X]
   xnorm = _with_sharding_constraint(
@@ -663,7 +664,7 @@ def pjit_transformer_layer(
   # 2D: [batch.Z, time, embed.XY]
   y_out = _with_sharding_constraint(y_out, ('batch', 'time', 'residual_embed'))
   z = y_out + x
-  z = _with_sharding_constraint(z, ('batch', 'time', 'residual_embed'))
+  z = _with_sharding_constraint(z, ('residual_batch', 'time', 'residual_embed'))
   return jnp.bfloat16(z), k, v
 
 
@@ -939,12 +940,12 @@ def transformer_layer_weight_stationary_oversharded(
   #    { Attn.AXES_YZ:   [batch.YZB, maxlen, 1, 2*qkv]
   #    { Attn.AXES_YZX:  [batch.YZXB, maxlen, 1, 2*qkv]
   with jax.named_scope('kv'):
-    y_index = lax.axis_index('y')
+    yz_index = lax.axis_index('y') * z_axis + lax.axis_index('z')
     # TODO(reinerp): Consider using xnorm instead of xnorm_z in NONE case?
     # I don't know yet if that's better.
     if attn_all_to_all.value >= AttnAllToAll.AXES_YZ.value:
       xnorm_sliced = lax.dynamic_slice_in_dim(
-          xnorm_z, y_index * batch_yz, batch_yz, axis=0)
+          xnorm, yz_index * batch_yz, batch_yz, axis=0)
     else:
       xnorm_sliced = xnorm_z
     kv_unreduced = jnp.einsum('bte,ezd->btzd', xnorm_sliced,

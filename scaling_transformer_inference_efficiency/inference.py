@@ -87,7 +87,7 @@ def infer(
   x = params.embedding[token_ids, :]
 
   x = _with_sharding_constraint(x, (None, None, 'table_embed'))
-  x = _with_sharding_constraint(x, ('batch.Z', 'time', 'embed.XY'))
+  x = _with_sharding_constraint(x, ('residual_batch', 'time', 'residual_embed'))
 
   def loop_body(layer, carry):
     x, k, v = carry
