@@ -199,6 +199,7 @@ def shard_map(
     mesh,
     in_pspecs,
     out_pspecs,
+    donate_argnums=(),
 ):  # pylint: disable=g-bare-generic
   """Replicates shard map style functionality - the user never sees reshaped shapes.
   """
@@ -223,7 +224,8 @@ def shard_map(
         in_axes=in_layout,
         out_axes=out_layout,
         axis_resources=axis_resources,
-        axis_sizes=mesh.shape)(*pytree_xmap)
+        axis_sizes=mesh.shape,
+        donate_argnums=donate_argnums)(*pytree_xmap)
 
     assert jax.tree_util.tree_structure(result) == jax.tree_util.tree_structure(
         out_pspecs)

@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import functools
-
 from typing import Callable, Sequence
 
 from absl.testing import absltest
@@ -34,10 +33,11 @@ from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
+from scaling_transformer_inference_efficiency.global_to_per_device import shard_map
 from scaling_transformer_inference_efficiency.partitioning import _with_sharding_constraint
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
-jax.config.update('jax_parallel_functions_output_gda', True)
+
 # jax.config.update('experimental_xmap_spmd_lowering', True)
 # jax.config.update('experimental_xmap_spmd_lowering_manual', True)
 CheckpointSpec = checkpoint.CheckpointSpec
@@ -161,27 +161,19 @@ def pjit_embed_and_layer(
                                               kv_caches, x)
   # TODO(sholto): Repro an interesting jax casting issue where not casting here
   # causes it to be very wrong!
-  return x, intermediate_dtype(z), layer_k, layer_v
+  return intermediate_dtype(x), intermediate_dtype(z), intermediate_dtype(
+      layer_k), intermediate_dtype(layer_v)
 
 
-# pylint: disable = g-bare-generic
-# pylint: disable = invalid-name
-def xmap_embed_and_layer(
+def xmap_embed(
     h,
     _transformer_layer_fn,
     params,  # pylint: disable=g-bare-generic, invalid-name
     kv_caches,
-    token_chunk,
-    attn_all_to_all,
-    shard_seqlen_vs_batch,
-    intermediate_dtype = jnp.bfloat16):
-  """Forward pass through xmap path, returning per-token logits."""
+    token_chunk):
+  del h
 
-  # flaxformer/architectures/t5/t5_architecture.py;l=1516;
-  x_axis = lax.psum(1, 'x')
-  y_axis = lax.psum(1, 'y')
   z_axis = lax.psum(1, 'z')
-
   # Start indices are the sums of the lengths of the KV caches.
   start_indices = attention.prefix_lengths(kv_caches)
   prefix_batch, = start_indices.shape
@@ -219,7 +211,28 @@ def xmap_embed_and_layer(
     # [batch.Z, time, embed.XY]
     embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=0, tiled=True)
 
-  x = embeds
+  return embeds, sin, cos
+
+
+# pylint: disable = g-bare-generic
+# pylint: disable = invalid-name
+def xmap_embed_and_layer(
+    h,
+    _transformer_layer_fn,
+    params,  # pylint: disable=g-bare-generic, invalid-name
+    kv_caches,
+    token_chunk,
+    attn_all_to_all,
+    shard_seqlen_vs_batch,
+    intermediate_dtype = jnp.bfloat16):
+  """Forward pass through xmap path, returning per-token logits."""
+  x_axis = lax.psum(1, 'x')
+  y_axis = lax.psum(1, 'y')
+  z_axis = lax.psum(1, 'z')
+
+  x, sin, cos = xmap_embed(h, _transformer_layer_fn, params, kv_caches,
+                           token_chunk)
+
   z, layer_k, layer_v = _transformer_layer_fn(
       h,
       0,
@@ -236,7 +249,8 @@ def xmap_embed_and_layer(
       shard_seqlen_vs_batch=shard_seqlen_vs_batch,
       intermediate_dtype=intermediate_dtype)
 
-  return x, intermediate_dtype(z), layer_k, layer_v
+  return intermediate_dtype(x), intermediate_dtype(z), intermediate_dtype(
+      layer_k), intermediate_dtype(layer_v)
 
 
 class LayersTest(absltest.TestCase):
@@ -304,9 +318,9 @@ class LayersTest(absltest.TestCase):
       k_folded = global_to_per_device.fold_in(k_xm, kv_sharding)
       z_folded = global_to_per_device.fold_in(z_xm, z_sharding)
 
-      np.testing.assert_allclose(x_baseline, x_folded, rtol=1e-05, atol=1e-05)
-      np.testing.assert_allclose(k_baseline, k_folded, rtol=1e-05, atol=1e-05)
-      np.testing.assert_allclose(z_baseline, z_folded, rtol=1e-05, atol=1e-05)
+      np.testing.assert_allclose(x_baseline, x_folded, rtol=1e-03, atol=1e-03)
+      np.testing.assert_allclose(k_baseline, k_folded, rtol=1e-03, atol=1e-03)
+      np.testing.assert_allclose(z_baseline, z_folded, rtol=1e-03, atol=1e-03)
 
   def test_none_sharding(self):
     self.xmap_pjit_equivalency(
@@ -323,6 +337,69 @@ class LayersTest(absltest.TestCase):
   def test_attn_yzx_sharding(self):
     self.xmap_pjit_equivalency(
         batch_size=8, attn_sharding=partitioning.AttnAllToAll.AXES_YZX)
+
+  def shardmap_pjit_equivalency(self,
+                                batch_size=4,
+                                seq_len=32,
+                                attn_sharding=partitioning.AttnAllToAll.NONE):
+    """Tests equivalency of a pjit and xmap forward pass."""
+
+    rules = partitioning.PartitioningRules(
+        partitioning.make_rules_two_d(attn_sharding))
+    with rules:
+      (dtype, h, mesh, params_pjit, kv_caches, token_chunk, _, _, _, _, _,
+       chunk_sharding, params_sharding, _) = setup(batch_size, seq_len)
+
+      @functools.partial(pjit)
+      def fwd_pjit(token_chunk, params):
+        x, z, k, v = pjit_embed_and_layer(
+            h,
+            layers_parallel.pjit_transformer_layer,
+            params,
+            kv_caches,
+            token_chunk,
+            intermediate_dtype=dtype)
+        return x, z, k, v
+
+      with mesh:
+        x_baseline, z_baseline, k_baseline, _ = fwd_pjit(
+            token_chunk, params_pjit)
+
+      x_sharding = partitioning.logical_to_physical(
+          P('residual_batch', 'time', 'residual_embed'))
+      z_sharding = partitioning.logical_to_physical(
+          P('residual_batch', 'time', 'residual_embed'))
+      kv_sharding = partitioning.logical_to_physical(
+          P('attn_batch', 'length', 'qkv'))
+
+      def fwd_xmap(token_chunk, params):
+        x, z, k, v = xmap_embed_and_layer(
+            h,
+            layers_parallel.transformer_layer_weight_stationary,
+            params,
+            kv_caches,
+            token_chunk,
+            attn_all_to_all=attn_sharding,
+            shard_seqlen_vs_batch=False,
+            intermediate_dtype=dtype)
+
+        return x, z, k, v
+
+      with mesh:
+        x_xm, z_xm, k_xm, _ = shard_map(
+            fwd_xmap,
+            mesh,
+            in_pspecs=(chunk_sharding, params_sharding),
+            out_pspecs=(x_sharding, z_sharding, kv_sharding, kv_sharding),
+        )(token_chunk, params_pjit)
+
+      np.testing.assert_allclose(x_xm, x_baseline, rtol=1e-03, atol=1e-03)
+      np.testing.assert_allclose(k_xm, k_baseline, rtol=1e-03, atol=1e-03)
+      np.testing.assert_allclose(z_xm, z_baseline, rtol=1e-03, atol=1e-03)
+
+  def test_shardmap(self):
+    self.shardmap_pjit_equivalency(
+        batch_size=4, attn_sharding=partitioning.AttnAllToAll.NONE)
 
 
 if __name__ == '__main__':

@@ -227,7 +227,6 @@ def _with_sharding_constraint(t,
                               spec):
   """Applies a logical sharding constraint to a tensor."""
   axes = logical_to_physical(spec)
-
   # First check that the sharding is equally sized on all chips. While the SPMD
   # partitioner is _designed_ to support unequal sharding on chips, in practice
   # this seems to be a fertile ground for XLA bugs such as b/245966065 and

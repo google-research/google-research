@@ -362,6 +362,7 @@ class XmapModel:
     self._mesh = partitioning.make_mesh()
     self.rules = partitioning.PartitioningRules(rules)
     with self.rules:
+      self._weights_logical_axes = weights_logical_axes
       self._weights_axes = jax.tree_map(partitioning.logical_to_physical,
                                         weights_logical_axes)
     # _prefill_p: maps num_prefixes -> jitted _prefill_impl function
@@ -410,15 +411,14 @@ class XmapModel:
       return params.replace(layer=new_layer)
 
     with self._mesh, self.rules:
-      params = jax.jit(
-          shard_map(
-              rotate,
-              self._mesh,
-              in_pspecs=(self._weights_axes,),
-              out_pspecs=self._weights_axes))(
-                  params)
+      params = shard_map(
+          rotate,
+          self._mesh,
+          in_pspecs=(self._weights_axes,),
+          out_pspecs=self._weights_axes,
+          donate_argnums=(0,))(params)
 
-    return params
+      return params
 
   @partial(jax.jit, static_argnums=(0,))
   def prepare_inputs(

@@ -36,7 +36,6 @@ import tensorstore
 
  import gfile
 
-
 # A ts.Spec that has been converted to a dict using `ts.Spec.to_json`
 TsSpecDict = NewType('TsSpecDict', dict)
 
@@ -89,7 +88,6 @@ HParams.PALM_62B = HParams(
     vocab=256128,
 )
 
-
 HParams.PALM_540B = HParams(
     layers=118,
     embed=18432,
@@ -110,7 +108,6 @@ HParams.TURING_NLG = HParams(
     vocab=51200,
 )
 
-
 HParams.PALM_540B_64HEADS = HParams.PALM_540B.replace(heads=64)
 
 HParams.PALM_540B_128HEADS = HParams.PALM_540B.replace(heads=128)
@@ -124,6 +121,7 @@ class CheckpointSpec:
   hparams: HParams
   dir: str
   transpose_scan_axis: bool
+
 
 
 
@@ -208,8 +206,7 @@ def add_path_to_spec(spec, checkpoint_directory):
   return spec
 
 
-def var(spec,
-        checkpoint_dict, key,
+def var(spec, checkpoint_dict, key,
         transpose):
   """Loads a variable stored in a tensorstore checkpoint."""
   if key not in checkpoint_dict:
@@ -282,8 +279,7 @@ class Checkpoint:
             'optimizer/target/decoder/decoder/q_wi_fused/kernel',
             transpose=True),
         kv=load_var(
-            'optimizer/target/decoder/decoder/kv_fused/kernel',
-            transpose=True),
+            'optimizer/target/decoder/decoder/kv_fused/kernel', transpose=True),
         o_wo=load_var(
             'optimizer/target/decoder/decoder/o_wo_fused/kernel',
             transpose=True),
@@ -343,8 +339,7 @@ class QuantizedCheckpoint:
                              jnp.int8),
         q_wi_scale=jax.ShapedArray((h.layers, 1, h.heads, h.q_wi_per_head),
                                    jnp.bfloat16),
-        kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv),
-                           jnp.int8),
+        kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8),
         kv_scale=jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.bfloat16),
         o_wo=jax.ShapedArray((h.layers, h.heads, h.o_wo_per_head, h.embed),
                              jnp.int8),
@@ -356,8 +351,7 @@ class QuantizedCheckpoint:
   @classmethod
   def load_spec(cls, spec):
     """Loads checkpoint metadata, returning tensorstore Spec for tensors."""
-    checkpoint_dict = load_checkpoint(
-        os.path.join(spec.dir, 'checkpoint'))
+    checkpoint_dict = load_checkpoint(os.path.join(spec.dir, 'checkpoint'))
 
     load_var = partial(var, spec, checkpoint_dict)
 

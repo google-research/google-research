@@ -32,11 +32,10 @@ from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import special2
 from scaling_transformer_inference_efficiency.global_to_per_device import shard_map
 
-
 # jax.config.update('experimental_xmap_spmd_lowering',
-#                   True)  # only do if planning to call in pjit
+#                   True)
 # jax.config.update('experimental_xmap_spmd_lowering_manual',
-#                   True)  # only do if planning to call in pjit
+#                   True)
 
 
 def create_inputs(a_sharding, b_sharding):
