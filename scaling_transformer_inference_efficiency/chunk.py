@@ -350,10 +350,11 @@ class ChunkResult:
 
   @classmethod
   def zeros(cls, hparams, batch,
-            seqlen):
+            seqlen, kv_batch = None):
     """Creates an all-zeros ChunkResult of the specified shape."""
+    cache_batch = kv_batch if kv_batch is not None else batch
     return ChunkResult(
-        kv_cache=attention.KVCache.zeros(hparams, batch, seqlen),
+        kv_cache=attention.KVCache.zeros(hparams, cache_batch, seqlen),
         per_token_scores=jnp.zeros((batch, seqlen), jnp.float32),
         top_token_ids=jnp.zeros((batch, seqlen, _TOP_K), jnp.int32),
         top_token_probs=jnp.zeros((batch, seqlen, _TOP_K), jnp.float32),
@@ -422,7 +423,7 @@ class FullChunkResult:
     return FullChunkResult(
         logits=P('logit_batch', 'time', 'vocab'),
         kv_cache=attention.KVCache(
-            lengths=P(None),
+            lengths=P('attn_batch'),
             k=P('length', 'layers', 'attn_batch', 'qkv'),
             v=P('length', 'layers', 'attn_batch', 'qkv')))
 

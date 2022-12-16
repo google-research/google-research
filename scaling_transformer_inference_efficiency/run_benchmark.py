@@ -20,7 +20,7 @@ import pandas as pd
 
 from scaling_transformer_inference_efficiency import benchmark
 from scaling_transformer_inference_efficiency import checkpoint
-from scaling_transformer_inference_efficiency import layers_parallel
+from scaling_transformer_inference_efficiency import partitioning
 
 Layout = benchmark.Layout
 
@@ -72,7 +72,7 @@ def run():
           cached_seqlen=0,
           gen_seqlen=input_length,
           quantized=False,
-          attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+          attn_all_to_all=partitioning.AttnAllToAll.NONE,
           multihead=False,
           layout=Layout.WEIGHT_STATIONARY_2D,
           latency_collectives=False,  # TODO(sholto): Confirm best config
@@ -85,7 +85,7 @@ def run():
           cached_seqlen=input_length,
           gen_seqlen=1,  # multiplied by output length in post processing
           quantized=False,
-          attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+          attn_all_to_all=partitioning.AttnAllToAll.NONE,
           layout=Layout.WEIGHT_STATIONARY_2D,
           multihead=False,
           latency_collectives=True,
@@ -98,7 +98,7 @@ def run():
           cached_seqlen=0,
           gen_seqlen=input_length,
           quantized=False,
-          attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+          attn_all_to_all=partitioning.AttnAllToAll.NONE,
           multihead=True,
           layout=Layout.WEIGHT_STATIONARY_2D,
           latency_collectives=False,
@@ -111,7 +111,7 @@ def run():
           cached_seqlen=input_length,
           gen_seqlen=1,  # multiplied by output length in post processing
           quantized=False,
-          attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+          attn_all_to_all=partitioning.AttnAllToAll.NONE,
           multihead=True,
           layout=Layout.WEIGHT_STATIONARY_2D,
           latency_collectives=True,

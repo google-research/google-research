@@ -149,12 +149,16 @@ class JittedModel:
   """A model with JIT-compiled prefill and generate functions."""
 
   def __init__(self, hparams, eos_id,
-               infer_fn, weights_physical_axes):
+               infer_fn, weights_logical_axes,
+               rules):
     self._hparams = hparams
     self._eos_id = eos_id
     self._infer = infer_fn
-    self._weights_axes = weights_physical_axes
     self._mesh = partitioning.make_mesh()
+    self.rules = partitioning.PartitioningRules(rules)
+    with self.rules:
+      self._weights_axes = jax.tree_map(partitioning.logical_to_physical,
+                                        weights_logical_axes)
     # _prefill_p: maps num_prefixes -> jitted _prefill_impl function
     self._prefill_p = {}
     # _score_p: maps num_prefixes -> jitted _generate_impl function
@@ -196,7 +200,7 @@ class JittedModel:
     Returns:
       Scores for the batch.
     """
-    with self._mesh:
+    with self._mesh, self.rules:
       if prefix:
         prev_logits = prefix[-1].next_token_logits
       else:
@@ -319,7 +323,7 @@ class JittedModel:
     Returns:
       The generated text, together with its processed results.
     """
-    with self._mesh:
+    with self._mesh, self.rules:
       if prefix:
         prev_chunk_next_token_logits = prefix[-1].next_token_logits
       else:
@@ -348,12 +352,16 @@ class XmapModel:
   """A model with xmapped JIT-compiled prefill and generate functions."""
 
   def __init__(self, hparams, eos_id,
-               infer_fn, weights_physical_axes):
+               infer_fn, weights_logical_axes,
+               rules):
     self._hparams = hparams
     self._eos_id = eos_id
     self._infer = infer_fn
-    self._weights_axes = weights_physical_axes
     self._mesh = partitioning.make_mesh()
+    self.rules = partitioning.PartitioningRules(rules)
+    with self.rules:
+      self._weights_axes = jax.tree_map(partitioning.logical_to_physical,
+                                        weights_logical_axes)
     # _prefill_p: maps num_prefixes -> jitted _prefill_impl function
     self._prefill_p = {}
     # _score_p: maps num_prefixes -> jitted _generate_impl function
@@ -436,36 +444,37 @@ class XmapModel:
     Returns:
       Scores for the batch.
     """
-    chunk_layout = jax.tree_map(global_to_per_device.logical_to_layout,
-                                Chunk.logical_axes())
-    params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
-                                  Weights.logical_axes())
-    result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
-                                 FullChunkResult.logical_axes())
-    cache_layout = jax.tree_map(
-        global_to_per_device.logical_to_layout,
-        [attention.KVCache.logical_axes() for _ in prefix])
+    with self.rules:
+      chunk_layout = jax.tree_map(global_to_per_device.logical_to_layout,
+                                  Chunk.logical_axes())
+      params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
+                                    Weights.logical_axes())
+      result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
+                                   FullChunkResult.logical_axes())
+      cache_layout = jax.tree_map(
+          global_to_per_device.logical_to_layout,
+          [attention.KVCache.logical_axes() for _ in prefix])
 
-    with self._mesh:
-      # TODO(sholto): We may need to pull this out with real size weights
-      # Or just get shardmap / xmap in pjit actually working.
-      params_xmap, cache_xmap, prev_logits, _ = self.prepare_inputs(
-          params, prefix)
+      with self._mesh:
+        # TODO(sholto): We may need to pull this out with real size weights
+        # Or just get shardmap / xmap in pjit actually working.
+        params_xmap, cache_xmap, prev_logits, _ = self.prepare_inputs(
+            params, prefix)
 
-      chunk_xmap = self.prepare_chunk(chunk)
-      # 2D: logits: [batch.x, time, vocab.YZ]
-      #     kv_cache: [.., ..., prefixbatch, ...]
-      full_chunk_result = xmap(
-          self._infer,
-          in_axes=(params_layouts, cache_layout, chunk_layout),
-          out_axes=result_layout,
-          axis_resources={
-              'x': 'x',
-              'y': 'y',
-              'z': 'z'
-          })(params_xmap, cache_xmap, chunk_xmap)
+        chunk_xmap = self.prepare_chunk(chunk)
+        # 2D: logits: [batch.x, time, vocab.YZ]
+        #     kv_cache: [.., ..., prefixbatch, ...]
+        full_chunk_result = xmap(
+            self._infer,
+            in_axes=(params_layouts, cache_layout, chunk_layout),
+            out_axes=result_layout,
+            axis_resources={
+                'x': 'x',
+                'y': 'y',
+                'z': 'z'
+            })(params_xmap, cache_xmap, chunk_xmap)
 
-      return self.to_chunk_result(full_chunk_result, prev_logits, chunk)
+        return self.to_chunk_result(full_chunk_result, prev_logits, chunk)
 
   # pylint: disable = protected-access
   @staticmethod
@@ -535,7 +544,10 @@ class XmapModel:
       return chunk, chunk_result
 
     chunk = Chunk.zeros(global_batch, steps)
-    chunk_result = ChunkResult.zeros(model._hparams, global_batch, steps)
+    kv_batch = global_batch // partitioning.get_sharding_divisor(
+        P('attn_batch'))
+    chunk_result = ChunkResult.zeros(model._hparams, global_batch, steps,
+                                     kv_batch)
     chunk_result = chunk_result.replace(next_token_logits=last_logits)
 
     chunk, chunk_result = lax.fori_loop(0, steps, loop_body,
@@ -564,35 +576,38 @@ class XmapModel:
       sample_ids):
     """Generative inference for a batch. See pjit version for details."""
 
-    params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
-                                  Weights.logical_axes())
-    result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
-                                 ChunkResult.logical_axes())
-    cache_layout = jax.tree_map(
-        global_to_per_device.logical_to_layout,
-        [attention.KVCache.logical_axes() for _ in prefix])
+    with self.rules:
+      params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
+                                    Weights.logical_axes())
+      result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
+                                   ChunkResult.logical_axes())
+      cache_layout = jax.tree_map(
+          global_to_per_device.logical_to_layout,
+          [attention.KVCache.logical_axes() for _ in prefix])
 
-    prev_chunk_next_token_layout = jax.tree_map(
-        global_to_per_device.logical_to_layout,
-        ChunkResult.logical_axes().next_token_logits)
+      prev_chunk_next_token_layout = jax.tree_map(
+          global_to_per_device.logical_to_layout,
+          ChunkResult.logical_axes().next_token_logits)
 
-    # 2D: [batch.X,]
-    sample_ids_layout = global_to_per_device.logical_to_layout(P('logit_batch'))
+      # 2D: [batch.X,]
+      sample_ids_layout = global_to_per_device.logical_to_layout(
+          P('logit_batch'))
 
-    with self._mesh:
-      # TODO(sholto): We may need to pull this out with real size weights
-      # Or just get shardmap / xmap in pjit actually working.
-      (params_xmap, cache_xmap, prev_chunk_next_token_logits,
-       sample_ids_xmap) = self.prepare_inputs(params, prefix, sample_ids)
+      with self._mesh:
+        # TODO(sholto): We may need to pull this out with real size weights
+        # Or just get shardmap / xmap in pjit actually working.
+        (params_xmap, cache_xmap, prev_chunk_next_token_logits,
+         sample_ids_xmap) = self.prepare_inputs(params, prefix, sample_ids)
 
-      return xmap(
-          generate_fn,
-          in_axes=(params_layouts, cache_layout, prev_chunk_next_token_layout,
-                   sample_ids_layout),
-          out_axes=({}, result_layout),  # fully replicate sample indices
-          axis_resources={
-              'x': 'x',
-              'y': 'y',
-              'z': 'z'
-          })(params_xmap, cache_xmap, prev_chunk_next_token_logits,
-             sample_ids_xmap)
+        print('kv_cacheextern', jax.tree_map(jnp.shape, cache_xmap))
+        return xmap(
+            generate_fn,
+            in_axes=(params_layouts, cache_layout, prev_chunk_next_token_layout,
+                     sample_ids_layout),
+            out_axes=({}, result_layout),  # fully replicate sample indices
+            axis_resources={
+                'x': 'x',
+                'y': 'y',
+                'z': 'z'
+            })(params_xmap, cache_xmap, prev_chunk_next_token_logits,
+               sample_ids_xmap)

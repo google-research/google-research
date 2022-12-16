@@ -70,7 +70,7 @@ class Layout(Enum):
 # pylint:disable = unused-argument
 def run_generate_sweep():
   """Sweeps generate hparams."""
-  AttnAllToAll = layers_parallel.AttnAllToAll
+  AttnAllToAll = partitioning.AttnAllToAll
 
   multihead = False
   quantized = False
@@ -112,7 +112,7 @@ def run_generate_sweep():
 
 def run_smaller_generate_sweep(model):
   """Runs generate over small sizes."""
-  AttnAllToAll = layers_parallel.AttnAllToAll
+  AttnAllToAll = partitioning.AttnAllToAll
 
   multihead = False
   quantized = False
@@ -145,7 +145,7 @@ def run_smaller_generate_sweep(model):
 
 def run_attention_ablation():
   """Runs all attention variants for both multihead and not."""
-  AttnAllToAll = layers_parallel.AttnAllToAll
+  AttnAllToAll = partitioning.AttnAllToAll
 
   quantized = False
   latency_collectives = True
@@ -192,7 +192,7 @@ def run_attention_ablation():
 
 def run_layout_ablation():
   """Runs ablation over 1D and 2D layouts for different chip counts."""
-  AttnAllToAll = layers_parallel.AttnAllToAll
+  AttnAllToAll = partitioning.AttnAllToAll
 
   multihead = False
   quantized = False
@@ -1069,7 +1069,7 @@ def PaLM_benchmark():
               cached_seqlen=0,
               gen_seqlen=input_length,
               quantized=False,
-              attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+              attn_all_to_all=partitioning.AttnAllToAll.NONE,
               multihead=False,
               layout=Layout.WEIGHT_STATIONARY_2D,
               latency_collectives=latency_collectives,
@@ -1082,7 +1082,7 @@ def PaLM_benchmark():
               cached_seqlen=input_length,
               gen_seqlen=1,  # multiplied by output length in post processing
               quantized=False,
-              attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+              attn_all_to_all=partitioning.AttnAllToAll.NONE,
               layout=Layout.WEIGHT_STATIONARY_2D,
               multihead=False,
               latency_collectives=latency_collectives,
@@ -1105,7 +1105,7 @@ def MT_NLG_benchmark():
             cached_seqlen=0,
             gen_seqlen=input_length,
             quantized=quantized,
-            attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+            attn_all_to_all=partitioning.AttnAllToAll.NONE,
             multihead=True,
             layout=Layout.WEIGHT_STATIONARY_2D,
             latency_collectives=False,
@@ -1118,7 +1118,7 @@ def MT_NLG_benchmark():
             cached_seqlen=input_length,
             gen_seqlen=1,  # multiplied by output length in post processing
             quantized=quantized,
-            attn_all_to_all=layers_parallel.AttnAllToAll.NONE,
+            attn_all_to_all=partitioning.AttnAllToAll.NONE,
             multihead=True,
             layout=Layout.WEIGHT_STATIONARY_2D,
             latency_collectives=True,
@@ -1129,7 +1129,7 @@ def MT_NLG_benchmark():
 
 def run_prefill_weight_stationary_vs_gathered_sweep():
   """Tries both weight stationary and weight gathered for prefill."""
-  AttnAllToAll = layers_parallel.AttnAllToAll
+  AttnAllToAll = partitioning.AttnAllToAll
 
   multihead = False
   quantized = False
@@ -1151,7 +1151,7 @@ def run_prefill_weight_stationary_vs_gathered_sweep():
           AttnAllToAll.AXIS_Z, AttnAllToAll.AXES_YZ, AttnAllToAll.AXES_YZX
       ]:
 
-        if attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX and batch >= 512:
+        if attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX and batch >= 512:
           print('AlltoAll XYZ - batch> 512, oom')
         else:
           cached_seqlen = 0
@@ -1199,7 +1199,7 @@ def run_parallel_vs_serial():
       cached_seqlen=0,
       gen_seqlen=1,
       quantized=False,
-      attn_all_to_all=layers_parallel.AttnAllToAll.AXES_YZX,
+      attn_all_to_all=partitioning.AttnAllToAll.AXES_YZX,
       multihead=False,
       layout=Layout.WEIGHT_STATIONARY_2D,
       latency_collectives=True)
@@ -1210,7 +1210,7 @@ def run_parallel_vs_serial():
       cached_seqlen=0,
       gen_seqlen=1,
       quantized=False,
-      attn_all_to_all=layers_parallel.AttnAllToAll.AXES_YZX,
+      attn_all_to_all=partitioning.AttnAllToAll.AXES_YZX,
       multihead=False,
       layout=Layout.WEIGHT_STATIONARY_2D,
       latency_collectives=True)

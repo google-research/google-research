@@ -27,6 +27,7 @@ from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import collectives
 from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import layers_parallel
+from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.weights import Layer
@@ -143,11 +144,11 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
     # kv_unreduced = jnp.einsum('bte,ezd->btzd', xnorm,
     #                           my_layer(params.kv))
 
-    if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+    if attn_all_to_all == partitioning.AttnAllToAll.NONE:
       # [batch, maxlen, 1, 2*qkv]{x_unreduced}
       # --ARx-->   [batch, maxlen, 1, 2*qkv]
       kv = lax.psum(kv_einsum(xnorm), 'x')
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
       assert batch_z >= 1, ('Batch size too small for AXIS_Z and this chip '
                             'count')
       # xnorm: [batch, maxlen, dmodel.X] -> [batch.Z, maxlen, dmodel.X]
@@ -157,7 +158,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
       # --matmul--> [batch.Z, maxlen, 1, 2*qkv]{x unreduced}
       # --ARx-->    [batch.Z, maxlen, 1, 2*qkv]
       kv = lax.psum(kv_einsum(xnorm), 'x')
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
       assert batch_yz >= 1, ('Batch size too small for AXES_YZ and this chip '
                              'count')
       # xnorm: [batch, maxlen, dmodel.X] -> [batch.YZ, maxlen, dmodel.X]
@@ -167,7 +168,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
       # --matmul--> [batch.YZ, maxlen, 1, 2*qkv]{x unreduced}
       # --ARx-->    [batch.YZ, maxlen, 1, 2*qkv]
       kv = lax.psum(kv_einsum(xnorm), 'x')
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
       assert batch_xyz >= 1, ('Batch size too small for AXES_XYZ and this chip '
                               'count')
       # xnorm: [batch, maxlen, dmodel.X] -> [batch.YZ, maxlen, dmodel.X]
@@ -196,15 +197,15 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
     #    { AXES_YZ:                [batch.YZ, maxlen, heads.X, qkv]
     #    { AXES_YZX:               [batch.YZX, maxlen, heads,  qkv]
     q = q_wi[:, :, :, :hparams.qkv]
-    if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+    if attn_all_to_all == partitioning.AttnAllToAll.NONE:
       pass
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
       q = lax.all_to_all(
           q, axis_name='z', split_axis=0, concat_axis=2, tiled=True)
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
       q = lax.all_to_all(
           q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
       q = lax.all_to_all(
           q, axis_name='x', split_axis=0, concat_axis=2, tiled=True)
       q = lax.all_to_all(
@@ -219,15 +220,15 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
     #    { AXES_YZ:                [batch.YZ, maxlen, heads.X, qkv]
     #    { AXES_YZX:               [batch.YZX, maxlen, heads,  qkv]
     # -> [batch.B, maxlen, heads.YZX, qkv]
-    if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+    if attn_all_to_all == partitioning.AttnAllToAll.NONE:
       pass
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
       y_att = lax.all_to_all(
           y_att, axis_name='z', split_axis=2, concat_axis=0, tiled=True)
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
       y_att = lax.all_to_all(
           y_att, axis_name=('y', 'z'), split_axis=2, concat_axis=0, tiled=True)
-    elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+    elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
       y_att = lax.all_to_all(
           y_att, axis_name=('y', 'z'), split_axis=2, concat_axis=0, tiled=True)
       y_att = lax.all_to_all(

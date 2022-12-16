@@ -15,8 +15,11 @@
 
 """Parallel partitioning functions."""
 
+import contextlib
+from enum import Enum  # pylint: disable = g-importing-member
 import functools
-from typing import Union, Sequence, Optional
+import threading
+from typing import Any, Optional, Sequence, Union
 
 import jax
 from jax import pxla
@@ -32,20 +35,35 @@ import numpy as np
 import tensorstore
 
 
-jax.config.update('jax_parallel_functions_output_gda', True)
+
+class AttnAllToAll(Enum):
+  """How much of an alltoall to use for attention."""
+  NONE = 0  # [batch.B, heads.YZX]
+  AXIS_Z = 1  # [batch.ZB, heads.YX]
+  AXES_YZ = 2  # [batch.YZB, heads.X]
+  AXES_YZX = 3  # [batch.YZXB, heads]
 
 
-def logical_to_physical(logical_axes):
-  """Converts logical to physical axes for a layer using rule priority."""
-  # Priority order of logical to physical axes mapping
-  rules_twod = [
+def attn_sharding_to_axes(attn_batch_sharding):
+  if attn_batch_sharding == AttnAllToAll.NONE:
+    return None
+  elif attn_batch_sharding == AttnAllToAll.AXIS_Z:
+    return 'z'
+  elif attn_batch_sharding == AttnAllToAll.AXES_YZ:
+    return ('y', 'z')
+  elif attn_batch_sharding == AttnAllToAll.AXES_YZX:
+    return ('y', 'z', 'x')
+
+
+def make_rules_two_d(attn_batch_sharding=AttnAllToAll.NONE):
+
+  return [
       ('prefix_time', None),
       ('prefix_layers', None),
-      ('prefix_batch', None),
       ('prefix_qkv', None),
       ('batch', None),
       ('residual_batch', ('z',)),
-      ('logit_batch', 'x'),   # for vocab
+      ('logit_batch', 'x'),  # for vocab
       ('residual_embed', ('x', 'y')),
       ('post_norm_batch', None),
       ('post_norm_embed', 'x'),
@@ -54,12 +72,52 @@ def logical_to_physical(logical_axes):
       ('params_heads', ('y', 'z')),
       ('params_embed', 'x'),
       ('vocab', ('y', 'z')),
-      ('attn_batch', None),  # This needs to be updated depending on size
+      ('attn_batch', attn_sharding_to_axes(attn_batch_sharding)),
   ]
 
-  rules = rules_twod  # TODO(sholto) factor out a config.py
+
+class _ThreadResourcesLocalState(threading.local):
+
+  def __init__(self):
+    self.stack = [[]]  # empty rules
+
+  @property
+  def rules(self):
+    return self.stack[-1]
+
+
+thread_resources = _ThreadResourcesLocalState()
+
+
+class PartitioningRules(contextlib.ContextDecorator):
+  """Creates a new set of rules in a context manager.
+
+  Usage:
+  rules = partitioning.PartitioningRules(
+        partitioning.make_rules_two_d(attn_sharding))
+  with rules:
+    x = logical_to_physical(y)  # no need thread rules everywhere
+
+  """
+
+  def __init__(self, rules):
+    self.rules = rules
+
+  def __enter__(self):
+    thread_resources.stack.append(self.rules)
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    thread_resources.stack.pop()
+    return False
+
+
+def logical_to_physical(logical_axes):
+  """Converts logical to physical axes for a layer using rule priority."""
+  # Priority order of logical to physical axes mapping
+
   result = [None] * len(logical_axes)
-  for logical_axis, physical_axis in rules:
+  for logical_axis, physical_axis in thread_resources.rules:
     if logical_axis in logical_axes:
       pos = logical_axes.index(logical_axis)
       # Only map that logical axis against the physical if it hasn't already
@@ -195,3 +253,4 @@ def get_sharding_divisor(logical):
     sharding_axis_size = np.prod([
         jax.lax.psum(1, a) for a in sharding_axis])
   return sharding_axis_size
+

@@ -83,8 +83,9 @@ def create_test_weights(dtype):
   assert h.heads % (Y * Z * X) == 0
 
   x_pjit, params_pjit = materialise_host_tensors(key_0, batch, seqlen, h, dtype)
-  x_sharding, params_sharding = P('residual_batch', 'time',
-                                  'residual_embed'), weights.Weights.logical_axes()
+  x_sharding, params_sharding = P(
+      'residual_batch', 'time',
+      'residual_embed'), weights.Weights.logical_axes()
   return mesh, x_pjit, x_sharding, params_pjit, params_sharding
 
 
@@ -124,107 +125,115 @@ class GlobalToPerDeviceTest(absltest.TestCase):
     assert False not in equality_checks
 
   def test_addition_equivalence(self):
-    mesh, x_pjit, x_sharding, params_pjit, params_sharding = create_test_weights(
-        dtype=jnp.float32)
-    x_xmap, x_layout, _, _ = fold_out_to_per_device(mesh, x_pjit, x_sharding,
-                                                    params_pjit,
-                                                    params_sharding)
 
-    @functools.partial(pjit)
-    def add_one_pjit(x):
-      x = partitioning._with_sharding_constraint(x, x_sharding)
-      return x + 1
+    rules = partitioning.PartitioningRules(
+        partitioning.make_rules_two_d(partitioning.AttnAllToAll.NONE))
+    with rules:
+      mesh, x_pjit, x_sharding, params_pjit, params_sharding = create_test_weights(
+          dtype=jnp.float32)
+      x_xmap, x_layout, _, _ = fold_out_to_per_device(mesh, x_pjit, x_sharding,
+                                                      params_pjit,
+                                                      params_sharding)
 
-    @functools.partial(
-        xmap,
-        in_axes=x_layout,
-        out_axes=x_layout,
-        axis_resources={
-            'x': 'x',
-            'y': 'y',
-            'z': 'z'
-        })
-    def add_one_xmap(x):
-      return x + 1
+      @functools.partial(pjit)
+      def add_one_pjit(x):
+        x = partitioning._with_sharding_constraint(x, x_sharding)
+        return x + 1
 
-    with mesh:
-      y1 = add_one_pjit(x_pjit)
+      @functools.partial(
+          xmap,
+          in_axes=x_layout,
+          out_axes=x_layout,
+          axis_resources={
+              'x': 'x',
+              'y': 'y',
+              'z': 'z'
+          })
+      def add_one_xmap(x):
+        return x + 1
 
-    with mesh:
-      y2 = add_one_xmap(x_xmap)
-    y2 = global_to_per_device.fold_in(y2, x_sharding)
+      with mesh:
+        y1 = add_one_pjit(x_pjit)
 
-    assert (y1 == y2).all()
+      with mesh:
+        y2 = add_one_xmap(x_xmap)
+      y2 = global_to_per_device.fold_in(y2, x_sharding)
+
+      assert (y1 == y2).all()
 
   def test_matmul_equivalence(self):
-    mesh, x_pjit, x_sharding, params_pjit, params_sharding = create_test_weights(
-        dtype=jnp.float32)
-    x_xmap, x_layout, params_xmap, params_layouts = fold_out_to_per_device(
-        mesh, x_pjit, x_sharding, params_pjit, params_sharding)
+    rules = partitioning.PartitioningRules(
+        partitioning.make_rules_two_d(partitioning.AttnAllToAll.NONE))
+    with rules:
+      mesh, x_pjit, x_sharding, params_pjit, params_sharding = create_test_weights(
+          dtype=jnp.float32)
+      x_xmap, x_layout, params_xmap, params_layouts = fold_out_to_per_device(
+          mesh, x_pjit, x_sharding, params_pjit, params_sharding)
 
-    @functools.partial(pjit)
-    def matmul_pjit(x, params):
-      # x: ['batch.Z', 'time', 'embed.XY']
-      x = partitioning._with_sharding_constraint(x, x_sharding)
-      # q_wi[0]: ['heads.YZ', 'embed.X', 'qkv']
-      # ['batch.Z', 'time', 'embed.XY'] @ ['heads.YZ', 'embed.X', 'qkv']
-      # all_gather LHS on YZ
-      # ['batch', 'time', 'embed.X'] @ ['heads.YZ', 'embed.X', 'qkv']
-      #  ----> ['batch', 'time', 'heads.YZ', 'qkv'] {unreduced.X}
-      # reduce_scatter on X
-      y = jnp.einsum('bte,hed->bthd', x, params.layer.q_wi[0])
-      # -----> ['batch', 'time', 'heads.XYZ', 'qkv']
-      y = partitioning._with_sharding_constraint(
-          y, P('batch', 'time'
-               'heads', 'qkv'))
-      return x, y
+      @functools.partial(pjit)
+      def matmul_pjit(x, params):
+        # x: ['batch.Z', 'time', 'embed.XY']
+        x = partitioning._with_sharding_constraint(x, x_sharding)
+        # q_wi[0]: ['heads.YZ', 'embed.X', 'qkv']
+        # ['batch.Z', 'time', 'embed.XY'] @ ['heads.YZ', 'embed.X', 'qkv']
+        # all_gather LHS on YZ
+        # ['batch', 'time', 'embed.X'] @ ['heads.YZ', 'embed.X', 'qkv']
+        #  ----> ['batch', 'time', 'heads.YZ', 'qkv'] {unreduced.X}
+        # reduce_scatter on X
+        y = jnp.einsum('bte,hed->bthd', x, params.layer.q_wi[0])
+        # -----> ['batch', 'time', 'heads.XYZ', 'qkv']
+        y = partitioning._with_sharding_constraint(
+            y, P('batch', 'time'
+                 'heads', 'qkv'))
+        return x, y
 
-    @functools.partial(
-        xmap,
-        in_axes=(x_layout, params_layouts),
-        out_axes=(global_to_per_device.logical_to_layout(
-            P('batch', 'time', 'post_norm_embed')),
-                  global_to_per_device.logical_to_layout(
-                      P('batch', 'time', 'heads', 'qkv'))),
-        axis_resources={
-            'x': 'x',
-            'y': 'y',
-            'z': 'z'
-        })
-    def matmul_xmap(x, params):
-      # x: ['batch.Z', 'time', 'embed.XY']
-      # ['heads.YZ', 'embed.X', 'qkv']
-      q_wi_1 = params.layer.q_wi
-      print(x.shape)
+      @functools.partial(
+          xmap,
+          in_axes=(x_layout, params_layouts),
+          out_axes=(global_to_per_device.logical_to_layout(
+              P('batch', 'time', 'post_norm_embed')),
+                    global_to_per_device.logical_to_layout(
+                        P('batch', 'time', 'heads', 'qkv'))),
+          axis_resources={
+              'x': 'x',
+              'y': 'y',
+              'z': 'z'
+          })
+      def matmul_xmap(x, params):
+        # x: ['batch.Z', 'time', 'embed.XY']
+        # ['heads.YZ', 'embed.X', 'qkv']
+        q_wi_1 = params.layer.q_wi
+        print(x.shape)
 
-      x = lax.all_gather(
-          x, 'y', axis=2, tiled=True)  # ['batch.Z', 'time', 'embed.X']
-      x = lax.all_gather(
-          x, 'z', axis=0, tiled=True)  # ['batch', 'time', 'embed.X']
+        x = lax.all_gather(
+            x, 'y', axis=2, tiled=True)  # ['batch.Z', 'time', 'embed.X']
+        x = lax.all_gather(
+            x, 'z', axis=0, tiled=True)  # ['batch', 'time', 'embed.X']
 
-      print(x.shape, q_wi_1.shape)
-      # ['batch', 'time', 'embed.X'] @ ['heads.YZ', 'embed.X', 'qkv']
-      #  ----> ['batch', 'time', 'heads.YZ', 'qkv'] {unreduced.X}
+        print(x.shape, q_wi_1.shape)
+        # ['batch', 'time', 'embed.X'] @ ['heads.YZ', 'embed.X', 'qkv']
+        #  ----> ['batch', 'time', 'heads.YZ', 'qkv'] {unreduced.X}
 
-      y = jnp.einsum('bte,hed->bthd', x, q_wi_1[0])
-      # print(y.shape)
-      # -----> ['batch', 'time', 'heads.YZX', 'qkv']
-      y = lax.psum_scatter(y, 'x', scatter_dimension=2, tiled=True)
+        y = jnp.einsum('bte,hed->bthd', x, q_wi_1[0])
+        # print(y.shape)
+        # -----> ['batch', 'time', 'heads.YZX', 'qkv']
+        y = lax.psum_scatter(y, 'x', scatter_dimension=2, tiled=True)
 
-      return x, y
+        return x, y
 
-    with mesh:
-      x1, y1 = matmul_pjit(x_pjit, params_pjit)
+      with mesh:
+        x1, y1 = matmul_pjit(x_pjit, params_pjit)
 
-    with mesh:
-      x2, y2 = matmul_xmap(x_xmap, params_xmap)
+      with mesh:
+        x2, y2 = matmul_xmap(x_xmap, params_xmap)
 
-    x2_folded = global_to_per_device.fold_in(x2, P('batch', 'time', 'post_norm_embed'))
-    y2_folded = global_to_per_device.fold_in(
-        y2, P('batch', 'time', 'heads', 'qkv'))
+      x2_folded = global_to_per_device.fold_in(
+          x2, P('batch', 'time', 'post_norm_embed'))
+      y2_folded = global_to_per_device.fold_in(
+          y2, P('batch', 'time', 'heads', 'qkv'))
 
-    np.testing.assert_allclose(x1, x2_folded, rtol=1e-04, atol=1e-04)
-    np.testing.assert_allclose(y1, y2_folded, rtol=1e-04, atol=1e-04)
+      np.testing.assert_allclose(x1, x2_folded, rtol=1e-04, atol=1e-04)
+      np.testing.assert_allclose(y1, y2_folded, rtol=1e-04, atol=1e-04)
 
 
 if __name__ == '__main__':

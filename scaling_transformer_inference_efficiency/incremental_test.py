@@ -24,6 +24,7 @@ import numpy as np
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import incremental
+from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
 from scaling_transformer_inference_efficiency.checkpoint import HParams
 from scaling_transformer_inference_efficiency.chunk import Chunk
@@ -69,8 +70,13 @@ def make_toy_weights():
 
 
 def make_jitted_model():
+  rules = partitioning.make_rules_two_d(partitioning.AttnAllToAll.NONE)
   return incremental.JittedModel(
-      _TOY_HPARAMS, eos_id=1, infer_fn=toy_infer_fn, weights_physical_axes=None)
+      _TOY_HPARAMS,
+      eos_id=1,
+      infer_fn=toy_infer_fn,
+      weights_logical_axes=None,
+      rules=rules)
 
 
 _TOY_CHUNK = Chunk(
@@ -110,6 +116,7 @@ class IncrementalTest(absltest.TestCase):
                                chunk_result.per_token_scores)
 
   def test_prefill_incremental(self):
+
     jitted_model = make_jitted_model()
     weights = make_toy_weights()
     for split in [1, 3]:
@@ -122,6 +129,7 @@ class IncrementalTest(absltest.TestCase):
                                  chunk_b_result.per_token_scores)
 
   def test_generate(self):
+
     jitted_model = make_jitted_model()
     weights = make_toy_weights()
     chunk_result = jitted_model.prefill(weights, [], _TOY_CHUNK)

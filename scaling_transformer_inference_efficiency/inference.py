@@ -32,6 +32,7 @@ import jax.scipy
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import layers_parallel
+from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import FullChunkResult
@@ -141,6 +142,7 @@ def infer_xmap(
     kv_caches,
     chunk,
     attn_all_to_all,
+    latency_collectives,
     shard_seqlen_vs_batch,
     intermediate_dtype = jnp.bfloat16):
   """Forward pass through xmap path, returning per-token logits."""
@@ -149,6 +151,15 @@ def infer_xmap(
   x_axis = lax.psum(1, 'x')
   y_axis = lax.psum(1, 'y')
   z_axis = lax.psum(1, 'z')
+
+  if attn_all_to_all == partitioning.AttnAllToAll.NONE:
+    attn_batch_sharding = 1
+  elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
+    attn_batch_sharding = z_axis
+  elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
+    attn_batch_sharding = y_axis * z_axis
+  elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
+    attn_batch_sharding = y_axis * z_axis * x_axis
 
   # Start indices are the sums of the lengths of the KV caches.
   start_indices = attention.prefix_lengths(kv_caches)
@@ -205,7 +216,7 @@ def infer_xmap(
         y_axis,
         z_axis,
         attn_all_to_all,
-        latency_collectives=False,
+        latency_collectives=latency_collectives,
         shard_seqlen_vs_batch=shard_seqlen_vs_batch,
         intermediate_dtype=intermediate_dtype)
     k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
@@ -215,15 +226,6 @@ def infer_xmap(
 
     return x, k, v
 
-  # TODO(sholto): build tests
-  if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
-    attn_batch_sharding = 1
-  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
-    attn_batch_sharding = z_axis
-  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
-    attn_batch_sharding = y_axis * z_axis
-  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
-    attn_batch_sharding = y_axis * z_axis * x_axis
   # Initialize output KV cache.
   k = jnp.zeros(
       (h.layers, max_length, div_up(batch, attn_batch_sharding), h.qkv),
@@ -238,6 +240,7 @@ def infer_xmap(
 
   # [batch, maxlen, embed.X]
   xnorm, _ = layers_parallel.allgather_layernorm(x, shard_seqlen_vs_batch)
+
   # x: bfloat16[batch, maxlen, dmodel.X] # [vocab.YZ, embed.X]
   with jax.named_scope('unembed'):
     logits_unreduced = jnp.einsum('bte,ve->btv', jnp.float32(xnorm),
@@ -257,18 +260,18 @@ def infer_xmap(
 
   # chunk.lengths: [batch] -> [batch.attn_batch_sharding]
   # TODO(sholto): Make this simpler
-  if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+  if attn_all_to_all == partitioning.AttnAllToAll.NONE:
     cache_lengths = chunk.lengths
-  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+  elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
     slice_size = batch // attn_batch_sharding
     z_index = lax.axis_index('z') * slice_size
     cache_lengths = lax.dynamic_slice_in_dim(chunk.lengths, z_index, slice_size)
-  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+  elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
     slice_size = batch // attn_batch_sharding
     yz_index = (lax.axis_index('y') * z_axis + lax.axis_index('z')) * slice_size
     cache_lengths = lax.dynamic_slice_in_dim(chunk.lengths, yz_index,
                                              slice_size)
-  elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+  elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
     slice_size = batch // attn_batch_sharding
     yzx_index = (lax.axis_index('y') *
                  (z_axis * x_axis) + lax.axis_index('z') * x_axis +

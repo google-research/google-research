@@ -29,7 +29,9 @@ from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import collectives
 from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import layers_parallel
+from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
+from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.weights import Layer
 
 HParams = checkpoint.HParams
@@ -182,7 +184,7 @@ def transformer_layer_weight_stationary_serial(
       # TODO(reinerp): Consider using xnorm instead of xnorm_z in NONE case?
       # I don't know yet if that's better.
 
-      # if attn_all_to_all.value >= layers_parallel.AttnAllToAll.AXES_YZ.value:
+      # if attn_all_to_all.value >= partitioning.AttnAllToAll.AXES_YZ.value:
       #   xnorm_sliced = lax.dynamic_slice_in_dim(
       #       xnorm_z, y_index * batch_yz, batch_yz, axis=0)
       # else:
@@ -208,7 +210,7 @@ def transformer_layer_weight_stationary_serial(
       # )
       # kv_unreduced = jnp.einsum('bte,ehd->bthd', xnorm_sliced,
       #                           my_layer(params.kv))
-      if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+      if attn_all_to_all == partitioning.AttnAllToAll.NONE:
         # [batch.Z, maxlen, 1, 2*qkv]{x_unreduced}
         # --ARx-->   [batch.Z, maxlen, 1, 2*qkv]
         # --slice--> [batch.ZB, maxlen, 1, 2*qkv]
@@ -217,20 +219,20 @@ def transformer_layer_weight_stationary_serial(
         kv = lax.dynamic_slice_in_dim(kv, b_index * batch_zb, batch_zb, axis=0)
         kv = lax.all_gather(kv, 'z', axis=0, tiled=True)
 
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
         # [batch.Z, maxlen, 1, 2*qkv]{x_unreduced}
         # --ARx-->   [batch.Z, maxlen, 1, 2*qkv]
         # --slice--> [batch.ZB, maxlen, 1, 2*qkv]
         kv = lax.psum(kv_unreduced, 'x')
         kv = lax.dynamic_slice_in_dim(kv, b_index * batch_zb, batch_zb, axis=0)
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
         # [batch.YZ, maxlen, 1, 2*qkv]{x_unreduced}
         # --ARx-->   [batch.YZ, maxlen, 1, 2*qkv]
         # --slice--> [batch.YZB, maxlen, 1, 2*qkv]
         kv = lax.psum(kv_unreduced, 'x')
         kv = lax.dynamic_slice_in_dim(
             kv, b_index * batch_yzb, batch_yzb, axis=0)
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
         # [batch.YZ, maxlen, 1, 2*qkv]{x_unreduced}
         # --RSx-->   [batch.YZXB, maxlen, 1, 2*qkv]
         assert batch_xyz >= 1, (
@@ -257,15 +259,15 @@ def transformer_layer_weight_stationary_serial(
       #    { AXIS_Z:                 [batch.ZB, maxlen, heads.YX, qkv]
       #    { AXES_YZ:                [batch.YZB, maxlen, heads.X, qkv]
       #    { AXES_YZX:               [batch.YZXB, maxlen, heads, qkv]
-      if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+      if attn_all_to_all == partitioning.AttnAllToAll.NONE:
         pass
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
         q = lax.all_to_all(
             q, axis_name='z', split_axis=0, concat_axis=2, tiled=True)
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
         q = lax.all_to_all(
             q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
         q = lax.all_to_all(
             q,
             axis_name='x',
@@ -290,19 +292,19 @@ def transformer_layer_weight_stationary_serial(
       #    { AXES_YZ:                [batch.YZB, maxlen, heads.X, qkv]
       #    { AXES_YZX:               [batch.YZXB, maxlen, heads, qkv]
       # -> [batch.B, maxlen, heads.YZX, qkv]
-      if attn_all_to_all == layers_parallel.AttnAllToAll.NONE:
+      if attn_all_to_all == partitioning.AttnAllToAll.NONE:
         pass
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXIS_Z:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
         y_att = lax.all_to_all(
             y_att, axis_name='z', split_axis=2, concat_axis=0, tiled=True)
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZ:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
         y_att = lax.all_to_all(
             y_att,
             axis_name=('y', 'z'),
             split_axis=2,
             concat_axis=0,
             tiled=True)
-      elif attn_all_to_all == layers_parallel.AttnAllToAll.AXES_YZX:
+      elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
         y_att = lax.all_to_all(
             y_att,
             axis_name=('y', 'z'),

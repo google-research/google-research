@@ -29,6 +29,7 @@ from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import incremental
 from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import layers_parallel
+from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
