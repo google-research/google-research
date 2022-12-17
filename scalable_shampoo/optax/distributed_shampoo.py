@@ -237,6 +237,8 @@ class LocalShardedParameterStats:
   sizes: Any = struct.field(pytree_node=False)  # Sizes of the statistics.
 
 
+
+
 def init_training_metrics(
     num_statistics, generate_training_metrics
 ):
@@ -975,7 +977,6 @@ class Preconditioner:
     """
     to_float = to_float if to_float is not None else (lambda x: x)
     from_float = from_float if from_float is not None else (lambda x: x)
-    update = functools.partial(gram_weighted_update, precision=precision)
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
     new_stats = []
@@ -983,7 +984,11 @@ class Preconditioner:
     for g in partitioned_grads:
       should_preconditioned_dims = self.should_precondition_dims()
       num_preconditioners = sum(should_preconditioned_dims)
+      # Note that should_precondition_dims is only ever some
+      # prefix of Trues followed by an optional False; hence below
+      # iterates over all True indices.
       for axis in range(num_preconditioners):
+        update = functools.partial(gram_weighted_update, precision=precision)
         new_stat = update(to_float(stats[index]), g, axis, w1, w2)
         new_stats.append(from_float(new_stat))
         index += 1
@@ -1080,18 +1085,26 @@ def _convert_to_parameter_stats(
     new_preconditioners.append(preconditioners[i][:size, :pd])
   if not convert_statistics:
     new_statistics = None
-  return ParameterStats(local_stat.diagonal_statistics, new_statistics,
-                        new_preconditioners, local_stat.diagonal_momentum,
-                        local_stat.momentum, local_stat.training_metrics)
+  return ParameterStats(
+      local_stat.diagonal_statistics,
+      new_statistics,
+      new_preconditioners,
+      local_stat.diagonal_momentum,
+      local_stat.momentum,
+      local_stat.training_metrics,
+  )
 
 
 def _convert_from_parameter_stats(parameter_stats, local_stats):
   """Creates sharded stats from paramter stats."""
-  return LocalShardedParameterStats(parameter_stats.diagonal_statistics,
-                                    parameter_stats.diagonal_momentum,
-                                    parameter_stats.momentum,
-                                    parameter_stats.training_metrics,
-                                    local_stats.index_start, local_stats.sizes)
+  return LocalShardedParameterStats(
+      parameter_stats.diagonal_statistics,
+      parameter_stats.diagonal_momentum,
+      parameter_stats.momentum,
+      parameter_stats.training_metrics,
+      local_stats.index_start,
+      local_stats.sizes,
+  )
 
 
 def _add_metrics_into_local_stats(local_stats, metrics, keep_old):
@@ -1277,7 +1290,6 @@ def distributed_shampoo(
   Returns:
     a GradientTransformation.
   """
-
   def _graft_type_has_diagonal_statistics():
     """Returns True if using diagonal firt order method for grafting."""
     return graft_type != GraftingType.SGD and graft_type != GraftingType.SQRT_N
@@ -1437,9 +1449,12 @@ def distributed_shampoo(
 
       local_stats_flat.append(
           LocalShardedParameterStats(
-              diagonal_statistics, diagonal_momentum, momentum,
+              diagonal_statistics,
+              diagonal_momentum,
+              momentum,
               init_training_metrics(len(sizes), generate_training_metrics),
-              index_start, sizes))
+              index_start,
+              sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     to_pad = -len(padded_statistics) % num_devices_for_pjit
@@ -1536,7 +1551,8 @@ def distributed_shampoo(
               QuantizedValue(m2_pspec, [], m2_scale_pspec, qdtype, False,
                              list(param.shape)),
               init_training_metrics_pspec(generate_training_metrics),
-              index_start, sizes))
+              index_start,
+              sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
@@ -1784,7 +1800,8 @@ def distributed_shampoo(
       return ParameterStats(
           _quantize_diagonal_statistics(diagonal_statistics),
           _maybe_quantize_statistics(statistics),
-          _maybe_quantize_preconditioners(preconditioners), diagonal_momentum,
+          _maybe_quantize_preconditioners(preconditioners),
+          diagonal_momentum,
           momentum,
           init_training_metrics(len(statistics), generate_training_metrics))
 
@@ -1802,6 +1819,7 @@ def distributed_shampoo(
     w1 = beta2
     w2 = jnp.where(beta2 == 1.0, beta2, 1.0 - beta2)
     if not _skip_preconditioning(param):
+
 
       def compute_updated_statistics():
         return preconditioner.updated_statistics_from_grad(
@@ -1822,9 +1840,14 @@ def distributed_shampoo(
                            init_state))
       else:
         new_statistics = compute_updated_statistics()
-    return ParameterStats(state.diagonal_statistics, new_statistics,
-                          state.preconditioners, state.diagonal_momentum,
-                          state.momentum, state.training_metrics)
+
+    return ParameterStats(
+        state.diagonal_statistics,
+        new_statistics,
+        state.preconditioners,
+        state.diagonal_momentum,
+        state.momentum,
+        state.training_metrics)
 
   mi_pth_root = functools.partial(
       matrix_inverse_pth_root,
@@ -2066,9 +2089,13 @@ def distributed_shampoo(
       # actively being used is stale can be derived from the new_metrics
       # being greater than the failure threshold.
       new_states.append(
-          ParameterStats(state.diagonal_statistics, state.statistics,
-                         new_preconditioners, state.diagonal_momentum,
-                         state.momentum, new_metrics))
+          ParameterStats(
+              state.diagonal_statistics,
+              state.statistics,
+              new_preconditioners,
+              state.diagonal_momentum,
+              state.momentum,
+              new_metrics))
 
     return new_states
 
@@ -2305,9 +2332,13 @@ def distributed_shampoo(
       # actively being used is stale can be derived from the new_metrics
       # being greater than the failure threshold.
       new_states.append(
-          ParameterStats(state.diagonal_statistics, state.statistics,
-                         new_preconditioners, state.diagonal_momentum,
-                         state.momentum, new_metrics))
+          ParameterStats(
+              state.diagonal_statistics,
+              state.statistics,
+              new_preconditioners,
+              state.diagonal_momentum,
+              state.momentum,
+              new_metrics))
 
     return new_states
 
@@ -2440,9 +2471,13 @@ def distributed_shampoo(
     for state, new_preconditioners, new_metrics in zip(
         states, preconditioners_for_states, metrics_for_states):
       new_states.append(
-          ParameterStats(state.diagonal_statistics, state.statistics,
-                         new_preconditioners, state.diagonal_momentum,
-                         state.momentum, new_metrics))
+          ParameterStats(
+              state.diagonal_statistics,
+              state.statistics,
+              new_preconditioners,
+              state.diagonal_momentum,
+              state.momentum,
+              new_metrics))
 
     return new_states
 
@@ -2612,9 +2647,11 @@ def distributed_shampoo(
 
     param_stats = ParameterStats(
         _quantize_diagonal_statistics(new_diagonal_statistics),
-        state.statistics, state.preconditioners,
+        state.statistics,
+        state.preconditioners,
         _quantize_momentum(new_diagonal_momentum),
-        _quantize_momentum(new_momentum), state.training_metrics)
+        _quantize_momentum(new_momentum),
+        state.training_metrics)
 
     return transformed_update, param_stats
 
