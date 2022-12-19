@@ -745,7 +745,7 @@ class DreamField:
     print('all_renders_by_width keys', list(all_renders_by_width.keys()))
 
     def aggregate(raw):
-      raw = onp.array(raw).astype(onp.float)
+      raw = onp.array(raw).astype(float)
       return {
           'mean': onp.mean(raw),
           'sem': stats.sem(raw),
