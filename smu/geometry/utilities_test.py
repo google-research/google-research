@@ -43,12 +43,12 @@ def zero2():
   """Return a Geometry with two points at the origin."""
   return text_format.Parse(
       """
-        atom_positions: {
+        atompos: {
           x:0.0,
           y:0.0,
           z:0.0
         },
-        atom_positions: {
+        atompos: {
           x:0.0,
           y:0.0,
           z:0.0
@@ -65,17 +65,17 @@ class TestUtilities(absltest.TestCase):
 
   def test_unit_x(self):
     coords = zero2()
-    coords.atom_positions[1].x = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
+    coords.atompos[1].x = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
   def test_unit_y(self):
     coords = zero2()
-    coords.atom_positions[1].y = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
+    coords.atompos[1].y = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
   def test_unit_z(self):
     coords = zero2()
-    coords.atom_positions[1].z = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
+    coords.atompos[1].z = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
   def test_canonical(self):

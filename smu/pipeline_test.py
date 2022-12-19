@@ -66,28 +66,28 @@ class FunctionalTest(absltest.TestCase):
   def test_merge_duplicate_information_same_topology(self):
     main_mol = dataset_pb2.Molecule(mol_id=123000)
     main_mol.ini_geo.add()
-    main_mol.ini_geo[0].atom_positions.add(x=1, y=2, z=3)
+    main_mol.ini_geo[0].atompos.add(x=1, y=2, z=3)
 
     dup_mol = dataset_pb2.Molecule(mol_id=123456, duplicate_of=123000)
     dup_mol.ini_geo.add()
-    dup_mol.ini_geo[0].atom_positions.add(x=4, y=5, z=6)
+    dup_mol.ini_geo[0].atompos.add(x=4, y=5, z=6)
 
     got = pipeline.merge_duplicate_information(123000, [dup_mol, main_mol])
     self.assertEqual(got.mol_id, 123000)
     self.assertEqual(got.duplicate_of, 0)
     self.assertEqual(got.duplicate_found, [123456])
     self.assertLen(got.ini_geo, 2)
-    self.assertEqual(got.ini_geo[0].atom_positions[0].x, 1)
-    self.assertEqual(got.ini_geo[1].atom_positions[0].x, 4)
+    self.assertEqual(got.ini_geo[0].atompos[0].x, 1)
+    self.assertEqual(got.ini_geo[1].atompos[0].x, 4)
 
   def test_merge_duplicate_information_diff_topology(self):
     main_mol = dataset_pb2.Molecule(mol_id=123000)
     main_mol.ini_geo.add()
-    main_mol.ini_geo[0].atom_positions.add(x=1, y=2, z=3)
+    main_mol.ini_geo[0].atompos.add(x=1, y=2, z=3)
 
     dup_mol = dataset_pb2.Molecule(mol_id=456000, duplicate_of=123000)
     dup_mol.ini_geo.add()
-    dup_mol.ini_geo[0].atom_positions.add(x=4, y=5, z=6)
+    dup_mol.ini_geo[0].atompos.add(x=4, y=5, z=6)
 
     got = pipeline.merge_duplicate_information(123000, [dup_mol, main_mol])
     self.assertEqual(got.mol_id, 123000)
@@ -95,7 +95,7 @@ class FunctionalTest(absltest.TestCase):
     self.assertEqual(got.duplicate_found, [456000])
     # TODO(pfr, ianwatson): implement correct copying of initial geometry
     self.assertLen(got.ini_geo, 1)
-    self.assertEqual(got.ini_geo[0].atom_positions[0].x, 1)
+    self.assertEqual(got.ini_geo[0].atompos[0].x, 1)
 
   def test_extract_bond_lengths(self):
     # This molecule does not obey valence rules, but it's fine for this test.
@@ -112,10 +112,10 @@ class FunctionalTest(absltest.TestCase):
         atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_DOUBLE)
     bt.bond.add(
         atom_a=0, atom_b=3, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    mol.opt_geo.atom_positions.add(x=0, y=0, z=0)
-    mol.opt_geo.atom_positions.add(x=1, y=0, z=0)
-    mol.opt_geo.atom_positions.add(x=0, y=2, z=0)
-    mol.opt_geo.atom_positions.add(x=111, y=222, z=333)
+    mol.opt_geo.atompos.add(x=0, y=0, z=0)
+    mol.opt_geo.atompos.add(x=1, y=0, z=0)
+    mol.opt_geo.atompos.add(x=0, y=2, z=0)
+    mol.opt_geo.atompos.add(x=111, y=222, z=333)
 
     got = list(
         pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
@@ -144,9 +144,9 @@ class FunctionalTest(absltest.TestCase):
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
     bt.bond.add(
         atom_a=0, atom_b=2, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    mol.opt_geo.atom_positions.add(x=0, y=0, z=0)
-    mol.opt_geo.atom_positions.add(x=1, y=0, z=0)
-    mol.opt_geo.atom_positions.add(x=100, y=2, z=0)
+    mol.opt_geo.atompos.add(x=0, y=0, z=0)
+    mol.opt_geo.atompos.add(x=1, y=0, z=0)
+    mol.opt_geo.atompos.add(x=100, y=2, z=0)
 
     got = list(
         pipeline.extract_bond_lengths(mol, dist_sig_digits=2, unbonded_max=2.0))
@@ -169,8 +169,8 @@ class FunctionalTest(absltest.TestCase):
         [dataset_pb2.BondTopology.ATOM_C, dataset_pb2.BondTopology.ATOM_C])
     bt.bond.add(
         atom_a=0, atom_b=1, bond_type=dataset_pb2.BondTopology.BOND_SINGLE)
-    mol.opt_geo.atom_positions.add(x=0, y=0, z=0)
-    mol.opt_geo.atom_positions.add(x=1, y=0, z=0)
+    mol.opt_geo.atompos.add(x=0, y=0, z=0)
+    mol.opt_geo.atompos.add(x=1, y=0, z=0)
     return mol
 
   def test_extract_bond_lengths_has_errors(self):

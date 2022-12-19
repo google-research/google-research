@@ -223,7 +223,7 @@ def molecule_to_stat_values(molecule):
       molecule.prop.calc.fate)
 
   yield 'num_initial_geometries', len(
-      [g for g in molecule.ini_geo if g.atom_positions])
+      [g for g in molecule.ini_geo if g.atompos])
   yield 'num_duplicates', len(molecule.duplicate_found)
 
   for field in smu_utils_lib.find_zero_values(molecule):
@@ -361,13 +361,13 @@ def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
 
     geom = molecule.opt_geo
     atom_pos0 = np.array([
-        geom.atom_positions[atom_idx0].x, geom.atom_positions[atom_idx0].y,
-        geom.atom_positions[atom_idx0].z
+        geom.atompos[atom_idx0].x, geom.atompos[atom_idx0].y,
+        geom.atompos[atom_idx0].z
     ],
                          dtype=np.double)
     atom_pos1 = np.array([
-        geom.atom_positions[atom_idx1].x, geom.atom_positions[atom_idx1].y,
-        geom.atom_positions[atom_idx1].z
+        geom.atompos[atom_idx1].x, geom.atompos[atom_idx1].y,
+        geom.atompos[atom_idx1].z
     ],
                          dtype=np.double)
     # The intention is the buckets are the left edge of an empricial CDF.

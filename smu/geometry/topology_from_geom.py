@@ -153,7 +153,7 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
   if natoms == 1:
     return result  # empty.
 
-  if len(molecule.opt_geo.atom_positions) != natoms:
+  if len(molecule.opt_geo.atompos) != natoms:
     return result  # empty
   distances = utilities.distances(molecule.opt_geo)
 

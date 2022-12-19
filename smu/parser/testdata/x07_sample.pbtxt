@@ -4,72 +4,72 @@ molecules {
   mol_id: 618451001
   original_molecule_index: 3
   ini_geo {
-    atom_positions {
+    atompos {
       x: -0.599232
       y: 0.468652
       z: 4.1882
     }
-    atom_positions {
+    atompos {
       x: 1.255345
       y: -6.557917
       z: 6.569822
     }
-    atom_positions {
+    atompos {
       x: 3.022428
       y: -4.726961
       z: 1.829255
     }
-    atom_positions {
+    atompos {
       x: 1.562426
       y: -3.34387
       z: 3.365035
     }
-    atom_positions {
+    atompos {
       x: 0.635137
       y: -4.098816
       z: 5.68354
     }
-    atom_positions {
+    atompos {
       x: 0.954312
       y: -0.93447
       z: 2.497462
     }
-    atom_positions {
+    atompos {
       x: 3.815168
       y: -7.091386
       z: 2.321718
     }
-    atom_positions {
+    atompos {
       x: -0.961871
       y: 2.315859
       z: 3.333477
     }
-    atom_positions {
+    atompos {
       x: 0.36226
       y: 0.778756
       z: 5.994589
     }
-    atom_positions {
+    atompos {
       x: -2.420928
       y: -0.471109
       z: 4.474494
     }
-    atom_positions {
+    atompos {
       x: 0.506447
       y: -8.014329
       z: 5.306351
     }
-    atom_positions {
+    atompos {
       x: 3.297194
       y: -6.761062
       z: 6.830604
     }
-    atom_positions {
+    atompos {
       x: 0.358859
       y: -6.807549
       z: 8.416462
     }
-    atom_positions {
+    atompos {
       x: 3.727296
       y: -4.095603
       z: 0.019653
@@ -82,72 +82,72 @@ molecules {
     }
   }
   opt_geo {
-    atom_positions {
+    atompos {
       x: -0.313382
       y: 0.35652
       z: 4.266687
     }
-    atom_positions {
+    atompos {
       x: 1.020933
       y: -6.548927
       z: 6.532749
     }
-    atom_positions {
+    atompos {
       x: 3.098166
       y: -4.521578
       z: 1.87957
     }
-    atom_positions {
+    atompos {
       x: 1.060933
       y: -3.666938
       z: 3.096341
     }
-    atom_positions {
+    atompos {
       x: -0.233446
       y: -4.739548
       z: 5.001116
     }
-    atom_positions {
+    atompos {
       x: 0.047209
       y: -1.464903
       z: 2.323809
     }
-    atom_positions {
+    atompos {
       x: 4.078021
       y: -6.849559
       z: 2.257301
     }
-    atom_positions {
+    atompos {
       x: -1.056283
       y: 2.035316
       z: 3.337331
     }
-    atom_positions {
+    atompos {
       x: 1.488333
       y: 0.812315
       z: 5.181658
     }
-    atom_positions {
+    atompos {
       x: -1.658765
       y: -0.312746
       z: 5.679998
     }
-    atom_positions {
+    atompos {
       x: 1.263894
       y: -8.338243
       z: 5.539461
     }
-    atom_positions {
+    atompos {
       x: 2.871175
       y: -5.845894
       z: 7.12975
     }
-    atom_positions {
+    atompos {
       x: -0.186802
       y: -6.821294
       z: 8.177102
     }
-    atom_positions {
+    atompos {
       x: 4.034854
       y: -3.434324
       z: 0.427788
@@ -4228,72 +4228,72 @@ molecules {
   mol_id: 618451123
   original_molecule_index: 4
   ini_geo {
-    atom_positions {
+    atompos {
       x: 0.32182
       y: 0.445597
       z: 2.520895
     }
-    atom_positions {
+    atompos {
       x: 0.053668
       y: -5.21999
       z: 7.670021
     }
-    atom_positions {
+    atompos {
       x: 2.875218
       y: -4.133398
       z: 1.610614
     }
-    atom_positions {
+    atompos {
       x: 1.547875
       y: -3.758098
       z: 3.732209
     }
-    atom_positions {
+    atompos {
       x: 1.493451
       y: -5.737208
       z: 5.45923
     }
-    atom_positions {
+    atompos {
       x: 0.249633
       y: -1.563559
       z: 4.304796
     }
-    atom_positions {
+    atompos {
       x: 4.103918
       y: -6.31811
       z: 1.157268
     }
-    atom_positions {
+    atompos {
       x: -0.795953
       y: 2.009913
       z: 3.280942
     }
-    atom_positions {
+    atompos {
       x: -0.527423
       y: -0.128312
       z: 0.723576
     }
-    atom_positions {
+    atompos {
       x: 2.257278
       y: 1.122308
       z: 2.244617
     }
-    atom_positions {
+    atompos {
       x: 0.850944
       y: -3.622983
       z: 8.717685
     }
-    atom_positions {
+    atompos {
       x: -1.931489
       y: -4.87247
       z: 7.197967
     }
-    atom_positions {
+    atompos {
       x: 0.137005
       y: -6.887863
       z: 8.888894
     }
-    atom_positions {
+    atompos {
       x: 3.145827
       y: -2.846117
       z: 0.056692
@@ -4306,72 +4306,72 @@ molecules {
     }
   }
   opt_geo {
-    atom_positions {
+    atompos {
       x: 0.524953
       y: 0.526935
       z: 2.6067
     }
-    atom_positions {
+    atompos {
       x: -0.012035
       y: -5.313864
       z: 7.483931
     }
-    atom_positions {
+    atompos {
       x: 2.591535
       y: -4.200191
       z: 1.667437
     }
-    atom_positions {
+    atompos {
       x: 1.92713
       y: -3.460444
       z: 3.988768
     }
-    atom_positions {
+    atompos {
       x: 2.195865
       y: -4.989491
       z: 5.985755
     }
-    atom_positions {
+    atompos {
       x: 0.995595
       y: -1.166667
       z: 4.605675
     }
-    atom_positions {
+    atompos {
       x: 3.419269
       y: -6.568342
       z: 1.259724
     }
-    atom_positions {
+    atompos {
       x: -0.322608
       y: 2.200181
       z: 3.450895
     }
-    atom_positions {
+    atompos {
       x: -0.781169
       y: -0.296938
       z: 1.225358
     }
-    atom_positions {
+    atompos {
       x: 2.282923
       y: 1.059871
       z: 1.649222
     }
-    atom_positions {
+    atompos {
       x: -0.595259
       y: -3.536825
       z: 8.355603
     }
-    atom_positions {
+    atompos {
       x: -1.563248
       y: -6.070946
       z: 6.340921
     }
-    atom_positions {
+    atompos {
       x: 0.492881
       y: -6.673314
       z: 8.943176
     }
-    atom_positions {
+    atompos {
       x: 2.625941
       y: -3.020256
       z: 0.002237

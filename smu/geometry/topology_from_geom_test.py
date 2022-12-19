@@ -125,18 +125,18 @@ bond: {
     molecule.opt_geo.MergeFrom(
         text_format.Parse(
             """
-atom_positions {
+atompos {
   x: 0.0
   y: 0.0
   z: 0.0
 },
-atom_positions {
+atompos {
   x: 0.0
   y: 0.0
   z: 0.0
 }
 """, dataset_pb2.Geometry()))
-    molecule.opt_geo.atom_positions[1].x = (
+    molecule.opt_geo.atompos[1].x = (
         1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
 
     matching_parameters = topology_molecule.MatchingParameters()
@@ -196,7 +196,7 @@ atom_positions {
 
     dist15a = 1.5 / smu_utils_lib.BOHR_TO_ANGSTROMS
     dist14a = 1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS
-    molecule.opt_geo.atom_positions.extend([
+    molecule.opt_geo.atompos.extend([
         dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0),
         dataset_pb2.Geometry.AtomPos(x=0, y=dist15a, z=0),
         dataset_pb2.Geometry.AtomPos(x=dist14a, y=dist15a, z=0),
@@ -275,15 +275,15 @@ class TestStandardTopologySensing(absltest.TestCase):
             atom_b=3,
             bond_type=dataset_pb2.BondTopology.BondType.BOND_SINGLE))
 
-    molecule.opt_geo.atom_positions.append(
+    molecule.opt_geo.atompos.append(
         dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0))
-    molecule.opt_geo.atom_positions.append(
+    molecule.opt_geo.atompos.append(
         dataset_pb2.Geometry.AtomPos(
             x=0, y=0, z=oc_dist / smu_utils_lib.BOHR_TO_ANGSTROMS))
-    molecule.opt_geo.atom_positions.append(
+    molecule.opt_geo.atompos.append(
         dataset_pb2.Geometry.AtomPos(
             x=0, y=0, z=(oc_dist + cn_dist) / smu_utils_lib.BOHR_TO_ANGSTROMS))
-    molecule.opt_geo.atom_positions.append(
+    molecule.opt_geo.atompos.append(
         dataset_pb2.Geometry.AtomPos(
             x=0,
             y=0,

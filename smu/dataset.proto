@@ -221,7 +221,7 @@ message Geometry {
     float y = 2;
     float z = 3;
   }
-  repeated AtomPos atom_positions = 1
+  repeated AtomPos atompos = 1
       [(availability) = STANDARD];
 
   // Energy and and overall gradient norm (gnorm) for the geometty.

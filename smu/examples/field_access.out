@@ -28,22 +28,22 @@ For example, the optimized geometry has an energy of -213.607287 and positions f
 In addition to looking at dataset.proto for field documentation, you can just print a given molecule to see what fields are available
 mol_id: 57001
 ini_geo {
-  atom_positions {
+  atompos {
     x: 2.046005964279175
     y: -0.05990400165319443
     z: -0.04686500132083893
   }
-  atom_positions {
+  atompos {
     x: 0.8208969831466675
     y: 1.5367250442504883
     z: -1.1752209663391113
   }
-  atom_positions {
+  atompos {
     x: 0.7711970210075378
     y: -1.8451290130615234
     z: 1.2147159576416016
   }
-  atom_positions {
+  atompos {
     x: 4.124516010284424
     y: -0.12472199648618698
     z: -0.0011340000201016665
@@ -56,22 +56,22 @@ ini_geo {
   }
 }
 opt_geo {
-  atom_positions {
+  atompos {
     x: 1.9872709512710571
     y: 0.001541999983601272
     z: -0.09030699729919434
   }
-  atom_positions {
+  atompos {
     x: 0.8458210229873657
     y: 1.5565420389175415
     z: -1.1892169713974
   }
-  atom_positions {
+  atompos {
     x: 0.8833469748497009
     y: -1.8555140495300293
     z: 1.2220569849014282
   }
-  atom_positions {
+  atompos {
     x: 4.046177864074707
     y: -0.1956000030040741
     z: 0.0489640012383461

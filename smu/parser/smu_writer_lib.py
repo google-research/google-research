@@ -475,22 +475,22 @@ class SmuWriter:
     """
     coordinates = ''
     if (molecule.ini_geo and
-        molecule.ini_geo[0].atom_positions):
+        molecule.ini_geo[0].atompos):
       if self.annotate:
-        coordinates += '# From initial_geometry.atom_positions\n'
+        coordinates += '# From initial_geometry.atompos\n'
       for i, atom in enumerate(topology.atom):
-        positions = molecule.ini_geo[0].atom_positions[i]
+        positions = molecule.ini_geo[0].atompos[i]
 
         coordinates += 'Initial Coords%s%s%s%s\n' % (
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(8),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
                 positions.y).rjust(12), '{:f}'.format(positions.z).rjust(12))
     if (molecule.HasField('opt_geo') and
-        molecule.opt_geo.atom_positions):
+        molecule.opt_geo.atompos):
       if self.annotate:
-        coordinates += '# From opt_geo.atom_positions\n'
+        coordinates += '# From opt_geo.atompos\n'
       for i, atom in enumerate(topology.atom):
-        positions = molecule.opt_geo.atom_positions[i]
+        positions = molecule.opt_geo.atompos[i]
         coordinates += 'Optimized Coords%s%s%s%s\n' % (
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(6),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
@@ -1125,7 +1125,7 @@ class Atomic2InputWriter:
         len(molecule.bond_topo[topo_idx].bond)))
     for atom_type, coords in zip(
         molecule.bond_topo[topo_idx].atom,
-        molecule.opt_geo.atom_positions):
+        molecule.opt_geo.atompos):
       contents.append(
           '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
           .format(
@@ -1538,9 +1538,9 @@ class CleanTextWriter:
       for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
         out.append(self._fw_line(
           base_vals + atom_vals +
-          [self._align_dec_point(37, f'{geom.atom_positions[atom_idx].x:.6f}'),
-           self._align_dec_point(49, f'{geom.atom_positions[atom_idx].y:.6f}'),
-           self._align_dec_point(61, f'{geom.atom_positions[atom_idx].z:.6f}'),
+          [self._align_dec_point(37, f'{geom.atompos[atom_idx].x:.6f}'),
+           self._align_dec_point(49, f'{geom.atompos[atom_idx].y:.6f}'),
+           self._align_dec_point(61, f'{geom.atompos[atom_idx].z:.6f}'),
            ]))
 
       second_block = []

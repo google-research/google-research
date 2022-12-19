@@ -88,8 +88,8 @@ def main(argv):
       continue
 
     for aidx0, aidx1 in itertools.combinations(o_indices, 2):
-      pos0 = mol.opt_geo.atom_positions[aidx0]
-      pos1 = mol.opt_geo.atom_positions[aidx1]
+      pos0 = mol.opt_geo.atompos[aidx0]
+      pos1 = mol.opt_geo.atompos[aidx1]
 
       bond_len = (smu_utils_lib.BOHR_TO_ANGSTROMS *
                   np.linalg.norm(np.array([pos0.x, pos0.y, pos0.z]) -

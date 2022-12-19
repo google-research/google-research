@@ -723,10 +723,10 @@ class SmuParser:
           label1, label2
       ) == label, 'Found line with incorrect label "%s %s". Expected %s.' % (
           label1, label2, label)
-      geometry.atom_positions.add()
-      geometry.atom_positions[-1].x = float(x)
-      geometry.atom_positions[-1].y = float(y)
-      geometry.atom_positions[-1].z = float(z)
+      geometry.atompos.add()
+      geometry.atompos[-1].x = float(x)
+      geometry.atompos[-1].y = float(y)
+      geometry.atompos[-1].z = float(z)
 
   def parse_rotational_constants(self):
     """Parses rotational constants vector (MHz)."""

@@ -4,22 +4,22 @@ molecules {
   mol_id: 899651001
   original_molecule_index: 1
   ini_geo {
-    atom_positions {
+    atompos {
       x: 2.012558
       y: 0.127934
       z: 0.106203
     }
-    atom_positions {
+    atompos {
       x: 1.42372
       y: -0.798409
       z: -1.475876
     }
-    atom_positions {
+    atompos {
       x: 1.42372
       y: -0.93995
       z: 1.596441
     }
-    atom_positions {
+    atompos {
       x: 3.934977
       y: 0.017763
       z: 0.1011
@@ -32,22 +32,22 @@ molecules {
     }
   }
   opt_geo {
-    atom_positions {
+    atompos {
       x: 2.018289
       y: 0.11169
       z: 0.105457
     }
-    atom_positions {
+    atompos {
       x: 1.42332
       y: -0.792586
       z: -1.472857
     }
-    atom_positions {
+    atompos {
       x: 1.423344
       y: -0.933863
       z: 1.593953
     }
-    atom_positions {
+    atompos {
       x: 3.930022
       y: 0.022097
       z: 0.101315

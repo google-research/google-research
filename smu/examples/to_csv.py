@@ -64,7 +64,7 @@ for molecule in db:
   # This is kind of a silly filter, but this shows how to filter
   # for some molecules and not just the first couple.
   #---------------------------------------------------------------------------
-  if molecule.opt_geo.atom_positions[0].x > -3:
+  if molecule.opt_geo.atompos[0].x > -3:
     continue
 
   #---------------------------------------------------------------------------

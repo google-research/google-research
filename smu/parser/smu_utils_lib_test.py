@@ -741,7 +741,7 @@ class MoleculeToRDKitMoleculeTest(absltest.TestCase):
     self._molecule.ini_geo.append(
         self._molecule.ini_geo[0])
     new_geom = self._molecule.ini_geo[1]
-    for atom_pos in new_geom.atom_positions:
+    for atom_pos in new_geom.atompos:
       atom_pos.x = atom_pos.x * 1000
       atom_pos.y = atom_pos.y * 1000
       atom_pos.z = atom_pos.z * 1000
@@ -1056,7 +1056,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
   def test_stage2_stage1_conflict_missing_iniital_geometry(self):
-    del self.stage2_molecule.ini_geo[0].atom_positions[:]
+    del self.stage2_molecule.ini_geo[0].atompos[:]
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [
@@ -1078,7 +1078,7 @@ class MergeMoleculesTest(absltest.TestCase):
     self.assertNotEmpty(got_mol.prop.vib_mode)
 
   def test_stage2_stage1_conflict_missing_optimized_geometry(self):
-    del self.stage2_molecule.opt_geo.atom_positions[:]
+    del self.stage2_molecule.opt_geo.atompos[:]
     got_mol, got_conflict = smu_utils_lib.merge_molecule(
         self.stage2_molecule, self.stage1_molecule)
     self.assertEqual(got_conflict, [

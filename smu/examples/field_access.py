@@ -101,9 +101,9 @@ geometry = molecule.opt_geo
 print('For example, the optimized geometry has an energy of',
       geometry.energy.val,
       'and positions for',
-      len(geometry.atom_positions),
+      len(geometry.atompos),
       'atoms and the first atom x-coordinate is',
-      geometry.atom_positions[0].x)
+      geometry.atompos[0].x)
 
 print()
 print('In addition to looking at dataset.proto for field documentation,',

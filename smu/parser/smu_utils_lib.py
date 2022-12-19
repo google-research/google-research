@@ -911,14 +911,14 @@ def molecule_to_rdkit_molecules(molecule,
   requested_geometries = []
   if include_initial_geometries:
     valid_init_geometries = [
-        g for g in molecule.ini_geo if g.atom_positions
+        g for g in molecule.ini_geo if g.atompos
     ]
     init_count = len(valid_init_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
         for i, geom in enumerate(valid_init_geometries, start=1)
     ])
-  if include_optimized_geometry and molecule.opt_geo.atom_positions:
+  if include_optimized_geometry and molecule.opt_geo.atompos:
     requested_geometries.append((molecule.opt_geo, 'opt'))
 
   for bt, bt_label in requested_bond_topo:
@@ -933,7 +933,7 @@ def molecule_to_rdkit_molecules(molecule,
       # Add in the coordinates
       conf = Chem.Conformer(len(bt.atom))
       conf.Set3D(True)
-      for atom_idx, pos in enumerate(geom.atom_positions):
+      for atom_idx, pos in enumerate(geom.atompos):
         conf.SetAtomPosition(
             atom_idx,
             Geometry.Point3D(
@@ -1283,8 +1283,8 @@ def merge_molecule(mol1, mol2):
     conflict_info.append(c.opt_geo.gnorm.val)
     conflict_info.append(
         bool(c.ini_geo) and
-        bool(c.ini_geo[0].atom_positions))
-    conflict_info.append(bool(len(c.opt_geo.atom_positions)))
+        bool(c.ini_geo[0].atompos))
+    conflict_info.append(bool(len(c.opt_geo.atompos)))
 
   # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
   # merge. We look for conflicts between them and then a few special cases.
@@ -1296,16 +1296,16 @@ def merge_molecule(mol1, mol2):
     if len(mol1.ini_geo) != len(mol2.ini_geo):
       has_conflict = True
     elif len(mol1.ini_geo) == 1:
-      if (len(mol1.ini_geo[0].atom_positions) != len(
-          mol2.ini_geo[0].atom_positions)):
+      if (len(mol1.ini_geo[0].atompos) != len(
+          mol2.ini_geo[0].atompos)):
         has_conflict = True
 
     if (mol1.HasField('opt_geo') !=
         mol2.HasField('opt_geo')):
       has_conflict = True
 
-    if (len(mol1.opt_geo.atom_positions) != len(
-        mol2.opt_geo.atom_positions)):
+    if (len(mol1.opt_geo.atompos) != len(
+        mol2.opt_geo.atompos)):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
@@ -1468,7 +1468,7 @@ def filter_molecule_by_availability(molecule, allowed):
   for geometry in itertools.chain([molecule.opt_geo],
                                   molecule.ini_geo):
     for descriptor, _ in geometry.ListFields():
-      if descriptor.name == 'atom_positions':
+      if descriptor.name == 'atompos':
         # We never filter atom positions and we can't call ClearField on it
         continue
       if (descriptor.GetOptions().Extensions[dataset_pb2.availability]

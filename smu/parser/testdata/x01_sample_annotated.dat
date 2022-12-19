@@ -38,12 +38,12 @@ BOND    1    4     TYPE  711200
 E_ini/G_norm          -56.494308    0.010309
 # From energy, gnorm
 E_opt/G_norm          -56.494403    0.000046
-# From initial_geometry.atom_positions
+# From initial_geometry.atompos
 Initial Coords       7    2.012558    0.127934    0.106203
 Initial Coords       1    1.423720   -0.798409   -1.475876
 Initial Coords       1    1.423720   -0.939950    1.596441
 Initial Coords       1    3.934977    0.017763    0.101100
-# From opt_geo.atom_positions
+# From opt_geo.atompos
 Optimized Coords     7    2.018289    0.111690    0.105457
 Optimized Coords     1    1.423320   -0.792586   -1.472857
 Optimized Coords     1    1.423344   -0.933863    1.593953

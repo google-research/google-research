@@ -70,12 +70,12 @@ def distance_between_atoms(geom, a1, a2):
     Distance in Angstroms.
   """
   return smu_utils_lib.bohr_to_angstroms(
-      math.sqrt((geom.atom_positions[a1].x - geom.atom_positions[a2].x) *
-                (geom.atom_positions[a1].x - geom.atom_positions[a2].x) +
-                (geom.atom_positions[a1].y - geom.atom_positions[a2].y) *
-                (geom.atom_positions[a1].y - geom.atom_positions[a2].y) +
-                (geom.atom_positions[a1].z - geom.atom_positions[a2].z) *
-                (geom.atom_positions[a1].z - geom.atom_positions[a2].z)))
+      math.sqrt((geom.atompos[a1].x - geom.atompos[a2].x) *
+                (geom.atompos[a1].x - geom.atompos[a2].x) +
+                (geom.atompos[a1].y - geom.atompos[a2].y) *
+                (geom.atompos[a1].y - geom.atompos[a2].y) +
+                (geom.atompos[a1].z - geom.atompos[a2].z) *
+                (geom.atompos[a1].z - geom.atompos[a2].z)))
 
 
 def bonded(bond_topology):
@@ -142,7 +142,7 @@ def distances(geometry):
   Returns:
     a numpy array of distances
   """
-  natoms = len(geometry.atom_positions)
+  natoms = len(geometry.atompos)
   result = np.full((natoms, natoms), 0.0, dtype=np.float32)
   for i in range(0, natoms):
     for j in range(i + 1, natoms):
@@ -293,12 +293,12 @@ def geom_to_angstroms(geometry):
     Coordinates in Angstroms.
   """
   result = dataset_pb2.Geometry()
-  for atom in geometry.atom_positions:
+  for atom in geometry.atompos:
     new_atom = dataset_pb2.Geometry.AtomPos()
     new_atom.x = smu_utils_lib.bohr_to_angstroms(atom.x)
     new_atom.y = smu_utils_lib.bohr_to_angstroms(atom.y)
     new_atom.z = smu_utils_lib.bohr_to_angstroms(atom.z)
-    result.atom_positions.append(new_atom)
+    result.atompos.append(new_atom)
 
   return result
 
