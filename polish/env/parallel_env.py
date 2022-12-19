@@ -296,7 +296,7 @@ class ParallelEnv(object):
         'trajectory_logstds': np.float32,
         'trajectory_per_episode_rewards': np.float32,
         'trajectory_per_episode_lengths': np.float32,
-        'trajectory_dones': np.bool,
+        'trajectory_dones': bool,
         'trajectory_per_step_rewards': np.float32,
         'trajectory_returns': np.float32
     }

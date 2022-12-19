@@ -107,7 +107,7 @@ class LinearSimulation(Simulation):
     x = self._generate_x()
 
     y = x * np.tile(self._coefficients, (self._num_sample, 1))
-    y = np.sum(y, axis=1, dtype=np.float)
+    y = np.sum(y, axis=1, dtype=float)
 
     noise_coef = np.std(y)
     noise = noise_coef * (self._rng.rand(self._num_sample) - 0.5)

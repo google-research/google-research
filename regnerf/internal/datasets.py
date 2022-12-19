@@ -291,7 +291,7 @@ def subsample_patches(images, patch_size, batch_size, batching='all_images'):
     idx_img = np.random.randint(0, shape[0], size=(n_patches, 1))
   elif batching == 'single_image':
     idx_img = np.random.randint(0, shape[0])
-    idx_img = np.full((n_patches, 1), idx_img, dtype=np.int)
+    idx_img = np.full((n_patches, 1), idx_img, dtype=int)
   else:
     raise ValueError('Not supported batching type!')
 

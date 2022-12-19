@@ -252,7 +252,7 @@ class DemoReader:
       train_split = (
           np.concatenate(
               [np.ones([data_size - val_size]), np.zeros([val_size])])
-          .astype(np.bool))
+          .astype(bool))
       if seed is not None:
         np_random = np.random.RandomState(seed)
         np_random.shuffle(train_split)
@@ -506,7 +506,7 @@ class DemoReader:
         rotation = np.random.uniform(low=-angle, high=angle)
         translation = np.random.uniform(
             low=-translate, high=translate, size=(2))
-        translation = np.rint(translation).astype(np.int)
+        translation = np.rint(translation).astype(int)
         im = Image.fromarray(im)
         im = self.transform_image(im, rotation, translation)
         im = np.asarray(im)

@@ -675,7 +675,7 @@ class MCTSEnv(object):
         self.trajectory_per_episode_rewards, dtype=np.float32)
     self.trajectory_per_episode_lengths = np.asarray(
         self.trajectory_per_episode_lengths, dtype=np.float32)
-    self.trajectory_dones = np.asarray(self.trajectory_dones, dtype=np.bool)
+    self.trajectory_dones = np.asarray(self.trajectory_dones, dtype=bool)
     self.trajectory_per_step_rewards = np.asarray(
         self.trajectory_per_step_rewards, dtype=np.float32)
 

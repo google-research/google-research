@@ -450,7 +450,7 @@ class InputUtilsTest(tf.test.TestCase, parameterized.TestCase):
     token_ids_np = np.random.randint(
         vocab_size, size=[batch_size, seq_len], dtype=np.int32)
     token_mask = np.random.binomial(1, mask_rate, size=[batch_size, seq_len])
-    token_mask = token_mask.astype(np.bool)
+    token_mask = token_mask.astype(bool)
     token_ids_np[token_mask] = mask_token_id
 
     num_masked = (token_ids_np == mask_token_id).sum(1).max() * 2 + 5
