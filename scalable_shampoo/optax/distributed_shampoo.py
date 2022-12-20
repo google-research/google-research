@@ -446,8 +446,8 @@ def matrix_inverse_pth_root(
       relative_matrix_epsilon essentially free.
     lobpcg_max_iter: Maximum iteration count for LOBPCG, defaults to
       `lobpcg_topk_precondition`.
-    padding_start: If the input matrix was padded, then zeros out columns
-      and rows at the padding start.
+    padding_start: If the input matrix was padded, then zeros out columns and
+      rows at the padding start.
     prev: previous iteration's solution, zero-padded (unused)
     eigh: If True, uses eigh for inverse-pth root computation.
 
@@ -905,9 +905,9 @@ def gram_weighted_update(
     w1:  Scalar weight for old statistics.
     w2:  Scalar weight for new Gram matrix.
     precision: Optional precision XLA related flag, the available options are:
-      a) lax.Precision.DEFAULT (better step time, but not precise)
-      b) lax.Precision.HIGH (increased precision, slower)
-      c) lax.Precision.HIGHEST (best possible precision, slowest)
+      a) lax.Precision.DEFAULT (better step time, but not precise) b)
+      lax.Precision.HIGH (increased precision, slower) c) lax.Precision.HIGHEST
+      (best possible precision, slowest)
 
   Returns:
     Weighted average of old and new statistics.
@@ -942,8 +942,8 @@ class Preconditioner:
     self._original_shape = param.shape
     self._transformed_shape = param.shape
     if best_effort_shape_interpretation:
-      self._transformed_shape = merge_small_dims(
-          self._original_shape, merge_small_dims_block_size)
+      self._transformed_shape = merge_small_dims(self._original_shape,
+                                                 merge_small_dims_block_size)
     reshaped_param = jnp.reshape(param, self._transformed_shape)
     self._partitioner = BlockPartitioner(reshaped_param, block_size)
     self._preconditioner_type = preconditioner_type
@@ -968,9 +968,9 @@ class Preconditioner:
       to_float: Optional function for converting stats to floating point.
       from_float: Optional function for converting from floating point.
       precision: Optional precision XLA related flag, the available options are:
-        a) lax.Precision.DEFAULT (better step time, but not precise)
-        b) lax.Precision.HIGH (increased precision, slower)
-        c) lax.Precision.HIGHEST (best possible precision, slowest)
+        a) lax.Precision.DEFAULT (better step time, but not precise) b)
+        lax.Precision.HIGH (increased precision, slower) c)
+        lax.Precision.HIGHEST (best possible precision, slowest)
 
     Returns:
       A list of updated gradient statistics for each partition.
@@ -1266,8 +1266,8 @@ def distributed_shampoo(
       when computing statistics (e.g., G Gᵀ). Same options as `precision` above.
     relative_matrix_epsilon: Whether to use relative epsilon to the max eigen
       value when computing inverse-pth root.
-    merge_small_dims_block_size: Used as the maximum block size
-      to merge the shapes.
+    merge_small_dims_block_size: Used as the maximum block size to merge the
+      shapes.
     lobpcg_topk_precondition: If nonzero, specifies the number of top
       eigenvectors to subtract out before performing LOBPCG. Note this makes
       relative_matrix_epsilon essentially free.
@@ -1275,16 +1275,16 @@ def distributed_shampoo(
       `lobpcg_topk_precondition`.
     precondtioner_type: Preconditioner type to select all, left only or right
       only preconditioners.
-    skip_preconditioning_rank_lt: Skips preconditioning for parameters with
-      rank less than this value.
+    skip_preconditioning_rank_lt: Skips preconditioning for parameters with rank
+      less than this value.
     decoupled_learning_rate: If True, use decoupled learning rate, otherwise
       couple it with preconditioned gradient computation. (Default True)
     decoupled_weight_decay: If True, use decoupled weight decay, otherwise
       couple with weight decay. (Default False)
-    generate_training_metrics: If True, gather training metrics, otherwise
-      avoid generating them (to reduce memory usage).
-    reuse_preconditioner: If True, pass the previous derived preconditioner
-      as a warm start to the next iteratin's inverse pth root computation.
+    generate_training_metrics: If True, gather training metrics, otherwise avoid
+      generating them (to reduce memory usage).
+    reuse_preconditioner: If True, pass the previous derived preconditioner as a
+      warm start to the next iteratin's inverse pth root computation.
     eigh: If True, and uses eigen decomposition for inverse-pth root.
 
   Returns:
@@ -1442,8 +1442,7 @@ def distributed_shampoo(
             if exponent_override == 0 else exponent_override)
         exponents.extend([exponent] * len(shapes))
 
-      diagonal_statistics = _quantize_diagonal_statistics(
-          jnp.zeros_like(param))
+      diagonal_statistics = _quantize_diagonal_statistics(jnp.zeros_like(param))
       diagonal_momentum = _quantize_momentum(jnp.zeros_like(param))
       momentum = _quantize_momentum(jnp.zeros_like(param))
 
@@ -1681,8 +1680,7 @@ def distributed_shampoo(
     for stat in new_stats_flat:
       new_padded_statistics.extend(
           [pad_square_matrix(stat, max_size) for stat in stat.statistics])
-      padding_starts.extend(
-          [len(stat) for stat in stat.statistics])
+      padding_starts.extend([len(stat) for stat in stat.statistics])
 
     # Create global stats
     # TODO(rohananil): Preconditioner is not updated every step, so cost of
@@ -1698,10 +1696,8 @@ def distributed_shampoo(
     else:
       stat_dtype = new_padded_statistics[0].dtype
 
-    new_padded_statistics.extend([
-        jnp.eye(max_size, dtype=stat_dtype)
-        for _ in range(to_pad)
-    ])
+    new_padded_statistics.extend(
+        [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])
     padding_starts += [0] * to_pad
 
     if reuse_preconditioner:
@@ -1903,8 +1899,7 @@ def distributed_shampoo(
       partitioned_ps_spec = pjit.PartitionSpec(preconditioner_partition_spec[0])
     else:
       partitioned_ps_spec = None
-    partitioned_ps = pjit.with_sharding_constraint(
-        ps, partitioned_ps_spec)
+    partitioned_ps = pjit.with_sharding_constraint(ps, partitioned_ps_spec)
     partitioned_prev_preconds = _maybe(pjit.with_sharding_constraint)(
         prev_preconds, preconditioner_partition_spec)
     partitioned_padding_starts = pjit.with_sharding_constraint(
@@ -2227,7 +2222,8 @@ def distributed_shampoo(
       # a large error value.
       pd = precond_dim(max_size)
       quantized_preconditioners_init = [
-          s[:, :pd] for s in packed_quantized_statistics]
+          s[:, :pd] for s in packed_quantized_statistics
+      ]
       quantized_diagonals_init = packed_quantized_diagonals
       quantized_bucket_sizes_init = packed_quantized_bucket_sizes
       n = len(quantized_preconditioners_init)
@@ -2405,9 +2401,7 @@ def distributed_shampoo(
       # shaped tensors. Note statistics will be ignored as we are passing in
       # a large init value for error.
       pd = precond_dim(max_size)
-      preconditioners_init = [
-          s[:, :pd] for s in padded_statistics
-      ]
+      preconditioners_init = [s[:, :pd] for s in padded_statistics]
       n = len(padded_statistics)
       metrics_init = jax.tree_map(
           lambda x: [x] * n,
@@ -2659,8 +2653,8 @@ def distributed_shampoo(
     """Transform the input gradient and update all statistics.
 
     Args:
-      grads: the gradient tensors for the parameters
-        and any custom gradients for preconditioners.
+      grads: the gradient tensors for the parameters and any custom gradients
+        for preconditioners.
       state: a named tuple containing the state of the optimizer
       params: the parameters that should be updated.
 
@@ -2701,11 +2695,13 @@ def distributed_shampoo(
     # Hijacks the init_fn signature so we can return an OptState with
     # appropriate init_fns.
     opt_init_fn = sharded_init_fn
+
     def _init_fns(unused_params):
       return InitFnState(
           init_fn=opt_init_fn,
           pspec_fn=sharded_init_partition_spec_fn,
           shape_and_dtype_fn=sharded_init_shape_and_dtype_fn)
+
     opt_update_fn = sharded_update_fn
     return optax.GradientTransformation(_init_fns, opt_update_fn)
   else:
