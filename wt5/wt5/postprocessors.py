@@ -112,7 +112,7 @@ def extractive_explanations(output,
   final_explanations = []
 
   tokenized_input = tokenizer_fn(input_text)
-  span_array = np.zeros(len(tokenized_input), np.int)
+  span_array = np.zeros(len(tokenized_input), int)
   for e in explanations:
     overlap_tuple = match_fn(tokenized_input, tokenizer_fn(e))
     if overlap_tuple:

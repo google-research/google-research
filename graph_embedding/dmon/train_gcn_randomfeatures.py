@@ -59,7 +59,7 @@ def main(argv):
   graph_clean = construct_knn_graph(data_clean).todense().A1.reshape(
       n_nodes, n_nodes)
 
-  train_mask = np.zeros(n_nodes, dtype=np.bool)
+  train_mask = np.zeros(n_nodes, dtype=bool)
   train_mask[np.random.choice(
       np.arange(n_nodes), int(n_nodes * train_size), replace=False)] = True
   test_mask = ~train_mask

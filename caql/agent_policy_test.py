@@ -30,7 +30,7 @@ class AgentPolicyTest(tf.test.TestCase):
   def setUp(self):
     super(AgentPolicyTest, self).setUp()
     self._action_spec = array_spec.BoundedArraySpec(
-        shape=(3,), dtype=np.float, minimum=[0, 0, 0], maximum=[1, 1, 1])
+        shape=(3,), dtype=float, minimum=[0, 0, 0], maximum=[1, 1, 1])
 
   def testBatchModeFalseWithOneDimensionalState(self):
     state = np.arange(2)

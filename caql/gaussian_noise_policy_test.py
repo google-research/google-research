@@ -39,7 +39,7 @@ class GaussianNoisePolicyTest(tf.test.TestCase):
         agent_policy.AgentPolicy, instance=True)
     self._mock_policy.continuous_action = True
     self._mock_policy.action_spec = array_spec.BoundedArraySpec(
-        shape=(3,), dtype=np.float, minimum=[0, 0, 0], maximum=[1, 1, 1])
+        shape=(3,), dtype=float, minimum=[0, 0, 0], maximum=[1, 1, 1])
 
   def testNoneAction(self):
     self._mock_policy.action.return_value = None

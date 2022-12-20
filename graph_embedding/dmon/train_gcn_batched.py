@@ -61,7 +61,7 @@ def main(argv):
   n_neighbors = [15, 10]  # TODO(tsitsulin): move to FLAGS.
   total_matrix_size = 1 + np.cumprod(n_neighbors).sum()
 
-  train_mask = np.zeros(n_nodes, dtype=np.bool)
+  train_mask = np.zeros(n_nodes, dtype=bool)
   train_mask[np.random.choice(
       np.arange(n_nodes), int(n_nodes * train_size), replace=False)] = True
   test_mask = ~train_mask

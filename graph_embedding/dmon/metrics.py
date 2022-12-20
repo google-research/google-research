@@ -124,7 +124,7 @@ def conductance(adjacency, clusters):
   """
   inter = 0  # Number of inter-cluster edges.
   intra = 0  # Number of intra-cluster edges.
-  cluster_indices = np.zeros(adjacency.shape[0], dtype=np.bool)
+  cluster_indices = np.zeros(adjacency.shape[0], dtype=bool)
   for cluster_id in np.unique(clusters):
     cluster_indices[:] = 0
     cluster_indices[np.where(clusters == cluster_id)[0]] = 1

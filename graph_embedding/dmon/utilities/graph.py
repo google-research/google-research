@@ -95,7 +95,7 @@ def load_npz_to_sparse_graph(file_name):  # pylint: disable=missing-function-doc
     elif 'labels' in loader:
       # Labels are stored as a numpy array
       labels = loader['labels']
-      label_mask = np.ones(labels.shape, dtype=np.bool)
+      label_mask = np.ones(labels.shape, dtype=bool)
     else:
       raise Exception('No labels in the data file', file_name)
 
@@ -113,7 +113,7 @@ def _sample_mask(idx, l):
   """Create mask."""
   mask = np.zeros(l)
   mask[idx] = 1
-  return np.array(mask, dtype=np.bool)
+  return np.array(mask, dtype=bool)
 
 
 def load_kipf_data(path_str, dataset_str):  # pylint: disable=missing-function-docstring
