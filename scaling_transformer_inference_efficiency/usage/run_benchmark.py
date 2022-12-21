@@ -17,12 +17,11 @@
 
 import jax
 import pandas as pd
-
-from scaling_transformer_inference_efficiency import benchmark
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import partitioning
+from scaling_transformer_inference_efficiency.usage import benchmarks
 
-Layout = benchmark.Layout
+Layout = benchmarks.Layout
 
 jax.config.update('jax_array', True)  # required for jax<0.4.0
 
@@ -60,12 +59,12 @@ def run():
   for input_length, output_length in [(20, 8), (60, 20), (128, 8)]:
     for batch in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
 
-      prefill_non_layer_stack_time, _ = benchmark.run_embed_unembed_topp(
+      prefill_non_layer_stack_time, _ = benchmarks.run_embed_unembed_topp(
           h, batch, input_length, sample=False)
-      generate_non_layer_stack_time, _ = benchmark.run_embed_unembed_topp(
+      generate_non_layer_stack_time, _ = benchmarks.run_embed_unembed_topp(
           h, batch, 1, sample=False)
 
-      palm_prefill_time, _ = benchmark.run_weight_stationary_layer(
+      palm_prefill_time, _ = benchmarks.run_weight_stationary_layer(
           '  result',
           checkpoint.HParams.PALM_540B_64HEADS.replace(layers=8),
           batch,
@@ -78,7 +77,7 @@ def run():
           latency_collectives=False,  # TODO(sholto): Confirm best config
           shard_seqlen_vs_batch=batch <= 16)
 
-      palm_generate_time, _ = benchmark.run_weight_stationary_layer(
+      palm_generate_time, _ = benchmarks.run_weight_stationary_layer(
           '  result',
           checkpoint.HParams.PALM_540B_64HEADS.replace(layers=8),
           batch,
@@ -91,7 +90,7 @@ def run():
           latency_collectives=True,
           shard_seqlen_vs_batch=batch <= 16)
 
-      MT_NLG_prefill_time = benchmark.run_serial_layer(
+      MT_NLG_prefill_time = benchmarks.run_serial_layer(
           '  result',
           checkpoint.HParams.TURING_NLG.replace(layers=4),
           batch,
@@ -104,7 +103,7 @@ def run():
           latency_collectives=False,
           swiglu=False)
 
-      MT_NLG_generate_time, _ = benchmark.run_serial_layer(
+      MT_NLG_generate_time, _ = benchmarks.run_serial_layer(
           '  result',
           checkpoint.HParams.TURING_NLG.replace(layers=4),
           batch,

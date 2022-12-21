@@ -28,9 +28,9 @@ import numpy as np
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import incremental
 from scaling_transformer_inference_efficiency import inference
-from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
+from scaling_transformer_inference_efficiency.layers import layers_pjit
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
 
@@ -128,6 +128,7 @@ class InferenceTest(absltest.TestCase):
                                 [result_a, result_b], sample_ids)
 
     np.testing.assert_array_equal(np.array(samples.tokens), chunk_c.tokens)
+
 
 if __name__ == '__main__':
   absltest.main()

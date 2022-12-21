@@ -30,20 +30,22 @@ from jax.experimental.maps import xmap
 import jax.numpy as jnp
 import numpy as np
 
+ import humanize
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import inference
-from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
-from scaling_transformer_inference_efficiency.ablations import layers_serial
-from scaling_transformer_inference_efficiency.ablations import partitioning_schemes
 from scaling_transformer_inference_efficiency.attention import KVCache
 from scaling_transformer_inference_efficiency.checkpoint import HParams
 from scaling_transformer_inference_efficiency.chunk import ChunkResult
 from scaling_transformer_inference_efficiency.incremental import JittedModel
-from scaling_transformer_inference_efficiency.layers_parallel import AttnAllToAll
+from scaling_transformer_inference_efficiency.layers import layers_pjit
+from scaling_transformer_inference_efficiency.layers import layers_serial
+from scaling_transformer_inference_efficiency.layers import one_d_parallel_xmap
+from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
+from scaling_transformer_inference_efficiency.layers.two_d_parallel_xmap import AttnAllToAll
 from scaling_transformer_inference_efficiency.sampling import Sampling
- import humanize
+
 
 # print(mesh_utils.create_device_mesh([4, 4, 4]))
 
@@ -368,9 +370,9 @@ def run_weight_stationary_layer(name,
       x, k, v = carry
 
       if layout == Layout.WEIGHT_STATIONARY_2D:
-        impl = layers_parallel.transformer_layer_weight_stationary
+        impl = two_d_parallel_xmap.transformer_layer_weight_stationary
       else:
-        impl = partitioning_schemes.transformer_layers_parallel_1d_weight_stationary
+        impl = one_d_parallel_xmap.transformer_layer_weight_stationary_1d_weight_stationary
 
       if cached_seqlen == 0:
         x, layer_k, layer_v = impl(h, layer, params, sin, cos, [], x, x_axis,
@@ -490,10 +492,10 @@ def run_weight_gathered_xmap_layer(name,
     def loop_body(layer, carry):
       x, k, v = carry
       if cached_seqlen == 0:
-        x, layer_k, layer_v = layers_parallel.transformer_layer_weight_gathered(
+        x, layer_k, layer_v = two_d_parallel_xmap.transformer_layer_weight_gathered(
             h, layer, params, sin, cos, [], x, x_axis, y_axis, z_axis)
       else:
-        x, layer_k, layer_v = layers_parallel.transformer_layer_weight_gathered(
+        x, layer_k, layer_v = two_d_parallel_xmap.transformer_layer_weight_gathered(
             h, layer, params, sin, cos, [kv_caches], x, x_axis, y_axis, z_axis)
 
       k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
@@ -526,6 +528,75 @@ def run_weight_gathered_xmap_layer(name,
 
     return benchmark_one(run, name, 'while', 1.0 / h.layers / gen_seqlen,
                          use_xprof)
+
+
+# pylint: disable = unused-argument
+def embed_unembed_topp(h, x, embed,
+                       sample, rng, x_axis, y_axis,
+                       z_axis):
+  """Runs non-layer stack components."""
+  # x: int32[batch, maxlen]
+  # embed: bfloat16[dmodel.X, vocab.YZ]
+  _, vocab_yz = embed.shape
+  yz_index = lax.axis_index('y') * z_axis + lax.axis_index('z')
+  vocab_start = yz_index * vocab_yz
+
+  # Initial embedding lookup:
+  with jax.named_scope('embed'):
+
+    def embed_one(one_x):
+      one_x -= vocab_start
+      result = lax.dynamic_index_in_dim(embed, one_x, axis=1, keepdims=False)
+      return jnp.where((one_x >= 0) & (one_x < vocab_yz), result, 0)
+
+    x = jax.vmap(jax.vmap(embed_one))(x)
+    x = lax.psum(x, axis_name=('y', 'z'))
+
+  # x: bfloat16[batch, maxlen, dmodel.X]
+
+  ## Transformer stack would go here ##
+
+  # x: bfloat16[batch, maxlen, dmodel.X]
+
+  # Final layernorm after transformer stack
+  with jax.named_scope('layernorm'):
+    epsilon = 1e-6
+    mean2 = lax.pmean(
+        jnp.mean(lax.square(jnp.float32(x)), axis=-1, keepdims=True),
+        axis_name='x')
+    x = jnp.bfloat16(x * lax.rsqrt(mean2 + epsilon))
+
+  # x: bfloat16[batch, maxlen, dmodel.X]
+
+  with jax.named_scope('unembed'):
+    logits_unreduced = jnp.einsum('bte,ev->btv', jnp.float32(x),
+                                  jnp.float32(embed))
+    logits = lax.psum_scatter(
+        logits_unreduced, 'x', scatter_dimension=0, tiled=True)
+    # logits: float32[batch.X, maxlen, vocab.YZ]
+
+  if not sample:
+    return logits
+
+  with jax.named_scope('sample'):
+    # logits:
+    # float32[batch.X, maxlen, vocab.YZ]
+    #   -> float32[batch.XYZ, maxlen, vocab]
+    batch_x, _, vocab_yz = logits.shape
+    padded_batch_x = max(batch_x, y_axis * z_axis)
+    if padded_batch_x > batch_x:
+      logits = jnp.pad(
+          logits,
+          pad_width=((0, padded_batch_x - batch_x), (0, 0), (0, 0)),
+          mode='constant')
+    logits = lax.all_to_all(
+        logits, ('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
+    # logits = binary_search.topp_mask(logits, 0.9, -1e10)
+    # TODO(reinerp): Do we still need t5x binary search?
+    sample = jax.random.categorical(rng, logits).astype(jnp.int32)
+    # sample: int32[batch.XYZ, maxlen]
+    sample = lax.all_gather(sample, ('x', 'y', 'z'), axis=0, tiled=True)
+    return sample
 
 
 def run_embed_umembed_sweep():
@@ -582,8 +653,7 @@ def run_embed_unembed_topp(h,
           'z': 'z'
       })
   def the_benchmark(x, embed, rng):
-    return layers_parallel.embed_unembed_topp(h, x, embed, sample, rng, x_axis,
-                                              y_axis, z_axis)
+    return embed_unembed_topp(h, x, embed, sample, rng, x_axis, y_axis, z_axis)
 
   with mesh:
     x, embed, rng = make_inputs(
@@ -640,10 +710,14 @@ def init_model(hparams):
   """
   eos_id = 1
   model = JittedModel(
-      hparams, eos_id,
+      hparams,
+      eos_id,
       functools.partial(inference.infer, hparams,
-                        layers_parallel.pjit_transformer_layer),
-      weights.Weights.physical_axes())
+                        layers_pjit.pjit_transformer_layer),
+      weights.Weights.physical_axes(),
+      rules=partitioning.make_rules_two_d(0))
+  # TODO(sholto): Make benchmark rules configurable (and the benchmarks to
+  # reflect e2e model availability).
   with model.mesh:
 
     def init_weights():

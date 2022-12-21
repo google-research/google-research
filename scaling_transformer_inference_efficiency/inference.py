@@ -31,11 +31,12 @@ import jax.scipy
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
-from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import FullChunkResult
+from scaling_transformer_inference_efficiency.layers import layers_pjit
+from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 from scaling_transformer_inference_efficiency.partitioning import _with_sharding_constraint
 
 CheckpointSpec = checkpoint.CheckpointSpec
@@ -87,7 +88,8 @@ def infer(
   x = params.embedding[token_ids, :]
 
   x = _with_sharding_constraint(x, (None, None, 'table_embed'))
-  x = _with_sharding_constraint(x, ('residual_batch', 'time', 'residual_embed'))
+  x = _with_sharding_constraint(
+      x, ('residual_batch', 'residual_time', 'residual_embed'))
 
   def loop_body(layer, carry):
     x, k, v = carry
@@ -115,7 +117,7 @@ def infer(
   v = jnp.swapaxes(v, 0, 1)
 
   # TODO(sholto): Should this ever be scaled when quantised?
-  x = layers_parallel._layernorm(x)  # pylint: disable = protected-access
+  x = layers_pjit._layernorm(x)  # pylint: disable = protected-access
 
   x = _with_sharding_constraint(x, (None, None, None))
   x = _with_sharding_constraint(x, (None, None, 'params_embed'))
@@ -162,45 +164,10 @@ def infer_xmap(
   elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
     attn_batch_sharding = y_axis * z_axis * x_axis
 
-  # Start indices are the sums of the lengths of the KV caches.
-  start_indices = attention.prefix_lengths(kv_caches)
-  prefix_batch, = start_indices.shape
   batch, max_length = chunk.tokens.shape
-  assert batch % prefix_batch == 0, 'Incompatible batch sizes'
-
-  # Do RoPE lookups in the sin/cos tables. Only needed once per prefix_batch.
-  def slice_at(index, table):
-    # table: [precomputed_length, qkv // 2]
-    return lax.dynamic_slice_in_dim(table, index, max_length)
-
-  def slices_at(indices, table):
-    return jax.vmap(slice_at, in_axes=(0, None))(indices, table)
-
-  sin = slices_at(start_indices, params.sin)
-  cos = slices_at(start_indices, params.cos)
-  # sin, cos: bf16[prefix_batch, max_length, qkv // 2]
-
-  # x: int32[batch, maxlen]
-  # embed: bfloat16[vocab.YZ, dmodel.X]
-  x = chunk.tokens
-  vocab_yz, _ = params.embedding.shape
-
-  yz_index = lax.axis_index('y') * z_axis + lax.axis_index('z')
-  vocab_start = yz_index * vocab_yz
-
-  # Initial embedding lookup:
-  with jax.named_scope('embed'):
-
-    one_x = x - vocab_start
-    embeds = params.embedding[one_x, :]
-    one_x = one_x[:, :, jnp.newaxis]
-    embeds = jnp.where((one_x >= 0) & (one_x < vocab_yz), embeds, 0)
-    # [batch, time, embed.XY]
-    embeds = lax.psum_scatter(embeds, 'y', scatter_dimension=2, tiled=True)
-    # [batch.Z, time, embed.XY]
-    embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=0, tiled=True)
-
-  x = embeds
+  # Start indices are the sums of the lengths of the KV caches.
+  x, sin, cos = two_d_parallel_xmap.xmap_embed(params, kv_caches, chunk,
+                                               shard_seqlen_vs_batch)
 
   def loop_body(layer, carry):
     x, k, v = carry
@@ -240,7 +207,7 @@ def infer_xmap(
   v = jnp.swapaxes(v, 0, 1)
 
   # [batch, maxlen, embed.X]
-  xnorm, _ = layers_parallel.allgather_layernorm(x, shard_seqlen_vs_batch)
+  xnorm, _ = two_d_parallel_xmap.allgather_layernorm(x, shard_seqlen_vs_batch)
 
   # x: bfloat16[batch, maxlen, dmodel.X] # [vocab.YZ, embed.X]
   with jax.named_scope('unembed'):

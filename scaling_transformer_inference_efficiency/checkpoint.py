@@ -24,6 +24,7 @@ import copy
 from functools import partial  # pylint: disable=g-importing-member
 import os
 from typing import Any, NewType
+from typing import Optional
 
 from flax import serialization
 from flax import struct
@@ -50,6 +51,7 @@ class HParams:
   qkv: int
   max_len: int  # Max length supported by attention
   vocab: int
+  padded_heads: Optional[int] = 0  # modify norms when using padding partition
 
   @property
   def q_wi_per_head(self):
@@ -58,14 +60,14 @@ class HParams:
     # fuses W and V from swiGLU, and the q computation
     # note both W and V have output dim .ff, not
     # 2/3 ff as in https://arxiv.org/pdf/2002.05202.pdf
-    return (self.ff * 2 // self.heads) + self.qkv
+    return (self.ff * 2 // (self.heads-self.padded_heads)) + self.qkv
 
   @property
   def o_wo_per_head(self):
     """In the fused o_wo layer, dimension size per head."""
     assert self.ff % self.heads == 0
     # fuse ff->e and projection layer of self-attention
-    return (self.ff // self.heads) + self.qkv
+    return (self.ff // (self.heads-self.padded_heads)) + self.qkv
 
 
 HParams.PALM_8B = HParams(
@@ -258,11 +260,13 @@ class Checkpoint:
   def make_shaped_arrays(cls, h):
     """Creates a Checkpoint populated by zero-footprint jax.ShapedArray."""
     return Checkpoint(
-        q_wi=jax.ShapedArray((h.layers, h.embed, h.heads, h.q_wi_per_head),
-                             jnp.bfloat16),
+        q_wi=jax.ShapedArray(
+            (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
+            jnp.bfloat16),
         kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16),
-        o_wo=jax.ShapedArray((h.layers, h.heads, h.o_wo_per_head, h.embed),
-                             jnp.bfloat16),
+        o_wo=jax.ShapedArray(
+            (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
+            jnp.bfloat16),
         layernorm_scale=jax.ShapedArray((h.layers, h.embed), jnp.float32),
         embedding=jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
     )
@@ -335,14 +339,17 @@ class QuantizedCheckpoint:
   def make_shaped_arrays(cls, h):
     """Creates a Checkpoint populated by zero-footprint jax.ShapedArray."""
     return QuantizedCheckpoint(
-        q_wi=jax.ShapedArray((h.layers, h.embed, h.heads, h.q_wi_per_head),
-                             jnp.int8),
-        q_wi_scale=jax.ShapedArray((h.layers, 1, h.heads, h.q_wi_per_head),
-                                   jnp.bfloat16),
+        q_wi=jax.ShapedArray(
+            (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
+            jnp.int8),
+        q_wi_scale=jax.ShapedArray(
+            (h.layers, 1, h.heads - h.padded_heads, h.q_wi_per_head),
+            jnp.bfloat16),
         kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8),
         kv_scale=jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.bfloat16),
-        o_wo=jax.ShapedArray((h.layers, h.heads, h.o_wo_per_head, h.embed),
-                             jnp.int8),
+        o_wo=jax.ShapedArray(
+            (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
+            jnp.int8),
         o_wo_scale=jax.ShapedArray((h.layers, 1, 1, h.embed), jnp.bfloat16),
         layernorm_scale=jax.ShapedArray((h.layers, h.embed), jnp.float32),
         embedding=jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16),

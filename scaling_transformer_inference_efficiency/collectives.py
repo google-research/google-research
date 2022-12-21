@@ -22,8 +22,6 @@ import jax.numpy as jnp
 import jax.scipy
 import numpy as np
 
-# pylint:disable = unused-argument
-
 # scatter_dimension decoder ring:
 #   matmul_reducescatter:
 #     * scatter_dimension[0] indexes into rhs, is the sharded axis, must be a
@@ -32,9 +30,8 @@ import numpy as np
 #       be an output channel
 #     * subsplit_axis
 #   allgather_matmul:
-#     * gather_dimension[0] indexes into rhs, is an lhs-sharded/rhs-unsharded
+#     * rhs_split_axis indexes into rhs, is an lhs-sharded/rhs-unsharded
 #       axis, must be an input channel
-#     * gather_dimension[1] is unused
 
 # numpy helper functions for weight pre-shuffling routines
 
@@ -90,26 +87,23 @@ def dynamic_index_and_slice(index_axis, index, slice_axis,
 def matmul_allgather_no_collective(einsum_spec,
                                    lhs,
                                    rhs,
-                                   gather_dimension,
+                                   rhs_split_axis,
                                    axis_name,
                                    layer,
-                                   layer_axis=0,
-                                   subsplit_axis=None):
+                                   layer_axis=0):
   """Non overlapped allgather matmul using default allgather."""
-  del subsplit_axis
   rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
-  lhs = lax.all_gather(lhs, axis_name, axis=gather_dimension[0], tiled=True)
+  lhs = lax.all_gather(lhs, axis_name, axis=rhs_split_axis, tiled=True)
   return jnp.einsum(einsum_spec, lhs, rhs)
 
 
-def async_matmul_allgather_one_way(einsum_spec,
-                                   lhs,
-                                   rhs,
-                                   gather_dimension,
-                                   axis_name,
-                                   layer,
-                                   layer_axis=0,
-                                   subsplit_axis=None):
+def allgather_matmul_one_way(einsum_spec,
+                             lhs,
+                             rhs,
+                             rhs_split_axis,
+                             axis_name,
+                             layer,
+                             layer_axis=0):
   """Uses a single ICI direction, overlapped all gather -> matmul.
 
   Example usage:
@@ -126,32 +120,31 @@ def async_matmul_allgather_one_way(einsum_spec,
     einsum_spec: matmul specification
     lhs: activations: [batch, maxlen, heads.YZX, o_wo_per_head]
     rhs: weights: [layer, heads.YZ, o_wo_per_head, dmodel.X]
-    gather_dimension: First dimension represents the axis of the rhs to split
+    rhs_split_axis: The axis of the rhs to split
     axis_name: Which axis is being gathered along
     layer: Which layer on the rhs to use (integer index in)
     layer_axis: The dimension on the rhs which represents layers
-    subsplit_axis: Unused, maintained to match function signatures
+
   Returns:
     activations: new activations
   """
   axis_size = lax.psum(1, axis_name)  # along X
   axis_index = lax.axis_index(axis_name)
-  split_axis = gather_dimension[0]
-  chunk_size = rhs.shape[split_axis] // axis_size
+  chunk_size = rhs.shape[rhs_split_axis] // axis_size
 
   first_chunk = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
 
   # print(f'first_chunk: {first_chunk.shape}, rhs: {rhs.shape}')
-  chunk_size = first_chunk.shape[split_axis] // axis_size
+  chunk_size = first_chunk.shape[rhs_split_axis] // axis_size
 
-  if split_axis >= layer_axis:
-    split_axis += 1
+  if rhs_split_axis >= layer_axis:
+    rhs_split_axis += 1
 
   def indexed_computation(i, lhs):
     # permutes_remaining_after_einsum = (axis_size - 1) - i
     # chunk_index = (axis_index + permutes_remaining_after_einsum) % axis_size
     chunk_index = (axis_index - i) % axis_size
-    c = dynamic_index_and_slice(layer_axis, layer, split_axis,
+    c = dynamic_index_and_slice(layer_axis, layer, rhs_split_axis,
                                 chunk_index * chunk_size, chunk_size, rhs)
     p = jnp.einsum(einsum_spec, lhs, c)
     return p
@@ -188,9 +181,8 @@ def async_matmul_allgather_one_way(einsum_spec,
   return accum + p
 
 
-def preshuffle_for_async_matmul_allgather_throughput(x, shuffle_axis,
-                                                     shard_axis):
-  """Pre-shuffle weights for async_matmul_allgather_throughput."""
+def preshuffle_for_allgather_matmul_throughput(x, shuffle_axis, shard_axis):
+  """Pre-shuffle weights for allgather_matmul_throughput."""
   axis_size = lax.psum(1, shard_axis)
   axis_index = lax.axis_index(shard_axis)
 
@@ -208,38 +200,53 @@ def preshuffle_for_async_matmul_allgather_throughput(x, shuffle_axis,
   return shard
 
 
-def async_matmul_allgather_throughput(
+def allgather_matmul_throughput(
     einsum_spec,
     lhs,
     rhs,
-    gather_dimension,
+    rhs_split_axis,
     axis_name,
     layer,
     subsplit_axis,
     layer_axis=0,
 ):
-  """Uses a two ICI directions, overlapped."""
-  # [batch, maxlen, heads.YZX, o_wo_per_head]
-  #           @ [heads.YZ, o_wo_per_head, dmodel.X]
-  # allgather LHS over X: List([batch, maxlen, heads.YZ/X, o_wo_per_head] * X)
-  # split RHS over heads by X: List([heads.YZ/X, o_wo_per_head, dmodel.X ]) * X
-  # -> ('bthd,hde->bte') X times, overlap with compute
-  # -> X partial sums [[batch, maxlen, dmodel.X]{YZ unreduced}] -> sum
-  # -> Later on: (unfused reducescatter)
-  # -> [batch, maxlen, dmodel.XYZ]
+  """Uses a two ICI directions, overlapped all gather -> matmul.
+
+  Example usage:
+    [batch, maxlen, heads.YZX, o_wo_per_head]
+              @ [heads.YZ, o_wo_per_head, dmodel.X]
+    allgather LHS over X: List([batch, maxlen, heads.YZ/X, o_wo_per_head] * X)
+    split RHS over heads by X: List([heads.YZ/X, o_wo_per_head, dmodel.X ]) * X
+    -> ('bthd,hde->bte') X times, overlap with compute
+    -> X partial sums [[batch, maxlen, dmodel.X]{YZ unreduced}] -> sum
+    -> Later on: (unfused reducescatter)
+    -> [batch, maxlen, dmodel.XYZ]
+  Args:
+    einsum_spec: matmul specification
+    lhs: activations: [batch, maxlen, heads.YZX, o_wo_per_head]
+    rhs: weights: [layer, heads.YZ, o_wo_per_head, dmodel.X]
+    rhs_split_axis: The axis of the rhs to split
+    axis_name: Which axis is being gathered along
+    layer: Which layer on the rhs to use (integer index in)
+    subsplit_axis: Axis to split the lhs along to utilise both ICI directions
+    layer_axis: The dimension on the rhs which represents layers
+
+  Returns:
+    activations: new activations
+  """
+
   axis_size = lax.psum(1, axis_name)  # along X
-  split_axis = gather_dimension[0]
-  chunk_size = rhs.shape[split_axis] // axis_size
+  chunk_size = rhs.shape[rhs_split_axis] // axis_size
 
   first_chunk = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
 
-  chunk_size = first_chunk.shape[split_axis] // axis_size
+  chunk_size = first_chunk.shape[rhs_split_axis] // axis_size
 
-  if split_axis >= layer_axis:
-    split_axis += 1
+  if rhs_split_axis >= layer_axis:
+    rhs_split_axis += 1
 
   def indexed_computation(chunk_index, lhs):
-    c = dynamic_index_and_slice(layer_axis, layer, split_axis,
+    c = dynamic_index_and_slice(layer_axis, layer, rhs_split_axis,
                                 chunk_index * chunk_size, chunk_size, rhs)
     p = jnp.einsum(einsum_spec, lhs, c)
     return p
@@ -285,9 +292,9 @@ def async_matmul_allgather_throughput(
   return accum + p
 
 
-def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis,
-                                                  shard_axis):
-  """Pre-shuffle weights for async_matmul_allgather_latency.
+def preshuffle_for_allgather_matmul_latency(x, shuffle_axis,
+                                            shard_axis):
+  """Pre-shuffle weights for allgather_matmul_latency.
 
     Function acts at a per-device view.
   Args:
@@ -297,7 +304,7 @@ def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis,
 
   Returns:
     Weight array pre-shuffled for use with
-    `reducescatter_bidirectional_latency`.
+    `reducescatter_latency`.
   """
   axis_size = lax.psum(1, shard_axis)
 
@@ -319,47 +326,61 @@ def preshuffle_for_async_matmul_allgather_latency(x, shuffle_axis,
 
 # subsplit_axis: lhs contracting dimension, along which we concatenate + and -
 #   directions
-# gather_dimension[0]: rhs contracting dimension, along which we split for steps
-# gather_dimension[1]: unused.
-def async_matmul_allgather_latency(
+# rhs_split_axis: rhs contracting dimension, along which we split for steps
+def allgather_matmul_latency(
     einsum_spec,
     lhs,
     rhs,
-    gather_dimension,
+    rhs_split_axis,
     axis_name,
     layer,
     subsplit_axis,
     layer_axis=0,
 ):
-  """Uses a two ICI directions, overlapped, half the steps, double the mem."""
-  # [batch, maxlen, heads.YZX, o_wo_per_head]
-  #                                   @ [heads.YZ, o_wo_per_head, dmodel.X]
-  # first allgather the next shard so that we can multiply with the whole thing
-  # gives
-  # allgather over X: List([batch, maxlen, 2 * heads.YZ/X, o_wo_per_head] * X)
-  # split RHS over heads by X: List([heads.YZ/X, o_wo_per_head, dmodel.X ]) * X
-  # -> ('bthd,hde->bte') X times, overlap with compute
-  # -> X partial sums [[batch, maxlen, dmodel.X]{YZ unreduced}] -> sum
-  # -> Later on: (unfused reducescatter)
-  # -> [batch, maxlen, dmodel.XYZ]
+  """Uses a two ICI directions, overlapped all gather -> matmul.
+
+  Example usage:
+    [batch, maxlen, heads.YZX, o_wo_per_head]
+                                      @ [heads.YZ, o_wo_per_head, dmodel.X]
+    first allgather the next shard so that we can multiply with the whole thing
+    gives
+    allgather over X: List([batch, maxlen, 2 * heads.YZ/X, o_wo_per_head] * X)
+    split RHS over heads by X: List([heads.YZ/X, o_wo_per_head, dmodel.X ]) * X
+    -> ('bthd,hde->bte') X times, overlap with compute
+    -> X partial sums [[batch, maxlen, dmodel.X]{YZ unreduced}] -> sum
+    -> Later on: (unfused reducescatter)
+    -> [batch, maxlen, dmodel.XYZ]
+  Args:
+    einsum_spec: matmul specification
+    lhs: activations: [batch, maxlen, heads.YZX, o_wo_per_head]
+    rhs: weights: [layer, heads.YZ, o_wo_per_head, dmodel.X]
+    rhs_split_axis: The axis of the rhs to split
+    axis_name: Which axis is being gathered along
+    layer: Which layer on the rhs to use (integer index in)
+    subsplit_axis: Axis to split the lhs along to utilise both ICI directions
+    layer_axis: The dimension on the rhs which represents layers
+
+  Returns:
+    activations: new activations
+  """
+
   axis_size = lax.psum(1, axis_name)  # along X
   matmul_steps = axis_size // 2
 
-  split_axis = gather_dimension[0]
-  chunk_size = rhs.shape[split_axis] // axis_size
+  chunk_size = rhs.shape[rhs_split_axis] // axis_size
 
   first_chunk = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
 
-  chunk_size = first_chunk.shape[split_axis] // matmul_steps
+  chunk_size = first_chunk.shape[rhs_split_axis] // matmul_steps
 
-  if split_axis >= layer_axis:
-    split_axis += 1
+  if rhs_split_axis >= layer_axis:
+    rhs_split_axis += 1
 
   def indexed_computation(i, lhs):
     # permutes_remaining_after_einsum = (axis_size - 1) - i
     # chunk_index = (axis_index + permutes_remaining_after_einsum) % axis_size
     chunk_index = i
-    c = dynamic_index_and_slice(layer_axis, layer, split_axis,
+    c = dynamic_index_and_slice(layer_axis, layer, rhs_split_axis,
                                 chunk_index * chunk_size, chunk_size, rhs)
     p = jnp.einsum(einsum_spec, lhs, c)
     return p
@@ -412,10 +433,8 @@ def matmul_reducescatter_no_collective(einsum_spec,
                                        scatter_dimension,
                                        axis_name,
                                        layer,
-                                       subsplit_axis,
                                        layer_axis=0):
   """Non overlapped matmul reduce scatter using default psum_scatter."""
-  del subsplit_axis  # Only for bidirectional_throughput
   rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
   tmp = jnp.einsum(einsum_spec, lhs, rhs)
 
@@ -431,9 +450,15 @@ def matmul_reducescatter_oneway(einsum_spec,
                                 scatter_dimension,
                                 axis_name,
                                 layer,
-                                subsplit_axis,
                                 layer_axis=0):
   """Uses a single ICI direction, overlapped weight stationary reduce scatter.
+
+  Usage:
+    [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
+      -> (matmul)
+      -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
+      -> (reducescatter over X into heads)
+      -> [batch, maxlen, heads.YZX, q_wi_per_head]
 
   Args:
     einsum_spec: Spec for the einsum
@@ -445,18 +470,12 @@ def matmul_reducescatter_oneway(einsum_spec,
     axis_name: The hardware axis along which we are reducing
     layer: Weights are stored with layer as the first dimension, index of the
       layer
-    subsplit_axis: Unused, for easy compatibility with other layerdefs
     layer_axis: Which axis is the layer dimension
 
   Returns:
     Result of a matmul and reduce_scatter
   """
-  del subsplit_axis  # Only for bidirectional_throughput
-  # [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
-  # -> (matmul)
-  # -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
-  # -> (reducescatter over X into heads)
-  # -> [batch, maxlen, heads.YZX, q_wi_per_head]
+
   # we want to maintain an accumulator, then permute and add to said accumulator
   axis_size = lax.psum(1, axis_name)
   axis_index = lax.axis_index(axis_name)
@@ -504,8 +523,9 @@ def matmul_reducescatter_oneway(einsum_spec,
 # bidirectional forms
 
 
-def preshuffle_for_reducescatter_bidirectional_throughput(
-    x, sharded_dim, scatter_dim, subsplit_dim):
+def preshuffle_for_reducescatter_throughput(x, sharded_dim,
+                                            scatter_dim,
+                                            subsplit_axis):
   """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
 
   Args:
@@ -513,47 +533,67 @@ def preshuffle_for_reducescatter_bidirectional_throughput(
       appropriately as an input for xmap, with materialized sharding dims.
     sharded_dim: materialized sharding dim.
     scatter_dim: array dim to scatter into.
-    subsplit_dim: array dim to split along for bidirectional split.
+    subsplit_axis: array dim to split along for bidirectional split.
 
   Returns:
     Weight array pre-shuffled for use with
-    `reducescatter_bidirectional_throughput`.
+    `reducescatter_throughput`.
   """
   axis_size = lax.psum(1, sharded_dim)
   axis_index = lax.axis_index(sharded_dim)
 
-  half = x.shape[subsplit_dim] // 2
+  half = x.shape[subsplit_axis] // 2
   pos_perm = lambda idx: jnp.roll(jnp.flip(np.arange(axis_size)), idx)
   neg_perm = lambda idx: jnp.roll(np.arange(axis_size), -idx - 1)
   new_x = jnp.zeros_like(x)
 
   # Handle shifts in each half of the subsplits:
   for pos, perm_fn in ((0, pos_perm), (half, neg_perm)):
-    split = gather_axis(x, index=slice(pos, pos + half), axis=subsplit_dim)
+    split = gather_axis(x, index=slice(pos, pos + half), axis=subsplit_axis)
     chunked_split = split_apart_axis(split, axis_size, axis=scatter_dim)
     rolled = gather_axis(
         chunked_split, index=perm_fn(axis_index), axis=scatter_dim)
     rolled = reflatten_axis(rolled, scatter_dim)
     new_x = update_slice(
-        new_x, rolled, slice(pos, pos + half), axis=subsplit_dim)
+        new_x, rolled, slice(pos, pos + half), axis=subsplit_axis)
   return new_x
 
 
-def matmul_reducescatter_bidirectional_throughput(einsum_spec,
-                                                  lhs,
-                                                  rhs,
-                                                  scatter_dimension,
-                                                  axis_name,
-                                                  layer,
-                                                  subsplit_axis,
-                                                  layer_axis=0):
-  """Uses a two ICI directions, overlapped."""
-  # [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
-  # -> (matmul)
-  # -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
-  # -> (reducescatter over X into heads)
-  # -> [batch, maxlen, heads.YZX, q_wi_per_head]
-  # we want to maintain an accumulator, then permute and add to said accumulator
+def matmul_reducescatter_throughput(einsum_spec,
+                                    lhs,
+                                    rhs,
+                                    scatter_dimension,
+                                    axis_name,
+                                    layer,
+                                    subsplit_axis,
+                                    layer_axis=0):
+  """Uses a two ICI directions, overlapped weight stationary reduce scatter.
+
+  Usage:
+    [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
+    -> (matmul)
+    -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
+    -> (reducescatter over X into heads)
+    -> [batch, maxlen, heads.YZX, q_wi_per_head]
+    we want to maintain an accumulator, then permute and add to said accumulator
+
+  Args:
+    einsum_spec: Spec for the einsum
+    lhs: Typically activations
+    rhs: Typically weights
+    scatter_dimension: The first argument denotes the logical axis along which
+      the output will be scattered, the second is unused. TODO(sholto): Make
+      string parse
+    axis_name: The hardware axis along which we are reducing
+    layer: Weights are stored with layer as the first dimension, index of the
+      layer
+    subsplit_axis: Axis to split the accumulator along to utilise both ICI links
+    layer_axis: Which axis is the layer dimension
+
+  Returns:
+    Result of a matmul and reduce_scatter
+  """
+
   axis_size = lax.psum(1, axis_name)  # two for both directions
   rhs_scatter_axis, _ = scatter_dimension
   if rhs_scatter_axis >= layer_axis:
@@ -564,9 +604,7 @@ def matmul_reducescatter_bidirectional_throughput(einsum_spec,
   first_chunk = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
                                         chunk_index * chunk_size, chunk_size,
                                         rhs)
-  # print(f'lhs {lhs.shape} rhs {rhs.shape}, first_chunk {first_chunk.shape}')
   p = jnp.einsum(einsum_spec, lhs, first_chunk)
-  # print(f'{einsum_spec}, {p.shape}')
   accum_shape = list(p.shape)
   accum_shape[subsplit_axis] = accum_shape[subsplit_axis] // 2
   accum_pos = jnp.zeros(accum_shape, dtype=lhs.dtype)
@@ -580,7 +618,6 @@ def matmul_reducescatter_bidirectional_throughput(einsum_spec,
   def collective_matmul(i, carrys):
     # matmul
     accum_pos, accum_neg, p = carrys
-    # print(p.shape, subsplit_axis)
     p_pos, p_neg = jnp.split(p, 2, subsplit_axis)
     accum_pos += p_pos
     accum_neg += p_neg
@@ -592,7 +629,7 @@ def matmul_reducescatter_bidirectional_throughput(einsum_spec,
     # But this has the disadvantage of needing to slice differently for
     # the positive and negative directions, which in turn forces us to
     # split the einsum into two separate einsums, harming efficiency.
-    # Instead, we (imagine that we) pre-shuffle the weight matrix in the
+    # Instead, we pre-shuffle the weight matrix in the
     # output channels dimension so that indexing by 'i' on every chip is
     # correct.
     c = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
@@ -617,8 +654,7 @@ def matmul_reducescatter_bidirectional_throughput(einsum_spec,
   return result
 
 
-def preshuffle_for_reducescatter_bidirectional_latency(x, sharded_dim,
-                                                       scatter_dim):
+def preshuffle_for_reducescatter_latency(x, sharded_dim, scatter_dim):
   """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
 
   Function acts at a per-device view.
@@ -629,7 +665,7 @@ def preshuffle_for_reducescatter_bidirectional_latency(x, sharded_dim,
 
   Returns:
     Weight array pre-shuffled for use with
-    `reducescatter_bidirectional_latency`.
+    `reducescatter_latency`.
   """
   axis_size = lax.psum(1, sharded_dim)
   axis_index = lax.axis_index(sharded_dim)
@@ -652,21 +688,41 @@ def preshuffle_for_reducescatter_bidirectional_latency(x, sharded_dim,
   return permuted
 
 
-def matmul_reducescatter_bidirectional_latency(einsum_spec,
-                                               lhs,
-                                               rhs,
-                                               scatter_dimension,
-                                               axis_name,
-                                               layer,
-                                               subsplit_axis,
-                                               layer_axis=0):
-  """Uses a two ICI directions, overlapped, half the steps."""
-  # [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
-  # -> (matmul)
-  # -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
-  # -> (reducescatter over X into heads)
-  # -> [batch, maxlen, heads.YZX, q_wi_per_head]
-  # we want to maintain an accumulator, then permute and add to said accumulator
+def matmul_reducescatter_latency(einsum_spec,
+                                 lhs,
+                                 rhs,
+                                 scatter_dimension,
+                                 axis_name,
+                                 layer,
+                                 subsplit_axis,
+                                 layer_axis=0):
+  """Uses a two ICI directions, pre-communicate to halve the steps.
+
+  Usage:
+    [batch, maxlen, dmodel.X] @ [heads.YZ, dmodel.X, q_wi_per_head]
+    -> (matmul)
+    -> [batch, maxlen, heads.YZ, q_wi_per_head]{X unreduced}
+    -> (reducescatter over X into heads)
+    -> [batch, maxlen, heads.YZX, q_wi_per_head]
+    we want to maintain an accumulator, then permute and add to said accumulator
+
+  Args:
+    einsum_spec: Spec for the einsum
+    lhs: Typically activations
+    rhs: Typically weights
+    scatter_dimension: The first argument denotes the logical axis along which
+      the output will be scattered, the second is unused. TODO(sholto): Make
+      string parse
+    axis_name: The hardware axis along which we are reducing
+    layer: Weights are stored with layer as the first dimension, index of the
+      layer
+    subsplit_axis: TODO(sholto): Remove
+    layer_axis: Which axis is the layer dimension
+
+  Returns:
+    Result of a matmul and reduce_scatter
+  """
+
   axis_size = lax.psum(1, axis_name)  # two for both directions
   scatter_axis = scatter_dimension[0]
 
@@ -714,7 +770,7 @@ def matmul_reducescatter_bidirectional_latency(einsum_spec,
     # But this has the disadvantage of needing to slice differently for
     # the positive and negative directions, which in turn forces us to
     # split the einsum into two separate einsums, harming efficiency.
-    # Instead, we (imagine that we) pre-shuffle the weight matrix in the
+    # Instead, we pre-shuffle the weight matrix in the
     # output channels dimension so that indexing by 'i' on every chip is
     # correct.
 
@@ -748,35 +804,41 @@ def matmul_reducescatter_bidirectional_latency(einsum_spec,
 # non-weight-stationary fused matmul routines
 
 
-def matmul_collective_weights_gather_q_wi(
-    einsum_spec,
-    lhs,
-    rhs,
-    scatter_dimension,
-    axis_name,  # what we are partitioning the chunked axis along
-    layer,
-    subsplit_axis,
-    layer_axis=0):
+def matmul_collective_weights_gather_q_wi(einsum_spec, lhs,
+                                          rhs, lhs_split_axis,
+                                          axis_name):
   """Designed for prefill, moves the weights through x,y and z instead of lhs.
+
+  Pseudocode:
+
+    [batch.XYZ, t, e] @ [heads.YZ, e.X, q_wi_per_head]
+    result = zeros((Y, Z, ...))
+    for y in Y:
+      for z in Z:
+        local_accum = zeros(...)
+        for x in X:
+          next_weights = ppermute(weights, 'x', plus_1)
+          local_accum += jnp.einsum(lhs, next_weights)
+        result[Y, Z] = local_accum
+
+  Args:
+    einsum_spec: the computation
+    lhs: activations, sharded over batch
+    rhs: weights, to be moved through all chips in a space filling curve
+    lhs_split_axis: the lhs axis along which to split so we can overlap the math
+      in the innermost loop
+    axis_name: which axis we partition that split axis along in the output
+
+  Returns:
+    new_activations: result of computation
   """
-  del subsplit_axis  # Only for bidirectional_throughput
-  # [batch.XYZ, t, e] @ [heads.YZ, e.X, q_wi_per_head]
-  # result = zeros((Y, Z, ...))
-  # for y in Y:
-  #   for z in Z:
-  #     local_accum = zeros(...)
-  #     for x in X:
-  #       next_weights = ppermute(weights, 'x', plus_1)
-  #       local_accum += jnp.einsum(lhs, next_weights)
-  #     result[Y, Z] = local_accum
 
   x_size, y_size, z_size = lax.psum(1, 'x'), lax.psum(1, 'y'), lax.psum(1, 'z')
   axis_size = lax.psum(1, axis_name)
   axis_index = lax.axis_index(axis_name)
-  split_axis = scatter_dimension[0]
 
   # chunking specific
-  chunk_size = lhs.shape[split_axis] // axis_size
+  chunk_size = lhs.shape[lhs_split_axis] // axis_size
 
   # slice into the weights along the axis we will scatter along
   # all others are just in a chain as parititoned
@@ -785,7 +847,7 @@ def matmul_collective_weights_gather_q_wi(
     chunk_index = (axis_index + permutes_remaining_after_einsum) % axis_size
     # print(lhs.shape,)
     c = jax.lax.dynamic_slice_in_dim(lhs, chunk_index * chunk_size, chunk_size,
-                                     split_axis)
+                                     lhs_split_axis)
     p = jnp.einsum(einsum_spec, c, rhs)
     return p
 
@@ -906,38 +968,36 @@ def matmul_collective_weights_gather_q_wi(
   return final_accum
 
 
-# pylint: disable = g-doc-args
-# pylint: disable = g-doc-return-or-yield
-# TODO(sholto): new explaination with new set of collectives
-def matmul_collective_weights_gather_o_wo(
-    einsum_spec,
-    lhs,
-    rhs,
-    scatter_dimension,
-    axis_name,  # what we are partitioning the chunked axis along
-    layer,
-    subsplit_axis,
-    layer_axis=0):
+def matmul_collective_weights_gather_o_wo(einsum_spec, lhs,
+                                          rhs,
+                                          lhs_split_axis):
   """Designed for prefill, moves the weights through x,y and z instead of lhs.
 
-  result = zeros((X, ...)) for x in X:
+  Pseudocode:
+    result = zeros((X, ...)) for x in X:
+      local_accum = zeros(...)
+      for y in Y:
+        for z in Z:
+          next_weights = ppermute(weights, 'x', plus_1)
+          local_accum += jnp.einsum(lhs, next_weights)
+      result[X] = local_accum
 
-    local_accum = zeros(...)
-    for y in Y:
-      for z in Z:
-        next_weights = ppermute(weights, 'x', plus_1)
-        local_accum += jnp.einsum(lhs, next_weights)
-    result[X] = local_accum
+  Args:
+    einsum_spec: the computation
+    lhs: activations, sharded over batch
+    rhs: weights, to be moved through all chips in a space filling curve
+    lhs_split_axis: the lhs axis along which to split so we can overlap the math
+      in the innermost loop
+
+  Returns:
+    new_activations: result of computation
   """
-  del subsplit_axis  # Only for bidirectional_throughput
-  del axis_name  # we use both y and z here
   x_size, y_size, z_size = lax.psum(1, 'x'), lax.psum(1, 'y'), lax.psum(1, 'z')
   axis_size = y_size * z_size
   axis_index = lax.axis_index('y') * z_size + lax.axis_index('z')
-  split_axis = scatter_dimension[0]
 
   # chunking specific - should be nh dim on lhs
-  chunk_size = lhs.shape[split_axis] // axis_size
+  chunk_size = lhs.shape[lhs_split_axis] // axis_size
 
   def derive_permutation(y, z, ya, za, head_chunk_size):
     # to derive the appropriate head to index into given the sequence of
@@ -958,7 +1018,7 @@ def matmul_collective_weights_gather_o_wo(
     chunk_index = derive_permutation(y_i, z_i, y_ai, z_ai, 1)
 
     c = jax.lax.dynamic_slice_in_dim(lhs, chunk_index * chunk_size, chunk_size,
-                                     split_axis)
+                                     lhs_split_axis)
 
     p = jnp.einsum(einsum_spec, c, rhs)
     return p
@@ -1047,16 +1107,13 @@ def matmul_collective_weights_gather_o_wo(
   # that would have been (to avoid a final permute)
   final_accum, rhs = collect_yz(final_accum, rhs, x_size - 1)
 
-  # do we need a final x? No?
-
   return final_accum
 
 
 # raw reduce-scatter collectives
 # unused in paper, but presented here as isolated lowerings
 # of reduce-scatter to collective permutes.
-
-
+# pylint: disable = unused-argument
 def plain_reducescatter(val,
                         scatter_dimension,
                         axis_name,
@@ -1106,9 +1163,8 @@ def reducescatter_oneway(val,
   return accum + p
 
 
-def reducescatter_bidirectional_throughput(val, scatter_dimension,
-                                           axis_name,
-                                           subsplit_axis):
+def reducescatter_throughput(val, scatter_dimension, axis_name,
+                             subsplit_axis):
   """Using two ICI directions, manual reduce scatter."""
   axis_size = lax.psum(1, axis_name)
 
@@ -1157,10 +1213,10 @@ def reducescatter_bidirectional_throughput(val, scatter_dimension,
   return jnp.concatenate((accum_pos, accum_neg), subsplit_axis) + p
 
 
-def reducescatter_bidirectional_latency(val,
-                                        scatter_dimension,
-                                        axis_name,
-                                        subsplit_axis=None):
+def reducescatter_latency(val,
+                          scatter_dimension,
+                          axis_name,
+                          subsplit_axis=None):
   """Using two ICI directions, manual reduce scatter."""
 
   axis_size = lax.psum(1, axis_name)  # two for both directions

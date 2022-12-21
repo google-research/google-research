@@ -24,8 +24,8 @@ import numpy as np
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import incremental
 from scaling_transformer_inference_efficiency import inference
-from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import weights
+from scaling_transformer_inference_efficiency.layers import layers_pjit
 
 jax.config.update('jax_array', True)  # required for jax<0.4.0
 
@@ -60,7 +60,7 @@ def run(model, quantized):
   the_model = incremental.JittedModel(
       cs.hparams, the_vocab.eos_id,
       functools.partial(inference.infer, cs.hparams,
-                        layers_parallel.pjit_transformer_layer),
+                        layers_pjit.pjit_transformer_layer),
       weights.physical_axes())
   with the_model.mesh:
     the_weights = params.from_checkpoint(cs.hparams, the_model.mesh, loaded_cs)

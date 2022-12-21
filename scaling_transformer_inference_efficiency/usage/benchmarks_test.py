@@ -16,8 +16,8 @@
 """Tests for benchmark."""
 
 from absl import app
-from scaling_transformer_inference_efficiency import benchmark
 from scaling_transformer_inference_efficiency import checkpoint
+from scaling_transformer_inference_efficiency.usage import benchmarks
 
 
 def main(argv):
@@ -25,8 +25,8 @@ def main(argv):
   batch = 32
   seqlen = 2048
   num_samples = 1
-  benchmark.benchmark_generate('basic', checkpoint.HParams.PALM_8B, batch,
-                               seqlen, num_samples)
+  benchmarks.benchmark_generate('basic', checkpoint.HParams.PALM_8B, batch,
+                                seqlen, num_samples)
 
 
 if __name__ == '__main__':

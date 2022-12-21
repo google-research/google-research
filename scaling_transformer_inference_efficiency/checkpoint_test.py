@@ -35,6 +35,14 @@ _TOY_HPARAMS = checkpoint.HParams(
 # Test relies on internal checkpoints
 
 
+class CheckpointTest(absltest.TestCase):
+
+  def test_init_zero(self):
+    c = checkpoint.Checkpoint.init_zero(_TOY_HPARAMS)
+    shapes = checkpoint.Checkpoint.make_shaped_arrays(_TOY_HPARAMS)
+    self.assertEqual(c.q_wi.shape, shapes.q_wi.shape)
+    self.assertEqual(c.q_wi.dtype, shapes.q_wi.dtype)
+
 
 if __name__ == '__main__':
   absltest.main()

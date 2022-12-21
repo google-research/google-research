@@ -26,10 +26,11 @@ from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import collectives
 from scaling_transformer_inference_efficiency import inference
-from scaling_transformer_inference_efficiency import layers_parallel
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
 from scaling_transformer_inference_efficiency import weights
+from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
+from scaling_transformer_inference_efficiency.layers.layers_pjit import _rope
 from scaling_transformer_inference_efficiency.weights import Layer
 
 HParams = checkpoint.HParams
@@ -61,13 +62,13 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
   the ATTN will just be padded and not gain speedup as we add chips.
   """
   if latency_collectives:
-    matmul_reducescatter = collectives.matmul_reducescatter_bidirectional_latency
-    # reducescatter = collectives.reducescatter_bidirectional_latency
-    matmul_allgather = collectives.async_matmul_allgather_latency
+    matmul_reducescatter = collectives.matmul_reducescatter_latency
+    # reducescatter = collectives.reducescatter_latency
+    matmul_allgather = collectives.allgather_matmul_latency
   else:
-    matmul_reducescatter = collectives.matmul_reducescatter_bidirectional_throughput
-    # reducescatter = collectives.reducescatter_bidirectional_throughput
-    matmul_allgather = collectives.async_matmul_allgather_throughput
+    matmul_reducescatter = collectives.matmul_reducescatter_throughput
+    # reducescatter = collectives.reducescatter_throughput
+    matmul_allgather = collectives.allgather_matmul_throughput
 
   def my_layer(t, axis=0):
     """Gets the parameters corresponding to a given layer."""
@@ -82,9 +83,6 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
   y_index = lax.axis_index('y')
   z_index = lax.axis_index('z')
   yz_index = y_index * z_axis + z_index
-
-  if batch == 1 and max_len == 1:
-    raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
 
   with jax.named_scope('layernorm'):
     # x: [batch, maxlen, dmodel.X]
@@ -106,19 +104,19 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
         'bte,hed->bthd',
         xnorm,
         params.q_wi,
-        gather_dimension=(1, None),
+        rhs_split_axis=1,
         axis_name='x',
         layer=layer,
         subsplit_axis=2)
 
-    layers_parallel.assert_equal(
+    two_d_parallel_xmap.assert_equal(
         q_wi.shape, (batch, max_len, hparams.heads //
                      (x_axis * y_axis * z_axis), hparams.q_wi_per_head))
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = q_wi.shape
       q_wi = jnp.bfloat16(q_wi * jnp.squeeze(my_layer(params.q_wi_scale)))
-      layers_parallel.assert_equal(prev_shape, q_wi.shape)
+      two_d_parallel_xmap.assert_equal(prev_shape, q_wi.shape)
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled
@@ -183,13 +181,13 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
     if isinstance(params, inference.QuantizedLayer):
       prev_shape = kv.shape
       kv = jnp.bfloat16(kv * jnp.squeeze(my_layer(params.kv_scale)))
-      layers_parallel.assert_equal(prev_shape, kv.shape)
+      two_d_parallel_xmap.assert_equal(prev_shape, kv.shape)
 
     k = kv[:, :, 0, :hparams.qkv]
     v = kv[:, :, 0, hparams.qkv:]
 
   with jax.named_scope('attn'):
-    k = inference._rope(sin, cos, k)
+    k = _rope(sin, cos, k)
 
     # q: [batch, maxlen, heads.YZX, qkv]
     # -> { NONE:                   [batch,  maxlen, heads.YZX, qkv]
@@ -211,7 +209,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
       q = lax.all_to_all(
           q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
 
-    q = inference._rope(sin, cos, q)
+    q = _rope(sin, cos, q)
 
     y_att = jnp.bfloat16(attention.attend(q, k, v, kv_caches, layer))
     # y_att:
@@ -248,7 +246,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
   # -> [batch, maxlen, dmodel.X]
   with jax.named_scope('o_wo'):
     y_fused = jnp.concatenate([y_att, y_mlp], axis=-1)
-    layers_parallel.assert_equal(
+    two_d_parallel_xmap.assert_equal(
         y_fused.shape, (batch, max_len, hparams.heads //
                         (x_axis * y_axis * z_axis), hparams.o_wo_per_head))
 
@@ -267,7 +265,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
     if isinstance(params, inference.QuantizedLayer):
       prev_shape = y_out.shape
       y_out = jnp.bfloat16(y_out * jnp.squeeze(my_layer(params.o_wo_scale)))
-      layers_parallel.assert_equal(y_out.shape, prev_shape)
+      two_d_parallel_xmap.assert_equal(y_out.shape, prev_shape)
 
   with jax.named_scope('residual'):
     z = jnp.bfloat16(y_out + x)

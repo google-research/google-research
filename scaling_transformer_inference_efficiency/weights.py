@@ -36,7 +36,6 @@ import jax.numpy as jnp
 import jax.scipy
 import numpy as np
 
-
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
@@ -136,11 +135,13 @@ class Weights:
   @classmethod
   def make_shaped_arrays(cls, h):
     """Creates weights populated with zero-footprint shaped arrays."""
-    q_wi = jax.ShapedArray((h.layers, h.heads, h.embed, h.q_wi_per_head),
-                           jnp.bfloat16)
+    q_wi = jax.ShapedArray(
+        (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head),
+        jnp.bfloat16)
     kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16)
-    o_wo = jax.ShapedArray((h.layers, h.heads, h.o_wo_per_head, h.embed),
-                           jnp.bfloat16)
+    o_wo = jax.ShapedArray(
+        (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
+        jnp.bfloat16)
     sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
@@ -163,6 +164,24 @@ class Weights:
     """Returns the partition specs for the weights in their physical axes."""
     return jax.tree_map(partitioning.logical_to_physical,
                         Weights.logical_axes())
+
+  @partial(jax.jit, static_argnums=(0, 1), donate_argnums=(2, 3))
+  def pad_heads(self, h, o_wo, q_wi):
+    """Pads heads so we can shard them further."""
+    if h.padded_heads > 0:
+      q_wi_padding = jnp.zeros(
+          (h.layers, h.padded_heads, h.embed, h.q_wi_per_head),
+          dtype=q_wi.dtype)
+      q_wi = jax.lax.with_sharding_constraint(
+          jnp.concatenate([q_wi, q_wi_padding], axis=1),
+          self.physical_axes.q_wi)
+      o_wo_padding = jnp.zeros(
+          (h.layers, h.padded_heads, h.o_wo_per_head, h.embed),
+          dtype=o_wo.dtype)
+      o_wo = jax.lax.with_sharding_constraint(
+          jnp.concatenate([o_wo, o_wo_padding], axis=1),
+          self.physical_axes.q_wi)
+      return o_wo, q_wi
 
   @classmethod
   def from_checkpoint(cls, h, mesh,
@@ -265,6 +284,7 @@ class Weights:
       #   (layers, embed, heads, query) -> (layers, heads, embed, query)
       # to avoid XLA doing that same transformation on every inference.
       q_wi = jnp.swapaxes(q_wi, 1, 2)
+
       return jnp.bfloat16(q_wi), jnp.bfloat16(kv), jnp.bfloat16(
           o_wo), jnp.bfloat16(embedding)
 
@@ -281,8 +301,9 @@ class Weights:
     q_wi_input_axes = ('layers', 'params_embed', 'params_heads', 'qkv')
     q_wi = copy_to_device(
         c.q_wi, q_wi_input_axes,
-        jax.ShapedArray((h.layers, h.embed, h.heads, h.q_wi_per_head),
-                        jnp.bfloat16))
+        jax.ShapedArray(
+            (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
+            jnp.bfloat16))
     kv = copy_to_device(c.kv, axes.layer.kv, expected_shapes.layer.kv)
     o_wo = copy_to_device(c.o_wo, axes.layer.o_wo, expected_shapes.layer.o_wo)
     layernorm_scale_axes = ('layers', 'params_embed')
@@ -341,10 +362,11 @@ class QuantizedWeights:
   @classmethod
   def make_shaped_arrays(cls, h):
     """Creates weights populated with zero-footprint shaped arrays."""
-    q_wi = jax.ShapedArray((h.layers, h.heads, h.embed, h.q_wi_per_head),
-                           jnp.int8)
-    q_wi_scale = jax.ShapedArray((h.layers, h.heads, 1, h.q_wi_per_head),
-                                 jnp.float32)
+    q_wi = jax.ShapedArray(
+        (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head),
+        jnp.int8)
+    q_wi_scale = jax.ShapedArray(
+        (h.layers, h.heads - h.padded_heads, 1, h.q_wi_per_head), jnp.float32)
     kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8)
     kv_scale = jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
     o_wo = jax.ShapedArray((h.layers, h.heads, h.o_wo_per_head, h.embed),
@@ -449,6 +471,9 @@ class QuantizedWeights:
       o_wo_scale, embedding = fold_in_unembedding_constants(
           o_wo_scale, jnp.float32(embedding))
 
+      if h.padded_heads > 0:
+        raise NotImplementedError
+
       # embedding is returned as bfloat16, so do not donate
       return q_wi_scale, o_wo_scale, kv_scale, jnp.bfloat16(embedding)
 
@@ -464,11 +489,14 @@ class QuantizedWeights:
     q_wi_scale_input_axes = P('layers', None, 'heads', 'qkv')
     q_wi = copy_to_device(
         c.q_wi, q_wi_input_axes,
-        jax.ShapedArray((h.layers, h.embed, h.heads, h.q_wi_per_head),
-                        jnp.int8))
+        jax.ShapedArray(
+            (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
+            jnp.int8))
     q_wi_scale = copy_to_device(
         c.q_wi_scale, q_wi_scale_input_axes,
-        jax.ShapedArray((h.layers, 1, h.heads, h.q_wi_per_head), jnp.float32))
+        jax.ShapedArray(
+            (h.layers, 1, h.heads - h.padded_heads, h.q_wi_per_head),
+            jnp.float32))
     kv = copy_to_device(c.kv, axes.layer.kv, expected_shapes.layer.kv)
     kv_scale = copy_to_device(c.kv_scale, axes.layer.kv_scale,
                               expected_shapes.layer.kv_scale)

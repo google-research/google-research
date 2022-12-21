@@ -68,7 +68,7 @@ class Sampling:
       batch_x, _ = logits.shape
       padded_batch_x = max(
           batch_x,
-          y_axis * z_axis)  # TODO(sholto): Would this not need to be xyz?
+          y_axis * z_axis)
       if padded_batch_x > batch_x:
         logits = jnp.pad(
             logits,

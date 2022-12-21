@@ -30,9 +30,9 @@ import jax.numpy as jnp
 import numpy as np
 
 from scaling_transformer_inference_efficiency import checkpoint
-from scaling_transformer_inference_efficiency import global_to_per_device
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
+from scaling_transformer_inference_efficiency.maps import shard_map
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
 # jax.config.update('experimental_xmap_spmd_lowering', True)
@@ -86,22 +86,21 @@ def create_test_weights(dtype):
 
   x_pjit, params_pjit = materialise_host_tensors(key_0, batch, seqlen, h, dtype)
   x_sharding, params_sharding = P(
-      'residual_batch', 'time',
+      'residual_batch', 'residual_time',
       'residual_embed'), weights.Weights.logical_axes()
   return mesh, x_pjit, x_sharding, params_pjit, params_sharding
 
 
 def fold_out_to_per_device(mesh, x_pjit, x_sharding, params_pjit,
                            params_sharding):
-  fold_out_for_mesh = functools.partial(global_to_per_device.fold_out, mesh)
+  fold_out_for_mesh = functools.partial(shard_map.fold_out, mesh)
   x_xmap, x_layout = fold_out_for_mesh(x_pjit, x_sharding)
   folded_out = jax.tree_map(fold_out_for_mesh, params_pjit, params_sharding)
-  params_xmap, params_layouts = global_to_per_device.unzip_tree(
-      params_pjit, folded_out)
+  params_xmap, params_layouts = shard_map.unzip_tree(params_pjit, folded_out)
   return x_xmap, x_layout, params_xmap, params_layouts
 
 
-class GlobalToPerDeviceTest(absltest.TestCase):
+class MapsTest(absltest.TestCase):
 
   def test_map_to_and_from(self):
 
@@ -118,7 +117,7 @@ class GlobalToPerDeviceTest(absltest.TestCase):
     print('Params pjit: ', jax.tree_map(jnp.shape, params_pjit))
     print('Params xmap: ', jax.tree_map(jnp.shape, params_xmap))
     print('Layouts: ', params_layouts)
-    folded_in_params = jax.tree_map(global_to_per_device.fold_in, params_xmap,
+    folded_in_params = jax.tree_map(shard_map.fold_in, params_xmap,
                                     params_sharding)
     print('Back to pjit: ', jax.tree_map(jnp.shape, folded_in_params))
     equality_checks = jax.tree_map(lambda a, b: (a == b).all(), params_pjit,
@@ -159,7 +158,7 @@ class GlobalToPerDeviceTest(absltest.TestCase):
 
       with mesh:
         y2 = add_one_xmap(x_xmap)
-      y2 = global_to_per_device.fold_in(y2, x_sharding)
+      y2 = shard_map.fold_in(y2, x_sharding)
 
       assert (y1 == y2).all()
 
@@ -213,7 +212,7 @@ class GlobalToPerDeviceTest(absltest.TestCase):
 
         return x, y
 
-      matmul_shardmap = global_to_per_device.shard_map(
+      matmul_shardmap = shard_map.shard_map(
           matmul_xmap,
           mesh=mesh,
           in_pspecs=(x_sharding, params_sharding),

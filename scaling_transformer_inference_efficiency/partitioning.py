@@ -19,7 +19,7 @@ import contextlib
 from enum import Enum  # pylint: disable = g-importing-member
 import functools
 import threading
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Union, List, Tuple
 
 import jax
 from jax import pxla
@@ -55,16 +55,19 @@ def attn_sharding_to_axes(attn_batch_sharding):
     return ('y', 'z', 'x')
 
 
-def make_rules_two_d(attn_batch_sharding=AttnAllToAll.NONE):
+def make_rules_two_d(
+    attn_batch_sharding=AttnAllToAll.NONE,
+    shard_seqlen_vs_batch=False):
 
   return [
       ('prefix_time', None),
       ('prefix_layers', None),
       ('prefix_qkv', None),
       ('batch', None),
-      ('residual_batch', ('z',)),
+      ('residual_batch', None if shard_seqlen_vs_batch else 'z'),
       ('logit_batch', 'x'),  # for vocab
       ('residual_embed', ('x', 'y')),
+      ('residual_time', 'z' if shard_seqlen_vs_batch else None),
       ('post_norm_batch', None),
       ('post_norm_embed', 'x'),
       ('heads', ('y', 'z', 'x')),
@@ -73,6 +76,27 @@ def make_rules_two_d(attn_batch_sharding=AttnAllToAll.NONE):
       ('params_embed', 'x'),
       ('vocab', ('y', 'z')),
       ('attn_batch', attn_sharding_to_axes(attn_batch_sharding)),
+  ]
+
+
+def make_rules_weight_gathered():
+
+  return [
+      ('prefix_time', None),
+      ('prefix_layers', None),
+      ('prefix_qkv', None),
+      ('batch', None),
+      ('residual_batch', ('x', 'y', 'z')),
+      ('logit_batch', 'x'),  # tbd
+      ('residual_embed', None),
+      ('post_norm_batch', ('x', 'y', 'z')),
+      ('post_norm_embed', None),
+      ('heads', None),
+      ('qkv', None),
+      ('params_heads', ('y', 'z')),
+      ('params_embed', 'x'),
+      ('vocab', ('y', 'z')),  # tbd
+      ('attn_batch', ('x', 'y', 'z')),
   ]
 
 
@@ -248,7 +272,5 @@ def get_sharding_divisor(logical):
   if sharding_axis == P(None,):
     sharding_axis_size = 1
   else:
-    sharding_axis_size = np.prod([
-        jax.lax.psum(1, a) for a in sharding_axis])
+    sharding_axis_size = np.prod([jax.lax.psum(1, a) for a in sharding_axis])
   return sharding_axis_size
-

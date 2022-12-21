@@ -112,6 +112,7 @@ the ChunkResults into a single longer ChunkResult, subject to batch size
 restrictions.
 """
 
+from dataclasses import dataclass  # pylint: disable=g-importing-member
 from functools import partial  # pylint: disable=g-importing-member
 from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
@@ -123,24 +124,58 @@ from jax.experimental.maps import xmap
 import jax.numpy as jnp
 import jax.scipy
 import numpy as np
+import seqio
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import collectives
-from scaling_transformer_inference_efficiency import global_to_per_device
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import ChunkResult
 from scaling_transformer_inference_efficiency.chunk import InferFn
-from scaling_transformer_inference_efficiency.global_to_per_device import shard_map
+from scaling_transformer_inference_efficiency.maps import shard_map
 from scaling_transformer_inference_efficiency.sampling import Sampling
 
 Weights = weights.Weights
 P = pjit.PartitionSpec
 
 
-def _bos_logits(vocab_size):
+@dataclass
+class StreamClient:
+  """Used to handle streaming results."""
+  prev_token_decoded = None
+  prev_token = None
+
+  def find_new_chars(self, vocab: seqio.Vocabulary, next_token: np.ndarray):
+    """We decode pairs because the tokenizer strips whitespace."""
+    prefix = self.prev_token_decoded
+    whole = vocab.decode_tf(np.concatenate([self.prev_token, next_token],
+                                           -1)).numpy().decode('utf-8')
+    new_text = whole[len(prefix):]
+    return new_text
+
+  def stream_result(self, logits: jax.Array, vocab: seqio.Vocabulary, x: int,
+                    y: int, z: int):
+    """Steam result back to std. For the moment only stream first element."""
+
+    if x == 0 and y == 0 and z == 0:
+      logits = np.array(logits)
+      current_token = np.array(logits[0:1])
+      if self.prev_token is None:
+        new_chars = vocab.decode_tf(current_token).numpy().decode('utf-8')
+      else:
+        new_chars = self.find_new_chars(vocab, current_token)
+      # print(new_chars, self.prev_token_decoded)
+      print(new_chars, end='')
+      self.prev_token = current_token
+      self.prev_token_decoded = new_chars.lstrip(' ').rstrip(' ')
+
+  def clear_prev_token(self):
+    self.prev_token = None
+
+
+def _bos_logits(vocab_size: int) -> jnp.ndarray:
   """Logits that put assign probability 1.0 to on _BOS_ID."""
   logits = jnp.full((vocab_size,), -1e10)
   return logits.at[0].set(0.0)
@@ -149,9 +184,9 @@ def _bos_logits(vocab_size):
 class JittedModel:
   """A model with JIT-compiled prefill and generate functions."""
 
-  def __init__(self, hparams, eos_id,
-               infer_fn, weights_logical_axes,
-               rules):
+  def __init__(self, hparams: checkpoint.HParams, eos_id: int,
+               infer_fn: InferFn, weights_logical_axes: Weights,
+               rules: Sequence[Tuple[str, Any]]):
     self._hparams = hparams
     self._eos_id = eos_id
     self._infer = infer_fn
@@ -166,12 +201,12 @@ class JittedModel:
     self._generate_p = {}
 
   @property
-  def mesh(self):
+  def mesh(self) -> Mesh:
     """Gets the mesh used for this model."""
     return self._mesh
 
   def prefix_axes(
-      self, prefix):
+      self, prefix: Sequence[attention.KVCache]) -> Sequence[attention.KVCache]:
     num_prefixes = len(prefix)
     kv_cache_axes = jax.tree_map(partitioning.logical_to_physical,
                                  attention.KVCache.logical_axes())
@@ -180,17 +215,17 @@ class JittedModel:
   @partial(jax.jit, static_argnums=(0,))
   def _prefill_impl(
       self,
-      params,
-      prefix,
-      chunk,
-      prev_logits,
-  ):
+      params: Weights,
+      prefix: Sequence[attention.KVCache],
+      chunk: Chunk,
+      prev_logits: Optional[jnp.ndarray],
+  ) -> ChunkResult:
     """Analyzes a chunk of input text with the neural net. Jitted function."""
     return self._infer(params, prefix,
                        chunk).to_chunk_result(prev_logits, chunk)
 
-  def prefill(self, params, prefix,
-              chunk):
+  def prefill(self, params: Weights, prefix: Sequence[ChunkResult],
+              chunk: Chunk) -> ChunkResult:
     """Non-generative inference for a batch.
 
     Args:
@@ -211,10 +246,10 @@ class JittedModel:
       return jax.jit(self._prefill_impl,)(params, prefix, chunk, prev_logits)
 
   @partial(jax.jit, static_argnums=(0, 1))
-  def _generate_impl(self, steps, params, sampling,
-                     prefix,
-                     prev_chunk_next_token_logits,
-                     sample_ids):
+  def _generate_impl(self, steps: int, params: Weights, sampling: Sampling,
+                     prefix: List[attention.KVCache],
+                     prev_chunk_next_token_logits: jnp.ndarray,
+                     sample_ids: jnp.ndarray) -> Tuple[Chunk, ChunkResult]:
     """Generates a chunk of text, given some prefixes. Jitted function."""
     batch, = sample_ids.shape
 
@@ -228,7 +263,7 @@ class JittedModel:
 
     # Generation loop.
 
-    def loop_body(token_i, state):
+    def loop_body(token_i, state: Tuple[Chunk, ChunkResult]):
       # We have two different chunks at play in this loop:
       # 1. `chunk`/`chunk_result`, of shape (batch, steps). This is the
       #    mutable state that we fill one token at a time, starting at step=0
@@ -279,9 +314,9 @@ class JittedModel:
 
     return chunk, chunk_result
 
-  def generate(self, steps, params, sampling,
-               prefix,
-               sample_ids):
+  def generate(self, steps: int, params: Weights, sampling: Sampling,
+               prefix: Sequence[ChunkResult],
+               sample_ids: jnp.ndarray) -> Tuple[Chunk, ChunkResult]:
     """Generative inference for a batch.
 
     Note about random number seeding:
@@ -338,9 +373,13 @@ class JittedModel:
 class XmapModel:
   """A model with xmapped JIT-compiled prefill and generate functions."""
 
-  def __init__(self, hparams, eos_id,
-               infer_fn, weights_logical_axes,
-               rules):
+  def __init__(self,
+               hparams: checkpoint.HParams,
+               eos_id: int,
+               infer_fn: InferFn,
+               weights_logical_axes: Weights,
+               rules: Sequence[Tuple[str, Any]],
+               vocab: Optional[seqio.Vocabulary] = None):
     self._hparams = hparams
     self._eos_id = eos_id
     self._infer = infer_fn
@@ -350,17 +389,18 @@ class XmapModel:
       self._weights_logical_axes = weights_logical_axes
       self._weights_axes = jax.tree_map(partitioning.logical_to_physical,
                                         weights_logical_axes)
+    self.vocab = vocab
     # _prefill_p: maps num_prefixes -> jitted _prefill_impl function
     self._prefill_p = {}
     # _score_p: maps num_prefixes -> jitted _generate_impl function
     self._generate_p = {}
 
   @property
-  def mesh(self):
+  def mesh(self) -> Mesh:
     """Gets the mesh used for this model."""
     return self._mesh
 
-  def rotate_weights(self, params, latency = True):
+  def rotate_weights(self, params: Weights, latency: bool = True) -> Weights:
     """Rotate the weights for the collectives.
 
     Assumed to occur in a per device form. Assumes 2D partitioning.
@@ -379,83 +419,83 @@ class XmapModel:
       new_layer = params.layer
       if latency:
         new_layer = new_layer.replace(
-            q_wi=collectives.preshuffle_for_reducescatter_bidirectional_latency(
+            q_wi=collectives.preshuffle_for_reducescatter_latency(
                 new_layer.q_wi, sharded_dim='x', scatter_dim=1))
         new_layer = new_layer.replace(
-            o_wo=collectives.preshuffle_for_async_matmul_allgather_latency(
+            o_wo=collectives.preshuffle_for_allgather_matmul_latency(
                 new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
       else:
         new_layer = new_layer.replace(
             q_wi=collectives
-            .preshuffle_for_reducescatter_bidirectional_throughput(
-                new_layer.q_wi, 'x', scatter_dim=1, subsplit_dim=3))
+            .preshuffle_for_reducescatter_throughput(
+                new_layer.q_wi, 'x', scatter_dim=1, subsplit_axis=3))
         new_layer = new_layer.replace(
-            o_wo=collectives.preshuffle_for_async_matmul_allgather_throughput(
+            o_wo=collectives.preshuffle_for_allgather_matmul_throughput(
                 new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
 
       return params.replace(layer=new_layer)
 
     with self._mesh, self.rules:
-      params = shard_map(
+      params = shard_map.shard_map(
           rotate,
           self._mesh,
           in_pspecs=(self._weights_axes,),
           out_pspecs=self._weights_axes,
-          donate_argnums=(0,))(params)
+          donate_argnums=(0,))(
+              params)
 
       return params
 
   @partial(jax.jit, static_argnums=(0,))
   def prepare_inputs(
       self,
-      params,
-      prefix,
-      sample_ids = None
-  ):
+      params: Weights,
+      prefix: Sequence[ChunkResult],
+      sample_ids: Optional[jnp.ndarray] = None
+  ) -> Tuple[Weights, Sequence[ChunkResult], Any, Union[None, jnp.ndarray]]:
     """Prepares inputs for hard xmap pass by pulling out axes to be mapped."""
 
-    params_xmap, _ = global_to_per_device.fold_out_tree(self._mesh, params,
-                                                        params.logical_axes())
+    params_xmap, _ = shard_map.fold_out_tree(self._mesh, params,
+                                             params.logical_axes())
 
     cache = [p.kv_cache for p in prefix]
     if prefix:
       cache_logical = [attention.KVCache.logical_axes() for _ in cache]
-      cache_xmap, _ = global_to_per_device.fold_out_tree(
-          self._mesh, cache, cache_logical)
+      cache_xmap, _ = shard_map.fold_out_tree(self._mesh, cache, cache_logical)
     else:
       cache_xmap = []
 
     if prefix:
       # prev_logits = prefix[-1].next_token_logits
-      prev_logits, _ = global_to_per_device.fold_out_tree(
+      prev_logits, _ = shard_map.fold_out_tree(
           self._mesh, prefix[-1].next_token_logits,
           ChunkResult.logical_axes().next_token_logits)
     else:
       prev_logits = None
 
     if sample_ids is not None:
-      sample_ids, _ = global_to_per_device.fold_out(self._mesh, sample_ids,
-                                                    P('logit_batch'))
+      sample_ids, _ = shard_map.fold_out(self._mesh, sample_ids,
+                                         P('logit_batch'))
     return params_xmap, cache_xmap, prev_logits, sample_ids
 
   @partial(jax.jit, static_argnums=(0,))
-  def prepare_chunk(self, chunk):
-    chunk_xmap, _ = global_to_per_device.fold_out_tree(self._mesh, chunk,
-                                                       Chunk.logical_axes())
+  def prepare_chunk(self, chunk: Chunk) -> Chunk:
+    chunk_xmap, _ = shard_map.fold_out_tree(self._mesh, chunk,
+                                            Chunk.logical_axes())
     return chunk_xmap
 
   # pylint: disable = g-bare-generic
   @staticmethod
-  def prefill_impl(infer_fn, params_xmap,
-                   cache_xmap, chunk_xmap,
-                   prev_logits):
+  def prefill_impl(infer_fn: Callable, params_xmap: Weights,
+                   cache_xmap: Sequence[ChunkResult], chunk_xmap: Chunk,
+                   prev_logits: Optional[jnp.ndarray]) -> ChunkResult:
     full_chunk_result = infer_fn(params_xmap, cache_xmap, chunk_xmap)
     chunk_result = full_chunk_result.to_chunk_result(
         prev_logits, chunk_xmap, per_device=True)
     return chunk_result
 
-  def prefill(self, params, prefix,
-              chunk):
+  def prefill(self, params: Weights, prefix: Sequence[ChunkResult],
+              chunk: Chunk) -> ChunkResult:
     """Non-generative inference for a batch.
 
     Args:
@@ -467,14 +507,14 @@ class XmapModel:
       Scores for the batch.
     """
     with self.rules:
-      chunk_layout = jax.tree_map(global_to_per_device.logical_to_layout,
+      chunk_layout = jax.tree_map(shard_map.logical_to_layout,
                                   Chunk.logical_axes())
-      params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
+      params_layouts = jax.tree_map(shard_map.logical_to_layout,
                                     params.logical_axes())
-      result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
+      result_layout = jax.tree_map(shard_map.logical_to_layout,
                                    ChunkResult.logical_axes())
       cache_layout = jax.tree_map(
-          global_to_per_device.logical_to_layout,
+          shard_map.logical_to_layout,
           [attention.KVCache.logical_axes() for _ in prefix])
 
       prev_logits_layout = result_layout.next_token_logits
@@ -499,15 +539,17 @@ class XmapModel:
                 'z': 'z'
             })(params_xmap, cache_xmap, chunk_xmap, prev_logits)
 
-        return jax.tree_util.tree_map(global_to_per_device.fold_in,
-                                      chunk_result, ChunkResult.logical_axes())
+        return jax.tree_util.tree_map(shard_map.fold_in, chunk_result,
+                                      ChunkResult.logical_axes())
 
   # pylint: disable = protected-access
+  # pylint: disable = g-long-lambda
   @staticmethod
-  def _generate_impl(model, steps, sampling, params,
-                     prefix,
-                     prev_chunk_next_token_logits,
-                     sample_ids):
+  def _generate_impl(model, steps: int, sampling: Sampling,
+                     stream: Union[None, StreamClient], params: Weights,
+                     prefix: List[attention.KVCache],
+                     prev_chunk_next_token_logits: jnp.ndarray,
+                     sample_ids: jnp.ndarray) -> Tuple[Chunk, ChunkResult]:
     """Generates a chunk of text. Xmapped version."""
     logit_sharded_batch = sample_ids.shape[0]
     logit_sharding_axis_size = partitioning.get_sharding_divisor(
@@ -537,7 +579,7 @@ class XmapModel:
 
     # Generation loop.
 
-    def loop_body(token_i, state):
+    def loop_body(token_i, state: Tuple[Chunk, ChunkResult]):
       # We have two different chunks at play in this loop:
       # 1. `chunk`/`chunk_result`, of shape (batch, steps). This is the
       #    mutable state that we fill one token at a time, starting at step=0
@@ -556,6 +598,16 @@ class XmapModel:
       # ->  sample: int32[batch]
       next_token = sampling.sample_manual(chunk_result.next_token_logits,
                                           step_rngs)
+      if stream is not None:
+        jax.debug.callback(
+            lambda logits, x, y, z: stream.stream_result(
+                logits,
+                model.vocab,
+                x,
+                y,
+                z,
+            ), next_token, lax.axis_index('x'), lax.axis_index('y'),
+            lax.axis_index('z'))
       # ^ next_token: [batch] - Note, as yet unsharded
       token_chunk = Chunk(
           tokens=next_token[:, np.newaxis],
@@ -586,38 +638,42 @@ class XmapModel:
     chunk = chunk.replace(
         lengths=jnp.min(jnp.where(is_eos, token_iota, steps), axis=1))
 
+    if stream is not None:
+      # clear it
+      # TODO(sholto): Stateful streaming would not be necessary if the tokenizer
+      # was able to leave whitespace. Investigate.
+      jax.debug.callback(lambda: stream.clear_prev_token())  # pylint: disable = unnecessary-lambda
     return chunk, chunk_result
 
   def instantiate_generating_fn(
-      self, steps,
-      sampling):  # pylint: disable = g-bare-generic
+      self, steps: int, sampling: Sampling, stream: Union[None, StreamClient]
+  ) -> Callable:  # pylint: disable = g-bare-generic
     """Create partial fn, because xmap cannot mark args as static."""
-    return partial(self._generate_impl, self, steps, sampling)
+    return partial(self._generate_impl, self, steps, sampling, stream)
 
   def generate(
       self,
-      params,
-      generate_fn,  # pylint: disable = g-bare-generic
-      prefix,
-      sample_ids):
+      params: Weights,
+      generate_fn: Callable,  # pylint: disable = g-bare-generic
+      prefix: Sequence[ChunkResult],
+      sample_ids: jnp.ndarray) -> Tuple[Chunk, ChunkResult]:
     """Generative inference for a batch. See pjit version for details."""
 
     with self.rules:
-      params_layouts = jax.tree_map(global_to_per_device.logical_to_layout,
+      params_layouts = jax.tree_map(shard_map.logical_to_layout,
                                     params.logical_axes())
-      result_layout = jax.tree_map(global_to_per_device.logical_to_layout,
+      result_layout = jax.tree_map(shard_map.logical_to_layout,
                                    ChunkResult.logical_axes())
       cache_layout = jax.tree_map(
-          global_to_per_device.logical_to_layout,
+          shard_map.logical_to_layout,
           [attention.KVCache.logical_axes() for _ in prefix])
 
       prev_chunk_next_token_layout = jax.tree_map(
-          global_to_per_device.logical_to_layout,
+          shard_map.logical_to_layout,
           ChunkResult.logical_axes().next_token_logits)
 
       # 2D: [batch.X,]
-      sample_ids_layout = global_to_per_device.logical_to_layout(
-          P('logit_batch'))
+      sample_ids_layout = shard_map.logical_to_layout(P('logit_batch'))
 
       with self._mesh:
         (params_xmap, cache_xmap, prev_chunk_next_token_logits,

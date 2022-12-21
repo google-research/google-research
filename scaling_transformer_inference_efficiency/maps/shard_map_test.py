@@ -25,24 +25,20 @@ from jax import lax
 from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
 from jax.experimental.pjit import PartitionSpec as P
+from jax.experimental.pjit import pjit
 import jax.numpy as jnp
 import numpy as np
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import special2
-from scaling_transformer_inference_efficiency.global_to_per_device import shard_map
-
-# jax.config.update('experimental_xmap_spmd_lowering',
-#                   True)
-# jax.config.update('experimental_xmap_spmd_lowering_manual',
-#                   True)
+from scaling_transformer_inference_efficiency.maps.shard_map import shard_map
 
 
-def create_inputs(a_sharding, b_sharding):
+def create_inputs(a_sharding, b_sharding, B=8):  # pylint: disable = invalid-name
   X, Y, Z = 2, 2, 2  # pylint: disable=invalid-name
   devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
   mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
-  B, E, F = 8, 8, 8  # pylint: disable=invalid-name
+  E, F = 8, 8  # pylint: disable=invalid-name
   a = jax.device_put(
       jnp.arange(B * E).reshape((B, E)),
       jax.sharding.NamedSharding(mesh, a_sharding))
@@ -124,7 +120,6 @@ class ShardMapTest(absltest.TestCase):
     def identity(x):
       return x
 
-    # @jax.experimental.pjit.pjit
     def fwd(a):
       c = shard_map(
           identity,
@@ -135,7 +130,10 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = fwd(a)
+      c = pjit(
+          fwd,
+          in_axis_resources=(P('z', ('x', 'y')),),
+          out_axis_resources=P('z', ('x', 'y')))(a)
     assert c.device_buffers[0].shape == (4, 2)
 
 #   ###############################################################################
@@ -162,7 +160,10 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = fwd(a)
+      c = pjit(
+          fwd,
+          in_axis_resources=(P('z', ('x', 'y')),),
+          out_axis_resources=P(None, ('x', 'y')))(a)
     assert c.device_buffers[0].shape == (8, 2)
 
 #   ###############################################################################
@@ -179,8 +180,7 @@ class ShardMapTest(absltest.TestCase):
       c = jnp.matmul(a, b)  # [B.z, F] {y.unreduced}
       return c
 
-    # @jax.jit
-    def fwd(a):
+    def fwd(a, b):
       c = shard_map(
           matmul_partial,
           mesh,
@@ -189,7 +189,10 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = fwd(a)
+      c = pjit(
+          fwd,
+          in_axis_resources=(P('z', 'y'), P('y', None)),
+          out_axis_resources=P('z', 'y'))(a, b)
     assert c.device_buffers[0].shape == (4, 8)
 
 #   ###############################################################################
@@ -207,7 +210,7 @@ class ShardMapTest(absltest.TestCase):
       return lax.psum_scatter(c, 'y', scatter_dimension=0, tiled=True)
 
     # @jax.jit
-    def fwd(a):
+    def fwd(a, b):
       c = shard_map(
           matmul_reduce_scatter,
           mesh,
@@ -216,7 +219,10 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = fwd(a)
+      c = pjit(
+          fwd,
+          in_axis_resources=(P('z', 'y'), P('y', None)),
+          out_axis_resources=P(('z', 'y'), None))(a, b)
     assert c.device_buffers[0].shape == (2, 8)
 
 #   ##############################################################################
@@ -246,7 +252,10 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = fwd(a)
+      c = pjit(
+          fwd,
+          in_axis_resources=(P('x', None),),
+          out_axis_resources=P('x', None))(a)
     assert (c[1, :] == a[0, :]).all()
 
 #   ##############################################################################
@@ -263,7 +272,6 @@ class ShardMapTest(absltest.TestCase):
     def all_to_all(a):
       return lax.all_to_all(a, 'x', split_axis=1, concat_axis=1, tiled=True)
 
-    # @jax.jit
     def fwd(a):
       c = shard_map(
           all_to_all, mesh, in_pspecs=(P('x', None),), out_pspecs=P(None, 'x'))(
@@ -271,7 +279,10 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = fwd(a)
+      c = pjit(
+          fwd,
+          in_axis_resources=(P('x', None),),
+          out_axis_resources=P(None, 'x'))(a)
 
     assert (c == jnp.reshape(a.T, (1, 64))).all()
 
@@ -376,8 +387,6 @@ class ShardMapTest(absltest.TestCase):
         # wi1: ['batch', 'time', 'heads.YZX', 'ff']
         wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // hparams.heads):]
 
-      print(q_wi.named_shape)
-
       with jax.named_scope('kv'):
         xnorm_sliced = xnorm_z
         kv_unreduced = jnp.einsum('bte,ezd->btzd', xnorm_sliced, kv[0])
@@ -430,7 +439,6 @@ class ShardMapTest(absltest.TestCase):
 
     fwd = partial(fwd, h)  # partial w/ the hparams
 
-    # @jax.jit
     def wrapped_shardmap(x, layer):
       result = shard_map(
           fwd,
@@ -440,8 +448,10 @@ class ShardMapTest(absltest.TestCase):
       return result
 
     with mesh:
-      z = wrapped_shardmap(x, layer)
-    # print(z, z.shape)
+      z = pjit(wrapped_shardmap,
+               in_axis_resources=(x_sharding, layer_sharding),
+               out_axis_resources=x_sharding)(x, layer)
+
     return z
 
   def test_custom_collective(self):
