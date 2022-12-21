@@ -76,7 +76,7 @@ HParams.PALM_8B = HParams(
     ff=4 * 4096,
     heads=16,
     qkv=256,
-    max_len=2048,
+    max_len=8096,
     vocab=256128,
 )
 
@@ -86,7 +86,7 @@ HParams.PALM_62B = HParams(
     ff=4 * 8192,
     heads=32,
     qkv=256,
-    max_len=2048,
+    max_len=8096,
     vocab=256128,
 )
 
@@ -96,7 +96,7 @@ HParams.PALM_540B = HParams(
     ff=4 * 18432,
     heads=48,
     qkv=256,
-    max_len=2048,
+    max_len=8096,
     vocab=256128,
 )
 
@@ -106,7 +106,7 @@ HParams.TURING_NLG = HParams(
     ff=4 * 20480,
     heads=128,
     qkv=160,
-    max_len=2048,
+    max_len=8096,
     vocab=51200,
 )
 

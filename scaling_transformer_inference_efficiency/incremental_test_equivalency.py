@@ -140,14 +140,17 @@ def xmap_pjit_equivalency(prompt_batch_size=4,
       rules)
   params = the_model_manual.rotate_weights(
       params, latency_collectives) if latency_collectives else params
+  params_xmap = the_model_manual.prepare_params(params)
+  sample_ids_xmap = the_model_manual.prepare_sample_ids(sample_ids)
 
   kv_cache = []
-  prompt_result2 = the_model_manual.prefill(params, [], prompt)
+  prefill_fn = the_model_manual.instantiate_prefill_fn()
+  prompt_result2 = the_model_manual.prefill(params_xmap, prefill_fn, [], prompt)
   kv_cache = [prompt_result2]
   generating_fn = the_model_manual.instantiate_generating_fn(
       steps, incremental.Sampling(temperature), batch_unsharded)
-  samples2, _ = the_model_manual.generate(params, generating_fn, kv_cache,
-                                          sample_ids)
+  samples2, _ = the_model_manual.generate(params_xmap, generating_fn, kv_cache,
+                                          sample_ids_xmap)
 
   assert (samples2.tokens == samples.tokens).all()
 
