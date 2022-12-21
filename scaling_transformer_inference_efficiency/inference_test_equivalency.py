@@ -36,10 +36,11 @@ from scaling_transformer_inference_efficiency.maps import shard_map
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
 
+X, Y, Z = 2, 2, 2  # slice sizes pylint: disable = invalid-name
+
 
 def setup(batch_size, seq_len, latency_collectives):
   """Sets up necessary inputs."""
-  X, Y, Z = 2, 2, 2  # slice sizes pylint: disable = invalid-name
   assert len(jax.devices()) == X * Y * Z
 
   mesh = partitioning.make_mesh()
@@ -47,7 +48,7 @@ def setup(batch_size, seq_len, latency_collectives):
   key = jax.random.PRNGKey(0)
   dtype = jnp.float32
   h = checkpoint.HParams(
-      layers=8, embed=8, ff=32, heads=16, qkv=4, max_len=256, vocab=1024)
+      layers=8, embed=16, ff=32, heads=16, qkv=4, max_len=256, vocab=1024)
   key, k2, k3, k4, k5 = jax.random.split(key, 5)
   q_wi = jax.random.normal(k2, (h.layers, h.heads, h.embed, h.q_wi_per_head),
                            dtype)
@@ -133,12 +134,16 @@ def setup(batch_size, seq_len, latency_collectives):
 def xmap_pjit_equivalency(batch_size=4,
                           seq_len=32,
                           attn_sharding=partitioning.AttnAllToAll.NONE,
-                          latency_collectives=False):
+                          latency_collectives=False,
+                          batch_unsharded=False,
+                          atol=1e-03):
   """Tests shard map."""
   # Within this function, we device put the relevant arrays ahead of time
 
   rules = partitioning.PartitioningRules(
-      partitioning.make_rules_two_d(attn_sharding))
+      partitioning.make_rules_two_d(
+          attn_sharding, batch_unsharded=batch_unsharded))
+
   with rules:
     (dtype, h, mesh, params, rotated_params, kv_caches, token_chunk,
      chunk_sharding, param_sharding, result_sharding) = setup(
@@ -170,6 +175,7 @@ def xmap_pjit_equivalency(batch_size=4,
           attn_all_to_all=attn_sharding,
           latency_collectives=latency_collectives,
           shard_seqlen_vs_batch=False,
+          batch_unsharded=batch_unsharded,
           intermediate_dtype=dtype)
 
     def wrapped_shardmap(params, token_chunk):
@@ -184,16 +190,24 @@ def xmap_pjit_equivalency(batch_size=4,
     with mesh:
       result_shardmap = wrapped_shardmap(rotated_params, token_chunk)
 
+    # np.testing.assert_allclose(
+    #     result_baseline.kv_cache.k.astype(jnp.float32),
+    #     result_shardmap.kv_cache.k.astype(jnp.float32),
+    #     rtol=rtol)
     np.testing.assert_allclose(
-        result_baseline.logits, result_shardmap.logits, rtol=1e-02, atol=1e-02)
+        result_baseline.logits, result_shardmap.logits, atol=atol)
 
 
 class InferenceTest(absltest.TestCase):
   """Tests for inference fwd pass."""
 
-  # def test_none_sharding_b1(self):
-  #   xmap_pjit_equivalency(
-  #       batch_size=1, attn_sharding=partitioning.AttnAllToAll.NONE)
+  def test_none_sharding_b1(self):
+    xmap_pjit_equivalency(
+        batch_size=1,
+        seq_len=1,
+        attn_sharding=partitioning.AttnAllToAll.NONE,
+        batch_unsharded=True,
+        atol=1e-01)  # TODO(sholto); Check if this is because it occurs on VPU like b/246436629 pylint: disable= line-too-long
 
   def test_none_sharding(self):
     xmap_pjit_equivalency(

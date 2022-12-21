@@ -54,7 +54,7 @@ def setup(batch_size, seq_len):
   key = jax.random.PRNGKey(0)
   dtype = jnp.float32
   h = checkpoint.HParams(
-      layers=8, embed=8, ff=32, heads=16, qkv=4, max_len=256, vocab=1024)
+      layers=8, embed=16, ff=32, heads=16, qkv=4, max_len=256, vocab=1024)
   key, k2, k3, k4, k5 = jax.random.split(key, 5)
   q_wi = jax.random.normal(k2, (h.layers, h.heads, h.embed, h.q_wi_per_head),
                            dtype)
@@ -155,6 +155,7 @@ def xmap_embed_and_layer(
     attn_all_to_all,
     latency_collectives,
     shard_seqlen_vs_batch,
+    batch_unsharded,
     intermediate_dtype = jnp.bfloat16):
   """Forward pass through xmap path, returning per-token logits."""
   x_axis = lax.psum(1, 'x')
@@ -162,7 +163,8 @@ def xmap_embed_and_layer(
   z_axis = lax.psum(1, 'z')
 
   x, sin, cos = two_d_parallel_xmap.xmap_embed(params, kv_caches, token_chunk,
-                                               shard_seqlen_vs_batch)
+                                               shard_seqlen_vs_batch,
+                                               batch_unsharded)
 
   z, layer_k, layer_v = _transformer_layer_fn(
       h,
@@ -178,6 +180,7 @@ def xmap_embed_and_layer(
       attn_all_to_all,
       latency_collectives=latency_collectives,
       shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+      batch_unsharded=batch_unsharded,
       intermediate_dtype=intermediate_dtype)
 
   return intermediate_dtype(x), intermediate_dtype(z), intermediate_dtype(
@@ -197,6 +200,7 @@ class LayersTest(absltest.TestCase):
       attn_sharding = partitioning.AttnAllToAll.NONE,
       latency_collectives = False,
       shard_seqlen_vs_batch = False,
+      batch_unsharded = False,
   ):
     """Tests equivalency of a pjit and xmap forward pass."""
 
@@ -233,6 +237,7 @@ class LayersTest(absltest.TestCase):
             attn_all_to_all=attn_sharding,
             latency_collectives=latency_collectives,
             shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+            batch_unsharded=batch_unsharded,
             intermediate_dtype=dtype)
 
         return x, z, k, v
@@ -245,13 +250,20 @@ class LayersTest(absltest.TestCase):
             out_pspecs=(z_sharding, z_sharding, kv_sharding,
                         kv_sharding))(token_chunk, params)
 
-      np.testing.assert_allclose(x_baseline, x, rtol=1e-03, atol=1e-03)
-      np.testing.assert_allclose(k_baseline, k, rtol=1e-03, atol=1e-03)
-      np.testing.assert_allclose(z_baseline, z, rtol=1e-03, atol=1e-03)
+      np.testing.assert_allclose(x_baseline, x, rtol=1e-02, atol=1e-01)
+      np.testing.assert_allclose(k_baseline, k, rtol=1e-02, atol=1e-01)
+      np.testing.assert_allclose(z_baseline, z, rtol=1e-02, atol=1e-01)
 
-  # def test_batch_one(self):
-  #   self.xmap_pjit_equivalency(
-  #       batch_size=1, attn_sharding=partitioning.AttnAllToAll.NONE)
+  def test_batch_one(self):
+    attn_sharding = partitioning.AttnAllToAll.NONE
+    rules = partitioning.PartitioningRules(
+        partitioning.make_rules_two_d(attn_sharding, batch_unsharded=True))
+    self.xmap_pjit_equivalency(
+        batch_size=1,
+        seq_len=1,
+        attn_sharding=partitioning.AttnAllToAll.NONE,
+        rules=rules,
+        batch_unsharded=True)
 
   def test_none_sharding_2D(self):
     attn_sharding = partitioning.AttnAllToAll.NONE

@@ -66,9 +66,7 @@ class Sampling:
       z_axis = lax.psum(1, 'z')
       yz_index = lax.axis_index('y') * z_axis + lax.axis_index('z')
       batch_x, _ = logits.shape
-      padded_batch_x = max(
-          batch_x,
-          y_axis * z_axis)
+      padded_batch_x = max(batch_x, y_axis * z_axis)
       if padded_batch_x > batch_x:
         logits = jnp.pad(
             logits,
@@ -81,7 +79,9 @@ class Sampling:
       # need to only take the relevant part of this
       split_size = (batch_x // y_axis // z_axis)
       step_rngs = lax.dynamic_slice_in_dim(
-          step_rngs, yz_index*split_size, (batch_x // y_axis // z_axis), axis=0)
+          step_rngs,
+          yz_index * split_size, (batch_x // y_axis // z_axis),
+          axis=0)
       # TODO(sholto): Confirm this is the best way of doing it
       # logits = binary_search.topp_mask(logits, 0.9, -1e10)
       # TODO(sholto): maybe put t5x binary search back in
@@ -90,4 +90,23 @@ class Sampling:
                                            logits / self.temperature))
       # sample: int32[batch]
       sample = lax.all_gather(sample, ('x', 'y', 'z'), axis=0, tiled=True)
+    return sample
+
+  def sample_manual_batch_unsharded(self, logits,
+                                    step_rngs):
+    """Samples from output logits within xmap, with batch unshardedable.
+
+    Args:
+      logits: [batch, vocab.YZX]
+      step_rngs: [batch]
+    Returns:
+      sample" int32[batch]
+    """
+
+    with jax.named_scope('sample'):
+      logits = lax.all_gather(logits, ('y', 'z', 'x'), axis=1, tiled=True)
+      assert logits.shape[0] == step_rngs.shape[0]
+      sample = jnp.int32(
+          jax.vmap(jax.random.categorical)(step_rngs,
+                                           logits / self.temperature))
     return sample

@@ -155,7 +155,7 @@ class Weights:
     o_wo = P('layers', 'params_heads', 'qkv', 'params_embed')
     sin = P(None, None)
     cos = P(None, None)
-    embedding = P('vocab', 'params_embed')
+    embedding = P('params_vocab', 'params_embed')
 
     return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
 
@@ -296,8 +296,6 @@ class Weights:
     sin = copy_to_device(sin, axes.sin, expected_shapes.sin)
     cos = copy_to_device(cos, axes.cos, expected_shapes.cos)
 
-    # TODO(sholto): This hiding here will cause someone an OOM if they change
-    # strategy and don't update!
     q_wi_input_axes = ('layers', 'params_embed', 'params_heads', 'qkv')
     q_wi = copy_to_device(
         c.q_wi, q_wi_input_axes,
@@ -397,7 +395,7 @@ class QuantizedWeights:
     cos = P(None, None)
     # Embedding table wants different sharding than Transformer layers, to work
     # around b/244232479.
-    embedding = P('vocab', 'params_embed')
+    embedding = P('params_vocab', 'params_embed')
     layernorm_scale = P('layers', 'params_embed')
 
     return QuantizedWeights(

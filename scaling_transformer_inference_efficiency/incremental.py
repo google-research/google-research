@@ -379,7 +379,7 @@ class XmapModel:
                infer_fn: InferFn,
                weights_logical_axes: Weights,
                rules: Sequence[Tuple[str, Any]],
-               vocab: Optional[seqio.Vocabulary] = None):
+               vocab: Optional[seqio.Vocabulary] = None):  # used for sampling
     self._hparams = hparams
     self._eos_id = eos_id
     self._infer = infer_fn
@@ -426,8 +426,7 @@ class XmapModel:
                 new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
       else:
         new_layer = new_layer.replace(
-            q_wi=collectives
-            .preshuffle_for_reducescatter_throughput(
+            q_wi=collectives.preshuffle_for_reducescatter_throughput(
                 new_layer.q_wi, 'x', scatter_dim=1, subsplit_axis=3))
         new_layer = new_layer.replace(
             o_wo=collectives.preshuffle_for_allgather_matmul_throughput(
@@ -545,11 +544,16 @@ class XmapModel:
   # pylint: disable = protected-access
   # pylint: disable = g-long-lambda
   @staticmethod
-  def _generate_impl(model, steps: int, sampling: Sampling,
-                     stream: Union[None, StreamClient], params: Weights,
-                     prefix: List[attention.KVCache],
-                     prev_chunk_next_token_logits: jnp.ndarray,
-                     sample_ids: jnp.ndarray) -> Tuple[Chunk, ChunkResult]:
+  def _generate_impl(
+      model,
+      steps: int,
+      sampling: Sampling,
+      params: Weights,
+      prefix: List[attention.KVCache],
+      prev_chunk_next_token_logits: jnp.ndarray,
+      sample_ids: jnp.ndarray,
+      batch_unsharded: bool = False,
+      stream: Optional[StreamClient] = None) -> Tuple[Chunk, ChunkResult]:
     """Generates a chunk of text. Xmapped version."""
     logit_sharded_batch = sample_ids.shape[0]
     logit_sharding_axis_size = partitioning.get_sharding_divisor(
@@ -596,8 +600,12 @@ class XmapModel:
                                                token_indexes_start + token_i)
       # logits: float32[batch.X, vocab.YZ], step_rngs: [batch] (sliced later)
       # ->  sample: int32[batch]
-      next_token = sampling.sample_manual(chunk_result.next_token_logits,
-                                          step_rngs)
+      if batch_unsharded:
+        next_token = sampling.sample_manual_batch_unsharded(
+            chunk_result.next_token_logits, step_rngs)
+      else:
+        next_token = sampling.sample_manual(chunk_result.next_token_logits,
+                                            step_rngs)
       if stream is not None:
         jax.debug.callback(
             lambda logits, x, y, z: stream.stream_result(
@@ -646,10 +654,20 @@ class XmapModel:
     return chunk, chunk_result
 
   def instantiate_generating_fn(
-      self, steps: int, sampling: Sampling, stream: Union[None, StreamClient]
+      self,
+      steps: int,
+      sampling: Sampling,
+      batch_unsharded: bool = False,
+      stream: Optional[StreamClient] = None
   ) -> Callable:  # pylint: disable = g-bare-generic
     """Create partial fn, because xmap cannot mark args as static."""
-    return partial(self._generate_impl, self, steps, sampling, stream)
+    return partial(
+        self._generate_impl,
+        self,
+        steps,
+        sampling,
+        batch_unsharded=batch_unsharded,
+        stream=stream)
 
   def generate(
       self,

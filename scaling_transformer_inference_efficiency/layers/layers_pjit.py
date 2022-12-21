@@ -115,11 +115,7 @@ def pjit_transformer_layer(
   # flaxformer/components/attention/dense_attention.py;l=252;
 
   # prefix_batch = sin.shape[0]
-  batch, max_len, _ = x.shape
   # beam = batch // prefix_batch # TODO(reinerp): Do we need this
-
-  if batch == 1 and max_len == 1:
-    raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
 
   # 2D: [batch.Z, time, embed.XY]
   x = _with_sharding_constraint(
@@ -210,10 +206,6 @@ def quantized_pjit_transformer_layer(
   # Compare
 
   # prefix_batch = sin.shape[0]
-  batch, max_len, _ = x.shape
-
-  if batch == 1 and max_len == 1:
-    raise ValueError('sharded batch-1 matmul is broken on VLC, b/246436629')
 
   x = _with_sharding_constraint(
       x, ('residual_batch', 'residual_time', 'residual_embed'))

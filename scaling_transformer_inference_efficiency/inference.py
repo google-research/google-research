@@ -147,6 +147,7 @@ def infer_xmap(
     attn_all_to_all,
     latency_collectives,
     shard_seqlen_vs_batch,
+    batch_unsharded = False,
     intermediate_dtype = jnp.bfloat16):
   """Forward pass through xmap path, returning per-token logits."""
 
@@ -165,9 +166,11 @@ def infer_xmap(
     attn_batch_sharding = y_axis * z_axis * x_axis
 
   batch, max_length = chunk.tokens.shape
+
   # Start indices are the sums of the lengths of the KV caches.
   x, sin, cos = two_d_parallel_xmap.xmap_embed(params, kv_caches, chunk,
-                                               shard_seqlen_vs_batch)
+                                               shard_seqlen_vs_batch,
+                                               batch_unsharded)
 
   def loop_body(layer, carry):
     x, k, v = carry
@@ -186,12 +189,12 @@ def infer_xmap(
         attn_all_to_all,
         latency_collectives=latency_collectives,
         shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+        batch_unsharded=batch_unsharded,
         intermediate_dtype=intermediate_dtype)
     k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
                                         0)
     v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,
                                         0)
-
     return x, k, v
 
   # Initialize output KV cache.
@@ -207,15 +210,23 @@ def infer_xmap(
   v = jnp.swapaxes(v, 0, 1)
 
   # [batch, maxlen, embed.X]
-  xnorm, _ = two_d_parallel_xmap.allgather_layernorm(x, shard_seqlen_vs_batch)
+  xnorm, _ = two_d_parallel_xmap.allgather_layernorm(x, shard_seqlen_vs_batch,
+                                                     batch_unsharded)
 
   # x: bfloat16[batch, maxlen, dmodel.X] # [vocab.YZ, embed.X]
   with jax.named_scope('unembed'):
     logits_unreduced = jnp.einsum('bte,ve->btv', jnp.float32(xnorm),
                                   jnp.float32(params.embedding))
-    logits = lax.psum_scatter(
-        logits_unreduced, 'x', scatter_dimension=0, tiled=True)
-  # logits: float32[batch.X, maxlen, vocab.YZ]
+    # x: [batch, maxlen, vocab.YZ] {X unreduced}
+    if batch_unsharded:
+      # logits: float32[batch.X, maxlen, vocab.YZ]
+      logits = lax.psum_scatter(
+          logits_unreduced, 'x', scatter_dimension=2, tiled=True)
+    else:
+      # logits: float32[batch, maxlen, vocab.YZX]
+      logits = lax.psum_scatter(
+          logits_unreduced, 'x', scatter_dimension=0, tiled=True)
+
   k, v = jnp.bfloat16(k), jnp.bfloat16(v)
 
   # We need to get only the part of lengths which corresponds to that
@@ -249,5 +260,6 @@ def infer_xmap(
   # should equal batch dim as sharded for kv cache
   assert cache_lengths.shape[0] == batch // attn_batch_sharding
   assert cache_lengths.shape[0] == k.shape[2]
+
   return FullChunkResult(
       logits=logits, kv_cache=attention.KVCache(cache_lengths, k, v))

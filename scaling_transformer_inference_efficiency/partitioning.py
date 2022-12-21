@@ -55,18 +55,20 @@ def attn_sharding_to_axes(attn_batch_sharding):
     return ('y', 'z', 'x')
 
 
-def make_rules_two_d(
-    attn_batch_sharding=AttnAllToAll.NONE,
-    shard_seqlen_vs_batch=False):
+def make_rules_two_d(attn_batch_sharding=AttnAllToAll.NONE,
+                     shard_seqlen_vs_batch=False,
+                     batch_unsharded=False):
 
   return [
       ('prefix_time', None),
       ('prefix_layers', None),
       ('prefix_qkv', None),
       ('batch', None),
-      ('residual_batch', None if shard_seqlen_vs_batch else 'z'),
-      ('logit_batch', 'x'),  # for vocab
-      ('residual_embed', ('x', 'y')),
+      ('residual_batch', None if
+       (shard_seqlen_vs_batch or batch_unsharded) else 'z'),
+      ('logit_batch',
+       None if batch_unsharded else 'x'),  # don't shard batch generally
+      ('residual_embed', ('x', 'y', 'z') if batch_unsharded else ('x', 'y')),
       ('residual_time', 'z' if shard_seqlen_vs_batch else None),
       ('post_norm_batch', None),
       ('post_norm_embed', 'x'),
@@ -74,7 +76,8 @@ def make_rules_two_d(
       ('qkv', None),
       ('params_heads', ('y', 'z')),
       ('params_embed', 'x'),
-      ('vocab', ('y', 'z')),
+      ('params_vocab', ('y', 'z')),
+      ('vocab', ('y', 'z', 'x') if batch_unsharded else ('y', 'z')),
       ('attn_batch', attn_sharding_to_axes(attn_batch_sharding)),
   ]
 

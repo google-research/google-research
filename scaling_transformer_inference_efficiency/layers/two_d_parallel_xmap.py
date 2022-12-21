@@ -50,13 +50,20 @@ def assert_equal(x, y):
   assert x == y, f'{x} != {y}'
 
 
-def allgather_layernorm(x, shard_seqlen_vs_batch, scale=None):
+def allgather_layernorm(x,
+                        shard_seqlen_vs_batch,
+                        batch_unsharded = False,
+                        scale = None):
   """All gathers around layernorm, minimises comms by first doing per-chip."""
   with jax.named_scope('allgather_layernorm'):
-    # allgather xnorm: [batch.Z, maxlen, dmodel.XY]
-    # -> [batch.Z, maxlen, dmodel.X]    (xnorm_z)
-    # -> [batch, maxlen, dmodel.X]
+    # allgather xnorm: [batch.Z, maxlen, embed.XY] || [batch, maxlen, embed.XYZ]
+    # -> [batch.Z, maxlen, embed.X]    (xnorm_z)
+    # -> [batch, maxlen, embed.X]
     xgather = x
+    if batch_unsharded:
+      # [batch, maxlen, embed.XY]
+      xgather = lax.all_gather(xgather, 'z', axis=2, tiled=True)
+    # [batch.Z, maxlen, embed.X] || [batch, maxlen, embed.X]
     xgather = lax.all_gather(xgather, 'y', axis=2, tiled=True)
 
     epsilon = 1e-6
@@ -72,7 +79,11 @@ def allgather_layernorm(x, shard_seqlen_vs_batch, scale=None):
     if shard_seqlen_vs_batch:
       xnorm = lax.all_gather(xnorm_z, 'z', axis=1, tiled=True)
     else:
-      xnorm = lax.all_gather(xnorm_z, 'z', axis=0, tiled=True)
+      if batch_unsharded:  # in this case already done above
+        xnorm = xnorm_z
+      else:
+        xnorm = lax.all_gather(xnorm_z, 'z', axis=0, tiled=True)
+  # [batch, maxlen, embed.X]
   return xnorm, xnorm_z
 
 
@@ -80,17 +91,20 @@ def xmap_embed(
     params,  # pylint: disable=g-bare-generic, invalid-name
     kv_caches,
     token_chunk,
-    shard_seqlen_vs_batch = False):
+    shard_seqlen_vs_batch = False,
+    batch_unsharded = False):
   """Embeds a chunk of logits.
 
   Args:
     params: Weights object
     kv_caches: List of chunks preprocessed earlier
-    token_chunk: An unsharded token chunk. Assume .tokens
-                  is int32[batch, maxlen]
+    token_chunk: An unsharded token chunk. Assume .tokens is int32[batch,
+      maxlen]
     shard_seqlen_vs_batch: Whether to shard seqlen or batch by z.
+    batch_unsharded:  global_batch is less than z so we cannot shard along
+
   Returns:
-    embeddings: bfloat16[vocab.YZ, embed.X]
+    embeddings: bfloat16[[batch.Z, time, embed.XY] || [batch, time, embed.XYZ]
     sin: RoPE embeddings starting at the appropriate index determined by
          pre-existing kv_cache for each index in the batch.
     cos: ""
@@ -136,8 +150,12 @@ def xmap_embed(
       # [batch, time.Z, embed.XY]
       embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=1, tiled=True)
     else:
-      # [batch.Z, time, embed.XY]
-      embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=0, tiled=True)
+      if batch_unsharded:
+        # [batch, time, embed.XYZ]
+        embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=2, tiled=True)
+      else:
+        # [batch.Z, time, embed.XY]
+        embeds = lax.psum_scatter(embeds, 'z', scatter_dimension=0, tiled=True)
 
   return embeds, sin, cos
 
@@ -159,16 +177,17 @@ def transformer_layer_weight_stationary(
     attn_all_to_all,
     latency_collectives,
     shard_seqlen_vs_batch = False,
+    batch_unsharded = False,
     intermediate_dtype = jnp.bfloat16,
 ):
   """Forward pass through a single layer, returning output, K, V.
 
   This implementation has 'x'=d_model sharding,
   ('y', 'z')=d_ff sharding.
-  * params are assumed already sharded this way, i.e. dmodel.x and heads.YZ
+  * params are assumed already sharded this way, i.e. embed.X and heads.YZ
   * sin and cos are sharded by batch.YZx (or batch.YZ or batch.Y as necessary)
   * kv_cache is sharded by batch.YZx (or batch.YZ or batch.Y as necessary)
-  * x: [batch.Z, maxlen, dmodel.xY]
+  * x: [batch.Z, maxlen, embed.XY]
   """
   if latency_collectives:
     matmul_reducescatter = partial(
@@ -212,12 +231,16 @@ def transformer_layer_weight_stationary(
 
   if isinstance(params, weights.QuantizedLayer):
     xnorm, xnorm_z = allgather_layernorm(
-        x, shard_seqlen_vs_batch, scale=my_layer(params.layernorm_scale))
+        x,
+        shard_seqlen_vs_batch,
+        batch_unsharded,
+        scale=my_layer(params.layernorm_scale))
   else:
-    xnorm, xnorm_z = allgather_layernorm(x, shard_seqlen_vs_batch)
+    xnorm, xnorm_z = allgather_layernorm(x, shard_seqlen_vs_batch,
+                                         batch_unsharded)
 
   # einsum(xnorm, q_wi):
-  # [batch, maxlen, dmodel.x] @ [heads.YZ, dmodel.X, q_wi_per_head]
+  # [batch, maxlen, embed.X] @ [heads.YZ, embed.X, q_wi_per_head]
   # -> (matmul)
   # -> [batch, maxlen, heads.YZ, q_wi_per_head]{x unreduced}
   # -> (reducescatter over x into X heads, B batches)
@@ -245,12 +268,12 @@ def transformer_layer_weight_stationary(
   # einsum(xnorm, kv):
   #
   # if attn>=AXES_YZ:
-  #   xnorm_z: [batch.Z, maxlen, dmodel.x]
-  #     -> [batch.(X?)YZ, maxlen, dmodel.x]  (slice down)
+  #   xnorm_z: [batch.Z, maxlen, embed.X]
+  #     -> [batch.(X?)YZ, maxlen, embed.X]  (slice down)
   #
   # Then:
   #
-  # [batch.(Y?)Z, maxlen, dmodel.x] @ [dmodel.x, 1, 2*qkv]
+  # [batch.(Y?)Z, maxlen, embed.X] @ [embed.X, 1, 2*qkv]
   # -> (matmul)
   # -> [batch.(Y?)Z, maxlen, 1, 2*qkv]{x unreduced}
   # -> (reducescatter over x into batch)
@@ -280,11 +303,12 @@ def transformer_layer_weight_stationary(
         kv = lax.psum(kv_unreduced, 'x')
         kv = lax.all_gather(kv, 'z', axis=1, tiled=True)
       else:
-        # [batch.Z, maxlen, 1, 2*qkv]{x_unreduced}
+        # [batch.Z, maxlen, 1, 2*qkv]{x_unreduced} || [b, ml, 1, 2qkv] {x_unred}
         # --ARx-->   [batch.Z, maxlen, 1, 2*qkv]
         # --AGZ-->   [batch, maxlen, 1, 2*qkv]
         kv = lax.psum(kv_unreduced, 'x')
-        kv = lax.all_gather(kv, 'z', axis=0, tiled=True)
+        if not batch_unsharded:
+          kv = lax.all_gather(kv, 'z', axis=0, tiled=True)
     elif attn_all_to_all == AttnAllToAll.AXIS_Z:
       # [batch.Z, maxlen, 1, 2*qkv]{x_unreduced}
       # --ARx-->   [batch.Z, maxlen, 1, 2*qkv]
@@ -361,13 +385,13 @@ def transformer_layer_weight_stationary(
 
   # einsum(y_fused, o_wo):
   # [batch, maxlen, heads.YZ, o_wo_per_head] @
-  #       [heads.YZ, o_wo_per_head, dmodel.x]
+  #       [heads.YZ, o_wo_per_head, embed.X]
   # -> (matmul)
-  # -> [batch, maxlen, dmodel.X]{YZ unreduced}
+  # -> [batch, maxlen, embed.X]{YZ unreduced}
   # -> (fused reducescatter)
-  # -> [batch, maxlen, dmodel.XY]
+  # -> [batch, maxlen, embed.XY]
   # -> (non-fused reducescatter)
-  # -> [batch.Z, maxlen, dmodel.XY]
+  # -> [batch.Z, maxlen, embed.XY]
   with jax.named_scope('o_wo'):
     y_fused = jnp.concatenate([y_att, y_mlp], axis=-1)
 
@@ -385,19 +409,24 @@ def transformer_layer_weight_stationary(
         layer=layer)
     # y_out = reducescatter(
     #     y_out, scatter_dimension=2, axis_name='y', subsplit_axis=2)
-    # TODO(sholto): Test if manual faster, update
+
     y_out = lax.psum_scatter(y_out, 'y', scatter_dimension=2, tiled=True)
 
     if shard_seqlen_vs_batch:
       # y_out = reducescatter(
       #     y_out, scatter_dimension=1, axis_name='z', subsplit_axis=0)
-      # TODO(sholto): Test if manual faster, update
+      # [batch, maxlen.Z, embed.XY]
       y_out = lax.psum_scatter(y_out, 'z', scatter_dimension=1, tiled=True)
     else:
       # y_out = reducescatter(
       #     y_out, scatter_dimension=0, axis_name='z', subsplit_axis=0)
       # TODO(sholto): Test if manual faster, update
-      y_out = lax.psum_scatter(y_out, 'z', scatter_dimension=0, tiled=True)
+      if batch_unsharded:
+        # [batch, maxlen, embed.XYZ]
+        y_out = lax.psum_scatter(y_out, 'z', scatter_dimension=2, tiled=True)
+      else:
+        # [batch.Z, maxlen, embed.XY]
+        y_out = lax.psum_scatter(y_out, 'z', scatter_dimension=0, tiled=True)
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = y_out.shape
@@ -408,7 +437,7 @@ def transformer_layer_weight_stationary(
   with jax.named_scope('residual'):
     z = intermediate_dtype(y_out + x)
 
-  # TODO(sholto): Test correctness
+  # [batch.Z, maxlen, embed.XY] || [batch, maxlen, embed.XYZ]
   k, v = k.astype(intermediate_dtype), v.astype(intermediate_dtype)
   return z, k, v
 
@@ -487,9 +516,7 @@ def transformer_layer_weight_gathered(
       # previously concat yz, contracting over x - reconstructing heads dim
       # here, we contract over yz, concat over x to reconstruct embed dim
       y_out = collectives.matmul_collective_weights_gather_o_wo(
-          'bthd,hde->bte',
-          y_fused,
-          my_layer(params.o_wo),
+          'bthd,hde->bte', y_fused, my_layer(params.o_wo),
           lhs_split_axis=2)  # -> [batch.XYZ, t, e]
 
     if isinstance(params, weights.QuantizedLayer):
