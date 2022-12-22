@@ -68,7 +68,7 @@ def plot_steps_to_result(ax,
         raise ValueError(
             "Expected one row with batch_size={}, but found {}".format(
                 normalizing_batch_size, len(normalizing_index)))
-      steps = steps.astype(np.float) / steps[normalizing_index]
+      steps = steps.astype(float) / steps[normalizing_index]
 
     # Plot steps to result.
     ax.plot(batch_sizes, steps, "^-", label=label)

@@ -483,7 +483,7 @@ class OutOfGraphReplayBuffer(object):
         trajectory_length = self._update_horizon
       else:
         # np.argmax of a bool array returns the index of the first True.
-        trajectory_length = np.argmax(trajectory_terminals.astype(np.bool),
+        trajectory_length = np.argmax(trajectory_terminals.astype(bool),
                                       0) + 1
       next_state_index = state_index + trajectory_length
       trajectory_rewards = self.get_range(self._store['reward'], state_index,

@@ -269,7 +269,7 @@ class _tree_lib(object):
             return None
         is_internal = np.empty((n,), dtype=np.int32)
         self.lib.GetInternalMask(depth, ctypes.c_void_p(is_internal.ctypes.data))
-        return is_internal.astype(np.bool)
+        return is_internal.astype(bool)
 
     def GetEdgeOf(self, lv):
         n = self.lib.NumEdgesAtLevel(lv)
@@ -284,7 +284,7 @@ class _tree_lib(object):
         lr = np.empty((n,), dtype=np.int32)
         self.lib.GetIsEdgeRch(lv, ctypes.c_void_p(lr.ctypes.data))
         edge_idx = self.GetEdgeOf(lv)
-        return edge_idx, lr.astype(np.bool)
+        return edge_idx, lr.astype(bool)
 
     def GetTrivialNodes(self):
         res = []
@@ -331,7 +331,7 @@ class _tree_lib(object):
         total_nodes = np.sum(self.list_nnodes)
         tree_trivial = np.empty((total_nodes,), dtype=np.int32)
         self.lib.TreeTrivial(ctypes.c_void_p(tree_trivial.ctypes.data))
-        return tree_trivial.astype(np.bool)
+        return tree_trivial.astype(bool)
 
     def GetFenwickBase(self):
         num_nodes = self.lib.NumBaseNodes()

@@ -42,7 +42,7 @@ class MakeSurrogatePosteriorsTest(tf.test.TestCase):
 
   def assertAllFinite(self, a):
     is_finite = np.isfinite(a.numpy())
-    all_true = np.ones_like(is_finite, dtype=np.bool)
+    all_true = np.ones_like(is_finite, dtype=bool)
     self.assertAllEqual(all_true, is_finite)
 
   def test_make_flow_posterior(self):

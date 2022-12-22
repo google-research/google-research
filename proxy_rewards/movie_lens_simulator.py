@@ -107,7 +107,7 @@ class Movie(document.AbstractDocument):
     super(Movie, self).__init__(int(doc_id))
     self.title = title
     self.genres = genres
-    self.genre_vec = np.zeros(len(utils.GENRES), dtype=np.int)
+    self.genre_vec = np.zeros(len(utils.GENRES), dtype=int)
     self.genre_vec[self.genres] = 1
     self.movie_vec = vec
 

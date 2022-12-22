@@ -561,7 +561,7 @@ def summarize_tree(pytree, short=True):
           elif np.issubdtype(x.dtype, np.integer):
             info += (f" [{np.min(flat)}, {np.max(flat)}] "
                      f"nz:{np.count_nonzero(flat) / len(flat):.2}")
-          elif np.issubdtype(x.dtype, np.bool):
+          elif np.issubdtype(x.dtype, bool):
             info += f" T:{np.count_nonzero(flat) / len(flat):.2}"
         else:
           info = {

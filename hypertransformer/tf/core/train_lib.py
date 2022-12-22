@@ -80,7 +80,7 @@ def _load_cache(data_config
     if len(data.shape) < 4:
       data = np.expand_dims(data, axis=-1)
     # Converting a 4D tensor [Label, Batch, W, H, C] to a dictionary by label.
-    if data.dtype == np.bool:
+    if data.dtype == bool:
       return {k: _convert_bool(data[k]) for k in range(data.shape[0])}
     else:
       return {k: data[k] for k in range(data.shape[0])}

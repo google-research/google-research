@@ -35,7 +35,7 @@ def line_gaussians(n_points,  # pylint: disable=missing-function-docstring
   data_dirty = data_clean + np.random.normal(
       scale=noise_scale, size=data_clean.shape)  # Add random noise to the data.
 
-  labels = np.zeros(n_points, dtype=np.int)
+  labels = np.zeros(n_points, dtype=int)
   for i in range(n_clusters):
     labels[points_per_cluster * i:points_per_cluster * (i + 1)] = i
 
@@ -46,9 +46,9 @@ def circular_gaussians(n_points, n_clusters=8):  # pylint: disable=missing-funct
   avg_points_per_cluster = n_points / n_clusters
   sigma = 0.45 * avg_points_per_cluster
   cluster_sizes = np.random.normal(
-      avg_points_per_cluster, sigma, size=n_clusters).astype(np.int)
+      avg_points_per_cluster, sigma, size=n_clusters).astype(int)
   labels = np.hstack([
-      cluster_idx * np.ones(cluster_size, dtype=np.int)
+      cluster_idx * np.ones(cluster_size, dtype=int)
       for cluster_idx, cluster_size in enumerate(cluster_sizes)
   ])
   data_clean = np.vstack([

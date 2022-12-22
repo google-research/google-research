@@ -209,8 +209,8 @@ def get_dataset(
   train_data, train_labels = train_set['image'], train_set['label']
   test_data, test_labels = test_set['image'], test_set['label']
 
-  train_data = train_data.astype(np.float)
-  test_data = test_data.astype(np.float)
+  train_data = train_data.astype(float)
+  test_data = test_data.astype(float)
   assert train_data.shape[0] == train_labels.shape[0]
   assert test_data.shape[0] == test_labels.shape[0]
 

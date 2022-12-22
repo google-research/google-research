@@ -221,7 +221,7 @@ def construct_added_phrases_matrix(all_added_phrases, phrase_counter):
       tup[0]: i for i, tup in enumerate(phrase_counter.most_common())
   }
   matrix = scipy.sparse.dok_matrix((len(all_added_phrases), len(phrase_2_idx)),
-                                   dtype=np.bool)
+                                   dtype=bool)
   for i, added_phrases in enumerate(all_added_phrases):
     for phrase in added_phrases:
       phrase_idx = phrase_2_idx[phrase]

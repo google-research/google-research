@@ -118,7 +118,7 @@ def main(_):
   corr = ratings.corr()
 
   # Generate a mask for the upper triangle
-  mask = np.zeros_like(corr, dtype=np.bool)
+  mask = np.zeros_like(corr, dtype=bool)
   mask[np.triu_indices_from(mask)] = True
 
   # Set up the matplotlib figure
@@ -181,7 +181,7 @@ def main(_):
       sent_colors[e] = sent_color_map["ambiguous"]
 
   # Generate a mask for the upper triangle
-  mask = np.zeros_like(corr, dtype=np.bool)
+  mask = np.zeros_like(corr, dtype=bool)
   mask[np.diag_indices(mask.shape[0])] = True
 
   # Generate a custom diverging colormap
