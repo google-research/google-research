@@ -95,7 +95,6 @@ class SparseConvUNet(tf.keras.layers.Layer):
     if len(encoder_dimensions) != len(decoder_dimensions):
       raise ValueError(
           'The number of encoder and decoder blocks should be equal')
-
     if task_names_to_use_relu_last_conv is None:
       task_names_to_use_relu_last_conv = {}
       for key in sorted(task_names_to_num_output_channels):
@@ -122,7 +121,8 @@ class SparseConvUNet(tf.keras.layers.Layer):
           use_batch_norm=use_batch_norm,
           dropout_prob=dropout_prob,
           apply_relu_to_last_conv=True,
-          normalize_sparse_conv=normalize_sparse_conv)
+          normalize_sparse_conv=normalize_sparse_conv,
+          use_rule_based_op=use_rule_based_op)
       setattr(self, 'encoder_' + str(level), conv_block_i)
 
     self.middle_layer = sparse_voxel_net_utils.SparseConvBlock3D(
@@ -131,7 +131,8 @@ class SparseConvUNet(tf.keras.layers.Layer):
         use_batch_norm=use_batch_norm,
         dropout_prob=dropout_prob,
         apply_relu_to_last_conv=True,
-        normalize_sparse_conv=normalize_sparse_conv)
+        normalize_sparse_conv=normalize_sparse_conv,
+        use_rule_based_op=use_rule_based_op)
 
     for level in reversed(range(self.num_levels)):
       conv_block_i = sparse_voxel_net_utils.SparseConvBlock3D(
