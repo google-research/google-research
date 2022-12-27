@@ -254,7 +254,7 @@ class DistanceModelWrapper(wrappers.EnvironmentWrapper):
   def observation_spec(self):
     return self._observation_spec
 
-  def reward_spec(self):
+  def reward_spec(self):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     return self._reward_spec
 
   def _update_spec(self, base_spec

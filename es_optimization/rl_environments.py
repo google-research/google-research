@@ -45,7 +45,7 @@ class BlackboxRLEnvironment(abc.ABC, gym.Env):
     raise NotImplementedError('Abstract method')
 
 
-class ContMountainCar(continuous_mountain_car.Continuous_MountainCarEnv,
+class ContMountainCar(continuous_mountain_car.Continuous_MountainCarEnv,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
                       BlackboxRLEnvironment):
   """Class representing ContinuousMountainCar OpenAIGym env for RL.
 
@@ -69,7 +69,7 @@ class ContMountainCar(continuous_mountain_car.Continuous_MountainCarEnv,
     return 1
 
 
-class Pendulum(pendulum.PendulumEnv, BlackboxRLEnvironment):
+class Pendulum(pendulum.PendulumEnv, BlackboxRLEnvironment):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
   """Class representing Pendulum OpenAIGym env for RL.
 
   OpenAIGym style environment for testing reinforcement learning algorithms.

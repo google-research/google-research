@@ -146,7 +146,7 @@ class JavalangTokenizerExtended(javalang.JavaTokenizer):
 
     self.j = j + 1
 
-  def tokenize(self):
+  def tokenize(self):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     """Clones the superclass `tokenize` method, but introduces extra tokens.
 
     Unfortunately the implementation in the superclass isn't modular, so we

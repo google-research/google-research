@@ -100,7 +100,7 @@ class BatchEnsembleMSGBuilder(builders.ActorLearnerBuilder):
     del policy
     return []
 
-  def make_dataset_iterator(
+  def make_dataset_iterator(  # pytype: disable=signature-mismatch  # overriding-return-type-checks
       self,
       replay_client):
     """Create a dataset iterator to use for learning/updating the agent."""

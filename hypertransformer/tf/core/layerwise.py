@@ -452,7 +452,7 @@ class LayerwiseModel(common_ht.Model):
     self.fe_dropout = model_config.fe_dropout
     self.model_config = model_config
 
-  def train(self,
+  def train(self,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
             inputs,
             labels,
             mask = None,
