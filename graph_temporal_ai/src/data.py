@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Data generation script and dataset module."""
-from typing import Any, Callable, Dict, Optional, Tuple
 
 from pytorch_lightning import LightningDataModule
 
@@ -40,13 +39,8 @@ class TSDataset(Dataset):
 
   """
 
-  def __init__(
-      self,
-      x,
-      args,
-      transform = None,
-      target_transform = None,
-  ):
+  def __init__(self, x, args,
+               transform=None, target_transform=None):
     self.x = torch.as_tensor(x, dtype=torch.float)
     self.input_len = args.input_len
     self.output_len = args.output_len
@@ -88,7 +82,7 @@ class DataModule(LightningDataModule):
     self.batch_size = args.batch_size
     self.num_workers = 32
 
-  def setup(self, stage = None):
+  def setup(self, stage):
     # seq x batch x feature
     # generate x and y vectors
 

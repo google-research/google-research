@@ -13,23 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=function-missing-types
-
-"""Latent graph forecaster model that integrates."""
+"""Message Passing Neural Network model."""
 import sys
-
-from typing import Any, Dict, Tuple
 
 import numpy as np
 sys.path.insert(0, '../src/')
-from src.lgf_cell import LGFCell  # pylint: disable=g-import-not-at-top
-from src.lgf_cell import Seq2SeqAttrs
+
+from src.mpnn_cell import MPNNCell  # pylint: disable=g-import-not-at-top
+from src.mpnn_cell import Seq2SeqAttrs
 
 from pytorch_lightning import LightningModule  # pylint: disable=g-bad-import-order
 import torch
 from torch import nn
 from torch import optim
 
+from torch_geometric.utils import dense_to_sparse
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -38,58 +36,47 @@ def count_parameters(model):
   return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def repackage_hidden(h):
-  """Wraps hidden states in new Tensors, to detach them from their history."""
-
-  if isinstance(h, torch.Tensor):
-    return h.detach()
-  else:
-    return tuple(repackage_hidden(v) for v in h)
-
-
 class Encoder(LightningModule, Seq2SeqAttrs):
-  """Encoder module.
+  """Encoder Modual for MPNN.
 
   Attributes:
-    embedding: embedding layer for the input
-    lgf_layers: latent graph forecaster layer
+  edge_index: adjacency list of edges [2 x num_edges]
+  edge_attr: attributes [num_edges x num_feature]
+  args: training arguments
   """
 
-  def __init__(self, adj_mx, args):
+  def __init__(self, edge_index, edge_attr, args):
     super().__init__()
 
     Seq2SeqAttrs.__init__(self, args)
-    self.embedding = nn.Linear(self.input_dim, self.rnn_units)
-    torch.nn.init.normal_(self.embedding.weight)
+    self.edge_index = edge_index
+    self.edge_attr = edge_attr
 
-    self.lgf_layers = nn.ModuleList(
-        [LGFCell(adj_mx, args) for _ in range(self.num_rnn_layers)])
+    self.embedding = nn.Linear(self.input_dim, self.rnn_units)
+    self.gnn_layers = nn.ModuleList([
+        MPNNCell(edge_index, edge_attr, args)
+        for _ in range(self.num_rnn_layers)
+    ])
     # self.batch_norm  = nn.BatchNorm1d(self.num_nodes)
     self.dropout = nn.Dropout(self.dropout)
     self.tanh = nn.Tanh()
     self.relu = nn.ReLU()
 
-  def forward(self, inputs,
-              hidden_state = None):
+  def forward(self, inputs, hidden_state=None):
     """Encoder forward pass.
 
     Args:
         inputs (tensor): [batch_size, self.num_nodes, self.input_dim]
         hidden_state (tensor): [num_layers, batch_size, self.rnn_units]
-          optional, zeros if not provided
+         optional, zeros if not provided
 
     Returns:
         output: # shape (batch_size, num_nodes,  self.rnn_units)
-        hidden_state # shape (num_layers, batch_size, num_nodes,
-        self.rnn_units)
-          (lower indices mean lower layers)
+        hidden_state # shape (num_layers, batch_size, num_nodes, self.rnn_units)
+         (lower indices mean lower layers)
     """
-    linear_weights = self.embedding.weight
-    if torch.any(torch.isnan(linear_weights)):
-      print('weight nan')
-    embedded = self.embedding(inputs)
-    embedded = self.tanh(embedded)
 
+    embedded = self.tanh(self.embedding(inputs))
     output = self.dropout(embedded)
 
     if hidden_state is None:
@@ -97,8 +84,9 @@ class Encoder(LightningModule, Seq2SeqAttrs):
                                   self.num_nodes, self.rnn_units),
                                  device=device)
     hidden_states = []
-    for layer_num, dcgru_layer in enumerate(self.lgf_layers):
-      next_hidden_state = dcgru_layer(output, hidden_state[layer_num])
+    for layer_num, gnn_layer in enumerate(self.gnn_layers):
+      next_hidden_state = gnn_layer(output, hidden_state[layer_num],
+                                    self.edge_index, self.edge_attr)
       hidden_states.append(next_hidden_state)
       output = next_hidden_state
 
@@ -110,60 +98,61 @@ class Encoder(LightningModule, Seq2SeqAttrs):
     elif self.activation == 'linear':
       pass
 
-    return output, torch.stack(
-        hidden_states)  # runs in O(num_layers) so not too slow
+    return output, torch.stack(hidden_states)  # runs in O(num_layers)
 
 
 class Decoder(LightningModule, Seq2SeqAttrs):
-  """Decoder module.
+  """Decoder Modual for MPNN.
 
   Attributes:
-    embedding: embedding layer for the output
-    lgf_layers: latent graph forecaster layer
-    fc_out: fully connected output layer
+  edge_index: adjacency list of edges [2 x num_edges]
+  edge_attr: attributes [num_edges x num_feature]
+  args: training arguments
   """
 
-  def __init__(self, adj_mx, args):
+  def __init__(self, edge_index, edge_attr, args):
     # super().__init__(is_training, adj_mx, **model_kwargs)
     super().__init__()
     Seq2SeqAttrs.__init__(self, args)
 
+    self.edge_index = edge_index
+    self.edge_attr = edge_attr
     self.embedding = nn.Linear(self.output_dim, self.rnn_units)
-
-    self.lgf_layers = nn.ModuleList(
-        [LGFCell(adj_mx, args) for _ in range(self.num_rnn_layers)])
-
-    # self.batch_norm = nn.BatchNorm1d(self.num_nodes)
+    self.gnn_layers = nn.ModuleList([
+        MPNNCell(edge_index, edge_attr, args)
+        for _ in range(self.num_rnn_layers)
+    ])
+    self.gnn_layers = nn.ModuleList([
+        MPNNCell(edge_index, edge_attr, args)
+        for _ in range(self.num_rnn_layers)
+    ])
 
     self.fc_out = nn.Linear(self.rnn_units, self.output_dim)
     self.dropout = nn.Dropout(self.dropout)
     self.relu = nn.ReLU()
     self.tanh = nn.Tanh()
 
-  def forward(self, inputs,
-              hidden_state = None):
+  def forward(self, inputs, hidden_state=None):
     """Decoder forward pass.
 
     Args:
         inputs: [batch_size, self.num_nodes, self.output_dim]
-        hidden_state: [num_layers, batch_size, self.hidden_state_size] optional,
-          zeros if not provided
-
+        hidden_state: [num_layers, batch_size, self.hidden_state_size]
+         optional, zeros if not provided
     Returns:
         output: [batch_size, self.num_nodes,  self.output_dim]
-          hidden_state: [num_layers, batch_size, self.hidden_state_size]
-          (lower indices mean lower layers)
+         hidden_state: [num_layers, batch_size, self.hidden_state_size]
+         (lower indices mean lower layers)
     """
     embedded = self.tanh(self.embedding(inputs))
     output = self.dropout(embedded)
 
     hidden_states = []
-    for layer_num, dcgru_layer in enumerate(self.lgf_layers):
-      next_hidden_state = dcgru_layer(output, hidden_state[layer_num])
+    for layer_num, gnn_layer in enumerate(self.gnn_layers):
+      next_hidden_state = gnn_layer(output, hidden_state[layer_num],
+                                    self.edge_index, self.edge_attr)
       hidden_states.append(next_hidden_state)
       output = next_hidden_state
-
-    # output = self.batch_norm(output)
 
     output = self.fc_out(output.view(-1, self.rnn_units))
     output = output.view(-1, self.num_nodes, self.output_dim)
@@ -178,59 +167,55 @@ class Decoder(LightningModule, Seq2SeqAttrs):
     return output, torch.stack(hidden_states)
 
 
-class LGF(LightningModule, Seq2SeqAttrs):
-  """Lightning module for Latent Graph Forecaster model.
+class MPNN(LightningModule, Seq2SeqAttrs):
+  """Message Passing Neural Networks.
 
   Attributes:
-    adj_mx: initialize if learning the graph, load the graph if known
-    encoder: encoder module
-    decoder: decoder module
   """
 
-  def __init__(self,
-               adj_mx,
-               args,
-               config=None):
+  def __init__(self, adj_mx, args):
     super().__init__()
     Seq2SeqAttrs.__init__(self, args)
-    if self.filter_type == 'learned':
-      # a global learnable graph
-      print('create graph')
-      self.adj_mx = nn.Parameter(adj_mx.to(device))  # initialization
-    else:
-      print('initialize graph')
-      self.adj_mx = adj_mx
 
-    self.encoder = Encoder(self.adj_mx, args)
-    self.decoder = Decoder(self.adj_mx, args)
+    # Convert dense matrix to edge index (int) and edge attributes
+    (self.edge_index, self.edge_attr) = dense_to_sparse(adj_mx)
+
+    self.edge_index = self.edge_index.to(device)
+
+    if self.filter_type == 'learned':
+      print('create graph')
+      # learnable edge_index
+      self.edge_attr = nn.Parameter(self.edge_attr.to(device))  # Initialization
+
+    else:
+      print('Intialize graph')
+      self.edge_attr = self.edge_attr.to(device)
+
+    self.encoder = Encoder(self.edge_index, self.edge_attr, args)
+    self.decoder = Decoder(self.edge_index, self.edge_attr, args)
 
     # define loss function
     self.loss = nn.L1Loss()
-
-    self.hidden_dim = config['hidden_dim']
 
   def _compute_sampling_threshold(self, batches_seen):
     return self.cl_decay_steps / (
         self.cl_decay_steps + np.exp(batches_seen / self.cl_decay_steps))
 
-  def forward(self,
-              inputs,
-              labels = None,
-              batches_seen = None):
-    """LGF forward pass.
+  def forward(self, inputs, labels=None, batches_seen=None):
+    """DCRNN forward pass.
 
     Args:
-        inputs: [seq_len, batch_size, num_nodes, input_dim]
-        labels: [horizon, batch_size, num_nodes, output_dim]
-        batches_seen: batches seen till now
+      inputs: [seq_len, batch_size, num_nodes, input_dim]
+      labels: [horizon, batch_size, num_nodes, output_dim]
+      batches_seen: batches seen till now
 
     Returns:
-        output: [self.horizon, batch_size, self.num_nodes,
-        self.output_dim]
+      output: [self.horizon, batch_size, self.num_nodes,  self.output_dim]
     """
 
-    # reshape [batch, seq_len, num_nodes, dim]
-    #           -- > [seq_len, batch, num_nodes, dim]
+    # [batch, seq_len, num_nodes, dim] -- > [seq_len, batch, num_nodes, dim]
+    # src = [src len, batch size]
+    # trg = [trg len, batch size]
 
     inputs.to(device)
     inputs = inputs.permute(1, 0, 2, 3)
@@ -240,48 +225,31 @@ class LGF(LightningModule, Seq2SeqAttrs):
 
     encoder_hidden_state = None
     for t in range(self.input_len):
-      # if torch.any(torch.isnan(inputs[t])):
-      #     print('encoder time step', t)
-      _, encoder_hidden_state = self.encoder(inputs[t], encoder_hidden_state)
+      # print('encoder time step', t)
+      encoder_output, encoder_hidden_state = self.encoder(
+          inputs[t], encoder_hidden_state)
 
-    encoder_hidden_state.detach()
-
-    decoder_hidden_state = encoder_hidden_state
-
-    decoder_input = torch.zeros(
+    go_symbol = torch.zeros(
         (self.batch_size, self.num_nodes, self.decoder.output_dim),
         device=device)
+    decoder_hidden_state = encoder_hidden_state
+
+    decoder_input = go_symbol if labels is not None else encoder_output[-1]
+
     outputs = []
     for t in range(self.output_len):
-      # if torch.any(torch.isnan(decoder_input)):
-      #     print('decoder time step', t)
+
       decoder_output, decoder_hidden_state = self.decoder(
           decoder_input, decoder_hidden_state)
       outputs.append(decoder_output)
 
-      # teacher_forcing_ratio = 0 if labels!=None
-      # else 0 # self._compute_sampling_threshold(batches_seen)
-      # teacher_force = random.random() < teacher_forcing_ratio
-      # if teacher forcing, use actual next token as next input;
-      # if not, use predicted token
-      # decoder_input = labels[t,:,:,:self.output_dim] if teacher_force
-      # else decoder_output
       decoder_input = decoder_output
       # if self.training and self.use_curriculum_learning:
       #     c = np.random.uniform(0, 1)
       #     if c < self._compute_sampling_threshold(batches_seen):
       #         decoder_input = labels[t]
     outputs = torch.stack(outputs)
-    outputs.detach()
 
-    del encoder_hidden_state
-    del decoder_hidden_state
-
-    # self._logger.debug("Decoder complete")
-    # if batches_seen == 0:
-    #     self._logger.info(
-    #         "Total trainable parameters {}".format(count_parameters(self))
-    #     )
     # permute back
     outputs = outputs.permute(1, 0, 2, 3)
     return outputs
@@ -289,16 +257,14 @@ class LGF(LightningModule, Seq2SeqAttrs):
   def configure_optimizers(self):
     return optim.Adam(self.parameters(), lr=self.lr)
 
-  def training_step(self, batch,
-                    batch_idx):
+  def training_step(self, batch, batch_idx):
     x, y = batch
-    loss = self.loss(self(x, None), y)
+    loss = self.loss(self(x, y), y)
     return {'loss': loss, 'log': {'train_loss': loss.detach()}}
 
-  def validation_step(self, batch,
-                      batch_idx):
+  def validation_step(self, batch, batch_idx):
     x, y = batch
-    loss = self.loss(self(x, None), y)
+    loss = self.loss(self(x, y), y)
     self.log('val_loss', loss)
     return {'val_loss': loss, 'log': {'val_loss': loss.detach()}}
 
@@ -308,11 +274,11 @@ class LGF(LightningModule, Seq2SeqAttrs):
     self.log('test_loss', loss)
     return {'test_loss': loss, 'log': {'test_loss': loss.detach()}}
 
-  def predict_step(self, batch,
-                   batch_idx):
+  def predict_step(self, batch, batch_idx):  # dataloader_idx=0
     x, y = batch
     if x.shape[0] != self.batch_size:
       return None
+    # print('predict', x.shape, y.shape)
     return (self(x, None), y)
 
   def validation_epoch_end(self, outputs):
