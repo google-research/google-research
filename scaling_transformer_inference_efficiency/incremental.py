@@ -141,11 +141,14 @@ Weights = weights.Weights
 P = pjit.PartitionSpec
 
 
+# pylint: disable = g-bare-generic
 @dataclass
 class StreamClient:
   """Used to handle streaming results."""
-  prev_token_decoded = None
-  prev_token = None
+  prev_token_decoded: Optional[jnp.ndarray] = None
+  prev_token: Optional[jnp.ndarray] = None
+  stream_callback: Callable = lambda x: print(x, end='')
+  stream_done_callback: Callable = lambda: None
 
   def find_new_chars(self, vocab: seqio.Vocabulary, next_token: np.ndarray):
     """We decode pairs because the tokenizer strips whitespace."""
@@ -166,13 +169,14 @@ class StreamClient:
         new_chars = vocab.decode_tf(current_token).numpy().decode('utf-8')
       else:
         new_chars = self.find_new_chars(vocab, current_token)
-      # print(new_chars, self.prev_token_decoded)
-      print(new_chars, end='')
+
+      self.stream_callback(new_chars)
       self.prev_token = current_token
       self.prev_token_decoded = new_chars.lstrip(' ').rstrip(' ')
 
   def clear_prev_token(self):
     self.prev_token = None
+    self.stream_done_callback()
 
 
 def _bos_logits(vocab_size: int) -> jnp.ndarray:
