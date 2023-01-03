@@ -66,7 +66,7 @@ def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
   heavy is checked to be allowed under that distance
 
   Args:
-    bond_topology:
+    bond_topology: dataset.pb2.BondTopology
     distances: matrix of interatomic distances.
     bond_lengths: None or AllAtomPairLengthDistributions
 
@@ -135,9 +135,9 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
     Note that `bond_topology` will be put in a canonical form.
 
   Args:
-    molecule:
+    molecule: dataset.pb2.Molecule
     bond_lengths: matrix of interatomic distances
-    matching_parameters:
+    matching_parameters: MatchingParameters
 
   Returns:
     TopologyMatches

@@ -80,6 +80,7 @@ STANDARD_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
 
 class BondLengthParseError(Exception):
+  """Exception for error in parsing user defined bond lengths."""
 
   def __init__(self, term):
     super().__init__(term)
@@ -453,6 +454,9 @@ class Mixture(LengthDistribution):
     Args:
       dist: LengthDistribution
       weight: weight strictly > 0
+
+    Raises:
+      ValueError: on invalid weights
     """
     if weight <= 0.0:
       raise ValueError(f'Mixture: weight must be positive, got {weight}')
@@ -467,6 +471,9 @@ class Mixture(LengthDistribution):
 
     Returns:
       pdf value
+
+    Raises:
+      ValueError: if mixture has no components
     """
     if not self._dists:
       raise ValueError('Mixture.pdf called with empty components')
@@ -776,6 +783,9 @@ class AllAtomPairLengthDistributions:
 
     Args:
       spec_string: string
+
+    Raises:
+      BondLengthParseError: if spec_string is misformatted
     """
     if not spec_string:
       return

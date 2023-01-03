@@ -189,7 +189,7 @@ def mutate_conformer(encoded_molecule, bond_lengths, smiles_id_dict):
   # be all the bits. So we just fix it here.
   # These are the mids for C N O F FF O=O
   if molecule.mol_id in [899649001, 899650001, 899651001, 899652001, 1001, 4001]:
-    assert(len(molecule.bond_topo) == 1)
+    assert len(molecule.bond_topo) == 1
     molecule.bond_topo[0].info = (
       dataset_pb2.BondTopology.SOURCE_STARTING |
       dataset_pb2.BondTopology.SOURCE_DDT |

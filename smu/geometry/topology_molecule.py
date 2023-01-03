@@ -85,7 +85,7 @@ def add_bond(a1, a2, btype, destination):
     a1: atom
     a2: atom
     btype: bond type.
-    destination:
+    destination: dataset_pb2.BondTopology
   """
   destination.bond.append(
       dataset_pb2.BondTopology.Bond(
@@ -122,7 +122,8 @@ class TopologyMolecule:
 
     # For each atom, the maximum number of bonds that can be attached.
     self._max_bonds = np.zeros(self._natoms, dtype=np.int32)
-    if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
+    if (matching_parameters.neutral_forms_during_bond_matching and
+        self._contains_both_oxygen_and_nitrogen):
       for i in range(0, self._natoms):
         self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[
             hydrogens_attached.atom[i]]
@@ -282,7 +283,8 @@ class TopologyMolecule:
     if not bt:
       return None
 
-    if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
+    if (matching_parameters.neutral_forms_during_bond_matching and
+        self._contains_both_oxygen_and_nitrogen):
       if not self.assign_charged_atoms(bt):
         return None
       # all bonds matched has already been checked.

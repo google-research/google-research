@@ -234,6 +234,7 @@ class PBTextOutputter:
     print('}', file=self.outfile)
 
   def close(self):
+    """Closes all resources."""
     self.outfile.close()
 
 
@@ -274,6 +275,7 @@ class SDFOutputter:
       self.writer.write(mol)
 
   def close(self):
+    """Closes all resources."""
     self.writer.close()
 
 
@@ -321,6 +323,7 @@ class Atomic2InputOutputter:
             f.write(self.atomic2_writer.process(molecule, bt_idx))
 
   def close(self):
+    """Closes all resources."""
     pass
 
 
@@ -348,6 +351,7 @@ class DatOutputter:
     self.outfile.write(self.writer.process_stage2_proto(molecule))
 
   def close(self):
+    """Closes all resources."""
     self.outfile.close()
 
 
@@ -375,6 +379,7 @@ class CleanTextOutputter:
     self.outfile.write(self.writer.process(molecule))
 
   def close(self):
+    """Closes all resources."""
     self.outfile.close()
 
 
@@ -415,6 +420,7 @@ class ReDetectTopologiesOutputter:
     self._wrapped_outputter.output(molecule)
 
   def close(self):
+    """Closes all resources."""
     self._wrapped_outputter.close()
 
 

@@ -52,7 +52,6 @@ import csv
 import functools
 import itertools
 import logging as stdlogging
-import numpy as np
 
 from absl import app
 from absl import flags
@@ -284,6 +283,9 @@ class MergeMoleculesFn(beam.DoFn):
     Yields:
       dataset_pb2.Molecule and tagged output (OUTPUT_TAG_MERGE_CONFLICT) with
       conflict output from smu_utils_lib.merge_molecule
+
+    Raises:
+      ValueError: on inconsistent mol_id
     """
     mol_id, molecules = args
 
@@ -426,6 +428,14 @@ def smiles_to_id(bond_topology_filename):
 
 
 def clean_up_molecule(molecule):
+  """Miscellaneous clean up.
+
+  Args:
+    molecule: dataset_pb2.Molecule
+
+  Returns:
+    copy of molecule with modifications
+  """
   molecule = copy.deepcopy(molecule)
 
   smu_utils_lib.clean_up_error_codes(molecule)
@@ -498,6 +508,9 @@ class UpdateMoleculeFn(beam.DoFn):
 
     Yields:
       Molecule.
+
+    Raises:
+      ValueError: if the bond_length_records are misformatted
     """
     # There is probably a better way to do this.
     # We get the side input with each call to process. We'll assume that it's
@@ -572,6 +585,9 @@ def merge_duplicate_information(mol_id, molecules):
 
   Returns:
     dataset_pb2.Molecule
+
+  Raises:
+    ValueError: if duplicate records not as expected
   """
   matching_molecules = [c for c in molecules if c.mol_id == mol_id]
   if len(matching_molecules) != 1:
@@ -598,7 +614,6 @@ def merge_duplicate_information(mol_id, molecules):
       # TODO(pfr, ianwatson)
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'dup_diff_topology_unmatched').inc()
-      pass
 
   return main_molecule
 
@@ -732,11 +747,7 @@ def make_standard_molecule(molecule):
   yield out
 
 
-def key_to_string(key, value):
-  return str(key), value
-
-
-def csv_format(vals):
+def _csv_format(vals):
   return ','.join(str(v) for v in vals)
 
 
@@ -853,11 +864,11 @@ def pipeline(root):
   # Write out the merge conflicts
   _ = (
       merged_results[MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT]
-      | 'ConflictsCSVFormat' >> beam.Map(csv_format)
+      | 'ConflictsCSVFormat' >> beam.Map(_csv_format)
       | 'ConflictsReshuffle' >> beam.Reshuffle()
       | 'WriteConflictsCSV' >> beam.io.WriteToText(
           FLAGS.output_stem + '_conflicts',
-          header=csv_format(smu_utils_lib.MERGE_CONFLICT_FIELDS),
+          header=_csv_format(smu_utils_lib.MERGE_CONFLICT_FIELDS),
           num_shards=1,
           file_name_suffix='.csv'))
 
@@ -899,7 +910,7 @@ def pipeline(root):
   _ = (
       update_results[UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH]
       | 'ReshuffleSmilesOutput' >> beam.Reshuffle()
-      | 'SmilesCSVFormat' >> beam.Map(csv_format)
+      | 'SmilesCSVFormat' >> beam.Map(_csv_format)
       | 'WriteSmilesCSV' >> beam.io.WriteToText(
           FLAGS.output_stem + '_smiles_compare',
           header='mol_id,compare,smiles_given,smiles_with_h,smiles_without_h',

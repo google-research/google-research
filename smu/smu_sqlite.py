@@ -55,12 +55,12 @@ import sqlite3
 
 from absl import logging
 from rdkit import Chem
+import snappy
 
 from smu import dataset_pb2
 from smu.geometry import topology_from_geom
 from smu.geometry import topology_molecule
 from smu.parser import smu_utils_lib
-import snappy
 
 # The name of this table is a hold over before we did a big rename of
 # Conformer to Molecule. The column that holds the protobuf is also called
@@ -71,6 +71,7 @@ _SMILES_TABLE_NAME = 'smiles'
 
 
 class ReadOnlyError(Exception):
+  """Exception when trying to write to a read only DB."""
   pass
 
 
@@ -227,10 +228,10 @@ class SMUSQLite:
 
     Args:
       smiles_btid_pairs: iterable of pairs of (smiles, btid)
-      batch_size:
+      batch_size: number of inserts per SQL call
 
     Raises:
-      ReadOnlyError:
+      ReadOnlyError: if DB is read only
     """
     if self._read_only:
       raise ReadOnlyError()
@@ -259,7 +260,7 @@ class SMUSQLite:
     """Uses SQL VACUUM to clean up db.
 
     Raises:
-      ReadOnlyError:
+      ReadOnlyError: if db is read only
     """
     if self._read_only:
       raise ReadOnlyError()
@@ -294,7 +295,7 @@ class SMUSQLite:
     return result[0][0]
 
   def get_smiles_id_dict(self):
-    """Creates a dictinary of smiles to bond topology id.
+    """Creates a dictionary of smiles to bond topology id.
 
     This is not the most efficient way to do this, but we will just pull
     everything out of the db and create a python dictionary.
@@ -498,6 +499,9 @@ class SMUSQLite:
 
     Yields:
       int, bond topology id
+
+    Raises:
+      ValueError: if smarts coudl not be parsed
     """
     pattern = Chem.MolFromSmarts(smarts)
     if not pattern:

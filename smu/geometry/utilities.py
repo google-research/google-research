@@ -157,7 +157,7 @@ def canonicalize_bond_topology(bond_topology):
     bond_topology:
 
   Returns:
-    BondTopology
+    dataset_pb2.BondTopology
   """
   if len(bond_topology.bond) < 2:
     return
