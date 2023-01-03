@@ -19,7 +19,7 @@ import contextlib
 from enum import Enum  # pylint: disable = g-importing-member
 import functools
 import threading
-from typing import Any, Optional, Sequence, Union, List, Tuple
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import jax
 from jax import pxla
