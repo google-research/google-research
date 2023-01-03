@@ -64,7 +64,7 @@ molecules = list(
         bt_ids, which_topologies=smu_utils_lib.WhichTopologies.ALL))
 print('In this case we find', len(molecules), 'matching molecules')
 print(
-    'As you can see, not all bond topology ids in the standard database will find a matching molecule'
+    'As you can see, not all bond topology ids in the standard db will find a matching molecule'
 )
 print(
     'You can always find descriptions of all bond topologies in bond_topology.csv'

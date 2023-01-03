@@ -36,7 +36,8 @@ from smu import smu_sqlite
 db = smu_sqlite.SMUSQLite('20220621_complete_v4.sqlite')
 
 print(
-    'When processing the complete database, there are a few special kinds of molecules to look out for'
+    'When processing the complete database, '
+    'there are a few special kinds of molecules to look out for'
 )
 
 DUPLICATE_MOLECULE_SAME_ID = 253949008

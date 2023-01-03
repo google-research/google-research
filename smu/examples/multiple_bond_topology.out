@@ -39,7 +39,7 @@ Molecule 79488001 has 2 bond topologies
     Topology with id 79488 and SMILES C1=CC=CC=C1
         Sources:  DDT MLCR CSD 
 These are the two kekulized forms of benzene
-While the final graphs are isomorphic, for a given pair of carbons, the bond types are switched
+While the final graphs are isomorphic, for a given pair of carbon, bond types are switched
 The first bond topology has
 atom_a: 1
 atom_b: 3

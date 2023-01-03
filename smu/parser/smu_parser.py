@@ -52,7 +52,8 @@ from smu.parser import smu_parser_lib
 
 flags.DEFINE_string(
     'input_file', None,
-    'Path to the input file. This file is expected to be in the SMU file format provided by Uni Basel.'
+    'Path to the input file. '
+    'This file is expected to be in the SMU file format provided by Uni Basel.'
 )
 flags.DEFINE_string(
     'output_file', None, 'Path to the output file. ' +

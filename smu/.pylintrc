@@ -439,7 +439,8 @@ disable=raw-checker-failed,
 	import-outside-toplevel,
 	missing-type-doc,
 	global-statement,
-	consider-using-generator
+	consider-using-generator,
+	print-used
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

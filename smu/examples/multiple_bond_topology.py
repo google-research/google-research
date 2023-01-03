@@ -89,7 +89,7 @@ benzene = db.find_by_mol_id(79488001)
 print_bond_topo(benzene)
 print('These are the two kekulized forms of benzene')
 print(
-    'While the final graphs are isomorphic, for a given pair of carbons, the bond types are switched'
+    'While the final graphs are isomorphic, for a given pair of carbon, bond types are switched'
 )
 print('The first bond topology has')
 print(benzene.bond_topo[0].bond[3], end='')

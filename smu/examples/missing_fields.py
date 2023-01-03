@@ -77,7 +77,8 @@ print(MINIMAL_MOLECULE_ID,
 print()
 print('These are cases of missing values.')
 print(
-    'If you request a value which is actually missing, you will silently get a default value (0.0 for floats)'
+    'If you request a value which is actually missing, you will silently get a default value '
+    '(0.0 for floats)'
 )
 print(
     'Therefore, in addition to checking the status field, we recommend you also'

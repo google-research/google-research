@@ -57,7 +57,9 @@ print(
 )
 
 print(
-    'While this does not have the read the whole database, it is a much less efficient operation than querying by smiles, so only use it if you modify the allowed distances'
+    'While this does not have the read the whole database, '
+    'it is a much less efficient operation than querying by smiles, '
+    'so only use it if you modify the allowed distances'
 )
 
 print()

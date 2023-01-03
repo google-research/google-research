@@ -11,5 +11,5 @@ In this case we find 1743 matching bond topologies
 
 You can then use find_by_topo_id_list (just like indices.py) to get the molecules
 In this case we find 1164 matching molecules
-As you can see, not all bond topology ids in the standard database will find a matching molecule
+As you can see, not all bond topology ids in the standard db will find a matching molecule
 You can always find descriptions of all bond topologies in bond_topology.csv
