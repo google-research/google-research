@@ -32,6 +32,7 @@
 import enum
 import functools
 import itertools
+import logging
 from typing import (Any, Callable, cast, List, NamedTuple, Optional, Sequence,
                     Tuple, TypeVar, Union)
 
@@ -281,6 +282,7 @@ class InitFnState(NamedTuple):
 
 
 class GraftingType(enum.IntEnum):
+  NONE = 0
   SGD = 1
   ADAGRAD = 2
   RMSPROP = 3
@@ -1292,7 +1294,8 @@ def distributed_shampoo(
   """
   def _graft_type_has_diagonal_statistics():
     """Returns True if using diagonal firt order method for grafting."""
-    return graft_type != GraftingType.SGD and graft_type != GraftingType.SQRT_N
+    return graft_type not in [
+        GraftingType.SGD, GraftingType.SQRT_N, GraftingType.NONE]
 
   def quantized_dtype_for_momentum_buffers(var):
     return jnp.int8 if best_effort_memory_usage_reduction and len(
@@ -2573,6 +2576,8 @@ def distributed_shampoo(
       grafting_update = rmsprop_update
     elif graft_type == GraftingType.SGD:
       grafting_update = sgd_update
+    elif graft_type == GraftingType.NONE:
+      grafting_update = sgd_update  # Use SGD during warmup.
     else:
       grafting_update = jnp.ones_like(sgd_update) * jnp.sign(sgd_update)
 
@@ -2589,12 +2594,17 @@ def distributed_shampoo(
           precond_grad,
           _maybe_dequantize_preconditioners(state.preconditioners))
     else:
-      precond_grad = grafting_update
+      logging.error("skipping preconditioning without grafting for param %s",
+                    param)
+      precond_grad = sgd_update
 
     grafting_update_norm = jnp.linalg.norm(grafting_update)
     precond_grad_norm = jnp.linalg.norm(precond_grad)
 
-    multiplier = (grafting_update_norm / (precond_grad_norm + _EPSILON))
+    if graft_type is not GraftingType.NONE:
+      multiplier = (grafting_update_norm / (precond_grad_norm + _EPSILON))
+    else:
+      multiplier = 1.0
     shampoo_update = precond_grad * multiplier
 
     shampoo_update_with_wd = shampoo_update
