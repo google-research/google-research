@@ -1639,8 +1639,7 @@ function addGroup(sourcePage, concept, profile, isCore, controls = null) {
     case dealmediaConcept:
       addMedia(sourcePage, concept, controls);
       break;
-    case singleselectionConcept:  // useful for passive groups
-    case cctypeConcept:
+    case cctypeConcept:  // useful for passive groups
     case flighttypeConcept:
     case cabinConcept:
       formGroup = true;
