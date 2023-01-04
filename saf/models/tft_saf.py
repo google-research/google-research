@@ -30,12 +30,19 @@ class ForecastModel(base_saf.ForecastModel):
                hparams,
                quantile_targets=(0.5,)):
     # For now we will include all of the errors as features.
-    self.num_error_features = hparams["num_features"]
 
     self.use_backcast_errors = hparams["use_backcast_errors"]
+    if self.use_backcast_errors:
+      self.num_error_features = hparams["num_features"]
+    else:
+      self.num_error_features = 0
+
     if "num_historical_features" not in hparams:
       hparams["num_historical_features"] = (
           hparams["num_features"] + self.num_error_features)
+    hparams["num_future_features"] = 1
+    hparams["num_static_features"] = hparams["num_static"] - hparams[
+        "static_index_cutoff"]
 
     super().__init__(loss_object, self_supervised_loss_object, hparams)
 
@@ -77,8 +84,9 @@ class ForecastModel(base_saf.ForecastModel):
       backcasts, _ = self.tft_model.call(
           inputs=[augmented_input_sequence, future_features, input_static],
           training=is_training)
-      # Remove the forecasts of the error features.
-      backcasts = backcasts[:, :, :-self.num_error_features]
+      if self.use_backcast_errors:
+        # Remove the forecasts of the error features.
+        backcasts = backcasts[:, :, :-self.num_error_features]
 
       self_adaptation_loss = self.self_supervised_loss_object(
           input_sequence, backcasts)
@@ -94,8 +102,12 @@ class ForecastModel(base_saf.ForecastModel):
     updated_backcasts, _ = self.tft_model.call(
         inputs=[augmented_input_sequence, future_features, input_static],
         training=is_training)
-    backcast_errors = (
-        input_sequence - updated_backcasts[:, :, :-self.num_error_features])
+
+    if self.use_backcast_errors:
+      # Remove the forecasts of the error features.
+      updated_backcasts = updated_backcasts[:, :, :-self.num_error_features]
+
+    backcast_errors = (input_sequence - updated_backcasts)
 
     return self_adaptation_loss, backcast_errors
 
