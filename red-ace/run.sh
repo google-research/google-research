@@ -27,7 +27,7 @@ export TRAIN_FILE=redace/train_other.json
 export DEV_FILE=redace/dev_other.json
 export TEST_FILE=redace/test_other.json
 
-# See https://huggingface.co/google/bert_uncased_L-12_H-768_A-12/tree/main
+# See https://github.com/google-research/bert
 export CHECKPOINT=redace/bert_model.ckpt
 export VOCAB_FILE=redace/vocab.txt
 
