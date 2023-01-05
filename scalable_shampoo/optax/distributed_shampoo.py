@@ -1434,11 +1434,8 @@ def distributed_shampoo(
             matrix_epsilon * jnp.eye(max_size, dtype=jnp.float32)
             for s in shapes
         ]
-        pd = precond_dim(max_size)
-        # If the preconditioner is using a low-rank representation, initialize
-        # it to zero instead of an invalid eye.
         preconditioners = [
-            jnp.eye(max_size, pd, dtype=jnp.float32) * (pd == max_size)
+            jnp.eye(max_size, precond_dim(max_size), dtype=jnp.float32)
             for s in shapes
         ]
         padded_statistics.extend(statistics)
@@ -1475,11 +1472,8 @@ def distributed_shampoo(
     # is split on.
     padded_statistics.extend(
         [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])
-    pd = precond_dim(max_size)
-    # If the preconditioner is using a low-rank representation, initialize
-    # it to zero instead of an invalid eye.
     padded_preconditioners.extend([
-        jnp.eye(max_size, pd, dtype=stat_dtype) * (pd == max_size)
+        jnp.eye(max_size, precond_dim(max_size), dtype=stat_dtype)
         for _ in range(to_pad)
     ])
     exponents.extend([1 for _ in range(to_pad)])
@@ -1791,11 +1785,8 @@ def distributed_shampoo(
         statistics = [
             matrix_epsilon * jnp.eye(s[0], dtype=jnp.float32) for s in shapes
         ]
-        # If the preconditioner is using a low-rank representation, initialize
-        # it to zero instead of an invalid eye.
         preconditioners = [
-            jnp.eye(s[0], s[1], dtype=jnp.float32) * (s[0] == s[1])
-            for s in shapes
+            jnp.eye(s[0], s[1], dtype=jnp.float32) for s in shapes
         ]
 
       diagonal_statistics = []
