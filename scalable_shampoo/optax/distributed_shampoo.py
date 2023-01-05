@@ -240,28 +240,48 @@ class LocalShardedParameterStats:
 
 
 
-def init_training_metrics(
-    num_statistics, generate_training_metrics
+def default_training_metrics(
 ):
+  """Create a default TrainingMetrics."""
+  return TrainingMetrics()
+
+
+def init_training_metrics(
+    num_statistics,
+    generate_training_metrics,
+):
+  """Initialize TrainingMetrics, masked if disabled."""
   if not generate_training_metrics:
     return optax.MaskedNode()
   return jax.tree_map(
-      functools.partial(jnp.repeat, repeats=num_statistics), TrainingMetrics())
+      functools.partial(jnp.repeat, repeats=num_statistics),
+      default_training_metrics(
+
+      ))
 
 
 def init_training_metrics_shapes(
-    num_statistics, generate_training_metrics
+    num_statistics,
+    generate_training_metrics,
 ):
-  seed = init_training_metrics(num_statistics, generate_training_metrics)
+  """Initialize training metrics shape/dtype."""
+  seed = init_training_metrics(
+      num_statistics,
+      generate_training_metrics,
+  )
   return jax.tree_map(lambda arr: [list(arr.shape), arr.dtype], seed)
 
 
 def init_training_metrics_pspec(
-    generate_training_metrics
+    generate_training_metrics,
 ):
+  """Initialize training metrics partition specification."""
   if not generate_training_metrics:
     return optax.MaskedNode()
-  return jax.tree_map(lambda _: pjit.PartitionSpec(), TrainingMetrics())
+  return jax.tree_map(
+      lambda _: pjit.PartitionSpec(),
+      default_training_metrics(
+      ))
 
 
 class ShardedShampooStats(NamedTuple):
@@ -1434,8 +1454,11 @@ def distributed_shampoo(
             matrix_epsilon * jnp.eye(max_size, dtype=jnp.float32)
             for s in shapes
         ]
+        pd = precond_dim(max_size)
+        # If the preconditioner is using a low-rank representation, initialize
+        # it to zero instead of an invalid eye.
         preconditioners = [
-            jnp.eye(max_size, precond_dim(max_size), dtype=jnp.float32)
+            jnp.eye(max_size, pd, dtype=jnp.float32) * (pd == max_size)
             for s in shapes
         ]
         padded_statistics.extend(statistics)
@@ -1454,7 +1477,10 @@ def distributed_shampoo(
               diagonal_statistics,
               diagonal_momentum,
               momentum,
-              init_training_metrics(len(sizes), generate_training_metrics),
+              init_training_metrics(
+                  len(sizes),
+                  generate_training_metrics,
+              ),
               index_start,
               sizes))
 
@@ -1472,8 +1498,11 @@ def distributed_shampoo(
     # is split on.
     padded_statistics.extend(
         [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])
+    pd = precond_dim(max_size)
+    # If the preconditioner is using a low-rank representation, initialize
+    # it to zero instead of an invalid eye.
     padded_preconditioners.extend([
-        jnp.eye(max_size, precond_dim(max_size), dtype=stat_dtype)
+        jnp.eye(max_size, pd, dtype=stat_dtype) * (pd == max_size)
         for _ in range(to_pad)
     ])
     exponents.extend([1 for _ in range(to_pad)])
@@ -1552,7 +1581,9 @@ def distributed_shampoo(
                              list(param.shape)),
               QuantizedValue(m2_pspec, [], m2_scale_pspec, qdtype, False,
                              list(param.shape)),
-              init_training_metrics_pspec(generate_training_metrics),
+              init_training_metrics_pspec(
+                  generate_training_metrics,
+              ),
               index_start,
               sizes))
 
@@ -1609,7 +1640,9 @@ def distributed_shampoo(
               QuantizedValue(m2_shape_and_dtype, [], m2_scale_shape_and_dtype,
                              qdtype, False, list(param.shape)),
               init_training_metrics_shapes(
-                  len(sizes), generate_training_metrics),
+                  len(sizes),
+                  generate_training_metrics,
+              ),
               index_start,
               sizes,
           ))
@@ -1744,7 +1777,10 @@ def distributed_shampoo(
       n = new_stacked_padded_statistics.shape[0]
       metrics_init = cast(
           TrainingMetrics,
-          init_training_metrics(n, generate_training_metrics=True))
+          init_training_metrics(
+              n,
+              generate_training_metrics=True,
+          ))
       new_errors = jnp.ones_like(metrics_init.inverse_pth_root_errors) * (
           inverse_failure_threshold)
       metrics_init = metrics_init.replace(inverse_pth_root_errors=new_errors)
@@ -1785,8 +1821,11 @@ def distributed_shampoo(
         statistics = [
             matrix_epsilon * jnp.eye(s[0], dtype=jnp.float32) for s in shapes
         ]
+        # If the preconditioner is using a low-rank representation, initialize
+        # it to zero instead of an invalid eye.
         preconditioners = [
-            jnp.eye(s[0], s[1], dtype=jnp.float32) for s in shapes
+            jnp.eye(s[0], s[1], dtype=jnp.float32) * (s[0] == s[1])
+            for s in shapes
         ]
 
       diagonal_statistics = []
@@ -1802,7 +1841,10 @@ def distributed_shampoo(
           _maybe_quantize_preconditioners(preconditioners),
           diagonal_momentum,
           momentum,
-          init_training_metrics(len(statistics), generate_training_metrics))
+          init_training_metrics(
+              len(statistics),
+              generate_training_metrics,
+          ))
 
     return ShampooState(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
