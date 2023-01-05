@@ -119,8 +119,8 @@ def setup(batch_size, seq_len, latency_collectives):
       rotated_params = shard_map.shard_map(
           rotate_weights,
           mesh,
-          in_pspecs=(params_sharding,),
-          out_pspecs=params_sharding)(
+          in_specs=(params_sharding,),
+          out_specs=params_sharding)(
               params_pjit)
   else:
     rotated_params = params_pjit
@@ -183,8 +183,8 @@ def xmap_pjit_equivalency(batch_size=4,
       result = shard_map.shard_map(
           fwd,
           mesh,
-          in_pspecs=(param_sharding, chunk_sharding),
-          out_pspecs=result_sharding)(params, token_chunk)
+          in_specs=(param_sharding, chunk_sharding),
+          out_specs=result_sharding)(params, token_chunk)
       return result
 
     with mesh:

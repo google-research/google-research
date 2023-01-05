@@ -124,8 +124,8 @@ class ShardMapTest(absltest.TestCase):
       c = shard_map(
           identity,
           mesh,
-          in_pspecs=(P('z', ('x', 'y')),),
-          out_pspecs=P('z', ('x', 'y')))(
+          in_specs=(P('z', ('x', 'y')),),
+          out_specs=P('z', ('x', 'y')))(
               a)
       return c
 
@@ -154,8 +154,8 @@ class ShardMapTest(absltest.TestCase):
       c = shard_map(
           all_gather,
           mesh,
-          in_pspecs=(P('z', ('x', 'y')),),
-          out_pspecs=P(None, ('x', 'y')))(
+          in_specs=(P('z', ('x', 'y')),),
+          out_specs=P(None, ('x', 'y')))(
               a)
       return c
 
@@ -184,8 +184,8 @@ class ShardMapTest(absltest.TestCase):
       c = shard_map(
           matmul_partial,
           mesh,
-          in_pspecs=(P('z', 'y'), P('y', None)),
-          out_pspecs=P('z', 'y'))(a, b)
+          in_specs=(P('z', 'y'), P('y', None)),
+          out_specs=P('z', 'y'))(a, b)
       return c
 
     with mesh:
@@ -214,8 +214,8 @@ class ShardMapTest(absltest.TestCase):
       c = shard_map(
           matmul_reduce_scatter,
           mesh,
-          in_pspecs=(P('z', 'y'), P('y', None)),
-          out_pspecs=P(('z', 'y'), None))(a, b)
+          in_specs=(P('z', 'y'), P('y', None)),
+          out_specs=P(('z', 'y'), None))(a, b)
       return c
 
     with mesh:
@@ -246,8 +246,8 @@ class ShardMapTest(absltest.TestCase):
       c = shard_map(
           collective_permute,
           mesh,
-          in_pspecs=(P('x', None),),
-          out_pspecs=P('x', None))(
+          in_specs=(P('x', None),),
+          out_specs=P('x', None))(
               a)
       return c
 
@@ -274,7 +274,7 @@ class ShardMapTest(absltest.TestCase):
 
     def fwd(a):
       c = shard_map(
-          all_to_all, mesh, in_pspecs=(P('x', None),), out_pspecs=P(None, 'x'))(
+          all_to_all, mesh, in_specs=(P('x', None),), out_specs=P(None, 'x'))(
               a)
       return c
 
@@ -443,8 +443,8 @@ class ShardMapTest(absltest.TestCase):
       result = shard_map(
           fwd,
           mesh,
-          in_pspecs=(x_sharding, layer_sharding),
-          out_pspecs=x_sharding)(x, layer)
+          in_specs=(x_sharding, layer_sharding),
+          out_specs=x_sharding)(x, layer)
       return result
 
     with mesh:
@@ -480,8 +480,8 @@ class ShardMapTest(absltest.TestCase):
       result = shard_map(
           fwd,
           mesh,
-          in_pspecs=(P(None, None, 'x'), P(('y', 'z'), 'x', None)),
-          out_pspecs=P(None, None, ('y', 'z', 'x'), None))(lhs, rhs)
+          in_specs=(P(None, None, 'x'), P(('y', 'z'), 'x', None)),
+          out_specs=P(None, None, ('y', 'z', 'x'), None))(lhs, rhs)
 
     lhs = lhs.reshape((B, T, X, D // X))
     rhs = rhs.reshape((Y, Z, H // (Y * Z), X, D // X, E))

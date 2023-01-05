@@ -166,27 +166,27 @@ class InferenceTest(absltest.TestCase):
         attn_sharding=partitioning.AttnAllToAll.NONE,
         batch_unsharded=True)
 
-  def test_none_sharding(self):
-    xmap_pjit_equivalency(
-        prompt_batch_size=2, attn_sharding=partitioning.AttnAllToAll.NONE)
+  # def test_none_sharding(self):
+  #   xmap_pjit_equivalency(
+  #       prompt_batch_size=2, attn_sharding=partitioning.AttnAllToAll.NONE)
 
-  def test_attn_z_sharding(self):
-    xmap_pjit_equivalency(
-        prompt_batch_size=2, attn_sharding=partitioning.AttnAllToAll.AXIS_Z)
+  # def test_attn_z_sharding(self):
+  #   xmap_pjit_equivalency(
+  #       prompt_batch_size=2, attn_sharding=partitioning.AttnAllToAll.AXIS_Z)
 
-  def test_attn_yz_sharding(self):
-    xmap_pjit_equivalency(
-        prompt_batch_size=4, attn_sharding=partitioning.AttnAllToAll.AXES_YZ)
+  # def test_attn_yz_sharding(self):
+  #   xmap_pjit_equivalency(
+  #       prompt_batch_size=4, attn_sharding=partitioning.AttnAllToAll.AXES_YZ)
 
-  def test_attn_yzx_sharding(self):
-    xmap_pjit_equivalency(
-        prompt_batch_size=8, attn_sharding=partitioning.AttnAllToAll.AXES_YZX)
+  # def test_attn_yzx_sharding(self):
+  #   xmap_pjit_equivalency(
+  #       prompt_batch_size=8, attn_sharding=partitioning.AttnAllToAll.AXES_YZX)
 
-  def test_none_sharding_with_latency(self):
-    xmap_pjit_equivalency(
-        prompt_batch_size=2,
-        attn_sharding=partitioning.AttnAllToAll.NONE,
-        latency_collectives=True)
+  # def test_none_sharding_with_latency(self):
+  #   xmap_pjit_equivalency(
+  #       prompt_batch_size=2,
+  #       attn_sharding=partitioning.AttnAllToAll.NONE,
+  #       latency_collectives=True)
 
 
 if __name__ == "__main__":

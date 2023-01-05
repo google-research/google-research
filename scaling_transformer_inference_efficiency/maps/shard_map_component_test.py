@@ -215,8 +215,8 @@ class MapsTest(absltest.TestCase):
       matmul_shardmap = shard_map.shard_map(
           matmul_xmap,
           mesh=mesh,
-          in_pspecs=(x_sharding, params_sharding),
-          out_pspecs=out_sharding)
+          in_specs=(x_sharding, params_sharding),
+          out_specs=out_sharding)
       with mesh:
         x1, y1 = matmul_pjit(x_pjit, params_pjit)
         x2, y2 = matmul_shardmap(x_pjit, params_pjit)

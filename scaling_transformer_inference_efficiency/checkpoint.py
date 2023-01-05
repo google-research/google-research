@@ -70,6 +70,16 @@ class HParams:
     return (self.ff // (self.heads-self.padded_heads)) + self.qkv
 
 
+HParams.TOY = HParams(
+    layers=4,
+    embed=32,
+    ff=4 * 32,
+    heads=16,
+    qkv=2,
+    max_len=8096,
+    vocab=256,
+)
+
 HParams.PALM_8B = HParams(
     layers=32,
     embed=4096,
@@ -122,7 +132,7 @@ class CheckpointSpec:
   """Identifies a particular checkpoint file and its format."""
   hparams: HParams
   dir: str
-  transpose_scan_axis: bool
+  transpose_scan_axis: bool  # True if layers not saved as the leading axis
 
 
 

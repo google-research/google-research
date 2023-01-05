@@ -197,8 +197,8 @@ def fold_in_from_physical(param, physical_sharding):
 def shard_map(
     fn,  # pylint: disable=g-bare-generic
     mesh,
-    in_pspecs,
-    out_pspecs,
+    in_specs,
+    out_specs,
     donate_argnums=(),
 ):  # pylint: disable=g-bare-generic
   """Replicates shard map style functionality - the user never sees reshaped shapes.
@@ -209,11 +209,11 @@ def shard_map(
   def wrap_fn_unwrap(*args):
 
     assert jax.tree_util.tree_structure(args) == jax.tree_util.tree_structure(
-        in_pspecs)
+        in_specs)
 
-    folded_out = jax.tree_map(fold_out_for_mesh, args, in_pspecs)
+    folded_out = jax.tree_map(fold_out_for_mesh, args, in_specs)
     pytree_xmap, in_layout = unzip_tree(args, folded_out)
-    out_layout = jax.tree_map(layout_sharding, out_pspecs)
+    out_layout = jax.tree_map(layout_sharding, out_specs)
     assert jax.tree_util.tree_structure(pytree_xmap) == jax.tree_structure(
         in_layout)
     in_layout = jax.tree_map(tuple, in_layout)
@@ -228,8 +228,10 @@ def shard_map(
         donate_argnums=donate_argnums)(*pytree_xmap)
 
     assert jax.tree_util.tree_structure(result) == jax.tree_util.tree_structure(
-        out_pspecs)
-    folded_in = jax.tree_map(fold_in_from_physical, result, out_pspecs)
+        out_specs)
+    folded_in = jax.tree_map(fold_in_from_physical, result, out_specs)
     return folded_in
 
   return wrap_fn_unwrap
+
+

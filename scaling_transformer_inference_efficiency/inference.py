@@ -22,7 +22,7 @@ ways that would require significant changes to how t5x's APIs are structured.
 Test this with :inference_test
 """
 
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Optional
 
 import jax
 from jax import lax
@@ -148,7 +148,8 @@ def infer_xmap(
     latency_collectives,
     shard_seqlen_vs_batch,
     batch_unsharded = False,
-    intermediate_dtype = jnp.bfloat16):
+    intermediate_dtype = jnp.bfloat16,
+    pre_embedded_inputs = None):
   """Forward pass through xmap path, returning per-token logits."""
 
   # flaxformer/architectures/t5/t5_architecture.py;l=1516;
@@ -164,6 +165,8 @@ def infer_xmap(
     attn_batch_sharding = y_axis * z_axis
   elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
     attn_batch_sharding = y_axis * z_axis * x_axis
+  else:
+    raise NotImplementedError('Ensure you pass in a matching object')
 
   batch, max_length = chunk.tokens.shape
 
@@ -171,6 +174,9 @@ def infer_xmap(
   x, sin, cos = two_d_parallel_xmap.xmap_embed(params, kv_caches, chunk,
                                                shard_seqlen_vs_batch,
                                                batch_unsharded)
+  # Used for prompt tuning (where we want to take gradients w.r.t the inputs)
+  if pre_embedded_inputs is not None:
+    x = pre_embedded_inputs
 
   def loop_body(layer, carry):
     x, k, v = carry
@@ -263,3 +269,4 @@ def infer_xmap(
 
   return FullChunkResult(
       logits=logits, kv_cache=attention.KVCache(cache_lengths, k, v))
+

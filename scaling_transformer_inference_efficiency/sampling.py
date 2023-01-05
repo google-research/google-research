@@ -104,7 +104,10 @@ class Sampling:
     """
 
     with jax.named_scope('sample'):
-      logits = lax.all_gather(logits, ('y', 'z', 'x'), axis=1, tiled=True)
+      # multi-part all gather not implemented for xmap in jit see lax.parallel
+      logits = lax.all_gather(logits, ('x'), axis=1, tiled=True)
+      logits = lax.all_gather(logits, ('z'), axis=1, tiled=True)
+      logits = lax.all_gather(logits, ('y'), axis=1, tiled=True)
       assert logits.shape[0] == step_rngs.shape[0]
       sample = jnp.int32(
           jax.vmap(jax.random.categorical)(step_rngs,

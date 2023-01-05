@@ -246,9 +246,9 @@ class LayersTest(absltest.TestCase):
         x, z, k, _ = shard_map.shard_map(
             fwd_xmap,
             mesh,
-            in_pspecs=(chunk_sharding, params_sharding),
-            out_pspecs=(z_sharding, z_sharding, kv_sharding,
-                        kv_sharding))(token_chunk, params)
+            in_specs=(chunk_sharding, params_sharding),
+            out_specs=(z_sharding, z_sharding, kv_sharding,
+                       kv_sharding))(token_chunk, params)
 
       np.testing.assert_allclose(x_baseline, x, rtol=1e-02, atol=1e-01)
       np.testing.assert_allclose(k_baseline, k, rtol=1e-02, atol=1e-01)

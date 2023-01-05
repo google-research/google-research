@@ -133,6 +133,7 @@ from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import ChunkResult
+from scaling_transformer_inference_efficiency.chunk import FullChunkResult
 from scaling_transformer_inference_efficiency.chunk import InferFn
 from scaling_transformer_inference_efficiency.maps import shard_map
 from scaling_transformer_inference_efficiency.sampling import Sampling
@@ -390,11 +391,12 @@ class XmapModel:
                infer_fn: InferFn,
                weights_logical_axes: Weights,
                rules: Sequence[Tuple[str, Any]],
-               vocab: Optional[seqio.Vocabulary] = None):  # used for sampling
+               vocab: Optional[seqio.Vocabulary] = None,
+               devices: Optional[Sequence[Any]] = None):  # used for sampling
     self._hparams = hparams
     self._eos_id = eos_id
     self._infer = infer_fn
-    self._mesh = partitioning.make_mesh()
+    self._mesh = partitioning.make_mesh(devices)
     self.rules = partitioning.PartitioningRules(rules)
     with self.rules:
       self.chunk_layout = jax.tree_map(shard_map.logical_to_layout,
@@ -406,6 +408,8 @@ class XmapModel:
                                          weights_logical_axes)
       self.result_layout = jax.tree_map(shard_map.logical_to_layout,
                                         ChunkResult.logical_axes())
+      self.full_chunk_layout = jax.tree_map(shard_map.logical_to_layout,
+                                            FullChunkResult.logical_axes())
       self.cache_layout = jax.tree_map(shard_map.logical_to_layout,
                                        attention.KVCache.logical_axes())
       self.sample_ids_layout = shard_map.logical_to_layout(P('logit_batch'))
@@ -413,6 +417,13 @@ class XmapModel:
           shard_map.logical_to_layout,
           ChunkResult.logical_axes().next_token_logits)
       self.prev_logits_layout = self.result_layout.next_token_logits
+      self.all_logits_logical = P('time', 'logit_batch', 'vocab')
+      self.all_logits_layout = jax.tree_map(shard_map.logical_to_layout,
+                                            self.all_logits_logical)
+      self.embeddings_logical = P('residual_batch', 'residual_time',
+                                  'residual_embed')
+      self.embeddings_layout = jax.tree_map(shard_map.logical_to_layout,
+                                            self.embeddings_logical)
     self.vocab = vocab
     # _prefill_p: maps num_prefixes -> jitted _prefill_impl function
     self._prefill_p = {}
@@ -462,8 +473,8 @@ class XmapModel:
       params = shard_map.shard_map(
           rotate,
           self._mesh,
-          in_pspecs=(self._weights_axes,),
-          out_pspecs=self._weights_axes,
+          in_specs=(self._weights_axes,),
+          out_specs=self._weights_axes,
           donate_argnums=(0,))(
               params)
 
@@ -494,23 +505,42 @@ class XmapModel:
       return sample_ids
 
   # pylint: disable = g-bare-generic
-  # @partial(jax.jit, static_argnums=(0,))
+  # pylint: disable = protected-access
   @staticmethod
-  def _prefill_impl(model, params_xmap: Weights,
-                    cache_xmap: Sequence[ChunkResult], chunk_xmap: Chunk,
-                    prev_logits: Optional[jnp.ndarray]) -> ChunkResult:
-    full_chunk_result = model._infer(params_xmap, cache_xmap, chunk_xmap)  # pylint: disable = protected-access
-    with jax.named_scope('to_chunk_result'):
-      chunk_result = full_chunk_result.to_chunk_result(
-          prev_logits, chunk_xmap, per_device=True)
-    return chunk_result
+  def _prefill_impl(
+      model,
+      params_xmap: Weights,
+      cache_xmap: Sequence[ChunkResult],
+      chunk_xmap: Chunk,
+      prev_logits: Optional[jnp.ndarray],
+      pre_embedded_inputs: Optional[jax.Array] = None,
+      return_full_chunk: bool = False) -> ChunkResult:
+    """Wrap both prefill and results formatting in a single xmap call."""
+    full_chunk_result = model._infer(
+        params_xmap,
+        cache_xmap,
+        chunk_xmap,
+        pre_embedded_inputs=pre_embedded_inputs)
+    if return_full_chunk:
+      return full_chunk_result
+    else:
+      with jax.named_scope('to_chunk_result'):
+        chunk_result = full_chunk_result.to_chunk_result(
+            prev_logits, chunk_xmap, per_device=True)
+      return chunk_result
 
-  def instantiate_prefill_fn(self):
-    return partial(self._prefill_impl, self)
+  def instantiate_prefill_fn(self, return_full_chunk: bool = False):
+    return partial(
+        self._prefill_impl, self, return_full_chunk=return_full_chunk)
 
-  def prefill(self, params_xmap: Weights, prefill_impl: Callable,
-              prefix_xmap: Sequence[ChunkResult],
-              chunk_xmap: Chunk) -> ChunkResult:
+  def prefill(
+      self,
+      params_xmap: Weights,
+      prefill_impl: Callable,
+      prefix_xmap: Sequence[ChunkResult],
+      chunk_xmap: Chunk,
+      pre_embedded_inputs: Optional[jax.Array] = None,
+      return_full_chunk: bool = False) -> Union[ChunkResult, FullChunkResult]:
     """Non-generative inference for a batch.
 
     Args:
@@ -518,6 +548,9 @@ class XmapModel:
       prefill_impl: Partialed prefillimpl
       prefix_xmap: Already-processed tokens in the prefix, if any.
       chunk_xmap: The tokens to prefill.
+      pre_embedded_inputs: If we want to do the embeddings outside (e.g. for
+        prompt tuning)
+      return_full_chunk: We may want all logits
 
     Returns:
       Scores for the batch.
@@ -530,22 +563,33 @@ class XmapModel:
       # 2D: logits: [batch.x, time, vocab.YZ]
       #     kv_cache: [.., ..., prefixbatch, ...]
       cache = [p.kv_cache for p in prefix_xmap]
+
+      if return_full_chunk:
+        out_axes = self.full_chunk_layout
+      else:
+        out_axes = self.result_layout
+
+      embeddings_layout = None if pre_embedded_inputs is None else self.embeddings_layout
+
       chunk_result = xmap(
           prefill_impl,
           in_axes=(self.params_layouts,
-                   [self.cache_layout for _ in prefix_xmap
-                   ], self.chunk_layout, self.prev_logits_layout),
-          out_axes=self.result_layout,
+                   [self.cache_layout for _ in prefix_xmap], self.chunk_layout,
+                   self.prev_logits_layout, embeddings_layout),
+          out_axes=out_axes,
           axis_resources={
               'x': 'x',
               'y': 'y',
               'z': 'z'
-          })(params_xmap, cache, chunk_xmap, prev_logits)
+          })(params_xmap, cache, chunk_xmap, prev_logits, pre_embedded_inputs)
 
       return chunk_result
 
   # pylint: disable = protected-access
   # pylint: disable = g-long-lambda
+  # pylint: disable = unnecessary-lambda
+  # pytype: disable=attribute-error
+  # pytype: disable=bad-unpacking
   @staticmethod
   def _generate_impl(
       model,
@@ -556,7 +600,9 @@ class XmapModel:
       prev_chunk_next_token_logits: jnp.ndarray,
       sample_ids: jnp.ndarray,
       batch_unsharded: bool = False,
-      stream: Optional[StreamClient] = None) -> Tuple[Chunk, ChunkResult]:
+      stream: Optional[StreamClient] = None,
+      return_all_logits=False
+  ) -> Union[Tuple[Chunk, ChunkResult], Tuple[Chunk, ChunkResult, jax.Array]]:
     """Generates a chunk of text. Xmapped version."""
     logit_sharded_batch = sample_ids.shape[0]
     logit_sharding_axis_size = partitioning.get_sharding_divisor(
@@ -584,9 +630,14 @@ class XmapModel:
 
     last_logits = attention.flat_broadcast(last_logits, logit_sharded_batch)
 
+    if return_all_logits:
+      batch, vocab = last_logits.shape
+      # [batch.x, vocab.YZ] || [batch, vocab.yzx]
+      all_logits = jnp.zeros((steps, batch, vocab))
     # Generation loop.
 
-    def loop_body(token_i, state: Tuple[Chunk, ChunkResult]):
+    def loop_body(token_i, state: Union[Tuple[Chunk, ChunkResult],
+                                        Tuple[Chunk, ChunkResult, jax.Array]]):
       # We have two different chunks at play in this loop:
       # 1. `chunk`/`chunk_result`, of shape (batch, steps). This is the
       #    mutable state that we fill one token at a time, starting at step=0
@@ -598,11 +649,16 @@ class XmapModel:
       #
       # We write token_* into chunk/chunk_result at a new position each loop
       # iteration.
-      chunk, chunk_result = state
+      if return_all_logits:
+        chunk, chunk_result, all_logits = state
+      else:
+        chunk, chunk_result = state
       step_rngs = jax.vmap(jax.random.fold_in)(sample_rngs,
                                                token_indexes_start + token_i)
       # logits: float32[batch.X, vocab.YZ], step_rngs: [batch] (sliced later)
       # ->  sample: int32[batch]
+      # TODO(sholto): In the event we are returning all logits
+      # No need to sample, so remove
       if batch_unsharded:
         next_token = sampling.sample_manual_batch_unsharded(
             chunk_result.next_token_logits, step_rngs)
@@ -630,7 +686,17 @@ class XmapModel:
       chunk = chunk.update(token_i, token_chunk)
       chunk_result = chunk_result.update(
           token_i, token_chunk, token_full_chunk_result, per_device=True)
-      return chunk, chunk_result
+
+      if return_all_logits:
+        # slice in for that step, swap time and batch
+        all_logits = jax.lax.dynamic_update_slice(
+            all_logits, jnp.swapaxes(token_full_chunk_result.logits, 0, 1),
+            (token_i, 0, 0))
+
+      if return_all_logits:
+        return chunk, chunk_result, all_logits
+      else:
+        return chunk, chunk_result
 
     chunk = Chunk.zeros(global_batch, steps)
     kv_batch = global_batch // partitioning.get_sharding_divisor(
@@ -639,8 +705,12 @@ class XmapModel:
                                      kv_batch)
     chunk_result = chunk_result.replace(next_token_logits=last_logits)
 
-    chunk, chunk_result = lax.fori_loop(0, steps, loop_body,
-                                        (chunk, chunk_result))
+    if return_all_logits:
+      chunk, chunk_result, all_logits = lax.fori_loop(
+          0, steps, loop_body, (chunk, chunk_result, all_logits))
+    else:
+      chunk, chunk_result = lax.fori_loop(0, steps, loop_body,
+                                          (chunk, chunk_result))
 
     # The length of the chunk is the index of the first EOS ID. We don't
     # calculate this during the generation loop, so instead we calculate it now.
@@ -653,15 +723,21 @@ class XmapModel:
       # clear it
       # TODO(sholto): Stateful streaming would not be necessary if the tokenizer
       # was able to leave whitespace. Investigate.
-      jax.debug.callback(lambda: stream.clear_prev_token())  # pylint: disable = unnecessary-lambda
-    return chunk, chunk_result
+      jax.debug.callback(lambda: stream.clear_prev_token())
+    if return_all_logits:
+      return chunk, chunk_result, all_logits
+    else:
+      return chunk, chunk_result
+  # pytype: enable=attribute-error
+  # pytype: enable=bad-unpacking
 
   def instantiate_generating_fn(
       self,
       steps: int,
       sampling: Sampling,
       batch_unsharded: bool = False,
-      stream: Optional[StreamClient] = None
+      stream: Optional[StreamClient] = None,
+      return_all_logits=False,
   ) -> Callable:  # pylint: disable = g-bare-generic
     """Create partial fn, because xmap cannot mark args as static."""
     return partial(
@@ -670,14 +746,16 @@ class XmapModel:
         steps,
         sampling,
         batch_unsharded=batch_unsharded,
-        stream=stream)
+        stream=stream,
+        return_all_logits=return_all_logits)
 
   def generate(
       self,
       params_xmap: Weights,
       generate_fn: Callable,  # pylint: disable = g-bare-generic
       prefix_xmap: Sequence[ChunkResult],
-      sample_ids_xmap: jnp.ndarray) -> Tuple[Chunk, ChunkResult]:
+      sample_ids_xmap: jnp.ndarray,
+      return_all_logits: bool = False) -> Tuple[Chunk, ChunkResult]:
     """Generative inference for a batch. See pjit version for details."""
 
     with self.rules, self._mesh:
@@ -688,12 +766,17 @@ class XmapModel:
 
       cache = [p.kv_cache for p in prefix_xmap]
 
+      if return_all_logits:
+        out_axes = out_axes = ({}, self.result_layout, self.all_logits_layout)
+      else:
+        out_axes = ({}, self.result_layout)
+
       return xmap(
           generate_fn,
           in_axes=(self.params_layouts,
                    [self.cache_layout for _ in prefix_xmap],
                    self.prev_chunk_next_token_layout, self.sample_ids_layout),
-          out_axes=({}, self.result_layout),  # fully replicate sample indices
+          out_axes=out_axes,  # fully replicate sample indices
           axis_resources={
               'x': 'x',
               'y': 'y',

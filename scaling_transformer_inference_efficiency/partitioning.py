@@ -154,9 +154,10 @@ def logical_to_physical(logical_axes):
 
 
 @functools.cache
-def make_mesh():
+def make_mesh(devices = None):
   """Creates a device mesh for use with xmap over x/y/z axes."""
-  devices = jax.devices()
+  if devices is None:
+    devices = jax.devices()
   if len(devices) == 1:
     x, y, z = 1, 1, 1  # TODO(sholto): test
   elif len(devices) == 4:
@@ -181,7 +182,8 @@ def make_mesh():
   else:
     raise NotImplementedError
 
-  return Mesh(mesh_utils.create_device_mesh((x, y, z)), ('x', 'y', 'z'))
+  return Mesh(
+      mesh_utils.create_device_mesh((x, y, z), devices), ('x', 'y', 'z'))
 
 
 def copy_to_device(x, sharding,
