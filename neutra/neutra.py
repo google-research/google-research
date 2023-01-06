@@ -191,7 +191,7 @@ def GetTargetSpec(
       return shift, log_scale
 
     mg = tfd.MultivariateNormalDiag(
-        loc=tf.zeros(num_dims), scale_identity_multiplier=1.0)
+        loc=tf.zeros(num_dims), scale_diag=tf.ones(num_dims))
     target = tfd.TransformedDistribution(
         mg, bijector=tfb.MaskedAutoregressiveFlow(funnel_forward))
   elif name == "ill_cond_gaussian":
@@ -580,11 +580,11 @@ def GetTargetSpec(
         bijector=bijector)
   elif name == "mog":
     comp_1 = tfd.MultivariateNormalDiag(
-        loc=[-1., 1.] + [0.] * (num_dims - 2), scale_identity_multiplier=2.)
+        loc=[-1., 1.] + [0.] * (num_dims - 2), scale_diag=[2.] * num_dims)
     comp_2 = tfd.MultivariateNormalDiag(
-        loc=[1., 1.] + [0.] * (num_dims - 2), scale_identity_multiplier=4.)
+        loc=[1., 1.] + [0.] * (num_dims - 2), scale_diag=[4.] * num_dims)
     comp_3 = tfd.MultivariateNormalDiag(
-        loc=[0., 0.] + [0.] * (num_dims - 2), scale_identity_multiplier=2.)
+        loc=[0., 0.] + [0.] * (num_dims - 2), scale_diag=[2.] * num_dims)
     cat = tfd.Categorical(logits=[0] * 3)
     target = tfd.Mixture(cat=cat, components=[comp_1, comp_2, comp_3])
     spec = TargetSpec(
