@@ -256,7 +256,6 @@ def init_training_metrics(
   return jax.tree_map(
       functools.partial(jnp.repeat, repeats=num_statistics),
       default_training_metrics(
-
       ))
 
 
@@ -2059,7 +2058,8 @@ def distributed_shampoo(
       n = len(packed_statistics)
       metrics_init = jax.tree_map(
           lambda x: [x] * n,
-          TrainingMetrics(inverse_pth_root_errors=inverse_failure_threshold))
+          default_training_metrics(
+          ).replace(inverse_pth_root_errors=inverse_failure_threshold))
       init_state = [preconditioners_init, metrics_init]
       preconditioners_flat, metrics_flat = efficient_cond(
           perform_step, _internal_inverse_pth_root_all, init_state)
@@ -2274,7 +2274,8 @@ def distributed_shampoo(
       n = len(quantized_preconditioners_init)
       metrics_init = jax.tree_map(
           lambda x: [x] * n,
-          TrainingMetrics(inverse_pth_root_errors=inverse_failure_threshold))
+          default_training_metrics(
+          ).replace(inverse_pth_root_errors=inverse_failure_threshold))
       init_state = [
           quantized_preconditioners_init, quantized_diagonals_init,
           quantized_bucket_sizes_init, metrics_init
