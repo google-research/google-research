@@ -1311,6 +1311,8 @@ def distributed_shampoo(
   Returns:
     a GradientTransformation.
   """
+  reset_frequency = None
+
   def _graft_type_has_diagonal_statistics():
     """Returns True if using diagonal firt order method for grafting."""
     return graft_type not in [
@@ -1398,9 +1400,15 @@ def distributed_shampoo(
     """Derives largest preconditioner dimension."""
     return max_size
 
-  def pad_preconditioners(preconditioners, total, max_size):
+  def pad_and_maybe_zero_preconditioners(preconditioners, total, max_size,
+                                         step):
     """Pad preconditioners up to total x max_size x precond_dim(max_size)."""
     pd = precond_dim(max_size)
+
+    def maybe_reset_preconditioner(step, preconditioner):
+      if reset_frequency is None:
+        return preconditioner
+      return jnp.where(step % reset_frequency == 0, 0.0, 1.0) * preconditioner
 
     def _pad_preconditioner(preconditioner):
       assert preconditioner.ndim == 2
@@ -1410,6 +1418,7 @@ def distributed_shampoo(
       pad_rows = [(0, max_size - r)]
       pad_cols = [(0, pd - c)]
       padding = pad_rows + pad_cols
+      preconditioner = maybe_reset_preconditioner(step, preconditioner)
       return jnp.pad(preconditioner, padding)
 
     last_dims_padded = [_pad_preconditioner(p) for p in preconditioners]
@@ -1739,8 +1748,9 @@ def distributed_shampoo(
       prev_preconditioners = []
       for stat in new_stats_flat:
         prev_preconditioners.extend(stat.preconditioners)
-      prev_padded_preconditioners = pad_preconditioners(
-          prev_preconditioners, len(new_padded_statistics), max_size)
+      prev_padded_preconditioners = pad_and_maybe_zero_preconditioners(
+          prev_preconditioners, len(new_padded_statistics), max_size,
+          state.count)
     else:
       prev_padded_preconditioners = None
 
@@ -2007,9 +2017,8 @@ def distributed_shampoo(
 
     if reuse_preconditioner:
       assert len(prev_preconditioners) == num_statistics
-      packed_preconditioners = pad_preconditioners(prev_preconditioners,
-                                                   len(packed_statistics),
-                                                   max_size)
+      packed_preconditioners = pad_and_maybe_zero_preconditioners(
+          prev_preconditioners, len(packed_statistics), max_size, step)
     else:
       packed_preconditioners = None
 
@@ -2201,10 +2210,11 @@ def distributed_shampoo(
 
     if reuse_preconditioner:
       total = len(packed_quantized_statistics)
-      packed_quantized_precond_mats = pad_preconditioners(
+      packed_quantized_precond_mats = pad_and_maybe_zero_preconditioners(
           [p.quantized for p in prev_preconditioners],
           total,
           max_size,
+          step,
       )
       packed_quantized_precond_diagonals = [
           pad_vector(p.diagonal, max_size) for p in prev_preconditioners
@@ -2416,9 +2426,8 @@ def distributed_shampoo(
     paddings = [len(stat) for stat in statistics] + [0] * to_pad
 
     if reuse_preconditioner:
-      padded_preconditioners = pad_preconditioners(prev_preconditioners,
-                                                   len(padded_statistics),
-                                                   max_size)
+      padded_preconditioners = pad_and_maybe_zero_preconditioners(
+          prev_preconditioners, len(padded_statistics), max_size, step)
     else:
       padded_preconditioners = None
 
