@@ -566,7 +566,7 @@ def matrix_inverse_pth_root(
     return jnp.logical_and(i < num_iters, error_above_threshold)
 
   def _iter_body(state):
-    (i, mat_m, mat_h, unused_old_mat_h, error, unused_run_step) = state
+    (i, mat_m, mat_h, unused_old_mat_h, error, unused_error_ratio) = state
     mat_m_i = (1 - alpha) * identity + alpha * mat_m
     new_mat_m = jnp.matmul(mat_power(mat_m_i, p), mat_m, precision=precision)
     new_mat_h = jnp.matmul(mat_h, mat_m_i, precision=precision)
@@ -598,7 +598,7 @@ def matrix_inverse_pth_root(
       new_error = jnp.max(jnp.abs(new_mat_m_0 - identity))
       new_mat_h_0 = identity * jnp.power(z, 1.0 / p)
       init_state = tuple(
-          [0, new_mat_m_0, new_mat_h_0, new_mat_h_0, new_error, True])
+          [0, new_mat_m_0, new_mat_h_0, new_mat_h_0, new_error, 1.0])
       iters, mat_m, mat_h, old_mat_h, error, error_ratio = lax.while_loop(
           _iter_condition, _iter_body, init_state)
       error = jnp.max(jnp.abs(mat_m - identity)).astype(jnp.float32)
