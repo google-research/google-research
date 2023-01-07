@@ -2646,8 +2646,9 @@ def distributed_shampoo(
           precond_grad,
           _maybe_dequantize_preconditioners(state.preconditioners))
     else:
-      logging.error("skipping preconditioning without grafting for param %s",
-                    param)
+      if graft_type == GraftingType.NONE:
+        logging.error("skipping preconditioning without grafting for param %s",
+                      param)
       precond_grad = sgd_update
 
     grafting_update_norm = jnp.linalg.norm(grafting_update)
