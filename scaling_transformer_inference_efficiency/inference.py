@@ -22,7 +22,7 @@ ways that would require significant changes to how t5x's APIs are structured.
 Test this with :inference_test
 """
 
-from typing import Callable, Sequence, Optional
+from typing import Callable, Optional, Sequence
 
 import jax
 from jax import lax
@@ -180,7 +180,6 @@ def infer_xmap(
 
   def loop_body(layer, carry):
     x, k, v = carry
-
     x, layer_k, layer_v = _transformer_layer_fn(
         h,
         layer,
@@ -193,10 +192,10 @@ def infer_xmap(
         y_axis,
         z_axis,
         attn_all_to_all,
-        latency_collectives=latency_collectives,
-        shard_seqlen_vs_batch=shard_seqlen_vs_batch,
-        batch_unsharded=batch_unsharded,
-        intermediate_dtype=intermediate_dtype)
+        latency_collectives,
+        shard_seqlen_vs_batch,
+        batch_unsharded,
+        intermediate_dtype)
     k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
                                         0)
     v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,
