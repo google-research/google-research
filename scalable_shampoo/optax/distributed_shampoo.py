@@ -1000,11 +1000,11 @@ class Preconditioner:
     from_float = from_float if from_float is not None else (lambda x: x)
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
+    should_preconditioned_dims = self.should_precondition_dims()
+    num_preconditioners = sum(should_preconditioned_dims)
     new_stats = []
     index = 0
     for g in partitioned_grads:
-      should_preconditioned_dims = self.should_precondition_dims()
-      num_preconditioners = sum(should_preconditioned_dims)
       # Note that should_precondition_dims is only ever some
       # prefix of Trues followed by an optional False; hence below
       # iterates over all True indices.
@@ -1059,10 +1059,10 @@ class Preconditioner:
     """
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
+    should_preconditioned_dims = self.should_precondition_dims()
+    num_preconditioners = sum(should_preconditioned_dims)
     preconditioned_partitioned_grads = []
     for i, g in enumerate(partitioned_grads):
-      should_preconditioned_dims = self.should_precondition_dims()
-      num_preconditioners = sum(should_preconditioned_dims)
       preconditioners_for_grad = preconditioners[i *
                                                  num_preconditioners:(i + 1) *
                                                  num_preconditioners]
