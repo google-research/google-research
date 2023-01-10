@@ -85,9 +85,9 @@ def add_bond(a1, a2, btype, destination):
     a1: atom
     a2: atom
     btype: bond type.
-    destination:
+    destination: dataset_pb2.BondTopology
   """
-  destination.bonds.append(
+  destination.bond.append(
       dataset_pb2.BondTopology.Bond(
           atom_a=a1,
           atom_b=a2,
@@ -110,8 +110,8 @@ class TopologyMolecule:
     Returns:
     """
     self._starting_bond_topology = hydrogens_attached
-    self._natoms = len(hydrogens_attached.atoms)
-    self._heavy_atoms = sum(1 for atom in hydrogens_attached.atoms
+    self._natoms = len(hydrogens_attached.atom)
+    self._heavy_atoms = sum(1 for atom in hydrogens_attached.atom
                             if atom != dataset_pb2.BondTopology.ATOM_H)
 
     self._contains_both_oxygen_and_nitrogen = False
@@ -122,19 +122,20 @@ class TopologyMolecule:
 
     # For each atom, the maximum number of bonds that can be attached.
     self._max_bonds = np.zeros(self._natoms, dtype=np.int32)
-    if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
+    if (matching_parameters.neutral_forms_during_bond_matching and
+        self._contains_both_oxygen_and_nitrogen):
       for i in range(0, self._natoms):
         self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[
-            hydrogens_attached.atoms[i]]
+            hydrogens_attached.atom[i]]
     else:
       for i in range(0, self._natoms):
         self._max_bonds[i] = smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS[
-            hydrogens_attached.atoms[i]]
+            hydrogens_attached.atom[i]]
 
     # With the Hydrogens attached, the number of bonds to each atom.
     self._bonds_with_hydrogens_attached = np.zeros((self._natoms),
                                                    dtype=np.int32)
-    for bond in hydrogens_attached.bonds:
+    for bond in hydrogens_attached.bond:
       self._bonds_with_hydrogens_attached[bond.atom_a] += 1
       self._bonds_with_hydrogens_attached[bond.atom_b] += 1
 
@@ -164,7 +165,7 @@ class TopologyMolecule:
     self._contains_both_oxygen_and_nitrogen = False
     oxygen_count = 0
     nitrogen_count = 0
-    for atom in bt.atoms:
+    for atom in bt.atom:
       if atom in [
           dataset_pb2.BondTopology.ATOM_N, dataset_pb2.BondTopology.ATOM_NPOS
       ]:
@@ -282,7 +283,8 @@ class TopologyMolecule:
     if not bt:
       return None
 
-    if matching_parameters.neutral_forms_during_bond_matching and self._contains_both_oxygen_and_nitrogen:
+    if (matching_parameters.neutral_forms_during_bond_matching and
+        self._contains_both_oxygen_and_nitrogen):
       if not self.assign_charged_atoms(bt):
         return None
       # all bonds matched has already been checked.
@@ -305,7 +307,7 @@ class TopologyMolecule:
     be achieved.
 
     Args:
-      bt: BondTopology, bt.atoms are updated in place
+      bt: BondTopology, bt.atom are updated in place
 
     Returns:
       True if successful, False otherwise
@@ -319,23 +321,23 @@ class TopologyMolecule:
     oxygen = dataset_pb2.BondTopology.ATOM_O
     oneg = dataset_pb2.BondTopology.ATOM_ONEG
     net_charge = 0
-    for i, atom in enumerate(bt.atoms):
+    for i, atom in enumerate(bt.atom):
       if atom in [carbon, hydrogen, fluorine]:
         if self._max_bonds[i] != self._current_bonds_attached[i]:
           return False
       elif atom in [nitrogen, npos]:
         if self._current_bonds_attached[i] == 4:
-          bt.atoms[i] = npos
+          bt.atom[i] = npos
           net_charge += 1
         elif self._current_bonds_attached[i] == 3:
-          bt.atoms[i] = nitrogen
+          bt.atom[i] = nitrogen
         else:
           return False
       elif atom in [oxygen, oneg]:
         if self._current_bonds_attached[i] == 2:
-          bt.atoms[i] = oxygen
+          bt.atom[i] = oxygen
         elif self._current_bonds_attached[i] == 1:
-          bt.atoms[i] = oneg
+          bt.atom[i] = oneg
           net_charge -= 1
         else:  # not attached.
           return False

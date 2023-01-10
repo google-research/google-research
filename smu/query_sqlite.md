@@ -28,7 +28,7 @@ There are a variety of different output formats
 
 * `--which_topologies` For sdf and `atomic2_input` output formats, this selects which topologies will be included as outputs
     * `all` : All matched topologies (from any of the three sets of bond lengths, see the other options below)
-    * `best` : A single best matched topology based on the ITC criteria
+    * `best` : A single best matched topology based on the DDT criteria
     * `starting` : A single topology that was used during the initial calculations
     * `itc` : All matched topologies using the bond lengths used for original topology creation
     * `mlcr` : All matched topologies using the bond lengths based on covalent radii, following [Meng et al.](http://dx.doi.org/10.1002/jcc.540120716)

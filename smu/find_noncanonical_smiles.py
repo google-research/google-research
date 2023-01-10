@@ -86,12 +86,12 @@ def generate_bond_topology_permutations(original_bt):
     Permutations of original bond topology.
   """
   num_heavy = np.sum(
-      [a != dataset_pb2.BondTopology.ATOM_H for a in original_bt.atoms])
+      [a != dataset_pb2.BondTopology.ATOM_H for a in original_bt.atom])
   for perm in itertools.permutations(range(num_heavy)):
     bt = copy.deepcopy(original_bt)
     for atom_idx in range(num_heavy):
-      bt.atoms[perm[atom_idx]] = original_bt.atoms[atom_idx]
-    for bond in bt.bonds:
+      bt.atom[perm[atom_idx]] = original_bt.atom[atom_idx]
+    for bond in bt.bond:
       if bond.atom_a < num_heavy:
         bond.atom_a = perm[bond.atom_a]
       if bond.atom_b < num_heavy:
@@ -108,7 +108,7 @@ def check_smiles_permutation_invariance(original_bt):
   Yields:
     Bond topology and two smiles variants, if found.
   """
-  logging.info('Checking %d', original_bt.bond_topology_id)
+  logging.info('Checking %d', original_bt.topo_id)
   smiles = None
   variance_found = False
   for bt in generate_bond_topology_permutations(original_bt):
@@ -119,13 +119,13 @@ def check_smiles_permutation_invariance(original_bt):
         isomericSmiles=False)
     # my little testing hack that includes the atom type of the first atom in
     # the smiles
-    # this_smiles += str(bt.atoms[0])
+    # this_smiles += str(bt.atom[0])
     if smiles is None:
       smiles = this_smiles
     else:
       if this_smiles != smiles:
         variance_found = True
-        yield (original_bt.bond_topology_id, smiles, this_smiles)
+        yield (original_bt.topo_id, smiles, this_smiles)
 
   if variance_found:
     beam.metrics.Metrics.counter('smu', 'bt_variant').inc()

@@ -66,7 +66,7 @@ def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
   heavy is checked to be allowed under that distance
 
   Args:
-    bond_topology:
+    bond_topology: dataset.pb2.BondTopology
     distances: matrix of interatomic distances.
     bond_lengths: None or AllAtomPairLengthDistributions
 
@@ -74,16 +74,16 @@ def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
     dataset_pb2.BondTopology
   """
   result = dataset_pb2.BondTopology()
-  result.atoms[:] = bond_topology.atoms
-  natoms = len(bond_topology.atoms)
+  result.atom[:] = bond_topology.atom
+  natoms = len(bond_topology.atom)
   for a1 in range(0, natoms):
-    if bond_topology.atoms[a1] != dataset_pb2.BondTopology.AtomType.ATOM_H:
+    if bond_topology.atom[a1] != dataset_pb2.BondTopology.AtomType.ATOM_H:
       continue
 
     shortest_distance = 1.0e+30
     closest_heavy_atom = -1
     for a2 in range(0, natoms):
-      if bond_topology.atoms[a2] == dataset_pb2.BondTopology.AtomType.ATOM_H:
+      if bond_topology.atom[a2] == dataset_pb2.BondTopology.AtomType.ATOM_H:
         continue
 
       if distances[a1, a2] >= THRESHOLD:
@@ -97,7 +97,7 @@ def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
       return None
 
     if bond_lengths:
-      if (bond_lengths[(bond_topology.atoms[closest_heavy_atom],
+      if (bond_lengths[(bond_topology.atom[closest_heavy_atom],
                         dataset_pb2.BondTopology.ATOM_H)]
           [dataset_pb2.BondTopology.BOND_SINGLE].pdf(shortest_distance) == 0.0):
         return None
@@ -106,7 +106,7 @@ def hydrogen_to_nearest_atom(bond_topology, distances, bond_lengths):
         atom_a=a1,
         atom_b=closest_heavy_atom,
         bond_type=dataset_pb2.BondTopology.BondType.BOND_SINGLE)
-    result.bonds.append(bond)
+    result.bond.append(bond)
 
   return result
 
@@ -121,7 +121,7 @@ def indices_of_heavy_atoms(bond_topology):
     Heavy atom indices.
   """
   return [
-      i for i, t in enumerate(bond_topology.atoms)
+      i for i, t in enumerate(bond_topology.atom)
       if t != dataset_pb2.BondTopology.AtomType.ATOM_H
   ]
 
@@ -135,27 +135,27 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
     Note that `bond_topology` will be put in a canonical form.
 
   Args:
-    molecule:
+    molecule: dataset.pb2.Molecule
     bond_lengths: matrix of interatomic distances
-    matching_parameters:
+    matching_parameters: MatchingParameters
 
   Returns:
     TopologyMatches
   """
-  starting_topology = molecule.bond_topologies[0]
+  starting_topology = molecule.bond_topo[0]
 
   result = dataset_pb2.TopologyMatches()  # To be returned.
   result.starting_smiles = starting_topology.smiles
-  result.molecule_id = molecule.molecule_id
-  result.fate = molecule.properties.errors.fate
+  result.mol_id = molecule.mol_id
+  result.fate = molecule.prop.calc.fate
 
-  natoms = len(starting_topology.atoms)
+  natoms = len(starting_topology.atom)
   if natoms == 1:
     return result  # empty.
 
-  if len(molecule.optimized_geometry.atom_positions) != natoms:
+  if len(molecule.opt_geo.atompos) != natoms:
     return result  # empty
-  distances = utilities.distances(molecule.optimized_geometry)
+  distances = utilities.distances(molecule.opt_geo)
 
   # First join each Hydrogen to its nearest heavy atom, thereby
   # creating a minimal BondTopology from which all others can grow
@@ -170,7 +170,7 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
     return result
 
   heavy_atom_indices = [
-      i for i, t in enumerate(starting_topology.atoms)
+      i for i, t in enumerate(starting_topology.atom)
       if t != dataset_pb2.BondTopology.AtomType.ATOM_H
   ]
 
@@ -185,7 +185,7 @@ def bond_topologies_from_geom(molecule, bond_lengths, matching_parameters):
       continue
     try:
       possible_bonds = bond_lengths.probability_of_bond_types(
-          starting_topology.atoms[i], starting_topology.atoms[j], dist)
+          starting_topology.atom[i], starting_topology.atom[j], dist)
     except KeyError:  # Happens when this bond type has no data
       continue
     if not possible_bonds:
@@ -260,11 +260,11 @@ def geometry_score(bt, distances, bond_lengths):
   """
 
   result = 0.0
-  for bond in bt.bonds:
+  for bond in bt.bond:
     a1 = bond.atom_a
     a2 = bond.atom_b
-    atype1 = bt.atoms[a1]
-    atype2 = bt.atoms[a2]
+    atype1 = bt.atom[a1]
+    atype2 = bt.atom[a2]
     if (atype1 == dataset_pb2.BondTopology.ATOM_H or
         atype2 == dataset_pb2.BondTopology.ATOM_H or
         bond.bond_type == dataset_pb2.BondTopology.BOND_UNDEFINED):
@@ -291,7 +291,7 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   Special case: Some SMU1 and SMU2 will fail detection because they
   have no bonds or unique bonds (like F-F). In that case, we still
   set
-  source = SOURCE_ITC | SOURCE_STARTING_TOPOLOGY
+  source = SOURCE_DDT | SOURCE_STARTING_TOPOLOGY
   and return False
 
   Args:
@@ -328,12 +328,12 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   if not smu_matches.bond_topology:
     # This means the SMU matching failed. We're gong to set the first bond
     # topology as starting and notify the caller
-    molecule.bond_topologies[0].source = (
-        dataset_pb2.BondTopology.SOURCE_ITC
+    molecule.bond_topo[0].info = (
+        dataset_pb2.BondTopology.SOURCE_DDT
         | dataset_pb2.BondTopology.SOURCE_STARTING)
     return False
 
-  starting_topology = molecule.bond_topologies[0]
+  starting_topology = molecule.bond_topo[0]
   utilities.canonicalize_bond_topology(starting_topology)
 
   # in order to test for equivalent topologies, we jsut have to test
@@ -342,15 +342,15 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   # canonicalized.
   for bt in smu_matches.bond_topology:
     try:
-      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      bt.topo_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
-    bt.source = dataset_pb2.BondTopology.SOURCE_ITC
-    if bt.bonds == starting_topology.bonds:
-      bt.source |= dataset_pb2.BondTopology.SOURCE_STARTING
+    bt.info = dataset_pb2.BondTopology.SOURCE_DDT
+    if bt.bond == starting_topology.bond:
+      bt.info |= dataset_pb2.BondTopology.SOURCE_STARTING
 
-  del molecule.bond_topologies[:]
-  molecule.bond_topologies.extend(smu_matches.bond_topology)
+  del molecule.bond_topo[:]
+  molecule.bond_topo.extend(smu_matches.bond_topology)
 
   cov_matches = bond_topologies_from_geom(
       molecule,
@@ -359,10 +359,10 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   # print('COV: ', [bt.smiles for bt in cov_matches.bond_topology])
   for bt in cov_matches.bond_topology:
     try:
-      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      bt.topo_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
-    bt.source = dataset_pb2.BondTopology.SOURCE_MLCR
+    bt.info = dataset_pb2.BondTopology.SOURCE_MLCR
     bt.topology_score = np.nan
     bt.geometry_score = np.nan
 
@@ -373,22 +373,22 @@ def standard_topology_sensing(molecule, smu_bond_lengths, smiles_id_dict):
   # print('ALLEN: ', [bt.smiles for bt in allen_matches.bond_topology])
   for bt in allen_matches.bond_topology:
     try:
-      bt.bond_topology_id = smiles_id_dict[bt.smiles]
+      bt.topo_id = smiles_id_dict[bt.smiles]
     except KeyError:
       pass
-    bt.source = dataset_pb2.BondTopology.SOURCE_CSD
+    bt.info = dataset_pb2.BondTopology.SOURCE_CSD
     bt.topology_score = np.nan
     bt.geometry_score = np.nan
 
   for bt in itertools.chain(cov_matches.bond_topology,
                             allen_matches.bond_topology):
     found = False
-    for query_bt in molecule.bond_topologies:
-      if query_bt.bonds == bt.bonds:
-        query_bt.source |= bt.source
+    for query_bt in molecule.bond_topo:
+      if query_bt.bond == bt.bond:
+        query_bt.info |= bt.info
         found = True
         break
     if not found:
-      molecule.bond_topologies.append(bt)
+      molecule.bond_topo.append(bt)
 
   return True

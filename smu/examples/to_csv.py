@@ -34,7 +34,7 @@ import sys
 
 from smu import smu_sqlite
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard_v4.sqlite')
 
 print('# This is example csv output from smu/examples/to_csv.py')
 print('# Please see the comments in that file for explanation')
@@ -52,7 +52,7 @@ writer = csv.writer(sys.stdout)
 # you like.
 #-----------------------------------------------------------------------------
 writer.writerow(
-    ['molecule_id', 'energy', 'homo', 'lumo', 'first important frequency'])
+    ['mol_id', 'energy', 'homo', 'lumo', 'first important frequency'])
 
 count = 0
 #-----------------------------------------------------------------------------
@@ -64,7 +64,7 @@ for molecule in db:
   # This is kind of a silly filter, but this shows how to filter
   # for some molecules and not just the first couple.
   #---------------------------------------------------------------------------
-  if molecule.optimized_geometry.atom_positions[0].x > -3:
+  if molecule.opt_geo.atompos[0].x > -3:
     continue
 
   #---------------------------------------------------------------------------
@@ -72,11 +72,11 @@ for molecule in db:
   # See field_access.py for more examples of accessing fields.
   #---------------------------------------------------------------------------
   writer.writerow([
-      molecule.molecule_id,
-      molecule.properties.single_point_energy_atomic_b5.value,
-      molecule.properties.homo_pbe0_6_311gd.value,
-      molecule.properties.lumo_pbe0_6_311gd.value,
-      molecule.properties.harmonic_frequencies.value[6],
+      molecule.mol_id,
+      molecule.prop.spe_comp_b5.val,
+      molecule.prop.orb_ehomo_pbe0_6311gd.val,
+      molecule.prop.orb_elumo_pbe0_6311gd.val,
+      molecule.prop.vib_freq.val[6],
   ])
 
   #---------------------------------------------------------------------------

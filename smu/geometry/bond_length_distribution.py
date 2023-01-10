@@ -80,6 +80,7 @@ STANDARD_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
 
 class BondLengthParseError(Exception):
+  """Exception for error in parsing user defined bond lengths."""
 
   def __init__(self, term):
     super().__init__(term)
@@ -96,10 +97,10 @@ def interpolate_zeros(values):
   """For each zero value in `values` replace with an interpolated value.
 
   Args:
-   values: an array that may contain zeros.
+    values: an array that may contain zeros.
 
   Returns:
-   An array that contains no zeros.
+    An array that contains no zeros.
   """
   xvals = np.nonzero(values)[0]
   yvals = values[xvals]
@@ -359,6 +360,9 @@ class Empirical(LengthDistribution):
 
     Returns:
       Empirical
+
+    Raises:
+      ValueError: on bad input
     """
     bucket_size = np.float_power(10, -sig_digits)
     input_lengths = df_input['length_str'].astype(np.double)
@@ -450,6 +454,9 @@ class Mixture(LengthDistribution):
     Args:
       dist: LengthDistribution
       weight: weight strictly > 0
+
+    Raises:
+      ValueError: on invalid weights
     """
     if weight <= 0.0:
       raise ValueError(f'Mixture: weight must be positive, got {weight}')
@@ -464,6 +471,9 @@ class Mixture(LengthDistribution):
 
     Returns:
       pdf value
+
+    Raises:
+      ValueError: if mixture has no components
     """
     if not self._dists:
       raise ValueError('Mixture.pdf called with empty components')
@@ -773,6 +783,9 @@ class AllAtomPairLengthDistributions:
 
     Args:
       spec_string: string
+
+    Raises:
+      BondLengthParseError: if spec_string is misformatted
     """
     if not spec_string:
       return
@@ -918,7 +931,7 @@ def is_valid_bond(atom_a, atom_b, bond):
           bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_b])
 
 
-_ITC_H_BOND_MIN_MAX = {
+_DDT_H_BOND_MIN_MAX = {
     dataset_pb2.BondTopology.ATOM_H: (0.54, 0.94),
     dataset_pb2.BondTopology.ATOM_C: (0.89, 1.29),
     dataset_pb2.BondTopology.ATOM_N: (0.81, 1.21),
@@ -933,7 +946,7 @@ def add_itc_h_lengths(dists):
   Args:
     dists: AllAtomPairLengthDistributions
   """
-  for atom, (mn, mx) in _ITC_H_BOND_MIN_MAX.items():
+  for atom, (mn, mx) in _DDT_H_BOND_MIN_MAX.items():
     dists.add(atom, dataset_pb2.BondTopology.ATOM_H,
               dataset_pb2.BondTopology.BOND_SINGLE, FixedWindow(mn, mx, None))
 
@@ -1066,7 +1079,13 @@ def make_csd_dists():
               _COVALENT_RADIUS[atom_a] + _COVALENT_RADIUS[atom_b] +
               _COVALENT_RADII_TOLERANCE)
         dists.add(atom_a, atom_b, bond, FixedWindow(mn, mx, None))
-        max_dist = max(max_dist, mx)
+        # Weird special case! The CSD dist doesn't have a O=O
+        # But we want the unbonded distance to start from the single bond max
+        # So we just exclude that one case.
+        if (not (atom_a == dataset_pb2.BondTopology.ATOM_O and
+                 atom_b == dataset_pb2.BondTopology.ATOM_O and
+                 bond == dataset_pb2.BondTopology.BOND_DOUBLE)):
+          max_dist = max(max_dist, mx)
 
     assert np.isfinite(max_dist)
     # We are creating unbonded distances that don't overlap at all with the

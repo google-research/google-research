@@ -112,7 +112,7 @@ def main(argv):
         else:
           outcome = Outcome.PARSE_ERROR_UNKNOWN
         regen_contents = '{}\n{}: {} {}\n'.format(smu_parser_lib.SEPARATOR_LINE,
-                                                  molecule.molecule_id,
+                                                  molecule.mol_id,
                                                   type(molecule).__name__,
                                                   str(molecule))
       else:
@@ -133,7 +133,7 @@ def main(argv):
         output_files[outcome][0].write('\n'.join(orig_contents_list) + '\n')
         output_files[outcome][1].write(regen_contents)
 
-  for file_orig, file_regen in output_files.values():
+  for file_orig, file_regen in output_files.val():
     file_orig.close()
     file_regen.close()
 

@@ -70,12 +70,12 @@ def distance_between_atoms(geom, a1, a2):
     Distance in Angstroms.
   """
   return smu_utils_lib.bohr_to_angstroms(
-      math.sqrt((geom.atom_positions[a1].x - geom.atom_positions[a2].x) *
-                (geom.atom_positions[a1].x - geom.atom_positions[a2].x) +
-                (geom.atom_positions[a1].y - geom.atom_positions[a2].y) *
-                (geom.atom_positions[a1].y - geom.atom_positions[a2].y) +
-                (geom.atom_positions[a1].z - geom.atom_positions[a2].z) *
-                (geom.atom_positions[a1].z - geom.atom_positions[a2].z)))
+      math.sqrt((geom.atompos[a1].x - geom.atompos[a2].x) *
+                (geom.atompos[a1].x - geom.atompos[a2].x) +
+                (geom.atompos[a1].y - geom.atompos[a2].y) *
+                (geom.atompos[a1].y - geom.atompos[a2].y) +
+                (geom.atompos[a1].z - geom.atompos[a2].z) *
+                (geom.atompos[a1].z - geom.atompos[a2].z)))
 
 
 def bonded(bond_topology):
@@ -87,9 +87,9 @@ def bonded(bond_topology):
   Returns:
     a numpy array of BondType's
   """
-  natoms = len(bond_topology.atoms)
+  natoms = len(bond_topology.atom)
   connected = np.full((natoms, natoms), 0, dtype=np.int32)
-  for bond in bond_topology.bonds:
+  for bond in bond_topology.bond:
     a1 = bond.atom_a
     a2 = bond.atom_b
     connected[a1, a2] = connected[a2, a1] = bond.bond_type
@@ -115,14 +115,15 @@ def number_bonds(bt):
   """For each atom in `bt` return the number of bonds.
 
   single bonds count 1, double 2, triple 3.
+
   Args:
     bt: BondTopology
 
   Returns:
-    Numpy array contains len(bt.atoms) numbers.
+    Numpy array contains len(bt.atom) numbers.
   """
-  result = np.zeros(len(bt.atoms))
-  for bond in bt.bonds:
+  result = np.zeros(len(bt.atom))
+  for bond in bt.bond:
     a1 = bond.atom_a
     a2 = bond.atom_b
     nb = btype_to_nbonds(bond.bond_type)
@@ -141,7 +142,7 @@ def distances(geometry):
   Returns:
     a numpy array of distances
   """
-  natoms = len(geometry.atom_positions)
+  natoms = len(geometry.atompos)
   result = np.full((natoms, natoms), 0.0, dtype=np.float32)
   for i in range(0, natoms):
     for j in range(i + 1, natoms):
@@ -156,16 +157,16 @@ def canonicalize_bond_topology(bond_topology):
     bond_topology:
 
   Returns:
-    BondTopology
+    dataset_pb2.BondTopology
   """
-  if len(bond_topology.bonds) < 2:
+  if len(bond_topology.bond) < 2:
     return
 
-  for bond in bond_topology.bonds:
+  for bond in bond_topology.bond:
     if bond.atom_a > bond.atom_b:
       bond.atom_a, bond.atom_b = bond.atom_b, bond.atom_a
 
-  bond_topology.bonds.sort(key=lambda b: (b.atom_a, b.atom_b))
+  bond_topology.bond.sort(key=lambda b: (b.atom_a, b.atom_b))
 
 
 def same_bond_topology(bt1, bt2):
@@ -179,18 +180,18 @@ def same_bond_topology(bt1, bt2):
   Returns:
     Bool.
   """
-  natoms = len(bt1.atoms)
-  if len(bt2.atoms) != natoms:
+  natoms = len(bt1.atom)
+  if len(bt2.atom) != natoms:
     return False
-  nbonds = len(bt1.bonds)
+  nbonds = len(bt1.bond)
 
-  if len(bt2.bonds) != nbonds:
+  if len(bt2.bond) != nbonds:
     return False
-  for i, t1 in enumerate(bt1.atoms):
-    if t1 != bt2.atoms[i]:
+  for i, t1 in enumerate(bt1.atom):
+    if t1 != bt2.atom[i]:
       return False
-  for i, b1 in enumerate(bt1.bonds):
-    b2 = bt2.bonds[i]
+  for i, b1 in enumerate(bt1.bond):
+    b2 = bt2.bond[i]
     if b1.atom_a != b2.atom_a:
       return False
     if b1.atom_b != b2.atom_b:
@@ -231,8 +232,8 @@ def is_single_fragment(bond_topology):
     True if `bond_topology` is a single fragment.
   """
 
-  natoms = len(bond_topology.atoms)
-  nbonds = len(bond_topology.bonds)
+  natoms = len(bond_topology.atom)
+  nbonds = len(bond_topology.bond)
   # Some special cases are easy.
   if natoms == 1:
     return True
@@ -255,14 +256,14 @@ def is_single_fragment(bond_topology):
     attached.append(np.ravel(np.argwhere(connection_matrix[i,])))
 
 
-# neighbours = np.argwhere(connection_matrix > 0)
+  # neighbours = np.argwhere(connection_matrix > 0)
 
   visited = np.zeros(natoms, dtype=np.int32)
   # Mark anything with a single connection as visited.
   # Record the index of an atom that has multiple connections.
   a_multiply_connected_atom = -1
   for i in range(0, natoms):
-    if bond_topology.atoms[i] == dataset_pb2.BondTopology.AtomType.ATOM_H:
+    if bond_topology.atom[i] == dataset_pb2.BondTopology.AtomType.ATOM_H:
       visited[i] = 1
       continue
 
@@ -292,12 +293,12 @@ def geom_to_angstroms(geometry):
     Coordinates in Angstroms.
   """
   result = dataset_pb2.Geometry()
-  for atom in geometry.atom_positions:
+  for atom in geometry.atompos:
     new_atom = dataset_pb2.Geometry.AtomPos()
     new_atom.x = smu_utils_lib.bohr_to_angstroms(atom.x)
     new_atom.y = smu_utils_lib.bohr_to_angstroms(atom.y)
     new_atom.z = smu_utils_lib.bohr_to_angstroms(atom.z)
-    result.atom_positions.append(new_atom)
+    result.atompos.append(new_atom)
 
   return result
 

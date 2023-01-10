@@ -28,6 +28,7 @@
 # limitations under the License.
 """Tests for the BondLengthDistribution(s) classes."""
 
+import numpy as np
 import os
 
 from absl.testing import absltest

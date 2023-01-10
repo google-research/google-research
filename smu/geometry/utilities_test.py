@@ -43,12 +43,12 @@ def zero2():
   """Return a Geometry with two points at the origin."""
   return text_format.Parse(
       """
-        atom_positions: {
+        atompos: {
           x:0.0,
           y:0.0,
           z:0.0
         },
-        atom_positions: {
+        atompos: {
           x:0.0,
           y:0.0,
           z:0.0
@@ -65,31 +65,31 @@ class TestUtilities(absltest.TestCase):
 
   def test_unit_x(self):
     coords = zero2()
-    coords.atom_positions[1].x = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
+    coords.atompos[1].x = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
   def test_unit_y(self):
     coords = zero2()
-    coords.atom_positions[1].y = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
+    coords.atompos[1].y = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
   def test_unit_z(self):
     coords = zero2()
-    coords.atom_positions[1].z = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
+    coords.atompos[1].z = 1.0 / smu_utils_lib.BOHR_TO_ANGSTROMS
     self.assertAlmostEqual(utilities.distance_between_atoms(coords, 0, 1), 1.0)
 
   def test_canonical(self):
     bt = text_format.Parse(
         """
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 2
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 0
       bond_type: BOND_SINGLE
@@ -97,15 +97,15 @@ class TestUtilities(absltest.TestCase):
 """, dataset_pb2.BondTopology())
 
     expected = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -119,15 +119,15 @@ class TestUtilities(absltest.TestCase):
   def test_equality(self):
     bt1 = text_format.Parse(
         """
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 2
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 0
       bond_type: BOND_SINGLE
@@ -135,15 +135,15 @@ class TestUtilities(absltest.TestCase):
 """, dataset_pb2.BondTopology())
 
     bt2 = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -155,21 +155,21 @@ class TestUtilities(absltest.TestCase):
     self.assertTrue(utilities.same_bond_topology(bt1, bt2))
 
   def test_single_fragment_single_atom(self):
-    bt = text_format.Parse(""" atoms: ATOM_C
+    bt = text_format.Parse(""" atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertTrue(utilities.is_single_fragment(bt))
 
   def test_single_fragment_two_disconnected_atoms(self):
-    bt = text_format.Parse(""" atoms: ATOM_C
-    atoms: ATOM_C
+    bt = text_format.Parse(""" atom: ATOM_C
+    atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertFalse(utilities.is_single_fragment(bt))
 
   def test_single_fragment_two_connected_atoms(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
@@ -179,18 +179,18 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_3_atoms_0_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertFalse(utilities.is_single_fragment(bt))
 
   def test_single_fragment_3_atoms_1_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
@@ -200,15 +200,15 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_3_atoms_2_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     },
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -218,30 +218,30 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_4_atoms_0_bonds(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
 """, dataset_pb2.BondTopology())
     self.assertFalse(utilities.is_single_fragment(bt))
 
   def test_single_fragment_4_atoms_3_bonds_ring(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 0
       atom_b: 2
       bond_type: BOND_SINGLE
@@ -251,21 +251,21 @@ class TestUtilities(absltest.TestCase):
 
   def test_single_fragment_4_atoms_3_bonds_no_ring(self):
     bt = text_format.Parse(
-        """ atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    atoms: ATOM_C
-    bonds {
+        """ atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    atom: ATOM_C
+    bond {
       atom_a: 0
       atom_b: 1
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 1
       atom_b: 2
       bond_type: BOND_SINGLE
     }
-    bonds {
+    bond {
       atom_a: 2
       atom_b: 3
       bond_type: BOND_SINGLE

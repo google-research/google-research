@@ -31,7 +31,7 @@
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard_v4.sqlite')
 
 print(
     'SMARTS patterns are convenient ways to select a subset of bond topologies')
@@ -50,21 +50,21 @@ print(
 print(smarts)
 
 print()
-print('We use find_bond_topology_id_by_smarts to get the bt_ids')
+print('We use find_topo_id_by_smarts to get the bt_ids')
 print('This typically takes 20-40 seconds')
-bt_ids = list(db.find_bond_topology_id_by_smarts(smarts))
+bt_ids = list(db.find_topo_id_by_smarts(smarts))
 print('In this case we find', len(bt_ids), 'matching bond topologies')
 
 print()
 print(
-    'You can then use find_by_bond_topology_id_list (just like indices.py) to get the molecules'
+    'You can then use find_by_topo_id_list (just like indices.py) to get the molecules'
 )
 molecules = list(
-    db.find_by_bond_topology_id_list(
+    db.find_by_topo_id_list(
         bt_ids, which_topologies=smu_utils_lib.WhichTopologies.ALL))
 print('In this case we find', len(molecules), 'matching molecules')
 print(
-    'As you can see, not all bond topology ids in the standard database will find a matching molecule'
+    'As you can see, not all bond topology ids in the standard db will find a matching molecule'
 )
 print(
     'You can always find descriptions of all bond topologies in bond_topology.csv'

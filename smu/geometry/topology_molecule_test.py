@@ -47,8 +47,8 @@ class TestTopologyMolecule(absltest.TestCase):
     """The simplest molecule, CC."""
     #     bond_topology = text_format.Parse(
     #         """
-    #       atoms: ATOM_C
-    #       atoms: ATOM_C
+    #       atom: ATOM_C
+    #       atom: ATOM_C
     #       bonds: {
     #         atom_a: 0,
     #         atom_b: 1,
@@ -56,8 +56,8 @@ class TestTopologyMolecule(absltest.TestCase):
     #       }
     # """, dataset_pb2.BondTopology())
     cc = text_format.Parse("""
-      atoms: ATOM_C
-      atoms: ATOM_C
+      atom: ATOM_C
+      atom: ATOM_C
 """, dataset_pb2.BondTopology())
     scores = np.array([0.1, 1.1, 2.1, 3.1], dtype=np.float32)
     bonds_to_scores = {(0, 1): scores}
@@ -82,8 +82,8 @@ class TestTopologyMolecule(absltest.TestCase):
   ])
   def test_ethane_all(self, btype, expected_bond):
     cc = text_format.Parse("""
-      atoms: ATOM_C
-      atoms: ATOM_C
+      atom: ATOM_C
+      atom: ATOM_C
 """, dataset_pb2.BondTopology())
     bonds_to_scores = {(0, 1): np.zeros(4, dtype=np.float32)}
     bonds_to_scores[(0, 1)][btype] = 1.0
@@ -98,8 +98,8 @@ class TestTopologyMolecule(absltest.TestCase):
         self.assertIsNone(res)
       else:
         self.assertIsNotNone(res)
-        self.assertLen(res.bonds, 1)
-        self.assertEqual(res.bonds[0].bond_type, expected_bond)
+        self.assertLen(res.bond, 1)
+        self.assertEqual(res.bond[0].bond_type, expected_bond)
 
   @parameterized.expand([
       [0, 0, 0, None],
@@ -116,9 +116,9 @@ class TestTopologyMolecule(absltest.TestCase):
   def test_propane_all(self, btype1, btype2, expected_bonds, expected_score):
     cc = text_format.Parse(
         """
-      atoms: ATOM_C
-      atoms: ATOM_C
-      atoms: ATOM_C
+      atom: ATOM_C
+      atom: ATOM_C
+      atom: ATOM_C
 """, dataset_pb2.BondTopology())
     #   print(f"Generating bonds {btype1} and {btype2}")
     bonds_to_scores = {
@@ -136,23 +136,23 @@ class TestTopologyMolecule(absltest.TestCase):
       res = mol.place_bonds(s, matching_parameters)
       if expected_score is not None:
         self.assertIsNotNone(res)
-        self.assertLen(res.bonds, expected_bonds)
+        self.assertLen(res.bond, expected_bonds)
         self.assertAlmostEqual(res.score, expected_score)
         if btype1 == 0:
           if btype2 > 0:
-            self.assertEqual(res.bonds[0].bond_type, btype2)
+            self.assertEqual(res.bond[0].bond_type, btype2)
         else:
-          self.assertEqual(res.bonds[0].bond_type, btype1)
-          self.assertEqual(res.bonds[1].bond_type, btype2)
+          self.assertEqual(res.bond[0].bond_type, btype1)
+          self.assertEqual(res.bond[1].bond_type, btype2)
       else:
         self.assertIsNone(res)
 
   def test_operators(self):
     cc = text_format.Parse(
         """
-      atoms: ATOM_C
-      atoms: ATOM_C
-      atoms: ATOM_C
+      atom: ATOM_C
+      atom: ATOM_C
+      atom: ATOM_C
 """, dataset_pb2.BondTopology())
     #   print(f"Generating bonds {btype1} and {btype2}")
     bonds_to_scores = {
