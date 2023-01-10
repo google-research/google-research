@@ -26,21 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """Tests for pipeline."""
 
 import os
@@ -52,7 +37,6 @@ import apache_beam as beam
 import pandas as pd
 import tensorflow as tf
 from tensorflow.io import gfile
-import tensorflow as tf
 
 from smu import dataset_pb2
 from smu import pipeline
@@ -259,8 +243,7 @@ class IntegrationTest(absltest.TestCase):
       self.assertIn('fate,FATE_DUPLICATE_DIFFERENT_TOPOLOGY,1\n', stats_lines)
       self.assertIn('num_initial_geometries,1,4\n', stats_lines)
       self.assertIn('num_duplicates,1,1\n', stats_lines)
-      self.assertIn('zero_field,spe_std_pbe0d3_6311gd,1\n',
-                    stats_lines)
+      self.assertIn('zero_field,spe_std_pbe0d3_6311gd,1\n', stats_lines)
       self.assertIn('bt_source,3,1\n', stats_lines)
       self.assertIn('bt_source,15,2\n', stats_lines)
       self.assertIn('num_topologies_csd,1,2\n', stats_lines)
@@ -320,12 +303,9 @@ class IntegrationTest(absltest.TestCase):
     self.assertCountEqual([c.mol_id for c in standard_output],
                           [618451001, 618451123])
     # Check that fields are filtered the way we expect
-    self.assertFalse(
-        standard_output[0].prop.HasField('compute_cluster_info'))
-    self.assertFalse(
-        standard_output[0].prop.HasField('orb_ehomo_pbe0_augpc1'))
-    self.assertTrue(
-        standard_output[0].prop.HasField('vib_freq'))
+    self.assertFalse(standard_output[0].prop.HasField('compute_cluster_info'))
+    self.assertFalse(standard_output[0].prop.HasField('orb_ehomo_pbe0_augpc1'))
+    self.assertTrue(standard_output[0].prop.HasField('vib_freq'))
 
     complete_dataset = tf.data.TFRecordDataset(
         output_stem + '_complete_tfrecord-00000-of-00001')
@@ -338,8 +318,7 @@ class IntegrationTest(absltest.TestCase):
     # Check that fields are filtered the way we expect
     # The DirectRunner randomizes the order of output so we need to make sure
     # that we get a full record.
-    complete_entry = [c for c in complete_output if c.mol_id == 618451001
-                     ][0]
+    complete_entry = [c for c in complete_output if c.mol_id == 618451001][0]
     self.assertFalse(complete_entry.prop.HasField('compute_cluster_info'))
     self.assertTrue(complete_entry.prop.HasField('orb_ehomo_pbe0_augpc1'))
     self.assertTrue(complete_entry.prop.HasField('vib_freq'))

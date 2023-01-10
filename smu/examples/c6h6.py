@@ -125,14 +125,12 @@ for mol in molecules:
 # output formats. See dataframe.py for how to do this.
 #-----------------------------------------------------------------------------
 writer = csv.writer(sys.stdout)
-writer.writerow([
-    'mol_id', 'smiles', 'molecule_count', 'dip_x', 'dip_y', 'dip_z', 'dip'
-])
+writer.writerow(
+    ['mol_id', 'smiles', 'molecule_count', 'dip_x', 'dip_y', 'dip_z', 'dip'])
 
 for smiles in smiles_to_molecules:
   energies = [
-      mol.prop.at2_std_b5_hf298.val
-      for mol in smiles_to_molecules[smiles]
+      mol.prop.at2_std_b5_hf298.val for mol in smiles_to_molecules[smiles]
   ]
   #---------------------------------------------------------------------------
   # While this line may look mysterious, it's doing exactly what the words say:

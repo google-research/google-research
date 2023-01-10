@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Classes for holding information about distribution of bond lengths.
 
 The core idea is to represent the probability distribution function (via
@@ -56,7 +42,7 @@ import csv
 import itertools
 import math
 import os.path
-from typing import Dict, Optional, cast
+from typing import Dict, cast
 
 from absl import logging
 import numpy as np
@@ -155,8 +141,7 @@ class FixedWindow(LengthDistribution):
   pdf is continuous at the maximum value.
   """
 
-  def __init__(self, minimum, maximum,
-               right_tail_mass):
+  def __init__(self, minimum, maximum, right_tail_mass):
     """Construct a FixedWindow.
 
     Args:
@@ -498,8 +483,7 @@ class AtomPairLengthDistributions:
     self._bond_type_map: Dict['dataset_pb2.BondTopology.BondType',
                               LengthDistribution] = {}
 
-  def add(self, bond_type,
-          dist):
+  def add(self, bond_type, dist):
     """Adds a LengthDistribution for a given bond type.
 
     Args:
@@ -523,8 +507,7 @@ class AtomPairLengthDistributions:
     """
     return key in self._bond_type_map.keys()
 
-  def probability_of_bond_types(
-      self, length):
+  def probability_of_bond_types(self, length):
     """Computes probability of bond types given a length.
 
     Only bond types with non zero probability at that length are returned.
@@ -595,10 +578,7 @@ class AllAtomPairLengthDistributions:
   def __init__(self):
     self._atom_pair_dict = {}
 
-  def add(self, atom_a,
-          atom_b,
-          bond_type,
-          dist):
+  def add(self, atom_a, atom_b, bond_type, dist):
     """Adds a distribution of the atom pair and bond type.
 
     Args:
@@ -823,20 +803,14 @@ class AllAtomPairLengthDistributions:
         smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a],
         smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b])]
 
-  def pdf_length_given_type(self, atom_a,
-                            atom_b,
-                            bond_type,
-                            length):
+  def pdf_length_given_type(self, atom_a, atom_b, bond_type, length):
     """p(length | atom_a, atom_b, bond_type)."""
     atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
     atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
 
     return self._atom_pair_dict[(atom_a, atom_b)][bond_type].pdf(length)
 
-  def probability_of_bond_types(
-      self, atom_a,
-      atom_b,
-      length):
+  def probability_of_bond_types(self, atom_a, atom_b, length):
     """P(bond_type | atom_a, atom_b, length).
 
     See AtomPairLengthDistributions.probability_of_bond_type for details.

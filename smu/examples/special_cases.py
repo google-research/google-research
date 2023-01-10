@@ -35,10 +35,8 @@ from smu import smu_sqlite
 #-----------------------------------------------------------------------------
 db = smu_sqlite.SMUSQLite('20220621_complete_v4.sqlite')
 
-print(
-    'When processing the complete database, '
-    'there are a few special kinds of molecules to look out for'
-)
+print('When processing the complete database, '
+      'there are a few special kinds of molecules to look out for')
 
 DUPLICATE_MOLECULE_SAME_ID = 253949008
 DUPLICATE_MOLECULE_DIFF_ID = 95603043
@@ -47,25 +45,20 @@ print()
 print('The first are duplicate records')
 molecule_dup_same = db.find_by_mol_id(DUPLICATE_MOLECULE_SAME_ID)
 print('Consider', molecule_dup_same.mol_id)
-print('It has status', molecule_dup_same.prop.calc.status,
-      'and duplicate_of', molecule_dup_same.duplicate_of)
+print('It has status', molecule_dup_same.prop.calc.status, 'and duplicate_of',
+      molecule_dup_same.duplicate_of)
 print('This means this molecule was considered a duplciated of another')
 print('That other molecule proceeded to full calculation',
       'and this molecule did not')
 print('A molecule should have status=-1 if and only if',
       'duplicate_of is not 0')
 print('Note that this molecule started with bond topology',
-      molecule_dup_same.mol_id // 1000,
-      'which is the same as the duplicate',
+      molecule_dup_same.mol_id // 1000, 'which is the same as the duplicate',
       molecule_dup_same.duplicate_of // 1000)
-print(
-    'Therefore, the initial_geometry from', molecule_dup_same.mol_id,
-    'was copied to the list of ini_geo for',
-    molecule_dup_same.duplicate_of, 'which has',
-    len(
-        db.find_by_mol_id(
-            molecule_dup_same.duplicate_of).ini_geo),
-    'ini_geo')
+print('Therefore, the initial_geometry from', molecule_dup_same.mol_id,
+      'was copied to the list of ini_geo for',
+      molecule_dup_same.duplicate_of, 'which has',
+      len(db.find_by_mol_id(molecule_dup_same.duplicate_of).ini_geo), 'ini_geo')
 
 molecule_dup_diff = db.find_by_mol_id(DUPLICATE_MOLECULE_DIFF_ID)
 print('Compare this to molecule', molecule_dup_diff.mol_id)
@@ -73,13 +66,10 @@ print('It is duplicated to', molecule_dup_diff.duplicate_of,
       'which has bond topology', molecule_dup_diff.duplicate_of // 1000,
       'which is different than the bond topology for this molecule',
       molecule_dup_diff.mol_id // 1000)
-print(
-    'Therefore, the initial geometry from', molecule_dup_diff.mol_id,
-    'is NOT copied to', molecule_dup_diff.duplicate_of, 'which has only',
-    len(
-        db.find_by_mol_id(
-            molecule_dup_diff.duplicate_of).ini_geo),
-    'inital_geometries')
+print('Therefore, the initial geometry from', molecule_dup_diff.mol_id,
+      'is NOT copied to', molecule_dup_diff.duplicate_of, 'which has only',
+      len(db.find_by_mol_id(molecule_dup_diff.duplicate_of).ini_geo),
+      'inital_geometries')
 print('We do this because it is not obvious what the atom matching across',
       'the duplicates should be in this case')
 print('If you have a good idea how to do that, you will need these records')

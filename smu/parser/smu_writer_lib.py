@@ -93,8 +93,8 @@ def get_long_molecule_name(molecule):
     string
   """
   return '{}.{}'.format(
-    smu_utils_lib.get_composition(molecule.bond_topo[0]),
-    get_long_mol_id(molecule.mol_id))
+      smu_utils_lib.get_composition(molecule.bond_topo[0]),
+      get_long_mol_id(molecule.mol_id))
 
 
 def get_long_mol_id(mol_id):
@@ -214,15 +214,13 @@ class SmuWriter:
     result += 'Status     {:4d}\n'.format(prop.calc.status)
     result += 'Warn_T1    {:4d}{:4d}\n'.format(prop.calc.warn_t1,
                                                prop.calc.warn_delta_t1)
-    result += 'Warn_BSE   {:4d}{:4d}\n'.format(
-        prop.calc.warn_bse_b6, prop.calc.warn_bse_eccsd)
-    result += 'Warn_EXC   {:4d}{:4d}{:4d}\n'.format(
-        prop.calc.warn_exc_ene,
-        prop.calc.warn_exc_osmin,
-        prop.calc.warn_exc_osmax)
-    result += 'Warn_VIB   {:4d}{:4d}\n'.format(
-        prop.calc.warn_vib_linear,
-        prop.calc.warn_vib_imag)
+    result += 'Warn_BSE   {:4d}{:4d}\n'.format(prop.calc.warn_bse_b6,
+                                               prop.calc.warn_bse_eccsd)
+    result += 'Warn_EXC   {:4d}{:4d}{:4d}\n'.format(prop.calc.warn_exc_ene,
+                                                    prop.calc.warn_exc_osmin,
+                                                    prop.calc.warn_exc_osmax)
+    result += 'Warn_VIB   {:4d}{:4d}\n'.format(prop.calc.warn_vib_linear,
+                                               prop.calc.warn_vib_imag)
     result += 'Warn_NEG   {:4d}\n'.format(prop.calc.warn_bsr_neg)
 
     return result
@@ -241,7 +239,8 @@ class SmuWriter:
     if self.annotate:
       result += '# From topology\n'
     result += '     '
-    result += smu_utils_lib.compact_adjacency_matrix_string(adjacency_matrix, '')
+    result += smu_utils_lib.compact_adjacency_matrix_string(
+        adjacency_matrix, '')
     result += '\n     '
     num_bonded_hydrogens = smu_utils_lib.compute_bonded_hydrogens(
         topology, adjacency_matrix)
@@ -274,8 +273,7 @@ class SmuWriter:
       result += molecule.bond_topo[bt_idx].smiles + '\n'
     if self.annotate:
       result += '# From topology\n'
-    result += smu_utils_lib.get_composition(
-        molecule.bond_topo[bt_idx]) + '\n'
+    result += smu_utils_lib.get_composition(molecule.bond_topo[bt_idx]) + '\n'
     if self.annotate:
       result += '# From topo_id, mol_id\n'
     topo_id = molecule.bond_topo[bt_idx].topo_id
@@ -284,12 +282,10 @@ class SmuWriter:
       if stage == 'stage1':
         topo_id = 0
       elif stage == 'stage2':
-        topo_id = smu_utils_lib.special_case_dat_id_from_bt_id(
-            topo_id)
+        topo_id = smu_utils_lib.special_case_dat_id_from_bt_id(topo_id)
       else:
         raise ValueError(f'Unknown stage {stage}')
-    result += 'ID{:8d}{:8d}\n'.format(topo_id,
-                                      molecule.mol_id % 1000)
+    result += 'ID{:8d}{:8d}\n'.format(topo_id, molecule.mol_id % 1000)
     return result
 
   def get_system(self, prop):
@@ -322,7 +318,7 @@ class SmuWriter:
     Raises:
       ValueError: on missing statistics
     """
-    if len(prop.calculation_statistics) == 0:
+    if not prop.calculation_statistics:
       return ''
     result = 'TIMINGS'
 
@@ -348,7 +344,7 @@ class SmuWriter:
     Returns:
       A multiline string representation of timings for different computations.
     """
-    if len(prop.calculation_statistics) == 0:
+    if not prop.calculation_statistics:
       return ''
     labels = '       '
     values = 'TIMINGS'
@@ -474,8 +470,7 @@ class SmuWriter:
       A multiline string representation of geometries in Cartesian coordinates.
     """
     coordinates = ''
-    if (molecule.ini_geo and
-        molecule.ini_geo[0].atompos):
+    if (molecule.ini_geo and molecule.ini_geo[0].atompos):
       if self.annotate:
         coordinates += '# From initial_geometry.atompos\n'
       for i, atom in enumerate(topology.atom):
@@ -485,8 +480,7 @@ class SmuWriter:
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(8),
             '{:f}'.format(positions.x).rjust(12), '{:f}'.format(
                 positions.y).rjust(12), '{:f}'.format(positions.z).rjust(12))
-    if (molecule.HasField('opt_geo') and
-        molecule.opt_geo.atompos):
+    if (molecule.HasField('opt_geo') and molecule.opt_geo.atompos):
       if self.annotate:
         coordinates += '# From opt_geo.atompos\n'
       for i, atom in enumerate(topology.atom):
@@ -625,8 +619,8 @@ class SmuWriter:
       for displacement in vib_mode.disp:
         disp += [displacement.x, displacement.y, displacement.z]
       for j in range(0, len(disp), 10):
-        result += ''.join('{:8.4f}'.format(value).rjust(8)
-                          for value in disp[j:j + 10])
+        result += ''.join(
+            '{:8.4f}'.format(value).rjust(8) for value in disp[j:j + 10])
         result += '\n'
     return result
 
@@ -672,22 +666,19 @@ class SmuWriter:
           continue
         if self.annotate:
           result += '# From vib_zpe\n'
-        result += 'ZPE_unscaled {:-16.2f}\n'.format(
-            prop.vib_zpe.val)
+        result += 'ZPE_unscaled {:-16.2f}\n'.format(prop.vib_zpe.val)
 
       else:
         if not prop.HasField(field):
           continue
         if self.annotate:
           result += '# From %s\n' % field
-        result += float_line(label,
-                             _FortranFloat(getattr(prop, field).val))
+        result += float_line(label, _FortranFloat(getattr(prop, field).val))
 
     return result
 
   _T1_DIAGNOSTICS_FIELDS = [
-      'wf_diag_t1_2sp', 'wf_diag_t1_2sd',
-      'wf_diag_t1_3psd'
+      'wf_diag_t1_2sp', 'wf_diag_t1_2sd', 'wf_diag_t1_3psd'
   ]
 
   def get_diagnostics(self, prop):
@@ -753,8 +744,11 @@ class SmuWriter:
           result += '# From %s (with _um _unc)\n' % field
         result += '{:17s}{:-12.2f}{:-12.2f}{:-12.2f}\n'.format(
             label, _FortranFloat(getattr(prop, field).val),
-            _FortranFloat(getattr(prop, field.replace('at2_std', 'at2_um')).val),
-            _FortranFloat(getattr(prop, field.replace('at2_std', 'at2_um') + '_unc').val))
+            _FortranFloat(
+                getattr(prop, field.replace('at2_std', 'at2_um')).val),
+            _FortranFloat(
+                getattr(prop,
+                        field.replace('at2_std', 'at2_um') + '_unc').val))
       else:
         raise ValueError(
             'Atomic block unknown field types {}'.format(field_type))
@@ -765,7 +759,10 @@ class SmuWriter:
       ['PBE0/6-311Gd', 'orb_ehomo_pbe0_6311gd', 'orb_elumo_pbe0_6311gd'],
       ['PBE0/aug-pc-1', 'orb_ehomo_pbe0_augpc1', 'orb_elumo_pbe0_augpc1'],
       ['HF/6-31Gd', 'orb_ehomo_hf_631gd', 'orb_elumo_hf_631gd'],
-      ['B3LYP/6-31++Gdp', 'orb_ehomo_b3lyp_631ppgdp', 'orb_elumo_b3lyp_631ppgdp'],
+      [
+          'B3LYP/6-31++Gdp', 'orb_ehomo_b3lyp_631ppgdp',
+          'orb_elumo_b3lyp_631ppgdp'
+      ],
       ['B3LYP/aug-pcS-1', 'orb_ehomo_b3lyp_augpcs1', 'orb_elumo_b3lyp_augpcs1'],
       ['PBE0/6-31++Gdp', 'orb_ehomo_pbe0_631ppgdp', 'orb_elumo_pbe0_631ppgdp'],
       ['PBE0/aug-pcS-1', 'orb_ehomo_pbe0_augpcs1', 'orb_elumo_pbe0_augpcs1'],
@@ -786,8 +783,7 @@ class SmuWriter:
     """
     result = ''
     for label, homo_field, lumo_field in self._HOMO_LUMO_LABEL_FIELDS:
-      if (not prop.HasField(homo_field) or
-          not prop.HasField(lumo_field)):
+      if (not prop.HasField(homo_field) or not prop.HasField(lumo_field)):
         continue
       if self.annotate:
         result += '# From %s, %s\n' % (homo_field, lumo_field)
@@ -817,17 +813,13 @@ class SmuWriter:
       return ''
     result = smu_parser_lib.EXCITATION_HEADER + '\n'
     if self.annotate:
-      result += ('# From exc_ene_cc2_tzvp, '
-                 'exc_os_cc2_tzvp\n')
-    if len(prop.exc_ene_cc2_tzvp.val) != len(
-        prop.exc_os_cc2_tzvp.val):
+      result += ('# From exc_ene_cc2_tzvp, ' 'exc_os_cc2_tzvp\n')
+    if len(prop.exc_ene_cc2_tzvp.val) != len(prop.exc_os_cc2_tzvp.val):
       raise ValueError(
           'Unequal lengths for excitation energies (%d) and oscillations (%d)' %
-          (len(prop.exc_ene_cc2_tzvp.val),
-           len(prop.exc_os_cc2_tzvp.val)))
+          (len(prop.exc_ene_cc2_tzvp.val), len(prop.exc_os_cc2_tzvp.val)))
     for i, (energy, oscillator_strength) in enumerate(
-        zip(prop.exc_ene_cc2_tzvp.val,
-            prop.exc_os_cc2_tzvp.val)):
+        zip(prop.exc_ene_cc2_tzvp.val, prop.exc_os_cc2_tzvp.val)):
       result += '%s%s%s\n' % (str(i + 1).rjust(5),
                               '{:.5f}'.format(energy).rjust(18),
                               '{:.5f}'.format(oscillator_strength).rjust(16))
@@ -855,8 +847,8 @@ class SmuWriter:
         result += '%s%s%s   +/-%s\n' % (
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
-            '{:12.4f}'.format(getattr(prop, field).val[i]),
-            '{:10.4f}'.format(getattr(prop, field).prec[i]))
+            '{:12.4f}'.format(getattr(prop, field).val[i]), '{:10.4f}'.format(
+                getattr(prop, field).prec[i]))
 
     return result
 
@@ -881,8 +873,8 @@ class SmuWriter:
         result += '%s%s%s   +/-%s\n' % (
             str(i + 1).rjust(5),
             str(smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom]).rjust(5),
-            '{:12.4f}'.format(getattr(prop, field).val[i]),
-            '{:10.4f}'.format(getattr(prop, field).prec[i]))
+            '{:12.4f}'.format(getattr(prop, field).val[i]), '{:10.4f}'.format(
+                getattr(prop, field).prec[i]))
 
     return result
 
@@ -941,8 +933,7 @@ class SmuWriter:
     result = 'Polarizability (au):    PBE0/aug-pc-1\n'
     if self.annotate:
       result += '# From elec_pol_pbe0_augpc1\n'
-    result += self.get_rank2(
-        prop.elec_pol_pbe0_augpc1)
+    result += self.get_rank2(prop.elec_pol_pbe0_augpc1)
     return result
 
   def get_multipole_moments(self, prop):
@@ -961,12 +952,9 @@ class SmuWriter:
       result += 'Dipole moment (au):     PBE0/aug-pc-1\n'
       if self.annotate:
         result += '# From elec_dip_pbe0_augpc1\n'
-      result += self._format_for_tensors(
-          '  x', prop.elec_dip_pbe0_augpc1.x)
-      result += self._format_for_tensors(
-          '  y', prop.elec_dip_pbe0_augpc1.y)
-      result += self._format_for_tensors(
-          '  z', prop.elec_dip_pbe0_augpc1.z)
+      result += self._format_for_tensors('  x', prop.elec_dip_pbe0_augpc1.x)
+      result += self._format_for_tensors('  y', prop.elec_dip_pbe0_augpc1.y)
+      result += self._format_for_tensors('  z', prop.elec_dip_pbe0_augpc1.z)
 
     if prop.HasField('elec_qua_pbe0_augpc1'):
       result += 'Quadrupole moment (au): PBE0/aug-pc-1\n'
@@ -984,12 +972,9 @@ class SmuWriter:
       result += 'Dipole moment (au):     HF/6-31Gd\n'
       if self.annotate:
         result += '# From dipole_moment_hf\n'
-      result += self._format_for_tensors('  x',
-                                        prop.elec_dip_hf_631gd.x)
-      result += self._format_for_tensors('  y',
-                                        prop.elec_dip_hf_631gd.y)
-      result += self._format_for_tensors('  z',
-                                        prop.elec_dip_hf_631gd.z)
+      result += self._format_for_tensors('  x', prop.elec_dip_hf_631gd.x)
+      result += self._format_for_tensors('  y', prop.elec_dip_hf_631gd.y)
+      result += self._format_for_tensors('  z', prop.elec_dip_hf_631gd.z)
 
     if prop.HasField('elec_qua_hf_631gd'):
       result += 'Quadrupole moment (au): HF/6-31Gd\n'
@@ -1029,10 +1014,8 @@ class SmuWriter:
     contents.append(self.get_system(prop))
     contents.append(self.get_stage1_timings(prop))
     contents.append(self.get_gradient_norms(molecule, spacer=' '))
-    contents.append(
-        self.get_coordinates(molecule.bond_topo[bt_idx], molecule))
-    contents.append(
-        self.get_frequencies_and_intensities(prop, header=False))
+    contents.append(self.get_coordinates(molecule.bond_topo[bt_idx], molecule))
+    contents.append(self.get_frequencies_and_intensities(prop, header=False))
 
     return ''.join(contents)
 
@@ -1060,15 +1043,12 @@ class SmuWriter:
     contents.append(self.get_ids(molecule, 'stage2', bt_idx))
     contents.append(self.get_system(prop))
     contents.append(self.get_stage2_timings(prop))
-    contents.append(
-        self.get_bonds(molecule.bond_topo[bt_idx], prop))
+    contents.append(self.get_bonds(molecule.bond_topo[bt_idx], prop))
     contents.append(self.get_gradient_norms(molecule, spacer='         '))
-    contents.append(
-        self.get_coordinates(molecule.bond_topo[bt_idx], molecule))
+    contents.append(self.get_coordinates(molecule.bond_topo[bt_idx], molecule))
     contents.append(self.get_rotational_constants(molecule))
     contents.append(self.get_symmetry_used(prop))
-    contents.append(
-        self.get_frequencies_and_intensities(prop, header=True))
+    contents.append(self.get_frequencies_and_intensities(prop, header=True))
     contents.append(self.get_gaussian_sanity_check(prop))
     contents.append(self.get_vib_mode(prop))
     contents.append(self.get_prop(molecule))
@@ -1077,10 +1057,8 @@ class SmuWriter:
     contents.append(self.get_homo_lumo(prop))
     contents.append(self.get_excitation_energies_and_oscillations(prop))
     contents.append(
-        self.get_nmr_isotropic_shieldings(molecule.bond_topo[bt_idx],
-                                          prop))
-    contents.append(
-        self.get_partial_charges(molecule.bond_topo[bt_idx], prop))
+        self.get_nmr_isotropic_shieldings(molecule.bond_topo[bt_idx], prop))
+    contents.append(self.get_partial_charges(molecule.bond_topo[bt_idx], prop))
     contents.append(self.get_polarizability(prop))
     contents.append(self.get_multipole_moments(prop))
 
@@ -1097,16 +1075,17 @@ class Atomic2InputWriter:
     """Returns the expected filename for an atomic input.
 
     topo_idx can be None (for the starting topology)
+
+    Args:
+      molecule:
+      topo_idx:
     """
     if topo_idx is not None:
       return '{}.{}.{:03d}.inp'.format(
-          smu_utils_lib.get_composition(
-              molecule.bond_topo[topo_idx]),
-          get_long_mol_id(molecule.mol_id),
-          topo_idx)
+          smu_utils_lib.get_composition(molecule.bond_topo[topo_idx]),
+          get_long_mol_id(molecule.mol_id), topo_idx)
     else:
-      return '{}.inp'.format(
-          get_long_molecule_name(molecule))
+      return '{}.inp'.format(get_long_molecule_name(molecule))
 
   def get_mol_block(self, molecule, topo_idx):
     """Returns the MOL file block with atoms and bonds.
@@ -1123,9 +1102,8 @@ class Atomic2InputWriter:
     contents.append('{:3d}{:3d}  0  0  0  0  0  0  0  0999 V2000\n'.format(
         len(molecule.bond_topo[topo_idx].atom),
         len(molecule.bond_topo[topo_idx].bond)))
-    for atom_type, coords in zip(
-        molecule.bond_topo[topo_idx].atom,
-        molecule.opt_geo.atompos):
+    for atom_type, coords in zip(molecule.bond_topo[topo_idx].atom,
+                                 molecule.opt_geo.atompos):
       contents.append(
           '{:10.4f}{:10.4f}{:10.4f} {:s}   0  0  0  0  0  0  0  0  0  0  0  0\n'
           .format(
@@ -1157,32 +1135,25 @@ class Atomic2InputWriter:
     def format_field(field_name):
       return '{:15.7f}'.format(getattr(molecule.prop, field_name).val)
 
-    contents.append('{:7s}'.format('3') +
-                    format_field('spe_std_hf_3') +
+    contents.append('{:7s}'.format('3') + format_field('spe_std_hf_3') +
                     format_field('spe_std_mp2_3') + '\n')
-    contents.append('{:7s}'.format('4') +
-                    format_field('spe_std_hf_4') +
+    contents.append('{:7s}'.format('4') + format_field('spe_std_hf_4') +
                     format_field('spe_std_mp2_4') + '\n')
-    contents.append('{:7s}'.format('2sp') +
-                    format_field('spe_std_hf_2sp') +
+    contents.append('{:7s}'.format('2sp') + format_field('spe_std_hf_2sp') +
                     format_field('spe_std_mp2_2sp') +
                     format_field('spe_std_ccsd_2sp') +
                     format_field('spe_std_ccsd_t_2sp') + '\n')
-    contents.append('{:7s}'.format('2sd') +
-                    format_field('spe_std_hf_2sd') +
+    contents.append('{:7s}'.format('2sd') + format_field('spe_std_hf_2sd') +
                     format_field('spe_std_mp2_2sd') +
                     format_field('spe_std_ccsd_2sd') +
                     format_field('spe_std_ccsd_t_2sd') +
                     format_field('wf_diag_t1_2sd') + '\n')
-    contents.append('{:7s}'.format('3Psd') +
-                    format_field('spe_std_hf_3psd') +
+    contents.append('{:7s}'.format('3Psd') + format_field('spe_std_hf_3psd') +
                     format_field('spe_std_mp2_3psd') +
                     format_field('spe_std_ccsd_3psd') + '\n')
-    contents.append('{:7s}'.format('C3') +
-                    format_field('spe_std_hf_cvtz') +
+    contents.append('{:7s}'.format('C3') + format_field('spe_std_hf_cvtz') +
                     format_field('spe_std_mp2full_cvtz') + '\n')
-    contents.append('{:7s}'.format('(34)') +
-                    format_field('spe_std_hf_34') +
+    contents.append('{:7s}'.format('(34)') + format_field('spe_std_hf_34') +
                     format_field('spe_std_mp2_34') + '\n')
 
     return contents
@@ -1205,9 +1176,7 @@ class Atomic2InputWriter:
     """
     contents = []
 
-    trimmed_frequencies = [
-        v for v in molecule.prop.vib_freq.val if v != 0.0
-    ]
+    trimmed_frequencies = [v for v in molecule.prop.vib_freq.val if v != 0.0]
 
     contents.append('$frequencies{:5d}{:5d}{:5d}\n'.format(
         len(trimmed_frequencies), 0, 0))
@@ -1223,8 +1192,7 @@ class Atomic2InputWriter:
 
   def process(self, molecule, topo_idx):
     """Creates the atomic input file for molecule."""
-    if (molecule.prop.calc.status < 0 or
-        molecule.prop.calc.status > 3 or
+    if (molecule.prop.calc.status < 0 or molecule.prop.calc.status > 3 or
         # While we should check all the fields, this is conveinient shortcut.
         not molecule.prop.HasField('spe_std_hf_3') or
         not molecule.prop.HasField('spe_std_mp2_3')):
@@ -1235,10 +1203,9 @@ class Atomic2InputWriter:
 
     contents = []
     contents.append('SMU {}, RDKIT {}, bt {}({}/{}), geom opt\n'.format(
-        molecule.mol_id,
-        molecule.bond_topo[topo_idx].smiles,
-        molecule.bond_topo[topo_idx].topo_id,
-        topo_idx + 1, len(molecule.bond_topo)))
+        molecule.mol_id, molecule.bond_topo[topo_idx].smiles,
+        molecule.bond_topo[topo_idx].topo_id, topo_idx + 1,
+        len(molecule.bond_topo)))
     contents.append(smu_utils_lib.get_original_label(molecule) + '\n')
 
     contents.extend(self.get_mol_block(molecule, topo_idx))
@@ -1261,22 +1228,31 @@ class CleanTextWriter:
     """Create a fixed width line.
 
     Args:
-      vals: sequence of tuples (position, string)
-
-    Returns
-      Newline terminated line
+      vals: sequence of tuples (position, string)  Returns Newline terminated
+        line
+    Returns:
     """
     largest_val = max(vals, key=lambda v: v[0] + len(v[1]))
     out = array.array('u', ' ' * (largest_val[0] + len(largest_val[1])))
     out.append('\n')
     for pos, val in vals:
-      out[pos:pos+len(val)] = array.array('u', val)
+      out[pos:pos + len(val)] = array.array('u', val)
     return out.tounicode()
 
   def _align_dec_point(self, pos, val):
     return (pos - val.index('.'), val)
 
   def _align_float_with_prec(self, pos, float_val, prec):
+    """Helper method.
+
+    Args:
+      pos:
+      float_val:
+      prec:
+
+    Returns:
+
+    """
     if prec < 0.00015:
       val = '{:.4f}'.format(float_val)
     elif prec < 0.00150:
@@ -1291,75 +1267,112 @@ class CleanTextWriter:
     return self._align_dec_point(pos, val)
 
   def _heavy_atom_list(self, topology):
-    return ''.join([smu_utils_lib.ATOM_TYPE_TO_RDKIT[a][0]
-                    for a in topology.atom
-                    if a != dataset_pb2.BondTopology.ATOM_H])
+    return ''.join([
+        smu_utils_lib.ATOM_TYPE_TO_RDKIT[a][0]
+        for a in topology.atom
+        if a != dataset_pb2.BondTopology.ATOM_H
+    ])
 
   def _atom_generator(self, topology):
     for atom_idx, atom in enumerate(topology.atom):
       yield atom_idx, [(20, f'{atom_idx+1:2d}'),
                        (23, smu_utils_lib.ATOM_TYPE_TO_RDKIT[atom][0])]
 
-
   def _get_mol_id_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
     out.append('#\n')
     out.append('#mol_id    \n')
-    out.append(self._fw_line([(1, 'mol_id'),
-                              (31, get_long_mol_id(molecule.mol_id)),
-                              (84, long_name),
-                              ]))
+    out.append(
+        self._fw_line([
+            (1, 'mol_id'),
+            (31, get_long_mol_id(molecule.mol_id)),
+            (84, long_name),
+        ]))
 
     return out
 
   def _get_mol_spec_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+    """
     out = []
     out.append('#\n')
     out.append('#mol_spec  \n')
-    topology = molecule.bond_topo[smu_utils_lib.get_starting_bond_topology_index(molecule)]
+    topology = molecule.bond_topo[
+        smu_utils_lib.get_starting_bond_topology_index(molecule)]
     base_vals = [(1, 'mol_spec'), (84, long_name)]
-    out.append(self._fw_line(base_vals +
-                             [(17, 'label'),
-                              (31, long_name),
-                              ]))
-    out.append(self._fw_line(base_vals +
-                             [(17, 'topo_id'),
-                              (31, str(molecule.mol_id // 1000)),
-                              ]))
-    # Hello huge hack! smiles_obabel is only filled in for the complete database and
-    # if it differs from smiles_rdkit. But we always want to show this field if we have
-    # the complete record. But whether this is the complete or standard record is not
-    # written explicitly! So instead we check for the presence of the error field
-    # which should always be present in complete and never for standard.
+    out.append(self._fw_line(base_vals + [
+        (17, 'label'),
+        (31, long_name),
+    ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'topo_id'),
+            (31, str(molecule.mol_id // 1000)),
+        ]))
+    # Hello huge hack! smiles_obabel is only filled in for the complete database
+    # and if it differs from smiles_rdkit. But we always want to show this field
+    # if we have the complete record. But whether this is the complete or
+    # standard record is not written explicitly! So instead we check for the
+    # presence of the error field which should always be present in complete and
+    # never for standard.
     if molecule.prop.HasField('calc'):
       if molecule.prop.HasField('smiles_openbabel'):
         smiles = molecule.prop.smiles_openbabel
       else:
         smiles = topology.smiles
-      out.append(self._fw_line(base_vals +
-                               [(17, 'smiles_obabel'),
-                                (31, smiles),
-                                ]))
-    out.append(self._fw_line(base_vals +
-                             [(17, 'x_atoms'),
-                              (31, self._heavy_atom_list(topology)),
-                              ]))
+      out.append(
+          self._fw_line(base_vals + [
+              (17, 'smiles_obabel'),
+              (31, smiles),
+          ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'x_atoms'),
+            (31, self._heavy_atom_list(topology)),
+        ]))
     adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(topology)
     num_bonded_hydrogens = smu_utils_lib.compute_bonded_hydrogens(
         topology, adjacency_matrix)
-    out.append(self._fw_line(base_vals +
-                             [(17, 'h_atoms'),
-                              (31, ''.join(str(h) for h in num_bonded_hydrogens)),
-                              ]))
-    out.append(self._fw_line(base_vals +
-                             [(17, 'x_atpair_mat'),
-                              (31, smu_utils_lib.compact_adjacency_matrix_string(
-                                adjacency_matrix, '.')),
-                              ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'h_atoms'),
+            (31, ''.join(str(h) for h in num_bonded_hydrogens)),
+        ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'x_atpair_mat'),
+            (31,
+             smu_utils_lib.compact_adjacency_matrix_string(
+                 adjacency_matrix, '.')),
+        ]))
 
     return out
 
   def _get_calc_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
     if not molecule.prop.HasField('calc'):
       return out
@@ -1367,99 +1380,119 @@ class CleanTextWriter:
     out.append('#\n')
     out.append('#calc      \n')
     base_vals = [(1, 'calc'), (84, long_name)]
-    out.append(self._fw_line(base_vals +
-                             [(17, 'status'),
-                              (31, f'{errors.status:3d}'),
-                              ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'status'),
+            (31, f'{errors.status:3d}'),
+        ]))
     # HACK: remove this once I update the DB. Again.
     fate = smu_utils_lib.determine_fate(molecule)
-    if (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS
-        or fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS):
+    if (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS or
+        fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS):
       warn_level = 'C'
     elif (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB
-          or fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
+          or
+          fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB):
       warn_level = 'B'
-    elif (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW
-          or fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW):
+    elif (fate == dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW or
+          fate == dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW):
       warn_level = 'A'
     else:
       warn_level = '-'
 
-    out.append(self._fw_line(base_vals +
-                             [(17, 'warn_level'),
-                              (33, warn_level),
-                              ]))
-    out.append(self._fw_line(
-      base_vals +
-      [(17, 'fate'),
-       (31, dataset_pb2.Properties.FateCategory.Name(fate)[5:]),
-       ]))
-    out.append(self._fw_line(base_vals +
-                             [(17, 'database'),
-                              (31, 'standard'
-                               if errors.which_database == dataset_pb2.STANDARD
-                               else 'complete'),
-                              ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'warn_level'),
+            (33, warn_level),
+        ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'fate'),
+            (31, dataset_pb2.Properties.FateCategory.Name(fate)[5:]),
+        ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'database'),
+            (31, 'standard' if errors.which_database ==
+             dataset_pb2.STANDARD else 'complete'),
+        ]))
 
     out.append('#\n')
-    out.append(self._fw_line([(0, '#'),
-                              (1, 'calc'),
-                              (17, 'warn 1 :'),
-                              (31, 't1'),
-                              (44, 'delta_t1'),
-                              (57, 'bse_b6'),
-                              (70, '{:13s}'.format('bse_eccsd')),
-                              ]))
-    out.append(self._fw_line([(0, '#'),
-                              (1, 'calc'),
-                              (17, 'warn 2 :'),
-                              (31, 'exc_ene'),
-                              (44, 'exc_osmin'),
-                              (57, '{:26s}'.format('exc_osmax')),
-                              ]))
-    out.append(self._fw_line([(0, '#'),
-                              (1, 'calc'),
-                              (17, 'warn 3 :'),
-                              (31, 'vib_linear'),
-                              (44, 'vib_imag'),
-                              (57, '{:26s}'.format('bsr_neg')),
-                              ]))
-    out.append(self._fw_line(base_vals +
-                             [(17, 'warn 1'),
-                              (31, str(errors.warn_t1)),
-                              (44, str(errors.warn_delta_t1)),
-                              (57, str(errors.warn_bse_b6)),
-                              (70, str(errors.warn_bse_eccsd)),
-                              ]))
-    out.append(self._fw_line(base_vals +
-                             [(17, 'warn 2'),
-                              (31, str(errors.warn_exc_ene)),
-                              (44, str(errors.warn_exc_osmin)),
-                              (57, str(errors.warn_exc_osmax)),
-                              ]))
-    out.append(self._fw_line(base_vals +
-                             [(17, 'warn 3'),
-                              (31, str(errors.warn_vib_linear)),
-                              (44, str(errors.warn_vib_imag)),
-                              (57, str(errors.warn_bsr_neg)),
-                              ]))
-
+    out.append(
+        self._fw_line([
+            (0, '#'),
+            (1, 'calc'),
+            (17, 'warn 1 :'),
+            (31, 't1'),
+            (44, 'delta_t1'),
+            (57, 'bse_b6'),
+            (70, '{:13s}'.format('bse_eccsd')),
+        ]))
+    out.append(
+        self._fw_line([
+            (0, '#'),
+            (1, 'calc'),
+            (17, 'warn 2 :'),
+            (31, 'exc_ene'),
+            (44, 'exc_osmin'),
+            (57, '{:26s}'.format('exc_osmax')),
+        ]))
+    out.append(
+        self._fw_line([
+            (0, '#'),
+            (1, 'calc'),
+            (17, 'warn 3 :'),
+            (31, 'vib_linear'),
+            (44, 'vib_imag'),
+            (57, '{:26s}'.format('bsr_neg')),
+        ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'warn 1'),
+            (31, str(errors.warn_t1)),
+            (44, str(errors.warn_delta_t1)),
+            (57, str(errors.warn_bse_b6)),
+            (70, str(errors.warn_bse_eccsd)),
+        ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'warn 2'),
+            (31, str(errors.warn_exc_ene)),
+            (44, str(errors.warn_exc_osmin)),
+            (57, str(errors.warn_exc_osmax)),
+        ]))
+    out.append(
+        self._fw_line(base_vals + [
+            (17, 'warn 3'),
+            (31, str(errors.warn_vib_linear)),
+            (44, str(errors.warn_vib_imag)),
+            (57, str(errors.warn_bsr_neg)),
+        ]))
 
     return out
 
   def _get_duplicates_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
     out.append('#\n')
     out.append('#duplicate_found            \n')
-    if len(molecule.duplicate_found) == 0:
-      out.append(self._fw_line([(1, 'duplicate_found'),
-                                (31, 'none'),
-                                (84, long_name)]))
+    if not molecule.duplicate_found:
+      out.append(
+          self._fw_line([(1, 'duplicate_found'), (31, 'none'),
+                         (84, long_name)]))
     else:
       for dup_id in sorted(molecule.duplicate_found):
-        out.append(self._fw_line([(1, 'duplicate_found'),
-                                  (31, get_long_mol_id(dup_id)),
-                                  (84, long_name)]))
+        out.append(
+            self._fw_line([(1, 'duplicate_found'),
+                           (31, get_long_mol_id(dup_id)), (84, long_name)]))
 
     out.append('#\n')
     out.append('#duplicate_of               \n')
@@ -1467,102 +1500,121 @@ class CleanTextWriter:
       dup_string = get_long_mol_id(molecule.duplicate_of)
     else:
       dup_string = 'none'
-    out.append(self._fw_line([(1, 'duplicate_of'),
-                              (31, dup_string),
-                              (84, long_name)]))
+    out.append(
+        self._fw_line([(1, 'duplicate_of'), (31, dup_string), (84, long_name)]))
 
     return out
 
   def _get_bond_topo_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
     for bt_idx, bt in enumerate(molecule.bond_topo):
-      base_vals = [(1, 'bond_topo'),
-                   (11, f'{bt_idx+1:2d}')]
+      base_vals = [(1, 'bond_topo'), (11, f'{bt_idx+1:2d}')]
 
       out.append('#\n')
-      out.append(self._fw_line(base_vals +
-                               [(0, '#'),
-                                (14, 'of'),
-                                (17, f'{len(molecule.bond_topo):2d}')]))
+      out.append(
+          self._fw_line(base_vals + [(0, '#'), (14, 'of'),
+                                     (17, f'{len(molecule.bond_topo):2d}')]))
       base_vals.append((84, long_name))
-      out.append(self._fw_line(base_vals +
-                               [(17, 'topo_id'),
-                                (31, f'{bt.topo_id:<d}')]))
+      out.append(
+          self._fw_line(base_vals +
+                        [(17, 'topo_id'), (31, f'{bt.topo_id:<d}')]))
       if bt.info == dataset_pb2.BondTopology.SOURCE_STARTING:
         # This indicates topology detection was not performed at all.
         info = '    S'
       else:
-        info = (('i' if bt.info & dataset_pb2.BondTopology.SOURCE_DDT else '.') +
-                ('c' if bt.info & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
-                ('m' if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
-                ('u' if bt.info & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +
-                ('S' if bt.info & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
-      out.append(self._fw_line(base_vals +
-                               [(17, 'info'),
-                                (31, info)]))
-      out.append(self._fw_line(base_vals +
-                               [(17, 'smiles_rdkit'),
-                                (31, bt.smiles)]))
-      out.append(self._fw_line(base_vals +
-                               [(17, 'x_atoms'),
-                                (31, self._heavy_atom_list(bt))]))
+        info = (
+            ('i' if bt.info & dataset_pb2.BondTopology.SOURCE_DDT else '.') +
+            ('c' if bt.info & dataset_pb2.BondTopology.SOURCE_CSD else '.') +
+            ('m' if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR else '.') +
+            ('u' if bt.info & dataset_pb2.BondTopology.SOURCE_CUSTOM else '.') +
+            ('S' if bt.info
+             & dataset_pb2.BondTopology.SOURCE_STARTING else '.'))
+      out.append(self._fw_line(base_vals + [(17, 'info'), (31, info)]))
+      out.append(
+          self._fw_line(base_vals + [(17, 'smiles_rdkit'), (31, bt.smiles)]))
+      out.append(
+          self._fw_line(base_vals +
+                        [(17, 'x_atoms'), (31, self._heavy_atom_list(bt))]))
       adjacency_matrix = smu_utils_lib.compute_adjacency_matrix(bt)
       num_bonded_hydrogens = smu_utils_lib.compute_bonded_hydrogens(
-        bt, adjacency_matrix)
-      out.append(self._fw_line(base_vals +
-                               [(17, 'h_atoms'),
-                                (31, ''.join(str(h) for h in num_bonded_hydrogens)),
-                                ]))
-      out.append(self._fw_line(
-        base_vals +
-        [(17, 'x_atpair_mat'),
-         (31, smu_utils_lib.compact_adjacency_matrix_string(adjacency_matrix, '.')),
-         ]))
+          bt, adjacency_matrix)
+      out.append(
+          self._fw_line(base_vals + [
+              (17, 'h_atoms'),
+              (31, ''.join(str(h) for h in num_bonded_hydrogens)),
+          ]))
+      out.append(
+          self._fw_line(base_vals + [
+              (17, 'x_atpair_mat'),
+              (31,
+               smu_utils_lib.compact_adjacency_matrix_string(
+                   adjacency_matrix, '.')),
+          ]))
 
     return out
 
   def _get_geometries_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     def write_geometry(prefix, units_comment, geom):
       out.append('#\n')
-      out.append(self._fw_line([(0, '#'),
-                                (1, prefix),
-                                (9, 'atompos'),
-                                (43, 'x'),
-                                (55, 'y'),
-                                (67, 'z'),
-                                (84, '(au)'),
-                                ]))
+      out.append(
+          self._fw_line([
+              (0, '#'),
+              (1, prefix),
+              (9, 'atompos'),
+              (43, 'x'),
+              (55, 'y'),
+              (67, 'z'),
+              (84, '(au)'),
+          ]))
       base_vals = [(1, prefix), (9, 'atompos'), (84, long_name)]
       for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
-        out.append(self._fw_line(
-          base_vals + atom_vals +
-          [self._align_dec_point(37, f'{geom.atompos[atom_idx].x:.6f}'),
-           self._align_dec_point(49, f'{geom.atompos[atom_idx].y:.6f}'),
-           self._align_dec_point(61, f'{geom.atompos[atom_idx].z:.6f}'),
-           ]))
+        out.append(
+            self._fw_line(base_vals + atom_vals + [
+                self._align_dec_point(37, f'{geom.atompos[atom_idx].x:.6f}'),
+                self._align_dec_point(49, f'{geom.atompos[atom_idx].y:.6f}'),
+                self._align_dec_point(61, f'{geom.atompos[atom_idx].z:.6f}'),
+            ]))
 
       second_block = []
       base_vals = [(1, prefix), (84, long_name)]
       if geom.HasField('energy'):
-        second_block.append(self._fw_line(
-          base_vals +
-          [(9, 'energy'),
-           self._align_dec_point(49, f'{geom.energy.val:.6f}'),
-           ]))
+        second_block.append(
+            self._fw_line(base_vals + [
+                (9, 'energy'),
+                self._align_dec_point(49, f'{geom.energy.val:.6f}'),
+            ]))
       if geom.HasField('gnorm'):
         second_block.append(
-          self._fw_line(base_vals +
-                        [(9, 'gnorm'),
-                         self._align_dec_point(49, f'{geom.gnorm.val:.6f}'),
-                         ]))
+            self._fw_line(base_vals + [
+                (9, 'gnorm'),
+                self._align_dec_point(49, f'{geom.gnorm.val:.6f}'),
+            ]))
       if geom.HasField('enuc'):
         second_block.append(
-          self._fw_line(base_vals +
-                        [(9, 'enuc'),
-                         self._align_dec_point(49, f'{geom.enuc.val:.4f}'),
-                         ]))
+            self._fw_line(base_vals + [
+                (9, 'enuc'),
+                self._align_dec_point(49, f'{geom.enuc.val:.4f}'),
+            ]))
       if geom.HasField('brot'):
         for idx, val in enumerate(geom.brot.val):
           if val < 10_000:
@@ -1574,19 +1626,20 @@ class CleanTextWriter:
           else:
             val_str = f'{val:.0f}' + '.'
           second_block.append(
-            self._fw_line(base_vals +
-                          [(9, 'brot'),
-                           (21, str(idx + 1)),
-                           self._align_dec_point(49, val_str),
-                           ]))
+              self._fw_line(base_vals + [
+                  (9, 'brot'),
+                  (21, str(idx + 1)),
+                  self._align_dec_point(49, val_str),
+              ]))
       if second_block:
         out.append('#\n')
-        out.append(self._fw_line([(0, '#'),
-                                  (1, prefix),
-                                  (84, units_comment),
-                                  ]))
+        out.append(
+            self._fw_line([
+                (0, '#'),
+                (1, prefix),
+                (84, units_comment),
+            ]))
         out.extend(second_block)
-
 
     write_geometry('ini_geo', '(au)', molecule.ini_geo[0])
     if molecule.HasField('opt_geo'):
@@ -1595,96 +1648,123 @@ class CleanTextWriter:
     return out
 
   def _get_vib_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     if molecule.prop.HasField('vib_zpe'):
       out.append('#\n')
-      out.append(self._fw_line([(0, '#vib zpe'),
-                                (84, '(unscaled, kcal/mol)'),
-                                ]))
-      out.append(self._fw_line([
-        (1, 'vib zpe'),
-        (self._align_dec_point(37, f'{molecule.prop.vib_zpe.val:.2f}')),
-        (84, long_name),
-      ]))
+      out.append(
+          self._fw_line([
+              (0, '#vib zpe'),
+              (84, '(unscaled, kcal/mol)'),
+          ]))
+      out.append(
+          self._fw_line([
+              (1, 'vib zpe'),
+              (self._align_dec_point(37, f'{molecule.prop.vib_zpe.val:.2f}')),
+              (84, long_name),
+          ]))
 
     if molecule.prop.HasField('vib_freq'):
       # Note that we assume if you have frequencies, you have intensities.
       out.append('#\n')
-      out.append(self._fw_line([(0, '#vib freq'),
-                                (35, 'freq'),
-                                (45, 'intens'),
-                                (84, '(cm-1, km/mol)'),
-                                ]))
-      for idx, (freq, intens) in enumerate(zip(molecule.prop.vib_freq.val,
-                                               molecule.prop.vib_intens.val)):
-        out.append(self._fw_line([
-          (1, 'vib freq'),
-          (10, f'{idx+1:>2d}'),
-          (self._align_dec_point(37, f'{freq:.1f}')),
-          (self._align_dec_point(49, f'{intens:.1f}')),
-          (84, long_name),
-        ]))
+      out.append(
+          self._fw_line([
+              (0, '#vib freq'),
+              (35, 'freq'),
+              (45, 'intens'),
+              (84, '(cm-1, km/mol)'),
+          ]))
+      for idx, (freq, intens) in enumerate(
+          zip(molecule.prop.vib_freq.val, molecule.prop.vib_intens.val)):
+        out.append(
+            self._fw_line([
+                (1, 'vib freq'),
+                (10, f'{idx+1:>2d}'),
+                (self._align_dec_point(37, f'{freq:.1f}')),
+                (self._align_dec_point(49, f'{intens:.1f}')),
+                (84, long_name),
+            ]))
 
-    if len(molecule.prop.vib_mode):
+    if molecule.prop.vib_mode:
       for mode_idx, mode in enumerate(molecule.prop.vib_mode):
         out.append('#\n')
         freq = molecule.prop.vib_freq.val[mode_idx]
-        out.append(self._fw_line([(0, '#vib mode'),
-                                  (10, f'{mode_idx+1:>2d}'),
-                                  (41, 'x'),
-                                  (53, 'y'),
-                                  (65, 'z'),
-                                  (84, f'(f={freq:8.1f} cm-1)'),
-                                  ]))
+        out.append(
+            self._fw_line([
+                (0, '#vib mode'),
+                (10, f'{mode_idx+1:>2d}'),
+                (41, 'x'),
+                (53, 'y'),
+                (65, 'z'),
+                (84, f'(f={freq:8.1f} cm-1)'),
+            ]))
         for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
           disp = mode.disp[atom_idx]
-          out.append(self._fw_line(atom_vals +
-                                   [(1, 'vib mode'),
-                                    (10, f'{mode_idx+1:>2d}'),
-                                    (self._align_dec_point(37, f'{disp.x:.4f}')),
-                                    (self._align_dec_point(49, f'{disp.y:.4f}')),
-                                    (self._align_dec_point(61, f'{disp.z:.4f}')),
-                                    (84, long_name),
-                                    ]))
+          out.append(
+              self._fw_line(atom_vals + [
+                  (1, 'vib mode'),
+                  (10, f'{mode_idx+1:>2d}'),
+                  (self._align_dec_point(37, f'{disp.x:.4f}')),
+                  (self._align_dec_point(49, f'{disp.y:.4f}')),
+                  (self._align_dec_point(61, f'{disp.z:.4f}')),
+                  (84, long_name),
+              ]))
 
     return out
 
   _SPE_TOOLS = ['tmol', 'mrcc', 'orca']
   _SPE_STD_SHORT_NAMES = [
-    'hf_2sp',
-    'hf_2sd',
-    'hf_3psd',
-    'hf_3',
-    'hf_4',
-    'hf_34',
-    'hf_631gd',
-    'hf_tzvp',
-    'hf_cvtz',
-    'mp2_2sp',
-    'mp2_2sd',
-    'mp2_3psd',
-    'mp2_3',
-    'mp2_4',
-    'mp2_34',
-    'mp2_tzvp',
-    'mp2full_cvtz',
-    'cc2_tzvp',
-    'ccsd_2sp',
-    'ccsd_2sd',
-    'ccsd_3psd',
-    'ccsd_t_2sp',
-    'ccsd_t_2sd',
-    'b3lyp_631ppgdp',
-    'b3lyp_augpcs1',
-    'pbe0_631ppgdp',
-    'pbe0_augpc1',
-    'pbe0_augpcs1',
-    'pbe0d3_6311gd',
+      'hf_2sp',
+      'hf_2sd',
+      'hf_3psd',
+      'hf_3',
+      'hf_4',
+      'hf_34',
+      'hf_631gd',
+      'hf_tzvp',
+      'hf_cvtz',
+      'mp2_2sp',
+      'mp2_2sd',
+      'mp2_3psd',
+      'mp2_3',
+      'mp2_4',
+      'mp2_34',
+      'mp2_tzvp',
+      'mp2full_cvtz',
+      'cc2_tzvp',
+      'ccsd_2sp',
+      'ccsd_2sd',
+      'ccsd_3psd',
+      'ccsd_t_2sp',
+      'ccsd_t_2sd',
+      'b3lyp_631ppgdp',
+      'b3lyp_augpcs1',
+      'pbe0_631ppgdp',
+      'pbe0_augpc1',
+      'pbe0_augpcs1',
+      'pbe0d3_6311gd',
   ]
   _SPE_COMP_SHORT_NAMES = ['b5', 'b6', 'eccsd']
 
   def _get_spe_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     def process_fields(prefix, header_vals, short_names, field_spec):
@@ -1694,52 +1774,56 @@ class CleanTextWriter:
         if not molecule.prop.HasField(field_name):
           continue
         val = getattr(molecule.prop, field_name).val
-        this_out.append(self._fw_line([(1, prefix),
-                                       (17, short_name),
-                                       self._align_dec_point(37, f'{val:.6f}'),
-                                       (84, long_name),
-                                       ]))
+        this_out.append(
+            self._fw_line([
+                (1, prefix),
+                (17, short_name),
+                self._align_dec_point(37, f'{val:.6f}'),
+                (84, long_name),
+            ]))
       if this_out:
         out.append('#\n')
         out.append(self._fw_line(header_vals))
         out.extend(this_out)
 
-    process_fields('spe check',
-                   [(0, '#spe check'),
-                    (33, 'pbe0_6311gd'),
-                    (84, '(au)'),
-                    ],
-                   self._SPE_TOOLS,
-                   'spe_check_pbe0_6311gd_{}')
-    process_fields('spe cation',
-                   [(0, '#spe cation'),
-                    (33, 'pbe0_6311gd'),
-                    (84, '(au)'),
-                    ],
-                   self._SPE_TOOLS,
-                   'spe_stdcat_pbe0_6311gd_{}')
-    process_fields('spe std',
-                   [(0, '#spe std'),
-                    (84, '(au)'),
-                    ],
-                   self._SPE_STD_SHORT_NAMES,
-                   'spe_std_{}')
-    process_fields('spe comp',
-                   [(0, '#spe comp'),
-                    (84, '(au)'),
-                    ],
-                   self._SPE_COMP_SHORT_NAMES,
-                   'spe_comp_{}')
+    process_fields('spe check', [
+        (0, '#spe check'),
+        (33, 'pbe0_6311gd'),
+        (84, '(au)'),
+    ], self._SPE_TOOLS, 'spe_check_pbe0_6311gd_{}')
+    process_fields('spe cation', [
+        (0, '#spe cation'),
+        (33, 'pbe0_6311gd'),
+        (84, '(au)'),
+    ], self._SPE_TOOLS, 'spe_stdcat_pbe0_6311gd_{}')
+    process_fields('spe std', [
+        (0, '#spe std'),
+        (84, '(au)'),
+    ], self._SPE_STD_SHORT_NAMES, 'spe_std_{}')
+    process_fields('spe comp', [
+        (0, '#spe comp'),
+        (84, '(au)'),
+    ], self._SPE_COMP_SHORT_NAMES, 'spe_comp_{}')
 
     return out
 
   _DIAGNOSTICS_SHORT_NAMES = [
-    'd1_2sp',
-    't1_2sp',
-    't1_2sd',
-    't1_3psd',
-    ]
+      'd1_2sp',
+      't1_2sp',
+      't1_2sd',
+      't1_3psd',
+  ]
+
   def _get_diagnostics_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     for short_name in self._DIAGNOSTICS_SHORT_NAMES:
@@ -1747,11 +1831,13 @@ class CleanTextWriter:
       if not molecule.prop.HasField(field_name):
         continue
       val = getattr(molecule.prop, field_name).val
-      out.append(self._fw_line([(1, 'wf_diag'),
-                                (17, short_name),
-                                self._align_dec_point(37, f'{val:.4f}'),
-                                (84, long_name),
-                                ]))
+      out.append(
+          self._fw_line([
+              (1, 'wf_diag'),
+              (17, short_name),
+              self._align_dec_point(37, f'{val:.4f}'),
+              (84, long_name),
+          ]))
 
     if out:
       return ['#\n', '#wf_diag   \n'] + out
@@ -1770,15 +1856,30 @@ class CleanTextWriter:
     return cnt
 
   def _get_bsr_lines(self, base_vals, bsr_val):
+    """Helper method.
+
+    Args:
+      base_vals:
+      bsr_val:
+
+    Returns:
+
+    Raises:
+      <Any>:
+      <Any>:
+    """
     if not bsr_val:
       return []
 
     out_vals = []
 
-    # We'll add all the components afer the 0th first (which creates all the lines)
-    # then go back and add the 0th term to the first line. It's less special
-    # casing in this loop to do it this way.
-    components = [re.sub(r'\s+', ' ', s.strip()) for s in self._BSR_SPLIT_RE.split(bsr_val)]
+    # We'll add all the components afer the 0th first (which creates all the
+    # lines) then go back and add the 0th term to the first line. It's less
+    # special casing in this loop to do it this way.
+    components = [
+        re.sub(r'\s+', ' ', s.strip())
+        for s in self._BSR_SPLIT_RE.split(bsr_val)
+    ]
     for comp_idx, comp in enumerate(components[1:]):
       if comp_idx % 2 == 0:
         out_vals.append(copy.copy(base_vals))
@@ -1789,9 +1890,9 @@ class CleanTextWriter:
       elif num_digits == 1:
         offset = 3
       else:
-        raise ValueError(f'bsr component {comp} has unexpected number of leading digits')
-      out_vals[-1].extend([(pos, '+'),
-                           (pos + offset, comp)])
+        raise ValueError(
+            f'bsr component {comp} has unexpected number of leading digits')
+      out_vals[-1].extend([(pos, '+'), (pos + offset, comp)])
 
     # Some bsr strings are a single term.
     if not out_vals:
@@ -1805,32 +1906,46 @@ class CleanTextWriter:
     elif num_digits == 2:
       out_vals[0].append((38, components[0]))
     else:
-      raise ValueError(f'0th component {components[0]} has unexpected number of digits')
+      raise ValueError(
+          f'0th component {components[0]} has unexpected number of digits')
 
     return [self._fw_line(vals) for vals in out_vals]
 
   def _get_atomic2_gen_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     base_vals = [(1, 'at2_gen'), (84, long_name)]
-    out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_left')],
-                                   molecule.prop.at2_gen_bsr_left.val))
-    out.extend(self._get_bsr_lines(base_vals + [(17, 'bsr_right')],
-                                   molecule.prop.at2_gen_bsr_right.val))
+    out.extend(
+        self._get_bsr_lines(base_vals + [(17, 'bsr_left')],
+                            molecule.prop.at2_gen_bsr_left.val))
+    out.extend(
+        self._get_bsr_lines(base_vals + [(17, 'bsr_right')],
+                            molecule.prop.at2_gen_bsr_right.val))
 
     if molecule.prop.HasField('wf_diag_t1_2sd'):
       val = molecule.prop.wf_diag_t1_2sd.val
-      out.append(self._fw_line(base_vals +
-                               [(17, 't1'),
-                                self._align_dec_point(37, f'{val:.4f}'),
-                                ]))
+      out.append(
+          self._fw_line(base_vals + [
+              (17, 't1'),
+              self._align_dec_point(37, f'{val:.4f}'),
+          ]))
 
     if molecule.prop.HasField('at2_gen_t1_exc'):
       val = molecule.prop.at2_gen_t1_exc.val
-      out.append(self._fw_line(base_vals +
-                               [(17, 't1exc'),
-                                self._align_dec_point(37, f'{val:.4f}'),
-                                ]))
+      out.append(
+          self._fw_line(base_vals + [
+              (17, 't1exc'),
+              self._align_dec_point(37, f'{val:.4f}'),
+          ]))
 
     if out:
       return ['#\n', '#at2_gen         \n'] + out
@@ -1838,30 +1953,42 @@ class CleanTextWriter:
       return out
 
   _ATOMIC2_SHORT_NAMES = [
-    'ereac',
-    'eae',
-    'ea0',
-    'hf0',
-    'hf298',
-    ]
+      'ereac',
+      'eae',
+      'ea0',
+      'hf0',
+      'hf298',
+  ]
+
   def _get_atomic2_um_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
-    header_vals = [(0, '#at2_um'),
-                   (37, 'val'),
-                   (49, 'unc'),
-                   (84, '(kcal/mol)'),
-                   ]
-    base_vals = [(1, "at2_um"), (84, long_name)]
+    header_vals = [
+        (0, '#at2_um'),
+        (37, 'val'),
+        (49, 'unc'),
+        (84, '(kcal/mol)'),
+    ]
+    base_vals = [(1, 'at2_um'), (84, long_name)]
     if molecule.prop.HasField('at2_um_zpe'):
       out.append('#\n')
       out.append(self._fw_line(header_vals))
-      out.append(self._fw_line(
-        base_vals +
-        [(9, 'zpe'),
-         self._align_dec_point(37, f'{molecule.prop.at2_um_zpe.val:.2f}'),
-         self._align_dec_point(49, f'{molecule.prop.at2_um_zpe_unc.val:.2f}'),
-         ]))
+      out.append(
+          self._fw_line(base_vals + [
+              (9, 'zpe'),
+              self._align_dec_point(37, f'{molecule.prop.at2_um_zpe.val:.2f}'),
+              self._align_dec_point(49,
+                                    f'{molecule.prop.at2_um_zpe_unc.val:.2f}'),
+          ]))
 
     for method in ['b5', 'b6', 'eccsd']:
       this_out = []
@@ -1871,14 +1998,16 @@ class CleanTextWriter:
         if not molecule.prop.HasField(field):
           continue
 
-        this_out.append(self._fw_line(base_vals +
-          [(9, short_name),
-           (17, method),
-           self._align_dec_point(37, '{:.2f}'.format(
-             getattr(molecule.prop, field).val)),
-           self._align_dec_point(49, '{:.2f}'.format(
-             getattr(molecule.prop, field + '_unc').val)),
-           ]))
+        this_out.append(
+            self._fw_line(base_vals + [
+                (9, short_name),
+                (17, method),
+                self._align_dec_point(
+                    37, '{:.2f}'.format(getattr(molecule.prop, field).val)),
+                self._align_dec_point(
+                    49, '{:.2f}'.format(
+                        getattr(molecule.prop, field + '_unc').val)),
+            ]))
 
       if this_out:
         out.append('#\n')
@@ -1888,24 +2017,33 @@ class CleanTextWriter:
     return out
 
   def _get_atomic2_std_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
-    header_vals = [(0, '#at2_std'),
-                   (84, '(kcal/mol)'),
-                   ]
-    base_vals = [(1, "at2_std"),
-                 (84, long_name)]
+    header_vals = [
+        (0, '#at2_std'),
+        (84, '(kcal/mol)'),
+    ]
+    base_vals = [(1, 'at2_std'), (84, long_name)]
     if molecule.prop.HasField('at2_std_zpe'):
       out.append('#\n')
       out.append(self._fw_line(header_vals))
-      out.append(self._fw_line(
-        base_vals +
-        [(9, 'zpe'),
-         self._align_dec_point(37, f'{molecule.prop.at2_std_zpe.val:.2f}'),
-         ]))
+      out.append(
+          self._fw_line(base_vals + [
+              (9, 'zpe'),
+              self._align_dec_point(37, f'{molecule.prop.at2_std_zpe.val:.2f}'),
+          ]))
 
-    # This might be a terrible idea, but since there are so many fields with regular
-    # naming, I'm going to construct the field name from pieces
+    # This might be a terrible idea, but since there are so many fields with
+    # regular naming, I'm going to construct the field name from pieces
     for method in ['b5', 'b6', 'eccsd']:
       this_out = []
       for short_name in self._ATOMIC2_SHORT_NAMES:
@@ -1914,12 +2052,13 @@ class CleanTextWriter:
         if not molecule.prop.HasField(field):
           continue
 
-        this_out.append(self._fw_line(base_vals +
-          [(9, short_name),
-           (17, method),
-           self._align_dec_point(37, '{:.2f}'.format(
-             getattr(molecule.prop, field).val)),
-           ]))
+        this_out.append(
+            self._fw_line(base_vals + [
+                (9, short_name),
+                (17, method),
+                self._align_dec_point(
+                    37, '{:.2f}'.format(getattr(molecule.prop, field).val)),
+            ]))
 
       if this_out:
         out.append('#\n')
@@ -1929,20 +2068,29 @@ class CleanTextWriter:
     return out
 
   _ORB_SHORT_NAMES = [
-    'hf_3',
-    'hf_4',
-    'hf_631gd',
-    'hf_cvtz',
-    'hf_tzvp',
-    'b3lyp_631ppgdp',
-    'b3lyp_augpcs1',
-    'pbe0_631ppgdp',
-    'pbe0_6311gd',
-    'pbe0_augpc1',
-    'pbe0_augpcs1',
-    ]
+      'hf_3',
+      'hf_4',
+      'hf_631gd',
+      'hf_cvtz',
+      'hf_tzvp',
+      'b3lyp_631ppgdp',
+      'b3lyp_augpcs1',
+      'pbe0_631ppgdp',
+      'pbe0_6311gd',
+      'pbe0_augpc1',
+      'pbe0_augpcs1',
+  ]
 
   def _get_orb_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     for short_name in self._ORB_SHORT_NAMES:
@@ -1950,60 +2098,90 @@ class CleanTextWriter:
       lumo_field = 'orb_elumo_' + short_name
       if not molecule.prop.HasField(homo_field):
         continue
-      out.append(self._fw_line([
-        (1, 'orb'),
-        (17, short_name),
-        self._align_dec_point(37, '{:.5f}'.format(getattr(molecule.prop, homo_field).val)),
-        self._align_dec_point(49, '{:.5f}'.format(getattr(molecule.prop, lumo_field).val)),
-        (84, long_name),
-        ]))
+      out.append(
+          self._fw_line([
+              (1, 'orb'),
+              (17, short_name),
+              self._align_dec_point(
+                  37, '{:.5f}'.format(getattr(molecule.prop, homo_field).val)),
+              self._align_dec_point(
+                  49, '{:.5f}'.format(getattr(molecule.prop, lumo_field).val)),
+              (84, long_name),
+          ]))
 
     if not out:
       return []
 
-    return ['#\n', self._fw_line([(0, '#orb'),
-                                  (38, 'ehomo'),
-                                  (50, 'elumo'),
-                                  (84, '(au)'),
-                                  ])] + out
+    return [
+        '#\n',
+        self._fw_line([
+            (0, '#orb'),
+            (38, 'ehomo'),
+            (50, 'elumo'),
+            (84, '(au)'),
+        ])
+    ] + out
 
   def _get_exc_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     if not molecule.prop.HasField('exc_ene_cc2_tzvp'):
       return []
 
     out.append('#\n')
-    out.append(self._fw_line([(0, '#exc'),
-                              (40, 'ene'),
-                              (53, 'os'),
-                              (84, '(au)'),
-                              ]))
+    out.append(
+        self._fw_line([
+            (0, '#exc'),
+            (40, 'ene'),
+            (53, 'os'),
+            (84, '(au)'),
+        ]))
 
-    for idx, (exc, os) in enumerate(zip(
-        molecule.prop.exc_ene_cc2_tzvp.val,
-        molecule.prop.exc_os_cc2_tzvp.val)):
-      out.append(self._fw_line([(1, 'exc'),
-                                (21, str(idx+1)),
-                                self._align_dec_point(37, f'{exc:.5f}'),
-                                self._align_dec_point(49, f'{os:.5f}'),
-                                (84, long_name),
-                                ]))
+    for idx, (exc, os) in enumerate(
+        zip(molecule.prop.exc_ene_cc2_tzvp.val,
+            molecule.prop.exc_os_cc2_tzvp.val)):
+      out.append(
+          self._fw_line([
+              (1, 'exc'),
+              (21, str(idx + 1)),
+              self._align_dec_point(37, f'{exc:.5f}'),
+              self._align_dec_point(49, f'{os:.5f}'),
+              (84, long_name),
+          ]))
 
     return out
 
   _NMR_COMPONENTS = [
-    ('b3lyp', '631ppgdp'),
-    ('b3lyp', 'augpcs1'),
-    ('pbe0', '631ppgdp'),
-    ('pbe0', 'augpcs1'),
-    ]
+      ('b3lyp', '631ppgdp'),
+      ('b3lyp', 'augpcs1'),
+      ('pbe0', '631ppgdp'),
+      ('pbe0', 'augpcs1'),
+  ]
 
   def _get_nmr_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     # This block is annoyingly differnt than the others because
     # * the header row is two lines long
     # * Values are not in a fixed place, but migrate based on what is available.
-    # So in this one, we will build up the vals and make all the strings at the ends
+    # So in this one, we will build up the vals and make all the strings at the
+    # ends
     lines_vals = [[] for _ in range(len(molecule.bond_topo[0].atom) + 2)]
     num_values_present = 0
     for functional, basis_set in self._NMR_COMPONENTS:
@@ -2013,10 +2191,13 @@ class CleanTextWriter:
       pos = self._DEC_POINT_POSITIONS[num_values_present]
       lines_vals[0].append((pos - 5, f'{functional:>7s}_'))
       lines_vals[1].append((pos - 5, f'{basis_set:>8s}'))
-      for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).val,
-                                                  getattr(molecule.prop, field).prec),
-                                              start=2):
-        lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))
+      for idx, (float_val, prec) in enumerate(
+          zip(
+              getattr(molecule.prop, field).val,
+              getattr(molecule.prop, field).prec),
+          start=2):
+        lines_vals[idx].append(
+            self._align_float_with_prec(pos, float_val, prec))
 
       num_values_present += 1
 
@@ -2032,12 +2213,22 @@ class CleanTextWriter:
     return ['#\n'] + [self._fw_line(vals) for vals in lines_vals]
 
   _CHARGE_ALGORITHMS = [
-    'esp',
-    'mul',
-    'loe',
-    'nat',
-    ]
+      'esp',
+      'mul',
+      'loe',
+      'nat',
+  ]
+
   def _get_charge_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     for method_idx, method in enumerate(['pbe0_augpc1', 'hf_631gd']):
@@ -2050,49 +2241,67 @@ class CleanTextWriter:
           continue
 
         lines_vals[0].append((pos + 2, alg))
-        for idx, (float_val, prec) in enumerate(zip(getattr(molecule.prop, field).val,
-                                                    getattr(molecule.prop, field).prec),
-                                                start=1):
-          lines_vals[idx].append(self._align_float_with_prec(pos, float_val, prec))
+        for idx, (float_val, prec) in enumerate(
+            zip(
+                getattr(molecule.prop, field).val,
+                getattr(molecule.prop, field).prec),
+            start=1):
+          lines_vals[idx].append(
+              self._align_float_with_prec(pos, float_val, prec))
         num_values_present += 1
 
       if not num_values_present:
         continue
 
-      lines_vals[0].extend([(0, '#chg'),
-                            (5, str(method_idx + 1)),
-                            (7, ':'),
-                            (17, method),
-                            (84, '(au)'),
-                            ])
+      lines_vals[0].extend([
+          (0, '#chg'),
+          (5, str(method_idx + 1)),
+          (7, ':'),
+          (17, method),
+          (84, '(au)'),
+      ])
       for atom_idx, atom_vals in self._atom_generator(molecule.bond_topo[0]):
         lines_vals[atom_idx + 1].extend(atom_vals)
-        lines_vals[atom_idx + 1].extend([(1, 'chg'),
-                                         (5, str(method_idx + 1)),
-                                         (84, long_name),
-                                         ])
+        lines_vals[atom_idx + 1].extend([
+            (1, 'chg'),
+            (5, str(method_idx + 1)),
+            (84, long_name),
+        ])
       out.append('#\n')
       out.extend(self._fw_line(vals) for vals in lines_vals)
 
     return out
 
   def _get_elec_block(self, molecule, long_name):
+    """Helper method.
+
+    Args:
+      molecule:
+      long_name:
+
+    Returns:
+
+    """
     out = []
 
     if molecule.prop.HasField('elec_pol_pbe0_augpc1'):
       out.append('#\n')
-      out.append(self._fw_line([(0, '#elec pol'),
-                                (32, 'pbe0_augpc1'),
-                                (84, '(au)'),
-                                ]))
+      out.append(
+          self._fw_line([
+              (0, '#elec pol'),
+              (32, 'pbe0_augpc1'),
+              (84, '(au)'),
+          ]))
       for comp in smu_parser_lib.RANK2_ENCODING_ORDER:
-        out.append(self._fw_line([
-          (1, 'elec pol'),
-          (21, f'{comp:>3s}'),
-          self._align_dec_point(37, '{:.3f}'.format(getattr(
-            molecule.prop.elec_pol_pbe0_augpc1, comp))),
-          (84, long_name),
-        ]))
+        out.append(
+            self._fw_line([
+                (1, 'elec pol'),
+                (21, f'{comp:>3s}'),
+                self._align_dec_point(
+                    37, '{:.3f}'.format(
+                        getattr(molecule.prop.elec_pol_pbe0_augpc1, comp))),
+                (84, long_name),
+            ]))
 
     def write_two_col(short_name, pbe0_field, hf_field, components):
       pbe0_val = None
@@ -2103,10 +2312,11 @@ class CleanTextWriter:
         hf_val = getattr(molecule.prop, hf_field)
       if pbe0_val or hf_val:
         out.append('#\n')
-        header_vals = [(0, '#elec'),
-                       (6, short_name),
-                       (84, '(au)'),
-                       ]
+        header_vals = [
+            (0, '#elec'),
+            (6, short_name),
+            (84, '(au)'),
+        ]
         if pbe0_val:
           header_vals.append((32, 'pbe0_augpc1'))
         if hf_val:
@@ -2114,39 +2324,45 @@ class CleanTextWriter:
         out.append(self._fw_line(header_vals))
 
         for comp in components:
-          line_vals = [(1, 'elec'),
-                       (6, short_name),
-                       (21, f'{comp:>3s}'),
-                       (84, long_name),
-                       ]
+          line_vals = [
+              (1, 'elec'),
+              (6, short_name),
+              (21, f'{comp:>3s}'),
+              (84, long_name),
+          ]
           if pbe0_val:
-            line_vals.append(self._align_dec_point(37, '{:.3f}'.format(
-              getattr(pbe0_val, comp))))
+            line_vals.append(
+                self._align_dec_point(37,
+                                      '{:.3f}'.format(getattr(pbe0_val, comp))))
           if hf_val:
-            line_vals.append(self._align_dec_point(61, '{:.3f}'.format(
-              getattr(hf_val, comp))))
+            line_vals.append(
+                self._align_dec_point(61,
+                                      '{:.3f}'.format(getattr(hf_val, comp))))
 
           out.append(self._fw_line(line_vals))
 
-    write_two_col('dip',
-                  'elec_dip_pbe0_augpc1',
-                  'elec_dip_hf_631gd',
+    write_two_col('dip', 'elec_dip_pbe0_augpc1', 'elec_dip_hf_631gd',
                   ['x', 'y', 'z'])
-    write_two_col('qua',
-                  'elec_qua_pbe0_augpc1',
-                  'elec_qua_hf_631gd',
+    write_two_col('qua', 'elec_qua_pbe0_augpc1', 'elec_qua_hf_631gd',
                   smu_parser_lib.RANK2_ENCODING_ORDER)
-    write_two_col('oct',
-                  'elec_oct_pbe0_augpc1',
-                  'elec_oct_hf_631gd',
+    write_two_col('oct', 'elec_oct_pbe0_augpc1', 'elec_oct_hf_631gd',
                   smu_parser_lib.RANK3_ENCODING_ORDER)
 
     return out
 
   def process(self, molecule):
+    """Helper method.
+
+    Args:
+      molecule:
+
+    Returns:
+
+    """
     long_name = get_long_molecule_name(molecule)
     contents = [
-      '#===============================================================================\n']
+        '#===============================================================================\n'
+    ]
     contents.extend(self._get_mol_id_block(molecule, long_name))
     contents.extend(self._get_mol_spec_block(molecule, long_name))
     contents.extend(self._get_calc_block(molecule, long_name))

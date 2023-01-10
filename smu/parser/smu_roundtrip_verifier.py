@@ -133,7 +133,7 @@ def main(argv):
         output_files[outcome][0].write('\n'.join(orig_contents_list) + '\n')
         output_files[outcome][1].write(regen_contents)
 
-  for file_orig, file_regen in output_files.val():
+  for file_orig, file_regen in output_files.values():
     file_orig.close()
     file_regen.close()
 

@@ -137,8 +137,7 @@ def main(unused_argv):
         matching_bt = [
             smiles_id_dict[bt.smiles] for bt in matches.bond_topology
         ]
-        is_matched = (
-            molecule.bond_topo[0].topo_id in matching_bt)
+        is_matched = (molecule.bond_topo[0].topo_id in matching_bt)
 
         # if matches.bond_topology:
         #   logging.info('For %d, bt %d, got %s',

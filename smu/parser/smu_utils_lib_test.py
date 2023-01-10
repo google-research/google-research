@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Tests for smu_utils_lib."""
 
 import copy
@@ -318,7 +304,7 @@ class ComputeBondedHydrogensTest(absltest.TestCase):
         bond_type: BOND_SINGLE
       }
       """, dataset_pb2.BondTopology())
-    self.assertEqual(
+    self.assertListEqual(
         smu_utils_lib.compute_bonded_hydrogens(
             bt, smu_utils_lib.compute_adjacency_matrix(bt)), [3, 0])
 
@@ -738,8 +724,7 @@ class MoleculeToRDKitMoleculeTest(absltest.TestCase):
 
     # We'll make a new initial_geometry which is just the current one with all
     # coordinates multiplied by 1000
-    self._molecule.ini_geo.append(
-        self._molecule.ini_geo[0])
+    self._molecule.ini_geo.append(self._molecule.ini_geo[0])
     new_geom = self._molecule.ini_geo[1]
     for atom_pos in new_geom.atompos:
       atom_pos.x = atom_pos.x * 1000
@@ -1109,26 +1094,22 @@ class MergeMoleculesTest(absltest.TestCase):
     self.stage2_molecule.prop.calc.status = 800
     # Set a value so that we make sure we use the stage1 data
     self.stage2_molecule.ini_geo[0].energy.val += 12345
-    expected_init_energy = (
-        self.stage1_molecule.ini_geo[0].energy.val)
+    expected_init_energy = (self.stage1_molecule.ini_geo[0].energy.val)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 580)
-    self.assertEqual(got_mol.ini_geo[0].energy.val,
-                     expected_init_energy)
+    self.assertEqual(got_mol.ini_geo[0].energy.val, expected_init_energy)
     self.assertEqual(got_mol.prop.calc.warn_vib_imag, 0)
 
   def test_status_700(self):
     self.stage2_molecule.prop.calc.status = 700
     # Set a value so that we make sure we use the stage1 data
     self.stage2_molecule.ini_geo[0].energy.val += 12345
-    expected_init_energy = (
-        self.stage1_molecule.ini_geo[0].energy.val)
+    expected_init_energy = (self.stage1_molecule.ini_geo[0].energy.val)
     got_mol, _ = smu_utils_lib.merge_molecule(self.stage2_molecule,
                                               self.stage1_molecule)
     self.assertEqual(got_mol.prop.calc.status, 570)
-    self.assertEqual(got_mol.ini_geo[0].energy.val,
-                     expected_init_energy)
+    self.assertEqual(got_mol.ini_geo[0].energy.val, expected_init_energy)
     self.assertEqual(got_mol.prop.calc.warn_vib_imag, 0)
 
   def test_status_800_warn_vib_2(self):
@@ -1258,13 +1239,6 @@ class MoleculeErrorTest(absltest.TestCase):
     self.assertEqual(5,
                      smu_utils_lib.molecule_calculation_error_level(molecule))
 
-  def test_stage2_error_level_5(self):
-    molecule = get_stage2_molecule()
-    molecule.prop.calc.status = 1
-    molecule.prop.calc.warn_delta_t1 = 2
-    self.assertEqual(5,
-                     smu_utils_lib.molecule_calculation_error_level(molecule))
-
   def test_stage2_error_level_4(self):
     molecule = get_stage2_molecule()
     molecule.prop.calc.status = 1
@@ -1309,16 +1283,14 @@ class FilterMoleculeByAvailabilityTest(absltest.TestCase):
   def test_standard(self):
     smu_utils_lib.filter_molecule_by_availability(self._molecule,
                                                   [dataset_pb2.STANDARD])
-    self.assertTrue(
-        self._molecule.prop.HasField('spe_comp_b5'))
+    self.assertTrue(self._molecule.prop.HasField('spe_comp_b5'))
     self.assertFalse(self._molecule.prop.HasField('vib_zpe'))
     self.assertFalse(self._molecule.prop.HasField('compute_cluster_info'))
 
   def test_complete_and_internal_only(self):
     smu_utils_lib.filter_molecule_by_availability(
         self._molecule, [dataset_pb2.COMPLETE, dataset_pb2.INTERNAL_ONLY])
-    self.assertFalse(
-        self._molecule.prop.HasField('spe_comp_b5'))
+    self.assertFalse(self._molecule.prop.HasField('spe_comp_b5'))
     self.assertTrue(self._molecule.prop.HasField('vib_zpe'))
     self.assertTrue(self._molecule.prop.HasField('compute_cluster_info'))
 
@@ -1491,54 +1463,48 @@ class DetermineFateTest(parameterized.TestCase):
     self.assertEqual(dataset_pb2.Properties.FATE_FAILURE_STAGE2,
                      smu_utils_lib.determine_fate(molecule))
 
-  @parameterized.parameters(
-      (256, dataset_pb2.Properties.FATE_ERROR_SERIOUS),
-      (50, dataset_pb2.Properties.FATE_ERROR_MAJOR),
-      (4, dataset_pb2.Properties.FATE_ERROR_MODERATE))
+  @parameterized.parameters((256, dataset_pb2.Properties.FATE_ERROR_SERIOUS),
+                            (50, dataset_pb2.Properties.FATE_ERROR_MAJOR),
+                            (4, dataset_pb2.Properties.FATE_ERROR_MODERATE))
   def test_calculation_errors(self, status, expected):
     molecule = get_stage2_molecule()
     molecule.prop.calc.status = status
     self.assertEqual(expected, smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(
-    (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS),
-    (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
-    (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
-    (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
-    )
+      (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_SERIOUS),
+      (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
+      (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
+      (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS),
+  )
   def test_calculation_warnings_serious(self, status, expected):
     molecule = get_stage2_molecule()
     molecule.prop.calc.status = status
     molecule.prop.calc.warn_delta_t1 = 1234
-    self.assertEqual(
-        expected,
-        smu_utils_lib.determine_fate(molecule))
+    self.assertEqual(expected, smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(
-    (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB),
-    (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
-    (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
-    (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
-    )
+      (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_MEDIUM_VIB),
+      (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
+      (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
+      (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_MEDIUM_VIB),
+  )
   def test_calculation_warnings_vibrational(self, status, expected):
     molecule = get_stage2_molecule()
     molecule.prop.calc.status = status
     molecule.prop.calc.warn_vib_linear = 1234
-    self.assertEqual(
-        expected,
-        smu_utils_lib.determine_fate(molecule))
+    self.assertEqual(expected, smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(
-    (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW),
-    (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
-    (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
-    (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
-    )
+      (0, dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW),
+      (1, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
+      (2, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
+      (3, dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_LOW),
+  )
   def test_success(self, status, expected):
     molecule = get_stage2_molecule()
     molecule.prop.calc.status = status
-    self.assertEqual(expected,
-                     smu_utils_lib.determine_fate(molecule))
+    self.assertEqual(expected, smu_utils_lib.determine_fate(molecule))
 
   def test_multiple_warnings(self):
     # Checks that when we have both serious and medium warnings, serious wins
@@ -1546,20 +1512,21 @@ class DetermineFateTest(parameterized.TestCase):
     molecule.prop.calc.status = 1
     molecule.prop.calc.warn_delta_t1 = 1234
     molecule.prop.calc.warn_vib_linear = 1234
-    self.assertEqual(dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS,
-                     smu_utils_lib.determine_fate(molecule))
+    self.assertEqual(
+        dataset_pb2.Properties.FATE_SUCCESS_NEUTRAL_WARNING_SERIOUS,
+        smu_utils_lib.determine_fate(molecule))
 
   def test_completed_molecule(self):
     molecule = get_stage2_molecule()
     smu_utils_lib.filter_molecule_by_availability(
-      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+        molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
     self.assertEqual(dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW,
                      smu_utils_lib.determine_fate(molecule))
 
   def test_completed_standard(self):
     molecule = get_stage2_molecule()
-    smu_utils_lib.filter_molecule_by_availability(
-      molecule, [dataset_pb2.STANDARD])
+    smu_utils_lib.filter_molecule_by_availability(molecule,
+                                                  [dataset_pb2.STANDARD])
     # This is a weird test. This function really just does not do anything
     # for a standard record because we've filtered out all the status/error
     # variables we woudl need to do it. But it's here to make sure nothing
@@ -1570,7 +1537,7 @@ class DetermineFateTest(parameterized.TestCase):
   def test_completed_duplicate_same(self):
     molecule = get_stage2_molecule()
     smu_utils_lib.filter_molecule_by_availability(
-      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+        molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
     molecule.duplicate_of = 618451999
     molecule.prop.calc.status = -1
     self.assertEqual(dataset_pb2.Properties.FATE_DUPLICATE_SAME_TOPOLOGY,
@@ -1579,25 +1546,24 @@ class DetermineFateTest(parameterized.TestCase):
   def test_completed_duplicate_different(self):
     molecule = get_stage2_molecule()
     smu_utils_lib.filter_molecule_by_availability(
-      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+        molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
     molecule.duplicate_of = 12345999
     molecule.prop.calc.status = -1
     self.assertEqual(dataset_pb2.Properties.FATE_DUPLICATE_DIFFERENT_TOPOLOGY,
                      smu_utils_lib.determine_fate(molecule))
 
   @parameterized.parameters(
-    (570, dataset_pb2.Properties.FATE_FAILURE_STAGE2),
-    (580, dataset_pb2.Properties.FATE_FAILURE_STAGE2),
-    (590, dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK),
-    (600, dataset_pb2.Properties.FATE_FAILURE_GEO_OPT),
+      (570, dataset_pb2.Properties.FATE_FAILURE_STAGE2),
+      (580, dataset_pb2.Properties.FATE_FAILURE_STAGE2),
+      (590, dataset_pb2.Properties.FATE_FAILURE_TOPOLOGY_CHECK),
+      (600, dataset_pb2.Properties.FATE_FAILURE_GEO_OPT),
   )
   def test_completed_stage1_error(self, status, expected):
     molecule = get_stage2_molecule()
     smu_utils_lib.filter_molecule_by_availability(
-      molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
+        molecule, [dataset_pb2.COMPLETE, dataset_pb2.STANDARD])
     molecule.prop.calc.status = status
-    self.assertEqual(expected,
-                     smu_utils_lib.determine_fate(molecule))
+    self.assertEqual(expected, smu_utils_lib.determine_fate(molecule))
 
 
 class ToBondTopologySummaryTest(parameterized.TestCase):
@@ -1635,8 +1601,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self.assertEqual(got[0].count_duplicates_different_topology, 1)
 
   def test_geometry_failed(self):
-    self._molecule.prop.calc.fate = (
-        dataset_pb2.Properties.FATE_FAILURE_STAGE2)
+    self._molecule.prop.calc.fate = (dataset_pb2.Properties.FATE_FAILURE_STAGE2)
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))
     self.assertLen(got, 1)
@@ -1661,8 +1626,7 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def test_calculation_with_error(self, swap_order):
-    self._molecule.prop.calc.fate = (
-        dataset_pb2.Properties.FATE_ERROR_SERIOUS)
+    self._molecule.prop.calc.fate = (dataset_pb2.Properties.FATE_ERROR_SERIOUS)
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     self._molecule.bond_topo[-1].topo_id = 123
     self._molecule.bond_topo[-1].info = (
@@ -1852,10 +1816,8 @@ class ToBondTopologySummaryTest(parameterized.TestCase):
     self._molecule.prop.calc.fate = dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW
     self._molecule.bond_topo.append(self._molecule.bond_topo[0])
     self._molecule.bond_topo[-1].topo_id = 123
-    self._molecule.bond_topo[-1].info = (
-        dataset_pb2.BondTopology.SOURCE_DDT)
-    self._molecule.bond_topo[0].info = (
-        dataset_pb2.BondTopology.SOURCE_DDT)
+    self._molecule.bond_topo[-1].info = (dataset_pb2.BondTopology.SOURCE_DDT)
+    self._molecule.bond_topo[0].info = (dataset_pb2.BondTopology.SOURCE_DDT)
 
     got = list(
         smu_utils_lib.molecule_to_bond_topology_summaries(self._molecule))

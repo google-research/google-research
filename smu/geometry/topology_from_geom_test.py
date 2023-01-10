@@ -136,8 +136,7 @@ atompos {
   z: 0.0
 }
 """, dataset_pb2.Geometry()))
-    molecule.opt_geo.atompos[1].x = (
-        1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
+    molecule.opt_geo.atompos[1].x = (1.4 / smu_utils_lib.BOHR_TO_ANGSTROMS)
 
     matching_parameters = topology_molecule.MatchingParameters()
     matching_parameters.must_match_all_bonds = False
@@ -275,8 +274,7 @@ class TestStandardTopologySensing(absltest.TestCase):
             atom_b=3,
             bond_type=dataset_pb2.BondTopology.BondType.BOND_SINGLE))
 
-    molecule.opt_geo.atompos.append(
-        dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0))
+    molecule.opt_geo.atompos.append(dataset_pb2.Geometry.AtomPos(x=0, y=0, z=0))
     molecule.opt_geo.atompos.append(
         dataset_pb2.Geometry.AtomPos(
             x=0, y=0, z=oc_dist / smu_utils_lib.BOHR_TO_ANGSTROMS))

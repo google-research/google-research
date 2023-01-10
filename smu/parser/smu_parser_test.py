@@ -285,7 +285,7 @@ class CleanTextTest(absltest.TestCase):
     smu_proto = dataset_pb2.MultipleMolecules()
     raw_proto = '\n'.join(get_file_contents(proto_fn))
     text_format.Parse(raw_proto, smu_proto)
-    self.assertEqual(1, len(smu_proto.molecules))
+    self.assertLen(smu_proto.molecules, 1)
 
     expected = get_file_contents(clean_text_fn)
 
@@ -293,7 +293,6 @@ class CleanTextTest(absltest.TestCase):
     got = writer.process(smu_proto.molecules[0])
 
     self.assertEqual([l.rstrip('\n') for l in expected], got.splitlines())
-
 
 
 if __name__ == '__main__':

@@ -26,7 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Converts Molecules to RDKit molecules."""
 
 import sys
@@ -74,7 +73,6 @@ case0_mols = list(
         which_topologies=smu_utils_lib.WhichTopologies.STARTING))
 assert len(case0_mols) == 1
 
-
 print(
     'A single molecule comes from asking for only the optimized geometry and only',
     'the starting bond topology')
@@ -110,7 +108,9 @@ case2_mols = list(
 assert len(case2_mols) == 2
 
 print()
-print('For more details on the complexity of multiple bond topologies per molecules')
+print(
+    'For more details on the complexity of multiple bond topologies per molecules'
+)
 print('see multiple_bond_topology.py')
 print('Here, we will ask only for the topologies from our main DDT criteria')
 print('In this way, we can get 1 or more molecules')
@@ -131,7 +131,9 @@ case3_mols = list(
 assert len(case3_mols) == 10
 
 print()
-print('If we ask for both kinds of geometries and multiple bond topologies, we get 10 molecules')
+print(
+    'If we ask for both kinds of geometries and multiple bond topologies, we get 10 molecules'
+)
 print('5 possible geometries (4 initial and 1 optimized)')
 print('times')
 print('2 possible bond topologies')

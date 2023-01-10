@@ -1154,3 +1154,4 @@ message BondTopologySummary {
   // molecule by the other fields and counted once per molecule here.
   int32 count_multiple_detections = 14;
 }
+

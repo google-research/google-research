@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Interface to a SQLite DB file for SMU data.
 
 Provides a simpler interface than SQL to create and access the SMU data in an
@@ -55,12 +41,12 @@ import sqlite3
 
 from absl import logging
 from rdkit import Chem
-import snappy
 
 from smu import dataset_pb2
 from smu.geometry import topology_from_geom
 from smu.geometry import topology_molecule
 from smu.parser import smu_utils_lib
+import snappy
 
 # The name of this table is a hold over before we did a big rename of
 # Conformer to Molecule. The column that holds the protobuf is also called
@@ -201,8 +187,7 @@ class SMUSQLite:
       pending_molecule_args.append((molecule.mol_id, expanded_stoich,
                                     snappy.compress(encoded_molecule)))
       for bond_topology in molecule.bond_topo:
-        pending_btid_args.append(
-            (bond_topology.topo_id, molecule.mol_id))
+        pending_btid_args.append((bond_topology.topo_id, molecule.mol_id))
         pending_smiles_args.append(
             (bond_topology.smiles, bond_topology.topo_id))
       if batch_size and idx % batch_size == 0:
@@ -393,8 +378,7 @@ class SMUSQLite:
     if not result:
       return []
 
-    return self.find_by_topo_id_list([r[0] for r in result],
-                                              which_topologies)
+    return self.find_by_topo_id_list([r[0] for r in result], which_topologies)
 
   def find_by_expanded_stoichiometry_list(self, exp_stoichs):
     """Finds all of the molecules with a stoichiometry.
@@ -482,8 +466,7 @@ class SMUSQLite:
         for bt in molecule.bond_topo:
           try:
             bt.info = dataset_pb2.BondTopology.SOURCE_CUSTOM
-            bt.topo_id = self.find_topo_id_for_smiles(
-                bt.smiles)
+            bt.topo_id = self.find_topo_id_for_smiles(bt.smiles)
           except KeyError:
             logging.error('Did not find bond topology id for smiles %s',
                           bt.smiles)

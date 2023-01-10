@@ -34,18 +34,22 @@ from smu.parser import smu_utils_lib
 
 
 def print_bond_topo(mol):
-  print('Molecule', mol.mol_id, 'has', len(mol.bond_topo),
-        'bond topologies')
-  for bt in mol.bond_topo:
-    print('    Topology with id', bt.topo_id, 'and SMILES', bt.smiles)
+  """Print bond topology.
+
+  Args:
+    mol:
+  """
+  print('Molecule', mol.mol_id, 'has', len(mol.bond_topo), 'bond topologies')
+  for topo in mol.bond_topo:
+    print('    Topology with id', topo.topo_id, 'and SMILES', topo.smiles)
     source_string = ''
-    if bt.info & dataset_pb2.BondTopology.SOURCE_STARTING:
+    if topo.info & dataset_pb2.BondTopology.SOURCE_STARTING:
       source_string += 'STARTING '
-    if bt.info & dataset_pb2.BondTopology.SOURCE_DDT:
+    if topo.info & dataset_pb2.BondTopology.SOURCE_DDT:
       source_string += 'DDT '
-    if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR:
+    if topo.info & dataset_pb2.BondTopology.SOURCE_MLCR:
       source_string += 'MLCR '
-    if bt.info & dataset_pb2.BondTopology.SOURCE_CSD:
+    if topo.info & dataset_pb2.BondTopology.SOURCE_CSD:
       source_string += 'CSD '
     print('        Sources: ', source_string)
 
@@ -102,8 +106,12 @@ print(
 print_bond_topo(db.find_by_mol_id(3177001))
 
 print()
-print('The easiest and most reliable way to select the desired topologies is the function')
-print('iterate_bond_topologies. The "which" parameter controls which bond topologies are returned')
+print(
+    'The easiest and most reliable way to select the desired topologies is the function'
+)
+print(
+    'iterate_bond_topologies. The "which" parameter controls which bond topologies are returned'
+)
 
 molecule = db.find_by_mol_id(8400001)
 print_bond_topo(molecule)
@@ -119,12 +127,16 @@ print('Passing STARTING as the which parameter gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.STARTING):
   print('    Got bond topology with position', bt_idx, 'and id', bt.topo_id)
-print('Note that STARTING deals correctly with special cases present in the complete database')
+print(
+    'Note that STARTING deals correctly with special cases present in the complete database'
+)
 print('See special_cases.py for some details.')
 print('This is one of the reasons this function is the recommended method')
 
 print()
-print('The last 3 which values select topologies based on which methods produced them')
+print(
+    'The last 3 which values select topologies based on which methods produced them'
+)
 print('which of DDT gives')
 for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
     molecule, smu_utils_lib.WhichTopologies.DDT):

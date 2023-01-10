@@ -28,7 +28,7 @@
 # limitations under the License.
 """Compares the generated clean text output to samples."""
 
-from dataclasses import dataclass
+import dataclasses
 import difflib
 import glob
 import math
@@ -38,38 +38,54 @@ import re
 from absl import app
 from absl import flags
 from absl import logging
-
 from smu import smu_sqlite
 from smu.parser import smu_writer_lib
 
-
-from smu import dataset_pb2
-
 flags.DEFINE_string('sqlite_standard', None, 'Standard SQLite file')
 flags.DEFINE_string('sqlite_complete', None, 'Complete SQLite file')
-flags.DEFINE_string('test_files_dir', None, 'Root directory to look for test files')
-flags.DEFINE_string('output_dir', None, 'Root directory to write outputs and diffs to')
+flags.DEFINE_string('test_files_dir', None,
+                    'Root directory to look for test files')
+flags.DEFINE_string('output_dir', None,
+                    'Root directory to write outputs and diffs to')
 
 FLAGS = flags.FLAGS
 
 
-@dataclass
+@dataclasses.dataclass
 class MatchResult:
+  """Match result.
+
+  Attributes:
+    cnt_standard:
+    cnt_complete:
+    cnt_standard_error:
+    cnt_complete_error:
+  """
   cnt_standard: int
   cnt_complete: int
   cnt_standard_error: int
   cnt_complete_error: int
 
-  def add(this, other):
-    return MatchResult(
-      this.cnt_standard + other.cnt_standard,
-      this.cnt_complete + other.cnt_complete,
-      this.cnt_standard_error + other.cnt_standard_error,
-      this.cnt_complete_error + other.cnt_complete_error)
+  def add(self, other):
+    """Adder.
 
+    Args:
+      other:
+
+    Returns:
+
+    """
+    return MatchResult(
+        self.cnt_standard + other.cnt_standard,
+        self.cnt_complete + other.cnt_complete,
+        self.cnt_standard_error + other.cnt_standard_error,
+        self.cnt_complete_error + other.cnt_complete_error)
 
 
 class SmuLineForDiff(str):
+  """SmuLineForDiff.
+
+  """
 
   def __hash__(self):
     return super().__hash__()
@@ -125,8 +141,8 @@ class SmuLineForDiff(str):
           if new_tok_pos != new_other_tok_pos:
             return False
         else:
-          # Note that we are not going to handle the case where the adjustment in the
-          # last digit causes the string tobe longer.
+          # Note that we are not going to handle the case where the adjustment
+          # in the last digit causes the string tobe longer.
           if tok[0] != other_tok[0] or len(tok[1]) != len(other_tok[1]):
             return False
 
@@ -151,9 +167,19 @@ class SmuLineForDiff(str):
   def __ne__(self, other):
     return not self.__eq__(other)
 
-SEPARATOR_LINE = "#==============================================================================="
+
+SEPARATOR_LINE = '#' + '=' * 79
+
 
 def parse_expected_file(fn):
+  """Parse expected file.
+
+  Args:
+    fn:
+
+  Returns:
+
+  """
   out = []
   with open(fn, 'r') as f:
     pending = []
@@ -168,7 +194,19 @@ def parse_expected_file(fn):
 
 
 SAMPLES_REGEX = re.compile(r'(\d{6})\.(\d{3})')
+
+
 def parse_samples_file(fn):
+  """Parse samples file.
+
+  Args:
+    fn:
+
+  Yields:
+
+  Raises:
+    <Any>:
+  """
   with open(fn, 'r') as f:
     for line in f:
       line = line.strip()
@@ -178,22 +216,19 @@ def parse_samples_file(fn):
       yield int(match.group(1)) * 1000 + int(match.group(2))
 
 
-def process_one_samples_file(samples_fn, db_standard, db_complete):
-  expected_standard = parse_expected_file(os.path.join(os.path.dirname(samples_fn),
-                                                       'smu_db_standard.out'))
-  expected_standard_idx = 0
-  expected_complete = parse_expected_file(os.path.join(os.path.dirname(samples_fn),
-                                                       'smu_db_complete.out'))
-  expected_complete_idx = 0
-
-  for mol_id in parse_samples_file(samples_fn):
-    print(mol_id)
-
-  return MatchResult(0, 0, 0, 0)
-
-
 def process_one_expected(samples_fn, db, is_standard):
-  logging.info(f'Processing {samples_fn} is_standard={is_standard}')
+  """Process one.
+
+  Args:
+    samples_fn:
+    db:
+    is_standard:
+
+  Returns:
+
+  """
+  logging.info('Processing %s is_standard=%s',
+               samples_fn, 'True' if is_standard else 'False')
   writer = smu_writer_lib.CleanTextWriter()
   result = MatchResult(0, 0, 0, 0)
 
@@ -223,10 +258,10 @@ def process_one_expected(samples_fn, db, is_standard):
       out_file.write(actual)
 
       diff_lines = list(difflib.unified_diff(
-        [SmuLineForDiff(s) for s in expected[expected_idx]],
-        [SmuLineForDiff(s) for s in actual.splitlines(keepends=True)],
-        fromfile='expected',
-        tofile='actual'))
+          [SmuLineForDiff(s) for s in expected[expected_idx]],
+          [SmuLineForDiff(s) for s in actual.splitlines(keepends=True)],
+          fromfile='expected',
+          tofile='actual'))
       diff = False
       for line in diff_lines:
         diff = True
@@ -249,7 +284,7 @@ def main(unused_argv):
   samples_files = glob.glob(f'{FLAGS.test_files_dir}/**/samples.dat', recursive=True)
   if not samples_files:
     raise ValueError(f'No samples.dat foudnd in {FLAGS.test_files_dir}')
-  logging.info(f'Found samples.dat files: {samples_files}')
+  logging.info('Found samples.dat files: %s', samples_files)
 
   db_standard = smu_sqlite.SMUSQLite(FLAGS.sqlite_standard, 'r')
   db_complete = smu_sqlite.SMUSQLite(FLAGS.sqlite_complete, 'r')
@@ -258,16 +293,14 @@ def main(unused_argv):
   for samples_fn in samples_files:
     result_standard = process_one_expected(samples_fn, db_standard, True)
     result_complete = process_one_expected(samples_fn, db_complete, False)
-    logging.info(f'Results for {samples_fn}: {result_standard} {result_complete}')
+    logging.info('Results for %s: %s %s', samples_fn, result_standard, result_complete)
     total_result = total_result.add(result_standard)
     total_result = total_result.add(result_complete)
 
-  logging.info(f'Final result {total_result}')
-  print(f'Processed {len(samples_files)}')
-  print(f'Standard errors {total_result.cnt_standard_error} / {total_result.cnt_standard}')
-  print(f'Complete errors {total_result.cnt_complete_error} / {total_result.cnt_complete}')
-
-
+  logging.info('Final result %s', total_result)
+  print('Processed %d', len(samples_files))
+  print('Standard errors %d / %d', total_result.cnt_standard_error, total_result.cnt_standard)
+  print('Complete errors %d / %d', total_result.cnt_complete_error, total_result.cnt_complete)
 
 
 if __name__ == '__main__':

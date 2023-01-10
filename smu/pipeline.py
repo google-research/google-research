@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Beam pipeline for converting basel files to final output.
 
 We get horrible fortran formatted text files from Basel. This pipeline
@@ -111,8 +97,7 @@ def parse_equivalent_file(filename):
       kept_mid = kept_btid * 1000 + kept_mid
       discard_mid = discard_btid * 1000 + discard_mid
 
-      yield dataset_pb2.Molecule(
-          mol_id=discard_mid, duplicate_of=kept_mid)
+      yield dataset_pb2.Molecule(mol_id=discard_mid, duplicate_of=kept_mid)
 
 
 def parse_dat_file(filename, stage):
@@ -210,11 +195,10 @@ def molecule_to_stat_values(molecule):
   """
   # Yield the values for all the relevant error fields.
   for field in [
-      'status', 'warn_t1', 'warn_delta_t1', 'warn_bse_b6',
-      'warn_bse_eccsd', 'warn_exc_ene',
-      'warn_exc_osmin', 'warn_exc_osmax',
-      'warn_vib_linear', 'warn_vib_imag', 'warn_bsr_neg',
-      'error_nstat1', 'error_nstatc', 'error_nstatt', 'error_frequencies'
+      'status', 'warn_t1', 'warn_delta_t1', 'warn_bse_b6', 'warn_bse_eccsd',
+      'warn_exc_ene', 'warn_exc_osmin', 'warn_exc_osmax', 'warn_vib_linear',
+      'warn_vib_imag', 'warn_bsr_neg', 'error_nstat1', 'error_nstatc',
+      'error_nstatt', 'error_frequencies'
   ]:
     yield 'errors.' + field, getattr(molecule.prop.calc, field)
 
@@ -274,7 +258,7 @@ class MergeMoleculesFn(beam.DoFn):
   OUTPUT_TAG_MERGE_CONFLICT = 'conflict'
 
   def process(self, args):
-    """"Merges molecules.
+    """Merges molecules.
 
     Args:
       args: tuple of mol_id(should match the id in all molecules) and
@@ -472,15 +456,13 @@ class UpdateMoleculeFn(beam.DoFn):
               molecule.mol_id, len(molecule.bond_topo)))
 
     result, smiles_with_h, smiles_without_h = (
-        smu_utils_lib.bond_topology_smiles_comparison(
-            molecule.bond_topo[0]))
+        smu_utils_lib.bond_topology_smiles_comparison(molecule.bond_topo[0]))
     if result != smu_utils_lib.SmilesCompareResult.MATCH:
       yield beam.pvalue.TaggedOutput(
           UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH,
-          (molecule.mol_id, result, molecule.bond_topo[0].smiles,
-           smiles_with_h, smiles_without_h))
-      molecule.prop.smiles_openbabel = (
-          molecule.bond_topo[0].smiles)
+          (molecule.mol_id, result, molecule.bond_topo[0].smiles, smiles_with_h,
+           smiles_without_h))
+      molecule.prop.smiles_openbabel = (molecule.bond_topo[0].smiles)
       molecule.bond_topo[0].smiles = smiles_without_h
 
   def _add_alternative_bond_topologies(self, molecule, smiles_id_dict):
@@ -541,8 +523,7 @@ class UpdateMoleculeFn(beam.DoFn):
     if smu_utils_lib.molecule_eligible_for_topology_detection(molecule):
       self._add_alternative_bond_topologies(molecule, smiles_id_dict)
     else:
-      molecule.bond_topo[
-          0].info = dataset_pb2.BondTopology.SOURCE_STARTING
+      molecule.bond_topo[0].info = dataset_pb2.BondTopology.SOURCE_STARTING
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'skipped_topology_matches').inc()
 
@@ -652,8 +633,7 @@ def merge_bond_topology_summaries(summaries, field_names):
       # that
       return copy.deepcopy(summary1)
 
-    assert (summary0.bond_topology.topo_id ==
-            summary1.bond_topology.topo_id)
+    assert summary0.bond_topology.topo_id == summary1.bond_topology.topo_id
 
     for name in field_names:
       setattr(summary0, name, getattr(summary0, name) + getattr(summary1, name))
@@ -745,6 +725,8 @@ def make_standard_molecule(molecule):
   beam.metrics.Metrics.counter(_METRICS_NAMESPACE, 'standard_molecules').inc()
 
   yield out
+
+
 
 
 def _csv_format(vals):
@@ -969,6 +951,7 @@ def pipeline(root):
             f'{FLAGS.output_stem}_{id_str}_tfrecord',
             coder=beam.coders.ProtoCoder(dataset_pb2.Molecule),
             num_shards=FLAGS.output_shards))
+
 
 
 def main(argv):

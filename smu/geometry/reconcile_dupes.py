@@ -26,7 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Parse output of topology_from_geom.
 
 Process records with dupl.
@@ -148,6 +147,7 @@ def reconcile_dupes(unused_argv):
   logging.info("%d of %d items have different ring membership",
                different_ring_membership, interesting.shape[0])
   logging.info("%d items had unrecognised smiles", no_smiles)
+
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("input")

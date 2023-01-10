@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """This class provides shared utilities for parsing and writing SMU7 files."""
 
 import collections
@@ -311,8 +297,7 @@ def get_original_label(molecule):
   if special_case_dat_id_from_bt_id(bt_id):
     bt_id = 0
   return '{:s}.{:06d}.{:03d}'.format(
-      get_composition(molecule.bond_topo[0]), bt_id,
-      molecule.mol_id % 1000)
+      get_composition(molecule.bond_topo[0]), bt_id, molecule.mol_id % 1000)
 
 
 _STOICHIOMETRY_WITH_HYDROGENS_COMPONENTS = [
@@ -547,7 +532,8 @@ def compact_adjacency_matrix_string(adjacency_matrix, join_str):
   out = []
   side_length = len(adjacency_matrix)
   for i in range(0, side_length - 1):
-    out.append(''.join(str(adjacency_matrix[i][j]) for j in range(i + 1, side_length)))
+    out.append(''.join(
+        str(adjacency_matrix[i][j]) for j in range(i + 1, side_length)))
   return join_str.join(out)
 
 
@@ -665,11 +651,9 @@ def create_bond_topology(atoms, connectivity_matrix_string, hydrogens_string):
     diff = expected_h - actual_h
     atom_type = bond_topology.atom[atom_idx]
     if diff == -1 and atom_type == dataset_pb2.BondTopology.AtomType.ATOM_N:
-      bond_topology.atom[
-          atom_idx] = dataset_pb2.BondTopology.AtomType.ATOM_NPOS
+      bond_topology.atom[atom_idx] = dataset_pb2.BondTopology.AtomType.ATOM_NPOS
     elif diff == 1 and atom_type == dataset_pb2.BondTopology.AtomType.ATOM_O:
-      bond_topology.atom[
-          atom_idx] = dataset_pb2.BondTopology.AtomType.ATOM_ONEG
+      bond_topology.atom[atom_idx] = dataset_pb2.BondTopology.AtomType.ATOM_ONEG
     elif diff:
       raise ValueError(
           f'Bad hydrogen count (actual={actual_h}, expected={expected_h} '
@@ -812,7 +796,7 @@ def bond_topology_sorting_key(bond_topology):
   """
   return (bond_topology.topo_id,
           compact_adjacency_matrix_string(
-            compute_adjacency_matrix(bond_topology), '.'))
+              compute_adjacency_matrix(bond_topology), '.'))
 
 
 # These are lower case so they can be used in a command line argument
@@ -910,9 +894,7 @@ def molecule_to_rdkit_molecules(molecule,
   # where label is a string describing the geometry
   requested_geometries = []
   if include_initial_geometries:
-    valid_init_geometries = [
-        g for g in molecule.ini_geo if g.atompos
-    ]
+    valid_init_geometries = [g for g in molecule.ini_geo if g.atompos]
     init_count = len(valid_init_geometries)
     requested_geometries.extend([
         (geom, f'init({i}/{init_count})')
@@ -1141,8 +1123,8 @@ def _molecule_source(mol):
           'Unknown molecule source, no properties or duplicates: ' + str(mol))
     return _MoleculeSource.DUPLICATE
   # We want this function to work for both internal pipeline and to be able to
-  # call this with our final completed records. Unfortunatley, it's a little hacky
-  # to tell the difference cleanly.
+  # call this with our final completed records. Unfortunatley, it's a little
+  # hacky to tell the difference cleanly.
 
   # calculation_statistics is an internal only field, but it's it's present and
   # and has the right size (stage1 only has 2 computation steps),
@@ -1154,11 +1136,12 @@ def _molecule_source(mol):
   if not mol.prop.HasField('calc'):
     return _MoleculeSource.STAGE2
 
-  # If we have a complete record at the end of the pipeline, status will have a value.
-  # Now you may note that we can't tell the difference between a missing status value
-  # and a value of 0, but we lucked out that status 0 is always stage 2.
-  if len(mol.prop.calculation_statistics) == 0 and (
-      mol.prop.calc.status < 0 or mol.prop.calc.status >= 512):
+  # If we have a complete record at the end of the pipeline, status will have a
+  # value. Now you may note that we can't tell the difference between a missing
+  # status value and a value of 0, but we lucked out that status 0 is always
+  # stage 2.
+  if not mol.prop.calculation_statistics and (mol.prop.calc.status < 0 or
+                                              mol.prop.calc.status >= 512):
     return _MoleculeSource.STAGE1
 
   return _MoleculeSource.STAGE2
@@ -1263,8 +1246,7 @@ def merge_molecule(mol1, mol2):
     if mol1.bond_topo[0] != mol2.bond_topo[0]:
       raise ValueError(
           'All bond topologies must be the same, got ids {} and {}'.format(
-              mol1.bond_topo[0].topo_id,
-              mol2.bond_topo[0].topo_id))
+              mol1.bond_topo[0].topo_id, mol2.bond_topo[0].topo_id))
 
   # We set the conflict info here because we'll be messing around with fields
   # below. We may not need this if we don't actually find a conflict.
@@ -1281,9 +1263,7 @@ def merge_molecule(mol1, mol2):
       conflict_info.extend([0.0, 0.0])
     conflict_info.append(c.opt_geo.energy.val)
     conflict_info.append(c.opt_geo.gnorm.val)
-    conflict_info.append(
-        bool(c.ini_geo) and
-        bool(c.ini_geo[0].atompos))
+    conflict_info.append(bool(c.ini_geo) and bool(c.ini_geo[0].atompos))
     conflict_info.append(bool(len(c.opt_geo.atompos)))
 
   # The stage1 (in source1) and stage2 (in source2) is the only non-trivial
@@ -1296,23 +1276,19 @@ def merge_molecule(mol1, mol2):
     if len(mol1.ini_geo) != len(mol2.ini_geo):
       has_conflict = True
     elif len(mol1.ini_geo) == 1:
-      if (len(mol1.ini_geo[0].atompos) != len(
-          mol2.ini_geo[0].atompos)):
+      if len(mol1.ini_geo[0].atompos) != len(mol2.ini_geo[0].atompos):
         has_conflict = True
 
-    if (mol1.HasField('opt_geo') !=
-        mol2.HasField('opt_geo')):
+    if mol1.HasField('opt_geo') != mol2.HasField('opt_geo'):
       has_conflict = True
 
-    if (len(mol1.opt_geo.atompos) != len(
-        mol2.opt_geo.atompos)):
+    if len(mol1.opt_geo.atompos) != len(mol2.opt_geo.atompos):
       has_conflict = True
 
     for field in STAGE1_ERROR_FIELDS:
       # Only stage1 uses these old style error fields, so we just copy them
       # over
-      setattr(mol2.prop.calc, field,
-              getattr(mol1.prop.calc, field))
+      setattr(mol2.prop.calc, field, getattr(mol1.prop.calc, field))
 
     for field_fn, atol in [
         (lambda c: c.ini_geo[0].energy, 2e-6),
@@ -1338,8 +1314,7 @@ def merge_molecule(mol1, mol2):
 
     # This isn't actually a conflict per-se, but we want to find anything that
     # is not an allowed set of combinations of error values.
-    error_codes = (mol1.prop.calc.error_nstat1,
-                   mol1.prop.calc.error_nstatc,
+    error_codes = (mol1.prop.calc.error_nstat1, mol1.prop.calc.error_nstatc,
                    mol1.prop.calc.error_frequencies,
                    mol1.prop.calc.error_nstatt)
     if mol1.prop.calc.error_frequencies == 101:
@@ -1359,14 +1334,12 @@ def merge_molecule(mol1, mol2):
       mol2.ini_geo.append(mol1.ini_geo[0])
 
     # The 800 and 700 are special cases where we want to take the stage1 data
-    if (mol2.prop.calc.status == 800 or
-        mol2.prop.calc.status == 700):
+    if (mol2.prop.calc.status == 800 or mol2.prop.calc.status == 700):
       # Flip back because we will base everything on the stage1 file
       mol1, mol2 = mol2, mol1
       source1, source2 = source2, source1
 
-      mol2.prop.calc.status = (500 +
-                                       mol1.prop.calc.status // 10)
+      mol2.prop.calc.status = (500 + mol1.prop.calc.status // 10)
       mol2.prop.calc.which_database = dataset_pb2.COMPLETE
       if np.any(np.asarray(mol2.prop.vib_freq.val) < -30):
         mol2.prop.calc.warn_vib_imag = 2
@@ -1432,8 +1405,7 @@ def molecule_calculation_error_level(molecule):
   # This is warning level 'C' from Bazel documentation.
   if (errors.warn_t1 > 1 or errors.warn_delta_t1 > 1 or
       errors.warn_bse_b6 > 1 or errors.warn_bse_eccsd > 1 or
-      errors.warn_exc_ene > 1 or
-      errors.warn_exc_osmin > 0 or
+      errors.warn_exc_ene > 1 or errors.warn_exc_osmin > 0 or
       errors.warn_exc_osmax > 0):
     warn_offset = 2
   # This is warning level 'B" from Bazel documentation.
@@ -1465,8 +1437,7 @@ def filter_molecule_by_availability(molecule, allowed):
     if (descriptor.GetOptions().Extensions[dataset_pb2.availability]
         not in allowed):
       molecule.prop.ClearField(descriptor.name)
-  for geometry in itertools.chain([molecule.opt_geo],
-                                  molecule.ini_geo):
+  for geometry in itertools.chain([molecule.opt_geo], molecule.ini_geo):
     for descriptor, _ in geometry.ListFields():
       if descriptor.name == 'atompos':
         # We never filter atom positions and we can't call ClearField on it
@@ -1581,8 +1552,7 @@ def clean_up_sentinel_values(molecule):
   Args:
     molecule: dataset_pb2.Molecule
   """
-  for geometry in itertools.chain([molecule.opt_geo],
-                                  molecule.ini_geo):
+  for geometry in itertools.chain([molecule.opt_geo], molecule.ini_geo):
     for field in ['energy', 'gnorm']:
       if getattr(geometry, field).val == -1.0:
         geometry.ClearField(field)
@@ -1810,9 +1780,8 @@ def get_starting_bond_topology_index(molecule):
         iterate_bond_topologies(molecule, WhichTopologies.STARTING))
     return bt_idx
   except StopIteration:
-    raise ValueError(
-        f'For molecule {molecule.mol_id}, no starting topology'
-    ) from StopIteration
+    raise ValueError(f'For molecule {molecule.mol_id}, no starting topology'
+                    ) from StopIteration
 
 
 def molecule_to_bond_topology_summaries(molecule):
@@ -1846,8 +1815,7 @@ def molecule_to_bond_topology_summaries(molecule):
     # source.
     if (starting_idx is not None and
         source == dataset_pb2.BondTopology.SOURCE_DDT):
-      observed_bt_id.add(
-          molecule.bond_topo[starting_idx].topo_id)
+      observed_bt_id.add(molecule.bond_topo[starting_idx].topo_id)
     for bt in molecule.bond_topo:
       if not source & bt.info:
         continue
@@ -1962,6 +1930,5 @@ def molecule_eligible_for_topology_detection(molecule):
   Returns:
     bool
   """
-  return (molecule.duplicate_of == 0 and
-          molecule.prop.calc.status >= 0 and
+  return (molecule.duplicate_of == 0 and molecule.prop.calc.status >= 0 and
           molecule.prop.calc.status < 512)

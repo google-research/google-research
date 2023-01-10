@@ -304,5 +304,6 @@ class TestUtilities(absltest.TestCase):
     mol = Chem.MolFromSmiles(smiles, sanitize=True)
     self.assertEqual(utilities.ring_atom_count_mol(mol), expected)
 
+
 if __name__ == "__main__":
   absltest.main()

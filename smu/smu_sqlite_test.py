@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Tests for smu_sqlite."""
 
 import os
@@ -242,9 +228,7 @@ class SmuSqliteTest(absltest.TestCase):
 
     # and test a non existent id
     self.assertEmpty(
-        list(
-            db.find_by_topo_id_list(
-                [999], smu_utils_lib.WhichTopologies.ALL)))
+        list(db.find_by_topo_id_list([999], smu_utils_lib.WhichTopologies.ALL)))
 
   def test_find_by_topo_id_list_multi_arg(self):
     db = self.create_db()
@@ -298,10 +282,7 @@ class SmuSqliteTest(absltest.TestCase):
     db.bulk_insert(self.encode_molecules(molecules))
 
     def ids_for(bt_id, which):
-      return [
-          c.mol_id
-          for c in db.find_by_topo_id_list([bt_id], which)
-      ]
+      return [c.mol_id for c in db.find_by_topo_id_list([bt_id], which)]
 
     self.assertEqual(
         ids_for(10, smu_utils_lib.WhichTopologies.ALL), [2001, 4001])
@@ -385,8 +366,8 @@ class SmuSqliteTest(absltest.TestCase):
     self.assertCountEqual(got_mids, [2001, 2002])
 
     got_mids = [
-        molecule.mol_id for molecule in
-        db.find_by_expanded_stoichiometry_list(['(ch2)2(ch3)2', '(ch3)2'])
+        molecule.mol_id for molecule in db.find_by_expanded_stoichiometry_list(
+            ['(ch2)2(ch3)2', '(ch3)2'])
     ]
     self.assertCountEqual(got_mids, [2001, 2002, 4004])
 
@@ -472,9 +453,8 @@ class SmuSqliteTest(absltest.TestCase):
 
       got = list(db.find_by_topology(query_smiles, bond_lengths=bond_lengths))
       self.assertLen(got, 1)
-      self.assertCountEqual(
-          [100, 101, 101],
-          [bt.topo_id for bt in got[0].bond_topo])
+      self.assertCountEqual([100, 101, 101],
+                            [bt.topo_id for bt in got[0].bond_topo])
 
   def test_find_topo_id_by_smarts(self):
     db = self.create_db()

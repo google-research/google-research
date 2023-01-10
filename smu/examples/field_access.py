@@ -43,16 +43,13 @@ print('The computed properties are generally in the .prop field')
 
 print()
 print('Scalar values are access by name (note the .val suffix),',
-      'like this single point energy: ',
-      molecule.prop.spe_comp_b5.val)
+      'like this single point energy: ', molecule.prop.spe_comp_b5.val)
 
 print()
-print('Fields with repeated values',
-      'like vib_intens and exc_ene_cc2_tzvp)',
+print('Fields with repeated values', 'like vib_intens and exc_ene_cc2_tzvp)',
       'use an index with [] on the repeated values')
 
-print('The 0th and 6th vib_intens:',
-      molecule.prop.vib_intens.val[0],
+print('The 0th and 6th vib_intens:', molecule.prop.vib_intens.val[0],
       molecule.prop.vib_intens.val[6])
 
 print('Or you can iterate over all of them')
@@ -63,9 +60,7 @@ print('Or just ask how many exc_ene_cc2_tzvp there are:',
       len(molecule.prop.exc_ene_cc2_tzvp.val))
 
 print()
-print(
-    'Some fields like elec_dip_pbe0_augpc1 have explicit x,y,z components'
-)
+print('Some fields like elec_dip_pbe0_augpc1 have explicit x,y,z components')
 
 print(molecule.prop.elec_dip_pbe0_augpc1.x,
       molecule.prop.elec_dip_pbe0_augpc1.y,
@@ -99,11 +94,8 @@ print('A couple of important fields are not inside "properties"')
 
 geometry = molecule.opt_geo
 print('For example, the optimized geometry has an energy of',
-      geometry.energy.val,
-      'and positions for',
-      len(geometry.atompos),
-      'atoms and the first atom x-coordinate is',
-      geometry.atompos[0].x)
+      geometry.energy.val, 'and positions for', len(geometry.atompos),
+      'atoms and the first atom x-coordinate is', geometry.atompos[0].x)
 
 print()
 print('In addition to looking at dataset.proto for field documentation,',

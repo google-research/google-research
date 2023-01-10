@@ -57,8 +57,7 @@ print(
     'in order to understand what fields are available and what you should trust'
 )
 
-print(
-    'If you ask for the vib_freq for both you get sensible values')
+print('If you ask for the vib_freq for both you get sensible values')
 print(PARTIAL_MOLECULE_ID, partial_molecule.prop.vib_freq)
 print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.vib_freq)
 
@@ -69,38 +68,27 @@ print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.vib_zpe.val)
 
 print()
 print('And if you ask for at2_std_b6_hf298, both give 0')
-print(PARTIAL_MOLECULE_ID,
-      partial_molecule.prop.at2_std_b6_hf298.val)
-print(MINIMAL_MOLECULE_ID,
-      minimal_molecule.prop.at2_std_b6_hf298.val)
+print(PARTIAL_MOLECULE_ID, partial_molecule.prop.at2_std_b6_hf298.val)
+print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.at2_std_b6_hf298.val)
 
 print()
 print('These are cases of missing values.')
 print(
     'If you request a value which is actually missing, you will silently get a default value '
-    '(0.0 for floats)'
-)
+    '(0.0 for floats)')
 print(
     'Therefore, in addition to checking the status field, we recommend you also'
 )
 print('check whether a Molecule has a value with the HasField method')
 print('Calling HasField for vib_freq:')
-print(PARTIAL_MOLECULE_ID,
-      partial_molecule.prop.HasField('vib_freq'))
-print(MINIMAL_MOLECULE_ID,
-      minimal_molecule.prop.HasField('vib_freq'))
+print(PARTIAL_MOLECULE_ID, partial_molecule.prop.HasField('vib_freq'))
+print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.HasField('vib_freq'))
 print('Calling HasField for vib_zpe:')
 print(PARTIAL_MOLECULE_ID, partial_molecule.prop.HasField('vib_zpe'))
 print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.HasField('vib_zpe'))
 print('Calling HasField for at2_std_b6_hf298:')
-print(
-    PARTIAL_MOLECULE_ID,
-    partial_molecule.prop.HasField(
-        'at2_std_b6_hf298'))
-print(
-    MINIMAL_MOLECULE_ID,
-    minimal_molecule.prop.HasField(
-        'at2_std_b6_hf298'))
+print(PARTIAL_MOLECULE_ID, partial_molecule.prop.HasField('at2_std_b6_hf298'))
+print(MINIMAL_MOLECULE_ID, minimal_molecule.prop.HasField('at2_std_b6_hf298'))
 
 print()
 print('The one field that is different is vib_mode')

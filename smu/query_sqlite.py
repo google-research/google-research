@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Queries the SMU sqlite database.
 
 Command line interface to extract molecules from thq SMU database.
@@ -317,9 +303,9 @@ class Atomic2InputOutputter:
         if bt.info & dataset_pb2.BondTopology.SOURCE_STARTING:
           with open(
               os.path.join(
-                self.output_path,
-                self.atomic2_writer.get_filename_for_atomic2_input(
-                  molecule, None)), 'w') as f:
+                  self.output_path,
+                  self.atomic2_writer.get_filename_for_atomic2_input(
+                      molecule, None)), 'w') as f:
             f.write(self.atomic2_writer.process(molecule, bt_idx))
 
   def close(self):
@@ -411,8 +397,7 @@ class ReDetectTopologiesOutputter:
       for bt in molecule.bond_topo:
         bt.info = dataset_pb2.BondTopology.SOURCE_CUSTOM
         try:
-          bt.topo_id = self._db.find_topo_id_for_smiles(
-              bt.smiles)
+          bt.topo_id = self._db.find_topo_id_for_smiles(bt.smiles)
         except KeyError:
           logging.error('Did not find bond topology id for smiles %s',
                         bt.smiles)
@@ -470,7 +455,7 @@ def main(argv):
       outputter.output(molecule)
 
     for c in db.find_by_topo_id_list([int(x) for x in FLAGS.btids],
-                                              FLAGS.which_topologies):
+                                     FLAGS.which_topologies):
       outputter.output(c)
 
     for c in db.find_by_smiles_list(FLAGS.smiles, FLAGS.which_topologies):

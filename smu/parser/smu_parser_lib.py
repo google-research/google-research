@@ -26,20 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """A parser for Small Molecule Universe (SMU) files in custom Uni Basel format.
 
 Used to read contents from SMU files and populates a corresponding protocol
@@ -127,80 +113,29 @@ class Atomic2FieldTypes(enum.Enum):
 
 
 ATOMIC_LABEL_FIELDS = collections.OrderedDict([
-    [
-        'AT2_BSR_LEFT',
-        ('at2_gen_bsr_left', Atomic2FieldTypes.STRING)
-    ],
-    [
-        'AT2_BSR_RIGHT',
-        ('at2_gen_bsr_right', Atomic2FieldTypes.STRING)
-    ],
+    ['AT2_BSR_LEFT', ('at2_gen_bsr_left', Atomic2FieldTypes.STRING)],
+    ['AT2_BSR_RIGHT', ('at2_gen_bsr_right', Atomic2FieldTypes.STRING)],
     ['AT2_T1mol', ('wf_diag_t1_2sd', Atomic2FieldTypes.SCALAR)],
     ['AT2_T1exc', ('at2_gen_t1_exc', Atomic2FieldTypes.SCALAR)],
     ['AT2_ZPE', ('at2_std_zpe', Atomic2FieldTypes.TRIPLE)],
     ['AT2_ENE_B5', ('spe_comp_b5', Atomic2FieldTypes.SCALAR)],
     ['AT2_ENE_B6', ('spe_comp_b6', Atomic2FieldTypes.SCALAR)],
     ['AT2_ENE_ECCSD', ('spe_comp_eccsd', Atomic2FieldTypes.SCALAR)],
-    [
-        'AT2_BSE_B5',
-        ('at2_std_b5_ereac', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_BSE_B6',
-        ('at2_std_b6_ereac', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_BSE_ECCSD',
-        ('at2_std_eccsd_ereac', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AEe_B5',
-        ('at2_std_b5_eae', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AEe_B6',
-        ('at2_std_b6_eae', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AEe_ECCSD',
-        ('at2_std_eccsd_eae', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AE0_B5',
-        ('at2_std_b5_ea0', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AE0_B6',
-        ('at2_std_b6_ea0', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AE0_ECCSD',
-        ('at2_std_eccsd_ea0', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF0_B5',
-        ('at2_std_b5_hf0', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF0_B6',
-        ('at2_std_b6_hf0', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF0_ECCSD',
-        ('at2_std_eccsd_hf0', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF298_B5',
-        ('at2_std_b5_hf298', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF298_B6',
-        ('at2_std_b6_hf298', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF298_ECCSD',
-        ('at2_std_eccsd_hf298', Atomic2FieldTypes.TRIPLE)
-    ],
+    ['AT2_BSE_B5', ('at2_std_b5_ereac', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_BSE_B6', ('at2_std_b6_ereac', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_BSE_ECCSD', ('at2_std_eccsd_ereac', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AEe_B5', ('at2_std_b5_eae', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AEe_B6', ('at2_std_b6_eae', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AEe_ECCSD', ('at2_std_eccsd_eae', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AE0_B5', ('at2_std_b5_ea0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AE0_B6', ('at2_std_b6_ea0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AE0_ECCSD', ('at2_std_eccsd_ea0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF0_B5', ('at2_std_b5_hf0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF0_B6', ('at2_std_b6_hf0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF0_ECCSD', ('at2_std_eccsd_hf0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF298_B5', ('at2_std_b5_hf298', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF298_B6', ('at2_std_b6_hf298', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF298_ECCSD', ('at2_std_eccsd_hf298', Atomic2FieldTypes.TRIPLE)],
 ])
 
 PARTIAL_CHARGES_LABEL_FIELDS = collections.OrderedDict([
@@ -575,8 +510,7 @@ class SmuParser:
     self._molecule.bond_topo[-1].CopyFrom(
         smu_utils_lib.create_bond_topology(expanded_atom_types, adjacency_code,
                                            hydrogen_counts))
-    self._molecule.bond_topo[-1].smiles = str(smiles).replace('\'',
-                                                                    '').strip()
+    self._molecule.bond_topo[-1].smiles = str(smiles).replace('\'', '').strip()
     # Note that we only set source to STARTING and not DDT. This is because this
     # geometry may not actually pass the DDT criteria. We let the later geometry
     # detection take care of this.
@@ -630,14 +564,12 @@ class SmuParser:
           topo_id, self._molecule.bond_topo[-1].smiles)
 
     self._molecule.bond_topo[-1].topo_id = topo_id
-    self._molecule.mol_id = (
-        topo_id * 1000 + int(mol_id_str))
+    self._molecule.mol_id = (topo_id * 1000 + int(mol_id_str))
 
   def parse_cluster_info(self, num_lines):
     """Stores a string describing the compute cluster used for computations."""
     cluster_info = self.parse(ParseModes.RAW, num_lines=num_lines)
-    self._molecule.prop.compute_cluster_info = '\n'.join(
-        cluster_info) + '\n'
+    self._molecule.prop.compute_cluster_info = '\n'.join(cluster_info) + '\n'
 
   def parse_stage1_timings(self):
     """Parses recorded timings for different computation steps.
@@ -734,8 +666,7 @@ class SmuParser:
       return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
-    self._molecule.opt_geo.brot.val.extend(
-        float(x) for x in values)
+    self._molecule.opt_geo.brot.val.extend(float(x) for x in values)
 
   def parse_symmetry_used(self):
     """Parses whether or not symmetry was used in the computation."""
@@ -825,9 +756,8 @@ class SmuParser:
     properties = self._molecule.prop
     for _ in range(3 * num_atoms):
       if not self._next_line_startswith('Mode'):
-        raise ValueError(
-            'Parsing vib_mode, expect Mode line, got: {}'.format(
-                self._raw_contents[self.line_num]))
+        raise ValueError('Parsing vib_mode, expect Mode line, got: {}'.format(
+            self._raw_contents[self.line_num]))
 
       self.parse(ParseModes.SKIP, num_lines=1)  # 'Mode   #i'
 
@@ -942,11 +872,9 @@ class SmuParser:
       # Special case for AT2_T1mol. This same value is written in two places
       # in the .dat file. We verify that the value already there (if there is
       # one) is the same as what we have here.
-      if label == 'AT2_T1mol' and properties.HasField(
-          'wf_diag_t1_2sd'):
+      if label == 'AT2_T1mol' and properties.HasField('wf_diag_t1_2sd'):
         new_val = float(rest)
-        if not np.isclose(
-            new_val, properties.wf_diag_t1_2sd.val, atol=.00015):
+        if not np.isclose(new_val, properties.wf_diag_t1_2sd.val, atol=.00015):
           raise ValueError(
               'ATOMIC-2 block AT2_T1mol ({:f}) differs from current value ({:f})'
               .format(new_val, properties.wf_diag_t1_2sd.val))
@@ -960,8 +888,11 @@ class SmuParser:
         if len(triple_vals) != 3:
           raise ValueError(f'Unexpected vals in line {line}')
         getattr(properties, field_name).val = triple_vals[0]
-        getattr(properties, field_name.replace('at2_std', 'at2_um')).val = triple_vals[1]
-        getattr(properties, field_name.replace('at2_std', 'at2_um') + '_unc').val = triple_vals[2]
+        getattr(properties, field_name.replace('at2_std',
+                                               'at2_um')).val = triple_vals[1]
+        getattr(properties,
+                field_name.replace('at2_std', 'at2_um') +
+                '_unc').val = triple_vals[2]
       else:
         raise ValueError(
             'Atomic block unknown field types {}'.format(field_type))
@@ -975,8 +906,7 @@ class SmuParser:
       items = str(line).strip().split()
       properties = self._molecule.prop
       properties.exc_ene_cc2_tzvp.val.append(float(items[-2]))
-      properties.exc_os_cc2_tzvp.val.append(
-          float(items[-1]))
+      properties.exc_os_cc2_tzvp.val.append(float(items[-1]))
 
   def parse_nmr_isotropic_shieldings(self):
     """Parses NMR isotropic shieldings (ppm) for different levels of theory.

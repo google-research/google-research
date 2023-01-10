@@ -42,7 +42,9 @@ print('(see multiple_bond_topology.py for some illustration)')
 print('This is what the "find_by_smiles" method is using and is very efficient')
 
 print('Note that we have multiple criteria for creating bond topologies.')
-print('For this example, we will focus on the DDT criteria (our initial bond ranges)')
+print(
+    'For this example, we will focus on the DDT criteria (our initial bond ranges)'
+)
 original_molecules = sorted(
     db.find_by_smiles_list([smiles],
                            which_topologies=smu_utils_lib.WhichTopologies.DDT),
@@ -56,11 +58,9 @@ print(
     'and find all molecules which match a given topology with these modifications'
 )
 
-print(
-    'While this does not have the read the whole database, '
-    'it is a much less efficient operation than querying by smiles, '
-    'so only use it if you modify the allowed distances'
-)
+print('While this does not have the read the whole database, '
+      'it is a much less efficient operation than querying by smiles, '
+      'so only use it if you modify the allowed distances')
 
 print()
 print('First you have to load the default bond lengths')
@@ -75,8 +75,7 @@ print('You then provide the desired topology as a SMILES string')
 print(
     'The topology query without modifying bond lengths, finds the same result')
 unmodified_molecules = sorted(
-    list(db.find_by_topology(smiles, bond_lengths)),
-    key=lambda c: c.mol_id)
+    list(db.find_by_topology(smiles, bond_lengths)), key=lambda c: c.mol_id)
 print('Unmodified find_by_topology finds these molecule ids')
 print([c.mol_id for c in unmodified_molecules])
 
@@ -85,8 +84,7 @@ print('We now modify the bond lengths by allowing N to N bonds of any order')
 print('to be between 1A and 2A with the string "N~N:1.0-2.0"')
 bond_lengths.add_from_string_spec('N~N:1.0-2.0')
 modified_molecules = sorted(
-    list(db.find_by_topology(smiles, bond_lengths)),
-    key=lambda c: c.mol_id)
+    list(db.find_by_topology(smiles, bond_lengths)), key=lambda c: c.mol_id)
 print('We now find these molecule ids')
 print([c.mol_id for c in modified_molecules])
 
@@ -102,11 +100,12 @@ print(
 # about the bnd topologies found
 #-----------------------------------------------------------------------------
 def print_molecules_and_topo_id(molecules):
+  valid_source = (
+      dataset_pb2.BondTopology.SOURCE_DDT
+      | dataset_pb2.BondTopology.SOURCE_CUSTOM)
   for mol in molecules:
     print('   ', mol.mol_id, 'has bond topologies:',
-          [bt.topo_id for bt in mol.bond_topo
-           if bt.info & (dataset_pb2.BondTopology.SOURCE_DDT |
-                           dataset_pb2.BondTopology.SOURCE_CUSTOM)])
+          [bt.topo_id for bt in mol.bond_topo if bt.info & valid_source])
 
 
 print()

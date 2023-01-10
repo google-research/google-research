@@ -49,8 +49,8 @@ except KeyError:
 print()
 print('Looking up by bond topology id will return zero or more molecules')
 bt_molecules = list(
-    db.find_by_topo_id_list(
-        [7984], which_topologies=smu_utils_lib.WhichTopologies.ALL))
+    db.find_by_topo_id_list([7984],
+                            which_topologies=smu_utils_lib.WhichTopologies.ALL))
 print('Querying for bond topology id 7984 returned', len(bt_molecules),
       'molecules')
 
@@ -59,8 +59,8 @@ print('Note that the molecules returned may have multiple bond topologies,'
 for mol in bt_molecules:
   print('    Result with mol_id', mol.mol_id)
   for bt in mol.bond_topo:
-    print('        has bond topology with id', bt.topo_id,
-          'and SMILES', bt.smiles)
+    print('        has bond topology with id', bt.topo_id, 'and SMILES',
+          bt.smiles)
 
 print()
 print(
