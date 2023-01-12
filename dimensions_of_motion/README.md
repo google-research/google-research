@@ -13,7 +13,9 @@ The library code in `libs` is organized as follows:
 * `solvers.py` – the SVD solver for projecting flow into a subspace
 * `utils.py` – some simple utility functions
 
-We will follow up with a colab notebook showing how to apply our loss functions to a predicted disparity and object embedding, and how to visualize the resulting basis flow fields.
+The notebook `dimensions_of_motion_example.ipynb`
+[[click to open in Google Colab](https://colab.research.google.com/github/google-research/google-research/blob/master/dimensions_of_motion/dimensions_of_motion_example.ipynb)]
+shows how to apply our loss functions to a predicted disparity and object embedding, and how to visualize the resulting basis flow fields.
 
 
 ### Links
