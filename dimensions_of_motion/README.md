@@ -29,4 +29,5 @@ Our project page with links to the paper, video and examples is at **[dimensions
   author    = {Richard Strong Bowen and Richard Tucker and Ramin Zabih and Noah Snavely},
   booktitle = {Proceedings of the International Conference on {3D} Vision (3DV)},
   year      = {2022}
-}```
+}
+```
