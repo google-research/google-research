@@ -1,0 +1,3 @@
+tensorflow>=2.6.0
+jax>=0.3.25
+flax>=0.6.2
