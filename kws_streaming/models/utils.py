@@ -392,6 +392,10 @@ def model_to_tflite(
   converter.inference_type = inference_type
   converter.experimental_new_quantizer = experimental_new_quantizer
   converter.experimental_enable_resource_variables = True
+  # pylint: disable=protected-access
+  converter._experimental_variable_quantization = True
+  # pylint: enable=protected-access
+
   if representative_dataset is not None:
     converter.representative_dataset = representative_dataset
   if not supported_ops_override:
