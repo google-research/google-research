@@ -17,6 +17,7 @@
 
 import functools
 from typing import Union, List, Optional, Tuple, Callable, Dict
+import warnings
 import numpy as np
 from sklearn import metrics as sk_metrics
 import tensorflow.compat.v1 as tf
@@ -24,7 +25,7 @@ import tensorflow.compat.v1 as tf
 from neural_additive_models import models
 
 # To suppress warnings in the sigmoid function
-np.warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
 TfInput = models.TfInput
 LossFunction = Callable[[tf.keras.Model, TfInput, TfInput], tf.Tensor]
 GraphOpsAndTensors = Dict[str, Union[tf.Tensor, tf.Operation, tf.keras.Model]]

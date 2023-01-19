@@ -43,7 +43,8 @@ class HalfSamplingTest(parameterized.TestCase):
     test_examples = np.array([1, 2, 3, 4, 5, 6, 7, 8])
     test_targets = np.array([11, 12, 13, 14, 15, 16, 17, 18])
 
-    datasets = np.array(list(half_sampler.split(test_examples, test_targets)))
+    datasets = np.array(list(half_sampler.split(test_examples, test_targets)),
+                        dtype=object)
 
     expected_splits = [[[1, 2, 3, 4, 5, 6, 7, 8],
                         [11, 12, 13, 14, 15, 16, 17, 18]],
