@@ -64,8 +64,8 @@ def find_closed_orbit(
       tf_L_y0y1=tf_loss)
   #
   def f(ys):
-    y1, loss_at_t1, d_loss_d_y0, hessian = ode_bp.backprop012(
-        ys, t0_to_t1, want_012=0, odeint_kwargs=odeint_kwargs)
+    y1, loss_at_t1, d_loss_d_y0, hessian = ode_bp.backprop(
+        ys, t0_to_t1, want_order=0, odeint_kwargs=odeint_kwargs)
     del y1, d_loss_d_y0, hessian  # Unused.
     if report is not None:
       report(f'L: {loss_at_t1:18.12g}')
@@ -78,8 +78,8 @@ def find_closed_orbit(
   y0_opt = scipy.optimize.fmin_bfgs(f, y0,
                                     fprime=fprime,
                                     gtol=gtol)
-  y1, loss, d_loss_d_y0, hessian = ode_bp.backprop012(
-      y0_opt, t0_to_t1, want_012=2, odeint_kwargs=odeint_kwargs)
+  y1, loss, d_loss_d_y0, hessian = ode_bp.backprop(
+      y0_opt, t0_to_t1, want_order=2, odeint_kwargs=odeint_kwargs)
   return ClosedOrbitSpec(ode_bp=ode_bp, y0=y0_opt,
                          y1=y1, loss=loss, d_loss_d_y0=d_loss_d_y0,
                          hessian=hessian)
