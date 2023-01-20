@@ -101,6 +101,12 @@ flags.DEFINE_integer('finetune_start_step', -1,
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
+flags.DEFINE_bool('final_output_encoding', False,
+                  'Whether to use both next and final outputs in synthesizer.')
+flags.DEFINE_float('final_output_dropout_rate', 0.1, 'Dropout rate for final outputs encoder.')
+flags.DEFINE_float('final_output_attention_dropout_rate', 0.1,
+                   'Attention dropout rate for final outputs encoder.')
+
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
 flags.DEFINE_integer('num_position_buckets', 32,
@@ -114,6 +120,8 @@ flags.DEFINE_bool('flat_encoded_self_attention', False,
 flags.DEFINE_bool('aligned_relative_attention', True,
                   'Whether to align relative attention positions between '
                   'targets and encoded I/O examples.')
+
+
 
 flags.DEFINE_enum('dataset_type', 'robust_fill',
                   ['robust_fill', 'robust_fill_base', 'deepcoder', 'scan'],
@@ -838,6 +846,9 @@ def main(_):
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       dataset_type=FLAGS.dataset_type,
+      final_output_encoding=FLAGS.final_output_encoding,
+      final_output_dropout_rate=FLAGS.final_output_dropout_rate,
+      final_output_attention_dropout_rate=FLAGS.final_output_attention_dropout_rate,
       flat_encoded_self_attention=FLAGS.flat_encoded_self_attention,
       aligned_relative_attention=FLAGS.aligned_relative_attention,
       separator_token_id=separator_token_id)

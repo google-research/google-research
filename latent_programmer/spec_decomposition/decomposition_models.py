@@ -36,6 +36,11 @@ class DecomposeAttentionTransformerConfig:
   bos_special_attention: bool = False
   # The kind of dataset: 'robust_fill' or 'scan'.
   dataset_type: str = 'robust_fill'
+  # Whether to include both the next and final outputs, which are fed through
+  # separate encoders.
+  final_output_encoding: bool = False
+  final_output_dropout_rate: float = 0.1
+  final_output_attention_dropout_rate: float = 0.1
   # Whether to do relative self-attention on the flat encoding of the I/O
   # examples, where the positions are taken modulo the length of 1 example.
   flat_encoded_self_attention: bool = False
@@ -138,28 +143,43 @@ class DecomposeAttentionTransformer(nn.Module):
     base_config = self.config.base_config
 
     if self.config.dataset_type in ['robust_fill', 'deepcoder']:
-      self.encoder = base_models.TransformerIOEncoder(config=base_config,
-                                                      name='encoder')
+      encoder_fn = base_models.TransformerIOEncoder
     elif self.config.dataset_type in ['robust_fill_base', 'scan']:
-      self.encoder = base_models.TransformerEncoder(config=base_config,
-                                                    name='encoder')
+      encoder_fn = base_models.TransformerEncoder
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(
           self.config.dataset_type))
+
+    self.encoder = encoder_fn(config=base_config, name='encoder')
+    if self.config.final_output_encoded:
+      self.final_encoder = encoder_fn(
+        config=base_config.replace(
+          dropout_rate=self.config.final_output_dropout_rate,
+          attention_dropout_rate=self.config.final_output_attention_dropout_rate),
+        name='final_encoder')
+
     # Shifting is done separately in decoder.
     self.decoder = base_models.TransformerDecoder(
         config=base_config.replace(shift=False), name='decoder')
 
   def encode(self,
              inputs,
-             outputs):
+             outputs,
+             final_outputs=None):
     """Applies encoder on input specification."""
     # i/o shape = (batch_size, num_io, length)
     assert inputs.ndim == 3, ('Number of i/o dimensions should be 3,'
                               ' but it is: %d' % inputs.ndim)
     assert outputs.ndim == inputs.ndim
 
-    return self.encoder(inputs, outputs)
+    if final_outputs is None:
+      return self.encoder(inputs, outputs)
+    else:
+      assert self.config.final_output_encoded
+      # Concatenate the encodings of both next and final outputs.
+      return jnp.concatenate(
+        [self.encoder(inputs, outputs), self.final_encoder(inputs, final_outputs)],
+        axis=-1)
 
   @nn.compact
   def do_flat_encoded_self_attention(self, flat_encoded, mod_position):
