@@ -25,7 +25,7 @@ All below models and blocks are described in our paper with text. Here we provid
 <img src='parrotron_base.png'/><br>
 </p>
 <p align="center">
-Fig. 1 *Base* non streaming Parrotron model.
+Fig. 1 <em>Base</em> non streaming Parrotron model.
 </p>
 
 On Fig. 2 we show diagram of "Non streaming Conformer Encoder" of the *Base* model from [paper](https://ieeexplore.ieee.org/document/9414644)
@@ -34,7 +34,7 @@ On Fig. 2 we show diagram of "Non streaming Conformer Encoder" of the *Base* mod
 <img src='parrotron_non_streaming_encoder.png'/><br>
 </p>
 <p align="center">
-Fig. 2 *Base* Non streaming Conformer Encoder.
+Fig. 2 <em>Base</em> Non streaming Conformer Encoder.
 </p>
 
 The original Conformer block is described in [paper](https://arxiv.org/pdf/2005.08100.pdf). It has non streaming local self attention and causal convolution. Causal convolution is easy to stream, but non streaming conformer block computes local self attention over all frames of the input sequence, as shown on Fig. 3 (that is why it can not run in streaming mode).
@@ -106,14 +106,14 @@ Fig. 7 Streaming Causal local self attention diagram.
 <img src='LSA1.png'/><br>
 </p>
 <p align="center">
-Fig. 8 *LSA1* streaming Conformer Encoder.
+Fig. 8 <em>LSA1</em> streaming Conformer Encoder.
 </p>
 
 <p align="center">
 <img src='LSA2.png'/><br>
 </p>
 <p align="center">
-Fig. 9 *LSA2* streaming Conformer Encoder.
+Fig. 9 <em>LSA2</em> streaming Conformer Encoder.
 </p>
 
 The main component of streaming non causal conformer block is non causal local self attention. Streaming non causal local self attention computes self attention on 65 past frames and 5 frames in the future (R=5, also called right context), On Fig. 10 we show how streaming non causal local self attention is computed for a case when it looks into one future frame (R=1) and 65 frames in the past (it corresponds to layer name CBR1).
@@ -136,14 +136,14 @@ Fig. 10 Streaming non causal local self attention diagram for CBR1 layer.
 <img src='LS1.png'/><br>
 </p>
 <p align="center">
-Fig. 11 *LS1* streaming Conformer Encoder.
+Fig. 11 <em>LS1</em> streaming Conformer Encoder.
 </p>
 
 <p align="center">
 <img src='LS2.png'/><br>
 </p>
 <p align="center">
-Fig. 12 *LS2* streaming Conformer Encoder.
+Fig. 12 <em>LS2</em> streaming Conformer Encoder.
 </p>
 
 Diagram of streaming "Non causal Stack R2 frames and sub-sample by 2x" is shown on Fig. 13. It takes current frame concatenate it with 2 future frames (R=2), then project it (to the dimension of input frame) with fully connected layer and then subsample output frames by 2x in time dimension. As you can see in Fig. 13 this layer introduces delay equal R.
@@ -166,12 +166,12 @@ Fig. 13 Diagram of "Non causal Stack R=2 frames and sub-sample by 2x".
 <img src='LSA_LS1.png'/><br>
 </p>
 <p align="center">
-Fig. 14 *LSA_LS1* streaming Conformer Encoder.
+Fig. 14 <em>LSA_LS1</em> streaming Conformer Encoder.
 </p>
 
 <p align="center">
 <img src='LSA_LS2.png'/><br>
 </p>
 <p align="center">
-Fig. 15 *LSA_LS2* streaming Conformer Encoder.
+Fig. 15 <em>LSA_LS2</em> streaming Conformer Encoder.
 </p>
