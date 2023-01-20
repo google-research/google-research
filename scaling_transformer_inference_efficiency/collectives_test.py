@@ -25,7 +25,7 @@ import numpy as np
 
 from scaling_transformer_inference_efficiency import collectives
 
-X_SIZE = 4
+X_SIZE = 8
 NUM_LAYERS = 2
 LAYER = 1
 
@@ -434,14 +434,14 @@ class CollectivesTest(absltest.TestCase):
   def test_matmul_collective_weights_gather_q_wi(self):
     # L = 1  # num-layers
     # B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
-    B, T, E, H, D = 4, 1, 64, 16, 64  # dim sizes
-    X, Y, Z = 1, 2, 2  # slice sizes
+    B, T, E, H, D = 8, 1, 64, 16, 64  # dim sizes
+    X, Y, Z = 2, 2, 2  # slice sizes
     devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
     mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
     key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
     x_norm = jax.random.normal(key0, (B, T, E), dtype=jnp.float32)
     q_wi = jax.random.normal(key1, (H, E, D), dtype=jnp.float32)
-    x_norm = x_norm.reshape((X, Y, Z, B // (X * Y * Z), T, D))
+    x_norm = x_norm.reshape((X, Y, Z, B // (X * Y * Z), T, E))
     q_wi = q_wi.reshape((X, Y, Z, H // (Y * Z), E // X, D))
 
     # [batch.XYZ, t, e] @ [heads.YZ, e.X, q_wi_per_head]
@@ -480,7 +480,6 @@ class CollectivesTest(absltest.TestCase):
           x_norm,
           q_wi,
           lhs_split_axis=2,
-          axis_name='x',
       )
       return y
 
@@ -490,8 +489,8 @@ class CollectivesTest(absltest.TestCase):
     np.testing.assert_allclose(expected, result, rtol=1e-03, atol=1e-04)
 
   def test_matmul_collective_weights_gather_o_wo(self):
-    X, Y, Z = 1, 2, 2  # slice sizes
-    B, T, E, H, D = 4, 1, 64, 16, 64  # dim sizes
+    X, Y, Z = 2, 2, 2  # slice sizes
+    B, T, E, H, D = 8, 1, 64, 16, 64  # dim sizes
     devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
     mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
     key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)

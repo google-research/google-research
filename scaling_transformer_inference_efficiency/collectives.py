@@ -805,8 +805,8 @@ def matmul_reducescatter_latency(einsum_spec,
 
 
 def matmul_collective_weights_gather_q_wi(einsum_spec, lhs,
-                                          rhs, lhs_split_axis,
-                                          axis_name):
+                                          rhs, lhs_split_axis
+                                          ):
   """Designed for prefill, moves the weights through x,y and z instead of lhs.
 
   Pseudocode:
@@ -827,35 +827,32 @@ def matmul_collective_weights_gather_q_wi(einsum_spec, lhs,
     rhs: weights, to be moved through all chips in a space filling curve
     lhs_split_axis: the lhs axis along which to split so we can overlap the math
       in the innermost loop
-    axis_name: which axis we partition that split axis along in the output
 
   Returns:
     new_activations: result of computation
   """
 
   x_size, y_size, z_size = lax.psum(1, 'x'), lax.psum(1, 'y'), lax.psum(1, 'z')
-  axis_size = lax.psum(1, axis_name)
-  axis_index = lax.axis_index(axis_name)
+  x_ai, y_ai, z_ai = (
+      lax.axis_index('x'), lax.axis_index('y'), lax.axis_index('z'))
 
   # chunking specific
-  chunk_size = lhs.shape[lhs_split_axis] // axis_size
+  chunk_size = lhs.shape[lhs_split_axis] // x_size
 
   # slice into the weights along the axis we will scatter along
-  # all others are just in a chain as parititoned
-  def indexed_computation(i, rhs):
-    permutes_remaining_after_einsum = (axis_size - 1) - i
-    chunk_index = (axis_index + permutes_remaining_after_einsum) % axis_size
-    # print(lhs.shape,)
-    c = jax.lax.dynamic_slice_in_dim(lhs, chunk_index * chunk_size, chunk_size,
-                                     lhs_split_axis)
-    p = jnp.einsum(einsum_spec, c, rhs)
-    return p
+  # all others are just in a chain as partitioned
+  def indexed_computation(x_i, y_i, z_i, rhs):
+    chunk_index = (x_ai -
+                   y_i * (z_size * (x_size - 1)) +
+                   z_i * (x_size - 1) + x_i) % x_size
+    c = jax.lax.dynamic_slice_in_dim(
+        lhs, chunk_index * chunk_size, chunk_size, lhs_split_axis)
+    return jnp.einsum(einsum_spec, c, rhs)
 
   # this should be sized as though normally partitoned by the einsum,
   # but also partitioned along the chunk_split axis
   # [b.YZ, t, h.YZ, q]
-  # print(lhs.shape, rhs.shape)
-  local_accum_shape = jax.eval_shape(indexed_computation, 0, rhs).shape
+  local_accum_shape = jax.eval_shape(indexed_computation, 0, 0, 0, rhs).shape
   # we will concatenate in the loops over heads, so that we are sharded
   # only over batch
   head_idx = 2
@@ -864,63 +861,31 @@ def matmul_collective_weights_gather_q_wi(einsum_spec, lhs,
   final_accum_shape[head_idx] = final_heads_dim
   final_accum = jnp.zeros(final_accum_shape, dtype=lhs.dtype)
 
-  def derive_permutation(y, z, ya, za, head_chunk_size):
-    # to derive the appropriate head to index into given the sequence of
-    # collective permutes, imagine the original partition index along the head
-    # dimension and model the sequence of rolls in y and z dimensions to
-    # determine the appropriate chunk dimension to index into
-
-    # an explicit, inefficient piece of code to do this is:
-    #   tmp = jnp.arange(y_size*z_size, dtype=jnp.int32)
-    #   tmp = tmp.reshape((y_size, z_size))
-    #   def y_loop(_, tmp):
-    #     tmp = jax.lax.fori_loop(0, z_size-1,
-    #                             lambda _, q: jnp.roll(q, 1, axis=1),
-    #                             tmp)
-    #     return jnp.roll(tmp, 1, axis=0)
-    #   tmp = jax.lax.fori_loop(0, y, y_loop, tmp)
-    #   tmp = jax.lax.fori_loop(0, z,
-    #                           lambda _, q: jnp.roll(q, 1, axis=1),
-    #                          tmp)
-    #   return tmp[ya, za] * head_chunk_size
-
-    # this is equivalent to the closed-form 2d indexing logic:
-    zidx = (za - (y * (z_size - 1) + z)) % z_size
-    yidx = (ya - y) % y_size
-    return (yidx * z_size + zidx) * head_chunk_size
-
   def indexed_update(y, z, update, final_accum):
     """Stacks alongs the dimension sharded by yz."""
-    # print(final_accum.shape, update.shape, final_heads_dim)
     indices = [0] * len(final_accum.shape)
-    indices[head_idx] = derive_permutation(y, z, lax.axis_index('y'),
-                                           lax.axis_index('z'),
-                                           update.shape[head_idx])
+    yidx = (y_ai - y) % y_size
+    zidx = (z_ai - (y * (z_size - 1) + z)) % z_size
+    indices[head_idx] = (yidx * z_size + zidx) * update.shape[head_idx]
     return jax.lax.dynamic_update_slice(final_accum, update, indices)
 
   # overlap chunk computation with x
   def x_loop_and_matmul(x_i, carrys):
     with jax.named_scope('x'):
-
-      accum, rhs = carrys
-
-      p = indexed_computation(x_i, rhs)
-      accum += p
-
+      accum, rhs, y_i, z_i = carrys
+      accum += indexed_computation(x_i, y_i, z_i, rhs)
       next_rhs = lax.ppermute(
           rhs, 'x', perm=[(j, (j + 1) % x_size) for j in range(x_size)])
-
-      return (accum, next_rhs)
+      return (accum, next_rhs, y_i, z_i)
 
   def collect_x(final_accum, rhs, z_i, y_i):
     # [b.YZ, t, h.YZ, q]
     local_accum = jnp.zeros(local_accum_shape, dtype=lhs.dtype)
-    local_accum, rhs = jax.lax.fori_loop(0, x_size - 1, x_loop_and_matmul,
-                                         (local_accum, rhs))
+    local_accum, rhs, _, _ = jax.lax.fori_loop(
+        0, x_size - 1, x_loop_and_matmul, (local_accum, rhs, y_i, z_i))
     # do one less loop to skip an uneeded permute
-
-    local_accum += indexed_computation(x_size - 1, rhs)
-    # concatenate and slowly unshard by heads
+    local_accum += indexed_computation(x_size - 1, y_i, z_i, rhs)
+    # concatenate and unshard by heads
     final_accum = indexed_update(y_i, z_i, local_accum, final_accum)
     return final_accum, rhs
 
@@ -928,39 +893,33 @@ def matmul_collective_weights_gather_q_wi(einsum_spec, lhs,
   def z_loop(z_i, carrys):
     with jax.named_scope('z'):
       final_accum, rhs, y_i = carrys
-
       final_accum, rhs = collect_x(final_accum, rhs, z_i, y_i)
-
       # ideally don't want to do this y extra times
       next_rhs = lax.ppermute(
           rhs, 'z', perm=[(j, (j + 1) % z_size) for j in range(z_size)])
-
       return (final_accum, next_rhs, y_i)
 
   # overlap y movement with all z computation
   def y_loop(y_i, carrys):
     with jax.named_scope('y'):
       final_accum, rhs = carrys
-
       final_accum, rhs, _ = jax.lax.fori_loop(0, z_size - 1, z_loop,
                                               (final_accum, rhs, y_i))
       # we do the z loop one less time than we need to, as the weights
       # shift Z-1 times, then we do an x loop with the final set of z weights
       # [b.YZ, t, h.YZ, q]
       final_accum, rhs = collect_x(final_accum, rhs, z_size - 1, y_i)
-
       # not so costly to do this one extra time
       next_rhs = lax.ppermute(
           rhs, 'y', perm=[(j, (j + 1) % y_size) for j in range(y_size)])
-
       return (final_accum, next_rhs)
 
-  final_accum, rhs = jax.lax.fori_loop(0, y_size - 1, y_loop,
-                                       (final_accum, rhs))
+  final_accum, rhs = jax.lax.fori_loop(
+      0, y_size - 1, y_loop, (final_accum, rhs))
   # we do one less y loop than we need, and instead finish off with the z loop
   # that would have been (to avoid a final permute)
-  final_accum, rhs, _ = jax.lax.fori_loop(0, z_size - 1, z_loop,
-                                          (final_accum, rhs, y_size - 1))
+  final_accum, rhs, _ = jax.lax.fori_loop(
+      0, z_size - 1, z_loop, (final_accum, rhs, y_size - 1))
 
   # and also for x
   final_accum, rhs = collect_x(final_accum, rhs, z_size - 1, y_size - 1)
@@ -993,42 +952,28 @@ def matmul_collective_weights_gather_o_wo(einsum_spec, lhs,
     new_activations: result of computation
   """
   x_size, y_size, z_size = lax.psum(1, 'x'), lax.psum(1, 'y'), lax.psum(1, 'z')
+  x_ai, y_ai, z_ai = (
+      lax.axis_index('x'), lax.axis_index('y'), lax.axis_index('z'))
   axis_size = y_size * z_size
-  axis_index = lax.axis_index('y') * z_size + lax.axis_index('z')
-
   # chunking specific - should be nh dim on lhs
   chunk_size = lhs.shape[lhs_split_axis] // axis_size
 
-  def derive_permutation(y, z, ya, za, head_chunk_size):
-    # to derive the appropriate head to index into given the sequence of
-    # collective permutes, imagine the original partition index along the head
-    # dimension and model the sequence of rolls in y and z dimensions to
-    # determine the appropriate chunk dimension to index into
-    zidx = (za - (y * (z_size - 1) + z)) % z_size
-    yidx = (ya - y) % y_size
-    return (yidx * z_size + zidx) * head_chunk_size
-
   # slice into the weights along the axis we will scatter along
-  # all others are just in a chain as parititoned
-  def indexed_computation(y_i, z_i, rhs):
-    permutes_remaining_after_einsum = (axis_size - 1) - (y_i * z_size + z_i)
-    chunk_index = (axis_index + permutes_remaining_after_einsum) % axis_size
-    y_ai = lax.axis_index('y')
-    z_ai = lax.axis_index('z')
-    chunk_index = derive_permutation(y_i, z_i, y_ai, z_ai, 1)
-
-    c = jax.lax.dynamic_slice_in_dim(lhs, chunk_index * chunk_size, chunk_size,
-                                     lhs_split_axis)
-
-    p = jnp.einsum(einsum_spec, c, rhs)
-    return p
+  # all others are just in a chain as partitioned
+  def indexed_computation(x_i, y_i, z_i, rhs):
+    zidx = (z_ai - (x_i * y_size * (z_size - 1) +
+                    y_i * (z_size - 1) + z_i)) % z_size
+    yidx = (y_ai - (x_i * (y_size - 1) + y_i)) % y_size
+    chunk_index = yidx * z_size + zidx
+    c = jax.lax.dynamic_slice_in_dim(
+        lhs, chunk_index * chunk_size, chunk_size, lhs_split_axis)
+    return jnp.einsum(einsum_spec, c, rhs)
 
   # this should be sized as though normally partitoned by the einsum,
   # but also partitioned along the chunk_split axis
   # [b.YZ, t, h.YZ, q]
 
-  local_accum_shape = jax.eval_shape(indexed_computation, 0, 0, rhs).shape
-  # print(lhs.shape, rhs.shape, local_accum_shape)
+  local_accum_shape = jax.eval_shape(indexed_computation, 0, 0, 0, rhs).shape
   # we will concatenate in the loops over heads, so that we are sharded
   # only over batch
   embed_idx = 2
@@ -1039,49 +984,40 @@ def matmul_collective_weights_gather_o_wo(einsum_spec, lhs,
 
   def indexed_update(x_i, update, final_accum):
     """Stacks alongs the dimension sharded by xy."""
-    # print('f', final_accum.shape, 'u', update.shape, final_embed_dim)
     indices = [0] * len(final_accum.shape)
-    indices[embed_idx] = x_i
+    indices[embed_idx] = ((x_ai - x_i) % x_size) * update.shape[lhs_split_axis]
     return jax.lax.dynamic_update_slice(final_accum, update, indices)
 
   # overlap chunk computation with x
   def z_loop_and_matmul(z_i, carrys):
     with jax.named_scope('z'):
-
-      accum, rhs, y_i = carrys
-
-      p = indexed_computation(y_i, z_i, rhs)  # index w/ x_i as we rebuild embed
-      accum += p
-
+      accum, rhs, x_i, y_i = carrys
+      accum += indexed_computation(x_i, y_i, z_i, rhs)
       next_rhs = lax.ppermute(
           rhs, 'z', perm=[(j, (j + 1) % z_size) for j in range(z_size)])
-
-      return accum, next_rhs, y_i
+      return accum, next_rhs, x_i, y_i
 
   # overlap z movement with entire x computation
   def y_loop(y_i, carrys):
     with jax.named_scope('y'):
-      local_accum, rhs = carrys
-
-      local_accum, rhs, _ = jax.lax.fori_loop(0, z_size - 1, z_loop_and_matmul,
-                                              (local_accum, rhs, y_i))
-      local_accum += indexed_computation(y_i, z_size - 1, rhs)
-
+      local_accum, rhs, x_i = carrys
+      local_accum, rhs, _, _ = jax.lax.fori_loop(
+          0, z_size - 1, z_loop_and_matmul, (local_accum, rhs, x_i, y_i))
+      local_accum += indexed_computation(x_i, y_i, z_size - 1, rhs)
       # ideally don't want to do this y extra times
       next_rhs = lax.ppermute(
           rhs, 'y', perm=[(j, (j + 1) % y_size) for j in range(y_size)])
-
-      return local_accum, next_rhs
+      return local_accum, next_rhs, x_i
 
   def collect_yz(final_accum, rhs, x_i):
     local_accum = jnp.zeros(local_accum_shape, dtype=lhs.dtype)
-    local_accum, rhs = jax.lax.fori_loop(0, y_size - 1, y_loop,
-                                         (local_accum, rhs))
-    local_accum, rhs, _ = jax.lax.fori_loop(0, z_size - 1, z_loop_and_matmul,
-                                            (local_accum, rhs, y_size - 1))
+    local_accum, rhs, _ = jax.lax.fori_loop(
+        0, y_size - 1, y_loop, (local_accum, rhs, x_i))
+    local_accum, rhs, _, _ = jax.lax.fori_loop(
+        0, z_size - 1, z_loop_and_matmul, (local_accum, rhs, x_i, y_size - 1))
     # do one less loop to skip an uneeded permute
-    local_accum += indexed_computation(y_size - 1, z_size - 1, rhs)
-    # concatenate and slowly unshard by heads
+    local_accum += indexed_computation(x_i, y_size - 1, z_size - 1, rhs)
+    # concatenate and unshard by heads
     final_accum = indexed_update(x_i, local_accum, final_accum)
     return final_accum, rhs
 
@@ -1089,20 +1025,17 @@ def matmul_collective_weights_gather_o_wo(einsum_spec, lhs,
   def x_loop(x_i, carrys):
     with jax.named_scope('x'):
       final_accum, rhs = carrys
-
       # we do the z loop one less time than we need to, as the weights
       # shift Z-1 times, then we do an x loop with the final set of z weights
       # [b.YZ, t, h.YZ, q]
       final_accum, rhs = collect_yz(final_accum, rhs, x_i)
-
       # not so costly to do this one extra time
       next_rhs = lax.ppermute(
           rhs, 'x', perm=[(j, (j + 1) % x_size) for j in range(x_size)])
-
       return (final_accum, next_rhs)
 
-  final_accum, rhs = jax.lax.fori_loop(0, x_size - 1, x_loop,
-                                       (final_accum, rhs))
+  final_accum, rhs = jax.lax.fori_loop(
+      0, x_size - 1, x_loop, (final_accum, rhs))
   # we do one less y loop than we need, and instead finish off with the z loop
   # that would have been (to avoid a final permute)
   final_accum, rhs = collect_yz(final_accum, rhs, x_size - 1)
@@ -1111,8 +1044,11 @@ def matmul_collective_weights_gather_o_wo(einsum_spec, lhs,
 
 
 # raw reduce-scatter collectives
+
 # unused in paper, but presented here as isolated lowerings
 # of reduce-scatter to collective permutes.
+
+
 # pylint: disable = unused-argument
 def plain_reducescatter(val,
                         scatter_dimension,

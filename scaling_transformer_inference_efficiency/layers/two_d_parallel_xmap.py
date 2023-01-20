@@ -469,8 +469,7 @@ def transformer_layer_weight_gathered(
         my_layer(
             params.q_wi
         ),  # in this case it makes sense to do this here because its once
-        lhs_split_axis=2,
-        axis_name='x')  #   -> [batch.XYZ, t, h, q_wi_per_head]
+        lhs_split_axis=2)  #   -> [batch.XYZ, t, h, q_wi_per_head]
 
     if isinstance(params, weights.QuantizedLayer):
       prev_shape = q_wi.shape

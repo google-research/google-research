@@ -542,8 +542,8 @@ def transformer_layer_weight_gathered_serial(
 
   with jax.named_scope('attention'):
     q = collectives.matmul_collective_weights_gather_q_wi(
-        'bte,hed->bthd', xnorm, q_weight, lhs_split_axis=2,
-        axis_name='x')  #   -> [batch.XYZ, t, h, q]
+        'bte,hed->bthd', xnorm, q_weight, lhs_split_axis=2)
+    # -> [batch.XYZ, t, h, q]
 
     with jax.named_scope('kv'):
       # [batch.XYZ, t, e] @ [e, 1, 2*qkv] -> [batch.XYZ, t, 1, 2*qkv]
@@ -586,8 +586,8 @@ def transformer_layer_weight_gathered_serial(
   with jax.named_scope('mlp'):
     # print(f'xnorm {xnorm.shape} wi_weight {wi_weight.shape}')
     wi = collectives.matmul_collective_weights_gather_q_wi(
-        'bte,hed->bthd', xnorm, wi_weight, lhs_split_axis=2,
-        axis_name='x')  #   -> [batch.XYZ, t, h, wi_per_head]
+        'bte,hed->bthd', xnorm, wi_weight, lhs_split_axis=2)
+    # -> [batch.XYZ, t, h, wi_per_head]
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled
