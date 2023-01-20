@@ -13,19 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2022 Google LLC
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     https://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Cosmology calculations in jax.
 
 This module includes functions to calculate basic cosmology quantities all
@@ -40,7 +27,7 @@ from typing import Mapping, Optional, Tuple, Union
 import jax
 import jax.numpy as jnp
 
-from third_party.google_research.google_research.jaxstronomy import power_spectrum
+from jaxstronomy import power_spectrum
 
 SPEED_OF_LIGHT = 2.99792458e8
 # Linear density threshold for collapse.
