@@ -108,10 +108,10 @@ def setup(batch_size, seq_len, latency_collectives):
     new_layer = params.layer
     new_layer = new_layer.replace(
         q_wi=collectives.preshuffle_for_reducescatter_latency(
-            new_layer.q_wi, sharded_dim='x', scatter_dim=1))
+            new_layer.q_wi, scatter_axis=1, axis_name='x'))
     new_layer = new_layer.replace(
         o_wo=collectives.preshuffle_for_allgather_matmul_latency(
-            new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
+            new_layer.o_wo, shuffle_axis=1, axis_name='x'))
     return params.replace(layer=new_layer)
 
   if latency_collectives:

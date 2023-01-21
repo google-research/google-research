@@ -153,10 +153,10 @@ def transformer_layer_weight_stationary_serial(
             'bte,hed->bthd',
             xnorm,
             params.q,
-            scatter_dimension=(0, 2),
+            scatter_axis=0,
             axis_name='x',
             layer=layer,
-            subsplit_axis=0)
+            subsplit_axis=2 if latency_collectives else 0)
       else:
 
         q_unreduced = jnp.einsum('bte,hed->bthd', xnorm, my_layer(params.q))
@@ -200,7 +200,7 @@ def transformer_layer_weight_stationary_serial(
           'bte,ehd->bthd',
           xnorm,
           params.kv,
-          scatter_dimension=(1, 2),
+          scatter_dimension=1,
           axis_name='x',
           layer=layer,
           subsplit_axis=2)
@@ -363,7 +363,7 @@ def transformer_layer_weight_stationary_serial(
           'bthd,hde->bte',
           y_att,
           params.o,
-          scatter_dimension=(2, 2),
+          scatter_axis=2,
           axis_name='y',
           layer=layer,
           subsplit_axis=2)
@@ -396,10 +396,10 @@ def transformer_layer_weight_stationary_serial(
           'bte,hed->bthd',
           xnorm2,
           params.wi,
-          scatter_dimension=(0, 2),
+          scatter_dimension=0,
           axis_name='x',
           layer=layer,
-          subsplit_axis=0)
+          subsplit_axis=2 if latency_collectives else 0)
     else:
 
       wi_unreduced = jnp.einsum('bte,hed->bthd', xnorm2, my_layer(params.wi))
@@ -485,7 +485,7 @@ def transformer_layer_weight_stationary_serial(
           'bthd,hde->bte',
           y_mlp,
           params.wo,
-          scatter_dimension=(2, 2),
+          scatter_dimension=2,
           axis_name='y',
           layer=layer,
           subsplit_axis=2)
@@ -542,8 +542,8 @@ def transformer_layer_weight_gathered_serial(
 
   with jax.named_scope('attention'):
     q = collectives.matmul_collective_weights_gather_q_wi(
-        'bte,hed->bthd', xnorm, q_weight, lhs_split_axis=2)
-    # -> [batch.XYZ, t, h, q]
+        'bte,hed->bthd', xnorm, q_weight, lhs_split_axis=2,
+        axis_name='x')  #   -> [batch.XYZ, t, h, q]
 
     with jax.named_scope('kv'):
       # [batch.XYZ, t, e] @ [e, 1, 2*qkv] -> [batch.XYZ, t, 1, 2*qkv]
@@ -586,8 +586,8 @@ def transformer_layer_weight_gathered_serial(
   with jax.named_scope('mlp'):
     # print(f'xnorm {xnorm.shape} wi_weight {wi_weight.shape}')
     wi = collectives.matmul_collective_weights_gather_q_wi(
-        'bte,hed->bthd', xnorm, wi_weight, lhs_split_axis=2)
-    # -> [batch.XYZ, t, h, wi_per_head]
+        'bte,hed->bthd', xnorm, wi_weight, lhs_split_axis=2,
+        axis_name='x')  #   -> [batch.XYZ, t, h, wi_per_head]
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled

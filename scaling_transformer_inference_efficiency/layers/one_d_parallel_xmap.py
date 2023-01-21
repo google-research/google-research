@@ -254,7 +254,7 @@ def transformer_layer_weight_stationary_1d_weight_stationary(
         'bthd,hde->bte',
         y_fused,
         params.o_wo,
-        scatter_dimension=(2, 2),
+        scatter_axis=2,
         axis_name='x',
         layer=layer,
         subsplit_axis=2)

@@ -455,17 +455,17 @@ class XmapModel:
       if latency:
         new_layer = new_layer.replace(
             q_wi=collectives.preshuffle_for_reducescatter_latency(
-                new_layer.q_wi, sharded_dim='x', scatter_dim=1))
+                new_layer.q_wi, scatter_axis=1, axis_name='x'))
         new_layer = new_layer.replace(
             o_wo=collectives.preshuffle_for_allgather_matmul_latency(
-                new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
+                new_layer.o_wo, shuffle_axis=1, axis_name='x'))
       else:
         new_layer = new_layer.replace(
             q_wi=collectives.preshuffle_for_reducescatter_throughput(
-                new_layer.q_wi, 'x', scatter_dim=1, subsplit_axis=3))
+                new_layer.q_wi, scatter_axis=1, subsplit_axis=3, axis_name='x'))
         new_layer = new_layer.replace(
             o_wo=collectives.preshuffle_for_allgather_matmul_throughput(
-                new_layer.o_wo, shuffle_axis=1, shard_axis='x'))
+                new_layer.o_wo, shuffle_axis=1, axis_name='x'))
 
       return params.replace(layer=new_layer)
 
@@ -569,7 +569,9 @@ class XmapModel:
       else:
         out_axes = self.result_layout
 
-      embeddings_layout = None if pre_embedded_inputs is None else self.embeddings_layout
+      embeddings_layout = (None
+                           if pre_embedded_inputs is None
+                           else self.embeddings_layout)
 
       chunk_result = xmap(
           prefill_impl,

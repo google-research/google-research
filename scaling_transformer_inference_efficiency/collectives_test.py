@@ -63,7 +63,7 @@ class CollectivesTest(absltest.TestCase):
           'ab,bCc->aCc',
           lhs,
           rhs,
-          scatter_dimension=(1, 1),
+          scatter_axis=1,
           axis_name='x',
           layer=LAYER)
       # Squeeze out C.X dim, which is now 1 on each device.
@@ -175,7 +175,7 @@ class CollectivesTest(absltest.TestCase):
         })
     def allgather_matmul_throughput(lhs, rhs):
       rhs = collectives.preshuffle_for_allgather_matmul_throughput(
-          rhs, shuffle_axis=1, shard_axis='x')
+          rhs, shuffle_axis=1, axis_name='x')
       return collectives.allgather_matmul_throughput(
           'bthd,hde->bte',
           lhs,
@@ -235,7 +235,7 @@ class CollectivesTest(absltest.TestCase):
       # rhs: [H.YZ, D, E.X]
       # lhs @ rhs -> [B, T, E.X] {yz unreduced}
       rhs = collectives.preshuffle_for_allgather_matmul_latency(
-          rhs, shuffle_axis=1, shard_axis='x')
+          rhs, shuffle_axis=1, axis_name='x')
       return collectives.allgather_matmul_latency(
           'bthd,hde->bte',
           lhs,
@@ -275,8 +275,9 @@ class CollectivesTest(absltest.TestCase):
       return collectives.matmul_reducescatter_no_collective(
           'btd,hde->bthe',
           lhs,
-          rhs, (None, 2),
-          'x',
+          rhs,
+          scatter_axis=2,
+          axis_name='x',
           layer=0,
           layer_axis=0)
 
@@ -296,8 +297,9 @@ class CollectivesTest(absltest.TestCase):
       return collectives.matmul_reducescatter_oneway(
           'btd,hde->bthe',
           lhs,
-          rhs, (0, None),
-          'x',
+          rhs,
+          scatter_axis=0,
+          axis_name='x',
           layer=0,
           layer_axis=0)
 
@@ -331,8 +333,9 @@ class CollectivesTest(absltest.TestCase):
       return collectives.matmul_reducescatter_no_collective(
           'btd,hde->bthe',
           lhs,
-          rhs, (None, 2),
-          'x',
+          rhs,
+          scatter_axis=2,
+          axis_name='x',
           layer=0,
           layer_axis=0)
 
@@ -351,12 +354,13 @@ class CollectivesTest(absltest.TestCase):
     def matmul_reducescatter_throughput(lhs, rhs):
       # scatter along heads, subsplit along embed
       rhs = collectives.preshuffle_for_reducescatter_throughput(
-          rhs, 'x', 1, 3)
+          rhs, axis_name='x', scatter_axis=1, subsplit_axis=3)
       return collectives.matmul_reducescatter_throughput(
           'btd,hde->bthe',
           lhs,
-          rhs, (0, 2),
-          'x',
+          rhs,
+          scatter_axis=0,
+          axis_name='x',
           layer=0,
           layer_axis=0,
           subsplit_axis=3)
@@ -391,8 +395,9 @@ class CollectivesTest(absltest.TestCase):
       return collectives.matmul_reducescatter_no_collective(
           'btd,hde->bthe',
           lhs,
-          rhs, (None, 2),
-          'x',
+          rhs,
+          scatter_axis=2,
+          axis_name='x',
           layer=0,
           layer_axis=0)
 
@@ -401,7 +406,7 @@ class CollectivesTest(absltest.TestCase):
 
     def shuffle(rhs):
       return collectives.preshuffle_for_reducescatter_latency(
-          rhs, 'x', 1)
+          rhs, axis_name='x', scatter_axis=1)
 
     @functools.partial(
         xmap,
@@ -420,11 +425,12 @@ class CollectivesTest(absltest.TestCase):
       return collectives.matmul_reducescatter_latency(
           'btd,hde->bthe',
           lhs,
-          rhs, (0, 2),
-          'x',
+          rhs,
+          scatter_axis=0,
+          axis_name='x',
           layer=0,
           layer_axis=0,
-          subsplit_axis=3)
+          subsplit_axis=2)
 
     with mesh:
       result = matmul_reducescatter_latency(lhs, rhs)

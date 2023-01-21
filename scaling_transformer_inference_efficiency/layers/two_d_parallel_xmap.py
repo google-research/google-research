@@ -191,7 +191,7 @@ def transformer_layer_weight_stationary(
   """
   if latency_collectives:
     matmul_reducescatter = partial(
-        collectives.matmul_reducescatter_latency, subsplit_axis=0)
+        collectives.matmul_reducescatter_latency, subsplit_axis=2)
     # reducescatter = collectives.reducescatter_latency
     # subsplit along heads as they are indepedent
     # partial here because the one-way algorithm does not use subsplit
@@ -251,7 +251,7 @@ def transformer_layer_weight_stationary(
         'bte,hed->bthd',
         xnorm,
         params.q_wi,
-        scatter_dimension=(0, 2),
+        scatter_axis=0,
         axis_name='x',
         layer=layer)
 
