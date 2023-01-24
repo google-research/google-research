@@ -65,11 +65,16 @@ def _get_length_range_options(upper_bound):
   return length_range_options
 
 
-def random_inputs(num_examples, num_inputs):
+def random_inputs(num_examples, num_inputs,
+                  types = None):
   """Randomly sample inputs for multiple examples."""
-  # At least one of inputs has to be a list.
-  types = [list] + random.choices([int, list], k=num_inputs - 1)
-  random.shuffle(types)
+  if types is None:
+    # At least one of inputs has to be a list.
+    types = [list] + random.choices([int, list], k=num_inputs - 1)
+    random.shuffle(types)
+  elif len(types) != num_inputs:
+    raise ValueError(f'Length of `types` ({len(types)}) should match '
+                     f'`num_inputs` ({num_inputs}).')
 
   # Choose some constraints on input lists that will be used for all examples.
   # Ranges are inclusive.
@@ -252,6 +257,16 @@ def has_dead_code(program):
   return False
 
 
+def has_duplicate_output(program,
+                         example_inputs):
+  """Checks if the program always produces the same output across examples."""
+  states = [program.run(inputs) for inputs in example_inputs]
+  outputs = [str(state.get_output()) for state in states if state is not None]
+  if len(outputs) != len(example_inputs):
+    raise dsl.DeepCoderError('Random program should execute on all inputs.')
+  return len(set(outputs)) < len(outputs)
+
+
 def has_constant_output(program,
                         example_inputs):
   """Checks if the program always produces the same output across examples."""
@@ -332,6 +347,7 @@ def random_task(
     lambdas = None,
     reject_dead_code = True,
     reject_redundant_code = True,
+    reject_duplicate_output = True,
     reject_constant_output = True):
   """Randomly sample a new program."""
   if operations is None:
@@ -366,6 +382,8 @@ def random_task(
     should_reject_program = (
         program is None or
         (reject_dead_code and has_dead_code(program)) or
+        (reject_duplicate_output and has_duplicate_output(program,
+                                                          example_inputs)) or
         (reject_constant_output and has_constant_output(program,
                                                         example_inputs)))
     if not should_reject_program:

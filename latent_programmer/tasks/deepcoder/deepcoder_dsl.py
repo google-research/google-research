@@ -29,7 +29,7 @@ Features:
           * Check to make sure the random program doesn't have dead code
       * Generate random inputs for a program
       * Ways of generating compositional generalization splits
-  * A flag controlling whether we use mod-10 arithmetic or not
+  * A flag controlling whether we use modular arithmetic or not
 
 Helpful properties to know:
 
@@ -173,11 +173,17 @@ def mod_result(result):
   return result
 
 
+def min_int():
+  return 0 if deepcoder_mod() > 0 else MIN_INT
+
+
+def max_int():
+  return deepcoder_mod() - 1 if deepcoder_mod() > 0 else MAX_INT
+
+
 def validate_int(i):
   """Checks that the integer is in range."""
-  if deepcoder_mod() > 0:
-    return 0 <= i < deepcoder_mod()
-  return MIN_INT <= i <= MAX_INT
+  return min_int() <= i <= max_int()
 
 
 def validate_result(result):
@@ -205,6 +211,16 @@ def tokenize_result(result):
 
 def result_to_str(result):
   return ' '.join(tokenize_result(result))
+
+
+def str_to_result(result_str):
+  # If we find spaces surrounded by digits, place a comma there. This
+  # converts comma-less "[ 6 7 8 ]" into something parseable, "[ 6, 7, 8 ]".
+  result_str = re.sub(r'(?<=\d) +(?=-|\d)', ', ', result_str)
+  try:
+    return ast.literal_eval(result_str)
+  except (ValueError, SyntaxError):
+    return None
 
 
 class ProgramState(object):
@@ -282,15 +298,8 @@ class ProgramState(object):
       variable = lhs
       if variable in variables:
         raise ParseError(f'Found duplicate variable: {variable}')
-      # If we find spaces surrounded by digits, place a comma there. This
-      # converts comma-less "[ 6 7 8 ]" into something parseable, "[ 6, 7, 8 ]".
-      rhs = re.sub(r'(?<=\d) +(?=-|\d)', ', ', rhs)
-      try:
-        result = ast.literal_eval(rhs)
-        result_is_valid = validate_result(result)
-      except (ValueError, SyntaxError):
-        result = None
-        result_is_valid = False
+      result = str_to_result(rhs)
+      result_is_valid = validate_result(result)
       if not result_is_valid:
         raise ParseError(f'Found invalid result `{result}` from RHS {rhs!r}')
       state.append(result)
@@ -607,12 +616,7 @@ def vocab_tables():
 
   # These tokens may change based on flags or other settings.
   tokens.extend(variable_token(index) for index in range(MAX_NUM_VARIABLES))
-  if deepcoder_mod() > 0:
-    min_int = 0
-    max_int = deepcoder_mod() - 1
-  else:
-    min_int, max_int = MIN_INT, MAX_INT
-  tokens.extend(str(i) for i in range(min_int, max_int + 1))
+  tokens.extend(str(i) for i in range(min_int(), max_int() + 1))
 
   # Construct mappings between tokens and ids.
   id_to_token = {i: token for i, token in enumerate(tokens)}

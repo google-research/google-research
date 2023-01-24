@@ -127,6 +127,19 @@ class DatasetTest(parameterized.TestCase):
     self.assertEqual(sample_random.has_dead_code(program), expected)
 
   @parameterized.named_parameters(
+      ('sort_min_has_duplicate_2',
+       'x3 = INPUT | x4 = Sort x3 | x6 = Minimum x4', True),
+      ('sort_max_all_different',
+       'x3 = INPUT | x4 = Sort x3 | x6 = Maximum x4', False),
+  )
+  def test_has_duplicate_output(self, program_str, expected):
+    program = deepcoder_dsl.Program.from_str(program_str)
+    example_inputs = [[[4, 2, 3]], [[6, 8, 5]], [[2, 7]]]
+    self.assertEqual(sample_random.has_duplicate_output(program,
+                                                        example_inputs),
+                     expected)
+
+  @parameterized.named_parameters(
       ('sort_min_always_2',
        'x3 = INPUT | x4 = Sort x3 | x6 = Minimum x4', True),
       ('sort_max_different',

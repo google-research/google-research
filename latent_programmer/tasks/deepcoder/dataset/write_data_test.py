@@ -39,6 +39,9 @@ class WriteDataTest(parameterized.TestCase):
     task = deepcoder_dsl.ProgramTask(program, examples)
 
     results = write_data.serialize_decomposition_examples(task)
+    result_0_example = tf.train.Example.FromString(results[0])
+    result_1_example = tf.train.Example.FromString(results[1])
+
     expected_result_0 = tf.train.Example(
         features=tf.train.Features(
             feature={
@@ -49,6 +52,12 @@ class WriteDataTest(parameterized.TestCase):
                     write_data._bytes_feature(['[ 5 2 ]', '[ 3 6 9 ]']),
                 'next_part':
                     write_data._bytes_feature(['[ 5 2 4 ]', '[ 3 6 9 8 ]']),
+                'corrupted_next_part':
+                    # This feature is generated randomly. Copy it over from the
+                    # actual result, to effectively ignore it.
+                    write_data._bytes_feature(
+                        result_0_example.features.feature['corrupted_next_part']
+                        .bytes_list.value),
                 'program_part':
                     write_data._bytes_feature(['x2 = Map (+1) x5']),
             }))
@@ -63,12 +72,17 @@ class WriteDataTest(parameterized.TestCase):
                     write_data._bytes_feature(['[ 5 2 ]', '[ 3 6 9 ]']),
                 'next_part':
                     write_data._bytes_feature(['[ 5 2 ]', '[ 3 6 9 ]']),
+                'corrupted_next_part':
+                    # This feature is generated randomly.
+                    write_data._bytes_feature(
+                        result_1_example.features.feature['corrupted_next_part']
+                        .bytes_list.value),
                 'program_part':
                     write_data._bytes_feature(['x7 = Take x1 x2']),
             }))
     self.assertLen(results, 2)
-    self.assertEqual(tf.train.Example.FromString(results[0]), expected_result_0)
-    self.assertEqual(tf.train.Example.FromString(results[1]), expected_result_1)
+    self.assertEqual(result_0_example, expected_result_0)
+    self.assertEqual(result_1_example, expected_result_1)
 
   def test_serialize_entire_program_example(self):
     # Checks that task is serialized correctly using a hard-coded example.

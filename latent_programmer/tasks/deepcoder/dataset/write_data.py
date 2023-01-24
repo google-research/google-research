@@ -15,9 +15,11 @@
 
 """Write supervised training tasks to TFRecord dataset."""
 
+import copy
 import hashlib
 import os
 import random
+import typing
 from typing import List, Union
 
 from absl import app
@@ -58,7 +60,7 @@ _MAX_PROGRAM_ARITY = flags.DEFINE_integer(
 def _bytes_feature(strs):
   """Returns a bytes_list Feature from a list of strings."""
   return tf.train.Feature(bytes_list=tf.train.BytesList(
-      value=[str.encode(s) for s in strs]))
+      value=[s if isinstance(s, bytes) else str.encode(s) for s in strs]))
 
 
 def serialize_entire_program_example(task):
@@ -75,6 +77,81 @@ def serialize_entire_program_example(task):
   # Create a Features message using tf.train.Example.
   example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
   return example_proto.SerializeToString()
+
+
+def _corrupt(next_parts, outputs):
+  """Corrupts next_part so that the SynthesizerModel can be more robust."""
+  results = [dsl.str_to_result(part) for part in next_parts]
+  assert all(type(r) == type(results[0]) for r in results)  # pylint: disable=unidiomatic-typecheck
+  num_examples = len(outputs)
+
+  corrupted = next_parts
+  while corrupted == next_parts:  # Reject corruption if nothing changed.
+    technique = random.choice(['copy_output', 'perturb', 'new_random'])
+
+    if technique == 'copy_output':
+      corrupted = list(outputs)
+
+    elif technique == 'perturb':
+
+      if type(results[0]) == int:  # pylint: disable=unidiomatic-typecheck
+        # Choose the number of examples to change, favoring fewer changes but
+        # allowing up to `num_examples - 1` changes.
+        max_changes = random.randint(1, num_examples - 1)
+        num_changes = random.randint(1, max_changes)
+        should_change = ([True] * num_changes +
+                         [False] * (num_examples - num_changes))
+        random.shuffle(should_change)
+        random_new_inputs = sample_random.random_inputs(
+            num_examples=num_examples, num_inputs=1, types=[int])
+        changed = [random_new_inputs[i][0] if should_change[i] else results[i]
+                   for i in range(num_examples)]
+
+      else:
+        assert type(results[0]) == list  # pylint: disable=unidiomatic-typecheck
+        changed = copy.deepcopy(results)  # Will perform changes in place.
+        for result in changed:
+          result = typing.cast(List[int], result)  # Not an int or None.
+          # Perturbed numbers should be chosen reasonably considering the
+          # existing numbers.
+          min_result = min(result) if result else dsl.min_int()
+          max_result = max(result) if result else dsl.max_int()
+          range_expansion = max(5, (max_result - min_result) // 2)
+          min_perturb = max(dsl.min_int(), min_result - range_expansion)
+          max_perturb = min(dsl.max_int(), max_result + range_expansion)
+
+          max_num_perturbations = min(max(2, len(result) // 2), 5)
+          num_perturbations = random.randint(0, max_num_perturbations)
+          for _ in range(num_perturbations):
+            # Note, it's possible for a perturbation to undo a previous one.
+            kind_options = ['insert']
+            if result:
+              kind_options.extend(['delete', 'replace'])
+            kind = random.choice(kind_options)
+            if kind == 'insert':
+              result.insert(random.randint(0, len(result)),
+                            random.randint(min_perturb, max_perturb))
+            elif kind == 'delete':
+              del result[random.randint(0, len(result) - 1)]
+            elif kind == 'replace':
+              result[random.randint(0, len(result) - 1)] = random.randint(
+                  min_perturb, max_perturb)
+            else:
+              raise ValueError(f'Unhandled perturbation kind: {kind}')
+
+      corrupted = [dsl.result_to_str(r) for r in changed]
+
+    elif technique == 'new_random':
+      random_new_inputs = sample_random.random_inputs(
+          num_examples=num_examples, num_inputs=1,
+          types=[random.choice([int, list])])
+      corrupted = [dsl.result_to_str(input_list[0])
+                   for input_list in random_new_inputs]
+
+    else:
+      raise ValueError('Unhandled corruption technique: {}'.format(technique))
+
+  return corrupted
 
 
 def serialize_decomposition_examples(task):
@@ -101,11 +178,13 @@ def serialize_decomposition_examples(task):
     next_states = [statement.run(state) for state in states]
     next_part = [dsl.result_to_str(next_state.get_output())
                  for next_state in next_states]
+    corrupted_next_part = _corrupt(next_part, outputs=example_outputs_strs)
     program_part_string = str(statement)
     feature = {
         'inputs': _bytes_feature(example_inputs_strs),
         'outputs': _bytes_feature(example_outputs_strs),
         'next_part': _bytes_feature(next_part),
+        'corrupted_next_part': _bytes_feature(corrupted_next_part),
         'program_part': _bytes_feature([program_part_string]),
     }
     example_proto = tf.train.Example(
@@ -236,7 +315,7 @@ def main(_):
 
   # Write the `tf.Example` observations to the file.
   with tf.io.TFRecordWriter(entire_programs_fname) as entire_programs_writer, \
-      tf.io.TFRecordWriter(decomposition_data_fname) as decomposition_data_writer:
+      tf.io.TFRecordWriter(decomposition_data_fname) as decomposition_writer:
     for i in range(_NUM_PROGRAMS.value):
       if _SPLIT.value in ['train', 'valid']:
         is_train = True
@@ -250,7 +329,7 @@ def main(_):
 
       entire_programs_writer.write(serialize_entire_program_example(task))
       for example in serialize_decomposition_examples(task):
-        decomposition_data_writer.write(example)
+        decomposition_writer.write(example)
 
 if __name__ == '__main__':
   app.run(main)
