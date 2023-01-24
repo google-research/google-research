@@ -14,8 +14,9 @@
 # limitations under the License.
 
 """Utils for debiasing ML models."""
-
 import math
+
+from typing import Optional
 
 import numpy as np
 
@@ -27,18 +28,21 @@ class RandomizedThreshold:
 
   This is a solver to the following optimiation problem:
     minimize   gamma/2 ||x||^2 - y^Tx
-    s.t.       x satisfies DP constraint with tolerance eps and parameter rho.
+    s.t.       x satisfying DP constraints with tolerance eps and parameter rho.
 
   There are no assumptions about y in this code but, in general, y should be the
   predictions of the original classifier.
   """
 
-  def __init__(self, gamma=1.0, eps=0.0, rho=None):
+  def __init__(self, gamma: float = 1.0,
+               eps: float = 0.0,
+               rho: Optional[float] = None
+               ) -> None:
     """Instantiate object.
 
     Args:
       gamma: The regularization parameter gamma (for randomization). Set this to
-        1 if the goal is to minmize changes to the original scores.
+        1 if the goal is to minmize l2 difference from the original scores.
       eps: Tolerance parameter for bias between 0 and 1 inclusive.
       rho: The rho parameter in the post-hoc rule. If None, rho = E[y].
     """
@@ -61,15 +65,16 @@ class RandomizedThreshold:
     self.lambdas = []
     self.mus = []
 
-  def fit(self, y_orig, group_feature, sgd_steps,
-          full_gradient_epochs=1_000, verbose=True, batch_size=256,
-          ignore_warnings=False):
+  def fit(self,
+          y_orig: np.ndarray,
+          group_feature: np.ndarray,
+          sgd_steps: int = 10_000,
+          full_gradient_epochs: int = 1_000,
+          verbose: bool = True,
+          batch_size: int = 256,
+          ignore_warnings: bool = False
+          ) -> None:
     """Debias predictions w.r.t. the sensitive class in each demographic group.
-
-    This procedure takes as input a vector y=y_orig and solves the optimization
-    problem subject to the statistical parity constraint.
-      minimize_x   gamma/2 ||x||^2 - y^Tx
-      s.t.      x satisfies DP constraints with tolerance eps and parameter rho.
 
     IMPORTANT: If this is used for postprocessing a classifier,
       the scores y_orig need to be rescaled linearly to [-1, +1].
@@ -77,12 +82,12 @@ class RandomizedThreshold:
     Training proceeds in two rounds. First is SGD. Second is full gradient
     descent. Full gradient descent is recommended when debiasing deep neural
     nets because the scores are concentrated around the extremes
-    so high preciseion might be needed. Because the loss is smooth, the lr
+    so high preciseion might be needed. Because the loss is smooth, lr
     in full gradient method does not need tuning. It can be set to gamma / 2.0.
 
     Args:
       y_orig: A vector of the original probability scores. If this is used for
-        debiasing binary classifiers, y_orig = 2 * p(y=1) -1.
+        debiasing binary classifiers, y_orig = 2 * p(y=1) - 1.
       group_feature: An array containing the group id of each instance starting
         from group 0 to group K-1.
       sgd_steps: Number of minibatch steps in SGD.
@@ -90,11 +95,8 @@ class RandomizedThreshold:
       verbose: Set to True to display progress.
       batch_size: Size of minibatches in SGD.
       ignore_warnings: Set to True to suppress warnings.
-
-    Returns:
-      None.
     """
-    if min(y_orig) >= 0:
+    if min(y_orig) >= 0:  # use this to catch a common bug
       self.yscale = 'positive'
     else:
       self.yscale = 'negative'
@@ -102,14 +104,17 @@ class RandomizedThreshold:
     y_orig = np.array(y_orig)
     num_groups = len(set(group_feature))  # number of demographic groups
 
+    # warnings against common bugs/errors
     if (min(y_orig) < -1 or max(y_orig) > 1) and not ignore_warnings:
-      print('Warning: the scores y_orig are not in the range [-1, +1].'
+      print('Warning: the scores y_orig are not in the range [-1, +1]. '
             'To suppress this message, set ignore_warnings=True.')
 
     if self.yscale == 'positive' and not ignore_warnings:
       print('Warning: if this is for postprocessing a binary classifier, '
             'the scores need to be rescaled to [-1, +1]. To suppress this '
             'message, set ignore_warnings=True.')
+
+    # assert that group_feature is of the right form and no group is empty
     if min(group_feature) != 0 or (max(group_feature) != num_groups - 1):
       raise ValueError('group_feature should be in {0, 1, .. K-1} where '
                        'K is the nubmer of groups. Some groups are missing.')
@@ -119,17 +124,12 @@ class RandomizedThreshold:
     gamma = self.gamma
 
     # Store group membership ids in a dictionary.
-    xk_groups = {}
-    for k in range(num_groups):
-      xk_groups[k] = []
+    xk_groups = {k: [] for k in range(num_groups)}
     for i in range(len(group_feature)):
       xk_groups[group_feature[i]].append(i)
 
-    for k in xk_groups:
-      assert xk_groups[k]  # All groups must be non-empty.
-
     self.avrg_y_score = float(sum(y_orig))/len(y_orig)
-    if self.rho is None:
+    if self.rho is None:  # by default: self.rho = E[y] in [0, 1] not [-1, 1]
       if self.yscale == 'positive':
         self.rho = self.avrg_y_score
       else:
@@ -139,8 +139,8 @@ class RandomizedThreshold:
     # lambdas_final and mus_final are running averages (final output).
     lambdas = np.zeros((num_groups,))
     mus = np.zeros((num_groups,))
-    lambdas_final = np.zeros((num_groups,))  # running averages
-    mus_final = np.zeros((num_groups,))  # running averages
+    lambdas_final = np.zeros_like(lambdas)  # running averages
+    mus_final = np.zeros_like(mus)  # running averages
 
     # SGD is carried out in each group separately due to decomposition of the
     # optimization problem.
@@ -157,7 +157,7 @@ class RandomizedThreshold:
       idx = np.array(list(xk_groups[k]))  # instance IDs in group k
       group_size = len(idx)
       for _ in range(sgd_steps):
-        # Using random.randint is 10x faster than random.choice.
+        # random.randint is 10x faster than random.choice.
         batch_ids = np.random.randint(0, group_size, batch_size)
         batch_ids = idx[batch_ids]
 
@@ -189,7 +189,7 @@ class RandomizedThreshold:
         mus_final[k] += mus[k] / sgd_steps
 
     # Now switch to full gradient descent.
-    # Because the objective is smooth, lr=gamma/2 works.
+    # Because the objective is smooth, lr = gamma / 2 works.
     if verbose and full_gradient_epochs:
       print('\nFull gradient descent phase started:')
     for k in range(num_groups):
@@ -216,30 +216,34 @@ class RandomizedThreshold:
     self.lambdas = lambdas_final
     self.mus = mus_final
 
-  def predict(self, y_orig, group_feature, ignore_warnings=False):
+  def predict(self,
+              y_orig: np.ndarray,
+              group_feature: np.ndarray,
+              ignore_warnings: bool = False
+              ) -> np.ndarray:
     """Debiases the predictions.
 
-    Given the original scores y, post-process them according to the learned
-    model such that the predictions satisfy the desired fairness criteria.
+    Given the original scores y, post-process them such that the predictions
+    satisfy the desired fairness criteria.
 
     Args:
       y_orig: Original classifier scores. If this is for postprocessing binary
-        classifiers, y_orig = 2 * p(y=1) -1.
+        classifiers, y_orig = 2 * p(y = 1) - 1.
       group_feature: An array containing the group id of each instance starting
         from group 0 to group K-1.
       ignore_warnings: Set to True to suppress warnings.
 
     Returns:
       y_new_prob: y_new_prob[i] is the probability of predicting the positive
-        class for the instance i.
+        class for instance i.
     """
     if (((min(y_orig) >= 0 and self.yscale == 'negative') or
          (min(y_orig) < 0 and self.yscale == 'positive')) and
         not ignore_warnings):
-      print('Warning: the scores seem to have a difference scale from the '
+      print('Warning: the scores seem to have a different scale from the '
             'training data. '
             'If the data is scaled in [0, 1], e.g. for preprocessing, or '
-            'in [-1, +1], e.g. for postprocessing, make sure the test labels '
+            'in [-1, +1], e.g. for postprocessing, make sure that test labels '
             'are scaled similarly.')
 
     num_examples = len(y_orig)  # number of training examples
@@ -250,10 +254,10 @@ class RandomizedThreshold:
     y_new_prob = np.zeros((num_examples,))
     for i in range(num_examples):
       k = group_feature[i]
-      if y_orig[i] < (lambdas[k]-mus[k]):
+      if y_orig[i] < (lambdas[k] - mus[k]):
         y_new_prob[i] = 0
-      elif y_orig[i] < (lambdas[k]-mus[k]) + gamma:
-        y_new_prob[i] = (1.0/gamma)*(y_orig[i]-(lambdas[k]-mus[k]))
+      elif y_orig[i] < (lambdas[k] - mus[k]) + gamma:
+        y_new_prob[i] = (1.0 / gamma) * (y_orig[i] - (lambdas[k] - mus[k]))
       else:
         y_new_prob[i] = 1.0
 

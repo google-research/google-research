@@ -25,18 +25,23 @@ from ml_debiaser import randomized_threshold
 class Reduce2Binary:
   """Debiase multiclass datasets via preprocessing (R2B Algorithm)."""
 
-  def __init__(self, gamma=1.0, eps=0, eta=0.5, num_classes=2):
+  def __init__(self,
+               gamma: float = 1.0,
+               eps: float = 0.,
+               eta: float = 0.5,
+               num_classes: int = 2
+               ) -> None:
     """Instantiate object.
 
     Args:
       gamma: The regularization parameter gamma (for randomization). Set this to
-        1 if the goal is to minimize changes to the original probability scores.
+        1 if the goal is to minmize l2 difference from the original scores.
       eps: Tolerance parameter for bias >= 0.
-      eta: The step size parameters in ADMM.
+      eta: The step size parameter in ADMM.
       num_classes: Number of classes (must be >= 2).
     """
     if num_classes < 2:
-      raise ValueError('Number of classes (must be >= 2).')
+      raise ValueError('Number of classes must be >= 2.')
 
     self.num_groups = 1
     self.gamma = gamma
@@ -44,21 +49,31 @@ class Reduce2Binary:
     self.eta = eta
     self.num_classes = num_classes
 
-    # binary debiasers for each label
+    # instantiate binary debiasers for all classes
     self.debiasers = {}
     for k in range(num_classes):
       self.debiasers[k] = randomized_threshold.RandomizedThreshold(
-          gamma=gamma+eta, eps=eps)
+          gamma=gamma + eta, eps=eps)
 
-  def _compute_z(self, h_mat, u_mat):
+  def _compute_z(self,
+                 h_mat: np.ndarray,
+                 u_mat: np.ndarray
+                 ) -> np.ndarray:
     # Compute the Z matrix in the R2B algorithm.
     mult_by_ones = np.matmul(h_mat + u_mat, np.ones(self.num_classes,))
     over_k = 1.0 / self.num_classes*(mult_by_ones - np.ones(mult_by_ones.shape))
     j_mat = np.outer(over_k, np.ones(self.num_classes,))
     return h_mat + u_mat - j_mat
 
-  def fit(self, y_orig, group_feature, sgd_steps, full_gradient_epochs=1_000,
-          verbose=True, batch_size=256, max_admm_iter=100):
+  def fit(self,
+          y_orig: np.ndarray,
+          group_feature: np.ndarray,
+          sgd_steps: int = 10_000,
+          full_gradient_epochs: int = 1_000,
+          verbose: bool = True,
+          batch_size: int = 256,
+          max_admm_iter: int = 100
+          ) -> np.ndarray:
     """Debias scores w.r.t. the sensitive class in each demographic group.
 
     In the multiclass setting, we use ADMM to decompose the problem into
@@ -75,7 +90,7 @@ class Reduce2Binary:
       max_admm_iter: Maximum number of iteration of the ADMM procedure.
 
     Returns:
-      None.
+      z_mat: debiased labels.
     """
     if len(y_orig.shape) != 2:
       raise ValueError('Original prob scores must be a 2-dimensional array.'
@@ -126,4 +141,5 @@ class Reduce2Binary:
     for i in range(z_mat.shape[0]):
       # No need to worry about division by zero here; it won't happen.
       z_mat[i, :] = z_mat[i, :] / sum(z_mat[i, :])
+
     return z_mat
