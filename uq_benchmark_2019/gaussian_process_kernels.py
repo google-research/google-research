@@ -84,8 +84,8 @@ class RBFKernelFn(tf.keras.layers.Layer):
         scale_diag=tf.math.sqrt(tf.nn.softplus(self._length_scale)))
     if self._add_linear:
       k += tfp.math.psd_kernels.Linear(
-          bias_variance=self._linear_bias,
-          slope_variance=self._linear_slope)
+          bias_amplitude=self._linear_bias,
+          slope_amplitude=self._linear_slope)
     return k
 
 
@@ -163,8 +163,8 @@ class MaternKernelFn(tf.keras.layers.Layer):
         scale_diag=tf.math.sqrt(tf.nn.softplus(self._length_scale)))
     if self._add_linear:
       k += tfp.math.psd_kernels.Linear(
-          bias_variance=self._linear_bias,
-          slope_variance=self._linear_slope)
+          bias_amplitude=self._linear_bias,
+          slope_amplitude=self._linear_slope)
     return k
 
 
@@ -206,5 +206,5 @@ class LinearKernelFn(tf.keras.layers.Layer):
   @property
   def kernel(self):
     return tfp.math.psd_kernels.Linear(
-        bias_variance=self._linear_bias,
-        slope_variance=self._linear_slope)
+        bias_amplitude=self._linear_bias,
+        slope_amplitude=self._linear_slope)
