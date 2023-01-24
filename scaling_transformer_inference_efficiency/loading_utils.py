@@ -185,6 +185,7 @@ class InferenceT5X(t5x.models.DecoderOnlyModel):
     self.generate_fn = generate_fn
     self._input_vocabulary = _input_vocabulary
     self._output_vocabulary = _input_vocabulary
+    self._batch_size = batch_size  # HACK
     self.sample_ids = model.prepare_sample_ids(np.arange(batch_size))
     self.max_input_length = task_feature_lengths['inputs']
     self.max_generate_length = task_feature_lengths['targets']
