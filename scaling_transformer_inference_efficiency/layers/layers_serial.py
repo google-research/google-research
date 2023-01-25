@@ -45,6 +45,7 @@ CheckpointSpec = checkpoint.CheckpointSpec
 @struct.dataclass
 class SerialLayer:
   """Weights for the Transformer layers of PaLM."""
+
   q: jnp.ndarray
   wi: jnp.ndarray
   kv: jnp.ndarray
@@ -137,13 +138,13 @@ def transformer_layer_weight_stationary_serial(
     epsilon = 1e-6
     xgather = jnp.float32(xgather)
     mean2 = lax.pmean(
-        jnp.mean(lax.square(xgather), axis=-1, keepdims=True), axis_name='x')
+        jnp.mean(lax.square(xgather), axis=-1, keepdims=True), axis_name='x'
+    )
     xnorm_z = jnp.bfloat16(xgather * lax.rsqrt(mean2 + epsilon))
     xnorm = lax.all_gather(xnorm_z, 'z', axis=0, tiled=True)
   # print(f'xnorm {xnorm.shape}, [batch, seqlen, embed]')
 
   with jax.named_scope('attention'):
-
     with jax.named_scope('q'):
       # print('--------Q: --------')
 
@@ -156,21 +157,25 @@ def transformer_layer_weight_stationary_serial(
             scatter_axis=0,
             axis_name='x',
             layer=layer,
-            subsplit_axis=2 if latency_collectives else 0)
+            subsplit_axis=2 if latency_collectives else 0,
+        )
       else:
-
         q_unreduced = jnp.einsum('bte,hed->bthd', xnorm, my_layer(params.q))
         # Combine batch into heads, reducescatter over heads,
         # split batch back out.
         two_d_parallel_xmap.assert_equal(
-            q_unreduced.shape, (batch, max_len, heads_yz, hparams.qkv))
+            q_unreduced.shape, (batch, max_len, heads_yz, hparams.qkv)
+        )
         q_unreduced = jnp.reshape(
-            q_unreduced, (B, batch // B, max_len, heads_yz, hparams.qkv))
+            q_unreduced, (B, batch // B, max_len, heads_yz, hparams.qkv)
+        )
         q_unreduced = jnp.transpose(q_unreduced, (1, 2, 0, 3, 4))
         q_unreduced = jnp.reshape(
-            q_unreduced, (batch // B, max_len, B * heads_yz, hparams.qkv))
+            q_unreduced, (batch // B, max_len, B * heads_yz, hparams.qkv)
+        )
         q = collectives.reducescatter_latency(
-            q_unreduced, scatter_dimension=2, axis_name='x')
+            q_unreduced, scatter_dimension=2, axis_name='x'
+        )
 
       if isinstance(params, inference.QuantizedLayer):
         raise NotImplementedError
@@ -200,10 +205,11 @@ def transformer_layer_weight_stationary_serial(
           'bte,ehd->bthd',
           xnorm,
           params.kv,
-          scatter_dimension=1,
+          scatter_axis=1,
           axis_name='x',
           layer=layer,
-          subsplit_axis=2)
+          subsplit_axis=2,
+      )
       # print(
       #     f'kv: xnorm: {xnorm.shape}, [B, T, E.x] kv_weight:
       #     {params.kv.shape} [E.x, h.yz, qkv*2] -> kv {kv_unreduced.shape}
@@ -232,23 +238,25 @@ def transformer_layer_weight_stationary_serial(
         # --slice--> [batch.YZB, maxlen, 1, 2*qkv]
         kv = lax.psum(kv_unreduced, 'x')
         kv = lax.dynamic_slice_in_dim(
-            kv, b_index * batch_yzb, batch_yzb, axis=0)
+            kv, b_index * batch_yzb, batch_yzb, axis=0
+        )
       elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
         # [batch.YZ, maxlen, 1, 2*qkv]{x_unreduced}
         # --RSx-->   [batch.YZXB, maxlen, 1, 2*qkv]
-        assert batch_xyz >= 1, (
-            'Batch size too small for AXES_XYZ and this chip '
-            'count')
+        assert (
+            batch_xyz >= 1
+        ), 'Batch size too small for AXES_XYZ and this chip count'
         kv = lax.psum_scatter(
-            kv_unreduced, 'x', scatter_dimension=0, tiled=True)
+            kv_unreduced, 'x', scatter_dimension=0, tiled=True
+        )
 
       if isinstance(params, inference.QuantizedLayer):
         prev_shape = kv.shape
         kv = jnp.bfloat16(kv * jnp.squeeze(my_layer(params.kv_scale)))
         two_d_parallel_xmap.assert_equal(prev_shape, kv.shape)
 
-      k = kv[:, :, :, :hparams.qkv]
-      v = kv[:, :, :, hparams.qkv:]
+      k = kv[:, :, :, : hparams.qkv]
+      v = kv[:, :, :, hparams.qkv :]
 
     # print(f'q {q.shape}, k {k.shape}, v {v.shape}')
     with jax.named_scope('attn'):
@@ -264,10 +272,12 @@ def transformer_layer_weight_stationary_serial(
         pass
       elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
         q = lax.all_to_all(
-            q, axis_name='z', split_axis=0, concat_axis=2, tiled=True)
+            q, axis_name='z', split_axis=0, concat_axis=2, tiled=True
+        )
       elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
         q = lax.all_to_all(
-            q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
+            q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True
+        )
       elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
         q = lax.all_to_all(
             q,
@@ -275,9 +285,11 @@ def transformer_layer_weight_stationary_serial(
             split_axis=0,
             concat_axis=2,
             tiled=True,
-            axis_index_groups=x_groups)
+            axis_index_groups=x_groups,
+        )
         q = lax.all_to_all(
-            q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
+            q, axis_name=('y', 'z'), split_axis=0, concat_axis=2, tiled=True
+        )
 
       q = _rope(sin, cos, q)
       caches = []
@@ -297,28 +309,24 @@ def transformer_layer_weight_stationary_serial(
         pass
       elif attn_all_to_all == partitioning.AttnAllToAll.AXIS_Z:
         y_att = lax.all_to_all(
-            y_att, axis_name='z', split_axis=2, concat_axis=0, tiled=True)
+            y_att, axis_name='z', split_axis=2, concat_axis=0, tiled=True
+        )
       elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZ:
         y_att = lax.all_to_all(
-            y_att,
-            axis_name=('y', 'z'),
-            split_axis=2,
-            concat_axis=0,
-            tiled=True)
+            y_att, axis_name=('y', 'z'), split_axis=2, concat_axis=0, tiled=True
+        )
       elif attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX:
         y_att = lax.all_to_all(
-            y_att,
-            axis_name=('y', 'z'),
-            split_axis=2,
-            concat_axis=0,
-            tiled=True)
+            y_att, axis_name=('y', 'z'), split_axis=2, concat_axis=0, tiled=True
+        )
         y_att = lax.all_to_all(
             y_att,
             axis_name='x',
             split_axis=2,
             concat_axis=0,
             tiled=True,
-            axis_index_groups=x_groups)
+            axis_index_groups=x_groups,
+        )
   # print('y_att', y_att.shape)
 
   with jax.named_scope('projection'):
@@ -337,9 +345,11 @@ def transformer_layer_weight_stationary_serial(
           rhs_split_axis=0,
           axis_name='x',
           layer=layer,
-          subsplit_axis=2)
+          subsplit_axis=2,
+      )
       proj_out = reducescatter(
-          proj_out, scatter_dimension=2, axis_name='y', subsplit_axis=2)
+          proj_out, scatter_dimension=2, axis_name='y', subsplit_axis=2
+      )
     else:
       # y_att: [batch.B, maxlen, heads.YZX, qkv]
       # -> (allgather)
@@ -349,14 +359,17 @@ def transformer_layer_weight_stationary_serial(
       y_att = lax.all_gather(y_att, axis_name='x', axis=2, tiled=True)
       if B > 1:
         two_d_parallel_xmap.assert_equal(
-            y_att.shape, (batch // B, max_len, heads_yz * B, hparams.qkv))
-        y_att = jnp.reshape(y_att,
-                            (batch // B, max_len, B, heads_yz, hparams.qkv))
+            y_att.shape, (batch // B, max_len, heads_yz * B, hparams.qkv)
+        )
+        y_att = jnp.reshape(
+            y_att, (batch // B, max_len, B, heads_yz, hparams.qkv)
+        )
         y_att = jnp.swapaxes(y_att, 1, 2)
         y_att = jnp.reshape(y_att, (batch, max_len, heads_yz, hparams.qkv))
 
-      two_d_parallel_xmap.assert_equal(y_att.shape,
-                                       (batch, max_len, heads_yz, hparams.qkv))
+      two_d_parallel_xmap.assert_equal(
+          y_att.shape, (batch, max_len, heads_yz, hparams.qkv)
+      )
       # print(f'y_att', y_att.shape, 'proj', params.o.shape)
 
       proj_out = matmul_reducescatter(
@@ -366,10 +379,12 @@ def transformer_layer_weight_stationary_serial(
           scatter_axis=2,
           axis_name='y',
           layer=layer,
-          subsplit_axis=2)
+          subsplit_axis=2,
+      )
 
     proj_out = reducescatter(
-        proj_out, scatter_dimension=0, axis_name='z', subsplit_axis=0)
+        proj_out, scatter_dimension=0, axis_name='z', subsplit_axis=0
+    )
   # print(f'x {x.shape} y out: {proj_out.shape}')
 
   with jax.named_scope('add back'):
@@ -385,7 +400,8 @@ def transformer_layer_weight_stationary_serial(
     epsilon = 1e-6
     xgather2 = jnp.float32(xgather2)
     mean2 = lax.pmean(
-        jnp.mean(lax.square(xgather2), axis=-1, keepdims=True), axis_name='x')
+        jnp.mean(lax.square(xgather2), axis=-1, keepdims=True), axis_name='x'
+    )
     xnorm_z2 = jnp.bfloat16(xgather2 * lax.rsqrt(mean2 + epsilon))
     xnorm2 = lax.all_gather(xnorm_z2, 'z', axis=0, tiled=True)
   # print(f'xnorm {xnorm2.shape}')
@@ -396,12 +412,12 @@ def transformer_layer_weight_stationary_serial(
           'bte,hed->bthd',
           xnorm2,
           params.wi,
-          scatter_dimension=0,
+          scatter_axis=0,
           axis_name='x',
           layer=layer,
-          subsplit_axis=2 if latency_collectives else 0)
+          subsplit_axis=2 if latency_collectives else 0,
+      )
     else:
-
       wi_unreduced = jnp.einsum('bte,hed->bthd', xnorm2, my_layer(params.wi))
       # Combine batch into heads, reducescatter over heads,
       # split batch back out.
@@ -415,24 +431,28 @@ def transformer_layer_weight_stationary_serial(
 
       two_d_parallel_xmap.assert_equal(
           wi_unreduced.shape,
-          (batch, max_len, heads_yz, q_wi_per_head - hparams.qkv))
+          (batch, max_len, heads_yz, q_wi_per_head - hparams.qkv),
+      )
       wi_unreduced = jnp.reshape(
           wi_unreduced,
-          (B, batch // B, max_len, heads_yz, q_wi_per_head - hparams.qkv))
+          (B, batch // B, max_len, heads_yz, q_wi_per_head - hparams.qkv),
+      )
       wi_unreduced = jnp.transpose(wi_unreduced, (1, 2, 0, 3, 4))
       wi_unreduced = jnp.reshape(
           wi_unreduced,
-          (batch // B, max_len, B * heads_yz, q_wi_per_head - hparams.qkv))
+          (batch // B, max_len, B * heads_yz, q_wi_per_head - hparams.qkv),
+      )
       wi = collectives.reducescatter_latency(
-          wi_unreduced, scatter_dimension=2, axis_name='x')
+          wi_unreduced, scatter_dimension=2, axis_name='x'
+      )
 
     if isinstance(params, inference.QuantizedLayer):
       raise NotImplementedError
 
     # print('wi', wi.shape, hparams.ff, hparams.heads)
     if swiglu:
-      wi0 = wi[:, :, :, :(hparams.ff // hparams.heads)]
-      wi1 = wi[:, :, :, (hparams.ff // hparams.heads):]
+      wi0 = wi[:, :, :, : (hparams.ff // hparams.heads)]
+      wi1 = wi[:, :, :, (hparams.ff // hparams.heads) :]
 
       with jax.named_scope('SwiGLU'):
         y_mlp = special2.swish2(wi0) * wi1  # [batch.XYZ, t, h, ff_per_head]
@@ -454,10 +474,12 @@ def transformer_layer_weight_stationary_serial(
           rhs_split_axis=0,
           axis_name='x',
           layer=layer,
-          subsplit_axis=2)
+          subsplit_axis=2,
+      )
       with jax.named_scope('post_wo_reduce_scatter'):
         y_out = reducescatter(
-            y_out, scatter_dimension=2, axis_name='y', subsplit_axis=2)
+            y_out, scatter_dimension=2, axis_name='y', subsplit_axis=2
+        )
     else:
       # y_mlp: [batch.B, maxlen, heads.YZX, qkv]
       # -> (allgather)
@@ -466,32 +488,50 @@ def transformer_layer_weight_stationary_serial(
       # -> [batch, maxlen, heads.YZ, qkv]
       y_mlp = lax.all_gather(y_mlp, axis_name='x', axis=2, tiled=True)
       if B > 1:
-        two_d_parallel_xmap.assert_equal(y_mlp.shape,
-                                         (batch // B, max_len, heads_yz * B,
-                                          hparams.o_wo_per_head - hparams.qkv))
-        y_mlp = jnp.reshape(y_mlp, (batch // B, max_len, B, heads_yz,
-                                    hparams.o_wo_per_head - hparams.qkv))
+        two_d_parallel_xmap.assert_equal(
+            y_mlp.shape,
+            (
+                batch // B,
+                max_len,
+                heads_yz * B,
+                hparams.o_wo_per_head - hparams.qkv,
+            ),
+        )
+        y_mlp = jnp.reshape(
+            y_mlp,
+            (
+                batch // B,
+                max_len,
+                B,
+                heads_yz,
+                hparams.o_wo_per_head - hparams.qkv,
+            ),
+        )
         y_mlp = jnp.swapaxes(y_mlp, 1, 2)
         y_mlp = jnp.reshape(
             y_mlp,
-            (batch, max_len, heads_yz, hparams.o_wo_per_head - hparams.qkv))
+            (batch, max_len, heads_yz, hparams.o_wo_per_head - hparams.qkv),
+        )
 
       two_d_parallel_xmap.assert_equal(
           y_mlp.shape,
-          (batch, max_len, heads_yz, hparams.o_wo_per_head - hparams.qkv))
+          (batch, max_len, heads_yz, hparams.o_wo_per_head - hparams.qkv),
+      )
       # print(f'y_mlp', y_mlp.shape, 'proj', params.o.shape)
 
       y_out = matmul_reducescatter(
           'bthd,hde->bte',
           y_mlp,
           params.wo,
-          scatter_dimension=2,
+          scatter_axis=2,
           axis_name='y',
           layer=layer,
-          subsplit_axis=2)
+          subsplit_axis=2,
+      )
 
     y_out = reducescatter(
-        y_out, scatter_dimension=0, axis_name='z', subsplit_axis=0)
+        y_out, scatter_dimension=0, axis_name='z', subsplit_axis=0
+    )
 
     with jax.named_scope('residual'):
       z = jnp.bfloat16(y_out + x)
@@ -501,10 +541,17 @@ def transformer_layer_weight_stationary_serial(
 
 
 def transformer_layer_weight_gathered_serial(
-    hparams, layer, params, sin,
-    cos, kv_caches, x,
-    x_axis, y_axis,
-    z_axis):
+    hparams,
+    layer,
+    params,
+    sin,
+    cos,
+    kv_caches,
+    x,
+    x_axis,
+    y_axis,
+    z_axis,
+):
   """Serial form of weight gathered transformer block."""
 
   if isinstance(params, inference.QuantizedLayer):
@@ -519,11 +566,11 @@ def transformer_layer_weight_gathered_serial(
     b, _, _ = x.shape
     # print(x.shape)
     q_wi_weights = my_layer(params.q_wi)  # [h, e, q_wi_per_head]
-    q_weight = q_wi_weights[:, :, :hparams.qkv]  # [h ,e , q]
-    wi_weight = q_wi_weights[:, :, hparams.qkv:]  # [h ,e ,ff]
+    q_weight = q_wi_weights[:, :, : hparams.qkv]  # [h ,e , q]
+    wi_weight = q_wi_weights[:, :, hparams.qkv :]  # [h ,e ,ff]
     o_wo_weights = my_layer(params.o_wo)  # [h.YZ, d, e.X]
-    proj = o_wo_weights[:, :hparams.qkv, :]
-    wo_weights = o_wo_weights[:, hparams.qkv:, :]
+    proj = o_wo_weights[:, : hparams.qkv, :]
+    wo_weights = o_wo_weights[:, hparams.qkv :, :]
   # print(x_axis, y_axis, z_axis)
   # print(f'q_wi {q_wi_weights.shape}, o_wo {o_wo_weights.shape}')
   # print(
@@ -542,8 +589,8 @@ def transformer_layer_weight_gathered_serial(
 
   with jax.named_scope('attention'):
     q = collectives.matmul_collective_weights_gather_q_wi(
-        'bte,hed->bthd', xnorm, q_weight, lhs_split_axis=2,
-        axis_name='x')  #   -> [batch.XYZ, t, h, q]
+        'bte,hed->bthd', xnorm, q_weight, lhs_split_axis=2
+    )  #   -> [batch.XYZ, t, h, q]
 
     with jax.named_scope('kv'):
       # [batch.XYZ, t, e] @ [e, 1, 2*qkv] -> [batch.XYZ, t, 1, 2*qkv]
@@ -557,8 +604,8 @@ def transformer_layer_weight_gathered_serial(
         kv = jnp.bfloat16(kv * jnp.squeeze(my_layer(params.kv_scale)))
         two_d_parallel_xmap.assert_equal(prev_shape, kv.shape)
 
-      k = kv[:, :, 0, :hparams.qkv]  # [batch.XYZ, t, qkv]
-      v = kv[:, :, 0, hparams.qkv:]  # [batch.XYZ, t, qkv]
+      k = kv[:, :, 0, : hparams.qkv]  # [batch.XYZ, t, qkv]
+      v = kv[:, :, 0, hparams.qkv :]  # [batch.XYZ, t, qkv]
 
     with jax.named_scope('attend'):
       k = _rope(sin, cos, k)  # [batch.XYZ, t, qkv]
@@ -569,10 +616,10 @@ def transformer_layer_weight_gathered_serial(
     # print(f'y_att {y_att.shape}')
 
   with jax.named_scope('projection'):
-
     gathered_weights = jax.lax.all_gather(proj, 'x', axis=2, tiled=True)
     gathered_weights = jax.lax.all_gather(
-        gathered_weights, ('y', 'z'), axis=0, tiled=True)
+        gathered_weights, ('y', 'z'), axis=0, tiled=True
+    )
 
     x = jnp.einsum('bthd,hde->bte', y_att, gathered_weights)
 
@@ -586,22 +633,22 @@ def transformer_layer_weight_gathered_serial(
   with jax.named_scope('mlp'):
     # print(f'xnorm {xnorm.shape} wi_weight {wi_weight.shape}')
     wi = collectives.matmul_collective_weights_gather_q_wi(
-        'bte,hed->bthd', xnorm, wi_weight, lhs_split_axis=2,
-        axis_name='x')  #   -> [batch.XYZ, t, h, wi_per_head]
+        'bte,hed->bthd', xnorm, wi_weight, lhs_split_axis=2
+    )  #   -> [batch.XYZ, t, h, wi_per_head]
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled
     # print('wi', wi.shape, hparams.ff, hparams.heads)
-    wi0 = wi[:, :, :, :(hparams.ff // hparams.heads)]
-    wi1 = wi[:, :, :, (hparams.ff // hparams.heads):]
+    wi0 = wi[:, :, :, : (hparams.ff // hparams.heads)]
+    wi1 = wi[:, :, :, (hparams.ff // hparams.heads) :]
 
   with jax.named_scope('SwiGLU'):
     y_mlp = special2.swish2(wi0) * wi1  # [batch.XYZ, t, h, ff_per_head]
 
   with jax.named_scope('wo'):
     y_out = collectives.matmul_collective_weights_gather_o_wo(
-        'bthd,hde->bte', y_mlp, wo_weights,
-        lhs_split_axis=2)  # -> [batch.XYZ, t, e]
+        'bthd,hde->bte', y_mlp, wo_weights, lhs_split_axis=2
+    )  # -> [batch.XYZ, t, e]
 
   with jax.named_scope('residual'):
     z = jnp.bfloat16(y_out + x)
