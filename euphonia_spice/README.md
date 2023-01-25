@@ -26,7 +26,17 @@ point scale. We trained three models following different deep
 
 This repository contains notebook examples to show how to use the models.
 
+## Models
+
+* Keras model available on TFHub here:
+  [https://tfhub.dev/google/euphonia_spice/classification/1](https://tfhub.dev/google/euphonia_spice/classification/1)
+* Pytorch model - coming soon.
+
 # Usage
 
-* [**SpICE_cls_keras.ipynb**](https://github.com/google-research/google-research/blob/master/euphonia_spice/SpICE_cls_keras.ipynb) shows an example of how to use the huggingface wav2vec2 model with the keras version of the classifier.
+* [**SpICE_cls_keras.ipynb**](https://github.com/google-research/google-research/blob/master/euphonia_spice/SpICE_cls_keras.ipynb) shows an example of how to use the huggingface wav2vec2 model with the keras version of the classifier on a sample audio file.
+
+* [**SpICE_cls_pytorch.ipynb**]https://github.com/google-research/google-research/blob/master/euphonia_spice/SpICE_cls_pytorch.ipynb) shows an example of how to use the pytorch version of the classifier on a sample audio file.
+
+
 
