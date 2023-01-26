@@ -147,7 +147,7 @@ class EncoderConvLSTM(nn.Module):
   encoding_dim: int
 
   def setup(self):
-    self.convlstm = nn.ConvLSTM(self.features, self.kernel_shape)
+    self.convlstm = nn.ConvLSTMCell(self.features, self.kernel_shape)
     self.encoding_layer = nn.Dense(self.encoding_dim)
 
   def __call__(self, inputs):
