@@ -34,13 +34,13 @@ The header of each Colab Notebook reports instructions and license.
 1. Publication: ["A Continual Development Methodology for Large-scale Multitask Dynamic ML Systems" (2022)](https://arxiv.org/abs/2209.07326)
 
 1. To request publicaion of source code or checkpoints, please reach out to agesmundo@google.com.
-The method extension described in the µ2Net+ publication are included in the source code of the Vit Agent: ViTAgent.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/muNet/ViTAgent.ipynb)
+The method extension described in the µ2Net+ publication are included in the source code of the Vit Agent: mu3Net.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/muNet/mu3Net.ipynb)
 
 ## Multi Agent Framework
 
 1. Publication: ["A Multi-Agent Framework for the Asynchronous and Collaborative Extension of Multitask ML Systems" (2022)](https://arxiv.org/abs/2209.14745)
 
-1. Colab Notebook that defines the ViT Agent and allows to reproduce the experiments reported in the publication: ViTAgent.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/muNet/ViTAgent.ipynb)
+1. Colab Notebook that defines the ViT Agent and allows to reproduce the experiments reported in the publication: mu3Net.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/muNet/mu3Net.ipynb)
 
 <br/><br/>
 
