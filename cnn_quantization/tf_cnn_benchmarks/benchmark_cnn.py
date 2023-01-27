@@ -54,6 +54,7 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python import debug as tf_debug
 from tensorflow.python.client import timeline
 from tensorflow.python.data.experimental.ops import prefetching_ops
+from tensorflow.python.framework import convert_to_constants
 from tensorflow.python.framework import graph_util
 from tensorflow.python.framework import graph_util_impl
 from tensorflow.python.framework import importer
@@ -2634,7 +2635,7 @@ class BenchmarkCNN(object):
       with tf.Session(config=create_config_proto(self.params)) as sess:
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
-        graphdef = graph_util.convert_variables_to_constants(
+        graphdef = convert_to_constants.convert_variables_to_constants(
             sess,
             graphdef,
             output_node_names,
