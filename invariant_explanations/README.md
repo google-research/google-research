@@ -48,7 +48,7 @@ Check that the test data and code are correct by running (all test should pass):
 python utils_test.py
 ```
 
-Then, for each execution, run:
+Then, before each execution, run:
 
 ```console
 source _venv/bin/activate
@@ -59,14 +59,35 @@ Finally, view the output under the corresponding (lasest timestamped) folder
 under `_experiments`.
 
 
-TODO(amirhkarimi): add details of how to merge results downloaded from GCP.
-TODO(amirhkarimi): complete below
-TODO(amirhkarimi): s/col_type/hparam_type
-```
-s/_EXPLANATION_TYPE/_EXPLAINER
+## To generate data and figures, call main.py as below, 3 times:
+```console
+#!/bin/sh
+
+for DATASET in 'cifar10' 'svhn_cropped' 'mnist' 'fashion_mnist'
+do
+  for MEDIATION_TYPE in 'mediated' 'unmediated'
+  do
+    python main.py \
+      --dataset=$DATASET \
+      --mediation_type=$MEDIATION_TYPE
+  done
+done
 ```
 
-For Fig 3:
-```console
-python main.py --dataset=cifar10 --min_base_model_accuracy=0 --num_samples_per_base_model=32 --num_samples_to_plot_te_for=10 --run_on_precomputed_gcp_data=True
-```
+1st, call with process_and_resave_cnn_zoo_data(). Then copy the files
+from the experimental folder into the corresponding dir under MERGED_DATA_PATH.
+
+2nd, call with measure_prediction_explanation_variance(). Then copy the files
+from the experimental folder into the corresponding dir under MERGED_ITES_PATH.
+
+If steps 1 and 2 are run separately, add the following argument on the 2nd call:
+`--run_on_precomputed_gcp_data=True`
+
+3rd, call with plot_paper_figures().
+
+
+## TODO(amirhkarimi):
+[ ] add details of how to merge results downloaded from GCP.
+[ ] complete below
+[ ] s/col_type/hparam_type
+[ ] `s/_EXPLANATION_TYPE/_EXPLAINER`

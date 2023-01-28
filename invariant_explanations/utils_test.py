@@ -21,8 +21,8 @@ import pickle
 from absl import flags
 from absl.testing import absltest
 
-from invariant_explanations import config
-from invariant_explanations import utils
+import config
+import utils
 
 FLAGS = flags.FLAGS
 
@@ -42,8 +42,8 @@ class UtilsTest(absltest.TestCase):
         'EXPLANATION_TYPE': 'ig',
         'RUN_ON_TEST_DATA': True,
         'NUM_BASE_MODELS': 30000,
-        'NUM_SAMPLES_PER_BASE_MODEL': 8,
-        'NUM_SAMPLES_TO_PLOT_TE_FOR': 8,
+        'NUM_SAMPLES_PER_BASE_MODEL': 100,
+        'NUM_SAMPLES_TO_PLOT_TE_FOR': 100,
         'MIN_BASE_MODEL_ACCURACY': 0.98,
         'MAX_BASE_MODEL_ACCURACY': 1.00,
         'USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS': True,

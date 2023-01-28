@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Config used for approxNN project."""
-# pylint: skip-file
 
 import datetime
 import os
@@ -28,12 +27,11 @@ RUNNING_INTERNALLY = False
 
 # Create folders to save results, models, and plots.
 PAPER_BU_PATH = '_paper_bu'
-MEDIATION_TYPE = 'mediated'
-# MEDIATION_TYPE = 'unmediated'
-MERGED_DATA_PATH = '_merged_' + MEDIATION_TYPE
+MERGED_DATA_PATH = '_saved_y&es'
+MERGED_ITES_PATH =  '_saved_ites'
+MERGED_CORR_PATH =  '_saved_corrs'
 PLOTS_SUBPATH = '_plots'
 MODELS_SUBPATH = '_models'
-
 
 MARKER_COLORS = ['blue', 'orange', 'green', 'red', 'magenta']
 MARKER_SHAPES = ['o', 'X', 's', 'P', 'D']
@@ -51,6 +49,7 @@ ALLOWABLE_DATA_FILES = [
 ]
 ALLOWABLE_DATASETS = ['mnist', 'fashion_mnist', 'cifar10', 'svhn_cropped']
 ALLOWABLE_EXPLANATION_METHODS = [
+    'identity',
     'grad',
     'smooth_grad',
     'ig',
@@ -73,45 +72,97 @@ ALLOWABLE_TREATMENT_KERNELS = [
     'cosine',
 ]
 
+RANGE_ACCURACIES = {
+  'cifar10': [
+      [0.000, 1.000], #  0 - 100%
+      [0.056, 0.154], #  0 - 20%
+      [0.155, 0.253], #  20 - 40%
+      [0.253, 0.330], #  40 - 60%
+      [0.330, 0.385], #  60 - 80%
+      [0.385, 0.461], #  80 - 90%
+      [0.461, 0.501], #  90 - 95%
+      [0.501, 0.521], #  95 - 99%
+      [0.521, 0.575], #  99 - 100%
+  ],
+  'svhn_cropped': [
+      [0.000, 1.000], #  0 - 100%
+      [0.070, 0.179], #  0 - 20%
+      [0.179, 0.195], #  20 - 40%
+      [0.195, 0.196], #  40 - 60%
+      [0.196, 0.333], #  60 - 80%
+      [0.333, 0.516], #  80 - 90%
+      [0.516, 0.595], #  90 - 95%
+      [0.595, 0.653], #  95 - 99%
+      [0.653, 0.781], #  99 - 100%
+  ],
+  'mnist': [
+      [0.000, 1.000], #  0 - 100%
+      [0.047, 0.113], #  0 - 20%
+      [0.113, 0.359], #  20 - 40%
+      [0.359, 0.739], #  40 - 60%
+      [0.739, 0.898], #  60 - 80%
+      [0.898, 0.955], #  80 - 90%
+      [0.955, 0.969], #  90 - 95%
+      [0.969, 0.974], #  95 - 99%
+      [0.974, 0.986], #  99 - 100%
+  ],
+  'fashion_mnist': [
+      [0.000, 1.000], #  0 - 100%
+      [0.016, 0.118], #  0 - 20%
+      [0.118, 0.474], #  20 - 40%
+      [0.474, 0.686], #  40 - 60%
+      [0.686, 0.762], #  60 - 80%
+      [0.762, 0.826], #  80 - 90%
+      [0.826, 0.846], #  90 - 95%
+      [0.846, 0.857], #  95 - 99%
+      [0.857, 0.887], #  99 - 100%
+  ],
+}
+
 RANGE_ACCURACY_CONVERTER = {
-  # cifar10
-  '0.056_0.154': '05 - 15\%', # '0 - 20 pctl.',
-  '0.155_0.253': '15 - 25\%', # '20 - 40 pctl.',
-  '0.253_0.33': '25 - 33\%', # '40 - 60 pctl.',
-  '0.33_0.385': '33 - 38\%', # '60 - 80 pctl.',
-  '0.385_0.461': '38 - 46\%', # '80 - 90 pctl.',
-  '0.461_0.501': '46 - 50\%', # '90 - 95 pctl.',
-  '0.501_0.521': '50 - 52\%', # '95 - 99 pctl.',
-  '0.521_0.575': '52 - 57\%', # '99 - 100 pctl.',
-  # svhn_cropped
-  '0.07_0.179': '07 - 17\%', # '0 - 20 pctl.',
-  '0.179_0.195': '17 - 19.5\%', # '20 - 40 pctl.',
-  '0.195_0.196': '19.5 - 19.6\%', # '40 - 60 pctl.',
-  '0.196_0.333': '19.6 - 33\%', # '60 - 80 pctl.',
-  '0.333_0.516': '33 - 51\%', # '80 - 90 pctl.',
-  '0.516_0.595': '51 - 59\%', # '90 - 95 pctl.',
-  '0.595_0.653': '59 - 65\%', # '95 - 99 pctl.',
-  '0.653_0.781': '65 - 78\%', # '99 - 100 pctl.',
-  # mnist
-  '0.047_0.113': '4 - 11\%', # '0 - 20 pctl.',
-  '0.113_0.359': '11 - 35\%', # '20 - 40 pctl.',
-  '0.359_0.739': '35 - 73\%', # '40 - 60 pctl.',
-  '0.739_0.898': '73 - 89\%', # '60 - 80 pctl.',
-  '0.898_0.955': '89 - 95\%', # '80 - 90 pctl.',
-  '0.955_0.969': '95 - 96\%', # '90 - 95 pctl.',
-  '0.969_0.974': '96 - 97\%', # '95 - 99 pctl.',
-  '0.974_0.986': '97 - 98\%', # '99 - 100 pctl.',
-  # fashion_mnist
-  '0.016_0.118': '1 - 11\%', # '0 - 20 pctl.',
-  '0.118_0.474': '11 - 47\%', # '20 - 40 pctl.',
-  '0.474_0.686': '47 - 68\%', # '40 - 60 pctl.',
-  '0.686_0.762': '68 - 76\%', # '60 - 80 pctl.',
-  '0.762_0.826': '76 - 82\%', # '80 - 90 pctl.',
-  '0.826_0.846': '82 - 84\%', # '90 - 95 pctl.',
-  '0.846_0.857': '84 - 85\%', # '95 - 99 pctl.',
-  '0.857_0.887': '85 - 88\%', # '99 - 100 pctl.',
+  'cifar10': {
+    '0.056_0.154': '05 - 15\%', # '0 - 20 pctl.',
+    '0.155_0.253': '15 - 25\%', # '20 - 40 pctl.',
+    '0.253_0.330': '25 - 33\%', # '40 - 60 pctl.',
+    '0.330_0.385': '33 - 38\%', # '60 - 80 pctl.',
+    '0.385_0.461': '38 - 46\%', # '80 - 90 pctl.',
+    '0.461_0.501': '46 - 50\%', # '90 - 95 pctl.',
+    '0.501_0.521': '50 - 52\%', # '95 - 99 pctl.',
+    '0.521_0.575': '52 - 57\%', # '99 - 100 pctl.',
+  },
+  'svhn_cropped': {
+    '0.070_0.179': '07 - 17\%', # '0 - 20 pctl.',
+    '0.179_0.195': '17 - 19.5\%', # '20 - 40 pctl.',
+    '0.195_0.196': '19.5 - 19.6\%', # '40 - 60 pctl.',
+    '0.196_0.333': '19.6 - 33\%', # '60 - 80 pctl.',
+    '0.333_0.516': '33 - 51\%', # '80 - 90 pctl.',
+    '0.516_0.595': '51 - 59\%', # '90 - 95 pctl.',
+    '0.595_0.653': '59 - 65\%', # '95 - 99 pctl.',
+    '0.653_0.781': '65 - 78\%', # '99 - 100 pctl.',
+  },
+  'mnist': {
+    '0.047_0.113': '4 - 11\%', # '0 - 20 pctl.',
+    '0.113_0.359': '11 - 35\%', # '20 - 40 pctl.',
+    '0.359_0.739': '35 - 73\%', # '40 - 60 pctl.',
+    '0.739_0.898': '73 - 89\%', # '60 - 80 pctl.',
+    '0.898_0.955': '89 - 95\%', # '80 - 90 pctl.',
+    '0.955_0.969': '95 - 96\%', # '90 - 95 pctl.',
+    '0.969_0.974': '96 - 97\%', # '95 - 99 pctl.',
+    '0.974_0.986': '97 - 98\%', # '99 - 100 pctl.',
+  },
+  'fashion_mnist': {
+    '0.016_0.118': '1 - 11\%', # '0 - 20 pctl.',
+    '0.118_0.474': '11 - 47\%', # '20 - 40 pctl.',
+    '0.474_0.686': '47 - 68\%', # '40 - 60 pctl.',
+    '0.686_0.762': '68 - 76\%', # '60 - 80 pctl.',
+    '0.762_0.826': '76 - 82\%', # '80 - 90 pctl.',
+    '0.826_0.846': '82 - 84\%', # '90 - 95 pctl.',
+    '0.846_0.857': '84 - 85\%', # '95 - 99 pctl.',
+    '0.857_0.887': '85 - 88\%', # '99 - 100 pctl.',
+  },
 }
 EXPLAN_NAME_CONVERTER = {
+  'identity': 'Identity',
   'grad': 'Grad',
   'smooth_grad': 'SG',
   'ig': 'IG',
@@ -194,7 +245,7 @@ class Config(object):
 
     # pylint: disable=invalid-name
 
-    # Default values may be updated through absl.FLAGS.
+    # Default values WILL be updated through absl.FLAGS.
     self.RANDOM_SEED = 42
     self.DATASET = 'cifar10'
     self.EXPLANATION_TYPE = 'ig'
@@ -202,6 +253,7 @@ class Config(object):
     self.TREATMENT_KERNEL = 'rbf'
     self.RUN_ON_TEST_DATA = False
     self.RUN_ON_PRECOMPUTED_GCP_DATA = False
+    self.MEDIATION_TYPE = 'mediated'
     self.NUM_BASE_MODELS = 30000
     self.NUM_SAMPLES_PER_BASE_MODEL = 8
     self.NUM_SAMPLES_TO_PLOT_TE_FOR = 8
@@ -268,6 +320,12 @@ class Config(object):
       raise ValueError('EXPLANATION_TYPE not recognized.')
 
     if (
+        name == 'USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS' and
+        value == False
+    ):
+      raise ValueError('All experiments set this value to True.')
+
+    if (
         name == 'EXPLAN_NORM_TYPE' and
         value not in ALLOWABLE_EXPLAN_NORM_METHODS
     ):
@@ -281,6 +339,9 @@ class Config(object):
 
     if name == 'RUN_ON_TEST_DATA' and value and self.DATASET != 'mnist':
       raise ValueError('Invoke test data only when dataset is MNIST.')
+
+    if name == 'NUM_SAMPLES_PER_BASE_MODEL' and value != 100:
+      raise ValueError('All experiments use 100 image samples per base model.')
 
     if (
         name == 'NUM_SAMPLES_PER_BASE_MODEL' and

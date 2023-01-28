@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Methods to generate explanations for batches of samples and predictions."""
-# pylint: skip-file
 
 from concurrent import futures
 import multiprocessing
@@ -28,7 +27,33 @@ import saliency
 import tensorflow.compat.v2 as tf
 from tensorflow.io import gfile
 
-from invariant_explanations import config
+import config
+
+
+def shuffle_logits(predictions):
+    """ Shuffle the logit values.
+
+      Explanations for a class other than the top-class (to create randomize Y
+      and study the break the mediated effect of H on E via Y; what remains of
+      the ITE value is simply the direct effect of H on E).
+
+    Args:
+      predictions: np.array whose rows' values to shuffle.
+    """
+
+    # One small caveat of the approach above is that it doesn't act as before:
+    # y_pred = np.random.choice([x for x in list(range(10)) if x != y_pred])
+    # i.e., before, y_pred would be such that we would certainly generated an
+    # explanation for NOT the class of prediction; now with this (lazy) update,
+    # the shuffling may be such that there is a chance we still generate an
+    # explanation for the top-class,... but for 90% of cases we shouldn't. Ok.
+
+    X = predictions
+    Y = X.T.copy()
+    np.random.shuffle(Y)  # in place, by first axis (that's why we transposed)
+    Z = Y.T
+    predictions = Z
+    return predictions
 
 
 def normalize_explans(explans, image_shape):
@@ -40,6 +65,8 @@ def normalize_explans(explans, image_shape):
   if config.cfg.EXPLANATION_TYPE in {'grad', 'smooth_grad', 'ig', 'guided_ig'}:
     if config.cfg.EXPLAN_NORM_TYPE == '01':
       normalization_type = '-11_clip_01'
+  elif config.cfg.EXPLANATION_TYPE == 'identity':
+    return explans
   else:
     if config.cfg.EXPLAN_NORM_TYPE == '-11':
       logging.warning('Do not use -11 norm on %s.', config.cfg.EXPLANATION_TYPE)
@@ -97,6 +124,13 @@ def get_model_explanations_for_instances(model, samples, y_preds,
     explans: the model explanations for all samples; instance of np.ndarray.
   """
 
+  if config.cfg.MEDIATION_TYPE == 'unmediated':
+    y_preds = shuffle_logits(y_preds)
+
+  if explanation_method == 'identity':
+      return y_preds
+
+
   # While explanation methods can work on inputs sampled from arbitrary domains,
   # they work best when the image is sampled from the same domain upon which the
   # model was trained.
@@ -150,6 +184,12 @@ def get_model_explanations_for_instances(model, samples, y_preds,
     sample = sample.squeeze()
     if sample.ndim != 2:
       raise ValueError('Expected grayscale samples.')
+
+    # if config.cfg.MEDIATION_TYPE == 'unmediated':
+    #   # Explanations for a class other than the top-class(to create randomize Y
+    #   # and study the break the mediated effect of H on E via Y; what remains of
+    #   # the ITE value is simply the direct effect of H on E).
+    #   y_pred = np.random.choice([x for x in list(range(10)) if x != y_pred])
 
     baseline = np.zeros(sample.shape)  # Baseline is a black image.
 
