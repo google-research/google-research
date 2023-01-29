@@ -25,7 +25,12 @@ from revisiting_neural_scaling_laws.methods import base
 class Estimator(base.M):
   """Scaling law estimator M3."""
 
-  def __init__(self, loss_values, c=-0.5, gamma=0, update_gamma=True):
+  def __init__(self,
+               loss_values,
+               c = -0.5,
+               gamma = 0.,
+               update_gamma = True
+               ):
     """Constructor.
 
     Args:
@@ -35,8 +40,11 @@ class Estimator(base.M):
       gamma: initial value of the gamma parameter.
       update_gamma: set to True if gamma is learnable.
     """
-    super(Estimator, self).__init__(loss_values, c, err_inf=0,
-                                    update_err_inf=False, update_c=True)
+    super(Estimator, self).__init__(loss_values,
+                                    c,
+                                    err_inf=0,
+                                    update_err_inf=False,
+                                    update_c=True)
     self.gamma = gamma
     self.update_gamma = update_gamma
     # pre-compute
@@ -99,8 +107,11 @@ class Estimator(base.M):
 
     self.gamma = best_gamma
 
-  def estimate_scaling_params(self, max_iterations=10_000, verbose=True,
-                              stop=1e-10):
+  def estimate_scaling_params(self,
+                              max_iterations = 10_000,
+                              verbose = True,
+                              stop = 1e-10
+                              ):
     """Estimate scaling law parameters.
 
     We iterate between solving for beta & c in closed-form using linear

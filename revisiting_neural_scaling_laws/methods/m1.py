@@ -15,14 +15,17 @@
 
 """Scaling law estimator M1.
 """
-
 from revisiting_neural_scaling_laws.methods import m2
 
 
 class Estimator(m2.Estimator):
   """Scaling law estimator M1."""
 
-  def __init__(self, loss_values, c=-0.5, update_c=True):
+  def __init__(self,
+               loss_values,
+               c = -0.5,
+               update_c = True
+               ):
     """Constructor.
 
     Args:
