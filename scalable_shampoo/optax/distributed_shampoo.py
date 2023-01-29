@@ -2649,7 +2649,7 @@ def distributed_shampoo(
       if graft_type == GraftingType.NONE:
         logging.error("skipping preconditioning without grafting for param %s",
                       param)
-      precond_grad = sgd_update
+      precond_grad = grafting_update
 
     grafting_update_norm = jnp.linalg.norm(grafting_update)
     precond_grad_norm = jnp.linalg.norm(precond_grad)
