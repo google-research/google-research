@@ -104,7 +104,7 @@ class SphericalMnist(tfds.core.GeneratorBasedBuilder):
         'validation_canonical': dataset_directory / 'nrnr/train0.tfrecord',
         'test_canonical': dataset_directory / 'nrnr/test0.tfrecord'}
 
-    return {split: self._generate_examples(filename, split)
+    return {split: self._generate_examples(filename, split)  # pytype: disable=wrong-arg-types  # always-use-return-annotations
             for split, filename in dataset_files.items()}
 
   def _generate_examples(self,
