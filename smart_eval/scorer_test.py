@@ -25,7 +25,7 @@ from smart_eval import scorer
 class ScorerTest(absltest.TestCase):
 
   def test_smart_score_precomputation(self):
-    matching_fn = mf.chrf_matcher
+    matching_fn = mf.ChrfMatchingFunction()
     smart_scorer = scorer.SmartScorer(
         smart_types=['smart1', 'smart2', 'smartL'], matching_fn=matching_fn)
 

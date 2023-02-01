@@ -228,10 +228,10 @@ def calculate_smart_score(
       ]
       ref_score = np.max(ref_scores)
       score = max(ref_score, smart_input[smart_type]['fmeasure'])
-      score_name = f'max_sent_{smart_type}_fmeasure_{matcher_name}'
+      score_name = f'max_{smart_type}_fmeasure_{matcher_name}'
       example.scores[score_name] = score
 
-    return examples
+  return examples
 
 
 def get_correlation(examples,

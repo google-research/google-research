@@ -15,39 +15,110 @@
 
 """Matching functions."""
 
-import functools
+import abc
+from typing import Union, List
 
+from bleurt import score as bleurt_score
 from nltk.tokenize import word_tokenize
 from nltk.translate import meteor_score
 import sacrebleu
 
 from rouge import rouge_scorer
 
-_ROUGE = rouge_scorer.RougeScorer(rouge_types=['rouge1', 'rouge2', 'rougeL'])
 
-# Matching functions should follow the format below and returns a score
-#   between 0 and 1:
-# def matcher(reference: str, candidate: str):
-#   return 0
+class MatchingFunction(metaclass=abc.ABCMeta):
+  """Interface for matching function APIs."""
 
-
-def _rouge(reference, candidate, rouge_type):
-  return _ROUGE.score(reference, candidate)[rouge_type].fmeasure
-
-
-rouge_1_matcher = functools.partial(_rouge, rouge_type='rouge1')
-rouge_2_matcher = functools.partial(_rouge, rouge_type='rouge2')
-rouge_l_matcher = functools.partial(_rouge, rouge_type='rougeL')
+  @abc.abstractmethod
+  def __call__(
+      self,
+      reference,
+      candidate,
+  ):
+    raise NotImplementedError()
 
 
-def meteor_matcher(reference, candidate):
-  return meteor_score.single_meteor_score(
-      word_tokenize(reference), word_tokenize(candidate))
+class RougeMatchingFunction(MatchingFunction):
+  """ROUGE matching function."""
+
+  def __init__(self, rouge_type):
+    self._rouge = rouge_scorer.RougeScorer(rouge_type=[rouge_type])
+    self.rouge_type = rouge_type
+
+  def __call__(
+      self,
+      reference,
+      candidate,
+  ):
+    if isinstance(reference, list):
+      return [
+          self._rouge.score(r, c)[self.rouge_type].fmeasure
+          for r, c in zip(reference, candidate)
+      ]
+    else:
+      return self._rouge.score(reference, candidate)[self.rouge_type].fmeasure
 
 
-def chrf_matcher(reference, candidate):
-  return sacrebleu.sentence_chrf(candidate, reference)
+class MeteorMatchingFunction(MatchingFunction):
+  """METEOR matching function."""
+
+  def __call__(
+      self,
+      reference,
+      candidate,
+  ):
+    if isinstance(reference, list):
+      return [
+          meteor_score.single_meteor_score(word_tokenize(r), word_tokenize(c))
+          for r, c in zip(reference, candidate)
+      ]
+    else:
+      return meteor_score.single_meteor_score(
+          word_tokenize(reference), word_tokenize(candidate))
 
 
-def bleu_matcher(reference, candidate):
-  return sacrebleu.sentence_bleu(candidate, reference)
+class ChrfMatchingFunction(MatchingFunction):
+  """CHRF matching function."""
+
+  def __call__(
+      self,
+      reference,
+      candidate,
+  ):
+    if isinstance(reference, list):
+      return [
+          sacrebleu.sentence_chrf(c, r) for r, c in zip(reference, candidate)]
+    else:
+      return sacrebleu.sentence_chrf(candidate, reference)
+
+
+class BleuMatchingFunction(MatchingFunction):
+  """BLEU matching function."""
+
+  def __call__(
+      self,
+      reference,
+      candidate,
+  ):
+    if isinstance(reference, list):
+      return [
+          sacrebleu.sentence_bleu(c, r) for r, c in zip(reference, candidate)]
+    else:
+      return sacrebleu.sentence_bleu(candidate, reference)
+
+
+class BleurtMatchingFunction(MatchingFunction):
+  """BLEURT matching function."""
+
+  def __init__(self, bleurt_ckpt):
+    self._bleurt = bleurt_score.BleurtScorer(bleurt_ckpt)
+
+  def __call__(
+      self,
+      reference,
+      candidate,
+  ):
+    if isinstance(reference, list):
+      return self._bleurt.score(references=reference, candidates=candidate)
+    else:
+      return self._bleurt.score(references=[reference], candidates=[candidate])

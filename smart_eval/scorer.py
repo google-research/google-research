@@ -203,9 +203,11 @@ class SmartScorer:
       for c in can_sentences:
         tgt_can_pairs.append((t, c))
     tgts, cans = list(zip(*tgt_can_pairs))
+    tgts = list(tgts)
+    cans = list(cans)
     # We assume that the matching function can be asymmetrical, i.e.,
     # interchanging the position of r and c may return a different score.
-    pairwise_scores = [self.matching_fn(t, c) for t, c in zip(tgts, cans)]
+    pairwise_scores = self.matching_fn(tgts, cans)
     score_matrix = np.array(pairwise_scores).reshape(
         (len(tgt_sentences), len(can_sentences)))
     return score_matrix
