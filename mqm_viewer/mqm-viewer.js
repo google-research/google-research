@@ -2662,12 +2662,14 @@ function mqmUpdateSaveLabel() {
 
 /**
  * Saves mqmTSVData or filtered or filtered+aggregated data to the file
- *     mqm-data.tsv.
+ *     mqm-data.tsv. Adds a header line when saving non-aggregated MQM data,
+ *     if it's not already there.
  */
 function mqmSaveData() {
   const saveType = document.getElementById('mqm-save-file-type').value;
   let tsvData = '';
   let fileName = 'mqm-data.tsv';
+  let addHeader = true;
   if (!saveType) {
     tsvData = mqmTSVData;
   } else if (saveType == 'filtered') {
@@ -2676,10 +2678,18 @@ function mqmSaveData() {
   } else {
     tsvData = mqmGetScoresTSVData(saveType);
     fileName = `mqm-scores-by-${saveType}.tsv`;
+    addHeader = false;
   }
   if (!tsvData) {
     alert('There is no data to be saved!');
     return;
+  }
+  if (addHeader && !tsvData.startsWith('system\tdoc\t')) {
+    tsvData = 'system\tdoc\tdocSegId\tglobalSegId\t' +
+              'rater\tsource\ttarget\tcategory\tseverity\tmetadata\t' +
+              '# Documentation: ' +
+              'https://github.com/google-research/google-research/tree/m' +
+              'aster/mqm_viewer\n' + tsvData;
   }
   mqmSaveDataInner(tsvData, fileName);
 }
