@@ -16,11 +16,12 @@
 """Tests for collective einsum implementations."""
 
 import functools
+
 from absl.testing import absltest
 import jax
-from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
 import jax.numpy as jnp
+from jax.sharding import Mesh
 import numpy as np
 
 from scaling_transformer_inference_efficiency import collectives

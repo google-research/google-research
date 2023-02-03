@@ -17,9 +17,9 @@
 
 import jax
 from jax.experimental.australis import exporter
-from jax.experimental.pjit import PartitionSpec as P
 from jax.experimental.pjit import pjit
 import jax.numpy as jnp
+from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from scaling_transformer_inference_efficiency import checkpoint
@@ -115,7 +115,7 @@ def lower():
   """Uses the jax staging API to lower the init and fwd functions."""
   device_mesh = np.array(exporter.fake_devices(8, 'tpu')).reshape((2, 2, 2))
   mesh_axis_names = ('x', 'y', 'z')
-  mesh = jax.experimental.maps.Mesh(device_mesh, mesh_axis_names)
+  mesh = jax.sharding.Mesh(device_mesh, mesh_axis_names)
 
   batch_unsharded = False
   attn_sharding = partitioning.AttnAllToAll.AXES_YZX

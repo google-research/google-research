@@ -14,18 +14,18 @@
 # limitations under the License.
 
 """Library for generating datasets based on general ODEs and hamiltonian systems."""
-from typing import Tuple, Callable, Optional
+from typing import Callable, Optional, Tuple
 
 from jax import device_count
 from jax import grad
 from jax import jit
 from jax import vmap
 from jax.experimental import mesh_utils
-from jax.experimental.maps import Mesh
 from jax.experimental.ode import odeint
-from jax.experimental.pjit import PartitionSpec as P
 from jax.experimental.pjit import pjit
 import jax.numpy as jnp
+from jax.sharding import Mesh
+from jax.sharding import PartitionSpec as P
 import numpy as np
 from tqdm.auto import tqdm
 

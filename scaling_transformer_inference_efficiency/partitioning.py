@@ -27,10 +27,10 @@ from jax.experimental import mesh_utils
 from jax.experimental import pjit
 from jax.experimental.gda_serialization import serialization as jax_gda_serialization
 from jax.experimental.global_device_array import GlobalDeviceArray
-from jax.experimental.maps import Mesh
-from jax.experimental.pjit import PartitionSpec as P
 import jax.numpy as jnp
+from jax.sharding import Mesh
 from jax.sharding import NamedSharding
+from jax.sharding import PartitionSpec as P
 import numpy as np
 import tensorstore
 

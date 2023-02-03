@@ -25,10 +25,11 @@ import jax
 from jax import lax
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
-from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
 import jax.numpy as jnp
+from jax.sharding import Mesh
 import numpy as np
+
 
  import humanize
 from scaling_transformer_inference_efficiency import checkpoint
@@ -45,6 +46,7 @@ from scaling_transformer_inference_efficiency.layers import one_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers.two_d_parallel_xmap import AttnAllToAll
 from scaling_transformer_inference_efficiency.sampling import Sampling
+
 
 
 # print(mesh_utils.create_device_mesh([4, 4, 4]))

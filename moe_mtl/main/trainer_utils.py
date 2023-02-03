@@ -439,7 +439,7 @@ def create_train_state(
     axis_resources):
   """Create TrainState object."""
   mesh = mesh or maps.thread_resources.env.physical_mesh
-  with maps.Mesh(mesh.devices, mesh.axis_names):
+  with jax.sharding.Mesh(mesh.devices, mesh.axis_names):
     train_state = pjit.pjit(
         state_init_fn,
         in_axis_resources=(None,),
@@ -1294,7 +1294,7 @@ def restore_or_create_train_state(
         mesh=mesh,
         thread_pool=thread_pool)
     # Copy TrainState to device memory, and return.
-    with maps.Mesh(mesh.devices, mesh.axis_names):
+    with jax.sharding.Mesh(mesh.devices, mesh.axis_names):
       return pjit.pjit(
           fun=lambda x: x,
           in_axis_resources=(axis_resources,),

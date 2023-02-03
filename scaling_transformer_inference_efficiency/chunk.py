@@ -95,9 +95,9 @@ from typing import Any, Optional, Sequence, Tuple, Union
 from flax import struct
 import jax
 from jax import lax
-from jax.experimental.pjit import PartitionSpec as P
 import jax.numpy as jnp
 import jax.scipy
+from jax.sharding import PartitionSpec as P
 import numpy as np
 import seqio
 import typing_extensions

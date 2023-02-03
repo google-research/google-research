@@ -39,7 +39,7 @@ from vmoe import utils
 
 
 Array = jnp.ndarray
-PartitionSpec = pjit.PartitionSpec
+PartitionSpec = jax.sharding.PartitionSpec
 PRNGKey = jnp.ndarray
 PyTree = Any
 EvalStepPjitFn = Callable[["EvalState", PyTree, Any], "EvalState"]

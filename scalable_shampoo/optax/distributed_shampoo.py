@@ -278,7 +278,7 @@ def init_training_metrics_pspec(
   if not generate_training_metrics:
     return optax.MaskedNode()
   return jax.tree_map(
-      lambda _: pjit.PartitionSpec(),
+      lambda _: jax.sharding.PartitionSpec(),
       default_training_metrics(
       ))
 
@@ -1536,7 +1536,7 @@ def distributed_shampoo(
     """Mapping from N-d to (N-1)-d, used for quantization, factoring etc."""
     # None and PSpec(None) are valid PSpecs.
     if pspec and len(pspec) > 1:
-      return pjit.PartitionSpec(*pspec[1:])
+      return jax.sharding.PartitionSpec(*pspec[1:])
     else:
       return []
 
@@ -1598,8 +1598,8 @@ def distributed_shampoo(
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
                                                partition_spec_for_statistics,
-                                               pjit.PartitionSpec())
-    count_pspec = pjit.PartitionSpec()
+                                               jax.sharding.PartitionSpec())
+    count_pspec = jax.sharding.PartitionSpec()
     return ShampooState(
         count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
 
@@ -1950,7 +1950,9 @@ def distributed_shampoo(
     pspec_for_partition = preconditioner_partition_spec
     partitioned_xs = pjit.with_sharding_constraint(xs, pspec_for_partition)
     if preconditioner_partition_spec:
-      partitioned_ps_spec = pjit.PartitionSpec(preconditioner_partition_spec[0])
+      partitioned_ps_spec = jax.sharding.PartitionSpec(
+          preconditioner_partition_spec[0]
+      )
     else:
       partitioned_ps_spec = None
     partitioned_ps = pjit.with_sharding_constraint(ps, partitioned_ps_spec)
@@ -1973,7 +1975,7 @@ def distributed_shampoo(
     preconditioners = pjit.with_sharding_constraint(partitioned_preconditioners,
                                                     statistics_partition_spec)
     metrics = pjit.with_sharding_constraint(partitioned_metrics,
-                                            pjit.PartitionSpec())
+                                            jax.sharding.PartitionSpec())
     return preconditioners, metrics
 
   def _pmap_compute_preconditioners(states, step, statistics,

@@ -20,9 +20,9 @@ import math
 from typing import Any, Callable, Dict, Tuple, Union
 
 import jax
-from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
-from jax.experimental.pjit import PartitionSpec as P
+from jax.sharding import Mesh
+from jax.sharding import PartitionSpec as P
 
 from scaling_transformer_inference_efficiency import partitioning
 

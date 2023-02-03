@@ -37,17 +37,16 @@ from typing import Sequence, Tuple
 from flax import struct
 import jax
 from jax import lax
-from jax.experimental import pjit
-from jax.experimental.pjit import PartitionSpec as P
 import jax.numpy as jnp
 import jax.scipy
+from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import special2
 
 HParams = checkpoint.HParams
-P = pjit.PartitionSpec
+P = jax.sharding.PartitionSpec
 
 
 @struct.dataclass

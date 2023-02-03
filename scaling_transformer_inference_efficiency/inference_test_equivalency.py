@@ -19,9 +19,9 @@ import functools
 
 from absl.testing import absltest
 import jax
-from jax.experimental.pjit import PartitionSpec as P
 from jax.experimental.pjit import pjit
 import jax.numpy as jnp
+from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from scaling_transformer_inference_efficiency import checkpoint

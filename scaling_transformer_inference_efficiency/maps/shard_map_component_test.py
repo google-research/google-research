@@ -22,11 +22,11 @@ import functools
 from absl.testing import absltest
 import jax
 from jax import lax
-from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
-from jax.experimental.pjit import PartitionSpec as P
 from jax.experimental.pjit import pjit
 import jax.numpy as jnp
+from jax.sharding import Mesh
+from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from scaling_transformer_inference_efficiency import checkpoint

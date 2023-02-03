@@ -19,9 +19,9 @@ import os
 
 from absl.testing import absltest
 import jax
-from jax.experimental.pjit import PartitionSpec as P
 import jax.numpy as jnp
 from jax.sharding import NamedSharding
+from jax.sharding import PartitionSpec as P
 
  import resources
 from scaling_transformer_inference_efficiency import checkpoint

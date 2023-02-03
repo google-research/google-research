@@ -118,11 +118,10 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 import jax
 from jax import lax
-from jax.experimental import pjit
-from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
 import jax.numpy as jnp
 import jax.scipy
+from jax.sharding import Mesh
 import numpy as np
 import seqio
 
@@ -139,7 +138,7 @@ from scaling_transformer_inference_efficiency.maps import shard_map
 from scaling_transformer_inference_efficiency.sampling import Sampling
 
 Weights = weights.Weights
-P = pjit.PartitionSpec
+P = jax.sharding.PartitionSpec
 
 
 # pylint: disable = g-bare-generic

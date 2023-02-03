@@ -30,10 +30,10 @@ import jax
 from jax import lax
 from jax import sharding
 from jax.experimental import pjit
-from jax.experimental.maps import Mesh
-from jax.experimental.pjit import PartitionSpec as P
 import jax.numpy as jnp
 import jax.scipy
+from jax.sharding import Mesh
+from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from scaling_transformer_inference_efficiency import checkpoint
