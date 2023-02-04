@@ -87,12 +87,15 @@ def allgather_layernorm(x,
   return xnorm, xnorm_z
 
 
-def xmap_embed(
+@partial(jax.jit, static_argnums=(3, 4, 5))
+def embed_manual(
     params,  # pylint: disable=g-bare-generic, invalid-name
     kv_caches,
     token_chunk,
     shard_seqlen_vs_batch = False,
-    batch_unsharded = False):
+    batch_unsharded = False,
+    one_d = False,
+):
   """Embeds a chunk of logits.
 
   Args:
@@ -102,6 +105,7 @@ def xmap_embed(
       maxlen]
     shard_seqlen_vs_batch: Whether to shard seqlen or batch by z.
     batch_unsharded:  global_batch is less than z so we cannot shard along
+    one_d: whether it is one dimensional
 
   Returns:
     embeddings: bfloat16[[batch.Z, time, embed.XY] || [batch, time, embed.XYZ]
@@ -116,7 +120,6 @@ def xmap_embed(
   prefix_batch, = start_indices.shape
   batch, max_length = token_chunk.tokens.shape
   assert batch % prefix_batch == 0, 'Incompatible batch sizes'
-
   # Do RoPE lookups in the sin/cos tables. Only needed once per prefix_batch.
   def slice_at(index, table):
     # table: [precomputed_length, qkv // 2]
@@ -143,6 +146,9 @@ def xmap_embed(
     embeds = params.embedding[one_x, :]
     one_x = one_x[:, :, jnp.newaxis]
     embeds = jnp.where((one_x >= 0) & (one_x < vocab_yz), embeds, 0)
+    # [batch, time, embed.X]
+    if one_d:
+      return embeds, sin, cos
     # [batch, time, embed.XY]
     embeds = lax.psum_scatter(embeds, 'y', scatter_dimension=2, tiled=True)
 
@@ -160,9 +166,38 @@ def xmap_embed(
   return embeds, sin, cos
 
 
+def unembed_manual(
+    xnorm,
+    params,
+    batch_unsharded = False,
+    one_d = False,
+):
+  """Unembedding function for 2D."""
+  # x: bfloat16[batch, maxlen, dmodel.X] # [vocab.YZ, embed.X]
+  # TODO(sholto): We could squeeze out more memory by doing this
+  # with a collective
+  with jax.named_scope('unembed'):
+    logits_unreduced = jnp.einsum(
+        'bte,ve->btv', jnp.float32(xnorm), jnp.float32(params.embedding)
+    )
+    # x: [batch, maxlen, vocab.YZ] {X unreduced}
+    if batch_unsharded or one_d:
+      # logits: float32[batch, maxlen, vocab.YZX]
+      logits = lax.psum_scatter(
+          logits_unreduced, 'x', scatter_dimension=2, tiled=True
+      )
+    else:
+      # logits: float32[batch.X, maxlen, vocab.YZ]
+      logits = lax.psum_scatter(
+          logits_unreduced, 'x', scatter_dimension=0, tiled=True
+      )
+  return logits
+
+
 # pylint: disable = g-doc-return-or-yield
 # pylint: disable = g-doc-args
 # TODO(sholto): Update to new, tested parsing collectives.
+# @partial(jax.jit, static_argnums=(0, 10, 11, 12, 13, 14))
 def transformer_layer_weight_stationary(
     hparams,
     layer,

@@ -126,6 +126,11 @@ class Chunk:
     )
 
   @classmethod
+  def physical_axes(cls):
+    """Returns the partition specs for the weights in their physical axes."""
+    return jax.tree_map(partitioning.logical_to_physical, Chunk.logical_axes())
+
+  @classmethod
   def zeros(cls, batch, seqlen):
     """Returns an all-zeros Chunk of the specified shape.
 
@@ -345,6 +350,13 @@ class ChunkResult:
         kv_cache=attention.KVCache.logical_axes(),
     )
 
+  @classmethod
+  def physical_axes(cls):
+    """Returns the partition specs for the weights in their physical axes."""
+    return jax.tree_map(
+        partitioning.logical_to_physical, ChunkResult.logical_axes()
+    )
+
   def copy_to_host(self):
     return jax.tree_map(jax.device_get, self)
 
@@ -427,10 +439,12 @@ class FullChunkResult:
             k=P('length', 'layers', 'attn_batch', 'qkv'),
             v=P('length', 'layers', 'attn_batch', 'qkv')))
 
-  def to_chunk_result(self,
-                      prev_logits,
-                      chunk,
-                      per_device = False):
+  def to_chunk_result(
+      self,
+      prev_logits,
+      chunk,
+      do_top_k = False,
+  ):
     """Converts this to its more minimal form, ChunkResult.
 
     Args:
@@ -438,7 +452,7 @@ class FullChunkResult:
         sequence, or None if this is the first chunk in the sequence.
         float32[batch, vocab_size]. In 2D [batch.x, time, vocab.yz]
       chunk: Input token IDs for this chunk.
-      per_device: Whether this is used in a per device or global context.
+      do_top_k: Whether to do top_k - small latency impact.
 
     Returns:
       This, but in its minimized form.
@@ -495,22 +509,7 @@ class FullChunkResult:
     # comes from `prev_chunk.next_token_logits`.
 
     batch, seqlen, vocab_size = self.logits.shape
-
-    # we need to slice into lengths because logits is sharded
-    if per_device:
-      logit_sharding_axis = partitioning.get_sharding_divisor(P('logit_batch'))
-      # TODO(sholto): This assumes logit batch is only ever sharded along x
-      #               or is unsharded
-      physical_logit_batch = partitioning.logical_to_physical(P('logit_batch'))
-      if 'y' in physical_logit_batch or 'z' in physical_logit_batch:
-        raise NotImplementedError('Only one sampling partitioning implemented.')
-      x_index = lax.axis_index('x') * logit_sharding_axis
-      lengths = lax.dynamic_slice_in_dim(
-          chunk.lengths,
-          x_index * batch,  # batch is per device
-          batch)
-    else:
-      lengths = chunk.lengths
+    lengths = chunk.lengths
 
     # First figure out what logits to use for the first token.
     if prev_logits is None:
@@ -537,32 +536,27 @@ class FullChunkResult:
     next_token_logits = jnp.where(length_is_zero, prev_logits,
                                   next_token_logits)
 
-    if per_device:
-      # To do this we'd need to do some collective ops,
-      # these are unnecessary auxiliary outputs for the moment, so
-      # just zero them out.
-      # TODO(sholto): Ideally put these somewhere in sampling,
-      #       where we have the fully materialised vocab dim
-      global_batch = batch * logit_sharding_axis
-      per_token_scores = jnp.zeros((global_batch, seqlen), jnp.float32)
-      top_ids = jnp.zeros((global_batch, seqlen, _TOP_K), jnp.int32)
-      top_probs = jnp.zeros((global_batch, seqlen, _TOP_K), jnp.float32)
+    # Now compute the compressed representation of shifted_logits, extracting
+    # per-token scores, and per-token top token IDs.
+    batch_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 0)
+    token_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 1)
+    logits_max = jnp.max(shifted_logits, axis=-1)
+    logits_sumexp = jnp.sum(
+        special2.exp2(shifted_logits - logits_max[:, :, np.newaxis]), axis=-1
+    )
+    logits_sum = jnp.log2(logits_sumexp) + logits_max
+    per_token_scores = (
+        shifted_logits[batch_iota, token_iota, chunk.tokens] - logits_sum
+    ) * special2.LN_2
 
-    else:
-      # Now compute the compressed representation of shifted_logits, extracting
-      # per-token scores, and per-token top token IDs.
-      batch_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 0)
-      token_iota = lax.broadcasted_iota(jnp.int32, (batch, seqlen), 1)
-      logits_max = jnp.max(shifted_logits, axis=-1)
-      logits_sumexp = jnp.sum(
-          special2.exp2(shifted_logits - logits_max[:, :, np.newaxis]), axis=-1)
-      logits_sum = jnp.log2(logits_sumexp) + logits_max
-      per_token_scores = (shifted_logits[batch_iota, token_iota, chunk.tokens] -
-                          logits_sum) * special2.LN_2
+    if do_top_k:
       top_logits, top_ids = lax.top_k(shifted_logits, k=_TOP_K)
-
       top_probs = special2.exp2(top_logits - logits_max[:, :, np.newaxis]) * (
           1.0 / logits_sumexp[:, :, np.newaxis])
+      # TODO(sholto): Do fast top_k using binary search
+    else:
+      top_ids = jnp.zeros((batch, seqlen, _TOP_K), jnp.int32)
+      top_probs = jnp.zeros((batch, seqlen, _TOP_K), jnp.float32)
 
     return ChunkResult(
         per_token_scores=per_token_scores,

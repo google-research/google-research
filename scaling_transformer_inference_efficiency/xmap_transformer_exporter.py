@@ -15,6 +15,8 @@
 
 """Exports xmap based transformer as an Australis library."""
 
+from functools import partial  # pylint: disable = g-importing-member
+
 import jax
 from jax.experimental.australis import exporter
 from jax.experimental.pjit import pjit
@@ -28,7 +30,6 @@ from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
-from scaling_transformer_inference_efficiency.maps import shard_map
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
 
@@ -53,11 +54,6 @@ def setup(mesh, batch_size, seq_len = 32):
 
   chunk_sharding = jax.tree_util.tree_map(
       partitioning.logical_to_physical, chunk_logical
-  )
-
-  result_logical = chunk.FullChunkResult.logical_axes()
-  result_sharding = jax.tree_util.tree_map(
-      partitioning.logical_to_physical, result_logical
   )
 
   def model_init():
@@ -105,9 +101,6 @@ def setup(mesh, batch_size, seq_len = 32):
       params_pjit_shape,
       kv_caches,
       token_chunk_shape,
-      chunk_sharding,
-      params_sharding,
-      result_sharding,
   )
 
 
@@ -118,7 +111,9 @@ def lower():
   mesh = jax.sharding.Mesh(device_mesh, mesh_axis_names)
 
   batch_unsharded = False
-  attn_sharding = partitioning.AttnAllToAll.AXES_YZX
+  latency_collectives = False
+  shard_seqlen_vs_batch = False
+  attn_sharding = partitioning.AttnAllToAll.NONE
   rules = partitioning.PartitioningRules(
       partitioning.make_rules_two_d(
           attn_sharding, batch_unsharded=batch_unsharded
@@ -135,42 +130,58 @@ def lower():
         rotated_params,
         kv_caches,
         token_chunk,
-        chunk_sharding,
-        param_sharding,
-        result_sharding,
     ) = setup(mesh, batch_size=8)
 
-  def fwd(params, token_chunk):
-    """Wraps the inference fn to ease shardmap in pytree definition."""
-    return inference.infer_xmap(
-        h,
-        two_d_parallel_xmap.transformer_layer_weight_stationary,
-        params,
-        kv_caches,
-        token_chunk,
+    sharding_config = partitioning.ShardingConfig(
+        mesh=mesh,
         attn_all_to_all=attn_sharding,
-        latency_collectives=False,
-        shard_seqlen_vs_batch=False,
+        latency_collectives=latency_collectives,
+        shard_seqlen_vs_batch=shard_seqlen_vs_batch,
         batch_unsharded=batch_unsharded,
-        intermediate_dtype=dtype,
     )
 
-  with mesh:
-
-    def pjit_fwd(rotated_params, token_chunk):
-      return shard_map.shard_map(
-          fwd,
-          mesh,
-          in_specs=(param_sharding, chunk_sharding),
-          out_specs=result_sharding,
-      )(rotated_params, token_chunk)
-
-    result = pjit(
-        pjit_fwd,
-        in_axis_resources=(param_sharding, chunk_sharding),
-        out_axis_resources=result_sharding,
+    embed_fn = partial(
+        two_d_parallel_xmap.embed_manual,
+        shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+        batch_unsharded=batch_unsharded,
     )
-    xmap_transformer_fwd_lowered = result.lower(rotated_params, token_chunk)
+
+    layer_fn = partial(
+        two_d_parallel_xmap.transformer_layer_weight_stationary,
+        attn_all_to_all=attn_sharding,
+        latency_collectives=latency_collectives,
+        shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+        batch_unsharded=batch_unsharded,
+    )
+
+    unembed_fn = partial(
+        two_d_parallel_xmap.unembed_manual, batch_unsharded=batch_unsharded
+    )
+
+    forward_pass = partial(
+        inference.manual_fwd_pass,
+        h,
+        sharding_config,
+        embed_fn,
+        layer_fn,
+        unembed_fn,
+    )
+
+    @jax.jit
+    def fwd(params, token_chunk):
+      """Wraps the inference fn to ease shardmap in pytree definition."""
+      return inference.infer_template(
+          h,
+          sharding_config,
+          forward_pass,
+          params,
+          kv_caches,
+          token_chunk,
+          intermediate_dtype=dtype,
+      )
+
+    with mesh:
+      xmap_transformer_fwd_lowered = fwd.lower(rotated_params, token_chunk)
 
   return [
       ('xmap_transformer_init', model_init_lowered),

@@ -22,16 +22,19 @@ from absl.testing import absltest
 from flax import struct
 import jax
 from jax import lax
-from jax.experimental.maps import xmap
-from jax.experimental.pjit import pjit
+from jax.experimental.pjit import PartitionSpec as P
+from jax.experimental.shard_map import shard_map
 import jax.numpy as jnp
 from jax.sharding import Mesh
 from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from scaling_transformer_inference_efficiency import attention
+from scaling_transformer_inference_efficiency import collectives
 from scaling_transformer_inference_efficiency import special2
-from scaling_transformer_inference_efficiency.maps.shard_map import shard_map
+
+
+shard_map = partial(shard_map, check_rep=False)
 
 
 def create_inputs(a_sharding, b_sharding, B=8):  # pylint: disable = invalid-name
@@ -66,16 +69,18 @@ def dynamic_index_and_slice(index_axis, index, slice_axis,
 
 
 # pylint: disable = invalid-name
-def matmul_reducescatter_oneway(einsum_spec,
-                                lhs,
-                                rhs,
-                                rhs_scatter_axis,
-                                axis_name,
-                                layer,
-                                subsplit_axis,
-                                axis_size,
-                                layer_axis=0,
-                                REPRO_BUG=True):
+def matmul_reducescatter_oneway(
+    einsum_spec,
+    lhs,
+    rhs,
+    rhs_scatter_axis,
+    axis_name,
+    layer,
+    subsplit_axis,
+    axis_size,
+    layer_axis=0,
+    REPRO_BUG=False,
+):
   """Only for debugging XLA compilation issues.
   """
   del subsplit_axis, axis_name, layer_axis, layer
@@ -130,15 +135,16 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = pjit(
-          fwd,
-          in_axis_resources=(P('z', ('x', 'y')),),
-          out_axis_resources=P('z', ('x', 'y')))(a)
+      c = jax.jit(fwd)(a)
+      # c = pjit(
+      #     fwd,
+      #     in_axis_resources=(P('z', ('x', 'y')),),
+      #     out_axis_resources=P('z', ('x', 'y')))(a)
     assert c.device_buffers[0].shape == (4, 2)
 
-#   ###############################################################################
+  #   ###############################################################################
 
-# [B.z, E.xy] -> [B, E.xy]
+  # [B.z, E.xy] -> [B, E.xy]
 
   def test_all_gather(self):
 
@@ -160,15 +166,16 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = pjit(
-          fwd,
-          in_axis_resources=(P('z', ('x', 'y')),),
-          out_axis_resources=P(None, ('x', 'y')))(a)
+      c = jax.jit(fwd)(a)
+      # c = pjit(
+      #     fwd,
+      #     in_axis_resources=(P('z', ('x', 'y')),),
+      #     out_axis_resources=P(None, ('x', 'y')))(a)
     assert c.device_buffers[0].shape == (8, 2)
 
-#   ###############################################################################
+  ##########################################################################
 
-# [B.z, E.y] @ [E.y, F] -> RS(y, 0) -> [B.zy, F]
+  # # [B.z, E.y] @ [E.y, F] -> RS(y, 0) -> [B.zy, F]
 
   def test_matmul_partial(self):
 
@@ -189,15 +196,16 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = pjit(
-          fwd,
-          in_axis_resources=(P('z', 'y'), P('y', None)),
-          out_axis_resources=P('z', 'y'))(a, b)
+      c = jax.jit(fwd)(a, b)
+      # c = pjit(
+      #     fwd,
+      #     in_axis_resources=(P('z', 'y'), P('y', None)),
+      #     out_axis_resources=P('z', 'y'))(a, b)
     assert c.device_buffers[0].shape == (4, 8)
 
-#   ###############################################################################
+  ##########################################################################
 
-#   # [B.z, E.y] @ [E.y, F] -> RS(y, 0) -> [B.zy, F]
+  #   # [B.z, E.y] @ [E.y, F] -> RS(y, 0) -> [B.zy, F]
 
   def test_matmul_reduce_scatter(self):
 
@@ -219,13 +227,14 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = pjit(
-          fwd,
-          in_axis_resources=(P('z', 'y'), P('y', None)),
-          out_axis_resources=P(('z', 'y'), None))(a, b)
+      c = jax.jit(fwd)(a, b)
+      # c = pjit(
+      #     fwd,
+      #     in_axis_resources=(P('z', 'y'), P('y', None)),
+      #     out_axis_resources=P(('z', 'y'), None))(a, b)
     assert c.device_buffers[0].shape == (2, 8)
 
-#   ##############################################################################
+  ##########################################################################
 
   def test_collective_permute(self):
 
@@ -252,13 +261,14 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = pjit(
-          fwd,
-          in_axis_resources=(P('x', None),),
-          out_axis_resources=P('x', None))(a)
+      c = jax.jit(fwd)(a)
+      # c = pjit(
+      #     fwd,
+      #     in_axis_resources=(P('x', None),),
+      #     out_axis_resources=P('x', None))(a)
     assert (c[1, :] == a[0, :]).all()
 
-#   ##############################################################################
+  ##########################################################################
 
   def test_all_to_all(self):
 
@@ -279,15 +289,15 @@ class ShardMapTest(absltest.TestCase):
       return c
 
     with mesh:
-      c = pjit(
-          fwd,
-          in_axis_resources=(P('x', None),),
-          out_axis_resources=P(None, 'x'))(a)
+      c = jax.jit(fwd)(a)
+      # c = pjit(
+      #     fwd,
+      #     in_axis_resources=(P('x', None),),
+      #     out_axis_resources=P(None, 'x'))(a)
 
     assert (c == jnp.reshape(a.T, (1, 64))).all()
 
-
-#   ##############################################################################
+  ###########################################################################
 
   def test_fwd_pass(self):
 
@@ -378,9 +388,15 @@ class ShardMapTest(absltest.TestCase):
       # -----> ['batch', time', 'head.XYZ', 'query']
       with jax.named_scope('q_wi'):
         # -----> ['batch', 'time', 'heads.YZX', 'query']
-        q_wi = jnp.einsum('btd,hde->bthe', xnorm, q_wi[0])
-        q_wi = lax.psum_scatter(
-            q_wi, axis_name='x', scatter_dimension=2, tiled=True)
+
+        q_wi = collectives.matmul_reducescatter_oneway(
+            'bte,hed->bthd',
+            jnp.bfloat16(xnorm),
+            jnp.bfloat16(q_wi),
+            scatter_axis=0,
+            axis_name='x',
+            layer=0,
+        )
 
         wi0 = q_wi[:, :, :,
                    hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
@@ -448,68 +464,13 @@ class ShardMapTest(absltest.TestCase):
       return result
 
     with mesh:
-      z = pjit(wrapped_shardmap,
-               in_axis_resources=(x_sharding, layer_sharding),
-               out_axis_resources=x_sharding)(x, layer)
+      z = jax.jit(wrapped_shardmap)(x, layer)
+      # z = pjit(wrapped_shardmap,
+      #          in_axis_resources=(x_sharding, layer_sharding),
+      #          out_axis_resources=x_sharding)(x, layer)
 
     return z
 
-  def test_custom_collective(self):
-    B, T, H, D, E = 1, 1, 16, 128, 256  # dim sizes
-    X, Y, Z = 2, 2, 2  # slice sizes
-    devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
-    mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
-    key0, key1 = jax.random.PRNGKey(0), jax.random.PRNGKey(1)
-    lhs = jax.random.normal(key0, (B, T, D), dtype=jnp.float32)
-    rhs = jax.random.normal(key1, (H, D, E), dtype=jnp.float32)
-
-    def fwd(lhs, rhs):
-      out = matmul_reducescatter_oneway(
-          'btd,hde->bthe',
-          lhs,
-          rhs,
-          0,
-          'x',
-          layer=0,
-          axis_size=X,
-          subsplit_axis=0)
-      print(lhs.shape, rhs.shape, out.shape)
-      return out
-
-    with mesh:
-      result = shard_map(
-          fwd,
-          mesh,
-          in_specs=(P(None, None, 'x'), P(('y', 'z'), 'x', None)),
-          out_specs=P(None, None, ('y', 'z', 'x'), None))(lhs, rhs)
-
-    lhs = lhs.reshape((B, T, X, D // X))
-    rhs = rhs.reshape((Y, Z, H // (Y * Z), X, D // X, E))
-
-    @partial(
-        xmap,
-        in_axes=([None, None, 'x', None], ['y', 'z', None, 'x', None, None]),
-        out_axes=[None, None, 'y', 'z', 'x', None, None],
-        axis_resources={
-            'x': 'x',
-            'y': 'y',
-            'z': 'z'
-        })
-    def custom(lhs, rhs):
-      return matmul_reducescatter_oneway(
-          'btd,hde->bthe',
-          lhs,
-          rhs,
-          0,
-          'x',
-          layer=0,
-          axis_size=X,
-          subsplit_axis=0)
-
-    with mesh:
-      result = custom.lower(lhs, rhs)
-      print(result.as_text())
-      result.compile()
 
 if __name__ == '__main__':
   absltest.main()

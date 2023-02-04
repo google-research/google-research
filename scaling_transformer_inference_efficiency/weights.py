@@ -56,10 +56,9 @@ def copy_to_device_with_mesh(mesh, x, spec, expected):
   return partitioning.copy_to_device(x, s, expected)
 
 
-def _generate_fixed_pos_embedding(features,
-                                  length,
-                                  min_timescale=1.0,
-                                  max_timescale=10000.0):
+def _generate_fixed_pos_embedding(
+    features, length, min_timescale=1.0, max_timescale=10000.0
+):
   """Generate Sin/Cos for Rotary Embeddings.
 
   Generates sinusoids at (features//2) different timescales, where the
@@ -86,8 +85,8 @@ def _generate_fixed_pos_embedding(features,
   # Forked from
   # flaxformer/components/embedding.py;l=592
   fraction = jnp.arange(0, features, 2, dtype=jnp.float32) / features
-  timescale = min_timescale * (max_timescale / min_timescale)**fraction
-  rotational_frequency = 1. / timescale
+  timescale = min_timescale * (max_timescale / min_timescale) ** fraction
+  rotational_frequency = 1.0 / timescale
   # Must use high precision einsum here, since rounding off to a bfloat16 is
   # catastrophic. bfloat16 rounds 257 to 256, but sin(257) is very different
   # from sin(256).
@@ -95,7 +94,8 @@ def _generate_fixed_pos_embedding(features,
       'i , j -> i j',
       jnp.arange(length),
       rotational_frequency,
-      precision=jax.lax.Precision.HIGHEST)
+      precision=jax.lax.Precision.HIGHEST,
+  )
   return jnp.sin(sinusoid_inp), jnp.cos(sinusoid_inp)
 
 
@@ -105,6 +105,7 @@ def _generate_fixed_pos_embedding(features,
 @struct.dataclass
 class Layer:
   """Weights for the Transformer layers of PaLM."""
+
   q_wi: jnp.ndarray
   kv: jnp.ndarray
   o_wo: jnp.ndarray
@@ -117,6 +118,7 @@ class Weights:
   This layout may differ from Checkpoint layout, as it is optimized for
   inference.
   """
+
   layer: Layer
 
   # weights.sin and weights.cos are precomputed tables of sin and cos at various
@@ -137,11 +139,13 @@ class Weights:
     """Creates weights populated with zero-footprint shaped arrays."""
     q_wi = jax.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16)
     o_wo = jax.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
@@ -151,41 +155,43 @@ class Weights:
   def logical_axes(cls):
     """Returns the partition specs for the weights in their logical axes."""
     q_wi = P('layers', 'params_heads', 'params_embed', 'qkv')
-    kv = P('layers', 'params_embed', None, 'qkv')
+    kv = P('layers', 'params_kv_embed', None, 'qkv')
     o_wo = P('layers', 'params_heads', 'qkv', 'params_embed')
     sin = P(None, None)
     cos = P(None, None)
-    embedding = P('params_vocab', 'params_embed')
+    embedding = P('params_vocab', 'embedding_embed')
 
     return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
 
   @classmethod
   def physical_axes(cls):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(partitioning.logical_to_physical,
-                        Weights.logical_axes())
+    return jax.tree_map(
+        partitioning.logical_to_physical, Weights.logical_axes()
+    )
 
   @partial(jax.jit, static_argnums=(0, 1), donate_argnums=(2, 3))
   def pad_heads(self, h, o_wo, q_wi):
     """Pads heads so we can shard them further."""
     if h.padded_heads > 0:
       q_wi_padding = jnp.zeros(
-          (h.layers, h.padded_heads, h.embed, h.q_wi_per_head),
-          dtype=q_wi.dtype)
+          (h.layers, h.padded_heads, h.embed, h.q_wi_per_head), dtype=q_wi.dtype
+      )
       q_wi = jax.lax.with_sharding_constraint(
-          jnp.concatenate([q_wi, q_wi_padding], axis=1),
-          self.physical_axes.q_wi)
+          jnp.concatenate([q_wi, q_wi_padding], axis=1), self.physical_axes.q_wi
+      )
       o_wo_padding = jnp.zeros(
-          (h.layers, h.padded_heads, h.o_wo_per_head, h.embed),
-          dtype=o_wo.dtype)
+          (h.layers, h.padded_heads, h.o_wo_per_head, h.embed), dtype=o_wo.dtype
+      )
       o_wo = jax.lax.with_sharding_constraint(
-          jnp.concatenate([o_wo, o_wo_padding], axis=1),
-          self.physical_axes.q_wi)
+          jnp.concatenate([o_wo, o_wo_padding], axis=1), self.physical_axes.q_wi
+      )
       return o_wo, q_wi
 
   @classmethod
-  def from_checkpoint(cls, h, mesh,
-                      c):
+  def from_checkpoint(
+      cls, h, mesh, c
+  ):
     """Initializes weights in HBM from the checkpoint."""
 
     axes = Weights.logical_axes()
@@ -193,7 +199,8 @@ class Weights:
     def fold_in_wi0_constants(q_wi):
       hidden_channel_iota = jax.lax.broadcasted_iota(jnp.int32, q_wi.shape, 3)
       wi0_mask = (hidden_channel_iota >= h.qkv) & (
-          hidden_channel_iota < (h.qkv + (h.ff // h.heads)))
+          hidden_channel_iota < (h.qkv + (h.ff // h.heads))
+      )
       # Constant 0.5: We need to multiply wi_0 by 0.5 to correct special2.swish2
       # to be equivalent to jnp.swish. More efficient to do this once to the
       # weights than every time we call the fn.
@@ -208,14 +215,16 @@ class Weights:
       q_constants = special2.LOG2_E * lax.rsqrt(jnp.float32(h.qkv))
       return q_wi * jnp.where(q_mask, q_constants, 1.0)
 
-    def fold_in_layernorm(q_wi, kv,
-                          layernorm_scale):
+    def fold_in_layernorm(
+        q_wi, kv, layernorm_scale
+    ):
       # Fold in layernorm scale to remove a multiplication
       layernorm_scale = 1.0 + layernorm_scale[:, :, np.newaxis, np.newaxis]
       return q_wi * layernorm_scale, kv * layernorm_scale
 
-    def fold_in_unembedding_constants(o_wo,
-                                      embedding):
+    def fold_in_unembedding_constants(
+        o_wo, embedding
+    ):
       # Constant LOG2_E: comes from using special2.exp2 instead of lax.exp.
       # Constant lax.rsqrt(h.embed): comes from t5x definition.
       unembedding_constants = special2.LOG2_E * lax.rsqrt(jnp.float32(h.embed))
@@ -274,19 +283,25 @@ class Weights:
 
     def preprocess(q_wi, kv, o_wo, layernorm_scale, embedding):
       q_wi, kv = fold_in_layernorm(
-          jnp.float32(q_wi), jnp.float32(kv), layernorm_scale)
+          jnp.float32(q_wi), jnp.float32(kv), layernorm_scale
+      )
       q_wi = fold_in_q_constants(q_wi)
       q_wi = fold_in_wi0_constants(q_wi)
       o_wo, embedding = fold_in_unembedding_constants(
-          jnp.float32(o_wo), jnp.float32(embedding))
+          jnp.float32(o_wo), jnp.float32(embedding)
+      )
 
       # Change layout:
       #   (layers, embed, heads, query) -> (layers, heads, embed, query)
       # to avoid XLA doing that same transformation on every inference.
       q_wi = jnp.swapaxes(q_wi, 1, 2)
 
-      return jnp.bfloat16(q_wi), jnp.bfloat16(kv), jnp.bfloat16(
-          o_wo), jnp.bfloat16(embedding)
+      return (
+          jnp.bfloat16(q_wi),
+          jnp.bfloat16(kv),
+          jnp.bfloat16(o_wo),
+          jnp.bfloat16(embedding),
+      )
 
     expected_shapes = Weights.make_shaped_arrays(h)
 
@@ -298,35 +313,52 @@ class Weights:
 
     q_wi_input_axes = ('layers', 'params_embed', 'params_heads', 'qkv')
     q_wi = copy_to_device(
-        c.q_wi, q_wi_input_axes,
+        c.q_wi,
+        q_wi_input_axes,
         jax.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
-            jnp.bfloat16))
+            jnp.bfloat16,
+        ),
+    )
     kv = copy_to_device(c.kv, axes.layer.kv, expected_shapes.layer.kv)
     o_wo = copy_to_device(c.o_wo, axes.layer.o_wo, expected_shapes.layer.o_wo)
     layernorm_scale_axes = ('layers', 'params_embed')
     layernorm_scale = copy_to_device(
-        c.layernorm_scale, layernorm_scale_axes,
-        jax.ShapedArray((h.layers, h.embed), jnp.float32))
-    embedding = copy_to_device(c.embedding, axes.embedding,
-                               expected_shapes.embedding)
+        c.layernorm_scale,
+        layernorm_scale_axes,
+        jax.ShapedArray((h.layers, h.embed), jnp.float32),
+    )
+    embedding = copy_to_device(
+        c.embedding, axes.embedding, expected_shapes.embedding
+    )
 
     q_wi_input_axes = partitioning.logical_to_physical(q_wi_input_axes)
     q_wi_output_axes = partitioning.logical_to_physical(axes.layer.q_wi)
     kv_axes = partitioning.logical_to_physical(axes.layer.kv)
     o_wo_axes = partitioning.logical_to_physical(axes.layer.o_wo)
     layernorm_scale_axes = partitioning.logical_to_physical(
-        layernorm_scale_axes)
+        layernorm_scale_axes
+    )
     embedding_axes = partitioning.logical_to_physical(axes.embedding)
 
     with mesh:
       q_wi, kv, o_wo, embedding = pjit.pjit(
           preprocess,
-          in_axis_resources=(q_wi_input_axes, kv_axes, o_wo_axes,
-                             layernorm_scale_axes, embedding_axes),
-          out_axis_resources=(q_wi_output_axes, kv_axes, o_wo_axes,
-                              embedding_axes),
-          donate_argnums=(1, 2, 4))(q_wi, kv, o_wo, layernorm_scale, embedding)
+          in_axis_resources=(
+              q_wi_input_axes,
+              kv_axes,
+              o_wo_axes,
+              layernorm_scale_axes,
+              embedding_axes,
+          ),
+          out_axis_resources=(
+              q_wi_output_axes,
+              kv_axes,
+              o_wo_axes,
+              embedding_axes,
+          ),
+          donate_argnums=(1, 2, 4),
+      )(q_wi, kv, o_wo, layernorm_scale, embedding)
 
     return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
 
@@ -334,6 +366,7 @@ class Weights:
 @struct.dataclass
 class QuantizedLayer:
   """Weights for the Transformer layers of PaLM."""
+
   q_wi: jnp.ndarray
   q_wi_scale: jnp.ndarray
   kv: jnp.ndarray
@@ -350,6 +383,7 @@ class QuantizedWeights:
   This layout may differ from Checkpoint layout, as it is optimized for
   inference.
   """
+
   layer: QuantizedLayer
 
   # See unquantized weights class for notes.
@@ -361,25 +395,29 @@ class QuantizedWeights:
   def make_shaped_arrays(cls, h):
     """Creates weights populated with zero-footprint shaped arrays."""
     q_wi = jax.ShapedArray(
-        (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head),
-        jnp.int8)
+        (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head), jnp.int8
+    )
     q_wi_scale = jax.ShapedArray(
-        (h.layers, h.heads - h.padded_heads, 1, h.q_wi_per_head), jnp.float32)
+        (h.layers, h.heads - h.padded_heads, 1, h.q_wi_per_head), jnp.float32
+    )
     kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8)
     kv_scale = jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
-    o_wo = jax.ShapedArray((h.layers, h.heads, h.o_wo_per_head, h.embed),
-                           jnp.int8)
+    o_wo = jax.ShapedArray(
+        (h.layers, h.heads, h.o_wo_per_head, h.embed), jnp.int8
+    )
     o_wo_scale = jax.ShapedArray((h.layers, 1, 1, h.embed), jnp.float32)
     sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
     layernorm_scale = jax.ShapedArray((h.layers, h.embed), jnp.bfloat16)
     return QuantizedWeights(
-        QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale,
-                       layernorm_scale),
+        QuantizedLayer(
+            q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
+        ),
         sin=sin,
         cos=cos,
-        embedding=embedding)
+        embedding=embedding,
+    )
 
   @classmethod
   def logical_axes(cls):
@@ -387,7 +425,7 @@ class QuantizedWeights:
     q_wi = P('layers', 'params_heads', 'params_embed', 'qkv')
     # Scale Axes can not shard along a singleton dimension
     q_wi_scale = P('layers', 'heads', None, 'qkv')
-    kv = P('layers', 'params_embed', None, 'qkv')
+    kv = P('layers', 'params_kv_embed', None, 'qkv')
     kv_scale = P('layers', None, None, 'qkv')
     o_wo = P('layers', 'params_heads', 'qkv', 'params_embed')
     o_wo_scale = P('layers', None, None, 'residual_embed')
@@ -395,34 +433,40 @@ class QuantizedWeights:
     cos = P(None, None)
     # Embedding table wants different sharding than Transformer layers, to work
     # around b/244232479.
-    embedding = P('params_vocab', 'params_embed')
+    embedding = P('params_vocab', 'embedding_embed')
     layernorm_scale = P('layers', 'params_embed')
 
     return QuantizedWeights(
-        QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale,
-                       layernorm_scale),
+        QuantizedLayer(
+            q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
+        ),
         sin=sin,
         cos=cos,
-        embedding=embedding)
+        embedding=embedding,
+    )
 
   @classmethod
   def physical_axes(cls):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(partitioning.logical_to_physical,
-                        QuantizedWeights.logical_axes())
+    return jax.tree_map(
+        partitioning.logical_to_physical, QuantizedWeights.logical_axes()
+    )
 
   @classmethod
-  def from_checkpoint(cls, h, mesh,
-                      c):
+  def from_checkpoint(
+      cls, h, mesh, c
+  ):
     """Initializes weights in HBM, copying from a host-resident checkpoint."""
 
     axes = QuantizedWeights.logical_axes()
 
     def fold_in_wi0_constants(q_wi_scale):
-      hidden_channel_iota = jax.lax.broadcasted_iota(jnp.int32,
-                                                     q_wi_scale.shape, 3)
+      hidden_channel_iota = jax.lax.broadcasted_iota(
+          jnp.int32, q_wi_scale.shape, 3
+      )
       wi0_mask = (hidden_channel_iota >= h.qkv) & (
-          hidden_channel_iota < (h.qkv + (h.ff // h.heads)))
+          hidden_channel_iota < (h.qkv + (h.ff // h.heads))
+      )
       # Constant 0.5: We need to multiply wi_0 by 0.5 to correct special2.swish2
       # to be equivalent to jnp.swish. More efficient to do this once to the
       # weights than every time we call the fn.
@@ -430,8 +474,9 @@ class QuantizedWeights:
       return q_wi_scale * jnp.where(wi0_mask, wi0_constants, 1.0)
 
     def fold_in_q_constants(q_wi_scale):
-      hidden_channel_iota = jax.lax.broadcasted_iota(jnp.int32,
-                                                     q_wi_scale.shape, 3)
+      hidden_channel_iota = jax.lax.broadcasted_iota(
+          jnp.int32, q_wi_scale.shape, 3
+      )
       q_mask = hidden_channel_iota < h.qkv
       # Constant LOG2_E: comes from using special2.exp2 instead of lax.exp.
       # Constant lax.rsqrt(h.qkv): comes from Transformer attention definition.
@@ -443,7 +488,10 @@ class QuantizedWeights:
       # Constant lax.rsqrt(h.embed): comes from t5x definition.
       unembedding_constants = special2.LOG2_E * lax.rsqrt(jnp.float32(h.embed))
       # See unquantized class for an explanation of why we do this
-      return o_wo_scale * unembedding_constants, embedding * unembedding_constants
+      return (
+          o_wo_scale * unembedding_constants,
+          embedding * unembedding_constants,
+      )
 
     @jax.jit
     def transpose_q_wi(q_wi, q_wi_scale):
@@ -459,7 +507,11 @@ class QuantizedWeights:
     def preprocess(q_wi_scale, o_wo_scale, kv_scale, embedding):
       # They are used as reciprocals later, this slightly improves
       # efficiency at forward pass time
-      q_wi_scale, o_wo_scale, kv_scale = 1.0 / q_wi_scale, 1.0 / o_wo_scale, 1.0 / kv_scale
+      q_wi_scale, o_wo_scale, kv_scale = (
+          1.0 / q_wi_scale,
+          1.0 / o_wo_scale,
+          1.0 / kv_scale,
+      )
       # With 62B, if we upcast q_wi and kv to float32, then we
       # run out of memory, so we can't fold the layernorm in
       # This is where we would have called fold_in_layernorm(q_wi, kv)
@@ -467,7 +519,8 @@ class QuantizedWeights:
       q_wi_scale = fold_in_wi0_constants(q_wi_scale)
 
       o_wo_scale, embedding = fold_in_unembedding_constants(
-          o_wo_scale, jnp.float32(embedding))
+          o_wo_scale, jnp.float32(embedding)
+      )
 
       if h.padded_heads > 0:
         raise NotImplementedError
@@ -486,38 +539,53 @@ class QuantizedWeights:
     q_wi_input_axes = P('layers', 'params_embed', 'params_heads', 'qkv')
     q_wi_scale_input_axes = P('layers', None, 'heads', 'qkv')
     q_wi = copy_to_device(
-        c.q_wi, q_wi_input_axes,
+        c.q_wi,
+        q_wi_input_axes,
         jax.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
-            jnp.int8))
+            jnp.int8,
+        ),
+    )
     q_wi_scale = copy_to_device(
-        c.q_wi_scale, q_wi_scale_input_axes,
+        c.q_wi_scale,
+        q_wi_scale_input_axes,
         jax.ShapedArray(
             (h.layers, 1, h.heads - h.padded_heads, h.q_wi_per_head),
-            jnp.float32))
+            jnp.float32,
+        ),
+    )
     kv = copy_to_device(c.kv, axes.layer.kv, expected_shapes.layer.kv)
-    kv_scale = copy_to_device(c.kv_scale, axes.layer.kv_scale,
-                              expected_shapes.layer.kv_scale)
+    kv_scale = copy_to_device(
+        c.kv_scale, axes.layer.kv_scale, expected_shapes.layer.kv_scale
+    )
     o_wo = copy_to_device(c.o_wo, axes.layer.o_wo, expected_shapes.layer.o_wo)
-    o_wo_scale = copy_to_device(c.o_wo_scale, axes.layer.o_wo_scale,
-                                expected_shapes.layer.o_wo_scale)
+    o_wo_scale = copy_to_device(
+        c.o_wo_scale, axes.layer.o_wo_scale, expected_shapes.layer.o_wo_scale
+    )
     layernorm_scale_axes = P('layers', 'params_embed')
-    layernorm_scale = copy_to_device(c.layernorm_scale, layernorm_scale_axes,
-                                     expected_shapes.layer.layernorm_scale)
-    embedding = copy_to_device(c.embedding, axes.embedding,
-                               expected_shapes.embedding)
+    layernorm_scale = copy_to_device(
+        c.layernorm_scale,
+        layernorm_scale_axes,
+        expected_shapes.layer.layernorm_scale,
+    )
+    embedding = copy_to_device(
+        c.embedding, axes.embedding, expected_shapes.embedding
+    )
 
     with mesh:
       # We do each step of pre-processing in separate pjit calls to save memory
       q_wi_scale, o_wo_scale, kv_scale, embedding = preprocess(
-          q_wi_scale, o_wo_scale, kv_scale, embedding)  # pylint: disable=line-too-long
+          q_wi_scale, o_wo_scale, kv_scale, embedding
+      )  # pylint: disable=line-too-long
       # on this call we do not donate argnums as the input/output buffers are
       # different sizes
       q_wi, q_wi_scale = transpose_q_wi(q_wi, q_wi_scale)
 
     return QuantizedWeights(
-        QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale,
-                       layernorm_scale),
+        QuantizedLayer(
+            q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
+        ),
         sin=sin,
         cos=cos,
-        embedding=embedding)
+        embedding=embedding,
+    )

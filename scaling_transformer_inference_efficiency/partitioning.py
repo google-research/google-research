@@ -16,8 +16,10 @@
 """Parallel partitioning functions."""
 
 import contextlib
+from dataclasses import dataclass  # pylint: disable = g-importing-member
 from enum import Enum  # pylint: disable = g-importing-member
 import functools
+import math
 import threading
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
@@ -35,13 +37,24 @@ import numpy as np
 import tensorstore
 
 
-
 class AttnAllToAll(Enum):
   """How much of an alltoall to use for attention."""
   NONE = 0  # [batch.B, heads.YZX]
   AXIS_Z = 1  # [batch.ZB, heads.YX]
   AXES_YZ = 2  # [batch.YZB, heads.X]
   AXES_YZX = 3  # [batch.YZXB, heads]
+
+
+@dataclass
+class ShardingConfig:
+  """Class to contain useful objects to shard objects in lower layers."""
+
+  mesh: Mesh
+  # TODO(sholto): Infer what we can from the rules
+  attn_all_to_all: AttnAllToAll
+  latency_collectives: bool
+  shard_seqlen_vs_batch: bool
+  batch_unsharded: bool
 
 
 def attn_sharding_to_axes(attn_batch_sharding):
@@ -64,10 +77,14 @@ def make_rules_two_d(attn_batch_sharding=AttnAllToAll.NONE,
       ('prefix_layers', None),
       ('prefix_qkv', None),
       ('batch', None),
-      ('residual_batch', None if
-       (shard_seqlen_vs_batch or batch_unsharded) else 'z'),
-      ('logit_batch',
-       None if batch_unsharded else 'x'),  # don't shard batch generally
+      (
+          'residual_batch',
+          None if (shard_seqlen_vs_batch or batch_unsharded) else 'z',
+      ),
+      (
+          'logit_batch',
+          None if batch_unsharded else 'x',
+      ),  # don't shard batch generally
       ('residual_embed', ('x', 'y', 'z') if batch_unsharded else ('x', 'y')),
       ('residual_time', 'z' if shard_seqlen_vs_batch else None),
       ('post_norm_batch', None),
@@ -76,9 +93,35 @@ def make_rules_two_d(attn_batch_sharding=AttnAllToAll.NONE,
       ('qkv', None),
       ('params_heads', ('y', 'z')),
       ('params_embed', 'x'),
+      ('params_kv_embed', 'x'),
       ('params_vocab', ('y', 'z')),
+      ('embedding_embed', 'x'),
       ('vocab', ('y', 'z', 'x') if batch_unsharded else ('y', 'z')),
       ('attn_batch', attn_sharding_to_axes(attn_batch_sharding)),
+  ]
+
+
+def make_rules_one_d():
+  return [
+      ('prefix_time', None),
+      ('prefix_layers', None),
+      ('prefix_qkv', None),
+      ('batch', None),
+      ('residual_batch', None),
+      ('logit_batch', None),
+      ('residual_embed', 'x'),
+      ('residual_time', None),
+      ('post_norm_batch', None),
+      ('post_norm_embed', 'x'),
+      ('heads', ('x', 'y', 'z')),
+      ('qkv', None),
+      ('params_heads', ('x', 'y', 'z')),
+      ('params_embed', None),
+      ('params_kv_embed', 'x'),
+      ('params_vocab', ('y', 'z')),
+      ('vocab', ('y', 'z', 'x')),
+      ('embedding_embed', 'x'),
+      ('attn_batch', None),
   ]
 
 
@@ -90,7 +133,7 @@ def make_rules_weight_gathered():
       ('prefix_qkv', None),
       ('batch', None),
       ('residual_batch', ('x', 'y', 'z')),
-      ('logit_batch', 'x'),  # tbd
+      ('logit_batch', 'x'),
       ('residual_embed', None),
       ('post_norm_batch', ('x', 'y', 'z')),
       ('post_norm_embed', None),
@@ -98,7 +141,10 @@ def make_rules_weight_gathered():
       ('qkv', None),
       ('params_heads', ('y', 'z')),
       ('params_embed', 'x'),
-      ('vocab', ('y', 'z')),  # tbd
+      ('params_kv_embed', None),
+      ('params_vocab', ('y', 'z')),
+      ('vocab', ('y', 'z')),
+      ('embedding_embed', 'x'),
       ('attn_batch', ('x', 'y', 'z')),
   ]
 
@@ -154,10 +200,31 @@ def logical_to_physical(logical_axes):
 
 
 @functools.cache
-def make_mesh(devices = None):
+def make_mesh(devices = None, one_d=False):
   """Creates a device mesh for use with xmap over x/y/z axes."""
   if devices is None:
     devices = jax.devices()
+
+  if 'TPU v5 lite' in devices[0].device_kind:
+    # TPUV5 are 2D
+    if len(devices) == 8:
+      if one_d:
+        return Mesh(
+            mesh_utils.create_device_mesh((8, 1))[:, :, np.newaxis],
+            ('x', 'y', 'z'),
+        )
+      else:
+        return Mesh(
+            mesh_utils.create_device_mesh((2, 4))[:, :, np.newaxis],
+            ('x', 'y', 'z'),
+        )
+    else:
+      raise NotImplementedError
+  if one_d:
+    if len(devices) == 8:
+      return Mesh(mesh_utils.create_device_mesh((8, 1, 1)), ('x', 'y', 'z'))
+    else:
+      raise NotImplementedError
   if len(devices) == 1:
     x, y, z = 1, 1, 1  # TODO(sholto): test
   elif len(devices) == 4:
@@ -241,9 +308,9 @@ def copy_to_device(x, sharding,
       # Further code is internal
     else:
       # Read from tensorstore using jax gda_serialization
-      tensor, = jax_gda_serialization.run_deserialization([sharding], [x],
-                                                          [expected.shape],
-                                                          [expected.dtype])
+      (tensor,) = jax_gda_serialization.run_deserialization(
+          [sharding], [x], [expected.shape], [expected.dtype], concurrent_gb=64
+      )
       return tensor
   else:
     raise ValueError(f'Unsupported type: {type(x)}')
@@ -267,7 +334,10 @@ def _with_sharding_constraint(t,
     if axis is None or axis not in name_to_size:
       continue
     axis_size = name_to_size[axis]
-    assert size % axis_size == 0 or _ALLOW_UNEVEN_SHARDING, f'Uneven sharding. Shape: {t.shape}, spec: {spec}, axis: {axis}, axis size: {axis_size}'
+    assert size % axis_size == 0 or _ALLOW_UNEVEN_SHARDING, (
+        f'Uneven sharding. Shape: {t.shape}, spec: {spec}, axis: {axis}, axis'
+        f' size: {axis_size}'
+    )
   return pjit.with_sharding_constraint(t, axes)
 
 
@@ -279,3 +349,35 @@ def get_sharding_divisor(logical):
   else:
     sharding_axis_size = np.prod([jax.lax.psum(1, a) for a in sharding_axis])
   return sharding_axis_size
+
+
+@functools.cache
+def get_sharding_divisor_outside_manual(mesh, dimensions):
+  """Usable outside xmap, shardmap."""
+  with mesh:
+    sizes = {k: v for k, v in mesh.shape.items()}
+    sizes[None] = 1
+    if dimensions is None:
+      return 1
+    else:
+      return math.prod([sizes[k] for k in dimensions])
+
+
+def safe_sharding(tensor, sharding, mesh):
+  """If something is to be sharded by more than it's size, do not shard."""
+
+  shape = tensor.shape
+  sharding_size = [
+      get_sharding_divisor_outside_manual(mesh, dim) for dim in sharding
+  ]
+  new_sharding = []
+
+  for i, (tensor_dim, sharding_dim) in enumerate(zip(shape, sharding_size)):
+    if tensor_dim >= sharding_dim:
+      new_sharding.append(sharding[i])
+      assert tensor_dim % sharding_dim == 0
+    else:
+      # assert to prevent weird tiling
+      assert sharding_dim % tensor_dim == 0
+      new_sharding.append(None)
+  return P(*new_sharding)

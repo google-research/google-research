@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
+from functools import partial  # pylint: disable = g-importing-member
 from typing import Callable, Sequence
 
 from absl.testing import absltest
 import jax
 from jax import lax
 from jax.experimental.pjit import pjit
+from jax.experimental.shard_map import shard_map
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 import numpy as np
@@ -31,8 +32,8 @@ from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.layers import layers_pjit
+from scaling_transformer_inference_efficiency.layers import one_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
-from scaling_transformer_inference_efficiency.maps import shard_map
 from scaling_transformer_inference_efficiency.partitioning import _with_sharding_constraint
 
 jax.config.update('jax_array', True)  # required for jax < 0.4.0
@@ -45,12 +46,12 @@ Layer = weights.Layer
 QuantizedLayer = weights.QuantizedLayer
 
 
-def setup(batch_size, seq_len):
+def setup(batch_size, seq_len, one_d):
   """Sets up necessary inputs."""
   X, Y, Z = 2, 2, 2  # slice sizes pylint: disable = invalid-name
   assert len(jax.devices()) == X * Y * Z
 
-  mesh = partitioning.make_mesh()
+  mesh = partitioning.make_mesh(one_d=one_d)
   key = jax.random.PRNGKey(0)
   dtype = jnp.float32
   h = checkpoint.HParams(
@@ -85,7 +86,7 @@ def setup(batch_size, seq_len):
   def to_named_sharding(mesh, spec):
     return jax.sharding.NamedSharding(mesh, spec)
 
-  to_named_sharding = functools.partial(to_named_sharding, mesh)
+  to_named_sharding = partial(to_named_sharding, mesh)
 
   # pjit sharding
   chunk_spec = jax.tree_util.tree_map(to_named_sharding, chunk_sharding)
@@ -146,25 +147,21 @@ def pjit_embed_and_layer(
 
 # pylint: disable = g-bare-generic
 # pylint: disable = invalid-name
-def xmap_embed_and_layer(
+def embed_manual_and_layer(
     h,
+    embed_fn,
     _transformer_layer_fn,
     params,  # pylint: disable=g-bare-generic, invalid-name
     kv_caches,
     token_chunk,
-    attn_all_to_all,
-    latency_collectives,
-    shard_seqlen_vs_batch,
-    batch_unsharded,
-    intermediate_dtype = jnp.bfloat16):
+    intermediate_dtype = jnp.bfloat16,
+):
   """Forward pass through xmap path, returning per-token logits."""
   x_axis = lax.psum(1, 'x')
   y_axis = lax.psum(1, 'y')
   z_axis = lax.psum(1, 'z')
 
-  x, sin, cos = two_d_parallel_xmap.xmap_embed(params, kv_caches, token_chunk,
-                                               shard_seqlen_vs_batch,
-                                               batch_unsharded)
+  x, sin, cos = embed_fn(params, kv_caches, token_chunk)
 
   z, layer_k, layer_v = _transformer_layer_fn(
       h,
@@ -177,10 +174,6 @@ def xmap_embed_and_layer(
       x_axis,
       y_axis,
       z_axis,
-      attn_all_to_all,
-      latency_collectives=latency_collectives,
-      shard_seqlen_vs_batch=shard_seqlen_vs_batch,
-      batch_unsharded=batch_unsharded,
       intermediate_dtype=intermediate_dtype)
 
   return intermediate_dtype(x), intermediate_dtype(z), intermediate_dtype(
@@ -194,21 +187,31 @@ class LayersTest(absltest.TestCase):
   def xmap_pjit_equivalency(
       self,
       batch_size=4,
-      seq_len=32,
+      seq_len=48,
       rules = [],
-      layer = two_d_parallel_xmap.transformer_layer_weight_stationary,
       attn_sharding = partitioning.AttnAllToAll.NONE,
       latency_collectives = False,
       shard_seqlen_vs_batch = False,
       batch_unsharded = False,
+      layer_fn = two_d_parallel_xmap.transformer_layer_weight_stationary,
   ):
     """Tests equivalency of a pjit and xmap forward pass."""
 
+    one_d = layer_fn == one_d_parallel_xmap.weight_stationary_simple
     with rules:
-      (dtype, h, mesh, params, kv_caches, token_chunk, chunk_sharding,
-       params_sharding, _) = setup(batch_size, seq_len)
+      (
+          dtype,
+          h,
+          mesh,
+          params,
+          kv_caches,
+          token_chunk,
+          chunk_sharding,
+          params_sharding,
+          _,
+      ) = setup(batch_size, seq_len, one_d)
 
-      @functools.partial(pjit)
+      @partial(pjit)
       def fwd_pjit(token_chunk, params):
         x, z, k, v = pjit_embed_and_layer(
             h,
@@ -227,28 +230,49 @@ class LayersTest(absltest.TestCase):
       kv_sharding = partitioning.logical_to_physical(
           P('attn_batch', 'length', 'qkv'))
 
-      def fwd_xmap(token_chunk, params):
-        x, z, k, v = xmap_embed_and_layer(
-            h,
-            layer,
-            params,
-            kv_caches,
-            token_chunk,
-            attn_all_to_all=attn_sharding,
-            latency_collectives=latency_collectives,
-            shard_seqlen_vs_batch=shard_seqlen_vs_batch,
-            batch_unsharded=batch_unsharded,
-            intermediate_dtype=dtype)
+      embed_fn = partial(
+          two_d_parallel_xmap.embed_manual,
+          shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+          batch_unsharded=batch_unsharded,
+          one_d=one_d,
+      )
 
-        return x, z, k, v
+    if layer_fn == two_d_parallel_xmap.transformer_layer_weight_stationary:
+      layer_fn = partial(
+          layer_fn,
+          attn_all_to_all=attn_sharding,
+          latency_collectives=latency_collectives,
+          shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+          batch_unsharded=batch_unsharded,
+      )
+    elif layer_fn == one_d_parallel_xmap.weight_stationary_simple:
+      layer_fn = partial(layer_fn, latency_collectives=latency_collectives)
+    elif layer_fn == two_d_parallel_xmap.transformer_layer_weight_gathered:
+      raise NotImplementedError
 
-      with mesh:
-        x, z, k, _ = shard_map.shard_map(
-            fwd_xmap,
-            mesh,
-            in_specs=(chunk_sharding, params_sharding),
-            out_specs=(z_sharding, z_sharding, kv_sharding,
-                       kv_sharding))(token_chunk, params)
+    def fwd(token_chunk, params):
+      x, z, k, v = embed_manual_and_layer(
+          h,
+          embed_fn,
+          layer_fn,
+          params,
+          kv_caches,
+          token_chunk,
+          intermediate_dtype=dtype,
+      )
+
+      return x, z, k, v
+
+    with mesh:
+      x, z, k, _ = jax.jit(
+          shard_map(
+              fwd,
+              mesh,
+              in_specs=(chunk_sharding, params_sharding),
+              out_specs=(z_sharding, z_sharding, kv_sharding, kv_sharding),
+              check_rep=False,
+          )
+      )(token_chunk, params)
 
       np.testing.assert_allclose(x_baseline, x, rtol=1e-02, atol=1e-01)
       np.testing.assert_allclose(k_baseline, k, rtol=1e-02, atol=1e-01)
@@ -303,6 +327,22 @@ class LayersTest(absltest.TestCase):
         partitioning.make_rules_two_d(attn_sharding))
     self.xmap_pjit_equivalency(
         batch_size=8, rules=rules, attn_sharding=attn_sharding)
+
+  def test_batch1_1D(self):
+    rules = partitioning.PartitioningRules(partitioning.make_rules_one_d())
+    self.xmap_pjit_equivalency(
+        batch_size=1,
+        rules=rules,
+        layer_fn=one_d_parallel_xmap.weight_stationary_simple,
+    )
+
+  def test_batch8_1D(self):
+    rules = partitioning.PartitioningRules(partitioning.make_rules_one_d())
+    self.xmap_pjit_equivalency(
+        batch_size=8,
+        rules=rules,
+        layer_fn=one_d_parallel_xmap.weight_stationary_simple,
+    )
 
 
 if __name__ == '__main__':

@@ -43,6 +43,7 @@ from jax.sharding import PartitionSpec as P
 import numpy as np
 
 from scaling_transformer_inference_efficiency import checkpoint
+from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
 
 HParams = checkpoint.HParams
@@ -87,6 +88,13 @@ class KVCache:
         k=P('prefix_time', 'prefix_layers', 'attn_batch', 'prefix_qkv'),
         v=P('prefix_time', 'prefix_layers', 'attn_batch', 'prefix_qkv'),
     )  # pytype: disable=wrong-arg-types
+
+  @classmethod
+  def physical_axes(cls):
+    """Returns the partition specs for the weights in their physical axes."""
+    return jax.tree_map(
+        partitioning.logical_to_physical, KVCache.logical_axes()
+    )
 
 
 def prefix_lengths(prefix):

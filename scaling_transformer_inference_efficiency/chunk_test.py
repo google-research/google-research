@@ -39,7 +39,7 @@ class ChunkTest(absltest.TestCase):
     ]], np.float32)
     logits = np.log2(probs)
     full_result = FullChunkResult(logits=logits, kv_cache=None)
-    result = full_result.to_chunk_result(None, chunk)
+    result = full_result.to_chunk_result(None, chunk, do_top_k=True)
     np.testing.assert_allclose(
         result.per_token_scores,
         np.log(np.array([[1.0, 0.6, 0.85]], np.float32)),
