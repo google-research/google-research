@@ -101,6 +101,15 @@ flags.DEFINE_integer('finetune_start_step', -1,
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
+flags.DEFINE_bool('final_output_encoding', False,
+                  'Whether to use both next and final outputs in synthesizer.')
+flags.DEFINE_float('final_output_dropout_rate', 0.1,
+                   'Dropout rate for final outputs encoder.')
+flags.DEFINE_float('final_output_attention_dropout_rate', 0.1,
+                   'Attention dropout rate for final outputs encoder.')
+flags.DEFINE_float('synthesizer_corrupted_next_part_rate', 0.1,
+                   'The fraction of examples that use the corrupted next part.')
+
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
 flags.DEFINE_integer('num_position_buckets', 32,
@@ -254,6 +263,7 @@ def compute_metrics(logits, targets, weights):
 def train_step(optimizer,
                inputs,
                outputs,
+               final_outputs,
                targets,
                learning_rate_fn,
                config,
@@ -272,6 +282,7 @@ def train_step(optimizer,
         {'params': params},
         inputs,
         outputs,
+        final_outputs,
         targets,
         rngs={'dropout': dropout_rng})
     loss, weight_sum = compute_weighted_cross_entropy(logits, targets, weights)
@@ -291,7 +302,8 @@ def train_step(optimizer,
   return new_optimizer, metrics, new_dropout_rng
 
 
-def eval_step(params, inputs, outputs, targets, eos_token, config):
+def eval_step(params, inputs, outputs, final_outputs, targets, eos_token,
+              config):
   """Collect metrics for evaluation during training."""
   weights = jnp.where(
       jnp.logical_and(targets > 0,
@@ -299,18 +311,25 @@ def eval_step(params, inputs, outputs, targets, eos_token, config):
                                       targets != eos_token)),
       1, 0).astype(jnp.float32)
   logits = models.DecomposeAttentionTransformer(config).apply(
-      {'params': params}, inputs, outputs, targets)
+      {'params': params}, inputs, outputs, final_outputs, targets)
 
   return compute_metrics(logits, targets, weights)
 
 
-def initialize_cache(inputs, outputs, targets, max_decode_len, config):
+def initialize_cache(inputs, outputs, final_outputs, targets, max_decode_len,
+                     config):
   """Initializes a cache for a given input shape and max decode length."""
+  # If `final_outputs` is not None, it should have the same shape as `outputs`.
+  # If `final_outputs` is None, then the model must be using
+  # final_output_encoding=False, which causes the jnp.ones(...) to be ignored.
+  del final_outputs
+
   target_shape = (targets.shape[0], max_decode_len)
   dtype = config.base_config.dtype
   initial_variables = models.DecomposeAttentionTransformer(config).init(
       jax.random.PRNGKey(0),
       jnp.ones(inputs.shape, dtype),
+      jnp.ones(outputs.shape, dtype),
       jnp.ones(outputs.shape, dtype),
       jnp.ones(target_shape, dtype))
   return initial_variables['cache']
@@ -319,6 +338,7 @@ def initialize_cache(inputs, outputs, targets, max_decode_len, config):
 def predict_step(params,
                  inputs,
                  outputs,
+                 final_outputs,
                  cache,
                  beam_size,
                  eos_token,
@@ -335,6 +355,7 @@ def predict_step(params,
           {'params': params},
           inputs,
           outputs,
+          final_outputs,
           method=models.DecomposeAttentionTransformer.encode),
       beam_size)
 
@@ -519,9 +540,27 @@ def shorten(key):
   return ''.join(s[0] for s in splits)
 
 
-def load_data(batches):
+def load_data(batches, rng):
+  """Returns info from batches in dictionaries."""
   data_dict = common_utils.shard(batches)
-  return data_dict['inputs'], data_dict['outputs'], data_dict['target']
+  if FLAGS.model_type == 'synthesizer_model':
+    rng, new_rng = jax.random.split(rng)
+    # shape: [num_devices, per_device_batch_size]
+    is_corrupted = (
+        jax.random.uniform(rng, shape=data_dict['outputs'].shape[:2])
+        < FLAGS.synthesizer_corrupted_next_part_rate)
+    outputs = np.where(is_corrupted[Ellipsis, None, None],
+                       data_dict['corrupted_outputs'],
+                       data_dict['outputs'])
+  else:
+    outputs = data_dict['outputs']
+    new_rng = rng
+
+  return (data_dict['inputs'],
+          outputs,
+          data_dict.get('final_outputs', None),
+          data_dict['target'],
+          new_rng)
 
 
 def main(_):
@@ -730,13 +769,24 @@ def main(_):
               'target': 'joined_next_part',
           })
     elif FLAGS.model_type == 'synthesizer_model':
+      # TODO(kshi): RobustFill doesn't have `corrupted_next_part` in the dataset
+      # yet, so trying to load it will break.
       create_dataset_fn = functools.partial(
           input_pipeline_fn,
           renaming_dict={
               'inputs': 'inputs',
               'outputs': 'next_part',
+              'corrupted_outputs': 'corrupted_next_part',
+              'final_outputs': 'outputs',
               'target': program_part_key,
           })
+      padded_shapes = {
+          'inputs': io_shape[1:],
+          'outputs': io_shape[1:],
+          'corrupted_outputs': io_shape[1:],
+          'final_outputs': io_shape[1:],
+          'target': target_shape[1:],
+      }
     elif FLAGS.model_type == 'joint_model':
       create_dataset_fn = functools.partial(
           input_pipeline_fn,
@@ -764,8 +814,13 @@ def main(_):
   eval_ds = dataset.take(FLAGS.num_eval_steps)
   # Decrease batch of predict dataset to handle beam search.
   predict_padded_shapes = padded_shapes.copy()
+  # TODO(kshi): for RobustFill, maybe we need to update `final_output`.
   predict_padded_shapes['inputs'] = predict_io_shape[1:]
   predict_padded_shapes['outputs'] = predict_io_shape[1:]
+  if FLAGS.model_type == 'synthesizer':
+    predict_padded_shapes['corrupted_outputs'] = predict_io_shape[1:]
+    predict_padded_shapes['final_outputs'] = predict_io_shape[1:]
+
   logging.info('predict_padded_shapes: %s', predict_padded_shapes)
   predict_ds = eval_ds.unbatch().padded_batch(
       int(np.ceil(batch_size / 10)),
@@ -838,6 +893,10 @@ def main(_):
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       dataset_type=FLAGS.dataset_type,
+      final_output_encoding=FLAGS.final_output_encoding,
+      final_output_dropout_rate=FLAGS.final_output_dropout_rate,
+      final_output_attention_dropout_rate=(
+          FLAGS.final_output_attention_dropout_rate),
       flat_encoded_self_attention=FLAGS.flat_encoded_self_attention,
       aligned_relative_attention=FLAGS.aligned_relative_attention,
       separator_token_id=separator_token_id)
@@ -854,11 +913,11 @@ def main(_):
   rng, init_rng = jax.random.split(rng)
 
   dropout_rng = jax.random.split(rng, jax.local_device_count())
-  del rng
 
   m = models.DecomposeAttentionTransformer(eval_config)
   initial_variables = jax.jit(m.init)(
       init_rng,
+      jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(target_shape, jnp.float32))
@@ -940,7 +999,7 @@ def main(_):
           config=predict_config,
           slow_decode=FLAGS.slow_decode),
       axis_name='batch',
-      static_broadcasted_argnums=(4,))
+      static_broadcasted_argnums=(5,))
 
   # Main Train Loop
   # ---------------------------------------------------------------------------
@@ -950,10 +1009,12 @@ def main(_):
   tick = time.time()
   train_iter = train_ds.as_numpy_iterator()
   for step in range(start_step, FLAGS.num_train_steps):
-    inputs, outputs, targets = load_data(next(train_iter))
+    inputs, outputs, final_outputs, targets, rng = load_data(next(train_iter),
+                                                             rng)
 
     optimizer, metrics, dropout_rng = p_train_step(
-        optimizer, inputs, outputs, targets, dropout_rng=dropout_rng)
+        optimizer, inputs, outputs, final_outputs, targets,
+        dropout_rng=dropout_rng)
     metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
@@ -991,9 +1052,10 @@ def main(_):
       t_evaluation_start = time.time()
       eval_metrics = []
       for batches in eval_ds.as_numpy_iterator():
-        inputs, outputs, targets = load_data(batches)
+        inputs, outputs, final_outputs, targets, rng = load_data(batches, rng)
 
-        metrics = p_eval_step(optimizer.target, inputs, outputs, targets)
+        metrics = p_eval_step(optimizer.target, inputs, outputs, final_outputs,
+                              targets)
         eval_metrics.append(metrics)
 
       eval_metrics = common_utils.get_metrics(eval_metrics)
@@ -1035,12 +1097,13 @@ def main(_):
               # pylint: disable=cell-var-from-loop
               pred_batch = jax.tree_map(
                   lambda x: pad_examples(x, padded_size), pred_batch)
-            inputs, outputs, targets = load_data(pred_batch)
+            inputs, outputs, final_outputs, targets, rng = load_data(pred_batch,
+                                                                     rng)
 
             cache = (p_init_cache(inputs, outputs, targets)
                      if not FLAGS.slow_decode else None)
-            predicted = p_pred_step(optimizer.target, inputs, outputs, cache,
-                                    beam_size)
+            predicted = p_pred_step(optimizer.target, inputs, outputs,
+                                    final_outputs, cache, beam_size)
             predicted = tohost(predicted)
             inputs, outputs, targets = map(tohost, (inputs, outputs, targets))
 
