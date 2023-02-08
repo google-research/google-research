@@ -160,7 +160,7 @@ def all_stats(dataset, n_iter=20):
                                  users_as_nodes)
     for exp in [True, False]:
       dist_matrix = weight_to_dist(weights, exp)
-      graph = nx.from_numpy_matrix(dist_matrix)
+      graph = nx.from_numpy_array(dist_matrix)
       xi_mean, xi_std, tot = xi_stats(graph, n_iter)
       summary += format_xi_stats(users_as_nodes, exp, xi_mean, xi_std, tot)
       summary += '\n \n'

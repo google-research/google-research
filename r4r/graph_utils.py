@@ -44,7 +44,7 @@ def load(connections_file):
     pos2d = {x['image_id']: np.array(x['pose'])[[3, 7]] for x in lines}
     pos3d = {x['image_id']: np.array(x['pose'])[[3, 7, 11]] for x in lines}
 
-  graph = nx.from_numpy_matrix(matrix)
+  graph = nx.from_numpy_array(matrix)
   graph = nx.relabel.relabel_nodes(graph, dict(enumerate(nodes)))
   nx.set_node_attributes(graph, pos2d, 'pos2d')
   nx.set_node_attributes(graph, pos3d, 'pos3d')
@@ -134,4 +134,3 @@ def draw(graph, predicted_path, reference_path, output_filename, **kwargs):
 
   plt.savefig(output_filename)
   plt.close()
-
