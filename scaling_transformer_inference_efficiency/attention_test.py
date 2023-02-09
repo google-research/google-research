@@ -149,7 +149,8 @@ class AttentionTest(absltest.TestCase):
       kv_cache = attention.KVCache(
           k=full_cache_k[:split_point, :, :, :],
           v=full_cache_v[:split_point, :, :, :],
-          lengths=jnp.broadcast_to(split_point, (batch,))
+          lengths=jnp.broadcast_to(split_point, (batch,)),
+          offset=jnp.array([0])
       )
       result = attention.attend(full_q[:, split_point:, :, :],
                                 full_k[:, split_point:, :],

@@ -342,6 +342,102 @@ class InferenceModel:
           params, prefix, chunk, prev_logits, pre_embedded_inputs
       )
 
+  @staticmethod
+  def create_output_buffer(
+      hparams: checkpoint.HParams,
+      sample_ids: jnp.ndarray,
+      prefix: List[attention.KVCache],
+      length: int,
+      prev_chunk_next_token_logits: Optional[jnp.ndarray] = None,
+      circular: bool = False,
+  ):
+    """Create everything we need to deterministically write output samples."""
+    # Seeding of the RNG itself is deterministic.
+    # To generate different samples, users can provide sample_number_offset.
+    (batch,) = sample_ids.shape
+    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(
+        jax.random.PRNGKey(0), sample_ids
+    )
+    token_indexes_start = attention.prefix_lengths(prefix)
+    token_indexes_start = attention.flat_broadcast(token_indexes_start, batch)
+
+    # Generation loop.
+    last_logits = prev_chunk_next_token_logits
+    if last_logits is None:
+      last_logits = _bos_logits(hparams.vocab)[np.newaxis, :]
+    last_logits = attention.flat_broadcast(last_logits, batch)
+    chunk = Chunk.zeros(batch, length)
+    chunk_result = ChunkResult.zeros(hparams, batch, length, circular=circular)
+    chunk_result = chunk_result.replace(next_token_logits=last_logits)
+    return sample_rngs, token_indexes_start, chunk, chunk_result
+
+  @staticmethod
+  def sample_infer_write(
+      model,
+      params: Weights,
+      prefix: List[attention.KVCache],
+      sample_params: SamplingHyperParams,
+      token_indexes_start: jnp.ndarray,
+      sample_rngs: jnp.ndarray,
+      write_index: int,
+      state: Tuple[Chunk, ChunkResult],
+  ):
+    """Samples prev inference, infers, writes to cache.
+
+    We sample first then do the next inference step because we already have
+    prexisting logits from prefill, so it saves us a step. Additionally, it
+    lowers better.
+    We have two different chunks at play in this loop:
+    1. `chunk`/`chunk_result`, of shape (batch, steps). This is the
+       mutable state that we fill one token at a time, starting at step=0
+       and going up to step=steps-1.
+    2. `token_chunk`/`token_chunk_result`/`token_full_chunk_result`, of
+       shape (batch, 1). These are the input/output of a single forwards
+       pass through the model, which processes just one chunk per batch
+       element.
+
+    We write token_* into chunk/chunk_result at a new position each loop
+    iteration.
+
+    Args:
+      model: InferenceModel
+      params: Model weights
+      prefix: pre_existing kv_cache
+      sample_params: Temperature etc
+      token_indexes_start: Per element token index in the full sequence, for
+        fully deterministic sampling.
+      sample_rngs: Rng per element
+      write_index: current index in the state. Always the same for all elements
+        so that it is a slice, not a scatter.
+      state: chunk / chunk_result pair described above. May be a circular buffer
+    Returns:
+      chunk: Written to (for tokens)
+      chunk_result: Written to (for KV_cache)
+    """
+    batch, _ = sample_rngs.shape
+    chunk, chunk_result = state
+    step_rngs = jax.vmap(jax.random.fold_in)(
+        sample_rngs, token_indexes_start + chunk.lengths
+    )
+    next_token = model._sample(
+        chunk_result.next_token_logits, step_rngs, sample_params
+    )
+    # ^ next_token: [batch]
+    token_chunk = Chunk(
+        tokens=next_token[:, np.newaxis],
+        lengths=jnp.full((batch,), 1, jnp.int32),
+    )
+    # ^ token_chunk: Chunk[batch, 1]
+
+    token_full_chunk_result = model._infer(
+        params, prefix + [chunk_result.kv_cache], token_chunk
+    )
+    chunk = chunk.update(write_index, token_chunk)
+    chunk_result = chunk_result.update(
+        write_index, token_chunk, token_full_chunk_result
+    )
+    return chunk, chunk_result
+
   # pylint: disable = protected-access
   # pylint: disable = g-long-lambda
   # pylint: disable = unnecessary-lambda
@@ -364,69 +460,30 @@ class InferenceModel:
     (batch,) = sample_ids.shape
     del stream  # TODO(sholto): reimplement once shardmap callback is done
 
-    # Seeding of the RNG itself is deterministic. To generate different samples,
-    # users can provide sample_number_offset.
-    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(
-        jax.random.PRNGKey(0), sample_ids
+    sample_rngs, token_indexes_start, chunk, chunk_result = (
+        self.create_output_buffer(
+            self._hparams,
+            sample_ids,
+            prefix,
+            steps,
+            prev_chunk_next_token_logits,
+            circular=False,
+        )
     )
-    token_indexes_start = attention.prefix_lengths(prefix)
-    token_indexes_start = attention.flat_broadcast(token_indexes_start, batch)
 
-    # Generation loop.
-    last_logits = prev_chunk_next_token_logits
-    if last_logits is None:
-      last_logits = _bos_logits(self._hparams.vocab)[np.newaxis, :]
-    last_logits = attention.flat_broadcast(last_logits, batch)
-    chunk = Chunk.zeros(batch, steps)
-    chunk_result = ChunkResult.zeros(self._hparams, batch, steps)
-    chunk_result = chunk_result.replace(next_token_logits=last_logits)
-
-    def loop_body(token_i, state: Tuple[Chunk, ChunkResult]):
-      # We have two different chunks at play in this loop:
-      # 1. `chunk`/`chunk_result`, of shape (batch, steps). This is the
-      #    mutable state that we fill one token at a time, starting at step=0
-      #    and going up to step=steps-1.
-      # 2. `token_chunk`/`token_chunk_result`/`token_full_chunk_result`, of
-      #    shape (batch, 1). These are the input/output of a single forwards
-      #    pass through the model, which processes just one chunk per batch
-      #    element.
-      #
-      # We write token_* into chunk/chunk_result at a new position each loop
-      # iteration.
-      chunk, chunk_result = state
-      step_rngs = jax.vmap(jax.random.fold_in)(
-          sample_rngs, token_indexes_start + token_i
-      )
-      next_token = self._sample(
-          chunk_result.next_token_logits, step_rngs, sample_params
-      )
-      # ^ next_token: [batch]
-      token_chunk = Chunk(
-          tokens=next_token[:, np.newaxis],
-          lengths=jnp.full((batch,), 1, jnp.int32),
-      )
-      # ^ token_chunk: Chunk[batch, 1]
-
-      token_full_chunk_result = self._infer(
-          params, prefix + [chunk_result.kv_cache], token_chunk
-      )
-      chunk = chunk.update(token_i, token_chunk)
-      chunk_result = chunk_result.update(
-          token_i, token_chunk, token_full_chunk_result
-      )
-      return chunk, chunk_result
-
-    # def six_loop(start, stop, fn, state):
-    #   for i in range(start, stop):
-    #     state = fn(i, state)
-    #   return state
+    loop_body = partial(
+        self.sample_infer_write,
+        self,
+        params,
+        prefix,
+        sample_params,
+        token_indexes_start,
+        sample_rngs,
+    )
 
     chunk, chunk_result = lax.fori_loop(
         0, steps, loop_body, (chunk, chunk_result)
     )
-    # (chunk, chunk_result) = six_loop(
-    #     0, steps, loop_body, (chunk, chunk_result)
-    # )
 
     # The length of the chunk is the index of the first EOS ID. We don't
     # calculate this during the generation loop, so instead we calculate it now.

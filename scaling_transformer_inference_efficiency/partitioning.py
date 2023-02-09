@@ -365,7 +365,10 @@ def get_sharding_divisor_outside_manual(mesh, dimensions):
 
 def safe_sharding(tensor, sharding, mesh):
   """If something is to be sharded by more than it's size, do not shard."""
-
+  if sharding is None: return None
+  if sharding is P(None,): return sharding
+  if sharding is P(None): return sharding
+  if sharding is P(): return sharding
   shape = tensor.shape
   sharding_size = [
       get_sharding_divisor_outside_manual(mesh, dim) for dim in sharding
@@ -378,6 +381,7 @@ def safe_sharding(tensor, sharding, mesh):
       assert tensor_dim % sharding_dim == 0
     else:
       # assert to prevent weird tiling
-      assert sharding_dim % tensor_dim == 0
+      # TODO(sholto): Re-insert after shard_map updated to use P().
+      # assert sharding_dim % tensor_dim == 0
       new_sharding.append(None)
   return P(*new_sharding)

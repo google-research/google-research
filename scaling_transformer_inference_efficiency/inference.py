@@ -129,7 +129,7 @@ def infer(
   logits = _with_sharding_constraint(logits, (None, None, 'vocab'))
   k, v = jnp.bfloat16(k), jnp.bfloat16(v)
   return FullChunkResult(
-      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v))
+      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v, offset=0))
 
 
 def manual_fwd_pass(
@@ -224,7 +224,11 @@ def infer_template(
 
   # 2D: logits: [batch.x, time, vocab.YZ]
   #     kv_cache: [.., ..., prefixbatch, ...]
-  cache_sharding = [attention.KVCache.physical_axes() for _ in kv_caches]
+  cache_sharding = [
+      kv.physical_axes(kv.circular) for kv in kv_caches
+  ]
+  # Match static values with actual cache
+
   # if a dimension is insufficient to be sharded, replicate
   cache_sharding = jax.tree_map(
       partial(partitioning.safe_sharding, mesh=sharding_config.mesh),
@@ -234,6 +238,12 @@ def infer_template(
 
   logit_sharding = jax.tree_map(
       partitioning.logical_to_physical, P('logit_batch', 'time', 'vocab')
+  )
+
+  # input/output cache, where we write the per layer kv cache results
+  io_cache_sharding = jax.tree_map(
+      partitioning.logical_to_physical,
+      P('prefix_layers', 'prefix_time', 'attn_batch', 'prefix_qkv'),
   )
 
   embedding_sharding = jax.tree_map(
@@ -252,19 +262,19 @@ def infer_template(
           params.physical_axes(),
           cache_sharding,
           chunk.physical_axes(),
-          attention.KVCache.physical_axes().k,
-          attention.KVCache.physical_axes().v,
+          io_cache_sharding,
+          io_cache_sharding,
           pre_embedded_sharding,
       ),
       out_specs=(
           logit_sharding,
-          attention.KVCache.physical_axes().k,
-          attention.KVCache.physical_axes().v,
+          io_cache_sharding,
+          io_cache_sharding,
       ),
       check_rep=False,
   )(params, kv_caches, chunk, k, v, pre_embedded_inputs)
   k, v = jnp.bfloat16(k), jnp.bfloat16(v)
 
   return FullChunkResult(
-      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v)
+      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v, offset=0)
   )

@@ -530,7 +530,7 @@ def run_weight_stationary_layer(
       )
     else:
       params = weights.Layer(q_wi, kv, o_wo)
-    kv_caches = KVCache(lengths, k, v)
+    kv_caches = KVCache(lengths, k, v, jnp.zeros([0], jnp.int32))
 
     def run():
       compiled_fn = the_benchmark.lower(
@@ -710,7 +710,7 @@ def run_weight_gathered_xmap_layer(
       )
     else:
       params = weights.Layer(q_wi, kv, o_wo)
-    kv_caches = KVCache(lengths, k, v)
+    kv_caches = KVCache(lengths, k, v, jnp.zeros([0], jnp.int32))
 
     def run():
       the_benchmark(params, sin, cos, kv_caches, x)[0].block_until_ready()
@@ -1286,7 +1286,7 @@ def run_serial_layer(
     )
     params = layers_serial.SerialLayer(q, wi, kv, o, wo)
     # print(jax.tree_map(jnp.shape, params))
-    kv_caches = KVCache(lengths, k, v)
+    kv_caches = KVCache(lengths, k, v, jnp.zeros([0], jnp.int32))
 
     def run():
       compiled_fn = the_benchmark.lower(

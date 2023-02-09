@@ -32,7 +32,7 @@ attn_out = attend(q, k, v, [few_shot_examples_cache, tasks])
 ```
 """
 import functools
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Optional
 
 from flax import struct
 import jax
@@ -56,44 +56,66 @@ class KVCache:
 
   Different sequences in a batch can have different lengths. Tokens outside the
   range `0:self.lengths` are invalid and should be masked out during attention.
+
+  If the cache is circular, then we write to it in the same fashion, but attend
+  differently - understanding that the length represents the number of tokens
+  behind the curent offset position, wrapping around the buffer if necessary.
+  This is so that we can write with a single slice instead of a scatter.
   """
   lengths: jnp.ndarray  # int32[batch]
   k: jnp.ndarray  # bf16[seqlen, layers, batch, qkv]
   v: jnp.ndarray  # bf16[seqlen, layers, batch, qkv]
+  offset: Optional[jnp.ndarray]
+  circular: Optional[bool] = struct.field(
+      pytree_node=False, kw_only=True, default=False
+  )
 
   @property
   def max_length(self):
     return self.k.shape[0]
 
   @classmethod
-  def zeros(cls, h, batch, length):
+  def zeros(
+      cls, h, batch, length, circular = False
+  ):
     """Constructs an empty KV cache of the specified batch and length."""
     return KVCache(
         lengths=jnp.zeros((batch,), jnp.int32),
         k=jnp.zeros((length, h.layers, batch, h.qkv), jnp.bfloat16),
-        v=jnp.zeros((length, h.layers, batch, h.qkv), jnp.bfloat16))
+        v=jnp.zeros((length, h.layers, batch, h.qkv), jnp.bfloat16),
+        offset=jnp.zeros((1,), jnp.int32),
+        circular=circular,
+    )
 
   def write_token(self, token_i, token):
+    """Note offset in the circular buffer is where we would be writing next."""
     assert token.k.shape[0] == 1
     return KVCache(
         lengths=self.lengths + 1,
         k=lax.dynamic_update_index_in_dim(self.k, token.k[0], token_i, 0),
-        v=lax.dynamic_update_index_in_dim(self.v, token.v[0], token_i, 0))
+        v=lax.dynamic_update_index_in_dim(self.v, token.v[0], token_i, 0),
+        offset=jnp.array([token_i,]) + 1 % self.max_length
+        if self.circular
+        else jnp.zeros((1,), jnp.int32),
+        circular=self.circular,
+    )
 
   @classmethod
-  def logical_axes(cls):
+  def logical_axes(cls, circular=False):
     """Returns the logical axis spec for the KV cache."""
     return KVCache(
         lengths=P('attn_batch'),
         k=P('prefix_time', 'prefix_layers', 'attn_batch', 'prefix_qkv'),
         v=P('prefix_time', 'prefix_layers', 'attn_batch', 'prefix_qkv'),
+        offset=P(None),
+        circular=circular,
     )  # pytype: disable=wrong-arg-types
 
   @classmethod
-  def physical_axes(cls):
+  def physical_axes(cls, circular=False):
     """Returns the partition specs for the weights in their physical axes."""
     return jax.tree_map(
-        partitioning.logical_to_physical, KVCache.logical_axes()
+        partitioning.logical_to_physical, KVCache.logical_axes(circular)
     )
 
 
@@ -322,7 +344,15 @@ def attend(q, k, v,
     # Attention mask so we don't attend past the length of each prefix.
     k_iota = lax.iota(jnp.int32, kv_cache.max_length)
     # mask: [kbatch, klen]
-    mask = k_iota < kv_cache.lengths[:, np.newaxis]
+    if kv_cache.circular:
+      # Gives us wraparound then checks it against lengths
+      # as when it is circular, the lengths trail the active offset
+      # Array([ 2,  1,  0, 11, 10,  9,  8,  7,  6,  5,  4,  3], dtype=int32)
+      mask = (
+          -(k_iota - kv_cache.offset[0] + 1) % kv_cache.max_length
+      ) < kv_cache.lengths[:, jnp.newaxis]
+    else:
+      mask = k_iota < kv_cache.lengths[:, np.newaxis]
     # mask: [kbatch, num_samples, num_heads, qlen, klen]
     mask = mask[:, np.newaxis, np.newaxis, np.newaxis, :]
 
@@ -360,3 +390,6 @@ def attend(q, k, v,
     attn_out += local_normalizer * local_out
 
   return attn_out
+
+
+

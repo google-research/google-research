@@ -320,7 +320,7 @@ class Chunk:
     return Chunk(
         tokens=lax.dynamic_update_index_in_dim(self.tokens, token.tokens[:, 0],
                                                token_i, 1),
-        lengths=jnp.maximum(self.lengths, token_i + 1))
+        lengths=self.lengths+1)
 
 
 @struct.dataclass
@@ -361,12 +361,18 @@ class ChunkResult:
     return jax.tree_map(jax.device_get, self)
 
   @classmethod
-  def zeros(cls, hparams, batch,
-            seqlen, kv_batch = None):
+  def zeros(
+      cls,
+      hparams,
+      batch,
+      seqlen,
+      kv_batch = None,
+      circular = False,
+  ):
     """Creates an all-zeros ChunkResult of the specified shape."""
     cache_batch = kv_batch if kv_batch is not None else batch
     return ChunkResult(
-        kv_cache=attention.KVCache.zeros(hparams, cache_batch, seqlen),
+        kv_cache=attention.KVCache.zeros(hparams, cache_batch, seqlen, circular),  # pylint: disable = line-too-long
         per_token_scores=jnp.zeros((batch, seqlen), jnp.float32),
         top_token_ids=jnp.zeros((batch, seqlen, _TOP_K), jnp.int32),
         top_token_probs=jnp.zeros((batch, seqlen, _TOP_K), jnp.float32),
@@ -434,10 +440,8 @@ class FullChunkResult:
   def logical_axes(cls):
     return FullChunkResult(
         logits=P('logit_batch', 'time', 'vocab'),
-        kv_cache=attention.KVCache(
-            lengths=P('attn_batch'),
-            k=P('length', 'layers', 'attn_batch', 'qkv'),
-            v=P('length', 'layers', 'attn_batch', 'qkv')))
+        kv_cache=attention.KVCache.logical_axes(),
+    )
 
   def to_chunk_result(
       self,

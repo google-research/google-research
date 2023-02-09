@@ -379,6 +379,102 @@ def switch_sharding_patterns(
   assert (samples2.tokens == samples.tokens).all()
 
 
+def circular_buffer_equivalency(
+    prompt_batch_size=4,
+    prompt_seq_len=96,
+    generate_batch_size=4,
+    attn_all_to_all=partitioning.AttnAllToAll.NONE,
+    latency_collectives=False,
+    batch_unsharded=False,
+    shard_seqlen_vs_batch=False,
+    layer_fn=two_d_parallel_xmap.transformer_layer_weight_stationary,
+):
+  """Tests equivalency between pjit and manual versions."""
+
+  rules = partitioning.make_rules_two_d(
+      attn_all_to_all, batch_unsharded=batch_unsharded
+  )
+  sample_ids = np.arange(generate_batch_size)
+
+  steps = 16
+  mesh = partitioning.make_mesh()
+
+  the_model = create_model(
+      mesh,
+      attn_all_to_all,
+      latency_collectives,
+      shard_seqlen_vs_batch,
+      batch_unsharded,
+      rules,
+      layer_fn,
+  )
+  with the_model.rules:
+    (params, prompt) = setup(
+        batch_size=prompt_batch_size, seq_len=prompt_seq_len, mesh=mesh
+    )
+
+  params = (
+      the_model.rotate_weights(params, latency_collectives)
+      if latency_collectives
+      else params
+  )
+
+  prefill_fn = the_model.instantiate_prefill_fn()
+  prompt_result = the_model.prefill(params, prefill_fn, [], prompt)
+  generate_fn = the_model.instantiate_generating_fn(steps=steps)
+  sample_params = sampling.SamplingHyperParams(temperature=0.7, top_p=0.95)
+
+  prefix = [prompt_result]
+  with the_model.mesh, the_model.rules:
+    cache = [p.kv_cache for p in prefix]
+
+    # test typical generation function
+    samples, _ = the_model.generate(
+        params,
+        generate_fn,
+        [prompt_result],
+        sample_ids,
+        sample_params=sample_params,
+    )
+
+    # create a circular buffer to write to
+    sample_rngs, token_indexes_start, generate_chunk, generate_chunk_result = (
+        the_model.create_output_buffer(
+            the_model._hparams,  # pylint: disable = protected-access
+            sample_ids,
+            cache,
+            steps,
+            prompt_result.next_token_logits,
+            circular=True,
+        )
+    )
+    loop_fn = jax.jit(the_model.sample_infer_write, static_argnames=("model",))
+
+    # Go from the middle back around
+    for i in range(steps // 2, steps + steps // 2):
+      i = i % steps
+      generate_chunk, generate_chunk_result = loop_fn(
+          the_model,
+          params,
+          cache,
+          sample_params,
+          token_indexes_start,
+          sample_rngs,
+          i,
+          (generate_chunk, generate_chunk_result),
+      )
+
+  recombined = jnp.concatenate(
+      [
+          generate_chunk.tokens[:, steps // 2 :],
+          generate_chunk.tokens[:, : steps // 2],
+      ],
+      axis=-1,
+  )
+
+  assert (samples.tokens == recombined).all()
+
+
 class InferenceTest(absltest.TestCase):
   """Tests for inference fwd pass."""
 
@@ -439,6 +535,11 @@ class InferenceTest(absltest.TestCase):
         prompt_batch_size=1,
         generate_batch_size=16,
         attn_all_to_all=partitioning.AttnAllToAll.AXES_YZX,
+    )
+
+  def test_circular_buffer(self):
+    circular_buffer_equivalency(
+        prompt_batch_size=2, attn_all_to_all=partitioning.AttnAllToAll.NONE
     )
 
 

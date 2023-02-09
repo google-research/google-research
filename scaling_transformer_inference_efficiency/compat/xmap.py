@@ -392,11 +392,7 @@ class FullChunkResult:
   def logical_axes(cls):
     return FullChunkResult(
         logits=P('logit_batch', 'time', 'vocab'),
-        kv_cache=attention.KVCache(
-            lengths=P('attn_batch'),
-            k=P('length', 'layers', 'attn_batch', 'qkv'),
-            v=P('length', 'layers', 'attn_batch', 'qkv'),
-        ),
+        kv_cache=attention.KVCache.logical_axes(),
     )
 
   def to_chunk_result(
@@ -891,7 +887,10 @@ def infer_xmap(
   assert cache_lengths.shape[0] == k.shape[2]
 
   return FullChunkResult(
-      logits=logits, kv_cache=attention.KVCache(cache_lengths, k, v)
+      logits=logits,
+      kv_cache=attention.KVCache(
+          cache_lengths, k, v, jnp.zeros([0], jnp.int32)
+      ),
   )
 
 
