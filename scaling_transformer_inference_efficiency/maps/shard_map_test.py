@@ -22,7 +22,6 @@ from absl.testing import absltest
 from flax import struct
 import jax
 from jax import lax
-from jax.experimental.pjit import PartitionSpec as P
 from jax.experimental.shard_map import shard_map
 import jax.numpy as jnp
 from jax.sharding import Mesh
