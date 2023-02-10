@@ -135,12 +135,17 @@ def _spin_spherical_convolution(
                      "`spectral` or `spatial`.")
 
 
-# Custom initializer, based on He et al, "Delving Deep into Rectifiers", but
-# complex.
-default_initializer = nn.initializers.variance_scaling(scale=2.0,
-                                                       mode="fan_in",
-                                                       distribution="normal",
-                                                       dtype=jnp.complex64)
+# To avoid vanishing or exploding activations, we wish the spherical
+# convolutions to roughly maintain the variance of the
+# inputs. Assuming zero mean, the variance of the coefficients and the
+# variance of the spatial filter are the same. The output for one spin
+# is constructed by adding all channels for all spins, therefore we
+# correct the usual `variance_scaling` by `num_spins_in`.
+def spin_spherical_initializer(num_spins_in):
+  return nn.initializers.variance_scaling(scale=1/num_spins_in,
+                                          mode="fan_in",
+                                          distribution="normal",
+                                          dtype=jnp.complex64)
 
 
 class SpinSphericalConvolution(nn.Module):
@@ -171,12 +176,14 @@ class SpinSphericalConvolution(nn.Module):
   num_filter_params: Optional[int] = None
   input_representation: str = "spatial"
   output_representation: str = "spatial"
-  initializer: Initializer = default_initializer
+  initializer: Optional[Initializer] = None
 
   def _get_kernel(self, ell_max, num_channels_in):
     kernel_shape = (ell_max+1, len(self.spins_in), len(self.spins_out),
                     num_channels_in, self.features)
-    return self.param("kernel", self.initializer, kernel_shape)
+    init_fun = (spin_spherical_initializer(len(self.spins_in))
+                if self.initializer is None else self.initializer)
+    return self.param("kernel", init_fun, kernel_shape)
 
   def _get_localized_kernel(self, ell_max, num_channels_in):
     # We interpolate along ell to obtain all weights from the learnable weights,
@@ -190,7 +197,9 @@ class SpinSphericalConvolution(nn.Module):
     learnable_shape = (len(self.spins_in), len(self.spins_out),
                        num_channels_in, self.features,
                        self.num_filter_params)
-    learnable_weights = self.param("kernel", self.initializer, learnable_shape)
+    init_fun = (spin_spherical_initializer(len(self.spins_in))
+                if self.initializer is None else self.initializer)
+    learnable_weights = self.param("kernel", init_fun, learnable_shape)
     # `jnp.interp` works on 1D inputs; we vectorize it to interpolate over a
     # single dimension of n-D inputs.
     vectorized_interp = jnp.vectorize(jnp.interp, signature="(m),(n),(n)->(m)")

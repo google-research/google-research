@@ -269,7 +269,7 @@ class SpinSphericalConvolutionTest(tf.test.TestCase, parameterized.TestCase):
     def _transposed_initializer(key, shape, dtype=jnp.complex64):
       del dtype
       shape = [shape[-1], *shape[:-1]]
-      weights = layers.default_initializer(key, shape)
+      weights = layers.spin_spherical_initializer(len(spins_in))(key, shape)
       return weights.transpose(1, 2, 3, 4, 0)
 
     ell_max = resolution // 2 - 1
