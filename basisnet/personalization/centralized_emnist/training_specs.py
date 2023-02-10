@@ -62,7 +62,7 @@ class TaskSpec(object):
 
   The iterative process must also have a callable attribute `get_model_weights`
   that takes as input the state of the iterative process, and returns a
-  `tff.learning.ModelWeights` object.
+  `tff.learning.models.ModelWeights` object.
 
   Attributes:
     iterative_process_builder: A function that accepts a no-arg `model_fn`, and
@@ -111,8 +111,8 @@ class RunnerSpec(object):
 
   The iterative process must also have a callable attribute `get_model_weights`
   that takes as input the state of the iterative process, and returns a
-  `tff.learning.ModelWeights` object, which can then be used as input to the
-  `validation_fn` and `test_fn` (if provided).
+  `tff.learning.models.ModelWeights` object, which can then be used as input to
+  the `validation_fn` and `test_fn` (if provided).
 
   Attributes:
     iterative_process: A `tff.templates.IterativeProcess` instance to run.
