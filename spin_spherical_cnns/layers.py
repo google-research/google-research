@@ -44,8 +44,9 @@ Initializer = Callable[[Any, Sequence[int], Any],
 
 
 def _spin_spherical_convolution_from_spectral(
-    transformer, coefficients_in, filter_coefficients,
-    spins_out, spectral_pooling, output_representation):
+    transformer, coefficients_in, filter_coefficients, spins_out,
+    spectral_pooling, spectral_upsampling,
+    output_representation):
   """`_spin_spherical_convolution` with spectral inputs."""
   if spectral_pooling:
     ell_max = coefficients_in.shape[0] - 1
@@ -57,6 +58,12 @@ def _spin_spherical_convolution_from_spectral(
   coefficients_out = jnp.einsum("lmic,liocd->lmod",
                                 coefficients_in,
                                 filter_coefficients)
+
+  if spectral_upsampling:
+    num_ell = coefficients_out.shape[0]
+    coefficients_out = jnp.pad(coefficients_out,
+                               [(0, num_ell), (num_ell, num_ell),
+                                (0, 0), (0, 0)])
 
   if output_representation == "spectral":
     return coefficients_out
@@ -71,7 +78,8 @@ def _spin_spherical_convolution_from_spectral(
 
 def _spin_spherical_convolution_from_spatial(
     transformer, sphere, filter_coefficients,
-    spins_in, spins_out, spectral_pooling, output_representation):
+    spins_in, spins_out, spectral_pooling, spectral_upsampling,
+    output_representation):
   """`_spin_spherical_convolution` with spatial inputs."""
   resolution = sphere.shape[0]
   ell_max = (sphere_utils.ell_max_from_resolution(resolution // 2)
@@ -84,12 +92,13 @@ def _spin_spherical_convolution_from_spatial(
   # during the forward transform.
   return _spin_spherical_convolution_from_spectral(
       transformer, coefficients_in, filter_coefficients, spins_out,
-      spectral_pooling=False, output_representation=output_representation)
+      spectral_pooling=False, spectral_upsampling=spectral_upsampling,
+      output_representation=output_representation)
 
 
 def _spin_spherical_convolution(
     transformer, sphere_or_coeffs, filter_coefficients,
-    spins_in, spins_out, spectral_pooling,
+    spins_in, spins_out, spectral_pooling, spectral_upsampling,
     input_representation, output_representation):
   r"""Spin-weighted spherical convolution; spatial input and spectral filters.
 
@@ -113,6 +122,8 @@ def _spin_spherical_convolution(
     spins_in: (n_spins_in,) Sequence of int containing the input spins.
     spins_out: (n_spins_out,) Sequence of int containing the output spins.
     spectral_pooling: When True, halve input dimensions via spectral pooling.
+    spectral_upsampling: When True, double input dimensions via
+      spectral padding.
     input_representation: Whether inputs are in the 'spectral' or
       'spatial' domain.
     output_representation: Whether to return outputs in the 'spectral'
@@ -125,11 +136,13 @@ def _spin_spherical_convolution(
   if input_representation == "spectral":
     return _spin_spherical_convolution_from_spectral(
         transformer, sphere_or_coeffs, filter_coefficients,
-        spins_out, spectral_pooling, output_representation)
+        spins_out, spectral_pooling, spectral_upsampling, output_representation)
   elif input_representation == "spatial":
     return _spin_spherical_convolution_from_spatial(
         transformer, sphere_or_coeffs, filter_coefficients,
-        spins_in, spins_out, spectral_pooling, output_representation)
+        spins_in, spins_out,
+        spectral_pooling, spectral_upsampling,
+        output_representation)
   else:
     raise ValueError("`input_representation` must be either "
                      "`spectral` or `spatial`.")
@@ -159,6 +172,8 @@ class SpinSphericalConvolution(nn.Module):
     spins_in: (n_spins_in,) Sequence of int containing the input spins.
     spins_out: (n_spins_out,) Sequence of int containing the output spins.
     spectral_pooling: When True, halve input dimensions via spectral pooling.
+    spectral_upsampling: When True, double input dimensions via
+      spectral padding.
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of parameters per filter. Fewer parameters results
       in more localized filters.
@@ -172,6 +187,7 @@ class SpinSphericalConvolution(nn.Module):
   spins_in: Sequence[int]
   spins_out: Sequence[int]
   spectral_pooling: bool
+  spectral_upsampling: bool
   transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
   num_filter_params: Optional[int] = None
   input_representation: str = "spatial"
@@ -240,6 +256,10 @@ class SpinSphericalConvolution(nn.Module):
     if sphere_or_coeffs.shape[3] != len(list(self.spins_in)):
       raise ValueError("Input axis 3 (spins_in) doesn't match layer's.")
 
+    if self.spectral_pooling and self.spectral_upsampling:
+      raise ValueError("`spectral_pooling` and `spectral_upsampling` "
+                       "should not be both True.")
+
     if self.spectral_pooling:
       resolution //= 2
       ell_max = sphere_utils.ell_max_from_resolution(resolution)
@@ -258,12 +278,13 @@ class SpinSphericalConvolution(nn.Module):
     # Map over the batch dimension.
     vmap_convolution = jax.vmap(
         _spin_spherical_convolution,
-        in_axes=(None, 0, None, None, None, None, None, None))
+        in_axes=(None, 0, None, None, None, None, None, None, None))
     return vmap_convolution(self.transformer,
                             sphere_or_coeffs, kernel,
                             self.spins_in,
                             self.spins_out,
                             self.spectral_pooling,
+                            self.spectral_upsampling,
                             self.input_representation,
                             self.output_representation)
 

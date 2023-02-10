@@ -101,6 +101,7 @@ class SpinSphericalBlock(nn.Module):
         spins_out=self.spins_out,
         num_filter_params=self.num_filter_params,
         spectral_pooling=apply_spectral_pooling,
+        spectral_upsampling=False,
         transformer=self.transformer,
         name='spherical_conv')(feature_maps)
 
