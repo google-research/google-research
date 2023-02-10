@@ -259,7 +259,10 @@ def transformer_layer_weight_stationary(
     batch = batch_z
     batch_xyz = batch // (x_axis * y_axis * z_axis)
   else:
-    batch = batch_z * z_axis
+    if batch_unsharded:
+      batch = x.shape[0]
+    else:
+      batch = batch_z * z_axis
     batch_xyz = batch // (x_axis * y_axis * z_axis)
     batch_yz = batch // (y_axis * z_axis)
     batch_z = batch // (z_axis)
@@ -472,7 +475,6 @@ def transformer_layer_weight_stationary(
   with jax.named_scope('residual'):
     z = intermediate_dtype(y_out + x)
 
-  # [batch.Z, maxlen, embed.XY] || [batch, maxlen, embed.XYZ]
   k, v = k.astype(intermediate_dtype), v.astype(intermediate_dtype)
   return z, k, v
 

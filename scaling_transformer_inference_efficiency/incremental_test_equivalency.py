@@ -127,9 +127,12 @@ def create_model(
         shard_seqlen_vs_batch=shard_seqlen_vs_batch,
         batch_unsharded=batch_unsharded,
     )
+    sample_fn = sampling.sample
   elif layer_fn == one_d_parallel_xmap.weight_stationary_simple:
     layer_fn = partial(layer_fn, latency_collectives=latency_collectives)
+    sample_fn = sampling.sample_manual_batch_unsharded
   elif layer_fn == two_d_parallel_xmap.transformer_layer_weight_gathered:
+    sample_fn = sampling.sample
     raise NotImplementedError
 
   unembed_fn = partial(
@@ -156,7 +159,7 @@ def create_model(
   )
 
   model = incremental.InferenceModel(
-      h, eos_id, shard_map_inference_fn, sampling.sample, mesh, rules
+      h, eos_id, shard_map_inference_fn, sample_fn, mesh, rules
   )
   return model
 
@@ -382,10 +385,10 @@ def switch_sharding_patterns(
 def circular_buffer_equivalency(
     prompt_batch_size=4,
     prompt_seq_len=96,
-    generate_batch_size=4,
+    generate_batch_size=8,
     attn_all_to_all=partitioning.AttnAllToAll.NONE,
     latency_collectives=False,
-    batch_unsharded=False,
+    batch_unsharded=True,
     shard_seqlen_vs_batch=False,
     layer_fn=two_d_parallel_xmap.transformer_layer_weight_stationary,
 ):
@@ -498,7 +501,9 @@ class InferenceTest(absltest.TestCase):
 
   def test_none_sharding(self):
     xmap_pjit_equivalency(
-        prompt_batch_size=2, attn_all_to_all=partitioning.AttnAllToAll.NONE
+        prompt_batch_size=2,
+        attn_all_to_all=partitioning.AttnAllToAll.NONE,
+        batch_unsharded=True,
     )
 
   def test_one_d(self):
@@ -520,7 +525,8 @@ class InferenceTest(absltest.TestCase):
 
   def test_attn_yzx_sharding(self):
     xmap_pjit_equivalency(
-        prompt_batch_size=8, attn_all_to_all=partitioning.AttnAllToAll.AXES_YZX
+        prompt_batch_size=8, attn_all_to_all=partitioning.AttnAllToAll.AXES_YZX,
+        generate_batch_size=16,
     )
 
   def test_none_sharding_with_latency(self):

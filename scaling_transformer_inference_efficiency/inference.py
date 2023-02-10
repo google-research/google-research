@@ -236,8 +236,9 @@ def infer_template(
       cache_sharding,
   )
 
+  logit_logical = P('logit_batch', 'time', 'vocab')
   logit_sharding = jax.tree_map(
-      partitioning.logical_to_physical, P('logit_batch', 'time', 'vocab')
+      partitioning.logical_to_physical, logit_logical
   )
 
   # input/output cache, where we write the per layer kv cache results
@@ -274,6 +275,8 @@ def infer_template(
       check_rep=False,
   )(params, kv_caches, chunk, k, v, pre_embedded_inputs)
   k, v = jnp.bfloat16(k), jnp.bfloat16(v)
+
+  logits = _with_sharding_constraint(logits, logit_logical)
 
   return FullChunkResult(
       logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v, offset=0)

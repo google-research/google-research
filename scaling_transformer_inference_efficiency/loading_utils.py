@@ -86,7 +86,8 @@ def return_minimal_palm(
     cfg,
     params_already_loaded=False,
     remat = None,
-):
+    devices = None,
+):  # pylint: disable = g-bare-generic, line-too-long
   """Utility function to return a model.
 
   Args:
@@ -95,6 +96,7 @@ def return_minimal_palm(
     remat: Whether to remat the layer, used for training.
       jax.checkpoint_policies.checkpoint_dots_with_no_batch_dims
       jax.checkpoint_policies.nothing_saveable
+    devices: devices to make a mesh from
 
   Returns:
     model: A model wrapper
@@ -158,6 +160,9 @@ def return_minimal_palm(
         shard_seqlen_vs_batch=cfg.shard_seqlen_vs_batch,
         batch_unsharded=cfg.batch_unsharded,
     )
+    # sample_fn = partial(sampling.sample_manual,
+    # batch_unsharded=cfg.batch_unsharded)
+    sample_fn = sampling.sample
     if remat is not None:
       layer_fn = jax.checkpoint(layer_fn, policy=remat, prevent_cse=False)
 
@@ -167,15 +172,17 @@ def return_minimal_palm(
         one_d_parallel_xmap.weight_stationary_simple,
         latency_collectives=cfg.latency_collectives,
     )
+    sample_fn = sampling.sample_manual_batch_unsharded
   elif cfg.layout == Layout.WEIGHT_GATHERED:
     rules = partitioning.make_rules_weight_gathered()
+    sample_fn = sampling.sample
     raise NotImplementedError
   else:
     raise NotImplementedError
 
   the_vocab = checkpoint.load_vocab()
 
-  mesh = partitioning.make_mesh(one_d=one_d)
+  mesh = partitioning.make_mesh(one_d=one_d, devices=devices)
   sharding_config = partitioning.ShardingConfig(
       mesh=mesh,
       attn_all_to_all=attn_batch_sharding,
@@ -217,7 +224,7 @@ def return_minimal_palm(
       hparams,
       the_vocab.eos_id,
       infer_stack,
-      sampling.sample,
+      sample_fn,
       mesh,
       rules,
       the_vocab,
@@ -227,7 +234,7 @@ def return_minimal_palm(
   prefill_fn = model.instantiate_prefill_fn()
 
   if params_already_loaded:
-    return model, prefill_fn, generate_fn
+    return model, None, prefill_fn, generate_fn
   else:
     # actually load the weights
     with model.mesh, model.rules:
@@ -318,7 +325,7 @@ class InferenceT5X(t5x.models.DecoderOnlyModel):
     prefix_model_cfg = dataclasses.replace(
         cfg, kv_cache_sharding=0, batch_unsharded=True
     )
-    prefix_model, prefix_prefill_fn, _ = return_minimal_palm(
+    prefix_model, _, prefix_prefill_fn, _ = return_minimal_palm(
         prefix_model_cfg, params_already_loaded=True
     )
     self.prefix_model = prefix_model

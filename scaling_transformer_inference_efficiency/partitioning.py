@@ -199,7 +199,6 @@ def logical_to_physical(logical_axes):
   return P(*result)
 
 
-@functools.cache
 def make_mesh(devices = None, one_d=False):
   """Creates a device mesh for use with xmap over x/y/z axes."""
   if devices is None:

@@ -420,7 +420,7 @@ class InferenceModel:
         sample_rngs, token_indexes_start + chunk.lengths
     )
     next_token = model._sample(
-        chunk_result.next_token_logits, step_rngs, sample_params
+        chunk_result.next_token_logits, step_rngs, sample_params, model.mesh,
     )
     # ^ next_token: [batch]
     token_chunk = Chunk(

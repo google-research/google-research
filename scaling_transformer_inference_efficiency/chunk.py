@@ -341,20 +341,21 @@ class ChunkResult:
   kv_cache: attention.KVCache
 
   @classmethod
-  def logical_axes(cls):
+  def logical_axes(cls, circular=False):
     return ChunkResult(
         per_token_scores=P('batch', 'time'),
         top_token_ids=P('batch', 'time', 'top_k'),
         top_token_probs=P('batch', 'time', 'top_k'),
         next_token_logits=P('logit_batch', 'vocab'),
-        kv_cache=attention.KVCache.logical_axes(),
+        kv_cache=attention.KVCache.logical_axes(circular=circular),
     )
 
   @classmethod
-  def physical_axes(cls):
+  def physical_axes(cls, circular=False):
     """Returns the partition specs for the weights in their physical axes."""
     return jax.tree_map(
-        partitioning.logical_to_physical, ChunkResult.logical_axes()
+        partitioning.logical_to_physical,
+        ChunkResult.logical_axes(circular=circular),
     )
 
   def copy_to_host(self):

@@ -292,6 +292,16 @@ class InferenceTest(absltest.TestCase):
         batch_size=4, rules=rules, attn_sharding=attn_sharding
     )
 
+  def test_attn_yz_sharding_batch_unsharded(self):
+    attn_sharding = partitioning.AttnAllToAll.AXES_YZ
+    rules = partitioning.PartitioningRules(
+        partitioning.make_rules_two_d(attn_sharding, batch_unsharded=True)
+    )
+    xmap_pjit_equivalency(
+        batch_size=4, rules=rules, attn_sharding=attn_sharding,
+        batch_unsharded=True,
+    )
+
   def test_attn_yzx_sharding(self):
     attn_sharding = partitioning.AttnAllToAll.AXES_YZX
     rules = partitioning.PartitioningRules(
