@@ -19,7 +19,9 @@ import functools
 from typing import Tuple, Union
 import jax.numpy as jnp
 import numpy as np
-import sympy.physics.wigner
+
+import spherical
+
 
 Array = Union[np.ndarray, jnp.ndarray]
 
@@ -153,10 +155,6 @@ def compute_wigner_delta(ell):
   Wigner \Delta (\Delta_{m,n}^\ell) are Wigner-d matrices evaluated at pi/2.
   They allow using FFTs to speedup intermediate steps of the SWSH transform.
 
-  This method uses sympy to evaluate Wigner-d and is only accurate for ell <=
-  32.  spinsfast is accurate up to much higher frequencies, but we avoid that
-  dependency for now.
-
   Args:
     ell: Degree (int).
 
@@ -167,10 +165,8 @@ def compute_wigner_delta(ell):
   Raises:
     ValueError: if ell larger than maximum allowed.
   """
-  if ell > 32:
-    raise ValueError("Only accurate for ell <= 32.")
-  wigner_delta = sympy.physics.wigner.wigner_d_small(ell, np.pi / 2)
-  wigner_delta_array = np.array(wigner_delta).astype(np.float64)
+  wigner_delta_array = spherical.wigner_d(np.exp(1j * np.pi/2),
+                                          ell, ell).reshape(2*ell+1, 2*ell+1)
   wigner_delta_array.flags.writeable = False
   return wigner_delta_array
 
