@@ -316,6 +316,9 @@ class PreconditionerType(enum.IntEnum):
   # One sided Shampoo, in this cases only on input dim.
   # Assumes last dim is always the output dim and everything else input dim.
   INPUT = 2
+  # One sided Shampoo, in this cases only on output dim.
+  # Assumes last dim is always the output dim and everything else input dim.
+  OUTPUT = 3
 
 
 def power_iteration(
@@ -1001,14 +1004,13 @@ class Preconditioner:
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
     should_preconditioned_dims = self.should_precondition_dims()
-    num_preconditioners = sum(should_preconditioned_dims)
+    preconditioned_dims = [
+        i for i, p in enumerate(should_preconditioned_dims) if p
+    ]
     new_stats = []
     index = 0
     for g in partitioned_grads:
-      # Note that should_precondition_dims is only ever some
-      # prefix of Trues followed by an optional False; hence below
-      # iterates over all True indices.
-      for axis in range(num_preconditioners):
+      for axis in preconditioned_dims:
         update = functools.partial(gram_weighted_update, precision=precision)
         new_stat = update(to_float(stats[index]), g, axis, w1, w2)
         new_stats.append(from_float(new_stat))
@@ -1021,12 +1023,28 @@ class Preconditioner:
     rank = len(split_sizes)
     if self._preconditioner_type == PreconditionerType.ALL or rank <= 1:
       return [True] * rank
-    else:
+    elif self._preconditioner_type == PreconditionerType.INPUT:
       return [True] * (rank - 1) + [False]
+    elif self._preconditioner_type == PreconditionerType.OUTPUT:
+      return [False] * (rank - 1) + [True]
 
   def _preconditioner_shape(self, dim):
     """Returns possibly rank-compressed preconditioner shape."""
     return [dim, dim]
+
+  def _preconds_for_grad(self, preconditioners, rank, start, end):
+    """Returns a slice of preconditioners of length rank."""
+    preconditioners_for_grad = preconditioners[start:end]
+    if self._preconditioner_type == PreconditionerType.INPUT:
+      # When _preconditioner_type is INPUT, we append a None value to the end of
+      # the list to handle the False index.
+      preconditioners_for_grad = preconditioners_for_grad + [None]
+    elif self._preconditioner_type == PreconditionerType.OUTPUT:
+      # When _preconditioner_type is OUTPUT, we append (rank - 1) many None
+      # values to the beginning of the list to handle the False indices.
+      preconditioners_for_grad = [None] * (rank - 1) + preconditioners_for_grad
+    assert len(preconditioners_for_grad) == rank
+    return preconditioners_for_grad
 
   def shapes_for_preconditioners(self):
     """Returns shape from statistics."""
@@ -1037,8 +1055,10 @@ class Preconditioner:
     for t in itertools.product(*split_sizes):
       if self._preconditioner_type == PreconditionerType.ALL or rank <= 1:
         preconditioner_shapes.extend(map(self._preconditioner_shape, t))
-      else:
+      elif self._preconditioner_type == PreconditionerType.INPUT:
         preconditioner_shapes.extend(map(self._preconditioner_shape, t[:-1]))
+      elif self._preconditioner_type == PreconditionerType.OUTPUT:
+        preconditioner_shapes.extend(map(self._preconditioner_shape, t[-1:]))
     return preconditioner_shapes
 
   def exponent_for_preconditioner(self):
@@ -1063,14 +1083,19 @@ class Preconditioner:
     num_preconditioners = sum(should_preconditioned_dims)
     preconditioned_partitioned_grads = []
     for i, g in enumerate(partitioned_grads):
-      preconditioners_for_grad = preconditioners[i *
-                                                 num_preconditioners:(i + 1) *
-                                                 num_preconditioners]
-      precond_g = self._precondition_block(g, should_preconditioned_dims,
-                                           preconditioners_for_grad)
+      preconditioners_for_grad = self._preconds_for_grad(
+          preconditioners,
+          rank=len(should_preconditioned_dims),
+          start=i * num_preconditioners,
+          end=(i + 1) * num_preconditioners,
+      )
+      precond_g = self._precondition_block(
+          g, should_preconditioned_dims, preconditioners_for_grad
+      )
       preconditioned_partitioned_grads.append(precond_g)
     merged_grad = self._partitioner.merge_partitions(
-        preconditioned_partitioned_grads)
+        preconditioned_partitioned_grads
+    )
     return jnp.reshape(merged_grad, self._original_shape)
 
   def _precondition_block(self, g, should_precondition_dim, preconditioners):
