@@ -124,14 +124,15 @@ class AttentionTest(absltest.TestCase):
     num_layers = 2
     layer = 0
 
-    # full_cache_k, full_cache_v: float32[seqlen, 1, 1, d_qkv]
-    full_cache_k = _EXAMPLE_KEYS[:, np.newaxis, np.newaxis, :]
-    full_cache_v = _EXAMPLE_VALUES[:, np.newaxis, np.newaxis, :]
+    # full_cache_k, full_cache_v: float32[ 1, 1, seqlen, d_qkv]
+    full_cache_k = _EXAMPLE_KEYS[np.newaxis, np.newaxis, :, :]
+    full_cache_v = _EXAMPLE_VALUES[np.newaxis, np.newaxis, :, :]
     # full_cache_k, full_cache_v: float32[seqlen, num_layers, batch, d_qkv]
     full_cache_k = jnp.broadcast_to(
-        full_cache_k, (_EXAMPLE_SEQLEN, num_layers, batch, _EXAMPLE_QKV))
+        full_cache_k, (num_layers, batch, _EXAMPLE_SEQLEN, _EXAMPLE_QKV))
     full_cache_v = jnp.broadcast_to(
-        full_cache_v, (_EXAMPLE_SEQLEN, num_layers, batch, _EXAMPLE_QKV))
+        full_cache_v, (num_layers, batch, _EXAMPLE_SEQLEN, _EXAMPLE_QKV))
+    print(full_cache_k.shape)
 
     full_q = jnp.broadcast_to(
         _EXAMPLE_QUERIES,
@@ -147,8 +148,8 @@ class AttentionTest(absltest.TestCase):
     for split_point in [1, 2, 3]:
       # Truncate kv cache at split_point.
       kv_cache = attention.KVCache(
-          k=full_cache_k[:split_point, :, :, :],
-          v=full_cache_v[:split_point, :, :, :],
+          k=full_cache_k[:, :, :split_point, :],
+          v=full_cache_v[:, :, :split_point, :],
           lengths=jnp.broadcast_to(split_point, (batch,)),
           offset=jnp.array([0])
       )

@@ -72,7 +72,7 @@ class KVCache:
 
   @property
   def max_length(self):
-    return self.k.shape[0]
+    return self.k.shape[2]  # length
 
   @classmethod
   def zeros(
@@ -81,19 +81,19 @@ class KVCache:
     """Constructs an empty KV cache of the specified batch and length."""
     return KVCache(
         lengths=jnp.zeros((batch,), jnp.int32),
-        k=jnp.zeros((length, h.layers, batch, h.qkv), jnp.bfloat16),
-        v=jnp.zeros((length, h.layers, batch, h.qkv), jnp.bfloat16),
+        k=jnp.zeros((h.layers, batch, length, h.qkv), jnp.bfloat16),
+        v=jnp.zeros((h.layers, batch, length, h.qkv), jnp.bfloat16),
         offset=jnp.zeros((1,), jnp.int32),
         circular=circular,
     )
 
-  def write_token(self, token_i, token):
+  def write_token(self, token_i, token, idx=2):
     """Note offset in the circular buffer is where we would be writing next."""
-    assert token.k.shape[0] == 1
+    assert token.k.shape[idx] == 1
     return KVCache(
         lengths=self.lengths + 1,
-        k=lax.dynamic_update_index_in_dim(self.k, token.k[0], token_i, 0),
-        v=lax.dynamic_update_index_in_dim(self.v, token.v[0], token_i, 0),
+        k=lax.dynamic_update_index_in_dim(self.k, token.k, token_i, idx),
+        v=lax.dynamic_update_index_in_dim(self.v, token.v, token_i, idx),
         offset=jnp.array([token_i,]) + 1 % self.max_length
         if self.circular
         else jnp.zeros((1,), jnp.int32),
@@ -105,8 +105,8 @@ class KVCache:
     """Returns the logical axis spec for the KV cache."""
     return KVCache(
         lengths=P('attn_batch'),
-        k=P('prefix_time', 'prefix_layers', 'attn_batch', 'prefix_qkv'),
-        v=P('prefix_time', 'prefix_layers', 'attn_batch', 'prefix_qkv'),
+        k=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
+        v=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
         offset=P(None),
         circular=circular,
     )  # pytype: disable=wrong-arg-types
@@ -331,15 +331,13 @@ def attend(q, k, v,
   # attention mask (since they're all strictly in the past), but we do need
   # length-dependent masking.
   for kv_cache in prefix:
-    def my_layer(t):
-      return lax.dynamic_index_in_dim(t, layer, axis=1, keepdims=False)
+    def my_layer(t, layer_idx=0):
+      return lax.dynamic_index_in_dim(t, layer, axis=layer_idx, keepdims=False)
 
     # cache_k, cache_v: [klen, kbatch, qkv]
+    # cache_k, cache_v: [kbatch, klen, qkv]
     cache_k = my_layer(kv_cache.k)
     cache_v = my_layer(kv_cache.v)
-    # cache_k, cache_v: [kbatch, klen, qkv]
-    cache_k = jnp.swapaxes(cache_k, 0, 1)
-    cache_v = jnp.swapaxes(cache_v, 0, 1)
 
     # Attention mask so we don't attend past the length of each prefix.
     k_iota = lax.iota(jnp.int32, kv_cache.max_length)

@@ -110,13 +110,13 @@ def infer(
 
   # Initialize output KV cache.
   k = jnp.zeros((h.layers, max_length, batch, h.qkv), intermediate_dtype)
-  k = _with_sharding_constraint(k, ('layers', 'time', 'attn_batch', None))
+  k = _with_sharding_constraint(k, ('layers', 'attn_batch', 'time', None))
   v = jnp.zeros((h.layers, max_length, batch, h.qkv), intermediate_dtype)
-  v = _with_sharding_constraint(v, ('layers', 'time', 'attn_batch', None))
+  v = _with_sharding_constraint(v, ('layers', 'attn_batch', 'time', None))
   x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x, k, v))
 
-  k = jnp.swapaxes(k, 0, 1)
-  v = jnp.swapaxes(v, 0, 1)
+  k = jnp.swapaxes(k, 1, 2)
+  v = jnp.swapaxes(v, 1, 2)
 
   # TODO(sholto): Should this ever be scaled when quantised?
   x = layers_pjit._layernorm(x)  # pylint: disable = protected-access
@@ -182,8 +182,8 @@ def manual_fwd_pass(
     )
     return x, k, v
   x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x, k, v))
-  k = jnp.swapaxes(k, 0, 1)
-  v = jnp.swapaxes(v, 0, 1)
+  k = jnp.swapaxes(k, 1, 2)
+  v = jnp.swapaxes(v, 1, 2)
 
   # [batch, maxlen, embed.X]
   xnorm, _ = two_d_parallel_xmap.allgather_layernorm(
@@ -242,7 +242,7 @@ def infer_template(
   )
 
   # input/output cache, where we write the per layer kv cache results
-  io_cache_sharding = jax.tree_map(
+  in_cache_sharding = jax.tree_map(
       partitioning.logical_to_physical,
       P('prefix_layers', 'prefix_time', 'attn_batch', 'prefix_qkv'),
   )
@@ -263,14 +263,14 @@ def infer_template(
           params.physical_axes(),
           cache_sharding,
           chunk.physical_axes(),
-          io_cache_sharding,
-          io_cache_sharding,
+          in_cache_sharding,
+          in_cache_sharding,
           pre_embedded_sharding,
       ),
       out_specs=(
           logit_sharding,
-          io_cache_sharding,
-          io_cache_sharding,
+          attention.KVCache.physical_axes().k,
+          attention.KVCache.physical_axes().v,
       ),
       check_rep=False,
   )(params, kv_caches, chunk, k, v, pre_embedded_inputs)
