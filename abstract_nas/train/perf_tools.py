@@ -25,11 +25,9 @@ def compute_num_params(params_cpu):
 
 
 def compute_num_flops(f, optimize, *a, **kw):
-  m = jax.xla_computation(f)(*a, **kw)
-  client = jax.lib.xla_bridge.get_backend()
+  m = jax.jit(f).lower(*a, **kw)
   if optimize:
-    m = client.compile(m).hlo_modules()[0]
+    analysis = m.compile(m).cost_analysis()[0]
   else:
-    m = m.as_hlo_module()
-  analysis = jax.lib.xla_extension.hlo_module_cost_analysis(client, m)
+    analysis = m.cost_analysis()
   return int(analysis['flops'])
