@@ -582,8 +582,8 @@ def recall(top_ids, ground_truth, r_at=20):
 @flax.struct.dataclass
 class ALSState:
   step: int
-  col_embedding: jax.pxla.ShardedDeviceArray
-  row_embedding: jax.pxla.ShardedDeviceArray
+  col_embedding: jax.Array
+  row_embedding: jax.Array
 
 
 def get_local_devices(cfg):
