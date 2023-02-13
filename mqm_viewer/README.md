@@ -66,8 +66,18 @@ ten columns, one line per marked error:
         required if "references" is present.
       - **source_tokens**: An array of source text tokens.
       - **target_tokens**: An array of target text tokens.
+      - **source_sentence_tokens**: An array specifying sentence segmentation
+        in the source segment. Each entry is the number of tokens in one
+        sentence.
+      - **target_sentence_tokens**: An array specifying sentence segmentation
+        in the target segment. Each entry is the number of tokens in one
+        sentence.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
+      - **feedback**: An object optionally present in the first segment of a
+        doc. This captures any feedback the rater may have provided. It can
+        include a free-form text field (keyed by **notes**) and a string keyed
+        by **thumbs** that is set to either "up" or "down".
       - In addition, any text annotation fields present in the input data are
         copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
         this would be all the fields present in the optional last column.
@@ -75,7 +85,8 @@ ten columns, one line per marked error:
     This field is typically only present in the very first data row, and is
     not repeated, in order to save space. This object may contain the following
     fields:
-      - **template**: The name of the template used ("MQM", or "MQM-WebPage",             etc.)
+      - **template**: The name of the template used ("MQM", "MQM-WebPage",
+        etc.).
       - **config**: The configuration parameters that define the template. This
         includes "errors" and "severities". Some bulky fields, notably
         "instructions" and "description" may have been stripped out from this
