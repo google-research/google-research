@@ -45,9 +45,9 @@ class VocabularyTest(tf.test.TestCase):
     self.assertAllEqual(self.voc.padding_mask(inputs), inputs != 0)
 
   def test_serialize_deserialize(self):
-    serialized = tf.keras.utils.serialize_keras_object(self.voc)
+    serialized = tf.keras.utils.legacy.serialize_keras_object(self.voc)
     self.assertIsInstance(serialized, dict)
-    voc = tf.keras.utils.deserialize_keras_object(serialized)
+    voc = tf.keras.utils.legacy.deserialize_keras_object(serialized)
     self.assertSequenceEqual(voc.tokens, self.voc.tokens)
     self.assertSequenceEqual(voc.specials, self.voc.specials)
     self.assertEqual(len(voc), len(self.voc))

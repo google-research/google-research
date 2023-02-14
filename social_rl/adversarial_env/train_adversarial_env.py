@@ -169,6 +169,7 @@ def train_eval(
     debug=True):
   """Adversarial environment train and eval."""
   tf.compat.v1.enable_v2_behavior()
+  tf.keras.__internal__.enable_unsafe_deserialization()
 
   if debug:
     logging.info('In debug mode. Disabling tf functions.')

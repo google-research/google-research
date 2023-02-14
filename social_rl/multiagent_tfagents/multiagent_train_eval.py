@@ -156,6 +156,7 @@ def train_eval(
     debug=True):
   """A simple train and eval for PPO."""
   tf.compat.v1.enable_v2_behavior()
+  tf.keras.__internal__.enable_unsafe_deserialization()
 
   if root_dir is None:
     raise AttributeError('train_eval requires a root_dir.')
