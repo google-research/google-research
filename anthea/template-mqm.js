@@ -39,12 +39,17 @@ antheaTemplates['MQM'] = {
   },
 
   /**
+   * @const {string} Template version identifier.
+   */
+  VERSION: 'v1.00-Feb-13-2023',
+
+  /**
    * @const {boolean} Only rate the target side, i.e., the translated text.
    */
   TARGET_SIDE_ONLY: false,
 
   /**
-   * @const {number} Allow marking at most these many errors per segment. If
+   * @const {number} Allow marking at most these many errors per sentence. If
    *     set to 0, then no limit is imposed.
    */
   MAX_ERRORS: 0,
@@ -55,12 +60,6 @@ antheaTemplates['MQM'] = {
    *     auto-append the lists of errors/severities to the instructions.
    */
   SKIP_RATINGS_TABLES: true,
-
-  /**
-   * @const {boolean} Set this to true if you want the error span to be
-   *     marked before the severity level is picked.
-   */
-  MARK_SPAN_FIRST: true,
 
   /**
    * @const {boolean} Set this to true if you want to allow error spans to
@@ -77,7 +76,7 @@ antheaTemplates['MQM'] = {
 
   /**
    * @const {boolean} Set this to true if your TSV data for each docsys
-   *     includes a web oage rendering and bounding box provided as an
+   *     includes a web page rendering and bounding box provided as an
    *     annotation on each first segment. The annotation should be a JSON
    *     string that looks like this (exccept that it should not have
    *     newlines):
@@ -160,6 +159,10 @@ antheaTemplates['MQM'] = {
           display: 'Awkward',
           description: 'The text is literal, written in an awkward style, unidiomatic or inappropriate in the context.',
         },
+        sentence_structure: {
+          display: 'Bad sentence structure',
+          description: 'The marked span of text is an unnecessary repetition, or makes the sentence unnecessarily long, or would have been better as a clause in the previous sentence.'
+        },
       },
     },
     terminology: {
@@ -214,7 +217,7 @@ antheaTemplates['MQM'] = {
     },
     non_translation: {
       display: 'Non-translation!',
-      description: 'The whole segment is completely not a translation of the source. This rare category, when used, overrides any other marked errors for that segment, and labels the full translated segment as the error span. Only available after choosing a major error.',
+      description: 'The whole sentence is completely not a translation of the source. This rare category, when used, overrides any other marked errors for that sentence, and labels the full translated sentence as the error span. Only available after choosing a major error.',
       forced_severity: 'major',
       override_all_errors: true,
     },
@@ -263,13 +266,12 @@ antheaTemplates['MQM'] = {
       the quality of various human and machine translation outputs.
     </p>
     <p>
-      The content for annotation comes in tasks that are broken down into
-      segments (typically consisting of one sentence per segment, but can also
-      consist of multiple sentences). In most cases, a single task will
-      correspond to a single document taken from a single source (a web page,
-      article). In some project types, though, there may be multiple documents
-      in a task. The first segment shown may be from the middle of the
-      document, not necessarily from the beginning.
+      The content for annotation consists of documents that are broken down into
+      parallel segments. A segment may be one sentence, multiple
+      sentences, or an entire paragraph. You will be able to read and annotate
+      each segment in steps of sentences (on both the source side and the
+      translation side). Navigation through the document is explained in detail
+      in the "Navigation" subsection.
     </p>
 
     <h2>General Guidelines</h2>
@@ -283,11 +285,12 @@ antheaTemplates['MQM'] = {
     <ul>
       <li>Linguistically correct</li>
       <li>Accurate</li>
-      <li>Readable (fluent and natural-sounding)</li>
-      <li>With correct terminology appropriate in the context</li>
+      <li>Readable (fluent, grammatically correct, and natural-sounding)</li>
+      <li>With terminology appropriate in the context</li>
       <li>Consistent</li>
       <li>Faithful in tone and register to the source</li>
-      <li>Cultural references or humor should be substituted with equivalents in
+      <li>Appropriately transformed for the target context: cultural references
+          or humor should be substituted with equivalents in
           the target language where appropriate (e.g. it's raining cats and
           dogs \u2192 it's pouring).</li>
     </ul>
@@ -326,7 +329,7 @@ antheaTemplates['MQM'] = {
       </li>
       <li>
         When identifying issues, please be as fine-grained as possible. If a
-        segment contains multiple words that are independently mistranslated,
+        sentence contains multiple words that are independently mistranslated,
         separate errors should be recorded. For example, if “boathouses” is
         translated to “hangar de bateaux” in French, mark separate errors for
         “hangar” (should not be singular) and “de” (wrong preposition).
@@ -341,14 +344,61 @@ antheaTemplates['MQM'] = {
         occurrences should be marked.
       </li>
       <li>
-        If the whole translation of a segment is so bad that all or nearly all
+        If the whole translation of a sentence is so bad that all or nearly all
         of it is completely wrong (e.g., word salad, completely nonsensical
         output, severely broken syntax), then apply the “Major” severity and
         pick the error type “Non-translation!”. Note that picking
-        Non-translation! will automatically select the whole segment as the
+        Non-translation! will automatically select the whole sentence as the
         error span, even if you had selected a subspan to start with.
       </li>
     </ol>
+
+    <h2>Navigation</h2>
+    <p>
+    Please note how the document is broken up into parallel segments and how
+    segments are to be evaluated sentence-by-sentence.
+    </p>
+    <ul>
+      <li>
+      Each task consists of text from a single document. Sometimes it can be
+      a very short document, even a single sentence, but typically a document
+      will have 10-20 sentences.
+      </li>
+      <li>
+      You should read each source segment in its entirety, going
+      sentence-by-sentence. The right arrow keyboard key and the right
+      arrow button in the Evaluation column will let you move to the next
+      sentence when you've finished reading and comprehending a sentence.
+      Once you finish going through a source segment, the right arrow key/button
+      will take the focus to the first sentence of the target segment, which
+      you will then proceed to read and annotate, sentence-by-sentence.
+      </li>
+      <li>
+      The ideal navigation flow is as described above, as it allows you to
+      focus on either the source side or the translation side, at any moment,
+      rather than having both of them compete for your attention (which tends
+      to favor unnatural translations that unnecessarily copy sentence
+      structure across languages).
+      </li>
+      <li>
+      When the focus is on the source side, you would typically be only marking
+      any "Source issue" errors in the source text (such as garbled or
+      nonsensical text).
+      </li>
+      <li>
+      If the source segment appears too long, you can (at any time) choose
+      to jump to the target segment after reading some source sentences, using
+      the Tab key. The Tab key will similarly allow you to jump back to the
+      source segment from the target segment. We leave the judgment of how
+      to break long segments into smaller units that are easier to evaluate
+      up to you.
+      </li>
+      <li>
+      You can use the left arrow key or button to go back through the sentences
+      and segments. You can also directly click on any previously read sentence
+      to jump to it.
+      </li>
+    </ul>
 
     <h2>Annotation Process</h2>
     <ol>
@@ -362,7 +412,7 @@ antheaTemplates['MQM'] = {
         <ul>
           <li>The marked span should be the minimal contiguous sequence such
               that modifying the word(s) within the span, deleting the span, or
-              moving the word(s) somewhere else in the segment will remove the
+              moving the word(s) somewhere else in the sentence will remove the
               identified issue. The span should not include adjoining words that
               are not directly affected by the identified issue and do
               not need to be modified in order for the issue to be fixed.</li>
@@ -395,8 +445,8 @@ antheaTemplates['MQM'] = {
       <li>Select the <b>category</b> (also called <b>type</b>) and
           <b>subcategory</b> (also called <b>subtype</b>) of the error/issue
           found. For example: Accuracy &gt; Mistranslation.</li>
-      <li>After annotating all identified issues in a segment, use the <b>right
-          arrow key</b> (or the <b>button</b>) to go to the next segment.</li>
+      <li>After annotating all identified issues in a sentence, use the <b>right
+          arrow key</b> (or the <b>button</b>) to go to the next sentence.</li>
     </ol>
 
     <details>
@@ -404,19 +454,19 @@ antheaTemplates['MQM'] = {
         <span class="summary-heading">Annotation Tips</span>
       </summary>
       <ol>
-        <li>To change the rating for a previous segment in the current
+        <li>To change the rating for a previous sentence in the current
             document, you can click on it. You can delete any individual issue
             that you might have mistakenly added.</li>
         <li>
-          Occasionally, the translated segment will be altered to
+          Occasionally, the translated sentence will be altered to
           include an artificially injected error. Evaluating translation quality
-          is a difficult and demanding task, and such "test segments" are used
+          is a difficult and demanding task, and such "test sentences" are used
           to help you maintain the high level of attention the task needs. Once
-          you have marked any error in a test segment, its unaltered version
-          will be shown. If you miss marking any error in a test segment, you
+          you have marked any error in a test sentence, its unaltered version
+          will be shown. If you miss marking any error in a test sentence, you
           will be shown a cautionary reminder about that. In either case, once
           the unaltered version is revealed, you have to proceed to rate its
-          quality just like all the other segments.
+          quality just like all the other sentences.
         </li>
       </ol>
     </details>
@@ -827,6 +877,22 @@ antheaTemplates['MQM'] = {
               slightly unnatural sounding sentences such as “From where did he
               come?” This would also be a minor error.
             </li>
+            <li>
+              <b>Bad sentence structure</b>.
+              The marked span of text is an unnecessary repetition, or makes
+              the sentence unnecessarily long, or would have been better as a
+              clause in the previous sentence. Example (repetition): "Alexander
+              had an idea. Alexander had a thought." This example would be a
+              minor error, unless the context dictates otherwise. Example (long
+              sentence): "The party, after blaming its losses on poor
+              leadership, that the spokesman said could have paid more attention
+              to the people's needs, split into two factions." This sentence
+              could have been split into multiple sentences. Example
+              (mergeable): "He gave him the money. He accepted the reward."
+              These two sentences can be phrased better as a single sentence
+              that makes it clearer who accepted the reward. This example is a
+              minor error, without additional contextual information.
+            </li>
           </ul>
         </details>
       </li>
@@ -913,9 +979,9 @@ antheaTemplates['MQM'] = {
       </li>
       <li>
         <b>Non-translation!</b>
-        The segment as a whole is completely not a translation of the source.
+        The sentence as a whole is completely not a translation of the source.
         This rare category, when used, overrides any other marked errors for
-        that segment and labels the full translated segment as the error span.
+        that sentence and labels the full translated sentence as the error span.
         Only available after choosing a major severity error. Example: the
         translated sentence is completely unrelated to the source sentence or is
         gibberish or is such a bad translation that there is virtually no part
@@ -1134,7 +1200,7 @@ antheaTemplates['MQM'] = {
       </summary>
       <p>
         Please follow the general stylistic guidelines for your target language
-        and mark an error for any part of any segment that does not comply with
+        and mark an error for any part of any sentence that does not comply with
         them. Below is a reminder of what you should be looking for. Please note
         that we expect you to perform basic online research to verify the
         translation of company and organization names, brand names, acronyms,

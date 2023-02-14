@@ -117,7 +117,7 @@ class AntheaManager {
     this.openMenuItem_ = null;
 
     /** @private @const {number} */
-    this.MAX_ACTIVE_ = 16;
+    this.MAX_ACTIVE_ = 64;
     /** @private {number} */
     this.numActive_ = 0;
 
@@ -797,6 +797,22 @@ class AntheaManager {
   }
 
   /**
+   * Get sentence-split token sizes of text.
+   * 
+   * @param {string} text
+   * @return {!Array<number>}
+   */
+  getSentenceTokenSizes(text) {
+    const sentences = text.split('\u200b\u200b');
+    const sentence_token_sizes = [];
+    for (let sent of sentences) {
+      const tokens = AntheaEval.tokenize(sent);
+      sentence_token_sizes.push(tokens.length);
+    }
+    return sentence_token_sizes;
+  }
+
+  /**
    * Return TSV-formatted MQM data from the parsed evaluation data.
    * @param {!Object} parsedData The parsed evaluation data.
    * @return {string}
@@ -807,6 +823,7 @@ class AntheaManager {
     let evalMetadataAdded = false;
     for (let docsys of parsedData.parsedDocSys) {
       let segIndex = 0;
+      let isFirstForDocSys = true;
       for (let l = 0; l < docsys.srcSegments.length; l++) {
         console.assert(l < docsys.tgtSegments.length,
                        l, docsys.tgtSegments.length);
@@ -846,18 +863,22 @@ class AntheaManager {
             },
           });
         }
-        if (segResult.hotw && segResult.hotw.done) {
+        for (let hotw of segResult.hotw_list) {
+          if (!hotw.done) {
+            continue;
+          }
           errors.push({
             'severity': 'HOTW-test',
-            'type': (segResult.hotw.found ? 'Found' : 'Missed'),
+            'type': (hotw.found ? 'Found' : 'Missed'),
             'subtype': '',
             'location': '',
             'start': 0,
             'end': 0,
             'metadata': {
-              timestamp: segResult.hotw.timestamp,
-              timing: segResult.hotw.timing,
-              'note': this.cleanText(segResult.hotw.injected_error),
+              timestamp: hotw.timestamp,
+              timing: hotw.timing,
+              'note': this.cleanText(hotw.injected_error),
+              'sentence_index': hotw.sentence_index,
             },
           });
         }
@@ -879,6 +900,8 @@ class AntheaManager {
             error.metadata.segment = {
               source_tokens: AntheaEval.tokenize(src),
               target_tokens: AntheaEval.tokenize(tgt),
+              source_sentence_tokens: this.getSentenceTokenSizes(src),
+              target_sentence_tokens: this.getSentenceTokenSizes(tgt),
             };
             if (startsPara) {
               error.metadata.segment.starts_paragraph = true;
@@ -920,6 +943,12 @@ class AntheaManager {
                 }
               }
               evalMetadataAdded = true;
+            }
+            if (isFirstForDocSys) {
+              if (segResult.feedback) {
+                error.metadata.feedback = segResult.feedback;
+              }
+              isFirstForDocSys = false;
             }
             isFirst = false;
           }
