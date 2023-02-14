@@ -16,7 +16,7 @@
 """GraphAPI implementation of graphs based on images."""
 
 import functools
-from typing import Tuple
+from typing import Tuple, Union
 
 import flax
 import jax

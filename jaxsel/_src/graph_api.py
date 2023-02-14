@@ -17,7 +17,7 @@
 import abc
 import enum
 
-from typing import Any, Mapping, Sequence, Text, Tuple
+from typing import Any, Mapping, Sequence, Text, Tuple, Union
 
 from flax import struct
 import jax
