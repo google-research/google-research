@@ -165,7 +165,7 @@ antheaTemplates['MQM-Target-First'] = {
       description: 'The text has stylistic problems.',
       subtypes: {
         awkward: {
-          display: 'Awkward',
+          display: 'Unnatural or awkward',
           description: 'The text is literal, written in an awkward style, unidiomatic or inappropriate in the context.',
         },
         sentence_structure: {
@@ -450,8 +450,9 @@ antheaTemplates['MQM-Target-First'] = {
               are not directly affected by the identified issue and do
               not need to be modified in order for the issue to be fixed.</li>
           <li>The shorter the span, the more useful it is.</li>
-          <li>When it comes to Style/Awkwardness errors, please pinpoint the
-              error rather than extend the span to an entire clause.</li>
+          <li>When it comes to "Style/Unnatural or awkward" errors, please
+              pinpoint the error rather than extend the span to an entire
+              clause.</li>
           <li>If a single issue affects words that do not directly follow each
               other, as is the case with split verbs in German
               (“teilte die Feuerwehr auf”) or phrasal verbs in English
@@ -905,26 +906,28 @@ antheaTemplates['MQM-Target-First'] = {
               the target language. For example, “कौन कौन आया था?” in Hindi is
               translated into English as “Who who had come?” This would be a
               minor severity error. (2) A sentence is unnecessarily convoluted
-              or long, such as, "The lift traveled away from the ground floor."
-              This would be a minor error. (3) Grammatically correct but
+              or too wordy, such as, "The lift traveled away from the ground
+              floor." This would be a minor error. (3) Grammatically correct but
               slightly unnatural sounding sentences such as “From where did he
               come?” This would also be a minor error.
             </li>
             <li>
               <b>Bad sentence structure</b>.
-              The marked span of text is an unnecessary repetition, or makes
-              the sentence unnecessarily long, or would have been better as a
-              clause in the previous sentence. Example (repetition): "Alexander
-              had an idea. Alexander had a thought." This example would be a
-              minor error, unless the context dictates otherwise. Example (long
-              sentence): "The party, after blaming its losses on poor
-              leadership, that the spokesman said could have paid more attention
-              to the people's needs, split into two factions." This sentence
-              could have been split into multiple sentences. Example
-              (mergeable): "He gave him the money. He accepted the reward."
-              These two sentences can be phrased better as a single sentence
-              that makes it clearer who accepted the reward. This example is a
-              minor error, without additional contextual information.
+              This error type is related to the arrangement of the sentence
+              structure. The marked span of text is an unnecessary repetition,
+              or it makes the sentence unnecessarily long, or it would have been
+              better expressed as a clause in the previous sentence. Example
+              (repetition): "Alexander had an idea. Alexander had a thought."
+              This example would be a minor error, unless the context dictates
+              otherwise. Example (long sentence): "The party, after blaming its
+              losses on poor leadership, that the spokesman said could have
+              paid more attention to the people's needs, split into two
+              factions." This sentence could have been split into multiple
+              sentences. Example (mergeable): "He gave him the money. He
+              accepted the reward." These two sentences can be phrased better
+              as a single sentence that makes it clearer who accepted the
+              reward. This example is a minor error, without additional
+              contextual information.
             </li>
           </ul>
         </details>
@@ -1316,6 +1319,22 @@ antheaTemplates['MQM-Target-First'] = {
             sentence (24-hour clock vs. 12-hour clock)</li>
       </ul>
     </details>
+
+    <h2>Feedback</h2>
+    <p>
+    At the bottom right in the Evaluation column, there is a Feedback section.
+    Please feel free to provide any feedback or notes. You can express things
+    like:
+    </p>
+    <ul>
+      <li>The document was too complex, or the topic was unfamiliar.</li>
+      <li>Some parts of the instructions were unclear.</li>
+      <li>Something in the user interface worked well or did not work well.</li>
+      <li>You can also provide an overall thumbs up/down rating for your
+          experience in evaluating that document.</li>
+      <li>Any other comments or notes that you would like to provide about your
+          experience.</li>
+    </ul>
     <br>
   `,
 };
