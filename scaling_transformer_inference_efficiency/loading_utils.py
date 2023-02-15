@@ -407,29 +407,36 @@ class InferenceT5X(t5x.models.DecoderOnlyModel):
     return sequence_scores
 
   def make_batch(
-      self, batch, common_prefix_heuristic=32
+      self,
+      batch,
+      extract_prefix = False,
+      common_prefix_heuristic = 32,
   ):
     inputs_lengths = np.sum(batch['decoder_causal_attention'], axis=1) - 1
     masked_inputs = (
         batch['decoder_input_tokens'] * batch['decoder_causal_attention']
     )
     inputs = masked_inputs[:, : self.max_input_length]  # [batch, time]
-    common_prefix = find_common_prefix(inputs)  # integer
-    # a heurtistic for if it is worth doing
-    if (common_prefix > common_prefix_heuristic) and (
-        self.max_input_length - common_prefix_heuristic > common_prefix
-    ):
-      logging.info('Detected common prefix of length %i', common_prefix)
-      prefix = chunk.Chunk(
-          jnp.expand_dims(inputs[0, :common_prefix], 0),
-          jnp.array([common_prefix]),
-      )
-      prompt = chunk.Chunk(
-          inputs[:, common_prefix:], inputs_lengths - common_prefix
-      )
-    else:
-      prefix = None
-      prompt = chunk.Chunk(inputs, inputs_lengths)
+
+    if extract_prefix:
+      # NB: the below is not jax jittable.
+      common_prefix = find_common_prefix(inputs)  # integer
+      # Heuristic for whether prefix extraction is worth doing
+      if (common_prefix > common_prefix_heuristic) and (
+          self.max_input_length - common_prefix_heuristic > common_prefix
+      ):
+        logging.info('Detected common prefix of length %i', common_prefix)
+        prefix = chunk.Chunk(
+            jnp.expand_dims(inputs[0, :common_prefix], 0),
+            jnp.array([common_prefix]),
+        )
+        prompt = chunk.Chunk(
+            inputs[:, common_prefix:], inputs_lengths - common_prefix
+        )
+        return prefix, prompt
+    # Default to no prefix extraction
+    prompt = chunk.Chunk(inputs, inputs_lengths)
+    prefix = None
     return prefix, prompt
 
   def process_cache(
