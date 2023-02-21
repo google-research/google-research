@@ -59,7 +59,7 @@ class Chunk:
 
   @classmethod
   def logical_axes(cls):
-    return Chunk(
+    return Chunk(  # pytype: disable=wrong-arg-types  # jax-ndarray
         tokens=P('batch', 'time'),
         lengths=P('batch'),
     )
@@ -290,7 +290,7 @@ class ChunkResult:
 
   @classmethod
   def logical_axes(cls):
-    return ChunkResult(
+    return ChunkResult(  # pytype: disable=wrong-arg-types  # jax-ndarray
         per_token_scores=P('batch', 'time'),
         top_token_ids=P('batch', 'time', 'top_k'),
         top_token_probs=P('batch', 'time', 'top_k'),
@@ -390,7 +390,7 @@ class FullChunkResult:
 
   @classmethod
   def logical_axes(cls):
-    return FullChunkResult(
+    return FullChunkResult(  # pytype: disable=wrong-arg-types  # jax-ndarray
         logits=P('logit_batch', 'time', 'vocab'),
         kv_cache=attention.KVCache.logical_axes(),
     )
@@ -1043,7 +1043,7 @@ class XmapModel:
       sample_ids, _ = shard_map.fold_out(
           self._mesh, sample_ids, P('logit_batch')
       )
-      return sample_ids
+      return sample_ids  # pytype: disable=bad-return-type  # jax-ndarray
 
   # pylint: disable = g-bare-generic
   # pylint: disable = protected-access
@@ -1165,7 +1165,7 @@ class XmapModel:
     # this means that we track two different sized batch dims.
     # Seeding of the RNG itself is deterministic. To generate different samples,
     # users can provide sample_number_offset.
-    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(
+    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(  # pytype: disable=wrong-arg-types  # jax-ndarray
         jax.random.PRNGKey(0), sample_ids
     )
 
@@ -1205,7 +1205,7 @@ class XmapModel:
         chunk, chunk_result, all_logits = state
       else:
         chunk, chunk_result = state
-      step_rngs = jax.vmap(jax.random.fold_in)(
+      step_rngs = jax.vmap(jax.random.fold_in)(  # pytype: disable=wrong-arg-types  # jax-ndarray
           sample_rngs, token_indexes_start + token_i
       )
       # logits: float32[batch.X, vocab.YZ], step_rngs: [batch] (sliced later)

@@ -152,7 +152,7 @@ def gradient_o1(field, h):
 
 def termial(n):
   """Return the sum of i from i=1 to n."""
-  return n * (n + 1) // 2
+  return n * (n + 1) // 2  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def _get_xy_stencil(neighborhood_size):

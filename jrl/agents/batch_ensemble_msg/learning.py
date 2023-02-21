@@ -601,7 +601,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
         metrics['alpha'] = alpha
         metrics['alpha_loss'] = 0.
 
-      return new_state, metrics
+      return new_state, metrics  # pytype: disable=bad-return-type  # jax-ndarray
 
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()

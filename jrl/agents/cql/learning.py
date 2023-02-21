@@ -207,7 +207,7 @@ class CQLLearner(acme.Learner):
           q_params, policy_params, target_q_params, alpha, transitions, key)
       cql_term = cql_loss(q_params, policy_params, transitions, key)
       total = critic_loss_term + cql_alpha * cql_term
-      return total, {'critic_loss': critic_loss_term, 'cql_loss': cql_term}
+      return total, {'critic_loss': critic_loss_term, 'cql_loss': cql_term}  # pytype: disable=bad-return-type  # jax-ndarray
 
     critic_grad = jax.value_and_grad(total_critic_loss, has_aux=True)
 
@@ -464,7 +464,7 @@ class CQLLearner(acme.Learner):
       #         jax.tree_map(lambda x: jnp.std(x, axis=0),
       #                      transitions.next_observation)))
 
-      return new_state, metrics
+      return new_state, metrics  # pytype: disable=bad-return-type  # jax-ndarray
 
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()

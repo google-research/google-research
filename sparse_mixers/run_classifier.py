@@ -369,7 +369,7 @@ def _create_eval_metrics_fn(
       res[name] = fn(labels, predictions)
     return res
 
-  return metrics_fn
+  return metrics_fn  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def _evaluate(p_eval_step,

@@ -206,7 +206,7 @@ def apply_model(
     dist_loss = losses.mse(pred_dists, dists)
     dist_loss *= FLAGS.distance_loss_scale
     dist_error = losses.mean_error(pred_dists, dists)
-    return dist_loss, dist_error, pred_dists
+    return dist_loss, dist_error, pred_dists  # pytype: disable=bad-return-type  # jax-ndarray
 
   def paired_loss_fn(
       params,
@@ -273,7 +273,7 @@ def apply_model(
 
       if 'dist' in batch and 'paired' in batch:
         loss_breakdown['total_distance_model_loss'] = loss
-    return loss, (loss_breakdown, preds)
+    return loss, (loss_breakdown, preds)  # pytype: disable=bad-return-type  # jax-ndarray
 
   def domain_loss_fn(
       params,

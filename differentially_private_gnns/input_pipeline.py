@@ -75,7 +75,7 @@ def compute_masks_for_splits(
 def convert_to_graphstuple(
     graph):
   """Converts a dataset to one entire jraph.GraphsTuple, extracting labels."""
-  return jraph.GraphsTuple(
+  return jraph.GraphsTuple(  # pytype: disable=wrong-arg-types  # jax-ndarray
       nodes=np.asarray(graph.node_features),
       edges=np.ones_like(graph.senders),
       senders=np.asarray(graph.senders),

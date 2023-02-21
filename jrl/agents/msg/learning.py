@@ -1223,7 +1223,7 @@ class MSGLearner(acme.Learner):
         metrics['alpha'] = alpha
         metrics['alpha_loss'] = 0.
 
-      return new_state, metrics
+      return new_state, metrics  # pytype: disable=bad-return-type  # jax-ndarray
 
 
     simclr_loss_fn = sass_utils.build_simclr_loss(networks.simclr_encoder.apply)

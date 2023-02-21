@@ -422,7 +422,7 @@ def _compute_pretraining_metrics(
     if weights is not None:
       loss = loss * weights
       normalizing_factor = weights.sum()
-    return loss.sum(), normalizing_factor
+    return loss.sum(), normalizing_factor  # pytype: disable=bad-return-type  # jax-ndarray
 
   masked_lm_correct = jnp.sum(
       (masked_lm_logits.argmax(-1) == masked_lm_labels.ravel()) *
@@ -438,7 +438,7 @@ def _compute_pretraining_metrics(
   next_sentence_correct = jnp.sum(
       next_sentence_logits.argmax(-1) == next_sentence_labels.ravel())
 
-  return PretrainingStats(masked_lm_loss, next_sentence_loss, masked_lm_correct,
+  return PretrainingStats(masked_lm_loss, next_sentence_loss, masked_lm_correct,  # pytype: disable=wrong-arg-types  # jax-ndarray
                           masked_lm_normalization, masked_lm_total,
                           next_sentence_correct, num_next_sentence_labels)
 

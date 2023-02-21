@@ -121,7 +121,7 @@ class DynamicsModel(nn.Module):
     else:
       sigma = jnp.zeros(self.embedding_dim)
       sample = mu
-    return DynamicsModelType(mu, sigma, sample)
+    return DynamicsModelType(mu, sigma, sample)  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def l1(x, y):

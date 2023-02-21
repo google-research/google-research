@@ -174,9 +174,9 @@ def concept_bottleneck(
     else:
       # mask out completely instead of applying noise
       masked_out = out * concept_interventions['intervention_masks']
-    return masked_out, raw_out
+    return masked_out, raw_out  # pytype: disable=bad-return-type  # jax-ndarray
   else:
-    return out, raw_out
+    return out, raw_out  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def make_meltingpot_concept_ppo_networks(
