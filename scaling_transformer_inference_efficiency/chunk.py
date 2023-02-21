@@ -120,7 +120,7 @@ class Chunk:
 
   @classmethod
   def logical_axes(cls):
-    return Chunk(
+    return Chunk(  # pytype: disable=wrong-arg-types  # jax-ndarray
         tokens=P('batch', 'time'),
         lengths=P('batch'),
     )
@@ -342,7 +342,7 @@ class ChunkResult:
 
   @classmethod
   def logical_axes(cls, circular=False):
-    return ChunkResult(
+    return ChunkResult(  # pytype: disable=wrong-arg-types  # jax-ndarray
         per_token_scores=P('batch', 'time'),
         top_token_ids=P('batch', 'time', 'top_k'),
         top_token_probs=P('batch', 'time', 'top_k'),
@@ -439,7 +439,7 @@ class FullChunkResult:
 
   @classmethod
   def logical_axes(cls):
-    return FullChunkResult(
+    return FullChunkResult(  # pytype: disable=wrong-arg-types  # jax-ndarray
         logits=P('logit_batch', 'time', 'vocab'),
         kv_cache=attention.KVCache.logical_axes(),
     )

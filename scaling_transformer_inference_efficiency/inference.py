@@ -129,7 +129,7 @@ def infer(
   logits = _with_sharding_constraint(logits, (None, None, 'vocab'))
   k, v = jnp.bfloat16(k), jnp.bfloat16(v)
   return FullChunkResult(
-      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v, offset=0))
+      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v, offset=0))  # pytype: disable=wrong-arg-types  # jax-ndarray
 
 
 def manual_fwd_pass(
@@ -279,5 +279,5 @@ def infer_template(
   logits = _with_sharding_constraint(logits, logit_logical)
 
   return FullChunkResult(
-      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v, offset=0)
+      logits=logits, kv_cache=attention.KVCache(chunk.lengths, k, v, offset=0)  # pytype: disable=wrong-arg-types  # jax-ndarray
   )

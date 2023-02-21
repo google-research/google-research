@@ -49,7 +49,7 @@ def naive_inverse_covariance_matrix(
   phi = compute_phi(states)
   matrix_estimate = jnp.linalg.solve(phi.T @ phi, jnp.eye(d))
 
-  return matrix_estimate * covariance_batch_size, key
+  return matrix_estimate * covariance_batch_size, key  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def lissa_inverse_covariance_matrix(

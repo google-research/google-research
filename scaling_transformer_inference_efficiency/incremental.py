@@ -176,7 +176,7 @@ class StreamClient:
         new_chars = self.find_new_chars(vocab, current_token)
 
       self.stream_callback(new_chars)
-      self.prev_token = current_token
+      self.prev_token = current_token  # pytype: disable=annotation-type-mismatch  # jax-ndarray
       self.prev_token_decoded = new_chars.lstrip(' ').rstrip(' ')
 
   def clear_prev_token(self):
@@ -355,7 +355,7 @@ class InferenceModel:
     # Seeding of the RNG itself is deterministic.
     # To generate different samples, users can provide sample_number_offset.
     (batch,) = sample_ids.shape
-    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(
+    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(  # pytype: disable=wrong-arg-types  # jax-ndarray
         jax.random.PRNGKey(0), sample_ids
     )
     token_indexes_start = attention.prefix_lengths(prefix)
@@ -416,7 +416,7 @@ class InferenceModel:
     """
     batch, _ = sample_rngs.shape
     chunk, chunk_result = state
-    step_rngs = jax.vmap(jax.random.fold_in)(
+    step_rngs = jax.vmap(jax.random.fold_in)(  # pytype: disable=wrong-arg-types  # jax-ndarray
         sample_rngs, token_indexes_start + chunk.lengths
     )
     next_token = model._sample(

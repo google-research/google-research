@@ -161,7 +161,7 @@ class Weights:
     cos = P(None, None)
     embedding = P('params_vocab', 'embedding_embed')
 
-    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
+    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)  # pytype: disable=wrong-arg-types  # jax-ndarray
 
   @classmethod
   def physical_axes(cls):
@@ -436,8 +436,8 @@ class QuantizedWeights:
     embedding = P('params_vocab', 'embedding_embed')
     layernorm_scale = P('layers', 'params_embed')
 
-    return QuantizedWeights(
-        QuantizedLayer(
+    return QuantizedWeights(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        QuantizedLayer(  # pytype: disable=wrong-arg-types  # jax-ndarray
             q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
         ),
         sin=sin,

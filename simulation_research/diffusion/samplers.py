@@ -205,7 +205,7 @@ def discrete_ode_sample(diffusion,
   dynamics = jit(partial(diffusion.dynamics, scorefn))
   timesteps = (.5 + np.arange(nsteps)[::-1]) / nsteps
   x0, xs = heun_integrate(dynamics, xf, timesteps)
-  return xs if traj else x0
+  return xs if traj else x0  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def sde_sample(diffusion,
@@ -232,7 +232,7 @@ def sde_sample(diffusion,
   xf = diffusion.noise(key0, x_shape) * diffusion.sigma(diffusion.tmax)
   samples, xt = euler_maruyama_integrate(diffusion, scorefn, xf, timesteps,
                                          key1)
-  return xt if traj else samples
+  return xt if traj else samples  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def inpainting_scores(diff,

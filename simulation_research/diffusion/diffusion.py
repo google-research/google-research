@@ -51,11 +51,11 @@ def unsqueeze_like(x,
     unsqueeze_objs: unsqueezed versions of *objs
   """
   if len(objs) != 1:
-    return [unsqueeze_like(x, obj) for obj in objs]
+    return [unsqueeze_like(x, obj) for obj in objs]  # pytype: disable=bad-return-type  # jax-ndarray
   elif hasattr(objs[0], 'shape') and len(objs[0].shape):  # broadcast to x shape
     return objs[0][(Ellipsis,) + len(x.shape[1:]) * (None,)]
   else:
-    return objs[0]  # if it is a scalar, it already broadcasts to x shape
+    return objs[0]  # if it is a scalar, it already broadcasts to x shape  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 class StructuredCovariance(object):

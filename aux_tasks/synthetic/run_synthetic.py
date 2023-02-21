@@ -264,7 +264,7 @@ def _train_step(
   compute_phi_no_params = functools.partial(compute_phi, phi_params)
 
   if method == 'lissa' and compute_feature_norm_on_oracle_states:
-    oracle_phis = compute_phi(phi_params, oracle_states)
+    oracle_phis = compute_phi(phi_params, oracle_states)  # pytype: disable=wrong-arg-types  # jax-ndarray
     feature_norm = utils.compute_max_feature_norm(oracle_phis)
   else:
     feature_norm = None
@@ -343,9 +343,9 @@ def _train_step(
 
     # Compute the weight estimates by combining the inverse covariance
     # estimate and the sampled Phi & Psi's.
-    weight_1 = (covariance_1 @ compute_phi(phi_params, weight_states_1).T
+    weight_1 = (covariance_1 @ compute_phi(phi_params, weight_states_1).T  # pytype: disable=wrong-arg-types  # jax-ndarray
                 @ compute_psi(weight_states_1, task)) / len(weight_states_1)
-    weight_2 = (covariance_2 @ compute_phi(phi_params, weight_states_2).T
+    weight_2 = (covariance_2 @ compute_phi(phi_params, weight_states_2).T  # pytype: disable=wrong-arg-types  # jax-ndarray
                 @ compute_psi(weight_states_2, task)) / len(weight_states_2)
 
   prediction = jnp.dot(source_phi, weight_1)
@@ -567,7 +567,7 @@ def main(_):
   workdir = epath.Path(_WORKDIR.value)
   workdir.mkdir(exist_ok=True)
 
-  train(
+  train(  # pytype: disable=wrong-arg-types  # jax-ndarray
       workdir=workdir,
       compute_phi=experiment.compute_phi,
       compute_psi=experiment.compute_psi,

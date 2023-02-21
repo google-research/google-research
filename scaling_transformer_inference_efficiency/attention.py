@@ -387,7 +387,7 @@ def attend(q, k, v,
     # ^ local_normalizer: f32[batch, qlength, heads, 1]
     attn_out += local_normalizer * local_out
 
-  return attn_out
+  return attn_out  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 
