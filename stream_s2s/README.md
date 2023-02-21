@@ -14,7 +14,7 @@ VCTK data [license](https://datashare.ed.ac.uk/bitstream/handle/10283/3443/licen
 We preserved audio clip names from VCTK dataset.
 
 
-# Supplementary model diagrams:
+# Supplementary model diagrams for [full report](2210.13761.pdf):
 All below models and blocks are described in our paper with text. Here we provide additional visual diagrams.
 
 ## *Base* non streaming parrotron model (section 2.3 in our [paper](https://arxiv.org/pdf/2210.13761.pdf))
