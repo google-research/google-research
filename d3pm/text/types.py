@@ -15,10 +15,10 @@
 
 """A set of standard types and classes for the D3PM codebase."""
 
+import dataclasses
 import datetime
 from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Union
 
-from flax.struct import dataclasses
 import jax
 import seqio
 import tensorflow as tf
