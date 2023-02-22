@@ -1,5 +1,9 @@
 # Aux Tasks
 
+This paper contains code used used for experiments in
+"A Novel Stochastic Gradient Descent Algorithm for Learning Principal Subspaces"
+[link](https://arxiv.org/abs/2212.04025).
+
 ## Installation
 
 To run experiments in this directory:
@@ -14,74 +18,89 @@ We recommend doing the following in a virtual environment. (E.g. `python3 -m ven
 
 `pip install -r aux_tasks/requirements.txt`
 
-If running experiments with atari, install atari roms:
-
-`pip install gym[accept-rom-license]`
-
 ## Running Experiments
 
-The following sections give examples of how to run each of the
-experiments included in this project.
-
-### auxiliary_mc
-
-```
-python -m aux_tasks.auxiliary_mc.train \
-  --agent_name=cumulant_jax_dqn \
-  --gin_files='aux_tasks/auxiliary_mc/dqn.gin' \
-  --base_dir=/tmp/online_rl/dqn \
-  --gin_bindings="Runner.evaluation_steps=10" \
-  --gin_bindings="JaxDQNAgent.min_replay_history = 40" \
-  --gin_bindings="Runner.max_steps_per_episode = 10" \
-  --gin_bindings="OutOfGraphReplayBufferWithMC.replay_capacity = 10000" \
-  --gin_bindings="OutOfGraphReplayBufferWithMC.batch_size = 5" \
-  --gin_bindings="Runner.training_steps = 100"
-```
-
-### grid
-
-The grid experiments use a distributed learning setup, consisting of
-multiple workers, a replay buffer, and learner.
-
-To run a worker:
-
-```
-python -m aux_tasks.grid.actor \
-  --config=aux_tasks/grid/config.py:implicit \
-  --reverb_address=localhost:1234 \
-  --eval=False
-```
-
-Note that you will need to run at least one train worker (`--eval=False`) and
-at least one eval worker (`--eval=True`).
-
-To start the replay buffer:
-
-```
-python -m aux_tasks.grid.server \
-  --port=1234 \
-  --config=aux_tasks/grid/config.py:implicit
-```
-
-To start the learner:
-
-```
-python -m aux_tasks.grid.train \
-  --base_dir=/tmp/pw \
-  --reverb_address=localhost:1234 \
-  --config=aux_tasks/grid/config.py:implicit
-```
-
-### minigrid
-
-```
-python -m aux_tasks.minigrid.train \
-  --env_name=classic_fourrooms \
-  --base_dir=/tmp/minigrid
-```
+The following sections give examples of how to run the experiments described in
+our paper.
 
 ### synthetic
 
+The synthetic directory allows running of experiments with synthetic
+matrices, MNIST, and Puddle World.
+
+Note: `run_synthetic.py` checkpoints as it goes, so if you change
+the configuration between runs, make sure to use a new workdir!
+
+**Synthetic Matrices**
+
+To run an experiment using synthetic matrices, use the following command:
+
 ```
-python -m aux_tasks.synthetic.run_synthetic
+python -m aux_tasks.synthetic.run_synthetic \
+  --workdir=/tmp/synthetic \
+  --config.S=50 \
+  --config.T=50 \
+  --config.d=10 \
+  --config.method=lissa \
+  --config.main_batch_size=10 \
+  --config.covariance_batch_size=10 \
+  --config.weight_batch_size=10 \
+  --config.rescale_psi=exp
 ```
+
+For more information on what flags you can use, see
+`aux_tasks/synthetic/run_synthetic.py`.
+
+**MNIST**
+
+To run an experiment using MNIST, use the following command:
+
+```
+python -m aux_tasks.synthetic.run_synthetic \
+  --workdir=/tmp/synthetic \
+  --config.use_mnist=true \
+  --config.d=16 \
+  --config.method=lissa \
+  --config.main_batch_size=128 \
+  --config.covariance_batch_size=128 \
+  --config.weight_batch_size=128 \
+  --config.optimizer=adam \
+  --config.lr=5e-3 \
+  --config.svd_path=mnist_svd.np
+```
+
+**Puddle World**
+
+We supply the code for generating the Psi matrix for Puddle World
+at `aux_tasks/puddle_world/compute_successor_representation.py`.
+For example:
+
+```
+python -m aux_tasks.puddle_world.compute_successor_representation \
+  --output_dir=/tmp/puddle_world \
+  --arena_name=sutton \
+  --num_bins=100
+```
+
+This will give the same setup as we used in our paper. To see more options,
+see the flags in `compute_successor_representation.py`.
+
+To run a Puddle World experiment, use the following command:
+
+```
+python -m aux_tasks.synthetic.run_synthetic \
+  --workdir=/tmp/synthetic \
+  --config.d=5 \
+  --config.method=lissa \
+  --config.main_batch_size=50 \
+  --config.covariance_batch_size=50 \
+  --config.weight_batch_size=50 \
+  --config.suite=puddle_world \
+  --config.puddle_world_path=puddle_world_data \
+  --config.puddle_world_arena=sutton_20
+```
+
+## MNIST analysis
+
+We include ipython notebooks for performing MNIST analyses under
+`aux_tasks/mnist`.

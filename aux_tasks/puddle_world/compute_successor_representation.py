@@ -39,7 +39,7 @@ from aux_tasks.puddle_world import puddle_world
 from aux_tasks.puddle_world import utils as pw_utils
 
 _ARENA_NAME = flags.DEFINE_enum(
-    'arena_name', 'hydrogen', arenas.ARENA_NAMES,
+    'arena_name', 'sutton', arenas.ARENA_NAMES,
     'The name of the arena to load.')
 _NUM_BINS = flags.DEFINE_integer(
     'num_bins', 10,
