@@ -10,7 +10,7 @@ To launch the few-shot learning experiments (on 1% datasets) for an algorithm--f
 
 `sh scripts/one_percent/q_match.sh`
 
-This will run experiments using the tuned hyperparamters for both the linear classification and the fine tunning classification tasks on all four datasets.
+This will run experiments using the tuned hyperparameters for both the linear classification and the fine tuning classification tasks on all four datasets.
 
 ## Installation
 
@@ -22,7 +22,7 @@ pip install -r requirements.txt
 
 ## Datasets
 
-The Higgs and MNIST datasets are avaialbe from TFDS, but the CoverType and Adult datasets can be downloaded from UCI.
+The Higgs and MNIST datasets are available from TFDS, but the CoverType and Adult datasets can be downloaded from UCI.
 
 * [CoverType](https://archive.ics.uci.edu/ml/datasets/covertype)
 
