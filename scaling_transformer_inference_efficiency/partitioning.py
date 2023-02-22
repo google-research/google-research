@@ -28,7 +28,6 @@ from jax import pxla
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
 from jax.experimental.gda_serialization import serialization as jax_gda_serialization
-from jax.experimental.global_device_array import GlobalDeviceArray
 import jax.numpy as jnp
 from jax.sharding import Mesh
 from jax.sharding import NamedSharding
@@ -284,12 +283,7 @@ def copy_to_device(x, sharding,
     def cb(i):
       return jax.lax.convert_element_type(x[i], expected.dtype)
 
-    if jax.config.jax_array:
-      return jax.make_array_from_callback(x.shape, sharding, cb)
-    else:
-      result = GlobalDeviceArray.from_callback(x.shape, sharding.mesh,
-                                               sharding.spec, cb)
-      return result  # pytype: disable=bad-return-type
+    return jax.make_array_from_callback(x.shape, sharding, cb)
   elif isinstance(x, jax.ShapedArray):
 
     def sharded_zeros():
