@@ -297,8 +297,8 @@ def copy_to_device(x, sharding,
 
     with sharding.mesh:
       return pjit.pjit(
-          sharded_zeros, in_axis_resources=(),
-          out_axis_resources=sharding.spec)()
+          sharded_zeros, in_shardings=(), out_shardings=sharding.spec
+      )()
   elif isinstance(x, tensorstore.Spec):
     if jax.config.read('jax_xla_backend') == 'pathways':
 

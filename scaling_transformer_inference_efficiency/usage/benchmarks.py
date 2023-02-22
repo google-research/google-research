@@ -930,8 +930,8 @@ def init_model(hparams):
 
     params = pjit.pjit(
         init_weights,
-        in_axis_resources=(),
-        out_axis_resources=weights.Weights.physical_axes(),
+        in_shardings=(),
+        out_shardings=weights.Weights.physical_axes(),
     )()
   return model, params
 
