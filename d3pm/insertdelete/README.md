@@ -13,6 +13,16 @@ year      = {2021}
 }
 ```
 
+## Interactive guide notebook
+
+You can explore the insertion-deletion forward process using the interactive guide available here:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)][notebook_demo]
+
+[notebook_demo]: https://colab.research.google.com/github/google-research/google-research/blob/master/d3pm/insertdelete/Insertion_and_Deletion_Forward_Process_Guide.ipynb
+
+## Code organization
+
 The code is organized as follows:
 
 - Main logic
