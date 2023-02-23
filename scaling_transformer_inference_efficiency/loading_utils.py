@@ -25,9 +25,9 @@ from flax.training import common_utils
 import jax
 import jax.numpy as jnp
 import numpy as np
-import seqio
-import t5x
+from seqio.vocabularies import Vocabulary
 from t5x import losses
+from t5x.models import DecoderOnlyModel
 
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import chunk
@@ -287,7 +287,7 @@ def ce_loss(
 # pylint: disable = g-bare-generic
 # pylint: disable = invalid-name
 @dataclasses.dataclass
-class InferenceT5X(t5x.models.DecoderOnlyModel):
+class InferenceT5X(DecoderOnlyModel):
   """Creates an API that fits T5X."""
 
   model: incremental.InferenceModel
@@ -295,8 +295,8 @@ class InferenceT5X(t5x.models.DecoderOnlyModel):
   prefill_fn: Callable
   generate_fn: Callable
   _batch_size: int
-  _input_vocabulary: seqio.Vocabulary
-  _output_vocabulary: seqio.Vocabulary
+  _input_vocabulary: Vocabulary
+  _output_vocabulary: Vocabulary
   sample_ids: jax.Array
   max_input_length: int
   max_generate_length: int

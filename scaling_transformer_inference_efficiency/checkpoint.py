@@ -32,7 +32,8 @@ from flax import traverse_util
 import jax
 import jax.numpy as jnp
 import numpy as np
-import seqio
+from seqio.vocabularies import SentencePieceVocabulary
+from seqio.vocabularies import Vocabulary
 import tensorstore
 
  import gfile

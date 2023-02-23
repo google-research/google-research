@@ -123,7 +123,7 @@ import jax.numpy as jnp
 import jax.scipy
 from jax.sharding import Mesh
 import numpy as np
-import seqio
+from seqio.vocabularies import Vocabulary
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
@@ -151,7 +151,7 @@ class StreamClient:
   stream_callback: Callable = lambda x: print(x, end='')
   stream_done_callback: Callable = lambda: None
 
-  def find_new_chars(self, vocab: seqio.Vocabulary, next_token: np.ndarray):
+  def find_new_chars(self, vocab: Vocabulary, next_token: np.ndarray):
     """We decode pairs because the tokenizer strips whitespace."""
     prefix = self.prev_token_decoded
     whole = (
@@ -163,7 +163,7 @@ class StreamClient:
     return new_text
 
   def stream_result(
-      self, logits: jax.Array, vocab: seqio.Vocabulary, x: int, y: int, z: int
+      self, logits: jax.Array, vocab: Vocabulary, x: int, y: int, z: int
   ):
     """Steam result back to std. For the moment only stream first element."""
 
@@ -201,7 +201,7 @@ class InferenceModel:
       sample_fn: SampleFn,
       mesh: Mesh,
       rules: Sequence[Tuple[str, Any]],
-      vocab: Optional[seqio.Vocabulary] = None,
+      vocab: Optional[Vocabulary] = None,
   ):
     self._hparams = hparams
     self._eos_id = eos_id

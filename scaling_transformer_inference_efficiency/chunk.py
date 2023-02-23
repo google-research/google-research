@@ -99,7 +99,7 @@ import jax.numpy as jnp
 import jax.scipy
 from jax.sharding import PartitionSpec as P
 import numpy as np
-import seqio
+from seqio.vocabularies import Vocabulary
 import typing_extensions
 
 from scaling_transformer_inference_efficiency import attention
