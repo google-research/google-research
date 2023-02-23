@@ -329,7 +329,9 @@ def model_to_tflite(
     inference_input_type=tf.float32,
     inference_output_type=tf.float32,
     supported_ops_override = None,
-    allow_custom_ops = True):
+    allow_custom_ops = True,
+    zero_bias_reduction_steps = None,
+):
   """Convert non streaming model to tflite inference model.
 
   If mode==modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE then inference graph
@@ -358,6 +360,9 @@ def model_to_tflite(
     inference_output_type: it can be used to quantize output data e.g. tf.int8
     supported_ops_override: explicitly set supported ops in converter.
     allow_custom_ops: explicitly set custom op usage.
+    zero_bias_reduction_steps: Number of inference steps to perform before
+      calculating model's additive bias on zero inputs. Defaults to None which
+      indicates no bias removal.
 
   Returns:
     tflite model
@@ -376,6 +381,10 @@ def model_to_tflite(
 
   if save_model_path:
     save_model_summary(model_stream, save_model_path)
+
+  if zero_bias_reduction_steps:
+    model_stream = remove_model_zero_bias(model_stream,
+                                          zero_bias_reduction_steps)
 
   # Identify custom objects.
   with quantize.quantize_scope():
@@ -424,6 +433,29 @@ def model_to_tflite(
 
   tflite_model = converter.convert()
   return tflite_model
+
+
+def remove_model_zero_bias(
+    model_stream,
+    zero_bias_reduction_steps,
+):
+  """Removes bias from model by subtracting its output on zero input."""
+  input_tensors = [np.zeros(inp.shape) for inp in model_stream.inputs]
+  temp_model_stream = tf.keras.models.clone_model(model_stream)
+  temp_model_stream.set_weights(model_stream.get_weights())
+  for _ in range(zero_bias_reduction_steps):
+    temp_model_stream(input_tensors, training=False)
+  bias = temp_model_stream(input_tensors, training=False)
+  del temp_model_stream
+  if isinstance(bias, list):
+    bias = [bias]
+  new_outputs = [
+      out - tf.constant(b) for out, b in zip(model_stream.outputs, bias)
+  ]
+  model_stream = tf.keras.Model(
+      model_stream.inputs, new_outputs, name=model_stream.name
+  )
+  return model_stream
 
 
 # in below code .from_tensor() instead of tf.TensorSpec is adding TensorSpec
