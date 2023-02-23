@@ -74,13 +74,13 @@ ten columns, one line per marked error:
         sentence.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
-      - **feedback**: An object optionally present in the first segment of a
-        doc. This captures any feedback the rater may have provided. It can
-        include a free-form text field (keyed by **notes**) and a string keyed
-        by **thumbs** that is set to either "up" or "down".
       - In addition, any text annotation fields present in the input data are
         copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
         this would be all the fields present in the optional last column.
+  - **feedback**: An object optionally present in the metadata of the first
+    segment of a doc. This captures any feedback the rater may have provided.
+    It can include a free-form text field (keyed by **notes**) and a string
+    keyed by **thumbs** that is set to either "up" or "down".
   - **evaluation**: An object that has information about the evaluation used.
     This field is typically only present in the very first data row, and is
     not repeated, in order to save space. This object may contain the following
@@ -120,7 +120,7 @@ filters.
     involving the columns. It can use the following
     variables: **system**, **doc**, **docSegId**,
     **globalSegId**, **rater**, **category**, **severity**,
-    **source**, **target**.
+    **source**, **target**, **metadata**.
   - Filter expressions also have access to an aggregated **segment**
     variable that is an object with the following properties:
     **segment.catsBySystem**,
@@ -134,6 +134,9 @@ filters.
     "Minor/Fluency/Punctuation" or are just the same as severities if
     categories are empty. This segment-level aggregation allows you
     to select specific segments rather than just specific error ratings.
+  - The segment object also includes a **segment.document** object with the
+    following properties:
+    **doc**, **thumbsUpCount**, **thumbsDownCount**.
   - **Example**: globalSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
   - **Example**: segment.sevsBySystem['System-42'].includes('Major')

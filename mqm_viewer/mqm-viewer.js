@@ -354,6 +354,7 @@ function mqmAddToArray(obj, key, val) {
  */
 function mqmAddSegmentAggregations() {
   let segment = null;
+  let document = {doc: ''};
   let currDoc = '';
   let currDocSegId = -1;
   let currGlobalSegId = -1;
@@ -366,6 +367,7 @@ function mqmAddSegmentAggregations() {
     const globalSegId = parts[MQM_DATA_GLOBAL_SEG_ID];
     const rater = parts[MQM_DATA_RATER];
     const category = parts[MQM_DATA_CATEGORY];
+    const metadata = parts[MQM_DATA_METADATA];
     const severity = parts[MQM_DATA_SEVERITY];
     if (currDoc == doc && currDocSegId == docSegId &&
         currGlobalSegId == globalSegId) {
@@ -378,13 +380,21 @@ function mqmAddSegmentAggregations() {
         }
       }
       segment = {
-        'catsBySystem': {},
-        'catsByRater': {},
-        'sevsBySystem': {},
-        'sevsByRater': {},
-        'sevcatsBySystem': {},
-        'sevcatsByRater': {},
+        catsBySystem: {},
+        catsByRater: {},
+        sevsBySystem: {},
+        sevsByRater: {},
+        sevcatsBySystem: {},
+        sevcatsByRater: {},
       };
+      if (doc != document.doc) {
+        document = {
+          doc: doc,
+          thumbsUpCount: 0,
+          thumbsDownCount: 0,
+        };
+      }
+      segment.document = document;
       currDoc = doc;
       currDocSegId = docSegId;
       currGlobalSegId = globalSegId;
@@ -397,6 +407,13 @@ function mqmAddSegmentAggregations() {
     const sevcat = severity + (category ? '/' + category : '');
     mqmAddToArray(segment.sevcatsBySystem, system, sevcat);
     mqmAddToArray(segment.sevcatsByRater, rater, sevcat);
+    if (metadata.feedback && metadata.feedback.thumbs) {
+      if (metadata.feedback.thumbs == 'up') {
+        segment.document.thumbsUpCount++;
+      } else if (metadata.feedback.thumbs == 'down') {
+        segment.document.thumbsDownCount++;
+      }
+    }
   }
   if (segment != null) {
     console.assert(currStart >= 0, segment);
@@ -2163,6 +2180,25 @@ function mqmShow(viewingConstraints=null) {
         val += '<br><span class="mqm-timestamp">' +
             (new Date(timestamp)).toLocaleString() + '</span>';
       }
+      if (i == MQM_DATA_RATER && parts[MQM_DATA_METADATA].feedback) {
+        /* There might be feedback */
+        const feedback = parts[MQM_DATA_METADATA].feedback;
+        const thumbs = feedback.thumbs || '';
+        const notes = feedback.notes || '';
+        let feedbackHTML = '';
+        if (thumbs || notes) {
+          feedbackHTML = '<br>Feedback:';
+        }
+        if (thumbs == 'up') {
+          feedbackHTML += ' &#x1F44D;';
+        } else if (thumbs == 'down') {
+          feedbackHTML += ' &#x1F44E;';
+        }
+        if (notes) {
+          feedbackHTML += '<br><span class="mqm-note">' + notes + '</span>';
+        }
+        val += feedbackHTML;
+      }
       if (i == MQM_DATA_CATEGORY && parts[MQM_DATA_METADATA].note) {
         /* There is a note */
         val += '<br><span class="mqm-note">' + parts[MQM_DATA_METADATA].note +
@@ -2376,6 +2412,25 @@ function mqmSetData(tsvData) {
         }
       }
       parts[MQM_DATA_METADATA] = metadata;
+    }
+    /**
+     * Make sure metadata has the keys for object members, so that they
+     * can be used in filter expressions freely.
+     */
+    if (!metadata.segment) {
+      metadata.segment = {};
+    }
+    if (!metadata.segment.references) {
+      metadata.segment.references = {};
+    }
+    if (!metadata.feedback) {
+      metadata.feedback = {};
+    }
+    if (!metadata.evaluation) {
+      metadata.evaluation = {};
+    }
+    if (!metadata.evaluation.config) {
+      metadata.evaluation.config = {};
     }
     /** Move "Rater" down from its position in the TSV data. */
     const temp = parts[4];
@@ -2976,7 +3031,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
               involving the columns. It can use the following
               variables: <b>system</b>, <b>doc</b>, <b>globalSegId</b>,
               <b>docSegId</b>, <b>rater</b>, <b>category</b>, <b>severity</b>,
-              <b>source</b>, <b>target</b>.
+              <b>source</b>, <b>target</b>, <b>metadata</b>.
           </li>
           <li>
             Filter expressions also have access to an aggregated <b>segment</b>
@@ -2993,6 +3048,12 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
             are just the same as severities if categories are empty. This
             segment-level aggregation allows you to select specific segments
             rather than just specific error ratings.
+          </li>
+          <li>
+            The segment object also includes a <b>segment.document</b> object
+            with the following properties that are aggregates over all
+            the systems:
+            <b>doc</b>, <b>thumbsUpCount</b>, <b>thumbsDownCount</b>.
           </li>
           <li><b>Example</b>: globalSegId > 10 || severity == 'Major'</li>
           <li><b>Example</b>: target.indexOf('thethe') >= 0</li>
