@@ -180,7 +180,6 @@ def compute_metrics(
         'compute_phi',
         'compute_psi',
         'method',
-        'covariance_batch_size',
         'main_batch_size',
         'covariance_batch_size',
         'weight_batch_size',
@@ -190,7 +189,7 @@ def compute_metrics(
         'use_tabular_gradient',
     ),
 )
-def _compute_gradient(
+def compute_gradient(
     *,
     source_states,
     task,
@@ -239,7 +238,7 @@ def _compute_gradient(
     if method == 'oracle':
       # This exactly determines the covariance in the tabular case,
       # i.e. when oracle_states = S.
-      Phi = compute_phi(params, oracle_states)
+      Phi = compute_phi_no_params(oracle_states)
       num_states = oracle_states.shape[0]
 
       covariance_1 = jnp.linalg.pinv(Phi.T @ Phi) * num_states
@@ -429,7 +428,7 @@ def _train_step(
   source_states, key = sample_states(source_states_key, main_batch_size)
   task = jax.random.choice(task_key, num_tasks, (1,))
 
-  gradient, key = _compute_gradient(
+  gradient, key = compute_gradient(
       source_states=source_states,
       task=task,
       compute_phi=compute_phi,
@@ -542,6 +541,7 @@ def train(
   )
 
   writer = metric_writers.create_default_writer(
+      logdir=str(workdir),
   )
 
   # Checkpointing and logging too much can use a lot of disk space.
