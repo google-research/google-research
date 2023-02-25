@@ -22,7 +22,6 @@ from typing import Any, Callable, Iterable, Optional, Sequence, Tuple
 
 import flax
 import jax
-from jax.lib import xla_client
 import jax.numpy as jnp
 import numpy as np
 
