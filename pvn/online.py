@@ -79,7 +79,7 @@ class _DistributionalQModule(nn.Module):
     q_values = jnp.sum(q_dist * self._atoms, axis=-1)
     q_values = jax.lax.stop_gradient(q_values)
     if is_training:
-      return q_values, q_logits, self._atoms
+      return q_values, q_logits, self._atoms  # pytype: disable=bad-return-type  # jax-ndarray
     return q_values
 
 
@@ -127,7 +127,7 @@ def create_q_network_with_encoder(
           hidden_layer_width=hidden_layer_width)
     example_state = jnp.zeros((num_features,), dtype=jnp.float32)
 
-    def init_fn(rng_key,
+    def init_fn(rng_key,  # pytype: disable=annotation-type-mismatch  # jax-ndarray
                 unused_example_observation = None):
       del unused_example_observation
       q_network_params = q_network.init(rng_key, example_state)
@@ -178,7 +178,7 @@ def create_q_network_without_encoder(
 
     # This function is necessary since some pieces pass in
     # an RNG key and an observation, while some pass in just the RNG key.
-    def network_init(rng_key,
+    def network_init(rng_key,  # pytype: disable=annotation-type-mismatch  # jax-ndarray
                      unused_example_observation = None):
       return q_network.init(rng_key, example_state)
 
