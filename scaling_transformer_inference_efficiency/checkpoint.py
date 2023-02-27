@@ -24,7 +24,7 @@ import copy
 from functools import partial  # pylint: disable=g-importing-member
 import os
 from typing import Any, NewType
-from typing import Optional
+from typing import Optional, Union
 
 from flax import serialization
 from flax import struct
@@ -261,11 +261,11 @@ class Checkpoint:
   Typically this is stored in host DRAM, or produced lazily as a
   tensorstore.Spec or a jax.ShapedArray.
   """
-  q_wi: np.ndarray
-  kv: np.ndarray
-  o_wo: np.ndarray
-  layernorm_scale: np.ndarray
-  embedding: np.ndarray
+  q_wi: Union[np.ndarray, jax.ShapedArray]
+  kv: Union[np.ndarray, jax.ShapedArray]
+  o_wo: Union[np.ndarray, jax.ShapedArray]
+  layernorm_scale: Union[np.ndarray, jax.ShapedArray]
+  embedding: Union[np.ndarray, jax.ShapedArray]
 
   @classmethod
   def make_shaped_arrays(cls, h):
@@ -337,14 +337,14 @@ class QuantizedCheckpoint:
 
   Separate quantized and non-quantized checkpoints to reduce code branching.
   """
-  q_wi: np.ndarray
-  q_wi_scale: np.ndarray
-  kv: np.ndarray
-  kv_scale: np.ndarray
-  o_wo: np.ndarray
-  o_wo_scale: np.ndarray
-  layernorm_scale: np.ndarray
-  embedding: np.ndarray
+  q_wi: Union[np.ndarray, jax.ShapedArray]
+  q_wi_scale: Union[np.ndarray, jax.ShapedArray]
+  kv: Union[np.ndarray, jax.ShapedArray]
+  kv_scale: Union[np.ndarray, jax.ShapedArray]
+  o_wo: Union[np.ndarray, jax.ShapedArray]
+  o_wo_scale: Union[np.ndarray, jax.ShapedArray]
+  layernorm_scale: Union[np.ndarray, jax.ShapedArray]
+  embedding: Union[np.ndarray, jax.ShapedArray]
 
   @classmethod
   def make_shaped_arrays(cls, h):

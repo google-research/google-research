@@ -21,7 +21,7 @@ from enum import Enum  # pylint: disable = g-importing-member
 import functools
 import math
 import threading
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import jax
 from jax import pxla
@@ -272,9 +272,10 @@ def copy_to_device(x, sharding,
   # If it's a tensorstore spec with an array() driver, it's already in host
   # memory. Convert it to np.ndarray and use that.
   if isinstance(x, tensorstore.Spec):
-    json = x.to_json()
+    spec = cast(tensorstore.Spec, x)
+    json = spec.to_json()
     if json.get('driver') == 'array':
-      x = tensorstore.open(x).result().read().result()
+      x = tensorstore.open(spec).result().read().result()
 
   assert x.shape == expected.shape, f'{x.shape} != {expected.shape}'
 
