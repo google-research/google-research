@@ -1345,6 +1345,9 @@ class AntheaEval {
       }
       markedError.metadata.timestamp = evalResult.timestamp;
       markedError.metadata.timing = evalResult.timing;
+      if (!this.cursor.srcVisible(this.cursor.seg)) {
+        markedError.metadata.source_not_seen = true;
+      }
       evalResult.timing = {};
       evalResult.errors.push(markedError);
       this.displayError(evalResult.errors, evalResult.errors.length - 1);

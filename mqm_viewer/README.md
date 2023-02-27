@@ -40,13 +40,16 @@ ten columns, one line per marked error:
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
 - **severity**: MQM error severity (or "no-error").
-- **metadata**: JSON-formatted object that may contain the following fields, among others:
+- **metadata**: JSON-formatted object that may contain the following fields,
+  among others:
   - **timestamp**: Time at which this annotation was obtained (milliseconds
     since Unix epoch)
   - **note**: Free-form text note provided by the rater with some annotations
     (notably, with the "Other" error category)
   - **corrected_translation**: If the rater provided a corrected translation,
     for the segment, it will be included here.
+  - **source_not_seen**: This will be set to true if this annotation was marked
+    without the source text of the segment being visible.
   - **source_spans**: Array of pairs of 0-based indices (usually just one)
     identifying the indices of the first and last source tokens in the marked
     span. These indices refer to the source_tokens array in the segment
