@@ -149,7 +149,7 @@ class Weights:
     sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
-    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
+    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)  # pytype: disable=wrong-arg-types  # jax-types
 
   @classmethod
   def logical_axes(cls):
@@ -410,8 +410,8 @@ class QuantizedWeights:
     cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
     embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
     layernorm_scale = jax.ShapedArray((h.layers, h.embed), jnp.bfloat16)
-    return QuantizedWeights(
-        QuantizedLayer(
+    return QuantizedWeights(  # pytype: disable=wrong-arg-types  # jax-types
+        QuantizedLayer(  # pytype: disable=wrong-arg-types  # jax-types
             q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
         ),
         sin=sin,
