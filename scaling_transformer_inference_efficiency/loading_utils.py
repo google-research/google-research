@@ -40,7 +40,7 @@ from scaling_transformer_inference_efficiency.layers import one_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 
 
-PyTreeDef = type(jax.tree_util.tree_structure(None))
+PyTree = Any
 
 
 class Layout(Enum):

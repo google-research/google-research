@@ -27,7 +27,7 @@ import numpy as np
 
 # Type Stubs
 ParamTree = Any
-PyTreeDef = Any
+PyTreeDef = jax.tree_util.PyTreeDef
 
 
 def scatter_nd(indices, updates,

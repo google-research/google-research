@@ -21,7 +21,7 @@ the objective of unlearning (eq 1 in the paper) upon correspondence with the
 authors
 """
 
-from typing import Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 import gin
 import jax
@@ -32,7 +32,7 @@ from t5x import models
 
 
 MetricsMap = metrics_lib.MetricsMap
-PyTreeDef = type(jax.tree_util.tree_structure(None))
+PyTree = Any
 
 
 @gin.configurable(module='prior_unlearn')

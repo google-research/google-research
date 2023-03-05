@@ -181,7 +181,7 @@ def flatten_state_dict(state_dict, keep_empty_nodes = False):
       sep='/')
 
 
-PyTreeDef = Any
+PyTree = Any
 FlatCheckpointDict = Any
 
 
