@@ -19,3 +19,7 @@ journal	= {TACL}
 The top performing mT5-model described in the paper can be downloaded following the link below.
 [Coref-mT5-XXL model](https://console.cloud.google.com/storage/browser/gresearch/correference_seq2seq/checkpoint_1140000).
 
+
+## Decoder
+
+We provide a Colab notebook that runs the seq2seq transition-based model. The notebook contains code to resolve coreferences in documents. The user needs to start a mT5 server and load the provided checkpoint. The interface to the server needs to be implemented depending on the used infrastructure. It is possible to emulate the decoding of a document without running a server, which might be useful to understand the procedure in detail.
