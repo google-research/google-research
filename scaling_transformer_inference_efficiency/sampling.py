@@ -38,9 +38,7 @@ class SamplingHyperParams:
 
   @classmethod
   def physical_axes(cls):
-    return SamplingHyperParams(
-        temperature=P(None), top_k=P(None), top_p=P(None)
-    )
+    return SamplingHyperParams(temperature=P(), top_k=P(), top_p=P())
 
 
 def sample(
