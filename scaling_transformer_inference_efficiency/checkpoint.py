@@ -45,14 +45,28 @@ TsSpecDict = NewType('TsSpecDict', dict)
 @struct.dataclass
 class HParams:
   """Hyperparameters for a PaLM model."""
-  layers: int
-  embed: int
-  ff: int
-  heads: int
-  qkv: int
-  max_len: int  # Max length supported by attention
-  vocab: int
-  padded_heads: Optional[int] = 0  # modify norms when using padding partition
+  layers: int = struct.field(
+      pytree_node=False,
+  )
+  embed: int = struct.field(
+      pytree_node=False,
+  )
+  ff: int = struct.field(
+      pytree_node=False,
+  )
+  heads: int = struct.field(
+      pytree_node=False,
+  )
+  qkv: int = struct.field(
+      pytree_node=False,
+  )
+  max_len: int = struct.field(
+      pytree_node=False,
+  )
+  vocab: int = struct.field(
+      pytree_node=False,
+  )
+  padded_heads: Optional[int] = struct.field(pytree_node=False, default=0)
 
   @property
   def q_wi_per_head(self):

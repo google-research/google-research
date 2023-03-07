@@ -197,7 +197,8 @@ def unembed_manual(
 # pylint: disable = g-doc-return-or-yield
 # pylint: disable = g-doc-args
 # TODO(sholto): Update to new, tested parsing collectives.
-# @partial(jax.jit, static_argnums=(0, 10, 11, 12, 13, 14))
+
+
 def transformer_layer_weight_stationary(
     hparams,
     layer,
@@ -209,6 +210,40 @@ def transformer_layer_weight_stationary(
     x_axis,
     y_axis,
     z_axis,
+    *,
+    attn_all_to_all,
+    latency_collectives,
+    shard_seqlen_vs_batch = False,
+    batch_unsharded = False,
+    intermediate_dtype = jnp.bfloat16,
+):
+  """Wraps _fn so that we can use remat while bug is fixed."""
+  return jax.checkpoint(
+      partial(
+          _transformer_layer_weight_stationary,
+          attn_all_to_all=attn_all_to_all,
+          latency_collectives=latency_collectives,
+          shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+          batch_unsharded=batch_unsharded,
+          intermediate_dtype=intermediate_dtype,
+      ),
+      static_argnums=(0, 7, 8, 9),
+      prevent_cse=True,
+  )(hparams, layer, params, sin, cos, kv_caches, x, x_axis, y_axis, z_axis)
+
+
+def _transformer_layer_weight_stationary(
+    hparams,
+    layer,
+    params,
+    sin,
+    cos,
+    kv_caches,
+    x,
+    x_axis,
+    y_axis,
+    z_axis,
+    *,
     attn_all_to_all,
     latency_collectives,
     shard_seqlen_vs_batch = False,
@@ -224,6 +259,7 @@ def transformer_layer_weight_stationary(
   * kv_cache is sharded by batch.YZx (or batch.YZ or batch.Y as necessary)
   * x: [batch.Z, maxlen, embed.XY]
   """
+  intermediate_dtype = jax.core.concrete_or_error(None, intermediate_dtype)
   if latency_collectives:
     matmul_reducescatter = partial(
         collectives.matmul_reducescatter_latency, subsplit_axis=2)

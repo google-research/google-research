@@ -83,7 +83,7 @@ class KVCache:
         lengths=jnp.zeros((batch,), jnp.int32),
         k=jnp.zeros((h.layers, batch, length, h.qkv), jnp.bfloat16),
         v=jnp.zeros((h.layers, batch, length, h.qkv), jnp.bfloat16),
-        offset=jnp.zeros((1,), jnp.int32),
+        offset=jnp.int32(0),
         circular=circular,
     )
 
@@ -94,9 +94,7 @@ class KVCache:
         lengths=self.lengths + 1,
         k=lax.dynamic_update_index_in_dim(self.k, token.k, token_i, idx),
         v=lax.dynamic_update_index_in_dim(self.v, token.v, token_i, idx),
-        offset=jnp.array([token_i,]) + 1 % self.max_length
-        if self.circular
-        else jnp.zeros((1,), jnp.int32),
+        offset=token_i + 1 % self.max_length if self.circular else jnp.int32(0),
         circular=self.circular,
     )
 
@@ -107,7 +105,7 @@ class KVCache:
         lengths=P('attn_batch'),
         k=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
         v=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
-        offset=P(None),
+        offset=P(),
         circular=circular,
     )  # pytype: disable=wrong-arg-types
 
@@ -347,7 +345,7 @@ def attend(q, k, v,
       # as when it is circular, the lengths trail the active offset
       # Array([ 2,  1,  0, 11, 10,  9,  8,  7,  6,  5,  4,  3], dtype=int32)
       mask = (
-          -(k_iota - kv_cache.offset[0] + 1) % kv_cache.max_length
+          -(k_iota - kv_cache.offset + 1) % kv_cache.max_length
       ) < kv_cache.lengths[:, jnp.newaxis]
     else:
       mask = k_iota < kv_cache.lengths[:, np.newaxis]
@@ -388,6 +386,3 @@ def attend(q, k, v,
     attn_out += local_normalizer * local_out
 
   return attn_out  # pytype: disable=bad-return-type  # jax-ndarray
-
-
-

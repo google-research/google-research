@@ -471,7 +471,6 @@ def run_weight_stationary_layer(
             z_axis,
             attn_all_to_all,
             latency_collectives,
-            shard_seqlen_vs_batch,
         )
       else:
         x, layer_k, layer_v = impl(
@@ -487,7 +486,6 @@ def run_weight_stationary_layer(
             z_axis,
             attn_all_to_all,
             latency_collectives,
-            shard_seqlen_vs_batch,
         )
       k = lax.dynamic_update_index_in_dim(
           k, jnp.swapaxes(layer_k, 0, 1), layer, 0

@@ -21,6 +21,7 @@ from functools import partial  # pylint: disable=g-importing-member
 import logging
 from typing import Any, Callable, Mapping, Optional, Sequence, Tuple, Union
 
+from flax import struct
 from flax.training import common_utils
 import jax
 import jax.numpy as jnp
@@ -41,6 +42,21 @@ from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 
 
 PyTree = Any
+
+
+@struct.dataclass
+class TestVocab:
+  eos_id = 0
+  bos_id = 0
+  pad_id = 0
+
+  def encode_tf(self, text):
+    chars = np.array([ord(c) for c in text]).astype(np.int32)
+    return chars
+
+  def decode_tf(self, tokens):
+    results = np.split(tokens, tokens.shape[0])
+    return np.array([[chr(r) for r in list(line[0])] for line in results])
 
 
 class Layout(Enum):
@@ -111,6 +127,7 @@ def return_minimal_palm(
         "Either shard seqlen instead of batch or don't shard batch."
     )
 
+  del remat  # for the moment, always remat
   # We have preset sizes
   if cfg.size == 0:
     hparams = checkpoint.HParams.TOY
@@ -163,8 +180,6 @@ def return_minimal_palm(
     # sample_fn = partial(sampling.sample_manual,
     # batch_unsharded=cfg.batch_unsharded)
     sample_fn = sampling.sample
-    if remat is not None:
-      layer_fn = jax.checkpoint(layer_fn, policy=remat, prevent_cse=False)
 
   elif cfg.layout == Layout.ONE_D:
     rules = partitioning.make_rules_one_d()
@@ -180,7 +195,10 @@ def return_minimal_palm(
   else:
     raise NotImplementedError
 
-  the_vocab = checkpoint.load_vocab()
+  if cfg.size == 0:
+    the_vocab = TestVocab()
+  else:
+    the_vocab = checkpoint.load_vocab()
 
   mesh = partitioning.make_mesh(one_d=one_d, devices=devices)
   sharding_config = partitioning.ShardingConfig(

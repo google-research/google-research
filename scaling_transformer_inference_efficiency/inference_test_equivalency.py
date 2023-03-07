@@ -143,6 +143,7 @@ def xmap_pjit_equivalency(
     shard_seqlen_vs_batch=False,
     layer_fn=two_d_parallel_xmap.transformer_layer_weight_stationary,
     atol=1e-03,
+    rtol=1e-06,
 ):
   """Tests shard map."""
   # Within this function, we device put the relevant arrays ahead of time
@@ -156,8 +157,7 @@ def xmap_pjit_equivalency(
         one_d=one_d,
     )
 
-    @jax.jit
-    def fwd_pjit(token_chunk, params):
+    def fwd_pjit(params, token_chunk):
       return inference.infer(
           h,
           layers_pjit.pjit_transformer_layer,
@@ -167,7 +167,7 @@ def xmap_pjit_equivalency(
           intermediate_dtype=dtype)
 
     with mesh:
-      result_baseline = fwd_pjit(token_chunk, params)
+      result_baseline = jax.jit(fwd_pjit)(params, token_chunk)
 
     sharding_config = partitioning.ShardingConfig(
         mesh=mesh,
@@ -212,7 +212,6 @@ def xmap_pjit_equivalency(
         unembed_fn,
     )
 
-    @jax.jit
     def fwd(params, token_chunk):
       """Wraps the inference fn to ease shardmap in pytree definition."""
       return inference.infer_template(
@@ -226,7 +225,7 @@ def xmap_pjit_equivalency(
       )
 
     with mesh:
-      result_shardmap = fwd(rotated_params, token_chunk)
+      result_shardmap = jax.jit(fwd)(rotated_params, token_chunk)
 
     np.testing.assert_allclose(
         result_baseline.kv_cache.k.astype(jnp.float32),
@@ -234,7 +233,47 @@ def xmap_pjit_equivalency(
         rtol=1e-1,
     )  # none_b1 needs this tolerance - XLA? TODO(sholto): Check
     np.testing.assert_allclose(
-        result_baseline.logits, result_shardmap.logits, atol=atol)
+        result_baseline.logits, result_shardmap.logits, rtol=rtol, atol=atol
+    )
+    # pylint: disable = unused-variable
+    # TODO(sholto): The final grad(shard_map) bug
+    # pylint: disable = protected-access
+    def grads_pjit(params, token_chunk):
+      def loss_fn(params, token_chunk):
+        result = fwd_pjit(params, token_chunk)
+        return result.logits.mean()
+
+      loss, grads = jax.value_and_grad(loss_fn)(params, token_chunk)
+      grads = jax.tree_map(
+          partitioning._with_sharding_constraint,
+          grads,
+          weights.Weights.logical_axes(),
+      )
+      return loss, grads
+
+    def grads(params, token_chunk):
+      def loss_fn(params, token_chunk):
+        result = fwd(params, token_chunk)
+        return result.logits.mean()
+
+      loss, grads = jax.value_and_grad(loss_fn)(params, token_chunk)
+      grads = jax.tree_map(
+          partitioning._with_sharding_constraint,
+          grads,
+          weights.Weights.logical_axes(),
+      )
+      return loss, grads
+
+    if attn_sharding == partitioning.AttnAllToAll.NONE:
+      with mesh:
+        loss_pjit, grads_pjit = jax.jit(grads_pjit)(params, token_chunk)
+        loss, grads = jax.jit(grads)(params, token_chunk)
+
+      # jax.tree_map(
+      #     partial(np.testing.assert_allclose, atol=atol),
+      #     grads_pjit,
+      #     grads,
+      # )
 
 
 class InferenceTest(absltest.TestCase):

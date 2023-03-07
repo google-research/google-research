@@ -287,7 +287,11 @@ class Chunk:
     # end-of-sequence token.
     masked_tokens = np.where(
         np.array(me.token_mask), np.array(me.tokens), vocab.eos_id)
-    return list(vocab.decode_tf(masked_tokens).numpy())
+    decoded = vocab.decode_tf(masked_tokens)
+    if hasattr(decoded, 'numpy'):
+      return list(vocab.decode_tf(masked_tokens).numpy())
+    else:
+      return list(vocab.decode_tf(masked_tokens))
 
   @property
   def token_mask(self):
