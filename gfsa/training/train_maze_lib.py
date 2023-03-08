@@ -283,7 +283,7 @@ def loss_fn(
                           mutual_info, 0)
   mutual_info = jnp.sum(mutual_info) / num_valid_nodes
 
-  return loss, {
+  return loss, {  # pytype: disable=bad-return-type  # jax-devicearray
       "option_entropy_of_dest": option_entropy,
       "prob_of_choosing_any_option": prob_of_choosing_any_option,
       "mutual_info_option_and_dest": mutual_info,

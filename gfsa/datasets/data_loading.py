@@ -207,7 +207,7 @@ def batch_bucketed(
     def _batch_and_pad_elts(*args):
       stacked = np.stack(args)
       stacked = jax_util.pad_to(stacked, batch_sizes[key])
-      return stacked.reshape(batch_dim_sizes[key] + stacked.shape[1:])
+      return stacked.reshape(batch_dim_sizes[key] + stacked.shape[1:])  # pytype: disable=unsupported-operands  # jax-devicearray
 
     result = jax.tree_map(_batch_and_pad_elts, *partial_batches[key])
     partial_batches[key].clear()
