@@ -13,6 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Main script for training KNF."""
 import os
 import random
@@ -42,9 +57,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main(argv):
   del argv
 
+  random.seed(FLAGS.seed)  # python random generator
+  np.random.seed(FLAGS.seed)  # numpy random generator
+
   torch.manual_seed(FLAGS.seed)
-  np.random.seed(FLAGS.seed)
-  random.seed(FLAGS.seed)
+  torch.cuda.manual_seed_all(FLAGS.seed)
+
+  torch.backends.cudnn.deterministic = True
+  torch.backends.cudnn.benchmark = False
 
   input_dim = FLAGS.input_dim
   input_length = FLAGS.input_length
@@ -115,22 +135,49 @@ def main(argv):
       mode="test")
 
   train_loader = data.DataLoader(
-      train_set, batch_size=batch_size, shuffle=True, num_workers=4)
+      train_set, batch_size=batch_size, shuffle=True, num_workers=1
+  )
   valid_loader = data.DataLoader(
-      valid_set, batch_size=batch_size, shuffle=True, num_workers=4)
+      valid_set, batch_size=batch_size, shuffle=True, num_workers=1
+  )
   test_loader = data.DataLoader(
-      test_set, batch_size=batch_size, shuffle=False, num_workers=4)
+      test_set, batch_size=batch_size, shuffle=False, num_workers=1
+  )
 
-  model_name = "Koopman_" + str(
-      FLAGS.dataset
-  ) + "_seed{}_jumps{}_freq{}_poly{}_sin{}_exp{}_bz{}_lr{}_dim{}_inp{}_pred{}_num{}_enchid{}_dechid{}_trm{}_conhid{}_enclys{}_declys{}_trmlys{}_conlys{}_latdim{}_RevIN{}_insnorm{}_regrank{}_globalK{}_contK{}".format(
-      FLAGS.seed, FLAGS.jumps, freq, FLAGS.num_poly, FLAGS.num_sins,
-      FLAGS.num_exp, batch_size, learning_rate, input_dim, input_length,
-      train_output_length, num_steps, encoder_hidden_dim, decoder_hidden_dim,
-      FLAGS.transformer_dim, control_hidden_dim, encoder_num_layers,
-      decoder_num_layers, FLAGS.transformer_num_layers, control_num_layers,
-      latent_dim, use_revin, use_instancenorm, regularize_rank,
-      add_global_operator, add_control)
+  model_name = (
+      "Koopman_"
+      + str(FLAGS.dataset)
+      + "_seed{}_jumps{}_freq{}_poly{}_sin{}_exp{}_bz{}_lr{}_decay{}_dim{}_inp{}_pred{}_num{}_enchid{}_dechid{}_trm{}_conhid{}_enclys{}_declys{}_trmlys{}_conlys{}_latdim{}_RevIN{}_insnorm{}_regrank{}_globalK{}_contK{}"
+      .format(
+          FLAGS.seed,
+          FLAGS.jumps,
+          freq,
+          FLAGS.num_poly,
+          FLAGS.num_sins,
+          FLAGS.num_exp,
+          batch_size,
+          learning_rate,
+          FLAGS.decay_rate,
+          input_dim,
+          input_length,
+          train_output_length,
+          num_steps,
+          encoder_hidden_dim,
+          decoder_hidden_dim,
+          FLAGS.transformer_dim,
+          control_hidden_dim,
+          encoder_num_layers,
+          decoder_num_layers,
+          FLAGS.transformer_num_layers,
+          control_num_layers,
+          latent_dim,
+          use_revin,
+          use_instancenorm,
+          regularize_rank,
+          add_global_operator,
+          add_control,
+      )
+  )
 
   print(model_name)
   results_dir = FLAGS.dataset + "_results/"
@@ -199,7 +246,8 @@ def main(argv):
 
   optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
   scheduler = torch.optim.lr_scheduler.StepLR(
-      optimizer, step_size=1, gamma=0.9)  # stepwise learning rate decay
+      optimizer, step_size=1, gamma=FLAGS.decay_rate
+  )  # stepwise learning rate decay
   loss_fun = nn.MSELoss()
 
   all_train_rmses, all_eval_rmses = [], []

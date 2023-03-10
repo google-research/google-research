@@ -13,10 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
+# Copyright 2022 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Configuration file."""
 from absl import flags
 
-
+FLAGS = flags.FLAGS
 _SEED = flags.DEFINE_integer("seed", 123, "The random seed.")
 
 _DATASET = flags.DEFINE_string("dataset", "M4",
@@ -51,12 +66,17 @@ _LEARNING_RATE = flags.DEFINE_float("learning_rate", 0.001,
 
 _DROPOUT_RATE = flags.DEFINE_float("dropout_rate", 0.0, "The dropout rate.")
 
+_DECAY_RATE = flags.DEFINE_float("decay_rate", 0.9, "The learning decay rate.")
+
 _BATCH_SIZE = flags.DEFINE_integer("batch_size", 128, "The batch size.")
 
 _LATENT_DIM = flags.DEFINE_integer("latent_dim", 64,
                                    "The dimension of latent Koopman space.")
 _NUM_STEPS = flags.DEFINE_integer(
-    "num_steps", 5, "The number of steps of predictions used for backprop.")
+    "num_steps",
+    5,
+    "The number of steps of predictions in one autoregressive call.",
+)
 
 _CONTROL_HIDDEN_DIM = flags.DEFINE_integer(
     "control_hidden_dim", 64,
