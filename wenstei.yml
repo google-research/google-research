@@ -1,0 +1,8 @@
+$schema: https://azuremlschemas.azureedge.net/latest/workspace.schema.json
+name: wenstei
+location: "*"
+display_name: nelson-workspace
+description: A workspace for deploy enterprise wensday kore features
+tags:
+  purpose: deploy
+  team: ws-management
