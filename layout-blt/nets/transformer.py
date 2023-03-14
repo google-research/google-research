@@ -15,14 +15,14 @@
 
 """Variation Transformer Network for Layout Generation."""
 
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Sequence
 
 from flax import linen as nn
 import jax
 import jax.numpy as jnp
 import ml_collections
 
-Initializer = Callable[[jnp.ndarray, Iterable[int], jnp.dtype], jnp.ndarray]
+Initializer = Callable[[jnp.ndarray, Sequence[int], jnp.dtype], jnp.ndarray]
 
 
 class MlpBlock(nn.Module):
