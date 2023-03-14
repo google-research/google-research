@@ -252,7 +252,7 @@ def maybe_restore_train_and_indicator_state(
     def closure(_):
       return checkpoint.ArrayRestoreArgs(
           lazy=True,
-          restore_type=jnp.DeviceArray,
+          restore_type=jax.Array,
           mesh=mesh,
           mesh_axes=mesh_axes,
       )

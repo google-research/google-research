@@ -135,25 +135,25 @@ def gather_topk_beams(nested, score_or_log_prob, batch_size, new_beam_size):
 class BeamState:
   """Holds beam search state data."""
   # The position of the decoding loop in the length dimension.
-  cur_index: jnp.DeviceArray  # scalar int32: current decoded length index
+  cur_index: jax.Array  # scalar int32: current decoded length index
   # The current encodings used in the decoding loop.
-  cur_encoded: jnp.DeviceArray  # float32: [batch_size, beam_size, ...]
+  cur_encoded: jax.Array  # float32: [batch_size, beam_size, ...]
   # The current encoding padding masks used in the decoding loop.
-  cur_encoded_padding_mask: jnp.DeviceArray  # float32
+  cur_encoded_padding_mask: jax.Array  # float32
   # The active sequence log probabilities and finished sequence scores.
-  live_logprobs: jnp.DeviceArray  # float32: [batch_size, beam_size]
-  finished_scores: jnp.DeviceArray  # float32: [batch_size, beam_size]
+  live_logprobs: jax.Array  # float32: [batch_size, beam_size]
+  finished_scores: jax.Array  # float32: [batch_size, beam_size]
   # The current active-beam-searching and finished sequences.
-  live_seqs: jnp.DeviceArray  # int32: [batch_size, beam_size, max_decode_len]
-  finished_seqs: jnp.DeviceArray  # int32: [batch_size, beam_size,
+  live_seqs: jax.Array  # int32: [batch_size, beam_size, max_decode_len]
+  finished_seqs: jax.Array  # int32: [batch_size, beam_size,
   #                                         max_decode_len]
   # Records which of the 'finished_seqs' is occupied and not a filler slot.
-  finished_flags: jnp.DeviceArray  # bool: [batch_size, beam_size]
+  finished_flags: jax.Array  # bool: [batch_size, beam_size]
   # The current state of the autoregressive decoding caches.
   cache: Any  # Any pytree of arrays, e.g. flax attention Cache object.
   # Auxiliary data.
-  live_aux: Optional[Dict[str, jnp.DeviceArray]] = None  # A dict of arrays.
-  finished_aux: Optional[Dict[str, jnp.DeviceArray]] = None  # A dict of arrays.
+  live_aux: Optional[Dict[str, jax.Array]] = None  # A dict of arrays.
+  finished_aux: Optional[Dict[str, jax.Array]] = None  # A dict of arrays.
 
 
 def beam_init(batch_size, beam_size, max_decode_len,

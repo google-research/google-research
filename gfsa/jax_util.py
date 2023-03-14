@@ -26,7 +26,7 @@ import numpy as np
 
 
 # Type alias for functions that handle NDArrays
-NDArray = Union[np.ndarray, jnp.DeviceArray]
+NDArray = Union[np.ndarray, jax.Array]
 
 T = TypeVar("T")
 

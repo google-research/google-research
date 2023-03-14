@@ -54,7 +54,7 @@ class LossExtra(NamedTuple):
 
   Note: Copied from the Acme codebase since visibility isn't public.
   """
-  metrics: Dict[str, jnp.DeviceArray]
+  metrics: Dict[str, jax.Array]
   reverb_update: Optional[ReverbUpdate] = None
 
 
@@ -69,7 +69,7 @@ class LossFn(Protocol):
                params: acme_networks.Params,
                target_params: acme_networks.Params,
                batch: reverb.ReplaySample,  # pyformat: disable
-               key: acme_networks.PRNGKey) -> Tuple[jnp.DeviceArray, LossExtra]:
+               key: acme_networks.PRNGKey) -> Tuple[jax.Array, LossExtra]:
     """Calculates a loss on a single batch of data."""
 
 
@@ -94,7 +94,7 @@ class QLearning(LossFn):
       target_params: acme_networks.Params,
       batch: reverb.ReplaySample,
       key: acme_networks.PRNGKey,
-  ) -> Tuple[jnp.DeviceArray, LossExtra]:
+  ) -> Tuple[jax.Array, LossExtra]:
     """Calculate a loss on a single batch of data."""
     del key
     transitions = batch.data
