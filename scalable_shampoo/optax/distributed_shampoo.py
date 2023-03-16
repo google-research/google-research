@@ -233,7 +233,7 @@ class LocalShardedParameterStats:
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
   training_metrics: Union[TrainingMetrics, optax.MaskedNode]
-  index_start: np.int32 = struct.field(
+  index_start: Union[np.int32, int] = struct.field(
       pytree_node=False)  # Index into global statistics array
   sizes: Any = struct.field(pytree_node=False)  # Sizes of the statistics.
 
