@@ -27,38 +27,49 @@ class DiscreteLaxBisimulation(discrete_bisimulation.DiscreteBisimulation):
                             Homomorphisms"
   """
 
-  def _state_matches_class(self, s1, c):
+  def _check_equivalence(self, s1, equivalence_classes, state_to_class):
     """Determines whether state s1 belongs in equivalence class c.
 
     Args:
       s1: int, index of state in question.
-      c: list, equivalence class to check.
+      c: list of lists, equivalence classes to check.
+      state_to_class: list of ints, mapping from state to equivalence class.
 
     Returns:
-      bool, whether the state matches its equivalence class.
+      bool, whether the state has been moved to a new equivalence class.
     """
-    if len(c) == 1 and s1 == c[0]:
-      # If it's already a singleton, we know it's ok.
-      return True
-    for s2 in c:
-      if s1 == s2:
+
+    for c in equivalence_classes:
+      if not c:
         continue
-      for a1 in range(self.num_actions):
+      if s1 in c:
+        continue
+      s2 = c[0] #we only need to check against one state in the equivalence class
+      matching_action_exists = True
+      for a1 in range(self.env.num_actions):
+        # if we went through all possible pairs for an action and none of them matched, we can stop
+        if not matching_action_exists:
+          break
         matching_action_exists = False
-        for a2 in range(self.num_actions):
-          # First check disagreement on rewards.
+        for a2 in range(self.env.num_actions):
           if self.env.rewards[s1, a1] != self.env.rewards[s2, a2]:
             continue
-          # Check disagreement on transitions. Stochastic setting.
           next_state_distrib_1 = self.env.transition_probs[s1, a1, :]
           next_state_distrib_2 = self.env.transition_probs[s2, a2, :]
-          if next_state_distrib_1[c].sum() != next_state_distrib_2[c].sum():
-            continue
-          # If we've made it this far, action2 simulates action1.
           matching_action_exists = True
-          break
-        if not matching_action_exists:
-          # If there is no matching action, s1 doesn't belong here.
-          return False
-    # If we've made it this far, s1 is still ok in c.
-    return True
+          for next_c in equivalence_classes:
+            if next_state_distrib_1[next_c].sum() != next_state_distrib_2[next_c].sum():
+              matching_action_exists = False
+              break
+          # if we've made it this far, we've found a matching action pair
+          if matching_action_exists:
+            break
+      # If we've made it this far, we've found a pair for all actions and s1 is moved to c
+      if matching_action_exists:
+        self._update_classes(s1, s2, equivalence_classes, state_to_class)
+        return True
+      else:
+        continue
+
+    # if no class was updated, return false
+    return False
