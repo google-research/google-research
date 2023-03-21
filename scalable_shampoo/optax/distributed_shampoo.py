@@ -2690,7 +2690,8 @@ def distributed_shampoo(
     shampoo_update_with_wd = shampoo_update
     grafting_update_with_wd = grafting_update
 
-    if weight_decay != 0 and not decoupled_weight_decay:
+    if (weight_decay != 0 and weight_decay is not None and
+        not decoupled_weight_decay):
       shampoo_update_with_wd = shampoo_update + weight_decay * param
       grafting_update_with_wd = grafting_update + weight_decay * param
 
@@ -2719,7 +2720,8 @@ def distributed_shampoo(
     if nesterov:
       nesterov_momentum_update = w * wd_update + beta1 * momentum_update
 
-    if weight_decay != 0 and decoupled_weight_decay:
+    if (weight_decay != 0 and weight_decay is not None and
+        decoupled_weight_decay):
       nesterov_momentum_update = (
           nesterov_momentum_update + lr * weight_decay * param)
 
