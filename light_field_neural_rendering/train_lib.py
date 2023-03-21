@@ -112,7 +112,7 @@ def train_step(
     #------------------------------------------------------------------------
     # Compute total loss and wrap the stats
     total_loss = loss + loss_c + weight_penalty
-    stats = train_utils.Stats(
+    stats = train_utils.Stats(  # pytype: disable=wrong-arg-types  # jax-types
         loss=loss, psnr=psnr, loss_c=loss_c, psnr_c=psnr_c, weight_l2=weight_l2)
     return total_loss, stats
 

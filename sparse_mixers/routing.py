@@ -182,7 +182,7 @@ class RouterWeights(nn.Module):
   """
   use_bias: bool = True
   dtype: jnp.dtype = jnp.bfloat16
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init

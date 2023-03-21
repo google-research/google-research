@@ -134,7 +134,7 @@ class EncoderModel(nn.Module):
     encoder_blocks = []  # Attributes are immutable so use temporary list
     for layer in range(self.config.num_layers):
       if self._is_attention_layer(layer):
-        attention_sublayer = layers.AttentionLayer(
+        attention_sublayer = layers.AttentionLayer(  # pytype: disable=wrong-arg-types  # jax-types
             num_heads=self.config.num_heads,
             d_model=self.config.d_model,
             dtype=self.config.dtype,
@@ -369,7 +369,7 @@ class PreTrainingModel(nn.Module):
         kernel=self._get_embedding_table(), name="predictions_output")(
             masked_lm_output)
 
-    next_sentence_logits = layers.OutputProjection(
+    next_sentence_logits = layers.OutputProjection(  # pytype: disable=wrong-arg-types  # jax-types
         n_out=2, kernel_init=default_kernel_init, name="classification")(
             encoder_output.pooled_output)
 
@@ -487,7 +487,7 @@ class SequenceClassificationModel(nn.Module):
     #  (https://arxiv.org/abs/1905.00537) concatenates the "CLS" and "word"
     #  output representations. We only use the pooled output.
 
-    logits = layers.OutputProjection(
+    logits = layers.OutputProjection(  # pytype: disable=wrong-arg-types  # jax-types
         n_out=self.n_classes,
         kernel_init=default_kernel_init,
         name="classification")(

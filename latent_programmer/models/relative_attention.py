@@ -115,7 +115,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
   dropout_rate: float = 0.
   deterministic: Optional[bool] = None
   precision: Any = None
-  kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = (
+  kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = (  # pytype: disable=annotation-type-mismatch  # jax-types
       linear.default_kernel_init)
   bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = initializers.zeros
   use_bias: bool = True

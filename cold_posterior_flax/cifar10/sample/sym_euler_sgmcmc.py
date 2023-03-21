@@ -151,7 +151,7 @@ class SymEulerSGMCMC(OptimizerDef):
 
   def init_param_state(self, param):
     # TODO(basv): do we want to init momentum randomly?
-    return _SymEulerSGMCMCParamState(
+    return _SymEulerSGMCMCParamState(  # pytype: disable=wrong-arg-types  # jax-types
         jax.random.normal(nn.make_rng(), param.shape, param.dtype),
         jnp.ones_like(param))
 

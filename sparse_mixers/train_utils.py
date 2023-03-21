@@ -191,7 +191,7 @@ def compute_pretraining_metrics(stats,
     metrics["router_confidence"] = jnp.mean(
         stats.expert_metrics.router_confidence)
 
-  return metrics
+  return metrics  # pytype: disable=bad-return-type  # jax-types
 
 
 def compute_classification_metrics(

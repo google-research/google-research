@@ -136,7 +136,7 @@ class FeedForwardLayer(GeneralizedFeedForwardLayer):
   dropout_rate: float = 0.0
   dtype: jnp.dtype = jnp.float32
   intermediate_activation: Callable[[jnp.ndarray], jnp.ndarray] = nn.gelu
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init
@@ -470,7 +470,7 @@ class MoeLayer(GeneralizedFeedForwardLayer):
     router_confidence = (
         router_indices.combine_weights.sum() / num_tokens_dispatched)
 
-    self._sow_expert_metrics(router_indices.auxiliary_loss,
+    self._sow_expert_metrics(router_indices.auxiliary_loss,  # pytype: disable=wrong-arg-types  # jax-types
                              router_indices.router_z_loss,
                              fraction_tokens_left_behind, router_confidence,
                              expert_usage)
@@ -642,7 +642,7 @@ class AttentionLayer(nn.Module):
   dropout_rate: float = 0.
   dtype: jnp.dtype = jnp.float32
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init
@@ -824,7 +824,7 @@ class LinearTransform(MixingLayer):
     kernel_init: Initializer scheme for (matrix) kernel parameters.
     precision: XLA precision for matrix multiplication computations.
   """
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
@@ -933,7 +933,7 @@ class CirculantTransform(MixingLayer):
     precision: XLA precision for matrix multiplication computations.
   """
   use_fft: bool = False
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
@@ -1082,7 +1082,7 @@ class ToeplitzTransform(MixingLayer):
     precision: XLA precision for matrix multiplication computations.
   """
   use_fft: bool = False
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
@@ -1209,7 +1209,7 @@ class OutputProjection(nn.Module):
   kernel: Optional[jnp.ndarray] = None
   n_out: Optional[int] = None  # Required if kernel is None.
   bias: bool = True
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init
@@ -1277,7 +1277,7 @@ class EmbeddingLayer(nn.Module):
         embedding_init=default_kernel_init,
         name="word")(
             input_ids)
-    position_embeddings = PositionalEncoding(
+    position_embeddings = PositionalEncoding(  # pytype: disable=wrong-arg-types  # jax-types
         seq_length=self.config.max_seq_length,
         posemb_init=default_kernel_init,
         name="position")(
@@ -1312,7 +1312,7 @@ class PositionalEncoding(nn.Module):
     posemb_init: Initializer scheme for positional embedding parameters.
   """
   seq_length: int
-  posemb_init: Callable[[PRNGKey, Shape, jnp.dtype],
+  posemb_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
 
   @nn.compact

@@ -71,7 +71,7 @@ class Vector:
     return jnp.dot(self.arr, other.arr)
 
   def length(self):
-    return jnp.sqrt(jnp.sum(jnp.square(self.arr)))
+    return jnp.sqrt(jnp.sum(jnp.square(self.arr)))  # pytype: disable=bad-return-type  # jax-types
 
   def unit(self):
     return self / self.length()

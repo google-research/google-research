@@ -61,7 +61,7 @@ class Camera:
 
   def get_ray(self, u, v):
     """Returns the ray emitted from the camera for the given (u, v) coordinates."""
-    return vector.Ray(
+    return vector.Ray(  # pytype: disable=wrong-arg-types  # jax-types
         self.origin,
         self.lower_left_corner + u * self.horizontal + v * self.vertical -
         self.origin,

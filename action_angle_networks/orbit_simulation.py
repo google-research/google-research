@@ -35,7 +35,7 @@ def generate_canonical_coordinates(
 
   def fixed_point_func(eccentric_anomaly):
     """Defines a function f such that its fixed point E satisfies eccentricity_to_time(E) = t."""
-    return e * jnp.sin(eccentric_anomaly) + (2 * jnp.pi) * (t - t0) / period
+    return e * jnp.sin(eccentric_anomaly) + (2 * jnp.pi) * (t - t0) / period  # pytype: disable=bad-return-type  # jax-types
 
   t0, a, m, e, k = (simulation_parameters['t0'], simulation_parameters['a'],
                     simulation_parameters['m'], simulation_parameters['e'],
