@@ -1,2 +1,2 @@
-tensorflow==2.3.0
+tensorflow==2.9.3
 numpy>=1.18.5
