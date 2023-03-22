@@ -24,4 +24,4 @@ cd scripts
 python gen_sine_data.py
 
 cd ..
-python raytune_train.py
+python trainer.py --model-name='lgf'

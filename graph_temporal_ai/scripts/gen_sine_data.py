@@ -116,7 +116,7 @@ if __name__ == "__main__":
       print(exc)
 
   gen_freq = 10
-  gen_ts_len = 1000
+  gen_ts_len = 2000
 
   data_path = os.path.join(parent_dir, "data")
   if not os.path.exists(data_path):

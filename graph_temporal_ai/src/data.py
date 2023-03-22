@@ -80,7 +80,7 @@ class DataModule(LightningDataModule):
 
     self.args = args
     self.batch_size = args.batch_size
-    self.num_workers = 32
+    self.num_workers = 12
 
   def setup(self, stage):
     # seq x batch x feature

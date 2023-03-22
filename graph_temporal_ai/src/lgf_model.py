@@ -207,7 +207,8 @@ class LGF(LightningModule, Seq2SeqAttrs):
     # define loss function
     self.loss = nn.L1Loss()
 
-    self.hidden_dim = config['hidden_dim']
+    if config is not None:
+      self.hidden_dim = config['hidden_dim']
 
   def _compute_sampling_threshold(self, batches_seen):
     return self.cl_decay_steps / (
