@@ -1,4 +1,4 @@
 absl-py==1.2.0
-tensorflow==2.10.0
+tensorflow==2.10.1
 tensorflow-addons==0.18.0
 tensorflow-compression==2.10.0
