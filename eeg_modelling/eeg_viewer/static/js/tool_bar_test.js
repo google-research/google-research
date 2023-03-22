@@ -61,9 +61,7 @@ testSuite({
 
   testHandleIndexChannelMap() {
     const metadata = new WaveformMetadata();
-    metadata.getChannelDictMap()
-        .set(2, 'B')
-        .set(3, 'D');
+    metadata.getChannelDictMap().set('2', 'B').set('3', 'D');
     const storeData = {
       indexChannelMap: metadata.getChannelDictMap(),
     };
