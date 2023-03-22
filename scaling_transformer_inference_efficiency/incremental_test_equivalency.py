@@ -37,8 +37,6 @@ from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 from scaling_transformer_inference_efficiency.sampling import SamplingHyperParams
 
 
-jax.config.update("jax_array", True)  # required for jax < 0.4.0
-
 h = checkpoint.HParams(
     layers=4, embed=16, ff=32, heads=16, qkv=4, max_len=256, vocab=1024
 )

@@ -27,8 +27,6 @@ from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.layers import layers_pjit
 
-jax.config.update('jax_array', True)  # required for jax<0.4.0
-
 
 def run(model, quantized):
   """Runs text generation in a simple scenario."""

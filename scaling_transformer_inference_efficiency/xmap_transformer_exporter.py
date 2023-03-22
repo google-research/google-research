@@ -31,8 +31,6 @@ from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 
-jax.config.update('jax_array', True)  # required for jax < 0.4.0
-
 X, Y, Z = 2, 2, 2  # slice sizes pylint: disable = invalid-name
 
 

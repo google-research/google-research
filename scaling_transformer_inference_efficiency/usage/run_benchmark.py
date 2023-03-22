@@ -23,8 +23,6 @@ from scaling_transformer_inference_efficiency.usage import benchmarks
 
 Layout = benchmarks.Layout
 
-jax.config.update('jax_array', True)  # required for jax<0.4.0
-
 
 # TODO(sholto): Check correctness and fix in follow up cl - prioritising getting
 # version into github

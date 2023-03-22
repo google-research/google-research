@@ -36,8 +36,6 @@ from scaling_transformer_inference_efficiency.layers import one_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 from scaling_transformer_inference_efficiency.partitioning import _with_sharding_constraint
 
-jax.config.update('jax_array', True)  # required for jax < 0.4.0
-
 CheckpointSpec = checkpoint.CheckpointSpec
 HParams = checkpoint.HParams
 Weights = weights.Weights
