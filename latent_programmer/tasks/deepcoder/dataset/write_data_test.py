@@ -109,18 +109,20 @@ class WriteDataTest(parameterized.TestCase):
   @parameterized.product(
       experiment=list(exp_module.Experiment),
       is_train=[True, False],
+      canonical_variable_order=[True, False],
       num_examples=[2, 5],
       mod=[0, 20],
       max_length=[5, 20],
   )
-  def test_generate_task_for_experiment(self, experiment, is_train,
-                                        num_examples, mod, max_length):
+  def test_generate_task_for_experiment(
+      self, experiment, is_train, canonical_variable_order, num_examples,
+      mod, max_length):
     with flagsaver.flagsaver(num_examples=num_examples,
                              deepcoder_mod=mod,
                              deepcoder_max_list_length=max_length):
       for _ in range(10):
-        task = write_data.generate_task_for_experiment(experiment.name,
-                                                       is_train)
+        task = write_data.generate_task_for_experiment(
+            experiment.name, is_train, canonical_variable_order)
         for example in task.examples:
           self.assertEqual(task.program.run(example.inputs).get_output(),
                            example.output)

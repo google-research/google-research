@@ -96,8 +96,8 @@ def _corrupt(next_parts, outputs):
 
       if type(results[0]) == int:  # pylint: disable=unidiomatic-typecheck
         # Choose the number of examples to change, favoring fewer changes but
-        # allowing up to `num_examples - 1` changes.
-        max_changes = random.randint(1, num_examples - 1)
+        # allowing up to `num_examples` changes.
+        max_changes = random.randint(1, num_examples)
         num_changes = random.randint(1, max_changes)
         should_change = ([True] * num_changes +
                          [False] * (num_examples - num_changes))
@@ -198,8 +198,10 @@ def serialize_decomposition_examples(task):
   return results
 
 
-def generate_task_for_experiment(experiment,
-                                 is_train):
+def generate_task_for_experiment(
+    experiment,
+    is_train,
+    canonical_variable_order):
   """Generates a random task for a given experiment and dataset split."""
   if isinstance(experiment, str):
     experiment = exp_module.Experiment[experiment]
@@ -281,6 +283,7 @@ def generate_task_for_experiment(experiment,
         num_inputs=random.randint(1, _MAX_PROGRAM_ARITY.value),
         num_statements=num_statements,
         is_train=is_train,
+        canonical_variable_order=canonical_variable_order,
         experiment=experiment,
         operations=operations_pool,
         lambdas=lambdas_pool)
@@ -325,7 +328,11 @@ def main(_):
         is_train = bool(i % 2)
       else:
         raise ValueError('Unhandled split: {}'.format(_SPLIT.value))
-      task = generate_task_for_experiment(_EXPERIMENT.value, is_train)
+      canonical_variable_order = _SPLIT.value in ['valid', 'test']
+      task = generate_task_for_experiment(
+          _EXPERIMENT.value,
+          is_train=is_train,
+          canonical_variable_order=canonical_variable_order)
 
       entire_programs_writer.write(serialize_entire_program_example(task))
       for example in serialize_decomposition_examples(task):

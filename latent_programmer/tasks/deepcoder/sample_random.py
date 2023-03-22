@@ -35,12 +35,9 @@ InputsList = List[Union[int, List[int]]]
 LIST_INT_RANGES = [
     (0, 4),
     (0, 9),
-    (-9, 9),
-    (-49, 49),
-    (dsl.MIN_INT, dsl.MAX_INT),
+    (-10, 10),
+    (-50, 50),
 ]
-assert all(dsl.MIN_INT <= min_int < max_int <= dsl.MAX_INT
-           for min_int, max_int in LIST_INT_RANGES)
 
 # When not using mod, we need short lists with small numbers to use Scanl1 (*).
 # Note that the result must only contain integers in range, for all examples,
@@ -81,7 +78,10 @@ def random_inputs(num_examples, num_inputs,
   if dsl.deepcoder_mod() > 0:
     list_int_ranges = [(0, dsl.deepcoder_mod() - 1)] * num_inputs
   else:
-    list_int_ranges = random.choices(LIST_INT_RANGES, k=num_inputs)
+    int_range_options = [(x, y) for x, y in LIST_INT_RANGES
+                         if dsl.min_int() < x and y < dsl.max_int()]
+    int_range_options.append((dsl.min_int(), dsl.max_int()))
+    list_int_ranges = random.choices(int_range_options, k=num_inputs)
   length_range_options = _get_length_range_options(
       dsl.deepcoder_max_list_length())
   length_ranges = random.choices(length_range_options, k=num_inputs)
@@ -145,12 +145,14 @@ def is_valid_operation(operation,
 def random_statement(program_state,
                      unused_variables,
                      is_train,
+                     canonical_variable_order,
                      experiment,
                      operations,
                      lambdas,
                      last_statement = False):
   """Randomly sample new Statement given existing ProgramState."""
-  variable = random_new_variable(program_state.variables, ordered=not is_train)
+  variable = random_new_variable(program_state.variables,
+                                 ordered=canonical_variable_order)
 
   # Maps from type to a list of variable names of that type.
   var_dict = collections.defaultdict(list)
@@ -285,6 +287,7 @@ def _sample_program(
     example_inputs,
     num_statements,
     is_train,
+    canonical_variable_order,
     experiment,
     operations,
     lambdas,
@@ -313,7 +316,7 @@ def _sample_program(
         return None  # Reject the entire program.
       num_statement_attempts += 1
       statement = random_statement(
-          states[0], unused_variables, is_train,
+          states[0], unused_variables, is_train, canonical_variable_order,
           experiment=experiment,
           operations=operations,
           lambdas=lambdas,
@@ -342,6 +345,7 @@ def random_task(
     num_inputs,
     num_statements,
     is_train,
+    canonical_variable_order,
     experiment = None,
     operations = None,
     lambdas = None,
@@ -362,8 +366,8 @@ def random_task(
     # simplify how statements combine to form programs in the end-to-end loop
     # (individual models only predict the RHS of statements, so we need to add
     # a variable name ourselves).
-    input_variables.append(random_new_variable(input_variables,
-                                               ordered=not is_train))
+    input_variables.append(
+        random_new_variable(input_variables, ordered=canonical_variable_order))
 
   while True:
     example_inputs = random_inputs(num_examples=num_examples,
@@ -372,6 +376,7 @@ def random_task(
         example_inputs=example_inputs,
         num_statements=num_statements,
         is_train=is_train,
+        canonical_variable_order=canonical_variable_order,
         experiment=experiment,
         operations=operations,
         lambdas=lambdas,

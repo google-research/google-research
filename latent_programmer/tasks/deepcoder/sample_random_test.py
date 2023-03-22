@@ -149,7 +149,8 @@ class DatasetTest(parameterized.TestCase):
       ('head_different',
        'x3 = INPUT | x8 = Head x3', False),
       ('always_all_zeros',
-       'x3 = INPUT | x8 = ZipWith (-) x3 x3 | x5 = Minimum x3 | x4 = Take x5 x8',
+       ('x3 = INPUT | x8 = ZipWith (-) x3 x3 | x5 = Minimum x3 '
+        '| x4 = Take x5 x8'),
        True),
   )
   def test_has_constant_output(self, program_str, expected):
@@ -163,11 +164,12 @@ class DatasetTest(parameterized.TestCase):
       num_statements=[2, 4],  # All generalization tasks should support these.
       experiment=list(exp_module.Experiment),
       is_train=[True, False],
+      canonical_variable_order=[True, False],
       mod=[0, 20],
       max_length=[5, 20],
   )
   def test_random_task(self, num_inputs, num_statements, experiment, is_train,
-                       mod, max_length):
+                       canonical_variable_order, mod, max_length):
     for _ in range(10):
       with flagsaver.flagsaver(deepcoder_mod=mod,
                                deepcoder_max_list_length=max_length):
@@ -176,6 +178,7 @@ class DatasetTest(parameterized.TestCase):
             num_inputs=num_inputs,
             num_statements=num_statements,
             is_train=is_train,
+            canonical_variable_order=canonical_variable_order,
             experiment=experiment)
         program = task.program
         self.assertLen(program, num_statements)
@@ -183,7 +186,7 @@ class DatasetTest(parameterized.TestCase):
         for example in task.examples:
           self.assertEqual(program.run(example.inputs).get_output(),
                            example.output)
-        if not is_train:
+        if canonical_variable_order:
           # Test programs should have variable names in order.
           self.assertStartsWith(str(task.program), 'x0 = INPUT | x1 = ')
 

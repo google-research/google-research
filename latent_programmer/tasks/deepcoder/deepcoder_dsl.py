@@ -75,6 +75,10 @@ _DEEPCODER_MAX_LIST_LENGTH = flags.DEFINE_integer(
     'deepcoder_max_list_length', 20,
     'The maximum length of a DeepCoder list input.')
 
+_DEEPCODER_MAX_INT = flags.DEFINE_integer(
+    'deepcoder_max_int', 256,
+    'The maximum value of a DeepCoder int.')
+
 
 def deepcoder_mod():
   """Hides the internal flag from code outside this module."""
@@ -86,6 +90,11 @@ def deepcoder_max_list_length():
   return _DEEPCODER_MAX_LIST_LENGTH.value
 
 
+def deepcoder_max_int():
+  """Hides the internal flag from code outside this module."""
+  return _DEEPCODER_MAX_INT.value
+
+
 # Types for type specifications, e.g., `([int], bool)` has type LambdaType and
 # specifies a lambda that takes 1 int and returns a bool.
 InputsType = List[Union[Type[Any], 'LambdaType']]
@@ -94,9 +103,6 @@ LambdaType = Tuple[InputsType, OutputType]
 
 # A type for the result of applying any operation.
 ResultType = Union[int, List[int]]
-
-MIN_INT = -256
-MAX_INT = 255
 
 
 def variable_token(index):
@@ -174,11 +180,13 @@ def mod_result(result):
 
 
 def min_int():
-  return 0 if deepcoder_mod() > 0 else MIN_INT
+  # Originally DeepCoder used the range [-255, 256] where the endpoints are
+  # asymmetric. We use symmetric endpoints here.
+  return 0 if deepcoder_mod() > 0 else -1 * deepcoder_max_int()
 
 
 def max_int():
-  return deepcoder_mod() - 1 if deepcoder_mod() > 0 else MAX_INT
+  return deepcoder_mod() - 1 if deepcoder_mod() > 0 else deepcoder_max_int()
 
 
 def validate_int(i):
