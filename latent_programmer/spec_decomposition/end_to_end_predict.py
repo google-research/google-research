@@ -18,6 +18,7 @@
 # pytype: disable=wrong-arg-count
 # pytype: disable=attribute-error
 
+import collections
 import functools
 import itertools
 import os
@@ -34,96 +35,115 @@ from flax.training import checkpoints
 import jax
 import jax.numpy as jnp
 import numpy as np
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 
 from latent_programmer import models as base_models
 from latent_programmer.spec_decomposition import decode
 from latent_programmer.spec_decomposition import decomposition_models as models
+from latent_programmer.spec_decomposition import input_pipeline
+from latent_programmer.tasks.deepcoder import deepcoder_dsl
+from latent_programmer.tasks.deepcoder import sample_random as deepcoder_sample_random
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 
 sys.path.append('../../')
 gfile = tf.io.gfile
 
-FLAGS = flags.FLAGS
+# Experiment setup.
+_SAVE_DIR = flags.DEFINE_string(
+    'save_dir', None, 'Directory to save results to.')
 
-flags.DEFINE_integer('embedding_dim', 256, 'Embedding dimension.')
-flags.DEFINE_integer('hidden_dim', 512, 'Hidden dimension.')
-flags.DEFINE_integer('num_heads', 4, 'Number of layers.')
-flags.DEFINE_integer('num_layers', 3, 'Number of Transformer heads.')
-flags.DEFINE_boolean('slow_decode', True, 'Use slow decoding for prediction?')
-flags.DEFINE_float('dropout_rate', 0.1, 'Dropout rate')
-flags.DEFINE_float('attention_dropout_rate', 0.1, 'Attention dropout rate')
-flags.DEFINE_integer('beam_size', 10, 'Beam size')
+# Flags for dataset info.
+_DATASET_TYPE = flags.DEFINE_enum(
+    'dataset_type', 'robust_fill',
+    ['robust_fill', 'robust_fill_base', 'deepcoder', 'scan'],
+    'The kind of dataset to use.')
+_TEST_DATASET = flags.DEFINE_string(
+    'test_dataset', None, 'Filepattern for TFRecord test dataset.')
+_NUM_TEST_BATCHES = flags.DEFINE_integer(
+    'num_test_batches', 200, 'Number of test batches.')
+_NUM_EXAMPLES = flags.DEFINE_integer(
+    'num_examples', 4, 'Number of input/output strings per task.')
+_MAX_IO_LENGTH = flags.DEFINE_integer(
+    'max_io_length', 120,
+    'Maximum number of characters in input/output strings.')
+_MAX_PROGRAM_LENGTH = flags.DEFINE_integer(
+    'max_program_length', 100, 'Maximum number of tokens in program.')
+_MAX_SPEC_PART_LENGTH = flags.DEFINE_integer(
+    'max_spec_part_length', 200, 'Maximum number of characters in spec part.')
 
-flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
-flags.DEFINE_string('test_dataset', None,
-                    'Filepattern for TFRecord test dataset.')
-flags.DEFINE_integer('num_test_batches', 200, 'Number of test batches.')
-flags.DEFINE_integer('num_examples', 4,
-                     'Number of input/output strings per task.')
-flags.DEFINE_integer('max_io_length', 120,
-                     'Maximum number of characters in input/output strings.')
-flags.DEFINE_integer('max_program_length', 100,
-                     'Maximum number of tokens in program.')
-flags.DEFINE_integer('max_spec_part_length', 200,
-                     'Maximum number of characters in spec part.')
-flags.DEFINE_bool('use_relative_attention', True,
-                  'Whether to use relative positonal embeddings.')
-
-flags.DEFINE_string('spec_decomposer_path', None,
-                    'Directory with saved weights for SpecDecomposer.')
-flags.DEFINE_string('synthesizer_path', None,
-                    'Directory with saved weights for Synthesizer.')
-flags.DEFINE_integer(
+# Model training hyperparameters.
+_SPEC_DECOMPOSER_PATH = flags.DEFINE_string(
+    'spec_decomposer_path', None,
+    'Directory with saved weights for SpecDecomposer.')
+_SYNTHESIZER_PATH = flags.DEFINE_string(
+    'synthesizer_path', None,
+    'Directory with saved weights for Synthesizer.')
+_EMBEDDING_DIM = flags.DEFINE_integer(
+    'embedding_dim', 256, 'Embedding dimension.')
+_HIDDEN_DIM = flags.DEFINE_integer(
+    'hidden_dim', 512, 'Hidden dimension.')
+_NUM_HEADS = flags.DEFINE_integer(
+    'num_heads', 4, 'Number of layers.')
+_NUM_LAYERS = flags.DEFINE_integer(
+    'num_layers', 3, 'Number of Transformer heads.')
+_DROPOUT_RATE = flags.DEFINE_float(
+    'dropout_rate', 0, 'Dropout rate')
+_ATTENTION_DROPOUT_RATE = flags.DEFINE_float(
+    'attention_dropout_rate', 0, 'Attention dropout rate')
+_FINAL_OUTPUT_DROPOUT_RATE = flags.DEFINE_float(
+    'final_output_dropout_rate', 0,
+    'Dropout rate for the final_output portion of the SynthesizerModel.')
+_FINAL_OUTPUT_ATTENTION_DROPOUT_RATE = flags.DEFINE_float(
+    'final_output_attention_dropout_rate', 0,
+    'Attention dropout rate for the final_output portion of the '
+    'SynthesizerModel.')
+_SPEC_DECOMPOSER_NUM_POSITION_BUCKETS = flags.DEFINE_integer(
     'spec_decomposer_num_position_buckets', 32,
     'Number of relative attention position buckets in SpecDecomposer.')
-flags.DEFINE_integer(
+_SYNTHESIZER_NUM_POSITION_BUCKETS = flags.DEFINE_integer(
     'synthesizer_num_position_buckets', 16,
     'Number of relative attention position buckets in Synthesizer.')
-flags.DEFINE_integer(
+_SPEC_DECOMPOSER_MAX_DISTANCE = flags.DEFINE_integer(
     'spec_decomposer_max_distance', 128,
     'Max distance for relative attention positions in SpecDecomposer.')
-flags.DEFINE_integer(
+_SYNTHESIZER_MAX_DISTANCE = flags.DEFINE_integer(
     'synthesizer_max_distance', 20,
     'Max distance for relative attention positions in Synthesizer.')
-flags.DEFINE_integer(
+_SPEC_DECOMPOSER_MAX_PROGRAM_CROSS_EMBED_DISTANCE = flags.DEFINE_integer(
     'spec_decomposer_max_program_cross_embed_distance', 800,
     'Max distance for relative attention positions in SpecDecomposer.')
-flags.DEFINE_integer(
+_SYNTHESIZER_MAX_PROGRAM_CROSS_EMBED_DISTANCE = flags.DEFINE_integer(
     'synthesizer_max_program_cross_embed_distance', 100,
     'Max distance for relative attention positions in Synthesizer.')
-flags.DEFINE_bool(
+_SPEC_DECOMPOSER_ENCODED_SELF_ATTENTION = flags.DEFINE_bool(
     'spec_decomposer_encoded_self_attention', True,
     'Whether to apply self-attention to encoded I/O in SpecDecomposer.')
-flags.DEFINE_bool(
+_SYNTHESIZER_ENCODED_SELF_ATTENTION = flags.DEFINE_bool(
     'synthesizer_encoded_self_attention', False,
     'Whether to apply self-attention to encoded I/O in Synthesizer.')
+_USE_RELATIVE_ATTENTION = flags.DEFINE_bool(
+    'use_relative_attention', True,
+    'Whether to use relative positonal embeddings.')
+_ALIGNED_RELATIVE_ATTENTION = flags.DEFINE_bool(
+    'aligned_relative_attention', True,
+    'Whether to align relative attention positions between targets and encoded '
+    'I/O examples.')
+_FINAL_OUTPUT_ENCODING = flags.DEFINE_bool(
+    'final_output_encoding', True,
+    'Whether the SynthesizerModel uses the final_output or not.')
 
-flags.DEFINE_enum('dataset_type', 'robust_fill',
-                  ['robust_fill', 'robust_fill_base', 'scan'],
-                  'The kind of dataset to use.')
-
-flags.DEFINE_enum(
+# Flags for end-to-end prediction settings.
+_BEAM_SIZE = flags.DEFINE_integer(
+    'beam_size', 10, 'Beam size')
+_PREDICTION_TYPE = flags.DEFINE_enum(
     'prediction_type', 'separate',
     ['separate', 'joint'],
     'Whether to use separate models (SpecDecomposerModel and then '
     'SynthesizerModel) or one joint prediction model.')
-flags.DEFINE_integer(
-    'num_examples_to_log', 10,
-    'Number of examples to log and save to TensorBoard text.')
-flags.DEFINE_integer(
-    'num_beam_elements_to_log', 4,
-    'Number of beam elements to log and save to TensorBoard text.')
-flags.DEFINE_bool(
-    'detect_invalid', True,
-    'Whether to detect invalid beam elements and mark them as finished.')
-flags.DEFINE_bool(
-    'change_invalid_scores', True,
-    'Whether to change scores of invalid beam elements to NEG_INF.')
-flags.DEFINE_bool(
-    'use_execution', True,
-    'Whether to guide beam search with program execution results.')
+_SLOW_DECODE = flags.DEFINE_boolean(
+    'slow_decode', True, 'Use slow decoding for prediction?')
+
 # Note: if detect_invalid=False, a prediction could be wrong but we must do our
 # best to continue anyway. Specifically:
 #   * If the current output is "abcde" and the next step prediction is "xy"
@@ -137,15 +157,113 @@ flags.DEFINE_bool(
 #   * Similarly, when using execution to compute the remaining output but the
 #     predicted program doesn't run, we pretend that the predicted program
 #     produced an empty string.
+_DETECT_INVALID = flags.DEFINE_bool(
+    'detect_invalid', True,
+    'Whether to detect invalid beam elements and mark them as finished.')
+_CHANGE_INVALID_SCORES = flags.DEFINE_bool(
+    'change_invalid_scores', True,
+    'Whether to change scores of invalid beam elements to NEG_INF.')
+_USE_EXECUTION = flags.DEFINE_bool(
+    'use_execution', True,
+    'Whether to guide beam search with program execution results.')
 
+_DISCARD_REPEAT_FUNCTIONALITY = flags.DEFINE_bool(
+    'discard_repeat_functionality', True,
+    'Whether to mark duplicate program functionality in a beam as invalid.')
+_DISCARD_REDUNDANT_PROGRAMS = flags.DEFINE_bool(
+    'discard_redundant_programs', True,
+    'Whether to mark programs with redundant parts as invalid.')
+_DEEPCODER_MISMATCH_INVALID = flags.DEFINE_bool(
+    'deepcoder_mismatch_invalid', False,
+    'Whether to mark a beam element as invalid if the predicted program part '
+    'does not execute to the predicted spec part.')
+_GREEDY_SPEC_DECOMPOSER = flags.DEFINE_bool(
+    'greedy_spec_decomposer', True,
+    'Whether the SpecDecomposerModel does greedy decoding or a beam search.')
+_FILL_EMPTY_BEAM = flags.DEFINE_bool(
+    'fill_empty_beam', True,
+    'If greedy_spec_decomposer, whether to fill empty/invalid beam space.')
+
+# Logging settings.
+_NUM_EXAMPLES_TO_LOG = flags.DEFINE_integer(
+    'num_examples_to_log', 10,
+    'Number of examples to log and save to TensorBoard text.')
+_NUM_BEAM_ELEMENTS_TO_LOG = flags.DEFINE_integer(
+    'num_beam_elements_to_log', 4,
+    'Number of beam elements to log and save to TensorBoard text.')
 
 _internal = False
 if not _internal:
-  flags.DEFINE_string('xm_parameters', None,
-                      'String specifying hyperparamter search.')
+  _ = flags.DEFINE_string(
+      'xm_parameters', None, 'String specifying hyperparameter search.')
 
 # Test dataset input pipeline.
 # -----------------------------------------------------------------------------
+
+
+def create_deepcoder_dataset(
+    file_pattern, token_to_id, num_examples):
+  """Loads a DeepCoder step-by-step dataset.
+
+  Args:
+    file_pattern: A file pattern for the TFRecord files to read.
+    token_to_id: Mapping from tokens to token IDs for the DeepCoder vocabulary.
+    num_examples: The number of examples in an I/O specification.
+
+  Returns:
+    A tf.data.Dataset containing dictionaries with keys 'inputs', 'outputs', and
+    'target'.
+  """
+  filenames = gfile.glob(file_pattern)
+  raw_dataset = tf.data.TFRecordDataset(filenames)
+
+  vocab_table = tf.lookup.StaticVocabularyTable(
+      tf.lookup.KeyValueTensorInitializer(
+          list(token_to_id.keys()),
+          list(token_to_id.values()),
+          key_dtype=tf.string,
+          value_dtype=tf.int64),
+      len(token_to_id))
+  eos_id = deepcoder_dsl.EOS_ID
+
+  def _parse_fn(record):
+    """Parses a record into a feature_dict."""
+    empty_default = [''] * num_examples
+    feature_values = tf.io.parse_single_example(
+        serialized=record,
+        features={
+            'inputs':
+                tf.io.FixedLenFeature([num_examples], tf.string,
+                                      default_value=empty_default),
+            'outputs':
+                tf.io.FixedLenFeature([num_examples], tf.string,
+                                      default_value=empty_default),
+            'program':
+                tf.io.FixedLenFeature([], tf.string, default_value=''),
+        })
+
+    # Map tokens to ids.
+    inputs = tf.strings.split(feature_values['inputs'], sep=' ').to_tensor()
+    inputs = vocab_table.lookup(inputs)
+
+    outputs = tf.strings.split(feature_values['outputs'], sep=' ').to_tensor()
+    outputs = vocab_table.lookup(outputs)
+
+    program = tf.strings.split(feature_values['program'], sep=' ')
+    program = vocab_table.lookup(program)
+    program = tf.concat([program, [eos_id]], axis=-1)
+
+    # inputs: [num_examples, max_length_of_input]
+    # outputs: [num_examples, max_length_of_output]
+    # program: [max_length_of_program + 1]
+    return {
+        'inputs': inputs,
+        'outputs': outputs,
+        'target': program,
+    }
+
+  dataset = raw_dataset.map(_parse_fn)
+  return dataset
 
 
 def create_robust_fill_dataset(file_pattern, spec_token_id_table,
@@ -254,9 +372,112 @@ def end_to_end_beam_init(batch_size,
       finished_aux=finished_aux)
 
 
+def greedy_predict_step(params,
+                        inputs,  # Contains beam dimension.
+                        outputs,  # Contains beam dimension.
+                        final_outputs,
+                        cache,
+                        aux,
+                        beam_size,
+                        eos_token,
+                        max_decode_len,
+                        config,
+                        slow_decode=True):
+  """Predict translation with fast decoding beam search on a batch."""
+  # Prepare transformer fast-decoder call for beam search: for beam search, we
+  # need to set up our decoder model to handle a batch size equal to
+  # batch_size * beam_size, where each batch item's data is expanded in-place
+  # rather than tiled.
+  batch_size = inputs.shape[0]
+
+  # encoded shape == [batch, beam, ...]
+  encoded = decode.unflatten_beam_dim(
+      models.DecomposeAttentionTransformer(config).apply(
+          {'params': params},
+          decode.flatten_beam_dim(inputs),
+          decode.flatten_beam_dim(outputs),
+          decode.flatten_beam_dim(final_outputs),
+          method=models.DecomposeAttentionTransformer.encode),
+      batch_size,
+      beam_size)
+  encoded_padding_mask = jnp.where(
+      outputs > 0, 1, 0).astype(jnp.float32)
+
+  # shape == [batch, beam, ...]
+  beam_init_state = end_to_end_beam_init(
+      batch_size, beam_size, max_decode_len, encoded, encoded_padding_mask,
+      cache, aux, bos_token=config.base_config.bos_token)
+
+  # Let batch' = batch * beam
+  # Convert [batch, beam, ...] -> [batch', 1, ...]
+  encoded = decode.add_beam_dim(decode.flatten_beam_dim(encoded), 1)
+  encoded_padding_mask = decode.add_beam_dim(
+      decode.flatten_beam_dim(encoded_padding_mask), 1)
+  beam_init_state = jax.tree_map(
+      lambda x: decode.add_beam_dim(decode.flatten_beam_dim(x), 1),
+      beam_init_state)
+
+  if slow_decode:
+    # shape of parameters == [batch' * 1, ...]
+    def tokens_ids_to_logits(flat_ids, flat_encoded, flat_encoded_padding_mask):
+      """Token slice to logits from decoder model."""
+      # --> [batch' * 1, 1, vocab]
+      flat_logits = models.DecomposeAttentionTransformer(config=config).apply(
+          {'params': params},
+          flat_ids,
+          flat_encoded,
+          flat_encoded_padding_mask,
+          method=models.DecomposeAttentionTransformer.decode)
+      return flat_logits
+  else:
+    # shape of parameters == [batch' * 1, ...]
+    def tokens_ids_to_logits(flat_ids, flat_encoded, flat_encoded_padding_mask,
+                             flat_cache):
+      """Token slice to logits from decoder model."""
+      # --> [batch' * 1, 1, vocab]
+      flat_logits, new_vars = models.DecomposeAttentionTransformer(
+          config=config).apply(
+              {'params': params, 'cache': flat_cache},
+              flat_ids,
+              flat_encoded,
+              flat_encoded_padding_mask,
+              mutable=['cache'],
+              method=models.DecomposeAttentionTransformer.decode)
+      new_flat_cache = new_vars['cache']
+      # Remove singleton sequence-length dimension:
+      # [batch' * 1, 1, vocab] --> [batch' * 1, vocab]
+      flat_logits = flat_logits.squeeze(axis=1)
+      return flat_logits, new_flat_cache
+
+  # Using the above-defined single-step decoder function, run a
+  # beam search over possible sequences given input encoding.
+
+  # shape = [batch', 1, ...]
+  beam_state = decode.beam_search(
+      decode.flatten_beam_dim(inputs),
+      encoded,
+      encoded_padding_mask,
+      cache,
+      tokens_ids_to_logits,
+      1,  # beam_size is 1 to do a greedy decoding.
+      alpha=0.0,  # If we use a brevity penalty, we'll adjust the running score
+                  # multiple times, once for each model call, which isn't good.
+      bos_token=config.base_config.bos_token,
+      eos_token=eos_token,
+      max_decode_len=max_decode_len,
+      slow_decode=slow_decode,
+      beam_search_init_state=beam_init_state)
+  # Convert [batch', 1, ...] -> [batch, beam, ...]
+  return jax.tree_map(
+      lambda x: decode.unflatten_beam_dim(  # pylint: disable=g-long-lambda
+          decode.flatten_beam_dim(x), batch_size, beam_size),
+      beam_state)
+
+
 def end_to_end_predict_step(params,
                             inputs,  # Contains beam dimension.
                             outputs,  # Contains beam dimension.
+                            final_outputs,
                             cache,
                             aux,
                             beam_size,
@@ -275,6 +496,7 @@ def end_to_end_predict_step(params,
           {'params': params},
           decode.flatten_beam_dim(inputs),
           decode.flatten_beam_dim(outputs),
+          decode.flatten_beam_dim(final_outputs),
           method=models.DecomposeAttentionTransformer.encode),
       batch_size,
       beam_size)
@@ -334,27 +556,27 @@ def end_to_end_predict_step(params,
 
 
 def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
-                               spec_target_shape, bos_id, eos_id):
+                               spec_target_shape, bos_id, eos_id, sep_id):
   """Loads SpecDecomposerModel."""
-  num_position_buckets = FLAGS.spec_decomposer_num_position_buckets
-  max_distance = FLAGS.spec_decomposer_max_distance
+  num_position_buckets = _SPEC_DECOMPOSER_NUM_POSITION_BUCKETS.value
+  max_distance = _SPEC_DECOMPOSER_MAX_DISTANCE.value
   max_program_cross_embed_distance = (
-      FLAGS.spec_decomposer_max_program_cross_embed_distance)
+      _SPEC_DECOMPOSER_MAX_PROGRAM_CROSS_EMBED_DISTANCE.value)
   spec_decomposer_base_config = base_models.TransformerConfig(
       vocab_size=spec_vocab_size,
       output_vocab_size=spec_vocab_size,
       shift=False,
-      emb_dim=FLAGS.embedding_dim,
-      num_heads=FLAGS.num_heads,
-      num_layers=FLAGS.num_layers,
-      qkv_dim=FLAGS.embedding_dim,
-      mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_io_length, FLAGS.max_spec_part_length),
-      dropout_rate=FLAGS.dropout_rate,
-      attention_dropout_rate=FLAGS.attention_dropout_rate,
-      use_relative_attention=FLAGS.use_relative_attention,
+      emb_dim=_EMBEDDING_DIM.value,
+      num_heads=_NUM_HEADS.value,
+      num_layers=_NUM_LAYERS.value,
+      qkv_dim=_EMBEDDING_DIM.value,
+      mlp_dim=_HIDDEN_DIM.value,
+      max_len=max(_MAX_IO_LENGTH.value, _MAX_SPEC_PART_LENGTH.value),
+      dropout_rate=_DROPOUT_RATE.value,
+      attention_dropout_rate=_ATTENTION_DROPOUT_RATE.value,
+      use_relative_attention=_USE_RELATIVE_ATTENTION.value,
       deterministic=True,
-      decode=not FLAGS.slow_decode,
+      decode=not _SLOW_DECODE.value,
       bos_token=bos_id,
       num_input_relative_position_buckets=num_position_buckets,
       max_input_distance=max_distance,
@@ -370,11 +592,15 @@ def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
       max_flat_encoding_distance=max_distance)
   spec_decomposer_predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=spec_decomposer_base_config,
-      flat_encoded_self_attention=FLAGS.spec_decomposer_encoded_self_attention,
-      dataset_type=FLAGS.dataset_type)
+      dataset_type=_DATASET_TYPE.value,
+      final_output_encoding=False,
+      flat_encoded_self_attention=_SPEC_DECOMPOSER_ENCODED_SELF_ATTENTION.value,
+      aligned_relative_attention=_ALIGNED_RELATIVE_ATTENTION.value,
+      separator_token_id=sep_id)
 
   m = models.DecomposeAttentionTransformer(spec_decomposer_predict_config)
   initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
+                                      jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(spec_target_shape, jnp.float32))
 
@@ -382,44 +608,57 @@ def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
       1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
   spec_decomposer_optimizer = optimizer_def.create(initial_variables['params'])
   spec_decomposer_optimizer = checkpoints.restore_checkpoint(
-      FLAGS.spec_decomposer_path, spec_decomposer_optimizer)
+      _SPEC_DECOMPOSER_PATH.value, spec_decomposer_optimizer)
   logging.info('Found spec decomposer checkpointed at step %d.',
                int(spec_decomposer_optimizer.state.step))
 
   spec_decomposer_pred_step = jax.jit(
       functools.partial(end_to_end_predict_step,
                         eos_token=eos_id,
-                        max_decode_len=FLAGS.max_spec_part_length,
+                        max_decode_len=_MAX_SPEC_PART_LENGTH.value,
                         config=spec_decomposer_predict_config,
-                        slow_decode=FLAGS.slow_decode),
-      static_argnums=(5,),  # The `beam_size` argument.
+                        slow_decode=_SLOW_DECODE.value),
+      static_argnums=(6,),  # The `beam_size` argument.
+  )
+  spec_decomposer_greedy_pred_step = jax.jit(
+      functools.partial(greedy_predict_step,
+                        eos_token=eos_id,
+                        max_decode_len=_MAX_SPEC_PART_LENGTH.value,
+                        config=spec_decomposer_predict_config,
+                        slow_decode=_SLOW_DECODE.value),
+      static_argnums=(6,),  # The `beam_size` argument.
   )
 
-  return spec_decomposer_optimizer, spec_decomposer_pred_step
+  return (spec_decomposer_optimizer, spec_decomposer_pred_step,
+          spec_decomposer_greedy_pred_step)
 
 
 def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
                            io_shape, program_shape, bos_id, eos_id):
   """Loads synthesizer or joint model."""
-  num_position_buckets = FLAGS.synthesizer_num_position_buckets
-  max_distance = FLAGS.synthesizer_max_distance
+  if _PREDICTION_TYPE.value == 'joint' and _FINAL_OUTPUT_ENCODING.value:
+    raise ValueError('final_output_encoding should be False when using joint '
+                     'prediction.')
+
+  num_position_buckets = _SYNTHESIZER_NUM_POSITION_BUCKETS.value
+  max_distance = _SYNTHESIZER_MAX_DISTANCE.value
   max_program_cross_embed_distance = (
-      FLAGS.synthesizer_max_program_cross_embed_distance)
+      _SYNTHESIZER_MAX_PROGRAM_CROSS_EMBED_DISTANCE.value)
   synthesizer_base_config = base_models.TransformerConfig(
       vocab_size=spec_vocab_size,
       output_vocab_size=program_vocab_size,
       shift=False,
-      emb_dim=FLAGS.embedding_dim,
-      num_heads=FLAGS.num_heads,
-      num_layers=FLAGS.num_layers,
-      qkv_dim=FLAGS.embedding_dim,
-      mlp_dim=FLAGS.hidden_dim,
-      max_len=max(FLAGS.max_io_length, FLAGS.max_program_length),
-      dropout_rate=FLAGS.dropout_rate,
-      attention_dropout_rate=FLAGS.attention_dropout_rate,
-      use_relative_attention=FLAGS.use_relative_attention,
+      emb_dim=_EMBEDDING_DIM.value,
+      num_heads=_NUM_HEADS.value,
+      num_layers=_NUM_LAYERS.value,
+      qkv_dim=_EMBEDDING_DIM.value,
+      mlp_dim=_HIDDEN_DIM.value,
+      max_len=max(_MAX_IO_LENGTH.value, _MAX_PROGRAM_LENGTH.value),
+      dropout_rate=_DROPOUT_RATE.value,
+      attention_dropout_rate=_ATTENTION_DROPOUT_RATE.value,
+      use_relative_attention=_USE_RELATIVE_ATTENTION.value,
       deterministic=True,
-      decode=not FLAGS.slow_decode,
+      decode=not _SLOW_DECODE.value,
       bos_token=bos_id,
       num_input_relative_position_buckets=num_position_buckets,
       max_input_distance=max_distance,
@@ -435,11 +674,17 @@ def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
       max_flat_encoding_distance=max_distance)
   synthesizer_predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=synthesizer_base_config,
-      flat_encoded_self_attention=FLAGS.synthesizer_encoded_self_attention,
-      dataset_type=FLAGS.dataset_type)
+      dataset_type=_DATASET_TYPE.value,
+      final_output_encoding=_FINAL_OUTPUT_ENCODING.value,
+      final_output_dropout_rate=_FINAL_OUTPUT_DROPOUT_RATE.value,
+      final_output_attention_dropout_rate=_FINAL_OUTPUT_ATTENTION_DROPOUT_RATE.value,
+      flat_encoded_self_attention=_SYNTHESIZER_ENCODED_SELF_ATTENTION.value,
+      aligned_relative_attention=_ALIGNED_RELATIVE_ATTENTION.value,
+      separator_token_id=-1)  # Not used for synthesizer or joint models.
 
   m = models.DecomposeAttentionTransformer(synthesizer_predict_config)
   initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
+                                      jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(program_shape, jnp.float32))
 
@@ -447,37 +692,59 @@ def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
       1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
   synthesizer_optimizer = optimizer_def.create(initial_variables['params'])
   synthesizer_optimizer = checkpoints.restore_checkpoint(
-      FLAGS.synthesizer_path, synthesizer_optimizer)
+      _SYNTHESIZER_PATH.value, synthesizer_optimizer)
   logging.info('Found synthesizer checkpointed at step %d.',
                int(synthesizer_optimizer.state.step))
 
   synthesizer_pred_step = jax.jit(
       functools.partial(end_to_end_predict_step,
                         eos_token=eos_id,
-                        max_decode_len=FLAGS.max_program_length,
+                        max_decode_len=_MAX_PROGRAM_LENGTH.value,
                         config=synthesizer_predict_config,
-                        slow_decode=FLAGS.slow_decode),
-      static_argnums=(5,),  # The `beam_size` argument.
+                        slow_decode=_SLOW_DECODE.value),
+      static_argnums=(6,),  # The `beam_size` argument.
   )
 
   return synthesizer_optimizer, synthesizer_pred_step
 
 
-def main(_):
-  tf.enable_v2_behavior()
+def divide_no_nan(x, y, default=-1):
+  return x/y if y > 0 else default
 
-  if FLAGS.change_invalid_scores and not FLAGS.detect_invalid:
+
+def main(_):
+  if _CHANGE_INVALID_SCORES.value and not _DETECT_INVALID.value:
     raise ValueError(
         'change_invalid_scores=True is incompatible with detect_invalid=False. '
         'We cannot change scores of invalid beam elements without detecting '
         'the invalid elements first.')
-  if FLAGS.prediction_type == 'joint' and not FLAGS.use_execution:
+  if _PREDICTION_TYPE.value == 'joint' and not _USE_EXECUTION.value:
     raise ValueError(
         'Joint prediction requires using execution to compute the remaining '
         'output.')
+  if not _USE_EXECUTION.value and (_DISCARD_REPEAT_FUNCTIONALITY.value or
+                                   _DISCARD_REDUNDANT_PROGRAMS.value or
+                                   _DEEPCODER_MISMATCH_INVALID.value):
+    raise ValueError(
+        'discard_repeat_functionality, discard_redundant_programs, and '
+        'deepcoder_mismatch_invalid all require using execution.')
+  if not _DETECT_INVALID.value and (_DISCARD_REPEAT_FUNCTIONALITY.value or
+                                    _DISCARD_REDUNDANT_PROGRAMS.value or
+                                    _DEEPCODER_MISMATCH_INVALID.value):
+    raise ValueError(
+        'discard_repeat_functionality, discard_redundant_programs, and '
+        'deepcoder_mismatch_invalid all require detecting invalid states.')
+  if _PREDICTION_TYPE.value == 'joint' and (_DEEPCODER_MISMATCH_INVALID.value or
+                                            _GREEDY_SPEC_DECOMPOSER.value):
+    raise ValueError(
+        'deepcoder_mismatch_invalid and greedy_spec_decomposer both require '
+        'separate prediction.')
+  if _FILL_EMPTY_BEAM.value and not _GREEDY_SPEC_DECOMPOSER.value:
+    raise ValueError(
+        'fill_empty_beam=True requires greedy_spec_decomposer=True.')
 
-  if not gfile.isdir(FLAGS.save_dir):
-    gfile.makedirs(FLAGS.save_dir)
+  if not gfile.isdir(_SAVE_DIR.value):
+    gfile.makedirs(_SAVE_DIR.value)
 
   xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
   work_unit = xm_client.get_current_work_unit()
@@ -486,19 +753,19 @@ def main(_):
 
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(
-        os.path.join(FLAGS.save_dir, 'tb', hparam_str))
+        os.path.join(_SAVE_DIR.value, 'tb', hparam_str))
 
   # TODO(jxihong): end-to-end loop is not batched right now.
   batch_size = 1
-  io_shape = (batch_size, FLAGS.num_examples, FLAGS.max_io_length)
-  spec_target_shape = (batch_size, FLAGS.max_spec_part_length)
-  program_shape = (batch_size, FLAGS.max_program_length)
+  io_shape = (batch_size, _NUM_EXAMPLES.value, _MAX_IO_LENGTH.value)
+  spec_target_shape = (batch_size, _MAX_SPEC_PART_LENGTH.value)
+  program_shape = (batch_size, _MAX_PROGRAM_LENGTH.value)
 
   # Setup DSL
   # ---------------------------------------------------------------------------
 
   # Build token tables.
-  if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+  if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
     spec_vocab = robust_fill_dsl.CHARACTER + '|'
     spec_id_token_table = {i + 3: token for i, token in enumerate(spec_vocab)}
     bos_id = 1
@@ -509,57 +776,74 @@ def main(_):
         token: id for id, token in spec_id_token_table.items()
     }
     spec_vocab_size = len(spec_token_id_table) + 1  # For padding.
-    program_id_token_table, _ = dsl_tokens.build_token_tables()
+    program_id_token_table, program_token_id_table = (
+        dsl_tokens.build_token_tables())
     program_vocab_size = len(program_id_token_table) + 1
-  elif FLAGS.dataset_type == 'scan':
+    sep_id = spec_token_id_table[input_pipeline.SEPARATOR_TOKEN]
+  elif _DATASET_TYPE.value == 'deepcoder':
+    id_to_token, token_to_id = deepcoder_dsl.vocab_tables()
+    bos_id, eos_id = deepcoder_dsl.BOS_ID, deepcoder_dsl.EOS_ID
+    vocab_size = len(id_to_token)  # Already includes padding.
+
+    spec_vocab_size = program_vocab_size = vocab_size
+    program_id_token_table = spec_id_token_table = id_to_token
+    program_token_id_table = spec_token_id_table = token_to_id
+    sep_id = deepcoder_dsl.SEP_ID
+  elif _DATASET_TYPE.value == 'scan':
     # TODO(jxihong): Scan is not handled yet.
-    raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+    raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
   else:
-    raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+    raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
 
   # Util functions for prediction
   # ---------------------------------------------------------------------------
 
   def decode_spec(target):
     """Convert from int tensor to a string."""
-    if FLAGS.dataset_type == 'robust_fill':
+    if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base', 'deepcoder']:
       target = target[np.all([target != 0, target != bos_id, target != eos_id],
                              axis=0)].astype(np.int32)
       target = np.array(target)  # JAX arrays will fail dict lookups.
-      return ''.join([spec_id_token_table[t_id] for t_id in target if t_id > 0])
+      separator = ' ' if _DATASET_TYPE.value == 'deepcoder' else ''
+      return separator.join([spec_id_token_table[t_id]
+                             for t_id in target if t_id > 0])
     else:
-      raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+      raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
 
   def encode_spec(target, max_target_length, add_eos=True):
-    if FLAGS.dataset_type == 'robust_fill':
-      tokens = [spec_token_id_table[t] for t in target]
+    if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base', 'deepcoder']:
+      tokens = (target.split(' ') if _DATASET_TYPE.value == 'deepcoder'
+                else list(target))
+      token_ids = [spec_token_id_table[t] for t in tokens]
       if add_eos:
-        tokens += [eos_id]
-      return np.array(tokens + [0] * (max_target_length - len(tokens)))
+        token_ids += [eos_id]
+      return np.array(token_ids + [0] * (max_target_length - len(token_ids)))
     else:
-      raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+      raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
 
-  def split_spec(spec_parts, outputs, max_target_length, aux, i):
-    """Returns a tuple (valid, last_step, current_parts, remaining_parts)."""
+  def split_outputs(output_parts, outputs, max_target_length, aux, beam_i):
+    """Returns a tuple (valid, last_step, step_outputs, current_outputs)."""
     num_examples = len(outputs)
-    assert num_examples == FLAGS.num_examples
+    assert num_examples == _NUM_EXAMPLES.value
 
-    if aux['finished'][0][i]:
+    if aux['finished'][0][beam_i]:
       # Do nothing if it's finished.
-      spec_parts_str = ['[finished]'] * num_examples
-      current_parts = [
+      finished_str = ('' if _DATASET_TYPE.value == 'deepcoder'
+                      else '[finished]')
+      spec_parts_str = [finished_str] * num_examples
+      step_outputs = [
           encode_spec(spec_str, max_target_length=max_target_length,
                       add_eos=False)
           for spec_str in spec_parts_str]
-      return (aux['valid'][0][i], aux['last_step'][0][i],
-              np.array(current_parts), aux['remaining_outputs'][0][i])
+      return (aux['valid'][0][beam_i], aux['last_step'][0][beam_i],
+              np.array(step_outputs), aux['current_outputs'][0][beam_i])
 
     # If we pass in an already-decoded list of strings, use them directly.
-    if isinstance(spec_parts, list) and isinstance(spec_parts[0], str):
-      spec_parts_str = spec_parts
+    if isinstance(output_parts, list) and isinstance(output_parts[0], str):
+      output_parts_str = output_parts
     else:
       # Decode the SpecDecomposerModel prediction and separate examples.
-      spec_parts_str = decode_spec(spec_parts).strip('|').split('|')
+      output_parts_str = decode_spec(output_parts).strip('|').split('|')
     if isinstance(outputs, list) and isinstance(outputs[0], str):
       decoded_outputs = outputs
     else:
@@ -567,41 +851,108 @@ def main(_):
 
     valid = True
 
-    if FLAGS.detect_invalid:
+    if _DETECT_INVALID.value:
       # The prediction is invalid if it has an incorrect number of | characters
       # or all of the parts are empty. (Some but not all parts can be empty.)
-      if len(spec_parts_str) != num_examples or all(
-          [not part for part in spec_parts_str]):
-        spec_parts_str = ['[invalid]'] * num_examples
+      if len(output_parts_str) != num_examples or all(
+          [not part for part in output_parts_str]):
+        output_parts_str = ['' if _DATASET_TYPE.value == 'deepcoder'
+                            else '[invalid]'] * num_examples
         valid = False
+      if _DATASET_TYPE.value == 'deepcoder':
+        try:
+          for one_example in output_parts_str:
+            deepcoder_dsl.ProgramState.from_str('x0 = ' + one_example)
+        except deepcoder_dsl.ParseError:
+          valid = False
     else:
       # Still need to handle an incorrect number of | characters. Do our best to
       # continue even if the prediction is malformed.
-      spec_parts_str = spec_parts_str[:num_examples]
-      spec_parts_str += [''] * (num_examples - len(spec_parts_str))
-      assert len(spec_parts_str) == num_examples
+      output_parts_str = output_parts_str[:num_examples]
+      output_parts_str += [''] * (num_examples - len(output_parts_str))
+      assert len(output_parts_str) == num_examples
+      # TODO(kshi): maybe for DeepCoder, pad with the output instead of empty
+      # string. But this doesn't really matter, it's an ablation.
 
-    current_parts = [
+    step_outputs = [
         encode_spec(
-            spec_str, max_target_length=max_target_length, add_eos=False)
-        for spec_str in spec_parts_str
+            output_part_str, max_target_length=max_target_length, add_eos=False)
+        for output_part_str in output_parts_str
     ]
 
-    remaining_parts_str = []
-    for part, output in zip(spec_parts_str, decoded_outputs):
-      if FLAGS.detect_invalid and not output.startswith(part):
-        remaining_parts_str = ['[invalid]'] * num_examples
-        valid = False
-        break
-      remaining_parts_str.append(output[len(part):])
-    remaining_parts = [
-        encode_spec(
-            spec_str, max_target_length=max_target_length, add_eos=True)
-        for spec_str in remaining_parts_str
+    if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+      current_outputs_str = []
+      for part, output in zip(output_parts_str, decoded_outputs):
+        if _DETECT_INVALID.value and not output.startswith(part):
+          current_outputs_str = ['[invalid]'] * num_examples
+          valid = False
+          break
+        current_outputs_str.append(output[len(part):])
+      current_outputs = [
+          encode_spec(current_output_str, max_target_length=max_target_length,
+                      add_eos=True)
+          for current_output_str in current_outputs_str
+      ]
+      last_step = all([not current_output_str
+                       for current_output_str in current_outputs_str])
+    elif _DATASET_TYPE.value == 'deepcoder':
+      current_outputs = [
+          encode_spec(
+              decoded_output, max_target_length=max_target_length, add_eos=True)
+          for decoded_output in decoded_outputs
+      ]
+      last_step = (output_parts_str == decoded_outputs)
+
+    return valid, last_step, np.array(step_outputs), np.array(current_outputs)
+
+  def join_inputs(input_parts, current_inputs, max_target_length,
+                  variable_index):
+    """Returns a new current_inputs."""
+    if _DATASET_TYPE.value != 'deepcoder':
+      # Do nothing for RobustFill.
+      return current_inputs
+
+    # If we pass in an already-decoded list of strings, use them directly.
+    if isinstance(input_parts, list) and isinstance(input_parts[0], str):
+      input_parts_str = input_parts
+    else:
+      # Decode the SpecDecomposerModel prediction and separate examples.
+      input_parts_str = [decode_spec(part) for part in input_parts]
+    decoded_current_inputs = [decode_spec(inp) for inp in current_inputs]
+    logging.info('input_parts: %s', input_parts)
+    logging.info('input_parts_str: %s', input_parts_str)
+    logging.info('decoded_current_inputs: %s', decoded_current_inputs)
+    assert len(input_parts_str) == len(decoded_current_inputs)
+
+    current_inputs_str = [
+        ' '.join([current_input, deepcoder_dsl.SEP,
+                  deepcoder_dsl.variable_token(variable_index), '=', part])
+        for current_input, part in zip(decoded_current_inputs, input_parts_str)
     ]
 
-    last_step = all([not remaining for remaining in remaining_parts_str])
-    return valid, last_step, np.array(current_parts), np.array(remaining_parts)
+    current_inputs = [
+        encode_spec(
+            inp, max_target_length=max_target_length, add_eos=True)
+        for inp in current_inputs_str
+    ]
+    return np.array(current_inputs)
+
+  def join_programs(program_parts, programs, step=0):
+    if _DATASET_TYPE.value == 'deepcoder':
+      # Need to prepend variable to the predicted program parts, if the program
+      # isn't all padding (which happens when that beam element was already
+      # finished).
+      # pylint: disable=g-complex-comprehension
+      prepend_tokens = np.array([
+          [deepcoder_dsl.SEP_ID,  # pylint: disable=g-long-ternary
+           program_token_id_table[deepcoder_dsl.variable_token(step)],
+           program_token_id_table['=']]
+          if np.max(program_part) != 0 else [0] * 3
+          for program_part in program_parts[0]])
+      # pylint: enable=g-complex-comprehension
+      program_parts = jnp.concatenate(
+          [prepend_tokens[None, :], program_parts], axis=-1)
+    return jnp.concatenate([programs, program_parts], axis=-1)
 
   def process_predicted_program(program, add_eos=True):
     """Decode program tokens."""
@@ -615,47 +966,105 @@ def main(_):
       program += [eos_id]
     return program
 
-  def process_and_decode_program(program_tokens):
+  def process_and_decode_program(program_token_ids):
     """Returns a pair (valid, program)."""
     try:
-      program = robust_fill_dsl.decode_program(
-          process_predicted_program(program_tokens, add_eos=True),
-          program_id_token_table)
+      if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+        program = robust_fill_dsl.decode_program(
+            process_predicted_program(program_token_ids, add_eos=True),
+            program_id_token_table)
+      elif _DATASET_TYPE.value == 'deepcoder':
+        program_tokens = [program_id_token_table[int(p_id)]
+                          for p_id in program_token_ids
+                          if p_id > 0 and p_id != deepcoder_dsl.EOS_ID]
+        program = deepcoder_dsl.Program.from_tokens(program_tokens)
+      else:
+        raise ValueError('Unhandled dataset_type: {}'.format(
+            _DATASET_TYPE.value))
       # If the program can't be converted to string, it's invalid.
       str(program)
       return True, program
-    except:  # pylint: disable=bare-except
+    except Exception:  # pylint: disable=broad-except
       # It's not valid, but maybe we have to ignore that fact.
-      valid = not FLAGS.detect_invalid
+      valid = not _DETECT_INVALID.value
       return valid, '[invalid program]'
+
+  def is_redundant_program(program, inputs):
+    """Returns whether program output is redundant."""
+    if _DATASET_TYPE.value == 'deepcoder':
+      # Only used for deepcoder
+      try:
+        final_states = []
+        for i in inputs:
+          initial_state = deepcoder_dsl.ProgramState.from_str(i)
+          final_state = program.run(initial_state.state)
+          final_states.append(final_state)
+        return deepcoder_sample_random.is_redundant(final_states)
+      except Exception:  # pylint: disable=broad-except
+        # If anything bad happens, we treat it the same as "redundant".
+        return True
+    return False
 
   def run_program(program, inputs):
     """Returns a pair (valid, outputs)."""
     # If the program cannot be run, we treat it as outputting an empty string.
     outputs = []
     valid = True
+    default_output = '' if _DATASET_TYPE.value == 'deepcoder' else ''
     for i in inputs:
       if program == '[invalid program]':
-        outputs.append('')
-        if FLAGS.detect_invalid:
+        outputs.append(default_output)
+        if _DETECT_INVALID.value:
           valid = False
       else:
         try:
-          outputs.append(program(i))
+          if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+            outputs.append(program(i))
+          elif _DATASET_TYPE.value == 'deepcoder':
+            initial_state = deepcoder_dsl.ProgramState.from_str(i)
+            final_state = program.run(initial_state.state)
+            outputs.append(deepcoder_dsl.result_to_str(
+                final_state.get_output()))
+          else:
+            raise ValueError('Unhandled dataset_type: {}'.format(
+                _DATASET_TYPE.value))
+
         except:  # pylint: disable=bare-except
-          outputs.append('')
-          if FLAGS.use_execution and FLAGS.detect_invalid:
+          outputs.append(default_output)
+          if _USE_EXECUTION.value and _DETECT_INVALID.value:
             valid = False
     return valid, outputs
+
+  def run_program_execution_trace(program, inputs):
+    """Returns an execution trace for the program (for all statements)."""
+    traces = []
+    default_output = '' if _DATASET_TYPE.value == 'deepcoder' else ''
+    for i in inputs:
+      if program == '[invalid program]':
+        traces.append(default_output)
+      else:
+        try:
+          if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+            traces.append(program(i))
+          elif _DATASET_TYPE.value == 'deepcoder':
+            # Use entire program state (containing all local variables).
+            initial_state = deepcoder_dsl.ProgramState.from_str(i)
+            traces.append(str(program.run(initial_state.state)))
+          else:
+            raise ValueError('Unhandled dataset_type: {}'.format(
+                _DATASET_TYPE.value))
+        except:  # pylint: disable=bare-except
+          traces.append(default_output)
+    return traces
 
   # Load Dataset
   # ---------------------------------------------------------------------------
   logging.info('Initializing dataset.')
-  if not FLAGS.test_dataset:
+  if not _TEST_DATASET.value:
     raise ValueError('Must specify filepattern to dataset.')
 
   # Training dataset.
-  logging.info('Loading dataset from %s', FLAGS.test_dataset)
+  logging.info('Loading dataset from %s', _TEST_DATASET.value)
   padded_shapes = {
       'inputs': io_shape[1:],
       'outputs': io_shape[1:],
@@ -663,23 +1072,25 @@ def main(_):
   }
   logging.info('padded_shapes: %s', padded_shapes)
 
-  if FLAGS.dataset_type == 'robust_fill':
+  if _DATASET_TYPE.value == 'robust_fill':
     create_dataset_fn = create_robust_fill_dataset
-  elif FLAGS.dataset_type == 'scan':
+  elif _DATASET_TYPE.value == 'deepcoder':
+    create_dataset_fn = create_deepcoder_dataset
+  elif _DATASET_TYPE.value == 'scan':
     raise NotImplementedError()  # TODO(kshi): Implement.
     # create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
   else:
-    raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
+    raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
 
-  test_dataset = create_dataset_fn(FLAGS.test_dataset,
+  test_dataset = create_dataset_fn(_TEST_DATASET.value,
                                    spec_token_id_table,
-                                   FLAGS.num_examples)
+                                   _NUM_EXAMPLES.value)
   test_dataset = test_dataset.padded_batch(
       batch_size, padded_shapes=padded_shapes, drop_remainder=False)
-  test_dataset = test_dataset.take(FLAGS.num_test_batches)
+  test_dataset = test_dataset.take(_NUM_TEST_BATCHES.value)
 
   # TODO(jxihong): Implement fast decoding.
-  assert FLAGS.slow_decode, 'Fast decoding is not implemented yet.'
+  assert _SLOW_DECODE.value, 'Fast decoding is not implemented yet.'
 
   rng = jax.random.PRNGKey(0)
   rng, init_rng = jax.random.split(rng)
@@ -687,15 +1098,18 @@ def main(_):
   # Main Prediction Loop
   # ---------------------------------------------------------------------------
 
-  if FLAGS.prediction_type == 'separate':
-    spec_decomposer_optimizer, spec_decomposer_pred_step = (
-        load_spec_decomposer_model(
-            init_rng=init_rng,
-            spec_vocab_size=spec_vocab_size,
-            io_shape=io_shape,
-            spec_target_shape=spec_target_shape,
-            bos_id=bos_id,
-            eos_id=eos_id))
+  if _PREDICTION_TYPE.value == 'separate':
+    (
+        spec_decomposer_optimizer, spec_decomposer_pred_step,
+        spec_decomposer_greedy_pred_step
+    ) = load_spec_decomposer_model(
+        init_rng=init_rng,
+        spec_vocab_size=spec_vocab_size,
+        io_shape=io_shape,
+        spec_target_shape=spec_target_shape,
+        bos_id=bos_id,
+        eos_id=eos_id,
+        sep_id=sep_id)
   synthesizer_optimizer, synthesizer_pred_step = load_synthesizer_model(
       init_rng=init_rng,
       spec_vocab_size=spec_vocab_size,
@@ -739,7 +1153,7 @@ def main(_):
   metric_e = 0
   metric_f = 0
 
-  beam_size = FLAGS.beam_size
+  beam_size = _BEAM_SIZE.value
   successes = []
   total_times = []
   spec_prediction_times = []
@@ -754,14 +1168,18 @@ def main(_):
   for test_example_index, batch in enumerate(test_dataset.as_numpy_iterator()):
     if test_example_index % 10 == 0:
       logging.info('Processing test example #%s', test_example_index)
-    do_logging = test_example_index < FLAGS.num_examples_to_log
+    do_logging = test_example_index < _NUM_EXAMPLES_TO_LOG.value
     test_example_start_time = timeit.default_timer()
 
     inputs, outputs = batch['inputs'], batch['outputs']
     decoded_inputs = [decode_spec(i) for i in inputs[0]]
+    if _DATASET_TYPE.value == 'deepcoder':
+      deepcoder_num_inputs = decoded_inputs[0].count(deepcoder_dsl.SEP) + 1
     decoded_outputs = [decode_spec(o) for o in outputs[0]]
     _, ground_truth = process_and_decode_program(batch['target'][0])
-    ground_truth_length = len(ground_truth.expressions)
+    ground_truth_length = len(
+        ground_truth.statements if _DATASET_TYPE.value == 'deepcoder'
+        else ground_truth.expressions)
 
     if do_logging:
       inputs_str = '\n  '.join(decoded_inputs)
@@ -773,11 +1191,11 @@ def main(_):
           f'  {inputs_str}\n'
           f'outputs:\n'
           f'  {outputs_str}\n'
+          f'program: {ground_truth}\n'
           f'\n'
       )
 
     next_history_id = itertools.count().__next__
-    beam_inputs = decode.add_beam_dim(inputs, beam_size)
     step_index = 0
     first_error = None
 
@@ -788,20 +1206,37 @@ def main(_):
     # whether we are allowed to use predicted programs' executions to inform
     # validity.
 
-    # `last_step` is set during the SpecDecomposer step to signal that the
-    # remaining_output is empty so there should be no further iterations. After
-    # the Synthesizer step, this beam element should be marked as `finished`. If
-    # `use_execution` is True, we use the predicted program's execution to see
-    # if the beam element is truly finished or not.
+    # `last_step` is set during the SpecDecomposer step to signal that it
+    # predicts that we're on the last step so there should be no further
+    # iterations. After the Synthesizer step, this beam element should be marked
+    # as `finished`. If `use_execution` is True, we use the predicted program's
+    # execution to see if the beam element is truly finished or not.
 
     # `finished` means whether a beam element is completely done, i.e., its
     # score is final and there should be no more predictions by either model.
     # Invalid beam elements should also be marked as finished.
+    if _DATASET_TYPE.value == 'deepcoder':
+      initial_program = []
+      for input_index in range(deepcoder_num_inputs):
+        if input_index > 0:
+          initial_program.append(deepcoder_dsl.SEP_ID)
+        initial_program.extend([
+            program_token_id_table[deepcoder_dsl.variable_token(input_index)],
+            program_token_id_table['='],
+            program_token_id_table['INPUT']])
+    else:
+      initial_program = [bos_id]
+
+    final_outputs = decode.add_beam_dim(outputs, beam_size)
     aux = {
-        'remaining_outputs': decode.add_beam_dim(outputs, beam_size),
-        'programs': jnp.full((1, beam_size, 1), bos_id, jnp.int32),
-        'scores': jnp.array([0.0] + [decode.NEG_INF] * (beam_size - 1))[None,
-                                                                        Ellipsis],
+        'current_inputs': decode.add_beam_dim(inputs, beam_size),
+        'current_outputs': jnp.copy(final_outputs),
+        'step_outputs': decode.add_beam_dim(
+            outputs, beam_size),  # Initial value doesn't matter.
+        'programs': decode.add_beam_dim(
+            np.array(initial_program)[None, Ellipsis], beam_size),
+        'scores': jnp.array(
+            [0.0] + [decode.NEG_INF] * (beam_size - 1))[None, Ellipsis],
         'valid': jnp.array([True] + [False] * (beam_size - 1))[None, Ellipsis],
         'last_step': jnp.array([False] + [True] * (beam_size - 1))[None, Ellipsis],
         'finished': jnp.array([False] + [True] * (beam_size - 1))[None, Ellipsis],
@@ -809,28 +1244,47 @@ def main(_):
     }
 
     # End-to-end prediction loop.
-    while jnp.any(~aux['finished']) and step_index < 20:
-      ground_truth_program_part = (
-          ground_truth.expressions[step_index]
-          if step_index < ground_truth_length
-          else '[step index out of bounds]')
-      ground_truth_output_parts = (
-          [ground_truth_program_part(i) for i in decoded_inputs]
-          if step_index < ground_truth_length
-          else '[step index out of bounds]')
+    step_limit = 20
+    if _DATASET_TYPE.value == 'deepcoder':
+      step_limit = deepcoder_dsl.MAX_NUM_VARIABLES - deepcoder_num_inputs
+    while jnp.any(~aux['finished']) and step_index < step_limit:
+
+      # Get ground truth for logging and metrics purposes.
+      if step_index >= ground_truth_length:
+        ground_truth_program_part = '[step index out of bounds]'
+        ground_truth_output_parts = '[step index out of bounds]'
+      elif _DATASET_TYPE.value == 'deepcoder':
+        ground_truth_program_part = ground_truth.statements[step_index]
+        inputs_program_states = [deepcoder_dsl.ProgramState.from_str(i)
+                                 for i in decoded_inputs]
+        ground_truth_output_parts = [
+            deepcoder_dsl.result_to_str(
+                ground_truth.run(inputs_program_state.state).get_index(
+                    step_index + deepcoder_num_inputs))
+            for inputs_program_state in inputs_program_states
+        ]
+      else:
+        ground_truth_program_part = ground_truth.expressions[step_index]
+        ground_truth_output_parts = [ground_truth_program_part(i)
+                                     for i in decoded_inputs]
 
       # Use the spec decomposition step when predicting with separate models,
       # but not when doing joint prediction.
-      if FLAGS.prediction_type == 'separate':
+      if _PREDICTION_TYPE.value == 'separate':
         # Spec Decomposition Step.
         ##########################
 
         # Run the SpecDecomposerModel.
         start_time = timeit.default_timer()
-        predicted_spec_parts, scores, aux = spec_decomposer_pred_step(
+        prev_aux = aux
+        pred_step = (spec_decomposer_greedy_pred_step
+                     if _GREEDY_SPEC_DECOMPOSER.value
+                     else spec_decomposer_pred_step)
+        predicted_spec_parts, scores, aux = pred_step(
             params=spec_decomposer_optimizer.target,
-            inputs=beam_inputs,
-            outputs=aux['remaining_outputs'],
+            inputs=aux['current_inputs'],
+            outputs=aux['current_outputs'],
+            final_outputs=final_outputs,  # Actually ignored.
             cache=None,
             aux=aux,
             beam_size=beam_size)
@@ -840,13 +1294,72 @@ def main(_):
         start_time = timeit.default_timer()
         spec_parts_batch = np.array(predicted_spec_parts)
         results = [
-            split_spec(beam, aux['remaining_outputs'][0][i],
-                       max_target_length=FLAGS.max_io_length, aux=aux, i=i)
+            split_outputs(beam, aux['current_outputs'][0][i],
+                          max_target_length=_MAX_IO_LENGTH.value, aux=aux,
+                          beam_i=i)
             for i, beam in enumerate(spec_parts_batch[0])]
-        valids, last_steps, current_outputs, remaining_outputs = zip(*results)
+        # split_outputs returns (valids, last_steps, step_outputs,
+        # current_outputs)
+        valids, last_steps, step_outputs, current_outputs = map(list,
+                                                                zip(*results))
 
-        current_outputs = jnp.array(current_outputs)[None, Ellipsis]
-        aux['remaining_outputs'] = jnp.array(remaining_outputs)[None, Ellipsis]
+        if _FILL_EMPTY_BEAM.value:
+          predicted_spec_parts_fill, scores_fill, aux_fill = (
+              spec_decomposer_pred_step(
+                  params=spec_decomposer_optimizer.target,
+                  inputs=prev_aux['current_inputs'],
+                  outputs=prev_aux['current_outputs'],
+                  final_outputs=final_outputs,  # Actually ignored.
+                  cache=None,
+                  aux=prev_aux,
+                  beam_size=beam_size))
+
+          spec_parts_batch_fill = np.array(predicted_spec_parts_fill)
+          results_fill = [
+              split_outputs(beam, aux_fill['current_outputs'][0][i],
+                            max_target_length=_MAX_IO_LENGTH.value,
+                            aux=aux_fill, beam_i=i)
+              for i, beam in enumerate(spec_parts_batch_fill[0])]
+          (valids_fill, last_steps_fill, step_outputs_fill,
+           current_outputs_fill) = map(list, zip(*results_fill))
+
+          def get_key(history, step_output):
+            return tuple(history.flatten()) + tuple(step_output.flatten())
+
+          # Find candidate fill elements that do not appear among original beam.
+          unique_keys = set()
+          aux_history, aux_history_fill = map(
+              np.asarray, (aux['history'], aux_fill['history']))
+          for i in range(beam_size):
+            unique_keys.add(get_key(aux_history[:, i], step_outputs[i]))
+          for i in range(beam_size):
+            if get_key(aux_history_fill[:, i],
+                       step_outputs_fill[i]) in unique_keys:
+              valids_fill[i] = False
+
+          # Fill invalid elements in greedy beam search.
+          fill_idx = beam_size - 1
+          for i in range(beam_size)[::-1]:
+            if not valids[i]:
+              while fill_idx >= 0 and not valids_fill[fill_idx]:
+                fill_idx -= 1
+              if fill_idx < 0:
+                break
+              current_outputs[i] = current_outputs_fill[fill_idx]
+              step_outputs[i] = step_outputs_fill[fill_idx]
+              scores = scores.at[:, i].set(scores_fill[:, i])
+              valids[i] = valids_fill[fill_idx]
+              last_steps[i] = last_steps_fill[fill_idx]
+              aux['programs'] = aux['programs'].at[:, i].set(
+                  aux_fill['programs'][:, i])
+              aux['finished'] = aux['finished'].at[:, i].set(
+                  aux_fill['finished'][:, i])
+              aux['history'] = aux['history'].at[:, i].set(
+                  aux_fill['history'][:, i])
+              fill_idx -= 1
+
+        aux['current_outputs'] = jnp.array(current_outputs)[None, Ellipsis]
+        aux['step_outputs'] = jnp.array(step_outputs)[None, Ellipsis]
         aux['scores'] = scores
         aux['valid'] = jnp.array(valids)[None, Ellipsis]
         aux['last_step'] = jnp.array(last_steps)[None, Ellipsis]
@@ -856,18 +1369,22 @@ def main(_):
                                          axis=-1)
 
         # Process invalid states.
-        if FLAGS.detect_invalid:
-          if FLAGS.change_invalid_scores:
+        if _DETECT_INVALID.value:
+          if _CHANGE_INVALID_SCORES.value:
             aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
           aux['finished'] |= ~aux['valid']
-        else:
+        elif not _GREEDY_SPEC_DECOMPOSER.value:
+          # The greedy spec decomposer will carry over already-invalid states.
           assert np.all(aux['valid'])
         spec_processing_times.append(timeit.default_timer() - start_time)
 
         # Analysis and logging.
         start_time = timeit.default_timer()
-        assert len(current_outputs) == 1
-        best_spec_prediction = [decode_spec(o) for o in current_outputs[0][-1]]
+        assert len(aux['step_outputs']) == 1
+        best_spec_prediction = [decode_spec(o)
+                                for o in aux['step_outputs'][0][-1]]
+        if aux['finished'][0][-1]:
+          best_spec_prediction = '[finished]'
         if aux['finished'][0][-1] & aux['valid'][0][-1]:
           matches = 'N/A'
         else:
@@ -877,19 +1394,25 @@ def main(_):
         spec_analysis_times.append(timeit.default_timer() - start_time)
 
         if do_logging:
+          # Prefer not to break these long lines because they reflect the lines
+          # actually printed into the logs.
+          # pylint: disable=line-too-long
           log_message += '\n' + ('=' * 80) + '\n'
           log_message += (
               f'Spec Decomposition Step #{step_index + 1}:\n'
               f'  ground truth output parts:           {ground_truth_output_parts}\n'
               f'  SpecDecomposerModel best prediction: {best_spec_prediction}\n'
               f'    matches: {matches}\n'
+              f'  ground truth program part:           {ground_truth_program_part}\n'
               f'---------- Full beam: ----------\n'
           )
-          for i in range(beam_size)[::-1][:FLAGS.num_beam_elements_to_log]:
-            prediction_i = [decode_spec(o) for o in current_outputs[0][i]]
+          for i in range(beam_size)[::-1][:_NUM_BEAM_ELEMENTS_TO_LOG.value]:
+            prediction_i = [decode_spec(o) for o in aux['step_outputs'][0][i]]
             score_i = aux['scores'][0][i]
-            remaining_i = [decode_spec(o)
-                           for o in aux['remaining_outputs'][0][i]]
+            current_inputs_i = [decode_spec(o)
+                                for o in aux['current_inputs'][0][i]]
+            current_outputs_i = [decode_spec(o)
+                                 for o in aux['current_outputs'][0][i]]
             _, program_i = process_and_decode_program(aux['programs'][0][i])
             valid_i = aux['valid'][0][i]
             last_step_i = aux['last_step'][0][i]
@@ -898,11 +1421,13 @@ def main(_):
                 f'Beam item {i}:\n'
                 f'  prediction: {prediction_i}\n'
                 f'  score: {score_i:.4f}\n'
-                f'  remaining_outputs: {remaining_i}\n'
+                f'  current_inputs: {current_inputs_i}\n'
+                f'  current_outputs: {current_outputs_i}\n'
                 f'  program: {program_i}\n'
                 f'  valid: {valid_i}, last_step: {last_step_i}, finished: {finished_i}\n'
                 f'  history: {aux["history"][0][i]}\n'
             )
+          # pylint: enable=line-too-long
 
         # Elements can become newly finished if they are invalid.
         if jnp.all(aux['finished']):
@@ -915,18 +1440,19 @@ def main(_):
 
       # Run the SynthesizerModel.
       start_time = timeit.default_timer()
-      if FLAGS.prediction_type == 'separate':
+      if _PREDICTION_TYPE.value == 'separate':
         # Use next output part as predicted by the SpecDecomposerModel.
-        synthesizer_step_outputs = current_outputs
-      elif FLAGS.prediction_type == 'joint':
-        # Use the entire remaining output from the previous step.
-        synthesizer_step_outputs = aux['remaining_outputs']
+        synthesizer_step_outputs = aux['step_outputs']
+      elif _PREDICTION_TYPE.value == 'joint':
+        # Use the current output from the previous step.
+        synthesizer_step_outputs = aux['current_outputs']
       else:
-        raise ValueError(f'Unhandled prediction_type: {FLAGS.prediction_type}')
+        raise ValueError(f'Unhandled prediction_type: {_PREDICTION_TYPE.value}')
       predicted_program_parts, scores, aux = synthesizer_pred_step(
           params=synthesizer_optimizer.target,
-          inputs=beam_inputs,
+          inputs=aux['current_inputs'],
           outputs=synthesizer_step_outputs,
+          final_outputs=final_outputs,
           cache=None,
           aux=aux,
           beam_size=beam_size)
@@ -938,48 +1464,99 @@ def main(_):
           np.zeros_like(beam) if aux['finished'][0][i] else beam
           for i, beam in enumerate(np.array(predicted_program_parts)[0])
       ])[None, Ellipsis]
-      aux['programs'] = jnp.concatenate([aux['programs'], program_parts],
-                                        axis=-1)
+      aux['programs'] = join_programs(program_parts, aux['programs'],
+                                      step=step_index + deepcoder_num_inputs)
       aux['scores'] = scores
       current_history_ids = jnp.array(
           [next_history_id() for _ in range(beam_size)])[None, Ellipsis, None]
       aux['history'] = jnp.concatenate([aux['history'], current_history_ids],
                                        axis=-1)
 
-      # Process invalid states.
-      new_valids, new_last_steps, new_remaining = [], [], []
+      # Process invalid states and set up current inputs/outputs for the next
+      # step.
+      new_valids, new_last_steps = [], []
+      new_current_inputs, new_current_outputs = [], []
+      programs = collections.defaultdict(list)  # Keep track of unique programs.
       for i in range(beam_size):
         valid_i = bool(aux['valid'][0][i])
         last_step_i = aux['last_step'][0][i]
-        remaining_i = aux['remaining_outputs'][0][i]
+        current_inputs_i = aux['current_inputs'][0][i]
+        current_outputs_i = aux['current_outputs'][0][i]
+
         # Don't need to do any checking if the beam element is already finished
         # or already invalid.
         if not aux['finished'][0][i] and valid_i:
           # This is just a syntax check.
           valid_i, program_i = process_and_decode_program(aux['programs'][0][i])
-          if FLAGS.use_execution:
+
+          if _USE_EXECUTION.value:
             # Check for syntax, runtime errors, and output prefix matching.
             valid_i, program_outputs_i = run_program(program_i, decoded_inputs)
             # Must use execution (even if invalid) for joint prediction.
-            if valid_i or FLAGS.prediction_type == 'joint':
-              valid_i, last_step_i, _, remaining_i = split_spec(
+            if valid_i or _PREDICTION_TYPE.value == 'joint':
+              valid_i, last_step_i, _, current_outputs_i = split_outputs(
                   program_outputs_i, decoded_outputs,
-                  max_target_length=FLAGS.max_io_length, aux=aux, i=i)
-        if not FLAGS.detect_invalid:
+                  max_target_length=_MAX_IO_LENGTH.value, aux=aux,
+                  beam_i=i)
+
+              # For DeepCoder, update the program states by appending the
+              # program's execution result to the current input.
+              current_inputs_i = join_inputs(
+                  program_outputs_i, current_inputs_i,
+                  max_target_length=_MAX_IO_LENGTH.value,
+                  variable_index=step_index + deepcoder_num_inputs)
+
+              if (_DATASET_TYPE.value == 'deepcoder' and
+                  _PREDICTION_TYPE.value == 'separate' and
+                  (program_outputs_i != [
+                      decode_spec(o) for o in aux['step_outputs'][0][i]]) and
+                  _DETECT_INVALID.value and
+                  _DEEPCODER_MISMATCH_INVALID.value):
+                # Program's output does not match SpecDecomposerModel's
+                # predicted output.
+                valid_i = False
+
+              if _DISCARD_REDUNDANT_PROGRAMS.value:
+                # Mark beams as invalid if the program has redundant statements
+                if is_redundant_program(program_i, decoded_inputs):
+                  valid_i = False
+
+          else:  # Not using execution.
+            assert _PREDICTION_TYPE.value == 'separate'
+            # For DeepCoder, append the SpecDecomposerModel's prediction to the
+            # current input (program state).
+            current_inputs_i = join_inputs(
+                aux['step_outputs'][0][i], current_inputs_i,
+                max_target_length=_MAX_IO_LENGTH.value,
+                variable_index=step_index + deepcoder_num_inputs)
+
+          if _DISCARD_REPEAT_FUNCTIONALITY.value:
+            # Mark beam element as invalid if it share the same program
+            # functionality as a beam element with higher score.
+            program_traces_i = run_program_execution_trace(program_i,
+                                                           decoded_inputs)
+            program_traces_i_key = '$'.join(program_traces_i)
+            for j in programs[program_traces_i_key]:
+              new_valids[j] = False
+            programs[program_traces_i_key].append(i)
+
+        if not _DETECT_INVALID.value:
           # Even though we updated valid_i above, those helper functions should
           # not claim something is invalid if detect_invalid=False.
           assert valid_i
         new_valids.append(valid_i)
         new_last_steps.append(last_step_i)
-        new_remaining.append(remaining_i)
+        new_current_inputs.append(current_inputs_i)
+        new_current_outputs.append(current_outputs_i)
       aux['valid'] = jnp.array(new_valids)[None, Ellipsis]
       aux['last_step'] = jnp.array(new_last_steps)[None, Ellipsis]
-      aux['remaining_outputs'] = jnp.array(new_remaining)[None, Ellipsis]
+      aux['current_inputs'] = jnp.array(new_current_inputs)[None, Ellipsis]
+      aux['current_outputs'] = jnp.array(new_current_outputs)[None, Ellipsis]
 
       already_finished = aux['finished'][0]
       aux['finished'] |= aux['last_step']
-      if FLAGS.detect_invalid:
-        if FLAGS.change_invalid_scores:
+      if _DETECT_INVALID.value:
+        if _CHANGE_INVALID_SCORES.value:
           aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
         aux['finished'] |= ~aux['valid']
       else:
@@ -988,20 +1565,29 @@ def main(_):
 
       # Analysis and logging.
       start_time = timeit.default_timer()
-      _, best_program_prediction = process_and_decode_program(
-          program_parts[0][-1])
-      _, program_outputs = run_program(best_program_prediction, decoded_inputs)
+
       if already_finished[-1] & aux['valid'][0][-1]:
+        best_program_prediction = '[already finished]'
         functionally_correct = 'N/A'
+        program_outputs = 'N/A'
       else:
         # Compare to the ground truth, not the spec prediction. The best-scoring
         # program didn't necessarily come from the best-scoring spec prediction.
+        program_tokens = (  # Use entire program for DeepCoder.
+            aux['programs'][0][-1] if _DATASET_TYPE.value == 'deepcoder'
+            else program_parts[0][-1])
+        _, best_program_prediction = process_and_decode_program(program_tokens)
+        _, program_outputs = run_program(best_program_prediction,
+                                         decoded_inputs)
         functionally_correct = program_outputs == ground_truth_output_parts
         if not functionally_correct and first_error is None:
           first_error = f'SynthesizerModel at step #{step_index + 1}'
       synthesis_analysis_times.append(timeit.default_timer() - start_time)
 
       if do_logging:
+        # Prefer not to break these long lines because they reflect the lines
+        # actually printed into the logs.
+        # pylint: disable=line-too-long
         log_message += '\n' + ('=' * 80) + '\n'
         log_message += (
             f'Synthesizer Step #{step_index + 1}:\n'
@@ -1013,10 +1599,20 @@ def main(_):
             f'---------- Full beam: ----------\n'
         )
 
-        for i in range(beam_size)[::-1][:FLAGS.num_beam_elements_to_log]:
-          _, prediction_i = process_and_decode_program(program_parts[0][i])
+        for i in range(beam_size)[::-1][:_NUM_BEAM_ELEMENTS_TO_LOG.value]:
+          if _DATASET_TYPE.value == 'deepcoder':
+            # A program part isn't a valid whole program. Instead, just decode
+            # tokens using the tables. Even though this is a program part not a
+            # spec part, decode_spec is sufficient here.
+            prediction_i = decode_spec(program_parts[0][i])
+          else:
+            _, prediction_i = process_and_decode_program(program_parts[0][i])
           score_i = aux['scores'][0][i]
-          remaining_i = [decode_spec(o) for o in aux['remaining_outputs'][0][i]]
+          current_inputs_i = [decode_spec(o)
+                              for o in aux['current_inputs'][0][i]]
+          current_outputs_i = [decode_spec(o)
+                               for o in aux['current_outputs'][0][i]]
+          step_outputs_i = [decode_spec(o) for o in aux['step_outputs'][0][i]]
           _, program_i = process_and_decode_program(aux['programs'][0][i])
           valid_i = aux['valid'][0][i]
           last_step_i = aux['last_step'][0][i]
@@ -1025,11 +1621,14 @@ def main(_):
               f'Beam item {i}:\n'
               f'  prediction: {prediction_i}\n'
               f'  score: {score_i:.4f}\n'
-              f'  remaining_outputs: {remaining_i}\n'
+              f'  current_inputs: {current_inputs_i}\n'
+              f'  current_outputs: {current_outputs_i}\n'
+              f'  step_outputs: {step_outputs_i}\n'
               f'  program: {program_i}\n'
               f'  valid: {valid_i}, last_step: {last_step_i}, finished: {finished_i}\n'
               f'  history: {aux["history"][0][i]}\n'
           )
+        # pylint: enable=line-too-long
 
       step_index += 1
     # End of step-by-step loop.
@@ -1098,6 +1697,18 @@ def main(_):
       )
       print(log_message)
 
+    if do_logging:
+      log_message += (
+          f'\nground_truth: {ground_truth}\n'
+          f'num steps taken:        {step_index}\n'
+          f'num ground truth steps: {ground_truth_length}\n\n'
+          f'overall success: {success}\n'
+          f'first error: {first_error}\n'
+          f'total time: {total_times[-1]:.1f} sec\n'
+          f'```'
+      )
+      print(log_message)
+
       summary_writer.text(f'predictions_{test_example_index}',
                           log_message, 0)
       summary_writer.flush()
@@ -1124,25 +1735,24 @@ def main(_):
                           100 * num_success / total, 0)
     summary_writer.scalar(
         'main/failures from SpecDecomposerModel, among all failures',
-        100 * metric_e / num_failure, 0)
+        divide_no_nan(100 * metric_e, num_failure), 0)
     summary_writer.scalar(
         'main/failures from SynthesizerModel, among all failures',
-        100 * metric_f / num_failure, 0)
+        divide_no_nan(100 * metric_f, num_failure), 0)
 
-    if metric_b + metric_e > 0:
-      summary_writer.scalar(
-          'error_recovery/specDecomposerModel error recovery rate',
-          100 * metric_b / (metric_b + metric_e), 0)
+    summary_writer.scalar(
+        'error_recovery/specDecomposerModel error recovery rate',
+        divide_no_nan(100 * metric_b, metric_b + metric_e), 0)
     summary_writer.scalar(
         'error_recovery/synthesizerModel error recovery rate',
-        100 * metric_c / (metric_c + metric_f), 0)
+        divide_no_nan(100 * metric_c, metric_c + metric_f), 0)
     summary_writer.scalar(
         'error_recovery/error recovery rate',
-        100 * (metric_b + metric_c) / (
-            metric_b + metric_c + metric_e + metric_f), 0)
+        divide_no_nan(100 * (metric_b + metric_c),
+                      metric_b + metric_c + metric_e + metric_f), 0)
     summary_writer.scalar(
         'error_recovery/recovered errors among successes',
-        100 * (metric_b + metric_c) / num_success, 0)
+        divide_no_nan(100 * (metric_b + metric_c), num_success), 0)
 
     summary_writer.scalar('steps/avg. steps taken',
                           statistics.mean(num_steps), 0)
@@ -1150,24 +1760,36 @@ def main(_):
                           statistics.mean(num_ground_truth_steps), 0)
     summary_writer.scalar(
         'steps/success and (taken > ground truth steps), among all successes',
-        len([0 for taken, gt, success in zip(num_steps,
-                                             num_ground_truth_steps, successes)
-             if taken > gt and success]) / num_success * 100, 0)
+        divide_no_nan(
+            len([0 for taken, gt, success in zip(num_steps,
+                                                 num_ground_truth_steps,
+                                                 successes)
+                 if taken > gt and success]) * 100,
+            num_success), 0)
     summary_writer.scalar(
         'steps/success and (taken < ground truth steps), among all successes',
-        len([0 for taken, gt, success in zip(num_steps,
-                                             num_ground_truth_steps, successes)
-             if taken < gt and success]) / num_success * 100, 0)
+        divide_no_nan(
+            len([0 for taken, gt, success in zip(num_steps,
+                                                 num_ground_truth_steps,
+                                                 successes)
+                 if taken < gt and success]) * 100,
+            num_success), 0)
     summary_writer.scalar(
         'steps/failure and (taken > ground truth steps), among all failures',
-        len([0 for taken, gt, success in zip(num_steps,
-                                             num_ground_truth_steps, successes)
-             if taken > gt and not success]) / num_failure * 100, 0)
+        divide_no_nan(
+            len([0 for taken, gt, success in zip(num_steps,
+                                                 num_ground_truth_steps,
+                                                 successes)
+                 if taken > gt and not success]) * 100,
+            num_failure), 0)
     summary_writer.scalar(
         'steps/failure and (taken < ground truth steps), among all failures',
-        len([0 for taken, gt, success in zip(num_steps,
-                                             num_ground_truth_steps, successes)
-             if taken < gt and not success]) / num_failure * 100, 0)
+        divide_no_nan(
+            len([0 for taken, gt, success in zip(num_steps,
+                                                 num_ground_truth_steps,
+                                                 successes)
+                 if taken < gt and not success]) * 100,
+            num_failure), 0)
 
     summary_writer.scalar('time/total time per problem',
                           statistics.mean(total_times), 0)

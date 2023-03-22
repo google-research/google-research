@@ -1130,7 +1130,7 @@ def main(_):
               else:
                 raise ValueError(f'Unknown model type {FLAGS.model_type}')
 
-              if score > 0:
+              if score == 1:
                 total_successes += 1
               total_denominator += 1
 
