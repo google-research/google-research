@@ -123,6 +123,7 @@
   table-layout: fixed;
 }
 .anthea-document-text-table p {
+  margin-bottom: 20px;
   max-width: 100ch;
   overflow-wrap: anywhere;
 }
