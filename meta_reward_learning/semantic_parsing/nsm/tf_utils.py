@@ -177,7 +177,7 @@ class SeqAttentionCellWrapper(tf.nn.rnn_cell.RNNCell):
     """
     if not isinstance(cell, rnn.RNNCell):
       raise TypeError('The parameter cell is not RNNCell.')
-    if nest.is_sequence(cell.state_size) and not state_is_tuple:
+    if nest.is_nested(cell.state_size) and not state_is_tuple:
       raise ValueError(
           'Cell returns tuple of states, but the flag '
           'state_is_tuple is not set. State size is: %s' % str(cell.state_size))
@@ -279,9 +279,9 @@ def linear(args, output_size, bias, bias_start=0.0):
   Raises:
     ValueError: if some of the arguments has unspecified or wrong shape.
   """
-  if args is None or (nest.is_sequence(args) and not args):
+  if args is None or (nest.is_nested(args) and not args):
     raise ValueError('`args` must be specified')
-  if not nest.is_sequence(args):
+  if not nest.is_nested(args):
     args = [args]
 
   # Calculate the total size of arguments on dimension 1.
