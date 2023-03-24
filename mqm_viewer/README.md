@@ -58,10 +58,11 @@ ten columns, one line per marked error:
     identifying the indices of the first and last target tokens in the marked
     span. These indices refer to the target_tokens array in the segment
     object.
-  - **segment**: An object that has information about the segment that is not
-    specific to any particular annotation/rating. This object may not
-    necessarily be repeated across multiple ratings for the same segment. The
-    segment object may contain the following fields:
+  - **segment**: An object that has information about the segment (from the
+    current doc+docSegId+system) that is not specific to any particular
+    annotation/rater. This object may not necessarily be repeated across
+    multiple ratings for the same segment. The segment object may contain the
+    following fields:
       - **references**: A mapping from names of references to the references
         themselves (e.g., {"ref_A": "The reference", "ref_B": "..."})
       - **primary_reference**: The name of the primary reference, which is
@@ -94,6 +95,8 @@ ten columns, one line per marked error:
         includes "errors" and "severities". Some bulky fields, notably
         "instructions" and "description" may have been stripped out from this
         object.
+    In MQMViewer, each metadata.evaluation object found is logged in the
+    JavaScript debug console.
 
 The "metadata" column used to be an optional "note" column, and MQM Viewer
 continues to support that legacy format. Going forward, the metadata object
@@ -124,32 +127,36 @@ filters.
     variables: **system**, **doc**, **docSegId**,
     **globalSegId**, **rater**, **category**, **severity**,
     **source**, **target**, **metadata**.
-  - Filter expressions also have access to an aggregated **segment**
-    variable that is an object with the following properties:
-    **segment.catsBySystem**,
-    **segment.catsByRater**,
-    **segment.sevsBySystem**,
-    **segment.sevsByRater**,
-    **segment.sevcatsBySystem**,
-    **segment.sevcatsByRater**.
-    Each of these properties is an object keyed by system or rater, with the
-    values being arrays of strings. The "sevcats\*" values look like
-    "Minor/Fluency/Punctuation" or are just the same as severities if
-    categories are empty. This segment-level aggregation allows you
-    to select specific segments rather than just specific error ratings.
-  - The segment object also includes a **segment.document** object with the
-    following properties:
-    **doc**, **thumbsUpCount**, **thumbsDownCount**.
+  - Filter expressions also have access to three aggregated objects in
+    variables named **aggrDoc**, **aggrDocSeg**, and **aggrDocSegSys**.
+    - **aggrDoc** has the following properties:
+      **doc**, **thumbsUpCount**, **thumbsDownCount**.
+    - **aggrDocSeg** is an object with the following properties:
+      - **aggrDocSeg.catsBySystem**,
+      - **aggrDocSeg.catsByRater**,
+      - **aggrDocSeg.sevsBySystem**,
+      - **aggrDocSeg.sevsByRater**,
+      - **aggrDocSeg.sevcatsBySystem**,
+      - **aggrDocSeg.sevcatsByRater**.
+      Each of these properties is an object keyed by system or rater, with the
+      values being arrays of strings. The "sevcats\*" values look like
+      "Minor/Fluency/Punctuation" or are just the same as severities if
+      categories are empty. This segment-level aggregation allows you
+      to select specific segments rather than just specific error ratings.
+    - **aggrDocSegSys** is just an alias for metadata.segment.
   - **Example**: globalSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
-  - **Example**: segment.sevsBySystem['System-42'].includes('Major')
-  - **Example**: JSON.stringify(segment.sevcatsBySystem).includes('Major/Fl')
+  - **Example**: aggrDocSeg.sevsBySystem['System-42'].includes('Major')
+  - **Example**: JSON.stringify(aggrDocSeg.sevcatsBySystem).includes('Major/Fl')
 
 ## Data Notes
 There are some nuances to the data format which are useful to be aware of:
 
-  - Error spans are marked in the source/target text using `<v>...</v>` tags
+  - Marked spans are noted in the source/target text using `<v>...</v>` tags
     to enclose them. For example: `The error is <v>here</v>.`
+  - Except in some legacy data, error spans are also identified at precise
+    token-level using the `metadata.source_spans` and `metadata.target_spans`
+    fields.
   - Severity and category names come directly from annotation tools and may
     have subtle variations (such as lowercase/uppercase differences or
     space-underscore changes).
