@@ -102,7 +102,7 @@ class Metrics(NamedTuple):
 
   @property
   def scalars_np(self):
-    return {k: np.float32(v) for k, v in self.scalars.items()}
+    return {k: np.float32(v) for k, v in self.scalars.items()}  # pytype: disable=bad-return-type  # numpy-scalars
 
   @property
   def scalars_float(self):

@@ -76,7 +76,7 @@ def plot_coordinates(positions, momentums,
   q_max = np.max(np.abs(qs))
   p_max = np.max(np.abs(ps))
   p_scale = (q_max / p_max) / 5
-  hs = jax.vmap(
+  hs = jax.vmap(  # pytype: disable=wrong-arg-types  # numpy-scalars
       compute_hamiltonian, in_axes=(0, 0, None))(qs, ps, simulation_parameters)
   hs_formatted = np.round(hs.squeeze(), 5)
 
@@ -162,7 +162,7 @@ def plot_coordinates_in_phase_space(
   num_steps = qs.shape[0]
   q_max = np.max(np.abs(qs))
   p_max = np.max(np.abs(ps))
-  hs = jax.vmap(
+  hs = jax.vmap(  # pytype: disable=wrong-arg-types  # numpy-scalars
       compute_hamiltonian, in_axes=(0, 0, None))(qs, ps, simulation_parameters)
   hs_formatted = np.round(hs.squeeze(), 5)
 

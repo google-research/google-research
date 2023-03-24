@@ -121,7 +121,7 @@ class ConceptPPOBuilder(
       optimizer = optax.chain(
           optax.clip_by_global_norm(self._config.max_gradient_norm),
           optax.scale_by_adam(eps=self._config.adam_epsilon),
-          optax.scale_by_schedule(self._config.learning_rate), optax.scale(-1))
+          optax.scale_by_schedule(self._config.learning_rate), optax.scale(-1))  # pytype: disable=wrong-arg-types  # numpy-scalars
     else:
       optimizer = optax.chain(
           optax.clip_by_global_norm(self._config.max_gradient_norm),

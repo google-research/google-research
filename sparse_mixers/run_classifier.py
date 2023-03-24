@@ -482,7 +482,7 @@ def train_and_evaluate(config, workdir,
       decay_steps=num_train_steps - num_warmup_steps,
   )
 
-  tx = optax.adamw(
+  tx = optax.adamw(  # pytype: disable=wrong-arg-types  # numpy-scalars
       learning_rate_fn, b1=0.9, b2=0.999, eps=1e-6, weight_decay=0.01)
   if config.clipped_grad_norm:
     tx = optax.chain(optax.clip_by_global_norm(config.clipped_grad_norm), tx)

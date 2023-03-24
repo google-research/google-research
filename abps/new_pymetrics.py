@@ -35,7 +35,7 @@ class PolicyUsageFrequency(py_metric.PyStepMetric):
 
   def __init__(self, name='PolicyUsageFrequency', buffer_size=10):
     super(PolicyUsageFrequency, self).__init__(name)
-    self._buffer = py_metrics.NumpyDeque(maxlen=buffer_size, dtype=np.float64)
+    self._buffer = py_metrics.NumpyDeque(maxlen=buffer_size, dtype=np.float64)  # pytype: disable=wrong-arg-types  # numpy-scalars
     self.reset()
 
   def reset(self):

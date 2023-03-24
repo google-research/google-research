@@ -450,7 +450,7 @@ def _train_step(
   updates, optimizer_state = optimizer.update(gradient, optimizer_state)
   params = optax.apply_updates(params, updates)
 
-  return {
+  return {  # pytype: disable=bad-return-type  # numpy-scalars
       'params': params,
       'key': key,
       'optimizer_state': optimizer_state,

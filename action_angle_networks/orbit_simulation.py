@@ -77,7 +77,7 @@ def compute_angular_momentum(
   """Computes the angular momentum at these coordinates."""
   del position, simulation_parameters
   p_phi = momentum[1]
-  return p_phi
+  return p_phi  # pytype: disable=bad-return-type  # numpy-scalars
 
 
 def compute_hamiltonian(position, momentum,

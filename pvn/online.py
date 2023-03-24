@@ -257,7 +257,7 @@ def train(
 
   if USE_TRAINABLE_ENCODER.value:
     encoder_wrapper = None
-    network_factory = create_q_network_with_encoder(
+    network_factory = create_q_network_with_encoder(  # pytype: disable=wrong-arg-types  # numpy-scalars
         num_features,
         encoder,
         encoder_params,

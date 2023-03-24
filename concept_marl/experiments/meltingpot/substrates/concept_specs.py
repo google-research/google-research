@@ -155,7 +155,7 @@ def binary_concept(num_agents,
     name: optional name for the spec.
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
-  return ConceptArray(
+  return ConceptArray(  # pytype: disable=wrong-arg-types  # numpy-scalars
       shape=(num_agents, num_objects,),
       dtype=np.int32,
       concept_type=ConceptType.BINARY,
@@ -179,7 +179,7 @@ def scalar_concept(num_agents,
     name: optional name for the spec.
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
-  return ConceptArray(
+  return ConceptArray(  # pytype: disable=wrong-arg-types  # numpy-scalars
       shape=(num_agents, num_objects,),
       dtype=np.float32,
       concept_type=ConceptType.SCALAR,
@@ -204,7 +204,7 @@ def categorical_concept(num_agents,
     name: optional name for the spec.
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
-  return CategoricalConceptArray(
+  return CategoricalConceptArray(  # pytype: disable=wrong-arg-types  # numpy-scalars
       shape=(num_agents, num_objects,),
       num_categories=num_values,
       object_type=obj_type,
@@ -228,7 +228,7 @@ def position_concept(num_agents,
     name: optional name for the spec.
   """
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
-  return ConceptArray(
+  return ConceptArray(  # pytype: disable=wrong-arg-types  # numpy-scalars
       shape=(num_agents, num_objects, 2),
       dtype=np.int32,
       concept_type=ConceptType.POSITION,
