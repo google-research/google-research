@@ -130,9 +130,15 @@ class ExpIgtOptimizer(object):
       estimate_slots = self._slots.setdefault('estimate', {})
       estimate_slots[_var_key(var)] = estimate
 
+      def initialized_value(v=var):
+        return tf.cond(
+            tf.is_variable_initialized(v),
+            v.read_value,
+            lambda: v.initial_value)
+
       # The true parameter values (the variables contain shifted parameters).
-      true_param = slot_creator.create_slot(var, var.initialized_value(),
-                                            'true_param')
+      true_param = slot_creator.create_slot(
+          var, initialized_value(var), 'true_param')
       true_slots = self._slots.setdefault('true_param', {})
       true_slots[_var_key(var)] = true_param
 
