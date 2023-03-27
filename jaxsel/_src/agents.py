@@ -114,7 +114,7 @@ class Agent(abc.ABC):
     for _ in range(50):
       neighbor_relations, neighbor_features, neighbor_ids = (
           graph.outgoing_neighbors_and_features(cur_id))
-      num_neighbors = neighbor_ids.shape[0]
+      num_neighbors = neighbor_ids.shape[0]  # pytype: disable=attribute-error  # always-use-return-annotations
       node_features = jnp.tile(graph.node_features(cur_id), [num_neighbors, 1])
       neighbor_logits = self(None, node_features, neighbor_relations,
                              neighbor_features)
@@ -137,7 +137,7 @@ class Agent(abc.ABC):
     """Computes rows corresponding to `node_ids` of the sparse adjacency matrix."""
     neighbor_relations, neighbor_features, neighbor_ids = (
         graph.outgoing_neighbors_and_features(node_ids))
-    num_neighbors = neighbor_ids.shape[0]
+    num_neighbors = neighbor_ids.shape[0]  # pytype: disable=attribute-error  # always-use-return-annotations
     node_features = jnp.tile(graph.node_features(node_ids), [num_neighbors, 1])
     logits = self(graph.task_features(), node_features, neighbor_relations,
                   neighbor_features)

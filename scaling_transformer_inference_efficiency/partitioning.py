@@ -302,7 +302,7 @@ def copy_to_device(x, sharding,
       # Further code is internal
     else:
       # Read from tensorstore using jax gda_serialization
-      (tensor,) = jax_gda_serialization.run_deserialization(
+      (tensor,) = jax_gda_serialization.run_deserialization(  # pytype: disable=wrong-arg-types  # always-use-return-annotations
           [sharding], [x], [expected.shape], [expected.dtype], concurrent_gb=64
       )
       return tensor
