@@ -21,7 +21,7 @@
 # pytype: disable=attribute-error
 
 import functools
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Optional, Sequence
 
 from flax.linen import attention
 from flax.linen import initializers
@@ -31,7 +31,7 @@ from jax import lax
 import jax.numpy as jnp
 
 PRNGKey = Any
-Shape = Iterable[int]
+Shape = Sequence[int]
 Dtype = Any
 Array = Any
 
@@ -115,7 +115,7 @@ class RelativeMultiHeadDotProductAttention(module.Module):
   dropout_rate: float = 0.
   deterministic: Optional[bool] = None
   precision: Any = None
-  kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = (  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = (
       linear.default_kernel_init)
   bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = initializers.zeros
   use_bias: bool = True

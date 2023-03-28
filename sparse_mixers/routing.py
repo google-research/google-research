@@ -15,7 +15,7 @@
 
 """Mixture of Experts routing mechanisms."""
 
-from typing import Any, Callable, Iterable, Tuple
+from typing import Any, Callable, Sequence, Tuple
 
 import flax
 from flax import linen as nn
@@ -25,7 +25,7 @@ import jax.numpy as jnp
 # Type Stubs
 PRNGKey = Any
 RouterOutput = Any
-Shape = Iterable[int]
+Shape = Sequence[int]
 
 # Switch Transformer (https://arxiv.org/abs/2101.03961) suggests using
 # nn.initializers.variance_scaling(0.1, "fan_in", "truncated_normal")
@@ -182,7 +182,7 @@ class RouterWeights(nn.Module):
   """
   use_bias: bool = True
   dtype: jnp.dtype = jnp.bfloat16
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init

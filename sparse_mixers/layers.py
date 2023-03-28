@@ -17,7 +17,7 @@
 
 import functools
 import math
-from typing import Any, Callable, Optional, Iterable
+from typing import Any, Callable, Optional, Sequence
 
 from absl import logging
 import flax
@@ -32,7 +32,7 @@ from sparse_mixers import routing
 
 # Type Stubs
 PRNGKey = Any
-Shape = Iterable[int]
+Shape = Sequence[int]
 
 default_kernel_init = nn.initializers.normal(stddev=2e-2)
 default_bias_init = nn.initializers.zeros
@@ -136,7 +136,7 @@ class FeedForwardLayer(GeneralizedFeedForwardLayer):
   dropout_rate: float = 0.0
   dtype: jnp.dtype = jnp.float32
   intermediate_activation: Callable[[jnp.ndarray], jnp.ndarray] = nn.gelu
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init
@@ -642,7 +642,7 @@ class AttentionLayer(nn.Module):
   dropout_rate: float = 0.
   dtype: jnp.dtype = jnp.float32
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init
@@ -824,7 +824,7 @@ class LinearTransform(MixingLayer):
     kernel_init: Initializer scheme for (matrix) kernel parameters.
     precision: XLA precision for matrix multiplication computations.
   """
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
@@ -933,7 +933,7 @@ class CirculantTransform(MixingLayer):
     precision: XLA precision for matrix multiplication computations.
   """
   use_fft: bool = False
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
@@ -1082,7 +1082,7 @@ class ToeplitzTransform(MixingLayer):
     precision: XLA precision for matrix multiplication computations.
   """
   use_fft: bool = False
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
@@ -1209,7 +1209,7 @@ class OutputProjection(nn.Module):
   kernel: Optional[jnp.ndarray] = None
   n_out: Optional[int] = None  # Required if kernel is None.
   bias: bool = True
-  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  kernel_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
   bias_init: Callable[[PRNGKey, Shape, jnp.dtype],
                       jnp.ndarray] = default_bias_init
@@ -1312,7 +1312,7 @@ class PositionalEncoding(nn.Module):
     posemb_init: Initializer scheme for positional embedding parameters.
   """
   seq_length: int
-  posemb_init: Callable[[PRNGKey, Shape, jnp.dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
+  posemb_init: Callable[[PRNGKey, Shape, jnp.dtype],
                         jnp.ndarray] = default_kernel_init
 
   @nn.compact
