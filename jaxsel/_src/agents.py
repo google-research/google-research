@@ -183,7 +183,7 @@ class Agent(abc.ABC):
 
 
 def product(iterable, start=1.):
-  return functools.reduce(jnp.multiply, iterable, start)
+  return functools.reduce(jnp.multiply, iterable, start)  # pytype: disable=wrong-arg-types  # numpy-scalars
 
 
 @struct.dataclass
