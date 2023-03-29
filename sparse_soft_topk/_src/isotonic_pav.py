@@ -449,7 +449,7 @@ def isotonic_mask_pav(s, w, l=1e-1, p=4 / 3, bisect_max_iter=50):
   shape_dtype = jax.ShapeDtypeStruct(
       shape=s.shape,
       dtype=s.dtype,
-      sharding=jax.sharding.OpShardingSharding.get_replicated(jax.devices()),
+      sharding=jax.sharding.GSPMDSharding.get_replicated(jax.devices()),
   )
   sol = jax.pure_callback(
       _isotonic_mask_pav,
@@ -917,7 +917,7 @@ def isotonic_mag_pav(s, w, l=1e-1, p=4 / 3, bisect_max_iter=50):
   shape_dtype = jax.ShapeDtypeStruct(
       shape=s.shape,
       dtype=s.dtype,
-      sharding=jax.sharding.OpShardingSharding.get_replicated(jax.devices()),
+      sharding=jax.sharding.GSPMDSharding.get_replicated(jax.devices()),
   )
   l = jnp.array(l, float)
   sol = jax.pure_callback(
