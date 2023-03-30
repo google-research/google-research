@@ -24,6 +24,7 @@ import threading
 from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import jax
+from jax import core
 from jax import pxla
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
@@ -256,7 +257,7 @@ def copy_to_device(x, sharding,
   """Copies the input to the device, however is appropriate for the input.
 
   If it's an np.ndarray, copies from host memory to device memory. If it's a
-  jax.ShapedArray, creates a jnp.zeros() of the appropriate shape in device
+  core.ShapedArray, creates a jnp.zeros() of the appropriate shape in device
   memory. If it's a tensorstore.Spec, fetches the data from tensorstore to
   device memory using JAX or Pathways, as appropriate for the current JAX
   backend.
@@ -285,7 +286,7 @@ def copy_to_device(x, sharding,
       return jax.lax.convert_element_type(x[i], expected.dtype)
 
     return jax.make_array_from_callback(x.shape, sharding, cb)
-  elif isinstance(x, jax.ShapedArray):
+  elif isinstance(x, core.ShapedArray):
 
     def sharded_zeros():
       return jnp.zeros(x.shape, expected.dtype)

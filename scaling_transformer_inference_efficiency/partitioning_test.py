@@ -19,6 +19,7 @@ import os
 
 from absl.testing import absltest
 import jax
+from jax import core
 import jax.numpy as jnp
 from jax.sharding import NamedSharding
 from jax.sharding import PartitionSpec as P
@@ -43,7 +44,7 @@ class PartitioningTest(absltest.TestCase):
 
 
   def test_copy_to_device_from_shape(self):
-    shape = jax.ShapedArray((4, 4), dtype=jnp.bfloat16)
+    shape = core.ShapedArray((4, 4), dtype=jnp.bfloat16)
     mesh = partitioning.make_mesh()
     x = partitioning.copy_to_device(shape,
                                     NamedSharding(mesh, P('x', ('y', 'z'))),
@@ -53,7 +54,7 @@ class PartitioningTest(absltest.TestCase):
 
   def test_copy_to_device_from_array(self):
     array = jnp.zeros((4, 4), jnp.bfloat16)
-    shape = jax.ShapedArray((4, 4), dtype=jnp.bfloat16)
+    shape = core.ShapedArray((4, 4), dtype=jnp.bfloat16)
     mesh = partitioning.make_mesh()
     x = partitioning.copy_to_device(array,
                                     NamedSharding(mesh, P('x', ('y', 'z'))),

@@ -30,6 +30,7 @@ from flax import serialization
 from flax import struct
 from flax import traverse_util
 import jax
+from jax import core
 import jax.numpy as jnp
 import numpy as np
 from seqio.vocabularies import SentencePieceVocabulary
@@ -273,27 +274,27 @@ class Checkpoint:
   """The contents of a checkpoint, without any postprocessing.
 
   Typically this is stored in host DRAM, or produced lazily as a
-  tensorstore.Spec or a jax.ShapedArray.
+  tensorstore.Spec or a core.ShapedArray.
   """
-  q_wi: Union[np.ndarray, jax.ShapedArray]
-  kv: Union[np.ndarray, jax.ShapedArray]
-  o_wo: Union[np.ndarray, jax.ShapedArray]
-  layernorm_scale: Union[np.ndarray, jax.ShapedArray]
-  embedding: Union[np.ndarray, jax.ShapedArray]
+  q_wi: Union[np.ndarray, core.ShapedArray]
+  kv: Union[np.ndarray, core.ShapedArray]
+  o_wo: Union[np.ndarray, core.ShapedArray]
+  layernorm_scale: Union[np.ndarray, core.ShapedArray]
+  embedding: Union[np.ndarray, core.ShapedArray]
 
   @classmethod
   def make_shaped_arrays(cls, h):
-    """Creates a Checkpoint populated by zero-footprint jax.ShapedArray."""
+    """Creates a Checkpoint populated by zero-footprint core.ShapedArray."""
     return Checkpoint(
-        q_wi=jax.ShapedArray(
+        q_wi=core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.bfloat16),
-        kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16),
-        o_wo=jax.ShapedArray(
+        kv=core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16),
+        o_wo=core.ShapedArray(
             (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
             jnp.bfloat16),
-        layernorm_scale=jax.ShapedArray((h.layers, h.embed), jnp.float32),
-        embedding=jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
+        layernorm_scale=core.ShapedArray((h.layers, h.embed), jnp.float32),
+        embedding=core.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
     )
 
   @classmethod
@@ -347,37 +348,37 @@ class QuantizedCheckpoint:
   """The contents of a checkpoint, without any postprocessing.
 
   Typically this is stored in host DRAM, or produced lazily as a
-  tensorstore.Spec or a jax.ShapedArray.
+  tensorstore.Spec or a core.ShapedArray.
 
   Separate quantized and non-quantized checkpoints to reduce code branching.
   """
-  q_wi: Union[np.ndarray, jax.ShapedArray]
-  q_wi_scale: Union[np.ndarray, jax.ShapedArray]
-  kv: Union[np.ndarray, jax.ShapedArray]
-  kv_scale: Union[np.ndarray, jax.ShapedArray]
-  o_wo: Union[np.ndarray, jax.ShapedArray]
-  o_wo_scale: Union[np.ndarray, jax.ShapedArray]
-  layernorm_scale: Union[np.ndarray, jax.ShapedArray]
-  embedding: Union[np.ndarray, jax.ShapedArray]
+  q_wi: Union[np.ndarray, core.ShapedArray]
+  q_wi_scale: Union[np.ndarray, core.ShapedArray]
+  kv: Union[np.ndarray, core.ShapedArray]
+  kv_scale: Union[np.ndarray, core.ShapedArray]
+  o_wo: Union[np.ndarray, core.ShapedArray]
+  o_wo_scale: Union[np.ndarray, core.ShapedArray]
+  layernorm_scale: Union[np.ndarray, core.ShapedArray]
+  embedding: Union[np.ndarray, core.ShapedArray]
 
   @classmethod
   def make_shaped_arrays(cls, h):
-    """Creates a Checkpoint populated by zero-footprint jax.ShapedArray."""
+    """Creates a Checkpoint populated by zero-footprint core.ShapedArray."""
     return QuantizedCheckpoint(
-        q_wi=jax.ShapedArray(
+        q_wi=core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.int8),
-        q_wi_scale=jax.ShapedArray(
+        q_wi_scale=core.ShapedArray(
             (h.layers, 1, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.bfloat16),
-        kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8),
-        kv_scale=jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.bfloat16),
-        o_wo=jax.ShapedArray(
+        kv=core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8),
+        kv_scale=core.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.bfloat16),
+        o_wo=core.ShapedArray(
             (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
             jnp.int8),
-        o_wo_scale=jax.ShapedArray((h.layers, 1, 1, h.embed), jnp.bfloat16),
-        layernorm_scale=jax.ShapedArray((h.layers, h.embed), jnp.float32),
-        embedding=jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
+        o_wo_scale=core.ShapedArray((h.layers, 1, 1, h.embed), jnp.bfloat16),
+        layernorm_scale=core.ShapedArray((h.layers, h.embed), jnp.float32),
+        embedding=core.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
     )
 
   @classmethod

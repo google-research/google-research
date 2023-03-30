@@ -27,6 +27,7 @@ from functools import partial  # pylint: disable=g-importing-member
 
 from flax import struct
 import jax
+from jax import core
 from jax import lax
 from jax import sharding
 from jax.experimental import pjit
@@ -137,18 +138,18 @@ class Weights:
   @classmethod
   def make_shaped_arrays(cls, h):
     """Creates weights populated with zero-footprint shaped arrays."""
-    q_wi = jax.ShapedArray(
+    q_wi = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head),
         jnp.bfloat16,
     )
-    kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16)
-    o_wo = jax.ShapedArray(
+    kv = core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16)
+    o_wo = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
         jnp.bfloat16,
     )
-    sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
+    sin = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    cos = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    embedding = core.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
     return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)  # pytype: disable=wrong-arg-types  # jax-types
 
   @classmethod
@@ -315,7 +316,7 @@ class Weights:
     q_wi = copy_to_device(
         c.q_wi,
         q_wi_input_axes,
-        jax.ShapedArray(
+        core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.bfloat16,
         ),
@@ -326,7 +327,7 @@ class Weights:
     layernorm_scale = copy_to_device(
         c.layernorm_scale,
         layernorm_scale_axes,
-        jax.ShapedArray((h.layers, h.embed), jnp.float32),
+        core.ShapedArray((h.layers, h.embed), jnp.float32),
     )
     embedding = copy_to_device(
         c.embedding, axes.embedding, expected_shapes.embedding
@@ -394,22 +395,22 @@ class QuantizedWeights:
   @classmethod
   def make_shaped_arrays(cls, h):
     """Creates weights populated with zero-footprint shaped arrays."""
-    q_wi = jax.ShapedArray(
+    q_wi = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head), jnp.int8
     )
-    q_wi_scale = jax.ShapedArray(
+    q_wi_scale = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, 1, h.q_wi_per_head), jnp.float32
     )
-    kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8)
-    kv_scale = jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
-    o_wo = jax.ShapedArray(
+    kv = core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8)
+    kv_scale = core.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
+    o_wo = core.ShapedArray(
         (h.layers, h.heads, h.o_wo_per_head, h.embed), jnp.int8
     )
-    o_wo_scale = jax.ShapedArray((h.layers, 1, 1, h.embed), jnp.float32)
-    sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
-    layernorm_scale = jax.ShapedArray((h.layers, h.embed), jnp.bfloat16)
+    o_wo_scale = core.ShapedArray((h.layers, 1, 1, h.embed), jnp.float32)
+    sin = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    cos = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    embedding = core.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
+    layernorm_scale = core.ShapedArray((h.layers, h.embed), jnp.bfloat16)
     return QuantizedWeights(  # pytype: disable=wrong-arg-types  # jax-types
         QuantizedLayer(  # pytype: disable=wrong-arg-types  # jax-types
             q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
@@ -541,7 +542,7 @@ class QuantizedWeights:
     q_wi = copy_to_device(
         c.q_wi,
         q_wi_input_axes,
-        jax.ShapedArray(
+        core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.int8,
         ),
@@ -549,7 +550,7 @@ class QuantizedWeights:
     q_wi_scale = copy_to_device(
         c.q_wi_scale,
         q_wi_scale_input_axes,
-        jax.ShapedArray(
+        core.ShapedArray(
             (h.layers, 1, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.float32,
         ),
