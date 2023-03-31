@@ -68,6 +68,8 @@ ten columns, one line per marked error:
       - **primary_reference**: The name of the primary reference, which is
         a key in the "references" mapping (e.g., "ref_A"). This field is
         required if "references" is present.
+      - **metrics**: A dictionary in which the keys are the names of metrics
+        (such as "Bleurt-X") and values are the numbers for those metrics.
       - **source_tokens**: An array of source text tokens.
       - **target_tokens**: An array of target text tokens.
       - **source_sentence_tokens**: An array specifying sentence segmentation
