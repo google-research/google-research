@@ -18,7 +18,7 @@ The following table contains pretrained UL2 checkpoints.
 | UL2    | 20B  | 1870000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/ul220b/checkpoint_1870000` |
 | UL2    | 20B  | 2050000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/ul220b/checkpoint_2050000` |
 | UL2    | 20B  | 2650000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/ul220b/checkpoint_2650000` |
-| Flan-UL2    | 20B  | 2283000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/flan-ul220b/checkpoint_2283000` |
+| Flan-UL2    | 20B  | 2283000| [T5 configs](https://storage.googleapis.com/scenic-bucket/ul2/ul220b/config.gin)| `gs://scenic-bucket/ul2/flan-ul220b-v3` |
 
 ## Reference
 
