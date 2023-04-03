@@ -16,5 +16,5 @@ gc_every: 5000
 use_pixel_centers: true
 sparsity_strength: 0.0001
 chunk: 1024
-net_width: 256
-voxel_resolution: 128
+net_width: 128
+voxel_resolution: 64
