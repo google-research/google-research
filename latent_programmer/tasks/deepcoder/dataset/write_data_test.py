@@ -111,15 +111,15 @@ class WriteDataTest(parameterized.TestCase):
       is_train=[True, False],
       canonical_variable_order=[True, False],
       num_examples=[2, 5],
-      mod=[0, 20],
       max_length=[5, 20],
+      max_int=[50, 256],
   )
   def test_generate_task_for_experiment(
       self, experiment, is_train, canonical_variable_order, num_examples,
-      mod, max_length):
+      max_length, max_int):
     with flagsaver.flagsaver(num_examples=num_examples,
-                             deepcoder_mod=mod,
-                             deepcoder_max_list_length=max_length):
+                             deepcoder_max_list_length=max_length,
+                             deepcoder_max_int=max_int):
       for _ in range(10):
         task = write_data.generate_task_for_experiment(
             experiment.name, is_train, canonical_variable_order)

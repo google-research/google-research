@@ -26,9 +26,9 @@ from latent_programmer.tasks.deepcoder import experiment as exp_module
 # Multiple inputs for one example.
 InputsList = List[Union[int, List[int]]]
 
-# When not using mod, these are potential ranges to draw integers from, to fill
-# a random input list. For a particular input, all examples will use the same
-# range. These ranges include both endpoints.
+# These are potential ranges to draw integers from, to fill a random input list.
+# For a particular input, all examples will use the same range. These ranges
+# include both endpoints.
 # (Integer inputs don't use this. Instead they are constrained to
 # [0, max_list_length] because int inputs are only useful as arguments to Take,
 # Drop, and Access.)
@@ -39,7 +39,7 @@ LIST_INT_RANGES = [
     (-50, 50),
 ]
 
-# When not using mod, we need short lists with small numbers to use Scanl1 (*).
+# We need short lists with small numbers to use Scanl1 (*).
 # Note that the result must only contain integers in range, for all examples,
 # which is unlikely unless we choose short lists with small-magnitude integers.
 LENGTH_RANGES = [
@@ -75,13 +75,12 @@ def random_inputs(num_examples, num_inputs,
 
   # Choose some constraints on input lists that will be used for all examples.
   # Ranges are inclusive.
-  if dsl.deepcoder_mod() > 0:
-    list_int_ranges = [(0, dsl.deepcoder_mod() - 1)] * num_inputs
-  else:
-    int_range_options = [(x, y) for x, y in LIST_INT_RANGES
-                         if dsl.min_int() < x and y < dsl.max_int()]
-    int_range_options.append((dsl.min_int(), dsl.max_int()))
-    list_int_ranges = random.choices(int_range_options, k=num_inputs)
+  int_range_options = [
+      (x, y) for x, y in LIST_INT_RANGES
+      if dsl.deepcoder_min_int() < x and y < dsl.deepcoder_max_int()
+  ]
+  int_range_options.append((dsl.deepcoder_min_int(), dsl.deepcoder_max_int()))
+  list_int_ranges = random.choices(int_range_options, k=num_inputs)
   length_range_options = _get_length_range_options(
       dsl.deepcoder_max_list_length())
   length_ranges = random.choices(length_range_options, k=num_inputs)
@@ -97,8 +96,6 @@ def random_inputs(num_examples, num_inputs,
         # because int inputs are only useful as arguments to Take, Drop, and
         # Access. No other operation takes an integer input.
         max_int = dsl.deepcoder_max_list_length()
-        if dsl.deepcoder_mod() > 0:
-          max_int = min(max_int, dsl.deepcoder_mod() - 1)
         random_input = random.randint(0, max_int)
       else:
         assert type_ == list
@@ -123,7 +120,7 @@ def random_new_variable(existing_variables,
         return v
     raise ValueError('All variables were already used.')
   else:
-    choices = list(dsl.ALL_VARIABLES - set(existing_variables))
+    choices = sorted(list(dsl.ALL_VARIABLES - set(existing_variables)))
     if not choices:
       raise ValueError('All variables were already used.')
     return random.choice(choices)

@@ -35,7 +35,6 @@ class DeepcoderDslTest(parameterized.TestCase):
     self.square_lambda = dsl.TOKEN_TO_LAMBDA['(**2)']
     self.times_3_lambda = dsl.TOKEN_TO_LAMBDA['(*3)']
     self._saved_flags = flagsaver.save_flag_values()
-    FLAGS.deepcoder_mod = 0  # Tests don't use mod unless otherwise specified.
 
   def tearDown(self):
     flagsaver.restore_flag_values(self._saved_flags)
@@ -318,17 +317,6 @@ class DeepcoderDslTest(parameterized.TestCase):
     self.assertEqual(result, expected)
     if result is not None:
       self.assertEqual(type(result), op.output_type)
-
-  @parameterized.named_parameters(
-      ('0', 0, [6, 18, -24, 21, -15]),
-      ('10', 10, [6, 8, 6, 1, 5]),
-      ('20', 20, [6, 18, 16, 1, 5]),
-  )
-  def test_with_mod(self, mod, expected):
-    with flagsaver.flagsaver(deepcoder_mod=mod):
-      self.assertEqual(
-          self.map_op.run([self.times_3_lambda.func, [2, 6, -8, 7, -5]]),
-          expected)
 
   def test_vocab_tables(self):
     id_to_token, token_to_id = dsl.vocab_tables()

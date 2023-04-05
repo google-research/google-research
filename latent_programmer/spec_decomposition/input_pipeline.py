@@ -19,7 +19,6 @@ import tensorflow as tf
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
-from latent_programmer.tasks.scan import scan_vocab
 
 gfile = tf.io.gfile
 
@@ -217,62 +216,6 @@ def create_deepcoder_dataset(
         new_name: all_data_dict[old_name]
         for new_name, old_name in renaming_dict.items()
     }
-
-  dataset = raw_dataset.map(_parse_fn)
-  return dataset
-
-
-def create_scan_dataset_from_tf_record(
-    file_pattern, token_id_table, char_id_table, use_bos_separators):
-  """Returns an instance of tf.data.Dataset."""
-  del char_id_table
-  if 1 + 1 == 2:  # Avoid an unreachable code lint error.
-    raise NotImplementedError()  # TODO(kshi): Implement.
-
-  filenames = gfile.glob(file_pattern)
-  raw_dataset = tf.data.TFRecordDataset(filenames)
-
-  bos_token = token_id_table[scan_vocab.BOS]
-  eos_token = token_id_table[scan_vocab.EOS]
-
-  def _parse_fn(record):
-    """Parses a record into a feature_dict."""
-    feature_values = tf.io.parse_single_example(
-        serialized=record,
-        features={
-            'input': tf.io.FixedLenFeature([], tf.string, default_value=''),
-            'output': tf.io.FixedLenFeature([], tf.string, default_value=''),
-        })
-
-    # Step 1. Parse input tokens.
-    input_str = feature_values['input']
-    input_split = tf.strings.split(input_str, sep=' ')
-    input_tokens = tf.strings.to_number(input_split, out_type=tf.int32)
-    input_tokens = tf.expand_dims(input_tokens, axis=0)
-
-    # Step 2. Create dummy "output" (analogous to RobustFill's output).
-    dummy = input_tokens
-
-    # Step 3. Parse output program into tokens.
-    program = feature_values['output']
-    # Add BOS between every part, then add BOS followed by EOS. `program` has a
-    # | between parts (not at the beginning or end of the sequence, and no
-    # spaces around |).
-    if use_bos_separators:
-      program = tf.strings.join([
-          tf.strings.regex_replace(program, r'\|', ' {} '.format(bos_token)),
-          ' {} {}'.format(bos_token, eos_token),
-      ])
-    else:
-      program = tf.strings.join([
-          tf.strings.regex_replace(program, r'\|', ' '),
-          ' {}'.format(eos_token),
-      ])
-    # Parse numbers.
-    program = tf.strings.split(program, sep=' ')
-    program = tf.strings.to_number(program, out_type=tf.int32)
-
-    return input_tokens, dummy, program
 
   dataset = raw_dataset.map(_parse_fn)
   return dataset

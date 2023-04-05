@@ -32,21 +32,20 @@ class DatasetTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self._saved_flags = flagsaver.save_flag_values()
-    FLAGS.deepcoder_mod = 0  # Tests don't use mod unless otherwise specified.
 
   def tearDown(self):
     flagsaver.restore_flag_values(self._saved_flags)
     super().tearDown()
 
   @parameterized.product(
-      mod=[0, 10, 20],
       max_length=[5, 20],
+      max_int=[50, 256],
       num_inputs=[1, 2],
       num_examples=[1, 3, 5],
   )
-  def test_random_inputs(self, mod, max_length, num_inputs, num_examples):
-    with flagsaver.flagsaver(deepcoder_mod=mod,
-                             deepcoder_max_list_length=max_length):
+  def test_random_inputs(self, max_length, max_int, num_inputs, num_examples):
+    with flagsaver.flagsaver(deepcoder_max_list_length=max_length,
+                             deepcoder_max_int=max_int):
       example_inputs = sample_random.random_inputs(num_examples, num_inputs)
       # Shape is (num_examples, num_inputs).
       self.assertLen(example_inputs, num_examples)
@@ -165,14 +164,14 @@ class DatasetTest(parameterized.TestCase):
       experiment=list(exp_module.Experiment),
       is_train=[True, False],
       canonical_variable_order=[True, False],
-      mod=[0, 20],
       max_length=[5, 20],
+      max_int=[50, 256],
   )
   def test_random_task(self, num_inputs, num_statements, experiment, is_train,
-                       canonical_variable_order, mod, max_length):
+                       canonical_variable_order, max_length, max_int):
     for _ in range(10):
-      with flagsaver.flagsaver(deepcoder_mod=mod,
-                               deepcoder_max_list_length=max_length):
+      with flagsaver.flagsaver(deepcoder_max_list_length=max_length,
+                               deepcoder_max_int=max_int):
         task = sample_random.random_task(
             num_examples=5,
             num_inputs=num_inputs,

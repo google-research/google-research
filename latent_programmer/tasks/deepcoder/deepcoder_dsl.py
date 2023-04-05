@@ -29,7 +29,6 @@ Features:
           * Check to make sure the random program doesn't have dead code
       * Generate random inputs for a program
       * Ways of generating compositional generalization splits
-  * A flag controlling whether we use modular arithmetic or not
 
 Helpful properties to know:
 
@@ -67,10 +66,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from absl import flags
 
-_DEEPCODER_MOD = flags.DEFINE_integer(
-    'deepcoder_mod', 0,
-    'The modulo we use for DeepCoder arithmetic, or 0 to not apply any mod.')
-
 _DEEPCODER_MAX_LIST_LENGTH = flags.DEFINE_integer(
     'deepcoder_max_list_length', 20,
     'The maximum length of a DeepCoder list input.')
@@ -78,11 +73,6 @@ _DEEPCODER_MAX_LIST_LENGTH = flags.DEFINE_integer(
 _DEEPCODER_MAX_INT = flags.DEFINE_integer(
     'deepcoder_max_int', 256,
     'The maximum value of a DeepCoder int.')
-
-
-def deepcoder_mod():
-  """Hides the internal flag from code outside this module."""
-  return _DEEPCODER_MOD.value
 
 
 def deepcoder_max_list_length():
@@ -93,6 +83,12 @@ def deepcoder_max_list_length():
 def deepcoder_max_int():
   """Hides the internal flag from code outside this module."""
   return _DEEPCODER_MAX_INT.value
+
+
+def deepcoder_min_int():
+  # Originally DeepCoder used the range [-255, 256] where the endpoints are
+  # asymmetric. We use symmetric endpoints here.
+  return -1 * deepcoder_max_int()
 
 
 # Types for type specifications, e.g., `([int], bool)` has type LambdaType and
@@ -164,34 +160,9 @@ def join_token_lists(token_lists,
   return functools.reduce(lambda a, b: a + [separator_token] + b, token_lists)
 
 
-def mod_result(result):
-  """If desired, apply mod to ints."""
-  if result is None:
-    return result
-  if deepcoder_mod() > 0:
-    result_type = type(result)
-    if result_type == int:
-      return result % deepcoder_mod()
-    elif result_type == list:
-      return [x % deepcoder_mod() for x in result]
-    else:
-      raise DeepCoderError(f'Unhandled result in mod_result: {result}')
-  return result
-
-
-def min_int():
-  # Originally DeepCoder used the range [-255, 256] where the endpoints are
-  # asymmetric. We use symmetric endpoints here.
-  return 0 if deepcoder_mod() > 0 else -1 * deepcoder_max_int()
-
-
-def max_int():
-  return deepcoder_mod() - 1 if deepcoder_mod() > 0 else deepcoder_max_int()
-
-
 def validate_int(i):
   """Checks that the integer is in range."""
-  return min_int() <= i <= max_int()
+  return deepcoder_min_int() <= i <= deepcoder_max_int()
 
 
 def validate_result(result):
@@ -343,7 +314,6 @@ class Operation(Function):
     except TypeError as e:
       raise RunError(
           f'Encountered TypeError when running {self.func} on {inputs}') from e
-    result = mod_result(result)
     if not validate_result(result):
       return None
     return result
@@ -624,7 +594,8 @@ def vocab_tables():
 
   # These tokens may change based on flags or other settings.
   tokens.extend(variable_token(index) for index in range(MAX_NUM_VARIABLES))
-  tokens.extend(str(i) for i in range(min_int(), max_int() + 1))
+  tokens.extend(str(i)
+                for i in range(deepcoder_min_int(), deepcoder_max_int() + 1))
 
   # Construct mappings between tokens and ids.
   id_to_token = {i: token for i, token in enumerate(tokens)}

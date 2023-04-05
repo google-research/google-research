@@ -42,7 +42,6 @@ from latent_programmer.spec_decomposition import decode
 from latent_programmer.spec_decomposition import decomposition_models as models
 from latent_programmer.spec_decomposition import input_pipeline
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
-from latent_programmer.tasks.deepcoder import sample_random as deepcoder_sample_random
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
 
@@ -56,10 +55,13 @@ _SAVE_DIR = flags.DEFINE_string(
 # Flags for dataset info.
 _DATASET_TYPE = flags.DEFINE_enum(
     'dataset_type', 'robust_fill',
-    ['robust_fill', 'robust_fill_base', 'deepcoder', 'scan'],
+    ['robust_fill', 'robust_fill_base', 'deepcoder'],
     'The kind of dataset to use.')
-_TEST_DATASET = flags.DEFINE_string(
-    'test_dataset', None, 'Filepattern for TFRecord test dataset.')
+_EXPERIMENT = flags.DEFINE_string(
+    'experiment', 'NONE',
+    'Kind of experiment.')
+_TEST_DATASET_FORMAT = flags.DEFINE_string(
+    'test_dataset_format', None, 'Filepattern for TFRecord test dataset.')
 _NUM_TEST_BATCHES = flags.DEFINE_integer(
     'num_test_batches', 200, 'Number of test batches.')
 _NUM_EXAMPLES = flags.DEFINE_integer(
@@ -73,12 +75,15 @@ _MAX_SPEC_PART_LENGTH = flags.DEFINE_integer(
     'max_spec_part_length', 200, 'Maximum number of characters in spec part.')
 
 # Model training hyperparameters.
-_SPEC_DECOMPOSER_PATH = flags.DEFINE_string(
-    'spec_decomposer_path', None,
+_SPEC_DECOMPOSER_PATH_FORMAT = flags.DEFINE_string(
+    'spec_decomposer_path_format', None,
     'Directory with saved weights for SpecDecomposer.')
-_SYNTHESIZER_PATH = flags.DEFINE_string(
-    'synthesizer_path', None,
+_SYNTHESIZER_PATH_FORMAT = flags.DEFINE_string(
+    'synthesizer_path_format', None,
     'Directory with saved weights for Synthesizer.')
+_SEED = flags.DEFINE_integer(
+    'seed', 0,
+    'Seed used for training.')
 _EMBEDDING_DIM = flags.DEFINE_integer(
     'embedding_dim', 256, 'Embedding dimension.')
 _HIDDEN_DIM = flags.DEFINE_integer(
@@ -91,13 +96,6 @@ _DROPOUT_RATE = flags.DEFINE_float(
     'dropout_rate', 0, 'Dropout rate')
 _ATTENTION_DROPOUT_RATE = flags.DEFINE_float(
     'attention_dropout_rate', 0, 'Attention dropout rate')
-_FINAL_OUTPUT_DROPOUT_RATE = flags.DEFINE_float(
-    'final_output_dropout_rate', 0,
-    'Dropout rate for the final_output portion of the SynthesizerModel.')
-_FINAL_OUTPUT_ATTENTION_DROPOUT_RATE = flags.DEFINE_float(
-    'final_output_attention_dropout_rate', 0,
-    'Attention dropout rate for the final_output portion of the '
-    'SynthesizerModel.')
 _SPEC_DECOMPOSER_NUM_POSITION_BUCKETS = flags.DEFINE_integer(
     'spec_decomposer_num_position_buckets', 32,
     'Number of relative attention position buckets in SpecDecomposer.')
@@ -116,22 +114,16 @@ _SPEC_DECOMPOSER_MAX_PROGRAM_CROSS_EMBED_DISTANCE = flags.DEFINE_integer(
 _SYNTHESIZER_MAX_PROGRAM_CROSS_EMBED_DISTANCE = flags.DEFINE_integer(
     'synthesizer_max_program_cross_embed_distance', 100,
     'Max distance for relative attention positions in Synthesizer.')
-_SPEC_DECOMPOSER_ENCODED_SELF_ATTENTION = flags.DEFINE_bool(
-    'spec_decomposer_encoded_self_attention', True,
-    'Whether to apply self-attention to encoded I/O in SpecDecomposer.')
-_SYNTHESIZER_ENCODED_SELF_ATTENTION = flags.DEFINE_bool(
-    'synthesizer_encoded_self_attention', False,
-    'Whether to apply self-attention to encoded I/O in Synthesizer.')
 _USE_RELATIVE_ATTENTION = flags.DEFINE_bool(
     'use_relative_attention', True,
     'Whether to use relative positonal embeddings.')
 _ALIGNED_RELATIVE_ATTENTION = flags.DEFINE_bool(
     'aligned_relative_attention', True,
     'Whether to align relative attention positions between targets and encoded '
-    'I/O examples.')
-_FINAL_OUTPUT_ENCODING = flags.DEFINE_bool(
-    'final_output_encoding', True,
-    'Whether the SynthesizerModel uses the final_output or not.')
+    'I/O examples, only relevant for the SpecDecomposerModel.')
+_CORRUPTION_RATE = flags.DEFINE_float(
+    'corruption_rate', 0.0,
+    'Next part corruption rate for the SynthesizerModel.')
 
 # Flags for end-to-end prediction settings.
 _BEAM_SIZE = flags.DEFINE_integer(
@@ -160,29 +152,12 @@ _SLOW_DECODE = flags.DEFINE_boolean(
 _DETECT_INVALID = flags.DEFINE_bool(
     'detect_invalid', True,
     'Whether to detect invalid beam elements and mark them as finished.')
-_CHANGE_INVALID_SCORES = flags.DEFINE_bool(
-    'change_invalid_scores', True,
-    'Whether to change scores of invalid beam elements to NEG_INF.')
 _USE_EXECUTION = flags.DEFINE_bool(
     'use_execution', True,
     'Whether to guide beam search with program execution results.')
-
 _DISCARD_REPEAT_FUNCTIONALITY = flags.DEFINE_bool(
     'discard_repeat_functionality', True,
     'Whether to mark duplicate program functionality in a beam as invalid.')
-_DISCARD_REDUNDANT_PROGRAMS = flags.DEFINE_bool(
-    'discard_redundant_programs', True,
-    'Whether to mark programs with redundant parts as invalid.')
-_DEEPCODER_MISMATCH_INVALID = flags.DEFINE_bool(
-    'deepcoder_mismatch_invalid', False,
-    'Whether to mark a beam element as invalid if the predicted program part '
-    'does not execute to the predicted spec part.')
-_GREEDY_SPEC_DECOMPOSER = flags.DEFINE_bool(
-    'greedy_spec_decomposer', True,
-    'Whether the SpecDecomposerModel does greedy decoding or a beam search.')
-_FILL_EMPTY_BEAM = flags.DEFINE_bool(
-    'fill_empty_beam', True,
-    'If greedy_spec_decomposer, whether to fill empty/invalid beam space.')
 
 # Logging settings.
 _NUM_EXAMPLES_TO_LOG = flags.DEFINE_integer(
@@ -372,112 +347,9 @@ def end_to_end_beam_init(batch_size,
       finished_aux=finished_aux)
 
 
-def greedy_predict_step(params,
-                        inputs,  # Contains beam dimension.
-                        outputs,  # Contains beam dimension.
-                        final_outputs,
-                        cache,
-                        aux,
-                        beam_size,
-                        eos_token,
-                        max_decode_len,
-                        config,
-                        slow_decode=True):
-  """Predict translation with fast decoding beam search on a batch."""
-  # Prepare transformer fast-decoder call for beam search: for beam search, we
-  # need to set up our decoder model to handle a batch size equal to
-  # batch_size * beam_size, where each batch item's data is expanded in-place
-  # rather than tiled.
-  batch_size = inputs.shape[0]
-
-  # encoded shape == [batch, beam, ...]
-  encoded = decode.unflatten_beam_dim(
-      models.DecomposeAttentionTransformer(config).apply(
-          {'params': params},
-          decode.flatten_beam_dim(inputs),
-          decode.flatten_beam_dim(outputs),
-          decode.flatten_beam_dim(final_outputs),
-          method=models.DecomposeAttentionTransformer.encode),
-      batch_size,
-      beam_size)
-  encoded_padding_mask = jnp.where(
-      outputs > 0, 1, 0).astype(jnp.float32)
-
-  # shape == [batch, beam, ...]
-  beam_init_state = end_to_end_beam_init(
-      batch_size, beam_size, max_decode_len, encoded, encoded_padding_mask,
-      cache, aux, bos_token=config.base_config.bos_token)
-
-  # Let batch' = batch * beam
-  # Convert [batch, beam, ...] -> [batch', 1, ...]
-  encoded = decode.add_beam_dim(decode.flatten_beam_dim(encoded), 1)
-  encoded_padding_mask = decode.add_beam_dim(
-      decode.flatten_beam_dim(encoded_padding_mask), 1)
-  beam_init_state = jax.tree_map(
-      lambda x: decode.add_beam_dim(decode.flatten_beam_dim(x), 1),
-      beam_init_state)
-
-  if slow_decode:
-    # shape of parameters == [batch' * 1, ...]
-    def tokens_ids_to_logits(flat_ids, flat_encoded, flat_encoded_padding_mask):
-      """Token slice to logits from decoder model."""
-      # --> [batch' * 1, 1, vocab]
-      flat_logits = models.DecomposeAttentionTransformer(config=config).apply(
-          {'params': params},
-          flat_ids,
-          flat_encoded,
-          flat_encoded_padding_mask,
-          method=models.DecomposeAttentionTransformer.decode)
-      return flat_logits
-  else:
-    # shape of parameters == [batch' * 1, ...]
-    def tokens_ids_to_logits(flat_ids, flat_encoded, flat_encoded_padding_mask,
-                             flat_cache):
-      """Token slice to logits from decoder model."""
-      # --> [batch' * 1, 1, vocab]
-      flat_logits, new_vars = models.DecomposeAttentionTransformer(
-          config=config).apply(
-              {'params': params, 'cache': flat_cache},
-              flat_ids,
-              flat_encoded,
-              flat_encoded_padding_mask,
-              mutable=['cache'],
-              method=models.DecomposeAttentionTransformer.decode)
-      new_flat_cache = new_vars['cache']
-      # Remove singleton sequence-length dimension:
-      # [batch' * 1, 1, vocab] --> [batch' * 1, vocab]
-      flat_logits = flat_logits.squeeze(axis=1)
-      return flat_logits, new_flat_cache
-
-  # Using the above-defined single-step decoder function, run a
-  # beam search over possible sequences given input encoding.
-
-  # shape = [batch', 1, ...]
-  beam_state = decode.beam_search(
-      decode.flatten_beam_dim(inputs),
-      encoded,
-      encoded_padding_mask,
-      cache,
-      tokens_ids_to_logits,
-      1,  # beam_size is 1 to do a greedy decoding.
-      alpha=0.0,  # If we use a brevity penalty, we'll adjust the running score
-                  # multiple times, once for each model call, which isn't good.
-      bos_token=config.base_config.bos_token,
-      eos_token=eos_token,
-      max_decode_len=max_decode_len,
-      slow_decode=slow_decode,
-      beam_search_init_state=beam_init_state)
-  # Convert [batch', 1, ...] -> [batch, beam, ...]
-  return jax.tree_map(
-      lambda x: decode.unflatten_beam_dim(  # pylint: disable=g-long-lambda
-          decode.flatten_beam_dim(x), batch_size, beam_size),
-      beam_state)
-
-
 def end_to_end_predict_step(params,
                             inputs,  # Contains beam dimension.
                             outputs,  # Contains beam dimension.
-                            final_outputs,
                             cache,
                             aux,
                             beam_size,
@@ -496,7 +368,6 @@ def end_to_end_predict_step(params,
           {'params': params},
           decode.flatten_beam_dim(inputs),
           decode.flatten_beam_dim(outputs),
-          decode.flatten_beam_dim(final_outputs),
           method=models.DecomposeAttentionTransformer.encode),
       batch_size,
       beam_size)
@@ -555,6 +426,16 @@ def end_to_end_predict_step(params,
       beam_search_init_state=beam_init_state)
 
 
+def format_path(model_or_dataset_path):
+  format_dict = {
+      'seed': _SEED.value,
+      'experiment': _EXPERIMENT.value,
+      'corruption_rate': _CORRUPTION_RATE.value,
+      'aligned_relative_attention': _ALIGNED_RELATIVE_ATTENTION.value,
+  }
+  return model_or_dataset_path.format(**format_dict)
+
+
 def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
                                spec_target_shape, bos_id, eos_id, sep_id):
   """Loads SpecDecomposerModel."""
@@ -587,19 +468,15 @@ def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
       num_program_relative_position_buckets=num_position_buckets,
       max_program_distance=max_distance,
       num_program_cross_embed_relative_position_buckets=num_position_buckets,
-      max_program_cross_embed_distance=max_program_cross_embed_distance,
-      num_flat_encoding_relative_position_buckets=num_position_buckets,
-      max_flat_encoding_distance=max_distance)
+      max_program_cross_embed_distance=max_program_cross_embed_distance)
   spec_decomposer_predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=spec_decomposer_base_config,
       dataset_type=_DATASET_TYPE.value,
-      final_output_encoding=False,
-      flat_encoded_self_attention=_SPEC_DECOMPOSER_ENCODED_SELF_ATTENTION.value,
       aligned_relative_attention=_ALIGNED_RELATIVE_ATTENTION.value,
       separator_token_id=sep_id)
 
   m = models.DecomposeAttentionTransformer(spec_decomposer_predict_config)
-  initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
+  initial_variables = jax.jit(m.init)(init_rng,
                                       jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(spec_target_shape, jnp.float32))
@@ -608,7 +485,8 @@ def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
       1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
   spec_decomposer_optimizer = optimizer_def.create(initial_variables['params'])
   spec_decomposer_optimizer = checkpoints.restore_checkpoint(
-      _SPEC_DECOMPOSER_PATH.value, spec_decomposer_optimizer)
+      format_path(_SPEC_DECOMPOSER_PATH_FORMAT.value),
+      spec_decomposer_optimizer)
   logging.info('Found spec decomposer checkpointed at step %d.',
                int(spec_decomposer_optimizer.state.step))
 
@@ -618,27 +496,15 @@ def load_spec_decomposer_model(init_rng, spec_vocab_size, io_shape,
                         max_decode_len=_MAX_SPEC_PART_LENGTH.value,
                         config=spec_decomposer_predict_config,
                         slow_decode=_SLOW_DECODE.value),
-      static_argnums=(6,),  # The `beam_size` argument.
-  )
-  spec_decomposer_greedy_pred_step = jax.jit(
-      functools.partial(greedy_predict_step,
-                        eos_token=eos_id,
-                        max_decode_len=_MAX_SPEC_PART_LENGTH.value,
-                        config=spec_decomposer_predict_config,
-                        slow_decode=_SLOW_DECODE.value),
-      static_argnums=(6,),  # The `beam_size` argument.
+      static_argnums=(5,),  # The `beam_size` argument.
   )
 
-  return (spec_decomposer_optimizer, spec_decomposer_pred_step,
-          spec_decomposer_greedy_pred_step)
+  return spec_decomposer_optimizer, spec_decomposer_pred_step
 
 
 def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
                            io_shape, program_shape, bos_id, eos_id):
   """Loads synthesizer or joint model."""
-  if _PREDICTION_TYPE.value == 'joint' and _FINAL_OUTPUT_ENCODING.value:
-    raise ValueError('final_output_encoding should be False when using joint '
-                     'prediction.')
 
   num_position_buckets = _SYNTHESIZER_NUM_POSITION_BUCKETS.value
   max_distance = _SYNTHESIZER_MAX_DISTANCE.value
@@ -669,21 +535,16 @@ def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
       num_program_relative_position_buckets=num_position_buckets,
       max_program_distance=max_distance,
       num_program_cross_embed_relative_position_buckets=num_position_buckets,
-      max_program_cross_embed_distance=max_program_cross_embed_distance,
-      num_flat_encoding_relative_position_buckets=num_position_buckets,
-      max_flat_encoding_distance=max_distance)
+      max_program_cross_embed_distance=max_program_cross_embed_distance)
   synthesizer_predict_config = models.DecomposeAttentionTransformerConfig(
       base_config=synthesizer_base_config,
       dataset_type=_DATASET_TYPE.value,
-      final_output_encoding=_FINAL_OUTPUT_ENCODING.value,
-      final_output_dropout_rate=_FINAL_OUTPUT_DROPOUT_RATE.value,
-      final_output_attention_dropout_rate=_FINAL_OUTPUT_ATTENTION_DROPOUT_RATE.value,
-      flat_encoded_self_attention=_SYNTHESIZER_ENCODED_SELF_ATTENTION.value,
-      aligned_relative_attention=_ALIGNED_RELATIVE_ATTENTION.value,
+      # Synthesizer and Joint models don't use aligned_relative_attention.
+      aligned_relative_attention=False,
       separator_token_id=-1)  # Not used for synthesizer or joint models.
 
   m = models.DecomposeAttentionTransformer(synthesizer_predict_config)
-  initial_variables = jax.jit(m.init)(init_rng, jnp.ones(io_shape, jnp.float32),
+  initial_variables = jax.jit(m.init)(init_rng,
                                       jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(io_shape, jnp.float32),
                                       jnp.ones(program_shape, jnp.float32))
@@ -692,7 +553,8 @@ def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
       1e-3, beta1=0.9, beta2=0.98, eps=1e-9, weight_decay=0.01)
   synthesizer_optimizer = optimizer_def.create(initial_variables['params'])
   synthesizer_optimizer = checkpoints.restore_checkpoint(
-      _SYNTHESIZER_PATH.value, synthesizer_optimizer)
+      format_path(_SYNTHESIZER_PATH_FORMAT.value),
+      synthesizer_optimizer)
   logging.info('Found synthesizer checkpointed at step %d.',
                int(synthesizer_optimizer.state.step))
 
@@ -702,7 +564,7 @@ def load_synthesizer_model(init_rng, spec_vocab_size, program_vocab_size,
                         max_decode_len=_MAX_PROGRAM_LENGTH.value,
                         config=synthesizer_predict_config,
                         slow_decode=_SLOW_DECODE.value),
-      static_argnums=(6,),  # The `beam_size` argument.
+      static_argnums=(5,),  # The `beam_size` argument.
   )
 
   return synthesizer_optimizer, synthesizer_pred_step
@@ -713,35 +575,16 @@ def divide_no_nan(x, y, default=-1):
 
 
 def main(_):
-  if _CHANGE_INVALID_SCORES.value and not _DETECT_INVALID.value:
-    raise ValueError(
-        'change_invalid_scores=True is incompatible with detect_invalid=False. '
-        'We cannot change scores of invalid beam elements without detecting '
-        'the invalid elements first.')
   if _PREDICTION_TYPE.value == 'joint' and not _USE_EXECUTION.value:
     raise ValueError(
         'Joint prediction requires using execution to compute the remaining '
         'output.')
-  if not _USE_EXECUTION.value and (_DISCARD_REPEAT_FUNCTIONALITY.value or
-                                   _DISCARD_REDUNDANT_PROGRAMS.value or
-                                   _DEEPCODER_MISMATCH_INVALID.value):
+  if not _USE_EXECUTION.value and _DISCARD_REPEAT_FUNCTIONALITY.value:
     raise ValueError(
-        'discard_repeat_functionality, discard_redundant_programs, and '
-        'deepcoder_mismatch_invalid all require using execution.')
-  if not _DETECT_INVALID.value and (_DISCARD_REPEAT_FUNCTIONALITY.value or
-                                    _DISCARD_REDUNDANT_PROGRAMS.value or
-                                    _DEEPCODER_MISMATCH_INVALID.value):
+        'discard_repeat_functionality requires using execution.')
+  if not _DETECT_INVALID.value and _DISCARD_REPEAT_FUNCTIONALITY.value:
     raise ValueError(
-        'discard_repeat_functionality, discard_redundant_programs, and '
-        'deepcoder_mismatch_invalid all require detecting invalid states.')
-  if _PREDICTION_TYPE.value == 'joint' and (_DEEPCODER_MISMATCH_INVALID.value or
-                                            _GREEDY_SPEC_DECOMPOSER.value):
-    raise ValueError(
-        'deepcoder_mismatch_invalid and greedy_spec_decomposer both require '
-        'separate prediction.')
-  if _FILL_EMPTY_BEAM.value and not _GREEDY_SPEC_DECOMPOSER.value:
-    raise ValueError(
-        'fill_empty_beam=True requires greedy_spec_decomposer=True.')
+        'discard_repeat_functionality requires detecting invalid states.')
 
   if not gfile.isdir(_SAVE_DIR.value):
     gfile.makedirs(_SAVE_DIR.value)
@@ -749,7 +592,7 @@ def main(_):
   xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
   work_unit = xm_client.get_current_work_unit()
   hparam_dict = work_unit.parameters['args']
-  hparam_str = ','.join([f'{k}={v}' for k, v in hparam_dict.items()])
+  hparam_str = ','.join(sorted([f'{k}={v}' for k, v in hparam_dict.items()]))
 
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(
@@ -789,9 +632,6 @@ def main(_):
     program_id_token_table = spec_id_token_table = id_to_token
     program_token_id_table = spec_token_id_table = token_to_id
     sep_id = deepcoder_dsl.SEP_ID
-  elif _DATASET_TYPE.value == 'scan':
-    # TODO(jxihong): Scan is not handled yet.
-    raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
 
@@ -989,22 +829,6 @@ def main(_):
       valid = not _DETECT_INVALID.value
       return valid, '[invalid program]'
 
-  def is_redundant_program(program, inputs):
-    """Returns whether program output is redundant."""
-    if _DATASET_TYPE.value == 'deepcoder':
-      # Only used for deepcoder
-      try:
-        final_states = []
-        for i in inputs:
-          initial_state = deepcoder_dsl.ProgramState.from_str(i)
-          final_state = program.run(initial_state.state)
-          final_states.append(final_state)
-        return deepcoder_sample_random.is_redundant(final_states)
-      except Exception:  # pylint: disable=broad-except
-        # If anything bad happens, we treat it the same as "redundant".
-        return True
-    return False
-
   def run_program(program, inputs):
     """Returns a pair (valid, outputs)."""
     # If the program cannot be run, we treat it as outputting an empty string.
@@ -1060,11 +884,12 @@ def main(_):
   # Load Dataset
   # ---------------------------------------------------------------------------
   logging.info('Initializing dataset.')
-  if not _TEST_DATASET.value:
+  if not _TEST_DATASET_FORMAT.value:
     raise ValueError('Must specify filepattern to dataset.')
 
   # Training dataset.
-  logging.info('Loading dataset from %s', _TEST_DATASET.value)
+  test_dataset_path = format_path(_TEST_DATASET_FORMAT.value)
+  logging.info('Loading dataset from %s', test_dataset_path)
   padded_shapes = {
       'inputs': io_shape[1:],
       'outputs': io_shape[1:],
@@ -1076,13 +901,10 @@ def main(_):
     create_dataset_fn = create_robust_fill_dataset
   elif _DATASET_TYPE.value == 'deepcoder':
     create_dataset_fn = create_deepcoder_dataset
-  elif _DATASET_TYPE.value == 'scan':
-    raise NotImplementedError()  # TODO(kshi): Implement.
-    # create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
 
-  test_dataset = create_dataset_fn(_TEST_DATASET.value,
+  test_dataset = create_dataset_fn(test_dataset_path,
                                    spec_token_id_table,
                                    _NUM_EXAMPLES.value)
   test_dataset = test_dataset.padded_batch(
@@ -1099,17 +921,15 @@ def main(_):
   # ---------------------------------------------------------------------------
 
   if _PREDICTION_TYPE.value == 'separate':
-    (
-        spec_decomposer_optimizer, spec_decomposer_pred_step,
-        spec_decomposer_greedy_pred_step
-    ) = load_spec_decomposer_model(
-        init_rng=init_rng,
-        spec_vocab_size=spec_vocab_size,
-        io_shape=io_shape,
-        spec_target_shape=spec_target_shape,
-        bos_id=bos_id,
-        eos_id=eos_id,
-        sep_id=sep_id)
+    spec_decomposer_optimizer, spec_decomposer_pred_step = (
+        load_spec_decomposer_model(
+            init_rng=init_rng,
+            spec_vocab_size=spec_vocab_size,
+            io_shape=io_shape,
+            spec_target_shape=spec_target_shape,
+            bos_id=bos_id,
+            eos_id=eos_id,
+            sep_id=sep_id))
   synthesizer_optimizer, synthesizer_pred_step = load_synthesizer_model(
       init_rng=init_rng,
       spec_vocab_size=spec_vocab_size,
@@ -1120,7 +940,7 @@ def main(_):
       eos_id=eos_id)
 
   # ----------------------------------------------------------------------------
-  # A discussion of metrics we collect.
+  # A discussion of metrics we collect (if beam_size=1).
   #
   # * Every test problem is either a success or failure at the end.
   # * Every test problem either encounters no errors, or the first error is
@@ -1199,6 +1019,18 @@ def main(_):
     step_index = 0
     first_error = None
 
+    if _DATASET_TYPE.value == 'deepcoder':
+      initial_program = []
+      for input_index in range(deepcoder_num_inputs):
+        if input_index > 0:
+          initial_program.append(deepcoder_dsl.SEP_ID)
+        initial_program.extend([
+            program_token_id_table[deepcoder_dsl.variable_token(input_index)],
+            program_token_id_table['='],
+            program_token_id_table['INPUT']])
+    else:
+      initial_program = [bos_id]
+
     # `valid` means whether we are in an unrecoverable state (or the chance of
     # recovering is so low that we'd rather allocate beam space to other
     # things). We manually change the scores of invalid beam states to NEG_INF
@@ -1215,22 +1047,9 @@ def main(_):
     # `finished` means whether a beam element is completely done, i.e., its
     # score is final and there should be no more predictions by either model.
     # Invalid beam elements should also be marked as finished.
-    if _DATASET_TYPE.value == 'deepcoder':
-      initial_program = []
-      for input_index in range(deepcoder_num_inputs):
-        if input_index > 0:
-          initial_program.append(deepcoder_dsl.SEP_ID)
-        initial_program.extend([
-            program_token_id_table[deepcoder_dsl.variable_token(input_index)],
-            program_token_id_table['='],
-            program_token_id_table['INPUT']])
-    else:
-      initial_program = [bos_id]
-
-    final_outputs = decode.add_beam_dim(outputs, beam_size)
     aux = {
         'current_inputs': decode.add_beam_dim(inputs, beam_size),
-        'current_outputs': jnp.copy(final_outputs),
+        'current_outputs': decode.add_beam_dim(outputs, beam_size),
         'step_outputs': decode.add_beam_dim(
             outputs, beam_size),  # Initial value doesn't matter.
         'programs': decode.add_beam_dim(
@@ -1276,15 +1095,10 @@ def main(_):
 
         # Run the SpecDecomposerModel.
         start_time = timeit.default_timer()
-        prev_aux = aux
-        pred_step = (spec_decomposer_greedy_pred_step
-                     if _GREEDY_SPEC_DECOMPOSER.value
-                     else spec_decomposer_pred_step)
-        predicted_spec_parts, scores, aux = pred_step(
+        predicted_spec_parts, scores, aux = spec_decomposer_pred_step(
             params=spec_decomposer_optimizer.target,
             inputs=aux['current_inputs'],
             outputs=aux['current_outputs'],
-            final_outputs=final_outputs,  # Actually ignored.
             cache=None,
             aux=aux,
             beam_size=beam_size)
@@ -1303,61 +1117,6 @@ def main(_):
         valids, last_steps, step_outputs, current_outputs = map(list,
                                                                 zip(*results))
 
-        if _FILL_EMPTY_BEAM.value:
-          predicted_spec_parts_fill, scores_fill, aux_fill = (
-              spec_decomposer_pred_step(
-                  params=spec_decomposer_optimizer.target,
-                  inputs=prev_aux['current_inputs'],
-                  outputs=prev_aux['current_outputs'],
-                  final_outputs=final_outputs,  # Actually ignored.
-                  cache=None,
-                  aux=prev_aux,
-                  beam_size=beam_size))
-
-          spec_parts_batch_fill = np.array(predicted_spec_parts_fill)
-          results_fill = [
-              split_outputs(beam, aux_fill['current_outputs'][0][i],
-                            max_target_length=_MAX_IO_LENGTH.value,
-                            aux=aux_fill, beam_i=i)
-              for i, beam in enumerate(spec_parts_batch_fill[0])]
-          (valids_fill, last_steps_fill, step_outputs_fill,
-           current_outputs_fill) = map(list, zip(*results_fill))
-
-          def get_key(history, step_output):
-            return tuple(history.flatten()) + tuple(step_output.flatten())
-
-          # Find candidate fill elements that do not appear among original beam.
-          unique_keys = set()
-          aux_history, aux_history_fill = map(
-              np.asarray, (aux['history'], aux_fill['history']))
-          for i in range(beam_size):
-            unique_keys.add(get_key(aux_history[:, i], step_outputs[i]))
-          for i in range(beam_size):
-            if get_key(aux_history_fill[:, i],
-                       step_outputs_fill[i]) in unique_keys:
-              valids_fill[i] = False
-
-          # Fill invalid elements in greedy beam search.
-          fill_idx = beam_size - 1
-          for i in range(beam_size)[::-1]:
-            if not valids[i]:
-              while fill_idx >= 0 and not valids_fill[fill_idx]:
-                fill_idx -= 1
-              if fill_idx < 0:
-                break
-              current_outputs[i] = current_outputs_fill[fill_idx]
-              step_outputs[i] = step_outputs_fill[fill_idx]
-              scores = scores.at[:, i].set(scores_fill[:, i])
-              valids[i] = valids_fill[fill_idx]
-              last_steps[i] = last_steps_fill[fill_idx]
-              aux['programs'] = aux['programs'].at[:, i].set(
-                  aux_fill['programs'][:, i])
-              aux['finished'] = aux['finished'].at[:, i].set(
-                  aux_fill['finished'][:, i])
-              aux['history'] = aux['history'].at[:, i].set(
-                  aux_fill['history'][:, i])
-              fill_idx -= 1
-
         aux['current_outputs'] = jnp.array(current_outputs)[None, Ellipsis]
         aux['step_outputs'] = jnp.array(step_outputs)[None, Ellipsis]
         aux['scores'] = scores
@@ -1370,12 +1129,8 @@ def main(_):
 
         # Process invalid states.
         if _DETECT_INVALID.value:
-          if _CHANGE_INVALID_SCORES.value:
-            aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
+          aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
           aux['finished'] |= ~aux['valid']
-        elif not _GREEDY_SPEC_DECOMPOSER.value:
-          # The greedy spec decomposer will carry over already-invalid states.
-          assert np.all(aux['valid'])
         spec_processing_times.append(timeit.default_timer() - start_time)
 
         # Analysis and logging.
@@ -1452,7 +1207,6 @@ def main(_):
           params=synthesizer_optimizer.target,
           inputs=aux['current_inputs'],
           outputs=synthesizer_step_outputs,
-          final_outputs=final_outputs,
           cache=None,
           aux=aux,
           beam_size=beam_size)
@@ -1506,21 +1260,6 @@ def main(_):
                   max_target_length=_MAX_IO_LENGTH.value,
                   variable_index=step_index + deepcoder_num_inputs)
 
-              if (_DATASET_TYPE.value == 'deepcoder' and
-                  _PREDICTION_TYPE.value == 'separate' and
-                  (program_outputs_i != [
-                      decode_spec(o) for o in aux['step_outputs'][0][i]]) and
-                  _DETECT_INVALID.value and
-                  _DEEPCODER_MISMATCH_INVALID.value):
-                # Program's output does not match SpecDecomposerModel's
-                # predicted output.
-                valid_i = False
-
-              if _DISCARD_REDUNDANT_PROGRAMS.value:
-                # Mark beams as invalid if the program has redundant statements
-                if is_redundant_program(program_i, decoded_inputs):
-                  valid_i = False
-
           else:  # Not using execution.
             assert _PREDICTION_TYPE.value == 'separate'
             # For DeepCoder, append the SpecDecomposerModel's prediction to the
@@ -1556,8 +1295,7 @@ def main(_):
       already_finished = aux['finished'][0]
       aux['finished'] |= aux['last_step']
       if _DETECT_INVALID.value:
-        if _CHANGE_INVALID_SCORES.value:
-          aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
+        aux['scores'] += decode.NEG_INF * (1 - aux['valid'])
         aux['finished'] |= ~aux['valid']
       else:
         assert np.all(aux['valid'])

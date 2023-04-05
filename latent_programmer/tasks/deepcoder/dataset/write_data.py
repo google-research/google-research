@@ -47,7 +47,7 @@ _EXPERIMENT = flags.DEFINE_enum(
     'experiment', 'NONE', [e.name for e in exp_module.Experiment],
     'Kind of experiment (see document for descriptions).')
 _SPLIT = flags.DEFINE_enum(
-    'split', None, ['train', 'valid', 'test', 'finetune'],
+    'split', None, ['train', 'valid', 'test'],
     'Which split of the dataset to generate.')
 _NUM_PROGRAMS = flags.DEFINE_integer(
     'num_programs', 100000, 'Number of programs to generate.')
@@ -114,11 +114,13 @@ def _corrupt(next_parts, outputs):
           result = typing.cast(List[int], result)  # Not an int or None.
           # Perturbed numbers should be chosen reasonably considering the
           # existing numbers.
-          min_result = min(result) if result else dsl.min_int()
-          max_result = max(result) if result else dsl.max_int()
+          min_result = min(result) if result else dsl.deepcoder_min_int()
+          max_result = max(result) if result else dsl.deepcoder_max_int()
           range_expansion = max(5, (max_result - min_result) // 2)
-          min_perturb = max(dsl.min_int(), min_result - range_expansion)
-          max_perturb = min(dsl.max_int(), max_result + range_expansion)
+          min_perturb = max(dsl.deepcoder_min_int(),
+                            min_result - range_expansion)
+          max_perturb = min(dsl.deepcoder_max_int(),
+                            max_result + range_expansion)
 
           max_num_perturbations = min(max(2, len(result) // 2), 5)
           num_perturbations = random.randint(0, max_num_perturbations)
@@ -162,6 +164,8 @@ def serialize_decomposition_examples(task):
       intermediate variables)
     outputs: string representation of desired outputs
     next_part: string representation of desired next intermediate outputs
+    corrupted_next_part: a corrupted version of next_part, used to train the
+      SynthesizerModel to be more robust
     program_part: string representation of next statement in program that
       generates the next intermediate outputs
 
@@ -319,15 +323,8 @@ def main(_):
   # Write the `tf.Example` observations to the file.
   with tf.io.TFRecordWriter(entire_programs_fname) as entire_programs_writer, \
       tf.io.TFRecordWriter(decomposition_data_fname) as decomposition_writer:
-    for i in range(_NUM_PROGRAMS.value):
-      if _SPLIT.value in ['train', 'valid']:
-        is_train = True
-      elif _SPLIT.value == 'test':
-        is_train = False
-      elif _SPLIT.value == 'finetune':
-        is_train = bool(i % 2)
-      else:
-        raise ValueError('Unhandled split: {}'.format(_SPLIT.value))
+    for _ in range(_NUM_PROGRAMS.value):
+      is_train = _SPLIT.value in ['train', 'valid']
       canonical_variable_order = _SPLIT.value in ['valid', 'test']
       task = generate_task_for_experiment(
           _EXPERIMENT.value,
