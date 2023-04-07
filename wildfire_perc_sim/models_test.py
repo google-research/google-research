@@ -19,6 +19,7 @@ from typing import Any, Callable
 
 from absl.testing import absltest
 
+import flax
 from flax import linen as nn
 from jax import numpy as jnp
 from jax import random
@@ -31,7 +32,7 @@ def _create_model(prng, model_fn,
   prng, key = random.split(prng)
   model = model_fn()
   variables = model.init(key, *inputs)
-  states, params = variables.pop('params')
+  states, params = flax.core.pop(variables, 'params')
 
   def apply_fn(params, *x, **kwargs):
     return model.apply({'params': params, **states}, *x, **kwargs)
