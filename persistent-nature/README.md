@@ -21,7 +21,10 @@ _CVPR 2023_ \
 5. [Videos](#videos) - export flying videos
 
 <br>
+
+<p float="left">
 <img src='img/0017.gif'><img src='img/0005.gif'><img src='img/0009_triplane.gif'>
+</p>
 
 <a name="colab"/>
 
@@ -37,6 +40,7 @@ _CVPR 2023_ \
 ```bash
 git clone --depth 1 --filter=blob:none --sparse \
          https://github.com/google-research/google-research.git
+cd google-research
 git sparse-checkout set persistent-nature
 ```
 
