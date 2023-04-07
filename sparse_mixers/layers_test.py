@@ -514,7 +514,7 @@ class EncoderBlockTest(parameterized.TestCase):
     self.assertIn("intermediates", state)
     jax.tree_util.tree_map(
         functools.partial(np.testing.assert_allclose, rtol=1e-5),
-        state["intermediates"],
+        flax.core.freeze(state["intermediates"]),
         FrozenDict({
             "feed_forward_sublayer": {
                 "diversity_metrics":
