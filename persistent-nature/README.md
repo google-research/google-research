@@ -30,7 +30,9 @@ _CVPR 2023_ \
 
 ## Colab
 
-[Interactive Demo](XXXX): [Coming soon!] Try our interactive demo here! Does not require local installations. 
+Interactive Demo: Try our interactive demo here! Does not require local installations.
+- [Layout Model](https://colab.research.google.com/github/google-research/google-research/blob/master/persistent-nature/interactive-layout-colab.ipynb)
+- [Triplane Model](https://colab.research.google.com/github/google-research/google-research/blob/master/persistent-nature/interactive-triplane-colab.ipynb)
 
 <a name="setup"/>
 
