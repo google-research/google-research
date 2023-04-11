@@ -378,8 +378,7 @@ class AntheaManager {
         hotwPercent: hotwPercent,
         // `JSON.stringify` can't deal with additional properties of arrays
         // nicely, hence we are adding them explicitly here.
-        srcLang: parsedDocSys.srcLang,
-        tgtLang: parsedDocSys.tgtLang,
+        parameters: parsedDocSys.parameters,
       };
       window.localStorage.setItem(activeKey, JSON.stringify(activeData));
       const activeResultsKey = this.ACTIVE_RESULTS_KEY_PREFIX_ + activeName;
@@ -496,8 +495,7 @@ class AntheaManager {
       createdAt: this.activeData_.createdAt,
       results: this.activeResults_,
       hotwPercent: this.activeData_.hotwPercent,
-      srcLang: this.activeData_.srcLang,
-      tgtLang: this.activeData_.tgtLang,
+      parameters: this.activeData_.parameters,
       savedAt: Date.now(),
     });
     const a = document.createElement("a");
@@ -620,8 +618,14 @@ class AntheaManager {
       const activeResultsJSON = window.localStorage.getItem(activeResultsKey);
       this.activeResults_ = JSON.parse(activeResultsJSON);
 
-      this.activeData_.parsedDocSys.srcLang = this.activeData_.srcLang;
-      this.activeData_.parsedDocSys.tgtLang = this.activeData_.tgtLang;
+      /* Convert legacy format */
+      const parameters = this.activeData_.parameters || {};
+      if (this.activeData_.srcLang && this.activeData_.tgtLang) {
+        parameters.source_language = this.activeData_.srcLang;
+        parameters.target_language = this.activeData_.tgtLang;
+      }
+      this.activeData_.parsedDocSys.parameters = parameters;
+      this.activeData_.parameters = parameters;
 
       this.antheaBellQuote_.style.display = 'none';
       this.eval_ = new AntheaEval(this);
@@ -972,11 +976,19 @@ class AntheaManager {
              ' with data length ' + evaluationFileData.length);
     try {
       const parsedData = JSON.parse(evaluationFileData);
+      if (!parsedData.parameters &&
+          parsedData.srcLang && parsedData.tgtLang) {
+        /* convert legacy format */
+        parsedData.parameters = {
+          source_language: parsedData.srclang,
+          target_language: parsedData.tgtlang,
+        };
+      }
       if (!parsedData.raterId || !parsedData.projectName ||
           !parsedData.templateName || !parsedData.template ||
           !parsedData.parsedDocSys ||
           !parsedData.results || !parsedData.createdAt || !parsedData.savedAt ||
-          !parsedData.srcLang || !parsedData.tgtLang) {
+          !parsedData.parameters) {
         throw 'Invalid evaluation data file: ' + evaluationFileName;
       }
       /**
@@ -994,8 +1006,7 @@ class AntheaManager {
           docsys.numNonBlankSegments = docsys.numNonBlankSentGroups;
         }
       }
-      parsedData.parsedDocSys.srcLang = parsedData.srcLang;
-      parsedData.parsedDocSys.tgtLang = parsedData.tgtLang;
+      parsedData.parsedDocSys.parameters = parsedData.parameters;
       this.viewingList_.insertAdjacentHTML('beforeend', `
           <option value="${this.viewingListData_.length}">
               Project: ${parsedData.projectName} (${parsedData.templateName})

@@ -17,7 +17,7 @@
  *     http://.../anthea.html?test=test-mqm.js
  * and then click around through the rating process.
  */
-const testProjectTSVData = `{"source-language":"en","target-language":"en"}
+const testProjectTSVData = `{"source_language":"en","target_language":"en"}
 
 This is the first​-​sentence​.	This is its translation​.	doc-42	system-GL
 This is the second sentence. It includes this long string that tests text-wrapping: http://01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789​.	This is the translation (​of the second sentence​)​.	doc-42	system-GL
