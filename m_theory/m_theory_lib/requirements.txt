@@ -1,5 +1,5 @@
 mpmath>=1.0.0
-numpy==1.18.5
+numpy==1.22.0
 opt_einsum>=2.3.2
 matplotlib>=3.0.0
 scipy==1.4.1
