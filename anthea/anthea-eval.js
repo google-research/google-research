@@ -333,7 +333,7 @@ class AntheaCursor {
    * @return {boolean}
    */
   segFullySeen(seg) {
-    if (this.numSentsShown[1][seg] < this.numSents[0][seg]) {
+    if (this.numSentsShown[1][seg] < this.numSents[1][seg]) {
       return false;
     }
     if (this.tgtOnly) {
