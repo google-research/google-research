@@ -7,7 +7,7 @@ Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 Markdown==3.1.1
 mock==3.0.5
-numpy==1.18.1
+numpy==1.22.0
 pkg-resources==0.0.0
 protobuf==3.11.2
 six==1.14.0
