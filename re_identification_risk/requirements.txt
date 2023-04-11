@@ -1,0 +1,3 @@
+absl-py>=1.3.0
+apache_beam
+tensorflow
