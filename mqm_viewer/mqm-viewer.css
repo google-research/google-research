@@ -154,6 +154,12 @@
 .mqm-settings-row {
   margin: 6px 0;
 }
+.mqm-sign-test {
+  margin: 8px;
+}
+.mqm-sign-test-significant {
+  font-weight: bold;
+}
 .mqm-stats-slice {
   background-color: #F0F0F0;
 }

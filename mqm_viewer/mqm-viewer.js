@@ -138,38 +138,50 @@ let mqmSysVSys2;
 /** A distinctive name used as the key for aggregate stats. */
 const mqmTotal = '_MQM_TOTAL_';
 
-/**
- * Bootstrap sampling is used to compute 95% confidence intervals.
- * Currently only system MQM scores are supported.
- * Samples are obtained incrementally, i.e., each `mqmShowCI` call samples
- * a given number of times until 1000 samples are collected.
+
+/** Below are variables used for significance testing through paired one-sided
+ * approximate randomization (PAR). The implemention follows sacrebleu at
+ * https://github.com/mjpost/sacrebleu/blob/078c440168c6adc89ba75fe6d63f0d922d42bcfe/sacrebleu/significance.py#L112.
  */
-/** Total Number of document-level samples to collect. */
-const mqmNumSamples = 1000;
+
+/** SECTION START */
 
 /**
- * Number of document-level samples per `mqmShowCI` call.
- * Make sure that this number can divide `mqmNumSamples`.
+ * Segment scores by system. Each value is an array of scores that are aligned
+ * such that elements at the n-th position of all arrays correspond to the same
+ * segment. Note that some scores might be null since some systems are missing
+ * ratings for some segments.
  */
-const mqmNumSamplesPerCall = 200;
+let mqmPARScores = {};
 
 /**
- * Document-level info used for bootstrap sampling.
- * This is keyed by the system name.
+ * Common segments shared by a pair of systems. This stores the positions in
+ * `mqmPARScores`.
  */
-let mqmDocs = {};
+let mqmPARCommonPos = {};
 
-/**
- * Bootstrap samples already collected by previous calls.
- * This is keyed by the system name.
- */
-let mqmSampledScores = {};
+/** Number of trials per `mqmPAR` call for each system pair. */
+let mqmPARNumTrialsPerCall = 500;
+
+/** Total number of trials for each system pair to do significance testing. */
+let mqmPARNumTrials = 10000;
+
+/** Score differences by system pair. */
+let mqmPARDiffs = {};
 
 /**
  * This stores the return from `setTimeout` call for incrementally obtaining
- * bootstrap samples.
+ * PAR samples.
  */
-let mqmCIComputation = null;
+let mqmPARComputation = null;
+
+/** SECTION END */
+
+/** Sorted array of systems as rendered in the "by system" sub-table. */
+let mqmSortedSystems = [];
+
+/** Total MQM score by system. */
+let mqmTotalScoreBySystem = {};
 
 /**
  * Scoring weights. Each weight has a name and a regular expression pattern
@@ -472,7 +484,7 @@ function mqmBinSearch(arr, elt) {
  * The structure of the returned object is: {
  *   tokens: !Array<string>,
  *   spans: !Array<Pair<number, number>>
- * } 
+ * }
  * @param {!Array<string>} annotations
  * @return {!Object}
  */
@@ -537,7 +549,7 @@ function mqmTokenizeLegacyText(annotations) {
   }
   const spansList = [];
   for (let offsets of markerOffsets) {
-    const spans = []; 
+    const spans = [];
     for (let i = 0; i < offsets.length; i+= 2) {
       if (i + 1 >= offsets.length) break;
       spans.push([mqmBinSearch(tokenOffsets, offsets[i]),
@@ -557,7 +569,7 @@ function mqmTokenizeLegacyText(annotations) {
  * each <v> and </v> fall on a token boundary. Sets
  * segment.{source,target}_tokens as well as
  *     mqmData[row][MQM_DATA_METADATA].{source,target}_spans.
- * 
+ *
  * If segment.source/target_tokens is already present in the data (as
  * will be the case with newer data), this function is a no-op.
  * @param {!Array<number>} rowRange The start (inclusive) and limit (exclusive)
@@ -1122,90 +1134,250 @@ function getRandomInt(max, size) {
 
 
 /**
- * Prepare the document-level info prior to sampling.
- * For each document, we only need to keep track of two stats:
- * 1. The total number of segments in the document;
- * 2. The MQM scores (averaged over the number of segments).
- * These two stats are later used to compute a weighted average of MQM scores
- * to take into account the different total number of segments when we use
- * document-level sampling.
- * The input `statsBySystem` is an mqmStats* object keyed by the system name.
- * @param {!Object} statsBySystem
+ * Prepares for paired one-sided approximate randomization. This will compute
+ * the aligned scores for all systems in `mqmPARScores`, and find common
+ * positions for each system pair in `mqmPARCommonPos`.
  */
-function mqmPrepareDocScores(statsBySystem) {
-  mqmDocs = {};
-  for (system of Object.keys(statsBySystem)) {
-    mqmDocs[system] = [];
-    for (let doc of Object.values(statsBySystem[system])) {
-      const segsInDoc = Object.values(doc);
-      const a = mqmAggregateSegStats(segsInDoc);
-      mqmDocs[system].push(
-          {'score': a.score, 'numScoringUnits': a.numScoringUnits});
+function mqmPreparePAR() {
+  mqmPARScores = {};
+  mqmPARCommonPos = {};
+  // Each segment is uniquely determined by the (doc, docSegId) pair. We use
+  // `pairToPos` to track which pair goes to which position in the aligned score
+  // array.
+  let pairToPos = {};
+  let maxPos = 0;
+  for (const doc of mqmDataIter.docs) {
+    pairToPos[doc] = {};
+    for (const docSegId of mqmDataIter.docSegs[doc]) {
+      pairToPos[doc][docSegId] = maxPos;
+      maxPos += 1;
+    }
+  }
+  for (const system of Object.keys(mqmStatsBySystem)) {
+    // For each system, we first compute the mapping from position to score. Any
+    // missing key correponds to one missing segment for this system.
+    let posToScore = {};
+    for (const doc of Object.keys(mqmStatsBySystem[system])) {
+      for (const docSegId of Object.keys(mqmStatsBySystem[system][doc])) {
+        const pos = pairToPos[doc][docSegId];
+        const segs = mqmStatsBySystem[system][doc][docSegId];
+        // Note the extra "[]".
+        posToScore[pos] = mqmAggregateSegStats([segs]).score;
+      }
+    }
+
+    // Now we can compute `mqmPARScores`.
+    mqmPARScores[system] = [];
+    for (let pos = 0; pos < maxPos; pos++) {
+      if (posToScore.hasOwnProperty(pos)) {
+        mqmPARScores[system].push(posToScore[pos]);
+      } else {
+        // This system is missing this specific segment.
+        mqmPARScores[system].push(null);
+      }
+    }
+  }
+
+  // Compute common positions for each system pair in `mqmPARCommonPos`.
+  for (const [idx, baseline] of mqmSortedSystems.entries()) {
+    if (!mqmPARCommonPos.hasOwnProperty(baseline)) {
+      mqmPARCommonPos[baseline] = {};
+    }
+    // We only need the upper triangle in the significance test table.
+    for (const system of mqmSortedSystems.slice(idx + 1)) {
+      if (!mqmPARCommonPos[baseline].hasOwnProperty(system)) {
+        mqmPARCommonPos[baseline][system] = [];
+      }
+      for (let pos = 0; pos < maxPos; pos++) {
+        if ((mqmPARScores[system] != null) &&
+            (mqmPARScores[baseline] != null)) {
+          mqmPARCommonPos[baseline][system].push(pos);
+        }
+      }
     }
   }
 }
 
 /**
- * Implements the core logic to incrementally obtain bootstrap samples and
- * show confidence intervals. Each call will obtain `mqmNumberSamplesPerCall`
- * document-level samples. At the end of the call, CIs are shown if all samples
- * have been collected. Otherwise, call again to collect more.
- * The input `systems` is a (sorted) array of system names, in the same order
- * as rendered in HTML.
- * @param {!Array} systems
+ * Performs one trial of paired approximate randomization for a given baseline
+ * and a system and returns the score difference. Returns null if no common
+ * segments are found.
+ * @param {string} baseline
+ * @param {string} system
+ * @return {number}
  */
-function mqmShowCI(systems) {
-  if (systems.length == 0) {
-    mqmClearCIComputation();
+function mqmPAROneTrial(baseline, system) {
+  const baselineScores = mqmPARScores[baseline];
+  const systemScores = mqmPARScores[system];
+  const commonPos = mqmPARCommonPos[baseline][system];
+  if (!commonPos) return null;
+
+  // This random array indicates which shuffled system a given score should be
+  // assigned to.
+  const permutations = getRandomInt(2, commonPos.length);
+  let shufA = 0.0;
+  let shufB = 0.0;
+  for (let [idx, perm] of permutations.entries()) {
+    const pos = commonPos[idx];
+    if (perm == 0) {
+      shufA += baselineScores[pos];
+      shufB += systemScores[pos];
+    } else {
+      shufA += systemScores[pos];
+      shufB += baselineScores[pos];
+    }
+  }
+  shufA /= commonPos.length;
+  shufB /= commonPos.length;
+  return shufA - shufB;
+}
+
+/**
+ * Implements the core logic to perform paired one-sided approximate
+ * randomization by incrementally conducting trials.
+ */
+function mqmPAR() {
+  let systems = mqmSortedSystems;
+  // We should have at least 2 systems to do significance testing.
+  if (systems.length < 2) {
+    mqmClearPARComputation();
     return;
   }
-  for (system of systems) {
-    if (!mqmSampledScores.hasOwnProperty(system)) {
-      mqmSampledScores[system] = [];
+
+  let numTrials = 0;
+  for (const [idx, baseline] of systems.entries()) {
+    if (!mqmPARDiffs.hasOwnProperty(baseline)) {
+      mqmPARDiffs[baseline] = {};
     }
-    const docs = mqmDocs[system];
-    for (let i = 0; i < mqmNumSamplesPerCall; i++) {
-      let indices = getRandomInt(docs.length, docs.length);
-      let score = 0.0;
-      let numScoringUnits = 0;
-      for (let index of indices) {
-        let doc = docs[index];
-        score += doc['score'] * doc['numScoringUnits'];
-        numScoringUnits += doc['numScoringUnits'];
+    for (const system of systems.slice(idx + 1)) {
+      if (!mqmPARDiffs[baseline].hasOwnProperty(system)) {
+        mqmPARDiffs[baseline][system] = [];
       }
-      mqmSampledScores[system].push(score / numScoringUnits);
+      for (let i = 0; i < mqmPARNumTrialsPerCall; i++) {
+        const diff = mqmPAROneTrial(baseline, system);
+        // This means no common segments are found.
+        if (diff == null) break;
+        mqmPARDiffs[baseline][system].push(diff);
+      }
+      numTrials = mqmPARDiffs[baseline][system].length;
     }
   }
+  // This will only happen if no common segments are found for any system pair.
+  if (!numTrials) return;
 
-  if (Object.values(mqmSampledScores)[0].length < mqmNumSamples) {
-    // We need to collect more samples.
-    mqmCIComputation = setTimeout(mqmShowCI, 200, systems);
+  if (numTrials < mqmPARNumTrials) {
+    // We need to conduct more trials.
+    mqmPARComputation = setTimeout(mqmPAR, 200);
   } else {
-    // We can now show the confidence intervals.
-    const lowerIdx = mqmNumSamples / 40;
-    const upperIdx = mqmNumSamples - lowerIdx - 1;
-    for (let [rowIdx, system] of systems.entries()) {
-      mqmSampledScores[system].sort((a, b) => a - b);
-      const lb = mqmSampledScores[system][lowerIdx];
-      const ub = mqmSampledScores[system][upperIdx];
-      const ci = `${lb.toFixed(3)} - ${ub.toFixed(3)}`;
-      const spanId = `mqm-ci-${rowIdx}`;
-      const ciSpan = document.getElementById(spanId);
-      if (ciSpan) {
-        ciSpan.innerHTML = ` (${ci})`;
+    // We can now do significance test.
+    for (const [rowIdx, baseline] of systems.entries()) {
+      for (const [colIdx, system] of systems.entries()) {
+        // Only fill in the upper triangle.
+        if (rowIdx >= colIdx) continue;
+
+        const realDiff =
+            mqmTotalScoreBySystem[system] - mqmTotalScoreBySystem[baseline];
+        // Real score differences should be non-negative since we are filling in
+        // the upper triangle.
+        console.assert(realDiff >= 0.0, realDiff);
+        let cnt = 0;
+        for (const diff of mqmPARDiffs[baseline][system]) {
+          // Count how many samples of the null distribution are greater than or
+          // equal to the real difference. This corresponds to
+          // 'alternative="greater"' in scipy's API at
+          // https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html.
+          // Recall that a greater value than `realDiff` indicates a bigger
+          // difference between `system` and `baseline`.
+          if (diff >= realDiff) {
+            cnt += 1;
+          }
+        }
+        const p = (cnt + 1) / (numTrials + 1);
+        let span = document.getElementById(
+            `mqm-sign-test-${rowIdx}-${colIdx}`);
+        span.innerText = p.toFixed(3);
+        const numCommonSegs = mqmPARCommonPos[baseline][system].length;
+        span.title = `Based on ${numCommonSegs} common segments.`;
+        if (p < 0.05) {
+          span.className = 'mqm-sign-test-significant';
+        }
       }
     }
-    mqmClearCIComputation();
+    mqmClearPARComputation();
   }
 }
 
+/** Clears PAR-related computation. */
+function mqmClearPARComputation() {
+  mqmPARComputation = null;
+  mqmPARScores = {};
+  mqmPARDiffs = {};
+}
+
+/** Shows the table for significance test. */
+function mqmShowSignificanceTest() {
+  const table = document.getElementById('mqm-sign-test');
+
+  // Header.
+  let html = `
+    <thead>
+      <tr>
+        <th>System</th>`;
+  for (const system of mqmSortedSystems) {
+    html += `<th>${system}</th>`;
+  }
+  html += `</tr></thead>`;
+
+  // We don't need to show tbody before loading the project file.
+  if (!mqmSortedSystems.length) {
+    table.innerHTML = html;
+    return;
+  }
+
+  // Show total MQM scores first.
+  html += `
+    <tbody>
+      <tr>
+        <td>MQM</td>`;
+  for (const system of mqmSortedSystems) {
+    html += `<td>${mqmTotalScoreBySystem[system].toFixed(3)}</td>`;
+  }
+  html += `</tr><tr><td colspan=${mqmSortedSystems.length + 1}><hr></td></tr>`;
+
+  // Show significance test p-value placeholders.
+  for (const [rowIdx, baseline] of mqmSortedSystems.entries()) {
+    html += `
+      <tr>
+        <td>${baseline}</td>`;
+    for (const [colIdx, system] of mqmSortedSystems.entries()) {
+      const spanId = `mqm-sign-test-${rowIdx}-${colIdx}`;
+      const content = rowIdx >= colIdx ? '-' : '-.---';
+      html += `<td><span id="${spanId}">${content}<span></td>`;
+    }
+    html += `</tr>`;
+  }
+  html += `</tbody>`;
+
+  table.innerHTML = html;
+
+  // Incrementally obtain significance test samples and show the results.
+  mqmPreparePAR();
+  mqmPAR();
+}
+
 /**
- * Clears all computed confidence interval-related information.
+ * Listener for changes to the input field that specifies the number of trials
+ * for paired one-sided approximate randomization.
  */
-function mqmClearCIComputation() {
-  mqmCIComputation = null;
-  mqmDocs = {};
-  mqmSampledScores = {};
+function setMqmPARNumTrials() {
+  const elt = document.getElementById('mqm-par-num-trials');
+  const numTrials = elt.value.trim();
+  if (numTrials > 0) {
+    mqmPARNumTrials = numTrials;
+    mqmShow();
+  } else {
+    elt.value = mqmPARNumTrials;
+  }
 }
 
 /**
@@ -1214,15 +1386,9 @@ function mqmClearCIComputation() {
  * mqmScoreWeightedFields and mqmScoreSliceFields.
  */
 function mqmShowScoresHeader() {
-  const mqmHelpText = `MQM score. When there are at least 5 documents after ` +
-      `filtering, 95% confidence intervals for each system are also shown. ` +
-      `Confidence intervals are estimated through bootstrap sampling ` +
-      `for 1000 times on the document level. ` +
-      `If there are less than 5 documents, N/A is shown instead.`;
-  const mqmScoreWithCI = '<span id="mqm-score-heading">MQM score' +
-      '<sup class="mqm-help-icon">?</sup>' +
-      ' per ' +
-      '<span id="mqm-scoring-unit-display">' +
+  let mqmHelpText = `MQM score.`;
+  let mqmScore = '<span id="mqm-score-heading">MQM score' +
+      ' per <span id="mqm-scoring-unit-display">' +
       (mqmCharScoring ? '100 source chars' : 'segment') + '</span></span>';
   const header = document.getElementById('mqm-stats-thead');
   let html = `
@@ -1233,7 +1399,7 @@ function mqmShowScoresHeader() {
         </th>
         <th title="Number of segments"><b>#Segments</b></th>
         <th title="Number of segment ratings"><b>#Ratings</b></th>
-        <th id="mqm-score-th" title="${mqmHelpText}">${mqmScoreWithCI}</th>`;
+        <th id="mqm-score-th" title="${mqmHelpText}">${mqmScore}</th>`;
   const scoreFields =
       mqmScoreWeightedFields.map(x => MQM_SCORE_WEIGHTED_PREFIX + x)
           .concat(mqmScoreSliceFields.map(x => MQM_SCORE_SLICE_PREFIX + x));
@@ -1309,6 +1475,14 @@ function mqmShowScores(id, title, stats, aggregates = null) {
   if (mqmSortReverse) {
     keys.reverse();
   }
+  // Keep track of the system order and MQM scores.
+  if (title == 'By system') {
+    mqmSortedSystems = [...keys];
+    mqmTotalScoreBySystem = {};
+    for (const key of keys) {
+      mqmTotalScoreBySystem[key] = aggregates[key]['score'];
+    }
+  }
   const scoreFields =
       [
         'score'
@@ -1328,25 +1502,6 @@ function mqmShowScores(id, title, stats, aggregates = null) {
       for (let s of scoreFields) {
         let content =
             aggregates[k].hasOwnProperty(s) ? aggregates[k][s].toFixed(3) : '-';
-        if (title == 'By system' && s == 'score') {
-          /**
-           * Obtain and show confidence intervals for each system MQM score
-           * when there are at least 5 documents after filtering. Otherwise,
-           * show N/A instead.
-           */
-          if (Object.keys(stats[k]).length >= 5) {
-            /**
-             * Insert placeholder for the CI span. Span id is determined by
-             * the order the systems are rendered in HTML. In this case, systems
-             * are sorted by MQM score.
-             */
-            const spanId = `mqm-ci-${rowIdx}`;
-            content +=
-                `<span class="mqm-ci" id=${spanId}> (-.--- - -.---)</span>`;
-          } else {
-            content += `<span class="mqm-ci"> (N/A)</span>`;
-          }
-        }
         const nameParts = s.split('-', 2);
         const cls = (nameParts.length == 2) ?
             ' class="mqm-stats-' + nameParts[0] + '"' :
@@ -1368,11 +1523,6 @@ function mqmShowScores(id, title, stats, aggregates = null) {
     }
     rowHTML += '</tr>\n';
     tbody.insertAdjacentHTML('beforeend', rowHTML);
-  }
-  // Incrementally collect samples and show confidence intervals.
-  if (title == 'By system') {
-    mqmPrepareDocScores(stats);
-    mqmShowCI(keys);
   }
 }
 
@@ -2021,6 +2171,11 @@ function mqmShowStats() {
   mqmShowSysVSys(true);
   mqmShowSevCatStats();
   mqmShowEvents();
+  // Paired approximate randomization only makes sense if we are NOT using
+  // per-100-character scoring.
+  if (!mqmCharScoring) {
+    mqmShowSignificanceTest();
+  }
 }
 
 /**
@@ -2293,7 +2448,7 @@ function mqmSeverityClass(severity) {
  * the marked span in HTML. The rowId is only used for legacy formats where
  * tokenization is not available in metadata.
  * @param {number} rowId
- * @param {!Object} metadata 
+ * @param {!Object} metadata
  * @param {string} cls The CSS class for the annotation
  * @return {string}
  */
@@ -2322,7 +2477,7 @@ function mqmSpanHTML(rowId, metadata, cls) {
  * clicking).
  * @param {number} rowId
  * @param {string} severity
- * @param {!Object} metadata 
+ * @param {!Object} metadata
  * @return {string}
  */
 function mqmSeverityHTML(rowId, severity, metadata) {
@@ -2339,7 +2494,7 @@ function mqmSeverityHTML(rowId, severity, metadata) {
  * include it in the HTML.
  * @param {number} rowId
  * @param {string} category
- * @param {!Object} metadata 
+ * @param {!Object} metadata
  * @return {string}
  */
 function mqmCategoryHTML(rowId, category, metadata) {
@@ -2360,7 +2515,7 @@ function mqmCategoryHTML(rowId, category, metadata) {
  * include that in the HTML.
  * @param {number} rowId
  * @param {string} rater
- * @param {!Object} metadata 
+ * @param {!Object} metadata
  * @return {string}
  */
 function mqmRaterHTML(rowId, rater, metadata) {
@@ -2407,10 +2562,10 @@ function mqmRaterHTML(rowId, rater, metadata) {
 function mqmShow(viewingConstraints=null) {
   document.body.style.cursor = 'wait';
 
-  // Cancel existing CI computation when a new `mqmShow` is called.
-  if (mqmCIComputation) {
-    clearTimeout(mqmCIComputation);
-    mqmClearCIComputation();
+  // Cancel existing PAR computation when a new `mqmShow` is called.
+  if (mqmPARComputation) {
+    clearTimeout(mqmPARComputation);
+    mqmClearPARComputation();
   }
 
   const tbody = document.getElementById('mqm-tbody');
@@ -2506,7 +2661,7 @@ function mqmShow(viewingConstraints=null) {
                 mqmGetSegStats(mqmStatsBySystem[system], doc, docSegId);
             currSegStats.srcLen = parts.srcLen;
             currSegStatsBySys.srcLen = parts.srcLen;
-          
+
             /* Clear aggregated docseg info from filteredMetadata.segment. */
             filteredMetadata.segment = {...metadata.segment};
             delete filteredMetadata.segment.aggrDocSeg;
@@ -3331,6 +3486,27 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
     <tbody id="mqm-stats-tbody">
     </tbody>
   </table>
+
+  <br>
+
+  <details>
+    <summary
+        title="Click to see significance test results.">
+      <span class="mqm-section">
+        Significance test
+      </span>
+    </summary>
+    <div class="mqm-sign-test">
+      Number of trials for paired one-sided approximate randomization:
+      <input size="6" maxlength="6" type="text" id="mqm-par-num-trials" value="10000"
+          onchange="setMqmPARNumTrials()">
+      </input>
+      <table
+          title="Significance test results are obtained through paired one-sided approximate randomization. By default, 10000 samples are obtained for each system pair."
+          class="mqm-table mqm-numbers-table" id="mqm-sign-test">
+      </table>
+    <div>
+  </details>
 
   <br>
 
