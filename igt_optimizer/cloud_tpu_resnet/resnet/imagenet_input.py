@@ -315,7 +315,7 @@ class ImageNetInput(ImageNetTFExampleInput):
 
     # Read the data from disk in parallel
     dataset = dataset.apply(
-        contrib_data.parallel_interleave(
+        tf.data.experimental.parallel_interleave(
             fetch_dataset, cycle_length=64, sloppy=True))
 
     if self.cache:

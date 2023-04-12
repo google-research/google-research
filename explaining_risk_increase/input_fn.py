@@ -21,7 +21,6 @@ from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-from tensorflow.contrib import data as contrib_data
 
 CONTEXT_KEY_PREFIX = 'c-'
 SEQUENCE_KEY_PREFIX = 's-'
@@ -329,7 +328,7 @@ def get_input_fn(mode,
         files = files.shuffle(buffer_size=len(file_names))
       dataset = (
           files.apply(
-              contrib_data.parallel_interleave(
+              tf.data.experimental.parallel_interleave(
                   tf.data.TFRecordDataset, cycle_length=10)).repeat(num_epochs))
       if shuffle:
         dataset = dataset.shuffle(buffer_size=100)
