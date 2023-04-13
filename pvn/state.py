@@ -33,8 +33,9 @@ from orbax import checkpoint
 from pvn.utils import mesh_utils
 from pvn.utils import tree_utils
 
-TargetParamsUpdateFunction = Callable[[chex.ArrayTree, chex.ArrayTree, int],
-                                      chex.ArrayTree]
+TargetParamsUpdateFunction = Callable[
+    [chex.ArrayTree, chex.ArrayTree, int], chex.ArrayTree
+]
 ElementSpec = Mapping[Text, jax.ShapeDtypeStruct]
 
 
@@ -45,6 +46,7 @@ def identity(buffer, dummy_variable):
 
 class TrainState(struct.PyTreeNode):
   """Train State. This resembles Flax's train state."""
+
   step: int
   apply_fn: Callable[Ellipsis, Any] = struct.field(pytree_node=False)
   params: chex.ArrayTree
@@ -53,53 +55,72 @@ class TrainState(struct.PyTreeNode):
   optim_state: optax.OptState
 
   def apply_gradients(self, *, grads, **kwargs):
-    updates, new_optim_state = self.optim.update(grads, self.optim_state,
-                                                 self.params)
+    updates, new_optim_state = self.optim.update(
+        grads, self.optim_state, self.params
+    )
     new_params = optax.apply_updates(self.params, updates)
 
     return self.replace(
         step=self.step + 1,
         params=new_params,
         optim_state=new_optim_state,
-        **kwargs)
+        **kwargs,
+    )
 
   @classmethod
-  def create(cls, *, apply_fn, params,
-             optim, **kwargs):
+  def create(
+      cls,
+      *,
+      apply_fn,
+      params,
+      optim,
+      **kwargs,
+  ):
     return cls(
         step=0,
         apply_fn=apply_fn,
         params=params,
         optim=optim,
-        optim_state=optim.init(params))
+        optim_state=optim.init(params),
+    )
 
 
 class FittedValueTrainState(TrainState):
   """Train State for fitted value iteration methods."""
+
   target_params: core.FrozenDict[str, Any]
   target_params_update_fn: TargetParamsUpdateFunction = struct.field(
-      pytree_node=False)
+      pytree_node=False
+  )
 
-  def apply_gradients(self, *, grads,
-                      **kwargs):
-    updates, new_optim_state = self.optim.update(grads, self.optim_state,
-                                                 self.params)
+  def apply_gradients(
+      self, *, grads, **kwargs
+  ):
+    updates, new_optim_state = self.optim.update(
+        grads, self.optim_state, self.params
+    )
     new_params = optax.apply_updates(self.params, updates)
-    new_target_params = self.target_params_update_fn(self.params,
-                                                     self.target_params,
-                                                     self.step)
+    new_target_params = self.target_params_update_fn(
+        self.params, self.target_params, self.step
+    )
 
     return self.replace(
         step=self.step + 1,
         params=new_params,
         target_params=new_target_params,
         optim_state=new_optim_state,
-        **kwargs)
+        **kwargs,
+    )
 
   @classmethod
-  def create(cls, *, apply_fn, params,
-             target_params_update_fn,
-             optim):
+  def create(
+      cls,
+      *,
+      apply_fn,
+      params,
+      target_params_update_fn,
+      optim,
+  ):
     target_params = operator.getitem(jax.jit(identity)(params, 2), 0)
 
     return cls(
@@ -109,7 +130,8 @@ class FittedValueTrainState(TrainState):
         optim=optim,
         optim_state=optim.init(params),
         target_params=target_params,
-        target_params_update_fn=target_params_update_fn)
+        target_params_update_fn=target_params_update_fn,
+    )
 
 
 def create_indicator_state(
@@ -123,7 +145,8 @@ def create_indicator_state(
   # Initialize parameters
   dummy_observation = jnp.zeros(
       element_spec['observation'].shape[:-1],
-      dtype=element_spec['observation'].dtype)
+      dtype=element_spec['observation'].dtype,
+  )
   params = model.init(rng, dummy_observation)
   # We have to unfreeze the parameters or else optax has some issues
   # with optax.masked
@@ -145,23 +168,28 @@ def create_train_state(
   # Initialize parameters
   dummy_observation = jnp.zeros(
       element_spec['observation'].shape[:-1],
-      dtype=element_spec['observation'].dtype)
+      dtype=element_spec['observation'].dtype,
+  )
   params = model.init(rng, dummy_observation)
 
   return FittedValueTrainState.create(
       apply_fn=model.apply,
       params=params,
       target_params_update_fn=target_params_update_fn,
-      optim=optim)
+      optim=optim,
+  )
 
 
 def create_train_state_partition_spec_from_shape(
-    state_shape):
+    state_shape
+):
   # Map leading axis
-  return tree_utils.tree_map_with_regex(mesh_utils.map_leading_axis_to_pspec,
-                                        state_shape,
-                                        [(r'.*params/aux_tasks/.*', 'model')],
-                                        lambda _: None)
+  return tree_utils.tree_map_with_regex(
+      mesh_utils.map_leading_axis_to_pspec,
+      state_shape,
+      [(r'.*params/aux_tasks/.*', 'model')],
+      lambda _: None,
+  )
 
 
 def create_train_state_partition_spec(
@@ -180,17 +208,23 @@ def create_train_state_partition_spec(
           model=model,
           optim=optim,
           target_params_update_fn=target_params_update_fn,
-          rng=jax.random.PRNGKey(0)), element_spec)
+          rng=jax.random.PRNGKey(0),
+      ),
+      element_spec,
+  )
 
   return create_train_state_partition_spec_from_shape(train_state_shape)
 
 
 def create_indicator_state_partition_spec_from_shape(
-    state_shape):
-  return tree_utils.tree_map_with_regex(mesh_utils.map_leading_axis_to_pspec,
-                                        state_shape,
-                                        [(r'.*params/reward_bias.*', 'model')],
-                                        lambda _: None)
+    state_shape
+):
+  return tree_utils.tree_map_with_regex(
+      mesh_utils.map_leading_axis_to_pspec,
+      state_shape,
+      [(r'.*params/reward_bias.*', 'model')],
+      lambda _: None,
+  )
 
 
 def create_indicator_state_partition_spec(
@@ -205,7 +239,10 @@ def create_indicator_state_partition_spec(
           create_indicator_state,
           model=model,
           optim=optim,
-          rng=jax.random.PRNGKey(0)), element_spec)
+          rng=jax.random.PRNGKey(0),
+      ),
+      element_spec,
+  )
 
   return create_indicator_state_partition_spec_from_shape(indicator_state_shape)
 
@@ -245,7 +282,8 @@ def maybe_restore_train_and_indicator_state(
     )
 
   def restore_arguments_with_mesh_axes(
-      mesh_axes):
+      mesh_axes,
+  ):
     if not mesh:
       mesh_axes = None
 
@@ -262,48 +300,49 @@ def maybe_restore_train_and_indicator_state(
   # Evaluate the shape and filter empty nodes
   # We save the entire PyTree so there's no need to further filter
   train_state_shape = jax.eval_shape(lambda x: x, train_state)
-  train_state_shape = tree_utils.filter_empty_nodes(train_state_shape,
-                                                    train_state_shape)
+  train_state_shape = tree_utils.filter_empty_nodes(
+      train_state_shape, train_state_shape
+  )
   train_state_pspec = create_train_state_partition_spec_from_shape(
-      train_state_shape)
+      train_state_shape
+  )
   train_state_restore_args = jax.tree_util.tree_map(
-      restore_arguments_with_mesh_axes(train_state_pspec), train_state_shape)
+      restore_arguments_with_mesh_axes(train_state_pspec), train_state_shape
+  )
 
   indicator_state_shape = jax.eval_shape(lambda x: x, indicator_state)
   indicator_state_shape = tree_utils.tree_map_with_regex(
-      lambda _: None, indicator_state_shape, [(r'.*params/encoder/.*',)],
-      lambda leaf: leaf)
-  indicator_state_shape = tree_utils.filter_empty_nodes(indicator_state_shape,
-                                                        indicator_state_shape)
+      lambda _: None,
+      indicator_state_shape,
+      [(r'.*params/encoder/.*',)],
+      lambda leaf: leaf,
+  )
+  indicator_state_shape = tree_utils.filter_empty_nodes(
+      indicator_state_shape, indicator_state_shape
+  )
   indicator_state_pspec = create_indicator_state_partition_spec_from_shape(
-      indicator_state_shape)
+      indicator_state_shape
+  )
   indicator_state_restore_args = jax.tree_util.tree_map(
       restore_arguments_with_mesh_axes(indicator_state_pspec),
-      indicator_state_shape)
+      indicator_state_shape,
+  )
 
   restored_state = ckpt_manager.restore(
       latest_step,
-      items={
-          'train': train_state_shape,
-          'indicator': indicator_state_shape
-      },
+      items={'train': train_state_shape, 'indicator': indicator_state_shape},
       restore_kwargs={
-          'train': {
-              'restore_args': train_state_restore_args
-          },
-          'indicator': {
-              'restore_args': indicator_state_restore_args
-          }
-      })
+          'train': {'restore_args': train_state_restore_args},
+          'indicator': {'restore_args': indicator_state_restore_args},
+      },
+  )
 
   restored_state = checkpoint.apply_transformations(
       original_tree=restored_state,
       transformations=dict(),
-      new_tree={
-          'train': train_state,
-          'indicator': indicator_state
-      },
-      default_to_original=False)
+      new_tree={'train': train_state, 'indicator': indicator_state},
+      default_to_original=False,
+  )
   restored_state = checkpoint.lazy_utils.maybe_get_tree(restored_state)
   logging.info('Restore finished')
 
@@ -322,21 +361,26 @@ def save_train_and_indicator_state(
 
   # We just need to filter out empty nodes for the train state.
   transformed_train_state = tree_utils.filter_empty_nodes(
-      train_state, train_state)  # pytype: disable=wrong-arg-types
+      train_state, train_state
+  )  # pytype: disable=wrong-arg-types
 
   # The indicator state requires a little more care.
   # We must filter out the random network parameters.
   # We already masked the optimizer state and this will be handled
   # by tree_utils.filter_empty_nodes.
   transformed_indicator_state = tree_utils.tree_map_with_regex(
-      lambda _: None, indicator_state, [(r'.*params/encoder/.*',)],
-      lambda leaf: leaf)
+      lambda _: None,
+      indicator_state,
+      [(r'.*params/encoder/.*',)],
+      lambda leaf: leaf,
+  )
   transformed_indicator_state = tree_utils.filter_empty_nodes(
-      transformed_indicator_state, transformed_indicator_state)  # pytype: disable=wrong-arg-types
+      transformed_indicator_state, transformed_indicator_state
+  )  # pytype: disable=wrong-arg-types
 
   items = {
       'train': transformed_train_state,
-      'indicator': transformed_indicator_state
+      'indicator': transformed_indicator_state,
   }
   ckpt_manager.save(step, items=items)
   if wait_until_finished:

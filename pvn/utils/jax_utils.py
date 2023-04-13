@@ -54,4 +54,3 @@ def is_gpu_backend():
 
 def is_cpu_backend():
   return jax.local_devices()[0].platform == 'cpu'
-

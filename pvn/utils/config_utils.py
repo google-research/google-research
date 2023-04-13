@@ -60,9 +60,9 @@ FLAGS = flags.FLAGS
 class ConfigHelper:
   """A helper to simplify some operations relater to a config file."""
 
-  def __init__(self,
-               path_to_project,
-               config_flag_name = 'config'):
+  def __init__(
+      self, path_to_project, config_flag_name = 'config'
+  ):
     """Builds absolute and relative paths to a config file.
 
     Given a config file flag name, determine paths to the config file specified
@@ -83,7 +83,8 @@ class ConfigHelper:
 
     # A path passed to a config flag.
     config_path = epath.Path(
-        config_flags.get_config_filename(FLAGS[config_flag_name]))
+        config_flags.get_config_filename(FLAGS[config_flag_name])
+    )
 
     project_root = path_to_project.parent.resolve()
 
@@ -108,7 +109,6 @@ class ConfigHelper:
     Returns:
       a {flag: value} dictionary containing information related to config file
       and individual values.
-
     """
     args = collections.OrderedDict()
 
@@ -127,11 +127,12 @@ class ConfigHelper:
     # Loading here from file location avoids importing parent packages.
     # Complex configs might include other packages which are not related to the
     # parameter sweeps.
-    spec = importlib.util.spec_from_file_location(self.config_flag_name,
-                                                  self.absolute_path)
+    spec = importlib.util.spec_from_file_location(
+        self.config_flag_name, self.absolute_path
+    )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)  # pytype: disable=attribute-error
     if not isinstance(module, ConfigProtocol):
-      raise RuntimeError(f'Config {module} doesn\'t conform to ConfigProtocol')
+      raise RuntimeError(f"Config {module} doesn't conform to ConfigProtocol")
     return module
 

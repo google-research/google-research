@@ -36,9 +36,9 @@ class ElementSpec(TypedDict):
   terminal: jax.ShapeDtypeStruct
 
 
-def _episode_to_transitions(episode,
-                            num_actions,
-                            stack_size = 4):
+def _episode_to_transitions(
+    episode, num_actions, stack_size = 4
+):
   """Convert episodes to transitions.
 
   Args:
@@ -64,26 +64,27 @@ def _episode_to_transitions(episode,
     terminals = tf.cast(batch[rlds.IS_TERMINAL], tf.bool)
 
     return {
-        'observation':
-            states[:, :, :stack_size],
-        'action':
-            tf.one_hot(
-                actions[stack_size - 1], depth=num_actions, dtype=tf.uint8),
-        'next_observation':
-            states[:, :, 1:],
-        'terminal':
-            tf.reduce_any(terminals[stack_size:stack_size + 1], keepdims=True)
+        'observation': states[:, :, :stack_size],
+        'action': tf.one_hot(
+            actions[stack_size - 1], depth=num_actions, dtype=tf.uint8
+        ),
+        'next_observation': states[:, :, 1:],
+        'terminal': tf.reduce_any(
+            terminals[stack_size : stack_size + 1], keepdims=True
+        ),
     }
 
   batched_steps = rlds.transformations.batch(
-      episode[rlds.STEPS], size=stack_size + 1, shift=1, drop_remainder=True)
+      episode[rlds.STEPS], size=stack_size + 1, shift=1, drop_remainder=True
+  )
   return batched_steps.map(_steps_to_transition)
 
 
 def _transpose_observations(batch):
   batch['observation'] = tf.transpose(batch['observation'], perm=[1, 2, 3, 0])
   batch['next_observation'] = tf.transpose(
-      batch['next_observation'], perm=[1, 2, 3, 0])
+      batch['next_observation'], perm=[1, 2, 3, 0]
+  )
 
   return batch
 
@@ -101,23 +102,26 @@ class DatasetSplit(enum.Enum):
   MIXED: 6M transitions, made of 1M transition buffers equally spread out
       throughout training.
   """
+
   FULL: str = 'full'
   WEAK: str = 'weak'
   MIXED_SMALL: str = 'mixed_small'
   MIXED: str = 'mixed'
 
 
-def create_dataset(*,
-                   game,
-                   run,
-                   batch_size,
-                   split = DatasetSplit.FULL,
-                   version = ':1.0.0',
-                   data_proportion_per_checkpoint = 1.0,
-                   episode_shuffle_buffer_size = 1_000,
-                   transition_shuffle_buffer_size = 200_000,
-                   cycle_length = 100,
-                   cache = False):
+def create_dataset(
+    *,
+    game,
+    run,
+    batch_size,
+    split = DatasetSplit.FULL,
+    version = ':1.0.0',
+    data_proportion_per_checkpoint = 1.0,
+    episode_shuffle_buffer_size = 1_000,
+    transition_shuffle_buffer_size = 200_000,
+    cycle_length = 100,
+    cache = False,
+):
   """Create Atari dataset.
 
   Reference: https://github.com/google-research/rlds
@@ -162,12 +166,14 @@ def create_dataset(*,
   elif split == DatasetSplit.MIXED_SMALL:
     splits = ['checkpoint_00', 'checkpoint_24', 'checkpoint_49']
   elif split == DatasetSplit.MIXED:
-    splits = ['checkpoint_00',
-              'checkpoint_09',
-              'checkpoint_19',
-              'checkpoint_29',
-              'checkpoint_39',
-              'checkpoint_49']
+    splits = [
+        'checkpoint_00',
+        'checkpoint_09',
+        'checkpoint_19',
+        'checkpoint_29',
+        'checkpoint_39',
+        'checkpoint_49',
+    ]
   elif split == DatasetSplit.WEAK:
     splits = ['checkpoint_00']
 
@@ -185,7 +191,8 @@ def create_dataset(*,
   read_config = tfds.ReadConfig(
       options=options,
       shuffle_reshuffle_each_iteration=True,
-      enable_ordering_guard=False)
+      enable_ordering_guard=False,
+  )
 
   if split == DatasetSplit.WEAK:
     logging.warning('Using the weak dataset and ignoring the run parameter.')
@@ -193,7 +200,8 @@ def create_dataset(*,
     datasets = []
     for run in range(1, 6):
       ds = tfds.load(
-          path_template.format(run), split=tfds_split, read_config=read_config)
+          path_template.format(run), split=tfds_split, read_config=read_config
+      )
       datasets.append(ds)
 
     # This interleaves samples from the various datasets. However,
@@ -204,7 +212,8 @@ def create_dataset(*,
     dataset = tf.data.Dataset.sample_from_datasets(datasets)
   else:
     dataset = tfds.load(
-        path, split=tfds_split, read_config=read_config, shuffle_files=True)
+        path, split=tfds_split, read_config=read_config, shuffle_files=True
+    )
 
   # Configure dataset
   dataset = dataset.shuffle(episode_shuffle_buffer_size)
@@ -213,7 +222,8 @@ def create_dataset(*,
       cycle_length=cycle_length,
       block_length=1,
       deterministic=False,
-      num_parallel_calls=tf.data.AUTOTUNE)
+      num_parallel_calls=tf.data.AUTOTUNE,
+  )
   if cache:
     dataset = dataset.cache()
 
@@ -225,9 +235,11 @@ def create_dataset(*,
       batch_size // jax.process_count(),
       drop_remainder=True,
       num_parallel_calls=tf.data.AUTOTUNE,
-      deterministic=False)
+      deterministic=False,
+  )
   dataset = dataset.map(
-      _transpose_observations, num_parallel_calls=tf.data.AUTOTUNE)
+      _transpose_observations, num_parallel_calls=tf.data.AUTOTUNE
+  )
   dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
   return dataset
@@ -236,20 +248,19 @@ def create_dataset(*,
 def element_spec(game, batch_size):
   num_actions = get_num_actions(game)
   obs_spec = jax.ShapeDtypeStruct(
-      shape=(84, 84, 4, batch_size), dtype=jnp.uint8)
+      shape=(84, 84, 4, batch_size), dtype=jnp.uint8
+  )
   return {
-      'observation':
-          obs_spec,
-      'next_observation':
-          obs_spec,
-      'action':
-          jax.ShapeDtypeStruct(
-              shape=(
-                  batch_size,
-                  num_actions,
-              ), dtype=jnp.int32),
-      'terminal':
-          jax.ShapeDtypeStruct(shape=(batch_size, 1), dtype=jnp.int32),
+      'observation': obs_spec,
+      'next_observation': obs_spec,
+      'action': jax.ShapeDtypeStruct(
+          shape=(
+              batch_size,
+              num_actions,
+          ),
+          dtype=jnp.int32,
+      ),
+      'terminal': jax.ShapeDtypeStruct(shape=(batch_size, 1), dtype=jnp.int32),
   }
 
 

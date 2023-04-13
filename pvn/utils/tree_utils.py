@@ -124,8 +124,13 @@ def tree_map_with_regex(f, tree, regex_rules, not_f=lambda x: x, name=None):
     for pattern, *args in regex_rules:
       if re.fullmatch(pattern, vname):
         if name and jax.process_index() == 0:
-          logging.info("Applying %s to %s with %s due to `%s`", name, vname,
-                       args, pattern)
+          logging.info(
+              "Applying %s to %s with %s due to `%s`",
+              name,
+              vname,
+              args,
+              pattern,
+          )
         return f(v, *args)
     return not_f(v)
 
@@ -160,10 +165,13 @@ def filter_empty_nodes(
       return other_trees
     result_trees = [{} for _ in other_trees]
     for k, v in mask_tree.items():
-      if v is not None and not isinstance(v, (
-          optax.EmptyState,
-          optax.MaskedNode,
-      )):
+      if v is not None and not isinstance(
+          v,
+          (
+              optax.EmptyState,
+              optax.MaskedNode,
+          ),
+      ):
         values = _filter_helper(v, *(t[k] for t in other_trees))
         for i, v1 in enumerate(values):
           if isinstance(v1, dict):
@@ -175,7 +183,8 @@ def filter_empty_nodes(
 
   def _filter_helper(mask_tree, *other_trees):
     return jax.tree_util.tree_map(
-        _filter, mask_tree, *other_trees, is_leaf=lambda x: isinstance(x, dict))
+        _filter, mask_tree, *other_trees, is_leaf=lambda x: isinstance(x, dict)
+    )
 
   mask_tree = flax.serialization.to_state_dict(mask_tree)
   other_trees = (flax.serialization.to_state_dict(t) for t in other_trees)

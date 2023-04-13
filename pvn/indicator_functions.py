@@ -34,6 +34,7 @@ class IndicatorOutput:
 
 class StackedNatureDqnIndicator(nn.Module):
   """A network comprised of a stack of indictor networks."""
+
   num_auxiliary_tasks: int
   width_multiplier: float = 1.0
   tasks_per_module: int = 1
@@ -51,7 +52,8 @@ class StackedNatureDqnIndicator(nn.Module):
           'StackedNatureDqnIndicator.num_auxiliary_tasks must be '
           'divisible by StackedMultiplyShiftHashIndicator.tasks_per_module. '
           f'Got num_auxiliary_tasks = {self.num_auxiliary_tasks} and '
-          f'tasks_per_module = {self.num_auxiliary_tasks}.')
+          f'tasks_per_module = {self.num_auxiliary_tasks}.'
+      )
 
   @nn.remat
   @nn.compact
@@ -64,7 +66,8 @@ class StackedNatureDqnIndicator(nn.Module):
         split_rngs={'params': True},
         in_axes=None,
         out_axes=0,
-        axis_size=self.num_auxiliary_tasks // self.tasks_per_module)
+        axis_size=self.num_auxiliary_tasks // self.tasks_per_module,
+    )
     outputs = VmapNatureDqnEncoder(
         name='encoder',
         width_multiplier=self.width_multiplier,
@@ -77,8 +80,12 @@ class StackedNatureDqnIndicator(nn.Module):
     outputs = jax.lax.reshape(outputs, (self.num_auxiliary_tasks,))
     outputs = jax.lax.stop_gradient(outputs)
 
-    reward_bias = self.param('reward_bias', nn.initializers.zeros,
-                             (self.num_auxiliary_tasks,), self.param_dtype)
+    reward_bias = self.param(
+        'reward_bias',
+        nn.initializers.zeros,
+        (self.num_auxiliary_tasks,),
+        self.param_dtype,
+    )
     outputs = outputs + reward_bias
 
     rewards = jnp.where(outputs <= 0.0, 0.0, 1.0)
@@ -88,7 +95,8 @@ class StackedNatureDqnIndicator(nn.Module):
 
 
 @functools.partial(
-    jax.jit, static_argnames=('mersenne_prime_exponent', 'num_bins'))
+    jax.jit, static_argnames=('mersenne_prime_exponent', 'num_bins')
+)
 @chex.assert_max_traces(5)
 def multiply_shift_hash_function(
     x,
@@ -104,13 +112,15 @@ def multiply_shift_hash_function(
   result = x * params[1:]
   # \sum_i a_i * x_i mod p
   result = jnp.sum(
-      jnp.bitwise_and(result, prime) +
-      jnp.right_shift(result, mersenne_prime_exponent))
+      jnp.bitwise_and(result, prime)
+      + jnp.right_shift(result, mersenne_prime_exponent)
+  )
   # a_0 + \sum_i a_i * x_i mod p
   result = params[0] + result
   # (a_0 + \sum_i a_i * x_i mod p) mod p
   result = jnp.bitwise_and(result, prime) + jnp.right_shift(
-      result, mersenne_prime_exponent)
+      result, mersenne_prime_exponent
+  )
   # ((a_0 + \sum_i a_i * x_i mod p) mod p) mod m
   # We'll overload the meaning of "1 bin" to mean a single binary indicator
   # pyformat: disable
@@ -140,6 +150,7 @@ class StackedMultiplyShiftHashIndicator(nn.Module):
     max(input) < p
     number of bins < p
   """
+
   num_auxiliary_tasks: int
   mersenne_prime_exponent: int = 13
   target_reward_proportion: float = 0.01
@@ -151,16 +162,21 @@ class StackedMultiplyShiftHashIndicator(nn.Module):
 
     # Retrieve parameter vector
     hash_init = functools.partial(
-        jax.random.randint, minval=0, maxval=2**16 - 1, dtype=jnp.uint16)
-    hash_params = self.param('hash_params', hash_init, ((
-        self.num_auxiliary_tasks,
-        flat_shape + 1,
-    )))
+        jax.random.randint, minval=0, maxval=2**16 - 1, dtype=jnp.uint16
+    )
+    hash_params = self.param(
+        'hash_params',
+        hash_init,
+        ((
+            self.num_auxiliary_tasks,
+            flat_shape + 1,
+        )),
+    )
 
     hash_function = functools.partial(
         multiply_shift_hash_function,
         mersenne_prime_exponent=self.mersenne_prime_exponent,
-        num_bins=int(1/self.target_reward_proportion)
+        num_bins=int(1 / self.target_reward_proportion),
     )
     hash_function_vmap = jax.vmap(hash_function, in_axes=(None, 0))
     hashes = hash_function_vmap(x.flatten(), hash_params)

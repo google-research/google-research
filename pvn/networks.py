@@ -22,6 +22,7 @@ from pvn.utils import mesh_utils
 
 class NatureDqnEncoder(nn.Module):
   """An encoder network for use with Atari."""
+
   num_features: int = 512
   width_multiplier: float = 1.0
   dtype: jnp.dtype = jnp.float32
@@ -39,7 +40,8 @@ class NatureDqnEncoder(nn.Module):
         strides=(4, 4),
         kernel_init=initializer,
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(x)
+        param_dtype=self.param_dtype,
+    )(x)
     x = nn.relu(x)
     x = nn.Conv(
         features=int(64 * self.width_multiplier),
@@ -47,7 +49,8 @@ class NatureDqnEncoder(nn.Module):
         strides=(2, 2),
         kernel_init=initializer,
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(x)
+        param_dtype=self.param_dtype,
+    )(x)
     x = nn.relu(x)
     x = nn.Conv(
         features=int(64 * self.width_multiplier),
@@ -55,14 +58,16 @@ class NatureDqnEncoder(nn.Module):
         strides=(1, 1),
         kernel_init=initializer,
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(x)
+        param_dtype=self.param_dtype,
+    )(x)
     x = nn.relu(x)
     x = x.reshape((-1))  # flatten
     x = nn.Dense(
         features=self.num_features,
         kernel_init=initializer,
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(x)
+        param_dtype=self.param_dtype,
+    )(x)
     if self.apply_final_relu:
       x = nn.relu(x)
     return x
@@ -70,6 +75,7 @@ class NatureDqnEncoder(nn.Module):
 
 class NatureRndNetwork(nn.Module):
   """A modified Nature DQN network that outputs a single scalar value."""
+
   features: int
   dtype: jnp.dtype = jnp.float32
   param_dtype: jnp.dtype = jnp.float32
@@ -84,12 +90,14 @@ class NatureRndNetwork(nn.Module):
         features=self.features,
         kernel_init=initializer,
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(x)
+        param_dtype=self.param_dtype,
+    )(x)
     return x
 
 
 class ResidualBlock(nn.Module):
   """Stack of pooling and convolutional blocks with residual connections."""
+
   num_channels: int
   num_blocks: int
   use_max_pooling: bool = True
@@ -108,10 +116,12 @@ class ResidualBlock(nn.Module):
         strides=1,
         padding='SAME',
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(x)
+        param_dtype=self.param_dtype,
+    )(x)
     if self.use_max_pooling:
       conv_out = nn.max_pool(
-          conv_out, window_shape=(3, 3), padding='SAME', strides=(2, 2))
+          conv_out, window_shape=(3, 3), padding='SAME', strides=(2, 2)
+      )
 
     for _ in range(self.num_blocks):
       block_input = conv_out
@@ -123,7 +133,8 @@ class ResidualBlock(nn.Module):
           strides=1,
           padding='SAME',
           dtype=self.dtype,
-          param_dtype=self.param_dtype)(conv_out)
+          param_dtype=self.param_dtype,
+      )(conv_out)
       conv_out = nn.relu(conv_out)
       conv_out = nn.Conv(
           features=self.num_channels,
@@ -132,7 +143,8 @@ class ResidualBlock(nn.Module):
           strides=1,
           padding='SAME',
           dtype=self.dtype,
-          param_dtype=self.param_dtype)(conv_out)
+          param_dtype=self.param_dtype,
+      )(conv_out)
       conv_out += block_input
 
     return conv_out
@@ -140,6 +152,7 @@ class ResidualBlock(nn.Module):
 
 class ImpalaEncoder(nn.Module):
   """Impala Network which also outputs penultimate representation layers."""
+
   width_multiplier: float = 1.0
   stack_sizes: tuple[int, Ellipsis] = (16, 32, 32)
   num_blocks: int = 2
@@ -158,7 +171,8 @@ class ImpalaEncoder(nn.Module):
           num_channels=int(stack_size * self.width_multiplier),
           num_blocks=self.num_blocks,
           dtype=self.dtype,
-          param_dtype=self.param_dtype)(x)
+          param_dtype=self.param_dtype,
+      )(x)
 
     x = nn.relu(x)
     x = x.reshape(-1)
@@ -167,13 +181,15 @@ class ImpalaEncoder(nn.Module):
         features=int(self.num_features),
         kernel_init=initializer,
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(x)
+        param_dtype=self.param_dtype,
+    )(x)
     x = nn.relu(x)
     return x
 
 
 class DsmNetwork(nn.Module):
   """A network that predicts DSM action-values and thresholds DSM rewards."""
+
   num_actions: int
   num_auxiliary_tasks: int
   encoder: nn.Module
@@ -194,13 +210,16 @@ class DsmNetwork(nn.Module):
         split_rngs={'params': True},
         in_axes=None,
         out_axes=0,
-        axis_size=self.num_auxiliary_tasks)
+        axis_size=self.num_auxiliary_tasks,
+    )
     action_preds = vmap_action_preds(
         features=self.num_actions,
         kernel_init=initializer,
         param_dtype=self.param_dtype,
-        name='aux_tasks')(phi)
+        name='aux_tasks',
+    )(phi)
     action_preds = mesh_utils.with_sharding_constraint(
-        action_preds, mesh_utils.create_partition_spec('model'))
+        action_preds, mesh_utils.create_partition_spec('model')
+    )
 
     return action_preds

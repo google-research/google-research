@@ -72,11 +72,13 @@ def _get_offline_config(
     offline.indicator.module.name = 'StackedMultiplyShiftHashIndicator'
     offline.indicator.module.target_reward_proportion = target_reward_proportion
     offline.indicator.module.num_auxiliary_tasks = offline.get_ref(
-        'num_auxiliary_tasks')
+        'num_auxiliary_tasks'
+    )
   elif indicator_type.get() == 'rnd':
     offline.indicator.module.name = 'StackedNatureDqnIndicator'
     offline.indicator.module.num_auxiliary_tasks = offline.get_ref(
-        'num_auxiliary_tasks')
+        'num_auxiliary_tasks'
+    )
     offline.indicator.module.tasks_per_module = 10
     offline.indicator.module.width_multiplier = 1.0
     # 1 iteration warmup period
@@ -91,7 +93,8 @@ def _get_offline_config(
   offline.optim = config_dict.ConfigDict()
   offline.optim.name = 'adam'
   offline.optim.learning_rate = 6.25e-5 * (
-      (offline.get_ref('batch_size') // 32)**(1 / 4))
+      (offline.get_ref('batch_size') // 32) ** (1 / 4)
+  )
   offline.optim.b1 = 0.9
   offline.optim.b2 = 0.999
   offline.optim.eps = 1.5e-4
@@ -100,7 +103,8 @@ def _get_offline_config(
 
 
 def _get_online_config(
-    config):
+    config,
+):
   """Get online/eval config."""
   online = config_dict.ConfigDict()
   online.game = config.get_ref('game')

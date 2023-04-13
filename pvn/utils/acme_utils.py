@@ -45,6 +45,7 @@ class ReverbUpdate(NamedTuple):
 
   Note: Copied from the Acme codebase since visibility isn't public.
   """
+
   keys: jnp.ndarray
   priorities: jnp.ndarray
 
@@ -54,6 +55,7 @@ class LossExtra(NamedTuple):
 
   Note: Copied from the Acme codebase since visibility isn't public.
   """
+
   metrics: Dict[str, jax.Array]
   reverb_update: Optional[ReverbUpdate] = None
 
@@ -64,12 +66,14 @@ class LossFn(Protocol):
   Note: Copied from the Acme codebase since visibility isn't public.
   """
 
-  def __call__(self,
-               network: acme_networks.FeedForwardNetwork,
-               params: acme_networks.Params,
-               target_params: acme_networks.Params,
-               batch: reverb.ReplaySample,  # pyformat: disable
-               key: acme_networks.PRNGKey) -> Tuple[jax.Array, LossExtra]:
+  def __call__(
+      self,
+      network: acme_networks.FeedForwardNetwork,
+      params: acme_networks.Params,
+      target_params: acme_networks.Params,
+      batch: reverb.ReplaySample,  # pyformat: disable
+      key: acme_networks.PRNGKey,
+  ) -> Tuple[jax.Array, LossExtra]:
     """Calculates a loss on a single batch of data."""
 
 
@@ -84,6 +88,7 @@ class QLearning(LossFn):
 
   Note: Copied from the Acme codebase since visibility isn't public.
   """
+
   discount: float = 0.99
   max_abs_reward: float = 1.0
 
@@ -105,8 +110,9 @@ class QLearning(LossFn):
 
     # Cast and clip rewards.
     d_t = (transitions.discount * self.discount).astype(jnp.float32)
-    r_t = jnp.clip(transitions.reward, -self.max_abs_reward,
-                   self.max_abs_reward).astype(jnp.float32)
+    r_t = jnp.clip(
+        transitions.reward, -self.max_abs_reward, self.max_abs_reward
+    ).astype(jnp.float32)
 
     # Compute Q-learning TD-error.
     batch_error = jax.vmap(rlax.q_learning)
@@ -121,15 +127,22 @@ class QLearning(LossFn):
 class EncoderWrapper(wrappers.EnvironmentWrapper):
   """An Atari wrapper that applies an encoder to each observation."""
 
-  def __init__(self, environment: dm_env.Environment, *, network_def: nn.Module,
-               params: flax.core.FrozenDict, output_dim: int):
+  def __init__(
+      self,
+      environment: dm_env.Environment,
+      *,
+      network_def: nn.Module,
+      params: flax.core.FrozenDict,
+      output_dim: int,
+  ):
     super().__init__(environment)
     self._network_def = network_def
     self._params = params
     self._output_dim = output_dim
 
     self._apply_encoder = jax.jit(
-        functools.partial(self._network_def.apply, params))
+        functools.partial(self._network_def.apply, params)
+    )
 
   def reset(self) -> dm_env.TimeStep:
     timestep = super().reset()
@@ -137,7 +150,8 @@ class EncoderWrapper(wrappers.EnvironmentWrapper):
         step_type=timestep.step_type,
         reward=timestep.reward,
         discount=timestep.discount,
-        observation=self._apply_encoder(timestep.observation))
+        observation=self._apply_encoder(timestep.observation),
+    )
 
   def step(self, action) -> dm_env.TimeStep:
     timestep = super().step(action)
@@ -145,20 +159,24 @@ class EncoderWrapper(wrappers.EnvironmentWrapper):
         step_type=timestep.step_type,
         reward=timestep.reward,
         discount=timestep.discount,
-        observation=self._apply_encoder(timestep.observation))
+        observation=self._apply_encoder(timestep.observation),
+    )
 
   def observation_spec(self):
     return specs.Array(shape=(self._output_dim,), dtype=np.float32)
 
 
-def make_default_logger(module: str,
-                        label: str,
-                        time_delta: float = 1.0,
-                        asynchronous: bool = True,
-                        print_fn: Optional[Callable[[str], None]] = None,
-                        serialize_fn: Optional[Callable[[Mapping[
-                            str, Any]], str]] = loggers.to_numpy,
-                        steps_key: str = 'steps') -> loggers.Logger:
+def make_default_logger(
+    module: str,
+    label: str,
+    time_delta: float = 1.0,
+    asynchronous: bool = True,
+    print_fn: Optional[Callable[[str], None]] = None,
+    serialize_fn: Optional[
+        Callable[[Mapping[str, Any]], str]
+    ] = loggers.to_numpy,
+    steps_key: str = 'steps',
+) -> loggers.Logger:
   """Make a default Acme logger."""
   del module  # Unused.
   del steps_key  # Unused.
@@ -183,8 +201,9 @@ def make_environment(
     seed: int,
     *,
     level: str,
-    encoder_wrapper: Optional[Callable[[dm_env.Environment],
-                                       wrappers.EnvironmentWrapper]] = None,
+    encoder_wrapper: Optional[
+        Callable[[dm_env.Environment], wrappers.EnvironmentWrapper]
+    ] = None,
 ) -> dm_env.Environment:
   """Loads the Atari environment."""
   env = gym.make(level, full_action_space=False)
