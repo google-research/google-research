@@ -34,6 +34,9 @@
   opacity: 100%;
   color: black;
 }
+.mqm-bottomed-tr {
+  border-bottom: 1px solid gray;
+}
 .mqm-ci {
   color: gray;
   font-size: x-small

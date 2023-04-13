@@ -158,6 +158,7 @@ const mqmSigtestsData = {
    */
   commonPosBySystemPair: {},
   numTrials: 10000,  /** Number of trials. */
+  pValues: [],  /** Computed matrix. */
 };
 /** {!Worker} A background Worker thread that computes sigtests */
 let mqmSigtestsWorker = null;
@@ -1174,12 +1175,51 @@ function mqmPrepareSigtests() {
         commonPos[baseline][system] = [];
       }
       for (let pos = 0; pos < maxPos; pos++) {
-        if ((parScores[system] != null) &&
-            (parScores[baseline] != null)) {
+        if ((parScores[system][pos] != null) &&
+            (parScores[baseline][pos] != null)) {
           commonPos[baseline][system].push(pos);
         }
       }
     }
+  }
+
+  /** Create pValues matrix, to be populated with updates from the Worker. */
+  const numSystems = mqmSigtestsData.systems.length;
+  mqmSigtestsData.pValues = Array(numSystems);
+  for (let row = 0; row < numSystems; row++) {
+    mqmSigtestsData.pValues[row] = Array(numSystems);
+    for (let col = 0; col < numSystems; col++) {
+      mqmSigtestsData.pValues[row][col] = NaN;
+    }
+  }
+}
+
+/**
+ * In the significance tests table, draw a line under every prefix of systems
+ * that is significantly better than all subsequent systems.
+ */
+function mqmClusterSigtests() {
+  const numSystems = mqmSigtestsData.systems.length;
+  const systemBetterThanAllAfter = Array(numSystems);
+  for (let row = 0; row < numSystems; row++) {
+    systemBetterThanAllAfter[row] = numSystems - 1;
+    for (let col = numSystems - 1; col > row; col--) {
+      const pValue = mqmSigtestsData.pValues[row][col];
+      if (isNaN(pValue) || pValue >= 0.05) {
+        break;
+      }
+      systemBetterThanAllAfter[row] = col - 1;
+    }
+  }
+  let maxBetterThanAllAfter = 0;
+  for (let row = 0; row < numSystems - 1; row++) {
+    maxBetterThanAllAfter = Math.max(maxBetterThanAllAfter,
+                                     systemBetterThanAllAfter[row]);
+    if (maxBetterThanAllAfter != row) {
+      continue;
+    }
+    const tr = document.getElementById('mqm-sigtests-row-' + row);
+    tr.className = 'mqm-bottomed-tr';
   }
 }
 
@@ -1192,6 +1232,7 @@ function mqmPrepareSigtests() {
 function mqmSigtestsUpdate(e) {
   const update = e.data;
   if (update.finished) {
+    mqmClusterSigtests();
     mqmResetSigtests();
     return;
   }
@@ -1202,6 +1243,7 @@ function mqmSigtestsUpdate(e) {
   if (update.pValue < 0.05) {
     span.className = 'mqm-sigtest-significant';
   }
+  mqmSigtestsData.pValues[update.row][update.col] = update.pValue;
 }
 
 /**
@@ -1217,11 +1259,12 @@ function mqmShowSigtests() {
   let html = `
     <thead>
       <tr>
-        <th>System</th>`;
+        <th>System</th>
+        <th>MQM</th>`;
   for (const system of systems) {
     html += `<th>${system}</th>`;
   }
-  html += `</tr></thead>`;
+  html += `</tr></thead>\n<tbody>\n`;
 
   /** We don't need to show tbody before loading the project file. */
   if (!systems.length) {
@@ -1229,21 +1272,13 @@ function mqmShowSigtests() {
     return;
   }
 
-  /** Show total MQM scores first. */
-  html += `
-    <tbody>
-      <tr>
-        <td>MQM</td>`;
-  for (const system of systems) {
-    html += `<td>${totalScoresBySystem[system].toFixed(3)}</td>`;
-  }
-  html += `</tr><tr><td colspan=${systems.length + 1}><hr></td></tr>`;
-
   /** Show significance test p-value placeholders. */
   for (const [rowIdx, baseline] of systems.entries()) {
+    /** Show total MQM score in the second column. */
     html += `
-      <tr>
-        <td>${baseline}</td>`;
+      <tr id="mqm-sigtests-row-${rowIdx}">
+        <td>${baseline}</td>
+        <td>${totalScoresBySystem[baseline].toFixed(3)}</td>`;
     for (const [colIdx, system] of systems.entries()) {
       const spanId = `mqm-sigtest-${rowIdx}-${colIdx}`;
       const content = rowIdx >= colIdx ? '-' : '-.---';
@@ -3400,6 +3435,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
     <div class="mqm-sigtests">
       <p>
         P-values < 0.05 (bolded) indicate a significant difference.
+        Systems above any gray line are significantly better than those below.
         <span class="mqm-warning" id="mqm-sigtests-msg"></span>
       </p>
       <table
