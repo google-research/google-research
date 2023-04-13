@@ -154,10 +154,10 @@
 .mqm-settings-row {
   margin: 6px 0;
 }
-.mqm-sign-test {
+.mqm-sigtests {
   margin: 8px;
 }
-.mqm-sign-test-significant {
+.mqm-sigtest-significant {
   font-weight: bold;
 }
 .mqm-stats-slice {
@@ -249,4 +249,7 @@
 #mqm-viewing-constraints {
   cursor: pointer;
   font-style: italic;
+}
+.mqm-warning {
+  color: red;
 }

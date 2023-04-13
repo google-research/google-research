@@ -4,8 +4,8 @@ This repository contains a web app  that can be used to analyze
 [Multidimensional Quality Metrics (MQM)](http://www.qt21.eu/mqm-definition/definition-2015-06-16.html) data from a translation quality
 evaluation.
 
-To use it, download the files `mqm-viewer.html`, `mqm-viewer.js`, and
-`mqm-viewer.css` to your computer:
+To use it, download the files `mqm-viewer.html`, `mqm-viewer.js`,
+`mqm-sigtests.js`, and `mqm-viewer.css` to your computer:
 
 ```
 wget https://raw.githubusercontent.com/google-research/google-research/master/mqm_viewer/mqm-viewer.{html,js,css}
@@ -150,6 +150,16 @@ filters.
   - **Example**: target.indexOf('thethe') >= 0
   - **Example**: aggrDocSeg.sevsBySystem['System-42'].includes('Major')
   - **Example**: JSON.stringify(aggrDocSeg.sevcatsBySystem).includes('Major/Fl')
+
+## Significance tests
+When there are multiple systems that have been evaluated on common document
+segments, significance tests are run for each pair of systems and the resulting
+p-values are displayed in a table. The testing is done via paired one-sided
+approximate randomization (PAR), which corresponds to 'alternative="greater"'
+in [scipy's API](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html).
+
+The significance tests are recomputed with any filtering that is applied. The
+computations are run in a background Worker thread.
 
 ## Data Notes
 There are some nuances to the data format which are useful to be aware of:

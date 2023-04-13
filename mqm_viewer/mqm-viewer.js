@@ -138,50 +138,31 @@ let mqmSysVSys2;
 /** A distinctive name used as the key for aggregate stats. */
 const mqmTotal = '_MQM_TOTAL_';
 
-
-/** Below are variables used for significance testing through paired one-sided
- * approximate randomization (PAR). The implemention follows sacrebleu at
- * https://github.com/mjpost/sacrebleu/blob/078c440168c6adc89ba75fe6d63f0d922d42bcfe/sacrebleu/significance.py#L112.
- */
-
-/** SECTION START */
-
 /**
- * Segment scores by system. Each value is an array of scores that are aligned
- * such that elements at the n-th position of all arrays correspond to the same
- * segment. Note that some scores might be null since some systems are missing
- * ratings for some segments.
+ * An object with data for computing significance tests. This data is sent
+ * to a background Worker thread. See computation details in mqm-sigtests.js.
  */
-let mqmPARScores = {};
-
-/**
- * Common segments shared by a pair of systems. This stores the positions in
- * `mqmPARScores`.
- */
-let mqmPARCommonPos = {};
-
-/** Number of trials per `mqmPAR` call for each system pair. */
-let mqmPARNumTrialsPerCall = 500;
-
-/** Total number of trials for each system pair to do significance testing. */
-let mqmPARNumTrials = 10000;
-
-/** Score differences by system pair. */
-let mqmPARDiffs = {};
-
-/**
- * This stores the return from `setTimeout` call for incrementally obtaining
- * PAR samples.
- */
-let mqmPARComputation = null;
-
-/** SECTION END */
-
-/** Sorted array of systems as rendered in the "by system" sub-table. */
-let mqmSortedSystems = [];
-
-/** Total MQM score by system. */
-let mqmTotalScoreBySystem = {};
+const mqmSigtestsData = {
+  systems: [],  /** Sorted array ordered by increasing MQM scores */
+  totalScoresBySystem: {},  /** Total MQM score by system. */
+  /**
+   * Segment scores by system. Each value is an array of scores that are aligned
+   * such that elements at the n-th position of all arrays correspond to the
+   * same segment. Note that some scores might be null since some systems might
+   * be missing ratings for some segments.
+   */
+  segScoresBySystem: {},
+  /**
+   * Common segments shared by a pair of systems. This stores positions in
+   * segScoresBySystem.
+   */
+  commonPosBySystemPair: {},
+  numTrials: 10000,  /** Number of trials. */
+};
+/** {!Worker} A background Worker thread that computes sigtests */
+let mqmSigtestsWorker = null;
+/** {!Element} An HTML span that shows a sigtests computation status message. */
+let mqmSigtestsMsg = null;
 
 /**
  * Scoring weights. Each weight has a name and a regular expression pattern
@@ -1119,32 +1100,32 @@ function mqmAggregateSegStats(segs) {
 }
 
 /**
- * Samples from [0, max) for a specified number of times.
- * @param {number} max
- * @param {number} size
- * @return {!Array}
+ * This resets the significance tests data and terminates the active sigtests
+ * computation Worker if it exists.
  */
-function getRandomInt(max, size) {
-  let samples = [];
-  for (let i = 0; i < size; i++) {
-    samples.push(Math.floor(Math.random() * max));
+function mqmResetSigtests() {
+  mqmSigtestsMsg.innerHTML = '';
+  mqmSigtestsData.systems = [];
+  mqmSigtestsData.totalScoresBySystem = {};
+  mqmSigtestsData.segScoresBySystem = {};
+  mqmSigtestsData.commonPosBySystemPair = {};
+  if (mqmSigtestsWorker) {
+    mqmSigtestsWorker.terminate();
   }
-  return samples;
+  mqmSigtestsWorker = null;
 }
 
-
 /**
- * Prepares for paired one-sided approximate randomization. This will compute
- * the aligned scores for all systems in `mqmPARScores`, and find common
- * positions for each system pair in `mqmPARCommonPos`.
+ * This prepares significance tests data, setting various fields in
+ * mqmSigtestsData.
  */
-function mqmPreparePAR() {
-  mqmPARScores = {};
-  mqmPARCommonPos = {};
-  // Each segment is uniquely determined by the (doc, docSegId) pair. We use
-  // `pairToPos` to track which pair goes to which position in the aligned score
-  // array.
-  let pairToPos = {};
+function mqmPrepareSigtests() {
+  /**
+   * Each segment is uniquely determined by the (doc, docSegId) pair. We use
+   * `pairToPos` to track which pair goes to which position in the aligned score
+   * array.
+   */
+  const pairToPos = {};
   let maxPos = 0;
   for (const doc of mqmDataIter.docs) {
     pairToPos[doc] = {};
@@ -1153,45 +1134,49 @@ function mqmPreparePAR() {
       maxPos += 1;
     }
   }
+  parScores = mqmSigtestsData.segScoresBySystem;
   for (const system of Object.keys(mqmStatsBySystem)) {
-    // For each system, we first compute the mapping from position to score. Any
-    // missing key correponds to one missing segment for this system.
-    let posToScore = {};
+    /**
+     * For each system, we first compute the mapping from position to score. Any
+     * missing key correponds to one missing segment for this system.
+     */
+    const posToScore = {};
     for (const doc of Object.keys(mqmStatsBySystem[system])) {
       for (const docSegId of Object.keys(mqmStatsBySystem[system][doc])) {
         const pos = pairToPos[doc][docSegId];
         const segs = mqmStatsBySystem[system][doc][docSegId];
-        // Note the extra "[]".
+        /** Note the extra "[]". */
         posToScore[pos] = mqmAggregateSegStats([segs]).score;
       }
     }
 
-    // Now we can compute `mqmPARScores`.
-    mqmPARScores[system] = [];
+    /** Now we can compute "parScores". */
+    parScores[system] = [];
     for (let pos = 0; pos < maxPos; pos++) {
       if (posToScore.hasOwnProperty(pos)) {
-        mqmPARScores[system].push(posToScore[pos]);
+        parScores[system].push(posToScore[pos]);
       } else {
-        // This system is missing this specific segment.
-        mqmPARScores[system].push(null);
+        /** This system is missing this specific segment. */
+        parScores[system].push(null);
       }
     }
   }
 
-  // Compute common positions for each system pair in `mqmPARCommonPos`.
-  for (const [idx, baseline] of mqmSortedSystems.entries()) {
-    if (!mqmPARCommonPos.hasOwnProperty(baseline)) {
-      mqmPARCommonPos[baseline] = {};
+  /** Compute common positions for each system pair in `commonPos`. */
+  const commonPos = mqmSigtestsData.commonPosBySystemPair;
+  for (const [idx, baseline] of mqmSigtestsData.systems.entries()) {
+    if (!commonPos.hasOwnProperty(baseline)) {
+      commonPos[baseline] = {};
     }
-    // We only need the upper triangle in the significance test table.
-    for (const system of mqmSortedSystems.slice(idx + 1)) {
-      if (!mqmPARCommonPos[baseline].hasOwnProperty(system)) {
-        mqmPARCommonPos[baseline][system] = [];
+    /** We only need the upper triangle in the significance test table. */
+    for (const system of mqmSigtestsData.systems.slice(idx + 1)) {
+      if (!commonPos[baseline].hasOwnProperty(system)) {
+        commonPos[baseline][system] = [];
       }
       for (let pos = 0; pos < maxPos; pos++) {
-        if ((mqmPARScores[system] != null) &&
-            (mqmPARScores[baseline] != null)) {
-          mqmPARCommonPos[baseline][system].push(pos);
+        if ((parScores[system] != null) &&
+            (parScores[baseline] != null)) {
+          commonPos[baseline][system].push(pos);
         }
       }
     }
@@ -1199,158 +1184,68 @@ function mqmPreparePAR() {
 }
 
 /**
- * Performs one trial of paired approximate randomization for a given baseline
- * and a system and returns the score difference. Returns null if no common
- * segments are found.
- * @param {string} baseline
- * @param {string} system
- * @return {number}
+ * This receives a computation update from the Sigtests Worker thread. The
+ * update consists of one p-value for a row, col, or marks the computation
+ * as finished.
+ * @param {!Event} e
  */
-function mqmPAROneTrial(baseline, system) {
-  const baselineScores = mqmPARScores[baseline];
-  const systemScores = mqmPARScores[system];
-  const commonPos = mqmPARCommonPos[baseline][system];
-  if (!commonPos) return null;
-
-  // This random array indicates which shuffled system a given score should be
-  // assigned to.
-  const permutations = getRandomInt(2, commonPos.length);
-  let shufA = 0.0;
-  let shufB = 0.0;
-  for (let [idx, perm] of permutations.entries()) {
-    const pos = commonPos[idx];
-    if (perm == 0) {
-      shufA += baselineScores[pos];
-      shufB += systemScores[pos];
-    } else {
-      shufA += systemScores[pos];
-      shufB += baselineScores[pos];
-    }
-  }
-  shufA /= commonPos.length;
-  shufB /= commonPos.length;
-  return shufA - shufB;
-}
-
-/**
- * Implements the core logic to perform paired one-sided approximate
- * randomization by incrementally conducting trials.
- */
-function mqmPAR() {
-  let systems = mqmSortedSystems;
-  // We should have at least 2 systems to do significance testing.
-  if (systems.length < 2) {
-    mqmClearPARComputation();
+function mqmSigtestsUpdate(e) {
+  const update = e.data;
+  if (update.finished) {
+    mqmResetSigtests();
     return;
   }
-
-  let numTrials = 0;
-  for (const [idx, baseline] of systems.entries()) {
-    if (!mqmPARDiffs.hasOwnProperty(baseline)) {
-      mqmPARDiffs[baseline] = {};
-    }
-    for (const system of systems.slice(idx + 1)) {
-      if (!mqmPARDiffs[baseline].hasOwnProperty(system)) {
-        mqmPARDiffs[baseline][system] = [];
-      }
-      for (let i = 0; i < mqmPARNumTrialsPerCall; i++) {
-        const diff = mqmPAROneTrial(baseline, system);
-        // This means no common segments are found.
-        if (diff == null) break;
-        mqmPARDiffs[baseline][system].push(diff);
-      }
-      numTrials = mqmPARDiffs[baseline][system].length;
-    }
-  }
-  // This will only happen if no common segments are found for any system pair.
-  if (!numTrials) return;
-
-  if (numTrials < mqmPARNumTrials) {
-    // We need to conduct more trials.
-    mqmPARComputation = setTimeout(mqmPAR, 200);
-  } else {
-    // We can now do significance test.
-    for (const [rowIdx, baseline] of systems.entries()) {
-      for (const [colIdx, system] of systems.entries()) {
-        // Only fill in the upper triangle.
-        if (rowIdx >= colIdx) continue;
-
-        const realDiff =
-            mqmTotalScoreBySystem[system] - mqmTotalScoreBySystem[baseline];
-        // Real score differences should be non-negative since we are filling in
-        // the upper triangle.
-        console.assert(realDiff >= 0.0, realDiff);
-        let cnt = 0;
-        for (const diff of mqmPARDiffs[baseline][system]) {
-          // Count how many samples of the null distribution are greater than or
-          // equal to the real difference. This corresponds to
-          // 'alternative="greater"' in scipy's API at
-          // https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html.
-          // Recall that a greater value than `realDiff` indicates a bigger
-          // difference between `system` and `baseline`.
-          if (diff >= realDiff) {
-            cnt += 1;
-          }
-        }
-        const p = (cnt + 1) / (numTrials + 1);
-        let span = document.getElementById(
-            `mqm-sign-test-${rowIdx}-${colIdx}`);
-        span.innerText = p.toFixed(3);
-        const numCommonSegs = mqmPARCommonPos[baseline][system].length;
-        span.title = `Based on ${numCommonSegs} common segments.`;
-        if (p < 0.05) {
-          span.className = 'mqm-sign-test-significant';
-        }
-      }
-    }
-    mqmClearPARComputation();
+  const span = document.getElementById(
+      `mqm-sigtest-${update.row}-${update.col}`);
+  span.innerText = update.pValue.toFixed(3);
+  span.title = `Based on ${update.numCommonSegs} common segments.`;
+  if (update.pValue < 0.05) {
+    span.className = 'mqm-sigtest-significant';
   }
 }
 
-/** Clears PAR-related computation. */
-function mqmClearPARComputation() {
-  mqmPARComputation = null;
-  mqmPARScores = {};
-  mqmPARDiffs = {};
-}
+/**
+ * Shows the table for significance tests.
+ */
+function mqmShowSigtests() {
+  const table = document.getElementById('mqm-sigtests');
 
-/** Shows the table for significance test. */
-function mqmShowSignificanceTest() {
-  const table = document.getElementById('mqm-sign-test');
+  const systems = mqmSigtestsData.systems;
+  const totalScoresBySystem = mqmSigtestsData.totalScoreBySystem;
 
-  // Header.
+  /** Header. */
   let html = `
     <thead>
       <tr>
         <th>System</th>`;
-  for (const system of mqmSortedSystems) {
+  for (const system of systems) {
     html += `<th>${system}</th>`;
   }
   html += `</tr></thead>`;
 
-  // We don't need to show tbody before loading the project file.
-  if (!mqmSortedSystems.length) {
+  /** We don't need to show tbody before loading the project file. */
+  if (!systems.length) {
     table.innerHTML = html;
     return;
   }
 
-  // Show total MQM scores first.
+  /** Show total MQM scores first. */
   html += `
     <tbody>
       <tr>
         <td>MQM</td>`;
-  for (const system of mqmSortedSystems) {
-    html += `<td>${mqmTotalScoreBySystem[system].toFixed(3)}</td>`;
+  for (const system of systems) {
+    html += `<td>${totalScoresBySystem[system].toFixed(3)}</td>`;
   }
-  html += `</tr><tr><td colspan=${mqmSortedSystems.length + 1}><hr></td></tr>`;
+  html += `</tr><tr><td colspan=${systems.length + 1}><hr></td></tr>`;
 
-  // Show significance test p-value placeholders.
-  for (const [rowIdx, baseline] of mqmSortedSystems.entries()) {
+  /** Show significance test p-value placeholders. */
+  for (const [rowIdx, baseline] of systems.entries()) {
     html += `
       <tr>
         <td>${baseline}</td>`;
-    for (const [colIdx, system] of mqmSortedSystems.entries()) {
-      const spanId = `mqm-sign-test-${rowIdx}-${colIdx}`;
+    for (const [colIdx, system] of systems.entries()) {
+      const spanId = `mqm-sigtest-${rowIdx}-${colIdx}`;
       const content = rowIdx >= colIdx ? '-' : '-.---';
       html += `<td><span id="${spanId}">${content}<span></td>`;
     }
@@ -1360,23 +1255,36 @@ function mqmShowSignificanceTest() {
 
   table.innerHTML = html;
 
-  // Incrementally obtain significance test samples and show the results.
-  mqmPreparePAR();
-  mqmPAR();
+  /**
+   * Paired approximate randomization only makes sense if we are NOT using
+   * per-100-character scoring.
+   */
+  if (mqmCharScoring) {
+    mqmSigtestsMsg.innerHTML = 'Not available for 100-source-chars scoring';
+  } else {
+    mqmSigtestsMsg.innerHTML = 'Computing p-values...';
+    mqmPrepareSigtests();
+    mqmSigtestsWorker = new Worker('mqm-sigtests.js');
+    mqmSigtestsWorker.postMessage(mqmSigtestsData);
+    mqmSigtestsWorker.onmessage = mqmSigtestsUpdate;
+  }
+  html += `</tbody>`;
+
+  table.innerHTML = html;
 }
 
 /**
  * Listener for changes to the input field that specifies the number of trials
  * for paired one-sided approximate randomization.
  */
-function setMqmPARNumTrials() {
-  const elt = document.getElementById('mqm-par-num-trials');
-  const numTrials = elt.value.trim();
-  if (numTrials > 0) {
-    mqmPARNumTrials = numTrials;
+function setMqmSigtestsNumTrials() {
+  const elt = document.getElementById('mqm-sigtests-num-trials');
+  const numTrials = parseInt(elt.value);
+  if (numTrials > 0 && mqmSigtestsData.numTrials != numTrials) {
+    mqmSigtestsData.numTrials = numTrials;
     mqmShow();
   } else {
-    elt.value = mqmPARNumTrials;
+    elt.value = mqmSigtestsData.numTrials;
   }
 }
 
@@ -1475,12 +1383,12 @@ function mqmShowScores(id, title, stats, aggregates = null) {
   if (mqmSortReverse) {
     keys.reverse();
   }
-  // Keep track of the system order and MQM scores.
+  // Keep track of the system order and MQM scores for significance tests.
   if (title == 'By system') {
-    mqmSortedSystems = [...keys];
-    mqmTotalScoreBySystem = {};
+    mqmSigtestsData.systems = [...keys];
+    mqmSigtestsData.totalScoreBySystem = {};
     for (const key of keys) {
-      mqmTotalScoreBySystem[key] = aggregates[key]['score'];
+      mqmSigtestsData.totalScoreBySystem[key] = aggregates[key]['score'];
     }
   }
   const scoreFields =
@@ -2171,11 +2079,7 @@ function mqmShowStats() {
   mqmShowSysVSys(true);
   mqmShowSevCatStats();
   mqmShowEvents();
-  // Paired approximate randomization only makes sense if we are NOT using
-  // per-100-character scoring.
-  if (!mqmCharScoring) {
-    mqmShowSignificanceTest();
-  }
+  mqmShowSigtests();
 }
 
 /**
@@ -2562,11 +2466,8 @@ function mqmRaterHTML(rowId, rater, metadata) {
 function mqmShow(viewingConstraints=null) {
   document.body.style.cursor = 'wait';
 
-  // Cancel existing PAR computation when a new `mqmShow` is called.
-  if (mqmPARComputation) {
-    clearTimeout(mqmPARComputation);
-    mqmClearPARComputation();
-  }
+  // Cancel existing Sigtest computation when a new `mqmShow` is called.
+  mqmResetSigtests();
 
   const tbody = document.getElementById('mqm-tbody');
   tbody.innerHTML = '';
@@ -3493,18 +3394,24 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
     <summary
         title="Click to see significance test results.">
       <span class="mqm-section">
-        Significance test
+        Significance tests
       </span>
     </summary>
-    <div class="mqm-sign-test">
-      Number of trials for paired one-sided approximate randomization:
-      <input size="6" maxlength="6" type="text" id="mqm-par-num-trials" value="10000"
-          onchange="setMqmPARNumTrials()">
-      </input>
+    <div class="mqm-sigtests">
+      <p>
+        P-values < 0.05 (bolded) indicate a significant difference.
+        <span class="mqm-warning" id="mqm-sigtests-msg"></span>
+      </p>
       <table
           title="Significance test results are obtained through paired one-sided approximate randomization. By default, 10000 samples are obtained for each system pair."
-          class="mqm-table mqm-numbers-table" id="mqm-sign-test">
+          class="mqm-table mqm-numbers-table" id="mqm-sigtests">
       </table>
+      <p>
+        Number of trials for paired one-sided approximate randomization:
+        <input size="6" maxlength="6" type="text" id="mqm-sigtests-num-trials"
+            value="10000" onchange="setMqmSigtestsNumTrials()">
+        </input>
+      </p>
     <div>
   </details>
 
@@ -3809,6 +3716,8 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
   `;
   elt.className = 'mqm';
   elt.scrollIntoView();
+
+  mqmSigtestsMsg = document.getElementById('mqm-sigtests-msg');
 
   mqmResetSettings();
 
