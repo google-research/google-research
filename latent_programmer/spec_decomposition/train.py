@@ -109,7 +109,7 @@ flags.DEFINE_bool('aligned_relative_attention', True,
                   'targets and encoded I/O examples.')
 
 flags.DEFINE_enum('dataset_type', 'deepcoder',
-                  ['robust_fill', 'robust_fill_base', 'deepcoder'],
+                  ['robustfill', 'robustfill_base', 'deepcoder'],
                   'The kind of dataset to use.')
 flags.DEFINE_enum('model_type', 'spec_decomposer_model',
                   ['spec_decomposer_model', 'synthesizer_model', 'joint_model'],
@@ -393,7 +393,7 @@ def run_program(program, inputs):
     program: A program returned from `decode_program()`.
     inputs: A list of inputs as returned by `decode_io`.
   """
-  if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+  if FLAGS.dataset_type in ['robustfill', 'robustfill_base']:
     return [program(i) for i in inputs]
   elif FLAGS.dataset_type == 'deepcoder':
     # `program` is a deepcoder_dsl.Statement.
@@ -427,7 +427,7 @@ def eval_predicted_synthesizer_model(predicted, inputs, outputs,
 
   # predicted shape [beam_size, length]
   for beam in predicted[::-1]:
-    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+    if FLAGS.dataset_type in ['robustfill', 'robustfill_base']:
       program = decode_program(beam)
       try:
         p_outs = run_program(program, inputs)
@@ -555,7 +555,7 @@ def main(_):
   # ---------------------------------------------------------------------------
 
   # Build token tables.
-  if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+  if FLAGS.dataset_type in ['robustfill', 'robustfill_base']:
     spec_vocab = robust_fill_dsl.CHARACTER + input_pipeline.SEPARATOR_TOKEN
     spec_id_token_table = {i+3: token
                            for i, token in enumerate(spec_vocab)}
@@ -586,7 +586,7 @@ def main(_):
   # Parse io and program token sequences (for eval).
   def decode_io(inputs, outputs):
     """Converts from int tensors to strings."""
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       def decode_str(s):
         """Decode string tokens."""
         return ''.join([spec_id_token_table[t_id] for t_id in s if t_id > 0])
@@ -611,7 +611,7 @@ def main(_):
     """Converts from int tensor to a string."""
     target = target[:np.argmax(target == eos_id)].astype(np.int32)
 
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       target = target[target != bos_id].tolist()
       return ''.join([spec_id_token_table[t_id] for t_id in target if t_id > 0])
     elif FLAGS.dataset_type == 'deepcoder':
@@ -625,7 +625,7 @@ def main(_):
     """Decode program tokens into a program (program object or string)."""
     program = program[:np.argmax(program == eos_id) + 1].astype(np.int32)
 
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       # Returns either a Concat program object, or None.
       program = program[program != bos_id].tolist()
       try:
@@ -652,7 +652,7 @@ def main(_):
 
   def decode_program_str(program):  # pylint: disable=unused-variable
     """Decode program tokens into a string."""
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       try:
         return decode_program(program).to_string()  # pytype: disable=attribute-error
       except:  # pylint: disable=bare-except
@@ -685,8 +685,8 @@ def main(_):
   }
   logging.info('padded_shapes: %s', padded_shapes)
 
-  if FLAGS.dataset_type in ['robust_fill', 'deepcoder']:
-    if FLAGS.dataset_type == 'robust_fill':
+  if FLAGS.dataset_type in ['robustfill', 'deepcoder']:
+    if FLAGS.dataset_type == 'robustfill':
       input_pipeline_fn = input_pipeline.create_robust_fill_dataset
       program_part_key = 'program_part'
     else:
@@ -703,8 +703,6 @@ def main(_):
               'target': 'joined_next_part',
           })
     elif FLAGS.model_type == 'synthesizer_model':
-      # TODO(kshi): RobustFill doesn't have `corrupted_next_part` in the dataset
-      # yet, so trying to load it will break.
       create_dataset_fn = functools.partial(
           input_pipeline_fn,
           renaming_dict={

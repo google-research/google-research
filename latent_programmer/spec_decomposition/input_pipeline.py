@@ -69,6 +69,9 @@ def create_robust_fill_dataset(
             'next_part':
                 tf.io.FixedLenFeature([num_examples], tf.string,
                                       default_value=empty_default),
+            'corrupted_next_part':
+                tf.io.FixedLenFeature([num_examples], tf.string,
+                                      default_value=empty_default),
             'program_part':
                 tf.io.FixedLenFeature([], tf.string, default_value=''),
         })
@@ -86,6 +89,10 @@ def create_robust_fill_dataset(
         feature_values['next_part'], 'UTF-8').to_tensor()
     next_part = spec_vocab_table.lookup(next_part)
 
+    corrupted_next_part = tf.strings.unicode_split(
+        feature_values['corrupted_next_part'], 'UTF-8').to_tensor()
+    corrupted_next_part = spec_vocab_table.lookup(corrupted_next_part)
+
     joined_next_part = tf.strings.reduce_join(feature_values['next_part'],
                                               separator=SEPARATOR_TOKEN)
     joined_next_part = tf.strings.unicode_split(joined_next_part, 'UTF-8')
@@ -99,12 +106,14 @@ def create_robust_fill_dataset(
     # inputs: [num_strings, max_length_of_input]
     # outputs: [num_strings, max_length_of_output]
     # next_part: [num_strings, max_length_of_output_part]
+    # corrupted_next_part: [num_strings, max_length_of_output_part]
     # joined_next_part: [num_strings * (max_length_of_part + 1)]
     # program_part: [max_length_of_program_part]
     all_data_dict = {
         'inputs': inputs,
         'outputs': outputs,
         'next_part': next_part,
+        'corrupted_next_part': corrupted_next_part,
         'joined_next_part': joined_next_part,
         'program_part': program_part,
     }

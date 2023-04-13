@@ -27,8 +27,8 @@ from latent_programmer.models import base_models
 class DecomposeAttentionTransformerConfig:
   """Global hyperparameters used to minimize obnoxious kwarg plumbing."""
   base_config: base_models.TransformerConfig
-  # The kind of dataset: 'robust_fill' or 'deepcoder'.
-  dataset_type: str = 'robust_fill'
+  # The kind of dataset: 'robustfill' or 'deepcoder'.
+  dataset_type: str = 'robustfill'
   # Whether to align relative dot-product attention position between the target
   # (next spec part for each I/O example) and the encoded I/O examples, using
   # separator tokens in the target.
@@ -84,9 +84,9 @@ class DecomposeAttentionTransformer(nn.Module):
   def setup(self):
     base_config = self.config.base_config
 
-    if self.config.dataset_type in ['robust_fill', 'deepcoder']:
+    if self.config.dataset_type in ['robustfill', 'deepcoder']:
       encoder_fn = base_models.TransformerIOEncoder
-    elif self.config.dataset_type in ['robust_fill_base']:
+    elif self.config.dataset_type in ['robustfill_base']:
       encoder_fn = base_models.TransformerEncoder
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(

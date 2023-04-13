@@ -54,8 +54,8 @@ _SAVE_DIR = flags.DEFINE_string(
 
 # Flags for dataset info.
 _DATASET_TYPE = flags.DEFINE_enum(
-    'dataset_type', 'robust_fill',
-    ['robust_fill', 'robust_fill_base', 'deepcoder'],
+    'dataset_type', 'robustfill',
+    ['robustfill', 'robustfill_base', 'deepcoder'],
     'The kind of dataset to use.')
 _EXPERIMENT = flags.DEFINE_string(
     'experiment', 'NONE',
@@ -271,7 +271,7 @@ def create_robust_fill_dataset(file_pattern, spec_token_id_table,
                 tf.io.FixedLenFeature([num_examples],
                                       tf.string,
                                       default_value=empty_default),
-            'program_encoding':
+            'program':
                 tf.io.FixedLenFeature([], tf.string, default_value=''),
         })
 
@@ -285,13 +285,14 @@ def create_robust_fill_dataset(file_pattern, spec_token_id_table,
     outputs = spec_vocab_table.lookup(outputs)
 
     program = tf.strings.split(
-        tf.strings.split(feature_values['program_encoding'], sep='|'), sep=' ')
+        tf.strings.split(feature_values['program'], sep='|'), sep=' ')
     program = program.merge_dims(0, -1)
     program = tf.strings.to_number(program, out_type=tf.int32)
     program = tf.concat([program, [eos_id]], axis=-1)
 
     # inputs: [num_strings, max_length_of_input]
     # outputs: [num_strings, max_length_of_output]
+    # program: [max_length_of_program + 1]
     return {
         'inputs': inputs,
         'outputs': outputs,
@@ -608,7 +609,7 @@ def main(_):
   # ---------------------------------------------------------------------------
 
   # Build token tables.
-  if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+  if _DATASET_TYPE.value in ['robustfill', 'robustfill_base']:
     spec_vocab = robust_fill_dsl.CHARACTER + '|'
     spec_id_token_table = {i + 3: token for i, token in enumerate(spec_vocab)}
     bos_id = 1
@@ -640,7 +641,7 @@ def main(_):
 
   def decode_spec(target):
     """Convert from int tensor to a string."""
-    if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base', 'deepcoder']:
+    if _DATASET_TYPE.value in ['robustfill', 'robustfill_base', 'deepcoder']:
       target = target[np.all([target != 0, target != bos_id, target != eos_id],
                              axis=0)].astype(np.int32)
       target = np.array(target)  # JAX arrays will fail dict lookups.
@@ -651,7 +652,7 @@ def main(_):
       raise ValueError('Unhandled dataset_type: {}'.format(_DATASET_TYPE.value))
 
   def encode_spec(target, max_target_length, add_eos=True):
-    if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base', 'deepcoder']:
+    if _DATASET_TYPE.value in ['robustfill', 'robustfill_base', 'deepcoder']:
       tokens = (target.split(' ') if _DATASET_TYPE.value == 'deepcoder'
                 else list(target))
       token_ids = [spec_token_id_table[t] for t in tokens]
@@ -720,7 +721,7 @@ def main(_):
         for output_part_str in output_parts_str
     ]
 
-    if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+    if _DATASET_TYPE.value in ['robustfill', 'robustfill_base']:
       current_outputs_str = []
       for part, output in zip(output_parts_str, decoded_outputs):
         if _DETECT_INVALID.value and not output.startswith(part):
@@ -809,7 +810,7 @@ def main(_):
   def process_and_decode_program(program_token_ids):
     """Returns a pair (valid, program)."""
     try:
-      if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+      if _DATASET_TYPE.value in ['robustfill', 'robustfill_base']:
         program = robust_fill_dsl.decode_program(
             process_predicted_program(program_token_ids, add_eos=True),
             program_id_token_table)
@@ -842,7 +843,7 @@ def main(_):
           valid = False
       else:
         try:
-          if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+          if _DATASET_TYPE.value in ['robustfill', 'robustfill_base']:
             outputs.append(program(i))
           elif _DATASET_TYPE.value == 'deepcoder':
             initial_state = deepcoder_dsl.ProgramState.from_str(i)
@@ -868,7 +869,7 @@ def main(_):
         traces.append(default_output)
       else:
         try:
-          if _DATASET_TYPE.value in ['robust_fill', 'robust_fill_base']:
+          if _DATASET_TYPE.value in ['robustfill', 'robustfill_base']:
             traces.append(program(i))
           elif _DATASET_TYPE.value == 'deepcoder':
             # Use entire program state (containing all local variables).
@@ -897,7 +898,7 @@ def main(_):
   }
   logging.info('padded_shapes: %s', padded_shapes)
 
-  if _DATASET_TYPE.value == 'robust_fill':
+  if _DATASET_TYPE.value == 'robustfill':
     create_dataset_fn = create_robust_fill_dataset
   elif _DATASET_TYPE.value == 'deepcoder':
     create_dataset_fn = create_deepcoder_dataset
@@ -995,6 +996,9 @@ def main(_):
     decoded_inputs = [decode_spec(i) for i in inputs[0]]
     if _DATASET_TYPE.value == 'deepcoder':
       deepcoder_num_inputs = decoded_inputs[0].count(deepcoder_dsl.SEP) + 1
+    else:
+      # This shouldn't be used for RobustFill but must be defined.
+      deepcoder_num_inputs = 0
     decoded_outputs = [decode_spec(o) for o in outputs[0]]
     _, ground_truth = process_and_decode_program(batch['target'][0])
     ground_truth_length = len(
@@ -1274,7 +1278,7 @@ def main(_):
             # functionality as a beam element with higher score.
             program_traces_i = run_program_execution_trace(program_i,
                                                            decoded_inputs)
-            program_traces_i_key = '$'.join(program_traces_i)
+            program_traces_i_key = '~'.join(program_traces_i)
             for j in programs[program_traces_i_key]:
               new_valids[j] = False
             programs[program_traces_i_key].append(i)
