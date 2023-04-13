@@ -320,7 +320,7 @@ class ImageNetInput(ImageNetTFExampleInput):
 
     if self.cache:
       dataset = dataset.cache().apply(
-          contrib_data.shuffle_and_repeat(1024 * 16))
+          tf.data.experimental.shuffle_and_repeat(1024 * 16))
     else:
       dataset = dataset.shuffle(1024)
     return dataset

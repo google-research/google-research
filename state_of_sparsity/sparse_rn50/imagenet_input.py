@@ -31,7 +31,6 @@ import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 from state_of_sparsity.sparse_rn50 import resnet_preprocessing
 from tensorflow.contrib import cloud as contrib_cloud
-from tensorflow.contrib import data as contrib_data
 
 
 def image_serving_input_fn():
@@ -297,7 +296,7 @@ class ImageNetInput(ImageNetTFExampleInput):
 
     if self.cache:
       dataset = dataset.cache().apply(
-          contrib_data.shuffle_and_repeat(1024 * 16))
+          tf.data.experimental.shuffle_and_repeat(1024 * 16))
     else:
       dataset = dataset.shuffle(1024)
     return dataset
