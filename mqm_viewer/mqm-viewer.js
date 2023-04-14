@@ -162,6 +162,12 @@ const mqmSigtestsData = {
 };
 /** {!Worker} A background Worker thread that computes sigtests */
 let mqmSigtestsWorker = null;
+/**
+ * The Sigtests Worker loads its code from 'mqm-sigtests.js'. If that file is
+ * not servable for some reason, then set the mqmSigtestsWorkerJS variable
+ * to its contents.
+ */
+let mqmSigtestsWorkerJS = '';
 /** {!Element} An HTML span that shows a sigtests computation status message. */
 let mqmSigtestsMsg = null;
 
@@ -1319,7 +1325,14 @@ function mqmShowSigtests() {
   } else {
     mqmSigtestsMsg.innerHTML = 'Computing p-values...';
     mqmPrepareSigtests();
-    mqmSigtestsWorker = new Worker('mqm-sigtests.js');
+    if (mqmSigtestsWorkerJS) {
+      /** Create Worker using code directly. */
+      blob = new Blob([mqmSigtestsWorkerJS], {type: "text/javascript" });
+      mqmSigtestsWorker = new Worker(window.URL.createObjectURL(blob));
+    } else {
+      /** Create Worker using code file. */
+      mqmSigtestsWorker = new Worker('mqm-sigtests.js');
+    }
     mqmSigtestsWorker.postMessage(mqmSigtestsData);
     mqmSigtestsWorker.onmessage = mqmSigtestsUpdate;
   }
