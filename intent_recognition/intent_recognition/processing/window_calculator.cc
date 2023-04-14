@@ -98,7 +98,7 @@ class WindowCalculator : public mediapipe::CalculatorBase {
           " != ", cc->Inputs().NumEntries()));
     }
     if (!absl::c_all_of(options.enforce_input_dims(),
-                        [](int64 x) { return x >= 1; })) {
+                        [](int64_t x) { return x >= 1; })) {
       return absl::InvalidArgumentError("enforce_input_dims[i] must be >= 1.");
     }
     if (options.window_stride() <= 0) {
