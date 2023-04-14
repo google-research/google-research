@@ -35,7 +35,7 @@
   color: black;
 }
 .mqm-bottomed-tr {
-  border-bottom: 1px solid gray;
+  border-bottom: 1px solid dimgray;
 }
 .mqm-ci {
   color: gray;
@@ -44,6 +44,9 @@
 .mqm-critical {
   background: rgba(127, 0, 255, 0.7);
   cursor: crosshair;
+}
+.mqm-dotted-bottomed-tr {
+  border-bottom: 1px dashed darkgray;
 }
 #mqm-errors {
   color: red;

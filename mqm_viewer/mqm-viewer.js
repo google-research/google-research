@@ -1194,9 +1194,13 @@ function mqmPrepareSigtests() {
   }
 }
 
+const MQM_PVALUE_THRESHOLD = 0.05;
+
 /**
- * In the significance tests table, draw a line under every prefix of systems
- * that is significantly better than all subsequent systems.
+ * In the significance tests table, draw a solid line under every prefix of
+ * systems that is significantly better than all subsequent systems. Draw a
+ * dotted line to separate clusters within which no system is significantly
+ * better than any other.
  */
 function mqmClusterSigtests() {
   const numSystems = mqmSigtestsData.systems.length;
@@ -1205,21 +1209,37 @@ function mqmClusterSigtests() {
     systemBetterThanAllAfter[row] = numSystems - 1;
     for (let col = numSystems - 1; col > row; col--) {
       const pValue = mqmSigtestsData.pValues[row][col];
-      if (isNaN(pValue) || pValue >= 0.05) {
+      if (isNaN(pValue) || pValue >= MQM_PVALUE_THRESHOLD) {
         break;
       }
       systemBetterThanAllAfter[row] = col - 1;
     }
   }
-  let maxBetterThanAllAfter = 0;
+  let maxBetterThanAllAfter = 0;  /** Max over rows 0..row */
+  let dottedClusterStart = 0;
   for (let row = 0; row < numSystems - 1; row++) {
+    const tr = document.getElementById('mqm-sigtests-row-' + row);
     maxBetterThanAllAfter = Math.max(maxBetterThanAllAfter,
                                      systemBetterThanAllAfter[row]);
-    if (maxBetterThanAllAfter != row) {
+    if (maxBetterThanAllAfter == row) {
+      tr.className = 'mqm-bottomed-tr';
+      dottedClusterStart = row + 1;
       continue;
     }
-    const tr = document.getElementById('mqm-sigtests-row-' + row);
-    tr.className = 'mqm-bottomed-tr';
+    /** Is no system in dottedClusterStart..row signif. better than row+1? */
+    let noneSigBetter = true;
+    for (let dottedClusterRow = dottedClusterStart;
+         dottedClusterRow <= row; dottedClusterRow++) {
+      const pValue = mqmSigtestsData.pValues[dottedClusterRow][row + 1];
+      if (!isNaN(pValue) && pValue < MQM_PVALUE_THRESHOLD) {
+        noneSigBetter = false;
+        break;
+      }
+    }
+    if (!noneSigBetter) {
+      tr.className = 'mqm-dotted-bottomed-tr';
+      dottedClusterStart = row + 1;
+    }
   }
 }
 
@@ -1240,7 +1260,7 @@ function mqmSigtestsUpdate(e) {
       `mqm-sigtest-${update.row}-${update.col}`);
   span.innerText = update.pValue.toFixed(3);
   span.title = `Based on ${update.numCommonSegs} common segments.`;
-  if (update.pValue < 0.05) {
+  if (update.pValue < MQM_PVALUE_THRESHOLD) {
     span.className = 'mqm-sigtest-significant';
   }
   mqmSigtestsData.pValues[update.row][update.col] = update.pValue;
@@ -3434,14 +3454,19 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
     </summary>
     <div class="mqm-sigtests">
       <p>
-        P-values < 0.05 (bolded) indicate a significant difference.
-        Systems above any gray line are significantly better than those below.
+        P-values < ${MQM_PVALUE_THRESHOLD} (bolded) indicate a significant
+        difference.
         <span class="mqm-warning" id="mqm-sigtests-msg"></span>
       </p>
       <table
           title="Significance test results are obtained through paired one-sided approximate randomization. By default, 10000 samples are obtained for each system pair."
           class="mqm-table mqm-numbers-table" id="mqm-sigtests">
       </table>
+      <p>
+        Systems above any solid line are significantly better than
+        those below. Dotted lines identify clusters within which no
+        system is significantly better than any other system.
+      </p>
       <p>
         Number of trials for paired one-sided approximate randomization:
         <input size="6" maxlength="6" type="text" id="mqm-sigtests-num-trials"
