@@ -364,7 +364,7 @@ def safe_sharding(tensor, sharding, mesh):
   if sharding == P(
       None,
   ):
-    return sharding
+    return P()
   if sharding == P(None):
     return sharding
   if sharding == P():
