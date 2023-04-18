@@ -101,7 +101,7 @@ class SimulateTopicsAPIFn(beam.DoFn):
     ]
 
     return [
-        build_topics_simulator_output(user_id, epoch_top_topics,
+        build_topics_simulator_output(user_id, epoch_top_topics,  # pytype: disable=wrong-arg-types  # typed-numpy
                                       website_1_topics, website_2_topics)
     ]
 
