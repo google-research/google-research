@@ -19,16 +19,19 @@ import copy
 import hashlib
 import os
 import random
+import timeit
 import typing
 from typing import List, Union
 
 from absl import app
 from absl import flags
+from absl import logging
 
 import tensorflow as tf
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl as dsl
 from latent_programmer.tasks.deepcoder import experiment as exp_module
+from latent_programmer.tasks.deepcoder import old_sample_random
 from latent_programmer.tasks.deepcoder import sample_random
 
 
@@ -49,10 +52,13 @@ _EXPERIMENT = flags.DEFINE_enum(
 _SPLIT = flags.DEFINE_enum(
     'split', None, ['train', 'valid', 'test'],
     'Which split of the dataset to generate.')
-_NUM_PROGRAMS = flags.DEFINE_integer(
-    'num_programs', 100000, 'Number of programs to generate.')
+_NUM_PROGRAMS_PER_SEARCH = flags.DEFINE_integer(
+    'num_programs_per_search', 1000,
+    'Number of programs to generate per search.')
+_NUM_SEARCHES = flags.DEFINE_integer(
+    'num_searches', 100, 'Number of searches to perform.')
 _NUM_EXAMPLES = flags.DEFINE_integer(
-    'num_examples', 5, 'Number of examples per task.')
+    'num_examples', 3, 'Number of examples per task.')
 _MAX_PROGRAM_ARITY = flags.DEFINE_integer(
     'max_program_arity', 2, 'Maximum number of inputs.')
 
@@ -102,7 +108,7 @@ def _corrupt(next_parts, outputs):
         should_change = ([True] * num_changes +
                          [False] * (num_examples - num_changes))
         random.shuffle(should_change)
-        random_new_inputs = sample_random.random_inputs(
+        random_new_inputs = old_sample_random.random_inputs(
             num_examples=num_examples, num_inputs=1, types=[int])
         changed = [random_new_inputs[i][0] if should_change[i] else results[i]
                    for i in range(num_examples)]
@@ -144,7 +150,7 @@ def _corrupt(next_parts, outputs):
       corrupted = [dsl.result_to_str(r) for r in changed]
 
     elif technique == 'new_random':
-      random_new_inputs = sample_random.random_inputs(
+      random_new_inputs = old_sample_random.random_inputs(
           num_examples=num_examples, num_inputs=1,
           types=[random.choice([int, list])])
       corrupted = [dsl.result_to_str(input_list[0])
@@ -202,98 +208,79 @@ def serialize_decomposition_examples(task):
   return results
 
 
-def generate_task_for_experiment(
+def generate_tasks_for_experiment(
     experiment,
     is_train,
-    canonical_variable_order):
+    canonical_variable_order,
+    num_programs=1000):
   """Generates a random task for a given experiment and dataset split."""
   if isinstance(experiment, str):
     experiment = exp_module.Experiment[experiment]
 
-  # Some tasks require a rejection sampling step to enforce some constraints.
-  keep_fn = None
+  num_examples = _NUM_EXAMPLES.value
+  num_inputs = random.randint(1, _MAX_PROGRAM_ARITY.value)
 
-  # Generate program.
-  if experiment == exp_module.Experiment.NONE:
-    num_statements = random.randint(1, 5)
-    operations_pool = dsl.OPERATIONS
-    lambdas_pool = dsl.LAMBDAS
+  input_variables = []
+  while len(input_variables) < num_inputs:
+    # During training, generate unordered variables to teach the model about all
+    # variable names. During test, generate variables in order (x0, x1, ...) to
+    # simplify how statements combine to form programs in the end-to-end loop
+    # (individual models only predict the RHS of statements, so we need to add
+    # a variable name ourselves).
+    input_variables.append(
+        old_sample_random.random_new_variable(input_variables,
+                                              ordered=canonical_variable_order))
 
-  elif experiment == exp_module.Experiment.LENGTH_1_4_TO_5:
-    num_statements = random.randint(1, 4) if is_train else 5
-    operations_pool = dsl.OPERATIONS
-    lambdas_pool = dsl.LAMBDAS
+  example_inputs = old_sample_random.random_inputs(num_examples=num_examples,
+                                                   num_inputs=num_inputs)
 
-  elif experiment == exp_module.Experiment.LENGTH_4_TO_1_5:
-    if is_train:
-      num_statements = 4
-    else:
-      num_statements = random.choice([1, 2, 3, 5])
-    operations_pool = dsl.OPERATIONS
-    lambdas_pool = dsl.LAMBDAS
+  programs = sample_random.sample_programs_experiment(
+      example_inputs=example_inputs,
+      input_variables=input_variables,
+      experiment=experiment,
+      is_train=is_train,
+      canonical_variable_order=canonical_variable_order,
+      reject_dead_code=True,
+      reject_redundant_code=True,
+      reject_duplicate_output=True,
+      reject_constant_output=True,
+      num_programs=num_programs)
 
-  elif experiment == exp_module.Experiment.COMPOSE_DIFFERENT_CONCEPTS:
-    num_statements = random.randint(2, 4)
-    if is_train:
-      operations_pool = random.choice([dsl.FIRST_ORDER_OPERATIONS,
-                                       dsl.HIGHER_ORDER_OPERATIONS])
-    else:
-      operations_pool = dsl.OPERATIONS
-      keep_fn = lambda program: (  # pylint: disable=g-long-lambda
-          any(s.operation in dsl.FIRST_ORDER_OPERATIONS
-              for s in program.statements) and
-          any(s.operation in dsl.HIGHER_ORDER_OPERATIONS
-              for s in program.statements))
-    lambdas_pool = dsl.LAMBDAS
+  tasks = []
+  for program in programs:
+    example_outputs = [
+        program.run(inputs).get_output()  # pytype: disable=attribute-error
+        for inputs in example_inputs]
+    examples = [dsl.Example(inputs, output)
+                for inputs, output in zip(example_inputs, example_outputs)]
+    tasks.append(dsl.ProgramTask(program, examples))
 
-  elif experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER:
-    num_statements = random.randint(2, 4)
-    operations_pool = None  # Will be set later in sample_random.random_program.
-    lambdas_pool = dsl.LAMBDAS
+  if is_train and experiment == exp_module.Experiment.COMPOSE_NEW_OP:
+    num_new = num_programs // 4
+    num_keep = num_programs - num_new
+    if len(tasks) > num_keep:
+      tasks = random.sample(tasks, num_keep)
 
-  elif experiment == exp_module.Experiment.COMPOSE_NEW_OP:
-    if is_train:
-      if random.random() < 0.25:
-        num_statements = 1
-        operations_pool = dsl.OPERATIONS_ONLY_SCAN
-      else:
-        num_statements = random.randint(2, 4)
-        operations_pool = dsl.OPERATIONS_NO_SCAN
-    else:
-      num_statements = random.randint(2, 4)
-      operations_pool = dsl.OPERATIONS
-      keep_fn = lambda program: (  # pylint: disable=g-long-lambda
-          any(s.operation.token == 'Scanl1' for s in program.statements))
-    lambdas_pool = dsl.LAMBDAS
+    # Generate more length-1 programs of new operation.
+    for _ in range(num_new):
+      task = old_sample_random.random_task(
+          num_examples=num_examples,
+          num_inputs=num_inputs,
+          num_statements=1,
+          is_train=True,
+          canonical_variable_order=canonical_variable_order,
+          experiment=experiment,
+          operations=dsl.OPERATIONS_ONLY_SCAN,
+          lambdas=dsl.LAMBDAS,
+      )
+      tasks.append(task)
 
-  elif experiment == exp_module.Experiment.EXTEND_OP_FUNCTIONALITY:
-    num_statements = random.randint(1, 4)
-    operations_pool = dsl.OPERATIONS
-    lambdas_pool = dsl.LAMBDAS
-    # In sample_random.random_statement, we make sure the Scanl1 operation only
-    # uses the `-` or `min` lambdas during training.
-    if not is_train:
-      keep_fn = lambda program: (  # pylint: disable=g-long-lambda
-          any(f'Scanl1 {lambda_token}' in str(program)
-              for lambda_token in ['(+)', '(*)', '(max)']))
-  else:
-    raise ValueError(f'Unhandled experiment: {experiment}')
+  if len(tasks) < num_programs:
+    logging.warning('Too few programs! Wanted %s, got %s. Inputs were: %s',
+                    num_programs, len(tasks), example_inputs)
 
-  program = None
-  task = None
-  while program is None or (keep_fn and not keep_fn(program)):
-    task = sample_random.random_task(
-        num_examples=_NUM_EXAMPLES.value,
-        num_inputs=random.randint(1, _MAX_PROGRAM_ARITY.value),
-        num_statements=num_statements,
-        is_train=is_train,
-        canonical_variable_order=canonical_variable_order,
-        experiment=experiment,
-        operations=operations_pool,
-        lambdas=lambdas_pool)
-    program = task.program
-
-  return task
+  random.shuffle(tasks)
+  return tasks
 
 
 def main(_):
@@ -320,20 +307,35 @@ def main(_):
       'decomposition_data_{}.tf_records-{:05d}-of-{:05d}'.format(
           _SPLIT.value, _SHARD_ID.value, _NUM_SHARDS.value))
 
+  is_train = _SPLIT.value in ['train', 'valid']
+  canonical_variable_order = _SPLIT.value in ['valid', 'test']
   # Write the `tf.Example` observations to the file.
   with tf.io.TFRecordWriter(entire_programs_fname) as entire_programs_writer, \
       tf.io.TFRecordWriter(decomposition_data_fname) as decomposition_writer:
-    for _ in range(_NUM_PROGRAMS.value):
-      is_train = _SPLIT.value in ['train', 'valid']
-      canonical_variable_order = _SPLIT.value in ['valid', 'test']
-      task = generate_task_for_experiment(
-          _EXPERIMENT.value,
-          is_train=is_train,
-          canonical_variable_order=canonical_variable_order)
+    for i in range(_NUM_SEARCHES.value):
 
-      entire_programs_writer.write(serialize_entire_program_example(task))
-      for example in serialize_decomposition_examples(task):
-        decomposition_writer.write(example)
+      # Sometimes the inputs are weird/degenerate and we don't find enough
+      # programs. In that case, do another search with new inputs.
+      tasks = []
+      while len(tasks) < _NUM_PROGRAMS_PER_SEARCH.value:
+        logging.info('Starting search #%s for %s, %s split',
+                     i + 1, _EXPERIMENT.value, _SPLIT.value)
+        start_time = timeit.default_timer()
+        tasks = generate_tasks_for_experiment(
+            experiment=_EXPERIMENT.value,
+            is_train=is_train,
+            canonical_variable_order=canonical_variable_order,
+            num_programs=_NUM_PROGRAMS_PER_SEARCH.value)
+        elapsed_time = timeit.default_timer() - start_time
+        logging.info('Obtained %s tasks in %.1f seconds.',
+                     len(tasks), elapsed_time)
+      assert len(tasks) == _NUM_PROGRAMS_PER_SEARCH.value
+
+      for task in tasks:
+        entire_programs_writer.write(serialize_entire_program_example(task))
+        for example in serialize_decomposition_examples(task):
+          decomposition_writer.write(example)
+
 
 if __name__ == '__main__':
   app.run(main)

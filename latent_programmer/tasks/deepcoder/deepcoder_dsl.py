@@ -578,7 +578,9 @@ TOKEN_TO_OPERATION = {op.token: op for op in OPERATIONS}
 LAMBDAS_ONLY_MINUS_MIN = [TOKEN_TO_LAMBDA['(-)'], TOKEN_TO_LAMBDA['(min)']]
 OPERATIONS_ONLY_SCAN = [TOKEN_TO_OPERATION['Scanl1']]
 OPERATIONS_NO_SCAN = [op for op in OPERATIONS if op.token != 'Scanl1']
-
+FIRST_ORDER_AND_MAP = FIRST_ORDER_OPERATIONS + [TOKEN_TO_OPERATION['Map']]
+HIGHER_ORDER_NO_MAP = [op for op in HIGHER_ORDER_OPERATIONS
+                       if op.token != 'Map']
 
 PAD, BOS, EOS, SEP = '', '<BOS>', '<EOS>', '|'
 PAD_ID, BOS_ID, EOS_ID, SEP_ID = 0, 1, 2, 3

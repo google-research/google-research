@@ -15,6 +15,8 @@
 
 """Tests for sample_random."""
 
+import random
+
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
@@ -106,23 +108,20 @@ class WriteDataTest(parameterized.TestCase):
             }))
     self.assertEqual(tf.train.Example.FromString(result), expected_result)
 
-  @parameterized.product(
-      experiment=list(exp_module.Experiment),
-      is_train=[True, False],
-      canonical_variable_order=[True, False],
-      num_examples=[2, 5],
-      max_length=[5, 20],
-      max_int=[50, 256],
+  @parameterized.parameters(
+      # These cases are chosen because they run quickly.
+      (exp_module.Experiment.COMPOSE_DIFFERENT_CONCEPTS, True),
+      (exp_module.Experiment.SWITCH_CONCEPT_ORDER, False),
   )
-  def test_generate_task_for_experiment(
-      self, experiment, is_train, canonical_variable_order, num_examples,
-      max_length, max_int):
-    with flagsaver.flagsaver(num_examples=num_examples,
-                             deepcoder_max_list_length=max_length,
-                             deepcoder_max_int=max_int):
-      for _ in range(10):
-        task = write_data.generate_task_for_experiment(
-            experiment.name, is_train, canonical_variable_order)
+  def test_generate_tasks_for_experiment(self, experiment, is_train):
+    with flagsaver.flagsaver(num_examples=3,
+                             deepcoder_max_list_length=5,
+                             deepcoder_max_int=50):
+      random.seed(0)
+      tasks = write_data.generate_tasks_for_experiment(
+          experiment.name, is_train, canonical_variable_order=True,
+          num_programs=10)
+      for task in tasks:
         for example in task.examples:
           self.assertEqual(task.program.run(example.inputs).get_output(),
                            example.output)

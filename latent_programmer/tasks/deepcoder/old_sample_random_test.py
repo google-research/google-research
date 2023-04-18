@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for sample_random."""
+"""Tests for old_sample_random."""
 
 from absl import flags
 from absl.testing import absltest
@@ -22,7 +22,7 @@ from absl.testing import parameterized
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
 from latent_programmer.tasks.deepcoder import experiment as exp_module
-from latent_programmer.tasks.deepcoder import sample_random
+from latent_programmer.tasks.deepcoder import old_sample_random
 
 FLAGS = flags.FLAGS
 
@@ -46,7 +46,7 @@ class DatasetTest(parameterized.TestCase):
   def test_random_inputs(self, max_length, max_int, num_inputs, num_examples):
     with flagsaver.flagsaver(deepcoder_max_list_length=max_length,
                              deepcoder_max_int=max_int):
-      example_inputs = sample_random.random_inputs(num_examples, num_inputs)
+      example_inputs = old_sample_random.random_inputs(num_examples, num_inputs)
       # Shape is (num_examples, num_inputs).
       self.assertLen(example_inputs, num_examples)
       self.assertTrue(all(len(inputs) == num_inputs
@@ -64,18 +64,18 @@ class DatasetTest(parameterized.TestCase):
     x4 = deepcoder_dsl.variable_token(4)
     existing_variables = list(deepcoder_dsl.ALL_VARIABLES)
     existing_variables.remove(x4)
-    self.assertEqual(sample_random.random_new_variable(existing_variables,
-                                                       ordered=False), x4)
+    self.assertEqual(old_sample_random.random_new_variable(existing_variables,
+                                                           ordered=False), x4)
 
     existing_variables = ['x0', 'x1', 'x2']
-    self.assertEqual(sample_random.random_new_variable(existing_variables,
-                                                       ordered=True), 'x3')
+    self.assertEqual(old_sample_random.random_new_variable(existing_variables,
+                                                           ordered=True), 'x3')
 
   def test_random_new_variable_raises(self):
     for ordered in [True, False]:
       with self.assertRaises(ValueError):
-        sample_random.random_new_variable(deepcoder_dsl.ALL_VARIABLES,
-                                          ordered=ordered)
+        old_sample_random.random_new_variable(deepcoder_dsl.ALL_VARIABLES,
+                                              ordered=ordered)
 
   @parameterized.parameters(
       ('Head', {int: [], list: [1]}, True),
@@ -90,7 +90,8 @@ class DatasetTest(parameterized.TestCase):
   )
   def test_is_valid_operation(self, operation, var_dict, expected):
     op = deepcoder_dsl.TOKEN_TO_OPERATION[operation]
-    self.assertEqual(sample_random.is_valid_operation(op, var_dict), expected)
+    self.assertEqual(old_sample_random.is_valid_operation(op, var_dict),
+                     expected)
 
   @parameterized.parameters(
       (['x3 = 2 | x4 = [ 6 7 ] | x5 = [ 6 7 ]',
@@ -105,7 +106,7 @@ class DatasetTest(parameterized.TestCase):
   def test_is_redundant(self, states, expected):
     program_states = [deepcoder_dsl.ProgramState.from_str(state)
                       for state in states]
-    self.assertEqual(sample_random.is_redundant(program_states), expected)
+    self.assertEqual(old_sample_random.is_redundant(program_states), expected)
 
   @parameterized.named_parameters(
       ('no_dead_code',
@@ -123,7 +124,7 @@ class DatasetTest(parameterized.TestCase):
   )
   def test_has_dead_code(self, program_str, expected):
     program = deepcoder_dsl.Program.from_str(program_str)
-    self.assertEqual(sample_random.has_dead_code(program), expected)
+    self.assertEqual(old_sample_random.has_dead_code(program), expected)
 
   @parameterized.named_parameters(
       ('sort_min_has_duplicate_2',
@@ -134,8 +135,8 @@ class DatasetTest(parameterized.TestCase):
   def test_has_duplicate_output(self, program_str, expected):
     program = deepcoder_dsl.Program.from_str(program_str)
     example_inputs = [[[4, 2, 3]], [[6, 8, 5]], [[2, 7]]]
-    self.assertEqual(sample_random.has_duplicate_output(program,
-                                                        example_inputs),
+    self.assertEqual(old_sample_random.has_duplicate_output(program,
+                                                            example_inputs),
                      expected)
 
   @parameterized.named_parameters(
@@ -155,7 +156,8 @@ class DatasetTest(parameterized.TestCase):
   def test_has_constant_output(self, program_str, expected):
     program = deepcoder_dsl.Program.from_str(program_str)
     example_inputs = [[[4, 2, 3]], [[2, 7]]]
-    self.assertEqual(sample_random.has_constant_output(program, example_inputs),
+    self.assertEqual(old_sample_random.has_constant_output(program,
+                                                           example_inputs),
                      expected)
 
   @parameterized.product(
@@ -172,7 +174,7 @@ class DatasetTest(parameterized.TestCase):
     for _ in range(10):
       with flagsaver.flagsaver(deepcoder_max_list_length=max_length,
                                deepcoder_max_int=max_int):
-        task = sample_random.random_task(
+        task = old_sample_random.random_task(
             num_examples=5,
             num_inputs=num_inputs,
             num_statements=num_statements,
