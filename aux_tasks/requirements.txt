@@ -72,7 +72,7 @@ six==1.16.0
 tensorboard==2.8.0
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
-tensorflow==2.8.2
+tensorflow==2.11.1
 tensorflow-datasets==4.6.0
 tensorflow-estimator==2.8.0
 tensorflow-io-gcs-filesystem==0.26.0
