@@ -69,7 +69,7 @@ tabulate==0.8.10
 tensorboard==2.9.1
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
-tensorflow==2.9.1
+tensorflow==2.11.1
 tensorflow-addons==0.17.1
 tensorflow-datasets==4.6.0
 tensorflow-estimator==2.9.0
