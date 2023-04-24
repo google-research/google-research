@@ -26,7 +26,8 @@ SEPARATOR_TOKEN = '|'
 
 
 def create_robust_fill_dataset(
-    file_pattern, spec_token_id_table, num_examples, renaming_dict):
+    file_pattern, spec_token_id_table, num_examples, entire_programs,
+    renaming_dict):
   """Loads a RobustFill step-by-step dataset.
 
   Args:
@@ -34,6 +35,8 @@ def create_robust_fill_dataset(
     spec_token_id_table: Mapping from characters (tokens) to token IDs for the
       I/O specification vocabulary.
     num_examples: The number of examples in an I/O specification.
+    entire_programs: Whether the dataset contains decomposition data (False) or
+      entire programs (True).
     renaming_dict: A dict mapping from the new name of fields in this dataset to
       the old name as in the original TFRecord files.
 
@@ -57,24 +60,38 @@ def create_robust_fill_dataset(
   def _parse_fn(record):
     """Parses a record into a feature_dict."""
     empty_default = [''] * num_examples
-    feature_values = tf.io.parse_single_example(
-        serialized=record,
-        features={
-            'inputs':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'outputs':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'next_part':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'corrupted_next_part':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'program_part':
-                tf.io.FixedLenFeature([], tf.string, default_value=''),
-        })
+    if entire_programs:
+      feature_values = tf.io.parse_single_example(
+          serialized=record,
+          features={
+              'inputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'outputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'program':
+                  tf.io.FixedLenFeature([], tf.string, default_value=''),
+          })
+    else:
+      feature_values = tf.io.parse_single_example(
+          serialized=record,
+          features={
+              'inputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'outputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'next_part':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'corrupted_next_part':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'program_part':
+                  tf.io.FixedLenFeature([], tf.string, default_value=''),
+          })
 
     # Map characters to tokens.
     inputs = tf.strings.unicode_split(
@@ -85,38 +102,51 @@ def create_robust_fill_dataset(
         feature_values['outputs'], 'UTF-8').to_tensor()
     outputs = spec_vocab_table.lookup(outputs)
 
-    next_part = tf.strings.unicode_split(
-        feature_values['next_part'], 'UTF-8').to_tensor()
-    next_part = spec_vocab_table.lookup(next_part)
+    if entire_programs:
+      program = tf.strings.split(
+          tf.strings.split(feature_values['program'], sep='|'), sep=' ')
+      program = program.merge_dims(0, -1)
+      program = tf.strings.to_number(program, out_type=tf.int32)
+      program = tf.concat([program, [eos_id]], axis=-1)
+      all_data_dict = {
+          'inputs': inputs,
+          'outputs': outputs,
+          'program': program,
+      }
 
-    corrupted_next_part = tf.strings.unicode_split(
-        feature_values['corrupted_next_part'], 'UTF-8').to_tensor()
-    corrupted_next_part = spec_vocab_table.lookup(corrupted_next_part)
+    else:
+      next_part = tf.strings.unicode_split(
+          feature_values['next_part'], 'UTF-8').to_tensor()
+      next_part = spec_vocab_table.lookup(next_part)
 
-    joined_next_part = tf.strings.reduce_join(feature_values['next_part'],
-                                              separator=SEPARATOR_TOKEN)
-    joined_next_part = tf.strings.unicode_split(joined_next_part, 'UTF-8')
-    joined_next_part = spec_vocab_table.lookup(joined_next_part)
-    joined_next_part = tf.concat([joined_next_part, [eos_id]], axis=-1)
+      corrupted_next_part = tf.strings.unicode_split(
+          feature_values['corrupted_next_part'], 'UTF-8').to_tensor()
+      corrupted_next_part = spec_vocab_table.lookup(corrupted_next_part)
 
-    program_part = tf.strings.split(feature_values['program_part'], sep=' ')
-    program_part = tf.strings.to_number(program_part, out_type=tf.int32)
-    program_part = tf.concat([program_part, [eos_id]], axis=-1)
+      joined_next_part = tf.strings.reduce_join(feature_values['next_part'],
+                                                separator=SEPARATOR_TOKEN)
+      joined_next_part = tf.strings.unicode_split(joined_next_part, 'UTF-8')
+      joined_next_part = spec_vocab_table.lookup(joined_next_part)
+      joined_next_part = tf.concat([joined_next_part, [eos_id]], axis=-1)
 
-    # inputs: [num_strings, max_length_of_input]
-    # outputs: [num_strings, max_length_of_output]
-    # next_part: [num_strings, max_length_of_output_part]
-    # corrupted_next_part: [num_strings, max_length_of_output_part]
-    # joined_next_part: [num_strings * (max_length_of_part + 1)]
-    # program_part: [max_length_of_program_part]
-    all_data_dict = {
-        'inputs': inputs,
-        'outputs': outputs,
-        'next_part': next_part,
-        'corrupted_next_part': corrupted_next_part,
-        'joined_next_part': joined_next_part,
-        'program_part': program_part,
-    }
+      program_part = tf.strings.split(feature_values['program_part'], sep=' ')
+      program_part = tf.strings.to_number(program_part, out_type=tf.int32)
+      program_part = tf.concat([program_part, [eos_id]], axis=-1)
+
+      # inputs: [num_strings, max_length_of_input]
+      # outputs: [num_strings, max_length_of_output]
+      # next_part: [num_strings, max_length_of_output_part]
+      # corrupted_next_part: [num_strings, max_length_of_output_part]
+      # joined_next_part: [num_strings * (max_length_of_part + 1)]
+      # program_part: [max_length_of_program_part]
+      all_data_dict = {
+          'inputs': inputs,
+          'outputs': outputs,
+          'next_part': next_part,
+          'corrupted_next_part': corrupted_next_part,
+          'joined_next_part': joined_next_part,
+          'program_part': program_part,
+      }
 
     return {
         new_name: all_data_dict[old_name]
@@ -128,13 +158,15 @@ def create_robust_fill_dataset(
 
 
 def create_deepcoder_dataset(
-    file_pattern, token_to_id, num_examples, renaming_dict):
+    file_pattern, token_to_id, num_examples, entire_programs, renaming_dict):
   """Loads a DeepCoder step-by-step dataset.
 
   Args:
     file_pattern: A file pattern for the TFRecord files to read.
     token_to_id: Mapping from tokens to token IDs for the DeepCoder vocabulary.
     num_examples: The number of examples in an I/O specification.
+    entire_programs: Whether the dataset contains decomposition data (False) or
+      entire programs (True).
     renaming_dict: A dict mapping from the new name of fields in this dataset to
       the old name as in the original TFRecord files.
 
@@ -157,24 +189,38 @@ def create_deepcoder_dataset(
   def _parse_fn(record):
     """Parses a record into a feature_dict."""
     empty_default = [''] * num_examples
-    feature_values = tf.io.parse_single_example(
-        serialized=record,
-        features={
-            'inputs':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'outputs':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'next_part':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'corrupted_next_part':
-                tf.io.FixedLenFeature([num_examples], tf.string,
-                                      default_value=empty_default),
-            'program_part':
-                tf.io.FixedLenFeature([], tf.string, default_value=''),
-        })
+    if entire_programs:
+      feature_values = tf.io.parse_single_example(
+          serialized=record,
+          features={
+              'inputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'outputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'program':
+                  tf.io.FixedLenFeature([], tf.string, default_value=''),
+          })
+    else:
+      feature_values = tf.io.parse_single_example(
+          serialized=record,
+          features={
+              'inputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'outputs':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'next_part':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'corrupted_next_part':
+                  tf.io.FixedLenFeature([num_examples], tf.string,
+                                        default_value=empty_default),
+              'program_part':
+                  tf.io.FixedLenFeature([], tf.string, default_value=''),
+          })
 
     # Map tokens to ids.
     inputs = tf.strings.split(feature_values['inputs'], sep=' ').to_tensor()
@@ -183,43 +229,54 @@ def create_deepcoder_dataset(
     outputs = tf.strings.split(feature_values['outputs'], sep=' ').to_tensor()
     outputs = vocab_table.lookup(outputs)
 
-    next_part = tf.strings.split(
-        feature_values['next_part'], sep=' ').to_tensor()
-    next_part = vocab_table.lookup(next_part)
+    if entire_programs:
+      program = tf.strings.split(feature_values['program'], sep=' ')
+      program = vocab_table.lookup(program)
+      program = tf.concat([program, [eos_id]], axis=-1)
+      all_data_dict = {
+          'inputs': inputs,
+          'outputs': outputs,
+          'program': program,
+      }
 
-    corrupted_next_part = tf.strings.split(
-        feature_values['corrupted_next_part'], sep=' ').to_tensor()
-    corrupted_next_part = vocab_table.lookup(corrupted_next_part)
+    else:
+      next_part = tf.strings.split(
+          feature_values['next_part'], sep=' ').to_tensor()
+      next_part = vocab_table.lookup(next_part)
 
-    joined_next_part = tf.strings.reduce_join(feature_values['next_part'],
-                                              separator=' | ')
-    joined_next_part = tf.strings.split(joined_next_part, sep=' ')
-    joined_next_part = vocab_table.lookup(joined_next_part)
-    joined_next_part = tf.concat([joined_next_part, [eos_id]], axis=-1)
+      corrupted_next_part = tf.strings.split(
+          feature_values['corrupted_next_part'], sep=' ').to_tensor()
+      corrupted_next_part = vocab_table.lookup(corrupted_next_part)
 
-    program_part = tf.strings.split(feature_values['program_part'], sep=' ')
-    program_part = vocab_table.lookup(program_part)
-    program_part = tf.concat([program_part, [eos_id]], axis=-1)
+      joined_next_part = tf.strings.reduce_join(feature_values['next_part'],
+                                                separator=' | ')
+      joined_next_part = tf.strings.split(joined_next_part, sep=' ')
+      joined_next_part = vocab_table.lookup(joined_next_part)
+      joined_next_part = tf.concat([joined_next_part, [eos_id]], axis=-1)
 
-    # Remove the part like 'x0 =' and keep only the RHS of the assignment.
-    program_part_rhs = program_part[2:]
+      program_part = tf.strings.split(feature_values['program_part'], sep=' ')
+      program_part = vocab_table.lookup(program_part)
+      program_part = tf.concat([program_part, [eos_id]], axis=-1)
 
-    # inputs: [num_examples, max_length_of_input]
-    # outputs: [num_examples, max_length_of_output]
-    # next_part: [num_examples, max_length_of_output_part]
-    # corrupted_next_part: [num_examples, max_length_of_output_part]
-    # joined_next_part: [num_examples * (max_length_of_part + 1)]
-    # program_part: [max_length_of_program_part + 1]
-    # program_part_rhs: [max_length_of_program_part - 1]
-    all_data_dict = {
-        'inputs': inputs,
-        'outputs': outputs,
-        'next_part': next_part,
-        'corrupted_next_part': corrupted_next_part,
-        'joined_next_part': joined_next_part,
-        'program_part': program_part,
-        'program_part_rhs': program_part_rhs,
-    }
+      # Remove the part like 'x0 =' and keep only the RHS of the assignment.
+      program_part_rhs = program_part[2:]
+
+      # inputs: [num_examples, max_length_of_input]
+      # outputs: [num_examples, max_length_of_output]
+      # next_part: [num_examples, max_length_of_output_part]
+      # corrupted_next_part: [num_examples, max_length_of_output_part]
+      # joined_next_part: [num_examples * (max_length_of_part + 1)]
+      # program_part: [max_length_of_program_part + 1]
+      # program_part_rhs: [max_length_of_program_part - 1]
+      all_data_dict = {
+          'inputs': inputs,
+          'outputs': outputs,
+          'next_part': next_part,
+          'corrupted_next_part': corrupted_next_part,
+          'joined_next_part': joined_next_part,
+          'program_part': program_part,
+          'program_part_rhs': program_part_rhs,
+      }
 
     return {
         new_name: all_data_dict[old_name]

@@ -86,8 +86,6 @@ class DecomposeAttentionTransformer(nn.Module):
 
     if self.config.dataset_type in ['robustfill', 'deepcoder']:
       encoder_fn = base_models.TransformerIOEncoder
-    elif self.config.dataset_type in ['robustfill_base']:
-      encoder_fn = base_models.TransformerEncoder
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(
           self.config.dataset_type))
