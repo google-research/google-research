@@ -15,7 +15,7 @@
 
 """Equivariant attention module library."""
 import functools
-from typing import Any, Optional, Tuple
+from typing import Any, Callable, Optional, Tuple
 
 from flax import linen as nn
 import jax
@@ -105,7 +105,7 @@ class SlotAttentionExplicitStats(nn.Module):
 
   Note: This module uses pre-normalization by default.
   """
-  grid_encoder: nn.Module
+  grid_encoder: Callable[[], nn.Module]
   num_iterations: int = 1
   qkv_size: Optional[int] = None
   mlp_size: Optional[int] = None
@@ -143,7 +143,7 @@ class SlotAttentionExplicitStats(nn.Module):
     # Add position encodings to inputs
     n_features = inputs.shape[-1]
     grid_projector = nn.Dense(n_features, name="dense_pe_0")
-    inputs = self.grid_encoder(inputs + grid_projector(grid))
+    inputs = self.grid_encoder()(inputs + grid_projector(grid))
 
     qkv_size = self.qkv_size or slots.shape[-1]
     head_dim = qkv_size // self.num_heads
@@ -214,7 +214,7 @@ class SlotAttentionPosKeysValues(nn.Module):
 
   Note: This module uses pre-normalization by default.
   """
-  grid_encoder: nn.Module
+  grid_encoder: Callable[[], nn.Module]
   num_iterations: int = 1
   qkv_size: Optional[int] = None
   mlp_size: Optional[int] = None
@@ -260,7 +260,7 @@ class SlotAttentionPosKeysValues(nn.Module):
 
     # Add position encodings to keys and values.
     grid_projector = dense(name="general_dense_p_0")
-    grid_encoder = self.grid_encoder
+    grid_encoder = self.grid_encoder()
     k = grid_encoder(k + grid_projector(grid))
     v = grid_encoder(v + grid_projector(grid))
 
@@ -293,7 +293,7 @@ class SlotAttentionTranslEquiv(nn.Module):
   Note: This module uses pre-normalization by default.
   """
 
-  grid_encoder: nn.Module
+  grid_encoder: Callable[[], nn.Module]
   num_iterations: int = 1
   qkv_size: Optional[int] = None
   mlp_size: Optional[int] = None
@@ -346,7 +346,7 @@ class SlotAttentionTranslEquiv(nn.Module):
     dense_k = nn.Dense(qkv_size, use_bias=False, name="general_dense_k_0")
     dense_v = nn.Dense(qkv_size, use_bias=False, name="general_dense_v_0")
     grid_proj = nn.Dense(qkv_size, name="dense_gp_0")
-    grid_enc = self.grid_encoder
+    grid_enc = self.grid_encoder()
     layernorm_q = nn.LayerNorm()
     inverted_attention = InvertedDotProductAttentionKeyPerQuery(
         epsilon=self.epsilon,
@@ -436,7 +436,7 @@ class SlotAttentionTranslScaleEquiv(nn.Module):
   Note: This module uses pre-normalization by default.
   """
 
-  grid_encoder: nn.Module
+  grid_encoder: Callable[[], nn.Module]
   num_iterations: int = 1
   qkv_size: Optional[int] = None
   mlp_size: Optional[int] = None
@@ -502,7 +502,7 @@ class SlotAttentionTranslScaleEquiv(nn.Module):
     dense_k = nn.Dense(qkv_size, use_bias=False, name="general_dense_k_0")
     dense_v = nn.Dense(qkv_size, use_bias=False, name="general_dense_v_0")
     grid_proj = nn.Dense(qkv_size, name="dense_gp_0")
-    grid_enc = self.grid_encoder
+    grid_enc = self.grid_encoder()
     layernorm_q = nn.LayerNorm()
     inverted_attention = InvertedDotProductAttentionKeyPerQuery(
         epsilon=self.epsilon,
@@ -606,7 +606,7 @@ class SlotAttentionTranslRotScaleEquiv(nn.Module):
   Note: This module uses pre-normalization by default.
   """
 
-  grid_encoder: nn.Module
+  grid_encoder: Callable[[], nn.Module]
   num_iterations: int = 1
   qkv_size: Optional[int] = None
   mlp_size: Optional[int] = None
@@ -677,7 +677,7 @@ class SlotAttentionTranslRotScaleEquiv(nn.Module):
     dense_k = nn.Dense(qkv_size, use_bias=False, name="general_dense_k_0")
     dense_v = nn.Dense(qkv_size, use_bias=False, name="general_dense_v_0")
     grid_proj = nn.Dense(qkv_size, name="dense_gp_0")
-    grid_enc = self.grid_encoder
+    grid_enc = self.grid_encoder()
     layernorm_q = nn.LayerNorm()
     inverted_attention = InvertedDotProductAttentionKeyPerQuery(
         epsilon=self.epsilon,
