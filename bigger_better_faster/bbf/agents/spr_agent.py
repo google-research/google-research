@@ -41,13 +41,14 @@ from bigger_better_faster.bbf.replay_memory import subsequence_replay_buffer
 
 
 def _pmap_device_order():
-  # match the default device assignments used in pmap:
-  # for single-host, that's the XLA default device assignment
-  # for multi-host, it's the order of jax.local_devices()
+  """Gets JAX's default device assignments as used in pmap."""
   if jax.process_count() == 1:
     return [
-        d for d in xb.get_backend().get_default_device_assignment(
-            jax.device_count()) if d.process_index == jax.process_index()
+        d
+        for d in xb.get_backend().get_default_device_assignment(
+            jax.device_count()
+        )
+        if d.process_index == jax.process_index()
     ]
   else:
     return jax.local_devices()
@@ -1007,6 +1008,7 @@ class BBFAgent(dqn_agent.JaxDQNAgent):
       replay_type="deterministic",
       reset_every=-1,
       no_resets_after=-1,
+      reset_offset=1,
       encoder_warmup=0,
       head_warmup=0,
       learning_rate=0.0001,
@@ -1076,6 +1078,7 @@ class BBFAgent(dqn_agent.JaxDQNAgent):
         replay buffer to create.
       reset_every: int, how many training steps between resets. 0 to disable.
       no_resets_after: int, training step to cease resets before.
+      reset_offset: offset to initial reset.
       encoder_warmup: warmup steps for encoder optimizer.
       head_warmup: warmup steps for head optimizer.
       learning_rate: Learning rate for all non-encoder parameters.
@@ -1162,7 +1165,8 @@ class BBFAgent(dqn_agent.JaxDQNAgent):
     self.no_resets_after = int(no_resets_after)
     self.cumulative_resets = 0
     self.reset_interval_scaling = reset_interval_scaling
-    self.next_reset = reset_every
+    self.reset_offset = int(reset_offset)
+    self.next_reset = self.reset_every + self.reset_offset
 
     self.encoder_warmup = int(encoder_warmup)
     self.head_warmup = int(head_warmup)
@@ -1458,7 +1462,7 @@ class BBFAgent(dqn_agent.JaxDQNAgent):
       raise NotImplementedError()
 
     self.next_reset = int(interval) + self.training_steps
-    if self.next_reset > self.no_resets_after:
+    if self.next_reset > self.no_resets_after + self.reset_offset:
       logging.info(
           "\t Not resetting at step %s, as need at least"
           " %s before %s to recover.",
@@ -1769,7 +1773,7 @@ class BBFAgent(dqn_agent.JaxDQNAgent):
       if self.training_steps % self.update_period == 0:
         for i in range(self._num_updates_per_train_step):
           self._training_step_update(i, offline=False)
-    if self.reset_every > 0 and self.training_steps >= self.next_reset:
+    if self.reset_every > 0 and self.training_steps > self.next_reset:
       self.reset_weights()
 
     self.training_steps += 1

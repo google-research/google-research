@@ -33,7 +33,7 @@ BBFAgent.epsilon_fn = @jax.agents.dqn.dqn_agent.linearly_decaying_epsilon
 bbf.agents.spr_agent.create_scaling_optimizer.learning_rate = 0.0001
 bbf.agents.spr_agent.create_scaling_optimizer.eps = 0.00015
 
-atari_lib.create_atari_environment.game_name = 'Pong'
+DataEfficientAtariRunner.game_name = 'Pong'
 # Atari 100K benchmark doesn't use sticky actions.
 atari_lib.create_atari_environment.sticky_actions = False
 AtariPreprocessing.terminal_on_life_loss = True

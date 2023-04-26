@@ -31,7 +31,7 @@ BBFAgent.epsilon_fn = @jax.agents.dqn.dqn_agent.linearly_decaying_epsilon
 bbf.agents.spr_agent.create_scaling_optimizer.learning_rate = 0.0000625
 bbf.agents.spr_agent.create_scaling_optimizer.eps = 0.00015
 
-atari_lib.create_atari_environment.game_name = 'Pong'
+DataEfficientAtariRunner.game_name = 'Pong'
 # Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
 atari_lib.create_atari_environment.sticky_actions = True
 Runner.num_iterations = 200

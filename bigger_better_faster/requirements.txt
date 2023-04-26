@@ -4,7 +4,7 @@ jax >= 0.3.14
 jaxlib >= 0.3.14
 ale-py
 flax >= 0.6.3
-gym[accept-rom-license] == 0.21.0
+gym[atari,accept-rom-license]<=0.25.2
 dopamine-rl == 4.0.5
 numpy
 gin-config

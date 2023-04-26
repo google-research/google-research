@@ -402,7 +402,7 @@ class DataEfficientAtariRunner(run_experiment.Runner):
           envs[env_id].cum_length = 0
           envs[env_id].cum_reward = 0
 
-          human_norm_ret = normalize_score(cum_rewards[-1], self.game)
+          human_norm_ret = normalize_score(cum_rewards[-1], self.game_name)
 
           print()
           print('Steps executed: {} '.format(total_steps) +
@@ -483,7 +483,7 @@ class DataEfficientAtariRunner(run_experiment.Runner):
     )
     average_return = sum_returns / num_episodes if num_episodes > 0 else 0.0
     statistics.append({'train_average_return': average_return})
-    human_norm_ret = normalize_score(average_return, self.game)
+    human_norm_ret = normalize_score(average_return, self.game_name)
     statistics.append({'train_average_normalized_score': human_norm_ret})
     time_delta = time.time() - start_time
     average_steps_per_second = number_steps / time_delta
@@ -539,7 +539,7 @@ class DataEfficientAtariRunner(run_experiment.Runner):
         average_return,
     )
     statistics.append({'eval_average_return': average_return})
-    human_norm_return = normalize_score(average_return, self.game)
+    human_norm_return = normalize_score(average_return, self.game_name)
     statistics.append({'train_average_normalized_score': human_norm_return})
     logging.info(
         'Average normalized return per evaluation episode: %.2f',
@@ -580,7 +580,7 @@ class DataEfficientAtariRunner(run_experiment.Runner):
     prefix = 'Train/' if not self._agent.eval_mode else 'Eval/'
     if not self._agent.eval_mode or save_if_eval:
       with self._summary_writer.as_default():
-        normalized_score = normalize_score(ep_return, self.game)
+        normalized_score = normalize_score(ep_return, self.game_name)
         tf.summary.scalar(prefix + 'EpisodeLength', length, step=iteration)
         tf.summary.scalar(prefix + 'EpisodeReturn', ep_return, step=iteration)
         tf.summary.scalar(
