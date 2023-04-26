@@ -1,6 +1,6 @@
 ## Invariant Slot Attention
 
-This repository contains the code release for "Spatial Symmetry in Slot Attention".
+This repository contains the code release for "Invariant Slot Attention: Object Discovery with Slot-Centric Reference Frames".
 The code is derived from the [Slot Attention Video codebase](https://github.com/google-research/slot-attention-video).
 
 <br />
@@ -12,7 +12,7 @@ The code is derived from the [Slot Attention Video codebase](https://github.com/
 <img src="car.gif" alt="ISA animation 2" width="192"/>
 
 Paper:
-https://openreview.net/pdf?id=nk_nSogsrZL
+https://arxiv.org/abs/2302.04973
 
 ## Instructions
 > ℹ️ The following instructions assume that you are using JAX on GPUs and have CUDA and CuDNN installed. For more details on how to use JAX with accelerators, including requirements and TPUs, please read the [JAX installation instructions](https://github.com/google/jax#installation).
@@ -45,16 +45,15 @@ For each dataset, we provide a config for a baseline and several invariant
 Slot Attention models.
 
 ## Cite
-For now please cite our workshop paper. We will update this with a full paper arxiv version when available.
+Please cite our paper if you use the code or develop upon the ideas from our work.
 
 ```
 @inproceedings{
-  biza2022spatial,
-  title={Spatial Symmetry in Slot Attention},
+  biza2023invariant,
+  title={Invariant Slot Attention: Object Discovery with Slot-Centric Reference Frames},
   author={Ondrej Biza and Sjoerd van Steenkiste and Mehdi S. M. Sajjadi and Gamaleldin Fathy Elsayed and Aravindh Mahendran and Thomas Kipf},
-  booktitle={NeurIPS 2022 Workshop on Symmetry and Geometry in Neural Representations},
-  year={2022},
-  url={https://openreview.net/forum?id=nk_nSogsrZL}
+  booktitle={International Conference on Machine Learning},
+  year={2023}
 }
 ```
 
