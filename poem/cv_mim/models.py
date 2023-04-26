@@ -313,7 +313,7 @@ class SimpleModel(tf.keras.Model):
     else:
       raise ValueError('Unknown embedder: {}'.format(embedder))
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
@@ -845,7 +845,7 @@ class GCN(tf.keras.Model):
             bias_initializer=bias_initializer,
             name='gconv' + str(num_residual_gconv_blocks + 1)))
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
@@ -890,7 +890,7 @@ class LikelihoodEstimator(tf.keras.Model):
         layers.Dense(output_dim, activation=tf.nn.tanh)
     ])
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
