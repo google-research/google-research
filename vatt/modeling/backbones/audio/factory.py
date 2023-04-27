@@ -138,7 +138,7 @@ class AudioModel(tf.keras.Model):
 
     return losses
 
-  def call(self,
+  def call(self,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
            inputs,
            training = None):
     """Call the layer.

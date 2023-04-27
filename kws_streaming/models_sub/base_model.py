@@ -93,7 +93,7 @@ class BaseModel(tf.keras.Model):
     else:
       raise ValueError('model is not built')
 
-  def call(self, inputs):
+  def call(self, inputs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     raise NotImplementedError('call is not implemented.')
 
   @tf.function

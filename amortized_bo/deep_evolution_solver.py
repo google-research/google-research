@@ -863,7 +863,7 @@ class MutationPredictorSolver(base_solver.BaseSolver):
         rewards = np.stack([rewards[i] for i in idx])
       return structures, rewards
 
-  def propose(self, num_samples, population=None, pending_samples=None):
+  def propose(self, num_samples, population=None, pending_samples=None):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     # Initialize population randomly.
     if self._initialized and population:
       if num_samples != self.batch_size:

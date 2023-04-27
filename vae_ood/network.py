@@ -56,7 +56,7 @@ class VAE(tfk.Model):
     self.encoder = encoder
     self.decoder = decoder
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     self.posterior = self.encoder(inputs, training=training)
     self.code = self.posterior.sample()
     self.decoder_likelihood = self.decoder(self.code, training=training)

@@ -72,7 +72,7 @@ class EmbeddingModel(tf.keras.Model):
       self.embed_model.add(
           tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
 
-  def call(self, inputs):
+  def call(self, inputs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     return self.embed_model(inputs)
 
 

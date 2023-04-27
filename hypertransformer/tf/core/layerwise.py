@@ -514,7 +514,7 @@ class LayerwiseModel(common_ht.Model):
         head_weight_blocks=all_head_blocks,
         shared_features=shared_features)
 
-  def evaluate(self,
+  def evaluate(self,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
                inputs,
                weight_blocks,
                training = True):

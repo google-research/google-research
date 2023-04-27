@@ -318,7 +318,7 @@ class MNISTDataset(Dataset):
             DecodeLabel, num_parallel_calls=16)
     return tf.data.Dataset.zip((images, labels))
 
-  def TrainBatch(self, batch_size, epochs):
+  def TrainBatch(self, batch_size, epochs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     data = self._dataset(
         os.path.join(self._data_dir, "train-images-idx3-ubyte"),
         os.path.join(self._data_dir, "train-labels-idx1-ubyte"))
@@ -331,7 +331,7 @@ class MNISTDataset(Dataset):
         binarize=True)
     return data_idx, images
 
-  def TestBatch(self, batch_size, binarize=True):
+  def TestBatch(self, batch_size, binarize=True):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     if self._test_is_valid:
       data = self._dataset(
           os.path.join(self._data_dir, "train-images-idx3-ubyte"),
@@ -350,7 +350,7 @@ class MNISTDataset(Dataset):
         binarize=binarize)
     return data_idx, images
 
-  def AISIterator(self, batch_size, shard_idx, num_workers):
+  def AISIterator(self, batch_size, shard_idx, num_workers):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     if self._test_is_valid:
       data = self._dataset(
           os.path.join(self._data_dir, "train-images-idx3-ubyte"),
@@ -418,7 +418,7 @@ class CIFAR10Dataset(Dataset):
 
     return data.map(DecodeLabelAndImage)
 
-  def TrainBatch(self, batch_size, epochs):
+  def TrainBatch(self, batch_size, epochs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     data = self._dataset([
         os.path.join(self._data_dir, "data_batch_%d.bin" % i)
         for i in range(1, 6)
@@ -433,7 +433,7 @@ class CIFAR10Dataset(Dataset):
         binarize=False)
     return data_idx, images
 
-  def TestBatch(self, batch_size):
+  def TestBatch(self, batch_size):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     if self._test_is_valid:
       data = self._dataset([
           os.path.join(self._data_dir, "data_batch_%d.bin" % i)
@@ -452,7 +452,7 @@ class CIFAR10Dataset(Dataset):
         binarize=False)
     return data_idx, images
 
-  def AISIterator(self, batch_size, shard_idx, num_workers):
+  def AISIterator(self, batch_size, shard_idx, num_workers):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     if self._test_is_valid:
       data = self._dataset([
           os.path.join(self._data_dir, "data_batch_%d.bin" % i)
@@ -489,7 +489,7 @@ class FakeMNISTDataset(Dataset):
     labels = tf.data.Dataset.from_tensor_slices(rs.randint(1, size=(num)))
     return tf.data.Dataset.zip((images, labels))
 
-  def TrainBatch(self, batch_size, epochs):
+  def TrainBatch(self, batch_size, epochs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     data = self._dataset(num=self.train_size)
     data_idx, images, _ = GetBatch(
         data,
@@ -500,7 +500,7 @@ class FakeMNISTDataset(Dataset):
         binarize=True)
     return data_idx, images
 
-  def TestBatch(self, batch_size, binarize=True):
+  def TestBatch(self, batch_size, binarize=True):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     data = self._dataset(num=self.test_size)
     data_idx, images, _ = GetBatch(
         data,
@@ -511,7 +511,7 @@ class FakeMNISTDataset(Dataset):
         binarize=binarize)
     return data_idx, images
 
-  def AISIterator(self, batch_size, shard_idx, num_workers):
+  def AISIterator(self, batch_size, shard_idx, num_workers):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     data = self._dataset(num=self.test_size)
 
     # Can this be done more efficiently? Need some sort of dynamic seed PRNG.

@@ -57,7 +57,7 @@ class ItemModelMLP(tf.keras.Model):
       if layer != (num_layers - 1) and dropout > 0:
         self.item_model.add(tf.keras.layers.Dropout(rate=dropout))
 
-  def call(self, inputs):
+  def call(self, inputs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Implements the forward pass of the keras model.
 
     Args:
