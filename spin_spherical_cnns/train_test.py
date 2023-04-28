@@ -89,6 +89,7 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
         self.optimizer = mock.Mock()
         self.optimizer.target.side_effect = logits
         self.batch_stats = mock.MagicMock()
+        self.constants = mock.MagicMock()
 
     jax.tree_util.register_pytree_node(MockedState, lambda _: ((), None),
                                        lambda *_: MockedState())

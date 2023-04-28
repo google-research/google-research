@@ -17,6 +17,7 @@
 
 import functools
 from absl.testing import parameterized
+import jax
 import jax.numpy as jnp
 import numpy as np
 import tensorflow as tf
@@ -26,10 +27,15 @@ from spin_spherical_cnns import sphere_utils
 from spin_spherical_cnns import spin_spherical_harmonics
 
 
+TransformerModule = spin_spherical_harmonics.SpinSphericalFourierTransformer
+
+
 @functools.lru_cache()
 def _get_transformer():
-  return spin_spherical_harmonics.SpinSphericalFourierTransformer(
-      resolutions=[8, 16], spins=(0, -1, 1, -2))
+  transformer = spin_spherical_harmonics.SpinSphericalFourierTransformer(
+      resolutions=(8, 16), spins=(0, -1, 1, -2))
+  variables = transformer.init(jax.random.PRNGKey(0))
+  return transformer, variables
 
 
 class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
@@ -39,11 +45,12 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
                             dict(resolution=16, spin=-1),
                             dict(resolution=16, spin=-2))
   def test_swsft_forward_matches_np(self, resolution, spin):
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     sphere = (jnp.linspace(-1, 1, resolution**2)
               .reshape((resolution, resolution)))
     coeffs_np = np_spin_spherical_harmonics.swsft_forward_naive(sphere, spin)
-    coeffs_jax = transformer.swsft_forward(sphere, spin)
+    coeffs_jax = transformer.apply(variables, sphere, spin,
+                                   method=TransformerModule.swsft_forward)
 
     self.assertAllClose(
         coeffs_jax, spin_spherical_harmonics.coefficients_to_matrix(coeffs_np))
@@ -53,28 +60,39 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
                             dict(resolution=16, spin=1))
   def test_swsft_forward_matches_with_symmetry(self, resolution, spin):
     """Check whether the versions with and without symmetry match."""
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     sphere = (jnp.linspace(-1, 1, resolution**2)
               .reshape((resolution, resolution)))
-    self.assertAllClose(transformer.swsft_forward(sphere, spin),
-                        transformer.swsft_forward_with_symmetry(sphere, spin))
+    forward = transformer.apply(variables, sphere, spin,
+                                method=TransformerModule.swsft_forward)
+    forward_with_symmetry = transformer.apply(
+        variables, sphere, spin,
+        method=TransformerModule.swsft_forward_with_symmetry)
+
+    self.assertAllClose(forward, forward_with_symmetry)
 
   def test_swsft_forward_validate_raises(self):
     """Check that swsft_forward() raises exception if constants are invalid."""
     transformer = spin_spherical_harmonics.SpinSphericalFourierTransformer(
-        resolutions=[4, 8], spins=(0, 1))
+        resolutions=(4, 8), spins=(0, 1))
+    variables = transformer.init(jax.random.PRNGKey(0))
     # Wrong resolution, right spin:
     resolution = 16
     sphere = (jnp.linspace(-1, 1, resolution**2)
               .reshape((resolution, resolution)))
-    self.assertRaises(ValueError, transformer.swsft_forward,
+
+    def forward_fun(sphere, spin):
+      return transformer.apply(variables, sphere, spin=spin,
+                               method=transformer.swsft_forward)
+
+    self.assertRaises(ValueError, forward_fun,
                       sphere, spin=0)
 
     # Right resolution, wrong spin:
     resolution = 8
     sphere = (jnp.linspace(-1, 1, resolution**2)
               .reshape((resolution, resolution)))
-    self.assertRaises(ValueError, transformer.swsft_forward,
+    self.assertRaises(ValueError, forward_fun,
                       sphere, spin=2)
 
   @parameterized.parameters(dict(num_coefficients=16, spin=-1),
@@ -82,13 +100,14 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
                             dict(num_coefficients=64, spin=0),
                             dict(num_coefficients=64, spin=-2))
   def test_swsft_backward_matches_np(self, num_coefficients, spin):
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     coeffs_np = (jnp.linspace(-1, 1, num_coefficients) +
                  1j*jnp.linspace(0, 1, num_coefficients))
     coeffs_jax = spin_spherical_harmonics.coefficients_to_matrix(coeffs_np)
     sphere_np = np_spin_spherical_harmonics.swsft_backward_naive(coeffs_np,
                                                                  spin)
-    sphere_jax = transformer.swsft_backward(coeffs_jax, spin)
+    sphere_jax = transformer.apply(variables, coeffs_jax, spin,
+                                   method=TransformerModule.swsft_backward)
 
     self.assertAllClose(sphere_np, sphere_jax)
 
@@ -96,97 +115,114 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
                             dict(num_coefficients=16, spin=0),
                             dict(num_coefficients=64, spin=-2))
   def test_swsft_backward_matches_with_symmetry(self, num_coefficients, spin):
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     coeffs = (jnp.linspace(-1, 1, num_coefficients) +
               1j*jnp.linspace(0, 1, num_coefficients))
     coeffs = spin_spherical_harmonics.coefficients_to_matrix(coeffs)
-    sphere = transformer.swsft_backward(coeffs, spin)
-    with_symmetry = transformer.swsft_backward_with_symmetry(coeffs, spin)
+    sphere = transformer.apply(variables, coeffs, spin,
+                               method=TransformerModule.swsft_backward)
+
+    with_symmetry = transformer.apply(
+        variables, coeffs, spin,
+        method=TransformerModule.swsft_backward_with_symmetry)
 
     self.assertAllClose(sphere, with_symmetry)
 
   def test_swsft_backward_validate_raises(self):
     """Check that swsft_backward() raises exception if constants are invalid."""
     transformer = spin_spherical_harmonics.SpinSphericalFourierTransformer(
-        resolutions=[4, 8], spins=(0, 1))
+        resolutions=(4, 8), spins=(0, 1))
+    variables = transformer.init(jax.random.PRNGKey(0))
     n_coeffs = 64  # Corresponds to resolution == 16.
     # Wrong ell_max, right spin:
     coeffs_np = jnp.linspace(-1, 1, n_coeffs) + 1j*jnp.linspace(0, 1, n_coeffs)
     coeffs_jax = spin_spherical_harmonics.coefficients_to_matrix(coeffs_np)
-    self.assertRaises(ValueError, transformer.swsft_backward,
+    def backward_fun(coeffs, spin):
+      return transformer.apply(variables, coeffs, spin,
+                               method=TransformerModule.swsft_backward)
+    self.assertRaises(ValueError, backward_fun,
                       coeffs_jax, spin=1)
 
     n_coeffs = 16  # Corresponds to resolution == 8.
     # Right ell_max, wrong spin:
     coeffs_np = jnp.linspace(-1, 1, n_coeffs) + 1j*jnp.linspace(0, 1, n_coeffs)
     coeffs_jax = spin_spherical_harmonics.coefficients_to_matrix(coeffs_np)
-    self.assertRaises(ValueError, transformer.swsft_backward,
+    self.assertRaises(ValueError, backward_fun,
                       coeffs_jax, spin=-1)
 
   def test_swsft_forward_spins_channels_matches_swsft_forward(self):
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     resolution = 16
     n_channels = 2
     spins = (0, 1)
     shape = (resolution, resolution, len(spins), n_channels)
     sphere_set = jnp.linspace(-1, 1, np.prod(shape)).reshape(shape)
-    coefficients = transformer.swsft_forward_spins_channels(sphere_set,
-                                                            spins)
+    coefficients = transformer.apply(
+        variables, sphere_set, spins,
+        method=TransformerModule.swsft_forward_spins_channels)
     for channel in range(n_channels):
       for spin in spins:
         # Slices must match swsft_forward().
-        sliced = transformer.swsft_forward(sphere_set[Ellipsis, spin, channel],
-                                           spin)
+        sliced = transformer.apply(
+            variables, sphere_set[Ellipsis, spin, channel], spin,
+            method=TransformerModule.swsft_forward)
         self.assertAllClose(coefficients[Ellipsis, spin, channel], sliced)
 
   def test_swsft_forward_spins_channels_ell_max(self):
     """When given `ell_max`, coefficients must match the proper slice."""
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     resolution = 16
     ell_max = 3
     n_channels = 2
     spins = (0, 1)
     shape = (resolution, resolution, len(spins), n_channels)
     sphere_set = jnp.linspace(-1, 1, np.prod(shape)).reshape(shape)
-    coefficients = transformer.swsft_forward_spins_channels(sphere_set,
-                                                            spins,
-                                                            ell_max=ell_max)
+    coefficients = transformer.apply(
+        variables, sphere_set, spins, ell_max=ell_max,
+        method=TransformerModule.swsft_forward_spins_channels)
 
-    coefficients_full = transformer.swsft_forward_spins_channels(sphere_set,
-                                                                 spins)
+    coefficients_full = transformer.apply(
+        variables, sphere_set, spins,
+        method=TransformerModule.swsft_forward_spins_channels)
 
     num_ell = ell_max + 1
     self.assertAllClose(coefficients,
                         coefficients_full[:num_ell, num_ell:-num_ell])
 
   def test_swsft_forward_spins_channels_matches_with_symmetry(self):
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     resolution = 16
     n_channels = 2
     spins = (0, 1)
     shape = (resolution, resolution, len(spins), n_channels)
     sphere_set = jnp.linspace(-1, 1, np.prod(shape)).reshape(shape)
-    coefficients = transformer.swsft_forward_spins_channels(
-        sphere_set, spins)
-    with_symmetry = transformer.swsft_forward_spins_channels_with_symmetry(
-        sphere_set, spins)
+    coefficients = transformer.apply(
+        variables, sphere_set, spins,
+        method=TransformerModule.swsft_forward_spins_channels)
+
+    with_symmetry = transformer.apply(
+        variables, sphere_set, spins,
+        method=TransformerModule.swsft_forward_spins_channels_with_symmetry)
 
     self.assertAllClose(coefficients, with_symmetry)
 
   def test_swsft_backward_spins_channels_matches_swsft_backward(self):
-    transformer = _get_transformer()
+    transformer, variables = _get_transformer()
     ell_max = 7
     n_channels = 2
     spins = (0, 1)
     shape = (ell_max+1, 2*ell_max+1, n_channels, len(spins))
     coefficients = jnp.linspace(-1, 1, np.prod(shape)).reshape(shape)
-    sphere = transformer.swsft_backward_spins_channels(coefficients,
-                                                       spins)
+    sphere = transformer.apply(
+        variables, coefficients, spins,
+        method=TransformerModule.swsft_backward_spins_channels)
     for channel in range(n_channels):
       for spin in spins:
         # Slices must match swsft_backward().
-        sliced = transformer.swsft_backward(
-            coefficients[Ellipsis, spin, channel], spin)
+        sliced = transformer.apply(
+            variables, coefficients[Ellipsis, spin, channel], spin,
+            method=TransformerModule.swsft_backward)
+
         self.assertAllClose(sphere[Ellipsis, spin, channel], sliced)
 
   @parameterized.parameters(2, 3)
@@ -200,9 +236,10 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
 
   @parameterized.parameters(0, 1, 2, 4, 7)
   def test_SpinSphericalFourierTransformer_wigner_delta_matches_np(self, ell):
-    transformer = _get_transformer()
-    wigner_delta = transformer._slice_wigner_deltas(
-        ell, include_negative_m=True)[ell]
+    transformer, variables = _get_transformer()
+    wigner_delta = transformer.apply(
+        variables, ell, include_negative_m=True,
+        method=TransformerModule._slice_wigner_deltas)[ell]
     wigner_delta_np = sphere_utils.compute_wigner_delta(ell)
     self.assertAllClose(wigner_delta, wigner_delta_np)
 
@@ -214,23 +251,14 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
   def test_SpinSphericalFourierTransformer_forward_constants_matches_np(self,
                                                                         spin,
                                                                         ell):
-    transformer = _get_transformer()
-    ell_max = transformer.swsft_forward_constants[spin].shape[0] - 1
+    _, variables = _get_transformer()
+    swsft_forward_constants = variables['constants']['swsft_forward_constants']
+    ell_max = swsft_forward_constants[str(spin)].shape[0] - 1
     slice_ell = slice(ell_max - ell, ell_max + ell + 1)
-    constants = transformer.swsft_forward_constants[spin][ell, slice_ell]
+    constants = swsft_forward_constants[str(spin)][ell, slice_ell]
     constants_np = sphere_utils.swsft_forward_constant(spin, ell,
                                                        jnp.arange(-ell, ell+1))
     self.assertAllClose(constants, constants_np)
-
-  def test_SpinSphericalFourierTransformer_get_set_attributes(self):
-    original_transformer = _get_transformer()
-    # This behavior is required to make SpinSphericalFourierTransformer
-    # instances jit-able.
-    attributes = original_transformer.get_attributes()
-    transformer = (spin_spherical_harmonics.SpinSphericalFourierTransformer
-                   .set_attributes(*attributes))
-    for attribute, value in vars(transformer).items():
-      self.assertIs(value, getattr(original_transformer, attribute))
 
   @parameterized.parameters(4, 8, 9)
   def test_fourier_transform_2d(self, dimension):

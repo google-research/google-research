@@ -39,8 +39,8 @@ resolutions and spins, as required by a SWSCNN model, and also encapsulates the
 forward and inverse transforms.
 """
 
-from typing import Collection, Optional, Union
-import jax
+from typing import Collection, Optional, Tuple, Union
+from flax import linen as nn
 import jax.numpy as jnp
 import numpy as np
 
@@ -49,7 +49,7 @@ from spin_spherical_cnns import sphere_utils
 Array = Union[np.ndarray, jnp.ndarray]
 
 
-class SpinSphericalFourierTransformer:
+class SpinSphericalFourierTransformer(nn.Module):
   r"""Handles spin-weighted spherical Fourier transforms (SWSFT).
 
   The forward and backward transforms use a number of constants that are better
@@ -64,85 +64,48 @@ class SpinSphericalFourierTransformer:
   >>> coefficients = transformer.swsft_forward(input, spin).
 
   Attributes:
-    wigner_deltas: Zero-padded (ell_max+1, 2*ell_max+1, 2*ell_max+1) array
-      with stacked Wigner Deltas. Element at (ell, n, m) corresponds to
-      \Delta_{n,m}^\ell. See also: sphere_utils.compute_all_wigner_delta().
-    quadrature_weights: dict mapping resolutions (int) to quadrature weights
-      as computed by torus_quadrature_weights().
-    swsft_forward_constants: dict with spins as keys; entries are zero-padded
-        (ell_max+1, 2*ell_max+1) arrays of per coefficient constants applied in
-        the SWSFT transform. See also: sphere_utils.swsft_forward_constant().
+    resolutions: List of spherical resolutions.
+    spins: List of spin-weights.
   """
+  resolutions: Tuple[int, Ellipsis]
+  spins: Tuple[int, Ellipsis]
 
-  def __init__(self,
-               resolutions = None,
-               spins = None):
-    """Pre-compute constants.
+  def __call__(self):
+    return
 
-    If resolutions and spins are not None, compute all constants. Otherwise do
-    nothing. The latter behavior is used in set_attributes(), which is needed to
-    make SpinSphericalFourierTransformer a jit-able JAX type.
-
-    Args:
-      resolutions: List of spherical resolutions.
-      spins: List of spin-weights.
-
-    Returns:
-      None.
-    """
-
-    if resolutions is not None and spins is not None:
-      self._compute_constants(resolutions, spins)
-
-  def get_attributes(self):
-    """Gets attributes. Needed to ensure ordering when using as JAX type."""
-    return (self.wigner_deltas,
-            self.quadrature_weights,
-            self.swsft_forward_constants)
-
-  @classmethod
-  def set_attributes(cls,
-                     wigner_deltas,
-                     quadrature_weights,
-                     swsft_forward_constants):
-    """Sets attributes. Needed to ensure ordering when using as JAX type."""
-    constants = cls()
-    constants.wigner_deltas = wigner_deltas
-    constants.quadrature_weights = quadrature_weights
-    constants.swsft_forward_constants = swsft_forward_constants
-
-    return constants
+  def setup(self):
+    self._compute_constants(self.resolutions, self.spins)
 
   def validate(self, resolution, spin):
     """Returns True iff constants are valid for given resolution and spin."""
-    if int(spin) not in self.swsft_forward_constants.keys():
+    if str(spin) not in self.swsft_forward_constants.value.keys():
       return False
-    if resolution not in self.quadrature_weights.keys():
+    if str(resolution) not in self.quadrature_weights.value.keys():
       return False
-    if resolution // 2 > self.wigner_deltas.shape[0]:
+    if resolution // 2 > self.wigner_deltas.value.shape[0]:
       return False
 
     return True
 
   def _slice_wigner_deltas(self, ell_max, include_negative_m=False):
     """Returns sliced wigner_deltas as if max degree were ell_max."""
-    middle = self.wigner_deltas.shape[0] - 1
+    middle = self.wigner_deltas.value.shape[0] - 1
     if include_negative_m:
       m_indices = slice(middle-ell_max, middle+ell_max+1)
     else:
       m_indices = slice(middle, middle+ell_max+1)
-    return self.wigner_deltas[:ell_max + 1,
-                              m_indices,
-                              (middle-ell_max):(middle+ell_max+1)]
+    return self.wigner_deltas.value[:ell_max + 1,
+                                    m_indices,
+                                    (middle-ell_max):(middle+ell_max+1)]
 
   def _slice_forward_constants(self, ell_max, spin):
     """Returns sliced swsft_forward_constants as if max degree were ell_max."""
-    forward_constants = self.swsft_forward_constants[int(spin)]
+    forward_constants = self.swsft_forward_constants.value[str(spin)]
     middle = forward_constants.shape[0] - 1
     return forward_constants[:ell_max + 1, (middle-ell_max):(middle+ell_max+1)]
 
   def _compute_constants(self, resolutions, spins):
-    """Computes constants (class attributes). See constructor docstring."""
+    """Computes constants as `nn.Module.variable`."""
     ells = [sphere_utils.ell_max_from_resolution(res) for res in resolutions]
     ell_max = max(ells)
     wigner_deltas = sphere_utils.compute_all_wigner_delta(ell_max)
@@ -151,13 +114,17 @@ class SpinSphericalFourierTransformer:
       padded_deltas.append(jnp.pad(delta,
                                    ((ell_max - ell, ell_max - ell),
                                     (ell_max - ell, ell_max - ell))))
-    self.wigner_deltas = jnp.stack(padded_deltas)
+    self.wigner_deltas = self.variable("constants",
+                                       "wigner_deltas",
+                                       lambda: jnp.stack(padded_deltas))
 
-    self.quadrature_weights = {
-        res: jnp.array(sphere_utils.torus_quadrature_weights(res))
-        for res in resolutions}
+    def quad_init():
+      return {str(r): jnp.array(sphere_utils.torus_quadrature_weights(r))
+              for r in resolutions}
+    self.quadrature_weights = self.variable(
+        "constants", "quadrature_weights", quad_init)
 
-    self.swsft_forward_constants = {}
+    swsft_forward_constants = {}
     for spin in spins:
       constants_spin = []
       for ell in range(ell_max + 1):
@@ -165,8 +132,12 @@ class SpinSphericalFourierTransformer:
                                                     jnp.arange(-ell, ell+1))
         k_ell = jnp.asarray(k_ell)
         constants_spin.append(k_ell)
-      self.swsft_forward_constants[spin] = coefficients_to_matrix(
+      swsft_forward_constants[str(spin)] = coefficients_to_matrix(
           jnp.concatenate(constants_spin))
+    self.swsft_forward_constants = self.variable(
+        "constants",
+        "swsft_forward_constants",
+        lambda: swsft_forward_constants)
 
   def _extend_sphere_fft(self, sphere, spin):
     """See np_spin_spherical_harmonics._extend_sphere_fft()."""
@@ -175,7 +146,7 @@ class SpinSphericalFourierTransformer:
       raise ValueError("Input sphere must have even height!")
     torus = (-1.0)**spin * jnp.roll(sphere[1:-1][::-1], n // 2, axis=1)
     torus = jnp.concatenate([sphere, torus], axis=0)
-    weights = self.quadrature_weights[n]
+    weights = self.quadrature_weights.value[str(n)]
     torus = jnp.einsum("i,i...->i...", weights, torus)
     coeffs = _fourier_transform_2d(torus) * 2 * jnp.pi / n
 
@@ -446,13 +417,6 @@ class SpinSphericalFourierTransformer:
     num_elements = ft.shape[0] * ft.shape[1]
     idft_matrix = jnp.fft.ifft(jnp.eye(ft.shape[1]))
     return jnp.einsum("ij,kj...->ki...", idft_matrix, rowwise) * num_elements
-
-# This makes SpinSphericalFourierTransformer a jit-able JAX type. See
-# https://github.com/google/jax/issues/806 for discussion.
-jax.tree_util.register_pytree_node(
-    SpinSphericalFourierTransformer,
-    lambda cls: (cls.get_attributes(), None),
-    lambda _, x: SpinSphericalFourierTransformer.set_attributes(*x))
 
 
 def coefficients_to_matrix(coeffs):

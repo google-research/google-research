@@ -48,6 +48,7 @@ class TrainState:
   step: int
   optimizer: flax.optim.Optimizer
   batch_stats: Any
+  constants: Any
 
 
 def create_train_state(config, rng,
@@ -81,12 +82,16 @@ def create_train_state(config, rng,
   variables = model.init(rng, jnp.ones(input_shape), train=False)
   params = variables["params"]
   batch_stats = variables.get("batch_stats", {})
+  constants = variables["constants"]
 
   abs_if_complex = lambda x: jnp.abs(x) if x.dtype == jnp.complex64 else x
   parameter_overview.log_parameter_overview(
       jax.tree_util.tree_map(abs_if_complex, params))
   optimizer = flax.optim.Adam().create(params)
-  return model, TrainState(step=0, optimizer=optimizer, batch_stats=batch_stats)
+  return model, TrainState(step=0,
+                           optimizer=optimizer,
+                           batch_stats=batch_stats,
+                           constants=constants)
 
 
 def cross_entropy_loss(*, logits, labels):
@@ -166,7 +171,9 @@ def train_step(model, state,
   lr = learning_rate_fn(step)
 
   def loss_fn(params):
-    variables = {"params": params, "batch_stats": state.batch_stats}
+    variables = {"params": params,
+                 "batch_stats": state.batch_stats,
+                 "constants": state.constants}
     logits, new_variables = model.apply(
         variables, batch["input"], mutable=["batch_stats"], train=True)
 
@@ -226,7 +233,8 @@ def eval_step(model, state,
   logging.info("eval_step(batch=%s)", batch)
   variables = {
       "params": state.optimizer.target,
-      "batch_stats": state.batch_stats
+      "batch_stats": state.batch_stats,
+      "constants": state.constants,
   }
   logits = model.apply(variables, batch["input"], mutable=False, train=False)
   loss = jnp.mean(cross_entropy_loss(logits=logits, labels=batch["label"]))

@@ -35,11 +35,13 @@ from spin_spherical_cnns import test_utils
 # that JAX changes its pseudo-random algorithm.
 _JAX_RANDOM_KEY = np.array([0, 0], dtype=np.uint32)
 
+TransformerModule = spin_spherical_harmonics.SpinSphericalFourierTransformer
+
 
 @functools.lru_cache()
 def _get_transformer():
   return spin_spherical_harmonics.SpinSphericalFourierTransformer(
-      resolutions=[4, 8, 16], spins=(0, -1, 1, 2))
+      resolutions=(4, 8, 16), spins=(0, -1, 1, 2))
 
 
 class LayersTest(tf.test.TestCase, parameterized.TestCase):
@@ -98,35 +100,39 @@ class LayersTest(tf.test.TestCase, parameterized.TestCase):
     filter_coefficients = jnp.linspace(-0.5 + 0.2j, 0.2,
                                        np.prod(shape)).reshape(shape)
 
-    sphere_out = layers._spin_spherical_convolution(
-        transformer,
-        inputs,
-        filter_coefficients,
-        spins_in,
-        spins_out,
-        spectral_pooling=spectral_pooling,
-        spectral_upsampling=spectral_upsampling,
-        input_representation=input_representation,
-        output_representation="spatial")
+    # We need an aux class to keep flax state now that transformer is
+    # a nn.Module.
+    class SphericalConvolution(nn.Module):
+      transformer: spin_spherical_harmonics.SpinSphericalFourierTransformer
 
-    rotated_sphere_out = layers._spin_spherical_convolution(
-        transformer,
-        rotated_inputs,
-        filter_coefficients,
-        spins_in, spins_out,
-        spectral_pooling=spectral_pooling,
-        spectral_upsampling=spectral_upsampling,
-        input_representation=input_representation,
-        output_representation="spatial")
+      def __call__(self, *args, **kwargs):
+        # self.transformer.validate(resolution, spins_in)
+        return layers._spin_spherical_convolution(
+            self.transformer, *args, **kwargs)
+
+    conv = SphericalConvolution(transformer)
+
+    args = (filter_coefficients, spins_in, spins_out)
+    kwargs = dict(spectral_pooling=spectral_pooling,
+                  spectral_upsampling=spectral_upsampling,
+                  input_representation=input_representation,
+                  output_representation="spatial")
+    variables = conv.init(_JAX_RANDOM_KEY, inputs, *args, **kwargs)
+    sphere_out = conv.apply(variables, inputs, *args, **kwargs)
+
+    rotated_sphere_out = conv.apply(variables, rotated_inputs, *args, **kwargs)
 
     # Now since the convolution is SO(3)-equivariant, the same rotation that
     # relates the inputs must relate the outputs. We apply it spectrally.
-    coefficients_out = transformer.swsft_forward_spins_channels(sphere_out,
-                                                                spins_out)
+    variables = transformer.init(_JAX_RANDOM_KEY)
+    coefficients_out = transformer.apply(
+        variables, sphere_out, spins_out,
+        method=TransformerModule.swsft_forward_spins_channels)
 
     # This is R(f) * g (in the spectral domain).
-    rotated_coefficients_out_1 = transformer.swsft_forward_spins_channels(
-        rotated_sphere_out, spins_out)
+    rotated_coefficients_out_1 = transformer.apply(
+        variables, rotated_sphere_out, spins_out,
+        method=TransformerModule.swsft_forward_spins_channels)
 
     # And this is R(f * g) (in the spectral domain).
     rotated_coefficients_out_2 = test_utils.rotate_coefficients(

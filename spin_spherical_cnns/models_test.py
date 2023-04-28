@@ -36,7 +36,7 @@ _JAX_RANDOM_KEY = np.array([0, 0], dtype=np.uint32)
 @functools.lru_cache()
 def _get_transformer():
   return spin_spherical_harmonics.SpinSphericalFourierTransformer(
-      resolutions=[4, 8, 16], spins=[0, -1, 1, 2])
+      resolutions=(4, 8, 16), spins=(0, -1, 1, 2))
 
 
 def _mean_absolute_error(x, y):
