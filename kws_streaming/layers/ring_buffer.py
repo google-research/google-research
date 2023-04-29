@@ -148,7 +148,7 @@ class RingBuffer(tf.keras.layers.Wrapper):
   def stride(self):
     return self.stride
 
-  def build(self, input_shape):
+  def build(self, input_shape):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     super(RingBuffer, self).build(input_shape)
 
     wrappped_cell = self.get_core_layer()

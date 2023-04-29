@@ -96,7 +96,7 @@ class BertPretrainModel(tf.keras.Model):
   def from_config(cls, config, custom_objects=None):
     return cls(**config)
 
-  def call(self, inputs):
+  def call(self, inputs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     sequence_output, _, target_outputs = self.encoder_network(inputs)
 
     outputs = dict()

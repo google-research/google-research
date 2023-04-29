@@ -74,7 +74,7 @@ class MagnitudeRDFTmel(magnitude_rdft.MagnitudeRDFT):
     self.sample_rate = sample_rate
     self.mel_non_zero_only = mel_non_zero_only
 
-  def build(self, input_shape):
+  def build(self, input_shape):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
 
     # output size of DFT
     feature_size = self._compute_fft_size(int(input_shape[-1])) // 2 + 1
