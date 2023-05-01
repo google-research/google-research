@@ -30,7 +30,7 @@ class PolicyGradientController(base_controller.BaseController):
     """Initialization. See base class for more details."""
 
     super().__init__(dna_spec, batch_size)
-    self._controller = pg.generators.policy_gradient.PPO(
+    self._controller = pg.reinforcement_learning.PPO(
         train_batch_size=self._batch_size, update_batch_size=update_batch_size)
     self._controller.setup(self._dna_spec)
     # If you have:
