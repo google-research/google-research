@@ -1,8 +1,9 @@
 # MQM Viewer
 
 This repository contains a web app  that can be used to analyze
-[Multidimensional Quality Metrics (MQM)](http://www.qt21.eu/mqm-definition/definition-2015-06-16.html) data from a translation quality
-evaluation.
+[Multidimensional Quality Metrics (MQM)](http://www.qt21.eu/mqm-definition/definition-2015-06-16.html)
+data from a human evaluation of translation quality. The web app can also
+display metrics computed by automated evaluations, such as BLEURT.
 
 To use it, download the files `mqm-viewer.html`, `mqm-viewer.js`,
 `mqm-sigtests.js`, and `mqm-viewer.css` to your computer:
@@ -35,7 +36,9 @@ ten columns, one line per marked error:
   document.
 - **globalSegId**: Id of segment across all documents. If you do not have
   such numbering available, set this to a constant value, say 0.
-- **rater**: Rater who evaluated segment.
+- **rater**: Rater who evaluated segment. If this row only carries metadata
+  such as automated metrics and/or references, then `rater` will be the empty
+  string (as will be `category` and `severity`).
 - **source**: Source text for segment.
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
@@ -64,10 +67,12 @@ ten columns, one line per marked error:
     multiple ratings for the same segment. The segment object may contain the
     following fields:
       - **references**: A mapping from names of references to the references
-        themselves (e.g., {"ref_A": "The reference", "ref_B": "..."})
+        themselves (e.g., {"ref_A": "The reference", "ref_B": "..."}). This
+        field need not be repeated across different systems.
       - **primary_reference**: The name of the primary reference, which is
         a key in the "references" mapping (e.g., "ref_A"). This field is
-        required if "references" is present.
+        required if "references" is present. This field too need not be repeated
+        across different systems.
       - **metrics**: A dictionary in which the keys are the names of metrics
         (such as "Bleurt-X") and values are the numbers for those metrics.
       - **source_tokens**: An array of source text tokens.
@@ -80,6 +85,10 @@ ten columns, one line per marked error:
         sentence.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
+      - **MQM**: The computed MQM score for the segment. This field may not
+        be present in data files, but is available for use in filtering within
+        MQM Viewer. Note that it is the MQM score for the segment *without
+        any filtering*.
       - In addition, any text annotation fields present in the input data are
         copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
         this would be all the fields present in the optional last column.
@@ -110,6 +119,26 @@ presence of the text "system\tdoc").
 Example data files and details on score computations can be found in this
 [GitHub repository](https://github.com/google/wmt-mqm-human-evaluation).
 
+## Data format conversion
+
+You can easily add format conversion code that can convert arbitrarily
+formatted data (for example, JSON lines from a BLEURT decoder), by adding a
+JavaScript function with the following name and behavior:
+
+```
+/**
+ * Transform data (that may be in some custom format) into the MQM data format.
+ * Pass through the data if no conversion was appropriate or necessary.
+ * @param {string} sourceName The file name or URL source for the data.
+ * @param {string} data The original data.
+ * @return {string} The MQM-data-formatted data.
+ */
+function mqmDataConvertor(sourceName, data) {
+  ...
+  return data;
+}
+```
+
 ## Filtering
 
 This web app facilitates interactive slicing and dicing of the data to identify
@@ -131,6 +160,8 @@ filters.
     **source**, **target**, **metadata**.
   - Filter expressions also have access to three aggregated objects in
     variables named **aggrDoc**, **aggrDocSeg**, and **aggrDocSegSys**.
+    The aggrDocSegSys dict also contains aggrDocSeg (with the key
+    "aggrDocSeg"), which in turn similarly contains aggrDoc.
     - **aggrDoc** has the following properties:
       **doc**, **thumbsUpCount**, **thumbsDownCount**.
     - **aggrDocSeg** is an object with the following properties:
@@ -139,17 +170,28 @@ filters.
       - **aggrDocSeg.sevsBySystem**,
       - **aggrDocSeg.sevsByRater**,
       - **aggrDocSeg.sevcatsBySystem**,
-      - **aggrDocSeg.sevcatsByRater**.
+      - **aggrDocSeg.sevcatsByRater**,
+      - **aggrDocSeg.source_tokens**,
+      - **aggrDocSeg.source_sentence_tokens**,
+      - **aggrDocSeg.starts_paragraph**,
+      - **aggrDocSeg.references** (if available),
+      - **aggrDocSeg.primary_reference** (if available),
       Each of these properties is an object keyed by system or rater, with the
       values being arrays of strings. The "sevcats\*" values look like
       "Minor/Fluency/Punctuation" or are just the same as severities if
       categories are empty. This segment-level aggregation allows you
       to select specific segments rather than just specific error ratings.
     - **aggrDocSegSys** is just an alias for metadata.segment.
-  - **Example**: globalSegId > 10 || severity == 'Major'
+  - **Example**: docSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
   - **Example**: aggrDocSeg.sevsBySystem['System-42'].includes('Major')
+  - **Example**: aggrDocSegSys.MQM > 4 &&
+    (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) < 0.1 (note that aggrDocSegSys.MQM
+    is the *unfiltered* MQM score for the segment).
   - **Example**: JSON.stringify(aggrDocSeg.sevcatsBySystem).includes('Major/Fl')
+  - You can examine the metadata associated with any using the **Log metadata**
+    interface shown in the **Filters** section. This can be useful for crafting
+    filter expressions.
 
 ## Significance tests
 When there are multiple systems that have been evaluated on common document
@@ -159,7 +201,8 @@ approximate randomization (PAR), which corresponds to 'alternative="greater"'
 in [scipy's API](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html).
 
 The significance tests are recomputed with any filtering that is applied. The
-computations are run in a background Worker thread.
+computations are run in a background Worker thread. The tests include any
+available automated metrics in addition to MQM.
 
 ## Data Notes
 There are some nuances to the data format which are useful to be aware of:

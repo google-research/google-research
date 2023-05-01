@@ -15,7 +15,7 @@
 /**
  * This file contains the background Worker thread code that computes
  * significance tests for MQM score rankings of system pairs.
- * 
+ *
  * The significance testing is done through paired one-sided approximate
  * randomization (PAR). The implemention follows sacrebleu at
  * https://github.com/mjpost/sacrebleu/blob/078c440168c6adc89ba75fe6d63f0d922d42bcfe/sacrebleu/significance.py#L112.
@@ -39,15 +39,15 @@ function mqmGetRandomInt(max, size) {
  * Performs one trial of paired approximate randomization for a given baseline
  * and a system and returns the score difference. Returns null if no common
  * segments are found.
- * @param {!Object} mqmSigtestsData
+ * @param {!MQMSigtestsData} data
  * @param {string} baseline
  * @param {string} system
  * @return {number}
  */
-function mqmPAROneTrial(mqmSigtestsData, baseline, system) {
-  const baselineScores = mqmSigtestsData.segScoresBySystem[baseline];
-  const systemScores = mqmSigtestsData.segScoresBySystem[system];
-  const commonPos = mqmSigtestsData.commonPosBySystemPair[baseline][system];
+function mqmPAROneTrial(data, baseline, system) {
+  const baselineScores = data.segScoresBySystem[baseline];
+  const systemScores = data.segScoresBySystem[system];
+  const commonPos = data.commonPosBySystemPair[baseline][system];
 
   if (!commonPos) {
     return null;
@@ -72,7 +72,7 @@ function mqmPAROneTrial(mqmSigtestsData, baseline, system) {
   }
   shufA /= commonPos.length;
   shufB /= commonPos.length;
-  return shufA - shufB;
+  return (shufA - shufB) * (data.lowerBetter ? 1.0 : -1.0);
 }
 
 /**
@@ -87,76 +87,86 @@ function mqmPAR(e) {
   const finishedUpdate = {
     finished: true,
   };
-  const systems = mqmSigtestsData.systems;
-  /** We should have at least 2 systems and 1 trial for significance testing. */
-  if (systems.length < 2 || mqmSigtestsData.numTrials < 1) {
-    postMessage(finishedUpdate);
-    return;
-  }
-  const totalScoresBySystem = mqmSigtestsData.totalScoreBySystem;
-  const commonPos = mqmSigtestsData.commonPosBySystemPair;
-
-  /** Score differences by system pair. */
-  const mqmPARDiffs = {};
-
-  const log2NumTrials = Math.log2(mqmSigtestsData.numTrials);
-
-  for (const [rowIdx, baseline] of systems.entries()) {
-    if (!mqmPARDiffs.hasOwnProperty(baseline)) {
-      mqmPARDiffs[baseline] = {};
+  for (let metric in mqmSigtestsData.metricData) {
+    const data = mqmSigtestsData.metricData[metric];
+    const systems = data.systems;
+    const metricDoneUpdate = {
+      metric: metric,
+      metricDone: true,
+    };
+    /** We should have at least 2 systems and 1 trial for signif. testing. */
+    if (systems.length < 2 || mqmSigtestsData.numTrials < 1) {
+      postMessage(metricDoneUpdate);
+      continue;
     }
-    for (const [colIdx, system] of systems.entries()) {
-      if (rowIdx >= colIdx) {
-        /** We only fill in the upper triangle. */
-        continue;
-      }
-      const numCommonSegs = commonPos[baseline][system].length;
-      if (log2NumTrials > numCommonSegs) {
-        /** Not enough permutations possible, do not compute. */
-        continue;
-      }
-      if (!mqmPARDiffs[baseline].hasOwnProperty(system)) {
-        mqmPARDiffs[baseline][system] = [];
-      }
-      for (let i = 0; i < mqmSigtestsData.numTrials; i++) {
-        const diff = mqmPAROneTrial(mqmSigtestsData, baseline, system);
-        /** This means no common segments are found. */
-        if (diff == null) break;
-        mqmPARDiffs[baseline][system].push(diff);
-      }
+    const scoresBySystem = data.scoresBySystem;
+    const commonPos = data.commonPosBySystemPair;
+    const signMultiplier = data.lowerBetter ? 1.0 : -1.0;
 
-      const realDiff =
-          totalScoresBySystem[system] - totalScoresBySystem[baseline];
-      /**
-       * Real score differences should be non-negative since we are filling in
-       * the upper triangle.
-       */
-      console.assert(realDiff >= 0.0, realDiff);
-      let cnt = 0;
-      for (const diff of mqmPARDiffs[baseline][system]) {
-        /**
-         * Count how many samples of the null distribution are greater than or
-         * equal to the real difference. This corresponds to
-         * 'alternative="greater"' in scipy's API at
-         * https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html.
-         * Recall that a greater value than `realDiff` indicates a bigger
-         * difference between `system` and `baseline`.
-         */
-        if (diff >= realDiff) {
-          cnt += 1;
+    /** Score differences by system pair. */
+    const mqmPARDiffs = {};
+
+    const log2NumTrials = Math.log2(mqmSigtestsData.numTrials);
+
+    for (const [rowIdx, baseline] of systems.entries()) {
+      if (!mqmPARDiffs.hasOwnProperty(baseline)) {
+        mqmPARDiffs[baseline] = {};
+      }
+      for (const [colIdx, system] of systems.entries()) {
+        if (rowIdx >= colIdx) {
+          /** We only fill in the upper triangle. */
+          continue;
         }
+        const numCommonSegs = commonPos[baseline][system].length;
+        if (log2NumTrials > numCommonSegs) {
+          /** Not enough permutations possible, do not compute. */
+          continue;
+        }
+        if (!mqmPARDiffs[baseline].hasOwnProperty(system)) {
+          mqmPARDiffs[baseline][system] = [];
+        }
+        for (let i = 0; i < mqmSigtestsData.numTrials; i++) {
+          const diff = mqmPAROneTrial(data, baseline, system);
+          /** This means no common segments are found. */
+          if (diff == null) break;
+          mqmPARDiffs[baseline][system].push(diff);
+        }
+
+        const realDiff = (signMultiplier *
+            (scoresBySystem[system].score - scoresBySystem[baseline].score));
+        /**
+         * Real score differences should be non-negative since we are filling in
+         * the upper triangle.
+         */
+        console.assert(realDiff >= 0.0, realDiff);
+        let cnt = 0;
+        for (const diff of mqmPARDiffs[baseline][system]) {
+          /**
+           * Count how many samples of the null distribution are greater than or
+           * equal to the real difference. This corresponds to
+           * 'alternative="greater"' in scipy's API at
+           * https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html.
+           * Recall that a greater value than `realDiff` indicates a bigger
+           * difference between `system` and `baseline`.
+           */
+          if (diff >= realDiff) {
+            cnt += 1;
+          }
+        }
+        const numTrials = mqmPARDiffs[baseline][system].length;
+        const p = (cnt + 1) / (numTrials + 1);
+        const update = {
+          metric: metric,
+          row: rowIdx,
+          col: colIdx,
+          pValue: p,
+          numCommonSegs: numCommonSegs,
+        };
+        /** Send this p-value to the parent thread. */
+        postMessage(update);
       }
-      const numTrials = mqmPARDiffs[baseline][system].length;
-      const p = (cnt + 1) / (numTrials + 1);
-      const update = {
-        row: rowIdx,
-        col: colIdx,
-        pValue: p,
-        numCommonSegs: numCommonSegs,
-      };
-      /** Send this p-value to the parent thread. */
-      postMessage(update);
     }
+    postMessage(metricDoneUpdate);
   }
   postMessage(finishedUpdate);
 }

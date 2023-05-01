@@ -111,6 +111,9 @@
 .mqm-out-of-order {
   background: lavender;
 }
+.mqm-ref-row {
+  background-color: #e9ffdb;
+}
 #mqm-reset-settings {
   cursor: pointer;
 }
@@ -125,6 +128,9 @@
   position: sticky;
   top: 0;
 }
+.mqm-row-metadata {
+  white-space: break-spaces;
+}
 #mqm-score-heading {
   font-weight: bold;
   max-width: 10ch;
@@ -135,6 +141,10 @@
 .mqm-section {
   font-size: large;
   font-weight: bold;
+}
+.mqm-seg-score {
+  color: gray;
+  font-size: small;
 }
 .mqm-select {
   margin: 4px 0;
