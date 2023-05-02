@@ -28,7 +28,7 @@ from jax import core
 from jax import pxla
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
-from jax.experimental.gda_serialization import serialization as jax_gda_serialization
+from jax.experimental.array_serialization import serialization as jax_array_serialization
 import jax.numpy as jnp
 from jax.sharding import Mesh
 from jax.sharding import NamedSharding
@@ -98,6 +98,8 @@ def make_rules_two_d(attn_batch_sharding=AttnAllToAll.NONE,
       ('embedding_embed', 'x'),
       ('vocab', ('y', 'z', 'x') if batch_unsharded else ('y', 'z')),
       ('attn_batch', attn_sharding_to_axes(attn_batch_sharding)),
+      ('weight_load_embed', ('x', 'y', 'z')),
+      ('weight_load_heads', None),
   ]
 
 
@@ -122,6 +124,8 @@ def make_rules_one_d():
       ('vocab', ('y', 'z', 'x')),
       ('embedding_embed', 'x'),
       ('attn_batch', None),
+      ('weight_load_embed', ('x', 'y', 'z')),
+      ('weight_load_heads', None),
   ]
 
 
@@ -146,6 +150,8 @@ def make_rules_weight_gathered():
       ('vocab', ('y', 'z')),
       ('embedding_embed', 'x'),
       ('attn_batch', ('x', 'y', 'z')),
+      ('weight_load_embed', ('x', 'y', 'z')),
+      ('weight_load_heads', None),
   ]
 
 
@@ -303,7 +309,7 @@ def copy_to_device(x, sharding,
       # Further code is internal
     else:
       # Read from tensorstore using jax gda_serialization
-      (tensor,) = jax_gda_serialization.run_deserialization(  # pytype: disable=wrong-arg-types  # always-use-return-annotations
+      (tensor,) = jax_array_serialization.run_deserialization(
           [sharding], [x], [expected.shape], [expected.dtype], concurrent_gb=64
       )
       return tensor

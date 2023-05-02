@@ -120,10 +120,11 @@ HParams.PALM_540B = HParams(
     layers=118,
     embed=18432,
     ff=4 * 18432,
-    heads=48,
+    heads=64,  # actually 48, but 16 padded
     qkv=256,
     max_len=8096,
     vocab=256128,
+    padded_heads=16,
 )
 
 HParams.TURING_NLG = HParams(
