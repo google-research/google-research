@@ -413,7 +413,7 @@ class PretrainingModelTest(absltest.TestCase):
     self.assertIn("intermediates", state)
     jax.tree_util.tree_map(
         functools.partial(np.testing.assert_allclose, rtol=1e-6),
-        state["intermediates"],
+        FrozenDict(state["intermediates"]),
         FrozenDict({
             "encoder": {
                 "moe_1": {
@@ -514,7 +514,7 @@ class SequenceClassificationModelTest(absltest.TestCase):
     self.assertIn("intermediates", state)
     jax.tree_util.tree_map(
         functools.partial(np.testing.assert_allclose, rtol=1e-6),
-        state["intermediates"],
+        FrozenDict(state["intermediates"]),
         FrozenDict({
             "encoder": {
                 "moe_1": {
