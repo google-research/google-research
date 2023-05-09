@@ -15,15 +15,15 @@
 #include "partition_matroid.h"
 
 #include <cassert>
+#include <map>
 #include <memory>
 #include <set>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "matroid.h"
 
-PartitionMatroid::PartitionMatroid(
-    const absl::flat_hash_map<int, int>& groups_map, const std::vector<int>& ks)
+PartitionMatroid::PartitionMatroid(const std::map<int, int>& groups_map,
+                                   const std::vector<int>& ks)
     : groups_map_(groups_map),
       ks_(ks),
       num_groups_(ks.size()),

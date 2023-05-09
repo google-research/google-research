@@ -16,17 +16,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <map>
 #include <memory>
 #include <set>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "matroid.h"
 #include "partition_matroid.h"
 
 FairnessConstraint::FairnessConstraint(
-    const absl::flat_hash_map<int, int>& colors_map,
+    const std::map<int, int>& colors_map,
     const std::vector<std::pair<int, int>>& bounds) {
   colors_map_ = colors_map;
   bounds_ = bounds;

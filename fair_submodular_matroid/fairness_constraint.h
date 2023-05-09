@@ -15,17 +15,17 @@
 #ifndef FAIR_SUBMODULAR_MATROID_FAIRNESS_CONSTRAINT_H_
 #define FAIR_SUBMODULAR_MATROID_FAIRNESS_CONSTRAINT_H_
 
+#include <map>
 #include <memory>
 #include <set>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "matroid.h"
 
 class FairnessConstraint {
  public:
-  FairnessConstraint(const absl::flat_hash_map<int, int>& colors_map,
+  FairnessConstraint(const std::map<int, int>& colors_map,
                      const std::vector<std::pair<int, int>>& bounds);
 
   ~FairnessConstraint() = default;
@@ -68,7 +68,7 @@ class FairnessConstraint {
 
  private:
   // Map universe elements to groups
-  absl::flat_hash_map<int, int> colors_map_;
+  std::map<int, int> colors_map_;
 
   // Color bounds (lower, upper) pairs
   std::vector<std::pair<int, int>> bounds_;

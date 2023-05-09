@@ -16,9 +16,8 @@
 
 #include <cassert>
 #include <memory>
+#include <set>
 #include <vector>
-
-#include "absl/container/flat_hash_set.h"
 
 ConditionedMatroid::ConditionedMatroid(const Matroid& original,
                                        const std::vector<int>& S)
@@ -97,9 +96,9 @@ bool ConditionedMatroid::InCurrent(int element) const {
   return current_elements_.count(element);
 }
 
-ConditionedMatroid::ConditionedMatroid(
-    const absl::flat_hash_set<int>& s,
-    const absl::flat_hash_set<int>& current_elements, const Matroid& original)
+ConditionedMatroid::ConditionedMatroid(const std::set<int>& s,
+                                       const std::set<int>& current_elements,
+                                       const Matroid& original)
     : s_(s), current_elements_(current_elements), original_(original.Clone()) {}
 
 // Clone the object.

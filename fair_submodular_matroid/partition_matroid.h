@@ -15,16 +15,16 @@
 #ifndef FAIR_SUBMODULAR_MATROID_PARTITION_MATROID_H_
 #define FAIR_SUBMODULAR_MATROID_PARTITION_MATROID_H_
 
+#include <map>
 #include <memory>
 #include <set>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "matroid.h"
 
 class PartitionMatroid : public Matroid {
  public:
-  PartitionMatroid(const absl::flat_hash_map<int, int>& groups_map,
+  PartitionMatroid(const std::map<int, int>& groups_map,
                    const std::vector<int>& ks);
 
   ~PartitionMatroid() override = default;
@@ -64,7 +64,7 @@ class PartitionMatroid : public Matroid {
 
  private:
   // Map universe elements to groups
-  absl::flat_hash_map<int, int> groups_map_;
+  std::map<int, int> groups_map_;
 
   // Groups upper bounds
   std::vector<int> ks_;

@@ -15,9 +15,9 @@
 #ifndef FAIR_SUBMODULAR_MATROID_MATROID_INTERSECTION_H_
 #define FAIR_SUBMODULAR_MATROID_MATROID_INTERSECTION_H_
 
+#include <set>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "matroid.h"
 #include "submodular_function.h"
 
@@ -29,7 +29,7 @@ void MaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
 // `const_elements` are the elements in universe that cannot be touched.
 void SubMaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
                         SubmodularFunction* sub_func_f,
-                        const absl::flat_hash_set<int>& const_elements,
+                        const std::set<int>& const_elements,
                         const std::vector<int>& universe);
 
 #endif  // FAIR_SUBMODULAR_MATROID_MATROID_INTERSECTION_H_

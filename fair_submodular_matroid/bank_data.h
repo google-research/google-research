@@ -15,17 +15,16 @@
 #ifndef FAIR_SUBMODULAR_MATROID_BANK_DATA_H_
 #define FAIR_SUBMODULAR_MATROID_BANK_DATA_H_
 
+#include <map>
 #include <vector>
-
-#include "absl/container/flat_hash_map.h"
 
 class BankData {
  public:
   std::vector<std::vector<double>> input_;
   std::vector<int> age_grpcards_;
   std::vector<int> balance_grpcards_;
-  absl::flat_hash_map<int, int> age_map_;
-  absl::flat_hash_map<int, int> balance_map_;
+  std::map<int, int> age_map_;
+  std::map<int, int> balance_map_;
 
   explicit BankData(const char input_path[]);
   ~BankData() = default;

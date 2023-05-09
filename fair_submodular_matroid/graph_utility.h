@@ -16,10 +16,10 @@
 #define FAIR_SUBMODULAR_MATROID_GRAPH_UTILITY_H_
 
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "graph.h"
 #include "submodular_function.h"
 
@@ -67,7 +67,7 @@ class GraphUtility : public SubmodularFunction {
   std::vector<int> present_elements_;  // elements in current solution
 
   // Counts how many element in current solution cover each element
-  absl::flat_hash_set<int> existing_elements_;
+  std::set<int> existing_elements_;
 };
 
 #endif  // FAIR_SUBMODULAR_MATROID_GRAPH_UTILITY_H_

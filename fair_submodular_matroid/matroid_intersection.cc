@@ -16,11 +16,11 @@
 
 #include <cassert>
 #include <iostream>
+#include <map>
 #include <queue>
+#include <set>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "matroid.h"
 #include "submodular_function.h"
 
@@ -29,7 +29,7 @@ void MaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
   matroid_a->Reset();
   matroid_b->Reset();
   // Adjacency lists;
-  absl::flat_hash_map<int, std::vector<int>> exchange_graph;
+  std::map<int, std::vector<int>> exchange_graph;
   while (true) {
     // Greedily add elements to the solution;
     for (int element : elements) {
@@ -57,7 +57,7 @@ void MaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
     }
 
     // Find an augmenting path via BFS.
-    absl::flat_hash_map<int, int> bfs_parent;
+    std::map<int, int> bfs_parent;
     std::queue<int> queue;
     int aug_path_dest = -1;
     for (int element : elements) {
@@ -110,9 +110,8 @@ void MaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
 // Returns if an element is needed to be removed from `matroid_` to insert
 // `element`. Returns "-1" if no element is needed to be remove and "-2" if
 // the element cannot be swapped.
-int MinWeightElementToRemove(Matroid* matroid,
-                             absl::flat_hash_map<int, double>& weight,
-                             const absl::flat_hash_set<int>& const_elements,
+int MinWeightElementToRemove(Matroid* matroid, std::map<int, double>& weight,
+                             const std::set<int>& const_elements,
                              const int element) {
   if (matroid->CanAdd(element)) {
     return -1;
@@ -129,10 +128,10 @@ int MinWeightElementToRemove(Matroid* matroid,
 
 void SubMaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
                         SubmodularFunction* sub_func_f,
-                        const absl::flat_hash_set<int>& const_elements,
+                        const std::set<int>& const_elements,
                         const std::vector<int>& universe) {
   // DO NOT reset the matroids here.
-  absl::flat_hash_map<int, double> weight;
+  std::map<int, double> weight;
   for (const int& element : universe) {
     if (const_elements.count(element)) continue;  // don't add const_elements
     int first_swap =

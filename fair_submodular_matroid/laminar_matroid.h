@@ -15,16 +15,16 @@
 #ifndef FAIR_SUBMODULAR_MATROID_LAMINAR_MATROID_H_
 #define FAIR_SUBMODULAR_MATROID_LAMINAR_MATROID_H_
 
+#include <map>
 #include <memory>
+#include <set>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "matroid.h"
 
 class LaminarMatroid : public Matroid {
  public:
-  LaminarMatroid(const absl::flat_hash_map<int, std::vector<int>>& groups_map,
+  LaminarMatroid(const std::map<int, std::vector<int>>& groups_map,
                  const std::vector<int>& ks);
 
   ~LaminarMatroid() override = default;
@@ -61,7 +61,7 @@ class LaminarMatroid : public Matroid {
 
  private:
   // map universe elements to list of groups they belong to
-  absl::flat_hash_map<int, std::vector<int>> groups_map_;
+  std::map<int, std::vector<int>> groups_map_;
   // groups upper bounds
   std::vector<int> ks_;
   // number of groups
@@ -69,7 +69,7 @@ class LaminarMatroid : public Matroid {
   // current number of elements per group
   std::vector<int> current_grpcards_;
   // current set
-  absl::flat_hash_set<int> current_set_;
+  std::set<int> current_set_;
 };
 
 #endif  // FAIR_SUBMODULAR_MATROID_LAMINAR_MATROID_H_

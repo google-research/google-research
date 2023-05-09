@@ -15,18 +15,16 @@
 // Experiments for fair submodular maximization.
 
 #include <algorithm>
+#include <fstream>
 #include <functional>
 #include <iostream>
-#include <fstream>
+#include <map>
 #include <memory>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/string_view.h"
 #include "algorithm.h"
 #include "bank_data.h"
 #include "better_greedy_algorithm.h"
@@ -52,7 +50,7 @@ std::vector<int> Range(int n) {
 }
 
 void PrintSolutionVector(const std::vector<int>& solution, std::ofstream& fout,
-                         absl::string_view alg_name, const int rank,
+                         std::string alg_name, const int rank,
                          bool verbose = true) {
   if (verbose) {
     fout << "Solution for " << alg_name << " for rank = " << rank << std::endl;
@@ -186,7 +184,7 @@ void SingleKBaseExperiment(
 void BaseExperiment(SubmodularFunction& f, std::vector<int>& ranks,
                     std::vector<std::unique_ptr<Matroid>>& matroids,
                     std::vector<FairnessConstraint>& fairness,
-                    absl::string_view exp_name) {
+                    std::string exp_name) {
   // Algorithms to run
   TwoPassAlgorithmWithConditionedMatroid two_pass;
   BetterGreedyAlgorithm greedy;
@@ -200,11 +198,11 @@ void BaseExperiment(SubmodularFunction& f, std::vector<int>& ranks,
   std::string exp_base_path = "";  // Add path to dataset here (see README).
 
   for (Algorithm& alg : algorithms) {
-    result_files.emplace_back(
-        absl::StrCat(exp_base_path, "_", alg.GetAlgorithmName(), ".txt"));
+    result_files.emplace_back(exp_base_path + "_" + alg.GetAlgorithmName() +
+                              ".txt");
     result_files.back() << "rank f error ratio OC" << std::endl;
-    solutions_files.emplace_back(
-        absl::StrCat(exp_base_path, "_sols_", alg.GetAlgorithmName(), ".txt"));
+    solutions_files.emplace_back(exp_base_path + "_sols_" +
+                                 alg.GetAlgorithmName() + ".txt");
   }
   std::ofstream general_log_file(exp_base_path + "_general.txt");
 
@@ -252,8 +250,9 @@ void ClusteringExperiment(int lower_i, int upper_i) {
     fairness.emplace_back(data.age_map_, color_bounds);
   }
   std::cout << "ranks size " << ranks.size() << " " << ranks[0] << std::endl;
-  BaseExperiment(f, ranks, matroids, fairness,
-                 absl::StrCat("clustering", lower_i, "_", upper_i));
+  BaseExperiment(
+      f, ranks, matroids, fairness,
+      "clustering" + std::to_string(lower_i) + "_" + std::to_string(upper_i));
 }
 
 void CoverageExperiment(int lower_i, int upper_i) {
@@ -298,8 +297,9 @@ void CoverageExperiment(int lower_i, int upper_i) {
     }
     fairness.emplace_back(graph.GetColorsMap(), color_bounds);
   }
-  BaseExperiment(f, ranks, matroids, fairness,
-                 absl::StrCat("coverage", lower_i, "_", upper_i));
+  BaseExperiment(
+      f, ranks, matroids, fairness,
+      "coverage" + std::to_string(lower_i) + "_" + std::to_string(upper_i));
 }
 
 void MovieExperiment(bool laminar) {
@@ -328,7 +328,7 @@ void MovieExperiment(bool laminar) {
       // large groups: noYearBands onwards (one large group consists of L small
       // groups)
       constexpr int L = 3;
-      absl::flat_hash_map<int, std::vector<int>> group_map;
+      std::map<int, std::vector<int>> group_map;
       for (const auto& p :
            MoviesData::GetInstance().GetMovieIdToYearBandMap()) {
         // p == {element, its small group id}
@@ -361,10 +361,9 @@ void MovieExperiment(bool laminar) {
                           color_bounds);
     std::cerr << std::endl;
   }
-
-  BaseExperiment(
-      f, ranks, matroids, fairness,
-      absl::StrCat("movies_exp_444_0.85", (laminar ? "_laminar" : "")));
+  std::string is_laminar = laminar ? "_laminar" : "";
+  BaseExperiment(f, ranks, matroids, fairness,
+                 "movies_exp_444_0.85" + is_laminar);
 }
 
 int main() {

@@ -19,10 +19,10 @@
 #include <algorithm>
 #include <cassert>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "submodular_function.h"
 #include "utilities.h"
 
@@ -94,7 +94,7 @@ double GraphUtility::RemoveAndIncreaseOracleCall(int element) {
 }
 
 double GraphUtility::Objective(const std::vector<int>& elements) const {
-  absl::flat_hash_set<int> covered_vertices;
+  std::set<int> covered_vertices;
   for (const int it : elements) {
     for (int x : graph_.GetNeighbors(it)) {
       covered_vertices.insert(x);

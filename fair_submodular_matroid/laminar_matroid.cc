@@ -16,15 +16,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
-
 LaminarMatroid::LaminarMatroid(
-    const absl::flat_hash_map<int, std::vector<int>>& groups_map,
+    const std::map<int, std::vector<int>>& groups_map,
     const std::vector<int>& ks)
     : groups_map_(groups_map),
       ks_(ks),

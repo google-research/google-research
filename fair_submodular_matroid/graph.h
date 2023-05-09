@@ -17,10 +17,10 @@
 
 #include <stdint.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 
 class Graph {
  public:
@@ -34,8 +34,7 @@ class Graph {
 
   // Returns the graph.
   static Graph& GetGraph(const std::string& name) {
-    static auto* const name_to_graph =
-        new absl::flat_hash_map<std::string, Graph>();
+    static auto* const name_to_graph = new std::map<std::string, Graph>();
     if (!name_to_graph->count(name)) {
       name_to_graph->emplace(name, Graph(name));
     }
@@ -61,10 +60,10 @@ class Graph {
   const std::vector<int>& GetGroupsCards() const;
 
   // Returns the map from vertices to colors.
-  const absl::flat_hash_map<int, int>& GetColorsMap() const;
+  const std::map<int, int>& GetColorsMap() const;
 
   // Returns the map from vertices to groups.
-  const absl::flat_hash_map<int, int>& GetGroupsMap() const;
+  const std::map<int, int>& GetGroupsMap() const;
 
  private:
   // Name of dataset.
@@ -83,9 +82,9 @@ class Graph {
   // Number of vertices in each group.
   std::vector<int> groups_cards_;
   // Map from vertices to colors.
-  absl::flat_hash_map<int, int> colors_map_;
+  std::map<int, int> colors_map_;
   // Map from vertices to groups.
-  absl::flat_hash_map<int, int> groups_map_;
+  std::map<int, int> groups_map_;
 
   // Neighbors[i] = list of i's neighbors.
   std::vector<std::vector<int>> neighbors_;

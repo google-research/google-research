@@ -16,10 +16,10 @@
 #define FAIR_SUBMODULAR_MATROID_MOVIES_USER_UTILITY_FUNCTION_H_
 
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "submodular_function.h"
 
 class MoviesUserUtilityFunction : public SubmodularFunction {
@@ -60,7 +60,7 @@ class MoviesUserUtilityFunction : public SubmodularFunction {
  private:
   const int user_;  // ID of user for whom the movie quality is computed.
   // Elements currently present in the solution.
-  absl::flat_hash_set<int> present_elements_;
+  std::set<int> present_elements_;
 };
 
 #endif  // FAIR_SUBMODULAR_MATROID_MOVIES_USER_UTILITY_FUNCTION_H_

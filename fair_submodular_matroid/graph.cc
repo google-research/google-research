@@ -20,12 +20,12 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <map>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/container/flat_hash_set.h"
 #include "utilities.h"
 
 struct hash_pair {
@@ -42,7 +42,7 @@ Graph::Graph(const std::string& name) : name_(name) {
   // The first file in the vector contains edges, the second colors of vertices,
   // and the third groups of vertices.
   static const auto* const name_to_filename =
-      new absl::flat_hash_map<std::string, std::vector<std::string>>{
+      new std::map<std::string, std::vector<std::string>>{
           // Edit to add datasources in the format:
           //
           // {"graph name", {
@@ -65,11 +65,11 @@ Graph::Graph(const std::string& name) : name_(name) {
         "download the datasets from/to.");
   }
   // renumber[x] = new number of x
-  absl::flat_hash_map<int64_t, int> renumber;
+  std::map<int64_t, int> renumber;
   num_vertices_ = 0;
   num_edges_ = 0;
   int64_t first_endpoint, second_endpoint;
-  absl::flat_hash_set<int> left_vertices, right_vertices;
+  std::set<int> left_vertices, right_vertices;
   while (input >> first_endpoint >> second_endpoint) {
     if (!renumber.count(first_endpoint)) {
       renumber[first_endpoint] = num_vertices_;
@@ -98,7 +98,7 @@ Graph::Graph(const std::string& name) : name_(name) {
   if (!input_colors) Fail("Color file does not exist.");
 
   int vertex, color;
-  absl::flat_hash_map<int, int> renumber_color;
+  std::map<int, int> renumber_color;
   num_colors_ = 0;
   colors_map_.clear();
   while (input_colors >> vertex >> color) {
@@ -126,7 +126,7 @@ Graph::Graph(const std::string& name) : name_(name) {
   if (!input_groups) Fail("Group file does not exist.");
 
   int group;
-  absl::flat_hash_map<int, int> renumber_group;
+  std::map<int, int> renumber_group;
   num_groups_ = 0;
   groups_map_.clear();
 
@@ -185,10 +185,6 @@ const std::vector<int>& Graph::GetColorsCards() const { return colors_cards_; }
 
 const std::vector<int>& Graph::GetGroupsCards() const { return groups_cards_; }
 
-const absl::flat_hash_map<int, int>& Graph::GetColorsMap() const {
-  return colors_map_;
-}
+const std::map<int, int>& Graph::GetColorsMap() const { return colors_map_; }
 
-const absl::flat_hash_map<int, int>& Graph::GetGroupsMap() const {
-  return groups_map_;
-}
+const std::map<int, int>& Graph::GetGroupsMap() const { return groups_map_; }

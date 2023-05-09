@@ -16,9 +16,9 @@
 #define FAIR_SUBMODULAR_MATROID_CONDITIONED_MATROID_H_
 
 #include <memory>
+#include <set>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "matroid.h"
 
 // This class implements a matroid M', on the *same* universe as `original`
@@ -60,17 +60,17 @@ class ConditionedMatroid : public Matroid {
   std::unique_ptr<Matroid> Clone() const override;
 
  private:
-  const absl::flat_hash_set<int> s_;
+  const std::set<int> s_;
 
   // It can intersect with S.
-  absl::flat_hash_set<int> current_elements_;
+  std::set<int> current_elements_;
 
   // It always has S, plus those current_elements that are not from S.
   std::unique_ptr<Matroid> original_;
 
   // To make Clone() work:
-  ConditionedMatroid(const absl::flat_hash_set<int>& s,
-                     const absl::flat_hash_set<int>& current_elements,
+  ConditionedMatroid(const std::set<int>& s,
+                     const std::set<int>& current_elements,
                      const Matroid& original);
 };
 

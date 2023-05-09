@@ -17,9 +17,8 @@
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
+#include <map>
 #include <vector>
-
-#include "absl/container/flat_hash_map.h"
 
 std::vector<std::vector<double>> ReadData(const char input_path[]) {
   // Input format:
@@ -55,7 +54,7 @@ BankData::BankData(const char input_path[]) {
   double minn = 100000;
   double maxx = 0;
   for (int i = 0; i < input_.size(); i++) {
-    // Assigning age group between 0-5 and balance group beween 0-10 to the
+    // Assigning age group between 0-5 and balance group between 0-10 to the
     // nodes
     int age_group = input_[i][0] / 10 - 2;
     age_group = std::max(age_group, 0);

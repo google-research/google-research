@@ -15,11 +15,11 @@
 #ifndef FAIR_SUBMODULAR_MATROID_MOVIES_DATA_H_
 #define FAIR_SUBMODULAR_MATROID_MOVIES_DATA_H_
 
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 
 // Singleton pattern - there is only one instance of this class that is
 // obtained using MoviesData::GetInstance(), and is initialized upon first
@@ -45,13 +45,13 @@ class MoviesData {
   int GetGenreOfMovie(int movie) const;
 
   // Returns the full movie id to genre map.
-  const absl::flat_hash_map<int, int>& GetMovieIdToGenreIdMap() const;
+  const std::map<int, int>& GetMovieIdToGenreIdMap() const;
 
   // Returns the year band of a movie.
   int GetYearBandOfMovie(int movie) const;
 
   // Returns the full movie id to year band map.
-  const absl::flat_hash_map<int, int>& GetMovieIdToYearBandMap() const;
+  const std::map<int, int>& GetMovieIdToYearBandMap() const;
 
   // Returns the genre string of a movie by id.
   const std::string& GetGenreStringOfId(int id) const;
@@ -85,15 +85,15 @@ class MoviesData {
   // V * V^T
   std::vector<std::vector<double>> vvt_;
   // Maps movie id to genre id.
-  absl::flat_hash_map<int, int> movie_id_to_genre_id_;
+  std::map<int, int> movie_id_to_genre_id_;
   // Maps movie id to year band (as described in paper).
-  absl::flat_hash_map<int, int> movie_id_to_year_band_;
+  std::map<int, int> movie_id_to_year_band_;
   // Vector of movie ids that form the universe.
   std::vector<int> movie_ids_;
   // Maps genre ids to strings like "Drama".
   std::vector<std::string> genre_id_to_string_;
   // Maps genre strings to numerical ids.
-  absl::flat_hash_map<std::string, int> genre_string_to_id_;
+  std::map<std::string, int> genre_string_to_id_;
 
   // Reads (preprocessed) dataset data.
   MoviesData();

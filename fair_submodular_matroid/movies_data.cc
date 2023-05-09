@@ -18,13 +18,12 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
-#include "absl/strings/str_cat.h"
 #include "utilities.h"
 
 namespace {
@@ -98,7 +97,7 @@ MoviesData::MoviesData() {
     Fail("movies file does not exist");
   }
   std::string line;
-  absl::flat_hash_map<int, std::string> idToGenre;
+  std::map<int, std::string> idToGenre;
   while (std::getline(dat, line)) {
     if (line.size() > 2) {
       // a line looks like this:
@@ -158,13 +157,11 @@ int MoviesData::GetYearBandOfMovie(int movie) const {
   return movie_id_to_year_band_.at(movie);
 }
 
-const absl::flat_hash_map<int, int>& MoviesData::GetMovieIdToGenreIdMap()
-    const {
+const std::map<int, int>& MoviesData::GetMovieIdToGenreIdMap() const {
   return movie_id_to_genre_id_;
 }
 
-const absl::flat_hash_map<int, int>& MoviesData::GetMovieIdToYearBandMap()
-    const {
+const std::map<int, int>& MoviesData::GetMovieIdToYearBandMap() const {
   return movie_id_to_year_band_;
 }
 
@@ -193,11 +190,10 @@ const std::string& MoviesData::GetGenreStringOfId(int id) const {
 
 std::string MoviesData::GetYearBandStringOfId(int yb) const {
   assert(0 <= yb && yb < 9);
-  return absl::StrCat(1911 + yb * 10, "-", 1920 + yb * 10);
+  return std::to_string(1911 + yb * 10) + "-" + std::to_string(1920 + yb * 10);
 }
 
 int MoviesData::GetGenreIdOfString(const std::string& genre) const {
-  assert(genre_string_to_id_.contains(genre));
   return genre_string_to_id_.at(genre);
 }
 

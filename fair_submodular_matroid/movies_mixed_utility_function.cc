@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/strings/str_cat.h"
 #include "movies_data.h"
 
 MoviesMixedUtilityFunction::MoviesMixedUtilityFunction(int user, double alpha)
@@ -65,8 +64,8 @@ const std::vector<int>& MoviesMixedUtilityFunction::GetUniverse() const {
 }
 
 std::string MoviesMixedUtilityFunction::GetName() const {
-  return absl::StrCat("mix of: ", alpha_, " of ", mf_.GetName(), " and ",
-                      1 - alpha_, " of ", mu_.GetName());
+  return "mix of: " + std::to_string(alpha_) + " of " + mf_.GetName() +
+         " and " + std::to_string(1 - alpha_) + " of " + mu_.GetName();
 }
 
 std::unique_ptr<SubmodularFunction> MoviesMixedUtilityFunction::Clone() const {

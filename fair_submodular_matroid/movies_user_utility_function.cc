@@ -22,8 +22,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
-#include "absl/strings/str_cat.h"
 #include "movies_data.h"
 
 MoviesUserUtilityFunction::MoviesUserUtilityFunction(int user) : user_(user) {
@@ -74,7 +72,7 @@ const std::vector<int>& MoviesUserUtilityFunction::GetUniverse() const {
 }
 
 std::string MoviesUserUtilityFunction::GetName() const {
-  return absl::StrCat("MovieLens (utility for user_ ", user_, ")");
+  return "MovieLens (utility for user_ " + std::to_string(user_) + ")";
 }
 
 std::unique_ptr<SubmodularFunction> MoviesUserUtilityFunction::Clone() const {
