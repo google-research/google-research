@@ -24,33 +24,12 @@ from hst_clustering import dynamic_program
 ROOT_ID = ""
 
 
-def GetDataDimensions(path):
-  """Returns the dimension of the data for this file.
-
-  Args:
-    path: A file path.
-
-  Returns:
-    Number of dimensions of the data.
-  """
-  if "covtype" in path:
-    return 55
-  if "s1" in path:
-    return 2
-  if "skin" in path:
-    return 4
-  if "shuttle" in path:
-    return 10
-  if "HIGGS" in path:
-    return 29
-  raise AttributeError("Unknown file %s" % path)
-
-
-def LoadFilesIntoDataFrame(glob_string):
+def LoadFilesIntoDataFrame(glob_string, dimensions):
   """Creates a data frame from a collection of csv files representing a HST.
 
   Args:
     glob_string: A regular expression encoding the files.
+    dimensions: dimensions of the input vectors.
 
   Returns:
     A pandas dataframe with the data from the files.
@@ -58,7 +37,7 @@ def LoadFilesIntoDataFrame(glob_string):
   files = glob.glob(glob_string)
   dfs = []
   columns = ["id", "right_child", "left_child", "diameter", "weight"]
-  n_features = GetDataDimensions(files[0])
+  n_features = dimensions
   str_type_dict = {"id": str, "right_child": str, "left_child": str}
   feature_columns = [str(i) for i in range(n_features)]
   columns += feature_columns
