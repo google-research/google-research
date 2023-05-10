@@ -19,6 +19,7 @@ We test against the PyTorch DPI implementation at
 https://github.com/HeSunPU/DPI.
 """
 import unittest
+import flax
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -46,7 +47,7 @@ class RealnvpModelTest(unittest.TestCase):
     init_rng = jax.random.PRNGKey(1)
     z = jax.random.normal(init_rng, (_BATCH_SIZE, _INP_DIM))
     variables = model.init(init_rng, z, reverse=True)
-    model_state, _ = variables.pop('params')
+    model_state, _ = flax.core.pop(variables, 'params')
 
     # Check output with initialized variables.
     inp = np.random.RandomState(0).normal(size=(_BATCH_SIZE, _INP_DIM))
@@ -95,7 +96,7 @@ class RealnvpModelTest(unittest.TestCase):
     init_rng = jax.random.PRNGKey(1)
     z = jax.random.normal(init_rng, (_BATCH_SIZE, _INP_DIM))
     variables = model.init(init_rng, z, reverse=True)
-    model_state, params = variables.pop('params')
+    model_state, params = flax.core.pop(variables, 'params')
 
     # Initialize optimizer.
     optimizer = optax.adam(_LEARNING_RATE)

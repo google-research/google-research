@@ -74,7 +74,7 @@ def get_model_and_init_params(config, image_flux=1., train=True):
     variables = model.init(init_rng, z, reverse=True)
     # `variables` is a `flax.FrozenDict`. It is immutable and respects
     # functional programming.
-    init_model_state, init_params = variables.pop('params')
+    init_model_state, init_params = flax.core.pop(variables, 'params')
   else:
     raise ValueError(f'Unrecognized bijector: {config.model.bijector}')
   return model, init_model_state, init_params
