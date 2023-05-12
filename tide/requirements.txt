@@ -1,0 +1,7 @@
+tensorflow==2.10.1
+pandas==1.3.5
+numpy==1.21.6
+scikit-learn==1.0.2
+tqdm==4.64.1
+absl-py==1.4.0
+gdown==4.7.1
