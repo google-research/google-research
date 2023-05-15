@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -101,6 +101,7 @@ class SpinSphericalBlock(nn.Module):
         spins_out=self.spins_out,
         num_filter_params=self.num_filter_params,
         spectral_pooling=apply_spectral_pooling,
+        spectral_upsampling=False,
         transformer=self.transformer,
         name='spherical_conv')(feature_maps)
 

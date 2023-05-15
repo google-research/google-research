@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -233,7 +233,7 @@ class LocalShardedParameterStats:
   diagonal_momentum: QuantizedValue  # Momentum for the diagonal preconditioner
   momentum: QuantizedValue  # Momentum for the shampoo preconditioner
   training_metrics: Union[TrainingMetrics, optax.MaskedNode]
-  index_start: np.int32 = struct.field(
+  index_start: Union[np.int32, int] = struct.field(
       pytree_node=False)  # Index into global statistics array
   sizes: Any = struct.field(pytree_node=False)  # Sizes of the statistics.
 
@@ -278,7 +278,7 @@ def init_training_metrics_pspec(
   if not generate_training_metrics:
     return optax.MaskedNode()
   return jax.tree_map(
-      lambda _: pjit.PartitionSpec(),
+      lambda _: jax.sharding.PartitionSpec(),
       default_training_metrics(
       ))
 
@@ -316,6 +316,9 @@ class PreconditionerType(enum.IntEnum):
   # One sided Shampoo, in this cases only on input dim.
   # Assumes last dim is always the output dim and everything else input dim.
   INPUT = 2
+  # One sided Shampoo, in this cases only on output dim.
+  # Assumes last dim is always the output dim and everything else input dim.
+  OUTPUT = 3
 
 
 def power_iteration(
@@ -1001,14 +1004,13 @@ class Preconditioner:
     reshaped_grad = jnp.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
     should_preconditioned_dims = self.should_precondition_dims()
-    num_preconditioners = sum(should_preconditioned_dims)
+    preconditioned_dims = [
+        i for i, p in enumerate(should_preconditioned_dims) if p
+    ]
     new_stats = []
     index = 0
     for g in partitioned_grads:
-      # Note that should_precondition_dims is only ever some
-      # prefix of Trues followed by an optional False; hence below
-      # iterates over all True indices.
-      for axis in range(num_preconditioners):
+      for axis in preconditioned_dims:
         update = functools.partial(gram_weighted_update, precision=precision)
         new_stat = update(to_float(stats[index]), g, axis, w1, w2)
         new_stats.append(from_float(new_stat))
@@ -1021,12 +1023,28 @@ class Preconditioner:
     rank = len(split_sizes)
     if self._preconditioner_type == PreconditionerType.ALL or rank <= 1:
       return [True] * rank
-    else:
+    elif self._preconditioner_type == PreconditionerType.INPUT:
       return [True] * (rank - 1) + [False]
+    elif self._preconditioner_type == PreconditionerType.OUTPUT:
+      return [False] * (rank - 1) + [True]
 
   def _preconditioner_shape(self, dim):
     """Returns possibly rank-compressed preconditioner shape."""
     return [dim, dim]
+
+  def _preconds_for_grad(self, preconditioners, rank, start, end):
+    """Returns a slice of preconditioners of length rank."""
+    preconditioners_for_grad = preconditioners[start:end]
+    if self._preconditioner_type == PreconditionerType.INPUT:
+      # When _preconditioner_type is INPUT, we append a None value to the end of
+      # the list to handle the False index.
+      preconditioners_for_grad = preconditioners_for_grad + [None]
+    elif self._preconditioner_type == PreconditionerType.OUTPUT:
+      # When _preconditioner_type is OUTPUT, we append (rank - 1) many None
+      # values to the beginning of the list to handle the False indices.
+      preconditioners_for_grad = [None] * (rank - 1) + preconditioners_for_grad
+    assert len(preconditioners_for_grad) == rank
+    return preconditioners_for_grad
 
   def shapes_for_preconditioners(self):
     """Returns shape from statistics."""
@@ -1037,8 +1055,10 @@ class Preconditioner:
     for t in itertools.product(*split_sizes):
       if self._preconditioner_type == PreconditionerType.ALL or rank <= 1:
         preconditioner_shapes.extend(map(self._preconditioner_shape, t))
-      else:
+      elif self._preconditioner_type == PreconditionerType.INPUT:
         preconditioner_shapes.extend(map(self._preconditioner_shape, t[:-1]))
+      elif self._preconditioner_type == PreconditionerType.OUTPUT:
+        preconditioner_shapes.extend(map(self._preconditioner_shape, t[-1:]))
     return preconditioner_shapes
 
   def exponent_for_preconditioner(self):
@@ -1063,14 +1083,19 @@ class Preconditioner:
     num_preconditioners = sum(should_preconditioned_dims)
     preconditioned_partitioned_grads = []
     for i, g in enumerate(partitioned_grads):
-      preconditioners_for_grad = preconditioners[i *
-                                                 num_preconditioners:(i + 1) *
-                                                 num_preconditioners]
-      precond_g = self._precondition_block(g, should_preconditioned_dims,
-                                           preconditioners_for_grad)
+      preconditioners_for_grad = self._preconds_for_grad(
+          preconditioners,
+          rank=len(should_preconditioned_dims),
+          start=i * num_preconditioners,
+          end=(i + 1) * num_preconditioners,
+      )
+      precond_g = self._precondition_block(
+          g, should_preconditioned_dims, preconditioners_for_grad
+      )
       preconditioned_partitioned_grads.append(precond_g)
     merged_grad = self._partitioner.merge_partitions(
-        preconditioned_partitioned_grads)
+        preconditioned_partitioned_grads
+    )
     return jnp.reshape(merged_grad, self._original_shape)
 
   def _precondition_block(self, g, should_precondition_dim, preconditioners):
@@ -1536,7 +1561,7 @@ def distributed_shampoo(
     """Mapping from N-d to (N-1)-d, used for quantization, factoring etc."""
     # None and PSpec(None) are valid PSpecs.
     if pspec and len(pspec) > 1:
-      return pjit.PartitionSpec(*pspec[1:])
+      return jax.sharding.PartitionSpec(*pspec[1:])
     else:
       return []
 
@@ -1583,11 +1608,11 @@ def distributed_shampoo(
 
       local_stats_flat.append(
           LocalShardedParameterStats(
-              QuantizedValue(param_pspec, [], [], jnp.float32, False,
+              QuantizedValue(param_pspec, [], [], jnp.float32, False,  # pytype: disable=wrong-arg-types  # numpy-scalars
                              list(param.shape)),
-              QuantizedValue(m1_pspec, [], m1_scale_pspec, qdtype, False,
+              QuantizedValue(m1_pspec, [], m1_scale_pspec, qdtype, False,  # pytype: disable=wrong-arg-types  # numpy-scalars
                              list(param.shape)),
-              QuantizedValue(m2_pspec, [], m2_scale_pspec, qdtype, False,
+              QuantizedValue(m2_pspec, [], m2_scale_pspec, qdtype, False,  # pytype: disable=wrong-arg-types  # numpy-scalars
                              list(param.shape)),
               init_training_metrics_pspec(
                   generate_training_metrics,
@@ -1596,11 +1621,11 @@ def distributed_shampoo(
               sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
-    global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,
+    global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,  # pytype: disable=wrong-arg-types  # numpy-scalars
                                                partition_spec_for_statistics,
-                                               pjit.PartitionSpec())
-    count_pspec = pjit.PartitionSpec()
-    return ShampooState(
+                                               jax.sharding.PartitionSpec())
+    count_pspec = jax.sharding.PartitionSpec()
+    return ShampooState(  # pytype: disable=wrong-arg-types  # numpy-scalars
         count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
 
   def sharded_init_shape_and_dtype_fn(params):
@@ -1641,11 +1666,11 @@ def distributed_shampoo(
       diagonal_statistics_shape_and_dtype = [list(param.shape), param.dtype]
       local_stats_flat.append(
           LocalShardedParameterStats(
-              QuantizedValue(diagonal_statistics_shape_and_dtype, [], [],
+              QuantizedValue(diagonal_statistics_shape_and_dtype, [], [],  # pytype: disable=wrong-arg-types  # numpy-scalars
                              jnp.float32, False, list(param.shape)),
-              QuantizedValue(m1_shape_and_dtype, [], m1_scale_shape_and_dtype,
+              QuantizedValue(m1_shape_and_dtype, [], m1_scale_shape_and_dtype,  # pytype: disable=wrong-arg-types  # numpy-scalars
                              qdtype, False, list(param.shape)),
-              QuantizedValue(m2_shape_and_dtype, [], m2_scale_shape_and_dtype,
+              QuantizedValue(m2_shape_and_dtype, [], m2_scale_shape_and_dtype,  # pytype: disable=wrong-arg-types  # numpy-scalars
                              qdtype, False, list(param.shape)),
               init_training_metrics_shapes(
                   len(sizes),
@@ -1669,10 +1694,10 @@ def distributed_shampoo(
         num_statistics, max_statistics_size,
         precond_dim(max_statistics_size)
     ]
-    global_stats = GlobalShardedParameterStats(
+    global_stats = GlobalShardedParameterStats(  # pytype: disable=wrong-arg-types  # numpy-scalars
         [statistics_shape, jnp.float32], [preconditioners_shape, jnp.float32],
         [[num_statistics], jnp.int32])
-    return ShampooState(
+    return ShampooState(  # pytype: disable=wrong-arg-types  # numpy-scalars
         count=[[], jnp.float32],
         stats=ShardedShampooStats(global_stats, local_stats))
 
@@ -1950,7 +1975,9 @@ def distributed_shampoo(
     pspec_for_partition = preconditioner_partition_spec
     partitioned_xs = pjit.with_sharding_constraint(xs, pspec_for_partition)
     if preconditioner_partition_spec:
-      partitioned_ps_spec = pjit.PartitionSpec(preconditioner_partition_spec[0])
+      partitioned_ps_spec = jax.sharding.PartitionSpec(
+          preconditioner_partition_spec[0]
+      )
     else:
       partitioned_ps_spec = None
     partitioned_ps = pjit.with_sharding_constraint(ps, partitioned_ps_spec)
@@ -1973,7 +2000,7 @@ def distributed_shampoo(
     preconditioners = pjit.with_sharding_constraint(partitioned_preconditioners,
                                                     statistics_partition_spec)
     metrics = pjit.with_sharding_constraint(partitioned_metrics,
-                                            pjit.PartitionSpec())
+                                            jax.sharding.PartitionSpec())
     return preconditioners, metrics
 
   def _pmap_compute_preconditioners(states, step, statistics,
@@ -2649,7 +2676,7 @@ def distributed_shampoo(
       if graft_type == GraftingType.NONE:
         logging.error("skipping preconditioning without grafting for param %s",
                       param)
-      precond_grad = sgd_update
+      precond_grad = grafting_update
 
     grafting_update_norm = jnp.linalg.norm(grafting_update)
     precond_grad_norm = jnp.linalg.norm(precond_grad)
@@ -2663,7 +2690,8 @@ def distributed_shampoo(
     shampoo_update_with_wd = shampoo_update
     grafting_update_with_wd = grafting_update
 
-    if weight_decay != 0 and not decoupled_weight_decay:
+    if (weight_decay != 0 and weight_decay is not None and
+        not decoupled_weight_decay):
       shampoo_update_with_wd = shampoo_update + weight_decay * param
       grafting_update_with_wd = grafting_update + weight_decay * param
 
@@ -2692,7 +2720,8 @@ def distributed_shampoo(
     if nesterov:
       nesterov_momentum_update = w * wd_update + beta1 * momentum_update
 
-    if weight_decay != 0 and decoupled_weight_decay:
+    if (weight_decay != 0 and weight_decay is not None and
+        decoupled_weight_decay):
       nesterov_momentum_update = (
           nesterov_momentum_update + lr * weight_decay * param)
 

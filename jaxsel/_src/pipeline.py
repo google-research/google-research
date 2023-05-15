@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -179,4 +179,4 @@ class ClassificationPipeline(nn.Module):
     logits, (q, dense_submat) = self(graphs, start_node_ids)
     del dense_submat
     preds = self.pred_fun(logits)
-    return self.loss_fun(logits, labels), (preds, logits, q)
+    return self.loss_fun(logits, labels), (preds, logits, q)  # pytype: disable=bad-return-type  # jax-ndarray

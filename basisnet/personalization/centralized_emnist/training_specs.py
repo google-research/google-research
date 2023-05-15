@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import attr
 import tensorflow as tf
 import tensorflow_federated as tff
 
-ModelFnType = Callable[[], tff.learning.Model]
+ModelFnType = Callable[[], tff.learning.models.VariableModel]
 ValidationFnType = Optional[Callable[[Any, int], Dict[str, float]]]
 TestFnType = EvaluationFnType = Optional[Callable[[Any], Dict[str, float]]]
 
@@ -62,18 +62,18 @@ class TaskSpec(object):
 
   The iterative process must also have a callable attribute `get_model_weights`
   that takes as input the state of the iterative process, and returns a
-  `tff.learning.ModelWeights` object.
+  `tff.learning.models.ModelWeights` object.
 
   Attributes:
     iterative_process_builder: A function that accepts a no-arg `model_fn`, and
       returns a `tff.templates.IterativeProcess`. The `model_fn` must return a
-      `tff.learning.Model`.
-    fine_tune_epoch: An integer representing the number of epochs of
-      training performed per client in fine-tuning.
+      `tff.learning.models.VariableModel`.
+    fine_tune_epoch: An integer representing the number of epochs of training
+      performed per client in fine-tuning.
     num_basis: An integer representing the number of bases used on clients.
     embedding_type: An string for annotating the embedding type.
-    num_filters_expand: An optional int used to exapnd the number of channels
-      as comparison.
+    num_filters_expand: An optional int used to exapnd the number of channels as
+      comparison.
     temp: temperature to apply before the Softmax of client embedding
   """
   fine_tune_epoch: int = attr.ib(
@@ -111,8 +111,8 @@ class RunnerSpec(object):
 
   The iterative process must also have a callable attribute `get_model_weights`
   that takes as input the state of the iterative process, and returns a
-  `tff.learning.ModelWeights` object, which can then be used as input to the
-  `validation_fn` and `test_fn` (if provided).
+  `tff.learning.models.ModelWeights` object, which can then be used as input to
+  the `validation_fn` and `test_fn` (if provided).
 
   Attributes:
     iterative_process: A `tff.templates.IterativeProcess` instance to run.
@@ -137,5 +137,3 @@ class RunnerSpec(object):
   model_builder = attr.ib(
       default=None,
       validator=attr.validators.optional(attr.validators.is_callable()))
-
-

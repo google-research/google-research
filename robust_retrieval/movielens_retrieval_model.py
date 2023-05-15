@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class EmbeddingModel(tf.keras.Model):
       self.embed_model.add(
           tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1)))
 
-  def call(self, inputs):
+  def call(self, inputs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     return self.embed_model(inputs)
 
 

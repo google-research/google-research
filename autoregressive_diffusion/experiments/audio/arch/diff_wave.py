@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ class ResBlock(nn.Module):
   kernel_size: Tuple[int] = (3,)
   kernel_dilation: Tuple[int] = (1,)
   skip_features: Optional[int] = None
-  kernel_init: InitializerFn = nn.initializers.kaiming_normal()
+  kernel_init: InitializerFn = nn.initializers.kaiming_normal()  # pytype: disable=annotation-type-mismatch  # jax-types
   activation: Callable[[Array], Array] = jax.nn.swish
   is_causal: bool = False
 
@@ -131,7 +131,7 @@ class ResGroup(nn.Module):
   features: int
   skip_features: Optional[int] = None
   kernel_size: Tuple[int] = (3,)
-  kernel_init: InitializerFn = nn.initializers.kaiming_normal()
+  kernel_init: InitializerFn = nn.initializers.kaiming_normal()  # pytype: disable=annotation-type-mismatch  # jax-types
   dilation_cycle: int = 12  # Max dilation is 2 ** 11 = 2048.
   is_causal: bool = False
 
@@ -183,7 +183,7 @@ class DiffWave(nn.Module):
   output_features: Optional[int] = 1
   skip_features: Optional[int] = None
   kernel_size: Tuple[int] = (3,)
-  kernel_init: InitializerFn = nn.initializers.kaiming_normal()
+  kernel_init: InitializerFn = nn.initializers.kaiming_normal()  # pytype: disable=annotation-type-mismatch  # jax-types
   dilation_cycle: int = 12
   is_causal: bool = False
 

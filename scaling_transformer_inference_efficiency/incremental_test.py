@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,11 +25,11 @@ import numpy as np
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import incremental
 from scaling_transformer_inference_efficiency import partitioning
+from scaling_transformer_inference_efficiency import sampling
 from scaling_transformer_inference_efficiency import special2
 from scaling_transformer_inference_efficiency.checkpoint import HParams
 from scaling_transformer_inference_efficiency.chunk import Chunk
 from scaling_transformer_inference_efficiency.chunk import FullChunkResult
-from scaling_transformer_inference_efficiency.sampling import Sampling
 
 
 ################################################################################
@@ -71,12 +71,10 @@ def make_toy_weights():
 
 def make_jitted_model():
   rules = partitioning.make_rules_two_d(partitioning.AttnAllToAll.NONE)
-  return incremental.JittedModel(
-      _TOY_HPARAMS,
-      eos_id=1,
-      infer_fn=toy_infer_fn,
-      weights_logical_axes=None,
-      rules=rules)
+  mesh = partitioning.make_mesh()
+  return incremental.InferenceModel(
+      _TOY_HPARAMS, 1, toy_infer_fn, sampling.sample, mesh, rules=rules
+  )
 
 
 _TOY_CHUNK = Chunk(
@@ -111,18 +109,25 @@ class IncrementalTest(absltest.TestCase):
 
   def test_prefill(self):
     jitted_model = make_jitted_model()
-    chunk_result = jitted_model.prefill(make_toy_weights(), [], _TOY_CHUNK)
-    np.testing.assert_allclose(_TOY_PER_TOKEN_SCORES,
-                               chunk_result.per_token_scores)
+    prefill_fn = jitted_model.instantiate_prefill_fn()
+    chunk_result = jitted_model.prefill(
+        make_toy_weights(), prefill_fn, [], _TOY_CHUNK
+    )
+    np.testing.assert_allclose(
+        _TOY_PER_TOKEN_SCORES, chunk_result.per_token_scores
+    )
 
   def test_prefill_incremental(self):
-
     jitted_model = make_jitted_model()
+    prefill_fn = jitted_model.instantiate_prefill_fn()
     weights = make_toy_weights()
     for split in [1, 3]:
       chunk_a, chunk_b = _TOY_CHUNK.split_at(split)
-      chunk_a_result = jitted_model.prefill(weights, [], chunk_a)
-      chunk_b_result = jitted_model.prefill(weights, [chunk_a_result], chunk_b)
+
+      chunk_a_result = jitted_model.prefill(weights, prefill_fn, [], chunk_a)
+      chunk_b_result = jitted_model.prefill(
+          weights, prefill_fn, [chunk_a_result], chunk_b
+      )
       np.testing.assert_allclose(_TOY_PER_TOKEN_SCORES[:, :split],
                                  chunk_a_result.per_token_scores)
       np.testing.assert_allclose(_TOY_PER_TOKEN_SCORES[:, split:],
@@ -131,14 +136,23 @@ class IncrementalTest(absltest.TestCase):
   def test_generate(self):
 
     jitted_model = make_jitted_model()
+    prefill_fn = jitted_model.instantiate_prefill_fn()
+    generate_fn = jitted_model.instantiate_generating_fn(4)
     weights = make_toy_weights()
-    chunk_result = jitted_model.prefill(weights, [], _TOY_CHUNK)
-    np.testing.assert_allclose(_TOY_PER_TOKEN_SCORES,
-                               chunk_result.per_token_scores)
-    gen_chunk, _ = jitted_model.generate(4, weights, Sampling(temperature=0.0),
-                                         [chunk_result], np.arange(2))
-    np.testing.assert_equal(_TOY_CHUNK_GREEDY_DECODE.tokens,
-                            gen_chunk.copy_to_host().tokens)
+    chunk_result = jitted_model.prefill(weights, prefill_fn, [], _TOY_CHUNK)
+    np.testing.assert_allclose(
+        _TOY_PER_TOKEN_SCORES, chunk_result.per_token_scores
+    )
+    gen_chunk, _ = jitted_model.generate(
+        weights,
+        generate_fn,
+        [chunk_result],
+        np.arange(2),
+        sampling.SamplingHyperParams(temperature=0.7),
+    )
+    np.testing.assert_equal(
+        _TOY_CHUNK_GREEDY_DECODE.tokens, gen_chunk.copy_to_host().tokens
+    )
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ class DataModule(LightningDataModule):
 
     self.args = args
     self.batch_size = args.batch_size
-    self.num_workers = 32
+    self.num_workers = 12
 
   def setup(self, stage):
     # seq x batch x feature

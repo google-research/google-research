@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ class Agent(abc.ABC):
     for _ in range(50):
       neighbor_relations, neighbor_features, neighbor_ids = (
           graph.outgoing_neighbors_and_features(cur_id))
-      num_neighbors = neighbor_ids.shape[0]
+      num_neighbors = neighbor_ids.shape[0]  # pytype: disable=attribute-error  # always-use-return-annotations
       node_features = jnp.tile(graph.node_features(cur_id), [num_neighbors, 1])
       neighbor_logits = self(None, node_features, neighbor_relations,
                              neighbor_features)
@@ -137,7 +137,7 @@ class Agent(abc.ABC):
     """Computes rows corresponding to `node_ids` of the sparse adjacency matrix."""
     neighbor_relations, neighbor_features, neighbor_ids = (
         graph.outgoing_neighbors_and_features(node_ids))
-    num_neighbors = neighbor_ids.shape[0]
+    num_neighbors = neighbor_ids.shape[0]  # pytype: disable=attribute-error  # always-use-return-annotations
     node_features = jnp.tile(graph.node_features(node_ids), [num_neighbors, 1])
     logits = self(graph.task_features(), node_features, neighbor_relations,
                   neighbor_features)
@@ -183,7 +183,7 @@ class Agent(abc.ABC):
 
 
 def product(iterable, start=1.):
-  return functools.reduce(jnp.multiply, iterable, start)
+  return functools.reduce(jnp.multiply, iterable, start)  # pytype: disable=wrong-arg-types  # numpy-scalars
 
 
 @struct.dataclass

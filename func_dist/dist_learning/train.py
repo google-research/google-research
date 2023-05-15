@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -206,7 +206,7 @@ def apply_model(
     dist_loss = losses.mse(pred_dists, dists)
     dist_loss *= FLAGS.distance_loss_scale
     dist_error = losses.mean_error(pred_dists, dists)
-    return dist_loss, dist_error, pred_dists
+    return dist_loss, dist_error, pred_dists  # pytype: disable=bad-return-type  # jax-ndarray
 
   def paired_loss_fn(
       params,
@@ -273,7 +273,7 @@ def apply_model(
 
       if 'dist' in batch and 'paired' in batch:
         loss_breakdown['total_distance_model_loss'] = loss
-    return loss, (loss_breakdown, preds)
+    return loss, (loss_breakdown, preds)  # pytype: disable=bad-return-type  # jax-ndarray
 
   def domain_loss_fn(
       params,
@@ -294,8 +294,8 @@ def apply_model(
     loss = losses.discrimination_loss(pred_domains, domains)
     return loss
 
-  distance_params = state.distance_optimizer.target
-  domain_params = state.domain_optimizer.target
+  distance_params = state.distance_optimizer.target  # pytype: disable=attribute-error  # numpy-scalars
+  domain_params = state.domain_optimizer.target  # pytype: disable=attribute-error  # numpy-scalars
 
   # TODO(minttu): pass in obs and int embeddings to both domain_adversarial
   # loss and domain loss to avoid creating them twice.
@@ -325,8 +325,8 @@ def update_model(state, dist_grad, domain_grad):
   Returns:
     new_state: updated training state.
   """
-  distance_optimizer = state.distance_optimizer.apply_gradient(dist_grad)
-  domain_optimizer = state.domain_optimizer.apply_gradient(domain_grad)
+  distance_optimizer = state.distance_optimizer.apply_gradient(dist_grad)  # pytype: disable=attribute-error  # numpy-scalars
+  domain_optimizer = state.domain_optimizer.apply_gradient(domain_grad)  # pytype: disable=attribute-error  # numpy-scalars
   new_state = state.replace(
       distance_optimizer=distance_optimizer,
       domain_optimizer=domain_optimizer,

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ class PolicyUsageFrequency(py_metric.PyStepMetric):
 
   def __init__(self, name='PolicyUsageFrequency', buffer_size=10):
     super(PolicyUsageFrequency, self).__init__(name)
-    self._buffer = py_metrics.NumpyDeque(maxlen=buffer_size, dtype=np.float64)
+    self._buffer = py_metrics.NumpyDeque(maxlen=buffer_size, dtype=np.float64)  # pytype: disable=wrong-arg-types  # numpy-scalars
     self.reset()
 
   def reset(self):

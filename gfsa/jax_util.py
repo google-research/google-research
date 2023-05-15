@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import numpy as np
 
 
 # Type alias for functions that handle NDArrays
-NDArray = Union[np.ndarray, jnp.DeviceArray]
+NDArray = Union[np.ndarray, jax.Array]
 
 T = TypeVar("T")
 
@@ -271,9 +271,6 @@ force_physical_layout_p = jax.core.Primitive("force_physical_layout")
 force_physical_layout_p.def_impl(_force_physical_layout_impl)
 force_physical_layout_p.def_abstract_eval(
     lambda operand, **_: jax.abstract_arrays.raise_to_shaped(operand))
-jax.interpreters.xla.translations[
-    force_physical_layout_p] = jax.interpreters.xla.lower_fun(
-        _force_physical_layout_impl, multiple_results=False)
 jax.interpreters.mlir.register_lowering(
     force_physical_layout_p, jax.interpreters.mlir.lower_fun(
         _force_physical_layout_impl, multiple_results=False))

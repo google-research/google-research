@@ -1,6 +1,5 @@
-data_file: "./data/sine.npy"
-graph_data_file: "./data/sine_graph.npy"
-save_dir: "./lightning_logs/Sine/"
+# data_file: "./data/sine.npy"
+# graph_data_file: "./data/sine_graph.npy"
 input_dim: 3
 output_dim: 3
 num_nodes: 10

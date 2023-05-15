@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,29 +25,28 @@ import jax
 from jax import lax
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
-from jax.experimental.maps import Mesh
 from jax.experimental.maps import xmap
 import jax.numpy as jnp
+from jax.sharding import Mesh
 import numpy as np
+
 
  import humanize
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import inference
 from scaling_transformer_inference_efficiency import partitioning
+from scaling_transformer_inference_efficiency import sampling
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.attention import KVCache
 from scaling_transformer_inference_efficiency.checkpoint import HParams
 from scaling_transformer_inference_efficiency.chunk import ChunkResult
-from scaling_transformer_inference_efficiency.incremental import JittedModel
+from scaling_transformer_inference_efficiency.incremental import InferenceModel
 from scaling_transformer_inference_efficiency.layers import layers_pjit
 from scaling_transformer_inference_efficiency.layers import layers_serial
 from scaling_transformer_inference_efficiency.layers import one_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers.two_d_parallel_xmap import AttnAllToAll
-from scaling_transformer_inference_efficiency.sampling import Sampling
 
-
-# print(mesh_utils.create_device_mesh([4, 4, 4]))
 
 jax.config.update('jax_enable_custom_prng', True)
 
@@ -81,17 +80,21 @@ def run_generate_sweep():
   for batch in [64, 128, 256, 512, 1024]:
     for quantized in [False, True]:
       for latency_collectives in [False, True]:
-        if num_devices == 256 or (num_devices == 128 and
-                                  not latency_collectives):
+        if num_devices == 256 or (
+            num_devices == 128 and not latency_collectives
+        ):
           model = checkpoint.HParams.PALM_540B_256HEADS
-        if num_devices == 128 or (num_devices == 64 and
-                                  not latency_collectives):
+        if num_devices == 128 or (
+            num_devices == 64 and not latency_collectives
+        ):
           model = checkpoint.HParams.PALM_540B_128HEADS
         else:
           model = checkpoint.HParams.PALM_540B_64HEADS
 
         for attn_all_to_all in [
-            AttnAllToAll.AXIS_Z, AttnAllToAll.AXES_YZ, AttnAllToAll.AXES_YZX
+            AttnAllToAll.AXIS_Z,
+            AttnAllToAll.AXES_YZ,
+            AttnAllToAll.AXES_YZX,
         ]:
           cached_seqlen = 2048
           gen_seqlen = 1
@@ -107,7 +110,8 @@ def run_generate_sweep():
                 attn_all_to_all=attn_all_to_all,
                 multihead=multihead,
                 layout=layout,
-                latency_collectives=latency_collectives)
+                latency_collectives=latency_collectives,
+            )
           except BaseException as err:
             print('  failed: ', err)
 
@@ -122,9 +126,10 @@ def run_smaller_generate_sweep(model):
   for batch in [32, 64, 128, 256, 512, 1024]:
     for quantized in [False, True]:
       for latency_collectives in [False, True]:
-
         for attn_all_to_all in [
-            AttnAllToAll.AXIS_Z, AttnAllToAll.AXES_YZ, AttnAllToAll.AXES_YZX
+            AttnAllToAll.AXIS_Z,
+            AttnAllToAll.AXES_YZ,
+            AttnAllToAll.AXES_YZX,
         ]:
           cached_seqlen = 2048
           gen_seqlen = 1
@@ -140,7 +145,8 @@ def run_smaller_generate_sweep(model):
                 attn_all_to_all=attn_all_to_all,
                 multihead=multihead,
                 layout=layout,
-                latency_collectives=latency_collectives)
+                latency_collectives=latency_collectives,
+            )
           except BaseException as err:
             print('  failed: ', err)
 
@@ -156,9 +162,10 @@ def run_attention_ablation():
   layout = Layout.WEIGHT_STATIONARY_2D
 
   num_devices = len(jax.devices())
-  for multihead, attn_layouts in [(False,
-                                   [AttnAllToAll.NONE, AttnAllToAll.AXES_YZX]),
-                                  (True, [AttnAllToAll.NONE])]:
+  for multihead, attn_layouts in [
+      (False, [AttnAllToAll.NONE, AttnAllToAll.AXES_YZX]),
+      (True, [AttnAllToAll.NONE]),
+  ]:
     for attn_all_to_all in attn_layouts:
       for cached_seqlen in [128, 512, 2048, 8192, 16384, 32768, 65536, 131072]:
         gen_seqlen = 1
@@ -173,14 +180,21 @@ def run_attention_ablation():
               attn_all_to_all=attn_all_to_all,
               multihead=multihead,
               layout=layout,
-              latency_collectives=latency_collectives)
+              latency_collectives=latency_collectives,
+          )
         except BaseException as err:
           print('  failed: ', err)
 
         k_and_v = 2
         bytes_per_number = 2
-        kv_cache_per_chip = (batch * cached_seqlen * model.layers * model.qkv *
-                             k_and_v * bytes_per_number) // num_devices
+        kv_cache_per_chip = (
+            batch
+            * cached_seqlen
+            * model.layers
+            * model.qkv
+            * k_and_v
+            * bytes_per_number
+        ) // num_devices
         if multihead:
           # n heads, but each head is half the dimension
           kv_cache_per_chip *= model.heads // 2
@@ -214,13 +228,17 @@ def run_layout_ablation():
       model_2d = checkpoint.HParams.PALM_540B_64HEADS
 
     for attn_all_to_all in [
-        AttnAllToAll.AXIS_Z, AttnAllToAll.AXES_YZ, AttnAllToAll.AXES_YZX
+        AttnAllToAll.AXIS_Z,
+        AttnAllToAll.AXES_YZ,
+        AttnAllToAll.AXES_YZX,
     ]:
       for batch in [64, 128, 256, 512]:
         cached_seqlen = 2048
         gen_seqlen = 1
-        for model, layout in [(model_2d, Layout.WEIGHT_STATIONARY_2D),
-                              (model_1d, Layout.WEIGHT_STATIONARY_1D)]:
+        for model, layout in [
+            (model_2d, Layout.WEIGHT_STATIONARY_2D),
+            (model_1d, Layout.WEIGHT_STATIONARY_1D),
+        ]:
           try:
             run_weight_stationary_layer(
                 '  result',
@@ -232,28 +250,35 @@ def run_layout_ablation():
                 attn_all_to_all=attn_all_to_all,
                 multihead=multihead,
                 layout=layout,
-                latency_collectives=latency_collectives)
+                latency_collectives=latency_collectives,
+            )
           except BaseException as err:
             print('  failed: ', err)
 
 
-def run_weight_stationary_layer(name,
-                                h,
-                                batch,
-                                cached_seqlen,
-                                gen_seqlen,
-                                quantized,
-                                attn_all_to_all,
-                                multihead,
-                                layout,
-                                latency_collectives,
-                                shard_seqlen_vs_batch = False,
-                                use_xprof=False):
+def run_weight_stationary_layer(
+    name,
+    h,
+    batch,
+    cached_seqlen,
+    gen_seqlen,
+    quantized,
+    attn_all_to_all,
+    multihead,
+    layout,
+    latency_collectives,
+    shard_seqlen_vs_batch = False,
+    use_xprof=False,
+):
   """Runs xmap layer as a micro benchmark."""
   if multihead:
     h = h.replace(qkv=div_exact(h.qkv, 2))
   print(
-      f'batch: {batch}, quantized: {quantized}, attn: {attn_all_to_all}, multihead: {multihead}, seqlen: {cached_seqlen}, gen_seqlen: {gen_seqlen}, layers: {h.layers}, embed: {h.embed}, heads: {h.heads}, q_wi_per_head: {h.q_wi_per_head}, o_wo_per_head: {h.o_wo_per_head}, layout: {layout}, latency_collectives: {latency_collectives}'
+      f'batch: {batch}, quantized: {quantized}, attn: {attn_all_to_all},'
+      f' multihead: {multihead}, seqlen: {cached_seqlen}, gen_seqlen:'
+      f' {gen_seqlen}, layers: {h.layers}, embed: {h.embed}, heads: {h.heads},'
+      f' q_wi_per_head: {h.q_wi_per_head}, o_wo_per_head: {h.o_wo_per_head},'
+      f' layout: {layout}, latency_collectives: {latency_collectives}'
   )
 
   mesh = get_3d_mesh()
@@ -278,29 +303,46 @@ def run_weight_stationary_layer(name,
       xmap,
       in_axes=(['x', Ellipsis], ['y', Ellipsis], ['z', Ellipsis]),
       out_axes=['x', 'y', 'z', Ellipsis],
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
-  def make_inputs(x_index, y_index,
-                  z_index):  # pylint: disable = unused-argument
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
+  def make_inputs(x_index, y_index, z_index):  # pylint: disable = unused-argument
     q_wi = jnp.zeros(
-        (h.layers, div_exact(h.heads, weight_head_sharding),
-         div_exact(h.embed, weight_embed_sharding), h.q_wi_per_head),
-        weights_dtype)
-    q_wi_scale = jnp.zeros((h.layers, div_up(
-        h.heads, y_axis * z_axis * x_axis), 1, h.q_wi_per_head), jnp.float32)
-    kv = jnp.zeros((h.layers, div_exact(h.embed, x_axis), 1, 2 * h.qkv),
-                   weights_dtype)
+        (
+            h.layers,
+            div_exact(h.heads, weight_head_sharding),
+            div_exact(h.embed, weight_embed_sharding),
+            h.q_wi_per_head,
+        ),
+        weights_dtype,
+    )
+    q_wi_scale = jnp.zeros(
+        (
+            h.layers,
+            div_up(h.heads, y_axis * z_axis * x_axis),
+            1,
+            h.q_wi_per_head,
+        ),
+        jnp.float32,
+    )
+    kv = jnp.zeros(
+        (h.layers, div_exact(h.embed, x_axis), 1, 2 * h.qkv), weights_dtype
+    )
     kv_scale = jnp.zeros((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
     o_wo = jnp.zeros(
-        (h.layers, div_exact(h.heads, weight_head_sharding), h.o_wo_per_head,
-         div_exact(h.embed, weight_embed_sharding)), weights_dtype)
+        (
+            h.layers,
+            div_exact(h.heads, weight_head_sharding),
+            h.o_wo_per_head,
+            div_exact(h.embed, weight_embed_sharding),
+        ),
+        weights_dtype,
+    )
     o_wo_scale = jnp.zeros(
-        (h.layers, 1, 1, div_up(h.embed, residual_embed_sharding)), jnp.float32)
-    layernorm_scale = jnp.zeros((h.layers, div_exact(h.embed, x_axis)),
-                                jnp.bfloat16)
+        (h.layers, 1, 1, div_up(h.embed, residual_embed_sharding)), jnp.float32
+    )
+    layernorm_scale = jnp.zeros(
+        (h.layers, div_exact(h.embed, x_axis)), jnp.bfloat16
+    )
 
     heads_yz = h.heads // (y_axis * z_axis)
     if heads_yz >= x_axis:
@@ -324,108 +366,196 @@ def run_weight_stationary_layer(name,
 
     sin = jnp.zeros(
         (div_up(batch, attn_batch_sharding), gen_seqlen, div_exact(h.qkv, 2)),
-        jnp.float32)
+        jnp.float32,
+    )
     cos = jnp.zeros(
         (div_up(batch, attn_batch_sharding), gen_seqlen, div_exact(h.qkv, 2)),
-        jnp.float32)
+        jnp.float32,
+    )
 
     lengths = jnp.zeros((div_up(batch, attn_batch_sharding),), jnp.int32)
     if multihead:
-      attn_head_sharding = div_exact(x_axis * y_axis * z_axis,
-                                     attn_batch_sharding)
+      attn_head_sharding = div_exact(
+          x_axis * y_axis * z_axis, attn_batch_sharding
+      )
       k = jnp.zeros(
-          (cached_seqlen, h.layers, div_up(batch, attn_batch_sharding),
-           div_exact(h.heads, attn_head_sharding), h.qkv), jnp.bfloat16)
+          (
+              cached_seqlen,
+              h.layers,
+              div_up(batch, attn_batch_sharding),
+              div_exact(h.heads, attn_head_sharding),
+              h.qkv,
+          ),
+          jnp.bfloat16,
+      )
       v = jnp.zeros(
-          (cached_seqlen, h.layers, div_up(batch, attn_batch_sharding),
-           div_exact(h.heads, attn_head_sharding), h.qkv), jnp.bfloat16)
+          (
+              cached_seqlen,
+              h.layers,
+              div_up(batch, attn_batch_sharding),
+              div_exact(h.heads, attn_head_sharding),
+              h.qkv,
+          ),
+          jnp.bfloat16,
+      )
     else:
       k = jnp.zeros(
           (cached_seqlen, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
-          jnp.bfloat16)
+          jnp.bfloat16,
+      )
       v = jnp.zeros(
           (cached_seqlen, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
-          jnp.bfloat16)
+          jnp.bfloat16,
+      )
     if shard_seqlen_vs_batch:
-      x = jnp.zeros((batch, div_exact(gen_seqlen, residual_batch_sharding),
-                     div_exact(h.embed, residual_embed_sharding)), jnp.bfloat16)
+      x = jnp.zeros(
+          (
+              batch,
+              div_exact(gen_seqlen, residual_batch_sharding),
+              div_exact(h.embed, residual_embed_sharding),
+          ),
+          jnp.bfloat16,
+      )
     else:
-      x = jnp.zeros((div_exact(batch, residual_batch_sharding), gen_seqlen,
-                     div_exact(h.embed, residual_embed_sharding)), jnp.bfloat16)
+      x = jnp.zeros(
+          (
+              div_exact(batch, residual_batch_sharding),
+              gen_seqlen,
+              div_exact(h.embed, residual_embed_sharding),
+          ),
+          jnp.bfloat16,
+      )
 
-    return q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale, sin, cos, lengths, k, v, x
+    return (
+        q_wi,
+        q_wi_scale,
+        kv,
+        kv_scale,
+        o_wo,
+        o_wo_scale,
+        layernorm_scale,
+        sin,
+        cos,
+        lengths,
+        k,
+        v,
+        x,
+    )
 
   @functools.partial(
       xmap,
       in_axes=['x', 'y', 'z', Ellipsis],
       out_axes=['x', 'y', 'z', Ellipsis],
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
   def the_benchmark(params, sin, cos, kv_caches, x0):
-
     def loop_body(layer, carry):
       x, k, v = carry
 
       if layout == Layout.WEIGHT_STATIONARY_2D:
         impl = two_d_parallel_xmap.transformer_layer_weight_stationary
       else:
-        impl = one_d_parallel_xmap.transformer_layer_weight_stationary_1d_weight_stationary
+        impl = one_d_parallel_xmap.weight_stationary
 
       if cached_seqlen == 0:
-        x, layer_k, layer_v = impl(h, layer, params, sin, cos, [], x, x_axis,
-                                   y_axis, z_axis, attn_all_to_all,
-                                   latency_collectives, shard_seqlen_vs_batch)
+        x, layer_k, layer_v = impl(
+            h,
+            layer,
+            params,
+            sin,
+            cos,
+            [],
+            x,
+            x_axis,
+            y_axis,
+            z_axis,
+            attn_all_to_all,
+            latency_collectives,
+        )
       else:
-        x, layer_k, layer_v = impl(h, layer, params, sin, cos, [kv_caches], x,
-                                   x_axis, y_axis, z_axis, attn_all_to_all,
-                                   latency_collectives, shard_seqlen_vs_batch)
-      k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
-                                          0)
-      v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,
-                                          0)
+        x, layer_k, layer_v = impl(
+            h,
+            layer,
+            params,
+            sin,
+            cos,
+            [kv_caches],
+            x,
+            x_axis,
+            y_axis,
+            z_axis,
+            attn_all_to_all,
+            latency_collectives,
+        )
+      k = lax.dynamic_update_index_in_dim(
+          k, jnp.swapaxes(layer_k, 0, 1), layer, 0
+      )
+      v = lax.dynamic_update_index_in_dim(
+          v, jnp.swapaxes(layer_v, 0, 1), layer, 0
+      )
       return x, k, v
 
     k = jnp.zeros(
         (h.layers, gen_seqlen, batch // (y_axis * z_axis * x_axis), h.qkv),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     v = jnp.zeros(
         (h.layers, gen_seqlen, batch // (y_axis * z_axis * x_axis), h.qkv),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x0, k, v))
     return x, k, v
 
   with mesh:
-    q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale, sin, cos, lengths, k, v, x = make_inputs(
-        jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
+    (
+        q_wi,
+        q_wi_scale,
+        kv,
+        kv_scale,
+        o_wo,
+        o_wo_scale,
+        layernorm_scale,
+        sin,
+        cos,
+        lengths,
+        k,
+        v,
+        x,
+    ) = make_inputs(jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
     if quantized:
-      params = weights.QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo,
-                                      o_wo_scale, layernorm_scale)
+      params = weights.QuantizedLayer(
+          q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
+      )
     else:
       params = weights.Layer(q_wi, kv, o_wo)
-    kv_caches = KVCache(lengths, k, v)
+    kv_caches = KVCache(lengths, k, v, jnp.zeros([0], jnp.int32))
 
     def run():
-      compiled_fn = the_benchmark.lower(params, sin, cos, kv_caches,
-                                        x).compile()
+      compiled_fn = the_benchmark.lower(
+          params, sin, cos, kv_caches, x
+      ).compile()
       compiled_fn(params, sin, cos, kv_caches, x)[0].block_until_ready()
 
-    return benchmark_one(run, name, 'while', 1.0 / h.layers / gen_seqlen,
-                         use_xprof)
+    return benchmark_one(
+        run, name, 'while', 1.0 / h.layers / gen_seqlen, use_xprof
+    )
 
 
-def run_weight_gathered_xmap_layer(name,
-                                   h,
-                                   batch,
-                                   cached_seqlen,
-                                   gen_seqlen,
-                                   quantized,
-                                   use_xprof = False):
+def run_weight_gathered_xmap_layer(
+    name,
+    h,
+    batch,
+    cached_seqlen,
+    gen_seqlen,
+    quantized,
+    use_xprof = False,
+):
   """Runs prefill layer as a micro benchmark."""
   print(
-      f'batch: {batch}, quantized: {quantized}, seqlen: {cached_seqlen}, gen_seqlen: {gen_seqlen}, layers: {h.layers}, embed: {h.embed}, heads: {h.heads}, q_wi_per_head: {h.q_wi_per_head}, o_wo_per_head: {h.o_wo_per_head}'
+      f'batch: {batch}, quantized: {quantized}, seqlen: {cached_seqlen},'
+      f' gen_seqlen: {gen_seqlen}, layers: {h.layers}, embed: {h.embed}, heads:'
+      f' {h.heads}, q_wi_per_head: {h.q_wi_per_head}, o_wo_per_head:'
+      f' {h.o_wo_per_head}'
   )
 
   mesh = get_3d_mesh()
@@ -439,101 +569,166 @@ def run_weight_gathered_xmap_layer(name,
       xmap,
       in_axes=(['x', Ellipsis], ['y', Ellipsis], ['z', Ellipsis]),
       out_axes=['x', 'y', 'z', Ellipsis],
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
   def make_inputs(x_index, y_index, z_index):
-    q_wi = jnp.zeros((h.layers, div_exact(
-        h.heads, y_axis * z_axis), div_exact(h.embed, x_axis), h.q_wi_per_head),
-                     weights_dtype)
+    q_wi = jnp.zeros(
+        (
+            h.layers,
+            div_exact(h.heads, y_axis * z_axis),
+            div_exact(h.embed, x_axis),
+            h.q_wi_per_head,
+        ),
+        weights_dtype,
+    )
     q_wi_scale = jnp.zeros((h.layers, h.heads, 1, h.q_wi_per_head), jnp.float32)
     kv = jnp.zeros((h.layers, h.embed, 1, 2 * h.qkv), weights_dtype)
     kv_scale = jnp.zeros((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
-    o_wo = jnp.zeros((h.layers, div_exact(
-        h.heads, y_axis * z_axis), h.o_wo_per_head, div_exact(h.embed, x_axis)),
-                     weights_dtype)
+    o_wo = jnp.zeros(
+        (
+            h.layers,
+            div_exact(h.heads, y_axis * z_axis),
+            h.o_wo_per_head,
+            div_exact(h.embed, x_axis),
+        ),
+        weights_dtype,
+    )
     o_wo_scale = jnp.zeros((h.layers, 1, 1, h.embed), jnp.float32)
     layernorm_scale = jnp.zeros((h.layers, h.embed), jnp.bfloat16)
 
     attn_sharding = x_axis * y_axis * z_axis
     sin = jnp.zeros(
         (div_up(batch, attn_sharding), gen_seqlen, div_exact(h.qkv, 2)),
-        jnp.float32)
+        jnp.float32,
+    )
     cos = jnp.zeros(
         (div_up(batch, attn_sharding), gen_seqlen, div_exact(h.qkv, 2)),
-        jnp.float32)
+        jnp.float32,
+    )
     lengths = jnp.zeros((div_up(batch, attn_sharding),), jnp.int32)
     k = jnp.zeros(
         (cached_seqlen, h.layers, div_up(batch, attn_sharding), h.qkv),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     v = jnp.zeros(
         (cached_seqlen, h.layers, div_up(batch, attn_sharding), h.qkv),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
 
     x = jnp.zeros(
         (div_exact(batch, x_axis * y_axis * z_axis), gen_seqlen, h.embed),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
 
-    return q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale, sin, cos, lengths, k, v, x
+    return (
+        q_wi,
+        q_wi_scale,
+        kv,
+        kv_scale,
+        o_wo,
+        o_wo_scale,
+        layernorm_scale,
+        sin,
+        cos,
+        lengths,
+        k,
+        v,
+        x,
+    )
 
   @functools.partial(
       xmap,
       in_axes=['x', 'y', 'z', Ellipsis],
       out_axes=['x', 'y', 'z', Ellipsis],
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
   def the_benchmark(params, sin, cos, kv_caches, x0):
-
     def loop_body(layer, carry):
       x, k, v = carry
       if cached_seqlen == 0:
-        x, layer_k, layer_v = two_d_parallel_xmap.transformer_layer_weight_gathered(
-            h, layer, params, sin, cos, [], x, x_axis, y_axis, z_axis)
+        x, layer_k, layer_v = (
+            two_d_parallel_xmap.transformer_layer_weight_gathered(
+                h, layer, params, sin, cos, [], x, x_axis, y_axis, z_axis
+            )
+        )
       else:
-        x, layer_k, layer_v = two_d_parallel_xmap.transformer_layer_weight_gathered(
-            h, layer, params, sin, cos, [kv_caches], x, x_axis, y_axis, z_axis)
+        x, layer_k, layer_v = (
+            two_d_parallel_xmap.transformer_layer_weight_gathered(
+                h,
+                layer,
+                params,
+                sin,
+                cos,
+                [kv_caches],
+                x,
+                x_axis,
+                y_axis,
+                z_axis,
+            )
+        )
 
-      k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
-                                          0)
-      v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,
-                                          0)
+      k = lax.dynamic_update_index_in_dim(
+          k, jnp.swapaxes(layer_k, 0, 1), layer, 0
+      )
+      v = lax.dynamic_update_index_in_dim(
+          v, jnp.swapaxes(layer_v, 0, 1), layer, 0
+      )
       return x, k, v
 
     k = jnp.zeros(
         (h.layers, gen_seqlen, batch // (y_axis * z_axis * x_axis), h.qkv),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     v = jnp.zeros(
         (h.layers, gen_seqlen, batch // (y_axis * z_axis * x_axis), h.qkv),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x0, k, v))
     return x, k, v
 
   with mesh:
-    q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale, sin, cos, lengths, k, v, x = make_inputs(
-        jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
+    (
+        q_wi,
+        q_wi_scale,
+        kv,
+        kv_scale,
+        o_wo,
+        o_wo_scale,
+        layernorm_scale,
+        sin,
+        cos,
+        lengths,
+        k,
+        v,
+        x,
+    ) = make_inputs(jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
     if quantized:
-      params = weights.QuantizedLayer(q_wi, q_wi_scale, kv, kv_scale, o_wo,
-                                      o_wo_scale, layernorm_scale)
+      params = weights.QuantizedLayer(
+          q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
+      )
     else:
       params = weights.Layer(q_wi, kv, o_wo)
-    kv_caches = KVCache(lengths, k, v)
+    kv_caches = KVCache(lengths, k, v, jnp.zeros([0], jnp.int32))
 
     def run():
       the_benchmark(params, sin, cos, kv_caches, x)[0].block_until_ready()
 
-    return benchmark_one(run, name, 'while', 1.0 / h.layers / gen_seqlen,
-                         use_xprof)
+    return benchmark_one(
+        run, name, 'while', 1.0 / h.layers / gen_seqlen, use_xprof
+    )
 
 
 # pylint: disable = unused-argument
-def embed_unembed_topp(h, x, embed,
-                       sample, rng, x_axis, y_axis,
-                       z_axis):
+def embed_unembed_topp(
+    h,
+    x,
+    embed,
+    sample,
+    rng,
+    x_axis,
+    y_axis,
+    z_axis,
+):
   """Runs non-layer stack components."""
   # x: int32[batch, maxlen]
   # embed: bfloat16[dmodel.X, vocab.YZ]
@@ -563,16 +758,19 @@ def embed_unembed_topp(h, x, embed,
     epsilon = 1e-6
     mean2 = lax.pmean(
         jnp.mean(lax.square(jnp.float32(x)), axis=-1, keepdims=True),
-        axis_name='x')
+        axis_name='x',
+    )
     x = jnp.bfloat16(x * lax.rsqrt(mean2 + epsilon))
 
   # x: bfloat16[batch, maxlen, dmodel.X]
 
   with jax.named_scope('unembed'):
-    logits_unreduced = jnp.einsum('bte,ev->btv', jnp.float32(x),
-                                  jnp.float32(embed))
+    logits_unreduced = jnp.einsum(
+        'bte,ev->btv', jnp.float32(x), jnp.float32(embed)
+    )
     logits = lax.psum_scatter(
-        logits_unreduced, 'x', scatter_dimension=0, tiled=True)
+        logits_unreduced, 'x', scatter_dimension=0, tiled=True
+    )
     # logits: float32[batch.X, maxlen, vocab.YZ]
 
   if not sample:
@@ -588,9 +786,11 @@ def embed_unembed_topp(h, x, embed,
       logits = jnp.pad(
           logits,
           pad_width=((0, padded_batch_x - batch_x), (0, 0), (0, 0)),
-          mode='constant')
+          mode='constant',
+      )
     logits = lax.all_to_all(
-        logits, ('y', 'z'), split_axis=0, concat_axis=2, tiled=True)
+        logits, ('y', 'z'), split_axis=0, concat_axis=2, tiled=True
+    )
     # logits = binary_search.topp_mask(logits, 0.9, -1e10)
     # TODO(reinerp): Do we still need t5x binary search?
     sample = jax.random.categorical(rng, logits).astype(jnp.int32)
@@ -616,11 +816,9 @@ def run_embed_umembed_sweep():
   print('\n'.join(csv))
 
 
-def run_embed_unembed_topp(h,
-                           batch,
-                           maxlen,
-                           sample,
-                           use_xprof = False):
+def run_embed_unembed_topp(
+    h, batch, maxlen, sample, use_xprof = False
+):
   """Runs all the non-Transformer-layer parts of the network."""
   print(f'batch: {batch}, maxlen: {maxlen}, sample: {sample}')
   mesh = get_3d_mesh()
@@ -630,16 +828,14 @@ def run_embed_unembed_topp(h,
       xmap,
       in_axes=(['x', Ellipsis], ['y', Ellipsis], ['z', Ellipsis]),
       out_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis], [None, Ellipsis]),
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
   def make_inputs(x_index, y_index, z_index):
     x = jnp.zeros((batch, maxlen), jnp.int32)
     embed = jnp.zeros(
         (div_up(h.embed, x_axis), div_up(h.vocab, y_axis * z_axis)),
-        jnp.bfloat16)
+        jnp.bfloat16,
+    )
     rng = jax.random.rbg_key(0)
     return x, embed, rng
 
@@ -647,17 +843,15 @@ def run_embed_unembed_topp(h,
       xmap,
       in_axes=(['x', 'y', 'z', Ellipsis], ['x', 'y', 'z', Ellipsis], [None, Ellipsis]),
       out_axes=['x', 'y', 'z', Ellipsis],
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
   def the_benchmark(x, embed, rng):
     return embed_unembed_topp(h, x, embed, sample, rng, x_axis, y_axis, z_axis)
 
   with mesh:
     x, embed, rng = make_inputs(
-        jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
+        jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis)
+    )
 
     def run():
       the_benchmark(x, embed, rng).block_until_ready()
@@ -691,12 +885,14 @@ def get_3d_mesh():
   return Mesh(mesh_utils.create_device_mesh((x, y, z)), ('x', 'y', 'z'))
 
 
-def benchmark_generate(name, hparams, batch, seqlen,
-                       num_samples):
+def benchmark_generate(
+    name, hparams, batch, seqlen, num_samples
+):
   """Benchmarks a few steps of `generate`."""
   model, params = init_model(hparams)
-  benchmark_generate_with_model(name, hparams, batch, seqlen, num_samples,
-                                model, params)
+  benchmark_generate_with_model(
+      name, hparams, batch, seqlen, num_samples, model, params
+  )
 
 
 def init_model(hparams):
@@ -709,32 +905,41 @@ def init_model(hparams):
     A model, plus HBM-resident weights.
   """
   eos_id = 1
-  model = JittedModel(
+  mesh = partitioning.make_mesh()
+  model = InferenceModel(
       hparams,
       eos_id,
-      functools.partial(inference.infer, hparams,
-                        layers_pjit.pjit_transformer_layer),
-      weights.Weights.physical_axes(),
-      rules=partitioning.make_rules_two_d(0))
+      functools.partial(
+          inference.infer, hparams, layers_pjit.pjit_transformer_layer
+      ),
+      sampling.sample,
+      mesh,
+      rules=partitioning.make_rules_two_d(0),
+  )
   # TODO(sholto): Make benchmark rules configurable (and the benchmarks to
   # reflect e2e model availability).
   with model.mesh:
 
     def init_weights():
-      return jax.tree_map(lambda array: jnp.zeros(array.shape, array.dtype),
-                          weights.Weights.make_shaped_arrays(hparams))
+      return jax.tree_map(
+          lambda array: jnp.zeros(array.shape, array.dtype),
+          weights.Weights.make_shaped_arrays(hparams),
+      )
 
     params = pjit.pjit(
         init_weights,
-        in_axis_resources=(),
-        out_axis_resources=weights.Weights.physical_axes())()
+        in_shardings=(),
+        out_shardings=weights.Weights.physical_axes(),
+    )()
   return model, params
 
 
 def sweep_context_length(hparams):
   """Runs a sweep over context length on the specified model shape."""
-  print(f'hparams: q_wi_per_head: {hparams.q_wi_per_head}, '
-        f'o_wo_per_head: {hparams.o_wo_per_head}, num_layers: {hparams.layers}')
+  print(
+      f'hparams: q_wi_per_head: {hparams.q_wi_per_head}, '
+      f'o_wo_per_head: {hparams.o_wo_per_head}, num_layers: {hparams.layers}'
+  )
   model, params = init_model(hparams)
   batch = 256
   num_samples = 1
@@ -742,50 +947,69 @@ def sweep_context_length(hparams):
   for seqlen in [4096]:
     name = f'sweep_context_length[batch={batch}, len={seqlen}]'
     print(f'starting {name}...')
-    benchmark_generate_with_model(name, hparams, batch, seqlen, num_samples,
-                                  model, params)
+    benchmark_generate_with_model(
+        name, hparams, batch, seqlen, num_samples, model, params
+    )
 
 
 def benchmark_generate_with_model(
-    name, hparams, batch, seqlen, num_samples,
-    model, params):
+    name,
+    hparams,
+    batch,
+    seqlen,
+    num_samples,
+    model,
+    params,
+):
   """Benchmarks a few steps of `generate`."""
   steps = 4  # All steps are the same. Run just enough to get a few samples
-  sampling = Sampling(temperature=0.7)
-
+  generate_fn = model.instantiate_generating_fn(steps)
   with model.mesh:
     context = pjit.pjit(
         ChunkResult.zeros,
         in_axis_resources=(),
-        out_axis_resources=jax.tree_map(partitioning.logical_to_physical,
-                                        ChunkResult.logical_axes()),
-        static_argnums=(0, 1, 2))(hparams, batch, seqlen)
+        out_axis_resources=jax.tree_map(
+            partitioning.logical_to_physical, ChunkResult.logical_axes()
+        ),
+        static_argnums=(0, 1, 2),
+    )(hparams, batch, seqlen)
 
   def run():
-    model.generate(steps, params, sampling, [context],
-                   np.arange(batch *
-                             num_samples))[0].tokens.block_until_ready()
+    model.generate(
+        params,
+        generate_fn,
+        [context],
+        np.arange(batch * num_samples),
+        sampling.SamplingHyperParams(temperature=0.7),
+    )[0].tokens.block_until_ready()
 
   return benchmark_one(
-      run, name, 'pjit__generate_impl', 1.0 / steps, use_xprof=False)
+      run, name, 'pjit__generate_impl', 1.0 / steps, use_xprof=False
+  )
 
 
-def run_serial_layer(name,
-                     h,
-                     batch,
-                     cached_seqlen,
-                     gen_seqlen,
-                     quantized,
-                     attn_all_to_all,
-                     multihead,
-                     layout,
-                     latency_collectives,
-                     swiglu=True):
+def run_serial_layer(
+    name,
+    h,
+    batch,
+    cached_seqlen,
+    gen_seqlen,
+    quantized,
+    attn_all_to_all,
+    multihead,
+    layout,
+    latency_collectives,
+    swiglu=True,
+):
   """Runs xmap layer as a micro benchmark."""
   # if multihead:
   #   h = h.replace(qkv=div_exact(h.qkv, 2))
   print(
-      f'batch: {batch}, quantized: {quantized}, attn: {attn_all_to_all}, multihead: {multihead}, seqlen: {cached_seqlen}, gen_seqlen: {gen_seqlen}, layers: {h.layers}, embed: {h.embed}, heads: {h.heads}, q_wi_per_head: {h.q_wi_per_head}, o_wo_per_head: {h.o_wo_per_head}, layout: {layout}, latency_collectives: {latency_collectives}'
+      f'batch: {batch}, quantized: {quantized}, attn: {attn_all_to_all},'
+      f' multihead: {multihead}, seqlen: {cached_seqlen}, gen_seqlen:'
+      f' {gen_seqlen}, layers: {h.layers}, embed: {h.embed}, heads: {h.heads},'
+      f' q_wi_per_head: {h.q_wi_per_head}, o_wo_per_head: {h.o_wo_per_head},'
+      f' layout: {layout}, latency_collectives: {latency_collectives}'
   )
 
   mesh = get_3d_mesh()
@@ -810,45 +1034,73 @@ def run_serial_layer(name,
       xmap,
       in_axes=(['x', Ellipsis], ['y', Ellipsis], ['z', Ellipsis]),
       out_axes=['x', 'y', 'z', Ellipsis],
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
   def make_inputs(x_index, y_index, z_index):  # pylint: disable=unused-argument
     if swiglu:
       q_wi_per_head = h.q_wi_per_head
     else:
       q_wi_per_head = h.o_wo_per_head  # as this does not have the swiglu 2x
 
-    q = jnp.zeros((h.layers, div_exact(h.heads, weight_head_sharding),
-                   div_exact(h.embed, weight_embed_sharding), h.qkv),
-                  weights_dtype)
+    q = jnp.zeros(
+        (
+            h.layers,
+            div_exact(h.heads, weight_head_sharding),
+            div_exact(h.embed, weight_embed_sharding),
+            h.qkv,
+        ),
+        weights_dtype,
+    )
     wi = jnp.zeros(
-        (h.layers, div_exact(h.heads, weight_head_sharding),
-         div_exact(h.embed, weight_embed_sharding), q_wi_per_head - h.qkv),
-        weights_dtype)
+        (
+            h.layers,
+            div_exact(h.heads, weight_head_sharding),
+            div_exact(h.embed, weight_embed_sharding),
+            q_wi_per_head - h.qkv,
+        ),
+        weights_dtype,
+    )
     # q_wi_scale = jnp.zeros((h.layers, div_up(
     #     h.heads, y_axis * z_axis * x_axis), 1, q_wi_per_head), jnp.float32)
     if multihead:
-      kv = jnp.zeros((h.layers, div_exact(h.embed, x_axis),
-                      div_exact(h.heads, weight_head_sharding), 2 * h.qkv),
-                     weights_dtype)
+      kv = jnp.zeros(
+          (
+              h.layers,
+              div_exact(h.embed, x_axis),
+              div_exact(h.heads, weight_head_sharding),
+              2 * h.qkv,
+          ),
+          weights_dtype,
+      )
     else:
-      kv = jnp.zeros((h.layers, div_exact(h.embed, x_axis), 1, 2 * h.qkv),
-                     weights_dtype)
+      kv = jnp.zeros(
+          (h.layers, div_exact(h.embed, x_axis), 1, 2 * h.qkv), weights_dtype
+      )
 
     kv_scale = jnp.zeros((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
-    o = jnp.zeros((h.layers, div_exact(h.heads, weight_head_sharding), h.qkv,
-                   div_exact(h.embed, weight_embed_sharding)), weights_dtype)
+    o = jnp.zeros(
+        (
+            h.layers,
+            div_exact(h.heads, weight_head_sharding),
+            h.qkv,
+            div_exact(h.embed, weight_embed_sharding),
+        ),
+        weights_dtype,
+    )
     wo = jnp.zeros(
-        (h.layers, div_exact(h.heads, weight_head_sharding),
-         h.o_wo_per_head - h.qkv, div_exact(h.embed, weight_embed_sharding)),
-        weights_dtype)
+        (
+            h.layers,
+            div_exact(h.heads, weight_head_sharding),
+            h.o_wo_per_head - h.qkv,
+            div_exact(h.embed, weight_embed_sharding),
+        ),
+        weights_dtype,
+    )
     # o_wo_scale = jnp.zeros(
     # (h.layers, 1, 1, div_up(h.embed, residual_embed_sharding)), jnp.float32)
-    layernorm_scale = jnp.zeros((h.layers, div_exact(h.embed, x_axis)),
-                                jnp.bfloat16)
+    layernorm_scale = jnp.zeros(
+        (h.layers, div_exact(h.embed, x_axis)), jnp.bfloat16
+    )
 
     heads_yz = h.heads // (y_axis * z_axis)
     if heads_yz >= x_axis:
@@ -872,44 +1124,79 @@ def run_serial_layer(name,
 
     sin = jnp.zeros(
         (div_up(batch, attn_batch_sharding), gen_seqlen, div_exact(h.qkv, 2)),
-        jnp.float32)
+        jnp.float32,
+    )
     cos = jnp.zeros(
         (div_up(batch, attn_batch_sharding), gen_seqlen, div_exact(h.qkv, 2)),
-        jnp.float32)
+        jnp.float32,
+    )
     lengths = jnp.zeros((div_up(batch, attn_batch_sharding),), jnp.int32)
     if multihead:
-      attn_head_sharding = div_exact(x_axis * y_axis * z_axis,
-                                     attn_batch_sharding)
-      k = jnp.zeros((div_exact(h.heads, attn_head_sharding), h.layers,
-                     div_up(batch, attn_batch_sharding), cached_seqlen, h.qkv),
-                    jnp.bfloat16)
-      v = jnp.zeros((div_exact(h.heads, attn_head_sharding), h.layers,
-                     div_up(batch, attn_batch_sharding), cached_seqlen, h.qkv),
-                    jnp.bfloat16)
+      attn_head_sharding = div_exact(
+          x_axis * y_axis * z_axis, attn_batch_sharding
+      )
+      k = jnp.zeros(
+          (
+              div_exact(h.heads, attn_head_sharding),
+              h.layers,
+              div_up(batch, attn_batch_sharding),
+              cached_seqlen,
+              h.qkv,
+          ),
+          jnp.bfloat16,
+      )
+      v = jnp.zeros(
+          (
+              div_exact(h.heads, attn_head_sharding),
+              h.layers,
+              div_up(batch, attn_batch_sharding),
+              cached_seqlen,
+              h.qkv,
+          ),
+          jnp.bfloat16,
+      )
       # print(f"k_cache, {k.shape}, v_cache, {v.shape}")
     else:
       k = jnp.zeros(
           (cached_seqlen, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
-          jnp.bfloat16)
+          jnp.bfloat16,
+      )
       v = jnp.zeros(
           (cached_seqlen, h.layers, div_up(batch, attn_batch_sharding), h.qkv),
-          jnp.bfloat16)
+          jnp.bfloat16,
+      )
 
-    x = jnp.zeros((div_exact(batch, residual_batch_sharding), gen_seqlen,
-                   div_exact(h.embed, residual_embed_sharding)), jnp.bfloat16)
-    return q, wi, kv, kv_scale, o, wo, layernorm_scale, sin, cos, lengths, k, v, x
+    x = jnp.zeros(
+        (
+            div_exact(batch, residual_batch_sharding),
+            gen_seqlen,
+            div_exact(h.embed, residual_embed_sharding),
+        ),
+        jnp.bfloat16,
+    )
+    return (
+        q,
+        wi,
+        kv,
+        kv_scale,
+        o,
+        wo,
+        layernorm_scale,
+        sin,
+        cos,
+        lengths,
+        k,
+        v,
+        x,
+    )
 
   @functools.partial(
       xmap,
       in_axes=['x', 'y', 'z', Ellipsis],
       out_axes=['x', 'y', 'z', Ellipsis],
-      axis_resources={
-          'x': 'x',
-          'y': 'y',
-          'z': 'z'
-      })
+      axis_resources={'x': 'x', 'y': 'y', 'z': 'z'},
+  )
   def the_benchmark(params, sin, cos, kv_caches, x0):
-
     def loop_body(layer, carry):
       x, k, v = carry
 
@@ -923,76 +1210,108 @@ def run_serial_layer(name,
             layer,
             params,
             sin,
-            cos, [],
+            cos,
+            [],
             x,
             x_axis,
             y_axis,
             z_axis,
             attn_all_to_all,
             latency_collectives,
-            swiglu=swiglu)
+            swiglu=swiglu,
+        )
       else:
         x, layer_k, layer_v = impl(
             h,
             layer,
             params,
             sin,
-            cos, [kv_caches],
+            cos,
+            [kv_caches],
             x,
             x_axis,
             y_axis,
             z_axis,
             attn_all_to_all,
             latency_collectives,
-            swiglu=swiglu)
-      k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
-                                          0)
-      v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,
-                                          0)
+            swiglu=swiglu,
+        )
+      k = lax.dynamic_update_index_in_dim(
+          k, jnp.swapaxes(layer_k, 0, 1), layer, 0
+      )
+      v = lax.dynamic_update_index_in_dim(
+          v, jnp.swapaxes(layer_v, 0, 1), layer, 0
+      )
       return x, k, v
 
     if multihead:
-      k = jnp.zeros((h.layers, gen_seqlen, batch, h.heads //
-                     (y_axis * z_axis * x_axis), h.qkv), jnp.bfloat16)
-      v = jnp.zeros((h.layers, gen_seqlen, batch, h.heads //
-                     (y_axis * z_axis * x_axis), h.qkv), jnp.bfloat16)
+      k = jnp.zeros(
+          (
+              h.layers,
+              gen_seqlen,
+              batch,
+              h.heads // (y_axis * z_axis * x_axis),
+              h.qkv,
+          ),
+          jnp.bfloat16,
+      )
+      v = jnp.zeros(
+          (
+              h.layers,
+              gen_seqlen,
+              batch,
+              h.heads // (y_axis * z_axis * x_axis),
+              h.qkv,
+          ),
+          jnp.bfloat16,
+      )
     else:
       k = jnp.zeros(
           (h.layers, gen_seqlen, batch // (y_axis * z_axis * x_axis), h.qkv),
-          jnp.bfloat16)
+          jnp.bfloat16,
+      )
       v = jnp.zeros(
           (h.layers, gen_seqlen, batch // (y_axis * z_axis * x_axis), h.qkv),
-          jnp.bfloat16)
+          jnp.bfloat16,
+      )
     # print(f'output k: {k.shape} v: {v.shape}')
     x, k, v = jax.lax.fori_loop(0, h.layers, loop_body, (x0, k, v))
     return x, k, v
 
   with mesh:
-
     q, wi, kv, _, o, wo, _, sin, cos, lengths, k, v, x = make_inputs(
-        jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis))
+        jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis)
+    )
     params = layers_serial.SerialLayer(q, wi, kv, o, wo)
     # print(jax.tree_map(jnp.shape, params))
-    kv_caches = KVCache(lengths, k, v)
+    kv_caches = KVCache(lengths, k, v, jnp.zeros([0], jnp.int32))
 
     def run():
-      compiled_fn = the_benchmark.lower(params, sin, cos, kv_caches,
-                                        x).compile()
+      compiled_fn = the_benchmark.lower(
+          params, sin, cos, kv_caches, x
+      ).compile()
       compiled_fn(params, sin, cos, kv_caches, x)[0].block_until_ready()
 
     return benchmark_one(
-        run, name, 'while', 1.0 / h.layers / gen_seqlen, use_xprof=False)
+        run, name, 'while', 1.0 / h.layers / gen_seqlen, use_xprof=False
+    )
 
 
-def benchmark_one(run, name, search_name, scale_duration,
-                  use_xprof):
+def benchmark_one(
+    run,
+    name,
+    search_name,
+    scale_duration,
+    use_xprof,
+):
   """Benchmarks steps, handles xprof url."""
   run()  # Warmup, call once
   if use_xprof:  # internally xprof allows for more accurate timing
     # Aiming to implement in external xprof next week
     if jax.config.read('jax_xla_backend') == 'pathways':
       with pathways.xprof_trace(
-          block_until_start=True, devices=jax.devices()[:1]) as url:
+          block_until_start=True, devices=jax.devices()[:1]
+      ) as url:
         run()
       session_id = url[0].split('/trace_viewer/')[-1]
       # url currently goes to google internal link, removed
@@ -1004,8 +1323,9 @@ def benchmark_one(run, name, search_name, scale_duration,
 
     # print(url)
     xprof_client = xprof_analysis_client.XprofAnalysisClient()
-    _, trace_str = xprof_client.get_profile_data('trace_viewer.json',
-                                                 session_id)  # pytype: disable=attribute-error
+    _, trace_str = xprof_client.get_profile_data(
+        'trace_viewer.json', session_id
+    )  # pytype: disable=attribute-error
     trace = json.loads(trace_str)
 
     # We will see the event in each attached TensorCore, even if Megacore is
@@ -1020,14 +1340,17 @@ def benchmark_one(run, name, search_name, scale_duration,
       if isinstance(event_name, str) and event_name.startswith(search_name):
         pid = event.get('pid')
         assert (
-            pid
-            not in seen_pids), 'Benchmark called multiple times per TensorCore'
+            pid not in seen_pids
+        ), 'Benchmark called multiple times per TensorCore'
         event_dur = event.get('dur')
         if dur is None or (event_dur > dur):
           dur = event_dur
 
     if dur is None:
-      text = f'Function {search_name} not found. Available names: {names}, xprof: {url}'
+      text = (
+          f'Function {search_name} not found. Available names: {names}, xprof:'
+          f' {url}'
+      )
       print(text)
       raise ValueError(text)
     dur = dur / 1e6
@@ -1065,7 +1388,8 @@ def prefill_sweep():
               batch,
               cached_seqlen=0,
               gen_seqlen=2048,
-              quantized=quantized)
+              quantized=quantized,
+          )
         except Exception as e:
           print(e)
           print(f'Batch size {batch} too large')
@@ -1081,7 +1405,8 @@ def prefill_sweep():
               batch,
               cached_seqlen=0,
               gen_seqlen=2048,
-              quantized=quantized)
+              quantized=quantized,
+          )
         except Exception as e:
           print(e)
           print(f'Batch size {batch} too large')
@@ -1097,7 +1422,8 @@ def prefill_sweep():
               batch,
               cached_seqlen=0,
               gen_seqlen=2048,
-              quantized=quantized)
+              quantized=quantized,
+          )
         except Exception as e:
           print(e)
           print(f'Batch size {batch} too large')
@@ -1124,7 +1450,8 @@ def run_prefill_small_size(model):
                 multihead=False,
                 layout=Layout.WEIGHT_STATIONARY_2D,
                 latency_collectives=latency_collectives,
-                shard_seqlen_vs_batch=True)
+                shard_seqlen_vs_batch=True,
+            )
           except BaseException as err:
             print('  failed: ', err)
 
@@ -1147,7 +1474,8 @@ def PaLM_benchmark():
               multihead=False,
               layout=Layout.WEIGHT_STATIONARY_2D,
               latency_collectives=latency_collectives,
-              shard_seqlen_vs_batch=batch <= 16)
+              shard_seqlen_vs_batch=batch <= 16,
+          )
           print('Generate')
           run_weight_stationary_layer(
               '  result',
@@ -1160,7 +1488,8 @@ def PaLM_benchmark():
               layout=Layout.WEIGHT_STATIONARY_2D,
               multihead=False,
               latency_collectives=latency_collectives,
-              shard_seqlen_vs_batch=batch <= 16)
+              shard_seqlen_vs_batch=batch <= 16,
+          )
         except Exception as e:
           print(e)
 
@@ -1183,7 +1512,8 @@ def MT_NLG_benchmark():
             multihead=True,
             layout=Layout.WEIGHT_STATIONARY_2D,
             latency_collectives=False,
-            swiglu=False)
+            swiglu=False,
+        )
         print('Generate')
         run_serial_layer(
             '  result',
@@ -1196,7 +1526,8 @@ def MT_NLG_benchmark():
             multihead=True,
             layout=Layout.WEIGHT_STATIONARY_2D,
             latency_collectives=True,
-            swiglu=False)
+            swiglu=False,
+        )
       except Exception as e:
         print(e)
 
@@ -1222,10 +1553,14 @@ def run_prefill_weight_stationary_vs_gathered_sweep():
         model = checkpoint.HParams.PALM_540B_64HEADS
 
       for attn_all_to_all in [
-          AttnAllToAll.AXIS_Z, AttnAllToAll.AXES_YZ, AttnAllToAll.AXES_YZX
+          AttnAllToAll.AXIS_Z,
+          AttnAllToAll.AXES_YZ,
+          AttnAllToAll.AXES_YZX,
       ]:
-
-        if attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX and batch >= 512:
+        if (
+            attn_all_to_all == partitioning.AttnAllToAll.AXES_YZX
+            and batch >= 512
+        ):
           print('AlltoAll XYZ - batch> 512, oom')
         else:
           cached_seqlen = 0
@@ -1242,7 +1577,8 @@ def run_prefill_weight_stationary_vs_gathered_sweep():
                 attn_all_to_all=attn_all_to_all,
                 multihead=multihead,
                 layout=layout,
-                latency_collectives=latency_collectives)
+                latency_collectives=latency_collectives,
+            )
           except BaseException as err:
             print('  failed: ', err)
 
@@ -1256,7 +1592,8 @@ def run_prefill_weight_stationary_vs_gathered_sweep():
           batch,
           cached_seqlen=0,
           gen_seqlen=2048,
-          quantized=quantized)
+          quantized=quantized,
+      )
     except Exception as err:
       print('  failed: ', err)
 
@@ -1276,7 +1613,8 @@ def run_parallel_vs_serial():
       attn_all_to_all=partitioning.AttnAllToAll.AXES_YZX,
       multihead=False,
       layout=Layout.WEIGHT_STATIONARY_2D,
-      latency_collectives=True)
+      latency_collectives=True,
+  )
   run_serial_layer(
       '  result',
       checkpoint.HParams.PALM_540B_128HEADS.replace(layers=8),
@@ -1287,4 +1625,5 @@ def run_parallel_vs_serial():
       attn_all_to_all=partitioning.AttnAllToAll.AXES_YZX,
       multihead=False,
       layout=Layout.WEIGHT_STATIONARY_2D,
-      latency_collectives=True)
+      latency_collectives=True,
+  )

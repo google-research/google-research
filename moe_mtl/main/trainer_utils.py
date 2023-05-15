@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -439,12 +439,10 @@ def create_train_state(
     axis_resources):
   """Create TrainState object."""
   mesh = mesh or maps.thread_resources.env.physical_mesh
-  with maps.Mesh(mesh.devices, mesh.axis_names):
+  with jax.sharding.Mesh(mesh.devices, mesh.axis_names):
     train_state = pjit.pjit(
-        state_init_fn,
-        in_axis_resources=(None,),
-        out_axis_resources=axis_resources)(
-            rngs)
+        state_init_fn, in_shardings=(None,), out_shardings=axis_resources
+    )(rngs)
     return train_state
 
 
@@ -671,8 +669,8 @@ def _train_vmoe_mtl(
 
     sync_pjit = pjit.pjit(
         fun=sync_ema_and_weight,
-        in_axis_resources=(train_state_axis_resources,),  # train_state
-        out_axis_resources=train_state_axis_resources,
+        in_shardings=(train_state_axis_resources,),
+        out_shardings=train_state_axis_resources,
     )
     train_state = sync_pjit(train_state)
     logging.info("sync complete")
@@ -1294,12 +1292,12 @@ def restore_or_create_train_state(
         mesh=mesh,
         thread_pool=thread_pool)
     # Copy TrainState to device memory, and return.
-    with maps.Mesh(mesh.devices, mesh.axis_names):
+    with jax.sharding.Mesh(mesh.devices, mesh.axis_names):
       return pjit.pjit(
           fun=lambda x: x,
-          in_axis_resources=(axis_resources,),
-          out_axis_resources=axis_resources)(
-              train_state)
+          in_shardings=(axis_resources,),
+          out_shardings=axis_resources,
+      )(train_state)
   # If no complete checkpoints exist with the given prefix, create a train
   # state from scratch on device.
   return create_train_state(
@@ -1512,8 +1510,8 @@ def _train_and_validate_vmoe_mtl(
 
     sync_pjit = pjit.pjit(
         fun=sync_ema_and_weight,
-        in_axis_resources=(train_state_axis_resources,),  # train_state
-        out_axis_resources=train_state_axis_resources,
+        in_shardings=(train_state_axis_resources,),
+        out_shardings=train_state_axis_resources,
     )
     train_state = sync_pjit(train_state)
     logging.info("sync complete")
@@ -1678,14 +1676,8 @@ def _train_and_validate_vmoe_mtl(
       donate_argnums=(1, 2))
   assign_pjit = pjit.pjit(
       fun=assign_func,
-      in_axis_resources=(
-          train_state_axis_resources,
-          None,
-          None,
-          None,
-          None
-      ),
-      out_axis_resources=train_state_axis_resources
+      in_shardings=(train_state_axis_resources, None, None, None, None),
+      out_shardings=train_state_axis_resources,
   )
   writer = metric_writers.create_default_writer(
       logdir=output_dir, just_logging=jax.process_index() > 0)
@@ -1887,4 +1879,3 @@ def _train_and_validate_vmoe_mtl(
                                 prev_best_val_loss_det, prev_best_val_loss_cls)
       progress_hook(step, scalar_metrics=scalar_metrics)
       checkpoint_hook(step, state=train_state)
-

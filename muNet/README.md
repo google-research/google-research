@@ -49,7 +49,7 @@ The method extension described in the µ2Net+ publication are included in the so
 
 ## µ4Net: the **Multipath** Multiagent Multitask Mutant Network
 
-1. Publication: ["Multipath Agents for Modular Multitask ML Systems" (2023)](https://arxiv.org/search/?query=andrea+gesmundo&searchtype=all&source=header)
+1. Publication: ["Multipath Agents for Modular Multitask ML Systems" (2023)](https://arxiv.org/abs/2302.02721)
 
 1. Colab Notebook with additional MultiViT Agent allowing to reproduce the experiments reported in the publication: mu4Net.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/google-research/google-research/blob/master/muNet/mu4Net.ipynb)
 

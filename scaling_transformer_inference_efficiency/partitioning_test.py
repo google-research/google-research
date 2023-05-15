@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,10 @@ import os
 
 from absl.testing import absltest
 import jax
-from jax.experimental.pjit import PartitionSpec as P
+from jax import core
 import jax.numpy as jnp
 from jax.sharding import NamedSharding
+from jax.sharding import PartitionSpec as P
 
  import resources
 from scaling_transformer_inference_efficiency import checkpoint
@@ -43,7 +44,7 @@ class PartitioningTest(absltest.TestCase):
 
 
   def test_copy_to_device_from_shape(self):
-    shape = jax.ShapedArray((4, 4), dtype=jnp.bfloat16)
+    shape = core.ShapedArray((4, 4), dtype=jnp.bfloat16)
     mesh = partitioning.make_mesh()
     x = partitioning.copy_to_device(shape,
                                     NamedSharding(mesh, P('x', ('y', 'z'))),
@@ -53,7 +54,7 @@ class PartitioningTest(absltest.TestCase):
 
   def test_copy_to_device_from_array(self):
     array = jnp.zeros((4, 4), jnp.bfloat16)
-    shape = jax.ShapedArray((4, 4), dtype=jnp.bfloat16)
+    shape = core.ShapedArray((4, 4), dtype=jnp.bfloat16)
     mesh = partitioning.make_mesh()
     x = partitioning.copy_to_device(array,
                                     NamedSharding(mesh, P('x', ('y', 'z'))),

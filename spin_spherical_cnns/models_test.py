@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 
 import functools
 from absl.testing import parameterized
+import flax
 import jax.numpy as jnp
 import numpy as np
 import tensorflow as tf
@@ -35,7 +36,7 @@ _JAX_RANDOM_KEY = np.array([0, 0], dtype=np.uint32)
 @functools.lru_cache()
 def _get_transformer():
   return spin_spherical_harmonics.SpinSphericalFourierTransformer(
-      resolutions=[4, 8, 16], spins=[0, -1, 1, 2])
+      resolutions=(4, 8, 16), spins=(0, -1, 1, 2))
 
 
 def _mean_absolute_error(x, y):
@@ -104,7 +105,7 @@ class SpinSphericalBlockTest(tf.test.TestCase, parameterized.TestCase):
     params = model.init(_JAX_RANDOM_KEY, sphere, train=False)
 
     # Add negative bias so that the magnitude nonlinearity is active.
-    params = params.unfreeze()
+    params = flax.core.unfreeze(params)
     for key, value in params['params']['batch_norm_nonlin'].items():
       if 'magnitude_nonlin' in key:
         value['bias'] -= 0.1

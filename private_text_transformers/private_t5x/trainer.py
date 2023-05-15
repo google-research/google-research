@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -286,7 +286,7 @@ def accumulate_grads_microbatched(
     grad_accum = jax.tree_unflatten(tree_def, grad_accum_flat)
 
     if use_dp:  # Add DP noise to accumulated grad from microbatches.
-      noise_rng = jax.random.fold_in(jax.random.PRNGKey(0), train_state.step)
+      noise_rng = jax.random.fold_in(jax.random.PRNGKey(0), train_state.step)  # pytype: disable=wrong-arg-types  # jax-ndarray
       grad_accum = add_grad_noise(noise_rng, grad_accum, dp_noise_multiplier,
                                   dp_l2_clip_norm, microbatch_size)
 
@@ -360,7 +360,7 @@ class PrivateTrainer(t5x_trainer.Trainer):
     def train_with_lr(train_state,
                       batch):
       learning_rate = self._learning_rate_fn(train_state.step)
-      dropout_rng = self._get_step_rng(train_state.step)
+      dropout_rng = self._get_step_rng(train_state.step)  # pytype: disable=wrong-arg-types  # jax-ndarray
 
       grad_accum, metrics = (
           accumulate_grads_microbatched(
@@ -372,7 +372,7 @@ class PrivateTrainer(t5x_trainer.Trainer):
               use_dp=self._use_dp,
               dp_l2_clip_norm=self._dp_l2_clip_norm,
               dp_noise_multiplier=self._dp_noise_multiplier))
-      new_train_state, metrics = t5x_trainer.apply_grads(
+      new_train_state, metrics = t5x_trainer.apply_grads(  # pytype: disable=wrong-arg-types  # jax-ndarray
           train_state, grad_accum, metrics, learning_rate,
           self._weight_metrics_computer)
       return new_train_state, metrics

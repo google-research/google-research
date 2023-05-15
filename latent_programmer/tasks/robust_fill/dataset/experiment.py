@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,7 @@ class Experiment(enum.Enum):
   NONE = 0
   LENGTH_1_6_TO_7_10 = 1
   LENGTH_6_TO_1_10 = 2
-  LENGTH_1_TO_2_6 = 3
-  COMPOSE_DIFFERENT_CONCEPTS = 4
-  SWITCH_CONCEPT_ORDER = 5
-  COMPOSE_NEW_OP = 6
-  EXTEND_OP_FUNCTIONALITY = 7
+  COMPOSE_DIFFERENT_CONCEPTS = 3
+  SWITCH_CONCEPT_ORDER = 4
+  COMPOSE_NEW_OP = 5
+  EXTEND_OP_FUNCTIONALITY = 6

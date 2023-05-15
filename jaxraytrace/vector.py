@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ class Vector:
     return jnp.dot(self.arr, other.arr)
 
   def length(self):
-    return jnp.sqrt(jnp.sum(jnp.square(self.arr)))
+    return jnp.sqrt(jnp.sum(jnp.square(self.arr)))  # pytype: disable=bad-return-type  # jax-types
 
   def unit(self):
     return self / self.length()

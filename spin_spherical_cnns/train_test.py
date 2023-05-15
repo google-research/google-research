@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -89,6 +89,7 @@ class TrainTest(tf.test.TestCase, parameterized.TestCase):
         self.optimizer = mock.Mock()
         self.optimizer.target.side_effect = logits
         self.batch_stats = mock.MagicMock()
+        self.constants = mock.MagicMock()
 
     jax.tree_util.register_pytree_node(MockedState, lambda _: ((), None),
                                        lambda *_: MockedState())

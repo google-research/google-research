@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -205,7 +205,7 @@ class Checkpoint:
       raise AssertionError(  # pylint: disable=g-doc-exception
           "Expected next_checkpoint to match latest_checkpoint: "
           f"{next_checkpoint} != {self.latest_checkpoint}")
-    return self.latest_checkpoint
+    return self.latest_checkpoint  # pytype: disable=bad-return-type  # always-use-return-annotations
 
   def restore_or_initialize(self, state):
     """Restores from the latest checkpoint, or creates a first checkpoint.

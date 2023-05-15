@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -227,7 +227,7 @@ class AutoEncoder(tf.keras.Model):
         weight_max_norm=MODEL_LINEAR_WEIGHT_MAX_NORM,
         weight_initializer='he_normal')
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
@@ -350,7 +350,7 @@ class InfoMix(tf.keras.Model):
         if block.name not in MODEL_LINEAR_SHARED_LAYERS
     ]
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
@@ -528,7 +528,7 @@ class InfoDisentangle(tf.keras.Model):
         tf.keras.layers.Dense(1),
     ])
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
@@ -831,7 +831,7 @@ class InfoMax(tf.keras.Model):
         if block.name not in MODEL_LINEAR_SHARED_LAYERS
     ]
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:

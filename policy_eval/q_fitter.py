@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class CriticNet(tf.keras.Model):
     super(CriticNet, self).__init__()
     self.critic = keras_utils.create_mlp(state_dim + action_dim, 1, [256, 256])
 
-  def call(self, states, actions):
+  def call(self, states, actions):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     x = tf.concat([states, actions], -1)
     return tf.squeeze(self.critic(x), 1)
 

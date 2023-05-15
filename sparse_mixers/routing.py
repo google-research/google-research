@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 """Mixture of Experts routing mechanisms."""
 
-from typing import Any, Callable, Iterable, Tuple
+from typing import Any, Callable, Sequence, Tuple
 
 import flax
 from flax import linen as nn
@@ -25,7 +25,7 @@ import jax.numpy as jnp
 # Type Stubs
 PRNGKey = Any
 RouterOutput = Any
-Shape = Iterable[int]
+Shape = Sequence[int]
 
 # Switch Transformer (https://arxiv.org/abs/2101.03961) suggests using
 # nn.initializers.variance_scaling(0.1, "fan_in", "truncated_normal")

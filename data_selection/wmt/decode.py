@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -125,16 +125,16 @@ def gather_topk_beams(nested, score_or_log_prob, batch_size, new_beam_size):
 class BeamState:
   """Holds beam search state data."""
   # The position of the decoding loop in the length dimension.
-  cur_index: jnp.DeviceArray  # scalar int32: current decoded length index
+  cur_index: jax.Array  # scalar int32: current decoded length index
   # The active sequence log probabilities and finished sequence scores.
-  live_logprobs: jnp.DeviceArray  # float32: [batch_size, beam_size]
-  finished_scores: jnp.DeviceArray  # float32: [batch_size, beam_size]
+  live_logprobs: jax.Array  # float32: [batch_size, beam_size]
+  finished_scores: jax.Array  # float32: [batch_size, beam_size]
   # The current active-beam-searching and finished sequences.
-  live_seqs: jnp.DeviceArray  # int32: [batch_size, beam_size, max_decode_len]
-  finished_seqs: jnp.DeviceArray  # int32: [batch_size, beam_size,
+  live_seqs: jax.Array  # int32: [batch_size, beam_size, max_decode_len]
+  finished_seqs: jax.Array  # int32: [batch_size, beam_size,
   #                                         max_decode_len]
   # Records which of the 'finished_seqs' is occupied and not a filler slot.
-  finished_flags: jnp.DeviceArray  # bool: [batch_size, beam_size]
+  finished_flags: jax.Array  # bool: [batch_size, beam_size]
   # The current state of the autoregressive decoding caches.
   cache: typing.Any  # Any pytree of arrays, e.g. flax attention Cache object
 

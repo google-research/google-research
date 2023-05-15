@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,12 +87,15 @@ def allgather_layernorm(x,
   return xnorm, xnorm_z
 
 
-def xmap_embed(
+@partial(jax.jit, static_argnums=(3, 4, 5))
+def embed_manual(
     params,  # pylint: disable=g-bare-generic, invalid-name
     kv_caches,
     token_chunk,
     shard_seqlen_vs_batch = False,
-    batch_unsharded = False):
+    batch_unsharded = False,
+    one_d = False,
+):
   """Embeds a chunk of logits.
 
   Args:
@@ -102,6 +105,7 @@ def xmap_embed(
       maxlen]
     shard_seqlen_vs_batch: Whether to shard seqlen or batch by z.
     batch_unsharded:  global_batch is less than z so we cannot shard along
+    one_d: whether it is one dimensional
 
   Returns:
     embeddings: bfloat16[[batch.Z, time, embed.XY] || [batch, time, embed.XYZ]
@@ -116,7 +120,6 @@ def xmap_embed(
   prefix_batch, = start_indices.shape
   batch, max_length = token_chunk.tokens.shape
   assert batch % prefix_batch == 0, 'Incompatible batch sizes'
-
   # Do RoPE lookups in the sin/cos tables. Only needed once per prefix_batch.
   def slice_at(index, table):
     # table: [precomputed_length, qkv // 2]
@@ -143,6 +146,9 @@ def xmap_embed(
     embeds = params.embedding[one_x, :]
     one_x = one_x[:, :, jnp.newaxis]
     embeds = jnp.where((one_x >= 0) & (one_x < vocab_yz), embeds, 0)
+    # [batch, time, embed.X]
+    if one_d:
+      return embeds, sin, cos
     # [batch, time, embed.XY]
     embeds = lax.psum_scatter(embeds, 'y', scatter_dimension=2, tiled=True)
 
@@ -160,9 +166,39 @@ def xmap_embed(
   return embeds, sin, cos
 
 
+def unembed_manual(
+    xnorm,
+    params,
+    batch_unsharded = False,
+    one_d = False,
+):
+  """Unembedding function for 2D."""
+  # x: bfloat16[batch, maxlen, dmodel.X] # [vocab.YZ, embed.X]
+  # TODO(sholto): We could squeeze out more memory by doing this
+  # with a collective
+  with jax.named_scope('unembed'):
+    logits_unreduced = jnp.einsum(
+        'bte,ve->btv', jnp.float32(xnorm), jnp.float32(params.embedding)
+    )
+    # x: [batch, maxlen, vocab.YZ] {X unreduced}
+    if batch_unsharded or one_d:
+      # logits: float32[batch, maxlen, vocab.YZX]
+      logits = lax.psum_scatter(
+          logits_unreduced, 'x', scatter_dimension=2, tiled=True
+      )
+    else:
+      # logits: float32[batch.X, maxlen, vocab.YZ]
+      logits = lax.psum_scatter(
+          logits_unreduced, 'x', scatter_dimension=0, tiled=True
+      )
+  return logits
+
+
 # pylint: disable = g-doc-return-or-yield
 # pylint: disable = g-doc-args
 # TODO(sholto): Update to new, tested parsing collectives.
+
+
 def transformer_layer_weight_stationary(
     hparams,
     layer,
@@ -174,6 +210,40 @@ def transformer_layer_weight_stationary(
     x_axis,
     y_axis,
     z_axis,
+    *,
+    attn_all_to_all,
+    latency_collectives,
+    shard_seqlen_vs_batch = False,
+    batch_unsharded = False,
+    intermediate_dtype = jnp.bfloat16,
+):
+  """Wraps _fn so that we can use remat while bug is fixed."""
+  return jax.checkpoint(
+      partial(
+          _transformer_layer_weight_stationary,
+          attn_all_to_all=attn_all_to_all,
+          latency_collectives=latency_collectives,
+          shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+          batch_unsharded=batch_unsharded,
+          intermediate_dtype=intermediate_dtype,
+      ),
+      static_argnums=(0, 7, 8, 9),
+      prevent_cse=True,
+  )(hparams, layer, params, sin, cos, kv_caches, x, x_axis, y_axis, z_axis)
+
+
+def _transformer_layer_weight_stationary(
+    hparams,
+    layer,
+    params,
+    sin,
+    cos,
+    kv_caches,
+    x,
+    x_axis,
+    y_axis,
+    z_axis,
+    *,
     attn_all_to_all,
     latency_collectives,
     shard_seqlen_vs_batch = False,
@@ -189,6 +259,7 @@ def transformer_layer_weight_stationary(
   * kv_cache is sharded by batch.YZx (or batch.YZ or batch.Y as necessary)
   * x: [batch.Z, maxlen, embed.XY]
   """
+  intermediate_dtype = jax.core.concrete_or_error(None, intermediate_dtype)
   if latency_collectives:
     matmul_reducescatter = partial(
         collectives.matmul_reducescatter_latency, subsplit_axis=2)
@@ -198,16 +269,9 @@ def transformer_layer_weight_stationary(
     matmul_allgather = partial(
         collectives.allgather_matmul_latency, subsplit_axis=2)
   else:
-    if len(jax.local_devices()) <= 32:
-      matmul_reducescatter = collectives.matmul_reducescatter_oneway
-      # reducescatter = collectives.reducescatter_oneway
-      matmul_allgather = collectives.allgather_matmul_one_way
-    else:
-      matmul_reducescatter = partial(
-          collectives.matmul_reducescatter_throughput, subsplit_axis=0)
-      # reducescatter = collectives.reducescatter_throughput
-      matmul_allgather = partial(
-          collectives.allgather_matmul_throughput, subsplit_axis=2)
+    matmul_reducescatter = collectives.matmul_reducescatter_oneway
+    # reducescatter = collectives.reducescatter_oneway
+    matmul_allgather = collectives.allgather_matmul_one_way
 
   def my_layer(t, axis=0):
     """Gets the parameters corresponding to a given layer."""
@@ -224,7 +288,10 @@ def transformer_layer_weight_stationary(
     batch = batch_z
     batch_xyz = batch // (x_axis * y_axis * z_axis)
   else:
-    batch = batch_z * z_axis
+    if batch_unsharded:
+      batch = x.shape[0]
+    else:
+      batch = batch_z * z_axis
     batch_xyz = batch // (x_axis * y_axis * z_axis)
     batch_yz = batch // (y_axis * z_axis)
     batch_z = batch // (z_axis)
@@ -262,8 +329,8 @@ def transformer_layer_weight_stationary(
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled
-    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
-    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // hparams.heads):]
+    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads))]  # pylint: disable = line-too-long
+    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads)):]  # pylint: disable = line-too-long
 
   # einsum(xnorm, kv):
   #
@@ -437,7 +504,6 @@ def transformer_layer_weight_stationary(
   with jax.named_scope('residual'):
     z = intermediate_dtype(y_out + x)
 
-  # [batch.Z, maxlen, embed.XY] || [batch, maxlen, embed.XYZ]
   k, v = k.astype(intermediate_dtype), v.astype(intermediate_dtype)
   return z, k, v
 
@@ -478,8 +544,8 @@ def transformer_layer_weight_gathered(
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled
-    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
-    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // hparams.heads):]
+    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads))]  # pylint: disable = line-too-long
+    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads)):]  # pylint: disable = line-too-long
 
     # kv is only batch sharded
     with jax.named_scope('kv'):

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ if __name__ == "__main__":
       print(exc)
 
   gen_freq = 10
-  gen_ts_len = 1000
+  gen_ts_len = 2000
 
   data_path = os.path.join(parent_dir, "data")
   if not os.path.exists(data_path):

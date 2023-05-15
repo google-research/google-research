@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ def sm3(
     def _init(param):
       accumulators = [jnp.zeros([s]) for s in param.shape]
       momentum = _quantize_momentum(jnp.zeros_like(param))
-      return ParameterStats(accumulators, momentum)
+      return ParameterStats(accumulators, momentum)  # pytype: disable=wrong-arg-types  # numpy-scalars
 
     return SM3State(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))

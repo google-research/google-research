@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -152,7 +152,7 @@ def gradient_o1(field, h):
 
 def termial(n):
   """Return the sum of i from i=1 to n."""
-  return n * (n + 1) // 2
+  return n * (n + 1) // 2  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def _get_xy_stencil(neighborhood_size):

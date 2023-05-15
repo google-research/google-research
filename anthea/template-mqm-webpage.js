@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2023 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -62,6 +62,11 @@ antheaTemplates['MQM-WebPage'] = {
   },
 
   /**
+   * @const {string} Template version identifier.
+   */
+  VERSION: 'v1.00-Feb-13-2023',
+
+  /**
    * @const {number} Allow marking at most these many errors per segment. If
    *     set to 0, then no limit is imposed.
    */
@@ -80,12 +85,6 @@ antheaTemplates['MQM-WebPage'] = {
    *     auto-append the lists of errors/severities to the instructions.
    */
   SKIP_RATINGS_TABLES: false,
-
-  /**
-   * @const {boolean} Set this to true if you want the error span to be
-   *     marked before the severity level is picked.
-   */
-  MARK_SPAN_FIRST: false,
 
   /**
    * @const {boolean} Set this to true if you want to allow error spans to

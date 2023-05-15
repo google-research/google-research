@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 """Scaling law estimator M5.
 """
+from typing import Optional
 
 import numpy as np
 import sklearn.linear_model
@@ -28,9 +29,18 @@ EPS = 1e-5
 class Estimator(base.M):
   """Scaling law estimator M4."""
 
-  def __init__(self, loss_values, c=-0.5, err_inf=None, err_0=1.0,
-               update_c=True, update_err_inf=True, update_err_0=True,
-               update_alpha=True, lo_bound=0., up_bound=None):
+  def __init__(self,
+               loss_values,
+               c = -0.5,
+               err_inf = None,
+               err_0 = 1.0,
+               update_c = True,
+               update_err_inf = True,
+               update_err_0 = True,
+               update_alpha = True,
+               lo_bound = 0.,
+               up_bound = None
+               ):
     """Constructor.
 
     Args:
@@ -48,8 +58,12 @@ class Estimator(base.M):
       lo_bound: lower bound on error/loss. Default is zero.
       up_bound: upper bound on error/loss. Default is None.
     """
-    super(Estimator, self).__init__(loss_values, c, err_inf,
-                                    update_c, update_err_inf, lo_bound,
+    super(Estimator, self).__init__(loss_values,
+                                    c,
+                                    err_inf,
+                                    update_c,
+                                    update_err_inf,
+                                    lo_bound,
                                     up_bound)
 
     self.err_0 = err_0 if err_0 is not None else self.max_err
@@ -93,7 +107,7 @@ class Estimator(base.M):
     """Vectorized implementation of g."""
     return (self.y - self.err_inf) / ((self.err_0 - self.y) ** self.alpha)
 
-  def predict_loss(self, data_size, prec=10_000):
+  def predict_loss(self, data_size, prec = 10_000):
     """Estimate the loss given the data size.
 
     Here is how we calculate it:
@@ -141,7 +155,7 @@ class Estimator(base.M):
     grad_0 = - self.alpha * np.mean(residual / (self.err_0 - self.y))
     return grad_inf, grad_0
 
-  def _update_errs(self, lr=1e-8, epochs=1000):
+  def _update_errs(self, lr = 1e-8, epochs = 1000):
     """Update err_inf and err_0 using gradient descent."""
     for _ in range(epochs):
       grad_inf, grad_0 = self._grad()
@@ -152,7 +166,7 @@ class Estimator(base.M):
         self.err_0 -= lr * grad_0
       self._project()
 
-  def _update_errs_hessian(self, lr=0.1, epochs=100):
+  def _update_errs_hessian(self, lr = 0.1, epochs = 100):
     """Update estimate of err_inf and err_0 using Newton's method."""
     for _ in range(epochs):
       grad_inf, grad_0 = self._grad()
@@ -168,6 +182,7 @@ class Estimator(base.M):
     """Update estimates of alpha, beta and c using linear regression."""
     clf = sklearn.linear_model.LinearRegression(
         fit_intercept=False, positive=True)
+
     if self.update_alpha:
       labels = np.log(self.y - self.err_inf)
       clf.fit(self.A, labels)
@@ -182,8 +197,13 @@ class Estimator(base.M):
     self.beta = np.exp(log_beta)
 
   def estimate_scaling_params(self,
-                              max_iterations=10_000, verbose=True,
-                              lr=1e-8, epochs=1000, grad_iters=100, stop=1e-10):
+                              max_iterations = 10_000,
+                              verbose = True,
+                              lr = 1e-8,
+                              epochs = 1000,
+                              grad_iters = 100,
+                              stop = 1e-10
+                              ):
     """Estimate scaling law parameters.
 
     We first estimate parameters using gradient descent for a few epochs before

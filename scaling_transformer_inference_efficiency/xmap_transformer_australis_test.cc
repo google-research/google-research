@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2023 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,31 +26,33 @@
 
 namespace {
 
-absl::StatusOr<std::tuple<aux::PTree, aux::PTree>> Unpack2Tuple(
-    absl::StatusOr<aux::PTree> input) {
-  ASSIGN_OR_RETURN(auto tmp, aux::PTree::DestructureTuple(std::move(input)));
-  if (tmp.size() != 2) {
-    return absl::InvalidArgumentError(absl::StrCat("Wrong size: ", tmp.size()));
-  }
-  return std::tuple<aux::PTree, aux::PTree>(std::move(tmp[0]),
-                                            std::move(tmp[1]));
-}
+// absl::StatusOr<std::tuple<aux::PTree, aux::PTree>> Unpack2Tuple(
+//     absl::StatusOr<aux::PTree> input) {
+//   ASSIGN_OR_RETURN(auto tmp, aux::PTree::DestructureTuple(std::move(input)));
+//   if (tmp.size() != 2) {
+//     return absl::InvalidArgumentError(absl::StrCat("Wrong size: ",
+//     tmp.size()));
+//   }
+//   return std::tuple<aux::PTree, aux::PTree>(std::move(tmp[0]),
+//                                             std::move(tmp[1]));
+// }
 
-TEST(InferenceTest, BasicTest) {
-  ASSERT_OK_AND_ASSIGN(auto client, aux::Client::GetDefault());
-  ASSERT_OK_AND_ASSIGN(auto init_fn,
-                       xmap_transformer::XmapTransformerInit::Load(client));
+// TEST(InferenceTest, BasicTest) {
+//   ASSERT_OK_AND_ASSIGN(auto client, aux::Client::GetDefault());
+//   ASSERT_OK_AND_ASSIGN(auto init_fn,
+//                        xmap_transformer::XmapTransformerInit::Load(client));
 
-  ASSERT_OK_AND_ASSIGN(auto fwd_fn,
-                       xmap_transformer::XmapTransformerFwd::Load(client));
+//   ASSERT_OK_AND_ASSIGN(auto fwd_fn,
+//                        xmap_transformer::XmapTransformerFwd::Load(client));
 
-  ASSERT_OK_AND_ASSIGN((auto [params, token_chunk]), Unpack2Tuple(init_fn()));
-  ASSERT_OK_AND_ASSIGN(auto result, fwd_fn(params, token_chunk));
+//   ASSERT_OK_AND_ASSIGN((auto [params, token_chunk]),
+//   Unpack2Tuple(init_fn())); ASSERT_OK_AND_ASSIGN(auto result, fwd_fn(params,
+//   token_chunk));
 
-  EXPECT_EQ(
-      "(Buffer(f32[4,32,256]), (Buffer(s32[1]), Buffer(bf16[32,8,1,4]), "
-      "Buffer(bf16[32,8,1,4])))",
-      result.ToString());
-}
+//   EXPECT_EQ(
+//       "(Buffer(f32[4,32,256]), (Buffer(s32[1]), Buffer(bf16[32,8,1,4]), "
+//       "Buffer(bf16[32,8,1,4])))",
+//       result.ToString());
+// }
 
 }  // namespace

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ the objective of unlearning (eq 1 in the paper) upon correspondence with the
 authors
 """
 
-from typing import Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 import gin
 import jax
@@ -32,7 +32,7 @@ from t5x import models
 
 
 MetricsMap = metrics_lib.MetricsMap
-PyTreeDef = type(jax.tree_util.tree_structure(None))
+PyTree = Any
 
 
 @gin.configurable(module='prior_unlearn')

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 """Manual collectives which use bidirectional ICI and fully overlap compute."""
 
-from typing import Optional
+from typing import Optional, Union, Tuple
 import jax
 from jax import lax
 import jax.numpy as jnp
@@ -68,12 +68,14 @@ def dynamic_index_and_slice(
     slice_axis,
     slice_start,
     slice_length,
-    x):
+    x,
+):
   """Helper for layer-indexing and slicing out chunks of layer-stacked weights.
 
   Args:
     index_axis: the stacked layer axis
-    index: the stacked layer index
+    index: the stacked layer index. If not provided we just slice without
+      indexing.
     slice_axis: the axis to slice a chunk from
     slice_start: the chunk index
     slice_length: the chunk size
@@ -82,15 +84,20 @@ def dynamic_index_and_slice(
   Returns:
     The squashed layer slice with a chunk extracted.
   """
-  assert index_axis != slice_axis, f'{index_axis} != {slice_axis}'
+  assert (
+      index is None or index_axis != slice_axis
+  ), f'{index_axis} != {slice_axis}'
   sizes = list(x.shape)
   starts = [0] * len(sizes)
-  starts[index_axis] = index
+  if index is not None:
+    starts[index_axis] = index
   starts[slice_axis] = slice_start
-  sizes[index_axis] = 1
+  if index is not None:
+    sizes[index_axis] = 1
   sizes[slice_axis] = slice_length
   x = lax.dynamic_slice(x, starts, sizes)
-  x = lax.squeeze(x, [index_axis])
+  if index is not None:
+    x = lax.squeeze(x, [index_axis])
   return x
 
 
@@ -438,13 +445,15 @@ def matmul_reducescatter_no_collective(
   return result
 
 
-def matmul_reducescatter_oneway(einsum_spec,
-                                lhs,
-                                rhs,
-                                scatter_axis,
-                                axis_name,
-                                layer,
-                                layer_axis=0):
+def matmul_reducescatter_oneway(
+    einsum_spec,
+    lhs,
+    rhs,
+    scatter_axis,
+    axis_name,
+    layer,
+    layer_axis=0,
+):
   """Uses a single ICI direction, overlapped weight stationary reduce scatter.
 
   Usage:
@@ -461,7 +470,7 @@ def matmul_reducescatter_oneway(einsum_spec,
     scatter_axis: The rhs scatter axis.
     axis_name: The hardware axis along which we are reducing
     layer: Weights are stored with layer as the first dimension, index of the
-      layer
+      layer. If not provided we skip indexing and use the weights as is.
     layer_axis: Which axis is the layer dimension
 
   Returns:
@@ -472,13 +481,18 @@ def matmul_reducescatter_oneway(einsum_spec,
   axis_size = lax.psum(1, axis_name)
   axis_index = lax.axis_index(axis_name)
   rhs_scatter_axis = scatter_axis
-  if rhs_scatter_axis >= layer_axis:
+  if rhs_scatter_axis >= layer_axis and layer is not None:
     rhs_scatter_axis += 1
 
   permutes_remaining = axis_size - 1
 
   chunk_index = (axis_index + permutes_remaining) % axis_size
   chunk_size = rhs.shape[rhs_scatter_axis] // axis_size
+  if chunk_size == 0:
+    # Scatter axis size was smaller than axis size.
+    # Can't scatter so all reduce.
+    out = jnp.einsum(einsum_spec, lhs, rhs)
+    return lax.psum(out, axis_name)
   first_chunk = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
                                         chunk_index * chunk_size, chunk_size,
                                         rhs)

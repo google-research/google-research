@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ from spin_spherical_cnns import sphere_utils
 from spin_spherical_cnns import spin_spherical_harmonics
 
 Array = Union[np.ndarray, jnp.ndarray]
+TransformerModule = spin_spherical_harmonics.SpinSphericalFourierTransformer
 
 
 @functools.lru_cache()
@@ -120,8 +121,13 @@ def get_spin_spherical(
     coefficients = coefficients.at[:, :abs(spin), :, i].set(0.0)
 
   # Convert to spatial domain.
+  variables = transformer.init(jax.random.PRNGKey(0))
+  def backward_transform(coefficients, spins):
+    return transformer.apply(
+        variables, coefficients, spins,
+        method=TransformerModule.swsft_backward_spins_channels)
   batched_backward_transform = jax.vmap(
-      transformer.swsft_backward_spins_channels, in_axes=(0, None))
+      backward_transform, in_axes=(0, None))
   sphere = batched_backward_transform(coefficients, spins)
 
   return sphere, coefficients
@@ -154,9 +160,14 @@ def get_rotated_pair(
   # Rotate in the spectral domain and invert again.
   rotated_coefficients = rotate_coefficients(coefficients, alpha, beta, gamma)
 
+  variables = transformer.init(jax.random.PRNGKey(0))
+  def backward_transform(coefficients, spins):
+    return transformer.apply(
+        variables, coefficients, spins,
+        method=TransformerModule.swsft_backward_spins_channels)
+
   # Convert to spatial domain.
-  batched_backward_transform = jax.vmap(
-      transformer.swsft_backward_spins_channels, in_axes=(0, None))
+  batched_backward_transform = jax.vmap(backward_transform, in_axes=(0, None))
   rotated_sphere = batched_backward_transform(rotated_coefficients, spins)
 
   return RotatedPair(coefficients, sphere,
@@ -212,8 +223,13 @@ def apply_model_to_rotated_pairs(
     output, _ = output
     rotated_output, _ = rotated_output
 
-  batched_transform = jax.vmap(transformer.swsft_forward_spins_channels,
-                               in_axes=(0, None))
+  variables = transformer.init(jax.random.PRNGKey(0))
+  def forward_transform(sphere, spins):
+    return transformer.apply(
+        variables, sphere, spins,
+        method=TransformerModule.swsft_forward_spins_channels)
+
+  batched_transform = jax.vmap(forward_transform, in_axes=(0, None))
 
   coefficients = batched_transform(output, spins)
   rotated_coefficients_1 = rotate_coefficients(

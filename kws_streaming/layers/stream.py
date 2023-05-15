@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -120,6 +120,9 @@ class Stream(tf.keras.layers.Layer):
 
     if pad_freq_dim not in ['same', 'valid']:
       raise ValueError(f'Unsupported padding in frequency, `{pad_freq_dim}`.')
+    if isinstance(cell, dict):
+      # Ensure deserialization of Keras layer prior to inference
+      cell = tf.keras.layers.deserialize(cell)
 
     self.cell = cell
     self.inference_batch_size = inference_batch_size
@@ -276,6 +279,9 @@ class Stream(tf.keras.layers.Layer):
     return self.stride
 
   def build(self, input_shape):
+    if not isinstance(input_shape, tf.TensorShape):
+      # Ensure input_shape is TensorShape
+      input_shape = tf.TensorShape(input_shape)
     super(Stream, self).build(input_shape)
 
     wrapped_cell = self.get_core_layer()
