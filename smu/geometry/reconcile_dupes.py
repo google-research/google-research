@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Parse output of topology_from_geom.
 
 Process records with dupl.
@@ -35,7 +34,7 @@ topologies.
 
 Input looks like:
 
-Smiles,StartSmi,molecule_id,NBts,IsStart
+Smiles,StartSmi,mol_id,NBts,IsStart
 CCC1=NNNN1,CCC1=NNNN1,6104990001,1,True
 CC(N)C(N)NN,CC(N)C(N)NN,6103750002,1,True
 
@@ -107,7 +106,7 @@ def reconcile_dupes(unused_argv):
   del df_list
   logging.info(data.shape)
 
-  # Convert molecule_ids to bond_topology_id by dividing by 1000
+  # Convert mol_ids to topo_id by dividing by 1000
   # Expect many dupes to be overwritten here.
   smiles_to_id = {k: v for k, v in zip(data["StartSmi"], data["id"] // 1000)}
 
@@ -148,6 +147,7 @@ def reconcile_dupes(unused_argv):
   logging.info("%d of %d items have different ring membership",
                different_ring_membership, interesting.shape[0])
   logging.info("%d items had unrecognised smiles", no_smiles)
+
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("input")

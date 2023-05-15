@@ -1,19 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +42,7 @@ import csv
 import itertools
 import math
 import os.path
-from typing import Dict, Optional, cast
+from typing import Dict, cast
 
 from absl import logging
 import numpy as np
@@ -80,6 +66,7 @@ STANDARD_UNBONDED_RIGHT_TAIL_MASS = 0.9
 
 
 class BondLengthParseError(Exception):
+  """Exception for error in parsing user defined bond lengths."""
 
   def __init__(self, term):
     super().__init__(term)
@@ -96,10 +83,10 @@ def interpolate_zeros(values):
   """For each zero value in `values` replace with an interpolated value.
 
   Args:
-   values: an array that may contain zeros.
+    values: an array that may contain zeros.
 
   Returns:
-   An array that contains no zeros.
+    An array that contains no zeros.
   """
   xvals = np.nonzero(values)[0]
   yvals = values[xvals]
@@ -154,8 +141,7 @@ class FixedWindow(LengthDistribution):
   pdf is continuous at the maximum value.
   """
 
-  def __init__(self, minimum, maximum,
-               right_tail_mass):
+  def __init__(self, minimum, maximum, right_tail_mass):
     """Construct a FixedWindow.
 
     Args:
@@ -359,6 +345,9 @@ class Empirical(LengthDistribution):
 
     Returns:
       Empirical
+
+    Raises:
+      ValueError: on bad input
     """
     bucket_size = np.float_power(10, -sig_digits)
     input_lengths = df_input['length_str'].astype(np.double)
@@ -450,6 +439,9 @@ class Mixture(LengthDistribution):
     Args:
       dist: LengthDistribution
       weight: weight strictly > 0
+
+    Raises:
+      ValueError: on invalid weights
     """
     if weight <= 0.0:
       raise ValueError(f'Mixture: weight must be positive, got {weight}')
@@ -464,6 +456,9 @@ class Mixture(LengthDistribution):
 
     Returns:
       pdf value
+
+    Raises:
+      ValueError: if mixture has no components
     """
     if not self._dists:
       raise ValueError('Mixture.pdf called with empty components')
@@ -488,8 +483,7 @@ class AtomPairLengthDistributions:
     self._bond_type_map: Dict['dataset_pb2.BondTopology.BondType',
                               LengthDistribution] = {}
 
-  def add(self, bond_type,
-          dist):
+  def add(self, bond_type, dist):
     """Adds a LengthDistribution for a given bond type.
 
     Args:
@@ -513,8 +507,7 @@ class AtomPairLengthDistributions:
     """
     return key in self._bond_type_map.keys()
 
-  def probability_of_bond_types(
-      self, length):
+  def probability_of_bond_types(self, length):
     """Computes probability of bond types given a length.
 
     Only bond types with non zero probability at that length are returned.
@@ -585,10 +578,7 @@ class AllAtomPairLengthDistributions:
   def __init__(self):
     self._atom_pair_dict = {}
 
-  def add(self, atom_a,
-          atom_b,
-          bond_type,
-          dist):
+  def add(self, atom_a, atom_b, bond_type, dist):
     """Adds a distribution of the atom pair and bond type.
 
     Args:
@@ -773,6 +763,9 @@ class AllAtomPairLengthDistributions:
 
     Args:
       spec_string: string
+
+    Raises:
+      BondLengthParseError: if spec_string is misformatted
     """
     if not spec_string:
       return
@@ -810,20 +803,14 @@ class AllAtomPairLengthDistributions:
         smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a],
         smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b])]
 
-  def pdf_length_given_type(self, atom_a,
-                            atom_b,
-                            bond_type,
-                            length):
+  def pdf_length_given_type(self, atom_a, atom_b, bond_type, length):
     """p(length | atom_a, atom_b, bond_type)."""
     atom_a = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_a]
     atom_b = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[atom_b]
 
     return self._atom_pair_dict[(atom_a, atom_b)][bond_type].pdf(length)
 
-  def probability_of_bond_types(
-      self, atom_a,
-      atom_b,
-      length):
+  def probability_of_bond_types(self, atom_a, atom_b, length):
     """P(bond_type | atom_a, atom_b, length).
 
     See AtomPairLengthDistributions.probability_of_bond_type for details.
@@ -918,7 +905,7 @@ def is_valid_bond(atom_a, atom_b, bond):
           bond_order <= smu_utils_lib.ATOM_TYPE_TO_MAX_BONDS_ANY_FORM[atom_b])
 
 
-_ITC_H_BOND_MIN_MAX = {
+_DDT_H_BOND_MIN_MAX = {
     dataset_pb2.BondTopology.ATOM_H: (0.54, 0.94),
     dataset_pb2.BondTopology.ATOM_C: (0.89, 1.29),
     dataset_pb2.BondTopology.ATOM_N: (0.81, 1.21),
@@ -933,7 +920,7 @@ def add_itc_h_lengths(dists):
   Args:
     dists: AllAtomPairLengthDistributions
   """
-  for atom, (mn, mx) in _ITC_H_BOND_MIN_MAX.items():
+  for atom, (mn, mx) in _DDT_H_BOND_MIN_MAX.items():
     dists.add(atom, dataset_pb2.BondTopology.ATOM_H,
               dataset_pb2.BondTopology.BOND_SINGLE, FixedWindow(mn, mx, None))
 
@@ -1066,7 +1053,13 @@ def make_csd_dists():
               _COVALENT_RADIUS[atom_a] + _COVALENT_RADIUS[atom_b] +
               _COVALENT_RADII_TOLERANCE)
         dists.add(atom_a, atom_b, bond, FixedWindow(mn, mx, None))
-        max_dist = max(max_dist, mx)
+        # Weird special case! The CSD dist doesn't have a O=O
+        # But we want the unbonded distance to start from the single bond max
+        # So we just exclude that one case.
+        if (not (atom_a == dataset_pb2.BondTopology.ATOM_O and
+                 atom_b == dataset_pb2.BondTopology.ATOM_O and
+                 bond == dataset_pb2.BondTopology.BOND_DOUBLE)):
+          max_dist = max(max_dist, mx)
 
     assert np.isfinite(max_dist)
     # We are creating unbonded distances that don't overlap at all with the

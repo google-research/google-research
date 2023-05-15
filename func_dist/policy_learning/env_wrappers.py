@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -254,7 +254,7 @@ class DistanceModelWrapper(wrappers.EnvironmentWrapper):
   def observation_spec(self):
     return self._observation_spec
 
-  def reward_spec(self):
+  def reward_spec(self):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     return self._reward_spec
 
   def _update_spec(self, base_spec

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ def generate(grid_size=3, num_paths=5, num_classes=10,
     image, label = _generate_image(grid_size, num_paths, num_classes)
   else:
     # Make a trivial example with only a start pixel in a corner, and label 0.
-    image = np.zeros((grid_size, grid_size), dtype=np.int)
+    image = np.zeros((grid_size, grid_size), dtype=int)
     image[0, 0] = START_COLOR_ID
     label = 0
 

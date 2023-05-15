@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ def modularity(adjacency, clusters):
 def conductance(adjacency, clusters):  # TODO(tsitsulin): add docstring pylint: disable=missing-function-docstring
   inter = 0
   intra = 0
-  cluster_idx = np.zeros(adjacency.shape[0], dtype=np.bool)
+  cluster_idx = np.zeros(adjacency.shape[0], dtype=bool)
   for cluster_id in np.unique(clusters):
     cluster_idx[:] = 0
     cluster_idx[np.where(clusters == cluster_id)[0]] = 1

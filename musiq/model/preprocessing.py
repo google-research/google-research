@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 
 from typing import List, Optional, Tuple, Union
 
-from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow.compat.v2 as tf2
@@ -329,14 +328,12 @@ def get_preprocess_fn(**preprocessing_kwargs):
                        'not %s' % str(type(data)))
 
     # Apply all the individual steps in sequence.
-    logging.info('Data before pre-processing:\n%s', data)
     image = data['image']
     image = decode_image(image)
     image = normalize_value_range(image)
     image = get_multiscale_patches(image, **preprocessing_kwargs)
 
     data['image'] = image
-    logging.info('Data after pre-processing:\n%s', data)
     return data
 
   return _preprocess_fn

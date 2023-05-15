@@ -1,3 +1,5 @@
+# Documentation
+
 The active learning cycle is defined by a single configuration file. Simply pass
 the configuration to the module to run. It is possible to override configuration
 parameters on the command line (via ConfigDict flags).
@@ -69,3 +71,10 @@ python3 -m al_for_fep.single_cycle_main
   --cycle_config.training_pool al_for_fep/data/testdata/initial_training_set.csv
   --cycle_config.virtual_library=al_for_fep/data/testdata/virtual_library.csv
 ```
+
+# Citation
+
+Please refer to the following paper to read more about applying active learning
+to free energy calculations:
+
+* James Thompson, W. Patrick Walters, Jianwen A. Feng, Nicolas A. Pabon, Hongcheng Xu, Brian B. Goldman, Demetri Moustakas, Molly Schmidt, and Forrest York. Optimizing Active Learning for Free Energy Calculations. Artificial Intelligence in the Life Sciences (2022): 100050. [![DOI for Citing](https://img.shields.io/badge/DOI-10.1016%2Fj.ailsci.2022.10050-green.svg)](https://doi.org/10.1016/j.ailsci.2022.100050)

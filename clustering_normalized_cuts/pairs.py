@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -196,7 +196,7 @@ def create_pairs_from_unlabeled_data(x1,
     except Exception as e:
       print(idx[i, Ellipsis], new_idx.shape, idx.shape)
       raise e
-  idx = new_idx.astype(np.int)
+  idx = new_idx.astype(int)
   k_max = min(idx.shape[1], k + 1)
 
   if verbose:
@@ -260,7 +260,7 @@ def create_pairs_from_unlabeled_data(x1,
     ret.append(np.array(pairs2).reshape((len(pairs2), 2) + x2.shape[1:]))
   ret.append(np.array(labels))
   if y is not None:
-    true = np.array(true).astype(np.int).reshape(-1, 1)
+    true = np.array(true).astype(int).reshape(-1, 1)
     if verbose:
       # if true vectors are provided, we can take a peek to check
       # the validity of our kNN approximation

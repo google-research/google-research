@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -452,7 +452,7 @@ class LayerwiseModel(common_ht.Model):
     self.fe_dropout = model_config.fe_dropout
     self.model_config = model_config
 
-  def train(self,
+  def train(self,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
             inputs,
             labels,
             mask = None,
@@ -514,7 +514,7 @@ class LayerwiseModel(common_ht.Model):
         head_weight_blocks=all_head_blocks,
         shared_features=shared_features)
 
-  def evaluate(self,
+  def evaluate(self,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
                inputs,
                weight_blocks,
                training = True):

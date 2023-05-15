@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ class EncoderConvLSTM(nn.Module):
   encoding_dim: int
 
   def setup(self):
-    self.convlstm = nn.ConvLSTM(self.features, self.kernel_shape)
+    self.convlstm = nn.ConvLSTMCell(self.features, self.kernel_shape)
     self.encoding_layer = nn.Dense(self.encoding_dim)
 
   def __call__(self, inputs):

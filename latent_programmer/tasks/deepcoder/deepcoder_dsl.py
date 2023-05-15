@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ Features:
           * Check to make sure the random program doesn't have dead code
       * Generate random inputs for a program
       * Ways of generating compositional generalization splits
-  * A flag controlling whether we use mod-10 arithmetic or not
 
 Helpful properties to know:
 
@@ -67,23 +66,29 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 from absl import flags
 
-_DEEPCODER_MOD = flags.DEFINE_integer(
-    'deepcoder_mod', 0,
-    'The modulo we use for DeepCoder arithmetic, or 0 to not apply any mod.')
-
 _DEEPCODER_MAX_LIST_LENGTH = flags.DEFINE_integer(
     'deepcoder_max_list_length', 20,
     'The maximum length of a DeepCoder list input.')
 
-
-def deepcoder_mod():
-  """Hides the internal flag from code outside this module."""
-  return _DEEPCODER_MOD.value
+_DEEPCODER_MAX_INT = flags.DEFINE_integer(
+    'deepcoder_max_int', 256,
+    'The maximum value of a DeepCoder int.')
 
 
 def deepcoder_max_list_length():
   """Hides the internal flag from code outside this module."""
   return _DEEPCODER_MAX_LIST_LENGTH.value
+
+
+def deepcoder_max_int():
+  """Hides the internal flag from code outside this module."""
+  return _DEEPCODER_MAX_INT.value
+
+
+def deepcoder_min_int():
+  # Originally DeepCoder used the range [-255, 256] where the endpoints are
+  # asymmetric. We use symmetric endpoints here.
+  return -1 * deepcoder_max_int()
 
 
 # Types for type specifications, e.g., `([int], bool)` has type LambdaType and
@@ -94,9 +99,6 @@ LambdaType = Tuple[InputsType, OutputType]
 
 # A type for the result of applying any operation.
 ResultType = Union[int, List[int]]
-
-MIN_INT = -256
-MAX_INT = 255
 
 
 def variable_token(index):
@@ -158,26 +160,9 @@ def join_token_lists(token_lists,
   return functools.reduce(lambda a, b: a + [separator_token] + b, token_lists)
 
 
-def mod_result(result):
-  """If desired, apply mod to ints."""
-  if result is None:
-    return result
-  if deepcoder_mod() > 0:
-    result_type = type(result)
-    if result_type == int:
-      return result % deepcoder_mod()
-    elif result_type == list:
-      return [x % deepcoder_mod() for x in result]
-    else:
-      raise DeepCoderError(f'Unhandled result in mod_result: {result}')
-  return result
-
-
 def validate_int(i):
   """Checks that the integer is in range."""
-  if deepcoder_mod() > 0:
-    return 0 <= i < deepcoder_mod()
-  return MIN_INT <= i <= MAX_INT
+  return deepcoder_min_int() <= i <= deepcoder_max_int()
 
 
 def validate_result(result):
@@ -205,6 +190,16 @@ def tokenize_result(result):
 
 def result_to_str(result):
   return ' '.join(tokenize_result(result))
+
+
+def str_to_result(result_str):
+  # If we find spaces surrounded by digits, place a comma there. This
+  # converts comma-less "[ 6 7 8 ]" into something parseable, "[ 6, 7, 8 ]".
+  result_str = re.sub(r'(?<=\d) +(?=-|\d)', ', ', result_str)
+  try:
+    return ast.literal_eval(result_str)
+  except (ValueError, SyntaxError):
+    return None
 
 
 class ProgramState(object):
@@ -282,15 +277,8 @@ class ProgramState(object):
       variable = lhs
       if variable in variables:
         raise ParseError(f'Found duplicate variable: {variable}')
-      # If we find spaces surrounded by digits, place a comma there. This
-      # converts comma-less "[ 6 7 8 ]" into something parseable, "[ 6, 7, 8 ]".
-      rhs = re.sub(r'(?<=\d) +(?=-|\d)', ', ', rhs)
-      try:
-        result = ast.literal_eval(rhs)
-        result_is_valid = validate_result(result)
-      except (ValueError, SyntaxError):
-        result = None
-        result_is_valid = False
+      result = str_to_result(rhs)
+      result_is_valid = validate_result(result)
       if not result_is_valid:
         raise ParseError(f'Found invalid result `{result}` from RHS {rhs!r}')
       state.append(result)
@@ -326,7 +314,6 @@ class Operation(Function):
     except TypeError as e:
       raise RunError(
           f'Encountered TypeError when running {self.func} on {inputs}') from e
-    result = mod_result(result)
     if not validate_result(result):
       return None
     return result
@@ -591,7 +578,9 @@ TOKEN_TO_OPERATION = {op.token: op for op in OPERATIONS}
 LAMBDAS_ONLY_MINUS_MIN = [TOKEN_TO_LAMBDA['(-)'], TOKEN_TO_LAMBDA['(min)']]
 OPERATIONS_ONLY_SCAN = [TOKEN_TO_OPERATION['Scanl1']]
 OPERATIONS_NO_SCAN = [op for op in OPERATIONS if op.token != 'Scanl1']
-
+FIRST_ORDER_AND_MAP = FIRST_ORDER_OPERATIONS + [TOKEN_TO_OPERATION['Map']]
+HIGHER_ORDER_NO_MAP = [op for op in HIGHER_ORDER_OPERATIONS
+                       if op.token != 'Map']
 
 PAD, BOS, EOS, SEP = '', '<BOS>', '<EOS>', '|'
 PAD_ID, BOS_ID, EOS_ID, SEP_ID = 0, 1, 2, 3
@@ -607,12 +596,8 @@ def vocab_tables():
 
   # These tokens may change based on flags or other settings.
   tokens.extend(variable_token(index) for index in range(MAX_NUM_VARIABLES))
-  if deepcoder_mod() > 0:
-    min_int = 0
-    max_int = deepcoder_mod() - 1
-  else:
-    min_int, max_int = MIN_INT, MAX_INT
-  tokens.extend(str(i) for i in range(min_int, max_int + 1))
+  tokens.extend(str(i)
+                for i in range(deepcoder_min_int(), deepcoder_max_int() + 1))
 
   # Construct mappings between tokens and ids.
   id_to_token = {i: token for i, token in enumerate(tokens)}

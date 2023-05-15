@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ def make_gaussian_log_prior(weight_decay, temperature):
     # likelihood function.
     n_params = sum([p.size for p in jax.tree_leaves(params)])
     log_prob = -(0.5 * tree_utils.tree_dot(params, params) * weight_decay +
-                 0.5 * n_params * jnp.log(weight_decay / (2 * math.pi)))
+                 0.5 * n_params * jnp.log((2 * math.pi) / weight_decay))
     return log_prob / temperature
 
   def log_prior_diff(params1, params2):

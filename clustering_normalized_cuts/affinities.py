@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ def knn_affinity(input_x,
   Returns:
     n x n affinity matrix
   """
-  if isinstance(n_nbrs, np.float):
+  if isinstance(n_nbrs, float):
     n_nbrs = int(n_nbrs)
   elif isinstance(n_nbrs,
                   tf.Variable) and n_nbrs.dtype.as_numpy_dtype != np.int32:

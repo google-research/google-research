@@ -1,19 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,6 +59,7 @@ class OutputFormat(enum.Enum):
   SDF_INIT_OPT = 4
   ATOMIC2_INPUT = 5
   DAT = 6
+  CLEAN_TEXT = 7
 
 
 flags.DEFINE_string(
@@ -108,7 +95,6 @@ flags.DEFINE_enum_class(
     'to match. For sdf and atomic2_input output formats, it specifies which bond '
     'topologies should be returned:\n '
     '"all" means all topologies,\n '
-    '"best" means a single best topology,\n '
     '"starting" means the single topology used for the calculations,\n '
     '"itc" means all topologies detected with our original bond lengths,\n '
     '"mlcr" means all topologies using very permissive covalent radii\n '
@@ -171,7 +157,7 @@ def smarts_query(db, smarts, which_topologies, outputter):
     return
 
   logging.info('Starting SMARTS query "%s"', smarts)
-  bt_ids = list(db.find_bond_topology_id_by_smarts(smarts))
+  bt_ids = list(db.find_topo_id_by_smarts(smarts))
 
   logging.info('SMARTS query "%s" produced bond topology %d results', smarts,
                len(bt_ids))
@@ -191,7 +177,7 @@ def smarts_query(db, smarts, which_topologies, outputter):
   for batch_idx in range(len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1):
     logging.info('Starting batch %d / %d', batch_idx,
                  len(bt_ids) // _SMARTS_BT_BATCH_SIZE + 1)
-    for c in db.find_by_bond_topology_id_list(
+    for c in db.find_by_topo_id_list(
         bt_ids[batch_idx * _SMARTS_BT_BATCH_SIZE:(batch_idx + 1) *
                _SMARTS_BT_BATCH_SIZE], which_topologies):
       count += 1
@@ -234,6 +220,7 @@ class PBTextOutputter:
     print('}', file=self.outfile)
 
   def close(self):
+    """Closes all resources."""
     self.outfile.close()
 
 
@@ -248,8 +235,8 @@ class SDFOutputter:
 
     Args:
       output_path: file path to write to
-      init_geometry: bool, whether to write with initial_geometries
-      opt_geometry: bool, whether to write with optimized_geometry
+      init_geometry: bool, whether to write with ini_geo
+      opt_geometry: bool, whether to write with opt_geo
       which_topologies: string, which topologies to return
     """
     self.init_geometry = init_geometry
@@ -274,6 +261,7 @@ class SDFOutputter:
       self.writer.write(mol)
 
   def close(self):
+    """Closes all resources."""
     self.writer.close()
 
 
@@ -301,7 +289,7 @@ class Atomic2InputOutputter:
     Args:
       molecule:
     """
-    for bt_idx, _ in smu_utils_lib.iterate_bond_topologies(
+    for bt_idx, bt in smu_utils_lib.iterate_bond_topologies(
         molecule, self.which_topologies):
       if self.output_path is None:
         sys.stdout.write(self.atomic2_writer.process(molecule, bt_idx))
@@ -312,8 +300,16 @@ class Atomic2InputOutputter:
                 self.atomic2_writer.get_filename_for_atomic2_input(
                     molecule, bt_idx)), 'w') as f:
           f.write(self.atomic2_writer.process(molecule, bt_idx))
+        if bt.info & dataset_pb2.BondTopology.SOURCE_STARTING:
+          with open(
+              os.path.join(
+                  self.output_path,
+                  self.atomic2_writer.get_filename_for_atomic2_input(
+                      molecule, None)), 'w') as f:
+            f.write(self.atomic2_writer.process(molecule, bt_idx))
 
   def close(self):
+    """Closes all resources."""
     pass
 
 
@@ -341,6 +337,35 @@ class DatOutputter:
     self.outfile.write(self.writer.process_stage2_proto(molecule))
 
   def close(self):
+    """Closes all resources."""
+    self.outfile.close()
+
+
+class CleanTextOutputter:
+  """Internal class to write output as the the clean, human readable text."""
+
+  def __init__(self, output_path):
+    """Creates CleanTextOutputter.
+
+    Args:
+      output_path: file to write to
+    """
+    self.writer = smu_writer_lib.CleanTextWriter()
+    if output_path:
+      self.outfile = open(output_path, 'w')
+    else:
+      self.outfile = sys.stdout
+
+  def output(self, molecule):
+    """Writes a molecule.
+
+    Args:
+      molecule: dataset_pb2.Molecule
+    """
+    self.outfile.write(self.writer.process(molecule))
+
+  def close(self):
+    """Closes all resources."""
     self.outfile.close()
 
 
@@ -365,15 +390,14 @@ class ReDetectTopologiesOutputter:
         matching_parameters=self._matching_parameters)
 
     if not matches.bond_topology:
-      logging.error('No bond topology matched for %s', molecule.molecule_id)
+      logging.error('No bond topology matched for %s', molecule.mol_id)
     else:
-      del molecule.bond_topologies[:]
-      molecule.bond_topologies.extend(matches.bond_topology)
-      for bt in molecule.bond_topologies:
-        bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
+      del molecule.bond_topo[:]
+      molecule.bond_topo.extend(matches.bond_topology)
+      for bt in molecule.bond_topo:
+        bt.info = dataset_pb2.BondTopology.SOURCE_CUSTOM
         try:
-          bt.bond_topology_id = self._db.find_bond_topology_id_for_smiles(
-              bt.smiles)
+          bt.topo_id = self._db.find_topo_id_for_smiles(bt.smiles)
         except KeyError:
           logging.error('Did not find bond topology id for smiles %s',
                         bt.smiles)
@@ -381,6 +405,7 @@ class ReDetectTopologiesOutputter:
     self._wrapped_outputter.output(molecule)
 
   def close(self):
+    """Closes all resources."""
     self._wrapped_outputter.close()
 
 
@@ -416,6 +441,8 @@ def main(argv):
     outputter = Atomic2InputOutputter(FLAGS.output_path, FLAGS.which_topologies)
   elif FLAGS.output_format == OutputFormat.DAT:
     outputter = DatOutputter(FLAGS.output_path)
+  elif FLAGS.output_format == OutputFormat.CLEAN_TEXT:
+    outputter = CleanTextOutputter(FLAGS.output_path)
   else:
     raise ValueError(f'Bad output format {FLAGS.output_format}')
 
@@ -424,11 +451,11 @@ def main(argv):
 
   with contextlib.closing(outputter):
     for mid in (int(x) for x in FLAGS.mids):
-      molecule = db.find_by_molecule_id(mid)
+      molecule = db.find_by_mol_id(mid)
       outputter.output(molecule)
 
-    for c in db.find_by_bond_topology_id_list([int(x) for x in FLAGS.btids],
-                                              FLAGS.which_topologies):
+    for c in db.find_by_topo_id_list([int(x) for x in FLAGS.btids],
+                                     FLAGS.which_topologies):
       outputter.output(c)
 
     for c in db.find_by_smiles_list(FLAGS.smiles, FLAGS.which_topologies):

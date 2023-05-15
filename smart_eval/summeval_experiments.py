@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import json
 from absl import app
 from absl import flags
 from smart_eval import matching_functions as mf
-from smart_eval.google import summeval_utils as utils
+from smart_eval import summeval_utils as utils
 
 flags.DEFINE_string('bartscore_file', None,
                     'The json file with data from BARTScore.')
@@ -46,12 +46,12 @@ def main(argv):
   # Calculate SMART with non-model-based matchers.
   # Uncomment other matchers below if necessary.
   matchers = {
-      'chrf': mf.chrf_matcher,
-      # 'meteor': mf.meteor_matcher,
-      # 'bleu': mf.bleu_matcher,
-      # 'rouge1': mf.rouge_1_matcher,
-      # 'rouge2': mf.rouge_2_matcher,
-      # 'rougeL': mf.rouge_l_matcher
+      'chrf': mf.ChrfMatchingFunction(),
+      # 'meteor': mf.MeteorMatchingFunction(),
+      # 'bleu': mf.BleuMatchingFunction(),
+      # 'rouge1': mf.RougeMatchingFunction('rouge1'),
+      # 'rouge2': mf.RougeMatchingFunction('rouge2'),
+      # 'rougeL': mf.RougeMatchingFunction('rougeL'),
   }
   for matcher_name, matcher in matchers.items():
     utils.calculate_smart_score(summeval_pairs, matcher_name, matcher=matcher)

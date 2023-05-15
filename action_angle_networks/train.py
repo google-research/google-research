@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -212,7 +212,7 @@ def create_model(config):
                                     skip_connections=True),
         name='decoder')
   if config.encoder_decoder_type == 'flow':
-    flow = create_flow(
+    flow = create_flow(  # pytype: disable=wrong-arg-types  # numpy-scalars
         config, init_shape=(config.batch_size, 2 * config.num_trajectories))
     encoder = models.FlowEncoder(flow)
     decoder = models.FlowDecoder(flow)
@@ -743,4 +743,4 @@ def train_and_evaluate(
           'metrics': all_test_metrics,
       },
   }
-  return scaler, best_state, auxiliary_data
+  return scaler, best_state, auxiliary_data  # pytype: disable=bad-return-type  # numpy-scalars

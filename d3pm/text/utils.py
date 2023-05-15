@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -561,7 +561,7 @@ def summarize_tree(pytree, short=True):
           elif np.issubdtype(x.dtype, np.integer):
             info += (f" [{np.min(flat)}, {np.max(flat)}] "
                      f"nz:{np.count_nonzero(flat) / len(flat):.2}")
-          elif np.issubdtype(x.dtype, np.bool):
+          elif np.issubdtype(x.dtype, bool):
             info += f" T:{np.count_nonzero(flat) / len(flat):.2}"
         else:
           info = {

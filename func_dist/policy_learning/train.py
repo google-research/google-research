@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -179,7 +179,7 @@ def load_distance_fn(
       model_state,
       state,
       goal):
-    params = {'params': model_state.distance_optimizer.target}
+    params = {'params': model_state.distance_optimizer.target}  # pytype: disable=attribute-error  # numpy-scalars
     batched_state = jnp.expand_dims(state, axis=0)
     batched_goal = jnp.expand_dims(goal, axis=0)
     state_emb = model_state.encoder_fn(params, batched_state)

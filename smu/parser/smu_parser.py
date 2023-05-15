@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 r"""A command line tool to parse a SMU file and convert it to a protocol buffer.
 
 This tool is intended to do a one-to-one conversion from a SMU file to the
@@ -51,9 +50,8 @@ from smu import dataset_pb2
 from smu.parser import smu_parser_lib
 
 flags.DEFINE_string(
-    'input_file', None,
-    'Path to the input file. This file is expected to be in the SMU file format provided by Uni Basel.'
-)
+    'input_file', None, 'Path to the input file. '
+    'This file is expected to be in the SMU file format provided by Uni Basel.')
 flags.DEFINE_string(
     'output_file', None, 'Path to the output file. ' +
     'This file will be a protocol buffer in text format. ' +
@@ -74,8 +72,7 @@ def main(argv):
   for e, orig_contents in parser.process_stage2():
     if isinstance(e, Exception):
       number_of_parse_errors += 1
-      print('Parse error for:\n{}\n{}'.format(
-          orig_contents[1], e))
+      print('Parse error for:\n{}\n{}'.format(orig_contents[1], e))
     else:
       multiple_molecules.molecules.append(e)
 
@@ -95,6 +92,7 @@ def main(argv):
     print(text_format.MessageToString(multiple_molecules), end='')
 
   return number_of_parse_errors
+
 
 if __name__ == '__main__':
   app.run(main)

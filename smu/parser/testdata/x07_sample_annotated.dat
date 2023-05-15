@@ -1,8 +1,8 @@
 ================================================================================
-# From original_molecule_index, topology, bond_topology_id, molecule_id
+# From original_molecule_index, topology, topo_id, mol_id
     3   14     x07_c4o2fh7.618451.001
 Database   standard
-# From errors
+# From calc
 Status        0
 Warn_T1       0   0
 Warn_BSE      0   0
@@ -12,11 +12,11 @@ Warn_NEG      0
 # From topology
      000010001002001110000
      3310000
-# From smiles or properties.smiles_openbabel
+# From smiles or prop.smiles_openbabel
 COC(=CF)OC
 # From topology
 x07_c4o2fh7
-# From bond_topology_id, molecule_id
+# From topo_id, mol_id
 ID  618451       1
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.128.000
@@ -48,7 +48,7 @@ BOND    3   14     TYPE  611300
 E_ini/G_norm         -406.511790    0.052254
 # From energy, gnorm
 E_opt/G_norm         -406.522079    0.000025
-# From initial_geometry.atom_positions
+# From initial_geometry.atompos
 Initial Coords       6   -0.599232    0.468652    4.188200
 Initial Coords       6    1.255345   -6.557917    6.569822
 Initial Coords       6    3.022428   -4.726961    1.829255
@@ -63,7 +63,7 @@ Initial Coords       1    0.506447   -8.014329    5.306351
 Initial Coords       1    3.297194   -6.761062    6.830604
 Initial Coords       1    0.358859   -6.807549    8.416462
 Initial Coords       1    3.727296   -4.095603    0.019653
-# From optimized_geometry.atom_positions
+# From opt_geo.atompos
 Optimized Coords     6   -0.313382    0.356520    4.266687
 Optimized Coords     6    1.020933   -6.548927    6.532749
 Optimized Coords     6    3.098166   -4.521578    1.879570
@@ -83,20 +83,20 @@ Rotational constants (MHz)              1455.371            2040.472            
 # From symmetry_used_in_calculation
 Symmetry used in calculation    no
 Frequencies and intensities
-# From harmonic_frequencies, magnitude/harmonic intensity/normal mode order
+# From vib_freq, magnitude/harmonic intensity/normal mode order
     0.0    0.0    0.0    0.0    0.0    0.0   64.4   91.7  157.3  203.0
   241.8  257.6  346.4  371.0  476.5  631.7  704.1  735.4  886.4 1047.2
  1128.0 1166.7 1186.4 1190.6 1221.9 1236.1 1292.4 1363.6 1486.4 1501.8
  1504.3 1513.8 1522.8 1525.7 1798.4 3040.6 3058.4 3129.0 3144.1 3174.7
  3176.9 3269.7
-# From harmonic_intensities
+# From vib_intens
     0.0    0.0    0.0    0.0    0.0    0.0    2.7    6.9    0.8    1.7
     7.5    3.1    0.7    0.4    8.2   13.1    1.4   42.6   31.9   16.8
    75.4  179.9    2.8    1.8   31.6   26.7  233.2  190.2    9.8   11.9
    11.0    8.7   17.4   24.3   83.9   49.9   40.3   33.7   31.3   19.3
    22.4    6.4
 Normal modes
-# From normal_modes
+# From vib_mode
 Mode   1
  -0.0491 -0.0199  0.1436 -0.2317 -0.0931  0.0278  0.1393  0.0557  0.2583  0.0427
   0.0173  0.1236 -0.1092 -0.0435 -0.0138  0.1049  0.0425  0.1137  0.1084  0.0432
@@ -349,164 +349,164 @@ Mode  42
   0.0003 -0.0007  0.0015 -0.0013 -0.0011  0.0003 -0.0002 -0.0024 -0.0011  0.0027
   0.0007 -0.0099 -0.0046  0.0049  0.0020  0.0022  0.0043  0.0003 -0.0055 -0.4665
  -0.5201  0.7098
-# From single_point_energy_pbe0d3_6_311gd
+# From spe_std_pbe0d3_6311gd
 PBE0D3/6-311Gd        -406.522079
-# From single_point_energy_pbe0_6_311gd
+# From spe_check_pbe0_6311gd_tmol
 PBE0/6-311Gd          -406.516515
-# From single_point_energy_pbe0_6_311gd_mrcc
+# From spe_check_pbe0_6311gd_mrcc
 PBE0/6-311GdMRCC      -406.516542
-# From single_point_energy_pbe0_6_311gd_orca
+# From spe_check_pbe0_6311gd_orca
 PBE0/6-311GdORCA      -406.516610
-# From single_point_energy_pbe0_6_311gd_cat
+# From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)     -406.208948
-# From single_point_energy_pbe0_6_311gd_cat_mrcc
+# From spe_stdcat_pbe0_6311gd_mrcc
 PBE0/6-311Gd(CAT)MRCC -406.208975
-# From single_point_energy_pbe0_6_311gd_cat_orca
+# From spe_stdcat_pbe0_6311gd_orca
 PBE0/6-311Gd(CAT)ORCA -406.209039
-# From single_point_energy_pbe0_aug_pc_1
+# From spe_std_pbe0_augpc1
 PBE0/aug-pc-1         -406.367773
-# From single_point_energy_hf_6_31gd
+# From spe_std_hf_631gd
 HF/6-31Gd             -404.636027
-# From single_point_energy_b3lyp_6_31ppgdp
+# From spe_std_b3lyp_631ppgdp
 B3LYP/6-31++Gdp       -406.884857
-# From single_point_energy_b3lyp_aug_pcs_1
+# From spe_std_b3lyp_augpcs1
 B3LYP/aug-pcS-1       -406.820109
-# From single_point_energy_pbe0_6_31ppgdp
+# From spe_std_pbe0_631ppgdp
 PBE0/6-31++Gdp        -406.439788
-# From single_point_energy_pbe0_aug_pcs_1
+# From spe_std_pbe0_augpcs1
 PBE0/aug-pcS-1        -406.372915
-# From single_point_energy_hf_tzvp
+# From spe_std_hf_tzvp
 HF/TZVP               -404.787740
-# From single_point_energy_mp2_tzvp
+# From spe_std_mp2_tzvp
 MP2/TZVP              -405.959501
-# From single_point_energy_cc2_tzvp
+# From spe_std_cc2_tzvp
 CC2/TZVP              -405.977857
-# From single_point_energy_hf_3
+# From spe_std_hf_3
 HF/3                  -404.796437
-# From single_point_energy_mp2_3
+# From spe_std_mp2_3
 MP2/3                 -406.179302
-# From single_point_energy_hf_4
+# From spe_std_hf_4
 HF/4                  -404.826244
-# From single_point_energy_mp2_4
+# From spe_std_mp2_4
 MP2/4                 -406.312304
-# From single_point_energy_hf_34
+# From spe_std_hf_34
 HF/(34)               -404.833508
-# From single_point_energy_mp2_34
+# From spe_std_mp2_34
 MP2/(34)              -406.405144
-# From single_point_energy_hf_cvtz
+# From spe_std_hf_cvtz
 HF/CVTZ               -404.798103
-# From single_point_energy_mp2ful_cvtz
+# From spe_std_mp2full_cvtz
 MP2ful/CVTZ           -406.547251
-# From single_point_energy_hf_2sp
+# From spe_std_hf_2sp
 HF/2sp                -404.496003
-# From single_point_energy_mp2_2sp
+# From spe_std_mp2_2sp
 MP2/2sp               -405.200766
-# From single_point_energy_ccsd_2sp
+# From spe_std_ccsd_2sp
 CCSD/2sp              -405.247266
-# From single_point_energy_ccsd_t_2sp
+# From spe_std_ccsd_t_2sp
 CCSD(T)/2sp           -405.265911
-# From single_point_energy_hf_2sd
+# From spe_std_hf_2sd
 HF/2sd                -404.645594
-# From single_point_energy_mp2_2sd
+# From spe_std_mp2_2sd
 MP2/2sd               -405.693582
-# From single_point_energy_ccsd_2sd
+# From spe_std_ccsd_2sd
 CCSD/2sd              -405.744897
-# From single_point_energy_ccsd_t_2sd
+# From spe_std_ccsd_t_2sd
 CCSD(T)/2sd           -405.775503
-# From single_point_energy_hf_3psd
+# From spe_std_hf_3psd
 HF/3Psd               -404.744205
-# From single_point_energy_mp2_3psd
+# From spe_std_mp2_3psd
 MP2/3Psd              -405.957647
-# From single_point_energy_ccsd_3psd
+# From spe_std_ccsd_3psd
 CCSD/3Psd             -405.993585
-# From optimized_geometry.enuc
+# From opt_geo.enuc
 NUCREP                 324.344177
 # From number_of_optimization_runs
 NUM_OPT                  1
 # From number_imaginary_frequencies
 NIMAG                    0
-# From zpe_unscaled
+# From vib_zpe
 ZPE_unscaled            69.83
-# From diagnostics_d1_ccsd_2sp
+# From wf_diag_d1_2sp
 D1DIAG    D1(CCSD/2sp)   0.048600
-# From diagnostics_t1_ccsd_2sp, diagnostics_t1_ccsd_2sd, diagnostics_t1_ccsd_3psd
+# From wf_diag_t1_2sp, wf_diag_t1_2sd, wf_diag_t1_3psd
 T1DIAG    T1(CCSD/2sp)   0.012100  T1(CCSD/2sd)   0.012400  T1(CCSD/3Psd)  0.013000
-# From bond_separation_reaction_left
+# From at2_gen_bsr_left
 AT2_BSR_LEFT         molecule +  3 CH4 +  2 H2O
-# From bond_separation_reaction_right
+# From at2_gen_bsr_right
 AT2_BSR_RIGHT        4 H3C-OH +  1 H2C=CH2 +  1 H3C-F
-# From diagnostics_t1_ccsd_2sd
+# From wf_diag_t1_2sd
 AT2_T1mol                0.0124
-# From diagnostics_t1_ccsd_2sp_excess
+# From at2_gen_t1_exc
 AT2_T1exc                0.0036
-# From zpe_atomic{,_um,_um_ci}
+# From at2_std_zpe (with _um _unc)
 AT2_ZPE                 68.36       68.36        0.85
-# From single_point_energy_atomic_b5
+# From spe_comp_b5
 AT2_ENE_B5            -406.837971
-# From single_point_energy_atomic_b6
+# From spe_comp_b6
 AT2_ENE_B6            -406.841388
-# From single_point_energy_eccsd
+# From spe_comp_eccsd
 AT2_ENE_ECCSD         -406.427785
-# From bond_separation_energy_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_ereac (with _um _unc)
 AT2_BSE_B5              30.94       30.78        0.73
-# From bond_separation_energy_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_ereac (with _um _unc)
 AT2_BSE_B6              30.69       30.46        1.58
-# From bond_separation_energy_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_ereac (with _um _unc)
 AT2_BSE_ECCSD           29.86       30.63        3.35
-# From atomization_energy_excluding_zpe_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_eae (with _um _unc)
 AT2_AEe_B5            1341.53     1342.12        1.26
-# From atomization_energy_excluding_zpe_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_eae (with _um _unc)
 AT2_AEe_B6            1341.28     1341.80        1.89
-# From atomization_energy_excluding_zpe_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_eae (with _um _unc)
 AT2_AEe_ECCSD         1340.46     1341.97        3.51
-# From atomization_energy_including_zpe_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_ea0 (with _um _unc)
 AT2_AE0_B5            1273.17     1273.76        1.53
-# From atomization_energy_including_zpe_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_ea0 (with _um _unc)
 AT2_AE0_B6            1272.92     1273.44        2.07
-# From atomization_energy_including_zpe_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_ea0 (with _um _unc)
 AT2_AE0_ECCSD         1272.09     1273.61        3.61
-# From enthalpy_of_formation_0k_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_hf0 (with _um _unc)
 AT2_HF0_B5             -95.16      -95.75        1.53
-# From enthalpy_of_formation_0k_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_hf0 (with _um _unc)
 AT2_HF0_B6             -94.91      -95.43        2.07
-# From enthalpy_of_formation_0k_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_hf0 (with _um _unc)
 AT2_HF0_ECCSD          -94.09      -95.60        3.61
-# From enthalpy_of_formation_298k_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_hf298 (with _um _unc)
 AT2_HF298_B5          -100.64     -101.24        1.55
-# From enthalpy_of_formation_298k_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_hf298 (with _um _unc)
 AT2_HF298_B6          -100.40     -100.92        2.09
-# From enthalpy_of_formation_298k_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_hf298 (with _um _unc)
 AT2_HF298_ECCSD        -99.57     -101.08        3.62
-# From homo_pbe0_6_311gd, lumo_pbe0_6_311gd
+# From orb_ehomo_pbe0_6311gd, orb_elumo_pbe0_6311gd
 HOMO/LUMO  PBE0/6-311Gd      -0.22633    0.04837
-# From homo_pbe0_aug_pc_1, lumo_pbe0_aug_pc_1
+# From orb_ehomo_pbe0_augpc1, orb_elumo_pbe0_augpc1
 HOMO/LUMO  PBE0/aug-pc-1     -0.23288   -0.00479
-# From homo_hf_6_31gd, lumo_hf_6_31gd
+# From orb_ehomo_hf_631gd, orb_elumo_hf_631gd
 HOMO/LUMO  HF/6-31Gd         -0.32962    0.21499
-# From homo_b3lyp_6_31ppgdp, lumo_b3lyp_6_31ppgdp
+# From orb_ehomo_b3lyp_631ppgdp, orb_elumo_b3lyp_631ppgdp
 HOMO/LUMO  B3LYP/6-31++Gdp   -0.22446   -0.01035
-# From homo_b3lyp_aug_pcs_1, lumo_b3lyp_aug_pcs_1
+# From orb_ehomo_b3lyp_augpcs1, orb_elumo_b3lyp_augpcs1
 HOMO/LUMO  B3LYP/aug-pcS-1   -0.22613   -0.01239
-# From homo_pbe0_6_31ppgdp, lumo_pbe0_6_31ppgdp
+# From orb_ehomo_pbe0_631ppgdp, orb_elumo_pbe0_631ppgdp
 HOMO/LUMO  PBE0/6-31++Gdp    -0.23186   -0.00153
-# From homo_pbe0_aug_pcs_1, lumo_pbe0_aug_pcs_1
+# From orb_ehomo_pbe0_augpcs1, orb_elumo_pbe0_augpcs1
 HOMO/LUMO  PBE0/aug-pcS-1    -0.23291   -0.00465
-# From homo_hf_tzvp, lumo_hf_tzvp
+# From orb_ehomo_hf_tzvp, orb_elumo_hf_tzvp
 HOMO/LUMO  HF/TZVP           -0.33878    0.14251
-# From homo_hf_3, lumo_hf_3
+# From orb_ehomo_hf_3, orb_elumo_hf_3
 HOMO/LUMO  HF/3              -0.33538    0.13815
-# From homo_hf_4, lumo_hf_4
+# From orb_ehomo_hf_4, orb_elumo_hf_4
 HOMO/LUMO  HF/4              -0.33714    0.11064
-# From homo_hf_cvtz, lumo_hf_cvtz
+# From orb_ehomo_hf_cvtz, orb_elumo_hf_cvtz
 HOMO/LUMO  HF/CVTZ           -0.33544    0.13773
 Excitation energies and length rep. osc. strengths at CC2/TZVP
-# From excitation_energies_cc2, excitation_oscillator_strengths_cc2
+# From exc_ene_cc2_tzvp, exc_os_cc2_tzvp
     1           0.24087         0.02671
     2           0.26738         0.15930
     3           0.27212         0.21120
     4           0.29076         0.02956
     5           0.30522         0.01099
-# From nmr_isotropic_shielding_b3lyp_6_31ppgdp
+# From nmr_b3lyp_631ppgdp
 NMR isotropic shieldings (ppm): B3LYP/6-31++Gdp
     1    6    137.0048   +/-    0.0064
     2    6    136.4608   +/-    0.0064
@@ -522,7 +522,7 @@ NMR isotropic shieldings (ppm): B3LYP/6-31++Gdp
    12    1     27.9888   +/-    0.0016
    13    1     27.8656   +/-    0.0016
    14    1     24.9408   +/-    0.0016
-# From nmr_isotropic_shielding_b3lyp_aug_pcs_1
+# From nmr_b3lyp_augpcs1
 NMR isotropic shieldings (ppm): B3LYP/aug-pcS-1
     1    6    122.0800   +/-    0.0064
     2    6    122.2464   +/-    0.0064
@@ -538,7 +538,7 @@ NMR isotropic shieldings (ppm): B3LYP/aug-pcS-1
    12    1     27.7072   +/-    0.0016
    13    1     27.7120   +/-    0.0016
    14    1     24.7872   +/-    0.0016
-# From nmr_isotropic_shielding_pbe0_6_31ppgdp
+# From nmr_pbe0_631ppgdp
 NMR isotropic shieldings (ppm): PBE0/6-31++Gdp
     1    6    141.2736   +/-    0.0064
     2    6    140.4672   +/-    0.0064
@@ -554,7 +554,7 @@ NMR isotropic shieldings (ppm): PBE0/6-31++Gdp
    12    1     27.9248   +/-    0.0016
    13    1     27.7792   +/-    0.0016
    14    1     24.8352   +/-    0.0016
-# From nmr_isotropic_shielding_pbe0_aug_pcs_1
+# From nmr_pbe0_augpcs1
 NMR isotropic shieldings (ppm): PBE0/aug-pcS-1
     1    6    128.3072   +/-    0.0064
     2    6    128.2688   +/-    0.0064
@@ -571,7 +571,7 @@ NMR isotropic shieldings (ppm): PBE0/aug-pcS-1
    13    1     27.6320   +/-    0.0016
    14    1     24.6864   +/-    0.0016
 Partial charges (e): MUL-PBE0/aug-pc-1
-# From partial_charges_mulliken_pbe0_aug_pc_1
+# From chg_mul_pbe0_augpc1
     1    6     -0.0902   +/-    0.0001
     2    6      0.0920   +/-    0.0001
     3    6      0.2697   +/-    0.0001
@@ -587,7 +587,7 @@ Partial charges (e): MUL-PBE0/aug-pc-1
    13    1      0.1165   +/-    0.0001
    14    1      0.3787   +/-    0.0001
 Partial charges (e): LOE-PBE0/aug-pc-1
-# From partial_charges_loewdin_pbe0_aug_pc_1
+# From chg_loe_pbe0_augpc1
     1    6      0.1837   +/-    0.0001
     2    6      0.1839   +/-    0.0001
     3    6      0.2092   +/-    0.0001
@@ -603,7 +603,7 @@ Partial charges (e): LOE-PBE0/aug-pc-1
    13    1      0.0681   +/-    0.0001
    14    1      0.0924   +/-    0.0001
 Partial charges (e): NAT-PBE0/aug-pc-1
-# From partial_charges_natural_nbo_pbe0_aug_pc_1
+# From chg_nat_pbe0_augpc1
     1    6     -0.2380   +/-    0.0001
     2    6     -0.2364   +/-    0.0001
     3    6      0.0951   +/-    0.0001
@@ -635,7 +635,7 @@ Partial charges (e): PON-PBE0/aug-pc-1
    13    1      0.0323   +/-    0.0001
    14    1      0.0453   +/-    0.0001
 Partial charges (e): ESP-PBE0/aug-pc-1
-# From partial_charges_esp_fit_pbe0_aug_pc_1
+# From chg_esp_pbe0_augpc1
     1    6     -0.1006   +/-    0.0001
     2    6     -0.2881   +/-    0.0001
     3    6     -0.2132   +/-    0.0001
@@ -651,7 +651,7 @@ Partial charges (e): ESP-PBE0/aug-pc-1
    13    1      0.1363   +/-    0.0001
    14    1      0.1773   +/-    0.0001
 Partial charges (e): MUL-HF/6-31Gd
-# From partial_charges_mulliken_hf_6_31gd
+# From chg_mul_hf_631gd
     1    6     -0.1811   +/-    0.0001
     2    6     -0.1761   +/-    0.0001
     3    6      0.1187   +/-    0.0001
@@ -667,7 +667,7 @@ Partial charges (e): MUL-HF/6-31Gd
    13    1      0.1831   +/-    0.0001
    14    1      0.2123   +/-    0.0001
 Partial charges (e): LOE-HF/6-31Gd
-# From partial_charges_loewdin_hf_6_31gd
+# From chg_loe_hf_631gd
     1    6     -0.1701   +/-    0.0001
     2    6     -0.1684   +/-    0.0001
     3    6     -0.0667   +/-    0.0001
@@ -683,7 +683,7 @@ Partial charges (e): LOE-HF/6-31Gd
    13    1      0.1297   +/-    0.0001
    14    1      0.1480   +/-    0.0001
 Partial charges (e): NAT-HF/6-31Gd
-# From partial_charges_natural_nbo_hf_6_31gd
+# From chg_nat_hf_631gd
     1    6     -0.2314   +/-    0.0001
     2    6     -0.2258   +/-    0.0001
     3    6      0.0989   +/-    0.0001
@@ -715,7 +715,7 @@ Partial charges (e): PON-HF/6-31Gd
    13    1      0.0705   +/-    0.0001
    14    1      0.0743   +/-    0.0001
 Partial charges (e): ESP-HF/6-31Gd
-# From partial_charges_esp_fit_hf_6_31gd
+# From chg_esp_hf_631gd
     1    6      0.0269   +/-    0.0001
     2    6     -0.2017   +/-    0.0001
     3    6     -0.2040   +/-    0.0001
@@ -731,7 +731,7 @@ Partial charges (e): ESP-HF/6-31Gd
    13    1      0.1226   +/-    0.0001
    14    1      0.1859   +/-    0.0001
 Polarizability (au):    PBE0/aug-pc-1
-# From dipole_dipole_polarizability_pbe0_aug_pc_1
+# From elec_pol_pbe0_augpc1
     xx      58.80935
     yy      65.98525
     zz      59.87708
@@ -739,12 +739,12 @@ Polarizability (au):    PBE0/aug-pc-1
     xz      -8.13571
     yz      -1.61908
 Dipole moment (au):     PBE0/aug-pc-1
-# From dipole_moment_pbe0_aug_pc_1
+# From elec_dip_pbe0_augpc1
      x       0.00439
      y       0.37665
      z       0.72709
 Quadrupole moment (au): PBE0/aug-pc-1
-# From quadrupole_moment_pbe0_aug_pc_1
+# From elec_qua_pbe0_augpc1
     xx     -32.30635
     yy     -31.24161
     zz     -24.19366
@@ -752,7 +752,7 @@ Quadrupole moment (au): PBE0/aug-pc-1
     xz       0.03026
     yz      -2.51221
 Octopole moment (au):   PBE0/aug-pc-1
-# From octopole_moment_pbe0_aug_pc_1
+# From elec_oct_pbe0_augpc1
    xxx    -119.04308
    yyy     353.34900
    zzz    -301.22711
@@ -769,7 +769,7 @@ Dipole moment (au):     HF/6-31Gd
      y       0.46355
      z       0.80642
 Quadrupole moment (au): HF/6-31Gd
-# From quadrupole_moment_hf_6_31gd
+# From elec_qua_hf_631gd
     xx     -31.78863
     yy     -31.32069
     zz     -23.03958
@@ -777,7 +777,7 @@ Quadrupole moment (au): HF/6-31Gd
     xz       0.49717
     yz      -2.37817
 Octopole moment (au):   HF/6-31Gd
-# From octopole_moment_hf_6_31gd
+# From elec_oct_hf_631gd
    xxx    -115.58582
    yyy     351.24216
    zzz    -291.96384
@@ -789,10 +789,10 @@ Octopole moment (au):   HF/6-31Gd
    yzz      80.41479
    xyz      -3.30141
 ================================================================================
-# From original_molecule_index, topology, bond_topology_id, molecule_id
+# From original_molecule_index, topology, topo_id, mol_id
     4   14     x07_c4o2fh7.618451.123
 Database   standard
-# From errors
+# From calc
 Status        0
 Warn_T1       0   0
 Warn_BSE      0   0
@@ -802,11 +802,11 @@ Warn_NEG      0
 # From topology
      000010001002001110000
      3310000
-# From smiles or properties.smiles_openbabel
+# From smiles or prop.smiles_openbabel
 COC(=CF)OC
 # From topology
 x07_c4o2fh7
-# From bond_topology_id, molecule_id
+# From topo_id, mol_id
 ID  618451     123
 # From compute_cluster_info
 Stage 1  Host IP:   XXX.YYY.128.000
@@ -838,7 +838,7 @@ BOND    3   14     TYPE  611300
 E_ini/G_norm         -406.512988    0.050203
 # From energy, gnorm
 E_opt/G_norm         -406.520886    0.000018
-# From initial_geometry.atom_positions
+# From initial_geometry.atompos
 Initial Coords       6    0.321820    0.445597    2.520895
 Initial Coords       6    0.053668   -5.219990    7.670021
 Initial Coords       6    2.875218   -4.133398    1.610614
@@ -853,7 +853,7 @@ Initial Coords       1    0.850944   -3.622983    8.717685
 Initial Coords       1   -1.931489   -4.872470    7.197967
 Initial Coords       1    0.137005   -6.887863    8.888894
 Initial Coords       1    3.145827   -2.846117    0.056692
-# From optimized_geometry.atom_positions
+# From opt_geo.atompos
 Optimized Coords     6    0.524953    0.526935    2.606700
 Optimized Coords     6   -0.012035   -5.313864    7.483931
 Optimized Coords     6    2.591535   -4.200191    1.667437
@@ -873,20 +873,20 @@ Rotational constants (MHz)              1424.656            2522.924            
 # From symmetry_used_in_calculation
 Symmetry used in calculation    no
 Frequencies and intensities
-# From harmonic_frequencies, magnitude/harmonic intensity/normal mode order
+# From vib_freq, magnitude/harmonic intensity/normal mode order
     0.0    0.0    0.0    0.0    0.0    0.0   61.0  104.4  162.6  234.8
   244.5  267.0  339.1  345.7  562.2  615.4  691.2  717.1  871.2 1086.2
  1142.8 1175.5 1190.1 1195.8 1227.2 1244.6 1298.1 1392.9 1488.7 1504.1
  1506.9 1511.0 1521.9 1527.7 1790.2 3027.8 3045.7 3093.0 3129.3 3174.3
  3178.3 3265.3
-# From harmonic_intensities
+# From vib_intens
     0.0    0.0    0.0    0.0    0.0    0.0    7.7    2.3    1.5    6.2
     2.5    1.4    2.6    1.1    4.0    1.0    3.9   44.6   19.4   93.4
    19.7  191.7   26.1    1.0   12.1   62.1  242.5  158.4    1.1   15.7
    20.2   19.8   20.5   16.4   63.0   38.7   50.0   42.6   34.2   19.7
    21.9   12.9
 Normal modes
-# From normal_modes
+# From vib_mode
 Mode   1
  -0.1453  0.1421  0.1062 -0.1962  0.0893  0.0374 -0.3161  0.0916 -0.0159 -0.2317
   0.0791  0.0123 -0.2259  0.0424 -0.0166 -0.1445  0.0991  0.0696 -0.4001  0.0719
@@ -1139,164 +1139,164 @@ Mode  42
   0.0003 -0.0080  0.0150  0.0100  0.0097  0.0071  0.0094 -0.0159 -0.0033  0.0078
   0.0006 -0.0013 -0.0010 -0.0014 -0.0004 -0.0004  0.0010 -0.0019  0.0019 -0.0166
  -0.5706  0.8157
-# From single_point_energy_pbe0d3_6_311gd
+# From spe_std_pbe0d3_6311gd
 PBE0D3/6-311Gd        -406.520886
-# From single_point_energy_pbe0_6_311gd
+# From spe_check_pbe0_6311gd_tmol
 PBE0/6-311Gd          -406.515688
-# From single_point_energy_pbe0_6_311gd_mrcc
+# From spe_check_pbe0_6311gd_mrcc
 PBE0/6-311GdMRCC      -406.515719
-# From single_point_energy_pbe0_6_311gd_orca
+# From spe_check_pbe0_6311gd_orca
 PBE0/6-311GdORCA      -406.515783
-# From single_point_energy_pbe0_6_311gd_cat
+# From spe_stdcat_pbe0_6311gd_tmol
 PBE0/6-311Gd(CAT)     -406.209062
-# From single_point_energy_pbe0_6_311gd_cat_mrcc
+# From spe_stdcat_pbe0_6311gd_mrcc
 PBE0/6-311Gd(CAT)MRCC -406.209090
-# From single_point_energy_pbe0_6_311gd_cat_orca
+# From spe_stdcat_pbe0_6311gd_orca
 PBE0/6-311Gd(CAT)ORCA -406.209152
-# From single_point_energy_pbe0_aug_pc_1
+# From spe_std_pbe0_augpc1
 PBE0/aug-pc-1         -406.367850
-# From single_point_energy_hf_6_31gd
+# From spe_std_hf_631gd
 HF/6-31Gd             -404.634507
-# From single_point_energy_b3lyp_6_31ppgdp
+# From spe_std_b3lyp_631ppgdp
 B3LYP/6-31++Gdp       -406.884264
-# From single_point_energy_b3lyp_aug_pcs_1
+# From spe_std_b3lyp_augpcs1
 B3LYP/aug-pcS-1       -406.819892
-# From single_point_energy_pbe0_6_31ppgdp
+# From spe_std_pbe0_631ppgdp
 PBE0/6-31++Gdp        -406.439591
-# From single_point_energy_pbe0_aug_pcs_1
+# From spe_std_pbe0_augpcs1
 PBE0/aug-pcS-1        -406.373086
-# From single_point_energy_hf_tzvp
+# From spe_std_hf_tzvp
 HF/TZVP               -404.787308
-# From single_point_energy_mp2_tzvp
+# From spe_std_mp2_tzvp
 MP2/TZVP              -405.958924
-# From single_point_energy_cc2_tzvp
+# From spe_std_cc2_tzvp
 CC2/TZVP              -405.977115
-# From single_point_energy_hf_3
+# From spe_std_hf_3
 HF/3                  -404.796201
-# From single_point_energy_mp2_3
+# From spe_std_mp2_3
 MP2/3                 -406.179088
-# From single_point_energy_hf_4
+# From spe_std_hf_4
 HF/4                  -404.826396
-# From single_point_energy_mp2_4
+# From spe_std_mp2_4
 MP2/4                 -406.312459
-# From single_point_energy_hf_34
+# From spe_std_hf_34
 HF/(34)               -404.833754
-# From single_point_energy_mp2_34
+# From spe_std_mp2_34
 MP2/(34)              -406.405376
-# From single_point_energy_hf_cvtz
+# From spe_std_hf_cvtz
 HF/CVTZ               -404.797881
-# From single_point_energy_mp2ful_cvtz
+# From spe_std_mp2full_cvtz
 MP2ful/CVTZ           -406.547065
-# From single_point_energy_hf_2sp
+# From spe_std_hf_2sp
 HF/2sp                -404.492861
-# From single_point_energy_mp2_2sp
+# From spe_std_mp2_2sp
 MP2/2sp               -405.197284
-# From single_point_energy_ccsd_2sp
+# From spe_std_ccsd_2sp
 CCSD/2sp              -405.243578
-# From single_point_energy_ccsd_t_2sp
+# From spe_std_ccsd_t_2sp
 CCSD(T)/2sp           -405.262143
-# From single_point_energy_hf_2sd
+# From spe_std_hf_2sd
 HF/2sd                -404.644044
-# From single_point_energy_mp2_2sd
+# From spe_std_mp2_2sd
 MP2/2sd               -405.691849
-# From single_point_energy_ccsd_2sd
+# From spe_std_ccsd_2sd
 CCSD/2sd              -405.742970
-# From single_point_energy_ccsd_t_2sd
+# From spe_std_ccsd_t_2sd
 CCSD(T)/2sd           -405.773505
-# From single_point_energy_hf_3psd
+# From spe_std_hf_3psd
 HF/3Psd               -404.744191
-# From single_point_energy_mp2_3psd
+# From spe_std_mp2_3psd
 MP2/3Psd              -405.957365
-# From single_point_energy_ccsd_3psd
+# From spe_std_ccsd_3psd
 CCSD/3Psd             -405.993129
-# From optimized_geometry.enuc
+# From opt_geo.enuc
 NUCREP                 322.821625
 # From number_of_optimization_runs
 NUM_OPT                  1
 # From number_imaginary_frequencies
 NIMAG                    0
-# From zpe_unscaled
+# From vib_zpe
 ZPE_unscaled            69.95
-# From diagnostics_d1_ccsd_2sp
+# From wf_diag_d1_2sp
 D1DIAG    D1(CCSD/2sp)   0.048200
-# From diagnostics_t1_ccsd_2sp, diagnostics_t1_ccsd_2sd, diagnostics_t1_ccsd_3psd
+# From wf_diag_t1_2sp, wf_diag_t1_2sd, wf_diag_t1_3psd
 T1DIAG    T1(CCSD/2sp)   0.012000  T1(CCSD/2sd)   0.012300  T1(CCSD/3Psd)  0.012900
-# From bond_separation_reaction_left
+# From at2_gen_bsr_left
 AT2_BSR_LEFT         molecule +  3 CH4 +  2 H2O
-# From bond_separation_reaction_right
+# From at2_gen_bsr_right
 AT2_BSR_RIGHT        4 H3C-OH +  1 H2C=CH2 +  1 H3C-F
-# From diagnostics_t1_ccsd_2sd
+# From wf_diag_t1_2sd
 AT2_T1mol                0.0123
-# From diagnostics_t1_ccsd_2sp_excess
+# From at2_gen_t1_exc
 AT2_T1exc                0.0035
-# From zpe_atomic{,_um,_um_ci}
+# From at2_std_zpe (with _um _unc)
 AT2_ZPE                 68.49       68.48        0.86
-# From single_point_energy_atomic_b5
+# From spe_comp_b5
 AT2_ENE_B5            -406.837972
-# From single_point_energy_atomic_b6
+# From spe_comp_b6
 AT2_ENE_B6            -406.841360
-# From single_point_energy_eccsd
+# From spe_comp_eccsd
 AT2_ENE_ECCSD         -406.427908
-# From bond_separation_energy_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_ereac (with _um _unc)
 AT2_BSE_B5              30.94       30.78        0.73
-# From bond_separation_energy_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_ereac (with _um _unc)
 AT2_BSE_B6              30.67       30.44        1.58
-# From bond_separation_energy_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_ereac (with _um _unc)
 AT2_BSE_ECCSD           29.94       30.70        3.35
-# From atomization_energy_excluding_zpe_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_eae (with _um _unc)
 AT2_AEe_B5            1341.53     1342.11        1.26
-# From atomization_energy_excluding_zpe_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_eae (with _um _unc)
 AT2_AEe_B6            1341.27     1341.77        1.88
-# From atomization_energy_excluding_zpe_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_eae (with _um _unc)
 AT2_AEe_ECCSD         1340.53     1342.04        3.51
-# From atomization_energy_including_zpe_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_ea0 (with _um _unc)
 AT2_AE0_B5            1273.05     1273.63        1.52
-# From atomization_energy_including_zpe_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_ea0 (with _um _unc)
 AT2_AE0_B6            1272.78     1273.29        2.07
-# From atomization_energy_including_zpe_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_ea0 (with _um _unc)
 AT2_AE0_ECCSD         1272.05     1273.55        3.61
-# From enthalpy_of_formation_0k_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_hf0 (with _um _unc)
 AT2_HF0_B5             -95.04      -95.62        1.52
-# From enthalpy_of_formation_0k_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_hf0 (with _um _unc)
 AT2_HF0_B6             -94.77      -95.28        2.07
-# From enthalpy_of_formation_0k_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_hf0 (with _um _unc)
 AT2_HF0_ECCSD          -94.04      -95.55        3.61
-# From enthalpy_of_formation_298k_atomic_b5{,_um,_um_ci}
+# From at2_std_b5_hf298 (with _um _unc)
 AT2_HF298_B5          -100.59     -101.17        1.55
-# From enthalpy_of_formation_298k_atomic_b6{,_um,_um_ci}
+# From at2_std_b6_hf298 (with _um _unc)
 AT2_HF298_B6          -100.32     -100.83        2.09
-# From enthalpy_of_formation_298k_eccsd{,_um,_um_ci}
+# From at2_std_eccsd_hf298 (with _um _unc)
 AT2_HF298_ECCSD        -99.59     -101.09        3.62
-# From homo_pbe0_6_311gd, lumo_pbe0_6_311gd
+# From orb_ehomo_pbe0_6311gd, orb_elumo_pbe0_6311gd
 HOMO/LUMO  PBE0/6-311Gd      -0.22534    0.05179
-# From homo_pbe0_aug_pc_1, lumo_pbe0_aug_pc_1
+# From orb_ehomo_pbe0_augpc1, orb_elumo_pbe0_augpc1
 HOMO/LUMO  PBE0/aug-pc-1     -0.23238   -0.00604
-# From homo_hf_6_31gd, lumo_hf_6_31gd
+# From orb_ehomo_hf_631gd, orb_elumo_hf_631gd
 HOMO/LUMO  HF/6-31Gd         -0.32855    0.21960
-# From homo_b3lyp_6_31ppgdp, lumo_b3lyp_6_31ppgdp
+# From orb_ehomo_b3lyp_631ppgdp, orb_elumo_b3lyp_631ppgdp
 HOMO/LUMO  B3LYP/6-31++Gdp   -0.22379   -0.01229
-# From homo_b3lyp_aug_pcs_1, lumo_b3lyp_aug_pcs_1
+# From orb_ehomo_b3lyp_augpcs1, orb_elumo_b3lyp_augpcs1
 HOMO/LUMO  B3LYP/aug-pcS-1   -0.22566   -0.01373
-# From homo_pbe0_6_31ppgdp, lumo_pbe0_6_31ppgdp
+# From orb_ehomo_pbe0_631ppgdp, orb_elumo_pbe0_631ppgdp
 HOMO/LUMO  PBE0/6-31++Gdp    -0.23116   -0.00338
-# From homo_pbe0_aug_pcs_1, lumo_pbe0_aug_pcs_1
+# From orb_ehomo_pbe0_augpcs1, orb_elumo_pbe0_augpcs1
 HOMO/LUMO  PBE0/aug-pcS-1    -0.23242   -0.00589
-# From homo_hf_tzvp, lumo_hf_tzvp
+# From orb_ehomo_hf_tzvp, orb_elumo_hf_tzvp
 HOMO/LUMO  HF/TZVP           -0.33788    0.13900
-# From homo_hf_3, lumo_hf_3
+# From orb_ehomo_hf_3, orb_elumo_hf_3
 HOMO/LUMO  HF/3              -0.33443    0.13600
-# From homo_hf_4, lumo_hf_4
+# From orb_ehomo_hf_4, orb_elumo_hf_4
 HOMO/LUMO  HF/4              -0.33635    0.10764
-# From homo_hf_cvtz, lumo_hf_cvtz
+# From orb_ehomo_hf_cvtz, orb_elumo_hf_cvtz
 HOMO/LUMO  HF/CVTZ           -0.33450    0.13552
 Excitation energies and length rep. osc. strengths at CC2/TZVP
-# From excitation_energies_cc2, excitation_oscillator_strengths_cc2
+# From exc_ene_cc2_tzvp, exc_os_cc2_tzvp
     1           0.24492         0.03856
     2           0.25544         0.00776
     3           0.27051         0.02054
     4           0.27523         0.37995
     5           0.30885         0.03777
-# From nmr_isotropic_shielding_b3lyp_6_31ppgdp
+# From nmr_b3lyp_631ppgdp
 NMR isotropic shieldings (ppm): B3LYP/6-31++Gdp
     1    6    141.0112   +/-    0.0064
     2    6    137.6768   +/-    0.0064
@@ -1312,7 +1312,7 @@ NMR isotropic shieldings (ppm): B3LYP/6-31++Gdp
    12    1     28.5680   +/-    0.0016
    13    1     27.9520   +/-    0.0016
    14    1     25.4736   +/-    0.0016
-# From nmr_isotropic_shielding_b3lyp_aug_pcs_1
+# From nmr_b3lyp_augpcs1
 NMR isotropic shieldings (ppm): B3LYP/aug-pcS-1
     1    6    127.1488   +/-    0.0064
     2    6    122.8672   +/-    0.0064
@@ -1328,7 +1328,7 @@ NMR isotropic shieldings (ppm): B3LYP/aug-pcS-1
    12    1     28.3536   +/-    0.0016
    13    1     27.8320   +/-    0.0016
    14    1     25.3344   +/-    0.0016
-# From nmr_isotropic_shielding_pbe0_6_31ppgdp
+# From nmr_pbe0_631ppgdp
 NMR isotropic shieldings (ppm): PBE0/6-31++Gdp
     1    6    145.1712   +/-    0.0064
     2    6    141.8496   +/-    0.0064
@@ -1344,7 +1344,7 @@ NMR isotropic shieldings (ppm): PBE0/6-31++Gdp
    12    1     28.4848   +/-    0.0016
    13    1     27.8592   +/-    0.0016
    14    1     25.3504   +/-    0.0016
-# From nmr_isotropic_shielding_pbe0_aug_pcs_1
+# From nmr_pbe0_augpcs1
 NMR isotropic shieldings (ppm): PBE0/aug-pcS-1
     1    6    133.0944   +/-    0.0064
     2    6    129.0112   +/-    0.0064
@@ -1361,7 +1361,7 @@ NMR isotropic shieldings (ppm): PBE0/aug-pcS-1
    13    1     27.7568   +/-    0.0016
    14    1     25.2160   +/-    0.0016
 Partial charges (e): MUL-PBE0/aug-pc-1
-# From partial_charges_mulliken_pbe0_aug_pc_1
+# From chg_mul_pbe0_augpc1
     1    6      0.1342   +/-    0.0001
     2    6     -0.1067   +/-    0.0001
     3    6      0.3713   +/-    0.0001
@@ -1377,7 +1377,7 @@ Partial charges (e): MUL-PBE0/aug-pc-1
    13    1      0.2066   +/-    0.0001
    14    1      0.3699   +/-    0.0001
 Partial charges (e): LOE-PBE0/aug-pc-1
-# From partial_charges_loewdin_pbe0_aug_pc_1
+# From chg_loe_pbe0_augpc1
     1    6      0.1686   +/-    0.0001
     2    6      0.1888   +/-    0.0001
     3    6      0.1936   +/-    0.0001
@@ -1393,7 +1393,7 @@ Partial charges (e): LOE-PBE0/aug-pc-1
    13    1      0.0670   +/-    0.0001
    14    1      0.0764   +/-    0.0001
 Partial charges (e): NAT-PBE0/aug-pc-1
-# From partial_charges_natural_nbo_pbe0_aug_pc_1
+# From chg_nat_pbe0_augpc1
     1    6     -0.2404   +/-    0.0001
     2    6     -0.2376   +/-    0.0001
     3    6      0.0865   +/-    0.0001
@@ -1425,7 +1425,7 @@ Partial charges (e): PON-PBE0/aug-pc-1
    13    1      0.0429   +/-    0.0001
    14    1      0.0741   +/-    0.0001
 Partial charges (e): ESP-PBE0/aug-pc-1
-# From partial_charges_esp_fit_pbe0_aug_pc_1
+# From chg_esp_pbe0_augpc1
     1    6     -0.1874   +/-    0.0001
     2    6     -0.1724   +/-    0.0001
     3    6     -0.1785   +/-    0.0001
@@ -1441,7 +1441,7 @@ Partial charges (e): ESP-PBE0/aug-pc-1
    13    1      0.1256   +/-    0.0001
    14    1      0.1682   +/-    0.0001
 Partial charges (e): MUL-HF/6-31Gd
-# From partial_charges_mulliken_hf_6_31gd
+# From chg_mul_hf_631gd
     1    6     -0.1898   +/-    0.0001
     2    6     -0.1800   +/-    0.0001
     3    6      0.1142   +/-    0.0001
@@ -1457,7 +1457,7 @@ Partial charges (e): MUL-HF/6-31Gd
    13    1      0.1893   +/-    0.0001
    14    1      0.1934   +/-    0.0001
 Partial charges (e): LOE-HF/6-31Gd
-# From partial_charges_loewdin_hf_6_31gd
+# From chg_loe_hf_631gd
     1    6     -0.1737   +/-    0.0001
     2    6     -0.1669   +/-    0.0001
     3    6     -0.0735   +/-    0.0001
@@ -1473,7 +1473,7 @@ Partial charges (e): LOE-HF/6-31Gd
    13    1      0.1341   +/-    0.0001
    14    1      0.1360   +/-    0.0001
 Partial charges (e): NAT-HF/6-31Gd
-# From partial_charges_natural_nbo_hf_6_31gd
+# From chg_nat_hf_631gd
     1    6     -0.2336   +/-    0.0001
     2    6     -0.2303   +/-    0.0001
     3    6      0.0945   +/-    0.0001
@@ -1505,7 +1505,7 @@ Partial charges (e): PON-HF/6-31Gd
    13    1      0.0757   +/-    0.0001
    14    1      0.0671   +/-    0.0001
 Partial charges (e): ESP-HF/6-31Gd
-# From partial_charges_esp_fit_hf_6_31gd
+# From chg_esp_hf_631gd
     1    6     -0.1265   +/-    0.0001
     2    6     -0.0352   +/-    0.0001
     3    6     -0.1894   +/-    0.0001
@@ -1521,7 +1521,7 @@ Partial charges (e): ESP-HF/6-31Gd
    13    1      0.1011   +/-    0.0001
    14    1      0.1794   +/-    0.0001
 Polarizability (au):    PBE0/aug-pc-1
-# From dipole_dipole_polarizability_pbe0_aug_pc_1
+# From elec_pol_pbe0_augpc1
     xx      52.37535
     yy      63.95404
     zz      68.83053
@@ -1529,12 +1529,12 @@ Polarizability (au):    PBE0/aug-pc-1
     xz      -7.12087
     yz      -2.72761
 Dipole moment (au):     PBE0/aug-pc-1
-# From dipole_moment_pbe0_aug_pc_1
+# From elec_dip_pbe0_augpc1
      x      -0.78948
      y       0.87260
      z      -0.01104
 Quadrupole moment (au): PBE0/aug-pc-1
-# From quadrupole_moment_pbe0_aug_pc_1
+# From elec_qua_pbe0_augpc1
     xx     -33.91602
     yy     -35.90067
     zz     -28.78465
@@ -1542,7 +1542,7 @@ Quadrupole moment (au): PBE0/aug-pc-1
     xz      -4.08942
     yz      -0.56903
 Octopole moment (au):   PBE0/aug-pc-1
-# From octopole_moment_pbe0_aug_pc_1
+# From elec_oct_pbe0_augpc1
    xxx    -150.57141
    yyy     358.24957
    zzz    -338.05579
@@ -1559,7 +1559,7 @@ Dipole moment (au):     HF/6-31Gd
      y       0.98165
      z      -0.10518
 Quadrupole moment (au): HF/6-31Gd
-# From quadrupole_moment_hf_6_31gd
+# From elec_qua_hf_631gd
     xx     -33.69901
     yy     -36.52193
     zz     -28.80382
@@ -1567,7 +1567,7 @@ Quadrupole moment (au): HF/6-31Gd
     xz      -4.83260
     yz      -0.32989
 Octopole moment (au):   HF/6-31Gd
-# From octopole_moment_hf_6_31gd
+# From elec_oct_hf_631gd
    xxx    -148.26385
    yyy     361.37775
    zzz    -334.82935

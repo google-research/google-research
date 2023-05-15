@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -223,7 +223,7 @@ class Grid(minigrid.Grid):
       An image of the rendered Grid.
     """
     if highlight_mask is None:
-      highlight_mask = np.zeros(shape=(self.width, self.height), dtype=np.bool)
+      highlight_mask = np.zeros(shape=(self.width, self.height), dtype=bool)
 
     # Compute the total grid size
     width_px = self.width * tile_size
@@ -266,7 +266,7 @@ class Grid(minigrid.Grid):
     width, height, channels = array.shape
     assert channels == 3
 
-    vis_mask = np.ones(shape=(width, height), dtype=np.bool)
+    vis_mask = np.ones(shape=(width, height), dtype=bool)
 
     grid = Grid(width, height)
     for i in range(width):
@@ -1022,7 +1022,7 @@ class MultiGridEnv(minigrid.MiniGridEnv):
       vis_mask = grid.process_vis(
           agent_pos=(self.agent_view_size // 2, self.agent_view_size - 1))
     else:
-      vis_mask = np.ones(shape=(grid.width, grid.height), dtype=np.bool)
+      vis_mask = np.ones(shape=(grid.width, grid.height), dtype=bool)
 
     # Make it so the agent sees what it's carrying
     # We do this by placing the carried object at the agent's position
@@ -1099,7 +1099,7 @@ class MultiGridEnv(minigrid.MiniGridEnv):
 
   def compute_agent_visibility_mask(self, agent_id):
     # Mask of which cells to highlight
-    highlight_mask = np.zeros(shape=(self.width, self.height), dtype=np.bool)
+    highlight_mask = np.zeros(shape=(self.width, self.height), dtype=bool)
 
     # Compute which cells are visible to the agent
     _, vis_mask = self.gen_obs_grid(agent_id)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,9 +24,12 @@ import operator
 
 import tensorflow.compat.v1 as tf
 
+# pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.framework import ops
+from tensorflow.python.framework import tensor_conversion_registry
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops import gradients_impl
+# pylint: enable=g-direct-tensorflow-import
 
 
 PS_SHADOW_VAR_PREFIX = 'ps_var'
@@ -309,7 +312,7 @@ class StagedModelVariable(object):
       return self._value()
 
 
-ops.register_tensor_conversion_function(
+tensor_conversion_registry.register_tensor_conversion_function(
     StagedModelVariable, StagedModelVariable._TensorConversionFunction)  # pylint: disable=protected-access
 
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,19 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2022 Google LLC
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     https://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Tests for cosmology_utils.py.
 
 Expected values are drawn from colossus:
@@ -37,7 +24,7 @@ from absl.testing import parameterized
 import chex
 import jax.numpy as jnp
 import numpy as np
-from third_party.google_research.google_research.jaxstronomy import power_spectrum
+from jaxstronomy import power_spectrum
 
 
 def _prepare__calculate_z_k_eq_expected(omega_m_h_squared, temp_cmb_scaled):

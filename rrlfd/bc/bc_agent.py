@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -210,7 +210,7 @@ class ObservationSpace(NormalizationSpace):
       elif key == 'grip_velocity':
         norm_feature = feature / 2.0  # [-1,1]
       elif key == 'gripper_opened':
-        norm_feature = feature.astype(np.int)
+        norm_feature = feature.astype(int)
       elif 'position' in key:
         # mostly [-1,1]
         norm_feature = (feature - low) / (high - low) * 2.0 - 1.0
@@ -601,7 +601,7 @@ class BCAgent:
     rotation = np.random.uniform(low=-angle, high=angle)
     translation = np.random.uniform(
         low=-translate, high=translate, size=(2))
-    translation = np.rint(translation).astype(np.int)
+    translation = np.rint(translation).astype(int)
     return rotation, translation
 
   def stack_frames(self, frame_history, randomize_camera=False):

@@ -1,0 +1,4 @@
+apex==0.1
+conda==22.9.0
+conda-build==3.22.0
+iopath==0.1.10

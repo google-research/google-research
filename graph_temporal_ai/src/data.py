@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Data generation script and dataset module."""
-from typing import Function, Any
 
 from pytorch_lightning import LightningDataModule
 
@@ -41,7 +40,7 @@ class TSDataset(Dataset):
   """
 
   def __init__(self, x, args,
-               transform = None, target_transform = None):
+               transform=None, target_transform=None):
     self.x = torch.as_tensor(x, dtype=torch.float)
     self.input_len = args.input_len
     self.output_len = args.output_len
@@ -81,9 +80,9 @@ class DataModule(LightningDataModule):
 
     self.args = args
     self.batch_size = args.batch_size
-    self.num_workers = 32
+    self.num_workers = 12
 
-  def setup(self):
+  def setup(self, stage):
     # seq x batch x feature
     # generate x and y vectors
 

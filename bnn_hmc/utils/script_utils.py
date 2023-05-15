@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,14 +38,14 @@ import tensorflow.compat.v2 as tf
 
 from collections import OrderedDict
 
-from utils import checkpoint_utils  # pytype: disable=import-error
-from utils import cmd_args_utils  # pytype: disable=import-error
-from utils import data_utils  # pytype: disable=import-error
-from utils import losses  # pytype: disable=import-error
-from utils import models  # pytype: disable=import-error
-from utils import precision_utils  # pytype: disable=import-error
-from utils import train_utils  # pytype: disable=import-error
-from utils import tree_utils  # pytype: disable=import-error
+from bnn_hmc.utils import checkpoint_utils  # pytype: disable=import-error
+from bnn_hmc.utils import cmd_args_utils  # pytype: disable=import-error
+from bnn_hmc.utils import data_utils  # pytype: disable=import-error
+from bnn_hmc.utils import losses  # pytype: disable=import-error
+from bnn_hmc.utils import models  # pytype: disable=import-error
+from bnn_hmc.utils import precision_utils  # pytype: disable=import-error
+from bnn_hmc.utils import train_utils  # pytype: disable=import-error
+from bnn_hmc.utils import tree_utils  # pytype: disable=import-error
 
 
 def print_visible_devices():

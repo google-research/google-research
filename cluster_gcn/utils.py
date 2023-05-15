@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ def sample_mask(idx, l):
   """Create mask."""
   mask = np.zeros(l)
   mask[idx] = 1
-  return np.array(mask, dtype=np.bool)
+  return np.array(mask, dtype=bool)
 
 
 def sym_normalize_adj(adj):
@@ -249,7 +249,7 @@ def load_graphsage_data(dataset_path, dataset_str, normalize=True):
   test_data = np.array(
       [id_map[n] for n in graph_nx.nodes() if graph_nx.node[n]['test']],
       dtype=np.int32)
-  is_train = np.ones((num_data), dtype=np.bool)
+  is_train = np.ones((num_data), dtype=bool)
   is_train[val_data] = False
   is_train[test_data] = False
   train_data = np.array([n for n in range(num_data) if is_train[n]],

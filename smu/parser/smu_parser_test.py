@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ SMU1_STAGE1_DAT_FILE = 'x01_stage1.dat'
 MINIMAL_DAT_FILE = 'x07_minimal.dat'
 GOLDEN_PROTO_FILE = 'x07_sample.pbtxt'
 ATOMIC_INPUT = 'x07_first_atomic2_input.inp'
+FINAL_MOL_STEM = 'final_mol'
 TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
@@ -87,13 +88,13 @@ class SmuParserTest(absltest.TestCase):
       # We're going to mess with the molecule by perturbing the bond_toplogies.
       # The .dat format shoudl only ever use the starting topology, so we are
       # going to add some wrong bond topologies to make sure they are ignored.
-      molecule.bond_topologies.append(molecule.bond_topologies[0])
-      molecule.bond_topologies.append(molecule.bond_topologies[0])
-      molecule.bond_topologies[0].source = dataset_pb2.BondTopology.SOURCE_ITC
-      molecule.bond_topologies[1].source = dataset_pb2.BondTopology.SOURCE_CSD
-      for bt in molecule.bond_topologies[0:2]:
-        bt.bonds[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE
-        bt.bond_topology_id += 9999
+      molecule.bond_topo.append(molecule.bond_topo[0])
+      molecule.bond_topo.append(molecule.bond_topo[0])
+      molecule.bond_topo[0].info = dataset_pb2.BondTopology.SOURCE_DDT
+      molecule.bond_topo[1].info = dataset_pb2.BondTopology.SOURCE_CSD
+      for bt in molecule.bond_topo[0:2]:
+        bt.bond[0].bond_type = dataset_pb2.BondTopology.BOND_TRIPLE
+        bt.topo_id += 9999
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
           smu_writer.process_stage2_proto(molecule).splitlines())
@@ -118,7 +119,7 @@ class RoundtripTest(absltest.TestCase):
     for maybe_molecule, orig_contents in process_fn():
       if isinstance(maybe_molecule, Exception):
         raise maybe_molecule
-      self.assertGreater(maybe_molecule.bond_topologies[0].bond_topology_id, 0)
+      self.assertGreater(maybe_molecule.bond_topo[0].topo_id, 0)
       smu_writer_lib.check_dat_formats_match(
           orig_contents,
           writer_fn(maybe_molecule).splitlines())
@@ -256,23 +257,42 @@ class Atomic2InputTest(absltest.TestCase):
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.errors.status = -1
+      molecule.prop.calc.status = -1
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.errors.status = 19
+      molecule.prop.calc.status = 19
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.ClearField('single_point_energy_hf_3')
+      molecule.prop.ClearField('spe_std_hf_3')
       writer.process(molecule, 0)
 
     with self.assertRaises(ValueError):
       molecule = copy.deepcopy(orig_molecule)
-      molecule.properties.ClearField('single_point_energy_mp2_3')
+      molecule.prop.ClearField('spe_std_mp2_3')
       writer.process(molecule, 0)
+
+
+class CleanTextTest(absltest.TestCase):
+
+  def test_final_mol(self):
+    proto_fn = os.path.join(TESTDATA_PATH, FINAL_MOL_STEM + '.pbtxt')
+    clean_text_fn = os.path.join(TESTDATA_PATH, FINAL_MOL_STEM + '.txt')
+
+    smu_proto = dataset_pb2.MultipleMolecules()
+    raw_proto = '\n'.join(get_file_contents(proto_fn))
+    text_format.Parse(raw_proto, smu_proto)
+    self.assertLen(smu_proto.molecules, 1)
+
+    expected = get_file_contents(clean_text_fn)
+
+    writer = smu_writer_lib.CleanTextWriter()
+    got = writer.process(smu_proto.molecules[0])
+
+    self.assertEqual([l.rstrip('\n') for l in expected], got.splitlines())
 
 
 if __name__ == '__main__':

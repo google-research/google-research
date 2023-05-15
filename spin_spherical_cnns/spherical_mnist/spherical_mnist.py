@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ class SphericalMnist(tfds.core.GeneratorBasedBuilder):
         'validation_canonical': dataset_directory / 'nrnr/train0.tfrecord',
         'test_canonical': dataset_directory / 'nrnr/test0.tfrecord'}
 
-    return {split: self._generate_examples(filename, split)
+    return {split: self._generate_examples(filename, split)  # pytype: disable=wrong-arg-types  # always-use-return-annotations
             for split, filename in dataset_files.items()}
 
   def _generate_examples(self,

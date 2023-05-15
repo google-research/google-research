@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -92,13 +92,17 @@ def gen_sine_data_freq(freq, ts_len,
 
 
 if __name__ == "__main__":
+  parent_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
   parser = argparse.ArgumentParser()
   # Optional argument flag which defaults to False
   parser.add_argument("-id", "--input-dim", type=int, default=3)
   parser.add_argument("-n", "--num-nodes", type=int, default=10)
   parser.add_argument(
-      "-d", "--data-config", type=str, default="../experiments/Sine.yaml")
+      "-d",
+      "--data-config",
+      type=str,
+      default=f"{parent_dir}/experiments/Sine.yaml")
 
   args = parser.parse_args()
 
@@ -112,15 +116,15 @@ if __name__ == "__main__":
       print(exc)
 
   gen_freq = 10
-  gen_ts_len = 1000
+  gen_ts_len = 2000
 
-  data_path = "../data/"
+  data_path = os.path.join(parent_dir, "data")
   if not os.path.exists(data_path):
     # Create a new directory because it does not exist
     os.makedirs(data_path)
-    print("The new directory "+data_path+" is created!")
+    print(f"The new directory {data_path} is created!")
 
-  data_file = data_path + "sine.npy"
+  data_file = os.path.join(data_path, "sine.npy")
 
   data = gen_sine_data(gen_freq, gen_ts_len, args.num_nodes, args.input_dim)
   np.save(data_file, data)

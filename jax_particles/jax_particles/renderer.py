@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -126,10 +126,10 @@ def draw_traj(img, env, traj, width, color=None):
 
       for elems in zip(entities, old_entity_states, entity_states):
         entity, entity_state_start, entity_state_end = elems
-        pos_start = tuple((entity_state_start.p*scale + offset).astype(np.int))
-        pos_end = tuple((entity_state_end.p*scale + offset).astype(np.int))
+        pos_start = tuple((entity_state_start.p*scale + offset).astype(int))
+        pos_end = tuple((entity_state_end.p*scale + offset).astype(int))
         if pos_start[0] != pos_end[0] or pos_start[1] != pos_end[1]:
-          color = (tuple((entity.color*255).astype(np.int).tolist())
+          color = (tuple((entity.color*255).astype(int).tolist())
                    if color is None else color)
           img = draw_line(img, pos_start, pos_end, color, entity.color_alpha)
 

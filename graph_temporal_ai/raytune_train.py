@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ Contains the train file to start training the latent graph forecaster model.
 import argparse
 import os
 import sys
-from typing import Any
+from typing import Any, Dict
 
 import numpy as np
 from pytorch_lightning import seed_everything
@@ -34,13 +34,11 @@ from ray.tune.integration.pytorch_lightning import TuneReportCallback
 sys.path.insert(0, "./src")
 from src.data import DataModule  # pylint: disable=g-import-not-at-top
 from src.lgf_model import LGF
-from src.seq2seq_model import Seq2Seq
 
 import torch
 from torch import save
 
 import yaml
-
 
 AVAIL_GPUS = min(0, torch.cuda.device_count())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -55,7 +53,7 @@ config = {
 
 def train_func(tune_config,
                input_data = None,
-               train_args=None):
+               train_args = None):
   """Trains the forecasting model with specified configuration.
 
   Args:
@@ -72,8 +70,6 @@ def train_func(tune_config,
 
   # Create deep learning model
   model = LGF(adj_mx, train_args, tune_config)
-  if train_args.model_name == "lstm":
-    model = Seq2Seq(train_args, tune_config)
 
   # Create data module
   datamodule = DataModule(input_data, train_args)
@@ -147,7 +143,12 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   # load data config
-  with open(args.data_config, "r") as stream:
+  config_path = args.data_config
+  if not os.path.isabs(config_path):
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    config_path = os.path.join(file_dir, config_path)
+
+  with open(config_path, "r") as stream:
     try:
       data_config = yaml.safe_load(stream)
       # overwrite args
@@ -156,7 +157,11 @@ if __name__ == "__main__":
       print(exc)
 
   # load data
-  data = np.load(args.data_file)
+  data_path = args.data_file
+  if not os.path.isabs(data_path):
+    file_dir = os.path.dirname(os.path.realpath(__file__))
+    data_path = os.path.join(file_dir, data_path)
+  data = np.load(data_path)
   print("data loaded! shape:", data.shape)
 
   # reshape data if not graph temporal
@@ -171,7 +176,7 @@ if __name__ == "__main__":
   if not os.path.exists(args.save_dir):
     # Create a new directory because it does not exist
     os.makedirs(args.save_dir)
-    print("The new directory "+args.save_dir+ " is created!")
+    print("The new directory " + args.save_dir + " is created!")
 
   trainable = tune.with_parameters(train_func, input_data=data, train_args=args)
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ def sm3(
     beta1=0.9,
     beta2=0.999,
     diagonal_epsilon=1e-10,
+    weight_decay=0.0,
     normalize_grads=False):
   """SM3 optimizer.
 
@@ -64,6 +65,8 @@ def sm3(
     beta1: momentum parameter.
     beta2: second moment averaging parameter.
     diagonal_epsilon: epsilon for sm3
+    weight_decay: the amount of weight decay regularization to apply. defaults
+      to 0.0.
     normalize_grads: Whether to normalize grads. Author finds it useful when
       grads are high variance.
 
@@ -80,7 +83,7 @@ def sm3(
     def _init(param):
       accumulators = [jnp.zeros([s]) for s in param.shape]
       momentum = _quantize_momentum(jnp.zeros_like(param))
-      return ParameterStats(accumulators, momentum)
+      return ParameterStats(accumulators, momentum)  # pytype: disable=wrong-arg-types  # numpy-scalars
 
     return SM3State(
         count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
@@ -113,8 +116,7 @@ def sm3(
       all_diagonal_statistics[0] = updated_diagonal_statistics
     return all_diagonal_statistics
 
-  def update_fn(updates, state, params=None):
-    del params
+  def update_fn(updates, state, params):
     stats = state.stats
     if normalize_grads:
       updates = jax.tree_map(
@@ -159,11 +161,17 @@ def sm3(
         updated_momentum,
         updated_diagonal_statistics)
 
+    # Apply weight decay
+    updated_momentum_with_wd = updated_momentum
+    if weight_decay > 0.0:
+      updated_momentum_with_wd = jax.tree_map(lambda g, p: g + weight_decay * p,
+                                              updated_momentum, params)
+
     lr = learning_rate
     if callable(learning_rate):
       lr = learning_rate(state.count)
 
-    new_updates = jax.tree_map(lambda pg: -lr * pg, updated_momentum)
+    new_updates = jax.tree_map(lambda pg: -lr * pg, updated_momentum_with_wd)
     return new_updates, SM3State(count=state.count+1, stats=new_sm3_stats)
 
   return optax.GradientTransformation(init_fn, update_fn)

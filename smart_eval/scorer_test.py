@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ from smart_eval import scorer
 class ScorerTest(absltest.TestCase):
 
   def test_smart_score_precomputation(self):
-    matching_fn = mf.chrf_matcher
+    matching_fn = mf.ChrfMatchingFunction()
     smart_scorer = scorer.SmartScorer(
         smart_types=['smart1', 'smart2', 'smartL'], matching_fn=matching_fn)
 

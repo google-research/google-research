@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@
 import numpy as np
 import scipy.sparse as sp
 from scipy.sparse import linalg
+
+import torch
+from torch.nn.modules.loss import _Loss
 
 
 def calculate_normalized_laplacian(adj):
@@ -106,3 +109,20 @@ def assert_shape(x, shape):
   for a, b in zip(x.shape, shape):
     if isinstance(b, int):
       assert a == b, (x.shape, shape)
+
+
+class MAPELoss(_Loss):
+  """Mean Absolute Percentange Error.
+
+  """
+
+  __constants__ = ['reduction']
+
+  # def __init__(self, size_average=None, reduce=None, reduction: str = 'mean'):
+  #   super().__init__(size_average, reduce, reduction)
+
+  def forward(self, inputs, target):
+    entries = torch.nonzero(target, as_tuple=True)
+    loss = torch.mean(
+        (inputs[entries] - target[entries]).abs() / target[entries].abs())
+    return loss

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -140,7 +140,7 @@ def compute_feature_ranking(input_image,
   saliency_map = tf.reshape(saliency_map, [total_pixels])
   input_image = tf.reshape(input_image, [total_pixels])
 
-  num_pixels = np.int((threshold / 100.) * total_pixels)
+  num_pixels = int((threshold / 100.) * total_pixels)
 
   # we add small epsilon to saliency_method for percentage method
   # epsilon allows us to distinguish between 0 value pixel in saliency heatmap

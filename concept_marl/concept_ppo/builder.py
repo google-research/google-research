@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ class ConceptPPOBuilder(
       optimizer = optax.chain(
           optax.clip_by_global_norm(self._config.max_gradient_norm),
           optax.scale_by_adam(eps=self._config.adam_epsilon),
-          optax.scale_by_schedule(self._config.learning_rate), optax.scale(-1))
+          optax.scale_by_schedule(self._config.learning_rate), optax.scale(-1))  # pytype: disable=wrong-arg-types  # numpy-scalars
     else:
       optimizer = optax.chain(
           optax.clip_by_global_norm(self._config.max_gradient_norm),

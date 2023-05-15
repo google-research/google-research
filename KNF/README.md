@@ -34,6 +34,9 @@ pip install -r requirements.txt
 
 6. run_exp.sh: train KNF on all M4, Cryptos, PlayerTraj dataset.
 
+7. evaluation.py: evaluate KNF on all M4, Cryptos, PlayerTraj dataset.
+
+
 ## Instructions
 ### Dataset and Preprocessing
 - M4: Download and preprocess M4 data
@@ -46,10 +49,11 @@ python data/M4/m4_data_gen.py
 python data/Cryptos/cryptos_data_gen.py
 ```
 
-- Traj: Download [NBA basketball player trajectory data](https://github.com/linouk23/NBA-Player-Movements/tree/master/data) and unzip all .7z files in `data/PlayerTraj/json_data`. Run `traj_data_gen.py` to preprocess Trajectory data
+- Traj: Download [NBA basketball player trajectory data](https://github.com/linouk23/NBA-Player-Movements/tree/master/data) and unzip all .7z files in `data/PlayerTraj/json_data`. Run `traj_data_gen.py` to preprocess Trajectory data. Since we didn't fix random seed when we sampled trajectory, to reproduce the results, please download [the same traj dataset we used](https://drive.google.com/drive/folders/1N_wo1I7G62HglyML5yL4FTEzbfekh4vZ?usp=sharing).
 ```
 python data/PlayerTraj/traj_data_gen.py
 ```
+
 
 ### Training
 - run `run.sh` to train a small KNF on a small subset of M4-weekly data in `data/sample_data`
@@ -66,16 +70,21 @@ sh run_exp.sh
 - Step1: Save the training and test sets of the new dataset separately as numpy arrays into two npy files. Both should have the shape of (number of time series, length, number of features).
 - Step2: Use the `CustomDataset` class in `modules/data_classes.py` to load the data and specify the paths to train and test data files in arguments `direc` and `direc_test`.
 - Step3: Change the default `num_feats` in `args.py` accordingly.
+- Step4: Please do hyperparameter tuning, especially for `input_dim`, `input_length`, `num_steps` and `train_output_length`.
+
+## Well-trained Models and Their Predictions
+The well-trained models on all datasets and their prediction files, which generate the numbers in the paper, can be found [here](https://drive.google.com/drive/folders/1N_wo1I7G62HglyML5yL4FTEzbfekh4vZ?usp=sharing).
 
 ## Citation
 
 If you find this repo useful, please cite [our paper](https://arxiv.org/abs/2210.03675).
 
 ```
-@inproceedings{wang2022koopman,
-  title={Koopman Neural  Forecaster for  Time Series with Temporal Distribution Shifts},
-  author={Rui Wang and Yihe Dong and Sercan O. Arik and Rose Yu},
-  journal={arXiv preprint arXiv:2210.03675},
-  year={2022}
+@inproceedings{wang2023koopman,
+title={Koopman Neural Operator Forecaster for Time-series with Temporal Distributional Shifts},
+author={Rui Wang and Yihe Dong and Sercan O Arik and Rose Yu},
+booktitle={International Conference on Learning Representations},
+year={2023},
+url={https://openreview.net/forum?id=kUmdmHxK5N}
 }
 ```

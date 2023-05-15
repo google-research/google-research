@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -885,7 +885,7 @@ class ModelLoader:
     if sum(nb_items_bin) != 0:
       ece = np.average(
           np.absolute(mean_conf - acc_tab),
-          weights=nb_items_bin.astype(np.float) / np.sum(nb_items_bin))
+          weights=nb_items_bin.astype(float) / np.sum(nb_items_bin))
     else:
       ece = 0.0
     return ece

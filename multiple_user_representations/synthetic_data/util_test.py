@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ class UtilTest(tf.test.TestCase, parameterized.TestCase):
     item_clusters[:10] = 0
     item_clusters[10:20] = 1
     item_clusters[20:50] = 2
-    user_interests = np.array([[0, 2], [1, 2], [0], [0, 1, 2]])
+    user_interests = np.array([[0, 2], [1, 2], [0], [0, 1, 2]], dtype=object)
 
     expected_scores = np.zeros((4, 50))
     expected_scores[0, :10] = 1

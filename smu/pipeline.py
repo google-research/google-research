@@ -1,19 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -111,8 +97,7 @@ def parse_equivalent_file(filename):
       kept_mid = kept_btid * 1000 + kept_mid
       discard_mid = discard_btid * 1000 + discard_mid
 
-      yield dataset_pb2.Molecule(
-          molecule_id=discard_mid, duplicated_by=kept_mid)
+      yield dataset_pb2.Molecule(mol_id=discard_mid, duplicate_of=kept_mid)
 
 
 def parse_dat_file(filename, stage):
@@ -210,42 +195,41 @@ def molecule_to_stat_values(molecule):
   """
   # Yield the values for all the relevant error fields.
   for field in [
-      'status', 'warn_t1', 'warn_t1_excess', 'warn_bse_b5_b6',
-      'warn_bse_cccsd_b5', 'warn_exc_lowest_excitation',
-      'warn_exc_smallest_oscillator', 'warn_exc_largest_oscillator',
-      'warn_vib_linearity', 'warn_vib_imaginary', 'warn_num_neg',
-      'error_nstat1', 'error_nstatc', 'error_nstatt', 'error_frequencies'
+      'status', 'warn_t1', 'warn_delta_t1', 'warn_bse_b6', 'warn_bse_eccsd',
+      'warn_exc_ene', 'warn_exc_osmin', 'warn_exc_osmax', 'warn_vib_linear',
+      'warn_vib_imag', 'warn_bsr_neg', 'error_nstat1', 'error_nstatc',
+      'error_nstatt', 'error_frequencies'
   ]:
-    yield 'errors.' + field, getattr(molecule.properties.errors, field)
+    yield 'errors.' + field, getattr(molecule.prop.calc, field)
 
   yield 'fate', dataset_pb2.Properties.FateCategory.Name(
-      molecule.properties.errors.fate)
+      molecule.prop.calc.fate)
 
   yield 'num_initial_geometries', len(
-      [g for g in molecule.initial_geometries if g.atom_positions])
-  yield 'num_duplicates', len(molecule.duplicate_of)
+      [g for g in molecule.ini_geo if g.atompos])
+  yield 'num_duplicates', len(molecule.duplicate_found)
 
   for field in smu_utils_lib.find_zero_values(molecule):
     yield 'zero_field', field
 
-  if not molecule.duplicated_by and molecule.properties.errors.status < 512:
-    yield 'num_topologies', len(molecule.bond_topologies)
+  if not molecule.duplicate_of and molecule.prop.calc.status < 512:
+    yield 'num_topologies', len(molecule.bond_topo)
 
     yield 'num_topologies_itc', len([
-        None for bt in molecule.bond_topologies
-        if bt.source & dataset_pb2.BondTopology.SOURCE_ITC
+        None for bt in molecule.bond_topo
+        if bt.info & dataset_pb2.BondTopology.SOURCE_DDT
     ])
     yield 'num_topologies_mlcr', len([
-        None for bt in molecule.bond_topologies
-        if bt.source & dataset_pb2.BondTopology.SOURCE_MLCR
+        None for bt in molecule.bond_topo
+        if bt.info & dataset_pb2.BondTopology.SOURCE_MLCR
     ])
     yield 'num_topologies_csd', len([
-        None for bt in molecule.bond_topologies
-        if bt.source & dataset_pb2.BondTopology.SOURCE_CSD
+        None for bt in molecule.bond_topo
+        if bt.info & dataset_pb2.BondTopology.SOURCE_CSD
     ])
 
-    for bt in molecule.bond_topologies:
-      yield 'bt_source', bt.source
+    for bt in molecule.bond_topo:
+      yield 'bt_source', bt.info
 
 
 def bond_topology_summaries_from_csv(filename):
@@ -262,7 +246,7 @@ def bond_topology_summaries_from_csv(filename):
       summary = dataset_pb2.BondTopologySummary()
       summary.bond_topology.CopyFrom(bt)
       # Note that we leave all the counts as 0.
-      yield bt.bond_topology_id, summary
+      yield bt.topo_id, summary
 
 
 class MergeMoleculesFn(beam.DoFn):
@@ -274,22 +258,25 @@ class MergeMoleculesFn(beam.DoFn):
   OUTPUT_TAG_MERGE_CONFLICT = 'conflict'
 
   def process(self, args):
-    """"Merges molecules.
+    """Merges molecules.
 
     Args:
-      args: tuple of molecule_id(should match the id in all molecules) and
+      args: tuple of mol_id(should match the id in all molecules) and
         molecules(iterable of dataset_pb2.Molecule)
 
     Yields:
       dataset_pb2.Molecule and tagged output (OUTPUT_TAG_MERGE_CONFLICT) with
       conflict output from smu_utils_lib.merge_molecule
+
+    Raises:
+      ValueError: on inconsistent mol_id
     """
-    molecule_id, molecules = args
+    mol_id, molecules = args
 
     for c in molecules:
-      if c.molecule_id != molecule_id:
+      if c.mol_id != mol_id:
         raise ValueError(
-            f'In merged CID {molecule_id}, found CID {c.molecule_id} instead')
+            f'In merged CID {mol_id}, found CID {c.mol_id} instead')
 
     # For signalling the first merging.
     sentinel = object()
@@ -336,37 +323,37 @@ def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
     (atom type 1, atom type 2, bond type, quantized dist)
   """
   # These are considered "major" or worse errors
-  if (molecule.properties.errors.status >= 8 or molecule.duplicated_by > 0):
+  if (molecule.prop.calc.status >= 8 or molecule.duplicate_of > 0):
     return
 
-  bt = molecule.bond_topologies[0]
+  bt = molecule.bond_topo[0]
   format_str = '{:.%df}' % dist_sig_digits
 
-  for atom_idx0, atom_idx1 in itertools.combinations(range(len(bt.atoms)), r=2):
+  for atom_idx0, atom_idx1 in itertools.combinations(range(len(bt.atom)), r=2):
 
-    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
-        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
+    if (bt.atom[atom_idx0] == dataset_pb2.BondTopology.ATOM_H or
+        bt.atom[atom_idx1] == dataset_pb2.BondTopology.ATOM_H):
       continue
 
     # Hello huge hack. F-F creates problems for us because there is
     # exactly one molecule that has an F-F bond. We can't create an
     # empirical distribution out of 1 value. So we'll just drop that
     # one and let the FF molecule have no detected geometries.
-    if (bt.atoms[atom_idx0] == dataset_pb2.BondTopology.ATOM_F and
-        bt.atoms[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
+    if (bt.atom[atom_idx0] == dataset_pb2.BondTopology.ATOM_F and
+        bt.atom[atom_idx1] == dataset_pb2.BondTopology.ATOM_F):
       continue
 
     bond_type = smu_utils_lib.get_bond_type(bt, atom_idx0, atom_idx1)
 
-    geom = molecule.optimized_geometry
+    geom = molecule.opt_geo
     atom_pos0 = np.array([
-        geom.atom_positions[atom_idx0].x, geom.atom_positions[atom_idx0].y,
-        geom.atom_positions[atom_idx0].z
+        geom.atompos[atom_idx0].x, geom.atompos[atom_idx0].y,
+        geom.atompos[atom_idx0].z
     ],
                          dtype=np.double)
     atom_pos1 = np.array([
-        geom.atom_positions[atom_idx1].x, geom.atom_positions[atom_idx1].y,
-        geom.atom_positions[atom_idx1].z
+        geom.atompos[atom_idx1].x, geom.atompos[atom_idx1].y,
+        geom.atompos[atom_idx1].z
     ],
                          dtype=np.double)
     # The intention is the buckets are the left edge of an empricial CDF.
@@ -379,8 +366,8 @@ def extract_bond_lengths(molecule, dist_sig_digits, unbonded_max):
         dist > unbonded_max):
       continue
 
-    atom_char0 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx0]]
-    atom_char1 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atoms[atom_idx1]]
+    atom_char0 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atom[atom_idx0]]
+    atom_char1 = smu_utils_lib.ATOM_TYPE_TO_CHAR[bt.atom[atom_idx1]]
     if atom_char0 > atom_char1:
       atom_char0, atom_char1 = atom_char1, atom_char0
 
@@ -414,7 +401,7 @@ def smiles_to_id(bond_topology_filename):
     bond_topology_filename: see FLAGS.input_bond_topology_csv
 
   Yields:
-    smiles, bond_topology_id
+    smiles, topo_id
   """
   with gfile.GFile(bond_topology_filename, 'r') as infile:
     reader = csv.reader(iter(infile))
@@ -425,6 +412,14 @@ def smiles_to_id(bond_topology_filename):
 
 
 def clean_up_molecule(molecule):
+  """Miscellaneous clean up.
+
+  Args:
+    molecule: dataset_pb2.Molecule
+
+  Returns:
+    copy of molecule with modifications
+  """
   molecule = copy.deepcopy(molecule)
 
   smu_utils_lib.clean_up_error_codes(molecule)
@@ -443,7 +438,7 @@ class UpdateMoleculeFn(beam.DoFn):
 
   main output is dataset_pb2.Molecule
   smiles output is a tuple of
-    molecule_id,
+    mol_id,
     SmilesCompareResult,
     original smiles,
     smiles_with_h,
@@ -455,22 +450,20 @@ class UpdateMoleculeFn(beam.DoFn):
     self._cached_bond_lengths = None
 
   def _compare_smiles(self, molecule):
-    if len(molecule.bond_topologies) != 1:
+    if len(molecule.bond_topo) != 1:
       raise ValueError(
           'compare_smiles expects 1 bond topology; for CID {} got {}'.format(
-              molecule.molecule_id, len(molecule.bond_topologies)))
+              molecule.mol_id, len(molecule.bond_topo)))
 
     result, smiles_with_h, smiles_without_h = (
-        smu_utils_lib.bond_topology_smiles_comparison(
-            molecule.bond_topologies[0]))
+        smu_utils_lib.bond_topology_smiles_comparison(molecule.bond_topo[0]))
     if result != smu_utils_lib.SmilesCompareResult.MATCH:
       yield beam.pvalue.TaggedOutput(
           UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH,
-          (molecule.molecule_id, result, molecule.bond_topologies[0].smiles,
-           smiles_with_h, smiles_without_h))
-      molecule.properties.smiles_openbabel = (
-          molecule.bond_topologies[0].smiles)
-      molecule.bond_topologies[0].smiles = smiles_without_h
+          (molecule.mol_id, result, molecule.bond_topo[0].smiles, smiles_with_h,
+           smiles_without_h))
+      molecule.prop.smiles_openbabel = (molecule.bond_topo[0].smiles)
+      molecule.bond_topo[0].smiles = smiles_without_h
 
   def _add_alternative_bond_topologies(self, molecule, smiles_id_dict):
     beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
@@ -481,8 +474,8 @@ class UpdateMoleculeFn(beam.DoFn):
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'no_topology_matches').inc()
 
-    for bt in molecule.bond_topologies:
-      if not bt.bond_topology_id:
+    for bt in molecule.bond_topo:
+      if not bt.topo_id:
         beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                      'topology_match_smiles_failure').inc()
 
@@ -497,6 +490,9 @@ class UpdateMoleculeFn(beam.DoFn):
 
     Yields:
       Molecule.
+
+    Raises:
+      ValueError: if the bond_length_records are misformatted
     """
     # There is probably a better way to do this.
     # We get the side input with each call to process. We'll assume that it's
@@ -516,19 +512,18 @@ class UpdateMoleculeFn(beam.DoFn):
       except ValueError as err:
         raise ValueError(
             'Invalid sparse dataframe for molecule {0} org. ValueError: {1}'
-            .format(str(molecule.molecule_id), err)) from err
+            .format(str(molecule.mol_id), err)) from err
 
     molecule = copy.deepcopy(molecule)
 
-    molecule.properties.errors.fate = smu_utils_lib.determine_fate(molecule)
+    molecule.prop.calc.fate = smu_utils_lib.determine_fate(molecule)
 
     yield from self._compare_smiles(molecule)
 
     if smu_utils_lib.molecule_eligible_for_topology_detection(molecule):
       self._add_alternative_bond_topologies(molecule, smiles_id_dict)
     else:
-      molecule.bond_topologies[
-          0].source = dataset_pb2.BondTopology.SOURCE_STARTING
+      molecule.bond_topo[0].info = dataset_pb2.BondTopology.SOURCE_STARTING
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'skipped_topology_matches').inc()
 
@@ -538,27 +533,27 @@ class UpdateMoleculeFn(beam.DoFn):
 def generate_keyed_molecules_for_duplicates(molecule):
   """Generates keyed molecules for duplicate merging.
 
-  Every molecule yields itself keyed by its molecule_id
-  Additonally, if duplicated_by is set, the molecule is yielded keyed by
-  duplicated_by.
+  Every molecule yields itself keyed by its mol_id
+  Additonally, if duplicate_of is set, the molecule is yielded keyed by
+  duplicate_of.
 
   Args:
     molecule: dataset_pb2.Molecule
 
   Yields:
-    molecule_id, dataset_pb2.Molecule
+    mol_id, dataset_pb2.Molecule
   """
-  yield molecule.molecule_id, molecule
-  if molecule.duplicated_by > 0:
-    yield molecule.duplicated_by, molecule
+  yield molecule.mol_id, molecule
+  if molecule.duplicate_of > 0:
+    yield molecule.duplicate_of, molecule
 
 
-def merge_duplicate_information(molecule_id, molecules):
+def merge_duplicate_information(mol_id, molecules):
   """Merges duplicate information into one molecule.
 
-  One entry in molecules should have the given molecule_id
+  One entry in molecules should have the given mol_id
   (call this the "main" molecule)
-  Every other entry should have a duplicated_by set to molecule_id
+  Every other entry should have a duplicate_of set to mol_id
   (call this an "other" molecule)
 
   The initial_geometry from other will copied to main.
@@ -566,29 +561,32 @@ def merge_duplicate_information(molecule_id, molecules):
   TODO(pfr, ianwatson): implement this copying with unequal bond topologies.
 
   Args:
-    molecule_id: integer
+    mol_id: integer
     molecules: iterable of dataset_pb2.Molecule
 
   Returns:
     dataset_pb2.Molecule
+
+  Raises:
+    ValueError: if duplicate records not as expected
   """
-  matching_molecules = [c for c in molecules if c.molecule_id == molecule_id]
+  matching_molecules = [c for c in molecules if c.mol_id == mol_id]
   if len(matching_molecules) != 1:
     raise ValueError('Expected 1 molecules with id {}, got {}'.format(
-        molecule_id, len(matching_molecules)))
+        mol_id, len(matching_molecules)))
   main_molecule = copy.deepcopy(matching_molecules[0])
 
   for mol in molecules:
-    if mol.molecule_id == molecule_id:
+    if mol.mol_id == mol_id:
       continue
-    if mol.duplicated_by != molecule_id:
+    if mol.duplicate_of != mol_id:
       raise ValueError(
-          'Molecule {} should have duplicated_by {} but has {}'.format(
-              mol.molecule_id, molecule_id, mol.duplicated_by))
-    main_molecule.duplicate_of.append(mol.molecule_id)
-    if molecule_id // 1000 == mol.molecule_id // 1000:
+          'Molecule {} should have duplicate_of {} but has {}'.format(
+              mol.mol_id, mol_id, mol.duplicate_of))
+    main_molecule.duplicate_found.append(mol.mol_id)
+    if mol_id // 1000 == mol.mol_id // 1000:
       # easy case! Bond topologies are the same, just copy over
-      main_molecule.initial_geometries.append(mol.initial_geometries[0])
+      main_molecule.ini_geo.append(mol.ini_geo[0])
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'dup_same_topology').inc()
     else:
@@ -597,7 +595,6 @@ def merge_duplicate_information(molecule_id, molecules):
       # TODO(pfr, ianwatson)
       beam.metrics.Metrics.counter(_METRICS_NAMESPACE,
                                    'dup_diff_topology_unmatched').inc()
-      pass
 
   return main_molecule
 
@@ -612,7 +609,7 @@ def to_keyed_bond_topology_summary(molecule):
     bond topology id, BondTopologySummary
   """
   for summary in smu_utils_lib.molecule_to_bond_topology_summaries(molecule):
-    yield summary.bond_topology.bond_topology_id, summary
+    yield summary.bond_topology.topo_id, summary
 
 
 def merge_bond_topology_summaries(summaries, field_names):
@@ -636,8 +633,7 @@ def merge_bond_topology_summaries(summaries, field_names):
       # that
       return copy.deepcopy(summary1)
 
-    assert (summary0.bond_topology.bond_topology_id ==
-            summary1.bond_topology.bond_topology_id)
+    assert summary0.bond_topology.topo_id == summary1.bond_topology.topo_id
 
     for name in field_names:
       setattr(summary0, name, getattr(summary0, name) + getattr(summary1, name))
@@ -661,7 +657,7 @@ def csv_format_bond_topology_summary(summary, field_names):
   Returns:
     BondTopologySummary
   """
-  return ','.join([str(summary.bond_topology.bond_topology_id)] +
+  return ','.join([str(summary.bond_topology.topo_id)] +
                   [str(getattr(summary, name)) for name in field_names])
 
 
@@ -731,11 +727,9 @@ def make_standard_molecule(molecule):
   yield out
 
 
-def key_to_string(key, value):
-  return str(key), value
 
 
-def csv_format(vals):
+def _csv_format(vals):
   return ','.join(str(v) for v in vals)
 
 
@@ -840,11 +834,11 @@ def pipeline(root):
       | 'CreateEquivInputs' >> beam.Create(equivalent_files)
       | 'ParseEquiv' >> beam.FlatMap(parse_equivalent_file))
 
-  # Merge by bond_topology_id
+  # Merge by topo_id
   merged_results = (
       (stage1_matched_molecules, stage2_matched_molecules, equivalent_molecules)
       | 'FlattenAllMolecules' >> beam.Flatten()
-      | 'GroupByCID' >> beam.GroupBy(lambda c: c.molecule_id)
+      | 'GroupByCID' >> beam.GroupBy(lambda c: c.mol_id)
       | 'MergeMolecules' >> beam.ParDo(MergeMoleculesFn()).with_outputs(
           MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT, main='molecules'))
   merged_molecules = merged_results['molecules']
@@ -852,11 +846,11 @@ def pipeline(root):
   # Write out the merge conflicts
   _ = (
       merged_results[MergeMoleculesFn.OUTPUT_TAG_MERGE_CONFLICT]
-      | 'ConflictsCSVFormat' >> beam.Map(csv_format)
+      | 'ConflictsCSVFormat' >> beam.Map(_csv_format)
       | 'ConflictsReshuffle' >> beam.Reshuffle()
       | 'WriteConflictsCSV' >> beam.io.WriteToText(
           FLAGS.output_stem + '_conflicts',
-          header=csv_format(smu_utils_lib.MERGE_CONFLICT_FIELDS),
+          header=_csv_format(smu_utils_lib.MERGE_CONFLICT_FIELDS),
           num_shards=1,
           file_name_suffix='.csv'))
 
@@ -898,10 +892,10 @@ def pipeline(root):
   _ = (
       update_results[UpdateMoleculeFn.OUTPUT_TAG_SMILES_MISMATCH]
       | 'ReshuffleSmilesOutput' >> beam.Reshuffle()
-      | 'SmilesCSVFormat' >> beam.Map(csv_format)
+      | 'SmilesCSVFormat' >> beam.Map(_csv_format)
       | 'WriteSmilesCSV' >> beam.io.WriteToText(
           FLAGS.output_stem + '_smiles_compare',
-          header='molecule_id,compare,smiles_given,smiles_with_h,smiles_without_h',
+          header='mol_id,compare,smiles_given,smiles_with_h,smiles_without_h',
           num_shards=1,
           file_name_suffix='.csv'))
 

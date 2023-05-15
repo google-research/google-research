@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@ import functools
 from absl.testing import parameterized
 import jax.numpy as jnp
 import numpy as np
+import sympy.physics.wigner
 import tensorflow as tf
+
 
 from spin_spherical_cnns import sphere_utils
 from spin_spherical_cnns import spin_spherical_harmonics
@@ -114,6 +116,14 @@ class SphereUtilsTest(tf.test.TestCase, parameterized.TestCase):
     wigner_deltas = sphere_utils.compute_all_wigner_delta(ell_max)
     wigner_delta = sphere_utils.compute_wigner_delta(ell)
     self.assertAllClose(wigner_deltas[ell], wigner_delta)
+
+  @parameterized.parameters(8, 16, 32)
+  def test_compute_wigner_delta_matches_sympy(self, ell):
+    """Wigner deltas must match up to ell==32."""
+    wigner_delta_sympy = sympy.physics.wigner.wigner_d_small(ell, np.pi / 2)
+    wigner_delta_sympy = np.array(wigner_delta_sympy).astype(np.float64)
+    wigner_delta = sphere_utils.compute_wigner_delta(ell)
+    self.assertAllClose(wigner_delta, wigner_delta_sympy)
 
 
 if __name__ == "__main__":

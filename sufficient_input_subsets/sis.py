@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -188,7 +188,7 @@ def make_empty_boolean_mask(shape):
   Returns:
     ndarray of given shape and boolean type, all values are True (not masked).
   """
-  return np.full(shape, True, dtype=np.bool)
+  return np.full(shape, True, dtype=bool)
 
 
 def make_empty_boolean_mask_broadcast_over_axis(shape, axis):

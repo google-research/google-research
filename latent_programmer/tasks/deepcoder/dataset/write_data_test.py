@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
 # limitations under the License.
 
 """Tests for sample_random."""
+
+import random
 
 from absl import flags
 from absl.testing import absltest
@@ -39,6 +41,9 @@ class WriteDataTest(parameterized.TestCase):
     task = deepcoder_dsl.ProgramTask(program, examples)
 
     results = write_data.serialize_decomposition_examples(task)
+    result_0_example = tf.train.Example.FromString(results[0])
+    result_1_example = tf.train.Example.FromString(results[1])
+
     expected_result_0 = tf.train.Example(
         features=tf.train.Features(
             feature={
@@ -49,6 +54,12 @@ class WriteDataTest(parameterized.TestCase):
                     write_data._bytes_feature(['[ 5 2 ]', '[ 3 6 9 ]']),
                 'next_part':
                     write_data._bytes_feature(['[ 5 2 4 ]', '[ 3 6 9 8 ]']),
+                'corrupted_next_part':
+                    # This feature is generated randomly. Copy it over from the
+                    # actual result, to effectively ignore it.
+                    write_data._bytes_feature(
+                        result_0_example.features.feature['corrupted_next_part']
+                        .bytes_list.value),
                 'program_part':
                     write_data._bytes_feature(['x2 = Map (+1) x5']),
             }))
@@ -63,12 +74,17 @@ class WriteDataTest(parameterized.TestCase):
                     write_data._bytes_feature(['[ 5 2 ]', '[ 3 6 9 ]']),
                 'next_part':
                     write_data._bytes_feature(['[ 5 2 ]', '[ 3 6 9 ]']),
+                'corrupted_next_part':
+                    # This feature is generated randomly.
+                    write_data._bytes_feature(
+                        result_1_example.features.feature['corrupted_next_part']
+                        .bytes_list.value),
                 'program_part':
                     write_data._bytes_feature(['x7 = Take x1 x2']),
             }))
     self.assertLen(results, 2)
-    self.assertEqual(tf.train.Example.FromString(results[0]), expected_result_0)
-    self.assertEqual(tf.train.Example.FromString(results[1]), expected_result_1)
+    self.assertEqual(result_0_example, expected_result_0)
+    self.assertEqual(result_1_example, expected_result_1)
 
   def test_serialize_entire_program_example(self):
     # Checks that task is serialized correctly using a hard-coded example.
@@ -92,21 +108,20 @@ class WriteDataTest(parameterized.TestCase):
             }))
     self.assertEqual(tf.train.Example.FromString(result), expected_result)
 
-  @parameterized.product(
-      experiment=list(exp_module.Experiment),
-      is_train=[True, False],
-      num_examples=[2, 5],
-      mod=[0, 20],
-      max_length=[5, 20],
+  @parameterized.parameters(
+      # These cases are chosen because they run quickly.
+      (exp_module.Experiment.COMPOSE_DIFFERENT_CONCEPTS, True),
+      (exp_module.Experiment.SWITCH_CONCEPT_ORDER, False),
   )
-  def test_generate_task_for_experiment(self, experiment, is_train,
-                                        num_examples, mod, max_length):
-    with flagsaver.flagsaver(num_examples=num_examples,
-                             deepcoder_mod=mod,
-                             deepcoder_max_list_length=max_length):
-      for _ in range(10):
-        task = write_data.generate_task_for_experiment(experiment.name,
-                                                       is_train)
+  def test_generate_tasks_for_experiment(self, experiment, is_train):
+    with flagsaver.flagsaver(num_examples=3,
+                             deepcoder_max_list_length=5,
+                             deepcoder_max_int=50):
+      random.seed(0)
+      tasks = write_data.generate_tasks_for_experiment(
+          experiment.name, is_train, canonical_variable_order=True,
+          num_programs=10)
+      for task in tasks:
         for example in task.examples:
           self.assertEqual(task.program.run(example.inputs).get_output(),
                            example.output)

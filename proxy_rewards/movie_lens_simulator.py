@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ class Movie(document.AbstractDocument):
     super(Movie, self).__init__(int(doc_id))
     self.title = title
     self.genres = genres
-    self.genre_vec = np.zeros(len(utils.GENRES), dtype=np.int)
+    self.genre_vec = np.zeros(len(utils.GENRES), dtype=int)
     self.genre_vec[self.genres] = 1
     self.movie_vec = vec
 

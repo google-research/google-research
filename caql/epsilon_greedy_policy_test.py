@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ class EpsilonGreedyPolicyTest(tf.test.TestCase):
         agent_policy.AgentPolicy, instance=True)
     self._mock_policy.continuous_action = True
     self._mock_policy.action_spec = array_spec.BoundedArraySpec(
-        shape=(3,), dtype=np.float, minimum=[0, 0, 0], maximum=[1, 1, 1])
+        shape=(3,), dtype=float, minimum=[0, 0, 0], maximum=[1, 1, 1])
     self._mock_policy.action.return_value = np.array([.5, .5, .5])
 
   def testEpsilonGreedyAction(self):

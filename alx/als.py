@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -582,8 +582,8 @@ def recall(top_ids, ground_truth, r_at=20):
 @flax.struct.dataclass
 class ALSState:
   step: int
-  col_embedding: jax.pxla.ShardedDeviceArray
-  row_embedding: jax.pxla.ShardedDeviceArray
+  col_embedding: jax.Array
+  row_embedding: jax.Array
 
 
 def get_local_devices(cfg):

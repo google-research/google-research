@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 """A collection of common methods for scaling law estimators.
 """
+from typing import Optional
 
 import numpy as np
 
@@ -25,8 +26,15 @@ ERR_MARGIN = 1e-3
 class M:
   """A collection of common methods for scaling law estimators."""
 
-  def __init__(self, loss_values, c=-0.5, err_inf=None,
-               update_c=True, update_err_inf=True, lo_bound=0., up_bound=None):
+  def __init__(self,
+               loss_values,
+               c = -0.5,
+               err_inf = None,
+               update_c = True,
+               update_err_inf = True,
+               lo_bound = 0.,
+               up_bound = None
+               ):
     """Constructor.
 
     Args:
@@ -90,7 +98,7 @@ class M:
     raise NotImplementedError
 
   def _get_objt(self):
-    """Objecrive function to be optimized; for reporting/debugging purposes."""
+    """Objective function to be optimized; for reporting/debugging purposes."""
     g = np.log(self._gv())
     f = np.log(self._fv())
     return 0.5 * np.linalg.norm(g - f)
@@ -100,15 +108,20 @@ class M:
     self.err_inf = max(self.err_inf, self.lo_bound)  # 0 <= err_inf <= min_err
     self.err_inf = min(self.err_inf, self.min_err)
     self.err_0 = max(self.err_0, self.max_err)  # err_0 >= max_err
+
     if self.up_bound is not None:
       self.err_0 = min(self.err_0, self.up_bound)
 
-  def loss_curve(self, min_data_size, max_data_size, num_points=10_000):
+  def loss_curve(self,
+                 min_data_size,
+                 max_data_size,
+                 num_points = 10_000
+                 ):
     """Predict performance for data sizes in [min_data_size, max_data_size]."""
     if min_data_size < 1:
       raise ValueError("min_data_size must be larger than zero.")
     xn = np.linspace(min_data_size, max_data_size, num_points)
-    yn = [self.predict_loss(data_size) for data_size in xn]
+    yn = np.array([self.predict_loss(data_size) for data_size in xn])
     return xn, yn
 
   def err_limit(self):

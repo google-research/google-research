@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -675,7 +675,7 @@ class MCTSEnv(object):
         self.trajectory_per_episode_rewards, dtype=np.float32)
     self.trajectory_per_episode_lengths = np.asarray(
         self.trajectory_per_episode_lengths, dtype=np.float32)
-    self.trajectory_dones = np.asarray(self.trajectory_dones, dtype=np.bool)
+    self.trajectory_dones = np.asarray(self.trajectory_dones, dtype=bool)
     self.trajectory_per_step_rewards = np.asarray(
         self.trajectory_per_step_rewards, dtype=np.float32)
 

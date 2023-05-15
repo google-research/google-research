@@ -1,6 +1,8 @@
 Molecules can have multiple bond topologies that match the geometry
 (see multiple_bond_topology.py for some illustration)
 This is what the "find_by_smiles" method is using and is very efficient
+Note that we have multiple criteria for creating bond topologies.
+For this example, we will focus on the DDT criteria (our initial bond ranges)
 find_by_smiles on [O-]N=N[NH+]=[N+]([O-])F finds these molecule ids
 [85532001, 88595001, 89347002]
 
@@ -20,13 +22,13 @@ to be between 1A and 2A with the string "N~N:1.0-2.0"
 We now find these molecule ids
 [85532001, 88595001, 88595005, 89158002, 89158006, 89347002, 89347004, 89351001, 89351002]
 
-Also note that the bond_topologies field of all molecules returned
+Also note that the bond_topo field of all molecules returned
 from a topology query have been modified with the new allowed bond distances
 
 Compare the bond topologies from the orignal query:
-    85532001 has bond topologies: [85532, 89347, 89158, 88595, 85227]
-    88595001 has bond topologies: [88595, 89158, 85532, 89347, 85227]
-    89347002 has bond topologies: [85532, 89347, 89158, 88595, 85227]
+    85532001 has bond topologies: [85227, 85532, 88595, 89158, 89347]
+    88595001 has bond topologies: [85227, 85532, 88595, 89158, 89347]
+    89347002 has bond topologies: [85227, 85532, 88595, 89158, 89347]
 
 With the topologies from the query with modified bond distances:
     85532001 has bond topologies: [89347, 88595, 89158, 85532, 85227, 85395]

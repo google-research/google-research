@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Extract bond lengths from SMU molecules."""
 
 import apache_beam as beam
@@ -43,20 +42,20 @@ class GetBondLengthDistribution(beam.DoFn):
   """Generates a bond length distribution."""
 
   def process(self, molecule):
-    bt = molecule.bond_topologies[0]
-    geom = molecule.optimized_geometry
+    bt = molecule.bond_topo[0]
+    geom = molecule.opt_geo
 
     bonded = utilities.bonded(bt)
 
-    natoms = len(bt.atoms)
+    natoms = len(bt.atom)
 
-    if molecule.properties.errors.fate != dataset_pb2.Properties.FATE_SUCCESS:
+    if molecule.prop.calc.fate != dataset_pb2.Properties.FATE_SUCCESS_ALL_WARNING_LOW:
       return
 
     for a1 in range(0, natoms):
-      atomic_number1 = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[bt.atoms[a1]]
+      atomic_number1 = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[bt.atom[a1]]
       for a2 in range(a1 + 1, natoms):
-        atomic_number2 = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[bt.atoms[a2]]
+        atomic_number2 = smu_utils_lib.ATOM_TYPE_TO_ATOMIC_NUMBER[bt.atom[a2]]
         # Do not process H-H pairs
         if atomic_number1 == 1 and atomic_number2 == 1:
           continue

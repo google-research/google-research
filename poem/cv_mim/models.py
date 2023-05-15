@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -313,7 +313,7 @@ class SimpleModel(tf.keras.Model):
     else:
       raise ValueError('Unknown embedder: {}'.format(embedder))
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
@@ -845,7 +845,7 @@ class GCN(tf.keras.Model):
             bias_initializer=bias_initializer,
             name='gconv' + str(num_residual_gconv_blocks + 1)))
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:
@@ -890,7 +890,7 @@ class LikelihoodEstimator(tf.keras.Model):
         layers.Dense(output_dim, activation=tf.nn.tanh)
     ])
 
-  def call(self, inputs, training=False):
+  def call(self, inputs, training=False):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Computes a forward pass.
 
     Args:

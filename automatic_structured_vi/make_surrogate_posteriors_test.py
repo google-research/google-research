@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ class MakeSurrogatePosteriorsTest(tf.test.TestCase):
 
   def assertAllFinite(self, a):
     is_finite = np.isfinite(a.numpy())
-    all_true = np.ones_like(is_finite, dtype=np.bool)
+    all_true = np.ones_like(is_finite, dtype=bool)
     self.assertAllEqual(all_true, is_finite)
 
   def test_make_flow_posterior(self):

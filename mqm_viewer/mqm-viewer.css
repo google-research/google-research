@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Google Research Authors.
+ * Copyright 2023 The Google Research Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,12 +34,19 @@
   opacity: 100%;
   color: black;
 }
+.mqm-bottomed-tr {
+  border-bottom: 1px solid dimgray;
+}
 .mqm-ci {
   color: gray;
   font-size: x-small
 }
 .mqm-critical {
-  background: violet;
+  background: rgba(127, 0, 255, 0.7);
+  cursor: crosshair;
+}
+.mqm-dotted-bottomed-tr {
+  border-bottom: 1px dashed darkgray;
 }
 #mqm-errors {
   color: red;
@@ -78,13 +85,16 @@
   padding: 0 0 4px 0;
 }
 .mqm-major {
-  background: pink;
+  background: rgba(255, 192, 203, 0.7);
+  cursor: crosshair;
 }
 .mqm-minor {
-  background: #fbec5d;
+  background: rgba(251, 236, 93, 0.7);
+  cursor: crosshair;
 }
 .mqm-neutral {
-  background: lightgray;
+  background: rgba(211, 211, 211, 0.7);
+  cursor: crosshair;
 }
 .mqm-note {
   font-style: italic;
@@ -101,11 +111,25 @@
 .mqm-out-of-order {
   background: lavender;
 }
+.mqm-ref-row {
+  background-color: #e9ffdb;
+}
 #mqm-reset-settings {
   cursor: pointer;
 }
 #mqm-reset-settings:hover {
   background-color: lightgreen;
+}
+.mqm-row td {
+  position: relative;
+}
+.mqm-row div,
+.mqm-row table {
+  position: sticky;
+  top: 0;
+}
+.mqm-row-metadata {
+  white-space: break-spaces;
 }
 #mqm-score-heading {
   font-weight: bold;
@@ -117,6 +141,10 @@
 .mqm-section {
   font-size: large;
   font-weight: bold;
+}
+.mqm-seg-score {
+  color: gray;
+  font-size: small;
 }
 .mqm-select {
   margin: 4px 0;
@@ -141,6 +169,12 @@
 }
 .mqm-settings-row {
   margin: 6px 0;
+}
+.mqm-sigtests {
+  margin: 8px;
+}
+.mqm-sigtest-significant {
+  font-weight: bold;
 }
 .mqm-stats-slice {
   background-color: #F0F0F0;
@@ -175,20 +209,26 @@
 .mqm-table th:first-child {
   border-left: none;
 }
-#mqm-th-system {
-  width: 10%;
+.mqm-table-ratings {
+  border-collapse: collapse;
+}
+#mqm-tbody td {
+  padding: 0;
+}
+#mqm-tbody div {
+  padding: 4px;
+}
+#mqm-tbody tr:not(:last-child) {
+  border-bottom: 1px solid gray;
 }
 #mqm-th-doc {
   width: 10%;
 }
-#mqm-th-doc-id {
+#mqm-th-doc-seg {
   width: 3%;
 }
-#mqm-th-seg-id {
-  width: 3%;
-}
-#mqm-th-rater {
-  width: 5%;
+#mqm-th-system {
+  width: 10%;
 }
 #mqm-th-source {
   width: 30%;
@@ -196,11 +236,8 @@
 #mqm-th-target {
   width: 30%;
 }
-#mqm-th-category {
-  width: 6%;
-}
-#mqm-th-severity {
-  width: 3%;
+#mqm-th-rating {
+  width: 17%;
 }
 .mqm-timestamp {
   font-size: x-small;
@@ -216,15 +253,19 @@
   font-size: x-large;
 }
 .mqm-trivial {
-  background: beige;
-}
-.mqm-val {
-  max-width: 150px;
+  background: rgba(245, 245, 220, 0.7);
+  cursor: crosshair;
 }
 .mqm-val:hover {
   cursor: pointer;
 }
+.mqm-val-col {
+  max-width: 150px;
+}
 #mqm-viewing-constraints {
   cursor: pointer;
   font-style: italic;
+}
+.mqm-warning {
+  color: red;
 }

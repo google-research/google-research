@@ -1,19 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -78,45 +64,45 @@ EXCITATION_HEADER = ('Excitation energies and length rep. osc. strengths at '
 
 # All the possible single value properties and their associated fields
 PROPERTIES_LABEL_FIELDS = collections.OrderedDict([
-    ['PBE0D3/6-311Gd', 'single_point_energy_pbe0d3_6_311gd'],
-    ['PBE0/6-311Gd', 'single_point_energy_pbe0_6_311gd'],
-    ['PBE0/6-311GdMRCC', 'single_point_energy_pbe0_6_311gd_mrcc'],
-    ['PBE0/6-311GdORCA', 'single_point_energy_pbe0_6_311gd_orca'],
-    ['PBE0/6-311Gd(CAT)', 'single_point_energy_pbe0_6_311gd_cat'],
-    ['PBE0/6-311Gd(CAT)MRCC', 'single_point_energy_pbe0_6_311gd_cat_mrcc'],
-    ['PBE0/6-311Gd(CAT)ORCA', 'single_point_energy_pbe0_6_311gd_cat_orca'],
-    ['PBE0/aug-pc-1', 'single_point_energy_pbe0_aug_pc_1'],
-    ['HF/6-31Gd', 'single_point_energy_hf_6_31gd'],
-    ['B3LYP/6-31++Gdp', 'single_point_energy_b3lyp_6_31ppgdp'],
-    ['B3LYP/aug-pcS-1', 'single_point_energy_b3lyp_aug_pcs_1'],
-    ['PBE0/6-31++Gdp', 'single_point_energy_pbe0_6_31ppgdp'],
-    ['PBE0/aug-pcS-1', 'single_point_energy_pbe0_aug_pcs_1'],
-    ['HF/TZVP', 'single_point_energy_hf_tzvp'],
-    ['MP2/TZVP', 'single_point_energy_mp2_tzvp'],
-    ['CC2/TZVP', 'single_point_energy_cc2_tzvp'],
-    ['HF/3', 'single_point_energy_hf_3'],
-    ['MP2/3', 'single_point_energy_mp2_3'],
-    ['HF/4', 'single_point_energy_hf_4'],
-    ['MP2/4', 'single_point_energy_mp2_4'],
-    ['HF/(34)', 'single_point_energy_hf_34'],
-    ['MP2/(34)', 'single_point_energy_mp2_34'],
-    ['HF/CVTZ', 'single_point_energy_hf_cvtz'],
-    ['MP2ful/CVTZ', 'single_point_energy_mp2ful_cvtz'],
-    ['HF/2sp', 'single_point_energy_hf_2sp'],
-    ['MP2/2sp', 'single_point_energy_mp2_2sp'],
-    ['CCSD/2sp', 'single_point_energy_ccsd_2sp'],
-    ['CCSD(T)/2sp', 'single_point_energy_ccsd_t_2sp'],
-    ['HF/2sd', 'single_point_energy_hf_2sd'],
-    ['MP2/2sd', 'single_point_energy_mp2_2sd'],
-    ['CCSD/2sd', 'single_point_energy_ccsd_2sd'],
-    ['CCSD(T)/2sd', 'single_point_energy_ccsd_t_2sd'],
-    ['HF/3Psd', 'single_point_energy_hf_3psd'],
-    ['MP2/3Psd', 'single_point_energy_mp2_3psd'],
-    ['CCSD/3Psd', 'single_point_energy_ccsd_3psd'],
-    ['NUCREP', 'enuc'],  # special cased to refer to optimized_geometry
+    ['PBE0D3/6-311Gd', 'spe_std_pbe0d3_6311gd'],
+    ['PBE0/6-311Gd', 'spe_check_pbe0_6311gd_tmol'],
+    ['PBE0/6-311GdMRCC', 'spe_check_pbe0_6311gd_mrcc'],
+    ['PBE0/6-311GdORCA', 'spe_check_pbe0_6311gd_orca'],
+    ['PBE0/6-311Gd(CAT)', 'spe_stdcat_pbe0_6311gd_tmol'],
+    ['PBE0/6-311Gd(CAT)MRCC', 'spe_stdcat_pbe0_6311gd_mrcc'],
+    ['PBE0/6-311Gd(CAT)ORCA', 'spe_stdcat_pbe0_6311gd_orca'],
+    ['PBE0/aug-pc-1', 'spe_std_pbe0_augpc1'],
+    ['HF/6-31Gd', 'spe_std_hf_631gd'],
+    ['B3LYP/6-31++Gdp', 'spe_std_b3lyp_631ppgdp'],
+    ['B3LYP/aug-pcS-1', 'spe_std_b3lyp_augpcs1'],
+    ['PBE0/6-31++Gdp', 'spe_std_pbe0_631ppgdp'],
+    ['PBE0/aug-pcS-1', 'spe_std_pbe0_augpcs1'],
+    ['HF/TZVP', 'spe_std_hf_tzvp'],
+    ['MP2/TZVP', 'spe_std_mp2_tzvp'],
+    ['CC2/TZVP', 'spe_std_cc2_tzvp'],
+    ['HF/3', 'spe_std_hf_3'],
+    ['MP2/3', 'spe_std_mp2_3'],
+    ['HF/4', 'spe_std_hf_4'],
+    ['MP2/4', 'spe_std_mp2_4'],
+    ['HF/(34)', 'spe_std_hf_34'],
+    ['MP2/(34)', 'spe_std_mp2_34'],
+    ['HF/CVTZ', 'spe_std_hf_cvtz'],
+    ['MP2ful/CVTZ', 'spe_std_mp2full_cvtz'],
+    ['HF/2sp', 'spe_std_hf_2sp'],
+    ['MP2/2sp', 'spe_std_mp2_2sp'],
+    ['CCSD/2sp', 'spe_std_ccsd_2sp'],
+    ['CCSD(T)/2sp', 'spe_std_ccsd_t_2sp'],
+    ['HF/2sd', 'spe_std_hf_2sd'],
+    ['MP2/2sd', 'spe_std_mp2_2sd'],
+    ['CCSD/2sd', 'spe_std_ccsd_2sd'],
+    ['CCSD(T)/2sd', 'spe_std_ccsd_t_2sd'],
+    ['HF/3Psd', 'spe_std_hf_3psd'],
+    ['MP2/3Psd', 'spe_std_mp2_3psd'],
+    ['CCSD/3Psd', 'spe_std_ccsd_3psd'],
+    ['NUCREP', 'enuc'],  # special cased to refer to opt_geo
     ['NUM_OPT', 'number_of_optimization_runs'],
     ['NIMAG', 'number_imaginary_frequencies'],
-    ['ZPE_unscaled', 'zpe_unscaled'],
+    ['ZPE_unscaled', 'vib_zpe'],
 ])
 
 
@@ -127,100 +113,49 @@ class Atomic2FieldTypes(enum.Enum):
 
 
 ATOMIC_LABEL_FIELDS = collections.OrderedDict([
-    [
-        'AT2_BSR_LEFT',
-        ('bond_separation_reaction_left', Atomic2FieldTypes.STRING)
-    ],
-    [
-        'AT2_BSR_RIGHT',
-        ('bond_separation_reaction_right', Atomic2FieldTypes.STRING)
-    ],
-    ['AT2_T1mol', ('diagnostics_t1_ccsd_2sd', Atomic2FieldTypes.SCALAR)],
-    ['AT2_T1exc', ('diagnostics_t1_ccsd_2sp_excess', Atomic2FieldTypes.SCALAR)],
-    ['AT2_ZPE', ('zpe_atomic', Atomic2FieldTypes.TRIPLE)],
-    ['AT2_ENE_B5', ('single_point_energy_atomic_b5', Atomic2FieldTypes.SCALAR)],
-    ['AT2_ENE_B6', ('single_point_energy_atomic_b6', Atomic2FieldTypes.SCALAR)],
-    ['AT2_ENE_ECCSD', ('single_point_energy_eccsd', Atomic2FieldTypes.SCALAR)],
-    [
-        'AT2_BSE_B5',
-        ('bond_separation_energy_atomic_b5', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_BSE_B6',
-        ('bond_separation_energy_atomic_b6', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_BSE_ECCSD',
-        ('bond_separation_energy_eccsd', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AEe_B5',
-        ('atomization_energy_excluding_zpe_atomic_b5', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AEe_B6',
-        ('atomization_energy_excluding_zpe_atomic_b6', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AEe_ECCSD',
-        ('atomization_energy_excluding_zpe_eccsd', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AE0_B5',
-        ('atomization_energy_including_zpe_atomic_b5', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AE0_B6',
-        ('atomization_energy_including_zpe_atomic_b6', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_AE0_ECCSD',
-        ('atomization_energy_including_zpe_eccsd', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF0_B5',
-        ('enthalpy_of_formation_0k_atomic_b5', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF0_B6',
-        ('enthalpy_of_formation_0k_atomic_b6', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF0_ECCSD',
-        ('enthalpy_of_formation_0k_eccsd', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF298_B5',
-        ('enthalpy_of_formation_298k_atomic_b5', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF298_B6',
-        ('enthalpy_of_formation_298k_atomic_b6', Atomic2FieldTypes.TRIPLE)
-    ],
-    [
-        'AT2_HF298_ECCSD',
-        ('enthalpy_of_formation_298k_eccsd', Atomic2FieldTypes.TRIPLE)
-    ],
+    ['AT2_BSR_LEFT', ('at2_gen_bsr_left', Atomic2FieldTypes.STRING)],
+    ['AT2_BSR_RIGHT', ('at2_gen_bsr_right', Atomic2FieldTypes.STRING)],
+    ['AT2_T1mol', ('wf_diag_t1_2sd', Atomic2FieldTypes.SCALAR)],
+    ['AT2_T1exc', ('at2_gen_t1_exc', Atomic2FieldTypes.SCALAR)],
+    ['AT2_ZPE', ('at2_std_zpe', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_ENE_B5', ('spe_comp_b5', Atomic2FieldTypes.SCALAR)],
+    ['AT2_ENE_B6', ('spe_comp_b6', Atomic2FieldTypes.SCALAR)],
+    ['AT2_ENE_ECCSD', ('spe_comp_eccsd', Atomic2FieldTypes.SCALAR)],
+    ['AT2_BSE_B5', ('at2_std_b5_ereac', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_BSE_B6', ('at2_std_b6_ereac', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_BSE_ECCSD', ('at2_std_eccsd_ereac', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AEe_B5', ('at2_std_b5_eae', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AEe_B6', ('at2_std_b6_eae', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AEe_ECCSD', ('at2_std_eccsd_eae', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AE0_B5', ('at2_std_b5_ea0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AE0_B6', ('at2_std_b6_ea0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_AE0_ECCSD', ('at2_std_eccsd_ea0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF0_B5', ('at2_std_b5_hf0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF0_B6', ('at2_std_b6_hf0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF0_ECCSD', ('at2_std_eccsd_hf0', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF298_B5', ('at2_std_b5_hf298', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF298_B6', ('at2_std_b6_hf298', Atomic2FieldTypes.TRIPLE)],
+    ['AT2_HF298_ECCSD', ('at2_std_eccsd_hf298', Atomic2FieldTypes.TRIPLE)],
 ])
 
 PARTIAL_CHARGES_LABEL_FIELDS = collections.OrderedDict([
-    ['MUL-PBE0/aug-pc-1', 'partial_charges_mulliken_pbe0_aug_pc_1'],
-    ['LOE-PBE0/aug-pc-1', 'partial_charges_loewdin_pbe0_aug_pc_1'],
-    ['NAT-PBE0/aug-pc-1', 'partial_charges_natural_nbo_pbe0_aug_pc_1'],
+    ['MUL-PBE0/aug-pc-1', 'chg_mul_pbe0_augpc1'],
+    ['LOE-PBE0/aug-pc-1', 'chg_loe_pbe0_augpc1'],
+    ['NAT-PBE0/aug-pc-1', 'chg_nat_pbe0_augpc1'],
     ['PON-PBE0/aug-pc-1', 'partial_charges_paboon_pbe0_aug_pc_1'],
-    ['ESP-PBE0/aug-pc-1', 'partial_charges_esp_fit_pbe0_aug_pc_1'],
-    ['MUL-HF/6-31Gd', 'partial_charges_mulliken_hf_6_31gd'],
-    ['LOE-HF/6-31Gd', 'partial_charges_loewdin_hf_6_31gd'],
-    ['NAT-HF/6-31Gd', 'partial_charges_natural_nbo_hf_6_31gd'],
+    ['ESP-PBE0/aug-pc-1', 'chg_esp_pbe0_augpc1'],
+    ['MUL-HF/6-31Gd', 'chg_mul_hf_631gd'],
+    ['LOE-HF/6-31Gd', 'chg_loe_hf_631gd'],
+    ['NAT-HF/6-31Gd', 'chg_nat_hf_631gd'],
     ['PON-HF/6-31Gd', 'partial_charges_paboon_hf_6_31gd'],
-    ['ESP-HF/6-31Gd', 'partial_charges_esp_fit_hf_6_31gd'],
+    ['ESP-HF/6-31Gd', 'chg_esp_hf_631gd'],
 ])
 
 NMR_ISOTROPIC_SHIELDINGS_LABEL_FIELDS = collections.OrderedDict([
-    ['B3LYP/6-31++Gdp', 'nmr_isotropic_shielding_b3lyp_6_31ppgdp'],
-    ['B3LYP/aug-pcS-1', 'nmr_isotropic_shielding_b3lyp_aug_pcs_1'],
-    ['PBE0/6-31++Gdp', 'nmr_isotropic_shielding_pbe0_6_31ppgdp'],
-    ['PBE0/aug-pcS-1', 'nmr_isotropic_shielding_pbe0_aug_pcs_1'],
+    ['B3LYP/6-31++Gdp', 'nmr_b3lyp_631ppgdp'],
+    ['B3LYP/aug-pcS-1', 'nmr_b3lyp_augpcs1'],
+    ['PBE0/6-31++Gdp', 'nmr_pbe0_631ppgdp'],
+    ['PBE0/aug-pcS-1', 'nmr_pbe0_augpcs1'],
 ])
 
 # The Gaussian sanity check section is a label with 1 or 2 floats after it.
@@ -474,7 +409,7 @@ class SmuParser:
       self._molecule.original_molecule_index = -1
     else:
       self._molecule.original_molecule_index = int(vals[0])
-    errors = self._molecule.properties.errors
+    errors = self._molecule.prop.calc
     for field, val in zip(smu_utils_lib.STAGE1_ERROR_FIELDS, vals[1:5]):
       setattr(errors, field, int(val))
     # Note that vals[6] is the molecule identifier which we ignore in favor of
@@ -511,16 +446,16 @@ class SmuParser:
     if parts[0] != 'Database':
       raise ValueError('Bad keyword on database line, got: {}'.format(parts[0]))
     if parts[1] == 'standard':
-      self._molecule.properties.errors.which_database = dataset_pb2.STANDARD
+      self._molecule.prop.calc.which_database = dataset_pb2.STANDARD
     elif parts[1] == 'complete':
-      self._molecule.properties.errors.which_database = dataset_pb2.COMPLETE
+      self._molecule.prop.calc.which_database = dataset_pb2.COMPLETE
     else:
       raise ValueError('Expected database indicator, got: {}'.format(parts[1]))
 
   def parse_error_codes(self):
     """Parses the error section with the warning flags."""
     lines = iter(self.parse(ParseModes.RAW, num_lines=6))
-    errors = self._molecule.properties.errors
+    errors = self._molecule.prop.calc
 
     parts = str(next(lines)).split()
     assert (len(parts) == 2 and parts[0]
@@ -531,31 +466,31 @@ class SmuParser:
     assert (len(parts) == 3 and parts[0]
             == 'Warn_T1'), ('Expected Status line, got {}'.format(parts))
     errors.warn_t1 = int(parts[1])
-    errors.warn_t1_excess = int(parts[2])
+    errors.warn_delta_t1 = int(parts[2])
 
     parts = str(next(lines)).split()
     assert (len(parts) == 3 and parts[0]
             == 'Warn_BSE'), ('Expected Status line, got {}'.format(parts))
-    errors.warn_bse_b5_b6 = int(parts[1])
-    errors.warn_bse_cccsd_b5 = int(parts[2])
+    errors.warn_bse_b6 = int(parts[1])
+    errors.warn_bse_eccsd = int(parts[2])
 
     parts = str(next(lines)).split()
     assert (len(parts) == 4 and parts[0]
             == 'Warn_EXC'), ('Expected Status line, got {}'.format(parts))
-    errors.warn_exc_lowest_excitation = int(parts[1])
-    errors.warn_exc_smallest_oscillator = int(parts[2])
-    errors.warn_exc_largest_oscillator = int(parts[3])
+    errors.warn_exc_ene = int(parts[1])
+    errors.warn_exc_osmin = int(parts[2])
+    errors.warn_exc_osmax = int(parts[3])
 
     parts = str(next(lines)).split()
     assert (len(parts) == 3 and parts[0]
             == 'Warn_VIB'), ('Expected Status line, got {}'.format(parts))
-    errors.warn_vib_linearity = int(parts[1])
-    errors.warn_vib_imaginary = int(parts[2])
+    errors.warn_vib_linear = int(parts[1])
+    errors.warn_vib_imag = int(parts[2])
 
     parts = str(next(lines)).split()
     assert (len(parts) == 2 and parts[0]
             == 'Warn_NEG'), ('Expected Status line, got {}'.format(parts))
-    errors.warn_num_neg = int(parts[1])
+    errors.warn_bsr_neg = int(parts[1])
 
   def parse_bond_topology(self):
     """Parse region with adjancy matrix, hydrogen count, smiles, and atom types."""
@@ -571,16 +506,15 @@ class SmuParser:
     assert entry_id.startswith('x'), 'Expected line like x02_c2h2'
     atom_types = entry_id[4:].lower()
     expanded_atom_types = self.expand_atom_types(atom_types)
-    self._molecule.bond_topologies.add()
-    self._molecule.bond_topologies[-1].CopyFrom(
+    self._molecule.bond_topo.add()
+    self._molecule.bond_topo[-1].CopyFrom(
         smu_utils_lib.create_bond_topology(expanded_atom_types, adjacency_code,
                                            hydrogen_counts))
-    self._molecule.bond_topologies[-1].smiles = str(smiles).replace('\'',
-                                                                    '').strip()
-    # Note that we only set source to STARTING and not ITC. This is because this
-    # geometry may not actually pass the ITC criteria. We let the later geometry
+    self._molecule.bond_topo[-1].smiles = str(smiles).replace('\'', '').strip()
+    # Note that we only set source to STARTING and not DDT. This is because this
+    # geometry may not actually pass the DDT criteria. We let the later geometry
     # detection take care of this.
-    self._molecule.bond_topologies[-1].source = (
+    self._molecule.bond_topo[-1].info = (
         dataset_pb2.BondTopology.SOURCE_STARTING)
 
   def expand_atom_types(self, atom_types):
@@ -619,25 +553,23 @@ class SmuParser:
   def parse_identifier(self):
     """Extracts and sets the bond topology and molecule identifier."""
     line = str(self.parse(ParseModes.RAW, num_lines=1)[0])
-    id_str, bond_topology_id_str, molecule_id_str = line.split()
+    id_str, topo_id_str, mol_id_str = line.split()
     assert id_str == 'ID', ('Identifier line should start with "ID", got %s.' %
                             line)
-    bond_topology_id = int(bond_topology_id_str)
+    topo_id = int(topo_id_str)
     # Special casing for SMU1. Fun.
     if smu_utils_lib.special_case_bt_id_from_dat_id(
-        bond_topology_id, self._molecule.bond_topologies[-1].smiles):
-      bond_topology_id = smu_utils_lib.special_case_bt_id_from_dat_id(
-          bond_topology_id, self._molecule.bond_topologies[-1].smiles)
+        topo_id, self._molecule.bond_topo[-1].smiles):
+      topo_id = smu_utils_lib.special_case_bt_id_from_dat_id(
+          topo_id, self._molecule.bond_topo[-1].smiles)
 
-    self._molecule.bond_topologies[-1].bond_topology_id = bond_topology_id
-    self._molecule.molecule_id = (
-        bond_topology_id * 1000 + int(molecule_id_str))
+    self._molecule.bond_topo[-1].topo_id = topo_id
+    self._molecule.mol_id = (topo_id * 1000 + int(mol_id_str))
 
   def parse_cluster_info(self, num_lines):
     """Stores a string describing the compute cluster used for computations."""
     cluster_info = self.parse(ParseModes.RAW, num_lines=num_lines)
-    self._molecule.properties.compute_cluster_info = '\n'.join(
-        cluster_info) + '\n'
+    self._molecule.prop.compute_cluster_info = '\n'.join(cluster_info) + '\n'
 
   def parse_stage1_timings(self):
     """Parses recorded timings for different computation steps.
@@ -657,7 +589,7 @@ class SmuParser:
         raise ValueError(
             'Expected all trailing timing to be -1, got {}'.format(v))
 
-    calculation_statistics = self._molecule.properties.calculation_statistics
+    calculation_statistics = self._molecule.prop.calculation_statistics
     calculation_statistics.add(computing_location='Geo', timings=values[1])
     calculation_statistics.add(computing_location='Force', timings=values[2])
 
@@ -669,7 +601,7 @@ class SmuParser:
     assert len(labels) == len(
         values), 'Length mismatch between values %s and %s labels.' % (values,
                                                                        labels)
-    calculation_statistics = self._molecule.properties.calculation_statistics
+    calculation_statistics = self._molecule.prop.calculation_statistics
     for label, value in zip(labels, values):
       calculation_statistics.add()
       calculation_statistics[-1].computing_location = label
@@ -690,12 +622,12 @@ class SmuParser:
             'E_opt/G_norm'
         ), 'Unable to parse section for gradient norm: %s.' % section
     items = str(section[0]).split()
-    self._molecule.initial_geometries.add()
-    self._molecule.initial_geometries[0].energy.value = float(items[1])
-    self._molecule.initial_geometries[0].gnorm.value = float(items[2])
+    self._molecule.ini_geo.add()
+    self._molecule.ini_geo[0].energy.val = float(items[1])
+    self._molecule.ini_geo[0].gnorm.val = float(items[2])
     items = str(section[1]).split()
-    self._molecule.optimized_geometry.energy.value = float(items[1])
-    self._molecule.optimized_geometry.gnorm.value = float(items[2])
+    self._molecule.opt_geo.energy.val = float(items[1])
+    self._molecule.opt_geo.gnorm.val = float(items[2])
 
   def parse_coordinates(self, label, num_atoms):
     """Parses a section defining a molecule's geometry in Cartesian coordinates.
@@ -712,21 +644,21 @@ class SmuParser:
     assert label in VALID_COORDINATE_LABELS, 'Unknown label %s.' % label
     molecule = self._molecule
     if label == 'Initial Coords':
-      if not molecule.initial_geometries:
-        molecule.initial_geometries.add()
-      geometry = molecule.initial_geometries[0]
+      if not molecule.ini_geo:
+        molecule.ini_geo.add()
+      geometry = molecule.ini_geo[0]
     else:
-      geometry = molecule.optimized_geometry
+      geometry = molecule.opt_geo
     for line in coordinate_section:
       label1, label2, unused_atomic_number, x, y, z = str(line).strip().split()
       assert '%s %s' % (
           label1, label2
       ) == label, 'Found line with incorrect label "%s %s". Expected %s.' % (
           label1, label2, label)
-      geometry.atom_positions.add()
-      geometry.atom_positions[-1].x = float(x)
-      geometry.atom_positions[-1].y = float(y)
-      geometry.atom_positions[-1].z = float(z)
+      geometry.atompos.add()
+      geometry.atompos[-1].x = float(x)
+      geometry.atompos[-1].y = float(y)
+      geometry.atompos[-1].z = float(z)
 
   def parse_rotational_constants(self):
     """Parses rotational constants vector (MHz)."""
@@ -734,15 +666,14 @@ class SmuParser:
       return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
-    self._molecule.optimized_geometry.rotcon.value.extend(
-        float(x) for x in values)
+    self._molecule.opt_geo.brot.val.extend(float(x) for x in values)
 
   def parse_symmetry_used(self):
     """Parses whether or not symmetry was used in the computation."""
     if not self._next_line_startswith('Symmetry used in calculation'):
       return
     symmetry = self.parse(ParseModes.RAW, num_lines=1)[0]
-    self._molecule.properties.symmetry_used_in_calculation = str(
+    self._molecule.prop.symmetry_used_in_calculation = str(
         symmetry).strip().split()[-1] != 'no'
 
   def parse_frequencies_and_intensities(self, num_atoms, header):
@@ -772,17 +703,17 @@ class SmuParser:
         ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
     section = [str(line).strip() for line in section]
     section = ' '.join(section).split()
-    harmonic_frequencies = self._molecule.properties.harmonic_frequencies
+    vib_freq = self._molecule.prop.vib_freq
     for value in section:
-      harmonic_frequencies.value.append(float(value))
+      vib_freq.val.append(float(value))
 
     section = self.parse(
         ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
     section = [str(line).strip() for line in section]
     section = ' '.join(section).split()
-    harmonic_intensities = self._molecule.properties.harmonic_intensities
+    vib_intens = self._molecule.prop.vib_intens
     for value in section:
-      harmonic_intensities.value.append(float(value))
+      vib_intens.val.append(float(value))
 
   def parse_gaussian_sanity_check(self):
     """Parses the gaussian sanity check section (present in SMU1-6)."""
@@ -797,21 +728,24 @@ class SmuParser:
       assert str(line).startswith(prefix)
       parts = line.split()
       if len(fields) == 1:
-        setattr(self._molecule.properties.gaussian_sanity_check, fields[0],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],
                 float(parts[-1]))
       elif len(fields) == 2:
-        setattr(self._molecule.properties.gaussian_sanity_check, fields[0],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],
                 float(parts[-2]))
-        setattr(self._molecule.properties.gaussian_sanity_check, fields[1],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[1],
                 float(parts[-1]))
       else:
         raise ValueError(f'Bad fields length {len(fields)}')
 
-  def parse_normal_modes(self, num_atoms):
+  def parse_vib_mode(self, num_atoms):
     """Parses a repeating section containing a number of normal modes.
 
     Args:
       num_atoms: Number of atoms in the molecule.
+
+    Raises:
+      ValueError: if line format is unexpected
     """
     if not self._next_line_startswith('Normal modes'):
       return
@@ -819,12 +753,11 @@ class SmuParser:
     # Skip the header line
     self.parse(ParseModes.SKIP, num_lines=1)
 
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for _ in range(3 * num_atoms):
       if not self._next_line_startswith('Mode'):
-        raise ValueError(
-            'Parsing normal_modes, expect Mode line, got: {}'.format(
-                self._raw_contents[self.line_num]))
+        raise ValueError('Parsing vib_mode, expect Mode line, got: {}'.format(
+            self._raw_contents[self.line_num]))
 
       self.parse(ParseModes.SKIP, num_lines=1)  # 'Mode   #i'
 
@@ -832,12 +765,12 @@ class SmuParser:
           ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
       section = [str(line).strip() for line in section]
       section = ' '.join(section).split()
-      properties.normal_modes.add()
+      properties.vib_mode.add()
       for triplet in zip(section[::3], section[1::3], section[2::3]):
-        properties.normal_modes[-1].displacements.add()
-        properties.normal_modes[-1].displacements[-1].x = float(triplet[0])
-        properties.normal_modes[-1].displacements[-1].y = float(triplet[1])
-        properties.normal_modes[-1].displacements[-1].z = float(triplet[2])
+        properties.vib_mode[-1].disp.add()
+        properties.vib_mode[-1].disp[-1].x = float(triplet[0])
+        properties.vib_mode[-1].disp[-1].y = float(triplet[1])
+        properties.vib_mode[-1].disp[-1].z = float(triplet[2])
 
   def parse_property_list(self):
     """Parses a section of properties stored as key-value pairs."""
@@ -845,33 +778,33 @@ class SmuParser:
         ParseModes.KEYVALUE,
         num_lines=50,
         allowed_keys=PROPERTIES_LABEL_FIELDS.keys())
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for label in labels_and_values:
       if label in ['NIMAG', 'NUM_OPT']:
         setattr(properties, PROPERTIES_LABEL_FIELDS[label],
                 int(labels_and_values[label]))
       elif label == 'NUCREP':
         value = float(labels_and_values[label])
-        self._molecule.optimized_geometry.enuc.value = value
+        self._molecule.opt_geo.enuc.val = value
       else:
         value = float(labels_and_values[label])
-        getattr(properties, PROPERTIES_LABEL_FIELDS[label]).value = value
+        getattr(properties, PROPERTIES_LABEL_FIELDS[label]).val = value
 
   def parse_diagnostics(self):
     """Parses D1 and T1 diagnostics."""
-    properties = self._molecule.properties
+    properties = self._molecule.prop
 
     if self._next_line_startswith('D1DIAG'):
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
       items = str(line).strip().split()
-      properties.diagnostics_d1_ccsd_2sp.value = float(items[2])
+      properties.wf_diag_d1_2sp.val = float(items[2])
 
     if self._next_line_startswith('T1DIAG'):
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
       items = str(line).strip().split()
-      properties.diagnostics_t1_ccsd_2sp.value = float(items[2])
-      properties.diagnostics_t1_ccsd_2sd.value = float(items[4])
-      properties.diagnostics_t1_ccsd_3psd.value = float(items[6])
+      properties.wf_diag_t1_2sp.val = float(items[2])
+      properties.wf_diag_t1_2sd.val = float(items[4])
+      properties.wf_diag_t1_3psd.val = float(items[6])
 
   def parse_homo_lumo(self):
     """Parses HOMO and LUMO values (at different levels of theory).
@@ -883,42 +816,42 @@ class SmuParser:
       return
 
     homo_lumo_data = self.parse(ParseModes.BYLABEL, label='HOMO/LUMO')
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for line in homo_lumo_data:
       items = str(line).strip().split()
       if items[1] == 'PBE0/6-311Gd':
-        properties.homo_pbe0_6_311gd.value = float(items[2])
-        properties.lumo_pbe0_6_311gd.value = float(items[3])
+        properties.orb_ehomo_pbe0_6311gd.val = float(items[2])
+        properties.orb_elumo_pbe0_6311gd.val = float(items[3])
       elif items[1] == 'PBE0/aug-pc-1':
-        properties.homo_pbe0_aug_pc_1.value = float(items[2])
-        properties.lumo_pbe0_aug_pc_1.value = float(items[3])
+        properties.orb_ehomo_pbe0_augpc1.val = float(items[2])
+        properties.orb_elumo_pbe0_augpc1.val = float(items[3])
       elif items[1] == 'PBE0/6-31++Gdp':
-        properties.homo_pbe0_6_31ppgdp.value = float(items[2])
-        properties.lumo_pbe0_6_31ppgdp.value = float(items[3])
+        properties.orb_ehomo_pbe0_631ppgdp.val = float(items[2])
+        properties.orb_elumo_pbe0_631ppgdp.val = float(items[3])
       elif items[1] == 'PBE0/aug-pcS-1':
-        properties.homo_pbe0_aug_pcs_1.value = float(items[2])
-        properties.lumo_pbe0_aug_pcs_1.value = float(items[3])
+        properties.orb_ehomo_pbe0_augpcs1.val = float(items[2])
+        properties.orb_elumo_pbe0_augpcs1.val = float(items[3])
       elif items[1] == 'HF/6-31Gd':
-        properties.homo_hf_6_31gd.value = float(items[2])
-        properties.lumo_hf_6_31gd.value = float(items[3])
+        properties.orb_ehomo_hf_631gd.val = float(items[2])
+        properties.orb_elumo_hf_631gd.val = float(items[3])
       elif items[1] == 'HF/TZVP':
-        properties.homo_hf_tzvp.value = float(items[2])
-        properties.lumo_hf_tzvp.value = float(items[3])
+        properties.orb_ehomo_hf_tzvp.val = float(items[2])
+        properties.orb_elumo_hf_tzvp.val = float(items[3])
       elif items[1] == 'HF/3':
-        properties.homo_hf_3.value = float(items[2])
-        properties.lumo_hf_3.value = float(items[3])
+        properties.orb_ehomo_hf_3.val = float(items[2])
+        properties.orb_elumo_hf_3.val = float(items[3])
       elif items[1] == 'HF/4':
-        properties.homo_hf_4.value = float(items[2])
-        properties.lumo_hf_4.value = float(items[3])
+        properties.orb_ehomo_hf_4.val = float(items[2])
+        properties.orb_elumo_hf_4.val = float(items[3])
       elif items[1] == 'HF/CVTZ':
-        properties.homo_hf_cvtz.value = float(items[2])
-        properties.lumo_hf_cvtz.value = float(items[3])
+        properties.orb_ehomo_hf_cvtz.val = float(items[2])
+        properties.orb_elumo_hf_cvtz.val = float(items[3])
       elif items[1] == 'B3LYP/6-31++Gdp':
-        properties.homo_b3lyp_6_31ppgdp.value = float(items[2])
-        properties.lumo_b3lyp_6_31ppgdp.value = float(items[3])
+        properties.orb_ehomo_b3lyp_631ppgdp.val = float(items[2])
+        properties.orb_elumo_b3lyp_631ppgdp.val = float(items[3])
       elif items[1] == 'B3LYP/aug-pcS-1':
-        properties.homo_b3lyp_aug_pcs_1.value = float(items[2])
-        properties.lumo_b3lyp_aug_pcs_1.value = float(items[3])
+        properties.orb_ehomo_b3lyp_augpcs1.val = float(items[2])
+        properties.orb_elumo_b3lyp_augpcs1.val = float(items[3])
       else:
         raise ValueError('Invalid level of theory: %s.' % items[1])
 
@@ -931,7 +864,7 @@ class SmuParser:
     if not self._next_line_startswith('AT2_'):
       return
     section = self.parse(ParseModes.BYLABEL, label='AT2_')
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     for line in section:
       label, rest = str(line[:20]).strip(), line[20:]
       field_name, field_type = ATOMIC_LABEL_FIELDS[label]
@@ -939,22 +872,27 @@ class SmuParser:
       # Special case for AT2_T1mol. This same value is written in two places
       # in the .dat file. We verify that the value already there (if there is
       # one) is the same as what we have here.
-      if label == 'AT2_T1mol' and properties.HasField(
-          'diagnostics_t1_ccsd_2sd'):
+      if label == 'AT2_T1mol' and properties.HasField('wf_diag_t1_2sd'):
         new_val = float(rest)
-        if not np.isclose(
-            new_val, properties.diagnostics_t1_ccsd_2sd.value, atol=.00015):
+        if not np.isclose(new_val, properties.wf_diag_t1_2sd.val, atol=.00015):
           raise ValueError(
               'ATOMIC-2 block AT2_T1mol ({:f}) differs from current value ({:f})'
-              .format(new_val, properties.diagnostics_t1_ccsd_2sd.value))
+              .format(new_val, properties.wf_diag_t1_2sd.val))
 
       if field_type == Atomic2FieldTypes.STRING:
-        getattr(properties, field_name).value = str(rest)
+        getattr(properties, field_name).val = str(rest)
       elif field_type == Atomic2FieldTypes.SCALAR:
-        getattr(properties, field_name).value = float(rest)
+        getattr(properties, field_name).val = float(rest)
       elif field_type == Atomic2FieldTypes.TRIPLE:
-        for suffix, val in zip(['', '_um', '_um_ci'], str(rest).split()):
-          getattr(properties, field_name + suffix).value = float(val)
+        triple_vals = [float(v) for v in str(rest).split()]
+        if len(triple_vals) != 3:
+          raise ValueError(f'Unexpected vals in line {line}')
+        getattr(properties, field_name).val = triple_vals[0]
+        getattr(properties, field_name.replace('at2_std',
+                                               'at2_um')).val = triple_vals[1]
+        getattr(properties,
+                field_name.replace('at2_std', 'at2_um') +
+                '_unc').val = triple_vals[2]
       else:
         raise ValueError(
             'Atomic block unknown field types {}'.format(field_type))
@@ -966,10 +904,9 @@ class SmuParser:
     segment = self.parse(ParseModes.RAW, num_lines=6)
     for line in segment[1:]:
       items = str(line).strip().split()
-      properties = self._molecule.properties
-      properties.excitation_energies_cc2.value.append(float(items[-2]))
-      properties.excitation_oscillator_strengths_cc2.value.append(
-          float(items[-1]))
+      properties = self._molecule.prop
+      properties.exc_ene_cc2_tzvp.val.append(float(items[-2]))
+      properties.exc_os_cc2_tzvp.val.append(float(items[-1]))
 
   def parse_nmr_isotropic_shieldings(self):
     """Parses NMR isotropic shieldings (ppm) for different levels of theory.
@@ -977,11 +914,11 @@ class SmuParser:
     Raises:
       ValueError: if line could not be parsed.
     """
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     while self._next_line_startswith('NMR isotropic shieldings'):
       shieldings_data = self.parse(
           ParseModes.RAW,
-          num_lines=(len(self._molecule.bond_topologies[-1].atoms) + 1))
+          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))
       theory_basis = str(shieldings_data[0]).split()[-1]
       field = getattr(properties,
                       NMR_ISOTROPIC_SHIELDINGS_LABEL_FIELDS[theory_basis])
@@ -989,38 +926,38 @@ class SmuParser:
         line = str(line)  # for type checking
         # Example line: '    1    6    141.2736   +/-    0.0064'
         # with offsets:  01234567890123456789012345678901234567
-        value_str, pm_str, precision_str = line[10:25], line[25:28], line[28:]
+        value_str, pm_str, prec_str = line[10:25], line[25:28], line[28:]
         # An error check that the line appears to be formatted correctly.
         if pm_str != '+/-':
           raise ValueError('Could not parse nmr line: "{}"'.format(line))
-        field.values.append(float(value_str))
-        field.precision.append(float(precision_str))
+        field.val.append(float(value_str))
+        field.prec.append(float(prec_str))
 
   def parse_partial_charges(self):
     """Parses partial charges (e) for different levels of theory."""
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     while self._next_line_startswith('Partial charges'):
       partial_charges_data = self.parse(
           ParseModes.RAW,
-          num_lines=(len(self._molecule.bond_topologies[-1].atoms) + 1))
+          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))
       theory_basis = str(partial_charges_data[0]).strip().split()[-1]
       field = getattr(properties, PARTIAL_CHARGES_LABEL_FIELDS[theory_basis])
       for line in partial_charges_data[1:]:
         items = str(line).strip().split()
-        field.values.append(float(items[2]))
-        field.precision.append(float(items[-1]))
+        field.val.append(float(items[2]))
+        field.prec.append(float(items[-1]))
 
   def parse_polarizability(self):
     """Parses dipole-dipole polarizability."""
     if not self._next_line_startswith('Polarizability (au)'):
       return
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     header = self.parse(ParseModes.RAW, num_lines=1)  # Polarizability (au).
     items = str(header).strip().split()
     rank2_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
     if items[-1].startswith('PBE0'):
       for label in RANK2_ENCODING_ORDER:
-        setattr(properties.dipole_dipole_polarizability_pbe0_aug_pc_1, label,
+        setattr(properties.elec_pol_pbe0_augpc1, label,
                 float(rank2_data[label]))
     elif items[-1].startswith('HF'):
       for label in RANK2_ENCODING_ORDER:
@@ -1029,44 +966,44 @@ class SmuParser:
 
   def parse_multipole_moments(self):
     """Parses Di-, Quadru-, and Octopole moments in (au)."""
-    properties = self._molecule.properties
+    properties = self._molecule.prop
     # PBE0 section.
     if self._next_line_startswith('Dipole moment (au):     PBE0/aug-pc-1'):
       self.parse(ParseModes.SKIP, num_lines=1)  # Dipole moment (au).
       dipole_data = self.parse(ParseModes.KEYVALUE, num_lines=3)
-      properties.dipole_moment_pbe0_aug_pc_1.x = float(dipole_data['x'])
-      properties.dipole_moment_pbe0_aug_pc_1.y = float(dipole_data['y'])
-      properties.dipole_moment_pbe0_aug_pc_1.z = float(dipole_data['z'])
+      properties.elec_dip_pbe0_augpc1.x = float(dipole_data['x'])
+      properties.elec_dip_pbe0_augpc1.y = float(dipole_data['y'])
+      properties.elec_dip_pbe0_augpc1.z = float(dipole_data['z'])
       self.parse(ParseModes.SKIP, num_lines=1)  # Quadrupole moment (au).
       quadrupole_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
       for label in RANK2_ENCODING_ORDER:
-        setattr(properties.quadrupole_moment_pbe0_aug_pc_1, label,
+        setattr(properties.elec_qua_pbe0_augpc1, label,
                 float(quadrupole_data[label]))
       self.parse(ParseModes.SKIP, num_lines=1)  # Octopole moment (au).
       octopole_data = self.parse(ParseModes.KEYVALUE, num_lines=10)
       if '**********' in dict(octopole_data).values():
         raise SmuOverfullFloatFieldError()
       for label in RANK3_ENCODING_ORDER:
-        setattr(properties.octopole_moment_pbe0_aug_pc_1, label,
+        setattr(properties.elec_oct_pbe0_augpc1, label,
                 float(octopole_data[label]))
     # Hartree-Fock section.
     if self._next_line_startswith('Dipole moment (au):     HF/6-31Gd'):
       self.parse(ParseModes.SKIP, num_lines=1)  # Dipole moment (au).
       dipole_data = self.parse(ParseModes.KEYVALUE, num_lines=3)
-      properties.dipole_moment_hf_6_31gd.x = float(dipole_data['x'])
-      properties.dipole_moment_hf_6_31gd.y = float(dipole_data['y'])
-      properties.dipole_moment_hf_6_31gd.z = float(dipole_data['z'])
+      properties.elec_dip_hf_631gd.x = float(dipole_data['x'])
+      properties.elec_dip_hf_631gd.y = float(dipole_data['y'])
+      properties.elec_dip_hf_631gd.z = float(dipole_data['z'])
       self.parse(ParseModes.SKIP, num_lines=1)  # Quadrupole moment (au).
       quadrupole_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
       for label in RANK2_ENCODING_ORDER:
-        setattr(properties.quadrupole_moment_hf_6_31gd, label,
+        setattr(properties.elec_qua_hf_631gd, label,
                 float(quadrupole_data[label]))
       self.parse(ParseModes.SKIP, num_lines=1)  # Octopole moment (au).
       octopole_data = self.parse(ParseModes.KEYVALUE, num_lines=10)
       if '**********' in dict(octopole_data).values():
         raise SmuOverfullFloatFieldError()
       for label in RANK3_ENCODING_ORDER:
-        setattr(properties.octopole_moment_hf_6_31gd, label,
+        setattr(properties.elec_oct_hf_631gd, label,
                 float(octopole_data[label]))
 
   def parse_stage1_to_proto(self):
@@ -1101,9 +1038,9 @@ class SmuParser:
       self.parse(ParseModes.SKIP_BLANK_LINES)
     except (SmuKnownError, ValueError, IndexError, KeyError,
             AssertionError) as exc:
-      exc.molecule_id = self._molecule.molecule_id
+      exc.mol_id = self._molecule.mol_id
       logging.info('Got exception during molecule %d: %s\n'
-                   'traceback: %s', exc.molecule_id, str(exc),
+                   'traceback: %s', exc.mol_id, str(exc),
                    traceback.format_exc())
       return exc
 
@@ -1141,7 +1078,7 @@ class SmuParser:
       # 'Frequencies and intensities'
       self.parse_frequencies_and_intensities(num_atoms, header=True)
       self.parse_gaussian_sanity_check()
-      self.parse_normal_modes(num_atoms)
+      self.parse_vib_mode(num_atoms)
       self.parse_property_list()  # Key-value pairs: Energies, frequencies,...
       self.parse_diagnostics()
       self.parse_atomic_block()
@@ -1158,9 +1095,9 @@ class SmuParser:
 
     except (SmuKnownError, ValueError, IndexError, KeyError,
             AssertionError) as exc:
-      exc.molecule_id = self._molecule.molecule_id
+      exc.mol_id = self._molecule.mol_id
       logging.info('Got exception during molecule %d: %s\n'
-                   'traceback: %s', exc.molecule_id, str(exc),
+                   'traceback: %s', exc.mol_id, str(exc),
                    traceback.format_exc())
       return exc
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,36 +31,36 @@
 from smu import smu_sqlite
 from smu.parser import smu_utils_lib
 
-db = smu_sqlite.SMUSQLite('20220128_standard_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_standard_v4.sqlite')
 
 print('There are several ways to efficiently get specific sets of molecules')
 
 print()
 print('First is a lookup by molecule id')
-mid_molecule = db.find_by_molecule_id(57001)
-print('Looking up 57001 returns molecule with id', mid_molecule.molecule_id,
-      'and bond topology with SMILES', mid_molecule.bond_topologies[0].smiles)
+mid_molecule = db.find_by_mol_id(57001)
+print('Looking up 57001 returns molecule with id', mid_molecule.mol_id,
+      'and bond topology with SMILES', mid_molecule.bond_topo[0].smiles)
 
 try:
-  db.find_by_molecule_id(999999)
+  db.find_by_mol_id(999999)
 except KeyError:
   print('Looking up a molecule id not in the DB raises a KeyError')
 
 print()
 print('Looking up by bond topology id will return zero or more molecules')
 bt_molecules = list(
-    db.find_by_bond_topology_id_list(
-        [7984], which_topologies=smu_utils_lib.WhichTopologies.ALL))
-print('Querying for bond topology id 8617 returned', len(bt_molecules),
+    db.find_by_topo_id_list([7984],
+                            which_topologies=smu_utils_lib.WhichTopologies.ALL))
+print('Querying for bond topology id 7984 returned', len(bt_molecules),
       'molecules')
 
 print('Note that the molecules returned may have multiple bond topologies,'
       'and may or may not have the requested bond topology first')
 for mol in bt_molecules:
-  print('    Result with molecule_id', mol.molecule_id)
-  for bt in mol.bond_topologies:
-    print('        has bond topology with id', bt.bond_topology_id,
-          'and SMILES', bt.smiles)
+  print('    Result with mol_id', mol.mol_id)
+  for bt in mol.bond_topo:
+    print('        has bond topology with id', bt.topo_id, 'and SMILES',
+          bt.smiles)
 
 print()
 print(
@@ -86,12 +86,10 @@ print('You can also find all the molecules with a given stoichiometry')
 stoich_molecules = list(db.find_by_stoichiometry('cn2o3'))
 print('For example, "cn2o3" finds', len(stoich_molecules), 'results')
 print('The first couple of molecule ids are:',
-      [c.molecule_id for c in stoich_molecules[0:5]])
+      [c.mol_id for c in stoich_molecules[0:5]])
 
 print()
 print('You may note that there is a "find_by_expanded_stoichiometry" method',
       'in smu_sqlite')
-print('This is primarily intended to support the "topology queries" that are',
-      'documented in query_sqlite.py')
-print('Since these topology queries are more involved to set up, it is',
-      'recommended that you use query_sqlite.py for that kind of query')
+print('This is primarily intended to support "topology queries"')
+print('See topology_query.py')

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 """Scaling law estimator M2.
 """
+from typing import Optional
 
 import numpy as np
 import sklearn.linear_model
@@ -25,8 +26,14 @@ from revisiting_neural_scaling_laws.methods import base
 class Estimator(base.M):
   """Scaling law estimator M2."""
 
-  def __init__(self, loss_values, c=-0.5, err_inf=None,
-               update_c=True, update_err_inf=True, lo_bound=0.):
+  def __init__(self,
+               loss_values,
+               c = -0.5,
+               err_inf = None,
+               update_c = True,
+               update_err_inf = True,
+               lo_bound = 0.
+               ):
     """Constructor.
 
     Args:
@@ -39,8 +46,12 @@ class Estimator(base.M):
       update_err_inf: set to True if the err_inf is learnable.
       lo_bound: lower bound on error/loss. Default is zero.
     """
-    super(Estimator, self).__init__(loss_values, c, err_inf,
-                                    update_c, update_err_inf, lo_bound)
+    super(Estimator, self).__init__(loss_values,
+                                    c,
+                                    err_inf,
+                                    update_c,
+                                    update_err_inf,
+                                    lo_bound)
     # pre-compute
     self.ones = np.ones_like(self.x)
     self.ones_logx = np.stack([self.ones, np.log(self.x)], axis=1)
@@ -62,7 +73,7 @@ class Estimator(base.M):
     return self.y - self.err_inf
 
   def predict_loss(self, data_size):
-    """Estimate the loss given the data size x."""
+    """Estimate the loss given the data size."""
     return self._f(data_size) + self.err_inf
 
   def _hessian(self):
@@ -72,7 +83,7 @@ class Estimator(base.M):
     h_inf = np.mean((1 - log_g + log_f) / (self.y - self.err_inf) ** 2)
     return h_inf
 
-  def _update_errs(self, lr=1e-8, epochs=1000):
+  def _update_errs(self, lr = 1e-8, epochs = 1000):
     """Update err_inf using gradient descent."""
     if self.update_err_inf:
       log_f = np.log(self._fv())
@@ -83,7 +94,7 @@ class Estimator(base.M):
         self.err_inf -= lr * grad
         self._project()
 
-  def _update_errs_hessian(self, lr=0.1, epochs=100):
+  def _update_errs_hessian(self, lr = 0.1, epochs = 100):
     """Update estimate of err_inf using Newton's method."""
     if self.update_err_inf:
       log_f = np.log(self._fv())
@@ -108,8 +119,13 @@ class Estimator(base.M):
     self.beta = np.exp(log_beta)
 
   def estimate_scaling_params(self,
-                              max_iterations=10_000, verbose=True,
-                              lr=1e-8, epochs=1000, grad_iters=100, stop=1e-10):
+                              max_iterations = 10_000,
+                              verbose = True,
+                              lr = 1e-8,
+                              epochs = 1000,
+                              grad_iters = 100,
+                              stop = 1e-10
+                              ):
     """Estimate scaling law parameters.
 
     We first estimate parameters using gradient descent for a few epochs before

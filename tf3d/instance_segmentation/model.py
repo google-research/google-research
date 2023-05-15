@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,8 @@ class InstanceSegmentationModel(base_model.BaseModel):
                num_furthest_voxel_samples=1000,
                sampler_score_vs_distance_coef=0.5,
                train_dir='/tmp/model/train',
-               summary_log_freq=100):
+               summary_log_freq=100,
+               use_rule_based_op=True):
     """An object detection model based on 3D UNet sparse voxel network.
 
     Args:
@@ -74,6 +75,7 @@ class InstanceSegmentationModel(base_model.BaseModel):
         postprocessor.
       train_dir: A directory path to write tensorboard summary for losses.
       summary_log_freq: A int of the frequency (as batches) to log summary.
+      use_rule_based_op: If True, use rule base op.
 
     Returns:
       A dictionary containing tensors that contain predicted object properties.
@@ -110,7 +112,8 @@ class InstanceSegmentationModel(base_model.BaseModel):
         task_names_to_num_output_channels=task_names_to_num_output_channels,
         task_names_to_use_relu_last_conv=task_names_to_use_relu_last_conv,
         task_names_to_use_batch_norm_in_last_layer=(
-            task_names_to_use_batch_norm_in_last_layer))
+            task_names_to_use_batch_norm_in_last_layer),
+        use_rule_based_op=use_rule_based_op)
 
   def __call__(self, inputs, training=True):
     """Runs the model and returns the semantic logits prediction.

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ def make_batch(graph, features,  # pylint: disable=missing-function-docstring
                        total_matrix_size))  # Subsampled graph matrix.
   features_ss = np.zeros((batch_size, total_matrix_size,
                           features.shape[1]))  # Subsampled feature matrix.
-  subgraph_sizes = np.zeros(batch_size, dtype=np.int)
+  subgraph_sizes = np.zeros(batch_size, dtype=int)
   for index, node in enumerate(batch_nodes):
     graph_ss[index, :, :], indices = subgraph(graph, node, n_neighbors)
     subgraph_sizes[index] = len(indices)

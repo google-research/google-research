@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -336,8 +336,8 @@ def generate_model_labels(
   get_b = lambda val: (val * 2) - 1
   get_i = lambda val: val * 2
 
-  fragment_type_labels = np.zeros(len(tokens), dtype=np.int)
-  action_item_type_labels = np.zeros(len(tokens), dtype=np.int)
+  fragment_type_labels = np.zeros(len(tokens), dtype=int)
+  action_item_type_labels = np.zeros(len(tokens), dtype=int)
   for label in ap_parsing_utils.normalize_labeled_char_spans_iterable(
       labels, tokens):
 

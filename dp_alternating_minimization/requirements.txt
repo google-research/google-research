@@ -1,0 +1,7 @@
+dp_accounting
+IPython
+matplotlib
+numpy
+pandas
+tabulate
+tensorflow

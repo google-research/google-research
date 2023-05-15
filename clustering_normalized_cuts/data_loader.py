@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -301,7 +301,7 @@ def split_data(x, y, split, permute=None):
   ret_x_y_p = []
   prev_idx = 0
   for s in split:
-    idx = prev_idx + np.round(s * n).astype(np.int)
+    idx = prev_idx + np.round(s * n).astype(int)
     p_ = permute[prev_idx:idx]
     x_ = x[p_]
     y_ = y[p_]

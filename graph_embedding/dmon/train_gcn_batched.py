@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ def main(argv):
   n_neighbors = [15, 10]  # TODO(tsitsulin): move to FLAGS.
   total_matrix_size = 1 + np.cumprod(n_neighbors).sum()
 
-  train_mask = np.zeros(n_nodes, dtype=np.bool)
+  train_mask = np.zeros(n_nodes, dtype=bool)
   train_mask[np.random.choice(
       np.arange(n_nodes), int(n_nodes * train_size), replace=False)] = True
   test_mask = ~train_mask

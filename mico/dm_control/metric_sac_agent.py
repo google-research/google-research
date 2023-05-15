@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ def train(network_def,
     target_next_r = jnp.squeeze(target_next_r)
     target_q_values = jnp.minimum(target_q_values_1, target_q_values_2)
 
-    alpha_value = jnp.exp(log_alpha)
+    alpha_value = jnp.exp(log_alpha)  # pytype: disable=wrong-arg-types  # numpy-scalars
     log_probs = target_outputs.actor.log_probability
     targets = reward_scale_factor * rewards + cumulative_gamma * (
         target_q_values - alpha_value * log_probs) * (1. - terminals)
@@ -169,7 +169,7 @@ def train(network_def,
     q_values_no_grad_2 = jnp.squeeze(q_values_no_grad_2)
     target_r = jnp.squeeze(target_r)
     no_grad_q_values = jnp.minimum(q_values_no_grad_1, q_values_no_grad_2)
-    alpha_value = jnp.exp(jax.lax.stop_gradient(log_alpha))
+    alpha_value = jnp.exp(jax.lax.stop_gradient(log_alpha))  # pytype: disable=wrong-arg-types  # numpy-scalars
     policy_loss = jnp.mean(alpha_value * action_log_probs - no_grad_q_values)
 
     # J(\alpha) from equation (18) in paper.

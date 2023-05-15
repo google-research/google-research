@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,8 @@
 # limitations under the License.
 
 """Latent graph forecaster cell with different graph convolution filter rules."""
-
-from typing import Any
+import argparse
+from typing import Sequence
 
 import numpy as np
 from pytorch_lightning import LightningModule

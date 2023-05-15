@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -207,7 +207,7 @@ def batch_bucketed(
     def _batch_and_pad_elts(*args):
       stacked = np.stack(args)
       stacked = jax_util.pad_to(stacked, batch_sizes[key])
-      return stacked.reshape(batch_dim_sizes[key] + stacked.shape[1:])
+      return stacked.reshape(batch_dim_sizes[key] + stacked.shape[1:])  # pytype: disable=unsupported-operands  # jax-devicearray
 
     result = jax.tree_map(_batch_and_pad_elts, *partial_batches[key])
     partial_batches[key].clear()

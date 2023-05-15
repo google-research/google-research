@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -188,7 +188,7 @@ def np_knn_graph_from_points_unbatched(points,
   """
   num_points = points.shape[0]
   if mask is None:
-    mask = np.ones([num_points], dtype=np.bool)
+    mask = np.ones([num_points], dtype=bool)
   num_masked_points = np.sum(mask.astype(np.int32))
   indices = np.expand_dims(np.arange(num_points), axis=1)
   indices = np.tile(indices, [1, k])

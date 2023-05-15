@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ class PointcloudUtilsTest(tf.test.TestCase):
                        [1.0, 1.0, 0.0],
                        [0.0, 1.0, 1.0],
                        [0.0, 0.0, 0.0]])
-    mask = np.array([1, 1, 0, 0, 1, 1, 0, 1], dtype=np.bool)
+    mask = np.array([1, 1, 0, 0, 1, 1, 0, 1], dtype=bool)
     distances, indices = pointcloud_utils.np_knn_graph_from_points_unbatched(
         points=points, k=3, distance_upper_bound=1.1, mask=mask)
     expected_distances = np.array([[0., 1., 1.],

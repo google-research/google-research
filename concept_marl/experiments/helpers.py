@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -174,9 +174,9 @@ def concept_bottleneck(
     else:
       # mask out completely instead of applying noise
       masked_out = out * concept_interventions['intervention_masks']
-    return masked_out, raw_out
+    return masked_out, raw_out  # pytype: disable=bad-return-type  # jax-ndarray
   else:
-    return out, raw_out
+    return out, raw_out  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def make_meltingpot_concept_ppo_networks(

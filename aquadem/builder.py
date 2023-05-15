@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
     return self._rl_agent.make_replay_tables(discretized_spec,
                                              policy.discrete_policy)
 
-  def make_dataset_iterator(
+  def make_dataset_iterator(  # pytype: disable=signature-mismatch  # overriding-return-type-checks
       self,
       replay_client):
     return self._rl_agent.make_dataset_iterator(replay_client)

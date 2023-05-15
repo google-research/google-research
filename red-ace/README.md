@@ -1,8 +1,15 @@
 # RED-ACE
-Data and code for [RED-ACE: Robust Error Detection for ASR using Confidence Embeddings](https://arxiv.org/abs/2203.07172).
+Data and code for the paper [RED-ACE: Robust Error Detection for ASR using Confidence Embeddings](https://arxiv.org/abs/2203.07172) (EMNLP 2022).
+
+RED-ACE is an ASR Error Detection (AED) model.
+Our approach is based on a modified BERT encoder with an additional embedding
+layer, which jointly encodes the textual input and the word-level confidence
+scores into a contextualized representation.
+
+This is not an officially supported Google product.
 
 ## Code
-We will release the full code soon.
+Please follow `run.sh` for an example how to run the code.
 
 ## Data
 Our dataset is placed in a public Google Cloud Storage Bucket and can be downloaded from

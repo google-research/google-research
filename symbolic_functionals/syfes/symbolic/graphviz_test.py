@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,29 +42,29 @@ class GraphvizTest(absltest.TestCase):
 	gamma_utransform [label=gamma_utransform fillcolor="#cc79a7" style=filled]
 	"UTransformInstruction--0" [label=UTransform fillcolor="#009e73" shape=square style=filled]
 	f1 [label=f1 fillcolor="#0072b2" style=filled]
-		f1 -> "UTransformInstruction--0"
+	f1 -> "UTransformInstruction--0"
 	gamma_utransform [label=gamma_utransform fillcolor="#cc79a7" style=filled]
-		gamma_utransform -> "UTransformInstruction--0"
+	gamma_utransform -> "UTransformInstruction--0"
 	"v1--1" [label=v1]
-		"UTransformInstruction--0" -> "v1--1"
+	"UTransformInstruction--0" -> "v1--1"
 	"Power2Instruction--0" [label="a^2" fillcolor="#009e73" shape=square style=filled]
-		"v1--1" -> "Power2Instruction--0"
+	"v1--1" -> "Power2Instruction--0"
 	"v2--1" [label=v2]
-		"Power2Instruction--0" -> "v2--1"
+	"Power2Instruction--0" -> "v2--1"
 	"MultiplicationAdditionInstruction--0" [label="+=a*b" fillcolor="#009e73" shape=square style=filled]
 	f1 [label=f1 fillcolor="#0072b2" style=filled]
-		f1 -> "MultiplicationAdditionInstruction--0"
-		"v2--1" -> "MultiplicationAdditionInstruction--0"
-		"v1--1" -> "MultiplicationAdditionInstruction--0" [color="black:black"]
+	f1 -> "MultiplicationAdditionInstruction--0"
+	"v2--1" -> "MultiplicationAdditionInstruction--0"
+	"v1--1" -> "MultiplicationAdditionInstruction--0" [color="black:black"]
 	"v1--2" [label=v1]
-		"MultiplicationAdditionInstruction--0" -> "v1--2"
+	"MultiplicationAdditionInstruction--0" -> "v1--2"
 	"DivisionInstruction--0" [label="a/b" fillcolor="#009e73" shape=square style=filled]
-		"v1--2" -> "DivisionInstruction--0"
+	"v1--2" -> "DivisionInstruction--0"
 	c1 [label=c1 fillcolor="#de8f05" style=filled]
-		c1 -> "DivisionInstruction--0"
+	c1 -> "DivisionInstruction--0"
 	"v1--3" [label=v1]
-		"DivisionInstruction--0" -> "v1--3"
-}""")
+	"DivisionInstruction--0" -> "v1--3"
+}\n""")
 
 
 if __name__ == '__main__':

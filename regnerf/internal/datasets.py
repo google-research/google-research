@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -291,7 +291,7 @@ def subsample_patches(images, patch_size, batch_size, batching='all_images'):
     idx_img = np.random.randint(0, shape[0], size=(n_patches, 1))
   elif batching == 'single_image':
     idx_img = np.random.randint(0, shape[0])
-    idx_img = np.full((n_patches, 1), idx_img, dtype=np.int)
+    idx_img = np.full((n_patches, 1), idx_img, dtype=int)
   else:
     raise ValueError('Not supported batching type!')
 

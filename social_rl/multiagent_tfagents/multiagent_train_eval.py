@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -156,6 +156,7 @@ def train_eval(
     debug=True):
   """A simple train and eval for PPO."""
   tf.compat.v1.enable_v2_behavior()
+  tf.keras.__internal__.enable_unsafe_deserialization()
 
   if root_dir is None:
     raise AttributeError('train_eval requires a root_dir.')

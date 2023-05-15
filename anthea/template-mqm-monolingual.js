@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2023 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,6 +36,11 @@ antheaTemplates['MQM-Monolingual'] = {
   },
 
   /**
+   * @const {string} Template version identifier.
+   */
+  VERSION: 'v1.00-Feb-13-2023',
+
+  /**
    * @const {boolean} Only rate the target side, i.e., the translated text.
    */
   TARGET_SIDE_ONLY: true,
@@ -52,12 +57,6 @@ antheaTemplates['MQM-Monolingual'] = {
    *     auto-append the lists of errors/severities to the instructions.
    */
   SKIP_RATINGS_TABLES: true,
-
-  /**
-   * @const {boolean} Set this to true if you want the error span to be
-   *     marked before the severity level is picked.
-   */
-  MARK_SPAN_FIRST: true,
 
   /**
    * @const {boolean} Set this to true if you want to allow error spans to
@@ -127,8 +126,12 @@ antheaTemplates['MQM-Monolingual'] = {
       description: 'The text has stylistic problems.',
       subtypes: {
         awkward: {
-          display: 'Awkward',
+          display: 'Unnatural or awkward',
           description: 'The text is literal, written in an awkward style, unidiomatic or inappropriate in the context.',
+        },
+        sentence_structure: {
+          display: 'Bad sentence structure',
+          description: 'The marked span of text is an unnecessary repetition, or makes the sentence unnecessarily long, or would have been better as a clause in the previous sentence.'
         },
       },
     },
@@ -138,17 +141,9 @@ antheaTemplates['MQM-Monolingual'] = {
                    'sense in some way other than a Fluency or Style error ' +
                    'described earlier.',
       subtypes: {
-        misphrased: {
-          display: 'Misphrased',
-          description: 'A span of text that is out of place, or is badly phrased, or does not make sense in the context of the text around it.',
-        },
-        missing: {
-          display: 'Missing text',
-          description: 'There seems to be something missing just before or after the marked span of text.',
-        },
-        sentence_structure: {
-          display: 'Bad sentence structure',
-          description: 'The marked span of text is an unnecessary repetition, or makes the sentence unnecessarily long, or would have been better as a clause in the previous sentence.'
+        misfit: {
+          display: 'Misfit',
+          description: 'A span of text that is out of place, illogical, or is badly phrased, or does not make sense in the context of the text around it.',
         },
         gibberish: {
           display: 'Gibberish',
@@ -312,8 +307,9 @@ antheaTemplates['MQM-Monolingual'] = {
               are not directly affected by the identified issue and do
               not need to be modified in order for the issue to be fixed.</li>
           <li>The shorter the span, the more useful it is.</li>
-          <li>When it comes to Style/Awkwardness errors, please pinpoint the
-              error rather than extend the span to an entire clause.</li>
+          <li>When it comes to "Style/Unnatural or awkward" errors, please
+              pinpoint the error rather than extend the span to an entire
+              clause.</li>
           <li>If a single issue affects words that do not directly follow each
               other, as is the case with split verbs in German
               (“teilte die Feuerwehr auf”) or phrasal verbs in English
@@ -335,7 +331,7 @@ antheaTemplates['MQM-Monolingual'] = {
       </li>
       <li>Select the <b>category</b> (also called <b>type</b>) and
           <b>subcategory</b> (also called <b>subtype</b>) of the error found.
-          For example: Coherence &gt; Misphrased.</li>
+          For example: Coherence &gt; Misfit.</li>
       <li>After annotating all identified issues in a segment, use the <b>right
           arrow key</b> (or the <b>button</b>) to go to the next segment.</li>
     </ol>
@@ -548,11 +544,28 @@ antheaTemplates['MQM-Monolingual'] = {
               <b>Unnatural or awkward</b>.
               The text is written in an awkward style, unidiomatic or
               inappropriate in the context. Examples:
-              (1) A sentence is unnecessarily convoluted or long, such as
+              (1) A sentence is unnecessarily convoluted or too wordy, such as
               "The lift traveled away from the ground floor." This would be a
-              minor error. (3) Grammatically correct but slightly unnatural
+              minor error. (2) Grammatically correct but slightly unnatural
               sounding sentences such as “From where did he come?” This would
               also be a minor error.
+            </li>
+              <b>Bad sentence structure</b>.
+              This error type is related to the arrangement of the sentence
+              structure. The marked span of text is an unnecessary repetition,
+              or it makes the sentence unnecessarily long, or it would have been
+              better expressed as a clause in the previous sentence. Example
+              (repetition): "Alexander had an idea. Alexander had a thought."
+              This example would be a minor error, unless the context dictates
+              otherwise. Example (long sentence): "The party, after blaming its
+              losses on poor leadership, that the spokesman said could have
+              paid more attention to the people's needs, split into two
+              factions." This sentence could have been split into multiple
+              sentences. Example (mergeable): "He gave him the money. He
+              accepted the reward." These two sentences can be phrased better
+              as a single sentence that makes it clearer who accepted the
+              reward. This example is a minor error, without additional
+              contextual information.
             </li>
           </ul>
         </details>
@@ -565,38 +578,16 @@ antheaTemplates['MQM-Monolingual'] = {
           <summary>Subtypes of Coherence:</summary>
           <ul>
             <li>
-              <b>Misphrased</b>.
-              A span of text that is out of place, or is badly phrased, or does
-              not make sense in the context of the text around it. Examples:
-              (1) A long and uncommon French phrase in English (major severity).
-              (2) An idiom that makes no sense, such as "made milk of milk and
-                  water of water" (major severity).
-            </li>
-            <li>
-              <b>Missing text</b>.
-              There seems to be something missing just before or after the
-              marked span of text as it seems to leap or cut off in meaning or
-              in phrasing. Example: "Step 1. Lather. Step 4: Repeat." This
-              example would be a major severity error. As a matter of
-              convention, mark the word that immediately follows where you think
-              some text is missing, unless the missing text is at the end of a
-              paragraph, in which case mark the last word.
-            </li>
-            <li>
-              <b>Bad sentence structure</b>.
-              The marked span of text is an unnecessary repetition, or makes
-              the sentence unnecessarily long, or would have been better as a
-              clause in the previous sentence. Example (repetition): "Alexander
-              had an idea. Alexander had a thought." This example would be a
-              minor error, unless the context dictates otherwise. Example (long
-              sentence): "The party, after blaming its losses on poor
-              leadership, that the spokesman said could have paid more attention
-              to the people's needs, split into two factions." This sentence
-              could have been split into multiple sentences. Example
-              (mergeable): "He gave him the money. He accepted the reward."
-              These two sentences can be phrased better as a single sentence
-              that makes it clearer who accepted the reward. This example is a
-              minor error, without any additional contextual information.
+              <b>Misfit</b>.
+              A span of text (short phrase or even a whole sentence) that is
+              out of place, illogical, or is badly phrased, or does not make
+              sense in the context of the text around it. Examples: (1) A long
+              and uncommon French phrase in English (major severity). (2) An
+              idiom that makes no sense, such as "made milk of milk and water
+              of water" (major severity). (3) An enumerated list with missing
+              or additional items, such as “Step 1. Lather. Step 1. Lather.
+              Step 4: Repeat." (without additional context, this would be two
+              minor severity Coherence/Misfit errors).
             </li>
             <li>
               <b>Gibberish</b>.
@@ -728,6 +719,22 @@ antheaTemplates['MQM-Monolingual'] = {
         </tr>
       </table>
     </details>
+
+    <h2>Feedback</h2>
+    <p>
+    At the bottom right in the Evaluation column, there is a Feedback section.
+    Please feel free to provide any feedback or notes. You can express things
+    like:
+    </p>
+    <ul>
+      <li>The document was too complex, or the topic was unfamiliar.</li>
+      <li>Some parts of the instructions were unclear.</li>
+      <li>Something in the user interface worked well or did not work well.</li>
+      <li>You can also provide an overall thumbs up/down rating for your
+          experience in evaluating that document.</li>
+      <li>Any other comments or notes that you would like to provide about your
+          experience.</li>
+    </ul>
     <br>
   `,
 };

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -176,7 +176,7 @@ class TestMultiplicative(TestLinear):
       num_sample = np.random.randint(10, 20)
       num_group_per_order = np.random.randint(10, 20)
       num_feature = np.sum([o * num_group_per_order for o in orders],
-                           dtype=np.int)
+                           dtype=int)
       d = self.init_method(
           num_sample=num_sample,
           num_feature=num_feature,
@@ -195,7 +195,7 @@ class TestMultiplicative(TestLinear):
     orders = range(1, 10)
     problem = 'classification'
     num_feature = np.sum([o * num_group_per_order for o in orders],
-                         dtype=np.int)
+                         dtype=int)
 
     for _ in range(NUM_REPLICATE):
       prop_nonzero = np.random.uniform(0.2, 0.8)

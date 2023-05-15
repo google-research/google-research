@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2023 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1639,8 +1639,7 @@ function addGroup(sourcePage, concept, profile, isCore, controls = null) {
     case dealmediaConcept:
       addMedia(sourcePage, concept, controls);
       break;
-    case singleselectionConcept:  // useful for passive groups
-    case cctypeConcept:
+    case cctypeConcept:  // useful for passive groups
     case flighttypeConcept:
     case cabinConcept:
       formGroup = true;

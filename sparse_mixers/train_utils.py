@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -191,7 +191,7 @@ def compute_pretraining_metrics(stats,
     metrics["router_confidence"] = jnp.mean(
         stats.expert_metrics.router_confidence)
 
-  return metrics
+  return metrics  # pytype: disable=bad-return-type  # jax-types
 
 
 def compute_classification_metrics(

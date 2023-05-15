@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -115,7 +115,7 @@ class PostprocessorsTest(absltest.TestCase):
         "negative explanation: the movie was boring explanation: acting was "
         "bad explanation: poor script"
     )
-    expected_span_array = np.zeros(len(inputs), np.int)
+    expected_span_array = np.zeros(len(inputs), int)
     explanations = [b"the movie was boring", b"acting was bad", b"poor script"]
     for exp in explanations:
       expected_span_array[inputs.find(exp):inputs.find(exp) + len(exp)] = 1
@@ -138,7 +138,7 @@ class PostprocessorsTest(absltest.TestCase):
         "explain review: the movie was boring, did not have a good time. "
         "acting was bad"
     )
-    expected_span_array = np.zeros(len(inputs), np.int)
+    expected_span_array = np.zeros(len(inputs), int)
     explanations = ["the movie was boring", "acting was bad"]
     for exp in explanations:
       expected_span_array[inputs.find(exp):inputs.find(exp) + len(exp)] = 1

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 """Latent graph forecaster model that integrates."""
 import sys
 
-from typing import Any
+from typing import Any, Dict, Tuple
 
 import numpy as np
 sys.path.insert(0, '../src/')
@@ -190,7 +190,7 @@ class LGF(LightningModule, Seq2SeqAttrs):
   def __init__(self,
                adj_mx,
                args,
-               config = None):
+               config=None):
     super().__init__()
     Seq2SeqAttrs.__init__(self, args)
     if self.filter_type == 'learned':
@@ -207,7 +207,8 @@ class LGF(LightningModule, Seq2SeqAttrs):
     # define loss function
     self.loss = nn.L1Loss()
 
-    self.hidden_dim = config['hidden_dim']
+    if config is not None:
+      self.hidden_dim = config['hidden_dim']
 
   def _compute_sampling_threshold(self, batches_seen):
     return self.cl_decay_steps / (
@@ -302,8 +303,7 @@ class LGF(LightningModule, Seq2SeqAttrs):
     self.log('val_loss', loss)
     return {'val_loss': loss, 'log': {'val_loss': loss.detach()}}
 
-  def test_step(self, batch,
-                batch_idx):
+  def test_step(self, batch, batch_idx):
     x, y = batch
     loss = self.loss(self(x, None), y)
     self.log('test_loss', loss)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,19 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2022 Google LLC
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-#     https://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Tests for image_simulation.py."""
 
 import functools
@@ -37,12 +24,12 @@ from immutabledict import immutabledict
 import jax
 import jax.numpy as jnp
 import numpy as np
-from third_party.google_research.google_research.jaxstronomy import cosmology_utils
-from third_party.google_research.google_research.jaxstronomy import image_simulation
-from third_party.google_research.google_research.jaxstronomy import lens_models
-from third_party.google_research.google_research.jaxstronomy import psf_models
-from third_party.google_research.google_research.jaxstronomy import source_models
-from third_party.google_research.google_research.jaxstronomy import utils
+from jaxstronomy import cosmology_utils
+from jaxstronomy import image_simulation
+from jaxstronomy import lens_models
+from jaxstronomy import psf_models
+from jaxstronomy import source_models
+from jaxstronomy import utils
 
 COSMOLOGY_PARAMS_LENSTRONOMY = immutabledict({
     'omega_m_zero': 0.30966,

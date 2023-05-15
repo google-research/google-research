@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ def get_cost_and_dimension_matrices(kl_per_t):
 
   # costs[k, t] is going to contain the cost to generate t steps but limited to
   # a policy with length k.
-  first_cost = np.full((num_timesteps + 1,), np.inf, dtype=np.float)
+  first_cost = np.full((num_timesteps + 1,), np.inf, dtype=float)
   first_cost[0] = 0
   first_cost = jnp.array(first_cost)
 
@@ -109,7 +109,7 @@ def get_cost_and_dimension_matrices_np(kl_per_t):
   # costs[k, t] is going to contain the cost to generate t steps but limited to
   # a policy with length k.
   costs = np.full(
-      (num_timesteps + 1, num_timesteps + 1), np.inf, dtype=np.float)
+      (num_timesteps + 1, num_timesteps + 1), np.inf, dtype=float)
   costs[0, 0] = 0
 
   # dimensions[k, t] is going to contain the optimal previous t for D[k - 1].

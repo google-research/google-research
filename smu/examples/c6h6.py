@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ from smu import smu_sqlite
 # on the status variable.
 #-----------------------------------------------------------------------------
 
-db = smu_sqlite.SMUSQLite('20220128_complete_v2.sqlite')
+db = smu_sqlite.SMUSQLite('20220621_complete_v4.sqlite')
 
 print('# Output from c6h6.py, an example bringing together many concepts')
 print('# Please see that file for documentation')
@@ -78,10 +78,10 @@ for mol in molecules:
   #---------------------------------------------------------------------------
   # We select only molecules for which the status variable is 4 or lower
   # and that are not simple duplicates of others.
-  # See special_cases.py for a description of the duplicated_by field
+  # See special_cases.py for a description of the duplicate_of field
   #---------------------------------------------------------------------------
 
-  if (mol.properties.errors.status >= 4 or mol.duplicated_by != 0):
+  if (mol.prop.calc.status >= 4 or mol.duplicate_of != 0):
     continue
 
   #---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ for mol in molecules:
   # reminder/example. See missing_fields.py for details.
   #---------------------------------------------------------------------------
 
-  if not mol.properties.HasField('dipole_moment_pbe0_aug_pc_1'):
+  if not mol.prop.HasField('elec_dip_pbe0_augpc1'):
     continue
 
   #---------------------------------------------------------------------------
@@ -102,18 +102,18 @@ for mol in molecules:
   # a given bond topology (expressed as SMILES).
   #
   # ALTERNATIVE
-  # You can just consider the bond topology that was used to produce this
-  # geometry. Notably tThermochemical
-  # analyses depend on the chosen bond topology and those reported in the
-  # database are (strictly) valid only for these "starting" bond topologies,
-  # even though dependence on the chosen bond topology is usually fairly
+  # You can just consider the bond topology that was used to produce
+  # this geometry. Notably, thermochemical analyses depend on the
+  # chosen bond topology and those reported in the database are
+  # (strictly) valid only for these "starting" bond topologies, even
+  # though dependence on the chosen bond topology is usually fairly
   # small.
   #
   # If you want this, jsut uncomment the if statement below
   #---------------------------------------------------------------------------
 
-  for bt in mol.bond_topologies:
-    # if not bt.is_starting_topology:
+  for bt in mol.bond_topo:
+    # if not bt.info & dataset_pb2.BondTopology.SOURCE_STARTING:
     #   continue
     smiles_to_molecules[bt.smiles].append(mol)
 
@@ -125,30 +125,28 @@ for mol in molecules:
 # output formats. See dataframe.py for how to do this.
 #-----------------------------------------------------------------------------
 writer = csv.writer(sys.stdout)
-writer.writerow([
-    'molecule_id', 'smiles', 'molecule_count', 'dip_x', 'dip_y', 'dip_z', 'dip'
-])
+writer.writerow(
+    ['mol_id', 'smiles', 'molecule_count', 'dip_x', 'dip_y', 'dip_z', 'dip'])
 
 for smiles in smiles_to_molecules:
   energies = [
-      mol.properties.enthalpy_of_formation_298k_atomic_b5.value
-      for mol in smiles_to_molecules[smiles]
+      mol.prop.at2_std_b5_hf298.val for mol in smiles_to_molecules[smiles]
   ]
   #---------------------------------------------------------------------------
   # While this line may look mysterious, it's doing exactly what the words say:
   # it finds the index of the minimum value of the energies
   #---------------------------------------------------------------------------
-  min_energy_molecule_idx = energies.index(min(energies))
-  mol = smiles_to_molecules[smiles][min_energy_molecule_idx]
+  min_energy_mol_idx = energies.index(min(energies))
+  mol = smiles_to_molecules[smiles][min_energy_mol_idx]
 
   #---------------------------------------------------------------------------
   # See field_access.py for details on the formats of many different kinds of
   # fields
   #---------------------------------------------------------------------------
 
-  dipole = mol.properties.dipole_moment_pbe0_aug_pc_1
+  dipole = mol.prop.elec_dip_pbe0_augpc1
   writer.writerow([
-      mol.molecule_id, smiles,
+      mol.mol_id, smiles,
       len(smiles_to_molecules[smiles]), dipole.x, dipole.y, dipole.z,
       '{:.8f}'.format(math.sqrt(dipole.x**2 + dipole.y**2 + dipole.z**2))
   ])

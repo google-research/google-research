@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2023 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ class AntheaManager {
     this.openMenuItem_ = null;
 
     /** @private @const {number} */
-    this.MAX_ACTIVE_ = 16;
+    this.MAX_ACTIVE_ = 64;
     /** @private {number} */
     this.numActive_ = 0;
 
@@ -378,8 +378,7 @@ class AntheaManager {
         hotwPercent: hotwPercent,
         // `JSON.stringify` can't deal with additional properties of arrays
         // nicely, hence we are adding them explicitly here.
-        srcLang: parsedDocSys.srcLang,
-        tgtLang: parsedDocSys.tgtLang,
+        parameters: parsedDocSys.parameters,
       };
       window.localStorage.setItem(activeKey, JSON.stringify(activeData));
       const activeResultsKey = this.ACTIVE_RESULTS_KEY_PREFIX_ + activeName;
@@ -496,8 +495,7 @@ class AntheaManager {
       createdAt: this.activeData_.createdAt,
       results: this.activeResults_,
       hotwPercent: this.activeData_.hotwPercent,
-      srcLang: this.activeData_.srcLang,
-      tgtLang: this.activeData_.tgtLang,
+      parameters: this.activeData_.parameters,
       savedAt: Date.now(),
     });
     const a = document.createElement("a");
@@ -620,8 +618,14 @@ class AntheaManager {
       const activeResultsJSON = window.localStorage.getItem(activeResultsKey);
       this.activeResults_ = JSON.parse(activeResultsJSON);
 
-      this.activeData_.parsedDocSys.srcLang = this.activeData_.srcLang;
-      this.activeData_.parsedDocSys.tgtLang = this.activeData_.tgtLang;
+      /* Convert legacy format */
+      const parameters = this.activeData_.parameters || {};
+      if (this.activeData_.srcLang && this.activeData_.tgtLang) {
+        parameters.source_language = this.activeData_.srcLang;
+        parameters.target_language = this.activeData_.tgtLang;
+      }
+      this.activeData_.parsedDocSys.parameters = parameters;
+      this.activeData_.parameters = parameters;
 
       this.antheaBellQuote_.style.display = 'none';
       this.eval_ = new AntheaEval(this);
@@ -797,6 +801,22 @@ class AntheaManager {
   }
 
   /**
+   * Get sentence-split token sizes of text.
+   * 
+   * @param {string} text
+   * @return {!Array<number>}
+   */
+  getSentenceTokenSizes(text) {
+    const sentences = text.split('\u200b\u200b');
+    const sentence_token_sizes = [];
+    for (let sent of sentences) {
+      const tokens = AntheaEval.tokenize(sent);
+      sentence_token_sizes.push(tokens.length);
+    }
+    return sentence_token_sizes;
+  }
+
+  /**
    * Return TSV-formatted MQM data from the parsed evaluation data.
    * @param {!Object} parsedData The parsed evaluation data.
    * @return {string}
@@ -807,6 +827,7 @@ class AntheaManager {
     let evalMetadataAdded = false;
     for (let docsys of parsedData.parsedDocSys) {
       let segIndex = 0;
+      let isFirstForDocSys = true;
       for (let l = 0; l < docsys.srcSegments.length; l++) {
         console.assert(l < docsys.tgtSegments.length,
                        l, docsys.tgtSegments.length);
@@ -846,18 +867,22 @@ class AntheaManager {
             },
           });
         }
-        if (segResult.hotw && segResult.hotw.done) {
+        for (let hotw of segResult.hotw_list) {
+          if (!hotw.done) {
+            continue;
+          }
           errors.push({
             'severity': 'HOTW-test',
-            'type': (segResult.hotw.found ? 'Found' : 'Missed'),
+            'type': (hotw.found ? 'Found' : 'Missed'),
             'subtype': '',
             'location': '',
             'start': 0,
             'end': 0,
             'metadata': {
-              timestamp: segResult.hotw.timestamp,
-              timing: segResult.hotw.timing,
-              'note': this.cleanText(segResult.hotw.injected_error),
+              timestamp: hotw.timestamp,
+              timing: hotw.timing,
+              'note': this.cleanText(hotw.injected_error),
+              'sentence_index': hotw.sentence_index,
             },
           });
         }
@@ -879,6 +904,8 @@ class AntheaManager {
             error.metadata.segment = {
               source_tokens: AntheaEval.tokenize(src),
               target_tokens: AntheaEval.tokenize(tgt),
+              source_sentence_tokens: this.getSentenceTokenSizes(src),
+              target_sentence_tokens: this.getSentenceTokenSizes(tgt),
             };
             if (startsPara) {
               error.metadata.segment.starts_paragraph = true;
@@ -921,6 +948,12 @@ class AntheaManager {
               }
               evalMetadataAdded = true;
             }
+            if (isFirstForDocSys) {
+              if (segResult.feedback) {
+                error.metadata.feedback = segResult.feedback;
+              }
+              isFirstForDocSys = false;
+            }
             isFirst = false;
           }
           mqmData += this.getMQMSegData(parsedData, docsys,
@@ -943,11 +976,19 @@ class AntheaManager {
              ' with data length ' + evaluationFileData.length);
     try {
       const parsedData = JSON.parse(evaluationFileData);
+      if (!parsedData.parameters &&
+          parsedData.srcLang && parsedData.tgtLang) {
+        /* convert legacy format */
+        parsedData.parameters = {
+          source_language: parsedData.srclang,
+          target_language: parsedData.tgtlang,
+        };
+      }
       if (!parsedData.raterId || !parsedData.projectName ||
           !parsedData.templateName || !parsedData.template ||
           !parsedData.parsedDocSys ||
           !parsedData.results || !parsedData.createdAt || !parsedData.savedAt ||
-          !parsedData.srcLang || !parsedData.tgtLang) {
+          !parsedData.parameters) {
         throw 'Invalid evaluation data file: ' + evaluationFileName;
       }
       /**
@@ -965,8 +1006,7 @@ class AntheaManager {
           docsys.numNonBlankSegments = docsys.numNonBlankSentGroups;
         }
       }
-      parsedData.parsedDocSys.srcLang = parsedData.srcLang;
-      parsedData.parsedDocSys.tgtLang = parsedData.tgtLang;
+      parsedData.parsedDocSys.parameters = parsedData.parameters;
       this.viewingList_.insertAdjacentHTML('beforeend', `
           <option value="${this.viewingListData_.length}">
               Project: ${parsedData.projectName} (${parsedData.templateName})

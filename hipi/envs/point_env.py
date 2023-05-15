@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -267,7 +267,7 @@ class PointDynamics(multitask.Dynamics):
     state_index = np.random.choice(num_candidate_states)
     state = np.array(
         [candidate_states[0][state_index], candidate_states[1][state_index]],
-        dtype=np.float,
+        dtype=float,
     )
     state += np.random.uniform(size=2)
     assert not self._is_blocked(state)
@@ -277,7 +277,7 @@ class PointDynamics(multitask.Dynamics):
     if self._random_initial_state:
       self.state = self._sample_empty_state()
     else:
-      self.state = np.zeros(2, dtype=np.float)
+      self.state = np.zeros(2, dtype=float)
     assert not self._is_blocked(self.state)
     return self.state.copy().astype(np.float32)
 
@@ -288,7 +288,7 @@ class PointDynamics(multitask.Dynamics):
     return self._walls[i, j] == 1
 
   def _discretize_state(self, state, resolution=1.0):
-    (i, j) = np.floor(resolution * state).astype(np.int)
+    (i, j) = np.floor(resolution * state).astype(int)
     # Round down to the nearest cell if at the boundary.
     if i == self._height:
       i -= 1

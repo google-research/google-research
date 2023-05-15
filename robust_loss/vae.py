@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -313,7 +313,7 @@ def make_mixture_prior(latent_size, mixture_components):
   """
   if mixture_components == 1:
     return tfd.MultivariateNormalDiag(
-        loc=tf.zeros([latent_size]), scale_identity_multiplier=1.0)
+        loc=tf.zeros([latent_size]), scale_diag=tf.ones([latent_size]))
 
   loc = tf.get_variable(name="loc", shape=[mixture_components, latent_size])
   raw_scale_diag = tf.get_variable(

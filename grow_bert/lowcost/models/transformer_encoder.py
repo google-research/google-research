@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ class TransformerEncoder(tf.keras.Model):
     self._embed_resolution_layer = resolution_layer.EmbedPoolLayer(
         hidden_size, input_pool_size, input_pool_name, name='embed_resolution')
 
-  def call(self, inputs):
+  def call(self, inputs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     mask = inputs['input_mask']
     word_ids = inputs['input_word_ids']
     type_ids = inputs['input_type_ids']

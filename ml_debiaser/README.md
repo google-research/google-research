@@ -1,16 +1,17 @@
 # Near-Optimal Debiasing Algorithms
 
 [*Near-optimal algorithm for debiasing machine learning models*](https://arxiv.org/abs/2106.12887).
-Ibrahim Alabdulmohsin and Mario Lucic, NeurIPS 2021.
+Ibrahim Alabdulmohsin and Mario Lucic (NeurIPS 2021).
 
 [*A Reduction to Binary Approach for Debiasing Multiclass Datasets*](https://arxiv.org/abs/2205.15860)
-Ibrahim Alabdulmohsin, Jessica Schrouff, and Oluwasanmi Koyejo, 2022 (NeurIPS 2022).
+Ibrahim Alabdulmohsin, Jessica Schrouff, and Oluwasanmi Koyejo (NeurIPS 2022).
 
-This is the directory for algorithms that we develop to debias machine learing
+This is the directory for algorithms that we develop to debias machine learning
 models while treating them as black-box classifiers. We develop a near-optimal
 post-processing method for binary classifiers and a pre-processing method for
-multiclass datasets. The multiclass method does not require accesss to the
-sensitive attribute at test time and can handle an arbitrary number of classes.
+multiclass datasets. The multiclass method does not require access to the
+sensitive attribute at inference time and can handle an arbitrary number of
+classes.
 
 Both algorithms return solutions that satisfy the bias requirement on the
 training data. The guarantees on test data hold with a high probability provided
@@ -69,7 +70,7 @@ clf.fit(x_train, y_train)
 
 Train the debiasing rule. It is important to rescale the predictions to the
 interval [-1, +1] before training the debiaser. We do not do the normalization
-automatically to keep the sovler general (since it can be used to solve some
+automatically to keep the solver general (since it can be used to solve some
 other optimization problems). Below, ```eps``` controls the level of bias.
 ```
 # note that the debiaser should be trained on a fresh sample

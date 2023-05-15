@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -457,8 +457,8 @@ class UtilsTest(parameterized.TestCase):
         'Image should have 3 dimensions. '
         r'Shape of the supplied image: \(2, 2\)'):
       utils._check_dimensions(
-          image=np.ones((2, 2)).astype(np.float),
-          saliency_map=np.ones((2, 2)).astype(np.float),
+          image=np.ones((2, 2)).astype(float),
+          saliency_map=np.ones((2, 2)).astype(float),
           model_type='cnn')
 
   def test_check_dimensions_invalid_saliency_map(self):
@@ -467,8 +467,8 @@ class UtilsTest(parameterized.TestCase):
         'Saliency map should have 2 dimensions. '
         r'Shape of the supplied Saliency map: \(2, 2, 3\)'):
       utils._check_dimensions(
-          image=np.ones((2, 2, 2)).astype(np.float),
-          saliency_map=np.ones((2, 2, 3)).astype(np.float),
+          image=np.ones((2, 2, 2)).astype(float),
+          saliency_map=np.ones((2, 2, 3)).astype(float),
           model_type='cnn')
 
   def test_check_dimensions_invalid_text(self):
@@ -477,8 +477,8 @@ class UtilsTest(parameterized.TestCase):
         'The text input should be a 1D numpy array. '
         r'Shape of the supplied image: \(2, 2\)'):
       utils._check_dimensions(
-          image=np.ones((2, 2)).astype(np.float),
-          saliency_map=np.ones(10).astype(np.float),
+          image=np.ones((2, 2)).astype(float),
+          saliency_map=np.ones(10).astype(float),
           model_type='text_cnn')
 
   def test_check_dimensions_invalid_saliency_map_text(self):
@@ -487,8 +487,8 @@ class UtilsTest(parameterized.TestCase):
         'The text saliency map should be a 1D numpy array. '
         r'Shape of the supplied Saliency map: \(2, 2, 3\)'):
       utils._check_dimensions(
-          image=np.ones(10).astype(np.float),
-          saliency_map=np.ones((2, 2, 3)).astype(np.float),
+          image=np.ones(10).astype(float),
+          saliency_map=np.ones((2, 2, 3)).astype(float),
           model_type='text_cnn')
 
   def test_calculate_saliency_score_valid(self):
@@ -550,10 +550,10 @@ class UtilsTest(parameterized.TestCase):
     output = utils._evaluate_cropped_image(
         session=mock_session,
         run_params=mock_run_params,
-        crop_mask=np.asarray([[1, 1], [0, 0]]).astype(np.float),
-        image=np.ones((2, 2)).astype(np.float),
-        processed_image=np.ones((2, 2)).astype(np.float),
-        saliency_map=np.ones((2, 2)).astype(np.float),
+        crop_mask=np.asarray([[1, 1], [0, 0]]).astype(float),
+        image=np.ones((2, 2)).astype(float),
+        processed_image=np.ones((2, 2)).astype(float),
+        saliency_map=np.ones((2, 2)).astype(float),
         area_threshold=0)
 
     self.assertCountEqual(
@@ -574,8 +574,8 @@ class UtilsTest(parameterized.TestCase):
         utils, 'restore_model', return_value=mock_session):
       output = utils.calculate_saliency_score(
           run_params=mock_run_params,
-          image=np.asarray([0, 1, 1, 1]).astype(np.float),
-          saliency_map=np.asarray([0, 0, 1, 1]).astype(np.float),
+          image=np.asarray([0, 1, 1, 1]).astype(float),
+          saliency_map=np.asarray([0, 0, 1, 1]).astype(float),
           area_threshold=0)
     self.assertCountEqual(
         output.keys(),
@@ -591,10 +591,10 @@ class UtilsTest(parameterized.TestCase):
     output = utils._evaluate_cropped_image(
         session=mock_session,
         run_params=mock_run_params,
-        crop_mask=np.asarray([0, 0, 1, 1]).astype(np.float),
-        image=np.asarray([0, 1, 1, 1]).astype(np.float),
-        processed_image=np.asarray([0, 0, 1, 1]).astype(np.float),
-        saliency_map=np.asarray([0, 0, 1, 1]).astype(np.float),
+        crop_mask=np.asarray([0, 0, 1, 1]).astype(float),
+        image=np.asarray([0, 1, 1, 1]).astype(float),
+        processed_image=np.asarray([0, 0, 1, 1]).astype(float),
+        saliency_map=np.asarray([0, 0, 1, 1]).astype(float),
         area_threshold=0)
 
     self.assertCountEqual(

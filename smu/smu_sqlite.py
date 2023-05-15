@@ -1,19 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,6 +57,7 @@ _SMILES_TABLE_NAME = 'smiles'
 
 
 class ReadOnlyError(Exception):
+  """Exception when trying to write to a read only DB."""
   pass
 
 
@@ -196,14 +183,13 @@ class SMUSQLite:
       molecule = dataset_pb2.Molecule.FromString(encoded_molecule)
       expanded_stoich = (
           smu_utils_lib.expanded_stoichiometry_from_topology(
-              molecule.bond_topologies[0]))
-      pending_molecule_args.append((molecule.molecule_id, expanded_stoich,
+              molecule.bond_topo[0]))
+      pending_molecule_args.append((molecule.mol_id, expanded_stoich,
                                     snappy.compress(encoded_molecule)))
-      for bond_topology in molecule.bond_topologies:
-        pending_btid_args.append(
-            (bond_topology.bond_topology_id, molecule.molecule_id))
+      for bond_topology in molecule.bond_topo:
+        pending_btid_args.append((bond_topology.topo_id, molecule.mol_id))
         pending_smiles_args.append(
-            (bond_topology.smiles, bond_topology.bond_topology_id))
+            (bond_topology.smiles, bond_topology.topo_id))
       if batch_size and idx % batch_size == 0:
         commit_pending()
         elapsed = datetime.datetime.now() - start_time
@@ -227,10 +213,10 @@ class SMUSQLite:
 
     Args:
       smiles_btid_pairs: iterable of pairs of (smiles, btid)
-      batch_size:
+      batch_size: number of inserts per SQL call
 
     Raises:
-      ReadOnlyError:
+      ReadOnlyError: if DB is read only
     """
     if self._read_only:
       raise ReadOnlyError()
@@ -259,7 +245,7 @@ class SMUSQLite:
     """Uses SQL VACUUM to clean up db.
 
     Raises:
-      ReadOnlyError:
+      ReadOnlyError: if db is read only
     """
     if self._read_only:
       raise ReadOnlyError()
@@ -267,14 +253,14 @@ class SMUSQLite:
     cur.execute('VACUUM')
     self._conn.commit()
 
-  def find_bond_topology_id_for_smiles(self, smiles):
-    """Finds the bond_topology_id for the given smiles.
+  def find_topo_id_for_smiles(self, smiles):
+    """Finds the topo_id for the given smiles.
 
     Args:
       smiles: string to look up
 
     Returns:
-      integer of bond_topology_id
+      integer of topo_id
 
     Raises:
       KeyError: if smiles not found
@@ -294,7 +280,7 @@ class SMUSQLite:
     return result[0][0]
 
   def get_smiles_id_dict(self):
-    """Creates a dictinary of smiles to bond topology id.
+    """Creates a dictionary of smiles to bond topology id.
 
     This is not the most efficient way to do this, but we will just pull
     everything out of the db and create a python dictionary.
@@ -310,7 +296,7 @@ class SMUSQLite:
 
     return {smiles: bt_id for (smiles, bt_id) in cur}
 
-  def find_by_molecule_id(self, mid):
+  def find_by_mol_id(self, mid):
     """Finds the molecule associated with a molecule id.
 
     Args:
@@ -336,7 +322,7 @@ class SMUSQLite:
     assert len(result[0]) == 1
     return dataset_pb2.Molecule().FromString(snappy.uncompress(result[0][0]))
 
-  def find_by_bond_topology_id_list(self, btids, which_topologies):
+  def find_by_topo_id_list(self, btids, which_topologies):
     """Finds all the molecule associated with a bond topology id.
 
     Args:
@@ -361,7 +347,7 @@ class SMUSQLite:
           snappy.uncompress(result[1]))
       for _, bt in smu_utils_lib.iterate_bond_topologies(
           molecule, which_topologies):
-        if bt.bond_topology_id in btids:
+        if bt.topo_id in btids:
           yield molecule
           break
 
@@ -392,8 +378,7 @@ class SMUSQLite:
     if not result:
       return []
 
-    return self.find_by_bond_topology_id_list([r[0] for r in result],
-                                              which_topologies)
+    return self.find_by_topo_id_list([r[0] for r in result], which_topologies)
 
   def find_by_expanded_stoichiometry_list(self, exp_stoichs):
     """Finds all of the molecules with a stoichiometry.
@@ -476,13 +461,12 @@ class SMUSQLite:
           matching_parameters=matching_parameters)
       if smiles in [bt.smiles for bt in matches.bond_topology]:
         cnt_matched_molecule += 1
-        del molecule.bond_topologies[:]
-        molecule.bond_topologies.extend(matches.bond_topology)
-        for bt in molecule.bond_topologies:
+        del molecule.bond_topo[:]
+        molecule.bond_topo.extend(matches.bond_topology)
+        for bt in molecule.bond_topo:
           try:
-            bt.source = dataset_pb2.BondTopology.SOURCE_CUSTOM
-            bt.bond_topology_id = self.find_bond_topology_id_for_smiles(
-                bt.smiles)
+            bt.info = dataset_pb2.BondTopology.SOURCE_CUSTOM
+            bt.topo_id = self.find_topo_id_for_smiles(bt.smiles)
           except KeyError:
             logging.error('Did not find bond topology id for smiles %s',
                           bt.smiles)
@@ -490,7 +474,7 @@ class SMUSQLite:
     logging.info('Topology query for %s matched %d / %d', smiles,
                  cnt_matched_molecule, cnt_molecule)
 
-  def find_bond_topology_id_by_smarts(self, smarts):
+  def find_topo_id_by_smarts(self, smarts):
     """Find all bond topology ids that match a smarts pattern.
 
     Args:
@@ -498,6 +482,9 @@ class SMUSQLite:
 
     Yields:
       int, bond topology id
+
+    Raises:
+      ValueError: if smarts coudl not be parsed
     """
     pattern = Chem.MolFromSmarts(smarts)
     if not pattern:

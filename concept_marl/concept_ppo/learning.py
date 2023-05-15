@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ class ConceptPPOLearner(acme.Learner):
       target_values = values[:-1] + advantages
       target_values = jax.lax.stop_gradient(target_values)
 
-      return advantages, target_values
+      return advantages, target_values  # pytype: disable=bad-return-type  # numpy-scalars
 
     def loss(
         params,
@@ -193,7 +193,7 @@ class ConceptPPOLearner(acme.Learner):
           'loss_entropy': entropy_loss,
           'loss_concept_total': concept_loss
       }
-      return total_loss, info
+      return total_loss, info  # pytype: disable=bad-return-type  # numpy-scalars
 
     @jax.jit
     def sgd_step(

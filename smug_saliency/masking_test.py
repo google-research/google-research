@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ def _create_temporary_tf_graph_text_cnn(test_model_path):
 
   # Name of the tensors in the graph:
   # input - input_1:0
-  # embedding - embedding/embedding_lookup/Identity_1:0
+  # embedding - embedding/embedding_lookup/Identity:0
   # weights_first_layer - conv1d/Conv1D/ExpandDims_1:0
   # biases_first_layer - conv1d/BiasAdd/ReadVariableOp:0
   # first_layer_input - conv1d/BiasAdd:0
@@ -250,7 +250,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
     image = np.ones(5)
     tensor_names = {
         'input': 'input_1:0',
-        'embedding': 'embedding/embedding_lookup/Identity_1:0',
+        'embedding': 'embedding/embedding_lookup/Identity:0',
         'first_layer': 'conv1d/BiasAdd:0',
         'first_layer_relu': 'conv1d/Relu:0',
         'logits': 'dense/BiasAdd:0',
@@ -448,7 +448,7 @@ class MaskingLibTest(parameterized.TestCase, tf.test.TestCase):
                 'model_path': self.test_model_path,
                 'tensor_names': {
                     'input': 'input_1:0',
-                    'embedding': 'embedding/embedding_lookup/Identity_1:0',
+                    'embedding': 'embedding/embedding_lookup/Identity:0',
                     'first_layer': 'conv1d/BiasAdd:0',
                     'first_layer_relu': 'conv1d/Relu:0',
                     'logits': 'dense/BiasAdd:0',

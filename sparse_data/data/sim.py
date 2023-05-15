@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ class LinearSimulation(Simulation):
     x = self._generate_x()
 
     y = x * np.tile(self._coefficients, (self._num_sample, 1))
-    y = np.sum(y, axis=1, dtype=np.float)
+    y = np.sum(y, axis=1, dtype=float)
 
     noise_coef = np.std(y)
     noise = noise_coef * (self._rng.rand(self._num_sample) - 0.5)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -169,6 +169,7 @@ def train_eval(
     debug=True):
   """Adversarial environment train and eval."""
   tf.compat.v1.enable_v2_behavior()
+  tf.keras.__internal__.enable_unsafe_deserialization()
 
   if debug:
     logging.info('In debug mode. Disabling tf functions.')

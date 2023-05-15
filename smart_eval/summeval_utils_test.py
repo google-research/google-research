@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2023 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ class SummevalUtilsTest(absltest.TestCase):
             candidate=can,
             scores=dict())
     ]
+    matching_fn = mf.ChrfMatchingFunction()
 
     # Create pairwise scores.
     # Pair candidate with source.
@@ -48,7 +49,7 @@ class SummevalUtilsTest(absltest.TestCase):
       for can_sent in can:
         src_can_pairs.append((src_sent, can_sent))
     src_pairwise_scores = [
-        mf.chrf_matcher(src_sent, can_sent)
+        matching_fn(src_sent, can_sent)
         for src_sent, can_sent in src_can_pairs
     ]
 
@@ -60,12 +61,12 @@ class SummevalUtilsTest(absltest.TestCase):
         for can_sent in can:
           ref_can_pairs.append((ref_sent, can_sent))
       ref_pairwise_scores += [
-          mf.chrf_matcher(ref_sent, can_sent)
+          matching_fn(ref_sent, can_sent)
           for ref_sent, can_sent in ref_can_pairs
       ]
 
     # Get SMART without precalculation.
-    utils.calculate_smart_score(examples, 'chrf', matcher=mf.chrf_matcher)
+    utils.calculate_smart_score(examples, 'chrf', matcher=matching_fn)
     print('got SMART without precalculcation')
 
     # Get SMART with precalculation.
