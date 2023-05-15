@@ -91,10 +91,10 @@ Although we can automate the extraction of how-tos from support sites, the manua
 
 | Dataset characteristic                                         | Value      |
 | -------------------------------------------------------------- | ---------- |
-| Total Number of how-to queries                                 | 523        |
-| Number of train samples                                        | 152        |
-| Number of dev samples                                          | 106        |
-| Number of test samples                                         | 265        |
+| Total Number of how-to queries (per language)                  | 523        |
+| Number of train samples (per language)                         | 152        |
+| Number of dev samples (per language)                           | 106        |
+| Number of test samples (per language)                          | 265        |
 | Number of languages                                            | 8          |
 | Total number of UI screens in the dataset                      | 3312       |
 | Average number of UI screens per how-to                        | 6.3        |
