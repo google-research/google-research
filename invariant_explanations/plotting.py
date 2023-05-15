@@ -25,6 +25,7 @@ from absl import flags
 from absl import logging
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import pandas as pd
 import psutil
@@ -130,12 +131,12 @@ def latexify(
   params = {'backend': 'ps',
             'text.latex.preamble': ['\\usepackage{gensymb}'],
             # fontsize for x and y labels (was 10)
-            'axes.labelsize': new_font_size,
-            'axes.titlesize': new_font_size,
+            'axes.labelsize': new_font_size * 1.5,
+            'axes.titlesize': new_font_size * 1.5,
             'font.size': new_font_size,
-            'legend.fontsize': new_font_size,
-            'xtick.labelsize': new_font_size,
-            'ytick.labelsize': new_font_size,
+            'legend.fontsize': new_font_size * .85,
+            'xtick.labelsize': new_font_size * .85,
+            'ytick.labelsize': new_font_size * .85,
             'text.usetex': True,
             'figure.figsize': [fig_width, fig_height],
             'font.family': 'serif',
@@ -149,6 +150,8 @@ def latexify(
             'lines.markersize': 0.5,
             'hatch.linewidth': 0.5
             }
+
+  params['text.latex.preamble'] = ''.join(params['text.latex.preamble'])
 
   matplotlib.rcParams.update(params)
   plt.rcParams.update(params)
@@ -164,16 +167,18 @@ def update_matplotlib_defaults():
   plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
-def save_paper_figures(file_name, dpi=200):
+def save_paper_figures(file_name, dpi=100):
   # plt.subplots_adjust(hspace=0.4, wspace=0.4)
   plt.savefig(
-      gfile.GFile(os.path.join(config.cfg.PLOTS_DIR_PATH, file_name), 'wb'),
+      # gfile.GFile(os.path.join(config.cfg.PLOTS_DIR_PATH, file_name), 'wb'),
+      os.path.join(config.cfg.PLOTS_DIR_PATH, file_name),
       dpi=dpi,
       bbox_inches="tight",
   )
 
 
 def plot_vanilla_ite_values():
+  latexify(font_scale=1.45, large_fonts=True)
   """Show sample ITE/ATE value by showing distribution over Y and E."""
 
   if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
@@ -188,7 +193,7 @@ def plot_vanilla_ite_values():
       'explans': False,
       'hparams': True,
       'metrics': True,
-  }, explainer=config.cfg.EXPLANATION_TYPE)
+  }, explanation_type=config.cfg.EXPLANATION_TYPE)
   y_preds = all_loaded_data_files['y_preds']
   y_trues = all_loaded_data_files['y_trues']
   hparams = all_loaded_data_files['hparams']
@@ -282,7 +287,6 @@ def plot_vanilla_ite_values():
     if ite_tracker['hparam_val'].dtype == np.float64:
       ite_tracker['hparam_val'] = ite_tracker['hparam_val'].astype(np.float32)
 
-    latexify(10, 4, font_scale=1.2, large_fonts=True)
     g = sns.catplot(
         x='sample_str',
         y='x_y_preds',
@@ -348,7 +352,6 @@ def plot_vanilla_ite_values():
     plt.tight_layout()
     save_paper_figures(f'vanilla_ite_{config.cfg.DATASET}_{col}.png')
 
-    latexify(4, 4, font_scale=1.2, large_fonts=True)
     g = sns.catplot(
         x='hparam_val',
         y='x_y_preds',
@@ -366,6 +369,7 @@ def plot_vanilla_ite_values():
 
 def plot_kernel_ite_comparison(treatment_effect_tracker, prefix=None):
   """Show that kernel choice does not matter. --> then continue w/ RBF."""
+  latexify(font_scale=1.45, large_fonts=True)
   range_accuracy = '0.000_1.000'
   # unique_hparam_types = treatment_effect_tracker['hparam_type'].unique()
   # for hparam_type in unique_hparam_types:
@@ -403,14 +407,17 @@ def plot_kernel_ite_comparison(treatment_effect_tracker, prefix=None):
         explan_type = config.KERNEL_NAME_CONVERTER[explan_type]
         ax.set_title(explan_type)
         if ax_idx == 0:
-          ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+          ax.set_ylabel(r'$ITE_{E}(x)$')
         else:
           ax.set_ylabel('')
 
       for ax_idx, ax in enumerate(g.axes.flatten()):
         labels = ax.get_xticklabels()
         for label in labels:
-          label.set_text(config.EXPLAN_NAME_CONVERTER[label.get_text()])
+          try:
+            label.set_text(config.EXPLAN_NAME_CONVERTER[label.get_text()])
+          except:
+            pass
         ax.set_xticklabels(labels)
 
       plt.subplots_adjust(hspace=0.1, wspace=0.1)
@@ -456,6 +463,7 @@ def plot_kernel_ite_comparison(treatment_effect_tracker, prefix=None):
 
 def plot_hparam_ite_comparison(treatment_effect_tracker):
   """Show that hparams affect some explanation methods more."""
+  latexify(font_scale=1.45, large_fonts=True)
   range_accuracy = '0.000_1.000'
   kernel_type = 'rbf'
   filtered = treatment_effect_tracker.where(
@@ -502,12 +510,12 @@ def plot_hparam_ite_comparison(treatment_effect_tracker):
   #     ax.set_xlabel('Hyperparameters')
   #     if target_type == 'y_pred':
   #       ax.set_title('Prediction')
-  #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
+  #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{Y}(x)$')
   #     else:
   #       explan_type = ax.get_title().split('=')[1][1:]
   #       explan_type = config.EXPLAN_NAME_CONVERTER[explan_type]
   #       ax.set_title(explan_type)
-  #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+  #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{E}(x)$')
 
   #   for ax_idx, ax in enumerate(g.axes.flatten()):
   #     labels = ax.get_xticklabels()
@@ -562,9 +570,9 @@ def plot_hparam_ite_comparison(treatment_effect_tracker):
         )
 
         if col_idx == 0:
-          ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
+          ax.set_ylabel(r'$ITE_{Y}(x)$')
         elif col_idx == 1:
-          ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+          ax.set_ylabel(r'$ITE_{E}(x)$')
         else:
           ax.set_ylabel('')
 
@@ -575,7 +583,7 @@ def plot_hparam_ite_comparison(treatment_effect_tracker):
         ax.set_xticklabels(labels, rotation=30)
 
         ax.set_title(col_title)
-        ax.set_xlabel('Hyperparameters', fontsize=14)
+        ax.set_xlabel('Hyperparameters')
 
 
         legend_handles = []
@@ -608,10 +616,9 @@ def plot_hparam_ite_comparison(treatment_effect_tracker):
   )
 
 
-
-
 def plot_bucket_ite_comparison(treatment_effect_tracker):
   """Compare ITE values for diff-performance models."""
+  latexify(font_scale=1.45, large_fonts=True)
 
   def tmp_joint_y_e_plotter(filtered, config):
     unique_hparam_types = filtered['hparam_type'].unique()
@@ -656,16 +663,16 @@ def plot_bucket_ite_comparison(treatment_effect_tracker):
         )
 
         if col_idx == 0:
-          ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
+          ax.set_ylabel(r'$ITE_{Y}(x)$')
         elif col_idx == 1:
-          ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+          ax.set_ylabel(r'$ITE_{E}(x)$')
         else:
           ax.set_ylabel('')
 
         if row_idx == 0:
           ax.set_title(col_title)
         if row_idx == len(unique_hparam_types) - 1:
-          ax.set_xlabel('Test Accuracy', fontsize=14)
+          ax.set_xlabel('Test Accuracy')
           labels = ax.get_xticklabels()
           for label in labels:
             range_accuracy = label.get_text()
@@ -735,15 +742,15 @@ def plot_bucket_ite_comparison(treatment_effect_tracker):
     #       )
 
     #   for ax_idx, ax in enumerate(g.axes.flatten()):
-    #     ax.set_xlabel('Test Accuracy', fontsize=14)
+    #     ax.set_xlabel('Test Accuracy')
     #     if target_type == 'y_pred':
     #       ax.set_title('Prediction')
-    #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
+    #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{Y}(x)$')
     #     else:
     #       explan_type = ax.get_title().split('=')[1][1:]
     #       explan_type = config.EXPLAN_NAME_CONVERTER[explan_type]
     #       ax.set_title(explan_type)
-    #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+    #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{E}(x)$')
 
     #   for ax_idx, ax in enumerate(g.axes.flatten()):
     #     labels = ax.get_xticklabels()
@@ -788,12 +795,14 @@ def plot_bucket_ite_comparison(treatment_effect_tracker):
   fig.set_size_inches(24, 32)
   save_paper_figures(
       'bucket_ite_comparison_%s_%s_all.png' %
-      (config.cfg.DATASET, kernel_type)
+      (config.cfg.DATASET, kernel_type),
+      dpi=80,
   )
 
 
 def plot_baseline_ite_comparison(treatment_effect_tracker):
   """Show that baseline choice does not matter. --> then go w/ h=n vs h!=n."""
+  latexify(font_scale=1.45, large_fonts=True)
   # pylint:disable=line-too-long
   treatment_effect_tracker['h1_h2_str'] = treatment_effect_tracker['h1_h2_str'].replace(
     ['optimizer: rmsprop vs adam'], 'optimizer: adam vs rmsprop')
@@ -806,6 +815,7 @@ def plot_baseline_ite_comparison(treatment_effect_tracker):
 
 def plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracker_all):
   """Show scatter plots for ITE of Y vs E OR for d_yy' dee'."""
+  latexify(10 * 2, 6 * 2, font_scale=1.45, large_fonts=True)
   kernel_type = 'rbf'
   treatment_effect_tracker = treatment_effect_tracker.where(
       (treatment_effect_tracker['kernel_type'] == kernel_type)
@@ -822,7 +832,6 @@ def plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracke
     corrs_pearson_all[explan_type] = []
     corrs_spearman_all[explan_type] = []
 
-  latexify(10 * 2, 6 * 2, font_scale=1.4, large_fonts=True)
   def plot_and_save_fig_7(treatment_effect_tracker, hue, hue_order,
                           style, style_order, x_key, y_key,
                           x_label, y_label, suffix, plot_averages, append_corr):
@@ -893,17 +902,17 @@ def plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracke
         ax.legend().set_visible(False)
         # ax.get_legend().set_title(col)
         if j == len(unique_explan_types) - 1:
-          ax.set_xlabel(x_label, fontsize=14)
+          ax.set_xlabel(x_label)
         else:
-          ax.set_xlabel('', fontsize=4)
-          ax.set_xticklabels('', fontsize=14)
+          ax.set_xlabel('')
+          ax.set_xticklabels('')
         if i == 0:
-          ax.set_ylabel(y_label, fontsize=14)
+          ax.set_ylabel(y_label)
         else:
-          ax.set_ylabel('', fontsize=4)
-          ax.set_yticklabels('', fontsize=4)
-        ax.tick_params(axis='x', labelsize=14)
-        ax.tick_params(axis='y', labelsize=14)
+          ax.set_ylabel('')
+          ax.set_yticklabels('')
+        ax.tick_params(axis='x')
+        ax.tick_params(axis='y')
 
 
     # handles, labels = ax.get_legend_handles_labels()  # TODO(amirhkarimi): Only gets last axis; fix.
@@ -1111,14 +1120,14 @@ def plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracke
         s=15,
     )
     ax.legend().set_visible(False)
-    ax.set_xlabel(r'$ITE_{Y}(x)$', fontsize=14)
-    # ax.set_xticklabels(ax.get_xticklabels(), fontsize=6)
+    ax.set_xlabel(r'$ITE_{Y}(x)$')
+    # ax.set_xticklabels(ax.get_xticklabels())
     if idx == 0:
-      ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+      ax.set_ylabel(r'$ITE_{E}(x)$')
     else:
       ax.set_ylabel('')
-    # ax.set_yticklabels(ax.get_yticklabels(), fontsize=6)
-    ax.tick_params(axis='both', which='minor', labelsize=8)
+    # ax.set_yticklabels(ax.get_yticklabels())
+    ax.tick_params(axis='both', which='minor')
     ax.set_title(config.EXPLAN_NAME_CONVERTER[explan_type])
   # handles, labels = ax.get_legend_handles_labels()
   # fig.legend(  # TODO(amirhkarimi): why are some legend elems missing?
@@ -1217,7 +1226,18 @@ def plot_y_vs_e_ite_corr_bands(treatment_effect_tracker):
   ) as f:
     corrs_spearman_all_unmediated = pickle.load(f)
 
+  # ##############################################################################
+  # # Create formatter (with help from our good friend, ChatGPT Plus; May 03 model)
+  # ##############################################################################
 
+  def format_xticklabels(x, pos):
+    if int(x) < len(unique_range_accuracies):
+        range_accuracy = unique_range_accuracies[int(x)]
+        range_percentile = config.RANGE_ACCURACY_CONVERTER[config.cfg.DATASET][range_accuracy]
+        return range_percentile
+    return ""
+
+  formatter = FuncFormatter(format_xticklabels)
 
 
   # ##############################################################################
@@ -1255,18 +1275,10 @@ def plot_y_vs_e_ite_corr_bands(treatment_effect_tracker):
     axes[1].plot(x, y_med, color=color, alpha=.25, label=f'{key}-med.')
     axes[1].fill_between(x, (y_med - ci), (y_med + ci), alpha=.05, color=color)
 
-  # https://discuss.dizzycoding.com/getting-empty-tick-labels-before-showing-a-plot-in-matplotlib/
-  plt.draw()
-  fig.canvas.draw()
-
   for ax in axes:
-    labels = ax.get_xticklabels()
-    for label in labels:
-      range_accuracy = label.get_text()
-      range_percentile = config.RANGE_ACCURACY_CONVERTER[config.cfg.DATASET][range_accuracy]
-      label.set_text(range_percentile)
-    ax.set_xticklabels(labels, rotation=30)
-    # ax.set_xticklabels(ax.get_xticklabels(), rotation=30)
+      ax.xaxis.set_major_formatter(formatter)
+      ax.set_xticks(range(len(x)))
+      plt.setp(ax.get_xticklabels(), rotation=30)
 
   legend_handles = []
   legend_labels = []
@@ -1364,19 +1376,10 @@ def plot_y_vs_e_ite_corr_bands(treatment_effect_tracker):
   # axes[1].plot(x, [0] * len(x), color='k', linestyle='dashdot', alpha=.35)
   # axes[3].plot(x, [0] * len(x), color='k', linestyle='dashdot', alpha=.35)
 
-  # # https://discuss.dizzycoding.com/
-  # # getting-empty-tick-labels-before-showing-a-plot-in-matplotlib/
-  # plt.draw()
-  # fig.canvas.draw()
-
   # for ax in axes:
-  #   labels = ax.get_xticklabels()
-  #   for label in labels:
-  #     range_accuracy = label.get_text()
-  #     range_percentile = config.RANGE_ACCURACY_CONVERTER[config.cfg.DATASET][range_accuracy]
-  #     label.set_text(range_percentile)
-  #   ax.set_xticklabels(labels, rotation=30)
-  #   # ax.set_xticklabels(ax.get_xticklabels(), rotation=30)
+  #     ax.xaxis.set_major_formatter(formatter)
+  #     ax.set_xticks(range(len(x)))
+  #     plt.setp(ax.get_xticklabels(), rotation=30)
 
   # axes[0].set_title('Pearson Corr.')
   # axes[1].set_title('Delta Pearson Corr.')
@@ -1459,19 +1462,10 @@ def plot_y_vs_e_ite_corr_bands(treatment_effect_tracker):
   axes[1].plot(x, [0] * len(x), color='k', linestyle=':', alpha=.35)
   axes[2].plot(x, [0] * len(x), color='k', linestyle=':', alpha=.35)
 
-  # https://discuss.dizzycoding.com/
-  # getting-empty-tick-labels-before-showing-a-plot-in-matplotlib/
-  plt.draw()
-  fig.canvas.draw()
-
   for ax in axes:
-    labels = ax.get_xticklabels()
-    for label in labels:
-      range_accuracy = label.get_text()
-      range_percentile = config.RANGE_ACCURACY_CONVERTER[config.cfg.DATASET][range_accuracy]
-      label.set_text(range_percentile)
-    ax.set_xticklabels(labels, rotation=30)
-    # ax.set_xticklabels(ax.get_xticklabels(), rotation=30)
+      ax.xaxis.set_major_formatter(formatter)
+      ax.set_xticks(range(len(x)))
+      plt.setp(ax.get_xticklabels(), rotation=30)
 
   axes[0].set_title('Pearson Corr.')
   axes[1].set_title('Delta Pearson Corr.')
@@ -1580,14 +1574,14 @@ def plot_mediated_ite_analysis(treatment_effect_tracker):
         )
 
         if col_idx == 0:
-          ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+          ax.set_ylabel(r'$ITE_{E}(x)$')
         else:
           ax.set_ylabel('')
 
         if row_idx == 0:
           ax.set_title(col_title)
         if row_idx == len(unique_hparam_types) - 1:
-          ax.set_xlabel('Test Accuracy', fontsize=14)
+          ax.set_xlabel('Test Accuracy')
           # The line below works for sns.violinplot, but NOT for sns.lineplot.
           labels = ax.get_xticklabels()
           for (label, range_accuracy) in zip(
@@ -1788,31 +1782,31 @@ def plot_paper_figures():
 
   sns.set_style("darkgrid")
   # sns.set_style("Whitegrid")
-  latexify(40, 16, font_scale=1.2, large_fonts=True)
+  latexify(40, 16, font_scale=1.45, large_fonts=True)
 
   # plot_vanilla_ite_values()
-  # plot_kernel_ite_comparison(treatment_effect_tracker)
-  # plot_hparam_ite_comparison(treatment_effect_tracker)
-  # plot_bucket_ite_comparison(treatment_effect_tracker)
-  # # plot_baseline_ite_comparison(treatment_effect_tracker)
-  # plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracker_all)
+  plot_kernel_ite_comparison(treatment_effect_tracker)
+  plot_hparam_ite_comparison(treatment_effect_tracker)
+  plot_bucket_ite_comparison(treatment_effect_tracker)
+  # plot_baseline_ite_comparison(treatment_effect_tracker)
+  plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracker_all)
   plot_y_vs_e_ite_corr_bands(treatment_effect_tracker)
 
 
   # # Plot ITE_E (mediated) vs ITE_E (unmediated)
-  # mediated_ite_tracker, mediated_ite_tracker_all = construct_treatment_effect_trackers(
-  #     'mediated')
-  # unmediated_ite_tracker, unmediated_ite_tracker_all = construct_treatment_effect_trackers(
-  #     'unmediated')
+  mediated_ite_tracker, mediated_ite_tracker_all = construct_treatment_effect_trackers(
+      'mediated')
+  unmediated_ite_tracker, unmediated_ite_tracker_all = construct_treatment_effect_trackers(
+      'unmediated')
 
-  # mediated_ite_tracker.insert(
-  #   0, 'mediation_type', ['mediated'] * len(mediated_ite_tracker), True)
-  # unmediated_ite_tracker.insert(
-  #   0, 'mediation_type', ['unmediated'] * len(unmediated_ite_tracker), True)
-  # mediated_and_unmediated_treatment_effect_tracker = mediated_ite_tracker.append(
-  #     unmediated_ite_tracker,
-  #     ignore_index=True,
-  # )
+  mediated_ite_tracker.insert(
+    0, 'mediation_type', ['mediated'] * len(mediated_ite_tracker), True)
+  unmediated_ite_tracker.insert(
+    0, 'mediation_type', ['unmediated'] * len(unmediated_ite_tracker), True)
+  mediated_and_unmediated_treatment_effect_tracker = mediated_ite_tracker.append(
+      unmediated_ite_tracker,
+      ignore_index=True,
+  )
 
-  # plot_mediated_ite_analysis(mediated_and_unmediated_treatment_effect_tracker)
+  plot_mediated_ite_analysis(mediated_and_unmediated_treatment_effect_tracker)
 

@@ -28,8 +28,12 @@ RUNNING_INTERNALLY = False
 # Create folders to save results, models, and plots.
 PAPER_BU_PATH = '_paper_bu'
 MERGED_DATA_PATH = '_saved_y&es'
-MERGED_ITES_PATH =  '_saved_ites'
-MERGED_CORR_PATH =  '_saved_corrs'
+# MERGED_ITES_PATH =  '_saved_ites'
+# MERGED_ITES_PATH =  '_saved_ites_num_samples=30'
+MERGED_ITES_PATH =  '_saved_ites_num_samples=100'
+# MERGED_CORR_PATH =  '_saved_corrs'
+# MERGED_CORR_PATH =  '_saved_corrs_num_samples=30'
+MERGED_CORR_PATH =  '_saved_corrs_num_samples=100'
 PLOTS_SUBPATH = '_plots'
 MODELS_SUBPATH = '_models'
 
@@ -385,6 +389,7 @@ class Config(object):
         f'min_test_accuracy_{self.MIN_BASE_MODEL_ACCURACY}_'
         f'max_test_accuracy_{self.MAX_BASE_MODEL_ACCURACY}_'
         f'num_image_samples_{self.NUM_SAMPLES_PER_BASE_MODEL}_'
+        f'mediation_type_{self.MEDIATION_TYPE}_'
         f'identical_samples_{self.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
         f'batch_{self.MODEL_BATCH_IDX}_of_{self.MODEL_BATCH_COUNT}'
     )

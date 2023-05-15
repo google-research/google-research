@@ -148,15 +148,15 @@ def main(argv):
 
   # utils.analyze_accuracies_of_base_models()
 
-  utils.process_and_resave_cnn_zoo_data(
-      config.cfg.RANDOM_SEED,
-      other.get_model_wireframe(),
-      config.cfg.COVARIATES_SETTINGS,
-  )
+  # utils.process_and_resave_cnn_zoo_data(
+  #     config.cfg.RANDOM_SEED,
+  #     other.get_model_wireframe(),  # _DATASET.value
+  #     config.cfg.COVARIATES_SETTINGS,
+  # )
 
-  utils.measure_prediction_explanation_variance(config.cfg.RANDOM_SEED)
+  # utils.measure_prediction_explanation_variance(config.cfg.RANDOM_SEED)
 
-  # plotting.plot_paper_figures()
+  plotting.plot_paper_figures()
 
 if __name__ == '__main__':
   app.run(main)

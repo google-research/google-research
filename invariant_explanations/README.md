@@ -73,7 +73,6 @@ do
   done
 done
 ```
-
 1st, call with process_and_resave_cnn_zoo_data(). Then copy the files
 from the experimental folder into the corresponding dir under MERGED_DATA_PATH.
 
@@ -91,3 +90,4 @@ If steps 1 and 2 are run separately, add the following argument on the 2nd call:
 [ ] complete below
 [ ] s/col_type/hparam_type
 [ ] `s/_EXPLANATION_TYPE/_EXPLAINER`
+[ ] check error bars for corr plots (@ 10, 30, 100 samples per model)
