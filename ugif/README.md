@@ -1,5 +1,10 @@
 # UGIF: UI Grounded Instruction Following
 
+The goal of the UGIF project is to educate Novice Internet Users (NIUs) how to
+get things done on the phone by creating step-by-step demonstrations on the UI.
+
+![UGIF demo video](https://storage.googleapis.com/gresearch/ugif/ugif-demo.gif)
+
 This repository contains the
 [dataset](https://storage.googleapis.com/gresearch/ugif/ugif-dataset.tar.gz)
 released along with the paper
