@@ -2106,12 +2106,41 @@ class AntheaEval {
   }
 
   /**
+   * Builds instructions from section contents and section order. Section order
+   * and individual section contents (distinguished by name) can be specified in
+   * the template; if left unspecified, defaults are taken from
+   * template-base.js.
+   *
+   * @return {string}
+   */
+  buildInstructions() {
+    const order = this.config.instructions_section_order ||
+                antheaTemplateBase.instructions_section_order;
+    let sections = antheaTemplateBase.instructions_section_contents;
+    // Add or override each custom section content defined in the template, if
+    // any.
+    if (this.config.instructions_section_contents) {
+      for (let section_name in this.config.instructions_section_contents) {
+        sections[section_name] =
+            this.config.instructions_section_contents[section_name];
+      }
+    }
+    let builtInstructions = '';
+    for (let section_name of order) {
+      builtInstructions += sections[section_name];
+    }
+    return builtInstructions;
+  }
+
+  /**
    * Populates an instructions panel with instructions and lists of severities
    * and error types for MQM.
    * @param {!Element} panel The DIV element to populate.
    */
   populateMQMInstructions(panel) {
-    panel.innerHTML = (this.config.instructions || '') +
+    // Use hard-coded instructions if present, otherwise build from
+    // (possibly default) section order and contents.
+    panel.innerHTML = (this.config.instructions || this.buildInstructions()) +
         (!this.config.SKIP_RATINGS_TABLES ? `
       <p>
         <details open>
