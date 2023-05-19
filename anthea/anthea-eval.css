@@ -347,6 +347,10 @@
   padding: 4px;
   vertical-align: bottom;
 }
+.anthea-subheading {
+  font-size: 80%;
+  font-style: italic;
+}
 .anthea-text-heading {
   background: whitesmoke;
   font-family: monospace;

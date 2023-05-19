@@ -2825,20 +2825,41 @@ class AntheaEval {
     const hotwPretend = parameters.hotw_pretend || false;
 
     const srcHeading = srcLang ? ('Source (' + srcLang + ')') : 'Source';
-    const srcHeadingTD = googdom.createDom(
-        'td', 'anthea-text-heading',
-        googdom.createDom('div', null, srcHeading));
+    const srcHeadingDiv = googdom.createDom('div', null, srcHeading);
+
     const targetLabel = config.TARGET_SIDE_ONLY ? 'Text' : 'Translation';
     const tgtHeading = tgtLang ?
         (targetLabel + ' (' + tgtLang + ')') : targetLabel;
-    const tgtHeadingTD = googdom.createDom(
-        'td', 'anthea-text-heading',
-        googdom.createDom('div', null, tgtHeading));
+    const tgtHeadingDiv = googdom.createDom('div', null, tgtHeading);
+
     const evalHeading = this.READ_ONLY ?
         'Evaluations (view-only)' : 'Evaluations';
+    const evalHeadingDiv = googdom.createDom('div', null, evalHeading);
+
+    if (config.subheadings) {
+      if (config.subheadings.source) {
+        srcHeadingDiv.appendChild(googdom.createDom('br'));
+        srcHeadingDiv.appendChild(googdom.createDom(
+            'span', 'anthea-subheading', config.subheadings.source));
+      }
+      if (config.subheadings.target) {
+        tgtHeadingDiv.appendChild(googdom.createDom('br'));
+        tgtHeadingDiv.appendChild(googdom.createDom(
+            'span', 'anthea-subheading', config.subheadings.target));
+      }
+      if (config.subheadings.evaluations) {
+        evalHeadingDiv.appendChild(googdom.createDom('br'));
+        evalHeadingDiv.appendChild(googdom.createDom(
+            'span', 'anthea-subheading', config.subheadings.evaluations));
+      }
+    }
+
+    const srcHeadingTD = googdom.createDom(
+        'td', 'anthea-text-heading', srcHeadingDiv);
+    const tgtHeadingTD = googdom.createDom(
+        'td', 'anthea-text-heading', tgtHeadingDiv);
     const evalHeadingTD = googdom.createDom(
-        'td', 'anthea-text-heading',
-        googdom.createDom('div', null, evalHeading));
+        'td', 'anthea-text-heading', evalHeadingDiv);
     const docTextTable = googdom.createDom(
         'table', 'anthea-document-text-table',
         googdom.createDom(

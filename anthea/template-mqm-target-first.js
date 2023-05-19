@@ -39,6 +39,10 @@ antheaTemplates['MQM-Target-First'] = {
                    'significantly degrade the quality of the text.',
     },
   },
+  subheadings: {
+    source: 'Review after reading translation, to mark uncaught major errors',
+    target: 'Read first and mark all issues that you can find',
+  },
 
   /**
    * @const {string} Template version identifier.
