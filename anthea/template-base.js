@@ -16,7 +16,7 @@
  * @fileoverview Defines basic elements shared between multiple templates.
  */
 
-antheaTemplateBase = {
+const antheaTemplateBase = {
   // Default instructions section names and contents.
   instructions_section_contents: {
     '_style': `

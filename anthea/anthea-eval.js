@@ -2762,24 +2762,33 @@ class AntheaEval {
    * @param {number=} hotwPercent Percent rate for HOTW testing.
    */
   setUpEval(evalDiv, templateName, projectData, projectResults, hotwPercent=0) {
-    if (antheaTemplates[templateName]) {
+    if (typeof antheaTemplateBase == 'object' &&
+        antheaTemplates[templateName]) {
+      /** We have all the pieces. */
       this.setUpEvalWithConfig(
           evalDiv, templateName, antheaTemplates[templateName], projectData,
           projectResults, hotwPercent);
       return;
     }
-    /**
-     * We set the template to an empty object so that we do not keep retrying
-     * to load the template file.
-     */
-    antheaTemplates[templateName] = {};
-    googdom.setInnerHtml(evalDiv, 'Loading template ' + templateName + '...');
-    const scriptTag = document.createElement('script');
-    scriptTag.src = this.scriptUrlPrefix_ + 'template-' +
-                    templateName.toLowerCase() + '.js';
-    scriptTag.onload = this.setUpEval.bind(
+    const retrier = this.setUpEval.bind(
         this, evalDiv, templateName, projectData, projectResults, hotwPercent);
-    document.head.append(scriptTag);
+    googdom.setInnerHtml(
+        evalDiv, 'Loading base & template ' + templateName + '...');
+    if (!this.loadedTemplateBase) {
+      this.loadedTemplateBase = true;
+      const scriptTag = document.createElement('script');
+      scriptTag.src = this.scriptUrlPrefix_ + 'template-base.js';
+      scriptTag.onload = retrier;
+      document.head.append(scriptTag);
+    }
+    if (!this.loadedTemplate) {
+      this.loadedTemplate = true;
+      const scriptTag = document.createElement('script');
+      scriptTag.src = this.scriptUrlPrefix_ + 'template-' +
+                      templateName.toLowerCase() + '.js';
+      scriptTag.onload = retrier;
+      document.head.append(scriptTag);
+    }
   }
 
   /**
