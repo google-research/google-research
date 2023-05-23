@@ -256,6 +256,9 @@
   background: rgba(245, 245, 220, 0.7);
   cursor: crosshair;
 }
+.mqm-val {
+  word-break: break-all;
+}
 .mqm-val:hover {
   cursor: pointer;
 }

@@ -52,6 +52,7 @@ let mqmDataIter = {
   docSegs: {},
   docSys: {},
   docSegSys: {},
+  systems: [],  /** Convenient list of all systems in the data. */
 };
 
 /**
@@ -407,13 +408,16 @@ function mqmCreateDataIter() {
     docSegs: {},
     docSys: {},
     docSegSys: {},
+    systems: [],
   };
   let lastRow = null;
+  const systemsSet = new Set();
   for (let rowId = 0; rowId < mqmData.length; rowId++) {
     const parts = mqmData[rowId];
     const doc = parts[MQM_DATA_DOC];
     const docSegId = parts[MQM_DATA_DOC_SEG_ID];
     const system = parts[MQM_DATA_SYSTEM];
+    systemsSet.add(system);
     const sameDoc = lastRow && (doc == lastRow[MQM_DATA_DOC]);
     const sameDocSeg = sameDoc && (docSegId == lastRow[MQM_DATA_DOC_SEG_ID]);
     const sameDocSys = sameDoc && (system == lastRow[MQM_DATA_SYSTEM]);
@@ -432,6 +436,7 @@ function mqmCreateDataIter() {
     }
     lastRow = parts;
   }
+  mqmDataIter.systems = [...systemsSet];
   /**
    * Ensure that there are entries in docSegSys for each
    * docSegId x system.
@@ -440,7 +445,7 @@ function mqmCreateDataIter() {
     mqmDataIter.docSegSys[doc] = {};
     for (docSegId of mqmDataIter.docSegs[doc]) {
       mqmDataIter.docSegSys[doc][docSegId] = {};
-      for (system of mqmDataIter.docSys[doc]) {
+      for (system of mqmDataIter.systems) {
         mqmDataIter.docSegSys[doc][docSegId][system] = {
           rows: [-1, -1],
           segment: {},
@@ -908,6 +913,23 @@ function mqmFilterExprPasses(filterExpr, parts) {
     document.getElementById('mqm-filter-expr-error').innerHTML = err;
     return false;
   }
+}
+
+/**
+ * If the "Select only the segments for which all systems have been rated"
+ * filter has been selected by the user, then this function will return
+ * false for segments that do not have all systems rated.
+ * @param {!Object} metadata
+ * @return {boolean}
+ */
+function mqmAllSystemsFilterPasses(metadata) {
+  if (!document.getElementById("mqm-only-all-systems-segments").checked) {
+    return true;
+  }
+  const segment = metadata.segment;
+  const aggrDocSeg = segment.aggrDocSeg;
+  return Object.keys(aggrDocSeg.sevcatsBySystem).length ==
+         mqmDataIter.systems.length;
 }
 
 /**
@@ -2927,11 +2949,14 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
           if (!mqmFilterExprPasses(filterExpr, parts)) {
             continue;
           }
+          const metadata = parts[MQM_DATA_METADATA];
+          if (!mqmAllSystemsFilterPasses(metadata)) {
+            continue;
+          }
 
           const rater = parts[MQM_DATA_RATER];
           const category = parts[MQM_DATA_CATEGORY];
           const severity = parts[MQM_DATA_SEVERITY];
-          const metadata = parts[MQM_DATA_METADATA];
           if (!aggrDocSeg && metadata.segment && metadata.segment.aggrDocSeg) {
             aggrDocSeg = metadata.segment.aggrDocSeg;
           }
@@ -4140,6 +4165,14 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
               <button onclick="mqmAddClause('||')" disabled
                 id="mqm-clause-add-or">Add OR clause</button>
             </div>
+          </li>
+          <li
+            title="Convenient short-cut for the filter:
+              Object.keys(aggrDocSeg.sevcatsBySystem).length ==
+              mqmDataIter.systems.length">
+            <input type="checkbox"
+              onchange="mqmShow()" id="mqm-only-all-systems-segments"/>
+            Select only the segments for which all systems have been rated
           </li>
         </ul>
         <br>
