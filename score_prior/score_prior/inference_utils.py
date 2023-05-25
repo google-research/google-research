@@ -70,12 +70,9 @@ def get_score_fn(config,
   return score_fn
 
 
-def _get_solver(solver,
-                scan_stages = True):
+def _get_solver(solver):
   """Return `diffrax.AbstractSolver` instance."""
-  if solver == 'Euler':
-    return diffrax.Euler()
-  return getattr(diffrax, solver)(scan_stages=scan_stages)
+  return getattr(diffrax, solver)()
 
 
 def _get_stepsize_controller(stepsize_controller,
@@ -116,7 +113,7 @@ def get_prob_flow(config,
   score_fn = get_score_fn(config, score_model_config)
 
   # ODE solver and step-size controller.
-  solver = _get_solver(config.prob_flow.solver, scan_stages=True)
+  solver = _get_solver(config.prob_flow.solver)
   stepsize_controller = _get_stepsize_controller(
       config.prob_flow.stepsize_controller,
       config.prob_flow.rtol,
@@ -126,9 +123,7 @@ def get_prob_flow(config,
   if config.prob_flow.adjoint_method == 'RecursiveCheckpointAdjoint':
     adjoint = diffrax.RecursiveCheckpointAdjoint()
   elif config.prob_flow.adjoint_method == 'BacksolveAdjoint':
-    adjoint_solver = _get_solver(
-        config.prob_flow.adjoint_solver,
-        scan_stages=True)
+    adjoint_solver = _get_solver(config.prob_flow.adjoint_solver)
     adjoint_stepsize_controller = _get_stepsize_controller(
         config.prob_flow.adjoint_stepsize_controller,
         config.prob_flow.adjoint_rtol,
