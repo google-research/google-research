@@ -46,7 +46,7 @@ def LoadFilesIntoDataFrame(glob_string, dimensions):
       dfs.append(
           pd.read_csv(
               f, names=columns, keep_default_na=False, dtype=str_type_dict))
-  return pd.concat(dfs), feature_columns
+  return pd.concat(dfs), feature_columns  # pytype: disable=bad-return-type  # typed-pandas
 
 
 def ReadRawData(file):
