@@ -109,8 +109,6 @@ from scaling_transformer_inference_efficiency import special2
 
 Weights = Any
 
-_BOS_ID = 0
-
 
 @struct.dataclass
 class Chunk:
@@ -248,10 +246,13 @@ class Chunk:
     # then the beginning-of-sequence token has already been added to the first
     # one, so we don't need it again.
     if is_first_chunk:
-      batch_tokens = jnp.concatenate([
-          jnp.full((batch_tokens.shape[0], 1), _BOS_ID, jnp.int32), batch_tokens
-      ],
-                                     axis=1)
+      batch_tokens = jnp.concatenate(
+          [
+              jnp.full((batch_tokens.shape[0], 1), vocab.bos_id, jnp.int32),
+              batch_tokens,
+          ],
+          axis=1,
+      )
       lengths = lengths + 1
 
     # After padding and beginning-of-sequence insertion, an example output would
@@ -399,11 +400,15 @@ class ChunkResult:
         next_token_logits=jnp.zeros((batch, hparams.vocab), jnp.float32),
     )
 
-  def update(self,
-             token_i,
-             token_chunk,
-             token_full_result,
-             per_device = False):
+  def update(
+      self,
+      token_i,
+      token_chunk,
+      token_full_result,
+      per_device = False,
+      bos_id = 0,
+      overwrite_kv_cache = False,
+  ):
     """Writes a single-token FullChunkResult to the specified index of this.
 
     The index token_i is assumed to be the last token written to this
@@ -414,6 +419,11 @@ class ChunkResult:
       token_chunk: The input tokens with which to write. Shape Chunk[batch, 1].
       token_full_result: The results to write. Shape FullChunkResult[batch, 1].
       per_device: Whether this is used in a per device or global context.
+      bos_id: Optionally overwrite default BOS ID.
+      overwrite_kv_cache: Optionally overwrite the KV cache instead of appending
+        to it. Useful for handling more complex cache logic and shapes outside
+        of this function.
+
     Returns:
       This, but with token written at index token_i.
     """
@@ -423,31 +433,42 @@ class ChunkResult:
     assert token_seqlen == 1
     assert token_vocab == vocab
 
-    token_small = token_full_result.to_chunk_result(self.next_token_logits,
-                                                    token_chunk, per_device)
+    token_small = token_full_result.to_chunk_result(
+        self.next_token_logits, token_chunk, per_device, bos_id=bos_id
+    )
 
+    if overwrite_kv_cache:
+      kv_cache = token_full_result.kv_cache
+    else:
+      kv_cache = self.kv_cache.write_token(token_i, token_full_result.kv_cache)
     return ChunkResult(
-        kv_cache=self.kv_cache.write_token(token_i, token_full_result.kv_cache),
+        kv_cache=kv_cache,
         per_token_scores=lax.dynamic_update_index_in_dim(
-            self.per_token_scores, token_small.per_token_scores[:, 0], token_i,
-            1),
+            self.per_token_scores,
+            token_small.per_token_scores[:, 0],
+            token_i,
+            1,
+        ),
         top_token_ids=lax.dynamic_update_index_in_dim(
-            self.top_token_ids, token_small.top_token_ids[:, 0, :], token_i, 1),
+            self.top_token_ids, token_small.top_token_ids[:, 0, :], token_i, 1
+        ),
         top_token_probs=lax.dynamic_update_index_in_dim(
-            self.top_token_probs, token_small.top_token_probs[:, 0, :], token_i,
-            1),
+            self.top_token_probs,
+            token_small.top_token_probs[:, 0, :],
+            token_i,
+            1,
+        ),
         next_token_logits=token_full_result.logits[:, 0, :],
     )
 
 
 _TOP_K = 4
-_BOS_ID = 0
 
 
-def _bos_logits(vocab_size):
+def _bos_logits(vocab_size, bos_id = 0):
   """Logits that put assign probability 1.0 to on _BOS_ID."""
   logits = jnp.full((vocab_size,), -1e10)
-  return logits.at[_BOS_ID].set(0.0)
+  return logits.at[bos_id].set(0.0)
 
 
 @struct.dataclass
@@ -468,6 +489,7 @@ class FullChunkResult:
       prev_logits,
       chunk,
       do_top_k = False,
+      bos_id = 0,
   ):
     """Converts this to its more minimal form, ChunkResult.
 
@@ -477,6 +499,7 @@ class FullChunkResult:
         float32[batch, vocab_size]. In 2D [batch.x, time, vocab.yz]
       chunk: Input token IDs for this chunk.
       do_top_k: Whether to do top_k - small latency impact.
+      bos_id: Optionally overwrite default BOS ID.
 
     Returns:
       This, but in its minimized form.
@@ -534,12 +557,12 @@ class FullChunkResult:
 
     batch, seqlen, vocab_size = self.logits.shape
     lengths = chunk.lengths
-
     # First figure out what logits to use for the first token.
     if prev_logits is None:
       # Use beginning-of-sequence marker as the logits.
       prev_logits = jnp.broadcast_to(
-          _bos_logits(vocab_size), (batch, vocab_size))
+          _bos_logits(vocab_size, bos_id), (batch, vocab_size)
+      )
       # ^ prev_logits: f32[batch, vocab]
     else:
       prev_logits = attention.flat_broadcast(prev_logits, batch)
@@ -583,7 +606,7 @@ class FullChunkResult:
       top_probs = jnp.zeros((batch, seqlen, _TOP_K), jnp.float32)
 
     return ChunkResult(
-        per_token_scores=per_token_scores,
+        per_token_scores=jnp.float32(per_token_scores),
         top_token_ids=top_ids,
         top_token_probs=top_probs,
         next_token_logits=next_token_logits,

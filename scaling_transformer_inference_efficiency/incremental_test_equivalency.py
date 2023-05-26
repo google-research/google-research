@@ -272,7 +272,9 @@ def xmap_pjit_equivalency(
     prev_chunk_next_token_logits = prefix[-1].next_token_logits
     cache = [p.kv_cache for p in prefix]
 
-    samples2, _ = jax.experimental.pjit.pjit(generate_fn)(
+    samples2, _ = jax.experimental.pjit.pjit(
+        generate_fn, static_argnames=("sample_params",)
+    )(
         params=params,
         prefix=cache,
         prev_chunk_next_token_logits=prev_chunk_next_token_logits,
@@ -449,7 +451,9 @@ def circular_buffer_equivalency(
             circular=True,
         )
     )
-    loop_fn = jax.jit(the_model.sample_infer_write, static_argnames=("model",))
+    loop_fn = jax.jit(
+        the_model.sample_infer_write, static_argnames=("model", "sample_params")
+    )
 
     # Go from the middle back around
     for i in range(steps // 2, steps + steps // 2):

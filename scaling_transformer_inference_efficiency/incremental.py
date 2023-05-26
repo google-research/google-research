@@ -184,10 +184,10 @@ class StreamClient:
     self.stream_done_callback()
 
 
-def _bos_logits(vocab_size: int) -> jnp.ndarray:
+def _bos_logits(vocab_size: int, bos_id: int = 0) -> jnp.ndarray:
   """Logits that put assign probability 1.0 to on _BOS_ID."""
   logits = jnp.full((vocab_size,), -1e10)
-  return logits.at[0].set(0.0)
+  return logits.at[bos_id].set(0.0)
 
 
 class InferenceModel:
@@ -443,7 +443,7 @@ class InferenceModel:
   # pylint: disable = unnecessary-lambda
   # pytype: disable=attribute-error
   # pytype: disable=bad-unpacking
-  @partial(jax.jit, static_argnums=(0, 6, 7, 8))
+  @partial(jax.jit, static_argnums=(0, 5, 6, 7, 8))
   def _generate_impl(
       self,
       params: Weights,

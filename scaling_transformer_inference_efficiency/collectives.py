@@ -308,7 +308,8 @@ def allgather_matmul_throughput(
 def preshuffle_for_allgather_matmul_latency(
     x,
     shuffle_axis,
-    axis_name):
+    axis_name,
+):
   """Pre-shuffle weights for allgather_matmul_latency.
 
     Function acts at a per-device view.
@@ -650,7 +651,8 @@ def matmul_reducescatter_throughput(einsum_spec,
 def preshuffle_for_reducescatter_latency(
     x,
     scatter_axis,
-    axis_name):
+    axis_name,
+):
   """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
 
   Function acts at a per-device view.
@@ -683,14 +685,16 @@ def preshuffle_for_reducescatter_latency(
   return permuted
 
 
-def matmul_reducescatter_latency(einsum_spec,
-                                 lhs,
-                                 rhs,
-                                 scatter_axis,
-                                 axis_name,
-                                 layer,
-                                 subsplit_axis,
-                                 layer_axis=0):
+def matmul_reducescatter_latency(
+    einsum_spec,
+    lhs,
+    rhs,
+    scatter_axis,
+    axis_name,
+    layer,
+    subsplit_axis,
+    layer_axis=0,
+):
   """Uses a two ICI directions, pre-communicate to halve the steps.
 
   Usage:
