@@ -1,5 +1,5 @@
 # TrueTeacher
-Official repository for the paper - "TrueTeacher: Learning Factual Consistency Evaluation with Large Language Models".
+Official repository for the paper - [TrueTeacher: Learning Factual Consistency Evaluation with Large Language Models](https://arxiv.org/pdf/2305.11171v1.pdf)
 
 This is not an officially supported Google product.
 
@@ -41,3 +41,16 @@ Here is an example of a single data item:
 Our dataset is licensed under the **Creative Commons Attribution-NonCommercial 4.0** International License.
 
 To view a copy of this license, visit http://creativecommons.org/licenses/by-nc/4.0/ or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
+
+
+## Citing TrueTeacher
+If you find this useful for your work, please use the following citation:
+
+```
+@article{gekhman2023trueteacher,
+  title={Trueteacher: Learning factual consistency evaluation with large language models},
+  author={Gekhman, Zorik and Herzig, Jonathan and Aharoni, Roee and Elkind, Chen and Szpektor, Idan},
+  journal={arXiv preprint arXiv:2305.11171},
+  year={2023}
+}
+```
