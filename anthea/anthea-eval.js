@@ -806,7 +806,6 @@ class AntheaEval {
     if (!currEval) {
       return;
     }
-    // TODO(vratnakar): maybe append cursor.{side,sent} info to action.
     const timing = currEval.timing;
     if (!timing) {
       return;
@@ -816,17 +815,25 @@ class AntheaEval {
         count: 0,
         timeMS: 0,
         /**
-         * This is a log of all event timestamps, for reconstructing the rater
-         * behavior fully when needed.
+         * This is a log of event details, including timestamps, for
+         * reconstructing the rater behavior fully when needed.
          */
-        timestamps: [],
+        log: [],
       };
     }
     const tinfo = timing[action];
     tinfo.count++;
     currEval.timestamp = Date.now();
     tinfo.timeMS += (currEval.timestamp - this.lastTimestampMS_);
-    tinfo.timestamps.push(currEval.timestamp);
+    const details = {
+      ts: currEval.timestamp,
+      side: this.cursor.side,
+      sentence: this.cursor.sent,
+    };
+    if (!this.cursor.srcVisible(this.cursor.seg)) {
+      details.source_not_seen = true;
+    }
+    tinfo.log.push(details);
     this.lastTimestampMS_ = currEval.timestamp;
     this.saveResults();
   }
@@ -964,7 +971,7 @@ class AntheaEval {
       }
       for (let e = 0; e < evalResult.errors.length; e++) {
         if (sentErrorIndices[e]) {
-          this.displayError(evalResult.errors, e);
+          this.displayError(evalResult, e);
         }
       }
       if (this.markedPhrase_) {
@@ -1044,13 +1051,14 @@ class AntheaEval {
   }
 
   /**
-   * Displays the previously marked error in errors[index], alongside the
-   *     current segment. The displayed error also includes an "x" button
+   * Displays the previously marked error in evalResult.errors[index], alongside
+   *     the current segment. The displayed error also includes an "x" button
    *     for deleting it.
-   * @param {!Array<!Object>} errors
+   * @param {!Object} evalResult
    * @param {number} index
    */
-  displayError(errors, index) {
+  displayError(evalResult, index) {
+    const errors = evalResult.errors;
     const error = errors[index];
     const tr = document.createElement('tr');
     this.evalPanelErrors_.appendChild(tr);
@@ -1093,6 +1101,23 @@ class AntheaEval {
     } else {
       delButton.addEventListener('click', (e) => {
         e.preventDefault();
+        /** Save timing info from the deleted error. */
+        const timing = errors[index].metadata.timing ?? {};
+        for (let action of Object.keys(timing)) {
+          if (!evalResult.timing.hasOwnProperty(action)) {
+            evalResult.timing[action] = {
+              count: 0,
+              timeMS: 0,
+              log: [],
+            };
+            evalResult.timing[action].count += timing[action].count;
+            evalResult.timing[action].timeMS += timing[action].timeMS;
+            const log = timing[action].log ?? [];
+            for (let detail of log) {
+              evalResult.timing[action].log.push(detail);
+            }
+          }
+        }
         this.noteTiming('deleted-error');
         errors.splice(index, 1);
         this.refreshCurrSentence();
@@ -1370,6 +1395,7 @@ class AntheaEval {
       markedError.metadata = {};
     }
     markedError.metadata.sentence_index = this.cursor.sent;
+    markedError.metadata.side = this.cursor.side;
 
     if (markedError.needs_note) {
       markedError.metadata.note = prompt(
@@ -1404,7 +1430,7 @@ class AntheaEval {
       }
       evalResult.timing = {};
       evalResult.errors.push(markedError);
-      this.displayError(evalResult.errors, evalResult.errors.length - 1);
+      this.displayError(evalResult, evalResult.errors.length - 1);
     }
     this.resetMQMRating();
 
