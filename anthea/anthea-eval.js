@@ -815,12 +815,18 @@ class AntheaEval {
       timing[action] = {
         count: 0,
         timeMS: 0,
+        /**
+         * This is a log of all event timestamps, for reconstructing the rater
+         * behavior fully when needed.
+         */
+        timestamps: [],
       };
     }
     const tinfo = timing[action];
     tinfo.count++;
     currEval.timestamp = Date.now();
     tinfo.timeMS += (currEval.timestamp - this.lastTimestampMS_);
+    tinfo.timestamps.push(currEval.timestamp);
     this.lastTimestampMS_ = currEval.timestamp;
     this.saveResults();
   }
@@ -970,7 +976,6 @@ class AntheaEval {
           tokenSpans[x].style.backgroundColor = color;
         }
       }
-      this.noteTiming('visited-or-redrawn');
     }
 
     const hasBeenRead = this.cursor.hasBeenRead(seg, side, sent);
@@ -1088,6 +1093,7 @@ class AntheaEval {
     } else {
       delButton.addEventListener('click', (e) => {
         e.preventDefault();
+        this.noteTiming('deleted-error');
         errors.splice(index, 1);
         this.refreshCurrSentence();
       });
@@ -1290,6 +1296,7 @@ class AntheaEval {
     if (this.config.TARGET_SIDE_ONLY) {
       return;
     }
+    this.noteTiming('switch-sides');
     this.cursor.switchSides();
     this.redrawAllSegments();
     this.ensureCurrSentVisible();
@@ -1299,6 +1306,7 @@ class AntheaEval {
    * Navigates to the previous sentence.
    */
   handlePrev() {
+    this.noteTiming('back-arrow');
     this.cursor.prev();
     this.redrawAllSegments();
     this.ensureCurrSentVisible();
@@ -1308,6 +1316,7 @@ class AntheaEval {
    * Navigates to the next sentence.
    */
   handleNext() {
+    this.noteTiming('next-arrow');
     if (!this.finishCurrSentence()) {
       return;
     }
@@ -1522,7 +1531,7 @@ class AntheaEval {
           }
           subtypeButton.addEventListener('click', (e) => {
             e.preventDefault();
-            this.setMQMType(type, subtype);
+            this.handleErrorTypeClick(type, subtype);
           });
           this.buttons_[this.errorButtonKey(type, subtype)] = subtypeButton;
           if (!subtypeInfo.hidden) {
@@ -1547,7 +1556,7 @@ class AntheaEval {
       } else {
         errorButton.addEventListener('click', (e) => {
           e.preventDefault();
-          this.setMQMType(type);
+          this.handleErrorTypeClick(type);
         });
       }
       errorButton.disabled = true;
@@ -1614,7 +1623,6 @@ class AntheaEval {
   setMQMSeverity(severityId) {
     this.severityId_ = severityId;
     this.severity_ = this.config.severities[severityId];
-    this.noteTiming('chose-severity-' + severityId);
     if (this.markedPhrase_ && this.severity_.forced_error) {
       this.setMQMType('');
       return;
@@ -1630,7 +1638,6 @@ class AntheaEval {
   setMQMType(type, subtype = '') {
     this.errorType_ = type;
     this.errorSubtype_ = subtype;
-    this.noteTiming('chose-error-' + type + (subtype ? '-' + subtype : ''));
     const errorInfo = this.config.errors[type];
     if (errorInfo.override_all_errors) {
       this.setMQMSeverity('major');
@@ -1679,7 +1686,7 @@ class AntheaEval {
   }
 
   /**
-   * Handles a click on a "<severity>" button.
+   * Handles a click on a "<severity>" button or its hotkey.
    * @param {string} severityId
    */
   handleSeverityClick(severityId) {
@@ -1694,6 +1701,16 @@ class AntheaEval {
     } else {
       this.setMQMSeverity(severityId);
     }
+  }
+
+  /**
+   * Handles a click on an error "<type>/<subsubtype>" button.
+   * @param {string} type
+   * @param {string=} subtype
+   */
+  handleErrorTypeClick(type, subtype='') {
+    this.noteTiming('chose-error-' + type + (subtype ? '-' + subtype : ''));
+    this.setMQMType(type, subtype);
   }
 
   /**
@@ -2066,6 +2083,7 @@ class AntheaEval {
     if (!this.READ_ONLY && (this.startedMarking_ || this.cursor.doc == 0)) {
       return;
     }
+    this.noteTiming('prev-document');
     if (!this.finishCurrSentence()) {
       return;
     }
@@ -2090,6 +2108,7 @@ class AntheaEval {
          !this.cursor.seenDocEnd())) {
       return;
     }
+    this.noteTiming('next-document');
     if (!this.finishCurrSentence()) {
       return;
     }
