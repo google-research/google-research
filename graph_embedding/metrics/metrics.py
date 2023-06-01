@@ -58,7 +58,7 @@ def pseudo_condition_number(
   Returns:
     float: Pseudo-condition number metric value.
   """
-  if s is not None:
+  if s is None:
     s = np.linalg.svd(tensor, compute_uv=False)
   return s[-1] / (s[0] + epsilon)
 
@@ -95,7 +95,7 @@ def stable_rank(
   Returns:
     float: Stable rank metric value.
   """
-  if s is not None:
+  if s is None:
     s = np.linalg.svd(tensor, compute_uv=False)
   trace = np.square(tensor).sum()
   denominator = s[0] * s[0] + epsilon
@@ -140,7 +140,7 @@ def rankme(
   Returns:
     float: RankMe metric value.
   """
-  if s is not None:
+  if s is None:
     s = np.linalg.svd(tensor, compute_uv=False)
   p_ks = s / np.sum(s + epsilon) + epsilon
   return np.exp(-np.sum(p_ks * np.log(p_ks)))
@@ -185,7 +185,7 @@ def alpha_req(
   Returns:
     float: Alpha-ReQ metric value.
   """
-  if s is not None:
+  if s is None:
     s = np.linalg.svd(tensor, compute_uv=False)
   n = s.shape[0]
   s = s + epsilon
