@@ -15,7 +15,6 @@
 
 """NDP architecture."""
 
-import chex
 import diffrax
 import flax.linen as nn
 import jax

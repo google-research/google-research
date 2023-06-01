@@ -32,12 +32,12 @@ from hct.common import typing
 
 
 def param_count(params):
-  return sum(x.size for x in jax.tree_leaves(params))
+  return sum(x.size for x in jax.tree_util.tree_leaves(params))
 
 
 def check_params_finite(params):
   return jnp.array(
-      [jnp.isfinite(x).all() for x in jax.tree_leaves(params)]).all()
+      [jnp.isfinite(x).all() for x in jax.tree_util.tree_leaves(params)]).all()
 
 
 class TrainStateBN(ts.TrainState):

@@ -16,9 +16,18 @@
 set -e
 set -x
 
+# Restructure to src-layout
+mkdir src
+mkdir src/hct
+mv common src/hct/
+mv ndp src/hct/
+mv __init__.py src/hct/
+
+# Create virtual-env and install
 python3 -m venv hct-env
 source hct-env/bin/activate
 
 pip install -e .
 
+# Run test!
 python tests/test_ndp.py
