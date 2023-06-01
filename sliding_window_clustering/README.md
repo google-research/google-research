@@ -35,7 +35,7 @@ You can run our experiments with the following:
 
 cd sliding_window_clustering/
 
-bazel run -c opt :sliding_window_clustering -- \
+bazel run --cxxopt=-std=c++14 -c opt :sliding_window_clustering -- \
  --input_file="/path/to/input.txt" \
  --output_file="/path/to/output-input.txt" \
  --window_size=10000 \
