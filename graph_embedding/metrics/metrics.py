@@ -73,7 +73,7 @@ def coherence(tensor, u = None, **_):
   Returns:
     float: Coherence metric value.
   """
-  if u is not None:
+  if u is None:
     u, _, _ = np.linalg.svd(tensor, compute_uv=True, full_matrices=False)
   maxu = np.linalg.norm(u, axis=1).max() ** 2
   return maxu * u.shape[0] / u.shape[1]
