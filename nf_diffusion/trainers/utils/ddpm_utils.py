@@ -40,7 +40,7 @@ class DDPMProcesses(abc.ABC):
         [sigma_t_fn(t + 1, self.max_t) for t in range(self.max_t)])
     self.alpha_t_vect = jnp.array(
         [alpha_t_fn(t + 1, self.max_t) for t in range(self.max_t)])
-    self.alpha_t_bar_vect = jnp.cumproduct(self.alpha_t_vect)
+    self.alpha_t_bar_vect = jnp.cumprod(self.alpha_t_vect)
     # jnp.array(
     #     [alpha_t_bar_fn(t + 1) for t in range(self.max_t)])
     self.verbose = self.cfg.get("verbose", False)
