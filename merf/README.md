@@ -10,8 +10,6 @@ Unbounded Scenes**](https://creiser.github.io/merf). The code is written in
 
 ![Teaser Image](teaser.jpg)
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/3EACM2JAcxc" frameborder="0" allowfullscreen></iframe>
-
 ### Abstract
 Neural radiance fields enable state-of-the-art photorealistic view synthesis.
 However, existing radiance field representations are either too
@@ -28,7 +26,7 @@ rendering while still preserving the photorealistic view synthesis quality of a
 volumetric radiance field.
 
 ### How to run the code?
-- Download and unzip mipnerf360 dataset:\
+- Download and unzip mipnerf360 dataset:
   ```
   curl -O http://storage.googleapis.com/gresearch/refraw360/360_v2.zip
   unzip 360_v2.zip
@@ -49,7 +47,7 @@ You can specify the name of the scene that you want to reconstruct, the path
 where the dataset is located, and the path to which outputs should be saved
 in `./train.sh`
 paths to the dataset and the directory outputs should be written to in `train.sh`.
-- Download third-party dependencies for the webviewer:\
+- Download third-party dependencies for the webviewer:
   ```
   cd webviewer
   mkdir -p third_party
