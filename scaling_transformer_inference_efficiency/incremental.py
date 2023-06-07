@@ -202,6 +202,7 @@ class InferenceModel:
       mesh: Mesh,
       rules: Sequence[Tuple[str, Any]],
       vocab: Optional[Vocabulary] = None,
+      bos_id: Optional[int] = None,  # Allow to overwrite the default value.
   ):
     self._hparams = hparams
     self._eos_id = eos_id
@@ -220,6 +221,12 @@ class InferenceModel:
           partitioning.logical_to_physical, self.embeddings_logical
       )
     self.vocab = vocab
+    if bos_id is None:
+      if vocab is not None:
+        bos_id = vocab.bos_id
+      else:
+        bos_id = 0
+    self.bos_id = bos_id
     # _prefill_p: maps num_prefixes -> jitted _prefill_impl function
     self._prefill_p = {}
     # _score_p: maps num_prefixes -> jitted _generate_impl function
@@ -300,14 +307,18 @@ class InferenceModel:
       )
     else:
       full_chunk_result = model._infer(params, cache, chunk)
-    return (
-        full_chunk_result
-        if return_full_chunk
-        else full_chunk_result.to_chunk_result(prev_logits, chunk))
+    if return_full_chunk:
+      return full_chunk_result
+    else:
+      return full_chunk_result.to_chunk_result(
+          prev_logits, chunk, bos_id=model.bos_id
+      )
 
   def instantiate_prefill_fn(self, return_full_chunk: bool = False):
     return partial(
-        self._prefill_impl, self, return_full_chunk=return_full_chunk
+        self._prefill_impl,
+        self,
+        return_full_chunk=return_full_chunk,
     )
 
   def prefill(
@@ -350,6 +361,7 @@ class InferenceModel:
       length: int,
       prev_chunk_next_token_logits: Optional[jnp.ndarray] = None,
       circular: bool = False,
+      bos_id: int = 0,
   ):
     """Create everything we need to deterministically write output samples."""
     # Seeding of the RNG itself is deterministic.
@@ -364,7 +376,7 @@ class InferenceModel:
     # Generation loop.
     last_logits = prev_chunk_next_token_logits
     if last_logits is None:
-      last_logits = _bos_logits(hparams.vocab)[np.newaxis, :]
+      last_logits = _bos_logits(hparams.vocab, bos_id)[np.newaxis, :]
     last_logits = attention.flat_broadcast(last_logits, batch)
     chunk = Chunk.zeros(batch, length)
     chunk_result = ChunkResult.zeros(hparams, batch, length, circular=circular)
@@ -434,7 +446,10 @@ class InferenceModel:
     )
     chunk = chunk.update(write_index, token_chunk)
     chunk_result = chunk_result.update(
-        write_index, token_chunk, token_full_chunk_result
+        write_index,
+        token_chunk,
+        token_full_chunk_result,
+        bos_id=model.bos_id,
     )
     return chunk, chunk_result
 
@@ -468,6 +483,7 @@ class InferenceModel:
             steps,
             prev_chunk_next_token_logits,
             circular=False,
+            bos_id=self.bos_id,
         )
     )
 

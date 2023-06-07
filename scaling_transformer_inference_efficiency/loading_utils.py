@@ -73,7 +73,6 @@ class ModelConfig:
   size: 8, 62, 540
   quantized:
   generate_steps: Amount of steps to do generation with
-  temperature: sampling temperature
   kv_cache_sharding: the degree of kv cache sharding (0: None, 1: Z, 2: YZ, 3:
     YZX)
   latency_collectives: whether to use latency optimised forms (double compute
@@ -83,6 +82,7 @@ class ModelConfig:
   stream: An object to facilitate streaming back to X (you defined the
     callbacks).
   transpose_scan_axis: transpose if layers was not saved as the leading axis
+  bos_id: Optionally overwrite bos_id to the model.
   """
 
   ckpt_path: str
@@ -96,6 +96,7 @@ class ModelConfig:
   stream: Optional[incremental.StreamClient] = None
   transpose_scan_axis: bool = True
   layout: Layout = Layout.TWO_D
+  bos_id: Optional[int] = None
 
 
 def return_minimal_palm(
@@ -246,6 +247,7 @@ def return_minimal_palm(
       mesh,
       rules,
       the_vocab,
+      bos_id=cfg.bos_id,
   )
 
   generate_fn = model.instantiate_generating_fn(cfg.generate_steps)
