@@ -215,19 +215,21 @@ def make_mesh(devices = None, one_d=False):
     if len(devices) == 8:
       if one_d:
         return Mesh(
-            mesh_utils.create_device_mesh((8, 1))[:, :, np.newaxis],
+            mesh_utils.create_device_mesh((8, 1), devices)[:, :, np.newaxis],
             ('x', 'y', 'z'),
         )
       else:
         return Mesh(
-            mesh_utils.create_device_mesh((2, 4))[:, :, np.newaxis],
+            mesh_utils.create_device_mesh((2, 4), devices)[:, :, np.newaxis],
             ('x', 'y', 'z'),
         )
     else:
       raise NotImplementedError
   if one_d:
     if len(devices) == 8:
-      return Mesh(mesh_utils.create_device_mesh((8, 1, 1)), ('x', 'y', 'z'))
+      return Mesh(
+          mesh_utils.create_device_mesh((8, 1, 1), devices), ('x', 'y', 'z')
+      )
     else:
       raise NotImplementedError
   if len(devices) == 1:
