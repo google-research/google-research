@@ -7,6 +7,14 @@ by Junjie Ke, Keren Ye, Jiahui Yu, Yonghui Wu, Peyman Milanfar, and Feng Yang.
 
 <img src="images/overview.png" alt="Model overview" style="width: 50%;">
 
+## TFHub
+
+The VILA-R model is available on [TensorFlow Hub](https://tfhub.dev/s?q=vila)
+for predicting image aesthetic score. See tfhub_inference.ipynb for a sample
+notebook to try the model.
+
+If you want to go deeper in the code and implementation, follow the instructions below.
+
 ## Prerequisite
 
 Install dependencies (works with python3.10):
