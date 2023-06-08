@@ -23,7 +23,7 @@ as well as the build_loss function in:
 third_party/cloud_tpu/models/detection/modeling/maskrcnn_model.py
 """
 
-from typing import Dict, Union
+from typing import Dict, Union, Any
 from absl import logging
 import gin
 import jax
