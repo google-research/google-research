@@ -112,8 +112,7 @@ def matmul_allgather_no_collective(
     rhs_split_axis,
     axis_name,
     layer,
-    layer_axis=0,
-):
+    layer_axis=0):
   """Non-overlapped allgather matmul using default allgather."""
   rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
   lhs = lax.all_gather(lhs, axis_name, axis=rhs_split_axis, tiled=True)
@@ -127,8 +126,7 @@ def allgather_matmul_one_way(
     rhs_split_axis,
     axis_name,
     layer,
-    layer_axis=0,
-):
+    layer_axis=0):
   """Uses a single ICI direction, overlapped all gather -> matmul.
 
   Example usage:
