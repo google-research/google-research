@@ -45,8 +45,7 @@ class InverseSTFTTest(tf.test.TestCase, parameterized.TestCase):
         inverse_stft_layer.fft_size,
         window_fn=inverse_stft_layer.synthesis_window_fn,
         pad_end=False)
-    with tf1.Session() as sess:
-      self.signal_stft = sess.run(signal_stft_tf)
+    self.signal_stft = signal_stft_tf
 
     self.feature_size = self.signal_stft.shape[-1]
 
@@ -79,6 +78,16 @@ class InverseSTFTTest(tf.test.TestCase, parameterized.TestCase):
         shape=self.signal_stft.shape[1:3], batch_size=1, dtype=tf.complex64)
     net = inverse_stft_layer(input_tf)
     model_non_stream = tf.keras.models.Model(input_tf, net)
+
+    # Convert TF non-streaming model to TFLite internal-state streaming model.
+    tflite_streaming_model = utils.model_to_tflite(
+        None,
+        model_non_stream,
+        params,
+        modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
+    )
+    self.assertTrue(tflite_streaming_model)
+
     self.non_stream_out = model_non_stream.predict(self.signal_stft)
 
     # convert it to streaming model
@@ -99,5 +108,5 @@ class InverseSTFTTest(tf.test.TestCase, parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  tf1.disable_eager_execution()
+  tf1.enable_eager_execution()
   tf.test.main()

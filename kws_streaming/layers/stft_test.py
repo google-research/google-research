@@ -96,37 +96,82 @@ class STFTTest(tf.test.TestCase, parameterized.TestCase):
           'input_samples': 3,
       })
   def testStreaming(self, input_samples):
-    # prepare non streaming model
+
+    window_type = 'hann_tf'
+    # Note that with tf1.disable_eager_execution and window_type='hann_tf'
+    # it will raise ValueError: Unable to save function
+    # b'__inference_stft_1_layer_call_and_return_conditional_losses_1669'
+    # because it captures graph tensor
+    # Tensor("streaming/stft_1/windowing_1/hann_window/sub_2:0", shape=(40,),
+    # dtype=float32) from a parent function which cannot be converted to a
+    # constant with `tf.get_static_value`.
+    # To address the above we should use window_type='hann'
+
+    # Also with disabled eager mode and sess=None
+    # model_to_tflite should use from_keras_model instead of from_saved_model
+    # else ConverterError: Input 0 of node
+    # StatefulPartitionedCall/stft_1/data_frame_1/AssignVariableOp
+    # was passed float from Func/StatefulPartitionedCall/input/_18:0
+    # incompatible with expected resource.
+
+    # Prepare non streaming model
     stft_layer = stft.STFT(
         self.frame_size,
         self.frame_step,
         mode=modes.Modes.TRAINING,
         inference_batch_size=1,
-        padding='causal')
+        padding='causal',
+        window_type=window_type,
+    )
+
     input_tf = tf.keras.layers.Input(
-        shape=(self.input_signal.shape[1],), batch_size=1)
+        shape=(self.input_signal.shape[1],), batch_size=1
+    )
     net = stft_layer(input_tf)
     model_non_stream = tf.keras.models.Model(input_tf, net)
 
     params = test_utils.Params([1])
-    # shape of input data in the inference streaming mode (excluding batch size)
-    params.data_shape = (input_samples*stft_layer.frame_step,)
+    # Shape of input data in the inference streaming mode (excluding batch size)
+    params.data_shape = (input_samples * stft_layer.frame_step,)
     params.step = input_samples
 
-    # convert it to streaming model
+    # Convert TF non streaming model to streaming model
     model_stream = utils.to_streaming_inference(
-        model_non_stream,
-        params,
-        modes.Modes.STREAM_INTERNAL_STATE_INFERENCE)
+        model_non_stream, params, modes.Modes.STREAM_INTERNAL_STATE_INFERENCE
+    )
     model_stream.summary()
 
-    # run streaming inference and compare it with default stft
-    stream_out = inference.run_stream_inference(params, model_stream,
-                                                self.input_signal)
+    # Run TF streaming inference and compare it with default stft
+    stream_out = inference.run_stream_inference(
+        params, model_stream, self.input_signal
+    )
     stream_output_length = stream_out.shape[1]
     self.assertAllClose(stream_out, self.stft_out[:, 0:stream_output_length])
 
+    # Convert TF non-streaming model to TFLite internal-state streaming model
+    tflite_streaming_model = utils.model_to_tflite(
+        None,
+        model_non_stream,
+        params,
+        modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
+    )
+    self.assertTrue(tflite_streaming_model)
+
+    # Run TFLite streaming inference.
+    interpreter = tf.lite.Interpreter(model_content=tflite_streaming_model)
+    interpreter.allocate_tensors()
+    stream_out_tflite_external_st = inference.run_stream_inference_tflite(
+        params, interpreter, self.input_signal, None, concat=True
+    )
+
+    # Compare streaming TFLite vs TF non-streaming
+    self.assertAllClose(
+        stream_out_tflite_external_st,
+        self.stft_out[:, 0:stream_output_length],
+        atol=1e-5,
+    )
+
 
 if __name__ == '__main__':
-  tf1.disable_eager_execution()
+  tf1.enable_eager_execution()
   tf.test.main()

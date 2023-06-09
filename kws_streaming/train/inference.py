@@ -144,7 +144,8 @@ def run_stream_inference_tflite(flags,
     flags: model and data settings
     interpreter: tf lite interpreter in streaming mode
     inp_audio: input audio data
-    input_states: input states
+    input_states: input states, if input states are None then run streaming
+      inference with internal states.
     concat: if True, it will concatenate outputs in dim 1, otherwise append them
   Returns:
     output sequence
@@ -169,9 +170,10 @@ def run_stream_inference_tflite(flags,
     # set input audio data (by default input data at index 0)
     interpreter.set_tensor(input_details[0]['index'], stream_update)
 
-    # set input states (index 1...)
-    for s in range(1, len(input_details)):
-      interpreter.set_tensor(input_details[s]['index'], input_states[s])
+    if input_states is not None:
+      # set input states (index 1...)
+      for s in range(1, len(input_details)):
+        interpreter.set_tensor(input_details[s]['index'], input_states[s])
 
     # run inference
     interpreter.invoke()
@@ -179,12 +181,13 @@ def run_stream_inference_tflite(flags,
     # get output
     out_tflite = interpreter.get_tensor(output_details[0]['index'])
 
-    # get output states and set it back to input states
-    # which will be fed in the next inference cycle
-    for s in range(1, len(input_details)):
-      # The function `get_tensor()` returns a copy of the tensor data.
-      # Use `tensor()` in order to get a pointer to the tensor.
-      input_states[s] = interpreter.get_tensor(output_details[s]['index'])
+    if input_states is not None:
+      # get output states and set it back to input states
+      # which will be fed in the next inference cycle
+      for s in range(1, len(input_details)):
+        # The function `get_tensor()` returns a copy of the tensor data.
+        # Use `tensor()` in order to get a pointer to the tensor.
+        input_states[s] = interpreter.get_tensor(output_details[s]['index'])
 
     if concat:
       if stream_out_tflite_external_st.size == 0:
