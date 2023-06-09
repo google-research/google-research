@@ -40,7 +40,7 @@ def mesh4():
 
 
 def make(shape):
-  x = jnp.float32(jnp.arange(np.product(shape)))
+  x = jnp.float32(jnp.arange(np.prod(shape)))
   return jnp.reshape(x, shape)
 
 

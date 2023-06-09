@@ -85,7 +85,7 @@ class GumbelMaxVAE(tf.keras.Model):
         initial_value=var_x, name="var_x", trainable=True, dtype=tf.float32
     )
 
-    self.latent_dim = np.product(encoder.output_shape[1:])
+    self.latent_dim = np.prod(encoder.output_shape[1:])
     self.total_loss_tracker = tf.keras.metrics.Mean(name="total_loss")
     self.reconstruction_loss_tracker = tf.keras.metrics.Mean(
         name="reconstruction_loss"

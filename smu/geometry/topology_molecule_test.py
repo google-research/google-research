@@ -170,7 +170,7 @@ class TestTopologyMolecule(absltest.TestCase):
     state = mol.generate_search_state()
     for s in itertools.product(*state):
       res = mol.place_bonds(s, matching_parameters)
-      self.assertAlmostEqual(res.score, np.product(scores))
+      self.assertAlmostEqual(res.score, np.prod(scores))
 
 
 if __name__ == "__main__":
