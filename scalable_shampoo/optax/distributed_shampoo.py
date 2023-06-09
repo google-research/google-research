@@ -2722,8 +2722,10 @@ def distributed_shampoo(
 
     if (weight_decay != 0 and weight_decay is not None and
         decoupled_weight_decay):
+      wd_lr = 1.0 if decoupled_learning_rate else lr
       nesterov_momentum_update = (
-          nesterov_momentum_update + lr * weight_decay * param)
+          nesterov_momentum_update + wd_lr * weight_decay * param
+      )
 
     momentum_multiplier = lr if decoupled_learning_rate else 1.0
     transformed_update = -1.0 * momentum_multiplier * nesterov_momentum_update
