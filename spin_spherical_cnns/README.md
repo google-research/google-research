@@ -1,3 +1,10 @@
+# New version coming soon!
+
+An updated version of this repo will soon be pushed to https://github.com/google-research/spherical-cnn.
+The new version will include the implementation of the forthcoming ICML 2023 paper
+"[Scaling Spherical CNNs](https://arxiv.org/pdf/2306.05420.pdf)."
+Stay tuned!
+
 # Spin-weighted spherical CNNs in JAX
 
 This is a JAX implementation of the paper Esteves et al, "[Spin-Weighted
@@ -12,11 +19,14 @@ Features:
 If you use this code, please cite the paper:
 
 ```bibtex
-@inproceedings{EstevesMD20,
+@inproceedings{esteves20_swscnn,
  author = {Esteves, Carlos and Makadia, Ameesh and Daniilidis, Kostas},
- editor = {H. Larochelle and M. Ranzato and R. Hadsell and M. F. Balcan and H. Lin},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {H. Larochelle and M. Ranzato and R. Hadsell and M.F. Balcan and H. Lin},
  pages = {8614--8625},
+ publisher = {Curran Associates, Inc.},
  title = {Spin-Weighted Spherical CNNs},
+ url = {https://proceedings.neurips.cc/paper_files/paper/2020/file/6217b2f7e4634fa665d31d3b4df81b56-Paper.pdf},
  volume = {33},
  year = {2020}
 }
@@ -31,7 +41,7 @@ ENV_DIR=~/venvs/spin_spherical_cnns
 CHECKPOINT_DIR=/tmp/swscnn_training
 
 # Clone this repo.
-sudo apt install subversion
+sudo apt install -y subversion
 svn export --force https://github.com/google-research/google-research/trunk/spin_spherical_cnns
 
 # Setup virtualenv.
@@ -42,7 +52,7 @@ source $ENV_DIR/bin/activate
 pip install -r spin_spherical_cnns/requirements.txt
 # For training with GPUs, you might have to change this to your
 # system's CUDA version.
-pip install --upgrade "jax[cuda110]" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip install --upgrade "jax[cuda110]>=0.2.19" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 
 # Download and convert datasets.
 # Will write to ~/tensorflow_datasets/spherical_mnist.
