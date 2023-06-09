@@ -205,11 +205,6 @@ class AntheaDocSys {
       const doc = parts[2].trim() + ':' + srcLang + ':' + tgtLang;
       const sys = parts[3].trim();
       const annotation = parts.length > 4 ? parts[4].trim() : '';
-      if ((!srcSegment || !tgtSegment) && (srcSegment || tgtSegment)) {
-        console.log('Skipping text line: only one of src/tgt is nonempty: [' +
-                    line + ']');
-        continue;
-      }
       if (!doc || !sys) {
         console.log('Skipping text line with empty doc/sys: [' + line + ']');
         continue;
