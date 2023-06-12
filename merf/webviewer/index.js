@@ -583,7 +583,7 @@ function loadScene(
       let sparseGridFeaturesTexture = null;
       let sparseGridBlockIndicesTexture = null;
       if (useSparseGrid) {
-        // Create empty volume textures that are lated filled slice-by-slice.
+        // Create empty volume textures that are later filled slice-by-slice.
         function _createEmptyAtlasVolumeTexture(format) {
           return createEmptyVolumeTexture(
               sceneParams['atlas_width'], sceneParams['atlas_height'],
