@@ -12,5 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script will include an example command line for performing an inference
-# on a given model with a given data point.
+echo See README.md for instructions on running this via a colab.
