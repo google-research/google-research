@@ -1,0 +1,5 @@
+# Video Timeline Modeling For News Story Understanding
+
+In this paper, we present a novel problem of video timeline modeling. Our objective is to create a video-associated timeline from a set of videos related to a specific topic, thereby facilitating the content and structure understanding of the story being told. This problem has significant potential in various real-world applications, such as news story summarization. To bootstrap research in this area, we curate a realistic benchmark dataset, YouTube-News-Timeline, consisting of over 12k timelines and 300k YouTube news videos. Additionally, we propose a set of quantitative metrics as the protocol to comprehensively evaluate and compare methodologies. With such a testbed, we further develop exploratory deep learning approaches to tackle this problem. Our experimental results demonstrate the effectiveness of our proposed approaches. We also suggest several promising directions and anticipate that this exploratory work will pave the way for further research in video timeline modeling.
+
+
