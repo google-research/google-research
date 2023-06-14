@@ -3,6 +3,10 @@
 from setuptools import find_packages
 from setuptools import setup
 
+# cd ..
+# pip install -r rouge/requirements.txt
+# pip install rouge-score
+
 setup(
     name="screen2words",
     version="0.1",
@@ -10,14 +14,13 @@ setup(
     author="Bryan Wang",
     author_email="bryanw@dgp.toronto.edu",
     install_requires=[
-       # "scikit-learn==0.19.2",
-       # "tensorflow-datasets==2.1.0",
-       # "tensorflow-gpu==2.1.0",
-       # "matplotlib==2.2.4",
-       # "scipy==1.2.2",
-       # "tf-models-official"
-       # "PyYaml==5.3",
-       # "jupyter==1.0.0",
-       # "dec_da @ https://github.com/dizcology/DEC-DA/archive/056079d05008da27961ab90cb68c66591ba2187f.zip",
+        "rouge-score>=0.1.2",
+        "nltk>=3.8.1",
+        "keras>=2.12.0",
+        "tensorflow>=2.12.0",
+        "tensorflow-intel>=2.12.0",
+        "tf-models-official>=2.12.0",
+        "tensorflow-text>=2.12.1",
+        "tensorflow-metadata>=1.13.1"
     ],
 )
