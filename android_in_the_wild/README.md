@@ -164,3 +164,9 @@ episodic data, we ask the raters to label subsequences of the longer-horizon
 task with natural language instructions. As an example, "Turn off wifi" could be
 broken into three instructions: "click settings", "open wifi settings", and
 "toggle the switch".
+
+## Example Episodes
+
+![](img/ex0.png)
+![](img/ex1.png)
+![](img/ex2.png)
