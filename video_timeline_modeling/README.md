@@ -5,7 +5,7 @@
 We present a novel problem, namely **video timeline modeling**. Our objective is to create a video-associated timeline from a set of videos related to a specific topic, thereby facilitating the content and structure understanding of the story being told. This problem has significant potential in various real-world applications, such as news story summarization. To bootstrap research in this area, we curate a realistic benchmark dataset, **YouTube-News-Timeline**
 
 
-![](https://github.com/google-research/google-research/tree/master/video_timeline_modeling/vtm.png)
+![](https://github.com/google-research/google-research/blob/master/video_timeline_modeling/vtm.png)
 
 
 ## YouTube-News-Timeline Dataset
@@ -18,26 +18,42 @@ YouTube-News-Timeline consists of over 12k timelines and 300k YouTube news video
 
 In the following, we show the distributions of the number of videos per node, the number of nodes per timeline, and the number of videos per timeline in the training, validation, and testing subsets.
 
-![](https://github.com/google-research/google-research/tree/master/video_timeline_modeling/data_dist.png)
+![](https://github.com/google-research/google-research/blob/master/video_timeline_modeling/data_dist.png)
 
 The dataset is available via [this Google Drive link](https://drive.google.com/file/d/12u-BLhdJR_YDCBWmNmIj-yzpR9HlalrK/view?usp=sharing). Each data sample is organized in the following format.
 
 ```json
-{"http://www.cnn.com/2010/WORLD/asiapcf/08/13/myanmar.elections.timeline/index.html":  // The URL link of the webpage where we crawl the timeline.
-    [
-        ["NSe5aPNZm8c",  
-        "6FnSK3GtsS8",
-        "E4NjDAKLxo4",
-        "G0L6g7imiXc"],
-        ["K7Zh5tYyjz4",
-        "YcjdUDdgqIM"],
-        ["G62y6enNVh0",
-        "Q8YFguRiuy0",
-        "uDJ9NqrQ5Xg"],
-        ["6ztk2ZqkHRc"],
-        ["gDK0sKzI3UE"]
-    ] /* The URL links of the retrieved YouTube news videos. Each list in the nested list corresponds to one node on the timeline. These nodes are ordered in the nested list. */
-    
+{
+     "https://apnews.com/article/japan-accidents-tsunamis-earthquakes-42d4947609becd7f141e9524a8c98937":  // The URL link of the webpage where we crawl the timeline.
+     [
+      [
+        "OhEbGK4PnZg",
+        "cl19tfn33hI",
+        "R0l6z0HaUAM",
+        "5QhCsR-t-qM",
+        "ev3FBIoHMX8"
+      ],
+      [
+        "psAuFr8Xeqs",
+        "BsRd7WQuBHc",
+        "Dp_8rLL1Y18",
+        "h1m7GFPAq3o"
+      ],
+      [
+        "f4TaKPKe1gg",
+        "DLlsKd-QC2o"
+      ],
+      [
+        "ocluW1Vhvcg",
+        "vusthiUFx_0",
+        "vGHzuZQLYtg",
+        "7XpLbhQxpLw",
+        "UsPFUzXisq4"
+      ],
+      [
+        "hA3fNK0rxcs"
+      ]
+    ] // The URL links of the retrieved YouTube news videos. Each list in the nested list corresponds to one node on the timeline. These nodes are ordered in the nested list.
 }
 ```
 
