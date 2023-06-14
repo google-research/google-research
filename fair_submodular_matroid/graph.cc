@@ -26,6 +26,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/container/btree_map.h"
 #include "utilities.h"
 
 struct hash_pair {
@@ -65,7 +66,7 @@ Graph::Graph(const std::string& name) : name_(name) {
         "download the datasets from/to.");
   }
   // renumber[x] = new number of x
-  std::map<int64_t, int> renumber;
+  absl::btree_map<int64_t, int> renumber;
   num_vertices_ = 0;
   num_edges_ = 0;
   int64_t first_endpoint, second_endpoint;
