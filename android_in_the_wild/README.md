@@ -56,6 +56,11 @@ Single      | 26,303      | 85,668        | 15,366           | [gs://gresearch/a
 
 </center>
 
+## Colab
+
+Run this [colab](https://github.com/google-research/google-research/blob/master/android_in_the_wild/demo.ipynb)
+for a quick demo on accessing the data and utilizing our visualization tools.
+
 ## Dataset format
 
 Each datapoint is stored as a
@@ -112,7 +117,8 @@ Additionally, there are 4 Out-of-Distribution (OOD) splits:
 
 The splits are represented by JSON files, where each file is a dictionary
 mapping the label (train, validation, test) to an array of episode IDs that have
-said label.
+said label. They are stored in GCS and can be found
+[here](https://console.cloud.google.com/storage/browser/gresearch/android-in-the-wild/splits).
 
 ## Action space
 
