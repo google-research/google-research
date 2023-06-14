@@ -152,7 +152,7 @@ dual-point action is considered a swipe. For two dual point actions to match
 they must both be taps or both be swipes. Two taps match if they are close to
 one another (i.e., within a 14% screen distance from one another) or fall within
 the same bounding box. Two swipes match if they have the same primary swipe axis
-(vertical or horizontal).
+(vertical or horizontal). We provide code for action matching in the repository.
 
 ## How the data was collected
 
