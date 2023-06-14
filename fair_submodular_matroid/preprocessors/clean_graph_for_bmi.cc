@@ -16,11 +16,13 @@
 #include <iostream>
 #include <map>
 
+#include "absl/container/btree_map.h"
+
 int main() {
   std::ifstream fin_colors("color-BMI.txt");
   int processed = 0;
   int u, v, c;
-  std::map<int, int> map_v_to_c;
+  absl::btree_map<int, int> map_v_to_c;
   while (fin_colors >> v >> c) {
     map_v_to_c[v] = c;
     processed++;
