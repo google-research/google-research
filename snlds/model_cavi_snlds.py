@@ -119,7 +119,7 @@ def construct_initial_state_distribution(
             loc=z0_mean, scale_diag=z0_scale),
         reinterpreted_batch_ndims=0)
 
-  return tfp.experimental.as_composite(return_dist)
+  return return_dist
 
 
 class ContinuousStateTransition(tf.keras.Model):
@@ -227,7 +227,7 @@ class ContinuousStateTransition(tf.keras.Model):
           loc=mean_tensor,
           scale_diag=self.cov_mat)
 
-    return tfp.experimental.as_composite(output_dist)
+    return output_dist
 
   @property
   def output_event_dims(self):
@@ -352,7 +352,7 @@ class GaussianDistributionFromMean(tf.keras.Model):
           loc=mean_tensor,
           scale_diag=self.cov_mat)
 
-    return tfp.experimental.as_composite(output_dist)
+    return output_dist
 
   @property
   def output_event_dims(self):
