@@ -19,9 +19,9 @@
  */
 const testProjectTSVData = `{"source_language":"en","target_language":"en"}
 
-This is the first​-​sentence​.	This is its translation​.	doc-42	system-GL
+This is the first​-​sentence​. 	This is its translation​.	doc-42	system-GL
 This is the second sentence. It includes this long string that tests text-wrapping: http://01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789​.	This is the translation (​of the second sentence​)​.	doc-42	system-GL
-The third sentence​.	A translation of the 3rd sentence​.	doc-42	system-GL
+The third sentence​. 	A translation of the 3rd sentence​. 	doc-42	system-GL
 Sentence 4​.	Translated sentence 4​.	doc-42	system-GL
 # A comment line, and then a paragraph break.
 

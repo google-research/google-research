@@ -183,6 +183,7 @@ class AntheaDocSys {
     const srcLang = parameters['source_language'];
     const tgtLang = parameters['target_language'];
     let docsys = new AntheaDocSys();
+    const spacesNormalizer = (s) => s.replace(/[\s]+/g, ' ');
     for (let line of lines.slice(1)) {
       if (line.startsWith('#')) {
         continue;
@@ -200,8 +201,9 @@ class AntheaDocSys {
         console.log('Skipping ill-formed text line: [' + line + ']');
         continue;
       }
-      const srcSegment = parts[0].trim();
-      const tgtSegment = parts[1].trim();
+      /** Note that we do not trim() srcSegment/tgtSegment. */
+      const srcSegment = spacesNormalizer(parts[0]);
+      const tgtSegment = spacesNormalizer(parts[1]);
       const doc = parts[2].trim() + ':' + srcLang + ':' + tgtLang;
       const sys = parts[3].trim();
       const annotation = parts.length > 4 ? parts[4].trim() : '';
@@ -1973,6 +1975,9 @@ class AntheaEval {
     };
     const tokens = AntheaEval.tokenize(text);
     const SEP = '<span class="anthea-space"> </span>';
+    if (tokens.length > 0 && tokens[tokens.length - 1] == ' ') {
+      appendSpace = false;
+    }
     for (let token of tokens) {
       if (token == ' ') {
         ret.spannified += SEP;
@@ -2000,24 +2005,27 @@ class AntheaEval {
    *   injectedError: Empty, or the HOTW error.
    *   hotwType: Empty, or a description of the injected HOTW error.
    *   numWords: The number of word tokens in the sentence.
-   *   numSPaces: The number of space tokens in the sentence.
+   *   numSpaces: The number of space tokens in the sentence.
    *   firstToken: The index of the first token (word or space).
    *   lastToken: The index of the last token (word or space).
    * In the HTML, each inter-word space is wrapped in a SPAN of class
    * "anthea-space" and each word is wrapped in a SPAN of class "anthea-word".
-   * Adds a trailing space token to the last sentence.
-   * 
+   * Adds a trailing space token to the last sentence unless addEndSpaces
+   * is false or there already is a space there.
+   *
    * @param {string} text
+   * @param {boolean} addEndSpaces
    * @param {number} hotwPercent
    * @param {boolean=} hotwPretend
    * @return {!Array<!Object>}
    */
-  static splitAndSpannify(text, hotwPercent, hotwPretend=false) {
+  static splitAndSpannify(text, addEndSpaces,
+                          hotwPercent, hotwPretend=false) {
     const sentInfos = [];
     const sentences = text.split('\u200b\u200b');
     let tokenIndex = 0;
     for (let s = 0; s < sentences.length; s++) {
-      const appendSpace = (s == sentences.length - 1);
+      const appendSpace = addEndSpaces && (s == sentences.length - 1);
       const sentence = sentences[s];
       const spannifyRet = AntheaEval.spannifyWords(sentence, appendSpace);
       const spanHTML = spannifyRet.spannified;
@@ -2832,6 +2840,20 @@ class AntheaEval {
   }
 
   /**
+   * Returns true if the language code (BCP-47) is for a language that
+   * generally uses spaces between sentences.
+   * @param {string} lang BCP 47 code
+   * @return {boolean}
+   */
+  isSpaceSepLang(lang) {
+    const lowerLang = lang.toLowerCase();
+    if (lowerLang.startsWith('ja') || lowerLang.startsWith('zh')) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Sets up the eval. This is the starting point called once the template has
    *     been loaded.
    *
@@ -2948,6 +2970,8 @@ class AntheaEval {
       const tgtSegments = docsys.tgtSegments;
       let srcSpannified = '<p class="anthea-source-para" dir="auto">';
       let tgtSpannified = '<p class="anthea-target-para" dir="auto">';
+      const addEndSpacesSrc = this.isSpaceSepLang(srcLang);
+      const addEndSpacesTgt = this.isSpaceSepLang(tgtLang);
       for (let i = 0; i < srcSegments.length; i++) {
         if (srcSegments[i].length == 0) {
           /* New paragraph. */
@@ -2971,9 +2995,11 @@ class AntheaEval {
           srcText: srcSegments[i],
           tgtText: tgtSegments[i],
           numTgtWords: 0,
-          srcSents: AntheaEval.splitAndSpannify(srcSegments[i], 0),
+          srcSents: AntheaEval.splitAndSpannify(
+              srcSegments[i], addEndSpacesSrc, 0),
           tgtSents: AntheaEval.splitAndSpannify(
-              tgtSegments[i], this.READ_ONLY ? 0 : hotwPercent, hotwPretend),
+              tgtSegments[i], addEndSpacesTgt,
+              this.READ_ONLY ? 0 : hotwPercent, hotwPretend),
         };
         this.segments_.push(segment);
 
