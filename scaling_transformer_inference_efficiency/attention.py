@@ -107,7 +107,7 @@ class KVCache:
         lengths=P('attn_batch'),
         k=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
         v=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
-        offset=P(None),
+        offset=P(),
         circular=circular,
     )  # pytype: disable=wrong-arg-types
 
