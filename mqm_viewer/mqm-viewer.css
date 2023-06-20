@@ -53,6 +53,20 @@
   max-height: 100px;
   overflow-y: auto;
 }
+.mqm-file-menu tr {
+  border: 1px solid gray;
+  padding: 4px;
+}
+.mqm-file-menu-entry {
+  cursor: pointer;
+}
+.mqm-file-menu-entry:hover {
+  background-color: lightgreen;
+  border: 1px solid blue;
+}
+.mqm-file-menu-option {
+  text-align: right;
+}
 .mqm-filters * {
   line-height: 1.5;
 }
@@ -63,14 +77,6 @@
   margin: 8px;
   position: relative;
   width: 90%;
-}
-.mqm-header-right {
-  bottom: 0;
-  color: blue;
-  font-style: italic;
-  position: absolute;
-  right: 0;
-  vertical-align: baseline;
 }
 .mqm-help-icon {
   color: blue;
@@ -87,6 +93,14 @@
 .mqm-major {
   background: rgba(255, 192, 203, 0.7);
   cursor: crosshair;
+}
+.mqm-menu td {
+  padding: 6px 16px 0 0;
+  vertical-align: text-top;
+}
+.mqm-menu-entry summary {
+  cursor: pointer;
+  color: blue;
 }
 .mqm-minor {
   background: rgba(251, 236, 93, 0.7);
@@ -143,21 +157,12 @@
   font-weight: bold;
 }
 .mqm-seg-score {
-  color: gray;
   font-size: small;
 }
 .mqm-select {
   margin: 4px 0;
-  max-width: 100px;
+  max-width: 80px;
   min-width: 50px;
-}
-.mqm-settings {
-  margin: 6px 0 4px;
-  padding: 0 0 10px 0;
-}
-.mqm-settings summary {
-  cursor: pointer;
-  color: blue;
 }
 .mqm-settings-editable {
   border-bottom: 1px solid blue;
@@ -181,6 +186,9 @@
 }
 .mqm-stats-weighted {
   background-color: #F8F8F8;
+}
+.mqm-subheading {
+  padding: 6px 0 0 4px;
 }
 .mqm-sys-v-sys {
   margin: 8px;
@@ -222,22 +230,22 @@
   border-bottom: 1px solid gray;
 }
 #mqm-th-doc {
-  width: 10%;
+  width: 9%;
 }
 #mqm-th-doc-seg {
-  width: 3%;
+  width: 5%;
 }
 #mqm-th-system {
-  width: 10%;
+  width: 9%;
 }
 #mqm-th-source {
-  width: 30%;
+  width: 29%;
 }
 #mqm-th-target {
-  width: 30%;
+  width: 29%;
 }
 #mqm-th-rating {
-  width: 17%;
+  width: 19%;
 }
 .mqm-timestamp {
   font-size: x-small;

@@ -409,6 +409,7 @@ function mqmCreateDataIter() {
     docSys: {},
     docSegSys: {},
     systems: [],
+    evaluation: {},
   };
   let lastRow = null;
   const systemsSet = new Set();
@@ -461,7 +462,12 @@ function mqmCreateDataIter() {
     const docSegId = parts[MQM_DATA_DOC_SEG_ID];
     const system = parts[MQM_DATA_SYSTEM];
     const metadata = parts[MQM_DATA_METADATA];
-
+    if (metadata.evaluation) {
+      mqmDataIter.evaluation = {
+        ...mqmDataIter.evaluation,
+        ...metadata.evaluation
+      };
+    }
     const sameDoc = lastRow && (doc == lastRow[MQM_DATA_DOC]);
     const sameDocSeg = sameDoc && (docSegId == lastRow[MQM_DATA_DOC_SEG_ID]);
     const sameDocSegSys = sameDocSeg && (system == lastRow[MQM_DATA_SYSTEM]);
@@ -631,12 +637,8 @@ function mqmTokenizeLegacySegment(rowRange, segment) {
   for (let row = rowRange[0]; row < rowRange[1]; row++) {
     const parts = mqmData[row];
     const idx = row - rowRange[0];
-    if (sourceTokenization.spans[idx]) {
-      parts[MQM_DATA_METADATA].source_spans = sourceTokenization.spans[idx];
-    }
-    if (targetTokenization.spans[idx]) {
-      parts[MQM_DATA_METADATA].target_spans = targetTokenization.spans[idx];
-    }
+    parts[MQM_DATA_METADATA].source_spans = sourceTokenization.spans[idx];
+    parts[MQM_DATA_METADATA].target_spans = targetTokenization.spans[idx];
   }
 }
 
@@ -672,10 +674,17 @@ function mqmAddSegmentAggregations() {
         const range = mqmDataIter.docSegSys[doc][docSegId][system].rows;
         let aggrDocSegSys = {
           aggrDocSeg: aggrDocSeg,
+          metrics: {},
         };
         for (let rowId = range[0]; rowId < range[1]; rowId++) {
           const parts = mqmData[rowId];
           const segment = parts[MQM_DATA_METADATA].segment || {};
+          if (segment.hasOwnProperty('metrics')) {
+            aggrDocSegSys.metrics = {
+              ...segment.metrics,
+              ...aggrDocSegSys.metrics,
+            };
+          }
           aggrDocSegSys = {...segment, ...aggrDocSegSys};
         }
         if (!aggrDocSegSys.source_tokens ||
@@ -712,6 +721,7 @@ function mqmAddSegmentAggregations() {
           const parts = mqmData[rowId];
           const metadata = parts[MQM_DATA_METADATA];
           metadata.segment = aggrDocSegSys;
+          mqmSetMarkedText(rowId, metadata);
 
           const rater = parts[MQM_DATA_RATER];
           if (!rater) {
@@ -1147,6 +1157,7 @@ function mqmInitRaterStats(rater) {
 
     hotwFound: 0,
     hotwMissed: 0,
+    timeSpentMS: 0,
   };
 }
 
@@ -1198,6 +1209,7 @@ function mqmAddRaterStats(raterStats, delta) {
   raterStats.numWithErrors += delta.numWithErrors;
   raterStats.hotwFound += delta.hotwFound;
   raterStats.hotwMissed += delta.hotwMissed;
+  raterStats.timeSpentMS += delta.timeSpentMS;
 }
 
 /**
@@ -1208,6 +1220,7 @@ function mqmAddRaterStats(raterStats, delta) {
 function mqmAvgRaterStats(raterStats, num) {
   if (!num) return;
   raterStats.score /= num;
+  raterStats.timeSpentMS /= num;
   for (sc of mqmWeights) {
     const key = mqmScoreKey(sc.name);
     if (raterStats[key]) {
@@ -1232,6 +1245,7 @@ function mqmAvgRaterStats(raterStats, num) {
  *       metrics
  *       metric-[index in mqmMetrics]
  *           (repeated from metrics[...].score, as a convenient sorting key)
+ *       timeSpentMS
  * @param {!Array} segs
  * @return {!Object}
  */
@@ -1244,6 +1258,7 @@ function mqmAggregateSegStats(segs) {
     aggregates.numSegments = 0;
     aggregates.numSrcChars = 0;
     aggregates.numRatings = 0;
+    aggregates.timeSpentMS = 0;
     return aggregates;
   }
   let totalSrcLen = 0;
@@ -1369,7 +1384,8 @@ function mqmPrepareSigtests(mqmStatsBySysAggregates) {
                         (mqmStatsBySysAggregates[s2][metricKey] ?? 0)));
     for (const system of data.systems) {
       data.scoresBySystem[system] =
-          mqmStatsBySysAggregates[system].metrics[metric];
+          mqmStatsBySysAggregates[system].metrics[metric] ??
+          {score: 0, scoreDenominator: 0};
     }
     segScores = data.segScoresBySystem;
     for (const system of Object.keys(mqmStatsBySystem)) {
@@ -1384,8 +1400,8 @@ function mqmPrepareSigtests(mqmStatsBySysAggregates) {
           const segs = mqmStatsBySystem[system][doc][docSegId];
           /** Note the extra "[]". */
           const aggregate = mqmAggregateSegStats([segs]);
-          const metricStats = aggregate.metrics[metric];
-          if (metricStats.scoreDenominator > 0) {
+          const metricStats = aggregate.metrics[metric] ?? null;
+          if (metricStats && metricStats.scoreDenominator > 0) {
             posToScore[pos] = metricStats.score;
           }
         }
@@ -1525,6 +1541,7 @@ function mqmShowSigtests(mqmStatsBySysAggregates) {
     return;
   }
   mqmPrepareSigtests(mqmStatsBySysAggregates);
+  let firstTable = true;
   for (let m of mqmMetricsVisible) {
     const metric = mqmMetrics[m];
     const data = mqmSigtestsData.metricData[metric];
@@ -1533,12 +1550,17 @@ function mqmShowSigtests(mqmStatsBySysAggregates) {
 
     /** Header. */
     let html = `
+    ${firstTable ? '' : '<br>'}
     <table id="mqm-sigtests-${m}" class="mqm-table mqm-numbers-table">
       <thead>
         <tr>
           <th>System</th>
           <th>${mqmMetrics[m]}</th>`;
     for (const system of systems) {
+      const s = scoresBySystem[system];
+      if (s.scoreDenominator == 0) {
+        continue;
+      }
       html += `<th>${system}</th>`;
     }
     html += `</tr></thead>\n<tbody>\n`;
@@ -1547,12 +1569,19 @@ function mqmShowSigtests(mqmStatsBySysAggregates) {
     for (const [rowIdx, baseline] of systems.entries()) {
       /** Show metric score in the second column. */
       const s = scoresBySystem[baseline];
+      if (s.scoreDenominator == 0) {
+        continue;
+      }
       const displayScore = mqmMetricDisplay(s.score, s.scoreDenominator);
       html += `
         <tr id="mqm-sigtests-${m}-row-${rowIdx}">
           <td>${baseline}</td>
           <td>${displayScore}</td>`;
       for (const [colIdx, system] of systems.entries()) {
+        const s2 = scoresBySystem[system];
+        if (s2.scoreDenominator == 0) {
+          continue;
+        }
         const spanId = `mqm-sigtest-${m}-${rowIdx}-${colIdx}`;
         const content = rowIdx >= colIdx ? '-' : '-.---';
         html += `<td><span id="${spanId}">${content}<span></td>`;
@@ -1561,6 +1590,7 @@ function mqmShowSigtests(mqmStatsBySysAggregates) {
     }
     html += `</tbody></table>`;
     div.insertAdjacentHTML('beforeend', html);
+    firstTable = false;
   }
 
   mqmSigtestsMsg.innerHTML = 'Computing p-values...';
@@ -1631,6 +1661,8 @@ function mqmShowScoresHeader() {
         </th>`;
   }
   html += `
+        <th title="Average time (seconds) per rater per
+segment or 100-source-chars"><b>Time (s)</b></th>
         <th title="Average length of error span"><b>Err span</b></th>
         <th title="Hands-on-the-wheel test"><b>HOTW Test</b></th>
       </tr>`;
@@ -1669,7 +1701,7 @@ function mqmShowScoresHeader() {
 function mqmShowScores(id, title, stats, aggregates = null) {
   const tbody = document.getElementById(id);
   if (title) {
-    const NUM_COLS = 6 + mqmMetricsVisible.length +
+    const NUM_COLS = 7 + mqmMetricsVisible.length +
                      mqmScoreWeightedFields.length +
                      mqmScoreSliceFields.length;
     tbody.insertAdjacentHTML(
@@ -1698,6 +1730,10 @@ function mqmShowScores(id, title, stats, aggregates = null) {
     let rowHTML = `<tr><td>${k}</td>`;
     for (let m of mqmMetricsVisible) {
       const metric = mqmMetrics[m];
+      if (!aggregates[k].metrics.hasOwnProperty(metric)) {
+        rowHTML += '<td>-</td>';
+        continue;
+      }
       const s = aggregates[k].metrics[metric];
       const title = `#Segments: ${s.numSegments}, #SrcChars: ${s.numSrcChars}`;
       rowHTML += `<td title="${title}">` +
@@ -1709,7 +1745,7 @@ function mqmShowScores(id, title, stats, aggregates = null) {
         `<td>${aggregates[k].numSrcChars}</td>` +
         `<td>${aggregates[k].numRatings}</td>`;
     if (aggregates[k].scoreDenominator <= 0) {
-      for (let i = 0; i < scoreFields.length; i++) {
+      for (let i = 0; i < scoreFields.length + 3; i++) {
         rowHTML += '<td>-</td>';
       }
     } else {
@@ -1726,6 +1762,7 @@ function mqmShowScores(id, title, stats, aggregates = null) {
       if (aggregates[k].numWithErrors > 0) {
         errorSpan = aggregates[k].errorSpans / aggregates[k].numWithErrors;
       }
+      rowHTML += `<td>${(aggregates[k].timeSpentMS/1000.0).toFixed(1)}</td>`;
       rowHTML += `<td>${(errorSpan).toFixed(1)}</td>`;
       const hotw = aggregates[k].hotwFound + aggregates[k].hotwMissed;
       if (hotw > 0) {
@@ -1801,8 +1838,8 @@ function mqmShowSystemRaterStats() {
     html += `
       <tr><td>${sys}</td><td>${allRatersScoreDisplay}</td>`;
     for (let rater of raters) {
-      const segs = mqmGetSegStatsAsArray(mqmStatsBySystemRater[sys][rater]
-                                         || {});
+      const segs = mqmGetSegStatsAsArray(
+          (mqmStatsBySystemRater[sys] ?? {})[rater] ?? {});
       if (segs && segs.length > 0) {
         const aggregate = mqmAggregateSegStats(segs);
         const cls = ((aggregate.score < lastForRater[rater] &&
@@ -2302,7 +2339,8 @@ function mqmShowSysVSys() {
       const aggregate2 = mqmAggregateSegStats(
           [mqmStatsBySystem[mqmSysVSys2][doc][docSegId]]);
       histBuilder.addSegment(doc, docSegId,
-                             aggregate1[metricKey], aggregate2[metricKey],
+                             aggregate1[metricKey],
+                             aggregate2[metricKey],
                              lowerBetter);
     }
     histBuilder.display();
@@ -2361,19 +2399,19 @@ function mqmShowSevCatStats() {
 }
 
 /**
- * Shows UI event counts and timings.
+ * Shows UI event counts and timespans.
  */
-function mqmShowEvents() {
+function mqmShowEventTimespans() {
   const tbody = document.getElementById('mqm-events-tbody');
-
   const sortedEvents = [];
-  for (let e of Object.keys(mqmEvents)) {
+  for (let e of Object.keys(mqmEvents.aggregates)) {
     const event = {
       'name': e,
     };
-    const eventInfo = mqmEvents[e];
+    const eventInfo = mqmEvents.aggregates[e];
     event.count = eventInfo.count;
-    if (e.indexOf('visited') >= 0) {
+    if (e.indexOf('visited-or-redrawn') >= 0) {
+      /** Deprecated event for which timespan did not make sense. */
       event.avgTimeMS = '';
     } else {
       event.avgTimeMS = eventInfo.timeMS / eventInfo.count;
@@ -2397,6 +2435,78 @@ function mqmShowEvents() {
     rowHTML += '</tr>\n';
     tbody.insertAdjacentHTML('beforeend', rowHTML);
   }
+}
+
+/**
+ * Max number of rows to show in a rater's event timeline.
+ */
+const MQM_RATER_TIMELINE_LIMIT = 200;
+
+/**
+ * Make the timeline for the currently selected rater visible, hiding others.
+ */
+function mqmRaterTimelineSelect() {
+  const raterIndex = document.getElementById('mqm-rater-timelines-rater').value;
+  const tbodyId = `mqm-rater-timeline-${raterIndex}`;
+  const table = document.getElementById('mqm-rater-timelines');
+  const tbodies = table.getElementsByTagName('tbody');
+  for (let i = 0; i < tbodies.length; i++) {
+    tbodies[i].style.display = (tbodies[i].id == tbodyId) ? '' : 'none';
+  }
+}
+
+/**
+ * Shows rater-wise UI event timelines.
+ */
+function mqmShowRaterTimelines() {
+  const raters = Object.keys(mqmEvents.raters);
+  const raterSelect = document.getElementById('mqm-rater-timelines-rater');
+  raterSelect.innerHTML = '';
+  const table = document.getElementById('mqm-rater-timelines');
+  const tbodies = table.getElementsByTagName('tbody');
+  for (let i = 0; i < tbodies.length; i++) {
+    tbodies[i].remove();
+  }
+  for (let i = 0; i < raters.length; i++) {
+    const rater = raters[i];
+    raterSelect.insertAdjacentHTML('beforeend', `
+                                   <option value="${i}">${rater}</option>`);
+    const tbody = document.createElement('tbody');
+    tbody.setAttribute('id', `mqm-rater-timeline-${i}`);
+    table.appendChild(tbody);
+    const log = mqmEvents.raters[rater];
+    log.sort((e1, e2) => e1.ts - e2.ts);
+    let num = 0;
+    for (let e of log) {
+      let rowHTML = '<tr>';
+      rowHTML += '<td>' + (new Date(e.ts)).toLocaleString() + '</td>';
+      rowHTML += '<td>' + e.action + '</td>';
+      rowHTML += '<td>' + e.doc + '</td>';
+      rowHTML += '<td>' + e.system + '</td>';
+      rowHTML += '<td>' + e.docSegId + '</td>';
+      rowHTML += '<td>' + (e.side == 0 ? 'Source' : 'Translation') + '</td>';
+      rowHTML += '<td>' + (e.sentence + 1) + '</td>';
+      rowHTML += '<td>' +
+                 (e.source_not_seen ? 'Translation' : 'Source, Translation') +
+                 '</td>';
+      rowHTML += '</tr>\n';
+      tbody.insertAdjacentHTML('beforeend', rowHTML);
+      num++;
+      if (num >= MQM_RATER_TIMELINE_LIMIT) {
+        break;
+      }
+    }
+    tbody.style.display = 'none';
+  }
+  mqmRaterTimelineSelect();
+}
+
+/**
+ * Shows UI event counts, timespans, and rater timelines
+ */
+function mqmShowEvents() {
+  mqmShowEventTimespans();
+  mqmShowRaterTimelines();
 }
 
 /**
@@ -2477,23 +2587,56 @@ function mqmAddSevCatStats(statsArray, system, category, severity) {
 }
 
 /**
+ * Returns total time spent, across various timing events in metadata.timing.
+ * @param {!Object} metadata
+ * @return {number}
+ */
+function mqmTimeSpent(metadata) {
+  let timeSpentMS = 0;
+  if (!metadata.timing) {
+    return timeSpentMS;
+  }
+  for (let e in metadata.timing) {
+    timeSpentMS += metadata.timing[e].timeMS;
+  }
+  return timeSpentMS;
+}
+
+/**
  * Adds UI events and timings from metadata into events.
  * @param {!Object} events
  * @param {!Object} metadata
+ * @param {string} doc
+ * @param {string} docSegId
+ * @param {string} system
+ * @param {string} rater
  */
-function mqmAddEvents(events, metadata) {
+function mqmAddEvents(events, metadata, doc, docSegId, system, rater) {
   if (!metadata.timing) {
     return;
   }
   for (let e of Object.keys(metadata.timing)) {
-    if (!events.hasOwnProperty(e)) {
-      events[e] = {
-        'count': 0,
-        'timeMS': 0,
+    if (!events.aggregates.hasOwnProperty(e)) {
+      events.aggregates[e] = {
+        count: 0,
+        timeMS: 0,
       };
     }
-    events[e].count += metadata.timing[e].count;
-    events[e].timeMS += metadata.timing[e].timeMS;
+    events.aggregates[e].count += metadata.timing[e].count;
+    events.aggregates[e].timeMS += metadata.timing[e].timeMS;
+    if (!events.raters.hasOwnProperty(rater)) {
+      events.raters[rater] = [];
+    }
+    const log = metadata.timing[e].log ?? [];
+    for (let detail of log) {
+      events.raters[rater].push({
+        ...detail,
+        action: e,
+        doc: doc,
+        system: system,
+        docSegId: docSegId,
+      });
+    }
   }
 }
 
@@ -2523,38 +2666,18 @@ function mqmIsAccuracy(lcat) {
 }
 
 /**
- * Given text containing marked spans, returns the length of the spanned parts.
- * @param {string} s
- * @return {number}
- */
-function mqmSpanLength(s) {
-  let offset = 0;
-  let span = 0;
-  let index = 0;
-  while ((index = s.indexOf('<span class="mqm-m', offset)) >= offset) {
-    offset = index + 1;
-    let startSpan = s.indexOf('>', offset);
-    if (startSpan < 0) break;
-    startSpan += 1;
-    const endSpan = s.indexOf('</span>', startSpan);
-    if (endSpan < 0) break;
-    console.assert(startSpan <= endSpan, startSpan, endSpan);
-    span += (endSpan - startSpan);
-    offset = endSpan + 7;
-  }
-  return span;
-}
-
-/**
  * Updates stats with an error of (category, severity). The weighted score
  * component to use is the first matching one in mqmWeights[]. Similarly, the
  * slice to attribute the score to is the first matching one in mqmSlices[].
  * @param {!Object} stats
+ * @param {number} timeSpentMS
  * @param {string} category
  * @param {string} severity
  * @param {number} span
  */
-function mqmAddErrorStats(stats, category, severity, span) {
+function mqmAddErrorStats(stats, timeSpentMS, category, severity, span) {
+  stats.timeSpentMS += timeSpentMS;
+
   const lcat = category.toLowerCase().trim();
   if (lcat == 'no-error' || lcat == 'no_error') {
     return;
@@ -2723,31 +2846,27 @@ function mqmSeverityClass(severity) {
 }
 
 /**
- * For the annotation defined in metadata, (for row rowId in mqmData), returns
- * the marked span in HTML. The rowId is only used for legacy formats where
- * tokenization is not available in metadata.
+ * For the annotation defined in metadata, (for row rowId in mqmData), sets
+ * metadata.marked_text as the text that has been marked by the rater (or
+ * sets it to the empty string). The rowId is only used for legacy formats
+ * where tokenization is not available in metadata.
  * @param {number} rowId
  * @param {!Object} metadata
- * @param {string} cls The CSS class for the annotation
- * @return {string}
  */
-function mqmSpanHTML(rowId, metadata, cls) {
-  let sourceSpan = mqmGetSpan(metadata.segment.source_tokens || [],
+function mqmSetMarkedText(rowId, metadata) {
+  let sourceSpan = mqmGetSpan(metadata.segment.source_tokens,
                               metadata.source_spans || []);
   if (!sourceSpan) {
     const source = mqmData[rowId][MQM_DATA_SOURCE];
     sourceSpan = mqmGetLegacySpan(source);
   }
-  let targetSpan = mqmGetSpan(metadata.segment.target_tokens || [],
+  let targetSpan = mqmGetSpan(metadata.segment.target_tokens,
                               metadata.target_spans || []);
   if (!targetSpan) {
     const target = mqmData[rowId][MQM_DATA_TARGET];
     targetSpan = mqmGetLegacySpan(target);
   }
-  if (sourceSpan || targetSpan) {
-    return '<span class="' + cls + '">[' + sourceSpan + targetSpan + ']</span>';
-  }
-  return '';
+  metadata.marked_text = sourceSpan + targetSpan;
 }
 
 /**
@@ -2891,7 +3010,10 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
   mqmDataFiltered = [];
 
   mqmStatsBySevCat = {};
-  mqmEvents = {};
+  mqmEvents = {
+    aggregates: {},
+    raters: {},
+  };
   const visibleMetrics = {};
   mqmMetricsVisible = [];
 
@@ -3035,20 +3157,27 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
             currSegStatsBySysRater.push(mqmInitRaterStats(rater));
             currSegStatsBySysRater.srcLen = parts.srcLen;
           }
+          let spanClass = '';
           if (rater) {
             /** An actual rater-annotation row, not just a metadata row */
-            const span = mqmSpanLength(parts[MQM_DATA_SOURCE]) +
-                         mqmSpanLength(parts[MQM_DATA_TARGET]);
+            spanClass = mqmSeverityClass(severity) +
+                        ` mqm-anno-${shownRows.length}`;
+            const sourceSpan = mqmMarkSpans(
+                sourceTokens, metadata.source_spans || [], spanClass);
+            const targetSpan = mqmMarkSpans(
+                targetTokens, metadata.target_spans || [], spanClass);
+            const span = sourceSpan + targetSpan;
+            const timeSpentMS = mqmTimeSpent(metadata);
             mqmAddErrorStats(mqmArrayLast(currSegStats),
-                             category, severity, span);
+                             timeSpentMS, category, severity, span);
             mqmAddErrorStats(mqmArrayLast(currSegStatsBySys),
-                             category, severity, span);
+                             timeSpentMS, category, severity, span);
             mqmAddErrorStats(mqmArrayLast(currSegStatsByRater),
-                             category, severity, span);
+                             timeSpentMS, category, severity, span);
             mqmAddErrorStats(mqmArrayLast(currSegStatsBySysRater),
-                             category, severity, span);
+                             timeSpentMS, category, severity, span);
             mqmAddSevCatStats(mqmStatsBySevCat, system, category, severity);
-            mqmAddEvents(mqmEvents, metadata);
+            mqmAddEvents(mqmEvents, metadata, doc, docSegId, system, rater);
           }
 
           if (redoStatsOnly) {
@@ -3072,16 +3201,12 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
              */
             continue;
           }
-
-          const cls = mqmSeverityClass(severity) +
-                      ` mqm-anno-${shownRows.length}`;
-          mqmMarkSpans(sourceTokens, metadata.source_spans || [], cls);
-          mqmMarkSpans(targetTokens, metadata.target_spans || [], cls);
-
           ratingRowsHTML += '<tr><td><div>';
-          const markedSpan = mqmSpanHTML(rowId, metadata, cls);
-          if (markedSpan) {
-            ratingRowsHTML += markedSpan + '<br>';
+          if (metadata.marked_text) {
+            const textSpan = metadata.marked_text.replace(
+                /</g, '&lt;').replace(/>/g, '&gt;');
+            ratingRowsHTML += '<span class="' + spanClass + '">[' +
+                              textSpan + ']</span><br>';
           }
           ratingRowsHTML += mqmSeverityHTML(rowId, severity, metadata) +
                             '&nbsp;';
@@ -3158,20 +3283,25 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
   /**
    * Add cross-highlighting listeners.
    */
-  const annoFonter = (a, wt) => {
+  const annoHighlighter = (a, shouldShow) => {
     const elts = document.getElementsByClassName('mqm-anno-' + a);
+    const fontWeight = shouldShow ? 'bold' : 'inherit';
+    const border = shouldShow ? '1px solid blue' : 'none';
     for (let i = 0; i < elts.length; i++) {
-      elts[i].style.fontWeight = wt;
+      const style = elts[i].style;
+      style.fontWeight = fontWeight;
+      style.borderTop = border;
+      style.borderBottom = border;
     }
   };
   for (let a = 0; a < shownRows.length; a++) {
     const elts = document.getElementsByClassName('mqm-anno-' + a);
     if (elts.length == 0) continue;
     const onHover = (e) => {
-      annoFonter(a, 'bold');
+      annoHighlighter(a, true);
     };
     const onNonHover = (e) => {
-      annoFonter(a, 'inherit');
+      annoHighlighter(a, false);
     };
     for (let i = 0; i < elts.length; i++) {
       elts[i].addEventListener('mouseover', onHover);
@@ -3228,18 +3358,24 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
 
 /**
  * Wraps tokens within ranges specified in each bounds entry, in HTML
- * spans with the specified class.
+ * spans with the specified class. Returns the total length of marked tokens.
  * @param {!Array<string>} tokens
  * @param {!Array<!Array<number>>} bounds
  * @param {string} cls
+ * @return {number}
  */
 function mqmMarkSpans(tokens, bounds, cls) {
+  let len = 0;
   for (let bound of bounds) {
     for (let i = bound[0]; i <= bound[1]; i++) {
-      if (i < 0 || i >= tokens.length) continue;
+      if (i < 0 || i >= tokens.length) {
+        continue;
+      }
+      len += tokens[i].length;
       tokens[i] = '<span class="' + cls + '">' + tokens[i] + '</span>';
     }
   }
+  return len;
 }
 
 /**
@@ -3359,6 +3495,7 @@ function mqmResetData() {
   mqmMetricsVisible = [];
   mqmSortByField = 'metric-0';
   mqmSortReverse = false;
+  mqmCloseMenuEntries('');
 }
 
 /**
@@ -3371,7 +3508,8 @@ const MQM_VIEWER_MAX_DATA_LINES = 10000000;
 
 /**
  * Sets mqmTSVData from the passed TSV data string or array of strings, and
- * parses it into mqmData.
+ * parses it into mqmData. If the UI option mqm-load-file-append is checked,
+ * then the new data is appended to the existing data, else it replaces it.
  * @param {string|!Array<string>} tsvData
  */
 function mqmSetData(tsvData) {
@@ -3392,9 +3530,14 @@ function mqmSetData(tsvData) {
     errors.innerHTML = 'Empty data passed to mqmSetData()';
     return;
   }
-  mqmTSVData = tsvData;
-  document.getElementById('mqm-save-file').disabled = false;
-  document.getElementById('mqm-save-file-type').disabled = false;
+  if (document.getElementById('mqm-load-file-append').checked) {
+    if (mqmTSVData && !mqmTSVData.endsWith('\n')) {
+      mqmTSVData += '\n';
+    }
+  } else {
+    mqmTSVData = '';
+  }
+  mqmTSVData += tsvData;
 
   mqmResetData();
   const data = mqmTSVData.split('\n');
@@ -3459,15 +3602,10 @@ function mqmSetData(tsvData) {
     if (!metadata.feedback) {
       metadata.feedback = {};
     }
-    if (!metadata.evaluation) {
-      metadata.evaluation = {};
-    } else {
+    if (metadata.evaluation) {
       /* Show the evaluation metadata in the log. */
       console.log('Evaluation info found in row ' + mqmData.length + ':');
       console.log(metadata.evaluation);
-    }
-    if (!metadata.evaluation.config) {
-      metadata.evaluation.config = {};
     }
     /** Note any metrics that might be in the data. */
     const metrics = metadata.segment.metrics;
@@ -3541,6 +3679,11 @@ function mqmOpenFiles() {
       };
       fr.readAsText(f);
     }
+    /**
+     * Set the file field to empty so that re-picking the same file *will*
+     * actually reload it.
+     */
+    filesElt.value = '';
   } catch (err) {
     let errString = err +
         (errnoeousFile ? ' (file with error: ' + erroneousFile + ')' : '');
@@ -3732,53 +3875,27 @@ function mqmSaveDataInner(tsvData, fileName) {
   a.click();
   window.URL.revokeObjectURL(a.href);
   document.body.removeChild(a);
-}
-
-/**
- * Returns a suitable label for the "save" button, depending on saveType.
- * @param {string} saveType One of '', 'filtered', 'system', 'document',
- *     'segment', 'rater'
- * @return {string}
- */
-function mqmSaveLabel(saveType) {
-  if (!saveType) {
-    return 'Save MQM data to file "mqm-data.tsv"';
-  }
-  if (saveType == 'filtered') {
-    return 'Save filtered MQM data to file "mqm-data-filtered.tsv"';
-  }
-  return 'Save filtered scores to file ' +
-         `"mqm-scores-by-${saveType}.tsv"`;
-}
-
-/**
- * Updates the label of the "save" button, depending upon the currenly selected
- * option in the aggregation drop-down.
- */
-function mqmUpdateSaveLabel() {
-  const saveType = document.getElementById('mqm-save-file-type').value;
-  const saveButton = document.getElementById('mqm-save-file');
-  saveButton.innerHTML = mqmSaveLabel(saveType);
+  mqmCloseMenuEntries('');
 }
 
 /**
  * Saves mqmTSVData or filtered or filtered+aggregated data to the file
  *     mqm-data.tsv. Adds a header line when saving non-aggregated MQM data,
  *     if it's not already there.
+ * @param {string} saveType One of 'all', 'filtered', 'system', 'document',
+ *     'segment', 'rater'
+ * @param {string} fileName This is appened to any prefix entered in the
+ *     mqm-saved-file-prefix field.
  */
-function mqmSaveData() {
-  const saveType = document.getElementById('mqm-save-file-type').value;
+function mqmSaveData(saveType, fileName) {
   let tsvData = '';
-  let fileName = 'mqm-data.tsv';
   let addHeader = true;
-  if (!saveType) {
+  if (saveType == 'all') {
     tsvData = mqmTSVData;
   } else if (saveType == 'filtered') {
     tsvData = mqmGetFilteredTSVData();
-    fileName = `mqm-data-filtered.tsv`;
   } else {
     tsvData = mqmGetScoresTSVData(saveType);
-    fileName = `mqm-scores-by-${saveType}.tsv`;
     addHeader = false;
   }
   if (!tsvData) {
@@ -3792,7 +3909,8 @@ function mqmSaveData() {
               'https://github.com/google-research/google-research/tree/m' +
               'aster/mqm_viewer\n' + tsvData;
   }
-  mqmSaveDataInner(tsvData, fileName);
+  const prefix = document.getElementById('mqm-saved-file-prefix').value.trim();
+  mqmSaveDataInner(tsvData, prefix + fileName);
 }
 
 /**
@@ -3828,18 +3946,34 @@ function mqmResetSettings() {
 }
 
 /**
+ * Collapse all top menu zippy panels, except the one
+ * with the given id.
+ * @param {string=} except
+ */
+function mqmCloseMenuEntries(except='') {
+  const menuEntries = document.getElementsByClassName('mqm-menu-entry');
+  for (let i = 0; i < menuEntries.length; i++) {
+    const entry = menuEntries[i];
+    if (entry.id != except) {
+      entry.removeAttribute('open');
+    }
+  }
+}
+
+/**
  * Replaces the HTML contents of elt with the HTML needed to render the
  *     MQM Viewer. If tsvDataOrUrls is not null, then it can be MQM TSV-data,
  *     or a CSV list of URLs from which to fetch MQM TSV-data.
  * @param {!Element} elt
  * @param {string=} tsvDataOrCsvUrls
- * @param {boolean=} showFileOpener
+ * @param {boolean=} loadReplaces determines whether loading new data
+ *     replaces the current data or augments it, by default.
  */
-function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
+function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
   const tooltip = 'Regular expressions are used case-insensitively. ' +
       'Click on the Apply button after making changes.';
-  let settings = `
-    <details class="mqm-settings"
+  const settings = `
+    <details class="mqm-settings mqm-menu-entry" id="mqm-menu-entry-settings"
         title="Change scoring weights, slices, units.">
       <summary>Settings</summary>
       <div class="mqm-settings-panel">
@@ -3894,53 +4028,78 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
         <div class="mqm-settings-row">
           <button id="mqm-reset-settings" title="Restore default settings"
               onclick="mqmResetSettings()">Restore defaults</button>
-          <button id="mqm-apply-setttings" title="Apply weight/slice settings"
+          <button id="mqm-apply-settings" title="Apply weight/slice settings"
               onclick="mqmUpdateSettings()">Apply!</button>
         </div>
       </div>
     </details>`;
 
-  let header = `
-  <div class="mqm-header">
-    <span class="mqm-title">MQM Viewer</span>
-    ${settings}
-    <span class="mqm-header-right">`;
-  if (showFileOpener) {
-    header += `
-      <b>Open MQM data file(s) (9-column TSV format):</b>
-      <input id="mqm-file" accept=".tsv" onchange="mqmOpenFiles()"
-          type="file" multiple></input>`;
-  }
-  header += `
-      <button id="mqm-save-file" disabled onclick="mqmSaveData()">
-      ${mqmSaveLabel('')}
-      </button>
-      <select disabled id="mqm-save-file-type" onchange="mqmUpdateSaveLabel()">
-        <option value="" title="Save full 10-column MQM annotations TSV data">
-          Save all data
-        </option>
-        <option value="filtered"
+  let filePanel = `
+    <table class="mqm-table mqm-file-menu">
+      <tr id="mqm-file-load" class="mqm-file-menu-tr"><td>
+        <div>
+          <b>Load</b> MQM data file(s):
+          <input id="mqm-file"
+              accept=".tsv" onchange="mqmOpenFiles()"
+              type="file" multiple/>
+        </div>
+      </td></tr>
+      <tr class="mqm-file-menu-option mqm-file-menu-tr"><td>
+        <input type="checkbox" id="mqm-load-file-append"/>
+        Append additional data without replacing the current data
+      </td></tr>
+      <tr><td></td></tr>
+      <tr class="mqm-file-menu-entry mqm-file-menu-tr"><td>
+        <div onclick="mqmSaveData('all', 'mqm-data.tsv')"
+            title="Save full 10-column MQM annotations TSV data">
+          <b>Save</b> all data to [prefix]mqm-data.tsv
+        </div>
+      </td></tr>
+      <tr class="mqm-file-menu-entry mqm-file-menu-tr"><td>
+        <div onclick="mqmSaveData('filtered', 'mqm-data-filtered.tsv')"
             title="Save currently filtered 10-column MQM annotations TSV data">
-          Save filtered data
-        </option>
-        <option value="rater" title="Save sys-doc-docseg-rater-score TSV">
-          Filtered seg scores by rater
-        </option>
-        <option value="segment" title="Save sys-doc-docseg-score TSV">
-          Filtered scores by seg
-        </option>
-        <option value="document" title="Save sys-doc-score TSV">
-          Filtered scores by doc
-        </option>
-        <option value="system" title="Save sys-score TSV">
-          Filtered scores by sys
-        </option>
-      </select>
-    </span>
-  </div>`;
+          <b>Save</b> filtered data to [prefix]mqm-data-filtered.tsv
+        </div>
+      </td></tr>`;
+
+  for (let saveType of ['system', 'document', 'segment', 'rater']) {
+    const fname = `mqm-scores-by-${saveType}.tsv`;
+    filePanel += `
+        <tr class="mqm-file-menu-entry mqm-file-menu-tr"><td>
+          <div
+              onclick="mqmSaveData('${saveType}', '${fname}')"
+              title="Save ${saveType == 'rater' ?
+                'segment-wise ' : ''}filtered scores by ${saveType}">
+            <b>Save</b> filtered scores by ${saveType} to [prefix]${fname}
+          </div>
+        </td></tr>`;
+  }
+  filePanel += `
+      <tr class="mqm-file-menu-option mqm-file-menu-tr"><td>
+        Optional prefix for saved files:
+        <input size="10" class="mqm-input" type="text"
+            id="mqm-saved-file-prefix" placeholder="prefix"/>
+      </td></tr>
+    </table>`;
+
+  const file = `
+    <details class="mqm-file mqm-menu-entry" id="mqm-menu-entry-file">
+      <summary>File</summary>
+      <div class="mqm-file-panel">
+        ${filePanel}
+      </div>
+    </details>`;
 
   elt.innerHTML = `
-  ${header}
+  <div class="mqm-header">
+    <span class="mqm-title">MQM Viewer</span>
+    <table class="mqm-menu">
+      <tr>
+        <td>${settings}</td>
+        <td>${file}</td>
+      </tr>
+    </table>
+  </div>
   <div id="mqm-errors"></div>
   <hr>
 
@@ -3976,8 +4135,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
       <p>
         Number of trials for paired one-sided approximate randomization:
         <input size="6" maxlength="6" type="text" id="mqm-sigtests-num-trials"
-            value="10000" onchange="setMqmSigtestsNumTrials()">
-        </input>
+            value="10000" onchange="setMqmSigtestsNumTrials()"/>
       </p>
     <div>
   </details>
@@ -4038,20 +4196,46 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
   <details>
     <summary title="Click to see user interface events and timings">
       <span class="mqm-section">
-        Annotation interface events and timings
+        Annotation events and rater timelines
       </span>
     </summary>
-    <table class="mqm-table" id="mqm-events">
-      <thead>
-        <tr>
-          <th title="User interface event"><b>Event</b></th>
-          <th title="Number of occurrences"><b>Count</b></th>
-          <th title="Average time per occurrence"><b>Avg Time (millis)</b></th>
-        </tr>
-      </thead>
-      <tbody id="mqm-events-tbody">
-      </tbody>
-    </table>
+    <div>
+      <table class="mqm-table" id="mqm-events">
+        <thead>
+          <tr>
+            <th title="User interface event"><b>Event</b></th>
+            <th title="Number of occurrences"><b>Count</b></th>
+            <th title="Average time per occurrence"><b>Avg Time
+                (millis)</b></th>
+          </tr>
+        </thead>
+        <tbody id="mqm-events-tbody">
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class="mqm-subheading"
+          title="The timeline is limited to events in filtered annotations">
+        <b>Rater timeline for</b>
+        <select onchange="mqmRaterTimelineSelect()"
+            id="mqm-rater-timelines-rater"></select>
+        (limited to ${MQM_RATER_TIMELINE_LIMIT} events)
+      </div>
+      <table class="mqm-table" id="mqm-rater-timelines">
+        <thead>
+          <tr>
+            <th><b>Timestamp</b></th>
+            <th><b>Event</b></th>
+            <th><b>Document</b></th>
+            <th><b>System</b></th>
+            <th><b>Segment</b></th>
+            <th><b>Side</b></th>
+            <th><b>Sentence</b></th>
+            <th><b>Visible</b></th>
+          </tr>
+        </thead>
+      </table>
+    </div>
   </details>
 
   <br>
@@ -4083,8 +4267,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
         <br>
         <input class="mqm-input" id="mqm-filter-expr"
         title="Provide a JavaScript boolean filter expression (and press Enter)"
-            onchange="mqmShow()" type="text" size="150">
-        </input>
+            onchange="mqmShow()" type="text" size="150"/>
         <div id="mqm-filter-expr-error" class="mqm-filter-expr-error"></div>
         <br>
         <ul>
@@ -4129,12 +4312,12 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
             <input class="mqm-input" id="mqm-view-metadata-row"
                 title="The metadata will be logged in the JavaScript console"
                 placeholder="row #"
-                onchange="mqmLogRowMetadata()" type="text" size="6">
-            </input>
+                onchange="mqmLogRowMetadata()" type="text" size="6"/>
             (useful for finding available fields for filter expressions).
           </li>
           <li><b>Example</b>: docSegId > 10 || severity == 'Major'</li>
           <li><b>Example</b>: target.indexOf('thethe') &gt;= 0</li>
+          <li><b>Example</b>: metadata.marked_text.length &gt;= 10</li>
           <li><b>Example</b>:
             aggrDocSeg.sevsBySystem['System-42'].includes('Major')</li>
           <li><b>Example</b>:
@@ -4180,8 +4363,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
       <li title="Limit this to at most a few thousand to avoid OOMs!">
         <b>Limit</b> the number of rows shown to:
         <input size="6" maxlength="6" type="text" id="mqm-limit" value="2000"
-            onchange="setMqmLimit()">
-        </input>
+            onchange="setMqmLimit()"/>
       </li>
     </ul>
   </details>
@@ -4198,8 +4380,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
           <br>
           <input class="mqm-input mqm-filter-re" id="mqm-filter-doc"
               title="Provide a regexp to filter (and press Enter)"
-              onchange="mqmShow()" type="text" placeholder=".*" size="10">
-          </input>
+              onchange="mqmShow()" type="text" placeholder=".*" size="10"/>
           <br>
           <select onchange="mqmPick('doc')"
               class="mqm-select" id="mqm-select-doc"></select>
@@ -4210,8 +4391,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
           <br>
           <input class="mqm-input mqm-filter-re" id="mqm-filter-doc-seg"
               title="Provide a regexp to filter (and press Enter)"
-              onchange="mqmShow()" type="text" placeholder=".*" size="4">
-          </input>
+              onchange="mqmShow()" type="text" placeholder=".*" size="4"/>
           <br>
           <select onchange="mqmPick('doc-seg')"
               class="mqm-select" id="mqm-select-doc-seg"></select>
@@ -4221,8 +4401,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
           <br>
           <input class="mqm-input mqm-filter-re" id="mqm-filter-system"
               title="Provide a regexp to filter (and press Enter)"
-              onchange="mqmShow()" type="text" placeholder=".*" size="10">
-          </input>
+              onchange="mqmShow()" type="text" placeholder=".*" size="10"/>
           <br>
           <select onchange="mqmPick('system')"
               class="mqm-select" id="mqm-select-system"></select>
@@ -4232,18 +4411,16 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
           <br>
           <input class="mqm-input mqm-filter-re" id="mqm-filter-source"
               title="Provide a regexp to filter (and press Enter)"
-              onchange="mqmShow()" type="text" placeholder=".*" size="10">
-          </input>
+              onchange="mqmShow()" type="text" placeholder=".*" size="10"/>
         </th>
         <th id="mqm-th-target" title="Translated text of segment">
           Target
           <br>
           <input class="mqm-input mqm-filter-re" id="mqm-filter-target"
               title="Provide a regexp to filter (and press Enter)"
-              onchange="mqmShow()" type="text" placeholder=".*" size="10">
-          </input>
+              onchange="mqmShow()" type="text" placeholder=".*" size="10"/>
         </th>
-        <th id="mqm-th-rating" title="Annotation, Rater, Category, Severity">
+        <th id="mqm-th-rating" title="Annotation, Severity, Category, Rater">
           <table>
             <tr>
               <td>
@@ -4251,8 +4428,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
                 <br>
                 <input class="mqm-input mqm-filter-re" id="mqm-filter-severity"
                     title="Provide a regexp to filter (and press Enter)"
-                    onchange="mqmShow()" type="text" placeholder=".*" size="10">
-                </input>
+                    onchange="mqmShow()" type="text" placeholder=".*" size="8"/>
                 <br>
                 <select onchange="mqmPick('severity')"
                     class="mqm-select" id="mqm-select-severity"></select>
@@ -4262,8 +4438,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
                 <br>
                 <input class="mqm-input mqm-filter-re" id="mqm-filter-category"
                     title="Provide a regexp to filter (and press Enter)"
-                    onchange="mqmShow()" type="text" placeholder=".*" size="10">
-                </input>
+                    onchange="mqmShow()" type="text" placeholder=".*" size="8"/>
                 <br>
                 <select onchange="mqmPick('category')"
                     class="mqm-select" id="mqm-select-category"></select>
@@ -4273,8 +4448,7 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
                 <br>
                 <input class="mqm-input mqm-filter-re" id="mqm-filter-rater"
                     title="Provide a regexp to filter (and press Enter)"
-                    onchange="mqmShow()" type="text" placeholder=".*" size="10">
-                </input>
+                    onchange="mqmShow()" type="text" placeholder=".*" size="8"/>
                 <br>
                 <select onchange="mqmPick('rater')"
                     class="mqm-select" id="mqm-select-rater"></select>
@@ -4290,6 +4464,16 @@ function createMQMViewer(elt, tsvDataOrCsvUrls = '', showFileOpener = true) {
   `;
   elt.className = 'mqm';
   elt.scrollIntoView();
+
+  document.getElementById('mqm-load-file-append').checked = !loadReplaces;
+
+  const menuEntries = document.getElementsByClassName('mqm-menu-entry');
+  for (let i = 0; i < menuEntries.length; i++) {
+    const entry = menuEntries[i];
+    entry.addEventListener('click', (e) => {
+      mqmCloseMenuEntries(entry.id);
+    });
+  }
 
   mqmSigtestsMsg = document.getElementById('mqm-sigtests-msg');
 

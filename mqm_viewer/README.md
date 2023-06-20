@@ -61,6 +61,10 @@ ten columns, one line per marked error:
     identifying the indices of the first and last target tokens in the marked
     span. These indices refer to the target_tokens array in the segment
     object.
+  - **marked_text**: The text that has been marked by the rater (or the
+    empty string if this metadata is not associated with an marked span). This
+    field is computed from source_spans/target_spans. It can be useful
+    when filtering.
   - **segment**: An object that has information about the segment (from the
     current doc+docSegId+system) that is not specific to any particular
     annotation/rater. This object may not necessarily be repeated across
@@ -106,6 +110,7 @@ ten columns, one line per marked error:
         includes "errors" and "severities". Some bulky fields, notably
         "instructions" and "description" may have been stripped out from this
         object.
+      - **source_language**, **target_language**: Language codes.
     In MQMViewer, each metadata.evaluation object found is logged in the
     JavaScript debug console.
 
@@ -184,6 +189,7 @@ filters.
     - **aggrDocSegSys** is just an alias for metadata.segment.
   - **Example**: docSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
+  - **Example**: metadata.marked_text.length >= 10
   - **Example**: aggrDocSeg.sevsBySystem['System-42'].includes('Major')
   - **Example**: aggrDocSegSys.MQM > 4 &&
     (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) < 0.1 (note that aggrDocSegSys.MQM
