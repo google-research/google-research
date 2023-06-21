@@ -12,14 +12,12 @@ the code for a Google colab.  To use this colab, you will need to first copy the
 
 # Google cloud
 
-WARNING: Work in progress.  The data and model checkpoints have not yet been made available on Google cloud.
+WARNING: Work in progress.  The model checkpoints have not yet been made available on Google cloud (though the data now is available).
 
 All of the data and the model checkpoints are located on Google cloud.  To access the data, you can install the google cloud CLI, which this document will assume you've done (access to the cloud data can also be performed on the Google Cloud UI for users familiar with it).  For instructions on installing Google Cloud CLI:
 
 https://cloud.google.com/sdk/docs/install
 # Data:
-
-WARNING: Work in Progress: All gsutil commands are currently guesses, since they cannot be tested until the data has been made public on cloud.  Verify all commands once that has happened.
 
 You can view all the datasets via:
 
@@ -43,18 +41,29 @@ gsutil ls gs://wildfire_conv_lstm/data/california_wn
 Results in:
 
 ```
-gs://wildfire_conv_lstm/data/california_wn/00
-gs://wildfire_conv_lstm/data/california_wn/01
-gs://wildfire_conv_lstm/data/california_wn/02
-gs://wildfire_conv_lstm/data/california_wn/03
-gs://wildfire_conv_lstm/data/california_wn/04
-gs://wildfire_conv_lstm/data/california_wn/05
-gs://wildfire_conv_lstm/data/california_wn/06
-gs://wildfire_conv_lstm/data/california_wn/07
-gs://wildfire_conv_lstm/data/california_wn/08
-gs://wildfire_conv_lstm/data/california_wn/09
-
+gs://wildfire_conv_lstm/data/california_wn/00_$folder$
+gs://wildfire_conv_lstm/data/california_wn/01_$folder$
+gs://wildfire_conv_lstm/data/california_wn/02_$folder$
+gs://wildfire_conv_lstm/data/california_wn/03_$folder$
+gs://wildfire_conv_lstm/data/california_wn/04_$folder$
+gs://wildfire_conv_lstm/data/california_wn/05_$folder$
+gs://wildfire_conv_lstm/data/california_wn/06_$folder$
+gs://wildfire_conv_lstm/data/california_wn/07_$folder$
+gs://wildfire_conv_lstm/data/california_wn/08_$folder$
+gs://wildfire_conv_lstm/data/california_wn/09_$folder$
+gs://wildfire_conv_lstm/data/california_wn/00/
+gs://wildfire_conv_lstm/data/california_wn/01/
+gs://wildfire_conv_lstm/data/california_wn/02/
+gs://wildfire_conv_lstm/data/california_wn/03/
+gs://wildfire_conv_lstm/data/california_wn/04/
+gs://wildfire_conv_lstm/data/california_wn/05/
+gs://wildfire_conv_lstm/data/california_wn/06/
+gs://wildfire_conv_lstm/data/california_wn/07/
+gs://wildfire_conv_lstm/data/california_wn/08/
+gs://wildfire_conv_lstm/data/california_wn/09/
 ```
+
+The entries with "_$folder$" in them are artifacts of Google Cloud and can be ignored.
 
 Each of these directories contains a single sharded TFRecordio, which is a data format used by Tensorflow to store training data.  Each sharded TFRecordio is a collection of ~200 files.  Each of these files contains zero or more data points, and each file contains a random set of the data points for that dataset.
 
@@ -71,13 +80,15 @@ All of the files are publicly accessible.  In order to use them in the colab, fi
 
 ```
 # Make local directory.
-mkdir ~tmp/test
+mkdir -p ~/tmp/test
 
 # Copy over one shard of the sharded TFRecordIO.
 gsutil cp gs://wildfire_conv_lstm/data/california_wn/00/real_wn_test_temporal.tfr-00164-of-00165 ~/tmp/test
 ```
 
 # Model Checkpoints
+
+WARNING: Model check points have not yet been made publicly available on Google Cloud.
 
 You can view all the model check points:
 
