@@ -29,7 +29,7 @@
   <ul>
     <li>Projects are created by opening "Project TSV files" that have
       four fields: source and target segments, document name, system name.</li>
-    <li>MQM and SQM templates (with a few variants) are supported.</li>
+    <li>Several variants of MQM templates are supported.</li>
     <li>State is automatically saved in the browser's local storage.</li>
     <li>After evaluating, projects can be saved as "Evaluation JSON files".</li>
     <li>Evaluation JSON files can be opened for review. MQM-Viewer-based
@@ -61,15 +61,15 @@
 
   <p>
     The TSV file must have a header line. The header line should be the JSON encoding of an
-    object that identifies the "source-language" and "target-language". It may include other
+    object that identifies the "source_language" and "target_language". It may include other
     metadata fields as needed. Example:
     <blockquote>
       <code>
-      {"source-language": "[language-code-BCP47]", "target-language": "[language-code-BCP47]"}
+      {"source_language": "[language-code-BCP47]", "target_language": "[language-code-BCP47]"}
       </code>
     </blockquote>
   </p>
-  
+
   <p>
     After the header line, the TSV file must contain these four fields in the following order, on
     every subsequent line:
@@ -109,7 +109,7 @@
   </ul>
 
   <h5>
-    Word boundaries
+    Word and sentence boundaries
   </h5>
   <p>
     Anthea does word segmentation by using two splitting characters: space and
@@ -117,6 +117,10 @@
     segmentation alone. For CJK languages, and for segmenting out punctuation, etc.,
     you should use some external tool to do the segmentation, and insert zero-width
     space characters in the TSV files provided to Anthea.
+  </p>
+  <p>
+    Two consecutive zero-width spaces ('\u200b\u200b') can be used to indicate sentence
+    boundaries in text.
   </p>
 
   <h4>
