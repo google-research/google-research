@@ -303,7 +303,7 @@ let mqmCharScoring = false;
  * The field to sort the score table rows by. By default, sort by
  * overall MQM score. `mqmSortReverse` indicates whether it is sorted in
  * ascending order (false, default) or descending order (true).
- * 
+ *
  * The value of this is something like 'metric-<k>' (where k is an index into
  * mqmMetrics[]), or a name from mqmSoreWeightedFields[]/mqmScoreSliceFields[].
  */
@@ -644,12 +644,14 @@ function mqmTokenizeLegacySegment(rowRange, segment) {
 
 /**
  * Aggregates mqmData, collecting all data for a particular segment translation
- *     (i.e., for a given (doc, docSegId) pair) into the "segment" object in the
- *     metadata field, adding to it the following properties:
+ *     (i.e., for a given (doc, docSegId) pair) into the aggrDocSeg object in
+ *     the metadata.segment field, adding to it the following properties:
  *         {cats,sevs,sevcats}By{Rater,System}.
  *     Each of these properties is an object keyed by system or rater, with the
  *     values being arrays of strings that are categories, severities,
  *     and <sev>[/<cat>], * respectively.
+ *
+ *     Also added are aggrDocSeg.metrics[metric][system] values.
  * Makes sure that the metadata.segment object is common for each row from
  * the same doc+seg+sys.
  */
@@ -668,6 +670,7 @@ function mqmAddSegmentAggregations() {
         sevsByRater: {},
         sevcatsBySystem: {},
         sevcatsByRater: {},
+        metrics: {},
         aggrDoc: aggrDoc,
       };
       for (system of mqmDataIter.docSys[doc]) {
@@ -686,6 +689,12 @@ function mqmAddSegmentAggregations() {
             };
           }
           aggrDocSegSys = {...segment, ...aggrDocSegSys};
+        }
+        for (metric in aggrDocSegSys.metrics) {
+          if (!aggrDocSeg.metrics.hasOwnProperty(metric)) {
+            aggrDocSeg.metrics[metric] = {};
+          }
+          aggrDocSeg.metrics[metric][system] = aggrDocSegSys.metrics[metric];
         }
         if (!aggrDocSegSys.source_tokens ||
             aggrDocSegSys.source_tokens.length == 0) {
@@ -760,15 +769,14 @@ function mqmAddSegmentAggregations() {
 
 /**
  * Returns an object consisting of filterREs (a dictionary of column
- * filter REs keyed by the id of the filter) and filterExpr, a JavaScript
- * expression for filtering, possibly entered by the user.
- * Also sets the value of the select menus for column filters (if they exist).
+ * filter REs keyed by the id of the filter), filterExpr (a JavaScript
+ * expression for filtering, possibly entered by the user), and onlyAllSysSegs
+ * (a boolean that captures the value of the corresponding checkbox).
  *
- * Returns null if there are no filters currently in place.
- * @return {?Object}
+ * Also sets the value of the select menus for column filters (if they exist).
+ * @return {!Object}
  */
 function mqmGetAllFilters() {
-  let noREs = true;
   const res = {};
   const filters = document.getElementsByClassName('mqm-filter-re');
   for (let i = 0; i < filters.length; i++) {
@@ -781,16 +789,15 @@ function mqmGetAllFilters() {
       res[id] = null;
       continue;
     }
-    noREs = false;
     res[id] = new RegExp(filter);
   }
   const filterExpr = document.getElementById('mqm-filter-expr').value.trim();
-  if (noREs && !filterExpr) {
-    return null;
-  }
+  const onlyAllSysSegs = document.getElementById(
+      'mqm-only-all-systems-segments').checked;
   return {
     filterREs: res,
     filterExpr: filterExpr,
+    onlyAllSysSegs: onlyAllSysSegs,
   };
 }
 
@@ -926,20 +933,22 @@ function mqmFilterExprPasses(filterExpr, parts) {
 }
 
 /**
- * If the "Select only the segments for which all systems have been rated"
- * filter has been selected by the user, then this function will return
- * false for segments that do not have all systems rated.
+ * This function will return false for segments that have some metric (MQM or
+ * other) only available for some of the systems, not all/none.
  * @param {!Object} metadata
  * @return {boolean}
  */
 function mqmAllSystemsFilterPasses(metadata) {
-  if (!document.getElementById("mqm-only-all-systems-segments").checked) {
-    return true;
-  }
   const segment = metadata.segment;
   const aggrDocSeg = segment.aggrDocSeg;
-  return Object.keys(aggrDocSeg.sevcatsBySystem).length ==
-         mqmDataIter.systems.length;
+  for (let metric in aggrDocSeg.metrics) {
+    const numSystemsWithMetric = Object.keys(aggrDocSeg.metrics[metric]).length;
+    if (numSystemsWithMetric > 0 &&
+        numSystemsWithMetric != mqmDataIter.systems.length) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -1262,18 +1271,34 @@ function mqmAggregateSegStats(segs) {
     return aggregates;
   }
   let totalSrcLen = 0;
-  let ratings = 0;
+  /**
+   * numSegRatings counts each (seg, rater) combination, where the rater rated
+   *     that segment, once.
+   * numRatedSegs counts segments that have been rated by at least one rater.
+   */
+  let numSegRatings = 0;
+  let numRatedSegs = 0;
   for (let segStats of segs) {
-    totalSrcLen += segStats.srcLen;
     const allRaterStats = mqmInitRaterStats('');
     for (let r of segStats) {
       mqmAddRaterStats(allRaterStats, r);
     }
-    mqmAvgRaterStats(allRaterStats, segStats.length);
-    ratings += segStats.length;
-    mqmAddRaterStats(aggregates, allRaterStats);
+    if (segStats.length > 0) {
+      mqmAvgRaterStats(allRaterStats, segStats.length);
+      numSegRatings += segStats.length;
+      numRatedSegs++;
+      totalSrcLen += segStats.srcLen;
+      mqmAddRaterStats(aggregates, allRaterStats);
+    }
     if (segStats.hasOwnProperty('metrics')) {
       for (let metric in segStats.metrics) {
+        if (metric == 'MQM') {
+          /**
+           * Ignore any MQM values that may be present in the segment metadata
+           * as we compute them from the annotations.
+           */
+          continue;
+        }
         if (!aggregates.metrics.hasOwnProperty(metric)) {
           aggregates.metrics[metric] = {
             score: 0,
@@ -1286,12 +1311,12 @@ function mqmAggregateSegStats(segs) {
     }
   }
 
-  aggregates.numSegments = segs.length;
+  aggregates.numSegments = numRatedSegs;
   aggregates.numSrcChars = totalSrcLen;
   aggregates.scoreDenominator =
       mqmCharScoring ? (aggregates.numSrcChars / 100) : aggregates.numSegments;
   mqmAvgRaterStats(aggregates, aggregates.scoreDenominator);
-  aggregates.numRatings = ratings;
+  aggregates.numRatings = numSegRatings;
 
   for (let metric in aggregates.metrics) {
     const metricStats = aggregates.metrics[metric];
@@ -1624,8 +1649,9 @@ function setMqmSigtestsNumTrials() {
  * Shows the table header for the MQM scores table. The score weighted
  * components and slices to display should be available in
  * mqmScoreWeightedFields and mqmScoreSliceFields.
+ * @param {boolean} hasRatings set to true if there are some MQM annotations.
  */
-function mqmShowScoresHeader() {
+function mqmShowScoresHeader(hasRatings) {
   const header = document.getElementById('mqm-stats-thead');
   const scoringUnit = mqmCharScoring ? '100 source chars' : 'segment';
   let html = `
@@ -1638,12 +1664,14 @@ function mqmShowScoresHeader() {
     html +=  `<th id="mqm-metric-${m}-th">${metric}</th>`;
     metricFields.push('metric-' + m);
   }
-  html += `
-        <th title="Number of segments"><b>#Segments</b></th>
-        <th title="Number of source characters">
-          <b>#Source-chars</b>
-        </th>
-        <th title="Number of segment ratings"><b>#Ratings</b></th>`;
+  if (hasRatings) {
+    html += `
+          <th title="Number of rated segments"><b>#Rated segments</b></th>
+          <th title="Number of rated source characters">
+            <b>#Rated source-chars</b>
+          </th>
+          <th title="Number of segment ratings"><b>#Segment ratings</b></th>`;
+  }
 
   const mqmPartFields =
       mqmScoreWeightedFields.map(x => MQM_SCORE_WEIGHTED_PREFIX + x)
@@ -1660,12 +1688,14 @@ function mqmShowScoresHeader() {
           <b>${scoreName}</b>
         </th>`;
   }
-  html += `
-        <th title="Average time (seconds) per rater per
+  if (hasRatings) {
+    html += `
+          <th title="Average time (seconds) per rater per
 segment or 100-source-chars"><b>Time (s)</b></th>
-        <th title="Average length of error span"><b>Err span</b></th>
-        <th title="Hands-on-the-wheel test"><b>HOTW Test</b></th>
-      </tr>`;
+          <th title="Average length of error span"><b>Err span</b></th>
+          <th title="Hands-on-the-wheel test"><b>HOTW Test</b></th>
+        </tr>`;
+  }
   header.innerHTML = html;
 
   /** Make columns clickable for sorting purposes. */
@@ -1696,12 +1726,13 @@ segment or 100-source-chars"><b>Time (s)</b></th>
  * @param {string} id
  * @param {string} title
  * @param {!Object} stats
+ * @param {boolean} hasRatings set to true if there are some MQM annotations.
  * @param {?Object=} aggregates
  */
-function mqmShowScores(id, title, stats, aggregates = null) {
+function mqmShowScores(id, title, stats, hasRatings, aggregates = null) {
   const tbody = document.getElementById(id);
   if (title) {
-    const NUM_COLS = 7 + mqmMetricsVisible.length +
+    const NUM_COLS = (hasRatings ? 7 : 1) + mqmMetricsVisible.length +
                      mqmScoreWeightedFields.length +
                      mqmScoreSliceFields.length;
     tbody.insertAdjacentHTML(
@@ -1740,36 +1771,38 @@ function mqmShowScores(id, title, stats, aggregates = null) {
                  mqmMetricDisplay(s.score, s.scoreDenominator) +
                  '</td>';
     }
-    rowHTML +=
-        `<td>${aggregates[k].numSegments}</td>` +
-        `<td>${aggregates[k].numSrcChars}</td>` +
-        `<td>${aggregates[k].numRatings}</td>`;
-    if (aggregates[k].scoreDenominator <= 0) {
-      for (let i = 0; i < scoreFields.length + 3; i++) {
-        rowHTML += '<td>-</td>';
-      }
-    } else {
-      for (let s of scoreFields) {
-        let content =
-            aggregates[k].hasOwnProperty(s) ? aggregates[k][s].toFixed(3) : '-';
-        const nameParts = s.split('-', 2);
-        const cls = (nameParts.length == 2) ?
-            ' class="mqm-stats-' + nameParts[0] + '"' :
-            '';
-        rowHTML += `<td${cls}>${content}</td>`;
-      }
-      let errorSpan = 0;
-      if (aggregates[k].numWithErrors > 0) {
-        errorSpan = aggregates[k].errorSpans / aggregates[k].numWithErrors;
-      }
-      rowHTML += `<td>${(aggregates[k].timeSpentMS/1000.0).toFixed(1)}</td>`;
-      rowHTML += `<td>${(errorSpan).toFixed(1)}</td>`;
-      const hotw = aggregates[k].hotwFound + aggregates[k].hotwMissed;
-      if (hotw > 0) {
-        const perc = ((aggregates[k].hotwFound * 100.0) / hotw).toFixed(1);
-        rowHTML += `<td>${aggregates[k].hotwFound}/${hotw} (${perc}%)</td>`;
+    if (hasRatings) {
+      rowHTML +=
+          `<td>${aggregates[k].numSegments}</td>` +
+          `<td>${aggregates[k].numSrcChars}</td>` +
+          `<td>${aggregates[k].numRatings}</td>`;
+      if (aggregates[k].scoreDenominator <= 0) {
+        for (let i = 0; i < scoreFields.length + 3; i++) {
+          rowHTML += '<td>-</td>';
+        }
       } else {
-        rowHTML += '<td>-</td>';
+        for (let s of scoreFields) {
+          let content =
+              aggregates[k].hasOwnProperty(s) ? aggregates[k][s].toFixed(3) :
+              '-';
+          const nameParts = s.split('-', 2);
+          const cls = (nameParts.length == 2) ?
+              ' class="mqm-stats-' + nameParts[0] + '"' : '';
+          rowHTML += `<td${cls}>${content}</td>`;
+        }
+        let errorSpan = 0;
+        if (aggregates[k].numWithErrors > 0) {
+          errorSpan = aggregates[k].errorSpans / aggregates[k].numWithErrors;
+        }
+        rowHTML += `<td>${(aggregates[k].timeSpentMS/1000.0).toFixed(1)}</td>`;
+        rowHTML += `<td>${(errorSpan).toFixed(1)}</td>`;
+        const hotw = aggregates[k].hotwFound + aggregates[k].hotwMissed;
+        if (hotw > 0) {
+          const perc = ((aggregates[k].hotwFound * 100.0) / hotw).toFixed(1);
+          rowHTML += `<td>${aggregates[k].hotwFound}/${hotw} (${perc}%)</td>`;
+        } else {
+          rowHTML += '<td>-</td>';
+        }
       }
     }
     rowHTML += '</tr>\n';
@@ -1914,92 +1947,132 @@ function mqmDocSegKey(doc, seg) {
 }
 
 /**
- * Helper class for building a system-vs-system segment score differences
- * histogram. Call addSegment() on it multiple times to record segment
- * scores. Then call display().
+ * Helper class for building a segment scores histogram. Call addSegment() on it
+ * multiple times to record segment scores. Then call display().
+ *
+ * The rendered histogram bins one special x-axis value differently, showing a
+ * slim gray bar for that value. For difference histograms (hasDiffs=true), that
+ * value is 0. Otherwise, it is for the perfect possible score (>= 1 for
+ * automated metrics and 0 for MQM).
+ *
  * @param {number} m The index of the metric in mqmMetrics.
+ * @param {string} sys The name of the system.
+ * @param {string} color The color to use for system.
+ * @param {string=} sysCmp if the histogram is for diffs, then the name of
+ *     the system being compared against.
+ * @param {string=} colorCmp if the histogram is for diffs, then the color of
+ *     the system being compared against.
  */
-function MQMSysVSysHistBuilder(m) {
-  /** @const {number} **/
+function MQMHistBuilder(m, sys, color, sysCmp='', colorCmp='') {
   this.metricIndex = m;
-  /** @const {string} **/
+  this.sys = sys;
+  this.sysCmp = sysCmp;
+  this.hasDiffs = sysCmp ? true : false;
   this.metric = mqmMetrics[m];
+  this.color = color;
+  this.colorCmp = colorCmp;
+
+  const metricInfo = mqmMetricsInfo[this.metric];
+  this.lowerBetter = metricInfo.lowerBetter || false;
+
+  /**
+   * Is there a dedicated bin for value == 0?
+   */
+  this.hasZeroBin = this.hasDiffs ? true : (this.lowerBetter ? true : false);
 
   /** @const {number} Width of a histogram bin, in score units */
-  this.BIN_WIDTH = (this.metric == 'MQM') ? 0.5 : 0.1;
+  this.BIN_WIDTH = (this.metric == 'MQM') ? 0.5 : 0.05;
+  this.BIN_PRECISION = (this.metric == 'MQM') ? 1 : 2;
 
   /** @const {number} Width of a histogram bin, in pixels */
-  this.BIN_WIDTH_PIXELS = 15;
-  /** @const {number} Width of half of the central "zero" bin, in pixels */
-  this.ZERO_BIN_HALF_WIDTH_PIXELS = 3.5;
+  this.BIN_WIDTH_PIXELS = 10 + (this.BIN_PRECISION * 3);
+
+  this.PIXELS_PER_UNIT = this.BIN_WIDTH_PIXELS / this.BIN_WIDTH;
+
+  /** @const {number} Width of the special "zero" bin, in pixels */
+  this.ZERO_BIN_WIDTH_PIXELS = 6;
 
   this.LOG_MULTIPLIER = 1.0 / Math.LN2;
   this.LOG_UNIT_HEIGHT_PIXELS = 25;
-  this.TOP_OFFSET_PIXELS = 49;
+  this.TOP_OFFSET_PIXELS = this.hasDiffs ? 49 : 19;
   this.BOTTOM_OFFSET_PIXELS = 50;
+  this.X_OFFSET_PIXELS = 50;
 
-  this.COLORS = ['lightgreen', 'lightblue'];
-  this.COLOR_EQUAL = 'lightgray';
+  this.COLOR_ZERO = 'rgba(211,211,211,0.5)';
   this.COLOR_OUTLINE = 'black';
   this.COLOR_LEGEND = 'black';
-  this.COLOR_LABELS = 'gray';
+  this.COLOR_LABELS = 'black';
   this.COLOR_LINES = 'lightgray';
 
   /**
-   * @const {!Array<string>} Array of doc-seg keys for which both systems have
-   *     the same segment score.
+   * @const {!Object} Dict keyed by bin. Each bin has an array of doc-seg keys.
+   *    The only non-numeric key possibly present is 'zero' (when
+   *    this.hasZeroBin is true).
    */
-  this.equals = [];
-  /**
-   * @const {!Array<!Object>} Pair of objects, each keyed by bin number. The
-   *     0th object has bins where system 1 is better and the 1st object
-   *     has bins where system 2 is better. Each bin has an array of doc-seg
-   *     keys.
-   */
-  this.systemComp = [{}, {}];
+  this.segsInBin = {};
 
   /**
-   * @const {number} The largest (positive or negative) bin visible on the
-   *     X-axis
+   * @const {number} The largest bin visible on the X-axis.
    */
-  this.maxBin = 1;
-  /** @const {number} The largest count visible on the Y-axis */
+  this.maxBin = 0;
+  /**
+   * @const {number} The smallest bin visible on the X-axis.
+   */
+  this.minBin = 0;
+
+  /** {number} The largest count in bin (used to determine height of plot) */
   this.maxCount = 8;
+
+  this.totalCount = 0;
+  this.sys1BetterCount = 0;
+  this.sys2BetterCount = 0;
 }
+
+/**
+ * Returns the bin for a particular value. We return the left end-point (except
+ * for the special 'zero' bin).
+ * @param {number} value
+ * @return {string}
+ */
+MQMHistBuilder.prototype.binOf = function(value) {
+  if (this.hasZeroBin && value == 0) {
+    return 'zero';
+  }
+  const absValue = Math.abs(value);
+  const absBin = Math.floor(absValue / this.BIN_WIDTH) * this.BIN_WIDTH;
+  const leftVal = (value < 0) ? (0 - absBin - this.BIN_WIDTH) : absBin;
+  return leftVal.toFixed(this.BIN_PRECISION);
+};
 
 /**
  * Adds a segment to the histogram, updating the appropriate bin.
  * @param {string} doc
  * @param {string|number} docSegId
- * @param {number} score1 The score for the first system
- * @param {number} score2 The score for the second system
- * @param {boolean} lowerBetter
+ * @param {number} value The score for the first system
  */
-MQMSysVSysHistBuilder.prototype.addSegment = function(
-    doc, docSegId, score1, score2, lowerBetter) {
-  if (score1 == score2) {
-    this.equals.push(mqmDocSegKey(doc, docSegId));
-    if (this.equals.length > this.maxCount) {
-      this.maxCount = this.equals.length;
+MQMHistBuilder.prototype.addSegment = function(doc, docSegId, value) {
+  const bin = this.binOf(value);
+  const numericBin = (bin == 'zero') ? 0 : parseFloat(bin);
+  if (numericBin < this.minBin) this.minBin = numericBin;
+  if (numericBin > this.maxBin) this.maxBin = numericBin;
+  const docSegKey = mqmDocSegKey(doc, docSegId);
+  if (!this.segsInBin.hasOwnProperty(bin)) {
+    this.segsInBin[bin] = [];
+  }
+  this.segsInBin[bin].push(docSegKey);
+  if (this.segsInBin[bin].length > this.maxCount) {
+    this.maxCount = this.segsInBin[bin].length;
+  }
+  this.totalCount++;
+  if (this.hasDiffs && bin != 'zero') {
+    const firstLower = (numericBin < 0);
+    const firstBetter = (firstLower && this.lowerBetter) ||
+                        (!firstLower && !this.lowerBetter);
+    if (firstBetter) {
+      this.sys1BetterCount++;
+    } else {
+      this.sys2BetterCount++;
     }
-    return;
-  }
-  const diff = Math.abs(score1 - score2);
-  const diffBin = Math.floor(diff / this.BIN_WIDTH);
-  let betterIndex = (score1 < score2) ? 0 : 1;
-  if (!lowerBetter) {
-    betterIndex = 1 - betterIndex;
-  }
-  const which = this.systemComp[betterIndex];
-  if (!which.hasOwnProperty(diffBin)) {
-    which[diffBin] = [];
-  }
-  which[diffBin].push(mqmDocSegKey(doc, docSegId));
-  if (diffBin > this.maxBin) {
-    this.maxBin = diffBin;
-  }
-  if (which[diffBin].length > this.maxCount) {
-    this.maxCount = which[diffBin].length;
   }
 };
 
@@ -2012,7 +2085,7 @@ MQMSysVSysHistBuilder.prototype.addSegment = function(
  * @param {string} color
  * @return {!Element}
  */
-MQMSysVSysHistBuilder.prototype.getRect = function(x, y, w, h, color) {
+MQMHistBuilder.prototype.getRect = function(x, y, w, h, color) {
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   rect.setAttributeNS(null, 'x', x);
   rect.setAttributeNS(null, 'y', y + this.TOP_OFFSET_PIXELS);
@@ -2035,7 +2108,7 @@ MQMSysVSysHistBuilder.prototype.getRect = function(x, y, w, h, color) {
  * @param {string} desc
  * @param {!Array<string>} docsegs
  */
-MQMSysVSysHistBuilder.prototype.makeHistBar = function(
+MQMHistBuilder.prototype.makeHistBar = function(
     plot, x, y, w, h, color, desc, docsegs) {
   /**
    * Need to wrap the rect in a g (group) element to be able to show
@@ -2069,7 +2142,7 @@ MQMSysVSysHistBuilder.prototype.makeHistBar = function(
  * @param {number} y2
  * @param {string} color
  */
-MQMSysVSysHistBuilder.prototype.makeLine = function(
+MQMHistBuilder.prototype.makeLine = function(
     plot, x1, y1, x2, y2, color) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttributeNS(null, 'x1', x1);
@@ -2088,12 +2161,13 @@ MQMSysVSysHistBuilder.prototype.makeLine = function(
  * @param {string} s
  * @param {string} color
  */
-MQMSysVSysHistBuilder.prototype.makeText = function(plot, x, y, s, color) {
+MQMHistBuilder.prototype.makeText = function(plot, x, y, s, color) {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   text.setAttributeNS(null, 'x', x);
   text.setAttributeNS(null, 'y', y + this.TOP_OFFSET_PIXELS);
   text.innerHTML = s;
   text.style.fill = color;
+  text.style.fontSize = '10px';
   plot.appendChild(text);
 };
 
@@ -2102,80 +2176,125 @@ MQMSysVSysHistBuilder.prototype.makeText = function(plot, x, y, s, color) {
  * @param {number} count
  * @return {number}
  */
-MQMSysVSysHistBuilder.prototype.heightInPixels = function(count) {
+MQMHistBuilder.prototype.heightInPixels = function(count) {
   if (count == 0) return 0;
   return this.LOG_UNIT_HEIGHT_PIXELS *
          ((Math.log(count) * this.LOG_MULTIPLIER) + 1);
 };
 
 /**
+ * Returns the color to use for the bin's histogram rectangle.
+ * @param {string} bin
+ * @param {number} numericBin
+ * @return {string}
+ */
+MQMHistBuilder.prototype.binColor = function(bin, numericBin) {
+  if (bin == 'zero') {
+    return this.COLOR_ZERO;
+  }
+  if (!this.hasDiffs) {
+    return this.color;
+  } else {
+    const firstLower = (numericBin < 0);
+    const firstBetter = (firstLower && this.lowerBetter) ||
+                        (!firstLower && !this.lowerBetter);
+    return firstBetter ? this.color : this.colorCmp;
+  }
+};
+
+/**
+ * Returns a description of the bin.
+ * @param {string} bin
+ * @param {number} numericBin
+ * @param {number} count
+ * @return {string}
+ */
+MQMHistBuilder.prototype.binDesc = function(bin, numericBin, count) {
+  if (!this.hasDiffs) {
+    if (bin == 'zero') {
+      return '' + count + ' segment(s) where ' + this.sys +
+             ' has ' + this.metric + ' score exactly equal to 0';
+    }
+    const binLeft = numericBin;
+    const binRight = numericBin + this.BIN_WIDTH;
+    let leftParen = (numericBin < 0) ? '(' :
+                    ((numericBin == 0 && this.hasZeroBin) ? '(' : '[');
+    let rightParen = (numericBin < 0) ?
+                     ((binRight == 0 && this.hasZeroBin) ? ')' : ']') : ')';
+    return '' + count + ' segment(s) where ' + this.sys + ' has ' +
+           this.metric + ' score in ' + 'range ' + leftParen +
+           this.binDisplay(binLeft) +
+           ',' + this.binDisplay(binRight) + rightParen;
+  } else {
+    if (bin == 'zero') {
+      return '' + count + ' segment(s) where ' + this.sys + ' and ' +
+             this.sysCmp + ' have identical ' + this.metric + ' scores';
+    }
+    const firstLower = (numericBin < 0);
+    const firstBetter = (firstLower && this.lowerBetter) ||
+                        (!firstLower && !this.lowerBetter);
+    const betterSys = firstBetter ? this.sys : this.sysCmp;
+    const worseSys = firstBetter ? this.sysCmp : this.sys;
+    const binLeft = numericBin;
+    const binRight = numericBin + this.BIN_WIDTH;
+    const absBinLeft = (numericBin < 0) ? (0 - binRight) : binLeft;
+    const absBinRight = absBinLeft + this.BIN_WIDTH;
+    const firstParen = (absBinLeft == 0 && this.hasZeroBin) ? '(' : '[';
+    return '' + count + ' segment(s) where ' + betterSys + ' is better than ' +
+           worseSys + ' with ' + this.metric + ' score diff in range ' +
+           firstParen + this.binDisplay(absBinLeft) + ',' +
+           this.binDisplay(absBinRight) + ')';
+  }
+};
+
+/**
+ * Returns the x coordinate in pixels for a particular metric value.
+ * @param {number} value
+ * @return {number}
+ */
+MQMHistBuilder.prototype.xPixels = function(value) {
+  return this.X_OFFSET_PIXELS + ((value - this.minBin) * this.PIXELS_PER_UNIT);
+};
+
+/**
+ * Returns a string suitable to display, for a floating-point number. Strips
+ * trailing zeros and then a trailing decimal point.
+ * @param {number} value
+ * @return {string}
+ */
+MQMHistBuilder.prototype.binDisplay = function(value) {
+  return value.toFixed(
+      this.BIN_PRECISION).replace(/0+$/, '').replace(/\.$/, '');
+};
+
+/**
  * Displays the histogram using the data collected through prior addSegment()
  * calls.
+ * @param {!Element} plot
  */
-MQMSysVSysHistBuilder.prototype.display = function() {
-  /** Create some buffer space around the plot. */
-  this.maxBin += 5;
+MQMHistBuilder.prototype.display = function(plot) {
+  /** Create some buffer space above the plot. */
   this.maxCount += 10;
 
-  const plotHalfWidth = (this.maxBin * this.BIN_WIDTH_PIXELS) +
-                        this.ZERO_BIN_HALF_WIDTH_PIXELS;
-  const plotWidth = 2 * plotHalfWidth;
+  const binKeys = Object.keys(this.segsInBin);
+  /** Sort so that 'zero' bin is drawn at the end. */
+  binKeys.sort((a, b) => {
+    let a2 = (a == 'zero') ? Number.MAX_VALUE : a;
+    let b2 = (b == 'zero') ? Number.MAX_VALUE : b;
+    return a2 - b2;
+  });
+  const plotWidth = Math.max(
+      400, (2 * this.X_OFFSET_PIXELS) +
+           ((this.maxBin - this.minBin) * this.PIXELS_PER_UNIT));
   const plotHeight = this.heightInPixels(this.maxCount);
   const svgWidth = plotWidth;
   const svgHeight = plotHeight +
                     (this.TOP_OFFSET_PIXELS + this.BOTTOM_OFFSET_PIXELS);
-  const plot = document.getElementById(
-      'mqm-sys-v-sys-plot-' + this.metricIndex);
   plot.innerHTML = '';
   plot.setAttributeNS(null, 'viewBox', `0 0 ${svgWidth} ${svgHeight}`);
   plot.setAttributeNS(null, 'width', svgWidth);
   plot.setAttributeNS(null, 'height', svgHeight);
-  if (this.equals.length > 0) {
-    /** Draw the middle "zero" bin */
-    const h = this.heightInPixels(this.equals.length);
-    this.makeHistBar(
-        plot,
-        plotHalfWidth - this.ZERO_BIN_HALF_WIDTH_PIXELS, plotHeight - h,
-        2 * this.ZERO_BIN_HALF_WIDTH_PIXELS, h, this.COLOR_EQUAL,
-        `${this.equals.length} segment(s) where both ` +
-        `${mqmSysVSys1} and ${mqmSysVSys2} have equal ${this.metric} scores.`,
-        this.equals);
-  }
-  for (let s = 0; s < 2; s++) {
-    const systemComp = this.systemComp[s];
-    const betterSystem = (s == 0) ? mqmSysVSys1 : mqmSysVSys2;
-    const worseSystem = (s == 0) ? mqmSysVSys2 : mqmSysVSys1;
-    let totalSegs = 0;
-    for (let binStr in systemComp) {
-      const segs = systemComp[binStr];
-      if (segs.length == 0) continue;
-      const bin = parseInt(binStr);
-      const h = this.heightInPixels(segs.length);
-      let x = this.ZERO_BIN_HALF_WIDTH_PIXELS + (bin * this.BIN_WIDTH_PIXELS);
-      if (s == 1) {
-        x += plotHalfWidth;
-      } else {
-        x = plotHalfWidth - x - this.BIN_WIDTH_PIXELS;
-      }
-      const desc = `${segs.length} segment(s) where ` +
-          `${this.metric} for ${betterSystem} is better than ${worseSystem} ` +
-          'by a score difference in the range ' +
-          `(${bin * this.BIN_WIDTH}, ${(bin + 1) * this.BIN_WIDTH}].`;
-      this.makeHistBar(
-          plot, x, plotHeight - h, this.BIN_WIDTH_PIXELS, h,
-          this.COLORS[s], desc, segs);
-      totalSegs += segs.length;
-    }
-    if (totalSegs > 0) {
-      /* legend, shown in the area above the plot */
-      const y = -38 + (s * (this.BIN_WIDTH_PIXELS + 5));
-      const x = 50;
-      plot.appendChild(this.getRect(
-          x, y, this.BIN_WIDTH_PIXELS, this.BIN_WIDTH_PIXELS, this.COLORS[s]));
-      this.makeText(plot, x + this.BIN_WIDTH_PIXELS + 5, y + 14,
-          `${totalSegs}: ${betterSystem} better`, this.COLOR_LEGEND);
-    }
-  }
+
   /* y axis labels */
   this.makeLine(plot, 0, plotHeight, plotWidth, plotHeight, this.COLOR_LINES);
   this.makeText(plot, 5, plotHeight - 2, '0', this.COLOR_LABELS);
@@ -2185,31 +2304,77 @@ MQMSysVSysHistBuilder.prototype.display = function() {
                   this.COLOR_LINES);
     this.makeText(plot, 5, plotHeight - h - 2, '' + l, this.COLOR_LABELS);
   }
-  /* x axis labels */
-  this.makeLine(plot, plotHalfWidth, plotHeight, plotHalfWidth, plotHeight + 8,
-                this.COLOR_LABELS);
-  this.makeText(plot, plotHalfWidth - 5, plotHeight + 20, '0',
-                this.COLOR_LABELS);
-  for (let s = 0; s < 2; s++) {
-    const bMax = this.maxBin * this.BIN_WIDTH;
-    for (let b = 1; b < bMax; b++) {
-      let x = this.ZERO_BIN_HALF_WIDTH_PIXELS +
-              (b * this.BIN_WIDTH_PIXELS / this.BIN_WIDTH);
-      if (s == 1) {
-        x += plotHalfWidth;
-      } else {
-        x = plotHalfWidth - x;
-      }
-      this.makeLine(plot, x, plotHeight, x, plotHeight + 8, this.COLOR_LABELS);
-      const xval = (s == 0) ? (0 - b) : b;
-      const xdelta = (s == 0) ? 9 : 3;
-      this.makeText(plot, x - xdelta, plotHeight + 20, '' + xval,
-                    this.COLOR_LABELS);
+
+  if (this.hasDiffs) {
+    /* legend, shown in the area above the plot */
+    legends = [
+      {
+        color: this.color,
+        desc: this.sys1BetterCount + ' better segments for ' + this.sys,
+      },
+      {
+        color: this.colorCmp,
+        desc: this.sys2BetterCount + ' better segments for ' + this.sysCmp,
+      },
+    ];
+    for (let s = 0; s < legends.length; s++) {
+      const legend = legends[s];
+      const y = -30 + (s * (this.BIN_WIDTH_PIXELS + 10));
+      const x = 25;
+      plot.appendChild(this.getRect(
+          x, y, this.BIN_WIDTH_PIXELS, this.BIN_WIDTH_PIXELS, legend.color));
+      this.makeText(plot, x + this.BIN_WIDTH_PIXELS + 5, y + 10,
+                    legend.desc, this.COLOR_LEGEND);
     }
   }
+
+  for (let bin of binKeys) {
+    const segs = this.segsInBin[bin];
+    if (segs.length == 0) continue;
+    const numericBin = (bin == 'zero') ? 0 : parseFloat(bin);
+    let x = this.xPixels(numericBin);
+    const binWidth = (bin == 'zero') ? this.ZERO_BIN_WIDTH_PIXELS :
+                     this.BIN_WIDTH_PIXELS;
+    if (bin == 'zero') {
+      x -= (binWidth / 2.0);
+    }
+    const color = this.binColor(bin, numericBin);
+    const desc = this.binDesc(bin, numericBin, segs.length);
+    const h = this.heightInPixels(segs.length);
+    this.makeHistBar(
+          plot, x, plotHeight - h, binWidth, h,
+          color, desc, segs);
+  }
+
+  /** Draw x-axis labels */
+  const maxV = Math.max(Math.abs(this.minBin), Math.abs(this.maxBin));
+  const step = 2 * this.BIN_WIDTH;
+  for (let v = 0; v <= maxV + this.BIN_WIDTH; v += step) {
+    if (v >= 0 && v <= this.maxBin + this.BIN_WIDTH) {
+      const vDisp = this.binDisplay(v);
+      const x = this.xPixels(v);
+      const xDelta = 3 * vDisp.length;
+      this.makeLine(plot, x, plotHeight, x, plotHeight + 8, this.COLOR_LINES);
+      this.makeText(plot, x - xDelta, plotHeight + 20,
+                    vDisp, this.COLOR_LABELS);
+    }
+    const negV = 0 - v;
+    if (v == 0 || negV < this.minBin) {
+      continue;
+    }
+    const negVDisp = this.binDisplay(negV);
+    const x = this.xPixels(negV);
+    const xDelta = 3 * (negVDisp.length + 1);
+    this.makeLine(plot, x, plotHeight, x, plotHeight + 8, this.COLOR_LINES);
+    this.makeText(plot, x - xDelta, plotHeight + 20,
+                  negVDisp, this.COLOR_LABELS);
+  }
   /* X-axis name */
-  this.makeText(plot, plotHalfWidth - 80, plotHeight + 35,
-                `${this.metric} score difference`, this.COLOR_LEGEND);
+  this.makeText(plot, this.X_OFFSET_PIXELS, plotHeight + 40,
+                (this.hasDiffs ? this.metric + ' score differences' :
+                 this.sys + ': ' + this.totalCount + ' segments with ' +
+                 this.metric + ' scores'),
+                this.COLOR_LEGEND);
 };
 
 /**
@@ -2241,9 +2406,27 @@ function mqmCreateSysVSysTables() {
     const html = `
     <p id="mqm-sys-v-sys-${m}">
       <b>${metric}</b><br>
-      <svg class="mqm-sys-v-sys-plot" zoomAndPan="disable"
-          id="mqm-sys-v-sys-plot-${m}">
-      </svg>
+      <table>
+        <tr>
+        <td colspan="2">
+          <svg class="mqm-sys-v-sys-plot" zoomAndPan="disable"
+              id="mqm-sys-v-sys-plot-${m}">
+          </svg>
+        </td>
+        </tr>
+        <tr style="vertical-align:bottom">
+        <td>
+          <svg class="mqm-sys-v-sys-plot" zoomAndPan="disable"
+              id="mqm-sys1-plot-${m}">
+          </svg>
+        </td>
+        <td>
+          <svg class="mqm-sys-v-sys-plot" zoomAndPan="disable"
+              id="mqm-sys2-plot-${m}">
+          </svg>
+        </td>
+        </tr>
+      </table>
     </p>`;
     div.insertAdjacentHTML('beforeend', html);
   }
@@ -2253,8 +2436,7 @@ function mqmCreateSysVSysTables() {
   const selectSys2 = document.getElementById('mqm-sys-v-sys-2');
   const systems = Object.keys(mqmStatsBySystem);
   /**
-   * If possible, use the previously set values. If possible, keep
-   * system1 and system2 distinct from each other.
+   * If possible, use the previously set values.
    */
   if (mqmSysVSys1 && !mqmStatsBySystem.hasOwnProperty(mqmSysVSys1)) {
     mqmSysVSys1 = '';
@@ -2262,8 +2444,9 @@ function mqmCreateSysVSysTables() {
   if (mqmSysVSys2 && !mqmStatsBySystem.hasOwnProperty(mqmSysVSys2)) {
     mqmSysVSys2 = '';
   }
-  if (mqmSysVSys1 == mqmSysVSys2) {
-    mqmSysVSys2 = '';
+  if (systems.length == 1) {
+    mqmSysVSys1 = systems[0];
+    mqmSysVSys2 = systems[0];
   }
   for (let system of systems) {
     if (!mqmSysVSys1) {
@@ -2324,26 +2507,71 @@ function mqmShowSysVSys() {
   document.getElementById('mqm-sys-v-sys-1-segs').innerHTML = docsegs1.length;
   document.getElementById('mqm-sys-v-sys-2-segs').innerHTML = docsegs2.length;
 
-  for (let m of mqmMetricsVisible) {
-    const metric = mqmMetrics[m];
-    const metricInfo = mqmMetricsInfo[metric];
-    const lowerBetter = metricInfo.lowerBetter || false;
-    const metricKey = 'metric-' + m;
+  const sameSys = mqmSysVSys1 == mqmSysVSys2;
 
-    const histBuilder = new MQMSysVSysHistBuilder(m);
-    for (let i = 0; i < docsegs12.length; i++) {
-      const doc = docsegs12[i][0];
-      const docSegId = docsegs12[i][1];
-      const aggregate1 = mqmAggregateSegStats(
-          [mqmStatsBySystem[mqmSysVSys1][doc][docSegId]]);
-      const aggregate2 = mqmAggregateSegStats(
-          [mqmStatsBySystem[mqmSysVSys2][doc][docSegId]]);
-      histBuilder.addSegment(doc, docSegId,
-                             aggregate1[metricKey],
-                             aggregate2[metricKey],
-                             lowerBetter);
+  for (let m of mqmMetricsVisible) {
+    const metricKey = 'metric-' + m;
+    /**
+     * We draw up to 3 plots for a metric: system-1, system-2, and their diff.
+     */
+    const hists = [
+      {
+        docsegs: docsegs1,
+        hide: !mqmSysVSys1,
+        sys: mqmSysVSys1,
+        color: 'lightgreen',
+        sysCmp: '',
+        colorCmp: '',
+        id: 'mqm-sys1-plot-' + m,
+      },
+      {
+        docsegs: docsegs2,
+        hide: sameSys,
+        sys: mqmSysVSys2,
+        color: 'lightblue',
+        sysCmp: '',
+        colorCmp: '',
+        id: 'mqm-sys2-plot-' + m,
+      },
+      {
+        docsegs: docsegs12,
+        hide: sameSys,
+        sys: mqmSysVSys1,
+        color: 'lightgreen',
+        sysCmp: mqmSysVSys2,
+        colorCmp: 'lightblue',
+        id: 'mqm-sys-v-sys-plot-' + m,
+      },
+    ];
+    for (let hist of hists) {
+      const histElt = document.getElementById(hist.id);
+      histElt.style.display = hist.hide ? 'none' : '';
+      if (hist.hide) {
+        continue;
+      }
+      const histBuilder = new MQMHistBuilder(m, hist.sys, hist.color,
+                                             hist.sysCmp, hist.colorCmp);
+      for (let i = 0; i < hist.docsegs.length; i++) {
+        const doc = hist.docsegs[i][0];
+        const docSegId = hist.docsegs[i][1];
+        const aggregate1 = mqmAggregateSegStats(
+            [mqmStatsBySystem[hist.sys][doc][docSegId]]);
+        if (!aggregate1.hasOwnProperty(metricKey)) {
+          continue;
+        }
+        let score = aggregate1[metricKey];
+        if (hist.sysCmp) {
+          const aggregate2 = mqmAggregateSegStats(
+              [mqmStatsBySystem[hist.sysCmp][doc][docSegId]]);
+          if (!aggregate2.hasOwnProperty(metricKey)) {
+            continue;
+          }
+          score -= aggregate2[metricKey];
+        }
+        histBuilder.addSegment(doc, docSegId, score);
+      }
+      histBuilder.display(histElt);
     }
-    histBuilder.display();
   }
 }
 
@@ -2552,10 +2780,13 @@ function mqmShowStats() {
    * mqmScoreWeightedFields and mqmScoreSliceFields. Then add scores rows to
    * the table: by system, and then by rater.
    */
-  mqmShowScoresHeader();
-  mqmShowScores('mqm-stats-tbody', 'By system', mqmStatsBySystem,
+  const hasRatings = overallStats.numSegments > 0;
+  mqmShowScoresHeader(hasRatings);
+  mqmShowScores('mqm-stats-tbody', 'By system', mqmStatsBySystem, hasRatings,
                 mqmStatsBySysAggregates);
-  mqmShowScores('mqm-stats-tbody', 'By rater', mqmStatsByRater);
+  if (hasRatings) {
+    mqmShowScores('mqm-stats-tbody', 'By rater', mqmStatsByRater, hasRatings,);
+  }
   mqmShowSystemRaterStats();
   mqmCreateSysVSysTables();
   mqmShowSevCatStats();
@@ -2677,6 +2908,7 @@ function mqmIsAccuracy(lcat) {
  */
 function mqmAddErrorStats(stats, timeSpentMS, category, severity, span) {
   stats.timeSpentMS += timeSpentMS;
+  stats.scoreDenominator = 1;
 
   const lcat = category.toLowerCase().trim();
   if (lcat == 'no-error' || lcat == 'no_error') {
@@ -2955,44 +3187,42 @@ function mqmRaterHTML(rowId, rater, metadata) {
  * @return {string}
  */
 function mqmGetSegScoresHTML(currSegStatsBySys) {
-  const aggregate = mqmAggregateSegStats([currSegStatsBySys]);
   const segScoresParts = [];
-  if (aggregate.numRatings > 0) {
-    segScoresParts.push('MQM: ' +
-        mqmMetricDisplay(aggregate.score, aggregate.scoreDenominator));
-  }
-  for (let metric in aggregate.metrics) {
-    if (metric == 'MQM') continue;
-    const s = aggregate.metrics[metric];
-    if (s.scoreDenominator > 0) {
-      segScoresParts.push(
-          metric + ': ' + mqmMetricDisplay(s.score, s.scoreDenominator));
+  for (let metric in currSegStatsBySys.metrics) {
+    const s = currSegStatsBySys.metrics[metric];
+    segScoresParts.push([metric, mqmMetricDisplay(s, 1)]);
+    if (metric == 'MQM') {
+      const aggregate = mqmAggregateSegStats([currSegStatsBySys]);
+      if (aggregate.score != s) {
+        segScoresParts.push(
+            ['MQM-filtered',
+            mqmMetricDisplay(aggregate.score, aggregate.scoreDenominator)]);
+      }
     }
   }
   if (segScoresParts.length == 0) {
     return '';
   }
-  return '<tr><td><div class="mqm-seg-score">' +
-         segScoresParts.join(',&nbsp;') +
-         '</div></td></tr>\n';
+  let scoresRows = '';
+  for (let part of segScoresParts) {
+    scoresRows += '<tr><td>' + part[0] + ':&nbsp;</td>' +
+    '<td><span class="mqm-seg-score">' + part[1] + '</span></td></tr>';
+  }
+  return '<tr><td><table class="mqm-scores-table">' +
+         scoresRows +
+         '</table></td></tr>\n';
 }
 
 /**
  * Updates the display to show the segment data and scores according to the
- * current filters. When no filters are in place (as would happen at least
- * the first time new data is loaded), then this also sets segment-wise MQM
- * scores in metadata.segment.MQM, for use in subsequent filtering.
+ * current filters.
  * @param {?Object=} viewingConstraints Optional dict of doc:seg to view. When
  *     not null, only these segments are shown. When not null, this parameter
  *     object should have two additional properties:
  *       description: Shown to the user, describing the constrained view.
  *       color: A useful identifying color that highlights the description.
- * @param {boolean=} redoStatsOnly Set this to true if all you want to do is
- *     recompute the stats. If this is set, then no filtering is done, which
- *     also sets, for each segment, its computed full MQM score in
- *     metadata.segment.MQM.
  */
-function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
+function mqmShow(viewingConstraints=null) {
   // Cancel existing Sigtest computation when a new `mqmShow` is called.
   mqmResetSigtests();
 
@@ -3031,9 +3261,8 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
   }
 
   document.getElementById('mqm-filter-expr-error').innerHTML = '';
-  const allFilters = redoStatsOnly ? null : mqmGetAllFilters();
-  const filterExpr = allFilters ? allFilters.filterExpr : '';
-  const filterREs = allFilters ? allFilters.filterREs : [];
+  const allFilters = mqmGetAllFilters();
+
   let currSegStats = [];
   let currSegStatsBySys = [];
   let currSegStatsByRater = [];
@@ -3058,9 +3287,10 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
         for (let rowId = range[0]; rowId < range[1]; rowId++) {
           const parts = mqmData[rowId];
           let match = true;
-          for (let id in filterREs) {
+          for (let id in allFilters.filterREs) {
             const col = mqmFilterColumns[id];
-            if (filterREs[id] && !filterREs[id].test(parts[col])) {
+            if (allFilters.filterREs[id] &&
+                !allFilters.filterREs[id].test(parts[col])) {
               match = false;
               break;
             }
@@ -3068,11 +3298,12 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
           if (!match) {
             continue;
           }
-          if (!mqmFilterExprPasses(filterExpr, parts)) {
+          if (!mqmFilterExprPasses(allFilters.filterExpr, parts)) {
             continue;
           }
           const metadata = parts[MQM_DATA_METADATA];
-          if (!mqmAllSystemsFilterPasses(metadata)) {
+          if (allFilters.onlyAllSysSegs &&
+              !mqmAllSystemsFilterPasses(metadata)) {
             continue;
           }
 
@@ -3114,22 +3345,21 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
               }
             }
             /**
-             * Clear aggregated docseg info and the computed MQM score (as that
-             * applies to the unfiltered data) from filteredMetadata.segment.
+             * Clear aggregated docseg info from filteredMetadata.segment.
              */
             filteredMetadata.segment = {...metadata.segment};
             delete filteredMetadata.segment.aggrDocSeg;
-            delete filteredMetadata.segment.MQM;
           } else {
+            /**
+             * We keep segment info only in the first filtered row's metadata.
+             */
             delete filteredMetadata.segment;
           }
 
-          if (!redoStatsOnly) {
-            const partsForFilteredData = parts.slice();
-            partsForFilteredData[MQM_DATA_METADATA] =
-                JSON.stringify(filteredMetadata);
-            mqmDataFiltered.push(partsForFilteredData);
-          }
+          const partsForFilteredData = parts.slice();
+          partsForFilteredData[MQM_DATA_METADATA] =
+              JSON.stringify(filteredMetadata);
+          mqmDataFiltered.push(partsForFilteredData);
 
           if (rater && (rater != lastRater)) {
             lastRater = rater;
@@ -3180,9 +3410,6 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
             mqmAddEvents(mqmEvents, metadata, doc, docSegId, system, rater);
           }
 
-          if (redoStatsOnly) {
-            continue;
-          }
           if (viewingConstraints &&
               !viewingConstraints[mqmDocSegKey(doc, docSegId)]) {
             continue;
@@ -3213,14 +3440,6 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
           ratingRowsHTML += mqmCategoryHTML(rowId, category, metadata) + '<br>';
           ratingRowsHTML += mqmRaterHTML(rowId, rater, metadata);
           ratingRowsHTML += '</div></td></tr>\n';
-        }
-        if (!allFilters && aggrDocSegSys) {
-          /**
-           * No filtering was in place: set MQM for each doc-seg-sys, for use in
-           * subsequent filtering.
-           */
-          aggrDocSegSys.MQM =
-              mqmAggregateSegStats([currSegStatsBySys]).score ?? NaN;
         }
         if (shownForDocSegSys == 0) {
           continue;
@@ -3277,9 +3496,6 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
     }
   }
   document.body.style.cursor = 'auto';
-  if (redoStatsOnly) {
-    return;
-  }
   /**
    * Add cross-highlighting listeners.
    */
@@ -3357,6 +3573,56 @@ function mqmShow(viewingConstraints=null, redoStatsOnly=false) {
 }
 
 /**
+ * Recomputes MQM score for each segment (using current weight settings) and
+ * sets it in segment.metrics['MQM'].
+ */
+function mqmRecomputeMQM() {
+  statsBySystem = {};
+  let currSegStatsBySys = [];
+  for (doc of mqmDataIter.docs) {
+    for (docSegId of mqmDataIter.docSegs[doc]) {
+      for (system of mqmDataIter.docSys[doc]) {
+        let lastRater = '';
+        const range = mqmDataIter.docSegSys[doc][docSegId][system].rows;
+        let aggrDocSegSys = null;
+        for (let rowId = range[0]; rowId < range[1]; rowId++) {
+          const parts = mqmData[rowId];
+          const metadata = parts[MQM_DATA_METADATA];
+          if (!aggrDocSegSys) {
+            aggrDocSegSys = metadata.segment;
+            if (!statsBySystem.hasOwnProperty(system)) {
+              statsBySystem[system] = {};
+            }
+            currSegStatsBySys =
+                mqmGetSegStats(statsBySystem[system], doc, docSegId);
+            currSegStatsBySys.srcLen = parts.srcLen;
+          }
+          const rater = parts[MQM_DATA_RATER];
+          if (!rater) {
+            continue;
+          }
+          if (rater != lastRater) {
+            lastRater = rater;
+            currSegStatsBySys.push(mqmInitRaterStats(rater));
+          }
+          const category = parts[MQM_DATA_CATEGORY];
+          const severity = parts[MQM_DATA_SEVERITY];
+          /** We don't care about computing avg span/time here, pass as 0. */
+          mqmAddErrorStats(mqmArrayLast(currSegStatsBySys),
+                           0, category, severity, 0);
+        }
+        if (aggrDocSegSys) {
+          const aggrScores = mqmAggregateSegStats([currSegStatsBySys]);
+          if (aggrScores.scoreDenominator > 0) {
+            aggrDocSegSys.metrics['MQM'] = aggrScores.score;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
  * Wraps tokens within ranges specified in each bounds entry, in HTML
  * spans with the specified class. Returns the total length of marked tokens.
  * @param {!Array<string>} tokens
@@ -3379,22 +3645,26 @@ function mqmMarkSpans(tokens, bounds, cls) {
 }
 
 /**
- * Clears all filters.
+ * Clears all filters, except possibly 'mqm-only-all-systems-segments'.
+ * @param {boolean=} resetOnlyAllSys
  */
-function mqmClearFilters() {
+function mqmClearFilters(resetOnlyAllSys=false) {
   const filters = document.getElementsByClassName('mqm-filter-re');
   for (let i = 0; i < filters.length; i++) {
     filters[i].value = '';
   }
   document.getElementById('mqm-filter-expr').value = '';
   document.getElementById('mqm-filter-expr-error').innerHTML = '';
+  if (resetOnlyAllSys) {
+    document.getElementById('mqm-only-all-systems-segments').checked = false;
+  }
 }
 
 /**
  * Clears all filters and shows stats again.
  */
 function mqmClearFiltersAndShow() {
-  mqmClearFilters();
+  mqmClearFilters(true);
   mqmShow();
 }
 
@@ -3634,6 +3904,7 @@ function mqmSetData(tsvData) {
   }
   mqmSortData(mqmData);
   mqmCreateDataIter(mqmData);
+  mqmRecomputeMQM();
   mqmAddSegmentAggregations();
   mqmSetSelectOptions();
   mqmShow();
@@ -3650,6 +3921,7 @@ function mqmOpenFiles() {
   const filesElt = document.getElementById('mqm-file');
   const numFiles = filesElt.files.length;
   if (numFiles <= 0) {
+    document.body.style.cursor = 'auto';
     errors.innerHTML = 'No files were selected';
     return;
   }
@@ -3698,7 +3970,7 @@ function mqmOpenFiles() {
  */
 function mqmFetchUrls(urls) {
   const errors = document.getElementById('mqm-errors');
-  errors.innerHTML = 'Loading MQM data from ' + urls.length + ' URL(s)...';
+  errors.innerHTML = 'Loading metrics data from ' + urls.length + ' URL(s)...';
   const cleanUrls = [];
   for (let url of urls) {
     const trimmedUrl = url.trim();
@@ -3709,7 +3981,7 @@ function mqmFetchUrls(urls) {
     return;
   }
   let numResponses = 0;
-  const tsvData = [];
+  const tsvData = new Array(cleanUrls.length);
   const finisher = () => {
     if (numResponses == cleanUrls.length) {
       if (typeof mqmDataConverter == 'function') {
@@ -3720,14 +3992,15 @@ function mqmFetchUrls(urls) {
       mqmSetData(tsvData);
     }
   };
-  for (let url of cleanUrls) {
+  for (let i = 0; i < cleanUrls.length; i++) {
+    const url = cleanUrls[i];
     fetch(url, {
       mode: 'cors',
       credentials: 'include',
     })
         .then(response => response.text())
         .then(result => {
-          tsvData.push(result);
+          tsvData[i] = result;
           numResponses++;
           finisher();
         })
@@ -3927,10 +4200,10 @@ function mqmUpdateSettings() {
     mqmSetUpScoreSettings();
   }
   /**
-   * Need to recompute metadata.segment.MQM for each segment first, for use in
-   * subsequent filtering.
+   * Need to recompute metadata.segment.metrics['MQM'] for each segment first,
+   * for use in subsequent filtering.
    */
-  mqmShow(null, true);
+  mqmRecomputeMQM();
   mqmShow();
 }
 
@@ -4159,9 +4432,9 @@ function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
 
   <details>
     <summary
-        title="Click to see System vs System histograms of segment score differences">
+        title="Click to see System-wise and comparative segment scores histograms">
       <span class="mqm-section">
-        System vs System segment score differences histograms
+        System segment scores and comparative histograms
       </span>
     </summary>
     <div class="mqm-sys-v-sys" id="mqm-sys-v-sys">
@@ -4248,6 +4521,11 @@ function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
             title="Clear all column filters and JavaScript filter expression"
             onclick="mqmClearFiltersAndShow()">Clear all filters</button>
       </span>
+      <span>
+        <input type="checkbox" checked
+          onchange="mqmShow()" id="mqm-only-all-systems-segments"/>
+          Select only the segments for which all or no systems have scores
+      </span>
     </summary>
 
     <ul class="mqm-filters">
@@ -4301,6 +4579,11 @@ function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
             rather than just specific error ratings.
           </li>
           <li>
+            System-wise metrics, including MQM, are also available in
+            <b>aggrDocSeg.metrics</b>, which is an object keyed by the metric
+            name and then by system name.
+          </li>
+          <li>
             The aggregated variable named <b>aggrDoc</b> is an object
             with the following properties that are aggregates over all
             the systems:
@@ -4322,10 +4605,8 @@ function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
             aggrDocSeg.sevsBySystem['System-42'].includes('Major')</li>
           <li><b>Example</b>:
             JSON.stringify(aggrDocSeg.sevcatsBySystem).includes('Major/Fl')</li>
-          <li><b>Example</b>: aggrDocSegSys.MQM &gt; 4 &&
-            (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) &lt; 0.1 (note that
-            aggrDocSegSys.MQM is the <i>unfiltered</i> MQM score for the
-            segment).</li>
+          <li><b>Example</b>: aggrDocSegSys.metrics['MQM'] &gt; 4 &&
+            (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) &lt; 0.1.</li>
           <li>
             You can add segment-level filtering clauses (AND/OR) using this
             <b>helper</b> (which uses convenient shortcut functions
@@ -4348,14 +4629,6 @@ function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
               <button onclick="mqmAddClause('||')" disabled
                 id="mqm-clause-add-or">Add OR clause</button>
             </div>
-          </li>
-          <li
-            title="Convenient short-cut for the filter:
-              Object.keys(aggrDocSeg.sevcatsBySystem).length ==
-              mqmDataIter.systems.length">
-            <input type="checkbox"
-              onchange="mqmShow()" id="mqm-only-all-systems-segments"/>
-            Select only the segments for which all systems have been rated
           </li>
         </ul>
         <br>

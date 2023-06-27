@@ -115,7 +115,6 @@
   cursor: default;
 }
 .mqm-numbers-table td:not(:first-child) {
-  padding-right: 4px;
   text-align: right;
 }
 .mqm-numbers-table th {
@@ -152,12 +151,19 @@
 .mqm-score-th {
   min-width: 10ch;
 }
+.mqm-scores-table .mqm-seg-score {
+  padding-left: 4px;
+  text-align: right;
+}
+.mqm-scores-table tr td {
+  border-left: none;
+}
 .mqm-section {
   font-size: large;
   font-weight: bold;
 }
-.mqm-seg-score {
-  font-size: small;
+#mqm-only-all-systems-segments {
+  vertical-align: text-top;
 }
 .mqm-select {
   margin: 4px 0;
@@ -248,7 +254,7 @@
   width: 19%;
 }
 .mqm-timestamp {
-  font-size: x-small;
+  font-size: xx-small;
   font-style: italic;
   color: gray;
   cursor: default;
