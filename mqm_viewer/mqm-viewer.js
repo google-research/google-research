@@ -3966,34 +3966,39 @@ function mqmOpenFiles() {
 
 /**
  * Fetches MQM data from the given URLs and calls mqmSetData().
+ * If the mqmURLMaker() function exists, then it is applied to each URL
+ * first, to get a possibly modified URL.
  * @param {!Array<string>} urls
  */
-function mqmFetchUrls(urls) {
+function mqmFetchURLs(urls) {
   const errors = document.getElementById('mqm-errors');
   errors.innerHTML = 'Loading metrics data from ' + urls.length + ' URL(s)...';
-  const cleanUrls = [];
+  const cleanURLs = [];
   for (let url of urls) {
+    if (typeof mqmURLMaker == 'function') {
+      url = mqmURLMaker(url);
+    }
     const trimmedUrl = url.trim();
-    if (trimmedUrl) cleanUrls.push(trimmedUrl);
+    if (trimmedUrl) cleanURLs.push(trimmedUrl);
   }
-  if (cleanUrls.length == 0) {
+  if (cleanURLs.length == 0) {
     errors.innerHTML = 'No non-empty URLs found';
     return;
   }
   let numResponses = 0;
-  const tsvData = new Array(cleanUrls.length);
+  const tsvData = new Array(cleanURLs.length);
   const finisher = () => {
-    if (numResponses == cleanUrls.length) {
+    if (numResponses == cleanURLs.length) {
       if (typeof mqmDataConverter == 'function') {
         for (let i = 0; i < tsvData.length; i++) {
-          tsvData[i] = mqmDataConverter(cleanUrls[i], tsvData[i]);
+          tsvData[i] = mqmDataConverter(cleanURLs[i], tsvData[i]);
         }
       }
       mqmSetData(tsvData);
     }
   };
-  for (let i = 0; i < cleanUrls.length; i++) {
-    const url = cleanUrls[i];
+  for (let i = 0; i < cleanURLs.length; i++) {
+    const url = cleanURLs[i];
     fetch(url, {
       mode: 'cors',
       credentials: 'include',
@@ -4235,14 +4240,14 @@ function mqmCloseMenuEntries(except='') {
 
 /**
  * Replaces the HTML contents of elt with the HTML needed to render the
- *     MQM Viewer. If tsvDataOrUrls is not null, then it can be MQM TSV-data,
+ *     MQM Viewer. If tsvDataOrURLs is not null, then it can be MQM TSV-data,
  *     or a CSV list of URLs from which to fetch MQM TSV-data.
  * @param {!Element} elt
- * @param {string=} tsvDataOrCsvUrls
+ * @param {string=} tsvDataOrCsvURLs
  * @param {boolean=} loadReplaces determines whether loading new data
  *     replaces the current data or augments it, by default.
  */
-function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
+function createMQMViewer(elt, tsvDataOrCsvURLs='', loadReplaces=true) {
   const tooltip = 'Regular expressions are used case-insensitively. ' +
       'Click on the Apply button after making changes.';
   const settings = `
@@ -4752,11 +4757,11 @@ function createMQMViewer(elt, tsvDataOrCsvUrls='', loadReplaces=true) {
 
   mqmResetSettings();
 
-  if (tsvDataOrCsvUrls) {
-    if (tsvDataOrCsvUrls.indexOf('\t') >= 0) {
-      mqmSetData(tsvDataOrCsvUrls);
+  if (tsvDataOrCsvURLs) {
+    if (tsvDataOrCsvURLs.indexOf('\t') >= 0) {
+      mqmSetData(tsvDataOrCsvURLs);
     } else {
-      mqmFetchUrls(tsvDataOrCsvUrls.split(','));
+      mqmFetchURLs(tsvDataOrCsvURLs.split(','));
     }
   }
 }

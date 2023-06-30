@@ -142,6 +142,29 @@ function mqmDataConvertor(sourceName, data) {
 }
 ```
 
+## Data from URLs
+
+You can pass a `?dataurls=<url1>,...` parameter to MQM Viewer, to load data
+from the URLs listed. Note that any URLs have to be hosted on the same site
+as the viewer itself, or need to have a CORS exception.
+
+If your domain uses some custom way of storing data (Google uses the CNS file
+system, for example) that uses a way to convert data names to URLs, and you wish
+to directly pass such data names as URLs (to `?dataurls=`), then you can add a
+JavaScript function with the following name and behavior:
+```
+/**
+ * Transform a data name (that may be in some custom format) to a URL.
+ * @param {string} dataName The name or identifier for the data.
+ * @return {string} The URL from which the data can be loaded.
+ */
+function mqmURLMaker(dataName) {
+  /** Code to convert dataName into url */
+  let url = ...;
+  return url;
+}
+```
+
 ## Filtering
 
 This web app facilitates interactive slicing and dicing of the data to identify
