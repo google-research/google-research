@@ -27,3 +27,18 @@ As with the similar YouTube-8M dataset, we are releasing the video Ids.
 
 These IDs can be found here
 [this link](https://console.cloud.google.com/storage/browser/gresearch/youtube-asl).
+
+### Citing YouTube-ASL
+
+If using YouTube-ASL, please cite with the following bibtex entry.
+
+```
+@misc{uthus2023youtubeasl,
+  author = {Uthus, David and Tanzer, Garrett and Georg, Manfred},
+  title = {YouTube-ASL: A Large-Scale, Open-Domain American Sign Language-English Parallel Corpus}, 
+  year = {2023},
+  eprint = {2306.15162},
+  archivePrefix = {arXiv},
+  url = {https://arxiv.org/abs/2306.15162},
+}
+```
