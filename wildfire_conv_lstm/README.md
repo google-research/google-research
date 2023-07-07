@@ -12,8 +12,6 @@ the code for a Google colab.  To use this colab, you will need to first copy the
 
 # Google cloud
 
-WARNING: Work in progress.  The model checkpoints have not yet been made available on Google cloud (though the data now is available).
-
 All of the data and the model checkpoints are located on Google cloud.  To access the data, you can install the google cloud CLI, which this document will assume you've done (access to the cloud data can also be performed on the Google Cloud UI for users familiar with it).  For instructions on installing Google Cloud CLI:
 
 https://cloud.google.com/sdk/docs/install
@@ -87,8 +85,6 @@ gsutil cp gs://wildfire_conv_lstm/data/california_wn/00/real_wn_test_temporal.tf
 ```
 
 # Model Checkpoints
-
-WARNING: Model check points have not yet been made publicly available on Google Cloud.
 
 You can view all the model check points:
 
