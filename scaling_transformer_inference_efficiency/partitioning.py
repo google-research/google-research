@@ -25,10 +25,10 @@ from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import jax
 from jax import core
-from jax import pxla
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
 from jax.experimental.array_serialization import serialization as jax_array_serialization
+from jax.interpreters import pxla
 import jax.numpy as jnp
 from jax.sharding import Mesh
 from jax.sharding import NamedSharding

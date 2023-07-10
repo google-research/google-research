@@ -99,7 +99,10 @@ class TreeTest(absltest.TestCase):
     self.assertIsInstance(replicated_tree["b"], int)
     self.assertEqual(replicated_tree["a"].shape, (n, 4))
 
-    expected_sharding = (jax.pxla.Unstacked(n), jax.pxla.NoSharding())
+    expected_sharding = (
+        jax.interpreters.pxla.Unstacked(n),
+        jax.interpreters.pxla.NoSharding(),
+    )
     self.assertEqual(replicated_tree["a"].sharding.sharding_spec.sharding,
                      expected_sharding)
 
@@ -112,7 +115,10 @@ class TreeTest(absltest.TestCase):
     self.assertIsInstance(sharded_tree["b"], int)
 
     self.assertEqual(sharded_tree["a"].shape, (n, 4))
-    expected_sharding = (jax.pxla.Unstacked(n), jax.pxla.NoSharding())
+    expected_sharding = (
+        jax.interpreters.pxla.Unstacked(n),
+        jax.interpreters.pxla.NoSharding(),
+    )
     self.assertEqual(sharded_tree["a"].sharding.sharding_spec.sharding,
                      expected_sharding)
 
