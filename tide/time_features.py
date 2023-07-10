@@ -183,7 +183,9 @@ class TimeCovariates(object):
             for h in tqdm(HOLIDAYS)
         ]
     )
-    return StandardScaler().fit_transform(hol_variates)
+    # hol_variates is (num_holiday, num_time_steps), the normalization should be
+    # performed in the num_time_steps dimension.
+    return StandardScaler().fit_transform(hol_variates.T).T
 
   def get_covariates(self):
     """Get all time covariates."""
