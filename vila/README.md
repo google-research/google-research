@@ -23,17 +23,17 @@ Install dependencies (works with python3.10):
 pip3 install -r requirements.txt
 ```
 
-The model checkpoints can be downloaded from **gs://gresearch/vila/** on
-[gcloud](https://cloud.google.com/sdk/docs/install)
+The model checkpoints can be downloaded from 
+[gcloud directory link](https://console.cloud.google.com/storage/browser/gresearch/vila)
 
 The folder contains the following checkpoints:
 
--   **.../vila/checkpoints/vila_pretrain/**: VILA-P, pretrained on AVA-Captions
+-   **./vila/checkpoints/vila_pretrain/**: VILA-P, pretrained on AVA-Captions
     dataset.
--   **.../vila/checkpoints/vila_rank_tuned/**: VILA-R, finetuned on AVA MOS
+-   **./vila/checkpoints/vila_rank_tuned/**: VILA-R, finetuned on AVA MOS
     prediction task using the proposed rank-based adapter module.
--   **.../vila/checkpoints/laion_pretrain/**: LAION pretrained CoCa model.
--   **.../vila/spm_model/**: The sentence piece tokenizer used in the models.
+-   **./vila/checkpoints/laion_pretrain/**: LAION pretrained CoCa model.
+-   **./vila/spm_model/**: The sentence piece tokenizer used in the models.
 
 ## Run Inference
 
