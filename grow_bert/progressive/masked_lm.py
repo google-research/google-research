@@ -46,21 +46,32 @@ from official.nlp.tasks import masked_lm
 class MaskedLMConfig(cfg.TaskConfig):
   """The model config."""
   init_checkpoint: str = ''
-  model: bert.PretrainerConfig = bert.PretrainerConfig(
-      cls_heads=[
-          bert.ClsHeadConfig(
-              inner_dim=768,
-              num_classes=2,
-              dropout_rate=0.1,
-              name='next_sentence')
-      ],
-      encoder=encoders.EncoderConfig(bert=encoders.BertEncoderConfig()))
+  model: bert.PretrainerConfig = dataclasses.field(
+      default_factory=lambda: bert.PretrainerConfig(  # pylint: disable=g-long-lambda
+          cls_heads=[
+              bert.ClsHeadConfig(
+                  inner_dim=768,
+                  num_classes=2,
+                  dropout_rate=0.1,
+                  name='next_sentence',
+              )
+          ],
+          encoder=encoders.EncoderConfig(bert=encoders.BertEncoderConfig()),
+      )
+  )
   scale_loss: bool = False
-  train_data: pretrain_dataloader.BertPretrainDataConfig = pretrain_dataloader.BertPretrainDataConfig(
+  train_data: pretrain_dataloader.BertPretrainDataConfig = dataclasses.field(
+      default_factory=pretrain_dataloader.BertPretrainDataConfig
   )
-  small_train_data: pretrain_dataloader.BertPretrainDataConfig = pretrain_dataloader.BertPretrainDataConfig(
+  small_train_data: pretrain_dataloader.BertPretrainDataConfig = (
+      dataclasses.field(
+          default_factory=pretrain_dataloader.BertPretrainDataConfig
+      )
   )
-  validation_data: pretrain_dataloader.BertPretrainDataConfig = pretrain_dataloader.BertPretrainDataConfig(
+  validation_data: pretrain_dataloader.BertPretrainDataConfig = (
+      dataclasses.field(
+          default_factory=pretrain_dataloader.BertPretrainDataConfig
+      )
   )
 
 
@@ -73,14 +84,19 @@ class StackingStageConfig(base_config.Config):
   decay_steps: int = 1000000
   override_num_layers: Optional[int] = None
 
-  small_encoder_config: Optional[
-      ecfg.SmallEncoderConfig] = ecfg.SmallEncoderConfig()
-  override_train_data: Optional[
-      pretrain_dataloader
-      .BertPretrainDataConfig] = pretrain_dataloader.BertPretrainDataConfig()
-  override_valid_data: Optional[
-      pretrain_dataloader
-      .BertPretrainDataConfig] = pretrain_dataloader.BertPretrainDataConfig()
+  small_encoder_config: Optional[ecfg.SmallEncoderConfig] = dataclasses.field(
+      default_factory=ecfg.SmallEncoderConfig
+  )
+  override_train_data: Optional[pretrain_dataloader.BertPretrainDataConfig] = (
+      dataclasses.field(
+          default_factory=pretrain_dataloader.BertPretrainDataConfig
+      )
+  )
+  override_valid_data: Optional[pretrain_dataloader.BertPretrainDataConfig] = (
+      dataclasses.field(
+          default_factory=pretrain_dataloader.BertPretrainDataConfig
+      )
+  )
 
 
 @dataclasses.dataclass

@@ -52,7 +52,9 @@ class ExampleWithMetadata:
   epoch: Any
   example_id: Any
   example: Any
-  mask: jax_util.NDArray = np.array(True)
+  mask: jax_util.NDArray = dataclasses.field(
+      default_factory=lambda: np.array(True)
+  )
   static_metadata: Any = None
 
 

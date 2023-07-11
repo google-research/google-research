@@ -48,17 +48,29 @@ class EmbeddingShape(base_config.Config):
 
 @dataclasses.dataclass
 class EmbeddingShapeConfig(base_config.Config):
-  token_ids: EmbeddingShape = EmbeddingShape(
-      vocab_size=25000, embedding_size=250)
-  token_type: EmbeddingShape = EmbeddingShape(vocab_size=6, embedding_size=16)
-  is_upper: EmbeddingShape = EmbeddingShape(vocab_size=2, embedding_size=8)
-  is_title: EmbeddingShape = EmbeddingShape(vocab_size=2, embedding_size=8)
+  """The embedding shape config."""
+  token_ids: EmbeddingShape = dataclasses.field(
+      default_factory=lambda: EmbeddingShape(  # pylint: disable=g-long-lambda
+          vocab_size=25000, embedding_size=250
+      )
+  )
+  token_type: EmbeddingShape = dataclasses.field(
+      default_factory=lambda: EmbeddingShape(vocab_size=6, embedding_size=16)
+  )
+  is_upper: EmbeddingShape = dataclasses.field(
+      default_factory=lambda: EmbeddingShape(vocab_size=2, embedding_size=8)
+  )
+  is_title: EmbeddingShape = dataclasses.field(
+      default_factory=lambda: EmbeddingShape(vocab_size=2, embedding_size=8)
+  )
 
 
 @dataclasses.dataclass
 class EmbeddingConfig(base_config.Config):
   """Embedding block config for AP parsing."""
-  shape_configs: EmbeddingShapeConfig = EmbeddingShapeConfig()
+  shape_configs: EmbeddingShapeConfig = dataclasses.field(
+      default_factory=EmbeddingShapeConfig
+  )
   dropout_rate: float = 0.1
   pretrained_embedding_path: Optional[str] = None
 
@@ -66,18 +78,26 @@ class EmbeddingConfig(base_config.Config):
 @dataclasses.dataclass
 class ModelConfig(base_config.Config):
   """A base span labeler configuration."""
-  encoder: LSTMEncoderConfig = LSTMEncoderConfig()
-  input_embedding: EmbeddingConfig = EmbeddingConfig()
+  encoder: LSTMEncoderConfig = dataclasses.field(
+      default_factory=LSTMEncoderConfig
+  )
+  input_embedding: EmbeddingConfig = dataclasses.field(
+      default_factory=EmbeddingConfig
+  )
 
 
 @dataclasses.dataclass
 class APParsingConfig(cfg.TaskConfig):
   """The task config."""
-  model: ModelConfig = ModelConfig()
+  model: ModelConfig = dataclasses.field(default_factory=ModelConfig)
   use_crf: bool = False
-  train_data: ap_parsing_dataloader.APParsingDataConfig = ap_parsing_dataloader.APParsingDataConfig(
+  train_data: ap_parsing_dataloader.APParsingDataConfig = dataclasses.field(
+      default_factory=ap_parsing_dataloader.APParsingDataConfig
   )
-  validation_data: ap_parsing_dataloader.APParsingDataConfig = ap_parsing_dataloader.APParsingDataConfig(
+  validation_data: ap_parsing_dataloader.APParsingDataConfig = (
+      dataclasses.field(
+          default_factory=ap_parsing_dataloader.APParsingDataConfig
+      )
   )
 
 
