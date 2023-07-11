@@ -268,6 +268,17 @@ class SpinSphericalHarmonicsTest(tf.test.TestCase, parameterized.TestCase):
     ours = spin_spherical_harmonics._fourier_transform_2d(x)
     self.assertAllClose(fft, ours, atol=5e-6)
 
+  @parameterized.parameters(4, 8, 9)
+  def test_inverse_fourier_transform_2d(self, dimension):
+    """Ensures that our DFT implementation matches the FFT."""
+    ft = jnp.linspace(0, 1, 2 * dimension**2).reshape(2 * dimension, dimension)
+    rowwise = jnp.fft.ifft(ft, axis=0)[:dimension]
+    ifft = jnp.fft.ifft(rowwise, axis=1)
+
+    ours = spin_spherical_harmonics._inverse_fourier_transform_sliced_2d(
+        ft, dimension)
+    self.assertAllClose(ifft, ours, atol=5e-6)
+
 
 if __name__ == '__main__':
   tf.test.main()

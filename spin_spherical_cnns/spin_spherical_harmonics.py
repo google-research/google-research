@@ -407,16 +407,9 @@ class SpinSphericalFourierTransformer(nn.Module):
     ft = jnp.pad(ft, [(ell_max+1, ell_max), (1, 0), (0, 0), (0, 0)])
     ft = jnp.fft.ifftshift(ft, axes=(0, 1))
 
-    # For the dimensions we typically have here, computing the naive
-    # FT by multiplying by the IDFT matrix is significantly faster
-    # than the FFT (at least on TPU).
-    idft_matrix = jnp.fft.ifft(jnp.eye(ft.shape[0]))
-    # Since only half of the 2D IFFT is needed, it is faster to slice
-    # after the first 1D IFFT.
-    rowwise = jnp.einsum("ij,j...->i...", idft_matrix, ft)[:2*(ell_max + 1)]
     num_elements = ft.shape[0] * ft.shape[1]
-    idft_matrix = jnp.fft.ifft(jnp.eye(ft.shape[1]))
-    return jnp.einsum("ij,kj...->ki...", idft_matrix, rowwise) * num_elements
+    return _inverse_fourier_transform_sliced_2d(
+        ft, 2*(ell_max + 1)) * num_elements
 
 
 def coefficients_to_matrix(coeffs):
@@ -449,6 +442,19 @@ def _fourier_transform_2d(x):
   # FT by multiplying by the DFT matrix is significantly faster than
   # the FFT (at least on TPU).
   dft_matrix = jnp.fft.fft(jnp.eye(x.shape[0]))
-  rowwise = jnp.einsum("ij,j...->i...", dft_matrix, x)
+  rowwise = jnp.einsum("ij,j...->i...", dft_matrix, x, precision="high")
   dft_matrix = jnp.fft.fft(jnp.eye(x.shape[1]))
-  return jnp.einsum("ij,kj...->ki...", dft_matrix, rowwise)
+  return jnp.einsum("ij,kj...->ki...", dft_matrix, rowwise, precision="high")
+
+
+def _inverse_fourier_transform_sliced_2d(ft, axis_0_slice):
+  # For the dimensions we typically have here, computing the naive
+  # IFT by multiplying by the IDFT matrix is significantly faster
+  # than the FFT (at least on TPU).
+  idft_matrix = jnp.fft.ifft(jnp.eye(ft.shape[0]))
+  # Since only half of the 2D IFFT is needed, it is faster to slice
+  # after the first 1D IFFT.
+  rowwise = jnp.einsum("ij,j...->i...", idft_matrix, ft,
+                       precision="high")[:axis_0_slice]
+  idft_matrix = jnp.fft.ifft(jnp.eye(ft.shape[1]))
+  return jnp.einsum("ij,kj...->ki...", idft_matrix, rowwise, precision="high")
