@@ -181,6 +181,8 @@ class SpinSphericalConvolution(nn.Module):
       'spatial' domain.
     output_representation: Whether to return outputs in the 'spectral'
       or 'spatial' domain.
+    use_bias: Whether to add learnable bias to the output. Not needed
+      when followed by batch normalization.
     initializer: initializer for the filter spectrum.
   """
   features: int
@@ -192,6 +194,7 @@ class SpinSphericalConvolution(nn.Module):
   num_filter_params: Optional[int] = None
   input_representation: str = "spatial"
   output_representation: str = "spatial"
+  use_bias: bool = False
   initializer: Optional[Initializer] = None
 
   def _get_kernel(self, ell_max, num_channels_in):
@@ -279,14 +282,24 @@ class SpinSphericalConvolution(nn.Module):
     vmap_convolution = jax.vmap(
         _spin_spherical_convolution,
         in_axes=(None, 0, None, None, None, None, None, None, None))
-    return vmap_convolution(self.transformer,
-                            sphere_or_coeffs, kernel,
-                            self.spins_in,
-                            self.spins_out,
-                            self.spectral_pooling,
-                            self.spectral_upsampling,
-                            self.input_representation,
-                            self.output_representation)
+    out = vmap_convolution(self.transformer,
+                           sphere_or_coeffs, kernel,
+                           self.spins_in,
+                           self.spins_out,
+                           self.spectral_pooling,
+                           self.spectral_upsampling,
+                           self.input_representation,
+                           self.output_representation)
+
+    if self.use_bias:
+      # Add complex bias to spin 0.
+      idx_zero, _ = get_zero_nonzero_idx(self.spins_out)
+      out = out.at[Ellipsis, idx_zero, :].add(
+          self.param("bias",
+                     _complex_zeros_initializer,
+                     (self.features,)))
+
+    return out
 
 
 class MagnitudeNonlinearity(nn.Module):

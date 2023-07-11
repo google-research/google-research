@@ -171,7 +171,8 @@ class SpinSphericalConvolutionTest(tf.test.TestCase, parameterized.TestCase):
            n_channels_in=2, n_channels_out=3,
            num_filter_params=4,
            spectral_pooling=True,
-           input_representation="spectral"),
+           input_representation="spectral",
+           use_bias=True),
   )
   def test_shape(self,
                  batch_size,
@@ -182,7 +183,8 @@ class SpinSphericalConvolutionTest(tf.test.TestCase, parameterized.TestCase):
                  spectral_pooling=False,
                  spectral_upsampling=False,
                  input_representation="spatial",
-                 output_representation="spatial"):
+                 output_representation="spatial",
+                 use_bias=False):
     """Checks that SpinSphericalConvolution outputs the right shape."""
     transformer = _get_transformer()
     if input_representation == "spectral":
@@ -202,7 +204,8 @@ class SpinSphericalConvolutionTest(tf.test.TestCase, parameterized.TestCase):
         spectral_pooling=spectral_pooling,
         spectral_upsampling=spectral_upsampling,
         input_representation=input_representation,
-        output_representation=output_representation)
+        output_representation=output_representation,
+        use_bias=use_bias)
     params = model.init(_JAX_RANDOM_KEY, inputs)
     out = model.apply(params, inputs)
 
