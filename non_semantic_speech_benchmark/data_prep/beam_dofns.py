@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tupl
 from absl import logging
 import apache_beam as beam
 import librosa
+from lingvo.core import predictor
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -250,12 +251,21 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
     k, ex = k_v
 
     # Get dictionary of chunked audio.
-    model_input, _ = self.tfex_to_chunked_audio(k, ex)
+    model_input, sample_rate = self.tfex_to_chunked_audio(k, ex)
 
     # Calculate the 3D embeddings.
     if model_input.ndim == 1:
       model_input = np.expand_dims(model_input, axis=0)
-    tf_out = self._module_call_fn(model_input, self.post_setup_module)
+
+    if isinstance(self.post_setup_module, predictor.Predictor):
+      tf_out = self._module_call_fn(
+          model_input=model_input,
+          sample_rate=sample_rate,
+          asr_pred=self.post_setup_module,
+          output_key=self._output_keys,
+      )
+    else:
+      tf_out = self._module_call_fn(model_input, self.post_setup_module)
 
     out_dict = {}
     for name, output_key in zip(self._embedding_names, self._output_keys):
