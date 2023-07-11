@@ -117,7 +117,7 @@ On the opening screen, select the "GitHub" tab, and then search for 'google-rese
 
 That should bring up the code in a colab.  Don't forget to connect to a server after loading up the colab.
 
-Next, copy over the data file and the model file to the colab server, using the colab file UI.  In this example, the files were copied over to the "tmp" directory.  Execute the first 3 cells to get all the code loaded.  Then in the final cell, enter the following fields:
+Next, copy over the data file and the model file to the colab server, using the colab file UI.  In this example, the files were copied over to the /tmp directory in the root directory of the colab server (any directory will do).  Execute the first 3 cells to get all the code loaded.  Then in the final cell, enter the following fields:
 
 input_file: /tmp/real_wn_test_temporal.tfr-00164-of-00165<br>
 input_model: /tmp/lstm.h5<br>
