@@ -28,6 +28,7 @@ spin, channel).
 """
 import functools
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
+from einshape.src.jax import jax_ops as einshape
 from flax import linen as nn
 import jax
 from jax import lax
@@ -363,6 +364,48 @@ class MagnitudeNonlinearityLeakyRelu(nn.Module):
       outputs.append(outputs_spin)
 
     return jnp.concatenate(outputs, axis=-2)
+
+
+class PhaseCollapseNonlinearity(nn.Module):
+  """Nonlinearity that concatenates x to |x|.
+
+  This is inspired by Guth et al, "Phase Collapse in Neural Networks".  We adapt
+  the idea to spin-weighted functions by concatenating the magnitude of all
+  spins to the value at spin == 0, then projecting it back to the input number
+  of channels.
+
+  Attributes:
+    spins: (n_spins,) Sequence of int containing the input spins.
+  """
+
+  spins: Sequence[int]
+
+  @nn.compact
+  def __call__(self, inputs):
+    """Applies the nonlinearity.
+
+    Args:
+      inputs: (batch_size, resolution, resolution, num_spins, num_channels)
+        complex64 feature array.
+
+    Returns:
+      An array with the same shape as `inputs`, where only the dimension
+        corresponding to spin zero changes.
+    """
+    idx_zero, _ = get_zero_nonzero_idx(self.spins)
+    abs_inputs = einshape.einshape("bxysc->bxy1(sc)", jnp.abs(inputs))
+    num_channels = inputs.shape[-1]
+    dense_options = dict(
+        features=num_channels, dtype=jnp.complex64, param_dtype=jnp.complex64
+    )
+
+    # We avoid a slow concatenation here by applying two dense layers.
+    outputs_spin0 = (
+        nn.Dense(**dense_options)(inputs[Ellipsis, [idx_zero], :])
+        + nn.Dense(**dense_options)(abs_inputs)
+    ) * 0.5
+
+    return inputs.at[Ellipsis, [idx_zero], :].set(outputs_spin0)
 
 
 class SphericalPooling(nn.Module):

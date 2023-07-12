@@ -20,7 +20,7 @@ from absl.testing import parameterized
 import flax
 from flax import linen as nn
 import jax
-import jax.numpy as jnp
+from jax import numpy as jnp
 import numpy as np
 import tensorflow as tf
 
@@ -406,6 +406,52 @@ class MagnitudeNonlinearityLeakyReluTest(tf.test.TestCase):
     self.assertAllEqual(outputs[Ellipsis, 1:, :], outputs_relu[Ellipsis, 1:, :])
     self.assertAllEqual(outputs_relu[Ellipsis, 0, :],
                         nn.leaky_relu(inputs[Ellipsis, 0, :].real))
+
+
+class PhaseCollapseNonlinearityTest(tf.test.TestCase, parameterized.TestCase):
+
+  @parameterized.parameters(dict(spins=(0,)), dict(spins=(0, 1)))
+  def test_shape(self, spins):
+    model = layers.PhaseCollapseNonlinearity(spins)
+    batch_size, resolution, num_channels = 2, 8, 3
+    input_shape = (batch_size, resolution, resolution, len(spins), num_channels)
+    inputs = jnp.ones(input_shape) + 1j * jnp.ones(input_shape)
+
+    rng = jax.random.PRNGKey(0)
+    params = model.init(rng, inputs)
+    outputs = model.apply(params, inputs)
+    self.assertEqual(
+        outputs.shape,
+        (batch_size, resolution, resolution, len(spins), num_channels),
+    )
+
+  @parameterized.parameters(
+      dict(spins=(0,)), dict(spins=(0, 1)), dict(spins=(-1, 0, 1))
+  )
+  def test_only_spin_zero_changes(self, spins):
+    model = layers.PhaseCollapseNonlinearity(spins)
+    batch_size, resolution, num_channels = 2, 8, 3
+    input_shape = (batch_size, resolution, resolution, len(spins), num_channels)
+    inputs = jnp.linspace(-1.0, 2.0, np.prod(input_shape)) + 1j * jnp.linspace(
+        0.5, -1.0, np.prod(input_shape)
+    )
+    inputs = inputs.reshape(input_shape)
+
+    idx_zero, idx_nonzero = layers.get_zero_nonzero_idx(spins)
+
+    rng = jax.random.PRNGKey(0)
+    params = model.init(rng, inputs)
+    outputs = model.apply(params, inputs)
+
+    with self.subTest("Zero spin changes."):
+      self.assertNotAllClose(
+          outputs[Ellipsis, idx_zero, :], inputs[Ellipsis, idx_zero, :]
+      )
+
+    with self.subTest("Nonzero spins do not change."):
+      self.assertAllClose(
+          outputs[Ellipsis, idx_nonzero, :], inputs[Ellipsis, idx_nonzero, :]
+      )
 
 
 class SphericalPoolingTest(tf.test.TestCase, parameterized.TestCase):
