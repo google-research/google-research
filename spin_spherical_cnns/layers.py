@@ -719,3 +719,58 @@ class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):
       outputs.append(outputs_spin)
 
     return jnp.concatenate(outputs, axis=-2)
+
+
+class SpinSphericalBatchNormPhaseCollapse(nn.Module):
+  """Applies batch norm and phase collapse for spin-spherical functions.
+
+  Attributes:
+    spins: (n_spins,) Sequence of int containing the input spins.
+    use_running_stats: if True, the statistics stored in batch_stats will be
+      used instead of computing the batch statistics on the input.
+    momentum: decay rate for the exponential moving average of the batch
+      statistics.
+    epsilon: a small float added to variance to avoid dividing by zero.
+    axis_name: the axis name used to combine batch statistics from multiple
+      devices. See `jax.pmap` for a description of axis names (default: None).
+  """
+
+  spins: Sequence[int]
+  use_running_stats: Optional[bool] = None
+  momentum: float = 0.99
+  epsilon: float = 1e-5
+  axis_name: Optional[str] = None
+
+  @nn.compact
+  def __call__(
+      self,
+      inputs,
+      use_running_stats = None,
+      weights = None,
+  ):
+    """Calls appropriate batch normalization and nonlinearity per spin."""
+    use_running_stats = nn.module.merge_param(
+        "use_running_stats", self.use_running_stats, use_running_stats
+    )
+
+    options = dict(
+        use_running_stats=use_running_stats,
+        momentum=self.momentum,
+        epsilon=self.epsilon,
+        axis_name=self.axis_name,
+    )
+
+    idx_zero, idx_nonzero = get_zero_nonzero_idx(self.spins)
+    outputs = inputs
+    outputs = outputs.at[Ellipsis, [idx_zero], :].set(
+        SphericalBatchNormalization(use_bias=True, centered=True, **options)(
+            outputs[Ellipsis, [idx_zero], :], weights=weights
+        )
+    )
+    outputs = outputs.at[Ellipsis, idx_nonzero, :].set(
+        SphericalBatchNormalization(use_bias=False, centered=False, **options)(
+            outputs[Ellipsis, idx_nonzero, :], weights=weights
+        )
+    )
+
+    return PhaseCollapseNonlinearity(spins=self.spins)(outputs)

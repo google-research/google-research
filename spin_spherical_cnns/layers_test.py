@@ -586,5 +586,56 @@ class SpinSphericalBatchNormalizationTest(tf.test.TestCase,
     self.assertAllClose(coefficients_1, coefficients_2, atol=1e-5)
 
 
+class SpinSphericalBatchNormPhaseCollapseTest(
+    tf.test.TestCase, parameterized.TestCase
+):
+
+  @parameterized.parameters(
+      dict(train=False, shift=3), dict(train=True, shift=2)
+  )
+  def test_azimuthal_equivariance(self, train, shift):
+    resolution = 8
+    spins = (0, 1, 2)
+    transformer = _get_transformer()
+    model = layers.SpinSphericalBatchNormPhaseCollapse(spins=spins)
+    init_args = dict(use_running_stats=True)
+    apply_args = dict(use_running_stats=not train, mutable=["batch_stats"])
+
+    output_1, output_2 = test_utils.apply_model_to_azimuthally_rotated_pairs(
+        transformer,
+        model,
+        resolution,
+        spins,
+        init_args=init_args,
+        apply_args=apply_args,
+        shift=shift,
+    )
+
+    self.assertAllClose(output_1, output_2)
+
+  @parameterized.parameters(False, True)
+  def test_equivariance(self, train):
+    resolution = 16
+    spins = (0, 1)
+    transformer = _get_transformer()
+    model = layers.SpinSphericalBatchNormPhaseCollapse(spins=spins)
+    init_args = dict(use_running_stats=True)
+    apply_args = dict(use_running_stats=not train, mutable=["batch_stats"])
+
+    coefficients_1, coefficients_2, _ = test_utils.apply_model_to_rotated_pairs(
+        transformer,
+        model,
+        resolution,
+        spins,
+        init_args=init_args,
+        apply_args=apply_args,
+    )
+
+    # Tolerance needs to be high here due to the approximate equivariance of the
+    # pointwise operation under equiangular sampling.
+    self.assertAllClose(coefficients_1, coefficients_2, atol=1e-1)
+    self.assertLess(abs(coefficients_1 - coefficients_2).mean(), 5e-3)
+
+
 if __name__ == "__main__":
   tf.test.main()
