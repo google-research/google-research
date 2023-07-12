@@ -637,5 +637,57 @@ class SpinSphericalBatchNormPhaseCollapseTest(
     self.assertLess(abs(coefficients_1 - coefficients_2).mean(), 5e-3)
 
 
+class SpinSphericalSpectralBatchNormalizationTest(
+    tf.test.TestCase, parameterized.TestCase
+):
+
+  def test_spectral_matches_spatial(self):
+    resolution = 16
+    shape = (4, resolution, resolution, 2, 3)
+    spins = (0, 1)
+    transformer = _get_transformer()
+    sphere, coefficients = test_utils.get_spin_spherical(
+        transformer, shape, spins
+    )
+    # Ensure mean zero for spin 0 so spatial matches spectral:
+    sphere_mean = sphere_utils.spin_spherical_mean(sphere[Ellipsis, [0], :])
+    sphere = sphere.at[Ellipsis, [0], :].add(-jnp.expand_dims(sphere_mean, (1, 2)))
+    coefficients = coefficients.at[:, 0].set(0.0)
+
+    key = jax.random.PRNGKey(0)
+
+    spatial_module = layers.SpinSphericalBatchNormalization(
+        spins=spins, use_running_stats=False
+    )
+    spatial_params = spatial_module.init(key, sphere)
+
+    spectral_module = layers.SpinSphericalSpectralBatchNormalization(
+        spins=spins, use_running_stats=False
+    )
+
+    spectral_params = spectral_module.init(key, coefficients)
+
+    spatial_output, _ = spatial_module.apply(
+        spatial_params, sphere, mutable=["batch_stats"]
+    )
+    spectral_output, _ = spectral_module.apply(
+        spectral_params, coefficients, mutable=["batch_stats"]
+    )
+
+    backward_transform = jax.vmap(
+        functools.partial(
+            transformer.apply,
+            method=TransformerModule.swsft_backward_spins_channels,
+        ),
+        in_axes=(None, 0, None),
+    )
+
+    variables = transformer.init(jax.random.PRNGKey(0))
+
+    self.assertAllClose(
+        backward_transform(variables, spectral_output, spins), spatial_output
+    )
+
+
 if __name__ == "__main__":
   tf.test.main()

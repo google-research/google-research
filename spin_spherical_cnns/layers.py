@@ -774,3 +774,106 @@ class SpinSphericalBatchNormPhaseCollapse(nn.Module):
     )
 
     return PhaseCollapseNonlinearity(spins=self.spins)(outputs)
+
+
+class SpinSphericalSpectralBatchNormalization(SpinSphericalBatchNormalization):
+  """Batch normalization applied on the spectral domain.
+
+  Means and variances can be computed directly from the Fourier coefficients, so
+  the batch norm can be applied on the spectral domain, which is faster and more
+  accurate.
+
+  This module should match `layers.SpinSphericalBatchNormalization` exactly for
+  bandlimited inputs with zero mean. There will be a slight difference in case
+  of nonzero means because the spatial version use E[xx*] as the variance
+  instead of E[xx*] - E[x]E[x*].
+  """
+
+  @nn.compact
+  def __call__(
+      self,
+      inputs,
+      use_running_stats = None,
+      weights = None,
+  ):
+    """Normalizes the input using batch (optional) means and variances.
+
+    Stats are computed over the batch and spherical dimensions: (0, 1, 2).
+
+    Args:
+      inputs: An array of dimensions (batch_size, ell_max+1, 2*ell_max+1,
+        num_spins_in, num_channels_in).
+      use_running_stats: if true, the statistics stored in batch_stats will be
+        used instead of computing the batch statistics on the input.
+      weights: An array of dimensions (batch_size,) assigning weights for each
+        batch element. Useful for masking.
+
+    Returns:
+      Normalized inputs (the same shape as inputs).
+    """
+    use_running_stats = nn.module.merge_param(
+        "use_running_stats", self.use_running_stats, use_running_stats
+    )
+
+    # Normalization is independent per spin per channel.
+    num_spins, num_channels = inputs.shape[-2:]
+    feature_shape = (1, 1, 1, num_spins, num_channels)
+    reduced_feature_shape = (num_spins, num_channels)
+
+    initializing = not self.has_variable("batch_stats", "variance")
+
+    running_variance = self.variable(
+        "batch_stats",
+        "variance",
+        lambda s: jnp.ones(s, jnp.float32),
+        reduced_feature_shape,
+    )
+
+    running_mean = self.variable(
+        "batch_stats",
+        "mean",
+        lambda s: jnp.zeros(s, jnp.complex64),
+        reduced_feature_shape,
+    )
+
+    if use_running_stats:
+      variance = running_variance.value
+      mean = running_mean.value
+    else:
+      # Mean is just the coefficients at ell=0.
+      mean = jnp.average(inputs[:, 0], axis=0, weights=weights)
+
+      # Variance is the norm of the ell > 0 coefficients.
+      variance = jnp.sum(
+          inputs[:, 1:] * inputs[:, 1:].conj(), axis=(1, 2)
+      ).real / (4 * np.pi)
+      variance = jnp.average(variance, axis=0, weights=weights)
+
+      # Aggregate means over devices.
+      if self.axis_name is not None and not initializing:
+        mean = lax.pmean(mean, axis_name=self.axis_name)
+        variance = lax.pmean(variance, axis_name=self.axis_name)
+
+      if not initializing:
+        running_variance.value = (
+            self.momentum * running_variance.value
+            + (1 - self.momentum) * variance
+        )
+        running_mean.value = (
+            self.momentum * running_mean.value + (1 - self.momentum) * mean
+        )
+
+    outputs = inputs.at[:, 0].add(-mean)
+    factor = lax.rsqrt(variance.reshape(feature_shape) + self.epsilon)
+    scale = self.param("scale", self.scale_init, reduced_feature_shape).reshape(
+        feature_shape
+    )
+    outputs = outputs * factor * scale
+
+    bias = self.param("bias", self.bias_init, (1, num_channels))
+    ell_max = outputs.shape[1] - 1
+
+    idx_zero, _ = get_zero_nonzero_idx(self.spins)
+    outputs = outputs.at[:, 0, ell_max, idx_zero].add(bias)
+
+    return outputs
