@@ -22,10 +22,9 @@ from bert import modeling
 from bert import tokenization
 
 import tensorflow.compat.v1 as tf
-from tensorflow_estimator.compat.v1 import estimator as tf_estimator
-from tensorflow.contrib import tpu as contrib_tpu
 
 gfile = tf.io.gfile
+contrib_tpu = tf.compat.v1.estimator.tpu
 
 
 # A file location of newline-delimited medical words.
@@ -135,7 +134,7 @@ def model_fn_builder(bert_config, init_checkpoint, layer_index, use_tpu,
         token_type_ids=input_type_ids,
         use_one_hot_embeddings=use_one_hot_embeddings)
 
-    if mode != tf_estimator.ModeKeys.PREDICT:
+    if mode != tf.estimator.ModeKeys.PREDICT:
       raise ValueError('Only PREDICT modes are supported: %s' % mode)
 
     tvars = tf.trainable_variables()
