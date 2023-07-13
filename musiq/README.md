@@ -48,7 +48,7 @@ python3 -m musiq.run_predict_image \
   --image_path=/tmp/image.jpeg
 ```
 
-For running the **MUSIQ-single** model, change `_SINGE_SCALE` to `True`.
+For running the **MUSIQ-single** model, change `_SINGLE_SCALE` to `True`.
 
 ## Citation
 

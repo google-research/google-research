@@ -40,14 +40,14 @@ flags.DEFINE_integer(
 
 
 # Set to True when using full-size single-scale checkpoints.
-_SINGE_SCALE = False
+_SINGLE_SCALE = False
 
 # Image preprocessing config.
 _PP_CONFIG = {
     'patch_size': 32,
     'patch_stride': 32,
     'hse_grid_size': 10,
-    'longer_side_lengths': [] if _SINGE_SCALE else [224, 384],
+    'longer_side_lengths': [] if _SINGLE_SCALE else [224, 384],
     # -1 means using all the patches from the full-size image.
     'max_seq_len_from_original_res': -1,
 }
@@ -65,7 +65,7 @@ _MODEL_CONFIG = {
         'mlp_dim': 1152,
         'num_heads': 6,
         'num_layers': 14,
-        'num_scales': 1 if _SINGE_SCALE else 3,
+        'num_scales': 1 if _SINGLE_SCALE else 3,
         'spatial_pos_grid_size': 10,
         'use_scale_emb': True,
         'use_sinusoid_pos_emb': False,
