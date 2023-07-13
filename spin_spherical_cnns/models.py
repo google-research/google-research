@@ -57,6 +57,11 @@ class SpinSphericalBlock(nn.Module):
       interface of `layers.SpinSphericalBatchNormMagnitudeNonlin`.
     transformer: SpinSphericalFourierTransformer instance.
     num_filter_params: Number of filter parameters in the convolutional layer.
+    input_representation: Whether inputs are in the 'spectral' or
+      'spatial' domain.
+    output_representation: Whether outputs fed into
+      `after_conv_module` are in the 'spectral' or 'spatial' domain.
+
   """
   num_channels: int
   spins_in: Sequence[int]
@@ -68,6 +73,8 @@ class SpinSphericalBlock(nn.Module):
   after_conv_module: Type[
       nn.Module] = layers.SpinSphericalBatchNormMagnitudeNonlin
   num_filter_params: Optional[int] = None
+  input_representation: str = 'spatial'
+  output_representation: str = 'spatial'
 
   @nn.compact
   def __call__(self,
@@ -92,6 +99,10 @@ class SpinSphericalBlock(nn.Module):
     apply_spectral_pooling = (self.downsampling_factor != 1 and
                               self.spectral_pooling)
     if apply_spatial_pooling:
+      if self.input_representation == 'spectral':
+        raise ValueError(
+            'Spectral input representation and '
+            '`apply_spatial_pooling` cannot be simultaneously True.')
       feature_maps = layers.SphericalPooling(
           stride=self.downsampling_factor, name='spherical_pool')(feature_maps)
 
@@ -102,6 +113,8 @@ class SpinSphericalBlock(nn.Module):
         num_filter_params=self.num_filter_params,
         spectral_pooling=apply_spectral_pooling,
         spectral_upsampling=False,
+        input_representation=self.input_representation,
+        output_representation=self.output_representation,
         transformer=self.transformer,
         name='spherical_conv')(feature_maps)
 
@@ -109,6 +122,7 @@ class SpinSphericalBlock(nn.Module):
         spins=self.spins_out,
         use_running_stats=not train,
         axis_name=self.axis_name,
+        transformer=self.transformer,
         name='batch_norm_nonlin')(feature_maps, weights=weights)
 
 
@@ -142,9 +156,11 @@ class SpinSphericalClassifier(nn.Module):
     if self.input_transformer is None:
       # Flatten spins.
       all_spins = functools.reduce(operator.concat, self.spins)
-      self.transformer = spin_spherical_harmonics.SpinSphericalFourierTransformer(
-          resolutions=np.unique(self.resolutions),
-          spins=np.unique(all_spins))
+      self.transformer = (
+          spin_spherical_harmonics.SpinSphericalFourierTransformer(
+              resolutions=np.unique(self.resolutions),
+              spins=np.unique(all_spins))
+          )
     else:
       self.transformer = self.input_transformer
 

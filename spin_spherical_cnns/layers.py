@@ -26,6 +26,7 @@ spatial equiangular representation the dimensions are (batch, lat, long, spin,
 channel), and for spectral coefficients, the dimensions are (batch, ell, m,
 spin, channel).
 """
+import abc
 import functools
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
 from einshape.src.jax import jax_ops as einshape
@@ -42,6 +43,8 @@ from spin_spherical_cnns import spin_spherical_harmonics
 Array = Union[np.ndarray, jnp.ndarray]
 Initializer = Callable[[Any, Sequence[int], Any],
                        Array]
+FourierTransformer = spin_spherical_harmonics.SpinSphericalFourierTransformer
+DEFAULT_TRANSFORMER = FourierTransformer((4,), (0,))
 
 
 def _spin_spherical_convolution_from_spectral(
@@ -659,13 +662,13 @@ class SpinSphericalBatchNormalization(nn.Module):
     return outputs
 
 
-class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):
-  """Combine batch normalization and nonlinarity for spin-spherical functions.
+class BatchNormAndActivation(nn.Module, metaclass=abc.ABCMeta):
+  """Abstract class for combining batch normalization and nonlinarity.
 
-
-  This layer is equivalent to running SpinSphericalBatchNormalization followed
-  by MagnitudeNonlinearityLeakyRelu, but is faster because it splits the
-  computation for spin zero and spin nonzero only once.
+  Subclasses of this class serve as `after_conv_module` in
+  `models.SpinSphericalBlock`. The idea is that the combined
+  implementation can be faster when BN and activations have different
+  behaviors for spin zero and nonzero.
 
   Attributes:
     spins: (n_spins,) Sequence of int containing the input spins.
@@ -676,8 +679,8 @@ class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):
     epsilon: a small float added to variance to avoid dividing by zero.
     axis_name: the axis name used to combine batch statistics from multiple
       devices. See `jax.pmap` for a description of axis names (default: None).
-    bias_initializer: initializer for MagnitudeNonlinearity bias, by default,
-      zero.
+    bias_initializer: initializer for activation bias (if any).
+    transformer: SpinSphericalFourierTransformer instance.
   """
   spins: Sequence[int]
   use_running_stats: Optional[bool] = None
@@ -685,6 +688,32 @@ class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):
   epsilon: float = 1e-5
   axis_name: Optional[str] = None
   bias_initializer: Initializer = nn.initializers.zeros
+  transformer: FourierTransformer = DEFAULT_TRANSFORMER
+
+  @abc.abstractmethod
+  def __call__(self,
+               inputs,
+               use_running_stats = None,
+               weights = None):
+    """Applies batch norm and activation.
+
+    Args:
+      inputs: An array of dimensions (batch_size, height, width,
+        num_spins_in, num_channels_in).
+      use_running_stats: if true, the statistics stored in batch_stats will be
+        used instead of computing the batch statistics on the input.
+      weights: An array of dimensions (batch_size,) assigning weights for each
+        batch element. Useful for masking.
+
+    Returns:
+      Normalized inputs (the same shape as inputs).
+    """
+
+    raise NotImplementedError()
+
+
+class SpinSphericalBatchNormMagnitudeNonlin(BatchNormAndActivation):
+  """Applies spin batch normalization and magnitude nonlinarity."""
 
   @nn.compact
   def __call__(self,
@@ -721,25 +750,8 @@ class SpinSphericalBatchNormMagnitudeNonlin(nn.Module):
     return jnp.concatenate(outputs, axis=-2)
 
 
-class SpinSphericalBatchNormPhaseCollapse(nn.Module):
-  """Applies batch norm and phase collapse for spin-spherical functions.
-
-  Attributes:
-    spins: (n_spins,) Sequence of int containing the input spins.
-    use_running_stats: if True, the statistics stored in batch_stats will be
-      used instead of computing the batch statistics on the input.
-    momentum: decay rate for the exponential moving average of the batch
-      statistics.
-    epsilon: a small float added to variance to avoid dividing by zero.
-    axis_name: the axis name used to combine batch statistics from multiple
-      devices. See `jax.pmap` for a description of axis names (default: None).
-  """
-
-  spins: Sequence[int]
-  use_running_stats: Optional[bool] = None
-  momentum: float = 0.99
-  epsilon: float = 1e-5
-  axis_name: Optional[str] = None
+class SpinSphericalBatchNormPhaseCollapse(BatchNormAndActivation):
+  """Applies spin batch normalization and phase collapse."""
 
   @nn.compact
   def __call__(
@@ -877,3 +889,38 @@ class SpinSphericalSpectralBatchNormalization(SpinSphericalBatchNormalization):
     outputs = outputs.at[:, 0, ell_max, idx_zero].add(bias)
 
     return outputs
+
+
+class SpinSphericalSpectralBatchNormPhaseCollapse(BatchNormAndActivation):
+  """Applies spectral batch normalization and phase collapse."""
+
+  @nn.compact
+  def __call__(
+      self,
+      inputs,
+      use_running_stats = None,
+      weights = None,
+  ):
+    """Takes spectral inputs and produces spatial outputs."""
+    use_running_stats = nn.module.merge_param(
+        "use_running_stats", self.use_running_stats, use_running_stats
+    )
+
+    # Apply spectral BN.
+    feature_maps = SpinSphericalSpectralBatchNormalization(
+        spins=self.spins,
+        use_running_stats=use_running_stats,
+        axis_name=self.axis_name,
+        momentum=self.momentum,
+        epsilon=self.epsilon,
+        name="spectral_batch_norm")(inputs, weights=weights)
+
+    # To spatial domain.
+    batched_backward_transform = jax.vmap(
+        self.transformer.swsft_backward_spins_channels, in_axes=(0, None))
+    feature_maps = batched_backward_transform(
+        feature_maps, self.spins)
+
+    # Apply nonlinearity.
+    return PhaseCollapseNonlinearity(
+        spins=self.spins)(feature_maps)

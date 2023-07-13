@@ -22,6 +22,7 @@ import jax.numpy as jnp
 import numpy as np
 import tensorflow as tf
 
+from spin_spherical_cnns import layers
 from spin_spherical_cnns import models
 from spin_spherical_cnns import spin_spherical_harmonics
 from spin_spherical_cnns import test_utils
@@ -49,21 +50,37 @@ def _normalized_mean_absolute_error(x, y):
 
 class SpinSphericalBlockTest(tf.test.TestCase, parameterized.TestCase):
 
-  @parameterized.parameters(1, 2)
-  def test_downsampling_factor_output_shape(self, downsampling_factor):
+  @parameterized.parameters(
+      dict(downsampling_factor=1,
+           output_representation='spatial',
+           after_conv_module=layers.SpinSphericalBatchNormMagnitudeNonlin),
+      dict(downsampling_factor=2,
+           output_representation='spatial',
+           after_conv_module=layers.SpinSphericalBatchNormMagnitudeNonlin),
+      dict(downsampling_factor=2,
+           output_representation='spectral',
+           after_conv_module=layers.SpinSphericalSpectralBatchNormPhaseCollapse)
+      )
+  def test_downsampling_factor_output_shape(self,
+                                            downsampling_factor,
+                                            output_representation,
+                                            after_conv_module):
     transformer = _get_transformer()
     num_channels = 2
     spins_in = [0]
     spins_out = [0, 1]
     batch_size = 2
     resolution = 8
-    model = models.SpinSphericalBlock(num_channels=num_channels,
-                                      spins_in=spins_in,
-                                      spins_out=spins_out,
-                                      downsampling_factor=downsampling_factor,
-                                      spectral_pooling=False,
-                                      axis_name=None,
-                                      transformer=transformer)
+    model = models.SpinSphericalBlock(
+        num_channels=num_channels,
+        spins_in=spins_in,
+        spins_out=spins_out,
+        downsampling_factor=downsampling_factor,
+        spectral_pooling=False,
+        axis_name=None,
+        output_representation=output_representation,
+        after_conv_module=after_conv_module,
+        transformer=transformer)
 
     shape = [batch_size, resolution, resolution, len(spins_in), num_channels]
     inputs = jnp.ones(shape)
