@@ -6,9 +6,11 @@ Project website: https://robot-help.github.io/
 
 ## Instructions
 
-We provide a self-contained Colab:
+We provide three self-contained Colab:
 
 * KnowNo-Demo - Quick demo showing generating the prediction set in the mobile manipulation setting (using pre-run calibration results)
+* KnowNo-MobileManipulation - Full calibration and testing setup in the mobile manipulation setting
+* KnowNo-TableSim - Full calibration and testing setup in the table rearrangement setting, also running the PyBullet simulation.
 
 Minimal dependencies (openai, pybullet) are required.
 
