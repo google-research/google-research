@@ -18,6 +18,7 @@
 import functools
 from absl.testing import parameterized
 import flax
+import jax
 import jax.numpy as jnp
 import numpy as np
 import tensorflow as tf
@@ -160,6 +161,71 @@ class SpinSphericalBlockTest(tf.test.TestCase, parameterized.TestCase):
     self.assertLess(
         _normalized_mean_absolute_error(coefficients_1, coefficients_2),
         0.1)
+
+
+class SpinSphericalResidualBlockTest(tf.test.TestCase, parameterized.TestCase):
+
+  @parameterized.parameters(
+      dict(num_channels=2, spins_in=(0,), spins_out=(0, 1)),
+      dict(num_channels=3, spins_in=(0, 1), spins_out=(0,)),
+      dict(
+          num_channels=1,
+          spins_in=(0, 1),
+          spins_out=(0, 1),
+          downsampling_factor=2,
+          spectral_pooling=False,
+      ),
+      dict(
+          num_channels=1,
+          spins_in=(0, 1),
+          spins_out=(0, 1, 2),
+          downsampling_factor=2,
+          spectral_pooling=True,
+      ),
+  )
+  def test_shape(
+      self,
+      num_channels,
+      spins_in,
+      spins_out,
+      downsampling_factor=1,
+      spectral_pooling=False,
+  ):
+    transformer = _get_transformer()
+    model = models.SpinSphericalResidualBlock(
+        num_channels,
+        spins_in,
+        spins_out,
+        downsampling_factor,
+        spectral_pooling,
+        axis_name=None,
+        transformer=transformer,
+    )
+
+    batch_size, resolution, num_channels_in = 2, 8, 3
+    input_shape = (
+        batch_size,
+        resolution,
+        resolution,
+        len(spins_in),
+        num_channels_in,
+    )
+    inputs = jnp.ones(input_shape)
+
+    rng = jax.random.PRNGKey(0)
+    params = model.init(rng, inputs, train=False)
+
+    outputs = model.apply(params, inputs, train=False)
+    self.assertEqual(
+        outputs.shape,
+        (
+            batch_size,
+            resolution // downsampling_factor,
+            resolution // downsampling_factor,
+            len(spins_out),
+            num_channels,
+        ),
+    )
 
 
 class SpinSphericalClassifierTest(tf.test.TestCase, parameterized.TestCase):
