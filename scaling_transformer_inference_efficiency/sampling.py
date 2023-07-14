@@ -62,7 +62,7 @@ def sample(
   # Ensure it is unsharded along vocab dimension
   # pylint: disable = protected-access
   logits = partitioning._with_sharding_constraint(
-      logits, P('logit_batch', 'vocab')
+      logits, P('logit_batch', None)
   )
   # logits = binary_search.topp_mask(logits, hyper_params.top_p, -1e10)
 
