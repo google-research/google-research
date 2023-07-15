@@ -790,16 +790,17 @@ def _train_vmoe_mtl(
 
   train_step_pjit = pjit.pjit(
       fun=functools.partial(train_step),
-      in_axis_resources=(
+      in_shardings=(
           train_state_axis_resources,  # train_state
           resources_det,  # images
           resources_cls,
       ),
-      out_axis_resources=(
+      out_shardings=(
           train_state_axis_resources,  # train_state
           None,  # metrics
       ),
-      donate_argnums=(0, 1, 2))
+      donate_argnums=(0, 1, 2),
+  )
 
   writer = metric_writers.create_default_writer(
       logdir=output_dir, just_logging=jax.process_index() > 0)
@@ -1662,26 +1663,28 @@ def _train_and_validate_vmoe_mtl(
     )
   train_step_pjit = pjit.pjit(
       fun=functools.partial(train_step),
-      in_axis_resources=(
+      in_shardings=(
           train_state_axis_resources,  # train_state
           resources_det,  # images
           resources_cls,
       ),
-      out_axis_resources=(
+      out_shardings=(
           train_state_axis_resources,  # train_state
           None,  # metrics
       ),
-      donate_argnums=(0, 1, 2))
+      donate_argnums=(0, 1, 2),
+  )
 
   val_step_pjit = pjit.pjit(
       fun=val_step,
-      in_axis_resources=(
+      in_shardings=(
           train_state_axis_resources,  # train_state
           resources_det,  # images
           resources_cls,
       ),
-      out_axis_resources=None,
-      donate_argnums=(1, 2))
+      out_shardings=None,
+      donate_argnums=(1, 2),
+  )
   assign_pjit = pjit.pjit(
       fun=assign_func,
       in_shardings=(train_state_axis_resources, None, None, None, None),
@@ -1857,26 +1860,28 @@ def _train_and_validate_vmoe_mtl(
           del val_step_pjit
           train_step_pjit = pjit.pjit(
               fun=train_step,
-              in_axis_resources=(
+              in_shardings=(
                   train_state_axis_resources,  # train_state
                   resources_det,  # images
                   resources_cls,
               ),
-              out_axis_resources=(
+              out_shardings=(
                   train_state_axis_resources,  # train_state
                   None,  # metrics
               ),
-              donate_argnums=(1, 2))
+              donate_argnums=(1, 2),
+          )
 
           val_step_pjit = pjit.pjit(
               fun=val_step,
-              in_axis_resources=(
+              in_shardings=(
                   train_state_axis_resources,  # train_state
                   resources_det,  # images
                   resources_cls,
               ),
-              out_axis_resources=None,
-              donate_argnums=(1, 2))
+              out_shardings=None,
+              donate_argnums=(1, 2),
+          )
           flag = True
 
       train_state = assign_pjit(train_state, current_k_det, current_k_cls,

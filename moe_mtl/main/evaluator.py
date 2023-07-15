@@ -413,19 +413,21 @@ def make_eval_step_pjit(
           metrics_fn=metrics_fn,
           mode=ExecutionMode.EVAL,
           use_ema=use_ema,
-          return_images=return_images),
-      in_axis_resources=(
+          return_images=return_images,
+      ),
+      in_shardings=(
           None,  # rng
           train_state_axis_resources,  # train_state_axis_resources
           input_axis_resources,  # batch
       ),
-      out_axis_resources=(
+      out_shardings=(
           None,
           None,
           None,
           None,
       ),
-      donate_argnums=(0, 2))
+      donate_argnums=(0, 2),
+  )
   return eval_step_pjit
 
 
@@ -699,13 +701,15 @@ def make_eval_step_pjit_mtl(
           evaluate_step_mtl,
           use_ema=use_ema,
           model_fn=model_fn,
-          metrics_fn=metrics_fn),
-      in_axis_resources=(
+          metrics_fn=metrics_fn,
+      ),
+      in_shardings=(
           None,  # rng
           train_state_axis_resources,  # train_state_axis_resources
           input_axis_resources_det,  # batch_det
           input_axis_resources_cls,  # batch_cls
       ),
-      out_axis_resources=(None, None, None, None, None, None),
-      donate_argnums=(0, 2, 3))
+      out_shardings=(None, None, None, None, None, None),
+      donate_argnums=(0, 2, 3),
+  )
   return eval_step_pjit

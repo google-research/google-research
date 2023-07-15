@@ -369,8 +369,8 @@ def create_train_state_with_optional_mesh(
               target_params_update_fn=target_params_update_fn,
               rng=rng,
           ),
-          in_axis_resources=None,
-          out_axis_resources=train_state_pspec,
+          in_shardings=None,
+          out_shardings=train_state_pspec,
       )
       train_state = create_train_state()
   else:
@@ -427,8 +427,8 @@ def create_indicator_state_with_optional_mesh(
               optim=optim,
               rng=rng,
           ),
-          in_axis_resources=None,
-          out_axis_resources=indicator_state_pspec,
+          in_shardings=None,
+          out_shardings=indicator_state_pspec,
       )
 
       indicator_state = create_indicator_state()
@@ -478,14 +478,14 @@ def jit_train_step_with_optional_mesh(
         train_step,
         donate_argnums=(0, 1, 3, 4),
         static_argnums=(5,),
-        in_axis_resources=(
+        in_shardings=(
             train_state_pspec,
             indicator_state_pspec,
             batch_pspec,
             None,
             None,
         ),
-        out_axis_resources=(
+        out_shardings=(
             train_state_pspec,
             indicator_state_pspec,
             None,

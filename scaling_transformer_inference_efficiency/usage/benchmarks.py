@@ -967,8 +967,8 @@ def benchmark_generate_with_model(
   with model.mesh:
     context = pjit.pjit(
         ChunkResult.zeros,
-        in_axis_resources=(),
-        out_axis_resources=jax.tree_map(
+        in_shardings=(),
+        out_shardings=jax.tree_map(
             partitioning.logical_to_physical, ChunkResult.logical_axes()
         ),
         static_argnums=(0, 1, 2),
