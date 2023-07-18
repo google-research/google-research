@@ -22,7 +22,6 @@ This is the first​-​sentence​.	This is its translation​.	doc-42	system-G
 This is the second sentence​.	This is the translation (​of the second sentence​)​.	doc-42	system-GL
 The third sentence​.	A translation of the 3rd sentence​.	doc-42	system-GL
 Sentence 4​.	Translated sentence 4​.	doc-42	system-GL
-# A comment line, and then a paragraph break.
 
 A second paragraph​. This is a long sentence with meaninglessness embedded as an essential artifact that requires the reader to comtemplate their exact place in the vast expanse of existence​.	Translater had no clue on this one​.	doc-42	system-GL
 The first sentence in the second document​.	The translation of the first sentence in the second document​.	doc-99	system-DL

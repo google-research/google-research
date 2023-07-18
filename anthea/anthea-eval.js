@@ -137,10 +137,6 @@ class AntheaDocSys {
    * and without document-name and system-name) can also be used to indicate
    * a paragraph break.
    *
-   * Lines beginning with # (without any leading spaces) are treated as comment
-   * lines. They are ignored. If you have actual source text that begins with #,
-   * please prepend a space to it in the file.
-   *
    * The first line should contain a JSON object with the source and the target
    * language codes, and potentially other parameters. For instance:
    *   {"source_language": "en", "target_langauge": "fr"}
@@ -185,9 +181,6 @@ class AntheaDocSys {
     let docsys = new AntheaDocSys();
     const spacesNormalizer = (s) => s.replace(/[\s]+/g, ' ');
     for (let line of lines.slice(1)) {
-      if (line.startsWith('#')) {
-        continue;
-      }
       line = line.trim();
       const parts = line.split('\t', 5);
       if (!line || parts.length == 2) {
