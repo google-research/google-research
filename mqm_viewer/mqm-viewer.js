@@ -353,16 +353,14 @@ function setMqmLimit() {
 }
 
 /**
- * This function returns an integer if s is an integer, otherwise returns s.
+ * This function returns a "comparable" version of docSegId by padding it
+ * with leading zeros. When docSegId is a non-negative integer (reasonably
+ * bounded), then this ensures numeric ordering.
  * @param {string} s
- * @return {number|string}
+ * @return {string}
  */
-function mqmMaybeParseInt(s) {
-  const temp = parseInt(s);
-  if (!isNaN(temp) && ('' + temp == s)) {
-    return temp;
-  }
-  return s;
+function mqmCmpDocSegId(s) {
+  return ('' + s).padStart(10, '0');
 }
 
 /**
@@ -373,8 +371,8 @@ function mqmMaybeParseInt(s) {
 function mqmSortData(data) {
   data.sort((e1, e2) => {
     let diff = 0;
-    const docSegId1 = mqmMaybeParseInt(e1[MQM_DATA_DOC_SEG_ID]);
-    const docSegId2 = mqmMaybeParseInt(e2[MQM_DATA_DOC_SEG_ID]);
+    const docSegId1 = mqmCmpDocSegId(e1[MQM_DATA_DOC_SEG_ID]);
+    const docSegId2 = mqmCmpDocSegId(e2[MQM_DATA_DOC_SEG_ID]);
     if (e1[MQM_DATA_DOC] < e2[MQM_DATA_DOC]) {
       diff = -1;
     } else if (e1[MQM_DATA_DOC] > e2[MQM_DATA_DOC]) {
@@ -624,11 +622,15 @@ function mqmTokenizeLegacyText(annotations) {
  *
  * If segment.source/target_tokens is already present in the data (as
  * will be the case with newer data), this function is a no-op.
+ * If rowRange does not cover any rows, then this function is a no-op.
  * @param {!Array<number>} rowRange The start (inclusive) and limit (exclusive)
  *     rowId for the segment, in mqmData[].
  * @param {!Object} segment The segment-level aggregate data.
  */
 function mqmTokenizeLegacySegment(rowRange, segment) {
+  if (rowRange[0] >= rowRange[1]) {
+    return;
+  }
   const sources = [];
   const targets = [];
   for (let row = rowRange[0]; row < rowRange[1]; row++) {
@@ -1907,16 +1909,19 @@ function mqmShowSystemRaterStats() {
 }
 
 /**
- * Sorter function where a & b are both a [doc, seg] pair.
- * @param {!Array<string|number>} a
- * @param {!Array<string|number>} b
+ * Sorter function where a & b are both a [doc, seg] pair. The seg part can
+ * be a number (0,1,2,3,etc.) or a string, so we have to be careful to ensure
+ * transitivity. We do that by assuming that the numbers are not too big, so
+ * padding them with up to 10 zeros should be good enough.
+ * @param {!Array<string>} a
+ * @param {!Array<string>} b
  * @return {number} Comparison for sorting a & b.
  */
 function mqmDocSegsSorter(a, b) {
   if (a[0] < b[0]) return -1;
   if (a[0] > b[0]) return 1;
-  seg1 = mqmMaybeParseInt(a[1]);
-  seg2 = mqmMaybeParseInt(b[1]);
+  seg1 = mqmCmpDocSegId(a[1]);
+  seg2 = mqmCmpDocSegId(b[1]);
   if (seg1 < seg2) return -1;
   if (seg1 > seg2) return 1;
   return 0;
@@ -3295,6 +3300,7 @@ function mqmShow(viewingConstraints=null) {
   let currSegStats = [];
   let currSegStatsBySys = [];
   let currSegStatsByRater = [];
+  let unfilteredCount = 0;
   let shownCount = 0;
   const shownRows = [];
 
@@ -3336,6 +3342,7 @@ function mqmShow(viewingConstraints=null) {
             continue;
           }
 
+          unfilteredCount++;
           const rater = parts[MQM_DATA_RATER];
           const category = parts[MQM_DATA_CATEGORY];
           const severity = parts[MQM_DATA_SEVERITY];
@@ -3521,6 +3528,13 @@ function mqmShow(viewingConstraints=null) {
       }
     }
   }
+  /**
+   * Update #unfiltered rows display.
+   */
+  document.getElementById('mqm-num-rows').innerText = mqmData.length;
+  document.getElementById('mqm-num-unfiltered-rows').innerText =
+      unfilteredCount;
+
   document.body.style.cursor = 'auto';
   /**
    * Add cross-highlighting listeners.
@@ -4556,6 +4570,8 @@ function createMQMViewer(elt, tsvDataOrCsvURLs='', loadReplaces=true) {
     <summary title="Click to see advanced filtering options and documentation">
       <span class="mqm-section">
         Filters
+        (<span id="mqm-num-unfiltered-rows">0</span> of
+         <span id="mqm-num-rows">0</span> rows pass filters)
         <button
             title="Clear all column filters and JavaScript filter expression"
             onclick="mqmClearFiltersAndShow()">Clear all filters</button>
