@@ -535,8 +535,8 @@ def main(_):
   xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
   work_unit = xm_client.get_current_work_unit()
   hparam_dict = work_unit.parameters['args']
-  hparam_str = ','.join(sorted(['%s=%s' % (shorten(k), str(v))
-                                for k, v in hparam_dict.items()]))
+  hparam_str = 'hparams-' + ','.join(sorted(['%s=%s' % (shorten(k), str(v))
+                                             for k, v in hparam_dict.items()]))
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()

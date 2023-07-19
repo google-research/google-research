@@ -593,7 +593,8 @@ def main(_):
   xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
   work_unit = xm_client.get_current_work_unit()
   hparam_dict = work_unit.parameters['args']
-  hparam_str = ','.join(sorted([f'{k}={v}' for k, v in hparam_dict.items()]))
+  hparam_str = 'hparams-' + ','.join(sorted([f'{k}={v}'
+                                             for k, v in hparam_dict.items()]))
 
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(
