@@ -12,14 +12,22 @@ detailed properties of fine-grained categories and instances.
 *   Our dataset poses a hard challenge for large vision+language models:
     [PaLI](https://arxiv.org/abs/2209.06794) is state-of-the-art on OK-VQA, yet
     only achieves 13.0% accuracy on the single-hop part of our dataset.
-*   We demonstrate that combining [PaLM](https://arxiv.org/abs/2204.02311) 
-   (through the [public API](https://developers.generativeai.google/)) with
-    an image retrieval component (Google Lens) yields 48.8% accuracy on the
-    single-hop templated and automatically generated questions of our dataset.
+*   We demonstrate that augmenting [PaLM](https://arxiv.org/abs/2204.02311 (through the [public API](https://developers.generativeai.google/)) with a mechanism (Google Lens) to retrieve information from the knowledge base (Wikipedia based) yields 48.8% accuracy on the single-hop part of our dataset.
     As such, our dataset enables research on retrieval augmented vision+language
     models.
 
-![Examples of dataset](encyclopedic_vqa_examples.png){width=80%}
+![Examples of dataset](encyclopedic_vqa_examples.png)
+
+**Citation**
+
+```
+@inproceedings{mensink23iccv,
+title={Encyclopedic {VQA}: Visual questions about detailed properties of fine-grained categories},
+author={Thomas Mensink and Jasper Uijlings and Lluis Castrejon and Arushi Goel and Felipe Cadar and Howard Zhou and Fei Sha and Andre Araujo and Vittorio Ferrari},
+booktitle={ICCV},
+year={2023},
+}
+```
 
 ##  VQA questions
 
@@ -156,48 +164,10 @@ print(f'{score1=}, {score2=}')
 To calculate the final VQA accuracy for a data split, we compute the average
 score over all of its examples.
 
-## Citations
+## References
 
-### [Encyclopedic VQA paper](https://arxiv.org/abs/2306.09224)
-
-```
-@inproceedings{mensink23arxiv,
-title={Encyclopedic {VQA}: Visual questions about detailed properties of
-       fine-grained categories},
-author={Thomas Mensink and Jasper Uijlings and Lluis Castrejon and Arushi Goel
-        and Felipe Cadar and Howard Zhou and Fei Sha and Andre Araujo
-        and Vittorio Ferrari},
-booktitle={arXiv},
-year={2023},
-}
-```
-
-### [WikiWeb2M paper](https://arxiv.org/abs/2305.03668)
-
-```
-@inproceedings{burns23arxiv,
-      title={A Suite of Generative Tasks for Multi-Level Multimodal Webpage Understanding},
-      author={Andrea Burns and Krishna Srinivasan and Joshua Ainslie and Geoff Brown
-      and Bryan A. Plummer and Kate Saenko and Jianmo Ni and Mandy Guo},
-      booktitle={arXiv},
-      year={2023},
-}
-```
-
-
-### [BERT Matching (BEM) evaluation](http://arxiv.org/abs/2202.07654)
-
-```
-@inproceedings{bulian22emnlp,
-  title={Tomayto, Tomahto. Beyond Token-level Answer Equivalence 
-         for Question Answering Evaluation},
-  author={Jannis Bulian and Christian Buck  and Wojciech Gajewski and
-		  Benjamin B{\"o}rschinger and Tal Schuster},
-  booktitle={EMNLP}
-  year={2022},
-}
-```
-
+-  [WikiWeb2M] A Suite of Generative Tasks for Multi-Level Multimodal Webpage Understandin, A. Burns et al., ([arXiv](https://arxiv.org/abs/2305.03668)).
+-  [BEM] Tomayto, Tomahto. Beyond Token-level Answer Equivalence for Question Answering Evaluation, J. Bulian et al., ([arXiv](http://arxiv.org/abs/2202.07654)).
 
 ## Contact
 
