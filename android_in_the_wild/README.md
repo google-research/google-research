@@ -1,17 +1,19 @@
-# AndroidInTheWild
+# Android in the Wild (AitW)
 
-AndroidInTheWild is a large-scale dataset for mobile device control that
-contains human-collected demonstrations of natural language instructions, user
-interface (UI) screens, and actions for a variety of human tasks.
+Android in the Wild (AitW) is a large-scale dataset for mobile device control
+that contains human-collected demonstrations of natural language instructions,
+user interface (UI) screens, and actions for a variety of human tasks.
+
+Link to paper: https://arxiv.org/abs/2307.10088
 
 ## Data
 
-The data in AndroidInTheWild encompasses four Android versions (v10 - 13) and
+The data in AitW encompasses four Android versions (v10 - 13) and
 eight device types with varying screen resolutions. The natural language
 instructions come from a variety of sources including humans, large language
 models, and technical documentation. There is also variability in the starting
 state of episodes as they were randomized during data collection.
-AndroidInTheWild is comprised of five separate datasets, four of which
+AitW is comprised of five separate datasets, four of which
 demonstrate multi-step tasks and one that contains single-step tasks.
 
 ### Multi-step
