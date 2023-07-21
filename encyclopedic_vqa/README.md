@@ -1,20 +1,23 @@
 # Encyclopedic VQA
 
-Encyclopedic-VQA ([ICCV'23 paper, ArXiv version](https://arxiv.org/abs/2306.09224)) is a large
+Encyclopedic-VQA
+([ICCV'23 paper, ArXiv version](https://arxiv.org/abs/2306.09224)) is a large
 scale visual question answering (VQA) dataset featuring visual questions about
 detailed properties of fine-grained categories and instances.
 
 *   It contains 221k unique question+answer pairs each matched with (up to) 5
     images, resulting in 1M VQA samples.
-*   We provide a controlled knowledge base derived from Wikipedia 
-    (based on [WikiWeb2M](https://arxiv.org/abs/2305.03668)), with evidence
-    to support each answer.
+*   We provide a controlled knowledge base derived from Wikipedia (based on
+    [WikiWeb2M](https://arxiv.org/abs/2305.03668)), with evidence to support
+    each answer.
 *   Our dataset poses a hard challenge for large vision+language models:
     [PaLI](https://arxiv.org/abs/2209.06794) is state-of-the-art on OK-VQA, yet
     only achieves 13.0% accuracy on the single-hop part of our dataset.
-*   We demonstrate that augmenting [PaLM](https://arxiv.org/abs/2204.02311 (through the [public API](https://developers.generativeai.google/)) with a mechanism (Google Lens) to retrieve information from the knowledge base (Wikipedia based) yields 48.8% accuracy on the single-hop part of our dataset.
-    As such, our dataset enables research on retrieval augmented vision+language
-    models.
+*   We demonstrate that augmenting [PaLM](https://arxiv.org/abs/2204.02311) with
+    a mechanism (Google Lens) to retrieve information from the knowledge base
+    (Wikipedia based) yields 48.8% accuracy on the single-hop part of our
+    dataset. As such, our dataset enables research on retrieval augmented
+    vision+language models.
 
 ![Examples of dataset](encyclopedic_vqa_examples.png)
 
@@ -29,19 +32,20 @@ year={2023},
 }
 ```
 
-##  VQA questions
+## VQA questions
 
 The VQA questions can be downloaded in .csv format here:
 
-*  [train.csv](https://storage.googleapis.com/encyclopedic-vqa/train.csv) (74MB)
-*  [val.csv](https://storage.googleapis.com/encyclopedic-vqa/val.csv) (1MB)
-*  [test.csv](https://storage.googleapis.com/encyclopedic-vqa/test.csv) (2MB)
+*   [train.csv](https://storage.googleapis.com/encyclopedic-vqa/train.csv)
+    (74MB)
+*   [val.csv](https://storage.googleapis.com/encyclopedic-vqa/val.csv) (1MB)
+*   [test.csv](https://storage.googleapis.com/encyclopedic-vqa/test.csv) (2MB)
 
 Our CSV files contain a single row per textual question. Each textual question
 is paired with (up to) 5 images, leading to ~5x more VQA triplets than rows in
-the CSV files. Each triplet consists of a textual question (
-`question`), an answer (`answer`), and an image
-(specified by `dataset_image_ids`). The exact fields in the CSV files are:
+the CSV files. Each triplet consists of a textual question ( `question`), an
+answer (`answer`), and an image (specified by `dataset_image_ids`). The exact
+fields in the CSV files are:
 
 *   `question`: The question *Q* to be used for the VQA triplets.
 *   `answer`: The answer to the question. This field may contain multiple
@@ -81,23 +85,25 @@ the CSV files. Each triplet consists of a textual question (
     subject of the question (*C* in our paper) with its corresponding wikipedia
     page is unseen during training.
 
-This images for the VQA questions can be downloaded here: 
+This images for the VQA questions can be downloaded here:
 
 *   [iNaturalist 2021](https://github.com/visipedia/inat_comp/tree/master/2021)
 *   [Google Landmarks Dataset V2](https://github.com/cvdfoundation/google-landmark)
 
-
 ## Controlled Knowledge Base
 
 Our controlled knowledge base is a repackaging of the WikiWeb2M dataset
-([WikiWeb2M paper](https://arxiv.org/abs/2305.03668), which in turn builds on 
-the [WIT: Wikipedia-based Image Text Dataset](https://github.com/google-research-datasets/wit).
-The original WikiWeb2M dataset is available [here](https://github.com/google-research-datasets/wit/blob/main/wikiweb2m.md).
+([WikiWeb2M paper](https://arxiv.org/abs/2305.03668), which in turn builds on
+the
+[WIT: Wikipedia-based Image Text Dataset](https://github.com/google-research-datasets/wit).
+The original WikiWeb2M dataset is available
+[here](https://github.com/google-research-datasets/wit/blob/main/wikiweb2m.md).
 Our repackaging can be downloaded below (zipped json file). The image pixels
 have to be downloaded separately:
 
-* [encyclopedic_kb_wiki.zip](https://storage.googleapis.com/encyclopedic-vqa/encyclopedic_kb_wiki.zip) (4.9GB).
-* [image pixels on Hugging Face](https://huggingface.co/datasets/TREC-AToMiC/AToMiC-Images-v0.2).
+*   [encyclopedic_kb_wiki.zip](https://storage.googleapis.com/encyclopedic-vqa/encyclopedic_kb_wiki.zip)
+    (4.9GB).
+*   [image pixels on Hugging Face](https://huggingface.co/datasets/TREC-AToMiC/AToMiC-Images-v0.2).
 
 To verify the download, the sha256sum is of the json file is
 `36af1b6718a975c355a776114be216f4800c61320897b2186d33d17a08e44c77`. You can do
@@ -107,35 +113,33 @@ this from the linux command line:
 sha256sum encyclopedic_kb_wiki.json
 ```
 
-The knowledge base is a json file which first maps a `wikipedia_url` to a 
-wikipedia entry, where the `wikipedia_url` matches the one from the
-VQA questions.
+The knowledge base is a json file which first maps a `wikipedia_url` to a
+wikipedia entry, where the `wikipedia_url` matches the one from the VQA
+questions.
 
 The wikipedia entry is again a dictionary with the following fields:
 
-* `title`: Title of the Wikipedia article.
-* `section_titles`: List with titles of each section. Its first element is
-  identical to `title`. 
-* `section_texts`: List with text contents for each section.
-* `image_urls`: List with urls to images within the Wikipedia article.
-* `image_reference_descriptions`: List with the reference descriptions
-   (i.e. captions) of the images.
-* `image_section_indices`: List of integers denoting the sections where each 
-  image belongs to (i.e. index in `section_titles` and `section_texts`).
-* `url`: The `wikipedia_url` (again).
+*   `title`: Title of the Wikipedia article.
+*   `section_titles`: List with titles of each section. Its first element is
+    identical to `title`.
+*   `section_texts`: List with text contents for each section.
+*   `image_urls`: List with urls to images within the Wikipedia article.
+*   `image_reference_descriptions`: List with the reference descriptions (i.e.
+    captions) of the images.
+*   `image_section_indices`: List of integers denoting the sections where each
+    image belongs to (i.e. index in `section_titles` and `section_texts`).
+*   `url`: The `wikipedia_url` (again).
 
 ## Evaluation
 
-To evaluate answers we use
-[BEM](https://arxiv.org/abs/2202.07654),
-which uses a BERT model fine-tuned to determine equivalent answers
-for a given question.
-This method correctly evaluates candidate
-answers that are valid but that do not exactly match the reference answers
-in our annotations, as opposed to common VQA metrics.
+To evaluate answers we use [BEM](https://arxiv.org/abs/2202.07654), which uses a
+BERT model fine-tuned to determine equivalent answers for a given question. This
+method correctly evaluates candidate answers that are valid but that do not
+exactly match the reference answers in our annotations, as opposed to common VQA
+metrics.
 
-This evaluation method is implemented by the
-`evaluate_example` function in `evaluation_utils.py`. For example:
+This evaluation method is implemented by the `evaluate_example` function in
+`evaluation_utils.py`. For example:
 
 ```
 import evaluation_utils
@@ -166,15 +170,18 @@ score over all of its examples.
 
 ## References
 
--  [WikiWeb2M] A Suite of Generative Tasks for Multi-Level Multimodal Webpage Understandin, A. Burns et al., ([arXiv](https://arxiv.org/abs/2305.03668)).
--  [BEM] Tomayto, Tomahto. Beyond Token-level Answer Equivalence for Question Answering Evaluation, J. Bulian et al., ([arXiv](http://arxiv.org/abs/2202.07654)).
+-   [WikiWeb2M] A Suite of Generative Tasks for Multi-Level Multimodal Webpage
+    Understandin, A. Burns et al., ([arXiv](https://arxiv.org/abs/2305.03668)).
+-   [BEM] Tomayto, Tomahto. Beyond Token-level Answer Equivalence for Question
+    Answering Evaluation, J. Bulian et al.,
+    ([arXiv](http://arxiv.org/abs/2202.07654)).
 
 ## Contact
 
 If you have any questions, please reach out to:
 
-* Thomas Mensink - mensink@google.com
-* Jasper Uijlings - jrru@google.com
-* Lluis Castrejon - lluisc@google.com
-* André Araujo - andrearaujo@google.com
-* Vittorio Ferrari - vittoferrari@google.com
+*   Thomas Mensink - mensink@google.com
+*   Jasper Uijlings - jrru@google.com
+*   Lluis Castrejon - lluisc@google.com
+*   André Araujo - andrearaujo@google.com
+*   Vittorio Ferrari - vittoferrari@google.com
