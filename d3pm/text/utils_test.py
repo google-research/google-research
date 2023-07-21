@@ -34,7 +34,7 @@ class UtilsTest(absltest.TestCase):
     batch_reconstructed = utils.build_batch_from_info(
         info, prune_batch_dim=False)
 
-    chex.assert_tree_all_close(batch, batch_reconstructed)
+    chex.assert_trees_all_close(batch, batch_reconstructed)
 
   def test_dataset_info(self):
     batch = {'inputs': jnp.zeros((100, 10)), 'targets': jnp.zeros((100, 5, 5))}
@@ -43,7 +43,7 @@ class UtilsTest(absltest.TestCase):
     batch_reconstructed = utils.build_batch_from_info(
         info, prune_batch_dim=False)
 
-    chex.assert_tree_all_close(batch, batch_reconstructed)
+    chex.assert_trees_all_close(batch, batch_reconstructed)
 
 
 if __name__ == '__main__':

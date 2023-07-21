@@ -43,8 +43,8 @@ class DistributionTest(chex.TestCase):
     dy1 = grad(x1)
     dy2 = grad(x2)
 
-    chex.assert_tree_all_close(y1, y2, atol=1e-5, rtol=1e-5)
-    chex.assert_tree_all_close(dy1, dy2, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(y1, y2, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(dy1, dy2, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testPartitionIsCorrectGolden(self):
@@ -71,7 +71,7 @@ class DistributionTest(chex.TestCase):
     alpha, z_true = tuple(jnp.array([(n / d, z) for (n, d, z) in golden]).T)
     log_z_true = jnp.log(z_true)
     log_z = self.variant(self._distribution.log_base_partition_function)(alpha)
-    chex.assert_tree_all_close(log_z, log_z_true, atol=1e-7, rtol=1e-7)
+    chex.assert_trees_all_close(log_z, log_z_true, atol=1e-7, rtol=1e-7)
 
   @chex.all_variants()
   def testLogPartitionInfinityIsAccurate(self):
@@ -79,7 +79,7 @@ class DistributionTest(chex.TestCase):
     alpha = float('inf')
     log_z_true = 0.70526025442  # From mathematica.
     log_z = self.variant(self._distribution.log_base_partition_function)(alpha)
-    chex.assert_tree_all_close(log_z, log_z_true, atol=1e-7, rtol=1e-7)
+    chex.assert_trees_all_close(log_z, log_z_true, atol=1e-7, rtol=1e-7)
 
   @chex.all_variants()
   def testSplineCurveInverseIsCorrect(self):
@@ -87,7 +87,7 @@ class DistributionTest(chex.TestCase):
     x_knot = jnp.arange(0, 16, 0.01)
     alpha = self.variant(distribution.inv_partition_spline_curve)(x_knot)
     x_recon = self.variant(distribution.partition_spline_curve)(alpha)
-    chex.assert_tree_all_close(x_recon, x_knot, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(x_recon, x_knot, atol=1e-5, rtol=1e-5)
 
   def testAlphaZeroSamplesMatchACauchyDistribution(self):
     """Tests that samples when alpha=0 match a Cauchy distribution."""
@@ -119,7 +119,7 @@ class DistributionTest(chex.TestCase):
     scale = 1.7
     nll = self.variant(self._distribution.nllfun)(x, 0, scale)
     nll_true = -scipy.stats.cauchy(0, scale * jnp.sqrt(2)).logpdf(x)
-    chex.assert_tree_all_close(nll, nll_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(nll, nll_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testAlphaTwoNllsMatchANormalDistribution(self):
@@ -128,7 +128,7 @@ class DistributionTest(chex.TestCase):
     scale = 1.7
     nll = self.variant(self._distribution.nllfun)(x, 2, scale)
     nll_true = -scipy.stats.norm(0., scale).logpdf(x)
-    chex.assert_tree_all_close(nll, nll_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(nll, nll_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testPdfIntegratesToOne(self):
@@ -139,7 +139,7 @@ class DistributionTest(chex.TestCase):
     for alpha in alphas:
       nll = self.variant(self._distribution.nllfun)(x, alpha, scale)
       pdf_sum = jnp.sum(jnp.exp(-nll)) * (x[1] - x[0])
-      chex.assert_tree_all_close(pdf_sum, 1., atol=0.005, rtol=0.005)
+      chex.assert_trees_all_close(pdf_sum, 1., atol=0.005, rtol=0.005)
 
 
 if __name__ == '__main__':
