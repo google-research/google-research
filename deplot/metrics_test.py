@@ -36,15 +36,60 @@ year | argentina | brazil
 1999 | 202 | 0
 """
 
+_MISALIGNED_PREDICTION = """title | my table
+argentina | brazil | time
+200 | 158 | 1999
+"""
+
+_TARGET_SCATTER = """x | y
+10 | 20
+30 | 40
+50 | 60
+"""
+
+_PREDICTION_SCATTER = """y | x
+40 | 30
+"""
+
 
 class MetricsTest(absltest.TestCase):
 
   def test_get_table_datapoints(self):
-    self.assertDictEqual(metrics._get_table_datapoints(_TARGET), {
+    table = metrics._parse_table(_TARGET)
+    self.assertDictEqual(metrics._get_table_datapoints(table), {
         "title": "my table",
         "1999 argentina": "200",
         "1999 brazil": "158",
     })
+
+  def test_align_table(self):
+    table, score = metrics._parse_table(_MISALIGNED_PREDICTION).aligned(
+        ("year", "argentina", "brazil"))
+    self.assertTupleEqual(table.headers, ("time", "argentina", "brazil"))
+    self.assertEqual(score, 1)
+
+  def test_transposed_table(self):
+    transposed_table = metrics._parse_table(_TRANSPOSED_TARGET, transposed=True)
+    table = metrics._parse_table(_TARGET)
+    self.assertTupleEqual(transposed_table.rows, table.rows)
+
+  def test_row_datapoints_precision_recall(self):
+    result = metrics.row_datapoints_precision_recall(
+        [[_TARGET]], [_PREDICTION])
+    self.assertDictEqual(result, {
+        # 1 comes from a matched title, 99 from the argentina entry.
+        # Result comes from transposing both tables and considering columns.
+        "row_datapoints_precision": 100 * 1.99 / 3,
+        "row_datapoints_recall": 100 * 1.99 / 3,
+        "row_datapoints_f1": 100 * 1.99 / 3,
+    })
+
+  def test_row_datapoints_scatter(self):
+    result = metrics.row_datapoints_precision_recall(
+        [[_TARGET_SCATTER]], [_PREDICTION_SCATTER])
+    self.assertAlmostEqual(result["row_datapoints_precision"], 100)
+    self.assertAlmostEqual(result["row_datapoints_recall"], 100.0 / 3)
+    self.assertAlmostEqual(result["row_datapoints_f1"], 100 / 2.0)
 
   def test_get_datapoint_metric(self):
     self.assertEqual(metrics._get_datapoint_metric(
