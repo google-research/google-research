@@ -439,7 +439,21 @@ def remove_model_zero_bias(
     model_stream,
     zero_bias_reduction_steps,
 ):
-  """Removes bias from model by subtracting its output on zero input."""
+  """Removes bias from model by subtracting its output on zero input.
+
+  Important: the function supports only STREAM_INTERNAL_STATE_INFERENCE mode
+  since it uses eager execution for model conversion.
+  STREAM_EXTERNAL_STATE_INFERENCE is currently not supported because the
+  conversion done in a graph mode.
+
+  Args:
+    model_stream: Keras model prepared for streaming inference.
+    zero_bias_reduction_steps: Number of steps to collect bias statistics on
+      zero input.
+
+  Returns:
+    Keras model with subtracted from the output zero bias.
+  """
   input_tensors = [np.zeros(inp.shape) for inp in model_stream.inputs]
   temp_model_stream = tf.keras.models.clone_model(model_stream)
   temp_model_stream.set_weights(model_stream.get_weights())
@@ -447,7 +461,7 @@ def remove_model_zero_bias(
     temp_model_stream(input_tensors, training=False)
   bias = temp_model_stream(input_tensors, training=False)
   del temp_model_stream
-  if isinstance(bias, list):
+  if not isinstance(bias, list):
     bias = [bias]
   new_outputs = [
       out - tf.constant(b) for out, b in zip(model_stream.outputs, bias)
