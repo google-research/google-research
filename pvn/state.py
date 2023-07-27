@@ -289,7 +289,6 @@ def maybe_restore_train_and_indicator_state(
 
     def closure(_):
       return checkpoint.ArrayRestoreArgs(
-          lazy=True,
           restore_type=jax.Array,
           mesh=mesh,
           mesh_axes=mesh_axes,
@@ -343,7 +342,6 @@ def maybe_restore_train_and_indicator_state(
       new_tree={'train': train_state, 'indicator': indicator_state},
       default_to_original=False,
   )
-  restored_state = checkpoint.lazy_utils.maybe_get_tree(restored_state)
   logging.info('Restore finished')
 
   return operator.itemgetter('train', 'indicator')(restored_state)

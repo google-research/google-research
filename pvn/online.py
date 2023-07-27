@@ -252,9 +252,7 @@ def restore_encoder_params(
       restore_kwargs={'train': {'restore_args': state_restore_args}},
   )
   restored_state = operator.itemgetter('train')(restored_state)
-  encoder_params = checkpoint.lazy_utils.maybe_get_tree(
-      restored_state['params']['params']['encoder']
-  )
+  encoder_params = restored_state['params']['params']['encoder']
   encoder_params = flax.core.FrozenDict({'params': encoder_params})
 
   return encoder_params
