@@ -19,7 +19,7 @@ from typing import Optional, Text, Tuple
 
 from absl import logging
 
-from cvx2 import latest as cv2
+import cv2
 import numpy as np
 import tensorflow as tf
 

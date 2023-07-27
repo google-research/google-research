@@ -23,15 +23,11 @@ import glob
 import os
 import sys
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
 from keypose import utils
-
-try:
-  import cv2  # pylint: disable=g-import-not-at-top
-except ImportError as e:
-  print(e)
 
 colors = 255 * plt.cm.get_cmap('rainbow')(np.linspace(0, 1.0, 10))[:, :3]
 
@@ -63,10 +59,10 @@ def show_keypoints(image_dir, mesh_file):
     im_mask = utils.read_image(fname.replace('_L.png', '_mask.png'))
     im_border = utils.read_image(fname.replace('_L.png', '_border.png'))
     cam, _, _, uvds, _, _, transform = utils.read_contents_pb(
-        fname.replace('_L.png', '_L.pbtxt'))
+        fname.replace('_L.png', '_L.pbtxt')
+    )
     print(fname)
-    ret = show_kps(im_l, im_r, im_mask, im_border,
-                   (cam, uvds, transform), obj)
+    ret = show_kps(im_l, im_r, im_mask, im_border, (cam, uvds, transform), obj)
     if ret:
       break
 

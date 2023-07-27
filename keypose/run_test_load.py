@@ -15,17 +15,13 @@
 
 """Simple test to see if all the modules load."""
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage as ski
 import tensorflow as tf
 
 from keypose import utils
-
-try:
-  import cv2  # pylint: disable=g-import-not-at-top
-except ImportError as e:
-  print(e)
 
 print(cv2)
 print(plt)

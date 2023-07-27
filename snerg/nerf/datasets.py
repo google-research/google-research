@@ -14,14 +14,12 @@
 # limitations under the License.
 
 """Different datasets implementation plus a general port for all the datasets."""
-INTERNAL = False  # pylint: disable=g-statement-before-imports
 import json
 import os
 from os import path
 import queue
 import threading
-if not INTERNAL:
-  import cv2  # pylint: disable=g-import-not-at-top
+import cv2
 import jax
 import numpy as np
 from PIL import Image

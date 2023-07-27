@@ -16,7 +16,7 @@
 """Plot layout."""
 from typing import Sequence, Tuple, Union
 
-from cvx2 import latest as cv2
+import cv2
 from gvt.projects.layout_gvt.datasets import coco_info
 from gvt.projects.layout_gvt.datasets import magazine_info
 from gvt.projects.layout_gvt.datasets import publaynet_info

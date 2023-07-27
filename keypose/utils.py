@@ -19,6 +19,7 @@ import math
 import os
 import random
 
+import cv2
 from google.protobuf import text_format
 import matplotlib as plt
 import matplotlib.cm  # pylint: disable=unused-import
@@ -33,11 +34,6 @@ import tensorflow as tf
 import yaml
 
 from keypose import data_pb2 as pb
-
-try:
-  import cv2  # pylint: disable=g-import-not-at-top
-except ImportError as e:
-  print(e)
 
 # Top level keypose directory.
 KEYPOSE_PATH = os.path.join(os.getcwd(), 'keypose')

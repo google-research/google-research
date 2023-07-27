@@ -20,12 +20,11 @@ from os import path
 import queue
 import threading
 
+import cv2
 from internal import math, utils  # pylint: disable=g-multiple-import
 import jax
 import numpy as np
 from PIL import Image
-
-import cv2
 
 
 def load_dataset(split, train_dir, config):

@@ -20,8 +20,7 @@ INTERNAL = False  # pylint: disable=g-statement-before-imports
 import os
 from os import path
 
-if not INTERNAL:
-  import cv2  # pylint: disable=g-import-not-at-top
+import cv2
 from einops import rearrange
 import imageio
 import jax
