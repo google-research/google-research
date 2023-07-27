@@ -46,7 +46,7 @@ class TrainAsymmetricAttack(beam.PTransform):
   This transform should be constructed with the following parameters of the
   Topics API: num_epochs, top_k, and prob_random_choice. Optionally, we can
   specify an initial_topic_count, in which case the occurrance count for each
-  topic starts from that value insetad of 0.
+  topic starts from that value instead of 0.
   """
 
   num_epochs: int
@@ -153,7 +153,7 @@ def estimate_topic_top_k_prob(
   """
   q_in = observation_probs.in_top_k
   q_out = observation_probs.out_top_k
-  return q_in / (num_users * num_epochs * (q_in - q_out)) * topic_count
+  return 1 / (q_in - q_out) * (topic_count / (num_users * num_epochs) - q_out)
 
 
 def compute_attack_weights(

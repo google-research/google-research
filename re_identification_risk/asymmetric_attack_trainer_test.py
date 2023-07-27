@@ -17,6 +17,7 @@ import json
 import math
 
 from absl.testing import absltest
+from absl.testing import parameterized
 import apache_beam as beam
 from apache_beam.testing.test_pipeline import TestPipeline
 import apache_beam.testing.util as beam_test_util
@@ -37,7 +38,7 @@ from re_identification_risk.asymmetric_attack_trainer import TrainAsymmetricAtta
 from re_identification_risk.asymmetric_attack_trainer import TrainAsymmetricAttackInput
 
 
-class AsymmetricAttackTrainerTest(absltest.TestCase):
+class AsymmetricAttackTrainerTest(parameterized.TestCase, absltest.TestCase):
 
   def test_train_asymmetric_attack_runs(self):
     # Since the TrainAsymmetricAttack PTransform calls other well-tested
@@ -115,41 +116,97 @@ class AsymmetricAttackTrainerTest(absltest.TestCase):
     self.assertAlmostEqual(0.95 / 5 + 0.05 / 300, obs_probs_3.in_top_k)
     self.assertAlmostEqual(0.05 / 300, obs_probs_3.out_top_k)
 
-  def test_estimate_topic_top_k_prob(self):
-    # When we observe a topic in 10% of all (user, epoch) pairs and topics are
-    # prob_random_choice = 0, then the estimated top_k probability is 0.1.
-    self.assertAlmostEqual(
-        0.1,
-        estimate_topic_top_k_prob(
-            num_users=100,
-            num_epochs=1,
-            topic_count=10,
-            observation_probs=TopicObservationProbs(1 / 5, 0),
-        ),
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="top_k_prob = 0.01, N=any, k = 5, p=0",
+          top_k_prob=0.01,
+          observation_probs=TopicObservationProbs(1 / 5, 0),
+      ),
+      dict(
+          testcase_name="top_k_prob = 0.1, N=any, k = 5, p=0",
+          top_k_prob=0.1,
+          observation_probs=TopicObservationProbs(1 / 5, 0),
+      ),
+      dict(
+          testcase_name="top_k_prob = 0.2, N=any, k = 5, p=0",
+          top_k_prob=0.2,
+          observation_probs=TopicObservationProbs(1 / 5, 0),
+      ),
+      dict(
+          testcase_name="top_k_prob = 0.2, N=100, k = 5, p=0.05",
+          top_k_prob=0.2,
+          observation_probs=TopicObservationProbs(
+              (1 - 0.05) / 5 + 0.05 / 100, 0.05 / 100
+          ),
+      ),
+      dict(
+          testcase_name="top_k_prob = 0.2, N=300, k = 5, p=0.05",
+          top_k_prob=0.2,
+          observation_probs=TopicObservationProbs(
+              (1 - 0.05) / 5 + 0.05 / 300, 0.05 / 300
+          ),
+      ),
+  )
+  def test_estimate_topic_topic_k_prob_statistical(
+      self, top_k_prob, observation_probs
+  ):
+    """A statistical test for estimate_topic_top_k_prob.
+
+    Given top_k_prob, the probability that a given topic appears in a user's
+    top-k topic set, the probability that any user reveals that topic to a
+    website on any epoch is given by:
+
+    Pr(topic is output) =
+      Pr(topic is output | topic in top k set) * Pr(topic in top k set) +
+      Pr(topic is output | topic not in top k set) * Pr(topic not in top k set)
+    = q_in * top_k_prob + q_out * (1 - top_k_prob).
+
+    Therefore, given top_k_prob, q_in, and q_out, we can sample the number of
+    times a given topic is observed across num_users users and num_epcohs epochs
+    by sampling a Binomial distribution with num_users*num_epochs trials and
+    success rate equal to q_in * top_k_prob + q_out * (1 - top_k_prob).
+
+    This statistical test ensures that when run with a sample from the above
+    binomial distribution, the output of estimate_topic_top_k_prob is close
+    to top_k_prob.
+
+    Args:
+      top_k_prob: The probability that the topic appears in a user's top-k set
+        for one epoch.
+      observation_probs: The values of q_in and q_out to use (note that these
+        are derived parameters of the Topics API that depend on the number of
+        topics and the random topic probability).
+    """
+    num_users = 100000
+    num_epochs = 10
+    success_rate = (
+        observation_probs.in_top_k * top_k_prob
+        + observation_probs.out_top_k * (1 - top_k_prob)
     )
 
-    # When we observe a topic in 50% of all (user, epoch) pairs and topics are
-    # prob_random_choice = 0, then the estimated top_k probability is 0.5.
-    self.assertAlmostEqual(
-        0.5,
-        estimate_topic_top_k_prob(
-            num_users=100,
-            num_epochs=1,
-            topic_count=50,
-            observation_probs=TopicObservationProbs(1 / 5, 0),
-        ),
+    rng = tf.random.Generator.from_seed(0)
+    topic_count_sample = rng.binomial(
+        [], counts=float(num_users * num_epochs), probs=success_rate
+    ).numpy()
+
+    # This is the high probability bound for a single topic given by Lemma 10
+    # from the paper. It holds with probability 99.9%. The number of topics does
+    # not appear because we are not applying the union bound over all topics.
+    error_bound = (
+        1.0
+        / (observation_probs.in_top_k - observation_probs.out_top_k)
+        * math.sqrt(math.log(2/0.001) / 2 / num_users / num_epochs)
     )
 
     self.assertAlmostEqual(
-        0.1 * (0.95 / 5 + 0.05 / 300) / (0.95 / 5),
         estimate_topic_top_k_prob(
-            num_users=100,
-            num_epochs=1,
-            topic_count=10,
-            observation_probs=TopicObservationProbs(
-                0.95 / 5 + 0.05 / 300, 0.05 / 300
-            ),
+            num_users=num_users,
+            num_epochs=num_epochs,
+            topic_count=topic_count_sample,
+            observation_probs=observation_probs,
         ),
+        top_k_prob,
+        delta=error_bound,
     )
 
   def test_compute_attack_weights(self):
