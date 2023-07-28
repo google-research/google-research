@@ -76,7 +76,7 @@ def _get_table_numbers(text):
   return numbers
 
 
-def table_number_accuracy(
+def table_number_accuracy_per_point(
     targets,
     predictions,
 ):
@@ -89,16 +89,31 @@ def table_number_accuracy(
     predictions: predicted text.
 
   Returns:
+    A list of float numbers.
+  """
+  all_points_scores = []
+  for p, targets in zip(predictions, targets):
+    all_points_scores.append(max(_table_numbers_match(t, p) for t in targets))
+  return all_points_scores
+
+
+def table_number_accuracy(
+    targets,
+    predictions,
+):
+  """Aggregated version of table_number_accuracy_per_point().
+
+  Same as table_number_accuracy_per_point() but returning an aggregated score.
+
+  Args:
+    targets: ground truth text.
+    predictions: predicted text.
+
+  Returns:
     dictionary with metric names as keys and metric value as values.
   """
-  return {
-      "numbers_match": pix2struct_metrics.aggregate_metrics(
-          targets=targets,
-          predictions=predictions,
-          metric_fn=_table_numbers_match,
-          normalize_fn=lambda v: v,
-      ),
-  }
+  scores = table_number_accuracy_per_point(targets, predictions)
+  return {"numbers_match": (100.0 * sum(scores)) / len(targets)}
 
 
 def _permute(values, indexes):
@@ -108,6 +123,7 @@ def _permute(values, indexes):
 @dataclasses.dataclass(frozen=True)
 class Table:
   """Helper class for the content of a markdown table."""
+
   title: Optional[str] = None
   headers: tuple[str, Ellipsis] = dataclasses.field(default_factory=tuple)
   rows: tuple[tuple[str, Ellipsis], Ellipsis] = dataclasses.field(default_factory=tuple)
@@ -120,18 +136,20 @@ class Table:
         rows=tuple(_permute(row, indexes) for row in self.rows),
     )
 
-  def aligned(self,
-              headers,
-              text_theta = 0.5):
+  def aligned(
+      self, headers, text_theta = 0.5
+  ):
     """Builds a column permutation with headers in the most correct order."""
     if len(headers) != len(self.headers):
       raise ValueError(f"Header length {headers} must match {self.headers}.")
     distance = []
     for h2 in self.headers:
-      distance.append([
-          1 - pix2struct_metrics.anls_metric(h1, h2, text_theta)
-          for h1 in headers
-      ])
+      distance.append(
+          [
+              1 - pix2struct_metrics.anls_metric(h1, h2, text_theta)
+              for h1 in headers
+          ]
+      )
     cost_matrix = np.array(distance)
     row_ind, col_ind = optimize.linear_sum_assignment(cost_matrix)
     permutation = [idx for _, idx in sorted(zip(col_ind, row_ind))]
@@ -205,9 +223,7 @@ def _table_datapoints_precision_recall_f1(
 ):
   """Calculates matching similarity between two tables as dicts."""
   target_datapoints = list(_get_table_datapoints(target_table).items())
-  prediction_datapoints = list(
-      _get_table_datapoints(prediction_table).items()
-  )
+  prediction_datapoints = list(_get_table_datapoints(prediction_table).items())
   if not target_datapoints and not prediction_datapoints:
     return 1, 1, 1
   if not target_datapoints:
@@ -236,7 +252,7 @@ def _table_datapoints_precision_recall_f1(
   return precision, recall, 2 * precision * recall / (precision + recall)
 
 
-def table_datapoints_precision_recall(
+def table_datapoints_precision_recall_per_point(
     targets,
     predictions,
     text_theta = 0.5,
@@ -256,30 +272,69 @@ def table_datapoints_precision_recall(
     number_theta: relative error rate above this is set to the maximum of 1.
 
   Returns:
-    Mapping with precision, recall and F1
+    Dictionary with per-point precision, recall and F1
   """
   assert len(targets) == len(predictions)
   precision, recall, f1 = 0, 0, 0
+  per_point_scores = {"precision": [], "recall": [], "f1": []}
   for pred, target in zip(predictions, targets):
     all_metrics = []
     for transposed in [True, False]:
       pred_table = _parse_table(pred, transposed=transposed)
+      # pylint:disable=g-complex-comprehension
       all_metrics.extend(
           [
               _table_datapoints_precision_recall_f1(
-                  _parse_table(t), pred_table, text_theta, number_theta,
+                  _parse_table(t),
+                  pred_table,
+                  text_theta,
+                  number_theta,
               )
               for t in target
           ]
       )
+      # pylint:enable=g-complex-comprehension
     p, r, f = max(all_metrics, key=lambda x: x[-1])
     precision += p
     recall += r
     f1 += f
+    per_point_scores["precision"].append(p)
+    per_point_scores["recall"].append(r)
+    per_point_scores["f1"].append(r)
+  return per_point_scores
+
+
+def table_datapoints_precision_recall(
+    targets,
+    predictions,
+    text_theta = 0.5,
+    number_theta = 0.1,
+):
+  """Aggregated version of table_datapoints_precision_recall_per_point().
+
+  Same as table_datapoints_precision_recall_per_point() but returning aggregated
+  scores instead of per-point scores.
+
+  Args:
+    targets: list of list of strings.
+    predictions: list of strings.
+    text_theta: relative edit distance above this is set to the maximum of 1.
+    number_theta: relative error rate above this is set to the maximum of 1.
+
+  Returns:
+    Dictionary with aggregated precision, recall and F1
+  """
+  score_dict = table_datapoints_precision_recall_per_point(
+      targets, predictions, text_theta, number_theta
+  )
   return {
-      "table_datapoints_precision": 100.0 * precision / len(targets),
-      "table_datapoints_recall": 100.0 * recall / len(targets),
-      "table_datapoints_f1": 100.0 * f1 / len(targets),
+      "table_datapoints_precision": (
+          100.0 * sum(score_dict["precision"]) / len(targets)
+      ),
+      "table_datapoints_recall": (
+          100.0 * sum(score_dict["recall"]) / len(targets)
+      ),
+      "table_datapoints_f1": 100.0 * sum(score_dict["f1"]) / len(targets),
   }
 
 
@@ -312,9 +367,9 @@ def _get_row_metric(
     elif target_float is not None:
       result.append(0.0)
     else:
-      result.append(pix2struct_metrics.anls_metric(
-          target, prediction, text_theta
-      ))
+      result.append(
+          pix2struct_metrics.anls_metric(target, prediction, text_theta)
+      )
   return np.prod(result)
 
 
@@ -327,7 +382,8 @@ def _row_datapoints_precision_recall_f1(
   """Calculates matching similarity between two tables as list of rows."""
   target_datapoints = _get_row_datapoints(target)
   aligned_prediction, aligned_score = prediction.aligned(
-      target.headers, text_theta)
+      target.headers, text_theta
+  )
   prediction_datapoints = _get_row_datapoints(aligned_prediction)
   if not target_datapoints and not prediction_datapoints:
     return 1, 1, 1
@@ -376,12 +432,15 @@ def row_datapoints_precision_recall(
   if len(targets) != len(predictions):
     raise ValueError(
         f"Targets has length {len(targets)} and predictions has length "
-        f"{len(predictions)}.")
+        f"{len(predictions)}."
+    )
   precision, recall, f1 = 0, 0, 0
   for pred, target in zip(predictions, targets):
     all_metrics = []
-    prediction_tables = [_parse_table(pred, transposed=transposed)
-                         for transposed in [True, False]]
+    prediction_tables = [
+        _parse_table(pred, transposed=transposed)
+        for transposed in [True, False]
+    ]
     for t in target:
       for target_transposed in [True, False]:
         target_table = _parse_table(t, transposed=target_transposed)
@@ -390,7 +449,10 @@ def row_datapoints_precision_recall(
             continue
           all_metrics.append(
               _row_datapoints_precision_recall_f1(
-                  target_table, prediction_table, text_theta, number_theta,
+                  target_table,
+                  prediction_table,
+                  text_theta,
+                  number_theta,
               )
           )
     p, r, f = max(all_metrics, key=lambda x: x[-1], default=(0, 0, 0))
