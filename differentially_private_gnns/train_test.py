@@ -25,13 +25,13 @@ import jax.numpy as jnp
 import ml_collections
 import numpy as np
 
-from differentially_private_gnns import dataset_readers
-from differentially_private_gnns import input_pipeline
-from differentially_private_gnns import train
-from differentially_private_gnns.configs import dpgcn
-from differentially_private_gnns.configs import dpmlp
-from differentially_private_gnns.configs import gcn
-from differentially_private_gnns.configs import mlp
+import dataset_readers
+import input_pipeline
+import train
+from configs import dpgcn
+from configs import dpmlp
+from configs import gcn
+from configs import mlp
 
 
 _ALL_CONFIGS = {

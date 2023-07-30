@@ -23,7 +23,7 @@ import jax
 import networkx as nx
 import numpy as np
 
-from differentially_private_gnns import sampler
+import sampler
 
 Subgraphs = Dict[int, Union[List[int], 'Subgraphs']]
 

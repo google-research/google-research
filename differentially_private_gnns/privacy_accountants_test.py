@@ -19,7 +19,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import numpy as np
 
-from differentially_private_gnns import privacy_accountants
+import privacy_accountants
 
 
 def get_privacy_accountant(training_type):

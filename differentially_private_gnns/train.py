@@ -34,11 +34,11 @@ import ml_collections
 import numpy as np
 import optax
 
-from differentially_private_gnns import input_pipeline
-from differentially_private_gnns import models
-from differentially_private_gnns import normalizations
-from differentially_private_gnns import optimizers
-from differentially_private_gnns import privacy_accountants
+import input_pipeline
+import models
+import normalizations
+import optimizers
+import privacy_accountants
 
 _SUBGRAPH_PADDING_VALUE = -1
 
