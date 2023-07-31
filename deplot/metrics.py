@@ -275,7 +275,6 @@ def table_datapoints_precision_recall_per_point(
     Dictionary with per-point precision, recall and F1
   """
   assert len(targets) == len(predictions)
-  precision, recall, f1 = 0, 0, 0
   per_point_scores = {"precision": [], "recall": [], "f1": []}
   for pred, target in zip(predictions, targets):
     all_metrics = []
@@ -295,12 +294,9 @@ def table_datapoints_precision_recall_per_point(
       )
       # pylint:enable=g-complex-comprehension
     p, r, f = max(all_metrics, key=lambda x: x[-1])
-    precision += p
-    recall += r
-    f1 += f
     per_point_scores["precision"].append(p)
     per_point_scores["recall"].append(r)
-    per_point_scores["f1"].append(r)
+    per_point_scores["f1"].append(f)
   return per_point_scores
 
 
