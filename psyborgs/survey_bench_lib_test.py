@@ -417,9 +417,10 @@ prompt_text,continuation_text,score,measure_id,measure_name,scale_id,item_preamb
         survey_bench_lib, 'create_llm_scoring_fn') as mock_other:
       mock_other.return_value = lambda prompt, continuation: [0.]
 
-      pd.util.testing.assert_frame_equal(
+      pd.testing.assert_frame_equal(
           survey_bench_lib.administer_session_serially(admin_session),
-          expected_df)
+          expected_df,
+      )
 
 
 if __name__ == '__main__':

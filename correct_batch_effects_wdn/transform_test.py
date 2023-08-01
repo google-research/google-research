@@ -19,7 +19,7 @@ import string
 
 import numpy as np
 import pandas as pd
-import pandas.util.testing as pandas_testing
+import pandas.testing as pandas_testing
 from six.moves import range
 import tensorflow.compat.v1 as tf
 
