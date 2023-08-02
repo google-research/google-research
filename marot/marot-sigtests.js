@@ -14,7 +14,7 @@
 
 /**
  * This file contains the background Worker thread code that computes
- * significance tests for MQM score rankings of system pairs.
+ * significance tests for metric score rankings of system pairs.
  *
  * The significance testing is done through paired one-sided approximate
  * randomization (PAR). The implemention follows sacrebleu at
@@ -27,7 +27,7 @@
  * @param {number} size
  * @return {!Array}
  */
-function mqmGetRandomInt(max, size) {
+function marotGetRandomInt(max, size) {
   let samples = [];
   for (let i = 0; i < size; i++) {
     samples.push(Math.floor(Math.random() * max));
@@ -39,12 +39,12 @@ function mqmGetRandomInt(max, size) {
  * Performs one trial of paired approximate randomization for a given baseline
  * and a system and returns the score difference. Returns null if no common
  * segments are found.
- * @param {!MQMSigtestsData} data
+ * @param {!MarotSigtestsData} data
  * @param {string} baseline
  * @param {string} system
  * @return {number}
  */
-function mqmPAROneTrial(data, baseline, system) {
+function marotPAROneTrial(data, baseline, system) {
   const baselineScores = data.segScoresBySystem[baseline];
   const systemScores = data.segScoresBySystem[system];
   const commonPos = data.commonPosBySystemPair[baseline][system];
@@ -57,7 +57,7 @@ function mqmPAROneTrial(data, baseline, system) {
    * This random array indicates which shuffled system a given score should be
    * assigned to.
    */
-  const permutations = mqmGetRandomInt(2, commonPos.length);
+  const permutations = marotGetRandomInt(2, commonPos.length);
   let shufA = 0.0;
   let shufB = 0.0;
   for (let [idx, perm] of permutations.entries()) {
@@ -79,23 +79,23 @@ function mqmPAROneTrial(data, baseline, system) {
  * Implements the core logic to perform paired one-sided approximate
  * randomization by incrementally conducting trials.
  * @param {!Event} e is the message event received from the parent thread.
- *     The e.data field is the mqmSigtestsData object that contains various
+ *     The e.data field is the marotSigtestsData object that contains various
  *     pieces of data needed.
  */
-function mqmPAR(e) {
-  const mqmSigtestsData = e.data;
+function marotPAR(e) {
+  const marotSigtestsData = e.data;
   const finishedUpdate = {
     finished: true,
   };
-  for (let metric in mqmSigtestsData.metricData) {
-    const data = mqmSigtestsData.metricData[metric];
+  for (let metric in marotSigtestsData.metricData) {
+    const data = marotSigtestsData.metricData[metric];
     const systems = data.systems;
     const metricDoneUpdate = {
       metric: metric,
       metricDone: true,
     };
     /** We should have at least 2 systems and 1 trial for signif. testing. */
-    if (systems.length < 2 || mqmSigtestsData.numTrials < 1) {
+    if (systems.length < 2 || marotSigtestsData.numTrials < 1) {
       postMessage(metricDoneUpdate);
       continue;
     }
@@ -104,13 +104,13 @@ function mqmPAR(e) {
     const signMultiplier = data.lowerBetter ? 1.0 : -1.0;
 
     /** Score differences by system pair. */
-    const mqmPARDiffs = {};
+    const marotPARDiffs = {};
 
-    const log2NumTrials = Math.log2(mqmSigtestsData.numTrials);
+    const log2NumTrials = Math.log2(marotSigtestsData.numTrials);
 
     for (const [rowIdx, baseline] of systems.entries()) {
-      if (!mqmPARDiffs.hasOwnProperty(baseline)) {
-        mqmPARDiffs[baseline] = {};
+      if (!marotPARDiffs.hasOwnProperty(baseline)) {
+        marotPARDiffs[baseline] = {};
       }
       for (const [colIdx, system] of systems.entries()) {
         if (rowIdx >= colIdx) {
@@ -122,14 +122,14 @@ function mqmPAR(e) {
           /** Not enough permutations possible, do not compute. */
           continue;
         }
-        if (!mqmPARDiffs[baseline].hasOwnProperty(system)) {
-          mqmPARDiffs[baseline][system] = [];
+        if (!marotPARDiffs[baseline].hasOwnProperty(system)) {
+          marotPARDiffs[baseline][system] = [];
         }
-        for (let i = 0; i < mqmSigtestsData.numTrials; i++) {
-          const diff = mqmPAROneTrial(data, baseline, system);
+        for (let i = 0; i < marotSigtestsData.numTrials; i++) {
+          const diff = marotPAROneTrial(data, baseline, system);
           /** This means no common segments are found. */
           if (diff == null) break;
-          mqmPARDiffs[baseline][system].push(diff);
+          marotPARDiffs[baseline][system].push(diff);
         }
 
         const realDiff = (signMultiplier *
@@ -140,7 +140,7 @@ function mqmPAR(e) {
          */
         console.assert(realDiff >= 0.0, realDiff);
         let cnt = 0;
-        for (const diff of mqmPARDiffs[baseline][system]) {
+        for (const diff of marotPARDiffs[baseline][system]) {
           /**
            * Count how many samples of the null distribution are greater than or
            * equal to the real difference. This corresponds to
@@ -153,7 +153,7 @@ function mqmPAR(e) {
             cnt += 1;
           }
         }
-        const numTrials = mqmPARDiffs[baseline][system].length;
+        const numTrials = marotPARDiffs[baseline][system].length;
         const p = (cnt + 1) / (numTrials + 1);
         const update = {
           metric: metric,
@@ -172,7 +172,7 @@ function mqmPAR(e) {
 }
 
 /**
- * Upon receiving the message with mqmSigtestsData from the parent thread,
+ * Upon receiving the message with marotSigtestsData from the parent thread,
  * kick off the computations.
  */
-onmessage = mqmPAR;
+onmessage = marotPAR;

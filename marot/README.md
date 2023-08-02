@@ -5,22 +5,19 @@ This repository contains a web app  that can be used to analyze
 data from a human evaluation of translation quality. The web app can also
 display metrics computed by automated evaluations, such as BLEURT.
 
-The code and documentation currently use the old name "MQM Viewer." They will
-be updated to use the name "Marot" everywhere, shortly.
-
-To use the web app, download the files `mqm-viewer.html`, `mqm-viewer.js`,
-`mqm-sigtests.js`, and `mqm-viewer.css` to your computer:
+To use the web app, download the files `marot.html`, `marot.js`,
+`marot-histogram.js`, `marot-sigtests.js`, and `marot.css` to your computer:
 
 ```
-wget https://raw.githubusercontent.com/google-research/google-research/master/mqm_viewer/mqm-viewer.{html,js,css}
+wget https://raw.githubusercontent.com/google-research/google-research/master/marot/marot{-sigtests.js,-histogram.js,.html,.js,.css}
 ```
 
-Then, simply open the `mqm-viewer.html` file in a web browser, and use
-the "Choose files" button to pick one or more MQM data files. MQM data spans
+Then, simply open the `marot.html` file in a web browser, and use
+the "Choose files" button to pick one or more Marot data files. Marot data spans
 several columns, so it's best to use a desktop or laptop computer with a wide
 screen.
 
-A simpler option may be to just download the `mqm-viewer-lite.html` file and
+A simpler option may be to just download the `marot-lite.html` file and
 open it in a web browser (it loads the needed JavaScript and CSS files from
 a Google-hosted server).
 
@@ -40,8 +37,8 @@ ten columns, one line per marked error:
 - **globalSegId**: Id of segment across all documents. If you do not have
   such numbering available, set this to a constant value, say 0.
 - **rater**: Rater who evaluated segment. If this row only carries metadata
-  such as automated metrics and/or references, then `rater` will be the empty
-  string (as will be `category` and `severity`).
+  such as automated metrics and/or references, then `rater` should be the empty
+  string (as should be `category` and `severity`).
 - **source**: Source text for segment.
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
@@ -112,7 +109,7 @@ ten columns, one line per marked error:
         "instructions" and "description" may have been stripped out from this
         object.
       - **source_language**, **target_language**: Language codes.
-    In MQMViewer, each metadata.evaluation object found is logged in the
+    In Marot, each metadata.evaluation object found is logged in the
     JavaScript debug console.
 
 The "metadata" column used to be an optional "note" column, and Marot
@@ -133,13 +130,13 @@ JavaScript function with the following name and behavior:
 
 ```
 /**
- * Transform data (that may be in some custom format) into the MQM data format.
+ * Transform data (that may be in some custom format) into the Marot data format.
  * Pass through the data if no conversion was appropriate or necessary.
  * @param {string} sourceName The file name or URL source for the data.
  * @param {string} data The original data.
- * @return {string} The MQM-data-formatted data.
+ * @return {string} The Marot-data-formatted data.
  */
-function mqmDataConvertor(sourceName, data) {
+function marotDataConverter(sourceName, data) {
   ...
   return data;
 }
@@ -161,7 +158,7 @@ JavaScript function with the following name and behavior:
  * @param {string} dataName The name or identifier for the data.
  * @return {string} The URL from which the data can be loaded.
  */
-function mqmURLMaker(dataName) {
+function marotURLMaker(dataName) {
   /** Code to convert dataName into url */
   let url = ...;
   return url;
