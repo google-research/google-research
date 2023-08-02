@@ -19,8 +19,6 @@ syntax = "proto2";
 package research_scann;
 
 import "google/protobuf/timestamp.proto";
-import "scann/coscann/v2_restricts.proto";
-import "scann/proto/restricts.proto";
 
 option cc_enable_arenas = true;
 
@@ -64,23 +62,7 @@ message GenericFeatureVector {
   }
   optional Crowding crowding = 18;
 
-  message RestrictTokens {
-    optional V3Restrict v3 = 7;
-
-    repeated int64 token_membership = 1 [packed = true];
-
-    repeated int64 whitelist_token = 2 [packed = true];
-    repeated int64 blacklist_token = 3 [packed = true];
-
-    oneof v2_restricts {
-      research_scann.coscann.EasyRestrictDefinition easy_definition = 6;
-      research_scann.coscann.RestrictTokensV2 tokens = 5;
-      research_scann.coscann.RestrictDefinition definition = 4;
-    }
-
-    optional string v3_compatible_namespace = 8;
-  }
-  optional RestrictTokens restrict_tokens = 15;
+  reserved 15;
 
   message FixedPointMetadata {
     optional float squared_l2_norm = 1;

@@ -68,7 +68,7 @@ SCANN_AVX2_INLINE Avx2<int16_t, kNumQueries, 2> Avx2LUT16BottomLoop(
       ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
           data_start + kPrefetchBytesAhead);
     } else if constexpr (kPrefetch == PrefetchStrategy::kSmart) {
-      ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
+      ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
           prefetch_start);
       prefetch_start += kPointsPerIter;
     }
@@ -394,9 +394,12 @@ SCANN_AVX2_INLINE int16_t GetInt16Threshold(float float_threshold) {
 
 namespace {
 template <size_t kNumQueries, PrefetchStrategy kPrefetch, bool kHasAnyPredicate,
-          typename TopN>
+          bool kWithSpilling = false, typename TopN>
 SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
     LUT16ArgsTopN<float, TopN> args) {
+  static_assert(
+      !kHasAnyPredicate || !kWithSpilling,
+      "Spilling is incompatible with datapoint translation predicates.");
   const uint8_t* packed_dataset = args.packed_dataset;
   const uint8_t* next_partition = args.next_partition;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
@@ -472,7 +475,10 @@ SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
       while (push_mask) {
         const int offset = bits::FindLSBSetNonZero(push_mask);
         push_mask &= (push_mask - 1);
-        DatapointIndex dp_idx = first_dp_index + 32 * k + offset;
+        DatapointIndex dp_idx;
+        if constexpr (!kWithSpilling) {
+          dp_idx = first_dp_index + 32 * k + offset;
+        }
         DCHECK(
             !restrict_whitelist_ptrs[j] ||
             args.restrict_whitelists[j].IsWhitelisted(dp_idx - first_dp_index))

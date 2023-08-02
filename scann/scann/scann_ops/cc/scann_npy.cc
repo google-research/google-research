@@ -27,7 +27,7 @@ namespace research_scann {
 
 void RuntimeErrorIfNotOk(const char* prefix, const Status& status) {
   if (!status.ok()) {
-    std::string msg = prefix + std::string(status.error_message());
+    std::string msg = prefix + std::string(status.message());
     throw std::runtime_error(msg);
   }
 }

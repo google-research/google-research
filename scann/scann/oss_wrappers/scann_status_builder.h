@@ -70,7 +70,7 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
 
   template <typename Enum>
   StatusBuilder& SetErrorCode(Enum code) & {
-    status_ = Status(code, status_.error_message());
+    status_ = Status(static_cast<absl::StatusCode>(code), status_.message());
     return *this;
   }
 

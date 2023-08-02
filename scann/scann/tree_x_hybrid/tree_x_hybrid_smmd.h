@@ -179,15 +179,13 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
       ConstSpan<ConstSpan<int32_t>> query_tokens,
       MutableSpan<NNResultsVector> results) const;
 
-  StatusOr<pair<int32_t, DatapointPtr<T>>> TokenizeAndMaybeResidualize(
-      const DatapointPtr<T>& dptr, Datapoint<T>*);
-
-  StatusOr<vector<pair<int32_t, DatapointPtr<T>>>> TokenizeAndMaybeResidualize(
-      const TypedDataset<T>& dps, MutableSpan<Datapoint<T>*>);
-
   StatusOr<shared_ptr<const SearcherSpecificOptionalParameters>>
   CreateLeafOptionalParameters(const DatapointPtr<T>& query,
                                const SearchParameters& top_level_params) const;
+
+  int spilling_multiplier() const {
+    return datapoints_by_token_disjoint_ ? 1 : 2;
+  }
 
   vector<unique_ptr<SingleMachineSearcherBase<T>>> leaf_searchers_;
 
@@ -196,10 +194,10 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
 
   vector<std::vector<DatapointIndex>> datapoints_by_token_;
 
+  bool datapoints_by_token_disjoint_ = true;
+
   shared_ptr<const LeafSearcherOptionalParameterCreator<T>>
       leaf_searcher_optional_parameter_creator_ = nullptr;
-
-  bool disjoint_leaf_partitions_ = true;
 
   DatapointIndex num_datapoints_ = 0;
 

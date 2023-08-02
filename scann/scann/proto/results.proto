@@ -37,6 +37,8 @@ message NearestNeighbors {
     optional bytes metadata = 5;
 
     optional int64 crowding_attribute = 6;
+
+    optional GenericFeatureVector gfv = 7;
   }
 }
 

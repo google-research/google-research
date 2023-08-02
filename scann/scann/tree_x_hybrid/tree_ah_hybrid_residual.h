@@ -45,12 +45,18 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
                                          default_pre_reordering_num_neighbors,
                                          default_pre_reordering_epsilon) {}
 
+  struct BuildLeafSearchersOptions {
+    const DenseDataset<uint8_t>* hashed_dataset = nullptr;
+
+    ThreadPool* pool = nullptr;
+  };
+
   Status BuildLeafSearchers(
       const AsymmetricHasherConfig& config,
       unique_ptr<KMeansTreeLikePartitioner<float>> partitioner,
       shared_ptr<const asymmetric_hashing2::Model<float>> ah_model,
       vector<std::vector<DatapointIndex>> datapoints_by_token,
-      const DenseDataset<uint8_t>* hashed_dataset, ThreadPool* pool = nullptr);
+      BuildLeafSearchersOptions opts);
 
   void set_database_tokenizer(
       shared_ptr<const KMeansTreeLikePartitioner<float>> database_tokenizer) {
@@ -62,8 +68,7 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   static StatusOr<DenseDataset<float>> ComputeResiduals(
       const DenseDataset<float>& dataset,
       const KMeansTreeLikePartitioner<float>* partitioner,
-      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
-      bool normalize_residual_by_cluster_stdev = false);
+      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
 
   static StatusOr<DenseDataset<float>> ComputeResiduals(
       const DenseDataset<float>& dataset,
@@ -144,12 +149,9 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       const AsymmetricHasherConfig& config,
       const KMeansTreeLikePartitioner<float>& partitioner) const;
 
-  StatusOr<pair<int32_t, DatapointPtr<float>>> TokenizeAndMaybeResidualize(
-      const DatapointPtr<float>& dptr, Datapoint<float>* residual_storage);
-
-  StatusOr<vector<pair<int32_t, DatapointPtr<float>>>>
-  TokenizeAndMaybeResidualize(const TypedDataset<float>& dps,
-                              MutableSpan<Datapoint<float>*> residual_storage);
+  int spilling_multiplier() const {
+    return datapoints_by_token_disjoint_ ? 1 : 2;
+  }
 
   vector<unique_ptr<asymmetric_hashing2::Searcher<float>>> leaf_searchers_;
 
@@ -161,14 +163,14 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
   vector<std::vector<DatapointIndex>> datapoints_by_token_;
 
+  bool datapoints_by_token_disjoint_ = true;
+
   DatapointIndex num_datapoints_ = 0;
 
   vector<uint32_t> leaf_tokens_by_norm_;
 
   AsymmetricHasherConfig::LookupType lookup_type_tag_ =
       AsymmetricHasherConfig::FLOAT;
-
-  bool disjoint_leaf_partitions_ = true;
 
   bool enable_global_topn_ = false;
 

@@ -18,6 +18,7 @@
 #define SCANN_UTILS_TYPES_H_
 
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <string>
 #include <type_traits>
@@ -221,7 +222,7 @@ Status DisabledTypeError(TypeTag type_tag);
 template <typename T>
 T DisabledTagErrorOrCrash(uint8_t tag) {
   return ErrorOrCrash<T>(
-      DisabledTypeError(static_cast<TypeTag>(tag)).error_message());
+      DisabledTypeError(static_cast<TypeTag>(tag)).message());
 }
 
 template <typename T>

@@ -23,6 +23,21 @@ cc_library(
 )
 
 ################################################################################
+#  FMA (FusedMultiplyAdd)
+################################################################################
+
+cc_library(
+    name = "fma",
+    hdrs = ["fma.h"],
+    tags = ["local"],
+    textual_hdrs = ["fma.inc"],
+    deps = [
+        ":simd",
+        "//scann/utils:index_sequence",
+    ],
+)
+
+################################################################################
 #  Horizontal sum
 ################################################################################
 
@@ -45,9 +60,8 @@ cc_library(
     hdrs = ["flags.h"],
     tags = ["local"],
     deps = [
-        "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:tf_dependency",
+        "//scann/utils:common",
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",

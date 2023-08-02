@@ -44,9 +44,6 @@ class UntypedMetadataGetter {
   virtual research_scann::TypeTag TypeTag() const = 0;
 
   virtual ~UntypedMetadataGetter();
-
- private:
-  absl::Mutex mutex_;
 };
 
 template <typename T>

@@ -63,6 +63,10 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     std::vector<int8_t>* quantized_storage);
 
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    MutableSpan<int8_t> quantized);
+
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     const double noise_shaping_threshold, vector<int8_t>* quantized_storage,
@@ -78,6 +82,10 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, float multiplier,
     vector<int8_t>* quantized_storage);
+
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
+    const DatapointPtr<float>& dptr, float multiplier,
+    MutableSpan<int8_t> quantized);
 
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
     const DatapointPtr<float>& query,

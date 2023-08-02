@@ -14,9 +14,10 @@
 
 
 
-#include "scann/base/restrict_allowlist.h"
+#include "scann/restricts/restrict_allowlist.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 #include <vector>

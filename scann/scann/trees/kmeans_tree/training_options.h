@@ -65,10 +65,6 @@ struct KMeansTreeTrainingOptions {
   int32_t min_cluster_size = 1;
 
   int32_t seed = 0;
-
-  bool compute_residual_stdev = false;
-
-  double residual_stdev_min_value = 1e-5;
 };
 
 }  // namespace research_scann

@@ -114,7 +114,7 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
 
   if (opts.preprocessing_function()) {
     for (DatapointIndex i : sample) {
-      SCANN_RETURN_IF_ERROR(VerifyAllFinite(dataset[i].values_slice()));
+      SCANN_RETURN_IF_ERROR(VerifyAllFinite(dataset[i].values_span()));
       TF_ASSIGN_OR_RETURN(Datapoint<T> preprocessed,
                           opts.preprocessing_function()(dataset[i]));
       SCANN_RETURN_IF_ERROR(VerifyAllFinite(preprocessed.values()));
@@ -124,7 +124,7 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
     }
   } else {
     for (DatapointIndex i : sample) {
-      SCANN_RETURN_IF_ERROR(VerifyAllFinite(dataset[i].values_slice()));
+      SCANN_RETURN_IF_ERROR(VerifyAllFinite(dataset[i].values_span()));
       SCANN_RETURN_IF_ERROR(
           opts.projector()->ProjectInput(dataset[i], &chunked_vec));
       append_chunked_blocks();
@@ -148,8 +148,7 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
         {.final_partitions = &subpartitions, .weights = weights}));
 
     for (size_t center_idx : IndicesOf(centers)) {
-      SCANN_RETURN_IF_ERROR(
-          VerifyAllFinite(centers[center_idx].values_slice()));
+      SCANN_RETURN_IF_ERROR(VerifyAllFinite(centers[center_idx].values_span()));
       if (!opts.config().use_norm_biasing_correction()) continue;
       TF_ASSIGN_OR_RETURN(
           const double norm_bias_correction,
@@ -253,7 +252,7 @@ Status AhImpl<T>::IndexDatapoint(const DatapointPtr<T>& input,
   result->mutable_values()->resize(result_size, 0);
 
   return AhImpl<T>::IndexDatapoint(input, projection, quantization_distance,
-                                   centers, result->mutable_values_slice());
+                                   centers, result->mutable_values_span());
 }
 
 namespace {
@@ -317,7 +316,7 @@ StatusOr<vector<std::vector<SubspaceResidualStats>>> ComputeResidualStats(
   SCANN_RET_CHECK_EQ(original_dptr_chunked.size(), num_subspaces);
   double chunked_norm = 0.0;
   for (size_t subspace_idx : Seq(num_subspaces)) {
-    for (FloatT x : original_dptr_chunked[subspace_idx].values_slice()) {
+    for (FloatT x : original_dptr_chunked[subspace_idx].values_span()) {
       chunked_norm += Square<double>(x);
     }
   }
@@ -331,11 +330,11 @@ StatusOr<vector<std::vector<SubspaceResidualStats>>> ComputeResidualStats(
         centers[subspace_idx];
     for (size_t cluster_idx : Seq(num_clusters_per_block)) {
       ConstSpan<FloatingTypeFor<T>> center =
-          cur_subspace_centers[cluster_idx].values_slice();
+          cur_subspace_centers[cluster_idx].values_span();
       ConstSpan<FloatT> maybe_residual_dptr_span =
-          maybe_residual_dptr_chunked[subspace_idx].values_slice();
+          maybe_residual_dptr_chunked[subspace_idx].values_span();
       ConstSpan<FloatT> original_dptr_span =
-          original_dptr_chunked[subspace_idx].values_slice();
+          original_dptr_chunked[subspace_idx].values_span();
       cur_subspace_residual_stats[cluster_idx] = ComputeResidualStatsForCluster(
           maybe_residual_dptr_span, original_dptr_span, inverse_chunked_norm,
           center);

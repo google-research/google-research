@@ -17,8 +17,6 @@ proto_library(
     features = ["-proto_dynamic_mode_static_link"],
     tags = ["local"],
     deps = [
-        "//scann/coscann:v2_restricts_proto",
-        "//scann/proto:restricts_proto",
         "@com_google_protobuf//:timestamp_proto",
     ],
 )
@@ -33,10 +31,7 @@ scann_py_proto_library(
     name = "features_py_pb2",
     srcs = ["features.proto"],
     proto_deps = [":features_proto"],
-    py_proto_deps = [
-        "//scann/coscann:v2_restricts_py_pb2",
-        "//scann/proto:restricts_py_pb2",
-    ],
+    py_proto_deps = [],
     tags = ["local"],
 )
 
@@ -127,6 +122,7 @@ cc_library(
     deps = [
         ":docid_collection_interface",
         "//scann/data_format/internal:short_string_optimized_string",
+        "//scann/data_format/internal:string_view32",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_serialize",
@@ -137,9 +133,9 @@ cc_library(
         "//scann/utils:util_functions",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:node_hash_map",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
     ],
 )

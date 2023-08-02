@@ -134,24 +134,40 @@ ScalarQuantizationResults ScalarQuantizeFloatDatasetWithMultipliers(
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     std::vector<int8_t>* quantized_storage) {
+  MutableSpan<int8_t> quantized(quantized_storage->data(),
+                                quantized_storage->size());
+  return ScalarQuantizeFloatDatapoint(dptr, multipliers, quantized);
+}
+
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    MutableSpan<int8_t> quantized) {
   const size_t dimensionality = dptr.dimensionality();
   DCHECK_EQ(multipliers.size(), dimensionality);
-  DCHECK_EQ(quantized_storage->size(), dimensionality);
+  DCHECK_EQ(quantized.size(), dimensionality);
   for (size_t i : Seq(dimensionality)) {
-    (*quantized_storage)[i] = Int8Quantize(dptr.values()[i] * multipliers[i]);
+    quantized[i] = Int8Quantize(dptr.values()[i] * multipliers[i]);
   }
-  return MakeDatapointPtr(*quantized_storage);
+  return MakeDatapointPtr(quantized.data(), quantized.size());
 }
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, float multiplier,
     std::vector<int8_t>* quantized_storage) {
+  MutableSpan<int8_t> quantized(quantized_storage->data(),
+                                quantized_storage->size());
+  return ScalarQuantizeFloatDatapoint(dptr, multiplier, quantized);
+}
+
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
+    const DatapointPtr<float>& dptr, float multiplier,
+    MutableSpan<int8_t> quantized) {
   const size_t dimensionality = dptr.dimensionality();
-  DCHECK_EQ(quantized_storage->size(), dimensionality);
+  DCHECK_EQ(quantized.size(), dimensionality);
   for (size_t i : Seq(dimensionality)) {
-    (*quantized_storage)[i] = Int8Quantize(dptr.values()[i] * multiplier);
+    quantized[i] = Int8Quantize(dptr.values()[i] * multiplier);
   }
-  return MakeDatapointPtr(*quantized_storage);
+  return MakeDatapointPtr(quantized.data(), quantized.size());
 }
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(

@@ -234,7 +234,7 @@ class ScannToTensorsOp : public OpKernel {
 
     auto options_or_status = scann_resource->scann_->ExtractOptions();
     OP_REQUIRES_OK(context, ConvertStatus(options_or_status.status()));
-    auto opts = options_or_status.ValueOrDie();
+    auto opts = options_or_status.value();
 
     TensorFromProtoRequireOk(context, "scann_config",
                              scann_resource->scann_->config());

@@ -22,3 +22,12 @@ cc_library(
         "@com_google_absl//absl/types:optional",
     ],
 )
+
+cc_library(
+    name = "string_view32",
+    hdrs = ["string_view32.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/utils:types",
+    ],
+)

@@ -42,10 +42,10 @@ StatusOr<double> ComputeNormBiasCorrection(
     const DenseDataset<FloatT>& db, DatapointPtr<double> center,
     ConstSpan<DatapointIndex> cluster_members) {
   if (cluster_members.empty()) return 1.0;
-  SCANN_RETURN_IF_ERROR(VerifyAllFinite(center.values_slice()));
+  SCANN_RETURN_IF_ERROR(VerifyAllFinite(center.values_span()));
   double mean_norm = 0.0;
   for (DatapointIndex idx : cluster_members) {
-    SCANN_RETURN_IF_ERROR(VerifyAllFinite(db[idx].values_slice()));
+    SCANN_RETURN_IF_ERROR(VerifyAllFinite(db[idx].values_span()));
     mean_norm += std::sqrt(SquaredL2Norm(db[idx]));
   }
   SCANN_RET_CHECK(std::isfinite(mean_norm)) << mean_norm;

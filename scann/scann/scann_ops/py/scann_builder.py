@@ -14,7 +14,6 @@
 # limitations under the License.
 
 """Builder to create ScaNN searchers of various configurations."""
-import math
 
 
 def _factory_decorator(key):
@@ -123,28 +122,30 @@ class ScannBuilder(object):
       lookup_type = "INT8"
     else:
       raise ValueError(f"hash_type must be one of {hash_types}")
-    if n_dims % dimensions_per_block == 0:
+    full_blocks, partial_block_dims = divmod(n_dims, dimensions_per_block)
+    if partial_block_dims == 0:
       proj_config = f"""
         projection_type: CHUNK
-        num_blocks: {n_dims // dimensions_per_block}
+        num_blocks: {full_blocks}
         num_dims_per_block: {dimensions_per_block}
       """
     else:
       proj_config = f"""
         projection_type: VARIABLE_CHUNK
         variable_blocks {{
-          num_blocks: {n_dims // dimensions_per_block}
+          num_blocks: {full_blocks}
           num_dims_per_block: {dimensions_per_block}
         }}
         variable_blocks {{
-          num_blocks: {1}
-          num_dims_per_block: {n_dims % dimensions_per_block}
+          num_blocks: 1
+          num_dims_per_block: {partial_block_dims}
         }}
       """
-    num_blocks = math.ceil(int(n_dims) / dimensions_per_block)
     # global top-N requires LUT16, int16 accumulators, and residual quantization
-    global_topn = (hash_type == hash_types[0]) and (
-        num_blocks <= 256) and residual_quantization
+    global_topn = (
+        hash_type == hash_types[0] and
+        (full_blocks + (partial_block_dims > 0)) <= 256 and
+        residual_quantization)
     return f"""
       hash {{
         asymmetric_hash {{

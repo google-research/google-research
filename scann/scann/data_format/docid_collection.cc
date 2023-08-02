@@ -17,10 +17,15 @@
 #include "scann/data_format/docid_collection.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/flags/flag.h"
+#include "absl/strings/str_cat.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
@@ -28,22 +33,33 @@
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/status.h"
 
+ABSL_FLAG(bool, use_memory_optimized_immutable_docid_collection, false,
+          "Controls which implementation is used for immutable "
+          "VariableLengthDocidCollection");
+
 namespace research_scann {
+
+using data_format_internal::string_view32;
 
 namespace {
 
-class VariableLengthDocidCollectionImplMutable;
+void AmortizedAppend(std::vector<char>& v, size_t to_add) {
+  size_t new_size = v.size() + to_add;
+  size_t capacity = v.capacity();
 
-class VariableLengthDocidCollectionImplStatic final
-    : public DocidCollectionInterface {
+  if (new_size > capacity) v.reserve(std::max(new_size, 3 * capacity / 2));
+  v.resize(new_size);
+}
+
+class MutableCollection;
+
+class ImmutableCollection final : public DocidCollectionInterface {
  public:
-  VariableLengthDocidCollectionImplStatic() {}
-  explicit VariableLengthDocidCollectionImplStatic(size_t size);
-  ~VariableLengthDocidCollectionImplStatic() final {}
-  VariableLengthDocidCollectionImplStatic(
-      const VariableLengthDocidCollectionImplStatic& rhs) = default;
-  VariableLengthDocidCollectionImplStatic& operator=(
-      const VariableLengthDocidCollectionImplStatic& rhs) = default;
+  ImmutableCollection() = default;
+  explicit ImmutableCollection(size_t size);
+  ~ImmutableCollection() final = default;
+  ImmutableCollection(const ImmutableCollection& rhs) = default;
+  ImmutableCollection& operator=(const ImmutableCollection& rhs) = default;
 
   Status Append(string_view docid) final;
   size_t size() const final { return size_; }
@@ -52,8 +68,7 @@ class VariableLengthDocidCollectionImplStatic final
   void Clear() final;
 
   unique_ptr<DocidCollectionInterface> Copy() const final {
-    return unique_ptr<DocidCollectionInterface>(
-        new VariableLengthDocidCollectionImplStatic(*this));
+    return unique_ptr<DocidCollectionInterface>(new ImmutableCollection(*this));
   }
 
   string_view Get(size_t i) const final {
@@ -88,24 +103,20 @@ class VariableLengthDocidCollectionImplStatic final
 
   size_t size_ = 0;
 
-  friend class VariableLengthDocidCollectionImplMutable;
+  friend class MutableCollection;
 };
 
-class VariableLengthDocidCollectionImplMutable final
-    : public DocidCollectionInterface {
+class MutableCollection final : public DocidCollectionInterface {
  public:
-  VariableLengthDocidCollectionImplMutable() {}
-  explicit VariableLengthDocidCollectionImplMutable(size_t size);
-  ~VariableLengthDocidCollectionImplMutable() final {}
+  MutableCollection() = default;
+  explicit MutableCollection(size_t size);
+  ~MutableCollection() final = default;
 
-  VariableLengthDocidCollectionImplMutable(
-      const VariableLengthDocidCollectionImplMutable& rhs);
-  VariableLengthDocidCollectionImplMutable& operator=(
-      const VariableLengthDocidCollectionImplMutable& rhs);
+  MutableCollection(const MutableCollection& rhs);
+  MutableCollection& operator=(const MutableCollection& rhs);
 
-  static unique_ptr<VariableLengthDocidCollectionImplMutable>
-  FromStaticImplDestructive(
-      VariableLengthDocidCollectionImplStatic* static_impl);
+  static unique_ptr<MutableCollection> FromImmutableDestructive(
+      ImmutableCollection* static_impl);
 
   Status Append(string_view docid) final;
   size_t size() const final { return size_; }
@@ -114,8 +125,7 @@ class VariableLengthDocidCollectionImplMutable final
   void Clear() final;
 
   unique_ptr<DocidCollectionInterface> Copy() const final {
-    return unique_ptr<DocidCollectionInterface>(
-        new VariableLengthDocidCollectionImplMutable(*this));
+    return unique_ptr<DocidCollectionInterface>(new MutableCollection(*this));
   }
 
   string_view Get(size_t i) const final {
@@ -160,6 +170,145 @@ class VariableLengthDocidCollectionImplMutable final
   vector<Chunk> chunks_;
   DatapointIndex size_ = 0;
   friend class VariableLengthDocidCollection::Mutator;
+};
+
+class ImmutableMemoryOptCollection : public DocidCollectionInterface {
+ public:
+  ImmutableMemoryOptCollection() = default;
+
+  explicit ImmutableMemoryOptCollection(size_t size) {
+    while (size >= kChunkSize) {
+      chunks_.push_back(Chunk(kChunkSize, '\0'));
+      size -= kChunkSize;
+    }
+    last_chunk_size_ = size;
+    if (last_chunk_size_ != 0) {
+      chunks_.push_back(Chunk(last_chunk_size_, '\0'));
+    }
+  }
+
+  ImmutableMemoryOptCollection(const ImmutableMemoryOptCollection& rhs) =
+      default;
+  ImmutableMemoryOptCollection& operator=(
+      const ImmutableMemoryOptCollection& rhs) = default;
+
+  size_t size() const final {
+    size_t num_chunks = chunks_.size();
+    if (num_chunks == 0) return 0;
+    return (num_chunks - 1) * kChunkSize + last_chunk_size_;
+  }
+  bool empty() const final { return size() == 0; }
+  void ShrinkToFit() final {
+    if (!chunks_.empty()) chunks_.back().shrink_to_fit();
+    chunks_.shrink_to_fit();
+  }
+  void Clear() final {
+    std::exchange(chunks_, {});
+    last_chunk_size_ = 0;
+  }
+
+  Status Append(absl::string_view docid) final {
+    if (chunks_.empty() || last_chunk_size_ == kChunkSize) {
+      last_chunk_size_ = 0;
+      chunks_.emplace_back();
+    }
+
+    StorePayload(docid, chunks_.back());
+
+    if (++last_chunk_size_ == kChunkSize) {
+      chunks_.back().shrink_to_fit();
+    }
+    return OkStatus();
+  }
+
+  std::unique_ptr<DocidCollectionInterface> Copy() const final {
+    return std::make_unique<ImmutableMemoryOptCollection>(*this);
+  }
+
+  absl::string_view Get(size_t i) const final {
+    DCHECK_LT(i, size());
+    size_t chunk_num = i / kChunkSize;
+    size_t chunk_index = i % kChunkSize;
+    absl::string_view payload = LoadPayload(chunks_[chunk_num].data());
+    for (size_t x = 0; x < chunk_index; ++x) {
+      payload = LoadPayload(payload.data() + payload.size());
+    }
+    return payload;
+  }
+
+  size_t capacity() const final { return chunks_.size() * kChunkSize; }
+
+  size_t MemoryUsage() const final {
+    size_t result = VectorStorage(chunks_);
+    for (const auto& chunk : chunks_) {
+      result += VectorStorage(chunk);
+    }
+    return result;
+  }
+
+  void Reserve(DatapointIndex n_elements) final {
+    chunks_.reserve(DivRoundUp(n_elements, kChunkSize));
+  }
+
+  StatusOr<DocidCollectionInterface::Mutator*> GetMutator() const final {
+    return UnimplementedError(
+        "This should be handled by VariableLengthDocidCollection.");
+  }
+
+  std::unique_ptr<DocidCollectionInterface> ToMutable() && {
+    auto result = std::make_unique<MutableCollection>();
+    result->Reserve(size());
+    for (auto& chunk : chunks_) {
+      const char* ptr = chunk.data();
+      while (ptr != chunk.data() + chunk.size()) {
+        absl::string_view payload = LoadPayload(ptr);
+        TF_CHECK_OK(result->Append(payload));
+        ptr = payload.data() + payload.size();
+      }
+      std::exchange(chunk, {});
+    }
+    Clear();
+    return result;
+  }
+
+ private:
+  using Chunk = std::vector<char>;
+
+  static constexpr size_t kChunkSize = 64;
+
+  absl::string_view LoadPayload(const char* data) const {
+    uint32_t length = 0xFF & *data;
+    if (ABSL_PREDICT_TRUE(length < 128)) {
+      return absl::string_view(data + 1, length);
+    }
+    length = ~(((0xFF & data[0]) << 24) + ((0xFF & data[1]) << 16) +
+               ((0xFF & data[2]) << 8) + ((0xFF & data[3]) << 0));
+    return absl::string_view(data + 4, length);
+  }
+
+  void StorePayload(absl::string_view payload, Chunk& chunk) {
+    assert((payload.size() < 0x80000000u) && "Payload is too large to store");
+    uint32_t payload_size = payload.size();
+    bool is_small = payload_size < 128;
+    size_t current_size = chunk.size();
+    AmortizedAppend(chunk, payload.size() + (is_small ? 1 : 4));
+    char* data = chunk.data() + current_size;
+    if (ABSL_PREDICT_TRUE(payload_size < 128)) {
+      *data++ = static_cast<char>(payload_size);
+    } else {
+      uint32_t inverted_size = ~payload_size;
+
+      *data++ = (inverted_size >> 24) & 0xFF;
+      *data++ = (inverted_size >> 16) & 0xFF;
+      *data++ = (inverted_size >> 8) & 0xFF;
+      *data++ = (inverted_size >> 0) & 0xFF;
+    }
+    std::copy_n(payload.data(), payload_size, data);
+  }
+
+  size_t last_chunk_size_ = 0;
+
+  std::vector<Chunk> chunks_;
 };
 
 }  // namespace
@@ -219,9 +368,12 @@ void VariableLengthDocidCollection::ShrinkToFit() {
 
 void VariableLengthDocidCollection::InstantiateImpl() {
   if (mutator_) {
-    impl_ = make_unique<VariableLengthDocidCollectionImplMutable>(size_);
+    impl_ = make_unique<MutableCollection>(size_);
+  } else if (absl::GetFlag(
+                 FLAGS_use_memory_optimized_immutable_docid_collection)) {
+    impl_ = std::make_unique<ImmutableMemoryOptCollection>(size_);
   } else {
-    impl_ = make_unique<VariableLengthDocidCollectionImplStatic>(size_);
+    impl_ = std::make_unique<ImmutableCollection>(size_);
   }
 }
 
@@ -234,12 +386,13 @@ StatusOr<DocidCollectionInterface::Mutator*>
 VariableLengthDocidCollection::GetMutator() const {
   if (!mutator_) {
     auto mutable_this = const_cast<VariableLengthDocidCollection*>(this);
-    if (mutable_this->impl_ &&
-        typeid(*(mutable_this->impl_)) ==
-            typeid(VariableLengthDocidCollectionImplStatic)) {
-      mutable_this->impl_ =
-          VariableLengthDocidCollectionImplMutable::FromStaticImplDestructive(
-              down_cast<VariableLengthDocidCollectionImplStatic*>(impl_.get()));
+    if (mutable_this->impl_) {
+      if (auto* ptr = dynamic_cast<ImmutableCollection*>(impl_.get())) {
+        mutable_this->impl_ = MutableCollection::FromImmutableDestructive(ptr);
+      } else if (auto* ptr =
+                     dynamic_cast<ImmutableMemoryOptCollection*>(impl_.get())) {
+        mutable_this->impl_ = std::move(*ptr).ToMutable();
+      }
     }
     TF_ASSIGN_OR_RETURN(
         mutator_, VariableLengthDocidCollection::Mutator::Create(mutable_this));
@@ -255,11 +408,15 @@ VariableLengthDocidCollection::Mutator::Create(
   }
   auto result = absl::WrapUnique<VariableLengthDocidCollection::Mutator>(
       new VariableLengthDocidCollection::Mutator(docids));
+  if (!docids->impl_) {
+    return std::move(result);
+  }
   result->docid_lookup_.reserve(docids->size());
   for (DatapointIndex i = 0; i < docids->size(); ++i) {
     string_view docid = docids->Get(i);
     if (!docid.empty()) {
-      auto emplace_result = result->docid_lookup_.emplace(docid, i);
+      auto emplace_result =
+          result->docid_lookup_.emplace(string_view32(docid), i);
       if (!emplace_result.second) {
         result->docid_lookup_.clear();
         return AlreadyExistsError(absl::StrCat(
@@ -272,7 +429,7 @@ VariableLengthDocidCollection::Mutator::Create(
 
 bool VariableLengthDocidCollection::Mutator::LookupDatapointIndex(
     string_view docid, DatapointIndex* index) const {
-  auto it = docid_lookup_.find(docid);
+  auto it = docid_lookup_.find(string_view32(docid));
   if (it == docid_lookup_.end()) {
     return false;
   }
@@ -295,7 +452,8 @@ Status VariableLengthDocidCollection::Mutator::AddDatapoint(string_view docid) {
 
   SCANN_RETURN_IF_ERROR(docids_->AppendImpl(docid));
   if (!docid.empty()) {
-    docid_lookup_[docids_->Get(docids_->size() - 1)] = docids_->size() - 1;
+    docid_lookup_[string_view32(docids_->Get(docids_->size() - 1))] =
+        docids_->size() - 1;
   }
   return OkStatus();
 }
@@ -322,23 +480,22 @@ Status VariableLengthDocidCollection::Mutator::RemoveDatapoint(
     return OkStatus();
   }
 
-  auto impl = down_cast<VariableLengthDocidCollectionImplMutable*>(
-      docids_->impl_.get());
+  auto impl = down_cast<MutableCollection*>(docids_->impl_.get());
   DCHECK(impl);
-  string_view old_docid = impl->Get(impl->size() - 1);
+  string_view32 old_docid(impl->Get(impl->size() - 1));
   if (!old_docid.empty()) {
     docid_lookup_.erase(old_docid);
   }
 
   if (index != impl->size() - 1) {
-    string_view new_docid = impl->Get(index);
+    string_view32 new_docid(impl->Get(index));
     if (!new_docid.empty()) {
       docid_lookup_.erase(new_docid);
     }
 
     impl->Fetch(index) = std::move(impl->Fetch(impl->size() - 1));
 
-    new_docid = impl->Get(index);
+    new_docid = string_view32(impl->Get(index));
     if (!new_docid.empty()) {
       docid_lookup_[new_docid] = index;
     }
@@ -353,14 +510,13 @@ Status VariableLengthDocidCollection::Mutator::RemoveDatapoint(
 
 namespace {
 
-VariableLengthDocidCollectionImplStatic::
-    VariableLengthDocidCollectionImplStatic(size_t size) {
+ImmutableCollection::ImmutableCollection(size_t size) {
   for (size_t i = 0; i < size; ++i) {
     TF_CHECK_OK(Append(""));
   }
 }
 
-Status VariableLengthDocidCollectionImplStatic::Append(string_view docid) {
+Status ImmutableCollection::Append(string_view docid) {
   ++size_;
   if (chunks_.empty() || chunks_.back().payload_offsets.size() == kChunkSize) {
     chunks_.emplace_back();
@@ -377,7 +533,7 @@ Status VariableLengthDocidCollectionImplStatic::Append(string_view docid) {
   return OkStatus();
 }
 
-void VariableLengthDocidCollectionImplStatic::ShrinkToFit() {
+void ImmutableCollection::ShrinkToFit() {
   if (!chunks_.empty()) {
     chunks_.back().payloads.shrink_to_fit();
     chunks_.back().payload_offsets.shrink_to_fit();
@@ -385,17 +541,16 @@ void VariableLengthDocidCollectionImplStatic::ShrinkToFit() {
   chunks_.shrink_to_fit();
 }
 
-void VariableLengthDocidCollectionImplStatic::Clear() {
+void ImmutableCollection::Clear() {
   chunks_.clear();
   size_ = 0;
 }
 
-void VariableLengthDocidCollectionImplStatic::Reserve(
-    DatapointIndex n_elements) {
+void ImmutableCollection::Reserve(DatapointIndex n_elements) {
   chunks_.reserve(DivRoundUp(n_elements, kChunkSize));
 }
 
-size_t VariableLengthDocidCollectionImplStatic::MemoryUsage() const {
+size_t ImmutableCollection::MemoryUsage() const {
   size_t result = VectorStorage(chunks_);
   for (const auto& chunk : chunks_) {
     result += VectorStorage(chunk.payloads);
@@ -404,23 +559,20 @@ size_t VariableLengthDocidCollectionImplStatic::MemoryUsage() const {
   return result;
 }
 
-StatusOr<DocidCollectionInterface::Mutator*>
-VariableLengthDocidCollectionImplStatic::GetMutator() const {
+StatusOr<DocidCollectionInterface::Mutator*> ImmutableCollection::GetMutator()
+    const {
   return UnimplementedError(
       "This should be handled by VariableLengthDocidCollection.");
 }
 
-VariableLengthDocidCollectionImplMutable::
-    VariableLengthDocidCollectionImplMutable(size_t size) {
+MutableCollection::MutableCollection(size_t size) {
   Reserve(size);
   for (size_t i = 0; i < size; ++i) {
     TF_CHECK_OK(Append(""));
   }
 }
 
-VariableLengthDocidCollectionImplMutable::
-    VariableLengthDocidCollectionImplMutable(
-        const VariableLengthDocidCollectionImplMutable& rhs) {
+MutableCollection::MutableCollection(const MutableCollection& rhs) {
   chunks_.emplace_back();
   Reserve(rhs.size_);
   for (size_t i = 0; i < rhs.size_; ++i) {
@@ -429,9 +581,7 @@ VariableLengthDocidCollectionImplMutable::
   size_ = rhs.size_;
 }
 
-VariableLengthDocidCollectionImplMutable&
-VariableLengthDocidCollectionImplMutable::operator=(
-    const VariableLengthDocidCollectionImplMutable& rhs) {
+MutableCollection& MutableCollection::operator=(const MutableCollection& rhs) {
   chunks_.clear();
   chunks_.emplace_back();
   Reserve(rhs.size_);
@@ -442,10 +592,9 @@ VariableLengthDocidCollectionImplMutable::operator=(
   return *this;
 }
 
-unique_ptr<VariableLengthDocidCollectionImplMutable>
-VariableLengthDocidCollectionImplMutable::FromStaticImplDestructive(
-    VariableLengthDocidCollectionImplStatic* static_impl) {
-  auto result = make_unique<VariableLengthDocidCollectionImplMutable>();
+unique_ptr<MutableCollection> MutableCollection::FromImmutableDestructive(
+    ImmutableCollection* static_impl) {
+  auto result = make_unique<MutableCollection>();
   result->Reserve(static_impl->size());
   for (auto& chunk : static_impl->chunks_) {
     for (size_t i : IndicesOf(chunk.payload_offsets)) {
@@ -457,7 +606,7 @@ VariableLengthDocidCollectionImplMutable::FromStaticImplDestructive(
   return result;
 }
 
-Status VariableLengthDocidCollectionImplMutable::Append(string_view docid) {
+Status MutableCollection::Append(string_view docid) {
   ++size_;
   if (size_ > kChunkSize * chunks_.size()) {
     chunks_.emplace_back();
@@ -468,12 +617,12 @@ Status VariableLengthDocidCollectionImplMutable::Append(string_view docid) {
   return OkStatus();
 }
 
-void VariableLengthDocidCollectionImplMutable::ShrinkToFit() {
+void MutableCollection::ShrinkToFit() {
   chunks_.resize((size_ + kChunkSize - 1) / kChunkSize);
   chunks_.shrink_to_fit();
 }
 
-size_t VariableLengthDocidCollectionImplMutable::MemoryUsage() const {
+size_t MutableCollection::MemoryUsage() const {
   size_t result =
       sizeof(*this) + sizeof(Chunk) * chunks_.capacity() +
       chunks_.size() * sizeof(ShortStringOptimizedString) * kChunkSize;
@@ -484,20 +633,19 @@ size_t VariableLengthDocidCollectionImplMutable::MemoryUsage() const {
   return result;
 }
 
-void VariableLengthDocidCollectionImplMutable::Clear() {
+void MutableCollection::Clear() {
   FreeBackingStorage(&chunks_);
   size_ = 0;
 }
 
-void VariableLengthDocidCollectionImplMutable::Reserve(
-    DatapointIndex n_elements) {
+void MutableCollection::Reserve(DatapointIndex n_elements) {
   while (chunks_.size() * kChunkSize < n_elements) {
     chunks_.emplace_back();
   }
 }
 
-StatusOr<DocidCollectionInterface::Mutator*>
-VariableLengthDocidCollectionImplMutable::GetMutator() const {
+StatusOr<DocidCollectionInterface::Mutator*> MutableCollection::GetMutator()
+    const {
   return UnimplementedError(
       "This should be handled by VariableLengthDocidCollection.");
 }
@@ -558,7 +706,7 @@ FixedLengthDocidCollection::GetMutator() const {
     auto mutable_this = const_cast<FixedLengthDocidCollection*>(this);
     auto statusor = FixedLengthDocidCollection::Mutator::Create(mutable_this);
     SCANN_RETURN_IF_ERROR(statusor.status());
-    mutator_ = std::move(statusor).ValueOrDie();
+    mutator_ = std::move(statusor).value();
   }
   return static_cast<DocidCollectionInterface::Mutator*>(mutator_.get());
 }
@@ -575,7 +723,7 @@ FixedLengthDocidCollection::Mutator::Create(
   for (DatapointIndex i = 0; i < docids->size(); ++i) {
     string_view docid = docids->Get(i);
     if (!docid.empty()) {
-      result->docid_lookup_[docid] = i;
+      result->docid_lookup_[string_view32(docid)] = i;
     }
   }
   return std::move(result);
@@ -583,7 +731,7 @@ FixedLengthDocidCollection::Mutator::Create(
 
 bool FixedLengthDocidCollection::Mutator::LookupDatapointIndex(
     string_view docid, DatapointIndex* index) const {
-  auto it = docid_lookup_.find(docid);
+  auto it = docid_lookup_.find(string_view32(docid));
   if (it == docid_lookup_.end()) {
     return false;
   }
@@ -596,7 +744,7 @@ void FixedLengthDocidCollection::Mutator::Reserve(size_t size) {
   docid_lookup_.clear();
   docid_lookup_.reserve(size);
   for (DatapointIndex i = 0; i < docids_->size(); ++i) {
-    string_view docid = docids_->Get(i);
+    string_view32 docid(docids_->Get(i));
     if (!docid.empty()) {
       docid_lookup_[docid] = i;
     }
@@ -616,7 +764,8 @@ Status FixedLengthDocidCollection::Mutator::AddDatapoint(string_view docid) {
   }
   SCANN_RETURN_IF_ERROR(docids_->AppendImpl(docid));
 
-  docid_lookup_[docids_->Get(docids_->size() - 1)] = docids_->size() - 1;
+  docid_lookup_[string_view32(docids_->Get(docids_->size() - 1))] =
+      docids_->size() - 1;
   return OkStatus();
 }
 
@@ -637,15 +786,15 @@ Status FixedLengthDocidCollection::Mutator::RemoveDatapoint(
                      ", but size() =  ", docids_->size(), "."));
   }
 
-  docid_lookup_.erase(docids_->Get(docids_->size() - 1));
+  docid_lookup_.erase(string_view32(docids_->Get(docids_->size() - 1)));
   if (index != docids_->size() - 1) {
-    docid_lookup_.erase(docids_->Get(index));
+    docid_lookup_.erase(string_view32(docids_->Get(index)));
     std::copy(
         docids_->arr_.begin() + (docids_->size() - 1) * docids_->docid_length_,
         docids_->arr_.begin() + docids_->size() * docids_->docid_length_,
         docids_->arr_.begin() + index * docids_->docid_length_);
 
-    docid_lookup_[docids_->Get(index)] = index;
+    docid_lookup_[string_view32(docids_->Get(index))] = index;
   }
   docids_->size_--;
   docids_->arr_.resize(docids_->size() * docids_->docid_length_);

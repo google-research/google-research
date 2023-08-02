@@ -35,7 +35,6 @@
 #include "scann/proto/metadata.pb.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/proto/projection.pb.h"
-#include "scann/proto/restricts.pb.h"
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
@@ -78,25 +77,6 @@ Status CanonicalizeDeprecatedFields(ScannConfig* config) {
           bf->scalar_quantization_multiplier_quantile());
     }
   }
-
-  bool restrict_fields_populated = false;
-  if (config->has_restricts()) {
-    restrict_fields_populated = true;
-    if (config->restricts().has_enabled()) {
-      config->set_restricts_enabled(config->restricts().enabled());
-    }
-    if (config->restricts().has_v3_restricts()) {
-      *config->mutable_v3_restricts() = config->restricts().v3_restricts();
-    }
-  }
-  if (!restrict_fields_populated && config->restricts_enabled()) {
-    auto* restricts = config->mutable_restricts();
-    restricts->set_enabled(true);
-
-    if (config->has_v3_restricts()) {
-      *restricts->mutable_v3_restricts() = config->v3_restricts();
-    }
-  }
   return OkStatus();
 }
 
@@ -132,20 +112,13 @@ Status CanonicalizeScannConfigImpl(ScannConfig* config,
             "by the DEFAULT_SAMPLING_TRAINER");
       }
     }
-
-    if (config->has_hash() && config->hash().has_asymmetric_hash()) {
-      const auto& asymmetric_hash = config->hash().asymmetric_hash();
-      if (asymmetric_hash.use_normalized_residual_quantization()) {
-        if (!asymmetric_hash.use_residual_quantization()) {
-          return InvalidArgumentError(
-              "use_normalized_residual_quantization can only be used when "
-              "use_residual_quantization is also turned on");
-        }
-
-        config->mutable_partitioning()->set_compute_residual_stdev(true);
-      }
-    }
   }
+
+  const bool db_spilling_and_residual =
+      config->partitioning().database_spilling().spilling_type() !=
+          DatabaseSpillingConfig::NO_SPILLING &&
+      config->hash().asymmetric_hash().use_residual_quantization();
+  if (db_spilling_and_residual) io->clear_hashed_database_wildcard();
 
   if (!io->has_database_wildcard()) {
     return CanonicalizeRecallCurves(config);
@@ -306,7 +279,7 @@ Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config) {
     StatusOr<InputOutputConfig::InMemoryTypes> in_memory_type_or_error =
         DetectInMemoryTypeFromDisk(*config);
     if (in_memory_type_or_error.ok()) {
-      auto in_memory_type = in_memory_type_or_error.ValueOrDie();
+      auto in_memory_type = in_memory_type_or_error.value();
       if (in_memory_type != InputOutputConfig::FLOAT &&
           in_memory_type != InputOutputConfig::DOUBLE) {
         return InvalidArgumentError(

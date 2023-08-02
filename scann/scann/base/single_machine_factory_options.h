@@ -38,7 +38,7 @@ class SingleMachineSearcherBase;
 class ScannConfig;
 
 struct SingleMachineFactoryOptions {
-  SingleMachineFactoryOptions() {}
+  SingleMachineFactoryOptions() = default;
 
   StatusOr<DatapointIndex> ComputeConsistentSize(
       const Dataset* dataset = nullptr) const;

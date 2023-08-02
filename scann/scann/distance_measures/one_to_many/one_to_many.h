@@ -32,6 +32,7 @@
 #include "scann/utils/common.h"
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/internal/avx_funcs.h"
+#include "scann/utils/intrinsics/fma.h"
 #include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
@@ -87,33 +88,33 @@ void DenseDotProductDistanceOneToMany(const DatapointPtr<T>& query,
                                       ThreadPool* pool = nullptr);
 
 void DenseDotProductDistanceOneToManyInt8Float(
-    const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int8_t> database,
+    MutableSpan<float> result);
+
+template <typename DatasetView>
+void DenseDotProductDistanceOneToManyInt8Float(
+    const DatapointPtr<float>& query, const DatasetView* __restrict__ database,
     MutableSpan<float> result);
 
 void DenseDotProductDistanceOneToManyInt8Float(
-    const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int8_t> database,
     MutableSpan<double> result);
 
 void DenseDotProductDistanceOneToManyInt8Float(
-    const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int8_t> database,
     MutableSpan<pair<DatapointIndex, float>> result);
 
 void DenseDotProductDistanceOneToManyInt8Float(
-    const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int8_t> database,
     MutableSpan<pair<uint64_t, float>> result);
 
 void DenseDotProductDistanceOneToManyInt8Float(
-    const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int8_t> database,
     MutableSpan<pair<DatapointIndex, double>> result);
 
 void DenseDotProductDistanceOneToManyInt8Float(
-    const DatapointPtr<float>& query, const DenseDataset<int8_t>& database,
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int8_t> database,
     ConstSpan<DatapointIndex> indices, MutableSpan<float> result);
-
-void DenseDotProductDistanceOneToManyInt8Float(
-    const DatapointPtr<float>& query,
-    const DefaultDenseDatasetView<int8_t>& dataset, ConstSpan<uint32_t> indices,
-    MutableSpan<float> result);
 
 template <typename T, typename ResultElem>
 void DenseAbsDotProductDistanceOneToMany(const DatapointPtr<T>& query,
@@ -265,11 +266,11 @@ class SetDistanceFunctor {
       : result_(result_span) {}
 
   template <typename ValueT>
-  SCANN_INLINE void invoke(size_t index, ValueT val) {
+  SCANN_INLINE void invoke(size_t index, ValueT val) const {
     SetDistance(result_, index, val);
   }
 
-  SCANN_INLINE void prefetch(size_t index) {}
+  SCANN_INLINE void prefetch(size_t index) const {}
 
  private:
   MutableSpan<ResultElem> result_;
@@ -1723,72 +1724,236 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
       dist, query, database, result, &set_distance_functor, pool);
 }
 
-namespace one_to_many_low_level {
-
 #ifdef __x86_64__
-
-namespace avx1 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
-#define SCANN_AVX_FIXED8
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-#undef SCANN_AVX_FIXED8
-}  // namespace avx1
-
-namespace avx2 {
-using AvxFuncs = ::research_scann::AvxFunctionsAvx2Fma;
-#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
-#define SCANN_AVX_FIXED8
-#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-#undef SCANN_AVX_FIXED8
-}  // namespace avx2
 
 namespace sse4 {
 #define SCANN_SIMD_ATTRIBUTE SCANN_SSE4
-#define SCANN_SSE_FIXED8
 #include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
-#undef SCANN_SSE_FIXED8
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace sse4
 
+namespace avx1 {
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
+#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace avx1
+
+namespace avx2 {
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
+#include "scann/distance_measures/one_to_many/one_to_many_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace avx2
+
+namespace avx512 {
+#define SCANN_SIMD_ATTRIBUTE SCANN_AVX512
+
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace avx512
+
+#else
+
+namespace fallback {
+
+template <bool kHasIndices, bool kIsSquaredL2, typename DatasetViewT,
+          typename IndexT, typename ResultElemT, typename CallbackT>
+SCANN_OUTLINE void OneToManyInt8FloatImpl(
+    const float* __restrict__ query, DatasetViewT dataset_view,
+    const float* __restrict__ inv_multipliers_for_squared_l2,
+    const IndexT* indices, MutableSpan<ResultElemT> result,
+    CallbackT callback) {
+  const DimensionIndex dims = dataset_view.dimensionality();
+  DatapointPtr<float> query_dptr(nullptr, query, dims, dims);
+  for (size_t j : Seq(result.size())) {
+    const size_t idx =
+        kHasIndices ? indices[j]
+                    : one_to_many_low_level::GetDatapointIndex(result, j);
+    DatapointPtr<int8_t> db_dptr(nullptr, dataset_view.GetPtr(idx), dims, dims);
+    if constexpr (kIsSquaredL2) {
+      float dist = 0.0;
+      for (size_t j : Seq(dims)) {
+        const float scaled_db_val = static_cast<float>(db_dptr.values()[j]) *
+                                    inv_multipliers_for_squared_l2[j];
+        const float diff = query_dptr.values()[j] - scaled_db_val;
+        dist += (diff * diff);
+      }
+      callback.invoke(j, dist);
+    } else {
+      callback.invoke(j, -DenseDotProduct(query_dptr, db_dptr));
+    }
+  }
+}
+
+}  // namespace fallback
+
 #endif
+
+namespace one_to_many_low_level {
+
+template <bool kHasIndices, bool kIsSquaredL2, typename DatasetViewT,
+          typename IndexT, typename ResultElemT, typename CallbackT,
+          typename = std::enable_if_t<!std::is_pointer_v<DatasetViewT>>,
+          typename = std::enable_if_t<!std::is_pointer_v<CallbackT>>>
+SCANN_INLINE void OneToManyInt8FloatDispatch(
+    const float* __restrict__ query, DatasetViewT dataset_view,
+    const float* __restrict__ inv_multipliers_for_squared_l2,
+    const IndexT* indices, MutableSpan<ResultElemT> result,
+    CallbackT callback) {
+#ifdef __x86_64__
+
+  if constexpr (false && RuntimeSupportsAvx512()) {
+    LOG(FATAL) << "We aren't compiling Avx-512 support yet.";
+  } else if (RuntimeSupportsAvx2()) {
+    avx2::OneToManyInt8FloatImpl<kHasIndices, kIsSquaredL2>(
+        query, dataset_view, inv_multipliers_for_squared_l2, indices, result,
+        callback);
+  } else if (RuntimeSupportsAvx1()) {
+    avx1::OneToManyInt8FloatImpl<kHasIndices, kIsSquaredL2>(
+        query, dataset_view, inv_multipliers_for_squared_l2, indices, result,
+        callback);
+  } else {
+    sse4::OneToManyInt8FloatImpl<kHasIndices, kIsSquaredL2>(
+        query, dataset_view, inv_multipliers_for_squared_l2, indices, result,
+        callback);
+  }
+
+#else
+
+  fallback::OneToManyInt8FloatImpl<kHasIndices, kIsSquaredL2>(
+      query, dataset_view, inv_multipliers_for_squared_l2, indices, result,
+      callback);
+
+#endif
+}
+
+template <typename DatasetViewT>
+class OneToManyDatasetViewPtr {
+ public:
+  SCANN_DECLARE_COPYABLE_CLASS(OneToManyDatasetViewPtr);
+
+  explicit OneToManyDatasetViewPtr(const DatasetViewT* ptr) : ptr_(ptr) {}
+
+  SCANN_INLINE auto GetPtr(size_t idx) const { return ptr_->GetPtr(idx); }
+
+  SCANN_INLINE size_t dimensionality() const { return ptr_->dimensionality(); }
+
+ private:
+  const DatasetViewT* ptr_ = nullptr;
+};
+
+template <typename DatasetViewT>
+SCANN_INLINE auto GetCopyableDatasetView(const DatasetViewT* dataset_view) {
+  if constexpr (std::is_same_v<DatasetViewT, DefaultDenseDatasetView<float>>) {
+    return *dataset_view;
+  } else {
+    return OneToManyDatasetViewPtr<DatasetViewT>(dataset_view);
+  }
+}
+
+template <typename CallbackT>
+class OneToManyCallbackPtr {
+ public:
+  SCANN_DECLARE_COPYABLE_CLASS(OneToManyCallbackPtr);
+
+  explicit OneToManyCallbackPtr(CallbackT* ptr) : ptr_(ptr) {}
+
+  template <typename ValueT>
+  SCANN_INLINE void invoke(size_t result_idx, ValueT val) const {
+    ptr_->invoke(result_idx, val);
+  }
+
+  SCANN_INLINE void prefetch(size_t db_idx) const { ptr_->prefetch(db_idx); }
+
+ private:
+  CallbackT* ptr_ = nullptr;
+};
+
+template <typename CallbackT>
+SCANN_INLINE auto GetCopyableCallback(CallbackT* callback) {
+  if constexpr (std::is_same_v<CallbackT, SetDistanceFunctor<int8_t>>) {
+    return *callback;
+  } else {
+    return OneToManyCallbackPtr<CallbackT>(callback);
+  }
+}
 
 template <typename DatasetView, bool kHasIndices, typename IndexT,
           typename ResultElemT, typename CallbackLambda>
 SCANN_INLINE void DenseDotProductDistanceOneToManyInt8FloatLowLevel(
-    const float* query, const DatasetView* __restrict__ dataset_view,
+    const float* __restrict__ query, const DatasetView* dataset_view,
     const IndexT* indices, MutableSpan<ResultElemT> result,
-    CallbackLambda* __restrict__ callback) {
-  size_t j = 0;
-#ifdef __x86_64__
-  constexpr size_t kUnrollFactor = 3;
-  if (RuntimeSupportsAvx2()) {
-    avx2::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
-        query, dataset_view, indices, result, callback);
-  } else if (RuntimeSupportsAvx1()) {
-    avx1::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
-        query, dataset_view, indices, result, callback);
-  } else {
-    sse4::DenseDotProductDistanceOneToManyInt8Float<DatasetView, kHasIndices>(
-        query, dataset_view, indices, result, callback);
-  }
-  j = result.size() / kUnrollFactor * kUnrollFactor;
-#endif
-
-  const DimensionIndex dims = dataset_view->dimensionality();
-  DatapointPtr<float> query_dptr(nullptr, query, dims, dims);
-  for (; j < result.size(); ++j) {
-    const size_t idx = kHasIndices ? indices[j] : GetDatapointIndex(result, j);
-    const float dist = -DenseDotProduct(
-        query_dptr,
-        MakeDatapointPtr(nullptr, dataset_view->GetPtr(idx), dims, dims));
-    callback->invoke(j, dist);
-  }
+    CallbackLambda* callback) {
+  constexpr const float* kNoMultipliersForDotProductDistance = nullptr;
+  OneToManyInt8FloatDispatch<kHasIndices, false>(
+      query, GetCopyableDatasetView(dataset_view),
+      kNoMultipliersForDotProductDistance, indices, result,
+      GetCopyableCallback(callback));
 }
 
 }  // namespace one_to_many_low_level
+
+template <typename DatasetView>
+SCANN_INLINE void DenseDotProductDistanceOneToManyInt8Float(
+    const DatapointPtr<float>& query, const DatasetView* dataset_view,
+    MutableSpan<float> result) {
+  constexpr const uint32_t* kNoIndices = nullptr;
+  constexpr const float* kNoMultipliersForDotProductDistance = nullptr;
+  using one_to_many_low_level::GetCopyableDatasetView;
+  using one_to_many_low_level::SetDistanceFunctor;
+  one_to_many_low_level::OneToManyInt8FloatDispatch<false, false>(
+      query, GetCopyableDatasetView(dataset_view),
+      kNoMultipliersForDotProductDistance, kNoIndices, result,
+      SetDistanceFunctor<float>(result));
+}
+
+template <typename DatasetView>
+SCANN_INLINE void OneToManyInt8FloatDotProductDistance(
+    ConstSpan<float> query, DatasetView dataset_view,
+    MutableSpan<float> result) {
+  constexpr const uint32_t* kNoIndices = nullptr;
+  constexpr const float* kNoMultipliersForDotProductDistance = nullptr;
+  using one_to_many_low_level::SetDistanceFunctor;
+  one_to_many_low_level::OneToManyInt8FloatDispatch<false, false>(
+      query.data(), dataset_view, kNoMultipliersForDotProductDistance,
+      kNoIndices, result, SetDistanceFunctor<float>(result));
+}
+
+template <typename DatasetView>
+SCANN_INLINE void OneToManyInt8FloatDotProductDistance(
+    ConstSpan<float> query, DatasetView dataset_view, ConstSpan<uint32_t> idxs,
+    MutableSpan<float> result) {
+  constexpr const float* kNoMultipliersForDotProductDistance = nullptr;
+  using one_to_many_low_level::SetDistanceFunctor;
+  one_to_many_low_level::OneToManyInt8FloatDispatch<true, false>(
+      query.data(), dataset_view, kNoMultipliersForDotProductDistance,
+      idxs.data(), result, SetDistanceFunctor<float>(result));
+}
+
+template <typename DatasetView>
+SCANN_INLINE void OneToManyInt8FloatSquaredL2(ConstSpan<float> query,
+                                              DatasetView dataset_view,
+                                              ConstSpan<float> inv_multipliers,
+                                              MutableSpan<float> result) {
+  DCHECK_EQ(query.size(), inv_multipliers.size());
+  constexpr const uint32_t* kNoIndices = nullptr;
+  using one_to_many_low_level::SetDistanceFunctor;
+  one_to_many_low_level::OneToManyInt8FloatDispatch<false, true>(
+      query.data(), dataset_view, inv_multipliers.data(), kNoIndices, result,
+      SetDistanceFunctor<float>(result));
+}
+
+template <typename DatasetView>
+SCANN_INLINE void OneToManyInt8FloatSquaredL2(ConstSpan<float> query,
+                                              DatasetView dataset_view,
+                                              ConstSpan<float> inv_multipliers,
+                                              ConstSpan<uint32_t> idxs,
+                                              MutableSpan<float> result) {
+  DCHECK_EQ(query.size(), inv_multipliers.size());
+  using one_to_many_low_level::SetDistanceFunctor;
+  one_to_many_low_level::OneToManyInt8FloatDispatch<true, true>(
+      query.data(), dataset_view, inv_multipliers.data(), idxs.data(), result,
+      SetDistanceFunctor<float>(result));
+}
+
 }  // namespace research_scann
 
 #endif

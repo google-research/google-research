@@ -94,10 +94,6 @@ KMeansTreePartitionerFactoryPreSampledAndProjected(
         KMeansTreePartitioner<T>::FIXED_POINT_INT8);
   }
 
-  if (config.compute_residual_stdev()) {
-    result->set_populate_residual_stdev(true);
-  }
-
   const absl::Time stop = absl::Now();
   LOG(INFO) << "PartitionerFactory ran in " << stop - start << ".";
   return StatusOr<unique_ptr<Partitioner<T>>>(std::move(result));

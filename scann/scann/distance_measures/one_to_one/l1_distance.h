@@ -50,7 +50,7 @@ struct L1ReduceOne {
 
 template <typename T>
 inline double L1Norm(const DatapointPtr<T>& a) {
-  return DenseSingleAccumulate(a.values_slice(), L1ReduceOne());
+  return DenseSingleAccumulate(a.values_span(), L1ReduceOne());
 }
 
 class L1Distance final : public DistanceMeasure {

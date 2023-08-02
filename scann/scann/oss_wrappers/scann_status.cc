@@ -25,8 +25,8 @@ Status AnnotateStatus(const Status& s, absl::string_view msg) {
 
   absl::string_view new_msg = msg;
   std::string annotated;
-  if (!s.error_message().empty()) {
-    absl::StrAppend(&annotated, s.error_message(), "; ", msg);
+  if (!s.message().empty()) {
+    absl::StrAppend(&annotated, s.message(), "; ", msg);
     new_msg = annotated;
   }
   return Status(s.code(), new_msg);

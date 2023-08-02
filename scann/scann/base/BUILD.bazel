@@ -22,6 +22,8 @@ cc_library(
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/partitioning:kmeans_tree_like_partitioner",
+        "//scann/partitioning:kmeans_tree_partitioner",
+        "//scann/partitioning:partitioner_base",
         "//scann/partitioning:partitioner_factory",
         "//scann/partitioning:partitioner_factory_base",
         "//scann/partitioning:projecting_decorator",
@@ -31,6 +33,7 @@ cc_library(
         "//scann/proto:scann_cc_proto",
         "//scann/tree_x_hybrid:tree_ah_hybrid_residual",
         "//scann/tree_x_hybrid:tree_x_hybrid_smmd",
+        "//scann/utils:common",
         "//scann/utils:factory_helpers",
         "//scann/utils:hash_leaf_helpers",
         "//scann/utils:scalar_quantization_helpers",
@@ -133,20 +136,11 @@ cc_library(
 )
 
 cc_library(
+    # Backcompat shim
     name = "restrict_allowlist",
-    srcs = ["restrict_allowlist.cc"],
     hdrs = ["restrict_allowlist.h"],
     tags = ["local"],
     deps = [
-        "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_bits",
-        "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:tf_dependency",
-        "//scann/utils:bit_iterator",
-        "//scann/utils:common",
-        "//scann/utils:types",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_googletest//:gtest_main",
+        "//scann/restricts:restrict_allowlist",
     ],
 )

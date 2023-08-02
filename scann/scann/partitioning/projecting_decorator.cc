@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <vector>
 
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/datapoint_utils.h"
 #include "tensorflow/core/lib/core/errors.h"
 
@@ -107,27 +108,28 @@ template <typename T, typename ProjectionType>
 Status
 KMeansTreeProjectingDecorator<T, ProjectionType>::TokenForDatapointBatched(
     const TypedDataset<T>& queries,
-    std::vector<KMeansTreeSearchResult>* results) const {
+    std::vector<KMeansTreeSearchResult>* results, ThreadPool* pool) const {
   if (queries.empty()) {
     results->clear();
     return OkStatus();
   }
   TF_ASSIGN_OR_RETURN(unique_ptr<TypedDataset<ProjectionType>> projected_ds,
                       CreateProjectedDataset(queries));
-  return base_kmeans_tree_partitioner()->TokenForDatapointBatched(*projected_ds,
-                                                                  results);
+  return base_kmeans_tree_partitioner()->TokenForDatapointBatched(
+      *projected_ds, results, pool);
 }
 
 template <typename T, typename ProjectionType>
 Status KMeansTreeProjectingDecorator<T, ProjectionType>::
     TokensForDatapointWithSpillingBatched(
         const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-        MutableSpan<std::vector<KMeansTreeSearchResult>> results) const {
+        MutableSpan<std::vector<KMeansTreeSearchResult>> results,
+        ThreadPool* pool) const {
   if (queries.empty()) return OkStatus();
   TF_ASSIGN_OR_RETURN(unique_ptr<TypedDataset<ProjectionType>> projected_ds,
                       CreateProjectedDataset(queries));
   return base_kmeans_tree_partitioner()->TokensForDatapointWithSpillingBatched(
-      *projected_ds, max_centers_override, results);
+      *projected_ds, max_centers_override, results, pool);
 }
 
 template <typename T, typename ProjectionType>
@@ -142,12 +144,11 @@ Status KMeansTreeProjectingDecorator<T, ProjectionType>::TokenForDatapoint(
 template <typename T, typename ProjectionType>
 StatusOr<Datapoint<float>>
 KMeansTreeProjectingDecorator<T, ProjectionType>::ResidualizeToFloat(
-    const DatapointPtr<T>& dptr, int32_t token,
-    bool normalize_residual_by_cluster_stdev) const {
+    const DatapointPtr<T>& dptr, int32_t token) const {
   TF_ASSIGN_OR_RETURN(Datapoint<ProjectionType> projected,
                       this->ProjectAndNormalize(dptr));
-  return base_kmeans_tree_partitioner()->ResidualizeToFloat(
-      projected.ToPtr(), token, normalize_residual_by_cluster_stdev);
+  return base_kmeans_tree_partitioner()->ResidualizeToFloat(projected.ToPtr(),
+                                                            token);
 }
 
 #define INSTANTIATE_PROJECTING_DECORATOR(T)                               \

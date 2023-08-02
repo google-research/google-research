@@ -43,8 +43,6 @@ struct KMeansTreeSearchResult {
 
   double distance_to_center;
 
-  double residual_stdev;
-
   bool operator<(const KMeansTreeSearchResult& rhs) const;
 };
 
@@ -106,34 +104,28 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
     };
 
     static TokenizationOptions NoSpilling(
-        TokenizationType tokenization_type = FLOAT,
-        bool populate_residual_stdev = false) {
+        TokenizationType tokenization_type = FLOAT) {
       TokenizationOptions result;
       result.tokenization_type = tokenization_type;
-      result.populate_residual_stdev = populate_residual_stdev;
       return result;
     }
 
     static TokenizationOptions LearnedSpilling(
-        TokenizationType tokenization_type = FLOAT,
-        bool populate_residual_stdev = false) {
+        TokenizationType tokenization_type = FLOAT) {
       auto result = NoSpilling(tokenization_type);
       result.spilling_type = LEARNED;
-      result.populate_residual_stdev = populate_residual_stdev;
       return result;
     }
 
     static TokenizationOptions UserSpecifiedSpilling(
         QuerySpillingConfig::SpillingType user_specified_spilling_type,
         double spilling_threshold, int32_t max_spilling_centers,
-        TokenizationType tokenization_type = FLOAT,
-        bool populate_residual_stdev = false) {
+        TokenizationType tokenization_type = FLOAT) {
       auto result = NoSpilling(tokenization_type);
       result.spilling_type = USER_SPECIFIED;
       result.user_specified_spilling_type = user_specified_spilling_type;
       result.spilling_threshold = spilling_threshold;
       result.max_spilling_centers = max_spilling_centers;
-      result.populate_residual_stdev = populate_residual_stdev;
       return result;
     }
 
@@ -142,8 +134,6 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
     QuerySpillingConfig::SpillingType user_specified_spilling_type;
     double spilling_threshold = NAN;
     int32_t max_spilling_centers = -1;
-
-    bool populate_residual_stdev = false;
 
     TokenizationType tokenization_type = FLOAT;
   };
@@ -173,16 +163,6 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
     return raw.second;
   }
 
-  StatusOr<double> ResidualStdevForToken(int32_t token) const {
-    auto raw = ResidualStdevForTokenImpl(token, &root_);
-    if (!raw.first) {
-      return InternalError(
-          "Didn't find residual stdev. Check if compute_residual_stdev is set "
-          "in the partitioning config and GmmUtils options");
-    }
-    return raw.second;
-  }
-
   template <typename T>
   Status TokenizeWithLearnedSpillingThresholds(
       const DatapointPtr<T>& query, const DistanceMeasure& dist,
@@ -196,10 +176,10 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
                       std::vector<KMeansTreeSearchResult>* result) const;
 
   template <typename CentersType>
-  Status TokenizeWithoutSpillingImpl(
-      const DatapointPtr<float>& query, const DistanceMeasure& dist,
-      const KMeansTreeNode* root, KMeansTreeSearchResult* result,
-      bool populate_residual_stdev = false) const;
+  Status TokenizeWithoutSpillingImpl(const DatapointPtr<float>& query,
+                                     const DistanceMeasure& dist,
+                                     const KMeansTreeNode* root,
+                                     KMeansTreeSearchResult* result) const;
 
   template <typename CentersType>
   Status TokenizeWithSpillingImpl(
@@ -207,8 +187,7 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
       QuerySpillingConfig::SpillingType spilling_type,
       double spilling_threshold, int32_t max_centers,
       const KMeansTreeNode* current_node,
-      std::vector<KMeansTreeSearchResult>* results,
-      bool populate_residual_stdev = false) const;
+      std::vector<KMeansTreeSearchResult>* results) const;
 
   template <typename CallbackType, typename RetValueType>
   pair<bool, RetValueType> NodeIteratingHelper(
@@ -260,20 +239,6 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
           return std::make_pair(true, node.Centers()[idx]);
         },
         DatapointPtr<float>());
-  }
-
-  pair<bool, double> ResidualStdevForTokenImpl(
-      int32_t token, const KMeansTreeNode* node) const {
-    return NodeIteratingHelper(
-        token, node,
-        [](const KMeansTreeNode& node, int32_t idx) -> pair<bool, double> {
-          if (idx < node.residual_stdevs().size()) {
-            return std::make_pair(true, node.residual_stdevs()[idx]);
-          } else {
-            return std::make_pair(false, std::nan(""));
-          }
-        },
-        std::nan(""));
   }
 
   KMeansTreeNode root_;
@@ -330,20 +295,18 @@ Status KMeansTree::TokenizeImpl(
   switch (opts.spilling_type) {
     case TokenizationOptions::NONE:
       result->resize(1);
-      return TokenizeWithoutSpillingImpl<CentersType>(
-          query, dist, &root_, result->data(), opts.populate_residual_stdev);
+      return TokenizeWithoutSpillingImpl<CentersType>(query, dist, &root_,
+                                                      result->data());
     case TokenizationOptions::LEARNED:
       return TokenizeWithSpillingImpl<CentersType>(
           query, dist,
           static_cast<QuerySpillingConfig::SpillingType>(
               learned_spilling_type_),
-          NAN, max_spill_centers_, &root_, result,
-          opts.populate_residual_stdev);
+          NAN, max_spill_centers_, &root_, result);
     case TokenizationOptions::USER_SPECIFIED:
       return TokenizeWithSpillingImpl<CentersType>(
           query, dist, opts.user_specified_spilling_type,
-          opts.spilling_threshold, opts.max_spilling_centers, &root_, result,
-          opts.populate_residual_stdev);
+          opts.spilling_threshold, opts.max_spilling_centers, &root_, result);
     default:
       return InternalError(
           absl::StrCat("Invalid spilling type:  ", opts.spilling_type));
@@ -361,8 +324,7 @@ Status KMeansTree::TokenizeWithLearnedSpillingThresholds(
 template <typename CentersType>
 Status KMeansTree::TokenizeWithoutSpillingImpl(
     const DatapointPtr<float>& query, const DistanceMeasure& dist,
-    const KMeansTreeNode* root, KMeansTreeSearchResult* result,
-    bool populate_residual_stdev) const {
+    const KMeansTreeNode* root, KMeansTreeSearchResult* result) const {
   CHECK(result);
   if (root->IsLeaf()) {
     result->node = root;
@@ -388,12 +350,6 @@ Status KMeansTree::TokenizeWithoutSpillingImpl(
   if (root->Children()[nearest_center_index].IsLeaf()) {
     result->node = &root->Children()[nearest_center_index];
     result->distance_to_center = nearest_center_distance;
-    result->residual_stdev =
-        (populate_residual_stdev &&
-         nearest_center_index < root->residual_stdevs().size())
-            ? result->residual_stdev =
-                  root->residual_stdevs()[nearest_center_index]
-            : 1.0;
     return OkStatus();
   }
 
@@ -406,8 +362,7 @@ Status KMeansTree::TokenizeWithSpillingImpl(
     const DatapointPtr<float>& query, const DistanceMeasure& dist,
     QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
     int32_t max_centers, const KMeansTreeNode* current_node,
-    std::vector<KMeansTreeSearchResult>* results,
-    bool populate_residual_stdev) const {
+    std::vector<KMeansTreeSearchResult>* results) const {
   DCHECK(results);
   DCHECK(current_node);
 
@@ -436,18 +391,11 @@ Status KMeansTree::TokenizeWithSpillingImpl(
       KMeansTreeSearchResult result;
       result.node = &current_node->Children()[child_index];
       result.distance_to_center = distance_to_child_center;
-      result.residual_stdev =
-          (populate_residual_stdev &&
-           child_index < current_node->residual_stdevs().size())
-              ? result.residual_stdev =
-                    current_node->residual_stdevs()[child_index]
-              : 1.0;
       results->push_back(result);
     } else {
       status = TokenizeWithSpillingImpl<CentersType>(
           query, dist, spilling_type, spilling_threshold, max_centers,
-          &current_node->Children()[child_index], results,
-          populate_residual_stdev);
+          &current_node->Children()[child_index], results);
       if (!status.ok()) return status;
     }
   }

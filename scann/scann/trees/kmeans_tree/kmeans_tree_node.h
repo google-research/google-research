@@ -21,6 +21,7 @@
 #include <iterator>
 #include <limits>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
@@ -58,10 +59,6 @@ class KMeansTreeNode {
   const std::vector<KMeansTreeNode>& Children() const { return children_; }
 
   const std::vector<DatapointIndex>& indices() const { return indices_; }
-
-  const std::vector<double>& residual_stdevs() const {
-    return residual_stdevs_;
-  }
 
   void UnionIndices(std::vector<DatapointIndex>* result) const;
 
@@ -123,8 +120,6 @@ class KMeansTreeNode {
   std::vector<DatapointIndex> indices_ = {};
 
   std::vector<KMeansTreeNode> children_ = {};
-
-  std::vector<double> residual_stdevs_ = {};
 
   std::vector<float> center_squared_l2_norms_ = {};
 
@@ -231,10 +226,10 @@ Status KMeansTreeNode::GetAllDistancesInt8(const DistanceMeasure& dist,
 
   if (is_sq_l2) {
     for (const auto& [i, inv_mult] : Enumerate(inv_int8_multipliers_))
-      inv_adjusted.mutable_values_slice()[i] *= inv_mult * 2;
+      inv_adjusted.mutable_values_span()[i] *= inv_mult * 2;
   } else {
     for (const auto& [i, inv_mult] : Enumerate(inv_int8_multipliers_))
-      inv_adjusted.mutable_values_slice()[i] *= inv_mult;
+      inv_adjusted.mutable_values_span()[i] *= inv_mult;
   }
 
   DenseDotProductDistanceOneToManyInt8Float(inv_adjusted.ToPtr(), centers,

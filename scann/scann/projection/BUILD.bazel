@@ -44,23 +44,6 @@ cc_library(
 )
 
 cc_library(
-    name = "random_orthogonal_projection",
-    srcs = ["random_orthogonal_projection.cc"],
-    hdrs = ["random_orthogonal_projection.h"],
-    tags = ["local"],
-    deps = [
-        ":projection_base",
-        "//scann/data_format:datapoint",
-        "//scann/oss_wrappers:scann_random",
-        "//scann/oss_wrappers:tf_dependency",
-        "//scann/utils:datapoint_utils",
-        "//scann/utils:types",
-        "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
-    ],
-)
-
-cc_library(
     name = "identity_projection",
     srcs = ["identity_projection.cc"],
     hdrs = ["identity_projection.h"],
@@ -83,7 +66,6 @@ cc_library(
         "//conditions:default": [
         ],
     }) + [
-        ":random_orthogonal_projection",
         ":chunking_projection",
         ":identity_projection",
         ":projection_base",

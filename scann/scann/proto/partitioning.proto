@@ -160,10 +160,6 @@ message PartitioningConfig {
 
   optional int32 desired_average_cluster_size = 34 [default = 3000];
 
-  optional bool compute_residual_stdev = 47 [default = false];
-
-  optional double residual_stdev_min_value = 48 [default = 1e-5];
-
   reserved 44;
   reserved "kmeans_flume_config";
 
@@ -178,6 +174,8 @@ message PartitioningConfig {
   optional bool use_flume_kmeans = 32 [default = false, deprecated = true];
 
   optional int32 max_sample_size = 33 [default = 2147483647, deprecated = true];
+
+  reserved 47, 48;
 }
 
 message DatabaseSpillingConfig {
@@ -189,6 +187,8 @@ message DatabaseSpillingConfig {
     ADDITIVE = 2;
 
     FIXED_NUMBER_OF_CENTERS = 3;
+
+    TWO_CENTER_ORTHOGONALITY_AMPLIFIED = 4;
   }
 
   optional SpillingType spilling_type = 1 [default = NO_SPILLING];
@@ -196,6 +196,8 @@ message DatabaseSpillingConfig {
   optional float replication_factor = 2;
 
   optional uint32 max_spill_centers = 3 [default = 4294967295];
+
+  reserved 4;
 }
 
 message QuerySpillingConfig {

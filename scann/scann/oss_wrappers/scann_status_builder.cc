@@ -26,7 +26,7 @@ StatusBuilder::StatusBuilder(const Status& status) : status_(status) {}
 StatusBuilder::StatusBuilder(Status&& status) : status_(status) {}
 
 StatusBuilder::StatusBuilder(tensorflow::error::Code code)
-    : status_(code, "") {}
+    : status_(static_cast<tsl::errors::Code>(code), "") {}
 
 StatusBuilder::StatusBuilder(const StatusBuilder& sb) : status_(sb.status_) {
   if (sb.streamptr_ != nullptr) {
@@ -38,7 +38,7 @@ Status StatusBuilder::CreateStatus() && {
   auto result = [&] {
     if (streamptr_->str().empty()) return status_;
     std::string new_msg =
-        absl::StrCat(status_.error_message(), "; ", streamptr_->str());
+        absl::StrCat(status_.message(), "; ", streamptr_->str());
     return Status(status_.code(), new_msg);
   }();
   status_ = errors::Unknown("");

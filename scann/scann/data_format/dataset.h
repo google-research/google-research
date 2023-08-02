@@ -383,7 +383,7 @@ class DefaultDenseDatasetView : public DenseDatasetView<T> {
  public:
   DefaultDenseDatasetView() {}
 
-  explicit DefaultDenseDatasetView(const DenseDataset<T>& ds)
+  DefaultDenseDatasetView(const DenseDataset<T>& ds)
       : ptr_(ds.data().data()), size_(ds.size()) {
     if (ds.packing_strategy() == HashedItem::BINARY) {
       dims_ = ds.dimensionality() / 8 + (ds.dimensionality() % 8 > 0);

@@ -19,7 +19,6 @@
 
 #include "scann/projection/chunking_projection.h"
 #include "scann/projection/identity_projection.h"
-#include "scann/projection/random_orthogonal_projection.h"
 #include "scann/proto/projection.pb.h"
 #include "scann/utils/types.h"
 
@@ -88,14 +87,6 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
       return InvalidArgumentError(
           "Cannot return projection type VARIABLE_CHUNK from "
           "ProjectionFactory. Did you mean to call ChunkingProjectionFactory?");
-    case ProjectionConfig::RANDOM_ORTHOGONAL: {
-      SCANN_RETURN_IF_ERROR(fix_remainder_dims());
-
-      auto projection = make_unique<RandomOrthogonalProjection<T>>(
-          input_dim, projected_dim, effective_seed);
-      projection->Create();
-      return {std::move(projection)};
-    }
 
     default:
       return UnimplementedError(

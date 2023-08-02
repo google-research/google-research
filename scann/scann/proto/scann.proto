@@ -27,7 +27,6 @@ import "scann/proto/hash.proto";
 import "scann/proto/input_output.proto";
 import "scann/proto/metadata.proto";
 import "scann/proto/partitioning.proto";
-import "scann/proto/restricts.proto";
 
 message ScannConfig {
   extensions 1000 to max;
@@ -38,11 +37,7 @@ message ScannConfig {
 
   optional float epsilon_distance = 4 [default = inf];
 
-  optional RestrictsConfig restricts = 39;
-
-  optional bool restricts_enabled = 24 [default = false];
-
-  optional V3RestrictsConfig v3_restricts = 37;
+  reserved 24, 37, 39;
 
   optional Crowding crowding = 29;
 

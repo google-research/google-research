@@ -23,7 +23,7 @@ message HashedItem {
 
   required bytes indicator_vars = 2;
 
-  optional GenericFeatureVector.RestrictTokens restrict = 4;
+  reserved 4;
 
   repeated int64 deprecated_token_membership = 3;
 

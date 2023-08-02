@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <utility>
 
 #include "scann/base/restrict_allowlist.h"
