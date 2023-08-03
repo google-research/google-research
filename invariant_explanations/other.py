@@ -222,6 +222,5 @@ def get_dataset_info(dataset_name='mnist'):
       'num_classes': ds_info.features['label'].num_classes,
       'data_shape': ds_info.features['image'].shape,
       'train_num_examples': ds_info.splits['train'].num_examples,
-
   }
   return dataset_information

@@ -15,15 +15,17 @@
 
 """Main file used for approxNN project."""
 
+from typing import Sequence
 import warnings
 
 from absl import app
 from absl import flags
 
-from invariant_explanations import config
-from invariant_explanations import other
-from invariant_explanations import plotting
-from invariant_explanations import utils
+import config
+import other
+import plotting
+import utils
+
 
 FLAGS = flags.FLAGS
 
@@ -60,7 +62,12 @@ _RUN_ON_TEST_DATA = flags.DEFINE_boolean(
 _RUN_ON_PRECOMPUTED_GCP_DATA = flags.DEFINE_boolean(
     'run_on_precomputed_gcp_data',
     False,
-    'The flag used to specify whether or not to analyze precomputed GCP data',
+    'The flag used to specify whether or not to analyze precomputed GCP data.',
+)
+_MEDIATION_TYPE = flags.DEFINE_string(
+    'mediation_type',
+    'mediated',
+    'The flag used to specify whether or not Y mediates the effect of H on E.',
 )
 _NUM_BASE_MODELS = flags.DEFINE_integer(
     'num_base_models',
@@ -69,7 +76,7 @@ _NUM_BASE_MODELS = flags.DEFINE_integer(
 )
 _MIN_BASE_MODEL_ACCURACY = flags.DEFINE_float(
     'min_base_model_accuracy',
-    0.55,
+    0.00,
     'The threshold to use when select models from the CNN Zoo.',
 )
 _MAX_BASE_MODEL_ACCURACY = flags.DEFINE_float(
@@ -79,12 +86,12 @@ _MAX_BASE_MODEL_ACCURACY = flags.DEFINE_float(
 )
 _NUM_SAMPLES_PER_BASE_MODEL = flags.DEFINE_integer(
     'num_samples_per_base_model',
-    32,
+    100,
     'The number of sample images to use per base model.',
 )
 _NUM_SAMPLES_TO_PLOT_TE_FOR = flags.DEFINE_integer(
     'num_samples_to_plot_te_for',
-    8,
+    100,
     'The number of samples for which to plot treatment effects.',
 )
 _NUM_BASE_MODELS_FOR_KERNEL = flags.DEFINE_integer(
@@ -113,7 +120,6 @@ warnings.simplefilter('ignore')
 
 
 def main(argv):
-  del argv
 
   # Update config file defaults if the arguments are passed in via the cmd line.
   config.cfg.set_config_paths({
@@ -124,6 +130,7 @@ def main(argv):
       'TREATMENT_KERNEL': _TREATMENT_KERNEL.value,
       'RUN_ON_TEST_DATA': _RUN_ON_TEST_DATA.value,
       'RUN_ON_PRECOMPUTED_GCP_DATA': _RUN_ON_PRECOMPUTED_GCP_DATA.value,
+      'MEDIATION_TYPE': _MEDIATION_TYPE.value,
       'NUM_BASE_MODELS': _NUM_BASE_MODELS.value,
       'MIN_BASE_MODEL_ACCURACY': _MIN_BASE_MODEL_ACCURACY.value,
       'MAX_BASE_MODEL_ACCURACY': _MAX_BASE_MODEL_ACCURACY.value,
@@ -141,22 +148,13 @@ def main(argv):
 
   # utils.analyze_accuracies_of_base_models()
 
-  utils.process_and_resave_cnn_zoo_data(
-      config.cfg.RANDOM_SEED,
-      other.get_model_wireframe(),
-      config.cfg.COVARIATES_SETTINGS,
-  )
-
-  # utils.train_meta_model_over_different_setups(config.cfg.RANDOM_SEED)
-
-  # utils.save_heat_map_of_meta_model_results()
-
-  # utils.process_per_class_explanations(config.cfg.RANDOM_SEED)
+  # utils.process_and_resave_cnn_zoo_data(
+  #     config.cfg.RANDOM_SEED,
+  #     other.get_model_wireframe(),  # _DATASET.value
+  #     config.cfg.COVARIATES_SETTINGS,
+  # )
 
   # utils.measure_prediction_explanation_variance(config.cfg.RANDOM_SEED)
-  # utils.measure_prediction_explanation_variance_all(config.cfg.RANDOM_SEED)
-
-  # utils.measure_equivalence_class_of_explanations(config.cfg.RANDOM_SEED)
 
   plotting.plot_paper_figures()
 
