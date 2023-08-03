@@ -14,8 +14,6 @@
 # limitations under the License.
 
 """Utilities used for approxNN project."""
-# pylint: skip-file
-
 import time
 import gc
 import itertools
@@ -39,12 +37,14 @@ from tensorflow.io import gfile
 import tensorflow_datasets as tfds
 from tqdm import tqdm
 
-from invariant_explanations import config
-from invariant_explanations import explanation_utils
-from invariant_explanations import other
-from invariant_explanations import plotting
+import config
+import explanation_utils
+import other
+import plotting
 
 logging.set_verbosity(logging.INFO)
+
+from debug import ipsh
 
 FLAGS = flags.FLAGS
 
@@ -85,13 +85,13 @@ def file_handler(dir_path, file_name, stream_flags):
   return file_opener(os.path.join(dir_path, file_name), stream_flags)
 
 
-def load_processed_data_files(data_file_dict, explainer, chkpt=86):
+def load_processed_data_files(data_file_dict, explanation_type, chkpt=86):
   """Load the corresponding data files from the appropriate folder.
 
   Args:
     data_file_dict: a dictionary of {'data file': Boolean}
                     pairs specifying the data file to load.
-    explainer: name of explanation method for which to load data.
+    explanation_type: name of explanation method for which to load data.
     chkpt: the checkpoint at which to load data files; default=86.
   """
 
@@ -104,13 +104,10 @@ def load_processed_data_files(data_file_dict, explainer, chkpt=86):
       raise ValueError('Unrecognized data file of type `%s`.' % key)
 
   # Determine read path from which to load files.
-  f_suffix = get_file_suffix(chkpt)
+  f_suffix = get_file_suffix(chkpt, explanation_type)
   if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA:
     read_path = (
-        f'{config.MERGED_DATA_PATH}/'
-        f'{config.cfg.DATASET}_'
-        f'{explainer}_'
-        f'{config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS}'
+        f'{config.MERGED_DATA_PATH}/{config.cfg.MEDIATION_TYPE}/{config.cfg.DATASET}'
     )
   else:
     read_path = config.cfg.EXP_DIR_PATH
@@ -142,25 +139,25 @@ def load_processed_data_files(data_file_dict, explainer, chkpt=86):
   ])
   assert np.all(all_data_file_lens == all_data_file_lens[0]), 'One or more loaded file sizes not consistent.'
 
-  # When loading merged batch data from GCP (which was run using min acc > 0),
-  # make sure to filter to the right stratum here before further analysis.
-  if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA:
-    filtered_indices = np.where(
-        (
-            all_loaded_data_files['metrics']['test_accuracy'] >
-            config.cfg.MIN_BASE_MODEL_ACCURACY
-        ) &
-        (
-            all_loaded_data_files['metrics']['test_accuracy'] <
-            config.cfg.MAX_BASE_MODEL_ACCURACY
-        )
-    )[0]
-    for key, value in all_loaded_data_files.items():
-      loaded_data_file = value
-      if isinstance(loaded_data_file, np.ndarray):
-        all_loaded_data_files[key] = loaded_data_file[filtered_indices]
-      elif isinstance(loaded_data_file, pd.core.frame.DataFrame):
-        all_loaded_data_files[key] = loaded_data_file.iloc[filtered_indices]
+  # # When loading merged batch data from GCP (which was run using min acc > 0),
+  # # make sure to filter to the right stratum here before further analysis.
+  # if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA:
+  #   filtered_indices = np.where(
+  #       (
+  #           all_loaded_data_files['metrics']['test_accuracy'] >
+  #           config.cfg.MIN_BASE_MODEL_ACCURACY
+  #       ) &
+  #       (
+  #           all_loaded_data_files['metrics']['test_accuracy'] <
+  #           config.cfg.MAX_BASE_MODEL_ACCURACY
+  #       )
+  #   )[0]
+  #   for key, value in all_loaded_data_files.items():
+  #     loaded_data_file = value
+  #     if isinstance(loaded_data_file, np.ndarray):
+  #       all_loaded_data_files[key] = loaded_data_file[filtered_indices]
+  #     elif isinstance(loaded_data_file, pd.core.frame.DataFrame):
+  #       all_loaded_data_files[key] = loaded_data_file.iloc[filtered_indices]
 
   type_of_data = 'preprocessed' if config.cfg.RUN_ON_PRECOMPUTED_GCP_DATA else 'generated'
   logging.info(
@@ -180,9 +177,9 @@ class Bcolors:
   BOLD = '\033[1m'
 
 
-def get_file_suffix(chkpt):
+def get_file_suffix(chkpt, explanation_type):
   """Defining a consistent file suffix for saving temporary files."""
-  return f'_@_epoch_{chkpt}.npy'
+  return f'_@_epoch_{chkpt}_{explanation_type}.npy'
 
 
 def print_memory_usage():
@@ -498,8 +495,10 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   samples = np.zeros((num_new_samples, size_x))
   y_preds = np.zeros((num_new_samples, size_y))
   y_trues = np.zeros((num_new_samples, size_y))
-  explans = np.zeros((num_new_samples, size_x))  # saliency explanations are the
-                                                 # same size as input samples
+  if config.cfg.EXPLANATION_TYPE == 'identity':
+    explans = np.zeros((num_new_samples, size_y))  # E.shape = Y.shape
+  else:
+    explans = np.zeros((num_new_samples, size_x))  # E.shape = X.shape
 
   tmp = (
       f'[INFO] For each base model, construct network, load base_model_weights,'
@@ -581,6 +580,12 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
     #     predictions,
     #     f'explanations_for_model_{idx}.png'
     # )
+
+    # TODO(amirhkarimi): this shuffling should either happen here, or in
+    #                    explanation_utils(), depending on def'n of unmediation.
+    # if config.cfg.MEDIATION_TYPE == 'unmediated':
+    #   y_preds = shuffle_logits(y_preds)
+
     explanations = explanation_utils.get_model_explanations_for_instances(
         model,
         batch_img_samples,
@@ -588,15 +593,22 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
         config.cfg.EXPLANATION_TYPE,
     )
 
+    # TODO(amirhkarimi): this shuffling should either happen here, or in
+    #                    explanation_utils(), depending on def'n of unmediation.
+    # if config.cfg.MEDIATION_TYPE == 'unmediated':
+    #   y_preds = shuffle_logits(y_preds)
+
     new_instances_range = range(
         idx * config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
         (idx + 1) * config.cfg.NUM_SAMPLES_PER_BASE_MODEL
     )
 
-    samples[new_instances_range, :] = np.reshape(
-        batch_img_samples,
-        (batch_img_samples.shape[0], -1),
-    )  # collapse all image dims
+    # TODO(amirhkarimi): bring this commented block back; commented out becuase
+    #                    it was very expensive to compute locally -> sigkill 9.
+    # samples[new_instances_range, :] = np.reshape(
+    #     batch_img_samples,
+    #     (batch_img_samples.shape[0], -1),
+    # )  # collapse all image dims
     y_preds[new_instances_range, :] = predictions
     y_trues[new_instances_range, :] = batch_img_y_trues
     explans[new_instances_range, :] = np.reshape(
@@ -607,16 +619,21 @@ def extract_new_covariates_and_targets(random_seed, model, dataset_info,
   # weights_chkpt, weights_final, hparams, and metrics are global properties of
   # a model shared for all instances predicted on each model; apply np.repeat
   # outside of loop for efficiency.
-  weights_chkpt = np.repeat(
-      base_model_weights_chkpt,
-      config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
-      axis=0,
-  )
-  weights_final = np.repeat(
-      base_model_weights_final,
-      config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
-      axis=0,
-  )
+  # TODO(amirhkarimi): bring this commented block back; commented out becuase
+  #                    it was very expensive to compute locally -> sigkill 9.
+  # weights_chkpt = np.repeat(
+  #     base_model_weights_chkpt,
+  #     config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
+  #     axis=0,
+  # )
+  # weights_final = np.repeat(
+  #     base_model_weights_final,
+  #     config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
+  #     axis=0,
+  # )
+  weights_chkpt = np.zeros(samples.shape)
+  weights_final = np.zeros(samples.shape)
+
 
   hparams = pd.DataFrame(
       np.repeat(
@@ -689,497 +706,49 @@ def process_and_resave_cnn_zoo_data(random_seed, model_wireframe,
 
   base_model_weights, base_model_metrics = load_base_model_weights_and_metrics()
 
-  for covariates_setting in covariates_settings:
+  for explanation_type in config.ALLOWABLE_EXPLANATION_METHODS:
+    config.cfg.EXPLANATION_TYPE = explanation_type
 
-    chkpt = int(covariates_setting['chkpt'])
-    f_suffix = get_file_suffix(chkpt)
-    logging.info(
-        'Extracting new covariates and targets for '
-        'chkpt %s @ test acc in [%.2f, %.2f]',
-        covariates_setting['chkpt'],
-        config.cfg.MIN_BASE_MODEL_ACCURACY,
-        config.cfg.MAX_BASE_MODEL_ACCURACY,
-    )
+    for covariates_setting in covariates_settings:
 
-    samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics = extract_new_covariates_and_targets(
-        random_seed,
-        model_wireframe,
-        other.get_dataset_info(config.cfg.DATASET),
-        covariates_setting,
-        base_model_weights,
-        base_model_metrics,
-    )
-
-    with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'wb') as f:
-      pickle.dump(samples, f, protocol=4)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'wb') as f:
-      pickle.dump(y_preds, f, protocol=4)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'y_trues{f_suffix}', 'wb') as f:
-      pickle.dump(y_trues, f, protocol=4)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'explans{f_suffix}', 'wb') as f:
-      pickle.dump(explans, f, protocol=4)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'wb') as f:
-      pickle.dump(hparams, f, protocol=4)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'w_chkpt{f_suffix}', 'wb') as f:
-      pickle.dump(w_chkpt, f, protocol=4)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'w_final{f_suffix}', 'wb') as f:
-      pickle.dump(w_final, f, protocol=4)
-    with file_handler(config.cfg.EXP_DIR_PATH, f'metrics{f_suffix}', 'wb') as f:
-      pickle.dump(metrics, f, protocol=4)
-
-    del samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics
-    logging.info('\tdone.')
-
-
-def train_meta_model_and_evaluate_results(random_seed, samples, auxvals,
-                                          targets, chkpt, train_fraction):
-  """Train a meta-model given covariates and targets.
-
-  Args:
-    random_seed: the random seed used for reproducibility of results.
-    samples: samples used to train meta-model; instance of np.ndarray.
-    auxvals: additional covariates used to train meta-model (hparams: instance
-             of pd.DataFrame; OR weights: instance of np.ndarray).
-    targets: the predicted target of samples on each base-model;
-             instance of np.ndarray.
-    chkpt: the checkpoint of base-model weights used to train the meta-model;
-           used for logging and filename for saving training results.
-    train_fraction: the fraction of the overall meta-model training set to use.
-
-  Returns:
-    train_results: train set results; a tuple with (loss, accuracy) information.
-    test_results: test set results; a tuple with (loss, accuracy) information.
-  """
-
-  random_state = np.random.RandomState(random_seed)
-
-  logging.debug(
-      '%s[Train meta-model @ checkpoint %d on %.3f fraction of train data]%s',
-      Bcolors.BOLD, chkpt, train_fraction, Bcolors.ENDC
-  )
-
-  if isinstance(auxvals, pd.DataFrame):  # for hparams
-    auxvals = auxvals.to_numpy()
-
-  assert isinstance(samples, np.ndarray)
-  assert isinstance(auxvals, np.ndarray)
-  assert isinstance(targets, np.ndarray)
-
-  # Configuration options
-  num_features = samples.shape[1] + auxvals.shape[1]
-  num_classes = other.get_dataset_info(config.cfg.DATASET)['num_classes']
-
-  # Set the input shape.
-  input_shape = (num_features,)
-
-  # Split into train/test indices.
-  permuted_indices = random_state.permutation(range(len(samples)))
-  train_indices = permuted_indices[:int(train_fraction * len(permuted_indices))]
-  test_indices = permuted_indices[int(train_fraction * len(permuted_indices)):]
-
-  # Create the meta model architecture.
-  model = tf.keras.Sequential()
-  model.add(tf.keras.layers.Dense(
-      500,
-      input_shape=input_shape,
-      activation='relu',
-  ))
-  model.add(tf.keras.layers.Dense(100, activation='relu'))
-  model.add(tf.keras.layers.Dense(num_classes, activation='softmax'))
-
-  # Configure the model and start training.
-  model.compile(
-      loss='categorical_crossentropy',
-      optimizer='adam',
-      metrics=['accuracy'],
-  )
-
-  print_memory_usage()
-  logging.info('Preparing data generators...')
-  train_covariates = np.concatenate([
-      samples[train_indices, :],
-      auxvals[train_indices, :],
-  ], axis=1)
-  test_covariates = np.concatenate([
-      samples[test_indices, :],
-      auxvals[test_indices, :],
-  ], axis=1)
-  train_targets = targets[train_indices, :]
-  test_targets = targets[test_indices, :]
-  print_memory_usage()
-
-  logging.info('Commencing training...')
-  print_memory_usage()
-  model.fit(
-      train_covariates,
-      train_targets,
-      epochs=config.cfg.META_MODEL_EPOCHS,
-      batch_size=config.cfg.META_MODEL_BATCH_SIZE,
-      verbose=0,
-      validation_split=0.1)
-  logging.info('Training finished.')
-  print_memory_usage()
-  logging.info('Saving model.')
-  model_file_name = (
-      'model_weights'
-      f'_min_acc_{config.cfg.MIN_BASE_MODEL_ACCURACY}'
-      f'_max_acc_{config.cfg.MAX_BASE_MODEL_ACCURACY}'
-      f'_chkpt_{chkpt}'
-      f'_train_fraction_{train_fraction}'
-  )
-  model.save(os.path.join(config.cfg.MODELS_DIR_PATH, model_file_name))
-  print_memory_usage()
-  logging.info('Evaluating on train/test sets... ')
-  print_memory_usage()
-  logging.info('\tEvaluate train set] ...')
-  train_results = model.evaluate(train_covariates, train_targets, verbose=1)
-  logging.info('\tEvaluate test set] ...')
-  test_results = model.evaluate(test_covariates, test_targets, verbose=1)
-  logging.info(
-      'Train acc/loss: %%%.3f / %.3f', train_results[1] * 100, train_results[0]
-  )
-  logging.info(
-      'Test acc/loss: %%%.3f / %.3f', test_results[1] * 100, test_results[0]
-  )
-  print_memory_usage()
-  logging.debug('Deleting files of size:')
-  logging.debug(
-      '\ttrain_covariates: %.4f MB, ',
-      sys.getsizeof(train_covariates) / 1024 / 1024,
-  )
-  logging.debug(
-      '\ttest_covariates: %.4f MB, ',
-      sys.getsizeof(test_covariates) / 1024 / 1024,
-  )
-  logging.debug(
-      '\ttrain_targets: %.4f MB, ', sys.getsizeof(train_targets) / 1024 / 1024
-  )
-  logging.debug(
-      '\ttest_targets: %.4f MB, ', sys.getsizeof(test_targets) / 1024 / 1024
-  )
-  del train_covariates, test_covariates, train_targets, test_targets
-  print_memory_usage()
-  logging.debug('Collecting garbage...')
-  gc.collect()  # still needed to clear some other unused objects
-  print_memory_usage()
-
-  return train_results, test_results
-
-
-def train_meta_model_over_different_setups(random_seed):
-  """Train many meta-models over various training setups.
-
-  The primary purpose of this method is to train a series of meta-models that
-  can predict the predictions of underlying base-models trained on different
-  hparam settings. Essentially, the aim of the meta-model is to emulate the
-  post-training predictions of an entire class of base-models, without needing
-  to fully train the base-models. Therefore, the covariates used in the training
-  of the meta-model are a combination of either X, H, i.e., samples and hparams,
-  or X, W_@_epoch, i.e., samples and weights of the base-model @ epoch < 86. The
-  final epoch in this CNN zoo is set to 86. The targets of the meta-model are
-  always set to be the predictions of the meta model at epoch 86.
-
-  Besides training the meta-model on different covariate combinations, we also
-  iterate over different splits of instances in the train/test sets. The total
-  number of instances in the meta-model training set is the product of the
-  number of base models and the number of samples (images) per base model. From
-  this product, a train_fraction fraction of them are chosen to comprise the
-  train set and the remainder are used for evaluation.
-
-  config.py keeps track of all setups on which the meta-model is trained. After
-  the training of each setup, the train and test accuracy are saved to file to
-  be processed and displayed later in aggregate.
-
-  Args:
-      random_seed: the random seed used for reproducibility of results.
-  """
-  assert not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS
-  all_results = pd.DataFrame({
-      'chkpt': [],
-      'train_fraction': [],
-      'train_accuracy': [],
-      'test_accuracy': [],
-  })
-
-  # Train a meta-model on the following covariates and targets:
-  # Covariates:
-  #   X_@_86: samples at epoch 86.
-  #   H_@_-1: hparams (epoch -1 means before training; hparams remain constant).
-  # Target:
-  #   Y_@_86: targets at epoch 86.
-  all_loaded_data_files = load_processed_data_files({
-      'samples': True,
-      'y_preds': True,
-      'y_trues': False,
-      'w_chkpt': False,
-      'w_final': False,
-      'explans': False,
-      'hparams': True,
-      'metrics': True,
-  }, explainer=config.cfg.EXPLANATION_TYPE)
-  samples = all_loaded_data_files['samples']
-  y_preds = all_loaded_data_files['y_preds']
-  hparams = all_loaded_data_files['hparams']
-
-  # Reorder columns for easier readability when debugging.
-  hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
-  hparams = process_hparams(hparams, round_num=False, cat_to_code=True)
-
-  for train_fraction in config.cfg.TRAIN_FRACTIONS:
-
-    chkpt = -1
-    train_results, test_results = train_meta_model_and_evaluate_results(
-        random_seed,
-        samples,
-        hparams,
-        y_preds,
-        chkpt,
-        train_fraction,
-    )
-
-    all_results = all_results.append(
-        {
-            'chkpt': chkpt,  # hparams
-            'train_fraction': train_fraction,
-            'train_accuracy': train_results[1],
-            'test_accuracy': test_results[1],
-        },
-        ignore_index=True)
-
-    with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
-      pickle.dump(all_results, f, protocol=4)
-
-  # Save memory; if this fails, use DataGenerator; source:
-  # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
-  del samples, y_preds, hparams
-
-  # Train a meta-model on the following covariates and targets:
-  # Covariates:
-  #   X_@_i:  samples at epoch i.
-  #   W_@_i:  weights at epoch i.
-  # Target:
-  #   Y_@_86: targets at epoch 86. (Remindere: we want to predict final network
-  #                                 performance from intermediary weights.)
-  for covariates_setting in config.cfg.COVARIATES_SETTINGS:
-
-    chkpt = int(covariates_setting['chkpt'])
-    all_loaded_data_files = load_processed_data_files({
-        'samples': True,
-        'y_preds': True,
-        'y_trues': False,
-        'w_chkpt': True,
-        'w_final': True,
-        'explans': False,
-        'hparams': False,
-        'metrics': True,
-    }, explainer=config.cfg.EXPLANATION_TYPE, chkpt=chkpt)
-    samples = all_loaded_data_files['samples']
-    y_preds = all_loaded_data_files['y_preds']
-    w_chkpt = all_loaded_data_files['w_chkpt']
-    w_final = all_loaded_data_files['w_final']
-
-    # Sanity check: make sure the random permutations
-    # performed on the various saved files are similar.
-    # Do NOT use w_chkpt below; y_pred is computed/saved using w_final.
-    m = reset_model_using_weights(
-        other.get_model_wireframe(config.cfg.DATASET),
-        w_final[0],
-    )
-    s = samples[0].reshape((
-        1,  # One sample.
-        other.get_dataset_info(config.cfg.DATASET)['data_shape'][0],
-        other.get_dataset_info(config.cfg.DATASET)['data_shape'][1],
-        1,  # The CNN Zoo operated all data using a reduced mean single channel.
-    ))
-    y = y_preds[0]
-    assert np.allclose(m.predict_on_batch(s)[0], y, rtol=1e-2)
-
-    for train_fraction in config.cfg.TRAIN_FRACTIONS:
-
-      train_results, test_results = train_meta_model_and_evaluate_results(
-          random_seed,
-          samples,
-          w_chkpt,
-          y_preds,
-          chkpt,
-          train_fraction,
+      chkpt = int(covariates_setting['chkpt'])
+      f_suffix = get_file_suffix(chkpt, explanation_type)
+      logging.info(
+          'Extracting new covariates and targets for '
+          'chkpt %s @ test acc in [%.2f, %.2f]',
+          covariates_setting['chkpt'],
+          config.cfg.MIN_BASE_MODEL_ACCURACY,
+          config.cfg.MAX_BASE_MODEL_ACCURACY,
       )
 
-      all_results = all_results.append(
-          {
-              'chkpt': covariates_setting['chkpt'],
-              'train_fraction': train_fraction,
-              'train_accuracy': train_results[1],
-              'test_accuracy': test_results[1],
-          },
-          ignore_index=True)
-      with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
-        pickle.dump(all_results, f, protocol=4)
+      samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics = extract_new_covariates_and_targets(
+          random_seed,
+          model_wireframe,
+          other.get_dataset_info(config.cfg.DATASET),
+          covariates_setting,
+          base_model_weights,
+          base_model_metrics,
+      )
 
-    # Save memory; if this fails, use DataGenerator; source:
-    # https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly
-    del samples, y_preds, w_chkpt, w_final
+      # with file_handler(config.cfg.EXP_DIR_PATH, f'samples{f_suffix}', 'wb') as f:
+      #   pickle.dump(samples, f, protocol=4)
+      with file_handler(config.cfg.EXP_DIR_PATH, f'y_preds{f_suffix}', 'wb') as f:
+        pickle.dump(y_preds, f, protocol=4)
+      with file_handler(config.cfg.EXP_DIR_PATH, f'y_trues{f_suffix}', 'wb') as f:
+        pickle.dump(y_trues, f, protocol=4)
+      with file_handler(config.cfg.EXP_DIR_PATH, f'explans{f_suffix}', 'wb') as f:
+        pickle.dump(explans, f, protocol=4)
+      with file_handler(config.cfg.EXP_DIR_PATH, f'hparams{f_suffix}', 'wb') as f:
+        pickle.dump(hparams, f, protocol=4)
+      # with file_handler(config.cfg.EXP_DIR_PATH, f'w_chkpt{f_suffix}', 'wb') as f:
+      #   pickle.dump(w_chkpt, f, protocol=4)
+      # with file_handler(config.cfg.EXP_DIR_PATH, f'w_final{f_suffix}', 'wb') as f:
+      #   pickle.dump(w_final, f, protocol=4)
+      with file_handler(config.cfg.EXP_DIR_PATH, f'metrics{f_suffix}', 'wb') as f:
+        pickle.dump(metrics, f, protocol=4)
 
-
-def save_heat_map_of_meta_model_results():
-  """Plot and save a heatmap of results of training meta-models."""
-  with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'rb') as f:
-    all_results = pickle.load(f)
-  train_results = all_results.pivot('train_fraction', 'chkpt', 'train_accuracy')
-  test_results = all_results.pivot('train_fraction', 'chkpt', 'test_accuracy')
-
-  fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True, figsize=(18, 6))
-  sns.heatmap(train_results, annot=True, fmt='.2f', ax=ax1)
-  sns.heatmap(test_results, annot=True, fmt='.2f', ax=ax2)
-  ax1.set_title(
-      'train_results (smaller train_fraction = more overfit = higher perf)'
-  )
-  ax2.set_title(
-      'test_results (larger train_fraction = less overfit = higher perf)'
-  )
-  plt.tight_layout()
-  fig.savefig(
-      gfile.GFile(
-          os.path.join(
-              config.cfg.PLOTS_DIR_PATH,
-              'heatmap_results_for_meta_model.png',
-          ),
-          'wb',
-      ),
-      dpi=400,
-  )
-
-
-def project_using_spca(samples, targets, n_components=2,
-                       samples_kernel_type='rbf', targets_kernel_type='rbf'):
-  """Apply Supervised PCA on samples and targets as per Barshan et al, 2011.
-
-  Source (see Alg 3):
-  https://uwaterloo.ca/data-science/sites/ca.data-science/files/uploads/files/
-  barshan_supervised_preprint.pdf
-
-  Code inspiration:
-  https://github.com/kumarnikhil936/supervised_pca
-  https://github.com/bghojogh/Principal-Component-Analysis
-
-  Args:
-    samples: the covariates, X, which are to be down-projected.
-    targets: the targets, Y, which determine the direction towards which the
-             down-projection should be maximally aligned.
-    samples and targets are np.ndarrays with #features cols and #instances rows.
-    n_components: the dimensionality of the projection space.
-    samples_kernel_type: the particular kernel type to use on samples.
-                    If value is None, then perform SPCA, otherwise KSPCA.
-    targets_kernel_type: the particular kernel type to use on targets.
-
-  Returns:
-    samples_orig: the original samples (#instances rows & #features cols).
-    samples_proj: the down-projected samples (#instances rows & #features cols).
-    targets: the targets used for supervised PCA projection.
-  """
-
-  assert isinstance(samples, np.ndarray)
-  assert isinstance(targets, np.ndarray)
-  assert samples.shape[0] == targets.shape[0]
-
-  if samples_kernel_type:
-    projection_type = 'KSPCA'
-  else:
-    projection_type = 'SPCA'
-
-  # Some samples (explanations) may unfortunately have nan values; remove these.
-  keep_idx = []
-  for idx in range(samples.shape[0]):
-    if np.any(np.isnan(samples[idx])):
-      continue
-    keep_idx.append(idx)
-  samples = samples[keep_idx]
-  targets = targets[keep_idx]
-
-  # Transpose samples and targets so features are in rows and instances in cols.
-  samples_orig = samples.T
-  n_samples = samples_orig.shape[1]
-
-  # Compute centering matrix.
-  # The centering matrix should generally only appear in math and not code.
-  # See equivalence of `matrix_h.dot(x)` and `x - np.mean(x, 0, keepdims=True)`,
-  # whereas the former has complexity O(n^2m), the latter has complexity O(nm).
-  matrix_h = np.eye(n_samples) - 1 / n_samples * np.ones((n_samples, n_samples))
-
-  # Compute kernel on targets.
-  kernel_y = pairwise_kernels(targets, n_jobs=-1, metric=targets_kernel_type)
-
-  if projection_type == 'KSPCA':
-    # Compute kernel on samples.
-    kernel_x = pairwise_kernels(samples, n_jobs=-1, metric=samples_kernel_type)
-    # Compute correlation between samples and targets.
-    matrix_q = matrix_h.dot(kernel_y).dot(matrix_h).dot(kernel_x.T)
-  else:
-    # Compute correlation between samples and targets.
-    matrix_q = samples_orig.dot(matrix_h).dot(kernel_y).dot(matrix_h).dot(
-        samples_orig.T
-    )
-
-  # Extract top-n_components eigenvalues and eigenvectors for projection matrix.
-  eig_vals, eig_vecs = np.linalg.eigh(matrix_q)
-  desc_idx = eig_vals.argsort()[::-1]  # Sort eigenvalues in descending order.
-  eig_vals = eig_vals[desc_idx]
-  eig_vecs = eig_vecs[:, desc_idx]
-  matrix_u = eig_vecs[:, :n_components]
-
-  if projection_type == 'KSPCA':
-    samples_proj = (matrix_u.T).dot(kernel_x)
-    logging.debug('Cannot project back using KSPCA; setting to zeros instead.')
-    samples_reco = np.zeros(samples_orig.shape)
-  else:
-    samples_proj = (matrix_u.T).dot(samples_orig)
-    samples_reco = matrix_u.dot(samples_proj)
-
-  channel_1_and_2_dim = (
-      other.get_dataset_info(config.cfg.DATASET)['data_shape'][:2]
-  )
-  data_dim = np.prod(channel_1_and_2_dim)
-  if samples_orig.shape[0] == data_dim:  # IMPORTANT: only works for samples
-                                         # and explans that are (image based).
-    num_rows = 3  # Row 1: orig samples; Row 2: reco samples; Row 3: difference.
-    num_cols = 10
-    fig, axes = plt.subplots(
-        num_rows,
-        num_cols,
-        figsize=(num_cols * 1.5, num_rows),
-    )
-    axes = axes.flatten()
-
-    for col_idx in range(num_cols):
-
-      tmp_samples_orig = samples_orig[:, col_idx].reshape(channel_1_and_2_dim)
-      tmp_samples_reco = samples_reco[:, col_idx].reshape(channel_1_and_2_dim)
-      tmp_samples_diff = np.abs(tmp_samples_orig - tmp_samples_reco)
-
-      axes[col_idx + 0 * num_cols].imshow(tmp_samples_orig)
-      axes[col_idx + 0 * num_cols].axis('off')
-      axes[col_idx + 0 * num_cols].set_title('orig')
-
-      axes[col_idx + 1 * num_cols].imshow(tmp_samples_reco)
-      axes[col_idx + 1 * num_cols].axis('off')
-      axes[col_idx + 1 * num_cols].set_title('reco')
-
-      axes[col_idx + 2 * num_cols].imshow(tmp_samples_diff)
-      axes[col_idx + 2 * num_cols].axis('off')
-      axes[col_idx + 2 * num_cols].set_title('diff')
-
-    fig.savefig(
-        gfile.GFile(
-            os.path.join(
-                config.cfg.PLOTS_DIR_PATH,
-                f'spca_orig_reco_diff_{np.random.randint(100)}.png',
-            ),
-            'wb',
-        ),
-        dpi=400,
-    )
-
-  return samples_orig.T, samples_proj.T, targets
+      del samples, y_preds, y_trues, explans, hparams, w_chkpt, w_final, metrics
+      logging.info('\tdone.')
 
 
 def process_per_class_explanations(random_seed):
@@ -1200,7 +769,7 @@ def process_per_class_explanations(random_seed):
       'explans': True,
       'hparams': True,
       'metrics': True,
-  }, explainer=config.cfg.EXPLANATION_TYPE)
+  }, explanation_type=config.cfg.EXPLANATION_TYPE)
   samples = all_loaded_data_files['samples']
   y_preds = all_loaded_data_files['y_preds']
   hparams = all_loaded_data_files['hparams']
@@ -1290,23 +859,68 @@ def process_per_class_explanations(random_seed):
   )
 
 
-def measure_prediction_explanation_variance_all(random_seed):
-  for treatment_kernel in config.ALLOWABLE_TREATMENT_KERNELS:
-    if (  # Should only use non-rbf kernels with 0-1 accuracy range.
-        not (
-            np.isclose(float(config.cfg.MIN_BASE_MODEL_ACCURACY), 0) and
-            np.isclose(float(config.cfg.MAX_BASE_MODEL_ACCURACY), 1)
-        ) and treatment_kernel != 'rbf'
-    ):
-      continue
-    for explanation_type in config.ALLOWABLE_EXPLANATION_METHODS:
-      # Overwrite values of config.cfg which were set by FLAGS.
-      config.cfg.EXPLANATION_TYPE = explanation_type
-      config.cfg.TREATMENT_KERNEL = treatment_kernel
-      measure_prediction_explanation_variance(random_seed)
-
-
 def measure_prediction_explanation_variance(random_seed):
+  for explanation_type in config.ALLOWABLE_EXPLANATION_METHODS:
+    config.cfg.EXPLANATION_TYPE = explanation_type
+
+    all_loaded_data_files = load_processed_data_files({
+        'samples': False,
+        'y_preds': True,
+        'y_trues': True,
+        'w_chkpt': False,
+        'w_final': False,
+        'explans': True,
+        'hparams': True,
+        'metrics': True,
+    }, explanation_type=config.cfg.EXPLANATION_TYPE)
+
+    filtered_loaded_data_files = dict.fromkeys(
+        all_loaded_data_files.keys(), None)
+
+    accuracy_ranges = config.RANGE_ACCURACIES[config.cfg.DATASET]
+    for (min_accuracy, max_accuracy) in accuracy_ranges:
+      # Overwrite values of config.cfg which were set by FLAGS.
+      config.cfg.MIN_BASE_MODEL_ACCURACY = min_accuracy
+      config.cfg.MAX_BASE_MODEL_ACCURACY = max_accuracy
+
+      filtered_indices = np.where(
+          (
+              all_loaded_data_files['metrics']['test_accuracy'] >
+              config.cfg.MIN_BASE_MODEL_ACCURACY
+          ) &
+          (
+              all_loaded_data_files['metrics']['test_accuracy'] <
+              config.cfg.MAX_BASE_MODEL_ACCURACY
+          )
+      )[0]
+      for key, value in all_loaded_data_files.items():
+        loaded_data_file = value
+        if isinstance(loaded_data_file, np.ndarray):
+          filtered_loaded_data_files[key] = loaded_data_file[filtered_indices]
+        elif isinstance(loaded_data_file, pd.core.frame.DataFrame):
+          filtered_loaded_data_files[key] = loaded_data_file.iloc[
+              filtered_indices]
+
+      for treatment_kernel in config.ALLOWABLE_TREATMENT_KERNELS:
+        config.cfg.TREATMENT_KERNEL = treatment_kernel
+        if (  # Should only use non-RBF kernels when not bucketing.
+              # == if bucketing, should only use the RBF kernel.
+            not (
+                np.isclose(float(config.cfg.MIN_BASE_MODEL_ACCURACY), 0) and
+                np.isclose(float(config.cfg.MAX_BASE_MODEL_ACCURACY), 1)
+            ) and config.cfg.TREATMENT_KERNEL != 'rbf'
+        ):
+          continue
+
+        _measure_prediction_explanation_variance(
+            random_seed, filtered_loaded_data_files)
+
+    del all_loaded_data_files
+    gc.collect()
+
+
+def _measure_prediction_explanation_variance(
+    random_seed, filtered_loaded_data_files):
   """Measure and compare the change in predictions with that of explanations.
 
   We aim to understand the relative effect that changing hparams has on both the
@@ -1319,7 +933,7 @@ def measure_prediction_explanation_variance(random_seed):
 
   For every instance x...
   |--  For every hparam type...
-       |--  For every pair (h1, h2) of unique hparam valuess of this type...
+       |--  For every pair (h1, h2) of unique hparam values of this type...
             |--  Compute and plot the average dissimilarity between the y_preds
             |--  (explans) resulting from models trained under h1 in contrast to
             |--  models trained under h2. Finally, scatter the dissimilarity in
@@ -1331,6 +945,7 @@ def measure_prediction_explanation_variance(random_seed):
 
   Args:
     random_seed: the random seed used for reproducibility of results.
+    filtered_loaded_data_files: filtered based on accuracy bucket.
   """
 
   if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
@@ -1338,22 +953,27 @@ def measure_prediction_explanation_variance(random_seed):
 
   random_state = np.random.RandomState(random_seed)
 
-  all_loaded_data_files = load_processed_data_files({
-      'samples': False,
-      'y_preds': True,
-      'y_trues': True,
-      'w_chkpt': False,
-      'w_final': False,
-      'explans': True,
-      'hparams': True,
-      'metrics': True,
-  }, explainer=config.cfg.EXPLANATION_TYPE)
-  # samples = all_loaded_data_files['samples']
-  y_preds = all_loaded_data_files['y_preds']
-  y_trues = all_loaded_data_files['y_trues']
-  explans = all_loaded_data_files['explans']
-  hparams = all_loaded_data_files['hparams']
-  metrics = all_loaded_data_files['metrics']
+  # all_loaded_data_files = load_processed_data_files({
+  #     'samples': False,
+  #     'y_preds': True,
+  #     'y_trues': True,
+  #     'w_chkpt': False,
+  #     'w_final': False,
+  #     'explans': True,
+  #     'hparams': True,
+  #     'metrics': True,
+  # }, explanation_type=config.cfg.EXPLANATION_TYPE)
+  # # samples = all_loaded_data_files['samples']
+  # y_preds = all_loaded_data_files['y_preds']
+  # y_trues = all_loaded_data_files['y_trues']
+  # explans = all_loaded_data_files['explans']
+  # hparams = all_loaded_data_files['hparams']
+  # metrics = all_loaded_data_files['metrics']
+  y_preds = filtered_loaded_data_files['y_preds']
+  y_trues = filtered_loaded_data_files['y_trues']
+  explans = filtered_loaded_data_files['explans']
+  hparams = filtered_loaded_data_files['hparams']
+  metrics = filtered_loaded_data_files['metrics']
 
   # Reorder columns for easier readability when debugging.
   hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
@@ -1380,7 +1000,7 @@ def measure_prediction_explanation_variance(random_seed):
   #     'explans': True,
   #     'hparams': True,
   #     'metrics': True,
-  # }, explainer=config.cfg.EXPLANATION_TYPE)
+  # }, explanation_type=config.cfg.EXPLANATION_TYPE)
   # # ref_samples = all_loaded_data_files['samples']
   # ref_y_preds = all_loaded_data_files['y_preds']
   # ref_y_trues = all_loaded_data_files['y_trues']
@@ -1413,6 +1033,12 @@ def measure_prediction_explanation_variance(random_seed):
       'd_explans': [],
   })
 
+  # This only holds for the 0-1 accuracy bracket
+  # assert np.isclose(
+  #     num_base_models_times_samples,
+  #     config.cfg.NUM_BASE_MODELS * config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
+  # )
+
   # Iterate over different samples, X.
   for row_idx, x_offset_idx in enumerate(
       range(config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR)):
@@ -1431,9 +1057,15 @@ def measure_prediction_explanation_variance(random_seed):
         num_base_models_times_samples,
         config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
     )
-    # The processing below is rather expensive, and need not be done for all
-    # samples in order to get a trend. Therefore, only limit samples to some
-    # (arbitrary) random subset of samples.
+    # Within each performance bucket, when computing the effect of h=h1 vs h=h2,
+    # we need to look at the Y (or E) samples from some subset of X instances on
+    # some someset of models (say 100 identical X samples for the portion of 30K
+    # models that fall within that bucket). If one were to look at ALL X samples
+    # on ALL models with h=h1 models vs ALL models with h=h2 models, this would
+    # amount to comparing (i.e., computing the kernel matrix) between two large
+    # matrices, which would yield a very expensive processing. This is wasteful
+    # especially since we could do with only say 100 random samples from each of
+    # the matrices Therefore, only limit samples to a random subset of samples.
     x_indices = random_state.permutation(
         x_indices)[:config.cfg.NUM_BASE_MODELS_FOR_KERNEL]
     # x_samples = samples[x_indices, :]
@@ -1447,7 +1079,7 @@ def measure_prediction_explanation_variance(random_seed):
     image_shape = other.get_dataset_info(config.cfg.DATASET)['data_shape'][:2]
     x_explans = explanation_utils.normalize_explans(x_explans, image_shape)
     logging.info(
-        '%sElapsed time (processing x_explans): `%f`.%s',
+        '%sElapsed time (normalizing x_explans): `%f`.%s',
         Bcolors.HEADER,
         time.time() - start_time,
         Bcolors.ENDC,
@@ -1459,9 +1091,15 @@ def measure_prediction_explanation_variance(random_seed):
     #     ref_num_base_models_times_samples,
     #     config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
     # )
-    # # The processing below is rather expensive, and need not be done for all
-    # # samples in order to get a trend. Therefore, only limit samples to some
-    # # (arbitrary) random subset of samples.
+    # Within each performance bucket, when computing the effect of h=h1 vs h=h2,
+    # we need to look at the Y (or E) samples from some subset of X instances on
+    # some someset of models (say 100 identical X samples for the portion of 30K
+    # models that fall within that bucket). If one were to look at ALL X samples
+    # on ALL models with h=h1 models vs ALL models with h=h2 models, this would
+    # amount to comparing (i.e., computing the kernel matrix) between two large
+    # matrices, which would yield a very expensive processing. This is wasteful
+    # especially since we could do with only say 100 random samples from each of
+    # the matrices Therefore, only limit samples to a random subset of samples.
     # ref_x_indices = random_state.permutation(
     #     ref_x_indices)[:config.cfg.NUM_BASE_MODELS_FOR_KERNEL]
     # # ref_x_samples = ref_samples[ref_x_indices, :]
@@ -1559,7 +1197,7 @@ def measure_prediction_explanation_variance(random_seed):
     # Iterate over different hparams, H.
     for col_idx, col in enumerate(config.ALL_HPARAMS):
 
-      logging.info('Processing hparam `%s`...', col)
+      # logging.info('Processing hparam `%s`...', col)
 
       scatter_tracker = pd.DataFrame({
           'd_y_preds': [],
@@ -1771,13 +1409,18 @@ def measure_prediction_explanation_variance(random_seed):
               ignore_index=True,
           )
     logging.info(
-        '%sElapsed time: `%f`.%s',
+        '%sElapsed time (processing ITE of all hparams): `%f`.%s',
         Bcolors.HEADER,
         time.time() - start_time,
         Bcolors.ENDC,
     )
 
-  suffix = f'{config.cfg.TREATMENT_KERNEL}_{config.cfg.EXPLANATION_TYPE}'
+  suffix = (
+      f'{config.cfg.TREATMENT_KERNEL}_'
+      f'{config.cfg.EXPLANATION_TYPE}_'
+      f'{config.cfg.MIN_BASE_MODEL_ACCURACY}_'
+      f'{config.cfg.MAX_BASE_MODEL_ACCURACY}'
+  )
 
   with file_handler(
       config.cfg.EXP_DIR_PATH,
@@ -1794,179 +1437,4 @@ def measure_prediction_explanation_variance(random_seed):
     pickle.dump(treatment_effect_tracker_all, f, protocol=4)
 
   del y_preds, y_trues, explans, hparams, metrics
-
-
-def measure_equivalence_class_of_explanations(random_seed):
-  """Measure and compare relative changes in hparams, y_preds, and explans.
-
-  TODO(amirhkarimi): add description.
-
-  Args:
-    random_seed: the random seed used for reproducibility of results.
-  """
-
-  if not config.cfg.USE_IDENTICAL_SAMPLES_OVER_BASE_MODELS:
-    raise ValueError('Expected use of identical samples for base models.')
-
-  random_state = np.random.RandomState(random_seed)
-
-  num_rows = 3
-  num_cols = len(config.ALLOWABLE_EXPLANATION_METHODS)
-  plotting.update_matplotlib_defaults()
-  fig, axes = plt.subplots(
-      num_rows,
-      num_cols,
-      figsize=(num_cols*6, num_rows*6),
-      sharex='col',
-      sharey='col',
-  )
-
-  for col_idx, explainer in enumerate(config.ALLOWABLE_EXPLANATION_METHODS):
-
-    all_loaded_data_files = load_processed_data_files({
-        'samples': True,
-        'y_preds': True,
-        'y_trues': True,
-        'w_chkpt': False,
-        'w_final': False,
-        'explans': True,
-        'hparams': True,
-        'metrics': True,
-    }, explainer=explainer)
-    samples = all_loaded_data_files['samples']
-    y_preds = all_loaded_data_files['y_preds']
-    y_trues = all_loaded_data_files['y_trues']
-    explans = all_loaded_data_files['explans']
-    hparams = all_loaded_data_files['hparams']
-    metrics = all_loaded_data_files['metrics']
-
-    # Reorder columns for easier readability when debugging.
-    hparams = hparams[[*config.CAT_HPARAMS, *config.NUM_HPARAMS]]
-    hparams = process_hparams(hparams, round_num=True, cat_to_code=True)
-
-    num_base_models_times_samples = y_preds.shape[0]
-
-    num_hparam_settings = min(
-        100,
-        int(
-            num_base_models_times_samples /
-            config.cfg.NUM_SAMPLES_PER_BASE_MODEL
-        )
-    )
-    avg_kernel_hparams = np.zeros((num_hparam_settings, num_hparam_settings))
-    avg_kernel_y_preds = np.zeros((num_hparam_settings, num_hparam_settings))
-    avg_kernel_explans = np.zeros((num_hparam_settings, num_hparam_settings))
-
-    # Iterate over different samples, X.
-    for x_offset_idx in range(config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR):
-
-      logging.info('='*80)
-      logging.info('Processing instance w/ index `%d`...', x_offset_idx)
-
-      # x_* prefix is used for variables that correspond to instance x.
-      x_indices = range(
-          x_offset_idx,
-          num_base_models_times_samples,
-          config.cfg.NUM_SAMPLES_PER_BASE_MODEL,
-      )
-      # The processing below is rather expensive, and need not be done for all
-      # samples in order to get a trend. Therefore, only limit samples to some
-      # (arbitrary) random subset of samples.
-      x_indices = random_state.permutation(
-          x_indices)[:config.cfg.NUM_BASE_MODELS_FOR_KERNEL]
-      x_samples = samples[x_indices, :]
-      x_y_preds = y_preds[x_indices, :]
-      x_y_trues = y_trues[x_indices, :]
-      x_explans = explans[x_indices, :]
-      x_hparams = hparams.iloc[x_indices]
-
-      plotting.plot_and_save_samples_and_explans(
-          x_samples,
-          x_explans,
-          8,
-          f'{explainer}_x{x_offset_idx}',
-      )
-
-      # Sanity check: irrespective of the base model,
-      # X_i is shared and so should share y_true value.
-      assert np.all(
-          np.argmax(x_y_trues, axis=1) ==
-          np.argmax(x_y_trues, axis=1)[0]
-      )
-
-      # Define custom function to handle mixed num/cat distance for hparams.
-      assert np.all([
-          col in config.CAT_HPARAMS for col in x_hparams.columns[:4]
-      ])
-      assert x_hparams.columns[4] == 'config.l2reg'
-      assert x_hparams.columns[5] == 'config.dropout'
-      assert x_hparams.columns[6] == 'config.init_std'
-      assert x_hparams.columns[7] == 'config.learning_rate'
-      assert x_hparams.columns[8] == 'config.train_fraction'
-
-      range_4 = (
-          config.ALL_HPARAM_RANGES['config.l2reg'][-1] -
-          config.ALL_HPARAM_RANGES['config.l2reg'][0]
-      )
-      range_5 = (
-          config.ALL_HPARAM_RANGES['config.dropout'][-1] -
-          config.ALL_HPARAM_RANGES['config.dropout'][0]
-      )
-      range_6 = (
-          config.ALL_HPARAM_RANGES['config.init_std'][-1] -
-          config.ALL_HPARAM_RANGES['config.init_std'][0]
-      )
-      range_7 = (
-          config.ALL_HPARAM_RANGES['config.learning_rate'][-1] -
-          config.ALL_HPARAM_RANGES['config.learning_rate'][0]
-      )
-      range_8 = (
-          config.ALL_HPARAM_RANGES['config.train_fraction'][-1] -
-          config.ALL_HPARAM_RANGES['config.train_fraction'][0]
-      )
-      def custom_distance(u,v):
-        const = 0 if u[2] == v[2] else 10
-        return np.sqrt(
-            (0 if u[0] == v[0] else 1) ** 2 +
-            (0 if u[1] == v[1] else 1) ** 2 +
-            (0 if u[2] == v[2] else 1) ** 2 +
-            (0 if u[3] == v[3] else 1) ** 2 +
-            ((u[4] - v[4]) / range_4) ** 2 +
-            ((u[5] - v[5]) / range_5) ** 2 +
-            ((u[6] - v[6]) / range_6) ** 2 +
-            ((u[7] - v[7]) / range_7) ** 2 +
-            ((u[8] - v[8]) / range_8) ** 2
-        )
-
-      x_kernel_hparams = squareform(pdist(x_hparams.values, custom_distance))
-      x_kernel_y_preds = squareform(pdist(x_y_preds, 'euclidean'))
-      x_kernel_explans = squareform(pdist(x_explans, 'euclidean'))
-
-      avg_kernel_hparams += x_kernel_hparams
-      avg_kernel_y_preds += x_kernel_y_preds
-      avg_kernel_explans += x_kernel_explans
-
-    avg_kernel_hparams /= config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR
-    avg_kernel_y_preds /= config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR
-    avg_kernel_explans /= config.cfg.NUM_SAMPLES_TO_PLOT_TE_FOR
-
-    axes[0, col_idx].imshow(avg_kernel_hparams)
-    axes[0, col_idx].set_title(f'hparams_{explainer}')
-    axes[1, col_idx].imshow(avg_kernel_y_preds)
-    axes[1, col_idx].set_title(f'y_preds_{explainer}')
-    axes[2, col_idx].imshow(avg_kernel_explans)
-    axes[2, col_idx].set_title(f'explans_{explainer}')
-
-  # Save figure.
-  plt.suptitle('Comparison of pdist() over hparams, y_preds, and explans')
-  plt.tight_layout()
-  fig.savefig(
-      gfile.GFile(
-          os.path.join(
-              config.cfg.PLOTS_DIR_PATH,
-              'pdist_comparison.png',
-          ),
-          'wb',
-      ),
-      dpi=150,
-  )
+  gc.collect()
