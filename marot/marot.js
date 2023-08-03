@@ -284,8 +284,8 @@ class Marot {
 
     /**
      * The Sigtests Worker loads its code from 'marot-sigtests.js'. If that file
-     * is not servable for some reason, then set the this.sigtestsWorkerJS
-     * variable to its contents.
+     * is not servable for some reason, then set marot.sigtestsWorkerJS
+     * variable to its contents before calling marot.init().
      */
     this.sigtestsWorkerJS = '';
     /**
@@ -1679,7 +1679,8 @@ class Marot {
     this.sigtestsMsg.innerHTML = 'Computing p-values...';
     if (this.sigtestsWorkerJS) {
       /** Create Worker using code directly. */
-      blob = new Blob([this.sigtestsWorkerJS], {type: "text/javascript" });
+      const blob = new Blob([this.sigtestsWorkerJS],
+                            {type: "text/javascript" });
       this.sigtestsWorker = new Worker(window.URL.createObjectURL(blob));
     } else {
       /** Create Worker using code file. */
