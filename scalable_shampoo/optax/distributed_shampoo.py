@@ -40,7 +40,6 @@ import chex
 from flax import struct
 import jax
 from jax import lax
-from jax.experimental import pjit
 from jax.experimental.sparse import linalg
 import jax.numpy as jnp
 import numpy as np
@@ -1763,13 +1762,15 @@ def distributed_shampoo(
       prev_padded_preconditioners = None
 
     new_stacked_padded_statistics = jnp.stack(new_padded_statistics)
-    new_stacked_padded_statistics = pjit.with_sharding_constraint(
-        new_stacked_padded_statistics, statistics_partition_spec)
+    new_stacked_padded_statistics = lax.with_sharding_constraint(
+        new_stacked_padded_statistics, statistics_partition_spec
+    )
     stacked_padding_starts = jnp.array(padding_starts, jnp.int32)
     prev_stacked_padded_preconditioners = _maybe(jnp.stack)(
         prev_padded_preconditioners)
-    prev_stacked_padded_preconditioners = _maybe(pjit.with_sharding_constraint)(
-        prev_padded_preconditioners, statistics_partition_spec)
+    prev_stacked_padded_preconditioners = _maybe(lax.with_sharding_constraint)(
+        prev_padded_preconditioners, statistics_partition_spec
+    )
 
     def _internal_inverse_pth_root_all():
       preconditioners, metrics = _matrix_inverse_pth_root_pjit(
@@ -1956,18 +1957,20 @@ def distributed_shampoo(
                                     statistics_partition_spec=None):
     # Partition the concatenated statistics matrix across all cores.
     pspec_for_partition = preconditioner_partition_spec
-    partitioned_xs = pjit.with_sharding_constraint(xs, pspec_for_partition)
+    partitioned_xs = lax.with_sharding_constraint(xs, pspec_for_partition)
     if preconditioner_partition_spec:
       partitioned_ps_spec = jax.sharding.PartitionSpec(
           preconditioner_partition_spec[0]
       )
     else:
       partitioned_ps_spec = None
-    partitioned_ps = pjit.with_sharding_constraint(ps, partitioned_ps_spec)
-    partitioned_prev_preconds = _maybe(pjit.with_sharding_constraint)(
-        prev_preconds, preconditioner_partition_spec)
-    partitioned_padding_starts = pjit.with_sharding_constraint(
-        padding_starts, partitioned_ps_spec)  # paddings are scalars like ps.
+    partitioned_ps = lax.with_sharding_constraint(ps, partitioned_ps_spec)
+    partitioned_prev_preconds = _maybe(lax.with_sharding_constraint)(
+        prev_preconds, preconditioner_partition_spec
+    )
+    partitioned_padding_starts = lax.with_sharding_constraint(
+        padding_starts, partitioned_ps_spec
+    )  # paddings are scalars like ps.
     # Run matrix inverse pth root on each shard.
     partitioned_preconditioners, partitioned_metrics = (
         _matrix_inverse_pth_root_vmap(
@@ -1977,13 +1980,16 @@ def distributed_shampoo(
             prev=partitioned_prev_preconds))
     # Reshard output to have the same PSpec as input. This is required to avoid
     # vmap seeing the full set of statistics.
-    partitioned_preconditioners = pjit.with_sharding_constraint(
-        partitioned_preconditioners, pspec_for_partition)
+    partitioned_preconditioners = lax.with_sharding_constraint(
+        partitioned_preconditioners, pspec_for_partition
+    )
     # Recombine the outputs at each core.
-    preconditioners = pjit.with_sharding_constraint(partitioned_preconditioners,
-                                                    statistics_partition_spec)
-    metrics = pjit.with_sharding_constraint(partitioned_metrics,
-                                            jax.sharding.PartitionSpec())
+    preconditioners = lax.with_sharding_constraint(
+        partitioned_preconditioners, statistics_partition_spec
+    )
+    metrics = lax.with_sharding_constraint(
+        partitioned_metrics, jax.sharding.PartitionSpec()
+    )
     return preconditioners, metrics
 
   def _pmap_compute_preconditioners(states, step, statistics,

@@ -25,6 +25,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import jax
 from jax import core
+from jax import lax
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
 from jax.experimental.array_serialization import serialization as jax_array_serialization
@@ -35,6 +36,7 @@ from jax.sharding import NamedSharding
 from jax.sharding import PartitionSpec as P
 import numpy as np
 import tensorstore
+
 
 
 class AttnAllToAll(Enum):
@@ -341,7 +343,7 @@ def _with_sharding_constraint(t,
         f'Uneven sharding. Shape: {t.shape}, spec: {spec}, axis: {axis}, axis'
         f' size: {axis_size}'
     )
-  return pjit.with_sharding_constraint(t, axes)
+  return lax.with_sharding_constraint(t, axes)
 
 
 def get_sharding_divisor(logical):
