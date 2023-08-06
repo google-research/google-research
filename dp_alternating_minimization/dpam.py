@@ -553,7 +553,7 @@ class SparseMatrix:
   # ["uid", "sid"] of the history. The history is always excluded from
   # the set of candidates (in recall computation), and always used to compute
   # the projection.
-  history: pd.DataFrame = None  # pytype: disable=annotation-type-mismatch  # typed-pandas
+  history: Optional[pd.DataFrame] = None
   # InputMatrix objects created by Dataset.preprocess()
   sp_history: Optional[InputMatrix] = None
   sp_labels: Any = None
