@@ -96,7 +96,7 @@ let mqmDefaultSlices = [
 ];
 
 /**
- * An object that captures all the data needed for running signigicance
+ * An object that captures all the data needed for running significance
  * tests on one particular metric.
  */
 class MarotSigtestsData {
@@ -1677,15 +1677,11 @@ class Marot {
     }
 
     this.sigtestsMsg.innerHTML = 'Computing p-values...';
-    if (this.sigtestsWorkerJS) {
-      /** Create Worker using code directly. */
-      const blob = new Blob([this.sigtestsWorkerJS],
-                            {type: "text/javascript" });
-      this.sigtestsWorker = new Worker(window.URL.createObjectURL(blob));
-    } else {
-      /** Create Worker using code file. */
-      this.sigtestsWorker = new Worker('marot-sigtests.js');
-    }
+    console.assert(this.sigtestsWorkerJS,
+                   'Missing code from marot-sigtests.js');
+    const blob = new Blob([this.sigtestsWorkerJS],
+                          {type: "text/javascript" });
+    this.sigtestsWorker = new Worker(window.URL.createObjectURL(blob));
     this.sigtestsWorker.postMessage(this.sigtestsData);
     this.sigtestsWorker.onmessage = this.sigtestsUpdate.bind(this);
   }
