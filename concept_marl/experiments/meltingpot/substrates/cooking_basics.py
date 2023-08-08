@@ -25,13 +25,13 @@ whole) follow the design patterns introduced there.
 import copy
 from typing import Any, Dict, List, Tuple
 
+from meltingpot.utils.substrates import colors
+from meltingpot.utils.substrates import game_object_utils
+from meltingpot.utils.substrates import shapes
+from meltingpot.utils.substrates import specs
 from ml_collections import config_dict
 
 from concept_marl.experiments.meltingpot.substrates import concept_specs
-from meltingpot.python.utils.substrates import colors
-from meltingpot.python.utils.substrates import game_object_utils
-from meltingpot.python.utils.substrates import shapes
-from meltingpot.python.utils.substrates import specs
 
 COOKING_TIME = 20
 items = ["empty", "tomato", "dish", "soup"]
