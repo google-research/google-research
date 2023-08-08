@@ -57,7 +57,8 @@ def paste_instance_masks(masks,
 
   def expand_boxes(boxes, scale):
     """Expands an array of boxes by a given scale."""
-    # Reference: https://github.com/facebookresearch/Detectron/blob/master/detectron/utils/boxes.py#L227  # pylint: disable=line-too-long
+    # Reference:
+    # https://github.com/facebookresearch/Detectron/blob/master/detectron/utils/boxes.py#L227
     # The `boxes` in the reference implementation is in [x1, y1, x2, y2] form,
     # whereas `boxes` here is in [x1, y1, w, h] form
     w_half = boxes[:, 2] * .5
@@ -76,7 +77,8 @@ def paste_instance_masks(masks,
 
     return boxes_exp
 
-  # Reference: https://github.com/facebookresearch/Detectron/blob/master/detectron/core/test.py#L812  # pylint: disable=line-too-long
+  # Reference:
+  # https://github.com/facebookresearch/Detectron/blob/master/detectron/core/test.py#L812
   # To work around an issue with cv2.resize (it seems to automatically pad
   # with repeated border values), we manually zero-pad the masks by 1 pixel
   # prior to resizing back to the original image resolution. This prevents

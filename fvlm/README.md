@@ -39,6 +39,16 @@ You can set model size, demo image, category string, and visualization by the co
 
 We note that the demo models are trained on a mixture of COCO, Objects365 and full LVIS dataset to increase the base category coverage. They are different from the ones used for LVIS/COCO benchmarks in the paper which are trained on subsets of LVIS/COCO vocabularies.
 
+## Export the JAX checkpoint.
+Run the following commands from the root fvlm directory.
+
+```
+INPUT_DIR="/your/input/jax_checkpoint_dir"
+OUTPUT_DIR="/your/output/savedmodel/dir"
+
+./scripts/export_model.sh "${INPUT_DIR}" "${OUTPUT_DIR}"
+```
+
 ## Citation
 ```
 @inproceedings{

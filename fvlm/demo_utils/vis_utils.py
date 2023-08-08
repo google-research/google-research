@@ -36,7 +36,7 @@ https://github.com/tensorflow/tpu/tree/master/models/official/detection/utils/ob
 
 import collections
 
-import mask
+from demo_utils import mask_utils
 import numpy as np
 from PIL import Image
 from PIL import ImageColor
@@ -441,7 +441,7 @@ def visualize_instance_segmentations(
     # Change the format to xywh.
     y1, x1, y2, x2 = np.split(detection_boxes, 4, -1)
     xywh_detection_boxes = np.concatenate([x1, y1, x2 - x1, y2 - y1], axis=-1)
-    segmentations = mask.paste_instance_masks(
+    segmentations = mask_utils.paste_instance_masks(
         instance_masks,
         xywh_detection_boxes,
         image_height=image_size,
