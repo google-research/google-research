@@ -155,9 +155,9 @@ class MultiEnvReps2RepsWithHungarianMatching(MultiEnvReps2Reps):
     """Computes alignments between all environment pairs.
 
     Args:
-      env_reps: jnp array; Reps for different environments (sharded).
+      env_reps: jnp.ndarray; Reps for different environments (sharded).
       env_batches: list of dict; Batches of different environments (sharded).
-      env_ids: jnp array; Environment ids.
+      env_ids: jnp.ndarray; Environment ids.
 
     Returns:
       alignment between batches of environment pairs (sharded).

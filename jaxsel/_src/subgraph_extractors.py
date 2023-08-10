@@ -105,8 +105,9 @@ class SparseISTAExtractor(nn.Module):
     q_minus_grad = self._q_minus_grad(q, adjacency_matrix, s)
     return self._sparse_softthresh(q_minus_grad)
 
-  def _error(self, q, dense_adjacency_matrix,
-             s):
+  def _error(
+      self, q, dense_adjacency_matrix, s
+  ):
     return (_dense_fixed_point(q, dense_adjacency_matrix, s, self.config.alpha,
                                self.config.rho)**2).sum()
 
@@ -242,7 +243,7 @@ class SparseISTAExtractor(nn.Module):
     node_ids = q.indices.flatten()
 
     error = self._error(q_star, dense_submat, dense_s)
-    return q_star, node_features, node_ids, dense_submat, q, adjacency_matrix, error
+    return q_star, node_features, node_ids, dense_submat, q, adjacency_matrix, error  # pytype: disable=bad-return-type  # jnp-array
 
 
 # Utility functions
@@ -314,8 +315,12 @@ def _sum_with_nse(mat, other_mat,
   return _abs_top_k(result, k=nse, nse=nse)
 
 
-def _dense_q_minus_grad(q, dense_adjacency_matrix,
-                        s, alpha):
+def _dense_q_minus_grad(
+    q,
+    dense_adjacency_matrix,
+    s,
+    alpha,
+):
   """Computes q-grad on dense arguments."""
   return (1. - alpha) * dense_adjacency_matrix.T @ q - alpha * s
 
@@ -325,15 +330,25 @@ def _softthresh(x, alpha, rho):
   return jnp.sign(x) * jnp.maximum(jnp.abs(x) - alpha * rho, 0.)
 
 
-def _dense_ista_step(q, dense_adjacency_matrix,
-                     s, alpha, rho):
+def _dense_ista_step(
+    q,
+    dense_adjacency_matrix,
+    s,
+    alpha,
+    rho,
+):
   """Performs a single step of ISTA for dense arguments."""
   q_minus_grad = _dense_q_minus_grad(q, dense_adjacency_matrix, s, alpha)
   return _softthresh(q_minus_grad, alpha, rho)
 
 
-def _dense_fixed_point(q, dense_adjacency_matrix,
-                       s, alpha, rho):
+def _dense_fixed_point(
+    q,
+    dense_adjacency_matrix,
+    s,
+    alpha,
+    rho,
+):
   """Returns the equation to be used in implicit differentiation."""
   q_ = _dense_ista_step(q, dense_adjacency_matrix, s, alpha, rho)
   return q - q_

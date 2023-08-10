@@ -124,7 +124,7 @@ class ManifoldMixup(end2end.End2end):
     Args:
       rng: Jax PRNG key.
       flax_module: Flax model.
-      matching_matrix: jnp array; 2d matrix specifying example pairs.
+      matching_matrix: jnp.ndarray; 2d matrix specifying example pairs.
       reps: dict; Activations of all the layers (layer_name --> layer
         activations).
       sampled_layer: str; Name of the sampled layer.
