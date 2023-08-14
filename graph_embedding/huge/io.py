@@ -212,6 +212,7 @@ class ComputeExpectedEdgeScore:
       A tensor of shape [batch_size]
     """
     if self.weights is not None:
+      # Assumes that the feat.dtype is one of the floating point types.
       weights_t = tf.constant(
           self.weights, shape=(len(self.weights), 1), dtype=feat.dtype
       )
@@ -322,7 +323,8 @@ def deepwalk_input_fn(
         "Context aware num_replicas_in_sync: %d", ctx.num_replicas_in_sync
     )
     logging.info("Context aware positive_batch_size: %d", positive_batch_size)
-    logging.info("Context aware edge_score_norm: %f", edge_score_norm)
+    if edge_score_norm:
+      logging.info("Context aware edge_score_norm: %f", edge_score_norm)
   else:
     logging.info("No input context normalization.")
 

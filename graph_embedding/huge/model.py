@@ -14,7 +14,8 @@
 # limitations under the License.
 
 """HUGE-TPU embedding model."""
-from typing import Any, Mapping, Optional, Tuple
+import os
+from typing import Any, Iterator, Mapping, Optional, Tuple
 
 from absl import logging
 import tensorflow as tf
@@ -351,3 +352,380 @@ def huge_model(
     logits = tf.sigmoid(sim)
 
   return tf.keras.Model(inputs=inputs, outputs=logits)
+
+
+def create_or_restore_checkpoint_manager(
+    model,
+    optimizer,
+    strategy,
+    ckpt_dir,
+    max_to_keep = 2,
+    checkpoint_interval = 1000,
+):
+  """Create a checkpoint manager that may instantiate or restore a model.
+
+  Args:
+    model: A HUGE-TPU model as a tf.keras.Model instance.
+    optimizer: A TPUEmbedding compatible optimizer.
+    strategy: A tf.distribute.Strategy instance.
+    ckpt_dir: String checkpoint path specification.
+    max_to_keep: Integer number of checkpoints to keeps.
+    checkpoint_interval: Integer checkpoint interval.
+
+  Returns:
+    A tf.train.CheckpointManager object.
+  """
+  checkpoint = tf.train.Checkpoint(optimizer=optimizer, model=model)
+  checkpoint_manager = tf.train.CheckpointManager(
+      checkpoint,
+      ckpt_dir,
+      max_to_keep=max_to_keep,
+      step_counter=optimizer.iterations,
+      checkpoint_interval=checkpoint_interval,
+  )
+
+  if checkpoint_manager.latest_checkpoint:
+    logging.info(
+        "Restoring from checkpoint: %s", checkpoint_manager.latest_checkpoint
+    )
+
+    with strategy.scope():
+      checkpoint.restore(checkpoint_manager.latest_checkpoint)
+
+    logging.info(
+        "Restored checkpoint at step: %d", optimizer.iterations.numpy()
+    )
+
+  return checkpoint_manager
+
+
+class HugeMetrics:
+  """Huge-TPU metrics suitable for distributed TPU training."""
+
+  def __init__(
+      self,
+      strategy,
+      logs_dir,
+      num_negs_per_pos = None,
+  ):
+    """Initialize a HugeMetrics object.
+
+    Args:
+      strategy: A tf.distribute.Strategy object.
+      logs_dir: Path specification for writing tensorboard metrics.
+      num_negs_per_pos: Integer number of negative samples per positive samples
+        in a training batch.
+    """
+    self.metrics = {}
+    self.logs_dir = logs_dir
+    self.writer = tf.summary.create_file_writer(self.logs_dir)
+    self.strategy = strategy
+    if num_negs_per_pos is not None:
+      assert num_negs_per_pos > 0, "num_negs_per_pos must be greater than 0."
+    self.num_negs_per_pos = num_negs_per_pos
+
+    with strategy.scope():
+      self.metrics["total_loss"] = tf.keras.metrics.Mean(name="total_loss")
+      self.metrics["positive_loss"] = tf.keras.metrics.Mean(
+          name="positive_loss"
+      )
+      self.metrics["negative_loss"] = tf.keras.metrics.Mean(
+          name="negative_loss"
+      )
+      self.metrics["accuracy"] = tf.keras.metrics.Mean(name="accuracy")
+      self.metrics["precision"] = tf.keras.metrics.Mean(name="precision")
+      self.metrics["recall"] = tf.keras.metrics.Mean(name="recall")
+      self.metrics["f1"] = tf.keras.metrics.Mean(name="f1")
+      self.metrics["tp"] = tf.keras.metrics.Mean(name="TP")
+      self.metrics["tn"] = tf.keras.metrics.Mean(name="TN")
+      self.metrics["fp"] = tf.keras.metrics.Mean(name="FP")
+      self.metrics["fn"] = tf.keras.metrics.Mean(name="FN")
+      self.metrics["steps_per_second"] = tf.keras.metrics.Mean(
+          name="steps_per_second"
+      )
+
+  def update(
+      self,
+      total_loss,
+      positive_loss,
+      negative_loss,
+      positive_logits,
+      negative_logits,
+  ):
+    """Update the huge-tpu metrics.
+
+    Args:
+      total_loss: A tf.Tensor containing the total model loss.
+      positive_loss: A tf.Tensor containing the positive portion of the loss.
+      negative_loss: A tf.Tensor containing the negative portion of the loss.
+      positive_logits: Model output corresponding to positive examples.
+      negative_logits: Model output corresponding to negative examples.
+    """
+    # Approximate in-batch confusion matrix.
+    tp = tf.math.count_nonzero(positive_logits > 0.5, dtype=tf.float32)
+    fn = tf.math.count_nonzero(positive_logits <= 0.5, dtype=tf.float32)
+    tn = tf.math.count_nonzero(negative_logits <= 0.5, dtype=tf.float32)
+    fp = tf.math.count_nonzero(negative_logits > 0.5, dtype=tf.float32)
+
+    # There are many more negatives than positives: scale the negatives s.t.
+    # accuracy and recall are more intelligible.
+    if self.num_negs_per_pos:
+      tn = tn / self.num_negs_per_pos
+      fp = fp / self.num_negs_per_pos
+
+    accuracy = tf.divide(tf.add(tp, tn), tf.add(tp, tf.add(tn, tf.add(fp, fn))))
+    precision = tf.divide(tp, tf.add(tp, fp))
+    recall = tf.divide(tp, tf.add(tp, fn))
+    f1 = tf.divide(
+        tf.multiply(tp, 2), tf.add(tf.multiply(tp, 2), tf.add(fp, fn))
+    )
+
+    self.metrics["total_loss"].update_state(total_loss)
+    self.metrics["positive_loss"].update_state(positive_loss)
+    self.metrics["negative_loss"].update_state(negative_loss)
+    self.metrics["tp"].update_state(tp)
+    self.metrics["fn"].update_state(fn)
+    self.metrics["tn"].update_state(tn)
+    self.metrics["fp"].update_state(fp)
+    self.metrics["accuracy"].update_state(accuracy)
+    self.metrics["precision"].update_state(precision)
+    self.metrics["recall"].update_state(recall)
+    self.metrics["f1"].update_state(f1)
+
+  def reset_states(self):
+    """Reset the internal states of the metric tracking variables."""
+    _ = [m.reset_states() for m in self.metrics.values()]
+
+  def summarize(self, current_step):
+    """Write metric summaries.
+
+    Args:
+      current_step: A tf.Tensor containing the current step, typically provided
+        by an optimizer.
+    """
+    with self.writer.as_default():
+      with tf.name_scope("Loss"):
+        tf.summary.scalar(
+            "Total", self.metrics["total_loss"].result(), current_step
+        )
+        tf.summary.scalar(
+            "Positive", self.metrics["positive_loss"].result(), current_step
+        )
+        tf.summary.scalar(
+            "Negative", self.metrics["negative_loss"].result(), current_step
+        )
+
+      with tf.name_scope("TrainingMetrics"):
+        tf.summary.scalar(
+            "accuracy", self.metrics["accuracy"].result(), current_step
+        )
+        tf.summary.scalar(
+            "precision", self.metrics["precision"].result(), current_step
+        )
+        tf.summary.scalar(
+            "recall", self.metrics["recall"].result(), current_step
+        )
+        tf.summary.scalar("f1", self.metrics["f1"].result(), current_step)
+
+      tp = self.metrics["tp"].result()
+      fp = self.metrics["fp"].result()
+      fn = self.metrics["fn"].result()
+      tn = self.metrics["tn"].result()
+      tpr = tp / (tp + fn)
+      tnr = tn / (tn + fp)
+      fpr = fp / (fp + tn)
+      fnr = fn / (fp + tn)
+      with tf.name_scope("TrainingConfusionMatrix"):
+        tf.summary.scalar("TPR", tpr, current_step)
+        tf.summary.scalar("TNR", tnr, current_step)
+        tf.summary.scalar("FPR", fpr, current_step)
+        tf.summary.scalar("FNR", fnr, current_step)
+
+      # TODO(bmayer): Is this really necessary?
+      self.writer.flush()
+
+  def __str__(self):
+    return (
+        f"total_loss: {self.metrics['total_loss'].result().numpy()}, "
+        f"positive_loss: {self.metrics['positive_loss'].result().numpy()}, "
+        f"negative_loss: {self.metrics['negative_loss'].result().numpy()}"
+    )
+
+
+def train(
+    model,
+    optimizer,
+    strategy,
+    ds_iter,
+    model_dir,
+    epochs,
+    train_steps,
+    nhost_steps,
+    positive_batch_size,
+    num_negs_per_pos,
+    logs_dir = None,
+    async_checkpoint = False,
+):
+  """Train a HUGE-TPU model.
+
+  Args:
+    model: A huge-tpu model.
+    optimizer: A tf.keras.optimizer.Optimizer class.
+    strategy: a tf.distribute.Strategy object.
+    ds_iter: An iterator over a tf.data.Dataset or tf.distributed.Dataset.
+    model_dir: A path specification for writing metric summaries and saving
+      checkpoints. If there are checkpoints under `model_dir`, the model and
+      optimizer will be reloaded and training will resume from
+      `step=optimizer.iterations`.
+    epochs: Integer number of desired epochs.
+    train_steps: Integer number of training steps per epoch.
+    nhost_steps: Integer number of host loops per train_steps. Note the
+      constraint that the `train_steps` must be a multiple of `nhost_stesp`,
+      i.e.,`train_steps % nhost_steps == 0`.
+    positive_batch_size: Integer number of positive examples per training batch.
+    num_negs_per_pos: Integer number of random negative samples to draw for each
+      positive example. E.g., `total_batch_size = positive_batch_size * (1 +
+      num_negs_per_pos)`.
+    logs_dir: Optional log directory for tensorboard summaries. If not provided,
+      will write summaries to `model_dir`.
+    async_checkpoint: Boolean option to enable async checkpoint writing. This
+      will allow training to continue while a model. While this may result in
+      significant wall clock savings per epoch, this will consume extra host
+      memory, beware of OOMs. Defaults to False.
+
+  Raises:
+    ValueError if `positive_batch_size` is not divisible by
+    `strategy.num_replicas_in_synce` or if `train_steps` is not divisible by
+    `nhost_steps`.
+  """
+
+  if positive_batch_size % strategy.num_replicas_in_sync != 0:
+    raise ValueError(
+        f"positive_batch_size: {positive_batch_size} should be divisible by"
+        f" strategy.num_replicas_in_sync: {strategy.num_replicas_in_sync}"
+    )
+
+  if train_steps % nhost_steps != 0:
+    raise ValueError(
+        f"train_steps: {train_steps} should be divisible by nhost_steps:"
+        f" {nhost_steps}"
+    )
+
+  # Turn num hosts steps into a tensor, this is needed as sometimes passing
+  # non-tensor python objects to tf.functions causes re-tracing.
+  nhost_steps_t = tf.constant(nhost_steps, dtype=tf.int64)
+
+  per_replica_positive_batch_size = (
+      positive_batch_size // strategy.num_replicas_in_sync
+  )
+
+  logging.info(
+      "per_replica_positive_batch_size: %s", per_replica_positive_batch_size
+  )
+
+  ckpt_dir = os.path.join(model_dir, "ckpt")
+  if not tf.io.gfile.exists(ckpt_dir):
+    logging.info("Creating checkpoint directory: %s", ckpt_dir)
+    tf.io.gfile.makedirs(ckpt_dir)
+
+  logging.info("ckpt_dir: %s", ckpt_dir)
+  checkpoint_options = tf.train.CheckpointOptions(enable_async=async_checkpoint)
+  checkpoint_manager = create_or_restore_checkpoint_manager(
+      model, optimizer, strategy, ckpt_dir
+  )
+
+  metrics_path = logs_dir if logs_dir else model_dir
+  logging.info("Writing metrics to: %s", metrics_path)
+  metrics = HugeMetrics(strategy, metrics_path, num_negs_per_pos)
+
+  starting_epoch = 0
+  if optimizer.iterations.numpy() > 0:
+    starting_epoch = optimizer.iterations.numpy() // train_steps
+  logging.info(
+      "starting_epoch: %s (Should be > 0 if restored from checkpoint).",
+      starting_epoch,
+  )
+
+  @tf.function
+  def train_step(iterator, nhost_steps):
+    """Perform HUGE-TPU training steps."""
+
+    def step_fn(inputs):
+      src, dst, expected_edge_scores = inputs[:3]
+
+      with tf.GradientTape() as tape:
+        logits = model(inputs={"src": src, "dst": dst})
+        positive_logits = logits[:per_replica_positive_batch_size]
+        negative_logits = logits[per_replica_positive_batch_size:]
+        tl, pl, nl = negative_log_graph_likelihood(
+            positive_logits, negative_logits, expected_edge_scores
+        )
+
+      gradients = tape.gradient(tl, model.trainable_variables)
+      optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+      metrics.update(tl, pl, nl, positive_logits, negative_logits)
+
+    # Each TPU core will run the step_fn, when this loop completes,
+    # execution will be handed back to the coordinator.
+    for _ in tf.range(nhost_steps):
+      strategy.run(step_fn, args=(next(iterator),))
+
+    metrics.summarize(optimizer.iterations)
+
+  for epoch in range(starting_epoch, epochs):
+    current_step = optimizer.iterations.numpy()
+    logging.info(
+        "Starting epoch: %d, step %d", current_step // train_steps, current_step
+    )
+    epoch_start = tf.timestamp()
+    with tf.experimental.async_scope():
+      for step in range(train_steps // nhost_steps):
+        logging.info(
+            "\tQueueing train_step: %d of %d",
+            current_step + step,
+            train_steps // nhost_steps,
+        )
+        train_step(ds_iter, nhost_steps_t)
+
+    # metrics.summarize(optimizer.iterations)
+    logging.info("Epoch: %d, %s", epoch, metrics)
+    metrics.reset_states()
+
+    epoch_duration = tf.timestamp() - epoch_start
+
+    steps_per_second = (
+        tf.constant(train_steps, dtype=epoch_duration.dtype) / epoch_duration
+    )
+    positive_examples_per_second = (
+        tf.constant(positive_batch_size, dtype=epoch_duration.dtype)
+        / epoch_duration
+    )
+    with metrics.writer.as_default():
+      with tf.name_scope("Timing"):
+        tf.summary.scalar(
+            "StepsPerSecond", steps_per_second, optimizer.iterations
+        )
+
+        tf.summary.scalar(
+            "PositiveExamplesPerSecond",
+            positive_examples_per_second,
+            optimizer.iterations,
+        )
+    latest_checkpoint = checkpoint_manager.save(
+        check_interval=True, options=checkpoint_options
+    )
+    if latest_checkpoint:
+      logging.info("Wrote checkpoint: %s", latest_checkpoint)
+    else:
+      logging.warning(
+          "Failed to save checkpoint: %d", optimizer.iterations.numpy()
+      )
+
+  # Make sure we save the last checkpoint
+  latest_checkpoint = checkpoint_manager.save(
+      check_interval=False, options=checkpoint_options
+  )
+  if latest_checkpoint:
+    logging.info("Wrote final checkpoint: %s", latest_checkpoint)
+  else:
+    logging.warning("Failed to save final checkpoint.")

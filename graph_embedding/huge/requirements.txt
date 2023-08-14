@@ -3,3 +3,4 @@ gtest
 numpy
 protobuf
 tensorflow
+xmanager
