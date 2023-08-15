@@ -45,11 +45,11 @@ from absl import logging
 from demo_utils import input_utils
 from demo_utils import vis_utils
 import jax
-import jax_clip
 import numpy as np
 from PIL import Image
 import tensorflow as tf
 import tqdm
+from utils import clip_utils
 
 
 _DEMO_IMAGE_NAME = flags.DEFINE_string('demo_image_name', 'citrus.jpg',
@@ -72,7 +72,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  clip_text_fn = jax_clip.get_clip_text_fn(_MODEL.value)
+  clip_text_fn = clip_utils.get_clip_text_fn(_MODEL.value)
 
   demo_image_path = f'./data/{_DEMO_IMAGE_NAME.value}'
   output_image_path = demo_image_path.replace('data', 'output')

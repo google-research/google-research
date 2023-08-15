@@ -33,7 +33,6 @@ FastrcnnHead.use_class_bias = %USE_CLS_BIAS
 process_and_generate_detections.class_box_regression = %CLS_BOX_REG
 process_and_generate_detections.pre_nms_num_detections = 1000
 
-
 # MultitaskModel model.
 get_clip_vision_model.model_name = %CLIP_NAME
 AttentionPool.num_heads = 32

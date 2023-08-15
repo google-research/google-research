@@ -516,3 +516,31 @@ def rescale_boxes(boxes, image_size, scale = 1.0):
   new_boxes = jnp.concatenate([coords[:, :, None] for coords in new_boxes], -1)
   clipped_boxes = clip_boxes(new_boxes, image_size[:, None, :])
   return clipped_boxes
+
+
+def yxyx_to_xywh(boxes):
+  """Converts boxes from ymin, xmin, ymax, xmax to xmin, ymin, width, height.
+
+  Args:
+    boxes: a numpy array whose last dimension is 4 representing the coordinates
+      of boxes in ymin, xmin, ymax, xmax order.
+
+  Returns:
+    boxes: a numpy array whose shape is the same as `boxes` in new format.
+
+  Raises:
+    ValueError: If the last dimension of boxes is not 4.
+  """
+  if boxes.shape[-1] != 4:
+    raise ValueError(
+        'boxes.shape[-1] is {:d}, but must be 4.'.format(boxes.shape[-1]))
+
+  boxes_ymin = boxes[Ellipsis, 0]
+  boxes_xmin = boxes[Ellipsis, 1]
+  boxes_width = boxes[Ellipsis, 3] - boxes[Ellipsis, 1]
+  boxes_height = boxes[Ellipsis, 2] - boxes[Ellipsis, 0]
+  new_boxes = np.stack(
+      [boxes_xmin, boxes_ymin, boxes_width, boxes_height], axis=-1)
+
+  return new_boxes
+

@@ -16,7 +16,7 @@
 """OpenAI's CLIP models in Flax.
 
 The implementation is based on an initial port of code in
-https://github.com/openai/CLIP to JAX, by pooleb@google.com.
+https://github.com/openai/CLIP to JAX by Ben Poole.
 """
 
 import functools
@@ -537,14 +537,11 @@ def get_clip_vision_model(model_name):
 
 
 @gin.configurable
-def get_clip_frozen_vision_model(model_name,
-                                 pretrained_pos_emb_size = 14):
+def get_clip_frozen_vision_model(model_name):
   """Returns frozen ViT model."""
   if 'vit' in model_name:
     # Frozen vision backbone performs better with window attention size v2.
-    return get_clip_vision_model(model_name,
-                                 pretrained_pos_emb_size,
-                                 use_window_attention_size_frozen=True)
+    return get_clip_vision_model(model_name)
   else:
     raise ValueError(f'model_name {model_name} is not supported with frozen'
                      'backbone inference.')

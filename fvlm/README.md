@@ -20,6 +20,8 @@ Install the requirements from the root fvlm directory.
 pip install -r requirements.txt
 ```
 
+For GPU training, please refer to [this github page](https://github.com/google/jax/issues/13637) for installation instructions.
+
 ## Download the checkpoints.
 Run the following commands from the root fvlm directory. 
 
@@ -48,6 +50,33 @@ OUTPUT_DIR="/your/output/savedmodel/dir"
 
 ./scripts/export_model.sh "${INPUT_DIR}" "${OUTPUT_DIR}"
 ```
+
+## Train and evaluate F-VLM from CLIP checkpoints.
+
+Here we describe the steps to use the [COCO](https://cocodataset.org/#home) dataset for training and evaluation as an example. To use any custom dataset, users would need to follow the same setup.
+
+* Follow the steps [here](https://cloud.google.com/tpu/docs/tutorials/mask-rcnn-2.x#prepare-coco) to set up the COCO dataset and move it to datasets/coco. The coco directory should contain train*.tfrecord, val*.tfrecord, and instances_val2017.json (the standard COCO evaluation [file](https://cocodataset.org/#download)).
+* Download the precomputed COCO category embeddings and store it by running
+
+```
+./scripts/download_precomputed_embeddings.sh
+```
+
+* Run the following command:
+
+```
+OUTPUT_DIR="/your/output/dir"
+
+./train_and_eval.sh "${OUTPUT_DIR}"
+```
+
+## Set up custom datasets.
+
+Here we describe the specific changes needed to set up training/evaluation with custom datasets. Users need to update utils/dataset_utils.py:
+
+* Add another attribute in DatasetType enum with the name of your dataset, e.g. FOO='foo'.
+* Update DATASET_VOCABS dictionary with the path to the mapping json file of your dataset. Please follow coco_mapping.json for the required format.
+* Update DATASET_NUM_CLASSES with the number of classes for your dataset.
 
 ## Citation
 ```

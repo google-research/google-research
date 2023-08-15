@@ -12,16 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+SOURCE="https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/fvlm/embeddings.zip"
 
-INPUT_DIR=$1
-OUTPUT_DIR=$2
-FILE_PATH="./export_saved_model.py"
-MODEL_NAME="resnet_50"
-
-python3 "${FILE_PATH}" \
- --input_dir="${INPUT_DIR}" \
- --output_dir="${OUTPUT_DIR}" \
- --model_name="${MODEL_NAME}"
+wget "${SOURCE}"
+unzip "./embeddings.zip"
+rm "./embeddings.zip"
+rm -rf "__MACOSX"

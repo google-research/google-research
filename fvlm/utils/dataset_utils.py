@@ -23,53 +23,24 @@ import gin
 import numpy as np
 import tensorflow as tf
 
+# TO use a custom dataset, users would need to add a new map path e.g.
+# _MY_DATA_MAP_PATH = '/path/to/my_data_mapping.json'
+_COCO_MAP_PATH = './datasets/coco_mapping.json'
+_DEFAULT_EMBED_DIR = './embeddings/'
 
-_OBJECT_MAP_PATH = './datasets/my_dataset_mapping.json'
-_DEFAULT_EMBED_DIR = './embeddings/vit_b32/'
-_BASE_INDICATOR_PATH = './datasets/my_dataset_base_indicator.json'
-
-
+# To use a custom dataset, users would need to add a new DatasetType e.g.
+# MYDATA = 'my_data'
 @gin.constants_from_enum
 @enum.unique
 class DatasetType(enum.Enum):
   """Dataset type for which dataset to use."""
-  CUSTOM = 'custom'
+  COCO = 'coco'
 
-
-DATASET_VOCABS = {DatasetType.CUSTOM: _OBJECT_MAP_PATH}
-DATASET_NUM_CLASSES = {DatasetType.CUSTOM: 91}
-DATASET_IS_BASE = {DatasetType.CUSTOM: _BASE_INDICATOR_PATH}
-
-
-@gin.configurable
-def load_dataset_base_indicator(
-    dataset_type,
-    pad_to_size = None):
-  """Return the base category indicator of a dataset.
-
-  This is used for ensembling scores for open-vocabulary detection.
-
-  Args:
-    dataset_type: The type of dataset.
-    pad_to_size: Pad or trim the indicator to fixed length.
-
-  Returns:
-    class_names: A list of [0, 1] values indicating the base class (1) or novel
-      class of a dataset. The length is num_classes + 1 (background).
-  """
-  data_path = DATASET_IS_BASE[dataset_type]
-  with open(data_path) as fid:
-    base_indicator = json.load(fid)
-
-  if pad_to_size is None:
-    return base_indicator
-
-  if len(base_indicator) == pad_to_size:
-    return base_indicator
-  elif pad_to_size > len(base_indicator):
-    return base_indicator + [0] * (pad_to_size - len(base_indicator))
-  else:
-    return base_indicator[:pad_to_size]
+# To use a custom dataset, users would need to update the dictionaries below
+# with the new dataset type as key e.g. DatasetType.MYDATA and the corresponding
+# map path and number of classes as values.
+DATASET_VOCABS = {DatasetType.COCO: _COCO_MAP_PATH}
+DATASET_NUM_CLASSES = {DatasetType.COCO: 91}
 
 
 @gin.configurable

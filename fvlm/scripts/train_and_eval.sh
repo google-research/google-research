@@ -13,15 +13,14 @@
 # limitations under the License.
 
 #!/bin/bash
-set -e
 set -x
 
-INPUT_DIR=$1
-OUTPUT_DIR=$2
-FILE_PATH="./export_saved_model.py"
-MODEL_NAME="resnet_50"
+OUTPUT_DIR=$1
+CONFIG_PATH="./configs/fvlm_train_and_eval.gin"
+FILE_PATH="./train_and_eval.py"
+MODE="eval"
 
 python3 "${FILE_PATH}" \
- --input_dir="${INPUT_DIR}" \
  --output_dir="${OUTPUT_DIR}" \
- --model_name="${MODEL_NAME}"
+ --config_path="${CONFIG_PATH}" \
+ --mode="${MODE}"

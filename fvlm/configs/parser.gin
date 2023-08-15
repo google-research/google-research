@@ -13,12 +13,15 @@ AUG_SCALE_MAX = %gin.REQUIRED
 CATG_PAD_SIZE = %gin.REQUIRED
 MAX_NUM_INSTANCES = %gin.REQUIRED
 ANCHOR_SIZE = %gin.REQUIRED
+TRAIN_FILE_PATTERN = %gin.REQUIRED
+EVAL_FILE_PATTERN = %gin.REQUIRED
+TRAIN_EVAL_DATASET_TYPE = %gin.REQUIRED
 
 train/tfrecords_loader:
-  file_pattern = './path/to/train/data'
+  file_pattern = %TRAIN_FILE_PATTERN
   shuffle_files = True
 eval/tfrecords_loader:
-  file_pattern = './path/to/val/data'
+  file_pattern = %EVAL_FILE_PATTERN
   shuffle_files = False
 
 
@@ -34,6 +37,7 @@ maskrcnn_map_fn:
   include_mask = False
   mask_crop_size = 112
   use_bfloat16 = True
+  normalize_image_values = @clip_image_normalization_values()
 
 train/maskrcnn_map_fn:
   rpn_match_threshold=0.7
@@ -61,13 +65,12 @@ get_input:
 # Text detection wrapper.
 load_dataset_class_names.pad_to_size = %CATG_PAD_SIZE
 load_dataset_vocab_embed.pad_to_size = %CATG_PAD_SIZE
-load_dataset_base_indicator.pad_to_size = %CATG_PAD_SIZE
 get_multitask_text_detection_parser_fn.load_text_embed = True
 
 train/get_multitask_text_detection_parser_fn:
   parser_fn = @train/maskrcnn_map_fn()
   is_training = True
-  dataset_type = %DatasetType.CUSTOM
+  dataset_type = %TRAIN_EVAL_DATASET_TYPE
 
 train/get_input:
   loader_fn = @train/tfrecords_loader
@@ -76,7 +79,7 @@ train/get_input:
 eval/get_multitask_text_detection_parser_fn:
   parser_fn = @eval/maskrcnn_map_fn()
   is_training = False
-  dataset_type = %DatasetType.CUSTOM
+  dataset_type = %TRAIN_EVAL_DATASET_TYPE
 
 eval/get_input:
   loader_fn = @eval/tfrecords_loader
