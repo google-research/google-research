@@ -106,10 +106,14 @@ def perturbed(func,
   return foo
 
 
-def perturbed_sorted_topk_indicators(x, rng, k,
-                                     sigma,
-                                     num_samples = 1000,
-                                     noise = "normal"):
+def perturbed_sorted_topk_indicators(
+    x,
+    rng,
+    k,
+    sigma,
+    num_samples = 1000,
+    noise = "normal",
+):
   return perturbed(
       functools.partial(sorted_topk_indicators, k=k, sort_by=SortBy.POSITION),
       num_samples, noise)(x, sigma, rng)

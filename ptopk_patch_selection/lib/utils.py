@@ -87,13 +87,13 @@ def get_cosine_learning_rate(step,
 
 @jax.jit
 def to_tree_arrays(list_of_trees):
-  """Convert a list of pytrees into a pytree of stacked jnp.arrays.
+  """Convert a list of pytrees into a pytree of stacked jnp.ndarrays.
 
   Args:
     list_of_trees: A list of pytrees containing numbers as leaves.
 
   Returns:
-    A pytree of jnp.arrays having the same structure as the elements of
+    A pytree of jnp.ndarrays having the same structure as the elements of
     `list_of_trees`
 
   Example:
@@ -354,9 +354,11 @@ def l2_normalize(x, dim=-1, epsilon=1e-12):
   return x / divisor
 
 
-def extract_images_patches(images,
-                           window_size,
-                           stride = (1, 1)):
+def extract_images_patches(
+    images,
+    window_size,
+    stride = (1, 1),
+):
   """Extracts patches from an image using a convolution operator.
 
   Args:

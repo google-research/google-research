@@ -336,9 +336,9 @@ class CategoricalDiffusion:
     """Sample from q(x_t | x_start) (i.e. add noise to the data).
 
     Args:
-      x_start: jnp.array: original clean data, in integer form (not onehot).
+      x_start: jnp.ndarray: original clean data, in integer form (not onehot).
         shape = (bs, ...).
-      t: :jnp.array: timestep of the diffusion process, shape (bs,).
+      t: :jnp.ndarray: timestep of the diffusion process, shape (bs,).
       noise: jnp.ndarray: uniform noise on [0, 1) used to sample noisy data.
         Should be of shape (*x_start.shape, num_pixel_vals).
 

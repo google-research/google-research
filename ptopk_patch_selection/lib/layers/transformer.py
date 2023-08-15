@@ -112,16 +112,18 @@ class Transformer(nn.Module):
 class TransformerLayer(nn.Module):
   """Transformer Layer with attention, ffn, dropout, layernorm, residuals."""
 
-  def apply(self,
-            x,
-            *,
-            self_attention_module,
-            dim_intermediate,
-            is_training,
-            dropout_rate = 0.1,
-            use_pre_layernorm = False,
-            layernorm_epsilon = 1e-6,
-            with_aux_outputs = True):
+  def apply(
+      self,
+      x,
+      *,
+      self_attention_module,
+      dim_intermediate,
+      is_training,
+      dropout_rate = 0.1,
+      use_pre_layernorm = False,
+      layernorm_epsilon = 1e-6,
+      with_aux_outputs = True
+  ):
     """Compute self-attention with a feed-forward network on top.
 
     Args:
@@ -136,7 +138,7 @@ class TransformerLayer(nn.Module):
       with_aux_outputs: Whether the self_attention_module has an aux output.
 
     Returns:
-      New representations in a jnp.array of same shape as `x`.
+      New representations in a jnp.ndarray of same shape as `x`.
     """
     dim_hidden = x.shape[-1]
     use_pre_ln = use_pre_layernorm

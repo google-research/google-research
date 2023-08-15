@@ -106,8 +106,9 @@ class SphericalHarmonics(object):
     mask[1::2] = -1
     return jnp.asarray((mask))
 
-  def harmonics_nonpositive_order(
-      self, harmonics_nonnegative_order = None):
+  def harmonics_nonpositive_order(  # pytype: disable=annotation-type-mismatch  # jnp-array
+      self, harmonics_nonnegative_order = None
+  ):
     """Computes the spherical harmonics of nonpositive orders.
 
     With normalization, the nonnegative order Associated Legendre functions are

@@ -73,7 +73,8 @@ def cropped_positional_embedding(
     pos_emb_size,
     pos_emb_crop_region,
     up_pos_emb_size,
-    batch_size):
+    batch_size,
+):
   """Cropped Positional Embedding.
 
   First, we up-sample the positional embeddings from the size typical for

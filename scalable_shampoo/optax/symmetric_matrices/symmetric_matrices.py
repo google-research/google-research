@@ -276,7 +276,7 @@ def find_num_blocks(block_rows_concat):
   # Compute the number of square blocks used to represent the matrix.
   total_blocks = block_rows_concat.shape[-1] / block_rows_concat.shape[-2]
   # Determine the number of block rows by inverting y = x*(x+1)/2.
-  return num_blocks_from_total_blocks(total_blocks)
+  return num_blocks_from_total_blocks(total_blocks)  # pytype: disable=wrong-arg-types  # jnp-array
 
 
 @functools.partial(jax.jit, static_argnames=("block_size"))

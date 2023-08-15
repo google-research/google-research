@@ -321,11 +321,13 @@ class PatchNet(nn.Module):
     return representations, stats
 
 
-def select_patches_perturbed_topk(flatten_scores,
-                                  sigma,
-                                  *,
-                                  k,
-                                  num_samples = 1000):
+def select_patches_perturbed_topk(
+    flatten_scores,
+    sigma,
+    *,
+    k,
+    num_samples = 1000
+):
   """Select patches using a differentiable top-k based on perturbation.
 
   Uses https://q-berthet.github.io/papers/BerBloTeb20.pdf,
@@ -354,11 +356,9 @@ def select_patches_perturbed_topk(flatten_scores,
   return topk_indicators_flatten
 
 
-def select_patches_sinkhorn_topk(flatten_scores,
-                                 *,
-                                 k,
-                                 epsilon,
-                                 num_iterations):
+def select_patches_sinkhorn_topk(
+    flatten_scores, *, k, epsilon, num_iterations
+):
   """Select patches using a differentiable top-k based on sinkhorn.
 
   Uses https://arxiv.org/abs/2002.06504, see lib.ops.topk for more

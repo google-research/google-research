@@ -823,10 +823,10 @@ class MultiEnvLinearDomainMappingClassification(MultiEnvClassificationTask):
     (based on labels) function.
 
     Args:
-      x: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      y: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      x_labels: jnp array; labels of x with shape '[bs, 1]'.
-      y_labels: jnp array; labels of y with shape '[bs, 1]'.
+      x: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      y: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      x_labels: jnp.ndarray; labels of x with shape '[bs, 1]'.
+      y_labels: jnp.ndarray; labels of y with shape '[bs, 1]'.
       supervised: bool; If False we can not use y_labels and it defaults back to
         random alignment otherwise it does label based alignment (tries to align
         examples that have similar labels).
@@ -883,14 +883,13 @@ class MultiEnvHungarianDomainMappingClassification(
 
 
     Args:
-      x: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      y: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      x_labels: jnp array; labels of x with shape '[bs, 1]'.
-      y_labels: jnp array; labels of y with shape '[bs, 1]'.
+      x: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      y: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      x_labels: jnp.ndarray; labels of x with shape '[bs, 1]'.
+      y_labels: jnp.ndarray; labels of y with shape '[bs, 1]'.
 
     Returns:
       aligned indexes of x, aligned indexes of y.
-
     """
 
     label_cost = self.task_params.get('ot_label_cost', 0.)
@@ -986,10 +985,10 @@ class MultiEnvSinkhornDomainMappingClassification(
     of iterations and uses the dual unregularized transport cost as the OT cost.
 
     Args:
-      x: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      y: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      x_labels: jnp array; labels of x with shape '[bs, 1]'.
-      y_labels: jnp array; labels of y with shape '[bs, 1]'.
+      x: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      y: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      x_labels: jnp.ndarray; labels of x with shape '[bs, 1]'.
+      y_labels: jnp.ndarray; labels of y with shape '[bs, 1]'.
 
     Returns:
       ot_cost: scalar optimal transport loss.
@@ -1041,10 +1040,10 @@ class MultiEnvSinkhornDomainMappingClassification(
     of iterations and uses the dual unregularized transport cost as the OT cost.
 
     Args:
-      x: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      y: jnp array; Batch of representations with shape '[bs, feature_size]'.
-      x_labels: jnp array; labels of x with shape '[bs, 1]'.
-      y_labels: jnp array; labels of y with shape '[bs, 1]'.
+      x: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      y: jnp.ndarray; Batch of representations with shape '[bs, feature_size]'.
+      x_labels: jnp.ndarray; labels of x with shape '[bs, 1]'.
+      y_labels: jnp.ndarray; labels of y with shape '[bs, 1]'.
 
     Returns:
       ot_cost: scalar optimal transport loss.

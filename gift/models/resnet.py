@@ -114,7 +114,7 @@ class ResNet(base_model.BaseModel):
     """Apply a ResNet network on the input.
 
     Args:
-      inputs: jnp array; Inputs.
+      inputs: jnp.ndarray; Inputs.
       num_outputs: int; Number of output units.
       num_filters: int; Determines base number of filters. Number of filters in
         block i is  num_filters * 2 ** i.
@@ -124,8 +124,8 @@ class ResNet(base_model.BaseModel):
       input_dropout_rate: float; Rate of dropping out the input units.
       train: bool; Is train?
       dtype: jnp type; Type of the outputs.
-      head_bias_init: fn(rng_key, shape)--> jnp array; Initializer for head bias
-        parameters.
+      head_bias_init: fn(rng_key, shape)--> jnp.ndarray; Initializer for head
+        bias parameters.
       return_activations: bool; If True hidden activation are also returned.
       input_layer_key: str; Determines where to plugin the input (this is to
         enable providing inputs to slices of the model). If `input_layer_key` is
