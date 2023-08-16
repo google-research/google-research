@@ -12,7 +12,7 @@ detailed properties of fine-grained categories and instances.
     each answer.
 *   Our dataset poses a hard challenge for large vision+language models:
     [PaLI](https://arxiv.org/abs/2209.06794) is state-of-the-art on OK-VQA, yet
-    only achieves 13.0% accuracy on the single-hop part of our dataset.
+    only achieves 13.0% accuracy on the single-hop single-answer part of our dataset.
 *   We demonstrate that augmenting [PaLM](https://arxiv.org/abs/2204.02311) with
     a mechanism (Google Lens) to retrieve information from the knowledge base
     (Wikipedia based) yields 48.8% accuracy on the single-hop part of our
