@@ -14,10 +14,12 @@
 # limitations under the License.
 
 """Training configurations."""
+import os
+import time
 from ml_collections import config_dict
 
 
-def get_default():
+def get_config():
   """The default configuration."""
   cfg = config_dict.ConfigDict()
 
@@ -39,16 +41,17 @@ def get_default():
   # Optimizer hyperparameters.
   cfg.run.learning_rate = 1e-3
   cfg.run.weight_decay = 5e-4
-  cfg.run.model_dir = config_dict.placeholder(str)
+  cfg.run.model_dir = os.path.expanduser(
+      os.path.join("~", "ugsl", str(int(time.time()*1000))))
 
   cfg.model = config_dict.ConfigDict()
   # GSL layer(s).
   cfg.model.depth = 2
   cfg.model.adjacency_learning_mode = "shared_adjacency_matrix"
-  # Accepted values: 'WL', 'spectral'
+  # Accepted values: 'WL', 'spectral' (see position_encoders.py).
   cfg.model.position_encoders = []
 
-  # Edge scorer.
+  # Edge scorer (see edge_scorer.py).
   cfg.model.edge_scorer_cfg = config_dict.ConfigDict()
   cfg.model.edge_scorer_cfg.name = "mlp"
   cfg.model.edge_scorer_cfg.hidden_size = 1433
@@ -59,7 +62,7 @@ def get_default():
   cfg.model.edge_scorer_cfg.initialization = "identity"
   cfg.model.edge_scorer_cfg.dropout_rate = 0.5
 
-  # Sparsifier.
+  # Sparsifier (see sparsifier.py).
   cfg.model.sparsifier_cfg = config_dict.ConfigDict()
   cfg.model.sparsifier_cfg.name = "knn"
   cfg.model.sparsifier_cfg.k = 20
@@ -72,32 +75,32 @@ def get_default():
   cfg.model.sparsifier_cfg.soft_version = True
   cfg.model.sparsifier_cfg.temperature = 1.0
 
-  # Processor.
+  # Processor (see processor.py).
   cfg.model.processor_cfg = config_dict.ConfigDict()
   cfg.model.processor_cfg.name = "none"
   cfg.model.processor_cfg.activation = "relu"
 
-  # Merger.
+  # Merger (see merger.py).
   cfg.model.merger_cfg = config_dict.ConfigDict()
   cfg.model.merger_cfg.name = "none"
   cfg.model.merger_cfg.dropout_rate = 0.5
   cfg.model.merger_cfg.given_adjacency_weight = 0.5
 
-  # Encoder.
+  # Encoder (see encoder.py).
   cfg.model.encoder_cfg = config_dict.ConfigDict()
   cfg.model.encoder_cfg.name = "gcn"
   cfg.model.encoder_cfg.hidden_units = 32
   cfg.model.encoder_cfg.activation = "relu"
   cfg.model.encoder_cfg.dropout_rate = 0.5
 
-  # Regularizers.
+  # Regularizers (see regularizers.py).
   cfg.model.regularizer_cfg = config_dict.ConfigDict()
   cfg.model.regularizer_cfg.closeness_w = 0.0
   cfg.model.regularizer_cfg.smoothness_w = 0.0
   cfg.model.regularizer_cfg.sparseconnect_w = 0.0
   cfg.model.regularizer_cfg.logbarrier_w = 0.0
 
-  # Unsupervised losses.
+  # Unsupervised losses (see unsupervised_losses.py)
   # Denoising loss.
   cfg.model.unsupervised_cfg = config_dict.ConfigDict()
   cfg.model.unsupervised_cfg.denoising_cfg = config_dict.ConfigDict()

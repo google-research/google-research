@@ -21,12 +21,17 @@ from absl import app
 from ml_collections import config_flags
 import tensorflow as tf
 
-from ugsl import config
+# from ugsl import config
 from ugsl import input_layer
 from ugsl import models
 
 
-_CONFIG = config_flags.DEFINE_config_dict("config", config.get_default())
+_CONFIG = config_flags.DEFINE_config_file(
+    "config",
+    os.path.join(os.path.dirname(__file__), "config.py"),
+    "Path to file containing configuration hyperparameters. "
+    "File must define method `get_config()` to return an instance of "
+    "`config_dict.ConfigDict`")
 
 
 def get_tf_dataset(
