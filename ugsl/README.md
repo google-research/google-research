@@ -7,7 +7,7 @@ The repo contains a unified framework with different components in it for graph 
 
 Graph neural networks (GNNs) demonstrate outstanding performance in a broad range of applications. While the majority of GNN applications assume that a graph structure is given, some recent methods substantially expanded the applicability of GNNs by showing that they may be effective even when no graph structure is explicitly provided. The GNN parameters and a graph structure are jointly learned. Previous studies adopt different experimentation setups, making it difficult to compare their merits. In this paper, we propose a benchmarking strategy for graph structure learning using a unified framework. Our framework, called Unified Graph Structure Learning (UGSL), reformulates existing models into a single model. We implement a wide range of existing models in our framework and conduct extensive analyses of the effectiveness of different components in the framework. Our results provide a clear and concise understanding of the different methods in this area as well as their strengths and weaknesses.
 
-![alt text](https://github.com/google-research/google-research/tree/master/ugsl/figures/UGSL_layer.pdf?raw=true)
+![UGSL_layer](./figures/UGSL_layer.jpg)
 
 
 ## Datasets
@@ -19,14 +19,15 @@ The other two datasets are used extensively for classification with no structure
 The statistics of datasets used in the experiments are as follows.
 
 
-| Dataset | Nodes | Edges | Classes | Features | Label rate |
-| ------------- | ------------- |
-| Cora | 2,708 | 10,858 | 7 | 1,433 | 0.052  |
-| Citeseer | 3,327 | 9,464 | 6 | 3,703 | 0.036  |
-| Pubmed | 19,717 | 88,676 | 3 | 500 | 0.003 |
-| Amazon-electronics-photo | 7,650 | 143,663 | 8 | 745 | 0.1 |
-| Imagenet:20 | 11,006 | 0 | 20 | 1,024 | 0.72 |
-| Stackoverflow | 19,980 | 0 | 21 | 768 | 0.1 |
+| Dataset                  | Nodes     | Edges     | Classes   | Features   | Label rate  |
+| :-------:                | :-------: | :-------: | :-------: | :-------:  | :-------:   |
+| Cora                     | 2,708     | 10,858    | 7         | 1,433      | 0.052       |
+| Citeseer                 | 3,327     | 9,464     | 6         | 3,703      | 0.036       |
+| Pubmed                   | 19,717    | 88,676    | 3         | 500        | 0.003       |
+| Amazon-electronics-photo | 7,650     | 143,663   | 8         | 745        | 0.1         |
+| Imagenet:20              | 11,006    | 0         | 20        | 1,024      | 0.72        |
+| Stackoverflow            | 19,980    | 0         | 21        | 768        | 0.1         |
+
 
 ## Usage
 
