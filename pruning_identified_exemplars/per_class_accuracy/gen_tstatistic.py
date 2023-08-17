@@ -114,8 +114,7 @@ def generate_tstats_classes(df, dest_dir, params):
 
       t_stat = ttest_ind(baseline_set, variant_set, equal_var=False)
 
-      data = data.append(
-          pd.DataFrame(
+      data = pd.concat([data, pd.DataFrame(
               {
                   'class': c,
                   'pruning_fraction': p,
@@ -124,8 +123,7 @@ def generate_tstats_classes(df, dest_dir, params):
                   'pvalue_recall_norm': t_stat[1],
                   'statistic_recall_norm': t_stat[0],
               },
-              index=[0]),
-          ignore_index=True)
+              index=[0])], ignore_index=True)
 
   time_ = str(time.time())
   output_file = 'recall_t_statistic'

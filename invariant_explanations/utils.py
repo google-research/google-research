@@ -343,14 +343,11 @@ def analyze_accuracies_of_base_models():
       ][f'{accuracy_type}_accuracy'].to_numpy()
 
       # Add to accuracy_tracker.
-      accuracy_tracker = accuracy_tracker.append(
-          pd.DataFrame({
+      accuracy_tracker = pd.concat([accuracy_tracker, pd.DataFrame({
               'chkpt': chkpt_list,
               'accuracy': accuracy_list,
               'accuracy_type': accuracy_type_list,
-          }),
-          ignore_index=True,
-      )
+          })], ignore_index=True)
 
   with file_handler(config.cfg.EXP_DIR_PATH, 'accuracy_tracker.npy', 'wb') as f:
     pickle.dump(accuracy_tracker, f, protocol=4)
@@ -937,14 +934,12 @@ def train_meta_model_over_different_setups(random_seed):
         train_fraction,
     )
 
-    all_results = all_results.append(
-        {
+    all_results = pd.concat([all_results, {
             'chkpt': chkpt,  # hparams
             'train_fraction': train_fraction,
             'train_accuracy': train_results[1],
             'test_accuracy': test_results[1],
-        },
-        ignore_index=True)
+        }], ignore_index=True)
 
     with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
       pickle.dump(all_results, f, protocol=4)
@@ -1005,14 +1000,12 @@ def train_meta_model_over_different_setups(random_seed):
           train_fraction,
       )
 
-      all_results = all_results.append(
-          {
+      all_results = pd.concat([all_results, {
               'chkpt': covariates_setting['chkpt'],
               'train_fraction': train_fraction,
               'train_accuracy': train_results[1],
               'test_accuracy': test_results[1],
-          },
-          ignore_index=True)
+          }], ignore_index=True)
       with file_handler(config.cfg.EXP_DIR_PATH, 'all_results.npy', 'wb') as f:
         pickle.dump(all_results, f, protocol=4)
 
@@ -1726,15 +1719,12 @@ def measure_prediction_explanation_variance(random_seed):
             h2_pred_correctness,
         ).flatten().astype(int)
 
-        scatter_tracker = scatter_tracker.append(
-            pd.DataFrame({
+        scatter_tracker = pd.concat([scatter_tracker, pd.DataFrame({
                 'd_y_preds': d_y_preds,
                 'd_explans': d_explans,
                 'h1_h2_str': ['%s: %s vs not' % (col[7:], hi)] * len(d_explans),
                 'pred_correctness': pred_correctness,
-            }),
-            ignore_index=True,
-        )
+            })], ignore_index=True)
 
       # Compute averages (this is the ITE value).
       for h1_h2_str in scatter_tracker['h1_h2_str'].unique():
@@ -1747,8 +1737,7 @@ def measure_prediction_explanation_variance(random_seed):
           explan_ite = np.mean(filtered['d_explans'])
           y_pred_ite_var = np.var(filtered['d_y_preds'])
           explan_ite_var = np.var(filtered['d_explans'])
-          treatment_effect_tracker = treatment_effect_tracker.append(
-              pd.DataFrame({
+          treatment_effect_tracker = pd.concat([treatment_effect_tracker, pd.DataFrame({
                   'x_offset_idx': [f'x_{x_offset_idx}'],
                   'col_type': [col],
                   'h1_h2_str': [h1_h2_str],
@@ -1757,19 +1746,14 @@ def measure_prediction_explanation_variance(random_seed):
                   'y_pred_ite_var': [y_pred_ite_var],
                   'explan_ite_var': [explan_ite_var],
                   'pred_correctness': [pred_correctness],
-              }),
-              ignore_index=True,
-          )
-          treatment_effect_tracker_all = treatment_effect_tracker_all.append(
-              pd.DataFrame({
+              })], ignore_index=True)
+          treatment_effect_tracker_all = pd.concat([treatment_effect_tracker_all, pd.DataFrame({
                   'x_offset_idx': [f'x_{x_offset_idx}'] * len(filtered),
                   'col_type': [col] * len(filtered),
                   'h1_h2_str': [h1_h2_str] * len(filtered),
                   'd_y_preds': filtered['d_y_preds'],
                   'd_explans': filtered['d_explans'],
-              }),
-              ignore_index=True,
-          )
+              })], ignore_index=True)
     logging.info(
         '%sElapsed time: `%f`.%s',
         Bcolors.HEADER,
