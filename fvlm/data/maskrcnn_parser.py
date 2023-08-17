@@ -32,9 +32,6 @@ from utils import dataset_utils
 from utils import task_utils
 
 
-DatasetType = dataset_utils.DatasetType
-
-
 @gin.configurable
 def clip_identity_normalization_values():
   """Get CLIP image normalization values."""
@@ -684,41 +681,19 @@ def multitask_detection_parser_fn(value, parser_fn,
 @gin.register
 def get_multitask_text_detection_parser_fn(
     parser_fn,
-    dataset_type,
     is_training,
-    text_parser = None,
-    load_text_embed = False,
-    load_base_indicator = False,
-    use_sstable_parser = False
     ):
   """Wrapper around mask rcnn parser to standardize its output to a dictionary.
 
   Args:
     parser_fn: a function to parse data for training and testing.
-    dataset_type: An enum type of which dataset to use.
     is_training: a bool to indicate whether it's in training or testing.
-    text_parser: a function to parse the text training data.
-    load_text_embed: A bool to load text embeddings directly from disk.
-    load_base_indicator: A bool to load indicator vector for base categories.
-    use_sstable_parser: A bool to load from SSTable instead of TFRecords, where
-      the return function has first argument as key, and second argument as
-      value.
 
   Returns:
     A dictionary {'images': image, 'labels': labels} whether it's in training
     or prediction mode.
   """
-  if load_text_embed:
-    # Overload the class_tokens variables with class embeddings.
-    class_embeddings = dataset_utils.load_dataset_vocab_embed(dataset_type)
-  else:
-    if text_parser is None:
-      raise ValueError('Text parser must be provided!')
-    class_names = dataset_utils.load_dataset_class_names(dataset_type)
-    class_tokens = text_parser(class_names)
-
-  if load_base_indicator:
-    base_indicator = dataset_utils.load_dataset_base_indicator(dataset_type)
+  class_embeddings = dataset_utils.load_dataset_vocab_embed()
 
   def detection_parser_fn(value):
     data = parser_fn(value)
@@ -726,18 +701,8 @@ def get_multitask_text_detection_parser_fn(
       images, labels = data
       data = {'images': images, 'labels': labels}
 
-    data['texts'] = class_embeddings if load_text_embed else class_tokens
-    if load_base_indicator:
-      data['labels']['base_category_indicator'] = base_indicator
-
+    data['texts'] = class_embeddings
     data['labels'] = task_utils.DetectionTask.unfilter_by_task(data['labels'])
     return data
 
-  if use_sstable_parser:
-    def sstable_detection_parser(key, value):
-      del key
-      return detection_parser_fn(value)
-    return sstable_detection_parser
-
-  else:
-    return detection_parser_fn
+  return detection_parser_fn

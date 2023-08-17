@@ -22,24 +22,23 @@ TEMP = 0.01
 MAX_NUM_INSTANCES = 100
 TRAIN_FILE_PATTERN = './datasets/coco/train-*'
 EVAL_FILE_PATTERN = './datasets/coco/val-*'
-TRAIN_EVAL_DATASET_TYPE = %DatasetType.COCO
+EMBED_PATH = './embeddings/resnet_50/coco_embed.npy'
+CATG_PAD_SIZE = 91 # Max # of categories among training datasets.
+EVAL_STEPS = 5000 # EVAL_STEPS * EVAL_BS = # eval examples.
+
 TRAIN_BS = 4  # Default TRAIN_BS=256 for 4x4 TPUv3. Use 4 to fit a 1080 GPU.
 EVAL_BS = 1
 AUG_SCALE_MIN = 0.1
 AUG_SCALE_MAX = 2.0
 WEIGHT_DECAY = 1e-4
+DTYPE = %jnp.float32 # Set to bfloat16 for time/memory savings.
 BN_GROUP_SIZE = %TRAIN_BS # Sync Batchnorm across the whole batch.
-CATG_PAD_SIZE = 91 # Max # of categories among training datasets.
 INCLUDE_MASK = False
-# EVAL_STEPS * EVAL_BS = # eval examples.
-EVAL_STEPS = 5000
 METRICS_DIR_NAME = 'coco_metrics'  # Temporarily save the output metrics.
-
 
 # Change these parameters for different CLIP backbones.
 # =====================================================
 CLIP_NAME = 'resnet_50'
-EMBED_DIR = './embeddings/resnet_50/'
 TEXT_DIM = 1024
 AttentionPool.num_heads = 32
 ClipFasterRCNNHead.roi_output_size = 7
@@ -55,7 +54,7 @@ get_input_mixture:
   label_names = ['labels']
 
 # Vocab embeddings
-load_dataset_vocab_embed.vocab_embed_dir = %EMBED_DIR
+load_dataset_vocab_embed.embedding_path = %EMBED_PATH
 
 set_remap:
   MultitaskModel___call__ = {'images': 'image', 'texts': 'text'}
@@ -71,6 +70,7 @@ TASKS = (@DetectionTask(),)
 
 MultitaskModel.tasks = %TASKS
 MultitaskModel.train_vision_model = False
+MultitaskModel.dtype = %DTYPE
 process_and_generate_detections.class_is_logit = False
 ClipFasterRCNNHead.clip_sim_temp = 0.01
 

@@ -15,7 +15,6 @@ MAX_NUM_INSTANCES = %gin.REQUIRED
 ANCHOR_SIZE = %gin.REQUIRED
 TRAIN_FILE_PATTERN = %gin.REQUIRED
 EVAL_FILE_PATTERN = %gin.REQUIRED
-TRAIN_EVAL_DATASET_TYPE = %gin.REQUIRED
 
 train/tfrecords_loader:
   file_pattern = %TRAIN_FILE_PATTERN
@@ -63,14 +62,11 @@ get_input:
   batch_size = %TRAIN_BS
 
 # Text detection wrapper.
-load_dataset_class_names.pad_to_size = %CATG_PAD_SIZE
 load_dataset_vocab_embed.pad_to_size = %CATG_PAD_SIZE
-get_multitask_text_detection_parser_fn.load_text_embed = True
 
 train/get_multitask_text_detection_parser_fn:
   parser_fn = @train/maskrcnn_map_fn()
   is_training = True
-  dataset_type = %TRAIN_EVAL_DATASET_TYPE
 
 train/get_input:
   loader_fn = @train/tfrecords_loader
@@ -79,7 +75,6 @@ train/get_input:
 eval/get_multitask_text_detection_parser_fn:
   parser_fn = @eval/maskrcnn_map_fn()
   is_training = False
-  dataset_type = %TRAIN_EVAL_DATASET_TYPE
 
 eval/get_input:
   loader_fn = @eval/tfrecords_loader

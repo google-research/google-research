@@ -72,11 +72,12 @@ OUTPUT_DIR="/your/output/dir"
 
 ## Set up custom datasets.
 
-Here we describe the specific changes needed to set up training/evaluation with custom datasets. Users need to update utils/dataset_utils.py:
+Here we describe the specific changes needed in ./scripts/fvlm_train_and_eval.gin to set up training/evaluation with custom datasets.
 
-* Add another attribute in DatasetType enum with the name of your dataset, e.g. FOO='foo'.
-* Update DATASET_VOCABS dictionary with the path to the mapping json file of your dataset. Please follow coco_mapping.json for the required format.
-* Update DATASET_NUM_CLASSES with the number of classes for your dataset.
+* Update TRAIN_FILE_PATTERN and EVAL_FILE_PATTERN to point to your dataset.
+* Update EMBED_PATH to point to your cached embedding.npy.
+* Update CATG_PAD_SIZE to the number of your training categories.
+* Update EVAL_STEPS to the number of your validation set size.
 
 ## Citation
 ```

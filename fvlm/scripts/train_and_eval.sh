@@ -18,7 +18,7 @@ set -x
 OUTPUT_DIR=$1
 CONFIG_PATH="./configs/fvlm_train_and_eval.gin"
 FILE_PATH="./train_and_eval.py"
-MODE="eval"
+MODE="train_and_eval"
 
 python3 "${FILE_PATH}" \
  --output_dir="${OUTPUT_DIR}" \
