@@ -12,7 +12,8 @@ detailed properties of fine-grained categories and instances.
     each answer.
 *   Our dataset poses a hard challenge for large vision+language models:
     [PaLI](https://arxiv.org/abs/2209.06794) is state-of-the-art on OK-VQA, yet
-    only achieves 13.0% accuracy on the single-hop single-answer part of our dataset.
+    only achieves 13.0% accuracy on the single-hop single-answer part of our
+    dataset.
 *   We demonstrate that augmenting [PaLM](https://arxiv.org/abs/2204.02311) with
     a mechanism (Google Lens) to retrieve information from the knowledge base
     (Wikipedia based) yields 48.8% accuracy on the single-hop part of our
@@ -89,6 +90,9 @@ This images for the VQA questions can be downloaded here:
 
 *   [iNaturalist 2021](https://github.com/visipedia/inat_comp/tree/master/2021)
 *   [Google Landmarks Dataset V2](https://github.com/cvdfoundation/google-landmark)
+
+
+
 
 ## Controlled Knowledge Base
 
@@ -167,6 +171,26 @@ print(f'{score1=}, {score2=}')
 
 To calculate the final VQA accuracy for a data split, we compute the average
 score over all of its examples.
+
+## Lens Retrieval
+
+To help reproduce experiments in the paper, we provide the result of querying
+ Google Lens for the images in the test set here:
+
+* [lens_entities.csv](https://storage.googleapis.com/encyclopedic-vqa/lens_entities.csv)
+
+This CSV file contains a row for each image in the test set of Encyclopedic-VQA,
+ identified by its `dataset_name` and `dataset_image_id`.
+For each image, we provide a list with the Wikipedia URLs for the main entity in
+ the image as detected by Lens in column `lens_wiki_urls`.
+If multiple URLs are present, they are ordered by decreasing confidence score,
+i.e. the first URL is the most certain entity in the image according to Lens.
+We use an empty list to indicate that Lens did not identify any entity in the
+ image.
+All experiments in the paper use the first URL only, except when measuring the
+recall of Lens as a retrieval system.
+
+
 
 ## References
 
