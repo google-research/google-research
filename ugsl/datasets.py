@@ -26,6 +26,7 @@ import scipy.sparse
 import tensorflow as tf
 import tensorflow_gnn as tfgnn
 import tensorflow_gnn.experimental.in_memory.datasets as tfgnn_datasets
+import tensorflow_hub as tfhub
 
 
 class GSLGraphData:
@@ -410,6 +411,147 @@ class GSLAmazonPhotosGraphData(GcnBenchmarkUrlGraphData, GSLGraphData):
     )
 
 
+class StackOverflowGraphlessData(tfgnn_datasets.NodeClassificationGraphData):
+  """Stackoverflow dataset contains node features and labels (but no edges)."""
+
+  def __init__(
+      self, cache_dir = os.path.expanduser(
+          os.path.join('~', 'data', 'stackoverflow-bert'))):
+    labels_path = os.path.join(cache_dir, 'labels.npy')
+    embeddings_path = os.path.join(cache_dir, 'embeddings.npy')
+
+    if (not tf.io.gfile.exists(labels_path) or
+        not tf.io.gfile.exists(embeddings_path)):
+      if not tf.io.gfile.exists(cache_dir):
+        tf.io.gfile.makedirs(cache_dir)
+      # Download.
+      self._download_dataset_extract_features(labels_path, embeddings_path)
+
+    node_features = np.load(tf.io.gfile.GFile(embeddings_path, 'rb'))
+    node_labels = np.load(tf.io.gfile.GFile(labels_path, 'rb'))
+    num_nodes = node_features.shape[0]
+    self._node_counts = {tfgnn.NODES: num_nodes}
+    self._num_classes = node_labels.max() + 1
+    self._test_labels = tf.convert_to_tensor(node_labels)
+    self._edge_lists = {
+        (tfgnn.NODES, tfgnn.EDGES, tfgnn.NODES): (
+            tf.zeros(shape=[2, 0], dtype=tf.int32))}
+    self._node_features_dicts = {
+        tfgnn.NODES: {
+            'feat': tf.convert_to_tensor(node_features, dtype=tf.float32),
+            '#id': tf.range(num_nodes),
+        }
+    }
+    permutation = np.random.default_rng(seed=1234).permutation(num_nodes)
+    num_train_examples = num_nodes // 10
+    num_validate_examples = num_nodes // 10
+    train_indices = permutation[:num_train_examples]
+    num_validate_plus_train = num_validate_examples + num_train_examples
+    validate_indices = permutation[num_train_examples:num_validate_plus_train]
+    test_indices = permutation[num_validate_plus_train:]
+
+    self._node_split = tfgnn_datasets.NodeSplit(
+        tf.convert_to_tensor(train_indices),
+        tf.convert_to_tensor(validate_indices),
+        tf.convert_to_tensor(test_indices))
+
+    self._train_labels = node_labels + 0  # Make a copy.
+    self._train_labels[test_indices] = -1
+    self._train_labels = tf.convert_to_tensor(self._train_labels)
+    super().__init__()
+
+  def node_counts(self):
+    return self._node_counts
+
+  def edge_lists(self):
+    return self._edge_lists
+
+  def num_classes(self):
+    return self._num_classes
+
+  def node_split(self):
+    return self._node_split
+
+  def labels(self):
+    return self._train_labels
+
+  def test_labels(self):
+    return self._test_labels
+
+  @property
+  def labeled_nodeset(self):
+    return tfgnn.NODES
+
+  def node_features_dicts_without_labels(self):
+    return self._node_features_dicts
+
+  def _download_dataset_extract_features(
+      self, labels_path, embeddings_path):
+    cache_dir = os.path.dirname(labels_path)
+    url = ('https://raw.githubusercontent.com/rashadulrakib/'
+           'short-text-clustering-enhancement/master/data/stackoverflow/'
+           'traintest')
+    tab_separated_filepath = os.path.join(cache_dir, 'traintest.tsv')
+    _maybe_download_file(url, tab_separated_filepath)
+
+    data_cluster = {}
+    with tf.io.gfile.GFile(tab_separated_filepath, 'r') as f:
+      for line in f:
+        l1, l2, text = line.strip().split('\t')
+        data_cluster[text] = (int(l1), int(l2))
+
+    def remove_cls_sep(masks):
+      last_1s = np.sum(masks, axis=1) - 1
+      for i in range(masks.shape[0]):
+        masks[i][0] = 0
+        masks[i][last_1s[i]] = 0
+      return masks
+
+    def bert_embs(texts):
+      text_preprocessed = bert_preprocess_model(texts)
+      bert_results = bert_model(text_preprocessed)
+      masks = np.expand_dims(
+          remove_cls_sep(text_preprocessed['input_mask'].numpy()), axis=2)
+      emb = (np.sum(bert_results['sequence_output'].numpy() * masks, axis=1)
+             / np.sum(masks, axis=1))
+      return emb
+
+    # Instantiate BERT model.
+    bert_preprocess_model = tfhub.KerasLayer(
+        'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3')
+    bert_model = tfhub.KerasLayer(
+        'https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/3')
+
+    # Map keys of `cluster` through `bert_model``
+    data_cluster_keys = list(data_cluster.keys())
+    embeddings = []
+    for i in range(0, len(data_cluster_keys), 100):
+      embeddings.append(bert_embs(data_cluster_keys[i:i+100]))
+    embeddings = np.vstack(embeddings)
+    labels = np.array([data_cluster[t][1] for t in data_cluster_keys])
+
+    with tf.io.gfile.GFile(labels_path, 'wb') as fout:
+      np.save(fout, labels)
+
+    with tf.io.gfile.GFile(embeddings_path, 'wb') as fout:
+      np.save(fout, embeddings)
+
+
+class GSLStackOverflowGraphlessData(StackOverflowGraphlessData, GSLGraphData):
+  """Wraps Stackoverflow datasets to be used for graph structure learning."""
+
+  def __init__(
+      self,
+      remove_noise_ratio,
+      add_noise_ratio,
+      cache_dir = os.path.expanduser(
+          os.path.join('~', 'data', 'stackoverflow-bert'))):
+    StackOverflowGraphlessData.__init__(self, cache_dir=cache_dir)
+    GSLGraphData.__init__(
+        self, remove_noise_ratio=remove_noise_ratio,
+        add_noise_ratio=add_noise_ratio)
+
+
 def get_in_memory_graph_data(
     dataset_name,
     remove_noise_ratio,
@@ -436,6 +578,11 @@ def get_in_memory_graph_data(
   elif dataset_name == 'amazon_photos':
     return GSLAmazonPhotosGraphData(
         dataset_name,
+        remove_noise_ratio=remove_noise_ratio,
+        add_noise_ratio=add_noise_ratio,
+    )
+  elif dataset_name == 'stackoverflow':
+    return GSLStackOverflowGraphlessData(
         remove_noise_ratio=remove_noise_ratio,
         add_noise_ratio=add_noise_ratio,
     )
