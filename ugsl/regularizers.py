@@ -271,6 +271,46 @@ class LogBarrier(BaseRegularizer):
     return -tf.reduce_sum(tf.math.log(column_sum))
 
 
+class InformationRegularizer(BaseRegularizer):
+  """Call returns A[i][j] * log (A[i][j]/r) + (1 - A[i][j]) * log ((1 - A[i][j])/(1 - r))."""
+
+  def __init__(self, r, do_sigmoid):
+    self._r = r
+    self._do_sigmoid = do_sigmoid
+
+  def call(
+      self,
+      *,
+      model_graph,
+      label_graph = None,
+      edge_set_name = tfgnn.EDGES,
+      weights_feature_name = 'weights',
+  ):
+    del label_graph
+    weights = model_graph.edge_sets[edge_set_name][weights_feature_name]
+    # If the weights are coming from a soft Bernoulli, a sigmoid has already
+    # been applied on the weights.
+    if self._do_sigmoid:
+      weights = tf.sigmoid(weights)
+    # Checking numerical stability
+    close_to_0 = weights < 0.0000001
+    close_to_1 = weights > 0.9999999
+    pos_term = weights * tf.math.log(weights / self._r)
+    neg_term = (1 - weights) * tf.math.log((1 - weights) / (1 - self._r))
+
+    return tf.reduce_sum(
+        tf.where(
+            close_to_0,
+            neg_term,
+            tf.where(
+                close_to_1,
+                pos_term,
+                pos_term + neg_term,
+            ),
+        )
+    )
+
+
 def add_loss_regularizers(
     model,
     model_graph,
@@ -311,6 +351,26 @@ def add_loss_regularizers(
     model.add_loss(
         cfg.closeness_w
         * closeness_regularizer(
+            model_graph=model_graph,
+            label_graph=label_graph,
+        )
+    )
+  if cfg.log_barrier_w > 0.0:
+    log_barrier_regularizer = LogBarrier()
+    model.add_loss(
+        cfg.log_barrier_w
+        * log_barrier_regularizer(
+            model_graph=model_graph,
+            label_graph=label_graph,
+        )
+    )
+  if cfg.information_enable:
+    information_regularizer = InformationRegularizer(
+        cfg.information_r, cfg.information_do_sigmoid
+    )
+    model.add_loss(
+        cfg.information_w
+        * information_regularizer(
             model_graph=model_graph,
             label_graph=label_graph,
         )

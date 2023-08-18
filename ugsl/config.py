@@ -99,6 +99,9 @@ def get_config():
   cfg.model.regularizer_cfg.smoothness_w = 0.0
   cfg.model.regularizer_cfg.sparseconnect_w = 0.0
   cfg.model.regularizer_cfg.logbarrier_w = 0.0
+  cfg.model.regularizer_cfg.information_w = 0.0
+  cfg.model.regularizer_cfg.information_r = 0.5
+  cfg.model.regularizer_cfg.information_do_sigmoid = True
 
   # Unsupervised losses (see unsupervised_losses.py)
   # Denoising loss.
