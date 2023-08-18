@@ -364,7 +364,7 @@ def add_loss_regularizers(
             label_graph=label_graph,
         )
     )
-  if cfg.information_enable:
+  if cfg.information_w > 0.0:
     information_regularizer = InformationRegularizer(
         cfg.information_r, cfg.information_do_sigmoid
     )
