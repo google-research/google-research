@@ -163,7 +163,9 @@ def read_csv(
   """
   if compression == 'infer':
     compression = infer_compression(path)
-  with gfile.GFile(path, 'rb') as f:
+
+  mode = 'rb' if compression else 'r'
+  with gfile.GFile(path, mode) as f:
     return pd.read_csv(f, compression=compression, **kwargs)
 
 

@@ -629,20 +629,19 @@ def plot_hit_rate(
 ################################################################################
 
 
-def plot_affinity_by_distance(
+def plot_log_kd_by_distance(
     ax, df, target_name, n
 ):
   """Scatterplot of best sequences by distance to parent and log KD."""
   df = df[df['target_name'] == target_name].copy()
   df = replace_ml_design_by_model(df)
-  df = df.assign(affinity=-df['value'])  # Best sequences higher up.
 
   # Plot parent
   sns.scatterplot(
       ax=ax,
       data=utils.extract_parent_df(df),
       x='source_num_mutations',
-      y='affinity',
+      y='value',
       marker='*',
       color=PALETTE['Parent'],
       s=800,
@@ -652,12 +651,13 @@ def plot_affinity_by_distance(
 
   sns.scatterplot(
       ax=ax,
-      data=df.sort_values(by='affinity', ascending=False)
+      data=df.sort_values(by='value', ascending=True)
       .head(n)
       .sort_values(by='source_model'),
-      y='affinity',
+      y='value',
       x='source_num_mutations',
       hue='source_design',
+      hue_order=['Baseline', 'CNN', 'LGB'],
       s=60,
       palette=PALETTE,
       edgecolor='k',
@@ -675,12 +675,13 @@ def plot_affinity_by_distance(
   )
 
   _format_xaxis(ax, 'source_num_mutations')
-  ax.set_ylabel('Normalized affinity')
+  ax.set_ylabel('Normalized log KD')
+  ax.set_yticks([0, -1, -2, -3, -4])
 
   return ax
 
 
-def plot_affinity_by_mean_pairwise_distance(
+def plot_log_kd_by_mean_pairwise_distance(
     ax, df, target_name, n
 ):
   """Scatterplot of best sequences by mean pairwise distance."""
@@ -697,7 +698,7 @@ def plot_affinity_by_mean_pairwise_distance(
         dict(
             source_design=df['source_design'].iloc[i],
             distance=utils.avg_distance_to_set(cur_seq, previous_seqs),
-            affinity=-df['value'].iloc[i],
+            value=df['value'].iloc[i],
         )
     )
   metrics_df = pd.DataFrame(rows)
@@ -705,7 +706,7 @@ def plot_affinity_by_mean_pairwise_distance(
   sns.scatterplot(
       ax=ax,
       data=metrics_df.sort_values(by='source_design'),
-      y='affinity',
+      y='value',
       x='distance',
       hue='source_design',
       palette=PALETTE,
@@ -721,7 +722,7 @@ def plot_affinity_by_mean_pairwise_distance(
       frameon=False,
   )
   ax.set_xlabel('Average distance to better sequences')
-  ax.set_ylabel('Normalized affinity')
+  ax.set_ylabel('Normalized log KD')
 
 
 def plot_tsne_by_round(ax, agg_df, round_idx):

@@ -25,6 +25,7 @@ import tree
 from covid_vhh_design import helper
 from covid_vhh_design import utils
 
+
 PARENT_NAME = 'SARS_VHH72'
 PARENT_SEQ = (
     'QVQLQESGGGLVQAGGSLRLSCAASGRTFSEYAMGWFRQAPGKEREFVATISWSGGSTYYTDSVKGRFTISRDN'
@@ -169,16 +170,18 @@ ALLOWED_POS = ('27', '28', '29', '30', '35', '36', '37', '38', '40', '42', '49',
 DATA_DIR = 'gs://gresearch/covid_vhh_design'
 
 
-def load_df(basename):
+def load_df(basename, compression = 'infer'):
   """Loads a DataFrame from the data directory."""
-  return helper.read_csv(os.path.join(DATA_DIR, basename))
+  return helper.read_csv(
+      os.path.join(DATA_DIR, basename), compression=compression
+  )
 
 
 def load_aligned_parent_seq(offset_ipos = 1):
   """Loads the IMGT aligned parent sequence."""
   return load_df('parent_seq.csv').assign(
       pos=lambda df: df['imgt'],
-      ipos=lambda df: np.arange(len(df)) + offset_ipos
+      ipos=lambda df: np.arange(len(df)) + offset_ipos,
   )
 
 
