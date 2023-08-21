@@ -345,6 +345,7 @@ def merge_fields(field_one,
   return jnp.concatenate([field_one, field_two], axis=0)
 
 
+@gin.configurable
 @flax.struct.dataclass
 class COCODetectionMetric(metrics.Metric):
   """Computes the precision from model outputs `logits` and `labels`.
@@ -398,11 +399,12 @@ class COCODetectionMetric(metrics.Metric):
     """Accumulates model outputs for evaluation.
 
     Args:
-      outputs: A dictionary of model outputs containing the following required
-        keys - 'source_id', 'image_info', 'num_detections', 'detection_boxes',
-        'detection_classes', 'detection_scores'.
-      labels: A dictionary of labels. It can be empty when annotation file will
-        be provided at the compute function call. Otherwise, it needs have the
+      outputs: A dictionary with a single entry with 'detection' as a key, and
+        the value of should be a dictionary of model outputs containing the
+        following required keys - 'source_id', 'image_info', 'num_detections',
+        'detection_boxes', 'detection_classes', 'detection_scores'.
+      labels: A dictionary with a single entry with 'detection' as a key, and
+        the value of should be a dictionary of labels. It needs to have the
         following keys: 'source_id', 'height', 'width', 'num_detections',
         'boxes', 'classes', 'is_crowds', 'areas'.
 
@@ -412,6 +414,8 @@ class COCODetectionMetric(metrics.Metric):
     Raises:
       KeyError: Missing keys in model outputs.
     """
+    outputs = outputs['detection']
+    labels = labels['detection']
     if 'image_info' not in outputs:
       outputs['image_info'] = labels['image_info']
 
