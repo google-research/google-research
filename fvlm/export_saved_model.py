@@ -58,6 +58,9 @@ _SERVING_BATCH_SIZE = flags.DEFINE_integer(
 _MAX_NUM_CLASSES = flags.DEFINE_integer(
     'max_num_classes', 30, 'Maximum number of classes to feed in by the user.'
 )
+_INCLUDE_MASK = flags.DEFINE_bool(
+    'include_mask', False, 'Whether to include mask.'
+)
 _MODEL_CONFIG_PATH = flags.DEFINE_string(
     'model_config_path',
     './configs/export_model.gin',
@@ -220,6 +223,7 @@ def load_fvlm_gin_configs():
   gin.parse_config(f'AttentionPool.num_heads = {model_num_heads}')
   gin.parse_config(f'ClipFasterRCNNHead.roi_output_size = {roi_size}')
   gin.parse_config(f'ClipFasterRCNNHead.novel_vlm_weight = {_VLM_WEIGHT.value}')
+  gin.parse_config(f'INCLUDE_MASK = {_INCLUDE_MASK.value}')
 
   return _MAX_NUM_CLASSES.value, text_dim
 
