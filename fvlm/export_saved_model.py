@@ -59,7 +59,7 @@ _MAX_NUM_CLASSES = flags.DEFINE_integer(
     'max_num_classes', 30, 'Maximum number of classes to feed in by the user.'
 )
 _INCLUDE_MASK = flags.DEFINE_bool(
-    'include_mask', False, 'Whether to include mask.'
+    'include_mask', True, 'Whether to include mask.'
 )
 _MODEL_CONFIG_PATH = flags.DEFINE_string(
     'model_config_path',
