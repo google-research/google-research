@@ -16,7 +16,7 @@
 """Utility functions for operations on Model."""
 import os.path
 import tempfile
-from typing import Sequence, Optional, List
+from typing import List, Optional, Sequence
 from keras import models as models_utils
 from keras.engine import functional
 import numpy as np
@@ -420,6 +420,15 @@ def model_to_tflite(
   if optimizations:
     converter.optimizations = optimizations
     if use_fp16:
+      # TODO(b/296126422): Gracefully handle float16 in quantize
+      # variables pass in the converter. We currently silently fail
+      # if float16 quantization is requested with the
+      # '_experimental_variable_quantization' set to true.
+      # Once the linked bug is fixed, we can remove the setting of
+      # '_experimental_variable_quantization' below.
+      # pylint: disable=protected-access
+      converter._experimental_variable_quantization = False
+      # pylint: enable=protected-access
       converter.target_spec.supported_types = [tf.float16]
       # pylint: disable=protected-access
       converter.target_spec._experimental_supported_accumulation_type = (
