@@ -233,7 +233,7 @@ class SubgraphEmbedding(nn.Module):
     node_embs = node_embs.reshape(num_nodes, -1)
     node_hiddens = self.node_hidden_layer(node_embs)
     graph_hidden = self.graph_embedding(jnp.zeros(1, dtype=int))
-    node_hiddens = jnp.row_stack((node_hiddens, graph_hidden))
+    node_hiddens = jnp.vstack((node_hiddens, graph_hidden))
 
     # Embed positions
     # TODO(gnegiar): We need to clip the "not a node" node to make sure it
@@ -244,7 +244,7 @@ class SubgraphEmbedding(nn.Module):
     position_embs = self.position_embedding(node_ids + 1)
     position_hiddens = self.position_hidden_layer(position_embs)
     # The graph node has no position.
-    position_hiddens = jnp.row_stack(
+    position_hiddens = jnp.vstack(
         (position_hiddens, jnp.zeros(position_hiddens.shape[-1])))
 
     return node_hiddens, position_hiddens

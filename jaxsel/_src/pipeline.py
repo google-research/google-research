@@ -81,7 +81,7 @@ class ClassificationPipeline(nn.Module):
       dense_submat: Shape (num_nodes + 1, num_nodes + 1) Adjacency matrix.
       dense_q: Shape (num_nodes + 1,) Node weights.
     """
-    dense_submat = jnp.row_stack(
+    dense_submat = jnp.vstack(
         (dense_submat, jnp.ones(dense_submat.shape[1])))
     dense_submat = jnp.column_stack(
         (dense_submat, jnp.ones(dense_submat.shape[0])))
