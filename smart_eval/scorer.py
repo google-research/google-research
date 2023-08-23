@@ -15,10 +15,13 @@
 
 """SMART scorer."""
 
-from typing import Callable, List, Union, Dict
+from typing import Callable, Sequence
 
-from nltk.tokenize import sent_tokenize
+from nltk import tokenize
 import numpy as np
+
+from smart_eval import aggregate_functions as af
+from smart_eval import matching_functions as mf
 
 
 class SmartScorer:
@@ -41,10 +44,13 @@ class SmartScorer:
         score_matrix=[[0.9, 0.3],[0.2, 0.4]])
   """
 
-  def __init__(self,
-               smart_types = None,
-               matching_fn = None,
-               split_fn = sent_tokenize):
+  def __init__(
+      self,
+      smart_types = ('smart1', 'smart2', 'smartL'),
+      matching_fn = mf.ChrfMatchingFunction(),
+      split_fn = tokenize.sent_tokenize,
+      aggregate_fn = af.MeanAggregateFunction(),
+  ):
     """Initializes a new SmartScorer.
 
     Valid SMART types that can be computed are:
@@ -64,6 +70,7 @@ class SmartScorer:
         will be required by the smart_score function.
       split_fn: Function used to split the text. The default is to use the
         sentence splitter in NLTK.
+      aggregate_fn: Function used to aggregate sentence-level scores.
     """
     if smart_types:
       self.smart_types = smart_types
@@ -71,16 +78,16 @@ class SmartScorer:
       self.smart_types = ['smart1', 'smart2', 'smartL']
     self.matching_fn = matching_fn
     self.split_fn = split_fn
+    self.aggregate_fn = aggregate_fn
 
   def _smart_1(
       self, score_matrix):
     """Calculate SMART-1 score."""
     if isinstance(score_matrix, list):
       score_matrix = np.array(score_matrix)
-    ref_len, can_len = score_matrix.shape
 
-    recall = np.sum(np.max(score_matrix, 1)) / ref_len
-    precision = np.sum(np.max(score_matrix, 0)) / can_len
+    recall = self.aggregate_fn(np.max(score_matrix, 1))
+    precision = self.aggregate_fn(np.max(score_matrix, 0))
     f = (2 * precision * recall) / (precision +
                                     recall) if precision + recall != 0 else 0.0
     return {'recall': recall, 'precision': precision, 'fmeasure': f}
@@ -94,10 +101,9 @@ class SmartScorer:
     score_matrix = np.pad(score_matrix, [(1, 1), (1, 1)])
     # Calculate bigram scores.
     bigram_score_matrix = (score_matrix[:-1, :-1] + score_matrix[1:, 1:]) / 2.0
-    ref_len, can_len = bigram_score_matrix.shape
 
-    recall = np.sum(np.max(bigram_score_matrix, 1)) / ref_len
-    precision = np.sum(np.max(bigram_score_matrix, 0)) / can_len
+    recall = self.aggregate_fn(np.max(bigram_score_matrix, 1))
+    precision = self.aggregate_fn(np.max(bigram_score_matrix, 0))
     f = (2 * precision * recall) / (precision +
                                     recall) if precision + recall > 0 else 0.0
     return {'recall': recall, 'precision': precision, 'fmeasure': f}
@@ -175,7 +181,7 @@ class SmartScorer:
       smart_fn = smart_fn_dict[smart_type]
 
       ref_smart = smart_fn(ref_score_matrix)
-      if src_score_matrix:
+      if src_score_matrix is not None:
         src_smart = smart_fn(src_score_matrix)
         return_dict[smart_type] = {
             x: max(ref_smart[x], src_smart[x])
@@ -247,7 +253,7 @@ class SmartScorer:
     if self.matching_fn is None:
       raise NotImplementedError('A matching function should be implemented.')
     ref_score_matrix = self._get_score_matrix(ref_sentences, can_sentences)
-    if source:
+    if source is not None:
       src_score_matrix = self._get_score_matrix(src_sentences, can_sentences)
     else:
       src_score_matrix = None
@@ -274,7 +280,7 @@ class SmartScorer:
     Returns:
       A mapping of each SMART type to its scores.
     """
-    if not src_score_matrix_list:
+    if src_score_matrix_list is None:
       src_score_matrix_list = [None] * len(ref_score_matrix_list)
     final_return_dict = {smart_type: [] for smart_type in self.smart_types}
     for ref_sm, src_sm in zip(ref_score_matrix_list, src_score_matrix_list):
@@ -303,7 +309,7 @@ class SmartScorer:
     Returns:
       A mapping of each SMART type to its scores.
     """
-    if not sources:
+    if sources is None:
       sources = [None] * len(references)
     assert len(references) == len(candidates)
     assert len(sources) == len(candidates)
