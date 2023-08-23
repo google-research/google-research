@@ -1,11 +1,12 @@
-# New version coming soon!
+# MOVED
 
-An updated version of this repo will soon be pushed to https://github.com/google-research/spherical-cnn.
-The new version will include the implementation of the forthcoming ICML 2023 paper
-"[Scaling Spherical CNNs](https://arxiv.org/pdf/2306.05420.pdf)."
-Stay tuned!
+This repo is being merged and moved to
+https://github.com/google-research/spherical-cnn which includes the
+implementation of our ICML 2023 paper "[Scaling Spherical
+CNNs](https://arxiv.org/pdf/2306.05420.pdf)."  The instructions below might fail
+temporarily.
 
-# Spin-weighted spherical CNNs in JAX
+# [OUTDATED] Spin-weighted spherical CNNs in JAX
 
 This is a JAX implementation of the paper Esteves et al, "[Spin-Weighted
 Spherical CNNs](https://arxiv.org/abs/2006.10731)", NeurIPS'20.
