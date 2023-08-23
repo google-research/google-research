@@ -13,18 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# coding=utf-8
+# Copyright 2023 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Train seq-to-seq model on random supervised training tasks."""
 
 import collections
+import dataclasses
 import functools
 import os
 import random
 import sys
 import time
+import typing
 
 from absl import app
 from absl import flags
 from absl import logging
+import flax  # pylint: disable=unused-import
 from flax import jax_utils
 from flax import linen as nn
 from flax import optim
@@ -37,8 +55,7 @@ import numpy as np
 import tensorflow as tf
 
 from latent_programmer import decode
-from latent_programmer import models as base_models
-from latent_programmer.spec_decomposition import decomposition_models as models
+from latent_programmer import models
 from latent_programmer.spec_decomposition import input_pipeline
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
@@ -60,6 +77,11 @@ flags.DEFINE_integer('num_layers', 3, 'Number of Transformer heads.')
 flags.DEFINE_boolean('slow_decode', True, 'Use slow decoding for prediction?')
 flags.DEFINE_float('dropout_rate', 0.1, 'Dropout rate')
 flags.DEFINE_float('attention_dropout_rate', 0.1, 'Attention dropout rate')
+flags.DEFINE_integer('latent_vocab_size', 40, 'Number of latent tokens.')
+flags.DEFINE_integer('c', 2, 'Latent length reduced by factor of 2^c.')
+flags.DEFINE_float('commitment_cost_vq', 0.25, 'Weight for VQ-VAE loss.')
+flags.DEFINE_integer('beam_size', 10, 'Beam size.')
+flags.DEFINE_integer('latent_beam_size', 3, 'Number of latent beams.')
 
 flags.DEFINE_string('dataset_dir', None,
                     'Directory to find TFRecord datasets for train and test.')
@@ -79,6 +101,7 @@ flags.DEFINE_integer('max_target_length', 200,
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
 flags.DEFINE_integer('num_train_steps', 1000000, 'Number of training steps.')
+flags.DEFINE_integer('num_pretrain_steps', 10000, 'Number of pretraining steps')
 flags.DEFINE_integer('num_eval_steps', 10, 'Number of evaluation steps.')
 flags.DEFINE_integer('num_quick_test_steps', 10,
                      'Number of test steps during training.')
@@ -92,9 +115,6 @@ flags.DEFINE_integer('checkpoint_freq', 50000,
                      'Number of steps between checkpoint saves.')
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
-
-flags.DEFINE_float('synthesizer_corrupted_next_part_rate', 0.2,
-                   'The fraction of examples that use the corrupted next part.')
 
 flags.DEFINE_bool('use_relative_attention', True,
                   'Whether to use relative positonal embeddings.')
@@ -111,18 +131,36 @@ flags.DEFINE_bool('aligned_relative_attention', True,
 flags.DEFINE_enum('dataset_type', 'deepcoder',
                   ['robustfill', 'deepcoder'],
                   'The kind of dataset to use.')
-flags.DEFINE_enum('model_type', 'spec_decomposer_model',
-                  ['spec_decomposer_model', 'synthesizer_model', 'joint_model',
-                   'baseline_model'],
+flags.DEFINE_enum('model_type', 'baseline_model',
+                  ['baseline_model'],
                   'Which model to train.')
 
-flags.DEFINE_bool('predict_only', False,
-                  'Whether to only do beam search prediction, no training.')
+flags.DEFINE_bool('do_training', True,
+                  'Whether to do training.')
+flags.DEFINE_bool('do_evaluation', True,
+                  'Whether to do evaluation.')
+flags.DEFINE_bool('do_prediction', True,
+                  'Whether to do beam search prediction.')
+
 
 _internal = False
 if not _internal:
   flags.DEFINE_string('xm_parameters', None,
                       'String specifying hyperparamter search.')
+
+
+# pytype has hardcoded special-case support for dataclasses.dataclass
+flax_dataclass = (
+    flax.struct.dataclass
+    if not typing.TYPE_CHECKING else dataclasses.dataclass)
+
+
+@flax_dataclass
+class TrainState:
+  step: int
+  optimizer: optim.Optimizer
+  model_state: typing.Any
+  lp_optimizer: optim.Optimizer
 
 
 def create_learning_rate_scheduler(
@@ -230,29 +268,45 @@ def compute_weighted_accuracy(logits, targets, weights=None):
   return acc.sum(), normalizing_factor
 
 
-def compute_metrics(logits, targets, weights):
+def compute_metrics(logits, targets, weights, prefix=''):
   """Computes summary metrics."""
   loss, weight_sum = compute_weighted_cross_entropy(logits, targets, weights)
   acc, _ = compute_weighted_accuracy(logits, targets, weights)
   metrics = {
-      'loss': loss,
-      'accuracy': acc,
-      'denominator': weight_sum,
+      prefix + 'loss': loss,
+      prefix + 'accuracy': acc,
+      prefix + 'denominator': weight_sum,
   }
   metrics = jax.lax.psum(metrics, 'batch')
   return metrics
+
+
+def add_eos_token(indices, eos_token):
+  """Add EOS token to sequence."""
+  batch_size = indices.shape[0]
+  lengths = jnp.count_nonzero(indices, axis=1)
+
+  indices = jnp.pad(
+      indices, pad_width=[(0, 0), (0, 1)], mode='constant')
+  # Add EOS token.
+  indices = indices.at[jnp.arange(batch_size), lengths].set(eos_token)
+  return indices.astype(jnp.int32)
 
 
 # Train / eval / decode step functions.
 # -----------------------------------------------------------------------------
 
 
-def train_step(optimizer,
+def train_step(state,
                inputs,
                outputs,
                targets,
+               pretrain,
                learning_rate_fn,
+               bos_token,
+               eos_token,
                config,
+               lp_config,
                dropout_rng):
   """Train on batch of program tasks."""
   # We handle PRNG splitting inside the top pmap, rather
@@ -262,78 +316,286 @@ def train_step(optimizer,
 
   weights = jnp.where(targets > 0, 1, 0).astype(jnp.float32)
 
-  def loss_fn(params):
-    """Loss function used for training."""
-    logits = models.DecomposeAttentionTransformer(config).apply(
-        {'params': params},
+  # Embedding mask for autoencoding.
+  emb_mask = jnp.ones((1, FLAGS.latent_vocab_size),
+                      jnp.float32).at[:, [0, bos_token, eos_token]].set(0)
+
+  def ae_loss_fn(params):
+    """Loss function used for training autoencoder."""
+    (logits, vq), new_variables = models.LatentProgramTransformer(config).apply(
+        {'params': params, 'vqvae': state.model_state},
         inputs,
         outputs,
         targets,
+        emb_mask,
+        pretrain=pretrain,
+        mutable=['vqvae'],
         rngs={'dropout': dropout_rng})
     loss, weight_sum = compute_weighted_cross_entropy(logits, targets, weights)
-    mean_loss = loss / weight_sum
-    return mean_loss, logits
 
-  step = optimizer.state.step
+    # Add EOS token for latent predictor loss.
+    vq_weight_sum = jnp.sum(
+        jnp.where(vq['latent_indices'] > 0, 1, 0).astype(jnp.float32))
+    latent_indices = add_eos_token(vq['latent_indices'], eos_token)
+
+    mean_loss = loss / weight_sum + vq['loss'] / vq_weight_sum
+    return mean_loss, (new_variables['vqvae'], logits, latent_indices)
+
+  step = state.step
+  optimizer = state.optimizer
+  lp_optimizer = state.lp_optimizer
   lr = learning_rate_fn(step)
-  grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-  (_, logits), grad = grad_fn(optimizer.target)
-  grad = jax.lax.pmean(grad, 'batch')
-  new_optimizer = optimizer.apply_gradient(grad, learning_rate=lr)
+  grad_fn = jax.value_and_grad(ae_loss_fn, has_aux=True)
+  (_, (new_model_state, ae_logits, latent_indices)), ae_grad = grad_fn(
+      optimizer.target)
+  ae_grad = jax.lax.pmean(ae_grad, 'batch')
 
-  # Get metrics.
+  latent_weights = jnp.where(latent_indices > 0, 1, 0).astype(jnp.float32)
+
+  encoded_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
+  # Additionally mask out eos token in latents.
+  latents_mask = jnp.where(
+      jnp.logical_and(latent_indices > 0, latent_indices != eos_token),
+      1, 0).astype(jnp.float32)
+
+  def loss_fn(params, lp_params):
+    """Loss function used for training."""
+    latent_logits = models.ProgramTransformer(lp_config).apply(
+        {'params': lp_params},
+        inputs,
+        outputs,
+        latent_indices,
+        rngs={'dropout': dropout_rng})
+    latent_loss, latent_weight_sum = compute_weighted_cross_entropy(
+        latent_logits, latent_indices, latent_weights)
+
+    # End-to-end prediction.
+    encoded = models.LatentProgramTransformer(config).apply(
+        {'params': params, 'vqvae': state.model_state},
+        inputs,
+        outputs,
+        mutable=False,
+        rngs={'dropout': dropout_rng},
+        method=models.LatentProgramTransformer.encode)
+    latents = models.LatentProgramTransformer(config).apply(
+        {'params': params, 'vqvae': state.model_state},
+        latent_logits,
+        mutable=False,
+        rngs={'dropout': dropout_rng},
+        method=models.LatentProgramTransformer.quantize)
+    logits = models.LatentProgramTransformer(config).apply(
+        {'params': params, 'vqvae': state.model_state},
+        targets,
+        latents,
+        encoded,
+        latents_mask,
+        encoded_mask,
+        mutable=False,
+        rngs={'dropout': dropout_rng},
+        method=models.LatentProgramTransformer.decode)
+    loss, weight_sum = compute_weighted_cross_entropy(logits, targets, weights)
+
+    mean_loss = latent_loss / latent_weight_sum
+    if not pretrain:
+      mean_loss += loss / weight_sum
+    return mean_loss, (logits, latent_logits)
+
+  grad_fn = jax.value_and_grad(loss_fn, argnums=[0, 1], has_aux=True)
+  (_, (logits, latent_logits)), grads = grad_fn(
+      optimizer.target, lp_optimizer.target)
+  grads = jax.lax.pmean(grads, 'batch')
+  new_optimizer = optimizer.apply_gradient(
+      jax.tree_map(jnp.add, grads[0], ae_grad), learning_rate=lr)
+  new_lp_optimizer = lp_optimizer.apply_gradient(grads[1], learning_rate=lr)
+
   metrics = compute_metrics(logits, targets, weights)
   metrics['learning_rate'] = lr
-  return new_optimizer, metrics, new_dropout_rng
+  metrics.update(compute_metrics(ae_logits, targets, weights, prefix='ae_'))
+  latent_metrics = compute_metrics(
+      latent_logits, latent_indices, latent_weights, prefix='latent_')
+
+  new_state = state.replace(
+      step=step + 1,
+      optimizer=new_optimizer,
+      model_state=jax.lax.pmean(new_model_state, 'batch'),
+      lp_optimizer=new_lp_optimizer)
+  return new_state, metrics, latent_metrics, new_dropout_rng
 
 
-def eval_step(params, inputs, outputs, targets, eos_token, config):
+def eval_step(state,
+              inputs,
+              outputs,
+              targets,
+              bos_token,
+              eos_token,
+              config,
+              lp_config):
   """Collect metrics for evaluation during training."""
+  params = state.optimizer.target
+  lp_params = state.lp_optimizer.target
+
   weights = jnp.where(
       jnp.logical_and(targets > 0,
-                      jnp.logical_and(targets != config.base_config.bos_token,
+                      jnp.logical_and(targets != bos_token,
                                       targets != eos_token)),
       1, 0).astype(jnp.float32)
-  logits = models.DecomposeAttentionTransformer(config).apply(
-      {'params': params}, inputs, outputs, targets)
+  emb_mask = jnp.ones((1, FLAGS.latent_vocab_size),
+                      jnp.float32).at[:, [0, bos_token, eos_token]].set(0)
 
-  return compute_metrics(logits, targets, weights)
+  ae_logits, vq = models.LatentProgramTransformer(config).apply(
+      {'params': params, 'vqvae': state.model_state},
+      inputs,
+      outputs,
+      targets,
+      emb_mask,
+      mutable=False)
+
+  # Postprocess latent indices.
+  latent_indices = add_eos_token(vq['latent_indices'], eos_token)
+  latent_weights = jnp.where(latent_indices > 0, 1, 0).astype(jnp.float32)
+
+  encoded_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
+  # Additionally mask out eos token in latents.
+  latents_mask = jnp.where(
+      jnp.logical_and(latent_indices > 0, latent_indices != eos_token),
+      1, 0).astype(jnp.float32)
+
+  latent_logits = models.ProgramTransformer(lp_config).apply(
+      {'params': lp_params}, inputs, outputs, latent_indices)
+
+  encoded = models.LatentProgramTransformer(config).apply(
+      {'params': params, 'vqvae': state.model_state},
+      inputs,
+      outputs,
+      mutable=False,
+      method=models.LatentProgramTransformer.encode)
+  latents = models.LatentProgramTransformer(config).apply(
+      {'params': params, 'vqvae': state.model_state},
+      latent_logits,
+      mutable=False,
+      method=models.LatentProgramTransformer.quantize)
+  logits = models.LatentProgramTransformer(config).apply(
+      {'params': params, 'vqvae': state.model_state},
+      targets,
+      latents,
+      encoded,
+      latents_mask,
+      encoded_mask,
+      mutable=False,
+      method=models.LatentProgramTransformer.decode)
+
+  metrics = compute_metrics(logits, targets, weights)
+  metrics.update(compute_metrics(ae_logits, targets, weights, prefix='ae_'))
+  latent_metrics = compute_metrics(
+      latent_logits, latent_indices, latent_weights, prefix='latent_')
+  return metrics, latent_metrics
 
 
-def initialize_cache(inputs, outputs, targets, max_decode_len, config):
+def initialize_cache(
+    inputs, outputs, targets, max_decode_len, config, lp_config):
   """Initializes a cache for a given input shape and max decode length."""
   target_shape = (targets.shape[0], max_decode_len)
-  dtype = config.base_config.dtype
-  initial_variables = models.DecomposeAttentionTransformer(config).init(
+  initial_variables = models.LatentProgramTransformer(config).init(
       jax.random.PRNGKey(0),
-      jnp.ones(inputs.shape, dtype),
-      jnp.ones(outputs.shape, dtype),
-      jnp.ones(target_shape, dtype))
-  return initial_variables['cache']
+      jnp.ones(inputs.shape, config.dtype),
+      jnp.ones(outputs.shape, config.dtype),
+      jnp.ones(target_shape, config.dtype))
+  lp_initial_variables = models.ProgramTransformer(lp_config).init(
+      jax.random.PRNGKey(0),
+      jnp.ones(inputs.shape, lp_config.dtype),
+      jnp.ones(outputs.shape, lp_config.dtype),
+      jnp.ones(target_shape, lp_config.dtype))
+
+  return initial_variables['cache'], lp_initial_variables['cache']
 
 
-def predict_step(params,
+def predict_step(state,
                  inputs,
                  outputs,
                  cache,
+                 lp_cache,
                  beam_size,
+                 bos_token,
                  eos_token,
                  max_decode_len,
                  config,
+                 lp_config,
                  slow_decode=True):
   """Predict translation with fast decoding beam search on a batch."""
+  params = state.optimizer.target
+  lp_params = state.lp_optimizer.target
+
+  latent_beam_size = FLAGS.latent_beam_size
+  if beam_size == 1:
+    latent_beam_size = 1
+
+  # Split beam over latent sequences and programs.
+  per_latent_beam_size = beam_size // latent_beam_size
+  beam_size = latent_beam_size * per_latent_beam_size
+
   # Prepare transformer fast-decoder call for beam search: for beam search, we
   # need to set up our decoder model to handle a batch size equal to
   # batch_size * beam_size, where each batch item's data is expanded in-place
   # rather than tiled.
+  flat_lp_encoded = decode.flat_batch_beam_expand(
+      models.ProgramTransformer(lp_config).apply(
+          {'params': lp_params},
+          inputs,
+          outputs,
+          method=models.ProgramTransformer.encode),
+      latent_beam_size)
+
+  encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
+  flat_encoded_padding_mask = decode.flat_batch_beam_expand(
+      encoded_padding_mask, latent_beam_size)
+
+  if slow_decode:
+    def tokens_ids_to_latent_logits(flat_ids):
+      """Token slice to logits from decoder model."""
+      # --> [batch * beam, 1, vocab]
+      flat_logits = models.ProgramTransformer(lp_config).apply(
+          {'params': lp_params},
+          flat_ids,
+          flat_lp_encoded,
+          flat_encoded_padding_mask,
+          method=models.ProgramTransformer.decode)
+      return flat_logits
+
+  else:
+    raise NotImplementedError()
+
+  # Step 1: Beam-search over latent tokens.
+  latent_beam_seqs, _ = decode.beam_search(
+      inputs,
+      lp_cache,
+      tokens_ids_to_latent_logits,
+      beam_size=latent_beam_size,
+      alpha=0.6,
+      bos_token=bos_token,
+      eos_token=eos_token,
+      max_decode_len=np.ceil(max_decode_len / 2**FLAGS.c).astype(np.int32),
+      slow_decode=slow_decode)
+
+  flat_latent_seqs = decode.flat_batch_beam_expand(
+      decode.flatten_beam_dim(latent_beam_seqs), per_latent_beam_size)
+  # Quantize the predicted latent codes.
+  flat_latents = models.LatentProgramTransformer(config).apply(
+      {'params': params, 'vqvae': state.model_state},
+      flat_latent_seqs,
+      mutable=False,
+      method=models.LatentProgramTransformer.quantize)
+
   flat_encoded = decode.flat_batch_beam_expand(
-      models.DecomposeAttentionTransformer(config).apply(
+      models.LatentProgramTransformer(config).apply(
           {'params': params},
           inputs,
           outputs,
-          method=models.DecomposeAttentionTransformer.encode),
+          method=models.LatentProgramTransformer.encode),
       beam_size)
 
+  flat_latents_mask = jnp.where(
+      jnp.logical_and(flat_latent_seqs > 0, flat_latent_seqs != eos_token),
+      1, 0).astype(jnp.float32)
   encoded_padding_mask = jnp.where(outputs > 0, 1, 0).astype(jnp.float32)
   flat_encoded_padding_mask = decode.flat_batch_beam_expand(
       encoded_padding_mask, beam_size)
@@ -342,47 +604,42 @@ def predict_step(params,
     def tokens_ids_to_logits(flat_ids):
       """Token slice to logits from decoder model."""
       # --> [batch * beam, 1, vocab]
-      flat_logits = models.DecomposeAttentionTransformer(config=config).apply(
+      flat_logits = models.LatentProgramTransformer(config=config).apply(
           {'params': params},
           flat_ids,
+          flat_latents,
           flat_encoded,
+          flat_latents_mask,
           flat_encoded_padding_mask,
-          method=models.DecomposeAttentionTransformer.decode)
+          method=models.LatentProgramTransformer.decode)
       return flat_logits
   else:
-    def tokens_ids_to_logits(flat_ids, flat_cache):
-      """Token slice to logits from decoder model."""
-      # --> [batch * beam, 1, vocab]
-      flat_logits, new_vars = models.DecomposeAttentionTransformer(
-          config=config).apply(
-              {'params': params, 'cache': flat_cache},
-              flat_ids,
-              flat_encoded,
-              flat_encoded_padding_mask,
-              mutable=['cache'],
-              method=models.DecomposeAttentionTransformer.decode)
-      new_flat_cache = new_vars['cache']
-      # Remove singleton sequence-length dimension:
-      # [batch * beam, 1, vocab] --> [batch * beam, vocab]
-      flat_logits = flat_logits.squeeze(axis=1)
-      return flat_logits, new_flat_cache
+    raise NotImplementedError()
 
-  # Using the above-defined single-step decoder function, run a
-  # beam search over possible sequences given input encoding.
+  # Step 2: Beam-search over program tokens.
+  per_latent_inputs = decode.flat_batch_beam_expand(
+      inputs, latent_beam_size)
+  per_latent_cache = jax.tree_map(
+      lambda x: decode.flat_batch_beam_expand(x, latent_beam_size), cache)
   beam_seqs, _ = decode.beam_search(
-      inputs,
-      cache,
+      per_latent_inputs,
+      per_latent_cache,
       tokens_ids_to_logits,
-      beam_size=beam_size,
-      alpha=0.0,
-      bos_token=config.base_config.bos_token,
+      beam_size=per_latent_beam_size,
+      alpha=0.6,
+      bos_token=bos_token,
       eos_token=eos_token,
       max_decode_len=max_decode_len,
       slow_decode=slow_decode)
+  # Collapse both beam dimensions into one.
+  beam_seqs = beam_seqs.reshape(
+      (inputs.shape[0], beam_size) + beam_seqs.shape[2:])
+  latent_beam_seqs = jnp.repeat(
+      latent_beam_seqs, per_latent_beam_size, axis=1)
 
   # Beam search returns [n_batch, n_beam, n_length] with beam dimension
   # sorted in increasing order of log-probability.
-  return beam_seqs
+  return beam_seqs, latent_beam_seqs
 
 
 # Util functions for prediction
@@ -537,13 +794,16 @@ def main(_):
   xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
   work_unit = xm_client.get_current_work_unit()
   hparam_dict = work_unit.parameters['args']
-  hparam_str = ','.join(sorted(['%s=%s' % (shorten(k), str(v))
-                                for k, v in hparam_dict.items()]))
-  if hparam_str.startswith('s=') or hparam_str.startswith('r='):
-    hparam_str = 'hparams-' + hparam_str
+  hparam_str = 'hparams-' + ','.join(sorted(['%s=%s' % (shorten(k), str(v))
+                                             for k, v in hparam_dict.items()]))
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
+  logging.info('host %d says n_devices=%d', jax.host_id(), n_devices)
+  logging.info('There are %d hosts', jax.host_count())
+
+  if jax.host_count() * n_devices * FLAGS.per_device_batch_size != 128:
+    raise ValueError('The per_device_batch_size might be wrong')
 
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(
@@ -578,7 +838,6 @@ def main(_):
     spec_vocab_size = len(spec_token_id_table) + 1  # For padding.
     program_id_token_table, _ = dsl_tokens.build_token_tables()
     program_vocab_size = len(program_id_token_table) + 1
-    sep_id = spec_token_id_table[input_pipeline.SEPARATOR_TOKEN]
 
   elif FLAGS.dataset_type == 'deepcoder':
     id_to_token, token_to_id = deepcoder_dsl.vocab_tables()
@@ -588,7 +847,6 @@ def main(_):
     spec_vocab_size = program_vocab_size = vocab_size
     program_id_token_table = spec_id_token_table = id_to_token
     spec_token_id_table = token_to_id
-    sep_id = deepcoder_dsl.SEP_ID
 
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
@@ -769,8 +1027,7 @@ def main(_):
 
   logging.info('predict_padded_shapes: %s', predict_padded_shapes)
   predict_ds = eval_ds.unbatch().padded_batch(
-      int(np.ceil(batch_size / 10)),
-      padded_shapes=predict_padded_shapes)
+      n_devices, padded_shapes=predict_padded_shapes)
   train_ds = dataset.skip(FLAGS.num_eval_steps)
   train_ds = train_ds.repeat()
 
@@ -795,6 +1052,8 @@ def main(_):
                                         padded_shapes=predict_padded_shapes,
                                         drop_remainder=False))
     final_test_dataset = quick_test_dataset
+    logging.info('baseline_model test dataset has %d batches of size %d',
+                 quick_test_dataset.cardinality(), test_batch_size)
   else:
     test_dataset = test_dataset.padded_batch(
         batch_size,
@@ -821,7 +1080,7 @@ def main(_):
   else:
     raise ValueError(f'Unhandled model_type: {FLAGS.model_type}')
 
-  base_config = base_models.TransformerConfig(
+  base_config = models.TransformerConfig(
       vocab_size=spec_vocab_size,
       output_vocab_size=output_vocab_size,
       shift=True,
@@ -849,20 +1108,28 @@ def main(_):
       num_program_cross_embed_relative_position_buckets=(
           FLAGS.num_position_buckets),
       max_program_cross_embed_distance=FLAGS.max_program_cross_embed_distance)
-  separator_token_id = (sep_id if FLAGS.model_type == 'spec_decomposer_model'
-                        else -1)
-  train_config = models.DecomposeAttentionTransformerConfig(
-      base_config=base_config,
-      dataset_type=FLAGS.dataset_type,
-      aligned_relative_attention=FLAGS.aligned_relative_attention,
-      separator_token_id=separator_token_id)
+  train_config = models.LatentTransformerConfig(
+      base_cfg=base_config,
+      latent_vocab_size=FLAGS.latent_vocab_size,
+      c=FLAGS.c,
+      train_vq=True,
+      commitment_cost_vq=FLAGS.commitment_cost_vq)
   eval_config = train_config.replace(
-      base_config=base_config.replace(deterministic=True))
+      base_cfg=base_config.replace(deterministic=True),
+      train_vq=False)
   predict_config = train_config.replace(
-      base_config=base_config.replace(
+      base_cfg=base_config.replace(
           shift=False, deterministic=True,
           decode=not FLAGS.slow_decode,
-          max_len=max(FLAGS.predict_max_input_length, FLAGS.max_target_length)))
+          max_len=max(FLAGS.predict_max_input_length, FLAGS.max_target_length)),
+      train_vq=False)
+
+  lp_train_config = base_config.replace(
+      vocab_size=spec_vocab_size,
+      output_vocab_size=FLAGS.latent_vocab_size)
+  lp_eval_config = lp_train_config.replace(deterministic=True)
+  lp_predict_config = lp_train_config.replace(
+      shift=False, deterministic=True, decode=not FLAGS.slow_decode)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
   rng = jax.random.fold_in(rng, jax.host_id())
@@ -870,18 +1137,18 @@ def main(_):
 
   dropout_rng = jax.random.split(rng, jax.local_device_count())
 
-  m = models.DecomposeAttentionTransformer(eval_config)
+  m = models.LatentProgramTransformer(eval_config)
   initial_variables = jax.jit(m.init)(
       init_rng,
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(target_shape, jnp.float32))
-
-  num_params = sum(x.size for x in jax.tree_leaves(initial_variables['params']))
-  logging.info('Model has %d parameters (embedding_dim=%d, hidden_dim=%d, '
-               'num_layers=%d, num_heads=%d).',
-               num_params, FLAGS.embedding_dim, FLAGS.hidden_dim,
-               FLAGS.num_layers, FLAGS.num_heads)
+  lp_m = models.ProgramTransformer(lp_eval_config)
+  lp_initial_variables = jax.jit(lp_m.init)(
+      init_rng,
+      jnp.ones(io_shape, jnp.float32),
+      jnp.ones(io_shape, jnp.float32),
+      jnp.ones(target_shape, jnp.float32))
 
   optimizer_def = optim.Adam(
       FLAGS.lr,
@@ -890,19 +1157,25 @@ def main(_):
       eps=1e-9,
       weight_decay=FLAGS.weight_decay)
   optimizer = optimizer_def.create(initial_variables['params'])
+  lp_optimizer = optimizer_def.create(lp_initial_variables['params'])
 
-  del initial_variables  # Don't keep a copy of the initial model.
+  state = TrainState(step=0,
+                     optimizer=optimizer,
+                     model_state=initial_variables['vqvae'],
+                     lp_optimizer=lp_optimizer)
+  # Don't keep a copy of the initial model.
+  del initial_variables, lp_initial_variables
 
   start_step = 0
   if FLAGS.restore_checkpoints:
     # Restore unreplicated optimizer + model state from last checkpoint.
-    optimizer = checkpoints.restore_checkpoint(
-        os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str), optimizer)
+    state = checkpoints.restore_checkpoint(
+        os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str), state)
     # Grab last step.
-    start_step = int(optimizer.state.step)
+    start_step = int(state.step)
     logging.info('Found model checkpointed at step %d.', start_step)
 
-    if not FLAGS.predict_only:
+    if FLAGS.do_training:
       # TODO(kshi): It is likely that this code can lead to the job stalling for
       # 10+ hours when restarting from a checkpoint that had been trained a long
       # time, possibly because dataset skipping is slow.
@@ -916,59 +1189,77 @@ def main(_):
       logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
 
   # Replicate optimizer.
-  optimizer = jax_utils.replicate(optimizer)
+  state = jax_utils.replicate(state)
 
   # TODO(jxihong): Implement fast decoding.
   assert FLAGS.slow_decode, 'Fast decoding is not implemented yet.'
 
   learning_rate_fn = create_learning_rate_scheduler(
       base_learning_rate=FLAGS.lr)
-  p_train_step = jax.pmap(
-      functools.partial(
-          train_step,
-          learning_rate_fn=learning_rate_fn,
-          config=train_config),
-      axis_name='batch')
-  p_eval_step = jax.pmap(
-      functools.partial(eval_step,
-                        eos_token=eos_id,
-                        config=eval_config),
-      axis_name='batch')
-  p_init_cache = jax.pmap(
-      functools.partial(
-          initialize_cache,
-          max_decode_len=FLAGS.max_target_length,
-          config=predict_config),
-      axis_name='batch')
-  p_pred_step = jax.pmap(
-      functools.partial(
-          predict_step,
-          eos_token=eos_id,
-          max_decode_len=FLAGS.max_target_length,
-          config=predict_config,
-          slow_decode=FLAGS.slow_decode),
-      axis_name='batch',
-      static_broadcasted_argnums=(4,))
+  if FLAGS.do_training:
+    p_train_step = jax.pmap(
+        functools.partial(
+            train_step,
+            bos_token=bos_id,
+            eos_token=eos_id,
+            learning_rate_fn=learning_rate_fn,
+            config=train_config,
+            lp_config=lp_train_config),
+        axis_name='batch',
+        static_broadcasted_argnums=(4,))
+
+  if FLAGS.do_evaluation:
+    p_eval_step = jax.pmap(
+        functools.partial(eval_step,
+                          bos_token=bos_id,
+                          eos_token=eos_id,
+                          config=eval_config,
+                          lp_config=lp_eval_config),
+        axis_name='batch')
+
+  if FLAGS.do_prediction:
+    p_init_cache = jax.pmap(
+        functools.partial(
+            initialize_cache,
+            max_decode_len=FLAGS.max_target_length,
+            config=predict_config,
+            lp_config=lp_predict_config),
+        axis_name='batch')
+    p_pred_step = jax.pmap(
+        functools.partial(
+            predict_step,
+            bos_token=bos_id,
+            eos_token=eos_id,
+            max_decode_len=FLAGS.max_target_length,
+            config=predict_config,
+            lp_config=lp_predict_config,
+            slow_decode=FLAGS.slow_decode),
+        axis_name='batch',
+        static_broadcasted_argnums=(5,))
 
   # Main Train Loop
   # ---------------------------------------------------------------------------
 
   logging.info('Starting training!')
   metrics_all = []
+  latent_metrics_all = []
   tick = time.time()
   train_iter = train_ds.as_numpy_iterator()
-  if FLAGS.predict_only and start_step == FLAGS.num_train_steps:
+
+  if FLAGS.do_prediction and start_step == FLAGS.num_train_steps:
     start_step -= 1
+
   for step in range(start_step, FLAGS.num_train_steps):
     is_last_step = step == FLAGS.num_train_steps - 1
 
-    if not FLAGS.predict_only:
+    if FLAGS.do_training:
       inputs, outputs, targets, rng = load_data(next(train_iter), rng)
 
-      optimizer, metrics, dropout_rng = p_train_step(
-          optimizer, inputs, outputs, targets,
+      state, metrics, latent_metrics, dropout_rng = p_train_step(  # pylint: disable=undefined-variable
+          state, inputs, outputs, targets, step <= FLAGS.num_pretrain_steps,
           dropout_rng=dropout_rng)
       metrics_all.append(metrics)
+      latent_metrics_all.append(latent_metrics)
 
       # Periodic metric handling.
 
@@ -999,15 +1290,18 @@ def main(_):
         metrics_all = []
 
       # Evaluation Metrics
-      if (step and step % FLAGS.eval_freq == 0) or is_last_step:
+      if FLAGS.do_evaluation and (
+          (step and step % FLAGS.eval_freq == 0) or is_last_step):
         logging.info('Gathering evaluation metrics.')
         t_evaluation_start = time.time()
         eval_metrics = []
+        latent_eval_metrics = []
         for batches in eval_ds.as_numpy_iterator():
           inputs, outputs, targets, rng = load_data(batches, rng)
 
-          metrics = p_eval_step(optimizer.target, inputs, outputs, targets)
+          metrics, latent_metrics = p_eval_step(state, inputs, outputs, targets)  # pylint: disable=undefined-variable
           eval_metrics.append(metrics)
+          latent_eval_metrics.append(latent_metrics)
 
         eval_metrics = common_utils.get_metrics(eval_metrics)
         eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
@@ -1025,36 +1319,45 @@ def main(_):
           summary_writer.flush()
 
     # Beam search metrics.
-    if (step and step % FLAGS.predict_freq == 0) or is_last_step:
+    if FLAGS.do_prediction and (
+        (step and step % FLAGS.predict_freq == 0) or is_last_step):
       logging.info('Gathering beam search metrics.')
       test_ds = final_test_dataset if is_last_step else quick_test_dataset
 
       for dataset, predict_or_test in [(predict_ds, 'predict'),
                                        (test_ds, 'test')]:
 
-        for beam_size in [1, 10]:
+        for beam_size in [FLAGS.beam_size]:
           t_inference_start = time.time()
           total_successes = 0
           total_denominator = 0
 
-          ios, targets_list, predictions, top_of_beams, scores = (
-              [], [], [], [], [])
-          for batches in dataset.as_numpy_iterator():
+          ios, targets_list, predictions, _, top_of_beams, scores = (
+              [], [], [], [], [], [])
+          logging.info('host %d: starting %s',
+                       jax.host_id(), predict_or_test)
+          for batch_i, batches in enumerate(dataset.as_numpy_iterator()):
             pred_batch = batches
             # Handle final odd-sized batch by padding instead of dropping it.
             cur_pred_batch_size = pred_batch['inputs'].shape[0]
+            logging.info('host %d %s: got batch %d, cur_pred_batch_size = %d, '
+                         'n_devices = %d',
+                         jax.host_id(), predict_or_test, batch_i,
+                         cur_pred_batch_size, n_devices)
             if cur_pred_batch_size % n_devices:
               padded_size = int(
                   np.ceil(cur_pred_batch_size / n_devices) * n_devices)
               # pylint: disable=cell-var-from-loop
               pred_batch = jax.tree_map(
                   lambda x: pad_examples(x, padded_size), pred_batch)
+              logging.info('host %d %s: padded batch to padded_size=%d',
+                           jax.host_id(), predict_or_test, padded_size)
             inputs, outputs, targets, rng = load_data(pred_batch, rng)
 
-            cache = (p_init_cache(inputs, outputs, targets)
-                     if not FLAGS.slow_decode else None)
-            predicted = p_pred_step(optimizer.target, inputs, outputs, cache,
-                                    beam_size)
+            cache, lp_cache = (p_init_cache(inputs, outputs, targets)  # pylint: disable=undefined-variable
+                               if not FLAGS.slow_decode else (None, None))
+            predicted, _ = p_pred_step(state, inputs, outputs, cache, lp_cache,  # pylint: disable=undefined-variable
+                                       beam_size)
             predicted = tohost(predicted)
             inputs, outputs, targets = map(tohost, (inputs, outputs, targets))
 
@@ -1109,14 +1412,15 @@ def main(_):
                     index, decode_to_str_fn(beam), beam))
               top_of_beams.append('\n\n'.join(top_of_beam))
 
+          logging.info('host %d %s: total_success=%d, total_denominator=%d',
+                       jax.host_id(), predict_or_test, total_successes,
+                       total_denominator)
           all_total_successes, all_total_denominator = per_host_sum_pmap(
               jax.tree_map(np.array, (total_successes, total_denominator)))
-
-          logging.info('host %d %s: total_success=%d, total_denominator=%d. '
-                       'all_total_successes=%d, all_total_denominator=%d.',
-                       jax.host_id(), predict_or_test,
-                       total_successes, total_denominator,
-                       all_total_successes, all_total_denominator)
+          logging.info('host %d %s: all_total_successes=%d, '
+                       'all_total_denominator=%d',
+                       jax.host_id(), predict_or_test, all_total_successes,
+                       all_total_denominator)
 
           # Record beam search results as text summaries.
           message = []
@@ -1135,32 +1439,28 @@ def main(_):
                 predict_or_test, step, beam_size,
                 all_total_successes, all_total_denominator, accuracy,
                 time.time() - t_inference_start)
-            predict_only_label = '_predict-only' if FLAGS.predict_only else ''
             summary_writer.scalar(
-                '{}/beam-size-{}{}'.format(predict_or_test,
-                                           beam_size,
-                                           predict_only_label),
+                '{}/beam-size-{}'.format(predict_or_test, beam_size),
                 accuracy, step)
 
-            summary_writer.text(
-                '{}-samples-beam-{}{}'.format(predict_or_test, beam_size,
-                                              predict_only_label),
-                '\n------\n'.join(message), step)
+            summary_writer.text('{}-samples-beam-{}'.format(predict_or_test,
+                                                            beam_size),
+                                '\n------\n'.join(message), step)
             summary_writer.flush()
 
-      if FLAGS.predict_only:
+      if not FLAGS.do_training:
         # If only prediction, then don't do it multiple times.
         break
 
     # Save a Checkpoint. Do this at the end of the training loop, so that if a
     # worker is descheduled during a round of prediction (which takes a while),
     # we will redo prediction upon restarting (to avoid losing data).
-    if not FLAGS.predict_only and (
+    if FLAGS.do_training and (
         (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step):
       # Save unreplicated optimizer + model state.
       checkpoints.save_checkpoint_multiprocess(
           os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
-          jax_utils.unreplicate(optimizer),
+          jax_utils.unreplicate(state),
           step,
           keep_every_n_steps=100_000)
 
