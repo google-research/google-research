@@ -229,7 +229,7 @@ class ImageGraph(graph_api.GraphAPI):
     neighbor_ids = jax.vmap(self._pixel_coordinates_to_id)(neighbor_coordinates)
     return neighbor_ids
 
-  def outgoing_edges(self, node_id):
+  def outgoing_edges(self, node_id):  # pytype: disable=signature-mismatch  # jnp-array
     """Returns the outgoing edges from `node_id`.
 
     Pixels outside of the image are mapped to node_id -1.

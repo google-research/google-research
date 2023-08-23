@@ -21,7 +21,7 @@ import jax.numpy as jnp
 
 PRNGKey = jnp.array
 Shape = Tuple[int, Ellipsis]
-Initializer = Callable[[PRNGKey, Shape, jnp.dtype], jnp.array]
-AuxOutput = Dict[str, jnp.array]
+Initializer = Callable[[PRNGKey, Shape, jnp.dtype], jnp.ndarray]
+AuxOutput = Dict[str, jnp.ndarray]
 LayerInput = TypeVar("LayerInput")
 LossOrMetric = Callable[[jnp.ndarray, jnp.ndarray, Any], Any]

@@ -47,7 +47,7 @@ class EncoderDecoderNegLikelihood(models.EncoderDecoderModel):
       self,
       params,
       batch,
-      dropout_rng
+      dropout_rng,
   ):
     """Computes negative loglikehood for unlearning.
 

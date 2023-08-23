@@ -235,9 +235,11 @@ class SpinSphericalFourierTransformer(nn.Module):
 
     return jnp.einsum("ik,ijk,jk->ik", forward_constants, deltas, Jnm)
 
-  def _compute_Gnm_spins_channels(self,  # pylint: disable=invalid-name
-                                  coeffs_set,
-                                  spins):
+  def _compute_Gnm_spins_channels(
+      self,  # pylint: disable=invalid-name
+      coeffs_set,
+      spins,
+  ):
     """Computes Gnm for multiple spins and channels.
 
     See np_spin_spherical_harmonics._compute_Gnm_naive() for details.
