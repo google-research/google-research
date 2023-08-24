@@ -1,4 +1,4 @@
- # YouTube-News-Timeline: Video Timeline Modeling For News Story Understanding
+# YouTube-News-Timeline: Video Timeline Modeling For News Story Understanding
 
 ## Introduction
 
@@ -20,7 +20,7 @@ In the following, we show the distributions of the number of videos per node, th
 
 ![](https://github.com/google-research/google-research/blob/master/video_timeline_modeling/data_dist.png)
 
-The dataset is available via [this Google Drive link](https://drive.google.com/file/d/12u-BLhdJR_YDCBWmNmIj-yzpR9HlalrK/view?usp=sharing). Each data sample is organized in the following format.
+The dataset is available via [this Google Drive link](https://drive.google.com/drive/folders/1SChGxFb_Vl58Nn8jKOKTyoofxu6hz7tF?usp=sharing). Each data sample is organized in the following format.
 
 ```json
 {
