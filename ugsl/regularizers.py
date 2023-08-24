@@ -328,7 +328,7 @@ def add_loss_regularizers(
   Returns:
     A keras model with the regularizers added in the loss.
   """
-  if cfg.smoothness_w > 0.0:
+  if cfg.smoothness_enable:
     smoothness_regularizer = SmoothnessRegularizer()
     model.add_loss(
         cfg.smoothness_w
@@ -337,7 +337,7 @@ def add_loss_regularizers(
             label_graph=None,
         )
     )
-  if cfg.sparseconnect_w > 0.0:
+  if cfg.sparseconnect_enable:
     sparseconnect_regularizer = SparseConnectRegularizer()
     model.add_loss(
         cfg.sparseconnect_w
@@ -346,7 +346,7 @@ def add_loss_regularizers(
             label_graph=None,
         )
     )
-  if cfg.closeness_w > 0.0:
+  if cfg.closeness_enable:
     closeness_regularizer = ClosenessRegularizer()
     model.add_loss(
         cfg.closeness_w
@@ -355,7 +355,7 @@ def add_loss_regularizers(
             label_graph=label_graph,
         )
     )
-  if cfg.logbarrier_w > 0.0:
+  if cfg.logbarrier_enable:
     log_barrier_regularizer = LogBarrier()
     model.add_loss(
         cfg.logbarrier_w
@@ -364,7 +364,7 @@ def add_loss_regularizers(
             label_graph=label_graph,
         )
     )
-  if cfg.information_w > 0.0:
+  if cfg.information_enable:
     information_regularizer = InformationRegularizer(
         cfg.information_r, cfg.information_do_sigmoid
     )

@@ -95,6 +95,11 @@ def get_config():
 
   # Regularizers (see regularizers.py).
   cfg.model.regularizer_cfg = config_dict.ConfigDict()
+  cfg.model.regularizer_cfg.closeness_enable = False
+  cfg.model.regularizer_cfg.smoothness_enable = False
+  cfg.model.regularizer_cfg.sparseconnect_enable = False
+  cfg.model.regularizer_cfg.logbarrier_enable = False
+  cfg.model.regularizer_cfg.information_enable = False
   cfg.model.regularizer_cfg.closeness_w = 0.0
   cfg.model.regularizer_cfg.smoothness_w = 0.0
   cfg.model.regularizer_cfg.sparseconnect_w = 0.0
@@ -107,6 +112,7 @@ def get_config():
   # Denoising loss.
   cfg.model.unsupervised_cfg = config_dict.ConfigDict()
   cfg.model.unsupervised_cfg.denoising_cfg = config_dict.ConfigDict()
+  cfg.model.unsupervised_cfg.denoising_cfg.enable = False
   cfg.model.unsupervised_cfg.denoising_cfg.w = 0.0
   cfg.model.unsupervised_cfg.denoising_cfg.ones_ratio = 5
   cfg.model.unsupervised_cfg.denoising_cfg.negative_ratio = 10
@@ -116,6 +122,7 @@ def get_config():
   cfg.model.unsupervised_cfg.denoising_cfg.activation = "relu"
   # Contrastive loss.
   cfg.model.unsupervised_cfg.contrastive_cfg = config_dict.ConfigDict()
+  cfg.model.unsupervised_cfg.contrastive_cfg.enable = False
   cfg.model.unsupervised_cfg.contrastive_cfg.w = 0.0
   cfg.model.unsupervised_cfg.contrastive_cfg.tau = 0.0
   cfg.model.unsupervised_cfg.contrastive_cfg.feature_mask_rate = 0.6

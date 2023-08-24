@@ -83,14 +83,14 @@ def get_gsl_model(
       input_graph.get_input_graph_tensor(),
       cfg.regularizer_cfg,
   )
-  if cfg.unsupervised_cfg.denoising_cfg.w > 0.0:
+  if cfg.unsupervised_cfg.denoising_cfg.enable:
     model = unsupervised_losses.add_denoising_loss(
         model,
         graph_tensor,
         input_graph.get_initial_node_features(),
         cfg.unsupervised_cfg,
     )
-  if cfg.unsupervised_cfg.contrastive_cfg.w > 0.0:
+  if cfg.unsupervised_cfg.contrastive_cfg.enable:
     if "augmented_embeddings" in gsl_outputs:
       augmented_node_embeddings = gsl_outputs["augmented_embeddings"]
     else:
