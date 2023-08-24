@@ -355,10 +355,10 @@ def add_loss_regularizers(
             label_graph=label_graph,
         )
     )
-  if cfg.log_barrier_w > 0.0:
+  if cfg.logbarrier_w > 0.0:
     log_barrier_regularizer = LogBarrier()
     model.add_loss(
-        cfg.log_barrier_w
+        cfg.logbarrier_w
         * log_barrier_regularizer(
             model_graph=model_graph,
             label_graph=label_graph,

@@ -15,23 +15,24 @@
 
 """Runner of the UGSL framework."""
 from collections.abc import Sequence
+import csv
 import os
 
 from absl import app
+from ml_collections import config_dict
 from ml_collections import config_flags
 import tensorflow as tf
 
-# from ugsl import config
 from ugsl import input_layer
 from ugsl import models
-
 
 _CONFIG = config_flags.DEFINE_config_file(
     "config",
     os.path.join(os.path.dirname(__file__), "config.py"),
     "Path to file containing configuration hyperparameters. "
     "File must define method `get_config()` to return an instance of "
-    "`config_dict.ConfigDict`")
+    "`config_dict.ConfigDict`",
+)
 
 
 def get_tf_dataset(
@@ -48,16 +49,19 @@ def get_tf_dataset(
   return tf.data.Dataset.zip((x, y)).repeat()
 
 
-def main(argv):
-  if len(argv) > 1:
-    raise app.UsageError("Too many command-line arguments.")
+def train(cfg):
+  """The main function to train the UGSL model.
+
+  Args:
+    cfg: config dictionary containing hyperparameters
+  """
   strategy = tf.distribute.MirroredStrategy()
-  cfg = _CONFIG.value
   input_graph = input_layer.InputLayer(**cfg.dataset)
   splits = input_graph.get_node_split()
   train_ds = get_tf_dataset(input_graph, splits.train)
   validation_ds = get_tf_dataset(input_graph, splits.validation)
   test_ds = get_tf_dataset(input_graph, splits.test)
+
   loss_object = tf.keras.losses.SparseCategoricalCrossentropy(
       from_logits=True,
       reduction=tf.keras.losses.Reduction.AUTO,
@@ -83,7 +87,12 @@ def main(argv):
             mode="max",
             save_best_only=True,
             save_weights_only=True,
-        )
+        ),
+        tf.keras.callbacks.CSVLogger(
+            os.path.join(cfg.run.model_dir, "log.csv"),
+            append=True,
+            separator=";",
+        ),
     ]
     history = model.fit(
         train_ds,
@@ -100,7 +109,22 @@ def main(argv):
         test_ds, steps=1, callbacks=callbacks
     )
 
-    print(best_val_accuracy, test_accuracy, test_loss)
+    with open(
+        os.path.join(cfg.run.model_dir, "test_metrics.csv"), mode="w"
+    ) as employee_file:
+      employee_writer = csv.writer(
+          employee_file, delimiter=";", quotechar='"', quoting=csv.QUOTE_MINIMAL
+      )
+      employee_writer.writerow(
+          ["best val accuracy", "test accuracy", "test loss"]
+      )
+      employee_writer.writerow([best_val_accuracy, test_accuracy, test_loss])
+
+
+def main(argv):
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
+  train(_CONFIG.value)
 
 
 if __name__ == "__main__":
