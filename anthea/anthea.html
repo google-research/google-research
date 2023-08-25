@@ -19,12 +19,14 @@
 <title>Anthea: A translation quality evaluation tool</title>
 <html>
 <head>
-  <link rel="stylesheet" type="text/css" href="anthea-eval.css"/>
-  <link rel="stylesheet" type="text/css" href="anthea-manager.css"/>
-  <link rel="stylesheet" type="text/css" href="mqm-viewer.css"/>
+  <link rel="stylesheet" href="anthea-eval.css"/>
+  <link rel="stylesheet" href="anthea-manager.css"/>
+  <link rel="stylesheet" href="marot.css"/>
   <script src="anthea-eval.js"></script>
   <script src="anthea-manager.js"></script>
-  <script src="mqm-viewer.js"></script>
+  <script src="marot-histogram.js"></script>
+  <script src="marot.js"></script>
+  <script src="marot-sigtests.js"></script>
   <script>
     let antheaManager = null;
     document.addEventListener('DOMContentLoaded', () => {
@@ -61,7 +63,6 @@
                     <option value="MQM-Monolingual">MQM-Monolingual</option>
                     <option value="MQM-Target-First">MQM-Target-First</option>
                     <option value="MQM-WebPage">MQM-WebPage</option>
-                    <option value="SQM">SQM</option>
                   </select>
                 </td>
               </tr>
@@ -161,9 +162,9 @@
           <b>Viewing <span id="anthea-viewing-count"></span>
             evaluation file(s):</b>
         </span>
-        <span class="anthea-viewing-tab" id="anthea-viewing-mqm-tab">
-          <button class="anthea-viewing-tab-button" id="anthea-viewing-mqm">
-            MQM Analysis
+        <span class="anthea-viewing-tab" id="anthea-viewing-marot-tab">
+          <button class="anthea-viewing-tab-button" id="anthea-viewing-marot">
+            Marot
           </button>
           <span class="anthea-viewing-tab-ext"></span>
         </span>
@@ -190,7 +191,7 @@
   </div>
   <div id="anthea-eval-div" class="anthea-eval-div">
   </div>
-  <div id="anthea-mqm-viewer">
+  <div id="anthea-marot">
   </div>
 </body>
 </html>

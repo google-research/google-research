@@ -251,9 +251,31 @@ const antheaTemplateBase = {
           <span class="summary-heading">Annotation Tips</span>
         </summary>
         <ol>
-          <li>To change the rating for a previous sentence in the current
-              document, you can click on it. You can delete any individual issue
-              that you might have mistakenly added.</li>
+          <li>
+            You can modify or delete any rating in the current sentence by using
+            the menu shown to the right of the rating. The menu is revealed
+            when you hover your mouse over the hamburger icon (&#9776;). If
+            deleted, the rating is shown with a strikethrough line. You can
+            undelete a deleted rating using the menu, if desired.
+          </li>
+          <li>
+            While editing a rating, its text will be shown with a
+            <span style="text-decoration: red wavy underline">red wavy
+            underline</span>. You can use the "Cancel" button or the Escape key
+            to abort an ongoing modification to a rating.
+          </li>
+          <li>
+              To modify or delete a rating for a previous sentence in the
+              current document, you can first click on it to navigate to it (or
+              use the arrow keys or "Previous" button) and then use the
+              hamburger menu.
+          </li>
+          <li>
+            Sometimes, you might be re-evaluating a document that was already
+            evaluated previously. In such cases, you will see the previous
+            annotations and can simply keep them, edit them, delete them, or
+            supplement them with additional annotations.
+          </li>
           <li>
             Occasionally, the translated sentence will be altered to
             include an artificially injected error. Evaluating translation

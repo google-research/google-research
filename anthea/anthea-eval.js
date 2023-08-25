@@ -139,7 +139,7 @@ class AntheaDocSys {
    *
    * The first line should contain a JSON object with the source and the target
    * language codes, and potentially other parameters. For instance:
-   *   {"source_language": "en", "target_langauge": "fr"}
+   *   {"source_language": "en", "target_language": "fr"}
    *
    * @param {string} projectFileContents TSV-formatted text data.
    * @return {!Array<!AntheaDocSys>} An array of parsed AntheaDocSys objects.
@@ -249,7 +249,7 @@ class AntheaDocSys {
     if (parsed.length == 0) {
       throw 'Did not find any properly formatted text lines in file';
     }
-    // Add project parameters as a property of the parsed array.
+    /* Add project parameters as a property of the parsed array. */
     parsed.parameters = parameters;
     return parsed;
   }
@@ -264,7 +264,7 @@ class AntheaDocSys {
  */
 class AntheaCursor {
   /**
-   * @param {!Array<!Object>} segments Each segment object should contain a 
+   * @param {!Array<!Object>} segments Each segment object should contain a
    *     "doc" field and arrays "srcSents" and "tgtSents".
    * @param {boolean} tgtOnly Set to true for monolingual evals.
    * @param {boolean} tgtFirst Set to true for target-first evals.
@@ -448,7 +448,7 @@ class AntheaCursor {
    * mode, until the source side of a segment is revealed, this returns false.
    * In tgtOnly mode, this always returns false. If both tgtOnly and tgtFirst
    * are false, then this function always returns true.
-   * 
+   *
    * @param {number} seg
    * @return {boolean}
    */
@@ -541,6 +541,162 @@ class AntheaCursor {
 }
 
 /**
+ * A class encapsulating one marked error. A marked error is complete once
+ * it has three things set: an error span, a severity, and a type.
+ */
+class AntheaError {
+  constructor() {
+    this.location = 'translation';
+    this.start = -1;
+    this.end = -1;
+    this.severity = '';
+    this.type = '';
+    this.subtype = '';
+    this.prefix = '';
+    this.selected = '';
+    this.metadata = {
+      timestamp: Date.now(),
+      timing: {},
+    };
+  }
+
+  /**
+   * Returns true if this error has its error span start marked.
+   * @return {boolean}
+   */
+  hasSpanStart() {
+    return this.start >= 0;
+  }
+
+  /**
+   * Returns true if this error has its error span end marked.
+   * @return {boolean}
+   */
+  hasSpanEnd() {
+    return this.end >= 0;
+  }
+
+  /**
+   * Returns true if this error has its error span marked.
+   * @return {boolean}
+   */
+  hasSpan() {
+    return this.start >= 0 && this.end >= 0;
+  }
+
+  /**
+   * Returns true if this error has error severity set.
+   * @return {boolean}
+   */
+  hasSeverity() {
+    return this.severity != '';
+  }
+
+  /**
+   * Returns true if this error has error type set.
+   * @return {boolean}
+   */
+  hasType() {
+    return this.type != '';
+  }
+
+  /**
+   * Returns true if this error has all the needed pieces.
+   * @return {boolean}
+   */
+  isComplete() {
+    return this.hasSpan() && this.hasSeverity() && this.hasType();
+  }
+
+  /**
+   * Make an AntheaError from obj, which can be another AntheaError object, or
+   * can be a JSON-decoded dictionary that has some or all the fields in
+   * AntheaError.
+   *
+   * @param {!Object} obj
+   * @return {!AntheaError}
+   */
+  static clone(obj) {
+    const error = new AntheaError;
+    for (const k in obj) {
+      error[k] = obj[k];
+    }
+    error.metadata = {...obj.metadata};
+    return error;
+  }
+
+  /**
+   * Create a new AntheError from a prior error object (taken from a prior
+   * rater's evaluation).
+   *
+   * @param {string} priorRater
+   * @param {!Object} priorError
+   * @return {!AntheaError}
+   */
+  static newFromPriorError(priorRater, priorError) {
+    const error = AntheaError.clone(priorError);
+    error.metadata.timestamp = Date.now();
+    error.metadata.timing = {};
+    error.metadata.prior_rater = priorRater;
+    error.metadata.prior_error = priorError;
+    return error;
+  }
+
+  /**
+   * Add timing events from a timing object to the current error.
+   *
+   * @param {!Object} timing
+   */
+  addTiming(timing) {
+    const myTiming = this.metadata.timing;
+    for (const action in timing) {
+      if (!myTiming.hasOwnProperty(action)) {
+        myTiming[action] = timing[action];
+        continue;
+      }
+      myTiming[action].count += timing[action].count;
+      myTiming[action].timeMS += timing[action].timeMS;
+      myTiming[action].log.push.apply(myTiming[action].log, timing[action].log);
+    }
+  }
+
+  /**
+   * Returns the count of errors (not counting those marked_deleted).
+   *
+   * @param {!Array<!AntheaError>} errors
+   * @return {number}
+   */
+  static count(errors) {
+    let ct = 0;
+    for (const error of errors) {
+      if (!error.marked_deleted) {
+        ct++;
+      }
+    }
+    return ct;
+  }
+
+  /**
+   * Returns the first error in errors that hasn't been marked_deleted. Returns
+   * null if there is no such error.
+   *
+   * @param {!Array<!AntheError>} errors
+   * @param {!Set<number>} sentErrorIndices
+   * @return {?AntheaError}
+   */
+  static firstUndeletedError(errors, sentErrorIndices) {
+    for (let e = 0; e < errors.length; e++) {
+      if (!sentErrorIndices.has(e)) continue;
+      const error = errors[e];
+      if (!error.marked_deleted) {
+        return error;
+      }
+    }
+    return null;
+  }
+}
+
+/**
  * An object that encapsulates one active evaluation.
  *
  * After constructing, setUpEval() should be called. After finishing one
@@ -584,6 +740,12 @@ class AntheaEval {
     /** @private {!Array<!Object>} */
     this.evalResults_ = [];
 
+    /**
+     * @private @const {!Object} Dictionary mapping error index to the div
+     * containing the edit button for that error.
+     */
+    this.modButtonParents_ = {};
+
     /** @private {?Element} */
     this.fadingTextSpan_ = null;
 
@@ -595,11 +757,22 @@ class AntheaEval {
     this.afterColor_ = 'lightgray';
     /** @private @const {string} */
     this.buttonColor_ = 'azure';
+    /** @private @const {string} */
+    this.highlightColor_ = 'gainsboro';
 
-    /** @private {?Object} The currently marked phrase. */
-    this.markedPhrase_ = null;
-    /** @private {boolean} */
-    this.startedMarking_ = false;
+    /** @private {?AntheaError} Current error getting added or edited. */
+    this.error_ = null;
+    /**
+     * @private {number} When error_ is not null, this is the index of the error
+     *     getting edited (-1 for a new error getting annotated).
+     */
+    this.errorIndex_ = -1;
+    /**
+     * @private {string} Currently active action for the current error.
+     *   Something like 'new-error', 'deletion', etc.
+     */
+    this.errorAction_ = '';
+
     /** @private {?AntheaPhraseMarker} */
     this.phraseMarker_ = null;
     /** @private {?Element} */
@@ -688,10 +861,10 @@ class AntheaEval {
 
   /**
    * Restores eval results from the previously persisted value.
-   * 
+   *
    * @param {?Array<!Object>} projectResults
    */
-  restoreResults(projectResults) {
+  restoreEvalResults(projectResults) {
     if (!this.manager_) {
       return;
     }
@@ -721,6 +894,10 @@ class AntheaEval {
     for (let seg = 0; seg < this.evalResults_.length; seg++) {
       const segment = this.segments_[seg];
       const result = this.evalResults_[seg];
+      /** Convert parsed error dicts to AntheaError objects */
+      for (let x = 0; x < result.errors.length; x++) {
+        result.errors[x] = AntheaError.clone(result.errors[x]);
+      }
       if (this.READ_ONLY || result.visited) {
         /** Clear any new HOTW injections in this segment */
         for (let sent = 0; sent < segment.tgtSents.length; sent++) {
@@ -770,11 +947,60 @@ class AntheaEval {
     this.showPageContextIfPresent();
     this.redrawAllSegments();
     this.recomputeTops();
-    this.redrawCurrSentence();
-    this.setEvalButtonsAvailability();
+    this.refreshCurrSentence();
 
     this.manager_.log(this.manager_.INFO,
                       'Restored previous evaluation results');
+  }
+
+  /**
+   * Copies previous evaluation results as the starting point.
+   *
+   * @param {string} priorRater
+   * @param {!Array<!Object>} priorResults
+   */
+  startFromPriorResults(priorRater, priorResults) {
+    if (!this.manager_ || this.READ_ONLY) {
+      return;
+    }
+    if (!priorResults || priorResults.length == 0) {
+      this.manager_.log(this.manager_.ERROR,
+                        'Cannot start from empty prior eval results');
+      return;
+    }
+    if (priorResults.length != this.evalResults_.length) {
+      this.manager_.log(
+          this.manager_.ERROR,
+          'Cannot start from previous results as they are for ' +
+              priorResults.length +
+              ' segments, but the current project has ' +
+              this.evalResults_.length);
+      return;
+    }
+
+    for (let seg = 0; seg < this.evalResults_.length; seg++) {
+      const segment = this.segments_[seg];
+      const result = this.evalResults_[seg];
+      result.prior_rater = priorRater;
+      const priorResult = priorResults[seg];
+      for (const priorError of priorResult.errors) {
+        const newError = AntheaError.newFromPriorError(priorRater, priorError);
+        result.errors.push(newError);
+      }
+      if (result.errors.length > 0) {
+        /** Clear any HOTW injections in this segment */
+        for (let sent = 0; sent < segment.tgtSents.length; sent++) {
+          const sentence = this.getSentence(seg, 1, sent);
+          delete sentence.hotw;
+          sentence.hotwSpanHTML = '';
+          sentence.injectedError = '';
+          sentence.hotwType = '';
+        }
+        result.hotw_list = [];
+      }
+    }
+    this.manager_.log(this.manager_.INFO,
+                      'Starting from previous evaluation results');
   }
 
   /**
@@ -826,6 +1052,17 @@ class AntheaEval {
     tinfo.log.push(details);
     this.lastTimestampMS_ = currEval.timestamp;
     this.saveResults();
+  }
+
+  /**
+   * Note timing for the given action. The action string is saved so that the
+   * subsequent concludeError() call can note the timing for cancelled-<action>
+   * or finished-<action> appropriately.
+   * @param {string} action
+   */
+  initiateErrorAction(action) {
+    this.errorAction_ = action;
+    this.noteTiming('started-' + action);
   }
 
   /**
@@ -901,6 +1138,32 @@ class AntheaEval {
   }
 
   /**
+   * Returns indices into the errors array that contain errors for the given
+   * seg, side, sent. The indices are returned as a Set.
+   *
+   * @param {!Array<!AntheaError>} errors
+   * @param {number} seg
+   * @param {number} side
+   * @param {number} sent
+   * @return {!Set<number>}
+   */
+  getSentenceErrorIndices(errors, seg, side, sent) {
+    const ret = new Set;
+    const sentence = this.getSentence(seg, side, sent);
+    const tokenRangeInSeg = [sentence.firstToken, sentence.lastToken];
+    for (let e = 0; e < errors.length; e++) {
+      const error = errors[e];
+      if (side == 0 && error.location != 'source') continue;
+      if (side == 1 && error.location == 'source') continue;
+      const range = this.intersectRanges(
+        [error.start, error.end], tokenRangeInSeg);
+      if (!range) continue;
+      ret.add(e);
+    }
+    return ret;
+  }
+
+  /**
    * Shows the sentence at index seg,side,sent. How the sentence gets shown
    *     depends on whether it is before, at, or after this.cursor.
    * @param {number} seg
@@ -929,28 +1192,36 @@ class AntheaEval {
     googdom.setInnerHtml(sentence.sentSpan, spanHTML);
     sentence.sentSpan.classList.remove('anthea-sentence-nav');
 
+    const isCurr = this.cursor.equals(seg, side, sent);
+
     /* Highlight errors in sentence */
     const tokenSpans = sentence.sentSpan.getElementsByTagName('span');
     console.assert(tokenSpans.length ==
                    sentence.lastToken - sentence.firstToken + 1);
+    const sentErrorIndices = this.getSentenceErrorIndices(evalResult.errors,
+                                                          seg, side, sent);
     const tokenRangeInSeg = [sentence.firstToken, sentence.lastToken];
-    const sentErrorIndices = {};
     for (let e = 0; e < evalResult.errors.length; e++) {
+      if (!sentErrorIndices.has(e)) continue;
       const error = evalResult.errors[e];
-      if (side == 0 && error.location != 'source') continue;
-      if (side == 1 && error.location == 'source') continue;
+      if (error.marked_deleted) {
+        continue;
+      }
+      /** Code to highlight the span in the sentence: */
       const range = this.intersectRanges(
         [error.start, error.end], tokenRangeInSeg);
-      if (!range) continue;
+      const isBeingEdited = isCurr && this.error_ && (this.errorIndex_ == e);
       const severity = this.config.severities[error.severity];
       const color = severity.color;
       for (let x = range[0]; x <= range[1]; x++) {
-        tokenSpans[x - sentence.firstToken].style.backgroundColor = color;
+        const tokenSpan = tokenSpans[x - sentence.firstToken];
+        tokenSpan.style.backgroundColor = color;
+        if (isBeingEdited) {
+          tokenSpan.classList.add('anthea-being-edited');
+        }
       }
-      sentErrorIndices[e] = true;
     }
 
-    const isCurr = this.cursor.equals(seg, side, sent);
     if (isCurr) {
       sentence.sentSpan.classList.remove('anthea-fading-text');
       this.evalPanel_.style.top = sentence.top;
@@ -960,25 +1231,32 @@ class AntheaEval {
                                 sentence.hotw.injected_error);
       }
       for (let e = 0; e < evalResult.errors.length; e++) {
-        if (sentErrorIndices[e]) {
+        if (sentErrorIndices.has(e)) {
+          if (!this.cursor.srcVisible(this.cursor.seg) &&
+              !evalResult.errors[e].metadata.source_not_seen) {
+            /* This error will be shown only after the source is shown */
+            continue;
+          }
           this.displayError(evalResult, e);
         }
       }
-      if (this.markedPhrase_) {
-        /* Indices in markedPhrase_ are for sentence, not segment. */
-        const color =
-            this.severity_ ? this.severity_.color : this.markedPhrase_.color;
-        for (let x = this.markedPhrase_.start; x <= this.markedPhrase_.end;
-             x++) {
-          tokenSpans[x].style.backgroundColor = color;
+      if (this.error_ && this.errorIndex_ < 0 && this.error_.hasSpan()) {
+        /* New error still getting annotated */
+        let color = this.highlightColor_;
+        if (this.error_.severity) {
+          const severity = this.config.severities[this.error_.severity];
+          color = severity.color;
+        }
+        for (let x = this.error_.start; x <= this.error_.end; x++) {
+          tokenSpans[x - sentence.firstToken].style.backgroundColor = color;
         }
       }
     }
 
     const hasBeenRead = this.cursor.hasBeenRead(seg, side, sent);
 
-    if (!isCurr && hasBeenRead && !this.startedMarking_) {
-      // anthea-segment-nav class makes the mouse a pointer on hover.
+    if (!isCurr && hasBeenRead && !this.error_)  {
+      /* anthea-segment-nav class makes the mouse a pointer on hover. */
       sentence.sentSpan.classList.add('anthea-sentence-nav');
       sentence.clickListener = () => {
         this.revisitSentence(seg, side, sent);
@@ -1042,30 +1320,32 @@ class AntheaEval {
 
   /**
    * Displays the previously marked error in evalResult.errors[index], alongside
-   *     the current segment. The displayed error also includes an "x" button
-   *     for deleting it.
+   *     the current segment. The displayed error also includes a hamburger
+   *     menu button for deleting or modifying it.
    * @param {!Object} evalResult
    * @param {number} index
    */
   displayError(evalResult, index) {
     const errors = evalResult.errors;
     const error = errors[index];
-    const tr = document.createElement('tr');
+    const tr = googdom.createDom('tr', 'anthea-eval-panel-row');
     this.evalPanelErrors_.appendChild(tr);
 
-    const delButton = googdom.createDom(
-        'button', {class: 'anthea-stretchy-button anthea-eval-panel-short'},
-        '×');
-    tr.appendChild(googdom.createDom(
-        'td', 'anthea-eval-panel-nav',
-        googdom.createDom('div', 'anthea-eval-panel-nav', delButton)));
-
-    const severity = this.config.severities[error.severity];
-    let desc = error.display || severity.display;
-    if (error.subtype) {
-      const errorInfo = this.config.errors[error.type] || {};
-      if (errorInfo.subtypes && errorInfo.subtypes[error.subtype]) {
+    let color = this.highlightColor_;
+    let desc = '';
+    if (error.type) {
+      const errorInfo = this.config.errors[error.type];
+      desc = errorInfo.display;
+      if (error.subtype &&
+          errorInfo.subtypes && errorInfo.subtypes[error.subtype]) {
         desc = desc + ': ' + errorInfo.subtypes[error.subtype].display;
+      }
+    }
+    if (error.severity) {
+      const severity = this.config.severities[error.severity];
+      color = severity.color;
+      if (!desc) {
+        desc = severity.display;
       }
     }
     if (error.metadata && error.metadata.note) {
@@ -1073,45 +1353,41 @@ class AntheaEval {
     }
     desc += ': ';
 
+    let textCls = 'anthea-eval-panel-text';
+    if (error.marked_deleted) {
+      textCls += ' anthea-deleted-error';
+    }
+    if (this.error_ && (this.errorIndex_ == index)) {
+      textCls += ' anthea-being-edited';
+    }
     /**
      * Use 0-width spaces to ensure leading/trailing spaces get shown.
      */
     tr.appendChild(googdom.createDom(
-        'td', 'anthea-eval-panel-text', desc,
+        'td', {class: textCls}, desc,
         googdom.createDom(
             'span', {
               dir: 'auto',
-              style: 'background-color:' + severity.color,
+              style: 'background-color:' + color,
             },
             '\u200b' + error.selected + '\u200b')));
 
-    delButton.title = 'Delete this error';
+    const modButton = googdom.createDom(
+        'button',
+        {class: 'anthea-stretchy-button anthea-eval-panel-mod'});
+    modButton.innerHTML = '&#9776;';
+    const modButtonParent = googdom.createDom(
+        'div', 'anthea-modifier-menu-parent', modButton);
+    tr.appendChild(googdom.createDom(
+        'td', 'anthea-eval-panel-nav', modButtonParent));
+    this.modButtonParents_[index] = modButtonParent;
+
     if (this.READ_ONLY) {
-      delButton.disabled = true;
+      modButton.disabled = true;
     } else {
-      delButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        /** Save timing info from the deleted error. */
-        const timing = errors[index].metadata.timing ?? {};
-        for (let action of Object.keys(timing)) {
-          if (!evalResult.timing.hasOwnProperty(action)) {
-            evalResult.timing[action] = {
-              count: 0,
-              timeMS: 0,
-              log: [],
-            };
-            evalResult.timing[action].count += timing[action].count;
-            evalResult.timing[action].timeMS += timing[action].timeMS;
-            const log = timing[action].log ?? [];
-            for (let detail of log) {
-              evalResult.timing[action].log.push(detail);
-            }
-          }
-        }
-        this.noteTiming('deleted-error');
-        errors.splice(index, 1);
-        this.refreshCurrSentence();
-      });
+      modButton.addEventListener(
+          'mouseover', this.showModifierMenu.bind(this, index));
+      modButton.addEventListener('click', this.toggleModifierMenu.bind(this));
     }
   }
 
@@ -1119,8 +1395,12 @@ class AntheaEval {
    * Called from the AntheaPhraseMarker object, this is set when a phrase-start
    *     has been marked.
    */
-  setStartedMarking() {
-    this.startedMarking_ = true;
+  setStartedMarkingSpan() {
+    if (!this.error_) {
+      this.error_ = new AntheaError;
+      this.errorIndex_ = -1;
+      this.initiateErrorAction('new-error');
+    }
     this.setEvalButtonsAvailability();
   }
 
@@ -1133,7 +1413,6 @@ class AntheaEval {
       return;
     }
     this.guidance_.innerHTML = text;
-    this.guidance_.style.display = '';
   }
 
   /**
@@ -1150,24 +1429,58 @@ class AntheaEval {
   }
 
   /**
+   * Returns true if the first undeleted error in errors is of a type that
+   * overrides all other errors.
+   *
+   * @param {!Array<!AntheaError>} errors
+   * @param {!Set<number>} sentErrorIndices
+   * @return {boolean}
+  */
+  firstErrorOverridesAll(errors, sentErrorIndices) {
+    const firstError = AntheaError.firstUndeletedError(
+        errors, sentErrorIndices);
+    if (!firstError) return false;
+    const errorInfo = this.config.errors[firstError.type];
+    return (errorInfo.override_all_errors ?? false);
+  }
+
+  /**
    * Sets the disabled/display state of all evaluation buttons appropriately.
    *    This is a critical function, as it determines, based upon the current
    *    state, which UI controls/buttons get shown and enabled.
    */
   setEvalButtonsAvailability() {
     const evalResult = this.currSegmentEval();
+    const sentErrorIndices = this.getSentenceErrorIndices(
+        evalResult.errors, this.cursor.seg, this.cursor.side, this.cursor.sent);
+    const noNewErrors = evalResult.errors && evalResult.errors.length > 0 &&
+        (this.firstErrorOverridesAll(evalResult.errors, sentErrorIndices) ||
+         (this.config.MAX_ERRORS > 0 &&
+          AntheaError.count(evalResult.errors) >=
+          this.config.MAX_ERRORS));
     const disableMarking = this.READ_ONLY ||
-        (evalResult.errors && evalResult.errors.length > 0 &&
-         (evalResult.errors[0].override_all_errors ||
-          (this.config.MAX_ERRORS > 0 &&
-           evalResult.errors.length >= this.config.MAX_ERRORS)));
-    const disableSevErr = disableMarking || !this.markedPhrase_;
-    const disableSeverity = disableSevErr || this.severity_;
-    for (let s in this.config.severities) {
+        (this.error_ && this.error_.isComplete()) ||
+        (this.errorIndex_ < 0 && noNewErrors);
+    const disableSevCat = disableMarking ||
+                          !this.error_ || !this.error_.hasSpan();
+    const disableSeverity = disableSevCat ||
+        (this.error_ && this.error_.hasSeverity());
+    let forcedSeverity = '';
+    if (!disableSeverity && this.error_ && this.error_.hasType()) {
+      const errorInfo = this.config.errors[this.error_.type];
+      if (errorInfo.forced_severity) {
+        forcedSeverity = errorInfo.forced_severity;
+      }
+    }
+    for (const s in this.config.severities) {
       this.buttons_[s].disabled = disableSeverity;
+      if (forcedSeverity && s != forcedSeverity) {
+        this.buttons_[s].disabled = true;
+      }
     }
 
-    const disableErrors = disableSevErr || this.errorType_;
+    const disableErrors = disableSevCat ||
+        (this.error_ && this.error_.hasType());
     for (let type in this.config.errors) {
       const errorInfo = this.config.errors[type];
       const errorButton = this.buttons_[this.errorButtonKey(type)];
@@ -1179,12 +1492,8 @@ class AntheaEval {
         if (!errorInfo.source_side_ok && this.cursor.side == 0) {
           errorButton.disabled = true;
         }
-        if (errorInfo.override_all_errors &&
-            this.severityId_ && this.severityId_ != 'major') {
-          errorButton.disabled = true;
-        }
-        if (errorInfo.forced_severity && this.severityId_ &&
-            this.severityId_ != errorInfo.forced_severity) {
+        if (errorInfo.forced_severity && this.error_.severity &&
+            this.error_.severity != errorInfo.forced_severity) {
           errorButton.disabled = true;
         }
         if (errorInfo.needs_source &&
@@ -1218,39 +1527,72 @@ class AntheaEval {
                                      !this.cursor.seenDocEnd();
     }
 
-    this.guidancePanel_.style.backgroundColor =
-        (this.severity_ ? this.severity_.color : 'whitesmoke');
-    this.guidance_.style.display = 'none';
+    for (let e = 0; e < evalResult.errors.length; e++) {
+      if (!sentErrorIndices.has(e)) continue;
+      const modButtonParent = this.modButtonParents_[e];
+      if (!modButtonParent) continue;
+      const modButton = modButtonParent.firstElementChild ?? null;
+      if (!modButton) continue;
+      modButton.disabled = true;
+      if (this.READ_ONLY) {
+        continue;
+      }
+      const error = evalResult.errors[e];
+      if (error.marked_deleted && noNewErrors) {
+        /* cannot undelete when no more errors are allowed */
+        continue;
+      }
+      if (this.error_) {
+        /* cannot edit an error while another error is getting annotated */
+        continue;
+      }
+      modButton.disabled = false;
+    }
+    this.guidancePanel_.style.backgroundColor = 'whitesmoke';
     this.evalPanelBody_.style.display = 'none';
     this.cancel_.style.display = 'none';
-    this.evalPanelErrors_.style.display = '';
     if (this.READ_ONLY) {
+      this.showGuidance('Read-only mode, no editing possible');
       return;
     }
-    if (!this.startedMarking_) {
-      if (!disableMarking) {
+    if (!this.error_)  {
+      if (noNewErrors) {
+        this.showGuidance('Cannot mark more errors here');
+      } else {
+        this.showGuidance('Click on the start of an error span not yet marked');
         this.phraseMarker_.getMarkedPhrase();
       }
       return;
     }
-
-    // Marking has already been initiated.
-    this.evalPanelBody_.style.display = '';
-    this.cancel_.style.display = '';
-    this.evalPanelErrors_.style.display = 'none';
-
-    if (this.severity_) {
-      this.showGuidance('Choose error type / sybtype');
-    } else if (this.errorType_) {
-      this.showGuidance('Choose error severity');
-    } else {
-      this.showGuidance('Choose error severity, type / subtype');
+    if (this.error_.isComplete()) {
+      return;
     }
+
+    // Already in the middle of editing a new or existing error.
+    this.cancel_.style.display = '';
     this.openSubtypes(null);
     this.prevButton_.disabled = true;
     this.nextButton_.disabled = true;
     this.prevDocButton_.disabled = true;
     this.nextDocButton_.disabled = true;
+
+    if (!this.error_.hasType()) {
+      this.evalPanelBody_.style.display = '';
+    }
+    if (this.error_.hasSeverity() && this.error_.hasType()) {
+      if (!this.phraseMarker_.startAlreadyMarked()) {
+        this.showGuidance('Click on the corrected start of the error span');
+        this.phraseMarker_.getMarkedPhrase();
+      }
+    } else if (this.error_.hasSeverity()) {
+      const severity = this.config.severities[this.error_.severity];
+      this.guidancePanel_.style.backgroundColor = severity.color;
+      this.showGuidance('Choose error type / sybtype');
+    } else if (this.error_.hasType()) {
+      this.showGuidance('Choose error severity');
+    } else {
+      this.showGuidance('Choose error severity, type / subtype');
+    }
   }
 
   /**
@@ -1308,7 +1650,7 @@ class AntheaEval {
    * Navigates to the other side.
    */
   handleSwitch() {
-    if (this.config.TARGET_SIDE_ONLY) {
+    if (this.error_ || this.config.TARGET_SIDE_ONLY) {
       return;
     }
     this.noteTiming('switch-sides');
@@ -1354,13 +1696,16 @@ class AntheaEval {
   }
 
   /**
-   * If the passed error requires additional user input, this function
+   * If the current error requires additional user input, this function
    *     augments it with the needed info. Returns false if the user cancels.
-   * @param {!Object} markedError Object with error details.
    * @return {boolean} Whether to continue with marking the error.
    */
-  maybeAugmentError(markedError) {
-    if (markedError.override_all_errors) {
+  maybeAugmentError() {
+    if (!this.error_) {
+      return false;
+    }
+    const errorInfo = this.config.errors[this.error_.type];
+    if (errorInfo.override_all_errors) {
       if (!confirm(
               'This error category will remove all other marked errors ' +
               'from this segment and will set the error span to ' +
@@ -1369,97 +1714,75 @@ class AntheaEval {
         return false;
       }
       this.noteTiming('confirmed-override-all-errors');
-      markedError.location = 'translation';
-      markedError.prefix = '';
+      this.error_.location = 'translation';
+      this.error_.prefix = '';
       const spanArray = this.getCurrTokenSpans();
-      markedError.selected = '';
+      this.error_.selected = '';
       for (let x = 0; x < spanArray.length; x++) {
-        markedError.selected += spanArray[x].innerText;
+        this.error_.selected += spanArray[x].innerText;
       }
       const sentence = this.getCurrSentence();
-      markedError.start = sentence.firstToken;
-      markedError.end = sentence.lastToken;
+      this.error_.start = sentence.firstToken;
+      this.error_.end = sentence.lastToken;
     }
 
-    if (!markedError.metadata) {
-      markedError.metadata = {};
-    }
-    markedError.metadata.sentence_index = this.cursor.sent;
-    markedError.metadata.side = this.cursor.side;
+    this.error_.metadata.sentence_index = this.cursor.sent;
+    this.error_.metadata.side = this.cursor.side;
 
-    if (markedError.needs_note) {
-      markedError.metadata.note = prompt(
+    if (errorInfo.needs_note && !this.error_.metadata.note) {
+      this.error_.metadata.note = prompt(
           "Please enter a short error description", "");
-      if (!markedError.metadata.note) {
-        this.noteTiming('cancelled-error-note');
+      if (!this.error_.metadata.note) {
+        this.noteTiming('cancelled-required-error-note');
         return false;
       }
-      this.noteTiming('added-error-note');
+      this.noteTiming('added-required-error-note');
     }
     return true;
   }
 
   /**
-   * Calling this marks the end of an error-marking in the current segment.
-   * @param {?Object} markedError Object with error details and location,
-   *     or null, if no error is to be marked.
+   * Calling this marks the end of an error-marking or editing in the current
+   *     sentence.
+   * @param {boolean=} cancel
    */
-  concludeMarkingPhrase(markedError) {
-    if (markedError) {
+  concludeError(cancel = false) {
+    let actionPrefix = 'cancelled-';
+    if (!cancel && this.error_ && this.error_.isComplete()) {
       const evalResult = this.currSegmentEval();
-      if (markedError.override_all_errors) {
-        evalResult.errors = [];
+      const errorInfo = this.config.errors[this.error_.type];
+      if (errorInfo.override_all_errors) {
+        const sentErrorIndices = this.getSentenceErrorIndices(
+            evalResult.errors, this.cursor.seg, this.cursor.side,
+            this.cursor.sent);
+        for (let x = 0; x < evalResult.errors.length; x++) {
+          if (!sentErrorIndices.has(x) || x == this.errorIndex_) {
+            continue;
+          }
+          evalResult.errors[x].marked_deleted = true;
+        }
       }
-      if (!markedError.metadata) {
-        markedError.metadata = {};
-      }
-      markedError.metadata.timestamp = evalResult.timestamp;
-      markedError.metadata.timing = evalResult.timing;
+      this.error_.metadata.timestamp = evalResult.timestamp;
+      this.error_.addTiming(evalResult.timing);
       if (!this.cursor.srcVisible(this.cursor.seg)) {
-        markedError.metadata.source_not_seen = true;
+        this.error_.metadata.source_not_seen = true;
       }
       evalResult.timing = {};
-      evalResult.errors.push(markedError);
-      this.displayError(evalResult, evalResult.errors.length - 1);
+      if (this.errorIndex_ >= 0) {
+        evalResult.errors[this.errorIndex_] = this.error_;
+      } else {
+        evalResult.errors.push(this.error_);
+      }
+      actionPrefix = 'finished-';
     }
-    this.resetMQMRating();
-
+    if (this.errorAction_) {
+      this.noteTiming(actionPrefix + this.errorAction_);
+    }
     this.saveResults();
+    this.error_ = null;
+    this.errorIndex_ = -1;
+    this.errorAction_ = '';
     this.redrawAllSegments();
-  }
-
-  /**
-   * Marks a "full-span" error that overrides all other errors and bypasses
-   *     phrase selection.
-   */
-  markFullSpanError(severityId) {
-    const severity = this.config.severities[severityId];
-    const error = {
-      severity: severityId,
-      override_all_errors: true,
-      needs_note: severity.full_span_error &&
-                  severity.full_span_error.needs_note ? true : false,
-      metadata: {},
-    };
-    if (!this.maybeAugmentError(error)) {
-      this.concludeMarkingPhrase(null);
-      return;
-    }
-
-    const sentence = this.getCurrSentence();
-    if (sentence.hotw && !sentence.hotw.done) {
-      const evalResult = this.currSegmentEval();
-      this.noteTiming('found-hands-on-the-wheel-error');
-      sentence.hotw.done = true;
-      sentence.hotw.found = true;
-      sentence.hotw.timestamp = evalResult.timestamp;
-      sentence.hotw.timing = evalResult.timing;
-      evalResult.timing = {};
-      this.concludeMarkingPhrase(null);
-      return;
-    }
-
-    this.concludeMarkingPhrase(error);
   }
 
   /**
@@ -1490,15 +1813,13 @@ class AntheaEval {
         'afterbegin', this.guidancePanel_);
 
     this.guidance_ = googdom.createDom('div', 'anthea-eval-guidance');
-    this.guidance_.style.display = 'none';
     this.guidancePanel_.appendChild(this.guidance_);
 
     this.cancel_ = googdom.createDom(
         'button', 'anthea-stretchy-button anthea-eval-cancel', 'Cancel (Esc)');
     this.cancel_.style.display = 'none';
     const cancelListener = (e) => {
-      if (e.type == 'click' ||
-          (!this.cancel_.disabled && e.key && e.key === 'Escape')) {
+      if (e.type == 'click' || (e.key && e.key === 'Escape')) {
         e.preventDefault();
         this.handleCancel();
       }
@@ -1561,8 +1882,7 @@ class AntheaEval {
         if (this.config.FLATTEN_SUBTYPES) {
           errorButton.style.display = 'none';
         } else {
-          subtypesDiv.className =
-              subtypesDiv.className + ' anthea-eval-panel-unflattened';
+          subtypesDiv.classList.add('anthea-eval-panel-unflattened');
           subtypes.style.display = 'none';
           errorButton.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1581,55 +1901,20 @@ class AntheaEval {
   }
 
   /**
-   * Resets the current MQM rating.
-   */
-  resetMQMRating() {
-    this.severityId_ = '';
-    this.severity_ = null;
-    this.errorType_ = '';
-    this.errorSubtype_ = '';
-    this.markedPhrase_ = null;
-    this.startedMarking_ = false;
-    this.evalPanelBody_.style.display = 'none';
-  }
-
-  /**
    * Called after any of the three parts of an MQM rating (error span,
-   *     severity, error type) is added, this finishes the rating when
+   *     severity, error type) is added, this finishes the error rating when
    *     all three parts have been received.
    */
-  maybeSetMQMRating() {
-    this.startedMarking_ = true;
-    this.redrawAllSegments();
-    if (!this.severity_ ||
-        (!this.errorType_ && !this.severity_.forced_error) ||
-        !this.markedPhrase_) {
+  maybeConcludeError() {
+    if (!this.error_ || !this.error_.isComplete()) {
+      this.refreshCurrSentence();
       return;
     }
-    const sentence = this.getCurrSentence();
-    const errorInfo = this.config.errors[this.errorType_] ||
-        this.severity_.forced_error || {};
-    const display =
-        errorInfo.display || this.severity_.display || 'Unspecified';
-    const error = {
-      location: this.cursor.side == 0 ? 'source' : 'translation',
-      prefix: this.markedPhrase_.prefix,
-      selected: this.markedPhrase_.selected,
-      type: this.errorType_,
-      subtype: this.errorSubtype_,
-      display: display,
-      start: this.markedPhrase_.start + sentence.firstToken,
-      end: this.markedPhrase_.end + sentence.firstToken,
-      severity: this.severityId_,
-      override_all_errors: errorInfo.override_all_errors ? true : false,
-      needs_note: errorInfo.needs_note ? true : false,
-      metadata: {},
-    };
-    if (!this.maybeAugmentError(error)) {
-      this.concludeMarkingPhrase(null);
+    if (!this.error_.marked_deleted && !this.maybeAugmentError()) {
+      this.concludeError(true);
       return;
     }
-    this.concludeMarkingPhrase(error);
+    this.concludeError();
   }
 
   /**
@@ -1637,13 +1922,8 @@ class AntheaEval {
    * @param {string} severityId The severity of the error.
    */
   setMQMSeverity(severityId) {
-    this.severityId_ = severityId;
-    this.severity_ = this.config.severities[severityId];
-    if (this.markedPhrase_ && this.severity_.forced_error) {
-      this.setMQMType('');
-      return;
-    }
-    this.maybeSetMQMRating();
+    this.error_.severity = severityId;
+    this.maybeConcludeError();
   }
 
   /**
@@ -1652,26 +1932,24 @@ class AntheaEval {
    * @param {string=} subtype
    */
   setMQMType(type, subtype = '') {
-    this.errorType_ = type;
-    this.errorSubtype_ = subtype;
+    this.error_.type = type;
+    this.error_.subtype = subtype;
     const errorInfo = this.config.errors[type];
-    if (errorInfo.override_all_errors) {
-      this.setMQMSeverity('major');
-      return;
-    }
     if (errorInfo.forced_severity) {
       this.setMQMSeverity(errorInfo.forced_severity);
       return;
     }
-    this.maybeSetMQMRating();
+    this.maybeConcludeError();
   }
 
   /**
    * Sets the MQM error span for the current MQM rating.
-   * @param {!Object} markedPhrase
+   * @param {number} start
+   * @param {number} end
+   * @param {string} prefix
+   * @param {string} selected
    */
-  setMQMPhrase(markedPhrase) {
-    this.markedPhrase_ = markedPhrase;
+  setMQMSpan(start, end, prefix, selected) {
     const sentence = this.getCurrSentence();
     if (sentence.hotw && !sentence.hotw.done) {
       const evalResult = this.currSegmentEval();
@@ -1681,24 +1959,27 @@ class AntheaEval {
       sentence.hotw.timestamp = evalResult.timestamp;
       sentence.hotw.timing = evalResult.timing;
       evalResult.timing = {};
-      this.concludeMarkingPhrase(null);
+      this.errorAction_ = '';  /** concludeError() need not call noteTiming() */
+      this.concludeError(true);
       return;
     }
-    this.noteTiming('ended-marking-phrase');
-    if (this.severity_ && this.severity_.forced_error) {
-      this.setMQMType('');
-      return;
-    }
-    this.showGuidance('Choose error type / subtype');
-    this.maybeSetMQMRating();
+    this.error_.start = start + sentence.firstToken;
+    this.error_.end = end + sentence.firstToken;
+    this.error_.location = this.cursor.side == 0 ? 'source' : 'translation';
+    this.error_.prefix = prefix;
+    this.error_.selected = selected;
+    this.maybeConcludeError();
   }
 
   /**
    * Handles cancellation of the current error-marking.
    */
   handleCancel() {
-    this.noteTiming('cancelled-marking-error');
-    this.concludeMarkingPhrase(null);
+    this.noteTiming('pressed-cancel');
+    if (!this.error_) {
+      return;
+    }
+    this.concludeError(true);
   }
 
   /**
@@ -1707,16 +1988,11 @@ class AntheaEval {
    */
   handleSeverityClick(severityId) {
     if (this.buttons_[severityId].disabled) {
+      /** We could have come here from a keyboard shortcut. */
       return;
     }
-    const severity = this.config.severities[severityId];
     this.noteTiming('chose-severity-' + severityId);
-    if (severity.full_span_error) {
-      // Just mark the full-span error directly.
-      this.markFullSpanError(severityId);
-    } else {
-      this.setMQMSeverity(severityId);
-    }
+    this.setMQMSeverity(severityId);
   }
 
   /**
@@ -1751,7 +2027,7 @@ class AntheaEval {
     if (!this.inCurrDoc(n) ||
         !this.cursor.hasBeenRead(n, side, s) ||
         this.cursor.equals(n, side, s) ||
-        this.startedMarking_) {
+        this.error_)  {
       return;
     }
     const currSent = this.getCurrSentence();
@@ -2102,7 +2378,7 @@ class AntheaEval {
    * Returns to the previous document.
    */
   prevDocument() {
-    if (!this.READ_ONLY && (this.startedMarking_ || this.cursor.doc == 0)) {
+    if (!this.READ_ONLY && (this.error_ || this.cursor.doc == 0)) {
       return;
     }
     this.noteTiming('prev-document');
@@ -2126,7 +2402,7 @@ class AntheaEval {
    */
   nextDocument() {
     if (!this.READ_ONLY &&
-        (this.startedMarking_ || this.cursor.doc == this.docs_.length - 1 ||
+        (this.error_ || this.cursor.doc == this.docs_.length - 1 ||
          !this.cursor.seenDocEnd())) {
       return;
     }
@@ -2389,6 +2665,224 @@ class AntheaEval {
   }
 
   /**
+   * Common method called to set up the editing of the error at the given
+   * index. Returns false if the parameters are not valid for an editable error.
+   * @param {number} index
+   * @param {!Event} evt
+   * @return {boolean}
+   */
+  setUpErrorEditing(index, evt) {
+    evt.preventDefault();
+    this.modifierMenu_.innerHTML = '';
+    const evalResult = this.currSegmentEval();
+    if (index < 0 || index >= evalResult.errors.length) {
+      return false;
+    }
+    const modButtonParent = this.modButtonParents_[index];
+    if (!modButtonParent) {
+      return false;
+    }
+    const modButton = modButtonParent.firstElementChild;
+    if (!modButton) {
+      return false;
+    }
+    this.errorIndex_ = index;
+    this.error_ = AntheaError.clone(evalResult.errors[index]);
+    return true;
+  }
+
+  /**
+   * Handles a click on "Delete" for the error at the given index.
+   * @param {number} index
+   * @param {!Event} evt
+   */
+  handleDeleteError(index, evt) {
+    if (!this.setUpErrorEditing(index, evt)) {
+      return;
+    }
+    this.error_.marked_deleted = true;
+    this.initiateErrorAction('error-deletion');
+    this.maybeConcludeError();
+  }
+
+  /**
+   * Handles a click on "Undelete" for the error at the given index.
+   * @param {number} index
+   * @param {!Event} evt
+   */
+  handleUndeleteError(index, evt) {
+    if (!this.setUpErrorEditing(index, evt)) {
+      return;
+    }
+    delete this.error_.marked_deleted;
+    this.initiateErrorAction('error-undeletion');
+    this.maybeConcludeError();
+  }
+
+  /**
+   * Handles a click on "Edit Severity" for the error at the given index.
+   * @param {number} index
+   * @param {!Event} evt
+   */
+  handleEditErrorSeverity(index, evt) {
+    if (!this.setUpErrorEditing(index, evt)) {
+      return;
+    }
+    this.error_.severity = '';
+    this.initiateErrorAction('editing-severity');
+    this.refreshCurrSentence();
+  }
+
+  /**
+   * Handles a click on "Edit Type" for the error at the given index.
+   * @param {number} index
+   * @param {!Event} evt
+   */
+  handleEditErrorCategory(index, evt) {
+    if (!this.setUpErrorEditing(index, evt)) {
+      return;
+    }
+    this.error_.type = '';
+    this.error_.subtype = '';
+    this.initiateErrorAction('editing-category');
+    this.refreshCurrSentence();
+  }
+
+  /**
+   * Handles a click on "Edit Span" for the error at the given index.
+   * @param {number} index
+   * @param {!Event} evt
+   */
+  handleEditErrorSpan(index, evt) {
+    if (!this.setUpErrorEditing(index, evt)) {
+      return;
+    }
+    this.error_.start = -1;
+    this.error_.end = -1;
+    this.initiateErrorAction('editing-span');
+    this.refreshCurrSentence();
+  }
+
+  /**
+   * Handles a click on "Edit Note" for the error at the given index.
+   * @param {number} index
+   * @param {!Event} evt
+   */
+  handleEditErrorNote(index, evt) {
+    if (!this.setUpErrorEditing(index, evt)) {
+      return;
+    }
+    this.initiateErrorAction('editing-note');
+    const note = prompt("Please enter a short error description",
+                        this.error_.metadata.note ?? '');
+    if (!note && note != '') {
+      this.concludeError(true);
+      return;
+    }
+    this.error_.metadata.note = note;
+    this.concludeError();
+  }
+
+  /**
+   * Toggles the visibility of the error editing menu.
+   * @param {!Event} evt
+   */
+  toggleModifierMenu(evt) {
+    evt.preventDefault();
+    if (this.modifierMenu_.style.display == 'none') {
+      this.modifierMenu_.style.display = '';
+    } else {
+      this.modifierMenu_.style.display = 'none';
+    }
+  }
+
+  /**
+   * Creates and shows the error editing menu for the error at the given index.
+   * @param {number} index
+   * @param {!Event} evt
+   */
+  showModifierMenu(index, evt) {
+    evt.preventDefault();
+    const evalResult = this.currSegmentEval();
+    if (index < 0 || index >= evalResult.errors.length) {
+      return;
+    }
+    const modButtonParent = this.modButtonParents_[index];
+    if (!modButtonParent) {
+      return;
+    }
+    const modButton = modButtonParent.firstElementChild;
+    if (!modButton || modButton.disabled) {
+      return;
+    }
+
+    this.modifierMenu_.innerHTML = '';
+    const menuTable = document.createElement('table');
+    this.modifierMenu_.appendChild(menuTable);
+
+    const error = evalResult.errors[index];
+    if (error.marked_deleted) {
+      const modMenuUndelete = googdom.createDom(
+          'button',
+          {class: 'anthea-stretchy-button anthea-modifier-menu-button'},
+          'Undelete');
+      modMenuUndelete.addEventListener  (
+          'click', this.handleUndeleteError.bind(this, index));
+      menuTable.appendChild(
+          googdom.createDom(
+              'tr', null, googdom.createDom('td', null, modMenuUndelete)));
+    } else {
+      const modMenuDelete = googdom.createDom(
+          'button',
+          {class: 'anthea-stretchy-button anthea-modifier-menu-button'},
+          'Delete');
+      modMenuDelete.addEventListener(
+          'click', this.handleDeleteError.bind(this, index));
+      menuTable.appendChild(
+          googdom.createDom(
+              'tr', null, googdom.createDom('td', null, modMenuDelete)));
+      const modMenuSeverity = googdom.createDom(
+          'button',
+          {class: 'anthea-stretchy-button anthea-modifier-menu-button'},
+          'Edit Severity');
+      modMenuSeverity.addEventListener(
+          'click', this.handleEditErrorSeverity.bind(this, index));
+      menuTable.appendChild(
+          googdom.createDom(
+              'tr', null, googdom.createDom('td', null, modMenuSeverity)));
+      const modMenuCategory = googdom.createDom(
+          'button',
+          {class: 'anthea-stretchy-button anthea-modifier-menu-button'},
+          'Edit Type');
+      modMenuCategory.addEventListener(
+          'click', this.handleEditErrorCategory.bind(this, index));
+      menuTable.appendChild(
+          googdom.createDom(
+              'tr', null, googdom.createDom('td', null, modMenuCategory)));
+      const modMenuSpan = googdom.createDom(
+          'button',
+          {class: 'anthea-stretchy-button anthea-modifier-menu-button'},
+          'Edit Span');
+      modMenuSpan.addEventListener(
+          'click', this.handleEditErrorSpan.bind(this, index));
+      menuTable.appendChild(
+          googdom.createDom(
+              'tr', null, googdom.createDom('td', null, modMenuSpan)));
+      const modMenuNote = googdom.createDom(
+          'button',
+          {class: 'anthea-stretchy-button anthea-modifier-menu-button'},
+          'Edit Note');
+      modMenuNote.addEventListener(
+          'click', this.handleEditErrorNote.bind(this, index));
+      menuTable.appendChild(
+          googdom.createDom(
+              'tr', null, googdom.createDom('td', null, modMenuNote)));
+    }
+    modButtonParent.appendChild(this.modifierMenu_);
+    this.modifierMenu_.style.display = '';
+  }
+
+  /**
    * Creates the UI.
    *
    * @param {!Element} instructionsPanel The instructions panel to populate.
@@ -2469,9 +2963,8 @@ class AntheaEval {
 
     for (let s in this.config.severities) {
       const severity = this.config.severities[s];
-      const action = severity.action || severity.display;
       const buttonText =
-          action + (severity.shortcut ? ' [' + severity.shortcut + ']' : '');
+          severity.display + (severity.shortcut ? ' [' + severity.shortcut + ']' : '');
       const severityButton = googdom.createDom(
           'button', {
             class: 'anthea-stretchy-button anthea-eval-panel-tall',
@@ -2499,6 +2992,12 @@ class AntheaEval {
       }
       this.buttons_[s] = severityButton;
     }
+
+    /**
+     * Create the div that will contain the menu for modification of an
+     * existing annotation.
+     */
+    this.modifierMenu_ = googdom.createDom('div', 'anthea-modifier-menu');
 
     this.nextButton_ = googdom.createDom(
         'button', {
@@ -2566,8 +3065,7 @@ class AntheaEval {
           this.prevDocButton_, this.nextDocButton_, progressMessage));
 
     this.makeEvalPanel();
-    this.phraseMarker_ = new AntheaPhraseMarker(this);
-
+    this.phraseMarker_ = new AntheaPhraseMarker(this, this.highlightColor_);
   }
 
   /**
@@ -3051,10 +3549,10 @@ class AntheaEval {
       console.assert(tgtSentSpans.length == segment.tgtSents.length);
       for (let s = 0; s < segment.srcSents.length; s++) {
         segment.srcSents[s].sentSpan = srcSentSpans[s];
-      } 
+      }
       for (let t = 0; t < segment.tgtSents.length; t++) {
         segment.tgtSents[t].sentSpan = tgtSentSpans[t];
-      } 
+      }
     }
 
     const controlPanel = document.createElement('div');
@@ -3091,7 +3589,11 @@ class AntheaEval {
 
     this.createUI(instructionsPanel, controlPanel);
 
-    this.restoreResults(projectResults);
+    if (parameters.hasOwnProperty('prior_results')) {
+      const priorRater = parameters.prior_rater ?? 'unspecified-prior-rater';
+      this.startFromPriorResults(priorRater, parameters.prior_results);
+    }
+    this.restoreEvalResults(projectResults);
     this.saveResults();
 
     const metadata = {
@@ -3124,15 +3626,14 @@ class AntheaEval {
 class AntheaPhraseMarker {
   /**
    * @param {!AntheaEval} contextedEval
+   * @param {string} color
    */
-  constructor(contextedEval) {
+  constructor(contextedEval, color) {
     /** @private @const {!AntheaEval} */
     this.contextedEval_ = contextedEval;
 
     /** @private @const {string} */
-    this.DEFAULT_COLOR = 'gainsboro';
-    /** @private {string} */
-    this.color_ = this.DEFAULT_COLOR;
+    this.color_ = color;
 
     /** @private {number} */
     this.startSpanIndex_ = -1;
@@ -3146,10 +3647,18 @@ class AntheaPhraseMarker {
   }
 
   /**
+   * Returns true if the start of the error span has already been marked.
+   * @return {boolean}
+   */
+  startAlreadyMarked() {
+    return this.startSpanIndex_ >= 0;
+  }
+
+  /**
    * Resets the word spans in the current sentence, getting rid of any
    *     event listeners from spannification done in the previous state. Sets
-   *     element class to 'anthea-word-active' or
-   *     'anthea-space-active'.
+   *     element class to 'anthea-word-active' or 'anthea-word-active-begin' or
+   *     'anthea-space-active' or 'anthea-space-active-begin'.
    */
   resetWordSpans() {
     const ce = this.contextedEval_;
@@ -3162,13 +3671,17 @@ class AntheaPhraseMarker {
     this.tokenSpanColors_ = [];
     const spanClassSuffix = (this.startSpanIndex_ < 0) ? '-begin' : '';
     const suffix = '-active' + spanClassSuffix;
-    const spaceClass = 'anthea-space' + suffix;
-    const wordClass = 'anthea-word' + suffix;
+    const spaceClass = 'anthea-space';
+    const wordClass = 'anthea-word';
+    const spaceClassActive = spaceClass + suffix;
+    const wordClassActive = wordClass + suffix;
     for (let x = 0; x < this.tokenSpans_.length; x++) {
-      this.tokenSpans_[x].className =
-          this.tokenSpans_[x].className + suffix;
-      if (allowSpaceStart && this.tokenSpans_[x].className == spaceClass) {
-        this.tokenSpans_[x].className = wordClass;
+      const classList = this.tokenSpans_[x].classList;
+      classList.replace(wordClass, wordClassActive);
+      if (classList.replace(spaceClass, spaceClassActive)) {
+        if (allowSpaceStart) {
+          classList.replace(spaceClassActive, wordClassActive);
+        }
       }
       this.tokenSpanColors_.push(this.tokenSpans_[x].style.backgroundColor);
     }
@@ -3200,6 +3713,8 @@ class AntheaPhraseMarker {
    * @param {number} spanIndex
    */
   pickEnd(spanIndex) {
+    const ce = this.contextedEval_;
+    ce.noteTiming('marked-error-span-end');
     if (spanIndex < this.startSpanIndex_) {
       this.endSpanIndex_ = this.startSpanIndex_;
       this.startSpanIndex_ = spanIndex;
@@ -3219,15 +3734,7 @@ class AntheaPhraseMarker {
     for (let x = this.startSpanIndex_; x <= this.endSpanIndex_; x++) {
       selected = selected + this.tokenSpans_[x].innerText;
     }
-
-    const markedPhrase = {
-      start: this.startSpanIndex_,
-      end: this.endSpanIndex_,
-      prefix: prefix,
-      selected: selected,
-      color: this.color_,
-    };
-    this.contextedEval_.setMQMPhrase(markedPhrase);
+    ce.setMQMSpan(this.startSpanIndex_, this.endSpanIndex_, prefix, selected);
   }
 
   /**
@@ -3236,14 +3743,14 @@ class AntheaPhraseMarker {
    * @param {number} spanIndex
    */
   prepareToPickEnd(spanIndex) {
-    const ce = this.contextedEval_;
-    ce.setStartedMarking();
-    ce.showGuidance('Click on the end of the error span');
-
     this.startSpanIndex_ = spanIndex;
-
-    /* Remove anthea-word listeners, add new ones. */
+    /* Remove anthea-word listeners: we'll add new ones. */
     this.resetWordSpans();
+
+    const ce = this.contextedEval_;
+    ce.setStartedMarkingSpan();
+    ce.noteTiming('marked-error-span-start');
+    ce.showGuidance('Click on the end of the error span');
 
     const span = this.tokenSpans_[spanIndex];
     span.style.backgroundColor = this.color_;
@@ -3253,39 +3760,25 @@ class AntheaPhraseMarker {
         'mouseover', () => { this.highlightTo(x); });
       this.tokenSpans_[x].addEventListener('click', () => { this.pickEnd(x); });
     }
-    ce.noteTiming('began-marking-phrase');
   }
 
   /**
-   * Sets state and UI to wait for the start of the highlighted phrase to get
-   *     picked.
+   * The public entrypoint in the AntheaPhraseMarker object. Sets up the UI to
+   * collect a highlighted phrase from the current sentence. When phrase-marking
+   * is done, the contextedEval_ object's setMQMSpan() function will get called.
    */
-  prepareToPickStart() {
-    const ce = this.contextedEval_;
+  getMarkedPhrase() {
     this.startSpanIndex_ = -1;
     this.endSpanIndex_ = -1;
     this.resetWordSpans();
 
-    ce.showGuidance('Click on the start of an error span not yet marked');
     const cls = 'anthea-word-active-begin';
     for (let x = 0; x < this.tokenSpans_.length; x++) {
-      if (this.tokenSpans_[x].className == cls) {
+      if (this.tokenSpans_[x].classList.contains(cls)) {
         this.tokenSpans_[x].addEventListener(
           'click',
           () => { this.prepareToPickEnd(x); });
       }
     }
-  }
-
-  /**
-   * The public entrypoint in the AntheaPhraseMarker object. Sets up the UI to
-   *     collect a highlighted phrase from the current sentence.
-   *     When phrase-marking is done, the contextedEval_ object's
-   *     setMQMPhrase() function will get called.
-   * @param {string} color The color to use for highlighting.
-   */
-  getMarkedPhrase(color) {
-    this.color_ = color || this.DEFAULT_COLOR;
-    this.prepareToPickStart();
   }
 }
