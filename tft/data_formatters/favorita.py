@@ -18,6 +18,7 @@
 Defines dataset specific column definitions and data transformations.
 """
 
+import datetime
 import data_formatters.base
 import libs.utils as utils
 import pandas as pd
@@ -87,7 +88,7 @@ class FavoritaFormatter(data_formatters.base.GenericDataFormatter):
     print('Formatting train-valid-test splits.')
 
     if valid_boundary is None:
-      valid_boundary = pd.datetime(2015, 12, 1)
+      valid_boundary = datetime.datetime(2015, 12, 1)
 
     fixed_params = self.get_fixed_params()
     time_steps = fixed_params['total_time_steps']

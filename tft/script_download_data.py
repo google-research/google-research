@@ -37,7 +37,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-
+import datetime
 import gc
 import glob
 import os
@@ -117,7 +117,7 @@ def download_volatility(config):
         ]  # ignore timezones, we don't need them
   dates = pd.to_datetime(idx)
   df['date'] = dates
-  df['days_from_start'] = (dates - pd.datetime(2000, 1, 3)).days
+  df['days_from_start'] = (dates - datetime.datetime(2000, 1, 3)).days
   df['day_of_week'] = dates.dayofweek
   df['day_of_month'] = dates.day
   df['week_of_year'] = dates.weekofyear
@@ -441,8 +441,8 @@ def process_favorita(config):
   print('Unzipping complete, commencing data processing...')
 
   # Extract only a subset of data to save/process for efficiency
-  start_date = pd.datetime(2015, 1, 1)
-  end_date = pd.datetime(2016, 6, 1)
+  start_date = datetime.datetime(2015, 1, 1)
+  end_date = datetime.datetime(2016, 6, 1)
 
   print('Regenerating data...')
 
