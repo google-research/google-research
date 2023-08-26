@@ -37,7 +37,7 @@ class OjasSpec:
   use_synapse_weights: bool = False
 
 Protocol = typing_extensions.Protocol
-Tensor = Union[tf.Tensor, np.ndarray, jp.array]
+Tensor = Union[tf.Tensor, np.ndarray, jp.ndarray]
 ActivationFn = Callable[[Tensor], Tensor]
 
 # Incorporates synaptic update for fully connected layers
