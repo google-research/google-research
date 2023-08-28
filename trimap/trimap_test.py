@@ -47,7 +47,7 @@ class TestTrimap(absltest.TestCase):
     npt.assert_equal(np.array(dist_sliced), np.array(dist_direct))
 
   def test_rejection_sample(self):
-    in1dvec = jax.vmap(jnp.in1d)
+    in1dvec = jax.vmap(jnp.isin)
     maxval = 10000
     key = random.PRNGKey(42)
     rejects = random.choice(key, maxval, shape=(100, 10), replace=False)
