@@ -44,7 +44,7 @@ def identity(buffer, dummy_variable):
   return buffer, jnp.sin(dummy_variable**2)
 
 
-class TrainState(struct.PyTreeNode):
+class TrainState(struct.PyTreeNode):  # pytype: disable=invalid-function-definition  # dataclass_transform
   """Train State. This resembles Flax's train state."""
 
   step: int
@@ -85,7 +85,7 @@ class TrainState(struct.PyTreeNode):
     )
 
 
-class FittedValueTrainState(TrainState):
+class FittedValueTrainState(TrainState):  # pytype: disable=invalid-function-definition  # dataclass_transform
   """Train State for fitted value iteration methods."""
 
   target_params: core.FrozenDict[str, Any]
