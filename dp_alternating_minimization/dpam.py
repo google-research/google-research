@@ -175,14 +175,14 @@ class Sanitizer:
           df, num_frequent_items, num_users, "sid", "uid", value_key)
     elif self.method == "uniform":
       print(f"Uniform sampling: {self.budget} items per user")
-      sampled_df = df.sample(frac=1).groupby("uid").head(n=self.budget)
+      sampled_df = df.sample(frac=1).groupby("uid").head(n=self.budget)  # pytype: disable=wrong-arg-types  # pandas-drop-duplicates-overloads
       noisy_counts = self._noisy_count(sampled_df, dataset.num_frequent_items)
       sampled_st = dataset_lib.df_to_input_matrix(
           sampled_df, num_frequent_items, num_users, "sid", "uid", value_key)
     elif self.method == "tail":
       print(f"Tail sampling: {self.budget} items per user")
       df = copy.deepcopy(df)
-      sampled_df = df.sort_values("count").groupby("uid").head(n=self.budget)
+      sampled_df = df.sort_values("count").groupby("uid").head(n=self.budget)  # pytype: disable=wrong-arg-types  # pandas-drop-duplicates-overloads
       noisy_counts = self._noisy_count(sampled_df, dataset.num_frequent_items)
       sampled_st = dataset_lib.df_to_input_matrix(
           sampled_df, num_frequent_items, num_users, "sid", "uid", value_key)
