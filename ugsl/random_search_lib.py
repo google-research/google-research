@@ -30,15 +30,13 @@
 
 """Running a random_search on the UGSL components."""
 
+import copy
 import os
 import random
-
-from absl import app
 from absl import flags
+
+from ml_collections import config_dict
 from ml_collections import config_flags
-
-from ugsl import trainer
-
 
 _CONFIG = config_flags.DEFINE_config_file(
     "config",
@@ -51,7 +49,7 @@ _DATASET = flags.DEFINE_string(
     "dataset", None, "The name of the dataset.", required=True
 )
 _NFEATS = flags.DEFINE_integer(
-    "nfeats", None, "Number of node features.", required=False
+    "nfeats", None, "Number of node features.", required=True
 )
 _NRUNS = flags.DEFINE_integer("nruns", 5, "Number of runs.", required=False)
 _EXPERIMENT_DIR = flags.DEFINE_string(
@@ -59,27 +57,33 @@ _EXPERIMENT_DIR = flags.DEFINE_string(
 )
 
 
-def main(argv):
-  if len(argv) > 1:
-    raise app.UsageError("Too many command-line arguments.")
-  for run in range(_NRUNS.value):
-    config = _CONFIG.value
-    config.dataset.name = _DATASET.value
+def sample_random_configs():
+  """Returns list of random configurations based on flags in this file."""
+  default_config: config_dict.ConfigDict = _CONFIG.value
+  dataset: str = _DATASET.value
+  num_runs: int = _NRUNS.value
+  num_feats: int = _NFEATS.value
+  experiment_dir: str = _EXPERIMENT_DIR.value
+  configs = []
+  for run in range(num_runs):
+    config = copy.deepcopy(default_config)
+    config.dataset.name = dataset
     config.run.learning_rate = random.uniform(1e-3, 1e-1)
     config.run.weight_decay = random.uniform(5e-4, 5e-2)
-    config.run.model_dir = os.path.join(_EXPERIMENT_DIR.value, str(run))
-    config = set_edge_scorer_config(config)
+    config.run.model_dir = os.path.join(experiment_dir, str(run))
+    config = set_edge_scorer_config(config, num_feats)
     config = set_sparsifier_config(config)
     config = set_processor_config(config)
     config = set_encoder_config(config)
     config = set_regularizer_config(config)
     config = get_unsupervised_config(config)
     config = get_positional_encoding_config(config)
-    # Run the train function based on the config.
-    trainer.train(config)
+    configs.append(config)
+
+  return configs
 
 
-def set_edge_scorer_config(config):
+def set_edge_scorer_config(config, num_feats):
   """Sets the edge scorer config."""
   config.model.edge_scorer_cfg.name = random.choice(["mlp", "fp", "attentive"])
   config.model.edge_scorer_cfg.nlayers = random.choice([1, 2])
@@ -90,8 +94,8 @@ def set_edge_scorer_config(config):
   config.model.edge_scorer_cfg.initialization = random.choice(
       ["method1", "method2"]
   )
-  config.model.edge_scorer_cfg.hidden_size = random.choice([500, _NFEATS.value])
-  config.model.edge_scorer_cfg.output_size = random.choice([500, _NFEATS.value])
+  config.model.edge_scorer_cfg.hidden_size = random.choice([500, num_feats])
+  config.model.edge_scorer_cfg.output_size = random.choice([500, num_feats])
   # if es is attentive
   config.model.edge_scorer_cfg.nheads = random.choice([1, 2, 4])
   return config
@@ -146,34 +150,26 @@ def get_unsupervised_config(config):
   """Sets the unsupervised loss config."""
   # Contrastive loss
   config.model.unsupervised_cfg.contrastive_cfg.enable = bool(
-      random.getrandbits(1)
-  )
+      random.getrandbits(1))
   config.model.unsupervised_cfg.contrastive_cfg.w = random.uniform(0.0, 20.0)
   config.model.unsupervised_cfg.contrastive_cfg.feature_mask_rate = (
-      random.uniform(1e-2, 75e-2)
-  )
+      random.uniform(1e-2, 75e-2))
   config.model.unsupervised_cfg.contrastive_cfg.temperature = random.uniform(
-      0.1, 1.0
-  )
+      0.1, 1.0)
   config.model.unsupervised_cfg.contrastive_cfg.tau = random.uniform(0.0, 0.2)
 
   # Denoising loss
   config.model.unsupervised_cfg.denoising_cfg.enable = bool(
-      random.getrandbits(1)
-  )
+      random.getrandbits(1))
   config.model.unsupervised_cfg.denoising_cfg.w = random.uniform(0.0, 20.0)
   config.model.unsupervised_cfg.denoising_cfg.dropout_rate = random.uniform(
-      0.0, 0.75
-  )
+      0.0, 0.75)
   config.model.unsupervised_cfg.denoising_cfg.hidden_units = random.choice(
-      [512, 1024]
-  )
+      [512, 1024])
   config.model.unsupervised_cfg.denoising_cfg.ones_ratio = random.choice(
-      [1, 5, 10]
-  )
+      [1, 5, 10])
   config.model.unsupervised_cfg.denoising_cfg.negative_ratio = random.choice(
-      [1, 5]
-  )
+      [1, 5])
 
   return config
 
@@ -183,7 +179,3 @@ def get_positional_encoding_config(config):
   config.dataset.add_wl_position_encoding = bool(random.getrandbits(1))
   config.dataset.add_spectral_encoding = bool(random.getrandbits(1))
   return config
-
-
-if __name__ == "__main__":
-  app.run(main)
