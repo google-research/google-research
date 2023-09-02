@@ -59,7 +59,7 @@ def get_config():
   cfg.model.edge_scorer_cfg.nlayers = 2
   cfg.model.edge_scorer_cfg.nheads = 2
   cfg.model.edge_scorer_cfg.activation = "relu"
-  cfg.model.edge_scorer_cfg.initialization = "identity"
+  cfg.model.edge_scorer_cfg.initialization = "method1"
   cfg.model.edge_scorer_cfg.dropout_rate = 0.5
 
   # Sparsifier (see sparsifier.py).

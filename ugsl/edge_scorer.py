@@ -49,7 +49,8 @@ class Attentive(EdgeScorer):
       **kwargs,
   ):
     super().__init__()
-    self._initialization = initialization
+    initialization_dict = {"method1": "ones", "method2": "random_uniform"}
+    self._initialization = initialization_dict[initialization]
     if nheads <= 0:
       raise ValueError("Number of heads should be greater than zero.")
     self._nheads = nheads
@@ -109,7 +110,8 @@ class FP(EdgeScorer):
       **kwargs,
   ):
     super().__init__()
-    self._initialization = initialization
+    initialization_dict = {"method1": "similarity", "method2": "glorot_uniform"}
+    self._initialization = initialization_dict[initialization]
     self._node_features = node_features
 
   def build(self, input_shape=None):
@@ -157,11 +159,12 @@ class MLP(EdgeScorer):
       **kwargs,
   ):
     super().__init__()
+    initialization_dict = {"method1": "identity", "method2": "glorot_uniform"}
+    self._initialization = initialization_dict[initialization]
     self._hidden_size = hidden_size
     self._output_size = output_size
     self._nlayers = nlayers
     self._activation = activation
-    self._initialization = initialization
     self._dropout_rate = dropout_rate
 
   def build(self, input_shape=None):
