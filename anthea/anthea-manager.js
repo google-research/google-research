@@ -668,6 +668,9 @@ class AntheaManager {
     this.clearEval();
     this.antheaBellQuote_.style.display = 'none';
     this.eval_ = new AntheaEval(this, true /* readOnly */);
+    if (!evalData.template.instructions) {
+      evalData.template.instructions = '[Original instructions unavailable]';
+    }
     this.eval_.setUpEvalWithConfig(
         this.evalDiv_, evalData.templateName, evalData.template,
         evalData.parsedDocSys, evalData.results);

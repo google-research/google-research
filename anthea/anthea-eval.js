@@ -2432,10 +2432,12 @@ class AntheaEval {
    */
   buildInstructions() {
     const order = this.config.instructions_section_order ||
-                antheaTemplateBase.instructions_section_order;
+                  antheaTemplateBase.instructions_section_order;
     let sections = antheaTemplateBase.instructions_section_contents;
-    // Add or override each custom section content defined in the template, if
-    // any.
+    /**
+     * Add or override each custom section content defined in the template, if
+     * any.
+     */
     if (this.config.instructions_section_contents) {
       for (let section_name in this.config.instructions_section_contents) {
         sections[section_name] =
@@ -2457,7 +2459,7 @@ class AntheaEval {
   populateMQMInstructions(panel) {
     // Use hard-coded instructions if present, otherwise build from
     // (possibly default) section order and contents.
-    panel.innerHTML = (this.config.instructions || this.buildInstructions()) +
+    panel.innerHTML = this.config.instructions +
         (!this.config.SKIP_RATINGS_TABLES ? `
       <p>
         <details open>
@@ -3361,6 +3363,9 @@ class AntheaEval {
     this.config = config;
     evalDiv.innerHTML = '';
 
+    if (!this.config.instructions) {
+      this.config.instructions = this.buildInstructions();
+    }
     const instructionsPanel = googdom.createDom('div',
                                                 'anthea-mqm-instructions');
     instructionsPanel.id = 'anthea-mqm-instructions-panel';
