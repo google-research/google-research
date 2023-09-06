@@ -62,7 +62,7 @@ _MODEL = flags.DEFINE_enum('model', 'resnet_50',
                            'F-VLM model to use.')
 _MAX_BOXES_TO_DRAW = flags.DEFINE_integer('max_boxes_to_draw', 25,
                                           'Max number of boxes to draw.')
-_MAX_NUM_CLS = flags.DEFINE_integer('max_num_classes', 30,
+_MAX_NUM_CLS = flags.DEFINE_integer('max_num_classes', 91,
                                     'Max number of classes users can input.')
 _MIN_SCORE_THRESH = flags.DEFINE_float('min_score_thresh', 0.2,
                                        'Min score threshold.')
