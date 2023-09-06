@@ -17,9 +17,8 @@
 import os.path
 import tempfile
 from typing import List, Optional, Sequence
-from keras import models as models_utils
-from keras.engine import functional
 import numpy as np
+import tensorflow as tf
 from kws_streaming.layers import modes
 from kws_streaming.layers import quantize
 from kws_streaming.layers.compat import tf
@@ -28,6 +27,9 @@ from kws_streaming.models import model_flags
 from kws_streaming.models import model_params
 from kws_streaming.models import model_utils
 from kws_streaming.models import models as kws_models
+
+models_utils = tf._keras_internal.models  # pylint: disable=protected-access
+functional = tf._keras_internal.engine.functional  # pylint: disable=protected-access
 
 
 def save_model_summary(model, path, file_name='model_summary.txt'):
