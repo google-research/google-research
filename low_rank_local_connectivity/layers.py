@@ -25,10 +25,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from keras.utils import conv_utils
-from keras.utils import tf_utils
 import numpy as np
 import tensorflow.compat.v1 as tf
+
+conv_utils = tf._keras_internal.utils.conv_utils  # pylint: disable=protected-access
+tf_utils = tf._keras_internal.utils.tf_utils  # pylint: disable=protected-access
 
 
 class InputDependentCombiningWeights(tf.keras.Model):
