@@ -852,6 +852,9 @@ class AntheaManager {
         const deletedErrors = [];
         let needNoError = true;
         for (let e of segResult.errors) {
+          if (segResult.prior_rater) {
+            e.metadata.prior_rater = segResult.prior_rater;
+          }
           if (e.marked_deleted) {
             deletedErrors.push(e);
             continue;
@@ -867,6 +870,9 @@ class AntheaManager {
           noError.type = 'No-error';
           noError.metadata.timestamp = segResult.timestamp;
           noError.metadata.timing = segResult.timing;
+          if (segResult.prior_rater) {
+            noError.metadata.prior_rater = segResult.prior_rater;
+          }
           errors.push(noError);
         }
         for (let hotw of segResult.hotw_list) {
