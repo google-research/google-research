@@ -44,7 +44,8 @@ def parse_args():
       '--model',
       type=str,
       default='tsmixer',
-      help='model name, options: [tsmixer, tsmixer_rev_in]',
+      help='model name',
+      choices=("tsmixer", "tsmixer_rev_in", "cnn", "full_linear")
   )
 
   # data loader
