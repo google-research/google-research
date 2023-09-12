@@ -41,6 +41,13 @@
   color: gray;
   font-size: x-small
 }
+.marot-deleted {
+  background: lavender;
+}
+.marot-deleted-index {
+  padding: 0 4px;
+  vertical-align: top;
+}
 .marot-dotted-bottomed-tr {
   border-bottom: 1px dashed darkgray;
 }
@@ -115,11 +122,24 @@
 .marot-out-of-order {
   background: lavender;
 }
+.marot-prior-error {
+  background: gainsboro;
+  margin-left: 6px;
+}
 #marot-quote {
   text-align: center;
   margin-top: 300px;
   font-size: 14px;
   font-family: monospace;
+}
+.marot-rater-details {
+  font-size: xx-small;
+  font-style: italic;
+  color: gray;
+  cursor: default;
+}
+.marot-rater-details:hover {
+  color: black;
 }
 .marot-ref-row {
   background-color: #e9ffdb;
@@ -227,6 +247,7 @@
   padding: 0;
 }
 #marot-tbody div {
+  overflow-wrap: anywhere;
   padding: 4px;
 }
 #marot-tbody tr:not(:last-child) {
@@ -249,15 +270,6 @@
 }
 #marot-th-rating {
   width: 19%;
-}
-.marot-timestamp {
-  font-size: xx-small;
-  font-style: italic;
-  color: gray;
-  cursor: default;
-}
-.marot-timestamp:hover {
-  color: black;
 }
 .marot-title {
   font-family: Impact;

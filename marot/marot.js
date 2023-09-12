@@ -2478,11 +2478,15 @@ class Marot {
    */
   timeSpent(metadata) {
     let timeSpentMS = 0;
-    if (!metadata.timing) {
-      return timeSpentMS;
+    if (metadata.timing) {
+      for (let e in metadata.timing) {
+        timeSpentMS += metadata.timing[e].timeMS;
+      }
     }
-    for (let e in metadata.timing) {
-      timeSpentMS += metadata.timing[e].timeMS;
+    if (metadata.deleted_errors) {
+      for (const deletedError of metadata.deleted_errors) {
+        timeSpentMS += this.timeSpent(deletedError.metadata);
+      }
     }
     return timeSpentMS;
   }
@@ -2497,6 +2501,12 @@ class Marot {
    * @param {string} rater
    */
   addEvents(events, metadata, doc, docSegId, system, rater) {
+    if (metadata.deleted_errors) {
+      for (const deletedError of metadata.deleted_errors) {
+        this.addEvents(
+            events, deletedError.metadata, doc, docSegId, system, rater);
+      }
+    }
     if (!metadata.timing) {
       return;
     }
@@ -2719,13 +2729,13 @@ class Marot {
    */
   setMarkedText(rowId, metadata) {
     let sourceSpan = this.getSpan(metadata.segment.source_tokens,
-                                metadata.source_spans || []);
+                                  metadata.source_spans || []);
     if (!sourceSpan) {
       const source = this.data[rowId][this.DATA_COL_SOURCE];
       sourceSpan = this.getLegacySpan(source);
     }
     let targetSpan = this.getSpan(metadata.segment.target_tokens,
-                                metadata.target_spans || []);
+                                  metadata.target_spans || []);
     if (!targetSpan) {
       const target = this.data[rowId][this.DATA_COL_TARGET];
       targetSpan = this.getLegacySpan(target);
@@ -2734,17 +2744,28 @@ class Marot {
   }
 
   /**
+   * Wrap a marked span in an HTML span with the given class.
+   * @param {string} spanText
+   * @param {string} cls
+   * @return {string}
+   */
+  spanHTML(spanText, cls) {
+    const s = spanText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return '<span class="' + cls + '">[' + s + ']</span>';
+  }
+
+  /**
    * For the given severity level, return an HTML string suitable for displaying
    * it, including an identifier that includes rowId (for creating a filter upon
    * clicking).
    * @param {number} rowId
    * @param {string} severity
-   * @param {!Object} metadata
    * @return {string}
    */
-  severityHTML(rowId, severity, metadata) {
+  severityHTML(rowId, severity) {
     let html = '';
-    html += `<span class="marot-val" id="marot-val-${rowId}-${this.DATA_COL_SEVERITY}">` +
+    html += `<span class="marot-val"
+               id="marot-val-${rowId}-${this.DATA_COL_SEVERITY}">` +
             severity + '</span>';
     return html;
   }
@@ -2752,43 +2773,79 @@ class Marot {
   /**
    * For the given annotation category, return an HTML string suitable for
    * displaying it, including an identifier that includes rowId (for creating a
-   * filter upon clicking). If the metadata includes a note from the rater,
-   * include it in the HTML.
+   * filter upon clicking).
    * @param {number} rowId
    * @param {string} category
-   * @param {!Object} metadata
    * @return {string}
    */
-  mqmCategoryHTML(rowId, category, metadata) {
+  categoryHTML(rowId, category) {
     let html = '';
-    html += `<span class="marot-val" id="marot-val-${rowId}-${this.DATA_COL_CATEGORY}">` +
+    html += `<span class="marot-val"
+               id="marot-val-${rowId}-${this.DATA_COL_CATEGORY}">` +
             category + '</span>';
-    if (metadata.note) {
-      /* There is a note */
-      html += '<br><span class="marot-note">' + metadata.note + '</span>';
-    }
     return html;
   }
 
   /**
    * For the given rater name/id, return an HTML string suitable for displaying
    * it, including an identifier that includes rowId (for creating a filter upon
-   * clicking). If the metadata includes a timestamp or feedback from the rater,
-   * include that in the HTML.
+   * clicking).
    * @param {number} rowId
    * @param {string} rater
+   * @return {string}
+   */
+  raterHTML(rowId, rater) {
+    return `<span class="marot-val"
+               id="marot-val-${rowId}-${this.DATA_COL_RATER}">` +
+            rater + '</span>';
+  }
+
+  /**
+   * Render in HTML a "Raw Error," which is the format used for storing
+   * deleted errors and prior-rater's original errors in Marot metadata.
+   * This format uses fields named "selected", "severity", "type", "subtype".
+   * @param {!Object} e
+   * @return {string}
+   */
+  rawErrorHTML(e) {
+    let cat = e.type;
+    let subcat = e.subtype;
+    if (this.dataIter.evaluation && this.dataIter.evaluation.config) {
+      const config = this.dataIter.evaluation.config;
+      if (config.errors && config.errors.hasOwnProperty(cat)) {
+        const configError = config.errors[cat];
+        cat = configError.display ?? cat;
+        if (subcat && configError.hasOwnProperty('subtypes') &&
+            configError.subtypes.hasOwnProperty(subcat)) {
+          subcat = configError.subtypes[subcat].display ?? subcat;
+        }
+      }
+    }
+    let html = this.spanHTML(e.selected, this.mqmSeverityClass(e.severity));
+    html += '<br>' + this.casedSeverity(e.severity) +
+            '&nbsp;' + cat + (subcat ? '/' + subcat : '');
+    html += this.metadataHTML(e.metadata);
+    return html;
+  }
+
+  /**
+   * Render the metadata (timestamp, note, feedback, prior_rater, etc.)
+   * associated with a rating.
    * @param {!Object} metadata
    * @return {string}
    */
-  raterHTML(rowId, rater, metadata) {
+  metadataHTML(metadata) {
     let html = '';
-    html += `<span class="marot-val" id="marot-val-${rowId}-${this.DATA_COL_RATER}">` +
-            rater + '</span>';
     if (metadata.timestamp) {
       /* There is a timestamp, but it might have been stringified */
       const timestamp = parseInt(metadata.timestamp, 10);
-      html += ' <span class="marot-timestamp">' +
-              (new Date(timestamp)).toLocaleString() + '</span>';
+      html += '<br><span class="marot-rater-details">' +
+              (new Date(timestamp)).toLocaleString() + '</span>\n';
+    }
+    if (metadata.note) {
+      /* There is a note from the rater */
+      html += '<br><span class="marot-note">' + metadata.note +
+              '</span>\n';
     }
     if (metadata.feedback) {
       /* There might be feedback */
@@ -2805,9 +2862,31 @@ class Marot {
         feedbackHTML += ' &#x1F44E;';
       }
       if (notes) {
-        feedbackHTML += '<br><span class="marot-note">' + notes + '</span>';
+        feedbackHTML += '<br><span class="marot-note">' + notes + '</span>\n';
       }
       html += feedbackHTML;
+    }
+    if (metadata.prior_rater) {
+      html += '<br><span">Prior rater: ' + metadata.prior_rater + '</span>\n';
+    }
+    if (metadata.prior_error) {
+      html += '<br><details><summary>Annotation from prior rater:</summary>' +
+              '<div class="marot-prior-error">' +
+                this.rawErrorHTML(metadata.prior_error) +
+              '</div></details>\n';
+    }
+    if (metadata.deleted_errors && metadata.deleted_errors.length > 0) {
+      html += '<br><details class="marot-deleted"><summary>';
+      html += metadata.deleted_errors.length + ' deleted error(s)</summary>';
+      html += '<table class="marot-table">';
+      for (let x = 0; x < metadata.deleted_errors.length; x++) {
+        const de = metadata.deleted_errors[x];
+        html += '<tr><td><span class="marot-deleted-index">' +
+                (x + 1) + '.</span></td><td>';
+        html += this.rawErrorHTML(de);
+        html += '</td></tr>';
+      }
+      html += '</table></details>\n';
     }
     return html;
   }
@@ -3064,16 +3143,15 @@ class Marot {
             }
             ratingRowsHTML += '<tr><td><div>';
             if (metadata.marked_text) {
-              const textSpan = metadata.marked_text.replace(
-                  /</g, '&lt;').replace(/>/g, '&gt;');
-              ratingRowsHTML += '<span class="' + spanClass + '">[' +
-                                textSpan + ']</span><br>';
+              ratingRowsHTML += this.spanHTML(metadata.marked_text, spanClass) +
+                                '<br>';
             }
-            ratingRowsHTML += this.severityHTML(rowId, severity, metadata) +
+            ratingRowsHTML += this.severityHTML(rowId, severity) +
                               '&nbsp;';
-            ratingRowsHTML += this.mqmCategoryHTML(rowId, category, metadata) +
+            ratingRowsHTML += this.categoryHTML(rowId, category) +
                               '<br>';
-            ratingRowsHTML += this.raterHTML(rowId, rater, metadata);
+            ratingRowsHTML += this.raterHTML(rowId, rater);
+            ratingRowsHTML += this.metadataHTML(metadata);
             ratingRowsHTML += '</div></td></tr>\n';
           }
           if (shownForDocSegSys == 0) {
@@ -3416,6 +3494,15 @@ class Marot {
   }
 
   /**
+   * Make the first letter of a severity level uppercase.
+   * @param {string} sev
+   * @return {string}
+   */
+  casedSeverity(sev) {
+    return sev.charAt(0).toUpperCase() + sev.substr(1);
+  }
+
+  /**
    * Sets this.tsvData from the passed TSV data string or array of strings, and
    * parses it into this.data. If the UI option marot-load-file-append is
    * checked, then the new data is appended to the existing data, else it
@@ -3533,8 +3620,7 @@ class Marot {
       parts[this.DATA_COL_TARGET] = parts[6];
       parts[this.DATA_COL_RATER] = temp;
       parts[this.DATA_COL_SEVERITY] =
-          parts[this.DATA_COL_SEVERITY].charAt(0).toUpperCase() +
-          parts[this.DATA_COL_SEVERITY].substr(1);
+          this.casedSeverity(parts[this.DATA_COL_SEVERITY]);
       /**
        * Count all characters, including spaces, in src/tgt length, excluding
        * the span-marking <v> and </v> tags.

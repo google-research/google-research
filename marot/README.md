@@ -65,6 +65,25 @@ ten columns, one line per marked error:
     empty string if this metadata is not associated with an marked span). This
     field is computed from source_spans/target_spans. It can be useful
     when filtering.
+  - **prior_rater**: If another rater had previously rated this segment (this
+    rater edited/augmented those ratings), then the prior rater's ID will be set
+    here.
+  - **prior_error**: If this rating was originally entered by a prior rater,
+    then the prior rater's precise marking will be stored in this object. The
+    rater may or may not have modified that rating. The fields in this object
+    are:
+    - **location**: Can be 'source' or 'translation'.
+    - **start, end**: Token indices.
+    - **severity**
+    - **type, subtype**
+    - **prefix**: Text span leading up to the marked span.
+    - **selected**: The marked text span leading up to the marked span.
+    - **metadata**: The metadata object in the prior error.
+  - **deleted_errors**: An array with a list of errors that the rater deleted.
+    Each deleted error object also has the same format as a prior error
+    (described above). The array includes deleted errors that a prior rater may
+    have marked (in which case `metadata.prior_rater` will be set in such a
+    deleted error).
   - **segment**: An object that has information about the segment (from the
     current doc+docSegId+system) that is not specific to any particular
     annotation/rater. This object may not necessarily be repeated across
