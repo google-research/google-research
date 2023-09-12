@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Spectrogram Cutout augmentation for model regularization."""
-from keras.utils import control_flow_util
+import tensorflow as tf
 
 from kws_streaming.layers.compat import tf
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
@@ -155,13 +155,18 @@ class SpecCutout(tf.keras.layers.Layer):
       net = tf.keras.backend.expand_dims(inputs, axis=-1)
       for i in range(self.masks_number):
         net = random_cutout(
-            net, (self.time_mask_size, self.frequency_mask_size),
-            seed=self.seed + i if self.seed else self.seed)
+            net,
+            (self.time_mask_size, self.frequency_mask_size),
+            seed=self.seed + i if self.seed else self.seed,
+        )
       net = tf.keras.backend.squeeze(net, axis=-1)
       return net
 
-    outputs = control_flow_util.smart_cond(training, masked_inputs,
-                                           lambda: array_ops.identity(inputs))
+    outputs = tf._keras_internal.utils.control_flow_util.smart_cond(  # pylint:disable=protected-access
+        training,
+        masked_inputs,
+        lambda: array_ops.identity(inputs),
+    )
     return outputs
 
   def get_config(self):

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Augment audio data with random stretchs and squeeze."""
-from keras.utils import control_flow_util
+import tensorflow as tf
 
 from kws_streaming.layers.compat import tf
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
@@ -118,7 +118,7 @@ class RandomStretchSqueeze(tf.keras.layers.Layer):
       training = tf.keras.backend.learning_phase()
 
     # pylint: disable=g-long-lambda
-    return control_flow_util.smart_cond(
+    return tf._keras_internal.utils.control_flow_util.smart_cond(  # pylint:disable=protected-access
         training, lambda: random_stretch_squeeze(
             inputs,
             self.resample_offset,

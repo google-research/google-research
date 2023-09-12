@@ -16,11 +16,11 @@
 """Functions to generate augmentations of input data and load data for model training."""
 
 
-import keras
 from modules.masking_utils import gen_masked_inputs
 from modules.masking_utils import gen_random_mask
 import numpy as np
 from scipy import sparse
+from tensorflow import keras
 
 #  AUGMENTATIONS
 
