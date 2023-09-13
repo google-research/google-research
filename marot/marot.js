@@ -3794,8 +3794,8 @@ class Marot {
           continue;
         }
         const segs = this.getSegStatsAsArray(this.stats[system]);
-        aggregate = this.aggregateSegStats(segs);
-        dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
+        const aggregate = this.aggregateSegStats(segs);
+        const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
         dataRow[this.DATA_COL_SYSTEM] = system;
         dataRow[this.DATA_COL_METADATA] = aggregate.score;
         data.push(dataRow);
@@ -3809,8 +3809,8 @@ class Marot {
         for (let doc in stats) {
           const docStats = stats[doc];
           const segs = this.getSegStatsAsArray({doc: docStats});
-          aggregate = this.aggregateSegStats(segs);
-          dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
+          const aggregate = this.aggregateSegStats(segs);
+          const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
           dataRow[this.DATA_COL_SYSTEM] = system;
           dataRow[this.DATA_COL_DOC] = doc;
           dataRow[this.DATA_COL_METADATA] = aggregate.score;
@@ -3828,8 +3828,8 @@ class Marot {
           for (let seg in docStats) {
             const docSegStats = docStats[seg];
             const segs = this.getSegStatsAsArray({doc: {seg: docSegStats}});
-            aggregate = this.aggregateSegStats(segs);
-            dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
+            const aggregate = this.aggregateSegStats(segs);
+            const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
             dataRow[this.DATA_COL_SYSTEM] = system;
             dataRow[this.DATA_COL_DOC] = doc;
             dataRow[this.DATA_COL_DOC_SEG_ID] = seg;
@@ -3850,8 +3850,8 @@ class Marot {
             for (let seg in docStats) {
               const docSegStats = docStats[seg];
               const segs = this.getSegStatsAsArray({doc: {seg: docSegStats}});
-              aggregate = this.aggregateSegStats(segs);
-              dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
+              const aggregate = this.aggregateSegStats(segs);
+              const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
               dataRow[this.DATA_COL_SYSTEM] = system;
               dataRow[this.DATA_COL_DOC] = doc;
               dataRow[this.DATA_COL_DOC_SEG_ID] = seg;
