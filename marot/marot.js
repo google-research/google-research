@@ -2836,16 +2836,24 @@ class Marot {
    */
   metadataHTML(metadata) {
     let html = '';
+    if (metadata.hotw_error) {
+      html += '<br>HOTW error: <span class="marot-note">' +
+              metadata.hotw_error + '</span>';
+      if (metadata.hotw_type) {
+        html += '[' + metadata.hotw_type + ']';
+      }
+      html += '\n';
+    }
+    if (metadata.note) {
+      /* There is a note from the rater */
+      html += '<br>Note: <span class="marot-note">' + metadata.note +
+              '</span>\n';
+    }
     if (metadata.timestamp) {
       /* There is a timestamp, but it might have been stringified */
       const timestamp = parseInt(metadata.timestamp, 10);
       html += '<br><span class="marot-rater-details">' +
               (new Date(timestamp)).toLocaleString() + '</span>\n';
-    }
-    if (metadata.note) {
-      /* There is a note from the rater */
-      html += '<br><span class="marot-note">' + metadata.note +
-              '</span>\n';
     }
     if (metadata.feedback) {
       /* There might be feedback */
@@ -3605,6 +3613,14 @@ class Marot {
         console.log('Evaluation info found in row ' + this.data.length + ':');
         console.log(metadata.evaluation);
       }
+      if (parts[this.DATA_COL_SEVERITY].toLowerCase().trim().startsWith(
+              'hotw')) {
+        /** HOTW error used to be copied into the "note" field. */
+        if (!metadata.hotw_error && metadata.note) {
+          metadata.hotw_error = metadata.note;
+          metadata.note = '';
+        }
+      }
       /** Note any metrics that might be in the data. */
       const metrics = metadata.segment.metrics;
       for (let metric in metrics) {
@@ -3619,6 +3635,7 @@ class Marot {
       parts[this.DATA_COL_SOURCE] = parts[5];
       parts[this.DATA_COL_TARGET] = parts[6];
       parts[this.DATA_COL_RATER] = temp;
+      /** Make severity start with an uppercase letter. */
       parts[this.DATA_COL_SEVERITY] =
           this.casedSeverity(parts[this.DATA_COL_SEVERITY]);
       /**
