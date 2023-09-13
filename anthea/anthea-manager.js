@@ -884,8 +884,9 @@ class AntheaManager {
           hotwError.type = (hotw.found ? 'Found' : 'Missed');
           hotwError.metadata.timestamp = hotw.timestamp;
           hotwError.metadata.timing = hotw.timing;
-          hotwError.metadata.note = this.cleanText(hotw.injected_error);
           hotwError.metadata.sentence_index = hotw.sentence_index;
+          hotwError.metadata.hotw_error = this.cleanText(hotw.injected_error);
+          hotwError.metadata.hotw_type = hotw.hotw_type;
           errors.push(hotwError);
         }
         let isFirst = true;
