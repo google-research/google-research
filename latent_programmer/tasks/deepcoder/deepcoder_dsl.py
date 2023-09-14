@@ -301,6 +301,11 @@ class Function(object):
 class Lambda(Function):
   """A lambda function like `*2` or `+`."""
 
+  def __init__(self, token, name, func,
+               inputs_type, output_type):
+    super().__init__(token, func, inputs_type, output_type)
+    self.name = name
+
 
 class Operation(Function):
   """Base class for first-order and higher-order operations."""
@@ -457,6 +462,16 @@ class Program(object):
   def __str__(self):
     return ' '.join(self.tokenize())
 
+  def to_python_program(self, name = 'program'):
+    lines = [f'def {name}({", ".join(self.input_variables)}):']
+    for statement in self.statements:
+      args = [f'dsl.{a.name}' if isinstance(a, Lambda) else a
+              for a in statement.args]
+      lines.append(f'  {statement.variable} = dsl.{statement.operation.token}('
+                   f'{", ".join(args)})')
+    lines.append(f'  return {self.statements[-1].variable}')
+    return '\n'.join(lines)
+
   @classmethod
   def from_tokens(cls, tokens):
     """Parses a Program from a list of tokens."""
@@ -477,6 +492,8 @@ class Program(object):
     input_variables = []
     statements = []
     for line in lines:
+      if not line:
+        raise ParseError('Encoutered empty line')
       if line[-1] == 'INPUT':
         if found_non_input:
           raise ParseError(f'Found INPUT after a statement: {lines}')
@@ -507,25 +524,25 @@ def _scanl1(f, xs):
 # Use the Python code from Appendix F in the DeepCoder paper.
 # pylint: disable=g-explicit-length-test, unnecessary-lambda
 LAMBDAS = [
-    Lambda('(+1)', lambda x: x + 1, [int], int),
-    Lambda('(-1)', lambda x: x - 1, [int], int),
-    Lambda('(*2)', lambda x: x * 2, [int], int),
-    Lambda('(/2)', lambda x: x // 2, [int], int),
-    Lambda('(*(-1))', lambda x: -x, [int], int),
-    Lambda('(**2)', lambda x: x ** 2, [int], int),
-    Lambda('(*3)', lambda x: x * 3, [int], int),
-    Lambda('(/3)', lambda x: x // 3, [int], int),
-    Lambda('(*4)', lambda x: x * 4, [int], int),
-    Lambda('(/4)', lambda x: x // 4, [int], int),
-    Lambda('(>0)', lambda x: x > 0, [int], bool),
-    Lambda('(<0)', lambda x: x < 0, [int], bool),
-    Lambda('(%2==0)', lambda x: x % 2 == 0, [int], bool),
-    Lambda('(%2==1)', lambda x: x % 2 == 1, [int], bool),
-    Lambda('(+)', lambda x, y: x + y, [int, int], int),
-    Lambda('(-)', lambda x, y: x - y, [int, int], int),
-    Lambda('(*)', lambda x, y: x * y, [int, int], int),
-    Lambda('(min)', lambda x, y: min(x, y), [int, int], int),
-    Lambda('(max)', lambda x, y: max(x, y), [int, int], int),
+    Lambda('(+1)', 'PLUS_ONE', lambda x: x + 1, [int], int),
+    Lambda('(-1)', 'MINUS_ONE', lambda x: x - 1, [int], int),
+    Lambda('(*2)', 'TIMES_TWO', lambda x: x * 2, [int], int),
+    Lambda('(/2)', 'DIV_TWO', lambda x: x // 2, [int], int),
+    Lambda('(*(-1))', 'NEGATE', lambda x: -x, [int], int),
+    Lambda('(**2)', 'SQUARE', lambda x: x ** 2, [int], int),
+    Lambda('(*3)', 'TIMES_THREE', lambda x: x * 3, [int], int),
+    Lambda('(/3)', 'DIV_THREE', lambda x: x // 3, [int], int),
+    Lambda('(*4)', 'TIMES_FOUR', lambda x: x * 4, [int], int),
+    Lambda('(/4)', 'DIV_FOUR', lambda x: x // 4, [int], int),
+    Lambda('(>0)', 'IS_POSITIVE', lambda x: x > 0, [int], bool),
+    Lambda('(<0)', 'IS_NEGATIVE', lambda x: x < 0, [int], bool),
+    Lambda('(%2==0)', 'IS_EVEN', lambda x: x % 2 == 0, [int], bool),
+    Lambda('(%2==1)', 'IS_ODD', lambda x: x % 2 == 1, [int], bool),
+    Lambda('(+)', 'ADD', lambda x, y: x + y, [int, int], int),
+    Lambda('(-)', 'SUBTRACT', lambda x, y: x - y, [int, int], int),
+    Lambda('(*)', 'MULTIPLY', lambda x, y: x * y, [int, int], int),
+    Lambda('(min)', 'MIN', lambda x, y: min(x, y), [int, int], int),
+    Lambda('(max)', 'MAX', lambda x, y: max(x, y), [int, int], int),
 ]
 
 FIRST_ORDER_OPERATIONS = [
