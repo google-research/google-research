@@ -261,7 +261,8 @@ def process_and_generate_detections(
       Default True is to assume box_outputs are class-specific.
     class_is_logit: Whether the class outputs are logits.
     use_vmap: Whether to use a vmapped version of the generate_detections
-      functions.
+      functions. This is very helpful to speed up the compile time when the
+      number of categories is large.
 
   Returns:
     A dictionary with the following key-value pairs:

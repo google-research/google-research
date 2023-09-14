@@ -35,6 +35,7 @@ get_input.cache = False
 process_and_generate_detections.nms_threshold = 0.5
 process_and_generate_detections.score_threshold = 0.0
 process_and_generate_detections.class_is_logit = False
+process_and_generate_detections.use_vmap = True  # Speed up the compile time.
 
 # Define tasks
 DetectionTask.head = @ClipFasterRCNNHead

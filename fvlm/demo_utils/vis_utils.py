@@ -380,35 +380,38 @@ def visualize_instance_segmentations(
     model_outputs,
     image,
     image_info,
-    maskrcnn_visualizer_fn):
+    maskrcnn_visualizer_fn,
+    offset=(0.485, 0.456, 0.406),
+    scale=(0.229, 0.224, 0.225),
+):
   """Visualize instance segmentations.
 
   Currently supports only batch size of one.
   Args:
-    model_outputs: A dictionary with key-value pairs as follows:
-      num_detections - [1] int array of number of detections.
-      detection_boxes - [1, num_detections, 4] float array of detected boxes in
-        resized image space (not original image space). The format is yxyx.
-      detection_scores - [1, num_detections] float array of detection scores.
-      detection_classes - [1, num_detections] int array of detection classes.
-      detection_masks - [1, num_detections, mask_height, mask_width] float array
-        of detected masks.
+    model_outputs: A dictionary with key-value pairs as follows: num_detections
+      - [1] int array of number of detections. detection_boxes - [1,
+      num_detections, 4] float array of detected boxes in resized image space
+      (not original image space). The format is yxyx. detection_scores - [1,
+      num_detections] float array of detection scores. detection_classes - [1,
+      num_detections] int array of detection classes. detection_masks - [1,
+      num_detections, mask_height, mask_width] float array of detected masks.
     image: A float array of normalized image of shape [1, normalized_height,
       [normalized_width, 3].
     image_info: A 2D array that encodes the information of the image and the
-      applied preprocessing. It is in the format of
-      [[original_height, original_width], [desired_height, desired_width],
-       [y_scale, x_scale], [y_offset, x_offset]], where [desired_height,
-      desired_width] is the actual scaled image size, and [y_scale, x_scale] is
-      the scaling factor, which is the ratio of
-      scaled dimension / original dimension.
-    maskrcnn_visualizer_fn: A function that takes image and processed outputs
-      to produce image with overlaid segmentations.
+      applied preprocessing. It is in the format of [[original_height,
+      original_width], [desired_height, desired_width], [y_scale, x_scale],
+      [y_offset, x_offset]], where [desired_height, desired_width] is the actual
+      scaled image size, and [y_scale, x_scale] is the scaling factor, which is
+      the ratio of scaled dimension / original dimension.
+    maskrcnn_visualizer_fn: A function that takes image and processed outputs to
+      produce image with overlaid segmentations.
+    offset: A three float-tuple of three channel offset.
+    scale: A three float-tuple of three channel scale.
 
   Returns:
     image_with_segmentations: An array of image overlaid with segmentations.
   """
-  image = unnormalize_image(image)
+  image = unnormalize_image(image=image, offset=offset, scale=scale)
   image = np.squeeze(image, axis=(0,))
   image_size = image.shape[0]
 

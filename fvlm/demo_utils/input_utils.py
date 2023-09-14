@@ -79,6 +79,11 @@ def get_clip_text_features(model_name, cls_prompts):
   return text_features
 
 
+def rovit_image_normalization_values():
+  """Get RO-ViT image normalization values."""
+  return {'offset': (0.0, 0.0, 0.0), 'scale': (1.0, 1.0, 1.0)}
+
+
 def clip_image_normalization_values():
   """Get CLIP image normalization values."""
   return {
@@ -451,4 +456,19 @@ def get_maskrcnn_parser():
       anchor_size=8,
       max_num_instances=100,
       normalize_image_values=clip_image_normalization_values(),
+  ).parse_predict_data
+
+
+def get_rovit_parser():
+  """Get RO-VIT input parser."""
+  return Parser(
+      output_size=1024,
+      min_level=2,
+      max_level=5,
+      num_scales=1,
+      aspect_ratios=[1.0,],
+      anchor_size=8,
+      max_num_instances=100,
+      normalize_image_values={
+          'offset': (0.0, 0.0, 0.0), 'scale': (1.0, 1.0, 1.0)},
   ).parse_predict_data
