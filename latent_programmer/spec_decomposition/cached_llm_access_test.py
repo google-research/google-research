@@ -55,6 +55,16 @@ def reload_cache(cache_dir):
 
 class CachedLlmAccessTest(parameterized.TestCase):
 
+  @parameterized.parameters(
+      ('gemini-m-llmit', True),
+      ('gpt-4', True),
+      ('gpt-3.5-turbo-16k', True),
+      ('with spaces', False),
+      ('special_characters!', False),
+  )
+  def test_check_model_name(self, model_name, expected):
+    self.assertEqual(cached_llm_access._check_model_name(model_name), expected)
+
   @parameterized.parameters(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
   @mock.patch.object(sys.modules[__name__], 'dummy_query_fn',
                      wraps=dummy_query_fn)

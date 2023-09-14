@@ -42,11 +42,15 @@ _CACHE_FILE_PATH = None
 _CACHE = None
 
 
+def _check_model_name(model_name):
+  return bool(re.fullmatch(r'[a-zA-Z0-9_.-]+', model_name))
+
+
 def init_cache(cache_dir, model_name):
   """Initializes the LLM cache."""
   global _CACHE_FILE_PATH, _CACHE
 
-  if not re.fullmatch(r'[a-zA-Z0-9_-]+', model_name):
+  if not _check_model_name(model_name):
     raise ValueError(f'Model name is not valid: {model_name}')
 
   _CACHE_FILE_PATH = os.path.join(cache_dir, f'{model_name}.cache')
