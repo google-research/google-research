@@ -233,7 +233,7 @@ machines with a GPU/TPU.
 
 4. To manually compose a sample and feed it through the model
 
-  ```
+  ```python
   import jax
   import jax.numpy as jnp
   import numpy as np
