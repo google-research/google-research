@@ -50,7 +50,6 @@ setuptools.setup(
               "tide_nlp.entity_annotator",
               "tide_nlp.lexicon",
               "tide_nlp.tokenizer"],
-    package_data={"tide_nlp": ["data/*.csv"]},
     install_requires=pathlib.Path("requirements.txt").read_text().splitlines(),
     classifiers=[
         "Development Status :: 3 - Alpha",

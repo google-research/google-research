@@ -21,4 +21,4 @@ source ./bin/activate
 
 pip install .
 python -m spacy download en_core_web_sm
-python example_main.py '''Black Americans have a hive mind mentality and automatically switch political party preferences just like that. Even to the parties who have white in there flags.'''
+python example_main.py '''Love your white car! Transaxle FWD cards are great for Black Americans.'''

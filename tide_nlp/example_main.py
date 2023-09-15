@@ -18,13 +18,13 @@
 import sys
 
 import bs4
-from importlib_resources import files
 import pandas as pd
 import requests
 import spacy
 
 import tide_nlp as tide_nlp
 from tide_nlp import identity_annotator as ia
+from tide_nlp import tidal_util
 from tide_nlp.entity_annotator import non_ptc_annotator as non_ptc_a
 from tide_nlp.entity_annotator import ptc_annotator as ptc_a
 from tide_nlp.entity_annotator import ptc_helper as ptc
@@ -32,11 +32,6 @@ from tide_nlp.entity_annotator import spacy_annotator as spacy_a
 from tide_nlp.lexicon import tidal_lexicon as lex
 from tide_nlp.tokenizer import spacy_tokenizer as tok
 
-
-TIDAL_LEXICON_FILE = 'tidal_sample.csv'
-TIDAL_COLUMNS = ['Term', 'IdentityGroup', 'IdentitySubgroup',
-                 'Connotation', 'HasNonIdentityMeaning', 'IsRootTerm', 'IsPTCTerm',
-                 'IdentityGroup_Connotation_ConvergenceScore']
 PERSON_NOUN_LEXICON_URLS = ['https://en.wiktionary.org/w/index.php?title=Category:English_terms_of_address',
                             'https://en.wiktionary.org/w/index.php?title=Category:English_terms_of_address&pagefrom=SNOOKUMS%0Asnookums#mw-pages']
 
@@ -48,10 +43,7 @@ def main(argv):
   text_ = argv[0]
 
   # Initialize TIDAL lexicon
-  tidal_lexicon = files(tide_nlp).joinpath('data/' + TIDAL_LEXICON_FILE)
-  tidal_lexicon_df = pd.read_csv(tidal_lexicon,
-                                 usecols=TIDAL_COLUMNS,
-                                 engine='python')
+  tidal_lexicon_df = tidal_util.read_tidal()
 
   # Download person noun lexicon
   person_noun_terms = []
