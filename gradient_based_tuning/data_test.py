@@ -35,7 +35,17 @@ from gradient_based_tuning import data
 
 
 def _get_ds_from_examples(raw_examples, data_type=tf.int32):
+  """
+    Create a TensorFlow Dataset from a list of raw examples.
 
+    Args:
+        raw_examples (list): A list of dictionaries where each dictionary represents an example.
+        data_type (tf.dtypes.DType): The desired data type for the elements in the dataset.
+
+    Returns:
+        tf.data.Dataset: A TensorFlow Dataset containing the examples.
+
+    """
   def generator():
     for ex_dict in raw_examples:
       ret = {k: v for k, v in ex_dict.items()}
@@ -49,6 +59,13 @@ def _get_ds_from_examples(raw_examples, data_type=tf.int32):
 class CastDatasetTypesTest(absltest.TestCase):
 
   def test_converts_matching_dtype(self):
+    """
+        Test whether the function can convert the data types in the dataset as specified.
+
+        This test checks if the function correctly converts the data types of 'inputs' and 'targets'
+        to tf.uint16 as specified in the cast_dict.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33]
@@ -74,6 +91,15 @@ class CastDatasetTypesTest(absltest.TestCase):
     )
 
   def test_ignore_extra_types_dtype(self):
+    """
+        Test whether the function can handle extra keys in cast_dict gracefully.
+
+        This test checks if the function correctly converts the 'targets' data type to tf.uint16
+        and ignores the 'extraneous_tag' key in cast_dict since it doesn't correspond to any
+        element in the dataset.
+
+        """
+
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33]
@@ -102,6 +128,13 @@ class CastDatasetTypesTest(absltest.TestCase):
 class PackAndBatchTest(absltest.TestCase):
 
   def test_pack_repeats_only_inputs_targets(self):
+    """
+        Test whether the function packs and batches the dataset correctly while retaining only 'inputs' and 'targets'.
+
+        This test checks if the function correctly processes a dataset, packs it, and retains only 'inputs' and 'targets'
+        in the output dataset.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -132,6 +165,13 @@ class PackAndBatchTest(absltest.TestCase):
     )
 
   def test_pack_pads_to_max_len(self):
+    """
+        Test whether the function correctly pads sequences to the specified maximum length.
+
+        This test checks if the function correctly processes a dataset, packs it, and pads sequences to the specified
+        maximum length while maintaining the batch size.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -154,6 +194,13 @@ class PackAndBatchTest(absltest.TestCase):
     self.assertEqual(shape_of_single_batch, (2, 8))
 
   def test_no_drop_no_extend_yields_underfull_final_batch(self):
+    """
+        Test whether the function correctly handles underfull final batches without dropping or extending.
+
+        This test checks if the function correctly processes a dataset, packs it, and retains an underfull final batch
+        when 'drop_remainder' is set to False and 'extend_to_fill' is set to False.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -194,6 +241,13 @@ class PackAndBatchTest(absltest.TestCase):
                          [[40, 50, 60, 70, 80, 90, 0]])
 
   def test_drop_remainder_drops_final_batch(self):
+    """
+        Test whether the function correctly drops the final batch when 'drop_remainder' is set to True.
+
+        This test checks if the function correctly processes a dataset, packs it, and drops the final batch when
+        'drop_remainder' is set to True.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -222,6 +276,13 @@ class PackAndBatchTest(absltest.TestCase):
       _ = next(pnb_ds_iter)['inputs'].shape
 
   def test_extend_to_fill_extends_final_batch(self):
+    """
+        Test whether the function correctly extends the final batch when 'extend_to_fill' is set to True.
+
+        This test checks if the function correctly processes a dataset, packs it, and extends the final batch when
+        'extend_to_fill' is set to True.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -265,6 +326,13 @@ class PackAndBatchTest(absltest.TestCase):
 class GetUniqueExamplesTest(absltest.TestCase):
 
   def test_packed_and_batched(self):
+    """
+        Test whether the function correctly identifies unique examples in a packed and batched dataset.
+
+        This test checks if the function correctly processes a packed and batched dataset and returns the number of
+        unique examples.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -296,6 +364,13 @@ class GetUniqueExamplesTest(absltest.TestCase):
     self.assertEqual(data.get_unique_examples(next(pnb_ds_iter)), 4)
 
   def test_not_packed_not_batched(self):
+    """
+        Test whether the function correctly identifies unique examples in a non-packed and non-batched dataset.
+
+        This test checks if the function correctly processes a non-packed and non-batched dataset and returns the number of
+        unique examples.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -327,6 +402,13 @@ class GetUniqueExamplesTest(absltest.TestCase):
     self.assertEqual(data.get_unique_examples(next(pnb_ds_iter)), 1)
 
   def test_batched_not_packed_errors(self):
+    """
+        Test whether the function raises an error when attempting to process a batched but not packed dataset.
+
+        This test checks if the function correctly raises an error when attempting to process a batched but not packed
+        dataset and return the number of unique examples.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
@@ -358,6 +440,13 @@ class GetUniqueExamplesTest(absltest.TestCase):
     self.assertEqual(data.get_unique_examples(next(pnb_ds_iter)), 2)
 
   def test_packed_not_batched_errors(self):
+    """
+        Test whether the function raises an error when attempting to process a packed but not batched dataset.
+
+        This test checks if the function correctly raises an error when attempting to process a packed but not batched
+        dataset and return the number of unique examples.
+
+        """
     raw_examples = [{
         'inputs': [1, 2, 3],
         'targets': [11, 22, 33],
