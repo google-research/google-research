@@ -137,6 +137,9 @@ class AntheaDocSys {
    * and without document-name and system-name) can also be used to indicate
    * a paragraph break.
    *
+   * This function also unescapes any tabs ('\\t' -> '\t') and newlines
+   * ('\\n' -> '\n') in source-segment/target-segment.
+   *
    * The first line should contain a JSON object with the source and the target
    * language codes, and potentially other parameters. For instance:
    *   {"source_language": "en", "target_language": "fr"}
@@ -179,7 +182,7 @@ class AntheaDocSys {
     const srcLang = parameters['source_language'];
     const tgtLang = parameters['target_language'];
     let docsys = new AntheaDocSys();
-    const spacesNormalizer = (s) => s.replace(/[\s]+/g, ' ');
+    const unescaper = (s) => s.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
     for (let line of lines.slice(1)) {
       line = line.trim();
       const parts = line.split('\t', 5);
@@ -195,8 +198,8 @@ class AntheaDocSys {
         continue;
       }
       /** Note that we do not trim() srcSegment/tgtSegment. */
-      const srcSegment = spacesNormalizer(parts[0]);
-      const tgtSegment = spacesNormalizer(parts[1]);
+      const srcSegment = unescaper(parts[0]);
+      const tgtSegment = unescaper(parts[1]);
       const doc = parts[2].trim() + ':' + srcLang + ':' + tgtLang;
       const sys = parts[3].trim();
       const annotation = parts.length > 4 ? parts[4].trim() : '';
@@ -1256,7 +1259,7 @@ class AntheaEval {
     const hasBeenRead = this.cursor.hasBeenRead(seg, side, sent);
 
     if (!isCurr && hasBeenRead && !this.error_)  {
-      /* anthea-segment-nav class makes the mouse a pointer on hover. */
+      /* anthea-sentence-nav class makes the mouse a pointer on hover. */
       sentence.sentSpan.classList.add('anthea-sentence-nav');
       sentence.clickListener = () => {
         this.revisitSentence(seg, side, sent);
@@ -2265,10 +2268,15 @@ class AntheaEval {
 
   /**
    * Splits text into sentences (marked by two zero-width spaces) and tokens
-   * (marked by spaces and zer-width spaces) and creates display-ready HTML
+   * (marked by spaces and zero-width spaces) and creates display-ready HTML
    * (including possibly adding HOTW errors). Returns an array of sentence-wise
    * objects. Each object includes the following fields:
-   *   text: The raw text of the sentence.
+   *   text: The raw text of the sentence. Consecutive whitespace characters
+   *         are normalized to a single space character.
+   *   endsWithLineBreak: If the text (before space-normalization) ended in a
+   *         single newline, then endsWithLineBreak is set to true.
+   *   endsWithParaBreak: If the text (before space-normalization) ended in two
+   *         or more newlines, then endsWithParaBreak is set to true.
    *   spanHTML: The HTML version of the sentence, with tokens wrapped in spans.
    *   hotwSpanHTML: Empty, or spanHTML variant with HOTW error-injected.
    *   injectedError: Empty, or the HOTW error.
@@ -2292,10 +2300,13 @@ class AntheaEval {
                           hotwPercent, hotwPretend=false) {
     const sentInfos = [];
     const sentences = text.split('\u200b\u200b');
+    const spacesNormalizer = (s) => s.replace(/[\s]+/g, ' ');
     let tokenIndex = 0;
     for (let s = 0; s < sentences.length; s++) {
       const appendSpace = addEndSpaces && (s == sentences.length - 1);
-      const sentence = sentences[s];
+      const paraBreak = sentences[s].endsWith('\n\n');
+      const lineBreak = !paraBreak && sentences[s].endsWith('\n');
+      const sentence = spacesNormalizer(sentences[s]);
       const spannifyRet = AntheaEval.spannifyWords(sentence, appendSpace);
       const spanHTML = spannifyRet.spannified;
       let hotwSpanHTML = '';
@@ -2320,6 +2331,8 @@ class AntheaEval {
       tokenIndex += spannifyRet.numWords + spannifyRet.numSpaces;
       const sentInfo = {
         text: sentence,
+        endsWithLineBreak: lineBreak,
+        endsWithParaBreak: paraBreak,
         spanHTML: spanHTML,
         hotwSpanHTML: hotwSpanHTML,
         injectedError: injectedError,
@@ -3437,6 +3450,9 @@ class AntheaEval {
     }
     evalDiv.appendChild(docTextTable);
 
+    const srcParaBreak = '</p><p class="anthea-source-para" dir="auto">';
+    const tgtParaBreak = '</p><p class="anthea-target-para" dir="auto">';
+
     for (let docsys of projectData) {
       const doc = {
         'docsys': docsys,
@@ -3471,8 +3487,8 @@ class AntheaEval {
       for (let i = 0; i < srcSegments.length; i++) {
         if (srcSegments[i].length == 0) {
           /* New paragraph. */
-          srcSpannified += '</p><p class="anthea-source-para" dir="auto">';
-          tgtSpannified += '</p><p class="anthea-target-para" dir="auto">';
+          srcSpannified += srcParaBreak;
+          tgtSpannified += tgtParaBreak;
           continue;
         }
 
@@ -3497,21 +3513,33 @@ class AntheaEval {
               tgtSegments[i], addEndSpacesTgt,
               this.READ_ONLY ? 0 : hotwPercent, hotwPretend),
         };
+        const segIndex = this.segments_.length;
         this.segments_.push(segment);
 
-        srcSpannified += '<span class="anthea-source-segment">';
+        const srcSegmentClass = 'anthea-source-segment-' + segIndex;
         for (let srcSent of segment.srcSents) {
-          srcSpannified += '<span class="anthea-source-sentence">' +
+          srcSpannified += '<span class="anthea-source-sentence ' +
+                           srcSegmentClass + '">' +
                            srcSent.spanHTML + '</span>';
+          if (srcSent.endsWithLineBreak) {
+            srcSpannified += '<br>';
+          } else if (srcSent.endsWithParaBreak) {
+            srcSpannified += srcParaBreak;
+          }
         }
-        srcSpannified += '</span>';
 
-        tgtSpannified += '<span class="anthea-target-segment">';
+        const tgtSegmentClass = 'anthea-target-segment-' + segIndex;
         for (let t = 0; t < segment.tgtSents.length; t++) {
           const tgtSent = segment.tgtSents[t];
-          tgtSpannified += '<span class="anthea-target-sentence">' +
+          tgtSpannified += '<span class="anthea-target-sentence ' +
+                           tgtSegmentClass + '">' +
                            (tgtSent.hotwSpanHTML || tgtSent.spanHTML) +
                            '</span>';
+          if (tgtSent.endsWithLineBreak) {
+            tgtSpannified += '<br>';
+          } else if (tgtSent.endsWithParaBreak) {
+            tgtSpannified += tgtParaBreak;
+          }
           segment.numTgtWords += tgtSent.numWords;
           if (tgtSent.injectedError) {
             tgtSent.hotw = {
@@ -3526,7 +3554,6 @@ class AntheaEval {
           }
         }
         this.numTgtWordsTotal_ += segment.numTgtWords;
-        tgtSpannified += '</span>';
 
         doc.numSG++;
       }
@@ -3535,21 +3562,13 @@ class AntheaEval {
       this.adjustHeight(docTextSrcRow, docTextTgtRow);
     }
 
-    /* Grab segment and sentence span elements */
-    const srcSegmentSpans = document.getElementsByClassName(
-      'anthea-source-segment');
-    const tgtSegmentSpans = document.getElementsByClassName(
-      'anthea-target-segment');
-    console.assert(srcSegmentSpans.length == this.segments_.length);
-    console.assert(tgtSegmentSpans.length == this.segments_.length);
+    /* Grab sentence span elements */
     for (let i = 0; i < this.segments_.length; i++) {
       const segment = this.segments_[i];
-      segment.srcSegmentSpan = srcSegmentSpans[i];
-      segment.tgtSegmentSpan = tgtSegmentSpans[i];
-      const srcSentSpans = segment.srcSegmentSpan.getElementsByClassName(
-        'anthea-source-sentence');
-      const tgtSentSpans = segment.tgtSegmentSpan.getElementsByClassName(
-        'anthea-target-sentence');
+      const srcSentSpans = document.getElementsByClassName(
+          'anthea-source-segment-' + i);
+      const tgtSentSpans = document.getElementsByClassName(
+        'anthea-target-segment-' + i);
       console.assert(srcSentSpans.length == segment.srcSents.length);
       console.assert(tgtSentSpans.length == segment.tgtSents.length);
       for (let s = 0; s < segment.srcSents.length; s++) {

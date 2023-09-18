@@ -32,7 +32,8 @@
     <li>Several variants of MQM templates are supported.</li>
     <li>State is automatically saved in the browser's local storage.</li>
     <li>After evaluating, projects can be saved as "Evaluation JSON files".</li>
-    <li>Evaluation JSON files can be opened for review. MQM-Viewer-based
+    <li>Evaluation JSON files can be opened for review.
+      <a href="https://github.com/google-research/google-research/tree/master/marot">Marot</a>-based
       analysis gets shown in a tab if there are any MQM evaluations
       in the opened files.</li>
   </ul>
@@ -96,11 +97,19 @@
   </p>
   <ul>
     <li>
-      Blank lines indicate paragraph breaks. Lines containing blank source text are also treated
-      as paragraph breaks (these should not contain any target text, but if they do, such
-      target text is ignored and is not displayed during the evaluation). Lines containing
-      just two fields (presumably document name and system name) are also treated the same
-      as having empty source text (i.e., as paragraph breaks).
+      Blank lines indicate paragraph breaks between segments. Lines containing just
+      two fields (presumably document name and system name) are also treated the same
+      as blank lines.
+    </li>
+    <li>
+      The text in "source_segment" and "target_segment" is unescaped, to replace any
+      "\\n" with "\n" and any "\\t" with "\t".
+    </li>
+    <li>
+      Within a segment (source or target), two (or more) consecutive newlines at the
+      end of a sentence (see below for how sentence boundaries are marked) get rendered
+      as a paragraph break. A single newline at the end of a sentence gets rendered as a
+      line-break.
     </li>
   </ul>
 
