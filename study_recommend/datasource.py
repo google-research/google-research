@@ -1040,8 +1040,8 @@ def iterator_with_replacement(
     num_shards: The number of parallel shards to produce.
     shard_index: The index of the current shard.
     start_index: The index from which to start sampling from.
-    num_batches: The number of batches to produce. Will sample indefinitely if
-      set to None.
+    num_batches: The number of batches to produce if starting from batch 0. Will
+      sample indefinitely if set to None.
 
   Yields:
     A batch of samples.
@@ -1050,9 +1050,7 @@ def iterator_with_replacement(
   total_batch_size = batch_size * num_shards
   batch_start = start_index
 
-  while num_batches is None or (
-      batch_start < start_index + total_batch_size * num_batches
-  ):
+  while num_batches is None or (batch_start < total_batch_size * num_batches):
     offset_batch_start = batch_start + shard_index
 
     sample_indices = range(

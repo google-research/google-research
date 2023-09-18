@@ -539,7 +539,12 @@ def training_loop(
 
         # Log training speed
         new_ts = time_fn()
-        duration = (new_ts - ts) / (step - last_logged)
+        num_steps = step - last_logged
+        duration = new_ts - ts
+        # num_steps can be zero on restoring with certain
+        # hyperparam configs.
+        if num_steps:
+          duration = duration / num_steps
         logging.info('Training at %.3f batch/second', 1 / duration)
 
         ts = new_ts
