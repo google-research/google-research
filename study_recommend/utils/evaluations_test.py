@@ -82,7 +82,7 @@ class EvaluationsTest(unittest.TestCase):
             types.StudentActivityFields.STUDENT_ID,
             types.StudentActivityFields.BOOK_ID,
         ],
-    ).groupby([types.StudentActivityFields.STUDENT_ID])
+    ).groupby(types.StudentActivityFields.STUDENT_ID)
     titles_array = evaluation.interaction_df_to_title_array(dataframe)
     titles_array = {key: value.tolist() for key, value in titles_array.items()}
     self.assertEqual(

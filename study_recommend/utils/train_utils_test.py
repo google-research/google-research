@@ -51,7 +51,7 @@ class TrainUtilsTest(unittest.TestCase):
     )
 
   def test_compute_weighted_cross_entropy(self):
-    targets = jnp.array([[2, 1, 2], [2, 3, 0], [1, 0, 0]], dtype=jnp.int64)
+    targets = jnp.array([[2, 1, 2], [2, 2, 0], [1, 0, 0]], dtype=jnp.int32)
     weights = jnp.array([[[1, 1, 1], [1, 0, 0], [1, 0, 0]]], dtype=jnp.bool_)
 
     logits = jnp.array(
@@ -71,7 +71,7 @@ class TrainUtilsTest(unittest.TestCase):
     self.assertAlmostEqual(normalizing_factor.item(), 5)
 
   def test_compute_weighted_accuracy(self):
-    targets = jnp.array([[2, 1, 2], [2, 3, 0], [1, 0, 0]], dtype=jnp.int64)
+    targets = jnp.array([[2, 1, 2], [2, 2, 0], [1, 0, 0]], dtype=jnp.int32)
     weights = jnp.array([[[1, 1, 1], [1, 0, 0], [1, 0, 0]]], dtype=jnp.bool_)
 
     logits = jnp.array(
@@ -97,7 +97,7 @@ class TrainUtilsTest(unittest.TestCase):
     """Test the correction of the utility function to return all metrics."""
     # Test data arrays in this test have a leading axis with size 1.
     # This is the axis that represents n_devices for jax.pmap
-    targets = jnp.array([[[2, 1, 2], [2, 3, 0], [1, 0, 0]]], dtype=jnp.int64)
+    targets = jnp.array([[[2, 1, 2], [2, 2, 0], [1, 0, 0]]], dtype=jnp.int32)
     weights = jnp.array([[[[1, 1, 1], [1, 0, 0], [1, 0, 0]]]], dtype=jnp.bool_)
 
     logits = jnp.array(
@@ -125,10 +125,6 @@ class TrainUtilsTest(unittest.TestCase):
 
     for key in reference_values:
       self.assertAlmostEqual(metrics[key], reference_values[key])
-
-  def test_nomrmalize_metrics(self):
-    pass
-
 
 if __name__ == '__main__':
   unittest.main()

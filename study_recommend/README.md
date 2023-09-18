@@ -271,11 +271,12 @@ machines with a GPU/TPU.
   grade_level = [4]
 
   # Cast model inputs to jax Arrays.
-  titles = jnp.array(titles, dtype=jnp.int64)
-  student_ids = jnp.array(student_ids, dtype=jnp.int64)
-  timestamps = jnp.array(timestamps, dtype=jnp.int64)
-  input_positions = jnp.array(input_positions, dtype=jnp.int64)
-  grade_level = jnp.array(grade_level, dtype=jnp.int64)
+  titles = jnp.array(titles, dtype=jnp.int32)
+  student_ids = jnp.array(student_ids, dtype=jnp.int32)
+  # This may cause issues in 2038 when the timestamps overflow int32.
+  timestamps = jnp.array(timestamps, dtype=jnp.int32)
+  input_positions = jnp.array(input_positions, dtype=jnp.int32)
+  grade_level = jnp.array(grade_level, dtype=jnp.int32)
 
   fields = types.ModelInputFields
   # Package up inputs into a dictionary.
@@ -316,3 +317,14 @@ to a moderate increase in overall scores of `Individual` and lead to minor
 decrease in overall scores of `Study`. This is not surprising as STUDY can
 already use reading activity of classmates to infer the grade level.
 
+### Notes
+1. This code comes with unit tests to aid development. To run the unit tests run the following command:
+```
+python -m study_recommend.unittest_runner
+```
+
+2. We use signed int32 to represent all integers as not all jax installations
+support int64. This is potentially problematic since we represent timestamps as
+the number of whole seconds since the epoch. This means the `StudyRecommender`
+might not function correctly if the activity data contains timestamps with dates
+beyond 2037. We made this choice to minimise compatibility issues.

@@ -335,7 +335,7 @@ def preprocess_dataframe(
     start_index, chunk_count = current_index, 0
     for j in range(0, list_length, seq_len):
       sample_titles = titles[i][j : j + seq_len]
-      sample_dates = to_timestamp(dates[i][j : j + seq_len]).astype(np.int64)
+      sample_dates = to_timestamp(dates[i][j : j + seq_len]).astype(np.int32)
 
       dates_array.append(sample_dates)
       titles_array.append(sample_titles)
