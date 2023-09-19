@@ -30,6 +30,14 @@ cd ./checkpoints
 ./download.sh
 ```
 
+For users who want to use the FLAX checkpoints directly rather than tf.SavedModel, we have prepared the checkpoints for downloading by the commands below:
+
+```
+MODEL="r50"  # Supported model: r50, r50x4, r50x16
+wget "https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/fvlm/jax_checkpoints/${MODEL}_checkpoint_184000"
+```
+We recommend users to run the above commands in the checkpoints directory.
+
 ## Run the demo.
 Run the following commands from the root fvlm directory. This will run F-VLM demo using ResNet50 backbone.
 
