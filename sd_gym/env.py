@@ -76,9 +76,11 @@ class SDEnv(gym.Env):
           self.actionables,
       )
 
-    if params.discrete_sd_vars:
+    if params.categorical_sd_vars:
       self._check_var_names_valid(
-          'discrete_sd_vars', params.discrete_sd_vars.keys(), self.actionables
+          'categorical_sd_vars',
+          params.categorical_sd_vars.keys(),
+          self.actionables
       )
 
     self.action_space = self._generate_action_space(self.actionables, params)
@@ -164,7 +166,7 @@ class SDEnv(gym.Env):
     # Override limits with units limits, then model-specified limits,
     # then with params.
     box_vars = [
-        var for var in var_names if var not in params.discrete_sd_vars.keys()
+        var for var in var_names if var not in params.categorical_sd_vars.keys()
     ]
     limits = {}
     for k, v in units_types.items():
@@ -199,7 +201,7 @@ class SDEnv(gym.Env):
     # Discrete variables
     discrete_spaces = {
         k: gym.spaces.Box(0, len(v) - 1, dtype=np.int32, shape=())
-        for k, v in params.discrete_sd_vars.items()
+        for k, v in params.categorical_sd_vars.items()
     }
     spaces.update(discrete_spaces)
 
@@ -266,8 +268,10 @@ class SDEnv(gym.Env):
         % observation
     )
 
-    # For compatibility, compute a reward_fn if one is given.
-    reward = self.reward_fn(observation) if self.reward_fn is not None else 0
+    # Compute a reward_fn if one is given.
+    reward = 0
+    if self.reward_fn:
+      reward = self.reward_fn(self._get_all_state())
     return observation, reward, self._is_done(), {}
 
   def _prep_actions(self, action, next_end_time):
@@ -281,8 +285,8 @@ class SDEnv(gym.Env):
       else:
         val = v
 
-      if k in self.params.discrete_sd_vars:
-        val = self.params.discrete_sd_vars[k][val.item()]
+      if k in self.params.categorical_sd_vars:
+        val = self.params.categorical_sd_vars[k][val.item()]
       elif isinstance(val, np.ndarray) and not val.ndim:
         val = val.item()
       elif isinstance(val, (np.ndarray, list)):
@@ -298,13 +302,21 @@ class SDEnv(gym.Env):
     """Checks if model end time has been reached."""
     return np.isclose(self.state.time, self.state.sd_sim.get_stop_time())
 
+  def _get_all_state(self):
+    """Returns a dictionary of the current state."""
+    all_state = {}
+    if not self.state.obs_timeseries.empty:
+      for var_name in self.state.sd_sim.list_variables():
+        all_state[var_name] = self.state.obs_timeseries[var_name].values[-1]
+    return all_state
+
   def _get_observable_state(self):
-    """Returns a dataframe of the entire history of observable states.
+    """Returns a dictionary of the entire history of observable states.
 
     Agents may prefer to restrict observations to the last x rows of this
     data frame because otherwise the data changes in size each step.
     """
-    obs_state = dict()
+    obs_state = {}
     if not self.state.obs_timeseries.empty:
       for var_name in self.observables:
         var_series = self.state.obs_timeseries[var_name].values
@@ -327,11 +339,10 @@ class SDEnv(gym.Env):
     self.state = core.State(sd_sim,
                             sd_sim.get_start_time(),
                             sd_sim.get_initial_conditions())
-    obs = self._get_observable_state()
     if self.params.reward_function:
-      self.reward_fn = self.params.reward_function.reset(obs)
+      self.reward_fn = self.params.reward_function.reset(self._get_all_state())
     self.history = []
-    return obs
+    return self._get_observable_state()
 
   def seed(self, seed = None):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     """Sets the seed for this env's random number generator."""
