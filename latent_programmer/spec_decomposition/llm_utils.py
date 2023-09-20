@@ -17,6 +17,8 @@
 
 import ast
 import collections
+import math
+import random
 import re
 import types
 from typing import Any
@@ -55,7 +57,8 @@ def to_python_form(io):
 
 
 def parse_dataset(dataset,
-                  dataset_type):
+                  dataset_type,
+                  version):
   """Parses the tf.data.Dataset into a list of DatasetElement."""
   data = []
 
@@ -83,10 +86,18 @@ def parse_dataset(dataset,
     else:
       raise ValueError(f'Unhandled dataset type: {dataset_type}')
 
-    python_program = program_object.to_python_program()
+    python_program = program_object.to_python_program(version=version)
 
     d = DatasetElement(inputs, outputs, program, python_program)
-    assert d.outputs == run_program(d.python_program, d.inputs, dataset_type)
+    actual_outputs = run_program(d.python_program, d.inputs, dataset_type)
+    if d.outputs != actual_outputs:
+      raise ValueError(
+          f'Program:\n'
+          f'{d.python_program}\n'
+          f'Inputs: {d.inputs}\n'
+          f'Expected outputs: {d.outputs}\n'
+          f'Actual outputs: {actual_outputs}\n'
+      )
     data.append(d)
   return data
 
@@ -129,14 +140,105 @@ def create_dataset(file_pattern, num_examples):
   return dataset
 
 
+def get_handwritten_few_shot(dataset_type,
+                             generalization_task):
+  """Gets a dataset of handwritten few-shot examples."""
+  if dataset_type == 'robustfill':
+    raise ValueError('Not implemented yet')
+  if generalization_task != 'NONE':
+    raise ValueError('Not implemented yet')
+
+  problems = [
+      {  # Take the first few elements and sort them in reverse.
+          'inputs': ['x0 = [ 4 2 7 ] | x1 = 5',
+                     'x0 = [ -24 15 3 -8 ] | x1 = 3',
+                     'x0 = [ 18 22 36 13 29 4 15 10 7 ] | x1 = 6'],
+          'outputs': ['[ 7 4 2 ]', '[ 15 3 -24 ]', '[ 36 29 22 18 13 4 ]'],
+          'program': ('x0 = INPUT | x1 = INPUT | x2 = Take x1 x0 | '
+                      'x3 = Sort x2 | x4 = Reverse x3'),
+      },
+      {  # Compute the running sum of the even elements.
+          'inputs': ['x0 = [ 5 2 6 7 4 ]',
+                     'x0 = [ 19 2 12 6 11 15 7 8 ]',
+                     'x0 = [ 5 -4 6 7 -1 -2 4 1 -6 ]'],
+          'outputs': ['[ 2 8 12 ]', '[ 2 14 20 28 ]', '[ -4 2 0 4 -2 ]'],
+          'program': 'x0 = INPUT | x1 = Filter (%2==0) x0 | x2 = Scanl1 (+) x1',
+      },
+      {  # Count the number of negative elements.
+          'inputs': ['x0 = [ -4 2 6 7 -1 4 0 -3 ]',
+                     'x0 = [ 8 23 -14 32 -6 45 ]',
+                     'x0 = [ -6 -8 -14 -23 -11 ]'],
+          'outputs': ['3', '2', '5'],
+          'program': 'x0 = INPUT | x1 = Count (<0) x0',
+      },
+      {  # Map by (x^2 - x) and drop the first few elements.
+          'inputs': ['x0 = [ 1 4 5 2 ] | x1 = 1',
+                     'x0 = [ -2 3 -1 0 6 ] | x1 = 0 ',
+                     'x0 = [ -5 2 4 -3 1 7 5 ] | x1 = 3'],
+          'outputs': ['[ 12 20 2 ]', '[ 6 6 2 0 30 ]', '[ 12 0 42 20 ]'],
+          'program': ('x0 = INPUT | x1 = INPUT | x2 = Map (**2) x0 | '
+                      'x3 = ZipWith (-) x2 x0 | x4 = Drop x1 x3'),
+      },
+  ]
+  return tf.data.Dataset.from_tensor_slices({
+      'inputs': tf.constant([p['inputs'] for p in problems]),
+      'outputs': tf.constant([p['outputs'] for p in problems]),
+      'program': tf.constant([p['program'] for p in problems]),
+  })
+
+
+def program_len(d, dataset_type):
+  if dataset_type == 'deepcoder':
+    return d.dsl_program.count('|') - d.dsl_program.count('INPUT') + 1
+  elif dataset_type == 'robustfill':
+    return d.dsl_program.count('|') + 1
+  else:
+    raise ValueError(f'Unhandled dataset type: {dataset_type}')
+
+
+def distribute_lengths(
+    dataset,
+    target_size,
+    max_length,
+    dataset_type,
+):
+  """Selects a subset of elements with an even distribution of lengths."""
+  data_by_length = collections.defaultdict(list)
+  for element in dataset:
+    data_by_length[program_len(element, dataset_type)].append(element)
+
+  available_lengths = [length for length in data_by_length
+                       if length <= max_length]
+  num_per_length = math.ceil(target_size / len(available_lengths))
+  selected = []
+  for length in available_lengths:
+    if len(data_by_length[length]) < num_per_length:
+      raise ValueError(
+          f'Not enough programs of length {length}: '
+          f'need {num_per_length}, found {len(data_by_length[length])}')
+    selected.extend(data_by_length[length][:num_per_length])
+  random.shuffle(selected)
+  selected = selected[:target_size]
+  assert len(selected) == target_size
+  return selected, data_by_length
+
+
 def load_datasets(
     dataset_type,
     generalization_task,
     num_few_shot_examples,
     num_test_problems,
     cns_data_format,
+    version,
 ):
   """Loads a few-shot dataset and a test dataset."""
+  # Set a seed for deterministic dataset shuffling. Set the seed here, not just
+  # once elsewhere, so that the dataset shuffling is not dependent on the order
+  # the datasets are constructed in.
+  tf.random.set_seed(0)
+  random.seed(0)
+
+  # Read data from CNS.
   if dataset_type == 'deepcoder':
     if generalization_task == 'LENGTH_GENERALIZATION':
       generalization_task = 'LENGTH_1_4_TO_5'
@@ -157,19 +259,57 @@ def load_datasets(
       cns_dataset_dir=cns_dataset_dir, generalization_task=generalization_task,
       split='test')
 
+  target_few_shot_dataset_size = num_test_problems * num_few_shot_examples
+  few_shot_tf_dataset = (
+      create_dataset(train_data_path, num_examples)
+      .shuffle(100000)
+      .take(target_few_shot_dataset_size * 20))
+  test_tf_dataset = (
+      create_dataset(test_data_path, num_examples)
+      .take(1000)  # Other experiments only use the first 1000 test problems.
+      .shuffle(1000))  # Shuffle them all.
+
+  if version == 5:
+    few_shot_tf_dataset = get_handwritten_few_shot(
+        dataset_type, generalization_task)
+
+  # Parse each `tf.data.Dataset` into list[DatasetElement].
   few_shot_dataset = parse_dataset(
-      (create_dataset(train_data_path, num_examples)
-       .shuffle(100000)
-       .take(num_test_problems * num_few_shot_examples)),
-      dataset_type=dataset_type)
+      few_shot_tf_dataset, dataset_type=dataset_type, version=version)
   test_dataset = parse_dataset(
-      (create_dataset(test_data_path, num_examples)
-       .take(1000)  # Other experiments only use the first 1000 test problems.
-       .shuffle(1000)  # Shuffle them all.
-       .take(num_test_problems)),  # For LLMs, only use a random subset.
+      test_tf_dataset, dataset_type=dataset_type, version=version)
+
+  # Select a good mix of lengths.
+  max_length = 3
+  if generalization_task.startswith('LENGTH_'):
+    # Remember, generalization_task has been changed to 'LENGTH_1_4_TO_5' etc.
+    few_shot_max_length = max_length - 1
+  else:
+    few_shot_max_length = max_length
+
+  selected_few_shot, few_shot_by_length = distribute_lengths(
+      few_shot_dataset,
+      target_size=target_few_shot_dataset_size,
+      max_length=few_shot_max_length,
       dataset_type=dataset_type)
 
-  return few_shot_dataset, test_dataset
+  if generalization_task.startswith('LENGTH_'):
+    # For length generalization, the test programs don't come from the actual
+    # test dataset which has only programs of very long length. Instead, test on
+    # programs of length `max_length` gathered from the training dataset, and
+    # use programs of shorter length for few-shot examples.
+    selected_test = few_shot_by_length[max_length][:num_test_problems]
+    if len(selected_test) != num_test_problems:
+      raise ValueError(f'Not enough test problems: need {num_test_problems}, '
+                       f'have {len(selected_test)}')
+  else:
+    selected_test, _ = distribute_lengths(
+        test_dataset,
+        target_size=num_test_problems,
+        max_length=max_length,
+        dataset_type=dataset_type)
+
+  return selected_few_shot, selected_test
 
 
 def get_namespace(dataset_type):
@@ -256,25 +396,97 @@ def run_program(program_code,
   return outputs
 
 
-def dsl_description(dataset_type):
+_DEEPCODER_FUNCTION_IMPLS = [
+    '''
+def Map(f, xs):
+  return [f(x) for x in xs]
+''',
+    '''
+def Filter(f, xs):
+  return [x for x in xs if f(x)]
+''',
+    '''
+def Count(f, xs):
+  return len([x for x in xs if f(x)])
+''',
+    '''
+def ZipWith(f, xs, ys):
+  return [f(x, y) for (x, y) in zip(xs, ys)]
+''',
+    '''
+def Scanl1(f, xs):
+  ys = []
+  for i, x in enumerate(xs):
+    if i == 0:
+      ys.append(x)
+    else:
+      ys.append(f(ys[-1], x))
+  return ys
+''',
+]
+
+_DEEPCODER_LAMBDA_IMPLS = '''
+PLUS_ONE = lambda x: x + 1
+MINUS_ONE = lambda x: x - 1
+TIMES_TWO = lambda x: x * 2
+DIV_TWO = lambda x: x // 2
+NEGATE = lambda x: -x
+SQUARE = lambda x: x ** 2
+TIMES_THREE = lambda x: x * 3
+DIV_THREE = lambda x: x // 3
+TIMES_FOUR = lambda x: x * 4
+DIV_FOUR = lambda x: x // 4
+IS_POSITIVE = lambda x: x > 0
+IS_NEGATIVE = lambda x: x < 0
+IS_EVEN = lambda x: x % 2 == 0
+IS_ODD = lambda x: x % 2 == 1
+ADD = lambda x, y: x + y
+SUBTRACT = lambda x, y: x - y
+MULTIPLY = lambda x, y: x * y
+MIN = lambda x, y: min(x, y)
+MAX = lambda x, y: max(x, y)
+'''.strip()
+
+
+def dsl_description(dataset_type, version):
   """Gets a description of the DSL for prompting."""
   if dataset_type == 'deepcoder':
     dsl_purpose = 'manipulating lists of integers'
-    functions = [op.token for op in deepcoder_dsl.OPERATIONS]
-    constants = [lambda_.name for lambda_ in deepcoder_dsl.LAMBDAS]
+    if version == 1:
+      function_details = ', '.join(
+          [op.token for op in deepcoder_dsl.OPERATIONS])
+      constant_details = ', '.join(
+          [lambda_.name for lambda_ in deepcoder_dsl.LAMBDAS])
+    elif version == 2:
+      function_details = '\n\n'.join(
+          [i.strip() for i in _DEEPCODER_FUNCTION_IMPLS])
+      constant_details = _DEEPCODER_LAMBDA_IMPLS
+    elif version == 3 or version == 5:
+      function_details = _DEEPCODER_FUNCTION_IMPLS[-1].strip()
+      constant_details = _DEEPCODER_LAMBDA_IMPLS
+    elif version == 4:
+      function_details = _DEEPCODER_FUNCTION_IMPLS[-1].strip()
+      constant_details = None
+    else:
+      raise ValueError(f'Unhandled version: {version}')
   elif dataset_type == 'robustfill':
-    dsl_purpose = 'manipulating strings'
-    functions = ROBUSTFILL_FUNCTIONS
-    constants = [robustfill_dsl.to_python(obj)  # pylint: disable=g-complex-comprehension
-                 for e in ROBUSTFILL_ENUMS for obj in e]
+    if version == 1:
+      dsl_purpose = 'manipulating strings'
+      function_details = ', '.join(ROBUSTFILL_FUNCTIONS)
+      constant_details = ', '.join(
+          [robustfill_dsl.to_python(obj)  # pylint: disable=g-complex-comprehension
+           for e in ROBUSTFILL_ENUMS for obj in e])
+    else:
+      raise ValueError(f'Unhandled version: {version}')
   else:
     raise ValueError(f'Unhandled dataset type: {dataset_type}')
   return (
       f'The `dsl` module is a custom library for {dsl_purpose}. It contains '
       'the following functions:\n\n'
-      f'{", ".join(functions)}\n\n'
-      'Additionally, the module defines the following constants:\n\n'
-      f'{", ".join(constants)}\n\n'
+      f'{function_details}\n\n' +
+      ('Additionally, the module defines the following constants:\n\n'
+       f'{constant_details}\n\n'
+       if constant_details else '') +
       'Below are example programs using the `dsl` module, with input-output '
       'test cases illustrating their behavior.\n\n'
       'Important: All programs begin with ```python and end with ``` alone.\n\n'
@@ -292,11 +504,11 @@ def get_prompt_prefix(dataset_element,
       for name in dataset_element.inputs:
         s += f'{sep}{name} = {dataset_element.inputs[name][i]}'
         sep = ', '
+      s += f' --> {dataset_element.outputs[i]}\n'
     elif dataset_type == 'robustfill':
-      s += dataset_element.inputs[i]
+      s += f'"{dataset_element.inputs[i]}" --> "{dataset_element.outputs[i]}"\n'
     else:
       raise ValueError(f'Unhandled dataset type: {dataset_type}')
-    s += f' --> {dataset_element.outputs[i]}\n'
   s += '\nProgram:\n```python\n'
   return s
 
@@ -312,8 +524,9 @@ def get_prompt(dataset_element, dataset_type):
 
 def few_shot_prompt(few_shot_examples,
                     test_problem,
-                    dataset_type):
-  prompt_parts = [dsl_description(dataset_type)]
+                    dataset_type,
+                    version):
+  prompt_parts = [dsl_description(dataset_type, version=version)]
   prompt_parts.extend(get_prompt(d, dataset_type) for d in few_shot_examples)
   prompt_parts.append(get_prompt_prefix(test_problem, dataset_type))
   return '\n'.join(prompt_parts)
