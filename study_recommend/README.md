@@ -57,7 +57,7 @@ train the STUDY model on a single machine with a single GPU run the following
 command.
 
 ```
-python -m study_recommend.study_recommend --train_data_path=/path/to/student_activity_train.csv --valid_data_path=/path/to/student_activity_valid.csv --student_info_path=/path/to/student_info.csv --output_path=/path/to/directory/to/save/models/and/results/ --tensorboard_path==/path/to/directory/to/save/tensorboard/logs/ --student_chunk_size=65 --seq_len=65 --per_device_batch_size=2048 --n_steps=224000 --learning_rate=0.0016 --model=study
+python -m study_recommend.study_recommend --train_data_path=/path/to/student_activity_train.csv --valid_data_path=/path/to/student_activity_valid.csv --student_info_path=/path/to/student_info.csv --output_path=/path/to/directory/to/save/models/and/results/ --tensorboard_path=/path/to/directory/to/save/tensorboard/logs/ --student_chunk_size=65 --seq_len=65 --per_device_batch_size=2048 --n_steps=224000 --learning_rate=0.0016 --model=study
 ```
 To train an individual model change `--model=study` to `--model=individual`
 
@@ -104,7 +104,7 @@ the following flags
 1. `--num_processes=<total number of processes>` for all processes.
 2.  `--process_id=<i>` where `i` is a unique index for each process going from
 `0` to `num_processes-1`
-3.  `--coordinator_address<ip:port>` where `ip` is the ip address of the process
+3.  `--coordinator_address=<ip:port>` where `ip` is the ip address of the process
 with `process_id=0` (can `127.0.0.1` if all jobs are on the same machine) and
 `port` is a free port on that machine. This flag is the same for all processes.
 
