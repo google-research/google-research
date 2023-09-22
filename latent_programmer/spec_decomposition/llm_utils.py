@@ -23,6 +23,7 @@ import re
 import types
 from typing import Any
 
+import numpy as np
 import tensorflow as tf
 
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
@@ -47,6 +48,13 @@ ROBUSTFILL_FUNCTIONS = [
 ROBUSTFILL_ENUMS = [
     robustfill_dsl.Type, robustfill_dsl.Case, robustfill_dsl.Boundary,
 ]
+
+
+# Enables using the exact same datasets for any settings *up to* these numbers
+# of examples, for more consistent comparisons between experiments that use
+# different settings. The datasets will change if these numbers are changed.
+MAX_NUM_FEW_SHOT_EXAMPLES = 10
+MAX_NUM_TEST_PROBLEMS = 200
 
 
 def to_python_form(io):
@@ -232,11 +240,17 @@ def load_datasets(
     version,
 ):
   """Loads a few-shot dataset and a test dataset."""
+  if num_few_shot_examples > MAX_NUM_FEW_SHOT_EXAMPLES:
+    raise ValueError(f'Too many few shot examples: {num_few_shot_examples}')
+  if num_test_problems > MAX_NUM_TEST_PROBLEMS:
+    raise ValueError(f'Too many test problems: {num_test_problems}')
+
   # Set a seed for deterministic dataset shuffling. Set the seed here, not just
   # once elsewhere, so that the dataset shuffling is not dependent on the order
   # the datasets are constructed in.
   tf.random.set_seed(0)
   random.seed(0)
+  np.random.seed(0)
 
   # Read data from CNS.
   if dataset_type == 'deepcoder':
@@ -259,7 +273,8 @@ def load_datasets(
       cns_dataset_dir=cns_dataset_dir, generalization_task=generalization_task,
       split='test')
 
-  target_few_shot_dataset_size = num_test_problems * num_few_shot_examples
+  target_few_shot_dataset_size = (
+      MAX_NUM_TEST_PROBLEMS * MAX_NUM_FEW_SHOT_EXAMPLES)
   few_shot_tf_dataset = (
       create_dataset(train_data_path, num_examples)
       .shuffle(100000)
@@ -298,18 +313,34 @@ def load_datasets(
     # test dataset which has only programs of very long length. Instead, test on
     # programs of length `max_length` gathered from the training dataset, and
     # use programs of shorter length for few-shot examples.
-    selected_test = few_shot_by_length[max_length][:num_test_problems]
-    if len(selected_test) != num_test_problems:
-      raise ValueError(f'Not enough test problems: need {num_test_problems}, '
-                       f'have {len(selected_test)}')
+    selected_test = few_shot_by_length[max_length][:MAX_NUM_TEST_PROBLEMS]
+    if len(selected_test) != MAX_NUM_TEST_PROBLEMS:
+      raise ValueError(f'Not enough test problems: need '
+                       f'{MAX_NUM_TEST_PROBLEMS}, have {len(selected_test)}')
   else:
     selected_test, _ = distribute_lengths(
         test_dataset,
-        target_size=num_test_problems,
+        target_size=MAX_NUM_TEST_PROBLEMS,
         max_length=max_length,
         dataset_type=dataset_type)
 
+  selected_test = selected_test[:num_test_problems]
+  assert len(selected_test) == num_test_problems
+
   return selected_few_shot, selected_test
+
+
+def few_shot_examples_for_test_index(
+    few_shot_dataset,
+    test_index,
+    num_few_shot_examples):
+  """Returns the slice of few-shot examples for the test problem index."""
+  if num_few_shot_examples > MAX_NUM_FEW_SHOT_EXAMPLES:
+    raise ValueError(f'Too many few-shot examples: {num_few_shot_examples}')
+  start_index = test_index * MAX_NUM_FEW_SHOT_EXAMPLES
+  ans = few_shot_dataset[start_index : start_index + num_few_shot_examples]
+  assert len(ans) == num_few_shot_examples
+  return ans
 
 
 def get_namespace(dataset_type):
