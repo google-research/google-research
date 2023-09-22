@@ -668,6 +668,32 @@ const antheaTemplateBase = {
                 severity Spelling error because of the missing whitespace.
               </li>
               <li>
+                <b>Text-Breaking</b>.
+                Issues related to paragraph breaks and line breaks.
+                If a sentence ends with an incorrect or missing paragraph break
+                or line break, then mark the last part of it (word or
+                punctuation) with this error type. Examples: (1) There should be
+                a paragraph break but there is only a line break or there is not
+                even a line break. (2) There should not be any break but a
+                paragraph break is present in the middle of a sentence.
+                <br><br>
+                Certain paragraph breaks are very
+                important for establishing the proper flow of the text: for
+                example, before and after a section heading or a block-quote.
+                If an important paragraph break is completely missing (there is
+                not even a line break), then that is a major error, as it
+                severely degrades the quality of the text. If an unwarranted
+                paragraph break is seen in the middle of a sentence, that is
+                also a major error. Most other errors of type
+                "Fluency / Text-Breaking" are usually minor errors.
+                <br><br>
+                Note that if sentences in the translated text are structured
+                differently compared to the source (eg., a source sentence has
+                been translated into two sentences, or two source sentences
+                have been combined into a single translated sentence), that
+                by itself is not a text-breaking error.
+              </li>
+              <li>
                 <b>Punctuation</b>.
                 Punctuation is used incorrectly (for the locale or style).
                 Example: An English compound adjective appearing before a noun
