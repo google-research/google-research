@@ -17,6 +17,7 @@
 
 import ast
 import collections
+import copy
 import math
 import random
 import re
@@ -37,6 +38,14 @@ DatasetElement = collections.namedtuple(
     'DatasetElement',
     ['inputs', 'outputs', 'dsl_program', 'python_program'])
 
+# `states` is similar to the `inputs` of `DatasetElement`, and it records the
+# states of the newly created variable after executing the partial python
+# program, `targets` is the `remains` string for RobustFill, and is None for
+# DeepCoder.
+StepData = collections.namedtuple(
+    'StepData', ['states', 'targets', 'python_program_step']
+)
+ExeDecTrajectory = list[StepData]
 
 ROBUSTFILL_ID_TOKEN_TABLE, _ = robustfill_tokens.build_token_tables()
 ROBUSTFILL_EOS_ID = 2
@@ -97,6 +106,8 @@ def parse_dataset(dataset,
     python_program = program_object.to_python_program(version=version)
 
     d = DatasetElement(inputs, outputs, program, python_program)
+    if dataset_type == 'deepcoder':
+      d = canonicalize_deepcoder_variables(d)
     actual_outputs = run_program(d.python_program, d.inputs, dataset_type)
     if d.outputs != actual_outputs:
       raise ValueError(
@@ -376,7 +387,7 @@ def get_num_examples(inputs,
     num_examples = len(list(inputs_dict.values())[0])
     assert all(len(v) == num_examples for v in inputs_dict.values())
   elif dataset_type == 'robustfill':
-    assert isinstance(inputs, list)
+    assert isinstance(inputs, list), f'RobustFill inputs: {inputs}'
     num_examples = len(inputs)
   else:
     raise ValueError(f'Unhandled dataset type: {dataset_type}')
@@ -514,13 +525,14 @@ def dsl_description(dataset_type, version):
   return (
       f'The `dsl` module is a custom library for {dsl_purpose}. It contains '
       'the following functions:\n\n'
-      f'{function_details}\n\n' +
-      ('Additionally, the module defines the following constants:\n\n'
-       f'{constant_details}\n\n'
-       if constant_details else '') +
-      'Below are example programs using the `dsl` module, with input-output '
-      'test cases illustrating their behavior.\n\n'
-      'Important: All programs begin with ```python and end with ``` alone.\n\n'
+      f'{function_details}\n\n'
+      + (
+          'Additionally, the module defines the following constants:\n\n'
+          f'{constant_details}\n\n'
+          if constant_details else '') +
+      'Below are example programming problems using the `dsl` module, with'
+      ' input-output test cases illustrating their behavior.\n\nImportant:'
+      ' All programs begin with ```python and end with ``` alone.\n\n'
   )
 
 
@@ -563,9 +575,193 @@ def few_shot_prompt(few_shot_examples,
   return '\n'.join(prompt_parts)
 
 
+def get_exe_dec_trajectory(
+    dataset_element, dataset_type
+):
+  """Decompose the dataset element into a ExeDec trajectory."""
+  trajectory: ExeDecTrajectory = []
+  program_steps = dataset_element.python_program.splitlines()
+  # The initial step.
+  states = copy.deepcopy(dataset_element.inputs)
+  targets = (
+      None
+      if dataset_type == 'deepcoder'
+      else copy.deepcopy(dataset_element.outputs)
+  )
+  trajectory.append(StepData(states, targets, program_steps[0]))
+  # The middle steps before return
+  for j in range(1, len(program_steps) - 1):
+    python_program_step = program_steps[j]
+    if dataset_type == 'deepcoder':
+      new_var = python_program_step.strip().split('=', 1)[0].strip()
+
+      compose_program = '\n'.join(
+          [x.python_program_step for x in trajectory]
+          + [python_program_step, f'  return {new_var}']
+      )
+
+      actual_states = run_program(
+          compose_program, dataset_element.inputs, dataset_type
+      )
+      actual_states = {new_var: actual_states}
+      new_targets = None
+    elif dataset_type == 'robustfill':
+      if python_program_step.strip() in ['parts = [', ']']:
+        continue
+      python_program_step = python_program_step.strip()
+      if python_program_step.endswith(','):
+        python_program_step = python_program_step[:-1]
+      compose_program = (
+          trajectory[0].python_program_step
+          + '\n'
+          + f'  return {python_program_step}'
+      )
+      actual_states = run_program(
+          compose_program, dataset_element.inputs, dataset_type
+      )
+      previous_targets = trajectory[-1].targets
+      new_targets = []
+      num_examples = get_num_examples(dataset_element.inputs, dataset_type)
+      for i in range(num_examples):
+        if (not isinstance(actual_states[i], str)) or (
+            not previous_targets[i].startswith(actual_states[i])
+        ):
+          raise ValueError(
+              f'Case {i + 1}: {previous_targets[i]} does not match the prefix'
+              f' of {actual_states[i]}'
+          )
+        new_targets.append(previous_targets[i][len(actual_states[i]) :])
+    else:
+      raise ValueError(f'Unhandled dataset type: {dataset_type}')
+
+    trajectory.append(StepData(actual_states, new_targets, python_program_step))
+  return trajectory
+
+
+def get_exe_dec_prompt_prefix(
+    dataset_element, dataset_type
+):
+  """Gets a prefix of the ExeDec prompt describing one dataset element."""
+  # TODO(yldeng): support the ablation-style prompts
+  s = '[BEGIN PROBLEM]\n'
+  s += 'Input-output test cases:\n'
+  num_examples = get_num_examples(dataset_element.inputs, dataset_type)
+  if dataset_type == 'deepcoder':
+    for i in range(num_examples):
+      s += f'  Case {i+1}. '
+      sep = ''
+      for name in dataset_element.inputs:
+        s += f'{sep}{name} = {dataset_element.inputs[name][i]}'
+        sep = ', '
+      s += f' --> {dataset_element.outputs[i]}\n'
+  elif dataset_type == 'robustfill':
+    for i in range(num_examples):
+      s += f'  Case {i+1}. x = '
+      s += f'"{dataset_element.inputs[i]}" --> "{dataset_element.outputs[i]}"\n'
+  else:
+    raise ValueError(f'Unhandled dataset type: {dataset_type}')
+
+  s += '\nWe solve this problem step-by-step.\n\n'
+  if dataset_element.python_program is None:
+    s += 'Step 1 computes:\n'
+    return s
+  trajectory = get_exe_dec_trajectory(dataset_element, dataset_type)
+  for j in range(1, len(trajectory)):
+    s += f'Step {j} computes:\n'
+    if dataset_type == 'deepcoder':
+      for i in range(get_num_examples(dataset_element.inputs, dataset_type)):
+        s += f'  Case {i+1}. '
+        sep = ''
+        for name in trajectory[j].states:
+          s += f'{sep}{name} = {trajectory[j].states[name][i]}'
+          sep = ', '
+        s += '\n'
+    elif dataset_type == 'robustfill':
+      for i in range(num_examples):
+        s += f'  Case {i+1}. '
+        s += (
+            f'"{trajectory[j].states[i]}" so "{trajectory[j].targets[i]}"'
+            ' remains\n'
+        )
+    else:
+      raise ValueError(f'Unhandled dataset type: {dataset_type}')
+    s += f'\nStep {j} code:\n'
+    s += f'```python\n{trajectory[j].python_program_step.strip()}\n```\n\n'
+  s += (
+      'Putting the steps together, the problem is solved with the'
+      ' program:\n```python\n'
+  )
+  return s
+
+
+def get_exe_dec_prompt_suffix(dataset_element):
+  return f'{dataset_element.python_program}\n```\n[END PROBLEM]\n\n'
+
+
+def get_exe_dec_prompt(
+    dataset_element, dataset_type
+):
+  return get_exe_dec_prompt_prefix(
+      dataset_element, dataset_type
+  ) + get_exe_dec_prompt_suffix(dataset_element)
+
+
+def few_shot_exe_dec_prompt(
+    few_shot_examples,
+    test_problem,
+    dataset_type,
+    version,
+):
+  """Generate the ExeDec few-shot prompt."""
+  prompt_parts = [
+      dsl_description(dataset_type, version=version).replace(
+          'illustrating their behavior.',
+          'illustrating the program behavior step-by-step.',
+      )
+  ]
+  prompt_parts.extend(
+      get_exe_dec_prompt(d, dataset_type) for d in few_shot_examples
+  )
+  prompt_parts.append(get_exe_dec_prompt_prefix(test_problem, dataset_type))
+  return '\n'.join(prompt_parts)
+
+
+def canonicalize_deepcoder_variables(
+    dataset_element,
+):
+  """Canonicalizes the variable names in deepcoder programs and inputs."""
+  program: str = dataset_element.python_program
+  input_mapping_dict = {}
+  input_occurences = re.findall(r'x\d', program)
+  x_index = 0
+  for input_name in input_occurences:
+    if input_name not in input_mapping_dict:
+      input_mapping_dict[input_name] = f'x{x_index}'
+      x_index += 1
+
+  # canonicalize python program and dsl program
+  # To avoid collision, (x7 --> x0, x0 ---> x2) is decomposed to 2 steps
+  # (x7 --> y0, x0 --> y2), and (y0 --> x0, y2 --> x2).
+  dsl_program = dataset_element.dsl_program
+  for input_name, new_name in input_mapping_dict.items():
+    program = program.replace(input_name, new_name.replace('x', 'y'))
+    dsl_program = dsl_program.replace(input_name, new_name.replace('x', 'y'))
+  for new_name in input_mapping_dict.values():
+    program = program.replace(new_name.replace('x', 'y'), new_name)
+    dsl_program = dsl_program.replace(new_name.replace('x', 'y'), new_name)
+
+  # canonicalize inputs
+  inputs = {}
+  for input_name, value in dataset_element.inputs.items():
+    inputs[input_mapping_dict[input_name]] = copy.deepcopy(value)
+
+  return DatasetElement(inputs, dataset_element.outputs, dsl_program, program)
+
+
 def cut_program_from_sample(sample):
   if '```python\n' in sample:
     sample = sample.partition('```python\n')[-1]
   if '```' in sample:
     sample = sample.partition('```')[0]
   return sample
+

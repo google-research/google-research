@@ -101,6 +101,38 @@ def program(x0, x1):
 '''.strip(),
 )
 
+DEEPCODER_TRAIN_EXAMPLE = llm_utils.DatasetElement(
+    inputs={
+        'x1': [[-1, -1], [10, 3, 2], [-10]],
+        'x8': [[5, 1, 0], [3, -10, 6], [-9]],
+    },
+    outputs=[[6, 6, 6], [4, 4, 7], [-8]],
+    dsl_program=(
+        'x1 = INPUT | x8 = INPUT | x3 = Scanl1 (max) x8 | x7 = Map (+1) x3'
+    ),
+    python_program="""
+def program(x1, x8):
+  x3 = dsl.Scanl1(dsl.MAX, x8)
+  x7 = dsl.Map(dsl.PLUS_ONE, x3)
+  return x7
+""".strip(),
+)
+DEEPCODER_TRAIN_EXAMPLE_2 = llm_utils.DatasetElement(
+    inputs={'x1': [[1, 3], [3, 0, 1], [0, 2, 0]]},
+    outputs=[[2, 3], [6, 9, 12], [0, 0, -2]],
+    dsl_program=(
+        'x1 = INPUT | x2 = Scanl1 (-) x1 | x3 = ZipWith (+) x1 x2 | '
+        'x5 = Scanl1 (+) x3'
+    ),
+    python_program="""
+def program(x1):
+  x2 = dsl.Scanl1(dsl.SUBTRACT, x1)
+  x3 = dsl.ZipWith(dsl.ADD, x1, x2)
+  x5 = dsl.Scanl1(dsl.ADD, x3)
+  return x5
+""".strip(),
+)
+
 DEEPCODER_TEST_PROBLEM = llm_utils.DatasetElement(
     inputs={'x0': [[1, 2, 3], [10, -10], [45]]},
     outputs=[6, 0, 45],
@@ -189,6 +221,37 @@ class LlmUtilsTest(parameterized.TestCase):
         llm_utils.parse_dataset(ROBUSTFILL_DATASET, 'robustfill', version=1),
         [ROBUSTFILL_EXAMPLE])
 
+  def test_variable_canonicalization_deepcoder(self):
+    canonicalized_example = llm_utils.canonicalize_deepcoder_variables(
+        DEEPCODER_TRAIN_EXAMPLE
+    )
+    expected_program = """
+def program(x0, x1):
+  x2 = dsl.Scanl1(dsl.MAX, x1)
+  x3 = dsl.Map(dsl.PLUS_ONE, x2)
+  return x3
+""".strip()
+    expected_inputs = {
+        'x0': [[-1, -1], [10, 3, 2], [-10]],
+        'x1': [[5, 1, 0], [3, -10, 6], [-9]],
+    }
+    self.assertEqual(canonicalized_example.python_program, expected_program)
+    self.assertEqual(canonicalized_example.inputs, expected_inputs)
+
+    canonicalized_example = llm_utils.canonicalize_deepcoder_variables(
+        DEEPCODER_TRAIN_EXAMPLE_2
+    )
+    expected_program = """
+def program(x0):
+  x1 = dsl.Scanl1(dsl.SUBTRACT, x0)
+  x2 = dsl.ZipWith(dsl.ADD, x0, x1)
+  x3 = dsl.Scanl1(dsl.ADD, x2)
+  return x3
+""".strip()
+    expected_inputs = {'x0': [[1, 3], [3, 0, 1], [0, 2, 0]]}
+    self.assertEqual(canonicalized_example.python_program, expected_program)
+    self.assertEqual(canonicalized_example.inputs, expected_inputs)
+
   def test_run_program_robustfill(self):
     self.assertEqual(
         llm_utils.run_program(ROBUSTFILL_EXAMPLE.python_program,
@@ -207,7 +270,7 @@ class LlmUtilsTest(parameterized.TestCase):
         dataset_type='deepcoder',
         version=1,
     )
-    expected = '''
+    expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
 
 Head, Last, Take, Drop, Access, Minimum, Maximum, Reverse, Sort, Sum, Map, Filter, Count, ZipWith, Scanl1
@@ -216,7 +279,7 @@ Additionally, the module defines the following constants:
 
 PLUS_ONE, MINUS_ONE, TIMES_TWO, DIV_TWO, NEGATE, SQUARE, TIMES_THREE, DIV_THREE, TIMES_FOUR, DIV_FOUR, IS_POSITIVE, IS_NEGATIVE, IS_EVEN, IS_ODD, ADD, SUBTRACT, MULTIPLY, MIN, MAX
 
-Below are example programs using the `dsl` module, with input-output test cases illustrating their behavior.
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
 
 Important: All programs begin with ```python and end with ``` alone.
 
@@ -245,7 +308,7 @@ Input-output test cases:
 
 Program:
 ```python
-'''.lstrip()
+""".lstrip()
     self.assertEqual(prompt, expected)
 
   def test_few_shot_prompt_deepcoder_version_2(self):
@@ -255,7 +318,7 @@ Program:
         dataset_type='deepcoder',
         version=2,
     )
-    expected = '''
+    expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
 
 def Map(f, xs):
@@ -301,7 +364,7 @@ MULTIPLY = lambda x, y: x * y
 MIN = lambda x, y: min(x, y)
 MAX = lambda x, y: max(x, y)
 
-Below are example programs using the `dsl` module, with input-output test cases illustrating their behavior.
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
 
 Important: All programs begin with ```python and end with ``` alone.
 
@@ -330,7 +393,7 @@ Input-output test cases:
 
 Program:
 ```python
-'''.lstrip()
+""".lstrip()
     self.assertEqual(prompt, expected)
 
   def test_few_shot_prompt_deepcoder_version_3(self):
@@ -340,7 +403,7 @@ Program:
         dataset_type='deepcoder',
         version=3,
     )
-    expected = '''
+    expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
 
 def Scanl1(f, xs):
@@ -374,7 +437,7 @@ MULTIPLY = lambda x, y: x * y
 MIN = lambda x, y: min(x, y)
 MAX = lambda x, y: max(x, y)
 
-Below are example programs using the `dsl` module, with input-output test cases illustrating their behavior.
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
 
 Important: All programs begin with ```python and end with ``` alone.
 
@@ -403,7 +466,7 @@ Input-output test cases:
 
 Program:
 ```python
-'''.lstrip()
+""".lstrip()
     self.assertEqual(prompt, expected)
 
   def test_few_shot_prompt_deepcoder_version_4(self):
@@ -413,7 +476,7 @@ Program:
         dataset_type='deepcoder',
         version=4,
     )
-    expected = '''
+    expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
 
 def Scanl1(f, xs):
@@ -425,7 +488,7 @@ def Scanl1(f, xs):
       ys.append(f(ys[-1], x))
   return ys
 
-Below are example programs using the `dsl` module, with input-output test cases illustrating their behavior.
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
 
 Important: All programs begin with ```python and end with ``` alone.
 
@@ -454,7 +517,7 @@ Input-output test cases:
 
 Program:
 ```python
-'''.lstrip()
+""".lstrip()
     self.assertEqual(prompt, expected)
 
   def test_few_shot_prompt_deepcoder_version_5(self):
@@ -468,7 +531,7 @@ Program:
         dataset_type='deepcoder',
         version=5,
     )
-    expected = '''
+    expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
 
 def Scanl1(f, xs):
@@ -502,7 +565,7 @@ MULTIPLY = lambda x, y: x * y
 MIN = lambda x, y: min(x, y)
 MAX = lambda x, y: max(x, y)
 
-Below are example programs using the `dsl` module, with input-output test cases illustrating their behavior.
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
 
 Important: All programs begin with ```python and end with ``` alone.
 
@@ -543,7 +606,133 @@ Input-output test cases:
 
 Program:
 ```python
-'''.lstrip()
+""".lstrip()
+    self.assertEqual(prompt, expected)
+
+  def test_few_shot_exe_dec_prompt_deepcoder_version_1(self):
+    few_shot_dataset = llm_utils.parse_dataset(
+        llm_utils.get_handwritten_few_shot('deepcoder', 'NONE'),
+        dataset_type='deepcoder',
+        version=1,
+    )
+    prompt = llm_utils.few_shot_exe_dec_prompt(
+        few_shot_examples=few_shot_dataset[:2],
+        test_problem=DEEPCODER_TEST_PROBLEM,
+        dataset_type='deepcoder',
+        version=1,
+    )
+    # The following 2-shot prompt takes 1167 tokens for GPT-3 tokenizer
+    expected = """
+The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
+
+Head, Last, Take, Drop, Access, Minimum, Maximum, Reverse, Sort, Sum, Map, Filter, Count, ZipWith, Scanl1
+
+Additionally, the module defines the following constants:
+
+PLUS_ONE, MINUS_ONE, TIMES_TWO, DIV_TWO, NEGATE, SQUARE, TIMES_THREE, DIV_THREE, TIMES_FOUR, DIV_FOUR, IS_POSITIVE, IS_NEGATIVE, IS_EVEN, IS_ODD, ADD, SUBTRACT, MULTIPLY, MIN, MAX
+
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating the program behavior step-by-step.
+
+Important: All programs begin with ```python and end with ``` alone.
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x0 = [4, 2, 7], x1 = 5 --> [7, 4, 2]
+  Case 2. x0 = [-24, 15, 3, -8], x1 = 3 --> [15, 3, -24]
+  Case 3. x0 = [18, 22, 36, 13, 29, 4, 15, 10, 7], x1 = 6 --> [36, 29, 22, 18, 13, 4]
+
+We solve this problem step-by-step.
+
+Step 1 computes:
+  Case 1. x2 = [4, 2, 7]
+  Case 2. x2 = [-24, 15, 3]
+  Case 3. x2 = [18, 22, 36, 13, 29, 4]
+
+Step 1 code:
+```python
+x2 = dsl.Take(x1, x0)
+```
+
+Step 2 computes:
+  Case 1. x3 = [2, 4, 7]
+  Case 2. x3 = [-24, 3, 15]
+  Case 3. x3 = [4, 13, 18, 22, 29, 36]
+
+Step 2 code:
+```python
+x3 = dsl.Sort(x2)
+```
+
+Step 3 computes:
+  Case 1. x4 = [7, 4, 2]
+  Case 2. x4 = [15, 3, -24]
+  Case 3. x4 = [36, 29, 22, 18, 13, 4]
+
+Step 3 code:
+```python
+x4 = dsl.Reverse(x3)
+```
+
+Putting the steps together, the problem is solved with the program:
+```python
+def program(x0, x1):
+  x2 = dsl.Take(x1, x0)
+  x3 = dsl.Sort(x2)
+  x4 = dsl.Reverse(x3)
+  return x4
+```
+[END PROBLEM]
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x0 = [5, 2, 6, 7, 4] --> [2, 8, 12]
+  Case 2. x0 = [19, 2, 12, 6, 11, 15, 7, 8] --> [2, 14, 20, 28]
+  Case 3. x0 = [5, -4, 6, 7, -1, -2, 4, 1, -6] --> [-4, 2, 0, 4, -2]
+
+We solve this problem step-by-step.
+
+Step 1 computes:
+  Case 1. x1 = [2, 6, 4]
+  Case 2. x1 = [2, 12, 6, 8]
+  Case 3. x1 = [-4, 6, -2, 4, -6]
+
+Step 1 code:
+```python
+x1 = dsl.Filter(dsl.IS_EVEN, x0)
+```
+
+Step 2 computes:
+  Case 1. x2 = [2, 8, 12]
+  Case 2. x2 = [2, 14, 20, 28]
+  Case 3. x2 = [-4, 2, 0, 4, -2]
+
+Step 2 code:
+```python
+x2 = dsl.Scanl1(dsl.ADD, x1)
+```
+
+Putting the steps together, the problem is solved with the program:
+```python
+def program(x0):
+  x1 = dsl.Filter(dsl.IS_EVEN, x0)
+  x2 = dsl.Scanl1(dsl.ADD, x1)
+  return x2
+```
+[END PROBLEM]
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x0 = [1, 2, 3] --> 6
+  Case 2. x0 = [10, -10] --> 0
+  Case 3. x0 = [45] --> 45
+
+We solve this problem step-by-step.
+
+Step 1 computes:
+""".lstrip()
     self.assertEqual(prompt, expected)
 
   def test_few_shot_prompt_robustfill(self):
@@ -553,7 +742,7 @@ Program:
         dataset_type='robustfill',
         version=1,
     )
-    expected = '''
+    expected = """
 The `dsl` module is a custom library for manipulating strings. It contains the following functions:
 
 Const, SubStr, GetSpan, GetToken, ToCase, Replace, Trim, GetUpto, GetFrom, GetFirst, GetAll, Substitute, SubstituteAll, Remove, RemoveAll
@@ -562,7 +751,7 @@ Additionally, the module defines the following constants:
 
 dsl.Type.NUMBER, dsl.Type.WORD, dsl.Type.ALPHANUM, dsl.Type.ALL_CAPS, dsl.Type.PROP_CASE, dsl.Type.LOWER, dsl.Type.DIGIT, dsl.Type.CHAR, dsl.Case.PROPER, dsl.Case.ALL_CAPS, dsl.Case.LOWER, dsl.Boundary.START, dsl.Boundary.END
 
-Below are example programs using the `dsl` module, with input-output test cases illustrating their behavior.
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
 
 Important: All programs begin with ```python and end with ``` alone.
 
@@ -595,7 +784,121 @@ Input-output test cases:
 
 Program:
 ```python
-'''.lstrip()
+""".lstrip()
+    self.assertEqual(prompt, expected)
+
+  def test_few_shot_exe_dec_prompt_robustfill(self):
+    prompt = llm_utils.few_shot_exe_dec_prompt(
+        few_shot_examples=[ROBUSTFILL_EXAMPLE],
+        test_problem=ROBUSTFILL_TEST_PROBLEM,
+        dataset_type='robustfill',
+        version=1,
+    )
+    # This 1-shot example prompt takes 1595 tokens using GPT-3 tokenizer
+    expected = """
+The `dsl` module is a custom library for manipulating strings. It contains the following functions:
+
+Const, SubStr, GetSpan, GetToken, ToCase, Replace, Trim, GetUpto, GetFrom, GetFirst, GetAll, Substitute, SubstituteAll, Remove, RemoveAll
+
+Additionally, the module defines the following constants:
+
+dsl.Type.NUMBER, dsl.Type.WORD, dsl.Type.ALPHANUM, dsl.Type.ALL_CAPS, dsl.Type.PROP_CASE, dsl.Type.LOWER, dsl.Type.DIGIT, dsl.Type.CHAR, dsl.Case.PROPER, dsl.Case.ALL_CAPS, dsl.Case.LOWER, dsl.Boundary.START, dsl.Boundary.END
+
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating the program behavior step-by-step.
+
+Important: All programs begin with ```python and end with ``` alone.
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x = "#My##:Gxbo[Ned[Er%" --> "k[MY##:GXBO[NED[ER%8y##:Gxbo[Ned["
+  Case 2. x = "#%$Ua.Qaeq?Opa%Kcr#" --> "kK%$UA.QAEQ?OPA%KCR#8aUa.Qaeq?Opa%"
+  Case 3. x = "%{Eos#(Mdjt#'Yi{Oclf" --> "kO{EOS#(MDJT#'YI{OCLF8osos#(Mdjt#'Yi"
+  Case 4. x = "%##Tq@Fh#Xza#?Fdlu" --> "kF##TQ@FH#XZA#?FDLU8qTq@Fh#Xza#?F"
+
+We solve this problem step-by-step.
+
+Step 1 computes:
+  Case 1. "k" so "[MY##:GXBO[NED[ER%8y##:Gxbo[Ned[" remains
+  Case 2. "k" so "K%$UA.QAEQ?OPA%KCR#8aUa.Qaeq?Opa%" remains
+  Case 3. "k" so "O{EOS#(MDJT#'YI{OCLF8osos#(Mdjt#'Yi" remains
+  Case 4. "k" so "F##TQ@FH#XZA#?FDLU8qTq@Fh#Xza#?F" remains
+
+Step 1 code:
+```python
+dsl.Const('k')
+```
+
+Step 2 computes:
+  Case 1. "[" so "MY##:GXBO[NED[ER%8y##:Gxbo[Ned[" remains
+  Case 2. "K" so "%$UA.QAEQ?OPA%KCR#8aUa.Qaeq?Opa%" remains
+  Case 3. "O" so "{EOS#(MDJT#'YI{OCLF8osos#(Mdjt#'Yi" remains
+  Case 4. "F" so "##TQ@FH#XZA#?FDLU8qTq@Fh#Xza#?F" remains
+
+Step 2 code:
+```python
+dsl.GetToken(x, dsl.Type.CHAR, -4)
+```
+
+Step 3 computes:
+  Case 1. "MY##:GXBO[NED[ER%" so "8y##:Gxbo[Ned[" remains
+  Case 2. "%$UA.QAEQ?OPA%KCR#" so "8aUa.Qaeq?Opa%" remains
+  Case 3. "{EOS#(MDJT#'YI{OCLF" so "8osos#(Mdjt#'Yi" remains
+  Case 4. "##TQ@FH#XZA#?FDLU" so "8qTq@Fh#Xza#?F" remains
+
+Step 3 code:
+```python
+dsl.ToCase(dsl.Remove(x, dsl.Type.CHAR, 1), dsl.Case.ALL_CAPS)
+```
+
+Step 4 computes:
+  Case 1. "8y" so "##:Gxbo[Ned[" remains
+  Case 2. "8a" so "Ua.Qaeq?Opa%" remains
+  Case 3. "8os" so "os#(Mdjt#'Yi" remains
+  Case 4. "8q" so "Tq@Fh#Xza#?F" remains
+
+Step 4 code:
+```python
+dsl.Substitute(dsl.GetToken(x, dsl.Type.PROP_CASE, 1), dsl.Type.CHAR, 1, '8')
+```
+
+Step 5 computes:
+  Case 1. "##:Gxbo[Ned[" so "" remains
+  Case 2. "Ua.Qaeq?Opa%" so "" remains
+  Case 3. "os#(Mdjt#'Yi" so "" remains
+  Case 4. "Tq@Fh#Xza#?F" so "" remains
+
+Step 5 code:
+```python
+dsl.SubStr(x, 4, 15)
+```
+
+Putting the steps together, the problem is solved with the program:
+```python
+def program(x):
+  parts = [
+      dsl.Const('k'),
+      dsl.GetToken(x, dsl.Type.CHAR, -4),
+      dsl.ToCase(dsl.Remove(x, dsl.Type.CHAR, 1), dsl.Case.ALL_CAPS),
+      dsl.Substitute(dsl.GetToken(x, dsl.Type.PROP_CASE, 1), dsl.Type.CHAR, 1, '8'),
+      dsl.SubStr(x, 4, 15),
+  ]
+  return ''.join(parts)
+```
+[END PROBLEM]
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x = "apple" --> "Apple!"
+  Case 2. x = "banana" --> "Banana!"
+  Case 3. x = "clementine" --> "Clementine!"
+  Case 4. x = "durian" --> "Durian!"
+
+We solve this problem step-by-step.
+
+Step 1 computes:
+""".lstrip()
     self.assertEqual(prompt, expected)
 
   @parameterized.named_parameters(
