@@ -836,7 +836,7 @@ def run_embed_unembed_topp(
         (div_up(h.embed, x_axis), div_up(h.vocab, y_axis * z_axis)),
         jnp.bfloat16,
     )
-    rng = jax.random.rbg_key(0)
+    rng = jax.random.PRNGKey(0, impl='rbg')
     return x, embed, rng
 
   @functools.partial(
