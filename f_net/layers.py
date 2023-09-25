@@ -177,7 +177,7 @@ class LinearTransform(nn.Module):
     mat_seq = self.param("seq_kernel", self.kernel_init,
                          (inputs.shape[-2], inputs.shape[-2]))
 
-    return jnp.einsum(
+    return jnp.einsum(  # pytype: disable=wrong-arg-types  # jnp-type
         "bij,jk,ni->bnk",
         inputs,
         mat_hidden,
@@ -231,7 +231,7 @@ class RandomTransform(nn.Module):
     del padding_mask  # Only used by self-attention sublayer.
     del deterministic  # RandomTransform uses fixed, random matrices.
 
-    return jnp.einsum(
+    return jnp.einsum(  # pytype: disable=wrong-arg-types  # jnp-type
         "bij,jk,ni->bnk",
         inputs,
         self.mat_hidden,
