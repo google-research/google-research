@@ -804,19 +804,31 @@ class AntheaManager {
   }
 
   /**
-   * Get sentence-split token sizes of text.
-   *
+   * Get sentence-splits for text. Returns an array of objects, each with these
+   * fields:
+   *   num_tokens: number of tokens in the sentence.
+   *   ends_with_para_break: present and true if the sentence ends with '\n\n'.
+   *   ends_with_line_break: present and true if the sentence ends with '\n'
+   *                         (but not '\n\n').
    * @param {string} text
-   * @return {!Array<number>}
+   * @return {!Array<!Object>}
    */
-  getSentenceTokenSizes(text) {
+  getSentenceSplits(text) {
     const sentences = text.split('\u200b\u200b');
-    const sentence_token_sizes = [];
+    const sentence_splits = [];
     for (let sent of sentences) {
       const tokens = AntheaEval.tokenize(sent);
-      sentence_token_sizes.push(tokens.length);
+      const split = {
+        num_tokens: tokens.length
+      };
+      if (sent.endsWith('\n\n')) {
+        split.ends_with_para_break = true;
+      } else if (sent.endsWith('\n')) {
+        split.ends_with_line_break = true;
+      }
+      sentence_splits.push(split);
     }
-    return sentence_token_sizes;
+    return sentence_splits;
   }
 
   /**
@@ -908,8 +920,8 @@ class AntheaManager {
             error.metadata.segment = {
               source_tokens: AntheaEval.tokenize(src),
               target_tokens: AntheaEval.tokenize(tgt),
-              source_sentence_tokens: this.getSentenceTokenSizes(src),
-              target_sentence_tokens: this.getSentenceTokenSizes(tgt),
+              source_sentence_splits: this.getSentenceSplits(src),
+              target_sentence_splits: this.getSentenceSplits(tgt),
             };
             if (startsPara) {
               error.metadata.segment.starts_paragraph = true;

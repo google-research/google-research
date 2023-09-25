@@ -2181,13 +2181,15 @@ class AntheaEval {
   /**
    * Tokenizes text, splitting on space and on zero-width space. The zero-width
    * space character is not included in the returned tokens, but space is. Empty
-   * strings are not emitted as tokens.
+   * strings are not emitted as tokens. Consecutive whitespaces are first
+   * normalized to single spaces.
    * @param {string} text
    * @return {!Array<string>}
    */
   static tokenize(text) {
+    const normText = text.replace(/[\s]+/g, ' ');
     let tokens = [];
-    const textParts = text.split(' ');
+    const textParts = normText.split(' ');
     for (let index = 0; index < textParts.length; index++) {
       const part = textParts[index];
       // Segment further by any 0-width space characters present.
@@ -2209,6 +2211,8 @@ class AntheaEval {
    * and empty strings can occur in the output array. Returns an object that
    * has an array property named tokens and an array property named
    * separator_indices (that stores token indices for spaces and ZWSPs).
+   * Consecutive whitespaces are first normalized to single spaces.
+   *
    * @param {string} text
    * @return {!Object}
    */
@@ -2217,8 +2221,9 @@ class AntheaEval {
       tokens: [],
       separator_indices: [],
     };
+    const normText = text.replace(/[\s]+/g, ' ');
     let piece = '';
-    for (let c of text) {
+    for (let c of normText) {
       if (c == ' ' || c == '\u200b') {
         if (piece) ret.tokens.push(piece);
         ret.separator_indices.push(ret.tokens.length);
