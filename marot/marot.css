@@ -250,6 +250,15 @@
   overflow-wrap: anywhere;
   padding: 4px;
 }
+#marot-tbody p {
+  margin-block-end: 0;
+}
+#marot-tbody p:not(:first-child) {
+  margin-block-start: 1em;
+}
+#marot-tbody p:first-child {
+  margin-block-start: 0;
+}
 #marot-tbody tr:not(:last-child) {
   border-bottom: 1px solid gray;
 }

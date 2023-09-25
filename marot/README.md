@@ -102,12 +102,13 @@ ten columns, one line per marked error:
         for the segment is computed *without any filtering*.
       - **source_tokens**: An array of source text tokens.
       - **target_tokens**: An array of target text tokens.
-      - **source_sentence_tokens**: An array specifying sentence segmentation
-        in the source segment. Each entry is the number of tokens in one
-        sentence.
-      - **target_sentence_tokens**: An array specifying sentence segmentation
-        in the target segment. Each entry is the number of tokens in one
-        sentence.
+      - **source_sentence_splits**: An array specifying sentence segmentation
+        in the source segment. Each entry contains the following fields:
+           num_tokens (integer)
+           ends_with_line_break (boolean, optional)
+           ends_with_para_break (boolean, optional)
+      - **target_sentence_splits**: An array specifying sentence segmentation
+        in the target segment. Same structure as source_sentence_splits.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
       - In addition, any text annotation fields present in the input data are

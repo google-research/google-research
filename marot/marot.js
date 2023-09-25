@@ -751,10 +751,10 @@ class Marot {
               aggrDocSegSys.hasOwnProperty('source_tokens')) {
             aggrDocSeg.source_tokens = aggrDocSegSys.source_tokens;
           }
-          if (!aggrDocSeg.hasOwnProperty('source_sentence_tokens') &&
-              aggrDocSegSys.hasOwnProperty('source_sentence_tokens')) {
-            aggrDocSeg.source_sentence_tokens =
-                aggrDocSegSys.source_sentence_tokens;
+          if (!aggrDocSeg.hasOwnProperty('source_sentence_splits') &&
+              aggrDocSegSys.hasOwnProperty('source_sentence_splits')) {
+            aggrDocSeg.source_sentence_splits =
+                aggrDocSegSys.source_sentence_splits;
           }
           if (!aggrDocSeg.hasOwnProperty('starts_paragraph') &&
               aggrDocSegSys.hasOwnProperty('starts_paragraph')) {
@@ -2933,6 +2933,53 @@ class Marot {
   }
 
   /**
+   * Returns HTML for reference translation text "ref". This simply involves
+   * wrapping it in a <p>..</p> tag, and creating:
+   * - a new paragraph at every '\n\n'
+   * - a line-break (<br>) at every \n'
+   * @param {string} ref
+   * @return {string}
+   */
+  htmlFromReference(ref) {
+    let html = '';
+    const paragraphs = ref.split('\n\n');
+    for (const para of paragraphs) {
+      html += '<p>\n';
+      html += para.split('\n').join(' <br>\n');
+      html += ' </p>\n';
+    }
+    return html;
+  }
+
+  /**
+   * Returns HTML from tokens and sentence-splits. This involves wrapping
+   * the joined text from the tokens within a <p>..</p> tag. In addition
+   * at the end of each sentence, if the sentenceSplit object indicates
+   * that there is a paragraph break, then a new paragraph is initiated, while
+   * if it indicates that there is a line break, then a <br> is inserted.
+   * @param {!Array<string>} tokens
+   * @param {!Array<!Object>} sentenceSplits
+   * @return {string}
+   */
+  htmlFromTokens(tokens, sentenceSplits) {
+    let html = '<p>\n';
+    let nextToken = 0;
+    for (const split of sentenceSplits) {
+      const end = nextToken + split.num_tokens;
+      html += tokens.slice(nextToken, end).join('');
+      nextToken = end;
+      if (split.ends_with_para_break) {
+        html += '</p>\n<p>\n';
+      } else if (split.ends_with_line_break) {
+        html += '<br>\n';
+      }
+    }
+    html += tokens.slice(nextToken).join('');
+    html += '</p>\n';
+    return html;
+  }
+
+  /**
    * Updates the display to show the segment data and scores according to the
    * current filters.
    * @param {?Object=} viewingConstraints Optional dict of doc:seg to view. When
@@ -2997,6 +3044,7 @@ class Marot {
           let shownForDocSegSys = 0;
           let firstRowId = -1;
           let ratingRowsHTML = '';
+          let segmentMetadata = null;
           let sourceTokens = null;
           let targetTokens = null;
           let lastRater = '';
@@ -3048,8 +3096,9 @@ class Marot {
             if (firstRowId < 0) {
               firstRowId = rowId;
 
-              sourceTokens = (metadata.segment.source_tokens || []).slice();
-              targetTokens = (metadata.segment.target_tokens || []).slice();
+              segmentMetadata = metadata.segment;
+              sourceTokens = (segmentMetadata.source_tokens || []).slice();
+              targetTokens = (segmentMetadata.target_tokens || []).slice();
 
               currSegStats = this.getSegStats(
                   this.stats[this.TOTAL], docColonSys, docSegId);
@@ -3060,8 +3109,8 @@ class Marot {
                   this.getSegStats(this.stats[system], doc, docSegId);
               currSegStats.srcLen = parts.srcLen;
               currSegStatsBySys.srcLen = parts.srcLen;
-              if (metadata.segment.hasOwnProperty('metrics')) {
-                currSegStatsBySys.metrics = metadata.segment.metrics;
+              if (segmentMetadata.hasOwnProperty('metrics')) {
+                currSegStatsBySys.metrics = segmentMetadata.metrics;
                 for (let metric in currSegStatsBySys.metrics) {
                   visibleMetrics[metric] = true;
                 }
@@ -3069,7 +3118,7 @@ class Marot {
               /**
                * Clear aggregated docseg info from filteredMetadata.segment.
                */
-              filteredMetadata.segment = {...metadata.segment};
+              filteredMetadata.segment = {...segmentMetadata};
               delete filteredMetadata.segment.aggrDocSeg;
             } else {
               /**
@@ -3174,9 +3223,13 @@ class Marot {
               refRowHTML += '<td><div>' + docSegId + '</div></td>';
               refRowHTML += '<td><div><b>Ref</b>: ' + ref + '</div></td>';
               const sourceTokens = aggrDocSeg.source_tokens || [];
-              refRowHTML += '<td><div>' + sourceTokens.join('') + '</div></td>';
               refRowHTML += '<td><div>' +
-                            aggrDocSeg.references[ref] +
+                  this.htmlFromTokens(
+                      sourceTokens,
+                      segmentMetadata.source_sentence_splits ?? []) +
+                  '</div></td>';
+              refRowHTML += '<td><div>' +
+                            this.htmlFromReference(aggrDocSeg.references[ref]) +
                             '</div></td>';
               refRowHTML += '<td></td></tr>\n';
               this.table.insertAdjacentHTML('beforeend', refRowHTML);
@@ -3194,12 +3247,16 @@ class Marot {
           rowHTML += `id="marot-val-${firstRowId}-${this.DATA_COL_SYSTEM}">` +
                      system + '</div></td>';
 
-          const source = sourceTokens.length > 0 ? sourceTokens.join('') :
-                         this.data[firstRowId][this.DATA_COL_SOURCE].replace(
-                             /<\/?v>/g, '');
-          const target = targetTokens.length > 0 ? targetTokens.join('') :
-                         this.data[firstRowId][this.DATA_COL_TARGET].replace(
-                             /<\/?v>/g, '');
+          const source = sourceTokens.length > 0 ?
+              this.htmlFromTokens(
+                  sourceTokens, segmentMetadata.source_sentence_splits ?? []) :
+              this.data[firstRowId][this.DATA_COL_SOURCE].replace(
+                  /<\/?v>/g, '');
+          const target = targetTokens.length > 0 ?
+              this.htmlFromTokens(
+                  targetTokens, segmentMetadata.target_sentence_splits ?? []) :
+              this.data[firstRowId][this.DATA_COL_TARGET].replace(
+                  /<\/?v>/g, '');
 
           rowHTML += '<td><div>' + source + '</div></td>';
           rowHTML += '<td><div>' + target + '</div></td>';
@@ -3601,6 +3658,27 @@ class Marot {
       }
       if (!metadata.segment.references) {
         metadata.segment.references = {};
+      }
+      /**
+       * Convert legacy format for sentence-splits info.
+       */
+      if (metadata.segment.hasOwnProperty('source_sentence_tokens') &&
+          !metadata.segment.hasOwnProperty('source_sentence_splits')) {
+        metadata.segment.source_sentence_splits = [];
+        for (const num_tokens of metadata.segment.source_sentence_tokens) {
+          metadata.segment.source_sentence_splits.push({
+            num_tokens: num_tokens
+          });
+        }
+      }
+      if (metadata.segment.hasOwnProperty('target_sentence_tokens') &&
+          !metadata.segment.hasOwnProperty('target_sentence_splits')) {
+        metadata.segment.target_sentence_splits = [];
+        for (const num_tokens of metadata.segment.target_sentence_tokens) {
+          metadata.segment.target_sentence_splits.push({
+            num_tokens: num_tokens
+          });
+        }
       }
       if (!metadata.segment.metrics) {
         metadata.segment.metrics = {};
