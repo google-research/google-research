@@ -145,7 +145,7 @@ def train_step(
     if name == 'observation' or name == 'next_observation':
       x = jnp.transpose(x, axes=[3, 0, 1, 2])
     return mesh_utils.with_sharding_constraint(
-        x, mesh_utils.map_leading_axis_to_pspec(x, 'data')
+        x, mesh_utils.map_leading_axis_to_pspec(x, 'data')  # pytype: disable=wrong-arg-types  # jnp-type
     )
 
   with jax.profiler.TraceAnnotation('transpose-observation'):
@@ -270,7 +270,7 @@ def train_step(
           indicator_state.step < config.offline.indicator.num_qr_steps
       ) * proportion_loss
 
-    return loss, (train_infos, indicator_infos)
+    return loss, (train_infos, indicator_infos)  # pytype: disable=bad-return-type  # jnp-type
 
   grad_fn = jax.grad(loss_fn, argnums=(0, 1), has_aux=True, allow_int=True)
   (train_grads, indicator_grads), (train_infos, indicator_infos) = grad_fn(

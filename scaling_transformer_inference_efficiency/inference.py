@@ -99,8 +99,8 @@ def infer(
 
     x, layer_k, layer_v = _transformer_layer_fn(h, layer, params.layer, sin,
                                                 cos, kv_caches, x)
-    x, layer_k, layer_v = intermediate_dtype(x), intermediate_dtype(
-        layer_k), intermediate_dtype(layer_v)
+    x, layer_k, layer_v = intermediate_dtype(x), intermediate_dtype(  # pytype: disable=not-callable  # jnp-type
+        layer_k), intermediate_dtype(layer_v)  # pytype: disable=not-callable  # jnp-type
     k = lax.dynamic_update_index_in_dim(k, jnp.swapaxes(layer_k, 0, 1), layer,
                                         0)
     v = lax.dynamic_update_index_in_dim(v, jnp.swapaxes(layer_v, 0, 1), layer,

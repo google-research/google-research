@@ -29,7 +29,7 @@ import numpy as np
 
 def interleave(a, b):
   """Interleave two 1D arrays."""
-  return jnp.dstack((a, b)).flatten()
+  return jnp.dstack((a, b)).flatten()  # pytype: disable=wrong-arg-types  # jnp-type
 
 
 def split_apart_axis(x, num_splits, axis):

@@ -456,7 +456,7 @@ class CoCaVilaPretrain(base_model.BaseModel):
     reflen = jnp.reshape(reflen, [-1])
 
     decoded_strs = input_obj.ids_to_strings(hyp, hyplen)
-    ref_strs = input_obj.ids_to_strings(ref, reflen)
+    ref_strs = input_obj.ids_to_strings(ref, reflen)  # pytype: disable=wrong-arg-types  # jnp-type
     ref_str_list = list()
 
     generation_outputs = []

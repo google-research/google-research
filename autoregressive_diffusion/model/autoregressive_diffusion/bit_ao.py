@@ -872,7 +872,7 @@ class BitUpscaleAutoregressiveDiffusion(struct.PyTreeNode):
           if self.direct_parametrization:
             # Convert the code to the value it attains in x.
             s_reverse = self.num_stages - 1 - stage_batch
-            s_reverse = jnp.expand_dims(s_reverse,
+            s_reverse = jnp.expand_dims(s_reverse,  # pytype: disable=wrong-arg-types  # jnp-type
                                         jnp.arange(1, len(decoded_value.shape)))
             decoded_value = decoded_value * self.branch_factor**s_reverse
 
@@ -960,7 +960,7 @@ class BitUpscaleAutoregressiveDiffusion(struct.PyTreeNode):
 
           if self.direct_parametrization:
             s_rev = self.num_stages - 1 - stage_batch
-            s_rev = jnp.expand_dims(s_rev, jnp.arange(1, len(x_encode.shape)))
+            s_rev = jnp.expand_dims(s_rev, jnp.arange(1, len(x_encode.shape)))  # pytype: disable=wrong-arg-types  # jnp-type
             x_encode = (x_encode //
                         self.branch_factor**s_rev) % self.branch_factor
           streams = ardm_utils.encode(streams, x_encode, probs)

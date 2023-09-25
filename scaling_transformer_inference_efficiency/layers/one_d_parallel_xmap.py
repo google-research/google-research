@@ -99,7 +99,7 @@ def weight_stationary_simple(
     mean2 = lax.pmean(
         jnp.mean(lax.square(x), axis=-1, keepdims=True), axis_name='x'
     )
-    xnorm = intermediate_dtype(x * lax.rsqrt(mean2 + epsilon))
+    xnorm = intermediate_dtype(x * lax.rsqrt(mean2 + epsilon))  # pytype: disable=not-callable  # jnp-type
 
   # einsum(xnorm, q_wi):
   # [batch, maxlen, dmodel.X] @ [heads.XYZ, dmodel, q_wi_per_head]
@@ -176,7 +176,7 @@ def weight_stationary_simple(
     q = _rope(sin, cos, q)
 
     # y_att: -> [batch.B, maxlen, heads.XYZ, qkv]
-    y_att = intermediate_dtype(attention.attend(q, k, v, kv_caches, layer))
+    y_att = intermediate_dtype(attention.attend(q, k, v, kv_caches, layer))  # pytype: disable=not-callable  # jnp-type
 
   with jax.named_scope('SwiGLU'):
     y_mlp = special2.swish2(wi0) * wi1
@@ -222,7 +222,7 @@ def weight_stationary_simple(
       two_d_parallel_xmap.assert_equal(y_out.shape, prev_shape)
 
   with jax.named_scope('residual'):
-    z = intermediate_dtype(y_out + x)
+    z = intermediate_dtype(y_out + x)  # pytype: disable=not-callable  # jnp-type
   k, v = k.astype(intermediate_dtype), v.astype(intermediate_dtype)
   return z, k, v
 

@@ -239,13 +239,13 @@ def train(encoder_network_def,
                                                rewards,
                                                shuffled_idx,
                                                cumulative_gamma)
-      return jnp.mean(jax.vmap(losses.huber_loss)(online_distances,
+      return jnp.mean(jax.vmap(losses.huber_loss)(online_distances,  # pytype: disable=bad-return-type  # jnp-type
                                                   target_distances))
     else:
       online_dist = jax.vmap(l1)(learned_z, shuffled_z)
       target_dist = target_z_distances(
           predicted_dynamics, rewards, shuffled_idx, cumulative_gamma)
-      return jnp.mean(jax.vmap(lambda x: x**2)(online_dist - target_dist))
+      return jnp.mean(jax.vmap(lambda x: x**2)(online_dist - target_dist))  # pytype: disable=bad-return-type  # jnp-type
 
   def dynamics_loss_fn(
       reward_params,

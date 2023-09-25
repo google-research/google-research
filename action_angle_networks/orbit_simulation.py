@@ -31,7 +31,7 @@ def generate_canonical_coordinates(
   def eccentric_anomaly_to_time(eccentric_anomaly):
     """Maps eccentricity to time."""
     mean_anomaly = eccentric_anomaly - e * jnp.sin(eccentric_anomaly)
-    return period * mean_anomaly / (2 * jnp.pi) + t0
+    return period * mean_anomaly / (2 * jnp.pi) + t0  # pytype: disable=bad-return-type  # jnp-type
 
   def fixed_point_func(eccentric_anomaly):
     """Defines a function f such that its fixed point E satisfies eccentricity_to_time(E) = t."""

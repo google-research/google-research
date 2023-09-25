@@ -106,7 +106,7 @@ def compute_cosine_similarity(Y1, Y2):
     return jnp.linalg.norm(projection)
   except np.linalg.LinAlgError:
     pass
-  return jnp.nan
+  return jnp.nan  # pytype: disable=bad-return-type  # jnp-type
 
 
 def compute_normalized_dot_product(
@@ -131,7 +131,7 @@ def eigengame_subspace_distance(
 
     return 1 - 1 / d * jnp.trace(U_star @ P_star)
   except np.linalg.LinAlgError:
-    return jnp.nan
+    return jnp.nan  # pytype: disable=bad-return-type  # jnp-type
 
 
 def compute_metrics(

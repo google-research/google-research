@@ -1226,4 +1226,4 @@ def aggregate_unrolled_per_node(
                              num_combined]).at[0, node_index,
                                                initial_state].set(1.)
 
-  return jnp.concatenate([initial_state, per_node_combined], 0)
+  return jnp.concatenate([initial_state, per_node_combined], 0)  # pytype: disable=bad-return-type  # jnp-type

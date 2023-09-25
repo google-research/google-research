@@ -36,13 +36,13 @@ class Color:
     self.arr = jnp.array([r, g, b], dtype=jnp.float32)
 
   def r(self):
-    return self.arr[0]
+    return self.arr[0]  # pytype: disable=bad-return-type  # jnp-type
 
   def g(self):
-    return self.arr[1]
+    return self.arr[1]  # pytype: disable=bad-return-type  # jnp-type
 
   def b(self):
-    return self.arr[2]
+    return self.arr[2]  # pytype: disable=bad-return-type  # jnp-type
 
   def array(self):
     return self.arr
