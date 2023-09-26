@@ -993,6 +993,26 @@ const antheaTemplateBase = {
                 severely affected.</td>
           </tr>
           <tr>
+            <td>EN_FR</td>
+            <td>Opinion
+                <p>I believe the honourable Prime Minister made a serious error.
+                We should never have negotiated under the present circumstances.
+                </p>
+            <td><span class="span-major">Avis</span>
+                Je crois que l'honorable premier ministre a commis une grave
+                erreur.<br><span class="span-minor">Nous</span><br>n’aurions
+                jamais dû négocier dans les
+                circonstances actuelles.</td>
+            <td>
+              1. Fluency - Text-Breaking - Major <br>
+              2. Fluency - Text-Breaking - Minor
+            </td>
+            <td>The translation is missing the important paragraph break needed
+                between the section heading and the section body. The
+                second error is an extraneous line-break in the middle of a
+                sentence, which is a minor error.</td>
+          </tr>
+          <tr>
             <td>ZH_EN</td>
             <td>
               4月25日，北京春风和煦，清华园内彩旗招展，庆祝清华大学建校110<!--
